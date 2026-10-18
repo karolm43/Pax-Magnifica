@@ -67,6 +67,27 @@ FLEET_CODE_TO_BASE_TYPE: dict[str, str] = {
 }
 
 
+# Limity sztuk (supply/plastik) per typ jednostki — ile gracz ma w rezerwie.
+# ŹRÓDŁO (nie z pamięci): AsyncTI4 bot, plik
+# ``TI4_map_generator_bot/src/main/resources/positions/reinforcements.properties``
+# — liczba par współrzędnych na danej jednostce = limit sztuk. Monument: 1
+# (specjalny przypadek w Player.getUnitCap). Kluczowane przez ``asyncId``.
+UNIT_CAP_BY_ASYNC_ID: dict[str, int] = {
+    "gf": 12,  # infantry
+    "ff": 10,  # fighter
+    "mf": 4,  # mech
+    "dd": 8,  # destroyer
+    "ca": 8,  # cruiser
+    "cv": 4,  # carrier
+    "dn": 5,  # dreadnought
+    "fs": 1,  # flagship
+    "ws": 2,  # warsun
+    "pd": 6,  # pds
+    "sd": 3,  # spacedock
+    "monument": 1,
+}
+
+
 def placement_of(base_type: str) -> Placement:
     """Umiejscowienie jednostki (przestrzeń/planeta) dla danego ``baseType``.
 

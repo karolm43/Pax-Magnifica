@@ -143,15 +143,47 @@ def test_new_game_too_many_players_422(client: TestClient) -> None:
     assert resp.status_code == 422
 
 
-def test_web_data_omits_empty_units_owned(client: TestClient) -> None:
-    # KLUCZOWE: pole 'unitsOwned' NIE może być pustą listą — frontend lookupUnit
-    # odrzuca wtedy wszystkie jednostki ([].includes zawsze False) i panel/dossier
-    # nie pokazuje jednostek. Pomijamy pole (albo realne ID), nigdy [].
+def test_web_data_units_owned_is_real_base_ids(client: TestClient) -> None:
+    # KLUCZOWE: 'unitsOwned' NIE może być [] (frontend lookupUnit odrzuca wtedy
+    # wszystkie jednostki — [].includes zawsze False). Wysyłamy realne ID jednostek
+    # BAZOWYCH (bez ulepszeń), by panel nie pokazywał błędnie „Upgraded".
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     data = client.get("/api/public/game/g/web-data").json()
-    player = data["playerData"][0]
-    assert player.get("unitsOwned") != []
-    assert "unitsOwned" not in player
+    owned = data["playerData"][0]["unitsOwned"]
+    assert isinstance(owned, list) and len(owned) > 0
+    # Jednostki bazowe generyczne są obecne.
+    assert "carrier" in owned
+    assert "fighter" in owned
+    # Warianty frakcyjne Sola też.
+    assert "sol_flagship" in owned
+
+
+def test_web_data_unit_counts_cap_and_deployed(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    counts = data["playerData"][0]["unitCounts"]
+    # Limity supply z AsyncTI4 (reinforcements.properties).
+    assert counts["cv"]["unitCap"] == 4
+    assert counts["ff"]["unitCap"] == 10
+    assert counts["gf"]["unitCap"] == 12
+    # Sol startuje z 2 carrierami w przestrzeni domowej → deployedCount >= 2.
+    assert counts["cv"]["deployedCount"] >= 2
+
+
+def test_web_data_stat_tile_positions(client: TestClient) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    stats = data["statTilePositions"]
+    # Każda frakcja ma 3 pozycje pierścienia 4 (heksy player-stats).
+    assert set(stats.keys()) == {"sol", "hacan"}
+    # Sol na slocie 301 → trzy najbliższe pozycje pierścienia 4 (zgodne z AsyncTI4).
+    assert set(stats["sol"]) == {"401", "402", "424"}
+    for positions in stats.values():
+        assert len(positions) == 3
+        assert all(p.startswith("4") for p in positions)
 
 
 def test_web_data_player_data_carries_counters(client: TestClient) -> None:

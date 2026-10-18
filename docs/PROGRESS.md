@@ -633,3 +633,34 @@ feature (dashboard frakcji liczony z pozycji stat-tile) — do zrobienia późni
 jest to część jednostek. Patrz `docs/ARCHITEKTURA_PO_MIGRACJI.md`.
 
 **QA:** backend 85 testów zielone, ruff + mypy czyste.
+
+---
+
+### ✅ Blok F7 — rezerwy jednostek (unitCounts), unitsOwned, heksy player-stats
+
+**Uwaga użytkownika:** panel „ile jednostek zostało / na planszy / upgrade" pokazywał
+złe liczby (wszystko „Upgraded", monument `NaN`); brakowało kolorowych heksów player-stats.
+
+**Diagnoza (analiza kodu frontendu + dane żywej gry `pbd30347`):**
+- Panel rezerwy czyta `playerData.unitCounts[asyncId] = {unitCap, deployedCount}` i pokazuje
+  `unitCap - deployedCount`. Wysyłaliśmy `{}` → złe/NaN liczby.
+- Błędne „Upgraded": `PlayerCardUnitsArea` wybiera jednostkę przez `lookupUnit`, które
+  (przy pominiętym `unitsOwned`) `preferUpgradedUnit` → zwracało wariant ULEPSZONY.
+- Zielone heksy: `PlayerStatsHex` zasilany `statTilePositions` (wysyłaliśmy `{}`).
+
+**Źródło limitów (nie z pamięci):** `TI4_map_generator_bot/.../reinforcements.properties`
+→ liczba par współrzędnych = limit sztuk. Spisane do `docs/RULES.md` 3 (+ monument=1).
+
+**Zrobione (backend `web_data.py` + `unit_catalog.py`):**
+- `UNIT_CAP_BY_ASYNC_ID` — zweryfikowane limity supply (gf 12, ff 10, dd/ca 8, cv/mf 4,
+  dn 5, pd 6, sd 3, ws 2, fs/monument 1).
+- `unitCounts` per gracz: `unitCap` z tabeli + `deployedCount` liczony z planszy
+  (space + planety, per asyncId).
+- `unitsOwned`: realne ID jednostek BAZOWYCH (generyczne + frakcyjne `<faction>_*`, bez
+  ulepszeń) → `lookupUnit` zwraca bazowe, panel nie pokazuje błędnie „Upgraded". NIGDY [].
+- `statTilePositions`: 3 najbliższe pozycje pierścienia 4 do slotu domowego (geometrycznie,
+  zgodne 1:1 z AsyncTI4). Spisane do `docs/RULES.md` 4.
+
+**Zweryfikowane E2E:** `sol cv cap=4 deployed=2`, `gf cap=12 deployed=5`; `unitsOwned`
+= `carrier,cruiser,…,sol_flagship`; `statTilePositions sol=401,402,424 naaz=404,405,406`.
+Backend 88 testów zielone, ruff + mypy czyste.

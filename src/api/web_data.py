@@ -30,8 +30,13 @@ from typing import Any
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
+from src.core.positions import load_positions
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
+from src.core.unit_catalog import (
+    ASYNC_ID_BY_BASE_TYPE,
+    UNIT_CAP_BY_ASYNC_ID,
+    is_space_unit,
+)
 
 # Wersja schematu dokumentu web-data wymagana przez frontend ti4_web
 # (``REQUIRED_VERSION_SCHEMA`` w ``GameMapPage.tsx``). Dokument ze starszą/brakującą
@@ -210,6 +215,71 @@ def _fill_planet_stats(
         entry["influence"] = planet.influence
 
 
+def _deployed_counts_by_player(state: GameState) -> dict[str, dict[str, int]]:
+    """Liczy jednostki na planszy per gracz i ``asyncId`` (przestrzeń + planety).
+
+    Zwraca ``{player_id: {asyncId: liczba}}``. Używane do ``unitCounts.deployedCount``
+    (ile sztuk danego typu stoi na mapie — reszta to rezerwa).
+    """
+    result: dict[str, dict[str, int]] = {}
+
+    def add(player_id: str, base_type: str, count: int) -> None:
+        async_id = ASYNC_ID_BY_BASE_TYPE.get(base_type)
+        if async_id is None or count <= 0:
+            return
+        bucket = result.setdefault(player_id, {})
+        bucket[async_id] = bucket.get(async_id, 0) + count
+
+    for system in state.systems.values():
+        for player_id, by_type in system.space_units.items():
+            for base_type, count in by_type.items():
+                add(player_id, base_type, count)
+        for by_player in system.planet_units.values():
+            for player_id, by_type in by_player.items():
+                for base_type, count in by_type.items():
+                    add(player_id, base_type, count)
+    return result
+
+
+def _units_owned_for_faction(
+    faction_id: str | None, registry: StaticDataRegistry
+) -> list[str]:
+    """Lista ID jednostek posiadanych przez frakcję (baza generyczna + frakcyjna).
+
+    Pomija warianty ulepszone (``upgrades_from_unit_id``) i placeholdery (``nowarsun``,
+    ``cavalry*``). Dzięki temu ``lookupUnit`` frontendu rozwiązuje jednostki BAZOWE
+    (nie pokazuje błędnie wszystkiego jako „Upgraded"). Jednostki frakcyjne mają ID
+    z prefiksem ``<faction>_`` w danych AsyncTI4.
+    """
+    owned: list[str] = []
+    standard_async = set(ASYNC_ID_BY_BASE_TYPE.values())
+    for unit in registry.units.values():
+        if unit.upgrades_from_unit_id is not None:
+            continue
+        if unit.async_id not in standard_async:
+            continue  # pomija cavalry/placeholdery
+        if unit.id == "nowarsun":
+            continue
+        is_generic = "_" not in unit.id
+        is_faction = faction_id is not None and unit.id.startswith(f"{faction_id}_")
+        if is_generic or is_faction:
+            owned.append(unit.id)
+    return sorted(owned)
+
+
+def _unit_counts(deployed: dict[str, int]) -> dict[str, dict[str, int]]:
+    """Buduje ``unitCounts`` = ``{asyncId: {unitCap, deployedCount}}`` dla gracza.
+
+    ``unitCap`` z limitów supply (``UNIT_CAP_BY_ASYNC_ID``, źródło: AsyncTI4),
+    ``deployedCount`` z liczby jednostek na planszy. Panel rezerwy pokazuje
+    ``unitCap - deployedCount``.
+    """
+    return {
+        async_id: {"unitCap": cap, "deployedCount": deployed.get(async_id, 0)}
+        for async_id, cap in UNIT_CAP_BY_ASYNC_ID.items()
+    }
+
+
 def _planet_economy(
     controlled_planets: list[str], registry: StaticDataRegistry
 ) -> tuple[int, int]:
@@ -224,16 +294,64 @@ def _planet_economy(
     return resources, influence
 
 
+def _player_home_position(player_id: str, state: GameState) -> str | None:
+    """Pozycja systemu domowego gracza (gdzie kontroluje planety)."""
+    for position, system in state.systems.items():
+        if any(owner == player_id for owner in system.planet_owners.values()):
+            return position
+    return None
+
+
+def _nearest_ring4(home_position: str) -> list[str]:
+    """Trzy najbliższe pozycje pierścienia 4 do slotu domowego (stat-area heksy).
+
+    Zweryfikowane geometrycznie: pokrywa się 1:1 z układem ``statTilePositions``
+    AsyncTI4 (np. ``301 → 401,402,424``). Puste, gdy brak pozycji w aliasie.
+    """
+    coords = load_positions()
+    home = coords.get(home_position)
+    if home is None:
+        return []
+    ring4 = [p for p in coords if p.startswith("4") and len(p) == 3 and p.isdigit()]
+
+    def dist(pos_id: str) -> int:
+        h = coords[pos_id]
+        return (abs(h.q - home.q) + abs(h.r - home.r) + abs(h.s - home.s)) // 2
+
+    return sorted(sorted(ring4, key=dist)[:3], key=int)
+
+
+def _build_stat_tile_positions(state: GameState) -> dict[str, list[str]]:
+    """Buduje ``statTilePositions`` = ``{faction: [3 pozycje pierścienia 4]}``.
+
+    Dla każdego gracza bierze jego slot domowy i trzy najbliższe pozycje pierścienia 4
+    (geometrycznie, zgodnie z układem AsyncTI4). To zasila kolorowe heksy „player
+    stats" przy planszy (``PlayerStatsHex``).
+    """
+    result: dict[str, list[str]] = {}
+    for player_id, player in state.players.items():
+        home = _player_home_position(player_id, state)
+        if home is None:
+            continue
+        positions = _nearest_ring4(home)
+        if positions:
+            result[_faction_key(player)] = positions
+    return result
+
+
 def _build_player_data(
     state: GameState, registry: StaticDataRegistry
 ) -> list[dict[str, Any]]:
     """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
     players: list[dict[str, Any]] = []
+    deployed_by_player = _deployed_counts_by_player(state)
     for player_id, player in sorted(state.players.items()):
         faction = _faction_key(player)
         total_res, total_inf = _planet_economy(
             player.controlled_planets, registry
         )
+        units_owned = _units_owned_for_faction(player.faction, registry)
+        unit_counts = _unit_counts(deployed_by_player.get(player_id, {}))
         players.append(
             {
                 "discordId": player_id,
@@ -256,11 +374,11 @@ def _build_player_data(
                 "strategicCC": 0,
                 "ccReinf": 0,
                 "totalVps": player.victory_points,
-                # UWAGA: NIE wysyłamy "unitsOwned" jako [] — pusta lista psuje
-                # lookupUnit frontendu ([].includes(id) zawsze False → filtr
-                # odrzuca wszystkie jednostki → brak jednostek w panelu/dossier).
-                # Pomijamy pole: wtedy frontend rozwiązuje jednostki generycznie
-                # i frakcyjnie poprawnie. (Patrz docs/RULES bloka F6.)
+                # unitsOwned: realne ID posiadanych jednostek (baza generyczna +
+                # frakcyjna, bez ulepszeń). NIGDY []! Pusta lista psuje lookupUnit
+                # ([].includes zawsze False). Lista steruje też stanem "Upgraded":
+                # skoro gracz ma tylko bazowe, panel nie pokazuje ich jako ulepszone.
+                "unitsOwned": units_owned,
                 "techs": list(player.technologies),
                 "exhaustedTechs": [],
                 "factionTechs": [],
@@ -286,7 +404,7 @@ def _build_player_data(
                 "soCount": 0,
                 "pnCount": 0,
                 "acCount": 0,
-                "unitCounts": {},
+                "unitCounts": unit_counts,
                 # Ekonomia planet: suma zasobów/wpływów kontrolowanych planet
                 # (z rejestru). Optymalne/flex liczymy dopiero w fazie strategicznej.
                 "resources": total_res,
@@ -403,7 +521,7 @@ def build_web_data(
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(state, registry),
-        "statTilePositions": {},
+        "statTilePositions": _build_stat_tile_positions(state),
         "lawsInPlay": [],
         "strategyCards": [],
         "objectives": _empty_objectives(),

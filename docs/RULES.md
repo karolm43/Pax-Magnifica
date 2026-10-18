@@ -230,3 +230,45 @@ Zweryfikowane zasady do zaimplementowania, gdy powstanie logika ruchu
   → HexGrid przeprojektowany: graf = czyste sąsiedztwo (geometria + wormhole);
   przejezdność/blokady przeniesione do metadanych anomalii per-system do użycia
   przez przyszłą warstwę ruchu.
+
+---
+
+## 3. Limity sztuk jednostek (plastic / supply caps) — ✅ ZWERYFIKOWANE
+
+Źródło (NIE z pamięci): AsyncTI4 bot,
+`TI4_map_generator_bot/src/main/resources/positions/reinforcements.properties`.
+`Player.getUnitCap(unit)` zwraca liczbę pozycji (par współrzędnych) danej jednostki
+w layoucie rezerwy = liczba sztuk, które gracz ma w puli. Monument = 1 (specjalny
+przypadek w `Player.getUnitCap`). Potwierdzone zgodnością z danymi żywej gry AsyncTI4.
+
+Limity per `asyncId` (zakodowane w `src/core/unit_catalog.py` → `UNIT_CAP_BY_ASYNC_ID`):
+
+| asyncId | jednostka | limit |
+|---|---|---|
+| gf | infantry | 12 |
+| ff | fighter | 10 |
+| mf | mech | 4 |
+| dd | destroyer | 8 |
+| ca | cruiser | 8 |
+| cv | carrier | 4 |
+| dn | dreadnought | 5 |
+| fs | flagship | 1 |
+| ws | warsun | 2 |
+| pd | pds | 6 |
+| sd | spacedock | 3 |
+| monument | monument | 1 |
+
+Zastosowanie: `playerData.unitCounts[asyncId] = {unitCap, deployedCount}` w dokumencie
+`web-data`. Panel rezerwy frontendu pokazuje `unitCap - deployedCount` (ile zostało
+w puli). `deployedCount` = liczba sztuk danego typu gracza na planszy.
+
+---
+
+## 4. Pozycje stat-area (player-stats heksy) — ✅ ZWERYFIKOWANE (geometrycznie)
+
+Kolorowe heksy „player stats" przy planszy stoją na 3 pozycjach pierścienia 4
+najbliższych slotowi domowemu gracza (pierścień 3). Zweryfikowane 1:1 z `statTilePositions`
+żywej gry AsyncTI4: `301 → 401,402,424`, `304 → 404,405,406`, `307 → 408,409,410`,
+`310 → 412,413,414`, `313 → 416,417,418`, `316 → 420,421,422`. Liczone geometrycznie
+w `src/api/web_data.py` (`_nearest_ring4`) — 3 najbliższe pozycje ring-4 wg odległości
+kubicznej. Zasila `statTilePositions` w `web-data`.
