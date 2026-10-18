@@ -33,6 +33,11 @@ from src.core.map_string import HOME_SLOT_SYSTEM_ID
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
 
+# Wersja schematu dokumentu web-data wymagana przez frontend ti4_web
+# (``REQUIRED_VERSION_SCHEMA`` w ``GameMapPage.tsx``). Dokument ze starszą/brakującą
+# wersją powoduje ekran "Update Needed" zamiast renderu planszy.
+WEB_DATA_SCHEMA_VERSION = 5
+
 
 def _faction_key(player: PlayerState) -> str:
     """Klucz frakcji używany w ``tileUnitData`` (frakcja lub zastępczo id gracza)."""
@@ -357,6 +362,10 @@ def build_web_data(
         "gameRound": state.round_number,
         "ringCount": _ring_count(grid),
         "vpsToWin": vps_to_win,
+        # Wersja schematu danych oczekiwana przez frontend (ti4_web). Poniżej tej
+        # wartości frontend blokuje render ekranem "Update Needed". Trzymamy stałą
+        # zgodną z REQUIRED_VERSION_SCHEMA w GameMapPage.tsx.
+        "versionSchema": WEB_DATA_SCHEMA_VERSION,
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(state),

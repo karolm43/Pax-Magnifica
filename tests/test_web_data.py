@@ -52,6 +52,9 @@ def test_web_data_has_required_top_level_keys(client: TestClient) -> None:
         assert key in data, f"brak pola {key}"
     assert data["gameName"] == "g"
     assert data["ringCount"] >= 3
+    # Wersja schematu musi spełniać próg frontendu, inaczej render blokuje
+    # ekran "Update Needed" (REQUIRED_VERSION_SCHEMA w GameMapPage.tsx).
+    assert data["versionSchema"] >= 5
 
 
 def test_web_data_tile_positions_format(client: TestClient) -> None:
