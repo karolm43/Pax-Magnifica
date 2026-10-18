@@ -143,6 +143,17 @@ def test_new_game_too_many_players_422(client: TestClient) -> None:
     assert resp.status_code == 422
 
 
+def test_web_data_omits_empty_units_owned(client: TestClient) -> None:
+    # KLUCZOWE: pole 'unitsOwned' NIE może być pustą listą — frontend lookupUnit
+    # odrzuca wtedy wszystkie jednostki ([].includes zawsze False) i panel/dossier
+    # nie pokazuje jednostek. Pomijamy pole (albo realne ID), nigdy [].
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    player = data["playerData"][0]
+    assert player.get("unitsOwned") != []
+    assert "unitsOwned" not in player
+
+
 def test_web_data_player_data_carries_counters(client: TestClient) -> None:
     client.post("/map/load", json={"map_string": SAMPLE_MAP_STRING})
     client.post(

@@ -605,3 +605,31 @@ Działają „za darmo", gdy tylko dane się zgadzają — a po naprawie ekonomi
 kompletne (systemId, nazwy planet, kontrola, zasoby/wpływy, jednostki jako asyncId).
 
 **QA:** backend 85 testów zielone, ruff + mypy czyste; frontend type-check + lint + build czyste.
+
+---
+
+### ✅ Blok F6 — fix: jednostki w panelu/dossier (pusta unitsOwned psuła lookupUnit)
+
+**Objaw:** po kliknięciu w układ panel „System Dossier" nie pokazywał jednostek
+(brak Orbit/sił na planetach, brak HITS/HP/CAP). Zasoby planet działały.
+
+**Root cause (znaleziony przez analizę kodu frontendu):** backend wysyłał
+`playerData[].unitsOwned = []` (pusta lista). W `lookupUnit` (frontend) pusta lista
+jest TRUTHY, a `[].includes(id)` zawsze `False`, więc `filterUnitsFromList` odrzucał
+WSZYSTKIE jednostki → `lookupUnit` zwracał `null` → `collectUnitRows` (dossier)
+pomijał każdy wiersz. (Render sprite'ów na planszy NIE zależy od lookupUnit —
+dlatego jednostki na kafelkach i tak się rysowały; problem był w panelu.)
+
+**Fix:** `web_data.py` NIE wysyła już `unitsOwned`. Gdy pole jest nieobecne,
+frontend rozwiązuje jednostki generycznie i frakcyjnie poprawnie. (Nigdy `[]` —
+to najgorszy przypadek. Alternatywa: realne ID posiadanych jednostek.)
+- Test regresji: `test_web_data_omits_empty_units_owned`.
+- Zweryfikowano: klucze frakcji w `tileUnitData` == `playerData[].faction` (sol, xxcha),
+  kolory rozpoznawane przez frontend → sprite'y się rozwiązują.
+
+**Znana luka (nie-blokująca):** zielone heksy „player stats" przy planszy
+(`PlayerStatsHex`) nie renderują się, bo wysyłamy `statTilePositions: {}`. To osobny
+feature (dashboard frakcji liczony z pozycji stat-tile) — do zrobienia później, nie
+jest to część jednostek. Patrz `docs/ARCHITEKTURA_PO_MIGRACJI.md`.
+
+**QA:** backend 85 testów zielone, ruff + mypy czyste.

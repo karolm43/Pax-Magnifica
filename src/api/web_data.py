@@ -256,8 +256,11 @@ def _build_player_data(
                 "strategicCC": 0,
                 "ccReinf": 0,
                 "totalVps": player.victory_points,
-                # Posiadane rzeczy (ID rozwiązywane po stronie frontendu).
-                "unitsOwned": [],
+                # UWAGA: NIE wysyłamy "unitsOwned" jako [] — pusta lista psuje
+                # lookupUnit frontendu ([].includes(id) zawsze False → filtr
+                # odrzuca wszystkie jednostki → brak jednostek w panelu/dossier).
+                # Pomijamy pole: wtedy frontend rozwiązuje jednostki generycznie
+                # i frakcyjnie poprawnie. (Patrz docs/RULES bloka F6.)
                 "techs": list(player.technologies),
                 "exhaustedTechs": [],
                 "factionTechs": [],
