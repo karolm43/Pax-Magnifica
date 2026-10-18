@@ -96,6 +96,51 @@ def test_web_data_units_use_async_ids(client: TestClient) -> None:
     assert jord["controlledBy"] == "sol"
     ground_ids = {e["entityId"] for e in jord["entities"]["sol"]}
     assert "gf" in ground_ids  # piechota
+    # Zasoby/wpływy muszą być z rejestru także dla planety ZAJĘTEJ (nie zera).
+    assert jord["resources"] > 0
+    assert jord["influence"] > 0
+
+
+def test_web_data_player_economy_sums_controlled_planets(
+    client: TestClient,
+) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}]},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    # Panel gracza pokazuje ekonomię z kontrolowanych planet (nie zera).
+    assert sol["resources"] > 0
+    assert sol["influence"] > 0
+    assert sol["planets"]
+
+
+def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
+    # Bez map stringa — backend używa mapy testowej; kolory/sloty auto.
+    resp = client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    assert resp.status_code == 200
+    data = client.get("/api/public/game/g/web-data").json()
+    # Mapa testowa się załadowała (Mecatol + pierścienie).
+    assert "000:18" in data["tilePositions"]
+    assert len(data["tilePositions"]) > 10
+    # Gracze z auto-przydziałem kolorów wg kolejności (red, green).
+    players = {p["faction"]: p["color"] for p in data["playerData"]}
+    assert players == {"sol": "red", "hacan": "green"}
+    # Sol na 301, Hacan na 304 — statki w przestrzeni.
+    assert data["tileUnitData"]["301"]["space"].get("sol")
+    assert data["tileUnitData"]["304"]["space"].get("hacan")
+
+
+def test_new_game_too_many_players_422(client: TestClient) -> None:
+    resp = client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}] * 7},
+    )
+    assert resp.status_code == 422
 
 
 def test_web_data_player_data_carries_counters(client: TestClient) -> None:

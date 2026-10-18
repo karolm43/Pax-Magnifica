@@ -572,3 +572,36 @@ STARY kod bez `/game/new` → proxy dawało 404. Rozwiązanie: ubicie procesu po
 **Postęp DoD Fazy 1:** ekran startowy domyka „wprowadzanie stanu" dla setupu (mapa + gracze
 + flota startowa jednym kliknięciem). Zostaje edycja bieżącej gry z UI (zmiana jednostek,
 VP/zasoby, Undo/Redo) — na razie przez API.
+
+---
+
+### ✅ Blok F5 — nowy map string, health-check portu, refresh w nagłówku, ekonomia planet
+
+**Uwagi użytkownika + co zrobione:**
+- **Nowy testowy map string** (`_DEFAULT_MAP_STRING` w `app.py`) — podany przez użytkownika
+  (`23 49 77 … 62 44`). Używany, gdy ekran startowy nie poda własnego.
+- **Health-check portu 8000** (`src/api/__main__.py`): przed startem Uvicorna sprawdza, czy
+  port jest zajęty, i ubija osierocony proces (Windows: netstat + taskkill). Rozwiązuje
+  powracającą pułapkę „Errno 10048 / stary kod". Zweryfikowane: log „Port 8000 zwolniony".
+- **Przycisk „Odśwież" przeniesiony do nagłówka** (`shared/ui/HeaderRefreshButton.tsx`,
+  renderowany w `SiteHeader` przez `GameMapPage`). Usunięto pływający `ReconnectButton`
+  z `MapView`/`PannableMapView` (plik skasowany). Czyściej niż pływający przycisk na planszy.
+
+**Bug ekonomii planet (znaleziony i naprawiony):** `web_data._build_planet_entry` NIE
+uzupełniał zasobów/wpływów dla planet ZAJĘTYCH (tylko puste), więc kontrolowane planety
+miały `resources=0 inf=0`. Dodatkowo `playerData` wysyłało zera ekonomii. Naprawione:
+- `_build_planet_entry` uzupełnia staty z rejestru (jak `_empty_planet_entry`).
+- `_build_player_data` sumuje zasoby/wpływy kontrolowanych planet (`_planet_economy`).
+- Zweryfikowane E2E: `jord: res=4 inf=2 ctrl=sol`; panel gracza `sol: resources=4 influence=2`.
+  (Wcześniej wszystko 0 — stąd „brak info na planetach".)
+
+**Źródła danych udokumentowane (NIE kasujemy):** `docs/ARCHITEKTURA_PO_MIGRACJI.md` 6a —
+`TI4_map_generator_bot/` (bot AsyncTI4 = słownik formatu `web-data`/assetów) oraz live viewer
+`asyncti4.com` jako referencja renderu (gra `pbd30347`). Oba w `.gitignore`, zostają na dysku.
+
+**O featurach ti4_web (planety z tokenami, podgląd jednostek po kliknięciu, panel gracza):**
+to natywne funkcje frontendu renderowane ze STATYCZNYCH danych frontendu + dosyłanego stanu.
+Działają „za darmo", gdy tylko dane się zgadzają — a po naprawie ekonomii planet dane są
+kompletne (systemId, nazwy planet, kontrola, zasoby/wpływy, jednostki jako asyncId).
+
+**QA:** backend 85 testów zielone, ruff + mypy czyste; frontend type-check + lint + build czyste.

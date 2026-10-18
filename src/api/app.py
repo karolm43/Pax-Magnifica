@@ -54,10 +54,10 @@ from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
 # Testowy map string (6-osobowa plansza) używany, gdy frontend nie poda własnego.
-# To realny, zweryfikowany string AsyncTI4 (rogi domowe jako "0").
+# To realny string AsyncTI4 (rogi domowe jako "0").
 _DEFAULT_MAP_STRING = (
-    "72 66 77 65 69 50 61 44 64 76 60 73 46 42 71 79 70 59 "
-    "48 45 68 51 67 47 49 62 43 58 63 78 41 40"
+    "23 49 77 66 71 39 64 31 35 76 50 37 73 46 34 75 47 65 "
+    "0 59 79 0 25 28 0 26 42 0 40 41 0 45 69 0 62 44"
 )
 
 # Kolejność automatycznego przydziału kolorów/slotów domowych wg kolejności graczy

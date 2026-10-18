@@ -33,6 +33,7 @@ import { MAIN_TAB_CONFIGS } from "@/domains/game-shell/components/mainTabs";
 import { TabPanelSection } from "@/domains/game-shell/components/TabPanelSection";
 import { APP_HEADER_HEIGHT } from "@/shared/ui/AppHeader";
 import { TabActiveContext } from "@/hooks/useIsTabActive";
+import { HeaderRefreshButton } from "@/shared/ui/HeaderRefreshButton";
 import { MobileHandSheet } from "@/domains/game-shell/components/SecretHand";
 import { MobileEventsSheet } from "@/domains/game-shell/components/GameEventPanel";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
@@ -128,7 +129,9 @@ function GameMapContent({ pannable }: ContentProps) {
 
   return (
     <AppShell header={{ height: APP_HEADER_HEIGHT }}>
-      <SiteHeader currentMapId={gameId} />
+      <SiteHeader currentMapId={gameId}>
+        <HeaderRefreshButton />
+      </SiteHeader>
 
       <AppShell.Main>
         <Box

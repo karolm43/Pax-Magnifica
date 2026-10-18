@@ -13,11 +13,10 @@ import { useMapScrollPosition } from "@/hooks/useMapScrollPosition";
 import { useScrollToPlanet } from "@/hooks/useScrollToPlanet";
 import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
 import { useTabsAndTooltips } from "@/hooks/useTabsAndTooltips";
-import { useGameData, useGameDataState } from "@/state/useGameContext";
+import { useGameData } from "@/state/useGameContext";
 import { useAppStore, useSettingsStore } from "@/state/appStore";
 import ZoomControls from "@/shared/ui/map/ZoomControls";
 import { useMapTooltips } from "@/domains/map/components/hooks/useMapTooltips";
-import { ReconnectButton } from "@/domains/map/components/renderer/ReconnectButton";
 import { useMapContentSize } from "@/domains/map/components/hooks/useMapContentSize";
 import { useTryDecalsToggle } from "@/domains/map/components/hooks/useTryDecalsToggle";
 import { useTilesList } from "@/hooks/useTilesList";
@@ -46,7 +45,6 @@ export function MapView({
   embeddedSidebar = "left",
 }: Props) {
   const gameData = useGameData();
-  const gameDataState = useGameDataState();
 
   useDragScroll();
 
@@ -198,11 +196,6 @@ export function MapView({
           tooltipPlanet={tooltipPlanet}
         />
       </Box>
-
-      {/* Outside the scroller on purpose: dragscroll pans on any mousedown that
-          reaches the map area, so a control inside it lurches the board out from
-          under the cursor on the way to being clicked. */}
-      <ReconnectButton gameDataState={gameDataState} />
 
       {!embedded && (
         <Box

@@ -115,7 +115,11 @@ def _build_tile_unit_data(
             space = _entities_from_counts(sys_state.space_units, state.players)
             for planet_id, by_player in sys_state.planet_units.items():
                 planets[planet_id] = _build_planet_entry(
-                    planet_id, by_player, sys_state.planet_owners.get(planet_id), state
+                    registry,
+                    planet_id,
+                    by_player,
+                    sys_state.planet_owners.get(planet_id),
+                    state,
                 )
 
         # Planety systemu bez jednostek też muszą istnieć w słowniku (frontend
@@ -147,14 +151,21 @@ def _planet_controller(owner_id: str | None, state: GameState) -> str | None:
 
 
 def _build_planet_entry(
+    registry: StaticDataRegistry,
     planet_id: str,
     units_by_player: dict[str, dict[str, int]],
     owner_id: str | None,
     state: GameState,
 ) -> dict[str, Any]:
-    """Buduje ``PlanetEntityData`` dla planety z jednostkami naziemnymi."""
+    """Buduje ``PlanetEntityData`` dla planety z jednostkami naziemnymi.
+
+    Zasoby/wpływy pochodzą z rejestru (statyczne dane planety) — także dla planet
+    kontrolowanych/zajętych, nie tylko pustych (bez tego panele graczy i tooltipy
+    pokazywałyby zera).
+    """
     entry = _planet_base(planet_id, owner_id, state)
     entry["entities"] = _entities_from_counts(units_by_player, state.players)
+    _fill_planet_stats(entry, registry, planet_id)
     return entry
 
 
@@ -199,11 +210,30 @@ def _fill_planet_stats(
         entry["influence"] = planet.influence
 
 
-def _build_player_data(state: GameState) -> list[dict[str, Any]]:
+def _planet_economy(
+    controlled_planets: list[str], registry: StaticDataRegistry
+) -> tuple[int, int]:
+    """Sumuje (zasoby, wpływy) kontrolowanych planet z danych rejestru."""
+    resources = 0
+    influence = 0
+    for planet_id in controlled_planets:
+        planet = registry.planets.get(planet_id)
+        if planet is not None:
+            resources += planet.resources
+            influence += planet.influence
+    return resources, influence
+
+
+def _build_player_data(
+    state: GameState, registry: StaticDataRegistry
+) -> list[dict[str, Any]]:
     """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
     players: list[dict[str, Any]] = []
     for player_id, player in sorted(state.players.items()):
         faction = _faction_key(player)
+        total_res, total_inf = _planet_economy(
+            player.controlled_planets, registry
+        )
         players.append(
             {
                 "discordId": player_id,
@@ -254,11 +284,12 @@ def _build_player_data(state: GameState) -> list[dict[str, Any]]:
                 "pnCount": 0,
                 "acCount": 0,
                 "unitCounts": {},
-                # Ekonomia planet (prekalkulowane — zera, bo liczymy w kolejnych fazach).
-                "resources": 0,
-                "influence": 0,
-                "totResources": 0,
-                "totInfluence": 0,
+                # Ekonomia planet: suma zasobów/wpływów kontrolowanych planet
+                # (z rejestru). Optymalne/flex liczymy dopiero w fazie strategicznej.
+                "resources": total_res,
+                "influence": total_inf,
+                "totResources": total_res,
+                "totInfluence": total_inf,
                 "optimalResources": 0,
                 "optimalInfluence": 0,
                 "flexValue": 0,
@@ -368,7 +399,7 @@ def build_web_data(
         "versionSchema": WEB_DATA_SCHEMA_VERSION,
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
-        "playerData": _build_player_data(state),
+        "playerData": _build_player_data(state, registry),
         "statTilePositions": {},
         "lawsInPlay": [],
         "strategyCards": [],

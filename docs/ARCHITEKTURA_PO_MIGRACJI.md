@@ -192,6 +192,27 @@ Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/setup/player' -Conten
 
 ---
 
+## 6a. Źródła danych i referencje (NIE kasować)
+
+Dwa katalogi w repo to **lokalne źródła danych i referencje** AsyncTI4. Są w
+`.gitignore` (nie wersjonujemy ich), ale fizycznie leżą na dysku i służą jako:
+
+- **`TI4_map_generator_bot/`** — oryginalny bot AsyncTI4 (Java). Źródło:
+  - assetów (`src/main/resources/...`), z których bierzemy dane do `assets/`;
+  - konwencji `web-data` / nazw grafik (`imagePath`, `asyncId`), ścieżek CDN;
+  - reguł mechanicznych do weryfikacji (patrz `docs/RULES.md`).
+  Traktuj jako „słownik prawdy" o formacie danych AsyncTI4.
+- **Live viewer AsyncTI4** (`https://asyncti4.com/game/<id>`, dane:
+  `https://bot.asyncti4.com/api/public/game/<id>/web-data`) — referencja, JAK ma
+  wyglądać gotowy render (panele graczy, info na planetach, podgląd jednostek).
+  Przykład aktywnej gry do porównań: `pbd30347`.
+
+Frontend (`frontend/`) to kod `ti4_web` AsyncTI4 — ma mnóstwo featurów, których
+jeszcze nie wykorzystujemy (replay, karty, dyplomacja). Nie są usuwane; po prostu
+nieaktywne, bo backend nie wypełnia odpowiednich pól `web-data`. Włączamy je
+stopniowo, dosyłając dane z backendu (np. info o planetach rysuje się ze statycznych
+danych frontendu, więc działa „za darmo" gdy tylko `systemId`/nazwy planet się zgadzają).
+
 ## 7. Następne kroki (propozycja kolejności)
 
 1. **UI edycji nad istniejącym API** — panel/akcje: wczytaj map string, setup frakcji,

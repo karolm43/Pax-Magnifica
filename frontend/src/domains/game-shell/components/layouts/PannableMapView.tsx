@@ -4,7 +4,7 @@ import classes from "@/shared/ui/map/MapUI.module.css";
 import { InteractiveMapRenderer } from "@/domains/map/components/renderer/InteractiveMapRenderer";
 import { useDragScroll } from "@/hooks/useDragScroll";
 import { useTabsAndTooltips } from "@/hooks/useTabsAndTooltips";
-import { useGameData, useGameDataState } from "@/state/useGameContext";
+import { useGameData } from "@/state/useGameContext";
 import { useAppStore, useSettingsStore } from "@/state/appStore";
 import ZoomControls from "@/shared/ui/map/ZoomControls";
 import { useMapContentSize } from "@/domains/map/components/hooks/useMapContentSize";
@@ -14,7 +14,6 @@ import { isMobileDevice } from "@/utils/isTouchDevice";
 import { FloatingMapToolbar } from "@/domains/game-shell/components/FloatingMapToolbar";
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
 import { useMapTooltips } from "@/domains/map/components/hooks/useMapTooltips";
-import { ReconnectButton } from "@/domains/map/components/renderer/ReconnectButton";
 import { getMapLayoutConfig } from "@/domains/map/components/mapLayout";
 import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKeyboardShortcuts";
 import { useTryDecalsToggle } from "@/domains/map/components/hooks/useTryDecalsToggle";
@@ -73,7 +72,6 @@ export function PannableMapView({ gameId }: { gameId: string }) {
   const isMobile = isMobileDevice();
   const gameData = useGameData();
   const tilesList = useTilesList(gameData?.tiles);
-  const gameDataState = useGameDataState();
 
   useDragScroll();
 
@@ -224,11 +222,6 @@ export function PannableMapView({ gameId }: { gameId: string }) {
           isMobile={isMobile}
         />
       </Box>
-
-      {/* Outside the scroller on purpose: dragscroll pans on any mousedown that
-          reaches the map area, so a control inside it lurches the board out from
-          under the cursor on the way to being clicked. */}
-      <ReconnectButton gameDataState={gameDataState} />
 
       <TryUnitDecalsSidebar
         opened={tryDecalsOpened}
