@@ -6,7 +6,16 @@ Custodian Engine zastępuje gracza ludzkiego pełnoprawnym agentem podejmującym
 
 ## Status projektu
 
-🚧 **Wczesny etap — faza startowa.** Repozytorium zawiera na razie wizytówkę projektu i szkielet struktury. Implementacja startuje od Kamienia Milowego 1 (rdzeń stanu i topologia).
+🚧 **Faza 1 (fundament danych + mapa + God-Mode) — niemal ukończona.** Działa rdzeń
+stanu (rejestr danych, `HexGrid`, `GameState`, Event Sourcing/Undo), API FastAPI oraz
+frontend-viewer renderujący planszę i panele graczy. Największa otwarta luka: brak UI
+do edycji stanu (na razie przez API). Pełny, aktualny opis architektury i stanu prac:
+**[docs/ARCHITEKTURA_PO_MIGRACJI.md](docs/ARCHITEKTURA_PO_MIGRACJI.md)** oraz historia
+w [docs/PROGRESS.md](docs/PROGRESS.md).
+
+> Frontend: po migracji używamy viewera planszy opartego na AsyncTI4 `ti4_web`
+> (React 19 + Vite + TS, własny design system) zamiast własnego SVG. Backend tłumaczy
+> `GameState` na dokument `web-data`, z którego front renderuje całą planszę.
 
 ## Stos technologiczny
 
@@ -19,7 +28,7 @@ Custodian Engine zastępuje gracza ludzkiego pełnoprawnym agentem podejmującym
 | Solvery | Branch & Bound (NumPy), opcjonalnie OR-Tools (CP-SAT) |
 | API | FastAPI + Uvicorn (REST + WebSocket) |
 | Trwałość | SQLite 3 (Snapshot Stack / Memento) |
-| Frontend | React 19 + TypeScript + Vite, Zustand, Tailwind, shadcn/ui |
+| Frontend | React 19 + TypeScript + Vite, Zustand, react-query (viewer `ti4_web`, własny design system) |
 | QA | pytest + pytest-cov + hypothesis, Ruff |
 
 ## Architektura

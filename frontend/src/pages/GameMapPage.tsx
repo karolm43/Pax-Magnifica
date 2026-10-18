@@ -107,8 +107,8 @@ function GameMapContent({ pannable }: ContentProps) {
   const activePlayerName = data?.playerData?.find((p) => p.active)?.userName;
   useDocumentTitle(
     activePlayerName
-      ? `⏳ ${activePlayerName} · ${gameId} - Async TI`
-      : `${gameId} - Async TI`,
+      ? `⏳ ${activePlayerName} · ${gameId} · Custodian Engine`
+      : `${gameId} · Custodian Engine`,
   );
 
   if (

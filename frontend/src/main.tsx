@@ -55,13 +55,9 @@ getPortalRoot();
  */
 function printConsoleSignature() {
   console.log(
-    "%cASYNC TI4%c  fan project for Twilight Imperium\u2122 \u00b7 play-by-Discord",
+    "%cCUSTODIAN ENGINE%c  lokalny asystent / AI do Twilight Imperium 4",
     "font-weight:700;letter-spacing:0.12em;color:#e2e8f0;background:#0b0b0c;padding:3px 7px;border-radius:2px",
     "color:#868e96"
-  );
-  console.log(
-    "%cPoking around? The board renders from src/domains/map, player areas from src/domains/player, and the whole visual system is documented in DESIGN.md.",
-    "color:#6b7280"
   );
 }
 

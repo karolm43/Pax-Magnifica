@@ -499,3 +499,34 @@ modale). Własny landing dorobimy później.
 - Weryfikacja wizualna renderu planszy w przeglądarce (otwarcie `http://localhost:5173/`).
 - Własny landing/ekran startowy (później, wg uznania).
 - Edycja/God-Mode w nowym UI nad istniejącymi endpointami (setup/space/planet/undo/redo).
+
+---
+
+### ✅ Blok F3 — branding + sprzątanie + dokumentacja po migracji
+
+**Branding (Custodian Engine zamiast AsyncTI4):**
+- `src/shared/ui/Logo.tsx`: baner AsyncTI4 → tekstowy znak „CUSTODIAN ENGINE" (lewy róg).
+- `main.tsx` (sygnatura konsoli), `GameMapPage.tsx` (tytuł zakładki), `index.html` — Custodian Engine.
+
+**Sprzątanie cruftu po migracji:**
+- `frontend/src/config.ts`: usunięto rozbicie dev/prod (działamy tylko lokalnie) oraz
+  martwe pola (`mapsUrl`, `proxyMapsUrl`, `frogMapUrl`, `discordLoginUrl`). Zostają tylko
+  żywe adresy: `gameDataUrl`, `botApiUrl`, `websocketUrl`, `discordRedirectUri` — z komentarzami.
+- `frontend/vite.config.ts`: usunięto martwy proxy `/proxy` (nic go już nie używa).
+- `frontend/README.md`: przepisany pod Custodian Engine (był README AsyncTI4).
+- `README.md` (root): zaktualizowany status (Faza 1 niemal gotowa) + wiersz frontendu.
+
+**Dokumentacja (żeby łatwo pracować dalej):**
+- NOWY `docs/ARCHITEKTURA_PO_MIGRACJI.md` — mapa orientacyjna: obraz całości, jak
+  uruchomić, backend/front po module, kontrakt `web-data`, tabela „co działa / luki"
+  względem DoD Fazy 1, jak postawić realną grę przez API, następne kroki.
+
+**Zidentyfikowane luki (spisane w nowym docu):**
+- Brak UI edycji stanu (map string / setup / jednostki / VP) — nowy front to viewer;
+  edycja tylko przez API. To największa luka do DoD Fazy 1.
+- Brak szybkiego edytora jednostek na heksie (skróty „2D 1C 4F").
+- Live-sync: front używa STOMP (nie wystawiamy go) → de facto refetch, nie push.
+
+**Zweryfikowane:** type-check + lint + build frontu czyste; backend 82 testy zielone,
+ruff + mypy czyste. Live: root `/` serwuje tytuł Custodian Engine, `web-data` przez proxy
+= 200 (versionSchema=5, 33 kafelki, sol/red).

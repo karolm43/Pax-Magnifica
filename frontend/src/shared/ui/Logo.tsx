@@ -1,25 +1,27 @@
-import { Image } from "@/ds";
-import { useMediaQuery } from "@/ds";
-
-import desktopLogo from "@/assets/banner.png";
-import mobileLogo from "@/assets/bannerStacked.png";
+import { Text } from "@/ds";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * Znak słowny aplikacji w nagłówku (lewy górny róg). Custodian Engine zastępuje
+ * oryginalny baner AsyncTI4 — nie mamy własnej grafiki, więc render tekstowy.
+ */
 function Logo() {
   const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width: 47.999em)");
   return (
-    <Image
-      src={isMobile ? mobileLogo : desktopLogo}
-      alt="banner"
-      className="logo"
+    <Text
+      component="span"
       onClick={() => navigate("/")}
-      style={{ cursor: "pointer" }}
-      h={25}
-      p={{ base: 0, sm: 4 }}
-      w="auto"
-      fit="contain"
-    />
+      style={{
+        cursor: "pointer",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        whiteSpace: "nowrap",
+        fontSize: 16,
+        lineHeight: 1,
+      }}
+    >
+      CUSTODIAN ENGINE
+    </Text>
   );
 }
 

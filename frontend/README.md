@@ -1,110 +1,38 @@
-# TI4 Web - React + Vite + TypeScript
+# Custodian Engine — frontend
 
-This is a Twilight Imperium 4 web application built with React, Vite, and TypeScript.
+Viewer planszy Twilight Imperium 4 dla Custodian Engine. Oparty na kodzie
+AsyncTI4 `ti4_web` (React 19 + Vite + TypeScript), zredukowany do **pojedynczego
+widoku jednej, lokalnej gry** (bez landing page'a, listy gier, logowania).
 
-## Tech Stack
+Frontend jest **viewerem**: pobiera jeden dokument `web-data` z backendu i renderuje
+z niego planszę oraz panele graczy. Źródłem prawdy o stanie gry jest backend (`src/`).
 
-- **React 18** - UI framework
-- **Vite** - Build tool and development server
-- **TypeScript** - Type safety and better developer experience
-- **Mantine** - UI component library
-- **ESLint** - Code linting with TypeScript support
-
-## Development
+## Uruchomienie
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Type checking
-npm run type-check
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+npm install        # pierwszy raz
+npm run dev        # Vite na http://localhost:5173
 ```
 
-## Repository Structure
+Backend musi działać równolegle (`uv run python -m src.api` w katalogu repo).
+Proxy Vite kieruje `/bot` i `/static` do backendu na `:8000` (patrz `vite.config.ts`).
+Root `/` otwiera od razu widok gry.
 
-Dependencies point downward: `pages` → `layout` → `domains` → `shared`/`hooks` → `state` → `api` → `entities` → `utils`. `game-shell` composes the other domains; `cards` sits below them.
+## QA
 
-```
-ti4_web_new/
-├── public/                    # Static assets
-│   ├── cardback/             # Card background images
-│   ├── font/                 # Custom fonts
-│   ├── leaders/              # Faction leader images
-│   ├── planet_attributes/    # Planet trait icons
-│   └── ...                   # Game assets (tokens, icons, etc.)
-├── src/
-│   ├── main.tsx             # Entry point and routes
-│   ├── config.ts            # Environment config
-│   ├── pages/               # Route-level pages (landing, games, dashboard, game map, image map)
-│   ├── layout/              # Site chrome shared by pages (PageShell, SiteHeader, GamesBar)
-│   ├── domains/             # Feature areas
-│   │   ├── game-shell/      # In-game shell: layouts, sidebars, panels, event log
-│   │   ├── map/             # Board rendering: tiles, layers, unit stacks, tooltips
-│   │   ├── player/          # Player area cards and composition
-│   │   ├── cards/           # Details cards, card backs and deck modals for every card type
-│   │   ├── objectives/      # Scoring, public objectives, laws in play
-│   │   ├── tabs/            # Game tab bar and tab management
-│   │   ├── dashboard/ auth/ settings/ image-map/
-│   ├── shared/ui/           # Reusable, domain-agnostic UI
-│   ├── hooks/               # Generic hooks
-│   ├── state/               # App settings store and game context provider
-│   ├── api/                 # Fetching, sockets and auth session
-│   ├── entities/            # Pure game model
-│   │   ├── data/            # Static game data
-│   │   ├── lookup/          # Map-backed getters over the data
-│   │   ├── game/            # GameData types and buildGameContext
-│   │   ├── geometry/        # Hex and tile geometry
-│   │   ├── positioning/     # Unit placement on tiles
-│   │   └── replay/          # Map replay planning
-│   ├── styles/              # Global styles, themes, z-index variables
-│   └── utils/               # Generic helpers
-├── build/                   # Production build output
-├── dist/                    # Vite build output
-├── CLAUDE.md               # AI assistant coding guidelines
-├── eslint.config.js        # ESLint configuration
-├── postcss.config.cjs      # PostCSS configuration
-├── tsconfig.json           # TypeScript configuration
-├── tsconfig.app.json       # App-specific TypeScript config
-├── tsconfig.node.json      # Node-specific TypeScript config
-├── vite.config.ts          # Vite configuration
-└── package.json            # Dependencies and scripts
+```bash
+npm run type-check   # tsc --noEmit
+npm run lint         # eslint
+npm run build        # tsc && vite build
 ```
 
-## TypeScript Configuration
+## Jak to działa (skrót)
 
-The project uses two TypeScript configurations:
+- Wejście: `src/main.tsx` → `pages/GameMapPage.tsx` (`gameId` domyślny = `"local"`).
+- Dane: `src/api/usePlayerData.ts` pobiera `GET /bot/api/public/game/{id}/web-data`.
+- Statyczne katalogi (systemy/jednostki/planety) są WBUDOWANE w `src/entities/data/`.
+- Grafiki idą z CDN AsyncTI4 (`src/entities/data/cdnImage.ts`).
+- Branding (lewy róg): `src/shared/ui/Logo.tsx`.
 
-- `tsconfig.json` - Main configuration for source code
-- `tsconfig.node.json` - Configuration for build tools (Vite config, etc.)
-
-### Key TypeScript Features Enabled
-
-- Strict type checking
-- Path mapping with `@/*` alias for `src/*`
-- React JSX support
-- JSON module resolution
-- Unused variable detection
-
-### Adding Types
-
-- Game model types live in `src/entities/game/types.ts`; static data types in `src/entities/data/types.ts`
-- Component-specific types should be defined in the same file or nearby
-- Third-party library types are automatically included when available
-
-## ESLint Configuration
-
-ESLint is configured to work with both JavaScript and TypeScript files:
-
-- JavaScript/JSX files: Standard React rules
-- TypeScript/TSX files: Additional TypeScript-specific rules
-- Automatic unused variable detection
-- React hooks rules enforcement
+Pełny opis architektury, kontraktu `web-data` i luk: **`../docs/ARCHITEKTURA_PO_MIGRACJI.md`**.
+```
