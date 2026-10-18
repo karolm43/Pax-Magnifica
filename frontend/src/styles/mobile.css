@@ -1,0 +1,48 @@
+.theme-mobile {
+    --mobile-rgb-dark: 8, 8, 8;
+    --mobile-rgb-mid: 24, 24, 24;
+    --mobile-rgb-gray: 160, 160, 160;
+    --mobile-rgb-gray-soft: 115, 115, 115;
+    --mobile-rgb-gray-light: 200, 200, 200;
+    --mobile-rgb-gray-hover: 180, 180, 180;
+
+    /* Surface.tsx */
+    --surface-bg: rgba(var(--mobile-rgb-dark), 1);
+    --surface-border: 1px solid rgba(var(--mobile-rgb-gray), 0.28);
+    --surface-corner-accent: 2px solid rgba(var(--mobile-rgb-gray-light), 0.18);
+
+    /* PlayerCard.tsx */
+    --player-card-box-bg: rgba(var(--mobile-rgb-dark), 1);
+
+    /** Sidebar **/
+    --sidebar-bg: #0a0a0a;
+    --left-sidebar-bg: rgb(10 10 10 / 92%);
+    --sidebar-border: 1px solid rgba(160, 160, 160, 0.25);
+
+    /** Map **/
+    --main-bg: #0a0a0a;
+    --map-tabs-bg: linear-gradient(180deg, #080808, #161616 100%);
+
+    /** Header **/
+    --header-bg: linear-gradient(90deg, rgba(8, 8, 8) 0%, rgba(24, 24, 24) 100%);
+
+    /** Header Tabs Input **/
+    --header-tab-input-bg: rgba(var(--mobile-rgb-dark), 0.86);
+    --header-tab-input-border: 1px solid rgba(var(--mobile-rgb-gray-light), 0.45);
+
+    /** Dropdown **/
+    --header-tab-dropdown-bg: rgba(var(--mobile-rgb-dark), 0.94);
+    --header-tab-dropdown-border: 1px solid rgba(var(--mobile-rgb-gray-light), 0.45);
+    --header-tab-dropdown-hover-bg: rgba(var(--mobile-rgb-gray-hover), 0.38);
+
+    /** Details Card (for all the popovers) **/
+    --details-card-bg: linear-gradient(135deg, rgb(var(--mobile-rgb-dark)) 0%, rgb(var(--mobile-rgb-mid)) 100%);
+    --details-card-border: 1px solid rgba(var(--mobile-rgb-gray-light), 0.28);
+}
+
+.mobile *, .mobile *::before, .mobile *::after {
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}

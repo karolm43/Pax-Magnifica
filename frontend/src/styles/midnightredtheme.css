@@ -1,0 +1,141 @@
+
+.theme-midnightredtheme {
+    /* Surface.tsx */
+    --surface-bg: linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 100%);
+    --surface-border: 1px solid rgba(148, 163, 184, 0.24);
+    --surface-corner-accent: 2px solid rgba(172, 28, 38, 0.38);
+    --surface-shadow: 0 12px 48px rgba(172, 28, 38, 0.22), 0 8px 28px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    /* PlayerCard.tsx
+       A pure-black ground sat DARKER than the panel field on top of it, which
+       inverts the ground -> field -> socket order and makes the modules read as
+       holes. Lifted to a dark ember graphite so the card encloses its plates. */
+    --player-card-box-bg: linear-gradient(135deg, rgba(20, 8, 9, 1) 0%, rgba(13, 4, 5, 1) 100%);
+    --player-card-box-shadow: 0 14px 56px rgba(172, 28, 38, 0.22), 0 8px 32px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    /** Sidebar **/
+    --sidebar-bg: rgba(0, 0, 0, 1);
+    --left-sidebar-bg: rgba(0, 0, 0, 1);
+    --sidebar-border: 1px solid rgba(172, 28, 38, 0.22);
+
+    /* Diagonal ember wash over the void */
+    --main-bg:
+      linear-gradient(160deg, rgba(172, 28, 38, 0.05) 0%, transparent 42%),
+      radial-gradient(80% 60% at 88% 110%, rgba(106, 16, 24, 0.05), transparent 60%),
+      #000;
+    --map-tabs-bg: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 100%);
+
+    /** Header **/
+    --header-bg: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 100%);
+
+    /** Header Tabs Input **/
+    --header-tab-input-bg: rgba(0, 0, 0, 0.9);
+    --header-tab-input-border: 1px solid rgba(172, 28, 38, 0.5);
+
+    /** Dropdown **/
+    --header-tab-dropdown-bg: rgba(0, 0, 0, 0.94);
+    --header-tab-dropdown-border: 1px solid rgba(172, 28, 38, 0.46);
+    --header-tab-dropdown-hover-bg: rgba(172, 28, 38, 0.34);
+    --header-dropdown-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+
+    /** Details Card (for all the popovers) **/
+    --details-card-bg: linear-gradient(135deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 100%);
+    --details-card-border: 1px solid rgba(172, 28, 38, 0.34);
+
+    /* Map Scrollbars */
+    --scrollbar-track-bg: rgba(0, 0, 0, 1);
+    --scrollbar-track-border: 1px solid rgba(172, 28, 38, 0.34);
+    --scrollbar-thumb-bg: linear-gradient(135deg, rgba(172, 28, 38, 0.58) 0%, rgba(106, 16, 24, 0.7) 100%);
+    --scrollbar-thumb-border: 1px solid rgba(255, 255, 255, 0.22);
+    --scrollbar-thumb-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(0, 0, 0, 0.55);
+    --scrollbar-thumb-hover-bg: linear-gradient(135deg, rgba(172, 28, 38, 0.75) 0%, rgba(106, 16, 24, 0.8) 100%);
+    --scrollbar-thumb-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 4px rgba(0, 0, 0, 0.65);
+    --scrollbar-corner-bg: rgba(0, 0, 0, 1);
+    --scrollbar-color-thumb: rgba(172, 28, 38, 0.6);
+    --scrollbar-color-track: rgba(0, 0, 0, 1);
+
+    /* Unit Details Card */
+    --unit-details-inherited-bg: rgba(172, 28, 38, 0.06);
+    --unit-details-inherited-border: rgba(172, 28, 38, 0.15);
+
+    /*
+     * The forge. Red is a signal colour here (secrets, warnings, destructive
+     * state), so the chroma lives in the material rather than the lines:
+     * hairlines are a warm ash and the machined surfaces carry the heat.
+     */
+    --panel-field-bg: linear-gradient(180deg, rgba(12, 2, 3, 0.95), rgba(1, 0, 0, 0.98));
+    --panel-field-flat: rgba(9, 1, 2, 0.55);
+    --panel-field-strip: rgba(12, 2, 3, 0.66);
+    --panel-hairline: rgba(198, 126, 124, 0.22);
+    --panel-hairline-strong: rgba(212, 146, 142, 0.30);
+    --panel-separator: rgba(198, 126, 124, 0.15);
+    --panel-bracket: rgba(232, 162, 156, 0.42);
+    --panel-radius: 2px;
+    /* Heat off the top edge; an ember cooling in the floor seam. */
+    --panel-texture:
+      linear-gradient(180deg, rgba(196, 42, 52, 0.055), transparent 34%),
+      linear-gradient(0deg, rgba(206, 66, 62, 0.22) 0 1px, transparent 1px);
+
+    /* The player card is a bolted armour plate: a domed rivet in each corner
+       (a crown offset up-left of a seated ring), off-axis brushed grain, and
+       heat off the top edge. */
+    --rivet-crown: rgba(255, 226, 200, 0.50), transparent 100%;
+    --rivet-seat: rgba(212, 120, 86, 0.42) 0 3px, rgba(0, 0, 0, 0.66) 3.4px 5px, transparent 5px;
+    --player-card-inner-glow:
+      radial-gradient(circle 1.9px at 6px 6px, var(--rivet-crown)),
+      radial-gradient(circle 5px at 7px 7px, var(--rivet-seat)),
+      radial-gradient(circle 1.9px at calc(100% - 8px) 6px, var(--rivet-crown)),
+      radial-gradient(circle 5px at calc(100% - 7px) 7px, var(--rivet-seat)),
+      radial-gradient(circle 1.9px at 6px calc(100% - 8px), var(--rivet-crown)),
+      radial-gradient(circle 5px at 7px calc(100% - 7px), var(--rivet-seat)),
+      radial-gradient(circle 1.9px at calc(100% - 8px) calc(100% - 8px), var(--rivet-crown)),
+      radial-gradient(circle 5px at calc(100% - 7px) calc(100% - 7px), var(--rivet-seat)),
+      repeating-linear-gradient(112deg, rgba(255, 196, 160, 0.026) 0 1px, transparent 1px 5px),
+      radial-gradient(90% 55% at 50% 0%, rgba(172, 28, 38, 0.05), transparent 60%);
+
+    /* Tempered steel: straw light on the top edge, warm shade under it. */
+    --machined-bevel-light: rgba(255, 214, 170, 0.075);
+    --machined-bevel-shade: rgba(26, 6, 7, 0.40);
+
+    /* The cut chamfer shows a heat-affected oxide band, straw into bronze. */
+    --machined-temper-stops:
+      transparent 0 calc(50% - 4px),
+      rgba(255, 186, 130, 0.14) calc(50% - 4px) calc(50% - 2.2px),
+      rgba(206, 92, 58, 0.12) calc(50% - 2.2px) calc(50% - 0.5px),
+      transparent calc(50% - 0.5px);
+    --machined-temper-br: linear-gradient(to bottom right, var(--machined-temper-stops));
+    --machined-temper-tr: linear-gradient(to top right, var(--machined-temper-stops));
+
+    /* Empty sockets hold a faint ember at the floor, like a crucible after the pour. */
+    --socket-bg:
+      radial-gradient(150% 108% at 50% 103%, rgba(200, 52, 42, 0.26), transparent 56%),
+      rgba(0, 0, 0, 0.34);
+    --socket-border: rgba(198, 126, 124, 0.11);
+    --socket-inset:
+      inset 0 1px 2px rgba(0, 0, 0, 0.55),
+      inset 0 -1px 0 rgba(255, 168, 132, 0.07);
+
+    /* Heat pooled along the trough floor sells the recess. */
+    --trough-bg:
+      linear-gradient(0deg, rgba(150, 34, 32, 0.16), transparent 58%),
+      rgba(0, 0, 0, 0.40);
+    --trough-inset:
+      inset 0 2px 3px rgba(0, 0, 0, 0.58),
+      inset 0 -1px 0 rgba(255, 158, 122, 0.10);
+
+    /* Mill finish: 3px scoring under 2% contrast. */
+    --rail-bg:
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 190, 150, 0.016) 0 1px,
+        transparent 1px 3px
+      ),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.44) 0%, rgba(28, 8, 8, 0.20) 100%);
+    --rail-border: rgba(198, 126, 124, 0.17);
+    --rail-ink: rgba(226, 186, 178, 0.92);
+
+    --plate-ground: #100607;
+    --hud-deck-ground: #080304;
+    --hud-edge-accent: rgba(220, 62, 72, 0.34);
+    --survey-lit: rgba(248, 113, 122, 0.82);
+}

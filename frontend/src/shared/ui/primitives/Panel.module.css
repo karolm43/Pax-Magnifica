@@ -1,0 +1,10 @@
+.panel {
+  border-radius: var(--ds-radius-sm);
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.noPadding {
+  padding: 0;
+}

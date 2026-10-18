@@ -1,0 +1,61 @@
+.red { --accent-rgb: var(--gd-red); }
+.blue { --accent-rgb: var(--gd-blue); }
+.green { --accent-rgb: var(--gd-green); }
+.purple { --accent-rgb: var(--gd-purple); }
+.orange { --accent-rgb: var(--gd-orange); }
+.gray { --accent-rgb: var(--gd-gray); }
+
+.chip {
+    --chip-inner-padding: 4px 6px;
+    --chip-inner-min-height: 28px;
+    --chip-inner-gap: 6px;
+    position: relative;
+    border-radius: var(--ds-radius-md);
+    background: rgba(var(--accent-rgb), 0.085);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.chip.strong {
+    background: rgba(var(--accent-rgb), 0.15);
+}
+
+.clickable {
+    cursor: pointer;
+    transition: box-shadow 120ms ease;
+}
+
+.clickable:hover {
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.16);
+}
+
+.size_xs {
+    --chip-inner-padding: 2px 4px;
+    --chip-inner-min-height: 22px;
+    --chip-inner-gap: 4px;
+}
+
+.inner {
+    position: relative;
+    display: flex;
+    gap: var(--chip-inner-gap);
+    padding: var(--chip-inner-padding);
+    align-items: center;
+    min-height: var(--chip-inner-min-height);
+    z-index: 2;
+}
+
+/* Ellipsis, not clip: a hard cut lands mid-glyph, so "Destroy Heretical Works"
+   truncated to "Destroy Heretical Wo|" reads as a rendering fault rather than as
+   a name that continues. Semibold with a light shadow reads cleaner than bold at
+   12px in IBM Plex Sans; a hair of tracking compensates for light-on-dark. */
+.textContainer {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+    font-weight: var(--weight-title);
+    letter-spacing: var(--track-body);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}

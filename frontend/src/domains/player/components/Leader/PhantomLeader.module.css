@@ -1,0 +1,43 @@
+/* An empty leader seat: the dossier's geometry, pressed in. */
+.plate {
+  composes: seat from "./Leader.module.css";
+  background: var(--ds-socket);
+  border: 1px solid var(--ds-h10);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.7);
+}
+
+.well {
+  position: relative;
+  height: 42px;
+  box-shadow: 1px 0 0 var(--ds-h10);
+}
+
+/* Purged: the seat is crossed out. */
+.well::before,
+.well::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  translate: -50% -50%;
+  rotate: 45deg;
+  background: var(--ds-h22);
+}
+
+.well::after {
+  rotate: -45deg;
+}
+
+.role {
+  composes: label from "../RailParts.module.css";
+}
+
+.corner {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  display: flex;
+  color: var(--ds-h22);
+}

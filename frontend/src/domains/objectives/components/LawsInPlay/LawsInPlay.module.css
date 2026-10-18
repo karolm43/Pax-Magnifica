@@ -1,0 +1,10 @@
+.list {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.emptyText {
+  font-size: var(--text-data);
+  color: var(--ds-ink-lo);
+}

@@ -1,0 +1,170 @@
+/*
+ * Generic tech listed in full. Four colour columns (wrapping to two, then one),
+ * each tech a card with an accent edge in its colour, its prereqs, the seats
+ * that own it and its text. Unit upgrades follow in the same grid.
+ */
+.box {
+  container-type: inline-size;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  background: var(--ds-deck);
+  background-image: var(--ds-tex-deck);
+  background-size: var(--ds-tex-deck-size);
+  background-position: var(--ds-tex-deck-pos);
+  background-repeat: var(--ds-tex-deck-repeat);
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-r-plate);
+}
+
+.hint {
+  font-family: var(--ds-font-text);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: var(--text-meta);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+@container (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Unit upgrades sit a little apart from the coloured columns. */
+.grid + * {
+  margin-top: 6px;
+}
+
+.column {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.groupLabel {
+  composes: ds-label from global;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  font-size: var(--text-micro);
+  color: color-mix(in srgb, var(--kc) 70%, var(--ds-ink));
+}
+
+.groupIcon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Colour key per column / card. */
+[data-k="blue"] { --kc: rgb(var(--ds-sig-prop)); }
+[data-k="green"] { --kc: rgb(var(--ds-sig-bio)); }
+[data-k="red"] { --kc: rgb(var(--ds-sig-war)); }
+[data-k="yellow"] { --kc: rgb(var(--ds-sig-cyber)); }
+[data-k="unit"] { --kc: var(--ds-ink-hi); }
+
+/* Tech card: accent edge, faint tint in its colour, chamfer wedge. */
+.tech {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px 9px 13px;
+  background:
+    linear-gradient(315deg, color-mix(in srgb, var(--kc) 28%, transparent) 0 5px, transparent 5.5px),
+    linear-gradient(90deg, color-mix(in srgb, var(--kc) 8%, transparent), transparent 70%),
+    var(--ds-ground);
+  border: 1px solid color-mix(in srgb, var(--kc) 14%, transparent);
+  border-radius: 1px;
+}
+
+.tech::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: color-mix(in srgb, var(--kc) 49%, transparent);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.unit {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-data);
+  font-weight: var(--weight-title);
+  line-height: 1.2;
+  color: var(--ds-ink-hi);
+}
+
+.prereqs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.prereq {
+  width: 12px;
+  height: 12px;
+}
+
+.owners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.owner {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--kc) 16%, var(--ds-deck));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kc) 45%, transparent);
+}
+
+.owner[data-s="exhausted"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  opacity: 0.45;
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-data);
+  line-height: 1.45;
+  white-space: pre-line;
+  color: var(--ds-ink);
+}

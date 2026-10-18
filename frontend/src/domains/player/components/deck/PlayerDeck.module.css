@@ -1,0 +1,513 @@
+/*
+ * The player deck. One grid declares the lanes once; every seat is a row that
+ * inherits them with `grid-template-columns: subgrid`, so a lane grows to its
+ * widest seat and every other seat takes the same width.
+ *
+ * Each seat is a panel: a soft grey plate, rounded, standing off the deck. Its
+ * lanes are recessed wells cut into that plate, with air between them, and the
+ * header sits straight on the plate. The plate is the seat; the wells are its
+ * compartments; the objects inside them carry the character.
+ */
+.wrap {
+  --seat-plate: var(--ds-plate);
+  --seat-well: var(--ds-well);
+  --lane-gap: 8px;
+  --l-seat: 58px;
+  --l-stores: 176px;
+  --l-leaders: 212px;
+  --l-hold: 214px;
+  --l-tech: 196px;
+  --l-units: 232px;
+  --l-econ: 156px;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* The deck's name, set on the ground like the other deck sections: the seats
+   below are the panels, so the title needs no strip of its own. */
+.deckbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 0 2px 8px;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.deckTitle,
+.lhLabel {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-label);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.deckTitle {
+  color: var(--ds-ink);
+}
+
+.deck {
+  display: grid;
+  grid-template-columns:
+    var(--l-seat)
+    minmax(var(--l-stores), max-content)
+    var(--l-leaders)
+    minmax(var(--l-hold), max-content)
+    var(--l-tech)
+    /* Second tech track: only as wide as a seat's overflow column. A table
+       whose racks all fit one column keeps the lane one column wide. */
+    minmax(0, max-content)
+    minmax(var(--l-units), max-content)
+    minmax(var(--l-econ), max-content)
+    minmax(max-content, 1fr);
+  column-gap: var(--lane-gap);
+  row-gap: 12px;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 0 4px;
+}
+
+/* ── Lane ruler: engraved once for the table ── */
+.ruler {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  column-gap: var(--lane-gap);
+  padding-right: 10px;
+}
+
+.lh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-h14);
+  color: var(--ds-ink-lo);
+}
+
+/* Pinned over the seats as they scroll sideways, so it needs the ground. */
+.lhSeat {
+  background: var(--ds-deck);
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  justify-content: center;
+  padding: 0;
+}
+
+.lhLead {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-title);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+
+.lhLead::before {
+  content: "▲";
+  font-size: 7px;
+  color: rgb(var(--ds-sig-ok));
+}
+
+.lhLead img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+/* ── A seat: one subgrid row ── */
+.player {
+  --pc: var(--gd-gray);
+  position: relative;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: 38px auto;
+  padding: 0 10px 10px 0;
+  overflow: clip;
+  border-radius: var(--ds-plate-r);
+  background: var(--seat-plate);
+  box-shadow: var(--ds-plate-edge);
+}
+
+.player[data-active] {
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--pc), 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 2px 8px rgb(0 0 0 / 0.35);
+}
+
+/*
+ * The faction spine, pinned while the band scrolls sideways: a bar in the
+ * seat's colour, the sigil watermarked behind a large VP numeral, the speaker
+ * token stamped at the foot. The active seat's edge lights green.
+ */
+.seat {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  /* Runs through the panel's bottom padding so the spine meets its edge. */
+  margin-bottom: -10px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(var(--pc), 0.8) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2));
+  box-shadow:
+    inset -1px 0 0 rgba(var(--pc), 0.245),
+    8px 0 12px -8px rgb(0 0 0 / 0.9);
+}
+
+.seat::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  width: 96px;
+  height: 96px;
+  translate: -50% 0;
+  background: var(--sigil) center / contain no-repeat;
+  opacity: 0.07;
+  filter: grayscale(0.3);
+  pointer-events: none;
+}
+
+.seat::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: rgb(var(--pc));
+}
+
+.player[data-active] .seat::after {
+  background: rgb(var(--ds-sig-ok));
+  animation: edgePulse 3.2s ease-in-out infinite;
+}
+
+.seat > * {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Victory gauge. The well spans the spine; the fill rises from the foot to the
+ * seat's share of the points needed, topped by a crisp water-line, and a notch
+ * marks every point on the track.
+ */
+.seat > .gauge {
+  position: absolute;
+  inset: 0 0 0 3px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* One notch per point on the track, ruled over the fill along the inner edge. */
+.gauge::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 6px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 calc(100% / var(--track) - 1px),
+    var(--ds-h28) calc(100% / var(--track) - 1px) calc(100% / var(--track))
+  );
+}
+
+.gaugeFill {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--fill) * 100%);
+  transform-origin: bottom;
+  background: linear-gradient(0deg, rgba(var(--pc), 0.26), rgba(var(--pc), 0.08));
+  box-shadow: inset 0 1px 0 rgba(var(--pc), 0.85);
+  animation: gaugeRise 0.9s var(--ds-ease) both;
+}
+
+@keyframes gaugeRise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* A seat that has reached the target: the water-line turns relic gold. */
+.seat[data-won] .gaugeFill {
+  background: linear-gradient(0deg, rgb(var(--ds-sig-relic) / 0.3), rgb(var(--ds-sig-relic) / 0.12));
+  box-shadow: inset 0 1px 0 rgb(var(--ds-sig-relic));
+}
+
+.seat[data-won] .vp small {
+  color: rgb(var(--ds-sig-relic));
+}
+
+.sig {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.7));
+}
+
+.vp {
+  display: grid;
+  justify-items: center;
+  line-height: 1;
+}
+
+.vp b {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: var(--weight-regular);
+  line-height: 0.9;
+  color: var(--ds-white);
+  text-shadow: 0 2px 4px rgb(0 0 0 / 0.7);
+}
+
+.vp small {
+  margin-top: 4px;
+  font-family: var(--font-data);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-data);
+  white-space: nowrap;
+  color: var(--ds-ink);
+}
+
+.stamps {
+  align-self: end;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+}
+
+.speaker {
+  width: 34px;
+  height: auto;
+}
+
+.tyrant {
+  padding: 2px 4px 1px;
+  border-radius: 2px;
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-tg) / 0.4);
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: rgb(var(--ds-sig-tg));
+}
+
+/* ── Header rail: each group pinned to the lane below it ── */
+.rc {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 6px;
+  overflow: hidden;
+  /* The rail reports on the lanes; it never widens them. */
+  contain: inline-size;
+}
+
+.rcId {
+  grid-column: 2 / 4;
+  gap: 8px;
+}
+
+.rcIdWide {
+  grid-column: 2 / 5;
+}
+
+.rcBrk {
+  grid-column: 4;
+}
+
+.rcTech {
+  grid-column: 5 / 7;
+}
+
+/* Pushed to the far end of its group. */
+.railEnd {
+  display: flex;
+  margin-left: auto;
+}
+
+.rcPn {
+  grid-column: 7;
+}
+
+.rcAbl {
+  grid-column: 8 / -1;
+}
+
+.rc [role="button"] {
+  flex: 0 1 auto;
+  height: 24px;
+}
+
+.rcBrk [role="button"],
+.rcPn [role="button"] {
+  flex: 1 1 auto;
+  max-width: 220px;
+}
+
+.idName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-title);
+  letter-spacing: 0.02em;
+  color: var(--ds-ink-hi);
+}
+
+/* The faction always shows in full; a long player name truncates instead. */
+.idMeta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.fac {
+  composes: label from "../RailParts.module.css";
+}
+
+.idEnd {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Passed is a state of the seat, so it is stamped on the spine with the
+   seat's other marks, in the same plate as Tyrant but in neutral ink. */
+.passed {
+  padding: 2px 3px 1px;
+  border-radius: 2px;
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 1px var(--ds-h22);
+  font-family: var(--ds-label-font);
+  font-size: 9px;
+  font-weight: var(--weight-rail);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+/* Holding the turn: a status light, so it may pulse. */
+.activeDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--ds-sig-ok));
+  animation: edgePulse 3.2s ease-in-out infinite;
+}
+
+@keyframes edgePulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ── Lanes ── */
+.lc {
+  grid-row: 2;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border-radius: var(--ds-well-r);
+  background: var(--seat-well);
+  box-shadow: var(--ds-well-edge);
+}
+
+.lcStores {
+  grid-column: 2;
+  /* The stores plate fills the well so its command pool docks to the floor. */
+  align-content: stretch;
+}
+
+.lcLeaders {
+  grid-column: 3;
+}
+
+.lcHold {
+  grid-column: 4;
+}
+
+/* The tech rack spans both tech tracks; the rail above splits them. */
+.lcTech {
+  grid-column: 5 / 7;
+}
+
+.lcUnits {
+  grid-column: 7;
+  align-content: stretch;
+}
+
+/* The rack fills its lane: neighbouring lanes set the row's height and the
+   lane's width, so the cells grow from their minimum into whatever is there
+   rather than leaving the lane's floor and right edge empty. */
+.lcUnits > :first-child {
+  grid-template-columns: repeat(4, minmax(52px, 1fr));
+  grid-auto-rows: minmax(46px, 1fr);
+}
+
+.lcEcon {
+  grid-column: 8;
+}
+
+.lcPlanets {
+  grid-column: 9;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.extra {
+  flex: none;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--ds-h10);
+}
+
+/* Army readout closes the lane: pinned to its right edge and as tall as the lane,
+   so it lines up down the deck whatever each seat holds. */
+.armyExtra {
+  align-self: stretch;
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player[data-active] .seat::after,
+  .activeDot,
+  .gaugeFill {
+    animation: none;
+  }
+}

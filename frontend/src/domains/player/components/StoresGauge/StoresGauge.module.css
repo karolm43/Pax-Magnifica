@@ -1,0 +1,59 @@
+/*
+ * Stores readout. A quantity is not a card, so it never wears a card
+ * silhouette: a keyed seat behind a hairline wall, then the figure in mono
+ * against the right edge. The ceiling is held back in ink-low; zero reads as
+ * empty, not as an alarm.
+ */
+.gauge {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  height: 30px;
+  min-width: 72px;
+  border-radius: 2px;
+  background: var(--ds-trough);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.65),
+    inset 0 0 0 1px rgba(var(--gauge-accent), 0.175);
+  overflow: hidden;
+}
+
+.gutter {
+  display: grid;
+  place-items: center;
+  background: rgba(var(--gauge-accent), 0.112);
+  box-shadow: inset -1px 0 0 rgba(var(--gauge-accent), 0.245);
+}
+
+.icon {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.readout {
+  align-self: center;
+  justify-self: end;
+  padding-right: 8px;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 17px;
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+  text-shadow: var(--ds-num-glow);
+}
+
+.value[data-empty="true"] {
+  color: var(--ds-ink-lo);
+  font-weight: var(--weight-data);
+  text-shadow: none;
+}
+
+.capacity {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-data);
+  color: var(--ds-ink-lo);
+}

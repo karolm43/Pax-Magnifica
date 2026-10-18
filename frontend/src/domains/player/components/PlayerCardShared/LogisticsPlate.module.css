@@ -1,0 +1,35 @@
+/*
+ * Stores lane. Two keyed readouts on the left, the hand's card-backs spanning
+ * both rows on the right, then the salvage shelf and the command pool across
+ * the full width.
+ */
+.stores {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  /* The shelf absorbs any slack so the command pool sits on the floor. */
+  grid-template-rows: auto auto 1fr auto;
+  gap: 4px 6px;
+  height: 100%;
+}
+
+.hand {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  display: flex;
+}
+
+.shelf {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 6px;
+  border-top: 1px solid var(--ds-h10);
+}
+
+.ccRow {
+  grid-column: 1 / -1;
+  padding-top: 4px;
+  border-top: 1px solid var(--ds-h14);
+}

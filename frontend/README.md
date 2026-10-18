@@ -1,61 +1,110 @@
-# Custodian Engine — Frontend (Tabletop UI)
+# TI4 Web - React + Vite + TypeScript
 
-Mapa SVG Twilight Imperium w React 19 + Vite + TypeScript, połączona z backendem
-FastAPI przez REST i WebSocket (stan synchronizowany w store Zustand).
+This is a Twilight Imperium 4 web application built with React, Vite, and TypeScript.
 
-## Stack
+## Tech Stack
 
-- React 19 + TypeScript 5
-- Vite 8 (dev-serwer + proxy do backendu)
-- Zustand 5 (zarządzanie stanem, synchronizacja przez WebSocket)
-- Tailwind CSS 4 (plugin `@tailwindcss/vite`)
-- SVG (render mapy heksagonalnej na współrzędnych kubicznych)
+- **React 18** - UI framework
+- **Vite** - Build tool and development server
+- **TypeScript** - Type safety and better developer experience
+- **Mantine** - UI component library
+- **ESLint** - Code linting with TypeScript support
 
-> shadcn/ui dojdzie w Bloku 4 (panele edycji / Action Wizards).
+## Development
 
-## Uruchomienie (development)
+```bash
+# Install dependencies
+npm install
 
-Potrzebne są DWA procesy w osobnych terminalach:
+# Start development server
+npm run dev
 
-1. Backend (z katalogu głównego repo):
-   ```powershell
-   uv run python -m src.api
-   ```
-   Serwer FastAPI na `http://127.0.0.1:8000`.
+# Type checking
+npm run type-check
 
-2. Frontend (z katalogu `frontend/`):
-   ```powershell
-   npm install   # tylko za pierwszym razem
-   npm run dev
-   ```
-   Dev-serwer Vite na `http://localhost:5173`. Zapytania `/api/*` i `/ws` są
-   proxowane do backendu (patrz `vite.config.ts`), więc front łączy się przez
-   adresy względne.
+# Build for production
+npm run build
 
-## Build produkcyjny
-
-```powershell
-npm run build     # tsc -b && vite build -> dist/
-npm run preview   # podgląd builda
+# Preview production build
+npm run preview
 ```
 
-## Struktura
+## Repository Structure
+
+Dependencies point downward: `pages` → `layout` → `domains` → `shared`/`hooks` → `state` → `api` → `entities` → `utils`. `game-shell` composes the other domains; `cards` sits below them.
 
 ```
-frontend/
-├─ index.html
-├─ vite.config.ts        # plugin React + Tailwind + proxy /api i /ws
-├─ src/
-│  ├─ main.tsx           # punkt wejścia
-│  ├─ App.tsx            # layout: pasek stanu + mapa, Undo/Redo
-│  ├─ HexMap.tsx         # renderer SVG (kafelki + krawędzie sąsiedztwa)
-│  ├─ hex.ts             # (q,r,s) -> piksele (pointy-top)
-│  ├─ store.ts           # Zustand: połączenie, stan gry, historia
-│  ├─ api.ts             # REST + WebSocket (adresy względne)
-│  └─ types.ts           # kontrakt DTO (odpowiada src/api/schemas.py)
+ti4_web_new/
+├── public/                    # Static assets
+│   ├── cardback/             # Card background images
+│   ├── font/                 # Custom fonts
+│   ├── leaders/              # Faction leader images
+│   ├── planet_attributes/    # Planet trait icons
+│   └── ...                   # Game assets (tokens, icons, etc.)
+├── src/
+│   ├── main.tsx             # Entry point and routes
+│   ├── config.ts            # Environment config
+│   ├── pages/               # Route-level pages (landing, games, dashboard, game map, image map)
+│   ├── layout/              # Site chrome shared by pages (PageShell, SiteHeader, GamesBar)
+│   ├── domains/             # Feature areas
+│   │   ├── game-shell/      # In-game shell: layouts, sidebars, panels, event log
+│   │   ├── map/             # Board rendering: tiles, layers, unit stacks, tooltips
+│   │   ├── player/          # Player area cards and composition
+│   │   ├── cards/           # Details cards, card backs and deck modals for every card type
+│   │   ├── objectives/      # Scoring, public objectives, laws in play
+│   │   ├── tabs/            # Game tab bar and tab management
+│   │   ├── dashboard/ auth/ settings/ image-map/
+│   ├── shared/ui/           # Reusable, domain-agnostic UI
+│   ├── hooks/               # Generic hooks
+│   ├── state/               # App settings store and game context provider
+│   ├── api/                 # Fetching, sockets and auth session
+│   ├── entities/            # Pure game model
+│   │   ├── data/            # Static game data
+│   │   ├── lookup/          # Map-backed getters over the data
+│   │   ├── game/            # GameData types and buildGameContext
+│   │   ├── geometry/        # Hex and tile geometry
+│   │   ├── positioning/     # Unit placement on tiles
+│   │   └── replay/          # Map replay planning
+│   ├── styles/              # Global styles, themes, z-index variables
+│   └── utils/               # Generic helpers
+├── build/                   # Production build output
+├── dist/                    # Vite build output
+├── CLAUDE.md               # AI assistant coding guidelines
+├── eslint.config.js        # ESLint configuration
+├── postcss.config.cjs      # PostCSS configuration
+├── tsconfig.json           # TypeScript configuration
+├── tsconfig.app.json       # App-specific TypeScript config
+├── tsconfig.node.json      # Node-specific TypeScript config
+├── vite.config.ts          # Vite configuration
+└── package.json            # Dependencies and scripts
 ```
 
-## Kontrakt z backendem
+## TypeScript Configuration
 
-Typy w `src/types.ts` odpowiadają schematom Pydantic w `src/api/schemas.py`.
-Przy zmianie DTO po stronie backendu zaktualizuj te typy ręcznie.
+The project uses two TypeScript configurations:
+
+- `tsconfig.json` - Main configuration for source code
+- `tsconfig.node.json` - Configuration for build tools (Vite config, etc.)
+
+### Key TypeScript Features Enabled
+
+- Strict type checking
+- Path mapping with `@/*` alias for `src/*`
+- React JSX support
+- JSON module resolution
+- Unused variable detection
+
+### Adding Types
+
+- Game model types live in `src/entities/game/types.ts`; static data types in `src/entities/data/types.ts`
+- Component-specific types should be defined in the same file or nearby
+- Third-party library types are automatically included when available
+
+## ESLint Configuration
+
+ESLint is configured to work with both JavaScript and TypeScript files:
+
+- JavaScript/JSX files: Standard React rules
+- TypeScript/TSX files: Additional TypeScript-specific rules
+- Automatic unused variable detection
+- React hooks rules enforcement

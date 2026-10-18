@@ -1,0 +1,897 @@
+/*
+ * The system dossier as a sector scan. Header, then the tile and its static
+ * facts on the left and the zones on the right, read top-down the way combat
+ * resolves, on shared numeric columns. Footer carries the battle calculator.
+ */
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 1060px);
+}
+
+/* The body is the scroller; the scan's header and footer stick to its edges. */
+.modalBody {
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dossier {
+  container-type: inline-size;
+  width: 100%;
+  color: var(--ds-ink);
+}
+
+/* ---------- Header ---------- */
+
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--ds-tex-rail), var(--ds-rail);
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+.hexno {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 40px;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  color: var(--ds-ink-hi);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--ds-sig-danger) / 0.17),
+    rgb(var(--ds-sig-danger) / 0.06)
+  );
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
+}
+
+.titleBlock {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-title);
+  line-height: var(--lh-tight);
+  color: var(--ds-ink-hi);
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  background: var(--ds-socket);
+  border-radius: var(--ds-radius-xs);
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  font-size: var(--text-data);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  white-space: nowrap;
+}
+
+.pill b {
+  font-weight: 600;
+}
+
+.pillLabel {
+  composes: ds-label from global;
+}
+
+.contest {
+  color: var(--ds-red-3);
+  background: rgb(var(--ds-sig-danger) / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-danger) / 0.25);
+}
+
+.closeButton {
+  flex: none;
+}
+
+/* ---------- Body ---------- */
+
+.body {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.art {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  border-right: 1px solid var(--ds-h14);
+  background: radial-gradient(
+    circle at 50% 25%,
+    rgb(var(--ds-hair-rgb) / 0.04),
+    transparent 70%
+  );
+}
+
+/* The system itself, framed by reticle brackets on two corners. */
+.tileWell {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.tileScale {
+  position: relative;
+  overflow: visible;
+}
+
+.tileScale > div {
+  transform-origin: top left;
+  width: 345px;
+  height: 299px;
+}
+
+.bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(var(--gd-blue), 0.35);
+  pointer-events: none;
+}
+
+.bracket[data-corner="tl"] { top: 0; left: 0; border-right: none; border-bottom: none; }
+.bracket[data-corner="br"] { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+/* Zero-size marker the tile's unit popover hangs from, placed in tile
+   coordinates at the clicked stack. */
+.unitAnchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.unitPopover {
+  padding: 0;
+}
+
+/* Fixed to the modal's transformed frame, which on a phone is exactly the
+   visible screen, so the card is centred there however far the dossier has
+   scrolled underneath. */
+.unitSheet {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ds-backdrop);
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--ds-h10);
+  border: 1px solid var(--ds-h10);
+}
+
+.facts > div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--ds-field);
+}
+
+.facts dt {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.facts dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-data);
+  font-size: var(--text-title);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.facts dd.textFact {
+  font-family: var(--font-text);
+  font-size: var(--text-data);
+  font-weight: 500;
+}
+
+.facts dd.nil {
+  font-family: var(--font-text);
+  font-size: var(--text-data);
+  font-weight: 400;
+  color: var(--ds-ink-lo);
+}
+
+.figure {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-data);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.bonus {
+  margin-left: 2px;
+  font-style: normal;
+  font-size: var(--text-meta);
+  color: rgb(var(--ds-sig-ok));
+}
+
+.flavour {
+  display: grid;
+  gap: 6px;
+}
+
+.flavour p {
+  margin: 0;
+  font-size: var(--text-data);
+  font-style: italic;
+  line-height: var(--lh-body);
+  color: var(--ds-ink-lo);
+}
+
+.flavour b {
+  margin-right: 6px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+/* ---------- Zones ---------- */
+
+.zones {
+  --cols: minmax(150px, 200px) minmax(0, 1fr) 44px 36px 44px;
+  container-type: inline-size;
+  display: grid;
+  align-content: start;
+  min-width: 0;
+}
+
+.lbl {
+  composes: ds-label from global;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 10px;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+.cols .lbl:nth-child(n + 3) {
+  text-align: right;
+}
+
+.zone {
+  display: grid;
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+.zone:last-child {
+  border-bottom: 0;
+}
+
+.zone[data-z="space"] {
+  background: radial-gradient(
+    ellipse at 100% 0,
+    rgba(var(--gd-blue), 0.03),
+    transparent 60%
+  );
+}
+
+.zone[data-z="ground"] {
+  background: linear-gradient(0deg, rgba(var(--gd-green), 0.018), transparent 70%);
+}
+
+.zoneHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 9px 14px 8px;
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.alt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  color: var(--ds-ink-hi);
+}
+
+.vals {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-data);
+}
+
+.valsExhausted {
+  opacity: 0.5;
+}
+
+.tag {
+  composes: ds-label from global;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--ds-radius-xs);
+  box-shadow: inset 0 0 0 1px var(--ds-h22);
+  font-size: var(--text-micro);
+  color: var(--ds-ink);
+}
+
+.tagWarn {
+  color: var(--ds-yellow-4);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-warn) / 0.3);
+}
+
+.activated {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.headEnd {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Attacker's colour against the defender's, split by share of expected hits. */
+.balance {
+  position: relative;
+  flex: 1 1 160px;
+  max-width: 300px;
+  height: 16px;
+  border-radius: var(--ds-radius-xs);
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--a) / 0.5) 0 var(--ap),
+    rgb(var(--d) / 0.5) var(--ap) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.5);
+}
+
+.balance i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--ap);
+  width: 2px;
+  translate: -1px 0;
+  background: var(--ds-ink-hi);
+}
+
+.balance b {
+  position: absolute;
+  top: 0;
+  line-height: 16px;
+  font-family: var(--font-data);
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--ds-white);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.9);
+}
+
+.balanceL { left: 6px; }
+.balanceR { right: 6px; }
+
+.odds {
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+
+.calcLink {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid var(--ds-h22);
+  color: var(--ds-ink);
+  transition: color var(--ds-dur-fast) var(--ds-ease), border-color var(--ds-dur-fast) var(--ds-ease);
+}
+
+.calcLink:hover {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h35);
+}
+
+.calcLink:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+.empty {
+  padding: 10px 14px;
+  font-size: var(--text-data);
+  color: var(--ds-ink-lo);
+}
+
+/* ---------- Force rows ---------- */
+
+.force,
+.fire {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  padding: 7px 14px;
+}
+
+.force + .force,
+.force + .fire,
+.fire + .fire {
+  border-top: 1px solid var(--ds-h10);
+}
+
+.force {
+  box-shadow: inset 3px 0 0 rgb(var(--pc) / 0.85);
+}
+
+.force[data-side="att"] {
+  background: linear-gradient(90deg, rgb(var(--pc) / 0.05), transparent 45%);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  white-space: nowrap;
+}
+
+.who > img,
+.who > svg {
+  flex: none;
+}
+
+.whoName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who em {
+  flex: none;
+  font-style: normal;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: rgb(var(--pc));
+  filter: brightness(1.3);
+}
+
+.units {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.unit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 6px 0 2px;
+  border: 0;
+  border-radius: var(--ds-radius-xs);
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  font-family: var(--font-data);
+  font-size: var(--text-data);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+  transition: box-shadow var(--ds-dur-fast) var(--ds-ease);
+}
+
+.unit img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.9));
+}
+
+.unit:hover,
+.unit[aria-expanded="true"] {
+  box-shadow: inset 0 0 0 1px var(--ds-h35);
+}
+
+.unit:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}
+
+.unitAnchorBox {
+  display: inline-flex;
+}
+
+.unitStruct {
+  box-shadow: inset 0 0 0 1px var(--ds-h14), inset 0 -2px 0 rgba(var(--gd-gray), 0.35);
+}
+
+.unitStatic {
+  cursor: default;
+}
+
+/* A sustained hit, marked as a notch on the chip's corner. */
+.unitDamage {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgb(var(--ds-sig-danger));
+}
+
+.n {
+  text-align: right;
+  font-family: var(--font-data);
+  font-size: var(--text-title);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.n i {
+  font-style: normal;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.fire {
+  background: repeating-linear-gradient(
+    135deg,
+    rgb(var(--ds-sig-danger) / 0.025) 0 6px,
+    transparent 6px 12px
+  );
+  box-shadow: inset 3px 0 0 rgb(var(--ds-sig-danger) / 0.3);
+}
+
+.fire .who {
+  color: var(--ds-red-3);
+}
+
+.fire .n:first-of-type {
+  color: var(--ds-red-3);
+}
+
+.from {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+/* ---------- Planet extras ---------- */
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--ds-h10);
+}
+
+.attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-data);
+  color: var(--ds-ink-hi);
+}
+
+.attachment img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.attachment em {
+  font-style: normal;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--ds-h10);
+}
+
+/* The legendary ability as a capsule in the legendary violet-to-gold pairing. */
+.legendTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px 0 2px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--gd-purple), 0.12),
+    rgba(var(--gd-yellow), 0.07)
+  );
+  box-shadow: inset 0 0 0 1px rgba(var(--gd-yellow), 0.35);
+  font-family: var(--font-display);
+  font-size: var(--text-data);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  white-space: nowrap;
+}
+
+.legendCore {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ds-socket);
+}
+
+.legendCore img {
+  width: 12px;
+  height: 12px;
+}
+
+.legend p {
+  margin: 0;
+  font-size: var(--text-data);
+  line-height: var(--lh-body);
+  color: var(--ds-ink);
+}
+
+/* ---------- Navigation ---------- */
+
+.feature {
+  display: grid;
+  gap: 4px;
+  padding: 8px 14px;
+}
+
+.feature + .feature {
+  border-top: 1px solid var(--ds-h10);
+}
+
+.featureHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.featureIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.featureName {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.featureDetail {
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.featureRule {
+  margin: 0;
+  font-size: var(--text-data);
+  line-height: var(--lh-body);
+  color: var(--ds-ink);
+}
+
+/* Wormhole letters as instrument medallions. */
+.wormholeGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1px solid var(--ds-h22);
+  border-radius: 50%;
+  background: var(--ds-field);
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  line-height: 1;
+  color: var(--ds-ink-hi);
+}
+
+/* ---------- Footer ---------- */
+
+.foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ds-h14);
+  background: var(--ds-ground-2);
+}
+
+.note {
+  margin-right: auto;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-h22);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-field);
+  font-family: var(--font-display);
+  font-size: var(--text-label);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ds-ink);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--ds-dur-fast) var(--ds-ease), background-color var(--ds-dur-fast) var(--ds-ease), border-color var(--ds-dur-fast) var(--ds-ease);
+}
+
+.btn:hover {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h35);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+.btnPrimary {
+  color: var(--ds-white);
+  background: rgb(var(--ds-accent-rgb) / 0.8);
+  border-color: var(--ds-accent);
+}
+
+.btnPrimary:hover {
+  color: var(--ds-white);
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+
+.versus {
+  font-family: var(--font-data);
+  text-transform: lowercase;
+  opacity: 0.8;
+}
+
+/* ---------- Narrow screens ---------- */
+
+@container (max-width: 699px) {
+  .head {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+
+  .status {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .art {
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-h14);
+  }
+
+  .note {
+    flex-basis: 100%;
+  }
+}
+
+/* Forces drop the name onto its own line, numerals keep their columns. */
+@container (max-width: 559px) {
+  .zones {
+    --cols: minmax(0, 1fr) 40px 32px 40px;
+  }
+
+  .cols > :first-child {
+    display: none;
+  }
+
+  .who {
+    grid-column: 1 / -1;
+  }
+
+  .balance {
+    flex-basis: 100%;
+    max-width: none;
+    order: 1;
+  }
+}

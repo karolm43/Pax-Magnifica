@@ -1,0 +1,19 @@
+.trigger {
+  cursor: pointer;
+}
+
+.titleBlock {
+  display: block;
+}
+
+.subline {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-data);
+  letter-spacing: 0;
+  text-transform: none;
+  text-shadow: none;
+  color: var(--ds-ink-lo);
+}

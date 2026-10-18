@@ -1,0 +1,10 @@
+.pool {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  gap: 8px;
+}
+
+.empty {
+  font-size: var(--text-data);
+  color: var(--ds-ink-lo);
+}

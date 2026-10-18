@@ -1,28 +1,69 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+import { resolve } from "path";
 
-// Dev-serwer Vite na :5173. Zapytania API są kierowane do backendu FastAPI
-// (:8000) przez proxy, dzięki czemu frontend łączy się z adresami względnymi
-// (/api, /ws) bez twardego kodowania hosta backendu.
+const ReactCompilerConfig = {
+  target: "19",
+  // The music video is a frame-accurate render loop tuned without the compiler.
+  sources: (filename: string) => !filename.includes("/src/music-video/"),
+};
+
+/*
+ * Rollup's property-path tree-shaking spends ~5 minutes analysing react-dom's single-file
+ * production bundle (89% of the build), only to keep nearly all of it. Including React whole
+ * cuts the build to ~1 minute with byte-identical output.
+ */
+const includeReactWhole: Plugin = {
+  name: "include-react-whole",
+  enforce: "post",
+  transform(code, id) {
+    if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) {
+      return { code, map: null, moduleSideEffects: "no-treeshake" };
+    }
+  },
+};
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", ReactCompilerConfig]],
+      },
+    }),
+    includeReactWhole,
+  ],
+  resolve: {
+    alias: {
+      "@": resolve(__dirname, "./src"),
+    },
+  },
+  assetsInclude: ["**/*.woff", "**/*.woff2", "**/*.ttf", "**/*.otf"],
+  build: {
+    rollupOptions: {
+      // The music video is its own page, loaded into an iframe by the map toolbar.
+      input: {
+        main: resolve(__dirname, "index.html"),
+        musicVideo: resolve(__dirname, "music-video.html"),
+      },
+    },
+  },
   server: {
-    port: 5173,
     proxy: {
-      "/api": {
+      // Custodian Engine backend (FastAPI). "/bot/api/..." -> "/api/..." na :8000.
+      "/bot": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path.replace(/^\/bot/, ""),
       },
-      "/ws": {
-        target: "ws://127.0.0.1:8000",
-        ws: true,
-      },
-      // Grafiki kafelków i inne assety statyczne serwuje backend pod /static.
+      // Statyczne assety (grafiki kafelków/jednostek) serwowane przez backend.
       "/static": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+      },
+      "/proxy": {
+        target: "https://asyncti4.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/proxy/, ""),
       },
     },
   },

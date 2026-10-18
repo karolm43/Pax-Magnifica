@@ -1,0 +1,9 @@
+/* Size comes from custom properties so module rules on .unit-sprite can override it. */
+.unit-sprite {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--unit-sprite-width);
+  height: var(--unit-sprite-height);
+  aspect-ratio: var(--unit-sprite-aspect);
+  background-repeat: no-repeat;
+}

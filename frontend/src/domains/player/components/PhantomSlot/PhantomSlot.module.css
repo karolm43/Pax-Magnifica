@@ -1,0 +1,37 @@
+/*
+ * Socket: empty capacity. Pressed into the lane, with a small seat outline and
+ * a registration rule where a name would start. It takes the lane width so
+ * empty rows line up with filled ones, and it is never dashed.
+ */
+.socket {
+  position: relative;
+  display: block;
+  height: var(--ds-row);
+  border-radius: 1px;
+  background: var(--ds-socket);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.65),
+    inset 0 -1px 0 var(--ds-h10);
+}
+
+.socket::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  translate: 0 -50%;
+  border: 1px solid var(--ds-h14);
+  border-radius: 1px;
+}
+
+.socket::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  width: 14px;
+  height: 1px;
+  background: var(--ds-h14);
+}

@@ -1,0 +1,21 @@
+/* Shared by the hand sheet: a phone sheet's header is a rail, matching the
+   desktop floating panel. */
+.sheetHeader {
+  min-height: 0;
+  padding: 6px 6px 6px 12px;
+  background: var(--ds-tex-rail), var(--ds-rail);
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+/* Paired with .ds-label */
+.sheetTitle {
+  line-height: 1;
+  color: var(--ds-ink-hi);
+}
+
+/* The log scrolls inside the sheet so its round bands and scrubber stay put. */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  height: min(70dvh, 640px);
+}

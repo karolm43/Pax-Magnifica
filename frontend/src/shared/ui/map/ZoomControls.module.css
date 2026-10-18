@@ -1,0 +1,78 @@
+/*
+ * Map controls: a small frosted float docked to the board's top-right corner.
+ * The zoom readout is mono; the buttons are bare glyphs that light on hover.
+ */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.float {
+  padding: 3px;
+  background: color-mix(in oklab, var(--ds-ground) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--ds-h22);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-md), inset 0 1px 0 var(--ds-edge-accent);
+}
+
+.zoomLabel {
+  padding: 0 8px;
+  min-width: 44px;
+  text-align: right;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink);
+}
+
+.zoomButton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--ds-ink);
+  background: none;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease),
+    background var(--ds-dur-fast) var(--ds-ease);
+}
+
+.zoomButton:hover:not(:disabled) {
+  color: var(--ds-ink-hi);
+  background: var(--ds-h10);
+}
+
+.zoomButton:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}
+
+.zoomButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.zoomButtonActive {
+  color: var(--ds-ink-hi);
+  box-shadow: inset 0 -2px 0 var(--ds-accent);
+}
+
+.sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--ds-h14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoomButton {
+    transition: none;
+  }
+}

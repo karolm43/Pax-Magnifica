@@ -1,0 +1,171 @@
+/*
+ * The expanded player dossier: the pannable band's compartments, reflowed
+ * into rows. The band scrolls sideways and never wraps; this deck cannot
+ * scroll, so its rows wrap — and every compartment that can pick up slack
+ * grows to fill its row, so a wrapped state still reads as a deliberate
+ * arrangement rather than plates parked beside dead space.
+ *
+ * Hosted by the Player tab's card grid and the Panels-view sidebar. Both vary
+ * continuously in width (the tab with the viewport, the sidebar with its drag
+ * handle), so the breakpoints are container queries, not media queries.
+ */
+
+/* The deck is the container the compartment rows measure themselves against. */
+.deck {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: stretch;
+}
+
+/* Stores, ledger and leaders are readouts with a natural size; stretched far,
+   they turn into long empty bars. Stores and leaders may grow a little to close
+   a line, up to a cap; the ledger never does. Holdings take the rest. */
+.statusSection {
+  flex: 1 0 200px;
+  max-width: 240px;
+}
+
+.economySection {
+  flex: 0 0 auto;
+}
+
+.leadersSection {
+  flex: 1 0 auto;
+  max-width: 300px;
+  overflow: visible;
+}
+
+/* Beside the readouts when one seat fits; otherwise a full-width line. The
+   heavy grow weight makes the seats, not the readouts, soak up slack. */
+.holdingsSection {
+  flex: 12 1 200px;
+  min-width: 0;
+}
+
+.techSection,
+.planetsSection,
+.plotsSection {
+  width: 100%;
+}
+
+.unitsSection {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.nomboxSection {
+  flex: 0 1 auto;
+}
+
+.armySection {
+  flex: 0 0 auto;
+}
+
+/* One column per tech color. Lanes are sized by their longest name and share
+   the plate's slack, so a color the player has not researched gives its width
+   to the lines that need it instead of forcing every name to truncate. */
+.techRack {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(64px, auto));
+  gap: 4px;
+}
+
+/* Planet cards run the plate's full width and wrap; reinforcements trail the
+   last card. */
+.planetsFlow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+/*
+ * The faction loadout: the deck's first plate, one bay per chip group —
+ * breakthrough, faction techs, promissory notes, abilities.
+ *
+ * Bays size to their chips and grow to fill the line they land on, so the
+ * plate packs as many groups per line as the card allows and every line ends
+ * flush. 1px gaps let a hairline ground show between bays — the condensed
+ * unit rack's construction — so the seams draw themselves around any wrap.
+ * Chips wrap *inside* their bay, so a group is never split across lines.
+ */
+.loadoutSection {
+  width: 100%;
+}
+
+.loadoutRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  height: 100%;
+  background: var(--panel-hairline);
+}
+
+.loadoutGroup {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 6px 7px;
+  background: var(--panel-field-strip);
+}
+
+/*
+ * Narrow decks (the two-up tab grid on a small laptop, phone widths): stores,
+ * ledger and leaders no longer fit one line. Pair stores with leaders (two
+ * plates of similar height and width), then the ledger with the holdings
+ * seats, so neither line ends in a gap.
+ */
+@container (max-width: 599px) {
+  .leadersSection {
+    order: 1;
+  }
+
+  .economySection {
+    order: 2;
+  }
+
+  .holdingsSection {
+    order: 3;
+  }
+}
+
+@container (max-width: 559px) {
+  /* Four color lanes can't share a narrow plate, and a 2x2 of lanes turns
+     every unresearched color into a stack of empty sockets. The lanes dissolve
+     instead: techs run in color order across two columns, sockets dropped. */
+  .techRack {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+
+  .techLane {
+    display: contents;
+  }
+
+  .techLane > [aria-hidden="true"] {
+    display: none;
+  }
+}
+
+/* Very narrow decks: every plate in the status row gets its own line. */
+@container (max-width: 379px) {
+  .statusSection,
+  .leadersSection {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}

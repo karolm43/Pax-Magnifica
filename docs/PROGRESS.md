@@ -396,3 +396,59 @@ format `startingFleet` (sufiks planety = najkrótszy jednoznaczny skrót; alias 
 **Status DoD Fazy 1:** osiągnięte podstawy grywalnej mapy — widać jednostki, można zrobić
 setup i przestawiać jednostki. Do pełni: panel gracza (VP/zasoby/technologie), dopieszczenie
 układu ikon przy planetach, gotowość pod AI (walidacja/eksport).
+
+---
+
+### ✅ Blok F0+F1 — wymiana frontendu na ti4_web + endpoint `web-data`
+
+**Decyzja użytkownika:** porzucamy własny frontend SVG; nowym frontendem jest
+`ti4_web_new-main` (dojrzały viewer planszy AsyncTI4). Backend (Custodian Engine)
+pozostaje źródłem prawdy — dostosowujemy GO do frontendu, nie odwrotnie:
+`GameState` serializuje się do dokumentu `PlayerDataResponse`, którego oczekuje viewer.
+
+**Co ustalono o frontendzie (analiza, nie pamięć):**
+- Cała plansza renderuje się z JEDNEGO zapytania HTTP: `GET {gameDataUrl}/{gameId}/web-data`
+  → obiekt `PlayerDataResponse`. Dev `gameDataUrl` = `/bot/api/public/game` (proxy Vite
+  zrzuca `/bot` → backend widzi `/api/public/game/{id}/web-data`).
+- Statyczne katalogi (104 jednostki / 111 planet / 195 systemów + frakcje) są WBUDOWANE
+  w bundle frontendu (`src/entities/data/*.ts`, auto-gen z assetów AsyncTI4). Backend
+  wysyła tylko STAN (ID: `systemId`, `asyncId`, nazwy planet), nie definicje.
+- Grafiki (kafelki, jednostki, tokeny) idą ze zdalnego CDN `images.asyncti4.com`
+  (`cdnImage.ts`) — zero pracy po stronie backendu na start. (Local-first = później.)
+- Jednostki w `tileUnitData` kluczowane `entityId = asyncId` (`ff, dd, ca, cv, gf, mf,
+  sd, pd, ...`) per frakcja. Planety kluczowane ID planety (zgodne z naszym rejestrem).
+- Pozycje: `tilePositions = ["<pozycja>:<systemId>", ...]`. Frontend liczy piksele sam
+  z `tileCoordinates` po kluczu pozycji AsyncTI4 — nasze pozycje używają tych samych
+  identyfikatorów (`000`, `101`…), więc NIE wysyłamy `(q,r,s)`.
+- WebSocket STOMP (live-patche) jest OPCJONALNY — viewer działa przez refetch. Na razie
+  pominięty (wskazany lokalny adres, by nie łączyć się z produkcją AsyncTI4).
+
+**Zrobione:**
+- [x] Stary `frontend/` usunięty; `ti4_web_new-main/` przeniesiony → `frontend/`.
+- [x] `frontend/vite.config.ts`: proxy `/bot` → `http://127.0.0.1:8000` (zrzut `/bot`),
+  `/static` → backend. `config.ts`: `websocketUrl` → lokalny (bez produkcji AsyncTI4).
+- [x] `src/api/web_data.py` (NOWY): `build_web_data` — `GameState`+`HexGrid`+rejestr →
+  `PlayerDataResponse`. Minimalny, kompletny dla viewera zestaw pól (tileUnitData,
+  tilePositions, ringCount, playerData, puste objectives/cardPool/expeditions/...).
+- [x] `src/api/app.py`: endpoint `GET /api/public/game/{game_id}/web-data`.
+- [x] `.gitignore`: usunięto wpis `ti4_web_new-main/`, dodano `frontend/build`,`node_modules`.
+- [x] `tests/test_web_data.py` (NOWY): kształt dokumentu, format `tilePositions`,
+  jednostki jako asyncId, dane graczy.
+
+**Rezultat (zweryfikowany E2E):**
+- Backend: `/map/load` (string użytkownika) + `/setup/player` (Sol@301) → `web-data` 200,
+  33 pozycje (`000:18`, `101:72`…), statki Sol w przestrzeni (`cv×2, dd×1, ff×3`),
+  Jord: `gf×5, sd×1`, `controlledBy=sol`, gracz `red` VP=0.
+- Frontend: `npm install` + `type-check` + `build` czyste. Dev-serwer Vite (5173) +
+  proxy: `GET /bot/api/public/game/g/web-data` → 200, 33 pozycje. Pełny potok
+  frontend → proxy → FastAPI → `build_web_data` działa.
+- **82 testy zielone**, ruff + mypy --strict czyste, build frontu czysty.
+
+**Do zrobienia dalej (następne bloki):**
+- Weryfikacja wizualna renderu w przeglądarce (`/embed/{id}/map-only` lub `/game/{id}`).
+  `gameId` na start jest dowolny — backend trzyma jeden stan (single-game).
+- Edycja/God-Mode w nowym UI (frontend AsyncTI4 to viewer; nasz edytor trzeba dołożyć
+  jako panel/akcje nad istniejącymi endpointami setup/space/planet/undo/redo).
+- Opcjonalnie: STOMP WS emitujący `GameStateMessage{full:true}` dla live-sync.
+- Opcjonalnie (local-first wg spec): przekierować `cdnImage()` na nasz `/static`.
+- Rozważyć: `playerData` ekonomia planet / zasoby liczone realnie (teraz zera).

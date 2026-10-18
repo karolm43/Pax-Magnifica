@@ -1,0 +1,83 @@
+/*
+ * The legendary ability is a tab on the planet card, so it shares that card's
+ * dark field and its gold legendary frame rather than carrying a colour of its
+ * own. Spent, it goes hollow and grey like a spent planet.
+ */
+:root {
+  --ability-field: rgba(10, 14, 22, 0.72);
+  --ability-border: var(--legendary-border, rgba(232, 186, 72, 0.6));
+  --ability-text: var(--legendary-text, rgba(240, 206, 120, 0.85));
+}
+
+.abilityCard {
+  cursor: pointer;
+  transition: filter var(--ds-dur) var(--ds-ease);
+  position: relative;
+}
+
+.abilityCard:hover {
+  filter: brightness(1.12);
+}
+
+.mainStack {
+  padding: 6px var(--ds-space-xs);
+  border: 1px solid var(--ability-border);
+  background: var(--ability-field);
+  border-radius: 8px;
+}
+
+.mainStack.exhausted {
+  border-color: rgba(232, 186, 72, 0.3);
+  background: rgb(0 0 0 / 0.28);
+}
+
+/* Joined to the planet: a narrow strip inside the planet's gold frame, split
+   from it by a seam, with a faint gold wash while the ability is ready. */
+.mainStack.joinedRight {
+  width: 26px;
+  height: 100%;
+  padding: 5px 0 6px;
+  align-items: center;
+  border: none;
+  border-left: 1px solid var(--legendary-seam, rgba(232, 186, 72, 0.22));
+  border-radius: 0;
+  background: rgba(232, 186, 72, 0.06);
+}
+
+.mainStack.joinedRight.exhausted {
+  background: rgb(0 0 0 / 0.28);
+}
+
+.exhausted .legendaryIcon {
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+
+.exhausted .planetName {
+  color: var(--ds-gray-5);
+}
+
+.bottomStack {
+  flex-grow: 1;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.planetName {
+  font-size: var(--ds-fz-xs);
+  color: var(--ability-text);
+  font-weight: var(--weight-rail);
+  writing-mode: vertical-rl;
+  text-orientation: sideways;
+  white-space: nowrap;
+  transform: rotate(180deg);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Legendary icon */
+.legendaryIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}

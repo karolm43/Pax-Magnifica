@@ -1,0 +1,29 @@
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.label {
+  composes: lbl from "../../../player/components/RailParts.module.css";
+  line-height: 1.2;
+}
+
+.meta {
+  composes: label;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ruled {
+  justify-content: flex-start;
+}
+
+.rule {
+  flex: 1;
+  height: 1px;
+  background: var(--ds-h14);
+}

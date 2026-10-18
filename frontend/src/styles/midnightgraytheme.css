@@ -1,0 +1,63 @@
+.theme-midnightgraytheme {
+    /* Surface.tsx */
+    --surface-bg: rgba(8, 8, 8, 1);
+    --surface-border: 1px solid rgba(160, 160, 160, 0.28);
+    --surface-corner-accent: 2px solid rgba(200, 200, 200, 0.18);
+
+    /* PlayerCard.tsx
+       The card is the panel and the modules inside it are subpanels, so the card
+       ground sits a step ABOVE the module field rather than at pitch black. At
+       rgba(8,8,8) the ground was darker than the plates sitting on it, which is
+       what made the player area read as loose panels floating on a void. */
+    --player-card-box-bg: linear-gradient(180deg, #151517 0%, #101012 100%);
+
+    --sidebar-bg: #0a0a0a;
+    --left-sidebar-bg: rgb(10 10 10 / 92%);
+    --sidebar-border: 1px solid rgba(160, 160, 160, 0.25);
+
+    /* Very subtle overhead sheen; barely-there on purpose */
+    --main-bg:
+      radial-gradient(120% 80% at 50% -10%, rgba(148, 163, 184, 0.05), transparent 55%),
+      #0a0a0a;
+    --map-tabs-bg: linear-gradient(180deg, #080808, #161616 100%);
+
+    --header-bg: linear-gradient(90deg, rgba(8, 8, 8) 0%, rgba(24, 24, 24) 100%);
+
+    --header-tab-input-bg: rgba(8, 8, 8, 0.86);
+    --header-tab-input-border: 1px solid rgba(200, 200, 200, 0.45);
+
+    --header-tab-dropdown-bg: rgba(8, 8, 8, 0.94);
+    --header-tab-dropdown-border: 1px solid rgba(200, 200, 200, 0.45);
+    --header-tab-dropdown-hover-bg: rgba(180, 180, 180, 0.38);
+
+    --details-card-bg: linear-gradient(135deg, rgb(8, 8, 8) 0%, rgb(24, 24, 24) 100%);
+    --details-card-border: 1px solid rgba(200, 200, 200, 0.28);
+
+    /* Unit Details Card */
+    --unit-details-inherited-bg: rgba(139, 92, 246, 0.06);
+    --unit-details-inherited-border: rgba(139, 92, 246, 0.15);
+
+    /*
+     * Machined chrome, hueless. This theme's identity is graphite, so the shared
+     * navy field defined in themeSharedTokens reads as a different product bolted
+     * on. Every value below is the same construction as the default, moved to
+     * zero chroma and set a step darker than --player-card-box-bg so modules sit
+     * INSIDE the card as recessed subpanels.
+     */
+    --panel-field-bg: linear-gradient(180deg, rgba(12, 12, 13, 0.96), rgba(8, 8, 9, 0.98));
+    --panel-field-flat: rgba(8, 8, 9, 0.55);
+    --panel-field-strip: rgba(10, 10, 11, 0.66);
+
+    --panel-hairline: rgba(190, 190, 196, 0.12);
+    --panel-hairline-strong: rgba(190, 190, 196, 0.2);
+    --panel-separator: rgba(190, 190, 196, 0.09);
+    --panel-bracket: rgba(222, 222, 228, 0.15);
+
+    --rail-border: rgba(190, 190, 196, 0.15);
+    --rail-ink: rgba(178, 178, 184, 0.92);
+
+    --socket-bg: rgba(0, 0, 0, 0.3);
+    --socket-border: rgba(190, 190, 196, 0.09);
+
+    --survey-lit: rgba(216, 216, 222, 0.8);
+}

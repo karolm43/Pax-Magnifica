@@ -42,6 +42,7 @@ from src.api.schemas import (
     UnitStack,
 )
 from src.api.state_service import StateService
+from src.api.web_data import build_web_data
 from src.core.event_store import EventStore
 from src.core.faction_setup import apply_setup_to_state
 from src.core.game_state import GameState, SystemState
@@ -218,6 +219,22 @@ def create_app(
     @app.get("/map", response_model=MapView)
     def get_map() -> MapView:
         return build_map_view(app.state.current_grid, reg, service.current_state())
+
+    @app.get("/api/public/game/{game_id}/web-data")
+    def get_web_data(game_id: str) -> dict[str, object]:
+        """Dokument ``PlayerDataResponse`` dla frontendu ti4_web (viewer planszy).
+
+        Jeden dokument HTTP, z którego frontend renderuje całą planszę: pozycje,
+        jednostki w przestrzeni i na planetach, gracze. Statyczne katalogi
+        (definicje jednostek/planet/systemów) frontend ma wbudowane i rozwiązuje
+        po ID — tu wysyłamy wyłącznie stan.
+        """
+        return build_web_data(
+            app.state.current_grid,
+            reg,
+            service.current_state(),
+            game_name=game_id,
+        )
 
     @app.get("/factions", response_model=list[FactionInfo])
     def get_factions() -> list[FactionInfo]:

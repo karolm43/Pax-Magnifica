@@ -1,0 +1,105 @@
+/*
+ * Economy ledger: optimal and totals side by side, figures in mono against
+ * the right edge with the ceiling held back in ink-low.
+ */
+.econ {
+  --inf-ink: color-mix(in oklab, rgb(var(--gd-blue)) 70%, var(--ds-white));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+  align-content: start;
+}
+
+.single {
+  grid-template-columns: 1fr;
+}
+
+.lbl {
+  composes: label from "../RailParts.module.css";
+  padding-bottom: 4px;
+}
+
+.econ dl {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  margin: 0;
+}
+
+.econ dl + dl {
+  box-shadow: -5px 0 0 -4px var(--ds-h14);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+}
+
+.row dd {
+  margin: 0;
+  justify-self: end;
+  font-family: var(--font-data);
+  font-size: 16px;
+  font-weight: var(--weight-title);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: var(--ds-num-glow);
+}
+
+.of {
+  font-size: var(--text-meta);
+  font-weight: var(--weight-data);
+  color: var(--ds-ink-lo);
+}
+
+.of::before {
+  content: "/";
+  margin: 0 1px;
+  opacity: 0.6;
+}
+
+.resource dd {
+  color: rgb(var(--gd-yellow));
+}
+
+.influence dd {
+  color: var(--inf-ink);
+}
+
+.flex dd,
+.sum dd {
+  color: var(--ds-ink-hi);
+}
+
+.sum {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--ds-h14);
+}
+
+.glyph {
+  width: 15px;
+  height: 15px;
+}
+
+.glyph path {
+  fill: rgb(0 0 0 / 0.55);
+  stroke-width: 1.6;
+}
+
+.flexGlyph path {
+  fill: none;
+}
+
+.res path,
+path.res {
+  stroke: rgb(var(--gd-yellow));
+}
+
+.inf path,
+path.inf {
+  stroke: var(--inf-ink);
+}

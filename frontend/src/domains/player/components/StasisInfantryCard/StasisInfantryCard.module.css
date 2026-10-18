@@ -1,0 +1,22 @@
+/* A revivable infantry is held in stasis: the sprite is shadowed in its bay. */
+.unitImage {
+  height: 26px;
+  width: auto;
+  display: block;
+  filter: brightness(0.25);
+}
+
+.unitImage:global(.unit-sprite) {
+  height: 26px;
+  width: auto;
+}
+
+.denseUnitImage {
+  height: 22px;
+  width: auto;
+}
+
+.denseUnitImage:global(.unit-sprite) {
+  height: 22px;
+  width: auto;
+}
