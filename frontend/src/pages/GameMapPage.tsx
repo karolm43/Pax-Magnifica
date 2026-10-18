@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs, SimpleGrid } from "@/ds";
-import { MapHeaderSwitch } from "@/layout/MapHeaderSwitch";
+import { SiteHeader } from "@/layout/SiteHeader";
 import classes from "@/shared/ui/map/MapUI.module.css";
 import ScoreBoard from "@/domains/objectives/components/ScoreBoard/ScoreBoard";
 import { UpdateNeededScreen } from "@/domains/game-shell/components/chrome/UpdateNeededScreen";
@@ -39,9 +39,11 @@ import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/
 
 const REQUIRED_VERSION_SCHEMA = 5;
 
+/** Stały identyfikator jedynej, lokalnej gry (backend ignoruje wartość). */
+const DEFAULT_GAME_ID = "local";
+
 type ContentProps = {
   pannable: boolean;
-  onShowOldUI?: () => void;
 };
 
 type TabContentProps = {
@@ -62,12 +64,12 @@ function TabContent({ gameId, ready, isError, children }: TabContentProps) {
   return <MapViewportLoader label="Acquiring game state" />;
 }
 
-function GameMapContent({ pannable, onShowOldUI }: ContentProps) {
+function GameMapContent({ pannable }: ContentProps) {
   const data = useGameContext();
   const gameDataState = useGameDataState();
   const isError = !!gameDataState?.isError;
   const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid!;
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
 
   const { activeTabs, changeTab, removeTab } = useTabManagement();
   const settings = useSettingsStore((state) => state.settings);
@@ -126,12 +128,7 @@ function GameMapContent({ pannable, onShowOldUI }: ContentProps) {
 
   return (
     <AppShell header={{ height: APP_HEADER_HEIGHT }}>
-      <MapHeaderSwitch
-        gameId={gameId}
-        buttonLabel="OLD UI"
-        onButtonClick={onShowOldUI}
-        hideOnMobile
-      />
+      <SiteHeader currentMapId={gameId} />
 
       <AppShell.Main>
         <Box
@@ -255,7 +252,6 @@ function GameMapContent({ pannable, onShowOldUI }: ContentProps) {
         activeTabs={activeTabs}
         onGameChange={changeTab}
         onRemoveTab={removeTab}
-        onShowOldUI={onShowOldUI}
         onCardsClick={mobileOpenHand}
         onEventsClick={mobileOpenEvents}
       />
@@ -276,13 +272,9 @@ function GameMapContent({ pannable, onShowOldUI }: ContentProps) {
   );
 }
 
-type Props = {
-  onShowOldUI?: () => void;
-};
-
-function GameMapPage({ onShowOldUI }: Props) {
+function GameMapPage() {
   const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid!;
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const themeClassName = usePageThemeClass({ mobile: isMobileDevice() });
   const mapViewPreference = useSettingsStore(
     (state) => state.settings.mapViewPreference,
@@ -307,10 +299,7 @@ function GameMapPage({ onShowOldUI }: Props) {
     <>
       <GameContextProvider gameId={gameId}>
         <div className={themeClassName}>
-          <GameMapContent
-            pannable={effectivePannable}
-            onShowOldUI={onShowOldUI}
-          />
+          <GameMapContent pannable={effectivePannable} />
         </div>
       </GameContextProvider>
       {!isMobileDevice() && (

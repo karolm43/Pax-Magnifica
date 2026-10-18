@@ -452,3 +452,50 @@ pozostaje źródłem prawdy — dostosowujemy GO do frontendu, nie odwrotnie:
 - Opcjonalnie: STOMP WS emitujący `GameStateMessage{full:true}` dla live-sync.
 - Opcjonalnie (local-first wg spec): przekierować `cdnImage()` na nasz `/static`.
 - Rozważyć: `playerData` ekonomia planet / zasoby liczone realnie (teraz zera).
+
+---
+
+### ✅ Blok F2 — redukcja frontendu do pojedynczego widoku gry
+
+**Decyzja użytkownika:** nie chcemy portalu AsyncTI (landing page, lista gier,
+dashboard, logowanie). Chcemy JEDEN widok konkretnej gry z wszystkimi jego
+komponentami (plansza + zakładki players/objectives/general + nagłówek, panele,
+modale). Własny landing dorobimy później.
+
+**Analiza zależności (context-gatherer):** prześledzono drzewo importów widoku gry
+(`GameMapPage`) żeby wyciąć portal bez zepsucia planszy. Ustalono m.in.:
+- `GameContextProvider` → `usePlayerData` pobiera `web-data` zwykłym (nieuwierzytelnionym)
+  `fetch` — rdzeń widoku NIE wymaga logowania.
+- `src/api/auth` + `src/domains/auth` są jednak importowane tranzytywnie (SecretHand,
+  nagłówek, drawer). ZOSTAWIONE — degradują się łagodnie (brak użytkownika Discord =
+  ukryta „ręka"; przycisk logowania lokalnie nieaktywny). Wycinanie ich = kaskada edycji.
+
+**Usunięte (portal / legacy):**
+- `pages/`: LandingPage/, GamesPage, DashboardPage, DashboardSettingsPage, LoginPage,
+  MapTogglePage, EmbeddedMapPage, image-map/ (stary „OLD UI" + FoW).
+- `domains/`: image-map/, dashboard/, music-video/. `src/music-video/` + `music-video.html`.
+- `api/`: useCommunityStats, useMaps. `layout/PageShell`.
+
+**Zmienione (usunięcie referencji do wyciętych części):**
+- `main.tsx`: trasy zredukowane do `/` i `/game/:mapid` → `GameMapPage` (+ `/system/:id`).
+  Root otwiera OD RAZU widok gry. Usunięto providerów/prefetch music-video. `gameId`
+  domyślny = `"local"` (backend trzyma jeden stan, ignoruje identyfikator).
+- `GameMapPage.tsx`: `gameId = params.mapid ?? "local"`; usunięto `onShowOldUI` i przełącznik
+  „OLD UI" (zastąpiono `MapHeaderSwitch` → bezpośrednio `SiteHeader`).
+- `NavigationDrawer.tsx`: usunięto przycisk „GO TO OLD UI" + prop `onShowOldUI`.
+- `FloatingMapToolbar.tsx`: usunięto `MusicVideoButton`.
+- `vite.config.ts`: usunięto build-entry `music-video.html` i wyjątek kompilatora dla music-video.
+- `index.html`: tytuł/opis → Custodian Engine (branding AsyncTI usunięty; preconnect do
+  `images.asyncti4.com` zostaje — to CDN grafik kafelków/jednostek).
+
+**Rezultat (zweryfikowany E2E):**
+- Frontend: `type-check` + `lint` + `build` czyste. Bundle pozbyty chunków music-video/
+  dashboard (zostają tylko `index` + `SystemTilePage`).
+- Live: backend (`/map/load` + `/setup/player` Sol@301) + Vite dev. Root `/` → 200 z `#root`.
+  `web-data` przez proxy → 200, 33 kafelki, gracz `sol/red`. Widok gry serwuje się od razu.
+- Backend bez zmian w tym bloku; 82 testy nadal zielone (QA Pythona niezmienione).
+
+**Do zrobienia dalej:**
+- Weryfikacja wizualna renderu planszy w przeglądarce (otwarcie `http://localhost:5173/`).
+- Własny landing/ekran startowy (później, wg uznania).
+- Edycja/God-Mode w nowym UI nad istniejącymi endpointami (setup/space/planet/undo/redo).

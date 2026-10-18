@@ -4,8 +4,6 @@ import { resolve } from "path";
 
 const ReactCompilerConfig = {
   target: "19",
-  // The music video is a frame-accurate render loop tuned without the compiler.
-  sources: (filename: string) => !filename.includes("/src/music-video/"),
 };
 
 /*
@@ -38,15 +36,6 @@ export default defineConfig({
     },
   },
   assetsInclude: ["**/*.woff", "**/*.woff2", "**/*.ttf", "**/*.otf"],
-  build: {
-    rollupOptions: {
-      // The music video is its own page, loaded into an iframe by the map toolbar.
-      input: {
-        main: resolve(__dirname, "index.html"),
-        musicVideo: resolve(__dirname, "music-video.html"),
-      },
-    },
-  },
   server: {
     proxy: {
       // Custodian Engine backend (FastAPI). "/bot/api/..." -> "/api/..." na :8000.

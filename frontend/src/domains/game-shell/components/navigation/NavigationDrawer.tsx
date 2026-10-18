@@ -6,7 +6,6 @@ import {
   Box,
   Group,
   ActionIcon,
-  Button,
 } from "@/ds";
 import {
   IconCards,
@@ -36,7 +35,6 @@ type NavigationDrawerProps = {
   activeTabs: EnrichedTab[];
   onGameChange: (gameId: string) => void;
   onRemoveTab: (gameId: string) => void;
-  onShowOldUI?: () => void;
   /** Lists the player's hand in the menu when given. */
   onCardsClick?: () => void;
   /** Lists the event log in the menu when given. */
@@ -52,7 +50,6 @@ export function NavigationDrawer({
   activeTabs,
   onGameChange,
   onRemoveTab,
-  onShowOldUI,
   onCardsClick,
   onEventsClick,
 }: NavigationDrawerProps) {
@@ -124,20 +121,6 @@ export function NavigationDrawer({
         )}
 
         <Divider />
-
-        {onShowOldUI && (
-          <Button
-            variant="light"
-            size="xs"
-            color="cyan"
-            onClick={() => {
-              onShowOldUI();
-              onClose();
-            }}
-          >
-            GO TO OLD UI
-          </Button>
-        )}
 
         <Stack gap="xs">
           {onCardsClick && (

@@ -9,75 +9,27 @@ import "./styles/zIndexVariables.css";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Navigate,
-  useParams,
-} from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import LoginPage, { loginLoader } from "./pages/LoginPage";
-import LandingPage from "./pages/LandingPage/LandingPage";
-import MapTogglePage from "./pages/MapTogglePage";
+import GameMapPage from "./pages/GameMapPage";
 import { isMobileDevice } from "./utils/isTouchDevice";
 import { getPortalRoot } from "./ds";
-import { scheduleMusicVideoPrefetch } from "./domains/music-video";
 
 const queryClient = new QueryClient();
 
-const RedirectToGame = () => {
-  const { mapid } = useParams<{ mapid: string }>();
-  return <Navigate to={`/game/${mapid}`} replace />;
-};
-
+/*
+ * Custodian Engine: aplikacja obsługuje JEDNĄ lokalną grę. Nie ma landing page'a,
+ * listy gier ani logowania — root otwiera od razu widok gry. ``gameId`` jest stały
+ * (``local``); backend trzyma pojedynczy stan i ignoruje identyfikator.
+ */
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <LandingPage />,
+    element: <GameMapPage />,
   },
   {
     path: "/game/:mapid",
-    element: <MapTogglePage />,
-  },
-  {
-    path: "/games",
-    lazy: () =>
-      import("./pages/GamesPage").then((m) => ({ Component: m.default })),
-  },
-  {
-    path: "/dashboard",
-    lazy: () =>
-      import("./pages/DashboardPage").then((m) => ({ Component: m.default })),
-  },
-  {
-    path: "/dashboard/settings",
-    lazy: () =>
-      import("./pages/DashboardSettingsPage").then((m) => ({
-        Component: m.default,
-      })),
-  },
-  {
-    path: "/game/:mapid/newui",
-    element: <RedirectToGame />,
-  },
-  {
-    path: "/embed/:mapid/map-only",
-    lazy: () =>
-      import("./pages/EmbeddedMapPage").then((m) => ({
-        Component: m.default,
-      })),
-  },
-  {
-    path: "/froggame/:discordid/:mapid",
-    lazy: () =>
-      import("./pages/image-map/FrogGamePage").then((m) => ({
-        Component: m.default,
-      })),
-  },
-  {
-    path: "/login",
-    element: <LoginPage />,
-    loader: loginLoader,
+    element: <GameMapPage />,
   },
   {
     path: "/system/:systemId",
@@ -125,6 +77,3 @@ root.render(
     </QueryClientProvider>
   </React.StrictMode>,
 );
-
-/* Background-downloads the music video for the map toolbar button (desktop only). */
-scheduleMusicVideoPrefetch();
