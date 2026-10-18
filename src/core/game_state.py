@@ -1,0 +1,73 @@
+"""GameState — dynamiczny, walidowany i serializowalny stan gry.
+
+Model opisuje bieżący stan fizycznej planszy odwzorowany cyfrowo: graczy wraz
+z zasobami i punktami zwycięstwa, jednostki rozmieszczone w systemach, właścicieli
+planet oraz bieżącą turę i fazę. Jest w pełni serializowalny do JSON, co pozwala
+zapisywać go jako lekkie migawki (Snapshot Stack) w ``EventStore``.
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class Phase(StrEnum):
+    """Fazy rundy Twilight Imperium."""
+
+    STRATEGY = "STRATEGY"
+    ACTION = "ACTION"
+    STATUS = "STATUS"
+    AGENDA = "AGENDA"
+
+
+class PlayerState(BaseModel):
+    """Stan pojedynczego gracza."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    faction: str | None = None
+    color: str | None = None
+
+    victory_points: int = 0
+    trade_goods: int = 0
+    commodities: int = 0
+
+    # Planety kontrolowane przez gracza (identyfikatory planet).
+    controlled_planets: list[str] = Field(default_factory=list)
+    # Technologie posiadane przez gracza (identyfikatory technologii).
+    technologies: list[str] = Field(default_factory=list)
+
+
+class SystemState(BaseModel):
+    """Dynamiczny stan pojedynczego systemu na mapie."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: str
+    system_id: str
+    # Jednostki w przestrzeni: {player_id: {unit_base_type: liczba}}.
+    space_units: dict[str, dict[str, int]] = Field(default_factory=dict)
+    # Jednostki na planetach: {planet_id: {player_id: {unit_base_type: liczba}}}.
+    planet_units: dict[str, dict[str, dict[str, int]]] = Field(default_factory=dict)
+    # Właściciele planet: {planet_id: player_id}.
+    planet_owners: dict[str, str] = Field(default_factory=dict)
+
+
+class GameState(BaseModel):
+    """Pełny, serializowalny stan gry."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    round_number: int = 1
+    phase: Phase = Phase.STRATEGY
+    active_player_id: str | None = None
+
+    players: dict[str, PlayerState] = Field(default_factory=dict)
+    systems: dict[str, SystemState] = Field(default_factory=dict)
+
+    def clone(self) -> GameState:
+        """Zwraca głęboką kopię stanu (przez walidowaną serializację)."""
+        return GameState.model_validate(self.model_dump())

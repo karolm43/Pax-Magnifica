@@ -1,0 +1,114 @@
+"""Modele domenowe Pydantic v2 dla statycznych encji gry.
+
+Modele celowo opisują wyłącznie pola istotne dla logiki silnika. Pliki JSON
+AsyncTI4 zawierają również wiele pól wizualnych (pozycje tokenów, ścieżki
+obrazów, układy planet), które są ignorowane dzięki ``extra="ignore"``.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class _StaticModel(BaseModel):
+    """Baza dla modeli statycznych: ignoruje nadmiarowe pola z JSON."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
+class UnitDef(_StaticModel):
+    """Definicja typu jednostki (statystyki bojowe, ruch, pojemność)."""
+
+    id: str
+    base_type: str = Field(alias="baseType")
+    async_id: str | None = Field(default=None, alias="asyncId")
+    name: str
+    source: str
+
+    cost: float | None = None
+    move_value: int | None = Field(default=None, alias="moveValue")
+    capacity_value: int | None = Field(default=None, alias="capacityValue")
+    capacity_used: int | None = Field(default=None, alias="capacityUsed")
+    combat_hits_on: int | None = Field(default=None, alias="combatHitsOn")
+    combat_die_count: int | None = Field(default=None, alias="combatDieCount")
+
+    is_ship: bool = Field(default=False, alias="isShip")
+    is_structure: bool = Field(default=False, alias="isStructure")
+
+    upgrades_to_unit_id: str | None = Field(default=None, alias="upgradesToUnitId")
+    upgrades_from_unit_id: str | None = Field(default=None, alias="upgradesFromUnitId")
+    required_tech_id: str | None = Field(default=None, alias="requiredTechId")
+
+
+class PlanetDef(_StaticModel):
+    """Definicja planety (zasoby, wpływy, typ, zdolności)."""
+
+    id: str
+    name: str
+    source: str
+    tile_id: str | None = Field(default=None, alias="tileId")
+
+    resources: int = 0
+    influence: int = 0
+    planet_type: str | None = Field(default=None, alias="planetType")
+    tech_specialties: list[str] | None = Field(default=None, alias="techSpecialties")
+
+    faction_homeworld: str | None = Field(default=None, alias="factionHomeworld")
+    legendary_ability_name: str | None = Field(
+        default=None, alias="legendaryAbilityName"
+    )
+    legendary_ability_text: str | None = Field(
+        default=None, alias="legendaryAbilityText"
+    )
+
+    aliases: list[str] = Field(default_factory=list)
+
+
+class FactionDef(_StaticModel):
+    """Definicja frakcji (setup startowy: dom, flota, planety, technologie)."""
+
+    id: str = Field(alias="alias")
+    name: str = Field(alias="factionName")
+    source: str
+
+    home_system: str | None = Field(default=None, alias="homeSystem")
+    home_planets: list[str] = Field(default_factory=list, alias="homePlanets")
+    starting_fleet: str | None = Field(default=None, alias="startingFleet")
+    starting_tech: list[str] = Field(default_factory=list, alias="startingTech")
+    commodities: int = 0
+    preferred_colours: list[str] = Field(default_factory=list, alias="preferredColours")
+
+
+class SystemDef(_StaticModel):
+    """Definicja systemu (kafelka): planety, wormhole, przynależność."""
+
+    id: str
+    name: str | None = None
+    source: str
+    tile_back: str | None = Field(default=None, alias="tileBack")
+    # Nazwa pliku grafiki kafelka w assets/tiles/ (czytana z danych, nie zgadywana).
+    image_path: str | None = Field(default=None, alias="imagePath")
+
+    planets: list[str] = Field(default_factory=list)
+    wormholes: list[str] = Field(default_factory=list)
+    aliases: list[str] = Field(default_factory=list)
+
+    # Anomalie (AsyncTI4 koduje je osobnymi flagami boolowskimi)
+    is_nebula: bool = Field(default=False, alias="isNebula")
+    is_asteroid_field: bool = Field(default=False, alias="isAsteroidField")
+    is_supernova: bool = Field(default=False, alias="isSupernova")
+    is_gravity_rift: bool = Field(default=False, alias="isGravityRift")
+
+    @property
+    def anomalies(self) -> set[str]:
+        """Zbiór nazw anomalii obecnych w systemie."""
+        result: set[str] = set()
+        if self.is_nebula:
+            result.add("NEBULA")
+        if self.is_asteroid_field:
+            result.add("ASTEROID_FIELD")
+        if self.is_supernova:
+            result.add("SUPERNOVA")
+        if self.is_gravity_rift:
+            result.add("GRAVITY_RIFT")
+        return result
