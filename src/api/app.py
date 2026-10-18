@@ -34,6 +34,7 @@ from src.api.schemas import (
     MapStringRequest,
     MapTile,
     MapView,
+    NewGameRequest,
     PlanetUnits,
     PlanetUnitsRequest,
     SetupPlayerRequest,
@@ -47,10 +48,23 @@ from src.core.event_store import EventStore
 from src.core.faction_setup import apply_setup_to_state
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import Hex, HexGrid
-from src.core.home_slots import home_slot_color
+from src.core.home_slots import HOME_SLOT_COLORS_6P, home_slot_color
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, build_grid_from_map_string
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
+
+# Testowy map string (6-osobowa plansza) używany, gdy frontend nie poda własnego.
+# To realny, zweryfikowany string AsyncTI4 (rogi domowe jako "0").
+_DEFAULT_MAP_STRING = (
+    "72 66 77 65 69 50 61 44 64 76 60 73 46 42 71 79 70 59 "
+    "48 45 68 51 67 47 49 62 43 58 63 78 41 40"
+)
+
+# Kolejność automatycznego przydziału kolorów/slotów domowych wg kolejności graczy
+# (gracz 1 → red/301, 2 → green/304, ...). Źródło: HOME_SLOT_COLORS_6P (home_slots.py).
+_AUTO_SLOT_ORDER: list[tuple[str, str]] = [
+    (position, color) for position, color in sorted(HOME_SLOT_COLORS_6P.items())
+]
 
 
 def _unit_image_url(color: str | None, base_type: str) -> str | None:
@@ -300,6 +314,70 @@ def create_app(
         await service.broadcast()
         await broadcast_map()
         return build_map_view(app.state.current_grid, reg, service.current_state())
+
+    @app.post("/game/new", response_model=MapView)
+    async def post_new_game(request: NewGameRequest) -> MapView:
+        """Tworzy nową grę w jednym kroku: reset stanu + mapa + setup graczy.
+
+        ``map_string`` opcjonalny (gdy brak — mapa testowa). Kolory i sloty domowe
+        przydzielane automatycznie wg kolejności graczy, chyba że jawnie podane.
+        """
+        if len(request.players) > len(_AUTO_SLOT_ORDER):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Za dużo graczy: max {len(_AUTO_SLOT_ORDER)} (układ 6-osobowy).",
+            )
+
+        # 1) Zbuduj mapę (podany string lub testowy).
+        map_string = request.map_string or _DEFAULT_MAP_STRING
+        try:
+            grid = build_grid_from_map_string(
+                map_string, reg, include_center=request.include_center
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if not grid.positions:
+            raise HTTPException(
+                status_code=422,
+                detail="Map string nie dał żadnego znanego systemu (sprawdź ID i źródła).",
+            )
+
+        # 2) Reset stanu i rozstawienie graczy (walidacja frakcji przed mutacją).
+        new_state = GameState()
+        for index, player in enumerate(request.players):
+            faction = reg.factions.get(player.faction_id)
+            if faction is None:
+                raise HTTPException(
+                    status_code=404, detail=f"Nieznana frakcja: {player.faction_id}"
+                )
+            slot_position, slot_color = _AUTO_SLOT_ORDER[index]
+            home_position = player.home_position or slot_position
+            color = player.color or slot_color
+            player_id = player.player_id or f"p{index + 1}"
+            new_state = apply_setup_to_state(
+                new_state,
+                player_id=player_id,
+                color=color,
+                faction=faction,
+                home_position=home_position,
+            )
+            # Podmień slot domowy w gridzie na prawdziwy kafelek domowy frakcji.
+            if faction.home_system and home_position in grid.positions:
+                home_sys = reg.systems.get(faction.home_system)
+                grid.place_system(
+                    position=home_position,
+                    system_id=faction.home_system,
+                    wormholes=list(home_sys.wormholes) if home_sys else None,
+                    anomalies=set(home_sys.anomalies) if home_sys else None,
+                    hex_override=Hex(*grid.coordinates(home_position)),
+                )
+        grid.build_edges()
+
+        app.state.current_grid = grid
+        service.replace_state(new_state, label="game:new")
+        await service.broadcast()
+        await broadcast_map()
+        return build_map_view(grid, reg, service.current_state())
 
     @app.post("/system/{position}/space", response_model=MapView)
     async def post_space_units(

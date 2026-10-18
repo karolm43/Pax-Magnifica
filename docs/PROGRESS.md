@@ -530,3 +530,45 @@ modale). Własny landing dorobimy później.
 **Zweryfikowane:** type-check + lint + build frontu czyste; backend 82 testy zielone,
 ruff + mypy czyste. Live: root `/` serwuje tytuł Custodian Engine, `web-data` przez proxy
 = 200 (versionSchema=5, 33 kafelki, sol/red).
+
+---
+
+### ✅ Blok F4 — ekran startowy (landing) + endpoint `/game/new` + odświeżanie
+
+**Cel:** własny ekran startowy sterujący setupem (liczba graczy, frakcje, map string)
+zamiast portalu AsyncTI; dodatkowe sprzątanie chrome AsyncTI.
+
+**Backend:**
+- NOWY `POST /game/new` (`app.py`): tworzy grę jednym żądaniem — reset `GameState`,
+  wczytanie mapy, setup wszystkich graczy. `map_string` opcjonalny (gdy brak → testowy
+  `_DEFAULT_MAP_STRING`). Kolory i sloty domowe przydzielane automatycznie wg kolejności
+  graczy (`_AUTO_SLOT_ORDER` z `HOME_SLOT_COLORS_6P`): gracz 1 → red/301, 2 → green/304, …
+- `schemas.py`: `NewGameRequest` + `NewGamePlayer` (frakcja wymagana; player_id/kolor/slot opcjonalne).
+- `tests/test_web_data.py`: testy `/game/new` (bez map stringa → testowy; za dużo graczy → 422).
+
+**Frontend:**
+- NOWY `pages/StartScreen.tsx` — ekran startowy na `/`: liczba graczy (2–6), Select frakcji
+  per gracz (z `/factions`), opcjonalny map string, „Generuj i graj" → `POST /bot/game/new`
+  → nawigacja na `/game`. Kolory pokazane jako podpowiedź (red/green/white/…).
+- NOWY `api/useNewGame.ts` — `useFactions()` + `createNewGame()`. Baza `/bot` (NIE `/bot/api`):
+  endpointy Custodian Engine są w korzeniu backendu (`/factions`, `/game/new`).
+- `main.tsx`: `/` → StartScreen; `/game` i `/game/:mapid` → GameMapPage.
+- Przerobiony „Refresh" (`ReconnectButton` → odświeżanie planszy): wisi na stałe i woła
+  `refetch` (nie reconnect STOMP) — bo nie mamy live-sync. Etykieta „Odśwież".
+
+**Dodatkowe sprzątanie chrome AsyncTI (wcześniej w tej sesji):**
+- Usunięto Discord Login (HeaderMenu + NavigationDrawer) i martwą logikę gier/kont
+  (`/my-games`), linki Dashboard/Settings. `GamesBar` bez auth.
+
+**Zweryfikowane E2E (przez proxy Vite):** `/bot/factions` = 27 frakcji; `POST /bot/game/new`
+(3 graczy, bez map stringa) = 200, 33 kafelki; web-data: `sol→red, hacan→green, xxcha→white`,
+jednostki startowe na slotach (sol@301, xxcha@307). `/game` serwuje HTML. type-check + lint +
+build frontu czyste; backend 84 testy zielone, ruff + mypy czyste.
+
+**Pułapka operacyjna (znów):** osierocony backend trzymał port 8000 (`Errno 10048`) i serwował
+STARY kod bez `/game/new` → proxy dawało 404. Rozwiązanie: ubicie procesu po PID z
+`Get-NetTCPConnection -LocalPort 8000` i restart. Do rozważenia: health-check zwalniający port.
+
+**Postęp DoD Fazy 1:** ekran startowy domyka „wprowadzanie stanu" dla setupu (mapa + gracze
++ flota startowa jednym kliknięciem). Zostaje edycja bieżącej gry z UI (zmiana jednostek,
+VP/zasoby, Undo/Redo) — na razie przez API.

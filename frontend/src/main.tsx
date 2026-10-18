@@ -11,6 +11,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import StartScreen from "./pages/StartScreen";
 import GameMapPage from "./pages/GameMapPage";
 import { isMobileDevice } from "./utils/isTouchDevice";
 import { getPortalRoot } from "./ds";
@@ -18,13 +19,17 @@ import { getPortalRoot } from "./ds";
 const queryClient = new QueryClient();
 
 /*
- * Custodian Engine: aplikacja obsługuje JEDNĄ lokalną grę. Nie ma landing page'a,
- * listy gier ani logowania — root otwiera od razu widok gry. ``gameId`` jest stały
- * (``local``); backend trzyma pojedynczy stan i ignoruje identyfikator.
+ * Custodian Engine: jedna lokalna gra. Root ("/") to ekran startowy (wybór
+ * graczy, frakcji, map stringa → utworzenie gry). Widok planszy jest pod
+ * "/game" (gameId stały "local" — backend trzyma pojedynczy stan).
  */
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <StartScreen />,
+  },
+  {
+    path: "/game",
     element: <GameMapPage />,
   },
   {

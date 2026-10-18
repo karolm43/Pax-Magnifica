@@ -139,6 +139,34 @@ class SetupPlayerRequest(BaseModel):
     home_position: str
 
 
+class NewGamePlayer(BaseModel):
+    """Pojedynczy gracz w żądaniu nowej gry (frakcja; reszta auto)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction_id: str
+    # Opcjonalne: gdy pominięte, kolor/slot/id przydzielane automatycznie
+    # wg kolejności (gracz 1 → red/301, 2 → green/304, ...).
+    player_id: str | None = None
+    color: str | None = None
+    home_position: str | None = None
+
+
+class NewGameRequest(BaseModel):
+    """Żądanie utworzenia nowej gry: mapa + gracze w jednym kroku.
+
+    ``map_string`` opcjonalny — gdy pominięty, backend użyje mapy testowej.
+    Kolory i sloty domowe są przydzielane automatycznie wg kolejności graczy,
+    chyba że jawnie podane dla danego gracza.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    players: list[NewGamePlayer] = Field(default_factory=list)
+    map_string: str | None = None
+    include_center: bool = True
+
+
 class UnitChange(BaseModel):
     """Ustawienie liczby jednostek danego typu gracza (0 = usunięcie)."""
 

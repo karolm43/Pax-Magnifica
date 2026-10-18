@@ -90,6 +90,7 @@ npm run type-check ; npm run lint ; npm run build
 | `GET /map` | Stary widok mapy (DTO `MapView`) — używany przez testy, nie przez nowy front. |
 | `GET /state` | Surowy `GameState` + metadane historii. |
 | `GET /factions` | Lista frakcji do setupu. |
+| `POST /game/new` | **Nowa gra jednym krokiem**: reset + mapa (opcjonalny string, inaczej testowy) + setup graczy (kolory/sloty auto). Używany przez ekran startowy. |
 | `POST /map/load` | Wczytuje mapę z map stringa (ustawia `current_grid`). |
 | `POST /setup/player` | Setup frakcji na slocie domowym (flota + planety). |
 | `POST /system/{pos}/space` | Zmiana jednostek w przestrzeni (God-Mode). |
@@ -117,8 +118,10 @@ npm run type-check ; npm run lint ; npm run build
 react-query, react-router, Zustand). Po migracji ZREDUKOWANY do pojedynczego widoku gry.
 
 ### 4.1. Co zostało (widok gry)
-- Wejście: `src/main.tsx` → trasy `/` i `/game/:mapid` → `pages/GameMapPage.tsx`.
-  `gameId` domyślny = `"local"` (backend trzyma jedną grę, ignoruje identyfikator).
+- Wejście: `src/main.tsx` → `/` = `pages/StartScreen.tsx` (ekran startowy: liczba graczy,
+  frakcje, map string → `POST /game/new` → `/game`); `/game` i `/game/:mapid` →
+  `pages/GameMapPage.tsx`. `gameId` domyślny = `"local"` (backend trzyma jedną grę).
+- Ekran startowy: `src/pages/StartScreen.tsx` + `src/api/useNewGame.ts` (`useFactions`, `createNewGame`).
 - `GameMapPage` → `GameContextProvider` (pobiera `web-data`, buduje `GameData`) →
   `MapView` / `PannableMapView` (plansza) + zakładki **players / objectives / general**.
 - Domeny używane przez widok: `domains/{map, player, objectives, tabs, cards, settings, game-shell}`,
@@ -160,7 +163,8 @@ widok FoW, music-video. Szczegóły w `PROGRESS.md` (Blok F2).
 | Parser map stringów | ✅ backend `POST /map/load` |
 | Render planszy (kafelki, jednostki, planety) | ✅ nowy frontend (viewer) |
 | Panele graczy / VP / zasoby / cele | ✅ render w nowym froncie (dane z `web-data`) |
-| **Edycja z poziomu UI** (map string, setup, jednostki) | ❌ **LUKA** — tylko przez API, brak UI |
+| Setup gry z UI (liczba graczy, frakcje, map string) | ✅ ekran startowy `/` → `POST /game/new` |
+| **Edycja bieżącej gry z UI** (zmiana jednostek, VP/zasoby) | ❌ **LUKA** — tylko przez API |
 | Szybki edytor jednostek na heksie (skróty „2D 1C 4F") | ❌ **LUKA** — nie istnieje w żadnym froncie |
 | Live-sync po mutacji (WebSocket) | ⚠️ nasz WS `/ws` istnieje, ale front używa STOMP → refetch zamiast push |
 
