@@ -1,10 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { authenticatedFetch, getBotApiUrl } from "@/api/auth";
 import { usePersistentGameTabs } from "./usePersistentGameTabs";
 import { useFactionImageCache } from "./useFactionImageCache";
 import { useGameData } from "@/state/useGameContext";
-import { fetchJson } from "@/api/fetchJson";
 
 export type EnrichedTab = {
   id: string;
@@ -21,33 +18,11 @@ type PlayerGame = {
   color: string | null;
 };
 
-type PlayerGamesResponse = PlayerGame[];
-
-async function fetchPlayerGames(apiUrl: string): Promise<PlayerGamesResponse> {
-  const data = await fetchJson<unknown>(apiUrl, "player games", {
-    fetcher: authenticatedFetch,
-  });
-
-  if (!Array.isArray(data)) {
-    throw new Error("Failed to fetch player games: unexpected response shape");
-  }
-
-  return data as PlayerGamesResponse;
-}
-
-function usePlayerGames() {
-  const apiUrl = getBotApiUrl("/my-games");
-
-  return useQuery<PlayerGamesResponse>({
-    queryKey: ["playerGames"],
-    queryFn: () => fetchPlayerGames(apiUrl),
-    retry: false,
-  });
-}
-
 export function useTabManagement() {
   const { activeTabs, changeTab, removeTab } = usePersistentGameTabs();
-  const { data: playerGamesData } = usePlayerGames();
+  // Custodian Engine nie ma serwera gier/kont (brak endpointu /my-games).
+  // Zakładki trzymamy lokalnie (usePersistentGameTabs); lista gier gracza = pusta.
+  const playerGamesData: PlayerGame[] = [];
   const currentGameId = useParams<{ mapid?: string }>().mapid;
   const liveFactionImages = useGameData()?.factionImageMap;
   const factionImageCache = useFactionImageCache();

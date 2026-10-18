@@ -1,6 +1,5 @@
-import { Tabs, Box } from "@/ds";
+import { Tabs } from "@/ds";
 import { useEffect, useRef, useState } from "react";
-import { DiscordLogin } from "@/domains/auth/DiscordLogin";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import type { EnrichedTab } from "@/domains/tabs/hooks/useTabManagement";
 import {
@@ -140,9 +139,6 @@ export function HeaderMenu({
         )}
       </div>
       {actions}
-      <Box visibleFrom="sm">
-        <DiscordLogin />
-      </Box>
     </>
   );
 }

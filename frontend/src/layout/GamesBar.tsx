@@ -1,15 +1,16 @@
 import { HeaderMenu } from "@/domains/tabs/components/HeaderMenu";
 import { useTabManagement } from "@/domains/tabs/hooks/useTabManagement";
-import { useUser } from "@/api/auth/useUser";
-import { DashboardLinks } from "@/layout/DashboardLinks";
 
 type GamesBarProps = {
   currentMapId?: string;
 };
 
+/**
+ * Pasek gier w nagłówku. Custodian Engine obsługuje jedną lokalną grę, więc nie
+ * ma dashboardu ani logowania — zostaje sama lista zakładek (na razie: bieżąca gra).
+ */
 export function GamesBar({ currentMapId }: GamesBarProps) {
   const { activeTabs, changeTab, removeTab } = useTabManagement();
-  const { user } = useUser();
 
   return (
     <HeaderMenu
@@ -17,7 +18,6 @@ export function GamesBar({ currentMapId }: GamesBarProps) {
       activeTabs={activeTabs}
       changeTab={changeTab}
       removeTab={removeTab}
-      actions={user?.authenticated ? <DashboardLinks hideOnMobile={true} /> : undefined}
     />
   );
 }

@@ -10,21 +10,16 @@ import {
 import {
   IconCards,
   IconHistory,
-  IconLayoutDashboard,
   IconPencil,
-  IconSettings,
   IconX,
 } from "@tabler/icons-react";
-import { useLocation, useNavigate } from "react-router-dom";
 import Logo from "@/shared/ui/Logo";
-import { DiscordLogin } from "@/domains/auth/DiscordLogin";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { EditableTabLabel } from "@/domains/tabs/components/EditableTabLabel";
 import { generateColorGradient } from "@/entities/lookup/colors";
 import { useTabLabelEditing } from "@/domains/tabs/hooks/useTabLabelEditing";
 import type { EnrichedTab } from "@/domains/tabs/hooks/useTabManagement";
 import { MAIN_TAB_CONFIGS } from "@/domains/game-shell/components/mainTabs";
-import { useUser } from "@/api/auth/useUser";
 
 type NavigationDrawerProps = {
   opened: boolean;
@@ -55,9 +50,6 @@ export function NavigationDrawer({
 }: NavigationDrawerProps) {
   const tabLabelEditing = useTabLabelEditing();
   const { editingTabId, toggleEditing } = tabLabelEditing;
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useUser();
 
   const handleTabClick = (tab: string) => {
     onTabChange(tab);
@@ -75,11 +67,6 @@ export function NavigationDrawer({
     onRemoveTab(tabId);
   };
 
-  const handleRouteClick = (route: string) => {
-    navigate(route);
-    onClose();
-  };
-
   return (
     <Drawer
       opened={opened}
@@ -95,31 +82,6 @@ export function NavigationDrawer({
       zIndex="var(--z-navigation-drawer)"
     >
       <Stack gap="md">
-        <Box>
-          <DiscordLogin />
-        </Box>
-
-        {user?.authenticated && (
-          <>
-            <Divider />
-
-            <Stack gap="xs">
-              <NavLink
-                label="Dashboard"
-                leftSection={<IconLayoutDashboard size={18} />}
-                active={location.pathname === "/dashboard"}
-                onClick={() => handleRouteClick("/dashboard")}
-              />
-              <NavLink
-                label="Settings"
-                leftSection={<IconSettings size={18} />}
-                active={location.pathname === "/dashboard/settings"}
-                onClick={() => handleRouteClick("/dashboard/settings")}
-              />
-            </Stack>
-          </>
-        )}
-
         <Divider />
 
         <Stack gap="xs">
