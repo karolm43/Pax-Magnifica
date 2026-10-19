@@ -156,6 +156,19 @@ def test_web_data_units_owned_is_real_base_ids(client: TestClient) -> None:
     assert "fighter" in owned
     # Warianty frakcyjne Sola też.
     assert "sol_flagship" in owned
+    # War Sun wymaga technologii 'ws' — Sol jej nie ma na starcie, więc NIE jest
+    # posiadany (nie może liczyć się jak zbadany).
+    assert "warsun" not in owned
+
+
+def test_web_data_muaat_owns_innate_warsun(client: TestClient) -> None:
+    # Muaat ma wrodzony War Sun (muaat_warsun, bez wymaganej technologii).
+    client.post("/game/new", json={"players": [{"faction_id": "muaat"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    owned = data["playerData"][0]["unitsOwned"]
+    assert "muaat_warsun" in owned
+    # Generyczny warsun (za techem) nadal nieposiadany.
+    assert "warsun" not in owned
 
 
 def test_web_data_unit_counts_cap_and_deployed(client: TestClient) -> None:
@@ -179,8 +192,9 @@ def test_web_data_stat_tile_positions(client: TestClient) -> None:
     stats = data["statTilePositions"]
     # Każda frakcja ma 3 pozycje pierścienia 4 (heksy player-stats).
     assert set(stats.keys()) == {"sol", "hacan"}
-    # Sol na slocie 301 → trzy najbliższe pozycje pierścienia 4 (zgodne z AsyncTI4).
-    assert set(stats["sol"]) == {"401", "402", "424"}
+    # Sol na slocie 301 → kolejność wg odległości: pierwszy = heks frakcji (centrum).
+    # Zgodne 1:1 z AsyncTI4 (hacan 401,402,424 → firstHex=401).
+    assert stats["sol"] == ["401", "402", "424"]
     for positions in stats.values():
         assert len(positions) == 3
         assert all(p.startswith("4") for p in positions)

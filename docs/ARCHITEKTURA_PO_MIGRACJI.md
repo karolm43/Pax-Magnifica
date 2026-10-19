@@ -31,11 +31,18 @@ zdalnego CDN AsyncTI4.
 
 ---
 
-## 2. Jak uruchomić (dwa terminale)
+## 2. Jak uruchomić
 
+**Najprościej — jedno kliknięcie:** uruchom `start.cmd` (dwuklik) albo `./start.ps1`
+w katalogu repo. Skrypt zwalnia port 8000, startuje backend (FastAPI :8000) i frontend
+(Vite :5173) w osobnych oknach, przy pierwszym razie robi `npm install`, czeka aż
+dev-serwer wstanie i otwiera przeglądarkę na `http://localhost:5173/`. Zamknięcie:
+zamknij oba okna PowerShella.
+
+**Ręcznie (dwa terminale)** — gdy chcesz widzieć logi osobno:
 ```powershell
 # Terminal 1 — backend (katalog repo)
-uv run python -m src.api            # FastAPI na http://127.0.0.1:8000
+uv run python -m src.api            # FastAPI na http://127.0.0.1:8000 (sam zwalnia port)
 
 # Terminal 2 — frontend (katalog frontend/)
 npm install                         # pierwszy raz

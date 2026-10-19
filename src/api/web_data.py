@@ -242,17 +242,24 @@ def _deployed_counts_by_player(state: GameState) -> dict[str, dict[str, int]]:
 
 
 def _units_owned_for_faction(
-    faction_id: str | None, registry: StaticDataRegistry
+    faction_id: str | None,
+    technologies: list[str],
+    registry: StaticDataRegistry,
 ) -> list[str]:
-    """Lista ID jednostek posiadanych przez frakcję (baza generyczna + frakcyjna).
+    """Lista ID jednostek posiadanych przez gracza (baza generyczna + frakcyjna).
 
-    Pomija warianty ulepszone (``upgrades_from_unit_id``) i placeholdery (``nowarsun``,
-    ``cavalry*``). Dzięki temu ``lookupUnit`` frontendu rozwiązuje jednostki BAZOWE
-    (nie pokazuje błędnie wszystkiego jako „Upgraded"). Jednostki frakcyjne mają ID
-    z prefiksem ``<faction>_`` w danych AsyncTI4.
+    Reguły (zgodne z AsyncTI4, nie z pamięci — potwierdzone na danych żywej gry):
+    - Pomija warianty ULEPSZONE (``upgrades_from_unit_id``) — gracz startuje z bazowymi.
+    - Pomija jednostki wymagające technologii, której gracz NIE ma (``required_tech_id``).
+      Dzięki temu War Sun (wymaga tech ``ws``) nie liczy się jako posiadany, dopóki nie
+      zostanie zbadany — chyba że frakcja ma go wrodzony (np. Muaat ``muaat_warsun``,
+      bez wymaganej technologii).
+    - Pomija placeholdery (``nowarsun``) i niestandardowe asyncId (cavalry itd.).
+    - Jednostki frakcyjne mają ID z prefiksem ``<faction>_`` w danych AsyncTI4.
     """
     owned: list[str] = []
     standard_async = set(ASYNC_ID_BY_BASE_TYPE.values())
+    techs = {t.lower() for t in technologies}
     for unit in registry.units.values():
         if unit.upgrades_from_unit_id is not None:
             continue
@@ -260,6 +267,8 @@ def _units_owned_for_faction(
             continue  # pomija cavalry/placeholdery
         if unit.id == "nowarsun":
             continue
+        if unit.required_tech_id and unit.required_tech_id.lower() not in techs:
+            continue  # jednostka za technologią, której gracz nie ma
         is_generic = "_" not in unit.id
         is_faction = faction_id is not None and unit.id.startswith(f"{faction_id}_")
         if is_generic or is_faction:
@@ -318,7 +327,10 @@ def _nearest_ring4(home_position: str) -> list[str]:
         h = coords[pos_id]
         return (abs(h.q - home.q) + abs(h.r - home.r) + abs(h.s - home.s)) // 2
 
-    return sorted(sorted(ring4, key=dist)[:3], key=int)
+    # Kolejność wg odległości rosnąco: NAJBLIŻSZY slotu domowego jako pierwszy.
+    # Frontend bierze firstHex = tożsamość frakcji (VP, nazwa), secondHex = żetony
+    # dowodzenia, thirdHex = trade goods/commodities. Zgodne 1:1 z AsyncTI4.
+    return sorted(ring4, key=dist)[:3]
 
 
 def _build_stat_tile_positions(state: GameState) -> dict[str, list[str]]:
@@ -350,7 +362,9 @@ def _build_player_data(
         total_res, total_inf = _planet_economy(
             player.controlled_planets, registry
         )
-        units_owned = _units_owned_for_faction(player.faction, registry)
+        units_owned = _units_owned_for_faction(
+            player.faction, player.technologies, registry
+        )
         unit_counts = _unit_counts(deployed_by_player.get(player_id, {}))
         players.append(
             {

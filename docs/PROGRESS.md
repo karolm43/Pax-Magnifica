@@ -664,3 +664,35 @@ złe liczby (wszystko „Upgraded", monument `NaN`); brakowało kolorowych heks�
 **Zweryfikowane E2E:** `sol cv cap=4 deployed=2`, `gf cap=12 deployed=5`; `unitsOwned`
 = `carrier,cruiser,…,sol_flagship`; `statTilePositions sol=401,402,424 naaz=404,405,406`.
 Backend 88 testów zielone, ruff + mypy czyste.
+
+---
+
+### ✅ Blok F8 — War Sun za technologią, kolejność heksów stat-area, launcher
+
+**Uwagi użytkownika + fixy:**
+
+1. **War Sun liczył się jak zbadany** — do `unitsOwned` trafiał generyczny `warsun`,
+   mimo że wymaga technologii `ws`. Fix: `_units_owned_for_faction` filtruje jednostki
+   po `required_tech_id` — pomija te, których technologii gracz NIE ma. War Sun pojawia
+   się dopiero po zbadaniu `ws`; frakcje z wrodzonym (Muaat `muaat_warsun`, bez tech)
+   mają go nadal. Zweryfikowane danymi żywej gry AsyncTI4 (gracze bez tech → brak warsun
+   w unitsOwned, ale `ws` cap=2 zostaje).
+
+2. **3 heksy stat-area miały złą kolejność** — frontend bierze `firstHex` = tożsamość
+   frakcji (frakcja/VP/SC/sekrety w CENTRUM), `secondHex` = żetony dowodzenia (CC),
+   `thirdHex` = trade goods/commodities/action cards + status ACTIVE/PASSED. Kolejność
+   wyznacza tablica `statTilePositions`. Wysyłaliśmy posortowane `int` — teraz sortujemy
+   wg ODLEGŁOŚCI od slotu domowego (najbliższy = centrum/frakcja). Zgodne 1:1 z AsyncTI4
+   (`sol → 401,402,424`; `304 → 405,404,406`). Role heksów ustalone z `PlayerStatsArea.tsx`.
+
+3. **Prostsze uruchamianie** — NOWE `start.cmd` (dwuklik) + `start.ps1`: jedno polecenie
+   zwalnia port 8000, startuje backend i frontend w osobnych oknach (pierwszy raz robi
+   `npm install`), czeka na dev-serwer i otwiera przeglądarkę. Koniec z ręcznym
+   odpalaniem dwóch terminali. Opis w `docs/ARCHITEKTURA_PO_MIGRACJI.md` 2.
+
+**Źródła (RULES.md):** limity sztuk (3) i pozycje stat-area (4) już spisane w F7.
+War Sun za technologią to standardowa reguła TI4 (unit upgrade tech) — realizowana
+przez `required_tech_id` z danych, nie z pamięci.
+
+**QA:** backend 89 testów zielone, ruff + mypy czyste. Launcher zweryfikowany E2E
+(oba porty nasłuchują, przeglądarka otwarta).
