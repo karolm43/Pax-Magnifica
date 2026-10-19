@@ -299,9 +299,13 @@ def _units_owned_for_faction(
     - Pomija placeholdery (``nowarsun``) i niestandardowe asyncId (cavalry itd.).
     - Jednostki frakcyjne mają ID z prefiksem ``<faction>_`` w danych AsyncTI4.
     """
-    owned: list[str] = []
     standard_async = set(ASYNC_ID_BY_BASE_TYPE.values())
     techs = {t.lower() for t in technologies}
+    # Dla każdego asyncId wybieramy JEDNĄ jednostkę: wariant frakcyjny ma pierwszeństwo
+    # przed generycznym. Posiadanie OBU (np. "mech" + "mentak_mech") psuje lookupUnit
+    # frontendu — rozwiązuje wtedy niejednoznacznie (pokazuje złą flagę frakcji).
+    generic_by_async: dict[str, str] = {}
+    faction_by_async: dict[str, str] = {}
     for unit in registry.units.values():
         if unit.upgrades_from_unit_id is not None:
             continue
@@ -311,10 +315,16 @@ def _units_owned_for_faction(
             continue
         if unit.required_tech_id and unit.required_tech_id.lower() not in techs:
             continue  # jednostka za technologią, której gracz nie ma
-        is_generic = "_" not in unit.id
-        is_faction = faction_id is not None and unit.id.startswith(f"{faction_id}_")
-        if is_generic or is_faction:
-            owned.append(unit.id)
+        if "_" not in unit.id:
+            generic_by_async.setdefault(unit.async_id, unit.id)
+        elif faction_id is not None and unit.id.startswith(f"{faction_id}_"):
+            faction_by_async.setdefault(unit.async_id, unit.id)
+
+    owned: list[str] = []
+    for async_id in standard_async:
+        chosen = faction_by_async.get(async_id) or generic_by_async.get(async_id)
+        if chosen is not None:
+            owned.append(chosen)
     return sorted(owned)
 
 

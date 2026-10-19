@@ -151,11 +151,11 @@ def test_web_data_units_owned_is_real_base_ids(client: TestClient) -> None:
     data = client.get("/api/public/game/g/web-data").json()
     owned = data["playerData"][0]["unitsOwned"]
     assert isinstance(owned, list) and len(owned) > 0
-    # Jednostki bazowe generyczne są obecne.
-    assert "carrier" in owned
+    # Dla każdego asyncId JEDNA jednostka: wariant frakcyjny Sola wygrywa z generycznym.
+    assert "sol_flagship" in owned  # frakcyjny flagship
+    assert "sol_mech" in owned and "mech" not in owned  # bez podwójnego mecha
+    # Fighter: Sol nie ma własnego wariantu, więc generyczny.
     assert "fighter" in owned
-    # Warianty frakcyjne Sola też.
-    assert "sol_flagship" in owned
     # War Sun wymaga technologii 'ws' — Sol jej nie ma na starcie, więc NIE jest
     # posiadany (nie może liczyć się jak zbadany).
     assert "warsun" not in owned
