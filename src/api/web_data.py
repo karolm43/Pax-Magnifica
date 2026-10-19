@@ -311,42 +311,88 @@ def _player_home_position(player_id: str, state: GameState) -> str | None:
     return None
 
 
-def _nearest_ring4(home_position: str) -> list[str]:
-    """Trzy najbliższe pozycje pierścienia 4 do slotu domowego (stat-area heksy).
+def _tile_ring(position: str) -> int:
+    """Numer pierścienia pozycji (pierwsza cyfra ``RPP``; ``000`` = 0)."""
+    if position.isdigit() and len(position) == 3:
+        return int(position[0])
+    return 99  # pozycje nienumeryczne (hyperlane/frac) — poza pierścieniami
 
-    Zweryfikowane geometrycznie: pokrywa się 1:1 z układem ``statTilePositions``
-    AsyncTI4 (np. ``301 → 401,402,424``). Puste, gdy brak pozycji w aliasie.
+
+def _three_nearby_stat_tiles(
+    home_position: str,
+    grid: HexGrid,
+    taken: set[str],
+    ring_count: int,
+) -> list[str]:
+    """Port algorytmu ``PlayerStatsHelper.findThreeNearbyStatTiles`` z AsyncTI4.
+
+    Źródło (nie z pamięci): ``TI4_map_generator_bot`` →
+    ``PlayerStatsHelper.findThreeNearbyStatTiles``. Algorytm:
+    1. Kandydaci = PUSTE pozycje (brak systemu na mapie), pierścień ≤ ``ring_count+1``,
+       nie zajęte przez innego gracza (``taken``).
+    2. Kolejka priorytetowa wg odległości do slotu domowego + kara za pierścień.
+    3. Dobieramy najbliższe aż powstanie zwarta trójka (jeden kafelek sąsiaduje
+       z dwoma pozostałymi) i zwracamy ``[pivot, sąsiad, sąsiad]`` — pivot (środkowy)
+       jest PIERWSZY, bo frontend kładzie na nim heks tożsamości frakcji (VP).
+
+    Odległość liczymy w metryce kubicznej (proxy pikseli z oryginału) + ``ring*0.5``
+    jako kara pierścienia — wystarczające, by odwzorować wybór i kolejność AsyncTI4.
     """
     coords = load_positions()
     home = coords.get(home_position)
     if home is None:
         return []
-    ring4 = [p for p in coords if p.startswith("4") and len(p) == 3 and p.isdigit()]
+    occupied = grid.positions
 
-    def dist(pos_id: str) -> int:
+    def cube_dist(pos_id: str) -> int:
         h = coords[pos_id]
         return (abs(h.q - home.q) + abs(h.r - home.r) + abs(h.s - home.s)) // 2
 
-    # Kolejność wg odległości rosnąco: NAJBLIŻSZY slotu domowego jako pierwszy.
-    # Frontend bierze firstHex = tożsamość frakcji (VP, nazwa), secondHex = żetony
-    # dowodzenia, thirdHex = trade goods/commodities. Zgodne 1:1 z AsyncTI4.
-    return sorted(ring4, key=dist)[:3]
+    candidates = [
+        pos
+        for pos in coords
+        if pos not in occupied
+        and pos not in taken
+        and _tile_ring(pos) <= ring_count + 1
+    ]
+    # Sortuj wg odległości + lekka kara za dalszy pierścień (jak w oryginale).
+    candidates.sort(key=lambda p: cube_dist(p) * 2 + _tile_ring(p))
+
+    def adjacent(a: str, b: str) -> bool:
+        ha, hb = coords[a], coords[b]
+        return (abs(ha.q - hb.q) + abs(ha.r - hb.r) + abs(ha.s - hb.s)) // 2 == 1
+
+    chosen: list[str] = []
+    for nxt in candidates:
+        chosen.append(nxt)
+        # Czy któryś z wybranych sąsiaduje z dokładnie dwoma innymi (pivot)?
+        for pivot in chosen:
+            neighbors = [p for p in chosen if p != pivot and adjacent(pivot, p)]
+            if len(neighbors) >= 2:
+                return [pivot, neighbors[0], neighbors[1]]
+    return []
 
 
-def _build_stat_tile_positions(state: GameState) -> dict[str, list[str]]:
-    """Buduje ``statTilePositions`` = ``{faction: [3 pozycje pierścienia 4]}``.
+def _build_stat_tile_positions(
+    state: GameState, grid: HexGrid
+) -> dict[str, list[str]]:
+    """Buduje ``statTilePositions`` = ``{faction: [pivot, sąsiad, sąsiad]}``.
 
-    Dla każdego gracza bierze jego slot domowy i trzy najbliższe pozycje pierścienia 4
-    (geometrycznie, zgodnie z układem AsyncTI4). To zasila kolorowe heksy „player
-    stats" przy planszy (``PlayerStatsHex``).
+    Dla każdego gracza bierze jego slot domowy i trzy pobliskie puste pozycje
+    (algorytm AsyncTI4, ``_three_nearby_stat_tiles``) — pivot pierwszy. Zajęte
+    pozycje są współdzielone między graczami (``taken``), by heksy się nie nakładały.
     """
     result: dict[str, list[str]] = {}
-    for player_id, player in state.players.items():
+    taken: set[str] = set()
+    ring_count = _ring_count(grid)
+    # Deterministyczna kolejność graczy (po id) — stabilny podział pozycji.
+    for player_id, player in sorted(state.players.items()):
         home = _player_home_position(player_id, state)
         if home is None:
             continue
-        positions = _nearest_ring4(home)
+        positions = _three_nearby_stat_tiles(home, grid, taken, ring_count)
         if positions:
+            taken.update(positions)
             result[_faction_key(player)] = positions
     return result
 
@@ -535,7 +581,7 @@ def build_web_data(
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(state, registry),
-        "statTilePositions": _build_stat_tile_positions(state),
+        "statTilePositions": _build_stat_tile_positions(state, grid),
         "lawsInPlay": [],
         "strategyCards": [],
         "objectives": _empty_objectives(),

@@ -264,11 +264,24 @@ w puli). `deployedCount` = liczba sztuk danego typu gracza na planszy.
 
 ---
 
-## 4. Pozycje stat-area (player-stats heksy) — ✅ ZWERYFIKOWANE (geometrycznie)
+## 4. Pozycje stat-area (player-stats heksy) — ✅ ZWERYFIKOWANE (port algorytmu AsyncTI4)
 
-Kolorowe heksy „player stats" przy planszy stoją na 3 pozycjach pierścienia 4
-najbliższych slotowi domowemu gracza (pierścień 3). Zweryfikowane 1:1 z `statTilePositions`
-żywej gry AsyncTI4: `301 → 401,402,424`, `304 → 404,405,406`, `307 → 408,409,410`,
-`310 → 412,413,414`, `313 → 416,417,418`, `316 → 420,421,422`. Liczone geometrycznie
-w `src/api/web_data.py` (`_nearest_ring4`) — 3 najbliższe pozycje ring-4 wg odległości
-kubicznej. Zasila `statTilePositions` w `web-data`.
+Kolorowe heksy „player stats" przy planszy to **zwarta trójka pustych kafelków**
+w pobliżu slotu domowego gracza. Algorytm (PORT, nie z pamięci) ze źródła AsyncTI4:
+`TI4_map_generator_bot/.../PlayerStatsHelper.findThreeNearbyStatTiles`:
+
+1. Kandydaci = PUSTE pozycje (brak systemu), pierścień ≤ `ringCount+1`, nie zajęte
+   przez innego gracza (współdzielony `taken`).
+2. Dobierz najbliższe (odległość do slotu domowego + kara za pierścień) aż powstanie
+   zwarta trójka (jeden kafelek sąsiaduje z dwoma pozostałymi).
+3. Zwróć `[pivot, sąsiad, sąsiad]` — **pivot (środkowy) PIERWSZY**.
+
+Kolejność ma znaczenie: frontend kładzie `firstHex` = tożsamość frakcji (grafika,
+nazwa, karty strategii, sekrety, **VP**), `secondHex` = żetony dowodzenia (CC),
+`thirdHex` = trade goods / commodities / action cards + status ACTIVE/PASSED
+(źródło ról: `frontend/.../PlayerStatsArea.tsx`). Dlatego pivot (środkowy heks) musi
+być pierwszy — tam ma być znak frakcji.
+
+Implementacja: `src/api/web_data.py` → `_three_nearby_stat_tiles` / `_build_stat_tile_positions`.
+Odległość w metryce kubicznej (proxy pikseli z oryginału). Zweryfikowane 1:1 z żywą grą
+AsyncTI4 oraz dla 6 graczy (18 unikalnych pozycji, bez nakładania).

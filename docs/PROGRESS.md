@@ -696,3 +696,29 @@ przez `required_tech_id` z danych, nie z pamięci.
 
 **QA:** backend 89 testów zielone, ruff + mypy czyste. Launcher zweryfikowany E2E
 (oba porty nasłuchują, przeglądarka otwarta).
+
+---
+
+### ✅ Blok F9 — heksy stat-area: port algorytmu AsyncTI4 (pivot pierwszy)
+
+**Uwaga użytkownika:** układ 3 heksów był inny niż oficjalny — znak frakcji trafiał
+na zły heks, pozostałe dwa przesunięte. Oficjalnie: heks frakcji (symbol + VP) w CENTRUM
+(pivot), a dwa pozostałe (TG/comm/AC oraz CC) po bokach.
+
+**Znalezione źródło (nie z pamięci):** `TI4_map_generator_bot` →
+`WebStatTilePositions.fromGame` → `PlayerStatsHelper.findThreeNearbyStatTiles`. Algorytm:
+puste kafelki w pierścieniu ≤ ringCount+1, dobierane wg odległości do slotu domowego aż
+powstanie ZWARTA trójka; zwracane jako `[pivot, sąsiad, sąsiad]` (pivot = kafelek sąsiadujący
+z dwoma pozostałymi = środkowy). Frontend kładzie `firstHex`=frakcja/VP na pivocie.
+
+**Fix:** `web_data.py` — `_build_stat_tile_positions` przepisane na port tego algorytmu
+(`_three_nearby_stat_tiles`): kandydaci = puste pozycje (nie w gridzie), ring ≤ ringCount+1,
+współdzielony `taken` (brak nakładania heksów między graczami), zwrot pivot-first. Wcześniej
+sortowałem po odległości kubicznej i pivot nie zawsze był pierwszy.
+
+**Zweryfikowane E2E:** 6 graczy → 18 unikalnych pozycji bez nakładania; pivot pierwszy
+(`mentak 401,402,424`, `sol 405,404,406`, …), zgodne 1:1 z żywą grą AsyncTI4.
+Reguła spisana do `docs/RULES.md` 4 (zaktualizowana). QA: 89 testów zielone, ruff+mypy czyste.
+
+**Nadal otwarte (niekrytyczne):** heks CC (`secondHex`) jest pusty, bo nie liczymy jeszcze
+żetonów dowodzenia (`tacticalCC/fleetCC/strategicCC = 0`) — pokaże się, gdy dodamy ich obsługę.
