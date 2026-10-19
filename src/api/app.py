@@ -565,12 +565,14 @@ def create_app(
     async def post_undo() -> StateEnvelope:
         envelope = service.undo()
         await service.broadcast()
+        await broadcast_map()
         return envelope
 
     @app.post("/redo", response_model=StateEnvelope)
     async def post_redo() -> StateEnvelope:
         envelope = service.redo()
         await service.broadcast()
+        await broadcast_map()
         return envelope
 
     # --- WebSocket ----------------------------------------------------------

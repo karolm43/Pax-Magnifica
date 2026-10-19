@@ -78,5 +78,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  return { editUnit, moveUnit };
+  const undo = useCallback(async () => {
+    await post("/undo", {});
+    await refresh();
+  }, [refresh]);
+
+  const redo = useCallback(async () => {
+    await post("/redo", {});
+    await refresh();
+  }, [refresh]);
+
+  return { editUnit, moveUnit, undo, redo };
 }

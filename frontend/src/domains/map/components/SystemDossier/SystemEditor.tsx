@@ -1,9 +1,17 @@
 import { useMemo, useState } from "react";
-import { ActionIcon, Group, SegmentedControl, Stack, Text } from "@/ds";
-import { IconMinus, IconPlus } from "@tabler/icons-react";
+import {
+  ActionIcon,
+  Group,
+  SegmentedControl,
+  Select,
+  Stack,
+  Text,
+} from "@/ds";
+import { IconArrowRight, IconMinus, IconPlus } from "@tabler/icons-react";
 import { useGameData } from "@/state/useGameContext";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { getPlanetsByTileId } from "@/entities/lookup/planets";
+import { getTileById } from "@/entities/lookup/systems";
 import { Unit } from "@/shared/ui/Unit";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import type { Tile } from "@/entities/game/types";
@@ -44,8 +52,9 @@ type Props = {
  */
 export function SystemEditor({ tile }: Props) {
   const gameData = useGameData();
-  const { editUnit } = useBoardEditor();
+  const { editUnit, moveUnit } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<string | null>(null);
 
   const players = gameData?.playerData ?? [];
   const planetIds = useMemo(
@@ -89,6 +98,26 @@ export function SystemEditor({ tile }: Props) {
       ? tile.unitsByFaction[faction]
       : tile.planets[zone]?.unitsByFaction[faction];
 
+  // Cele przenoszenia: strefy wszystkich innych systemów na mapie
+  // (Orbita + planety), oprócz bieżącej strefy źródłowej.
+  const moveTargets = useMemo(() => {
+    const tiles = gameData?.tiles ?? {};
+    const options: { value: string; label: string }[] = [];
+    for (const [pos, t] of Object.entries(tiles)) {
+      const name = getTileById(t.systemId)?.name ?? `System ${t.systemId}`;
+      // Orbita danego systemu.
+      if (!(pos === tile.position && zone === "space")) {
+        options.push({ value: `${pos}|space`, label: `${pos} ${name} · Orbita` });
+      }
+      // Planety danego systemu.
+      for (const planetId of Object.keys(t.planets)) {
+        if (pos === tile.position && zone === planetId) continue;
+        options.push({ value: `${pos}|${planetId}`, label: `${pos} ${name} · ${planetId}` });
+      }
+    }
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  }, [gameData?.tiles, tile.position, zone]);
+
   const apply = async (asyncId: string, delta: number) => {
     if (busy) return;
     setBusy(true);
@@ -99,6 +128,25 @@ export function SystemEditor({ tile }: Props) {
         faction,
         asyncId,
         delta,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const move = async (asyncId: string) => {
+    if (busy || !moveTarget) return;
+    const [toPosition, toZone] = moveTarget.split("|");
+    setBusy(true);
+    try {
+      await moveUnit({
+        fromPosition: tile.position,
+        fromZone: zone,
+        toPosition,
+        toZone,
+        faction,
+        asyncId,
+        count: 1,
       });
     } finally {
       setBusy(false);
@@ -130,8 +178,27 @@ export function SystemEditor({ tile }: Props) {
           <SegmentedControl
             size="xs"
             value={zone}
-            onChange={setZone}
+            onChange={(v) => {
+              setZone(v);
+              setMoveTarget(null);
+            }}
             data={zones}
+          />
+        </Group>
+
+        <Group gap="xs" wrap="wrap" align="center">
+          <Text size="xs" c="dimmed" className={styles.sectionLabel}>
+            Przenieś do
+          </Text>
+          <Select
+            size="xs"
+            placeholder="wybierz cel (opcjonalnie)"
+            data={moveTargets}
+            value={moveTarget}
+            onChange={setMoveTarget}
+            searchable
+            clearable
+            className={styles.moveSelect}
           />
         </Group>
 
@@ -175,6 +242,19 @@ export function SystemEditor({ tile }: Props) {
                     <IconPlus size={12} />
                   </ActionIcon>
                 </Group>
+                {moveTarget && count > 0 && (
+                  <ActionIcon
+                    size="sm"
+                    variant="light"
+                    disabled={busy}
+                    onClick={() => void move(asyncId)}
+                    aria-label={`Przenieś ${label} do celu`}
+                    title="Przenieś 1 do wybranego celu"
+                    className={styles.moveBtn}
+                  >
+                    <IconArrowRight size={12} />
+                  </ActionIcon>
+                )}
               </div>
             );
           })}

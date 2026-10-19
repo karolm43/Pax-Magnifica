@@ -783,3 +783,29 @@ Backend 95 testów zielone, ruff + mypy czyste; frontend type-check + lint + bui
 
 **Uwaga:** edytor celowo NIE sprawdza zasad TI4 — to narzędzie operatora (gracze sami
 pilnują legalności). Zgodne z modelem human-in-the-loop / God-Mode (spec 1.2.3).
+
+---
+
+### ✅ Blok F12 — Undo/Redo w UI + wygodne przenoszenie jednostek
+
+**Undo/Redo (Event Sourcing w UI):** backend miał już `EventStore` (SQLite, Snapshot
+Stack) + endpointy `/undo`/`/redo` — brakowało podpięcia w interfejsie. Dodane:
+- `app.py`: `/undo`/`/redo` wołają teraz też `broadcast_map()` (spójność).
+- `useBoardEditor`: akcje `undo()`/`redo()` + invalidacja web-data.
+- `HeaderGameControls` (nowy): przyciski Cofnij / Ponów / Odśwież w nagłówku
+  (zastąpił `HeaderRefreshButton`).
+- Zweryfikowane E2E: +3 krążowniki → undo=0 → redo=3.
+
+**Wygodne przenoszenie jednostek:** w edytorze systemu (`SystemEditor`) dodano
+selektor „Przenieś do" (wyszukiwalny Select wszystkich stref: Orbita + planety
+każdego systemu) + przycisk „→" przy jednostce, która ma count>0. Przenosi 1 sztukę
+wybranej jednostki ze źródłowej strefy do wybranego celu (endpoint `/units/move`).
+Zweryfikowane wcześniej E2E (101→102).
+
+**Uwaga o zakresie Undo:** Event Sourcing obejmuje `GameState` (gracze, jednostki,
+VP…). Mapa (`current_grid`: które systemy/kafelki domowe) jest poza historią, więc
+undo cofa edycje jednostek/stanu, ale nie cofnie `/game/new` ani podmiany kafelka
+domowego. Dla edycji jednostek (główny przypadek) działa w pełni.
+
+**QA:** backend 95 testów zielone, ruff + mypy czyste; frontend type-check + lint +
+build czyste.

@@ -57,3 +57,12 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+.moveSelect {
+  min-width: 220px;
+  flex: 1;
+}
+
+.moveBtn {
+  margin-top: 2px;
+}
