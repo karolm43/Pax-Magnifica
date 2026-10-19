@@ -34,14 +34,12 @@ import { TabPanelSection } from "@/domains/game-shell/components/TabPanelSection
 import { APP_HEADER_HEIGHT } from "@/shared/ui/AppHeader";
 import { TabActiveContext } from "@/hooks/useIsTabActive";
 import { HeaderRefreshButton } from "@/shared/ui/HeaderRefreshButton";
+import { DEFAULT_GAME_ID } from "@/config";
 import { MobileHandSheet } from "@/domains/game-shell/components/SecretHand";
 import { MobileEventsSheet } from "@/domains/game-shell/components/GameEventPanel";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
 
 const REQUIRED_VERSION_SCHEMA = 5;
-
-/** Stały identyfikator jedynej, lokalnej gry (backend ignoruje wartość). */
-const DEFAULT_GAME_ID = "local";
 
 type ContentProps = {
   pannable: boolean;

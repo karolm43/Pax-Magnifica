@@ -6,6 +6,14 @@
  * Ścieżki względne (/bot, /static) są przepuszczane przez proxy Vite do backendu
  * na :8000 (patrz vite.config.ts), dzięki czemu front używa adresów względnych.
  */
+/**
+ * Stały identyfikator jedynej, lokalnej gry. Backend trzyma jeden stan i ignoruje
+ * identyfikator, ale react-query kluczuje dokument web-data po gameId, więc WSZYSCY
+ * konsumenci (plansza, panel faz) muszą używać tej samej wartości, inaczej czytają
+ * puste, osobne zapytania.
+ */
+export const DEFAULT_GAME_ID = "local";
+
 export const config = {
   api: {
     // GET {gameDataUrl}/{gameId}/web-data  -> dokument PlayerDataResponse.

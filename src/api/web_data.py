@@ -44,6 +44,48 @@ from src.core.unit_catalog import (
 WEB_DATA_SCHEMA_VERSION = 5
 
 
+# Mapowanie naszej 4-wartościowej fazy na string ``GamePhase`` frontendu
+# (małe litery, z podfazami). Frontend indeksuje PHASE_CONFIGS dokładnie po tych
+# wartościach — casing i granularność muszą się zgadzać (patrz GameStatePanel.tsx).
+_PHASE_TO_WEB: dict[str, str] = {
+    "STRATEGY": "strategy",
+    "ACTION": "action",
+    "STATUS": "status.scoring",
+    "AGENDA": "agenda.voting",
+}
+
+
+def _to_web_phase(phase: object) -> str:
+    """Zwraca string fazy w formacie frontendu (``GamePhase``)."""
+    return _PHASE_TO_WEB.get(str(phase), "unknown")
+
+
+def _active_color(state: GameState) -> str | None:
+    """Kolor aktywnego gracza (frontend dopasowuje ``activePlayer`` po KOLORZE)."""
+    if state.active_player_id is None:
+        return None
+    player = state.players.get(state.active_player_id)
+    return player.color if player else None
+
+
+def _build_game_state(state: GameState) -> dict[str, Any]:
+    """Buduje obiekt ``gameState`` — zasila panel faz + kolejność tur we froncie.
+
+    Minimalny zestaw: faza, aktywny gracz (kolor), reszta pól null (walka/agenda/
+    aktywny system dojdą wraz z logiką silnika). Kolejność tur i statusy siedzeń
+    frontend wylicza z ``playerData`` (``active``/``passed``/``scs``).
+    """
+    return {
+        "phase": _to_web_phase(state.phase),
+        "activePlayer": _active_color(state),
+        "turnStartedAt": None,
+        "winner": None,
+        "agenda": None,
+        "activeSystem": None,
+        "activeCombat": None,
+    }
+
+
 def _faction_key(player: PlayerState) -> str:
     """Klucz frakcji używany w ``tileUnitData`` (frakcja lub zastępczo id gracza)."""
     return player.faction or player.player_id
@@ -422,17 +464,18 @@ def _build_player_data(
                 "flexibleDisplayName": faction,
                 "isSpeaker": False,
                 "isTyrant": False,
-                "passed": False,
+                "passed": player.passed,
                 "eliminated": False,
                 "active": state.active_player_id == player_id,
                 # Zasoby / liczniki (viewer czyta je w panelach gracza).
                 "tg": player.trade_goods,
                 "commodities": player.commodities,
                 "commoditiesTotal": player.commodities,
-                "tacticalCC": 0,
-                "fleetCC": 0,
-                "strategicCC": 0,
-                "ccReinf": 0,
+                # Żetony dowodzenia (CC) — panele gracza + heks stat-area.
+                "tacticalCC": player.tactical_cc,
+                "fleetCC": player.fleet_cc,
+                "strategicCC": player.strategic_cc,
+                "ccReinf": player.cc_reinf,
                 "totalVps": player.victory_points,
                 # unitsOwned: realne ID posiadanych jednostek (baza generyczna +
                 # frakcyjna, bez ulepszeń). NIGDY []! Pusta lista psuje lookupUnit
@@ -458,7 +501,8 @@ def _build_player_data(
                 "promissoryNotesInPlayArea": [],
                 "followedSCs": [],
                 "unfollowedSCs": [],
-                "scs": [],
+                # Karty strategii gracza (numery inicjatywy) — kolejność tur w panelu faz.
+                "scs": list(player.strategy_cards),
                 "exhaustedSCs": [],
                 "neighbors": [],
                 "soCount": 0,
@@ -582,6 +626,7 @@ def build_web_data(
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(state, registry),
         "statTilePositions": _build_stat_tile_positions(state, grid),
+        "gameState": _build_game_state(state),
         "lawsInPlay": [],
         "strategyCards": [],
         "objectives": _empty_objectives(),

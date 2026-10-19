@@ -200,6 +200,31 @@ def test_web_data_stat_tile_positions(client: TestClient) -> None:
         assert all(p.startswith("4") for p in positions)
 
 
+def test_web_data_has_game_state(client: TestClient) -> None:
+    # Panel faz we froncie wymaga obiektu gameState z poprawnym (małe litery) phase.
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "mentak"}, {"faction_id": "sol"}]},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    gs = data["gameState"]
+    assert gs["phase"] == "strategy"  # domyślna faza, format frontendu
+    # Aktywny gracz podawany jako KOLOR (frontend dopasowuje po kolorze).
+    assert gs["activePlayer"] == "red"  # pierwszy gracz = red
+    assert gs["activeSystem"] is None
+
+
+def test_web_data_command_counters(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    p = data["playerData"][0]
+    # Startowe żetony dowodzenia (RULES.md 5): 3 taktyczne, 3 floty, 2 strategiczne.
+    assert p["tacticalCC"] == 3
+    assert p["fleetCC"] == 3
+    assert p["strategicCC"] == 2
+    assert p["ccReinf"] == 8
+
+
 def test_web_data_player_data_carries_counters(client: TestClient) -> None:
     client.post("/map/load", json={"map_string": SAMPLE_MAP_STRING})
     client.post(

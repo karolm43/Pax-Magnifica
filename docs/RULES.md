@@ -285,3 +285,27 @@ być pierwszy — tam ma być znak frakcji.
 Implementacja: `src/api/web_data.py` → `_three_nearby_stat_tiles` / `_build_stat_tile_positions`.
 Odległość w metryce kubicznej (proxy pikseli z oryginału). Zweryfikowane 1:1 z żywą grą
 AsyncTI4 oraz dla 6 graczy (18 unikalnych pozycji, bez nakładania).
+
+---
+
+## 5. Startowe żetony dowodzenia (command counters) — ✅ ZWERYFIKOWANE
+
+Źródło (nie z pamięci): AsyncTI4 bot, `Player.java` wartości domyślne:
+`private int tacticalCC = 3; private int fleetCC = 3; private int strategicCC = 2;`.
+Czyli start gry: **3 taktyczne, 3 floty, 2 strategiczne** żetony na arkuszu.
+Zakodowane w `src/core/game_state.py` → `PlayerState` (`tactical_cc`, `fleet_cc`,
+`strategic_cc`). Zasilają panele gracza (CCPool) i heks stat-area (drugi heks).
+
+⚠️ ZAŁOŻENIE: `cc_reinf = 8` (rezerwa w szkole dowodzenia). TI4 ma 16 żetonów łącznie,
+8 na starcie na arkuszu → 8 w rezerwie. Do potwierdzenia dokładnej liczby/źródła.
+
+## 6. Fazy gry — mapowanie na format frontendu — ✅ (format), ⬜ (logika)
+
+Frontend (`GamePhase` w `entities/data/types.ts`) używa stringów małymi literami z
+podfazami: `strategy`, `action`, `status.scoring`, `status.homework`, `agenda.*`,
+`setup.*`, `finished`. Nasza enum `Phase` (STRATEGY/ACTION/STATUS/AGENDA) mapowana w
+`web_data.py` → `_to_web_phase` (STATUS→`status.scoring`, AGENDA→`agenda.voting`).
+`gameState.activePlayer` to KOLOR gracza (nie id) — frontend dopasowuje po kolorze.
+
+Pełna LOGIKA faz (przejścia, akcje, timing) = Warstwa B (roadmapa M2–M6), port z
+`TI4_map_generator_bot/src/main/java/ti4/service/{turn,strategycard,tactical,combat,agenda}`.

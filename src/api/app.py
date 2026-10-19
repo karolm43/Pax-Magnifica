@@ -344,6 +344,7 @@ def create_app(
 
         # 2) Reset stanu i rozstawienie graczy (walidacja frakcji przed mutacją).
         new_state = GameState()
+        first_player_id: str | None = None
         for index, player in enumerate(request.players):
             faction = reg.factions.get(player.faction_id)
             if faction is None:
@@ -354,6 +355,8 @@ def create_app(
             home_position = player.home_position or slot_position
             color = player.color or slot_color
             player_id = player.player_id or f"p{index + 1}"
+            if first_player_id is None:
+                first_player_id = player_id
             new_state = apply_setup_to_state(
                 new_state,
                 player_id=player_id,
@@ -372,6 +375,9 @@ def create_app(
                     hex_override=Hex(*grid.coordinates(home_position)),
                 )
         grid.build_edges()
+
+        # Domyślnie: pierwszy gracz jest aktywny (panel faz podświetla kolejkę tur).
+        new_state.active_player_id = first_player_id
 
         app.state.current_grid = grid
         service.replace_state(new_state, label="game:new")

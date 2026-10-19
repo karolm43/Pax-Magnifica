@@ -5,6 +5,7 @@ import { IconChevronDown, IconSwords, IconTrophy } from "@tabler/icons-react";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
+import { DEFAULT_GAME_ID } from "@/config";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import type {
@@ -552,7 +553,7 @@ function GameStatePanelContent({
 
 export function GameStatePanel() {
   const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid ?? "";
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
   const gameData = useGameData();
   const playerData = gameData?.playerData ?? [];

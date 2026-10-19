@@ -722,3 +722,34 @@ Reguła spisana do `docs/RULES.md` 4 (zaktualizowana). QA: 89 testów zielone, r
 
 **Nadal otwarte (niekrytyczne):** heks CC (`secondHex`) jest pusty, bo nie liczymy jeszcze
 żetonów dowodzenia (`tacticalCC/fleetCC/strategicCC = 0`) — pokaże się, gdy dodamy ich obsługę.
+
+---
+
+### ✅ Blok F10 — panel faz (gameState) + żetony dowodzenia (Warstwa A portu AsyncTI4)
+
+**Cel użytkownika:** przenieść PEŁNĄ funkcjonalność AsyncTI4 na nasz tryb solo; na start
+konkretnie phase box (lewy róg) i żetony dowodzenia w heksach + player stats.
+
+**Analiza wykonalności (context-gatherer):** potwierdzona — frontend to viewer renderujący
+całość z jednego dokumentu `web-data`. Podział na Warstwę A (dosłanie danych, bez logiki)
+i Warstwę B (silnik faz/akcji = roadmapa M2–M6, port reguł z Javy). Pełny plan:
+`docs/PORT_ASYNCTI4_PLAN.md`.
+
+**Zrobione (Warstwa A):**
+- `GameState`/`PlayerState` (`game_state.py`): dodane `tactical_cc=3, fleet_cc=3,
+  strategic_cc=2, cc_reinf=8`, `passed`, `strategy_cards`.
+- `web_data.py`: NOWY obiekt `gameState` (`_build_game_state`, `_to_web_phase`,
+  `_active_color`) — faza w formacie frontendu (małe litery/podfazy), aktywny gracz jako
+  KOLOR. Emisja CC + `scs` + `passed` w `playerData`.
+- `app.py` `/game/new`: ustawia `active_player_id` = pierwszy gracz (panel podświetla kolejkę).
+- Frontend: `DEFAULT_GAME_ID="local"` wyniesione do `config.ts`; `GameStatePanel` używało
+  `params.mapid ?? ""` → `?? DEFAULT_GAME_ID` (inaczej czytało puste zapytanie i panel był ciemny).
+
+**Źródła (RULES.md):** startowe CC (5, z `Player.java`), mapowanie faz (6).
+
+**Zweryfikowane E2E:** `gameState.phase=strategy activePlayer=red` (Mentak aktywny);
+CC gracza `3/3/2 reinf 8`. type-check + lint + build frontu czyste; backend 91 testów
+zielone, ruff + mypy czyste.
+
+**Dalej (Warstwa A, do włączenia):** karty strategii (display), cele/VP, prawa, liderzy.
+**Warstwa B:** silnik faz/akcji — osobne bloki wg roadmapy.

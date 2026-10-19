@@ -35,6 +35,18 @@ class PlayerState(BaseModel):
     trade_goods: int = 0
     commodities: int = 0
 
+    # Żetony dowodzenia (command counters). Start TI4: 3 taktyczne, 3 floty,
+    # 2 strategiczne (reguła spisana w docs/RULES.md 5). Rezerwa = ccReinf.
+    tactical_cc: int = 3
+    fleet_cc: int = 3
+    strategic_cc: int = 2
+    cc_reinf: int = 8
+
+    # Czy gracz spasował w fazie akcji.
+    passed: bool = False
+    # Karty strategii gracza (numery inicjatywy, np. [3]); puste poza fazą.
+    strategy_cards: list[int] = Field(default_factory=list)
+
     # Planety kontrolowane przez gracza (identyfikatory planet).
     controlled_planets: list[str] = Field(default_factory=list)
     # Technologie posiadane przez gracza (identyfikatory technologii).
