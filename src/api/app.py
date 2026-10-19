@@ -30,6 +30,8 @@ from src.api.demo_map import build_demo_grid
 from src.api.schemas import (
     FactionInfo,
     GodModePatch,
+    HistoryEntry,
+    HistoryList,
     MapEdge,
     MapStringRequest,
     MapTile,
@@ -235,6 +237,15 @@ def create_app(
     @app.get("/map", response_model=MapView)
     def get_map() -> MapView:
         return build_map_view(app.state.current_grid, reg, service.current_state())
+
+    @app.get("/api/public/game/{game_id}/events")
+    def get_game_events(game_id: str) -> list[dict[str, object]]:
+        """Log zdarzeń AsyncTI4 — nie produkujemy go (mamy własną historię).
+
+        Zwracamy pustą listę, by panel zdarzeń frontendu nie zgłaszał 404.
+        Historię stanu pokazuje nasz ``HistoryPanel`` (endpoint ``/history``).
+        """
+        return []
 
     @app.get("/api/public/game/{game_id}/web-data")
     def get_web_data(game_id: str) -> dict[str, object]:
@@ -559,6 +570,24 @@ def create_app(
         except ValidationError as exc:
             raise HTTPException(status_code=422, detail=exc.errors()) from exc
         await service.broadcast()
+        return envelope
+
+    @app.get("/history", response_model=HistoryList)
+    def get_history() -> HistoryList:
+        """Lista migawek historii (etykieta + która bieżąca) dla panelu historii."""
+        return HistoryList(
+            entries=[
+                HistoryEntry(seq=seq, label=label, is_current=is_current)
+                for seq, label, is_current in service.history_entries()
+            ]
+        )
+
+    @app.post("/history/goto/{seq}", response_model=StateEnvelope)
+    async def post_history_goto(seq: int) -> StateEnvelope:
+        """Przeskok do wskazanej migawki historii (undo/redo do punktu)."""
+        envelope = service.goto(seq)
+        await service.broadcast()
+        await broadcast_map()
         return envelope
 
     @app.post("/undo", response_model=StateEnvelope)

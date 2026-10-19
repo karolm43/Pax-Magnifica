@@ -1,5 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { fetchJson } from "@/api/fetchJson";
 
 /*
  * God-Mode: edycja planszy bez sprawdzania zasad. Operator (gracz) może dodawać,
@@ -44,10 +45,10 @@ export type MoveUnitArgs = {
 export function useBoardEditor() {
   const queryClient = useQueryClient();
 
-  const refresh = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: ["playerData"] }),
-    [queryClient],
-  );
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["playerData"] });
+    await queryClient.invalidateQueries({ queryKey: ["history"] });
+  }, [queryClient]);
 
   const editUnit = useCallback(
     async ({ position, zone, faction, asyncId, delta }: EditUnitArgs) => {
@@ -88,5 +89,31 @@ export function useBoardEditor() {
     await refresh();
   }, [refresh]);
 
-  return { editUnit, moveUnit, undo, redo };
+  const gotoHistory = useCallback(
+    async (seq: number) => {
+      await post(`/history/goto/${seq}`, {});
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { editUnit, moveUnit, undo, redo, gotoHistory };
+}
+
+export type HistoryEntry = { seq: number; label: string; is_current: boolean };
+
+/** Lista migawek historii (Event Sourcing) do panelu historii. */
+export function useHistory() {
+  return useQuery<HistoryEntry[]>({
+    queryKey: ["history"],
+    queryFn: async () => {
+      const data = await fetchJson<{ entries: HistoryEntry[] }>(
+        "/bot/history",
+        "history",
+      );
+      return data.entries;
+    },
+    // Odświeżaj przy każdym wejściu — po edycjach historia się zmienia.
+    staleTime: 0,
+  });
 }

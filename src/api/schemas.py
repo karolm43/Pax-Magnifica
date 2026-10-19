@@ -101,6 +101,24 @@ class HistoryInfo(BaseModel):
     history_size: int
 
 
+class HistoryEntry(BaseModel):
+    """Pojedyncza migawka w historii (do panelu historii/undo)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seq: int
+    label: str
+    is_current: bool
+
+
+class HistoryList(BaseModel):
+    """Lista migawek historii."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entries: list[HistoryEntry] = Field(default_factory=list)
+
+
 class StateEnvelope(BaseModel):
     """Koperta rozsyłana klientom: stan gry + metadane historii.
 

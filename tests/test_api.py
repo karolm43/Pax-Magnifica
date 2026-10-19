@@ -323,6 +323,32 @@ def test_edit_units_add_and_remove(client: TestClient) -> None:
     assert _space_count(resp.json(), "101", "cruiser") == 0
 
 
+def test_history_list_and_goto(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "ca", "delta": 2},
+    )
+    hist = client.get("/history").json()["entries"]
+    # Co najmniej: initial, game:new, edit:101:space — ostatni bieżący.
+    assert len(hist) >= 3
+    assert hist[-1]["is_current"] is True
+    labels = [e["label"] for e in hist]
+    assert any(label.startswith("edit:101") for label in labels)
+    # Skok do wcześniejszej migawki (przed edycją) cofa jednostki.
+    before_edit = next(e for e in hist if e["label"] == "game:new")
+    client.post(f"/history/goto/{before_edit['seq']}")
+    view = client.get("/map").json()
+    tile = next(t for t in view["tiles"] if t["position"] == "101")
+    assert all(s["base_type"] != "cruiser" for s in tile["space_units"])
+
+
+def test_game_events_stub_empty(client: TestClient) -> None:
+    resp = client.get("/api/public/game/local/events")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
 def test_edit_units_unknown_async_422(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     resp = client.post(

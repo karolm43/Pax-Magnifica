@@ -7,6 +7,7 @@ import ScoreBoard from "@/domains/objectives/components/ScoreBoard/ScoreBoard";
 import { UpdateNeededScreen } from "@/domains/game-shell/components/chrome/UpdateNeededScreen";
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { SystemDossierModal } from "@/domains/map/components/SystemDossier/SystemDossierModal";
+import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
 import { GameContextProvider } from "@/state/GameContextProvider";
 import { useSettingsStore } from "@/state/appStore";
@@ -238,6 +239,7 @@ function GameMapContent({ pannable }: ContentProps) {
       />
 
       <SystemDossierModal />
+      <MoveUnitsModal />
 
       <KeyboardShortcutsModal
         opened={settings.keyboardShortcutsModalOpened}

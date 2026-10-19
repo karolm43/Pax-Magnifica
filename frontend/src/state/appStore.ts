@@ -138,6 +138,17 @@ type AppStore = {
   openSystemDossier: (position: string, systemId: string) => void;
   closeSystemDossier: () => void;
 
+  /*
+   * Tryb przenoszenia jednostek (God-Mode). Gdy aktywny, klik w kafelek wybiera
+   * najpierw ŹRÓDŁO, potem CEL — po czym pojawia się menu „co przenieść".
+   */
+  moveMode: boolean;
+  moveFrom: string | null; // pozycja źródłowa
+  movePair: { from: string; to: string } | null; // komplet (otwiera menu)
+  toggleMoveMode: () => void;
+  pickMoveTile: (position: string) => void;
+  clearMove: () => void;
+
   handleZoomIn: () => void;
   handleZoomOut: () => void;
   handleZoomReset: () => void;
@@ -172,6 +183,25 @@ export const useAppStore = create<AppStore>((set) => {
     openSystemDossier: (position: string, systemId: string) =>
       set({ systemDossier: { position, systemId } }),
     closeSystemDossier: () => set({ systemDossier: null }),
+
+    moveMode: false,
+    moveFrom: null,
+    movePair: null,
+    toggleMoveMode: () =>
+      set((s) => ({
+        moveMode: !s.moveMode,
+        moveFrom: null,
+        movePair: null,
+      })),
+    pickMoveTile: (position: string) =>
+      set((s) => {
+        if (!s.moveMode) return {};
+        // Pierwszy klik = źródło; drugi klik = cel (otwiera menu).
+        if (s.moveFrom === null) return { moveFrom: position };
+        if (position === s.moveFrom) return { moveFrom: null }; // odkliknięcie
+        return { movePair: { from: s.moveFrom, to: position } };
+      }),
+    clearMove: () => set({ moveFrom: null, movePair: null }),
 
     setHoveredPlanetId: (planetId: string | null) =>
       set({ hoveredPlanetId: planetId }),

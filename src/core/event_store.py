@@ -143,6 +143,34 @@ class EventStore:
             ).fetchone()
             return int(row["n"])
 
+    def history(self) -> list[tuple[int, str, bool]]:
+        """Lista migawek: ``(seq, label, is_current)`` w kolejności chronologicznej."""
+        with self._lock:
+            current = self._current_seq()
+            rows = self._conn.execute(
+                "SELECT seq, label FROM snapshots ORDER BY seq ASC"
+            ).fetchall()
+            return [
+                (int(r["seq"]), str(r["label"]), int(r["seq"]) == current)
+                for r in rows
+            ]
+
+    def goto(self, seq: int) -> GameState | None:
+        """Przeskakuje wskaźnik na wskazaną migawkę (undo/redo do punktu).
+
+        Nie obcina historii — pozwala wrócić i ponowić. Zwraca stan lub None,
+        gdy ``seq`` nie istnieje.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT seq FROM snapshots WHERE seq = ?", (seq,)
+            ).fetchone()
+            if row is None:
+                return None
+            self._set_current(seq)
+            self._conn.commit()
+            return self._load(seq)
+
     def close(self) -> None:
         with self._lock:
             self._conn.close()

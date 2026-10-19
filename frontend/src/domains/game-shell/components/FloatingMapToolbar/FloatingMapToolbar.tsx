@@ -5,6 +5,7 @@ import cx from "clsx";
 import { GameEventPanel } from "@/domains/game-shell/components/GameEventPanel";
 import { useUnreadEventCount } from "@/domains/game-shell/components/GameEventPanel/sinceLastTurn";
 import { SecretHand } from "@/domains/game-shell/components/SecretHand";
+import { HistoryPanel } from "@/domains/game-shell/components/HistoryPanel";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
 import { useSettingsStore } from "@/state/appStore";
@@ -269,7 +270,7 @@ export function FloatingMapToolbar({
               </>
             ) : (
               <>
-                <PanelHeader title="Events" onClose={() => setOpenPanel(null)}>
+                <PanelHeader title="Historia / Events" onClose={() => setOpenPanel(null)}>
                   <Switch
                     size="xs"
                     label="Animated"
@@ -283,6 +284,7 @@ export function FloatingMapToolbar({
                   />
                 </PanelHeader>
                 <div className={classes.panelBody}>
+                  <HistoryPanel />
                   <GameEventPanel animated={animateEventPreviews} />
                 </div>
               </>

@@ -809,3 +809,28 @@ domowego. Dla edycji jednostek (główny przypadek) działa w pełni.
 
 **QA:** backend 95 testów zielone, ruff + mypy czyste; frontend type-check + lint +
 build czyste.
+
+---
+
+### ✅ Blok F13 — panel historii (cofanie do punktu) + tryb przenoszenia „2 systemy"
+
+**Panel historii (w menu Events):** zamiast polegać na logu zdarzeń AsyncTI4 (którego
+nie produkujemy), dołożyliśmy własny `HistoryPanel` nad panelem Events. Pokazuje wszystkie
+migawki Event Store z czytelnymi etykietami (Nowa gra, Edycja jednostek · 101, …) i pozwala
+wrócić do dowolnego punktu jednym kliknięciem (undo/redo do punktu).
+- Backend: `EventStore.history()` + `goto(seq)`; `GET /history`, `POST /history/goto/{seq}`.
+  Stub `GET /api/public/game/{id}/events` → `[]` (koniec 404 w panelu AsyncTI4).
+- Frontend: `useHistory` + `gotoHistory` w `useBoardEditor`; `HistoryPanel` + CSS;
+  wpięty w stopkę/menu Events (`FloatingMapToolbar`). Nagłówek „Historia / Events".
+
+**Nowy system przenoszenia „zaznacz 2 systemy":** stary dropdown w edytorze został,
+ale doszedł wygodniejszy tryb mapowy:
+- Przycisk „Przenieś" w nagłówku włącza TRYB PRZENOSZENIA (`appStore.moveMode`).
+- Klik w kafelek = wybór ŹRÓDŁA (podświetlone na zielono), drugi klik = CEL.
+- Otwiera się `MoveUnitsModal` ze wszystkimi jednostkami systemu źródłowego
+  (Orbita + planety, per frakcja) — wybierasz strefę docelową i przenosisz
+  (1 lub wszystkie). W trybie przenoszenia klik NIE otwiera dossier.
+
+**Zweryfikowane E2E:** historia `#1 initial, #2 game:new, #3 edit:101:space (bieżący)`;
+goto cofa jednostki; undo/redo 3→0→3. Backend 97 testów zielone, ruff+mypy czyste;
+frontend type-check+lint+build czyste.

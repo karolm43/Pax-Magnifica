@@ -71,6 +71,15 @@ class StateService:
         new_state = GameState.model_validate(data)
         return self.replace_state(new_state, label="god-mode-patch")
 
+    def history_entries(self) -> list[tuple[int, str, bool]]:
+        """Lista migawek historii: ``(seq, label, is_current)``."""
+        return self._store.history()
+
+    def goto(self, seq: int) -> StateEnvelope:
+        """Przeskakuje do wskazanej migawki historii (undo/redo do punktu)."""
+        self._store.goto(seq)
+        return self.envelope()
+
     def undo(self) -> StateEnvelope:
         """Cofa do poprzedniej migawki (jeśli możliwe)."""
         self._store.undo()

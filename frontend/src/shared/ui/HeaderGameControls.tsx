@@ -3,9 +3,11 @@ import { Button, Group } from "@/ds";
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
+  IconArrowsExchange,
   IconRefresh,
 } from "@tabler/icons-react";
 import { useGameDataState } from "@/state/useGameContext";
+import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import hud from "./hudChrome.module.css";
 
@@ -17,6 +19,9 @@ import hud from "./hudChrome.module.css";
 export function HeaderGameControls() {
   const dataState = useGameDataState();
   const { undo, redo } = useBoardEditor();
+  const moveMode = useAppStore((s) => s.moveMode);
+  const toggleMoveMode = useAppStore((s) => s.toggleMoveMode);
+  const moveFrom = useAppStore((s) => s.moveFrom);
   const [busy, setBusy] = useState<null | "undo" | "redo">(null);
 
   const run = async (which: "undo" | "redo") => {
@@ -54,6 +59,20 @@ export function HeaderGameControls() {
         title="Ponów (Redo)"
       >
         Ponów
+      </Button>
+      <Button
+        variant={moveMode ? "filled" : "default"}
+        size="xs"
+        className={hud.hudButton}
+        leftSection={<IconArrowsExchange size={14} />}
+        onClick={toggleMoveMode}
+        title="Tryb przenoszenia: kliknij system źródłowy, potem docelowy"
+      >
+        {moveMode
+          ? moveFrom
+            ? "Wybierz cel…"
+            : "Wybierz źródło…"
+          : "Przenieś"}
       </Button>
       <Button
         variant="default"
