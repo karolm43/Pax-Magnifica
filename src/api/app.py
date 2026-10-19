@@ -40,6 +40,8 @@ from src.api.schemas import (
     SetupPlayerRequest,
     SpaceUnitsRequest,
     StateEnvelope,
+    UnitEditRequest,
+    UnitMoveRequest,
     UnitStack,
 )
 from src.api.state_service import StateService
@@ -51,7 +53,7 @@ from src.core.hex_grid import Hex, HexGrid
 from src.core.home_slots import HOME_SLOT_COLORS_6P, home_slot_color
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, build_grid_from_map_string
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
+from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, BASE_TYPE_BY_ASYNC_ID
 
 # Testowy map string (6-osobowa plansza) używany, gdy frontend nie poda własnego.
 # To realny string AsyncTI4 (rogi domowe jako "0").
@@ -440,6 +442,109 @@ def create_app(
         if position in grid.positions:
             return str(grid.system_id_at(position))
         return ""
+
+    def _resolve_player_id(faction_key: str, state: GameState) -> str:
+        """Mapuje klucz frakcji z ``tileUnitData`` na ``player_id``.
+
+        W web-data jednostki są kluczowane frakcją (lub id gracza, gdy brak frakcji).
+        Edytor przysyła ten klucz; tu znajdujemy odpowiadającego gracza. Gdy brak
+        dopasowania, zwracamy klucz bez zmian (traktujemy jak id gracza).
+        """
+        for pid, player in state.players.items():
+            if player.faction == faction_key or pid == faction_key:
+                return pid
+        return faction_key
+
+    def _zone_bucket(
+        system: SystemState, zone: str, player_id: str
+    ) -> dict[str, int]:
+        """Zwraca modyfikowalny słownik jednostek gracza w strefie (space/planeta)."""
+        if zone == "space":
+            return system.space_units.setdefault(player_id, {})
+        by_player = system.planet_units.setdefault(zone, {})
+        return by_player.setdefault(player_id, {})
+
+    def _prune_zone(system: SystemState, zone: str, player_id: str) -> None:
+        """Usuwa puste słowniki jednostek (porządek po edycji)."""
+        if zone == "space":
+            if not system.space_units.get(player_id):
+                system.space_units.pop(player_id, None)
+            return
+        by_player = system.planet_units.get(zone)
+        if by_player is not None:
+            if not by_player.get(player_id):
+                by_player.pop(player_id, None)
+            if not by_player:
+                system.planet_units.pop(zone, None)
+
+    @app.post("/system/{position}/edit-units", response_model=MapView)
+    async def post_edit_units(position: str, request: UnitEditRequest) -> MapView:
+        """God-Mode: dodaj/odejmij jednostki w strefie systemu (delta, bez reguł)."""
+        base_type = BASE_TYPE_BY_ASYNC_ID.get(request.async_id)
+        if base_type is None:
+            raise HTTPException(
+                status_code=422, detail=f"Nieznany asyncId: {request.async_id}"
+            )
+        state = service.current_state().clone()
+        player_id = _resolve_player_id(request.faction, state)
+        system = state.systems.get(position) or SystemState(
+            position=position, system_id=_system_id_for(position)
+        )
+        bucket = _zone_bucket(system, request.zone, player_id)
+        new_count = max(0, bucket.get(base_type, 0) + request.delta)
+        if new_count == 0:
+            bucket.pop(base_type, None)
+        else:
+            bucket[base_type] = new_count
+        _prune_zone(system, request.zone, player_id)
+        state.systems[position] = system
+        service.replace_state(state, label=f"edit:{position}:{request.zone}")
+        await service.broadcast()
+        await broadcast_map()
+        return build_map_view(app.state.current_grid, reg, service.current_state())
+
+    @app.post("/units/move", response_model=MapView)
+    async def post_move_units(request: UnitMoveRequest) -> MapView:
+        """God-Mode: przesuń jednostki między strefami/systemami (bez reguł)."""
+        base_type = BASE_TYPE_BY_ASYNC_ID.get(request.async_id)
+        if base_type is None:
+            raise HTTPException(
+                status_code=422, detail=f"Nieznany asyncId: {request.async_id}"
+            )
+        if request.count <= 0:
+            raise HTTPException(status_code=422, detail="count musi być > 0")
+        state = service.current_state().clone()
+        player_id = _resolve_player_id(request.faction, state)
+
+        src = state.systems.get(request.from_position) or SystemState(
+            position=request.from_position,
+            system_id=_system_id_for(request.from_position),
+        )
+        src_bucket = _zone_bucket(src, request.from_zone, player_id)
+        available = src_bucket.get(base_type, 0)
+        moved = min(available, request.count)
+        if moved <= 0:
+            raise HTTPException(status_code=422, detail="Brak jednostek do przesunięcia.")
+        remaining = available - moved
+        if remaining == 0:
+            src_bucket.pop(base_type, None)
+        else:
+            src_bucket[base_type] = remaining
+        _prune_zone(src, request.from_zone, player_id)
+        state.systems[request.from_position] = src
+
+        dst = state.systems.get(request.to_position) or SystemState(
+            position=request.to_position,
+            system_id=_system_id_for(request.to_position),
+        )
+        dst_bucket = _zone_bucket(dst, request.to_zone, player_id)
+        dst_bucket[base_type] = dst_bucket.get(base_type, 0) + moved
+        state.systems[request.to_position] = dst
+
+        service.replace_state(state, label="move-units")
+        await service.broadcast()
+        await broadcast_map()
+        return build_map_view(app.state.current_grid, reg, service.current_state())
 
     @app.put("/state", response_model=StateEnvelope)
     async def put_state(state: GameState) -> StateEnvelope:

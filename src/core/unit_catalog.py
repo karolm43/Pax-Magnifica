@@ -48,6 +48,12 @@ ASYNC_ID_BY_BASE_TYPE: dict[str, str] = {
     "spacedock": "sd",
 }
 
+# Odwrotne mapowanie: asyncId -> baseType (do edytora God-Mode, który operuje
+# w terminach asyncId jak frontend).
+BASE_TYPE_BY_ASYNC_ID: dict[str, str] = {
+    async_id: base_type for base_type, async_id in ASYNC_ID_BY_BASE_TYPE.items()
+}
+
 # Kody używane w polu startingFleet frakcji (INNY zestaw niż asyncId!) -> baseType.
 # Patrz RULES.md 2c. Dane AsyncTI4 są miejscami niespójne: większość frakcji używa
 # "cr" dla cruisera, ale Keleres używa "ca" (asyncId cruisera) — akceptujemy oba.

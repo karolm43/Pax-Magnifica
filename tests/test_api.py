@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -286,3 +288,86 @@ def test_ws_receives_broadcast_on_mutation(client: TestClient) -> None:
         pushed = ws.receive_json()
         assert pushed["type"] == "state"
         assert pushed["state"]["round_number"] == 42
+
+
+# --- Edytor God-Mode (edit-units / move) --------------------------------
+
+
+def _space_count(view: Any, position: str, base_type: str) -> int:
+    """Pomocniczo: liczba jednostek danego typu w przestrzeni pozycji."""
+    tile = next(t for t in view["tiles"] if t["position"] == position)
+    stacks = [s for s in tile["space_units"] if s["base_type"] == base_type]
+    return sum(s["count"] for s in stacks)
+
+
+def test_edit_units_add_and_remove(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Dodaj 3 krążowniki (ca) Sola w przestrzeni 101.
+    resp = client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "ca", "delta": 3},
+    )
+    assert resp.status_code == 200
+    assert _space_count(resp.json(), "101", "cruiser") == 3
+    # Odejmij 2 — zostaje 1.
+    resp = client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "ca", "delta": -2},
+    )
+    assert _space_count(resp.json(), "101", "cruiser") == 1
+    # Delta poniżej zera obcina do 0 (usuwa).
+    resp = client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "ca", "delta": -5},
+    )
+    assert _space_count(resp.json(), "101", "cruiser") == 0
+
+
+def test_edit_units_unknown_async_422(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "zz", "delta": 1},
+    )
+    assert resp.status_code == 422
+
+
+def test_move_units_between_systems(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "dd", "delta": 2},
+    )
+    resp = client.post(
+        "/units/move",
+        json={
+            "fromPosition": "101",
+            "fromZone": "space",
+            "toPosition": "102",
+            "toZone": "space",
+            "faction": "sol",
+            "asyncId": "dd",
+            "count": 1,
+        },
+    )
+    assert resp.status_code == 200
+    view = resp.json()
+    assert _space_count(view, "101", "destroyer") == 1
+    assert _space_count(view, "102", "destroyer") == 1
+
+
+def test_move_units_none_available_422(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.post(
+        "/units/move",
+        json={
+            "fromPosition": "101",
+            "fromZone": "space",
+            "toPosition": "102",
+            "toZone": "space",
+            "faction": "sol",
+            "asyncId": "ws",
+            "count": 1,
+        },
+    )
+    assert resp.status_code == 422

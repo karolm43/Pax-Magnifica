@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
-import { CloseButton, Image } from "@/ds";
-import { IconSwords } from "@tabler/icons-react";
+import { Button, CloseButton, Image } from "@/ds";
+import { IconPencil, IconSwords } from "@tabler/icons-react";
 import cx from "clsx";
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
@@ -34,6 +34,7 @@ import {
   ForceRow,
 } from "./ForceRow";
 import { EconomicFigure, PlanetBand } from "./PlanetBand";
+import { SystemEditor } from "./SystemEditor";
 import { useFactionHelpers, type FactionHelpers } from "./useFactionHelpers";
 import { UnitSheetContext, useUnitSheet, type SheetUnit } from "./unitSheet";
 import styles from "./SystemDossier.module.css";
@@ -478,6 +479,7 @@ export function SystemDossier({
   const { data: gameState } = useGameState(mapid ?? "");
   const attacker = findAttacker(tile, gameState, gameData?.playerData ?? []);
   const [sheetUnit, setSheetUnit] = useState<SheetUnit | null>(null);
+  const [editing, setEditing] = useState(false);
   const systemName =
     getTileById(tile.systemId)?.name || `System ${tile.systemId}`;
   const planetIds = orderedPlanetIds(tile);
@@ -571,11 +573,22 @@ export function SystemDossier({
           </div>
         </div>
 
+        {editing && <SystemEditor tile={tile} />}
+
         <footer className={styles.foot}>
           <span className={styles.note}>
             Expected hits per combat round. Space cannon resolves before the
             first round.
           </span>
+          <Button
+            size="xs"
+            variant={editing ? "filled" : "default"}
+            leftSection={<IconPencil size={13} />}
+            onClick={() => setEditing((v) => !v)}
+            title="God-Mode: dodawaj/usuwaj jednostki (bez sprawdzania zasad)"
+          >
+            {editing ? "Zakończ edycję" : "Edytuj planszę"}
+          </Button>
           <SystemBattleLinks
             tile={tile}
             helpers={helpers}

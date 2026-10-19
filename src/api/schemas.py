@@ -194,6 +194,37 @@ class PlanetUnitsRequest(BaseModel):
     owner_id: str | None = None
 
 
+class UnitEditRequest(BaseModel):
+    """Edycja God-Mode jednostek w strefie systemu (delta w terminach asyncId).
+
+    Operuje tak jak frontend: strefa (``"space"`` lub ID planety), klucz frakcji
+    (jak w ``tileUnitData``), ``asyncId`` jednostki i przyrost ``delta`` (+/−).
+    Backend tłumaczy ``asyncId`` → ``baseType`` i klucz frakcji → ``player_id``.
+    Brak sprawdzania zasad — to narzędzie operatora (God-Mode).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    zone: str  # "space" albo ID planety
+    faction: str  # klucz frakcji z tileUnitData (faction lub player_id)
+    async_id: str = Field(alias="asyncId")
+    delta: int  # przyrost liczby (dodatni/ujemny)
+
+
+class UnitMoveRequest(BaseModel):
+    """Przesunięcie jednostek między strefami/systemami (God-Mode, bez reguł)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    from_position: str = Field(alias="fromPosition")
+    from_zone: str = Field(alias="fromZone")  # "space" albo ID planety
+    to_position: str = Field(alias="toPosition")
+    to_zone: str = Field(alias="toZone")
+    faction: str
+    async_id: str = Field(alias="asyncId")
+    count: int = 1
+
+
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

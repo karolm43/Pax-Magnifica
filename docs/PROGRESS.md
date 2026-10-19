@@ -753,3 +753,33 @@ zielone, ruff + mypy czyste.
 
 **Dalej (Warstwa A, do włączenia):** karty strategii (display), cele/VP, prawa, liderzy.
 **Warstwa B:** silnik faz/akcji — osobne bloki wg roadmapy.
+
+---
+
+### ✅ Blok F11 — fix flagi frakcji + edytor planszy God-Mode
+
+**Bug (flaga frakcji na jednostkach):** `unitsOwned` zawierało i generyczny `mech`,
+i frakcyjny `<faction>_mech` dla tego samego asyncId → `lookupUnit` rozwiązywał
+niejednoznacznie, pokazując złą flagę (np. ghost). Fix: dla każdego asyncId wybieramy
+JEDNĄ jednostkę — wariant frakcyjny ma pierwszeństwo przed generycznym (`web_data.py`
+`_units_owned_for_faction`). Zweryfikowane: każda frakcja ma dokładnie swój mech/flagship.
+
+**Edytor planszy (God-Mode, bez sprawdzania zasad):**
+- Backend: `BASE_TYPE_BY_ASYNC_ID` (odwrotna mapa) w `unit_catalog.py`. NOWE endpointy
+  w `app.py`:
+  - `POST /system/{pos}/edit-units` — delta (+/−) jednostek w strefie (space/planeta)
+    dla frakcji (asyncId). Operuje w terminach frontendu; tłumaczy asyncId→baseType,
+    klucz frakcji→player_id. Ujemny wynik obcinany do 0 (usuwa).
+  - `POST /units/move` — przesunięcie N jednostek między strefami/systemami.
+  - Schematy `UnitEditRequest`, `UnitMoveRequest` (`schemas.py`).
+- Frontend: `api/useBoardEditor.ts` (editUnit/moveUnit + invalidacja web-data).
+  Komponent `SystemEditor.tsx` + CSS (styl dossier) — w stopce dossier przycisk
+  „Edytuj planszę" odsłania panel: wybór gracza (SegmentedControl), strefy
+  (Orbita/planety), siatka 11 typów jednostek z licznikiem i +/−. Zmiany natychmiast
+  odświeżają planszę i panele.
+
+**Zweryfikowane E2E:** add 2× cruiser @101, move 1 → 102 ⇒ 101=1, 102=1.
+Backend 95 testów zielone, ruff + mypy czyste; frontend type-check + lint + build czyste.
+
+**Uwaga:** edytor celowo NIE sprawdza zasad TI4 — to narzędzie operatora (gracze sami
+pilnują legalności). Zgodne z modelem human-in-the-loop / God-Mode (spec 1.2.3).
