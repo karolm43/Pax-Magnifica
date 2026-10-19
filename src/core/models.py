@@ -77,6 +77,8 @@ class FactionDef(_StaticModel):
     starting_tech: list[str] = Field(default_factory=list, alias="startingTech")
     commodities: int = 0
     preferred_colours: list[str] = Field(default_factory=list, alias="preferredColours")
+    # Liderzy frakcji (agent/commander/hero) — identyfikatory z danych AsyncTI4.
+    leaders: list[str] = Field(default_factory=list)
 
 
 class SystemDef(_StaticModel):

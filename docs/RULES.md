@@ -309,3 +309,24 @@ podfazami: `strategy`, `action`, `status.scoring`, `status.homework`, `agenda.*`
 
 Pełna LOGIKA faz (przejścia, akcje, timing) = Warstwa B (roadmapa M2–M6), port z
 `TI4_map_generator_bot/src/main/java/ti4/service/{turn,strategycard,tactical,combat,agenda}`.
+
+---
+
+## 7. Ekonomia planet: optimal / flex — ✅ ZWERYFIKOWANE
+
+Źródło (nie z pamięci): AsyncTI4 bot, `Planet.getOptimalResources/getOptimalInfluence/
+getFlexResourcesOrInfluence`. Reguła per kontrolowana planeta:
+- `optimalResources` = `resources`, gdy `resources > influence`, inaczej 0;
+- `optimalInfluence` = `influence`, gdy `influence > resources`, inaczej 0;
+- `flex` = wartość (res==inf), gdy `resources == influence`, inaczej 0.
+Sumy po planetach gracza zasilają `playerData.optimalResources/optimalInfluence/flexValue`
+(oraz `tot*`). `resources`/`influence`/`totResources`/`totInfluence` = sumy surowe.
+Implementacja: `src/api/web_data.py` → `_planet_economy` / `_Economy`.
+
+## 8. Liderzy frakcji (agent/commander/hero) — ✅ ZWERYFIKOWANE (dane)
+
+Źródło: pole `leaders` w danych frakcji AsyncTI4 (np. Sol: `solagent, solcommander,
+solhero`). Typ wyprowadzany z sufiksu id. Start: agent gotowy (odblokowany),
+commander/hero zablokowani (odblokowują się przez warunki — logika w późniejszej fazie).
+Model: `FactionDef.leaders`; emisja: `web_data._player_leaders` → `playerData.leaders`
+(`{id,type,tgCount,exhausted,locked,active}`) + `leaderIDs`.

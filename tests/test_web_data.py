@@ -114,6 +114,24 @@ def test_web_data_player_economy_sums_controlled_planets(
     assert sol["resources"] > 0
     assert sol["influence"] > 0
     assert sol["planets"]
+    # Jord (4 res / 2 inf): optimal = zasoby (res > inf), reguła AsyncTI4.
+    assert sol["optimalResources"] == 4
+    assert sol["optimalInfluence"] == 0
+
+
+def test_web_data_player_leaders(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    leaders = sol["leaders"]
+    types = {ldr["type"] for ldr in leaders}
+    assert types == {"agent", "commander", "hero"}
+    # Agent gotowy na starcie; commander/hero zablokowani.
+    agent = next(ldr for ldr in leaders if ldr["type"] == "agent")
+    assert agent["locked"] is False
+    hero = next(ldr for ldr in leaders if ldr["type"] == "hero")
+    assert hero["locked"] is True
+    assert sol["leaderIDs"] == [ldr["id"] for ldr in leaders]
 
 
 def test_new_game_without_map_string_uses_default(client: TestClient) -> None:

@@ -834,3 +834,26 @@ ale doszedł wygodniejszy tryb mapowy:
 **Zweryfikowane E2E:** historia `#1 initial, #2 game:new, #3 edit:101:space (bieżący)`;
 goto cofa jednostki; undo/redo 3→0→3. Backend 97 testów zielone, ruff+mypy czyste;
 frontend type-check+lint+build czyste.
+
+---
+
+### ✅ Blok F14 — panel gracza: liderzy, planety, optimal/total ekonomia
+
+**Uwaga użytkownika:** panel gracza miał martwe sekcje — liderzy (commander/hero/agent),
+kontrolowane planety, optimal/total resources. Wszystkie to pola `playerData`, które
+wysyłaliśmy puste/zerowe (komponenty frontendu już je renderują — brakowało danych).
+
+**Zrobione (backend `web_data.py` + `models.py`):**
+- **Liderzy:** `FactionDef.leaders` (z danych frakcji, np. `solagent/solcommander/solhero`).
+  `_player_leaders` emituje `playerData.leaders` (`{id,type,tgCount,exhausted,locked,active}`)
+  + `leaderIDs`. Typ z sufiksu id; start: agent gotowy, commander/hero locked. (RULES.md 8)
+- **Optimal/total ekonomia:** `_planet_economy` → `_Economy` liczy optimal/flex per planeta
+  wg reguły AsyncTI4 (`Planet.getOptimal*`, RULES.md 7): optimalRes = res gdy res>inf;
+  optimalInf = inf gdy inf>res; flex gdy równe. Emituje `optimalResources/optimalInfluence/
+  flexValue` + `tot*`.
+- **Planety:** `playerData.planets` = kontrolowane planety (było już wysyłane; teraz z pełną
+  ekonomią panele pokazują je sensownie).
+
+**Zweryfikowane E2E:** Sol → liderzy `solagent(agent,unlocked), solcommander(locked),
+solhero(locked)`; planeta `jord`; `res=4 inf=2 optRes=4 optInf=0`. Brak zmian we froncie
+(komponenty już gotowe). Backend 98 testów zielone, ruff+mypy czyste, front type-check czysty.

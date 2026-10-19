@@ -341,18 +341,78 @@ def _unit_counts(deployed: dict[str, int]) -> dict[str, dict[str, int]]:
     }
 
 
+class _Economy:
+    """Rozbicie ekonomii planet gracza (reguła AsyncTI4, RULES.md 7)."""
+
+    __slots__ = ("resources", "influence", "opt_res", "opt_inf", "flex")
+
+    def __init__(self) -> None:
+        self.resources = 0
+        self.influence = 0
+        self.opt_res = 0
+        self.opt_inf = 0
+        self.flex = 0
+
+
 def _planet_economy(
     controlled_planets: list[str], registry: StaticDataRegistry
-) -> tuple[int, int]:
-    """Sumuje (zasoby, wpływy) kontrolowanych planet z danych rejestru."""
-    resources = 0
-    influence = 0
+) -> _Economy:
+    """Liczy ekonomię kontrolowanych planet: sumy + optimal/flex.
+
+    Reguła per planeta (źródło: AsyncTI4 ``Planet.getOptimal*``, RULES.md 7):
+    - optimalResources = resources, gdy resources > influence, inaczej 0;
+    - optimalInfluence = influence, gdy influence > resources, inaczej 0;
+    - flex = wartość, gdy resources == influence, inaczej 0.
+    """
+    econ = _Economy()
     for planet_id in controlled_planets:
         planet = registry.planets.get(planet_id)
-        if planet is not None:
-            resources += planet.resources
-            influence += planet.influence
-    return resources, influence
+        if planet is None:
+            continue
+        res, inf = planet.resources, planet.influence
+        econ.resources += res
+        econ.influence += inf
+        if res > inf:
+            econ.opt_res += res
+        elif inf > res:
+            econ.opt_inf += inf
+        else:
+            econ.flex += res
+    return econ
+
+
+def _player_leaders(faction_id: str | None, registry: StaticDataRegistry) -> list[dict[str, Any]]:
+    """Buduje listę liderów gracza z danych frakcji (agent/commander/hero).
+
+    Na starcie liderzy są zablokowani (``locked``) — odblokowują się przez warunki.
+    Typ wyprowadzamy z sufiksu identyfikatora (``...agent``/``...commander``/``...hero``).
+    """
+    faction = registry.factions.get(faction_id) if faction_id else None
+    if faction is None:
+        return []
+    leaders: list[dict[str, Any]] = []
+    for leader_id in faction.leaders:
+        lid = leader_id.lower()
+        if lid.endswith("agent"):
+            ltype = "agent"
+        elif lid.endswith("commander"):
+            ltype = "commander"
+        elif lid.endswith("hero"):
+            ltype = "hero"
+        else:
+            ltype = "agent"
+        leaders.append(
+            {
+                "id": leader_id,
+                "type": ltype,
+                "tgCount": 0,
+                "exhausted": False,
+                # Agent startuje odblokowany (gotowy); commander/hero zablokowani.
+                "locked": ltype != "agent",
+                "active": False,
+            }
+        )
+    return leaders
 
 
 def _player_home_position(player_id: str, state: GameState) -> str | None:
@@ -457,9 +517,8 @@ def _build_player_data(
     deployed_by_player = _deployed_counts_by_player(state)
     for player_id, player in sorted(state.players.items()):
         faction = _faction_key(player)
-        total_res, total_inf = _planet_economy(
-            player.controlled_planets, registry
-        )
+        econ = _planet_economy(player.controlled_planets, registry)
+        leaders = _player_leaders(player.faction, registry)
         units_owned = _units_owned_for_faction(
             player.faction, player.technologies, registry
         )
@@ -502,8 +561,8 @@ def _build_player_data(
                 "relics": [],
                 "exhaustedRelics": [],
                 "fragments": [],
-                "leaders": [],
-                "leaderIDs": [],
+                "leaders": leaders,
+                "leaderIDs": [str(leader["id"]) for leader in leaders],
                 "secretsScored": {},
                 "knownUnscoredSecrets": {},
                 "numUnscoredSecrets": 0,
@@ -519,18 +578,19 @@ def _build_player_data(
                 "pnCount": 0,
                 "acCount": 0,
                 "unitCounts": unit_counts,
-                # Ekonomia planet: suma zasobów/wpływów kontrolowanych planet
-                # (z rejestru). Optymalne/flex liczymy dopiero w fazie strategicznej.
-                "resources": total_res,
-                "influence": total_inf,
-                "totResources": total_res,
-                "totInfluence": total_inf,
-                "optimalResources": 0,
-                "optimalInfluence": 0,
-                "flexValue": 0,
-                "totOptimalResources": 0,
-                "totOptimalInfluence": 0,
-                "totFlexValue": 0,
+                # Ekonomia planet z rejestru (reguła AsyncTI4, RULES.md 7).
+                # resources/influence = dostępne (zakładamy wszystkie gotowe);
+                # tot* = sumy łączne; optimal/flex per reguła getOptimal*.
+                "resources": econ.resources,
+                "influence": econ.influence,
+                "totResources": econ.resources,
+                "totInfluence": econ.influence,
+                "optimalResources": econ.opt_res,
+                "optimalInfluence": econ.opt_inf,
+                "flexValue": econ.flex,
+                "totOptimalResources": econ.opt_res,
+                "totOptimalInfluence": econ.opt_inf,
+                "totFlexValue": econ.flex,
                 "crf": 0,
                 "hrf": 0,
                 "irf": 0,
