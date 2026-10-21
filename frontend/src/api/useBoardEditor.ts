@@ -53,6 +53,7 @@ export type PlayerEdit = {
   strategy_cards?: number[];
   controlled_planets?: string[];
   technologies?: string[];
+  leader_states?: Record<string, string>;
 };
 
 /**

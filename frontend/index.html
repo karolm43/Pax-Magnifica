@@ -30,7 +30,56 @@
     <title>Custodian Engine · Twilight Imperium 4</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Splash ladowania: czysty HTML/CSS, renderuje sie w PIERWSZEJ klatce (zanim
+      zaladuje sie ciezki bundel React ~3 MB). React montuje do #root i podmienia
+      jego zawartosc, wiec splash znika sam. Koniec "bialego ekranu".
+    -->
+    <div id="root">
+      <style>
+        #boot-splash {
+          position: fixed;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          background: #0b0d12;
+          color: #cbd5e1;
+          font-family: "IBM Plex Sans", system-ui, sans-serif;
+        }
+        #boot-splash .bs-brand {
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          font-size: 20px;
+          color: #e2e8f0;
+        }
+        #boot-splash .bs-sub {
+          font-size: 13px;
+          letter-spacing: 0.04em;
+          color: #94a3b8;
+        }
+        #boot-splash .bs-spin {
+          width: 34px;
+          height: 34px;
+          border: 3px solid rgba(148, 163, 184, 0.25);
+          border-top-color: #6ea8fe;
+          border-radius: 50%;
+          animation: bs-rotate 0.8s linear infinite;
+        }
+        @keyframes bs-rotate {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      </style>
+      <div id="boot-splash">
+        <div class="bs-spin"></div>
+        <div class="bs-brand">CUSTODIAN ENGINE</div>
+        <div class="bs-sub">Ładowanie interfejsu…</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

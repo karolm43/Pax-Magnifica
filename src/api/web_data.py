@@ -381,15 +381,21 @@ def _planet_economy(
     return econ
 
 
-def _player_leaders(faction_id: str | None, registry: StaticDataRegistry) -> list[dict[str, Any]]:
+def _player_leaders(
+    faction_id: str | None,
+    registry: StaticDataRegistry,
+    states: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     """Buduje listę liderów gracza z danych frakcji (agent/commander/hero).
 
-    Na starcie liderzy są zablokowani (``locked``) — odblokowują się przez warunki.
-    Typ wyprowadzamy z sufiksu identyfikatora (``...agent``/``...commander``/``...hero``).
+    Stan domyślny: agent gotowy, commander/hero zablokowani. ``states`` nadpisuje
+    stan per lider (``"locked"``/``"unlocked"``/``"exhausted"``) — edycja God-Mode.
+    Typ wyprowadzamy z sufiksu identyfikatora.
     """
     faction = registry.factions.get(faction_id) if faction_id else None
     if faction is None:
         return []
+    states = states or {}
     leaders: list[dict[str, Any]] = []
     for leader_id in faction.leaders:
         lid = leader_id.lower()
@@ -401,14 +407,16 @@ def _player_leaders(faction_id: str | None, registry: StaticDataRegistry) -> lis
             ltype = "hero"
         else:
             ltype = "agent"
+        # Stan: override z leader_states albo domyślny (agent gotowy, reszta locked).
+        default_state = "unlocked" if ltype == "agent" else "locked"
+        state = states.get(leader_id, default_state)
         leaders.append(
             {
                 "id": leader_id,
                 "type": ltype,
                 "tgCount": 0,
-                "exhausted": False,
-                # Agent startuje odblokowany (gotowy); commander/hero zablokowani.
-                "locked": ltype != "agent",
+                "exhausted": state == "exhausted",
+                "locked": state == "locked",
                 "active": False,
             }
         )
@@ -518,7 +526,7 @@ def _build_player_data(
     for player_id, player in sorted(state.players.items()):
         faction = _faction_key(player)
         econ = _planet_economy(player.controlled_planets, registry)
-        leaders = _player_leaders(player.faction, registry)
+        leaders = _player_leaders(player.faction, registry, player.leader_states)
         units_owned = _units_owned_for_faction(
             player.faction, player.technologies, registry
         )

@@ -134,6 +134,21 @@ def test_web_data_player_leaders(client: TestClient) -> None:
     assert sol["leaderIDs"] == [ldr["id"] for ldr in leaders]
 
 
+def test_web_data_leader_state_override(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # God-Mode: odblokuj commandera.
+    client.post(
+        "/player/p1/edit",
+        json={"leader_states": {"solcommander": "unlocked"}},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    commander = next(ldr for ldr in sol["leaders"] if ldr["type"] == "commander")
+    hero = next(ldr for ldr in sol["leaders"] if ldr["type"] == "hero")
+    assert commander["locked"] is False  # odblokowany
+    assert hero["locked"] is True  # nietknięty
+
+
 def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
     # Bez map stringa — backend używa mapy testowej; kolory/sloty auto.
     resp = client.post(

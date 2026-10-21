@@ -159,6 +159,50 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                 }
               />
 
+              {player.leaders.length > 0 && (
+                <Stack gap={4}>
+                  <Text size="xs" c="dimmed">
+                    Liderzy (klik zmienia stan: zablokowany → gotowy → wyczerpany)
+                  </Text>
+                  <Group gap={6} wrap="wrap">
+                    {player.leaders.map((leader) => {
+                      const state = leader.locked
+                        ? "locked"
+                        : leader.exhausted
+                          ? "exhausted"
+                          : "unlocked";
+                      const next =
+                        state === "locked"
+                          ? "unlocked"
+                          : state === "unlocked"
+                            ? "exhausted"
+                            : "locked";
+                      const labelByState: Record<string, string> = {
+                        locked: "🔒",
+                        unlocked: "✓",
+                        exhausted: "⟲",
+                      };
+                      return (
+                        <Button
+                          key={leader.id}
+                          size="xs"
+                          variant={state === "unlocked" ? "filled" : "default"}
+                          disabled={busy}
+                          onClick={() =>
+                            void apply({
+                              leader_states: { [leader.id]: next },
+                            })
+                          }
+                          title={`${leader.type}: ${state} → ${next}`}
+                        >
+                          {labelByState[state]} {leader.type}
+                        </Button>
+                      );
+                    })}
+                  </Group>
+                </Stack>
+              )}
+
               <TextInput
                 label="Technologie (ID po przecinku)"
                 defaultValue={player.techs.join(", ")}

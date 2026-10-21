@@ -264,6 +264,8 @@ class PlayerEditRequest(BaseModel):
     strategy_cards: list[int] | None = None
     controlled_planets: list[str] | None = None
     technologies: list[str] | None = None
+    # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}.
+    leader_states: dict[str, str] | None = None
 
 
 class GodModePatch(BaseModel):

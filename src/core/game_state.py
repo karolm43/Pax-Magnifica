@@ -51,6 +51,9 @@ class PlayerState(BaseModel):
     controlled_planets: list[str] = Field(default_factory=list)
     # Technologie posiadane przez gracza (identyfikatory technologii).
     technologies: list[str] = Field(default_factory=list)
+    # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}. Brak wpisu =
+    # stan domyślny z danych frakcji (agent gotowy, commander/hero zablokowani).
+    leader_states: dict[str, str] = Field(default_factory=dict)
 
 
 class SystemState(BaseModel):
