@@ -886,3 +886,56 @@ solhero(locked)`; planeta `jord`; `res=4 inf=2 optRes=4 optInf=0`. Brak zmian we
   2 systemy lub select w edytorze).
 - Gracz: wszystkie pola (przycisk „Gracze" w nagłówku).
 - Historia: panel (menu Events) + Cofnij/Ponów/skok do punktu.
+
+---
+
+### ✅ Blok F16 — splash ładowania + liderzy w God-Mode (graficznie)
+
+**1. Biały ekran przy starcie (odpowiedź: to nie bug).** Przyczyna: parsowanie ciężkiego
+bundla React (~3 MB) zanim zamontuje się aplikacja. Dodany statyczny splash w `index.html`
+(czysty HTML/CSS, renderuje się w pierwszej klatce): spinner + „CUSTODIAN ENGINE" +
+„Ładowanie interfejsu…". React montuje do `#root` i podmienia zawartość → splash znika sam.
+(Pełne przyspieszenie = code-splitting, osobny temat; splash rozwiązuje percepcję.)
+
+**2. Liderzy w God-Mode (brakowało) + edycja graficzna (klik, nie wpisywanie).**
+- Backend: `PlayerState.leader_states` (`{leader_id: locked|unlocked|exhausted}`);
+  `web_data._player_leaders` czyta override; `PlayerEditRequest.leader_states`.
+- Frontend: `PlayerEditorModal` ma sekcję liderów — klik na chip cykluje stan
+  (zablokowany → gotowy → wyczerpany). Bez wpisywania ID.
+- E2E: unlock commandera → `locked=False`, hero nietknięty.
+
+**Uwaga o „edycji na samych panelach" (inline na mapie/kartach):** obecnie edycja graficzna
+żyje w modalu „Gracze" (liczby stepperami, liderzy klikalni). Pełny inline-edit bezpośrednio
+na komponentach dossier/player-card (klik w technologię/commodities/kontrolę planety w samym
+panelu) to większy, wieloplikowy refactor — do zrobienia przyrostowo w kolejnych blokach.
+
+**QA:** backend 100 testów zielone, ruff+mypy czyste; frontend type-check+lint+build czyste.
+
+---
+
+### ✅ Blok F17 — ustalenie: ti4_web to viewer + start silnika rozgrywki (Etap E1)
+
+**Odpowiedź na pytanie użytkownika (dowodowo):** frontend `ti4_web` NIE ma logiki akcji
+do przeniesienia. To czysty viewer — jedyne POST-y w kodzie to NASZE dodatki (`useNewGame`,
+`useBoardEditor`); oryginał deleguje WSZYSTKIE akcje do Discorda (`actionsJumpLink`/
+`tableTalkJumpLink` → linki do kanałów, render w `TabsControls`). Logika gry jest w Java
+bocie (`TI4_map_generator_bot/.../service/*`), spleciona z Discordem — używamy jako ŹRÓDŁO
+REGUŁ (port do Pythona), nie bibliotekę. Reużywalne z frontu: komponenty kart/pickerów
+(`domains/cards/components/*`). Pełny plan: `docs/PLAN_PELNA_ROZGRYWKA.md`.
+
+**Etap E1 — maszyna faz + kolejność tur (zrobione):**
+- `src/core/turn_flow.py` (czyste funkcje): `turn_order` (inicjatywa z kart strategii),
+  `next_unpassed_player`, `end_turn`, `pass_turn`, `next_phase`, `next_round`.
+  Reguły z AsyncTI4 (`EndTurnService.findNextUnpassedPlayer`), spisane w RULES.md 9.
+- Endpointy: `POST /turn/end`, `/turn/pass`, `/phase/next`, `/round/next` (commit→historia).
+- Frontend: `PhaseControls` w `GameStatePanel` — przyciski „Zakończ turę / Pas / Następna
+  faza / Nowa runda" w stylu panelu.
+- `tests/test_turn_flow.py` (8 testów: inicjatywa, pas, koniec fazy, cykl faz, reset rundy).
+
+**Zweryfikowane E2E:** 3 graczy, faza strategy→action; end turn red→green; pass green→white;
+next phase → action. Backend 108 testów zielone, ruff+mypy czyste; frontend type-check+lint+
+build czyste.
+
+**Następne etapy** (PLAN_PELNA_ROZGRYWKA): E2 faza strategii (wybór kart) → E3 akcja
+taktyczna (aktywacja/ruch/walka/inwazja/produkcja) → E4 akcje komponentowe → E5 status
+(punktacja) → E6 agenda → E7 asymetria + end-game.

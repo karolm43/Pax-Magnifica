@@ -330,3 +330,20 @@ solhero`). Typ wyprowadzany z sufiksu id. Start: agent gotowy (odblokowany),
 commander/hero zablokowani (odblokowują się przez warunki — logika w późniejszej fazie).
 Model: `FactionDef.leaders`; emisja: `web_data._player_leaders` → `playerData.leaders`
 (`{id,type,tgCount,exhausted,locked,active}`) + `leaderIDs`.
+
+---
+
+## 9. Kolejność tur fazy akcji i pas — ✅ ZWERYFIKOWANE
+
+Źródło (nie z pamięci): AsyncTI4 bot, `EndTurnService.findNextUnpassedPlayer` +
+`Game.getActionPhaseTurnOrder`. Reguły:
+- **Kolejność inicjatywy:** gracze ustawieni wg numeru karty strategii (inicjatywa),
+  rosnąco (najniższy numer pierwszy). Bez kart → kolejność stabilna (po id gracza).
+- **Następny gracz:** po zakończeniu tury przechodzi do kolejnego gracza w kolejności,
+  który NIE spasował i nie jest wyeliminowany (rotacja listy za bieżącego).
+- **Pas:** gracz pasuje → jest pomijany do końca fazy akcji. Gdy wszyscy spasowali →
+  faza akcji się kończy (przejście do fazy statusu).
+- **Nowa runda:** reset pasów; faza wraca do strategii, runda +1.
+
+Implementacja: `src/core/turn_flow.py` (czyste funkcje) + endpointy
+`/turn/end`, `/turn/pass`, `/phase/next`, `/round/next` w `app.py`.

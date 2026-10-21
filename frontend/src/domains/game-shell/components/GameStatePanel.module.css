@@ -443,3 +443,36 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* Sterowanie przepływem gry (fazy/tury) w stopce panelu stanu. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.1));
+}
+
+.ctlBtn {
+  flex: 1 1 auto;
+  min-width: 72px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ds-ink, #e2e8f0);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ctlBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ctlBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

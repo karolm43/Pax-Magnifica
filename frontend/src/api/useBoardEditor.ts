@@ -123,7 +123,38 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  return { editUnit, moveUnit, undo, redo, gotoHistory, editPlayer };
+  const endTurn = useCallback(async () => {
+    await post("/turn/end", {});
+    await refresh();
+  }, [refresh]);
+
+  const passTurn = useCallback(async () => {
+    await post("/turn/pass", {});
+    await refresh();
+  }, [refresh]);
+
+  const nextPhase = useCallback(async () => {
+    await post("/phase/next", {});
+    await refresh();
+  }, [refresh]);
+
+  const nextRound = useCallback(async () => {
+    await post("/round/next", {});
+    await refresh();
+  }, [refresh]);
+
+  return {
+    editUnit,
+    moveUnit,
+    undo,
+    redo,
+    gotoHistory,
+    editPlayer,
+    endTurn,
+    passTurn,
+    nextPhase,
+    nextRound,
+  };
 }
 
 export type HistoryEntry = { seq: number; label: string; is_current: boolean };

@@ -4,6 +4,7 @@ import { Collapse, UnstyledButton } from "@/ds";
 import { IconChevronDown, IconSwords, IconTrophy } from "@tabler/icons-react";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
+import { useBoardEditor } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -486,7 +487,73 @@ function PlateBody({
           playerData={playerData}
         />
       )}
+      <PhaseControls phase={phase} />
     </>
+  );
+}
+
+/**
+ * Sterowanie przepływem gry (God-Mode / krokowa rozgrywka): zakończ turę, pas,
+ * następna faza, nowa runda. Wywołuje endpointy przepływu (commit → historia).
+ */
+function PhaseControls({ phase }: { phase: GamePhase }) {
+  const { endTurn, passTurn, nextPhase, nextRound } = useBoardEditor();
+  const [busy, setBusy] = useState(false);
+
+  const run = async (fn: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const isAction = phase === "action";
+  const isAgenda = phase.startsWith("agenda");
+
+  return (
+    <div className={styles.controls}>
+      {isAction && (
+        <>
+          <button
+            type="button"
+            className={styles.ctlBtn}
+            disabled={busy}
+            onClick={() => void run(endTurn)}
+          >
+            Zakończ turę
+          </button>
+          <button
+            type="button"
+            className={styles.ctlBtn}
+            disabled={busy}
+            onClick={() => void run(passTurn)}
+          >
+            Pas
+          </button>
+        </>
+      )}
+      {!isAgenda && (
+        <button
+          type="button"
+          className={styles.ctlBtn}
+          disabled={busy}
+          onClick={() => void run(nextPhase)}
+        >
+          Następna faza
+        </button>
+      )}
+      <button
+        type="button"
+        className={styles.ctlBtn}
+        disabled={busy}
+        onClick={() => void run(nextRound)}
+      >
+        Nowa runda
+      </button>
+    </div>
   );
 }
 

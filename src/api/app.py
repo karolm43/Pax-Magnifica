@@ -49,6 +49,7 @@ from src.api.schemas import (
 )
 from src.api.state_service import StateService
 from src.api.web_data import build_web_data
+from src.core import turn_flow
 from src.core.event_store import EventStore
 from src.core.faction_setup import apply_setup_to_state
 from src.core.game_state import GameState, PlayerState, SystemState
@@ -577,6 +578,39 @@ def create_app(
         await service.broadcast()
         await broadcast_map()
         return service.envelope()
+
+    # --- Przepływ faz i tur (Etap E1) ---------------------------------------
+
+    async def _commit_flow(new_state: GameState, label: str) -> StateEnvelope:
+        """Wspólne commitowanie wyniku funkcji przepływu + rozesłanie stanu."""
+        service.replace_state(new_state, label=label)
+        await service.broadcast()
+        await broadcast_map()
+        return service.envelope()
+
+    @app.post("/turn/end", response_model=StateEnvelope)
+    async def post_end_turn() -> StateEnvelope:
+        """Kończy turę bieżącego gracza (tura przechodzi do następnego niespasowanego)."""
+        return await _commit_flow(turn_flow.end_turn(service.current_state()), "turn:end")
+
+    @app.post("/turn/pass", response_model=StateEnvelope)
+    async def post_pass_turn() -> StateEnvelope:
+        """Bieżący gracz pasuje (pomijany do końca fazy akcji)."""
+        return await _commit_flow(turn_flow.pass_turn(service.current_state()), "turn:pass")
+
+    @app.post("/phase/next", response_model=StateEnvelope)
+    async def post_next_phase() -> StateEnvelope:
+        """Przechodzi do następnej fazy rundy (Strategia→Akcja→Status→Agenda)."""
+        return await _commit_flow(
+            turn_flow.next_phase(service.current_state()), "phase:next"
+        )
+
+    @app.post("/round/next", response_model=StateEnvelope)
+    async def post_next_round() -> StateEnvelope:
+        """Rozpoczyna nową rundę (runda +1, faza = strategia, reset pasów)."""
+        return await _commit_flow(
+            turn_flow.next_round(service.current_state()), "round:next"
+        )
 
     @app.put("/state", response_model=StateEnvelope)
     async def put_state(state: GameState) -> StateEnvelope:
