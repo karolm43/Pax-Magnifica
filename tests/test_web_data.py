@@ -149,6 +149,19 @@ def test_web_data_leader_state_override(client: TestClient) -> None:
     assert hero["locked"] is True  # nietknięty
 
 
+def test_leader_states_merge_not_replace(client: TestClient) -> None:
+    # REGRESJA: edycja jednego lidera NIE może kasować stanu pozostałych.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/player/p1/edit", json={"leader_states": {"solcommander": "unlocked"}})
+    client.post("/player/p1/edit", json={"leader_states": {"solhero": "unlocked"}})
+    data = client.get("/api/public/game/g/web-data").json()
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    states = {ldr["type"]: ldr["locked"] for ldr in sol["leaders"]}
+    # Oba odblokowane równocześnie (commander nie wrócił do locked po edycji hero).
+    assert states["commander"] is False
+    assert states["hero"] is False
+
+
 def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
     # Bez map stringa — backend używa mapy testowej; kolory/sloty auto.
     resp = client.post(

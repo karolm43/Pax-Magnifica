@@ -572,7 +572,14 @@ def create_app(
         player = state.players.get(player_id) or PlayerState(player_id=player_id)
         updates = request.model_dump(exclude_none=True)
         for field, value in updates.items():
-            setattr(player, field, value)
+            # leader_states SCALAMY z istniejącym (edycja jednego lidera nie
+            # kasuje stanu pozostałych). Reszta pól = pełne nadpisanie.
+            if field == "leader_states" and isinstance(value, dict):
+                merged = dict(player.leader_states)
+                merged.update(value)
+                player.leader_states = merged
+            else:
+                setattr(player, field, value)
         state.players[player_id] = player
         service.replace_state(state, label=f"player:{player_id}")
         await service.broadcast()

@@ -1,20 +1,24 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActionIcon,
   Button,
   Group,
   NumberInput,
   SegmentedControl,
+  Select,
   Stack,
   Switch,
   Text,
   TextInput,
 } from "@/ds";
-import { IconMinus, IconPlus } from "@tabler/icons-react";
+import { IconMinus, IconPlus, IconX } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor, type PlayerEdit } from "@/api/useBoardEditor";
+import { techs as ALL_TECHS } from "@/entities/data/tech";
+import { getTechData } from "@/entities/lookup/tech";
 import type { PlayerData } from "@/entities/data/types";
+import styles from "./PlayerEditorModal.module.css";
 
 type Props = {
   opened: boolean;
@@ -37,10 +41,24 @@ const NUMERIC_FIELDS: {
   { key: "cc_reinf", label: "Żetony w rezerwie", get: (p) => p.ccReinf, min: 0 },
 ];
 
+const LEADER_STATE_LABEL: Record<string, string> = {
+  locked: "🔒",
+  unlocked: "✓",
+  exhausted: "⟲",
+};
+
+/** Krótki kod technologii: litery wymagań (np. "BB") albo inicjał typu. */
+function techCode(requirements: string | undefined, types: string[]): string {
+  if (requirements) return requirements.toUpperCase();
+  const t = types[0] ?? "";
+  if (t === "UNITUPGRADE") return "U";
+  return t ? t[0] : "?";
+}
+
 /**
- * Edytor stanu gracza (God-Mode). Wybierasz gracza i edytujesz wszystkie jego
- * wartości — bez sprawdzania zasad. Zmiany idą do backendu (z historią = Undo).
- * Styl spójny z resztą strony (komponenty ds).
+ * Edytor stanu gracza (God-Mode). Wybierasz gracza i edytujesz wszystkie wartości:
+ * liczby stepperem, liderów klikiem, technologie z listy (nazwa + skrót) — bez
+ * wpisywania ID. Bez sprawdzania zasad. Zmiany idą do backendu (z historią = Undo).
  */
 export function PlayerEditorModal({ opened, onClose }: Props) {
   const gameData = useGameData();
@@ -48,9 +66,26 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
   const players = gameData?.playerData ?? [];
   const [selected, setSelected] = useState<string>(players[0]?.discordId ?? "");
   const [busy, setBusy] = useState(false);
+  const [techToAdd, setTechToAdd] = useState<string | null>(null);
 
-  const player =
-    players.find((p) => p.discordId === selected) ?? players[0];
+  const player = players.find((p) => p.discordId === selected) ?? players[0];
+
+  // Opcje technologii: nazwa + skrót; sortowane; faktyczne + ogólne (bez homebrew duplikatów).
+  const techOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return ALL_TECHS.filter((t) => {
+      if (seen.has(t.alias)) return false;
+      seen.add(t.alias);
+      // Pomijamy frakcyjne cudze: pokaż ogólne + frakcji bieżącego gracza.
+      if (t.faction && player && t.faction !== player.faction) return false;
+      return true;
+    })
+      .map((t) => ({
+        value: t.alias,
+        label: `${t.name} · ${techCode(t.requirements, t.types)}`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [player]);
 
   const apply = async (edit: PlayerEdit) => {
     if (!player || busy) return;
@@ -62,12 +97,24 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
     }
   };
 
+  const addTech = async (techId: string | null) => {
+    if (!techId || !player) return;
+    if (player.techs.includes(techId)) return;
+    setTechToAdd(null);
+    await apply({ technologies: [...player.techs, techId] });
+  };
+
+  const removeTech = async (techId: string) => {
+    if (!player) return;
+    await apply({ technologies: player.techs.filter((t) => t !== techId) });
+  };
+
   return (
     <AppModal
       opened={opened}
       onClose={onClose}
       title="God-Mode · edycja gracza"
-      size={520}
+      size={560}
     >
       {players.length === 0 ? (
         <Text size="sm" c="dimmed">
@@ -107,16 +154,19 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                 />
               </Group>
 
-              <Stack gap={6}>
+              {/* Liczby: etykieta | [−] [input] [+] w stałej, wyrównanej kolumnie. */}
+              <Stack gap={4}>
                 {NUMERIC_FIELDS.map(({ key, label, get, min }) => {
                   const value = get(player);
                   return (
-                    <Group key={key} gap="sm" justify="space-between" wrap="nowrap">
-                      <Text size="sm">{label}</Text>
-                      <Group gap={4} wrap="nowrap">
+                    <div key={key} className={styles.numRow}>
+                      <Text size="sm" className={styles.numLabel}>
+                        {label}
+                      </Text>
+                      <div className={styles.numCtl}>
                         <ActionIcon
                           size="sm"
-                          variant="default"
+                          variant="subtle"
                           disabled={busy || value <= (min ?? 0)}
                           onClick={() => void apply({ [key]: value - 1 })}
                           aria-label={`−1 ${label}`}
@@ -128,7 +178,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           value={value}
                           min={min}
                           hideControls
-                          w={64}
+                          classNames={{ input: styles.numInput }}
                           onChange={(v) => {
                             const n = typeof v === "number" ? v : Number(v);
                             if (!Number.isNaN(n) && n !== value) {
@@ -138,15 +188,15 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                         />
                         <ActionIcon
                           size="sm"
-                          variant="default"
+                          variant="subtle"
                           disabled={busy}
                           onClick={() => void apply({ [key]: value + 1 })}
                           aria-label={`+1 ${label}`}
                         >
                           <IconPlus size={12} />
                         </ActionIcon>
-                      </Group>
-                    </Group>
+                      </div>
+                    </div>
                   );
                 })}
               </Stack>
@@ -154,15 +204,13 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
               <Switch
                 label="Spasował (passed)"
                 checked={player.passed}
-                onChange={(e) =>
-                  void apply({ passed: e.currentTarget.checked })
-                }
+                onChange={(e) => void apply({ passed: e.currentTarget.checked })}
               />
 
               {player.leaders.length > 0 && (
                 <Stack gap={4}>
                   <Text size="xs" c="dimmed">
-                    Liderzy (klik zmienia stan: zablokowany → gotowy → wyczerpany)
+                    Liderzy (klik: zablokowany → gotowy → wyczerpany)
                   </Text>
                   <Group gap={6} wrap="wrap">
                     {player.leaders.map((leader) => {
@@ -177,11 +225,6 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           : state === "unlocked"
                             ? "exhausted"
                             : "locked";
-                      const labelByState: Record<string, string> = {
-                        locked: "🔒",
-                        unlocked: "✓",
-                        exhausted: "⟲",
-                      };
                       return (
                         <Button
                           key={leader.id}
@@ -189,13 +232,11 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           variant={state === "unlocked" ? "filled" : "default"}
                           disabled={busy}
                           onClick={() =>
-                            void apply({
-                              leader_states: { [leader.id]: next },
-                            })
+                            void apply({ leader_states: { [leader.id]: next } })
                           }
                           title={`${leader.type}: ${state} → ${next}`}
                         >
-                          {labelByState[state]} {leader.type}
+                          {LEADER_STATE_LABEL[state]} {leader.type}
                         </Button>
                       );
                     })}
@@ -203,17 +244,44 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                 </Stack>
               )}
 
-              <TextInput
-                label="Technologie (ID po przecinku)"
-                defaultValue={player.techs.join(", ")}
-                onBlur={(e) => {
-                  const techs = e.currentTarget.value
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter(Boolean);
-                  void apply({ technologies: techs });
-                }}
-              />
+              {/* Technologie: lista z nazwą + skrótem (bez wpisywania ID). */}
+              <Stack gap={6}>
+                <Text size="xs" c="dimmed">
+                  Technologie
+                </Text>
+                <Select
+                  size="xs"
+                  placeholder="Dodaj technologię (nazwa · skrót)…"
+                  data={techOptions}
+                  value={techToAdd}
+                  onChange={(v) => void addTech(v)}
+                  searchable
+                  clearable
+                />
+                <Group gap={6} wrap="wrap">
+                  {player.techs.map((techId) => {
+                    const t = getTechData(techId);
+                    return (
+                      <Button
+                        key={techId}
+                        size="xs"
+                        variant="default"
+                        rightSection={<IconX size={11} />}
+                        disabled={busy}
+                        onClick={() => void removeTech(techId)}
+                        title="Usuń technologię"
+                      >
+                        {t ? t.name : techId}
+                      </Button>
+                    );
+                  })}
+                  {player.techs.length === 0 && (
+                    <Text size="xs" c="dimmed">
+                      Brak technologii.
+                    </Text>
+                  )}
+                </Group>
+              </Stack>
 
               <TextInput
                 label="Kontrolowane planety (ID po przecinku)"
