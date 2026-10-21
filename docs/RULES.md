@@ -347,3 +347,82 @@ Model: `FactionDef.leaders`; emisja: `web_data._player_leaders` → `playerData.
 
 Implementacja: `src/core/turn_flow.py` (czyste funkcje) + endpointy
 `/turn/end`, `/turn/pass`, `/phase/next`, `/round/next` w `app.py`.
+
+---
+
+## 10. Posiadane jednostki i ulepszenia (unitsOwned) — ✅ ZWERYFIKOWANE (dane)
+
+Źródło (nie z pamięci): dane jednostek AsyncTI4 (`assets/.../units/*.json`) + kod
+frontendu `frontend/src/entities/lookup/units.ts` (`lookupUnit`, `preferUpgradedUnit`).
+Zweryfikowane 2026-10 na załadowanym rejestrze (base+pok+codex).
+
+**Jak frontend rozwiązuje jednostkę do renderu i statystyk:**
+- `playerData.unitsOwned` to lista ID jednostek posiadanych przez gracza.
+- `lookupUnit(asyncId, faction, playerData)` filtruje jednostki o danym `asyncId`
+  do tych z `unitsOwned` i przez `preferUpgradedUnit` wybiera wariant z
+  `upgradesFromUnitId` (ulepszony), gdy jest obecny. Statystyki (combat, move,
+  capacity) i panel ulepszeń czytają z tak wybranej jednostki.
+
+**Powiązanie ulepszenie ↔ technologia (z danych, zweryfikowane):**
+- Każda ulepszona jednostka generyczna ma `upgradesFromUnitId` = bazowa oraz
+  `requiredTechId` = alias technologii ulepszenia. Potwierdzone mapowanie:
+  `carrier2→cv2`, `cruiser2→cr2`, `destroyer2→dd2`, `dreadnought2→dn2`,
+  `fighter2→ff2`, `infantry2→inf2`, `pds2→pds2`, `spacedock2→sd2`.
+- `warsun` (generyczny) ma `requiredTechId="ws"` — posiadany dopiero po zbadaniu
+  technologii War Sun. Warianty frakcyjne wrodzone (np. `muaat_warsun`) nie mają
+  `requiredTechId` i są posiadane od startu.
+
+**Reguła emisji `unitsOwned` (implementacja `web_data._units_owned_for_faction`):**
+Dla każdego `asyncId` wybieramy DOKŁADNIE JEDNĄ jednostkę (posiadanie dwóch o tym
+samym asyncId psuje `lookupUnit`). Priorytet:
+1. wariant frakcyjny gracza, ulepszony (gdy ma wymaganą technologię),
+2. wariant frakcyjny gracza, bazowy,
+3. wariant generyczny, ulepszony (gdy ma wymaganą technologię),
+4. wariant generyczny, bazowy.
+Jednostka za technologią (z `requiredTechId`), której gracz NIE ma, jest pomijana.
+Dopasowanie wariantu frakcyjnego po POLU `faction` jednostki (nie po prefiksie id).
+
+**Dlaczego to ważne (Bug 11):** wcześniej serializer pomijał WSZYSTKIE jednostki z
+`upgradesFromUnitId`, więc po zbadaniu np. Carrier II panel i mapa dalej pokazywały
+statystyki bazowego Carriera. Teraz zbadanie technologii ulepszenia podmienia wpis
+w `unitsOwned` na wariant ulepszony → `preferUpgradedUnit` pokazuje właściwe statystyki.
+
+---
+
+## 11. Klucz tożsamości gracza w web-data (desync panel↔mapa) — ✅ ZWERYFIKOWANE (kod frontendu)
+
+Źródło: `frontend/src/entities/lookup/units.ts` (`lookupUnit` dopasowuje jednostki po
+`playerData[].faction`) + `tileUnitData`/`statTilePositions` kluczowane tym samym stringiem.
+
+**Reguła:** klucz grupujący jednostki/heksy/kontrolę w CAŁYM dokumencie web-data musi
+być ten sam co `playerData[].faction` i musi JEDNOZNACZNIE wskazywać gracza. Gdy frakcja
+jest unikalna w grze — używamy jej; przy kolizji frakcji lub braku frakcji — używamy
+stabilnego `player_id`. Implementacja: `web_data._entity_key_map` (jedna mapa dla
+`_entities_from_counts`, `_planet_controller`, `_build_stat_tile_positions`,
+`_build_player_data`).
+
+**Dlaczego (Bug 1/2):** wcześniej klucz = `faction or player_id` liczony lokalnie w
+wielu miejscach. Dwaj gracze dzielący frakcję (lub `None`) dostawali ten sam klucz →
+ich jednostki scalały się w jeden wpis `tileUnitData` i znikały z mapy, mimo że
+`playerData` pokazywał obu. Edycja (`_resolve_player_id`) z warunkiem `faction==key OR
+pid==key` trafiała w złego gracza. Teraz `_resolve_player_id` preferuje dokładne
+`player_id`, a frakcję akceptuje tylko gdy jednoznaczna.
+
+---
+
+## 12. Kontrola planet — jedno źródło prawdy (opcja A) — ✅ DECYZJA PROJEKTOWA
+
+**Reguła:** `SystemState.planet_owners` (kontrola planety w jej systemie) jest JEDYNYM
+źródłem prawdy o tym, kto kontroluje planetę. Lista planet gracza w web-data
+(`playerData.planets`) oraz ekonomia są WYLICZANE z `planet_owners`
+(`web_data._controlled_planets_from_systems`). Edycja God-Mode listy planet gracza
+(`/player/{id}/edit` z `controlled_planets`) jest synchronizowana do `planet_owners`
+systemów (`app._sync_controlled_planets`). Edycja własności w systemie
+(`/system/{pos}/planet` z `owner_id`) jest od razu widoczna w panelu (bo panel liczy
+z `planet_owners`).
+
+**Dlaczego (Bug 3):** wcześniej istniały dwa niezależne źródła — `player.controlled_planets`
+(panel) i `SystemState.planet_owners` (mapa) — i edycja jednego nie aktualizowała
+drugiego. Panel pokazywał planetę, mapa nie miała właściciela (i odwrotnie). Opcja A
+odzwierciedla model gry: planeta fizycznie leży w systemie i to system „wie", kto ją
+kontroluje; jest też naturalną podstawą pod przyszłą logikę podbojów/inwazji.

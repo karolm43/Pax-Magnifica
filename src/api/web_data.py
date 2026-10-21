@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.game_state import GameState, PlayerState
+from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
 from src.core.positions import load_positions
@@ -60,12 +60,42 @@ def _to_web_phase(phase: object) -> str:
     return _PHASE_TO_WEB.get(str(phase), "unknown")
 
 
-def _active_color(state: GameState) -> str | None:
-    """Kolor aktywnego gracza (frontend dopasowuje ``activePlayer`` po KOLORZE)."""
-    if state.active_player_id is None:
+def _effective_active_id(state: GameState) -> str | None:
+    """Spójny identyfikator aktywnego gracza (Bug 7).
+
+    Gracz nie może być jednocześnie aktywny i spasowany — to sprzeczny stan, który
+    może powstać tylko przez ręczną edycję God-Mode (silnik tur go nie tworzy).
+    W takim przypadku traktujemy, że nie ma aktywnego gracza (null), zamiast
+    wysyłać do frontendu sprzeczne sygnały ``active`` + ``passed``.
+    """
+    active_id = state.active_player_id
+    if active_id is None:
         return None
-    player = state.players.get(state.active_player_id)
-    return player.color if player else None
+    player = state.players.get(active_id)
+    if player is None or player.passed:
+        return None
+    return active_id
+
+
+def _active_color(state: GameState) -> str | None:
+    """Kolor aktywnego gracza (frontend dopasowuje ``activePlayer`` po KOLORZE).
+
+    Zwraca kolor TYLKO gdy jest jednoznaczny — gdy dwóch graczy dzieli ten sam
+    kolor (niepoprawny stan God-Mode), dopasowanie po kolorze trafiłoby w obu, więc
+    nie wskazujemy aktywnego (null) zamiast podświetlać przypadkowego gracza (Bug 7).
+    """
+    active_id = _effective_active_id(state)
+    if active_id is None:
+        return None
+    player = state.players.get(active_id)
+    if player is None or player.color is None:
+        return None
+    same_color = sum(
+        1 for other in state.players.values() if other.color == player.color
+    )
+    if same_color != 1:
+        return None
+    return player.color
 
 
 def _build_game_state(state: GameState) -> dict[str, Any]:
@@ -86,24 +116,53 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
     }
 
 
-def _faction_key(player: PlayerState) -> str:
-    """Klucz frakcji używany w ``tileUnitData`` (frakcja lub zastępczo id gracza)."""
-    return player.faction or player.player_id
+def _entity_key_map(state: GameState) -> dict[str, str]:
+    """Buduje mapę ``player_id -> klucz tożsamości`` używany w całym web-data.
+
+    Frontend grupuje jednostki w ``tileUnitData``/``statTilePositions`` po stringu,
+    który traktuje jak ``faction`` i dopasowuje do ``playerData[].faction`` w
+    ``lookupUnit``. Dlatego klucz MUSI być ten sam we wszystkich miejscach i MUSI
+    jednoznacznie wskazywać gracza — inaczej jednostki dwóch graczy dzielących tę
+    samą frakcję (lub brak frakcji) scalają się w jeden wpis i znikają z mapy
+    (Bug 1: ``faction OR None`` kolidowało w ``_entities_from_counts`` /
+    ``_build_stat_tile_positions`` / ``_planet_controller``).
+
+    Reguła: użyj ``faction``, gdy jest UNIKALNA w całej grze; w przeciwnym razie
+    (kolizja frakcji albo brak frakcji) użyj stabilnego ``player_id``. Dzięki temu
+    każdy gracz ma własny, niekolidujący klucz, a frontend i tak go znajdzie
+    (ten sam klucz trafia do ``playerData[].faction``).
+    """
+    faction_counts: dict[str, int] = {}
+    for player in state.players.values():
+        if player.faction is not None:
+            faction_counts[player.faction] = faction_counts.get(player.faction, 0) + 1
+    result: dict[str, str] = {}
+    for player_id, player in state.players.items():
+        if player.faction is not None and faction_counts[player.faction] == 1:
+            result[player_id] = player.faction
+        else:
+            result[player_id] = player_id
+    return result
 
 
 def _entities_from_counts(
     counts_by_player: dict[str, dict[str, int]],
-    players: dict[str, PlayerState],
+    entity_keys: dict[str, str],
 ) -> dict[str, list[dict[str, Any]]]:
-    """Buduje ``FactionUnits`` (``{frakcja: [EntityData]}``) z liczników stanu.
+    """Buduje ``FactionUnits`` (``{klucz: [EntityData]}``) z liczników stanu.
 
     ``EntityData`` dla jednostki: ``entityId`` = ``asyncId``, ``entityType`` =
     ``"unit"``, ``count`` = liczba. Pomija typy spoza katalogu i liczby <= 0.
+
+    Klucz grupujący to stabilny klucz tożsamości gracza (``entity_keys``, patrz
+    ``_entity_key_map``), nie surowa frakcja — dzięki temu gracze dzielący frakcję
+    nie scalają się w jeden wpis. Nieznany ``player_id`` (brak w ``entity_keys``)
+    używa własnego id jako klucza zastępczego (dawny Bug 4 — phantom bucket:
+    jednostki są teraz widoczne pod własnym kluczem zamiast znikać).
     """
     result: dict[str, list[dict[str, Any]]] = {}
     for player_id, by_type in counts_by_player.items():
-        player = players.get(player_id)
-        faction = _faction_key(player) if player else player_id
+        key = entity_keys.get(player_id, player_id)
         entities: list[dict[str, Any]] = []
         for base_type, count in by_type.items():
             if count <= 0:
@@ -115,7 +174,7 @@ def _entities_from_counts(
                 {"entityId": async_id, "entityType": "unit", "count": count}
             )
         if entities:
-            result[faction] = entities
+            result[key] = entities
     return result
 
 
@@ -136,6 +195,7 @@ def _build_tile_unit_data(
     grid: HexGrid,
     registry: StaticDataRegistry,
     state: GameState,
+    entity_keys: dict[str, str],
 ) -> tuple[dict[str, dict[str, Any]], list[str]]:
     """Buduje ``tileUnitData`` oraz ``tilePositions`` dla rzeczywistych systemów.
 
@@ -159,14 +219,14 @@ def _build_tile_unit_data(
         planets: dict[str, dict[str, Any]] = {}
 
         if sys_state is not None:
-            space = _entities_from_counts(sys_state.space_units, state.players)
+            space = _entities_from_counts(sys_state.space_units, entity_keys)
             for planet_id, by_player in sys_state.planet_units.items():
                 planets[planet_id] = _build_planet_entry(
                     registry,
                     planet_id,
                     by_player,
                     sys_state.planet_owners.get(planet_id),
-                    state,
+                    entity_keys,
                 )
 
         # Planety systemu bez jednostek też muszą istnieć w słowniku (frontend
@@ -174,7 +234,10 @@ def _build_tile_unit_data(
         if system is not None:
             for planet_id in system.planets:
                 planets.setdefault(
-                    planet_id, _empty_planet_entry(registry, planet_id, state, position)
+                    planet_id,
+                    _empty_planet_entry(
+                        registry, planet_id, state, position, entity_keys
+                    ),
                 )
 
         tile_unit_data[position] = {
@@ -189,12 +252,17 @@ def _build_tile_unit_data(
     return tile_unit_data, tile_positions
 
 
-def _planet_controller(owner_id: str | None, state: GameState) -> str | None:
-    """Identyfikator frakcji kontrolującej planetę (lub None)."""
+def _planet_controller(
+    owner_id: str | None, entity_keys: dict[str, str]
+) -> str | None:
+    """Klucz tożsamości gracza kontrolującego planetę (lub None).
+
+    Używa tej samej mapy co jednostki (``entity_keys``), żeby ``controlledBy``
+    zgadzało się z kluczem w ``playerData[].faction`` i grupowaniem jednostek.
+    """
     if owner_id is None:
         return None
-    owner = state.players.get(owner_id)
-    return _faction_key(owner) if owner else owner_id
+    return entity_keys.get(owner_id, owner_id)
 
 
 def _build_planet_entry(
@@ -202,7 +270,7 @@ def _build_planet_entry(
     planet_id: str,
     units_by_player: dict[str, dict[str, int]],
     owner_id: str | None,
-    state: GameState,
+    entity_keys: dict[str, str],
 ) -> dict[str, Any]:
     """Buduje ``PlanetEntityData`` dla planety z jednostkami naziemnymi.
 
@@ -210,8 +278,8 @@ def _build_planet_entry(
     kontrolowanych/zajętych, nie tylko pustych (bez tego panele graczy i tooltipy
     pokazywałyby zera).
     """
-    entry = _planet_base(planet_id, owner_id, state)
-    entry["entities"] = _entities_from_counts(units_by_player, state.players)
+    entry = _planet_base(planet_id, owner_id, entity_keys)
+    entry["entities"] = _entities_from_counts(units_by_player, entity_keys)
     _fill_planet_stats(entry, registry, planet_id)
     return entry
 
@@ -221,24 +289,25 @@ def _empty_planet_entry(
     planet_id: str,
     state: GameState,
     position: str,
+    entity_keys: dict[str, str],
 ) -> dict[str, Any]:
     """Buduje pusty ``PlanetEntityData`` (planeta bez jednostek w stanie)."""
     owner_id = None
     sys_state = state.systems.get(position)
     if sys_state is not None:
         owner_id = sys_state.planet_owners.get(planet_id)
-    entry = _planet_base(planet_id, owner_id, state)
+    entry = _planet_base(planet_id, owner_id, entity_keys)
     entry["entities"] = {}
     _fill_planet_stats(entry, registry, planet_id)
     return entry
 
 
 def _planet_base(
-    planet_id: str, owner_id: str | None, state: GameState
+    planet_id: str, owner_id: str | None, entity_keys: dict[str, str]
 ) -> dict[str, Any]:
     """Wspólne pola ``PlanetEntityData`` (kontrola, zasoby domyślne)."""
     return {
-        "controlledBy": _planet_controller(owner_id, state),
+        "controlledBy": _planet_controller(owner_id, entity_keys),
         "entities": {},
         "commodities": 0,
         "planetaryShield": False,
@@ -255,6 +324,23 @@ def _fill_planet_stats(
     if planet is not None:
         entry["resources"] = planet.resources
         entry["influence"] = planet.influence
+
+
+def _controlled_planets_from_systems(player_id: str, state: GameState) -> list[str]:
+    """Lista planet kontrolowanych przez gracza wg ``planet_owners`` w systemach.
+
+    Opcja A (jedno źródło prawdy): kontrola planety mieszka w systemie
+    (``SystemState.planet_owners``), a lista planet gracza jest z niego WYLICZANA.
+    Dzięki temu panel gracza (``playerData.planets``/ekonomia) i mapa pokazują to
+    samo — koniec desyncu z Bug 3. Sortujemy dla stabilności dokumentu.
+    """
+    owned = [
+        planet_id
+        for system in state.systems.values()
+        for planet_id, owner in system.planet_owners.items()
+        if owner == player_id
+    ]
+    return sorted(owned)
 
 
 def _deployed_counts_by_player(state: GameState) -> dict[str, dict[str, int]]:
@@ -288,41 +374,67 @@ def _units_owned_for_faction(
     technologies: list[str],
     registry: StaticDataRegistry,
 ) -> list[str]:
-    """Lista ID jednostek posiadanych przez gracza (baza generyczna + frakcyjna).
+    """Lista ID jednostek posiadanych przez gracza (baza/ulepszenie, generyczne/frakcyjne).
 
-    Reguły (zgodne z AsyncTI4, nie z pamięci — potwierdzone na danych żywej gry):
-    - Pomija warianty ULEPSZONE (``upgrades_from_unit_id``) — gracz startuje z bazowymi.
-    - Pomija jednostki wymagające technologii, której gracz NIE ma (``required_tech_id``).
-      Dzięki temu War Sun (wymaga tech ``ws``) nie liczy się jako posiadany, dopóki nie
-      zostanie zbadany — chyba że frakcja ma go wrodzony (np. Muaat ``muaat_warsun``,
-      bez wymaganej technologii).
+    Reguły (zgodne z AsyncTI4, nie z pamięci — potwierdzone na danych żywej gry,
+    patrz docs/RULES.md 10):
+    - Dla każdego ``asyncId`` wybieramy DOKŁADNIE JEDNĄ jednostkę. Posiadanie dwóch
+      jednostek o tym samym asyncId (np. bazowa + frakcyjna) psuło ``lookupUnit``.
+    - Wariant ULEPSZONY (``upgrades_from_unit_id``) wygrywa z bazowym TYLKO gdy gracz
+      zbadał jego wymaganą technologię (``required_tech_id``). W przeciwnym razie
+      gracz ma wariant bazowy (Bug 11: dawniej upgrade był zawsze pomijany, więc
+      panel i mapa pokazywały statystyki bazowe nawet po zbadaniu technologii).
+    - Jednostki za technologią (np. War Sun, ``required_tech_id="ws"``) nie są
+      posiadane, dopóki gracz jej nie zbada — chyba że frakcja ma wariant wrodzony
+      bez wymaganej technologii (np. Muaat ``muaat_warsun``).
+    - Wariant frakcyjny gracza (pole ``faction``) ma pierwszeństwo przed generycznym;
+      dopasowanie po POLU ``faction``, nie po prefiksie id (Bug 10: ``startswith``
+      powodował kolizje prefiksów i zależność od kolejności iteracji).
     - Pomija placeholdery (``nowarsun``) i niestandardowe asyncId (cavalry itd.).
-    - Jednostki frakcyjne mają ID z prefiksem ``<faction>_`` w danych AsyncTI4.
     """
     standard_async = set(ASYNC_ID_BY_BASE_TYPE.values())
     techs = {t.lower() for t in technologies}
-    # Dla każdego asyncId wybieramy JEDNĄ jednostkę: wariant frakcyjny ma pierwszeństwo
-    # przed generycznym. Posiadanie OBU (np. "mech" + "mentak_mech") psuje lookupUnit
-    # frontendu — rozwiązuje wtedy niejednoznacznie (pokazuje złą flagę frakcji).
-    generic_by_async: dict[str, str] = {}
-    faction_by_async: dict[str, str] = {}
+
+    def has_tech(unit: Any) -> bool:
+        """Czy gracz spełnia wymóg technologiczny jednostki (brak wymogu = tak)."""
+        req = unit.required_tech_id
+        return req is None or req.lower() in techs
+
+    # Dla każdego asyncId zbieramy kandydatów w 4 kubełkach wg (frakcja?, ulepszenie?).
+    # Wybór: frakcyjny-ulepszony > frakcyjny-bazowy > generyczny-ulepszony >
+    # generyczny-bazowy. Ulepszenie liczy się tylko, gdy gracz ma wymaganą technologię.
+    faction_upgraded: dict[str, str] = {}
+    faction_base: dict[str, str] = {}
+    generic_upgraded: dict[str, str] = {}
+    generic_base: dict[str, str] = {}
     for unit in registry.units.values():
-        if unit.upgrades_from_unit_id is not None:
-            continue
-        if unit.async_id not in standard_async:
-            continue  # pomija cavalry/placeholdery
+        if unit.async_id is None or unit.async_id not in standard_async:
+            continue  # pomija cavalry/placeholdery/nietypowe asyncId
         if unit.id == "nowarsun":
             continue
-        if unit.required_tech_id and unit.required_tech_id.lower() not in techs:
-            continue  # jednostka za technologią, której gracz nie ma
-        if "_" not in unit.id:
-            generic_by_async.setdefault(unit.async_id, unit.id)
-        elif faction_id is not None and unit.id.startswith(f"{faction_id}_"):
-            faction_by_async.setdefault(unit.async_id, unit.id)
+        is_upgrade = unit.upgrades_from_unit_id is not None
+        if not has_tech(unit):
+            continue  # jednostka/ulepszenie za technologią, której gracz nie ma
+        is_faction = unit.faction is not None
+        if is_faction and unit.faction != faction_id:
+            continue  # cudzy wariant frakcyjny — pomijamy
+        if is_faction and is_upgrade:
+            faction_upgraded.setdefault(unit.async_id, unit.id)
+        elif is_faction:
+            faction_base.setdefault(unit.async_id, unit.id)
+        elif is_upgrade:
+            generic_upgraded.setdefault(unit.async_id, unit.id)
+        else:
+            generic_base.setdefault(unit.async_id, unit.id)
 
     owned: list[str] = []
     for async_id in standard_async:
-        chosen = faction_by_async.get(async_id) or generic_by_async.get(async_id)
+        chosen = (
+            faction_upgraded.get(async_id)
+            or faction_base.get(async_id)
+            or generic_upgraded.get(async_id)
+            or generic_base.get(async_id)
+        )
         if chosen is not None:
             owned.append(chosen)
     return sorted(owned)
@@ -424,7 +536,16 @@ def _player_leaders(
 
 
 def _player_home_position(player_id: str, state: GameState) -> str | None:
-    """Pozycja systemu domowego gracza (gdzie kontroluje planety)."""
+    """Pozycja slotu domowego gracza (kotwica heksa stat-area).
+
+    Priorytet (Bug 9): jawny ``PlayerState.home_position`` z setupu — stabilny
+    niezależnie od podbojów. Dopiero gdy go brak (np. gracz utworzony ręcznie
+    w God-Mode bez setupu), awaryjnie szukamy pierwszego systemu, w którym gracz
+    kontroluje planetę (dawne, niestabilne zachowanie).
+    """
+    player = state.players.get(player_id)
+    if player is not None and player.home_position is not None:
+        return player.home_position
     for position, system in state.systems.items():
         if any(owner == player_id for owner in system.planet_owners.values()):
             return position
@@ -494,38 +615,44 @@ def _three_nearby_stat_tiles(
 
 
 def _build_stat_tile_positions(
-    state: GameState, grid: HexGrid
+    state: GameState, grid: HexGrid, entity_keys: dict[str, str]
 ) -> dict[str, list[str]]:
-    """Buduje ``statTilePositions`` = ``{faction: [pivot, sąsiad, sąsiad]}``.
+    """Buduje ``statTilePositions`` = ``{klucz: [pivot, sąsiad, sąsiad]}``.
 
     Dla każdego gracza bierze jego slot domowy i trzy pobliskie puste pozycje
     (algorytm AsyncTI4, ``_three_nearby_stat_tiles``) — pivot pierwszy. Zajęte
     pozycje są współdzielone między graczami (``taken``), by heksy się nie nakładały.
+    Klucz wpisu to stabilny klucz tożsamości (``entity_keys``), spójny z grupowaniem
+    jednostek i ``playerData[].faction`` (Bug 1: dawniej kolizja frakcji scalała heksy).
     """
     result: dict[str, list[str]] = {}
     taken: set[str] = set()
     ring_count = _ring_count(grid)
     # Deterministyczna kolejność graczy (po id) — stabilny podział pozycji.
-    for player_id, player in sorted(state.players.items()):
+    for player_id in sorted(state.players):
         home = _player_home_position(player_id, state)
         if home is None:
             continue
         positions = _three_nearby_stat_tiles(home, grid, taken, ring_count)
         if positions:
             taken.update(positions)
-            result[_faction_key(player)] = positions
+            result[entity_keys.get(player_id, player_id)] = positions
     return result
 
 
 def _build_player_data(
-    state: GameState, registry: StaticDataRegistry
+    state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
 ) -> list[dict[str, Any]]:
     """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
     players: list[dict[str, Any]] = []
     deployed_by_player = _deployed_counts_by_player(state)
+    active_id = _effective_active_id(state)  # spójny z activePlayer (Bug 7)
     for player_id, player in sorted(state.players.items()):
-        faction = _faction_key(player)
-        econ = _planet_economy(player.controlled_planets, registry)
+        faction = entity_keys.get(player_id, player_id)
+        # Opcja A: planety gracza WYLICZANE z planet_owners systemów (jedno źródło
+        # prawdy), nie z player.controlled_planets — eliminuje desync panel↔mapa (Bug 3).
+        controlled = _controlled_planets_from_systems(player_id, state)
+        econ = _planet_economy(controlled, registry)
         leaders = _player_leaders(player.faction, registry, player.leader_states)
         units_owned = _units_owned_for_faction(
             player.faction, player.technologies, registry
@@ -543,7 +670,7 @@ def _build_player_data(
                 "isTyrant": False,
                 "passed": player.passed,
                 "eliminated": False,
-                "active": state.active_player_id == player_id,
+                "active": active_id == player_id,
                 # Zasoby / liczniki (viewer czyta je w panelach gracza).
                 "tg": player.trade_goods,
                 "commodities": player.commodities,
@@ -563,7 +690,7 @@ def _build_player_data(
                 "exhaustedTechs": [],
                 "factionTechs": [],
                 "notResearchedFactionTechs": [],
-                "planets": list(player.controlled_planets),
+                "planets": controlled,
                 "exhaustedPlanets": [],
                 "exhaustedPlanetAbilities": [],
                 "relics": [],
@@ -690,7 +817,12 @@ def build_web_data(
     Returns:
         Słownik gotowy do serializacji JSON zgodny z ``PlayerDataResponse``.
     """
-    tile_unit_data, tile_positions = _build_tile_unit_data(grid, registry, state)
+    # Jedna mapa klucz-tożsamości dla CAŁEGO dokumentu (jednostki, planety, heksy,
+    # playerData). Spójny klucz eliminuje desync panel↔mapa (Bug 1/2).
+    entity_keys = _entity_key_map(state)
+    tile_unit_data, tile_positions = _build_tile_unit_data(
+        grid, registry, state, entity_keys
+    )
     return {
         "gameName": game_name,
         "gameRound": state.round_number,
@@ -702,8 +834,8 @@ def build_web_data(
         "versionSchema": WEB_DATA_SCHEMA_VERSION,
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
-        "playerData": _build_player_data(state, registry),
-        "statTilePositions": _build_stat_tile_positions(state, grid),
+        "playerData": _build_player_data(state, registry, entity_keys),
+        "statTilePositions": _build_stat_tile_positions(state, grid, entity_keys),
         "gameState": _build_game_state(state),
         "lawsInPlay": [],
         "strategyCards": [],

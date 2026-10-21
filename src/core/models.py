@@ -24,6 +24,10 @@ class UnitDef(_StaticModel):
     async_id: str | None = Field(default=None, alias="asyncId")
     name: str
     source: str
+    # Frakcja właściciela jednostki (np. "sol" dla Advanced Carrier II). None =
+    # jednostka generyczna. Pozwala jednoznacznie dopasować wariant frakcyjny bez
+    # polegania na prefiksie id (który kolidował — Bug 10).
+    faction: str | None = None
 
     cost: float | None = None
     move_value: int | None = Field(default=None, alias="moveValue")

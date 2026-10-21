@@ -30,6 +30,10 @@ class PlayerState(BaseModel):
     player_id: str
     faction: str | None = None
     color: str | None = None
+    # Pozycja ``RPP`` slotu domowego gracza (gdzie stoi jego kafelek domowy).
+    # Ustawiana przy setupie frakcji; kotwiczy heks stat-area niezależnie od tego,
+    # które planety gracz aktualnie kontroluje (po podbojach — patrz RULES.md 4).
+    home_position: str | None = None
 
     victory_points: int = 0
     trade_goods: int = 0

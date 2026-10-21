@@ -289,3 +289,158 @@ def test_web_data_player_data_carries_counters(client: TestClient) -> None:
     assert player["color"] == "red"
     assert "totalVps" in player
     assert "tg" in player
+
+
+# --- Regresje audytu bugów game state (desync panel↔mapa + spójność) ---------
+
+
+def test_unit_upgrade_tech_swaps_owned_variant(client: TestClient) -> None:
+    # Bug 11: zbadanie technologii ulepszenia podmienia wpis w unitsOwned na wariant
+    # ulepszony (frontend preferUpgradedUnit pokaże właściwe statystyki).
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    before = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+        "unitsOwned"
+    ]
+    # Sol ma wariant frakcyjny carriera (Advanced Carrier) → przed zbadaniem: bazowy
+    # wariant frakcyjny, jego ulepszenie (Advanced Carrier II) wymaga techu 'ac2'.
+    assert "sol_carrier" in before and "sol_carrier2" not in before
+    # God-Mode: nadaj technologię Advanced Carrier II (alias 'ac2').
+    client.post("/player/p1/edit", json={"technologies": ["ac2"]})
+    after = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+        "unitsOwned"
+    ]
+    # Po zbadaniu: ulepszony wariant zastępuje bazowy (jeden wpis na asyncId cv).
+    assert "sol_carrier2" in after and "sol_carrier" not in after
+
+
+def test_warsun_tech_grants_generic_warsun(client: TestClient) -> None:
+    # Bug 11 (pokrewny): War Sun jest posiadany dopiero po zbadaniu technologii 'ws'.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/player/p1/edit", json={"technologies": ["ws"]})
+    owned = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+        "unitsOwned"
+    ]
+    assert "warsun" in owned
+
+
+def test_duplicate_faction_keeps_both_players_units(client: TestClient) -> None:
+    # Bug 1: dwaj gracze z TĄ SAMĄ frakcją nie mogą scalać się w jeden wpis.
+    # Każdy dostaje własny, niekolidujący klucz tożsamości (player_id).
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Ręcznie dołóż drugiego gracza z tą samą frakcją, z jednostkami w przestrzeni.
+    client.post("/player/p2/edit", json={"faction": "sol", "color": "blue"})
+    client.post(
+        "/system/301/edit-units",
+        json={"zone": "space", "faction": "p2", "asyncId": "dd", "delta": 2},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    # Obaj gracze obecni w playerData.
+    keys = {p["faction"] for p in data["playerData"]}
+    assert "p2" in keys  # drugi gracz pod kluczem player_id (kolizja frakcji)
+    # Jednostki p2 widoczne pod jego kluczem (nie scalone z p1).
+    space = data["tileUnitData"]["301"]["space"]
+    assert "p2" in space
+    assert any(e["entityId"] == "dd" and e["count"] == 2 for e in space["p2"])
+
+
+def test_resolve_player_prefers_exact_player_id(client: TestClient) -> None:
+    # Bug 2: edycja po kluczu player_id trafia dokładnie w tego gracza, nie w innego
+    # o tej samej frakcji.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/player/p2/edit", json={"faction": "sol", "color": "blue"})
+    client.post(
+        "/system/305/edit-units",
+        json={"zone": "space", "faction": "p2", "asyncId": "ca", "delta": 1},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    space = data["tileUnitData"]["305"]["space"]
+    # Dokładnie p2 dostał cruisera (nie p1/sol).
+    assert "p2" in space and "sol" not in space
+
+
+def test_planet_control_single_source_player_edit(client: TestClient) -> None:
+    # Bug 3: edycja controlled_planets gracza aktualizuje planet_owners systemu,
+    # więc mapa (controlledBy) i panel (planets) zgadzają się.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Znajdź planetę z mapy, którą nadamy Solowi (Mecatol Rex = 'mr' w systemie 18).
+    client.post("/player/p1/edit", json={"controlled_planets": ["mr"]})
+    data = client.get("/api/public/game/g/web-data").json()
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    # Panel: Mecatol na liście planet gracza.
+    assert "mr" in sol["planets"]
+    # Mapa: Mecatol w systemie 000 kontrolowany przez Sol.
+    assert data["tileUnitData"]["000"]["planets"]["mr"]["controlledBy"] == "sol"
+
+
+def test_planet_control_single_source_system_edit(client: TestClient) -> None:
+    # Bug 3 (odwrotny kierunek): nadanie właściciela w systemie od razu widać w panelu.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/system/000/planet/mr",
+        json={"changes": [], "owner_id": "p1"},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    assert "mr" in sol["planets"]
+
+
+def test_unit_counts_has_no_monument_row(client: TestClient) -> None:
+    # Bug 6: 'monument' nie jest asyncId standardowej jednostki — nie może pojawić
+    # się jako widmowy wiersz w panelu rezerwy.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    counts = data["playerData"][0]["unitCounts"]
+    assert "monument" not in counts
+
+
+def test_active_and_passed_is_not_contradictory(client: TestClient) -> None:
+    # Bug 7: gracz nie może być jednocześnie aktywny i spasowany — serializer nie
+    # wskazuje wtedy aktywnego (null) zamiast wysyłać sprzeczne sygnały.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # God-Mode: pierwszy (aktywny) gracz pasuje bezpośrednio.
+    client.post("/player/p1/edit", json={"passed": True})
+    data = client.get("/api/public/game/g/web-data").json()
+    assert data["gameState"]["activePlayer"] is None
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    assert sol["active"] is False and sol["passed"] is True
+
+
+def test_active_color_ambiguous_when_duplicate_color(client: TestClient) -> None:
+    # Bug 7: gdy dwóch graczy ma ten sam kolor, dopasowanie po kolorze jest
+    # niejednoznaczne — nie wskazujemy aktywnego po kolorze.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/player/p2/edit", json={"faction": "hacan", "color": "red"})
+    data = client.get("/api/public/game/g/web-data").json()
+    # p1 jest aktywny i ma kolor red; p2 też red → activePlayer null.
+    assert data["gameState"]["activePlayer"] is None
+
+
+def test_new_game_rejects_home_position_off_map(client: TestClient) -> None:
+    # Bug 8: pozycja domowa spoza mapy jest odrzucana (inaczej flota nie renderuje się).
+    resp = client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol", "home_position": "999"}]},
+    )
+    assert resp.status_code == 422
+
+
+def test_edit_units_rejects_unknown_base_type_via_space(client: TestClient) -> None:
+    # Bug 5: nieznany baseType nie może wejść do stanu (ginąłby w web-data).
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.post(
+        "/system/301/space",
+        json={"changes": [{"player_id": "p1", "base_type": "cavalry", "count": 1}]},
+    )
+    assert resp.status_code == 422
+
+
+def test_stat_tile_anchored_to_home_not_conquest(client: TestClient) -> None:
+    # Bug 9: heks stat-area kotwiczy się do slotu domowego gracza (home_position),
+    # niezależnie od tego, które inne planety gracz kontroluje.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Sol zdobywa Mecatol (system 000, pierścień 0) — nie może przeciągnąć heksa tam.
+    client.post("/system/000/planet/mr", json={"changes": [], "owner_id": "p1"})
+    data = client.get("/api/public/game/g/web-data").json()
+    positions = data["statTilePositions"]["sol"]
+    # Heksy nadal przy domu (pierścień 4), nie przy zdobytym Mecatolu (pierścień 0).
+    assert all(p.startswith("4") for p in positions)

@@ -939,3 +939,43 @@ build czyste.
 **Następne etapy** (PLAN_PELNA_ROZGRYWKA): E2 faza strategii (wybór kart) → E3 akcja
 taktyczna (aktywacja/ruch/walka/inwazja/produkcja) → E4 akcje komponentowe → E5 status
 (punktacja) → E6 agenda → E7 asymetria + end-game.
+
+---
+### ✅ Blok F18 — audyt i naprawa bugów game state (desync panel↔mapa + spójność)
+**Kontekst:** użytkownik zgłosił, że game state ma być „wyraźny, czytelny i wolny od
+bugów". Najpierw naprawiono duplikaty technologii w God-Mode (filtr oficjalnych źródeł
+`base/pok/codex1-4` + dedup po nazwie w `PlayerEditorModal.tsx`). Następnie pełny audyt
+serializacji web-data i endpointów edycji → 11 bugów, wszystkie naprawione.
+
+**Naprawione bugi (wszystkie z testami regresji, RULES.md 10–12):**
+- **Bug 1/2 (klucz tożsamości):** klucz grupujący jednostki/heksy/kontrolę w CAŁYM
+  web-data liczony był lokalnie jako `faction or player_id` → dwaj gracze dzielący
+  frakcję scalali się w jeden wpis i znikali z mapy. Wprowadzono `web_data._entity_key_map`
+  (jedna mapa, klucz = frakcja gdy unikalna, inaczej `player_id`). `_resolve_player_id`
+  (app.py) preferuje dokładne `player_id`, frakcję akceptuje tylko gdy jednoznaczna.
+- **Bug 3 (kontrola planet — jedno źródło prawdy, opcja A):** `SystemState.planet_owners`
+  jest jedynym źródłem; `playerData.planets`/ekonomia WYLICZANE z systemów
+  (`_controlled_planets_from_systems`). Edycja gracza synchronizuje listę do
+  `planet_owners` (`app._sync_controlled_planets`); edycja systemu od razu widać w panelu.
+- **Bug 4 (phantom bucket):** jednostki nieznanego gracza są teraz widoczne pod własnym
+  kluczem zamiast znikać (fallback w `_entities_from_counts`).
+- **Bug 5 (nieznany baseType):** `/system/{pos}/space|planet` walidują `baseType` wobec
+  katalogu (422) — koniec rozjazdu `/map` (emituje) vs web-data (pomijał).
+- **Bug 6 (widmowy monument):** usunięto `"monument"` z `UNIT_CAP_BY_ASYNC_ID` (nie jest
+  asyncId standardowej jednostki) → znika widmowy wiersz w panelu rezerwy.
+- **Bug 7 (active↔passed / duplikat koloru):** serializer nie wskazuje aktywnego, gdy
+  jest spasowany lub gdy kolor niejednoznaczny (`_effective_active_id`, `_active_color`).
+- **Bug 8 (home_position spoza mapy):** `/game/new` odrzuca (422) pozycję domową spoza
+  mapy — inaczej flota lądowała w systemie bez kafelka i nie renderowała się.
+- **Bug 9 (kotwica heksa stat-area):** dodano `PlayerState.home_position` (ustawiane w
+  setupie); `_player_home_position` kotwiczy heks do domu niezależnie od podbojów.
+- **Bug 10 (prefiks id frakcji):** wybór wariantu frakcyjnego jednostki po POLU `faction`
+  (nowe `UnitDef.faction`), nie po `id.startswith("{faction}_")` — koniec kolizji prefiksów.
+- **Bug 11 (upgrady jednostek — zgłoszony przez użytkownika):** `_units_owned_for_faction`
+  emituje wariant ULEPSZONY, gdy gracz zbadał jego `required_tech_id` (priorytet
+  frakcyjny-ulepszony > frakcyjny-bazowy > generyczny-ulepszony > generyczny-bazowy).
+  Wcześniej upgrade był zawsze pomijany, więc panel/mapa pokazywały statystyki bazowe
+  mimo zbadanej technologii. E2E: research `ac2` → `sol_carrier`→`sol_carrier2`.
+
+**QA:** backend 121 testów zielone (było 109; +12 regresji), ruff+mypy czyste; frontend
+type-check+lint+build czyste (fix technologii). Reguły spisane w RULES.md 10/11/12.

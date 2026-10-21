@@ -370,6 +370,17 @@ def create_app(
             home_position = player.home_position or slot_position
             color = player.color or slot_color
             player_id = player.player_id or f"p{index + 1}"
+            # Bug 8: pozycja domowa MUSI istnieć na mapie — inaczej kafelek domowy
+            # nie zostanie położony, a flota wyląduje w systemie bez kafelka (nie
+            # renderuje się). Przy custom map_string slot może nie pasować do układu.
+            if home_position not in grid.positions:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Pozycja domowa {home_position!r} gracza {player_id!r} nie "
+                        f"istnieje na tej mapie. Podaj home_position pasującą do map_string."
+                    ),
+                )
             if first_player_id is None:
                 first_player_id = player_id
             new_state = apply_setup_to_state(
@@ -400,10 +411,24 @@ def create_app(
         await broadcast_map()
         return build_map_view(grid, reg, service.current_state())
 
+    def _validate_base_type(base_type: str) -> None:
+        """Odrzuca ``baseType`` spoza katalogu (Bug 5: cicho ginął w web-data).
+
+        ``/map`` emituje każdą jednostkę, ale ``web-data`` pomija typy bez asyncId
+        w ``ASYNC_ID_BY_BASE_TYPE`` — jednostka istniałaby w stanie, lecz nie na
+        planszy frontendu (desync). Blokujemy wejście nieznanego typu do stanu.
+        """
+        if base_type not in ASYNC_ID_BY_BASE_TYPE:
+            raise HTTPException(
+                status_code=422, detail=f"Nieznany baseType: {base_type}"
+            )
+
     @app.post("/system/{position}/space", response_model=MapView)
     async def post_space_units(
         position: str, request: SpaceUnitsRequest
     ) -> MapView:
+        for change in request.changes:
+            _validate_base_type(change.base_type)
         state = service.current_state().clone()
         system = state.systems.get(position) or SystemState(
             position=position,
@@ -427,6 +452,8 @@ def create_app(
     async def post_planet_units(
         position: str, planet: str, request: PlanetUnitsRequest
     ) -> MapView:
+        for change in request.changes:
+            _validate_base_type(change.base_type)
         state = service.current_state().clone()
         system = state.systems.get(position) or SystemState(
             position=position,
@@ -457,15 +484,25 @@ def create_app(
         return ""
 
     def _resolve_player_id(faction_key: str, state: GameState) -> str:
-        """Mapuje klucz frakcji z ``tileUnitData`` na ``player_id``.
+        """Mapuje klucz z ``tileUnitData`` na ``player_id``.
 
-        W web-data jednostki są kluczowane frakcją (lub id gracza, gdy brak frakcji).
-        Edytor przysyła ten klucz; tu znajdujemy odpowiadającego gracza. Gdy brak
-        dopasowania, zwracamy klucz bez zmian (traktujemy jak id gracza).
+        W web-data jednostki są kluczowane stabilnym ``player_id`` (patrz
+        ``web_data._entity_key``), więc edytor zwykle przysyła wprost ``player_id``.
+        Priorytet dopasowania (kolejność ważna przy kolizji frakcji/id):
+        1. DOKŁADNE ``player_id`` — najpewniejsze, nigdy nie trafia w złego gracza.
+        2. Frakcja — tylko gdy JEDNOZNACZNA (dokładnie jeden gracz ma tę frakcję);
+           przy kolizji frakcji nie zgadujemy (Bug 2: `faction OR pid` trafiał w złego).
+        Gdy brak dopasowania, zwracamy klucz bez zmian (traktujemy jak id gracza).
         """
-        for pid, player in state.players.items():
-            if player.faction == faction_key or pid == faction_key:
-                return pid
+        if faction_key in state.players:
+            return faction_key
+        matches = [
+            pid
+            for pid, player in state.players.items()
+            if player.faction == faction_key
+        ]
+        if len(matches) == 1:
+            return matches[0]
         return faction_key
 
     def _zone_bucket(
@@ -559,6 +596,54 @@ def create_app(
         await broadcast_map()
         return build_map_view(app.state.current_grid, reg, service.current_state())
 
+    def _planet_position(planet_id: str, state: GameState) -> str | None:
+        """Pozycja ``RPP`` systemu zawierającego daną planetę (z gridu+rejestru).
+
+        Najpierw szuka w systemach aktywnej mapy (grid → system → planety z rejestru);
+        gdy nie znajdzie, sprawdza systemy już obecne w stanie (np. slot domowy).
+        Zwraca None, gdy planety nie da się umiejscowić (nie powinno się zdarzyć dla
+        planet z map stringa).
+        """
+        grid = app.state.current_grid
+        for position in grid.positions:
+            system_id = grid.system_id_at(position)
+            system = reg.systems.get(system_id)
+            if system is not None and planet_id in system.planets:
+                return str(position)
+        for position, sys_state in state.systems.items():
+            system = reg.systems.get(sys_state.system_id)
+            if system is not None and planet_id in system.planets:
+                return str(position)
+        return None
+
+    def _sync_controlled_planets(
+        player_id: str, target: list[str], state: GameState
+    ) -> None:
+        """Synchronizuje kontrolę planet gracza do ``planet_owners`` (opcja A).
+
+        ``planet_owners`` w systemach jest jedynym źródłem prawdy (Bug 3). Ta funkcja
+        przenosi listę docelową z edycji God-Mode do systemów:
+        1. Odbiera graczowi własność planet spoza listy docelowej (we wszystkich systemach).
+        2. Nadaje własność każdej planecie z listy w jej systemie (tworząc ``SystemState``
+           w razie potrzeby) — nadpisując poprzedniego właściciela.
+        """
+        target_set = set(target)
+        # 1) Odbierz własność planet, których już nie ma na liście docelowej.
+        for sys_state in state.systems.values():
+            for planet_id, owner in list(sys_state.planet_owners.items()):
+                if owner == player_id and planet_id not in target_set:
+                    del sys_state.planet_owners[planet_id]
+        # 2) Nadaj własność planet z listy docelowej w ich systemach.
+        for planet_id in target_set:
+            position = _planet_position(planet_id, state)
+            if position is None:
+                continue  # planeta spoza mapy — pomijamy (nie da się umiejscowić)
+            system = state.systems.get(position) or SystemState(
+                position=position, system_id=_system_id_for(position)
+            )
+            system.planet_owners[planet_id] = player_id
+            state.systems[position] = system
+
     @app.post("/player/{player_id}/edit", response_model=StateEnvelope)
     async def post_edit_player(
         player_id: str, request: PlayerEditRequest
@@ -567,6 +652,10 @@ def create_app(
 
         Tworzy gracza, gdy nie istnieje. Każde podane pole nadpisuje stan; pominięte
         pozostają bez zmian. Bez sprawdzania zasad. Commit → historia (Undo działa).
+
+        Kontrola planet (``controlled_planets``) jest synchronizowana do
+        ``planet_owners`` systemów (opcja A — jedno źródło prawdy, Bug 3): panel i
+        mapa zawsze pokazują tę samą kontrolę.
         """
         state = service.current_state().clone()
         player = state.players.get(player_id) or PlayerState(player_id=player_id)
@@ -581,6 +670,9 @@ def create_app(
             else:
                 setattr(player, field, value)
         state.players[player_id] = player
+        # Synchronizacja kontroli planet do systemów (planet_owners = źródło prawdy).
+        if request.controlled_planets is not None:
+            _sync_controlled_planets(player_id, request.controlled_planets, state)
         service.replace_state(state, label=f"player:{player_id}")
         await service.broadcast()
         await broadcast_map()

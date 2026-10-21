@@ -131,6 +131,7 @@ def apply_setup_to_state(
         player_id=player_id,
         faction=faction.id,
         color=color,
+        home_position=home_position,
         commodities=plan.commodities,
         technologies=list(plan.starting_tech),
         controlled_planets=list(plan.home_planets),
