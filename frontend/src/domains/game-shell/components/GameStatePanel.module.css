@@ -497,6 +497,11 @@
 }
 
 .scName {
+  flex: 1 1 auto;
+  /* min-width:0 pozwala nazwie się skurczyć zamiast wypychać odznakę TG poza
+     panel (to wycinało „+1 TG"). Nazwa skraca się wielokropkiem, TG i akcje
+     mają gwarantowane miejsce (flex-shrink: 0). */
+  min-width: 0;
   font-size: var(--text-meta, 12px);
   color: var(--ds-ink, #e2e8f0);
   white-space: nowrap;
@@ -505,6 +510,7 @@
 }
 
 .scTg {
+  flex: 0 0 auto;
   font-family: var(--font-data);
   font-size: var(--text-micro, 10px);
   color: var(--gd-teal, #2dd4bf);
@@ -519,6 +525,7 @@
   align-items: center;
   gap: 3px;
   margin-left: auto;
+  flex: 0 0 auto;
 }
 
 /* Przycisk przydziału karty: ikona frakcji w okrągłym socketcie. */
@@ -545,28 +552,3 @@
   cursor: default;
 }
 
-.scMini {
-  padding: 2px 7px;
-  font-size: var(--text-micro, 10px);
-  font-weight: 600;
-  color: var(--ds-ink, #e2e8f0);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.scMini:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.scMini:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.scPlayed {
-  font-size: var(--text-micro, 10px);
-  color: var(--ds-ink-lo, #94a3b8);
-  font-style: italic;
-}

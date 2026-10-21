@@ -501,7 +501,7 @@ function PlateBody({
  */
 function StrategyCardPicker({ seats }: { seats: Seat[] }) {
   const { data: cards } = useStrategyCards();
-  const { pickStrategyCard, playStrategyCard } = useBoardEditor();
+  const { pickStrategyCard } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
   if (!cards || cards.length === 0) return null;
@@ -528,7 +528,11 @@ function StrategyCardPicker({ seats }: { seats: Seat[] }) {
             (s) => s.player.discordId === card.picked_by,
           );
           return (
-            <div key={card.initiative} className={styles.scRow} data-picked={!!card.picked_by || undefined}>
+            <div
+              key={card.initiative}
+              className={styles.scRow}
+              data-picked={!!card.picked_by || undefined}
+            >
               <span
                 className={styles.disc}
                 style={toneStyle({ "--scc": SC_TONE[card.initiative] })}
@@ -543,30 +547,9 @@ function StrategyCardPicker({ seats }: { seats: Seat[] }) {
               )}
               <span className={styles.scActions}>
                 {owner ? (
-                  <>
-                    <FactionMark player={owner.player} size={16} />
-                    {!card.exhausted && (
-                      <button
-                        type="button"
-                        className={styles.scMini}
-                        disabled={busy}
-                        onClick={() =>
-                          void run(() =>
-                            playStrategyCard(
-                              owner.player.discordId,
-                              card.initiative,
-                            ),
-                          )
-                        }
-                        title="Zagraj kartę (wyczerpanie)"
-                      >
-                        Zagraj
-                      </button>
-                    )}
-                    {card.exhausted && (
-                      <span className={styles.scPlayed}>zagrana</span>
-                    )}
-                  </>
+                  // Karta wybrana: pokazujemy właściciela. Zagranie karty (zużycie
+                  // primary) należy do FAZY AKCJI, nie strategii — brak przycisku tutaj.
+                  <FactionMark player={owner.player} size={16} />
                 ) : (
                   unpicked.map((seat) => (
                     <button
