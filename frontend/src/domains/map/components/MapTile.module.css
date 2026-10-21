@@ -76,6 +76,67 @@
   stroke-linejoin: round;
 }
 
+/*
+ * Podświetlenie trybu przenoszenia jednostek (God-Mode). Rysowane jako ostry
+ * kontur heksa W SVG NA WIERZCHU tekstury kafelka (nie jako filtr na całym
+ * kaflu — ten wariant rozmazywał się pod warstwami i wyglądał płasko).
+ * Dwa stany: źródło (zielony, wybrane) i kandydat (cyjan, hover).
+ */
+.moveHighlight {
+  position: absolute;
+  inset: 0;
+  width: 345px;
+  height: 299px;
+  z-index: var(--z-tactical-activation);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.moveHighlight path {
+  fill: none;
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+/* Źródło przeniesienia — zielony, wyraźny, pulsujący. */
+.moveHighlight.moveSource {
+  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.95))
+    drop-shadow(0 0 22px rgba(34, 197, 94, 0.6));
+}
+
+.moveHighlight.moveSource path {
+  stroke: rgba(134, 239, 172, 0.98);
+  fill: rgba(34, 197, 94, 0.14);
+  animation: moveSourcePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes moveSourcePulse {
+  50% {
+    fill: rgba(34, 197, 94, 0.28);
+  }
+}
+
+/*
+ * Kandydat (każdy inny kafelek w trybie przenoszenia): subtelny cyjanowy kontur,
+ * który rozjaśnia się na hover — pokazuje, że kafelek jest klikalny jako cel.
+ * Rysowany na wierzchu, więc nie chowa się pod teksturą.
+ */
+.moveHighlight.moveCandidate path {
+  stroke: rgba(103, 232, 249, 0.45);
+  stroke-width: 4;
+  stroke-dasharray: 10 8;
+  transition: stroke var(--ds-dur, 150ms) ease;
+}
+
+.tileContainer:hover .moveHighlight.moveCandidate {
+  filter: drop-shadow(0 0 10px rgba(103, 232, 249, 0.85));
+}
+
+.tileContainer:hover .moveHighlight.moveCandidate path {
+  stroke: rgba(165, 243, 252, 0.95);
+  stroke-dasharray: none;
+}
+
 /* Focus styles for accessibility */
 .tile:focus {
   outline: 2px solid var(--ds-blue-6);

@@ -125,6 +125,12 @@ export const MapTile = React.memo<Props>(
         mapReplay.tacticalTargetPosition === ringPosition) ||
         mapReplay.changedPositions.has(ringPosition));
 
+    /* Podświetlenie trybu przenoszenia: źródło (wybrane) vs kandydat (klikalny
+       cel). Rysowane jako kontur heksa SVG na wierzchu tekstury (patrz CSS). */
+    const isMoveSource = moveMode && moveFrom === mapTile.position;
+    const isMoveCandidate =
+      moveMode && !embedded && !isHyperlane && moveFrom !== mapTile.position;
+
     return (
       <div
         id={`tile-${ringPosition}`}
@@ -135,10 +141,6 @@ export const MapTile = React.memo<Props>(
           position: embedded ? "relative" : undefined,
           opacity: getTileOpacity(),
           cursor: moveMode ? "crosshair" : undefined,
-          filter:
-            moveMode && moveFrom === mapTile.position
-              ? "drop-shadow(0 0 10px #22c55e) drop-shadow(0 0 4px #22c55e)"
-              : undefined,
         }}
       >
         <div
@@ -166,6 +168,17 @@ export const MapTile = React.memo<Props>(
             <svg
               key={`${mapReplay.key}-system-highlight`}
               className={classes.tacticalActivationGlow}
+              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              aria-hidden="true"
+            >
+              <path d={HEX_PATH} />
+            </svg>
+          )}
+          {(isMoveSource || isMoveCandidate) && (
+            <svg
+              className={`${classes.moveHighlight} ${
+                isMoveSource ? classes.moveSource : classes.moveCandidate
+              }`}
               viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
               aria-hidden="true"
             >
