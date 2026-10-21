@@ -268,6 +268,41 @@ class PlayerEditRequest(BaseModel):
     leader_states: dict[str, str] | None = None
 
 
+class StrategyCardInfo(BaseModel):
+    """Karta strategii dla panelu fazy strategii (dane + stan)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    initiative: int
+    id: str
+    name: str
+    primary_texts: list[str] = Field(default_factory=list)
+    secondary_texts: list[str] = Field(default_factory=list)
+    colour_hex_code: str | None = None
+    # Stan w bieżącej grze:
+    trade_goods: int = 0  # TG leżące na karcie (niewybrana)
+    picked_by: str | None = None  # player_id właściciela (lub None)
+    exhausted: bool = False  # czy zagrana (odwrócona)
+
+
+class StrategyPickRequest(BaseModel):
+    """Wybór karty strategii przez gracza (po numerze inicjatywy)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    initiative: int
+
+
+class StrategyPlayRequest(BaseModel):
+    """Zagranie (wyczerpanie) karty strategii gracza."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    initiative: int
+
+
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

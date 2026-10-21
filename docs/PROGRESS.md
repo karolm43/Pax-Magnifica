@@ -979,3 +979,36 @@ serializacji web-data i endpointów edycji → 11 bugów, wszystkie naprawione.
 
 **QA:** backend 121 testów zielone (było 109; +12 regresji), ruff+mypy czyste; frontend
 type-check+lint+build czyste (fix technologii). Reguły spisane w RULES.md 10/11/12.
+
+---
+### ✅ Blok E2 — faza strategii (wybór kart strategii)
+**Zakres (szkielet grywalny):** pula 8 kart strategii z danych (zestaw PoK), wybór karty
+przez gracza, transfer trade goods z karty do gracza, akumulacja +1 TG na niewybranych
+kartach na przełomie rundy, oznaczenie karty jako zagranej (exhausted). Reguły: RULES.md 13
+(źródło: `strategy_cards/pok.json` + bot `StrategyCardManager.incrementTradeGoods`,
+`PickStrategyCardButtonHandler`). Inicjatywa fazy akcji wynika z wybranych kart (RULES.md 9).
+
+**Backend:**
+- Dane: `StrategyCardDef` (models.py), ładowanie w `StaticDataRegistry` + metoda
+  `strategy_card_set("pok")` (8 kart z `strategyCardSets.json`). Config: `STRATEGY_CARDS_DIR`,
+  `STRATEGY_CARD_SETS_PATH`.
+- Model stanu: `GameState.strategy_card_tg` (TG na kartach), `GameState.speaker_id`,
+  `PlayerState.exhausted_strategy_cards`.
+- Logika: `src/core/strategy_phase.py` (czyste funkcje): `pick_strategy_card`,
+  `play_strategy_card`, `accumulate_unpicked_tg`, `reset_strategy_cards`, `available_initiatives`,
+  `picked_initiatives`.
+- Endpointy: `GET /strategy/cards`, `POST /strategy/pick`, `POST /strategy/play`.
+  `/round/next` rozszerzony: accumulate → reset → next_round (karty wracają do puli,
+  niewybrane rosną w TG).
+- web-data: `strategyCards[]` (initiative/name/id/picked/played/exhausted/tradeGoods/
+  pickedByFaction) + `playerData.exhaustedSCs` wypełnione.
+
+**Frontend:**
+- `useStrategyCards` + `pickStrategyCard`/`playStrategyCard` w `useBoardEditor` (refresh
+  inwaliduje też `strategyCards`).
+- `StrategyCardPicker` w `GameStatePanel` (faza strategii): krążek inicjatywy w barwie karty,
+  nazwa, odznaka TG, przyciski-ikony frakcji do przydziału + „Zagraj"/„zagrana".
+
+**QA:** backend 139 testów zielone (było 121; +11 `test_strategy_phase.py` +7 API w
+`test_web_data.py`), ruff+mypy czyste; frontend type-check+lint+build czyste.
+**Następny etap:** E3 — akcja taktyczna (aktywacja → ruch → walka → inwazja → produkcja).

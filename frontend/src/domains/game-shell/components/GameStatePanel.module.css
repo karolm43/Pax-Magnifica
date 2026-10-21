@@ -476,3 +476,97 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* Picker kart strategii (faza strategii, Etap E2) --------------------- */
+.scList {
+  display: grid;
+  gap: 3px;
+}
+
+.scRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.scRow[data-picked] {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.scName {
+  font-size: var(--text-meta, 12px);
+  color: var(--ds-ink, #e2e8f0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scTg {
+  font-family: var(--font-data);
+  font-size: var(--text-micro, 10px);
+  color: var(--gd-teal, #2dd4bf);
+  background: rgba(45, 212, 191, 0.12);
+  padding: 1px 5px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.scActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
+/* Przycisk przydziału karty: ikona frakcji w okrągłym socketcie. */
+.scPickBtn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.scPickBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--ds-accent, #67e8f9);
+}
+
+.scPickBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.scMini {
+  padding: 2px 7px;
+  font-size: var(--text-micro, 10px);
+  font-weight: 600;
+  color: var(--ds-ink, #e2e8f0);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.scMini:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.scMini:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.scPlayed {
+  font-size: var(--text-micro, 10px);
+  color: var(--ds-ink-lo, #94a3b8);
+  font-style: italic;
+}

@@ -43,13 +43,16 @@ from src.api.schemas import (
     SetupPlayerRequest,
     SpaceUnitsRequest,
     StateEnvelope,
+    StrategyCardInfo,
+    StrategyPickRequest,
+    StrategyPlayRequest,
     UnitEditRequest,
     UnitMoveRequest,
     UnitStack,
 )
 from src.api.state_service import StateService
 from src.api.web_data import build_web_data
-from src.core import turn_flow
+from src.core import strategy_phase, turn_flow
 from src.core.event_store import EventStore
 from src.core.faction_setup import apply_setup_to_state
 from src.core.game_state import GameState, PlayerState, SystemState
@@ -706,9 +709,72 @@ def create_app(
 
     @app.post("/round/next", response_model=StateEnvelope)
     async def post_next_round() -> StateEnvelope:
-        """Rozpoczyna nową rundę (runda +1, faza = strategia, reset pasów)."""
+        """Rozpoczyna nową rundę: runda +1, faza = strategia, reset pasów.
+
+        Na przełomie rundy karty strategii wracają do puli, a na każdej NIEWYBRANEJ
+        karcie dokładany jest +1 trade good (RULES.md 13 — reguła akumulacji z bota).
+        Kolejność: accumulate (na poprzednich wyborach) → reset → next_round.
+        """
+        state = service.current_state()
+        state = strategy_phase.accumulate_unpicked_tg(state, reg)
+        state = strategy_phase.reset_strategy_cards(state)
+        state = turn_flow.next_round(state)
+        return await _commit_flow(state, "round:next")
+
+    # --- Faza strategii (Etap E2) -------------------------------------------
+
+    @app.get("/strategy/cards", response_model=list[StrategyCardInfo])
+    def get_strategy_cards() -> list[StrategyCardInfo]:
+        """Pula kart strategii aktywnego zestawu + ich stan w bieżącej grze."""
+        state = service.current_state()
+        # Mapa: numer inicjatywy -> player_id, który ją wybrał.
+        owner_by_init: dict[int, str] = {}
+        exhausted_by_init: dict[int, bool] = {}
+        for pid, player in state.players.items():
+            for init in player.strategy_cards:
+                owner_by_init[init] = pid
+                exhausted_by_init[init] = init in player.exhausted_strategy_cards
+        cards: list[StrategyCardInfo] = []
+        for card in reg.strategy_card_set():
+            cards.append(
+                StrategyCardInfo(
+                    initiative=card.initiative,
+                    id=card.id,
+                    name=card.name,
+                    primary_texts=list(card.primary_texts),
+                    secondary_texts=list(card.secondary_texts),
+                    colour_hex_code=card.colour_hex_code,
+                    trade_goods=state.strategy_card_tg.get(card.initiative, 0),
+                    picked_by=owner_by_init.get(card.initiative),
+                    exhausted=exhausted_by_init.get(card.initiative, False),
+                )
+            )
+        return cards
+
+    @app.post("/strategy/pick", response_model=StateEnvelope)
+    async def post_strategy_pick(request: StrategyPickRequest) -> StateEnvelope:
+        """Gracz wybiera kartę strategii (transfer TG z karty, ustala inicjatywę)."""
+        try:
+            new_state = strategy_phase.pick_strategy_card(
+                service.current_state(), reg, request.player_id, request.initiative
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         return await _commit_flow(
-            turn_flow.next_round(service.current_state()), "round:next"
+            new_state, f"strategy:pick:{request.player_id}:{request.initiative}"
+        )
+
+    @app.post("/strategy/play", response_model=StateEnvelope)
+    async def post_strategy_play(request: StrategyPlayRequest) -> StateEnvelope:
+        """Gracz zagrywa (wyczerpuje) swoją kartę strategii."""
+        try:
+            new_state = strategy_phase.play_strategy_card(
+                service.current_state(), request.player_id, request.initiative
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return await _commit_flow(
+            new_state, f"strategy:play:{request.player_id}:{request.initiative}"
         )
 
     @app.put("/state", response_model=StateEnvelope)

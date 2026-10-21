@@ -707,7 +707,7 @@ def _build_player_data(
                 "unfollowedSCs": [],
                 # Karty strategii gracza (numery inicjatywy) — kolejność tur w panelu faz.
                 "scs": list(player.strategy_cards),
-                "exhaustedSCs": [],
+                "exhaustedSCs": list(player.exhausted_strategy_cards),
                 "neighbors": [],
                 "soCount": 0,
                 "pnCount": 0,
@@ -742,6 +742,42 @@ def _build_player_data(
             }
         )
     return players
+
+
+def _build_strategy_cards(
+    state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
+) -> list[dict[str, Any]]:
+    """Buduje ``strategyCards`` dla web-data z aktywnego zestawu + stanu gry.
+
+    Pola zgodne z typem frontendu (``StrategyCard``): ``initiative``, ``name``, ``id``,
+    ``picked``, ``played``, ``exhausted``, ``tradeGoods``, ``pickedByFaction``.
+    ``pickedByFaction`` używa klucza tożsamości (spójnie z ``playerData[].faction``).
+    """
+    owner_by_init: dict[int, str] = {}
+    exhausted_by_init: dict[int, bool] = {}
+    for player_id, player in state.players.items():
+        for init in player.strategy_cards:
+            owner_by_init[init] = player_id
+            exhausted_by_init[init] = init in player.exhausted_strategy_cards
+    cards: list[dict[str, Any]] = []
+    for card in registry.strategy_card_set():
+        owner_id = owner_by_init.get(card.initiative)
+        exhausted = exhausted_by_init.get(card.initiative, False)
+        cards.append(
+            {
+                "initiative": card.initiative,
+                "name": card.name,
+                "id": card.id,
+                "picked": owner_id is not None,
+                "played": exhausted,
+                "exhausted": exhausted,
+                "tradeGoods": state.strategy_card_tg.get(card.initiative, 0),
+                "pickedByFaction": (
+                    entity_keys.get(owner_id, owner_id) if owner_id else None
+                ),
+            }
+        )
+    return cards
 
 
 def _empty_objectives() -> dict[str, Any]:
@@ -838,7 +874,7 @@ def build_web_data(
         "statTilePositions": _build_stat_tile_positions(state, grid, entity_keys),
         "gameState": _build_game_state(state),
         "lawsInPlay": [],
-        "strategyCards": [],
+        "strategyCards": _build_strategy_cards(state, registry, entity_keys),
         "objectives": _empty_objectives(),
         "cardPool": _empty_card_pool(),
         "expeditions": _empty_expeditions(),

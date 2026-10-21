@@ -85,6 +85,19 @@ class FactionDef(_StaticModel):
     leaders: list[str] = Field(default_factory=list)
 
 
+class StrategyCardDef(_StaticModel):
+    """Definicja karty strategii (inicjatywa, nazwa, teksty primary/secondary)."""
+
+    id: str
+    initiative: int
+    name: str
+    source: str
+
+    primary_texts: list[str] = Field(default_factory=list, alias="primaryTexts")
+    secondary_texts: list[str] = Field(default_factory=list, alias="secondaryTexts")
+    colour_hex_code: str | None = Field(default=None, alias="colourHexCode")
+
+
 class SystemDef(_StaticModel):
     """Definicja systemu (kafelka): planety, wormhole, przynależność."""
 

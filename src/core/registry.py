@@ -22,7 +22,13 @@ from typing import Protocol, TypeVar, cast
 from pydantic import BaseModel
 
 from src import config
-from src.core.models import FactionDef, PlanetDef, SystemDef, UnitDef
+from src.core.models import (
+    FactionDef,
+    PlanetDef,
+    StrategyCardDef,
+    SystemDef,
+    UnitDef,
+)
 
 
 class _HasId(Protocol):
@@ -95,6 +101,7 @@ class StaticDataRegistry:
         self.planets: dict[str, PlanetDef] = {}
         self.systems: dict[str, SystemDef] = {}
         self.factions: dict[str, FactionDef] = {}
+        self.strategy_cards: dict[str, StrategyCardDef] = {}
 
         # Mapowania id -> gęsty indeks int (pod FastState)
         self.unit_index: dict[str, int] = {}
@@ -137,10 +144,40 @@ class StaticDataRegistry:
         self.factions = self._collect(
             _iter_dir_entries(config.FACTIONS_DATA_DIR), FactionDef
         )
+        self.strategy_cards = self._collect(
+            _iter_dir_entries(config.STRATEGY_CARDS_DIR), StrategyCardDef
+        )
 
         self.unit_index = {uid: i for i, uid in enumerate(sorted(self.units))}
         self.planet_index = {pid: i for i, pid in enumerate(sorted(self.planets))}
         self.system_index = {sid: i for i, sid in enumerate(sorted(self.systems))}
+
+    # --- Karty strategii -----------------------------------------------
+
+    def strategy_card_set(self, set_alias: str = "pok") -> list[StrategyCardDef]:
+        """Zwraca uporządkowane karty strategii wskazanego zestawu (domyślnie PoK).
+
+        Czyta listę ``scIDs`` z ``strategyCardSets.json`` dla podanego aliasu i mapuje
+        je na załadowane ``StrategyCardDef`` (po ``id``), sortując po inicjatywie.
+        Pomija karty, których definicji brak w rejestrze (nieaktywne źródło).
+
+        Returns:
+            Lista ``StrategyCardDef`` posortowana rosnąco po ``initiative``. Pusta,
+            gdy zestaw nie istnieje lub żadna karta nie jest załadowana.
+        """
+        if not config.STRATEGY_CARD_SETS_PATH.is_file():
+            return []
+        raw = json.loads(config.STRATEGY_CARD_SETS_PATH.read_text(encoding="utf-8"))
+        sets = raw if isinstance(raw, list) else []
+        sc_ids: list[str] = []
+        for entry in sets:
+            if isinstance(entry, dict) and entry.get("alias") == set_alias:
+                ids = entry.get("scIDs")
+                if isinstance(ids, list):
+                    sc_ids = [sid for sid in ids if isinstance(sid, str)]
+                break
+        cards = [self.strategy_cards[sid] for sid in sc_ids if sid in self.strategy_cards]
+        return sorted(cards, key=lambda c: c.initiative)
 
     # --- Walidacja spójności -------------------------------------------
 

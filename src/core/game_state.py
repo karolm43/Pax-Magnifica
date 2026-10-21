@@ -50,6 +50,8 @@ class PlayerState(BaseModel):
     passed: bool = False
     # Karty strategii gracza (numery inicjatywy, np. [3]); puste poza fazą.
     strategy_cards: list[int] = Field(default_factory=list)
+    # Zagrane (wyczerpane) karty strategii gracza — po użyciu primary (odwrócone).
+    exhausted_strategy_cards: list[int] = Field(default_factory=list)
 
     # Planety kontrolowane przez gracza (identyfikatory planet).
     controlled_planets: list[str] = Field(default_factory=list)
@@ -83,6 +85,12 @@ class GameState(BaseModel):
     round_number: int = 1
     phase: Phase = Phase.STRATEGY
     active_player_id: str | None = None
+    # Mówca (speaker) — zaczyna wybór kart strategii; None dopóki nieustalony.
+    speaker_id: str | None = None
+    # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
+    # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
+    # TG graczowi i zeruje licznik (RULES.md 13).
+    strategy_card_tg: dict[int, int] = Field(default_factory=dict)
 
     players: dict[str, PlayerState] = Field(default_factory=dict)
     systems: dict[str, SystemState] = Field(default_factory=dict)

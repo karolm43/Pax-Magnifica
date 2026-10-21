@@ -66,6 +66,7 @@ export function useBoardEditor() {
   const refresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["playerData"] });
     await queryClient.invalidateQueries({ queryKey: ["history"] });
+    await queryClient.invalidateQueries({ queryKey: ["strategyCards"] });
   }, [queryClient]);
 
   const editUnit = useCallback(
@@ -143,6 +144,28 @@ export function useBoardEditor() {
     await refresh();
   }, [refresh]);
 
+  const pickStrategyCard = useCallback(
+    async (playerId: string, initiative: number) => {
+      await post("/strategy/pick", {
+        player_id: playerId,
+        initiative,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const playStrategyCard = useCallback(
+    async (playerId: string, initiative: number) => {
+      await post("/strategy/play", {
+        player_id: playerId,
+        initiative,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   return {
     editUnit,
     moveUnit,
@@ -154,7 +177,31 @@ export function useBoardEditor() {
     passTurn,
     nextPhase,
     nextRound,
+    pickStrategyCard,
+    playStrategyCard,
   };
+}
+
+export type StrategyCardState = {
+  initiative: number;
+  id: string;
+  name: string;
+  primary_texts: string[];
+  secondary_texts: string[];
+  colour_hex_code: string | null;
+  trade_goods: number;
+  picked_by: string | null;
+  exhausted: boolean;
+};
+
+/** Pula kart strategii aktywnego zestawu + ich stan w bieżącej grze. */
+export function useStrategyCards() {
+  return useQuery<StrategyCardState[]>({
+    queryKey: ["strategyCards"],
+    queryFn: async () =>
+      fetchJson<StrategyCardState[]>("/bot/strategy/cards", "strategyCards"),
+    staleTime: 0,
+  });
 }
 
 export type HistoryEntry = { seq: number; label: string; is_current: boolean };

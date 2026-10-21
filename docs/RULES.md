@@ -426,3 +426,41 @@ z `planet_owners`).
 drugiego. Panel pokazywał planetę, mapa nie miała właściciela (i odwrotnie). Opcja A
 odzwierciedla model gry: planeta fizycznie leży w systemie i to system „wie", kto ją
 kontroluje; jest też naturalną podstawą pod przyszłą logikę podbojów/inwazji.
+
+---
+
+## 13. Faza strategii (wybór kart strategii) — ✅ ZWERYFIKOWANE (dane + Java bot)
+
+Źródło (nie z pamięci): dane kart `assets/data/strategy_cards/pok.json` +
+`assets/data/strategy_card_sets/strategyCardSets.json`; logika z AsyncTI4 bot:
+`StrategyCardManager.incrementTradeGoods`, `PickStrategyCardButtonHandler` (grant TG przy
+wyborze), `PlayStrategyCardService`. Zweryfikowane 2026-10 na kodzie bota.
+
+**Zestaw kart (domyślny PoK, 8 kart):** każda ma `initiative` (1–8) i `name`:
+1 Leadership, 2 Diplomacy, 3 Politics, 4 Construction, 5 Trade, 6 Warfare,
+7 Technology, 8 Imperial. Inicjatywa = numer karty. Dane czytane z rejestru po
+`enabled_sources.json` (zestaw `pok`). Zero hardkodowania nazw/numerów.
+
+**Reguła wyboru (pick):**
+- W fazie strategii każdy gracz wybiera 1 kartę (przy ≤4 graczach warianty biorą 2 —
+  tu wspieramy 1 kartę/gracz, zgodnie z 5–6 osobową grą; wielokrotny wybór dołożymy przy
+  wariantach 3–4 graczy). Kolejność wyboru: od mówcy (speaker) zgodnie z ruchem zegara.
+- **Trade goods na kartach:** na każdej NIEWYBRANEJ karcie leży pula trade goods (start 0).
+  Gdy gracz wybiera kartę, **otrzymuje wszystkie TG z tej karty**, a licznik karty zeruje
+  się (`PickStrategyCardButtonHandler`: `player.setTg(tg + tgCount)`, potem
+  `setScTradeGood(scPicked, 0)`).
+- **Akumulacja TG:** na koniec fazy strategii (przy przejściu do kolejnej rundy) do każdej
+  karty, której NIKT nie wybrał, dokładany jest +1 TG (`StrategyCardManager.incrementTradeGoods`:
+  dla każdego `scNumber` spoza wybranych → `tgCount+1`). Dzięki temu niechciane karty rosną w TG.
+
+**Inicjatywa dla fazy akcji:** kolejność tur ustala najniższy numer wybranej karty
+(już zaimplementowane w `turn_flow.turn_order`, RULES.md 9).
+
+**Primary/secondary (treść zdolności):** `primaryTexts`/`secondaryTexts` z danych karty —
+pełne rozstrzyganie efektów (np. Leadership: +3 CC; Trade: +3 TG) to kolejne etapy (E4/akcje
+strategiczne). W E2 implementujemy szkielet: pulę kart, wybór, akumulację/transfer TG,
+oznaczenie karty jako ZAGRANEJ (exhausted). Efekty primary/secondary jako osobny krok.
+
+Implementacja: `src/core/strategy_phase.py` (czyste funkcje) + model
+`GameState.strategy_card_tg`, `GameState.speaker_id`, `PlayerState.exhausted_strategy_cards`;
+endpointy `POST /strategy/pick`, `/strategy/play`, `/strategy/reset`.

@@ -444,3 +444,96 @@ def test_stat_tile_anchored_to_home_not_conquest(client: TestClient) -> None:
     positions = data["statTilePositions"]["sol"]
     # Heksy nadal przy domu (pierścień 4), nie przy zdobytym Mecatolu (pierścień 0).
     assert all(p.startswith("4") for p in positions)
+
+
+# --- Faza strategii (Etap E2) -------------------------------------------------
+
+
+def test_strategy_cards_pool_endpoint(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    cards = client.get("/strategy/cards").json()
+    # Domyślny zestaw PoK: 8 kart, inicjatywy 1..8, nazwy z danych.
+    assert [c["initiative"] for c in cards] == [1, 2, 3, 4, 5, 6, 7, 8]
+    names = {c["name"] for c in cards}
+    assert {"Leadership", "Trade", "Imperial"} <= names
+    # Na starcie nic nie wybrane, brak TG na kartach.
+    assert all(c["picked_by"] is None and c["trade_goods"] == 0 for c in cards)
+
+
+def test_strategy_pick_assigns_and_appears_in_web_data(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 3})
+    # Pula: karta 3 ma właściciela p1.
+    cards = client.get("/strategy/cards").json()
+    politics = next(c for c in cards if c["initiative"] == 3)
+    assert politics["picked_by"] == "p1"
+    # web-data: strategyCards + playerData.scs odzwierciedlają wybór.
+    data = client.get("/api/public/game/g/web-data").json()
+    sc3 = next(c for c in data["strategyCards"] if c["initiative"] == 3)
+    assert sc3["picked"] is True
+    assert sc3["pickedByFaction"] == "sol"  # klucz tożsamości = frakcja
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    assert 3 in sol["scs"]
+
+
+def test_strategy_pick_transfers_trade_goods(client: TestClient) -> None:
+    # Dwaj gracze; p1 wybiera 1, nowa runda dokłada TG na niewybranych, p2 bierze TG.
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 1})
+    # Nowa runda: akumulacja +1 TG na kartach 2..8 (p2 nic nie wybrał), reset puli.
+    client.post("/round/next")
+    cards = client.get("/strategy/cards").json()
+    card5 = next(c for c in cards if c["initiative"] == 5)
+    assert card5["trade_goods"] == 1  # +1 z akumulacji
+    # p2 wybiera kartę 5 → dostaje 1 TG z karty, licznik karty zeruje się.
+    data_before = client.get("/api/public/game/g/web-data").json()
+    hacan_tg_before = next(
+        p for p in data_before["playerData"] if p["faction"] == "hacan"
+    )["tg"]
+    client.post("/strategy/pick", json={"player_id": "p2", "initiative": 5})
+    data_after = client.get("/api/public/game/g/web-data").json()
+    hacan_tg_after = next(
+        p for p in data_after["playerData"] if p["faction"] == "hacan"
+    )["tg"]
+    assert hacan_tg_after == hacan_tg_before + 1
+    sc5 = next(c for c in data_after["strategyCards"] if c["initiative"] == 5)
+    assert sc5["tradeGoods"] == 0
+
+
+def test_strategy_play_marks_exhausted_in_web_data(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
+    client.post("/strategy/play", json={"player_id": "p1", "initiative": 6})
+    data = client.get("/api/public/game/g/web-data").json()
+    sc6 = next(c for c in data["strategyCards"] if c["initiative"] == 6)
+    assert sc6["exhausted"] is True and sc6["played"] is True
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    assert 6 in sol["exhaustedSCs"]
+
+
+def test_strategy_pick_rejects_taken_card(client: TestClient) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 2})
+    resp = client.post("/strategy/pick", json={"player_id": "p2", "initiative": 2})
+    assert resp.status_code == 422
+
+
+def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
+    # Inicjatywa fazy akcji wynika z wybranych kart (RULES.md 9): niższy numer = pierwszy.
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
+    client.post("/strategy/pick", json={"player_id": "p2", "initiative": 2})
+    # Przejdź do fazy akcji — aktywny powinien być p2 (karta 2 < 6).
+    client.post("/phase/next")  # strategy -> action
+    data = client.get("/api/public/game/g/web-data").json()
+    hacan = next(p for p in data["playerData"] if p["faction"] == "hacan")
+    assert hacan["active"] is True

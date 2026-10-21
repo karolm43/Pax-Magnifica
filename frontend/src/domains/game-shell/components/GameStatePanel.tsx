@@ -4,7 +4,7 @@ import { Collapse, UnstyledButton } from "@/ds";
 import { IconChevronDown, IconSwords, IconTrophy } from "@tabler/icons-react";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
-import { useBoardEditor } from "@/api/useBoardEditor";
+import { useBoardEditor, useStrategyCards } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -478,6 +478,7 @@ function PlateBody({
         />
       )}
       {showOrder && <TurnOrder seats={seats} />}
+      {phase === "strategy" && <StrategyCardPicker seats={seats} />}
       {phase === "action" && <FollowQueue seats={seats} />}
       {isAgenda && (
         <AgendaRow
@@ -489,6 +490,110 @@ function PlateBody({
       )}
       <PhaseControls phase={phase} />
     </>
+  );
+}
+
+/**
+ * Wybór kart strategii (faza strategii, Etap E2). Każda karta: barwny krążek z
+ * inicjatywą, nazwa, odznaka trade goods leżących na karcie. Karty niewybrane mają
+ * przyciski-ikony frakcji (gracze, którzy jeszcze nie wybrali) do przypisania.
+ * Karta wybrana pokazuje właściciela i — jeśli jego — przycisk „Zagraj".
+ */
+function StrategyCardPicker({ seats }: { seats: Seat[] }) {
+  const { data: cards } = useStrategyCards();
+  const { pickStrategyCard, playStrategyCard } = useBoardEditor();
+  const [busy, setBusy] = useState(false);
+
+  if (!cards || cards.length === 0) return null;
+
+  const run = async (fn: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Gracze, którzy jeszcze nie wybrali karty (mogą wybierać).
+  const unpicked = seats.filter((s) => !s.player.scs?.length);
+
+  return (
+    <div className={styles.section}>
+      <span className={styles.label}>Karty strategii</span>
+      <div className={styles.scList}>
+        {cards.map((card) => {
+          const owner = seats.find(
+            (s) => s.player.discordId === card.picked_by,
+          );
+          return (
+            <div key={card.initiative} className={styles.scRow} data-picked={!!card.picked_by || undefined}>
+              <span
+                className={styles.disc}
+                style={toneStyle({ "--scc": SC_TONE[card.initiative] })}
+              >
+                {card.initiative}
+              </span>
+              <span className={styles.scName}>{card.name}</span>
+              {card.trade_goods > 0 && (
+                <span className={styles.scTg} title="Trade goods na karcie">
+                  +{card.trade_goods} TG
+                </span>
+              )}
+              <span className={styles.scActions}>
+                {owner ? (
+                  <>
+                    <FactionMark player={owner.player} size={16} />
+                    {!card.exhausted && (
+                      <button
+                        type="button"
+                        className={styles.scMini}
+                        disabled={busy}
+                        onClick={() =>
+                          void run(() =>
+                            playStrategyCard(
+                              owner.player.discordId,
+                              card.initiative,
+                            ),
+                          )
+                        }
+                        title="Zagraj kartę (wyczerpanie)"
+                      >
+                        Zagraj
+                      </button>
+                    )}
+                    {card.exhausted && (
+                      <span className={styles.scPlayed}>zagrana</span>
+                    )}
+                  </>
+                ) : (
+                  unpicked.map((seat) => (
+                    <button
+                      key={seat.player.discordId}
+                      type="button"
+                      className={styles.scPickBtn}
+                      disabled={busy}
+                      onClick={() =>
+                        void run(() =>
+                          pickStrategyCard(
+                            seat.player.discordId,
+                            card.initiative,
+                          ),
+                        )
+                      }
+                      title={`Przydziel: ${seat.name}`}
+                    >
+                      <FactionMark player={seat.player} size={16} />
+                    </button>
+                  ))
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
