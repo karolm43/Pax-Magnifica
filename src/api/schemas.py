@@ -243,6 +243,29 @@ class UnitMoveRequest(BaseModel):
     count: int = 1
 
 
+class PlayerEditRequest(BaseModel):
+    """God-Mode: edycja pól gracza. Każde pole opcjonalne — podane nadpisuje.
+
+    Bez sprawdzania zasad (narzędzie operatora). Pola odpowiadają ``PlayerState``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str | None = None
+    color: str | None = None
+    victory_points: int | None = None
+    trade_goods: int | None = None
+    commodities: int | None = None
+    tactical_cc: int | None = None
+    fleet_cc: int | None = None
+    strategic_cc: int | None = None
+    cc_reinf: int | None = None
+    passed: bool | None = None
+    strategy_cards: list[int] | None = None
+    controlled_planets: list[str] | None = None
+    technologies: list[str] | None = None
+
+
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

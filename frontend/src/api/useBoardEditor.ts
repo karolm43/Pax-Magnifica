@@ -38,6 +38,23 @@ export type MoveUnitArgs = {
   count?: number;
 };
 
+/** Edytowalne pola gracza (God-Mode). Wszystkie opcjonalne — podane nadpisują. */
+export type PlayerEdit = {
+  faction?: string;
+  color?: string;
+  victory_points?: number;
+  trade_goods?: number;
+  commodities?: number;
+  tactical_cc?: number;
+  fleet_cc?: number;
+  strategic_cc?: number;
+  cc_reinf?: number;
+  passed?: boolean;
+  strategy_cards?: number[];
+  controlled_planets?: string[];
+  technologies?: string[];
+};
+
 /**
  * Hook z akcjami edycji planszy (God-Mode). Każda akcja po sukcesie inwaliduje
  * dokument web-data, więc plansza i panele odświeżają się natychmiast.
@@ -97,7 +114,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  return { editUnit, moveUnit, undo, redo, gotoHistory };
+  const editPlayer = useCallback(
+    async (playerId: string, edit: PlayerEdit) => {
+      await post(`/player/${playerId}/edit`, edit);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { editUnit, moveUnit, undo, redo, gotoHistory, editPlayer };
 }
 
 export type HistoryEntry = { seq: number; label: string; is_current: boolean };

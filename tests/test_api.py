@@ -323,6 +323,25 @@ def test_edit_units_add_and_remove(client: TestClient) -> None:
     assert _space_count(resp.json(), "101", "cruiser") == 0
 
 
+def test_edit_player_fields(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.post(
+        "/player/p1/edit",
+        json={"victory_points": 5, "trade_goods": 7, "tactical_cc": 1},
+    )
+    assert resp.status_code == 200
+    data = client.get("/api/public/game/local/web-data").json()
+    p = data["playerData"][0]
+    assert p["totalVps"] == 5
+    assert p["tg"] == 7
+    assert p["tacticalCC"] == 1
+    # Edycja jest w historii — Undo cofa.
+    client.post("/undo")
+    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    assert p["totalVps"] == 0
+    assert p["tacticalCC"] == 3
+
+
 def test_history_list_and_goto(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     client.post(

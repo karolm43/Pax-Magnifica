@@ -857,3 +857,32 @@ wysyłaliśmy puste/zerowe (komponenty frontendu już je renderują — brakowa�
 **Zweryfikowane E2E:** Sol → liderzy `solagent(agent,unlocked), solcommander(locked),
 solhero(locked)`; planeta `jord`; `res=4 inf=2 optRes=4 optInf=0`. Brak zmian we froncie
 (komponenty już gotowe). Backend 98 testów zielone, ruff+mypy czyste, front type-check czysty.
+
+---
+
+### ✅ Blok F15 — God-Mode: edytor stanu gracza
+
+**Cel użytkownika:** wszystkie dane graczy wysyłane i łatwo edytowalne (God-Mode), w stylu strony.
+
+**Backend:**
+- `POST /player/{player_id}/edit` (`app.py`) + `PlayerEditRequest` (`schemas.py`): patch
+  dowolnych pól `PlayerState` (VP, trade_goods, commodities, tactical/fleet/strategic_cc,
+  cc_reinf, passed, strategy_cards, controlled_planets, technologies, faction, color).
+  Każde pole opcjonalne; tworzy gracza gdy nie istnieje. Commit → historia (Undo działa).
+  Bez sprawdzania zasad.
+
+**Frontend:**
+- `useBoardEditor.editPlayer(playerId, edit)` + typ `PlayerEdit`.
+- `PlayerEditorModal` (styl ds): selektor gracza (SegmentedControl), pola liczbowe ze
+  stepperami +/− i polem liczbowym (VP, TG, commodities, 3× CC, rezerwa), przełącznik
+  „passed", pola tekstowe (frakcja, kolor, technologie i planety po przecinku).
+- Przycisk „Gracze" w nagłówku (`HeaderGameControls`) otwiera modal.
+
+**Zweryfikowane E2E:** edycja p1 VP=5/tg=7/tacCC=1 → web-data to pokazuje; Undo cofa do
+0/0/3. Backend 99 testów zielone, ruff+mypy czyste, build frontu czysty.
+
+**Stan God-Mode (Milestone 1) — podsumowanie dostępnych edycji z UI:**
+- Jednostki: dodaj/usuń per strefa (dossier → „Edytuj planszę"), przenieś (tryb „Przenieś”
+  2 systemy lub select w edytorze).
+- Gracz: wszystkie pola (przycisk „Gracze" w nagłówku).
+- Historia: panel (menu Events) + Cofnij/Ponów/skok do punktu.

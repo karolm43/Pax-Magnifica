@@ -5,10 +5,12 @@ import {
   IconArrowForwardUp,
   IconArrowsExchange,
   IconRefresh,
+  IconUserEdit,
 } from "@tabler/icons-react";
 import { useGameDataState } from "@/state/useGameContext";
 import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
+import { PlayerEditorModal } from "@/domains/player/components/PlayerEditorModal";
 import hud from "./hudChrome.module.css";
 
 /**
@@ -23,6 +25,7 @@ export function HeaderGameControls() {
   const toggleMoveMode = useAppStore((s) => s.toggleMoveMode);
   const moveFrom = useAppStore((s) => s.moveFrom);
   const [busy, setBusy] = useState<null | "undo" | "redo">(null);
+  const [playerEditorOpen, setPlayerEditorOpen] = useState(false);
 
   const run = async (which: "undo" | "redo") => {
     if (busy) return;
@@ -38,6 +41,10 @@ export function HeaderGameControls() {
 
   return (
     <Group gap={6} wrap="nowrap" visibleFrom="sm">
+      <PlayerEditorModal
+        opened={playerEditorOpen}
+        onClose={() => setPlayerEditorOpen(false)}
+      />
       <Button
         variant="default"
         size="xs"
@@ -73,6 +80,16 @@ export function HeaderGameControls() {
             ? "Wybierz cel…"
             : "Wybierz źródło…"
           : "Przenieś"}
+      </Button>
+      <Button
+        variant="default"
+        size="xs"
+        className={hud.hudButton}
+        leftSection={<IconUserEdit size={14} />}
+        onClick={() => setPlayerEditorOpen(true)}
+        title="God-Mode: edytuj dane graczy"
+      >
+        Gracze
       </Button>
       <Button
         variant="default"

@@ -39,6 +39,7 @@ from src.api.schemas import (
     NewGameRequest,
     PlanetUnits,
     PlanetUnitsRequest,
+    PlayerEditRequest,
     SetupPlayerRequest,
     SpaceUnitsRequest,
     StateEnvelope,
@@ -50,7 +51,7 @@ from src.api.state_service import StateService
 from src.api.web_data import build_web_data
 from src.core.event_store import EventStore
 from src.core.faction_setup import apply_setup_to_state
-from src.core.game_state import GameState, SystemState
+from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import Hex, HexGrid
 from src.core.home_slots import HOME_SLOT_COLORS_6P, home_slot_color
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, build_grid_from_map_string
@@ -556,6 +557,26 @@ def create_app(
         await service.broadcast()
         await broadcast_map()
         return build_map_view(app.state.current_grid, reg, service.current_state())
+
+    @app.post("/player/{player_id}/edit", response_model=StateEnvelope)
+    async def post_edit_player(
+        player_id: str, request: PlayerEditRequest
+    ) -> StateEnvelope:
+        """God-Mode: edycja pól gracza (VP, zasoby, CC, frakcja, planety…).
+
+        Tworzy gracza, gdy nie istnieje. Każde podane pole nadpisuje stan; pominięte
+        pozostają bez zmian. Bez sprawdzania zasad. Commit → historia (Undo działa).
+        """
+        state = service.current_state().clone()
+        player = state.players.get(player_id) or PlayerState(player_id=player_id)
+        updates = request.model_dump(exclude_none=True)
+        for field, value in updates.items():
+            setattr(player, field, value)
+        state.players[player_id] = player
+        service.replace_state(state, label=f"player:{player_id}")
+        await service.broadcast()
+        await broadcast_map()
+        return service.envelope()
 
     @app.put("/state", response_model=StateEnvelope)
     async def put_state(state: GameState) -> StateEnvelope:
