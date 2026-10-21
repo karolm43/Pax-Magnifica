@@ -18,6 +18,7 @@ import { Unit } from "@/shared/ui/Unit";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import type { Tile } from "@/entities/game/types";
 import type { EntityData } from "@/entities/data/types";
+import styles from "./MoveUnitsModal.module.css";
 
 /** Jedna pozycja do przeniesienia: frakcja + strefa źródłowa + jednostka + ile. */
 type Movable = {
@@ -149,7 +150,7 @@ export function MoveUnitsModal() {
                 wrap="nowrap"
               >
                 <Group gap="xs" wrap="nowrap">
-                  <div style={{ width: 28, height: 28 }}>
+                  <div className={styles.unitIcon}>
                     <Unit
                       unitType={m.asyncId}
                       colorAlias={colorAlias}

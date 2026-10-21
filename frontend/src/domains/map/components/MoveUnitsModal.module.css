@@ -1,0 +1,27 @@
+/*
+ * Ikona jednostki w menu przenoszenia. Sprite jednostki ma natywny (różny per
+ * typ) rozmiar w pikselach — bez ograniczenia War Sun był ogromny, piechota
+ * mała (grafiki „duże i nierówne"). Tu wymuszamy JEDNOLITY kwadratowy slot i
+ * skalujemy sprite tak, by mieścił się w nim z zachowaniem proporcji.
+ */
+.unitIcon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/*
+ * Nadpisanie natywnego rozmiaru sprite'u. W trybie scaled tło (background-size/
+ * -position) jest w PROCENTACH ramki, więc rozciąga się do pudełka, jakie damy
+ * elementowi — NIE ruszamy background. Ustalamy JEDNOLITĄ wysokość 26px (nie %,
+ * bo pośredni wrapper <Unit> nie ma wysokości i % by się zapadło), a szerokość
+ * wylicza aspect-ratio sprite'u; max-width clampuje wysokie jednostki do kwadratu.
+ */
+.unitIcon :global(.unit-sprite) {
+  height: 26px;
+  width: auto;
+  max-width: 26px;
+}
