@@ -47,6 +47,21 @@ const LEADER_STATE_LABEL: Record<string, string> = {
   exhausted: "⟲",
 };
 
+/*
+ * Oficjalne źródła (zgodne z assets/enabled_sources.json backendu). Dane
+ * frontendu zawierają TĘ SAMĄ technologię z wielu źródeł homebrew (absol,
+ * twilights_fall, …) pod różnymi aliasami — bez tego filtra lista dublowała
+ * nazwy (np. "Bioplasmosis" ×6). Oficjalne źródła nie mają duplikatów nazw.
+ */
+const OFFICIAL_TECH_SOURCES = new Set([
+  "base",
+  "pok",
+  "codex1",
+  "codex2",
+  "codex3",
+  "codex4",
+]);
+
 /** Krótki kod technologii: litery wymagań (np. "BB") albo inicjał typu. */
 function techCode(requirements: string | undefined, types: string[]): string {
   if (requirements) return requirements.toUpperCase();
@@ -70,14 +85,16 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
 
   const player = players.find((p) => p.discordId === selected) ?? players[0];
 
-  // Opcje technologii: nazwa + skrót; sortowane; faktyczne + ogólne (bez homebrew duplikatów).
+  // Opcje technologii: TYLKO oficjalne źródła (bez homebrew duplikatów nazw),
+  // dedup po nazwie, ogólne + frakcji bieżącego gracza. Nazwa + skrót.
   const techOptions = useMemo(() => {
-    const seen = new Set<string>();
+    const seenName = new Set<string>();
     return ALL_TECHS.filter((t) => {
-      if (seen.has(t.alias)) return false;
-      seen.add(t.alias);
-      // Pomijamy frakcyjne cudze: pokaż ogólne + frakcji bieżącego gracza.
+      if (!OFFICIAL_TECH_SOURCES.has(t.source)) return false;
+      // Frakcyjne: tylko bieżącego gracza; ogólne (bez faction) zawsze.
       if (t.faction && player && t.faction !== player.faction) return false;
+      if (seenName.has(t.name)) return false;
+      seenName.add(t.name);
       return true;
     })
       .map((t) => ({
