@@ -1,0 +1,108 @@
+[
+    {
+        "id": "tribunal1",
+        "initiative": 1,
+        "name": "Anticipation",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "imageFileName": "tribunal_1",
+        "colourHexCode": "#ff1600",
+        "source": "other"
+    },
+    {
+        "id": "tribunal2",
+        "initiative": 2,
+        "name": "Diplomacy",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "imageFileName": "tribunal_2",
+        "colourHexCode": "#ff6901",
+        "source": "other"
+    },
+    {
+        "id": "tribunal3",
+        "initiative": 3,
+        "name": "Leadership",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "botSCAutomationID": "pok1leadership",
+        "imageFileName": "tribunal_3",
+        "colourHexCode": "#ffc401",
+        "source": "other"
+    },
+    {
+        "id": "tribunal4",
+        "initiative": 4,
+        "name": "Politics",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "botSCAutomationID": "pok3politics",
+        "imageFileName": "tribunal_4",
+        "colourHexCode": "#fcfc01",
+        "source": "other"
+    },
+    {
+        "id": "tribunal5",
+        "initiative": 5,
+        "name": "Construction",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "botSCAutomationID": "pok4construction",
+        "imageFileName": "tribunal_5",
+        "colourHexCode": "#65d915",
+        "source": "other"
+    },
+    {
+        "id": "tribunal6",
+        "initiative": 6,
+        "name": "Trade",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "botSCAutomationID": "pok5trade",
+        "imageFileName": "tribunal_6",
+        "colourHexCode": "#01bb5d",
+        "source": "other"
+    },
+    {
+        "id": "tribunal7",
+        "initiative": 7,
+        "name": "Warfare",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "imageFileName": "tribunal_7",
+        "colourHexCode": "#02eaf4",
+        "source": "other"
+    },
+    {
+        "id": "tribunal8",
+        "initiative": 8,
+        "name": "Technology",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "botSCAutomationID": "pok7technology",
+        "imageFileName": "tribunal_8",
+        "colourHexCode": "#015bbe",
+        "source": "other"
+    },
+    {
+        "id": "tribunal9",
+        "initiative": 9,
+        "name": "Espionage",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "imageFileName": "tribunal_9",
+        "colourHexCode": "#3f05ab",
+        "source": "other"
+    },
+    {
+        "id": "tribunal10",
+        "initiative": 10,
+        "name": "Imperial",
+        "primaryTexts": [],
+        "secondaryTexts": [],
+        "botSCAutomationID": "pok8imperial",
+        "imageFileName": "tribunal_10",
+        "colourHexCode": "#942de3",
+        "source": "other"
+    }
+]

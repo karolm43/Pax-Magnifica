@@ -1,0 +1,16 @@
+{
+    "id": "fracture2",
+    "name": "Fracture Egress Left",
+    "aliases": [
+        "fracture2",
+        "egressleft",
+        "frac2",
+        "fracleftegr"
+    ],
+    "hasEgress": true,
+    "imagePath": "fracture2.png",
+    "shipPositionsType": "TYPE08",
+    "tileBack": "fracture",
+    "isFracture": true,
+    "source": "thunders_edge"
+}

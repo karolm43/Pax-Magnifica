@@ -1,0 +1,183 @@
+[
+    {
+        "alias": "lazax",
+        "factionName": "Lazax",
+        "shortTag": "LAZ",
+        "homeSystem": "",
+        "startingFleet": "",
+        "commodities": 0,
+        "factionTech": [],
+        "startingTech": [],
+        "homePlanets": [],
+        "abilities": [],
+        "leaders": [],
+        "promissoryNotes": [],
+        "units": [
+            "fighter",
+            "destroyer",
+            "cruiser",
+            "carrier",
+            "dreadnought",
+            "flagship",
+            "infantry",
+            "mech",
+            "pds",
+            "spacedock"
+        ],
+        "source": "lazax"
+    },
+    {
+        "alias": "neutral",
+        "factionName": "Neutral",
+        "shortTag": "NEU",
+        "homeSystem": "",
+        "startingFleet": "",
+        "commodities": 0,
+        "factionTech": [],
+        "startingTech": [],
+        "homePlanets": [],
+        "abilities": [],
+        "leaders": [],
+        "promissoryNotes": [],
+        "units": [
+            "fighter",
+            "destroyer",
+            "cruiser",
+            "carrier",
+            "dreadnought",
+            "flagship",
+            "infantry",
+            "mech",
+            "pds",
+            "spacedock"
+        ],
+        "source": "thunders_edge"
+    },
+    {
+        "alias": "admins",
+        "factionName": "The Admins of Asyncia",
+        "homeSystem": "s14",
+        "startingFleet": "3 inf t,2 ff,cv,2 dd,sd t",
+        "commodities": 3,
+        "factionTech": [],
+        "startingTech": [
+            "sar",
+            "gd"
+        ],
+        "homePlanets": [
+            "somna",
+            "tera",
+            "hospoona"
+        ],
+        "abilities": [],
+        "leaders": [
+            "adminsagent",
+            "adminscommander",
+            "adminshero"
+        ],
+        "promissoryNotes": [
+            "adminspn"
+        ],
+        "units": [
+            "fighter",
+            "destroyer",
+            "cruiser",
+            "carrier",
+            "dreadnought",
+            "admins_flagship",
+            "infantry",
+            "admins_mech",
+            "pds",
+            "admins_spacedock"
+        ],
+        "source": "admins"
+    },
+    {
+        "alias": "arachian",
+        "factionName": "Arachian Weave",
+        "homeSystem": "ar1",
+        "startingFleet": "1 cv, 2 cr, 2 inf a, 1 inf k, 4 ff, 1 sd a",
+        "commodities": 3,
+        "factionTech": [
+            "araracg",
+            "araracy"
+        ],
+        "startingTech": [
+            "td"
+        ],
+        "homePlanets": [
+            "arachia",
+            "keqo"
+        ],
+        "abilities": [
+            "interstellar_string_walk",
+            "predatory_ambush",
+            "strong_webs"
+        ],
+        "leaders": [
+            "arachianagent",
+            "arachiancommander",
+            "arachianhero"
+        ],
+        "promissoryNotes": [
+            "arachianpn"
+        ],
+        "units": [
+            "fighter",
+            "destroyer",
+            "cruiser",
+            "carrier",
+            "dreadnought",
+            "arachian_flagship",
+            "infantry",
+            "arachian_mech",
+            "pds",
+            "spacedock"
+        ],
+        "source": "other"
+    },
+    {
+        "alias": "zooid",
+        "factionName": "The Zooid Conscience",
+        "homeSystem": "ar2",
+        "startingFleet": "2 cv, 1 cr, 1 inf chrysaora, 1 inf cyanea, 1 inf t, 2 ff, 1 sd cyanea",
+        "commodities": 3,
+        "factionTech": [
+            "arzooig",
+            "arzooiy"
+        ],
+        "startingTech": [
+            "pi"
+        ],
+        "homePlanets": [
+            "chrysaora",
+            "cyanea",
+            "tamoya"
+        ],
+        "abilities": [
+            "grand_sequence",
+            "incomprehensible"
+        ],
+        "leaders": [
+            "zooidagent",
+            "zooidcommander",
+            "zooidhero"
+        ],
+        "promissoryNotes": [
+            "zooidpn"
+        ],
+        "units": [
+            "fighter",
+            "destroyer",
+            "cruiser",
+            "carrier",
+            "dreadnought",
+            "zooid_flagship",
+            "infantry",
+            "zooid_mech",
+            "pds",
+            "spacedock"
+        ],
+        "source": "other"
+    }
+]

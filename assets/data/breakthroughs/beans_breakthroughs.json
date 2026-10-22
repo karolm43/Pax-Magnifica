@@ -1,0 +1,83 @@
+[
+    {
+        "alias": "dreambt",
+        "name": "Dream-Space Convergence",
+        "shortName": "Dream-Space\nConvergence",
+        "faction": "dream",
+        "synergy": [
+            "PROPULSION",
+            "BIOTIC"
+        ],
+        "text": "ACTION: At the start of your turn, you may exhaust this card to move 1 nexus token into a system that contains a planet you control. \n\nWhen you win a combat as the defender in a system that contains a nexus token, you may remove your command token from that system and return it to your reinforcements.",
+        "source": "beans"
+    },
+    {
+        "alias": "crystellumbt",
+        "name": "Will of the Many",
+        "shortName": "Will of\nthe Many",
+        "faction": "crystellum",
+        "synergy": [
+            "PROPULSION",
+            "WARFARE"
+        ],
+        "text": "If you have the Fighter II unit upgrade technology, flip this card and place it on top of Fighter II.",
+        "source": "beans"
+    },
+    {
+        "alias": "ashenbt",
+        "name": "From Fire, Resolve",
+        "shortName": "From Fire,\nResolve",
+        "faction": "ashen",
+        "synergy": [
+            "WARFARE",
+            "PROPULSION"
+        ],
+        "text": "ACTION: You may exhaust this card to roll 1 of your non-flagship units BOMBARDMENT against a planet in an adjacent system. When you do, you may choose to cancel all of those hits to place infantry into coexistence on that planet up to the number of hits produced.",
+        "source": "beans"
+    },
+    {
+        "alias": "ironbt",
+        "name": "Foundry Network",
+        "shortName": "Foundry\nNetwork",
+        "faction": "iron",
+        "synergy": [
+            "WARFARE",
+            "BIOTIC"
+        ],
+        "text": "When you produce 1 or more mechs, you may place those units with any of your space docks. \n\nWhen you explore a planet, you may treat that planet as containing 1 of your mechs.",
+        "source": "beans"
+    },
+    {
+        "alias": "tabt",
+        "name": "Safe Havens",
+        "shortName": "Safe\nHavens",
+        "faction": "ta",
+        "synergy": [
+            "CYBERNETIC",
+            "WARFARE"
+        ],
+        "text": "Once per action, when you exhaust a planet that has an attachment, you may place 1 infantry from your reinforcements on that planet. During invasion on a planet you control, if that planet has an attachment, you may force your ground forces into coexistence on that planet.",
+        "source": "beans"
+    },
+    {
+        "alias": "netrunnersbt",
+        "name": "Data Breach",
+        "shortName": "Data\nBreach",
+        "faction": "netrunners",
+        "synergy": ["NONE"],
+        "text": "When you unlock this breakthrough, place one of your control tokens on another player's breakthrough. Your breakthrough has synergy in the colors on the breakthrough your control token is on. At the end of your turn you may exhaust this card and spend a token from your strategy pool to gain the technology affected by your Proxy Network ability.",
+        "source": "beans"
+    },
+    {
+        "alias": "nataubt",
+        "name": "Tether",
+        "shortName": "Tether",
+        "faction": "natau",
+        "synergy": [
+            "PROPULSION",
+            "BIOTIC"
+        ],
+        "text": "You may retreat to any system that contains one of your command tokens and no other player's ships. \n\nYou may exhaust this card at any time to use the exhaust effect of 1 doctrine in your reinforcements.",
+        "source": "beans"
+    }
+]

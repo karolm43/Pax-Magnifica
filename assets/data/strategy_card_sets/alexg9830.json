@@ -1,0 +1,34 @@
+[
+    {
+        "name": "alexg9830's Strategy Cards PoK",
+        "alias": "alexg9830",
+        "scIDs": [
+            "pok1leadership",
+            "pok2diplomacy",
+            "pok3politics",
+            "pok4construction",
+            "pok5trade",
+            "pok6warfare",
+            "pok7technology",
+            "alexg9830_imperial"
+        ],
+        "description": "PoK SC's with a slight modifier to Imperial",
+        "source": "other"
+    },
+{
+        "name": "alexg9830's Strategy Cards TE",
+        "alias": "alexg9830_te",
+        "scIDs": [
+            "pok1leadership",
+            "pok2diplomacy",
+            "pok3politics",
+            "te4construction",
+            "pok5trade",
+            "te6warfare",
+            "pok7technology",
+            "alexg9830_imperial"
+        ],
+        "description": "TE SC's with a slight modifier to Imperial",
+        "source": "other"
+    }
+]

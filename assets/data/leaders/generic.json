@@ -1,0 +1,47 @@
+[
+    {
+        "id": "genericagent",
+        "faction": "generic",
+        "type": "agent",
+        "name": "Agent",
+        "title": "Generic Title",
+        "abilityWindow": "Generic Ability Window",
+        "abilityText": "Generic Ability Text",
+        "unlockCondition": "Always Unlocked",
+        "source": "other"
+    },
+    {
+        "id": "genericcommander",
+        "faction": "generic",
+        "type": "commander",
+        "name": "Commander",
+        "title": "Generic Title",
+        "abilityWindow": "Generic Ability Window",
+        "abilityText": "Generic Ability Text",
+        "unlockCondition": "Generic Unlock Condition",
+        "source": "other"
+    },
+    {
+        "id": "generichero",
+        "faction": "generic",
+        "type": "hero",
+        "name": "Hero",
+        "title": "Generic Title",
+        "abilityName": "Generic Ability Name",
+        "abilityWindow": "Generic Ability Window",
+        "abilityText": "Generic Ability Text",
+        "unlockCondition": "Have 3 scored objectives.",
+        "source": "other"
+    },
+    {
+        "id": "fogallianceagent",
+        "faction": "fogalliance",
+        "type": "agent",
+        "name": "The Cab Driver",
+        "title": "Teleporter In Chief",
+        "abilityWindow": "ACTION:",
+        "abilityText": "Exhaust this agent to select one system that contains your ships and does not contain one of your command counters. Then select one system that contains an alliance member's ships and is not adjacent to or in a hostile home system. Move any number of your ships (can transport) from the 1st system to the 2nd system.",
+        "unlockCondition": "Always Unlocked",
+        "source": "fow"
+    }
+]

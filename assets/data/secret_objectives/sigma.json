@@ -1,0 +1,106 @@
+[
+    {
+        "alias": "sigma_valley",
+        "name": "All In The Valley Of Death",
+        "phase": "Action",
+        "text": "Win a combat in a system that contains 3 or more command tokens.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "simga_undertaking",
+        "name": "Custodial Undertaking",
+        "phase": "Status",
+        "text": "When you draw this objective, reveal it, then look at 1 Stage I public objective from the deck and attach it face down to this card.\nThis objective has the requirements of the attached public objective.\nIf you would discard this card, shuffle the attached public objective into the Stage I public objective deck.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_conglomerate",
+        "name": "Found Conglomerate",
+        "phase": "Status",
+        "text": "Control more planets of 1 trait than each other player.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_sunblock",
+        "name": "Block Out The Sun",
+        "phase": "Action",
+        "text": "Have 8 or more fighters in the active system after winning a space combat.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_exclave",
+        "name": "Carve Out An Exclave",
+        "phase": "Status",
+        "text": "Control all planets in a system that is not adjacent to a planet you control or any of your units.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_code_<color>",
+        "name": "Code <color>",
+        "phase": "Status",
+        "text": "Control a planet in the <color> player's home system.\nIf you are the <color> player: Control a planet in each of 2 other player's home systems.\n**2VP**",
+        "points": 2,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_pizza",
+        "name": "Custodial Pizza Delivery",
+        "phase": "Action",
+        "text": "End a tactical action with a ground force on Mecatol Rex that began the action on a planet in your home system.\n**2VP**",
+        "points": 2,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_parliament",
+        "name": "Parliamentary Supremacy",
+        "phase": "Agenda",
+        "text": "Be the only player to vote on an agenda.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_peaceful",
+        "name": "Peaceful Annexure",
+        "phase": "Action",
+        "text": "Gain control of a planet from another player during a tactical action in which you did not participate in a combat.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_scrape",
+        "name": "Scrape The Bottom Of The Barrel",
+        "phase": "Status",
+        "text": "Control 4 planets that each have 0 resources or 0 influence.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_annihilation",
+        "name": "Total Annihilation",
+        "phase": "Action",
+        "text": "When you win a combat, have 4 or more units unassigned after your opponent has destroyed all their units in that combat.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_attrition",
+        "name": "War Of Attrition",
+        "phase": "Action",
+        "text": "Win a space combat where all of your units that participated in  that combat had a combat value of 8 or greater.",
+        "points": 1,
+        "source": "sigma"
+    },
+    {
+        "alias": "sigma_behind",
+        "name": "Work Behind The Scenes",
+        "phase": "Agenda",
+        "text": "Have more influence on readied planets at the start of the \"Ready Planets\" step than all other players combined.",
+        "points": 1,
+        "source": "sigma"
+    }
+]

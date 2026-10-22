@@ -1,0 +1,860 @@
+[
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "military_industrial_complex",
+        "additionalComponents": [
+            "ABILITY:arms_dealers"
+        ],
+        "optionalSwaps": [
+            "COMMANDER:axiscommander",
+            "HERO:axishero"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "arms_dealers",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "axiscommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "axishero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "ancient_blueprints",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "FLAGSHIP",
+        "itemId": "bentor_flagship",
+        "additionalComponents": [
+            "ABILITY:ancient_blueprints"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "AGENT",
+        "itemId": "bentoragent",
+        "additionalComponents": [
+            "ABILITY:ancient_blueprints"
+        ],
+        "optionalSwaps": [
+            "COMMANDER:bentorcommander"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "bentorcommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "bentor_mech",
+        "additionalComponents": [
+            "ABILITY:ancient_blueprints"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "byssus",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "AGENT",
+        "itemId": "cheiranagent",
+        "additionalComponents": [
+            "ABILITY:byssus"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "autonetic_memory",
+        "additionalComponents": [
+            "ABILITY:cybernetic_madness"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "cybernetic_madness",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "flotilla",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "decree",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "radiance",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "edynhero",
+        "alternateText": "[Franken only] Midir - Living Will (The Edyn Mandate) | Golden Order - Peace Eternal\nACTION: For each system with at least one of your mechs on the game board, draw 1 agenda. Reveal and resolve each agenda in any order as if you had cast 1 vote for an outcome of your choice. Other players cannot resolve abilities during this action.\n\nThen, purge this card.",
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "edyn_mech",
+        "optionalSwaps": [
+            "ABILITY:radiance",
+            "ABILITY:decree"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "rally_to_the_cause",
+        "optionalSwaps": [
+            "MECH:freesystems_mech"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "diplomats",
+        "additionalComponents": [
+            "ABILITY:free_people"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "free_people",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HOMESYSTEM",
+        "itemId": "freesystems",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "freesystems_mech",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "the_lady_and_the_lord",
+        "optionalSwaps": [
+            "COMMANDER:gheminacommander",
+            "HERO:gheminaherolady",
+            "HERO:gheminaherolord"
+        ],
+        "alternateText": "[Franken only] During setup, place the Lady flagship token in your reinforcements with your chosen drafted Flagship and place both drafted Heroes next to your faction sheet. The Lady flagship token is a second flagship unit with the abilities and attributes listed on the Lady flagship card. You have 2 Heroes.",
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "gheminacommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "gheminaherolady",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "gheminaherolord",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "mobile_command",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "abyssal_embrace",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "FLAGSHIP",
+        "itemId": "ghoti_flagship",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "STARTINGFLEET",
+        "itemId": "ghoti",
+        "additionalComponents": [
+            "ABILITY:mobile_command"
+        ],
+        "optionalSwaps": [
+            "FLAGSHIP:ghoti_flagship"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HOMESYSTEM",
+        "itemId": "ghoti",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "gledgebt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "mantle_cracking",
+        "additionalComponents": [
+            "ABILITY:celestial_reclamation"
+        ],
+        "optionalSwaps": [
+            "BREAKTHROUGH:gledgebt",
+            "MONUMENT:gledge_monument"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "celestial_reclamation",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "oracle_ai",
+        "additionalComponents": [
+            "ABILITY:limited_vision",
+            "ABILITY:probability_algorithms"
+        ],
+        "optionalSwaps": [
+            "PN:dspnauge",
+            "HERO:augershero"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "limited_vision",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "probability_algorithms",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "PN",
+        "itemId": "dspnauge",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "augershero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "kjalengardbt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "glory",
+        "additionalComponents": [
+            "ABILITY:valor"
+        ],
+        "optionalSwaps": [
+            "ABILITY:heroism",
+            "FLAGSHIP:kjalengard_flagship",
+            "TECH:dskjalg",
+            "AGENT:kjalengardagent",
+            "COMMANDER:kjalengardcommander",
+            "HERO:kjalengardhero",
+            "MECH:kjalengard_mech",
+            "BREAKTHROUGH:kjalengardbt"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "heroism",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "valor",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "FLAGSHIP",
+        "itemId": "kjalengard_flagship",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "TECH",
+        "itemId": "dskjalg",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "AGENT",
+        "itemId": "kjalengardagent",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "kjalengardcommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "kjalengardhero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "kjalengard_mech",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "kollecc_mech",
+        "additionalComponents": [
+            "ABILITY:shroud_of_lith"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "cloaked_fleets",
+        "additionalComponents": [
+            "ABILITY:shroud_of_lith"
+        ],
+        "optionalSwaps": [
+            "MONUMENT:kollecc_monument"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "shroud_of_lith",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "FLAGSHIP",
+        "itemId": "kollecc_flagship",
+        "additionalComponents": [
+            "ABILITY:shroud_of_lith"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "contagion",
+        "additionalComponents": [
+            "ABILITY:subversive"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "subversive",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "a_new_edifice",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "TECH",
+        "itemId": "dslaner",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "lizhobt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "cunning",
+        "additionalComponents": [
+            "ABILITY:subterfuge"
+        ],
+        "optionalSwaps": [
+            "BREAKTHROUGH:lizhobt",
+            "COMMANDER:lizhocommander",
+            "HERO:lizhohero",
+            "MECH:lizho_mech"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "subterfuge",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "lizhocommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "lizhohero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "lizho_mech",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "khraskbt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "meteor_slings",
+        "optionalSwaps": [
+            "BREAKTHROUGH:khraskbt"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "STARTINGFLEET",
+        "itemId": "khrask",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "lithoids",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "privileged_citizenry",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "TECH",
+        "itemId": "dsmirvpds",
+        "additionalComponents": [
+            "ABILITY:privileged_citizenry"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "mykomentoribt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "TECH",
+        "itemId": "dsmykosd",
+        "optionalSwaps": [
+            "BREAKTHROUGH:mykomentoribt"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "prescient_memories",
+        "additionalComponents": [
+            "ABILITY:divination"
+        ],
+        "optionalSwaps": [
+            "AGENT:mykomentoriagent",
+            "MONUMENT:mykomentori_monument"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "divination",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMODITIES",
+        "itemId": "mykomentori",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "AGENT",
+        "itemId": "mykomentoriagent",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "singularity_point",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "celestial_guides",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HOMESYSTEM",
+        "itemId": "nivyn",
+        "optionalSwaps": [
+            "ABILITY:celestial_guides"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "TECH",
+        "itemId": "dsnivymf",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "nivynbt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "nivyn_mech",
+        "additionalComponents": [
+            "ABILITY:singularity_point",
+            "TECH:dsnivymf"
+        ],
+        "optionalSwaps": [
+            "HERO:nivynhero",
+            "BREAKTHROUGH:nivynbt",
+            "MONUMENT:nivyn_monument"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "nivynhero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "nokarbt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "hired_guns",
+        "additionalComponents": [
+            "ABILITY:desperados"
+        ],
+        "optionalSwaps": [
+            "COMMANDER:nokarcommander",
+            "BREAKTHROUGH:nokarbt"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "desperados",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "nokarcommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "olradinbt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "olradinhero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "olradin_mech",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "policies",
+        "optionalSwaps": [
+            "BREAKTHROUGH:olradinbt",
+            "HERO:olradinhero",
+            "MECH:olradin_mech"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "rohdhnabt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "recycled_materials",
+        "optionalSwaps": [
+            "MECH:rohdhna_mech"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "orbital_foundries",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "TECH",
+        "itemId": "dsrohdws",
+        "additionalComponents": [
+            "ABILITY:orbital_foundries"
+        ],
+        "optionalSwaps": [
+            "BREAKTHROUGH:rohdhnabt"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "rohdhna_mech",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "stealth_insertion",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "tnelis_mech",
+        "additionalComponents": [
+            "ABILITY:stealth_insertion"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "BREAKTHROUGH",
+        "itemId": "vadenbt",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "fine_print",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "collateralized_loans",
+        "additionalComponents": [
+            "ABILITY:fine_print"
+        ],
+        "optionalSwaps": [
+            "MONUMENT:vaden_monument"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "binding_debts",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "vadenhero",
+        "additionalComponents": [
+            "ABILITY:binding_debts",
+            "ABILITY:fine_print"
+        ],
+        "optionalSwaps": [
+            "BREAKTHROUGH:vadenbt"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "MECH",
+        "itemId": "vaden_mech",
+        "additionalComponents": [
+            "ABILITY:fine_print"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "vadencommander",
+        "additionalComponents": [
+            "ABILITY:fine_print"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "corporate_entity",
+        "additionalComponents": [
+            "PN:dspnveld1",
+            "PN:dspnveld2",
+            "PN:dspnveld3",
+            "PN:dspnveld4",
+            "ABILITY:holding_company"
+        ],
+        "optionalSwaps": [
+            "HERO:veldyrhero",
+            "COMMANDER:veldyrcommander"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "holding_company",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "targeted_acquisition",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "PN",
+        "itemId": "dspnveld1",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "PN",
+        "itemId": "dspnveld2",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "PN",
+        "itemId": "dspnveld3",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "PN",
+        "itemId": "dspnveld4",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "COMMANDER",
+        "itemId": "veldyrcommander",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HERO",
+        "itemId": "veldyrhero",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "biophobic",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "ABILITY",
+        "itemId": "paranoia",
+        "undraftable": true,
+        "source": "ds"
+    },
+    {
+        "itemCategory": "HOMESYSTEM",
+        "itemId": "zelian",
+        "additionalComponents": [
+            "ABILITY:paranoia"
+        ],
+        "source": "ds"
+    },
+    {
+        "itemCategory": "FLAGSHIP",
+        "itemId": "zelian_flagship",
+        "optionalSwaps": [
+            "MONUMENT:zelian_monument"
+        ],
+        "source": "ds"
+    }
+]

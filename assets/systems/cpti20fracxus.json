@@ -1,0 +1,20 @@
+{
+    "id": "cpti20fracxus",
+    "name": "Fracxus",
+    "aliases": [
+        "fracxus",
+        "cpti20fracxus",
+        "fracxusegress"
+    ],
+    "imagePath": "cpti20-fracxus.png",
+    "shipPositionsType": "TYPE08",
+    "planets": [],
+    "wormholes": [
+        "OMEGA"
+    ],
+    "tileBack": "fracture",
+    "isGravityRift": true,
+    "isFracture": true,
+    "hasEgress": true,
+    "source": "other"
+}

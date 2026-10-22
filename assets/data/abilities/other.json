@@ -1,0 +1,162 @@
+[
+    {
+        "id": "redemption",
+        "name": "Redemption",
+        "faction": "qulane",
+        "window": "At the start of your turn",
+        "windowEffect": "You may play 1 event card from your hand.",
+        "source": "ignis_aurora"
+    },
+    {
+        "id": "revelation",
+        "name": "Revelation",
+        "faction": "qulane",
+        "permanentEffect": "During setup, draw 5 event cards. Add 3 to your hand; shuffle the other 2 back into the deck.",
+        "source": "ignis_aurora"
+    },
+    {
+        "id": "interstellar_string_walk",
+        "name": "Interstellar String Walk",
+        "faction": "arachian",
+        "permanentEffect": "When you activate a system, apply +1 to the move value of ships that move through a system that contains one of your Command Tokens. ",
+        "source": "other"
+    },
+    {
+        "id": "song_of_something",
+        "name": "Echo of Something",
+        "faction": "neutral",
+        "permanentEffect": "During your tactical actions, apply +1 to the move value of each of your ships that starts its movement in your home system.",
+        "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/king_units_misc/echo_divergence.png?raw=true",
+        "source": "twilights_fall"
+    },
+    {
+        "id": "echo_of_divergence",
+        "name": "Echo of Divergence",
+        "faction": "crimson",
+        "permanentEffect": "During your tactical actions, apply +1 to the move value of each of your ships that starts its movement in your home system.",
+        "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/king_units_misc/echo_divergence.png?raw=true",
+        "source": "twilights_fall"
+    },
+    {
+        "id": "echo_of_sacrifice",
+        "name": "Echo of Sacrifice",
+        "faction": "ghost",
+        "permanentEffect": "During your tactical actions, apply +1 to the move value of each of your ships that starts its movement in your home system.",
+        "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/king_units_misc/echo_sacrifice.png?raw=true",
+        "source": "twilights_fall"
+    },
+    {
+        "id": "predatory_ambush",
+        "name": "Predatory Ambush",
+        "faction": "arachian",
+        "permanentEffect": "At the start of each round of space combat where you are the defending player: If the system contains one of your command tokens, you may move one of your ships from an adjacent system into this system.",
+        "source": "other"
+    },
+    {
+        "id": "strong_webs",
+        "name": "Strong Webs",
+        "faction": "arachian",
+        "permanentEffect": "During the status phase, you may choose not to return up to 3 Command Tokens from the board to your reinforcements.",
+        "source": "other"
+    },
+    {
+        "id": "grand_sequence",
+        "name": "Grand Sequence",
+        "faction": "zooid",
+        "permanentEffect": "When a public objective is revealed, draw one secret objective. You may have any number of scored or unscored secret objectives.",
+        "source": "other"
+    },
+    {
+        "id": "incomprehensible",
+        "name": "Incomprehensible",
+        "faction": "zooid",
+        "permanentEffect": "You cannot score public objectives. When you would be allowed to score a public objective, you may instead score a secret objective, if you fulfil its requirements.",
+        "source": "other"
+    },
+    {
+        "id": "voidmaker",
+        "name": "Voidmaker",
+        "faction": "raven",
+        "permanentEffect": "Each system that contains no planets and which contains 1 or more of your units gains the PRODUCTION 4 ability as if it were 1 of your units.",
+        "source": "ignis_aurora"
+    },
+    {
+        "id": "impairment",
+        "name": "impairment",
+        "faction": "raven",
+        "permanentEffect": "When spending planets for resources, subtract 1 from the value of each planet that you spend.",
+        "source": "ignis_aurora"
+    },
+    {
+        "id": "tachyonpulse",
+        "name": "tachyonpulse",
+        "faction": "raven",
+        "permanentEffect": "After you activate a system, you may choose to ignore 1 or more anomaly effects during the movement step of this tactical action.",
+        "source": "ignis_aurora"
+    },
+    {
+        "id": "council_patronage",
+        "name": "Council Patronage",
+        "faction": "keleres",
+        "window": "At the start of the strategy phase",
+        "windowEffect": "Replenish your commodities, then gain 1 trade good.",
+        "source": "codex3"
+    },
+    {
+        "id": "laws_order",
+        "name": "Law's Order",
+        "faction": "keleres",
+        "window": "At the start of any player's turn",
+        "windowEffect": "You may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn.",
+        "source": "codex3"
+    },
+    {
+        "id": "the_tribuni",
+        "name": "The Tribuni",
+        "faction": "keleres",
+        "permanentEffect": "During setup, choose an unplayed faction from among the Mentak, the Xxcha and The Argent Flight; take that faction's home system, command tokens and control markers. Additionally, take the Keleres Hero that corresponds to that faction",
+        "source": "codex3"
+    },
+    {
+        "id": "safe_harbor",
+        "name": "Safe Harbor",
+        "faction": "mentak",
+        "permanentEffect": "Pay 2 Trade Goods to a non-Mentak player to activate a non-home system that contains that player’s ships and/or ground forces. Effect: Combat is not initiated during this tactical action; instead, Mentak units enter Coexistence with that player's units. At the end of the Status Phase, any ground forces in Coexistence return to the space area",
+        "source": "erwans_gambit"
+    },
+    {
+        "id": "iron_price",
+        "name": "Iron Price",
+        "faction": "letnev",
+        "permanentEffect": "The Mentak player cannot use their Safe Harbor ability to activate Letnev systems. Additionally, any Letnev ship carrying a bounty rolls +1 die in combat.",
+        "source": "erwans_gambit"
+    },
+    {
+        "id": "hylar_fencing_operation",
+        "name": "Hylar Fencing Operation",
+        "faction": "jolnar",
+        "permanentEffect": "When Mentak uses Safe Harbor in a Jol-Nar system, the Jol-Nar player may pay 2 Trade Goods to Mentak to research 1 technology owned by the Mentak player.",
+        "source": "erwans_gambit"
+    },
+    {
+        "id": "outlaw_brotherhood",
+        "name": "Outlaw Brotherhood",
+        "faction": "saar",
+        "permanentEffect": "When Mentak uses Safe Harbor in a Saar system, they do not pay the 2 Trade Goods cost. The Saar player may pass through systems containing Mentak units.",
+        "source": "erwans_gambit"
+    },
+    {
+        "id": "contraband_auction",
+        "name": "Contraband Auction",
+        "faction": "hacan",
+        "permanentEffect": "ACTION: Draw 1 relic from the relic deck OR 1 faction technology from the reference deck. All players place a blind bid using Resources. The highest bidder gains the card. Then, gain 2 Trade Goods and exhaust this card.",
+        "source": "erwans_gambit"
+    },
+    {
+        "id": "asset_recovery",
+        "name": "Asset Recovery",
+        "faction": "sol",
+        "permanentEffect": "When the Sol player gains a bounty, they may resolve it at any system containing one of their Space Docks.",
+        "source": "erwans_gambit"
+    }
+]

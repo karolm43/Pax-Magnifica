@@ -40,32 +40,36 @@ Thumbs.db
 
 # ============================================================
 #  ASSETY
-#  Na start (wizytowka) assety NIE wchodza do repo.
-#  Grafiki/fonty pozostaja ignorowane na stale (setki MB).
-#  Dane JSON zostana wlaczone pozniej przez wyjatki ponizej.
+#  Dane gry (JSON/properties) WCHODZA do repo, zeby `git clone`
+#  wystarczal do uruchomienia silnika (~5 MB). Grafiki i fonty
+#  pozostaja ignorowane na stale (setki MB) - frontend bierze je
+#  z CDN AsyncTI4 (images.asyncti4.com).
 # ============================================================
 
-# Ignoruj zawartosc katalogu assetow na start...
+# Domyslnie ignoruj caly katalog assetow...
 assets/*
 
-# ...ale manifest aktywnych zrodel to konfiguracja, nie dane gry - wersjonujemy
+# ...ale wersjonuj konfiguracje i dane potrzebne silnikowi:
 !assets/enabled_sources.json
+!assets/data/
+!assets/systems/
+!assets/planets/
+!assets/alias/
 
-# ---- Przyszle wyjatki dla wyselekcjonowanych danych (odkomentuj w kroku M1) ----
-# !assets/
-# assets/*
-# !assets/data/
-# !assets/systems/
-# Grafiki/fonty pozostaja ignorowane nawet po wlaczeniu danych:
-# *.png
-# *.webp
-# *.jpg
-# *.jpeg
-# *.gif
-# *.ttf
-# *.otf
-# *.woff
-# *.woff2
+# Grafiki i fonty NIE wchodza do repo (setki MB) - leca z CDN:
+assets/**/*.png
+assets/**/*.webp
+assets/**/*.jpg
+assets/**/*.jpeg
+assets/**/*.gif
+assets/**/*.svg
+assets/**/*.ttf
+assets/**/*.otf
+assets/**/*.woff
+assets/**/*.woff2
+assets/**/*.mp3
+assets/**/*.mp4
+assets/**/*.webm
 
 #ignorowanie plików asynca
 TI4_map_generator_bot/
@@ -73,4 +77,3 @@ TI4_map_generator_bot/
 # ---- Frontend (Vite build output) ----
 frontend/build/
 frontend/node_modules/
-TI4_map_generator_bot.rar
