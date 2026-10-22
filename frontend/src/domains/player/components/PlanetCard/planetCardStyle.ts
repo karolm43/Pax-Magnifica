@@ -80,7 +80,11 @@ export function getPlanetIconSrc(
   planetData: Planet,
   finalTraits: PlanetTrait[],
 ): string | null {
-  if (planetData.planetType === "FACTION" && planetData.factionHomeworld) {
+  // Typ efektywny: część źródeł (thunders_edge) ma tylko ``planetTypes`` (lista).
+  const isFaction =
+    planetData.planetType === "FACTION" ||
+    planetData.planetTypes?.includes("FACTION");
+  if (isFaction && planetData.factionHomeworld) {
     return cdnImage(`/factions/${planetData.factionHomeworld}.png`);
   }
   if (finalTraits.length === 0) return null;

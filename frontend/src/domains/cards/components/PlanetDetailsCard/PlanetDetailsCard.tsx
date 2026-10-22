@@ -41,11 +41,21 @@ function signed(value: number) {
   return `${value > 0 ? "+" : ""}${value}`;
 }
 
+/**
+ * Efektywny typ planety. Część źródeł (np. thunders_edge) ma TYLKO ``planetTypes``
+ * (lista), bez pojedynczego ``planetType`` — bez tego fallbacku karta podglądu nie
+ * pokazywała koloru, etykiety ani ikony frakcji dla tych planet.
+ */
+function effectivePlanetType(planet: PlanetData): string {
+  return planet.planetType ?? planet.planetTypes?.[0] ?? "";
+}
+
 function PlanetGlyph({ planet }: { planet: PlanetData }) {
-  if (planet.planetType === "FACTION" && planet.factionHomeworld) {
+  const type = effectivePlanetType(planet);
+  if (type === "FACTION" && planet.factionHomeworld) {
     return <Image src={getFactionImage(planet.factionHomeworld)} alt="" />;
   }
-  const trait = planet.planetType?.toLowerCase();
+  const trait = type.toLowerCase();
   if (!trait || !TRAITS.includes(trait)) return null;
   return <PlanetTraitIcon trait={trait as Trait} size={26} />;
 }
@@ -94,7 +104,7 @@ export function PlanetDetailsCard({ planetId, planetTile }: Props) {
     ...(planetData.techSpecialties || []),
     ...modifiers.techSpecialties,
   ];
-  const planetType = planetData.planetType ?? "";
+  const planetType = effectivePlanetType(planetData);
   const glyph = <PlanetGlyph planet={planetData} />;
 
   const facts = [

@@ -464,3 +464,44 @@ oznaczenie karty jako ZAGRANEJ (exhausted). Efekty primary/secondary jako osobny
 Implementacja: `src/core/strategy_phase.py` (czyste funkcje) + model
 `GameState.strategy_card_tg`, `GameState.speaker_id`, `PlayerState.exhausted_strategy_cards`;
 endpointy `POST /strategy/pick`, `/strategy/play`, `/strategy/reset`.
+
+---
+
+## 14. Źródła danych: codexy + thunders_edge, dedup erraty — ✅ ZWERYFIKOWANE (dane)
+
+Źródło: dane technologii AsyncTI4 (`assets/data/technologies/*.json`), zweryfikowane
+2026-10 na załadowanym rejestrze.
+
+**Aktywne źródła (`enabled_sources.json`):** `base, pok, codex1, codex2, codex3, codex4,
+thunders_edge`.
+
+**Ustalenie (obala wcześniejsze założenie):** thunders_edge **NIE zawiera** zmian
+z codexów. Wnosi 13 całkowicie nowych technologii (bez `homebrewReplacesID`), a nie
+nadbudowę nad erratami. Oficjalne erraty (Ω/ΩΩ) istnieją TYLKO w codex1/codex4:
+- X-89 Bacterial Weapon: `x89_base` (base) → `x89` ΩΩ? nie — `x89` (codex1, Ω) →
+  `x89c4` (codex4, ΩΩ, najnowsza).
+- Magen Defense Grid: `md_base` (base) → `md_c1` (codex1, Ω) → `md` (codex4, ΩΩ).
+
+Dlatego codexy MUSZĄ pozostać włączone — bez nich gra używałaby starszych (błędnych)
+wersji X-89 i Magen Defense Grid.
+
+**Dedup erraty (God-Mode picker technologii):** warianty tej samej karty (base/Ω/ΩΩ)
+mają różne nazwy (sufiks Ω/ΩΩ), więc dedup po nazwie ich nie zwijał. Reguła:
+- Klucz rodziny = nazwa karty z usuniętym markerem Ω/ΩΩ i białymi znakami.
+- Dla każdej rodziny zostaje wariant o najwyższym priorytecie źródła:
+  `codex4 > codex3 > codex2 > codex1 > {pok, thunders_edge} > base`.
+- Marker Ω/ΩΩ = oficjalny znacznik kolejnej erraty (dane AsyncTI4).
+Implementacja: `frontend/.../PlayerEditorModal.tsx` (`techFamilyKey`, `SOURCE_PRIORITY`).
+
+## 15. Typ planety: pole `planetTypes` (lista) vs `planetType` — ✅ ZWERYFIKOWANE (dane)
+
+Źródło: dane planet AsyncTI4 (`assets/planets/*.json`). Część źródeł (np. thunders_edge)
+podaje typ planety jako listę `planetTypes` (np. `["FACTION"]`) i NIE ma pojedynczego
+`planetType`. Konsekwencje i naprawa:
+- Backend: `PlanetDef` trzyma oba pola (`planet_type`, `planet_types`).
+- Frontend: podgląd planety czytał tylko `planetType` (pojedynczy) — dla planet
+  thunders_edge brak koloru/etykiety/ikony frakcji. Naprawa: typ efektywny =
+  `planetType ?? planetTypes[0]` w `PlanetDetailsCard` (`effectivePlanetType`,
+  `PlanetGlyph`) oraz w `PlanetCard/planetCardStyle.ts` (`getPlanetIconSrc`).
+- Grafiki (cardImage) i opisy (flavourText) planet thunders_edge nie istnieją w danych —
+  nie da się ich wygenerować; frontend bierze grafiki z CDN gdy ścieżka jest dostępna.

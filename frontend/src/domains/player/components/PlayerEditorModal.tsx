@@ -51,7 +51,7 @@ const LEADER_STATE_LABEL: Record<string, string> = {
  * Oficjalne źródła (zgodne z assets/enabled_sources.json backendu). Dane
  * frontendu zawierają TĘ SAMĄ technologię z wielu źródeł homebrew (absol,
  * twilights_fall, …) pod różnymi aliasami — bez tego filtra lista dublowała
- * nazwy (np. "Bioplasmosis" ×6). Oficjalne źródła nie mają duplikatów nazw.
+ * nazwy. Trzymamy oficjalne źródła + thunders_edge (aktywny zestaw).
  */
 const OFFICIAL_TECH_SOURCES = new Set([
   "base",
@@ -60,7 +60,33 @@ const OFFICIAL_TECH_SOURCES = new Set([
   "codex2",
   "codex3",
   "codex4",
+  "thunders_edge",
 ]);
+
+/*
+ * Priorytet wersji karty (wyższa = nowsza). Oficjalne erraty: codex4 (ΩΩ) >
+ * codex1 (Ω) > base. thunders_edge/pok to osobne karty (nie erraty) — dostają
+ * neutralny priorytet. Przy duplikacie rodziny (ta sama karta w kilku wersjach)
+ * zostaje najnowsza. Źródło: dane AsyncTI4 (sufiks Ω/ΩΩ = kolejna errata).
+ */
+const SOURCE_PRIORITY: Record<string, number> = {
+  base: 0,
+  pok: 1,
+  thunders_edge: 1,
+  codex1: 2,
+  codex2: 3,
+  codex3: 4,
+  codex4: 5,
+};
+
+/**
+ * Klucz rodziny karty: nazwa bez markera erraty (Ω/ΩΩ) i białych znaków. Dzięki
+ * temu "X-89 Bacterial Weapon", "…Ω" i "…ΩΩ" trafiają do jednej rodziny i zostaje
+ * tylko najnowszy wariant (inaczej lista dublowała wszystkie trzy).
+ */
+function techFamilyKey(name: string): string {
+  return name.replace(/\u03a9+/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
 
 /** Krótki kod technologii: litery wymagań (np. "BB") albo inicjał typu. */
 function techCode(requirements: string | undefined, types: string[]): string {
@@ -85,18 +111,30 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
 
   const player = players.find((p) => p.discordId === selected) ?? players[0];
 
-  // Opcje technologii: TYLKO oficjalne źródła (bez homebrew duplikatów nazw),
-  // dedup po nazwie, ogólne + frakcji bieżącego gracza. Nazwa + skrót.
+  // Opcje technologii: TYLKO oficjalne źródła (+ thunders_edge). Dla każdej
+  // RODZINY karty (nazwa bez Ω/ΩΩ) zostaje NAJNOWSZY wariant wg priorytetu źródła
+  // — errata ΩΩ (codex4) wygrywa z Ω (codex1) i z base. Ogólne + frakcji gracza.
   const techOptions = useMemo(() => {
-    const seenName = new Set<string>();
-    return ALL_TECHS.filter((t) => {
+    // 1) Filtr źródeł i frakcji.
+    const eligible = ALL_TECHS.filter((t) => {
       if (!OFFICIAL_TECH_SOURCES.has(t.source)) return false;
       // Frakcyjne: tylko bieżącego gracza; ogólne (bez faction) zawsze.
       if (t.faction && player && t.faction !== player.faction) return false;
-      if (seenName.has(t.name)) return false;
-      seenName.add(t.name);
       return true;
-    })
+    });
+    // 2) Dla każdej rodziny karty wybierz najnowszą wersję (najwyższy priorytet).
+    const bestByFamily = new Map<string, (typeof eligible)[number]>();
+    for (const t of eligible) {
+      const key = `${t.faction ?? ""}|${techFamilyKey(t.name)}`;
+      const current = bestByFamily.get(key);
+      const rank = SOURCE_PRIORITY[t.source] ?? 1;
+      const currentRank = current
+        ? (SOURCE_PRIORITY[current.source] ?? 1)
+        : -1;
+      if (!current || rank > currentRank) bestByFamily.set(key, t);
+    }
+    // 3) Etykieta: nazwa + skrót; sortowanie alfabetyczne.
+    return [...bestByFamily.values()]
       .map((t) => ({
         value: t.alias,
         label: `${t.name} · ${techCode(t.requirements, t.types)}`,

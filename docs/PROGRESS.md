@@ -1012,3 +1012,23 @@ kartach na przełomie rundy, oznaczenie karty jako zagranej (exhausted). Reguły
 **QA:** backend 139 testów zielone (było 121; +11 `test_strategy_phase.py` +7 API w
 `test_web_data.py`), ruff+mypy czyste; frontend type-check+lint+build czyste.
 **Następny etap:** E3 — akcja taktyczna (aktywacja → ruch → walka → inwazja → produkcja).
+
+---
+### ✅ Blok D1 — źródła danych: codexy + thunders_edge, dedup erraty, planety thunders_edge
+**Kontekst/ustalenie (RULES.md 14/15):** użytkownik włączył thunders_edge zakładając, że
+zawiera zmiany z codexów — audyt danych to OBALIŁ. thunders_edge to 13 nowych technologii
+obok, nie nadbudowa; oficjalne erraty Ω/ΩΩ są tylko w codex1/codex4. Decyzja: codexy
+pozostają włączone (`base, pok, codex1-4, thunders_edge`), inaczej X-89/Magen byłyby starsze.
+
+**Zmiany:**
+- `enabled_sources.json`: przywrócone codexy + thunders_edge.
+- Dedup erraty w God-Mode pickerze (`PlayerEditorModal.tsx`): zamiast dedupu po nazwie —
+  klucz rodziny (nazwa bez Ω/ΩΩ) + priorytet źródła (codex4 > codex1 > base). Zweryfikowane:
+  X-89 i Magen zwijają się do wersji ΩΩ (codex4), 102 techy → 98 po dedupie.
+- Planety thunders_edge (pole `planetTypes` zamiast `planetType`): backend `PlanetDef`
+  trzyma oba pola; frontend liczy typ efektywny (`planetType ?? planetTypes[0]`) w
+  `PlanetDetailsCard` i `planetCardStyle.ts` — kolor/etykieta/ikona frakcji działają.
+  Grafiki/opisy planet thunders_edge nie istnieją w danych (nie do wygenerowania).
+
+**QA:** backend 139 testów zielone (thunders_edge: 125 jednostek/160 planet/231 systemów),
+ruff+mypy czyste; frontend type-check+lint+build czyste.

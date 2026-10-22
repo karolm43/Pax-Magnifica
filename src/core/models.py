@@ -55,6 +55,9 @@ class PlanetDef(_StaticModel):
     resources: int = 0
     influence: int = 0
     planet_type: str | None = Field(default=None, alias="planetType")
+    # Niektóre źródła (np. thunders_edge) używają listy ``planetTypes`` zamiast
+    # pojedynczego ``planetType``. Trzymamy ją, by nie gubić typu planety.
+    planet_types: list[str] | None = Field(default=None, alias="planetTypes")
     tech_specialties: list[str] | None = Field(default=None, alias="techSpecialties")
 
     faction_homeworld: str | None = Field(default=None, alias="factionHomeworld")
