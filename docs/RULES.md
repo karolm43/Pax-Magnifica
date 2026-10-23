@@ -656,3 +656,30 @@ Siły liczone z `space_units` / `planet_units` (kontrola przestrzeni = obecnoś�
 **Przepływ w UI:** przycisk „Walka" w panelu taktycznym (gdy aktywny system ma statki ≥2
 graczy) → `GET /tactical/combat/{pos}` → okno z dwiema stronami, listą jednostek + pomoce
 (kości, X+, expected). Odejmowanie zniszczonych = `edit-units` delta -1 (God-Mode).
+
+
+## 21. Przejęcie kontroli planety (inwazja) — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+
+Etap E3. Po wygranej inwazji gracz przejmuje kontrolę planety. Reguła (źródło: AsyncTI4
+`UnitHolder.addControl` = `controlList.clear(); controlList.add(cc)` oraz `AddPlanetService.addPlanet`
+usuwający poprzedniego właściciela przez `player_.removePlanet`): planeta ma DOKŁADNIE
+JEDNEGO właściciela — nowy nadpisuje poprzedniego. Model: `SystemState.planet_owners[planet]`.
+
+Implementacja: `core/tactical.capture_planet(state, grid, position, planet, faction_key)` —
+ustawia `planet_owners[planet] = player_id` (rozwiązany jak w God-Mode). Aplikacja NIE
+sprawdza, czy inwazja faktycznie się powiodła — operator potwierdza przyciskiem „Przejmij"
+w oknie walki naziemnej. Kontrola planety jest niezależna od kontroli przestrzeni (statki
+innego gracza mogą zostać w systemie — RULES.md 19).
+
+## 22. Produkcja: pomoc liczbowa (koszt + zasoby) — ✅ ZWERYFIKOWANE (dane UnitDef)
+
+Etap E3. Aplikacja NIE waliduje limitów produkcji ani wydatków — to pomoc liczbowa.
+`core/tactical.production_help(state, registry, player_id)` liczy:
+- **dostępne zasoby** = suma `PlanetDef.resources` planet kontrolowanych przez gracza
+  (`planet_owners`), z rejestru (nie z pamięci);
+- **koszt jednostek** gracza z `UnitDef.cost` (wariant frakcyjny/ulepszony wg technologii —
+  `combat.resolve_unit_variant`, spójnie z RULES.md 10/20).
+
+**Produkcja podwójna** (2 sztuki za pojedynczy koszt): fighter, infantry — reguła LRR
+„Producing Units"; trzymana jako jawna tabela `_DUAL_PRODUCTION` (dane kosztu z UnitDef).
+Stawianie jednostek robi operator przez God-Mode (edit-units), produkcja to tylko podpowiedź.

@@ -505,3 +505,37 @@ def test_combat_help_single_side_empty(client: TestClient) -> None:
     body = client.get("/tactical/combat/101").json()
     # Jeden gracz → brak walki (puste sides).
     assert body["sides"] == []
+
+
+def test_capture_planet_endpoint(client: TestClient) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    # hacan kontroluje planetę; sol ją przejmuje po inwazji.
+    client.post(
+        "/system/101/planet/somePlanet",
+        json={"changes": [], "owner_id": "p2"},
+    )
+    resp = client.post(
+        "/tactical/system/101/capture",
+        json={"planet": "somePlanet", "faction": "sol"},
+    )
+    assert resp.status_code == 200
+    # web-data: planeta kontrolowana teraz przez sol.
+    data = client.get("/api/public/game/g/web-data").json()
+    planet = data["tileUnitData"]["101"]["planets"]["somePlanet"]
+    assert planet["controlledBy"] == "sol"
+
+
+def test_production_help_endpoint(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.get("/tactical/production?faction=sol")
+    assert resp.status_code == 200
+    body = resp.json()
+    # Sol kontroluje planety domowe → zasoby > 0; koszty jednostek obecne.
+    assert body["availableResources"] > 0
+    cruiser = next(u for u in body["units"] if u["baseType"] == "cruiser")
+    assert cruiser["cost"] == 2.0
+    fighter = next(u for u in body["units"] if u["baseType"] == "fighter")
+    assert fighter["unitsPerCost"] == 2

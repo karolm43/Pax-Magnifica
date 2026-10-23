@@ -373,6 +373,38 @@ class CombatHelpResponse(BaseModel):
     sides: list[CombatSideHelp]
 
 
+class CapturePlanetRequest(BaseModel):
+    """Przejęcie kontroli planety po inwazji (E3): planeta + gracz."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    planet: str
+    faction: str  # klucz frakcji z tileUnitData (faction lub player_id)
+
+
+class ProducibleUnitHelp(BaseModel):
+    """Pomoc produkcji dla jednego typu jednostki (koszt z UnitDef)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    unit_id: str = Field(serialization_alias="unitId")
+    name: str
+    cost: float
+    units_per_cost: int = Field(serialization_alias="unitsPerCost")
+
+
+class ProductionHelpResponse(BaseModel):
+    """Pomoc liczbowa kroku produkcji: dostępne zasoby + koszty jednostek (E3)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    player_id: str = Field(serialization_alias="playerId")
+    available_resources: int = Field(serialization_alias="availableResources")
+    units: list[ProducibleUnitHelp]
+
+
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

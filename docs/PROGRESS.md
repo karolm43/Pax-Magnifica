@@ -1232,3 +1232,44 @@ brak walki. Backend 171 testów zielone (+6), ruff+mypy czyste; frontend type-ch
 
 **Następny blok (T4):** inwazja (commit piechoty + ground combat tym samym oknem + przejęcie
 kontroli planety) + produkcja (pomoc kosztu z UnitDef.cost).
+
+
+---
+### ✅ Blok E3·T4 — inwazja (ground combat + przejęcie planety) + produkcja (pomoc kosztu)
+**Cel:** domknięcie sekwencji akcji taktycznej. Krok inwazji: walka naziemna tym samym
+oknem walki (per planeta) + przejęcie kontroli planety po wygranej. Krok produkcji: pomoc
+liczbowa (dostępne zasoby + koszty jednostek). Wszystko bez walidacji — gracz decyduje.
+Reguły: RULES.md 21 (kontrola planety), 22 (produkcja).
+
+**Core (`core/tactical.py`):**
+- `capture_planet(state, grid, position, planet, faction_key)` — nadpisuje
+  `planet_owners[planet]` (jeden właściciel; reguła `UnitHolder.addControl` AsyncTI4).
+- `production_help(state, registry, player_id)` → `ProductionHelp`: dostępne zasoby (suma
+  `PlanetDef.resources` kontrolowanych planet) + koszty jednostek (`UnitDef.cost`, wariant
+  przez `combat.resolve_unit_variant`); fighter/infantry oznaczone jako produkcja ×2
+  (`_DUAL_PRODUCTION`). Ground combat: istniejące `combat.ground_combat_participants`.
+
+**API (`routers/tactical.py`):** `POST /tactical/system/{pos}/capture` (przejęcie planety,
+MapView); `GET /tactical/production?faction=` (pomoc produkcji). DTO `CapturePlanetRequest`,
+`ProductionHelpResponse`/`ProducibleUnitHelp`. Walka naziemna: istniejące
+`GET /tactical/combat/{pos}?planet=`.
+
+**Frontend:**
+- `useBoardEditor`: `capturePlanet(position, planet, faction)` + `useProductionHelp(faction)`
+  (+ typy); refresh inwaliduje też `["production"]`.
+- `CombatModal`: w walce naziemnej (planet ustawione) przycisk „Przejmij <planeta>" dla
+  każdej strony → `capturePlanet`.
+- `TacticalActionPanel`: krok INVASION → przyciski planet aktywnego systemu (otwierają okno
+  walki naziemnej); krok PRODUCTION → `ProductionHelpRow` (zasoby aktywnego gracza + koszty).
+
+**Zweryfikowane E2E:** capture nadpisuje właściciela (hacan→sol, controlledBy=sol w web-data);
+production_help Sol → zasoby 4 (Jord), cruiser cost 2.0, fighter/infantry ×2. Backend 175
+testów zielone (+4), ruff+mypy czyste; frontend type-check+lint+build czyste.
+
+**E3 — status:** sekwencja akcji taktycznej kompletna jako asystent stołu (aktywacja → ruch
+istniejącym trybem → walka kosmiczna/naziemna oknem-asystentem → przejęcie planety →
+produkcja z pomocą kosztu → zakończenie). Zero walidacji reguł — zgodnie z decyzją
+projektową. Space cannon to krok FSM bez dedykowanego okna (operator robi ręcznie; PDS mają
+spaceCannonHitsOn w danych — ewentualne okno do dołożenia później, jak dla walki).
+**Dalej (PLAN_PELNA_ROZGRYWKA):** E4 akcje komponentowe → E5 status (punktacja) → E6 agenda →
+E7 asymetria frakcyjna + end-game.

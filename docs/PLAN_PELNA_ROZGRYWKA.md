@@ -1,4 +1,4 @@
-# Plan: pełna rozgrywka Twilight Imperium na stronie
+1# Plan: pełna rozgrywka Twilight Imperium na stronie
 
 Cel końcowy (ustalony z użytkownikiem): **możliwość rozegrania pełnej partii TI4 w aplikacji**
 — nie tylko odwzorowanie stanu (God-Mode), ale realne fazy, akcje, walka, agenda, punktacja.
@@ -42,14 +42,19 @@ kod + testy + QA + commit; grywalny przyrostowo.
 - UI: wybór karty (komponenty SC z frontu), oznaczenie zagranej/wyczerpanej.
 - DoD: faza strategii rozdaje karty, ustala inicjatywę dla fazy akcji.
 
-### E3 — Akcja taktyczna (aktywacja → ruch → walka kosmiczna → inwazja → produkcja)
+### E3 — Akcja taktyczna (aktywacja → ruch → walka kosmiczna → inwazja → produkcja) ✅ GOTOWY
 Źródło: `service/tactical/` (TacticalAction* + movement/planet/postmovement), `service/combat/`.
-- Krokowa maszyna (Timing Windows FSM wg spec 1.2.2): ACTIVATION → MOVEMENT →
-  SPACE_CANNON → SPACE_COMBAT → INVASION → PRODUCTION, z oknami na reakcje.
-- Reguła ruchu: zasięg, wormhole, anomalie (RULES.md 1), pojemność transportu.
-- Walka: na start ręczne przypisanie trafień (God-Mode), potem symulator (M2 roadmapy).
-- UI: „Aktywuj system" → wybór ruchu (tryb przenoszenia mamy) → okna fazowe.
-- DoD: pełna akcja taktyczna krok po kroku z reakcjami między oknami.
+- **Decyzja projektowa (ustalona z użytkownikiem):** silnik to ASYSTENT STOŁU, nie sędzia —
+  prowadzi przez kroki i daje pomoce liczbowe, ale NIE waliduje reguł (gracze grają fizycznie
+  i wprowadzają wynik; ruch = istniejący God-Mode; walka = okno z ręcznym wpisywaniem trafień,
+  zero rzucania). Zrealizowane w blokach T1–T4 (patrz PROGRESS.md), reguły RULES.md 19–22.
+- Krokowa maszyna (TacticalStep FSM): ACTIVATION → MOVEMENT → SPACE_CANNON → SPACE_COMBAT →
+  INVASION → PRODUCTION. Aktywacja kładzie żeton dowodzenia (pula taktyczna), `active_system`.
+- Walka (kosmiczna/naziemna): okno-asystent z pomocami (kości, trafia na X+, expected hits
+  z UnitDef); odejmowanie zniszczonych przez God-Mode. Inwazja: przejęcie kontroli planety.
+  Produkcja: pomoc kosztu (UnitDef.cost + dostępne zasoby). Space cannon: krok FSM bez okna.
+- DoD: ✅ pełna sekwencja przeklikalna krok po kroku (aktywacja → ruch → walka → przejęcie
+  planety → produkcja → zakończenie akcji).
 
 ### E4 — Akcje komponentowe + strategiczne secondary
 Źródło: `service/actioncard/`, `service/leader/`, `service/tech/`, `service/explore/`.
@@ -149,8 +154,11 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
 - **E1 — fazy + kolejność tur:** ✅ gotowy (`turn_flow.py`, endpointy, panel faz).
 - **E2 — faza strategii (wybór kart):** ✅ gotowy (`strategy_phase.py`, pula kart, wybór +
   transfer trade goods, akumulacja TG, picker w UI).
-- **Następny krok: E3 — akcja taktyczna** (aktywacja → ruch → walka → inwazja → produkcja).
-  Największy i najbardziej złożony etap; patrz sekcja E3 wyżej.
+- **E3 — akcja taktyczna:** ✅ gotowy (`core/tactical.py` + `core/combat.py`,
+  `api/routers/tactical.py`, panel taktyczny + okno walki w UI). Asystent stołu: aktywacja,
+  FSM kroków, walka kosmiczna/naziemna z pomocami liczbowymi, przejęcie planety, pomoc
+  produkcji. Zero walidacji reguł (decyzja projektowa). Bloki T1–T4, reguły RULES.md 19–22.
+- **Następny krok: E4 — akcje komponentowe** (karty akcji, liderzy, badanie tech, eksploracja).
 - **Frakcje (E7):** lista 30 frakcji + gimmicki spisane (sekcja „Frakcje"). Kodujemy je
   dopiero PO silniku bazowym (E3–E6), frakcja po frakcji, jako hooki w oknach silnika.
 

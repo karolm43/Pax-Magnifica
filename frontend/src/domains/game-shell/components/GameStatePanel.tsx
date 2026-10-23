@@ -4,7 +4,11 @@ import { Collapse, UnstyledButton } from "@/ds";
 import { IconChevronDown, IconSwords, IconTrophy } from "@tabler/icons-react";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
-import { useBoardEditor, useStrategyCards } from "@/api/useBoardEditor";
+import {
+  useBoardEditor,
+  useProductionHelp,
+  useStrategyCards,
+} from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -486,6 +490,7 @@ function PlateBody({
           activeSystem={gameState.activeSystem}
           tacticalStep={gameState.tacticalStep ?? null}
           systemLabel={locations.system}
+          activePlayerColor={gameState.activePlayer}
         />
       )}
       {isAgenda && (
@@ -588,6 +593,37 @@ function StrategyCardPicker({ seats }: { seats: Seat[] }) {
   );
 }
 
+/**
+ * Pomoc produkcji (krok PRODUCTION): dostępne zasoby aktywnego gracza + koszty
+ * jego jednostek. Tylko podpowiedź — stawianie jednostek robi edytor planszy.
+ */
+function ProductionHelpRow({
+  activePlayerColor,
+}: {
+  activePlayerColor: string | null;
+}) {
+  const gameData = useGameData();
+  const player = gameData?.playerData?.find(
+    (p) => p.color === activePlayerColor,
+  );
+  const faction = player?.faction ?? null;
+  const { data } = useProductionHelp(faction);
+  if (!data) return null;
+  return (
+    <div className={styles.controls}>
+      <span className={styles.label} style={{ flex: 1 }}>
+        Produkcja · zasoby: {data.availableResources}
+      </span>
+      {data.units.slice(0, 6).map((u) => (
+        <span key={u.asyncId} className={styles.label} title={u.name}>
+          {u.asyncId.toUpperCase()} {u.cost}
+          {u.unitsPerCost > 1 ? `/${u.unitsPerCost}` : ""}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** Kolejność kroków akcji taktycznej + ich etykiety (RULES.md 19). */
 const TACTICAL_STEPS: { step: string; label: string }[] = [
   { step: "MOVEMENT", label: "Ruch" },
@@ -608,10 +644,12 @@ function TacticalActionPanel({
   activeSystem,
   tacticalStep,
   systemLabel,
+  activePlayerColor,
 }: {
   activeSystem: string | null;
   tacticalStep: string | null;
   systemLabel: string | null;
+  activePlayerColor: string | null;
 }) {
   const { activateSystem, tacticalNextStep, endTactical } = useBoardEditor();
   const activateMode = useAppStore((s) => s.activateMode);
@@ -622,17 +660,20 @@ function TacticalActionPanel({
   const gameData = useGameData();
   const [busy, setBusy] = useState(false);
 
+  const activeTile = activeSystem ? gameData?.tiles?.[activeSystem] : undefined;
+
   // Czy w aktywnym systemie są statki co najmniej dwóch graczy (jest walka?).
   const hasSpaceCombat = (() => {
-    if (!activeSystem) return false;
-    const tile = gameData?.tiles?.[activeSystem];
-    if (!tile) return false;
-    const factionsWithShips = Object.values(tile.unitsByFaction ?? {}).filter(
+    if (!activeTile) return false;
+    const factionsWithShips = Object.values(activeTile.unitsByFaction ?? {}).filter(
       (entities) =>
         entities.some((e) => e.entityType === "unit" && e.count > 0),
     );
     return factionsWithShips.length >= 2;
   })();
+
+  // Planety aktywnego systemu (do kroku inwazji) — id planet z danych kafelka.
+  const activePlanets = activeTile ? Object.keys(activeTile.planets ?? {}) : [];
 
   // Gdy w trybie aktywacji klik w kafelek zgłosił pozycję — aktywuj system,
   // wyłącz tryb i wyczyść żądanie (jednorazowa aktywacja na klik).
@@ -724,6 +765,27 @@ function TacticalActionPanel({
               Zakończ akcję
             </button>
           </div>
+          {tacticalStep === "INVASION" && activePlanets.length > 0 && (
+            <div className={styles.controls}>
+              <span className={styles.label} style={{ flex: 1 }}>
+                Inwazja — walka naziemna:
+              </span>
+              {activePlanets.map((planet) => (
+                <button
+                  key={planet}
+                  type="button"
+                  className={styles.ctlBtn}
+                  onClick={() => openCombat(activeSystem, planet)}
+                  title={`Okno walki naziemnej na ${planet}`}
+                >
+                  {planet}
+                </button>
+              ))}
+            </div>
+          )}
+          {tacticalStep === "PRODUCTION" && (
+            <ProductionHelpRow activePlayerColor={activePlayerColor} />
+          )}
         </>
       ) : (
         <div className={styles.controls}>

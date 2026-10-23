@@ -13,11 +13,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     ActivateSystemRequest,
+    CapturePlanetRequest,
     CombatHelpResponse,
     CombatSideHelp,
     CombatUnitHelp,
     CommandTokenRequest,
     MapView,
+    ProducibleUnitHelp,
+    ProductionHelpResponse,
     StateEnvelope,
     TacticalStepRequest,
 )
@@ -169,4 +172,52 @@ async def get_combat_help(
         planet=planet,
         kind=kind,
         sides=[_to_side(s, keys) for s in sides],
+    )
+
+
+@router.post("/tactical/system/{position}/capture", response_model=MapView)
+async def post_capture_planet(
+    position: str, request: CapturePlanetRequest, ctx: AppContext = Depends(get_ctx)
+) -> MapView:
+    """Przejęcie kontroli planety po inwazji (nadpisuje poprzedniego właściciela)."""
+    new_state = tactical.capture_planet(
+        ctx.service.current_state(),
+        ctx.current_grid,
+        position,
+        request.planet,
+        request.faction,
+    )
+    return await _commit_map(ctx, new_state, f"capture:{position}:{request.planet}")
+
+
+@router.get(
+    "/tactical/production",
+    response_model=ProductionHelpResponse,
+    response_model_by_alias=True,
+)
+async def get_production_help(
+    faction: str, ctx: AppContext = Depends(get_ctx)
+) -> ProductionHelpResponse:
+    """Pomoc liczbowa produkcji: dostępne zasoby gracza + koszt jego jednostek.
+
+    ``faction`` to klucz z tileUnitData (frakcja lub player_id). Zero walidacji limitów —
+    tylko podpowiedź (gracz stawia jednostki God-Mode).
+    """
+    state = ctx.service.current_state()
+    player_id = board_edit.resolve_player_id(faction, state)
+    help_ = tactical.production_help(state, ctx.registry, player_id)
+    return ProductionHelpResponse(
+        player_id=help_.player_id,
+        available_resources=help_.available_resources,
+        units=[
+            ProducibleUnitHelp(
+                base_type=u.base_type,
+                async_id=u.async_id,
+                unit_id=u.unit_id,
+                name=u.name,
+                cost=u.cost,
+                units_per_cost=u.units_per_cost,
+            )
+            for u in help_.units
+        ],
     )

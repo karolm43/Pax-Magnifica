@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Stack, Text } from "@/ds";
+import { ActionIcon, Button, Group, Stack, Text } from "@/ds";
 import { IconMinus } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useAppStore } from "@/state/appStore";
@@ -29,7 +29,7 @@ function CombatSide({
   planet: string | null;
 }) {
   const gameData = useGameData();
-  const { editUnit } = useBoardEditor();
+  const { editUnit, capturePlanet } = useBoardEditor();
   const player = gameData?.playerData?.find((p) => p.faction === side.faction);
   const colorAlias = getColorAlias(player?.color);
   const zone = planet ?? "space";
@@ -53,6 +53,18 @@ function CombatSide({
           {side.totalDice} kości · ~{side.expectedHits} traf.
         </Text>
       </Group>
+      {planet && (
+        // Walka naziemna: po wygranej gracz przejmuje kontrolę planety
+        // (nadpisuje poprzedniego właściciela — operator potwierdza).
+        <Button
+          size="compact-xs"
+          variant="light"
+          onClick={() => void capturePlanet(position, planet, side.faction)}
+          title={`Przejmij kontrolę ${planet} dla tego gracza`}
+        >
+          Przejmij {planet}
+        </Button>
+      )}
       {side.units.map((u) => (
         <Group key={u.asyncId} gap="sm" justify="space-between" wrap="nowrap">
           <Group gap="xs" wrap="nowrap">

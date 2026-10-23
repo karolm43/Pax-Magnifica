@@ -202,3 +202,44 @@ def test_resolve_unit_variant_upgrade_needs_tech(
     assert base is not None and upgraded is not None
     # Ulepszony ma większą pojemność niż bazowy (sol_carrier2 > sol_carrier).
     assert (upgraded.capacity_value or 0) >= (base.capacity_value or 0)
+
+
+# --- Inwazja + produkcja (E3/T4) -----------------------------------------
+
+
+def test_capture_planet_overwrites_owner(registry: StaticDataRegistry) -> None:
+    from src.core.game_state import SystemState
+
+    grid = _grid(registry)
+    state = GameState(
+        players={
+            "p1": PlayerState(player_id="p1", faction="sol"),
+            "p2": PlayerState(player_id="p2", faction="hacan"),
+        }
+    )
+    state.systems["101"] = SystemState(
+        position="101", system_id="27", planet_owners={"somePlanet": "p2"}
+    )
+    # p1 przejmuje planetę p2 (nadpisanie — jeden właściciel).
+    result = tactical.capture_planet(state, grid, "101", "somePlanet", "sol")
+    assert result.systems["101"].planet_owners["somePlanet"] == "p1"
+    # Wejście nie jest mutowane.
+    assert state.systems["101"].planet_owners["somePlanet"] == "p2"
+
+
+def test_production_help_resources_and_costs(registry: StaticDataRegistry) -> None:
+    from src.core.game_state import SystemState
+
+    state = GameState(players={"p1": PlayerState(player_id="p1", faction="sol")})
+    # Gracz kontroluje Jord (4 zasoby).
+    state.systems["201"] = SystemState(
+        position="201", system_id="1", planet_owners={"jord": "p1"}
+    )
+    help_ = tactical.production_help(state, registry, "p1")
+    assert help_.available_resources == 4
+    # Koszty jednostek z UnitDef; fighter/infantry produkowane po 2.
+    by_type = {u.base_type: u for u in help_.units}
+    assert by_type["cruiser"].cost == 2.0
+    assert by_type["fighter"].units_per_cost == 2
+    assert by_type["infantry"].units_per_cost == 2
+    assert by_type["cruiser"].units_per_cost == 1

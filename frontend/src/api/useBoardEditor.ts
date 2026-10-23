@@ -68,6 +68,7 @@ export function useBoardEditor() {
     await queryClient.invalidateQueries({ queryKey: ["history"] });
     await queryClient.invalidateQueries({ queryKey: ["strategyCards"] });
     await queryClient.invalidateQueries({ queryKey: ["combat"] });
+    await queryClient.invalidateQueries({ queryKey: ["production"] });
   }, [queryClient]);
 
   const editUnit = useCallback(
@@ -203,6 +204,14 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  const capturePlanet = useCallback(
+    async (position: string, planet: string, faction: string) => {
+      await post(`/tactical/system/${position}/capture`, { planet, faction });
+      await refresh();
+    },
+    [refresh],
+  );
+
   return {
     editUnit,
     moveUnit,
@@ -221,7 +230,37 @@ export function useBoardEditor() {
     tacticalSetStep,
     endTactical,
     placeCommandToken,
+    capturePlanet,
   };
+}
+
+export type ProducibleUnitHelp = {
+  baseType: string;
+  asyncId: string;
+  unitId: string;
+  name: string;
+  cost: number;
+  unitsPerCost: number;
+};
+
+export type ProductionHelp = {
+  playerId: string;
+  availableResources: number;
+  units: ProducibleUnitHelp[];
+};
+
+/** Pomoc liczbowa produkcji (dostępne zasoby + koszty jednostek gracza). */
+export function useProductionHelp(faction: string | null) {
+  return useQuery<ProductionHelp>({
+    queryKey: ["production", faction],
+    enabled: faction !== null,
+    queryFn: async () =>
+      fetchJson<ProductionHelp>(
+        `/bot/tactical/production?faction=${encodeURIComponent(faction ?? "")}`,
+        "production",
+      ),
+    staleTime: 0,
+  });
 }
 
 export type StrategyCardState = {
