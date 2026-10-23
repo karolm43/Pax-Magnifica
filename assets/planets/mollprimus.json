@@ -127,7 +127,7 @@
             ]
         },
         "removeUnitCoordinate": true
-    },
-    "flavourText": "*In places lush and rich, in others a barren wasteland. This old Lazax penal colony has prospered under the rule of the governing Mentak Coalition.*",
+    }, "flavourText": "*In places lush and rich, in others a barren wasteland. This old Lazax penal colony has prospered under the rule of the governing Mentak Coalition. test*",
+   
     "source": "base"
 }

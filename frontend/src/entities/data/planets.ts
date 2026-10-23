@@ -779,6 +779,8 @@ export const planets: Planet[] = [
     legendaryAbilityName: null,
     legendaryAbilityText: null,
     contrastColor: "orange",
+    flavourText:
+    "*Ancient archival vaults and tiered stone sanctums, once dedicated solely to peaceful debate, now hum with the frantic work of Keleres investigators combing centuries of galactic secrets for looming crises.*",
     source: "codex3",
   },
   {
@@ -841,6 +843,8 @@ export const planets: Planet[] = [
     techSpecialties: null,
     legendaryAbilityName: null,
     legendaryAbilityText: null,
+    flavourText:
+    "*Beneath tranquil garden canopies and sweeping pavilions, Keleres liaisons and Council castaways wage quiet wars of espionage and compromise, stretching the authority of their mandates to the breaking point.*",
     source: "codex3",
   },
   {
@@ -1229,6 +1233,8 @@ export const planets: Planet[] = [
     techSpecialties: null,
     legendaryAbilityName: null,
     legendaryAbilityText: null,
+    flavourText:
+    "*Lighter than its companion worlds, Avar is riddled with deep caverns and sheltered aeries. Once a haven from Phorus’ radiation bursts, these subterranean labyrinths now house Keleres interrogation hubs, makeshift barracks, and unpredictable operatives who operate best far out of sight of the Galactic Council.*",
     source: "codex3",
   },
   {
@@ -6574,6 +6580,8 @@ export const planets: Planet[] = [
     techSpecialties: null,
     legendaryAbilityName: null,
     legendaryAbilityText: null,
+    flavourText:
+    "*In places lush and rich, in others a barren wasteland. The former Lazax penal colony has become an uneasy redoubt for the Keleres—where pardoned corsairs, political exiles, and disgraced bureaucrats forge an irregular vanguard under the wary gaze of the Galactic Council.*",
     source: "codex3",
   },
   {
@@ -10280,6 +10288,8 @@ export const planets: Planet[] = [
     techSpecialties: null,
     legendaryAbilityName: null,
     legendaryAbilityText: null,
+    flavourText:
+    "*Valk contains rich lodes of rare minerals within its crust. Its planetary skyhooks now hoist illicit salvage and raw ore directly to orbital cradles, where disgraced engineers and conscripted crews frantically retrofit a patchwork fleet for unauthorized Keleres expeditions.*",
     source: "codex3",
   },
   {
@@ -11182,6 +11192,8 @@ export const planets: Planet[] = [
     techSpecialties: null,
     legendaryAbilityName: null,
     legendaryAbilityText: null,
+    flavourText:
+    "*The smallest of the three worlds, Ylir is drowned beneath kilometers of deep ocean. Its drifting platform cities, once solemn meeting grounds for the Murmuration, have become shifting black sites and neutral enclaves where Keleres fixers, informants, and exiled diplomats broker illicit compromises.*",
     source: "codex3",
   },
   {
