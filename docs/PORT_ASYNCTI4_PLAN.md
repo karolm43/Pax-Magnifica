@@ -1,3 +1,7 @@
+> 🟤 **ARCHIWALNY — werdykt wykonalności + podział na warstwy A/B.** Konkretny plan
+> etapów (E1–E7) przejął [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md). Ten plik
+> trzymamy dla kontekstu decyzji (dlaczego port reguł, a nie integracja z botem).
+
 # Plan przeniesienia pełnej funkcjonalności AsyncTI4 na nasz tryb solo
 
 Cel (ustalony z użytkownikiem): przenieść PEŁNĄ funkcjonalność AsyncTI4 (fazy, akcje,

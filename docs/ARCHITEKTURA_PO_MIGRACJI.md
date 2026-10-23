@@ -1,9 +1,14 @@
 # Architektura po migracji na frontend ti4_web
 
-Ten dokument opisuje **aktualny** stan projektu po przejściu z własnego frontendu
-SVG na dojrzały viewer AsyncTI4 (`ti4_web`). Jest mapą orientacyjną: gdzie co leży,
-jak to działa, co jest gotowe, a co jest luką. Czytaj go razem z `PROGRESS.md`
-(historia bloków) i specyfikacją techniczną (`specyfikacja_techniczna_i_architektura_systemu.md`).
+> 🟡 **REFERENCYJNY (mapa kodu).** Opis backendu/frontendu i kontraktu `web-data` jest
+> aktualny i przydatny. UWAGA: sekcja 5 („luki") jest częściowo NIEAKTUALNA — UI edycji,
+> karty strategii i silnik faz (E1/E2) już istnieją. Aktualny stan: [`PROGRESS.md`](PROGRESS.md);
+> plan: [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md). Przy wątpliwości — kod wygrywa.
+
+Ten dokument opisuje stan projektu po przejściu z własnego frontendu SVG na dojrzały
+viewer AsyncTI4 (`ti4_web`). Jest mapą orientacyjną: gdzie co leży i jak to działa.
+Czytaj go razem z `PROGRESS.md` (historia bloków) i specyfikacją techniczną
+(`specyfikacja_techniczna_i_architektura_systemu.md`).
 
 ---
 

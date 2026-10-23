@@ -1,3 +1,7 @@
+> 🟤 **ARCHIWALNY — Faza 1 ukończona.** Cyfrowa plansza + God-Mode działają. Ten plan
+> trzymamy jako zapis DoD Fazy 1 i ustaleń z danych. Aktualny plan prac:
+> [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md); stan bieżący: [`PROGRESS.md`](PROGRESS.md).
+
 # Plan — Interaktywna mapa śledząca stan gry (DoD Fazy 1)
 
 ## 🎯 Cel aktu (Definition of Done)

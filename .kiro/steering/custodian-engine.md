@@ -5,17 +5,23 @@ których trzymam się niezależnie od tego, czy pamiętam poprzednią rozmowę.
 
 ## Czym jest projekt
 
-Lokalny silnik AI przeciwnika do fizycznych rozgrywek **Twilight Imperium: 4th
-Edition** (tryb solo / human-in-the-loop). Fizyczna plansza to źródło prawdy;
-aplikacja odwzorowuje stan, cofa ruchy (Undo/God-Mode) i w dalszych fazach gra
-jako autonomiczny bot. Pełna specyfikacja: `docs/specyfikacja_techniczna_i_architektura_systemu.md`.
+Lokalny silnik do **Twilight Imperium: 4th Edition** w trybie solo, którego CELEM
+KOŃCOWYM jest **autonomiczny bot-przeciwnik** grający własnymi frakcjami (strategia,
+ruch, walka, agenda, punktacja). Dojrzałość w trzech etapach:
+1. cyfrowa plansza + God-Mode (gotowe) — odwzorowanie i edycja stanu, Undo;
+2. silnik rozgrywki (w toku) — realne fazy/tury/akcje/walka (reguły świata dla bota);
+3. bot AI (cel) — warstwa decyzyjna grająca frakcją samodzielnie.
+Mapa dokumentacji i cel szczegółowo: `docs/README.md`. Wizja/architektura:
+`docs/specyfikacja_techniczna_i_architektura_systemu.md`.
 
 ## Jak czytać stan projektu na starcie sesji
 
 Zawsze na początku sesji sprawdź w tej kolejności:
-1. `docs/PROGRESS.md` — co zrobione, co następne, decyzje projektowe.
-2. `docs/RULES.md` — zweryfikowane reguły TI4 (źródło prawdy dla mechanik).
-3. Realny kod w `src/` i testy w `tests/` — to nadrzędne źródło prawdy o stanie,
+1. `docs/README.md` — indeks dokumentacji: cel, struktura repo, gdzie co jest.
+2. `docs/PROGRESS.md` — co zrobione, co następne, decyzje projektowe.
+3. `docs/PLAN_PELNA_ROZGRYWKA.md` — który etap silnika (E1–E7) robimy teraz + frakcje.
+4. `docs/RULES.md` — zweryfikowane reguły TI4 (źródło prawdy dla mechanik).
+5. Realny kod w `src/` i testy w `tests/` — nadrzędne źródło prawdy o stanie,
    ważniejsze niż pamięć czy opisy.
 
 ## Zasady reguł Twilight Imperium (KLUCZOWE)
@@ -39,18 +45,21 @@ Zawsze na początku sesji sprawdź w tej kolejności:
 
 - Assety (AsyncTI4) leżą lokalnie w `assets/`; podział na dysku zostaje nienaruszony.
 - Filtrowanie źródeł: po POLU `source` wewnątrz wpisu JSON, nie po nazwie pliku.
-- Aktywne źródła: `assets/enabled_sources.json` (na start tylko oficjalne:
-  base, pok, codex1-4). Homebrew zostaje na dysku, ale nie jest ładowane.
-- Grafiki/fonty są poza repo (`.gitignore`). W repo wersjonujemy tylko dane JSON
-  potrzebne silnikowi oraz `enabled_sources.json` (konfiguracja).
+- Aktywne źródła: `assets/enabled_sources.json` — obecnie `base, pok, codex1-4,
+  thunders_edge`. Codexy MUSZĄ być włączone (oficjalne erraty Ω/ΩΩ, patrz RULES.md 14).
+  Pozostały homebrew zostaje na dysku, ale nie jest ładowany.
+- **Dane JSON/properties są W REPO** (`assets/data`, `systems`, `planets`, `alias` +
+  `enabled_sources.json`, ~5 MB) — `git clone` wystarcza do uruchomienia. Grafiki/fonty
+  są poza repo (`.gitignore`); frontend bierze je z CDN AsyncTI4.
 
 ## Stack i narzędzia
 
 - Backend: Python >=3.12 (lokalnie 3.14), zarządzany przez `uv`.
 - Dane: Pydantic v2. Obliczenia: NumPy (+ Numba w fazie taktycznej — uwaga na
   wsparcie Pythona 3.14). Graf: networkx.
-- Frontend (od Bloku 3): React 19 + Vite + TypeScript + SVG + Zustand + Tailwind +
-  shadcn/ui. Tauri opcjonalnie na końcu (owija ten sam kod web).
+- Frontend: viewer oparty na AsyncTI4 `ti4_web` — React 19 + Vite + TypeScript +
+  Zustand + react-query + własny design system (`frontend/src/ds/`). Tauri opcjonalnie
+  na końcu (owija ten sam kod web).
 - QA: pytest + hypothesis, ruff, mypy --strict.
 
 ## Workflow i jakość kodu

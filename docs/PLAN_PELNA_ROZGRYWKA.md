@@ -68,11 +68,90 @@ kod + testy + QA + commit; grywalny przyrostowo.
 - UI: panel agendy (jest w GameStatePanel) + głosowanie.
 
 ### E7 — Asymetria frakcyjna + end-game
-Źródło: `service/abilities/`, `rules_hooks` (spec), VP do zwycięstwa.
+Źródło: `service/abilities/`, dane `assets/data/abilities/*.json`, `rules_hooks` (spec), VP do zwycięstwa.
 - Zdolności frakcji (hooki na ruch/walkę/produkcję), warunek wygranej (10 VP).
+- Pełna lista frakcji i ich gimmicków do okodowania: patrz sekcja „Frakcje" niżej.
+
+---
+
+## Frakcje — zakres i gimmicki do okodowania (E7, po silniku bazowym)
+
+Aktywne źródła: **base + pok + codex3 (Keleres) + thunders_edge**. Łącznie 30 frakcji
+grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje; plus
+`neutral` jako pseudo-frakcja systemowa). **Zdolności czytane z danych** (`abilities` we
+`FactionDef` → opisy w `assets/data/abilities/`), nigdy z pamięci.
+
+> Jak to kodujemy (plan, nie teraz): każda zdolność to **hook** w odpowiednim oknie
+> silnika (setup / ruch / walka / produkcja / status / agenda). Dopóki hook nie istnieje,
+> zdolność jest „martwa" (frakcja gra jak generyczna). Implementujemy je PO ukończeniu
+> silnika bazowego (E1–E6), frakcja po frakcji, każda z wpisem w `RULES.md` i testem.
+
+### Base (17 frakcji)
+| Frakcja | alias | Zdolności (gimmicki z danych) |
+|---|---|---|
+| The Arborec | `arborec` | Mitosis |
+| The Barony of Letnev | `letnev` | Munitions Reserves, Armada |
+| The Clan of Saar | `saar` | Scavenge, Nomadic |
+| The Embers of Muaat | `muaat` | Star Forge, Gashlai Physiology |
+| The Emirates of Hacan | `hacan` | Masters of Trade, Guild Ships, Arbiters |
+| The Federation of Sol | `sol` | Orbital Drop, Versatile |
+| The Ghosts of Creuss | `ghost` | Quantum Entanglement, Slipstream, Creuss Gate |
+| The L1Z1X Mindnet | `l1z1x` | Assimilate, Harrow |
+| The Mentak Coalition | `mentak` | Ambush, Pillage |
+| The Naalu Collective | `naalu` | Telepathic, Foresight |
+| The Nekro Virus | `nekro` | Galactic Threat, Technological Singularity, Propagation |
+| Sardakk N'orr | `sardakk` | Unrelenting |
+| The Universities of Jol-Nar | `jolnar` | Fragile, Brilliant, Analytical |
+| The Winnu | `winnu` | Blood Ties, Reclamation |
+| The Xxcha Kingdom | `xxcha` | Peace Accords, Quash |
+| The Yin Brotherhood | `yin` | Indoctrination, Devotion |
+| The Yssaril Tribes | `yssaril` | Stall Tactics, Scheming, Crafty |
+
+### Prophecy of Kings (7 frakcji)
+| Frakcja | alias | Zdolności |
+|---|---|---|
+| The Argent Flight | `argent` | Zeal, Raid Formation |
+| The Empyrean | `empyrean` | Voidborn, Aetherpassage, Dark Whispers |
+| The Mahact Gene-Sorcerers | `mahact` | Edict, Imperia, Hubris |
+| The Naaz-Rokha Alliance | `naaz` | Distant Suns, Fabrication |
+| The Nomad | `nomad` | The Company, Future Sight |
+| The Titans of Ul | `titans` | Terragenesis, Awaken, Coalescence |
+| The Vuil'Raith Cabal | `cabal` | Devour, Amalgamation, Riftmeld |
+
+### Codex III — Council Keleres (1 frakcja, 3 warianty startowe)
+| Frakcja | alias | Zdolności |
+|---|---|---|
+| The Council Keleres — Argent | `keleresa` | The Tribuni, Council Patronage, Law's Order |
+| The Council Keleres — Mentak | `keleresm` | (jw.) |
+| The Council Keleres — Xxcha | `keleresx` | (jw.) |
+
+### Thunder's Edge (DLC, 6 frakcji + neutral)
+| Frakcja | alias | Zdolności |
+|---|---|---|
+| Last Bastion | `bastion` | Liberate, Galvanize, Phoenix Standard |
+| The Crimson Rebellion | `crimson` | Sundered, Incursion, Sorrow |
+| The Deepwrought Scholarate | `deepwrought` | Research Team, Oceanbound |
+| The Firmament | `firmament` | Plots Within Plots, Puppets of the Blade |
+| The Obsidian | `obsidian` | Nocturne, The Blade's Orchestra, Marionettes |
+| The Ral Nel Consortium | `ralnel` | Survival Instinct, Miniaturization |
+| (Neutral) | `neutral` | — pseudo-frakcja systemowa (jednostki neutralne), nie gra |
+
+> Pełne TEKSTY zdolności są w `assets/data/abilities/*.json` — nie przepisujemy ich tu
+> ani do kodu z pamięci. Przy implementacji każdego gimmicka: odczyt tekstu z danych →
+> wpis reguły do `RULES.md` ze źródłem → hook w silniku → test. Thunder's Edge to DLC,
+> więc część mechanik może odbiegać od LRR — wtedy źródłem jest materiał Thunder's Edge
+> (do potwierdzenia przez użytkownika, gdy reguła niejasna).
 
 ## Status i następny krok
 
-- God-Mode (Milestone 1) — ✅ zasadniczo gotowy: mapa, jednostki, gracze, historia/Undo.
-- Następny krok: **E1 (fazy + tury)** — najmniejszy fundament, który czyni grę „grywalną"
-  krok po kroku. Reszta dokłada realne akcje na tym szkielecie.
+- **Milestone 1 — cyfrowa plansza + God-Mode:** ✅ gotowy (mapa, jednostki, gracze,
+  historia/Undo, edycja graficzna, panel faz).
+- **E1 — fazy + kolejność tur:** ✅ gotowy (`turn_flow.py`, endpointy, panel faz).
+- **E2 — faza strategii (wybór kart):** ✅ gotowy (`strategy_phase.py`, pula kart, wybór +
+  transfer trade goods, akumulacja TG, picker w UI).
+- **Następny krok: E3 — akcja taktyczna** (aktywacja → ruch → walka → inwazja → produkcja).
+  Największy i najbardziej złożony etap; patrz sekcja E3 wyżej.
+- **Frakcje (E7):** lista 30 frakcji + gimmicki spisane (sekcja „Frakcje"). Kodujemy je
+  dopiero PO silniku bazowym (E3–E6), frakcja po frakcji, jako hooki w oknach silnika.
+
+Szczegółowy dziennik postępu: `PROGRESS.md`. Mapa dokumentacji: `README.md` (w `docs/`).
