@@ -1273,3 +1273,28 @@ projektową. Space cannon to krok FSM bez dedykowanego okna (operator robi ręcz
 spaceCannonHitsOn w danych — ewentualne okno do dołożenia później, jak dla walki).
 **Dalej (PLAN_PELNA_ROZGRYWKA):** E4 akcje komponentowe → E5 status (punktacja) → E6 agenda →
 E7 asymetria frakcyjna + end-game.
+
+
+---
+### ✅ Blok E3·fix — kontrola planety przy stawianiu jednostek (auto)
+**Zgłoszenie użytkownika:** stawianie statków/jednostek nie zmieniało statusu kontroli —
+gracz nie pojawiał się w „kontrolowanych planetach".
+
+**Root cause (analiza kodu + AsyncTI4):** `board_edit.edit_units`/`move_units` NIE dotykały
+`planet_owners`. W AsyncTI4 po każdej zmianie jednostek wołane jest
+`AddPlanetToPlayAreaService.addPlanetToPlayArea`, które automatycznie nadaje kontrolę.
+Brakowało nam odpowiednika. web-data liczy kontrolowane planety wyłącznie z `planet_owners`,
+więc panel się nie aktualizował.
+
+**Fix (reguła z AsyncTI4, RULES.md 23):** `board_edit.recompute_planet_control(system, planet)`
+— po zmianie jednostek na planecie: zbierz graczy z jednostkami naziemnymi/strukturami
+(myśliwce/statki pomijane, `is_space_unit`); dokładnie jeden → nadaj kontrolę (nadpisuje
+poprzednika); 0 lub ≥2 → bez zmiany (kontrola lepka). Wpięte w `edit_units`, `move_units`
+(strefa źródłowa i docelowa) i `set_planet_units` (gdy brak jawnego `owner_id`). Statki w
+przestrzeni (`space`) nigdy nie zmieniają kontroli planet.
+
+**Zweryfikowane:** piechota → kontrola; usunięcie piechoty → kontrola zostaje (lepka);
+statki w przestrzeni → brak kontroli planety; koegzystencja (2 kolory) → bez zmiany;
+wycofanie jednego z dwóch → przejęcie przez drugiego; ruch piechoty → kontrola w celu.
+Backend 180 testów zielone (+5 regresji), ruff+mypy czyste. Frontend bez zmian (web-data
+już czyta `planet_owners`).

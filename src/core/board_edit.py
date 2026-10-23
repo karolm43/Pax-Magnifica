@@ -15,7 +15,11 @@ from __future__ import annotations
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, BASE_TYPE_BY_ASYNC_ID
+from src.core.unit_catalog import (
+    ASYNC_ID_BY_BASE_TYPE,
+    BASE_TYPE_BY_ASYNC_ID,
+    is_space_unit,
+)
 
 
 def validate_base_type(base_type: str) -> None:
@@ -109,6 +113,30 @@ def planet_position(
     return None
 
 
+def recompute_planet_control(system: SystemState, planet: str) -> None:
+    """Przelicza kontrolę planety po zmianie jednostek (reguła AsyncTI4, RULES.md 23).
+
+    MUTUJE przekazany ``system`` (zakłada się, że to część klonu stanu). Odwzorowuje
+    ``AddPlanetToPlayAreaService.addPlanetToPlayArea``:
+    - zbiera graczy mających na planecie jednostki NAZIEMNE/struktury (myśliwce i inne
+      jednostki kosmiczne są pomijane — filtr ``is_space_unit``);
+    - jeśli DOKŁADNIE JEDEN gracz → nadaje mu kontrolę (``planet_owners[planet]``),
+      nadpisując poprzedniego właściciela;
+    - jeśli 0 graczy (planeta pusta) lub ≥2 (koegzystencja) → NIE zmienia właściciela.
+      Kontrola jest „lepka": zostaje nawet bez jednostek, dopóki ktoś inny jej nie
+      przejmie (to wierne odwzorowanie reguły TI4 — usunięcie ostatniej piechoty nie
+      odbiera planety; utrata tylko przez przejęcie przez innego gracza).
+    """
+    by_player = system.planet_units.get(planet, {})
+    owners_present: set[str] = set()
+    for player_id, by_type in by_player.items():
+        # Jednostka nadająca kontrolę = naziemna/struktura (nie kosmiczna).
+        if any(count > 0 and not is_space_unit(bt) for bt, count in by_type.items()):
+            owners_present.add(player_id)
+    if len(owners_present) == 1:
+        system.planet_owners[planet] = next(iter(owners_present))
+
+
 # --- Operacje wysokiego poziomu (zwracają nowy stan) ---------------------------
 
 
@@ -168,7 +196,11 @@ def set_planet_units(
         if not bucket:
             by_player.pop(player_id, None)
     if owner_id is not None:
+        # Jawny właściciel od operatora ma priorytet (celowe ustawienie).
         system.planet_owners[planet] = owner_id
+    else:
+        # Brak jawnego właściciela → wyznacz kontrolę z jednostek (reguła AsyncTI4).
+        recompute_planet_control(system, planet)
     new_state.systems[position] = system
     return new_state
 
@@ -198,6 +230,9 @@ def edit_units(
     else:
         bucket[base_type] = new_count
     _prune_zone(system, zone, player_id)
+    # Zmiana jednostek na planecie może nadać kontrolę (zone != "space").
+    if zone != "space":
+        recompute_planet_control(system, zone)
     new_state.systems[position] = system
     return new_state
 
@@ -237,11 +272,18 @@ def move_units(
     else:
         src_bucket[base_type] = remaining
     _prune_zone(src, from_zone, player_id)
+    # Usunięcie z planety źródłowej NIE odbiera kontroli (lepkość) — przeliczamy
+    # i tak, by obsłużyć przejęcie, gdy została inna jednostka pojedynczego koloru.
+    if from_zone != "space":
+        recompute_planet_control(src, from_zone)
     new_state.systems[from_position] = src
 
     dst = _get_or_make_system(new_state, to_position, grid)
     dst_bucket = _zone_bucket(dst, to_zone, player_id)
     dst_bucket[base_type] = dst_bucket.get(base_type, 0) + moved
+    # Dodanie jednostki naziemnej na planecie docelowej może nadać kontrolę.
+    if to_zone != "space":
+        recompute_planet_control(dst, to_zone)
     new_state.systems[to_position] = dst
     return new_state
 

@@ -243,3 +243,87 @@ def test_production_help_resources_and_costs(registry: StaticDataRegistry) -> No
     assert by_type["fighter"].units_per_cost == 2
     assert by_type["infantry"].units_per_cost == 2
     assert by_type["cruiser"].units_per_cost == 1
+
+
+# --- Kontrola planety przy stawianiu jednostek (reguła AsyncTI4, RULES.md 23) ----
+
+
+def test_ground_units_grant_planet_control(registry: StaticDataRegistry) -> None:
+    grid = _grid(registry)
+    state = GameState(
+        players={"p1": PlayerState(player_id="p1", faction="sol", color="red")}
+    )
+    # Mecatol (18) stoi na 101 w _grid; jego planeta to "mr".
+    result = board_edit.edit_units(state, grid, "101", "mr", "sol", "gf", 2)
+    assert result.systems["101"].planet_owners.get("mr") == "p1"
+
+
+def test_ships_in_space_do_not_grant_planet_control(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = _grid(registry)
+    state = GameState(
+        players={"p1": PlayerState(player_id="p1", faction="sol", color="red")}
+    )
+    # Statki w przestrzeni nie nadają kontroli żadnej planety.
+    result = board_edit.edit_units(state, grid, "101", "space", "sol", "ca", 3)
+    assert result.systems["101"].planet_owners.get("mr") is None
+
+
+def test_planet_control_is_sticky_after_removal(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = _grid(registry)
+    state = GameState(
+        players={"p1": PlayerState(player_id="p1", faction="sol", color="red")}
+    )
+    owned = board_edit.edit_units(state, grid, "101", "mr", "sol", "gf", 2)
+    # Usunięcie całej piechoty NIE odbiera kontroli (lepkość — reguła TI4).
+    emptied = board_edit.edit_units(owned, grid, "101", "mr", "sol", "gf", -2)
+    assert emptied.systems["101"].planet_owners.get("mr") == "p1"
+
+
+def test_coexistence_does_not_change_control(registry: StaticDataRegistry) -> None:
+    grid = _grid(registry)
+    state = GameState(
+        players={
+            "p1": PlayerState(player_id="p1", faction="sol", color="red"),
+            "p2": PlayerState(player_id="p2", faction="hacan", color="yellow"),
+        }
+    )
+    s1 = board_edit.edit_units(state, grid, "101", "mr", "sol", "gf", 2)
+    # Drugi gracz dołącza — 2 kolory (koegzystencja) → kontrola bez zmiany.
+    s2 = board_edit.edit_units(s1, grid, "101", "mr", "hacan", "gf", 1)
+    assert s2.systems["101"].planet_owners.get("mr") == "p1"
+    # Pierwszy wycofuje się — zostaje tylko p2 → przejęcie.
+    s3 = board_edit.edit_units(s2, grid, "101", "mr", "sol", "gf", -2)
+    assert s3.systems["101"].planet_owners.get("mr") == "p2"
+
+
+def test_move_ground_units_grants_control_at_destination(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.game_state import SystemState
+
+    grid = _grid(registry)
+    state = GameState(
+        players={"p1": PlayerState(player_id="p1", faction="sol", color="red")}
+    )
+    state.systems["102"] = SystemState(
+        position="102",
+        system_id=grid.system_id_at("102"),
+        planet_units={"__src__": {"p1": {"infantry": 1}}},
+    )
+    # Przenieś piechotę z pseudo-strefy na planetę "mr" systemu 101 (docelowa kontrola).
+    result = board_edit.move_units(
+        state,
+        grid,
+        from_position="102",
+        from_zone="__src__",
+        to_position="101",
+        to_zone="mr",
+        faction_key="sol",
+        async_id="gf",
+        count=1,
+    )
+    assert result.systems["101"].planet_owners.get("mr") == "p1"
