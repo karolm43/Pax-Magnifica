@@ -557,3 +557,39 @@ viewer zna ich piksele (`frontend/.../tileCoordinates.ts`, `tilePositioning.ts`)
 wystarczy wyemitować kafelek na tej pozycji. Mapowanie brama→dom (`17→51`, `94→118`) oraz
 rogi pochodzą z `PlayerSetupService` AsyncTI4 — zakodowane jawnie jako tabela reguł
 (`faction_setup.OFF_BOARD_HOME`), nie zgadywane.
+
+
+## 18. Panel gracza: zdolności, technologie frakcyjne, przełomy — ✅ ZWERYFIKOWANE (dane + frontend)
+
+AsyncTI4 wypisuje na karcie gracza także **zdolności frakcji** (faction abilities),
+**technologie frakcyjne** (faction tech) i **przełom** (breakthrough — mechanika
+Thunder's Edge), każde w odpowiednim stanie. Źródła (nie z pamięci):
+
+- **Dane** (`assets/data/`): zdolności w `abilities/*.json` (pola `id`, `name`,
+  `faction`, `permanentEffect`/`window`/`windowEffect`); technologie w
+  `technologies/*.json` (pola `alias`→id, `faction`, `types`); przełomy w
+  `breakthroughs/*.json` (pola `alias`→id, `faction`, `synergy`). Przypisanie do
+  frakcji idzie przez POLE `faction` wpisu (oraz listy `abilities`/`factionTech` w
+  danych frakcji) — nie z pamięci.
+- **Frontend** (kontrakt `web-data`, zweryfikowany w kodzie viewera): `PlayerData`
+  czyta `abilities: string[]` (ID zdolności → komponent `Ability`), `factionTechs`
+  i `notResearchedFactionTechs` (niezbadane frontend WYSZARZA, prop `unresearched`
+  komponentu `Tech`), oraz `breakthrough?: {breakthroughId, unlocked, exhausted,
+  tradeGoodsStored}` (komponent `Breakthrough`; slot chowa się, gdy nikt nie ma
+  przełomu). Plik typów: `frontend/src/entities/data/types.ts`; render:
+  `domains/player/components/deck/PlayerDeckRow.tsx` + `usePlayerCardComputedData.ts`.
+
+**Reguła stanów (jak emitujemy):**
+- Zdolności są pasywnie stanowe — ich okno/efekt wynika z danych (`permanentEffect`
+  vs `window`), więc wysyłamy tylko identyfikatory (`abilities`). Brak locked/exhausted
+  w stylu liderów.
+- Technologia frakcyjna jest **zbadana**, gdy jej ID jest na liście `technologies`
+  gracza → trafia do `techs` (rack techów). **Niezbadana** → `notResearchedFactionTechs`
+  (frontend wyszarza). `factionTechs` = pełna lista z danych frakcji.
+- Przełom (jeden per frakcja) — stan z `PlayerState`: `breakthrough_unlocked` (po
+  spełnieniu synergii), `breakthrough_exhausted` (po akcji), `breakthrough_tg`
+  (odłożone TG). Start: zablokowany.
+
+Implementacja: `FactionDef.abilities`/`faction_tech` + modele `AbilityDef`/
+`TechnologyDef`/`BreakthroughDef` (rejestr ładuje je z assetów po `source`); emisja
+w `web_data.py` (`_faction_abilities`, `_faction_techs`, `_player_breakthrough`).

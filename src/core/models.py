@@ -93,6 +93,12 @@ class FactionDef(_StaticModel):
     preferred_colours: list[str] = Field(default_factory=list, alias="preferredColours")
     # Liderzy frakcji (agent/commander/hero) — identyfikatory z danych AsyncTI4.
     leaders: list[str] = Field(default_factory=list)
+    # Zdolności frakcji (faction abilities), np. ["mitosis"] dla Arborec. Identyfikatory
+    # z danych frakcji; opisy w AbilityDef (assets/data/abilities/).
+    abilities: list[str] = Field(default_factory=list)
+    # Technologie frakcyjne (faction tech), np. ["bio", "lw2"] dla Arborec. Identyfikatory
+    # z POLA factionTech danych frakcji; definicje w TechnologyDef.
+    faction_tech: list[str] = Field(default_factory=list, alias="factionTech")
     # Jednostki frakcji (bazowe generyczne + warianty frakcyjne, np. keleres_flagship).
     # AUTORYTATYWNA lista „co ta frakcja ma" — ważniejsza niż pole ``faction`` jednostki,
     # które bywa przypisane tylko do jednego wariantu (Keleres dzieli jednostki między 3).
@@ -116,6 +122,64 @@ class LeaderDef(_StaticModel):
     ability_name: str | None = Field(default=None, alias="abilityName")
     ability_text: str | None = Field(default=None, alias="abilityText")
     unlock_condition: str | None = Field(default=None, alias="unlockCondition")
+
+
+class AbilityDef(_StaticModel):
+    """Definicja zdolności frakcji (faction ability) z jej efektem i oknem czasowym.
+
+    Zdolności są przypisane do frakcji przez pole ``faction`` i opisane przez
+    ``permanentEffect`` (efekt pasywny) oraz ``window``/``windowEffect`` (reakcja
+    w oknie czasowym). Identyfikator (``id``) jest tym, co trafia do web-data i co
+    frontend rozwiązuje w swoich statycznych danych.
+    """
+
+    id: str
+    name: str
+    source: str
+
+    faction: str | None = None
+    short_name: str | None = Field(default=None, alias="shortName")
+    permanent_effect: str | None = Field(default=None, alias="permanentEffect")
+    window: str | None = None
+    window_effect: str | None = Field(default=None, alias="windowEffect")
+
+
+class TechnologyDef(_StaticModel):
+    """Definicja technologii (generyczna lub frakcyjna).
+
+    AsyncTI4 używa pola ``alias`` jako identyfikatora technologii (mapujemy je na
+    ``id``). Pole ``faction`` wskazuje technologię frakcyjną (np. ``bio`` → arborec);
+    jego brak oznacza technologię generyczną. ``types`` to kolory technologii
+    (BIOTIC/PROPULSION/CYBERNETIC/WARFARE) lub puste dla ulepszeń jednostek.
+    """
+
+    id: str = Field(alias="alias")
+    name: str
+    source: str
+
+    faction: str | None = None
+    types: list[str] = Field(default_factory=list)
+    requirements: str | None = None
+    text: str | None = None
+    short_name: str | None = Field(default=None, alias="shortName")
+
+
+class BreakthroughDef(_StaticModel):
+    """Definicja przełomu frakcji (breakthrough) — mechanika Thunder's Edge.
+
+    Każda frakcja ma jeden przełom (karta) przypisany przez pole ``faction``.
+    AsyncTI4 używa ``alias`` jako identyfikatora; mapujemy go na ``id``. ``synergy``
+    to para kolorów technologii odblokowujących przełom.
+    """
+
+    id: str = Field(alias="alias")
+    name: str
+    source: str
+
+    faction: str | None = None
+    short_name: str | None = Field(default=None, alias="shortName")
+    synergy: list[str] = Field(default_factory=list)
+    text: str | None = None
 
 
 class StrategyCardDef(_StaticModel):

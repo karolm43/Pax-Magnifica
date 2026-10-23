@@ -672,3 +672,50 @@ def test_ghost_and_crimson_corner_collision(client: TestClient) -> None:
     tp = dict(entry.split(":") for entry in data["tilePositions"])
     off = {pos for pos in tp if pos in {"tr", "br", "bl", "tl"}}
     assert len(off) == 2  # dwa różne rogi, bez nakładania
+
+
+def test_web_data_faction_abilities(client: TestClient) -> None:
+    """Panel gracza dostaje ID zdolności frakcji (``abilities``)."""
+    client.post("/game/new", json={"players": [{"faction_id": "arborec"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
+    # Arborec ma zdolność Mitosis (z danych frakcji, nie z pamięci).
+    assert "mitosis" in arborec["abilities"]
+
+
+def test_web_data_faction_techs_researched_split(client: TestClient) -> None:
+    """``factionTechs`` to wszystkie, ``notResearchedFactionTechs`` to niezbadane.
+
+    Zbadany tech frakcyjny znika z ``notResearchedFactionTechs`` i pojawia się w
+    ``techs`` (rack techów). Reguła rozdziału zgodna z frontendem (prop
+    ``unresearched`` komponentu Tech).
+    """
+    client.post("/game/new", json={"players": [{"faction_id": "arborec"}]})
+    # Na starcie żaden z techów frakcyjnych nie jest zbadany.
+    data = client.get("/api/public/game/g/web-data").json()
+    arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
+    assert set(arborec["factionTechs"]) == {"bio", "lw2"}
+    assert set(arborec["notResearchedFactionTechs"]) == {"bio", "lw2"}
+
+    # God-Mode: zbadaj "bio".
+    client.post("/player/p1/edit", json={"technologies": ["bio"]})
+    data = client.get("/api/public/game/g/web-data").json()
+    arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
+    assert set(arborec["factionTechs"]) == {"bio", "lw2"}
+    # "bio" zbadane -> tylko "lw2" niezbadane; "bio" w racku techów.
+    assert arborec["notResearchedFactionTechs"] == ["lw2"]
+    assert "bio" in arborec["techs"]
+
+
+def test_web_data_breakthrough_for_te_faction(client: TestClient) -> None:
+    """Frakcja z Thunder's Edge dostaje obiekt ``breakthrough`` ze stanem."""
+    client.post("/game/new", json={"players": [{"faction_id": "arborec"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
+    bt = arborec["breakthrough"]
+    assert bt is not None
+    assert bt["breakthroughId"] == "arborecbt"
+    # Start: zablokowany, niewyczerpany, bez odłożonych TG.
+    assert bt["unlocked"] is False
+    assert bt["exhausted"] is False
+    assert bt["tradeGoodsStored"] == 0

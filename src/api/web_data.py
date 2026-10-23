@@ -562,6 +562,76 @@ def _player_leaders(
     return leaders
 
 
+def _faction_abilities(
+    faction_id: str | None, registry: StaticDataRegistry
+) -> list[str]:
+    """Lista ID zdolności frakcji gracza (pole ``abilities`` danych frakcji).
+
+    Frontend renderuje je jako inskrypcje na karcie gracza (komponent ``Ability``),
+    rozwiązując ID po swoich statycznych danych. Zdolności są STANOWE pasywnie:
+    nie mają stanu locked/exhausted w stylu liderów — ich okno/efekt wynika z danych
+    (``permanentEffect``/``window``), więc wysyłamy tylko identyfikatory. Sortujemy
+    dla stabilności dokumentu.
+    """
+    faction = registry.factions.get(faction_id) if faction_id else None
+    if faction is None:
+        return []
+    return sorted(faction.abilities)
+
+
+def _faction_techs(
+    faction_id: str | None,
+    technologies: list[str],
+    registry: StaticDataRegistry,
+) -> tuple[list[str], list[str]]:
+    """Technologie frakcyjne gracza: (wszystkie, niezbadane).
+
+    Źródło listy: pole ``factionTech`` danych frakcji (``FactionDef.faction_tech``).
+    "Niezbadane" = technologie frakcyjne, których gracza nie ma na liście
+    ``technologies`` (zbadane trafiają do zwykłego racka techów przez ``techs``).
+    Frontend wyszarza niezbadane (prop ``unresearched`` komponentu ``Tech``).
+    Sortujemy obie listy dla stabilności dokumentu.
+    """
+    faction = registry.factions.get(faction_id) if faction_id else None
+    if faction is None:
+        return [], []
+    all_techs = sorted(faction.faction_tech)
+    researched = {t.lower() for t in technologies}
+    not_researched = sorted(t for t in all_techs if t.lower() not in researched)
+    return all_techs, not_researched
+
+
+def _player_breakthrough(
+    faction_id: str | None,
+    player: Any,
+    registry: StaticDataRegistry,
+) -> dict[str, Any] | None:
+    """Buduje obiekt ``breakthrough`` dla gracza (lub None, gdy frakcja go nie ma).
+
+    Przełom jest przypisany do frakcji przez pole ``faction`` w danych
+    (``BreakthroughDef``). Mechanika Thunder's Edge: frakcje spoza tego dodatku nie
+    mają przełomu → None (frontend chowa slot, gdy nikt nie ma przełomu). Stan
+    (``unlocked``/``exhausted``/``tradeGoodsStored``) pochodzi z ``PlayerState``.
+
+    Kształt pól zgodny z typem frontendu ``BreakthroughData``:
+    ``breakthroughId``, ``unlocked``, ``exhausted``, ``tradeGoodsStored``.
+    """
+    if faction_id is None:
+        return None
+    breakthrough_id = next(
+        (bt.id for bt in registry.breakthroughs.values() if bt.faction == faction_id),
+        None,
+    )
+    if breakthrough_id is None:
+        return None
+    return {
+        "breakthroughId": breakthrough_id,
+        "unlocked": player.breakthrough_unlocked,
+        "exhausted": player.breakthrough_exhausted,
+        "tradeGoodsStored": player.breakthrough_tg,
+    }
+
+
 def _player_home_position(player_id: str, state: GameState) -> str | None:
     """Pozycja slotu domowego gracza (kotwica heksa stat-area).
 
@@ -685,6 +755,11 @@ def _build_player_data(
             player.faction, player.technologies, registry
         )
         unit_counts = _unit_counts(deployed_by_player.get(player_id, {}))
+        abilities = _faction_abilities(player.faction, registry)
+        faction_techs, not_researched_ft = _faction_techs(
+            player.faction, player.technologies, registry
+        )
+        breakthrough = _player_breakthrough(player.faction, player, registry)
         players.append(
             {
                 "discordId": player_id,
@@ -715,8 +790,12 @@ def _build_player_data(
                 "unitsOwned": units_owned,
                 "techs": list(player.technologies),
                 "exhaustedTechs": [],
-                "factionTechs": [],
-                "notResearchedFactionTechs": [],
+                # Zdolności frakcji + technologie frakcyjne (sekcja abilities karty
+                # gracza). notResearchedFactionTechs frontend wyszarza; zbadane
+                # frakcyjne są w ``techs`` (trafiają do racka techów).
+                "abilities": abilities,
+                "factionTechs": faction_techs,
+                "notResearchedFactionTechs": not_researched_ft,
                 "planets": controlled,
                 "exhaustedPlanets": [],
                 "exhaustedPlanetAbilities": [],
@@ -725,6 +804,9 @@ def _build_player_data(
                 "fragments": [],
                 "leaders": leaders,
                 "leaderIDs": [str(leader["id"]) for leader in leaders],
+                # Przełom frakcji (Thunder's Edge). Pole opcjonalne we froncie —
+                # emitujemy tylko gdy frakcja go ma (inaczej None i slot się chowa).
+                "breakthrough": breakthrough,
                 "secretsScored": {},
                 "knownUnscoredSecrets": {},
                 "numUnscoredSecrets": 0,

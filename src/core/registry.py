@@ -23,11 +23,14 @@ from pydantic import BaseModel
 
 from src import config
 from src.core.models import (
+    AbilityDef,
+    BreakthroughDef,
     FactionDef,
     LeaderDef,
     PlanetDef,
     StrategyCardDef,
     SystemDef,
+    TechnologyDef,
     UnitDef,
 )
 
@@ -104,6 +107,9 @@ class StaticDataRegistry:
         self.factions: dict[str, FactionDef] = {}
         self.strategy_cards: dict[str, StrategyCardDef] = {}
         self.leaders: dict[str, LeaderDef] = {}
+        self.abilities: dict[str, AbilityDef] = {}
+        self.technologies: dict[str, TechnologyDef] = {}
+        self.breakthroughs: dict[str, BreakthroughDef] = {}
 
         # Mapowania id -> gęsty indeks int (pod FastState)
         self.unit_index: dict[str, int] = {}
@@ -151,6 +157,15 @@ class StaticDataRegistry:
         )
         self.leaders = self._collect(
             _iter_dir_entries(config.LEADERS_DATA_DIR), LeaderDef
+        )
+        self.abilities = self._collect(
+            _iter_dir_entries(config.ABILITIES_DATA_DIR), AbilityDef
+        )
+        self.technologies = self._collect(
+            _iter_dir_entries(config.TECHNOLOGIES_DATA_DIR), TechnologyDef
+        )
+        self.breakthroughs = self._collect(
+            _iter_dir_entries(config.BREAKTHROUGHS_DATA_DIR), BreakthroughDef
         )
 
         self.unit_index = {uid: i for i, uid in enumerate(sorted(self.units))}

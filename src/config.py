@@ -28,6 +28,10 @@ STRATEGY_CARDS_DIR: Path = DATA_DIR / "strategy_cards"
 STRATEGY_CARD_SETS_PATH: Path = DATA_DIR / "strategy_card_sets" / "strategyCardSets.json"
 # Liderzy frakcji (agent/commander/hero) — definicje z typem i opisem zdolności.
 LEADERS_DATA_DIR: Path = DATA_DIR / "leaders"
+# Zdolności frakcji (faction abilities) — definicje z nazwą i efektem.
+ABILITIES_DATA_DIR: Path = DATA_DIR / "abilities"
+# Przełomy (breakthroughs) frakcji — mechanika Thunder's Edge (karta per frakcja).
+BREAKTHROUGHS_DATA_DIR: Path = DATA_DIR / "breakthroughs"
 
 # Grafiki kafelków mapy (poza repo — .gitignore; serwowane lokalnie z dysku).
 TILES_DIR: Path = ASSETS_DIR / "tiles"

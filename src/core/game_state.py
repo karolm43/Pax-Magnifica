@@ -61,6 +61,14 @@ class PlayerState(BaseModel):
     # stan domyślny z danych frakcji (agent gotowy, commander/hero zablokowani).
     leader_states: dict[str, str] = Field(default_factory=dict)
 
+    # Stan przełomu frakcji (breakthrough — mechanika Thunder's Edge). Przełom jest
+    # jeden per frakcja (dane w BreakthroughDef, mapowane po frakcji), więc trzymamy
+    # tu tylko jego stan: odblokowany (po spełnieniu synergii), wyczerpany (po użyciu
+    # akcji), oraz liczba odłożonych trade goods. Start: zablokowany.
+    breakthrough_unlocked: bool = False
+    breakthrough_exhausted: bool = False
+    breakthrough_tg: int = 0
+
 
 class SystemState(BaseModel):
     """Dynamiczny stan pojedynczego systemu na mapie."""

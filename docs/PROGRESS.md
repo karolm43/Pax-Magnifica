@@ -1085,3 +1085,37 @@ off-board (syntetyczny heks, sąsiedztwo przez wormhole), `apply_setup_to_state`
 
 **QA:** backend 148 testów zielone (+9), ruff+mypy czyste (46 plików); frontend
 type-check+lint+build czyste. Reguły: RULES.md 16/17.
+
+
+---
+### ✅ Blok A1 — panel gracza: zdolności frakcji, technologie frakcyjne, przełomy
+**Cel użytkownika:** AsyncTI4 wypisuje na karcie gracza także zdolności frakcji
+(abilities), technologie rasowe (faction tech) i przełomy (breakthrough) w odpowiednich
+stanach (zbadane/niezbadane, locked/exhausted). Dodać emisję tych danych do web-data —
+frontend (viewer) już je renderuje, brakowało tylko danych w dokumencie.
+
+**Analiza (context-gatherer + kod frontu):** `PlayerData` (types.ts) oczekuje pól
+`abilities: string[]`, `factionTechs: string[]`, `notResearchedFactionTechs: string[]`
+oraz `breakthrough?: {breakthroughId, unlocked, exhausted, tradeGoodsStored}`. Render:
+`PlayerDeckRow.tsx` (sekcja abilities — komponenty `Ability`/`Tech`, niezbadane
+wyszarzone) + `Breakthrough.tsx`. Dane w assetach: `abilities/*.json` (pole `faction`),
+`technologies/*.json` (pole `faction`), `breakthroughs/*.json` (pole `faction`). Reguła
+spisana w RULES.md 18.
+
+**Backend (dane/modele w core, cienka emisja w web_data — zgodnie z ARCHITEKTURA_KODU):**
+- `config.py`: `ABILITIES_DATA_DIR`, `BREAKTHROUGHS_DATA_DIR` (TECHNOLOGIES już było).
+- `models.py`: `FactionDef.abilities` + `FactionDef.faction_tech` (alias `factionTech`);
+  nowe modele `AbilityDef`, `TechnologyDef`, `BreakthroughDef`.
+- `registry.py`: ładowanie `abilities`/`technologies`/`breakthroughs` (filtr po `source`).
+  Aktywne źródła: 73 zdolności, 102 technologie, 31 przełomów.
+- `game_state.py`: `PlayerState.breakthrough_unlocked/exhausted/tg` (stan przełomu).
+- `web_data.py`: `_faction_abilities`, `_faction_techs` (rozdział zbadane↔niezbadane),
+  `_player_breakthrough`; emisja `abilities`/`factionTechs`/`notResearchedFactionTechs`/
+  `breakthrough` w `_build_player_data`.
+
+**Zweryfikowane E2E:** Arborec → `abilities=[mitosis]`, `factionTechs=[bio,lw2]`; po
+zbadaniu `bio` → `notResearchedFactionTechs=[lw2]`, `bio` w `techs`; `breakthrough=
+{arborecbt, unlocked=F, exhausted=F, tgStored=0}` (stan z PlayerState).
+
+**QA:** backend 153 testy zielone (+3 regresji w test_web_data.py), ruff + mypy czyste.
+Frontend bez zmian (viewer już renderuje te pola). Reguła: RULES.md 18.
