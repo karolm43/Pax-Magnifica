@@ -473,6 +473,8 @@ export type GameState = {
   winner: string | null;
   agenda: GameStateAgenda | null;
   activeSystem: string | null;
+  /** Bieżący krok akcji taktycznej (rozszerzenie Custodian Engine, E3). */
+  tacticalStep?: string | null;
   activeCombat: GameStateCombat | null;
 };
 

@@ -1165,3 +1165,32 @@ Backend 165 testów zielone (+12: test_tactical.py +9, test_api.py +3 wliczone),
 
 **Następny blok (T2):** panel akcji taktycznej w UI (sterowanie krokami; ruch przez
 istniejący tryb przenoszenia God-Mode). Potem T3 (okno walki + pomoce), T4 (inwazja+produkcja).
+
+
+---
+### ✅ Blok E3·T2 — panel akcji taktycznej w UI (sterowanie krokami + aktywacja klikiem)
+**Cel:** widoczny panel prowadzący przez kroki akcji taktycznej; aktywacja systemu przez
+klik w kafelek; ruch jednostek dalej istniejącym trybem przenoszenia God-Mode (bez reguł).
+
+**Frontend:**
+- `state/appStore.ts`: nowy tryb `activateMode` + `activateRequest`/`pickActivateTile`/
+  `clearActivateRequest`/`toggleActivateMode`. Wzajemnie wykluczający z `moveMode` (jeden
+  tryb klikania naraz).
+- `domains/map/components/MapTile.tsx`: klik w kafelek w trybie aktywacji zgłasza pozycję
+  (`pickActivateTile`) zamiast otwierać dossier; kursor „crosshair" też dla aktywacji.
+- `api/useBoardEditor.ts`: akcje taktyczne `activateSystem`, `tacticalNextStep`,
+  `tacticalSetStep`, `endTactical`, `placeCommandToken` (POST do endpointów T1 + refresh
+  web-data).
+- `entities/data/types.ts`: `GameState.tacticalStep?` (rozszerzenie kontraktu; viewer
+  AsyncTI4 to ignoruje, nasz panel odczytuje przez `useGameState` = selektor web-data).
+- `domains/game-shell/components/GameStatePanel.tsx`: nowy `TacticalActionPanel`
+  (widoczny w fazie akcji). Brak aktywnego systemu → przycisk „Aktywuj system" włącza tryb
+  klikania; po kliknięciu kafelka aktywuje (jednorazowo, przez efekt na `activateRequest`).
+  Akcja trwa → ścieżka kroków (Ruch/Działa/Walka/Inwazja/Produkcja) + „Następny krok" /
+  „Zakończ akcję". Ruch realizuje istniejący tryb „Przenieś".
+
+**Zweryfikowane:** frontend type-check + lint + build czyste; backend 165 testów (bez zmian,
+T2 to wyłącznie UI nad endpointami T1), ruff+mypy czyste.
+
+**Następny blok (T3):** okno walki (asystent trafień — ręczne wpisywanie + pomoce liczbowe
+z UnitDef, bez rzucania), `core/combat.py`.

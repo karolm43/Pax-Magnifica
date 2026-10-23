@@ -86,16 +86,20 @@ export const MapTile = React.memo<Props>(
     const moveMode = useAppStore((state) => state.moveMode);
     const moveFrom = useAppStore((state) => state.moveFrom);
     const pickMoveTile = useAppStore((state) => state.pickMoveTile);
+    const activateMode = useAppStore((state) => state.activateMode);
+    const pickActivateTile = useAppStore((state) => state.pickActivateTile);
 
     /* Hyperlanes have nothing to report. Hover feedback is pure CSS so the
        tile never re-renders under a moving cursor. */
     const isHyperlane = !!getTileById(mapTile.systemId)?.isHyperlane;
     const dossierEligible = !embedded && !isHyperlane;
-    /* W trybie przenoszenia klik wybiera źródło/cel zamiast otwierać dossier. */
-    const handleDossierOpen = () =>
-      moveMode
-        ? pickMoveTile(mapTile.position)
-        : openSystemDossier(mapTile.position, mapTile.systemId);
+    /* Klik w kafelek zależy od trybu: przenoszenie → wybór źródła/celu;
+       aktywacja (akcja taktyczna) → aktywacja systemu; inaczej → dossier. */
+    const handleDossierOpen = () => {
+      if (moveMode) return pickMoveTile(mapTile.position);
+      if (activateMode) return pickActivateTile(mapTile.position);
+      return openSystemDossier(mapTile.position, mapTile.systemId);
+    };
     /* A phone has no hover, and at board zoom a hex is mostly planets and
        units, so a tap anywhere on the system opens the dossier. The hover
        cards are dropped there: the dossier carries the same detail, and a
@@ -140,7 +144,7 @@ export const MapTile = React.memo<Props>(
           top: embedded ? 0 : `${position.y}px`,
           position: embedded ? "relative" : undefined,
           opacity: getTileOpacity(),
-          cursor: moveMode ? "crosshair" : undefined,
+          cursor: moveMode || activateMode ? "crosshair" : undefined,
         }}
       >
         <div

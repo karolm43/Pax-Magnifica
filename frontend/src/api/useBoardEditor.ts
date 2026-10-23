@@ -166,6 +166,42 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Akcja taktyczna (E3) ---
+
+  const activateSystem = useCallback(
+    async (position: string) => {
+      await post("/tactical/activate", { position });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const tacticalNextStep = useCallback(async () => {
+    await post("/tactical/step/next", {});
+    await refresh();
+  }, [refresh]);
+
+  const tacticalSetStep = useCallback(
+    async (step: string) => {
+      await post("/tactical/step/set", { step });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const endTactical = useCallback(async () => {
+    await post("/tactical/end", {});
+    await refresh();
+  }, [refresh]);
+
+  const placeCommandToken = useCallback(
+    async (position: string, faction: string) => {
+      await post(`/system/${position}/command-token`, { faction });
+      await refresh();
+    },
+    [refresh],
+  );
+
   return {
     editUnit,
     moveUnit,
@@ -179,6 +215,11 @@ export function useBoardEditor() {
     nextRound,
     pickStrategyCard,
     playStrategyCard,
+    activateSystem,
+    tacticalNextStep,
+    tacticalSetStep,
+    endTactical,
+    placeCommandToken,
   };
 }
 

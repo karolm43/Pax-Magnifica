@@ -1,10 +1,11 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Collapse, UnstyledButton } from "@/ds";
 import { IconChevronDown, IconSwords, IconTrophy } from "@tabler/icons-react";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import { useBoardEditor, useStrategyCards } from "@/api/useBoardEditor";
+import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -480,6 +481,13 @@ function PlateBody({
       {showOrder && <TurnOrder seats={seats} />}
       {phase === "strategy" && <StrategyCardPicker seats={seats} />}
       {phase === "action" && <FollowQueue seats={seats} />}
+      {phase === "action" && (
+        <TacticalActionPanel
+          activeSystem={gameState.activeSystem}
+          tacticalStep={gameState.tacticalStep ?? null}
+          systemLabel={locations.system}
+        />
+      )}
       {isAgenda && (
         <AgendaRow
           agenda={gameState.agenda}
@@ -576,6 +584,135 @@ function StrategyCardPicker({ seats }: { seats: Seat[] }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Kolejność kroków akcji taktycznej + ich etykiety (RULES.md 19). */
+const TACTICAL_STEPS: { step: string; label: string }[] = [
+  { step: "MOVEMENT", label: "Ruch" },
+  { step: "SPACE_CANNON", label: "Działa kosmiczne" },
+  { step: "SPACE_COMBAT", label: "Walka kosmiczna" },
+  { step: "INVASION", label: "Inwazja" },
+  { step: "PRODUCTION", label: "Produkcja" },
+];
+
+/**
+ * Panel akcji taktycznej (E3). Prowadzi gracza przez kroki (aktywacja → ruch →
+ * działa → walka → inwazja → produkcja) BEZ walidacji reguł — gracze grają
+ * fizycznie i wprowadzają wynik. Gdy brak aktywnego systemu: przycisk włączający
+ * tryb aktywacji (klik w kafelek). Gdy akcja trwa: bieżący krok + „Następny krok"
+ * / „Zakończ akcję".
+ */
+function TacticalActionPanel({
+  activeSystem,
+  tacticalStep,
+  systemLabel,
+}: {
+  activeSystem: string | null;
+  tacticalStep: string | null;
+  systemLabel: string | null;
+}) {
+  const { activateSystem, tacticalNextStep, endTactical } = useBoardEditor();
+  const activateMode = useAppStore((s) => s.activateMode);
+  const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
+  const activateRequest = useAppStore((s) => s.activateRequest);
+  const clearActivateRequest = useAppStore((s) => s.clearActivateRequest);
+  const [busy, setBusy] = useState(false);
+
+  // Gdy w trybie aktywacji klik w kafelek zgłosił pozycję — aktywuj system,
+  // wyłącz tryb i wyczyść żądanie (jednorazowa aktywacja na klik).
+  useEffect(() => {
+    if (!activateRequest) return;
+    const position = activateRequest;
+    clearActivateRequest();
+    if (activateMode) toggleActivateMode();
+    void activateSystem(position);
+  }, [
+    activateRequest,
+    activateMode,
+    activateSystem,
+    clearActivateRequest,
+    toggleActivateMode,
+  ]);
+
+  const run = async (fn: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const stepLabel =
+    TACTICAL_STEPS.find((s) => s.step === tacticalStep)?.label ?? tacticalStep;
+
+  return (
+    <div className={styles.section}>
+      <span className={styles.label}>
+        <IconSwords size={11} aria-hidden="true" />
+        Akcja taktyczna
+      </span>
+      {activeSystem ? (
+        <>
+          <div className={styles.track} aria-label="Krok taktyczny">
+            {TACTICAL_STEPS.map((s) => {
+              const current = TACTICAL_STEPS.findIndex(
+                (x) => x.step === tacticalStep,
+              );
+              const index = TACTICAL_STEPS.findIndex((x) => x.step === s.step);
+              const state =
+                index < current ? "done" : index === current ? "now" : undefined;
+              return (
+                <span
+                  key={s.step}
+                  className={styles.trackStep}
+                  data-s={state}
+                  aria-current={state === "now" ? "step" : undefined}
+                >
+                  {s.label}
+                </span>
+              );
+            })}
+          </div>
+          <div className={styles.controls}>
+            <span className={styles.label} style={{ flex: 1 }}>
+              {systemLabel ?? activeSystem}
+              {stepLabel ? ` · ${stepLabel}` : ""}
+            </span>
+            <button
+              type="button"
+              className={styles.ctlBtn}
+              disabled={busy}
+              onClick={() => void run(tacticalNextStep)}
+            >
+              Następny krok
+            </button>
+            <button
+              type="button"
+              className={styles.ctlBtn}
+              disabled={busy}
+              onClick={() => void run(endTactical)}
+            >
+              Zakończ akcję
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className={styles.controls}>
+          <button
+            type="button"
+            className={styles.ctlBtn}
+            data-active={activateMode || undefined}
+            onClick={toggleActivateMode}
+            title="Kliknij, potem wskaż system na mapie do aktywacji"
+          >
+            {activateMode ? "Wskaż system na mapie…" : "Aktywuj system"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

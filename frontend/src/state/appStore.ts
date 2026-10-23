@@ -149,6 +149,18 @@ type AppStore = {
   pickMoveTile: (position: string) => void;
   clearMove: () => void;
 
+  /*
+   * Tryb aktywacji systemu (akcja taktyczna E3). Gdy aktywny, klik w kafelek
+   * aktywuje system (kładzie żeton dowodzenia aktywnego gracza) zamiast otwierać
+   * dossier. Samo wywołanie API robi panel taktyczny — store trzyma tylko flagę
+   * oraz ostatnio klikniętą pozycję do odebrania przez panel.
+   */
+  activateMode: boolean;
+  activateRequest: string | null; // pozycja do aktywacji (odbierana przez panel)
+  toggleActivateMode: () => void;
+  pickActivateTile: (position: string) => void;
+  clearActivateRequest: () => void;
+
   handleZoomIn: () => void;
   handleZoomOut: () => void;
   handleZoomReset: () => void;
@@ -192,6 +204,8 @@ export const useAppStore = create<AppStore>((set) => {
         moveMode: !s.moveMode,
         moveFrom: null,
         movePair: null,
+        activateMode: false,
+        activateRequest: null,
       })),
     pickMoveTile: (position: string) =>
       set((s) => {
@@ -202,6 +216,22 @@ export const useAppStore = create<AppStore>((set) => {
         return { movePair: { from: s.moveFrom, to: position } };
       }),
     clearMove: () => set({ moveFrom: null, movePair: null }),
+
+    activateMode: false,
+    activateRequest: null,
+    // Włączenie trybu aktywacji wyłącza tryb przenoszenia (i odwrotnie) — jeden
+    // tryb klikania naraz, by klik w kafelek miał jednoznaczne znaczenie.
+    toggleActivateMode: () =>
+      set((s) => ({
+        activateMode: !s.activateMode,
+        activateRequest: null,
+        moveMode: false,
+        moveFrom: null,
+        movePair: null,
+      })),
+    pickActivateTile: (position: string) =>
+      set((s) => (s.activateMode ? { activateRequest: position } : {})),
+    clearActivateRequest: () => set({ activateRequest: null }),
 
     setHoveredPlanetId: (planetId: string | null) =>
       set({ hoveredPlanetId: planetId }),
