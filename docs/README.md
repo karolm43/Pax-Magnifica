@@ -32,6 +32,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`PROGRESS.md`** | Dziennik bloków pracy: co zrobione, decyzje, QA. Czytaj na start sesji. | 🟢 żywy |
 | **`RULES.md`** | **Źródło prawdy dla mechanik TI4.** Każda reguła ma źródło (LRR / bot). | 🟢 żywy |
 | **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E7) + lista frakcji i gimmicków. | 🟢 żywy |
+| **`ARCHITEKTURA_KODU.md`** | **Warstwy (core/api/ai), konwencje rozwoju, wzorzec hooków, dług techniczny.** Czytaj przed dodaniem nowej mechaniki. | 🟢 żywy |
 | **`ARCHITEKTURA_PO_MIGRACJI.md`** | Mapa kodu: backend/frontend, kontrakt `web-data`, endpointy. | 🟡 referencyjny |
 | **`specyfikacja_techniczna_i_architektura_systemu.md`** | Wizja docelowa + architektura warstw AI. | 🟡 referencyjny |
 | **`PORT_ASYNCTI4_PLAN.md`** | Werdykt: jak przenosimy funkcje AsyncTI4 (warstwa A/B). | 🟤 archiwalny¹ |

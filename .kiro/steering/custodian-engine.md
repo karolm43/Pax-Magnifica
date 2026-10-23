@@ -62,6 +62,23 @@ Zawsze na początku sesji sprawdź w tej kolejności:
   na końcu (owija ten sam kod web).
 - QA: pytest + hypothesis, ruff, mypy --strict.
 
+## Architektura kodu (chroń czytelność — pełny opis: docs/ARCHITEKTURA_KODU.md)
+
+Twilight jest złożony (frakcje/tech/karty łamią reguły bazowe) i dojdzie silnik AI —
+dlatego trzymamy ostry podział warstw, zależności tylko w dół:
+- **`core/`** — reguły gry jako CZYSTE funkcje nad `GameState` (`state -> state`). Zero
+  importów FastAPI/HTTP. Testowalne bez sieci. To jedyne źródło reguł — woła je i `api/`,
+  i przyszłe `ai/`.
+- **`api/`** — CIENKIE endpointy: odczyt stanu → wywołanie `core/` → commit/broadcast →
+  mapowanie błędów domenowych na HTTP. Żadnej logiki gry w endpointcie.
+- **`ai/`** (przyszłość) — decyzje bota; woła wyłącznie `core/`.
+- **Asymetria (frakcje/tech/karty)** = hooki w oknach silnika (`core/rules_hooks.py` przy
+  E7), NIE `if faction == ...` w regule bazowej.
+- Nowa mechanika: reguła → `RULES.md` ze źródłem → czysta funkcja w `core/` + test →
+  cienki endpoint w `api/`. Plik > ~300 linii → rozważ podział tematyczny.
+- **Dług do spłaty przed E3:** `app.py` ma logikę God-Mode w endpointach — wyciągnąć do
+  `core/board_edit.py` i rozbić `app.py` na routery (`api/routers/`). Patrz ARCHITEKTURA_KODU.md §4.
+
 ## Workflow i jakość kodu
 
 - Pracujemy blokami (jeden blok ≈ jedna sesja), granice tam gdzie coś jest
