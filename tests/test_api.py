@@ -416,3 +416,53 @@ def test_move_units_none_available_422(client: TestClient) -> None:
         },
     )
     assert resp.status_code == 422
+
+
+# --- Akcja taktyczna (E3) ------------------------------------------------
+
+
+def test_tactical_activate_sets_active_system_and_token(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.post("/tactical/activate", json={"position": "101"})
+    assert resp.status_code == 200
+    state = resp.json()["state"]
+    assert state["active_system"] == "101"
+    assert state["tactical_step"] == "MOVEMENT"
+    assert state["systems"]["101"]["command_tokens"] == ["p1"]
+
+    # web-data: aktywny system + żeton w ccs (jako klucz tożsamości = frakcja).
+    data = client.get("/api/public/game/g/web-data").json()
+    assert data["gameState"]["activeSystem"] == "101"
+    assert data["gameState"]["tacticalStep"] == "MOVEMENT"
+    assert data["tileUnitData"]["101"]["ccs"] == ["sol"]
+
+
+def test_tactical_step_next_and_end(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post("/tactical/activate", json={"position": "101"})
+    # MOVEMENT -> SPACE_CANNON
+    state = client.post("/tactical/step/next").json()["state"]
+    assert state["tactical_step"] == "SPACE_CANNON"
+    # Zakończenie czyści aktywny system/krok, żeton zostaje.
+    state = client.post("/tactical/end").json()["state"]
+    assert state["active_system"] is None
+    assert state["tactical_step"] is None
+    assert state["systems"]["101"]["command_tokens"] == ["p1"]
+
+
+def test_tactical_set_step_unknown_422(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    resp = client.post("/tactical/step/set", json={"step": "BOGUS"})
+    assert resp.status_code == 422
+
+
+def test_god_mode_command_token_add_remove(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Dodanie żetonu God-Mode (bez zużycia puli).
+    client.post("/system/102/command-token", json={"faction": "sol"})
+    data = client.get("/api/public/game/g/web-data").json()
+    assert data["tileUnitData"]["102"]["ccs"] == ["sol"]
+    # Zdjęcie żetonu.
+    client.request("DELETE", "/system/102/command-token", json={"faction": "sol"})
+    data = client.get("/api/public/game/g/web-data").json()
+    assert data["tileUnitData"]["102"]["ccs"] == []

@@ -101,9 +101,11 @@ def _active_color(state: GameState) -> str | None:
 def _build_game_state(state: GameState) -> dict[str, Any]:
     """Buduje obiekt ``gameState`` — zasila panel faz + kolejność tur we froncie.
 
-    Minimalny zestaw: faza, aktywny gracz (kolor), reszta pól null (walka/agenda/
-    aktywny system dojdą wraz z logiką silnika). Kolejność tur i statusy siedzeń
-    frontend wylicza z ``playerData`` (``active``/``passed``/``scs``).
+    Faza, aktywny gracz (kolor) oraz akcja taktyczna (E3): ``activeSystem`` =
+    aktualnie aktywowany system, ``tacticalStep`` = bieżący krok (nasze rozszerzenie
+    kontraktu — frontend AsyncTI4 je ignoruje, nasz panel taktyczny odczyta). Walka/
+    agenda pozostają null do czasu ich logiki. Kolejność tur frontend wylicza z
+    ``playerData`` (``active``/``passed``/``scs``).
     """
     return {
         "phase": _to_web_phase(state.phase),
@@ -111,7 +113,10 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
         "turnStartedAt": None,
         "winner": None,
         "agenda": None,
-        "activeSystem": None,
+        "activeSystem": state.active_system,
+        "tacticalStep": (
+            state.tactical_step.value if state.tactical_step is not None else None
+        ),
         "activeCombat": None,
     }
 
@@ -218,6 +223,7 @@ def _build_tile_unit_data(
         space: dict[str, list[dict[str, Any]]] = {}
         planets: dict[str, dict[str, Any]] = {}
 
+        ccs: list[str] = []
         if sys_state is not None:
             space = _entities_from_counts(sys_state.space_units, entity_keys)
             for planet_id, by_player in sys_state.planet_units.items():
@@ -228,6 +234,11 @@ def _build_tile_unit_data(
                     sys_state.planet_owners.get(planet_id),
                     entity_keys,
                 )
+            # Żetony dowodzenia w przestrzeni (aktywacja) — klucz tożsamości gracza,
+            # spójny z grupowaniem jednostek (frontend porównuje ccs z faction).
+            ccs = [
+                entity_keys.get(pid, pid) for pid in sys_state.command_tokens
+            ]
 
         # Planety systemu bez jednostek też muszą istnieć w słowniku (frontend
         # kluczuje render po nazwie planety ze statycznych danych — pusty wpis OK).
@@ -243,7 +254,7 @@ def _build_tile_unit_data(
         tile_unit_data[position] = {
             "space": space,
             "planets": planets,
-            "ccs": [],
+            "ccs": ccs,
             "anomaly": bool(grid.anomalies_at(position)),
             "production": {},
             "pds": None,

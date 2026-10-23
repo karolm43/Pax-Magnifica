@@ -22,6 +22,24 @@ class Phase(StrEnum):
     AGENDA = "AGENDA"
 
 
+class TacticalStep(StrEnum):
+    """Kroki akcji taktycznej (okna czasowe fazy akcji — E3).
+
+    Sekwencja wg LRR / AsyncTI4 (``service/tactical/``): aktywacja systemu →
+    ruch → space cannon offense → walka kosmiczna → inwazja → produkcja. To
+    maszyna stanów PROWADZĄCA gracza przez kroki; aplikacja NIE waliduje reguł
+    (gracze grają fizycznie i wprowadzają wynik), więc kroki służą strukturze i
+    podpowiedziom, nie egzekwowaniu.
+    """
+
+    ACTIVATION = "ACTIVATION"
+    MOVEMENT = "MOVEMENT"
+    SPACE_CANNON = "SPACE_CANNON"
+    SPACE_COMBAT = "SPACE_COMBAT"
+    INVASION = "INVASION"
+    PRODUCTION = "PRODUCTION"
+
+
 class PlayerState(BaseModel):
     """Stan pojedynczego gracza."""
 
@@ -83,6 +101,11 @@ class SystemState(BaseModel):
     planet_units: dict[str, dict[str, dict[str, int]]] = Field(default_factory=dict)
     # Właściciele planet: {planet_id: player_id}.
     planet_owners: dict[str, str] = Field(default_factory=dict)
+    # Żetony dowodzenia (command counters) POŁOŻONE w przestrzeni systemu — lista
+    # player_id. Aktywacja systemu kładzie tu żeton aktywnego gracza (odpowiednik
+    # ``Space.ccList`` w AsyncTI4; patrz RULES.md 19). Kontrola przestrzeni NIE jest
+    # tu trzymana — wynika z obecności statków (``space_units``).
+    command_tokens: list[str] = Field(default_factory=list)
 
 
 class GameState(BaseModel):
@@ -95,6 +118,13 @@ class GameState(BaseModel):
     active_player_id: str | None = None
     # Mówca (speaker) — zaczyna wybór kart strategii; None dopóki nieustalony.
     speaker_id: str | None = None
+
+    # Akcja taktyczna (E3). ``active_system`` = pozycja aktualnie aktywowanego
+    # systemu (odpowiednik ``Game.activeSystem``); ``tactical_step`` = bieżący krok
+    # maszyny stanów (None = brak trwającej akcji taktycznej). Oba czyszczone po
+    # zakończeniu akcji. Aplikacja prowadzi kroki, ale nie waliduje reguł.
+    active_system: str | None = None
+    tactical_step: TacticalStep | None = None
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

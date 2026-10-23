@@ -299,3 +299,40 @@ def edit_player(
     if controlled is not None and isinstance(controlled, list):
         sync_controlled_planets(new_state, grid, registry, player_id, controlled)
     return new_state
+
+
+def place_command_token(
+    state: GameState,
+    grid: HexGrid,
+    position: str,
+    faction_key: str,
+) -> GameState:
+    """God-Mode: kładzie żeton dowodzenia gracza w przestrzeni systemu (bez reguł).
+
+    Nie zużywa puli taktycznej (to ręczna korekta operatora, nie aktywacja —
+    aktywacja z pulą jest w ``core.tactical.activate_system``). Idempotentne:
+    powtórne położenie nie duplikuje wpisu.
+    """
+    new_state = state.clone()
+    player_id = resolve_player_id(faction_key, new_state)
+    system = _get_or_make_system(new_state, position, grid)
+    if player_id not in system.command_tokens:
+        system.command_tokens.append(player_id)
+    new_state.systems[position] = system
+    return new_state
+
+
+def remove_command_token(
+    state: GameState,
+    grid: HexGrid,
+    position: str,
+    faction_key: str,
+) -> GameState:
+    """God-Mode: zdejmuje żeton dowodzenia gracza z przestrzeni systemu (bez reguł)."""
+    new_state = state.clone()
+    player_id = resolve_player_id(faction_key, new_state)
+    system = new_state.systems.get(position)
+    if system is not None and player_id in system.command_tokens:
+        system.command_tokens.remove(player_id)
+        new_state.systems[position] = system
+    return new_state

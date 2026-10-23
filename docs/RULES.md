@@ -593,3 +593,39 @@ Thunder's Edge), każde w odpowiednim stanie. Źródła (nie z pamięci):
 Implementacja: `FactionDef.abilities`/`faction_tech` + modele `AbilityDef`/
 `TechnologyDef`/`BreakthroughDef` (rejestr ładuje je z assetów po `source`); emisja
 w `web_data.py` (`_faction_abilities`, `_faction_techs`, `_player_breakthrough`).
+
+
+## 19. Akcja taktyczna: aktywacja systemu + maszyna kroków — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+
+Etap E3. **Decyzja projektowa (ustalona z użytkownikiem):** aplikacja PROWADZI gracza
+przez kroki akcji taktycznej, ale **NIE waliduje reguł TI4** — gracze grają fizycznie
+(stół/Tabletop) i wprowadzają wynik. Silnik to asystent stołu, nie sędzia. Dlatego poniższe
+reguły są REFERENCJĄ TI4; egzekucję (legalność ruchu, zasięg, fleet supply) pilnuje operator.
+
+**Sekwencja kroków akcji taktycznej** (okna czasowe fazy akcji), źródło: AsyncTI4
+`service/tactical/` + LRR: `ACTIVATION → MOVEMENT → SPACE_CANNON (offense) → SPACE_COMBAT →
+INVASION → PRODUCTION`. Model: `GameState.tactical_step` (enum `TacticalStep`), `active_system`
+(pozycja aktywowanego kafelka). Maszyna: `core/tactical.py` (`activate_system`, `next_step`,
+`set_step`, `end_tactical_action`).
+
+**Aktywacja systemu** (źródło: `CommandCounterHelper.addCC` z `useTactic=true`, `Tile.addCC`
+→ `Space.ccList`, `Game.setActiveSystem`):
+- Aktywny gracz kładzie **żeton dowodzenia** (command token) w **przestrzeni** systemu —
+  model: `SystemState.command_tokens: list[player_id]`. Żeton bierze się z **puli taktycznej**
+  gracza (`PlayerState.tactical_cc`, dekrementowane o 1).
+- Ustawiany jest `active_system`; maszyna startuje od `MOVEMENT` (aktywacja to krok zerowy).
+- **Reguła TI4 (referencyjnie, NIE egzekwowana):** nie można aktywować systemu, w którym
+  leży już TWÓJ żeton dowodzenia (AsyncTI4 `ButtonHelper.canActivateTile`:
+  `!hasCC(player.color, tile)`). U nas operator tego pilnuje; `activate_system` jest
+  idempotentne (nie duplikuje żetonu) i nie blokuje.
+- Żeton **zostaje** na systemie po zakończeniu akcji (jak na stole) — `end_tactical_action`
+  czyści tylko `active_system`/`tactical_step`, nie zdejmuje CC.
+
+**Kontrola a żetony (potwierdzone w AsyncTI4):** żeton dowodzenia (`command_tokens` /
+`Space.ccList`) jest NIEZALEŻNY od kontroli. Kontrola PRZESTRZENI nie jest osobnym polem —
+wynika z obecności statków (`space_units`). Kontrola PLANETY to jawny `planet_owners[planet]`
+(jeden właściciel; `UnitHolder.addControl` czyści poprzednika). Stan „planetę kontroluje
+gracz A, a przestrzeń/żeton ma gracz B" jest legalny i reprezentowalny (patrz RULES.md 2b/12).
+
+**God-Mode:** `board_edit.place_command_token` / `remove_command_token` pozwalają operatorowi
+ręcznie korygować żetony (bez zużycia puli — to korekta, nie aktywacja).

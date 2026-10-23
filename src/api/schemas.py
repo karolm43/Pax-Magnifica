@@ -311,6 +311,30 @@ class StrategyPlayRequest(BaseModel):
     initiative: int
 
 
+class ActivateSystemRequest(BaseModel):
+    """Aktywacja systemu w akcji taktycznej (E3): pozycja kafelka."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: str
+
+
+class TacticalStepRequest(BaseModel):
+    """Skok do konkretnego kroku akcji taktycznej (E3)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    step: str
+
+
+class CommandTokenRequest(BaseModel):
+    """God-Mode: dodanie/zdjęcie żetonu dowodzenia w przestrzeni systemu (E3)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str  # klucz frakcji z tileUnitData (faction lub player_id)
+
+
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

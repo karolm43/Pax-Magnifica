@@ -1119,3 +1119,49 @@ zbadaniu `bio` → `notResearchedFactionTechs=[lw2]`, `bio` w `techs`; `breakthr
 
 **QA:** backend 153 testy zielone (+3 regresji w test_web_data.py), ruff + mypy czyste.
 Frontend bez zmian (viewer już renderuje te pola). Reguła: RULES.md 18.
+
+
+---
+### ✅ Blok E3·T1 — akcja taktyczna: aktywacja systemu + maszyna kroków (fundament)
+**Cel użytkownika (decyzja projektowa):** silnik PROWADZI przez akcję taktyczną, ale
+NIE waliduje reguł — gracze grają fizycznie (stół/Tabletop) i wprowadzają wynik. Asystent
+stołu, nie sędzia. Walka = przyszłe okno z ręcznym wpisywaniem trafień + pomoce liczbowe
+(bez rzucania). T1 to fundament: aktywacja systemu + FSM kroków.
+
+**Analiza źródła (context-gatherer × AsyncTI4 bot):** model kontroli potwierdzony —
+`UnitHolder.controlList` (addControl czyści poprzednika = jeden właściciel), Space vs Planet
+jako osobne holdery; żeton dowodzenia w `Space.ccList`, kładziony z puli taktycznej
+(`CommandCounterHelper.addCC` useTactic → `setTacticalCC-1`), globalny `Game.activeSystem`.
+Kontrola przestrzeni LICZONA z obecności statków (brak osobnego pola). Bot NIE waliduje
+twardo zasięgu/capacity/fleet — generuje przyciski, ufa graczowi (zgodne z naszym modelem).
+Stan „planeta gracza A + przestrzeń gracza B" legalny. Reguła spisana w RULES.md 19.
+
+**Model (game_state.py):**
+- `TacticalStep` (enum): ACTIVATION/MOVEMENT/SPACE_CANNON/SPACE_COMBAT/INVASION/PRODUCTION.
+- `SystemState.command_tokens: list[player_id]` — żetony dowodzenia w przestrzeni (aktywacja).
+- `GameState.active_system`, `GameState.tactical_step` — aktualnie aktywowany system + krok FSM.
+
+**Core (czyste funkcje):**
+- `core/tactical.py` (NOWY): `activate_system` (kładzie CC aktywnego gracza, ustawia
+  active_system, tactical_step=MOVEMENT, tactical_cc-1; idempotentne; ValueError gdy brak
+  aktywnego gracza), `next_step` (sekwencja; po PRODUCTION kończy akcję), `set_step`
+  (skok do kroku), `end_tactical_action` (czyści active_system/step; żeton zostaje).
+- `core/board_edit.py`: `place_command_token`/`remove_command_token` (God-Mode CC bez reguł,
+  bez zużycia puli).
+
+**API (routers/tactical.py — NOWY):** `POST /tactical/activate`, `/tactical/step/next`,
+`/tactical/step/set`, `/tactical/end` (envelope); `POST`/`DELETE /system/{pos}/command-token`
+(God-Mode, MapView). Zarejestrowany w `app.py`. Schematy: `ActivateSystemRequest`,
+`TacticalStepRequest`, `CommandTokenRequest`.
+
+**web-data:** `gameState.activeSystem` + `gameState.tacticalStep` (nasze rozszerzenie — panel
+taktyczny w T2 odczyta; viewer AsyncTI4 ignoruje); `tileUnitData[pos].ccs` wypełnione z
+`command_tokens` (klucz tożsamości = frakcja, spójnie z jednostkami — frontend już renderuje
+żetony dowodzenia na kafelku przez `CommandCounterLayer`).
+
+**Zweryfikowane E2E:** aktywacja Sol@101 → ccs=[sol], activeSystem=101, step=MOVEMENT,
+tacCC 3→2; next_step→SPACE_CANNON; end czyści (żeton zostaje). God-Mode CC add/remove.
+Backend 165 testów zielone (+12: test_tactical.py +9, test_api.py +3 wliczone), ruff+mypy czyste.
+
+**Następny blok (T2):** panel akcji taktycznej w UI (sterowanie krokami; ruch przez
+istniejący tryb przenoszenia God-Mode). Potem T3 (okno walki + pomoce), T4 (inwazja+produkcja).

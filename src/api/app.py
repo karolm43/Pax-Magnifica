@@ -22,7 +22,15 @@ from src import config
 from src.api.connection_manager import ConnectionManager
 from src.api.context import AppContext
 from src.api.demo_map import build_demo_grid
-from src.api.routers import board, flow, game, history, players, strategy
+from src.api.routers import (
+    board,
+    flow,
+    game,
+    history,
+    players,
+    strategy,
+    tactical,
+)
 from src.api.state_service import StateService
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
@@ -81,6 +89,7 @@ def create_app(
     app.include_router(flow.router)
     app.include_router(strategy.router)
     app.include_router(history.router)
+    app.include_router(tactical.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:
