@@ -1057,3 +1057,31 @@ w `api/routers/` tylko woła core + commit/broadcast + mapuje `ValueError`→HTT
 dochodzi `core/tactical.py` + `api/routers/tactical.py` — bez puchnięcia `app.py`.
 
 **QA:** 139 testów zielone (bez zmian — zachowanie identyczne), ruff+mypy czyste (46 plików).
+
+---
+### ✅ Blok S1 — poprawki setupu: liderzy Keleres, wybór tech, home off-board
+Trzy mechaniki setupu zweryfikowane na danych AsyncTI4 (RULES.md 16/17) i zaimplementowane.
+
+**1. Liderzy Keleres (bug) — fix.** `_player_leaders` zgadywał typ lidera po końcówce id;
+`keleresherokuuasi` nie kończy się na „hero" → był błędnie agentem (odblokowanym). Naprawa:
+typ czytany z POLA `type` danych lidera. Dodano `LeaderDef` + ładowanie liderów do
+`StaticDataRegistry` (`config.LEADERS_DATA_DIR`). Wszystkie 3 warianty Keleres: agent/
+commander/hero z poprawnym hero (locked). Keleres: system/planety były OK — tylko liderzy.
+
+**2. Wybór technologii startowej.** 6 frakcji nie ma stałych tech, gracz wybiera N z opcji:
+Winnu (1z8), Argent (2z3), Last Bastion/Firmament/Crimson/Ral Nel (TE, 1z4). Model:
+`FactionDef.starting_tech_options/starting_tech_amount`; `faction_setup.resolve_starting_tech`
+(walidacja liczności + dozwolonych opcji, fallback = pierwsze N dla quick-startu). API:
+`starting_tech` w żądaniu setupu/new-game; `/factions` zwraca opcje. UI: `StartingTechPicker`
+(MultiSelect) na ekranie startowym, gdy frakcja wymaga wyboru.
+
+**3. Home system off-board: Ghost of Creuss + Crimson Rebellion.** Obie mają dom poza
+planszą: brama na slocie (Ghost sys 17 Delta / Crimson sys 94 Epsilon), prawdziwy dom w
+rogu obszaru gry (Ghost sys 51 z planetą creuss / Crimson sys 118 z ahkcreuxx). Reguła
+z bota (`PlayerSetupService`): róg `tr/br/bl` wg slotu domowego, kolizja → flip tr↔br.
+`faction_setup.OFF_BOARD_HOME` + `off_board_corner`; router kładzie bramę na slocie i dom
+off-board (syntetyczny heks, sąsiedztwo przez wormhole), `apply_setup_to_state` dostaje
+`unit_position`/`unit_system_id`. Frontend viewer już zna piksele `tr/br/bl` — render działa.
+
+**QA:** backend 148 testów zielone (+9), ruff+mypy czyste (46 plików); frontend
+type-check+lint+build czyste. Reguły: RULES.md 16/17.

@@ -82,10 +82,36 @@ class FactionDef(_StaticModel):
     home_planets: list[str] = Field(default_factory=list, alias="homePlanets")
     starting_fleet: str | None = Field(default=None, alias="startingFleet")
     starting_tech: list[str] = Field(default_factory=list, alias="startingTech")
+    # Wybór technologii startowej (gdy frakcja NIE ma stałej listy): gracz wybiera
+    # ``starting_tech_amount`` spośród ``starting_tech_options`` (np. Winnu 1 z 8,
+    # Argent 2 z 3). Źródło: pola startingTechOptions/startingTechAmount danych frakcji.
+    starting_tech_options: list[str] = Field(
+        default_factory=list, alias="startingTechOptions"
+    )
+    starting_tech_amount: int = Field(default=0, alias="startingTechAmount")
     commodities: int = 0
     preferred_colours: list[str] = Field(default_factory=list, alias="preferredColours")
     # Liderzy frakcji (agent/commander/hero) — identyfikatory z danych AsyncTI4.
     leaders: list[str] = Field(default_factory=list)
+
+
+class LeaderDef(_StaticModel):
+    """Definicja lidera frakcji (agent/commander/hero) z jego typem i opisem.
+
+    Typ czytamy z POLA ``type`` danych (``agent``/``commander``/``hero``), NIE z końcówki
+    id — niektóre id (np. ``keleresherokuuasi``) nie kończą się nazwą typu.
+    """
+
+    id: str
+    type: str
+    name: str
+    source: str
+
+    faction: str | None = None
+    title: str | None = None
+    ability_name: str | None = Field(default=None, alias="abilityName")
+    ability_text: str | None = Field(default=None, alias="abilityText")
+    unlock_condition: str | None = Field(default=None, alias="unlockCondition")
 
 
 class StrategyCardDef(_StaticModel):

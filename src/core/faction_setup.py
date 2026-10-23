@@ -15,6 +15,36 @@ from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.models import FactionDef
 from src.core.unit_catalog import FLEET_CODE_TO_BASE_TYPE, Placement, placement_of
 
+# Frakcje z systemem domowym POZA planszą (RULES.md 17). Brama (``home_system``
+# frakcji) stoi na slocie; prawdziwy dom (``real_home_system`` z planetą) ląduje
+# w rogu obszaru gry. Źródło: AsyncTI4 PlayerSetupService (mapowanie 17→51, 94→118).
+OFF_BOARD_HOME: dict[str, str] = {
+    "ghost": "51",  # brama 17 (Creuss Gate) -> dom 51 (Creuss)
+    "crimson": "118",  # brama 94 (The Sorrow) -> dom 118
+}
+
+# Róg off-board wg slotu domowego gracza (RULES.md 17; z PlayerSetupService).
+_OFF_BOARD_CORNER_BY_SLOT: dict[str, str] = {
+    "301": "tr",
+    "304": "tr",
+    "307": "br",
+    "310": "br",
+    "313": "bl",
+    "316": "bl",
+}
+
+
+def off_board_corner(home_slot: str, taken: set[str]) -> str:
+    """Róg off-board (``tr``/``br``/``bl``) dla slotu domowego, z obsługą kolizji.
+
+    Reguła z bota: slot → róg (tabela); gdy róg zajęty (``taken``), zamień tr↔br.
+    Domyślnie ``tr`` dla nieznanych slotów.
+    """
+    corner = _OFF_BOARD_CORNER_BY_SLOT.get(home_slot, "tr")
+    if corner in taken:
+        corner = "br" if corner == "tr" else "tr"
+    return corner
+
 # Token startingFleet: opcjonalna liczba, kod jednostki, opcjonalny sufiks planety.
 _FLEET_TOKEN = re.compile(r"^(?:(\d+)\s+)?([a-z]+)(?:\s+([a-z0-9.]+))?$", re.IGNORECASE)
 
@@ -99,6 +129,43 @@ def _first_differing_index(names: list[str]) -> int | None:
     return None
 
 
+def resolve_starting_tech(
+    faction: FactionDef, chosen_tech: list[str] | None
+) -> list[str]:
+    """Ustala technologie startowe gracza (stała lista albo wybór z opcji).
+
+    - Frakcja ze STAŁĄ listą (``starting_tech``) i bez opcji: zwraca tę listę
+      (``chosen_tech`` ignorowane).
+    - Frakcja z WYBOREM (``starting_tech_amount > 0``): wymaga ``chosen_tech`` o
+      dokładnej liczności, złożonego wyłącznie z dozwolonych ``starting_tech_options``.
+
+    Raises:
+        ValueError: Gdy wybór jest wymagany a nieprawidłowy (zła liczność/opcje).
+    """
+    if faction.starting_tech_amount <= 0:
+        return list(faction.starting_tech)
+    # Brak wyboru od gracza → domyślnie pierwsze N opcji (żeby szybka gra nie padła).
+    # UI pokazuje menu wyboru; to tylko bezpieczny fallback dla quick-startu.
+    if chosen_tech is None:
+        return list(faction.starting_tech_options[: faction.starting_tech_amount])
+    chosen = chosen_tech
+    options = set(faction.starting_tech_options)
+    if len(chosen) != faction.starting_tech_amount:
+        raise ValueError(
+            f"Frakcja {faction.id} wybiera {faction.starting_tech_amount} technologii "
+            f"startowych — podano {len(chosen)}."
+        )
+    invalid = [t for t in chosen if t not in options]
+    if invalid:
+        raise ValueError(
+            f"Niedozwolone technologie startowe dla {faction.id}: {invalid}. "
+            f"Dozwolone: {sorted(options)}."
+        )
+    if len(set(chosen)) != len(chosen):
+        raise ValueError(f"Powtórzone technologie startowe: {chosen}.")
+    return list(chosen)
+
+
 def apply_setup_to_state(
     state: GameState,
     *,
@@ -106,42 +173,59 @@ def apply_setup_to_state(
     color: str,
     faction: FactionDef,
     home_position: str,
+    chosen_tech: list[str] | None = None,
+    unit_position: str | None = None,
+    unit_system_id: str | None = None,
 ) -> GameState:
     """Nanosi setup frakcji gracza na stan gry i zwraca nowy ``GameState``.
 
     Tworzy/aktualizuje gracza (frakcja, kolor, technologie, towary), rozstawia flotę
-    startową w systemie domowym (``home_position``) — statki w przestrzeni, siły
-    naziemne/struktury na planetach — i ustawia kontrolę planet domowych.
+    startową — statki w przestrzeni, siły naziemne/struktury na planetach — i ustawia
+    kontrolę planet domowych.
 
     Args:
         state: Bieżący stan (kopiowany; wejście nie jest mutowane).
         player_id: Identyfikator gracza (np. kolor lub nazwa).
         color: Kolor gracza (3-literowy kod, np. ``"red"`` — do grafik jednostek).
         faction: Definicja frakcji.
-        home_position: Pozycja ``RPP`` slotu domowego, na którym stoi kafelek domowy.
+        home_position: Pozycja ``RPP`` slotu domowego (kotwica heksa stat-area).
+        chosen_tech: Wybrane technologie startowe (dla frakcji z wyborem).
+        unit_position: Pozycja, na której rozkładamy flotę/planety. Domyślnie
+            ``home_position``; dla Ghost/Crimson to róg off-board (RULES.md 17), bo
+            prawdziwy dom leży poza planszą.
+        unit_system_id: System_id kafelka z jednostkami. Domyślnie ``faction.home_system``;
+            dla Ghost/Crimson to prawdziwy dom (``OFF_BOARD_HOME``), nie brama.
 
     Returns:
         Nowy ``GameState`` z naniesionym setupem.
+
+    Raises:
+        ValueError: Gdy frakcja wymaga wyboru technologii a ``chosen_tech`` jest zły.
     """
     plan = build_setup_plan(faction)
+    starting_tech = resolve_starting_tech(faction, chosen_tech)
     new_state = state.clone()
 
-    # Gracz
+    # Gdzie realnie stoją jednostki/planety (off-board dla Ghost/Crimson).
+    unit_pos = unit_position or home_position
+    system_id = unit_system_id or faction.home_system or ""
+
+    # Gracz (home_position = slot domowy / kotwica stat-area; nawet dla off-board
+    # frakcji heks tożsamości jest przy slocie bramy).
     new_state.players[player_id] = PlayerState(
         player_id=player_id,
         faction=faction.id,
         color=color,
         home_position=home_position,
         commodities=plan.commodities,
-        technologies=list(plan.starting_tech),
+        technologies=list(starting_tech),
         controlled_planets=list(plan.home_planets),
     )
 
-    # System domowy: kafelek + jednostki
-    system = new_state.systems.get(home_position)
-    system_id = faction.home_system or ""
+    # System z jednostkami + kontrolą planet domowych.
+    system = new_state.systems.get(unit_pos)
     if system is None:
-        system = SystemState(position=home_position, system_id=system_id)
+        system = SystemState(position=unit_pos, system_id=system_id)
     else:
         system.system_id = system_id
 
@@ -152,7 +236,7 @@ def apply_setup_to_state(
     for planet_id in plan.home_planets:
         system.planet_owners[planet_id] = player_id
 
-    new_state.systems[home_position] = system
+    new_state.systems[unit_pos] = system
     return new_state
 
 

@@ -144,6 +144,10 @@ class FactionInfo(BaseModel):
     home_planets: list[str] = Field(default_factory=list)
     starting_fleet: str | None = None
     preferred_colours: list[str] = Field(default_factory=list)
+    # Wybór technologii startowej (gdy frakcja nie ma stałej listy). Gdy
+    # ``starting_tech_amount == 0``, frakcja nie wybiera (stałe technologie).
+    starting_tech_options: list[str] = Field(default_factory=list)
+    starting_tech_amount: int = 0
 
 
 class SetupPlayerRequest(BaseModel):
@@ -155,6 +159,8 @@ class SetupPlayerRequest(BaseModel):
     faction_id: str
     color: str
     home_position: str
+    # Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
+    starting_tech: list[str] | None = None
 
 
 class NewGamePlayer(BaseModel):
@@ -168,6 +174,8 @@ class NewGamePlayer(BaseModel):
     player_id: str | None = None
     color: str | None = None
     home_position: str | None = None
+    # Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
+    starting_tech: list[str] | None = None
 
 
 class NewGameRequest(BaseModel):

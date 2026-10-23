@@ -15,10 +15,26 @@ from src.api.schemas import (
 )
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
-from src.core.faction_setup import apply_setup_to_state
+from src.core.faction_setup import (
+    OFF_BOARD_HOME,
+    apply_setup_to_state,
+    off_board_corner,
+)
 from src.core.game_state import GameState
 from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
+from src.core.models import FactionDef
+from src.core.registry import StaticDataRegistry
+
+# Synenetyczne heksy dla rogów off-board (poza planszą) — daleko od pierścieni,
+# by nie kolidowały geometrycznie z kafelkami planszy. Sąsiedztwo do bramy idzie
+# przez wormhole (Delta/Epsilon), nie przez geometrię. Patrz RULES.md 17.
+_OFF_BOARD_HEX: dict[str, Hex] = {
+    "tr": Hex(40, -20, -20),
+    "br": Hex(40, 0, -40),
+    "bl": Hex(-40, 40, 0),
+    "tl": Hex(-40, 20, 20),
+}
 
 router = APIRouter()
 
@@ -59,6 +75,8 @@ def get_factions(ctx: AppContext = Depends(get_ctx)) -> list[FactionInfo]:
             home_planets=list(f.home_planets),
             starting_fleet=f.starting_fleet,
             preferred_colours=list(f.preferred_colours),
+            starting_tech_options=list(f.starting_tech_options),
+            starting_tech_amount=f.starting_tech_amount,
         )
         for f in sorted(ctx.registry.factions.values(), key=lambda x: x.name)
     ]
@@ -84,17 +102,62 @@ async def post_load_map(
     return build_map_view(grid, ctx.registry, ctx.service.current_state())
 
 
-def _place_home_tile(grid: HexGrid, faction, home_position: str, registry) -> None:  # type: ignore[no-untyped-def]
-    """Podmienia slot domowy w gridzie na prawdziwy kafelek domowy frakcji."""
-    if faction.home_system and home_position in grid.positions:
-        home_sys = registry.systems.get(faction.home_system)
-        grid.place_system(
-            position=home_position,
-            system_id=faction.home_system,
-            wormholes=list(home_sys.wormholes) if home_sys else None,
-            anomalies=set(home_sys.anomalies) if home_sys else None,
-            hex_override=Hex(*grid.coordinates(home_position)),
-        )
+def _place_tile_on_slot(
+    grid: HexGrid, system_id: str, position: str, registry: StaticDataRegistry
+) -> None:
+    """Kładzie kafelek ``system_id`` na pozycji slotu (zachowuje współrzędne slotu)."""
+    sys_def = registry.systems.get(system_id)
+    grid.place_system(
+        position=position,
+        system_id=system_id,
+        wormholes=list(sys_def.wormholes) if sys_def else None,
+        anomalies=set(sys_def.anomalies) if sys_def else None,
+        hex_override=Hex(*grid.coordinates(position)),
+    )
+
+
+def _place_off_board_home(
+    grid: HexGrid, system_id: str, corner: str, registry: StaticDataRegistry
+) -> None:
+    """Kładzie prawdziwy dom off-board (róg ``tr``/``br``/``bl``) z syntetycznym heksem."""
+    sys_def = registry.systems.get(system_id)
+    grid.place_system(
+        position=corner,
+        system_id=system_id,
+        wormholes=list(sys_def.wormholes) if sys_def else None,
+        anomalies=set(sys_def.anomalies) if sys_def else None,
+        hex_override=_OFF_BOARD_HEX.get(corner, Hex(40, -20, -20)),
+    )
+
+
+def _setup_home_tiles(
+    grid: HexGrid,
+    faction: FactionDef,
+    home_position: str,
+    registry: StaticDataRegistry,
+    taken_corners: set[str],
+) -> tuple[str, str]:
+    """Kładzie kafelek(i) domowe frakcji w gridzie i zwraca (unit_position, unit_system_id).
+
+    Frakcja normalna: prawdziwy kafelek domowy na slocie → jednostki tam.
+    Ghost/Crimson (RULES.md 17): brama na slocie + prawdziwy dom off-board →
+    jednostki na off-board.
+    """
+    if not faction.home_system or home_position not in grid.positions:
+        return home_position, faction.home_system or ""
+
+    real_home = OFF_BOARD_HOME.get(faction.id)
+    if real_home is None:
+        # Zwykła frakcja: prawdziwy kafelek domowy na slocie.
+        _place_tile_on_slot(grid, faction.home_system, home_position, registry)
+        return home_position, faction.home_system
+
+    # Off-board: brama na slocie, dom w rogu.
+    _place_tile_on_slot(grid, faction.home_system, home_position, registry)
+    corner = off_board_corner(home_position, taken_corners)
+    taken_corners.add(corner)
+    _place_off_board_home(grid, real_home, corner, registry)
+    return corner, real_home
 
 
 @router.post("/setup/player", response_model=MapView)
@@ -106,19 +169,28 @@ async def post_setup_player(
         raise HTTPException(
             status_code=404, detail=f"Nieznana frakcja: {request.faction_id}"
         )
-    new_state = apply_setup_to_state(
-        ctx.service.current_state(),
-        player_id=request.player_id,
-        color=request.color,
-        faction=faction,
-        home_position=request.home_position,
-    )
-    ctx.service.replace_state(new_state, label=f"setup:{request.faction_id}")
-
     grid = ctx.current_grid
-    if faction.home_system and request.home_position in grid.positions:
-        _place_home_tile(grid, faction, request.home_position, ctx.registry)
-        grid.build_edges()
+    # Najpierw połóż kafelki domowe (ustala, gdzie trafią jednostki — off-board dla
+    # Ghost/Crimson), zbierając zajęte rogi z już rozstawionych graczy.
+    taken_corners = {p for p in grid.positions if p in {"tr", "br", "bl", "tl"}}
+    unit_position, unit_system_id = _setup_home_tiles(
+        grid, faction, request.home_position, ctx.registry, taken_corners
+    )
+    grid.build_edges()
+    try:
+        new_state = apply_setup_to_state(
+            ctx.service.current_state(),
+            player_id=request.player_id,
+            color=request.color,
+            faction=faction,
+            home_position=request.home_position,
+            chosen_tech=request.starting_tech,
+            unit_position=unit_position,
+            unit_system_id=unit_system_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    ctx.service.replace_state(new_state, label=f"setup:{request.faction_id}")
 
     await ctx.service.broadcast()
     await ctx.broadcast_map()
@@ -151,6 +223,7 @@ async def post_new_game(
 
     new_state = GameState()
     first_player_id: str | None = None
+    taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
     for index, player in enumerate(request.players):
         faction = ctx.registry.factions.get(player.faction_id)
         if faction is None:
@@ -172,14 +245,23 @@ async def post_new_game(
             )
         if first_player_id is None:
             first_player_id = player_id
-        new_state = apply_setup_to_state(
-            new_state,
-            player_id=player_id,
-            color=color,
-            faction=faction,
-            home_position=home_position,
+        # Połóż kafelki domowe (off-board dla Ghost/Crimson) i ustal gdzie flota.
+        unit_position, unit_system_id = _setup_home_tiles(
+            grid, faction, home_position, ctx.registry, taken_corners
         )
-        _place_home_tile(grid, faction, home_position, ctx.registry)
+        try:
+            new_state = apply_setup_to_state(
+                new_state,
+                player_id=player_id,
+                color=color,
+                faction=faction,
+                home_position=home_position,
+                chosen_tech=player.starting_tech,
+                unit_position=unit_position,
+                unit_system_id=unit_system_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     grid.build_edges()
 
     new_state.active_player_id = first_player_id

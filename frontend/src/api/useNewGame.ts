@@ -9,6 +9,10 @@ export type FactionInfo = {
   home_planets: string[];
   starting_fleet: string | null;
   preferred_colours: string[];
+  // Wybór technologii startowej: gracz wybiera `starting_tech_amount` spośród
+  // `starting_tech_options`. Gdy amount == 0, frakcja ma stałe technologie.
+  starting_tech_options: string[];
+  starting_tech_amount: number;
 };
 
 /** Gracz w żądaniu nowej gry; pola opcjonalne przydziela backend automatycznie. */
@@ -17,6 +21,8 @@ export type NewGamePlayer = {
   player_id?: string;
   color?: string;
   home_position?: string;
+  // Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
+  starting_tech?: string[];
 };
 
 export type NewGameRequest = {

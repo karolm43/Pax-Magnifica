@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from src import config
 from src.core.models import (
     FactionDef,
+    LeaderDef,
     PlanetDef,
     StrategyCardDef,
     SystemDef,
@@ -102,6 +103,7 @@ class StaticDataRegistry:
         self.systems: dict[str, SystemDef] = {}
         self.factions: dict[str, FactionDef] = {}
         self.strategy_cards: dict[str, StrategyCardDef] = {}
+        self.leaders: dict[str, LeaderDef] = {}
 
         # Mapowania id -> gęsty indeks int (pod FastState)
         self.unit_index: dict[str, int] = {}
@@ -146,6 +148,9 @@ class StaticDataRegistry:
         )
         self.strategy_cards = self._collect(
             _iter_dir_entries(config.STRATEGY_CARDS_DIR), StrategyCardDef
+        )
+        self.leaders = self._collect(
+            _iter_dir_entries(config.LEADERS_DATA_DIR), LeaderDef
         )
 
         self.unit_index = {uid: i for i, uid in enumerate(sorted(self.units))}

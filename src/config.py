@@ -26,6 +26,8 @@ FACTIONS_DATA_DIR: Path = DATA_DIR / "factions"
 # Karty strategii (definicje kart + zestawy kart gry).
 STRATEGY_CARDS_DIR: Path = DATA_DIR / "strategy_cards"
 STRATEGY_CARD_SETS_PATH: Path = DATA_DIR / "strategy_card_sets" / "strategyCardSets.json"
+# Liderzy frakcji (agent/commander/hero) — definicje z typem i opisem zdolności.
+LEADERS_DATA_DIR: Path = DATA_DIR / "leaders"
 
 # Grafiki kafelków mapy (poza repo — .gitignore; serwowane lokalnie z dysku).
 TILES_DIR: Path = ASSETS_DIR / "tiles"

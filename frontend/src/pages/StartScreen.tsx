@@ -7,6 +7,7 @@ import {
   Center,
   Group,
   Loader,
+  MultiSelect,
   NumberInput,
   Paper,
   Select,
@@ -17,6 +18,7 @@ import {
   Title,
 } from "@/ds";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
+import { getTechData } from "@/entities/lookup/tech";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 
 /** Układ 6-osobowy: sloty domowe na rogach pierścienia 3. */
@@ -45,6 +47,42 @@ function pickRandom<T>(items: T[]): T {
 }
 
 /**
+ * Menu wyboru technologii startowej dla frakcji, która NIE ma stałych technologii
+ * (np. Winnu wybiera 1 z 8, Argent 2 z 3). Pokazuje się tylko gdy
+ * `starting_tech_amount > 0`. Ogranicza wybór do wymaganej liczby.
+ */
+function StartingTechPicker({
+  faction,
+  value,
+  onChange,
+}: {
+  faction: FactionInfo | undefined;
+  value: string[];
+  onChange: (techs: string[]) => void;
+}) {
+  if (!faction || faction.starting_tech_amount <= 0) return null;
+  const amount = faction.starting_tech_amount;
+  const options = faction.starting_tech_options.map((alias) => ({
+    value: alias,
+    label: getTechData(alias)?.name ?? alias,
+  }));
+  return (
+    <Box mt={6}>
+      <MultiSelect
+        label={`Technologie startowe (wybierz ${amount})`}
+        placeholder={`Wybierz ${amount}`}
+        data={options}
+        value={value}
+        onChange={(next) => {
+          // Nie pozwól wybrać więcej niż wymaga frakcja (bierzemy ostatnie `amount`).
+          onChange(next.length > amount ? next.slice(next.length - amount) : next);
+        }}
+      />
+    </Box>
+  );
+}
+
+/**
  * Ekran startowy Custodian Engine. Konfigurujesz grę: liczba graczy, frakcje
  * i (opcjonalnie) map string, po czym jednym żądaniem tworzysz grę w backendzie
  * i przechodzisz do widoku planszy. Nie wybrana frakcja = losowa (bez powtórzeń).
@@ -61,9 +99,18 @@ export default function StartScreen() {
   const [factionByPlayer, setFactionByPlayer] = useState<Record<number, string>>(
     {},
   );
+  // Wybrane technologie startowe per gracz (dla frakcji z wyborem, np. Winnu/Argent).
+  const [techByPlayer, setTechByPlayer] = useState<Record<number, string[]>>({});
   const [mapString, setMapString] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Szybki dostęp do danych frakcji po id (do menu wyboru technologii).
+  const factionById = useMemo(() => {
+    const map = new Map<string, FactionInfo>();
+    for (const f of factions ?? []) map.set(f.id, f);
+    return map;
+  }, [factions]);
 
   // Opcje do Selecta: „losowa" na górze, potem frakcje alfabetycznie.
   const factionOptions = useMemo(
@@ -100,7 +147,17 @@ export default function StartScreen() {
     try {
       const resolved = resolveFactions(factions);
       await createNewGame({
-        players: resolved.map((faction_id) => ({ faction_id })),
+        players: resolved.map((faction_id, i) => {
+          const info = factionById.get(faction_id);
+          // Wybór tech tylko dla frakcji z wyborem i tylko gdy gracz jawnie wybrał
+          // tę frakcję (dla losowej zostawiamy fallback backendu = pierwsze N opcji).
+          const chosen = techByPlayer[i];
+          const needsChoice = (info?.starting_tech_amount ?? 0) > 0;
+          const explicit = factionByPlayer[i] && factionByPlayer[i] !== RANDOM;
+          return needsChoice && explicit && chosen?.length
+            ? { faction_id, starting_tech: chosen }
+            : { faction_id };
+        }),
         map_string: mapString.trim() || undefined,
       });
       // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
@@ -176,8 +233,21 @@ export default function StartScreen() {
                           placeholder="🎲 Losowa"
                           data={factionOptions}
                           value={factionByPlayer[i] ?? RANDOM}
-                          onChange={(v) =>
-                            setFactionByPlayer((prev) => ({ ...prev, [i]: v }))
+                          onChange={(v) => {
+                            setFactionByPlayer((prev) => ({ ...prev, [i]: v }));
+                            // Zmiana frakcji kasuje poprzedni wybór technologii.
+                            setTechByPlayer((prev) => ({ ...prev, [i]: [] }));
+                          }}
+                        />
+                        <StartingTechPicker
+                          faction={
+                            factionByPlayer[i] && factionByPlayer[i] !== RANDOM
+                              ? factionById.get(factionByPlayer[i])
+                              : undefined
+                          }
+                          value={techByPlayer[i] ?? []}
+                          onChange={(techs) =>
+                            setTechByPlayer((prev) => ({ ...prev, [i]: techs }))
                           }
                         />
                       </Box>

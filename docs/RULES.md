@@ -505,3 +505,51 @@ podaje typ planety jako listę `planetTypes` (np. `["FACTION"]`) i NIE ma pojedy
   `PlanetGlyph`) oraz w `PlanetCard/planetCardStyle.ts` (`getPlanetIconSrc`).
 - Grafiki (cardImage) i opisy (flavourText) planet thunders_edge nie istnieją w danych —
   nie da się ich wygenerować; frontend bierze grafiki z CDN gdy ścieżka jest dostępna.
+
+---
+
+## 16. Wybór technologii startowej frakcji — ✅ ZWERYFIKOWANE (dane)
+
+Źródło: dane frakcji AsyncTI4 (`assets/data/factions/*.json`), pola `startingTechOptions`
++ `startingTechAmount`. Zweryfikowane 2026-10 na aktywnych źródłach.
+
+Większość frakcji ma STAŁE technologie startowe (`startingTech`). Część NIE ma stałych —
+gracz WYBIERA ``startingTechAmount`` technologii spośród ``startingTechOptions``:
+
+| Frakcja | Ile | Opcje (alias) |
+|---|---|---|
+| Winnu | 1 | amd, det, nm, pa, st, sdn, ps, aida (dowolna 1) |
+| Argent Flight | 2 | nm, st, ps |
+| Last Bastion (TE) | 1 | amd, det, st, sdn |
+| The Firmament (TE) | 1 | nm, pa, st, sdn |
+| The Crimson Rebellion (TE) | 1 | det, amd, ps, aida |
+| The Ral Nel Consortium (TE) | 1 | nm, pa, ps, aida |
+
+Keleres (3 warianty) ma `startingTech=[]` i brak opcji — startuje bez technologii (celowo).
+Implementacja: `faction_setup.resolve_starting_tech` (walidacja liczności i dozwolonych
+opcji) + wybór przekazywany przez `starting_tech` w żądaniu setupu/nowej gry; UI pokazuje
+menu wyboru N z listy, gdy `startingTechAmount > 0`.
+
+## 17. Systemy domowe poza planszą: Ghost of Creuss, Crimson Rebellion — ✅ ZWERYFIKOWANE (bot)
+
+Źródło (nie z pamięci): AsyncTI4 bot, `PlayerSetupService` (blok „GHOST AND CRIMSON EXTRA
+HS TILES"). Obie frakcje mają system domowy fizycznie POZA planszą, połączony z nią przez
+wormhole:
+
+- **Ghost of Creuss**: na slocie domowym stoi **brama** — kafelek `17` „Creuss Gate"
+  (pusty, wormhole DELTA). Prawdziwy system domowy to kafelek `51` „Creuss" (planeta
+  `creuss`, DELTA), kładziony POZA planszą. Flota startowa i kontrola planety są na `51`.
+- **Crimson Rebellion**: brama to kafelek `94` „The Sorrow" (pusty, wormhole EPSILON);
+  prawdziwy dom to kafelek `118` (planeta `ahkcreuxx`, EPSILON) poza planszą.
+
+**Pozycja off-board (róg obszaru gry)** — wg slotu domowego gracza (reguła z bota):
+- sloty `301`, `304` → `tr` (prawy górny róg),
+- sloty `307`, `310` → `br` (prawy dolny),
+- sloty `313`, `316` → `bl` (lewy dolny),
+- kolizja (róg zajęty) → zamiana `tr`↔`br`.
+
+Pozycje `tr/br/bl/tl` to specjalne sloty narożne obszaru gry (nie pierścienie). Frontend
+viewer zna ich piksele (`frontend/.../tileCoordinates.ts`, `tilePositioning.ts`), więc
+wystarczy wyemitować kafelek na tej pozycji. Mapowanie brama→dom (`17→51`, `94→118`) oraz
+rogi pochodzą z `PlayerSetupService` AsyncTI4 — zakodowane jawnie jako tabela reguł
+(`faction_setup.OFF_BOARD_HOME`), nie zgadywane.

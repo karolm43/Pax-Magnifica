@@ -493,6 +493,23 @@ def _planet_economy(
     return econ
 
 
+def _leader_type(leader_id: str, registry: StaticDataRegistry) -> str:
+    """Typ lidera (``agent``/``commander``/``hero``) z POLA ``type`` danych.
+
+    Czytamy typ z rejestru liderów, nie z końcówki id — id jak ``keleresherokuuasi``
+    nie kończy się nazwą typu, więc zgadywanie po sufiksie je błędnie klasyfikowało
+    (Keleres hero → „agent"). Awaryjnie (lider spoza rejestru) próbujemy sufiksu.
+    """
+    leader = registry.leaders.get(leader_id)
+    if leader is not None:
+        return leader.type
+    lid = leader_id.lower()
+    for ltype in ("commander", "hero", "agent"):
+        if lid.endswith(ltype):
+            return ltype
+    return "agent"
+
+
 def _player_leaders(
     faction_id: str | None,
     registry: StaticDataRegistry,
@@ -502,7 +519,7 @@ def _player_leaders(
 
     Stan domyślny: agent gotowy, commander/hero zablokowani. ``states`` nadpisuje
     stan per lider (``"locked"``/``"unlocked"``/``"exhausted"``) — edycja God-Mode.
-    Typ wyprowadzamy z sufiksu identyfikatora.
+    Typ lidera czytamy z danych lidera (``LeaderDef.type``), nie z końcówki id.
     """
     faction = registry.factions.get(faction_id) if faction_id else None
     if faction is None:
@@ -510,15 +527,7 @@ def _player_leaders(
     states = states or {}
     leaders: list[dict[str, Any]] = []
     for leader_id in faction.leaders:
-        lid = leader_id.lower()
-        if lid.endswith("agent"):
-            ltype = "agent"
-        elif lid.endswith("commander"):
-            ltype = "commander"
-        elif lid.endswith("hero"):
-            ltype = "hero"
-        else:
-            ltype = "agent"
+        ltype = _leader_type(leader_id, registry)
         # Stan: override z leader_states albo domyślny (agent gotowy, reszta locked).
         default_state = "unlocked" if ltype == "agent" else "locked"
         state = states.get(leader_id, default_state)

@@ -537,3 +537,115 @@ def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
     data = client.get("/api/public/game/g/web-data").json()
     hacan = next(p for p in data["playerData"] if p["faction"] == "hacan")
     assert hacan["active"] is True
+
+
+# --- Setup: liderzy Keleres, wybór tech, home off-board (Ghost/Crimson) --------
+
+
+def test_keleres_leaders_typed_from_data(client: TestClient) -> None:
+    # Keleres hero (keleresherokuuasi) nie kończy się na "hero" — typ musi pochodzić
+    # z danych lidera, nie z końcówki id. Każdy wariant: agent/commander/hero + hero locked.
+    for faction_id, hero_id in (
+        ("keleresa", "keleresherokuuasi"),
+        ("keleresm", "keleresheroharka"),
+        ("keleresx", "keleresheroodlynn"),
+    ):
+        client.post("/game/new", json={"players": [{"faction_id": faction_id}]})
+        p = client.get("/api/public/game/g/web-data").json()["playerData"][0]
+        types = {ldr["type"] for ldr in p["leaders"]}
+        assert types == {"agent", "commander", "hero"}
+        hero = next(ldr for ldr in p["leaders"] if ldr["type"] == "hero")
+        assert hero["id"] == hero_id
+        assert hero["locked"] is True
+
+
+def test_factions_expose_starting_tech_choice(client: TestClient) -> None:
+    factions = client.get("/factions").json()
+    winnu = next(f for f in factions if f["id"] == "winnu")
+    assert winnu["starting_tech_amount"] == 1
+    assert len(winnu["starting_tech_options"]) == 8
+    argent = next(f for f in factions if f["id"] == "argent")
+    assert argent["starting_tech_amount"] == 2
+    # Frakcja ze stałą tech nie ma wyboru.
+    sol = next(f for f in factions if f["id"] == "sol")
+    assert sol["starting_tech_amount"] == 0
+
+
+def test_starting_tech_choice_applied(client: TestClient) -> None:
+    # Argent wybiera 2 z [nm, st, ps].
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "argent", "starting_tech": ["nm", "ps"]}]},
+    )
+    p = client.get("/api/public/game/g/web-data").json()["playerData"][0]
+    assert set(p["techs"]) == {"nm", "ps"}
+
+
+def test_starting_tech_choice_validates_amount(client: TestClient) -> None:
+    # Argent wymaga 2 — podanie 1 to błąd.
+    resp = client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "argent", "starting_tech": ["nm"]}]},
+    )
+    assert resp.status_code == 422
+
+
+def test_starting_tech_choice_validates_option(client: TestClient) -> None:
+    # 'amd' nie jest w opcjach Argenta.
+    resp = client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "argent", "starting_tech": ["nm", "amd"]}]},
+    )
+    assert resp.status_code == 422
+
+
+def test_starting_tech_default_when_omitted(client: TestClient) -> None:
+    # Quick-start bez wyboru: fallback na pierwsze N opcji (gra nie pada).
+    client.post("/game/new", json={"players": [{"faction_id": "winnu"}]})
+    p = client.get("/api/public/game/g/web-data").json()["playerData"][0]
+    assert len(p["techs"]) == 1  # Winnu: 1 technologia
+
+
+def test_ghost_home_system_off_board(client: TestClient) -> None:
+    # Ghost: brama (sys 17) na slocie 301, prawdziwy dom (sys 51, planeta creuss) off-board.
+    client.post("/game/new", json={"players": [{"faction_id": "ghost"}]})
+    data = client.get("/api/public/game/g/web-data").json()
+    tp = dict(entry.split(":") for entry in data["tilePositions"])
+    assert tp.get("301") == "17"  # brama na slocie
+    # Prawdziwy dom w rogu off-board (tr/br/bl) — kafelek 51.
+    off = {pos: sid for pos, sid in tp.items() if pos in {"tr", "br", "bl", "tl"}}
+    assert "51" in off.values()
+    off_pos = next(pos for pos, sid in off.items() if sid == "51")
+    # Flota + kontrola planety creuss są na kafelku off-board, nie na bramie.
+    tile = data["tileUnitData"][off_pos]
+    assert tile["space"].get("ghost")
+    assert tile["planets"]["creuss"]["controlledBy"] == "ghost"
+
+
+def test_crimson_home_system_off_board(client: TestClient) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "crimson", "starting_tech": ["det"]}]},
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    tp = dict(entry.split(":") for entry in data["tilePositions"])
+    assert tp.get("301") == "94"  # brama The Sorrow
+    off = {pos: sid for pos, sid in tp.items() if pos in {"tr", "br", "bl", "tl"}}
+    assert "118" in off.values()
+
+
+def test_ghost_and_crimson_corner_collision(client: TestClient) -> None:
+    # Obaj startują na slotach mapujących się na 'tr' — drugi musi dostać inny róg.
+    client.post(
+        "/game/new",
+        json={
+            "players": [
+                {"faction_id": "ghost"},
+                {"faction_id": "crimson", "starting_tech": ["det"]},
+            ]
+        },
+    )
+    data = client.get("/api/public/game/g/web-data").json()
+    tp = dict(entry.split(":") for entry in data["tilePositions"])
+    off = {pos for pos in tp if pos in {"tr", "br", "bl", "tl"}}
+    assert len(off) == 2  # dwa różne rogi, bez nakładania
