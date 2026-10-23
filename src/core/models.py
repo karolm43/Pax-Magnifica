@@ -93,6 +93,10 @@ class FactionDef(_StaticModel):
     preferred_colours: list[str] = Field(default_factory=list, alias="preferredColours")
     # Liderzy frakcji (agent/commander/hero) — identyfikatory z danych AsyncTI4.
     leaders: list[str] = Field(default_factory=list)
+    # Jednostki frakcji (bazowe generyczne + warianty frakcyjne, np. keleres_flagship).
+    # AUTORYTATYWNA lista „co ta frakcja ma" — ważniejsza niż pole ``faction`` jednostki,
+    # które bywa przypisane tylko do jednego wariantu (Keleres dzieli jednostki między 3).
+    units: list[str] = Field(default_factory=list)
 
 
 class LeaderDef(_StaticModel):

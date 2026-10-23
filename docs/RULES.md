@@ -380,7 +380,11 @@ samym asyncId psuje `lookupUnit`). Priorytet:
 3. wariant generyczny, ulepszony (gdy ma wymaganą technologię),
 4. wariant generyczny, bazowy.
 Jednostka za technologią (z `requiredTechId`), której gracz NIE ma, jest pomijana.
-Dopasowanie wariantu frakcyjnego po POLU `faction` jednostki (nie po prefiksie id).
+Przynależność jednostki do frakcji: **lista `FactionDef.units` jest autorytatywna** (plus
+pole `faction` jednostki jako fallback). Keleres dzieli `keleres_flagship`/`keleres_mech`
+między 3 warianty, a pole `faction` wskazuje tylko `keleresm` — bez listy `units` pozostałe
+dwa warianty gubiły flagship/mech. Ulepszenie dziedziczy przynależność po bazie
+(`upgradesFromUnitId` w liście `units`).
 
 **Dlaczego to ważne (Bug 11):** wcześniej serializer pomijał WSZYSTKIE jednostki z
 `upgradesFromUnitId`, więc po zbadaniu np. Carrier II panel i mapa dalej pokazywały

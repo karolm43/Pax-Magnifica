@@ -542,6 +542,29 @@ def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
 # --- Setup: liderzy Keleres, wybór tech, home off-board (Ghost/Crimson) --------
 
 
+def test_keleres_all_variants_own_shared_faction_units(client: TestClient) -> None:
+    # Keleres dzieli keleres_flagship/keleres_mech między 3 warianty, ale pole faction
+    # jednostki wskazuje tylko keleresm. Lista units frakcji jest autorytatywna —
+    # wszystkie 3 warianty muszą mieć flagship i mech (inaczej panel ich nie pokazuje).
+    for faction_id in ("keleresa", "keleresm", "keleresx"):
+        client.post("/game/new", json={"players": [{"faction_id": faction_id}]})
+        owned = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+            "unitsOwned"
+        ]
+        assert "keleres_flagship" in owned
+        assert "keleres_mech" in owned
+
+
+def test_faction_units_do_not_leak_across_factions(client: TestClient) -> None:
+    # Regresja: Sol nie może dostać cudzych wariantów (np. keleres_*).
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    owned = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+        "unitsOwned"
+    ]
+    assert "sol_flagship" in owned
+    assert not any("keleres" in u for u in owned)
+
+
 def test_keleres_leaders_typed_from_data(client: TestClient) -> None:
     # Keleres hero (keleresherokuuasi) nie kończy się na "hero" — typ musi pochodzić
     # z danych lidera, nie z końcówki id. Każdy wariant: agent/commander/hero + hero locked.

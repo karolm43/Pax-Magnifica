@@ -387,18 +387,35 @@ def _units_owned_for_faction(
     - Jednostki za technologią (np. War Sun, ``required_tech_id="ws"``) nie są
       posiadane, dopóki gracz jej nie zbada — chyba że frakcja ma wariant wrodzony
       bez wymaganej technologii (np. Muaat ``muaat_warsun``).
-    - Wariant frakcyjny gracza (pole ``faction``) ma pierwszeństwo przed generycznym;
-      dopasowanie po POLU ``faction``, nie po prefiksie id (Bug 10: ``startswith``
-      powodował kolizje prefiksów i zależność od kolejności iteracji).
+    - Wariant frakcyjny gracza = jednostka z listy ``FactionDef.units`` ALBO z pasującym
+      polem ``faction``. Lista ``units`` frakcji jest AUTORYTATYWNA: Keleres dzieli
+      ``keleres_flagship``/``keleres_mech`` między 3 warianty, ale pole ``faction``
+      jednostki wskazuje tylko jeden z nich — bez listy ``units`` dwa warianty gubiły
+      swój flagship/mech (RULES.md 10).
     - Pomija placeholdery (``nowarsun``) i niestandardowe asyncId (cavalry itd.).
     """
     standard_async = set(ASYNC_ID_BY_BASE_TYPE.values())
     techs = {t.lower() for t in technologies}
+    faction = registry.factions.get(faction_id) if faction_id else None
+    faction_unit_ids = set(faction.units) if faction is not None else set()
 
     def has_tech(unit: Any) -> bool:
         """Czy gracz spełnia wymóg technologiczny jednostki (brak wymogu = tak)."""
         req = unit.required_tech_id
         return req is None or req.lower() in techs
+
+    def is_faction_unit(unit: Any) -> bool:
+        """Czy jednostka należy do frakcji gracza (lista units frakcji lub pole faction).
+
+        Ulepszenie dziedziczy przynależność po bazie (``upgrades_from_unit_id``), bo
+        lista ``units`` frakcji wymienia tylko warianty bazowe (np. ``keleres_flagship``),
+        nie ulepszone.
+        """
+        if unit.id in faction_unit_ids:
+            return True
+        if unit.upgrades_from_unit_id in faction_unit_ids:
+            return True
+        return unit.faction is not None and unit.faction == faction_id
 
     # Dla każdego asyncId zbieramy kandydatów w 4 kubełkach wg (frakcja?, ulepszenie?).
     # Wybór: frakcyjny-ulepszony > frakcyjny-bazowy > generyczny-ulepszony >
@@ -416,11 +433,12 @@ def _units_owned_for_faction(
         if not has_tech(unit):
             continue  # jednostka/ulepszenie za technologią, której gracz nie ma
         is_faction = unit.faction is not None
-        if is_faction and unit.faction != faction_id:
+        belongs = is_faction_unit(unit)
+        if is_faction and not belongs:
             continue  # cudzy wariant frakcyjny — pomijamy
-        if is_faction and is_upgrade:
+        if belongs and is_upgrade:
             faction_upgraded.setdefault(unit.async_id, unit.id)
-        elif is_faction:
+        elif belongs:
             faction_base.setdefault(unit.async_id, unit.id)
         elif is_upgrade:
             generic_upgraded.setdefault(unit.async_id, unit.id)
