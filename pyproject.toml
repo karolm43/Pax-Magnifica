@@ -40,6 +40,11 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "W"]
 
+# FastAPI używa wywołań w domyślnych argumentach (Depends/Query/...) — to wzorzec
+# frameworka, nie błąd. Wyłączamy B008 dla tych wywołań.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

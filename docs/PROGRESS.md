@@ -1032,3 +1032,28 @@ pozostają włączone (`base, pok, codex1-4, thunders_edge`), inaczej X-89/Magen
 
 **QA:** backend 139 testów zielone (thunders_edge: 125 jednostek/160 planet/231 systemów),
 ruff+mypy czyste; frontend type-check+lint+build czyste.
+
+---
+### ✅ Blok R1 — refaktor warstwy API (czytelność przed E3)
+**Cel:** `app.py` urósł do 849 linii (27 endpointów + 37 funkcji w jednej `create_app`,
+~44 miejsca mutujące stan W ENDPOINTCIE). Przed silnikiem taktycznym (E3) i AI groził
+chaosem. Spłata długu bez zmiany zachowania (139 testów jako siatka bezpieczeństwa).
+
+**Zmiany (tylko przeniesienie/rozdzielenie, zero nowej logiki):**
+- **`core/board_edit.py`** (nowy, ~300 l.) — czyste funkcje God-Mode wyciągnięte z `app.py`:
+  `resolve_player_id`, `edit_units`, `move_units`, `set_space_units`, `set_planet_units`,
+  `sync_controlled_planets`, `edit_player`. Bez importów HTTP — testowalne i gotowe dla AI.
+- **`app.py`** 849 → ~100 linii: cienka fabryka (montaż routerów + WS + static + CORS).
+- **`api/context.py`** — `AppContext` (service/manager/registry/current_grid + broadcast_map),
+  zależność `get_ctx`. Rozwiązuje dostęp routerów do współdzielonych obiektów.
+- **`api/serializers.py`** — `build_map_view` + stałe setupu wyjęte z `app.py`.
+- **`api/routers/`** — 6 routerów tematycznych: `game` (stan/mapa/web-data/new/setup),
+  `board` (jednostki/ruch), `players`, `flow` (tury/fazy E1), `strategy` (E2), `history`.
+- `pyproject.toml`: ruff `extend-immutable-calls` dla `fastapi.Depends/Query/Path/Body`
+  (wzorzec frameworka, nie błąd B008).
+
+**Zasada utrwalona (ARCHITEKTURA_KODU.md §4):** reguły w `core/` (czyste funkcje), endpoint
+w `api/routers/` tylko woła core + commit/broadcast + mapuje `ValueError`→HTTP. Przy E3
+dochodzi `core/tactical.py` + `api/routers/tactical.py` — bez puchnięcia `app.py`.
+
+**QA:** 139 testów zielone (bez zmian — zachowanie identyczne), ruff+mypy czyste (46 plików).

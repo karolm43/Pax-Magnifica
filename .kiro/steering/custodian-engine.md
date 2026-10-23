@@ -75,9 +75,11 @@ dlatego trzymamy ostry podział warstw, zależności tylko w dół:
 - **Asymetria (frakcje/tech/karty)** = hooki w oknach silnika (`core/rules_hooks.py` przy
   E7), NIE `if faction == ...` w regule bazowej.
 - Nowa mechanika: reguła → `RULES.md` ze źródłem → czysta funkcja w `core/` + test →
-  cienki endpoint w `api/`. Plik > ~300 linii → rozważ podział tematyczny.
-- **Dług do spłaty przed E3:** `app.py` ma logikę God-Mode w endpointach — wyciągnąć do
-  `core/board_edit.py` i rozbić `app.py` na routery (`api/routers/`). Patrz ARCHITEKTURA_KODU.md §4.
+  cienki endpoint w `api/routers/<temat>.py`. Plik > ~300 linii → podział tematyczny.
+- **Struktura API (po refaktorze):** `app.py` to cienka fabryka; endpointy w
+  `api/routers/*`; logika God-Mode w `core/board_edit.py`; współdzielone zależności w
+  `AppContext` (`api/context.py`, zależność `get_ctx`). Wzorzec routera: ARCHITEKTURA_KODU.md §4.
+  Przy E3 dodaj `core/tactical.py` + `api/routers/tactical.py`.
 
 ## Workflow i jakość kodu
 

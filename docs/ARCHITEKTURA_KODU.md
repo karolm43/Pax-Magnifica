@@ -81,31 +81,40 @@ reguł, `core/` stałby się nieczytelny po 10 frakcjach. Dlatego:
 
 ---
 
-## 4. Dług techniczny do spłaty PRZED E3 (żeby nie urosło w chaos)
+## 4. Struktura warstwy API (po refaktorze przed E3) — ✅ spłacone
 
-Stan na teraz (zmierzony):
+`app.py` jest teraz CIENKĄ fabryką (montaż routerów + WebSocket + static, ~100 linii).
+Endpointy pogrupowane tematycznie w `api/routers/`, logika God-Mode w `core/board_edit.py`.
 
-| Plik | Linie | Ryzyko |
+| Plik | Linie | Rola |
 |---|---|---|
-| `api/web_data.py` | ~885 | 🟡 duży, ale jeden temat (serializacja) — rośnie liniowo |
-| `api/app.py` | ~849 | 🔴 **27 endpointów + 37 funkcji w jednej `create_app`; ~44 miejsca mutują stan W ENDPOINTCIE** |
-| `core/*` | < 270 każdy | 🟢 zdrowe — czyste funkcje, dobrze podzielone |
+| `core/board_edit.py` | ~300 | **Czyste funkcje God-Mode** (edycja jednostek/planet/kontroli/gracza). Bez HTTP — gotowe dla AI. |
+| `api/app.py` | ~100 | Fabryka: montaż routerów, WebSocket `/ws`, static, CORS, lifespan. |
+| `api/context.py` | ~45 | `AppContext` (service/manager/registry/current_grid) + `broadcast_map`; zależność `get_ctx`. |
+| `api/serializers.py` | ~130 | `build_map_view` + stałe setupu (`DEFAULT_MAP_STRING`, `AUTO_SLOT_ORDER`). |
+| `api/routers/game.py` | ~190 | stan, mapa, web-data, frakcje, nowa gra, load mapy, setup gracza. |
+| `api/routers/board.py` | ~108 | jednostki w przestrzeni/na planetach, edycja, ruch (woła `core.board_edit`). |
+| `api/routers/players.py` | ~34 | edycja gracza. |
+| `api/routers/flow.py` | ~61 | tury/fazy/runda (E1). |
+| `api/routers/strategy.py` | ~86 | pula kart, wybór, zagranie (E2). |
+| `api/routers/history.py` | ~76 | patch God-Mode, PUT state, historia, undo/redo. |
 
-**Problem `app.py`:** część logiki God-Mode (np. `_sync_controlled_planets`, `_zone_bucket`,
-`_resolve_player_id`, przesuwanie jednostek) żyje w warstwie HTTP — AI jej nie wywoła, a plik
-przy E3 urośnie do ~1500 linii. **Refaktor zalecany PRZED E3:**
+**Wzorzec routera (trzymaj się go przy E3):**
+```python
+@router.post("/sciezka", response_model=...)
+async def handler(request: XRequest, ctx: AppContext = Depends(get_ctx)) -> ...:
+    try:
+        new_state = core_module.funkcja(ctx.service.current_state(), ctx.current_grid, ...)
+    except ValueError as exc:                 # błąd domenowy z core/
+        raise HTTPException(422, str(exc)) from exc
+    ctx.service.replace_state(new_state, label="...")   # commit → historia
+    await ctx.service.broadcast(); await ctx.broadcast_map()
+    return ctx.service.envelope()
+```
 
-1. **Wyciągnąć logikę God-Mode do `core/board_edit.py`** — czyste funkcje edycji jednostek/
-   planet/kontroli (to, co dziś jest w `_zone_bucket`, `_sync_controlled_planets` itd.).
-   Endpointy stają się cienkie.
-2. **Rozbić `app.py` na routery** (`api/routers/`): `board.py` (mapa/jednostki/God-Mode),
-   `players.py`, `flow.py` (tury/fazy), `strategy.py`, `history.py`, `game.py` (new/state/web-data).
-   `create_app` tylko montuje routery.
-3. **Opcjonalnie podzielić `web_data.py`** na podmoduły (`web_data/players.py`, `.../tiles.py`,
-   `.../strategy.py`) gdy przekroczy ~1000 linii.
-
-Efekt: każdy temat w swoim pliku < ~300 linii, reguły w `core/` (testowalne i gotowe dla AI),
-`api/` cienkie. To jest warunek, żeby E3 + AI nie utopiły projektu.
+**Pozostały dług (niski priorytet):** `web_data.py` (~885) — jeden temat (serializacja),
+rośnie liniowo. Podzielić na podmoduły (`web_data/players.py`, `.../tiles.py`, `.../strategy.py`)
+gdy przekroczy ~1000 linii. Przy E3 dodajemy `core/tactical.py` + `api/routers/tactical.py`.
 
 ---
 
