@@ -127,3 +127,78 @@ def test_god_mode_place_and_remove_command_token(
 
     removed = board_edit.remove_command_token(placed, grid, "102", "sol")
     assert "p1" not in removed.systems.get("102", placed.systems["102"]).command_tokens
+
+
+# --- Asystent walki (E3/T3) ----------------------------------------------
+
+
+def _combat_state() -> GameState:
+    """Stan z dwoma graczami mającymi statki w systemie 101."""
+    from src.core.game_state import SystemState
+
+    state = GameState(
+        players={
+            "p1": PlayerState(player_id="p1", faction="sol", color="red"),
+            "p2": PlayerState(player_id="p2", faction="hacan", color="yellow"),
+        }
+    )
+    state.systems["101"] = SystemState(
+        position="101",
+        system_id="27",
+        space_units={
+            "p1": {"cruiser": 2, "destroyer": 1},
+            "p2": {"dreadnought": 1, "fighter": 3},
+        },
+    )
+    return state
+
+
+def test_space_combat_participants_two_sides(registry: StaticDataRegistry) -> None:
+    from src.core import combat
+
+    sides = combat.space_combat_participants(registry, _combat_state(), "101")
+    assert len(sides) == 2
+    by_id = {s.player_id: s for s in sides}
+    # Cruiser trafia na 7+ → oczekiwane = 2 * (11-7)/10 = 0.8.
+    p1 = by_id["p1"]
+    cruiser = next(u for u in p1.units if u.base_type == "cruiser")
+    assert cruiser.combat_hits_on == 7
+    assert cruiser.expected_hits == 0.8
+    # Suma kości p1 = 2 cruiser + 1 destroyer = 3.
+    assert p1.total_dice == 3
+
+
+def test_space_combat_single_player_no_combat(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import combat
+    from src.core.game_state import SystemState
+
+    state = GameState(players={"p1": PlayerState(player_id="p1", faction="sol")})
+    state.systems["102"] = SystemState(
+        position="102", system_id="28", space_units={"p1": {"cruiser": 2}}
+    )
+    # Jeden gracz → brak walki.
+    assert combat.space_combat_participants(registry, state, "102") == []
+
+
+def test_resolve_unit_variant_prefers_faction(registry: StaticDataRegistry) -> None:
+    from src.core import combat
+
+    # Sol ma własny wariant carriera (sol_carrier) — powinien wygrać z generycznym.
+    unit = combat.resolve_unit_variant(registry, "sol", [], "carrier")
+    assert unit is not None
+    assert unit.id == "sol_carrier"
+
+
+def test_resolve_unit_variant_upgrade_needs_tech(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import combat
+
+    # Bez technologii: wariant bazowy; z technologią ulepszenia: wariant ulepszony.
+    base = combat.resolve_unit_variant(registry, "sol", [], "carrier")
+    upgraded = combat.resolve_unit_variant(registry, "sol", ["ac2"], "carrier")
+    assert base is not None and upgraded is not None
+    # Ulepszony ma większą pojemność niż bazowy (sol_carrier2 > sol_carrier).
+    assert (upgraded.capacity_value or 0) >= (base.capacity_value or 0)

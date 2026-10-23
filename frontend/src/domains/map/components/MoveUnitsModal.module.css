@@ -25,3 +25,18 @@
   width: auto;
   max-width: 26px;
 }
+
+
+/*
+ * Strona walki w oknie walki (CombatModal). Dwie strony stoją obok siebie
+ * (Group grow); każda to kolumna z listą jednostek. Lekka ramka oddziela je
+ * wizualnie, padding daje oddech, a min-width trzyma czytelną szerokość, gdy
+ * jedna strona ma mało jednostek.
+ */
+.combatSide {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-hair, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+}

@@ -8,6 +8,7 @@ import { UpdateNeededScreen } from "@/domains/game-shell/components/chrome/Updat
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { SystemDossierModal } from "@/domains/map/components/SystemDossier/SystemDossierModal";
 import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
+import { CombatModal } from "@/domains/map/components/CombatModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
 import { GameContextProvider } from "@/state/GameContextProvider";
 import { useSettingsStore } from "@/state/appStore";
@@ -240,6 +241,7 @@ function GameMapContent({ pannable }: ContentProps) {
 
       <SystemDossierModal />
       <MoveUnitsModal />
+      <CombatModal />
 
       <KeyboardShortcutsModal
         opened={settings.keyboardShortcutsModalOpened}

@@ -67,6 +67,7 @@ export function useBoardEditor() {
     await queryClient.invalidateQueries({ queryKey: ["playerData"] });
     await queryClient.invalidateQueries({ queryKey: ["history"] });
     await queryClient.invalidateQueries({ queryKey: ["strategyCards"] });
+    await queryClient.invalidateQueries({ queryKey: ["combat"] });
   }, [queryClient]);
 
   const editUnit = useCallback(
@@ -241,6 +242,53 @@ export function useStrategyCards() {
     queryKey: ["strategyCards"],
     queryFn: async () =>
       fetchJson<StrategyCardState[]>("/bot/strategy/cards", "strategyCards"),
+    staleTime: 0,
+  });
+}
+
+// --- Asystent walki (E3) ---
+
+export type CombatUnitHelp = {
+  baseType: string;
+  asyncId: string;
+  unitId: string;
+  name: string;
+  count: number;
+  combatHitsOn: number;
+  combatDieCount: number;
+  expectedHits: number;
+};
+
+export type CombatSideHelp = {
+  faction: string;
+  playerId: string;
+  units: CombatUnitHelp[];
+  totalDice: number;
+  expectedHits: number;
+};
+
+export type CombatHelp = {
+  position: string;
+  planet: string | null;
+  kind: "space" | "ground";
+  sides: CombatSideHelp[];
+};
+
+/**
+ * Pomoce liczbowe walki w danym miejscu (asystent — zero rzucania). ``planet``
+ * ustawione → walka naziemna; brak → kosmiczna. Pusty ``sides`` = brak walki.
+ */
+export function useCombatHelp(position: string | null, planet: string | null) {
+  return useQuery<CombatHelp>({
+    queryKey: ["combat", position, planet],
+    enabled: position !== null,
+    queryFn: async () => {
+      const q = planet ? `?planet=${encodeURIComponent(planet)}` : "";
+      return fetchJson<CombatHelp>(
+        `/bot/tactical/combat/${position}${q}`,
+        "combat",
+      );
+    },
     staleTime: 0,
   });
 }

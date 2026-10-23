@@ -13,14 +13,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     ActivateSystemRequest,
+    CombatHelpResponse,
+    CombatSideHelp,
+    CombatUnitHelp,
     CommandTokenRequest,
     MapView,
     StateEnvelope,
     TacticalStepRequest,
 )
 from src.api.serializers import build_map_view
-from src.core import board_edit, tactical
+from src.api.web_data import entity_key_map
+from src.core import board_edit, combat, tactical
+from src.core.combat import PlayerCombat
 from src.core.game_state import GameState, TacticalStep
+from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
 router = APIRouter()
 
@@ -107,3 +113,60 @@ async def delete_command_token(
         ctx.service.current_state(), ctx.current_grid, position, request.faction
     )
     return await _commit_map(ctx, new_state, f"cc:remove:{position}")
+
+
+def _to_side(side: PlayerCombat, keys: dict[str, str]) -> CombatSideHelp:
+    """Mapuje ``PlayerCombat`` z core na DTO strony walki (klucz tożsamości + asyncId)."""
+    return CombatSideHelp(
+        faction=keys.get(side.player_id, side.player_id),
+        player_id=side.player_id,
+        units=[
+            CombatUnitHelp(
+                base_type=u.base_type,
+                async_id=ASYNC_ID_BY_BASE_TYPE.get(u.base_type, u.base_type),
+                unit_id=u.unit_id,
+                name=u.name,
+                count=u.count,
+                combat_hits_on=u.combat_hits_on,
+                combat_die_count=u.combat_die_count,
+                expected_hits=u.expected_hits,
+            )
+            for u in side.units
+        ],
+        total_dice=side.total_dice,
+        expected_hits=side.expected_hits,
+    )
+
+
+@router.get(
+    "/tactical/combat/{position}",
+    response_model=CombatHelpResponse,
+    response_model_by_alias=True,
+)
+async def get_combat_help(
+    position: str,
+    planet: str | None = None,
+    ctx: AppContext = Depends(get_ctx),
+) -> CombatHelpResponse:
+    """Asystent walki: uczestnicy + pomoce liczbowe (ile kości, trafia na X+, expected).
+
+    ``planet`` ustawione → walka NAZIEMNA na planecie; brak → walka KOSMICZNA w
+    przestrzeni. Aplikacja NIE rozstrzyga walki (zero rzutów) — to tylko podpowiedź.
+    Gdy walczących <2, ``sides`` jest puste (brak walki).
+    """
+    state = ctx.service.current_state()
+    keys = entity_key_map(state)
+    if planet is not None:
+        sides = combat.ground_combat_participants(
+            ctx.registry, state, position, planet
+        )
+        kind = "ground"
+    else:
+        sides = combat.space_combat_participants(ctx.registry, state, position)
+        kind = "space"
+    return CombatHelpResponse(
+        position=position,
+        planet=planet,
+        kind=kind,
+        sides=[_to_side(s, keys) for s in sides],
+    )

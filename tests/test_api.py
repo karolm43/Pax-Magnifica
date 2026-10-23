@@ -466,3 +466,42 @@ def test_god_mode_command_token_add_remove(client: TestClient) -> None:
     client.request("DELETE", "/system/102/command-token", json={"faction": "sol"})
     data = client.get("/api/public/game/g/web-data").json()
     assert data["tileUnitData"]["102"]["ccs"] == []
+
+
+def test_combat_help_two_sides(client: TestClient) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    # Postaw statki obu graczy w tym samym systemie 101 (God-Mode).
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "ca", "delta": 2},
+    )
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "hacan", "asyncId": "dn", "delta": 1},
+    )
+    resp = client.get("/tactical/combat/101")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["kind"] == "space"
+    assert body["planet"] is None
+    factions = {side["faction"] for side in body["sides"]}
+    assert factions == {"sol", "hacan"}
+    # Pomoc liczbowa obecna (asyncId, hits-on, expected).
+    sol = next(s for s in body["sides"] if s["faction"] == "sol")
+    cruiser = next(u for u in sol["units"] if u["asyncId"] == "ca")
+    assert cruiser["combatHitsOn"] == 7
+    assert cruiser["expectedHits"] == 0.8
+
+
+def test_combat_help_single_side_empty(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "ca", "delta": 2},
+    )
+    body = client.get("/tactical/combat/101").json()
+    # Jeden gracz → brak walki (puste sides).
+    assert body["sides"] == []

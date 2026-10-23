@@ -1194,3 +1194,41 @@ T2 to wyłącznie UI nad endpointami T1), ruff+mypy czyste.
 
 **Następny blok (T3):** okno walki (asystent trafień — ręczne wpisywanie + pomoce liczbowe
 z UnitDef, bez rzucania), `core/combat.py`.
+
+
+---
+### ✅ Blok E3·T3 — okno walki (asystent trafień) + pomoce liczbowe
+**Cel użytkownika:** gdy w systemie są statki ≥2 graczy → przycisk „Walka" otwiera okno,
+w którym gracze RĘCZNIE wpisują trafienia (odejmują zniszczone jednostki). Zero rzucania —
+rzuty i trafienia ustalają przy stole. Obok pomoce liczbowe (ile kości, trafia na X+,
+oczekiwane trafienia). Reguła: RULES.md 20 (statystyki z UnitDef).
+
+**Core (`core/combat.py` — NOWY, czyste funkcje, zero mutacji):**
+- `resolve_unit_variant(registry, faction, techs, base_type)` — wybór wariantu jednostki
+  gracza (frakcyjny/ulepszony) wg priorytetu + wymaganej technologii (spójne z web_data 10).
+- `space_combat_participants` / `ground_combat_participants` — uczestnicy walki (statki w
+  przestrzeni / jednostki naziemne na planecie); zwrot tylko gdy walczących ≥2.
+- Pomoce: `expected_hits = count * die_count * (11 - hits_on) / 10`; jednostki bez wartości
+  walki (PDS/dok) pomijane. Dataclasses `UnitCombat`/`PlayerCombat`.
+
+**API (`routers/tactical.py`):** `GET /tactical/combat/{pos}?planet=` — uczestnicy + pomoce
+(DTO `CombatHelpResponse`/`CombatSideHelp`/`CombatUnitHelp`, aliasy camelCase). Klucz strony =
+tożsamość (frakcja), spójny z web-data (`web_data.entity_key_map` — nowy publiczny alias).
+Usuwanie zniszczonych = istniejący `edit-units` (delta -1), nie osobny endpoint.
+
+**Frontend:**
+- `api/useBoardEditor.ts`: `useCombatHelp(position, planet)` (+ typy CombatHelp*); refresh
+  inwaliduje też `["combat"]`.
+- `state/appStore.ts`: `combatTarget` + `openCombat`/`closeCombat`.
+- `domains/map/components/CombatModal.tsx` (NOWY): dwie strony obok siebie, jednostki z
+  pomocami (X+ ×kości · ~expected) + przycisk „−1" (edit-units delta -1), suma strony
+  (kości · ~trafienia). Montowany w `GameMapPage`.
+- `GameStatePanel` → `TacticalActionPanel`: przycisk „Walka" (gdy aktywny system ma statki
+  ≥2 graczy) otwiera okno dla aktywnego systemu.
+
+**Zweryfikowane E2E:** sol(2×cruiser,1×destroyer) vs hacan(1×dn,3×ff) w 101 → combat help:
+cruiser 7+ exp 0.8, p1 total_dice 3; wariant frakcyjny (sol_carrier) rozpoznany; 1 gracz →
+brak walki. Backend 171 testów zielone (+6), ruff+mypy czyste; frontend type-check+lint+build czyste.
+
+**Następny blok (T4):** inwazja (commit piechoty + ground combat tym samym oknem + przejęcie
+kontroli planety) + produkcja (pomoc kosztu z UnitDef.cost).

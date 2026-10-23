@@ -1001,5 +1001,14 @@ def build_web_data(
     }
 
 
+def entity_key_map(state: GameState) -> dict[str, str]:
+    """Publiczny alias ``_entity_key_map`` — mapa ``player_id -> klucz tożsamości``.
+
+    Używany poza modułem (np. router walki), by klucze stron walki były spójne z
+    grupowaniem jednostek i ``playerData[].faction`` w web-data.
+    """
+    return _entity_key_map(state)
+
+
 # Pomocniczo wyeksportowane dla testów/diagnostyki.
-__all__ = ["build_web_data", "is_space_unit"]
+__all__ = ["build_web_data", "entity_key_map", "is_space_unit"]

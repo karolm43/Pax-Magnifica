@@ -335,6 +335,44 @@ class CommandTokenRequest(BaseModel):
     faction: str  # klucz frakcji z tileUnitData (faction lub player_id)
 
 
+class CombatUnitHelp(BaseModel):
+    """Pomoc liczbowa dla jednego typu jednostki w walce (E3)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    unit_id: str = Field(serialization_alias="unitId")
+    name: str
+    count: int
+    combat_hits_on: int = Field(serialization_alias="combatHitsOn")
+    combat_die_count: int = Field(serialization_alias="combatDieCount")
+    expected_hits: float = Field(serialization_alias="expectedHits")
+
+
+class CombatSideHelp(BaseModel):
+    """Siły jednego gracza w walce + sumaryczne pomoce (E3)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    faction: str  # klucz tożsamości (frakcja lub player_id) — spójny z web-data
+    player_id: str = Field(serialization_alias="playerId")
+    units: list[CombatUnitHelp]
+    total_dice: int = Field(serialization_alias="totalDice")
+    expected_hits: float = Field(serialization_alias="expectedHits")
+
+
+class CombatHelpResponse(BaseModel):
+    """Odpowiedź asystenta walki: miejsce + strony (lub pusto, gdy brak walki)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    position: str
+    planet: str | None = None
+    kind: str  # "space" albo "ground"
+    sides: list[CombatSideHelp]
+
+
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

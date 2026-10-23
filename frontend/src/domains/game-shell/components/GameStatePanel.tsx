@@ -618,7 +618,21 @@ function TacticalActionPanel({
   const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
   const activateRequest = useAppStore((s) => s.activateRequest);
   const clearActivateRequest = useAppStore((s) => s.clearActivateRequest);
+  const openCombat = useAppStore((s) => s.openCombat);
+  const gameData = useGameData();
   const [busy, setBusy] = useState(false);
+
+  // Czy w aktywnym systemie są statki co najmniej dwóch graczy (jest walka?).
+  const hasSpaceCombat = (() => {
+    if (!activeSystem) return false;
+    const tile = gameData?.tiles?.[activeSystem];
+    if (!tile) return false;
+    const factionsWithShips = Object.values(tile.unitsByFaction ?? {}).filter(
+      (entities) =>
+        entities.some((e) => e.entityType === "unit" && e.count > 0),
+    );
+    return factionsWithShips.length >= 2;
+  })();
 
   // Gdy w trybie aktywacji klik w kafelek zgłosił pozycję — aktywuj system,
   // wyłącz tryb i wyczyść żądanie (jednorazowa aktywacja na klik).
@@ -682,6 +696,17 @@ function TacticalActionPanel({
               {systemLabel ?? activeSystem}
               {stepLabel ? ` · ${stepLabel}` : ""}
             </span>
+            {hasSpaceCombat && (
+              <button
+                type="button"
+                className={styles.ctlBtn}
+                data-active
+                onClick={() => openCombat(activeSystem, null)}
+                title="Otwórz okno walki kosmicznej (asystent trafień)"
+              >
+                Walka
+              </button>
+            )}
             <button
               type="button"
               className={styles.ctlBtn}

@@ -161,6 +161,14 @@ type AppStore = {
   pickActivateTile: (position: string) => void;
   clearActivateRequest: () => void;
 
+  /*
+   * Okno walki (asystent trafień, E3). Gdy ustawione, otwarty jest modal walki dla
+   * danego miejsca: ``planet`` = null → walka kosmiczna, inaczej walka naziemna.
+   */
+  combatTarget: { position: string; planet: string | null } | null;
+  openCombat: (position: string, planet: string | null) => void;
+  closeCombat: () => void;
+
   handleZoomIn: () => void;
   handleZoomOut: () => void;
   handleZoomReset: () => void;
@@ -232,6 +240,11 @@ export const useAppStore = create<AppStore>((set) => {
     pickActivateTile: (position: string) =>
       set((s) => (s.activateMode ? { activateRequest: position } : {})),
     clearActivateRequest: () => set({ activateRequest: null }),
+
+    combatTarget: null,
+    openCombat: (position: string, planet: string | null) =>
+      set({ combatTarget: { position, planet } }),
+    closeCombat: () => set({ combatTarget: null }),
 
     setHoveredPlanetId: (planetId: string | null) =>
       set({ hoveredPlanetId: planetId }),
