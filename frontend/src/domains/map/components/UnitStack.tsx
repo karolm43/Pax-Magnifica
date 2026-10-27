@@ -23,7 +23,9 @@ import {
   unitSlots,
 } from "./UnitStack/transition";
 import type { MapUnitTransition, StateCounts } from "@/entities/replay/types";
-import { stateCount, unitStates } from "@/entities/replay/unitState";
+import { stateCount, stackHolder, unitStates } from "@/entities/replay/unitState";
+import { useUnitDrag } from "./hooks/useUnitDrag";
+import { UnitDragGhost } from "./UnitDragGhost";
 import classes from "./UnitStack.module.css";
 
 const EMPTY_STATES: StateCounts = [0, 0, 0, 0];
@@ -43,6 +45,8 @@ type UnitStackProps = {
   layoutStateOffsets?: StateCounts;
   damageAtMs?: number;
   delayedDamageStates?: StateCounts;
+  /** Pozycja kafelka (RPP) — włącza drag-and-drop przenoszenia jednostek. */
+  tilePosition?: string;
 };
 
 export function UnitStack({
@@ -60,9 +64,37 @@ export function UnitStack({
   layoutStateOffsets,
   damageAtMs,
   delayedDamageStates,
+  tilePosition,
 }: UnitStackProps) {
   const { entityId: unitType, faction, count, x, y, entityType } = stack;
   const isBadge = isBadgeUnit(unitType);
+
+  /* Drag-and-drop przenoszenia (God-Mode). Aktywny tylko dla realnych jednostek
+     z pozycją kafelka i poza replayem (``mapTransition``) — żetony/attachmenty i
+     odtwarzanie historii nie są przenoszone gestem. Handlery pointer idą na
+     wrapper stosu (sprite i badge) — patrz useUnitDrag (pan-vs-drag, duch). */
+  const unitDrag = useUnitDrag();
+  const dndEnabled =
+    entityType === "unit" && !!tilePosition && !mapTransition;
+  const dragHandlers = dndEnabled
+    ? {
+        onPointerDown: (e: React.PointerEvent) =>
+          unitDrag.onPointerDown(
+            {
+              fromPosition: tilePosition,
+              fromZone: stackHolder(stack),
+              faction,
+              asyncId: unitType,
+              count,
+            },
+            e,
+          ),
+        onPointerMove: unitDrag.onPointerMove,
+        onPointerUp: unitDrag.onPointerUp,
+        onPointerCancel: unitDrag.onPointerCancel,
+        onClickCapture: unitDrag.onClickCapture,
+      }
+    : {};
   /* Combat badges are compact summaries and must stay legible above the much
      larger rotated ship silhouettes in the transition layer. */
   const baseZIndex =
@@ -112,7 +144,7 @@ export function UnitStack({
     return (
       <div
         ref={flightRef}
-        className={`${classes.badgeContainer} ${wrapperClass}`}
+        className={`${classes.badgeContainer} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
         style={{
           left: `${x}px`,
           top: `${y}px`,
@@ -120,7 +152,9 @@ export function UnitStack({
           ...delayStyle,
         }}
         {...handlers}
+        {...dragHandlers}
       >
+        <UnitDragGhost ghost={unitDrag.ghost} />
         <div
           className={classes.badgeInnerWrapper}
           style={{
@@ -170,7 +204,8 @@ export function UnitStack({
     <div
       ref={flightRef}
       {...handlers}
-      className={`${classes.stackWrapper} ${wrapperClass}`}
+      {...dragHandlers}
+      className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
       style={{
         left: `${x + (footprint.left + footprint.right) / 2}px`,
         top: `${y + (footprint.top + footprint.bottom) / 2}px`,
@@ -180,6 +215,7 @@ export function UnitStack({
         ...delayStyle,
       }}
     >
+      <UnitDragGhost ghost={unitDrag.ghost} />
       {galvanizedCount > 1 && !showIndividualGalvanized && (
         <GalvanizeBadge
           count={galvanizedCount}

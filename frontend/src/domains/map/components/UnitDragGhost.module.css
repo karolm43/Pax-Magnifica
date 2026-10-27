@@ -1,0 +1,43 @@
+/* Duch przeciąganej jednostki — podąża za kursorem, nie łapie zdarzeń. */
+.ghost {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.sprite {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.chip {
+  padding: 3px 8px;
+  font-family: var(--font-data, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(20, 24, 33, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+}
+
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--font-data, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: #0b0e14;
+  background: #ffd45e;
+  border-radius: 999px;
+}

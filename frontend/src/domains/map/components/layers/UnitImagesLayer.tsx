@@ -71,6 +71,7 @@ export function UnitImagesLayer({
           stack={renderedStack}
           colorAlias={colorAlias}
           stackKey={key}
+          tilePosition={mapTile.position}
           lawsInPlay={lawsInPlay}
           layoutUnitStates={usesSlottedReplay ? finalUnitStates : undefined}
           damageAtMs={delayedDamage?.damageAtMs}

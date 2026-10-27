@@ -743,3 +743,30 @@ wchodząc w akcję ustawia `active_player_id = turn_order[0]`). Kolejność i pa
 Implementacja: `GameState.seating_order`/`speaker_id` (`game_state.py`); `strategy_phase`
 (`speaker_order`, `next_strategy_picker`, `pick_strategy_card` rotujące aktywnego);
 `turn_flow.next_phase`/`next_round` ustawiające aktywnego mówcę na starcie fazy strategii.
+
+## 25. Drag-and-drop przenoszenia jednostek (UI/God-Mode) — ✅ DECYZJA PROJEKTOWA
+
+To mechanika WYGODY UI, nie reguła TI4 — przenoszenie bez walidacji zasad (asystent, nie
+sędzia). Przeciągasz sprite jednostki z kafelka/strefy na inny kafelek lub planetę; dla
+stosów (>1 szt., np. piechota `gf`, fightery `ff`, mechy `mf`) po upuszczeniu pojawia się
+pytanie „ile przenieść" (1 / połowa / wszystkie / dowolna liczba), pojedyncza sztuka
+przenosi się od razu.
+
+**Jak to działa (konwencje, nie reguły):**
+- Mapa przewija się biblioteką `dragscroll` (pan na scrollerze). Start dragu jednostki
+  przejmujemy na sprite'cie: `setPointerCapture` + próg ruchu (`DRAG_THRESHOLD=8px`)
+  odróżnia przeciąganie od kliknięcia (krótki ruch = klik → dossier). Duch jednostki
+  renderowany portalem do `document.body` (mapa ma `transform: scale`, który łamałby
+  `position: fixed`).
+- Cel upuszczenia z DOM pod kursorem (`elementFromPoint`): kafelek = `id="tile-<pozycja>"`,
+  planeta = `data-search-key="planet:<id>"`. Strefa docelowa = nazwa planety albo `"space"`
+  (orbita), spójnie z `stackHolder(stack) = planetName ?? "space"` i kontraktem
+  `/units/move` (RULES.md: `from_zone`/`to_zone` = `"space"` albo ID planety).
+- Przeniesienie wykonuje istniejący endpoint `POST /units/move` (`board_edit.move_units`) —
+  obcina `count` do dostępnych, przelicza kontrolę planety przy wejściu/wyjściu na planetę
+  (RULES.md 23). Commit → historia (Undo działa).
+
+Implementacja: `frontend/.../hooks/useUnitDrag.ts` (pointer events + duch + wykrycie celu),
+`UnitStack.tsx` (podpięcie na sprite/badge), `UnitDragGhost.tsx` (duch), `MoveQuantityModal.tsx`
+(pytanie „ile przenieść"), `appStore.unitDrop` (stan pytania). DnD aktywny tylko dla realnych
+jednostek poza odtwarzaniem historii (replay).

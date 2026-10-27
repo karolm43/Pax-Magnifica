@@ -169,6 +169,25 @@ type AppStore = {
   openCombat: (position: string, planet: string | null) => void;
   closeCombat: () => void;
 
+  /*
+   * Przeciągnięcie jednostki (drag-and-drop na mapie). Po upuszczeniu sprite'a na
+   * inną strefę/kafelek zapisujemy TU zamiar przeniesienia; gdy stos ma >1 sztukę,
+   * otwiera się pytanie „ile przenieść", inaczej przenosimy od razu. Zero reguł —
+   * to wygodny God-Mode (operator decyduje). Pola camelCase = jak endpoint move.
+   */
+  unitDrop: {
+    fromPosition: string;
+    fromZone: string;
+    toPosition: string;
+    toZone: string;
+    toLabel: string; // czytelna etykieta celu (np. „Orbita" / nazwa planety)
+    faction: string;
+    asyncId: string;
+    available: number; // ile sztuk jest w źródle (górny limit)
+  } | null;
+  beginUnitDrop: (drop: NonNullable<AppStore["unitDrop"]>) => void;
+  clearUnitDrop: () => void;
+
   handleZoomIn: () => void;
   handleZoomOut: () => void;
   handleZoomReset: () => void;
@@ -245,6 +264,10 @@ export const useAppStore = create<AppStore>((set) => {
     openCombat: (position: string, planet: string | null) =>
       set({ combatTarget: { position, planet } }),
     closeCombat: () => set({ combatTarget: null }),
+
+    unitDrop: null,
+    beginUnitDrop: (drop) => set({ unitDrop: drop }),
+    clearUnitDrop: () => set({ unitDrop: null }),
 
     setHoveredPlanetId: (planetId: string | null) =>
       set({ hoveredPlanetId: planetId }),

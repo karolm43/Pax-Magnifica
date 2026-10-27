@@ -9,6 +9,18 @@
   cursor: pointer;
 }
 
+/* Jednostka przeciągalna (drag-and-drop przenoszenia). `grab` sygnalizuje gest;
+   `touch-action: none` wyłącza natywne przewijanie dotykiem na sprite'cie, żeby
+   przeciąganie jednostki działało na dotyku (pan mapy łapie resztę planszy). */
+.draggable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.draggable:active {
+  cursor: grabbing;
+}
+
 .badgeInnerWrapper {
   position: relative;
 }

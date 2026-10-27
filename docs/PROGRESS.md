@@ -1351,3 +1351,44 @@ pierwszy gracz). Speaker order = rotacja seating_order od mówcy.
   green→red→white wg inicjatywy. Zmiana mówcy na p3 (white) → aktywny=white, seating zachowany.
 - Backend 187 testów zielone (+7: speaker order, rotacja wyboru, next_phase/next_round
   z mówcą), ruff+mypy czyste; frontend type-check+lint+build czyste.
+
+
+---
+### ✅ Blok UX·dnd — drag-and-drop przenoszenia jednostek na mapie
+**Cel użytkownika:** szybkie, wygodne, intuicyjne przenoszenie jednostek — drag-and-drop.
+Przeciągasz jednostkę z kafelka/strefy na inny kafelek lub planetę; dla zgrupowanych
+(piechota `gf`, fightery `ff`, mechy `mf` — stos >1) po upuszczeniu pyta „ile przenieść".
+
+**Analiza (context-gatherer):** mapa to HTML+CSS (divy z `transform: scale`), NIE SVG/canvas;
+pan przez bibliotekę `dragscroll` na natywnym scrollerze (każdy mousedown+ruch przewija);
+brak jakiejkolwiek biblioteki DnD w projekcie. Jednostki renderuje `UnitStack` (sprite i
+badge) — ma już `faction`, `entityId`(asyncId), `count`, a strefę daje `stackHolder(stack)`.
+Backend przenoszenia `POST /units/move` gotowy (obcina count, przelicza kontrolę planet).
+
+**Implementacja (frontend, backend bez zmian):**
+- `appStore.ts`: stan `unitDrop` (zamiar przeniesienia czekający na „ile przenieść") +
+  `beginUnitDrop`/`clearUnitDrop`.
+- `hooks/useUnitDrag.ts` (NOWY): DnD na pointer events. `setPointerCapture` na sprite +
+  próg ruchu `DRAG_THRESHOLD=8px` odróżnia przeciąganie od kliknięcia (krótki ruch = klik →
+  dossier); `preventDefault`/`stopPropagation` blokuje pan podczas dragu. Cel z DOM pod
+  kursorem (`elementFromPoint`: kafelek `id="tile-*"`, planeta `data-search-key="planet:*"`,
+  inaczej orbita `space`). Upuszczenie w inne miejsce: 1 szt. → `moveUnit` od razu; stos →
+  `beginUnitDrop` (okno ilości). `onClickCapture` gasi klik po udanym dragu (żeby nie
+  otwierał dossier).
+- `UnitDragGhost.tsx` + CSS (NOWE): „duch" jednostki podążający za kursorem, portal do
+  `document.body` (poza `transform: scale` mapy), `pointer-events: none`.
+- `UnitStack.tsx`: podpięcie handlerów pointer na wrapper sprite'a ORAZ badge (piechota/
+  fightery to badge) przez prop `tilePosition`; klasa `.draggable` (kursor grab,
+  `touch-action: none` dla dotyku). `UnitImagesLayer` przekazuje `tilePosition=mapTile.position`.
+- `MoveQuantityModal.tsx` (NOWY): pytanie „ile przenieść" ze stanu `unitDrop` — ikona
+  jednostki, skąd→dokąd, `NumberInput` + szybkie przyciski (1 / połowa / wszystkie) +
+  „Przenieś N". Domyślnie całość. Montowany w `GameMapPage`.
+
+**Zweryfikowane:** backend `/units/move` dla scenariuszy DnD — 2×ff orbita 301→302 (między
+kafelkami) i 3×gf Jord→orbita 301 (rozdzielenie stosu) działają, kontrola planet przeliczana.
+Frontend type-check+lint+build czyste; backend 187 testów zielone (bez zmian core), ruff+mypy
+czyste. DnD aktywny tylko dla realnych jednostek poza replayem. Reguła/konwencja: RULES.md 25.
+
+**Uwaga:** istniejący tryb „Przenieś" (zaznacz 2 systemy + MoveUnitsModal) zostaje jako
+alternatywa; DnD to szybsza ścieżka dla typowych przeniesień. Duch pokazuje asyncId jako chip
+(fallback) — sprite'owy duch do dopieszczenia później.
