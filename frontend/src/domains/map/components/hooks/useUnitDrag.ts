@@ -97,6 +97,7 @@ export function useUnitDrag(data: UnitDragData | null) {
       drag.current = null;
       setGhost(null);
       setDraggingUnit(false);
+      document.body.classList.remove("dragging-unit");
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
       const target = dropZoneAt(clientX, clientY);
@@ -142,6 +143,9 @@ export function useUnitDrag(data: UnitDragData | null) {
       if (!d.active) {
         d.active = true;
         setDraggingUnit(true); // chowa tooltip
+        // Globalnie wyłącz zaznaczanie tekstu/grafiki na czas gestu — szarpnięcie
+        // poza sprite nie zaznacza wtedy sąsiednich kafelków „jak w przeglądarce".
+        document.body.classList.add("dragging-unit");
       }
       e.preventDefault();
       const info = dataRef.current;
@@ -190,14 +194,19 @@ export function useUnitDrag(data: UnitDragData | null) {
       e.stopPropagation();
       start(e.touches[0].clientX, e.touches[0].clientY);
     };
+    // Natywny HTML5 drag obrazka (``<img>`` sprite'a) tworzy „ducha obrazka"
+    // przeglądarki i przejmuje gest — tłumimy go twardo.
+    const onDragStart = (e: DragEvent) => e.preventDefault();
     node.addEventListener("mousedown", onMouseDown, { capture: true });
     node.addEventListener("touchstart", onTouchStart, {
       capture: true,
       passive: true,
     });
+    node.addEventListener("dragstart", onDragStart);
     cleanupRef.current = () => {
       node.removeEventListener("mousedown", onMouseDown, { capture: true });
       node.removeEventListener("touchstart", onTouchStart, { capture: true });
+      node.removeEventListener("dragstart", onDragStart);
     };
   }, []);
 

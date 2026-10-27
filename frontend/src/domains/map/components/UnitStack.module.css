@@ -11,10 +11,21 @@
 
 /* Jednostka przeciągalna (drag-and-drop przenoszenia). `grab` sygnalizuje gest;
    `touch-action: none` wyłącza natywne przewijanie dotykiem na sprite'cie, żeby
-   przeciąganie jednostki działało na dotyku (pan mapy łapie resztę planszy). */
+   przeciąganie jednostki działało na dotyku (pan mapy łapie resztę planszy).
+   `user-select: none` + `-webkit-user-drag: none` gaszą natywne zaznaczanie tekstu
+   i HTML5 drag obrazka (to one podświetlały sprite'y/kafelki „jak zaznaczony obrazek"
+   i przejmowały gest). Dotyczy też wszystkich obrazków wewnątrz stosu. */
 .draggable {
   cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+.draggable img {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .draggable:active {

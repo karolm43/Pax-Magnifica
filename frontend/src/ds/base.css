@@ -98,3 +98,15 @@ html {
 ::-webkit-scrollbar-corner {
   background: var(--scrollbar-corner-bg);
 }
+
+/*
+ * Podczas przeciągania jednostki na mapie (drag-and-drop) globalnie wyłączamy
+ * zaznaczanie tekstu/grafiki. Bez tego szybkie szarpnięcie zaznaczało sprite'y
+ * i kafelki „jak obrazek w przeglądarce" i gubiło gest. Klasa dodawana/zdejmowana
+ * przez useUnitDrag na starcie/końcu realnego przeciągania.
+ */
+body.dragging-unit,
+body.dragging-unit * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}

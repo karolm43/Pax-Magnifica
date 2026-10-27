@@ -1417,3 +1417,24 @@ NIE zatrzymuje natywnego mousedown — pan ruszał mimo to. Tooltip był niezale
 
 **Zweryfikowane:** frontend type-check+lint+build czyste; aplikacja startuje (dev 5174,
 `/game` 200, web-data przez proxy 33 kafelki, sol/hacan). Backend bez zmian. Reguła: RULES.md 25.
+
+
+---
+### ✅ Blok UX·dnd-fix2 — DnD jednostek: koniec zaznaczania grafiki „jak w przeglądarce"
+**Zgłoszenie użytkownika:** podczas przeciągania często zaznacza się grafika (sprite'y/
+kafelki podświetlone jak zaznaczony obrazek/tekst), przez co gest przestaje działać.
+
+**Root cause:** sprite jednostki to `<img>` — domyślnie zaznaczalny (`user-select`) i z
+natywnym HTML5 image-drag (duch obrazka przeglądarki). Szybkie szarpnięcie uruchamiało
+drag-select / image-drag zamiast naszego DnD.
+
+**Fix (trzy warstwy):**
+- CSS `.draggable` + `.draggable img` (`UnitStack.module.css`): `user-select:none`,
+  `-webkit-user-select:none`, `-webkit-user-drag:none`.
+- `useUnitDrag.ts`: na sprite'cie natywny `dragstart`→`preventDefault` (ubija HTML5
+  image-drag); na starcie realnego przeciągania dodaje `document.body.classList`
+  `dragging-unit`, zdejmuje na końcu/anulowaniu.
+- `ds/base.css`: `body.dragging-unit, body.dragging-unit *` → `user-select:none !important`
+  (globalnie na czas gestu — szarpnięcie poza sprite nie zaznacza sąsiednich kafelków).
+
+**Zweryfikowane:** frontend type-check+lint+build czyste. Backend bez zmian. Reguła: RULES.md 25.

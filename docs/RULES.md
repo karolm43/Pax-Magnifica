@@ -764,6 +764,11 @@ przenosi się od razu.
 - Tooltip jednostki (hover) jest CHOWANY na czas przeciągania — flaga `appStore.isDraggingUnit`
   (ustawiana po przekroczeniu progu) blokuje pokazanie tooltipa i czyści istniejący
   (inaczej zasłaniałby mapę w trakcie gestu).
+- Natywne zaznaczanie tekstu/grafiki i HTML5 image-drag są WYŁĄCZONE (inaczej szarpnięcie
+  zaznaczało sprite'y/kafelki „jak obrazek w przeglądarce" i gubiło gest): statycznie
+  `.draggable` + `.draggable img` (`user-select:none`, `-webkit-user-drag:none`), twardo
+  `dragstart`→`preventDefault` na sprite'cie, oraz globalnie `body.dragging-unit`
+  (`user-select:none !important`) na czas realnego przeciągania.
 - Cel upuszczenia z DOM pod kursorem (`elementFromPoint`): kafelek = `id="tile-<pozycja>"`,
   planeta = `data-search-key="planet:<id>"`. Strefa docelowa = nazwa planety albo `"space"`
   (orbita), spójnie z `stackHolder(stack) = planetName ?? "space"` i kontraktem
