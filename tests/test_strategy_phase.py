@@ -117,3 +117,62 @@ def test_pick_does_not_mutate_input(registry: StaticDataRegistry) -> None:
     base = _state()
     strategy_phase.pick_strategy_card(base, registry, "p1", 1)
     assert base.players["p1"].strategy_cards == []  # wejście nietknięte
+
+
+def _seated_state() -> GameState:
+    """Stan z 3 graczami, jawną kolejnością miejsc i mówcą p2 (RULES.md 24)."""
+    return GameState(
+        seating_order=["p1", "p2", "p3"],
+        speaker_id="p2",
+        players={
+            "p1": PlayerState(player_id="p1"),
+            "p2": PlayerState(player_id="p2"),
+            "p3": PlayerState(player_id="p3"),
+        },
+    )
+
+
+def test_speaker_order_starts_from_speaker() -> None:
+    # Mówca p2 → kolejność wyboru p2, p3, p1 (zegarowo od mówcy).
+    state = _seated_state()
+    assert strategy_phase.speaker_order(state) == ["p2", "p3", "p1"]
+
+
+def test_speaker_order_fallback_without_seating() -> None:
+    # Bez seating_order: kolejność po id, ale wciąż od mówcy, gdy znany.
+    state = GameState(
+        speaker_id="p2",
+        players={
+            "p1": PlayerState(player_id="p1"),
+            "p2": PlayerState(player_id="p2"),
+            "p3": PlayerState(player_id="p3"),
+        },
+    )
+    assert strategy_phase.speaker_order(state) == ["p2", "p3", "p1"]
+
+
+def test_next_picker_starts_with_speaker() -> None:
+    assert strategy_phase.next_strategy_picker(_seated_state()) == "p2"
+
+
+def test_pick_advances_active_in_speaker_order(
+    registry: StaticDataRegistry,
+) -> None:
+    # Mówca p2 wybiera → aktywny przechodzi na p3 (następny w speaker order).
+    state = _seated_state()
+    state.active_player_id = "p2"
+    after = strategy_phase.pick_strategy_card(state, registry, "p2", 1)
+    assert after.active_player_id == "p3"
+    # p3 wybiera → p1; p1 wybiera → None (wszyscy mają karty).
+    after = strategy_phase.pick_strategy_card(after, registry, "p3", 2)
+    assert after.active_player_id == "p1"
+    after = strategy_phase.pick_strategy_card(after, registry, "p1", 3)
+    assert after.active_player_id is None
+
+
+def test_reset_sets_active_to_speaker(registry: StaticDataRegistry) -> None:
+    # Po rozdaniu kart i resecie faza strategii wraca do wyboru od mówcy.
+    state = _seated_state()
+    state = strategy_phase.pick_strategy_card(state, registry, "p2", 1)
+    reset = strategy_phase.reset_strategy_cards(state)
+    assert reset.active_player_id == "p2"  # mówca znów wybiera pierwszy

@@ -15,12 +15,13 @@ from src.api.schemas import (
 )
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
+from src.core import strategy_phase
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
     off_board_corner,
 )
-from src.core.game_state import GameState
+from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
 from src.core.models import FactionDef
@@ -190,6 +191,16 @@ async def post_setup_player(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    # Utrzymaj kolejność miejsc (RULES.md 24): dopisz nowego gracza na koniec
+    # stołu. Pierwszy gracz zostaje mówcą. W fazie strategii zaktualizuj, kto
+    # wybiera (mówca, gdy jeszcze nikt nie wybierał).
+    if request.player_id not in new_state.seating_order:
+        new_state.seating_order = [*new_state.seating_order, request.player_id]
+    if new_state.speaker_id is None:
+        new_state.speaker_id = new_state.seating_order[0]
+    if new_state.phase is Phase.STRATEGY:
+        new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
     ctx.service.replace_state(new_state, label=f"setup:{request.faction_id}")
 
     await ctx.service.broadcast()
@@ -222,7 +233,7 @@ async def post_new_game(
         )
 
     new_state = GameState()
-    first_player_id: str | None = None
+    seating: list[str] = []  # kolejność graczy przy stole (RULES.md 24)
     taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
     for index, player in enumerate(request.players):
         faction = ctx.registry.factions.get(player.faction_id)
@@ -243,8 +254,7 @@ async def post_new_game(
                     f"istnieje na tej mapie. Podaj home_position pasującą do map_string."
                 ),
             )
-        if first_player_id is None:
-            first_player_id = player_id
+        seating.append(player_id)
         # Połóż kafelki domowe (off-board dla Ghost/Crimson) i ustal gdzie flota.
         unit_position, unit_system_id = _setup_home_tiles(
             grid, faction, home_position, ctx.registry, taken_corners
@@ -264,7 +274,11 @@ async def post_new_game(
             raise HTTPException(status_code=422, detail=str(exc)) from exc
     grid.build_edges()
 
-    new_state.active_player_id = first_player_id
+    # Kolejność miejsc + mówca (RULES.md 24): pierwszy gracz = mówca na start.
+    # Nowa gra zaczyna fazą strategii, więc aktywny = pierwszy wybierający (mówca).
+    new_state.seating_order = seating
+    new_state.speaker_id = seating[0] if seating else None
+    new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
     ctx.current_grid = grid
     ctx.service.replace_state(new_state, label="game:new")
     await ctx.service.broadcast()

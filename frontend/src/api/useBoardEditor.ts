@@ -168,6 +168,14 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  const setSpeaker = useCallback(
+    async (playerId: string) => {
+      await post("/speaker/set", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // --- Akcja taktyczna (E3) ---
 
   const activateSystem = useCallback(
@@ -225,6 +233,7 @@ export function useBoardEditor() {
     nextRound,
     pickStrategyCard,
     playStrategyCard,
+    setSpeaker,
     activateSystem,
     tacticalNextStep,
     tacticalSetStep,

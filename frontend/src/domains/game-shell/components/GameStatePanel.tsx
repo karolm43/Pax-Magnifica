@@ -148,23 +148,53 @@ function seatStatus(player: PlayerData, phase: GamePhase): SeatStatus {
   return player.passed ? "passed" : "waiting";
 }
 
+/**
+ * Kolejność miejsc (speaker order) jako lista kolorów, rotowana tak, by zaczynać
+ * od mówcy. Używana w fazie strategii — wybór idzie zegarowo od mówcy (RULES.md 24).
+ * Gdy backend nie podał seatingOrder, zwraca pustą listę (fallback na inicjatywę).
+ */
+function speakerOrderColors(gameState: GameState): string[] {
+  const order = gameState.seatingOrder ?? [];
+  const speaker = gameState.speaker ?? null;
+  if (order.length === 0) return [];
+  if (!speaker || !order.includes(speaker)) return order;
+  const idx = order.indexOf(speaker);
+  return [...order.slice(idx), ...order.slice(0, idx)];
+}
+
 function isSeated(player: PlayerData): boolean {
   if (!player.faction || player.faction === "neutral") return false;
   const name = getPlayerDisplayName(player, player.color).toLowerCase();
   return !name.endsWith(".deck") && !name.endsWith('.deck"');
 }
 
-/** Seats in initiative order; players without a card fall to the end. */
-function buildSeats(playerData: PlayerData[], phase: GamePhase): Seat[] {
-  return playerData
-    .filter(isSeated)
-    .map((player) => ({
-      player,
-      name: getPlayerDisplayName(player, player.color),
-      initiative: lowestInitiative(player),
-      status: seatStatus(player, phase),
-    }))
-    .sort((a, b) => (a.initiative ?? 99) - (b.initiative ?? 99));
+/**
+ * Miejsca graczy w kolejności zależnej od fazy:
+ * - faza strategii: SPEAKER ORDER (mówca pierwszy, zegarowo) — tak idzie wybór kart;
+ * - pozostałe fazy: INICJATYWA kart (najniższy numer pierwszy).
+ * Gdy brak speaker order (``seatColors`` puste), wszędzie używamy inicjatywy.
+ */
+function buildSeats(
+  playerData: PlayerData[],
+  phase: GamePhase,
+  seatColors: string[],
+): Seat[] {
+  const seats = playerData.filter(isSeated).map((player) => ({
+    player,
+    name: getPlayerDisplayName(player, player.color),
+    initiative: lowestInitiative(player),
+    status: seatStatus(player, phase),
+  }));
+
+  if (phase === "strategy" && seatColors.length > 0) {
+    const rank = new Map(seatColors.map((color, i) => [color, i]));
+    return seats.sort(
+      (a, b) =>
+        (rank.get(a.player.color ?? "") ?? 99) -
+        (rank.get(b.player.color ?? "") ?? 99),
+    );
+  }
+  return seats.sort((a, b) => (a.initiative ?? 99) - (b.initiative ?? 99));
 }
 
 function systemLabel(
@@ -327,23 +357,52 @@ function ScDisc({ initiative }: { initiative: number | null }) {
   );
 }
 
-function TurnOrder({ seats }: { seats: Seat[] }) {
+/** Etykiety statusu miejsca po polsku (planszówkowy, czytelny ton). */
+const SEAT_STATUS_LABEL: Record<SeatStatus, string> = {
+  acting: "rusza",
+  picking: "wybiera",
+  passed: "spasował",
+  picked: "wybrał",
+  waiting: "czeka",
+};
+
+function TurnOrder({
+  seats,
+  activeColor,
+  phase,
+}: {
+  seats: Seat[];
+  activeColor: string | null;
+  phase: GamePhase;
+}) {
   if (seats.length === 0) return null;
+  const orderLabel =
+    phase === "strategy" ? "Kolejność wyboru (od mówcy)" : "Kolejność tur (inicjatywa)";
   return (
-    <div className={styles.order} role="list" aria-label="Turn order">
-      {seats.map((seat) => (
-        <div
-          key={seat.player.color}
-          role="listitem"
-          className={styles.seat}
-          data-s={seat.status}
-        >
-          <ScDisc initiative={seat.initiative} />
-          <FactionMark player={seat.player} size={18} />
-          <span className={styles.seatName}>{seat.name}</span>
-          <span className={styles.seatStatus}>{seat.status}</span>
-        </div>
-      ))}
+    <div className={styles.section}>
+      <span className={styles.label}>{orderLabel}</span>
+      <div className={styles.order} role="list" aria-label={orderLabel}>
+        {seats.map((seat) => {
+          const isActive = seat.player.color === activeColor;
+          return (
+            <div
+              key={seat.player.color}
+              role="listitem"
+              className={styles.seat}
+              data-s={seat.status}
+              data-active={isActive || undefined}
+              style={toneStyle({ "--pc": playerTone(seat.player.color) })}
+            >
+              <ScDisc initiative={seat.initiative} />
+              <FactionMark player={seat.player} size={18} />
+              <span className={styles.seatName}>{seat.name}</span>
+              <span className={styles.seatStatus}>
+                {SEAT_STATUS_LABEL[seat.status]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -461,7 +520,8 @@ function PlateBody({
     return <WinnerCallout winner={winner} playerData={playerData} />;
   }
 
-  const seats = buildSeats(playerData, phase);
+  const seatColors = speakerOrderColors(gameState);
+  const seats = buildSeats(playerData, phase, seatColors);
   const active = playerData.find((p) => p.color === activePlayer);
   const isAgenda = phase.startsWith("agenda");
   const showOrder = phase === "action" || phase === "strategy";
@@ -482,8 +542,12 @@ function PlateBody({
           location={locations.combat}
         />
       )}
-      {showOrder && <TurnOrder seats={seats} />}
-      {phase === "strategy" && <StrategyCardPicker seats={seats} />}
+      {showOrder && (
+        <TurnOrder seats={seats} activeColor={activePlayer} phase={phase} />
+      )}
+      {phase === "strategy" && (
+        <StrategyCardPicker seats={seats} activeColor={activePlayer} />
+      )}
       {phase === "action" && <FollowQueue seats={seats} />}
       {phase === "action" && (
         <TacticalActionPanel
@@ -507,14 +571,22 @@ function PlateBody({
 }
 
 /**
- * Wybór kart strategii (faza strategii, Etap E2). Każda karta: barwny krążek z
- * inicjatywą, nazwa, odznaka trade goods leżących na karcie. Karty niewybrane mają
- * przyciski-ikony frakcji (gracze, którzy jeszcze nie wybrali) do przypisania.
- * Karta wybrana pokazuje właściciela i — jeśli jego — przycisk „Zagraj".
+ * Wybór kart strategii (faza strategii, Etap E2/przebudowa tur). Planszówkowy
+ * przepływ (RULES.md 24): wybór idzie w SPEAKER ORDER (od mówcy, zegarowo), jeden
+ * gracz naraz. Panel pokazuje wyraźnie, KTO teraz wybiera, a karty są dużymi,
+ * klikalnymi wierszami — kliknięcie przydziela kartę aktywnemu graczowi i tura
+ * wyboru przechodzi sama do następnego. Operator może nadpisać mówcę (asystent,
+ * nie sędzia); już wybrane karty pokazują właściciela.
  */
-function StrategyCardPicker({ seats }: { seats: Seat[] }) {
+function StrategyCardPicker({
+  seats,
+  activeColor,
+}: {
+  seats: Seat[];
+  activeColor: string | null;
+}) {
   const { data: cards } = useStrategyCards();
-  const { pickStrategyCard } = useBoardEditor();
+  const { pickStrategyCard, setSpeaker } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
   if (!cards || cards.length === 0) return null;
@@ -529,22 +601,58 @@ function StrategyCardPicker({ seats }: { seats: Seat[] }) {
     }
   };
 
-  // Gracze, którzy jeszcze nie wybrali karty (mogą wybierać).
-  const unpicked = seats.filter((s) => !s.player.scs?.length);
+  // Gracz, którego teraz kolej wybierać (aktywny w fazie strategii).
+  const picker = seats.find((s) => s.player.color === activeColor);
+  const allPicked = seats.every((s) => s.player.scs?.length);
 
   return (
     <div className={styles.section}>
-      <span className={styles.label}>Karty strategii</span>
+      {/* Kto teraz wybiera — wyraźny baner planszówkowy. */}
+      {picker ? (
+        <div
+          className={styles.pickerNow}
+          style={toneStyle({ "--pc": playerTone(picker.player.color) })}
+        >
+          <FactionMark player={picker.player} size={22} />
+          <span className={styles.pickerText}>
+            <small className={styles.pickerLabel}>Wybiera kartę</small>
+            <b className={styles.pickerName}>{picker.name}</b>
+          </span>
+        </div>
+      ) : allPicked ? (
+        <span className={styles.label}>
+          Wszyscy wybrali — przejdź do fazy akcji
+        </span>
+      ) : (
+        <span className={styles.label}>Wybór kart strategii</span>
+      )}
+
       <div className={styles.scList}>
         {cards.map((card) => {
           const owner = seats.find(
             (s) => s.player.discordId === card.picked_by,
           );
+          const canPick = !owner && !!picker;
           return (
-            <div
+            <button
               key={card.initiative}
-              className={styles.scRow}
-              data-picked={!!card.picked_by || undefined}
+              type="button"
+              className={styles.scCard}
+              data-picked={!!owner || undefined}
+              disabled={busy || !canPick}
+              onClick={() =>
+                canPick &&
+                void run(() =>
+                  pickStrategyCard(picker.player.discordId, card.initiative),
+                )
+              }
+              title={
+                owner
+                  ? `Wybrana: ${getPlayerDisplayName(owner.player, owner.player.color)}`
+                  : picker
+                    ? `Wybierz dla: ${picker.name}`
+                    : card.name
+              }
             >
               <span
                 className={styles.disc}
@@ -559,35 +667,33 @@ function StrategyCardPicker({ seats }: { seats: Seat[] }) {
                 </span>
               )}
               <span className={styles.scActions}>
-                {owner ? (
-                  // Karta wybrana: pokazujemy właściciela. Zagranie karty (zużycie
-                  // primary) należy do FAZY AKCJI, nie strategii — brak przycisku tutaj.
-                  <FactionMark player={owner.player} size={16} />
-                ) : (
-                  unpicked.map((seat) => (
-                    <button
-                      key={seat.player.discordId}
-                      type="button"
-                      className={styles.scPickBtn}
-                      disabled={busy}
-                      onClick={() =>
-                        void run(() =>
-                          pickStrategyCard(
-                            seat.player.discordId,
-                            card.initiative,
-                          ),
-                        )
-                      }
-                      title={`Przydziel: ${seat.name}`}
-                    >
-                      <FactionMark player={seat.player} size={16} />
-                    </button>
-                  ))
-                )}
+                {owner && <FactionMark player={owner.player} size={18} />}
               </span>
-            </div>
+            </button>
           );
         })}
+      </div>
+
+      {/* Zmiana mówcy (kto zaczyna wybór) — operator, gdy trzeba. */}
+      <div className={styles.speakerRow}>
+        <span className={styles.label}>Mówca</span>
+        <div className={styles.speakerChips}>
+          {seats.map((seat) => (
+            <button
+              key={seat.player.discordId}
+              type="button"
+              className={styles.scPickBtn}
+              data-active={seat.player.isSpeaker || undefined}
+              disabled={busy}
+              onClick={() =>
+                void run(() => setSpeaker(seat.player.discordId))
+              }
+              title={`Ustaw mówcę: ${seat.name}`}
+            >
+              <FactionMark player={seat.player} size={16} />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -827,11 +933,12 @@ function PhaseControls({ phase }: { phase: GamePhase }) {
 
   return (
     <div className={styles.controls}>
+      {/* Faza akcji: główna akcja to „Zakończ turę" (duży, wyróżniony). */}
       {isAction && (
         <>
           <button
             type="button"
-            className={styles.ctlBtn}
+            className={cx(styles.ctlBtn, styles.ctlPrimary)}
             disabled={busy}
             onClick={() => void run(endTurn)}
           >
@@ -842,29 +949,33 @@ function PhaseControls({ phase }: { phase: GamePhase }) {
             className={styles.ctlBtn}
             disabled={busy}
             onClick={() => void run(passTurn)}
+            title="Pasuj — pomijany do końca fazy akcji"
           >
             Pas
           </button>
         </>
       )}
-      {!isAgenda && (
+      {/* Drobne sterowanie fazami (operator) — osobny, cichszy rząd. */}
+      <div className={styles.controlsMinor}>
+        {!isAgenda && (
+          <button
+            type="button"
+            className={styles.ctlBtnGhost}
+            disabled={busy}
+            onClick={() => void run(nextPhase)}
+          >
+            Następna faza
+          </button>
+        )}
         <button
           type="button"
-          className={styles.ctlBtn}
+          className={styles.ctlBtnGhost}
           disabled={busy}
-          onClick={() => void run(nextPhase)}
+          onClick={() => void run(nextRound)}
         >
-          Następna faza
+          Nowa runda
         </button>
-      )}
-      <button
-        type="button"
-        className={styles.ctlBtn}
-        disabled={busy}
-        onClick={() => void run(nextRound)}
-      >
-        Nowa runda
-      </button>
+      </div>
     </div>
   );
 }

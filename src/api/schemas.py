@@ -311,6 +311,14 @@ class StrategyPlayRequest(BaseModel):
     initiative: int
 
 
+class SetSpeakerRequest(BaseModel):
+    """Ustawienie mówcy (speaker) — otwiera wybór kart w fazie strategii."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+
+
 class ActivateSystemRequest(BaseModel):
     """Aktywacja systemu w akcji taktycznej (E3): pozycja kafelka."""
 

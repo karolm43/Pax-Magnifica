@@ -118,6 +118,12 @@ class GameState(BaseModel):
     active_player_id: str | None = None
     # Mówca (speaker) — zaczyna wybór kart strategii; None dopóki nieustalony.
     speaker_id: str | None = None
+    # Kolejność zasiadania graczy przy stole (player_id), zgodnie z ruchem
+    # wskazówek zegara. Ustalana przy nowej grze (kolejność podanych graczy).
+    # Z niej wynika SPEAKER ORDER (rotacja zaczynająca się od ``speaker_id``),
+    # używany w fazie strategii przy wyborze kart (RULES.md 24). Faza akcji
+    # używa INICJATYWY kart (RULES.md 9), nie tej kolejności.
+    seating_order: list[str] = Field(default_factory=list)
 
     # Akcja taktyczna (E3). ``active_system`` = pozycja aktualnie aktywowanego
     # systemu (odpowiednik ``Game.activeSystem``); ``tactical_step`` = bieżący krok

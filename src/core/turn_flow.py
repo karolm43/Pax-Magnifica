@@ -11,6 +11,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 from __future__ import annotations
 
 from src.core.game_state import GameState, Phase
+from src.core.strategy_phase import next_strategy_picker
 
 # Kolejność faz rundy TI4.
 _PHASE_SEQUENCE: list[Phase] = [
@@ -102,8 +103,15 @@ def next_phase(state: GameState) -> GameState:
     idx = _PHASE_SEQUENCE.index(new_state.phase)
     new_state.phase = _PHASE_SEQUENCE[(idx + 1) % len(_PHASE_SEQUENCE)]
     if new_state.phase is Phase.ACTION:
+        # Faza akcji: kolejność tur wg INICJATYWY kart (RULES.md 9).
         order = turn_order(new_state)
         new_state.active_player_id = order[0] if order else None
+    elif new_state.phase is Phase.STRATEGY:
+        # Faza strategii: wybór zaczyna MÓWCA, dalej speaker order (RULES.md 24).
+        new_state.active_player_id = next_strategy_picker(new_state)
+    else:
+        # Status/Agenda nie mają pojęcia "aktywnej tury" w tym szkielecie.
+        new_state.active_player_id = None
     return new_state
 
 
@@ -112,7 +120,9 @@ def next_round(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.round_number += 1
     new_state.phase = Phase.STRATEGY
-    new_state.active_player_id = None
     for player in new_state.players.values():
         player.passed = False
+    # Nowa runda zaczyna się fazą strategii: wybiera mówca (RULES.md 24).
+    # Wołane po reset_strategy_cards (flow.py), więc karty są już wyczyszczone.
+    new_state.active_player_id = next_strategy_picker(new_state)
     return new_state

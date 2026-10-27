@@ -77,6 +77,22 @@ def _effective_active_id(state: GameState) -> str | None:
     return active_id
 
 
+def _color_of(state: GameState, player_id: str | None) -> str | None:
+    """Kolor gracza o danym id (lub None), gdy jednoznaczny.
+
+    Frontend dopasowuje graczy w ``gameState`` po KOLORZE, więc kolor musi być
+    jednoznaczny — przy kolizji kolorów (niepoprawny stan God-Mode) zwracamy None,
+    by nie wskazać przypadkowego gracza (spójne z ``_active_color``).
+    """
+    if player_id is None:
+        return None
+    player = state.players.get(player_id)
+    if player is None or player.color is None:
+        return None
+    same_color = sum(1 for p in state.players.values() if p.color == player.color)
+    return player.color if same_color == 1 else None
+
+
 def _active_color(state: GameState) -> str | None:
     """Kolor aktywnego gracza (frontend dopasowuje ``activePlayer`` po KOLORZE).
 
@@ -110,6 +126,16 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
     return {
         "phase": _to_web_phase(state.phase),
         "activePlayer": _active_color(state),
+        # Mówca (kolor) — otwiera wybór kart w fazie strategii (speaker order,
+        # RULES.md 24). Nasze rozszerzenie kontraktu; panel tury je odczyta.
+        "speaker": _color_of(state, state.speaker_id),
+        # Kolejność miejsc przy stole jako KOLORY (speaker order wyznacza panel
+        # tury rotacją od mówcy). Puste, gdy seating nieustalony.
+        "seatingOrder": [
+            color
+            for pid in state.seating_order
+            if (color := _color_of(state, pid)) is not None
+        ],
         "turnStartedAt": None,
         "winner": None,
         "agenda": None,
@@ -779,7 +805,7 @@ def _build_player_data(
                 "color": player.color or "gray",
                 "displayName": faction,
                 "flexibleDisplayName": faction,
-                "isSpeaker": False,
+                "isSpeaker": state.speaker_id == player_id,
                 "isTyrant": False,
                 "passed": player.passed,
                 "eliminated": False,

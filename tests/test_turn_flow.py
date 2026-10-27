@@ -82,3 +82,29 @@ def test_next_round_resets_passes() -> None:
     assert nxt.round_number == state.round_number + 1
     assert nxt.phase is Phase.STRATEGY
     assert all(not p.passed for p in nxt.players.values())
+
+
+def test_next_round_sets_active_to_speaker() -> None:
+    # Nowa runda zaczyna fazę strategii: wybór otwiera mówca (RULES.md 24).
+    state = _state_with_players()
+    state.seating_order = ["p1", "p2", "p3"]
+    state.speaker_id = "p3"
+    state.phase = Phase.STATUS
+    # Symuluj przełom rundy: karty wyczyszczone przed next_round (jak w flow.py).
+    for p in state.players.values():
+        p.strategy_cards = []
+    nxt = turn_flow.next_round(state)
+    assert nxt.active_player_id == "p3"  # mówca wybiera pierwszy
+
+
+def test_next_phase_into_strategy_sets_speaker() -> None:
+    # Agenda → Strategia: aktywny = mówca (speaker order), nie inicjatywa.
+    state = _state_with_players()
+    state.seating_order = ["p1", "p2", "p3"]
+    state.speaker_id = "p2"
+    state.phase = Phase.AGENDA
+    for p in state.players.values():
+        p.strategy_cards = []
+    nxt = turn_flow.next_phase(state)
+    assert nxt.phase is Phase.STRATEGY
+    assert nxt.active_player_id == "p2"

@@ -469,6 +469,10 @@ export type GameStateCombat = {
 export type GameState = {
   phase: GamePhase;
   activePlayer: string | null;
+  /** Mówca (kolor) — otwiera wybór kart w fazie strategii (speaker order). */
+  speaker?: string | null;
+  /** Kolejność miejsc przy stole jako kolory (speaker order rotuje od mówcy). */
+  seatingOrder?: string[];
   turnStartedAt: number | null;
   winner: string | null;
   agenda: GameStateAgenda | null;

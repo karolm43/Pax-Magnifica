@@ -1298,3 +1298,56 @@ statki w przestrzeni → brak kontroli planety; koegzystencja (2 kolory) → bez
 wycofanie jednego z dwóch → przejęcie przez drugiego; ruch piechoty → kontrola w celu.
 Backend 180 testów zielone (+5 regresji), ruff+mypy czyste. Frontend bez zmian (web-data
 już czyta `planet_owners`).
+
+
+---
+### ✅ Blok E1·turn-ux — przebudowa tur: speaker order + inicjatywa + UI panelu tury
+**Cel użytkownika:** wyraźne, planszówkowe tury — widać CZYJA tura i że on rusza/wybiera,
+przycisk „Zakończ turę". W fazie strategii wybór kart idzie w SPEAKER ORDER (od mówcy,
+zegarowo), a w fazie akcji kolejność wg INICJATYWY kart. UI zgodne ze standardami strony,
+wygodne. Filozofia: asystent stołu, nie sędzia (podpowiada kolejność, nie blokuje twardo).
+
+**Reguła (RULES.md 24):** dwie różne kolejności. Faza strategii = speaker order (mówca
+pierwszy, zegarowo wg kolejności miejsc). Faza akcji/status/agenda = inicjatywa (najniższy
+numer karty pierwszy, RULES.md 9). Źródło: LRR „Strategy Phase" + AsyncTI4.
+
+**Model (`game_state.py`):** `GameState.seating_order: list[str]` — kolejność miejsc przy
+stole (ustalana przy nowej grze z kolejności podanych graczy). `speaker_id` = mówca (start =
+pierwszy gracz). Speaker order = rotacja seating_order od mówcy.
+
+**Core:**
+- `strategy_phase.py`: `speaker_order` (rotacja od mówcy), `next_strategy_picker` (następny
+  bez karty w speaker order, od mówcy). `pick_strategy_card` po wyborze przestawia
+  `active_player_id` na następnego pickera (None gdy wszyscy wybrali). `reset_strategy_cards`
+  ustawia aktywnego na mówcę (nowa faza strategii zaczyna mówca).
+- `turn_flow.py`: `next_phase` wchodząc w STRATEGY ustawia aktywnego mówcę (picker),
+  w ACTION — gracza o najniższej inicjatywie (bez zmian), status/agenda → None.
+  `next_round` ustawia aktywnego mówcę (po reset_strategy_cards w flow.py).
+
+**API:**
+- `game.py` `/game/new`: zapisuje `seating_order` (kolejność graczy), `speaker_id` =
+  pierwszy, `active_player_id` = pierwszy picker (mówca). `/setup/player` dopisuje gracza
+  do seating_order i ustawia mówcę/aktywnego, gdy to pierwszy gracz.
+- `flow.py` `/speaker/set` (NOWY, `SetSpeakerRequest`): ustawia mówcę; w fazie strategii
+  przestawia, kto wybiera. Operator może nadpisać mówcę (asystent, nie sędzia).
+- `web_data.py` `gameState`: nowe pola `speaker` (kolor) + `seatingOrder` (lista kolorów);
+  `playerData[].isSpeaker` wypełniane prawdziwie. Helper `_color_of` (jednoznaczny kolor).
+
+**Frontend (`GameStatePanel.tsx` + CSS):**
+- Picker kart strategii przebudowany: wyraźny baner „Wybiera kartę: [gracz]" w barwie gracza;
+  karty to duże, klikalne wiersze — klik przydziela kartę AKTYWNEMU graczowi i tura wyboru
+  przechodzi sama do następnego (speaker order). Wybrane karty wygaszone, pokazują właściciela.
+  Rząd „Mówca" (chipy frakcji) pozwala ustawić mówcę (operator).
+- `buildSeats` sortuje wg fazy: strategia → speaker order (z `gameState.seatingOrder`),
+  reszta → inicjatywa. `TurnOrder` z etykietą kolejności (PL: rusza/wybiera/czeka/spasował/
+  wybrał) i wyraźnym podświetleniem aktywnego miejsca w barwie gracza.
+- `PhaseControls`: główny, wyróżniony przycisk „Zakończ turę" (faza akcji) + „Pas";
+  sterowanie fazami (Następna faza / Nowa runda) w osobnym, cichszym rzędzie (operator).
+- `types.ts`: `GameState.speaker?` + `seatingOrder?`. `useBoardEditor.setSpeaker`.
+
+**Zweryfikowane E2E (3 gracze sol/hacan/xxcha = red/green/white, mówca red):**
+- Faza strategii: aktywny = mówca (red); wybór rotuje red→green→white→(None, wszyscy wybrali).
+- Przejście do akcji: aktywny wg inicjatywy (green miał kartę 1 = pierwszy); end turn
+  green→red→white wg inicjatywy. Zmiana mówcy na p3 (white) → aktywny=white, seating zachowany.
+- Backend 187 testów zielone (+7: speaker order, rotacja wyboru, next_phase/next_round
+  z mówcą), ruff+mypy czyste; frontend type-check+lint+build czyste.

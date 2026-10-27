@@ -202,6 +202,15 @@
   font-weight: var(--weight-title);
 }
 
+/* Aktywne miejsce: wyraźny pasek w barwie gracza (planszówkowy „teraz ty"). */
+.seat[data-active] {
+  --pc: var(--gd-gray);
+  background: linear-gradient(90deg, rgba(var(--pc), 0.12), transparent 80%);
+  box-shadow: inset 2px 0 0 rgba(var(--pc), 0.7);
+  color: var(--ds-ink-hi);
+  font-weight: var(--weight-title);
+}
+
 .seat[data-s="passed"] {
   opacity: 0.55;
 }
@@ -548,6 +557,140 @@
 }
 
 .scPickBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.scPickBtn[data-active] {
+  border-color: rgb(var(--ds-sig-relic));
+  box-shadow: 0 0 0 1px rgb(var(--ds-sig-relic) / 0.5);
+  background: rgb(var(--ds-sig-relic) / 0.14);
+}
+
+/* Baner „kto teraz wybiera" (faza strategii) — mocny, w barwie gracza. */
+.pickerNow {
+  --pc: var(--gd-gray);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--ds-radius-sm);
+  background: linear-gradient(90deg, rgba(var(--pc), 0.14), transparent 75%);
+  box-shadow: inset 3px 0 0 rgba(var(--pc), 0.8);
+}
+
+.pickerText {
+  display: grid;
+  min-width: 0;
+}
+
+.pickerLabel {
+  composes: ds-label from global;
+  font-size: var(--text-micro);
+  color: var(--ds-ink-lo);
+}
+
+.pickerName {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Karta strategii jako duży, klikalny wiersz (przydziela aktywnemu graczowi). */
+.scCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
+  text-align: left;
+  border: 1px solid var(--ds-h14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+
+.scCard:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--ds-accent, #67e8f9);
+}
+
+.scCard:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.scCard:disabled {
+  cursor: default;
+}
+
+/* Wybrana karta: wygaszona, pokazuje właściciela po prawej. */
+.scCard[data-picked] {
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.05);
+  border-style: dashed;
+}
+
+/* Rząd zmiany mówcy. */
+.speakerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.speakerChips {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Główny przycisk akcji („Zakończ turę") — wyróżniony, pełna szerokość. */
+.ctlPrimary {
+  flex: 1 1 100%;
+  min-height: 34px;
+  font-size: 13px;
+  color: var(--ds-ink-hi, #fff);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.18);
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.5);
+}
+
+.ctlPrimary:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.28);
+}
+
+/* Cichy rząd sterowania fazami (operator). */
+.controlsMinor {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.ctlBtnGhost {
+  flex: 1 1 auto;
+  padding: 4px 8px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo, #94a3b8);
+  background: transparent;
+  border: 1px solid var(--ds-h10, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ctlBtnGhost:hover:not(:disabled) {
+  color: var(--ds-ink, #e2e8f0);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ctlBtnGhost:disabled {
   opacity: 0.5;
   cursor: default;
 }

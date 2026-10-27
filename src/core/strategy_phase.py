@@ -32,6 +32,39 @@ def picked_initiatives(state: GameState) -> set[int]:
     return picked
 
 
+def speaker_order(state: GameState) -> list[str]:
+    """Kolejność graczy wg SPEAKER ORDER (mówca pierwszy, zegarowo) (RULES.md 24).
+
+    Rotuje ``seating_order`` tak, by zaczynał się od ``speaker_id``. Gdy brak
+    seating order (np. gra utworzona ręcznie), awaryjnie używa kolejności po id
+    graczy — dalej zaczynając od mówcy, jeśli jest znany.
+    """
+    order = list(state.seating_order) or sorted(state.players)
+    # Zostaw tylko istniejących graczy (seating_order może mieć nieaktualne id).
+    order = [pid for pid in order if pid in state.players]
+    if not order:
+        return []
+    speaker = state.speaker_id
+    if speaker in order:
+        idx = order.index(speaker)
+        return order[idx:] + order[:idx]
+    return order
+
+
+def next_strategy_picker(state: GameState) -> str | None:
+    """Następny gracz w speaker order, który NIE wybrał jeszcze karty (lub None).
+
+    Startuje od mówcy; pomija graczy, którzy już mają kartę. Gdy wszyscy wybrali —
+    zwraca None (faza strategii gotowa do przejścia w akcję). Nie zależy od
+    bieżącego ``active_player_id`` — zawsze liczy od mówcy, więc jest stabilny
+    nawet gdy operator nadpisał wybór poza kolejnością (asystent, nie sędzia).
+    """
+    for pid in speaker_order(state):
+        if not state.players[pid].strategy_cards:
+            return pid
+    return None
+
+
 def pick_strategy_card(
     state: GameState,
     registry: StaticDataRegistry,
@@ -65,6 +98,9 @@ def pick_strategy_card(
         player.trade_goods += tg_on_card
     new_state.strategy_card_tg[initiative] = 0
     player.strategy_cards = [*player.strategy_cards, initiative]
+    # Przekaż turę wyboru następnemu graczowi w speaker order (lub None, gdy
+    # wszyscy już wybrali — faza gotowa do przejścia w akcję). RULES.md 24.
+    new_state.active_player_id = next_strategy_picker(new_state)
     return new_state
 
 
@@ -125,4 +161,6 @@ def reset_strategy_cards(state: GameState) -> GameState:
     for player in new_state.players.values():
         player.strategy_cards = []
         player.exhausted_strategy_cards = []
+    # Nowa faza strategii zaczyna wybierać mówca (speaker) — RULES.md 24.
+    new_state.active_player_id = next_strategy_picker(new_state)
     return new_state

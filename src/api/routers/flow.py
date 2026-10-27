@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import StateEnvelope
+from src.api.schemas import SetSpeakerRequest, StateEnvelope
 from src.core import strategy_phase, turn_flow
-from src.core.game_state import GameState
+from src.core.game_state import GameState, Phase
 
 router = APIRouter()
 
@@ -59,3 +59,29 @@ async def post_next_round(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     state = strategy_phase.reset_strategy_cards(state)
     state = turn_flow.next_round(state)
     return await _commit_flow(ctx, state, "round:next")
+
+
+@router.post("/speaker/set", response_model=StateEnvelope)
+async def post_set_speaker(
+    request: SetSpeakerRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Ustawia mówcę (speaker). W fazie strategii aktualizuje, kto wybiera.
+
+    Mówca otwiera wybór kart w fazie strategii (speaker order, RULES.md 24). Gdy
+    gracz nie jest w kolejności miejsc, dopisujemy go na koniec stołu (operator
+    może ustawić mówcą dowolnego gracza — asystent, nie sędzia).
+    """
+    state = ctx.service.current_state()
+    if request.player_id not in state.players:
+        raise HTTPException(
+            status_code=422, detail=f"Nieznany gracz: {request.player_id}"
+        )
+    new_state = state.clone()
+    new_state.speaker_id = request.player_id
+    if request.player_id not in new_state.seating_order:
+        new_state.seating_order = [*new_state.seating_order, request.player_id]
+    # W fazie strategii zmiana mówcy przestawia, kto teraz wybiera (od nowego
+    # mówcy w górę), ale tylko dopóki trwa wybór (ktoś jeszcze nie ma karty).
+    if new_state.phase is Phase.STRATEGY:
+        new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
+    return await _commit_flow(ctx, new_state, f"speaker:{request.player_id}")
