@@ -1,27 +1,32 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
 
 /**
  * Drag-and-drop przeciągania jednostek na mapie (God-Mode, bez reguł).
  *
- * Mapa przewija się biblioteką ``dragscroll`` (pan na natywnym scrollerze), więc
- * każdy ``pointerdown`` + ruch nad planszą normalnie PRZEWIJA. Dlatego start dragu
- * jednostki przejmujemy na samym sprite'cie: ``setPointerCapture`` przykleja kolejne
- * zdarzenia do elementu jednostki, a ``stopPropagation``/``preventDefault`` nie daje
- * panowi przejąć gestu. Dopiero po przekroczeniu progu ruchu (``DRAG_THRESHOLD``)
- * uznajemy to za przeciąganie — krótszy ruch zostaje zwykłym klikiem (dossier).
+ * Dwa źródła tarcia, oba rozwiązane tutaj:
  *
- * Cel upuszczenia wykrywamy z DOM pod kursorem (``elementFromPoint``): kafelek ma
- * ``id="tile-<pozycja>"``, planeta ``data-search-key="planet:<id>"``. Strefa docelowa
- * to nazwa planety albo ``"space"`` (orbita). Po upuszczeniu na inną strefę otwieramy
- * pytanie „ile przenieść" (``beginUnitDrop``) dla stosów >1; pojedynczą sztukę
- * przenosimy od razu.
+ * 1. **Pan mapy łapie gest.** Mapa przewija się biblioteką ``dragscroll``, która
+ *    binduje natywny ``mousedown`` (bubbling) na kontenerze ``.dragscroll`` i na nim
+ *    startuje przewijanie. React ``stopPropagation`` nie zatrzymuje tego natywnie,
+ *    dlatego podpinamy WŁASNE natywne listenery w fazie CAPTURE na elemencie sprite'a
+ *    (``mousedown``/``touchstart``) i wołamy ``stopPropagation`` — zdarzenie nie dociera
+ *    do kontenera dragscroll, więc chwytając jednostkę NIE przesuwasz planszy.
+ *
+ * 2. **Tooltip zasłania w trakcie.** Gdy ruch przekroczy próg (``DRAG_THRESHOLD``),
+ *    ustawiamy w store ``isDraggingUnit`` — tooltip jednostki nie pokazuje się i jest
+ *    chowany na czas przeciągania (patrz useTabsAndTooltips).
+ *
+ * Krótszy ruch niż próg zostaje zwykłym klikiem (dossier). Cel upuszczenia czytamy z
+ * DOM pod kursorem (``elementFromPoint``): kafelek ``id="tile-<pozycja>"``, planeta
+ * ``data-search-key="planet:<id>"``, inaczej orbita (``"space"``). Po upuszczeniu na inną
+ * strefę: stos >1 → pytanie „ile przenieść" (``beginUnitDrop``), 1 szt. → ruch od razu.
  */
 
 // Ruch (px ekranu) odróżniający przeciąganie od kliknięcia. Spójny z progiem
-// pan-vs-klik w SystemHexTarget (tam 6px) — tu nieco większy, bo start dragu musi
-// być zdecydowany, żeby nie wyłączać otwierania dossier przy drobnym drgnięciu.
+// pan-vs-klik w SystemHexTarget (tam 6px) — tu nieco większy, by start dragu był
+// zdecydowany i drobne drgnięcie nie blokowało otwarcia dossier.
 const DRAG_THRESHOLD = 8;
 
 /** Dane przeciąganej jednostki (skąd, co, ile, czyja). */
@@ -64,109 +69,139 @@ function dropZoneAt(clientX: number, clientY: number): DropZone {
   return { position, zone: "space", label: "Orbita" };
 }
 
-export function useUnitDrag() {
+export function useUnitDrag(data: UnitDragData | null) {
   const beginUnitDrop = useAppStore((s) => s.beginUnitDrop);
+  const setDraggingUnit = useAppStore((s) => s.setDraggingUnit);
   const { moveUnit } = useBoardEditor();
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
-  // Stan jednego aktywnego przeciągania (ref — bez re-renderów na pointermove).
+  // Najświeższe dane jednostki w ref — natywne listenery nie łapią ich przez domknięcie.
+  const dataRef = useRef<UnitDragData | null>(data);
+  dataRef.current = data;
+
+  // Stan jednego aktywnego przeciągania (ref — bez re-renderów na mousemove).
   const drag = useRef<{
-    data: UnitDragData;
     startX: number;
     startY: number;
     active: boolean; // czy przekroczono próg (realne przeciąganie)
   } | null>(null);
-  // Czy właśnie zakończyliśmy realne przeciąganie — blokuje klik, który
-  // przeglądarka może wygenerować po pointerup (inaczej drag otwierałby dossier).
+  // Klik po udanym dragu musi być zgaszony (inaczej otworzyłby dossier).
   const justDragged = useRef(false);
+  // Sprzątanie natywnych listenerów sprite'a (ustawiane w dragRef).
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  const onPointerDown = useCallback(
-    (data: UnitDragData, event: React.PointerEvent) => {
-      // Tylko lewy przycisk / dotyk; prawy zostaw menu kontekstowemu.
-      if (event.button !== 0) return;
-      const target = event.currentTarget as HTMLElement;
-      target.setPointerCapture?.(event.pointerId);
-      drag.current = {
-        data,
-        startX: event.clientX,
-        startY: event.clientY,
-        active: false,
-      };
-    },
-    [],
-  );
-
-  const onPointerMove = useCallback((event: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    const travel = Math.hypot(
-      event.clientX - d.startX,
-      event.clientY - d.startY,
-    );
-    if (!d.active && travel < DRAG_THRESHOLD) return;
-    // Przekroczono próg → to przeciąganie. Blokuj pan i pokaż ducha.
-    d.active = true;
-    event.preventDefault();
-    event.stopPropagation();
-    setGhost({
-      x: event.clientX,
-      y: event.clientY,
-      asyncId: d.data.asyncId,
-      count: d.data.count,
-      imageUrl: d.data.imageUrl,
-    });
-  }, []);
-
-  const onPointerUp = useCallback(
-    (event: React.PointerEvent) => {
+  const endDrag = useCallback(
+    (clientX: number, clientY: number, committed: boolean) => {
       const d = drag.current;
+      const info = dataRef.current;
       drag.current = null;
       setGhost(null);
-      // Nie było realnego przeciągania → zostaw to klikowi (dossier/select).
-      if (!d || !d.active) return;
-      event.stopPropagation();
-      // Zablokuj klik wygenerowany przez ten gest (dossier nie ma się otworzyć).
+      setDraggingUnit(false);
+      if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
-      const target = dropZoneAt(event.clientX, event.clientY);
+      const target = dropZoneAt(clientX, clientY);
       if (!target) return;
-      const { data } = d;
       // Upuszczenie w to samo miejsce = brak ruchu.
-      if (target.position === data.fromPosition && target.zone === data.fromZone) {
+      if (target.position === info.fromPosition && target.zone === info.fromZone) {
         return;
       }
-      // Jedna sztuka → przenieś od razu; stos → zapytaj „ile przenieść".
-      if (data.count <= 1) {
+      if (info.count <= 1) {
         void moveUnit({
-          fromPosition: data.fromPosition,
-          fromZone: data.fromZone,
+          fromPosition: info.fromPosition,
+          fromZone: info.fromZone,
           toPosition: target.position,
           toZone: target.zone,
-          faction: data.faction,
-          asyncId: data.asyncId,
+          faction: info.faction,
+          asyncId: info.asyncId,
           count: 1,
         });
         return;
       }
       beginUnitDrop({
-        fromPosition: data.fromPosition,
-        fromZone: data.fromZone,
+        fromPosition: info.fromPosition,
+        fromZone: info.fromZone,
         toPosition: target.position,
         toZone: target.zone,
         toLabel: target.label,
-        faction: data.faction,
-        asyncId: data.asyncId,
-        available: data.count,
+        faction: info.faction,
+        asyncId: info.asyncId,
+        available: info.count,
       });
     },
-    [beginUnitDrop, moveUnit],
+    [beginUnitDrop, moveUnit, setDraggingUnit],
   );
 
-  const onPointerCancel = useCallback(() => {
-    drag.current = null;
-    setGhost(null);
+  // Globalne listenery ruchu/końca dopięte dopiero po starcie gestu (gdy ``drag`` jest
+  // ustawiony). Na window — gest kończy się nawet, gdy kursor zjedzie poza sprite.
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const travel = Math.hypot(e.clientX - d.startX, e.clientY - d.startY);
+      if (!d.active && travel < DRAG_THRESHOLD) return;
+      if (!d.active) {
+        d.active = true;
+        setDraggingUnit(true); // chowa tooltip
+      }
+      e.preventDefault();
+      const info = dataRef.current;
+      if (info) {
+        setGhost({
+          x: e.clientX,
+          y: e.clientY,
+          asyncId: info.asyncId,
+          count: info.count,
+          imageUrl: info.imageUrl,
+        });
+      }
+    };
+    const onUp = (e: PointerEvent) => endDrag(e.clientX, e.clientY, true);
+    const onCancel = () => endDrag(0, 0, false);
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+    };
+  }, [endDrag, setDraggingUnit]);
+
+  // Callback ref: podpina natywne listenery startu gestu w fazie CAPTURE na sprite'cie.
+  // Capture + stopPropagation blokuje dragscroll (pan) ZANIM złapie mousedown.
+  const dragRef = useCallback((node: HTMLElement | null) => {
+    const cleanup = cleanupRef.current;
+    if (cleanup) {
+      cleanup();
+      cleanupRef.current = null;
+    }
+    if (!node) return;
+
+    const start = (clientX: number, clientY: number) => {
+      drag.current = { startX: clientX, startY: clientY, active: false };
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0 || !dataRef.current) return;
+      e.stopPropagation(); // nie pozwól dragscroll zacząć pana
+      start(e.clientX, e.clientY);
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (!dataRef.current || e.touches.length !== 1) return;
+      e.stopPropagation();
+      start(e.touches[0].clientX, e.touches[0].clientY);
+    };
+    node.addEventListener("mousedown", onMouseDown, { capture: true });
+    node.addEventListener("touchstart", onTouchStart, {
+      capture: true,
+      passive: true,
+    });
+    cleanupRef.current = () => {
+      node.removeEventListener("mousedown", onMouseDown, { capture: true });
+      node.removeEventListener("touchstart", onTouchStart, { capture: true });
+    };
   }, []);
 
-  // Przechwytuje i gasi klik bezpośrednio po udanym przeciąganiu (jednorazowo).
+  // Gasi klik tuż po udanym przeciąganiu (jednorazowo) — dossier się nie otwiera.
   const onClickCapture = useCallback((event: React.MouseEvent) => {
     if (justDragged.current) {
       justDragged.current = false;
@@ -175,12 +210,5 @@ export function useUnitDrag() {
     }
   }, []);
 
-  return {
-    ghost,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    onPointerCancel,
-    onClickCapture,
-  };
+  return { ghost, dragRef, onClickCapture };
 }

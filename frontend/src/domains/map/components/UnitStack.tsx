@@ -71,29 +71,27 @@ export function UnitStack({
 
   /* Drag-and-drop przenoszenia (God-Mode). Aktywny tylko dla realnych jednostek
      z pozycją kafelka i poza replayem (``mapTransition``) — żetony/attachmenty i
-     odtwarzanie historii nie są przenoszone gestem. Handlery pointer idą na
-     wrapper stosu (sprite i badge) — patrz useUnitDrag (pan-vs-drag, duch). */
-  const unitDrag = useUnitDrag();
-  const dndEnabled =
-    entityType === "unit" && !!tilePosition && !mapTransition;
-  const dragHandlers = dndEnabled
-    ? {
-        onPointerDown: (e: React.PointerEvent) =>
-          unitDrag.onPointerDown(
-            {
-              fromPosition: tilePosition,
-              fromZone: stackHolder(stack),
-              faction,
-              asyncId: unitType,
-              count,
-            },
-            e,
-          ),
-        onPointerMove: unitDrag.onPointerMove,
-        onPointerUp: unitDrag.onPointerUp,
-        onPointerCancel: unitDrag.onPointerCancel,
-        onClickCapture: unitDrag.onClickCapture,
-      }
+     odtwarzanie historii nie są przenoszone gestem. Hook podpina natywne listenery
+     startu gestu (``dragRef``) blokujące pan mapy; patrz useUnitDrag. */
+  const dndEnabled = entityType === "unit" && !!tilePosition && !mapTransition;
+  const unitDrag = useUnitDrag(
+    dndEnabled
+      ? {
+          fromPosition: tilePosition,
+          fromZone: stackHolder(stack),
+          faction,
+          asyncId: unitType,
+          count,
+        }
+      : null,
+  );
+  // Łączy ref animacji lotu (flightRef) z refem DnD (dragRef) na jednym wrapperze.
+  const setWrapperRef = (node: HTMLDivElement | null) => {
+    (flightRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    if (dndEnabled) unitDrag.dragRef(node);
+  };
+  const dragProps = dndEnabled
+    ? { onClickCapture: unitDrag.onClickCapture }
     : {};
   /* Combat badges are compact summaries and must stay legible above the much
      larger rotated ship silhouettes in the transition layer. */
@@ -143,7 +141,7 @@ export function UnitStack({
 
     return (
       <div
-        ref={flightRef}
+        ref={setWrapperRef}
         className={`${classes.badgeContainer} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
         style={{
           left: `${x}px`,
@@ -152,7 +150,7 @@ export function UnitStack({
           ...delayStyle,
         }}
         {...handlers}
-        {...dragHandlers}
+        {...dragProps}
       >
         <UnitDragGhost ghost={unitDrag.ghost} />
         <div
@@ -202,9 +200,9 @@ export function UnitStack({
 
   return (
     <div
-      ref={flightRef}
+      ref={setWrapperRef}
       {...handlers}
-      {...dragHandlers}
+      {...dragProps}
       className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
       style={{
         left: `${x + (footprint.left + footprint.right) / 2}px`,

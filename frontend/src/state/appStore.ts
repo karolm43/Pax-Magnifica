@@ -188,6 +188,10 @@ type AppStore = {
   beginUnitDrop: (drop: NonNullable<AppStore["unitDrop"]>) => void;
   clearUnitDrop: () => void;
 
+  /** Czy trwa przeciąganie jednostki (chowa tooltip na czas gestu). */
+  isDraggingUnit: boolean;
+  setDraggingUnit: (dragging: boolean) => void;
+
   handleZoomIn: () => void;
   handleZoomOut: () => void;
   handleZoomReset: () => void;
@@ -268,6 +272,9 @@ export const useAppStore = create<AppStore>((set) => {
     unitDrop: null,
     beginUnitDrop: (drop) => set({ unitDrop: drop }),
     clearUnitDrop: () => set({ unitDrop: null }),
+
+    isDraggingUnit: false,
+    setDraggingUnit: (dragging: boolean) => set({ isDraggingUnit: dragging }),
 
     setHoveredPlanetId: (planetId: string | null) =>
       set({ hoveredPlanetId: planetId }),

@@ -1392,3 +1392,28 @@ czyste. DnD aktywny tylko dla realnych jednostek poza replayem. Reguła/konwencj
 **Uwaga:** istniejący tryb „Przenieś" (zaznacz 2 systemy + MoveUnitsModal) zostaje jako
 alternatywa; DnD to szybsza ścieżka dla typowych przeniesień. Duch pokazuje asyncId jako chip
 (fallback) — sprite'owy duch do dopieszczenia później.
+
+
+---
+### ✅ Blok UX·dnd-fix — drag jednostek: nie panuje mapy + chowa tooltip
+**Zgłoszenie użytkownika:** DnD działa, ale (1) tooltip jednostki nie znika podczas
+przeciągania (zasłania), (2) chwytając jednostkę przesuwa się CAŁA plansza (pan).
+
+**Root cause:** `dragscroll` binduje NATYWNY `mousedown` (bubbling) na kontenerze mapy i
+na nim startuje pan. Poprzednie DnD używało React `onPointerDown` + `stopPropagation`, co
+NIE zatrzymuje natywnego mousedown — pan ruszał mimo to. Tooltip był niezależny od stanu dragu.
+
+**Fix (przepisany `useUnitDrag.ts`):**
+- Start gestu przez WŁASNE natywne listenery w fazie CAPTURE na sprite'cie
+  (`mousedown`/`touchstart`) z `stopPropagation` — zdarzenie nie dociera do dragscroll, więc
+  chwyt jednostki nie panuje mapy. Ruch/koniec na `window` (pointermove/up/cancel), próg 8px
+  odróżnia drag od kliku. `dragRef` (callback ref) łączony z `flightRef` w `UnitStack`.
+- Tooltip: nowa flaga `appStore.isDraggingUnit` (+ `setDraggingUnit`), ustawiana po
+  przekroczeniu progu. `useTabsAndTooltips` chowa tooltip, gdy flaga true, i nie planuje
+  nowego w trakcie dragu (dotyczy obu widoków — MapView i PannableMapView).
+- Kompromis (świadomy): natywny `stopPropagation` na sprite'cie blokuje też React
+  `onUnitSelect` (zaznaczenie frakcji przy mousedown) dla jednostek — chwyt = przenoszenie.
+  Dossier nadal otwiera klik (`onUnitClick`/`click`), gaszony tylko tuż po udanym dragu.
+
+**Zweryfikowane:** frontend type-check+lint+build czyste; aplikacja startuje (dev 5174,
+`/game` 200, web-data przez proxy 33 kafelki, sol/hacan). Backend bez zmian. Reguła: RULES.md 25.

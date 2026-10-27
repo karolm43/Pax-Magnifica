@@ -753,11 +753,17 @@ pytanie „ile przenieść" (1 / połowa / wszystkie / dowolna liczba), pojedync
 przenosi się od razu.
 
 **Jak to działa (konwencje, nie reguły):**
-- Mapa przewija się biblioteką `dragscroll` (pan na scrollerze). Start dragu jednostki
-  przejmujemy na sprite'cie: `setPointerCapture` + próg ruchu (`DRAG_THRESHOLD=8px`)
-  odróżnia przeciąganie od kliknięcia (krótki ruch = klik → dossier). Duch jednostki
-  renderowany portalem do `document.body` (mapa ma `transform: scale`, który łamałby
-  `position: fixed`).
+- Mapa przewija się biblioteką `dragscroll`, która binduje NATYWNY `mousedown` (bubbling)
+  na kontenerze `.dragscroll` i na nim startuje pan. React `stopPropagation` tego nie
+  zatrzymuje, dlatego start dragu jednostki przejmujemy WŁASNYMI natywnymi listenerami w
+  fazie CAPTURE na sprite'cie (`mousedown`/`touchstart`) z `stopPropagation` — zdarzenie nie
+  dociera do dragscroll, więc chwytając jednostkę NIE przesuwasz planszy. Próg ruchu
+  (`DRAG_THRESHOLD=8px`) odróżnia przeciąganie od kliknięcia (krótki ruch = klik → dossier).
+  Duch jednostki renderowany portalem do `document.body` (mapa ma `transform: scale`, który
+  łamałby `position: fixed`).
+- Tooltip jednostki (hover) jest CHOWANY na czas przeciągania — flaga `appStore.isDraggingUnit`
+  (ustawiana po przekroczeniu progu) blokuje pokazanie tooltipa i czyści istniejący
+  (inaczej zasłaniałby mapę w trakcie gestu).
 - Cel upuszczenia z DOM pod kursorem (`elementFromPoint`): kafelek = `id="tile-<pozycja>"`,
   planeta = `data-search-key="planet:<id>"`. Strefa docelowa = nazwa planety albo `"space"`
   (orbita), spójnie z `stackHolder(stack) = planetName ?? "space"` i kontraktem
