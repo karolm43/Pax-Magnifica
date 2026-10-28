@@ -104,6 +104,18 @@ class FactionDef(_StaticModel):
     # które bywa przypisane tylko do jednego wariantu (Keleres dzieli jednostki między 3).
     units: list[str] = Field(default_factory=list)
 
+    @property
+    def is_playable(self) -> bool:
+        """Czy to GRYWALNA frakcja (nie placeholder systemowy jak Neutral/Lazax).
+
+        Placeholdery w danych AsyncTI4 (``neutral``, ``lazax``) mają puste pole
+        ``homeSystem`` i brak liderów — służą tylko jednostkom neutralnym / scenom,
+        nie da się nimi grać (setup nie ma gdzie postawić domu). Grywalne frakcje
+        zawsze mają dom i komplet liderów. Źródło kryterium: struktura danych
+        (``assets/data/factions/other.json`` vs reszta) — nie reguła z pamięci.
+        """
+        return bool(self.home_system) and bool(self.leaders)
+
 
 class LeaderDef(_StaticModel):
     """Definicja lidera frakcji (agent/commander/hero) z jego typem i opisem.

@@ -80,6 +80,8 @@ def get_factions(ctx: AppContext = Depends(get_ctx)) -> list[FactionInfo]:
             starting_tech_amount=f.starting_tech_amount,
         )
         for f in sorted(ctx.registry.factions.values(), key=lambda x: x.name)
+        # Pomijamy placeholdery systemowe (Neutral/Lazax) — nie są grywalne.
+        if f.is_playable
     ]
 
 
@@ -170,6 +172,11 @@ async def post_setup_player(
         raise HTTPException(
             status_code=404, detail=f"Nieznana frakcja: {request.faction_id}"
         )
+    if not faction.is_playable:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Frakcja '{request.faction_id}' nie jest grywalna (placeholder systemowy).",
+        )
     grid = ctx.current_grid
     # Najpierw połóż kafelki domowe (ustala, gdzie trafią jednostki — off-board dla
     # Ghost/Crimson), zbierając zajęte rogi z już rozstawionych graczy.
@@ -240,6 +247,11 @@ async def post_new_game(
         if faction is None:
             raise HTTPException(
                 status_code=404, detail=f"Nieznana frakcja: {player.faction_id}"
+            )
+        if not faction.is_playable:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Frakcja '{player.faction_id}' nie jest grywalna (placeholder systemowy).",
             )
         slot_position, slot_color = AUTO_SLOT_ORDER[index]
         home_position = player.home_position or slot_position

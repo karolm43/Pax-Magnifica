@@ -73,8 +73,16 @@ class PlayerState(BaseModel):
 
     # Planety kontrolowane przez gracza (identyfikatory planet).
     controlled_planets: list[str] = Field(default_factory=list)
+    # Planety WYCZERPANE (exhausted) — po wydaniu ich zasobów/wpływów. Gotowe
+    # (ready) planety to te kontrolowane, których tu NIE ma. Odświeżenie w fazie
+    # statusu czyści tę listę (RULES.md — Status Phase „ready cards"). Trzymamy
+    # jawnie, bo kontrola (``planet_owners``) nie niesie stanu wyczerpania.
+    exhausted_planets: list[str] = Field(default_factory=list)
     # Technologie posiadane przez gracza (identyfikatory technologii).
     technologies: list[str] = Field(default_factory=list)
+    # Technologie WYCZERPANE (exhausted) — np. część technologii jednostkowych/akcji.
+    # Gotowe = posiadane, których tu nie ma. Odświeżane w fazie statusu.
+    exhausted_technologies: list[str] = Field(default_factory=list)
     # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}. Brak wpisu =
     # stan domyślny z danych frakcji (agent gotowy, commander/hero zablokowani).
     leader_states: dict[str, str] = Field(default_factory=dict)

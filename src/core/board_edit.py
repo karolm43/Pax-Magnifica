@@ -361,6 +361,65 @@ def edit_player(
     return new_state
 
 
+def _toggle_in_list(items: list[str], value: str) -> list[str]:
+    """Zwraca NOWĄ listę z przełączoną obecnością ``value`` (dodaj/usuń)."""
+    if value in items:
+        return [x for x in items if x != value]
+    return [*items, value]
+
+
+def toggle_planet_exhaust(
+    state: GameState, player_id: str, planet_id: str
+) -> GameState:
+    """Przełącza stan wyczerpania planety gracza (exhausted ↔ ready).
+
+    Operator/asystent: planeta wyczerpana po wydaniu jej zasobów/wpływów; „ready"
+    po odświeżeniu (faza statusu). Nie waliduje, czy gracz kontroluje planetę —
+    to narzędzie stołu (God-Mode). Reguła stanu: RULES.md — Status Phase.
+    """
+    new_state = state.clone()
+    player = new_state.players.get(player_id) or PlayerState(player_id=player_id)
+    player.exhausted_planets = _toggle_in_list(player.exhausted_planets, planet_id)
+    new_state.players[player_id] = player
+    return new_state
+
+
+def toggle_tech_exhaust(state: GameState, player_id: str, tech_id: str) -> GameState:
+    """Przełącza stan wyczerpania technologii gracza (exhausted ↔ ready)."""
+    new_state = state.clone()
+    player = new_state.players.get(player_id) or PlayerState(player_id=player_id)
+    player.exhausted_technologies = _toggle_in_list(
+        player.exhausted_technologies, tech_id
+    )
+    new_state.players[player_id] = player
+    return new_state
+
+
+# Dozwolone stany lidera (RULES.md — Leaders): zablokowany / gotowy / wyczerpany.
+_LEADER_STATES: set[str] = {"locked", "unlocked", "exhausted"}
+
+
+def set_leader_state(
+    state: GameState, player_id: str, leader_id: str, leader_state: str
+) -> GameState:
+    """Ustawia stan jednego lidera (``locked``/``unlocked``/``exhausted``).
+
+    Scala z istniejącym ``leader_states`` (nie kasuje pozostałych liderów).
+
+    Raises:
+        ValueError: Gdy ``leader_state`` spoza dozwolonych.
+    """
+    if leader_state not in _LEADER_STATES:
+        raise ValueError(f"Nieznany stan lidera: {leader_state}")
+    new_state = state.clone()
+    player = new_state.players.get(player_id) or PlayerState(player_id=player_id)
+    merged = dict(player.leader_states)
+    merged[leader_id] = leader_state
+    player.leader_states = merged
+    new_state.players[player_id] = player
+    return new_state
+
+
 def place_command_token(
     state: GameState,
     grid: HexGrid,

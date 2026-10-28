@@ -805,3 +805,52 @@ Backend i tak waliduje twardo — to tylko wygodne mapowanie gestu na dozwoloną
 
 Implementacja: `unit_catalog.placement_allows_zone`/`zone_is_space`, `board_edit.move_units`
 (walidacja), frontend `useUnitDrag` (mapowanie statek→orbita, podświetlenie dozwolonego celu).
+
+
+## 27. Wyczerpywanie komponentów: planety, technologie, liderzy (exhaust/ready) — ✅ ZWERYFIKOWANE (LRR + dane)
+
+Etap E4 (kontrola komponentów). **Decyzja projektowa:** asystent stołu — operator ręcznie
+przełącza stan, aplikacja NIE wymusza, kiedy komponent się wyczerpuje. Backend trzyma stan
+i commituje do historii (Undo działa).
+
+**Planety i technologie** mają stan GOTOWY (ready) / WYCZERPANY (exhausted). W TI4 planetę
+wyczerpuje się, wydając jej zasoby lub wpływy; część technologii (jednostkowe/akcji) też się
+wyczerpuje. Odświeżenie (ready) następuje w fazie statusu („Ready Cards"). Źródło: LRR 2.0,
+hasła „Exhausted" i „Status Phase" (TI Wiki / Living Rules). Jednostki bez stanu (np. technologie
+pasywne) i tak mogą być oznaczone — to narzędzie operatora, nie walidator reguł.
+
+**Model:** `PlayerState.exhausted_planets: list[str]`, `PlayerState.exhausted_technologies:
+list[str]` (gotowy = kontrolowany/posiadany, którego NIE ma na liście). Liderzy mają osobny,
+już istniejący stan w `leader_states: {leader_id: "locked"|"unlocked"|"exhausted"}` (RULES.md 18).
+
+**Core:** `board_edit.toggle_planet_exhaust`, `toggle_tech_exhaust` (przełącznik obecności na
+liście), `set_leader_state` (ustawia stan jednego lidera, scala z resztą). **API:**
+`POST /player/planet/toggle-exhaust`, `/player/tech/toggle-exhaust`, `/player/leader/set-state`.
+**Web-data:** `playerData.exhaustedPlanets`/`exhaustedTechs` (filtrowane do faktycznie
+posiadanych) + flaga `exhausted` w `PlanetEntityData` (`tileUnitData[pos].planets[id].exhausted`).
+**UI:** panel akcji → zakładka „Komponentowa" (`ComponentControlPanel` w `GameStatePanel.tsx`) —
+chipy liderów/tech/planet; klik przełącza stan przez `useBoardEditor`.
+
+
+## 28. Grywalne frakcje vs placeholdery systemowe (Neutral/Lazax) — ✅ ZWERYFIKOWANE (dane AsyncTI4)
+
+W danych frakcji AsyncTI4 (`assets/data/factions/`) są wpisy, które NIE są grywalnymi frakcjami,
+tylko placeholderami systemowymi dla jednostek neutralnych / scen:
+- `neutral` (`other.json`, source `thunders_edge`) — puste `homeSystem`, brak liderów/zdolności;
+- `lazax` (`other.json`, source `lazax`) — jw.
+
+**Kryterium grywalności** (`FactionDef.is_playable`): frakcja jest grywalna, gdy ma NIEPUSTY
+`homeSystem` ORAZ komplet liderów (`leaders`). To odróżnia placeholdery (oba warunki fałszywe)
+od wszystkich realnych frakcji. Źródło: struktura danych (plik `other.json` vs reszta), nie
+reguła z pamięci. Endpoint `GET /factions` zwraca tylko grywalne; setup (`/setup/player`,
+`/game/new`) odrzuca niegrywalne (422).
+
+**⚠️ UWAGA — Firmament vs Obsidian (do potwierdzenia przez użytkownika):** użytkownik zgłosił,
+że „Firmament to rozszerzenie Obsidianu, nie osobna frakcja". Jednak DANE AsyncTI4
+(`te_factions.json`) i plan projektu (`PLAN_PELNA_ROZGRYWKA.md`) traktują je jako DWIE OSOBNE
+grywalne frakcje: `firmament` (homeSystem `96a`) i `obsidian` (homeSystem `96b`) — dwie połowy
+jednego kafelka domowego Thunder's Edge, każda z własną flotą startową, liderami, zdolnościami
+i jednostkami (`firmament_flagship` vs `obsidian_flagship`). Obecnie OBIE pozostają wybieralne
+(zgodnie z danymi, które są źródłem prawdy). Jeśli w wariancie użytkownika Firmament faktycznie
+NIE jest osobno wybieralny, trzeba to potwierdzić materiałem Thunder's Edge i wtedy dodać jawny
+wyjątek — nie usuwamy frakcji z danych na podstawie samej pamięci.

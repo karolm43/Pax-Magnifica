@@ -101,6 +101,28 @@ def test_get_factions(client: TestClient) -> None:
     arborec = next((f for f in factions if f["id"] == "arborec"), None)
     assert arborec is not None
     assert arborec["home_system"] == "05"
+    # Placeholdery systemowe (Neutral/Lazax) NIE są grywalne → brak na liście.
+    ids = {f["id"] for f in factions}
+    assert "neutral" not in ids
+    assert "lazax" not in ids
+    # Firmament i Obsidian to osobne grywalne frakcje (dwie połowy domu TE) — są.
+    assert "firmament" in ids
+    assert "obsidian" in ids
+
+
+def test_setup_rejects_non_playable_faction(client: TestClient) -> None:
+    client.post("/map/load", json={"map_string": SAMPLE_MAP_STRING})
+    resp = client.post(
+        "/setup/player",
+        json={
+            "player_id": "red",
+            "faction_id": "neutral",
+            "color": "red",
+            "home_position": "301",
+        },
+    )
+    assert resp.status_code == 422
+    assert "grywalna" in resp.json()["detail"]
 
 
 def test_setup_player_places_units(client: TestClient) -> None:
@@ -340,6 +362,60 @@ def test_edit_player_fields(client: TestClient) -> None:
     p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
     assert p["totalVps"] == 0
     assert p["tacticalCC"] == 3
+
+
+def test_toggle_planet_exhaust(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Sol kontroluje Jord (dom). Przełącz wyczerpanie → pojawia się w exhaustedPlanets.
+    resp = client.post(
+        "/player/planet/toggle-exhaust",
+        json={"player_id": "p1", "component_id": "jord"},
+    )
+    assert resp.status_code == 200
+    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    assert "jord" in p["exhaustedPlanets"]
+    # Ponowny toggle = ready (znika).
+    client.post(
+        "/player/planet/toggle-exhaust",
+        json={"player_id": "p1", "component_id": "jord"},
+    )
+    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    assert "jord" not in p["exhaustedPlanets"]
+
+
+def test_toggle_tech_exhaust(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Nadaj graczowi technologię, potem wyczerp ją.
+    client.post("/player/p1/edit", json={"technologies": ["gf"]})
+    client.post(
+        "/player/tech/toggle-exhaust",
+        json={"player_id": "p1", "component_id": "gf"},
+    )
+    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    assert "gf" in p["exhaustedTechs"]
+
+
+def test_set_leader_state(client: TestClient) -> None:
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Wyczerp dowolnego lidera Sol przez endpoint stanu lidera.
+    leaders = client.get("/api/public/game/local/web-data").json()["playerData"][0][
+        "leaders"
+    ]
+    leader_id = leaders[0]["id"]
+    resp = client.post(
+        "/player/leader/set-state",
+        json={"player_id": "p1", "leader_id": leader_id, "state": "exhausted"},
+    )
+    assert resp.status_code == 200
+    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    target = next(leader for leader in p["leaders"] if leader["id"] == leader_id)
+    assert target["exhausted"] is True
+    # Nieznany stan → 422.
+    bad = client.post(
+        "/player/leader/set-state",
+        json={"player_id": "p1", "leader_id": leader_id, "state": "nope"},
+    )
+    assert bad.status_code == 422
 
 
 def test_history_list_and_goto(client: TestClient) -> None:

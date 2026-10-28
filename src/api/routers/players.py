@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import PlayerEditRequest, StateEnvelope
+from src.api.schemas import (
+    LeaderStateRequest,
+    PlayerComponentToggleRequest,
+    PlayerEditRequest,
+    StateEnvelope,
+)
 from src.core import board_edit
 
 router = APIRouter()
@@ -32,3 +37,50 @@ async def post_edit_player(
     await ctx.service.broadcast()
     await ctx.broadcast_map()
     return ctx.service.envelope()
+
+
+async def _commit(ctx: AppContext, new_state: object, label: str) -> StateEnvelope:
+    """Commit stanu + broadcast (ten sam wzorzec co edycja gracza)."""
+    ctx.service.replace_state(new_state, label=label)  # type: ignore[arg-type]
+    await ctx.service.broadcast()
+    await ctx.broadcast_map()
+    return ctx.service.envelope()
+
+
+@router.post("/player/planet/toggle-exhaust", response_model=StateEnvelope)
+async def post_toggle_planet_exhaust(
+    request: PlayerComponentToggleRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Przełącza wyczerpanie planety gracza (exhausted ↔ ready)."""
+    new_state = board_edit.toggle_planet_exhaust(
+        ctx.service.current_state(), request.player_id, request.component_id
+    )
+    return await _commit(ctx, new_state, f"planet-exhaust:{request.component_id}")
+
+
+@router.post("/player/tech/toggle-exhaust", response_model=StateEnvelope)
+async def post_toggle_tech_exhaust(
+    request: PlayerComponentToggleRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Przełącza wyczerpanie technologii gracza (exhausted ↔ ready)."""
+    new_state = board_edit.toggle_tech_exhaust(
+        ctx.service.current_state(), request.player_id, request.component_id
+    )
+    return await _commit(ctx, new_state, f"tech-exhaust:{request.component_id}")
+
+
+@router.post("/player/leader/set-state", response_model=StateEnvelope)
+async def post_set_leader_state(
+    request: LeaderStateRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Ustawia stan lidera gracza (locked/unlocked/exhausted)."""
+    try:
+        new_state = board_edit.set_leader_state(
+            ctx.service.current_state(),
+            request.player_id,
+            request.leader_id,
+            request.state,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"leader:{request.leader_id}:{request.state}")

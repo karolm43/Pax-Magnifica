@@ -271,9 +271,30 @@ class PlayerEditRequest(BaseModel):
     passed: bool | None = None
     strategy_cards: list[int] | None = None
     controlled_planets: list[str] | None = None
+    exhausted_planets: list[str] | None = None
     technologies: list[str] | None = None
+    exhausted_technologies: list[str] | None = None
     # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}.
     leader_states: dict[str, str] | None = None
+
+
+class PlayerComponentToggleRequest(BaseModel):
+    """Przełączenie stanu komponentu gracza (planeta/technologia) — exhaust ↔ ready."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    component_id: str
+
+
+class LeaderStateRequest(BaseModel):
+    """Ustawienie stanu lidera gracza (locked/unlocked/exhausted)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    leader_id: str
+    state: str
 
 
 class StrategyCardInfo(BaseModel):

@@ -52,7 +52,9 @@ export type PlayerEdit = {
   passed?: boolean;
   strategy_cards?: number[];
   controlled_planets?: string[];
+  exhausted_planets?: string[];
   technologies?: string[];
+  exhausted_technologies?: string[];
   leader_states?: Record<string, string>;
 };
 
@@ -220,6 +222,42 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Kontrola komponentów (exhaust/ready planet/tech, stan liderów) ---
+
+  const togglePlanetExhaust = useCallback(
+    async (playerId: string, planetId: string) => {
+      await post("/player/planet/toggle-exhaust", {
+        player_id: playerId,
+        component_id: planetId,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const toggleTechExhaust = useCallback(
+    async (playerId: string, techId: string) => {
+      await post("/player/tech/toggle-exhaust", {
+        player_id: playerId,
+        component_id: techId,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const setLeaderState = useCallback(
+    async (playerId: string, leaderId: string, state: string) => {
+      await post("/player/leader/set-state", {
+        player_id: playerId,
+        leader_id: leaderId,
+        state,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   return {
     editUnit,
     moveUnit,
@@ -240,6 +278,9 @@ export function useBoardEditor() {
     endTactical,
     placeCommandToken,
     capturePlanet,
+    togglePlanetExhaust,
+    toggleTechExhaust,
+    setLeaderState,
   };
 }
 

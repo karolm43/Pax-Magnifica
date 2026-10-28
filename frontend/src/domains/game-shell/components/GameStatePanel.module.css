@@ -1121,3 +1121,81 @@
 .unitStepAdd:hover:not(:disabled) {
   background: rgb(var(--ds-sig-bio, 110 231 183) / 0.22);
 }
+
+/* === Kontrola komponentów (planety / tech / liderzy — exhaust/ready) === */
+.compGroup {
+  display: grid;
+  gap: 4px;
+}
+
+.compList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.compChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ds-ink);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.compChip:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.compChip:disabled {
+  cursor: default;
+}
+
+.compName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  color: var(--ds-ink-hi);
+}
+
+.compState {
+  flex: none;
+  font-family: var(--font-data);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-ink-lo);
+}
+
+/* Gotowe = zielony akcent; wyczerpane = przygaszone, bursztynowy akcent. */
+.compChip[data-state="ready"] {
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.4);
+}
+
+.compChip[data-state="ready"] .compState {
+  color: rgb(var(--ds-sig-bio, 110 231 183));
+}
+
+.compChip[data-state="exhausted"] {
+  opacity: 0.62;
+  border-style: dashed;
+}
+
+.compChip[data-state="exhausted"] .compState {
+  color: rgb(var(--ds-sig-warn, 251 191 36));
+}
+
+/* Lider zablokowany: wyraźnie przygaszony, neutralny. */
+.compChip[data-state="locked"] {
+  opacity: 0.45;
+}

@@ -253,12 +253,14 @@ def _build_tile_unit_data(
         if sys_state is not None:
             space = _entities_from_counts(sys_state.space_units, entity_keys)
             for planet_id, by_player in sys_state.planet_units.items():
+                owner_id = sys_state.planet_owners.get(planet_id)
                 planets[planet_id] = _build_planet_entry(
                     registry,
                     planet_id,
                     by_player,
-                    sys_state.planet_owners.get(planet_id),
+                    owner_id,
                     entity_keys,
+                    _planet_is_exhausted(planet_id, owner_id, state),
                 )
             # Żetony dowodzenia w przestrzeni (aktywacja) — klucz tożsamości gracza,
             # spójny z grupowaniem jednostek (frontend porównuje ccs z faction).
@@ -302,12 +304,23 @@ def _planet_controller(
     return entity_keys.get(owner_id, owner_id)
 
 
+def _planet_is_exhausted(
+    planet_id: str, owner_id: str | None, state: GameState
+) -> bool:
+    """Czy planeta jest wyczerpana (wg listy ``exhausted_planets`` jej właściciela)."""
+    if owner_id is None:
+        return False
+    owner = state.players.get(owner_id)
+    return owner is not None and planet_id in owner.exhausted_planets
+
+
 def _build_planet_entry(
     registry: StaticDataRegistry,
     planet_id: str,
     units_by_player: dict[str, dict[str, int]],
     owner_id: str | None,
     entity_keys: dict[str, str],
+    exhausted: bool = False,
 ) -> dict[str, Any]:
     """Buduje ``PlanetEntityData`` dla planety z jednostkami naziemnymi.
 
@@ -315,7 +328,7 @@ def _build_planet_entry(
     kontrolowanych/zajętych, nie tylko pustych (bez tego panele graczy i tooltipy
     pokazywałyby zera).
     """
-    entry = _planet_base(planet_id, owner_id, entity_keys)
+    entry = _planet_base(planet_id, owner_id, entity_keys, exhausted)
     entry["entities"] = _entities_from_counts(units_by_player, entity_keys)
     _fill_planet_stats(entry, registry, planet_id)
     return entry
@@ -333,21 +346,30 @@ def _empty_planet_entry(
     sys_state = state.systems.get(position)
     if sys_state is not None:
         owner_id = sys_state.planet_owners.get(planet_id)
-    entry = _planet_base(planet_id, owner_id, entity_keys)
+    entry = _planet_base(
+        planet_id,
+        owner_id,
+        entity_keys,
+        _planet_is_exhausted(planet_id, owner_id, state),
+    )
     entry["entities"] = {}
     _fill_planet_stats(entry, registry, planet_id)
     return entry
 
 
 def _planet_base(
-    planet_id: str, owner_id: str | None, entity_keys: dict[str, str]
+    planet_id: str,
+    owner_id: str | None,
+    entity_keys: dict[str, str],
+    exhausted: bool = False,
 ) -> dict[str, Any]:
-    """Wspólne pola ``PlanetEntityData`` (kontrola, zasoby domyślne)."""
+    """Wspólne pola ``PlanetEntityData`` (kontrola, zasoby domyślne, wyczerpanie)."""
     return {
         "controlledBy": _planet_controller(owner_id, entity_keys),
         "entities": {},
         "commodities": 0,
         "planetaryShield": False,
+        "exhausted": exhausted,
         "resources": 0,
         "influence": 0,
     }
@@ -826,7 +848,12 @@ def _build_player_data(
                 # skoro gracz ma tylko bazowe, panel nie pokazuje ich jako ulepszone.
                 "unitsOwned": units_owned,
                 "techs": list(player.technologies),
-                "exhaustedTechs": [],
+                # Wyczerpane technologie — tylko te, które gracz faktycznie posiada.
+                "exhaustedTechs": [
+                    t
+                    for t in player.exhausted_technologies
+                    if t in player.technologies
+                ],
                 # Zdolności frakcji + technologie frakcyjne (sekcja abilities karty
                 # gracza). notResearchedFactionTechs frontend wyszarza; zbadane
                 # frakcyjne są w ``techs`` (trafiają do racka techów).
@@ -834,7 +861,11 @@ def _build_player_data(
                 "factionTechs": faction_techs,
                 "notResearchedFactionTechs": not_researched_ft,
                 "planets": controlled,
-                "exhaustedPlanets": [],
+                # Wyczerpane planety — tylko te, które gracz faktycznie kontroluje
+                # (utrata planety czyści stan wyczerpania w widoku).
+                "exhaustedPlanets": [
+                    p for p in player.exhausted_planets if p in controlled
+                ],
                 "exhaustedPlanetAbilities": [],
                 "relics": [],
                 "exhaustedRelics": [],

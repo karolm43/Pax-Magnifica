@@ -1513,3 +1513,45 @@ czyste.
 **Luka świadomie zostawiona:** akcje komponentowe (E4) — karty akcji, liderzy, technologie,
 relikty — mają w panelu zakładkę i notkę „rozlicz przy stole", ale dedykowanych pickerów
 jeszcze nie ma (to zakres etapu E4).
+
+
+---
+### ✅ Blok E4·UI — kontrola komponentów (exhaust planet/tech/liderów) + fix wyboru frakcji
+
+**Uwagi użytkownika + co zrobione:**
+
+1. **Więcej kontroli nad komponentami** (planety, liderzy, technologie). Zakładka
+   „Komponentowa" w panelu akcji (dotąd placeholder) ma teraz pełny `ComponentControlPanel`:
+   chipy liderów (locked/ready/exhausted — cykl kliknięciem), technologii i planet
+   (exhausted ↔ ready kliknięciem). Operator przełącza stan zgodnie z fizyczną grą;
+   backend commituje do historii (Undo działa). Reguła: RULES.md 27.
+   - **Core:** nowe pola `PlayerState.exhausted_planets`, `exhausted_technologies`; funkcje
+     `board_edit.toggle_planet_exhaust`, `toggle_tech_exhaust`, `set_leader_state`
+     (liderzy już mieli stan w `leader_states`, RULES.md 18).
+   - **API:** `POST /player/planet/toggle-exhaust`, `/player/tech/toggle-exhaust`,
+     `/player/leader/set-state` (router `players.py`).
+   - **Web-data:** emisja `playerData.exhaustedPlanets`/`exhaustedTechs` (filtrowane do
+     faktycznie posiadanych) + flaga `exhausted` w `PlanetEntityData` (per-planeta w
+     `tileUnitData`). Liderzy już kompletni (`_player_leaders`).
+   - **Frontend:** `useBoardEditor` — `togglePlanetExhaust`/`toggleTechExhaust`/
+     `setLeaderState` + rozszerzony typ `PlayerEdit`. Nazwy komponentów z danych frontendu
+     (`getTechData`/`getPlanetData`, fallback `prettifyId`).
+
+2. **Bug: Neutral wybieralny jako frakcja — naprawione.** W danych AsyncTI4 `neutral`
+   (i `lazax`) to placeholdery systemowe (puste `homeSystem`, brak liderów), nie grywalne
+   frakcje. Dodano `FactionDef.is_playable` (ma dom ORAZ liderów). `GET /factions` zwraca
+   tylko grywalne; `/setup/player` i `/game/new` odrzucają niegrywalne (422). Reguła:
+   RULES.md 28. Lista frakcji w ekranie startowym spadła z ~35 do 33.
+
+3. **Firmament vs Obsidian — ⚠️ KONFLIKT Z DANYMI, do potwierdzenia.** Użytkownik twierdzi,
+   że Firmament to rozszerzenie Obsidianu, nie osobna frakcja. Ale dane AsyncTI4
+   (`te_factions.json`) i plan projektu traktują je jako DWIE osobne grywalne frakcje
+   (`firmament`=96a, `obsidian`=96b — dwie połowy domu TE, każda z własną flotą/liderami/
+   zdolnościami/jednostkami). Zgodnie z zasadą „dane są źródłem prawdy, nie pamięć" OBIE
+   pozostają wybieralne. Opisane w RULES.md 28 jako otwarte pytanie — czekam na decyzję
+   użytkownika z materiałem Thunder's Edge, zanim ewentualnie usunę Firmament z puli.
+
+**QA:** backend 192 testy zielone (+3: toggle planet/tech/leader, +fix faction filter),
+ruff + mypy czyste; frontend type-check + lint + build czyste. Zweryfikowane E2E na żywym
+backendzie: `/factions` bez neutral/lazax (firmament/obsidian zostają), toggle planety →
+`exhaustedPlanets` + flaga `exhausted` w kafelku, toggle lidera → `exhausted=true`.
