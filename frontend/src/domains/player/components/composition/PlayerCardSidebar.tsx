@@ -69,6 +69,7 @@ export default function PlayerCardSidebar(props: Props) {
       playerData.exhaustedTechs ?? [],
       undefined,
       breakthrough,
+      playerData.discordId,
     ),
   );
   const secretsScored = Object.keys(player.secretsScored ?? {}).length;
@@ -146,7 +147,11 @@ export default function PlayerCardSidebar(props: Props) {
         </Block>
 
         <Block label="Leaders">
-          <Leaders leaders={player.leaders} faction={player.faction} />
+          <Leaders
+            leaders={player.leaders}
+            faction={player.faction}
+            playerId={playerData.discordId}
+          />
         </Block>
 
         <Block label="Holdings" meta={`${secretsScored} secrets scored`}>
@@ -188,6 +193,7 @@ export default function PlayerCardSidebar(props: Props) {
               planets={player.planets}
               exhaustedPlanetAbilities={player.exhaustedPlanetAbilities}
               exhaustedPlanets={player.exhaustedPlanets}
+              playerId={playerData.discordId}
             />
           </div>
         </Block>

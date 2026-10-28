@@ -311,7 +311,11 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
       </Lane>
 
       <Lane lane="leaders" className={styles.lcLeaders}>
-        <Leaders leaders={player.leaders} faction={player.faction} />
+        <Leaders
+          leaders={player.leaders}
+          faction={player.faction}
+          playerId={playerData.discordId}
+        />
       </Lane>
 
       <Lane lane="holdings" className={styles.lcHold}>
@@ -334,6 +338,7 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
           minColumns={techColumns}
           minRows={rackRows}
           breakthrough={playerData.breakthrough}
+          playerId={playerData.discordId}
         />
       </Lane>
 
@@ -361,6 +366,7 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
           exhaustedPlanetAbilities={player.exhaustedPlanetAbilities}
           exhaustedPlanets={player.exhaustedPlanets}
           wrap="nowrap"
+          playerId={playerData.discordId}
         />
         {settings.showPlayerAreaReinforcements && (
           <ReinforcementTokensGroup

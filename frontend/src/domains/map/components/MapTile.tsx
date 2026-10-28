@@ -29,6 +29,12 @@ import { SystemHexTarget } from "./SystemHexTarget";
 import { getTileById } from "@/entities/lookup/systems";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
+import { IconTarget } from "@tabler/icons-react";
+import {
+  ContextMenu,
+  useContextMenu,
+} from "@/shared/ui/ContextMenu/ContextMenu";
+import { useBoardEditor } from "@/api/useBoardEditor";
 
 type Props = {
   mapTile: TileType;
@@ -89,6 +95,8 @@ export const MapTile = React.memo<Props>(
     const activateMode = useAppStore((state) => state.activateMode);
     const pickActivateTile = useAppStore((state) => state.pickActivateTile);
     const dragOver = useAppStore((state) => state.dragOver);
+    const { activateSystem } = useBoardEditor();
+    const tileMenu = useContextMenu();
 
     /* Hyperlanes have nothing to report. Hover feedback is pure CSS so the
        tile never re-renders under a moving cursor. */
@@ -101,6 +109,25 @@ export const MapTile = React.memo<Props>(
       if (activateMode) return pickActivateTile(mapTile.position);
       return openSystemDossier(mapTile.position, mapTile.systemId);
     };
+
+    // Czy jest aktywny gracz — aktywacja kładzie jego żeton dowodzenia. Bez
+    // aktywnego gracza backend zwróciłby 422, więc pozycję wtedy blokujemy.
+    const activePlayer = gameData?.playerData?.find((p) => p.active);
+    // Menu kontekstowe kafelka (RMB): aktywacja systemu. Rozszerzalne — dokładamy
+    // kolejne pozycje (np. „Otwórz dossier", „Zakończ akcję") później.
+    const tileMenuItems =
+      dossierEligible && !isHyperlane
+        ? [
+            {
+              label: activePlayer
+                ? "Aktywuj system"
+                : "Aktywuj system (brak aktywnego gracza)",
+              icon: <IconTarget size={14} />,
+              disabled: !activePlayer,
+              onSelect: () => void activateSystem(mapTile.position),
+            },
+          ]
+        : [];
     /* A phone has no hover, and at board zoom a hex is mostly planets and
        units, so a tap anywhere on the system opens the dossier. The hover
        cards are dropped there: the dossier carries the same detail, and a
@@ -153,7 +180,18 @@ export const MapTile = React.memo<Props>(
           opacity: getTileOpacity(),
           cursor: moveMode || activateMode ? "crosshair" : undefined,
         }}
+        onContextMenu={
+          tileMenuItems.length > 0 ? tileMenu.onContextMenu : undefined
+        }
       >
+        {tileMenuItems.length > 0 && (
+          <ContextMenu
+            position={tileMenu.position}
+            items={tileMenuItems}
+            onClose={tileMenu.close}
+            title={`System ${ringPosition}`}
+          />
+        )}
         <div
           className={`${classes.tileContainer} ${
             dossierEligible ? classes.dossierEligible : ""

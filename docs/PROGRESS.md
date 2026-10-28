@@ -1584,3 +1584,31 @@ czyste. Reguła zaktualizowana: RULES.md 27 (sekcja „UI — menu kontekstowe, 
 
 **Następnie (do rozbudowy menu RMB, wg uznania):** kolejne pozycje — np. „Pokaż kartę",
 „Odczep attachment" (planety), „Aktywuj lidera" (gdy wejdzie E4), „Zwróć do rezerwy" itd.
+
+
+---
+### ✅ Blok E4·UI³ — menu RMB w player-area przy mapie + „Aktywuj system" na kafelku
+
+**Uwagi użytkownika + co zrobione:**
+
+1. **Menu RMB (wyczerp/odśwież) też w player-area przy mapie.** Wcześniej przewiercony był
+   tylko `PlayerCardDeck`. Teraz `playerId` (`discordId`) leci też do dwóch pozostałych
+   wariantów panelu gracza: `PlayerCardSidebar` (panel boczny osadzony przy mapie — to „player
+   area w menu mapy") i `PlayerDeckRow` (wiersz deck). W `PlayerDeckRow` techy idą przez
+   `TechGridMobile`, więc dodano mu prop `playerId` przekazywany do `buildTechElementsForType`.
+   Efekt: RMB wyczerp/odśwież na planetach/tech/liderach działa we wszystkich panelach gracza.
+   (Uwaga: `PlayerStatsArea` na heksach mapy NIE renderuje planet/tech/liderów — tylko
+   statystyki — więc tam nic nie dodawano.)
+
+2. **„Aktywuj system" pod RMB na kafelku.** `MapTile` dostał `onContextMenu` → menu z pozycją
+   „Aktywuj system", która woła `activateSystem(position)` (POST `/tactical/activate`). Backend
+   `core.tactical.activate_system` kładzie żeton dowodzenia AKTYWNEGO gracza w przestrzeni,
+   ustawia `active_system` + krok `MOVEMENT`, zdejmuje 1 z puli taktycznej. Pozycja zablokowana,
+   gdy brak aktywnego gracza (inaczej 422). Menu omija kafelki hyperlane/embedded; omija też
+   tryb klikania (`activateMode`) — woła aktywację wprost (jak przycisk w panelu faz).
+
+**Zweryfikowane E2E:** aktywacja 101 → `command_tokens=[p1]`, `active_system=101`,
+`tactical_step=MOVEMENT`, `tactical_cc` 3→2. Reużyty komponent `shared/ui/ContextMenu`.
+
+**QA:** frontend type-check + lint + build czyste; backend 193 testy zielone (bez zmian w tym
+bloku — menu woła istniejące endpointy), ruff+mypy czyste. Reguła: RULES.md 27 (rozszerzona).

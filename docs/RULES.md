@@ -836,8 +836,18 @@ gracza w panelu gracza otwiera menu z „Wyczerp / Odśwież" (liderzy też „O
 Komponent menu: `frontend/src/shared/ui/ContextMenu` (`useContextMenu` + `ContextMenu`) —
 pozycjonowane pod kursorem, portalowane, rozszerzalne listą pozycji (dokładamy kolejne później).
 Podpięte w `PlanetCard`, `Tech`, `LeaderChip`, `CompactLeader`; `player_id` (`discordId`)
-przewiercony z `PlayerCardDeck` przez `PlayerCardPlanetsArea`/`Leaders`/`buildTechElementsForType`.
+przewiercony do WSZYSTKICH trzech wariantów panelu gracza: `PlayerCardDeck` (panel pełny),
+`PlayerCardSidebar` (panel boczny przy mapie) i `PlayerDeckRow` (wiersz deck; techy przez
+`TechGridMobile`) — przez `PlayerCardPlanetsArea`/`Leaders`/`buildTechElementsForType`.
 Akcje wołają `useBoardEditor.togglePlanetExhaust/toggleTechExhaust/setLeaderState`.
+
+**Menu kontekstowe kafelka systemu (mapa):** RMB na kafelku (`MapTile`) → „Aktywuj system" —
+woła `useBoardEditor.activateSystem(position)` (POST `/tactical/activate`), co KŁADZIE żeton
+dowodzenia AKTYWNEGO gracza w przestrzeni systemu, ustawia `active_system` i krok `MOVEMENT`,
+zdejmuje 1 z puli taktycznej (`core.tactical.activate_system`, RULES.md 19). Pozycja jest
+zablokowana (disabled), gdy nie ma aktywnego gracza (`active_player_id` None → backend 422).
+Menu pomija kafelki hyperlane/embedded. To ta sama akcja co przycisk „Aktywuj system" w panelu
+faz — menu RMB omija tryb klikania (`activateMode`) i woła ją wprost.
 
 
 ## 28. Grywalne frakcje vs placeholdery systemowe (Neutral/Lazax) — ✅ ZWERYFIKOWANE (dane AsyncTI4)

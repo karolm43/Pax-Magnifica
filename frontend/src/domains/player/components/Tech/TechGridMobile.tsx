@@ -16,6 +16,8 @@ type Props = {
   /** Rack depth imposed from outside, so sibling racks share a row count. */
   minRows?: number;
   breakthrough?: BreakthroughData;
+  /** Właściciel (``discordId``) — włącza menu kontekstowe wyczerp/odśwież. */
+  playerId?: string;
 };
 
 const TECHS_PER_COLUMN = 6;
@@ -129,6 +131,7 @@ export function TechGridMobile({
   minColumns = 1,
   minRows = 0,
   breakthrough,
+  playerId,
 }: Props) {
   const techGroups = techCategories.map((techType) =>
     buildTechElementsForType(
@@ -136,7 +139,8 @@ export function TechGridMobile({
       techs,
       exhaustedTechs,
       undefined,
-      breakthrough
+      breakthrough,
+      playerId
     )
   );
 
