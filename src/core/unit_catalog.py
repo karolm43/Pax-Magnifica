@@ -116,3 +116,27 @@ def async_id_of(base_type: str) -> str:
 def is_space_unit(base_type: str) -> bool:
     """Czy jednostka stoi w przestrzeni systemu (statek)."""
     return PLACEMENT_BY_BASE_TYPE.get(base_type) is Placement.SPACE
+
+
+def zone_is_space(zone: str) -> bool:
+    """Czy strefa to przestrzeń/orbita (``"space"``), a nie konkretna planeta."""
+    return zone == "space"
+
+
+def placement_allows_zone(base_type: str, zone: str) -> bool:
+    """Czy dana jednostka MOŻE stać w danej strefie (reguła TI4, RULES.md 26).
+
+    Statek (``Placement.SPACE``) stoi TYLKO w przestrzeni (``"space"``) — nigdy na
+    planecie. Siła naziemna / struktura (``Placement.PLANET``: piechota, mech, PDS,
+    dok) stoi TYLKO na planecie (strefa = id planety) — nigdy w przestrzeni. Nieznany
+    ``baseType`` zwraca False (brak uprawnienia — bezpieczny domyślny).
+
+    To reguła świata (egzekwowana w ``board_edit``), nie tylko podpowiedź UI — chroni
+    też przyszłego bota, który woła te same funkcje ``core``.
+    """
+    placement = PLACEMENT_BY_BASE_TYPE.get(base_type)
+    if placement is None:
+        return False
+    if placement is Placement.SPACE:
+        return zone_is_space(zone)
+    return not zone_is_space(zone)

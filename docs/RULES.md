@@ -781,3 +781,27 @@ Implementacja: `frontend/.../hooks/useUnitDrag.ts` (pointer events + duch + wykr
 `UnitStack.tsx` (podpięcie na sprite/badge), `UnitDragGhost.tsx` (duch), `MoveQuantityModal.tsx`
 (pytanie „ile przenieść"), `appStore.unitDrop` (stan pytania). DnD aktywny tylko dla realnych
 jednostek poza odtwarzaniem historii (replay).
+
+## 26. Umiejscowienie jednostek przy przenoszeniu: statek↔przestrzeń, naziemne↔planeta — ✅ ZWERYFIKOWANE
+
+Reguła TI4 (LRR /wiki/Units, /wiki/Movement; spójna z klasyfikacją RULES.md 2b): jednostka
+istnieje tylko w strefie zgodnej z jej typem.
+- **Statki** (`fighter`, `destroyer`, `cruiser`, `carrier`, `dreadnought`, `flagship`,
+  `warsun`) stoją WYŁĄCZNIE w PRZESTRZENI systemu (`"space"`) — nigdy na planecie.
+- **Siły naziemne i struktury** (`infantry`, `mech`, `pds`, `spacedock`) stoją WYŁĄCZNIE
+  na PLANECIE (strefa = id planety) — nigdy w przestrzeni.
+
+**Egzekucja (nie tylko UX):** w odróżnieniu od innych edycji God-Mode (asystent, nie sędzia),
+tę regułę EGZEKWUJEMY w `core`, bo „statek na planecie" to stan niereprezentowalny fizycznie
+i psułby render/kontrolę. `board_edit.move_units` odrzuca (``ValueError`` → HTTP 422)
+przeniesienie łamiące umiejscowienie. Funkcja decyzyjna: `unit_catalog.placement_allows_zone(
+base_type, zone)` — czysta reguła świata, wołana przez UI (drag-and-drop) i przyszłego BOTA
+(ten sam punkt wejścia, więc bot też nie postawi statku na planecie).
+
+**UX drag-and-drop (prezentacja, nie reguła):** upuszczenie STATKU na planetę nie jest błędem
+dla gracza — front celuje wtedy w ORBITĘ (`"space"`) tego samego kafelka (gracz wskazał system).
+Jednostkę naziemną/strukturę upuszczoną na orbitę front odrzuca (brak sensownej planety-celu).
+Backend i tak waliduje twardo — to tylko wygodne mapowanie gestu na dozwoloną strefę.
+
+Implementacja: `unit_catalog.placement_allows_zone`/`zone_is_space`, `board_edit.move_units`
+(walidacja), frontend `useUnitDrag` (mapowanie statek→orbita, podświetlenie dozwolonego celu).

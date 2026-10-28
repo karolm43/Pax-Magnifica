@@ -418,6 +418,50 @@ def test_move_units_none_available_422(client: TestClient) -> None:
     assert resp.status_code == 422
 
 
+def test_move_ship_onto_planet_rejected_422(client: TestClient) -> None:
+    """Statek nie może trafić na planetę (reguła umiejscowienia, RULES.md 26)."""
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "space", "faction": "sol", "asyncId": "dd", "delta": 1},
+    )
+    resp = client.post(
+        "/units/move",
+        json={
+            "fromPosition": "101",
+            "fromZone": "space",
+            "toPosition": "101",
+            "toZone": "mr",  # planeta Mecatol — statek tam nie może stać
+            "faction": "sol",
+            "asyncId": "dd",
+            "count": 1,
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_move_infantry_into_space_rejected_422(client: TestClient) -> None:
+    """Piechota nie może trafić do przestrzeni (reguła umiejscowienia, RULES.md 26)."""
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/system/101/edit-units",
+        json={"zone": "mr", "faction": "sol", "asyncId": "gf", "delta": 1},
+    )
+    resp = client.post(
+        "/units/move",
+        json={
+            "fromPosition": "101",
+            "fromZone": "mr",
+            "toPosition": "102",
+            "toZone": "space",  # piechota w przestrzeni — niedozwolone
+            "faction": "sol",
+            "asyncId": "gf",
+            "count": 1,
+        },
+    )
+    assert resp.status_code == 422
+
+
 # --- Akcja taktyczna (E3) ------------------------------------------------
 
 

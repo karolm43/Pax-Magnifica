@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
+import { isShipUnit } from "../UnitStack/unitType";
 
 /**
  * Drag-and-drop przeciągania jednostek na mapie (God-Mode, bez reguł).
@@ -49,10 +50,10 @@ export type DragGhost = {
   imageUrl?: string | null;
 };
 
-type DropZone = { position: string; zone: string; label: string } | null;
+type RawZone = { position: string; zone: string; label: string } | null;
 
-/** Znajduje strefę docelową (kafelek + planeta/orbita) pod punktem ekranu. */
-function dropZoneAt(clientX: number, clientY: number): DropZone {
+/** Surowa strefa pod kursorem (kafelek + planeta/orbita), bez reguł umiejscowienia. */
+function rawZoneAt(clientX: number, clientY: number): RawZone {
   const el = document.elementFromPoint(clientX, clientY);
   if (!el) return null;
   const tile = el.closest<HTMLElement>('[id^="tile-"]');
@@ -69,9 +70,56 @@ function dropZoneAt(clientX: number, clientY: number): DropZone {
   return { position, zone: "space", label: "Orbita" };
 }
 
+/** Rozstrzygnięty cel: strefa po regule umiejscowienia + czy ruch dozwolony. */
+type ResolvedTarget = {
+  position: string;
+  zone: string;
+  label: string;
+  valid: boolean;
+} | null;
+
+/**
+ * Nakłada regułę umiejscowienia (RULES.md 26) na surowy cel pod kursorem:
+ * - STATEK upuszczony na planetę → trafia w ORBITĘ tego samego kafelka (gracz wskazał
+ *   system) — wygodne mapowanie gestu, zawsze dozwolone.
+ * - SIŁA NAZIEMNA/STRUKTURA upuszczona na orbitę → brak sensownej planety-celu →
+ *   niedozwolone (``valid=false``), front nie wykona ruchu.
+ * - Upuszczenie w tę samą strefę co źródło → niedozwolone (brak ruchu).
+ */
+function resolveTarget(
+  data: UnitDragData,
+  clientX: number,
+  clientY: number,
+): ResolvedTarget {
+  const raw = rawZoneAt(clientX, clientY);
+  if (!raw) return null;
+  const ship = isShipUnit(data.asyncId);
+  let zone = raw.zone;
+  let label = raw.label;
+  let valid = true;
+  if (ship && zone !== "space") {
+    // Statek na planetę → orbita tego kafelka.
+    zone = "space";
+    label = "Orbita";
+  } else if (!ship && zone === "space") {
+    // Jednostka naziemna/struktura nie może stać w przestrzeni.
+    valid = false;
+  }
+  // Brak ruchu, gdy cel = źródło.
+  if (
+    valid &&
+    raw.position === data.fromPosition &&
+    zone === data.fromZone
+  ) {
+    valid = false;
+  }
+  return { position: raw.position, zone, label, valid };
+}
+
 export function useUnitDrag(data: UnitDragData | null) {
   const beginUnitDrop = useAppStore((s) => s.beginUnitDrop);
   const setDraggingUnit = useAppStore((s) => s.setDraggingUnit);
+  const setDragOver = useAppStore((s) => s.setDragOver);
   const { moveUnit } = useBoardEditor();
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
@@ -97,15 +145,12 @@ export function useUnitDrag(data: UnitDragData | null) {
       drag.current = null;
       setGhost(null);
       setDraggingUnit(false);
+      setDragOver(null);
       document.body.classList.remove("dragging-unit");
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
-      const target = dropZoneAt(clientX, clientY);
-      if (!target) return;
-      // Upuszczenie w to samo miejsce = brak ruchu.
-      if (target.position === info.fromPosition && target.zone === info.fromZone) {
-        return;
-      }
+      const target = resolveTarget(info, clientX, clientY);
+      if (!target || !target.valid) return; // niedozwolony cel = brak ruchu
       if (info.count <= 1) {
         void moveUnit({
           fromPosition: info.fromPosition,
@@ -129,7 +174,7 @@ export function useUnitDrag(data: UnitDragData | null) {
         available: info.count,
       });
     },
-    [beginUnitDrop, moveUnit, setDraggingUnit],
+    [beginUnitDrop, moveUnit, setDraggingUnit, setDragOver],
   );
 
   // Globalne listenery ruchu/końca dopięte dopiero po starcie gestu (gdy ``drag`` jest
@@ -157,6 +202,13 @@ export function useUnitDrag(data: UnitDragData | null) {
           count: info.count,
           imageUrl: info.imageUrl,
         });
+        // Podświetl kafelek-cel pod kursorem (planszówkowy feedback „tu upuścisz").
+        const target = resolveTarget(info, e.clientX, e.clientY);
+        setDragOver(
+          target
+            ? { position: target.position, zone: target.zone, valid: target.valid }
+            : null,
+        );
       }
     };
     const onUp = (e: PointerEvent) => endDrag(e.clientX, e.clientY, true);
@@ -169,7 +221,7 @@ export function useUnitDrag(data: UnitDragData | null) {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
     };
-  }, [endDrag, setDraggingUnit]);
+  }, [endDrag, setDraggingUnit, setDragOver]);
 
   // Callback ref: podpina natywne listenery startu gestu w fazie CAPTURE na sprite'cie.
   // Capture + stopPropagation blokuje dragscroll (pan) ZANIM złapie mousedown.

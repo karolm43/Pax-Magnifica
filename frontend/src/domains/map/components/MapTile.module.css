@@ -137,6 +137,54 @@
   stroke-dasharray: none;
 }
 
+/*
+ * Podświetlenie celu drag-and-drop jednostki — kafelek pod kursorem w trakcie
+ * przeciągania. Zielony = dozwolone, czerwony = niedozwolone (np. piechota nad orbitą).
+ * Wyraźna „ramka stołu" + delikatne wypełnienie, by było czuć „tu wyląduje".
+ */
+.dropHighlight {
+  position: absolute;
+  inset: 0;
+  width: 345px;
+  height: 299px;
+  z-index: var(--z-tactical-activation);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dropHighlight path {
+  fill: none;
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+
+.dropHighlight.dropValid {
+  filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.95))
+    drop-shadow(0 0 26px rgba(34, 197, 94, 0.55));
+}
+
+.dropHighlight.dropValid path {
+  stroke: rgba(134, 239, 172, 1);
+  fill: rgba(34, 197, 94, 0.18);
+  animation: dropPulse 1s ease-in-out infinite;
+}
+
+.dropHighlight.dropInvalid {
+  filter: drop-shadow(0 0 10px rgba(248, 113, 113, 0.85));
+}
+
+.dropHighlight.dropInvalid path {
+  stroke: rgba(248, 113, 113, 0.95);
+  fill: rgba(239, 68, 68, 0.12);
+  stroke-dasharray: 12 8;
+}
+
+@keyframes dropPulse {
+  50% {
+    fill: rgba(34, 197, 94, 0.32);
+  }
+}
+
 /* Focus styles for accessibility */
 .tile:focus {
   outline: 2px solid var(--ds-blue-6);

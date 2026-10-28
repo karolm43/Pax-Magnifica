@@ -1438,3 +1438,32 @@ drag-select / image-drag zamiast naszego DnD.
   (globalnie na czas gestu — szarpnięcie poza sprite nie zaznacza sąsiednich kafelków).
 
 **Zweryfikowane:** frontend type-check+lint+build czyste. Backend bez zmian. Reguła: RULES.md 25.
+
+
+---
+### ✅ Blok UX·dnd-feel — podświetlenie celu + statki nie na planety + gotowość pod bota
+**Cel użytkownika:** (1) planszówkowe podświetlenie kafelka-celu przy przeciąganiu;
+(2) statki NIGDY na planetach (tylko piechota/mechy/struktury na planecie); (3) logika
+gotowa pod przyszłego bota (ten sam punkt wejścia przenoszenia).
+
+**Reguła umiejscowienia (RULES.md 26) — egzekwowana w core (chroni UI i bota):**
+- `unit_catalog.placement_allows_zone(base_type, zone)` + `zone_is_space` — czysta reguła
+  świata: statek tylko w `"space"`, siła naziemna/struktura tylko na planecie.
+- `board_edit.move_units` waliduje umiejscowienie (`ValueError` → HTTP 422). To wspólny,
+  czysty punkt wejścia przenoszenia (`state -> state`, bez HTTP) dla UI i BOTA — ani gracz,
+  ani bot nie postawią statku na planecie. (Inne edycje God-Mode pozostają bez walidacji —
+  umiejscowienie to wyjątek, bo „statek na planecie" jest niereprezentowalny.)
+- Testy API: statek→planeta 422, piechota→orbita 422 (+ dozwolone ruchy 200).
+
+**Frontend — podświetlenie celu + mapowanie gestu (prezentacja):**
+- `appStore.dragOver` ({position, zone, valid}) aktualizowany w trakcie dragu.
+- `useUnitDrag.resolveTarget`: nakłada regułę na cel pod kursorem — STATEK upuszczony na
+  planetę celuje w ORBITĘ tego kafelka (wygodne, zawsze dozwolone); SIŁA NAZIEMNA nad orbitą
+  = niedozwolone (`valid=false`, brak ruchu). `unitType.isShipUnit` (klasyfikacja asyncId
+  spójna z backendem).
+- `MapTile`: obwódka heksa celu — zielona (dozwolone, pulsuje) / czerwona (niedozwolone).
+  CSS `.dropHighlight`/`.dropValid`/`.dropInvalid` (MapTile.module.css).
+
+**Zweryfikowane E2E:** destroyer orbita→orbita 200, destroyer→planeta 422, piechota→orbita
+422, piechota planeta→planeta 200. Backend 189 testów zielone (+2), ruff+mypy czyste;
+frontend type-check+lint+build czyste. Reguły: RULES.md 26 (+ DnD 25).

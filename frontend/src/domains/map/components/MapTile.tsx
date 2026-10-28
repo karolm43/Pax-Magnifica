@@ -88,6 +88,7 @@ export const MapTile = React.memo<Props>(
     const pickMoveTile = useAppStore((state) => state.pickMoveTile);
     const activateMode = useAppStore((state) => state.activateMode);
     const pickActivateTile = useAppStore((state) => state.pickActivateTile);
+    const dragOver = useAppStore((state) => state.dragOver);
 
     /* Hyperlanes have nothing to report. Hover feedback is pure CSS so the
        tile never re-renders under a moving cursor. */
@@ -134,6 +135,12 @@ export const MapTile = React.memo<Props>(
     const isMoveSource = moveMode && moveFrom === mapTile.position;
     const isMoveCandidate =
       moveMode && !embedded && !isHyperlane && moveFrom !== mapTile.position;
+
+    /* Podświetlenie celu drag-and-drop: kafelek pod kursorem w trakcie przeciągania
+       jednostki. Zielony = upuszczenie dozwolone, czerwony = niedozwolone (np. siła
+       naziemna nad orbitą). Daje planszówkowy feedback „tu wyląduje". */
+    const isDragTarget = !embedded && dragOver?.position === mapTile.position;
+    const dragTargetValid = isDragTarget && dragOver?.valid === true;
 
     return (
       <div
@@ -182,6 +189,17 @@ export const MapTile = React.memo<Props>(
             <svg
               className={`${classes.moveHighlight} ${
                 isMoveSource ? classes.moveSource : classes.moveCandidate
+              }`}
+              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              aria-hidden="true"
+            >
+              <path d={HEX_PATH} />
+            </svg>
+          )}
+          {isDragTarget && (
+            <svg
+              className={`${classes.dropHighlight} ${
+                dragTargetValid ? classes.dropValid : classes.dropInvalid
               }`}
               viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
               aria-hidden="true"

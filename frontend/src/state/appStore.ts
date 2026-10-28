@@ -192,6 +192,14 @@ type AppStore = {
   isDraggingUnit: boolean;
   setDraggingUnit: (dragging: boolean) => void;
 
+  /*
+   * Cel pod kursorem w trakcie przeciągania jednostki — do podświetlenia kafelka
+   * (planszówkowy feedback „tu upuścisz"). ``zone`` = strefa docelowa po mapowaniu
+   * (statek zawsze trafia w orbitę), ``valid`` = czy upuszczenie jest dozwolone.
+   */
+  dragOver: { position: string; zone: string; valid: boolean } | null;
+  setDragOver: (over: AppStore["dragOver"]) => void;
+
   handleZoomIn: () => void;
   handleZoomOut: () => void;
   handleZoomReset: () => void;
@@ -275,6 +283,9 @@ export const useAppStore = create<AppStore>((set) => {
 
     isDraggingUnit: false,
     setDraggingUnit: (dragging: boolean) => set({ isDraggingUnit: dragging }),
+
+    dragOver: null,
+    setDragOver: (over) => set({ dragOver: over }),
 
     setHoveredPlanetId: (planetId: string | null) =>
       set({ hoveredPlanetId: planetId }),

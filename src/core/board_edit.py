@@ -19,6 +19,8 @@ from src.core.unit_catalog import (
     ASYNC_ID_BY_BASE_TYPE,
     BASE_TYPE_BY_ASYNC_ID,
     is_space_unit,
+    placement_allows_zone,
+    zone_is_space,
 )
 
 
@@ -249,14 +251,30 @@ def move_units(
     async_id: str,
     count: int,
 ) -> GameState:
-    """Przenosi jednostki między strefami/systemami (bez reguł ruchu).
+    """Przenosi jednostki między strefami/systemami (bez reguł RUCHU, z regułą UMIEJSCOWIENIA).
+
+    Wspólny punkt wejścia przenoszenia dla UI (drag-and-drop) i przyszłego BOTA —
+    czysta funkcja ``state -> state`` bez HTTP. NIE waliduje reguł ruchu TI4 (zasięg,
+    fleet supply, blokady — to asystent, nie sędzia), ALE egzekwuje regułę UMIEJSCOWIENIA
+    (RULES.md 26): statek tylko w przestrzeni, siła naziemna/struktura tylko na planecie.
+    Dzięki temu ani gracz, ani bot nie postawią statku na planecie.
 
     Raises:
-        ValueError: Gdy ``asyncId`` nieznany, ``count <= 0`` lub brak jednostek.
+        ValueError: Gdy ``asyncId`` nieznany, ``count <= 0``, brak jednostek, lub gdy
+            strefa docelowa łamie regułę umiejscowienia (statek na planetę / naziemne
+            do przestrzeni).
     """
     base_type = base_type_for_async(async_id)
     if count <= 0:
         raise ValueError("count musi być > 0")
+    # Reguła umiejscowienia (RULES.md 26): statek nigdy na planetę; jednostka
+    # naziemna/struktura nigdy do przestrzeni. Egzekwowane w core — chroni UI i bota.
+    if not placement_allows_zone(base_type, to_zone):
+        where = "przestrzeni" if zone_is_space(to_zone) else f"planecie {to_zone!r}"
+        raise ValueError(
+            f"Jednostka {async_id!r} ({base_type}) nie może stać w {where} "
+            f"— statki tylko w przestrzeni, siły naziemne/struktury tylko na planecie."
+        )
     new_state = state.clone()
     player_id = resolve_player_id(faction_key, new_state)
 
