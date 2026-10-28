@@ -71,6 +71,13 @@ class PlanetDef(_StaticModel):
     aliases: list[str] = Field(default_factory=list)
 
 
+# Zdolność oznaczająca „tej frakcji nie można wybrać przy setupie" (wchodzi do gry
+# tylko przez inną frakcję). Źródło: AsyncTI4 ``te_abilities.json`` — ``nocturne``
+# (Obsidian): permanentEffect „This faction cannot be chosen during setup.". Trzymamy
+# jako stałą, bo to pojedyncza, jawnie zweryfikowana reguła danych (RULES.md 28).
+NO_SETUP_CHOICE_ABILITY = "nocturne"
+
+
 class FactionDef(_StaticModel):
     """Definicja frakcji (setup startowy: dom, flota, planety, technologie)."""
 
@@ -106,15 +113,23 @@ class FactionDef(_StaticModel):
 
     @property
     def is_playable(self) -> bool:
-        """Czy to GRYWALNA frakcja (nie placeholder systemowy jak Neutral/Lazax).
+        """Czy frakcję MOŻNA wybrać przy setupie (jest w puli wyboru).
 
-        Placeholdery w danych AsyncTI4 (``neutral``, ``lazax``) mają puste pole
-        ``homeSystem`` i brak liderów — służą tylko jednostkom neutralnym / scenom,
-        nie da się nimi grać (setup nie ma gdzie postawić domu). Grywalne frakcje
-        zawsze mają dom i komplet liderów. Źródło kryterium: struktura danych
-        (``assets/data/factions/other.json`` vs reszta) — nie reguła z pamięci.
+        Wyklucza dwa przypadki, OBA odczytane z danych (nie z pamięci):
+
+        1. Placeholdery systemowe (``neutral``, ``lazax``, `other.json`): puste
+           ``homeSystem`` i brak liderów — służą jednostkom neutralnym / scenom,
+           nie da się nimi grać (setup nie ma gdzie postawić domu).
+        2. Frakcje z jawną zdolnością „nie można wybrać przy setupie". W danych
+           Thunder's Edge to ``nocturne`` (Obsidian): ``permanentEffect`` =
+           „This faction cannot be chosen during setup." Obsidian wchodzi do gry
+           wyłącznie przez akcję Firmamentu (THE BLADE'S ORCHESTRA — flip dwustronnych
+           komponentów). Źródło: ``assets/data/abilities/te_abilities.json``
+           (id ``nocturne``, faction ``obsidian``) + franken errata ``undraftable``.
         """
-        return bool(self.home_system) and bool(self.leaders)
+        if not self.home_system or not self.leaders:
+            return False
+        return NO_SETUP_CHOICE_ABILITY not in self.abilities
 
 
 class LeaderDef(_StaticModel):

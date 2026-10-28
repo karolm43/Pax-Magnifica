@@ -105,9 +105,10 @@ def test_get_factions(client: TestClient) -> None:
     ids = {f["id"] for f in factions}
     assert "neutral" not in ids
     assert "lazax" not in ids
-    # Firmament i Obsidian to osobne grywalne frakcje (dwie połowy domu TE) — są.
+    # Firmament jest wybieralny; Obsidian NIE (zdolność nocturne „cannot be chosen
+    # during setup" — wchodzi do gry tylko przez akcję Firmamentu).
     assert "firmament" in ids
-    assert "obsidian" in ids
+    assert "obsidian" not in ids
 
 
 def test_setup_rejects_non_playable_faction(client: TestClient) -> None:

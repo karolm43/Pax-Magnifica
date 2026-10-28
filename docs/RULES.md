@@ -845,12 +845,18 @@ od wszystkich realnych frakcji. Źródło: struktura danych (plik `other.json` v
 reguła z pamięci. Endpoint `GET /factions` zwraca tylko grywalne; setup (`/setup/player`,
 `/game/new`) odrzuca niegrywalne (422).
 
-**⚠️ UWAGA — Firmament vs Obsidian (do potwierdzenia przez użytkownika):** użytkownik zgłosił,
-że „Firmament to rozszerzenie Obsidianu, nie osobna frakcja". Jednak DANE AsyncTI4
-(`te_factions.json`) i plan projektu (`PLAN_PELNA_ROZGRYWKA.md`) traktują je jako DWIE OSOBNE
-grywalne frakcje: `firmament` (homeSystem `96a`) i `obsidian` (homeSystem `96b`) — dwie połowy
-jednego kafelka domowego Thunder's Edge, każda z własną flotą startową, liderami, zdolnościami
-i jednostkami (`firmament_flagship` vs `obsidian_flagship`). Obecnie OBIE pozostają wybieralne
-(zgodnie z danymi, które są źródłem prawdy). Jeśli w wariancie użytkownika Firmament faktycznie
-NIE jest osobno wybieralny, trzeba to potwierdzić materiałem Thunder's Edge i wtedy dodać jawny
-wyjątek — nie usuwamy frakcji z danych na podstawie samej pamięci.
+**Firmament vs Obsidian (ROZSTRZYGNIĘTE danymi):** `firmament` (homeSystem `96a`) i `obsidian`
+(homeSystem `96b`) to dwie POŁOWY jednego, dwustronnego kafelka domowego Thunder's Edge. Przy
+setupie wybiera się TYLKO **Firmament**; **Obsidian NIE jest wybieralny** — wchodzi do gry
+wyłącznie przez akcję Firmamentu: „ACTION: Purge the Firmament's faction sheet, leaders, planet
+card, and promissory note, then gain all of the faction components for The Obsidian." Obsidiana
+w grę wprowadza jego zdolność THE BLADE'S ORCHESTRA (flip dwustronnych komponentów + gotowe
+Cronos Hollow / Tallin Hollow).
+
+Reguła w danych (nie z pamięci): Obsidian ma zdolność **`nocturne`**
+(`assets/data/abilities/te_abilities.json`, `faction: "obsidian"`), której `permanentEffect` =
+„This faction cannot be chosen during setup." (dodatkowo franken errata oznacza `nocturne` jako
+`undraftable`). Dlatego `FactionDef.is_playable` wyklucza frakcje mające zdolność `nocturne`
+(stała `NO_SETUP_CHOICE_ABILITY` w `models.py`). Efekt: `/factions` pokazuje Firmament, ukrywa
+Obsidian; setup odrzuca Obsidian (422). Gdyby doszła inna frakcja „non-setup" (np. druga strona
+innego kafelka), oznaczymy ją tą samą zdolnością w danych — kod jej nie wymaga zmieniać.
