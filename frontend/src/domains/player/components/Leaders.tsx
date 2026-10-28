@@ -16,9 +16,17 @@ type LeaderSlot = (typeof LEADER_SLOTS)[number];
 type Props = {
   leaders: LeaderType[];
   faction?: string;
+  /** Właściciel (``discordId``) — włącza menu kontekstowe na liderach. */
+  playerId?: string;
 };
 
-function GridCompactLeaders({ leaders }: { leaders: LeaderType[] }) {
+function GridCompactLeaders({
+  leaders,
+  playerId,
+}: {
+  leaders: LeaderType[];
+  playerId?: string;
+}) {
   return (
     <SimpleGrid
       className={compactStyles.grid}
@@ -33,13 +41,14 @@ function GridCompactLeaders({ leaders }: { leaders: LeaderType[] }) {
           id={leader.id}
           exhausted={leader.exhausted ?? false}
           locked={leader.locked ?? false}
+          playerId={playerId}
         />
       ))}
     </SimpleGrid>
   );
 }
 
-function RegularLeaders({ leaders, faction }: Props) {
+function RegularLeaders({ leaders, faction, playerId }: Props) {
   const isNomad = faction === "nomad";
   const nomadAgentIds = [
     "nomadagentartuno",
@@ -74,6 +83,7 @@ function RegularLeaders({ leaders, faction }: Props) {
                 id={leader.id}
                 exhausted={leader.exhausted ?? false}
                 locked={leader.locked ?? false}
+                playerId={playerId}
               />
             ))}
         </Group>
@@ -95,6 +105,7 @@ function RegularLeaders({ leaders, faction }: Props) {
               exhausted={leader.exhausted ?? false}
               locked={leader.locked ?? false}
               active={leader.active ?? false}
+              playerId={playerId}
             />
           ));
         }
@@ -128,6 +139,7 @@ function RegularLeaders({ leaders, faction }: Props) {
             exhausted={leader.exhausted ?? false}
             locked={leader.locked ?? false}
             active={leader.active ?? false}
+            playerId={playerId}
           />
         ))}
     </Stack>
@@ -138,10 +150,12 @@ function isLeaderSlot(type: string | undefined): type is LeaderSlot {
   return LEADER_SLOTS.includes(type as LeaderSlot);
 }
 
-export function Leaders({ leaders, faction }: Props) {
+export function Leaders({ leaders, faction, playerId }: Props) {
   const useCompactForAll = leaders.length > 5;
   if (useCompactForAll) {
-    return <GridCompactLeaders leaders={leaders} />;
+    return <GridCompactLeaders leaders={leaders} playerId={playerId} />;
   }
-  return <RegularLeaders leaders={leaders} faction={faction} />;
+  return (
+    <RegularLeaders leaders={leaders} faction={faction} playerId={playerId} />
+  );
 }

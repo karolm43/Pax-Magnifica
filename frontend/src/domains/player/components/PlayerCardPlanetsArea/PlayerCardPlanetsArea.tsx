@@ -7,6 +7,8 @@ type Props = {
   exhaustedPlanetAbilities?: string[];
   exhaustedPlanets?: string[];
   wrap?: "wrap" | "nowrap";
+  /** Właściciel (``discordId``) — włącza menu kontekstowe na kartach planet. */
+  playerId?: string;
 };
 
 export function PlayerCardPlanetsArea({
@@ -14,6 +16,7 @@ export function PlayerCardPlanetsArea({
   exhaustedPlanetAbilities = [],
   exhaustedPlanets = [],
   wrap = "wrap",
+  playerId,
 }: Props) {
   const { regularPlanets, oceanPlanets } = filterPlanetsByOcean(planets);
 
@@ -26,6 +29,7 @@ export function PlayerCardPlanetsArea({
             planetId={planetId}
             legendaryAbilityExhausted={exhaustedPlanetAbilities.includes(planetId)}
             isExhausted={exhaustedPlanets.includes(planetId)}
+            playerId={playerId}
           />
         ))}
       </Group>
@@ -39,6 +43,7 @@ export function PlayerCardPlanetsArea({
                 planetId={planetId}
                 legendaryAbilityExhausted={exhaustedPlanetAbilities.includes(planetId)}
                 isExhausted={exhaustedPlanets.includes(planetId)}
+                playerId={playerId}
               />
             ))}
           </Group>

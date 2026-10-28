@@ -81,7 +81,8 @@ export function PlayerCardDeck({ playerData }: Props) {
       filteredTechs,
       playerData.exhaustedTechs ?? [],
       techDepth,
-      playerData.breakthrough
+      playerData.breakthrough,
+      playerData.discordId
     )
   );
 
@@ -153,7 +154,11 @@ export function PlayerCardDeck({ playerData }: Props) {
         </Compartment>
 
         <Compartment className={styles.leadersSection}>
-          <Leaders leaders={player.leaders} faction={player.faction} />
+          <Leaders
+            leaders={player.leaders}
+            faction={player.faction}
+            playerId={playerData.discordId}
+          />
         </Compartment>
 
         {/* Holdings: one run of seats sized to what the player actually holds,
@@ -217,6 +222,7 @@ export function PlayerCardDeck({ playerData }: Props) {
             planets={player.planets}
             exhaustedPlanetAbilities={player.exhaustedPlanetAbilities}
             exhaustedPlanets={player.exhaustedPlanets}
+            playerId={playerData.discordId}
           />
           {settings.showPlayerAreaReinforcements && (
             <ReinforcementTokensGroup

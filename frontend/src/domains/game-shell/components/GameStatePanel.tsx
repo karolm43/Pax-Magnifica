@@ -22,8 +22,6 @@ import {
 } from "@tabler/icons-react";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { getColorAlias } from "@/entities/lookup/colors";
-import { getPlanetData } from "@/entities/lookup/planets";
-import { getTechData } from "@/entities/lookup/tech";
 import { Unit } from "@/shared/ui/Unit";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
@@ -1235,179 +1233,20 @@ function ActionPhasePanel({
       )}
 
       {effectiveKind === "component" && (
-        <ComponentControlPanel activePlayerColor={activePlayerColor} />
+        <div className={styles.kindBody}>
+          <span className={styles.prodNote}>
+            Akcja komponentowa = zagranie karty z napisem „ACTION" (karta akcji,
+            lider, technologia-akcja, relikt). Rozegraj ją przy stole, a efekt
+            nanieś na planszę. Dedykowane pickery pojawią się w etapie E4.
+          </span>
+          <span className={styles.prodNote}>
+            Wyczerpywanie planet, technologii i liderów robisz prawym przyciskiem
+            myszy na komponencie w panelu gracza (menu „Wyczerp / Odśwież").
+          </span>
+        </div>
       )}
     </div>
   );
-}
-
-/**
- * Kontrola komponentów gracza (akcje komponentowe + ogólne zarządzanie): planety,
- * technologie i liderzy z możliwością wyczerpywania (exhaust) i odświeżania (ready),
- * a liderzy także odblokowania/zablokowania. Asystent stołu — operator klika stan
- * zgodnie z tym, co dzieje się w fizycznej grze; backend commituje do historii.
- */
-function ComponentControlPanel({
-  activePlayerColor,
-}: {
-  activePlayerColor: string | null;
-}) {
-  const gameData = useGameData();
-  const { togglePlanetExhaust, toggleTechExhaust, setLeaderState } =
-    useBoardEditor();
-  const [busy, setBusy] = useState(false);
-  const player = gameData?.playerData?.find(
-    (p) => p.color === activePlayerColor,
-  );
-
-  if (!player) {
-    return (
-      <div className={styles.kindBody}>
-        <span className={styles.prodNote}>Brak aktywnego gracza.</span>
-      </div>
-    );
-  }
-
-  const playerId = player.discordId;
-  const exhaustedPlanets = new Set(player.exhaustedPlanets ?? []);
-  const exhaustedTechs = new Set(player.exhaustedTechs ?? []);
-
-  const run = (fn: () => Promise<void>) => {
-    if (busy) return;
-    setBusy(true);
-    void fn().finally(() => setBusy(false));
-  };
-
-  // Następny stan lidera w cyklu: locked → unlocked → exhausted → unlocked…
-  const nextLeaderState = (leader: {
-    locked: boolean;
-    exhausted: boolean;
-  }): string => {
-    if (leader.locked) return "unlocked";
-    if (leader.exhausted) return "unlocked";
-    return "exhausted";
-  };
-
-  return (
-    <div className={styles.kindBody}>
-      {/* Liderzy: agent / dowódca / bohater ze stanem. */}
-      <div className={styles.compGroup}>
-        <span className={styles.prodZoneLabel}>Liderzy</span>
-        {player.leaders && player.leaders.length > 0 ? (
-          <div className={styles.compList}>
-            {player.leaders.map((leader) => {
-              const state = leader.locked
-                ? "locked"
-                : leader.exhausted
-                  ? "exhausted"
-                  : "ready";
-              return (
-                <button
-                  key={leader.id}
-                  type="button"
-                  className={styles.compChip}
-                  data-state={state}
-                  disabled={busy}
-                  onClick={() =>
-                    run(() =>
-                      setLeaderState(playerId, leader.id, nextLeaderState(leader)),
-                    )
-                  }
-                  title={`${prettifyId(leader.id)} · ${leader.type} — kliknij, by zmienić stan`}
-                >
-                  <span className={styles.compName}>
-                    {prettifyId(leader.type)}
-                  </span>
-                  <span className={styles.compState}>{state}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <span className={styles.prodNote}>Brak liderów.</span>
-        )}
-      </div>
-
-      {/* Technologie: klik przełącza exhausted/ready. */}
-      <div className={styles.compGroup}>
-        <span className={styles.prodZoneLabel}>
-          Technologie {player.techs?.length ? `(${player.techs.length})` : ""}
-        </span>
-        {player.techs && player.techs.length > 0 ? (
-          <div className={styles.compList}>
-            {player.techs.map((tech) => {
-              const isExhausted = exhaustedTechs.has(tech);
-              return (
-                <button
-                  key={tech}
-                  type="button"
-                  className={styles.compChip}
-                  data-state={isExhausted ? "exhausted" : "ready"}
-                  disabled={busy}
-                  onClick={() => run(() => toggleTechExhaust(playerId, tech))}
-                  title={`${prettifyId(tech)} — kliknij, by ${isExhausted ? "odświeżyć" : "wyczerpać"}`}
-                >
-                  <span className={styles.compName}>{techLabel(tech)}</span>
-                  <span className={styles.compState}>
-                    {isExhausted ? "exh." : "ready"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <span className={styles.prodNote}>Brak technologii.</span>
-        )}
-      </div>
-
-      {/* Planety: klik przełącza exhausted/ready. */}
-      <div className={styles.compGroup}>
-        <span className={styles.prodZoneLabel}>
-          Planety {player.planets?.length ? `(${player.planets.length})` : ""}
-        </span>
-        {player.planets && player.planets.length > 0 ? (
-          <div className={styles.compList}>
-            {player.planets.map((planet) => {
-              const isExhausted = exhaustedPlanets.has(planet);
-              return (
-                <button
-                  key={planet}
-                  type="button"
-                  className={styles.compChip}
-                  data-state={isExhausted ? "exhausted" : "ready"}
-                  disabled={busy}
-                  onClick={() => run(() => togglePlanetExhaust(playerId, planet))}
-                  title={`${planetLabel(planet)} — kliknij, by ${isExhausted ? "odświeżyć" : "wyczerpać"}`}
-                >
-                  <span className={styles.compName}>{planetLabel(planet)}</span>
-                  <span className={styles.compState}>
-                    {isExhausted ? "exh." : "ready"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <span className={styles.prodNote}>Brak kontrolowanych planet.</span>
-        )}
-      </div>
-
-      <span className={styles.prodNote}>
-        Karty akcji i relikty rozgrywaj przy stole — ich efekt nanieś edytorem
-        (dedykowane pickery: etap E4).
-      </span>
-    </div>
-  );
-}
-
-/** Czytelna nazwa technologii (z danych frontendu lub prettify id). */
-function techLabel(techId: string): string {
-  return getTechData(techId)?.name ?? prettifyId(techId);
-}
-
-/** Czytelna nazwa planety (z danych frontendu lub prettify id). */
-function planetLabel(planetId: string): string {
-  return getPlanetData(planetId)?.name ?? prettifyId(planetId);
 }
 
 /**

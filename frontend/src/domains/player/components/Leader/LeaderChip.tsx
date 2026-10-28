@@ -9,6 +9,12 @@ import styles from "./Leader.module.css";
 import { RankChevrons } from "./RankChevrons";
 import { lowPriorityImageProps } from "@/shared/ui/imageLoading";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
+import {
+  ContextMenu,
+  useContextMenu,
+} from "@/shared/ui/ContextMenu/ContextMenu";
+import { useBoardEditor } from "@/api/useBoardEditor";
+import { leaderContextMenuItems } from "./leaderMenu";
 
 type Props = {
   id: string;
@@ -16,6 +22,8 @@ type Props = {
   exhausted: boolean;
   locked: boolean;
   active: boolean;
+  /** Właściciel (``discordId``) — włącza menu kontekstowe stanu lidera. */
+  playerId?: string;
 };
 
 function getLeaderState(exhausted: boolean, locked: boolean) {
@@ -30,12 +38,24 @@ function getLeaderState(exhausted: boolean, locked: boolean) {
  * corner. Locked leaders are sockets with a small padlock after their role; exhausted
  * ones are hatched.
  */
-export function LeaderChip({ id, type, exhausted, locked, active }: Props) {
+export function LeaderChip({
+  id,
+  type,
+  exhausted,
+  locked,
+  active,
+  playerId,
+}: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
+  const { setLeaderState } = useBoardEditor();
+  const ctx = useContextMenu();
   const leaderData = getLeaderById(id);
   if (!leaderData) return null;
 
   const state = getLeaderState(exhausted, locked);
+  const menuItems = playerId
+    ? leaderContextMenuItems(playerId, id, exhausted, locked, setLeaderState)
+    : [];
   const showPortrait = !locked && showLeader(leaderData.source);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -54,6 +74,7 @@ export function LeaderChip({ id, type, exhausted, locked, active }: Props) {
           title={leaderData.name}
           {...searchTarget(searchKey("leader", id))}
           onClick={toggle}
+          onContextMenu={menuItems.length > 0 ? ctx.onContextMenu : undefined}
           onKeyDown={handleKeyDown}
         >
           <span className={styles.well}>
@@ -92,6 +113,14 @@ export function LeaderChip({ id, type, exhausted, locked, active }: Props) {
       <SmoothPopover.Dropdown p={0}>
         <LeaderDetailsCard leaderId={id} />
       </SmoothPopover.Dropdown>
+      {menuItems.length > 0 && (
+        <ContextMenu
+          position={ctx.position}
+          items={menuItems}
+          onClose={ctx.close}
+          title={leaderData.name}
+        />
+      )}
     </SmoothPopover>
   );
 }

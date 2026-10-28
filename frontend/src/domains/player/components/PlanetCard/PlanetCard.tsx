@@ -1,8 +1,15 @@
 import { Stack, Box, Text } from "@/ds";
 import cx from "clsx";
+import { IconFlame } from "@tabler/icons-react";
 import { PlanetAbilityCard } from "../PlanetAbilityCard";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { PlanetDetailsCard } from "@/domains/cards/components/PlanetDetailsCard";
+import {
+  ContextMenu,
+  useContextMenu,
+  type ContextMenuItem,
+} from "@/shared/ui/ContextMenu/ContextMenu";
+import { useBoardEditor } from "@/api/useBoardEditor";
 import styles from "./PlanetCard.module.css";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { usePlanet } from "@/hooks/usePlanet";
@@ -31,6 +38,8 @@ type Props = {
   legendaryAbilityExhausted?: boolean;
   /** Overrides the exhausted state read from the map tile. */
   isExhausted?: boolean;
+  /** Właściciel (``discordId``) — włącza menu kontekstowe wyczerp/odśwież. */
+  playerId?: string;
 };
 
 function PlanetCompactValues({
@@ -90,16 +99,31 @@ export function PlanetCard({
   planetId,
   legendaryAbilityExhausted = false,
   isExhausted: isExhaustedProp,
+  playerId,
 }: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
   const planetData = getPlanetData(planetId);
   const planetTile = usePlanet(planetId);
   const setHoveredPlanetId = useAppStore((state) => state.setHoveredPlanetId);
   const setScrollToPlanetId = useAppStore((state) => state.setScrollToPlanetId);
+  const { togglePlanetExhaust } = useBoardEditor();
+  const ctx = useContextMenu();
 
   if (!planetData) return null;
 
   const isExhausted = isExhaustedProp ?? planetTile?.exhausted ?? false;
+
+  // Menu kontekstowe (RMB) — tylko gdy znamy właściciela. Rozszerzalne: dokładasz
+  // kolejne pozycje do tej tablicy (np. „Odczep attachment", „Pokaż kartę").
+  const menuItems: ContextMenuItem[] = playerId
+    ? [
+        {
+          label: isExhausted ? "Odśwież (ready)" : "Wyczerp (exhaust)",
+          icon: <IconFlame size={14} />,
+          onSelect: () => void togglePlanetExhaust(playerId, planetId),
+        },
+      ]
+    : [];
   const attachments = planetTile?.attachments ?? [];
   const attachmentModifiers = getAttachmentModifiers(attachments);
   const finalTraits = mergePlanetTraits(
@@ -129,6 +153,7 @@ export function PlanetCard({
             toggle();
             setScrollToPlanetId(planetId);
           }}
+          onContextMenu={menuItems.length > 0 ? ctx.onContextMenu : undefined}
           onMouseEnter={() => setHoveredPlanetId(planetId)}
           onMouseLeave={() => setHoveredPlanetId(null)}
           {...(!hasLegendaryAbility && searchAttributes)}
@@ -166,7 +191,23 @@ export function PlanetCard({
     </SmoothPopover>
   );
 
-  if (!legendaryAbilityName || !legendaryAbilityText) return planetCardContent;
+  const menu = menuItems.length > 0 && (
+    <ContextMenu
+      position={ctx.position}
+      items={menuItems}
+      onClose={ctx.close}
+      title={planetData.shortName ?? planetData.name}
+    />
+  );
+
+  if (!legendaryAbilityName || !legendaryAbilityText) {
+    return (
+      <>
+        {planetCardContent}
+        {menu}
+      </>
+    );
+  }
 
   return (
     <div
@@ -174,9 +215,11 @@ export function PlanetCard({
       style={cssVariables}
       {...searchAttributes}
       onClick={() => setScrollToPlanetId(planetId)}
+      onContextMenu={menuItems.length > 0 ? ctx.onContextMenu : undefined}
       onMouseEnter={() => setHoveredPlanetId(planetId)}
       onMouseLeave={() => setHoveredPlanetId(null)}
     >
+      {menu}
       {planetCardContent}
       <PlanetAbilityCard
         planetId={planetId}

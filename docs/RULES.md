@@ -828,8 +828,16 @@ liście), `set_leader_state` (ustawia stan jednego lidera, scala z resztą). **A
 `POST /player/planet/toggle-exhaust`, `/player/tech/toggle-exhaust`, `/player/leader/set-state`.
 **Web-data:** `playerData.exhaustedPlanets`/`exhaustedTechs` (filtrowane do faktycznie
 posiadanych) + flaga `exhausted` w `PlanetEntityData` (`tileUnitData[pos].planets[id].exhausted`).
-**UI:** panel akcji → zakładka „Komponentowa" (`ComponentControlPanel` w `GameStatePanel.tsx`) —
-chipy liderów/tech/planet; klik przełącza stan przez `useBoardEditor`.
+
+**UI — menu kontekstowe (prawy przycisk myszy), NIE akcja komponentowa.** Wyczerpywanie to
+ogólna część rozgrywki, więc NIE mieszkało w zakładce „Komponentowa" panelu akcji (ta jest dla
+AKCJI komponentowych = kart z napisem „ACTION", etap E4). Zamiast tego: RMB na komponencie
+gracza w panelu gracza otwiera menu z „Wyczerp / Odśwież" (liderzy też „Odblokuj/Zablokuj").
+Komponent menu: `frontend/src/shared/ui/ContextMenu` (`useContextMenu` + `ContextMenu`) —
+pozycjonowane pod kursorem, portalowane, rozszerzalne listą pozycji (dokładamy kolejne później).
+Podpięte w `PlanetCard`, `Tech`, `LeaderChip`, `CompactLeader`; `player_id` (`discordId`)
+przewiercony z `PlayerCardDeck` przez `PlayerCardPlanetsArea`/`Leaders`/`buildTechElementsForType`.
+Akcje wołają `useBoardEditor.togglePlanetExhaust/toggleTechExhaust/setLeaderState`.
 
 
 ## 28. Grywalne frakcje vs placeholdery systemowe (Neutral/Lazax) — ✅ ZWERYFIKOWANE (dane AsyncTI4)

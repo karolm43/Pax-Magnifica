@@ -1555,3 +1555,32 @@ jeszcze nie ma (to zakres etapu E4).
 ruff + mypy czyste; frontend type-check + lint + build czyste. Zweryfikowane E2E na żywym
 backendzie: `/factions` bez neutral/lazax (firmament/obsidian zostają), toggle planety →
 `exhaustedPlanets` + flaga `exhausted` w kafelku, toggle lidera → `exhausted=true`.
+
+
+---
+### ✅ Blok E4·UI² — wyczerpywanie przeniesione do menu kontekstowego (RMB) + reużywalny ContextMenu
+
+**Uwaga użytkownika + co zrobione:** wyczerpywanie (exhaust planet/tech/liderów) to NIE akcja
+komponentowa. Akcja komponentowa = zagranie karty z napisem „ACTION" (etap E4). Wyczerpywanie to
+ogólna część rozgrywki, więc należy do **menu kontekstowego (prawy przycisk myszy)** na komponencie.
+
+- **Wycofane:** panel `ComponentControlPanel` z zakładki „Komponentowa" w `GameStatePanel.tsx`
+  (chipy exhaust) — zakładka wróciła do notki opisowej (akcje ACTION = E4, wyczerpywanie = RMB).
+  Usunięte nieużywane importy/CSS.
+- **Nowy, reużywalny komponent menu:** `frontend/src/shared/ui/ContextMenu/` (`useContextMenu`
+  + `ContextMenu`). Otwiera się pod kursorem (`onContextMenu`→`preventDefault`), portaluje do
+  roota DS, docisk do widoku, zamyka na klik-poza/Escape/scroll/resize. Pozycje to tablica
+  `{label, onSelect, icon?, disabled?, danger?}` — ROZSZERZALNE (dokładamy kolejne później).
+- **Podpięte RMB** na komponentach gracza: `PlanetCard` (Wyczerp/Odśwież), `Tech` (jw., tylko
+  zbadane), `LeaderChip` + `CompactLeader` (Odblokuj / Wyczerp / Odśwież / Zablokuj — zależnie
+  od stanu; helper `Leader/leaderMenu.tsx`). `ObjectShell` (silhouette techu) dostał opcjonalny
+  prop `onContextMenu`.
+- **Przewiercenie `playerId` (`discordId`)** z `PlayerCardDeck` w dół: przez `PlayerCardPlanetsArea`,
+  `Leaders`, i argument `buildTechElementsForType` → liście. Backend `player_id` = `discordId`.
+- Backend bez zmian w tym bloku (toggle-endpointy z poprzedniego bloku są tym, co menu woła).
+
+**QA:** frontend type-check + lint + build czyste; backend 193 testy nadal zielone, ruff+mypy
+czyste. Reguła zaktualizowana: RULES.md 27 (sekcja „UI — menu kontekstowe, NIE akcja komponentowa").
+
+**Następnie (do rozbudowy menu RMB, wg uznania):** kolejne pozycje — np. „Pokaż kartę",
+„Odczep attachment" (planety), „Aktywuj lidera" (gdy wejdzie E4), „Zwróć do rezerwy" itd.

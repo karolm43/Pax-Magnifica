@@ -31,7 +31,9 @@ export function buildTechElementsForType(
   techIds: string[] = [],
   exhaustedTechs: string[] = [],
   minSlotsPerColor?: number,
-  breakthrough?: BreakthroughData
+  breakthrough?: BreakthroughData,
+  /** Gracz-właściciel (``discordId``) do menu kontekstowego wyczerpywania. */
+  playerId?: string
 ): ReactNode[] {
   const filteredTechs = techIds.filter((techId) => {
     const techData = getTechData(techId);
@@ -55,6 +57,7 @@ export function buildTechElementsForType(
       isExhausted={exhaustedTechs.includes(techId)}
       synergy={synergy}
       breakthroughUnlocked={breakthroughUnlocked}
+      playerId={playerId}
     />
   ));
 

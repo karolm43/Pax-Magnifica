@@ -1,5 +1,11 @@
 import cx from "clsx";
-import type { CSSProperties, KeyboardEvent, ReactNode, Ref } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MouseEvent,
+  ReactNode,
+  Ref,
+} from "react";
 import { searchTarget, type SearchKey } from "@/domains/search/searchKeys";
 import styles from "./Object.module.css";
 
@@ -9,6 +15,8 @@ type Props = {
   state?: string;
   label: string;
   onClick?: () => void;
+  /** Menu kontekstowe (prawy przycisk myszy). */
+  onContextMenu?: (event: MouseEvent) => void;
   style?: CSSProperties;
   children: ReactNode;
   ref?: Ref<HTMLDivElement>;
@@ -26,6 +34,7 @@ export function ObjectShell({
   state,
   label,
   onClick,
+  onContextMenu,
   style,
   children,
   ref,
@@ -49,6 +58,7 @@ export function ObjectShell({
       className={cx(styles.obj, className)}
       style={style}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       onKeyDown={handleKeyDown}
       {...(searchKey && searchTarget(searchKey))}
     >

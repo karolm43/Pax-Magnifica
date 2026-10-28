@@ -1,0 +1,91 @@
+/* Menu kontekstowe (prawy przycisk myszy) — spójne z design systemem. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-smooth-popover, 4000);
+}
+
+.menu {
+  position: fixed;
+  z-index: calc(var(--z-smooth-popover, 4000) + 1);
+  min-width: 164px;
+  max-width: 260px;
+  padding: 4px;
+  color: var(--ds-ink);
+  background: color-mix(in oklab, var(--ds-ground) 96%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--ds-h22);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.55));
+}
+
+.title {
+  padding: 5px 8px 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--ds-h10);
+  font-family: var(--ds-label-font, inherit);
+  font-size: var(--text-micro, 10px);
+  font-weight: var(--weight-rail, 600);
+  letter-spacing: var(--ds-label-track, 0.06em);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  color: var(--ds-ink);
+  background: transparent;
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--ds-h10);
+  color: var(--ds-ink-hi);
+  outline: none;
+}
+
+.item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.item[data-danger] {
+  color: rgb(var(--ds-sig-danger, 248 113 113));
+}
+
+.item[data-danger]:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.12);
+}
+
+.itemIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--ds-ink-lo);
+}
+
+.item:hover:not(:disabled) .itemIcon {
+  color: inherit;
+}
+
+.itemLabel {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
