@@ -583,3 +583,6 @@ def test_production_help_endpoint(client: TestClient) -> None:
     assert cruiser["cost"] == 2.0
     fighter = next(u for u in body["units"] if u["baseType"] == "fighter")
     assert fighter["unitsPerCost"] == 2
+    assert fighter["placement"] == "space"
+    infantry = next(u for u in body["units"] if u["baseType"] == "infantry")
+    assert infantry["placement"] == "planet"

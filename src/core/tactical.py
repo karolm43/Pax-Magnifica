@@ -23,7 +23,7 @@ from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState, TacticalStep
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
+from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
 
 # Kolejność kroków akcji taktycznej (okna czasowe fazy akcji — RULES.md 19).
 _STEP_SEQUENCE: list[TacticalStep] = [
@@ -166,6 +166,10 @@ class ProducibleUnit:
     cost: float
     # Ile sztuk powstaje za jedną produkcję (fighter/piechota = 2 za koszt).
     units_per_cost: int
+    # Gdzie jednostka ląduje: "space" (statek) albo "planet" (siła naziemna /
+    # struktura). Panel produkcji decyduje, czy stawiać w przestrzeni, czy na
+    # planecie (RULES.md 26) — źródło: ``unit_catalog.placement_of``.
+    placement: str
 
 
 @dataclass(frozen=True)
@@ -230,6 +234,7 @@ def production_help(
                 name=unit.name,
                 cost=unit.cost,
                 units_per_cost=2 if base_type in _DUAL_PRODUCTION else 1,
+                placement="space" if is_space_unit(base_type) else "planet",
             )
         )
     return ProductionHelp(

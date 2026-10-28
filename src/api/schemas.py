@@ -401,6 +401,7 @@ class ProducibleUnitHelp(BaseModel):
     name: str
     cost: float
     units_per_cost: int = Field(serialization_alias="unitsPerCost")
+    placement: str
 
 
 class ProductionHelpResponse(BaseModel):

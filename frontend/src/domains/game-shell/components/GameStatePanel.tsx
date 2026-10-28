@@ -1,7 +1,28 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { useParams } from "react-router-dom";
 import { Collapse, UnstyledButton } from "@/ds";
-import { IconChevronDown, IconSwords, IconTrophy } from "@tabler/icons-react";
+import {
+  IconArrowsMove,
+  IconBolt,
+  IconChevronDown,
+  IconGripVertical,
+  IconLayoutGrid,
+  IconMinus,
+  IconPlus,
+  IconStack2,
+  IconSwords,
+  IconTarget,
+  IconTrophy,
+} from "@tabler/icons-react";
+import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { getColorAlias } from "@/entities/lookup/colors";
+import { Unit } from "@/shared/ui/Unit";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import {
@@ -221,6 +242,7 @@ function nowPhrase(phase: GamePhase, system: string | null): string {
 }
 
 const PANEL_OPEN_KEY = "ti4_game_state_panel_open";
+const PANEL_POS_KEY = "ti4_game_state_panel_pos";
 
 /**
  * Whether the plate is expanded, remembered across games and reloads. The
@@ -249,31 +271,48 @@ function PlateHeader({
   meta,
   isOpen,
   onToggle,
+  onHandlePointerDown,
+  onResetPosition,
 }: {
   label: string;
   meta: ReactNode;
   isOpen: boolean;
   onToggle: () => void;
+  onHandlePointerDown: (event: ReactPointerEvent) => void;
+  onResetPosition: () => void;
 }) {
   const action = isOpen ? "Collapse game state" : "Expand game state";
   return (
-    <UnstyledButton
+    // Nagłówek = uchwyt przeciągania panelu (pointer-down zaczyna drag). Klik w
+    // przycisk zwijania [data-no-drag] nie rusza panelu. Dwuklik = reset pozycji.
+    <div
       className={styles.header}
-      aria-controls={DETAILS_ID}
-      aria-expanded={isOpen}
-      aria-label={action}
-      title={action}
-      onClick={onToggle}
+      onPointerDown={onHandlePointerDown}
+      onDoubleClick={onResetPosition}
+      title="Przeciągnij, aby przesunąć panel · dwuklik resetuje pozycję"
     >
+      <span className={styles.dragGrip} aria-hidden="true">
+        <IconGripVertical size={13} />
+      </span>
       <span className={styles.phaseDot} aria-hidden="true" />
       <span className={styles.phaseLabel}>{label}</span>
       <span className={styles.headerMeta}>{meta}</span>
-      <IconChevronDown
-        aria-hidden="true"
-        size={13}
-        className={cx(styles.chevron, isOpen && styles.chevronOpen)}
-      />
-    </UnstyledButton>
+      <UnstyledButton
+        data-no-drag
+        className={styles.collapseBtn}
+        aria-controls={DETAILS_ID}
+        aria-expanded={isOpen}
+        aria-label={action}
+        title={action}
+        onClick={onToggle}
+      >
+        <IconChevronDown
+          aria-hidden="true"
+          size={13}
+          className={cx(styles.chevron, isOpen && styles.chevronOpen)}
+        />
+      </UnstyledButton>
+    </div>
   );
 }
 
@@ -548,9 +587,9 @@ function PlateBody({
       {phase === "strategy" && (
         <StrategyCardPicker seats={seats} activeColor={activePlayer} />
       )}
-      {phase === "action" && <FollowQueue seats={seats} />}
       {phase === "action" && (
-        <TacticalActionPanel
+        <ActionPhasePanel
+          seats={seats}
           activeSystem={gameState.activeSystem}
           tacticalStep={gameState.tacticalStep ?? null}
           systemLabel={locations.system}
@@ -700,51 +739,207 @@ function StrategyCardPicker({
 }
 
 /**
- * Pomoc produkcji (krok PRODUCTION): dostępne zasoby aktywnego gracza + koszty
- * jego jednostek. Tylko podpowiedź — stawianie jednostek robi edytor planszy.
+ * Panel produkcji (krok PRODUCTION) — pełnoprawny edytor stawiania jednostek.
+ * W TI4 produkcja DODAJE nowe jednostki na planszę: statki do przestrzeni
+ * aktywnego systemu, siły naziemne/struktury na wybraną planetę. Panel pokazuje
+ * dostępne zasoby (podpowiedź) i pozwala +/− każdą jednostkę przez God-Mode
+ * (``editUnit``). NIE waliduje limitu zasobów — gracz pilnuje kosztu sam
+ * (asystent, nie sędzia). Reguła umiejscowienia: RULES.md 26.
  */
-function ProductionHelpRow({
+function ProductionPanel({
+  activeSystem,
   activePlayerColor,
+  planets,
 }: {
+  activeSystem: string;
   activePlayerColor: string | null;
+  planets: string[];
 }) {
   const gameData = useGameData();
+  const { editUnit } = useBoardEditor();
   const player = gameData?.playerData?.find(
     (p) => p.color === activePlayerColor,
   );
   const faction = player?.faction ?? null;
+  const colorAlias = getColorAlias(player?.color);
   const { data } = useProductionHelp(faction);
-  if (!data) return null;
-  return (
-    <div className={styles.controls}>
-      <span className={styles.label} style={{ flex: 1 }}>
-        Produkcja · zasoby: {data.availableResources}
+
+  // Strefa docelowa dla sił naziemnych/struktur: wybrana planeta (domyślnie
+  // pierwsza w systemie). Statki zawsze trafiają do „space".
+  const [planet, setPlanet] = useState<string | null>(planets[0] ?? null);
+  const [busy, setBusy] = useState(false);
+
+  if (!faction || !data) {
+    return (
+      <span className={styles.prodNote}>
+        Brak aktywnego gracza z frakcją — nie można produkować.
       </span>
-      {data.units.slice(0, 6).map((u) => (
-        <span key={u.asyncId} className={styles.label} title={u.name}>
-          {u.asyncId.toUpperCase()} {u.cost}
-          {u.unitsPerCost > 1 ? `/${u.unitsPerCost}` : ""}
+    );
+  }
+
+  const changeUnit = (asyncId: string, zone: string, delta: number) => {
+    if (busy) return;
+    setBusy(true);
+    void editUnit({ position: activeSystem, zone, faction, asyncId, delta })
+      .finally(() => setBusy(false));
+  };
+
+  const ships = data.units.filter((u) => u.placement === "space");
+  const ground = data.units.filter((u) => u.placement === "planet");
+
+  return (
+    <div className={styles.production}>
+      <div className={styles.prodHead}>
+        <span className={styles.label}>
+          <IconStack2 size={11} aria-hidden="true" />
+          Produkcja
         </span>
-      ))}
+        <span className={styles.prodRes} title="Zasoby z kontrolowanych planet">
+          {data.availableResources} zasobów
+        </span>
+      </div>
+
+      {/* Statki → przestrzeń aktywnego systemu. */}
+      <span className={styles.prodZoneLabel}>Statki · przestrzeń</span>
+      <div className={styles.unitGrid}>
+        {ships.map((u) => (
+          <ProductionUnitTile
+            key={u.asyncId}
+            unit={u}
+            colorAlias={colorAlias}
+            faction={faction}
+            busy={busy}
+            onAdd={() => changeUnit(u.asyncId, "space", +u.unitsPerCost)}
+            onRemove={() => changeUnit(u.asyncId, "space", -u.unitsPerCost)}
+          />
+        ))}
+      </div>
+
+      {/* Siły naziemne / struktury → wybrana planeta. */}
+      {ground.length > 0 && (
+        <>
+          <div className={styles.prodZoneRow}>
+            <span className={styles.prodZoneLabel}>Naziemne · planeta</span>
+            {planets.length > 0 ? (
+              <div className={styles.planetTabs}>
+                {planets.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={styles.planetTab}
+                    data-active={p === planet || undefined}
+                    onClick={() => setPlanet(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className={styles.prodNote}>Brak planet w systemie</span>
+            )}
+          </div>
+          {planet && (
+            <div className={styles.unitGrid}>
+              {ground.map((u) => (
+                <ProductionUnitTile
+                  key={u.asyncId}
+                  unit={u}
+                  colorAlias={colorAlias}
+                  faction={faction}
+                  busy={busy}
+                  onAdd={() => changeUnit(u.asyncId, planet, +u.unitsPerCost)}
+                  onRemove={() => changeUnit(u.asyncId, planet, -u.unitsPerCost)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-/** Kolejność kroków akcji taktycznej + ich etykiety (RULES.md 19). */
-const TACTICAL_STEPS: { step: string; label: string }[] = [
-  { step: "MOVEMENT", label: "Ruch" },
-  { step: "SPACE_CANNON", label: "Działa kosmiczne" },
-  { step: "SPACE_COMBAT", label: "Walka kosmiczna" },
-  { step: "INVASION", label: "Inwazja" },
-  { step: "PRODUCTION", label: "Produkcja" },
+/** Kafelek jednej produkowalnej jednostki: ikona, koszt, +/− (stawia na planszę). */
+function ProductionUnitTile({
+  unit,
+  colorAlias,
+  faction,
+  busy,
+  onAdd,
+  onRemove,
+}: {
+  unit: {
+    asyncId: string;
+    name: string;
+    cost: number;
+    unitsPerCost: number;
+  };
+  colorAlias: string;
+  faction: string;
+  busy: boolean;
+  onAdd: () => void;
+  onRemove: () => void;
+}) {
+  const perCost = unit.unitsPerCost > 1 ? `×${unit.unitsPerCost}` : "";
+  return (
+    <div className={styles.unitTile} title={unit.name}>
+      <div className={styles.unitTileIcon}>
+        <Unit
+          unitType={unit.asyncId}
+          colorAlias={colorAlias}
+          faction={faction}
+          scaleSprite
+        />
+      </div>
+      <span className={styles.unitTileName}>{unit.name}</span>
+      <span className={styles.unitTileCost} title="Koszt · ile sztuk za koszt">
+        {unit.cost}
+        {perCost}
+      </span>
+      <div className={styles.unitTileBtns}>
+        <button
+          type="button"
+          className={styles.unitStep}
+          disabled={busy}
+          onClick={onRemove}
+          aria-label={`Usuń ${unit.name}`}
+          title="Usuń z planszy"
+        >
+          <IconMinus size={13} />
+        </button>
+        <button
+          type="button"
+          className={cx(styles.unitStep, styles.unitStepAdd)}
+          disabled={busy}
+          onClick={onAdd}
+          aria-label={`Wyprodukuj ${unit.name}`}
+          title="Wyprodukuj (postaw na planszy)"
+        >
+          <IconPlus size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Kroki akcji taktycznej + etykiety i ikony (RULES.md 19). */
+const TACTICAL_STEPS: {
+  step: string;
+  label: string;
+  short: string;
+}[] = [
+  { step: "MOVEMENT", label: "Ruch", short: "Ruch" },
+  { step: "SPACE_CANNON", label: "Działa kosmiczne", short: "Działa" },
+  { step: "SPACE_COMBAT", label: "Walka kosmiczna", short: "Walka" },
+  { step: "INVASION", label: "Inwazja", short: "Inwazja" },
+  { step: "PRODUCTION", label: "Produkcja", short: "Produkcja" },
 ];
 
 /**
  * Panel akcji taktycznej (E3). Prowadzi gracza przez kroki (aktywacja → ruch →
  * działa → walka → inwazja → produkcja) BEZ walidacji reguł — gracze grają
- * fizycznie i wprowadzają wynik. Gdy brak aktywnego systemu: przycisk włączający
- * tryb aktywacji (klik w kafelek). Gdy akcja trwa: bieżący krok + „Następny krok"
- * / „Zakończ akcję".
+ * fizycznie i wprowadzają wynik. Kroki są klikalnymi „pigułkami" (skok do kroku),
+ * z wyróżnionym bieżącym. Krok produkcji otwiera pełny edytor stawiania jednostek.
  */
 function TacticalActionPanel({
   activeSystem,
@@ -757,7 +952,8 @@ function TacticalActionPanel({
   systemLabel: string | null;
   activePlayerColor: string | null;
 }) {
-  const { activateSystem, tacticalNextStep, endTactical } = useBoardEditor();
+  const { activateSystem, tacticalSetStep, tacticalNextStep, endTactical } =
+    useBoardEditor();
   const activateMode = useAppStore((s) => s.activateMode);
   const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
   const activateRequest = useAppStore((s) => s.activateRequest);
@@ -771,14 +967,15 @@ function TacticalActionPanel({
   // Czy w aktywnym systemie są statki co najmniej dwóch graczy (jest walka?).
   const hasSpaceCombat = (() => {
     if (!activeTile) return false;
-    const factionsWithShips = Object.values(activeTile.unitsByFaction ?? {}).filter(
-      (entities) =>
-        entities.some((e) => e.entityType === "unit" && e.count > 0),
+    const factionsWithShips = Object.values(
+      activeTile.unitsByFaction ?? {},
+    ).filter((entities) =>
+      entities.some((e) => e.entityType === "unit" && e.count > 0),
     );
     return factionsWithShips.length >= 2;
   })();
 
-  // Planety aktywnego systemu (do kroku inwazji) — id planet z danych kafelka.
+  // Planety aktywnego systemu (inwazja / produkcja naziemna) — id z danych kafelka.
   const activePlanets = activeTile ? Object.keys(activeTile.planets ?? {}) : [];
 
   // Gdy w trybie aktywacji klik w kafelek zgłosił pozycję — aktywuj system,
@@ -807,103 +1004,241 @@ function TacticalActionPanel({
     }
   };
 
-  const stepLabel =
-    TACTICAL_STEPS.find((s) => s.step === tacticalStep)?.label ?? tacticalStep;
+  // Brak aktywnego systemu: duży przycisk-start aktywacji (klik → wskaż kafelek).
+  if (!activeSystem) {
+    return (
+      <button
+        type="button"
+        className={cx(styles.bigAction, activateMode && styles.bigActionOn)}
+        onClick={toggleActivateMode}
+        title="Kliknij, potem wskaż system na mapie, aby go aktywować"
+      >
+        <IconTarget size={16} aria-hidden="true" />
+        <span>
+          {activateMode ? "Wskaż system na mapie…" : "Aktywuj system"}
+        </span>
+      </button>
+    );
+  }
+
+  const currentIndex = TACTICAL_STEPS.findIndex((x) => x.step === tacticalStep);
+
+  return (
+    <div className={styles.tactical}>
+      <div className={styles.tacticalHead}>
+        <span className={styles.tacticalSystem}>
+          {systemLabel ?? activeSystem}
+        </span>
+        <button
+          type="button"
+          className={styles.endAction}
+          disabled={busy}
+          onClick={() => void run(endTactical)}
+          title="Zakończ bieżącą akcję taktyczną"
+        >
+          Zakończ akcję
+        </button>
+      </div>
+
+      {/* Kroki jako klikalne pigułki — skok do dowolnego kroku (asystent). */}
+      <div className={styles.stepPills} aria-label="Krok akcji taktycznej">
+        {TACTICAL_STEPS.map((s, index) => {
+          const state =
+            index < currentIndex
+              ? "done"
+              : index === currentIndex
+                ? "now"
+                : undefined;
+          return (
+            <button
+              key={s.step}
+              type="button"
+              className={styles.stepPill}
+              data-s={state}
+              disabled={busy}
+              aria-current={state === "now" ? "step" : undefined}
+              onClick={() => void run(() => tacticalSetStep(s.step))}
+              title={`Przejdź do kroku: ${s.label}`}
+            >
+              <span className={styles.stepIndex}>{index + 1}</span>
+              <span className={styles.stepName}>{s.short}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Zawartość bieżącego kroku. */}
+      {tacticalStep === "SPACE_COMBAT" && (
+        <div className={styles.stepBody}>
+          {hasSpaceCombat ? (
+            <button
+              type="button"
+              className={cx(styles.ctlBtn, styles.ctlPrimary)}
+              onClick={() => openCombat(activeSystem, null)}
+            >
+              <IconSwords size={13} /> Otwórz okno walki kosmicznej
+            </button>
+          ) : (
+            <span className={styles.prodNote}>
+              Brak drugiej floty — walka kosmiczna niepotrzebna.
+            </span>
+          )}
+        </div>
+      )}
+
+      {tacticalStep === "INVASION" && (
+        <div className={styles.stepBody}>
+          {activePlanets.length > 0 ? (
+            <>
+              <span className={styles.prodNote}>Walka naziemna na planecie:</span>
+              <div className={styles.planetTabs}>
+                {activePlanets.map((planet) => (
+                  <button
+                    key={planet}
+                    type="button"
+                    className={styles.planetTab}
+                    onClick={() => openCombat(activeSystem, planet)}
+                    title={`Okno walki naziemnej na ${planet}`}
+                  >
+                    {planet}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <span className={styles.prodNote}>Brak planet w systemie.</span>
+          )}
+        </div>
+      )}
+
+      {tacticalStep === "PRODUCTION" && (
+        <ProductionPanel
+          activeSystem={activeSystem}
+          activePlayerColor={activePlayerColor}
+          planets={activePlanets}
+        />
+      )}
+
+      {/* Nawigacja kroków — „następny krok" zawsze dostępny. */}
+      <button
+        type="button"
+        className={styles.nextStep}
+        disabled={busy}
+        onClick={() => void run(tacticalNextStep)}
+        title="Przejdź do następnego kroku (po produkcji kończy akcję)"
+      >
+        Następny krok →
+      </button>
+    </div>
+  );
+}
+
+/** Trzy rodzaje akcji w fazie akcji TI4 (RULES.md 19). */
+type ActionKind = "tactical" | "strategy" | "component";
+
+const ACTION_KINDS: {
+  kind: ActionKind;
+  label: string;
+  hint: string;
+  icon: ReactNode;
+}[] = [
+  {
+    kind: "tactical",
+    label: "Taktyczna",
+    hint: "Aktywuj system: ruch, walka, inwazja, produkcja.",
+    icon: <IconTarget size={15} aria-hidden="true" />,
+  },
+  {
+    kind: "strategy",
+    label: "Strategiczna",
+    hint: "Rozlicz kartę strategii (secondary pozostałych graczy).",
+    icon: <IconBolt size={15} aria-hidden="true" />,
+  },
+  {
+    kind: "component",
+    label: "Komponentowa",
+    hint: "Zagraj kartę akcji, aktywuj lidera, technologię lub relikt.",
+    icon: <IconLayoutGrid size={15} aria-hidden="true" />,
+  },
+];
+
+/**
+ * Panel fazy akcji: planszówkowy wybór RODZAJU akcji (taktyczna / strategiczna /
+ * komponentowa — trzy jedyne opcje w turze TI4), a pod spodem szczegóły wybranego
+ * rodzaju. Gdy trwa akcja taktyczna (aktywny system), od razu pokazujemy jej
+ * kroki. Asystent — nie wymusza wyboru, pozwala przełączać rodzaj.
+ */
+function ActionPhasePanel({
+  seats,
+  activeSystem,
+  tacticalStep,
+  systemLabel,
+  activePlayerColor,
+}: {
+  seats: Seat[];
+  activeSystem: string | null;
+  tacticalStep: string | null;
+  systemLabel: string | null;
+  activePlayerColor: string | null;
+}) {
+  // Trwająca akcja taktyczna wymusza zakładkę „taktyczna" (jest aktywny system).
+  const [kind, setKind] = useState<ActionKind>("tactical");
+  const effectiveKind: ActionKind = activeSystem ? "tactical" : kind;
 
   return (
     <div className={styles.section}>
       <span className={styles.label}>
-        <IconSwords size={11} aria-hidden="true" />
-        Akcja taktyczna
+        <IconArrowsMove size={11} aria-hidden="true" />
+        Rodzaj akcji
       </span>
-      {activeSystem ? (
-        <>
-          <div className={styles.track} aria-label="Krok taktyczny">
-            {TACTICAL_STEPS.map((s) => {
-              const current = TACTICAL_STEPS.findIndex(
-                (x) => x.step === tacticalStep,
-              );
-              const index = TACTICAL_STEPS.findIndex((x) => x.step === s.step);
-              const state =
-                index < current ? "done" : index === current ? "now" : undefined;
-              return (
-                <span
-                  key={s.step}
-                  className={styles.trackStep}
-                  data-s={state}
-                  aria-current={state === "now" ? "step" : undefined}
-                >
-                  {s.label}
-                </span>
-              );
-            })}
-          </div>
-          <div className={styles.controls}>
-            <span className={styles.label} style={{ flex: 1 }}>
-              {systemLabel ?? activeSystem}
-              {stepLabel ? ` · ${stepLabel}` : ""}
-            </span>
-            {hasSpaceCombat && (
-              <button
-                type="button"
-                className={styles.ctlBtn}
-                data-active
-                onClick={() => openCombat(activeSystem, null)}
-                title="Otwórz okno walki kosmicznej (asystent trafień)"
-              >
-                Walka
-              </button>
-            )}
-            <button
-              type="button"
-              className={styles.ctlBtn}
-              disabled={busy}
-              onClick={() => void run(tacticalNextStep)}
-            >
-              Następny krok
-            </button>
-            <button
-              type="button"
-              className={styles.ctlBtn}
-              disabled={busy}
-              onClick={() => void run(endTactical)}
-            >
-              Zakończ akcję
-            </button>
-          </div>
-          {tacticalStep === "INVASION" && activePlanets.length > 0 && (
-            <div className={styles.controls}>
-              <span className={styles.label} style={{ flex: 1 }}>
-                Inwazja — walka naziemna:
-              </span>
-              {activePlanets.map((planet) => (
-                <button
-                  key={planet}
-                  type="button"
-                  className={styles.ctlBtn}
-                  onClick={() => openCombat(activeSystem, planet)}
-                  title={`Okno walki naziemnej na ${planet}`}
-                >
-                  {planet}
-                </button>
-              ))}
-            </div>
-          )}
-          {tacticalStep === "PRODUCTION" && (
-            <ProductionHelpRow activePlayerColor={activePlayerColor} />
-          )}
-        </>
-      ) : (
-        <div className={styles.controls}>
+
+      {/* Trzy rodzaje akcji jako segmentowany wybór. */}
+      <div className={styles.actionKinds} role="tablist" aria-label="Rodzaj akcji">
+        {ACTION_KINDS.map((a) => (
           <button
+            key={a.kind}
             type="button"
-            className={styles.ctlBtn}
-            data-active={activateMode || undefined}
-            onClick={toggleActivateMode}
-            title="Kliknij, potem wskaż system na mapie do aktywacji"
+            role="tab"
+            className={styles.actionKind}
+            data-active={a.kind === effectiveKind || undefined}
+            aria-selected={a.kind === effectiveKind}
+            // Trwa akcja taktyczna → inne rodzaje zablokowane (najpierw zakończ).
+            disabled={!!activeSystem && a.kind !== "tactical"}
+            onClick={() => setKind(a.kind)}
+            title={a.hint}
           >
-            {activateMode ? "Wskaż system na mapie…" : "Aktywuj system"}
+            {a.icon}
+            <span>{a.label}</span>
           </button>
+        ))}
+      </div>
+
+      {effectiveKind === "tactical" && (
+        <TacticalActionPanel
+          activeSystem={activeSystem}
+          tacticalStep={tacticalStep}
+          systemLabel={systemLabel}
+          activePlayerColor={activePlayerColor}
+        />
+      )}
+
+      {effectiveKind === "strategy" && (
+        <div className={styles.kindBody}>
+          <FollowQueue seats={seats} />
+          <span className={styles.prodNote}>
+            Zagranie karty strategii rozlicz przy stole; secondary pozostałych
+            graczy śledź na liście „following" powyżej.
+          </span>
+        </div>
+      )}
+
+      {effectiveKind === "component" && (
+        <div className={styles.kindBody}>
+          <span className={styles.prodNote}>
+            Akcje komponentowe (karty akcji, liderzy, technologie, relikty) są
+            rozgrywane przy stole — wynik nanieś edytorem planszy. Dedykowane
+            pickery pojawią się w etapie E4.
+          </span>
         </div>
       )}
     </div>
@@ -1011,6 +1346,10 @@ function GameStatePanelContent({
   locations: Locations;
 }) {
   const [isOpen, setIsOpen] = useGameStatePanelOpen();
+  const drag = useDraggablePanel(PANEL_POS_KEY);
+  // Na telefonie panel dokuje się paskiem nad planszą (CSS), więc nie pozwalamy
+  // mu „pływać" — przesuwanie ma sens tylko na desktopie z wolną przestrzenią.
+  const dragEnabled = !isMobileDevice();
   const { phase, activeCombat } = gameState;
   const config = PHASE_CONFIGS[phase];
   const tone = activeCombat ? TONE.combat : config.tone;
@@ -1019,15 +1358,22 @@ function GameStatePanelContent({
   return (
     <section
       className={styles.panel}
-      style={toneStyle({ "--ph": tone })}
+      style={{
+        ...toneStyle({ "--ph": tone }),
+        ...(dragEnabled ? drag.style : {}),
+      }}
       aria-label="Game state"
       data-open={isOpen || undefined}
+      data-dragging={(dragEnabled && drag.isDragging) || undefined}
+      data-draggable-panel
     >
       <PlateHeader
         label={label}
         meta={headerMeta(round, gameState, playerData, isOpen)}
         isOpen={isOpen}
         onToggle={() => setIsOpen(!isOpen)}
+        onHandlePointerDown={dragEnabled ? drag.onHandlePointerDown : () => {}}
+        onResetPosition={dragEnabled ? drag.reset : () => {}}
       />
       <Collapse in={isOpen} id={DETAILS_ID} transitionDuration={160}>
         <PhaseTrack step={config.step} />

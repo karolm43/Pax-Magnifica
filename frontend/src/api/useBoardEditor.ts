@@ -250,6 +250,8 @@ export type ProducibleUnitHelp = {
   name: string;
   cost: number;
   unitsPerCost: number;
+  /** "space" → statek (przestrzeń), "planet" → siła naziemna / struktura. */
+  placement: "space" | "planet";
 };
 
 export type ProductionHelp = {

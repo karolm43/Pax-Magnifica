@@ -1467,3 +1467,49 @@ gotowa pod przyszłego bota (ten sam punkt wejścia przenoszenia).
 **Zweryfikowane E2E:** destroyer orbita→orbita 200, destroyer→planeta 422, piechota→orbita
 422, piechota planeta→planeta 200. Backend 189 testów zielone (+2), ruff+mypy czyste;
 frontend type-check+lint+build czyste. Reguły: RULES.md 26 (+ DnD 25).
+
+
+---
+### ✅ Blok E3·UI — przebudowa panelu fazy akcji (przesuwalny panel + rodzaje akcji + produkcja)
+
+**Uwagi użytkownika + co zrobione:**
+- **Panel stanu gry przesuwalny (drag).** Dotąd był przypięty na sztywno w lewym-górnym
+  rogu planszy. Nowy hook `frontend/src/hooks/useDraggablePanel.ts` czyni panel pływającym:
+  pointer-down na nagłówku (uchwyt z ikoną grip) przeciąga panel, pozycja trzymana w oknie
+  (clamp) i zapamiętana w `localStorage` (`ti4_game_state_panel_pos`). Dwuklik na nagłówku =
+  reset do pozycji domyślnej. Przycisk zwijania wydzielony jako osobny (`data-no-drag`), więc
+  klik w niego nie rusza panelu. Na telefonie drag wyłączony (panel dokuje się paskiem).
+- **Faza akcji przerobiona na planszówkowy podział na 3 RODZAJE akcji TI4** (RULES.md 19):
+  Taktyczna / Strategiczna / Komponentowa — segmentowany wybór na górze, pod spodem szczegóły
+  wybranego rodzaju. Gdy trwa akcja taktyczna (aktywny system), zakładka „taktyczna" jest
+  wymuszona, a pozostałe zablokowane do zakończenia akcji (asystent prowadzi, nie wymusza).
+  Nowy komponent `ActionPhasePanel`.
+- **Kroki akcji taktycznej jako ładne, klikalne pigułki** (zamiast brzydkiego paska etykiet):
+  numerowane kroki 1–5 (Ruch / Działa / Walka / Inwazja / Produkcja), wyróżniony bieżący,
+  klik = skok do kroku (`tacticalSetStep`). Spójne z tonacją fazy (`--ph`). Krok walki i
+  inwazji pokazują kontekstowe przyciski (otwórz okno walki / planety do walki naziemnej).
+- **Produkcja całkowicie przebudowana — teraz STAWIA jednostki na planszy** (było: tylko
+  sucha lista kosztów). Nowy `ProductionPanel`: statki → przestrzeń aktywnego systemu,
+  siły naziemne/struktury → wybrana planeta (zakładki planet). Każda jednostka jako kafelek
+  z ikoną (grafika `Unit`), kosztem i przyciskami +/− wołającymi `editUnit` (God-Mode delta;
+  fighter/piechota po `unitsPerCost`). Dostępne zasoby pokazane jako podpowiedź (bez walidacji
+  limitu — asystent, nie sędzia).
+
+**Backend (dodatek do pomocy produkcji):**
+- `core/tactical.py`: `ProducibleUnit` + `production_help` dostały pole `placement`
+  (`"space"`/`"planet"`) z `unit_catalog.placement_of` — panel wie, gdzie stawiać jednostkę
+  (RULES.md 26). DTO `ProducibleUnitHelp` i router `/tactical/production` przekazują pole.
+- Stawianie jednostek idzie przez istniejący `POST /system/{pos}/edit-units` (God-Mode,
+  z walidacją umiejscowienia w `board_edit`) — nowego endpointu nie trzeba.
+
+**Zweryfikowane E2E:** produkcja statku (`+1 ca` do `space` 301) → cruiser pojawia się w
+przestrzeni obok floty startowej; produkcja naziemna (`+2 gf` na `jord`) → piechota 5→7
+(space dock nietknięty). Endpoint `/tactical/production` zwraca `placement` dla każdej
+jednostki (statki=space, piechota/mech=planet). Health-check portu 8000 zadziałał na starcie.
+
+**QA:** backend 189 testów zielone, ruff + mypy czyste; frontend type-check + lint + build
+czyste.
+
+**Luka świadomie zostawiona:** akcje komponentowe (E4) — karty akcji, liderzy, technologie,
+relikty — mają w panelu zakładkę i notkę „rozlicz przy stole", ale dedykowanych pickerów
+jeszcze nie ma (to zakres etapu E4).

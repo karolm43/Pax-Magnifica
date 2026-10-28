@@ -243,6 +243,11 @@ def test_production_help_resources_and_costs(registry: StaticDataRegistry) -> No
     assert by_type["fighter"].units_per_cost == 2
     assert by_type["infantry"].units_per_cost == 2
     assert by_type["cruiser"].units_per_cost == 1
+    # Umiejscowienie: statki w przestrzeni, siły naziemne na planecie (RULES.md 26).
+    assert by_type["cruiser"].placement == "space"
+    assert by_type["fighter"].placement == "space"
+    assert by_type["infantry"].placement == "planet"
+    assert by_type["mech"].placement == "planet"
 
 
 # --- Kontrola planety przy stawianiu jednostek (reguła AsyncTI4, RULES.md 23) ----

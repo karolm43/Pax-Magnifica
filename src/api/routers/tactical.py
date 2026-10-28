@@ -217,6 +217,7 @@ async def get_production_help(
                 name=u.name,
                 cost=u.cost,
                 units_per_cost=u.units_per_cost,
+                placement=u.placement,
             )
             for u in help_.units
         ],
