@@ -1154,3 +1154,59 @@ więc respond potrafi rozstrzygnąć właściwy secondary bez zmiany kształtu o
 - ⬜ Pozostałe karty (Diplomacy, Politics, Construction, Trade, Warfare, Technology, Imperial) —
   primary/secondary dokładane kolejno, każda z notą tutaj.
 - ⬜ Model wpływu (wydawanie / wyczerpywanie planet) — odblokuje realne kupno żetonów i inne secondary.
+
+---
+
+## 31. Walidacja przepływu fazy akcji + aktywny gracz (twarda egzekucja) — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+Etap E8-T4. Źródło: lokalny LRR 2.0 — `docs/rules_tirules/R_active_player.md`,
+`R_action_phase.md`, `R_initiative_order.md`, `R_status_phase.md`, `R_agenda_phase.md`
+(treść © FFG; patrz SOURCE.md). Pierwszy element „sędziego" (RULES.md 29.1): zwykłe akcje
+flow walidowane TWARDO; God-Mode omija.
+
+### 31.1. Aktywny gracz istnieje TYLKO w fazie akcji — ✅ ZWERYFIKOWANE
+
+- „The active player is the player taking a turn during the action phase." Oraz wprost:
+  „During the strategy, status and agenda phases, NO player is the active player."
+- **Wniosek dla kodu (KORYGUJE wcześniejszy zamysł T4):** NIE wprowadzamy sztucznego
+  „aktywnego gracza" w STATUS/AGENDA. `active_player_id` jest ustawiony tylko w ACTION
+  (i chwilowo w STRATEGY jako „kto wybiera" — nasza konwencja, RULES.md 24). W STATUS/AGENDA
+  `active_player_id` pozostaje `None`; kolejność czynności to KOLEJKA (patrz 31.3), nie „tura".
+
+### 31.2. Walidacja przepływu fazy akcji — ✅ ZWERYFIKOWANE
+
+Reguły (R_action_phase, R_active_player):
+- Gracze wykonują tury w INITIATIVE ORDER (najniższy numer karty pierwszy — RULES.md 9).
+- Turę kończy/pasuje bieżący AKTYWNY gracz — nie dowolny.
+- Po spasowaniu gracz nie ma kolejnych tur (pomijany do końca fazy akcji).
+- **Gracz NIE MOŻE spasować, dopóki nie wykona akcji strategicznej swojej karty** (zagranie
+  karty = exhaust, RULES.md 30). (Wariant 3-4 graczy: obu kart — na razie 1 karta/gracz.)
+- Po spasowaniu wszystkich → faza statusu.
+
+**Egzekucja w kodzie (twarda, `ValueError` → HTTP 422):**
+- `end_turn(state, player_id=...)` / `pass_turn(state, player_id=...)`:
+  - faza musi być ACTION (inaczej błąd — w innych fazach nie ma tury do zakończenia);
+  - `player_id`, jeśli podany, musi być równy `active_player_id` (nie cudza tura);
+  - `pass_turn` dodatkowo: gracz musi mieć zagraną kartę strategii (`exhausted_strategy_cards`
+    niepuste), inaczej „nie możesz spasować przed akcją strategiczną".
+- Wywołanie BEZ `player_id` (legacy/God-Mode-ish) zachowuje się jak dotąd (dla zgodności —
+  ale endpointy przekazują `player_id` z żądania, więc realnie walidują).
+- **God-Mode** (`/god-mode/patch`, `board_edit`) omija — operator może ustawić cokolwiek.
+
+### 31.3. Kolejność w STATUS/AGENDA = kolejka, nie „tura" — ✅ ZWERYFIKOWANE
+
+- **Status**: kroki w INITIATIVE ORDER (R_status_phase). Punktowanie/akcje per gracz w kolejności
+  inicjatywy.
+- **Agenda (głosowanie)**: „starting with the player to the left of the speaker and continuing
+  clockwise" (R_agenda_phase) — czyli SPEAKER ORDER od gracza po mówcy. To ta sama mechanika,
+  co kolejka okna czasowego (RULES.md 29.2, `timing.build_response_queue` z inicjatorem = mówca).
+- **Wniosek dla kodu:** gdy dojdą realne kroki statusu/agendy (osobne etapy), użyją KOLEJKI
+  (initiative albo speaker order) zamiast `active_player_id`. T4 kładzie tylko fundament:
+  `active_player_id` pozostaje None w tych fazach, a `turn_flow` dostarcza `initiative_order`
+  (= `turn_order`) jako kolejność dla statusu.
+
+**Status wdrożenia:**
+- ✅ T4: `active_player_id` None w STATUS/AGENDA (potwierdzone regułą); walidacja end_turn/pass_turn
+  (faza, aktywny gracz, pas dopiero po akcji strategicznej); God-Mode omija.
+- ⬜ Realne kroki statusu (punktowanie, odświeżanie) — etap E5, użyją initiative order.
+- ⬜ Realne głosowanie agendy — etap E6, użyje speaker order (kolejka jak okno czasowe).

@@ -344,6 +344,17 @@ class StrategySecondaryRequest(BaseModel):
     player_id: str
     execute: bool = False
 
+class TurnActionRequest(BaseModel):
+    """Zakończenie/pas tury (E8-T4). ``player_id`` opcjonalny — gdy podany, backend
+
+    waliduje, że to tura tego gracza (RULES.md 31.2). Pominięty = bez kontroli
+    tożsamości (zgodność wsteczna), faza nadal musi być akcji.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str | None = None
+
 class SetSpeakerRequest(BaseModel):
     """Ustawienie mówcy (speaker) — otwiera wybór kart w fazie strategii."""
 

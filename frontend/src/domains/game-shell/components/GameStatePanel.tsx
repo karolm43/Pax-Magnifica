@@ -610,7 +610,7 @@ function PlateBody({
           playerData={playerData}
         />
       )}
-      <PhaseControls phase={phase} />
+      <PhaseControls phase={phase} activePlayerId={active?.discordId ?? null} />
     </>
   );
 }
@@ -1379,7 +1379,13 @@ function ActionPhasePanel({
  * Sterowanie przepływem gry (God-Mode / krokowa rozgrywka): zakończ turę, pas,
  * następna faza, nowa runda. Wywołuje endpointy przepływu (commit → historia).
  */
-function PhaseControls({ phase }: { phase: GamePhase }) {
+function PhaseControls({
+  phase,
+  activePlayerId,
+}: {
+  phase: GamePhase;
+  activePlayerId: string | null;
+}) {
   const { endTurn, passTurn, nextPhase, nextRound } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
@@ -1405,7 +1411,7 @@ function PhaseControls({ phase }: { phase: GamePhase }) {
             type="button"
             className={cx(styles.ctlBtn, styles.ctlPrimary)}
             disabled={busy}
-            onClick={() => void run(endTurn)}
+            onClick={() => void run(() => endTurn(activePlayerId ?? undefined))}
           >
             Zakończ turę
           </button>
@@ -1413,7 +1419,7 @@ function PhaseControls({ phase }: { phase: GamePhase }) {
             type="button"
             className={styles.ctlBtn}
             disabled={busy}
-            onClick={() => void run(passTurn)}
+            onClick={() => void run(() => passTurn(activePlayerId ?? undefined))}
             title="Pasuj — pomijany do końca fazy akcji"
           >
             Pas

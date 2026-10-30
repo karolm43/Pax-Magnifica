@@ -1,4 +1,4 @@
-"""Przepływ tur i faz (czyste funkcje nad ``GameState``).
+﻿"""Przepływ tur i faz (czyste funkcje nad ``GameState``).
 
 Implementuje szkielet maszyny faz TI4 i kolejności tur fazy akcji — Etap E1 planu
 pełnej rozgrywki (``docs/PLAN_PELNA_ROZGRYWKA.md``). Reguły spisane w ``docs/RULES.md`` 9
@@ -64,11 +64,41 @@ def all_passed(state: GameState) -> bool:
     return all(player.passed for player in state.players.values())
 
 
-def end_turn(state: GameState) -> GameState:
-    """Kończy turę bieżącego gracza i przekazuje ją następnemu niespasowanemu.
+# Alias czytelnościowy: kolejność inicjatywy = kolejność tur fazy akcji ORAZ kroków
+# fazy statusu (RULES.md 31.3). Ta sama funkcja, inna nazwa w kontekście statusu.
+initiative_order = turn_order
 
-    Gdy nikt nie został (wszyscy spasowali) — przechodzi do fazy statusu.
+
+def _require_action_turn(state: GameState, player_id: str | None) -> None:
+    """Twarda walidacja: jesteśmy w fazie akcji i to tura ``player_id`` (RULES.md 31.2).
+
+    ``player_id=None`` pomija kontrolę tożsamości (zgodność wsteczna / wywołania
+    wewnętrzne) — ale faza nadal musi być ACTION. God-Mode nie przechodzi tędy.
+
+    Raises:
+        ValueError: Gdy faza != ACTION, brak aktywnego gracza, lub ``player_id`` nie
+            jest aktywnym graczem.
     """
+    if state.phase is not Phase.ACTION:
+        raise ValueError("Zakończyć/spasować turę można tylko w fazie akcji.")
+    if state.active_player_id is None:
+        raise ValueError("Brak aktywnego gracza w fazie akcji.")
+    if player_id is not None and player_id != state.active_player_id:
+        raise ValueError(
+            f"To nie tura gracza {player_id} (aktywny: {state.active_player_id})."
+        )
+
+
+def end_turn(state: GameState, player_id: str | None = None) -> GameState:
+    """Kończy turę aktywnego gracza i przekazuje ją następnemu niespasowanemu.
+
+    Twardo waliduje fazę akcji i (gdy podano) tożsamość aktywnego gracza — RULES.md 31.2.
+    Gdy nikt nie został (wszyscy spasowali) — przechodzi do fazy statusu.
+
+    Raises:
+        ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``).
+    """
+    _require_action_turn(state, player_id)
     new_state = state.clone()
     nxt = next_unpassed_player(new_state, new_state.active_player_id)
     if nxt is None:
@@ -79,12 +109,31 @@ def end_turn(state: GameState) -> GameState:
     return new_state
 
 
-def pass_turn(state: GameState) -> GameState:
-    """Bieżący gracz pasuje (pomijany do końca fazy akcji); tura idzie dalej."""
+def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
+    """Aktywny gracz pasuje (pomijany do końca fazy akcji); tura idzie dalej.
+
+    Twardo waliduje fazę akcji i tożsamość (RULES.md 31.2). Dodatkowo: gracz NIE MOŻE
+    spasować, dopóki nie wykona akcji strategicznej swojej karty (zagranie karty =
+    wpis w ``exhausted_strategy_cards``) — reguła R_action_phase.
+
+    Raises:
+        ValueError: Gdy nie wolno spasować (zła faza/tura albo brak akcji strategicznej).
+    """
+    _require_action_turn(state, player_id)
+    current = state.active_player_id
+    assert current is not None  # zagwarantowane przez _require_action_turn
+    player = state.players.get(current)
+    # Pas dopiero po akcji strategicznej: gracz z kartą strategii musi ją zagrać.
+    if (
+        player is not None
+        and player.strategy_cards
+        and not player.exhausted_strategy_cards
+    ):
+        raise ValueError(
+            "Nie można spasować przed wykonaniem akcji strategicznej (zagraj kartę)."
+        )
     new_state = state.clone()
-    current = new_state.active_player_id
-    if current is not None and current in new_state.players:
-        new_state.players[current].passed = True
+    new_state.players[current].passed = True
     nxt = next_unpassed_player(new_state, current)
     if nxt is None:
         new_state.phase = Phase.STATUS

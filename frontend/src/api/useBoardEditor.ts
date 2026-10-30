@@ -128,15 +128,21 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  const endTurn = useCallback(async () => {
-    await post("/turn/end", {});
-    await refresh();
-  }, [refresh]);
+  const endTurn = useCallback(
+    async (playerId?: string) => {
+      await post("/turn/end", { player_id: playerId ?? null });
+      await refresh();
+    },
+    [refresh],
+  );
 
-  const passTurn = useCallback(async () => {
-    await post("/turn/pass", {});
-    await refresh();
-  }, [refresh]);
+  const passTurn = useCallback(
+    async (playerId?: string) => {
+      await post("/turn/pass", { player_id: playerId ?? null });
+      await refresh();
+    },
+    [refresh],
+  );
 
   const nextPhase = useCallback(async () => {
     await post("/phase/next", {});

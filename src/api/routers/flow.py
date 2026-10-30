@@ -1,11 +1,11 @@
-"""Router przepływu faz i tur (Etap E1): koniec tury, pas, następna faza, nowa runda."""
+﻿"""Router przepływu faz i tur (Etap E1): koniec tury, pas, następna faza, nowa runda."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import SetSpeakerRequest, StateEnvelope
+from src.api.schemas import SetSpeakerRequest, StateEnvelope, TurnActionRequest
 from src.core import strategy_phase, turn_flow
 from src.core.game_state import GameState, Phase
 
@@ -23,19 +23,29 @@ async def _commit_flow(
 
 
 @router.post("/turn/end", response_model=StateEnvelope)
-async def post_end_turn(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
-    """Kończy turę bieżącego gracza (przechodzi do następnego niespasowanego)."""
-    return await _commit_flow(
-        ctx, turn_flow.end_turn(ctx.service.current_state()), "turn:end"
-    )
+async def post_end_turn(
+    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Kończy turę aktywnego gracza (waliduje fazę/tura — RULES.md 31.2)."""
+    player_id = request.player_id if request is not None else None
+    try:
+        new_state = turn_flow.end_turn(ctx.service.current_state(), player_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "turn:end")
 
 
 @router.post("/turn/pass", response_model=StateEnvelope)
-async def post_pass_turn(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
-    """Bieżący gracz pasuje (pomijany do końca fazy akcji)."""
-    return await _commit_flow(
-        ctx, turn_flow.pass_turn(ctx.service.current_state()), "turn:pass"
-    )
+async def post_pass_turn(
+    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Aktywny gracz pasuje (waliduje fazę/tura + akcję strategiczną — RULES.md 31.2)."""
+    player_id = request.player_id if request is not None else None
+    try:
+        new_state = turn_flow.pass_turn(ctx.service.current_state(), player_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "turn:pass")
 
 
 @router.post("/phase/next", response_model=StateEnvelope)
