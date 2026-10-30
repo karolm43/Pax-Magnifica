@@ -20,6 +20,7 @@ from src.api.schemas import (
     CommandTokenRequest,
     MapView,
     MoveShipsRequest,
+    ProduceRequest,
     ProducibleUnitHelp,
     ProductionHelpResponse,
     StateEnvelope,
@@ -27,10 +28,10 @@ from src.api.schemas import (
 )
 from src.api.serializers import build_map_view
 from src.api.web_data import entity_key_map
-from src.core import board_edit, combat, movement, tactical
+from src.core import board_edit, combat, movement, production, tactical
 from src.core.combat import PlayerCombat
 from src.core.game_state import GameState, TacticalStep
-from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
+from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
 
 router = APIRouter()
 
@@ -79,6 +80,56 @@ async def post_tactical_move(
     return await _commit_flow(
         ctx, new_state, f"tactical:move:{request.from_position}:{request.base_type}"
     )
+
+
+@router.post("/tactical/produce", response_model=StateEnvelope)
+async def post_tactical_produce(
+    request: ProduceRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Walidowana produkcja w aktywnym systemie (RULES.md 33.2): limit + budżet + blokada.
+
+    Sprawdza legalność CAŁEGO zamówienia (koszt ≤ budżet gotowych planet+TG, liczba ≤
+    PRODUCTION, statki nieblokowane), a przy sukcesie stawia jednostki. W odróżnieniu od
+    God-Mode edit-units (bez reguł). Budżet to SPRAWDZENIE — nie wyczerpuje planet (T6 opcja „b").
+    """
+    state = ctx.service.current_state()
+    player_id = board_edit.resolve_player_id(request.faction, state)
+    orders = [
+        production.ProductionOrder(base_type=o.base_type, count=o.count)
+        for o in request.orders
+    ]
+    try:
+        production.validate_production(
+            state, ctx.current_grid, ctx.registry, player_id, orders
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    active = state.active_system
+    if active is None:
+        raise HTTPException(status_code=422, detail="Brak aktywnego systemu.")
+
+    # Postawienie jednostek po walidacji (przez edit_units — strefa wg zamówienia).
+    new_state = state
+    for item in request.orders:
+        if item.count <= 0:
+            continue
+        async_id = ASYNC_ID_BY_BASE_TYPE.get(item.base_type)
+        if async_id is None:
+            raise HTTPException(
+                status_code=422, detail=f"Nieznany typ jednostki: {item.base_type}"
+            )
+        zone = item.zone or ("space" if is_space_unit(item.base_type) else None)
+        if zone is None:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Siła naziemna {item.base_type} wymaga planety (pole zone).",
+            )
+        new_state = board_edit.edit_units(
+            new_state, ctx.current_grid, active, zone, request.faction, async_id,
+            item.count,
+        )
+    return await _commit_flow(ctx, new_state, f"tactical:produce:{active}")
 
 
 @router.post("/tactical/activate", response_model=StateEnvelope)

@@ -1,4 +1,4 @@
-"""Modele domenowe Pydantic v2 dla statycznych encji gry.
+﻿"""Modele domenowe Pydantic v2 dla statycznych encji gry.
 
 Modele celowo opisują wyłącznie pola istotne dla logiki silnika. Pliki JSON
 AsyncTI4 zawierają również wiele pól wizualnych (pozycje tokenów, ścieżki
@@ -32,6 +32,11 @@ class UnitDef(_StaticModel):
     cost: float | None = None
     move_value: int | None = Field(default=None, alias="moveValue")
     capacity_value: int | None = Field(default=None, alias="capacityValue")
+    # Wartość PRODUCTION jednostki (ile jednostek może wyprodukować). Może być liczbą
+    # (np. Saar dok = 5) ALBO modyfikatorem względem planety jako string (np. bazowy dok
+    # "+2" = wartość zasobów planety + 2; ``basic_production="res"``). RULES.md 33.2.
+    production_value: int | str | None = Field(default=None, alias="productionValue")
+    basic_production: str | None = Field(default=None, alias="basicProduction")
     capacity_used: int | None = Field(default=None, alias="capacityUsed")
     combat_hits_on: int | None = Field(default=None, alias="combatHitsOn")
     combat_die_count: int | None = Field(default=None, alias="combatDieCount")

@@ -1,4 +1,4 @@
-"""Testy akcji taktycznej (Etap E3) — czyste funkcje ``tactical`` + God-Mode CC.
+﻿"""Testy akcji taktycznej (Etap E3) — czyste funkcje ``tactical`` + God-Mode CC.
 
 Aplikacja prowadzi kroki akcji taktycznej, ale NIE waliduje reguł TI4 — testy
 sprawdzają mechaniczne operacje na stanie (aktywacja kładzie żeton i ustawia krok,
@@ -63,13 +63,21 @@ def test_activate_without_active_player_raises(registry: StaticDataRegistry) -> 
         tactical.activate_system(state, grid, "101")
 
 
-def test_activate_is_idempotent_on_token(registry: StaticDataRegistry) -> None:
+def test_activate_rejects_own_command_token(registry: StaticDataRegistry) -> None:
+    # RULES.md 33.1: nie można aktywować systemu z własnym żetonem dowodzenia.
+    grid = _grid(registry)
+    once = tactical.activate_system(_state(), grid, "101")
+    with pytest.raises(ValueError, match="żeton dowodzenia"):
+        tactical.activate_system(once, grid, "101")
+
+
+def test_activate_rejects_empty_tactic_pool(registry: StaticDataRegistry) -> None:
+    # RULES.md 33.1: potrzebny żeton w puli taktycznej.
     grid = _grid(registry)
     state = _state()
-    once = tactical.activate_system(state, grid, "101")
-    twice = tactical.activate_system(once, grid, "101")
-    # Powtórna aktywacja nie duplikuje żetonu (set-like lista).
-    assert twice.systems["101"].command_tokens == ["p1"]
+    state.players["p1"].tactical_cc = 0
+    with pytest.raises(ValueError, match="puli taktycznej"):
+        tactical.activate_system(state, grid, "101")
 
 
 def test_next_step_follows_sequence(registry: StaticDataRegistry) -> None:

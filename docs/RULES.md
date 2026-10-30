@@ -1269,3 +1269,61 @@ Statek rusza do AKTYWNEGO systemu (akcja taktyczna, krok 2), przestrzegając:
 
 **Status:** ✅ T5 ruch statków z walidacją R1–R6 (pojedynczy stos). ⬜ transport/capacity,
 ⬜ wybór trasy pod gravity rift, ⬜ ruch zdolnościami — rozbudowa.
+
+---
+
+## 33. Walidacja aktywacji i produkcji (twarda egzekucja) — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+Etap E8-T6. Źródło: lokalny LRR 2.0 — `docs/rules_tirules/R_active_system.md`,
+`R_production.md`, `R_producing_units.md` (treść © FFG; patrz SOURCE.md). Domyka egzekucję
+fazy akcji poza walką (RULES.md 29.1). Dane liczbowe (koszt, produkcja) z UnitDef/rejestru.
+
+### 33.1. Aktywacja systemu (R_active_system) — ✅ ZWERYFIKOWANE
+
+- Gracz NIE może aktywować systemu, w którym leży już JEGO WŁASNY żeton dowodzenia.
+- Gracz MOŻE aktywować system z żetonami INNYCH graczy.
+- Aktywacja kładzie żeton z puli TAKTYCZNEJ (`PlayerState.tactical_cc`) — potrzebny ≥1 żeton.
+
+**Egzekucja (twarda, ValueError → 422):** `tactical.activate_system` sprawdza:
+- jest aktywny gracz (było);
+- gracz ma ≥1 żeton w puli taktycznej (było: tylko dekrementacja „jeśli >0", teraz TWARDO);
+- system NIE zawiera już własnego żetonu gracza (nowe).
+God-Mode (`board_edit.place_command_token`) nadal omija (korekta bez zużycia puli).
+
+### 33.2. Produkcja: koszt i limit (R_production, R_producing_units) — ✅ ZWERYFIKOWANE
+
+- **Koszt (R_producing_units):** by wyprodukować jednostkę, gracz wydaje zasoby ≥ jej koszt.
+  Zasoby pochodzą z planet (wyczerpanie) i trade goods gracza. Nadwyżka przepada. Przy wielu
+  jednostkach koszty się sumują.
+- **Produkcja podwójna:** fighter/infantry = 2 sztuki za jeden koszt; można wyprodukować 1, ale
+  płaci się pełny koszt. Każda sztuka liczy do LIMITU.
+- **Limit produkcji (R_production):** gracz może wyprodukować liczbę jednostek ≤ sumie wartości
+  `Production` swoich jednostek w aktywnym systemie (doki/jednostki z PRODUCTION). Fighter/infantry
+  liczą po sztuce do limitu.
+- **Blokada statków (R_producing_units):** nie wolno produkować STATKÓW w systemie z obcymi
+  statkami; siły naziemne można.
+
+**⚠️ ZAKRES T6 (świadomy szkielet — opcja „b", ustalona z użytkownikiem):**
+- **Koszt: egzekwujemy SPRAWDZENIE, bez realnego wydawania.** Silnik liczy dostępny budżet
+  (suma `resources` planet GOTOWYCH gracza + `trade_goods`) i ODRZUCA zamówienie produkcji
+  przekraczające budżet. NIE wyczerpuje planet ani nie zdejmuje TG — realne wydawanie dojdzie
+  z modelem wpływu (ten sam, który odblokuje secondary Leadership z T3). Oznaczone TODO.
+- **Limit produkcji: egzekwujemy TWARDO** — suma wartości PRODUCTION jednostek gracza w aktywnym
+  systemie (z UnitDef — `production_value`). Fighter/infantry po sztuce.
+- **Blokada statków: egzekwujemy TWARDO** — statki odrzucone, gdy w aktywnym systemie stoją obce
+  statki; siły naziemne/struktury dozwolone.
+- Umiejscowienie (statek→przestrzeń, naziemne→planeta) już egzekwowane przy stawianiu (RULES.md 26);
+  tu dochodzi budżet + limit + blokada. Wybór konkretnych planet pod naziemne = jak dotąd (God-Mode
+  edit stawia; auto-kontrola RULES.md 23).
+- Realne wyczerpywanie planet/TG + „usuń z planszy by dostawić z rezerwy" (component limitations) =
+  TODO (rozbudowa z modelem wpływu i rezerw).
+
+**Model i implementacja:**
+- `core/production.py` (NOWY): `production_limit(state, grid, registry, player_id)` (suma PRODUCTION
+  w aktywnym systemie), `available_budget(state, registry, player_id)` (gotowe planety + TG),
+  `validate_production(...)` (koszt ≤ budżet, liczba ≤ limit, blokada statków) → `ValueError`.
+  Wołane przez endpoint produkcji PRZED postawieniem jednostek (God-Mode edit zostaje jako wykonanie).
+- Czyste funkcje. God-Mode (`/system/{pos}/edit-units`) NADAL omija (wentyl bez reguł).
+
+**Status:** ✅ T6 aktywacja (własny CC + pula) + produkcja (budżet-check, limit, blokada statków).
+⬜ realne wydawanie zasobów (wyczerpanie planet/TG), ⬜ component limitations (rezerwy) — rozbudowa.

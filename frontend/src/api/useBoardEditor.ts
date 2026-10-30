@@ -215,6 +215,19 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Produkcja WALIDOWANA (RULES.md 33.2) — limit/budżet/blokada; 422 gdy nielegalna.
+  // W odróżnieniu od God-Mode editUnit (bez reguł). Budżet to sprawdzenie (opcja „b").
+  const produce = useCallback(
+    async (
+      faction: string,
+      orders: { baseType: string; count: number; zone?: string }[],
+    ) => {
+      await post("/tactical/produce", { faction, orders });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const tacticalNextStep = useCallback(async () => {
     await post("/tactical/step/next", {});
     await refresh();
@@ -330,6 +343,7 @@ export function useBoardEditor() {
     setSpeaker,
     activateSystem,
     moveShips,
+    produce,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,

@@ -1,4 +1,4 @@
-"""Akcja taktyczna — maszyna kroków i aktywacja systemu (czyste funkcje nad ``GameState``).
+﻿"""Akcja taktyczna — maszyna kroków i aktywacja systemu (czyste funkcje nad ``GameState``).
 
 Etap E3 planu pełnej rozgrywki (``docs/PLAN_PELNA_ROZGRYWKA.md``). Aplikacja PROWADZI
 gracza przez kroki akcji taktycznej (aktywacja → ruch → space cannon → walka kosmiczna →
@@ -59,29 +59,39 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
     1 żeton z puli taktycznej gracza (``tactical_cc``), odkładając go na system
     (odpowiednik ``CommandCounterHelper.addCC`` z ``useTactic=true``).
 
-    Aplikacja NIE waliduje reguł TI4 (np. „nie aktywuj systemu z własnym CC",
-    „musisz mieć żeton w puli") — to operator pilnuje legalności. Jedyny twardy
-    warunek to istnienie aktywnego gracza.
+    WALIDACJA (twarda, RULES.md 33.1): musi być aktywny gracz; gracz NIE może aktywować
+    systemu z własnym żetonem dowodzenia; gracz musi mieć ≥1 żeton w puli taktycznej.
+    God-Mode (``board_edit.place_command_token``) omija tę ścieżkę (korekta bez zużycia puli).
 
     Raises:
-        ValueError: Gdy nie ustawiono aktywnego gracza (``active_player_id``).
+        ValueError: Gdy brak aktywnego gracza, system ma już własny żeton gracza, albo
+            pula taktyczna jest pusta.
     """
     active_id = state.active_player_id
     if active_id is None:
         raise ValueError("Brak aktywnego gracza — nie można aktywować systemu.")
 
+    # R: nie można aktywować systemu z własnym żetonem dowodzenia.
+    existing = state.systems.get(position)
+    if existing is not None and active_id in existing.command_tokens:
+        raise ValueError(
+            "Nie można aktywować systemu, w którym masz już żeton dowodzenia."
+        )
+
+    # R: potrzebny żeton w puli taktycznej.
+    player0 = state.players.get(active_id)
+    if player0 is None or player0.tactical_cc <= 0:
+        raise ValueError("Brak żetonu w puli taktycznej — nie można aktywować systemu.")
+
     new_state = state.clone()
     system = _ensure_system(new_state, position, grid)
 
-    # Żeton dowodzenia aktywnego gracza w przestrzeni (bez duplikatu).
+    # Żeton dowodzenia aktywnego gracza w przestrzeni (bez duplikatu — już sprawdzone wyżej).
     if active_id not in system.command_tokens:
         system.command_tokens.append(active_id)
 
-    # Zużycie z puli taktycznej (nie schodzimy poniżej zera — to tylko licznik,
-    # nie reguła; operator może i tak grać dalej).
-    player = new_state.players.get(active_id)
-    if player is not None and player.tactical_cc > 0:
-        player.tactical_cc -= 1
+    # Zużycie z puli taktycznej (gwarantowane > 0 przez walidację).
+    new_state.players[active_id].tactical_cc -= 1
 
     new_state.active_system = position
     new_state.tactical_step = TacticalStep.MOVEMENT

@@ -303,3 +303,44 @@ Trzy uwagi z testów użytkownika, naprawione przed T6:
 
 **QA:** backend 248 testów zielonych (było 247, +1), ruff + mypy --strict czyste. Frontend
 type-check + lint + build czyste.
+
+### ✅ Blok E8-T6 — walidacja aktywacji + produkcji (ukończony)
+
+**Cel:** domknięcie twardej egzekucji fazy akcji poza walką. Reguła: RULES.md 33 (źródło LRR
+R_active_system, R_production, R_producing_units). Opcja „b" (ustalona z użytkownikiem): koszt
+produkcji SPRAWDZANY, bez realnego wydawania zasobów.
+
+**Aktywacja (RULES.md 33.1) — twardo:**
+- [x] `core/tactical.activate_system`: odrzuca aktywację systemu z WŁASNYM żetonem gracza;
+  wymaga ≥1 żetonu w puli taktycznej (było: tylko „dekrementuj jeśli >0"). God-Mode
+  (`place_command_token`) nadal omija. Zaktualizowany docstring (zdjęta adnotacja „nie waliduje").
+
+**Produkcja (RULES.md 33.2) — limit/blokada twardo, koszt jako sprawdzenie:**
+- [x] `src/core/models.py`: pola `production_value` (int|str) + `basic_production` w UnitDef
+  (dane: dok bazowy „+2" = zasoby planety + 2; Saar dok = 5 liczbowo).
+- [x] `src/core/production.py` (NOWY): `production_limit` (suma PRODUCTION jednostek gracza w
+  aktywnym systemie; modyfikator „+N" rozwiązywany względem planety doku), `available_budget`
+  (gotowe planety + TG), `validate_production` (koszt ≤ budżet, liczba ≤ limit, blokada statków
+  przy obcych statkach; fighter/infantry para za koszt). Czyste funkcje.
+- [x] `src/api/schemas.py`: `ProduceOrderItem` + `ProduceRequest`.
+- [x] `src/api/routers/tactical.py`: `POST /tactical/produce` (waliduje całe zamówienie → 422,
+  przy sukcesie stawia jednostki przez edit_units). Obok God-Mode edit-units (bez reguł).
+- [x] `tests/test_production.py` (NOWY, 9) + aktualizacja `tests/test_tactical.py` (testy
+  walidacji aktywacji zamiast idempotentności).
+
+**Frontend:**
+- [x] `api/useBoardEditor.ts`: akcja `produce(faction, orders)` → `/tactical/produce`
+  (walidowana; God-Mode edit zostaje jako wentyl). Pełny picker produkcji w panelu = refinement.
+
+**Zakres (świadomy, opcja „b"):** koszt to SPRAWDZENIE (budżet = gotowe planety + TG), bez
+wyczerpywania planet/zdejmowania TG — realne wydawanie dojdzie z modelem wpływu. Component
+limitations (rezerwy) = TODO.
+
+**Rezultat (zweryfikowany E2E):** produkcja 2 cruiserów (koszt 4, budżet 4, limit 6) → 200 +
+postawione; 3 cruisery (koszt 6 > budżet 4) → 422 „Za mało zasobów".
+
+**QA:** backend 258 testów zielonych (było 248, +10), ruff + mypy --strict czyste. Frontend
+type-check + lint + build czyste.
+
+**Następny krok:** T7 — walka: rdzeń (rzuty seedowalnym RNG + liczenie trafień + okno „przypisz
+straty", wielorundowo). Pierwsza wersja pełnej walki rozstrzyganej przez silnik.

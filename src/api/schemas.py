@@ -440,6 +440,30 @@ class CombatHelpResponse(BaseModel):
     sides: list[CombatSideHelp]
 
 
+class ProduceOrderItem(BaseModel):
+    """Pozycja zamówienia produkcji: typ jednostki + liczba sztuk + strefa docelowa."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str = Field(alias="baseType")
+    count: int = 1
+    # Strefa: "space" (statki) albo ID planety (siły naziemne/struktury). Gdy pominięta,
+    # backend wybiera wg umiejscowienia (statek→space; naziemne wymaga planety → błąd).
+    zone: str | None = None
+
+
+class ProduceRequest(BaseModel):
+    """Walidowana produkcja jednostek w aktywnym systemie (E8-T6).
+
+    Egzekwuje limit/budżet/blokadę (RULES.md 33.2); przy sukcesie stawia jednostki.
+    ``faction`` rozwiązywany na player_id jak w pozostałych endpointach taktycznych.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    orders: list[ProduceOrderItem] = Field(default_factory=list)
+
 class CapturePlanetRequest(BaseModel):
     """Przejęcie kontroli planety po inwazji (E3): planeta + gracz."""
 
