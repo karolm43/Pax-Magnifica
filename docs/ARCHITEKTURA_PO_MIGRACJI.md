@@ -1,13 +1,12 @@
 # Architektura po migracji na frontend ti4_web
 
-> 🟡 **REFERENCYJNY (mapa kodu).** Opis backendu/frontendu i kontraktu `web-data` jest
-> aktualny i przydatny. UWAGA: sekcja 5 („luki") jest częściowo NIEAKTUALNA — UI edycji,
-> karty strategii i silnik faz (E1/E2) już istnieją. Aktualny stan: [`PROGRESS.md`](PROGRESS.md);
-> plan: [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md). Przy wątpliwości — kod wygrywa.
+> 🟡 **REFERENCYJNY (mapa kodu).** Opisuje backend/frontend i kontrakt `web-data` — gdzie
+> co leży i jak to działa. Aktualny stan prac: [`PROGRESS.md`](PROGRESS.md); plan:
+> [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md). Przy wątpliwości — kod wygrywa.
 
 Ten dokument opisuje stan projektu po przejściu z własnego frontendu SVG na dojrzały
 viewer AsyncTI4 (`ti4_web`). Jest mapą orientacyjną: gdzie co leży i jak to działa.
-Czytaj go razem z `PROGRESS.md` (historia bloków) i specyfikacją techniczną
+Czytaj go razem z `PROGRESS.md` (stan prac) i specyfikacją techniczną
 (`specyfikacja_techniczna_i_architektura_systemu.md`).
 
 ---
@@ -158,53 +157,20 @@ widok FoW, music-video. Szczegóły w `PROGRESS.md` (Blok F2).
 - STOMP WebSocket (`src/api/useGameSocket.ts`) — klient próbuje połączyć się z
   `ws://127.0.0.1:8000/ws-stomp`, którego backend NIE wystawia. `reconnectDelay: 0`
   → brak spamu reconnectów, błąd połączenia jest pochłaniany. Live-sync na razie
-  przez refetch, nie przez socket (patrz luki).
+  przez refetch, nie przez socket.
 
 ---
 
-## 5. Co działa, a co jest luką (względem DoD Fazy 1)
+## 5. Stan funkcji i historia
 
-**DoD Fazy 1:** rozgrywasz fizyczną partię używając aplikacji jako interaktywnej mapy
-+ licznika zasobów/VP.
-
-| Element | Stan |
-|---|---|
-| Import danych (jednostki/planety/systemy) | ✅ backend (rejestr) + frontend (wbudowane) |
-| Siatka heksagonalna `(q,r,s)` + wormhole | ✅ `HexGrid` |
-| `GameState` + Event Sourcing (Undo/Override) | ✅ `GameState` + `EventStore` |
-| Parser map stringów | ✅ backend `POST /map/load` |
-| Render planszy (kafelki, jednostki, planety) | ✅ nowy frontend (viewer) |
-| Panele graczy / VP / zasoby / cele | ✅ render w nowym froncie (dane z `web-data`) |
-| Setup gry z UI (liczba graczy, frakcje, map string) | ✅ ekran startowy `/` → `POST /game/new` |
-| **Edycja bieżącej gry z UI** (zmiana jednostek, VP/zasoby) | ❌ **LUKA** — tylko przez API |
-| Szybki edytor jednostek na heksie (skróty „2D 1C 4F") | ❌ **LUKA** — nie istnieje w żadnym froncie |
-| Live-sync po mutacji (WebSocket) | ⚠️ nasz WS `/ws` istnieje, ale front używa STOMP → refetch zamiast push |
-
-**Wniosek:** render stanu jest gotowy (nawet bogatszy niż w starym froncie). Największa
-luka to **brak UI do wprowadzania/edycji stanu** — nowy frontend to viewer. Żeby domknąć
-DoD Fazy 1 (operujesz aplikacją przy stole), trzeba dołożyć warstwę edycji nad istniejącymi
-endpointami: wczytanie map stringa, setup frakcji, zmiana jednostek, VP/zasoby, Undo/Redo.
+Co jest zrobione, a co w toku — patrz [`PROGRESS.md`](PROGRESS.md) (status etapów + ostatnie
+bloki) i [`PROGRESS_ARCHIWUM.md`](PROGRESS_ARCHIWUM.md) (pełna historia bloków). Plan dalszych
+etapów: [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md). Realny stan kodu jest w `src/`
+i testach — ten dokument jest tylko mapą orientacyjną „gdzie co leży".
 
 ---
 
-## 6. Jak teraz postawić realną grę (tymczasowo, przez API)
-
-Dopóki nie ma UI edycji, planszę ustawia się żądaniami do backendu:
-
-```powershell
-# 1) Wczytaj mapę z map stringa (przykład 6-osobowej mapy)
-$ms = '72 66 77 65 69 50 61 44 64 76 60 73 46 42 71 79 70 59 48 45 68 51 67 47 49 62 43 58 63 78 41 40'
-Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/map/load' -ContentType 'application/json' -Body (@{map_string=$ms} | ConvertTo-Json)
-
-# 2) Ustaw gracza (frakcja + kolor na slocie domowym)
-Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8000/setup/player' -ContentType 'application/json' -Body (@{player_id='p1';faction_id='sol';color='red';home_position='301'} | ConvertTo-Json)
-
-# 3) Odśwież przeglądarkę (http://localhost:5173/) — plansza pokaże mapę + jednostki Sol
-```
-
----
-
-## 6a. Źródła danych i referencje (NIE kasować)
+## 6. Źródła danych i referencje (NIE kasować)
 
 Dwa katalogi w repo to **lokalne źródła danych i referencje** AsyncTI4. Są w
 `.gitignore` (nie wersjonujemy ich), ale fizycznie leżą na dysku i służą jako:
@@ -224,14 +190,3 @@ jeszcze nie wykorzystujemy (replay, karty, dyplomacja). Nie są usuwane; po pros
 nieaktywne, bo backend nie wypełnia odpowiednich pól `web-data`. Włączamy je
 stopniowo, dosyłając dane z backendu (np. info o planetach rysuje się ze statycznych
 danych frontendu, więc działa „za darmo" gdy tylko `systemId`/nazwy planet się zgadzają).
-
-## 7. Następne kroki (propozycja kolejności)
-
-1. **UI edycji nad istniejącym API** — panel/akcje: wczytaj map string, setup frakcji,
-   zmiana jednostek w systemie, VP/zasoby, Undo/Redo. To domyka DoD Fazy 1.
-2. **Live-sync** — albo dołożyć STOMP po stronie backendu (emisja `GameStateMessage{full:true}`),
-   albo przełączyć front na nasz prosty WS `/ws` / refetch po mutacji.
-3. **Sprzątanie opcjonalne** — rozważyć wycięcie `auth`/`domains/auth` jeśli chcemy w pełni
-   lokalną apkę bez chrome logowania; `demo_map.py` można zastąpić pustą mapą startową.
-4. **Local-first grafiki** (opcjonalnie, wg spec) — przekierować `cdnImage()` na nasz `/static`.
-```

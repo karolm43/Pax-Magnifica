@@ -32,7 +32,8 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | Dokument | Rola | Aktualność |
 |---|---|---|
 | **`README.md`** (ten plik) | Indeks: cel, struktura, konwencje, kolejność czytania. | 🟢 żywy |
-| **`PROGRESS.md`** | Dziennik bloków pracy: co zrobione, decyzje, QA. Czytaj na start sesji. | 🟢 żywy |
+| **`PROGRESS.md`** | Stan prac: status etapów + ostatnie bloki (odchudzony). Czytaj na start sesji. | 🟢 żywy |
+| **`PROGRESS_ARCHIWUM.md`** | Pełna historia ukończonych bloków (Faza 1 → E4·UI²). Sięgaj po szczegół. | 🟤 archiwalny |
 | **`RULES.md`** | **Źródło prawdy dla mechanik TI4.** Każda reguła ma źródło (LRR / bot). | 🟢 żywy |
 | **`rules_tirules/`** | **Offline zrzut reguł z tirules2.com** (149 tematów MD + `tirules.json`). Sprawdzaj reguły tutaj najpierw. Start: `rules_tirules/INDEX.md`. | 🟢 żywy |
 | **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E7) + lista frakcji i gimmicków. | 🟢 żywy |
