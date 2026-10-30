@@ -1226,8 +1226,12 @@ Statek rusza do AKTYWNEGO systemu (akcja taktyczna, krok 2), przestrzegając:
   (``GameState.active_system``). Ruch poza akcją taktyczną (bez aktywnego systemu) jest nielegalny
   w tej ścieżce (ruch zdolnościami to osobna sprawa — nie T5).
 - **(R2) Zasięg.** Liczba systemów, w które statek WCHODZI (długość trasy po sąsiednich systemach),
-  nie przekracza jego ``moveValue`` (z UnitDef — nie z pamięci). Statki bez ``moveValue`` (struktury,
-  siły naziemne) NIE ruszają się tą ścieżką.
+  nie przekracza jego ``moveValue``. UWAGA: ``moveValue`` bierzemy z WARIANTU jednostki GRACZA
+  (uwzględnia ulepszenia wg posiadanych technologii — ``combat.resolve_unit_variant``), nie z
+  bazowego wpisu. Przykład: bazowy **Fighter** ma ``moveValue=None`` (porusza się wyłącznie
+  transportem przez capacity), ale **Fighter II** (technologia ``ff2``) ma ``moveValue=2`` i
+  może ruszać się samodzielnie. Jednostki o ``moveValue=None`` w aktualnym wariancie NIE ruszają
+  się tą ścieżką (ruszą przez transport — TODO capacity).
 - **(R3) Start nie z własnym CC.** Statek NIE może ruszyć, jeśli startuje w systemie z własnym
   żetonem dowodzenia (``SystemState.command_tokens`` zawiera gracza) — WYJĄTEK: aktywny system
   (można „wyjść i wrócić"). Źródło + nota R_movement.

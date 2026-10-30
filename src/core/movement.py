@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections import deque
 
+from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -150,11 +151,20 @@ def can_move(
     if not is_space_unit(base_type):
         return False, f"Jednostka {base_type} nie jest statkiem — nie wykonuje ruchu."
 
-    # R2: wartość ruchu z UnitDef (nie z pamięci).
-    unit = registry.units.get(base_type)
+    # R2: wartość ruchu z WARIANTU jednostki gracza (nie bazowego) — uwzględnia
+    # ulepszenia wg posiadanych technologii. Np. Fighter II (tech ff2) ma moveValue=2,
+    # podczas gdy bazowy fighter porusza się tylko transportem (moveValue=None).
+    # Spójne z doborem wariantu w walce/produkcji (RULES.md 10/20).
+    player = state.players.get(player_id)
+    faction_id = player.faction if player is not None else None
+    technologies = player.technologies if player is not None else []
+    unit = resolve_unit_variant(registry, faction_id, technologies, base_type)
     move_value = unit.move_value if unit is not None else None
     if not move_value or move_value <= 0:
-        return False, f"Jednostka {base_type} nie ma wartości ruchu (moveValue)."
+        return False, (
+            f"Jednostka {base_type} nie ma wartości ruchu "
+            "(porusza się transportem — capacity, TODO)."
+        )
 
     # R3: start nie z własnym CC (wyjątek: aktywny system).
     source = state.systems.get(from_pos)

@@ -173,3 +173,25 @@ def test_move_not_enough_ships(registry: StaticDataRegistry) -> None:
     state = _state_with_destroyer_at("101", "000")
     with pytest.raises(ValueError, match="Za mało statków"):
         movement.move_ships(state, grid, registry, "101", "destroyer", 5, "p1")
+
+
+def test_fighter_ii_can_move_with_upgrade(registry: StaticDataRegistry) -> None:
+    """Fighter II (tech ff2) ma moveValue=2 i rusza się sam — w odróżnieniu od bazowego."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        active_system="000",
+        players={"p1": PlayerState(player_id="p1", technologies=["ff2"])},
+        systems={
+            "101": SystemState(
+                position="101", system_id="20", space_units={"p1": {"fighter": 2}}
+            )
+        },
+    )
+    ok, reason = movement.can_move(state, grid, registry, "101", "fighter", "p1")
+    assert ok, reason  # z ff2 fighter (wariant Fighter II) ma ruch 2
+    # Bez technologii ten sam fighter się nie rusza.
+    state.players["p1"].technologies = []
+    ok2, _ = movement.can_move(state, grid, registry, "101", "fighter", "p1")
+    assert not ok2

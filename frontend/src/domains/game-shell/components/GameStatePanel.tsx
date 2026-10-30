@@ -1351,10 +1351,7 @@ function ActionPhasePanel({
       {effectiveKind === "strategy" && (
         <div className={styles.kindBody}>
           <FollowQueue seats={seats} />
-          <span className={styles.prodNote}>
-            Zagranie karty strategii rozlicz przy stole; secondary pozostałych
-            graczy śledź na liście „following" powyżej.
-          </span>
+          <StrategicActionControl activePlayerColor={activePlayerColor} seats={seats} />
         </div>
       )}
 
@@ -1371,6 +1368,87 @@ function ActionPhasePanel({
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Akcja strategiczna (faza akcji): aktywny gracz ZAGRYWA swoją kartę strategii —
+ * rozstrzyga primary i otwiera okno secondary dla pozostałych (RULES.md 30). To
+ * realny przycisk (wcześniej była tylko notka „rozlicz przy stole"). Kartę można
+ * zagrać raz; po zagraniu pokazujemy, że czeka na secondary (panel okna u góry).
+ */
+function StrategicActionControl({
+  activePlayerColor,
+  seats,
+}: {
+  activePlayerColor: string | null;
+  seats: Seat[];
+}) {
+  const { playStrategyCard } = useBoardEditor();
+  const { data: cards } = useStrategyCards();
+  const [busy, setBusy] = useState(false);
+
+  const active = seats.find((s) => s.player.color === activePlayerColor);
+  // Numery kart aktywnego gracza (z jego scs) jeszcze NIE zagrane (nie exhausted).
+  const myCards = (cards ?? []).filter((c) => c.picked_by === active?.player.discordId);
+
+  if (!active) {
+    return (
+      <span className={styles.prodNote}>
+        Brak aktywnego gracza — nie można zagrać karty strategii.
+      </span>
+    );
+  }
+  if (myCards.length === 0) {
+    return (
+      <span className={styles.prodNote}>
+        {active.name} nie ma karty strategii do zagrania.
+      </span>
+    );
+  }
+
+  const run = async (fn: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={styles.scList}>
+      {myCards.map((card) => (
+        <button
+          key={card.initiative}
+          type="button"
+          className={styles.scCard}
+          data-picked={card.exhausted || undefined}
+          disabled={busy || card.exhausted}
+          onClick={() =>
+            void run(() =>
+              playStrategyCard(active.player.discordId, card.initiative),
+            )
+          }
+          title={
+            card.exhausted
+              ? `${card.name} już zagrana (czeka na secondary)`
+              : `Zagraj ${card.name} (primary + okno secondary)`
+          }
+        >
+          <span
+            className={styles.disc}
+            style={toneStyle({ "--scc": SC_TONE[card.initiative] })}
+          >
+            {card.initiative}
+          </span>
+          <span className={styles.scName}>
+            {card.exhausted ? `${card.name} — zagrana` : `Zagraj: ${card.name}`}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

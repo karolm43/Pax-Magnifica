@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Game-state plate, calm calibration: the plate reports, it does not shine.
  *
  * The phase colour appears in exactly two places, a 1px line along the top
@@ -1065,6 +1065,14 @@
   place-items: center;
   width: 26px;
   height: 26px;
+  /* Sprite jednostki renderuje się w naturalnym rozmiarze — przycinamy do pudełka
+     i skalujemy w dół, by ikona nie wylewała się poza kafelek (było za duże). */
+  overflow: hidden;
+}
+
+.unitTileIcon > div {
+  transform: scale(0.42);
+  transform-origin: center;
 }
 
 .unitTileName {

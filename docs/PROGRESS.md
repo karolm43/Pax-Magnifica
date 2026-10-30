@@ -277,3 +277,29 @@ type-check + lint + build czyste.
 
 **Następny krok:** T6 — walidacja aktywacji / przejęcia planety / produkcji (koszty, limity,
 legalność) — domknięcie egzekucji fazy akcji poza walką.
+
+### ✅ Blok E8-T5b — poprawki zgłoszone przez użytkownika (ukończony)
+
+Trzy uwagi z testów użytkownika, naprawione przed T6:
+
+1. **Ikony jednostek w panelu produkcji za duże (UI).** Sprite jednostki renderował się
+   w naturalnym rozmiarze i wylewał poza pudełko 26×26. Naprawa (CSS
+   `GameStatePanel.module.css`): `.unitTileIcon` dostał `overflow: hidden`, a wewnętrzny
+   kontener sprite'a `transform: scale(0.42)` — ikona mieści się w kafelku.
+
+2. **Nie dało się ZAGRAĆ karty strategii (brakujący przycisk).** Zakładka „Strategiczna" w
+   panelu akcji miała tylko notkę „rozlicz przy stole" (relikt starej filozofii), bez przycisku
+   wołającego `/strategy/play` (dodany w T3). Naprawa: nowy komponent `StrategicActionControl`
+   w `GameStatePanel.tsx` — listuje karty aktywnego gracza i pozwala je zagrać (primary + okno
+   secondary). Zagrana karta pokazuje się jako „zagrana".
+
+3. **BŁĄD REGUŁY: Fighter II nie mógł się ruszać.** `movement.can_move` czytał `moveValue`
+   z BAZOWEGO wpisu jednostki (`registry.units.get("fighter")` → move=None), ignorując
+   ulepszenie. Fighter II (tech `ff2`) ma `moveValue=2`. Naprawa: `can_move` używa teraz
+   `combat.resolve_unit_variant(registry, faction, technologies, base_type)` — wariant GRACZA
+   wg posiadanych technologii (spójne z walką/produkcją, RULES.md 10/20). Bazowy fighter nadal
+   nie rusza się sam (porusza się transportem — capacity TODO), ale Fighter II już tak.
+   Zaktualizowano RULES.md 32.1 R2 + nowy test `test_fighter_ii_can_move_with_upgrade`.
+
+**QA:** backend 248 testów zielonych (było 247, +1), ruff + mypy --strict czyste. Frontend
+type-check + lint + build czyste.
