@@ -1658,3 +1658,32 @@ produkcji → T7 walka-rdzeń → T8 walka w UI → T9 AFB + space cannon → T1
 
 **QA:** ten blok to wyłącznie dokumentacja (brak zmian w kodzie) — testy backendu bez zmian
 (193 zielone z poprzedniego bloku). Kod wejdzie od T1.
+
+### ✅ Blok E8-T1 — model okna czasowego w stanie + core/timing.py (ukończony)
+
+**Cel:** wprowadzić jednolite pojęcie „okno czasowe" (timing window) i „kto teraz reaguje"
+do stanu gry — fundament interakcji między graczami (secondary kart strategii, przypisanie
+strat w walce, space cannon, reakcje). Reguła modelu: RULES.md 29.2.
+
+**Zrobione:**
+- [x] `src/core/game_state.py`: enum `WindowType` (STRATEGY_SECONDARY, COMBAT_ASSIGN_HITS,
+  SPACE_CANNON, REACTION) + model `TimingWindow` (queue, cursor, responded, context +
+  właściwości `is_complete`, `current_responder`) + pole `GameState.pending_window`.
+- [x] `src/core/timing.py` (NOWY): czyste funkcje `state->state`:
+  - `build_response_queue(state, initiator, include_initiator=False)` — kolejka od gracza
+    PO inicjatorze zgodnie z zegarem (speaker order z `seating_order`; fallback: sorted ids);
+    inicjator pomijany lub na końcu;
+  - `open_window(state, type, queue, context=)` — otwiera okno (odrzuca zagnieżdżanie);
+  - `current_responder`, `respond_current` (waliduje kolejność — odpowiedź poza kolejnością
+    → ValueError), `is_window_complete`, `close_window` (idempotentne).
+  - Rozdział odpowiedzialności: `timing` = CZYSTA mechanika kolejki; efekty okna (zużycie
+    żetonu, usunięcie jednostek) stosuje warstwa wyżej PRZED/PO `respond_current`.
+- [x] `tests/test_timing.py` (NOWY, 16 testów): budowa kolejki (po inicjatorze, zawijanie,
+  include_initiator, brak seating, inicjator spoza stołu), open/respond/close, błędy
+  (zagnieżdżanie, poza kolejnością, brak okna, okno zakończone), round-trip serializacji.
+
+**QA:** 209 testów zielonych (było 193, +16), ruff czysty, mypy --strict czysty.
+Ostrzeżenie StarletteDeprecationWarning bez zmian (znane, nieblokujące).
+
+**Następny krok:** T2 — ekspozycja `pending_window` w `web_data` + endpoint `POST /window/respond`
++ panel okna w UI (kto teraz reaguje + przycisk odpowiedzi).

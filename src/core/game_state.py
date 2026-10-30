@@ -1,4 +1,4 @@
-"""GameState — dynamiczny, walidowany i serializowalny stan gry.
+﻿"""GameState — dynamiczny, walidowany i serializowalny stan gry.
 
 Model opisuje bieżący stan fizycznej planszy odwzorowany cyfrowo: graczy wraz
 z zasobami i punktami zwycięstwa, jednostki rozmieszczone w systemach, właścicieli
@@ -39,6 +39,67 @@ class TacticalStep(StrEnum):
     INVASION = "INVASION"
     PRODUCTION = "PRODUCTION"
 
+
+class WindowType(StrEnum):
+    """Typ okna czasowego (timing window) — RULES.md 29.2.
+
+    Jednolite pojęcie dla wszystkich momentów, w których gracze reagują PO KOLEI:
+    - ``STRATEGY_SECONDARY`` — secondary karty strategii (po primary aktywnego gracza);
+    - ``COMBAT_ASSIGN_HITS`` — przypisanie strat w walce (obrońca wskazuje, co ginie);
+    - ``SPACE_CANNON`` — space cannon offense (okno przed walką kosmiczną);
+    - ``REACTION`` — uniwersalne okno „when/after" (karty akcji, technologie reagujące).
+
+    Model kolejki jest WSPÓLNY (``TimingWindow``); typ niesie tylko znaczenie okna
+    i pozwala warstwom wyżej (``core`` fazy/walki, UI) rozpoznać, co rozstrzygać.
+    """
+
+    STRATEGY_SECONDARY = "STRATEGY_SECONDARY"
+    COMBAT_ASSIGN_HITS = "COMBAT_ASSIGN_HITS"
+    SPACE_CANNON = "SPACE_CANNON"
+    REACTION = "REACTION"
+
+
+class TimingWindow(BaseModel):
+    """Otwarte okno czasowe — kolejka graczy pytanych PO KOLEI (RULES.md 29.2).
+
+    Mechanika kolejki jest NEUTRALNA względem reguł konkretnego okna: trzyma listę
+    graczy do zapytania (``queue``), wskaźnik bieżącego respondenta (``cursor``),
+    listę tych, którzy już odpowiedzieli (``responded``), oraz dowolne dane
+    kontekstowe (``context`` — np. numer karty strategii, pozycja systemu walki).
+
+    Kolejność ustala warstwa otwierająca okno (zwykle speaker order rotowany od
+    gracza PO aktywnym, zgodnie z zegarem — ``core.timing.open_window``). Tu trzymamy
+    już gotową listę ``queue``, żeby model był niezależny od sposobu jej wyliczenia.
+
+    Bieżący respondent = ``queue[cursor]`` dopóki ``cursor < len(queue)``. Gdy
+    ``cursor`` dojdzie do końca kolejki, okno jest ZAKOŃCZONE (``is_complete``) —
+    warstwa wyżej je zamyka (``close_window``) i stosuje efekty.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    window_type: WindowType
+    # Gracze do zapytania, w ustalonej kolejności reagowania.
+    queue: list[str] = Field(default_factory=list)
+    # Indeks bieżącego respondenta w ``queue`` (0..len). len == koniec okna.
+    cursor: int = 0
+    # Gracze, którzy już odpowiedzieli (w kolejności odpowiedzi) — audyt/UI.
+    responded: list[str] = Field(default_factory=list)
+    # Dane kontekstowe okna (np. {"initiative": 1} dla secondary, {"position": "101"}
+    # dla walki). Luźny słownik — konkretne klucze definiuje warstwa otwierająca.
+    context: dict[str, str | int] = Field(default_factory=dict)
+
+    @property
+    def is_complete(self) -> bool:
+        """Czy wszyscy z kolejki już odpowiedzieli (okno gotowe do zamknięcia)."""
+        return self.cursor >= len(self.queue)
+
+    @property
+    def current_responder(self) -> str | None:
+        """Gracz, którego teraz kolej odpowiadać (None, gdy okno zakończone)."""
+        if self.is_complete:
+            return None
+        return self.queue[self.cursor]
 
 class PlayerState(BaseModel):
     """Stan pojedynczego gracza."""
@@ -139,6 +200,11 @@ class GameState(BaseModel):
     # zakończeniu akcji. Aplikacja prowadzi kroki, ale nie waliduje reguł.
     active_system: str | None = None
     tactical_step: TacticalStep | None = None
+    # Otwarte okno czasowe (timing window) — None, gdy żadne nie trwa. Trzyma kolejkę
+    # graczy reagujących po kolei (secondary kart strategii, przypisanie strat w walce,
+    # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między
+    # graczami (RULES.md 29.2). Mechanika: ``core/timing.py``.
+    pending_window: TimingWindow | None = None
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).
