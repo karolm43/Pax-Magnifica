@@ -31,13 +31,25 @@ Zawsze na początku sesji sprawdź w tej kolejności:
   (sekcja 5.1) i świadoma decyzja — moja pamięć reguł TI4 jest zawodna.
 - **Dane liczbowe** (jednostki, planety, technologie, koszty) czytaj WYŁĄCZNIE
   z assetów AsyncTI4 przez `StaticDataRegistry`. Zero hardkodowania.
+- **GŁÓWNE ŹRÓDŁO REGUŁ: https://www.tirules2.com/** — to podstawowe, nadrzędne
+  źródło prawdy dla WSZYSTKICH reguł TI4 w projekcie. Zawiera pełny Living Rules
+  Reference 2.0 (PoK) + noty do Codexów (do IV) i wstępne noty do Thunder's Edge,
+  plus rulingi Dane Beltramiego i konsensus społeczności. KAŻDA sesja/czat weryfikuje
+  reguły najpierw tutaj. Living Rules Reference (PDF) i TI Wiki = źródła pomocnicze/backup.
+- **LOKALNY ZRZUT OFFLINE: `docs/rules_tirules/`** — kompletny zrzut tirules2.com
+  (149 tematów w Markdown + `tirules.json`, indeks w `INDEX.md`). SPRAWDZAJ REGUŁY
+  NAJPIERW TUTAJ (bez requestów online) — np. `R_anomalies.md`, `R_movement.md`,
+  `R_space_combat.md`, `F_*.md`, `C_*.md`. Dopiero gdy zrzut nie wystarcza, idź na żywą
+  stronę. Atrybucja/licencja i sposób odświeżenia: `docs/rules_tirules/SOURCE.md`
+  (parser: `scripts/scrape_tirules.py`).
 - **Reguły mechaniczne** (ruch, walka, anomalie, timing) muszą mieć wpis w
-  `docs/RULES.md` z odniesieniem do oficjalnego źródła (Living Rules Reference /
-  TI Wiki) ZANIM trafią do kodu.
+  `docs/RULES.md` z odniesieniem do źródła — w pierwszej kolejności do
+  **tirules2.com** (temat reguły), ZANIM trafią do kodu.
 - **Oznaczaj założenia.** Jeśli implementuję mechanikę bez potwierdzonego źródła,
   jawnie oznacz ją jako ⚠️ ZAŁOŻENIE w RULES.md i poproś użytkownika o potwierdzenie.
   Użytkownik zna grę w szczegółach — jego decyzja jest ostateczna.
-- Gdy reguła jest niejasna, **zweryfikuj ją online** w oficjalnym LRR zamiast zgadywać.
+- Gdy reguła jest niejasna, **zweryfikuj ją online — najpierw na tirules2.com**,
+  potem w LRR, zamiast zgadywać.
 - Rozróżniaj **sąsiedztwo (adjacency)** od **przejezdności (traversability)** — to
   różne pojęcia (patrz RULES.md 1). Graf mapy trzyma czyste sąsiedztwo; blokady
   ruchu/anomalie to osobna warstwa logiki zależna od gracza i stanu gry.

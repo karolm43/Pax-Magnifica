@@ -9,7 +9,18 @@ Status weryfikacji każdej reguły:
 - ⚠️ **ZAŁOŻENIE** — zakodowane tymczasowo, wymaga potwierdzenia przez znającego grę.
 - ⬜ **DO ZROBIENIA** — reguła jeszcze niezaimplementowana.
 
-**Główne źródła:**
+**Główne źródła** (w kolejności pierwszeństwa):
+- 🥇 **tirules2.com — GŁÓWNE ŹRÓDŁO PRAWDY:** https://www.tirules2.com/
+  Pełny Living Rules Reference 2.0 (PoK) + noty do Codexów (do IV, 06/2025) i wstępne
+  noty do Thunder's Edge (10/2025), plus rulingi Dane Beltramiego (lead designer TI4)
+  i konsensus społeczności. Każda reguła w tym pliku jest weryfikowana najpierw tutaj;
+  tematy mają osobne podstrony (np. „Anomalies", „Movement", „Space Combat").
+  Pozostałe źródła są pomocnicze/backup.
+- 📁 **LOKALNY ZRZUT (offline, najszybszy):** [`docs/rules_tirules/`](rules_tirules/INDEX.md)
+  — kompletny zrzut tirules2.com (149 tematów: 109 reguł, 30 frakcji, 10 komponentów)
+  w Markdown + `tirules.json`. **Sprawdzaj reguły TUTAJ w pierwszej kolejności** (bez
+  requestów online). Odświeżenie i atrybucja: [`docs/rules_tirules/SOURCE.md`](rules_tirules/SOURCE.md).
+  Gdy lokalny zrzut nie wystarcza, zajrzyj na żywą stronę tirules2.com.
 - Living Rules Reference 2.0 (Prophecy of Kings), FFG, 09/2020 —
   [PDF](https://images-cdn.fantasyflightgames.com/filer_public/51/55/51552c7f-c05c-445b-84bf-4b073456d008/ti10_pok_living_rules_reference_20_web.pdf)
 - TI Wiki (odzwierciedla LRR): https://twilight-imperium.fandom.com/wiki/Anomalies
