@@ -1098,3 +1098,59 @@ kolejność (inicjatywa dla statusu, speaker order dla agendy; do potwierdzenia 
 - ⬜ Task 8: interaktywna walka w UI (animacja rzutów).
 - ⬜ Task 9: anti-fighter barrage + space cannon offense.
 - ⬜ Task 10: aktualizacja dokumentacji (ta sekcja) + memory.
+
+---
+
+## 30. Akcja strategiczna: primary + okno secondary — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+Etap E8-T3. Źródło: lokalny zrzut oficjalnego LRR 2.0 — `docs/rules_tirules/R_strategic_action.md`
+oraz `R_leadership.md` (treść © Fantasy Flight Games; patrz `docs/rules_tirules/SOURCE.md`).
+Parametry/teksty kart z assetów: `assets/data/strategy_cards/pok.json` (zero z pamięci).
+
+### 30.1. Przebieg akcji strategicznej (R_strategic_action) — ✅ ZWERYFIKOWANE
+
+- W fazie akcji aktywny gracz może wykonać AKCJĘ STRATEGICZNĄ: rozstrzyga PRIMARY swojej
+  karty strategii.
+- Po rozstrzygnięciu primary KAŻDY INNY gracz, zaczynając OD GRACZA PO LEWEJ aktywnego i dalej
+  ZGODNIE Z RUCHEM WSKAZÓWEK ZEGARA, MOŻE rozstrzygnąć SECONDARY tej karty (nie musi — pas).
+- Po tym, jak każdy miał okazję na secondary, aktywny gracz WYCZERPUJE (exhaust) kartę
+  (odwraca ją — nie użyje jej ponownie w tej rundzie; może odtąd pasować).
+- Efekty primary i secondary rozstrzyga się OD GÓRY DO DOŁU (kolejność linii tekstu karty).
+- Gra 3-4 osobowa: gracz musi rozstrzygnąć akcję strategiczną KAŻDEJ swojej karty zanim spasuje
+  (dotyczy wariantu 2 kart/gracz — na razie wspieramy 1 kartę/gracz, patrz RULES.md 13).
+
+**Mapowanie na model okien czasowych (RULES.md 29.2):** zagranie karty = rozstrzygnięcie primary
+(aktywny gracz) + OTWARCIE okna ``STRATEGY_SECONDARY`` z kolejką pozostałych graczy (od gracza po
+aktywnym, zgodnie z zegarem — to DOKŁADNIE kolejka z ``timing.build_response_queue``, inicjator
+pominięty). Każdy respondent okna wykonuje secondary albo pasuje. Po zamknięciu okna karta jest
+wyczerpana.
+
+### 30.2. Leadership — primary i secondary (R_leadership + dane) — ✅ ZWERYFIKOWANE
+
+- **Primary:** aktywny gracz otrzymuje 3 żetony dowodzenia. Następnie MOŻE wydać dowolną ilość
+  wpływu, zyskując 1 żeton za każde wydane 3 wpływu.
+- **Secondary:** każdy inny gracz (w oknie) MOŻE wydać dowolną ilość wpływu, zyskując 1 żeton za
+  każde 3 wpływu. **Secondary Leadership NIE wymaga żetonu strategicznego** (wyjątek — nota LRR;
+  większość innych kart wymaga żetonu ze strategy pool).
+- Zdobyte żetony gracz kładzie w DOWOLNEJ puli (taktyczna/floty/strategiczna) — wybór gracza.
+- Nadwyżka wpływu (1-2 ponad wielokrotność 3) przepada.
+
+**⚠️ ZAKRES T3 (świadomy, „make it exist first"):** implementujemy SZKIELET okna secondary na
+realnej karcie:
+- Primary Leadership: +3 żetony dowodzenia (do puli taktycznej domyślnie — ⚠️ ZAŁOŻENIE: docelowo
+  gracz wybiera pulę; pole do rozbudowy).
+- Secondary: mechanika okna (kolejka, wykonaj/pas) działa end-to-end; opcja „wykonaj" na razie
+  NIE kupuje żetonów za wpływ (odłożone — wymaga modelu wydawania wpływu / wyczerpywania planet
+  jako akcji). Oznaczone TODO w kodzie. Kupno żetonów za wpływ (primary nadwyżka i secondary)
+  dojdzie, gdy powstanie model wpływu (powiązać z `exhausted_planets` + wartości influence planet).
+
+**Architektura pod rozbudowę:** rozstrzyganie primary/secondary to osobny, rozszerzalny dispatch
+po karcie (``core/strategic_action.py``), nie `if` w endpointcie. Każda kolejna karta = nowa
+gałąź dispatchu + wpis reguły tutaj ze źródłem. Model okna niesie kontekst (numer inicjatywy),
+więc respond potrafi rozstrzygnąć właściwy secondary bez zmiany kształtu okna.
+
+**Status wdrożenia:**
+- ⬜→✅ T3: Leadership primary (+3 żetony) + okno secondary (szkielet, wykonaj/pas).
+- ⬜ Pozostałe karty (Diplomacy, Politics, Construction, Trade, Warfare, Technology, Imperial) —
+  primary/secondary dokładane kolejno, każda z notą tutaj.
+- ⬜ Model wpływu (wydawanie / wyczerpywanie planet) — odblokuje realne kupno żetonów i inne secondary.

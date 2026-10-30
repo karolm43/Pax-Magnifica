@@ -1,4 +1,4 @@
-"""Router fazy strategii (Etap E2): pula kart, wybór, zagranie."""
+﻿"""Router fazy strategii (Etap E2): pula kart, wybór, zagranie."""
 
 from __future__ import annotations
 
@@ -10,8 +10,9 @@ from src.api.schemas import (
     StrategyCardInfo,
     StrategyPickRequest,
     StrategyPlayRequest,
+    StrategySecondaryRequest,
 )
-from src.core import strategy_phase
+from src.core import strategic_action, strategy_phase
 
 router = APIRouter()
 
@@ -74,13 +75,45 @@ async def post_strategy_pick(
 async def post_strategy_play(
     request: StrategyPlayRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Gracz zagrywa (wyczerpuje) swoją kartę strategii."""
+    """Akcja strategiczna: rozstrzyga PRIMARY i otwiera okno SECONDARY (RULES.md 30).
+
+    Zastępuje dawne „tylko oznacz zagraną": teraz zagranie karty wykonuje efekt primary
+    (dispatch po karcie — w T3 realnie Leadership) i otwiera okno secondary dla
+    pozostałych graczy (kolejka od gracza po aktywnym, zgodnie z zegarem).
+    """
     try:
-        new_state = strategy_phase.play_strategy_card(
-            ctx.service.current_state(), request.player_id, request.initiative
+        new_state = strategic_action.play_strategy_card(
+            ctx.service.current_state(),
+            ctx.registry,
+            request.player_id,
+            request.initiative,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(
         ctx, new_state, f"strategy:play:{request.player_id}:{request.initiative}"
+    )
+
+
+@router.post("/strategy/secondary", response_model=StateEnvelope)
+async def post_strategy_secondary(
+    request: StrategySecondaryRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Odpowiedź bieżącego respondenta w oknie secondary (wykonaj/pas) — RULES.md 30.1.
+
+    Przesuwa kolejkę okna; po dopełnieniu okno zamyka się samo. ``execute=True`` wykonuje
+    efekt secondary (w T3 Leadership = szkielet bez kupna żetonów za wpływ).
+    """
+    try:
+        new_state = strategic_action.resolve_secondary(
+            ctx.service.current_state(),
+            ctx.registry,
+            request.player_id,
+            execute=request.execute,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    decision = "exec" if request.execute else "pass"
+    return await _commit(
+        ctx, new_state, f"strategy:secondary:{request.player_id}:{decision}"
     )

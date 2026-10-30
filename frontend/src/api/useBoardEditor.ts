@@ -271,6 +271,17 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  const strategySecondary = useCallback(
+    async (playerId: string, execute: boolean) => {
+      await post("/strategy/secondary", {
+        player_id: playerId,
+        execute,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const closeWindow = useCallback(async () => {
     await post("/window/close", {});
     await refresh();
@@ -300,6 +311,7 @@ export function useBoardEditor() {
     toggleTechExhaust,
     setLeaderState,
     respondWindow,
+    strategySecondary,
     closeWindow,
   };
 }

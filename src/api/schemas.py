@@ -332,6 +332,18 @@ class StrategyPlayRequest(BaseModel):
     initiative: int
 
 
+class StrategySecondaryRequest(BaseModel):
+    """Odpowiedź w oknie secondary karty strategii (E8-T3).
+
+    ``player_id`` musi być bieżącym respondentem okna. ``execute=True`` → wykonaj
+    secondary; ``False`` → pas (oba przesuwają kolejkę okna).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    execute: bool = False
+
 class SetSpeakerRequest(BaseModel):
     """Ustawienie mówcy (speaker) — otwiera wybór kart w fazie strategii."""
 

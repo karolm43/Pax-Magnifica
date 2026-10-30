@@ -1727,3 +1727,42 @@ type-check + lint + build czyste. Warn o rozmiarze chunku i StarletteDeprecation
 **Następny krok:** T3 — pierwsze realne okno: secondary karty strategii. Zagranie karty otwiera
 pozostałym graczom okno; respond dla secondary zużywa żeton strategiczny / pas. Potrzebne
 potwierdzenie reguł primary/secondary konkretnej karty (RULES.md — do uzupełnienia ze źródła).
+
+### ✅ Blok E8-T3 — pierwsze realne okno: secondary karty strategii (ukończony)
+
+**Cel:** zagranie karty strategii rozstrzyga PRIMARY aktywnego gracza i OTWIERA okno
+secondary dla pozostałych (kolejka po kolei). Pierwsza realna mechanika na modelu okien
+(T1/T2). Reguła: RULES.md 30 (źródło: lokalny LRR 2.0 `docs/rules_tirules/R_strategic_action.md`
++ `R_leadership.md`; parametry z `assets/data/strategy_cards/pok.json`).
+
+**Zakres (świadomy szkielet — „make it exist first", z haczykami pod rozbudowę):**
+- Leadership primary: +3 żetony dowodzenia (do puli taktycznej — ⚠️ ZAŁOŻENIE: docelowo wybór puli).
+- Secondary: mechanika okna (kolejka, wykonaj/pas) działa end-to-end; efekt „wykonaj" to
+  NA RAZIE NO-OP (kupno żetonów za wpływ odłożone do modelu wpływu — jawne TODO w kodzie).
+- Pozostałe karty: dispatch zwraca „brak efektu" — szkielet okna i tak działa.
+
+**Backend:**
+- [x] `src/core/strategic_action.py` (NOWY): `play_strategy_card` (primary dispatch + exhaust
+  karty + otwarcie okna STRATEGY_SECONDARY z kolejką pozostałych), `resolve_secondary`
+  (dispatch secondary + `timing.respond_current` + auto-zamknięcie po dopełnieniu).
+  DISPATCH po inicjatywie (`_PRIMARY_EFFECTS`/`_SECONDARY_EFFECTS`) — rozszerzalny kartą po
+  karcie, nie `if` w endpointcie. Kontekst okna niesie `initiative`.
+- [x] `src/api/schemas.py`: `StrategySecondaryRequest` (player_id + execute).
+- [x] `src/api/routers/strategy.py`: `/strategy/play` przekierowane na `strategic_action`
+  (primary + okno; zastępuje dawne „tylko oznacz zagraną"); nowy `/strategy/secondary`.
+- [x] `tests/test_strategic_action.py` (10) + `tests/test_strategic_action_api.py` (4).
+
+**Frontend:**
+- [x] `api/useBoardEditor.ts`: akcja `strategySecondary(playerId, execute)`.
+- [x] `GameStatePanel.tsx` `WindowSection`: przyciski Wykonaj/Pas routowane po TYPIE okna —
+  STRATEGY_SECONDARY → `/strategy/secondary` (efekt + kolejka), inne → generyczny `/window/respond`.
+
+**Rezultat (zweryfikowany E2E):** play Leadership (p1) → tactical_cc 3→6, karta zagrana, okno
+secondary queue [green,blue] responder p2; secondary p2(exec)→p3, p3(pass)→okno zamknięte (null).
+
+**QA:** backend 232 testy zielone (było 218, +14), ruff + mypy --strict czyste. Frontend
+type-check + lint + build czyste.
+
+**Następny krok:** T4 — pojęcie aktualnego gracza w STATUS/AGENDA + twarda walidacja flow
+(czyja tura / co teraz wolno). Potem pozostałe karty strategii i model wpływu (odblokuje
+realne secondary).

@@ -639,7 +639,7 @@ function WindowSection({
   window: NonNullable<GameState["pendingWindow"]>;
   playerData: PlayerData[];
 }) {
-  const { respondWindow, closeWindow } = useBoardEditor();
+  const { respondWindow, strategySecondary, closeWindow } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
   const label = WINDOW_LABELS[window.windowType] ?? window.windowType;
@@ -659,10 +659,17 @@ function WindowSection({
     }
   };
 
-  const respond = (decision: string) => {
+  // Odpowiedź routowana po TYPIE okna: secondary karty strategii ma własny endpoint
+  // (wykonuje efekt + przesuwa kolejkę); pozostałe okna w T3 to generyczny respond
+  // (sama mechanika kolejki). Kolejne typy dokładaj tu gałęzią.
+  const respond = (execute: boolean) => {
     const id = window.currentResponderId;
     if (!id) return;
-    void run(() => respondWindow(id, decision));
+    if (window.windowType === "STRATEGY_SECONDARY") {
+      void run(() => strategySecondary(id, execute));
+    } else {
+      void run(() => respondWindow(id, execute ? "execute" : "pass"));
+    }
   };
 
   return (
@@ -707,7 +714,7 @@ function WindowSection({
               type="button"
               className={styles.scPickBtn}
               disabled={busy}
-              onClick={() => respond("secondary")}
+              onClick={() => respond(true)}
               title="Wykonaj akcję w tym oknie"
             >
               Wykonaj
@@ -716,7 +723,7 @@ function WindowSection({
               type="button"
               className={styles.scPickBtn}
               disabled={busy}
-              onClick={() => respond("pass")}
+              onClick={() => respond(false)}
               title="Zrezygnuj (pas)"
             >
               Pas
