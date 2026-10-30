@@ -29,10 +29,11 @@
 
 ## ⚪ Planesplitter (Technology)
 
-- 
-    - Any trade goods that were on *The Sowing* are transferred to *The Reaping* when it flips.
+- If The Fracture is already in play when the Firmament player gains *Planesplitter*, it will have no immediate effect.
 
 ## ✖ Planesplitter (Technology)
+
+- The ingress token must be moved when the Obsidian player performs the primary ability of their strategy card, before any other players decide if they wish to perform the secondary ability.
 
 ## ⚪ Heaven’s Eye (Flagship)
 
@@ -43,6 +44,8 @@
 ## ✖ Vos Hollow (Agent)
 
 ## ⚪ Captain Aroz (Commander)
+
+- Captain Aroz does not assist in scoring secret objectives that do not require controlling planets, such as the *Mechanize the Military* or *Occupy the Fringe* secret objectives.
 
 ## ✖ Aroz Hollow (Commander)
 
@@ -57,3 +60,5 @@
 ## ⚪ The Sowing (Breakthrough)
 
 ## ✖ The Reaping (Breakthrough)
+
+- Any trade goods that were on *The Sowing* are transferred to *The Reaping* when it flips.

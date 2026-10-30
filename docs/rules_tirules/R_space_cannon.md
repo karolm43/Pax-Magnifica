@@ -8,7 +8,11 @@
 A unit that has the `Space Cannon` ability can use it during two different steps of a player’s tactical action: after the **Move Ships** substep (**Space Cannon Offense**) and during an invasion (**Space Cannon Defense**).
 
 - A player is **not** required to be the active player to use their `Space Cannon` ability of their units.
-- Space Cannon Offense
+
+**Space Cannon Offense**
+
+During a tactical action, after the **Move Ships** substep of the **Movement** step, beginning with the active player and proceeding clockwise, each player may use the `Space Cannon` ability of each of their units in the active system by performing the following steps:
+
 - **Step 1 – Roll Dice**: The player rolls dice for each of their units in the active system that has the `Space Cannon` ability; this is a space cannon roll. One hit is produced for each result that is equal to or greater than the unit’s `Space Cannon` value.
     - A unit’s `Space Cannon` ability is presented along with a unit’s attributes on faction sheets and unit upgrade technology cards.
     - `Space Cannon` is displayed as “`Space Cannon` X (×Y).” The X is the minimum value needed for a die to produce a hit, and Y is the number of dice rolled. Not all `Space Cannon` abilities are accompanied by a (Y) value; a space cannon roll for such a unit consists of one die.
@@ -18,7 +22,11 @@ A unit that has the `Space Cannon` ability can use it during two different steps
 - **Step 2 – Assign Hits**: The player whose units have been targeted by `Space Cannon` must choose and destroy one of their ships in the active system for each hit result produced against their units.
     - Players other than the active player must target the active player’s units.
     - If the active player is using the `Space Cannon` ability of their units, they choose a player who has ships in the active system. That player must choose and destroy one of their ships in the active system for each hit the space cannon roll produced.
-- Space Cannon Defense
+
+**Space Cannon Defense**
+
+During the invasion step of a tactical action, after ground forces have been committed to land on planets, players other than the active player can resolve the `Space Cannon` ability of their units on those planets by performing the following steps:
+
 - **Step 1 – Roll Dice**: Each player may use the `Space Cannon` ability of each of their units on the invaded planet by rolling a specific number of dice for each of those units; this is called a space cannon roll. A hit is produced for each die roll that is equal to or greater than the unit’s `Space Cannon` value.
     - If a unit has a `Space Cannon` ability, it is present on its faction sheet and technology cards.
     - `Space Cannon` is displayed as “`Space Cannon` X (×Y).” The X is the minimum value needed for a die to produce a hit, and Y is the number of dice rolled. Not all `Space Cannon` abilities are accompanied by a (Y) value; a space cannon roll for such a unit consists of one die.
@@ -26,10 +34,6 @@ A unit that has the `Space Cannon` ability can use it during two different steps
     - Game effects that allow the use of `Space Cannon` abilities against ships in adjacent systems have no effect during Space Cannon Defense.
 - **Step 2 – Assign Hits**: The active player must choose and destroy one of their ground forces on the planet for each hit the space cannon roll produced.
     - Hits can only be assigned to units that are on the same planet as the units using the `Space Cannon` ability.
-
-During a tactical action, after the **Move Ships** substep of the **Movement** step, beginning with the active player and proceeding clockwise, each player may use the `Space Cannon` ability of each of their units in the active system by performing the following steps:
-
-During the invasion step of a tactical action, after ground forces have been committed to land on planets, players other than the active player can resolve the `Space Cannon` ability of their units on those planets by performing the following steps:
 
 ## Notes
 

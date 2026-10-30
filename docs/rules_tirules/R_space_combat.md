@@ -7,12 +7,13 @@
 
 After resolving the **Space Cannon Offense** step of a tactical action, if two players have ships in the active system, those players must resolve a space combat.
 
-To resolve a space combat, players perform the following steps:
-
 - If the active player is the only player with ships in the system, they skip the **Space Combat** step of the tactical action and proceeds to the **Invasion** step.
 - If an ability occurs “before combat”, it occurs immediately before the **Anti–Fighter Barrage** step.
     - During the first round of a combat, “start of combat” and “start of combat round” effects occur during the same timing window.
     - During the last round of a combat, “end of combat” and “end of combat round” effects occur during the same timing window.
+
+To resolve a space combat, players perform the following steps:
+
 - **Step 1 – Anti–Fighter Barrage**: If this is the first round of a space combat, the players may simultaneously use the `Anti–Fighter Barrage` ability of any of their units in the active system.
     - If one or both players no longer have ships in the active system after resolving this step, the space combat ends immediately.
     - Players cannot resolve `Anti–Fighter Barrage` abilities during any rounds of space combat other than the first round.

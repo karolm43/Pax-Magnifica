@@ -42,6 +42,12 @@ Zawsze na początku sesji sprawdź w tej kolejności:
   `R_space_combat.md`, `F_*.md`, `C_*.md`. Dopiero gdy zrzut nie wystarcza, idź na żywą
   stronę. Atrybucja/licencja i sposób odświeżenia: `docs/rules_tirules/SOURCE.md`
   (parser: `scripts/scrape_tirules.py`).
+- **CZYM JEST ten zrzut (ważne rozróżnienie):** to ZASADY TI4 i ich DOPRECYZOWANIA
+  (edge-case'y, interakcje reguł, rulingi Dane) — warstwa „jak rozstrzygać brzegowe
+  przypadki". To NIE są opisy działania umiejętności frakcji ani kart — te są w assetach
+  JSON AsyncTI4 (`assets/data/...`). Pliki `F_*`/`C_*` zawierają tylko noty-doprecyzowania
+  do komponentów (stąd bywają puste nagłówki), nie ich pełny opis. Reguła + doprecyzowanie
+  → tirules; treść/parametry karty czy zdolności → assety JSON; dane liczbowe → assety JSON.
 - **Reguły mechaniczne** (ruch, walka, anomalie, timing) muszą mieć wpis w
   `docs/RULES.md` z odniesieniem do źródła — w pierwszej kolejności do
   **tirules2.com** (temat reguły), ZANIM trafią do kodu.

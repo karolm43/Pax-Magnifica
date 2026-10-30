@@ -14,7 +14,11 @@ During the agenda phase, players can cast votes on agendas that can change the r
     - **Resolve Outcome**: Players tally each vote that was cast and resolve the outcome that received the most votes.
 - **Step 2 – Second Agenda**: Players repeat the **First Agenda** step of this phase for a second agenda.
 - **Step 3 – Ready Planets**: Each player readies each of their exhausted planets. Then, a new game round begins starting with the strategy phase.
-- Voting
+
+**Voting**
+
+When voting during the agenda phase, a player can cast votes for a specific outcome of an agenda.
+
 - To cast votes, a player exhausts any number of their planets and chooses an outcome. The number of votes cast for that outcome is equal to the combined influence values of the planets that the player exhausts.
     - When a player exhausts a planet to cast votes, that player must cast the full amount of votes provided by that planet.
     - _[Dane ruling]_ A player may exhaust space stations, *The Triad*, and Oceans to cast votes, using their influence values in the same manner as planets.
@@ -30,7 +34,9 @@ During the agenda phase, players can cast votes on agendas that can change the r
 - A player may choose to abstain by not casting any votes.
 - Some game effects allow a player to cast additional votes for an outcome. These votes cannot be cast for a different outcome than other votes cast by that player.
 - If a player cannot vote on an agenda because of a game effect, that player cannot cast votes for that agenda by exhausting planets or through any other game effect.
-- Outcomes
+
+**Outcomes**
+
 - To resolve an outcome, the speaker follows the instructions on the agenda card.
 - If there is a tie for the outcome that received the most votes, or if no outcome receives any votes, the speaker decides which of the tied outcomes to resolve.
     - The speaker’s decision is not a vote.
@@ -39,8 +45,6 @@ During the agenda phase, players can cast votes on agendas that can change the r
 - Some game effects instruct a player to predict an outcome. To predict an outcome, a player declares aloud the outcome they think will receive the most votes. That player must make this prediction after the agenda is revealed but before any votes have been cast.
     - A predicted outcome must be a possible outcome of the revealed agenda.
     - After resolving the outcome of the agenda, any abilities that were dependent upon predicting the outcome are resolved.
-
-When voting during the agenda phase, a player can cast votes for a specific outcome of an agenda.
 
 ## Notes
 

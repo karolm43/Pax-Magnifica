@@ -7,8 +7,12 @@
 
 A player can move their ships by resolving a tactical action during the action phase. Additionally, some abilities can move a unit outside of the tactical action.
 
-- Tactical Action Movement
+**Tactical Action Movement**
+
 - A ship’s move value is presented along with its other attributes on faction sheets and unit upgrade technology cards. This value indicates the distance from its current system that a ship can move.
+
+To resolve movement, players perform the following steps:
+
 - **Step 1 – Move Ships**: A player can move any number of their eligible ships into the active system, obeying the following rules:
     - The ship must end its movement in the active system.
     - The ship cannot move through a system that contains ships that are controlled by another player.
@@ -19,10 +23,10 @@ A player can move their ships by resolving a tactical action during the action p
 - When a ship with a capacity value moves or is moved, it may transport ground forces and fighters.
 - The active player declares which of their ships are moving before any ships move. Those ships arrive in the active system simultaneously.
 - **Step 2 – Space Cannon Offense**: After the **Move Ships** step, players can use the `Space Cannon` abilities of their units in the active system.
-- Ability Movement
-- If an ability moves a unit outside of the **Movement** step of a tactical action, players follow the rules specified by that ability; neither a unit’s move value nor the rules specified above apply.
 
-To resolve movement, players perform the following steps:
+**Ability Movement**
+
+- If an ability moves a unit outside of the **Movement** step of a tactical action, players follow the rules specified by that ability; neither a unit’s move value nor the rules specified above apply.
 
 ## Notes
 

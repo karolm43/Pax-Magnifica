@@ -12,9 +12,13 @@ Each player has several faction–specific leader cards that represent character
 - A player’s leaders are placed on their leader sheet during setup.
     - Each leader card is placed on the slot that matches its type. The leader cards are placed so that the hash mark symbols in the upper right are faceup and match the slot that the card is placed on.
     - The two additional Nomad agents are placed in the Nomad player’s play area readied side up.
-- Agents
+
+**Agents**
+
 - An agent does not need to be unlocked and begins the game in a readied state. They can be exhausted by resolving their abilities, and they ready during the **Ready Cards** step of the status phase.
-- Commanders
+
+**Commanders**
+
 - A commander must be unlocked to use its abilities. A player unlocks their commander if they fulfill the conditions listed after the “Unlock” header.
     - Each faction’s commander has a unique “Unlock” condition.
     - After a player fulfills the unlock condition of their commander, they flip it over to its unlocked side.
@@ -23,7 +27,9 @@ Each player has several faction–specific leader cards that represent character
 - A commander cannot be exhausted.
 - The *Alliance* promissory note allows a player to share their commander’s ability with another player.
     - A commander’s owner can still use their commander’s ability, even if another player has their *Alliance* promissory note.
-- Heroes
+
+**Heroes**
+
 - A hero needs to be unlocked to use their abilities. A player unlocks their hero if they fulfill the conditions listed after the “Unlock” header.
     - The “Unlock” condition for each hero is to have three scored objectives; these can be any combination of secret objectives and public objectives.
     - Victory points do not count toward unlocking heroes.

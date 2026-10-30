@@ -36,6 +36,8 @@ class ListaItem:
 
     tekst: str
     ruling: bool = False  # czy to ruling Dane (span class="ruling")
+    subheading: bool = False  # śródtytuł LRR (<h2><li>...</li></h2> wewnątrz listy)
+    para: bool = False  # akapit <p> wstawiony wewnątrz listy (bez myślnika)
     dzieci: list[ListaItem] = field(default_factory=list)
 
 
@@ -66,6 +68,8 @@ class TiruleParser(HTMLParser):
 
         self._w_header = False
         self._w_h2 = False
+        self._h2_w_liscie = False  # <h2> jako śródtytuł wewnątrz listy LRR
+        self._p_w_liscie = False  # <p> wstawiony wewnątrz listy
         self._w_p = False
         self._buf: list[str] = []  # bufor tekstu bieżącego elementu
 
@@ -95,10 +99,23 @@ class TiruleParser(HTMLParser):
         elif tag == "br":
             self._buf.append(" / ")
         elif tag == "h2":
-            self._zakoncz_paragraf()
-            self._w_h2 = True
-            self._buf = []
+            # <h2> wewnątrz otwartej listy = śródtytuł LRR (<h2><li>Costs</li></h2>),
+            # NIE nowa sekcja — nie zamykamy listy, zbieramy jako etykietę grupy.
+            if self._stos_list:
+                self._h2_w_liscie = True
+                self._buf = []
+            else:
+                self._zakoncz_paragraf()
+                self._zamknij_wszystkie_listy()
+                self._w_h2 = True
+                self._buf = []
         elif tag == "p":
+            # <p> wewnątrz otwartej listy (tirules wstawia akapity między <li>) —
+            # NIE zamykamy listy; treść trafi jako pozycja-akapit zachowując kolejność.
+            if self._stos_list:
+                self._p_w_liscie = True
+            else:
+                self._p_w_liscie = False
             self._w_p = True
             self._buf = []
         elif tag in ("ol", "ul"):
@@ -114,11 +131,22 @@ class TiruleParser(HTMLParser):
             elif self._stos_list and self._stos_list[-1]:
                 # <ol> jako rodzeństwo: dowiąż do ostatniego li bieżącej listy
                 self._stos_list[-1][-1].dzieci = nowa
-            elif self._sekcja is not None and not self._sekcja.pozycje:
-                # pierwsza lista w sekcji
-                self._sekcja.pozycje = nowa
+            elif self._sekcja is not None:
+                # lista najwyższego poziomu w sekcji. Sekcja może mieć ich kilka
+                # (tirules bywa, że wstawia drugą <ol> po akapicie) — scalamy
+                # pozycje w jedną listę sekcji, zachowując kolejność.
+                if not self._sekcja.pozycje:
+                    self._sekcja.pozycje = nowa
+                else:
+                    nowa = self._sekcja.pozycje
             self._stos_list.append(nowa)
         elif tag == "li":
+            # <li> wewnątrz <h2> (śródtytuł LRR) — tekst zbieramy do bufora h2, nie tworzymy pozycji
+            if self._h2_w_liscie:
+                return
+            # auto-zamknięcie poprzedniego <li> na tym samym poziomie (gdy źródło gubi </li>)
+            if self._li_jest_rodzenstwem():
+                self._zamknij_li()
             self._buf = []
             self._li_ruling = False
             item = ListaItem(tekst="")
@@ -146,11 +174,27 @@ class TiruleParser(HTMLParser):
         elif tag == "h1":
             self.tytul = self._flush()
         elif tag == "h2":
-            self._sekcja = Sekcja(naglowek=self._flush())
-            self.sekcje.append(self._sekcja)
-            self._w_h2 = False
+            if self._h2_w_liscie:
+                # śródtytuł LRR: dodaj jako pozycję-etykietę do bieżącej listy
+                etykieta = self._flush()
+                if etykieta and self._stos_list:
+                    self._stos_list[-1].append(
+                        ListaItem(tekst=etykieta, subheading=True)
+                    )
+                self._h2_w_liscie = False
+            else:
+                self._sekcja = Sekcja(naglowek=self._flush())
+                self.sekcje.append(self._sekcja)
+                self._w_h2 = False
         elif tag == "p":
             txt = self._flush()
+            if self._p_w_liscie and self._stos_list:
+                # akapit wewnątrz listy — pozycja-akapit (zachowuje kolejność, bez myślnika)
+                if txt:
+                    self._stos_list[-1].append(ListaItem(tekst=txt, para=True))
+                self._p_w_liscie = False
+                self._w_p = False
+                return
             if txt and self._sekcja is not None:
                 self._sekcja.paragrafy.append(txt)
             elif txt and self._sekcja is None:
@@ -161,10 +205,15 @@ class TiruleParser(HTMLParser):
                 self.sekcje[0].paragrafy.append(txt)
             self._w_p = False
         elif tag == "li":
+            if self._h2_w_liscie:
+                return  # </li> w śródtytule — tekst zostaje w buforze do </h2>
             if self._stos_li:
                 item = self._stos_li.pop()
                 item.tekst = self._flush()
         elif tag in ("ol", "ul"):
+            # domknij otwarty <li> tej listy (gdy źródło gubi </li> przed </ol>)
+            if self._li_jest_rodzenstwem():
+                self._zamknij_li()
             if self._stos_list:
                 self._stos_list.pop()
         elif tag == "a":
@@ -180,6 +229,27 @@ class TiruleParser(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         self._buf.append(data)
+
+    def _zamknij_li(self) -> None:
+        """Domyka bieżący <li> (gdy źródło gubi </li>). Flushuje tekst, zdejmuje ze stosu."""
+        if self._stos_li:
+            item = self._stos_li.pop()
+            item.tekst = self._flush()
+
+    def _li_jest_rodzenstwem(self) -> bool:
+        """Czy otwarty <li> należy do listy na szczycie stosu (= rodzeństwo nowego <li>)."""
+        return bool(
+            self._stos_li
+            and self._stos_list
+            and self._stos_list[-1]
+            and self._stos_list[-1][-1] is self._stos_li[-1]
+        )
+
+    def _zamknij_wszystkie_listy(self) -> None:
+        """Domyka wszystkie otwarte <li> i listy (przy <h2> / nowej sekcji)."""
+        while self._stos_li:
+            self._zamknij_li()
+        self._stos_list = []
 
     def _zakoncz_paragraf(self) -> None:
         if self._w_p:
@@ -202,11 +272,16 @@ def _czysty_tekst(md: str) -> str:
 
 def _item_na_md(item: ListaItem, poziom: int, lrr: bool) -> list[str]:
     wciecie = "    " * poziom
-    prefix = "- "
+    if item.subheading:
+        # śródtytuł LRR — pogrubiona etykieta grupy (pusta linia dla czytelności)
+        return ["", f"{wciecie}**{item.tekst}**", ""]
+    if item.para:
+        # akapit wstawiony w liście — bez myślnika, z pustymi liniami wokół
+        return ["", f"{wciecie}{item.tekst}", ""]
     tekst = item.tekst
     if item.ruling:
         tekst = f"_[Dane ruling]_ {tekst}"
-    linie = [f"{wciecie}{prefix}{tekst}"]
+    linie = [f"{wciecie}- {tekst}"]
     for dz in item.dzieci:
         linie += _item_na_md(dz, poziom + 1, lrr)
     return linie
@@ -214,6 +289,10 @@ def _item_na_md(item: ListaItem, poziom: int, lrr: bool) -> list[str]:
 
 def _item_na_json(item: ListaItem) -> Json:
     d: Json = {"text": _czysty_tekst(item.tekst)}
+    if item.subheading:
+        d["subheading"] = True
+    if item.para:
+        d["paragraph"] = True
     if item.ruling:
         d["dane_ruling"] = True
     if item.dzieci:

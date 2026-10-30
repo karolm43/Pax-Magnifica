@@ -12,12 +12,14 @@ Planets provide players with resources and influence. Planets are on system tile
 - A planet’s trait has no inherent effects, but some game effects refer to a planet’s trait. There are three traits: cultural, hazardous, and industrial.
 - Some planets have a technology specialty, which allows those planets to be exhausted to satisfy a prerequisite when researching technology.
 - Some planets are legendary planets, as indicated by the legendary planet icon. When a player gains control of a legendary planet, they also gain control of its legendary planet ability card.
-- Planet Card
+
+**Planet Card**
+
+Each planet has a corresponding planet card that displays its name, resource value, influence value, and trait, if it has one. If a player controls a planet, they keep that planet’s card in their play area.
+
 - A planet card has both a readied and exhausted state. When a planet is readied, it is placed faceup. When a planet is exhausted, it is placed facedown.
 - A player can spend a readied planet’s resources or influence.
 - A player cannot spend an exhausted planet’s resources or influence.
-
-Each planet has a corresponding planet card that displays its name, resource value, influence value, and trait, if it has one. If a player controls a planet, they keep that planet’s card in their play area.
 
 ## Notes
 

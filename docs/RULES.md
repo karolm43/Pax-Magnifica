@@ -21,6 +21,9 @@ Status weryfikacji każdej reguły:
   w Markdown + `tirules.json`. **Sprawdzaj reguły TUTAJ w pierwszej kolejności** (bez
   requestów online). Odświeżenie i atrybucja: [`docs/rules_tirules/SOURCE.md`](rules_tirules/SOURCE.md).
   Gdy lokalny zrzut nie wystarcza, zajrzyj na żywą stronę tirules2.com.
+  > **To są ZASADY i DOPRECYZOWANIA reguł** (edge-case'y, interakcje, rulingi Dane) —
+  > NIE opisy działania umiejętności frakcji/kart. Pełne opisy komponentów są w assetach
+  > JSON AsyncTI4; pliki `F_*`/`C_*` zawierają tylko noty-doprecyzowania (patrz `SOURCE.md`).
 - Living Rules Reference 2.0 (Prophecy of Kings), FFG, 09/2020 —
   [PDF](https://images-cdn.fantasyflightgames.com/filer_public/51/55/51552c7f-c05c-445b-84bf-4b073456d008/ti10_pok_living_rules_reference_20_web.pdf)
 - TI Wiki (odzwierciedla LRR): https://twilight-imperium.fandom.com/wiki/Anomalies

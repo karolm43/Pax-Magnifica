@@ -99,4 +99,4 @@
 ## Particle Synthesis (Breakthrough)
 
 - Each wormhole in the system provides the `Production` value and discount, even those of the same type.
--
+- If the Creuss player moves the *Hil Colish* into a system, the Creuss player may use the `Production` ability of the associated delta wormhole during the production step of the same tactical action.

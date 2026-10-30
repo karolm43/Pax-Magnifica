@@ -130,22 +130,38 @@ For notes about technologies of a specific faction, see that faction’s notes p
     - This will most commonly happen when both players in a combat have *Assault Cannon*, and the defender has exactly three non–fighter ships.
     - Examples of other abilities that may remove units at the start of a space combat include the Creuss player’s *Dimensional Splicer* faction technology ability, the Mentak player’s `Ambush` faction ability, the Yin player’s *Impulse Core* faction technology ability, as well as abilities such as the *Courageous to the End* action card or the *Reflective Shielding* action card that may trigger off of any of the previous abilities.
 - A player may use an ability to add ships at the start of combat. If this brings the number of non–fighter ships to three or more, the player may then use the ability of *Assault Cannon*.
-    - 
-        - The produced units must be paid for.
-        - There is no limit on the number of units produced, so long as the combined cost does not exceed the planet’s resource value.
-        - Two fighters or two infantry have a combined cost of one resource.
-        - A player may produce ships with *Integrated Economy*, unless another player has ships in the space area of that planet’s system.
+    - Each other player may use one ability after that player has gained ships, and before that player has the opportunity to use the *Assault Cannon* ability. This may prevent that player from using the ability, as above.
     - Examples of abilities that may add units at the start of space combat include a combination of the Mentak player’s *Sleeper Cell* hero ability and their `Ambush` faction ability, the ability of the Nekro player’s flagship, *The Alastor*, and the Naaz–Rokha player’ *Eidolon* mech ability.
 - Effects that cancel hits, such as `Sustain Damage`, cannot be used to prevent ships from being destroyed.
 
 ## Sarween Tools
 
+- If units are produced without any unit using its `Production` ability, *Sarween Tools* will not provide a reduction to the cost.
+
 ## Scanlink Drone Network
+
+- The units must be on the planet before the **Movement** step of the tactical action.
 
 ## Graviton Laser System
 
+- If multiple players are resolving the `Space Cannon` ability of their units against the active player, the active player must resolve capacity limits after assigning one player’s hits and before the next player makes their space cannon roll.
+
 ## Predictive Intelligence
+
+- Neither ability of *Predictive Intelligence* may be used if it is exhausted.
+- If a player removes any tokens from their fleet pool, they will need to meet their new fleet pool limits before any other effects may resolve.
 
 ## Transit Diodes
 
+- When resolving the ability of *Transit Diodes*, that player may remove ground forces from a system containing their command token.
+- The ground forces may be removed from on a planet or from in a space area.
+- The ground forces may be removed from different systems.
+- The ground forces may be placed on different planets.
+- If a mech is damaged when it is removed, it will remain damaged when it is placed.
+
 ## Integrated Economy
+
+- The produced units must be paid for.
+- There is no limit on the number of units produced, so long as the combined cost does not exceed the planet’s resource value.
+- Two fighters or two infantry have a combined cost of one resource.
+- A player may produce ships with *Integrated Economy*, unless another player has ships in the space area of that planet’s system.

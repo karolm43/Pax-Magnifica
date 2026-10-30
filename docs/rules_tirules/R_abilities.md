@@ -18,10 +18,14 @@ Cards and faction sheets each have abilities that players can resolve to trigger
 - When a player resolves an ability, they must resolve the ability in its entirety. Any parts of the ability preceded by the word “may” are optional, and the player resolving the ability may choose not to resolve those parts.
 - Abilities on components that remain in play are mandatory unless those abilities use the word “may”.
 - If an ability has multiple effects separated by the word “and”, a player must resolve as many of the ability’s effects as possible. However, if the player cannot resolve all of its effects, that player is allowed to resolve as many as they can.
-- Costs
+
+**Costs**
+
 - Some abilities have a cost that is followed by an effect. The cost of an ability is separated from the effect by the word “to” or by a semicolon. A player cannot resolve the effect of such an ability if they cannot resolve that ability’s cost.
 - Some examples of an ability’s cost include spending resources, spending trade goods, spending command tokens, exhausting cards, purging cards, and activating specific systems.
-- Timing
+
+**Timing**
+
 - If the timing of an ability uses the word “before” or “after”, the ability’s effect occurs immediately before or after the described timing event, respectively.
     - For example, if an ability is resolved “after a ship is destroyed”, the ability must be resolved as soon as the ship is destroyed and not later during that turn or round.
 - If the timing of an ability uses the word “when”, the ability’s effect occurs at the moment of the described timing event.
@@ -31,7 +35,9 @@ Cards and faction sheets each have abilities that players can resolve to trigger
 - Each ability can be resolved once for each occurrence of that ability’s timing event. For example, if an ability is resolved “at the start of combat”, it can be resolved at the start of each combat.
 - If there are multiple abilities that players wish to resolve at the same time during the **action phase**, each player takes a turn resolving an ability in initiative order, beginning with the active player. This process continues until each player has resolved each ability that they wish to resolve during that window.
 - If there are multiple abilities that players wish to resolve at the same time during the **strategy** or **agenda phases**, players take turns resolving abilities starting with the speaker and proceeding clockwise. This process continues until each player has resolved each ability that they wish to resolve during that window.
-- Component–specific Rules
+
+**Component–specific Rules**
+
 - The opening paragraph of each ability found on an action card describes when a player can resolve that card’s ability.
 - The opening paragraph of most abilities found on promissory notes describes when a player can resolve that card’s ability.
     - Some promissory notes have abilities that trigger as soon as a player receives the card.

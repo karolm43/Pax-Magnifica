@@ -23,7 +23,11 @@ Players can score objectives to gain victory points.
 - If an objective requires a player to destroy one or more units, those units can be destroyed by producing hits against them, playing action cards, using technology, or any number of other abilities that use the “destroy” terminology.
     - Forcing a player to remove a unit from the board by reducing the number of command tokens in their fleet pool is not treated as destroying a unit.
 - Players can score some objectives by spending resources, influence, or tokens, as described by the objective card. To score such an objective, a player must pay the specified cost at the time indicated on the card.
-- Public Objectives
+
+**Public Objectives**
+
+A public objective is an objective that is revealed to all players.
+
 - When scoring a public objective, the player places one of their control tokens on that objective’s card. Then, that player advances their control token on the victory point track a number of spaces equal to the number of victory points gained.
 - Each game contains five stage I and five stage II public objective cards that the speaker places facedown near the victory point track during setup.
     - The speaker reveals two of the stage I objective cards during setup. All other objective cards remain facedown.
@@ -32,17 +36,17 @@ Players can score objectives to gain victory points.
 - If the speaker must reveal a facedown public objective card but all public objective cards are already revealed, the game ends immediately.
     - The player with the most victory points is the winner. If one or more players are tied for having the most victory points, the tied player who is first in initiative order is the winner.
 - A player cannot score public objectives if that player does not control each planet in their home system.
-- Secret Objectives
+
+**Secret Objectives**
+
+A secret objective is an objective that is controlled by one player and is hidden from all other players until it is scored.
+
 - When scoring a secret objective, a player reveals the objective by placing it faceup in their play area. Then, they place one of their control tokens on that objective’s card and advances their control token on the victory point track a number of spaces equal to the number of victory points gained.
 - A player can only score their own secret objectives; a player cannot score secret objectives revealed by other players.
 - Each player begins the game with one secret objective.
 - Each player can have up to **three total** scored and unscored secret objectives.
     - If a player draws a secret objective and has more than three, that player must choose one of their unscored secret objectives and return it to the deck. Then, that player shuffles the secret objective deck.
 - A player can gain secret objectives by resolving either the primary or secondary ability of the *Imperial* strategy card.
-
-A public objective is an objective that is revealed to all players.
-
-A secret objective is an objective that is controlled by one player and is hidden from all other players until it is scored.
 
 ## Notes
 

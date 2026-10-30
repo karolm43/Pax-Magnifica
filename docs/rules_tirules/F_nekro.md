@@ -63,26 +63,68 @@
 - A faction’s mech is not a technology. The Nekro player cannot use a *Valefar Assimilator* to copy a mech.
 - If the Nekro player has a generic unit upgrade, and gains a faction–specific unit upgrade, then the faction–specific version will be in effect. If the faction–specific unit upgrade is later lost, they revert to the generic unit upgrade.
     - Owning two unit upgrades for the same type of unit in this manner only counts as one unit upgrade towards the *Develop Weaponry* and *Revolutionize Warfare* objectives.
-    - 
-        - If the Nekro player places a Valefar Assimilator X or Y token on the Nomad player’s *Memoria II* unit upgrade technology card, their flagship would still gain each ability granted to them by *Valefar Assimilator Z* from the flagships of other players.
-        - The Nekro player cannot place multiple Valefar Assimilator Z tokens on the same player’s faction sheet.
-        - If the Nekro player has a Valefar Assimilator Z token on the Mahact player’s faction sheet, they will always apply the +2 to the combat rolls for *The Alastor*.
-        - If the Nekro player has a Valefar Assimilator Z token on the Vuil’raith player’s faction sheet, they will capture destroyed units.
-        - If the Nekro player has a Valefar Assimilator Z token on the Firmament player’s faction sheet, *The Alastor* will lose the ability of *Heaven’s Eye* when that player converts to the Obsidian components.
+    - If the Nekro player gains a faction–specific infantry unit upgrade technology while they own the generic Infantry II unit upgrade technology and they have infantry on that unit upgrade card that would be placed in their home system at the start of their next turn, then those infantry are transferred to the *Valefar Assimilator* card that they are using to copy the faction–specific infantry unit upgrade.
 - If another player returns a technology which is currently being copied by a *Valefar Assimilator*, it will remain copied with a Valefar Assimilator token on it while in that player’s technology deck.
 - For the *Adapt New Strategies* objective, a *Valefar Assimilator* technology will count if and only if it is currently copying another technology.
 - For notes about technologies of a specific faction, see that faction’s notes.
 - If the Nekro player has copied certain technology (possibly two or more at different points in time), the following apply:
+    - If both the Saar player’s Floating Factory II unit upgrade and the Vuil’raith player’s *Vortex* technology are copied, and another player blockades a Nekro space dock, the Nekro player returns any captured units, then destroys the blockaded space dock.
+    - If both the Letnev player’s *Non–Euclidean Shielding* technology and the generic *Duranium Armor* technology are copied, then a space combat between the Nekro player and the Letnev player in certain circumstances may result in neither player being able to win. If this happens, the attacker must declare a retreat. If the attacker cannot do so, they destroy all their units in that combat.
+    - If both the Muaat player’s *Magmus Reactor* technology and the Saar player’s Floating Factory II unit upgrade are copied, the Nekro player may move their space docks into supernovae.
+    - If the Saar player’s Floating Factory II unit upgrade is copied, both the Nekro player and the Saar player may have their space docks in the same system, if there are no ships in that system.
+    - If the N’orr player’s Exotrireme II unit upgrade is copied, and the Nekro player is in a combat with the N’orr player, then the players will alternate when resolving end of combat round abilities, starting with the active player (all players may resolve abilities in initiative order, but it is most common for only the two players involved in the combat to want to resolve abilities). For example, if the attacking player has two Exotriremes II in the system and the defender has four, assuming both players are hostile towards each other, the most likely sequence is as follows: The attacker activates one of their Exotriremes II, leaving them with one and the defender with two; The defender activates one of their Exotriremes II leaving them with one and the attacker with none.
+    - If the Deepwrought player’s *Radical Advancement* technology is copied, the Nekro player may resolve its ability, and will gain the chosen new technology; they will not gain command tokens.
 - The Nekro player may lose a technology if they copy a new one. If they lose certain technologies, the following apply:
+    - If the Saar player’s Floating Factory II is lost, each space dock the Nekro player controls must be placed on a planet they control in the same system, or the space dock is removed.
+    - If the Muaat player’s Prototype War Sun II is lost, and the Nekro player does not have the generic war sun technology, each of their war suns are removed from the game board.
+    - If the Muaat player’s *Magmus Reactor* is lost, the Nekro player’s units may remain in and move out of any supernovae they are currently in, but cannot move additional units into or through.
+    - If the Vuil’raith player’s Dimensional Tear II is lost, the dimensional tear tokens are removed from under the Nekro player’s space docks; the systems are no longer gravity rifts (unless the system tile is a printed gravity rift).
+    - If a unit upgrade that provides that unit with the `Sustain Damage` ability is lost, any damaged units will remain damaged, until either the status phase or another effect repairs them.
+    - The Nekro player may lose a faction–specific infantry unit upgrade technology, while they have infantry on the unit upgrade card that would be placed in their home system at the start of their next turn. If they are moving the Valefar Assimilator token to a different faction–specific infantry unit upgrade technology, the infantry remain on the *Valefar Assimilator* card. Else, if they own the generic Infantry II unit upgrade technology, the infantry are transferred to that unit upgrade card. Otherwise, the infantry are returned to the Nekro player’s reinforcements.
 
 ## The Alastor (Flagship)
 
+- Any effect that may target ships or non–fighter ships may target a ground force that is participating in space combat due to the effect of *The Alastor*.
+    - This includes counting towards the three non–fighter ships necessary to trigger the effect of the *Assault Cannon* technology.
+    - The Winnu player’s flagship, the *Salai Sai Corian*, will roll one dice for each ground force the Nekro player has participating in a space combat via the effect of *The Alastor*.
+- After the Nekro player uses the ability of *The Alastor*, all other players will have the opportunity to resolve an “at the start of combat” or an “at the start of a round of combat” ability before the Nekro player may resolve another ability.
+    - For example, say the Nekro player owns the *Assault Cannon* technology, and uses the ability of *The Alastor* to bring the total number of non–fighter ships in the combat to three (or more). Other players may then resolve one ability each. If their opponent uses an ability that destroys ships, such as from their own *Assault Cannon*, to reduce the number of non–fighter ships the Nekro player has in the combat to two (or fewer), then the Nekro player will be unable to resolve the ability of their *Assault Cannon*
+- Some abilities may destroy *The Alastor* at the start of a combat before the Nekro player has used its ability, such as the *Assault Cannon* technology.
+- Ground forces on planets remain there while participating in combat. Effects that target units in a space area cannot target these ground forces.
+    - When the Nekro player is in a space combat against the Argent player, their infantry on planets participating in the combat cannot be targeted by the ability of the Argent player’s *Strike Wing Alpha II* destroyers.
+- If *The Alastor* is destroyed during space combat, any ground forces in that combat remain in that combat.
+- If the Nekro player copies another player’s flagship unit upgrade technology with one of their *Valefar Assimilator* technologies during a space combat, any ground forces in that combat remain in that combat. If the Nekro player starts the space combat copying another player’s flagship unit upgrade technology, ground forces cannot participate in that combat, unless the Nekro player stops copying that flagship unit upgrade technology during the “start of combat” window.
+- The ground forces in the space area during the combat still retain their ability to be transported. Since transported units do not count against capacity during combat, these ground forces will not count toward the Nekro player’s fleet pool limit.
+- A mech in the space combat may be targeted with the *Direct Hit* action card if it uses its `Sustain Damage` ability.
+- If the Nekro player has one of their *Valefar Assimilator* tokens on the Ul player’s Hel Titan II faction unit upgrade technology, they may use *The Alastor* to have their PDS in the active system participate in the space combat.
+- A ground force participating in a space combat may count towards scoring the *Demonstrate Your Power* secret objective.
+- If the Nekro player loses their last ground force during a space combat and consequently meets the requirements for elimination, they are immediately eliminated. They will not be given the opportunity to score any objectives from winning the combat or destroying certain units at the same time their last ground force was destroyed.
+    - If the Nekro player uses a *Direct Hit* action card to destroy an opponent’s flagship, they may score the *Destroy their Greatest Ship* secret objective, even if there are some hits remaining that will cause the Nekro player to be eliminated once they are assigned. If this would bring the Nekro player to ten victory points, they will instead win the game before they are eliminated.
+
 ## Nekro Malleon (Agent)
+
+- If the chosen player is the Muaat player with their commander, Magmus, unlocked, they will gain a trade good from it if they spend a token from their strategy pool when resolving this ability.
+    - That trade good will be gained separately from the other two.
+- The ability of Nekro Malleon cannot be resolved while another ability is resolving. For example, if the Nekro player is targeted by the *Spy* action card, they cannot use the ability of Nekro Malleon to discard one of their action cards before *Spy* resolves.
 
 ## Nekro Acidos (Commander)
 
+- When the Nekro player gains their third technology and unlocks Nekro Acidos, they cannot apply Nekro Acidos to that instance of gaining a technology.
+- When the Nekro places a Valefar Assimilator token on a technology, they are not gaining a technology.
+
 ## UNIT.DSGN.FLAYESH — Polymorphic Algorithm (Hero)
+
+- When the other player’s units are destroyed, this does not trigger the Nekro player’s `Technology Singularity` ability.
+- Unit upgrades do not have a color. The Nekro player cannot gain a unit upgrade with *Polymorphic Algorithm*.
 
 ## Mordred (Mech)
 
+- A Mordred will apply +2 against a player with both Valefar Assimilator tokens, and not +4.
+
 ## Valefar Assimilator Z (Breakthrough)
+
+- If the Nekro player places a Valefar Assimilator X or Y token on the Nomad player’s *Memoria II* unit upgrade technology card, their flagship would still gain each ability granted to them by *Valefar Assimilator Z* from the flagships of other players.
+- The Nekro player cannot place multiple Valefar Assimilator Z tokens on the same player’s faction sheet.
+- If the Nekro player has a Valefar Assimilator Z token on the Mahact player’s faction sheet, they will always apply the +2 to the combat rolls for *The Alastor*.
+- If the Nekro player has a Valefar Assimilator Z token on the Vuil’raith player’s faction sheet, they will capture destroyed units.
+- If the Nekro player has a Valefar Assimilator Z token on the Firmament player’s faction sheet, *The Alastor* will lose the ability of *Heaven’s Eye* when that player converts to the Obsidian components.

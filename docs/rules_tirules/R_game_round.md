@@ -9,6 +9,9 @@
 - Action Phase
 - Status Phase
 - Agenda Phase
+- Players skip the agenda phase during the early portion of each game. After the custodians token is removed from Mecatol Rex, the agenda phase is added to each game round.
+- Player turns occur during the action phase.
+- Abilities that last until the end of a player’s turn do not persist for the duration of a game round or into the other phases of that game round. Those effects end at the end of that player’s turn, before the next player’s turn begins.
 
 ## Notes
 
