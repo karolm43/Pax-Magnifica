@@ -1,4 +1,4 @@
-# Zweryfikowane reguły Twilight Imperium 4 (źródło prawdy dla kodu)
+﻿# Zweryfikowane reguły Twilight Imperium 4 (źródło prawdy dla kodu)
 
 Ten plik jest **jedynym źródłem prawdy** dla reguł TI4 implementowanych w kodzie.
 Zasada projektu (spec 5.1): żadna reguła ani statystyka nie jest kodowana z pamięci.
@@ -596,6 +596,8 @@ w `web_data.py` (`_faction_abilities`, `_faction_techs`, `_player_breakthrough`)
 
 
 ## 19. Akcja taktyczna: aktywacja systemu + maszyna kroków — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+> ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
+
 
 Etap E3. **Decyzja projektowa (ustalona z użytkownikiem):** aplikacja PROWADZI gracza
 przez kroki akcji taktycznej, ale **NIE waliduje reguł TI4** — gracze grają fizycznie
@@ -632,6 +634,8 @@ ręcznie korygować żetony (bez zużycia puli — to korekta, nie aktywacja).
 
 
 ## 20. Walka: pomoce liczbowe (asystent, nie sędzia) — ✅ ZWERYFIKOWANE (dane UnitDef)
+> ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
+
 
 Etap E3. **Decyzja projektowa:** aplikacja NIE rozstrzyga walki — nie rzuca kośćmi i nie
 przypisuje trafień. Gracze robią to fizycznie na stole; aplikacja daje tylko POMOCE
@@ -659,6 +663,8 @@ graczy) → `GET /tactical/combat/{pos}` → okno z dwiema stronami, listą jedn
 
 
 ## 21. Przejęcie kontroli planety (inwazja) — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+> ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
+
 
 Etap E3. Po wygranej inwazji gracz przejmuje kontrolę planety. Reguła (źródło: AsyncTI4
 `UnitHolder.addControl` = `controlList.clear(); controlList.add(cc)` oraz `AddPlanetService.addPlanet`
@@ -672,6 +678,8 @@ w oknie walki naziemnej. Kontrola planety jest niezależna od kontroli przestrze
 innego gracza mogą zostać w systemie — RULES.md 19).
 
 ## 22. Produkcja: pomoc liczbowa (koszt + zasoby) — ✅ ZWERYFIKOWANE (dane UnitDef)
+> ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
+
 
 Etap E3. Aplikacja NIE waliduje limitów produkcji ani wydatków — to pomoc liczbowa.
 `core/tactical.production_help(state, registry, player_id)` liczy:
@@ -712,6 +720,8 @@ stawianie piechoty nie dawało kontroli (panel „kontrolowane planety" się nie
 web-data liczy kontrolowane planety wyłącznie z `planet_owners` — stąd brak efektu.
 
 ## 24. Kolejność graczy: seating order, speaker, wybór kart strategii — ✅ ZWERYFIKOWANE (LRR + AsyncTI4 bot)
+> ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
+
 
 Etap E1/E2 (przebudowa tur). Dwie RÓŻNE kolejności obowiązują w różnych fazach:
 
@@ -878,3 +888,85 @@ Reguła w danych (nie z pamięci): Obsidian ma zdolność **`nocturne`**
 (stała `NO_SETUP_CHOICE_ABILITY` w `models.py`). Efekt: `/factions` pokazuje Firmament, ukrywa
 Obsidian; setup odrzuca Obsidian (422). Gdyby doszła inna frakcja „non-setup" (np. druga strona
 innego kafelka), oznaczymy ją tą samą zdolnością w danych — kod jej nie wymaga zmieniać.
+
+---
+
+## 29. ZMIANA KIERUNKU: silnik-SĘDZIA + okna czasowe (zastępuje "asystent, nie sędzia")
+
+**Data decyzji: 2026-10. Ustalenie z użytkownikiem — ŚWIADOMA zmiana filozofii projektu.**
+
+### 29.1. Nowa decyzja projektowa (obala wcześniejsze "asystent stołu, nie sędzia")
+
+Dotychczasowa decyzja (sekcje 19-22, 24, 25, 27 i memory `engine-is-table-assistant-not-referee`)
+mówiła: silnik PROWADZI przez kroki i daje pomoce liczbowe, ale NIE waliduje reguł — gracze grają
+fizycznie i wprowadzają wynik. **Ta decyzja zostaje ZASTĄPIONA.**
+
+**Nowy kierunek:** silnik EGZEKWUJE reguły TI4 przez kod (jest SĘDZIĄ). Powody (ustalone z użytkownikiem):
+1. Docelowy bot AI i tak musi znać i respektować reguły — egzekucja w `core/` to jego "reguły świata".
+2. Dla gracza egzekucja jest wygodniejsza (user friendly) — nie musi pamiętać i pilnować legalności.
+3. Gra przestaje zakładać, że gracz ma fizycznie rozłożoną planszę.
+
+**God-Mode ZOSTAJE** jako osobny, świadomy kanał ręcznej korekty, który OMIJA walidację (wentyl na
+zapomniane/brzegowe przypadki). Zasada: zwykłe akcje (ruch, aktywacja, pick, produkcja, walka)
+walidowane TWARDO (nielegalne → `ValueError` → HTTP 422); God-Mode (`/god-mode/patch`, `board_edit.*`)
+celowo nie waliduje reguł — to "ręka operatora".
+
+**Tryb gry (ustalony):** solo przeciw botom + hot-seat (wielu ludzi lokalnie), docelowo moduł sieciowy.
+Dlatego okna czasowe muszą pytać graczy PO KOLEI (kolejka), a nie zakładać jednego operatora.
+
+**Zakres pierwszego wdrożenia walki (ustalony):** rdzeń najpierw — rzuty kośćmi + liczenie trafień
++ okno "przypisz straty" (obrońca wskazuje, które jednostki giną), wielorundowo. Warianty (anti-fighter
+barrage, space cannon offense) dokładane jako KOLEJNE okna czasowe po rdzeniu.
+
+> Sekcje 19-22 pozostają poprawne jako REFERENCJA mechanik TI4 (sekwencja kroków, przejęcie planety,
+> statystyki bojowe z UnitDef), ale ich adnotacje "NIE waliduje / asystent, nie sędzia" są UNIEWAŻNIONE
+> przez tę sekcję. Przy implementacji każdej z nich walidacja wchodzi do `core/` zgodnie z 29.1.
+
+### 29.2. Model okna czasowego (timing window) — ✅ ZWERYFIKOWANE (LRR "Timing" + AsyncTI4 + potwierdzenie użytkownika 2026-10)
+
+Źródło: LRR 2.0 hasło "Timing of Component Abilities" / "Strategy Phase" (kolejność secondary);
+AsyncTI4 `service/strategycard/` (kolejka secondary/follow). Potwierdzone przez użytkownika 2026-10.
+
+**Czym jest okno czasowe:** moment w rozgrywce, w którym JEDEN lub WIELU graczy ma okazję podjąć
+decyzję/akcję reaktywną (np. secondary karty strategii, zareagowanie kartą akcji, przypisanie strat
+w walce). Okno ma KOLEJKĘ graczy pytanych PO KOLEI i zamyka się, gdy wszyscy odpowiedzieli.
+
+**Kolejność reagowania (POTWIERDZONA):**
+- Kolejka zaczyna się od gracza PO AKTYWNYM (po lewej / następny w speaker order) i idzie ZGODNIE
+  Z RUCHEM WSKAZÓWEK ZEGARA (speaker order rotowany od gracza po inicjatorze).
+- **Secondary kart strategii:** po rozstrzygnięciu primary przez aktywnego gracza, pozostali gracze
+  wykonują secondary w tej kolejności; każdy może wykonać secondary ALBO zrezygnować (pas).
+- **Reakcje "when/after" (karty akcji, technologie):** modelowane UNIWERSALNIE tym samym mechanizmem —
+  kolejka graczy pytanych po kolei w tej samej kolejności.
+- **Inicjator okna** jest domyślnie POMIJANY w kolejce (okno dotyczy reakcji pozostałych). Okna, które
+  wyjątkowo dotyczą też inicjatora, mogą go dodać jawnie (parametr przy otwarciu okna).
+
+**Model w stanie (plan implementacji — Task 1):** jednolite pole w `GameState` (np. `pending_window`):
+typ okna, kolejka `player_id` do zapytania, wskaźnik bieżącego respondenta, kto już odpowiedział,
+dane kontekstowe (np. numer karty strategii, pozycja systemu walki). Czyste funkcje w nowym module
+`core/timing.py`: `open_window`, `current_responder`, `respond_current`, `advance_window`, `close_window`.
+Jedno pojęcie obsługuje: secondary kart strategii, space cannon, przypisanie strat w walce, reakcje.
+
+**Zastosowanie (planowane etapy):**
+- Task 3: secondary karty strategii (pierwsze realne okno).
+- Task 7/9: okno "przypisz straty", anti-fighter barrage, space cannon offense w walce.
+- Przyszłość: reakcje kartami akcji / technologiami (etap E4).
+
+### 29.3. Pojęcie "aktualny gracz / czyja tura" — rozszerzenie
+
+`GameState.active_player_id` (pojedyncza wartość) zostaje jako "czyja tura". Okna czasowe wprowadzają
+OBOK niego "kto teraz reaguje" (bieżący respondent okna z 29.2) — to osobny wskaźnik, nie nadpisuje
+aktywnego gracza. STATUS/AGENDA przestają zerować aktywnego gracza (Task 4) — dostają właściwą
+kolejność (inicjatywa dla statusu, speaker order dla agendy; do potwierdzenia przy tych etapach).
+
+**Status wdrożenia (dziennik):**
+- ⬜ Task 1: model okna w stanie + `core/timing.py`.
+- ⬜ Task 2: ekspozycja okna w web-data + panel okna w UI.
+- ⬜ Task 3: secondary karty strategii.
+- ⬜ Task 4: aktualny gracz w STATUS/AGENDA + walidacja flow.
+- ⬜ Task 5: ruch jako funkcja core + walidacja (zasięg, anomalie, przejezdność).
+- ⬜ Task 6: walidacja aktywacji, przejęcia planety, produkcji.
+- ⬜ Task 7: walka — rdzeń (rzuty + trafienia + okno przypisania strat, wielorundowo).
+- ⬜ Task 8: interaktywna walka w UI (animacja rzutów).
+- ⬜ Task 9: anti-fighter barrage + space cannon offense.
+- ⬜ Task 10: aktualizacja dokumentacji (ta sekcja) + memory.

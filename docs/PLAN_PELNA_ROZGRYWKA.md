@@ -1,4 +1,4 @@
-1# Plan: pełna rozgrywka Twilight Imperium na stronie
+﻿1# Plan: pełna rozgrywka Twilight Imperium na stronie
 
 Cel końcowy (ustalony z użytkownikiem): **możliwość rozegrania pełnej partii TI4 w aplikacji**
 — nie tylko odwzorowanie stanu (God-Mode), ale realne fazy, akcje, walka, agenda, punktacja.
@@ -44,10 +44,11 @@ kod + testy + QA + commit; grywalny przyrostowo.
 
 ### E3 — Akcja taktyczna (aktywacja → ruch → walka kosmiczna → inwazja → produkcja) ✅ GOTOWY
 Źródło: `service/tactical/` (TacticalAction* + movement/planet/postmovement), `service/combat/`.
-- **Decyzja projektowa (ustalona z użytkownikiem):** silnik to ASYSTENT STOŁU, nie sędzia —
-  prowadzi przez kroki i daje pomoce liczbowe, ale NIE waliduje reguł (gracze grają fizycznie
-  i wprowadzają wynik; ruch = istniejący God-Mode; walka = okno z ręcznym wpisywaniem trafień,
-  zero rzucania). Zrealizowane w blokach T1–T4 (patrz PROGRESS.md), reguły RULES.md 19–22.
+- **⚠️ DECYZJA ZMIENIONA (2026-10, patrz RULES.md 29):** pierwotnie silnik był ASYSTENTEM
+  STOŁU (prowadził kroki, NIE walidował reguł). NOWY KIERUNEK: silnik jest SĘDZIĄ — EGZEKWUJE
+  reguły TI4 przez kod (bo bot AI i tak musi je znać, a to wygodniejsze dla gracza). God-Mode
+  zostaje jako osobny kanał ręcznej korekty (omija walidację). E3 w wersji asystenta (bloki
+  T1–T4) jest FUNDAMENTEM — dobudowujemy na nim walidację + okna czasowe (patrz etap E8 niżej).
 - Krokowa maszyna (TacticalStep FSM): ACTIVATION → MOVEMENT → SPACE_CANNON → SPACE_COMBAT →
   INVASION → PRODUCTION. Aktywacja kładzie żeton dowodzenia (pula taktyczna), `active_system`.
 - Walka (kosmiczna/naziemna): okno-asystent z pomocami (kości, trafia na X+, expected hits
@@ -78,6 +79,27 @@ kod + testy + QA + commit; grywalny przyrostowo.
 - Pełna lista frakcji i ich gimmicków do okodowania: patrz sekcja „Frakcje" niżej.
 
 ---
+
+### E8 — Silnik-SĘDZIA: egzekucja reguł + okna czasowe (PRZEBUDOWA, w toku) ⬅ AKTUALNY
+
+Źródło decyzji: RULES.md 29 (zmiana kierunku z „asystent" na „sędzia"). Dobudowujemy walidację
+i okna czasowe NA ISTNIEJĄCYM E1–E3 (nie przepisujemy). Tryb: solo vs boty + hot-seat (docelowo
+sieć), więc okna pytają graczy po kolei. God-Mode zostaje jako kanał omijający walidację.
+
+Zadania (pełny opis i reguły: RULES.md 29.1–29.3; dziennik: PROGRESS.md):
+- T1: model okna czasowego w `GameState` + `core/timing.py` (kolejka respondentów, open/respond/close).
+- T2: ekspozycja okna w `web_data` + panel okna w UI (kto teraz reaguje + odpowiedź).
+- T3: pierwsze realne okno — secondary karty strategii (zagranie karty otwiera okno pozostałym).
+- T4: pojęcie aktualnego gracza w STATUS/AGENDA + twarda walidacja flow (czyja tura, co wolno).
+- T5: ruch jako funkcja core (`core/movement.py`) + walidacja zasięgu/anomalii/przejezdności.
+- T6: walidacja aktywacji / przejęcia planety / produkcji (koszty, limity, legalność).
+- T7: walka — rdzeń: rzuty (seedowalny RNG) + liczenie trafień + okno „przypisz straty", wielorundowo.
+- T8: interaktywna walka w UI (animacja rzutów kośćmi) spięta z oknami.
+- T9: dodatkowe okna walki — anti-fighter barrage + space cannon offense.
+- T10: aktualizacja dokumentacji (RULES.md 29, PLAN, PROGRESS, README) + memory projektu.
+
+DoD E8: pełna runda rozgrywana z egzekwowanymi regułami i oknami czasowymi (secondary działa dla
+wszystkich graczy po kolei; nielegalne akcje odrzucane; walka rozstrzygana przez silnik z rzutami).
 
 ## Frakcje — zakres i gimmicki do okodowania (E7, po silniku bazowym)
 
@@ -158,7 +180,10 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
   `api/routers/tactical.py`, panel taktyczny + okno walki w UI). Asystent stołu: aktywacja,
   FSM kroków, walka kosmiczna/naziemna z pomocami liczbowymi, przejęcie planety, pomoc
   produkcji. Zero walidacji reguł (decyzja projektowa). Bloki T1–T4, reguły RULES.md 19–22.
-- **Następny krok: E4 — akcje komponentowe** (karty akcji, liderzy, badanie tech, eksploracja).
+- **E3 — akcja taktyczna (wersja asystenta):** ✅ gotowy jako FUNDAMENT (bloki T1–T4, RULES.md 19–22).
+- **⬅ AKTUALNY: E8 — silnik-sędzia (egzekucja reguł + okna czasowe)** — PRZEBUDOWA na istniejącym
+  E1–E3 (patrz etap E8 wyżej + RULES.md 29). Rozpoczęta od aktualizacji dokumentacji (T10 częściowo).
+- **E4 — akcje komponentowe** (karty akcji, liderzy, badanie tech, eksploracja) — po E8.
 - **Frakcje (E7):** lista 30 frakcji + gimmicki spisane (sekcja „Frakcje"). Kodujemy je
   dopiero PO silniku bazowym (E3–E6), frakcja po frakcji, jako hooki w oknach silnika.
 

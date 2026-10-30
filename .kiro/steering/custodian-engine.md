@@ -1,4 +1,4 @@
-# Custodian Engine — zasady projektu (steering)
+﻿# Custodian Engine — zasady projektu (steering)
 
 Ten plik jest wczytywany automatycznie w każdej sesji. Definiuje trwałe zasady,
 których trzymam się niezależnie od tego, czy pamiętam poprzednią rozmowę.
@@ -9,7 +9,8 @@ Lokalny silnik do **Twilight Imperium: 4th Edition** w trybie solo, którego CEL
 KOŃCOWYM jest **autonomiczny bot-przeciwnik** grający własnymi frakcjami (strategia,
 ruch, walka, agenda, punktacja). Dojrzałość w trzech etapach:
 1. cyfrowa plansza + God-Mode (gotowe) — odwzorowanie i edycja stanu, Undo;
-2. silnik rozgrywki (w toku) — realne fazy/tury/akcje/walka (reguły świata dla bota);
+2. silnik rozgrywki (w toku) — realne fazy/tury/akcje/walka, EGZEKWOWANE przez kod
+   (silnik-sędzia + okna czasowe; reguły świata dla bota). God-Mode = wentyl. Patrz RULES.md 29;
 3. bot AI (cel) — warstwa decyzyjna grająca frakcją samodzielnie.
 Mapa dokumentacji i cel szczegółowo: `docs/README.md`. Wizja/architektura:
 `docs/specyfikacja_techniczna_i_architektura_systemu.md`.
@@ -19,7 +20,7 @@ Mapa dokumentacji i cel szczegółowo: `docs/README.md`. Wizja/architektura:
 Zawsze na początku sesji sprawdź w tej kolejności:
 1. `docs/README.md` — indeks dokumentacji: cel, struktura repo, gdzie co jest.
 2. `docs/PROGRESS.md` — co zrobione, co następne, decyzje projektowe.
-3. `docs/PLAN_PELNA_ROZGRYWKA.md` — który etap silnika (E1–E7) robimy teraz + frakcje.
+3. `docs/PLAN_PELNA_ROZGRYWKA.md` — który etap silnika (E1–E8) robimy teraz + frakcje.
 4. `docs/RULES.md` — zweryfikowane reguły TI4 (źródło prawdy dla mechanik).
 5. Realny kod w `src/` i testy w `tests/` — nadrzędne źródło prawdy o stanie,
    ważniejsze niż pamięć czy opisy.
@@ -41,6 +42,28 @@ Zawsze na początku sesji sprawdź w tej kolejności:
   różne pojęcia (patrz RULES.md 1). Graf mapy trzyma czyste sąsiedztwo; blokady
   ruchu/anomalie to osobna warstwa logiki zależna od gracza i stanu gry.
 
+## Kierunek silnika: SĘDZIA, nie asystent (decyzja 2026-10 — RULES.md 29)
+
+ŚWIADOMA zmiana filozofii (ustalona z użytkownikiem). Zastępuje wcześniejsze „asystent
+stołu, nie sędzia".
+
+- **Silnik EGZEKWUJE reguły TI4 przez kod** (jest sędzią). Zwykłe akcje (ruch, aktywacja,
+  wybór karty, produkcja, walka) walidują legalność — nielegalne → `ValueError` → HTTP 422.
+  Powód: bot AI i tak musi znać reguły, a egzekucja jest wygodniejsza dla gracza.
+- **God-Mode ZOSTAJE jako wentyl** — osobny kanał (`/god-mode/patch`, `core/board_edit.*`),
+  który CELOWO omija walidację reguł. To „ręka operatora" na zapomniane/brzegowe przypadki.
+- **Okna czasowe (timing windows)** — jednolity model w `GameState` + `core/timing.py`:
+  kolejka graczy pytanych po kolei (od gracza po aktywnym, zgodnie z zegarem; inicjator
+  pomijany). Jedno pojęcie obsługuje secondary kart strategii, reakcje „when/after",
+  przypisanie strat w walce, space cannon. Reguła modelu: RULES.md 29.2.
+- **Tryb gry:** solo vs boty + hot-seat (wielu ludzi lokalnie), docelowo moduł sieciowy —
+  dlatego okna pytają graczy po kolei, nie zakładają jednego operatora.
+- **Walka:** pełna, interaktywna (rzuty kośćmi). Rdzeń: rzuty (seedowalny RNG) + liczenie
+  trafień + okno „przypisz straty", wielorundowo; AFB/space cannon jako kolejne okna.
+- **E1–E3 to FUNDAMENT** — dobudowujemy walidację i okna NA ISTNIEJĄCYM, nie przepisujemy.
+  Etap przebudowy = E8 w `PLAN_PELNA_ROZGRYWKA.md`.
+- `src/engine/` (puste katalogi strategic/operational/tactical/diplomacy) = przyszła warstwa
+  AI — można przebudować dowolnie.
 ## Zarządzanie assetami
 
 - Assety (AsyncTI4) leżą lokalnie w `assets/`; podział na dysku zostaje nienaruszony.

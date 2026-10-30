@@ -1,4 +1,4 @@
-# Dokumentacja Custodian Engine — indeks
+﻿# Dokumentacja Custodian Engine — indeks
 
 Ten plik to **brama do dokumentacji**: po co ten projekt, gdzie co leży, który dokument
 do czego służy i w jakiej kolejności czytać. Zaczynaj tutaj.
@@ -16,7 +16,10 @@ pełną partię przeciw komputerowi (lub z komputerem dopełniającym stół).
 1. **Cyfrowa plansza + God-Mode** (gotowe) — aplikacja odwzorowuje stan fizycznej/cyfrowej
    planszy, pozwala go edytować i cofać (Undo). Fundament pod resztę.
 2. **Silnik rozgrywki** (w toku) — realne fazy, tury, karty strategii, akcja taktyczna,
-   walka, status, agenda. Gra „wie", co wolno i prowadzi przebieg rundy.
+   walka, status, agenda. Gra EGZEKWUJE reguły (silnik-sędzia) i prowadzi przebieg rundy
+   przez OKNA CZASOWE (np. secondary kart strategii dla wszystkich graczy po kolei). God-Mode
+   zostaje jako wentyl ręcznej korekty. Zmiana kierunku i model okien: `RULES.md` 29, etap E8
+   w `PLAN_PELNA_ROZGRYWKA.md`.
 3. **Bot AI** (cel końcowy) — warstwa decyzyjna (strategiczna → operacyjna → taktyczna),
    która gra frakcją samodzielnie. Silnik z etapu 2 jest jej „regułami świata".
 
