@@ -1,4 +1,4 @@
-"""Serializacja stanu gry do formatu ``web-data`` frontendu (ti4_web).
+﻿"""Serializacja stanu gry do formatu ``web-data`` frontendu (ti4_web).
 
 Frontend ``ti4_web`` renderuje planszę z JEDNEGO dokumentu HTTP
 (``GET /api/public/game/{gameId}/web-data``) o kształcie ``PlayerDataResponse``.
@@ -114,6 +114,39 @@ def _active_color(state: GameState) -> str | None:
     return player.color
 
 
+def _pending_window(state: GameState) -> dict[str, Any] | None:
+    """Buduje reprezentację otwartego okna czasowego dla frontendu (lub None).
+
+    Tłumaczy ``GameState.pending_window`` na kształt panelu okna: typ okna,
+    bieżący respondent i kolejka jako KOLORY graczy (frontend dopasowuje po
+    kolorze, spójnie z ``activePlayer``), ile osób zostało oraz kontekst okna.
+    Gdy kolor gracza jest niejednoznaczny (kolizja — niepoprawny stan God-Mode),
+    wpada ``player_id`` jako fallback, by panel miał czym zaadresować odpowiedź.
+    """
+    window = state.pending_window
+    if window is None:
+        return None
+
+    def ident(player_id: str) -> str:
+        # Kolor, gdy jednoznaczny; inaczej player_id (żeby panel miał adres).
+        color = _color_of(state, player_id)
+        return color if color is not None else player_id
+
+    responder = window.current_responder
+    return {
+        "windowType": window.window_type.value,
+        "currentResponder": ident(responder) if responder is not None else None,
+        # player_id bieżącego respondenta — panel adresuje nim odpowiedź (stabilne,
+        # niezależne od kolizji kolorów).
+        "currentResponderId": responder,
+        "queue": [ident(pid) for pid in window.queue],
+        "cursor": window.cursor,
+        "remaining": max(len(window.queue) - window.cursor, 0),
+        "responded": [ident(pid) for pid in window.responded],
+        "context": dict(window.context),
+        "isComplete": window.is_complete,
+    }
+
 def _build_game_state(state: GameState) -> dict[str, Any]:
     """Buduje obiekt ``gameState`` — zasila panel faz + kolejność tur we froncie.
 
@@ -144,6 +177,9 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
             state.tactical_step.value if state.tactical_step is not None else None
         ),
         "activeCombat": None,
+        # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
+        # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
+        "pendingWindow": _pending_window(state),
     }
 
 

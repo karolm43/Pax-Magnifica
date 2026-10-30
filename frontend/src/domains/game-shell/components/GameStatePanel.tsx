@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useState,
   type CSSProperties,
@@ -567,6 +567,12 @@ function PlateBody({
 
   return (
     <>
+      {gameState.pendingWindow && (
+        <WindowSection
+          window={gameState.pendingWindow}
+          playerData={playerData}
+        />
+      )}
       {activePlayer && (
         <NowCallout
           player={active}
@@ -606,6 +612,119 @@ function PlateBody({
       )}
       <PhaseControls phase={phase} />
     </>
+  );
+}
+
+/** Czytelne etykiety typów okien czasowych (RULES.md 29.2). */
+const WINDOW_LABELS: Record<string, string> = {
+  STRATEGY_SECONDARY: "Secondary karty strategii",
+  COMBAT_ASSIGN_HITS: "Przypisanie strat w walce",
+  SPACE_CANNON: "Space Cannon (ostrzał)",
+  REACTION: "Okno reakcji",
+};
+
+/**
+ * Panel otwartego OKNA CZASOWEGO (timing window, Etap E8). Pokazuje wyraźnie, czyja
+ * teraz reakcja (kolejka graczy pytanych po kolei — RULES.md 29.2) i daje przyciski
+ * odpowiedzi. ``currentResponder`` to KOLOR gracza (jak ``activePlayer``), więc
+ * dopasowujemy go do ``playerData`` po kolorze; odpowiedź adresujemy stabilnym
+ * ``currentResponderId`` (player_id). W T2 decyzje to „Wykonaj"/„Pas" (etykiety) —
+ * efekty konkretnych okien (secondary zużywa żeton, assign-hits usuwa jednostki)
+ * dojdą od T3.
+ */
+function WindowSection({
+  window,
+  playerData,
+}: {
+  window: NonNullable<GameState["pendingWindow"]>;
+  playerData: PlayerData[];
+}) {
+  const { respondWindow, closeWindow } = useBoardEditor();
+  const [busy, setBusy] = useState(false);
+
+  const label = WINDOW_LABELS[window.windowType] ?? window.windowType;
+  const responderColor = window.currentResponder;
+  const responder = playerData.find((p) => p.color === responderColor);
+  const responderName = responderColor
+    ? playerNameForColor(playerData, responderColor)
+    : null;
+
+  const run = async (fn: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const respond = (decision: string) => {
+    const id = window.currentResponderId;
+    if (!id) return;
+    void run(() => respondWindow(id, decision));
+  };
+
+  return (
+    <div className={styles.section}>
+      <span className={styles.label}>{label}</span>
+      {window.isComplete || !window.currentResponderId ? (
+        <>
+          <span className={styles.label}>
+            Wszyscy odpowiedzieli — zamknij okno
+          </span>
+          <div className={styles.controls}>
+            <button
+              type="button"
+              className={styles.scPickBtn}
+              disabled={busy}
+              onClick={() => void run(() => closeWindow())}
+            >
+              Zamknij okno
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Kto teraz reaguje — baner spójny z pickerem fazy strategii. */}
+          <div
+            className={styles.pickerNow}
+            style={toneStyle({ "--pc": playerTone(responderColor) })}
+          >
+            {responder ? <FactionMark player={responder} size={22} /> : null}
+            <span className={styles.pickerText}>
+              <small className={styles.pickerLabel}>Reaguje</small>
+              <b className={styles.pickerName}>
+                {responderName ?? window.currentResponderId}
+              </b>
+            </span>
+          </div>
+          <span className={styles.label}>
+            Pozostało w kolejce: {window.remaining}
+          </span>
+          <div className={styles.controls}>
+            <button
+              type="button"
+              className={styles.scPickBtn}
+              disabled={busy}
+              onClick={() => respond("secondary")}
+              title="Wykonaj akcję w tym oknie"
+            >
+              Wykonaj
+            </button>
+            <button
+              type="button"
+              className={styles.scPickBtn}
+              disabled={busy}
+              onClick={() => respond("pass")}
+              title="Zrezygnuj (pas)"
+            >
+              Pas
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

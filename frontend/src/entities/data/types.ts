@@ -1,4 +1,4 @@
-export type Point = { x: number; y: number };
+﻿export type Point = { x: number; y: number };
 
 export type RGBColor = { red: number; green: number; blue: number };
 
@@ -480,6 +480,27 @@ export type GameState = {
   /** Bieżący krok akcji taktycznej (rozszerzenie Custodian Engine, E3). */
   tacticalStep?: string | null;
   activeCombat: GameStateCombat | null;
+  /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
+  pendingWindow?: PendingWindow | null;
+};
+
+/**
+ * Okno czasowe (timing window) — kolejka graczy reagujących po kolei (secondary
+ * kart strategii, przypisanie strat w walce, space cannon, reakcje). Rozszerzenie
+ * kontraktu Custodian Engine (RULES.md 29.2). ``currentResponder``/``queue`` to
+ * KOLORY graczy (jak ``activePlayer``); ``currentResponderId`` to stabilny player_id
+ * do adresowania odpowiedzi.
+ */
+export type PendingWindow = {
+  windowType: string;
+  currentResponder: string | null;
+  currentResponderId: string | null;
+  queue: string[];
+  cursor: number;
+  remaining: number;
+  responded: string[];
+  context: Record<string, string | number>;
+  isComplete: boolean;
 };
 
 export type GameStateMessage = {

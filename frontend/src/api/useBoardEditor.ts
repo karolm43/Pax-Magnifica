@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { fetchJson } from "@/api/fetchJson";
 
@@ -258,6 +258,24 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Okna czasowe (timing windows, E8-T2) ---
+
+  const respondWindow = useCallback(
+    async (playerId: string, decision?: string) => {
+      await post("/window/respond", {
+        player_id: playerId,
+        decision: decision ?? null,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const closeWindow = useCallback(async () => {
+    await post("/window/close", {});
+    await refresh();
+  }, [refresh]);
+
   return {
     editUnit,
     moveUnit,
@@ -281,6 +299,8 @@ export function useBoardEditor() {
     togglePlanetExhaust,
     toggleTechExhaust,
     setLeaderState,
+    respondWindow,
+    closeWindow,
   };
 }
 

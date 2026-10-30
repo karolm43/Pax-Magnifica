@@ -1687,3 +1687,43 @@ Ostrzeżenie StarletteDeprecationWarning bez zmian (znane, nieblokujące).
 
 **Następny krok:** T2 — ekspozycja `pending_window` w `web_data` + endpoint `POST /window/respond`
 + panel okna w UI (kto teraz reaguje + przycisk odpowiedzi).
+
+### ✅ Blok E8-T2 — ekspozycja okna czasowego w web-data + endpointy + panel UI (ukończony)
+
+**Cel:** gracz WIDZI otwarte okno czasowe (kto teraz reaguje) i może odpowiedzieć. Spina
+model z T1 (core/timing) z frontendem.
+
+**Backend:**
+- [x] `src/api/web_data.py`: helper `_pending_window(state)` + pole `gameState.pendingWindow`
+  w `_build_game_state`. Tłumaczy okno na kształt dla frontu: `windowType`, `currentResponder`
+  (KOLOR gracza, jak `activePlayer`), `currentResponderId` (stabilny player_id do adresowania
+  odpowiedzi), `queue` (kolory), `cursor`, `remaining`, `responded`, `context`, `isComplete`.
+- [x] `src/api/schemas.py`: `WindowOpenRequest` (typ + queue LUB initiator), `WindowRespondRequest`
+  (player_id + decision).
+- [x] `src/api/routers/window.py` (NOWY): `POST /window/open` (narzędzie/testowe — wylicza kolejkę
+  z inicjatora przez `build_response_queue` lub bierze jawną), `POST /window/respond`
+  (`timing.respond_current`, poza kolejnością/brak okna → 422), `POST /window/close`. Router
+  zarejestrowany w `app.py`.
+- [x] `tests/test_window_api.py` (NOWY, 9 testów): web-data null domyślnie, open eksponuje
+  respondenta jako kolor, respond przesuwa kolejkę, poza kolejnością/brak okna/zły typ/zagnieżdżanie
+  → 422, close czyści, wszystkie typy okien akceptowane.
+
+**Frontend:**
+- [x] `entities/data/types.ts`: typ `PendingWindow` + pole `GameState.pendingWindow`.
+- [x] `api/useBoardEditor.ts`: akcje `respondWindow(playerId, decision?)` i `closeWindow()`
+  (POST + invalidate web-data → panel odświeża się natychmiast).
+- [x] `domains/game-shell/components/GameStatePanel.tsx`: komponent `WindowSection` renderowany
+  NA GÓRZE `PlateBody` (okno reakcyjne ma priorytet). Baner „Reaguje: <gracz>" (spójny z pickerem
+  fazy strategii), licznik „Pozostało w kolejce", przyciski „Wykonaj"/„Pas" (adresują
+  `currentResponderId`); po zakończeniu kolejki przycisk „Zamknij okno". Etykiety typów okien PL.
+
+**Rezultat (zweryfikowany E2E):** open (initiator p1, 3 graczy) → kolejka green,blue (p1 pominięty);
+respond green → responder blue; respond blue → isComplete; close → null. Decyzje w T2 to etykiety
+(„secondary"/„pass") — efekty konkretnych okien dojdą od T3.
+
+**QA:** backend 218 testów zielonych (było 209, +9), ruff + mypy --strict czyste. Frontend
+type-check + lint + build czyste. Warn o rozmiarze chunku i StarletteDeprecationWarning bez zmian.
+
+**Następny krok:** T3 — pierwsze realne okno: secondary karty strategii. Zagranie karty otwiera
+pozostałym graczom okno; respond dla secondary zużywa żeton strategiczny / pas. Potrzebne
+potwierdzenie reguł primary/secondary konkretnej karty (RULES.md — do uzupełnienia ze źródła).

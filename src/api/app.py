@@ -1,4 +1,4 @@
-"""Fabryka aplikacji FastAPI Custodian Engine — montaż routerów + WebSocket + static.
+﻿"""Fabryka aplikacji FastAPI Custodian Engine — montaż routerów + WebSocket + static.
 
 Backend jest źródłem prawdy; frontend tylko odzwierciedla rozesłany stan. Logika edycji
 planszy i reguł żyje w ``src/core`` (czyste funkcje), warstwa ``api`` jest cienka:
@@ -30,6 +30,7 @@ from src.api.routers import (
     players,
     strategy,
     tactical,
+    window,
 )
 from src.api.state_service import StateService
 from src.core.event_store import EventStore
@@ -90,6 +91,7 @@ def create_app(
     app.include_router(strategy.router)
     app.include_router(history.router)
     app.include_router(tactical.router)
+    app.include_router(window.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:

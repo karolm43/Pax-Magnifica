@@ -1,4 +1,4 @@
-"""Schematy DTO warstwy API (Pydantic v2).
+﻿"""Schematy DTO warstwy API (Pydantic v2).
 
 Oddzielają kontrakt sieciowy od wewnętrznych modeli domenowych. Mapa jest
 serializowana jako lista pozycji ze współrzędnymi kubicznymi (dla renderera SVG)
@@ -434,6 +434,36 @@ class ProductionHelpResponse(BaseModel):
     available_resources: int = Field(serialization_alias="availableResources")
     units: list[ProducibleUnitHelp]
 
+
+class WindowOpenRequest(BaseModel):
+    """Otwarcie okna czasowego (narzędzie/testowe) — typ + kolejka lub inicjator.
+
+    Podaj ``queue`` jawnie ALBO ``initiator_id`` (backend wyliczy kolejkę od gracza
+    po inicjatorze, zgodnie z zegarem). ``window_type`` musi być jedną z wartości
+    ``WindowType`` (STRATEGY_SECONDARY / COMBAT_ASSIGN_HITS / SPACE_CANNON / REACTION).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    window_type: str
+    queue: list[str] | None = None
+    initiator_id: str | None = None
+    include_initiator: bool = False
+    context: dict[str, str | int] | None = None
+
+class WindowRespondRequest(BaseModel):
+    """Odpowiedź bieżącego respondenta w otwartym oknie czasowym (E8-T2).
+
+    ``player_id`` MUSI być bieżącym respondentem okna (``current_responder``),
+    inaczej backend odrzuca (odpowiedź poza kolejnością → 422). ``decision`` to
+    luźna etykieta decyzji panelu (np. ``"secondary"`` / ``"pass"``); w T2 jest
+    tylko przekazywana do etykiety commitu — efekty decyzji dojdą od T3.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    decision: str | None = None
 
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
