@@ -1063,16 +1063,17 @@
   grid-area: icon;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  /* Sprite jednostki renderuje się w naturalnym rozmiarze — przycinamy do pudełka
-     i skalujemy w dół, by ikona nie wylewała się poza kafelek (było za duże). */
-  overflow: hidden;
+  width: 24px;
+  height: 24px;
 }
 
-.unitTileIcon > div {
-  transform: scale(0.42);
-  transform-origin: center;
+/* Sprite jednostki (scaled) renderuje się jako <div> z tłem = wycinek arkusza,
+   skalowanym PROCENTOWO do własnego pudełka (patrz SpriteUnitImage). Dlatego NIE
+   nadpisujemy background-size — wystarczy nadać sprite'owi jawny, mały rozmiar,
+   by zmieścił się w ikonie 24×24 (poprzedni transform: scale() ucinał grafikę). */
+.unitTileIcon :global(.unit-sprite) {
+  width: 24px;
+  height: 24px;
 }
 
 .unitTileName {
@@ -1128,4 +1129,47 @@
 
 .unitStepAdd:hover:not(:disabled) {
   background: rgb(var(--ds-sig-bio, 110 231 183) / 0.22);
+}
+
+/* Baner komunikatu (odrzucona akcja walidacji / info). */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  margin-bottom: 6px;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.3;
+  border: 1px solid var(--ds-h10);
+}
+
+.notice[data-kind="error"] {
+  background: rgba(var(--ds-sig-danger), 0.14);
+  border-color: rgba(var(--ds-sig-danger), 0.5);
+  color: var(--ds-ink-hi);
+}
+
+.notice[data-kind="info"] {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ds-ink-hi);
+}
+
+.noticeText {
+  flex: 1;
+}
+
+.noticeClose {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: var(--ds-ink-lo);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.noticeClose:hover {
+  color: var(--ds-ink-hi);
 }

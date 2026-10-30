@@ -567,6 +567,7 @@ function PlateBody({
 
   return (
     <>
+      <NoticeBanner />
       {gameState.pendingWindow && (
         <WindowSection
           window={gameState.pendingWindow}
@@ -612,6 +613,31 @@ function PlateBody({
       )}
       <PhaseControls phase={phase} activePlayerId={active?.discordId ?? null} />
     </>
+  );
+}
+
+/**
+ * Przelotny baner komunikatu (odrzucona akcja walidacji: „system już aktywowany",
+ * „za mało zasobów" itp.). Czyta ``notice`` ze store (ustawiane przez useBoardEditor
+ * przy 422). Gracz zamyka go krzyżykiem; kolejna akcja go nadpisuje.
+ */
+function NoticeBanner() {
+  const notice = useAppStore((s) => s.notice);
+  const clearNotice = useAppStore((s) => s.clearNotice);
+  if (!notice) return null;
+  return (
+    <div className={styles.notice} data-kind={notice.kind} role="alert">
+      <span className={styles.noticeText}>{notice.text}</span>
+      <button
+        type="button"
+        className={styles.noticeClose}
+        onClick={clearNotice}
+        aria-label="Zamknij komunikat"
+        title="Zamknij"
+      >
+        ×
+      </button>
+    </div>
   );
 }
 
@@ -882,7 +908,7 @@ function ProductionPanel({
   planets: string[];
 }) {
   const gameData = useGameData();
-  const { editUnit } = useBoardEditor();
+  const { editUnit, produce } = useBoardEditor();
   const player = gameData?.playerData?.find(
     (p) => p.color === activePlayerColor,
   );
@@ -903,10 +929,21 @@ function ProductionPanel({
     );
   }
 
-  const changeUnit = (asyncId: string, zone: string, delta: number) => {
+  // Dodawanie jednostek idzie przez WALIDOWANY endpoint produkcji (koszt/limit/
+  // blokada — RULES.md 33.2); odrzucenie pokazuje baner (notice). Usuwanie to
+  // korekta God-Mode (nie jest akcją reguł). ``baseType`` z asyncId przez katalog.
+  const addUnit = (baseType: string, zone: string) => {
     if (busy) return;
     setBusy(true);
-    void editUnit({ position: activeSystem, zone, faction, asyncId, delta })
+    void produce(faction, [{ baseType, count: 1, zone }]).finally(() =>
+      setBusy(false),
+    );
+  };
+
+  const removeUnit = (asyncId: string, zone: string, count: number) => {
+    if (busy) return;
+    setBusy(true);
+    void editUnit({ position: activeSystem, zone, faction, asyncId, delta: -count })
       .finally(() => setBusy(false));
   };
 
@@ -935,8 +972,8 @@ function ProductionPanel({
             colorAlias={colorAlias}
             faction={faction}
             busy={busy}
-            onAdd={() => changeUnit(u.asyncId, "space", +u.unitsPerCost)}
-            onRemove={() => changeUnit(u.asyncId, "space", -u.unitsPerCost)}
+            onAdd={() => addUnit(u.baseType, "space")}
+            onRemove={() => removeUnit(u.asyncId, "space", u.unitsPerCost)}
           />
         ))}
       </div>
@@ -973,8 +1010,8 @@ function ProductionPanel({
                   colorAlias={colorAlias}
                   faction={faction}
                   busy={busy}
-                  onAdd={() => changeUnit(u.asyncId, planet, +u.unitsPerCost)}
-                  onRemove={() => changeUnit(u.asyncId, planet, -u.unitsPerCost)}
+                  onAdd={() => addUnit(u.baseType, planet)}
+                  onRemove={() => removeUnit(u.asyncId, planet, u.unitsPerCost)}
                 />
               ))}
             </div>

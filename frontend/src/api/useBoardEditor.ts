@@ -1,12 +1,26 @@
 ﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { fetchJson } from "@/api/fetchJson";
+import { useAppStore } from "@/state/appStore";
 
 /*
- * God-Mode: edycja planszy bez sprawdzania zasad. Operator (gracz) może dodawać,
- * usuwać i przesuwać jednostki dowolnie. Endpointy w korzeniu backendu (proxy /bot).
+ * Akcje planszy. Część endpointów WALIDUJE reguły (ruch, produkcja, aktywacja,
+ * flow, okna) i zwraca 422 z czytelnym powodem; część to God-Mode bez reguł
+ * (edycja/przesuwanie jednostek). Odrzucenie walidacji pokazujemy graczowi jako
+ * ``notice`` (baner w panelu), zamiast ciche połykać błąd.
  */
 const BOT_ROOT = "/bot";
+
+/** Wyłuskuje czytelny komunikat z odpowiedzi błędu (FastAPI: {"detail": "..."}). */
+function parseDetail(raw: string, status: number): string {
+  try {
+    const parsed = JSON.parse(raw) as { detail?: unknown };
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // nie-JSON — użyj surowego tekstu niżej
+  }
+  return raw || `Błąd ${status}`;
+}
 
 async function post(path: string, body: unknown): Promise<void> {
   const response = await fetch(`${BOT_ROOT}${path}`, {
@@ -15,8 +29,11 @@ async function post(path: string, body: unknown): Promise<void> {
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`God-Mode edit failed (${response.status}). ${detail}`.trim());
+    const raw = await response.text().catch(() => "");
+    const message = parseDetail(raw, response.status);
+    // Pokaż graczowi powód (np. „system już aktywowany", „za mało zasobów").
+    useAppStore.getState().setNotice(message, "error");
+    throw new Error(message);
   }
 }
 

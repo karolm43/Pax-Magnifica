@@ -344,3 +344,30 @@ type-check + lint + build czyste.
 
 **Następny krok:** T7 — walka: rdzeń (rzuty seedowalnym RNG + liczenie trafień + okno „przypisz
 straty", wielorundowo). Pierwsza wersja pełnej walki rozstrzyganej przez silnik.
+
+### ✅ Blok E8-T6b — podłączenie walidacji do UI + komunikaty + poprawka ikon (ukończony)
+
+Trzy problemy zgłoszone przez użytkownika: walidacja T6 istniała w backendzie, ale UI jej
+nie wołało (szło przez God-Mode), brak komunikatów, ikony produkcji nadal złe.
+
+1. **Walidacja nie działała w UI, bo panele szły przez God-Mode.** Produkcja (przyciski +)
+   wołała `editUnit` (God-Mode, bez reguł) zamiast `/tactical/produce`. Naprawa:
+   `ProductionPanel` — dodawanie (`+`) idzie teraz przez walidowany `produce(faction, orders)`
+   (koszt/limit/blokada, RULES.md 33.2); usuwanie (`−`) zostaje God-Mode (korekta, nie reguła).
+   Aktywacja już wołała `/tactical/activate` (walidowane w T6), brakowało tylko komunikatu.
+
+2. **Brak komunikatów o odrzuceniu.** Dodano slice `notice` w `appStore` (setNotice/clearNotice)
+   + komponent `NoticeBanner` na górze panelu gry + CSS. `useBoardEditor.post()` parsuje `detail`
+   z 422 i ustawia notice — każda odrzucona akcja (np. „Nie można aktywować systemu, w którym
+   masz już żeton dowodzenia", „Za mało zasobów") pokazuje baner. Wcześniej błąd był cicho połykany.
+
+3. **Ikony jednostek w produkcji źle skalowane.** Poprzedni `transform: scale(0.42)` obcinał
+   grafikę. Naprawa: zdjęto transform; sprite (`.unit-sprite`, skalowany procentowo do własnego
+   pudełka) dostał jawny rozmiar 24×24 w `.unitTileIcon` — bez obcinania.
+
+**Rezultat (zweryfikowany E2E):** ponowna aktywacja systemu → 422 „Nie można aktywować systemu,
+w którym masz już żeton dowodzenia" (pokazane jako baner); produkcja ponad budżet → baner
+„Za mało zasobów".
+
+**QA:** backend 258 testów zielonych (bez zmian logiki), ruff + mypy czyste. Frontend
+type-check + lint + build czyste.

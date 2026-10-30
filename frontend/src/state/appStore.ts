@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import {
   loadStoredChoice,
@@ -193,6 +193,15 @@ type AppStore = {
   setDraggingUnit: (dragging: boolean) => void;
 
   /*
+   * Przelotny komunikat dla gracza (np. odrzucona akcja: „system już aktywowany",
+   * „za mało zasobów"). ``kind`` steruje kolorem. Ustawiany przez akcje (np. gdy
+   * endpoint zwróci 422), czyszczony przez UI lub kolejny komunikat.
+   */
+  notice: { text: string; kind: "error" | "info" } | null;
+  setNotice: (text: string, kind?: "error" | "info") => void;
+  clearNotice: () => void;
+
+  /*
    * Cel pod kursorem w trakcie przeciągania jednostki — do podświetlenia kafelka
    * (planszówkowy feedback „tu upuścisz"). ``zone`` = strefa docelowa po mapowaniu
    * (statek zawsze trafia w orbitę), ``valid`` = czy upuszczenie jest dozwolone.
@@ -280,6 +289,10 @@ export const useAppStore = create<AppStore>((set) => {
     unitDrop: null,
     beginUnitDrop: (drop) => set({ unitDrop: drop }),
     clearUnitDrop: () => set({ unitDrop: null }),
+
+    notice: null,
+    setNotice: (text, kind = "error") => set({ notice: { text, kind } }),
+    clearNotice: () => set({ notice: null }),
 
     isDraggingUnit: false,
     setDraggingUnit: (dragging: boolean) => set({ isDraggingUnit: dragging }),
