@@ -1210,3 +1210,58 @@ Reguły (R_action_phase, R_active_player):
   (faza, aktywny gracz, pas dopiero po akcji strategicznej); God-Mode omija.
 - ⬜ Realne kroki statusu (punktowanie, odświeżanie) — etap E5, użyją initiative order.
 - ⬜ Realne głosowanie agendy — etap E6, użyje speaker order (kolejka jak okno czasowe).
+
+---
+
+## 32. Ruch statków: egzekucja legalności (akcja taktyczna) — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+Etap E8-T5. Źródło: lokalny LRR 2.0 — `docs/rules_tirules/R_movement.md`, `R_tactical_action.md`
+(treść © FFG; patrz SOURCE.md). Uzupełnia szkic z RULES.md 3 (ten był „DO ZROBIENIA") i
+anomalie z RULES.md 1. Ruch przestaje być tylko God-Mode — staje się WALIDOWANĄ akcją (RULES.md 29.1).
+
+### 32.1. Reguły ruchu (R_movement, krok „Move Ships") — ✅ ZWERYFIKOWANE
+
+Statek rusza do AKTYWNEGO systemu (akcja taktyczna, krok 2), przestrzegając:
+- **(R1) Cel = aktywny system.** Statek musi ZAKOŃCZYĆ ruch w aktywnym systemie
+  (``GameState.active_system``). Ruch poza akcją taktyczną (bez aktywnego systemu) jest nielegalny
+  w tej ścieżce (ruch zdolnościami to osobna sprawa — nie T5).
+- **(R2) Zasięg.** Liczba systemów, w które statek WCHODZI (długość trasy po sąsiednich systemach),
+  nie przekracza jego ``moveValue`` (z UnitDef — nie z pamięci). Statki bez ``moveValue`` (struktury,
+  siły naziemne) NIE ruszają się tą ścieżką.
+- **(R3) Start nie z własnym CC.** Statek NIE może ruszyć, jeśli startuje w systemie z własnym
+  żetonem dowodzenia (``SystemState.command_tokens`` zawiera gracza) — WYJĄTEK: aktywny system
+  (można „wyjść i wrócić"). Źródło + nota R_movement.
+- **(R4) Nie przez obce statki.** Trasa NIE może przechodzić przez system zawierający statki INNEGO
+  gracza (nawet same myśliwce blokują — nota R_movement). Węzły POŚREDNIE muszą być wolne od
+  obcych statków. Cel (aktywny system) może mieć obce statki (tam dojdzie do walki — krok 3).
+- **(R5) Przez własne CC można.** Trasa MOŻE przechodzić przez systemy z WŁASNYM żetonem gracza.
+- **(R6) Anomalie / przejezdność.** Supernova bezwarunkowo nieprzejezdna (nie wchodzi do trasy —
+  RULES.md 1.3). Asteroid field nieprzejezdny bez technologii Antimass Deflectors (RULES.md 1.1).
+  Nebula: wejście tylko gdy to system aktywny (RULES.md 1.2) — tu egzekwujemy warunek wejścia do
+  węzłów pośrednich (nebula pośrednia zablokowana). Trasa idzie po krawędziach SĄSIEDZTWA grafu
+  (geometria + wormhole — RULES.md 2).
+
+**⚠️ ZAKRES T5 (świadomy szkielet, „make it exist first"):**
+- Walidujemy i wykonujemy ruch POJEDYNCZEGO stosu jednego typu statku z systemu źródłowego do
+  aktywnego (``move_ships(state, grid, registry, from_pos, base_type, count, player_id)``).
+  Wiele źródeł/typów = wiele wywołań (lub God-Mode). Deklaracja „wszystkie naraz" i jednoczesność
+  to warstwa UI/orkiestracji — do rozbudowy.
+- Transport sił naziemnych/myśliwców przez ``capacityValue`` — ⬜ TODO (osobny krok; na razie
+  ruszamy tylko statki, capacity nie liczony). Oznaczone w kodzie.
+- Antimass Deflectors: sprawdzamy posiadanie technologii gracza (``PlayerState.technologies``);
+  alias technologii z danych (nie z pamięci). Gdy brak — asteroid nieprzejezdny.
+- Pathfinding: najkrótsza legalna trasa (BFS po grafie z filtrem węzłów pośrednich). Jeśli istnieje
+  trasa o długości ≤ moveValue spełniająca R4/R6 — ruch legalny. (Gracz nie wybiera trasy ręcznie
+  w T5 — silnik sprawdza istnienie legalnej; wybór trasy pod efekty gravity rift itp. = rozbudowa.)
+
+### 32.2. Model i implementacja
+
+- `core/movement.py` (NOWY): `legal_move_destinations`/`can_move` (walidacja) + `move_ships`
+  (wykonanie: przenosi ``count`` statków ``base_type`` ze źródła do aktywnego systemu; mutuje
+  ``space_units``). Czyste funkcje ``state -> state``.
+- Walidacja twarda: złamanie R1–R6 → ``ValueError`` → HTTP 422. God-Mode (``board_edit.move_units``)
+  NADAL omija (osobny kanał, bez reguł — RULES.md 25/26).
+- Endpoint: `POST /tactical/move` (router tactical). UI podłączy w kroku ruchu (MOVEMENT).
+
+**Status:** ✅ T5 ruch statków z walidacją R1–R6 (pojedynczy stos). ⬜ transport/capacity,
+⬜ wybór trasy pod gravity rift, ⬜ ruch zdolnościami — rozbudowa.

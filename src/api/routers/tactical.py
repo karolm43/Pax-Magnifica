@@ -1,4 +1,4 @@
-"""Router akcji taktycznej (Etap E3): aktywacja systemu + maszyna kroków.
+﻿"""Router akcji taktycznej (Etap E3): aktywacja systemu + maszyna kroków.
 
 Cienka warstwa HTTP: woła czyste funkcje z ``core.tactical`` (przepływ kroków) oraz
 ``core.board_edit`` (God-Mode żetony dowodzenia), commituje i rozsyła stan + mapę.
@@ -19,6 +19,7 @@ from src.api.schemas import (
     CombatUnitHelp,
     CommandTokenRequest,
     MapView,
+    MoveShipsRequest,
     ProducibleUnitHelp,
     ProductionHelpResponse,
     StateEnvelope,
@@ -26,7 +27,7 @@ from src.api.schemas import (
 )
 from src.api.serializers import build_map_view
 from src.api.web_data import entity_key_map
-from src.core import board_edit, combat, tactical
+from src.core import board_edit, combat, movement, tactical
 from src.core.combat import PlayerCombat
 from src.core.game_state import GameState, TacticalStep
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -50,6 +51,34 @@ async def _commit_map(ctx: AppContext, new_state: GameState, label: str) -> MapV
     await ctx.service.broadcast()
     await ctx.broadcast_map()
     return build_map_view(ctx.current_grid, ctx.registry, ctx.service.current_state())
+
+
+@router.post("/tactical/move", response_model=StateEnvelope)
+async def post_tactical_move(
+    request: MoveShipsRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Ruch statków do aktywnego systemu z WALIDACJĄ reguł (RULES.md 32).
+
+    W odróżnieniu od God-Mode ``/units/move`` (bez reguł) — tu egzekwujemy R1–R6
+    (zasięg z UnitDef, przejezdność anomalii, brak przejścia przez obce statki,
+    start nie z własnym CC). Nielegalny ruch → 422.
+    """
+    player_id = board_edit.resolve_player_id(request.faction, ctx.service.current_state())
+    try:
+        new_state = movement.move_ships(
+            ctx.service.current_state(),
+            ctx.current_grid,
+            ctx.registry,
+            request.from_position,
+            request.base_type,
+            request.count,
+            player_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(
+        ctx, new_state, f"tactical:move:{request.from_position}:{request.base_type}"
+    )
 
 
 @router.post("/tactical/activate", response_model=StateEnvelope)

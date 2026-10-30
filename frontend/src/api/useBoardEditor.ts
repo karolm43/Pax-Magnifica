@@ -194,6 +194,27 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Ruch WALIDOWANY (RULES.md 32) — w odróżnieniu od God-Mode moveUnit (bez reguł).
+  // Cel = aktywny system; backend egzekwuje zasięg/anomalie/blokady i zwraca 422,
+  // gdy ruch nielegalny (wtedy post() rzuca błąd z detalem).
+  const moveShips = useCallback(
+    async (args: {
+      fromPosition: string;
+      baseType: string;
+      count?: number;
+      faction: string;
+    }) => {
+      await post("/tactical/move", {
+        fromPosition: args.fromPosition,
+        baseType: args.baseType,
+        count: args.count ?? 1,
+        faction: args.faction,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const tacticalNextStep = useCallback(async () => {
     await post("/tactical/step/next", {});
     await refresh();
@@ -308,6 +329,7 @@ export function useBoardEditor() {
     playStrategyCard,
     setSpeaker,
     activateSystem,
+    moveShips,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,

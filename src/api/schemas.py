@@ -363,6 +363,21 @@ class SetSpeakerRequest(BaseModel):
     player_id: str
 
 
+class MoveShipsRequest(BaseModel):
+    """Ruch statków w akcji taktycznej (E8-T5): źródło + typ + liczba + gracz.
+
+    Walidowana akcja (RULES.md 32), w odróżnieniu od God-Mode ``/units/move``.
+    ``faction`` to klucz tożsamości gracza (jak w tileUnitData) — rozwiązywany na
+    ``player_id`` jak w pozostałych endpointach taktycznych. Cel = aktywny system.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    from_position: str = Field(alias="fromPosition")
+    base_type: str = Field(alias="baseType")
+    count: int = 1
+    faction: str
+
 class ActivateSystemRequest(BaseModel):
     """Aktywacja systemu w akcji taktycznej (E3): pozycja kafelka."""
 

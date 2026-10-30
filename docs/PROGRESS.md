@@ -240,3 +240,40 @@ type-check + lint + build czyste.
 **Następny krok:** T5 — ruch jako funkcja core (`core/movement.py`) + walidacja legalności ruchu
 (zasięg z UnitDef, anomalie/przejezdność, aktywny system). Pierwsza twarda egzekucja mechaniki
 taktycznej.
+
+### ✅ Blok E8-T5 — ruch statków jako funkcja core + walidacja legalności (ukończony)
+
+**Cel:** pierwsza twarda egzekucja mechaniki TAKTYCZNEJ — ruch przestaje być tylko God-Mode,
+staje się walidowaną akcją. Reguła: RULES.md 32 (źródło: LRR R_movement + R_tactical_action).
+
+**Reguły egzekwowane (R1–R6):** cel = aktywny system; zasięg ≤ moveValue (z UnitDef); start nie
+z systemu z własnym CC (poza aktywnym); trasa nie przez obce statki (fightery też blokują); przez
+własne CC można; anomalie (supernova nieprzejezdna, asteroid bez Antimass, nebula nieprzejezdna
+jako węzeł pośredni). Pathfinding: BFS po grafie sąsiedztwa z filtrem węzłów pośrednich.
+
+**Backend:**
+- [x] `src/core/movement.py` (NOWY): `can_move` (walidacja R1–R6, zwraca powód) + `move_ships`
+  (wykonanie: przenosi stos statków ze źródła do aktywnego). BFS `_shortest_legal_distance`.
+  Antimass Deflectors: alias `amd` z danych (weryfikowany testem). Czyste funkcje state→state.
+- [x] `src/api/schemas.py`: `MoveShipsRequest`.
+- [x] `src/api/routers/tactical.py`: `POST /tactical/move` (walidowany; 422 na nielegalny ruch).
+  W odróżnieniu od God-Mode `/units/move` (bez reguł).
+- [x] `tests/test_movement.py` (NOWY, 10): ruch sąsiedni, brak aktywnego, zasięg, blokada obcymi
+  statkami, start z własnym CC, supernova, asteroid+Antimass, fighter bez moveValue, za mało statków.
+
+**Frontend:**
+- [x] `api/useBoardEditor.ts`: akcja `moveShips({fromPosition, baseType, count, faction})` →
+  `/tactical/move` (ruch walidowany; God-Mode drag-and-drop zostaje jako wentyl bez reguł).
+
+**Zakres (świadomy szkielet, RULES.md 32.1):** ruch pojedynczego stosu jednego typu; transport
+przez capacity = TODO (dlatego fighter sam nie rusza — nie ma moveValue, co jest regułowo poprawne);
+wybór trasy pod gravity rift = TODO. UI picker ruchu dołożymy osobno (akcja w hooku już jest).
+
+**Rezultat (zweryfikowany E2E):** /tactical/move przenosi destroyer 101→000 (aktywny); ruch bez
+aktywnego systemu → 422 „Brak aktywnego systemu".
+
+**QA:** backend 247 testów zielonych (było 237, +10), ruff + mypy --strict czyste. Frontend
+type-check + lint + build czyste.
+
+**Następny krok:** T6 — walidacja aktywacji / przejęcia planety / produkcji (koszty, limity,
+legalność) — domknięcie egzekucji fazy akcji poza walką.
