@@ -30,7 +30,52 @@ Status weryfikacji każdej reguły:
 
 ---
 
+## Spis treści
+
+Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zrzucie
+[`rules_tirules/`](rules_tirules/INDEX.md) (pełny indeks tematów: [`INDEX.md`](rules_tirules/INDEX.md)).
+
+| # | Sekcja | Status | Główny temat tirules |
+|---|---|---|---|
+| 1 | [Anomalie (Anomalies)](#1-anomalie-anomalies) | ✅ | [Anomalies](rules_tirules/R_anomalies.md) |
+| 2 | [Sąsiedztwo i wormhole (Adjacency)](#2-sąsiedztwo-i-wormhole-adjacency---zweryfikowane-częściowo) | ✅ częściowo | [Adjacency](rules_tirules/R_adjacency.md) |
+| 2a | [Map string i pozycje planszy (AsyncTI4)](#2a-map-string-i-pozycje-planszy-asyncti4---zweryfikowane) | ✅ | [Game Board](rules_tirules/R_game_board.md) |
+| 2b | [Klasyfikacja jednostek: przestrzeń vs planeta](#2b-klasyfikacja-jednostek-przestrzeń-vs-planeta---zweryfikowane) | ✅ | [Units](rules_tirules/R_units.md) |
+| 2c | [Format `startingFleet` i setup frakcji](#2c-format-startingfleet-i-setup-frakcji---zweryfikowane) | ✅ | [Ships](rules_tirules/R_ships.md) |
+| 3 | [Ruch (Movement)](#3-ruch-movement---do-zrobienia-warstwa-logiki-ruchu-późniejsza-faza) | ⬜ | [Movement](rules_tirules/R_movement.md) |
+| 3 (bis) | [Limity sztuk jednostek (supply caps)](#3-limity-sztuk-jednostek-plastic--supply-caps---zweryfikowane) | ✅ | [Reinforcements](rules_tirules/R_reinforcements.md) |
+| 4 | [Pozycje stat-area](#4-pozycje-stat-area-player-stats-heksy---zweryfikowane-port-algorytmu-asyncti4) | ✅ | [Game Board](rules_tirules/R_game_board.md) |
+| 5 | [Startowe żetony dowodzenia](#5-startowe-żetony-dowodzenia-command-counters---zweryfikowane) | ✅ | [Command Tokens](rules_tirules/R_command_tokens.md) |
+| 6 | [Fazy gry — mapowanie na frontend](#6-fazy-gry--mapowanie-na-format-frontendu---format--logika) | ✅/⬜ | [Game Round](rules_tirules/R_game_round.md) |
+| 7 | [Ekonomia planet: optimal / flex](#7-ekonomia-planet-optimal--flex---zweryfikowane) | ✅ | [Planets](rules_tirules/R_planets.md) |
+| 8 | [Liderzy frakcji](#8-liderzy-frakcji-agentcommanderhero---zweryfikowane-dane) | ✅ | [Leaders](rules_tirules/R_leaders.md) |
+| 9 | [Kolejność tur fazy akcji i pas](#9-kolejność-tur-fazy-akcji-i-pas---zweryfikowane) | ✅ | [Initiative Order](rules_tirules/R_initiative_order.md) |
+| 10 | [Posiadane jednostki i ulepszenia](#10-posiadane-jednostki-i-ulepszenia-unitsowned---zweryfikowane-dane) | ✅ | [Unit Upgrades](rules_tirules/R_unit_upgrades.md) |
+| 11 | [Klucz tożsamości gracza w web-data](#11-klucz-tożsamości-gracza-w-web-data-desync-panelmapa---zweryfikowane-kod-frontendu) | ✅ | — (kontrakt frontendu) |
+| 12 | [Kontrola planet — jedno źródło prawdy](#12-kontrola-planet--jedno-źródło-prawdy-opcja-a---decyzja-projektowa) | ✅ | [Control](rules_tirules/R_control.md) |
+| 13 | [Faza strategii (wybór kart)](#13-faza-strategii-wybór-kart-strategii---zweryfikowane-dane--java-bot) | ✅ | [Strategy Phase](rules_tirules/R_strategy_phase.md) |
+| 14 | [Źródła danych: codexy + thunders_edge](#14-źródła-danych-codexy--thunders_edge-dedup-erraty---zweryfikowane-dane) | ✅ | [Technology](rules_tirules/R_technology.md) |
+| 15 | [Typ planety: `planetTypes` vs `planetType`](#15-typ-planety-pole-planettypes-lista-vs-planettype---zweryfikowane-dane) | ✅ | [Planets](rules_tirules/R_planets.md) |
+| 16 | [Wybór technologii startowej frakcji](#16-wybór-technologii-startowej-frakcji---zweryfikowane-dane) | ✅ | [Technology](rules_tirules/R_technology.md) |
+| 17 | [Systemy domowe poza planszą (Creuss, Rebellion)](#17-systemy-domowe-poza-planszą-ghost-of-creuss-crimson-rebellion---zweryfikowane-bot) | ✅ | [Wormholes](rules_tirules/R_wormholes.md) |
+| 18 | [Panel gracza: zdolności, tech frakcyjny, przełomy](#18-panel-gracza-zdolności-technologie-frakcyjne-przełomy---zweryfikowane-dane--frontend) | ✅ | [Breakthroughs](rules_tirules/R_breakthroughs.md) |
+| 19 | [Akcja taktyczna: aktywacja + maszyna kroków](#19-akcja-taktyczna-aktywacja-systemu--maszyna-kroków---zweryfikowane-asyncti4-bot) | ✅ | [Tactical Action](rules_tirules/R_tactical_action.md) |
+| 20 | [Walka: pomoce liczbowe / statystyki](#20-walka-pomoce-liczbowe-asystent-nie-sędzia---zweryfikowane-dane-unitdef) | ✅ | [Space Combat](rules_tirules/R_space_combat.md) |
+| 21 | [Przejęcie kontroli planety (inwazja)](#21-przejęcie-kontroli-planety-inwazja---zweryfikowane-asyncti4-bot) | ✅ | [Invasion](rules_tirules/R_invasion.md) |
+| 22 | [Produkcja: pomoc liczbowa](#22-produkcja-pomoc-liczbowa-koszt--zasoby---zweryfikowane-dane-unitdef) | ✅ | [Producing Units](rules_tirules/R_producing_units.md) |
+| 23 | [Kontrola planety przy stawianiu jednostek](#23-kontrola-planety-przy-stawianiu-jednostek-auto---zweryfikowane-asyncti4-bot) | ✅ | [Control](rules_tirules/R_control.md) |
+| 24 | [Kolejność graczy: seating, speaker, inicjatywa](#24-kolejność-graczy-seating-order-speaker-wybór-kart-strategii---zweryfikowane-lrr--asyncti4-bot) | ✅ | [Speaker](rules_tirules/R_speaker.md) |
+| 25 | [Drag-and-drop przenoszenia jednostek (UI)](#25-drag-and-drop-przenoszenia-jednostek-uigod-mode---decyzja-projektowa) | ✅ (UI) | [Transport](rules_tirules/R_transport.md) |
+| 26 | [Umiejscowienie jednostek: statek↔przestrzeń](#26-umiejscowienie-jednostek-przy-przenoszeniu-statekprzestrzeń-naziemneplaneta---zweryfikowane) | ✅ | [Units](rules_tirules/R_units.md) |
+| 27 | [Wyczerpywanie komponentów (exhaust/ready)](#27-wyczerpywanie-komponentów-planety-technologie-liderzy-exhaustready---zweryfikowane-lrr--dane) | ✅ | [Exhausted](rules_tirules/R_exhausted.md) |
+| 28 | [Grywalne frakcje vs placeholdery](#28-grywalne-frakcje-vs-placeholdery-systemowe-neutrallazax---zweryfikowane-dane-asyncti4) | ✅ | [Neutral Units](rules_tirules/R_neutral_units.md) |
+| 29 | [ZMIANA KIERUNKU: silnik-SĘDZIA + okna czasowe](#29-zmiana-kierunku-silnik-sędzia--okna-czasowe-zastępuje-asystent-nie-sędzia) | decyzja | [Strategic Action](rules_tirules/R_strategic_action.md) |
+
+---
+
 ## 1. Anomalie (Anomalies)
+
+📎 tirules: [Anomalies](rules_tirules/R_anomalies.md) · [Asteroid Field](rules_tirules/R_asteroid_field.md) · [Nebula](rules_tirules/R_nebula.md) · [Supernova](rules_tirules/R_supernova.md) · [Gravity Rift](rules_tirules/R_gravity_rift.md) · [Movement](rules_tirules/R_movement.md)
 
 Źródło: LRR 2.0, sekcja „Anomalies"; TI Wiki /wiki/Anomalies.
 Treść sparafrazowana dla zgodności z licencją.
@@ -78,6 +123,8 @@ Kluczowe rozróżnienie architektoniczne:
 
 ## 2. Sąsiedztwo i wormhole (Adjacency) — ✅ ZWERYFIKOWANE (częściowo)
 
+📎 tirules: [Adjacency](rules_tirules/R_adjacency.md) · [Wormholes](rules_tirules/R_wormholes.md) · [Neighbors](rules_tirules/R_neighbors.md) · [Hyperlanes](rules_tirules/R_hyperlanes.md)
+
 - Systemy są sąsiednie, jeśli przylegają do siebie na mapie (6 krawędzi heksa).
 - Systemy zawierające **wormhole tego samego typu** (Alpha, Beta, Gamma, Delta...)
   są traktowane jako **sąsiednie** wzajemnie.
@@ -88,6 +135,8 @@ Kluczowe rozróżnienie architektoniczne:
 ---
 
 ## 2a. Map string i pozycje planszy (AsyncTI4) — ✅ ZWERYFIKOWANE
+
+📎 tirules: [Game Board](rules_tirules/R_game_board.md) · [System Tiles](rules_tirules/R_system_tiles.md) · [Mecatol Rex](rules_tirules/R_mecatol_rex.md)
 
 Źródło: lokalny asset AsyncTI4 `assets/alias/position_alias.properties`
 (autorytatywne mapowanie TTPG → pozycje Async). Zweryfikowane 2026-10 porównaniem
@@ -145,6 +194,8 @@ TTS/AsyncTI4 (grupa standaryzująca na Discordzie TTS, por. ti4-map-lab).
 
 ## 2b. Klasyfikacja jednostek: przestrzeń vs planeta — ✅ ZWERYFIKOWANE
 
+📎 tirules: [Units](rules_tirules/R_units.md) · [Ships](rules_tirules/R_ships.md) · [Ground Forces](rules_tirules/R_ground_forces.md) · [Structures](rules_tirules/R_structures.md) · [Mechs](rules_tirules/R_mechs.md)
+
 Źródło: TI Wiki/LRR — /wiki/Units, /wiki/Mechs, /wiki/War_Sun, /wiki/Infantry.
 Treść sparafrazowana dla zgodności z licencją.
 
@@ -181,6 +232,8 @@ Odwzorowanie w `GameState`:
 ---
 
 ## 2c. Format `startingFleet` i setup frakcji — ✅ ZWERYFIKOWANE
+
+📎 tirules: [Ships](rules_tirules/R_ships.md) · [Ground Forces](rules_tirules/R_ground_forces.md) · [Reinforcements](rules_tirules/R_reinforcements.md) · [Units](rules_tirules/R_units.md)
 
 Źródło: dane frakcji AsyncTI4 (`assets/data/factions/*.json`), zweryfikowane na
 base+pok (2026-10). Format sparafrazowany; wzorzec potwierdzony empirycznie.
@@ -221,6 +274,8 @@ base+pok (2026-10). Format sparafrazowany; wzorzec potwierdzony empirycznie.
 
 ## 3. Ruch (Movement) — ⬜ DO ZROBIENIA (warstwa logiki ruchu, późniejsza faza)
 
+📎 tirules: [Movement](rules_tirules/R_movement.md) · [Move (Attribute)](rules_tirules/R_move.md) · [Transport](rules_tirules/R_transport.md) · [Active System](rules_tirules/R_active_system.md) · [Anomalies](rules_tirules/R_anomalies.md)
+
 Zweryfikowane zasady do zaimplementowania, gdy powstanie logika ruchu
 (obecnie HexGrid dostarcza tylko sąsiedztwo i odległości):
 - Statek musi zakończyć ruch w systemie aktywnym.
@@ -245,6 +300,8 @@ Zweryfikowane zasady do zaimplementowania, gdy powstanie logika ruchu
 ---
 
 ## 3. Limity sztuk jednostek (plastic / supply caps) — ✅ ZWERYFIKOWANE
+
+📎 tirules: [Reinforcements](rules_tirules/R_reinforcements.md) · [Units](rules_tirules/R_units.md) · [Fighter Tokens](rules_tirules/R_fighter_tokens.md) · [Infantry Tokens](rules_tirules/R_infantry_tokens.md)
 
 Źródło (NIE z pamięci): AsyncTI4 bot,
 `TI4_map_generator_bot/src/main/resources/positions/reinforcements.properties`.
@@ -277,6 +334,8 @@ w puli). `deployedCount` = liczba sztuk danego typu gracza na planszy.
 
 ## 4. Pozycje stat-area (player-stats heksy) — ✅ ZWERYFIKOWANE (port algorytmu AsyncTI4)
 
+📎 tirules: [Game Board](rules_tirules/R_game_board.md) · [Command Sheet](rules_tirules/R_command_sheet.md) · [Victory Points](rules_tirules/R_victory_points.md)
+
 Kolorowe heksy „player stats" przy planszy to **zwarta trójka pustych kafelków**
 w pobliżu slotu domowego gracza. Algorytm (PORT, nie z pamięci) ze źródła AsyncTI4:
 `TI4_map_generator_bot/.../PlayerStatsHelper.findThreeNearbyStatTiles`:
@@ -301,6 +360,8 @@ AsyncTI4 oraz dla 6 graczy (18 unikalnych pozycji, bez nakładania).
 
 ## 5. Startowe żetony dowodzenia (command counters) — ✅ ZWERYFIKOWANE
 
+📎 tirules: [Command Tokens](rules_tirules/R_command_tokens.md) · [Command Sheet](rules_tirules/R_command_sheet.md) · [Fleet Pool](rules_tirules/R_fleet_pool.md) · [Leadership (Strategy Card)](rules_tirules/R_leadership.md)
+
 Źródło (nie z pamięci): AsyncTI4 bot, `Player.java` wartości domyślne:
 `private int tacticalCC = 3; private int fleetCC = 3; private int strategicCC = 2;`.
 Czyli start gry: **3 taktyczne, 3 floty, 2 strategiczne** żetony na arkuszu.
@@ -311,6 +372,8 @@ Zakodowane w `src/core/game_state.py` → `PlayerState` (`tactical_cc`, `fleet_c
 8 na starcie na arkuszu → 8 w rezerwie. Do potwierdzenia dokładnej liczby/źródła.
 
 ## 6. Fazy gry — mapowanie na format frontendu — ✅ (format), ⬜ (logika)
+
+📎 tirules: [Game Round](rules_tirules/R_game_round.md) · [Strategy Phase](rules_tirules/R_strategy_phase.md) · [Action Phase](rules_tirules/R_action_phase.md) · [Status Phase](rules_tirules/R_status_phase.md) · [Agenda Phase](rules_tirules/R_agenda_phase.md)
 
 Frontend (`GamePhase` w `entities/data/types.ts`) używa stringów małymi literami z
 podfazami: `strategy`, `action`, `status.scoring`, `status.homework`, `agenda.*`,
@@ -325,6 +388,8 @@ Pełna LOGIKA faz (przejścia, akcje, timing) = Warstwa B (roadmapa M2–M6), po
 
 ## 7. Ekonomia planet: optimal / flex — ✅ ZWERYFIKOWANE
 
+📎 tirules: [Planets](rules_tirules/R_planets.md) · [Resources](rules_tirules/R_resources.md) · [Influence](rules_tirules/R_influence.md)
+
 Źródło (nie z pamięci): AsyncTI4 bot, `Planet.getOptimalResources/getOptimalInfluence/
 getFlexResourcesOrInfluence`. Reguła per kontrolowana planeta:
 - `optimalResources` = `resources`, gdy `resources > influence`, inaczej 0;
@@ -336,6 +401,8 @@ Implementacja: `src/api/web_data.py` → `_planet_economy` / `_Economy`.
 
 ## 8. Liderzy frakcji (agent/commander/hero) — ✅ ZWERYFIKOWANE (dane)
 
+📎 tirules: [Leaders](rules_tirules/R_leaders.md) · [Leader Sheet](rules_tirules/R_leader_sheet.md)
+
 Źródło: pole `leaders` w danych frakcji AsyncTI4 (np. Sol: `solagent, solcommander,
 solhero`). Typ wyprowadzany z sufiksu id. Start: agent gotowy (odblokowany),
 commander/hero zablokowani (odblokowują się przez warunki — logika w późniejszej fazie).
@@ -345,6 +412,8 @@ Model: `FactionDef.leaders`; emisja: `web_data._player_leaders` → `playerData.
 ---
 
 ## 9. Kolejność tur fazy akcji i pas — ✅ ZWERYFIKOWANE
+
+📎 tirules: [Initiative Order](rules_tirules/R_initiative_order.md) · [Action Phase](rules_tirules/R_action_phase.md) · [Active Player](rules_tirules/R_active_player.md) · [Strategy Card](rules_tirules/R_strategy_card.md)
 
 Źródło (nie z pamięci): AsyncTI4 bot, `EndTurnService.findNextUnpassedPlayer` +
 `Game.getActionPhaseTurnOrder`. Reguły:
@@ -362,6 +431,8 @@ Implementacja: `src/core/turn_flow.py` (czyste funkcje) + endpointy
 ---
 
 ## 10. Posiadane jednostki i ulepszenia (unitsOwned) — ✅ ZWERYFIKOWANE (dane)
+
+📎 tirules: [Unit Upgrades](rules_tirules/R_unit_upgrades.md) · [Units](rules_tirules/R_units.md) · [Technology](rules_tirules/R_technology.md) · [Units (komponenty)](rules_tirules/C_units.md)
 
 Źródło (nie z pamięci): dane jednostek AsyncTI4 (`assets/.../units/*.json`) + kod
 frontendu `frontend/src/entities/lookup/units.ts` (`lookupUnit`, `preferUpgradedUnit`).
@@ -406,6 +477,8 @@ w `unitsOwned` na wariant ulepszony → `preferUpgradedUnit` pokazuje właściwe
 
 ## 11. Klucz tożsamości gracza w web-data (desync panel↔mapa) — ✅ ZWERYFIKOWANE (kod frontendu)
 
+📎 tirules: — (kontrakt frontendu, nie reguła TI4; pojęciowo [Units](rules_tirules/R_units.md))
+
 Źródło: `frontend/src/entities/lookup/units.ts` (`lookupUnit` dopasowuje jednostki po
 `playerData[].faction`) + `tileUnitData`/`statTilePositions` kluczowane tym samym stringiem.
 
@@ -427,6 +500,8 @@ pid==key` trafiała w złego gracza. Teraz `_resolve_player_id` preferuje dokła
 
 ## 12. Kontrola planet — jedno źródło prawdy (opcja A) — ✅ DECYZJA PROJEKTOWA
 
+📎 tirules: [Control](rules_tirules/R_control.md) · [Planets](rules_tirules/R_planets.md) · [Invasion](rules_tirules/R_invasion.md) · [Coexistence](rules_tirules/R_coexistence.md)
+
 **Reguła:** `SystemState.planet_owners` (kontrola planety w jej systemie) jest JEDYNYM
 źródłem prawdy o tym, kto kontroluje planetę. Lista planet gracza w web-data
 (`playerData.planets`) oraz ekonomia są WYLICZANE z `planet_owners`
@@ -445,6 +520,8 @@ kontroluje; jest też naturalną podstawą pod przyszłą logikę podbojów/inwa
 ---
 
 ## 13. Faza strategii (wybór kart strategii) — ✅ ZWERYFIKOWANE (dane + Java bot)
+
+📎 tirules: [Strategy Phase](rules_tirules/R_strategy_phase.md) · [Strategy Card](rules_tirules/R_strategy_card.md) · [Strategic Action](rules_tirules/R_strategic_action.md) · [Trade Goods](rules_tirules/R_trade_goods.md) · [Initiative Order](rules_tirules/R_initiative_order.md)
 
 Źródło (nie z pamięci): dane kart `assets/data/strategy_cards/pok.json` +
 `assets/data/strategy_card_sets/strategyCardSets.json`; logika z AsyncTI4 bot:
@@ -484,6 +561,8 @@ endpointy `POST /strategy/pick`, `/strategy/play`, `/strategy/reset`.
 
 ## 14. Źródła danych: codexy + thunders_edge, dedup erraty — ✅ ZWERYFIKOWANE (dane)
 
+📎 tirules: [Technology](rules_tirules/R_technology.md) · [Technology (komponenty)](rules_tirules/C_technology.md) · [Breakthroughs](rules_tirules/R_breakthroughs.md)
+
 Źródło: dane technologii AsyncTI4 (`assets/data/technologies/*.json`), zweryfikowane
 2026-10 na załadowanym rejestrze.
 
@@ -510,6 +589,8 @@ Implementacja: `frontend/.../PlayerEditorModal.tsx` (`techFamilyKey`, `SOURCE_PR
 
 ## 15. Typ planety: pole `planetTypes` (lista) vs `planetType` — ✅ ZWERYFIKOWANE (dane)
 
+📎 tirules: [Planets](rules_tirules/R_planets.md) · [Legendary Planets](rules_tirules/R_legendary_planets.md)
+
 Źródło: dane planet AsyncTI4 (`assets/planets/*.json`). Część źródeł (np. thunders_edge)
 podaje typ planety jako listę `planetTypes` (np. `["FACTION"]`) i NIE ma pojedynczego
 `planetType`. Konsekwencje i naprawa:
@@ -524,6 +605,8 @@ podaje typ planety jako listę `planetTypes` (np. `["FACTION"]`) i NIE ma pojedy
 ---
 
 ## 16. Wybór technologii startowej frakcji — ✅ ZWERYFIKOWANE (dane)
+
+📎 tirules: [Technology](rules_tirules/R_technology.md) · [Technology (Strategy Card)](rules_tirules/R_technology_sc.md)
 
 Źródło: dane frakcji AsyncTI4 (`assets/data/factions/*.json`), pola `startingTechOptions`
 + `startingTechAmount`. Zweryfikowane 2026-10 na aktywnych źródłach.
@@ -546,6 +629,8 @@ opcji) + wybór przekazywany przez `starting_tech` w żądaniu setupu/nowej gry;
 menu wyboru N z listy, gdy `startingTechAmount > 0`.
 
 ## 17. Systemy domowe poza planszą: Ghost of Creuss, Crimson Rebellion — ✅ ZWERYFIKOWANE (bot)
+
+📎 tirules: [Wormholes](rules_tirules/R_wormholes.md) · [The Ghosts of Creuss](rules_tirules/F_creuss.md) · [The Crimson Rebellion](rules_tirules/F_rebellion.md) · [System Tiles](rules_tirules/R_system_tiles.md)
 
 Źródło (nie z pamięci): AsyncTI4 bot, `PlayerSetupService` (blok „GHOST AND CRIMSON EXTRA
 HS TILES"). Obie frakcje mają system domowy fizycznie POZA planszą, połączony z nią przez
@@ -571,6 +656,8 @@ rogi pochodzą z `PlayerSetupService` AsyncTI4 — zakodowane jawnie jako tabela
 
 
 ## 18. Panel gracza: zdolności, technologie frakcyjne, przełomy — ✅ ZWERYFIKOWANE (dane + frontend)
+
+📎 tirules: [Breakthroughs](rules_tirules/R_breakthroughs.md) · [Synergy](rules_tirules/R_synergy.md) · [Technology](rules_tirules/R_technology.md) · [Leaders](rules_tirules/R_leaders.md)
 
 AsyncTI4 wypisuje na karcie gracza także **zdolności frakcji** (faction abilities),
 **technologie frakcyjne** (faction tech) i **przełom** (breakthrough — mechanika
@@ -607,6 +694,9 @@ w `web_data.py` (`_faction_abilities`, `_faction_techs`, `_player_breakthrough`)
 
 
 ## 19. Akcja taktyczna: aktywacja systemu + maszyna kroków — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+
+📎 tirules: [Tactical Action](rules_tirules/R_tactical_action.md) · [Active System](rules_tirules/R_active_system.md) · [Command Tokens](rules_tirules/R_command_tokens.md) · [Movement](rules_tirules/R_movement.md) · [Invasion](rules_tirules/R_invasion.md) · [Producing Units](rules_tirules/R_producing_units.md)
+
 > ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
 
 
@@ -645,6 +735,9 @@ ręcznie korygować żetony (bez zużycia puli — to korekta, nie aktywacja).
 
 
 ## 20. Walka: pomoce liczbowe (asystent, nie sędzia) — ✅ ZWERYFIKOWANE (dane UnitDef)
+
+📎 tirules: [Space Combat](rules_tirules/R_space_combat.md) · [Ground Combat](rules_tirules/R_ground_combat.md) · [Combat (Attribute)](rules_tirules/R_combat.md) · [Sustain Damage](rules_tirules/R_sustain_damage.md) · [Rerolls](rules_tirules/R_rerolls.md) · [Anti–Fighter Barrage](rules_tirules/R_anti_fighter_barrage.md)
+
 > ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
 
 
@@ -674,6 +767,9 @@ graczy) → `GET /tactical/combat/{pos}` → okno z dwiema stronami, listą jedn
 
 
 ## 21. Przejęcie kontroli planety (inwazja) — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+
+📎 tirules: [Invasion](rules_tirules/R_invasion.md) · [Ground Combat](rules_tirules/R_ground_combat.md) · [Control](rules_tirules/R_control.md) · [Bombardment](rules_tirules/R_bombardment.md) · [Planetary Shield](rules_tirules/R_planetary_shield.md)
+
 > ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
 
 
@@ -689,6 +785,9 @@ w oknie walki naziemnej. Kontrola planety jest niezależna od kontroli przestrze
 innego gracza mogą zostać w systemie — RULES.md 19).
 
 ## 22. Produkcja: pomoc liczbowa (koszt + zasoby) — ✅ ZWERYFIKOWANE (dane UnitDef)
+
+📎 tirules: [Producing Units](rules_tirules/R_producing_units.md) · [Production (Unit Ability)](rules_tirules/R_production.md) · [Cost (Attribute)](rules_tirules/R_cost.md) · [Resources](rules_tirules/R_resources.md) · [Space Dock](rules_tirules/R_space_dock.md)
+
 > ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
 
 
@@ -705,6 +804,8 @@ Stawianie jednostek robi operator przez God-Mode (edit-units), produkcja to tylk
 
 
 ## 23. Kontrola planety przy stawianiu jednostek (auto) — ✅ ZWERYFIKOWANE (AsyncTI4 bot)
+
+📎 tirules: [Control](rules_tirules/R_control.md) · [Ground Forces](rules_tirules/R_ground_forces.md) · [Planets](rules_tirules/R_planets.md) · [Coexistence](rules_tirules/R_coexistence.md)
 
 Postawienie/przeniesienie jednostki NAZIEMNEJ lub struktury na planetę automatycznie
 nadaje kontrolę. Źródło (nie z pamięci): AsyncTI4 `AddPlanetToPlayAreaService.addPlanetToPlayArea`,
@@ -731,6 +832,9 @@ stawianie piechoty nie dawało kontroli (panel „kontrolowane planety" się nie
 web-data liczy kontrolowane planety wyłącznie z `planet_owners` — stąd brak efektu.
 
 ## 24. Kolejność graczy: seating order, speaker, wybór kart strategii — ✅ ZWERYFIKOWANE (LRR + AsyncTI4 bot)
+
+📎 tirules: [Speaker](rules_tirules/R_speaker.md) · [Initiative Order](rules_tirules/R_initiative_order.md) · [Strategy Phase](rules_tirules/R_strategy_phase.md) · [Active Player](rules_tirules/R_active_player.md)
+
 > ⚠️ **AKTUALIZACJA KIERUNKU (patrz sekcja 29):** adnotacje `NIE waliduje` / `asystent, nie sędzia` w tej sekcji są UNIEWAŻNIONE. Treść pozostaje poprawna jako REFERENCJA mechaniki TI4; egzekucja reguł wchodzi do `core/` zgodnie z 29.1.
 
 
@@ -766,6 +870,8 @@ Implementacja: `GameState.seating_order`/`speaker_id` (`game_state.py`); `strate
 `turn_flow.next_phase`/`next_round` ustawiające aktywnego mówcę na starcie fazy strategii.
 
 ## 25. Drag-and-drop przenoszenia jednostek (UI/God-Mode) — ✅ DECYZJA PROJEKTOWA
+
+📎 tirules: [Transport](rules_tirules/R_transport.md) · [Movement](rules_tirules/R_movement.md) · [Units](rules_tirules/R_units.md) · [Capacity](rules_tirules/R_capacity.md)
 
 To mechanika WYGODY UI, nie reguła TI4 — przenoszenie bez walidacji zasad (asystent, nie
 sędzia). Przeciągasz sprite jednostki z kafelka/strefy na inny kafelek lub planetę; dla
@@ -805,6 +911,8 @@ jednostek poza odtwarzaniem historii (replay).
 
 ## 26. Umiejscowienie jednostek przy przenoszeniu: statek↔przestrzeń, naziemne↔planeta — ✅ ZWERYFIKOWANE
 
+📎 tirules: [Units](rules_tirules/R_units.md) · [Ships](rules_tirules/R_ships.md) · [Ground Forces](rules_tirules/R_ground_forces.md) · [Structures](rules_tirules/R_structures.md) · [Transport](rules_tirules/R_transport.md)
+
 Reguła TI4 (LRR /wiki/Units, /wiki/Movement; spójna z klasyfikacją RULES.md 2b): jednostka
 istnieje tylko w strefie zgodnej z jej typem.
 - **Statki** (`fighter`, `destroyer`, `cruiser`, `carrier`, `dreadnought`, `flagship`,
@@ -829,6 +937,8 @@ Implementacja: `unit_catalog.placement_allows_zone`/`zone_is_space`, `board_edit
 
 
 ## 27. Wyczerpywanie komponentów: planety, technologie, liderzy (exhaust/ready) — ✅ ZWERYFIKOWANE (LRR + dane)
+
+📎 tirules: [Exhausted](rules_tirules/R_exhausted.md) · [Readied](rules_tirules/R_readied.md) · [Status Phase](rules_tirules/R_status_phase.md) · [Planets](rules_tirules/R_planets.md) · [Technology](rules_tirules/R_technology.md)
 
 Etap E4 (kontrola komponentów). **Decyzja projektowa:** asystent stołu — operator ręcznie
 przełącza stan, aplikacja NIE wymusza, kiedy komponent się wyczerpuje. Backend trzyma stan
@@ -873,6 +983,8 @@ faz — menu RMB omija tryb klikania (`activateMode`) i woła ją wprost.
 
 ## 28. Grywalne frakcje vs placeholdery systemowe (Neutral/Lazax) — ✅ ZWERYFIKOWANE (dane AsyncTI4)
 
+📎 tirules: [Neutral Units](rules_tirules/R_neutral_units.md) · [⚪ The Firmament / ✖ The Obsidian](rules_tirules/F_firmament.md) · [Abilities](rules_tirules/R_abilities.md)
+
 W danych frakcji AsyncTI4 (`assets/data/factions/`) są wpisy, które NIE są grywalnymi frakcjami,
 tylko placeholderami systemowymi dla jednostek neutralnych / scen:
 - `neutral` (`other.json`, source `thunders_edge`) — puste `homeSystem`, brak liderów/zdolności;
@@ -903,6 +1015,8 @@ innego kafelka), oznaczymy ją tą samą zdolnością w danych — kod jej nie w
 ---
 
 ## 29. ZMIANA KIERUNKU: silnik-SĘDZIA + okna czasowe (zastępuje "asystent, nie sędzia")
+
+📎 tirules: [Strategic Action](rules_tirules/R_strategic_action.md) · [Strategy Card](rules_tirules/R_strategy_card.md) · [Space Combat](rules_tirules/R_space_combat.md) · [Space Cannon](rules_tirules/R_space_cannon.md) · [Modifiers](rules_tirules/R_modifiers.md) · [Abilities](rules_tirules/R_abilities.md)
 
 **Data decyzji: 2026-10. Ustalenie z użytkownikiem — ŚWIADOMA zmiana filozofii projektu.**
 
