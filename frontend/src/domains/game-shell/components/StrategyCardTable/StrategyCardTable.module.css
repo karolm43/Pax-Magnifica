@@ -145,10 +145,12 @@
      brak wychodzenia poza ekran > wielkość kart). */
   flex: 0 0 auto;
   width: clamp(96px, 10.5vw, 190px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--ds-space-xs);
-  /* Bez kafla/ramki — widoczny ma być SAM OBRAZ (obraz ma własne rogi). */
+  display: block;
+  /* Bez kafla/ramki — widoczny ma być SAM OBRAZ (obraz ma własne rogi). Reset
+     natywnego <button>: ``background`` i ``border`` wyłączone JAWNIE, inaczej
+     przeglądarka rysuje domyślny szary prostokąt pod/wokół obrazu. */
+  background: transparent;
+  border: none;
   padding: 0;
   /* Dodatni odstęp zapewnia ``gap`` na ``.cards`` — karty nie nachodzą na siebie. */
   margin-inline: 0;
@@ -273,13 +275,22 @@
   text-overflow: ellipsis;
 }
 
-/* Pasek stanu pod grafiką: TG + właściciel. */
+/*
+ * Pasek stanu (TG + właściciel) jako NAKŁADKA na dole obrazu — NIE osobny pas pod
+ * kartą. Dzięki ``position: absolute`` nie wpływa na wysokość ``.card`` (ta = sama
+ * wysokość obrazu), więc znika pusty szary pas pod kartą. ``pointer-events: none``
+ * — nakładka nie przechwytuje klików/hoveru (wybór i tooltip działają jak dotąd).
+ */
 .cardMeta {
+  position: absolute;
+  left: var(--ds-space-xs);
+  right: var(--ds-space-xs);
+  bottom: var(--ds-space-xs);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 24px;
+  pointer-events: none;
 }
 
 .tg {
@@ -287,16 +298,20 @@
   font-family: var(--ds-font-data);
   font-size: var(--ds-fz-xs);
   color: rgb(var(--ds-sig-tg));
-  background: rgb(var(--ds-sig-tg) / 0.14);
+  /* Czytelna pigułka NA obrazie — ciemne tło + cień zamiast półprzezroczystego. */
+  background: rgb(0 0 0 / 0.72);
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
+  box-shadow: var(--ds-shadow-sm);
 }
 
 .owner {
   flex: none;
   display: inline-flex;
   margin-left: auto;
+  /* Lekki cień pod ikoną właściciela — czytelna na grafice karty. */
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.65));
 }
 
 /*
