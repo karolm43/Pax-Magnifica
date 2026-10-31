@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import strategy_phase
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
@@ -147,6 +148,21 @@ def _pending_window(state: GameState) -> dict[str, Any] | None:
         "isComplete": window.is_complete,
     }
 
+def _safe_pick_count(state: GameState) -> int | None:
+    """Liczba kart strategii na gracza (``Pick_Count``) lub None, gdy nieobsługiwana.
+
+    Woła czystą regułę ``strategy_phase.pick_count`` (2 przy 3–4 graczach, 1 przy
+    5–8). Web-data serializuje DOWOLNY stan — także niepełny/God-Mode z liczbą
+    graczy spoza 3..8 — więc NIE może rzucać: w takim przypadku łapiemy
+    ``ValueError`` i zwracamy None (pole addytywne, frontend AsyncTI4 je ignoruje,
+    nasz StrategyCardTable/StrategyCardPicker odczyta). RULES.md 13.
+    """
+    try:
+        return strategy_phase.pick_count(state)
+    except ValueError:
+        return None
+
+
 def _build_game_state(state: GameState) -> dict[str, Any]:
     """Buduje obiekt ``gameState`` — zasila panel faz + kolejność tur we froncie.
 
@@ -162,6 +178,10 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
         # Mówca (kolor) — otwiera wybór kart w fazie strategii (speaker order,
         # RULES.md 24). Nasze rozszerzenie kontraktu; panel tury je odczyta.
         "speaker": _color_of(state, state.speaker_id),
+        # Liczba kart strategii na gracza (Pick_Count) — int lub None, gdy liczba
+        # graczy spoza 3..8 (web-data nie rzuca). Pole ADDYTYWNE: panel/stół
+        # strategii odczyta, frontend AsyncTI4 je ignoruje. RULES.md 13.
+        "strategyPickCount": _safe_pick_count(state),
         # Kolejność miejsc przy stole jako KOLORY (speaker order wyznacza panel
         # tury rotacją od mówcy). Puste, gdy seating nieustalony.
         "seatingOrder": [
