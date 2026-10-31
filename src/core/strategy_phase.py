@@ -113,11 +113,22 @@ def pick_strategy_card(
 
     Efekty (RULES.md 13):
     - Karta musi należeć do aktywnego zestawu i nie być wcześniej wybrana.
+    - Wybór musi odbywać się w kolejności (to tura danego gracza) i poniżej
+      limitu ``Pick_Count`` (2 karty/gracz przy 3–4 graczach, 1 przy 5–8).
     - Gracz otrzymuje wszystkie trade goods leżące na karcie; licznik karty → 0.
-    - Numer karty trafia do ``player.strategy_cards`` (ustala inicjatywę tur).
+    - Numer karty trafia do ``player.strategy_cards`` (lista utrzymywana rosnąco,
+      ustala inicjatywę tur).
+
+    Kolejność walidacji (wszystkie PRZED ``clone`` — stan wejściowy niezmieniony
+    przy błędzie, R5): gracz istnieje → karta w zestawie → karta niewybrana →
+    kolejność wyboru → limit ``Pick_Count``. Walidacje „co" (gracz/karta) idą
+    przed „kiedy" (kolejność/limit), bo błąd „nie twoja kolej" ma sens dopiero dla
+    istniejącego gracza i realnej karty.
 
     Raises:
-        ValueError: Gdy gracz nie istnieje, karta spoza zestawu lub już wybrana.
+        ValueError: Gdy gracz nie istnieje (R5.6), karta spoza zestawu (R5.4),
+            karta już wybrana (R5.5), wybór poza kolejnością (R4.5) lub osiągnięto
+            limit ``Pick_Count`` (R3.5).
     """
     if player_id not in state.players:
         raise ValueError(f"Nieznany gracz: {player_id}")
@@ -125,6 +136,14 @@ def pick_strategy_card(
         raise ValueError(f"Karta inicjatywy {initiative} nie jest w zestawie.")
     if initiative in picked_initiatives(state):
         raise ValueError(f"Karta inicjatywy {initiative} już wybrana.")
+    # Kolejność (R4.5): wybierać może tylko bieżący picker w speaker order.
+    picker = next_strategy_picker(state)
+    if player_id != picker:
+        raise ValueError(f"Wybór poza kolejnością: teraz wybiera {picker}.")
+    # Limit Pick_Count (R3.5): gracz nie może przekroczyć dozwolonej liczby kart.
+    allowed = pick_count(state)
+    if len(state.players[player_id].strategy_cards) >= allowed:
+        raise ValueError(f"Przekroczono dozwoloną liczbę kart ({allowed}).")
 
     new_state = state.clone()
     player = new_state.players[player_id]
@@ -133,7 +152,8 @@ def pick_strategy_card(
     if tg_on_card:
         player.trade_goods += tg_on_card
     new_state.strategy_card_tg[initiative] = 0
-    player.strategy_cards = [*player.strategy_cards, initiative]
+    # Lista kart utrzymywana rosnąco (R5.1) — ustala poprawną inicjatywę tur.
+    player.strategy_cards = sorted([*player.strategy_cards, initiative])
     # Przekaż turę wyboru następnemu graczowi w speaker order (lub None, gdy
     # wszyscy już wybrali — faza gotowa do przejścia w akcję). RULES.md 24.
     new_state.active_player_id = next_strategy_picker(new_state)
