@@ -52,11 +52,15 @@ function FactionMark({
  * (który ZOSTAJE jako alternatywny picker, Requirement 8.2). Oba czytają ten sam
  * ``gameData``/``useStrategyCards``, więc odzwierciedlają ten sam stan gry.
  *
- * To ZADANIE 9.2 to RENDER: pełna grafika kart (``ti4ultimate.com`` przez
+ * RENDER (zadanie 9.2): pełna grafika kart (``ti4ultimate.com`` przez
  * ``getStrategyCardByInitiative(...).imageURL``), oznaczenie wybranych kart i ich
  * właściciela, wyróżnienie aktualnego pickera oraz nagłówek z mówcą i komunikatami
- * stanu (R1.4/R1.5). Fallback tekstowy przy braku/błędzie grafiki (R8.8). Pełna
- * interakcja wyboru (klik + blokada poza kolejnością) dochodzi w zadaniu 9.3.
+ * stanu (R1.4/R1.5). Fallback tekstowy przy braku/błędzie grafiki (R8.8).
+ *
+ * INTERAKCJA (zadanie 9.3): każda karta to klikalny ``<button>``. Klik WOLNEJ karty,
+ * gdy jest wskazany picker → ``pickStrategyCard(pickerId, card.initiative)`` (R8.5).
+ * Karta wybrana albo brak pickera / nie twoja kolej → blokada przez ``disabled`` +
+ * strażnik ``canPick`` (jak w istniejącym pickerze): klik NIE wysyła requestu (R8.6).
  *
  * Źródła danych: WYŁĄCZNIE istniejące hooki (zero nowych):
  * - ``useGameState`` → ``gameState`` (faza, mówca, aktywny gracz) — ten sam
@@ -64,7 +68,7 @@ function FactionMark({
  * - ``useStrategyCards`` → pula kart zestawu + ich stan (``StrategyCardState[]``);
  * - ``useGameData`` → ``playerData`` (właściciel → ``FactionMark``/kolor) oraz
  *   ``strategyCardIdMap`` (lookup grafiki pełnej karty);
- * - ``useBoardEditor`` → akcja ``pickStrategyCard`` (użyta dopiero w 9.3).
+ * - ``useBoardEditor`` → akcja ``pickStrategyCard`` (wybór karty dla pickera).
  */
 export function StrategyCardTable(): ReactElement | null {
   const params = useParams<{ mapid: string }>();
@@ -72,12 +76,18 @@ export function StrategyCardTable(): ReactElement | null {
   const { data: gameState } = useGameState(gameId);
   const { data: cards } = useStrategyCards();
   const gameData = useGameData();
-  // ``pickStrategyCard`` podłączone pod przyszłą interakcję wyboru (zadanie 9.3).
-  const { pickStrategyCard: _pickStrategyCard } = useBoardEditor();
+  // Akcja wyboru karty — ta sama, której używa ``StrategyCardPicker`` w
+  // ``GameStatePanel`` (identyczny kontrakt: ``pickStrategyCard(discordId, initiative)``).
+  const { pickStrategyCard } = useBoardEditor();
 
   // Karty, których grafika nie wczytała się (``onError``) — przełączamy je na
   // fallback tekstowy (R8.8). Klucz = initiative.
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+
+  // Blokada podwójnego requestu w trakcie trwającego wyboru — ten sam wzorzec
+  // ``busy``/``run``, co w ``StrategyCardPicker`` (GameStatePanel). Zapobiega
+  // wysłaniu kolejnego ``pickStrategyCard`` zanim poprzedni się rozstrzygnie.
+  const [busy, setBusy] = useState(false);
 
   // Gating fazy: render tylko w fazie strategii (Requirement 8.1). Poza nią —
   // komponent nie istnieje w drzewie (zwraca ``null``), więc nie dubluje się z
@@ -87,10 +97,31 @@ export function StrategyCardTable(): ReactElement | null {
 
   const players = gameData?.playerData ?? [];
 
+  // Opakowanie akcji wyboru — serializuje requesty przez flagę ``busy`` (tak jak
+  // ``run`` w ``StrategyCardPicker``): kolejny klik jest ignorowany, dopóki
+  // poprzedni ``pickStrategyCard`` się nie zakończy.
+  const run = async (fn: () => Promise<void>): Promise<void> => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // Picker = gracz, którego ``color === gameState.activePlayer`` w fazie strategii
   // (spójnie ze ``StrategyCardPicker`` w GameStatePanel; R8.9). ``null``, gdy nikt
   // nie jest wskazany (brak kolejki / wszyscy wybrali).
   const pickerColor = gameState.activePlayer;
+  // Gracz-picker i jego IDENTYFIKATOR do wywołania akcji. ``pickStrategyCard``
+  // oczekuje ``discordId`` (DOKŁADNIE ten sam identyfikator, co istniejący picker:
+  // ``pickStrategyCard(picker.player.discordId, ...)``), więc mapujemy kolor
+  // aktywnego gracza na jego ``discordId``.
+  const pickerPlayer = pickerColor
+    ? players.find((p) => p.color === pickerColor)
+    : undefined;
+  const pickerId = pickerPlayer?.discordId ?? null;
 
   // Mówca: ``gameState.speaker`` to KOLOR — mapujemy na nazwę gracza (R1.4).
   const speakerColor = gameState.speaker ?? null;
@@ -150,13 +181,41 @@ export function StrategyCardTable(): ReactElement | null {
             : undefined;
           const isPicked = card.picked_by != null;
 
+          // ``canPick`` — ten sam strażnik, co w istniejącym pickerze
+          // (``!owner && !!picker``): karta WOLNA (``picked_by == null``) ORAZ jest
+          // wskazany picker (``activePlayer != null`` → mamy ``pickerId``). Gdy
+          // ``false``: karta wybrana albo brak pickera / nie twoja kolej (R8.6) —
+          // klik nie wysyła requestu (``disabled`` + strażnik w ``onClick``).
+          const canPick = !isPicked && pickerId !== null;
+
           return (
-            <div
+            <button
               key={card.initiative}
+              type="button"
               role="listitem"
               className={styles.card}
               data-picked={isPicked || undefined}
+              disabled={busy || !canPick}
+              aria-disabled={!canPick || undefined}
               style={{ ["--scc" as string]: SC_TONE[card.initiative] }}
+              title={
+                isPicked
+                  ? `Wybrana: ${
+                      owner
+                        ? playerNameForColor(players, owner.color)
+                        : (card.picked_by ?? "")
+                    }`
+                  : canPick
+                    ? `Wybierz dla: ${pickerName ?? ""}`
+                    : "Nie można teraz wybrać"
+              }
+              onClick={() =>
+                // Klik dozwolonej karty → wybór dla aktualnego pickera (R8.5).
+                // Gdy ``!canPick`` — wczesny return, BEZ requestu (R8.6).
+                canPick &&
+                pickerId !== null &&
+                void run(() => pickStrategyCard(pickerId, card.initiative))
+              }
             >
               {showImage ? (
                 <img
@@ -199,7 +258,7 @@ export function StrategyCardTable(): ReactElement | null {
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
