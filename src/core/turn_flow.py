@@ -36,6 +36,33 @@ def turn_order(state: GameState) -> list[str]:
     return sorted(state.players, key=key)
 
 
+def strict_initiative_order(state: GameState) -> list[str]:
+    """Ścisła kolejność inicjatywy — permutacja WSZYSTKICH graczy (RULES.md 9).
+
+    W odróżnieniu od miękkiego ``turn_order`` (gracz bez karty dostaje klucz 99 i trafia
+    na koniec bez błędu), tutaj KAŻDY gracz MUSI mieć przypisaną co najmniej jedną kartę
+    strategii. Gracze są uporządkowani rosnąco po najniższym numerze wybranej karty
+    (``min(player.strategy_cards)``); remisy rozstrzygane stabilnie po ``player_id``.
+
+    Używane przy przejściu STRATEGY→ACTION (zadanie 4.2) PO ``ensure_strategy_complete``,
+    gdzie komplet jest już zagwarantowany — w normalnym flow nie rzuci. ``ValueError``
+    stanowi tu twardą gwarancję reguły R9.6.
+
+    Raises:
+        ValueError: Gdy którykolwiek gracz nie ma przypisanej karty strategii.
+    """
+    for player_id in state.players:
+        if not state.players[player_id].strategy_cards:
+            raise ValueError(
+                f"Gracz {player_id} nie ma przypisanej karty strategii."
+            )
+
+    def key(player_id: str) -> tuple[int, str]:
+        return (min(state.players[player_id].strategy_cards), player_id)
+
+    return sorted(state.players, key=key)
+
+
 def next_unpassed_player(state: GameState, current_id: str | None) -> str | None:
     """Następny gracz w kolejności, który nie spasował (ani nie jest wyeliminowany).
 
