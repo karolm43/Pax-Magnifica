@@ -40,21 +40,28 @@
   flex-direction: column;
   gap: var(--ds-space-sm);
   /* DUŻE karty — panel sięga niemal krawędzi ekranu (rząd prawie na całą szerokość). */
-  max-width: 98vw;
+  max-width: 96vw;
+  /* Panel PRZEZROCZYSTY — bez tła/ramki/cienia/blur. Widać mapę za kartami;
+     zostaje tylko layout (flex) i minimalny padding. */
   padding: var(--ds-space-md);
   color: var(--ds-ink);
-  background: color-mix(in oklab, var(--ds-ground) 94%, transparent);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--ds-h22);
-  border-radius: var(--ds-radius-lg);
-  box-shadow: var(--ds-shadow-md);
 }
 
-/* Nagłówek: czytelny tytuł fazy + wiersze z mówcą i aktualnym pickerem. */
+/*
+ * Nagłówek w stylu AsyncTI4 — WYŚRODKOWANY blok z własnym małym tłem (nie zlewa się
+ * z przezroczystym panelem). Tytuł fazy u góry, pod nim wiersz z pickerem i mówcą.
+ */
 .header {
+  align-self: center;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: var(--ds-space-xs);
+  padding: var(--ds-space-xs) var(--ds-space-md);
+  background: rgb(0 0 0 / 0.5);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-sm);
 }
 
 /* Tytuł panelu — czytelny (nie micro-tekst). */
@@ -66,53 +73,38 @@
   color: var(--ds-ink-hi);
 }
 
-/* Wiersz mówcy — wyraźny wiersz, nie micro-tekst. */
-.speaker {
-  font-size: var(--ds-fz-sm);
-  line-height: var(--ds-lh-sm);
-  color: var(--ds-ink);
+/*
+ * Wiersz pod tytułem: picker + mówca obok siebie, WYŚRODKOWANY, zawijalny na
+ * wąskim ekranie. Każdy element to etykieta + (ikona frakcji) + pełna nazwa.
+ */
+.meta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--ds-space-md);
 }
 
-.speakerName {
+/* Pojedynczy wpis (picker albo mówca): etykieta + ikona + nazwa w jednej linii. */
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-xs);
+  font-size: var(--ds-fz-sm);
+  line-height: var(--ds-lh-sm);
+}
+
+/* Etykieta („Teraz wybiera:", „Mówca:") — stonowana. */
+.metaLabel {
+  color: var(--ds-ink-lo);
+}
+
+/* Nazwa frakcji (lub komunikat braku) — display font, wyróżniona. */
+.metaName {
+  font-family: var(--ds-font-display);
   color: var(--ds-ink-hi);
   font-weight: 600;
-}
-
-/*
- * Baner aktualnego pickera — WYRAŹNY wiersz z obwódką w kolorze akcentu, mocniej
- * niż dotychczasowy micro-tekst. Gdy jest picker, obwódki wolnych kart też dostają
- * akcent (patrz .card.pickable poniżej), więc całość czytelnie komunikuje „teraz
- * wybiera ten gracz".
- */
-.picker {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 8px var(--ds-space-sm);
-  font-size: var(--ds-fz-sm);
-  line-height: var(--ds-lh-sm);
-  color: var(--ds-ink);
-  border-radius: var(--ds-radius-md);
-  background: rgb(var(--ds-accent-rgb) / 0.12);
-  box-shadow: inset 0 0 0 1px rgb(var(--ds-accent-rgb) / 0.45);
-}
-
-.pickerLabel {
-  color: var(--ds-ink-lo);
-}
-
-.pickerName {
-  font-family: var(--ds-font-display);
-  font-size: var(--ds-h5);
-  color: var(--ds-accent-ink);
-  font-weight: 700;
-}
-
-/* Wariant „brak pickera / brak mówcy" — stonowany, bez akcentu. */
-.pickerIdle {
-  background: var(--ds-rail);
-  box-shadow: inset 0 0 0 1px var(--ds-h14);
-  color: var(--ds-ink-lo);
 }
 
 /*
@@ -129,11 +121,14 @@
   flex-wrap: nowrap;
   justify-content: center;
   align-items: flex-end;
-  /* Wyraźny, skalowalny odstęp między kartami (zamiast nachodzenia). */
-  gap: clamp(6px, 1vw, 18px);
+  /* Rząd mieści się w panelu/viewporcie — brak wychodzenia poza ekran. */
+  width: 100%;
+  max-width: 100%;
+  /* Skalowalny odstęp między kartami (mniejszy — 8 kart mieści się w viewporcie). */
+  gap: clamp(4px, 0.6vw, 12px);
   overflow: visible;
   /* Zapas u góry na uniesienie/powiększenie najechanej karty (nie przycina). */
-  padding-top: var(--ds-space-xl, 32px);
+  padding-top: var(--ds-space-lg);
 }
 
 /*
@@ -146,9 +141,10 @@
   --rot: 0deg;
   --lift: 0px;
   position: relative;
-  /* DUŻE karty — 8 kart wypełnia większość szerokości ekranu (rząd bez przewijania). */
+  /* Szerokość tak dobrana, by 8 kart zmieściło się w viewporcie (priorytet:
+     brak wychodzenia poza ekran > wielkość kart). */
   flex: 0 0 auto;
-  width: clamp(170px, 17vw, 300px);
+  width: clamp(96px, 10.5vw, 190px);
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-xs);

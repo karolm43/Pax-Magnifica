@@ -14,6 +14,7 @@ import {
 } from "@/shared/ui/DetailsCard";
 import { Stack } from "@/ds";
 import { playerNameForColor } from "../gameStatePlayers";
+import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { DEFAULT_GAME_ID } from "@/config";
 import type { PlayerData } from "@/entities/data/types";
 import styles from "./StrategyCardTable.module.css";
@@ -160,16 +161,19 @@ export function StrategyCardTable(): ReactElement | null {
     : undefined;
   const pickerId = pickerPlayer?.discordId ?? null;
 
-  // Mówca: ``gameState.speaker`` to KOLOR — mapujemy na nazwę gracza (R1.4).
-  const speakerColor = gameState.speaker ?? null;
-  const speakerName = speakerColor
-    ? playerNameForColor(players, speakerColor)
+  // Mówca: ``gameState.speaker`` to KOLOR — mapujemy na gracza i jego PEŁNĄ nazwę
+  // frakcji (R1.4). ``speakerPlayer`` daje też ikonę frakcji w nagłówku.
+  const speakerPlayer = gameState.speaker
+    ? players.find((p) => p.color === gameState.speaker)
+    : undefined;
+  const speakerName = speakerPlayer
+    ? getPlayerFactionDisplayName(speakerPlayer)
     : null;
 
-  // Nazwa aktualnego pickera do podnagłówka (R1.5). Gdy picker nieznany, pokazujemy
-  // komunikat „brak gracza do wskazania".
-  const pickerName = pickerColor
-    ? playerNameForColor(players, pickerColor)
+  // Picker w podnagłówku (R1.5) — PEŁNA nazwa frakcji gracza + ikona (``pickerPlayer``
+  // policzony wyżej). Gdy picker nieznany, pokazujemy „brak gracza do wskazania".
+  const pickerName = pickerPlayer
+    ? getPlayerFactionDisplayName(pickerPlayer)
     : null;
 
   return (
@@ -180,34 +184,40 @@ export function StrategyCardTable(): ReactElement | null {
     // klikalne. Wyłącznie struktura/layout — ZERO zmian logiki interakcji i danych.
     <div className={styles.overlay}>
       <div className={styles.table} aria-label="Karty strategii na stole">
-      {/* Nagłówek fazy + mówca + WYRAŹNY baner aktualnego pickera (Requirement 1). */}
+      {/*
+       * Nagłówek w stylu AsyncTI4: WYŚRODKOWany tytuł fazy, a pod nim wiersz
+       * (zawijalny) z aktualnym pickerem i mówcą — każdy z IKONĄ frakcji
+       * (``FactionMark``) i PEŁNĄ nazwą frakcji (Requirement 1). Komunikaty braku
+       * zostają bez ikony: brak pickera → „brak gracza do wskazania" (R1.5), brak
+       * mówcy → „brak ustawionego mówcy" (R1.4).
+       */}
       <div className={styles.header}>
         <h2 className={styles.heading}>Faza strategii</h2>
-        <span className={styles.speaker}>
-          {speakerName ? (
-            <>
-              Mówca:{" "}
-              <b className={styles.speakerName}>{speakerName}</b>
-            </>
-          ) : (
-            "brak ustawionego mówcy"
-          )}
-        </span>
-        {/*
-         * Baner pickera: gdy jest wskazany gracz (R1.5), wyróżniony wiersz
-         * „Teraz wybiera: {gracz}" z akcentem; gdy brak — stonowany komunikat
-         * „brak gracza do wskazania" (R1.5). To wyłącznie czytelniejsza
-         * prezentacja tego samego ``pickerName``, bez zmian logiki.
-         */}
-        <div className={cx(styles.picker, !pickerName && styles.pickerIdle)}>
-          {pickerName ? (
-            <>
-              <span className={styles.pickerLabel}>Teraz wybiera:</span>
-              <b className={styles.pickerName}>{pickerName}</b>
-            </>
-          ) : (
-            "brak gracza do wskazania"
-          )}
+        <div className={styles.meta}>
+          {/* Teraz wybiera — ikona + pełna nazwa frakcji pickera (lub komunikat braku). */}
+          <span className={styles.metaItem}>
+            <span className={styles.metaLabel}>Teraz wybiera:</span>
+            {pickerName ? (
+              <>
+                <FactionMark player={pickerPlayer} size={22} />
+                <b className={styles.metaName}>{pickerName}</b>
+              </>
+            ) : (
+              <span className={styles.metaName}>brak gracza do wskazania</span>
+            )}
+          </span>
+          {/* Mówca — ikona + pełna nazwa frakcji mówcy (lub komunikat braku). */}
+          <span className={styles.metaItem}>
+            <span className={styles.metaLabel}>Mówca:</span>
+            {speakerName ? (
+              <>
+                <FactionMark player={speakerPlayer} size={22} />
+                <b className={styles.metaName}>{speakerName}</b>
+              </>
+            ) : (
+              <span className={styles.metaName}>brak ustawionego mówcy</span>
+            )}
+          </span>
         </div>
       </div>
 
