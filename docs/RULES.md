@@ -537,9 +537,36 @@ wyborze), `PlayStrategyCardService`. Zweryfikowane 2026-10 na kodzie bota.
 `enabled_sources.json` (zestaw `pok`). Zero hardkodowania nazw/numerów.
 
 **Reguła wyboru (pick):**
-- W fazie strategii każdy gracz wybiera 1 kartę (przy ≤4 graczach warianty biorą 2 —
-  tu wspieramy 1 kartę/gracz, zgodnie z 5–6 osobową grą; wielokrotny wybór dołożymy przy
-  wariantach 3–4 graczy). Kolejność wyboru: od mówcy (speaker) zgodnie z ruchem zegara.
+- W fazie strategii wybór idzie **od mówcy (speaker) zgodnie z ruchem zegara**
+  (speaker order — RULES.md 24). Każdy gracz wybiera po kolei jedną kartę z puli.
+- **Pick_Count (liczba kart na gracza) — zależna od liczby graczy:**
+  - **3–4 graczy → 2 karty/gracz** (gra przewiduje DRUGĄ rundę wyboru, patrz niżej),
+  - **5–8 graczy → 1 karta/gracz**,
+  - **liczba graczy < 3 lub > 8 → NIEOBSŁUGIWANA (błąd).** Silnik odrzuca ustalenie
+    `Pick_Count` i nie zmienia stanu fazy.
+
+  Źródło: tirules [Strategy Phase](rules_tirules/R_strategy_phase.md) — Step 1: „When
+  playing with three or four players, each player will choose a second strategy card.";
+  LRR „Strategy Phase" (liczba kart zależna od liczby graczy; 3–4 graczy → dwie rundy
+  wyboru). Zakres 3–8 graczy = oficjalnie obsługiwane liczby graczy TI4/PoK.
+- **DRUGA runda wyboru (tylko 3–4 graczy):** po tym, jak ostatni gracz otrzyma swoją
+  PIERWSZĄ kartę, wybór **wraca do mówcy** i przechodzi PONOWNIE w speaker order, aż
+  każdy gracz będzie miał `Pick_Count` (= 2) kart. Mechanicznie: „następny wybierający"
+  to pierwszy w speaker order (licząc od mówcy), który ma mniej kart niż `Pick_Count` —
+  dlatego druga runda naturalnie zaczyna się od mówcy, bez osobnego licznika rund.
+  Źródło: tirules [Strategy Phase](rules_tirules/R_strategy_phase.md) — Step 1, ostatni
+  punkt: „After the last player has received their first strategy card, each player
+  chooses a second strategy card, starting with the speaker and proceeding clockwise.";
+  LRR „Strategy Phase".
+- **Walidacja przejścia do fazy akcji:** fazy strategii **nie można zakończyć**, dopóki
+  KAŻDY gracz nie ma dokładnie `Pick_Count` kart. Dopóki istnieje gracz poniżej
+  `Pick_Count`, silnik wskazuje kolejnego wybierającego zamiast pozwolić na przejście;
+  próba przejścia przy niekompletnym wyborze jest odrzucana (błąd), a faza pozostaje
+  bez zmian. Kolejność tur fazy akcji ustala inicjatywa (najniższy numer wybranej karty —
+  RULES.md 9). Źródło: tirules [Strategy Phase](rules_tirules/R_strategy_phase.md)
+  („Then, players proceed to the action phase." — po zakończeniu Step 1/Step 2, tj. po
+  skompletowaniu wyboru) + [Initiative Order](rules_tirules/R_initiative_order.md); LRR
+  „Strategy Phase".
 - **Trade goods na kartach:** na każdej NIEWYBRANEJ karcie leży pula trade goods (start 0).
   Gdy gracz wybiera kartę, **otrzymuje wszystkie TG z tej karty**, a licznik karty zeruje
   się (`PickStrategyCardButtonHandler`: `player.setTg(tg + tgCount)`, potem

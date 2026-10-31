@@ -175,7 +175,10 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
   historia/Undo, edycja graficzna, panel faz).
 - **E1 — fazy + kolejność tur:** ✅ gotowy (`turn_flow.py`, endpointy, panel faz).
 - **E2 — faza strategii (wybór kart):** ✅ gotowy (`strategy_phase.py`, pula kart, wybór +
-  transfer trade goods, akumulacja TG, picker w UI).
+  transfer trade goods, akumulacja TG, picker w UI). **DOMKNIĘTE jako sędzia** (feature
+  `strategy-phase-complete`, RULES.md 13): Pick_Count (3–4→2, 5–8→1), druga runda od mówcy,
+  walidacja przejścia STRATEGY→ACTION + ścisła kolejność inicjatywy → HTTP 422; UI
+  `StrategyCardTable` + `PhaseTransitionBanner`. Szczegóły: PROGRESS.md.
 - **E3 — akcja taktyczna:** ✅ gotowy (`core/tactical.py` + `core/combat.py`,
   `api/routers/tactical.py`, panel taktyczny + okno walki w UI). Asystent stołu: aktywacja,
   FSM kroków, walka kosmiczna/naziemna z pomocami liczbowymi, przejęcie planety, pomoc

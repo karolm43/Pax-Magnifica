@@ -395,3 +395,63 @@ Dwie uwagi użytkownika: pokazać w panelu wartość PRODUCTION w systemie z iko
 Jord res 4); produkcja 7 piechoty > limit 6 → 422 „Limit produkcji przekroczony" (baner).
 
 **QA:** backend 258 testów zielonych, ruff + mypy czyste. Frontend type-check + lint + build czyste.
+
+### ✅ Blok „domknięcie fazy strategii" (feature `strategy-phase-complete`, ukończony)
+
+**Cel:** domknąć FAZĘ STRATEGII TI4 (PoK, zestaw `pok`) na istniejącym fundamencie E1–E2 —
+DOBUDOWA walidacji i brakującej logiki (silnik-SĘDZIA, RULES.md 29/13), NIE przepisywanie.
+Spec: `.kiro/specs/strategy-phase-complete/`. Reguła przed kodem (zasada projektu).
+
+**Reguła (RULES.md 13 rozszerzona, źródło: tirules `R_strategy_phase.md` + LRR „Strategy Phase"):**
+- `Pick_Count` zależny od liczby graczy: **3–4 → 2 karty/gracz**, **5–8 → 1 karta/gracz**;
+  liczba graczy <3 lub >8 = NIEOBSŁUGIWANA (błąd, bez zmiany stanu).
+- **Druga runda wyboru (tylko 3–4 graczy):** po pierwszej rundzie wybór wraca do mówcy i idzie
+  ponownie w speaker order, aż każdy ma `Pick_Count` kart (mechanicznie: „następny wybierający"
+  = pierwszy w speaker order poniżej `Pick_Count`, bez osobnego licznika rund).
+- **Walidacja przejścia STRATEGY→ACTION:** fazy nie można zakończyć, dopóki każdy gracz nie ma
+  `Pick_Count` kart; kolejność tur fazy akcji ustala inicjatywa (RULES.md 9).
+
+**Backend (`core/` → `api/`, QA zielone po każdym bloku):**
+- [x] `core/strategy_phase.py`: nowa `pick_count` (3–4→2, 5–8→1; <3/>8 → `ValueError`);
+  przebudowany `next_strategy_picker` (pierwszy w speaker order poniżej `Pick_Count`; <3 graczy
+  → `None` przez złapanie `ValueError` — zgodność wsteczna wywołań wewnętrznych); rozszerzony
+  `pick_strategy_card` (walidacja kolejności + limitu `Pick_Count` + sortowanie listy kart,
+  zachowane dotychczasowe walidacje i transfer TG); nowa `ensure_strategy_complete` (kontrola
+  kompletu wyboru); guard w `accumulate_unpicked_tg` (akumulacja TG dopiero po zakończeniu fazy);
+  nowa `validate_strategy_card_set` (komplet/unikalność 8 kart, `Initiative` 1–8).
+- [x] `core/turn_flow.py`: nowa `strict_initiative_order` (permutacja graczy wg rosnącej
+  inicjatywy; gracz bez karty → `ValueError`); `next_phase` przy STRATEGY→ACTION woła
+  `ensure_strategy_complete` PRZED zmianą fazy i ustawia `active = strict_initiative_order[0]`.
+- [x] API: `routers/flow.py` — `/phase/next` i `/round/next` owinięte w try/except → HTTP 422;
+  `routers/strategy.py` — `GET /strategy/cards` z guardem rejestru (`validate_strategy_card_set`)
+  i kompletu pól per-karta → 422; `web_data.py` — ADDYTYWNE pole pochodne `strategyPickCount`
+  (`_safe_pick_count` łapie `ValueError` → `None`, web-data nie rzuca).
+- [x] Testy backendu zaktualizowane pod `Pick_Count=2` i fikstury ≥3 graczy (zadanie 5);
+  5–8-osobowe scenariusze bez zmian. Pełny pytest zielony.
+
+**Frontend (bramka type-check + lint + build):**
+- [x] `GameStatePanel`: `allPicked` liczone z `gameState.strategyPickCount`
+  (`scs.length >= pickCount`) zamiast samej obecności kart.
+- [x] NOWY `StrategyCardTable` (karty „na stole" z pełną grafiką, stanem wybrania + właściciel,
+  wskazaniem pickera/mówcy, banerem fazy; interakcja wyboru z blokadą poza kolejnością i fallbackiem
+  tekstowym przy braku/błędzie grafiki). Montaż w `MapView`/`PannableMapView`, render tylko w fazie
+  strategii.
+- [x] NOWY `PhaseTransitionBanner` (baner przy zmianie GŁÓWNEJ fazy — jednorazowo na przejście,
+  animacja fade/scale, auto-ukrycie ≤5 s, `pointer-events: none`, fallback tekstowy; dźwięk
+  `phase_change.mp3` z cichą degradacją — 404/zablokowany autoplay nie psują banera).
+
+**Decyzje projektowe:**
+- **Silnik-SĘDZIA:** wszystkie nowe walidacje reguł rzucają `ValueError` → mapowane na HTTP 422
+  (RULES.md 29.1). Nielegalny wybór / przedwczesne przejście / niespójny zestaw = odrzucone bez
+  zmiany stanu.
+- **God-Mode NIETKNIĘTY** jako wentyl — kanał ręcznej korekty (`/god-mode/patch`,
+  `core/board_edit.*`) nadal omija walidację reguł.
+- **Grafika kart** pobierana z danych `Strategy_Router` (`imageURL`, źródło ti4ultimate.com);
+  fallback tekstowy, gdy brak/błąd.
+- **Baner/dźwięk fazy:** zasób pod ścieżką względną `/static/extra/...` (baner) i
+  `/static/extra/sounds/...` (dźwięk); dźwięk i baner rozłączone (degradacja niezależna).
+
+**QA (pełna bramka — wszystko zielone):** backend `uv run pytest -q` → **262 passed**;
+`uv run ruff check src tests` → czyste; `uv run mypy src tests` → czyste (61 plików). Frontend:
+`npm run type-check` → czyste; `npm run lint` → czyste; `npm run build` → OK (znana, nieblokująca
+notka o rozmiarze chunku). Ostrzeżenie `StarletteDeprecationWarning` bez zmian (znane).
