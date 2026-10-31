@@ -51,6 +51,24 @@ def speaker_order(state: GameState) -> list[str]:
     return order
 
 
+def pick_count(state: GameState) -> int:
+    """Liczba kart strategii na gracza wg liczby graczy (RULES.md 13).
+
+    Reguła TI4: 2 karty/gracz przy 3–4 graczach, 1 karta/gracz przy 5–8. Liczba
+    graczy liczona jako ``len(state.players)``. Czysta funkcja — tylko oblicza,
+    nie zmienia stanu.
+
+    Raises:
+        ValueError: Gdy liczba graczy jest mniejsza niż 3 lub większa niż 8
+            (liczba nieobsługiwana przez regułę); stan pozostaje bez zmian, bo
+            funkcja go nie dotyka.
+    """
+    n = len(state.players)
+    if n < 3 or n > 8:
+        raise ValueError(f"Nieprawidłowa liczba graczy: {n} (dozwolone 3–8).")
+    return 2 if n <= 4 else 1
+
+
 def next_strategy_picker(state: GameState) -> str | None:
     """Następny gracz w speaker order, który NIE wybrał jeszcze karty (lub None).
 
