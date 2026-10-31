@@ -27,6 +27,7 @@ import { FloatingMapToolbar } from "@/domains/game-shell/components/FloatingMapT
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
 import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
+import { PhaseTransitionBanner } from "@/domains/game-shell/components/PhaseTransitionBanner/PhaseTransitionBanner";
 
 type Props = {
   gameId: string;
@@ -148,6 +149,9 @@ export function MapView({
 
   return (
     <Box className={classes.mapContainer}>
+      {/* Phase_Banner — nakładka nad mapą reagująca na zmianę głównej fazy;
+          `pointer-events: none`, sama pilnuje mapowalności fazy. Zadanie 10.1. */}
+      <PhaseTransitionBanner />
       <Box
         ref={mapContainerRef}
         className={`dragscroll ${classes.mapArea}`}

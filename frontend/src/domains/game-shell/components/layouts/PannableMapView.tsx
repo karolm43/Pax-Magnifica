@@ -14,6 +14,7 @@ import { isMobileDevice } from "@/utils/isTouchDevice";
 import { FloatingMapToolbar } from "@/domains/game-shell/components/FloatingMapToolbar";
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
 import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
+import { PhaseTransitionBanner } from "@/domains/game-shell/components/PhaseTransitionBanner/PhaseTransitionBanner";
 import { useMapTooltips } from "@/domains/map/components/hooks/useMapTooltips";
 import { getMapLayoutConfig } from "@/domains/map/components/mapLayout";
 import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKeyboardShortcuts";
@@ -151,6 +152,9 @@ export function PannableMapView({ gameId }: { gameId: string }) {
 
   return (
     <Box className={`${classes.mapContainer} ${classes.stateDocked}`}>
+      {/* Phase_Banner — nakładka nad mapą reagująca na zmianę głównej fazy;
+          `pointer-events: none`, sama pilnuje mapowalności fazy. Zadanie 10.1. */}
+      <PhaseTransitionBanner />
       <Box className={classes.gameStateOverlay}>
         <GameStatePanel />
         {/* Card_Table_View — nakładka „na stole" obok panelu; sama pilnuje

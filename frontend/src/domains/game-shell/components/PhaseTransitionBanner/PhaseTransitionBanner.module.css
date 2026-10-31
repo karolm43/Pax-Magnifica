@@ -1,0 +1,24 @@
+/*
+ * Phase_Banner — nakładka sygnalizująca zmianę głównej fazy gry, centrowana nad
+ * mapą. Zadanie 10.1 to SZKIELET: kontener nakładki + wyśrodkowany obraz banera.
+ * Animacja wejścia/wyjścia i auto-ukrycie dochodzą w zadaniu 10.3.
+ *
+ * KLUCZOWE: nakładka ma `pointer-events: none` przez cały czas — baner to czysta
+ * dekoracja i NIE może blokować interakcji z mapą ani panelami (R10.5).
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--ds-z-overlay, 60);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.banner {
+  max-width: min(70%, 720px);
+  max-height: 40%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(var(--ds-shadow-md));
+}
