@@ -448,6 +448,12 @@ Spec: `.kiro/specs/strategy-phase-complete/`. Reguła przed kodem (zasada projek
   `core/board_edit.*`) nadal omija walidację reguł.
 - **Grafika kart** pobierana z danych `Strategy_Router` (`imageURL`, źródło ti4ultimate.com);
   fallback tekstowy, gdy brak/błąd.
+- **Priorytet źródeł kart strategii (uzupełnienie):** ustalono `thunders_edge > pok > codex4..1 >
+  base` — gdy wiele włączonych źródeł dostarcza wariant tej samej karty (Construction 4 / Warfare 6),
+  wygrywa wariant z najwyższego źródła (Thunder's Edge). Dodano FALLBACK GRAFIKI w lookupie frontu
+  (`entities/lookup/strategyCards.ts`): gdy wariant najwyższego źródła nie ma obrazu, UI bierze
+  grafikę wariantu o tej samej initiative z niższego źródła (treść/parametry bez zmian). Usunięto
+  hardkodowaną `defaultStrategyCardIdMap`. Szczegóły: RULES.md 14.
 - **Baner/dźwięk fazy:** zasób pod ścieżką względną `/static/extra/...` (baner) i
   `/static/extra/sounds/...` (dźwięk); dźwięk i baner rozłączone (degradacja niezależna).
 

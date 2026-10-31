@@ -617,6 +617,23 @@ mają różne nazwy (sufiks Ω/ΩΩ), więc dedup po nazwie ich nie zwijał. Reg
 - Marker Ω/ΩΩ = oficjalny znacznik kolejnej erraty (dane AsyncTI4).
 Implementacja: `frontend/.../PlayerEditorModal.tsx` (`techFamilyKey`, `SOURCE_PRIORITY`).
 
+**Priorytet źródeł (od najwyższego):** `thunders_edge > pok > codex4..1 > base`
+(źródła spoza listy = homebrew, najniższy priorytet). Gdy wiele włączonych źródeł
+dostarcza wariant tego samego komponentu (np. karty strategii Construction/Warfare),
+obowiązuje wariant z NAJWYŻSZEGO włączonego źródła (Thunder's Edge). To świadoma decyzja
+projektowa użytkownika (wszystkie dodatki włączone, Thunder's Edge nadrzędny) — Thunder's
+Edge przerabia Construction (4) i Warfare (6), więc jego warianty `te4construction` /
+`te6warfare` wypierają `pok4construction` / `pok6warfare`.
+
+**Grafika — fallback czysto wizualny:** gdy wariant najwyższego źródła nie ma assetu
+obrazu (`imageURL: ""`, tak jest dla `te4construction`/`te6warfare`), UI używa grafiki
+wariantu o tej samej initiative z niższego źródła (np. `ConstructionProphecyOfKings.webp`
+z `pok4construction`, `Warfare.webp` z `pok6warfare`). Treść i parametry (nazwa, teksty,
+inicjatywa, kolor) POZOSTAJĄ z wariantu najwyższego źródła — fallback dotyczy wyłącznie
+obrazka. Gdy żaden wariant nie ma grafiki, UI daje fallback tekstowy.
+Implementacja: `frontend/src/entities/lookup/strategyCards.ts`
+(`SOURCE_PRIORITY`, `sourceRank`, `withImageFallback`).
+
 ## 15. Typ planety: pole `planetTypes` (lista) vs `planetType` — ✅ ZWERYFIKOWANE (dane)
 
 📎 tirules: [Planets](rules_tirules/R_planets.md) · [Legendary Planets](rules_tirules/R_legendary_planets.md)
