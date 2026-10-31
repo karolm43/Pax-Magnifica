@@ -1174,38 +1174,3 @@
   color: var(--ds-ink-hi);
 }
 
-/* Wskaźnik limitu produkcji w nagłówku panelu (koło zębate + liczba). */
-.prodStats {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.prodLimit {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-}
-
-.prodLimitIcon {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.prodLimitValue {
-  position: absolute;
-  font-size: 11px;
-  font-weight: 700;
-  color: white;
-  line-height: 1;
-  text-shadow:
-    -1px -1px 0 black,
-    1px -1px 0 black,
-    -1px 1px 0 black,
-    1px 1px 0 black;
-}

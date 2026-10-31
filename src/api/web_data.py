@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import strategy_phase
+from src.core import production, strategy_phase
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
@@ -278,6 +278,40 @@ def _ring_count(grid: HexGrid) -> int:
     return max(max_ring, 3)
 
 
+def _tile_production(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    position: str,
+) -> dict[str, int]:
+    """Wartości PRODUCTION w systemie per KOLOR gracza (wskaźnik na kafelku mapy).
+
+    Frontend (``tileUnitData[pos].production``) renderuje koło zębate z najwyższą
+    wartością (``Math.max(Object.values(production))`` — RULES.md 33.2). Kluczujemy
+    po KOLORZE gracza (jak reszta sygnałów mapy). Pomijamy wartości ≤ 0 i graczy bez
+    jednoznacznego koloru. Źródło wartości: ``production.system_production_value``.
+    """
+    sys_state = state.systems.get(position)
+    if sys_state is None:
+        return {}
+    # Gracze obecni w systemie (statki lub jednostki na planetach).
+    present: set[str] = set(sys_state.space_units)
+    for by_player in sys_state.planet_units.values():
+        present.update(by_player)
+
+    result: dict[str, int] = {}
+    for player_id in present:
+        value = production.system_production_value(
+            state, grid, registry, player_id, position
+        )
+        if value <= 0:
+            continue
+        color = _color_of(state, player_id)
+        key = color if color is not None else player_id
+        result[key] = value
+    return result
+
+
 def _build_tile_unit_data(
     grid: HexGrid,
     registry: StaticDataRegistry,
@@ -340,7 +374,7 @@ def _build_tile_unit_data(
             "planets": planets,
             "ccs": ccs,
             "anomaly": bool(grid.anomalies_at(position)),
-            "production": {},
+            "production": _tile_production(state, grid, registry, position),
             "pds": None,
         }
 

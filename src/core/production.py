@@ -75,15 +75,30 @@ def production_limit(
 ) -> int:
     """Suma wartości PRODUCTION jednostek gracza w AKTYWNYM systemie (RULES.md 33.2).
 
-    Liczy jednostki produkujące w przestrzeni (statki z PRODUCTION, np. flagship/warsun
-    wariantów) oraz struktury na planetach (doki) aktywnego systemu. Modyfikator względny
-    doku ("+N") rozwiązywany względem planety, na której stoi. Gdy brak aktywnego systemu
-    lub jednostek — 0.
+    Cienki wrapper na ``system_production_value`` dla aktywnego systemu (``active_system``).
+    Zwraca 0, gdy brak aktywnego systemu.
     """
     active = state.active_system
     if active is None:
         return 0
-    system = state.systems.get(active)
+    return system_production_value(state, grid, registry, player_id, active)
+
+
+def system_production_value(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+    position: str,
+) -> int:
+    """Suma wartości PRODUCTION jednostek gracza w DANYM systemie (RULES.md 33.2).
+
+    Liczy jednostki produkujące w przestrzeni (statki z PRODUCTION) oraz struktury na
+    planetach (doki). Modyfikator względny doku ("+N") rozwiązywany względem planety,
+    na której stoi. Gdy system/jednostek brak — 0. Używane też do wskaźnika produkcji
+    na kafelku mapy (web-data ``tileUnitData[pos].production``).
+    """
+    system = state.systems.get(position)
     if system is None:
         return 0
     player = state.players.get(player_id)

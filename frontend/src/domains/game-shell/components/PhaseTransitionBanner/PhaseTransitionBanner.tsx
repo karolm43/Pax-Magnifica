@@ -48,10 +48,10 @@ function playSound(): void {
  * `unknown`, `finished`) nie mają banera — render zwraca `null` bez błędu.
  */
 const BANNER_FILE: Record<string, string> = {
-  strategy: "strategybanner.png",
-  action: "actionbanner.png",
-  status: "statusbanner.png",
-  agenda: "agendabanner.png",
+  strategy: "strategy2.png",
+  action: "acionphase2.png",
+  status: "status2.png",
+  agenda: "agenda2.png",
 };
 
 /*
