@@ -217,7 +217,19 @@ def accumulate_unpicked_tg(
     Port reguły ``StrategyCardManager.incrementTradeGoods``: dla każdego numeru karty
     spoza zbioru wybranych licznik TG rośnie o 1. Wywoływane przy przejściu do nowej
     rundy (karty wracają do puli, niechciane zyskują TG).
+
+    Guard (R7.5): akumulacja ma sens dopiero po zakończeniu fazy strategii —
+    gdy ``next_strategy_picker`` wciąż wskazuje gracza do wyboru, faza nie jest
+    ukończona i próba akumulacji jest nielegalna. Sprawdzenie na WEJŚCIU, przed
+    ``clone`` — liczniki TG pozostają bez zmian przy błędzie.
+
+    Raises:
+        ValueError: Gdy faza strategii nie została zakończona (jest jeszcze gracz
+            do wyboru) — komunikat „Nie można akumulować: faza strategii
+            niezakończona." (R7.5).
     """
+    if next_strategy_picker(state) is not None:
+        raise ValueError("Nie można akumulować: faza strategii niezakończona.")
     new_state = state.clone()
     picked = picked_initiatives(new_state)
     for initiative in available_initiatives(registry, set_alias):
