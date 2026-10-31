@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -31,18 +32,17 @@ const BANNER_FILE: Record<string, string> = {
  * `PannableMapView`) obok pozostałych nakładek, bo reaguje na KAŻDĄ zmianę fazy,
  * nie tylko strategii — dlatego żyje poza panelem strategii.
  *
- * To ZADANIE 10.1 to SZKIELET + montaż: komponent istnieje, czyta fazę z
- * istniejącego hooka `useGameState` (to samo źródło co `StrategyCardTable`/
- * `GameStatePanel` — zero nowych hooków/źródeł), normalizuje `mainPhase` i ma
- * stałą `BANNER_FILE`. Nakładka ma `pointer-events: none`, więc nie przechwytuje
- * interakcji z mapą/panelami (R10.5) i nie psuje layoutów.
+ * To ZADANIE 10.2 dokłada MECHANIZM WYKRYWANIA ZMIANY głównej fazy: `useRef`
+ * trzyma poprzednią główną fazę, a `useEffect` (zależny od `mainPhase`) porównuje
+ * ją z bieżącą i wyzwala baner DOKŁADNIE raz na przejście (R10.7). Re-rendery w
+ * obrębie tej samej głównej fazy (np. podfaza `status.*` → `status.**`, odświeżenie
+ * stanu) nie wyzwalają banera ponownie (R10.8).
  *
  * Co dochodzi w kolejnych zadaniach:
- * - 10.2: wykrywanie ZMIANY głównej fazy (`useRef`) i jednorazowe wyzwolenie;
- * - 10.3: animacja wejścia/wyjścia, auto-ukrycie, fallback tekstowy przy `onError`;
- * - 10.4: krótki dźwięk przejścia z cichą degradacją.
- * Tutaj render jest minimalny: dla mapowalnej fazy pokazuje obrazek banera,
- * dla pozostałych faz — nic.
+ * - 10.3: animacja wejścia/wyjścia, auto-ukrycie (timer), fallback tekstowy przy `onError`;
+ * - 10.4: realny krótki dźwięk przejścia z cichą degradacją.
+ * Tutaj render pokazuje obrazek dla AKTYWNEJ (wyzwolonej) fazy; timer auto-ukrycia
+ * i dźwięk są jeszcze stubami oznaczonymi komentarzem, żeby nie psuć type-check/lint/build.
  */
 export function PhaseTransitionBanner(): ReactElement | null {
   const params = useParams<{ mapid: string }>();
@@ -52,17 +52,58 @@ export function PhaseTransitionBanner(): ReactElement | null {
   // Źródło fazy: `gameState.phase` (jedyne źródło prawdy o fazie na froncie).
   // Normalizacja do głównej fazy: `"status.scoring" → "status"` (R10.3).
   const mainPhase = (gameState?.phase ?? "").split(".")[0];
-  const bannerFile = BANNER_FILE[mainPhase];
 
-  // Fazy spoza mapy `BANNER_FILE` → brak banera (bez błędu).
-  if (!bannerFile) return null;
+  // Poprzednia GŁÓWNA faza — `null` oznacza „jeszcze nie zainicjalizowano" (pierwszy
+  // render), co świadomie NIE jest traktowane jako przejście (brak „fałszywego" banera).
+  const prevPhase = useRef<string | null>(null);
+  // Główna faza aktualnie POKAZYWANA przez baner (wyzwolona przejściem).
+  const [active, setActive] = useState<string | null>(null);
+  // Czy obraz banera zawiódł — używane dopiero przy fallbacku tekstowym w 10.3.
+  const [, setImgFailed] = useState(false);
+
+  // Wykrywanie ZMIANY głównej fazy i jednorazowe wyzwolenie (R10.7, R10.8).
+  // Zależność od `mainPhase`: efekt przelicza się tylko gdy zmieni się główna faza,
+  // ale PORÓWNANIE z `prevPhase.current` chroni przed podwójnym wyzwoleniem przy
+  // re-renderach, gdyby `mainPhase` pozostał ten sam.
+  useEffect(() => {
+    // Pierwszy render (`prevPhase.current === null`): tylko inicjalizujemy ref,
+    // BEZ wyzwalania banera — unikamy „fałszywego" banera na wejściu (R10.8).
+    if (prevPhase.current === null) {
+      prevPhase.current = mainPhase;
+      return;
+    }
+
+    // Brak realnej zmiany głównej fazy → nic nie robimy (R10.8).
+    if (mainPhase === prevPhase.current) {
+      return;
+    }
+
+    // Doszło do ZMIANY głównej fazy. Baner wyzwalamy TYLKO dla faz mapowalnych
+    // (obecnych w `BANNER_FILE`); dla faz spoza mapy baner się nie pojawia.
+    if (BANNER_FILE[mainPhase]) {
+      setActive(mainPhase);
+      setImgFailed(false);
+      // TODO(10.4): tutaj jednorazowe `playSound()` z cichą degradacją (R10.6/R10.7).
+      // TODO(10.3): tutaj ustawienie timera auto-ukrycia (`setActive(null)` po czasie)
+      //   wraz z czyszczeniem w cleanup efektu i przy ponownym wyzwoleniu.
+    }
+
+    // `prevPhase.current` aktualizujemy ZAWSZE przy zmianie — także dla faz spoza
+    // mapy — żeby późniejsze wejście w fazę mapowalną poprawnie wykryć jako przejście.
+    prevPhase.current = mainPhase;
+  }, [mainPhase]);
+
+  // Render pokazuje baner dla AKTYWNEJ (wyzwolonej) fazy. Fazy spoza mapy oraz brak
+  // wyzwolenia → `active` jest `null`/niemapowalne → nic nie pokazujemy (bez błędu).
+  const activeFile = active ? BANNER_FILE[active] : undefined;
+  if (!active || !activeFile) return null;
 
   return (
     <div className={styles.overlay} aria-hidden="true">
       <img
         className={styles.banner}
-        src={`${STATIC_BASE}/${bannerFile}`}
-        alt={mainPhase}
+        src={`${STATIC_BASE}/${activeFile}`}
+        alt={active}
       />
     </div>
   );
