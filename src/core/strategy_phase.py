@@ -101,6 +101,28 @@ def next_strategy_picker(state: GameState) -> str | None:
     return None
 
 
+def ensure_strategy_complete(state: GameState) -> None:
+    """Waliduje, że wybór kart strategii został w pełni ukończony.
+
+    Każdy gracz w ``speaker_order`` musi osiągnąć ``pick_count(state)`` kart.
+    W przeciwnym razie faza strategii nie może przejść w fazę akcji (RULES.md 13,
+    29) — wołane przez ``turn_flow.next_phase`` przy przejściu STRATEGY→ACTION.
+
+    Czysta kontrola: NIE zmienia stanu (nie klonuje, nie mutuje), jedynie czyta
+    liczbę kart każdego gracza. ``pick_count`` propaguje własny ``ValueError`` przy
+    nieobsługiwanej liczbie graczy (<3 lub >8) — tu świadomie nie łapiemy go, bo
+    sprawdzenie kompletności dla takiego setu nie ma sensu.
+
+    Raises:
+        ValueError: Gdy którykolwiek gracz ma mniej kart niż ``pick_count`` —
+            komunikat „Wybór kart strategii nie został ukończony." (R9.2, R9.3).
+    """
+    needed = pick_count(state)
+    for pid in speaker_order(state):
+        if len(state.players[pid].strategy_cards) < needed:
+            raise ValueError("Wybór kart strategii nie został ukończony.")
+
+
 def pick_strategy_card(
     state: GameState,
     registry: StaticDataRegistry,
