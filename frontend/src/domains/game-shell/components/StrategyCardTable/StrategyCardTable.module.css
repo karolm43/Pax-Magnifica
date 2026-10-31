@@ -1,15 +1,16 @@
 /*
- * Card_Table_View — nakładka „na stole" z kartami strategii, spójna wizualnie z
- * game-state plate (neutralne tło + sygnały fazy). Zadanie 9.1 to szkielet;
- * pełny układ kart z grafiką AsyncTI4 dojdzie w 9.2.
+ * Card_Table_View — nakładka „na stole" z kartami strategii (zadanie 9.2: pełna
+ * grafika AsyncTI4/ti4ultimate.com, oznaczenie wybranych + właściciel, nagłówek z
+ * mówcą/pickerem, fallback tekstowy). Spójna wizualnie z game-state plate
+ * (neutralne tło + sygnały fazy).
  *
- * Zmienne kolorów: --scc to triplet „r, g, b" (rgba(var(--scc), a)), spójnie z
- * dyskami kart w game-state plate.
+ * Zmienne kolorów: --scc to pełna wartość koloru karty (var(--gd-*)), używana jako
+ * obwódka dysku/karty, spójnie z dyskami kart w game-state plate.
  */
 .table {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   max-width: 100%;
   padding: 10px 12px;
   color: var(--ds-ink);
@@ -20,30 +21,75 @@
   box-shadow: var(--ds-shadow-md);
 }
 
+/* Nagłówek: tytuł fazy + mówca + aktualny picker. */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .heading {
   composes: ds-label from global;
   color: var(--ds-ink);
 }
 
+.speaker,
+.picker {
+  font-size: var(--text-micro, 11px);
+  color: var(--ds-ink-lo, var(--ds-ink));
+}
+
+.speakerName,
+.pickerName {
+  color: var(--ds-ink-hi);
+}
+
 .cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .card {
+  --scc: var(--gd-gray);
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  flex-direction: column;
+  gap: 4px;
+  width: 120px;
+  padding: 4px;
   background: var(--ds-tex-rail);
   border: 1px solid var(--ds-h14);
   border-radius: var(--ds-radius-sm);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--scc) 30%, transparent);
+}
+
+/* Karta wybrana — wyraźnie odróżnialna od niewybranej (R8.4). */
+.card[data-picked] {
+  box-shadow: inset 0 0 0 2px var(--scc);
+  opacity: 0.92;
+}
+
+/* Pełna grafika karty (webp z ti4ultimate.com). */
+.cardImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--ds-radius-sm);
+  object-fit: cover;
+}
+
+/* Fallback tekstowy (R8.8): dysk z inicjatywą + nazwa — styl jak w pickerze. */
+.cardFallback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 8px;
 }
 
 /* Dysk inicjatywy w kolorze karty — stempel jak w game-state plate. */
 .disc {
-  --scc: var(--gd-gray);
   flex: none;
   display: grid;
   place-items: center;
@@ -54,11 +100,22 @@
   font-weight: var(--weight-title);
   color: var(--ds-ink-hi);
   background: var(--ds-socket);
-  box-shadow: inset 0 0 0 1px rgba(var(--scc), 0.49);
+  box-shadow: inset 0 0 0 1px var(--scc);
 }
 
 .name {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pasek stanu pod grafiką: TG + właściciel. */
+.cardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 20px;
 }
 
 .tg {
@@ -70,4 +127,10 @@
   padding: 1px 5px;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+.owner {
+  flex: none;
+  display: inline-flex;
+  margin-left: auto;
 }
