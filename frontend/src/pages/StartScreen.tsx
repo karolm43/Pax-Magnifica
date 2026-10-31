@@ -5,21 +5,20 @@ import {
   Box,
   Button,
   Center,
-  Group,
   Loader,
   MultiSelect,
   NumberInput,
   Paper,
-  Select,
-  SimpleGrid,
   Stack,
   Text,
   TextInput,
-  Title,
 } from "@/ds";
+import { SmoothPopover } from "@/shared/ui/SmoothPopover";
+import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
 import { getTechData } from "@/entities/lookup/tech";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
+import styles from "./StartScreen.module.css";
 
 /** Układ 6-osobowy: sloty domowe na rogach pierścienia 3. */
 const MAX_PLAYERS = 6;
@@ -39,11 +38,86 @@ const COLOR_SWATCH: Record<string, string> = {
   yellow: "#f5f506",
 };
 
-/** Specjalna wartość w Selectcie oznaczająca „losowa frakcja". */
+/** Specjalna wartość oznaczająca „losowa frakcja". */
 const RANDOM = "__random__";
 
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+/**
+ * Podgląd quick reference frakcji: duży obraz pokazywany na hover/focus.
+ * Źródło to Thunder's Edge (TE); gdy plik TE nie istnieje, przełączamy się
+ * na PoK przez `onError`. Gdy oba zawiodą — po prostu nie ma obrazu (bez błędu,
+ * np. Keleres nie ma pliku quick reference).
+ */
+function QuickReferenceImage({ faction }: { faction: FactionInfo }) {
+  const te = `/static/quick_reference/TE/${faction.id}.png`;
+  const pok = `/static/quick_reference/PoK/${faction.id}.png`;
+  // Stan źródła per frakcja: zaczynamy od TE, degradujemy do PoK, potem chowamy.
+  const [src, setSrc] = useState(te);
+  const [hidden, setHidden] = useState(false);
+
+  if (hidden) {
+    return (
+      <Text size="xs" c="dimmed" px={4}>
+        Brak podglądu quick reference.
+      </Text>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={`Quick reference: ${faction.name}`}
+      className={styles.quickRefImage}
+      onError={() => {
+        // TE -> PoK, a jeśli i PoK zawiedzie — schowaj bez błędu.
+        if (src === te) setSrc(pok);
+        else setHidden(true);
+      }}
+    />
+  );
+}
+
+/**
+ * Pozycja frakcji na liście wyboru. Klik = wybór dla slotu; hover/focus =
+ * podgląd quick reference w `SmoothPopover`. Dla „losowej" nie ma podglądu.
+ */
+function FactionItem({
+  faction,
+  active,
+  onPick,
+}: {
+  faction: FactionInfo;
+  active: boolean;
+  onPick: () => void;
+}) {
+  const [opened, setOpened] = useState(false);
+  return (
+    <SmoothPopover opened={opened} onChange={setOpened} position="right" withArrow>
+      <SmoothPopover.Target>
+        <button
+          type="button"
+          className={`${styles.factionItem} ${active ? styles.factionItemActive : ""}`}
+          aria-pressed={active}
+          onClick={onPick}
+          onMouseEnter={() => setOpened(true)}
+          onMouseLeave={() => setOpened(false)}
+          onFocus={() => setOpened(true)}
+          onBlur={() => setOpened(false)}
+        >
+          <CircularFactionIcon faction={faction.id} size={28} />
+          <span className={styles.factionItemLabel}>{faction.name}</span>
+        </button>
+      </SmoothPopover.Target>
+      <SmoothPopover.Dropdown>
+        <div className={styles.quickRefCard}>
+          <p className={styles.quickRefName}>{faction.name}</p>
+          <QuickReferenceImage faction={faction} />
+        </div>
+      </SmoothPopover.Dropdown>
+    </SmoothPopover>
+  );
 }
 
 /**
@@ -67,26 +141,25 @@ function StartingTechPicker({
     label: getTechData(alias)?.name ?? alias,
   }));
   return (
-    <Box mt={6}>
-      <MultiSelect
-        label={`Technologie startowe (wybierz ${amount})`}
-        placeholder={`Wybierz ${amount}`}
-        data={options}
-        value={value}
-        onChange={(next) => {
-          // Nie pozwól wybrać więcej niż wymaga frakcja (bierzemy ostatnie `amount`).
-          onChange(next.length > amount ? next.slice(next.length - amount) : next);
-        }}
-      />
-    </Box>
+    <MultiSelect
+      label={`Technologie startowe (wybierz ${amount})`}
+      placeholder={`Wybierz ${amount}`}
+      data={options}
+      value={value}
+      onChange={(next) => {
+        // Nie pozwól wybrać więcej niż wymaga frakcja (bierzemy ostatnie `amount`).
+        onChange(next.length > amount ? next.slice(next.length - amount) : next);
+      }}
+    />
   );
 }
 
 /**
- * Ekran startowy Custodian Engine. Konfigurujesz grę: liczba graczy, frakcje
- * i (opcjonalnie) map string, po czym jednym żądaniem tworzysz grę w backendzie
- * i przechodzisz do widoku planszy. Nie wybrana frakcja = losowa (bez powtórzeń).
- * Kolory i sloty domowe przydzielane automatycznie wg kolejności (red, green, ...).
+ * Ekran startowy Custodian Engine. Konfigurujesz grę: liczba graczy, nazwy,
+ * frakcje i (opcjonalnie) map string, po czym jednym żądaniem tworzysz grę
+ * w backendzie i przechodzisz do widoku planszy. Nie wybrana frakcja = losowa
+ * (bez powtórzeń). Kolory i sloty domowe przydzielane automatycznie wg kolejności
+ * (red, green, ...).
  */
 export default function StartScreen() {
   const themeClassName = usePageThemeClass();
@@ -101,6 +174,8 @@ export default function StartScreen() {
   );
   // Wybrane technologie startowe per gracz (dla frakcji z wyborem, np. Winnu/Argent).
   const [techByPlayer, setTechByPlayer] = useState<Record<number, string[]>>({});
+  // Nazwy graczy per slot (opcjonalne; pusta = auto po stronie backendu).
+  const [nameByPlayer, setNameByPlayer] = useState<Record<number, string>>({});
   const [mapString, setMapString] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,14 +187,9 @@ export default function StartScreen() {
     return map;
   }, [factions]);
 
-  // Opcje do Selecta: „losowa" na górze, potem frakcje alfabetycznie.
-  const factionOptions = useMemo(
-    () => [
-      { value: RANDOM, label: "🎲 Losowa" },
-      ...(factions ?? [])
-        .map((f) => ({ value: f.id, label: f.name }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    ],
+  // Frakcje do listy wyboru, posortowane alfabetycznie po nazwie.
+  const sortedFactions = useMemo(
+    () => [...(factions ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
     [factions],
   );
 
@@ -143,6 +213,17 @@ export default function StartScreen() {
   const handleStart = async () => {
     if (!factions) return;
     setError(null);
+
+    // Walidacja unikalności nazw: `player_id` to klucz gracza, więc niepuste
+    // nazwy nie mogą się powtarzać. Puste pola = auto (bez kontroli unikalności).
+    const names = playerIndexes
+      .map((i) => (nameByPlayer[i] ?? "").trim())
+      .filter((name) => name.length > 0);
+    if (new Set(names).size !== names.length) {
+      setError("Nazwy graczy muszą być unikalne.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const resolved = resolveFactions(factions);
@@ -154,9 +235,11 @@ export default function StartScreen() {
           const chosen = techByPlayer[i];
           const needsChoice = (info?.starting_tech_amount ?? 0) > 0;
           const explicit = factionByPlayer[i] && factionByPlayer[i] !== RANDOM;
+          // Nazwa jako player_id; pusta → undefined (auto przez backend).
+          const player_id = (nameByPlayer[i] ?? "").trim() || undefined;
           return needsChoice && explicit && chosen?.length
-            ? { faction_id, starting_tech: chosen }
-            : { faction_id };
+            ? { faction_id, player_id, starting_tech: chosen }
+            : { faction_id, player_id };
         }),
         map_string: mapString.trim() || undefined,
       });
@@ -170,79 +253,129 @@ export default function StartScreen() {
   };
 
   return (
-    <Box className={themeClassName} style={{ minHeight: "100vh" }}>
-      <Center style={{ minHeight: "100vh", padding: 24 }}>
-        <Paper radius="lg" style={{ width: "100%", maxWidth: 640, padding: 32 }}>
-          <Stack gap="xl">
-            <Stack gap={6}>
-              <Title order={1} size="h2">
-                Custodian Engine
-              </Title>
-              <Text size="sm" c="dimmed">
-                Nowa gra Twilight Imperium 4. Wybierz liczbę graczy i frakcje
-                (lub zostaw losowe), opcjonalnie wklej map string i zaczynaj.
-              </Text>
-            </Stack>
+    <Box className={`${themeClassName} ${styles.root}`}>
+      <Paper radius="lg" withBorder shadow="xl" className={styles.panel}>
+        <Stack gap="xl">
+          <header className={styles.header}>
+            <h1 className={styles.title}>Custodian Engine</h1>
+            <p className={styles.subtitle}>
+              Nowa gra Twilight Imperium 4 — wybierz liczbę graczy, nazwij ich
+              i dobierz frakcje (lub zostaw losowe). Najedź na frakcję, by zobaczyć
+              jej quick reference.
+            </p>
+          </header>
 
-            {isLoading && (
-              <Center style={{ padding: 32 }}>
-                <Loader />
-              </Center>
-            )}
+          {isLoading && (
+            <Center style={{ padding: 32 }}>
+              <Loader />
+            </Center>
+          )}
 
-            {isError && (
-              <Text c="red" size="sm">
-                Nie udało się pobrać listy frakcji. Czy backend działa (port 8000)?
-              </Text>
-            )}
+          {isError && (
+            <Text c="red" size="sm">
+              Nie udało się pobrać listy frakcji. Czy backend działa (port 8000)?
+            </Text>
+          )}
 
-            {factions && (
-              <>
-                <NumberInput
-                  label="Liczba graczy"
-                  value={playerCount}
-                  min={MIN_PLAYERS}
-                  max={MAX_PLAYERS}
-                  onChange={(v) => {
-                    const n =
-                      typeof v === "number" ? v : Number(v) || DEFAULT_PLAYERS;
-                    setPlayerCount(Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, n)));
-                  }}
-                />
+          {factions && (
+            <>
+              {/* ── Ustawienia gry ── */}
+              <section>
+                <p className={styles.sectionLabel}>Ustawienia</p>
+                <div className={styles.settingsRow}>
+                  <NumberInput
+                    label="Liczba graczy"
+                    value={playerCount}
+                    min={MIN_PLAYERS}
+                    max={MAX_PLAYERS}
+                    onChange={(v) => {
+                      const n =
+                        typeof v === "number" ? v : Number(v) || DEFAULT_PLAYERS;
+                      setPlayerCount(
+                        Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, n)),
+                      );
+                    }}
+                  />
+                  <TextInput
+                    label="Map string (opcjonalnie)"
+                    placeholder="Puste = mapa testowa"
+                    value={mapString}
+                    onChange={(e) => setMapString(e.target.value)}
+                  />
+                </div>
+              </section>
 
-                {/* Stały 2-kolumnowy układ — zmiana liczby graczy dokłada wiersze
-                    w dół zamiast przestawiać całość. */}
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                  {playerIndexes.map((i) => (
-                    <Group key={i} gap="xs" wrap="nowrap" align="flex-end">
-                      <Box
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: "50%",
-                          marginBottom: 8,
-                          flexShrink: 0,
-                          background: COLOR_SWATCH[AUTO_COLORS[i]],
-                          boxShadow: "0 0 0 1px rgba(255,255,255,0.2)",
-                        }}
-                        title={AUTO_COLORS[i]}
-                      />
-                      <Box style={{ flex: 1, minWidth: 0 }}>
-                        <Select
-                          label={`Gracz ${i + 1}`}
-                          placeholder="🎲 Losowa"
-                          data={factionOptions}
-                          value={factionByPlayer[i] ?? RANDOM}
-                          onChange={(v) => {
-                            setFactionByPlayer((prev) => ({ ...prev, [i]: v }));
-                            // Zmiana frakcji kasuje poprzedni wybór technologii.
-                            setTechByPlayer((prev) => ({ ...prev, [i]: [] }));
-                          }}
+              {/* ── Sloty graczy ── */}
+              <section>
+                <p className={styles.sectionLabel}>Gracze</p>
+                <div className={styles.playersGrid}>
+                  {playerIndexes.map((i) => {
+                    const selectedId = factionByPlayer[i] ?? RANDOM;
+                    const slotColor = COLOR_SWATCH[AUTO_COLORS[i]];
+                    return (
+                      <div
+                        key={i}
+                        className={styles.playerSlot}
+                        style={{ ["--slot-color" as string]: slotColor }}
+                      >
+                        <div className={styles.playerSlotHead}>
+                          <span className={styles.colorDot} title={AUTO_COLORS[i]} />
+                          <span className={styles.slotTitle}>Gracz {i + 1}</span>
+                        </div>
+
+                        <TextInput
+                          label="Nazwa gracza"
+                          placeholder="Auto"
+                          value={nameByPlayer[i] ?? ""}
+                          onChange={(e) =>
+                            setNameByPlayer((prev) => ({
+                              ...prev,
+                              [i]: e.target.value,
+                            }))
+                          }
                         />
+
+                        {/* Przewijalna lista frakcji z „Losową" na górze. */}
+                        <div
+                          className={styles.factionList}
+                          role="listbox"
+                          aria-label={`Frakcja gracza ${i + 1}`}
+                        >
+                          <button
+                            type="button"
+                            className={`${styles.factionItem} ${
+                              selectedId === RANDOM ? styles.factionItemActive : ""
+                            }`}
+                            aria-pressed={selectedId === RANDOM}
+                            onClick={() => {
+                              setFactionByPlayer((prev) => ({ ...prev, [i]: RANDOM }));
+                              setTechByPlayer((prev) => ({ ...prev, [i]: [] }));
+                            }}
+                          >
+                            <span className={styles.randomIcon} aria-hidden>
+                              🎲
+                            </span>
+                            <span className={styles.factionItemLabel}>Losowa</span>
+                          </button>
+
+                          {sortedFactions.map((f) => (
+                            <FactionItem
+                              key={f.id}
+                              faction={f}
+                              active={selectedId === f.id}
+                              onPick={() => {
+                                setFactionByPlayer((prev) => ({ ...prev, [i]: f.id }));
+                                // Zmiana frakcji kasuje poprzedni wybór technologii.
+                                setTechByPlayer((prev) => ({ ...prev, [i]: [] }));
+                              }}
+                            />
+                          ))}
+                        </div>
+
                         <StartingTechPicker
                           faction={
-                            factionByPlayer[i] && factionByPlayer[i] !== RANDOM
-                              ? factionById.get(factionByPlayer[i])
+                            selectedId !== RANDOM
+                              ? factionById.get(selectedId)
                               : undefined
                           }
                           value={techByPlayer[i] ?? []}
@@ -250,24 +383,19 @@ export default function StartScreen() {
                             setTechByPlayer((prev) => ({ ...prev, [i]: techs }))
                           }
                         />
-                      </Box>
-                    </Group>
-                  ))}
-                </SimpleGrid>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
 
-                <TextInput
-                  label="Map string (opcjonalnie)"
-                  placeholder="Puste = mapa testowa"
-                  value={mapString}
-                  onChange={(e) => setMapString(e.target.value)}
-                />
+              {error && (
+                <Text c="red" size="sm">
+                  {error}
+                </Text>
+              )}
 
-                {error && (
-                  <Text c="red" size="sm">
-                    {error}
-                  </Text>
-                )}
-
+              <div className={styles.footer}>
                 <Button
                   size="md"
                   loading={submitting}
@@ -275,11 +403,11 @@ export default function StartScreen() {
                 >
                   Generuj i graj
                 </Button>
-              </>
-            )}
-          </Stack>
-        </Paper>
-      </Center>
+              </div>
+            </>
+          )}
+        </Stack>
+      </Paper>
     </Box>
   );
 }
