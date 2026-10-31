@@ -113,10 +113,27 @@ def ensure_strategy_complete(state: GameState) -> None:
     nieobsługiwanej liczbie graczy (<3 lub >8) — tu świadomie nie łapiemy go, bo
     sprawdzenie kompletności dla takiego setu nie ma sensu.
 
+    Spójność kolejności (znalezisko #1 przeglądu): ``speaker_order`` iteruje po
+    ``seating_order``, a ``turn_flow.strict_initiative_order`` po ``state.players``.
+    Gdy niepuste ``seating_order`` nie pokrywa się ze zbiorem graczy (realna ścieżka:
+    God-Mode dodaje gracza bez aktualizacji ``seating_order``), kompletność liczona
+    po ``speaker_order`` mogłaby „przejść", a ``strict_initiative_order`` rzuciłoby
+    mylący błąd o braku karty. Dlatego TUTAJ — przed sprawdzeniem kompletności —
+    twardo walidujemy ``set(seating_order) == set(players)`` i dajemy czytelny
+    komunikat. Puste ``seating_order`` jest OK: ``speaker_order`` używa wtedy
+    ``sorted(players)`` (spójne ze zbiorem graczy).
+
     Raises:
-        ValueError: Gdy którykolwiek gracz ma mniej kart niż ``pick_count`` —
-            komunikat „Wybór kart strategii nie został ukończony." (R9.2, R9.3).
+        ValueError: Gdy niepuste ``seating_order`` nie pokrywa się z listą graczy
+            (znalezisko #1), lub gdy którykolwiek gracz ma mniej kart niż
+            ``pick_count`` — komunikat „Wybór kart strategii nie został ukończony."
+            (R9.2, R9.3).
     """
+    if state.seating_order and set(state.seating_order) != set(state.players):
+        raise ValueError(
+            "Niespójny stan: lista miejsc (seating_order) nie pokrywa się z "
+            "graczami. Użyj God-Mode, by naprawić."
+        )
     needed = pick_count(state)
     for pid in speaker_order(state):
         if len(state.players[pid].strategy_cards) < needed:
@@ -218,18 +235,38 @@ def accumulate_unpicked_tg(
     spoza zbioru wybranych licznik TG rośnie o 1. Wywoływane przy przejściu do nowej
     rundy (karty wracają do puli, niechciane zyskują TG).
 
-    Guard (R7.5): akumulacja ma sens dopiero po zakończeniu fazy strategii —
-    gdy ``next_strategy_picker`` wciąż wskazuje gracza do wyboru, faza nie jest
-    ukończona i próba akumulacji jest nielegalna. Sprawdzenie na WEJŚCIU, przed
-    ``clone`` — liczniki TG pozostają bez zmian przy błędzie.
+    Guard (R7.5): akumulacja ma sens dopiero po zakończeniu fazy strategii.
+    Sprawdzenie na WEJŚCIU, przed ``clone`` — liczniki TG pozostają bez zmian przy
+    błędzie.
+
+    Wariant guardu (znalezisko #2/#3 przeglądu): wołamy ``ensure_strategy_complete``
+    zamiast wnioskować z ``next_strategy_picker(state) is not None``. Poprzedni guard
+    był dziurawy dla liczby graczy spoza 3–8: ``next_strategy_picker`` ŁAPIE
+    ``ValueError`` z ``pick_count`` i zwraca ``None``, więc dla 2 graczy guard
+    „czy jest picker" fałszywie uznawał fazę za zakończoną i ``/round/next``
+    przepuszczało akumulację zamiast ją odrzucić. ``ensure_strategy_complete`` woła
+    ``pick_count`` BEZPOŚREDNIO, więc:
+    - dla <3/>8 graczy propaguje „Nieprawidłowa liczba graczy…" (akumulacja
+      ODRZUCONA — nieobsługiwany set nie może być „zakończoną fazą");
+    - dla niekompletnego wyboru rzuca „Wybór kart strategii nie został ukończony." —
+      owijamy to w dotychczasowy komunikat akumulacji, by zachować kontrakt.
 
     Raises:
-        ValueError: Gdy faza strategii nie została zakończona (jest jeszcze gracz
-            do wyboru) — komunikat „Nie można akumulować: faza strategii
-            niezakończona." (R7.5).
+        ValueError: Gdy faza strategii nie została zakończona (niekompletny wybór) —
+            komunikat „Nie można akumulować: faza strategii niezakończona." (R7.5);
+            albo gdy liczba graczy jest spoza 3–8 (propagacja z ``pick_count``).
     """
-    if next_strategy_picker(state) is not None:
-        raise ValueError("Nie można akumulować: faza strategii niezakończona.")
+    try:
+        ensure_strategy_complete(state)
+    except ValueError as exc:
+        # Niekompletny wybór → zachowujemy komunikat akumulacji (kontrakt R7.5).
+        # Pozostałe błędy (zła liczba graczy, rozjazd seating_order) propagujemy
+        # z oryginalnym, sensownym komunikatem.
+        if "nie został ukończony" in str(exc):
+            raise ValueError(
+                "Nie można akumulować: faza strategii niezakończona."
+            ) from exc
+        raise
     new_state = state.clone()
     picked = picked_initiatives(new_state)
     for initiative in available_initiatives(registry, set_alias):
@@ -256,28 +293,60 @@ def reset_strategy_cards(state: GameState) -> GameState:
     return new_state
 
 
+def ensure_card_fields_complete(cards: list[StrategyCardDef]) -> None:
+    """Sprawdza komplet pól per-karta wymaganych do opisu puli (R6.4).
+
+    Reguła spójności danych rejestru — klasa reguły inicjalizacji fazy strategii,
+    dlatego żyje w ``core/`` obok ``validate_strategy_card_set`` (a nie w routerze):
+    tej samej kontroli potrzebuje zarówno ``api/``, jak i przyszłe ``ai/`` przy
+    budowaniu puli kart. Przeniesione z ``api/routers/strategy.py`` (znalezisko #4
+    przeglądu semantycznego).
+
+    Dla każdej karty wymagamy: nazwy, tekstu primary, tekstu secondary oraz koloru
+    (``initiative`` jest zwalidowana osobno w ``validate_strategy_card_set``). Gdy
+    któregokolwiek pola brakuje w danych rejestru → ``ValueError("Karta {id}: brak
+    pola {pole}.")``. Zero wartości kodowanych w module — wyłącznie odczyt z danych
+    karty.
+
+    Raises:
+        ValueError: Gdy karta nie ma kompletu pól (nazwa/primary/secondary/kolor).
+    """
+    for card in cards:
+        if not card.name:
+            raise ValueError(f"Karta {card.id}: brak pola nazwa.")
+        if not card.primary_texts:
+            raise ValueError(f"Karta {card.id}: brak pola tekst primary.")
+        if not card.secondary_texts:
+            raise ValueError(f"Karta {card.id}: brak pola tekst secondary.")
+        if not card.colour_hex_code:
+            raise ValueError(f"Karta {card.id}: brak pola kolor.")
+
+
 def validate_strategy_card_set(
     registry: StaticDataRegistry, *, set_alias: str = "pok"
 ) -> list[StrategyCardDef]:
-    """Zwraca 8 kart zestawu lub ``ValueError``, gdy łamany komplet/unikalność.
+    """Zwraca 8 kart zestawu lub ``ValueError``, gdy łamany komplet/unikalność/pola.
 
     Guard spójności danych rejestru — reguła inicjalizacji fazy strategii
-    (Requirement 6.1, 6.2), dlatego żyje w ``core/``, a nie w routerze: woła go
+    (Requirement 6.1, 6.2, 6.4), dlatego żyje w ``core/``, a nie w routerze: woła go
     zarówno ``api/``, jak i przyszłe ``ai/``. Dane kart pochodzą WYŁĄCZNIE z
     ``StaticDataRegistry.strategy_card_set`` — zero hardkodowania.
 
     Sprawdza niezmienniki zestawu podstawowego TI4:
     - dokładnie 8 kart,
     - każdy ``Initiative`` mieści się w zakresie 1..8,
-    - brak duplikatów ``Initiative``.
+    - brak duplikatów ``Initiative``,
+    - komplet pól per karta (nazwa/primary/secondary/kolor) — przez
+      ``ensure_card_fields_complete`` (R6.4, przeniesione z routera — znalezisko #4).
 
     Returns:
         Lista ``StrategyCardDef`` (ta sama, co z rejestru — posortowana po
         ``initiative``), gdy zestaw jest spójny.
 
     Raises:
-        ValueError: Gdy komplet (dokładnie 8) lub unikalność ``Initiative`` 1–8
-            jest złamana; komunikat „Niespójny zestaw kart: {szczegół}.".
+        ValueError: Gdy komplet (dokładnie 8), unikalność ``Initiative`` 1–8 lub
+            komplet pól karty jest złamany; komunikat
+            „Niespójny zestaw kart: {szczegół}." albo „Karta {id}: brak pola {pole}.".
     """
     cards = registry.strategy_card_set(set_alias)
 
@@ -300,5 +369,9 @@ def validate_strategy_card_set(
         raise ValueError(
             f"Niespójny zestaw kart: zduplikowane inicjatywy: {duplicates}."
         )
+
+    # Komplet pól każdej karty (R6.4) — ostatnia kontrola po sprawdzeniu kompletu
+    # i unikalności inicjatyw.
+    ensure_card_fields_complete(cards)
 
     return cards

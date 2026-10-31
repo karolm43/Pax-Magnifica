@@ -567,6 +567,13 @@ wyborze), `PlayStrategyCardService`. Zweryfikowane 2026-10 na kodzie bota.
   („Then, players proceed to the action phase." — po zakończeniu Step 1/Step 2, tj. po
   skompletowaniu wyboru) + [Initiative Order](rules_tirules/R_initiative_order.md); LRR
   „Strategy Phase".
+- **Spójność kolejności przy przejściu STRATEGY→ACTION (kontrola silnika):** przejście
+  wymaga, by niepusta `seating_order` pokrywała się ze zbiorem graczy
+  (`set(seating_order) == set(players)`); rozjazd (realny edge-case God-Mode: gracz
+  dodany bez aktualizacji listy miejsc) jest odrzucany czytelnym błędem silnika
+  (`ensure_strategy_complete`) ZANIM dojdzie do ustalania inicjatywy — to kontrola
+  silnika-sędziego, nie reguła TI4. Puste `seating_order` jest OK (kolejność wtedy po id
+  graczy).
 - **Trade goods na kartach:** na każdej NIEWYBRANEJ karcie leży pula trade goods (start 0).
   Gdy gracz wybiera kartę, **otrzymuje wszystkie TG z tej karty**, a licznik karty zeruje
   się (`PickStrategyCardButtonHandler`: `player.setTg(tg + tgCount)`, potem

@@ -10,6 +10,7 @@ import pytest
 
 from src.core import strategy_phase
 from src.core.game_state import GameState, PlayerState
+from src.core.models import StrategyCardDef
 from src.core.registry import StaticDataRegistry
 
 
@@ -257,4 +258,98 @@ def test_validate_set_rejects_duplicate_initiative() -> None:
     cards = [_card(i) for i in range(1, 8)] + [_card(1)]  # 8 kart, duplikat 1
     fake = _FakeRegistry(cards)
     with pytest.raises(ValueError, match="zduplikowane"):
+        strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
+
+
+# --- Testy brzegowe refaktoryzacji po przeglądzie semantycznym (znalezisko #7) ---
+
+
+def test_ensure_complete_rejects_seating_players_mismatch() -> None:
+    """Rozjazd seating_order↔players (znalezisko #1): gracz spoza niepustego
+    ``seating_order`` (realna ścieżka God-Mode) → czytelny ValueError z
+    ``ensure_strategy_complete`` ZANIM dojdzie do ``strict_initiative_order``.
+    """
+    state = GameState(
+        seating_order=["p1", "p2"],  # p3 celowo poza listą miejsc
+        speaker_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1", strategy_cards=[1, 2]),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3, 4]),
+            "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
+        },
+    )
+    with pytest.raises(ValueError, match="nie pokrywa się z graczami"):
+        strategy_phase.ensure_strategy_complete(state)
+
+
+def test_ensure_complete_allows_empty_seating_order(
+    registry: StaticDataRegistry,
+) -> None:
+    """Puste ``seating_order`` jest OK: ``speaker_order`` używa ``sorted(players)``,
+    więc kompletny, poprawny set 3–8 graczy NIE rzuca (regresja po #1).
+    """
+    state = GameState(
+        speaker_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1", strategy_cards=[1, 2]),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3, 4]),
+            "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
+        },
+    )
+    strategy_phase.ensure_strategy_complete(state)  # nie rzuca
+
+
+def test_accumulate_rejects_wrong_player_count(
+    registry: StaticDataRegistry,
+) -> None:
+    """Liczba graczy spoza 3–8 (znalezisko #2/#3): ``accumulate_unpicked_tg`` na
+    stanie 2-osobowym RZUCA (zabezpiecza ścieżkę /round/next), zamiast cicho
+    przepuścić akumulację. Dawny guard na ``next_strategy_picker`` by przepuścił.
+    """
+    state = GameState(
+        seating_order=["p1", "p2"],
+        speaker_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1"),
+            "p2": PlayerState(player_id="p2"),
+        },
+    )
+    with pytest.raises(ValueError, match="Nieprawidłowa liczba graczy"):
+        strategy_phase.accumulate_unpicked_tg(state, registry)
+
+
+def test_accumulate_incomplete_pick_keeps_message(
+    registry: StaticDataRegistry,
+) -> None:
+    """Niekompletny wybór przy poprawnej liczbie graczy → komunikat akumulacji
+    pozostaje bez zmian (kontrakt R7.5).
+    """
+    state = _state()  # 3 graczy, nikt nie wybrał kart
+    with pytest.raises(ValueError, match="faza strategii niezakończona"):
+        strategy_phase.accumulate_unpicked_tg(state, registry)
+
+
+def _full_card(initiative: int) -> StrategyCardDef:
+    """Karta z KOMPLETEM pól (nazwa/primary/secondary/kolor) — do testu #4."""
+    return StrategyCardDef(
+        id=f"sc{initiative}",
+        name=f"Card {initiative}",
+        source="pok",
+        initiative=initiative,
+        primaryTexts=["primary"],
+        secondaryTexts=["secondary"],
+        colourHexCode="#ffffff",
+    )
+
+
+def test_validate_set_rejects_missing_card_field() -> None:
+    """Komplet pól karty (R6.4, przeniesiony do core — #4): karta bez nazwy →
+    ValueError z ``validate_strategy_card_set`` (dawniej tylko w routerze).
+    """
+    cards: list[object] = [_full_card(i) for i in range(1, 8)]
+    blank = _full_card(8)
+    blank.name = ""  # brak nazwy — łamie komplet pól
+    cards.append(blank)
+    fake = _FakeRegistry(cards)
+    with pytest.raises(ValueError, match="brak pola nazwa"):
         strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]

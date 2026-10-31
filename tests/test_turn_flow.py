@@ -169,3 +169,45 @@ def test_pass_without_strategy_card_allowed() -> None:
 def test_initiative_order_alias() -> None:
     state = _state_with_players()
     assert turn_flow.initiative_order(state) == turn_flow.turn_order(state)
+
+
+# --- Testy brzegowe refaktoryzacji po przeglądzie semantycznym (znalezisko #7) ---
+
+
+def test_next_phase_rejects_seating_players_mismatch() -> None:
+    """Przejście STRATEGY→ACTION przy rozjeździe seating_order↔players
+    (znalezisko #1, realna ścieżka God-Mode): ``next_phase`` daje czytelny
+    ValueError o niespójnym stanie ZANIM dojdzie do ``strict_initiative_order``
+    (dawniej padało mylącym „Gracz X nie ma przypisanej karty strategii.").
+    """
+    state = GameState(
+        phase=Phase.STRATEGY,
+        seating_order=["p1", "p2"],  # p3 celowo poza listą miejsc
+        speaker_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1", strategy_cards=[1, 2]),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3, 4]),
+            "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
+        },
+    )
+    with pytest.raises(ValueError, match="nie pokrywa się z graczami"):
+        turn_flow.next_phase(state)
+
+
+def test_next_phase_strategy_to_action_consistent_state_ok() -> None:
+    """Regresja po #1: spójny, kompletny stan 3 graczy (seating_order == players)
+    przechodzi STRATEGY→ACTION bez błędu — aktywny = najniższa inicjatywa.
+    """
+    state = GameState(
+        phase=Phase.STRATEGY,
+        seating_order=["p1", "p2", "p3"],
+        speaker_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1", strategy_cards=[1, 2]),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3, 4]),
+            "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
+        },
+    )
+    nxt = turn_flow.next_phase(state)
+    assert nxt.phase is Phase.ACTION
+    assert nxt.active_player_id == "p1"

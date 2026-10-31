@@ -462,6 +462,28 @@ Spec: `.kiro/specs/strategy-phase-complete/`. Reguła przed kodem (zasada projek
 `npm run type-check` → czyste; `npm run lint` → czyste; `npm run build` → OK (znana, nieblokująca
 notka o rozmiarze chunku). Ostrzeżenie `StarletteDeprecationWarning` bez zmian (znane).
 
+**Refaktoryzacja po przeglądzie semantycznym (`semantic-review/2026-11-01-005022-strategy-phase-review.md`,
+znaleziska #1/#2/#3/#4/#7, czysto backendowa, zero zmian kontraktu z frontem):**
+- [x] **Spójna obsługa liczby graczy spoza 3–8 w guardzie akumulacji (#2/#3):** `accumulate_unpicked_tg`
+  woła teraz `ensure_strategy_complete` (które woła `pick_count` BEZPOŚREDNIO) zamiast wnioskować
+  z `next_strategy_picker(state) is not None`. Dawny guard był dziurawy: `next_strategy_picker`
+  łapie `ValueError` z `pick_count` i zwraca `None`, więc przy 2 graczach `/round/next`
+  przepuszczało akumulację. Teraz <3/>8 graczy → `ValueError` (odrzucone), niekompletny wybór →
+  zachowany komunikat „Nie można akumulować: faza strategii niezakończona.".
+- [x] **Twarda kontrola `seating_order == players` przy przejściu STRATEGY→ACTION (#1):**
+  `ensure_strategy_complete` sprawdza (dla niepustej `seating_order`) spójność ze zbiorem graczy
+  i daje czytelny błąd ZANIM `strict_initiative_order` rzuci mylące „Gracz X nie ma karty"
+  (realny edge-case: God-Mode dodaje gracza bez aktualizacji listy miejsc). Puste `seating_order`
+  nietknięte.
+- [x] **Walidacja pól karty przeniesiona do `core/` (#4):** `_ensure_card_fields_complete` z
+  `api/routers/strategy.py` → nowa czysta funkcja `core.strategy_phase.ensure_card_fields_complete`,
+  wołana wewnątrz `validate_strategy_card_set` (dostępna też dla przyszłego `ai/`). Router tylko
+  woła `validate_strategy_card_set` i mapuje `ValueError`→422 (kontrakt bez zmian).
+- [x] **Testy brzegowe (#7):** `tests/test_strategy_phase.py` + `tests/test_turn_flow.py` —
+  rozjazd seating_order↔players, akumulacja przy 2 graczach, zachowany komunikat niekompletnego
+  wyboru, walidacja pól karty w core, regresja poprawnego stanu 3 graczy.
+- **QA po refaktorze:** `uv run pytest -q` → **269 passed**; ruff + mypy czyste.
+
 ### ✅ Blok E8-T6d — wskaźnik produkcji NA KAFELKU (nie w panelu) (ukończony)
 
 Korekta po uwadze użytkownika: wskaźnik PRODUCTION (koło zębate) ma się pokazywać NA KAFELKU
