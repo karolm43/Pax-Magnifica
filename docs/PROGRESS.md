@@ -455,3 +455,30 @@ Spec: `.kiro/specs/strategy-phase-complete/`. Reguła przed kodem (zasada projek
 `uv run ruff check src tests` → czyste; `uv run mypy src tests` → czyste (61 plików). Frontend:
 `npm run type-check` → czyste; `npm run lint` → czyste; `npm run build` → OK (znana, nieblokująca
 notka o rozmiarze chunku). Ostrzeżenie `StarletteDeprecationWarning` bez zmian (znane).
+
+### ✅ Blok E8-T6d — wskaźnik produkcji NA KAFELKU (nie w panelu) (ukończony)
+
+Korekta po uwadze użytkownika: wskaźnik PRODUCTION (koło zębate) ma się pokazywać NA KAFELKU
+mapy (jak w AsyncTI4), nie w panelu produkcji. Funkcjonalność renderu już istniała we froncie
+(`ProductionIndicator` + `SystemIndicatorsLayer` w `MapTile`), ale NIE dostawała danych — backend
+wysyłał `tileUnitData[pos].production = {}` (puste), więc `Math.max([])` = -Infinity i wskaźnik
+nigdy się nie renderował (`highestProduction > 0` fałszywe).
+
+**Backend (naprawa źródła danych):**
+- [x] `src/core/production.py`: wydzielono `system_production_value(state, grid, registry,
+  player_id, position)` (suma PRODUCTION w DOWOLNYM systemie); `production_limit` deleguje do
+  niego dla `active_system`.
+- [x] `src/api/web_data.py`: helper `_tile_production` wypełnia `tileUnitData[pos].production`
+  mapą `{kolor_gracza: wartość}` (pomija ≤0; klucz = kolor jak reszta sygnałów mapy). Import
+  `production`.
+
+**Frontend (cofnięcie wskaźnika z panelu):**
+- [x] `GameStatePanel.tsx`: usunięto wskaźnik PRODUCTION z nagłówka panelu produkcji (dodany
+  błędnie w T6c) + nieużywany import `cdnImage`. Panel pokazuje tylko „X zasobów".
+- [x] `GameStatePanel.module.css`: usunięto CSS `.prodStats/.prodLimit/...`.
+  (`ProductionHelpResponse.production_limit` zostaje w kontrakcie — nieszkodliwe, może się przydać.)
+
+**Rezultat (zweryfikowany E2E):** `tileUnitData["000"].production = {"red": 6}` (dok „+2" na Jord
+res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
+
+**QA:** backend 262 testy zielone, ruff + mypy czyste. Frontend type-check + lint + build czyste.
