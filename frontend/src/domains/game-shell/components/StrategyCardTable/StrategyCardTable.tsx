@@ -90,8 +90,10 @@ function FactionMark({
  *
  * INTERAKCJA (zadanie 9.3): każda karta to klikalny ``<button>``. Klik WOLNEJ karty,
  * gdy jest wskazany picker → ``pickStrategyCard(pickerId, card.initiative)`` (R8.5).
- * Karta wybrana albo brak pickera / nie twoja kolej → blokada przez ``disabled`` +
- * strażnik ``canPick`` (jak w istniejącym pickerze): klik NIE wysyła requestu (R8.6).
+ * Karta wybrana albo brak pickera / nie twoja kolej → blokada przez STRAŻNIK w
+ * ``onClick`` (``canPick``), NIE przez atrybut ``disabled``: klik nie wysyła requestu
+ * (R8.6). Świadomie bez ``disabled`` — wyłączony ``<button>`` nie emituje zdarzeń
+ * hover/focus, więc tooltip musi działać na niewybieralnej karcie (iteracja 12.2).
  *
  * Źródła danych: WYŁĄCZNIE istniejące hooki (zero nowych):
  * - ``useGameState`` → ``gameState`` (faza, mówca, aktywny gracz) — ten sam
@@ -275,8 +277,16 @@ export function StrategyCardTable(): ReactElement | null {
                   // istniejącego ``canPick`` (bez nowej logiki).
                   className={cx(styles.card, canPick && styles.pickable)}
                   data-picked={isPicked || undefined}
-                  disabled={busy || !canPick}
+                  // ``aria-disabled`` komunikuje stan niewybieralnej karty, ale
+                  // element NIE dostaje natywnego ``disabled`` — dzięki temu
+                  // wyłączony ``<button>`` dalej wyzwala hover/focus (a więc i
+                  // tooltip) na KAŻDEJ karcie. Blokada kliku realizowana jest w
+                  // strażniku ``onClick`` (poniżej), nie przez ``disabled``.
                   aria-disabled={!canPick || undefined}
+                  // ``data-disabled`` steruje wyłącznie WYGASZENIEM w CSS
+                  // (``.card[data-disabled]``) — zastępuje dawne ``.card:disabled``,
+                  // które przestało działać po usunięciu atrybutu ``disabled``.
+                  data-disabled={!canPick || undefined}
                   // Zmienne łuku + sygnał koloru dysku wstrzyknięte na kartę;
                   // CSS liczy z nich spoczynkowy ``transform`` (obrót + opad).
                   style={{
@@ -294,13 +304,14 @@ export function StrategyCardTable(): ReactElement | null {
                   onBlur={() =>
                     setHovered((h) => (h === card.initiative ? null : h))
                   }
-                  onClick={() =>
-                    // Klik dozwolonej karty → wybór dla aktualnego pickera (R8.5).
-                    // Gdy ``!canPick`` — wczesny return, BEZ requestu (R8.6).
-                    canPick &&
-                    pickerId !== null &&
-                    void run(() => pickStrategyCard(pickerId, card.initiative))
-                  }
+                  onClick={() => {
+                    // STRAŻNIK kliku — po usunięciu ``disabled`` to jedyna
+                    // blokada: klik karty zablokowanej (trwa request / brak
+                    // pickera / nie twoja kolej) → wczesny return, BEZ requestu
+                    // (R8.6). Klik dozwolonej karty → wybór dla pickera (R8.5).
+                    if (busy || !canPick || pickerId === null) return;
+                    void run(() => pickStrategyCard(pickerId, card.initiative));
+                  }}
                 >
                   {showImage ? (
                     <img
