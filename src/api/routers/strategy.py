@@ -13,13 +13,45 @@ from src.api.schemas import (
     StrategySecondaryRequest,
 )
 from src.core import strategic_action, strategy_phase
+from src.core.models import StrategyCardDef
 
 router = APIRouter()
 
 
+def _ensure_card_fields_complete(cards: list[StrategyCardDef]) -> None:
+    """Sprawdza komplet pól per-karta wymaganych do opisu puli (R6.4).
+
+    Dla każdej karty wymagamy: nazwy, tekstu primary, tekstu secondary oraz
+    koloru (``initiative`` jest już zwalidowana przez
+    ``validate_strategy_card_set``). Gdy któregokolwiek pola brakuje w danych
+    rejestru → ``ValueError("Karta {id}: brak pola {pole}.")`` (mapowane na 422).
+    Zero wartości kodowanych w module — wyłącznie odczyt z rejestru.
+    """
+    for card in cards:
+        if not card.name:
+            raise ValueError(f"Karta {card.id}: brak pola nazwa.")
+        if not card.primary_texts:
+            raise ValueError(f"Karta {card.id}: brak pola tekst primary.")
+        if not card.secondary_texts:
+            raise ValueError(f"Karta {card.id}: brak pola tekst secondary.")
+        if not card.colour_hex_code:
+            raise ValueError(f"Karta {card.id}: brak pola kolor.")
+
+
 @router.get("/strategy/cards", response_model=list[StrategyCardInfo])
 def get_strategy_cards(ctx: AppContext = Depends(get_ctx)) -> list[StrategyCardInfo]:
-    """Pula kart strategii aktywnego zestawu + ich stan w bieżącej grze."""
+    """Pula kart strategii aktywnego zestawu + ich stan w bieżącej grze.
+
+    Guard spójności danych rejestru: najpierw ``validate_strategy_card_set``
+    (komplet/unikalność — R6.2), potem kontrola kompletu pól każdej karty
+    (R6.4); oba błędy domenowe (``ValueError``) mapujemy na HTTP 422.
+    """
+    try:
+        card_set = strategy_phase.validate_strategy_card_set(ctx.registry)
+        _ensure_card_fields_complete(card_set)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     state = ctx.service.current_state()
     owner_by_init: dict[int, str] = {}
     exhausted_by_init: dict[int, bool] = {}
@@ -28,7 +60,7 @@ def get_strategy_cards(ctx: AppContext = Depends(get_ctx)) -> list[StrategyCardI
             owner_by_init[init] = pid
             exhausted_by_init[init] = init in player.exhausted_strategy_cards
     cards: list[StrategyCardInfo] = []
-    for card in ctx.registry.strategy_card_set():
+    for card in card_set:
         cards.append(
             StrategyCardInfo(
                 initiative=card.initiative,
