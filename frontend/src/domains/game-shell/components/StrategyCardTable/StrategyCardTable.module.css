@@ -10,11 +10,34 @@
  * Wyłącznie tokeny z frontend/src/ds/tokens.css. Zmienna --scc to pełna wartość
  * koloru danej karty (sygnał Initiative), używana jako obwódka dysku/karty.
  */
+/*
+ * Pełnoekranowa nakładka WYŚRODKOWUJĄCA panel kart na środku ekranu (iteracja
+ * zadania 12.2). ``position: fixed`` wyrywa komponent z kontenera montażu (jest
+ * montowany obok GameStatePanel w MapView/PannableMapView) i środkuje go względem
+ * viewportu — bez zmian w layoutach. ``place-items: center`` centruje panel w obu
+ * osiach. Nakładka NIE przechwytuje zdarzeń (``pointer-events: none``), więc nie
+ * blokuje interakcji z mapą; klikalny jest dopiero wewnętrzny ``.table``.
+ *
+ * Z-INDEX: nieco NIŻSZY niż PhaseTransitionBanner (ten sam ``--ds-z-overlay``), aby
+ * pełnoekranowy baner przejścia przykrywał tabelę kart podczas przejścia fazy.
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--ds-z-overlay, 60) - 1);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
 .table {
+  /* Panel kart — klikalny mimo ``pointer-events: none`` na nakładce. */
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-sm);
-  max-width: 100%;
+  /* Nie dotyka krawędzi ekranu — rząd 8 kart mieści się w wyśrodkowanym panelu. */
+  max-width: 96vw;
   padding: var(--ds-space-md);
   color: var(--ds-ink);
   background: color-mix(in oklab, var(--ds-ground) 94%, transparent);
@@ -89,10 +112,18 @@
   color: var(--ds-ink-lo);
 }
 
-/* SIATKA dużych kart — zamiast ciasnego flex-wrap. */
+/*
+ * JEDEN RZĄD kart — 8 kart w jednej linii, bez zawijania i bez przewijania
+ * (iteracja zadania 12.2). ``nowrap`` + ``justify-content: center`` trzyma rząd
+ * wyśrodkowany; szerokość pojedynczej karty jest ograniczona (patrz ``.card``),
+ * więc cały rząd mieści się na typowych ekranach wewnątrz panelu ``max-width: 96vw``.
+ */
 .cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
   gap: var(--ds-space-sm);
 }
 
@@ -103,6 +134,9 @@
 .card {
   --scc: var(--gd-gray);
   position: relative;
+  /* Elastyczna, ale OGRANICZONA szerokość — 8 kart w jednej linii bez przewijania. */
+  flex: 0 0 auto;
+  width: clamp(90px, 10.5vw, 150px);
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-xs);

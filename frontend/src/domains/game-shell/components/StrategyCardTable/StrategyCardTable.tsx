@@ -137,7 +137,13 @@ export function StrategyCardTable(): ReactElement | null {
     : null;
 
   return (
-    <div className={styles.table} aria-label="Karty strategii na stole">
+    // Nakładka-wrapper: pełnoekranowy kontener, który WYŚRODKOWUJE panel kart w
+    // poziomie i w pionie względem viewportu (``position: fixed`` + ``place-items:
+    // center``). Sama nakładka nie przechwytuje zdarzeń (``pointer-events: none``);
+    // to wewnętrzny ``.table`` ma ``pointer-events: auto``, więc karty pozostają
+    // klikalne. Wyłącznie struktura/layout — ZERO zmian logiki interakcji i danych.
+    <div className={styles.overlay}>
+      <div className={styles.table} aria-label="Karty strategii na stole">
       {/* Nagłówek fazy + mówca + WYRAŹNY baner aktualnego pickera (Requirement 1). */}
       <div className={styles.header}>
         <h2 className={styles.heading}>Faza strategii</h2>
@@ -271,6 +277,7 @@ export function StrategyCardTable(): ReactElement | null {
             </button>
           );
         })}
+      </div>
       </div>
     </div>
   );
