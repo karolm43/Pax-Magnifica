@@ -41,9 +41,20 @@
   gap: var(--ds-space-sm);
   /* DUŻE karty — panel sięga niemal krawędzi ekranu (rząd prawie na całą szerokość). */
   max-width: 96vw;
-  /* Panel PRZEZROCZYSTY — bez tła/ramki/cienia/blur. Widać mapę za kartami;
-     zostaje tylko layout (flex) i minimalny padding. */
-  padding: var(--ds-space-md);
+  /* JEDNO wspólne, subtelne tło pod całością (nagłówek + rząd kart). Miękka
+     winieta radialna wygasza ku krawędziom — bez twardego prostokątnego brzegu,
+     więc wachlarz nie zlewa się z mapą, a tło nie jest szarym kafelkiem. */
+  background: radial-gradient(
+    ellipse at center,
+    rgb(0 0 0 / 0.55),
+    rgb(0 0 0 / 0.32) 70%,
+    transparent
+  );
+  /* Delikatne „szkło" — lekko rozmywa mapę pod spodem dla czytelności kart. */
+  backdrop-filter: blur(3px);
+  border-radius: var(--ds-radius-xl);
+  /* Większy zapas (``lg``), by miękkie tło objęło rząd kart z marginesem. */
+  padding: var(--ds-space-lg);
   color: var(--ds-ink);
 }
 
@@ -59,7 +70,9 @@
   text-align: center;
   gap: var(--ds-space-xs);
   padding: var(--ds-space-xs) var(--ds-space-md);
-  background: rgb(0 0 0 / 0.5);
+  /* Niższe krycie tła nagłówka (0.35) — panel ``.table`` ma teraz własną winietę,
+     więc ciemne tło nie dubluje się nadmiernie, a nagłówek wciąż się wyróżnia. */
+  background: rgb(0 0 0 / 0.35);
   border-radius: var(--ds-radius-lg);
   box-shadow: var(--ds-shadow-sm);
 }
