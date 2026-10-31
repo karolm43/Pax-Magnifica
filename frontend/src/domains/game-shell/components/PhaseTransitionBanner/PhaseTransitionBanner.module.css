@@ -1,10 +1,14 @@
 /*
- * Phase_Banner — nakładka sygnalizująca zmianę głównej fazy gry, centrowana nad
- * mapą. Zadanie 10.1 dało SZKIELET (kontener nakładki + wyśrodkowany obraz), a
- * zadanie 10.3 dokłada animację wejścia/wyjścia oraz tekstowy fallback.
+ * Phase_Banner — PEŁNOEKRANOWA plansza przejścia sygnalizująca zmianę głównej fazy
+ * gry, wyśrodkowana nad mapą. Układ PIONOWY: duży obraz banera NAD blokiem tekstu
+ * (polska nazwa fazy + „Runda N").
  *
- * KLUCZOWE: nakładka ma `pointer-events: none` przez cały czas — baner to czysta
+ * KLUCZOWE: nakładka ma `pointer-events: none` przez CAŁY czas — plansza to czysta
  * dekoracja i NIE może blokować interakcji z mapą ani panelami (R10.5).
+ *
+ * Akcent koloru per faza wstrzykiwany jest z komponentu przez zmienne CSS
+ * `--banner-accent` (pełny kolor) i `--banner-accent-soft` (wersja z alfą do
+ * poświaty/obwódki) — wartości budowane z tokenów `--ds-accent` / `--ds-sig-*`.
  */
 .overlay {
   position: absolute;
@@ -12,76 +16,102 @@
   z-index: var(--ds-z-overlay, 60);
   display: grid;
   place-items: center;
+  /* Pełnoekranowe, półprzezroczyste przyciemnienie tła (token design-systemu). */
+  background: var(--ds-backdrop);
+  /* R10.5: nigdy nie przechwytuje zdarzeń wskaźnika. */
   pointer-events: none;
 }
 
 /*
- * Animacja WEJŚCIA (R10.4): delikatne wpłynięcie z przyciemnienia i lekkiego
- * pomniejszenia (fade + scale-in). Auto-ukrycie steruje JS (`setTimeout`), więc
- * tutaj trzymamy wyłącznie efekt wejścia — po stronie React komponent znika z DOM
- * (render `null`), co pełni rolę „wyjścia".
+ * Animacja WEJŚCIA planszy przejścia: wpłynięcie z góry (`translateY`) + fade +
+ * lekki `scale`. Wyjście realizujemy przez odmontowanie (render `null`) po
+ * `BANNER_VISIBLE_MS`, więc tutaj trzymamy wyłącznie efekt wejścia.
  */
-@keyframes bannerFadeScaleIn {
+@keyframes bannerSlideIn {
   from {
     opacity: 0;
-    transform: scale(0.92);
+    transform: translateY(-48px) scale(0.94);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 /*
- * Animacja WYJŚCIA (R10.4): dostępna jako osobny keyframe (fade-out), gdyby
- * sterować nią przez stan `leaving`. W obecnej implementacji wyjście realizujemy
- * przez odmontowanie (render `null`) po `BANNER_VISIBLE_MS`; keyframe zostaje jako
- * element design-systemu animacji nakładki.
+ * Scena planszy: kolumna (obraz nad tekstem), wyśrodkowana, z animacją wejścia.
+ * Czas `--ds-dur-slow`, krzywa `--ds-ease` (tokeny motion z design-systemu).
  */
-@keyframes bannerFadeOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.98);
-  }
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-lg, 1.25rem);
+  text-align: center;
+  padding: var(--ds-space-xl, 2rem);
+  animation: bannerSlideIn var(--ds-dur-slow, 0.3s) var(--ds-ease) both;
 }
 
+/*
+ * Duży obraz banera (R10): DUŻO większy niż wcześniej — plansza pełnoekranowa.
+ * Poświata w akcencie fazy (`--banner-accent-soft`) dodana obok cienia bazowego.
+ */
 .banner {
-  max-width: min(70%, 720px);
-  max-height: 40%;
+  max-width: min(60vw, 820px);
+  max-height: 60vh;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(var(--ds-shadow-md));
-  animation: bannerFadeScaleIn var(--ds-dur-md, 220ms) ease-out both;
+  filter: drop-shadow(0 0 24px var(--banner-accent-soft))
+    drop-shadow(var(--ds-shadow-lg));
 }
 
 /*
- * Tekstowy fallback (R10.9): gdy grafika banera się nie załaduje (`onError`),
- * pokazujemy w tej samej nakładce czytelną etykietę nazwy fazy — z tą samą
- * animacją wejścia co obraz, więc wrażenie przejścia jest zachowane bez błędu.
+ * Blok tekstowy (nazwa fazy + runda). Obwódka/poświata w akcencie fazy, tło lekko
+ * przyciemnione dla czytelności nad mapą. Przy błędzie grafiki zostaje sam ten blok
+ * (bez skoku layoutu), bo scena i tak jest kolumną wyśrodkowaną (R10.9).
  */
-.fallback {
-  padding: var(--ds-space-4, 1rem) var(--ds-space-6, 1.5rem);
-  font-size: var(--ds-font-size-xl, 1.5rem);
-  font-weight: var(--ds-font-weight-bold, 700);
-  letter-spacing: 0.04em;
-  color: var(--ds-color-text, #fff);
-  background: var(--ds-color-surface-overlay, rgba(0, 0, 0, 0.6));
-  border-radius: var(--ds-radius-md, 8px);
-  box-shadow: var(--ds-shadow-md);
-  animation: bannerFadeScaleIn var(--ds-dur-md, 220ms) ease-out both;
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-xs, 0.625rem);
+  padding: var(--ds-space-md, 1rem) var(--ds-space-xl, 2rem);
+  border: 2px solid var(--banner-accent-soft);
+  border-radius: var(--ds-radius-overlay, 8px);
+  background: rgb(0 0 0 / 0.35);
+  box-shadow: 0 0 32px var(--banner-accent-soft);
 }
 
 /*
- * Szacunek dla preferencji „ogranicz ruch" — bez skoków skali, zostaje samo
- * pojawienie się (dostępność; zgodne z czysto-dekoracyjnym charakterem banera).
+ * Nazwa GŁÓWNEJ fazy (ZAWSZE widoczna). Typografia display, rozmiar większy niż
+ * `--ds-h1`, kolor `--ds-ink-hi`, lekki glow w akcencie fazy.
+ */
+.phase {
+  font-family: var(--ds-font-display);
+  font-size: calc(var(--ds-h1) * 1.6);
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink-hi);
+  text-shadow: 0 0 18px var(--banner-accent-soft);
+}
+
+/*
+ * Podtytuł „Runda N" — mniejszy, w akcencie fazy. Renderowany tylko gdy `gameRound`
+ * jest dostępne (komponent pomija go bez błędu, gdy brak danych).
+ */
+.round {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-h3);
+  letter-spacing: 0.08em;
+  color: var(--banner-accent);
+}
+
+/*
+ * Szacunek dla preferencji „ogranicz ruch" — bez slajdu/skalowania, zostaje samo
+ * pojawienie się (dostępność; zgodne z czysto-dekoracyjnym charakterem planszy).
  */
 @media (prefers-reduced-motion: reduce) {
-  .banner,
-  .fallback {
+  .stage {
     animation: none;
   }
 }

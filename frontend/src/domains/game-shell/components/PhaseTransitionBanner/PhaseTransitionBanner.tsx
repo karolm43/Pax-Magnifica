@@ -1,7 +1,8 @@
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
+import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import styles from "./PhaseTransitionBanner.module.css";
 
@@ -54,32 +55,81 @@ const BANNER_FILE: Record<string, string> = {
 };
 
 /*
+ * Polskie nazwy GŁÓWNYCH faz (czysto wizualne, R10). ZAWSZE widoczne na planszy
+ * przejścia (nie tylko w fallbacku po błędzie grafiki). Klucze pokrywają się z
+ * `BANNER_FILE`, więc każda wyzwalana faza ma swoją etykietę.
+ */
+const PHASE_LABEL: Record<string, string> = {
+  strategy: "FAZA STRATEGII",
+  action: "FAZA AKCJI",
+  status: "FAZA STATUSU",
+  agenda: "FAZA AGENDY",
+};
+
+/*
+ * Akcent koloru per faza — poświata/obwódka planszy przejścia (R10, wizualne).
+ * Wartości dobrane z istniejących tokenów sygnałów (`frontend/src/ds/tokens.css`):
+ * tokeny `--ds-sig-*` to trójki RGB (używane przez `rgb(var(...) / <alfa>)`), a
+ * `--ds-accent` to pełny hex (plus `--ds-accent-rgb` do alfy). Rozróżnienie jest
+ * istotne — poniżej budujemy gotowe wyrażenia `rgb(...)` do użycia w CSS vars.
+ */
+const PHASE_ACCENT: Record<string, { solid: string; soft: string }> = {
+  // interakcyjny akcent: hex + osobna trójka RGB do przezroczystości
+  strategy: {
+    solid: "var(--ds-accent)",
+    soft: "rgb(var(--ds-accent-rgb) / 0.35)",
+  },
+  action: {
+    solid: "rgb(var(--ds-sig-war))",
+    soft: "rgb(var(--ds-sig-war) / 0.35)",
+  },
+  status: {
+    solid: "rgb(var(--ds-sig-ok))",
+    soft: "rgb(var(--ds-sig-ok) / 0.35)",
+  },
+  agenda: {
+    solid: "rgb(var(--ds-sig-law))",
+    soft: "rgb(var(--ds-sig-law) / 0.35)",
+  },
+};
+
+/*
  * Czas widoczności banera przed auto-ukryciem (R10.4). 3500 ms daje wyraźny,
  * planszówkowy sygnał z zapasem poniżej twardego limitu 5 s z kryterium akceptacji.
  */
 const BANNER_VISIBLE_MS = 3500;
 
 /**
- * Phase_Banner (Requirement 10) — czysto wizualna nakładka nad mapą sygnalizująca
+ * Phase_Banner (Requirement 10) — pełnoekranowa plansza przejścia sygnalizująca
  * wejście w nową GŁÓWNĄ fazę gry. Montowana na poziomie layoutu mapy (`MapView`,
  * `PannableMapView`) obok pozostałych nakładek, bo reaguje na KAŻDĄ zmianę fazy,
  * nie tylko strategii — dlatego żyje poza panelem strategii.
  *
- * To ZADANIE 10.2 dokłada MECHANIZM WYKRYWANIA ZMIANY głównej fazy: `useRef`
+ * MECHANIZM WYKRYWANIA ZMIANY głównej fazy (bez zmian funkcjonalnych): `useRef`
  * trzyma poprzednią główną fazę, a `useEffect` (zależny od `mainPhase`) porównuje
  * ją z bieżącą i wyzwala baner DOKŁADNIE raz na przejście (R10.7). Re-rendery w
  * obrębie tej samej głównej fazy (np. podfaza `status.*` → `status.**`, odświeżenie
  * stanu) nie wyzwalają banera ponownie (R10.8).
  *
- * Zrealizowane w kolejnych zadaniach:
- * - 10.3: animacja wejścia/wyjścia, auto-ukrycie (timer), fallback tekstowy przy `onError`;
- * - 10.4: realny krótki dźwięk przejścia (`playSound()`) z cichą degradacją — raz na
- *   przejście fazy, rozłączony z banerem (odrzucony `play()` nie przerywa banera).
+ * WARSTWA WIZUALNA (plansza przejścia): pełnoekranowa nakładka (`inset: 0`) z
+ * przyciemnieniem tła, ale `pointer-events: none` przez cały czas (R10.5). Układ
+ * PIONOWY: duży obraz banera NAD blokiem tekstu (polska nazwa fazy + „Runda N").
+ * Przy błędzie grafiki (`onError`, R10.9) chowamy sam obraz — blok tekstowy (nazwa
+ * + runda) zostaje bez skoku layoutu. Nazwa fazy jest ZAWSZE widoczna.
+ *
+ * ŹRÓDŁA DANYCH (dwa osobne, istniejące hooki, zero nowych):
+ * - `useGameState` → `phase` (jedyne źródło prawdy o fazie);
+ * - `useGameData` → `gameRound` (top-level web-data `PlayerDataResponse.gameRound`).
  */
 export function PhaseTransitionBanner(): ReactElement | null {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
+  // Numer rundy z OSOBNEGO źródła (web-data). Hook może zwrócić `undefined`
+  // (brak kontekstu/jeszcze niezaładowane) — zabezpieczamy `?.` i pomijamy
+  // podtytuł, gdy rundy brak (bez błędu, R10.9).
+  const gameData = useGameData();
+  const gameRound = gameData?.gameRound;
 
   // Źródło fazy: `gameState.phase` (jedyne źródło prawdy o fazie na froncie).
   // Normalizacja do głównej fazy: `"status.scoring" → "status"` (R10.3).
@@ -90,7 +140,7 @@ export function PhaseTransitionBanner(): ReactElement | null {
   const prevPhase = useRef<string | null>(null);
   // Główna faza aktualnie POKAZYWANA przez baner (wyzwolona przejściem).
   const [active, setActive] = useState<string | null>(null);
-  // Czy obraz banera zawiódł → renderujemy tekstowy fallback (R10.9).
+  // Czy obraz banera zawiódł → ukrywamy sam obraz, zostaje blok tekstowy (R10.9).
   const [imgFailed, setImgFailed] = useState(false);
   // Id timera auto-ukrycia; trzymany w ref, by czyścić go w cleanup efektu oraz
   // przy ponownym wyzwoleniu — kolejne przejście nie może nakładać starego timera.
@@ -156,22 +206,37 @@ export function PhaseTransitionBanner(): ReactElement | null {
   const activeFile = active ? BANNER_FILE[active] : undefined;
   if (!active || !activeFile) return null;
 
+  // Polska nazwa fazy (ZAWSZE widoczna) oraz akcent koloru per faza. Dla faz obecnych
+  // w `BANNER_FILE` oba lookupy są zdefiniowane; akcent wstrzykujemy jako CSS vars.
+  const label = PHASE_LABEL[active] ?? active;
+  const accent = PHASE_ACCENT[active];
+  const accentStyle = {
+    "--banner-accent": accent?.solid ?? "var(--ds-accent)",
+    "--banner-accent-soft": accent?.soft ?? "rgb(var(--ds-accent-rgb) / 0.35)",
+  } as CSSProperties;
+
   return (
-    <div className={styles.overlay} aria-hidden="true">
-      {imgFailed ? (
-        // Fallback tekstowy (R10.9): grafika się nie załadowała, więc w tej samej
-        // nakładce (ta sama animacja, to samo auto-ukrycie) pokazujemy nazwę fazy.
-        // Kontynuujemy bez zgłaszania błędu — baner „działa" dalej jako tekst.
-        <div className={styles.fallback}>Faza: {active}</div>
-      ) : (
-        <img
-          className={styles.banner}
-          src={`${STATIC_BASE}/${activeFile}`}
-          alt={active}
-          // onError → przełączamy na fallback tekstowy bez propagacji błędu (R10.9).
-          onError={() => setImgFailed(true)}
-        />
-      )}
+    <div className={styles.overlay} style={accentStyle} aria-hidden="true">
+      <div className={styles.stage}>
+        {/* Układ PIONOWY: duży obraz NAD blokiem tekstu. Przy błędzie grafiki
+            (R10.9) chowamy sam obraz — blok tekstowy zostaje bez skoku layoutu. */}
+        {!imgFailed && (
+          <img
+            className={styles.banner}
+            src={`${STATIC_BASE}/${activeFile}`}
+            alt={label}
+            // onError → ukrywamy obraz bez propagacji błędu, nazwa fazy zostaje (R10.9).
+            onError={() => setImgFailed(true)}
+          />
+        )}
+        {/* Blok tekstowy: nazwa fazy (ZAWSZE) + opcjonalny podtytuł „Runda N". */}
+        <div className={styles.text}>
+          <div className={styles.phase}>{label}</div>
+          {gameRound !== undefined && (
+            <div className={styles.round}>Runda {gameRound}</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
