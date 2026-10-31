@@ -70,15 +70,32 @@ def pick_count(state: GameState) -> int:
 
 
 def next_strategy_picker(state: GameState) -> str | None:
-    """Następny gracz w speaker order, który NIE wybrał jeszcze karty (lub None).
+    """Następny gracz w speaker order poniżej ``Pick_Count`` (lub None).
 
-    Startuje od mówcy; pomija graczy, którzy już mają kartę. Gdy wszyscy wybrali —
-    zwraca None (faza strategii gotowa do przejścia w akcję). Nie zależy od
-    bieżącego ``active_player_id`` — zawsze liczy od mówcy, więc jest stabilny
-    nawet gdy operator nadpisał wybór poza kolejnością (asystent, nie sędzia).
+    Startuje od mówcy (``speaker_order`` zawsze liczy od mówcy) i zwraca pierwszego
+    gracza, który ma mniej niż ``pick_count(state)`` kart. Gdy wszyscy osiągnęli
+    ``Pick_Count`` — zwraca None (faza strategii gotowa do przejścia w akcję).
+
+    Obsługuje drugą rundę przy 3–4 graczach bez licznika rund: warunek
+    ``< pick_count`` nie patrzy na numer rundy, a ``speaker_order`` zawsze zaczyna
+    od mówcy, więc po skompletowaniu pierwszej karty przez wszystkich pierwszym
+    graczem z <Pick_Count znów będzie mówca — naturalnie realizuje „drugą rundę od
+    mówcy" (RULES.md 13, 24).
+
+    Robustność dla niepełnego setu (<3 lub >8 graczy): ``pick_count`` rzuca wtedy
+    ``ValueError``; tutaj ŁAPIEMY go i zwracamy None, by nie psuć wywołań
+    wewnętrznych z niepełnym setem (np. setup, gra budowana w God-Mode). Twardy błąd
+    liczby graczy pozostaje tam, gdzie to świadoma akcja gracza
+    (``pick_strategy_card``/``ensure_strategy_complete``). Sygnatura bez zmian —
+    wszystkie dotychczasowe wywołania działają bez zmian; przy 5–8 graczach
+    (``pick_count == 1``) wynik jest identyczny jak dawniej (pierwszy bez karty).
     """
+    try:
+        needed = pick_count(state)
+    except ValueError:
+        return None
     for pid in speaker_order(state):
-        if not state.players[pid].strategy_cards:
+        if len(state.players[pid].strategy_cards) < needed:
             return pid
     return None
 
