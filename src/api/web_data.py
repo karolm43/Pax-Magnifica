@@ -895,6 +895,19 @@ def _build_player_data(
     active_id = _effective_active_id(state)  # spójny z activePlayer (Bug 7)
     for player_id, player in sorted(state.players.items()):
         faction = entity_keys.get(player_id, player_id)
+        # Pełna nazwa frakcji do WYŚWIETLANIA (displayName/flexibleDisplayName).
+        # Czytamy ją z rejestru (pole ``FactionDef.name`` = ``factionName`` z assetów),
+        # nigdy z pamięci. Lookup po realnym aliasie ``player.faction`` (nie po kluczu
+        # tożsamości, który przy kolizji frakcji bywa ``player_id``). Fallback na klucz
+        # ``faction``, gdy frakcja nieznana w rejestrze lub bez nazwy (null/neutral/
+        # placeholder) — ścieżka bezpieczna, NIE rzuca. Pole ``faction`` (alias) zostaje
+        # bez zmian: frontend używa go jako klucza i do grafiki ``/factions/{alias}.png``.
+        faction_def = (
+            registry.factions.get(player.faction) if player.faction else None
+        )
+        faction_display = (
+            faction_def.name if faction_def is not None and faction_def.name else faction
+        )
         # Opcja A: planety gracza WYLICZANE z planet_owners systemów (jedno źródło
         # prawdy), nie z player.controlled_planets — eliminuje desync panel↔mapa (Bug 3).
         controlled = _controlled_planets_from_systems(player_id, state)
@@ -915,8 +928,8 @@ def _build_player_data(
                 "userName": player_id,
                 "faction": faction,
                 "color": player.color or "gray",
-                "displayName": faction,
-                "flexibleDisplayName": faction,
+                "displayName": faction_display,
+                "flexibleDisplayName": faction_display,
                 "isSpeaker": state.speaker_id == player_id,
                 "isTyrant": False,
                 "passed": player.passed,
