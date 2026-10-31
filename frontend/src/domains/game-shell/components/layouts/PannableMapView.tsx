@@ -13,6 +13,7 @@ import { shouldHideZoomControls, computeMapZoom } from "@/utils/zoom";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { FloatingMapToolbar } from "@/domains/game-shell/components/FloatingMapToolbar";
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
+import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
 import { useMapTooltips } from "@/domains/map/components/hooks/useMapTooltips";
 import { getMapLayoutConfig } from "@/domains/map/components/mapLayout";
 import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKeyboardShortcuts";
@@ -152,6 +153,9 @@ export function PannableMapView({ gameId }: { gameId: string }) {
     <Box className={`${classes.mapContainer} ${classes.stateDocked}`}>
       <Box className={classes.gameStateOverlay}>
         <GameStatePanel />
+        {/* Card_Table_View — nakładka „na stole" obok panelu; sama pilnuje
+            gatingu fazy (render tylko w fazie strategii). Zadanie 9.1/9.2. */}
+        <StrategyCardTable />
       </Box>
       {!isMobile && (
         <>

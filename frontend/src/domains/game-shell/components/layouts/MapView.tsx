@@ -26,6 +26,7 @@ import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
 import { FloatingMapToolbar } from "@/domains/game-shell/components/FloatingMapToolbar";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
+import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
 
 type Props = {
   gameId: string;
@@ -208,6 +209,9 @@ export function MapView({
           }}
         >
           <GameStatePanel />
+          {/* Card_Table_View — nakładka „na stole" obok panelu; sama pilnuje
+              gatingu fazy (render tylko w fazie strategii). Zadanie 9.1/9.2. */}
+          <StrategyCardTable />
         </Box>
       )}
 
