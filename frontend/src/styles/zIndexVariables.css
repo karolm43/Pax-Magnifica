@@ -32,6 +32,11 @@
   /* Above every map control, because it is what the player must act on when the
      socket drops — but still under the modals. */
   --z-reconnect-prompt: 2420;
+  /* Pełnoekranowy baner przejścia fazy: musi PRZYKRYWAĆ pasek górny i okno faz,
+     ale zostaje POD modalami/popoverami.
+     Full-screen phase-transition banner: must cover the top bar and the phase
+     window, yet stay below modals/popovers. */
+  --z-phase-banner: 2450;
 
   /* MODALS - Settings, shortcuts and popovers (3000-3999) */
   --z-header-menu: 3300;

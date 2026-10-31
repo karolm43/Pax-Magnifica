@@ -15,7 +15,8 @@
   /* PEŁNY EKRAN: nakładka przykrywa cały viewport niezależnie od rodzica. */
   position: fixed;
   inset: 0;
-  z-index: var(--ds-z-overlay, 60);
+  /* Baner przykrywa WSZYSTKO (pasek górny, okno faz), ale zostaje pod modalami. */
+  z-index: var(--z-phase-banner, 2450);
   /* Przyciemnione tło — fallback gdy grafika zawiedzie (R10.9) oraz warstwa pod obrazem. */
   background: var(--ds-backdrop);
   /* R10.5: nigdy nie przechwytuje zdarzeń wskaźnika. */
