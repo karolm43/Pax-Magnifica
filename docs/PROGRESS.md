@@ -371,3 +371,27 @@ w którym masz już żeton dowodzenia" (pokazane jako baner); produkcja ponad bu
 
 **QA:** backend 258 testów zielonych (bez zmian logiki), ruff + mypy czyste. Frontend
 type-check + lint + build czyste.
+
+### ✅ Blok E8-T6c — wskaźnik limitu produkcji (sprocket) + komunikat limitu (ukończony)
+
+Dwie uwagi użytkownika: pokazać w panelu wartość PRODUCTION w systemie z ikoną AsyncTI4
+(koło zębate „production_representation.png") oraz komunikat przy przekroczeniu limitu.
+
+**Backend:**
+- [x] `src/api/schemas.py`: `ProductionHelpResponse.production_limit` (alias `productionLimit`).
+- [x] `src/api/routers/tactical.py`: `GET /tactical/production` liczy limit przez
+  `production.production_limit` (suma PRODUCTION jednostek gracza w aktywnym systemie, z
+  rozwiązaniem modyfikatora doku „+N" względem planety). Komunikat limitu już działał
+  (`validate_production` → „Limit produkcji przekroczony" → 422 → baner notice z T6b).
+
+**Frontend:**
+- [x] `api/useBoardEditor.ts`: `ProductionHelp.productionLimit`.
+- [x] `GameStatePanel.tsx` `ProductionPanel`: nagłówek pokazuje wskaźnik PRODUCTION — koło
+  zębate (ta sama grafika CDN co na mapie, `cdnImage("/tiles/production_representation.png")`)
+  z nałożoną liczbą = limit sztuk. Obok dotychczasowe „X zasobów".
+- [x] CSS: `.prodStats/.prodLimit/.prodLimitIcon/.prodLimitValue` (ikona 22×22 + liczba z obrysem).
+
+**Rezultat (zweryfikowany E2E):** `/tactical/production` zwraca `productionLimit=6` (dok „+2" na
+Jord res 4); produkcja 7 piechoty > limit 6 → 422 „Limit produkcji przekroczony" (baner).
+
+**QA:** backend 258 testów zielonych, ruff + mypy czyste. Frontend type-check + lint + build czyste.

@@ -389,6 +389,8 @@ export type ProducibleUnitHelp = {
 export type ProductionHelp = {
   playerId: string;
   availableResources: number;
+  /** Łączna wartość PRODUCTION jednostek gracza w aktywnym systemie (limit sztuk). */
+  productionLimit: number;
   units: ProducibleUnitHelp[];
 };
 

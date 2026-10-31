@@ -22,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { getColorAlias } from "@/entities/lookup/colors";
+import { cdnImage } from "@/entities/data/cdnImage";
 import { Unit } from "@/shared/ui/Unit";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
@@ -957,8 +958,22 @@ function ProductionPanel({
           <IconStack2 size={11} aria-hidden="true" />
           Produkcja
         </span>
-        <span className={styles.prodRes} title="Zasoby z kontrolowanych planet">
-          {data.availableResources} zasobów
+        <span className={styles.prodStats}>
+          {/* Wskaźnik PRODUCTION: koło zębate (jak na mapie) + limit sztuk. */}
+          <span
+            className={styles.prodLimit}
+            title="Limit produkcji: łączna wartość PRODUCTION jednostek w tym systemie"
+          >
+            <img
+              src={cdnImage("/tiles/production_representation.png")}
+              alt="Limit produkcji"
+              className={styles.prodLimitIcon}
+            />
+            <span className={styles.prodLimitValue}>{data.productionLimit}</span>
+          </span>
+          <span className={styles.prodRes} title="Zasoby z kontrolowanych planet">
+            {data.availableResources} zasobów
+          </span>
         </span>
       </div>
 

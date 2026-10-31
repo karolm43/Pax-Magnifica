@@ -494,6 +494,8 @@ class ProductionHelpResponse(BaseModel):
 
     player_id: str = Field(serialization_alias="playerId")
     available_resources: int = Field(serialization_alias="availableResources")
+    # Łączna wartość PRODUCTION jednostek gracza w aktywnym systemie (limit sztuk).
+    production_limit: int = Field(default=0, serialization_alias="productionLimit")
     units: list[ProducibleUnitHelp]
 
 

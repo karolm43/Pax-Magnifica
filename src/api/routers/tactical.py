@@ -286,9 +286,13 @@ async def get_production_help(
     state = ctx.service.current_state()
     player_id = board_edit.resolve_player_id(faction, state)
     help_ = tactical.production_help(state, ctx.registry, player_id)
+    limit = production.production_limit(
+        state, ctx.current_grid, ctx.registry, player_id
+    )
     return ProductionHelpResponse(
         player_id=help_.player_id,
         available_resources=help_.available_resources,
+        production_limit=limit,
         units=[
             ProducibleUnitHelp(
                 base_type=u.base_type,
