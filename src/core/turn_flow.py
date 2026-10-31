@@ -11,7 +11,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 from __future__ import annotations
 
 from src.core.game_state import GameState, Phase
-from src.core.strategy_phase import next_strategy_picker
+from src.core.strategy_phase import ensure_strategy_complete, next_strategy_picker
 
 # Kolejność faz rundy TI4.
 _PHASE_SEQUENCE: list[Phase] = [
@@ -174,14 +174,28 @@ def next_phase(state: GameState) -> GameState:
     """Przechodzi do następnej fazy w sekwencji (bez zmiany rundy).
 
     Wchodząc w fazę AKCJI, ustawia aktywnego gracza na pierwszego wg inicjatywy.
+
+    Przy przejściu STRATEGY→ACTION silnik działa jak SĘDZIA (RULES.md 29): PRZED
+    jakąkolwiek zmianą fazy waliduje, że wybór kart strategii jest ukończony
+    (``ensure_strategy_complete``). Gdy nie jest — propaguje ``ValueError`` i faza
+    STRATEGY pozostaje NIEZMIENIONA (walidacja na ``state``, nie na klonie). To
+    jedyna brama przejść faz (``/phase/next``), więc reguła R9.2–R9.4 trzyma się
+    w jednym miejscu.
+
+    Raises:
+        ValueError: Przy STRATEGY→ACTION, gdy wybór kart strategii nie jest
+            ukończony (propaguje z ``ensure_strategy_complete``).
     """
+    # Walidacja PRZED zmianą fazy: przy ValueError faza zostaje bez zmian (R9.2–R9.4).
+    if state.phase is Phase.STRATEGY:
+        ensure_strategy_complete(state)
     new_state = state.clone()
     idx = _PHASE_SEQUENCE.index(new_state.phase)
     new_state.phase = _PHASE_SEQUENCE[(idx + 1) % len(_PHASE_SEQUENCE)]
     if new_state.phase is Phase.ACTION:
-        # Faza akcji: kolejność tur wg INICJATYWY kart (RULES.md 9).
-        order = turn_order(new_state)
-        new_state.active_player_id = order[0] if order else None
+        # Faza akcji: kolejność tur wg ŚCISŁEJ INICJATYWY kart (RULES.md 9, R9.6).
+        # Komplet kart zagwarantowany przez ensure_strategy_complete powyżej.
+        new_state.active_player_id = strict_initiative_order(new_state)[0]
     elif new_state.phase is Phase.STRATEGY:
         # Faza strategii: wybór zaczyna MÓWCA, dalej speaker order (RULES.md 24).
         new_state.active_player_id = next_strategy_picker(new_state)
