@@ -1,4 +1,5 @@
 import { useState, type ReactElement } from "react";
+import cx from "clsx";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
 import { useBoardEditor, useStrategyCards } from "@/api/useBoardEditor";
@@ -137,9 +138,9 @@ export function StrategyCardTable(): ReactElement | null {
 
   return (
     <div className={styles.table} aria-label="Karty strategii na stole">
-      {/* Nagłówek fazy + mówca + aktualny picker (Requirement 1). */}
+      {/* Nagłówek fazy + mówca + WYRAŹNY baner aktualnego pickera (Requirement 1). */}
       <div className={styles.header}>
-        <span className={styles.heading}>Faza strategii</span>
+        <h2 className={styles.heading}>Faza strategii</h2>
         <span className={styles.speaker}>
           {speakerName ? (
             <>
@@ -150,16 +151,22 @@ export function StrategyCardTable(): ReactElement | null {
             "brak ustawionego mówcy"
           )}
         </span>
-        <span className={styles.picker}>
+        {/*
+         * Baner pickera: gdy jest wskazany gracz (R1.5), wyróżniony wiersz
+         * „Teraz wybiera: {gracz}" z akcentem; gdy brak — stonowany komunikat
+         * „brak gracza do wskazania" (R1.5). To wyłącznie czytelniejsza
+         * prezentacja tego samego ``pickerName``, bez zmian logiki.
+         */}
+        <div className={cx(styles.picker, !pickerName && styles.pickerIdle)}>
           {pickerName ? (
             <>
-              Wybiera:{" "}
+              <span className={styles.pickerLabel}>Teraz wybiera:</span>
               <b className={styles.pickerName}>{pickerName}</b>
             </>
           ) : (
             "brak gracza do wskazania"
           )}
-        </span>
+        </div>
       </div>
 
       <div className={styles.cards} role="list">
@@ -193,7 +200,10 @@ export function StrategyCardTable(): ReactElement | null {
               key={card.initiative}
               type="button"
               role="listitem"
-              className={styles.card}
+              // ``pickable`` to WYŁĄCZNIE wizualna obwódka „do wyboru" na wolnych
+              // kartach, gdy jest wskazany picker — reużywa istniejącego
+              // ``canPick`` (bez nowej logiki).
+              className={cx(styles.card, canPick && styles.pickable)}
               data-picked={isPicked || undefined}
               disabled={busy || !canPick}
               aria-disabled={!canPick || undefined}
@@ -254,7 +264,7 @@ export function StrategyCardTable(): ReactElement | null {
                         : (card.picked_by ?? "")
                     }`}
                   >
-                    <FactionMark player={owner} size={18} />
+                    <FactionMark player={owner} size={24} />
                   </span>
                 )}
               </div>

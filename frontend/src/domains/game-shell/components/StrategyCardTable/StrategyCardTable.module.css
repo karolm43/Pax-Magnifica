@@ -1,106 +1,163 @@
 /*
- * Card_Table_View — nakładka „na stole" z kartami strategii (zadanie 9.2: pełna
- * grafika AsyncTI4/ti4ultimate.com, oznaczenie wybranych + właściciel, nagłówek z
- * mówcą/pickerem, fallback tekstowy). Spójna wizualnie z game-state plate
- * (neutralne tło + sygnały fazy).
+ * Card_Table_View — nakładka „na stole" z kartami strategii (zadanie 12.2:
+ * czytelna SIATKA dużych kart zamiast ciasnego flex-wrap 120px z mikro-fontami).
  *
- * Zmienne kolorów: --scc to pełna wartość koloru karty (var(--gd-*)), używana jako
- * obwódka dysku/karty, spójnie z dyskami kart w game-state plate.
+ * Czysto wizualna przebudowa (render + CSS): większe kafelki, większa grafika,
+ * fonty >= --ds-fz-xs/--ds-fz-sm, czytelny nagłówek z wyraźnym banerem pickera,
+ * jednoznacznie rozróżnialne stany kart (wolna / wybrana / zablokowana). Zero
+ * zmian logiki interakcji, gatingu i danych.
+ *
+ * Wyłącznie tokeny z frontend/src/ds/tokens.css. Zmienna --scc to pełna wartość
+ * koloru danej karty (sygnał Initiative), używana jako obwódka dysku/karty.
  */
 .table {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--ds-space-sm);
   max-width: 100%;
-  padding: 10px 12px;
+  padding: var(--ds-space-md);
   color: var(--ds-ink);
   background: color-mix(in oklab, var(--ds-ground) 94%, transparent);
   backdrop-filter: blur(8px);
-  border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-h22);
+  border-radius: var(--ds-radius-lg);
   box-shadow: var(--ds-shadow-md);
 }
 
-/* Nagłówek: tytuł fazy + mówca + aktualny picker. */
+/* Nagłówek: czytelny tytuł fazy + wiersze z mówcą i aktualnym pickerem. */
 .header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--ds-space-xs);
 }
 
+/* Tytuł panelu — czytelny (nie micro-tekst). */
 .heading {
-  composes: ds-label from global;
-  color: var(--ds-ink);
-}
-
-.speaker,
-.picker {
-  font-size: var(--text-micro, 11px);
-  color: var(--ds-ink-lo, var(--ds-ink));
-}
-
-.speakerName,
-.pickerName {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-h4);
+  line-height: var(--ds-lh-sm);
   color: var(--ds-ink-hi);
 }
 
-.cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* Wiersz mówcy — wyraźny wiersz, nie micro-tekst. */
+.speaker {
+  font-size: var(--ds-fz-sm);
+  line-height: var(--ds-lh-sm);
+  color: var(--ds-ink);
+}
+
+.speakerName {
+  color: var(--ds-ink-hi);
+  font-weight: 600;
 }
 
 /*
- * Karta to KLIKALNY ``<button>`` (zadanie 9.3 — dostępna interakcja z klawiatury,
- * jak picker w GameStatePanel). Resetujemy natywne style przycisku, by zachować
- * wygląd „kafelka na stole".
+ * Baner aktualnego pickera — WYRAŹNY wiersz z obwódką w kolorze akcentu, mocniej
+ * niż dotychczasowy micro-tekst. Gdy jest picker, obwódki wolnych kart też dostają
+ * akcent (patrz .card.pickable poniżej), więc całość czytelnie komunikuje „teraz
+ * wybiera ten gracz".
+ */
+.picker {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px var(--ds-space-sm);
+  font-size: var(--ds-fz-sm);
+  line-height: var(--ds-lh-sm);
+  color: var(--ds-ink);
+  border-radius: var(--ds-radius-md);
+  background: rgb(var(--ds-accent-rgb) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-accent-rgb) / 0.45);
+}
+
+.pickerLabel {
+  color: var(--ds-ink-lo);
+}
+
+.pickerName {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-h5);
+  color: var(--ds-accent-ink);
+  font-weight: 700;
+}
+
+/* Wariant „brak pickera / brak mówcy" — stonowany, bez akcentu. */
+.pickerIdle {
+  background: var(--ds-rail);
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  color: var(--ds-ink-lo);
+}
+
+/* SIATKA dużych kart — zamiast ciasnego flex-wrap. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--ds-space-sm);
+}
+
+/*
+ * Karta to KLIKALNY <button> (dostępna interakcja z klawiatury). Resetujemy
+ * natywne style, by zachować wygląd „kafelka na stole".
  */
 .card {
   --scc: var(--gd-gray);
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  width: 120px;
-  padding: 4px;
+  gap: var(--ds-space-xs);
+  padding: var(--ds-space-xs);
   margin: 0;
   font: inherit;
   text-align: left;
   color: inherit;
   background: var(--ds-tex-rail);
   border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-sm);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--scc) 30%, transparent);
+  border-radius: var(--ds-radius-md);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--scc) 26%, transparent);
   cursor: pointer;
   transition:
-    box-shadow 0.12s ease,
-    transform 0.12s ease;
+    box-shadow var(--ds-dur-fast) var(--ds-ease),
+    transform var(--ds-dur-fast) var(--ds-ease),
+    opacity var(--ds-dur-fast) var(--ds-ease);
 }
 
-/* Podświetlenie karty możliwej do wyboru (tylko gdy klikalna). */
+/*
+ * Karta WOLNA do wyboru, gdy jest wskazany picker — subtelna obwódka akcentu
+ * („do wyboru"), spójnie z banerem pickera w nagłówku.
+ */
+.card.pickable {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--scc) 26%, transparent),
+    0 0 0 1px rgb(var(--ds-accent-rgb) / 0.4);
+}
+
+/* WOLNA (klikalna): wyraźne podświetlenie + lekki unos przy hover/focus. */
 .card:not(:disabled):hover {
-  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--scc) 60%, transparent);
-  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in oklab, var(--scc) 60%, transparent),
+    0 0 0 2px rgb(var(--ds-accent-rgb) / 0.55);
+  transform: translateY(-2px);
 }
 
 .card:focus-visible {
-  outline: 2px solid var(--scc);
+  outline: 2px solid var(--ds-accent);
   outline-offset: 2px;
 }
 
-/* Karta zablokowana (karta wybrana / nie twoja kolej / brak pickera, R8.6). */
+/* ZABLOKOWANA (karta wybrana / nie twoja kolej / brak pickera): wygaszenie, bez hovera. */
 .card:disabled {
   cursor: default;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* Karta wybrana — wyraźnie odróżnialna od niewybranej (R8.4). */
+/* WYBRANA — wyraźnie odróżnialna: mocna obwódka koloru karty + lekkie wygaszenie. */
 .card[data-picked] {
   box-shadow: inset 0 0 0 2px var(--scc);
-  opacity: 0.92;
+  opacity: 0.85;
 }
 
-/* Pełna grafika karty (webp z ti4ultimate.com). */
+/* Pełna grafika karty (webp z ti4ultimate.com) — wypełnia szerokość kafla. */
 .cardImage {
   display: block;
   width: 100%;
@@ -109,31 +166,34 @@
   object-fit: cover;
 }
 
-/* Fallback tekstowy (R8.8): dysk z inicjatywą + nazwa — styl jak w pickerze. */
+/* Fallback tekstowy (R8.8): dysk z inicjatywą + nazwa — większy/czytelniejszy. */
 .cardFallback {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 6px 8px;
+  gap: var(--ds-space-xs);
+  min-height: 72px;
+  padding: var(--ds-space-xs) var(--ds-space-sm);
 }
 
-/* Dysk inicjatywy w kolorze karty — stempel jak w game-state plate. */
+/* Dysk inicjatywy w kolorze karty — większy stempel. */
 .disc {
   flex: none;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  font-family: var(--font-data);
-  font-weight: var(--weight-title);
+  font-family: var(--ds-font-data);
+  font-size: var(--ds-fz-md);
+  font-weight: 700;
   color: var(--ds-ink-hi);
   background: var(--ds-socket);
-  box-shadow: inset 0 0 0 1px var(--scc);
+  box-shadow: inset 0 0 0 2px var(--scc);
 }
 
 .name {
+  font-size: var(--ds-fz-sm);
+  color: var(--ds-ink-hi);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -145,16 +205,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 20px;
+  min-height: 24px;
 }
 
 .tg {
   flex: 0 0 auto;
-  font-family: var(--font-data);
-  font-size: var(--text-micro, 10px);
-  color: var(--gd-teal, #2dd4bf);
-  background: rgba(45, 212, 191, 0.12);
-  padding: 1px 5px;
+  font-family: var(--ds-font-data);
+  font-size: var(--ds-fz-xs);
+  color: rgb(var(--ds-sig-tg));
+  background: rgb(var(--ds-sig-tg) / 0.14);
+  padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
 }
