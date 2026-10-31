@@ -13,9 +13,9 @@ const defaultStrategyCardIdMap: Record<number, string> = {
   1: "pok1leadership",
   2: "pok2diplomacy",
   3: "pok3politics",
-  4: "te4construction",
+  4: "pok4construction",
   5: "pok5trade",
-  6: "te6warfare",
+  6: "pok6warfare",
   7: "pok7technology",
   8: "pok8imperial",
 };

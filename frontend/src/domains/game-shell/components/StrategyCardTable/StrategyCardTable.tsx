@@ -244,11 +244,12 @@ export function StrategyCardTable(): ReactElement | null {
           const mid = (n - 1) / 2;
           const offset = i - mid;
           // Kąt obrotu: lewe karty w lewo (ujemny), prawe w prawo (dodatni).
-          const rot = offset * 6;
+          // Złagodzony łuk (iteracja 12.2) — mniejszy kąt niweluje nachodzenie kart.
+          const rot = offset * 4;
           // Przesunięcie w dół rośnie kwadratowo od środka → łuk wypukły do góry
           // (środek lift≈0, brzegi najniżej). ``transform-origin: bottom center``
           // w CSS sprawia, że obrót wygląda jak trzymany wachlarz.
-          const lift = Math.abs(offset) * Math.abs(offset) * 6;
+          const lift = Math.abs(offset) * Math.abs(offset) * 5;
 
           // Tooltip otwarty dla tej karty? (klucz = initiative).
           const tooltipOpen = hovered === card.initiative;
