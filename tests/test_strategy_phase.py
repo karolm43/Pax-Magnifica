@@ -176,3 +176,57 @@ def test_reset_sets_active_to_speaker(registry: StaticDataRegistry) -> None:
     state = strategy_phase.pick_strategy_card(state, registry, "p2", 1)
     reset = strategy_phase.reset_strategy_cards(state)
     assert reset.active_player_id == "p2"  # mówca znów wybiera pierwszy
+
+
+# --- validate_strategy_card_set (Task 2.17, Requirement 6.1, 6.2) ----------
+
+
+def _card(initiative: int) -> object:
+    """Minimalna atrapa karty z polem ``initiative`` (do testów walidacji)."""
+    from src.core.models import StrategyCardDef
+
+    return StrategyCardDef(
+        id=f"sc{initiative}",
+        name=f"Card {initiative}",
+        source="pok",
+        initiative=initiative,
+    )
+
+
+class _FakeRegistry:
+    """Atrapa rejestru zwracająca ustaloną listę kart z ``strategy_card_set``."""
+
+    def __init__(self, cards: list[object]) -> None:
+        self._cards = cards
+
+    def strategy_card_set(self, set_alias: str = "pok") -> list[object]:
+        return self._cards
+
+
+def test_validate_set_returns_eight_cards_for_pok(
+    registry: StaticDataRegistry,
+) -> None:
+    # Prawdziwy zestaw PoK jest spójny: 8 kart, inicjatywy 1..8, bez duplikatów.
+    cards = strategy_phase.validate_strategy_card_set(registry)
+    assert len(cards) == 8
+    assert sorted(c.initiative for c in cards) == [1, 2, 3, 4, 5, 6, 7, 8]
+
+
+def test_validate_set_rejects_wrong_count() -> None:
+    fake = _FakeRegistry([_card(i) for i in range(1, 8)])  # tylko 7 kart
+    with pytest.raises(ValueError, match="Niespójny zestaw kart"):
+        strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
+
+
+def test_validate_set_rejects_initiative_out_of_range() -> None:
+    cards = [_card(i) for i in range(1, 8)] + [_card(9)]  # 8 kart, ale 9 poza 1..8
+    fake = _FakeRegistry(cards)
+    with pytest.raises(ValueError, match="poza zakresem"):
+        strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
+
+
+def test_validate_set_rejects_duplicate_initiative() -> None:
+    cards = [_card(i) for i in range(1, 8)] + [_card(1)]  # 8 kart, duplikat 1
+    fake = _FakeRegistry(cards)
+    with pytest.raises(ValueError, match="zduplikowane"):
+        strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]

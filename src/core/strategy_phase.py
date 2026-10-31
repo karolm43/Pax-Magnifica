@@ -14,6 +14,7 @@ akumulacja +1 TG na niewybranych kartach na koniec fazy, oznaczenie karty jako z
 from __future__ import annotations
 
 from src.core.game_state import GameState
+from src.core.models import StrategyCardDef
 from src.core.registry import StaticDataRegistry
 
 
@@ -199,3 +200,51 @@ def reset_strategy_cards(state: GameState) -> GameState:
     # Nowa faza strategii zaczyna wybierać mówca (speaker) — RULES.md 24.
     new_state.active_player_id = next_strategy_picker(new_state)
     return new_state
+
+
+def validate_strategy_card_set(
+    registry: StaticDataRegistry, *, set_alias: str = "pok"
+) -> list[StrategyCardDef]:
+    """Zwraca 8 kart zestawu lub ``ValueError``, gdy łamany komplet/unikalność.
+
+    Guard spójności danych rejestru — reguła inicjalizacji fazy strategii
+    (Requirement 6.1, 6.2), dlatego żyje w ``core/``, a nie w routerze: woła go
+    zarówno ``api/``, jak i przyszłe ``ai/``. Dane kart pochodzą WYŁĄCZNIE z
+    ``StaticDataRegistry.strategy_card_set`` — zero hardkodowania.
+
+    Sprawdza niezmienniki zestawu podstawowego TI4:
+    - dokładnie 8 kart,
+    - każdy ``Initiative`` mieści się w zakresie 1..8,
+    - brak duplikatów ``Initiative``.
+
+    Returns:
+        Lista ``StrategyCardDef`` (ta sama, co z rejestru — posortowana po
+        ``initiative``), gdy zestaw jest spójny.
+
+    Raises:
+        ValueError: Gdy komplet (dokładnie 8) lub unikalność ``Initiative`` 1–8
+            jest złamana; komunikat „Niespójny zestaw kart: {szczegół}.".
+    """
+    cards = registry.strategy_card_set(set_alias)
+
+    if len(cards) != 8:
+        raise ValueError(
+            f"Niespójny zestaw kart: oczekiwano 8 kart, jest {len(cards)}."
+        )
+
+    initiatives = [card.initiative for card in cards]
+
+    out_of_range = sorted({i for i in initiatives if i < 1 or i > 8})
+    if out_of_range:
+        raise ValueError(
+            "Niespójny zestaw kart: inicjatywa poza zakresem 1–8: "
+            f"{out_of_range}."
+        )
+
+    duplicates = sorted({i for i in initiatives if initiatives.count(i) > 1})
+    if duplicates:
+        raise ValueError(
+            f"Niespójny zestaw kart: zduplikowane inicjatywy: {duplicates}."
+        )
+
+    return cards
