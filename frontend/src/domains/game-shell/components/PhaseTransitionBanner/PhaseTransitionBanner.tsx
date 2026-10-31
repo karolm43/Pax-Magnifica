@@ -1,6 +1,7 @@
-import type { CSSProperties, ReactElement } from "react";
+import type { ReactElement } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -46,12 +47,14 @@ function playSound(): void {
  * faza (`phase.split(".")[0]`), więc podfazy `status.*`/`agenda.*` trafiają na
  * jeden baner swojej głównej fazy (R10.3). Fazy spoza tej mapy (np. `setup`,
  * `unknown`, `finished`) nie mają banera — render zwraca `null` bez błędu.
+ *
+ * UWAGA: ścieżki plików są świadomie ustawione przez użytkownika — NIE zmieniać.
  */
 const BANNER_FILE: Record<string, string> = {
-  strategy: "strategy2.png",
-  action: "acionphase2.png",
-  status: "status2.png",
-  agenda: "agenda2.png",
+  strategy: "strategy2.jpg",
+  action: "acionphase2.jpg",
+  status: "status2.jpg",
+  agenda: "agenda2.jpg",
 };
 
 /*
@@ -67,40 +70,22 @@ const PHASE_LABEL: Record<string, string> = {
 };
 
 /*
- * Akcent koloru per faza — poświata/obwódka planszy przejścia (R10, wizualne).
- * Wartości dobrane z istniejących tokenów sygnałów (`frontend/src/ds/tokens.css`):
- * tokeny `--ds-sig-*` to trójki RGB (używane przez `rgb(var(...) / <alfa>)`), a
- * `--ds-accent` to pełny hex (plus `--ds-accent-rgb` do alfy). Rozróżnienie jest
- * istotne — poniżej budujemy gotowe wyrażenia `rgb(...)` do użycia w CSS vars.
- */
-const PHASE_ACCENT: Record<string, { solid: string; soft: string }> = {
-  // interakcyjny akcent: hex + osobna trójka RGB do przezroczystości
-  strategy: {
-    solid: "var(--ds-accent)",
-    soft: "rgb(var(--ds-accent-rgb) / 0.35)",
-  },
-  action: {
-    solid: "rgb(var(--ds-sig-war))",
-    soft: "rgb(var(--ds-sig-war) / 0.35)",
-  },
-  status: {
-    solid: "rgb(var(--ds-sig-ok))",
-    soft: "rgb(var(--ds-sig-ok) / 0.35)",
-  },
-  agenda: {
-    solid: "rgb(var(--ds-sig-law))",
-    soft: "rgb(var(--ds-sig-law) / 0.35)",
-  },
-};
-
-/*
- * Czas widoczności banera przed auto-ukryciem (R10.4). 3500 ms daje wyraźny,
- * planszówkowy sygnał z zapasem poniżej twardego limitu 5 s z kryterium akceptacji.
+ * Czas widoczności banera przed rozpoczęciem wygaszania (R10.4). 3500 ms daje
+ * wyraźny, planszówkowy sygnał z zapasem poniżej twardego limitu 5 s z kryterium
+ * akceptacji. Po tym czasie startuje fade-out (patrz `FADE_OUT_MS`).
  */
 const BANNER_VISIBLE_MS = 3500;
 
+/*
+ * Czas trwania wygaszania (fade-out) planszy, zsynchronizowany z przejściem opacity
+ * w CSS. Po jego upływie baner jest odmontowywany (`setActive(null)`). Dopiero to
+ * daje PRAWDZIWY fade-out (opacity 1→0 widoczne na ekranie), a nie natychmiastowe
+ * zniknięcie przez odmontowanie.
+ */
+const FADE_OUT_MS = 400;
+
 /**
- * Phase_Banner (Requirement 10) — pełnoekranowa plansza przejścia sygnalizująca
+ * Phase_Banner (Requirement 10) — PEŁNOEKRANOWA plansza przejścia sygnalizująca
  * wejście w nową GŁÓWNĄ fazę gry. Montowana na poziomie layoutu mapy (`MapView`,
  * `PannableMapView`) obok pozostałych nakładek, bo reaguje na KAŻDĄ zmianę fazy,
  * nie tylko strategii — dlatego żyje poza panelem strategii.
@@ -111,11 +96,16 @@ const BANNER_VISIBLE_MS = 3500;
  * obrębie tej samej głównej fazy (np. podfaza `status.*` → `status.**`, odświeżenie
  * stanu) nie wyzwalają banera ponownie (R10.8).
  *
- * WARSTWA WIZUALNA (plansza przejścia): pełnoekranowa nakładka (`inset: 0`) z
- * przyciemnieniem tła, ale `pointer-events: none` przez cały czas (R10.5). Układ
- * PIONOWY: duży obraz banera NAD blokiem tekstu (polska nazwa fazy + „Runda N").
- * Przy błędzie grafiki (`onError`, R10.9) chowamy sam obraz — blok tekstowy (nazwa
- * + runda) zostaje bez skoku layoutu. Nazwa fazy jest ZAWSZE widoczna.
+ * WARSTWA WIZUALNA (plansza przejścia): PEŁNOEKRANOWA nakładka (`position: fixed;
+ * inset: 0`) z obrazem banera wypełniającym CAŁY viewport (`object-fit: cover`) i
+ * napisami wyśrodkowanymi NAD obrazem. Nakładka ma `pointer-events: none` przez
+ * cały czas (R10.5). Przy błędzie grafiki (`onError`, R10.9) zostaje przyciemnione
+ * tło + napisy, bez skoku layoutu. Nazwa fazy jest ZAWSZE widoczna.
+ *
+ * ANIMACJA: wyłącznie fade-in (na wejściu) + fade-out (`.leaving`), bez slajdu/skali.
+ * Fade-out jest PRAWDZIWY dzięki dwufazowemu cyklowi życia: po `BANNER_VISIBLE_MS`
+ * ustawiamy `leaving = true` (CSS wygasza opacity), a dopiero po `FADE_OUT_MS`
+ * odmontowujemy baner. `prefers-reduced-motion` wyłącza animacje w CSS.
  *
  * ŹRÓDŁA DANYCH (dwa osobne, istniejące hooki, zero nowych):
  * - `useGameState` → `phase` (jedyne źródło prawdy o fazie);
@@ -140,11 +130,15 @@ export function PhaseTransitionBanner(): ReactElement | null {
   const prevPhase = useRef<string | null>(null);
   // Główna faza aktualnie POKAZYWANA przez baner (wyzwolona przejściem).
   const [active, setActive] = useState<string | null>(null);
-  // Czy obraz banera zawiódł → ukrywamy sam obraz, zostaje blok tekstowy (R10.9).
+  // Czy baner jest w trakcie wygaszania (fade-out) — steruje klasą `.leaving`.
+  const [leaving, setLeaving] = useState(false);
+  // Czy obraz banera zawiódł → chowamy sam obraz, zostaje przyciemnione tło + napisy (R10.9).
   const [imgFailed, setImgFailed] = useState(false);
-  // Id timera auto-ukrycia; trzymany w ref, by czyścić go w cleanup efektu oraz
-  // przy ponownym wyzwoleniu — kolejne przejście nie może nakładać starego timera.
+  // Id timera „start fade-out" (po `BANNER_VISIBLE_MS`); trzymany w ref, by czyścić go
+  // w cleanup oraz przy ponownym wyzwoleniu — kolejne przejście nie może nakładać starego.
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Id timera „odmontowanie po fade-out" (po `FADE_OUT_MS`); analogicznie trzymany w ref.
+  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Wykrywanie ZMIANY głównej fazy i jednorazowe wyzwolenie (R10.7, R10.8).
   // Zależność od `mainPhase`: efekt przelicza się tylko gdy zmieni się główna faza,
@@ -167,20 +161,27 @@ export function PhaseTransitionBanner(): ReactElement | null {
     // (obecnych w `BANNER_FILE`); dla faz spoza mapy baner się nie pojawia.
     if (BANNER_FILE[mainPhase]) {
       setActive(mainPhase);
+      // Nowe wyzwolenie zaczyna się od stanu „widoczny" — resetujemy ewentualne
+      // wygaszanie po poprzednim banerze, żeby fade-in zadziałał od zera.
+      setLeaving(false);
       setImgFailed(false);
       // Jednorazowa próba dźwięku przejścia — RAZ na przejście fazy (R10.7), wspólny
       // mechanizm wyzwolenia z banerem. Ciche pominięcie przy braku pliku/autoplay
       // (R10.6/R10.10/R10.11); nie przerywa banera (dźwięk i baner rozłączone).
       playSound();
 
-      // Auto-ukrycie po `BANNER_VISIBLE_MS` (R10.4). Najpierw czyścimy ewentualny
-      // poprzedni timer (szybkie, kolejne przejście), żeby stary odmierzony czas nie
-      // ukrył świeżo pokazanego banera. Po czasie `setActive(null)` odmontowuje baner.
+      // Czyścimy OBA poprzednie timery (szybkie, kolejne przejście), żeby stary
+      // odmierzony czas nie wygasił/odmontował świeżo pokazanego banera.
       if (hideTimer.current !== null) {
         clearTimeout(hideTimer.current);
       }
+      if (fadeTimer.current !== null) {
+        clearTimeout(fadeTimer.current);
+      }
+      // Po `BANNER_VISIBLE_MS` NIE odmontowujemy od razu — tylko startujemy fade-out
+      // (R10.4). Samo odmontowanie następuje później, w efekcie zależnym od `leaving`.
       hideTimer.current = setTimeout(() => {
-        setActive(null);
+        setLeaving(true);
         hideTimer.current = null;
       }, BANNER_VISIBLE_MS);
     }
@@ -190,13 +191,38 @@ export function PhaseTransitionBanner(): ReactElement | null {
     prevPhase.current = mainPhase;
   }, [mainPhase]);
 
-  // Cleanup przy odmontowaniu komponentu: anuluj wiszący timer auto-ukrycia, by
-  // nie wywołać `setActive` po odmontowaniu (brak wycieku timera, R10.4).
+  // Drugi krok cyklu życia: gdy baner wchodzi w fazę wygaszania (`leaving === true`),
+  // odczekujemy `FADE_OUT_MS` (czas przejścia opacity w CSS) i dopiero wtedy
+  // odmontowujemy baner oraz zerujemy `leaving`. To daje PRAWDZIWY fade-out.
+  useEffect(() => {
+    if (!leaving) {
+      return;
+    }
+    fadeTimer.current = setTimeout(() => {
+      setActive(null);
+      setLeaving(false);
+      fadeTimer.current = null;
+    }, FADE_OUT_MS);
+    // Cleanup: jeśli `leaving` zmieni się wcześniej (np. nowe wyzwolenie), anuluj timer.
+    return () => {
+      if (fadeTimer.current !== null) {
+        clearTimeout(fadeTimer.current);
+        fadeTimer.current = null;
+      }
+    };
+  }, [leaving]);
+
+  // Cleanup przy odmontowaniu komponentu: anuluj OBA wiszące timery, by nie wywołać
+  // `setState` po odmontowaniu (brak wycieku timerów, R10.4).
   useEffect(() => {
     return () => {
       if (hideTimer.current !== null) {
         clearTimeout(hideTimer.current);
         hideTimer.current = null;
+      }
+      if (fadeTimer.current !== null) {
+        clearTimeout(fadeTimer.current);
+        fadeTimer.current = null;
       }
     };
   }, []);
@@ -206,36 +232,34 @@ export function PhaseTransitionBanner(): ReactElement | null {
   const activeFile = active ? BANNER_FILE[active] : undefined;
   if (!active || !activeFile) return null;
 
-  // Polska nazwa fazy (ZAWSZE widoczna) oraz akcent koloru per faza. Dla faz obecnych
-  // w `BANNER_FILE` oba lookupy są zdefiniowane; akcent wstrzykujemy jako CSS vars.
+  // Polska nazwa fazy (ZAWSZE widoczna). Dla faz obecnych w `BANNER_FILE` lookup
+  // jest zdefiniowany; fallback na surową fazę gdyby etykiety brakło.
   const label = PHASE_LABEL[active] ?? active;
-  const accent = PHASE_ACCENT[active];
-  const accentStyle = {
-    "--banner-accent": accent?.solid ?? "var(--ds-accent)",
-    "--banner-accent-soft": accent?.soft ?? "rgb(var(--ds-accent-rgb) / 0.35)",
-  } as CSSProperties;
 
   return (
-    <div className={styles.overlay} style={accentStyle} aria-hidden="true">
-      <div className={styles.stage}>
-        {/* Układ PIONOWY: duży obraz NAD blokiem tekstu. Przy błędzie grafiki
-            (R10.9) chowamy sam obraz — blok tekstowy zostaje bez skoku layoutu. */}
-        {!imgFailed && (
-          <img
-            className={styles.banner}
-            src={`${STATIC_BASE}/${activeFile}`}
-            alt={label}
-            // onError → ukrywamy obraz bez propagacji błędu, nazwa fazy zostaje (R10.9).
-            onError={() => setImgFailed(true)}
-          />
+    <div
+      className={cx(styles.overlay, leaving && styles.leaving)}
+      aria-hidden="true"
+    >
+      {/* PEŁNOEKRANOWY obraz banera (R10.2): wypełnia cały viewport (`object-fit:
+          cover`). Przy błędzie grafiki (R10.9) chowamy sam obraz — zostaje
+          przyciemnione tło nakładki + napisy, bez skoku layoutu. */}
+      {!imgFailed && (
+        <img
+          className={styles.banner}
+          src={`${STATIC_BASE}/${activeFile}`}
+          alt={label}
+          // onError → ukrywamy obraz bez propagacji błędu, nazwa fazy zostaje (R10.9).
+          onError={() => setImgFailed(true)}
+        />
+      )}
+      {/* Napisy NAD obrazem: wyśrodkowane, z półprzezroczystym tłem i cieniem dla
+          czytelności nad dowolną grafiką. Nazwa fazy ZAWSZE, „Runda N" opcjonalnie. */}
+      <div className={styles.text}>
+        <div className={styles.phase}>{label}</div>
+        {gameRound !== undefined && (
+          <div className={styles.round}>Runda {gameRound}</div>
         )}
-        {/* Blok tekstowy: nazwa fazy (ZAWSZE) + opcjonalny podtytuł „Runda N". */}
-        <div className={styles.text}>
-          <div className={styles.phase}>{label}</div>
-          {gameRound !== undefined && (
-            <div className={styles.round}>Runda {gameRound}</div>
-          )}
-        </div>
       </div>
     </div>
   );

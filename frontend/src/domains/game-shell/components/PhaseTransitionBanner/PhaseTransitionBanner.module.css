@@ -1,90 +1,89 @@
 /*
  * Phase_Banner — PEŁNOEKRANOWA plansza przejścia sygnalizująca zmianę głównej fazy
- * gry, wyśrodkowana nad mapą. Układ PIONOWY: duży obraz banera NAD blokiem tekstu
- * (polska nazwa fazy + „Runda N").
+ * gry. Obraz banera wypełnia CAŁY viewport (`object-fit: cover`), a napisy (polska
+ * nazwa fazy + „Runda N") są wyśrodkowane NAD obrazem.
  *
  * KLUCZOWE: nakładka ma `pointer-events: none` przez CAŁY czas — plansza to czysta
  * dekoracja i NIE może blokować interakcji z mapą ani panelami (R10.5).
  *
- * Akcent koloru per faza wstrzykiwany jest z komponentu przez zmienne CSS
- * `--banner-accent` (pełny kolor) i `--banner-accent-soft` (wersja z alfą do
- * poświaty/obwódki) — wartości budowane z tokenów `--ds-accent` / `--ds-sig-*`.
+ * ANIMACJA: wyłącznie fade-in (na wejściu) + fade-out (klasa `.leaving`), bez
+ * slajdu/skalowania. Wejście realizuje keyframe `bannerFadeIn` (opacity 0→1),
+ * wyjście — przejście opacity do 0 po dodaniu `.leaving`. Oba w czasie tokenów
+ * motion z design-systemu. `prefers-reduced-motion` wyłącza animację i przejście.
  */
 .overlay {
-  position: absolute;
+  /* PEŁNY EKRAN: nakładka przykrywa cały viewport niezależnie od rodzica. */
+  position: fixed;
   inset: 0;
   z-index: var(--ds-z-overlay, 60);
-  display: grid;
-  place-items: center;
-  /* Pełnoekranowe, półprzezroczyste przyciemnienie tła (token design-systemu). */
+  /* Przyciemnione tło — fallback gdy grafika zawiedzie (R10.9) oraz warstwa pod obrazem. */
   background: var(--ds-backdrop);
   /* R10.5: nigdy nie przechwytuje zdarzeń wskaźnika. */
   pointer-events: none;
+  /* Fade-in na wejściu + bazowe opacity 1 dla stanu spoczynkowego. */
+  opacity: 1;
+  animation: bannerFadeIn var(--ds-dur-slow, 0.3s) var(--ds-ease) both;
+  transition: opacity var(--ds-dur-slow, 0.3s) var(--ds-ease);
 }
 
 /*
- * Animacja WEJŚCIA planszy przejścia: wpłynięcie z góry (`translateY`) + fade +
- * lekki `scale`. Wyjście realizujemy przez odmontowanie (render `null`) po
- * `BANNER_VISIBLE_MS`, więc tutaj trzymamy wyłącznie efekt wejścia.
+ * Stan wygaszania: po `BANNER_VISIBLE_MS` komponent dodaje klasę `.leaving`, co
+ * wygasza nakładkę (opacity → 0). Odmontowanie następuje dopiero po zakończeniu
+ * przejścia (timer `FADE_OUT_MS` w komponencie) — stąd PRAWDZIWY fade-out.
  */
-@keyframes bannerSlideIn {
+.overlay.leaving {
+  opacity: 0;
+}
+
+/*
+ * Keyframe wejścia: czysty fade (opacity 0→1), bez transformacji.
+ */
+@keyframes bannerFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-48px) scale(0.94);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
 /*
- * Scena planszy: kolumna (obraz nad tekstem), wyśrodkowana, z animacją wejścia.
- * Czas `--ds-dur-slow`, krzywa `--ds-ease` (tokeny motion z design-systemu).
- */
-.stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--ds-space-lg, 1.25rem);
-  text-align: center;
-  padding: var(--ds-space-xl, 2rem);
-  animation: bannerSlideIn var(--ds-dur-slow, 0.3s) var(--ds-ease) both;
-}
-
-/*
- * Duży obraz banera (R10): DUŻO większy niż wcześniej — plansza pełnoekranowa.
- * Poświata w akcencie fazy (`--banner-accent-soft`) dodana obok cienia bazowego.
+ * PEŁNOEKRANOWY obraz banera (R10): wypełnia całą nakładkę. `object-fit: cover`
+ * przycina grafikę do kadru viewportu bez zniekształceń.
  */
 .banner {
-  max-width: min(60vw, 820px);
-  max-height: 60vh;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 0 24px var(--banner-accent-soft))
-    drop-shadow(var(--ds-shadow-lg));
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /*
- * Blok tekstowy (nazwa fazy + runda). Obwódka/poświata w akcencie fazy, tło lekko
- * przyciemnione dla czytelności nad mapą. Przy błędzie grafiki zostaje sam ten blok
- * (bez skoku layoutu), bo scena i tak jest kolumną wyśrodkowaną (R10.9).
+ * Blok tekstowy NAD obrazem: absolutnie pozycjonowany i wyśrodkowany w viewporcie.
+ * Półprzezroczyste tło + cień zapewniają czytelność napisów nad dowolną grafiką.
+ * Przy błędzie grafiki (R10.9) zostaje sam ten blok nad przyciemnionym tłem — bez
+ * skoku layoutu (pozycja się nie zmienia).
  */
 .text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--ds-space-xs, 0.625rem);
+  text-align: center;
   padding: var(--ds-space-md, 1rem) var(--ds-space-xl, 2rem);
-  border: 2px solid var(--banner-accent-soft);
   border-radius: var(--ds-radius-overlay, 8px);
-  background: rgb(0 0 0 / 0.35);
-  box-shadow: 0 0 32px var(--banner-accent-soft);
+  background: rgb(0 0 0 / 0.45);
+  box-shadow: var(--ds-shadow-lg);
 }
 
 /*
  * Nazwa GŁÓWNEJ fazy (ZAWSZE widoczna). Typografia display, rozmiar większy niż
- * `--ds-h1`, kolor `--ds-ink-hi`, lekki glow w akcencie fazy.
+ * `--ds-h1`, kolor `--ds-ink-hi`, subtelny cień dla czytelności nad grafiką.
  */
 .phase {
   font-family: var(--ds-font-display);
@@ -92,26 +91,28 @@
   line-height: 1.05;
   letter-spacing: 0.06em;
   color: var(--ds-ink-hi);
-  text-shadow: 0 0 18px var(--banner-accent-soft);
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.75);
 }
 
 /*
- * Podtytuł „Runda N" — mniejszy, w akcencie fazy. Renderowany tylko gdy `gameRound`
- * jest dostępne (komponent pomija go bez błędu, gdy brak danych).
+ * Podtytuł „Runda N" — mniejszy, w kolorze akcentu interakcji. Renderowany tylko gdy
+ * `gameRound` jest dostępne (komponent pomija go bez błędu, gdy brak danych).
  */
 .round {
   font-family: var(--ds-font-display);
   font-size: var(--ds-h3);
   letter-spacing: 0.08em;
-  color: var(--banner-accent);
+  color: var(--ds-accent-ink);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.7);
 }
 
 /*
- * Szacunek dla preferencji „ogranicz ruch" — bez slajdu/skalowania, zostaje samo
- * pojawienie się (dostępność; zgodne z czysto-dekoracyjnym charakterem planszy).
+ * Szacunek dla preferencji „ogranicz ruch" — bez animacji wejścia i bez przejścia
+ * wygaszania (dostępność; zgodne z czysto-dekoracyjnym charakterem planszy).
  */
 @media (prefers-reduced-motion: reduce) {
-  .stage {
+  .overlay {
     animation: none;
+    transition: none;
   }
 }
