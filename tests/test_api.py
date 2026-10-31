@@ -544,6 +544,11 @@ def test_move_infantry_into_space_rejected_422(client: TestClient) -> None:
 
 def test_tactical_activate_sets_active_system_and_token(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Faza strategii przy 1 graczu nie wskazuje pickera (Pick_Count nieobsługiwane
+    # dla <3 graczy → active_player_id = None). Akcja taktyczna wymaga aktywnego
+    # gracza, więc ustawiamy go God-Mode (wentyl) — test dotyczy aktywacji systemu,
+    # nie wyboru kart strategii.
+    client.post("/god-mode/patch", json={"phase": "ACTION", "active_player_id": "p1"})
     resp = client.post("/tactical/activate", json={"position": "101"})
     assert resp.status_code == 200
     state = resp.json()["state"]
@@ -560,6 +565,9 @@ def test_tactical_activate_sets_active_system_and_token(client: TestClient) -> N
 
 def test_tactical_step_next_and_end(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # Aktywny gracz przez God-Mode (patrz test aktywacji) — przy 1 graczu faza
+    # strategii nie wskazuje pickera; test dotyczy maszyny kroków, nie wyboru kart.
+    client.post("/god-mode/patch", json={"phase": "ACTION", "active_player_id": "p1"})
     client.post("/tactical/activate", json={"position": "101"})
     # MOVEMENT -> SPACE_CANNON
     state = client.post("/tactical/step/next").json()["state"]

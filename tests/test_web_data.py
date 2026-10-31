@@ -248,15 +248,23 @@ def test_web_data_stat_tile_positions(client: TestClient) -> None:
 
 def test_web_data_has_game_state(client: TestClient) -> None:
     # Panel faz we froncie wymaga obiektu gameState z poprawnym (małe litery) phase.
+    # 3 graczy → reguła Pick_Count obowiązuje (RULES.md 13), a picker (mówca/pierwszy
+    # gracz = red) jest deterministyczny, więc activePlayer jest wskazany.
     client.post(
         "/game/new",
-        json={"players": [{"faction_id": "mentak"}, {"faction_id": "sol"}]},
+        json={
+            "players": [
+                {"faction_id": "mentak"},
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+            ]
+        },
     )
     data = client.get("/api/public/game/g/web-data").json()
     gs = data["gameState"]
     assert gs["phase"] == "strategy"  # domyślna faza, format frontendu
     # Aktywny gracz podawany jako KOLOR (frontend dopasowuje po kolorze).
-    assert gs["activePlayer"] == "red"  # pierwszy gracz = red
+    assert gs["activePlayer"] == "red"  # pierwszy gracz = red (mówca, pierwszy picker)
     assert gs["activeSystem"] is None
 
 
@@ -461,7 +469,17 @@ def test_strategy_cards_pool_endpoint(client: TestClient) -> None:
 
 
 def test_strategy_pick_assigns_and_appears_in_web_data(client: TestClient) -> None:
-    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # 3 graczy → Pick_Count obowiązuje; p1 (sol, mówca) jest pierwszym pickerem.
+    client.post(
+        "/game/new",
+        json={
+            "players": [
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+                {"faction_id": "mentak"},
+            ]
+        },
+    )
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 3})
     # Pula: karta 3 ma właściciela p1.
     cards = client.get("/strategy/cards").json()
@@ -477,34 +495,59 @@ def test_strategy_pick_assigns_and_appears_in_web_data(client: TestClient) -> No
 
 
 def test_strategy_pick_transfers_trade_goods(client: TestClient) -> None:
-    # Dwaj gracze; p1 wybiera 1, nowa runda dokłada TG na niewybranych, p2 bierze TG.
+    # 3 graczy → Pick_Count=2 (RULES.md 13). Akumulacja TG (R7.5) wymaga ZAKOŃCZONEGO
+    # wyboru, więc najpierw wszyscy kompletują po 2 karty, zostawiając 5 i 8
+    # niewybrane; dopiero wtedy /round/next akumuluje +1 i resetuje pulę.
     client.post(
         "/game/new",
-        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+        json={
+            "players": [
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+                {"faction_id": "mentak"},
+            ]
+        },
     )
-    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 1})
-    # Nowa runda: akumulacja +1 TG na kartach 2..8 (p2 nic nie wybrał), reset puli.
+    # Speaker p1 (sol) → picker dobiera obie karty, zanim kolej idzie dalej:
+    # p1: 1,2 · p2: 3,4 · p3: 6,7. Karty 5 i 8 zostają niewybrane.
+    for player_id, inits in (("p1", (1, 2)), ("p2", (3, 4)), ("p3", (6, 7))):
+        for initiative in inits:
+            client.post(
+                "/strategy/pick",
+                json={"player_id": player_id, "initiative": initiative},
+            )
+    # Nowa runda: akumulacja +1 TG na kartach 5 i 8 (niewybrane), reset puli.
     client.post("/round/next")
     cards = client.get("/strategy/cards").json()
     card5 = next(c for c in cards if c["initiative"] == 5)
     assert card5["trade_goods"] == 1  # +1 z akumulacji
-    # p2 wybiera kartę 5 → dostaje 1 TG z karty, licznik karty zeruje się.
+    # Po resecie wybór zaczyna od nowa mówca p1 (sol) — bierze kartę 5 z 1 TG.
     data_before = client.get("/api/public/game/g/web-data").json()
-    hacan_tg_before = next(
-        p for p in data_before["playerData"] if p["faction"] == "hacan"
+    sol_tg_before = next(
+        p for p in data_before["playerData"] if p["faction"] == "sol"
     )["tg"]
-    client.post("/strategy/pick", json={"player_id": "p2", "initiative": 5})
+    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 5})
     data_after = client.get("/api/public/game/g/web-data").json()
-    hacan_tg_after = next(
-        p for p in data_after["playerData"] if p["faction"] == "hacan"
+    sol_tg_after = next(
+        p for p in data_after["playerData"] if p["faction"] == "sol"
     )["tg"]
-    assert hacan_tg_after == hacan_tg_before + 1
+    assert sol_tg_after == sol_tg_before + 1
     sc5 = next(c for c in data_after["strategyCards"] if c["initiative"] == 5)
     assert sc5["tradeGoods"] == 0
 
 
 def test_strategy_play_marks_exhausted_in_web_data(client: TestClient) -> None:
-    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    # 3 graczy → Pick_Count obowiązuje; p1 (sol, mówca) jest pierwszym pickerem.
+    client.post(
+        "/game/new",
+        json={
+            "players": [
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+                {"faction_id": "mentak"},
+            ]
+        },
+    )
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
     client.post("/strategy/play", json={"player_id": "p1", "initiative": 6})
     data = client.get("/api/public/game/g/web-data").json()
@@ -525,14 +568,27 @@ def test_strategy_pick_rejects_taken_card(client: TestClient) -> None:
 
 
 def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
-    # Inicjatywa fazy akcji wynika z wybranych kart (RULES.md 9): niższy numer = pierwszy.
+    # Inicjatywa fazy akcji wynika z wybranych kart (RULES.md 9): niższy numer =
+    # pierwszy. 3 graczy → Pick_Count=2; przejście do akcji wymaga kompletu wyboru.
     client.post(
         "/game/new",
-        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+        json={
+            "players": [
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+                {"faction_id": "mentak"},
+            ]
+        },
     )
-    client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
-    client.post("/strategy/pick", json={"player_id": "p2", "initiative": 2})
-    # Przejdź do fazy akcji — aktywny powinien być p2 (karta 2 < 6).
+    # Picker dobiera obie karty, zanim kolej przejdzie dalej (speaker p1 pierwszy):
+    # p1 (sol): 6,7 · p2 (hacan): 1,2 · p3 (mentak): 3,4. Najniższa karta (1) → p2.
+    for player_id, inits in (("p1", (6, 7)), ("p2", (1, 2)), ("p3", (3, 4))):
+        for initiative in inits:
+            client.post(
+                "/strategy/pick",
+                json={"player_id": player_id, "initiative": initiative},
+            )
+    # Przejdź do fazy akcji — aktywny powinien być p2 (hacan), bo ma kartę 1.
     client.post("/phase/next")  # strategy -> action
     data = client.get("/api/public/game/g/web-data").json()
     hacan = next(p for p in data["playerData"] if p["faction"] == "hacan")

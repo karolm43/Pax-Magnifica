@@ -19,11 +19,22 @@ def registry() -> StaticDataRegistry:
 
 
 def _state() -> GameState:
+    """Stan z 3 graczami, jawną kolejnością miejsc i mówcą p1.
+
+    Po wprowadzeniu ``Pick_Count`` (RULES.md 13) ``pick_strategy_card`` waliduje
+    kolejność (musi wybierać bieżący picker = mówca na start) oraz liczbę graczy
+    (3–8). Dlatego fikstura ma 3 graczy, ``seating_order`` i ``speaker_id`` — picker
+    jest deterministyczny (p1 pierwszy). Przy 3 graczach ``Pick_Count = 2``.
+    """
     return GameState(
+        seating_order=["p1", "p2", "p3"],
+        speaker_id="p1",
+        active_player_id="p1",
         players={
             "p1": PlayerState(player_id="p1"),
             "p2": PlayerState(player_id="p2"),
-        }
+            "p3": PlayerState(player_id="p3"),
+        },
     )
 
 
@@ -89,15 +100,23 @@ def test_play_rejects_card_not_owned(registry: StaticDataRegistry) -> None:
 def test_accumulate_adds_one_tg_to_unpicked(
     registry: StaticDataRegistry,
 ) -> None:
-    # p1 wybiera kartę 1; akumulacja dokłada +1 TG na pozostałych 7 kartach.
-    state = strategy_phase.pick_strategy_card(_state(), registry, "p1", 1)
+    # 3 graczy, Pick_Count=2: akumulacja wymaga ZAKOŃCZONEGO wyboru (guard R7.5).
+    # p1, p2, p3 biorą po 2 karty (1–6); karty 7 i 8 zostają niewybrane.
+    state = _state()  # speaker p1, kolejność p1, p2, p3
+    for player_id, inits in (("p1", (1, 2)), ("p2", (3, 4)), ("p3", (5, 6))):
+        for initiative in inits:
+            state = strategy_phase.pick_strategy_card(
+                state, registry, player_id, initiative
+            )
     acc = strategy_phase.accumulate_unpicked_tg(state, registry)
-    assert 1 not in acc.strategy_card_tg or acc.strategy_card_tg.get(1, 0) == 0
-    for init in [2, 3, 4, 5, 6, 7, 8]:
+    # Wybrane karty 1..6 bez TG; niewybrane 7, 8 dostają +1.
+    for init in [1, 2, 3, 4, 5, 6]:
+        assert acc.strategy_card_tg.get(init, 0) == 0
+    for init in [7, 8]:
         assert acc.strategy_card_tg[init] == 1
-    # Powtórna akumulacja (bez wyboru) rośnie dalej.
+    # Powtórna akumulacja (bez nowego wyboru) rośnie dalej.
     acc2 = strategy_phase.accumulate_unpicked_tg(acc, registry)
-    assert acc2.strategy_card_tg[2] == 2
+    assert acc2.strategy_card_tg[7] == 2
 
 
 def test_reset_returns_cards_to_pool_keeps_tg(
@@ -158,15 +177,24 @@ def test_next_picker_starts_with_speaker() -> None:
 def test_pick_advances_active_in_speaker_order(
     registry: StaticDataRegistry,
 ) -> None:
-    # Mówca p2 wybiera → aktywny przechodzi na p3 (następny w speaker order).
-    state = _seated_state()
+    # 3 graczy → Pick_Count=2 (RULES.md 13): każdy gracz musi zebrać DWIE karty.
+    # ``next_strategy_picker`` zwraca PIERWSZEGO w speaker order poniżej Pick_Count,
+    # więc bieżący gracz dobiera obie swoje karty, zanim kolej przejdzie dalej
+    # (p2, p2, p3, p3, p1, p1 — druga runda „od mówcy" realizuje się naturalnie).
+    state = _seated_state()  # speaker p2, kolejność p2, p3, p1
     state.active_player_id = "p2"
     after = strategy_phase.pick_strategy_card(state, registry, "p2", 1)
-    assert after.active_player_id == "p3"
-    # p3 wybiera → p1; p1 wybiera → None (wszyscy mają karty).
+    assert after.active_player_id == "p2"  # p2 ma 1 < 2 → wciąż p2
+    after = strategy_phase.pick_strategy_card(after, registry, "p2", 4)
+    assert after.active_player_id == "p3"  # p2 ma komplet → kolej na p3
     after = strategy_phase.pick_strategy_card(after, registry, "p3", 2)
+    assert after.active_player_id == "p3"
+    after = strategy_phase.pick_strategy_card(after, registry, "p3", 5)
     assert after.active_player_id == "p1"
     after = strategy_phase.pick_strategy_card(after, registry, "p1", 3)
+    assert after.active_player_id == "p1"
+    # Ostatnia karta — wszyscy mają po 2 → brak kolejnego wybierającego.
+    after = strategy_phase.pick_strategy_card(after, registry, "p1", 6)
     assert after.active_player_id is None
 
 

@@ -79,7 +79,19 @@ def test_all_passed_ends_action_phase() -> None:
 
 
 def test_next_phase_cycles_and_sets_active_on_action() -> None:
-    state = GameState(phase=Phase.STRATEGY, players=_state_with_players().players)
+    # 3 graczy → Pick_Count=2 (RULES.md 13): przejście STRATEGY→ACTION wymaga, by
+    # KAŻDY gracz miał komplet (2 karty), inaczej ``ensure_strategy_complete`` rzuca.
+    # Każdemu nadajemy po 2 karty; aktywny po przejściu = najniższa inicjatywa (p1).
+    state = GameState(
+        phase=Phase.STRATEGY,
+        seating_order=["p1", "p2", "p3"],
+        speaker_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1", strategy_cards=[1, 2]),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3, 4]),
+            "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
+        },
+    )
     nxt = turn_flow.next_phase(state)
     assert nxt.phase is Phase.ACTION
     assert nxt.active_player_id == "p1"  # najniższa inicjatywa
