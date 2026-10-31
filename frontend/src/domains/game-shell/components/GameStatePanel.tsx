@@ -593,7 +593,11 @@ function PlateBody({
         <TurnOrder seats={seats} activeColor={activePlayer} phase={phase} />
       )}
       {phase === "strategy" && (
-        <StrategyCardPicker seats={seats} activeColor={activePlayer} />
+        <StrategyCardPicker
+          seats={seats}
+          activeColor={activePlayer}
+          pickCount={gameState.strategyPickCount ?? null}
+        />
       )}
       {phase === "action" && (
         <ActionPhasePanel
@@ -773,9 +777,15 @@ function WindowSection({
 function StrategyCardPicker({
   seats,
   activeColor,
+  pickCount,
 }: {
   seats: Seat[];
   activeColor: string | null;
+  /**
+   * Liczba kart strategii na gracza (``Pick_Count``) z ``gameState``; ``null``, gdy
+   * nieznana (liczba graczy spoza 3..8). Decyduje, kiedy wybór jest kompletny.
+   */
+  pickCount: number | null;
 }) {
   const { data: cards } = useStrategyCards();
   const { pickStrategyCard, setSpeaker } = useBoardEditor();
@@ -795,7 +805,12 @@ function StrategyCardPicker({
 
   // Gracz, którego teraz kolej wybierać (aktywny w fazie strategii).
   const picker = seats.find((s) => s.player.color === activeColor);
-  const allPicked = seats.every((s) => s.player.scs?.length);
+  // Wybór kompletny dopiero, gdy KAŻDY gracz ma Pick_Count kart (druga runda przy
+  // 3–4 graczach). Gdy pickCount nieznane (liczba graczy spoza 3..8), nie twierdzimy
+  // błędnie „wszyscy wybrali" — bezpieczny fallback do false. RULES.md 13.
+  const allPicked =
+    pickCount !== null &&
+    seats.every((s) => (s.player.scs?.length ?? 0) >= pickCount);
 
   return (
     <div className={styles.section}>

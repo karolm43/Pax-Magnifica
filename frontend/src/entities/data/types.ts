@@ -482,6 +482,12 @@ export type GameState = {
   activeCombat: GameStateCombat | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
   pendingWindow?: PendingWindow | null;
+  /**
+   * Liczba kart strategii na gracza (``Pick_Count``) wyliczona z liczby graczy:
+   * 2 przy 3–4 graczach, 1 przy 5–8. ``null``/brak, gdy liczba graczy jest spoza
+   * 3..8 i wartość jest nieobsługiwana (web-data nie rzuca wtedy błędu). RULES.md 13.
+   */
+  strategyPickCount?: number | null;
 };
 
 /**
