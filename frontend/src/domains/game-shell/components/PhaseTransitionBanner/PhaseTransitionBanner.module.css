@@ -1,7 +1,7 @@
 /*
  * Phase_Banner — nakładka sygnalizująca zmianę głównej fazy gry, centrowana nad
- * mapą. Zadanie 10.1 to SZKIELET: kontener nakładki + wyśrodkowany obraz banera.
- * Animacja wejścia/wyjścia i auto-ukrycie dochodzą w zadaniu 10.3.
+ * mapą. Zadanie 10.1 dało SZKIELET (kontener nakładki + wyśrodkowany obraz), a
+ * zadanie 10.3 dokłada animację wejścia/wyjścia oraz tekstowy fallback.
  *
  * KLUCZOWE: nakładka ma `pointer-events: none` przez cały czas — baner to czysta
  * dekoracja i NIE może blokować interakcji z mapą ani panelami (R10.5).
@@ -15,10 +15,73 @@
   pointer-events: none;
 }
 
+/*
+ * Animacja WEJŚCIA (R10.4): delikatne wpłynięcie z przyciemnienia i lekkiego
+ * pomniejszenia (fade + scale-in). Auto-ukrycie steruje JS (`setTimeout`), więc
+ * tutaj trzymamy wyłącznie efekt wejścia — po stronie React komponent znika z DOM
+ * (render `null`), co pełni rolę „wyjścia".
+ */
+@keyframes bannerFadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/*
+ * Animacja WYJŚCIA (R10.4): dostępna jako osobny keyframe (fade-out), gdyby
+ * sterować nią przez stan `leaving`. W obecnej implementacji wyjście realizujemy
+ * przez odmontowanie (render `null`) po `BANNER_VISIBLE_MS`; keyframe zostaje jako
+ * element design-systemu animacji nakładki.
+ */
+@keyframes bannerFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
 .banner {
   max-width: min(70%, 720px);
   max-height: 40%;
   height: auto;
   object-fit: contain;
   filter: drop-shadow(var(--ds-shadow-md));
+  animation: bannerFadeScaleIn var(--ds-dur-md, 220ms) ease-out both;
+}
+
+/*
+ * Tekstowy fallback (R10.9): gdy grafika banera się nie załaduje (`onError`),
+ * pokazujemy w tej samej nakładce czytelną etykietę nazwy fazy — z tą samą
+ * animacją wejścia co obraz, więc wrażenie przejścia jest zachowane bez błędu.
+ */
+.fallback {
+  padding: var(--ds-space-4, 1rem) var(--ds-space-6, 1.5rem);
+  font-size: var(--ds-font-size-xl, 1.5rem);
+  font-weight: var(--ds-font-weight-bold, 700);
+  letter-spacing: 0.04em;
+  color: var(--ds-color-text, #fff);
+  background: var(--ds-color-surface-overlay, rgba(0, 0, 0, 0.6));
+  border-radius: var(--ds-radius-md, 8px);
+  box-shadow: var(--ds-shadow-md);
+  animation: bannerFadeScaleIn var(--ds-dur-md, 220ms) ease-out both;
+}
+
+/*
+ * Szacunek dla preferencji „ogranicz ruch" — bez skoków skali, zostaje samo
+ * pojawienie się (dostępność; zgodne z czysto-dekoracyjnym charakterem banera).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .banner,
+  .fallback {
+    animation: none;
+  }
 }

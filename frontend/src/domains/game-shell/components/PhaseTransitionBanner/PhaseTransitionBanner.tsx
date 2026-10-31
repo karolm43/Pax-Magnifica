@@ -26,6 +26,12 @@ const BANNER_FILE: Record<string, string> = {
   agenda: "agendabanner.png",
 };
 
+/*
+ * Czas widoczności banera przed auto-ukryciem (R10.4). 3500 ms daje wyraźny,
+ * planszówkowy sygnał z zapasem poniżej twardego limitu 5 s z kryterium akceptacji.
+ */
+const BANNER_VISIBLE_MS = 3500;
+
 /**
  * Phase_Banner (Requirement 10) — czysto wizualna nakładka nad mapą sygnalizująca
  * wejście w nową GŁÓWNĄ fazę gry. Montowana na poziomie layoutu mapy (`MapView`,
@@ -58,8 +64,11 @@ export function PhaseTransitionBanner(): ReactElement | null {
   const prevPhase = useRef<string | null>(null);
   // Główna faza aktualnie POKAZYWANA przez baner (wyzwolona przejściem).
   const [active, setActive] = useState<string | null>(null);
-  // Czy obraz banera zawiódł — używane dopiero przy fallbacku tekstowym w 10.3.
-  const [, setImgFailed] = useState(false);
+  // Czy obraz banera zawiódł → renderujemy tekstowy fallback (R10.9).
+  const [imgFailed, setImgFailed] = useState(false);
+  // Id timera auto-ukrycia; trzymany w ref, by czyścić go w cleanup efektu oraz
+  // przy ponownym wyzwoleniu — kolejne przejście nie może nakładać starego timera.
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Wykrywanie ZMIANY głównej fazy i jednorazowe wyzwolenie (R10.7, R10.8).
   // Zależność od `mainPhase`: efekt przelicza się tylko gdy zmieni się główna faza,
@@ -84,14 +93,34 @@ export function PhaseTransitionBanner(): ReactElement | null {
       setActive(mainPhase);
       setImgFailed(false);
       // TODO(10.4): tutaj jednorazowe `playSound()` z cichą degradacją (R10.6/R10.7).
-      // TODO(10.3): tutaj ustawienie timera auto-ukrycia (`setActive(null)` po czasie)
-      //   wraz z czyszczeniem w cleanup efektu i przy ponownym wyzwoleniu.
+
+      // Auto-ukrycie po `BANNER_VISIBLE_MS` (R10.4). Najpierw czyścimy ewentualny
+      // poprzedni timer (szybkie, kolejne przejście), żeby stary odmierzony czas nie
+      // ukrył świeżo pokazanego banera. Po czasie `setActive(null)` odmontowuje baner.
+      if (hideTimer.current !== null) {
+        clearTimeout(hideTimer.current);
+      }
+      hideTimer.current = setTimeout(() => {
+        setActive(null);
+        hideTimer.current = null;
+      }, BANNER_VISIBLE_MS);
     }
 
     // `prevPhase.current` aktualizujemy ZAWSZE przy zmianie — także dla faz spoza
     // mapy — żeby późniejsze wejście w fazę mapowalną poprawnie wykryć jako przejście.
     prevPhase.current = mainPhase;
   }, [mainPhase]);
+
+  // Cleanup przy odmontowaniu komponentu: anuluj wiszący timer auto-ukrycia, by
+  // nie wywołać `setActive` po odmontowaniu (brak wycieku timera, R10.4).
+  useEffect(() => {
+    return () => {
+      if (hideTimer.current !== null) {
+        clearTimeout(hideTimer.current);
+        hideTimer.current = null;
+      }
+    };
+  }, []);
 
   // Render pokazuje baner dla AKTYWNEJ (wyzwolonej) fazy. Fazy spoza mapy oraz brak
   // wyzwolenia → `active` jest `null`/niemapowalne → nic nie pokazujemy (bez błędu).
@@ -100,11 +129,20 @@ export function PhaseTransitionBanner(): ReactElement | null {
 
   return (
     <div className={styles.overlay} aria-hidden="true">
-      <img
-        className={styles.banner}
-        src={`${STATIC_BASE}/${activeFile}`}
-        alt={active}
-      />
+      {imgFailed ? (
+        // Fallback tekstowy (R10.9): grafika się nie załadowała, więc w tej samej
+        // nakładce (ta sama animacja, to samo auto-ukrycie) pokazujemy nazwę fazy.
+        // Kontynuujemy bez zgłaszania błędu — baner „działa" dalej jako tekst.
+        <div className={styles.fallback}>Faza: {active}</div>
+      ) : (
+        <img
+          className={styles.banner}
+          src={`${STATIC_BASE}/${activeFile}`}
+          alt={active}
+          // onError → przełączamy na fallback tekstowy bez propagacji błędu (R10.9).
+          onError={() => setImgFailed(true)}
+        />
+      )}
     </div>
   );
 }
