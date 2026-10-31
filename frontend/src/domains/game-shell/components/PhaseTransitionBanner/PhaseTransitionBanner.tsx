@@ -14,6 +14,33 @@ import styles from "./PhaseTransitionBanner.module.css";
 const STATIC_BASE = "/static/extra";
 
 /*
+ * Stała ścieżka do pliku dźwięku przejścia fazy (R10.6). Ten sam schemat względny
+ * co obrazki banera — `/static` idzie przez proxy Vite (dev) albo ten sam origin
+ * (prod). Plik jest OPCJONALNY (dostarczany później), więc jego brak (404) musi
+ * degradować się po cichu — patrz `playSound()`.
+ */
+const SOUND_URL = `${STATIC_BASE}/sounds/phase_change.mp3`;
+
+/*
+ * Jednorazowa próba odtworzenia dźwięku przejścia fazy z CICHĄ DEGRADACJĄ
+ * (R10.6/R10.10/R10.11). Dźwięk i baner są ROZŁĄCZONE: tu nie dotykamy stanu
+ * banera, a każdy błąd (brak pliku/404, wyjątek konstruktora `Audio`, zablokowany
+ * autoplay przez przeglądarkę) jest połykany — baner działa dalej niezależnie.
+ */
+function playSound(): void {
+  try {
+    const audio = new Audio(SOUND_URL);
+    // `play()` zwraca Promise; odrzucenie (np. zablokowany autoplay, R10.11) łapiemy
+    // i ignorujemy. `void` — świadomie nie czekamy na wynik.
+    void audio.play().catch(() => {
+      /* R10.10/R10.11: ciche pominięcie (brak pliku lub zablokowany autoplay) */
+    });
+  } catch {
+    /* R10.10: wyjątek konstruktora `Audio` / brak pliku -> ciche pominięcie */
+  }
+}
+
+/*
  * Mapowanie GŁÓWNEJ fazy → plik banera (R10.2). Klucz to znormalizowana główna
  * faza (`phase.split(".")[0]`), więc podfazy `status.*`/`agenda.*` trafiają na
  * jeden baner swojej głównej fazy (R10.3). Fazy spoza tej mapy (np. `setup`,
@@ -44,11 +71,10 @@ const BANNER_VISIBLE_MS = 3500;
  * obrębie tej samej głównej fazy (np. podfaza `status.*` → `status.**`, odświeżenie
  * stanu) nie wyzwalają banera ponownie (R10.8).
  *
- * Co dochodzi w kolejnych zadaniach:
+ * Zrealizowane w kolejnych zadaniach:
  * - 10.3: animacja wejścia/wyjścia, auto-ukrycie (timer), fallback tekstowy przy `onError`;
- * - 10.4: realny krótki dźwięk przejścia z cichą degradacją.
- * Tutaj render pokazuje obrazek dla AKTYWNEJ (wyzwolonej) fazy; timer auto-ukrycia
- * i dźwięk są jeszcze stubami oznaczonymi komentarzem, żeby nie psuć type-check/lint/build.
+ * - 10.4: realny krótki dźwięk przejścia (`playSound()`) z cichą degradacją — raz na
+ *   przejście fazy, rozłączony z banerem (odrzucony `play()` nie przerywa banera).
  */
 export function PhaseTransitionBanner(): ReactElement | null {
   const params = useParams<{ mapid: string }>();
@@ -92,7 +118,10 @@ export function PhaseTransitionBanner(): ReactElement | null {
     if (BANNER_FILE[mainPhase]) {
       setActive(mainPhase);
       setImgFailed(false);
-      // TODO(10.4): tutaj jednorazowe `playSound()` z cichą degradacją (R10.6/R10.7).
+      // Jednorazowa próba dźwięku przejścia — RAZ na przejście fazy (R10.7), wspólny
+      // mechanizm wyzwolenia z banerem. Ciche pominięcie przy braku pliku/autoplay
+      // (R10.6/R10.10/R10.11); nie przerywa banera (dźwięk i baner rozłączone).
+      playSound();
 
       // Auto-ukrycie po `BANNER_VISIBLE_MS` (R10.4). Najpierw czyścimy ewentualny
       // poprzedni timer (szybkie, kolejne przejście), żeby stary odmierzony czas nie
