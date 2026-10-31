@@ -7,6 +7,12 @@ import { useGameData } from "@/state/useGameContext";
 import { SC_NAMES } from "@/entities/data/strategyCardColors";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
+import { SmoothPopover } from "@/shared/ui/SmoothPopover";
+import {
+  DetailsCard,
+  type DetailsCardColor,
+} from "@/shared/ui/DetailsCard";
+import { Stack } from "@/ds";
 import { playerNameForColor } from "../gameStatePlayers";
 import { DEFAULT_GAME_ID } from "@/config";
 import type { PlayerData } from "@/entities/data/types";
@@ -22,6 +28,23 @@ const SC_TONE: Record<number, string> = {
   6: "var(--gd-cyan)",
   7: "var(--gd-blue)",
   8: "var(--gd-purple)",
+};
+
+/*
+ * Initiative → kolor sygnałowy ``DetailsCard`` (tooltipa z treścią karty).
+ * Zgodnie z prośbą 12.2: 1=red … 8=violet — wartości dopuszczane przez typ
+ * ``DetailsCardColor`` (patrz DetailsCard.tsx). Oddzielne od ``SC_TONE`` (to
+ * surowe wartości CSS dla obwódki dysku, a tu nazwy wariantów DetailsCard).
+ */
+const SC_DETAILS_COLOR: Record<number, DetailsCardColor> = {
+  1: "red",
+  2: "orange",
+  3: "yellow",
+  4: "green",
+  5: "teal",
+  6: "cyan",
+  7: "blue",
+  8: "violet",
 };
 
 /**
@@ -58,6 +81,13 @@ function FactionMark({
  * właściciela, wyróżnienie aktualnego pickera oraz nagłówek z mówcą i komunikatami
  * stanu (R1.4/R1.5). Fallback tekstowy przy braku/błędzie grafiki (R8.8).
  *
+ * PREZENTACJA (iteracja 12.2): DUŻE karty ułożone w ŁUK „wachlarz" (środkowe wyżej
+ * i pionowo, brzegowe niżej i przechylone na zewnątrz) — geometria liczona z indeksu
+ * karty względem środka rzędu i wstrzykiwana jako zmienne CSS ``--rot``/``--lift``.
+ * Na HOVER/FOCUS karta prostuje się, powiększa, wychodzi na wierzch i pokazuje
+ * TOOLTIP z treścią (``SmoothPopover`` + ``DetailsCard`` — ten sam wzorzec, co w
+ * panelu gracza). To wyłącznie warstwa prezentacji; logika wyboru bez zmian.
+ *
  * INTERAKCJA (zadanie 9.3): każda karta to klikalny ``<button>``. Klik WOLNEJ karty,
  * gdy jest wskazany picker → ``pickStrategyCard(pickerId, card.initiative)`` (R8.5).
  * Karta wybrana albo brak pickera / nie twoja kolej → blokada przez ``disabled`` +
@@ -89,6 +119,10 @@ export function StrategyCardTable(): ReactElement | null {
   // ``busy``/``run``, co w ``StrategyCardPicker`` (GameStatePanel). Zapobiega
   // wysłaniu kolejnego ``pickStrategyCard`` zanim poprzedni się rozstrzygnie.
   const [busy, setBusy] = useState(false);
+
+  // Karta z otwartym tooltipem (hover/focus). Klucz = initiative; ``null`` = brak.
+  // Jeden stan dla całego rzędu (naraz tooltip pokazuje jedna karta).
+  const [hovered, setHovered] = useState<number | null>(null);
 
   // Gating fazy: render tylko w fazie strategii (Requirement 8.1). Poza nią —
   // komponent nie istnieje w drzewie (zwraca ``null``), więc nie dubluje się z
@@ -176,7 +210,7 @@ export function StrategyCardTable(): ReactElement | null {
       </div>
 
       <div className={styles.cards} role="list">
-        {cards.map((card) => {
+        {cards.map((card, i, arr) => {
           // Pełna grafika karty z realnego źródła (``ti4ultimate.com``) przez
           // istniejący lookup (R8.1, R8.3). Fallback tekstowy, gdy brak URL lub
           // obrazek się nie wczytał (R8.8).
@@ -201,80 +235,146 @@ export function StrategyCardTable(): ReactElement | null {
           // klik nie wysyła requestu (``disabled`` + strażnik w ``onClick``).
           const canPick = !isPicked && pickerId !== null;
 
-          return (
-            <button
-              key={card.initiative}
-              type="button"
-              role="listitem"
-              // ``pickable`` to WYŁĄCZNIE wizualna obwódka „do wyboru" na wolnych
-              // kartach, gdy jest wskazany picker — reużywa istniejącego
-              // ``canPick`` (bez nowej logiki).
-              className={cx(styles.card, canPick && styles.pickable)}
-              data-picked={isPicked || undefined}
-              disabled={busy || !canPick}
-              aria-disabled={!canPick || undefined}
-              style={{ ["--scc" as string]: SC_TONE[card.initiative] }}
-              title={
-                isPicked
-                  ? `Wybrana: ${
-                      owner
-                        ? playerNameForColor(players, owner.color)
-                        : (card.picked_by ?? "")
-                    }`
-                  : canPick
-                    ? `Wybierz dla: ${pickerName ?? ""}`
-                    : "Nie można teraz wybrać"
-              }
-              onClick={() =>
-                // Klik dozwolonej karty → wybór dla aktualnego pickera (R8.5).
-                // Gdy ``!canPick`` — wczesny return, BEZ requestu (R8.6).
-                canPick &&
-                pickerId !== null &&
-                void run(() => pickStrategyCard(pickerId, card.initiative))
-              }
-            >
-              {showImage ? (
-                <img
-                  className={styles.cardImage}
-                  src={imageURL}
-                  alt={name}
-                  loading="lazy"
-                  onError={() =>
-                    setFailedImages((prev) => ({
-                      ...prev,
-                      [card.initiative]: true,
-                    }))
-                  }
-                />
-              ) : (
-                // Fallback tekstowy (R8.8): dysk z inicjatywą + nazwa karty.
-                <div className={styles.cardFallback}>
-                  <span className={styles.disc}>{card.initiative}</span>
-                  <span className={styles.name}>{name}</span>
-                </div>
-              )}
+          // GEOMETRIA ŁUKU (wachlarz wypukły do góry). Liczona z indeksu karty
+          // względem środka rzędu — środek pionowo, brzegi przechylone na zewnątrz
+          // i opuszczone w dół. ``offset`` od -mid do +mid (np. -3.5..+3.5 dla 8).
+          const n = arr.length;
+          const mid = (n - 1) / 2;
+          const offset = i - mid;
+          // Kąt obrotu: lewe karty w lewo (ujemny), prawe w prawo (dodatni).
+          const rot = offset * 6;
+          // Przesunięcie w dół rośnie kwadratowo od środka → łuk wypukły do góry
+          // (środek lift≈0, brzegi najniżej). ``transform-origin: bottom center``
+          // w CSS sprawia, że obrót wygląda jak trzymany wachlarz.
+          const lift = Math.abs(offset) * Math.abs(offset) * 6;
 
-              {/* Pasek stanu: TG na karcie + właściciel, odróżnialnie od niewybranych. */}
-              <div className={styles.cardMeta}>
-                {card.trade_goods > 0 && (
-                  <span className={styles.tg} title="Trade goods na karcie">
-                    +{card.trade_goods} TG
-                  </span>
-                )}
-                {isPicked && (
-                  <span
-                    className={styles.owner}
-                    title={`Wybrana: ${
-                      owner
-                        ? playerNameForColor(players, owner.color)
-                        : (card.picked_by ?? "")
-                    }`}
-                  >
-                    <FactionMark player={owner} size={24} />
-                  </span>
-                )}
-              </div>
-            </button>
+          // Tooltip otwarty dla tej karty? (klucz = initiative).
+          const tooltipOpen = hovered === card.initiative;
+          const detailsColor =
+            SC_DETAILS_COLOR[card.initiative] ?? ("none" as DetailsCardColor);
+          const primaryText = (def?.primaryTexts ?? []).join("\n\n");
+          const secondaryText = (def?.secondaryTexts ?? []).join("\n\n");
+
+          return (
+            <SmoothPopover
+              key={card.initiative}
+              opened={tooltipOpen}
+              position="top"
+              onChange={(next) => {
+                // Synchronizacja z wewnętrznym stanem popovera: gdy się zamyka,
+                // a to właśnie ta karta — wyczyść ``hovered``.
+                if (!next && hovered === card.initiative) setHovered(null);
+              }}
+            >
+              <SmoothPopover.Target>
+                <button
+                  type="button"
+                  role="listitem"
+                  // ``pickable`` to WYŁĄCZNIE wizualna obwódka „do wyboru" na
+                  // wolnych kartach, gdy jest wskazany picker — reużywa
+                  // istniejącego ``canPick`` (bez nowej logiki).
+                  className={cx(styles.card, canPick && styles.pickable)}
+                  data-picked={isPicked || undefined}
+                  disabled={busy || !canPick}
+                  aria-disabled={!canPick || undefined}
+                  // Zmienne łuku + sygnał koloru dysku wstrzyknięte na kartę;
+                  // CSS liczy z nich spoczynkowy ``transform`` (obrót + opad).
+                  style={{
+                    ["--scc" as string]: SC_TONE[card.initiative],
+                    ["--rot" as string]: `${rot}deg`,
+                    ["--lift" as string]: `${lift}px`,
+                  }}
+                  // Tooltip otwieramy na hover ORAZ focus (a11y), zamykamy na
+                  // opuszczeniu/blur. To DODATEK — nie koliduje z klikiem/wyborem.
+                  onMouseEnter={() => setHovered(card.initiative)}
+                  onMouseLeave={() =>
+                    setHovered((h) => (h === card.initiative ? null : h))
+                  }
+                  onFocus={() => setHovered(card.initiative)}
+                  onBlur={() =>
+                    setHovered((h) => (h === card.initiative ? null : h))
+                  }
+                  onClick={() =>
+                    // Klik dozwolonej karty → wybór dla aktualnego pickera (R8.5).
+                    // Gdy ``!canPick`` — wczesny return, BEZ requestu (R8.6).
+                    canPick &&
+                    pickerId !== null &&
+                    void run(() => pickStrategyCard(pickerId, card.initiative))
+                  }
+                >
+                  {showImage ? (
+                    <img
+                      className={styles.cardImage}
+                      src={imageURL}
+                      alt={name}
+                      loading="lazy"
+                      onError={() =>
+                        setFailedImages((prev) => ({
+                          ...prev,
+                          [card.initiative]: true,
+                        }))
+                      }
+                    />
+                  ) : (
+                    // Fallback tekstowy (R8.8): dysk z inicjatywą + nazwa karty.
+                    <div className={styles.cardFallback}>
+                      <span className={styles.disc}>{card.initiative}</span>
+                      <span className={styles.name}>{name}</span>
+                    </div>
+                  )}
+
+                  {/* Pasek stanu: TG na karcie + właściciel, odróżnialnie od niewybranych. */}
+                  <div className={styles.cardMeta}>
+                    {card.trade_goods > 0 && (
+                      <span className={styles.tg} title="Trade goods na karcie">
+                        +{card.trade_goods} TG
+                      </span>
+                    )}
+                    {isPicked && (
+                      <span
+                        className={styles.owner}
+                        title={`Wybrana: ${
+                          owner
+                            ? playerNameForColor(players, owner.color)
+                            : (card.picked_by ?? "")
+                        }`}
+                      >
+                        <FactionMark player={owner} size={24} />
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </SmoothPopover.Target>
+
+              {/*
+               * TOOLTIP treści karty — ten sam wzorzec, co w panelu gracza
+               * (Plot/Ability): ``DetailsCard`` w dropdownie popovera. Treść z
+               * ``def`` (lookup po initiative); gdy ``def`` brak — fallback na
+               * samą nazwę + initiative (bez wysypki).
+               */}
+              <SmoothPopover.Dropdown p={0}>
+                <DetailsCard width={340} color={detailsColor}>
+                  <Stack gap="md">
+                    <DetailsCard.Title
+                      title={`${def?.initiative ?? card.initiative} ${def?.name ?? name}`}
+                      subtitle={`Strategy card · Initiative ${def?.initiative ?? card.initiative}`}
+                    />
+                    {primaryText && (
+                      <DetailsCard.Section
+                        title="Primary"
+                        content={primaryText}
+                      />
+                    )}
+                    {secondaryText && (
+                      <DetailsCard.Section
+                        title="Secondary"
+                        content={secondaryText}
+                      />
+                    )}
+                  </Stack>
+                </DetailsCard>
+              </SmoothPopover.Dropdown>
+            </SmoothPopover>
           );
         })}
       </div>
