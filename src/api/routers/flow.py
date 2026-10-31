@@ -51,9 +51,11 @@ async def post_pass_turn(
 @router.post("/phase/next", response_model=StateEnvelope)
 async def post_next_phase(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Przechodzi do następnej fazy rundy (Strategia→Akcja→Status→Agenda)."""
-    return await _commit_flow(
-        ctx, turn_flow.next_phase(ctx.service.current_state()), "phase:next"
-    )
+    try:
+        new_state = turn_flow.next_phase(ctx.service.current_state())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "phase:next")
 
 
 @router.post("/round/next", response_model=StateEnvelope)
@@ -65,9 +67,12 @@ async def post_next_round(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     → next_round.
     """
     state = ctx.service.current_state()
-    state = strategy_phase.accumulate_unpicked_tg(state, ctx.registry)
-    state = strategy_phase.reset_strategy_cards(state)
-    state = turn_flow.next_round(state)
+    try:
+        state = strategy_phase.accumulate_unpicked_tg(state, ctx.registry)
+        state = strategy_phase.reset_strategy_cards(state)
+        state = turn_flow.next_round(state)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, state, "round:next")
 
 
