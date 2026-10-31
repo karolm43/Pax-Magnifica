@@ -4,7 +4,17 @@
  * utrzymać ciemny klimat TI4 i spójność z resztą aplikacji.
  */
 
-/* Pełnoekranowe tło menu z delikatną poświatą w centrum. */
+/*
+ * Pełnoekranowe tło menu — wielowarstwowe (warstwy malowane od góry do dołu):
+ *   1. radialna poświata akcentu (ten sam klimat co wcześniej, trzymana na wierzchu),
+ *   2. ciemny liniowy gradient przyciemniający grafikę dla czytelności panelu,
+ *   3. grafika tła `main_menu.jpg` (cover, wyśrodkowana) — serwowana przez backend
+ *      pod `/static` (ścieżka WZGLĘDNA, jak baner faz; dev → proxy Vite, prod → ten
+ *      sam origin), literał `/static/extra/main_menu.jpg` z assets/extra/,
+ *   4. `--ds-page` jako ostateczny fallback koloru, gdyby grafika się nie wczytała.
+ * `background-attachment: fixed` daje lekki efekt „parallax" — tło nie przewija się
+ * razem z panelem.
+ */
 .root {
   min-height: 100vh;
   display: flex;
@@ -17,14 +27,22 @@
       rgb(var(--ds-accent-rgb) / 0.1),
       transparent 60%
     ),
+    linear-gradient(rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.65)),
+    url("/static/extra/main_menu.jpg") center / cover no-repeat fixed,
     var(--ds-page);
 }
 
-/* Główny panel — nad tłem, z subtelną obwódką i cieniem. */
+/*
+ * Główny panel — nad tłem, z subtelną obwódką i cieniem. Na tle grafiki
+ * wzmacniamy nieprzezroczystość i dodajemy delikatne rozmycie („szkło"), żeby
+ * treść pozostała czytelna niezależnie od jasności obrazu pod spodem.
+ */
 .panel {
   width: 100%;
   max-width: 920px;
   padding: var(--ds-space-xl);
+  background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
+  backdrop-filter: blur(4px);
 }
 
 /* ── Nagłówek ─────────────────────────────────────────────────────────── */
