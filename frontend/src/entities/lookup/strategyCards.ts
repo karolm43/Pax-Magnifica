@@ -54,13 +54,53 @@ export function getStrategyCardById(
 }
 
 /**
- * CIENKI FALLBACK dla zgodności: gdy ``id`` z backendu nie jest dostępne (albo nie
- * ma go w lokalnych danych), bierzemy DOWOLNY wariant o danej initiative + fallback
- * grafiki. BEZ rankingu źródeł — wybór wariantu to już rola backendu.
+ * Lookup po INITIATIVE z użyciem mapy ``initiative → kanoniczny id`` z backendu
+ * (``strategyCardIdMap``). To backend decyduje, KTÓRY wariant danej initiative jest
+ * w grze (np. init 4/6 → Thunder's Edge, init 2 → Diplomacy z codexu), więc gdy
+ * mapa podaje ``id`` — bierzemy dokładnie ten wariant przez ``getStrategyCardById``.
+ *
+ * DLACZEGO mapa jest KONIECZNA: wiele wariantów współdzieli tę samą initiative
+ * (homebrew: anarchy, luminous, tispoon… część z PUSTYMI tekstami i inną nazwą,
+ * np. init 2 ``anarchy2`` „Preparation"). Zwykłe ``find(initiative)`` łapało pierwszy
+ * z tablicy — stąd błędna nazwa i puste „No primary/secondary ability". Mapa z
+ * backendu wskazuje kanoniczny wariant jednoznacznie.
+ *
+ * FALLBACK (gdy brak mapy lub jej wpisu): preferuj wariant z aktywnych źródeł bazowych
+ * (``base``/``pok``/``codex*``/``thunders_edge``) i z NIEPUSTĄ treścią — zamiast
+ * pierwszego lepszego homebrew. Na końcu i tak uzupełniamy grafikę (``withImageFallback``).
  */
+const CANONICAL_SOURCES = new Set([
+  "base",
+  "pok",
+  "codex1",
+  "codex2",
+  "codex3",
+  "codex4",
+  "thunders_edge",
+]);
+
 export function getStrategyCardByInitiative(
-  initiative: number
+  initiative: number,
+  idMap?: Record<number, string>
 ): StrategyCardDefinition | undefined {
-  const card = strategyCards.find((c) => c.initiative === initiative);
+  // 1) Ścieżka preferowana: kanoniczny ``id`` z mapy backendu.
+  const mappedId = idMap?.[initiative];
+  if (mappedId) {
+    const byId = getStrategyCardById(mappedId);
+    if (byId) return byId;
+  }
+
+  // 2) Fallback bez mapy: wariant z aktywnego źródła bazowego i z treścią (nie
+  //    pierwszy lepszy homebrew o tej initiative, który bywa pusty).
+  const candidates = strategyCards.filter((c) => c.initiative === initiative);
+  const canonical = candidates.find(
+    (c) =>
+      CANONICAL_SOURCES.has(c.source) &&
+      (c.primaryTexts.length > 0 || c.secondaryTexts.length > 0)
+  );
+  const card =
+    canonical ??
+    candidates.find((c) => CANONICAL_SOURCES.has(c.source)) ??
+    candidates[0];
   return card ? withImageFallback(card) : undefined;
 }

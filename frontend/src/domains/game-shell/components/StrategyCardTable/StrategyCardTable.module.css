@@ -50,43 +50,47 @@
 }
 
 /*
- * TŁO BOKSU jako osobna warstwa (``::before``) w kształcie ŁUKU „miski" dopasowanego
- * do wachlarza: GÓRNE rogi mocno ZAOKRĄGLONE (miękki łuk, nie ostre ścięcie),
- * DOLNA krawędź dłuższa i łagodnie zaokrąglona — jak układ kart (środek wyżej,
- * rogi niżej). Warstwa jest SZERSZA i WYŻSZA niż obszar kart (ujemny ``inset``),
- * więc karty rysują się pewnie W jej obrysie, nie wychodzą poza. Leży POD treścią
- * (``z-index: -1``). Prawie czarne tło (prośba) + delikatne „szkło".
+ * TŁO BOKSU jako osobna warstwa (``::before``) w JĘZYKU DESIGN-SYSTEMU — identyczna
+ * powierzchnia co ``DetailsCard``/panele gracza: pionowy gradient ``--ds-ground →
+ * --ds-ground-2``, cienka obwódka ``--ds-h28``, zaokrąglenie ``--ds-radius-lg``,
+ * miękki cień ``--ds-shadow-md`` z wewnętrznym rozjaśnieniem górnej krawędzi (ten
+ * sam ``inset 0 1px 0`` co karty). Zamiast „prostego czarnego prostokąta" — spójny,
+ * profesjonalny panel. Warstwa jest nieco SZERSZA/WYŻSZA niż obszar kart (ujemny
+ * ``inset``), więc karty rysują się pewnie W jej obrysie. Leży POD treścią (``-1``).
  */
 .table::before {
   content: "";
   position: absolute;
-  /* Rozciągnięcie poza obrys .table — box fizycznie większy od obszaru kart. */
   inset: -8px -24px -16px;
   z-index: -1;
-  background: rgb(1 1 3 / 0.97);
-  backdrop-filter: blur(3px);
-  /* Miękki łuk „miski": górne rogi mocno zaokrąglone (duży promień), dolne łagodnie.
-     Zaokrąglenie zamiast kanciastego ścięcia — brzegi nie są ostre. */
-  border-radius: 140px 140px var(--ds-radius-xl) var(--ds-radius-xl) / 90px 90px
-    var(--ds-radius-xl) var(--ds-radius-xl);
+  background: linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2));
+  border: 1px solid var(--ds-h28);
+  border-radius: var(--ds-radius-lg);
+  box-shadow:
+    var(--ds-shadow-md),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(4px);
 }
 
 /*
- * Nagłówek w stylu AsyncTI4 — WYŚRODKOWANY blok z własnym małym tłem (nie zlewa się
- * z przezroczystym panelem). Tytuł fazy u góry, pod nim wiersz z pickerem i mówcą.
+ * Nagłówek — pasek w stylu nagłówka ``DetailsCard``: subtelny gradient akcentu
+ * schodzący do przezroczystości, oddzielony cienką hairline od rzędu kart. Bez
+ * ciężkiego czarnego bloku — spójny z resztą UI.
  */
 .header {
-  align-self: center;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: var(--ds-space-xs);
-  padding: var(--ds-space-xs) var(--ds-space-md);
-  /* Ciemniejsze tło nagłówka — spójne z mocniej przyciemnionym panelem. */
-  background: rgb(0 0 0 / 0.6);
-  border-radius: var(--ds-radius-lg);
-  box-shadow: var(--ds-shadow-sm);
+  padding: var(--ds-space-sm) var(--ds-space-md) var(--ds-space-md);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--ds-sig-bio, 110 231 183) / 0.08),
+    transparent
+  );
+  border-bottom: 1px solid var(--ds-h10);
 }
 
 /* Tytuł panelu — większy, wyraźny (prośba: większa czcionka „jaka faza"). */
