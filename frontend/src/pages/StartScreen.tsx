@@ -275,9 +275,8 @@ export default function StartScreen() {
   // ekrany; zmiana widoku PRZEWIJA deck w pionie (translateY) z animacją, więc
   // klik „Graj" wygląda jak zjechanie strony w dół do listy wyboru.
   const [view, setView] = useState<"menu" | "setup">("menu");
-  // Okna szkieletowe — na razie placeholdery, wypełnimy je później.
+  // Okno szkieletowe — na razie placeholder, wypełnimy je później.
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [rulesOpen, setRulesOpen] = useState(false);
 
   // Szybki dostęp do danych frakcji po id (do menu wyboru technologii).
   const factionById = useMemo(() => {
@@ -404,7 +403,7 @@ export default function StartScreen() {
               fullWidth
               variant="default"
               className={styles.menuButton}
-              onClick={() => setRulesOpen(true)}
+              onClick={() => navigate("/rules")}
             >
               Zasady
             </Button>
@@ -611,25 +610,6 @@ export default function StartScreen() {
         </Stack>
       </Modal>
 
-      {/* ── Okno szkieletowe: Zasady (do wypełnienia później) ───────────── */}
-      <Modal
-        opened={rulesOpen}
-        onClose={() => setRulesOpen(false)}
-        title="Zasady"
-        size="md"
-      >
-        <Stack gap="md">
-          <Text c="dimmed" size="sm">
-            Skrót zasad i odniesienia do reguł TI4 trafią tutaj. Na razie to
-            szkielet — uzupełnimy go wybranymi tematami reguł.
-          </Text>
-          <div className={styles.modalActions}>
-            <Button variant="default" onClick={() => setRulesOpen(false)}>
-              Zamknij
-            </Button>
-          </div>
-        </Stack>
-      </Modal>
     </Box>
   );
 }

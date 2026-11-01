@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, Group } from "@/ds";
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconArrowsExchange,
+  IconBook2,
   IconRefresh,
   IconUserEdit,
 } from "@tabler/icons-react";
@@ -24,6 +26,7 @@ export function HeaderGameControls() {
   const moveMode = useAppStore((s) => s.moveMode);
   const toggleMoveMode = useAppStore((s) => s.toggleMoveMode);
   const moveFrom = useAppStore((s) => s.moveFrom);
+  const navigate = useNavigate();
   const [busy, setBusy] = useState<null | "undo" | "redo">(null);
   const [playerEditorOpen, setPlayerEditorOpen] = useState(false);
 
@@ -103,6 +106,17 @@ export function HeaderGameControls() {
         title="Odśwież planszę"
       >
         Odśwież
+      </Button>
+      {/* Przeglądarka Zasad TI4; `from=game` daje w niej powrót „Wróć do gry". */}
+      <Button
+        variant="default"
+        size="xs"
+        className={hud.hudButton}
+        leftSection={<IconBook2 size={14} />}
+        onClick={() => navigate("/rules?from=game")}
+        title="Otwórz przeglądarkę Zasad"
+      >
+        Zasady
       </Button>
     </Group>
   );
