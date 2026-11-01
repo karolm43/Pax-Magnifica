@@ -14,6 +14,7 @@ nie dotyka ``GameState`` — router API wyłącznie ją serwuje, nie commituje s
 from __future__ import annotations
 
 import re
+from collections.abc import Container
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -205,3 +206,54 @@ def group_of(slug: str) -> str:
         if slug.startswith(prefix):
             return group
     raise ValueError(f"Slug spoza zrzutu reguł (nieznany prefiks): {slug!r}")
+
+
+# --- Czyste funkcje: mapowanie linków i klasyfikacja rulingu Dane -------
+
+
+def map_link(url: str, known_slugs: Container[str]) -> LinkTarget:
+    """Odwzorowuje URL z treści tematu na cel nawigacji (Link_Mapper).
+
+    URL postaci ``https://www.tirules2.com/<slug>`` (z opcjonalnym ``www.`` i
+    opcjonalnym trailing slash — oba obsługuje ``TIRULES_URL_RE``) jest mapowany na
+    Internal_Link wskazujący lokalny temat WTEDY i TYLKO WTEDY, gdy wydobyty slug
+    należy do ``known_slugs`` (Req 4.1). W każdym innym przypadku — URL spoza
+    tirules2.com albo tirules2.com ze slug nieznanym lokalnie — zwracany jest
+    External_Link zachowujący oryginalny ``url`` bez zmian (Req 4.3).
+
+    Funkcja jest czysta: nie czyta dysku ani stanu globalnego; zbiór znanych slugów
+    przekazywany jest jawnie jako ``known_slugs`` (np. z ``list_topic_slugs``).
+
+    Args:
+        url: Oryginalny URL hiperłącza z treści tematu.
+        known_slugs: Kontener znanych lokalnych slugów (sprawdzenie przez ``in``);
+            typowo zbiór zwrócony przez ``list_topic_slugs``.
+
+    Returns:
+        ``LinkTarget.internal(slug)`` gdy URL pasuje do tirules2.com, a slug jest
+        znany lokalnie; w przeciwnym razie ``LinkTarget.external(url)`` z oryginalnym
+        adresem.
+    """
+    match = TIRULES_URL_RE.match(url)
+    if match is not None:
+        slug = match.group(1)
+        if slug in known_slugs:
+            return LinkTarget.internal(slug)
+    return LinkTarget.external(url)
+
+
+def is_dane_ruling(line: str) -> bool:
+    """Rozstrzyga, czy pozycja noty jest rulingiem Dane Beltramiego (Req 7.4).
+
+    Zwraca prawdę wtedy i tylko wtedy, gdy ``line`` zawiera marker ``DANE_MARKER``
+    (``_[Dane ruling]_``) jako podciąg — zgodnie ze sposobem oznaczania rulingów Dane
+    w zrzucie ``docs/rules_tirules/``. Marker bywa dodany na końcu pozycji listy, więc
+    sprawdzamy przynależność podciągu, nie równość.
+
+    Args:
+        line: Pojedyncza pozycja noty (linia Markdown) do sklasyfikowania.
+
+    Returns:
+        ``True`` gdy pozycja zawiera ``DANE_MARKER``, inaczej ``False``.
+    """
+    return DANE_MARKER in line
