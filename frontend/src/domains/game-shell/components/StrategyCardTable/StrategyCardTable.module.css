@@ -36,26 +36,39 @@
 .table {
   /* Panel kart — klikalny mimo ``pointer-events: none`` na nakładce. */
   pointer-events: auto;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-sm);
   /* DUŻE karty — panel sięga niemal krawędzi ekranu (rząd prawie na całą szerokość). */
-  max-width: 96vw;
-  /* JEDNO wspólne, subtelne tło pod całością (nagłówek + rząd kart). Miękka
-     winieta radialna wygasza ku krawędziom — bez twardego prostokątnego brzegu,
-     więc wachlarz nie zlewa się z mapą, a tło nie jest szarym kafelkiem. */
-  background: radial-gradient(
-    ellipse at center,
-    rgb(0 0 0 / 0.78),
-    rgb(0 0 0 / 0.55) 70%,
-    transparent
-  );
-  /* Delikatne „szkło" — lekko rozmywa mapę pod spodem dla czytelności kart. */
-  backdrop-filter: blur(3px);
-  border-radius: var(--ds-radius-xl);
-  /* Większy zapas (``lg``), by miękkie tło objęło rząd kart z marginesem. */
-  padding: var(--ds-space-lg);
+  max-width: 98vw;
+  /* Zapasy: szerszy po bokach i DUŻY u dołu/górze, by box OBJĄŁ opadnięte skrajne
+     karty łuku ORAZ uniesioną na hover kartę. Brzegi wachlarza schodzą nisko
+     (``--lift`` do ~100px dla 8 kart) — karty mają mieścić się W boksie. */
+  padding: var(--ds-space-xl) 64px 150px;
   color: var(--ds-ink);
+}
+
+/*
+ * TŁO BOKSU jako osobna warstwa (``::before``) w kształcie ŁUKU „miski" dopasowanego
+ * do wachlarza: GÓRNE rogi mocno ZAOKRĄGLONE (miękki łuk, nie ostre ścięcie),
+ * DOLNA krawędź dłuższa i łagodnie zaokrąglona — jak układ kart (środek wyżej,
+ * rogi niżej). Warstwa jest SZERSZA i WYŻSZA niż obszar kart (ujemny ``inset``),
+ * więc karty rysują się pewnie W jej obrysie, nie wychodzą poza. Leży POD treścią
+ * (``z-index: -1``). Prawie czarne tło (prośba) + delikatne „szkło".
+ */
+.table::before {
+  content: "";
+  position: absolute;
+  /* Rozciągnięcie poza obrys .table — box fizycznie większy od obszaru kart. */
+  inset: -8px -24px -16px;
+  z-index: -1;
+  background: rgb(1 1 3 / 0.97);
+  backdrop-filter: blur(3px);
+  /* Miękki łuk „miski": górne rogi mocno zaokrąglone (duży promień), dolne łagodnie.
+     Zaokrąglenie zamiast kanciastego ścięcia — brzegi nie są ostre. */
+  border-radius: 140px 140px var(--ds-radius-xl) var(--ds-radius-xl) / 90px 90px
+    var(--ds-radius-xl) var(--ds-radius-xl);
 }
 
 /*
@@ -70,18 +83,17 @@
   text-align: center;
   gap: var(--ds-space-xs);
   padding: var(--ds-space-xs) var(--ds-space-md);
-  /* Niższe krycie tła nagłówka (0.35) — panel ``.table`` ma teraz własną winietę,
-     więc ciemne tło nie dubluje się nadmiernie, a nagłówek wciąż się wyróżnia. */
-  background: rgb(0 0 0 / 0.35);
+  /* Ciemniejsze tło nagłówka — spójne z mocniej przyciemnionym panelem. */
+  background: rgb(0 0 0 / 0.6);
   border-radius: var(--ds-radius-lg);
   box-shadow: var(--ds-shadow-sm);
 }
 
-/* Tytuł panelu — czytelny (nie micro-tekst). */
+/* Tytuł panelu — większy, wyraźny (prośba: większa czcionka „jaka faza"). */
 .heading {
   margin: 0;
   font-family: var(--ds-font-display);
-  font-size: var(--ds-h4);
+  font-size: var(--ds-h2);
   line-height: var(--ds-lh-sm);
   color: var(--ds-ink-hi);
 }
@@ -104,7 +116,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ds-space-xs);
-  font-size: var(--ds-fz-sm);
+  /* Większa czcionka wiersza picker/mówca (prośba: większa czcionka „kto wybiera"). */
+  font-size: var(--ds-fz-lg);
   line-height: var(--ds-lh-sm);
 }
 
@@ -140,8 +153,10 @@
   /* Skalowalny odstęp między kartami (mniejszy — 8 kart mieści się w viewporcie). */
   gap: clamp(4px, 0.6vw, 12px);
   overflow: visible;
-  /* Zapas u góry na uniesienie/powiększenie najechanej karty (nie przycina). */
-  padding-top: var(--ds-space-lg);
+  /* Większy zapas u góry: uniesiona/powiększona na hover karta (translateY -14px +
+     scale 1.18) ma mieścić się POD ściętym górnym łukiem boksu, nie wychodzić
+     ponad niego. */
+  padding-top: var(--ds-space-xl);
 }
 
 /*
@@ -312,42 +327,92 @@
 }
 
 /*
- * Pasek stanu (TG + właściciel) jako NAKŁADKA na dole obrazu — NIE osobny pas pod
- * kartą. Dzięki ``position: absolute`` nie wpływa na wysokość ``.card`` (ta = sama
- * wysokość obrazu), więc znika pusty szary pas pod kartą. ``pointer-events: none``
- * — nakładka nie przechwytuje klików/hoveru (wybór i tooltip działają jak dotąd).
+ * Trade goods zaparkowane na karcie — mała pigułka w GÓRNYM rogu obrazu (dół karty
+ * zajmuje teraz baner właściciela). ``pointer-events: none`` — nie przechwytuje
+ * klików/hoveru.
  */
-.cardMeta {
-  position: absolute;
-  left: var(--ds-space-xs);
-  right: var(--ds-space-xs);
-  bottom: var(--ds-space-xs);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  pointer-events: none;
-}
-
 .tg {
-  flex: 0 0 auto;
+  position: absolute;
+  top: var(--ds-space-xs);
+  right: var(--ds-space-xs);
   font-family: var(--ds-font-data);
   font-size: var(--ds-fz-xs);
   color: rgb(var(--ds-sig-tg));
-  /* Czytelna pigułka NA obrazie — ciemne tło + cień zamiast półprzezroczystego. */
   background: rgb(0 0 0 / 0.72);
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
   box-shadow: var(--ds-shadow-sm);
+  pointer-events: none;
 }
 
-.owner {
-  flex: none;
-  display: inline-flex;
-  margin-left: auto;
-  /* Lekki cień pod ikoną właściciela — czytelna na grafice karty. */
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.65));
+/*
+ * WŁAŚCICIEL karty — czytelny BANER u dołu obrazu: ikona frakcji + PEŁNA NAZWA na
+ * pełną szerokość karty (zamiast małej ikonki w rogu). Ciemne, lekko przezroczyste
+ * tło z rozmyciem pod spodem, zaokrąglone dolne rogi spójne z kartą. ``position:
+ * absolute`` — nie wpływa na wysokość ``.card``; ``pointer-events: none`` — wybór i
+ * tooltip działają jak dotąd.
+ */
+.ownerBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-xs);
+  padding: 6px 8px;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.9),
+    rgb(0 0 0 / 0.7) 70%,
+    transparent
+  );
+  border-bottom-left-radius: var(--ds-radius-sm);
+  border-bottom-right-radius: var(--ds-radius-sm);
+  pointer-events: none;
+}
+
+.ownerName {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-sm);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
+}
+
+/*
+ * Przycisk „Następna faza" w nagłówku (po skompletowaniu wyboru) — styl spójny z
+ * głównym przyciskiem akcji panelu stanu (``.ctlPrimary``): akcent ``--ds-sig-bio``,
+ * zaokrąglony, z hoverem. Widoczny tylko gdy ``allPicked``.
+ */
+.nextPhaseBtn {
+  margin-left: var(--ds-space-sm);
+  padding: 6px 14px;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-md);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.2);
+  border: 1px solid rgb(var(--ds-sig-bio, 110 231 183) / 0.55);
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition: background var(--ds-dur-fast) var(--ds-ease);
+}
+
+.nextPhaseBtn:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.32);
+}
+
+.nextPhaseBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /*

@@ -16,7 +16,6 @@ import {
   type DetailsCardColor,
 } from "@/shared/ui/DetailsCard";
 import { Stack } from "@/ds";
-import { playerNameForColor } from "../gameStatePlayers";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { DEFAULT_GAME_ID } from "@/config";
 import type { PlayerData } from "@/entities/data/types";
@@ -114,9 +113,9 @@ export function StrategyCardTable(): ReactElement | null {
   const { data: gameState } = useGameState(gameId);
   const { data: cards } = useStrategyCards();
   const gameData = useGameData();
-  // Akcja wyboru karty — ta sama, której używa ``StrategyCardPicker`` w
-  // ``GameStatePanel`` (identyczny kontrakt: ``pickStrategyCard(discordId, initiative)``).
-  const { pickStrategyCard } = useBoardEditor();
+  // Akcje: wybór karty (jak w ``GameStatePanel``) oraz przejście do następnej fazy
+  // (``/phase/next``) — przycisk aktywny po skompletowaniu wyboru przez wszystkich.
+  const { pickStrategyCard, nextPhase } = useBoardEditor();
 
   // Karty, których grafika nie wczytała się (``onError``) — przełączamy je na
   // fallback tekstowy (R8.8). Klucz = initiative.
@@ -175,10 +174,22 @@ export function StrategyCardTable(): ReactElement | null {
     : null;
 
   // Picker w podnagłówku (R1.5) — PEŁNA nazwa frakcji gracza + ikona (``pickerPlayer``
-  // policzony wyżej). Gdy picker nieznany, pokazujemy „brak gracza do wskazania".
+  // policzony wyżej). Gdy picker nieznany, pokazujemy komunikat zależny od tego, czy
+  // wybór jest już kompletny (patrz ``allPicked``).
   const pickerName = pickerPlayer
     ? getPlayerFactionDisplayName(pickerPlayer)
     : null;
+
+  // WYBÓR KOMPLETNY — ten sam warunek, co w ``StrategyCardPicker`` (GameStatePanel):
+  // każdy gracz ma już ``pickCount`` kart (druga runda przy 3–4 graczach). Gdy
+  // ``strategyPickCount`` nieznane (liczba graczy spoza 3..8) → bezpieczny ``false``,
+  // nie twierdzimy błędnie „wszyscy wybrali". RULES.md 13. Dopiero wtedy NIE pokazujemy
+  // „brak gracza do wskazania", lecz komunikat o końcu wyboru + przycisk następnej fazy.
+  const pickCount = gameState.strategyPickCount ?? null;
+  const allPicked =
+    pickCount !== null &&
+    players.length > 0 &&
+    players.every((p) => (p.scs?.length ?? 0) >= pickCount);
 
   return (
     // Nakładka-wrapper: pełnoekranowy kontener, który WYŚRODKOWUJE panel kart w
@@ -198,18 +209,36 @@ export function StrategyCardTable(): ReactElement | null {
       <div className={styles.header}>
         <h2 className={styles.heading}>Faza strategii</h2>
         <div className={styles.meta}>
-          {/* Teraz wybiera — ikona + pełna nazwa frakcji pickera (lub komunikat braku). */}
-          <span className={styles.metaItem}>
-            <span className={styles.metaLabel}>Teraz wybiera:</span>
-            {pickerName ? (
-              <>
-                <FactionMark player={pickerPlayer} size={22} />
-                <b className={styles.metaName}>{pickerName}</b>
-              </>
-            ) : (
-              <span className={styles.metaName}>brak gracza do wskazania</span>
-            )}
-          </span>
+          {/*
+           * Stan wyboru:
+           * - jest picker → „Teraz wybiera" + ikona/nazwa frakcji;
+           * - wszyscy wybrali (``allPicked``) → komunikat końca wyboru + przycisk
+           *   „Następna faza" (zamiast bezsensownego „brak gracza do wskazania");
+           * - stan pośredni bez pickera (rzadki) → neutralny komunikat.
+           */}
+          {pickerName ? (
+            <span className={styles.metaItem}>
+              <span className={styles.metaLabel}>Teraz wybiera:</span>
+              <FactionMark player={pickerPlayer} size={22} />
+              <b className={styles.metaName}>{pickerName}</b>
+            </span>
+          ) : allPicked ? (
+            <span className={styles.metaItem}>
+              <b className={styles.metaName}>Wszyscy wybrali karty</b>
+              <button
+                type="button"
+                className={styles.nextPhaseBtn}
+                disabled={busy}
+                onClick={() => void run(nextPhase)}
+              >
+                Następna faza
+              </button>
+            </span>
+          ) : (
+            <span className={styles.metaItem}>
+              <span className={styles.metaName}>Wybór kart strategii</span>
+            </span>
+          )}
           {/* Mówca — ikona + pełna nazwa frakcji mówcy (lub komunikat braku). */}
           <span className={styles.metaItem}>
             <span className={styles.metaLabel}>Mówca:</span>
@@ -259,15 +288,16 @@ export function StrategyCardTable(): ReactElement | null {
           const mid = (n - 1) / 2;
           const offset = i - mid;
           // Kąt obrotu: lewe karty w lewo (ujemny), prawe w prawo (dodatni).
-          // Złagodzony łuk (iteracja 12.2) — mniejszy kąt niweluje nachodzenie kart.
-          const rot = offset * 4;
-          // Przesunięcie w dół rośnie kwadratowo od środka → łuk wypukły do góry
-          // (środek lift≈0, brzegi najniżej). ``transform-origin: bottom center``
-          // w CSS sprawia, że obrót wygląda jak trzymany wachlarz. Złagodzony
-          // mnożnik (było 5): przy obrocie o ``rot`` górna krawędź skrajnych kart
-          // i tak wędruje w górę, więc mniejszy opad wyrównuje ich wysokość ze
-          // środkiem — karty 1 i 8 nie „uciekają" wyżej.
-          const lift = Math.abs(offset) * Math.abs(offset) * 3;
+          // Mniejszy kąt (było 4): przy obrocie wokół dolnego środka DUŻY kąt
+          // podnosi górną krawędź skrajnych kart i to one „uciekały" wyżej —
+          // łagodniejszy obrót trzyma je nisko (łuk wypukły do góry: środek wyżej,
+          // rogi niżej).
+          const rot = offset * 2.5;
+          // Przesunięcie W DÓŁ rośnie kwadratowo od środka → łuk wypukły do góry
+          // (środek lift≈0, brzegi NAJNIŻEJ). ``transform-origin: bottom center``.
+          // Większy mnożnik (było 3): brzegi realnie opadają poniżej środka, więc
+          // karty 1 i 8 są NIŻEJ niż pozostałe — kompensuje unoszenie przez obrót.
+          const lift = Math.abs(offset) * Math.abs(offset) * 8;
           // SKALA per karta: skrajne karty (duży |offset|) delikatnie POWIĘKSZONE,
           // by zrównoważyć wrażenie, że przez obrót łuku są mniejsze (prośba:
           // „1 i 8 trochę większe"). Środek 1.0, brzegi do ~1.08.
@@ -358,26 +388,29 @@ export function StrategyCardTable(): ReactElement | null {
                     </div>
                   )}
 
-                  {/* Pasek stanu: TG na karcie + właściciel, odróżnialnie od niewybranych. */}
-                  <div className={styles.cardMeta}>
-                    {card.trade_goods > 0 && (
-                      <span className={styles.tg} title="Trade goods na karcie">
-                        +{card.trade_goods} TG
+                  {/* Trade goods zaparkowane na karcie — pigułka w górnym rogu. */}
+                  {card.trade_goods > 0 && (
+                    <span className={styles.tg} title="Trade goods na karcie">
+                      +{card.trade_goods} TG
+                    </span>
+                  )}
+
+                  {/*
+                   * WŁAŚCICIEL karty — czytelny baner u dołu: IKONA frakcji + PEŁNA
+                   * NAZWA (zamiast małej ikonki w rogu). Nakładka na dolnej krawędzi
+                   * obrazu, pełna szerokość karty; ``pointer-events: none`` — nie
+                   * przechwytuje klików/hoveru (wybór i tooltip działają jak dotąd).
+                   */}
+                  {isPicked && (
+                    <div className={styles.ownerBar}>
+                      <FactionMark player={owner} size={22} />
+                      <span className={styles.ownerName}>
+                        {owner
+                          ? getPlayerFactionDisplayName(owner)
+                          : (card.picked_by ?? "")}
                       </span>
-                    )}
-                    {isPicked && (
-                      <span
-                        className={styles.owner}
-                        title={`Wybrana: ${
-                          owner
-                            ? playerNameForColor(players, owner.color)
-                            : (card.picked_by ?? "")
-                        }`}
-                      >
-                        <FactionMark player={owner} size={24} />
-                      </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </button>
               </SmoothPopover.Target>
 
