@@ -15,7 +15,22 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
+
+#: Mapowanie prefiksu pliku na klucz grupy indeksu (Req 2.2). Kolejność grup
+#: w indeksie wynika z ``RULE_PREFIXES`` (Reguły → Frakcje → Komponenty).
+_PREFIX_TO_GROUP: dict[str, str] = {
+    "R_": "rules",
+    "F_": "factions",
+    "C_": "components",
+}
+
+#: Dopasowanie nagłówka poziomu 1 (jedno ``#`` + co najmniej jedna spacja/tab,
+#: dalej tekst tytułu w grupie 1). Flaga ``MULTILINE`` pozwala wyłapać nagłówek
+#: nie na pierwszej linii pliku; wymóg braku kolejnego ``#`` bezpośrednio po
+#: pierwszym (``[ \t]``) odrzuca ``##``..``######`` (tylko poziom ``# ``).
+_H1_RE: re.Pattern[str] = re.compile(r"^#[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 
 # --- Stałe modułu -------------------------------------------------------
 
@@ -117,3 +132,76 @@ class LinkTarget:
     def external(cls, url: str) -> LinkTarget:
         """Tworzy External_Link zachowujący oryginalny URL."""
         return cls(kind="external", slug=None, url=url)
+
+
+# --- Czyste funkcje: skanowanie i parsowanie tematów -------------------
+
+
+def list_topic_slugs(rules_dir: Path) -> list[str]:
+    """Zwraca slugi wszystkich plików tematów, posortowane deterministycznie.
+
+    Skanuje katalog ``rules_dir`` w poszukiwaniu plików ``.md`` o prefiksach
+    ``R_``/``F_``/``C_`` (patrz ``RULE_PREFIXES``) i zwraca ich slugi — nazwy bez
+    rozszerzenia ``.md`` (np. ``R_movement``). Pliki pomocnicze zrzutu
+    (``INDEX.md``, ``SOURCE.md``) nie mają tych prefiksów, więc są pomijane.
+
+    Funkcja jest czysta: jedynym efektem ubocznym jest odczyt listy plików z
+    przekazanego katalogu; nie czyta stanu globalnego ani nie importuje HTTP.
+
+    Args:
+        rules_dir: Katalog zrzutu reguł (``config.RULES_DIR``).
+
+    Returns:
+        Posortowana alfabetycznie (deterministycznie) lista slugów tematów.
+        Pusta lista, gdy katalog nie istnieje lub nie zawiera plików tematów.
+    """
+    if not rules_dir.is_dir():
+        return []
+    slugs = [
+        path.stem
+        for path in rules_dir.glob("*.md")
+        if path.name.startswith(RULE_PREFIXES)
+    ]
+    return sorted(slugs)
+
+
+def parse_title(markdown: str, slug: str) -> str:
+    """Wyznacza tytuł tematu z treści Markdown albo z fallbackiem na slug.
+
+    Tytuł to tekst pierwszego nagłówka poziomu ``# `` (jedno ``#`` + spacja).
+    Gdy treść nie zawiera takiego nagłówka, tytułem jest sam ``slug``
+    (Req 2.4/2.5, 3.3).
+
+    Args:
+        markdown: Surowa treść pliku tematu.
+        slug: Topic_Slug tematu — fallback przy braku nagłówka ``# ``.
+
+    Returns:
+        Tekst pierwszego nagłówka ``# `` (przycięty z białych znaków) albo slug.
+    """
+    match = _H1_RE.search(markdown)
+    if match is None:
+        return slug
+    return match.group(1).strip()
+
+
+def group_of(slug: str) -> str:
+    """Mapuje prefiks slug na klucz grupy indeksu.
+
+    ``R_`` → ``"rules"``, ``F_`` → ``"factions"``, ``C_`` → ``"components"``
+    (Req 2.2).
+
+    Args:
+        slug: Topic_Slug tematu (np. ``R_movement``, ``F_arborec``).
+
+    Returns:
+        Klucz grupy: ``"rules"`` | ``"factions"`` | ``"components"``.
+
+    Raises:
+        ValueError: Gdy slug nie zaczyna się od żadnego ze znanych prefiksów
+            ``RULE_PREFIXES`` — sygnał, że temat nie należy do zrzutu reguł.
+    """
+    for prefix, group in _PREFIX_TO_GROUP.items():
+        if slug.startswith(prefix):
+            return group
+    raise ValueError(f"Slug spoza zrzutu reguł (nieznany prefiks): {slug!r}")
