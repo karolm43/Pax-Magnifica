@@ -59,5 +59,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    // Zestaw testowy dopiero powstaje (zadania 8.4/11.x) — brak plików testowych
+    // nie jest błędem na tym etapie infrastruktury.
+    passWithNoTests: true,
   },
 });
