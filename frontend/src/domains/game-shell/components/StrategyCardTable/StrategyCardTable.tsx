@@ -5,7 +5,10 @@ import { useGameState } from "@/api/useGameState";
 import { useBoardEditor, useStrategyCards } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
 import { SC_NAMES } from "@/entities/data/strategyCardColors";
-import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
+import {
+  getStrategyCardById,
+  getStrategyCardByInitiative,
+} from "@/entities/lookup/strategyCards";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import {
@@ -78,7 +81,8 @@ function FactionMark({
  * ``gameData``/``useStrategyCards``, więc odzwierciedlają ten sam stan gry.
  *
  * RENDER (zadanie 9.2): pełna grafika kart (``ti4ultimate.com`` przez
- * ``getStrategyCardByInitiative(...).imageURL``), oznaczenie wybranych kart i ich
+ * ``getStrategyCardById(card.id).imageURL`` — wariant wybrany przez backend),
+ * oznaczenie wybranych kart i ich
  * właściciela, wyróżnienie aktualnego pickera oraz nagłówek z mówcą i komunikatami
  * stanu (R1.4/R1.5). Fallback tekstowy przy braku/błędzie grafiki (R8.8).
  *
@@ -100,8 +104,8 @@ function FactionMark({
  * - ``useGameState`` → ``gameState`` (faza, mówca, aktywny gracz) — ten sam
  *   selektor web-data, którego używa ``GameStatePanel`` (spójny stan, R8.2);
  * - ``useStrategyCards`` → pula kart zestawu + ich stan (``StrategyCardState[]``);
- * - ``useGameData`` → ``playerData`` (właściciel → ``FactionMark``/kolor) oraz
- *   ``strategyCardIdMap`` (lookup grafiki pełnej karty);
+ * - ``useGameData`` → ``playerData`` (właściciel → ``FactionMark``/kolor);
+ *   wybór wariantu karty robi backend (kanoniczny ``id``), nie ``strategyCardIdMap``;
  * - ``useBoardEditor`` → akcja ``pickStrategyCard`` (wybór karty dla pickera).
  */
 export function StrategyCardTable(): ReactElement | null {
@@ -223,13 +227,14 @@ export function StrategyCardTable(): ReactElement | null {
 
       <div className={styles.cards} role="list">
         {cards.map((card, i, arr) => {
-          // Pełna grafika karty z realnego źródła (``ti4ultimate.com``) przez
-          // istniejący lookup (R8.1, R8.3). Fallback tekstowy, gdy brak URL lub
-          // obrazek się nie wczytał (R8.8).
-          const def = getStrategyCardByInitiative(
-            card.initiative,
-            gameData?.strategyCardIdMap,
-          );
+          // Definicja karty po KANONICZNYM ``id`` z backendu (wybór wariantu robi
+          // rdzeń silnika — patrz strategyCards.ts). ``def`` daje grafikę (z
+          // fallbackiem obrazu), teksty i nazwę (R8.1, R8.3). Gdy ``id`` spoza
+          // lokalnych danych → cienki fallback po initiative. Fallback tekstowy,
+          // gdy brak URL lub obrazek się nie wczytał (R8.8).
+          const def =
+            getStrategyCardById(card.id) ??
+            getStrategyCardByInitiative(card.initiative);
           const imageURL = def?.imageURL;
           const showImage = !!imageURL && !failedImages[card.initiative];
           const name = card.name || SC_NAMES[card.initiative] || "—";
