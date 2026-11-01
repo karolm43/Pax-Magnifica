@@ -641,6 +641,20 @@ obrazka. Gdy żaden wariant nie ma grafiki, UI daje fallback tekstowy.
 Implementacja: `frontend/src/entities/lookup/strategyCards.ts`
 (`SOURCE_PRIORITY`, `sourceRank`, `withImageFallback`).
 
+**Wybór zestawu kart strategii — reguła w CORE (nie na froncie).** Silnik wybiera
+kanoniczny zestaw kart strategii wg NAJWYŻSZEGO włączonego źródła (priorytet
+`thunders_edge > pok > codex4 > codex3 > codex2 > codex1 > base`; źródła spoza listy =
+homebrew są ignorowane przy tym wyborze). Przy włączonym Thunder's Edge obowiązuje
+zestaw TE (alias `te`): Construction=`te4construction`, Warfare=`te6warfare`, pozostałe
+karty PoK; bez TE — zestaw `pok` (`pok4construction`/`pok6warfare`); w dół aż do
+`base_game`. Gdy żaden standardowy zestaw nie pasuje (same homebrew/puste źródła) —
+bezpieczny fallback na `pok`. Reguła żyje w `core/registry.active_strategy_card_set_alias`
+(czysta funkcja nad włączonymi źródłami), a `strategy_card_set()` bez jawnego aliasu
+zwraca zestaw kanoniczny. Dzięki temu `/strategy/cards` i web-data zwracają kanoniczne
+warianty (te4/te6 przy TE) niezależnie od frontu — front tylko renderuje. Priorytet
+źródeł identyczny jak przy dedupie erraty technologii (wyżej). Znalezisko #5 przeglądu
+semantycznego (część backendowa).
+
 ## 15. Typ planety: pole `planetTypes` (lista) vs `planetType` — ✅ ZWERYFIKOWANE (dane)
 
 📎 tirules: [Planets](rules_tirules/R_planets.md) · [Legendary Planets](rules_tirules/R_legendary_planets.md)

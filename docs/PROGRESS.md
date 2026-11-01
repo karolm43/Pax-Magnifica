@@ -484,6 +484,28 @@ znaleziska #1/#2/#3/#4/#7, czysto backendowa, zero zmian kontraktu z frontem):**
   wyboru, walidacja pól karty w core, regresja poprawnego stanu 3 graczy.
 - **QA po refaktorze:** `uv run pytest -q` → **269 passed**; ruff + mypy czyste.
 
+**Znalezisko #5 — wybór wariantu kart strategii przeniesiony do CORE (część backendowa):**
+Wcześniej priorytet źródeł kart (`thunders_edge > pok > codex4..1 > base`) żył TYLKO we froncie
+(`entities/lookup/strategyCards.ts`), a backend zwracał zawsze twardy zestaw `pok` — przez co
+`/strategy/cards` i web-data serwowały `pok4construction`/`pok6warfare` nawet przy włączonym
+Thunder's Edge. Teraz reguła wyboru kanonicznego zestawu jest w `core/`:
+- [x] `core/registry.py`: nowa czysta metoda `active_strategy_card_set_alias()` — wybiera alias
+  zestawu o NAJWYŻSZYM włączonym źródle wg `_STRATEGY_SET_SOURCE_PRIORITY`
+  (`thunders_edge > pok > codex4..1 > base`; homebrew ignorowane; fallback `pok`). `strategy_card_set`
+  ma teraz `set_alias: str | None = None` — bez jawnego aliasu zwraca zestaw kanoniczny.
+- [x] `core/strategy_phase.py`: `available_initiatives`, `pick_strategy_card`, `accumulate_unpicked_tg`,
+  `validate_strategy_card_set` — domyślny `set_alias` zmieniony z twardego `"pok"` na `None`
+  (kanoniczny). Jawny alias nadal dostępny (kompatybilność/testy).
+- [x] `api/web_data._build_strategy_cards`: `registry.strategy_card_set()` bez aliasu → automatycznie
+  kanoniczny (zmiana kontraktu POŻĄDANA: te4/te6 przy TE).
+- **Zweryfikowane:** przy obecnym `enabled_sources.json` (base, pok, codex1–4, thunders_edge)
+  `active_strategy_card_set_alias()` → `"te"` (Construction=`te4construction`, Warfare=`te6warfare`,
+  reszta PoK); bez TE → `"pok"`. Karty `te4construction`/`te6warfare` mają KOMPLET pól
+  (nazwa/primary/secondary/kolor), więc `validate_strategy_card_set` na zestawie TE przechodzi.
+- [x] Testy: `tests/test_registry.py` (wybór aliasu + skład kanonicznego zestawu + jawny alias) +
+  `tests/test_strategy_phase.py` (walidacja kanonicznego zestawu TE). Reguła: RULES.md 14.
+  Część frontendowa (konsumpcja kanonicznych wariantów) pójdzie osobno.
+
 ### ✅ Blok E8-T6d — wskaźnik produkcji NA KAFELKU (nie w panelu) (ukończony)
 
 Korekta po uwadze użytkownika: wskaźnik PRODUCTION (koło zębate) ma się pokazywać NA KAFELKU

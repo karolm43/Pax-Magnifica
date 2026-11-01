@@ -241,6 +241,20 @@ def test_validate_set_returns_eight_cards_for_pok(
     assert sorted(c.initiative for c in cards) == [1, 2, 3, 4, 5, 6, 7, 8]
 
 
+def test_validate_canonical_te_set_is_complete() -> None:
+    """Kanoniczny zestaw TE (Thunder's Edge włączony) przechodzi walidację:
+    8 kart z kompletem pól, a Construction/Warfare to warianty te4/te6 (RULES.md 14).
+    """
+    registry = StaticDataRegistry(
+        enabled_sources=["base", "pok", "codex1", "codex2", "codex3", "codex4", "thunders_edge"]
+    )
+    cards = strategy_phase.validate_strategy_card_set(registry)
+    assert len(cards) == 8
+    ids = [c.id for c in cards]
+    assert "te4construction" in ids
+    assert "te6warfare" in ids
+
+
 def test_validate_set_rejects_wrong_count() -> None:
     fake = _FakeRegistry([_card(i) for i in range(1, 8)])  # tylko 7 kart
     with pytest.raises(ValueError, match="Niespójny zestaw kart"):

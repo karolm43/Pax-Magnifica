@@ -174,24 +174,93 @@ class StaticDataRegistry:
 
     # --- Karty strategii -----------------------------------------------
 
-    def strategy_card_set(self, set_alias: str = "pok") -> list[StrategyCardDef]:
-        """Zwraca uporządkowane karty strategii wskazanego zestawu (domyślnie PoK).
+    # Priorytet źródeł STANDARDOWEGO zestawu kart strategii (najwyższy → najniższy).
+    # Reguła wyboru wariantu: przy wielu włączonych źródłach obowiązuje zestaw
+    # najwyższego z tej listy — Thunder's Edge nadpisuje PoK (Construction/Warfare),
+    # PoK nadpisuje erraty Codex, te nadpisują zestaw bazowy. Źródła spoza tej listy
+    # (homebrew: anarchy, luminous, tispoon…) są IGNOROWANE przy wyborze kanonicznym,
+    # by nie nadpisały standardowego zestawu. Reguła: RULES.md 14,
+    # ``active_strategy_card_set_alias``.
+    _STRATEGY_SET_SOURCE_PRIORITY: tuple[str, ...] = (
+        "thunders_edge",
+        "pok",
+        "codex4",
+        "codex3",
+        "codex2",
+        "codex1",
+        "base",
+    )
 
-        Czyta listę ``scIDs`` z ``strategyCardSets.json`` dla podanego aliasu i mapuje
-        je na załadowane ``StrategyCardDef`` (po ``id``), sortując po inicjatywie.
-        Pomija karty, których definicji brak w rejestrze (nieaktywne źródło).
+    def _read_strategy_card_sets(self) -> list[dict[str, object]]:
+        """Wczytuje surowe definicje zestawów z ``strategyCardSets.json``.
+
+        Zwraca listę słowników (każdy z polami ``alias``, ``scIDs``, ``source``).
+        Pusta, gdy plik nie istnieje lub ma nieoczekiwany kształt.
+        """
+        if not config.STRATEGY_CARD_SETS_PATH.is_file():
+            return []
+        raw = json.loads(config.STRATEGY_CARD_SETS_PATH.read_text(encoding="utf-8"))
+        if not isinstance(raw, list):
+            return []
+        return [entry for entry in raw if isinstance(entry, dict)]
+
+    def active_strategy_card_set_alias(self) -> str:
+        """Wybiera alias KANONICZNEGO zestawu kart strategii wg włączonych źródeł.
+
+        Reguła (RULES.md 14): spośród zestawów z ``strategyCardSets.json``, których
+        pole ``source`` jest zarazem WŁĄCZONE (``self._enabled``) i figuruje na liście
+        priorytetu ``_STRATEGY_SET_SOURCE_PRIORITY``, bierzemy ten o NAJWYŻSZYM
+        priorytecie źródła. Dzięki temu przy włączonym Thunder's Edge obowiązuje
+        zestaw ``te`` (Construction=te4construction, Warfare=te6warfare), a bez niego
+        — ``pok``, itd. w dół do ``base``.
+
+        Źródła spoza listy priorytetu (homebrew) są IGNOROWANE — nie chcemy, by np.
+        anarchy/luminous nadpisały standardowy zestaw. Gdy żaden standardowy zestaw
+        nie pasuje (same homebrew lub puste źródła), zwracamy bezpieczny domyślny
+        ``"pok"``.
+
+        Returns:
+            Alias zestawu (np. ``"te"``, ``"pok"``, ``"base_game"``). Fallback ``"pok"``.
+        """
+        sets = self._read_strategy_card_sets()
+        # Mapa source -> alias dla STANDARDOWYCH zestawów (po pierwszym trafieniu).
+        alias_by_source: dict[str, str] = {}
+        for entry in sets:
+            source = entry.get("source")
+            alias = entry.get("alias")
+            if not isinstance(source, str) or not isinstance(alias, str):
+                continue
+            if source not in self._STRATEGY_SET_SOURCE_PRIORITY:
+                continue  # homebrew — pomijamy przy wyborze kanonicznym
+            alias_by_source.setdefault(source, alias)
+        # Wybór najwyższego priorytetu, który jest włączony i ma zestaw.
+        for source in self._STRATEGY_SET_SOURCE_PRIORITY:
+            if source in self._enabled and source in alias_by_source:
+                return alias_by_source[source]
+        return "pok"
+
+    def strategy_card_set(self, set_alias: str | None = None) -> list[StrategyCardDef]:
+        """Zwraca uporządkowane karty strategii wskazanego lub KANONICZNEGO zestawu.
+
+        Gdy ``set_alias is None`` (domyślnie), wybiera zestaw kanoniczny wg włączonych
+        źródeł przez ``active_strategy_card_set_alias`` (RULES.md 14) — przy włączonym
+        Thunder's Edge to ``te`` (te4construction/te6warfare), inaczej ``pok`` itd.
+        Jawny alias (dla testów/kompatybilności) wymusza konkretny zestaw.
+
+        Czyta listę ``scIDs`` z ``strategyCardSets.json`` dla aliasu i mapuje je na
+        załadowane ``StrategyCardDef`` (po ``id``), sortując po inicjatywie. Pomija
+        karty, których definicji brak w rejestrze (nieaktywne źródło).
 
         Returns:
             Lista ``StrategyCardDef`` posortowana rosnąco po ``initiative``. Pusta,
             gdy zestaw nie istnieje lub żadna karta nie jest załadowana.
         """
-        if not config.STRATEGY_CARD_SETS_PATH.is_file():
-            return []
-        raw = json.loads(config.STRATEGY_CARD_SETS_PATH.read_text(encoding="utf-8"))
-        sets = raw if isinstance(raw, list) else []
+        if set_alias is None:
+            set_alias = self.active_strategy_card_set_alias()
+        sets = self._read_strategy_card_sets()
         sc_ids: list[str] = []
         for entry in sets:
-            if isinstance(entry, dict) and entry.get("alias") == set_alias:
+            if entry.get("alias") == set_alias:
                 ids = entry.get("scIDs")
                 if isinstance(ids, list):
                     sc_ids = [sid for sid in ids if isinstance(sid, str)]

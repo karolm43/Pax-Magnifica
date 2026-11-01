@@ -19,9 +19,14 @@ from src.core.registry import StaticDataRegistry
 
 
 def available_initiatives(
-    registry: StaticDataRegistry, set_alias: str = "pok"
+    registry: StaticDataRegistry, set_alias: str | None = None
 ) -> list[int]:
-    """Lista numerów inicjatywy kart w aktywnym zestawie (rosnąco)."""
+    """Lista numerów inicjatywy kart w aktywnym zestawie (rosnąco).
+
+    ``set_alias=None`` (domyślnie) → zestaw KANONICZNY wg włączonych źródeł
+    (RULES.md 14): przy włączonym Thunder's Edge legalne są też te4/te6. Jawny alias
+    wymusza konkretny zestaw (kompatybilność/testy).
+    """
     return [card.initiative for card in registry.strategy_card_set(set_alias)]
 
 
@@ -146,7 +151,7 @@ def pick_strategy_card(
     player_id: str,
     initiative: int,
     *,
-    set_alias: str = "pok",
+    set_alias: str | None = None,
 ) -> GameState:
     """Gracz wybiera kartę strategii o danym numerze inicjatywy.
 
@@ -227,7 +232,7 @@ def play_strategy_card(
 
 
 def accumulate_unpicked_tg(
-    state: GameState, registry: StaticDataRegistry, *, set_alias: str = "pok"
+    state: GameState, registry: StaticDataRegistry, *, set_alias: str | None = None
 ) -> GameState:
     """Dokłada +1 trade good na każdej NIEWYBRANEJ karcie zestawu (koniec fazy).
 
@@ -323,7 +328,7 @@ def ensure_card_fields_complete(cards: list[StrategyCardDef]) -> None:
 
 
 def validate_strategy_card_set(
-    registry: StaticDataRegistry, *, set_alias: str = "pok"
+    registry: StaticDataRegistry, *, set_alias: str | None = None
 ) -> list[StrategyCardDef]:
     """Zwraca 8 kart zestawu lub ``ValueError``, gdy łamany komplet/unikalność/pola.
 
