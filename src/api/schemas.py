@@ -13,6 +13,11 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.core.game_state import GameState
+from src.core.rules_content import (
+    TopicContent,
+    TopicGroup,
+    TopicIndexEntry,
+)
 
 
 class UnitStack(BaseModel):
@@ -545,3 +550,93 @@ class GodModePatch(BaseModel):
     active_player_id: str | None = None
     players: dict[str, dict[str, object]] | None = None
     systems: dict[str, dict[str, object]] | None = None
+
+
+# --- DTO przeglądarki Zasad (Rules_Browser) ----------------------------
+#
+# Lustro frozen dataclass z ``src/core/rules_content.py`` w warstwie API.
+# Treść reguł jest tylko do odczytu, więc DTO są jednokierunkowe: budowane z
+# obiektów core przez fabryki ``from_core`` (core → DTO). Kolejność grup w
+# ``RulesIndexResponse`` wynika wprost z ``load_index`` (Reguły → Frakcje →
+# Komponenty) — DTO jej nie zmienia.
+
+
+class TopicIndexEntryDTO(BaseModel):
+    """DTO pojedynczej pozycji indeksu tematów (lustro ``TopicIndexEntry``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    slug: str
+    title: str
+    group: str
+
+    @classmethod
+    def from_core(cls, entry: TopicIndexEntry) -> TopicIndexEntryDTO:
+        """Buduje DTO z core'owej pozycji indeksu ``TopicIndexEntry``."""
+        return cls(slug=entry.slug, title=entry.title, group=entry.group)
+
+
+class TopicGroupDTO(BaseModel):
+    """DTO grupy tematów w indeksie (lustro ``TopicGroup``).
+
+    ``entries`` to lista (krotka z core rozwijana do listy) pozycji w kolejności
+    ustalonej przez ``load_index``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    group: str
+    label: str
+    entries: list[TopicIndexEntryDTO] = Field(default_factory=list)
+
+    @classmethod
+    def from_core(cls, group: TopicGroup) -> TopicGroupDTO:
+        """Buduje DTO z core'owej grupy ``TopicGroup`` (krotka → lista DTO)."""
+        return cls(
+            group=group.group,
+            label=group.label,
+            entries=[TopicIndexEntryDTO.from_core(entry) for entry in group.entries],
+        )
+
+
+class RulesIndexResponse(BaseModel):
+    """Odpowiedź ``GET /rules``: pełny indeks tematów pogrupowany po grupach.
+
+    ``groups`` zachowuje kolejność z ``load_index``: Reguły → Frakcje → Komponenty.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    groups: list[TopicGroupDTO] = Field(default_factory=list)
+
+    @classmethod
+    def from_core(cls, groups: list[TopicGroup]) -> RulesIndexResponse:
+        """Buduje odpowiedź indeksu z listy core'owych grup (np. z ``load_index``)."""
+        return cls(groups=[TopicGroupDTO.from_core(group) for group in groups])
+
+
+class TopicContentDTO(BaseModel):
+    """DTO treści pojedynczego tematu (lustro ``TopicContent``).
+
+    Odpowiedź ``GET /rules/{slug}``: surowy ``markdown`` renderowany po stronie
+    klienta oraz metadane (tytuł, grupa, flaga pustej noty F/C).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    slug: str
+    title: str
+    group: str
+    markdown: str
+    is_empty_note: bool
+
+    @classmethod
+    def from_core(cls, topic: TopicContent) -> TopicContentDTO:
+        """Buduje DTO z core'owej treści tematu ``TopicContent``."""
+        return cls(
+            slug=topic.slug,
+            title=topic.title,
+            group=topic.group,
+            markdown=topic.markdown,
+            is_empty_note=topic.is_empty_note,
+        )
