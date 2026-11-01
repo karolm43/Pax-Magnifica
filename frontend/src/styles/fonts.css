@@ -18,3 +18,19 @@
   font-style: normal;
   font-display: swap;
 }
+
+/*
+ * Ambroise Firmin (Bold) — krój DISPLAY logo menu głównego ("Custodian Engine").
+ * Self-hostowany z /font/ (jak Slider): preferowany `woff2` (skonwertowany z OTF
+ * narzędziem fonttools), z oryginalnym `.otf` jako fallback. `font-display: swap`
+ * trzyma logo czytelne, gdyby plik się nie wczytał.
+ */
+@font-face {
+  font-family: "Ambroise Firmin";
+  src:
+    url("/font/ambroise-firmin-bold.woff2") format("woff2"),
+    url("/font/Ambroise Firmin Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

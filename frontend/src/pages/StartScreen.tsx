@@ -4,8 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
-  Center,
-  Loader,
+  Modal,
   MultiSelect,
   NumberInput,
   Paper,
@@ -86,25 +85,37 @@ function QuickReferenceImage({ faction }: { faction: FactionInfo }) {
 function FactionItem({
   faction,
   active,
+  opened,
+  onHover,
   onPick,
 }: {
   faction: FactionInfo;
   active: boolean;
+  /** Czy to właśnie TEN element ma pokazywać podgląd (stan trzymany w slocie). */
+  opened: boolean;
+  /** Zgłasza, która frakcja jest „pod myszą/focusem" (id) albo że żadna (null). */
+  onHover: (id: string | null) => void;
   onPick: () => void;
 }) {
-  const [opened, setOpened] = useState(false);
   return (
-    <SmoothPopover opened={opened} onChange={setOpened} position="right" withArrow>
+    <SmoothPopover
+      opened={opened}
+      // Gdy sam popover chce się zamknąć (np. klik poza), wyczyść wspólny stan.
+      onChange={(next) => {
+        if (!next) onHover(null);
+      }}
+      position="right"
+      withArrow
+    >
       <SmoothPopover.Target>
         <button
           type="button"
           className={`${styles.factionItem} ${active ? styles.factionItemActive : ""}`}
           aria-pressed={active}
           onClick={onPick}
-          onMouseEnter={() => setOpened(true)}
-          onMouseLeave={() => setOpened(false)}
-          onFocus={() => setOpened(true)}
-          onBlur={() => setOpened(false)}
+          onMouseEnter={() => onHover(faction.id)}
+          onFocus={() => onHover(faction.id)}
+          onBlur={() => onHover(null)}
         >
           <CircularFactionIcon faction={faction.id} size={28} />
           <span className={styles.factionItemLabel}>{faction.name}</span>
@@ -155,6 +166,60 @@ function StartingTechPicker({
 }
 
 /**
+ * Pełnoekranowy ekran rozruchu — pokazywany, dopóki ładujemy dane gry (frakcje)
+ * z backendu, oraz gdy ładowanie się nie powiedzie. Trzyma ten sam ciemny klimat
+ * co menu (to samo tło, mocno przyciemnione), logo i animowany pasek postępu —
+ * żeby start aplikacji wyglądał jak rozruch prawdziwej gry, nie jak pusty ekran
+ * z kręciołkiem.
+ */
+function BootScreen({
+  state,
+  onRetry,
+}: {
+  state: "loading" | "error";
+  onRetry?: () => void;
+}) {
+  const themeClassName = usePageThemeClass();
+  return (
+    <div className={`${themeClassName} ${styles.boot}`}>
+      <div className={styles.bootInner}>
+        <div className={styles.menuTitleWrap}>
+          <h1 className={`${styles.menuTitle} ${styles.bootTitle}`}>
+            Custodian Engine
+          </h1>
+          <span className={styles.titleRule} aria-hidden />
+        </div>
+
+        {state === "loading" ? (
+          <div className={styles.bootStatus}>
+            <div
+              className={styles.progressTrack}
+              role="progressbar"
+              aria-label="Ładowanie zasobów gry"
+            >
+              <span className={styles.progressBar} />
+            </div>
+            <p className={styles.bootLabel}>Ładowanie zasobów gry…</p>
+          </div>
+        ) : (
+          <div className={styles.bootStatus}>
+            <p className={styles.bootError}>
+              Nie udało się pobrać danych gry. Sprawdź, czy backend działa
+              (port 8000), i spróbuj ponownie.
+            </p>
+            {onRetry && (
+              <Button variant="default" onClick={onRetry}>
+                Spróbuj ponownie
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Ekran startowy Custodian Engine. Konfigurujesz grę: liczba graczy, nazwy,
  * frakcje i (opcjonalnie) map string, po czym jednym żądaniem tworzysz grę
  * w backendzie i przechodzisz do widoku planszy. Nie wybrana frakcja = losowa
@@ -165,7 +230,7 @@ export default function StartScreen() {
   const themeClassName = usePageThemeClass();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: factions, isLoading, isError } = useFactions();
+  const { data: factions, isLoading, isError, refetch } = useFactions();
 
   const [playerCount, setPlayerCount] = useState(DEFAULT_PLAYERS);
   // Domyślnie każdy slot = "losowa"; użytkownik może nadpisać wyborem frakcji.
@@ -176,9 +241,26 @@ export default function StartScreen() {
   const [techByPlayer, setTechByPlayer] = useState<Record<number, string[]>>({});
   // Nazwy graczy per slot (opcjonalne; pusta = auto po stronie backendu).
   const [nameByPlayer, setNameByPlayer] = useState<Record<number, string>>({});
+  // Która frakcja ma pokazany podgląd quick reference w danym slocie (id) albo
+  // null. Stan trzymamy w slocie (nie w pojedynczym FactionItem), więc naraz
+  // widać najwyżej jeden podgląd, a wyjście myszą poza listę zawsze go chowa —
+  // to likwiduje „zacinający się" hover, gdy mouseleave pojedynczego elementu
+  // się zgubi przy szybkim przeskakiwaniu.
+  const [hoveredByPlayer, setHoveredByPlayer] = useState<
+    Record<number, string | null>
+  >({});
   const [mapString, setMapString] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Widok ekranu startowego: "menu" (ekran tytułowy z 3 przyciskami) lub "setup"
+  // (konfiguracja nowej gry). Oba leżą w jednym pionowym „decku" wysokim na dwa
+  // ekrany; zmiana widoku PRZEWIJA deck w pionie (translateY) z animacją, więc
+  // klik „Graj" wygląda jak zjechanie strony w dół do listy wyboru.
+  const [view, setView] = useState<"menu" | "setup">("menu");
+  // Okna szkieletowe — na razie placeholdery, wypełnimy je później.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   // Szybki dostęp do danych frakcji po id (do menu wyboru technologii).
   const factionById = useMemo(() => {
@@ -252,34 +334,98 @@ export default function StartScreen() {
     }
   };
 
+  // Dopóki ładujemy frakcje (lub gdy się nie powiodło) — pełnoekranowy rozruch,
+  // zamiast migać pustym menu bez danych.
+  if (isLoading) return <BootScreen state="loading" />;
+  if (isError) return <BootScreen state="error" onRetry={() => void refetch()} />;
+
   return (
     <Box className={`${themeClassName} ${styles.root}`}>
-      <Paper radius="lg" withBorder shadow="xl" className={styles.panel}>
-        <Stack gap="xl">
-          <header className={styles.header}>
-            <h1 className={styles.title}>Custodian Engine</h1>
-            <p className={styles.subtitle}>
-              Nowa gra Twilight Imperium 4 — wybierz liczbę graczy, nazwij ich
-              i dobierz frakcje (lub zostaw losowe). Najedź na frakcję, by zobaczyć
-              jej quick reference.
-            </p>
-          </header>
+      {/*
+       * Pionowy „deck" wysoki na dwa ekrany. Klasa `deckSetup` przesuwa go w
+       * górę o 50% (translateY) z animacją, odsłaniając ekran konfiguracji —
+       * efekt „strona zjeżdża w dół do listy".
+       */}
+      <div
+        className={`${styles.deck} ${
+          view === "setup" ? styles.deckSetup : ""
+        }`}
+      >
+        {/* ── Ekran tytułowy (menu główne) ──────────────────────────────── */}
+        <div
+          className={styles.menuScreen}
+          aria-hidden={view === "setup"}
+          {...(view === "setup" ? { inert: "" } : {})}
+        >
+          <div className={styles.menuTitleWrap}>
+            <h1 className={styles.menuTitle}>Custodian Engine</h1>
+            <span className={styles.titleRule} aria-hidden />
+            <p className={styles.menuTagline}>Twilight Imperium 4 — tryb solo</p>
+          </div>
 
-          {isLoading && (
-            <Center style={{ padding: 32 }}>
-              <Loader />
-            </Center>
-          )}
+          <nav className={styles.menuButtons} aria-label="Menu główne">
+            <Button
+              size="xl"
+              fullWidth
+              className={styles.menuButton}
+              onClick={() => setView("setup")}
+            >
+              Graj
+            </Button>
+            <Button
+              size="xl"
+              fullWidth
+              variant="default"
+              className={styles.menuButton}
+              onClick={() => setSettingsOpen(true)}
+            >
+              Ustawienia
+            </Button>
+            <Button
+              size="xl"
+              fullWidth
+              variant="default"
+              className={styles.menuButton}
+              onClick={() => setRulesOpen(true)}
+            >
+              Zasady
+            </Button>
+          </nav>
 
-          {isError && (
-            <Text c="red" size="sm">
-              Nie udało się pobrać listy frakcji. Czy backend działa (port 8000)?
-            </Text>
-          )}
+          <p className={styles.menuFootnote}>Lokalny silnik — wersja rozwojowa</p>
 
-          {factions && (
-            <>
-              {/* ── Ustawienia gry ── */}
+          <span className={styles.scrollHint} aria-hidden>
+            ▾
+          </span>
+        </div>
+
+        {/* ── Ekran konfiguracji nowej gry (wybór graczy/frakcji) ───────── */}
+        <div
+          className={styles.setupScreen}
+          aria-hidden={view === "menu"}
+          {...(view === "menu" ? { inert: "" } : {})}
+        >
+          <Paper radius="lg" withBorder shadow="xl" className={styles.panel}>
+            <Stack gap="xl">
+                <header className={styles.header}>
+                  <button
+                    type="button"
+                    className={styles.backButton}
+                    onClick={() => setView("menu")}
+                  >
+                    ← Menu główne
+                  </button>
+                  <h1 className={styles.title}>Nowa gra</h1>
+                  <p className={styles.subtitle}>
+                    Wybierz liczbę graczy, nazwij ich i dobierz frakcje (lub
+                    zostaw losowe). Najedź na frakcję, by zobaczyć jej quick
+                    reference.
+                  </p>
+                </header>
+
+                {factions && (
+                  <>
+                    {/* ── Ustawienia gry ── */}
               <section>
                 <p className={styles.sectionLabel}>Ustawienia</p>
                 <div className={styles.settingsRow}>
@@ -340,6 +486,18 @@ export default function StartScreen() {
                           className={styles.factionList}
                           role="listbox"
                           aria-label={`Frakcja gracza ${i + 1}`}
+                          // Wyjście myszą poza listę zawsze chowa podgląd slotu.
+                          onMouseLeave={() =>
+                            setHoveredByPlayer((prev) => ({ ...prev, [i]: null }))
+                          }
+                          // Scroll listy chowa podgląd — inaczej karta „odjeżdża"
+                          // od swojej pozycji i zostaje wisieć (popover nie nadąża
+                          // za przewijanym kontenerem).
+                          onScroll={() =>
+                            setHoveredByPlayer((prev) =>
+                              prev[i] == null ? prev : { ...prev, [i]: null },
+                            )
+                          }
                         >
                           <button
                             type="button"
@@ -363,6 +521,10 @@ export default function StartScreen() {
                               key={f.id}
                               faction={f}
                               active={selectedId === f.id}
+                              opened={(hoveredByPlayer[i] ?? null) === f.id}
+                              onHover={(id) =>
+                                setHoveredByPlayer((prev) => ({ ...prev, [i]: id }))
+                              }
                               onPick={() => {
                                 setFactionByPlayer((prev) => ({ ...prev, [i]: f.id }));
                                 // Zmiana frakcji kasuje poprzedni wybór technologii.
@@ -404,10 +566,52 @@ export default function StartScreen() {
                   Generuj i graj
                 </Button>
               </div>
-            </>
-          )}
+                  </>
+                )}
+              </Stack>
+            </Paper>
+          </div>
+      </div>
+
+      {/* ── Okno szkieletowe: Ustawienia (do wypełnienia później) ───────── */}
+      <Modal
+        opened={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        title="Ustawienia"
+        size="md"
+      >
+        <Stack gap="md">
+          <Text c="dimmed" size="sm">
+            Ustawienia gry pojawią się tutaj. Na razie to szkielet — wypełnimy
+            go kolejnymi opcjami (np. motyw, dźwięk, warianty reguł).
+          </Text>
+          <div className={styles.modalActions}>
+            <Button variant="default" onClick={() => setSettingsOpen(false)}>
+              Zamknij
+            </Button>
+          </div>
         </Stack>
-      </Paper>
+      </Modal>
+
+      {/* ── Okno szkieletowe: Zasady (do wypełnienia później) ───────────── */}
+      <Modal
+        opened={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        title="Zasady"
+        size="md"
+      >
+        <Stack gap="md">
+          <Text c="dimmed" size="sm">
+            Skrót zasad i odniesienia do reguł TI4 trafią tutaj. Na razie to
+            szkielet — uzupełnimy go wybranymi tematami reguł.
+          </Text>
+          <div className={styles.modalActions}>
+            <Button variant="default" onClick={() => setRulesOpen(false)}>
+              Zamknij
+            </Button>
+          </div>
+        </Stack>
+      </Modal>
     </Box>
   );
 }

@@ -16,11 +16,14 @@
  * razem z panelem.
  */
 .root {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ds-space-xl);
+  /*
+   * Okno na „deck": dokładnie jeden ekran wysokości, reszta decku ukryta.
+   * Deck przesuwa się w pionie, więc tło (grafika menu) zostaje przyklejone do
+   * viewportu (`fixed`) i nie jedzie razem z treścią — efekt parallaxu.
+   */
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
   background:
     radial-gradient(
       ellipse 120% 80% at 50% -10%,
@@ -28,8 +31,368 @@
       transparent 60%
     ),
     linear-gradient(rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.65)),
-    url("/static/extra/main_menu.jpg") center / cover no-repeat fixed,
+    url("/static/extra/main_menu.jpg") center / cover no-repeat,
     var(--ds-page);
+}
+
+/*
+ * Winieta: przyciemnione rogi i krawędzie ekranu dają filmowy, „dopięty" kadr.
+ * Pseudo-element nad tłem, ale pod treścią; nie łapie zdarzeń wskaźnika.
+ */
+.root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 85% 75% at 50% 48%,
+    transparent 55%,
+    rgb(0 0 0 / 0.55) 100%
+  );
+}
+
+/* Treść decku zostaje NAD winietą. */
+.deck {
+  position: relative;
+  z-index: 2;
+}
+
+/*
+ * Pionowy „deck" złożony z dwóch pełnoekranowych sekcji (menu nad setupem).
+ * Domyślnie pokazuje menu; klasa `.deckSetup` przesuwa go o jeden ekran w górę,
+ * odsłaniając konfigurację — stąd wrażenie, że strona zjeżdża w dół do listy.
+ */
+.deck {
+  display: grid;
+  grid-auto-rows: 100vh;
+  height: 200vh;
+  transform: translateY(0);
+  /*
+   * Zjazd to NAWIGACJA (nie sama dekoracja), więc animujemy go także przy
+   * `prefers-reduced-motion` — tyle że krócej. Czas trzymamy w zmiennej lokalnej,
+   * którą media-query tylko skraca, zamiast całkiem usuwać ruch.
+   */
+  --deck-dur: 1.6s;
+  transition: transform var(--deck-dur) var(--ds-ease);
+  will-change: transform;
+}
+
+.deckSetup {
+  transform: translateY(-100vh);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck {
+    --deck-dur: 0.35s;
+  }
+}
+
+/* Ekran menu wypełnia dokładnie jeden ekran i centruje treść. */
+.menuScreen {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-space-xl);
+}
+
+/*
+ * Ekran konfiguracji: to WŁASNY kontener przewijania (ma 6 slotów, często wyższy
+ * niż ekran). Dokładnie jeden ekran wysokości + `overflow-y:auto` → przewija się
+ * wewnątrz, niezależnie od zjazdu decku.
+ *   - `display:block` + padding w pionie daje odstęp góra/dół,
+ *   - panel centrujemy poziomo przez `margin-inline:auto`,
+ *   - `overscroll-behavior:contain` nie „przerzuca" scrolla na dokument,
+ *   - `scroll-behavior:smooth` wygładza skoki (np. focus przewijający do pola).
+ */
+.setupScreen {
+  width: 100%;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  padding: clamp(24px, 6vh, 64px) var(--ds-space-xl);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Ekran tytułowy (menu główne) ─────────────────────────────────────── */
+
+.menuScreen {
+  gap: var(--ds-space-xl);
+  text-align: center;
+  position: relative;
+}
+
+/*
+ * Cienkie poziome „szyny" HUD u góry i u dołu ekranu menu — subtelny akcent
+ * interfejsu, który zanika po bokach. Czysta dekoracja, bez zdarzeń wskaźnika.
+ */
+.menuScreen::before,
+.menuScreen::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(86vw, 1100px);
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--ds-accent-rgb) / 0.45) 20%,
+    rgb(var(--ds-accent-rgb) / 0.45) 80%,
+    transparent
+  );
+}
+
+.menuScreen::before {
+  top: clamp(24px, 6vh, 64px);
+}
+
+.menuScreen::after {
+  bottom: clamp(24px, 6vh, 64px);
+}
+
+/*
+ * Wejście menu: elementy pojawiają się kaskadowo (fade + delikatne uniesienie).
+ * Kolejne opóźnienia dają efekt „składania się" ekranu tytułowego.
+ */
+.menuTitleWrap,
+.menuButtons,
+.menuFootnote {
+  animation: menuRise 0.6s var(--ds-ease) both;
+}
+
+.menuButtons {
+  animation-delay: 0.12s;
+}
+
+.menuFootnote {
+  animation-delay: 0.24s;
+}
+
+@keyframes menuRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuTitleWrap,
+  .menuButtons,
+  .menuFootnote {
+    animation: none;
+  }
+}
+
+/* Blok tytułowy menu — duży tytuł gry + podtytuł, z poświatą akcentu. */
+.menuTitleWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-xs);
+}
+
+/*
+ * Pozioma kreska pod logo — jak w oficjalnym logo TI4. Cienki pasek w tym samym
+ * ciepłym gradiencie, pełnej szerokości napisu, z delikatną poświatą. To osobny
+ * element (między tytułem a podtytułem), więc nie łapie `scaleY` tytułu.
+ */
+.titleRule {
+  width: min(72vw, 640px);
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #f24a21 12%,
+    #fca22b 50%,
+    #ffd34a 72%,
+    #f24a21 88%,
+    transparent 100%
+  );
+  box-shadow: 0 0 16px rgb(246 121 42 / 0.5);
+}
+
+/*
+ * Logo menu: „CUSTODIAN ENGINE" krojem Ambroise Firmin Bold, DRUKOWANYMI.
+ * Kolor w klimacie Twilight Imperium — pionowy gradient od ciepłej czerwieni/
+ * pomarańczu u góry do złotego żółtego u dołu (jak oficjalne logo TI4), wycięty
+ * w literach (`background-clip: text`). Poświata pod spodem daje „rozżarzenie".
+ */
+.menuTitle {
+  margin: 0;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: clamp(2.75rem, 8vw, 5.5rem);
+  line-height: 1;
+  text-transform: uppercase;
+  /* Szersze odstępy między literami (dostojny, „rozstrzelony" napis). */
+  letter-spacing: 0.12em;
+  /* Kompensujemy tracking po prawej, żeby napis został wyśrodkowany. */
+  text-indent: 0.12em;
+
+  /*
+   * Masywny, „wysoki" charakter logo TI4: litery rozciągnięte w PIONIE.
+   * `scaleY` wydłuża glify bez poszerzania ich, a `transform-origin: center`
+   * trzyma napis w miejscu. Dajemy trochę marginesu w pionie, bo scaleY
+   * wychodzi poza naturalny box litery.
+   */
+  transform: scaleY(1.45);
+  transform-origin: center;
+  margin-block: 0.22em;
+
+  /* Gradient TI4 wycięty w glifach. */
+  background: linear-gradient(
+    180deg,
+    #f24a21 0%,
+    #f6792a 32%,
+    #fca22b 62%,
+    #ffd34a 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+
+  /*
+   * Poświata „rozżarzenia": cień pod tekstem nie zadziała przez przezroczyste
+   * wypełnienie, więc rozżarzenie dajemy jako drop-shadow filtra (działa na
+   * kształcie glifów, nie na prostokącie).
+   */
+  filter:
+    drop-shadow(0 0 26px rgb(246 121 42 / 0.5))
+    drop-shadow(0 2px 10px rgb(0 0 0 / 0.65));
+}
+
+.menuTagline {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: clamp(0.95rem, 2vw, 1.25rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ds-accent-ink);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.7);
+}
+
+/* Pionowy stos przycisków menu o stałej, czytelnej szerokości. */
+.menuButtons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-sm);
+  width: 100%;
+  max-width: 320px;
+}
+
+/* Pojedynczy przycisk menu — wyższy, z większym tracking-iem liter. */
+.menuButton {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    transform var(--ds-dur-fast) var(--ds-ease-standard),
+    box-shadow var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+/* Lekkie uniesienie + poświata akcentu pod kursorem/focusem. */
+.menuButton:hover,
+.menuButton:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(var(--ds-accent-rgb) / 0.4);
+}
+
+.menuButton:active {
+  transform: translateY(0);
+}
+
+.menuFootnote {
+  margin: 0;
+  font-size: var(--ds-fz-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.7);
+}
+
+/*
+ * Strzałka-podpowiedź na dole menu: sygnalizuje, że „Graj" przewija niżej.
+ * Delikatne pulsowanie w pionie przyciąga wzrok bez natręctwa.
+ */
+.scrollHint {
+  position: absolute;
+  bottom: var(--ds-space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--ds-accent-ink);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.7);
+  animation: scrollBob 1.8s var(--ds-ease-standard) infinite;
+  pointer-events: none;
+}
+
+@keyframes scrollBob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, 6px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollHint {
+    animation: none;
+  }
+}
+
+/* ── Ekran konfiguracji (wybór graczy/frakcji) ────────────────────────── */
+
+/*
+ * Przycisk powrotu do menu w nagłówku panelu — subtelny link-button wyrównany
+ * do lewej, nad tytułem sekcji.
+ */
+.backButton {
+  align-self: flex-start;
+  padding: 2px 6px;
+  margin-bottom: var(--ds-space-xs);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-ink-lo);
+  font-size: var(--ds-fz-sm);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.backButton:hover,
+.backButton:focus-visible {
+  color: var(--ds-ink-hi);
+  background: var(--ds-ground);
+  border-color: var(--ds-h22);
+  outline: none;
+}
+
+/* Rząd akcji w oknach szkieletowych (Ustawienia/Zasady). */
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /*
@@ -38,11 +401,38 @@
  * treść pozostała czytelna niezależnie od jasności obrazu pod spodem.
  */
 .panel {
+  position: relative;
   width: 100%;
-  max-width: 920px;
+  max-width: 1180px;
+  margin-inline: auto;
   padding: var(--ds-space-xl);
   background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
   backdrop-filter: blur(4px);
+  /*
+   * Pasek akcentu na górnej krawędzi jest wycinany zaokrągleniem rogów
+   * (`border-radius` panelu). `clip-path` tnie tylko róg prostokąta, a nie cały
+   * overflow treści — dzięki temu nic wewnątrz panelu nie jest „ucinane".
+   */
+  border-radius: var(--ds-radius-lg);
+  clip-path: inset(0 round var(--ds-radius-lg));
+}
+
+/* Cienki świecący pasek akcentu na górnej krawędzi panelu (klimat „konsoli"). */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #f24a21,
+    #fca22b,
+    #ffd34a,
+    #f24a21,
+    transparent
+  );
+  opacity: 0.8;
 }
 
 /* ── Nagłówek ─────────────────────────────────────────────────────────── */
@@ -101,13 +491,18 @@
 
 /* ── Sloty graczy ─────────────────────────────────────────────────────── */
 
+/*
+ * Siatka slotów graczy sama dobiera liczbę kolumn do szerokości panelu
+ * (auto-fill): na szerokim panelu zmieści 3 sloty w rzędzie, na węższym 2, a na
+ * wąskim ekranie zejdzie do 1 — bez ręcznych breakpointów.
+ */
 .playersGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--ds-space-md);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 680px) {
   .playersGrid {
     grid-template-columns: 1fr;
   }
@@ -231,17 +626,22 @@
 /* ── Quick reference (podgląd na hover) ───────────────────────────────── */
 
 .quickRefCard {
-  padding: var(--ds-space-xs);
+  padding: var(--ds-space-sm);
   border: 1px solid var(--ds-h22);
   border-radius: var(--ds-radius-lg);
   background: var(--ds-ground);
-  box-shadow: var(--ds-shadow-lg);
+  box-shadow: var(--ds-shadow-xl);
 }
 
+/*
+ * Obraz quick reference pokazywany na hover/focus. Powiększony względem
+ * wcześniejszych 420px — karty pomocy mają być duże i czytelne. Limit `90vw`
+ * chroni przed wyjściem poza viewport na wąskich ekranach.
+ */
 .quickRefImage {
   display: block;
-  width: 420px;
-  max-width: 80vw;
+  width: 680px;
+  max-width: 90vw;
   height: auto;
   border-radius: var(--ds-radius-md);
 }
@@ -258,4 +658,124 @@
 .footer {
   display: flex;
   justify-content: flex-end;
+}
+
+/* ── Ekran rozruchu (ładowanie / błąd danych) ─────────────────────────── */
+
+/*
+ * Pełnoekranowy ekran bootowania. To samo tło co menu, ale mocno przyciemnione
+ * (dwie ciemne warstwy gradientu nad grafiką) — „gra się wczytuje", a nie pusty
+ * ekran. Treść wyśrodkowana, delikatnie wjeżdża.
+ */
+.boot {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--ds-space-xl);
+  background:
+    radial-gradient(
+      ellipse 100% 70% at 50% 40%,
+      rgb(var(--ds-accent-rgb) / 0.08),
+      transparent 70%
+    ),
+    linear-gradient(rgb(0 0 0 / 0.86), rgb(0 0 0 / 0.92)),
+    url("/static/extra/main_menu.jpg") center / cover no-repeat fixed,
+    var(--ds-page);
+}
+
+.bootInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-lg);
+  animation: menuRise 0.6s var(--ds-ease) both;
+}
+
+/* Na ekranie rozruchu logo jest nieco mniejsze niż w pełnym menu. */
+.bootTitle {
+  font-size: clamp(2rem, 6vw, 3.75rem);
+}
+
+.bootStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-sm);
+  width: min(78vw, 420px);
+}
+
+/*
+ * Pasek postępu „nieoznaczony" (indeterminate): nie znamy procentu, więc świetlny
+ * fragment przesuwa się w kółko po torze. Tor to cienka, przyciemniona szyna;
+ * wypełnienie to świecący gradient w kolorach TI4.
+ */
+.progressTrack {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+
+.progressBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f24a21, #fca22b, #ffd34a);
+  box-shadow: 0 0 12px rgb(246 121 42 / 0.6);
+  animation: progressSlide 1.3s var(--ds-ease-standard) infinite;
+}
+
+@keyframes progressSlide {
+  0% {
+    left: -42%;
+  }
+  100% {
+    left: 102%;
+  }
+}
+
+.bootLabel {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-sm);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.bootError {
+  margin: 0;
+  max-width: 42ch;
+  text-align: center;
+  color: var(--ds-ink);
+  font-size: var(--ds-fz-sm);
+  line-height: var(--ds-lh-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bootInner {
+    animation: none;
+  }
+  .progressBar {
+    /* Bez ruchu zostaje spokojne pulsowanie przezroczystości. */
+    animation: bootPulse 1.4s ease-in-out infinite;
+    left: 0;
+    width: 100%;
+  }
+}
+
+@keyframes bootPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
