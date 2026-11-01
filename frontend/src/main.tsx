@@ -43,6 +43,20 @@ const router = createBrowserRouter([
         (m) => ({ Component: m.SystemTilePage }),
       ),
   },
+  {
+    path: "/rules",
+    lazy: () =>
+      import("./domains/rules/RulesBrowserPage").then((m) => ({
+        Component: m.RulesBrowserPage,
+      })),
+  },
+  {
+    path: "/rules/:slug",
+    lazy: () =>
+      import("./domains/rules/RulesBrowserPage").then((m) => ({
+        Component: m.RulesBrowserPage,
+      })),
+  },
 ]);
 
 document.body.classList.toggle("mobile", isMobileDevice());
