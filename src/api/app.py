@@ -28,6 +28,7 @@ from src.api.routers import (
     game,
     history,
     players,
+    rules,
     strategy,
     tactical,
     window,
@@ -92,6 +93,7 @@ def create_app(
     app.include_router(history.router)
     app.include_router(tactical.router)
     app.include_router(window.router)
+    app.include_router(rules.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:
