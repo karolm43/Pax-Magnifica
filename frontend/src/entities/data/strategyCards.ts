@@ -1184,8 +1184,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "base_game_1",
     colourHexCode: "#ec1c24",
     source: "base",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Leadership.webp",
+    imageURL: "/strat_cards/base_game_1.png",
   },
   {
     id: "pok2diplomacy",
@@ -1200,8 +1199,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "pok_2",
     colourHexCode: "#f69421",
     source: "codex1",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/DiplomacyCodexOrdinian.webp",
+    imageURL: "/strat_cards/pok_2.png",
   },
   {
     id: "pok3politics",
@@ -1218,8 +1216,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "base_game_3",
     colourHexCode: "#fff200",
     source: "base",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Politics.webp",
+    imageURL: "/strat_cards/base_game_3.png",
   },
   {
     id: "pok4construction",
@@ -1235,8 +1232,11 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "pok_4",
     colourHexCode: "#39b54a",
     source: "pok",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/ConstructionProphecyOfKings.webp",
+    imageURL: "/strat_cards/pok_4.png",
+    // Uwaga: dla init 4 KANONICZNY wariant to Thunder's Edge (``te4construction``),
+    // który niesie własną grafikę ``/strat_cards/te_4.png``. Ten wpis pok zostaje z
+    // własną grafiką tylko dla gier BEZ Thunder's Edge; przy TE backend zwraca ``id``
+    // te4construction i to jego obraz ma priorytet.
   },
   {
     id: "pok5trade",
@@ -1253,8 +1253,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "base_game_5",
     colourHexCode: "#00a99d",
     source: "base",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Trade.webp",
+    imageURL: "/strat_cards/base_game_5.png",
   },
   {
     id: "pok6warfare",
@@ -1270,8 +1269,10 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "base_game_6",
     colourHexCode: "#008ed4",
     source: "base",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Warfare.webp",
+    imageURL: "/strat_cards/base_game_6.png",
+    // Uwaga: dla init 6 KANONICZNY wariant to Thunder's Edge (``te6warfare``) z własną
+    // grafiką ``/strat_cards/te_6.png``. Ten wpis base/pok zostaje z własną grafiką
+    // tylko dla gier BEZ Thunder's Edge.
   },
   {
     id: "pok7technology",
@@ -1287,8 +1288,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "base_game_7",
     colourHexCode: "#15489f",
     source: "base",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Technology.webp",
+    imageURL: "/strat_cards/base_game_7.png",
   },
   {
     id: "pok8imperial",
@@ -1304,8 +1304,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "base_game_8",
     colourHexCode: "#752b90",
     source: "base",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Imperial.webp",
+    imageURL: "/strat_cards/base_game_8.png",
   },
   {
     id: "project_pi_4",
@@ -1347,7 +1346,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "te_4",
     colourHexCode: "#39b54a",
     source: "thunders_edge",
-    imageURL: "",
+    imageURL: "/strat_cards/te_4.png",
   },
   {
     id: "te6warfare",
@@ -1362,7 +1361,7 @@ export const strategyCards: StrategyCardDefinition[] = [
     imageFileName: "te_6",
     colourHexCode: "#008ed4",
     source: "thunders_edge",
-    imageURL: "",
+    imageURL: "/strat_cards/te_6.png",
   },
   {
     id: "tf1",
@@ -1722,7 +1721,6 @@ export const strategyCards: StrategyCardDefinition[] = [
       "Spend 1 token from your strategy pool to secretly look at the next unrevealed public objective.",
     ],
     source: "unfulvio",
-    imageURL:
-      "https://ti4ultimate.com/resources/images/en-US/cards/strategy/Leadership.webp",
+    imageURL: "",
   },
 ];

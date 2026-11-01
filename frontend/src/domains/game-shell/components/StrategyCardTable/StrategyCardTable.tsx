@@ -263,8 +263,15 @@ export function StrategyCardTable(): ReactElement | null {
           const rot = offset * 4;
           // Przesunięcie w dół rośnie kwadratowo od środka → łuk wypukły do góry
           // (środek lift≈0, brzegi najniżej). ``transform-origin: bottom center``
-          // w CSS sprawia, że obrót wygląda jak trzymany wachlarz.
-          const lift = Math.abs(offset) * Math.abs(offset) * 5;
+          // w CSS sprawia, że obrót wygląda jak trzymany wachlarz. Złagodzony
+          // mnożnik (było 5): przy obrocie o ``rot`` górna krawędź skrajnych kart
+          // i tak wędruje w górę, więc mniejszy opad wyrównuje ich wysokość ze
+          // środkiem — karty 1 i 8 nie „uciekają" wyżej.
+          const lift = Math.abs(offset) * Math.abs(offset) * 3;
+          // SKALA per karta: skrajne karty (duży |offset|) delikatnie POWIĘKSZONE,
+          // by zrównoważyć wrażenie, że przez obrót łuku są mniejsze (prośba:
+          // „1 i 8 trochę większe"). Środek 1.0, brzegi do ~1.08.
+          const scale = 1 + Math.abs(offset) * 0.024;
 
           // Tooltip otwarty dla tej karty? (klucz = initiative).
           const tooltipOpen = hovered === card.initiative;
@@ -309,6 +316,7 @@ export function StrategyCardTable(): ReactElement | null {
                     ["--scc" as string]: SC_TONE[card.initiative],
                     ["--rot" as string]: `${rot}deg`,
                     ["--lift" as string]: `${lift}px`,
+                    ["--scale" as string]: `${scale}`,
                   }}
                   // Tooltip otwieramy na hover ORAZ focus (a11y), zamykamy na
                   // opuszczeniu/blur. To DODATEK — nie koliduje z klikiem/wyborem.

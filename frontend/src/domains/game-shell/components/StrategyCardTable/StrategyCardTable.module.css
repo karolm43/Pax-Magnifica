@@ -46,8 +46,8 @@
      więc wachlarz nie zlewa się z mapą, a tło nie jest szarym kafelkiem. */
   background: radial-gradient(
     ellipse at center,
-    rgb(0 0 0 / 0.55),
-    rgb(0 0 0 / 0.32) 70%,
+    rgb(0 0 0 / 0.78),
+    rgb(0 0 0 / 0.55) 70%,
     transparent
   );
   /* Delikatne „szkło" — lekko rozmywa mapę pod spodem dla czytelności kart. */
@@ -153,11 +153,18 @@
   /* Wartości domyślne łuku (gdy komponent nie wstrzyknie zmiennych). */
   --rot: 0deg;
   --lift: 0px;
+  --scale: 1;
   position: relative;
   /* Szerokość tak dobrana, by 8 kart zmieściło się w viewporcie (priorytet:
-     brak wychodzenia poza ekran > wielkość kart). */
+     brak wychodzenia poza ekran > wielkość kart). Powiększone (iteracja: karty
+     „trochę większe") — wyższy dolny i górny próg clamp. */
   flex: 0 0 auto;
-  width: clamp(96px, 10.5vw, 190px);
+  width: clamp(120px, 12.5vw, 230px);
+  /* STAŁA proporcja karty (źródłowy format kart strategii ~400x499). Dzięki temu
+     KAŻDA karta ma identyczny rozmiar niezależnie od wymiarów pliku PNG (część
+     assetów ma lekko inne wymiary, np. pok_2 390x461, pok_4 449x556) — obraz
+     wypełnia ten sam kafel przez ``object-fit: cover`` (patrz .cardImage). */
+  aspect-ratio: 400 / 499;
   display: block;
   /* Bez kafla/ramki — widoczny ma być SAM OBRAZ (obraz ma własne rogi). Reset
      natywnego <button>: ``background`` i ``border`` wyłączone JAWNIE, inaczej
@@ -171,8 +178,9 @@
   text-align: left;
   color: inherit;
   cursor: pointer;
-  /* Łuk: obrót + opad liczone z --rot/--lift; obrót od dołu środka (wachlarz). */
-  transform: rotate(var(--rot)) translateY(var(--lift));
+  /* Łuk: obrót + opad + skala liczone z --rot/--lift/--scale; obrót od dołu środka
+     (wachlarz). ``--scale`` delikatnie powiększa skrajne karty (1 i 8). */
+  transform: rotate(var(--rot)) translateY(var(--lift)) scale(var(--scale));
   transform-origin: bottom center;
   transition:
     filter var(--ds-dur-fast) var(--ds-ease),
@@ -239,13 +247,21 @@
   opacity: 0.8;
 }
 
-/* Pełna grafika karty (webp z ti4ultimate.com) — wypełnia szerokość kafla. */
+/*
+ * Pełna grafika karty (lokalny PNG z assetów: /strat_cards/*). Wypełnia CAŁY kafel
+ * o stałej proporcji (``aspect-ratio`` na .card). ``width/height: 100%`` +
+ * ``object-fit: cover`` sprawiają, że obrazy o lekko różnych wymiarach źródłowych
+ * (np. pok_2, pok_4) renderują się w IDENTYCZNYM rozmiarze — ewentualna nadwyżka
+ * jest przycinana symetrycznie (``object-position: center``), więc żadna karta nie
+ * jest większa/mniejsza od pozostałych.
+ */
 .cardImage {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   border-radius: var(--ds-radius-sm);
   object-fit: cover;
+  object-position: center;
 }
 
 /*
@@ -255,9 +271,14 @@
  */
 .cardFallback {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--ds-space-xs);
-  min-height: 72px;
+  /* Wypełnia CAŁY kafel o stałej proporcji (jak obraz) — spójny rozmiar z kartami
+     mającymi grafikę, bez łamania układu wachlarza. */
+  width: 100%;
+  height: 100%;
   padding: var(--ds-space-xs) var(--ds-space-sm);
   background: var(--ds-tex-rail);
   border: 1px solid var(--ds-h14);
@@ -283,9 +304,11 @@
 .name {
   font-size: var(--ds-fz-sm);
   color: var(--ds-ink-hi);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Fallback jest teraz kolumną (dysk nad nazwą) na całej wysokości kafla —
+     nazwa może się zawinąć i jest wyśrodkowana, zamiast ucinać się w jednej linii. */
+  text-align: center;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /*
@@ -341,7 +364,8 @@
   .card:hover,
   .card:focus-visible {
     z-index: 5;
-    /* Bez scale/translate/prostowania — zachowujemy spoczynkowy transform łuku. */
-    transform: rotate(var(--rot)) translateY(var(--lift));
+    /* Bez prostowania/dodatkowego powiększania — zachowujemy spoczynkowy transform
+       łuku (obrót + opad + skala per karta). */
+    transform: rotate(var(--rot)) translateY(var(--lift)) scale(var(--scale));
   }
 }

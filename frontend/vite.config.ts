@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
@@ -50,5 +51,13 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  // Konfiguracja testów (Vitest): środowisko jsdom dla komponentów React (RTL),
+  // globalne API testowe (describe/it/expect) oraz plik setupu z matcherami jest-dom.
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    css: false,
   },
 });
