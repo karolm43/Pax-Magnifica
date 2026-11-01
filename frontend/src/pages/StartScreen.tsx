@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -239,6 +239,16 @@ export default function StartScreen() {
   const queryClient = useQueryClient();
   const { data: factions, isLoading, isError, refetch } = useFactions();
 
+  // Minimalny czas pokazania ekranu rozruchu. Lokalny backend odpowiada niemal
+  // natychmiast, więc bez tego BootScreen tylko by „mignął". Dzięki temu rozruch
+  // jest widoczny i płynnie znika, zamiast przeskakiwać od razu do menu.
+  const MIN_BOOT_MS = 1100;
+  const [bootMinElapsed, setBootMinElapsed] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setBootMinElapsed(true), MIN_BOOT_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+
   const [playerCount, setPlayerCount] = useState(DEFAULT_PLAYERS);
   // Domyślnie każdy slot = "losowa"; użytkownik może nadpisać wyborem frakcji.
   const [factionByPlayer, setFactionByPlayer] = useState<Record<number, string>>(
@@ -342,9 +352,10 @@ export default function StartScreen() {
   };
 
   // Dopóki ładujemy frakcje (lub gdy się nie powiodło) — pełnoekranowy rozruch,
-  // zamiast migać pustym menu bez danych.
-  if (isLoading) return <BootScreen state="loading" />;
+  // zamiast migać pustym menu bez danych. Boot utrzymujemy też przez minimalne
+  // okno czasu, żeby przy błyskawicznym backendzie nie „mignął".
   if (isError) return <BootScreen state="error" onRetry={() => void refetch()} />;
+  if (isLoading || !bootMinElapsed) return <BootScreen state="loading" />;
 
   return (
     <Box className={`${themeClassName} ${styles.root}`}>
@@ -362,12 +373,12 @@ export default function StartScreen() {
         <div
           className={styles.menuScreen}
           aria-hidden={view === "setup"}
-          {...(view === "setup" ? { inert: "" } : {})}
+          inert={view === "setup"}
         >
           <div className={styles.menuTitleWrap}>
             <h1 className={styles.menuTitle}>Custodian Engine</h1>
             <span className={styles.titleRule} aria-hidden />
-            <p className={styles.menuTagline}>Twilight Imperium 4 — tryb solo</p>
+            <p className={styles.menuTagline}>Twilight Imperium 4 — web game</p>
           </div>
 
           <nav className={styles.menuButtons} aria-label="Menu główne">
@@ -410,7 +421,7 @@ export default function StartScreen() {
         <div
           className={styles.setupScreen}
           aria-hidden={view === "menu"}
-          {...(view === "menu" ? { inert: "" } : {})}
+          inert={view === "menu"}
         >
           <Paper radius="lg" withBorder shadow="xl" className={styles.panel}>
             <Stack gap="xl">
