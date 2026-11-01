@@ -114,6 +114,13 @@ function FactionItem({
           aria-pressed={active}
           onClick={onPick}
           onMouseEnter={() => onHover(faction.id)}
+          // Opuszczenie SAMEGO elementu też chowa podgląd (jeśli to ten element
+          // był otwarty). To trzecia, niezależna ścieżka zamknięcia obok
+          // mouseleave listy i scrolla — dzięki niej karta nie „zostaje", gdy
+          // kursor wyjdzie poza listę nie przez jej obszar.
+          onMouseLeave={() => {
+            if (opened) onHover(null);
+          }}
           onFocus={() => onHover(faction.id)}
           onBlur={() => onHover(null)}
         >
