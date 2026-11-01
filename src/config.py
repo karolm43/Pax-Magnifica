@@ -15,6 +15,9 @@ from pathlib import Path
 PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 ASSETS_DIR: Path = PROJECT_ROOT / "assets"
 
+# Offline'owy zrzut reguł TI4 (tirules2.com) — źródło treści przeglądarki Zasad.
+RULES_DIR: Path = PROJECT_ROOT / "docs" / "rules_tirules"
+
 DATA_DIR: Path = ASSETS_DIR / "data"
 SYSTEMS_DIR: Path = ASSETS_DIR / "systems"
 PLANETS_DIR: Path = ASSETS_DIR / "planets"
