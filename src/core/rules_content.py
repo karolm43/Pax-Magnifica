@@ -4,8 +4,8 @@ Warstwa ``core`` zgodna ze złotą zasadą architektury (ARCHITEKTURA_KODU.md §
 całe parsowanie, grupowanie i mapowanie linków zrzutu ``docs/rules_tirules/`` to
 CZYSTE funkcje bez importów FastAPI/HTTP. Ten moduł definiuje wyłącznie modele
 danych (frozen dataclassy) i stałe modułu — czyste funkcje
-(``load_index``/``load_topic``/``parse_title``/``map_link`` itd.) dochodzą w
-kolejnych zadaniach planu (2.1, 2.3, 3.1, 4.1).
+(``load_index``/``load_topic`` itd.) dochodzą w kolejnych zadaniach planu
+(3.1); filtrowanie i wyznaczanie aktywnej pozycji — zadanie 4.1 (gotowe).
 
 Modele są niemutowalne (``frozen=True``), bo treść reguł jest tylko do odczytu i
 nie dotyka ``GameState`` — router API wyłącznie ją serwuje, nie commituje stanu.
@@ -14,7 +14,7 @@ nie dotyka ``GameState`` — router API wyłącznie ją serwuje, nie commituje s
 from __future__ import annotations
 
 import re
-from collections.abc import Container
+from collections.abc import Container, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -257,3 +257,79 @@ def is_dane_ruling(line: str) -> bool:
         ``True`` gdy pozycja zawiera ``DANE_MARKER``, inaczej ``False``.
     """
     return DANE_MARKER in line
+
+
+# --- Czyste funkcje: filtrowanie indeksu i wyznaczanie aktywnej pozycji -
+
+# Uwaga: poniższe funkcje są WZORCEM REFERENCYJNYM dla frontendowych
+# odpowiedników (`useRulesSearch` — filtrowanie; oznaczanie aktywnego tematu w
+# `TopicIndexPanel`). Trzymanie reguły w czystej funkcji rdzenia gwarantuje jedno
+# źródło prawdy spójne między backendem a frontem (Req 5.2/5.4/5.6, 9.4).
+
+
+def filter_entries(
+    entries: Sequence[TopicIndexEntry], query: str
+) -> list[TopicIndexEntry]:
+    """Filtruje pozycje indeksu po podciągu w tytule lub slug (bez wielkości liter).
+
+    Zapytanie jest najpierw przycinane z wiodących i końcowych białych znaków, a
+    następnie sprowadzane do małych liter. Pozycja pasuje wtedy i tylko wtedy, gdy
+    przetworzone zapytanie jest podciągiem tytułu LUB slug pozycji (oba także
+    sprowadzone do małych liter) — dopasowanie jest case-insensitive (Req 5.2).
+
+    Gdy zapytanie po przycięciu jest puste (pusty łańcuch albo same białe znaki),
+    zwracany jest PEŁNY zbiór pozycji w PIERWOTNEJ kolejności — bez filtrowania
+    (Req 5.4/5.6).
+
+    Funkcja jest czysta: nie modyfikuje wejścia ani stanu globalnego; zwraca nową
+    listę zachowującą kolejność wejścia (pozycje pasujące w tej samej kolejności,
+    w jakiej występują w ``entries``).
+
+    Args:
+        entries: Sekwencja pozycji indeksu do przefiltrowania (kolejność istotna).
+        query: Surowy tekst zapytania z pola wyszukiwania (0–200 znaków).
+
+    Returns:
+        Nowa lista pozycji pasujących do zapytania, w kolejności z ``entries``; dla
+        zapytania pustego po trim — pełny zbiór w pierwotnej kolejności.
+    """
+    needle = query.strip().lower()
+    if not needle:
+        # Puste zapytanie po trim → pełny indeks w pierwotnej kolejności (Req 5.4/5.6).
+        return list(entries)
+    return [
+        entry
+        for entry in entries
+        if needle in entry.title.lower() or needle in entry.slug.lower()
+    ]
+
+
+def active_slugs(
+    entries: Sequence[TopicIndexEntry], open_slug: str | None
+) -> dict[str, bool]:
+    """Wyznacza flagę aktywności dla każdej pozycji indeksu (Req 9.4).
+
+    Zwraca mapowanie ``slug -> bool``, w którym wartość ``True`` ma DOKŁADNIE jedna
+    pozycja — ta, której slug równa się ``open_slug`` — o ile ``open_slug`` występuje
+    w ``entries``. Wszystkie pozostałe pozycje mają ``False``. Gdy ``open_slug`` jest
+    ``None`` albo nie odpowiada żadnej pozycji, wszystkie wartości są ``False`` (brak
+    otwartego tematu → brak aktywnej pozycji).
+
+    Mapowanie (zamiast pojedynczego slug) jest wygodnym wzorcem dla warstwy UI:
+    panel indeksu odczytuje ``aktywne[slug]`` dla każdej renderowanej pozycji, a
+    niezmiennik „dokładnie jedna aktywna" (Property 13) jest tu wprost sprawdzalny.
+
+    Funkcja jest czysta: nie modyfikuje wejścia; dla powtórzonych slugów ostatnia
+    pozycja nadpisuje wcześniejsze wpisy w mapie (indeks z założenia ma unikalne
+    slugi — jedna pozycja na plik).
+
+    Args:
+        entries: Sekwencja pozycji indeksu.
+        open_slug: Slug aktualnie otwartego tematu albo ``None``, gdy żaden nie jest
+            otwarty.
+
+    Returns:
+        Mapowanie ``slug -> bool`` z dokładnie jedną wartością ``True`` dla
+        ``open_slug`` obecnego w ``entries``; w przeciwnym razie same ``False``.
+    """
+    return {entry.slug: entry.slug == open_slug for entry in entries}
