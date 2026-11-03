@@ -1,10 +1,14 @@
 // Podgląd wybranej frakcji na ekranie setupu (faction summary).
 //
-// Panel główny: prosty nagłówek (lokalna ikona frakcji + nazwa + złożoność) oraz bogate
-// dane — zdolności, przełom (breakthrough), technologie frakcyjne, liderzy, weksel,
-// WSZYSTKIE jednostki frakcyjne, dane startu z PEŁNYMI nazwami i planety z resource/
-// influence. Portret POSTACI + lore są w OSOBNYM, wysuwanym z prawej panelu (`LoreDrawer`),
-// otwieranym przyciskiem „Postać i lore" (nie zajmuje miejsca, gdy niepotrzebny).
+// Panel główny: prosty nagłówek (lokalna ikona frakcji + nazwa + cytat + złożoność) oraz
+// bogate dane — zdolności, przełom (breakthrough), technologie frakcyjne, liderzy, weksel,
+// WSZYSTKIE jednostki frakcyjne, dane startu z PEŁNYMI nazwami i planety z resource/influence.
+//
+// Portret POSTACI + lore żyją w OSOBNYM komponencie `LorePanel`, renderowanym przez
+// `Step_Faction` jako WYSUWANA kolumna obok panelu (styl „wybór frakcji w grze", np.
+// Endless Legend: duży portret jako tło + nazwa na dole + lore pod spodem). `FactionSummary`
+// steruje tylko przełącznikiem (`onToggleLore`) i zgłasza, KTÓRĄ frakcję pokazać w panelu
+// lore (`onActiveFactionChange`) — bo widok pochodnej (Obsidian) zmienia aktywną frakcję.
 //
 // Edge-case Firmament → Obsidian: Obsidian to „druga frakcja" Firmamentu (rozwinięcie),
 // niewybieralna przy setupie, ale wchodząca do gry przez akcję Firmamentu. Dla Firmamentu
@@ -17,7 +21,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button, MultiSelect, Stack, Text } from "@/ds";
-import { IconArrowLeft, IconChevronRight, IconUser, IconX } from "@tabler/icons-react";
+import { IconArrowLeft, IconBook, IconChevronRight } from "@tabler/icons-react";
 import { type FactionInfo, useFaction } from "@/api/useNewGame";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { Ability } from "@/domains/player/components/Ability";
@@ -36,6 +40,7 @@ import { useDisclosure } from "@/hooks/useDisclosure";
 import {
   defaultPortraitCandidates,
   getFactionLore,
+  loreToBlocks,
 } from "./factionLore";
 import styles from "./FactionSummary.module.css";
 
@@ -84,11 +89,11 @@ function heroLeaderId(faction: FactionInfo): string | undefined {
 }
 
 /**
- * Duży portret postaci do wysuwanego panelu lore. Łańcuch źródeł (pierwsze istniejące):
- *   1. własny plik gracza `/faction_portraits/<id>.{jpg,png,webp}` (albo `lore.portrait`),
- *   2. portret BOHATERA frakcji z lokalnych assetów `/leaders/<heroId>.webp`,
+ * Duży portret postaci do panelu lore. Łańcuch źródeł LOKALNYCH (pierwsze istniejące):
+ *   1. własny plik gracza `/faction_portraits/<id>.{png,jpg,jpeg,webp}` (lub `lore.portrait`),
+ *   2. portret BOHATERA frakcji `/leaders/<heroId>.webp`,
  *   3. lokalna ikona frakcji `/static/factions/<id>.png` (placeholder).
- * Wszystkie źródła LOKALNE (bez zewnętrznego CDN). Degraduje bez błędu.
+ * Bez zewnętrznego CDN. Degraduje bez błędu (onError → następne źródło).
  */
 function LeaderPortrait({ faction }: { faction: FactionInfo }) {
   const lore = getFactionLore(faction.id);
@@ -105,13 +110,15 @@ function LeaderPortrait({ faction }: { faction: FactionInfo }) {
   }, [faction, lore?.portrait]);
 
   const [index, setIndex] = useState(0);
+  // Reset źródła przy zmianie frakcji (inaczej zostałby wyczerpany index).
+  useEffect(() => setIndex(0), [candidates]);
   const exhausted = index >= candidates.length;
 
   if (exhausted) {
     return (
       <div className={styles.portraitFallback}>
         <Text size="xs" c="dimmed" ta="center">
-          Brak portretu — dodaj plik do /faction_portraits/{faction.id}
+          Brak portretu — dodaj plik do /faction_portraits/{faction.id}.png
         </Text>
       </div>
     );
@@ -127,47 +134,96 @@ function LeaderPortrait({ faction }: { faction: FactionInfo }) {
   );
 }
 
-/**
- * Wysuwany panel „postać + lore" — osobny box w stylu strony, który wjeżdża z PRAWEJ
- * obok panelu szczegółów (po kliknięciu przycisku w nagłówku). Zawiera duży portret
- * postaci i duży box na lore. Zamykany przyciskiem.
- */
-function LoreDrawer({
-  faction,
-  open,
-  onClose,
-}: {
-  faction: FactionInfo;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const lore = getFactionLore(faction.id)?.lore;
+/** Renderuje lore jako bloki (akapit / śródtytuł / cytat) z własnymi stylami. */
+function LoreBlocks({ faction }: { faction: FactionInfo }) {
+  const blocks = loreToBlocks(getFactionLore(faction.id)?.lore);
+  if (blocks.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
+      </Text>
+    );
+  }
   return (
-    <div
-      className={`${styles.loreDrawer} ${open ? styles.loreDrawerOpen : ""}`}
-      aria-hidden={!open}
-    >
-      <div className={styles.loreDrawerHead}>
-        <Text className={styles.loreDrawerTitle}>{faction.name}</Text>
-        <Button
-          variant="subtle"
-          size="xs"
-          leftSection={<IconX size={14} />}
-          onClick={onClose}
-        >
-          Zamknij
-        </Button>
+    <div className={styles.lore}>
+      {blocks.map((block, i) => {
+        if (block.kind === "heading") {
+          return (
+            <h4 key={i} className={styles.loreHeading}>
+              {block.text}
+            </h4>
+          );
+        }
+        if (block.kind === "quote") {
+          return (
+            <blockquote key={i} className={styles.loreQuote}>
+              {block.text}
+            </blockquote>
+          );
+        }
+        return (
+          <p key={i} className={styles.loreParagraph}>
+            {block.text}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Kolumna „postać" (prawa, styl wyboru frakcji w grze): DUŻY portret PNG bez tła,
+ * wtopiony w stronę (brak ramki/boxa) — stoi na wspólnym tle z poświatą. Pod nazwą
+ * przycisk „Pokaż / Ukryj lore"; lore jest DOMYŚLNIE UKRYTE i rozwija się pod portretem.
+ * Portret pojawia się z animacją przy KAŻDEJ zmianie frakcji (`key` resetuje animację).
+ */
+export function LorePanel({
+  faction,
+  loreOpen = false,
+  onToggleLore,
+}: {
+  faction: FactionInfo | null;
+  loreOpen?: boolean;
+  onToggleLore?: () => void;
+}) {
+  if (!faction) return null;
+  const quote = getFactionLore(faction.id)?.quote;
+  const hasLore = loreToBlocks(getFactionLore(faction.id)?.lore).length > 0;
+  return (
+    <div className={styles.character} key={faction.id}>
+      {/* Duży portret PNG (przezroczyste tło) wtopiony w poświatę — bez boxa. */}
+      <div className={styles.portraitStage}>
+        <LeaderPortrait faction={faction} />
       </div>
-      <LeaderPortrait faction={faction} />
-      <div className={styles.loreDrawerBody}>
-        <Text className={styles.loreTitle}>Lore</Text>
-        <div className={styles.lore}>
-          {lore ?? (
-            <Text size="sm" c="dimmed">
-              Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
-            </Text>
-          )}
-        </div>
+
+      <div className={styles.characterCaption}>
+        <Text className={styles.characterName}>{faction.name}</Text>
+        {quote && <p className={styles.characterQuote}>„{quote}”</p>}
+        {onToggleLore && (
+          <Button
+            variant="subtle"
+            size="xs"
+            leftSection={<IconBook size={14} />}
+            onClick={onToggleLore}
+            className={styles.loreToggle}
+          >
+            {loreOpen ? "Ukryj lore" : "Pokaż lore"}
+          </Button>
+        )}
+      </div>
+
+      {/* Lore — domyślnie ukryte; rozwija się pod portretem. */}
+      <div
+        className={`${styles.loreReveal} ${loreOpen ? styles.loreRevealOpen : ""}`}
+        aria-hidden={!loreOpen}
+      >
+        {hasLore ? (
+          <LoreBlocks faction={faction} />
+        ) : (
+          <Text size="sm" c="dimmed">
+            Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
+          </Text>
+        )}
       </div>
     </div>
   );
@@ -279,30 +335,41 @@ export interface FactionSummaryProps {
     value: string[];
     onChange: (techs: string[]) => void;
   };
+  /**
+   * Zgłasza, KTÓRĄ frakcję pokazywać w kolumnie postaci/lore (zmienia się przy
+   * wejściu/wyjściu w podgląd pochodnej — Obsidian). `Step_Faction` renderuje `LorePanel`.
+   */
+  onActiveFactionChange?: (faction: FactionInfo | null) => void;
 }
 
 /**
- * Panel szczegółów frakcji (po prawej od galerii). Zarządza też podglądem frakcji
- * pochodnej (Firmament → Obsidian): po kliknięciu „Zobacz Obsidian" dociąga ją i
- * pokazuje w tym samym panelu z przyciskiem powrotu.
+ * Środkowy panel szczegółów frakcji (nazwa + umiejętności + dane). Zarządza podglądem
+ * frakcji pochodnej (Firmament → Obsidian) i zgłasza aktywną frakcję w górę, by
+ * `Step_Faction` pokazał jej portret/lore w prawej kolumnie.
  */
 export function FactionSummary({
   faction,
   footer,
   startingTech,
+  onActiveFactionChange,
 }: FactionSummaryProps) {
   // Id frakcji pochodnej aktualnie oglądanej (np. "obsidian") albo null.
   const [derivedId, setDerivedId] = useState<string | null>(null);
-  // Czy wysuwany panel „postać + lore" jest otwarty.
-  const [loreOpen, setLoreOpen] = useState(false);
   const derived = useFaction(derivedId);
 
-  // Zmiana frakcji / wejście w Obsidiana zamyka wysuwany panel (pokazuje właściwą postać).
+  // Aktualnie pokazywana frakcja (bazowa albo pochodna). Zgłaszamy ją w górę, by
+  // `Step_Faction` pokazał właściwą postać/lore w wysuwanej kolumnie.
   const activeFaction = derivedId ? derived.data ?? null : faction;
   const activeFactionId = activeFaction?.id ?? null;
   useEffect(() => {
-    setLoreOpen(false);
-  }, [activeFactionId]);
+    // Zależność po id (stabilne), nie po obiekcie `activeFaction`.
+    onActiveFactionChange?.(activeFaction ?? null);
+  }, [activeFactionId, activeFaction, onActiveFactionChange]);
+
+  // Reset podglądu pochodnej, gdy zmieni się frakcja bazowa.
+  useEffect(() => {
+    setDerivedId(null);
+  }, [faction?.id]);
 
   if (!faction) {
     return (
@@ -318,36 +385,21 @@ export function FactionSummary({
   // Widok frakcji pochodnej (Obsidian) — bez footera/techów (nie jest wybieralna).
   if (derivedId) {
     return (
-      <div className={styles.summaryWrap}>
-        <div className={styles.summary}>
-          <Button
-            variant="subtle"
-            size="sm"
-            leftSection={<IconArrowLeft size={16} />}
-            onClick={() => setDerivedId(null)}
-            className={styles.backButton}
-          >
-            Wróć do {faction.name}
-          </Button>
-          {derived.isLoading && <Text c="dimmed">Ładowanie…</Text>}
-          {derived.isError && (
-            <Text c="red">Nie udało się wczytać danych frakcji.</Text>
-          )}
-          {derived.data && (
-            <SummaryBody
-              faction={derived.data}
-              loreOpen={loreOpen}
-              onToggleLore={() => setLoreOpen((o) => !o)}
-            />
-          )}
-        </div>
-        {derived.data && (
-          <LoreDrawer
-            faction={derived.data}
-            open={loreOpen}
-            onClose={() => setLoreOpen(false)}
-          />
+      <div className={styles.summary}>
+        <Button
+          variant="subtle"
+          size="sm"
+          leftSection={<IconArrowLeft size={16} />}
+          onClick={() => setDerivedId(null)}
+          className={styles.backButton}
+        >
+          Wróć do {faction.name}
+        </Button>
+        {derived.isLoading && <Text c="dimmed">Ładowanie…</Text>}
+        {derived.isError && (
+          <Text c="red">Nie udało się wczytać danych frakcji.</Text>
         )}
+        {derived.data && <SummaryBody faction={derived.data} />}
       </div>
     );
   }
@@ -355,23 +407,14 @@ export function FactionSummary({
   const derivedFactionId = DERIVED_FACTION[faction.id] ?? null;
 
   return (
-    <div className={styles.summaryWrap}>
-      <div className={styles.summary}>
-        <SummaryBody
-          faction={faction}
-          startingTech={startingTech}
-          derivedFactionId={derivedFactionId}
-          onViewDerived={() => setDerivedId(derivedFactionId)}
-          loreOpen={loreOpen}
-          onToggleLore={() => setLoreOpen((o) => !o)}
-        />
-        {footer && <div className={styles.footer}>{footer}</div>}
-      </div>
-      <LoreDrawer
+    <div className={styles.summary}>
+      <SummaryBody
         faction={faction}
-        open={loreOpen}
-        onClose={() => setLoreOpen(false)}
+        startingTech={startingTech}
+        derivedFactionId={derivedFactionId}
+        onViewDerived={() => setDerivedId(derivedFactionId)}
       />
+      {footer && <div className={styles.footer}>{footer}</div>}
     </div>
   );
 }
@@ -382,15 +425,11 @@ function SummaryBody({
   startingTech,
   derivedFactionId,
   onViewDerived,
-  loreOpen,
-  onToggleLore,
 }: {
   faction: FactionInfo;
   startingTech?: FactionSummaryProps["startingTech"];
   derivedFactionId?: string | null;
   onViewDerived?: () => void;
-  loreOpen?: boolean;
-  onToggleLore?: () => void;
 }) {
   // Liderzy w kanonicznej kolejności (agent → commander → hero), reszta na końcu.
   const leadersByType = (type: string) =>
@@ -432,24 +471,19 @@ function SummaryBody({
         />
         <div className={styles.headerText}>
           <Text className={styles.factionName}>{faction.name}</Text>
+          {getFactionLore(faction.id)?.quote && (
+            <Text className={styles.headerQuote}>
+              „{getFactionLore(faction.id)?.quote}”
+            </Text>
+          )}
           {faction.complexity && (
             <Text className={styles.complexity}>
               Złożoność: {faction.complexity}
             </Text>
           )}
         </div>
-        <div className={styles.headerActions}>
-          {onToggleLore && (
-            <Button
-              variant={loreOpen ? "light" : "default"}
-              size="xs"
-              leftSection={<IconUser size={14} />}
-              onClick={onToggleLore}
-            >
-              Postać i lore
-            </Button>
-          )}
-          {derivedFactionId && onViewDerived && (
+        {derivedFactionId && onViewDerived && (
+          <div className={styles.headerActions}>
             <Button
               variant="light"
               size="xs"
@@ -458,8 +492,8 @@ function SummaryBody({
             >
               Zobacz Obsidian
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <Stack gap="md" className={styles.sections}>

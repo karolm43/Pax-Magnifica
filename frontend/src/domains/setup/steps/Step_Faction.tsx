@@ -20,7 +20,8 @@ import { Button, Stack, Text, TextInput } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import type { SetupStepProps } from "../SetupWizard";
 import { RANDOM_FACTION, useSetupStore } from "../useSetupStore";
-import { FactionSummary } from "../FactionSummary";
+import { FactionSummary, LorePanel } from "../FactionSummary";
+import type { FactionInfo } from "@/api/useNewGame";
 import styles from "./Step_Faction.module.css";
 
 /** Etykieta frakcji slotu w pasku graczy („Losowa" / nazwa / „—"). */
@@ -43,6 +44,15 @@ export default function Step_Faction({ factions, factionById }: SetupStepProps) 
   const [previewId, setPreviewId] = useState<string | null>(null);
   // Filtr galerii.
   const [query, setQuery] = useState("");
+  // Wysuwana kolumna „postać + lore": czy otwarta i dla której frakcji (bazowa albo
+  // pochodna — Obsidian; `FactionSummary` zgłasza aktywną frakcję przez callback).
+  const [loreOpen, setLoreOpen] = useState(false);
+  const [loreFaction, setLoreFaction] = useState<FactionInfo | null>(null);
+
+  // Przełączenie podglądanej frakcji chowa kolumnę lore (otwiera się na życzenie).
+  useEffect(() => {
+    setLoreOpen(false);
+  }, [previewId]);
 
   // Przy przełączeniu gracza pokaż jego aktualnie wybraną frakcję (jeśli jawna).
   const activeSlotFaction = slots[activeSlot]?.factionId;
@@ -200,6 +210,7 @@ export default function Step_Faction({ factions, factionById }: SetupStepProps) 
         <div className={styles.detail}>
           <FactionSummary
             faction={previewFaction}
+            onActiveFactionChange={setLoreFaction}
             // Wybór technologii startowych pokazujemy TYLKO, gdy oglądana frakcja jest
             // przypisana aktywnemu graczowi (wtedy zapis idzie do jego slotu). Scala to
             // dawny osobny krok „Technologie startowe" w ten panel.
@@ -236,6 +247,20 @@ export default function Step_Faction({ factions, factionById }: SetupStepProps) 
             }
           />
         </div>
+
+        {/*
+         * Prawa kolumna „postać": DUŻY portret PNG wtopiony w tło + (domyślnie ukryte)
+         * lore rozwijane przyciskiem. Pojawia się, gdy jakaś frakcja jest podglądana.
+         */}
+        {loreFaction && (
+          <div className={styles.characterCol}>
+            <LorePanel
+              faction={loreFaction}
+              loreOpen={loreOpen}
+              onToggleLore={() => setLoreOpen((o) => !o)}
+            />
+          </div>
+        )}
       </div>
     </Stack>
   );

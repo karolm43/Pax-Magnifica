@@ -373,7 +373,9 @@
 .panel {
   position: relative;
   width: 100%;
-  max-width: 1180px;
+  /* Prawie pełny ekran — mieści galerię + panel frakcji + duży portret z lore obok
+     siebie, jak ekran wyboru frakcji w grach (np. Endless Legend). */
+  max-width: min(1800px, 96vw);
   margin-inline: auto;
   padding: var(--ds-space-xl);
   background: color-mix(in oklab, var(--ds-ground) 92%, transparent);

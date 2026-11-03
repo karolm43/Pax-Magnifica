@@ -67,18 +67,55 @@
   line-height: 1;
 }
 
-/* ── Układ master-detail ──────────────────────────────────────────────── */
+/* ── Układ: galeria | panel szczegółów | kolumna postaci (pełny ekran) ─── */
 
+/*
+ * Trzy kolumny wykorzystujące całą szerokość okna: galeria (rośnie) | panel szczegółów
+ * (nazwa/umiejętności/dane) | kolumna POSTACI (duży portret + lore). Kolumna postaci
+ * pojawia się, gdy jakaś frakcja jest podglądana.
+ */
 .layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-  gap: var(--ds-space-lg);
-  align-items: start;
+  display: flex;
+  gap: var(--ds-space-xl);
+  align-items: flex-start;
 }
 
-@media (max-width: 900px) {
+.gallery {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.detail {
+  flex: 1 1 440px;
+  min-width: 0;
+}
+
+/* Kolumna postaci — szeroka, przyklejona do góry, własny scroll przy długim lore. */
+.characterCol {
+  flex: 1 1 460px;
+  min-width: 0;
+  position: sticky;
+  top: var(--ds-space-sm);
+  align-self: flex-start;
+  max-height: calc(100vh - 2 * var(--ds-space-lg));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1200px) {
   .layout {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+  }
+  .gallery,
+  .detail,
+  .characterCol {
+    flex: 1 1 100%;
+  }
+  .detail,
+  .characterCol {
+    position: static;
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -215,16 +252,17 @@
   max-height: calc(100vh - 2 * var(--ds-space-lg));
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--ds-space-md);
-  border: 1px solid var(--ds-h10);
-  border-radius: var(--ds-radius-lg);
-  background: var(--ds-ground);
+  /* Mniej „boxa": tylko cienka linia oddzielająca od kolumny postaci, bez tła/ramki. */
+  padding: 0 var(--ds-space-lg) 0 0;
+  border-right: 1px solid var(--ds-h10);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
   .detail {
     position: static;
     max-height: none;
     overflow: visible;
+    padding: 0;
+    border-right: none;
   }
 }
