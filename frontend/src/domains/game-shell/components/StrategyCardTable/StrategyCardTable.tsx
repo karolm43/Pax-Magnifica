@@ -34,6 +34,27 @@ const SC_TONE: Record<number, string> = {
 };
 
 /*
+ * KOLOR KARTY dla poświaty (hover-glow) — initiative → HEX koloru karty. Glow karty
+ * bierze kolor STĄD, więc poświata jest w barwie danej karty (np. Technology niebieska,
+ * Construction zielona), a nie w jednym wspólnym akcencie.
+ *
+ * ŹRÓDŁO: domyślnie używamy ``def.colourHexCode`` z danych karty (patrz render niżej).
+ * Ta mapa to RĘCZNY OVERRIDE/fallback — gdy dana karta nie ma ``colourHexCode`` albo
+ * chcesz wymusić inny odcień, wpisz HEX dla danej initiative poniżej. Wartości
+ * startowe = oficjalne barwy kart strategii (możesz je dowolnie zmienić).
+ */
+const SC_HUE: Record<number, string> = {
+  1: "#ec1c24", // Leadership — czerwony
+  2: "#f69421", // Diplomacy — pomarańczowy
+  3: "#fff200", // Politics — żółty
+  4: "#39b54a", // Construction — zielony
+  5: "#00a99d", // Trade — morski
+  6: "#008ed4", // Warfare — błękit
+  7: "#15489f", // Technology — niebieski
+  8: "#752b90", // Imperial — fioletowy
+};
+
+/*
  * Initiative → kolor sygnałowy ``DetailsCard`` (tooltipa z treścią karty).
  * Zgodnie z prośbą 12.2: 1=red … 8=violet — wartości dopuszczane przez typ
  * ``DetailsCardColor`` (patrz DetailsCard.tsx). Oddzielne od ``SC_TONE`` (to
@@ -344,6 +365,11 @@ export function StrategyCardTable(): ReactElement | null {
                   // CSS liczy z nich spoczynkowy ``transform`` (obrót + opad).
                   style={{
                     ["--scc" as string]: SC_TONE[card.initiative],
+                    // KOLOR KARTY dla poświaty: preferuj ``colourHexCode`` z danych
+                    // karty (prawdziwa barwa danego wariantu), a gdy brak — ręczny
+                    // override z mapy ``SC_HUE`` po initiative.
+                    ["--sc-hue" as string]:
+                      def?.colourHexCode ?? SC_HUE[card.initiative],
                     ["--rot" as string]: `${rot}deg`,
                     ["--lift" as string]: `${lift}px`,
                     ["--scale" as string]: `${scale}`,

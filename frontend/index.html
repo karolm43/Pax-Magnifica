@@ -18,6 +18,30 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <!--
+      Font logo (Ambroise Firmin) WPROST w index.html + preload, żeby splash
+      renderowany PRZED bundlem miał ten sam krój co React BootScreen (inaczej logo
+      splashu wyglądałoby inaczej — fallback serif). Ta sama definicja co
+      src/styles/fonts.css; plik z /font (public/font).
+    -->
+    <link
+      rel="preload"
+      href="/font/ambroise-firmin-bold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <style>
+      @font-face {
+        font-family: "Ambroise Firmin";
+        src:
+          url("/font/ambroise-firmin-bold.woff2") format("woff2"),
+          url("/font/Ambroise Firmin Bold.otf") format("opentype");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
+    </style>
     <!-- Enable pinch-zoom out below 1 and allow user scaling -->
     <meta
       name="viewport"
@@ -36,48 +60,124 @@
       jego zawartosc, wiec splash znika sam. Koniec "bialego ekranu".
     -->
     <div id="root">
+      <!--
+        Splash ladowania ODWZOROWUJE ekran rozruchu Reacta (``BootScreen`` w
+        StartScreen): ten sam ciemny kadr z grafika menu + winieta, logo „Custodian
+        Engine" i animowany PASEK POSTEPU (gradient TI4) zamiast kreciolka. Dzieki
+        temu od pierwszej klatki widac WLASCIWY ekran ladowania, a nie stary spinner,
+        ktory potem skakal na nowy. Wartosci wpisane wprost (HTML przed bundlem nie
+        ma tokenow CSS) — spojne z StartScreen.module.css.
+      -->
       <style>
         #boot-splash {
           position: fixed;
           inset: 0;
+          display: grid;
+          place-items: center;
+          padding: 2rem;
+          color: #cbd5e1;
+          font-family: "IBM Plex Sans", system-ui, sans-serif;
+          background:
+            radial-gradient(
+              ellipse 100% 70% at 50% 40%,
+              rgba(252, 162, 43, 0.08),
+              transparent 70%
+            ),
+            linear-gradient(rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.92)),
+            url("/static/extra/main_menu.jpg") center / cover no-repeat,
+            #0b0b0c;
+        }
+        #boot-splash::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: radial-gradient(
+            ellipse 85% 75% at 50% 50%,
+            transparent 50%,
+            rgba(0, 0, 0, 0.6) 100%
+          );
+        }
+        #boot-splash .bs-inner {
+          position: relative;
+          z-index: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 18px;
-          background: #0b0d12;
-          color: #cbd5e1;
-          font-family: "IBM Plex Sans", system-ui, sans-serif;
+          gap: 2rem;
         }
         #boot-splash .bs-brand {
+          margin: 0;
           font-weight: 700;
-          letter-spacing: 0.14em;
-          font-size: 20px;
-          color: #e2e8f0;
+          letter-spacing: 0.02em;
+          font-size: clamp(2rem, 6vw, 3.75rem);
+          line-height: 1.05;
+          color: #f1f5f9;
+          text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+        }
+        #boot-splash .bs-status {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          width: min(82vw, 460px);
+          padding: 1.25rem 2rem;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: 10px;
+          background: rgba(21, 21, 23, 0.7);
+          backdrop-filter: blur(6px);
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        #boot-splash .bs-track {
+          position: relative;
+          width: 100%;
+          height: 4px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.08);
+          overflow: hidden;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        }
+        #boot-splash .bs-bar {
+          position: absolute;
+          top: 0;
+          left: -42%;
+          height: 100%;
+          width: 40%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #f24a21, #fca22b, #ffd34a);
+          box-shadow: 0 0 12px rgba(246, 121, 42, 0.6);
+          animation: bs-slide 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
         #boot-splash .bs-sub {
+          margin: 0;
           font-size: 13px;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
           color: #94a3b8;
         }
-        #boot-splash .bs-spin {
-          width: 34px;
-          height: 34px;
-          border: 3px solid rgba(148, 163, 184, 0.25);
-          border-top-color: #6ea8fe;
-          border-radius: 50%;
-          animation: bs-rotate 0.8s linear infinite;
+        @keyframes bs-slide {
+          0% {
+            left: -42%;
+          }
+          100% {
+            left: 102%;
+          }
         }
-        @keyframes bs-rotate {
-          to {
-            transform: rotate(360deg);
+        @media (prefers-reduced-motion: reduce) {
+          #boot-splash .bs-bar {
+            animation: none;
+            left: 30%;
           }
         }
       </style>
       <div id="boot-splash">
-        <div class="bs-spin"></div>
-        <div class="bs-brand">CUSTODIAN ENGINE</div>
-        <div class="bs-sub">Ładowanie interfejsu…</div>
+        <div class="bs-inner">
+          <h1 class="bs-brand">Custodian Engine</h1>
+          <div class="bs-status">
+            <div class="bs-track"><span class="bs-bar"></span></div>
+            <p class="bs-sub">Ładowanie zasobów gry…</p>
+          </div>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

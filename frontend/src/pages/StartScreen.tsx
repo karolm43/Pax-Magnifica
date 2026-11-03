@@ -409,11 +409,9 @@ export default function StartScreen() {
             </Button>
           </nav>
 
-          <p className={styles.menuFootnote}>Lokalny silnik — wersja rozwojowa</p>
+         
 
-          <span className={styles.scrollHint} aria-hidden>
-            ▾
-          </span>
+          
         </div>
 
         {/* ── Ekran konfiguracji nowej gry (wybór graczy/frakcji) ───────── */}

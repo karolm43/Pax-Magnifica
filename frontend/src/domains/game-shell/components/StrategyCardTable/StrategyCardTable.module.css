@@ -42,10 +42,11 @@
   gap: var(--ds-space-sm);
   /* DUŻE karty — panel sięga niemal krawędzi ekranu (rząd prawie na całą szerokość). */
   max-width: 98vw;
-  /* Zapasy: szerszy po bokach i DUŻY u dołu/górze, by box OBJĄŁ opadnięte skrajne
-     karty łuku ORAZ uniesioną na hover kartę. Brzegi wachlarza schodzą nisko
-     (``--lift`` do ~100px dla 8 kart) — karty mają mieścić się W boksie. */
-  padding: var(--ds-space-xl) 64px 150px;
+  /* RESPONSYWNE zapasy (clamp zależne od viewportu) zamiast sztywnych px — box i
+     odstępy skalują się z oknem/ekranem. Boki rosną z szerokością, dół z wysokością
+     (by objąć opadnięte skrajne karty łuku i uniesioną na hover kartę). */
+  padding: clamp(10px, 1.6vh, 24px) clamp(16px, 4vw, 64px)
+    clamp(72px, 14vh, 150px);
   color: var(--ds-ink);
 }
 
@@ -93,11 +94,11 @@
   border-bottom: 1px solid var(--ds-h10);
 }
 
-/* Tytuł panelu — większy, wyraźny (prośba: większa czcionka „jaka faza"). */
+/* Tytuł panelu — RESPONSYWNY (skaluje się z szerokością okna, w granicach tokenów). */
 .heading {
   margin: 0;
   font-family: var(--ds-font-display);
-  font-size: var(--ds-h2);
+  font-size: clamp(var(--ds-h4), 2.2vw, var(--ds-h1));
   line-height: var(--ds-lh-sm);
   color: var(--ds-ink-hi);
 }
@@ -120,8 +121,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ds-space-xs);
-  /* Większa czcionka wiersza picker/mówca (prośba: większa czcionka „kto wybiera"). */
-  font-size: var(--ds-fz-lg);
+  /* RESPONSYWNA czcionka wiersza picker/mówca (skaluje się z oknem). */
+  font-size: clamp(var(--ds-fz-sm), 1.3vw, var(--ds-fz-xl));
   line-height: var(--ds-lh-sm);
 }
 
@@ -197,6 +198,13 @@
   text-align: left;
   color: inherit;
   cursor: pointer;
+  /* Kolor karty do poświaty — HEX wstrzyknięty z komponentu (``--sc-hue``); fallback
+     neutralny, gdy brak. */
+  --sc-hue: var(--ds-h35);
+  /* Parametry UNIESIENIA na hover — zmienne, by media query mogło je STONOWAĆ na
+     małych ekranach (mniej „skakania"). Domyślnie jak dotąd. */
+  --hover-lift: -14px;
+  --hover-scale: 1.18;
   /* Łuk: obrót + opad + skala liczone z --rot/--lift/--scale; obrót od dołu środka
      (wachlarz). ``--scale`` delikatnie powiększa skrajne karty (1 i 8). */
   transform: rotate(var(--rot)) translateY(var(--lift)) scale(var(--scale));
@@ -208,41 +216,40 @@
 }
 
 /*
- * Karta WOLNA do wyboru, gdy jest wskazany picker — kolorowy „glow" akcentu
- * dopasowany do KSZTAŁTU obrazu (drop-shadow, nie prostokątna obwódka), spójnie
- * z banerem pickera w nagłówku.
+ * Karta WOLNA do wyboru, gdy jest wskazany picker — „glow" w KOLORZE KARTY
+ * (``--sc-hue``), dopasowany do KSZTAŁTU obrazu (drop-shadow, nie prostokąt).
+ * ``color-mix`` daje półprzezroczystość barwy karty.
  */
 .card.pickable {
-  filter: drop-shadow(0 0 10px rgb(var(--ds-accent-rgb) / 0.75));
+  filter: drop-shadow(
+    0 0 10px color-mix(in srgb, var(--sc-hue) 75%, transparent)
+  );
 }
 
 /*
- * HOVER/FOCUS: karta PROSTUJE się (rotate 0), unosi, POWIĘKSZA (scale 1.18) i
- * wychodzi NA WIERZCH (z-index) — niezależnie od obrotu łuku. Dotyczy KAŻDEJ karty,
- * także niewybieralnej (``[data-disabled]``) — dzięki usunięciu natywnego
- * ``disabled`` zdarzenia hover/focus docierają do każdej karty, więc i tooltip.
- * Cała karta pozostaje widoczna (najwyższy z-index wśród nachodzących sąsiadów).
- * Obwódka akcentu tylko dla kart WOLNYCH do wyboru (nie zablokowanych).
+ * HOVER/FOCUS: karta PROSTUJE się (rotate 0), unosi i POWIĘKSZA (zmienne
+ * ``--hover-lift``/``--hover-scale`` — mniejsze na wąskich ekranach) oraz wychodzi
+ * NA WIERZCH (z-index). Dotyczy KAŻDEJ karty (także ``[data-disabled]``), więc
+ * tooltip działa wszędzie.
  */
 .card:hover,
 .card:focus-visible {
   z-index: 5;
-  transform: rotate(0deg) translateY(-14px) scale(1.18);
+  transform: rotate(0deg) translateY(var(--hover-lift)) scale(var(--hover-scale));
   /* Wyróżnienie przez cień dopasowany do kształtu obrazu (zamiast prostokąta). */
   filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.55));
 }
 
 /*
- * Mocniejsza obwódka akcentu na hover/focus TYLKO dla kart wybieralnych
- * (bez ``[data-disabled]``). Samo prostowanie/powiększenie oraz tooltip działają
- * dla WSZYSTKICH kart (reguła wyżej), tu dokładamy jedynie akcent „do wyboru".
+ * Mocniejszy glow w KOLORZE KARTY na hover/focus TYLKO dla kart wybieralnych
+ * (bez ``[data-disabled]``). Prostowanie/powiększenie i tooltip działają dla
+ * WSZYSTKICH kart (reguła wyżej), tu dokładamy jedynie barwny akcent „do wyboru".
  */
 .card:not([data-disabled]):hover,
 .card:not([data-disabled]):focus-visible {
-  /* Połączony cień: czarny „podnoszący" + kolorowy akcent „do wyboru" (po kształcie). */
   filter:
     drop-shadow(0 8px 18px rgb(0 0 0 / 0.55))
-    drop-shadow(0 0 12px rgb(var(--ds-accent-rgb) / 0.8));
+    drop-shadow(0 0 14px color-mix(in srgb, var(--sc-hue) 85%, transparent));
 }
 
 .card:focus-visible {
@@ -397,9 +404,9 @@
  */
 .nextPhaseBtn {
   margin-left: var(--ds-space-sm);
-  padding: 6px 14px;
+  padding: clamp(4px, 0.7vw, 8px) clamp(10px, 1.4vw, 18px);
   font-family: var(--ds-font-display);
-  font-size: var(--ds-fz-md);
+  font-size: clamp(var(--ds-fz-sm), 1.2vw, var(--ds-fz-lg));
   font-weight: 600;
   letter-spacing: 0.03em;
   color: var(--ds-ink-hi);
@@ -417,6 +424,33 @@
 .nextPhaseBtn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/*
+ * RESPONSYWNE STONOWANIE HOVERU na mniejszych ekranach. Przy wąskim viewporcie
+ * karty są mniejsze, więc stałe uniesienie/powiększenie wygląda jak gwałtowne
+ * „skakanie". Zmniejszamy ``--hover-lift``/``--hover-scale`` wraz z rozdzielczością,
+ * żeby ruch był proporcjonalny do rozmiaru karty. Kaskadowo, od węższych progów.
+ */
+@media (max-width: 1400px) {
+  .card {
+    --hover-lift: -10px;
+    --hover-scale: 1.12;
+  }
+}
+
+@media (max-width: 1100px) {
+  .card {
+    --hover-lift: -7px;
+    --hover-scale: 1.08;
+  }
+}
+
+@media (max-width: 860px) {
+  .card {
+    --hover-lift: -4px;
+    --hover-scale: 1.05;
+  }
 }
 
 /*
