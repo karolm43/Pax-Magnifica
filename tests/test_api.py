@@ -26,6 +26,23 @@ def client(registry: StaticDataRegistry) -> TestClient:
     return TestClient(app)
 
 
+def _web_data(
+    client: TestClient, game_id: str, viewer: str = "p1"
+) -> dict[str, Any]:
+    """Pobiera web-data z perspektywy ``viewer`` (domyślnie ``p1``).
+
+    Po integracji projekcji widoczności (R6) endpoint wymaga gracza perspektywy —
+    bez aktywnego gracza i bez ``viewing_player`` zwraca 422 (R6.7). Te testy
+    budują stany God-Mode / single-player bez aktywnego gracza, więc wskazują
+    viewera jawnie (tak jak frontend).
+    """
+    data: dict[str, Any] = client.get(
+        f"/api/public/game/{game_id}/web-data",
+        params={"viewing_player": viewer},
+    ).json()
+    return data
+
+
 # --- GET /state ----------------------------------------------------------
 
 
@@ -151,7 +168,11 @@ def test_setup_player_places_units(client: TestClient) -> None:
     assert any(s["base_type"] == "infantry" for s in nestphar["stacks"])
 
 
-def test_setup_unknown_faction_404(client: TestClient) -> None:
+def test_setup_unknown_faction_422(client: TestClient) -> None:
+    # Nowy kontrakt (zad. 9.1): walidacja setupu jest delegowana do
+    # ``resolve_players`` w core, które dla nieznanej frakcji rzuca ``ValueError``
+    # → HTTP 422 (spójnie z resztą błędów walidacji setupu, design §Error Handling).
+    # Wcześniej tymczasowy strażnik routera zwracał 404 — usunięty.
     resp = client.post(
         "/setup/player",
         json={
@@ -161,7 +182,8 @@ def test_setup_unknown_faction_404(client: TestClient) -> None:
             "home_position": "301",
         },
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 422
+    assert "NOPE" in resp.json()["detail"]
 
 
 # --- Zmiana położenia jednostek ------------------------------------------
@@ -353,14 +375,14 @@ def test_edit_player_fields(client: TestClient) -> None:
         json={"victory_points": 5, "trade_goods": 7, "tactical_cc": 1},
     )
     assert resp.status_code == 200
-    data = client.get("/api/public/game/local/web-data").json()
+    data = _web_data(client, "local")
     p = data["playerData"][0]
     assert p["totalVps"] == 5
     assert p["tg"] == 7
     assert p["tacticalCC"] == 1
     # Edycja jest w historii — Undo cofa.
     client.post("/undo")
-    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    p = _web_data(client, "local")["playerData"][0]
     assert p["totalVps"] == 0
     assert p["tacticalCC"] == 3
 
@@ -373,14 +395,14 @@ def test_toggle_planet_exhaust(client: TestClient) -> None:
         json={"player_id": "p1", "component_id": "jord"},
     )
     assert resp.status_code == 200
-    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    p = _web_data(client, "local")["playerData"][0]
     assert "jord" in p["exhaustedPlanets"]
     # Ponowny toggle = ready (znika).
     client.post(
         "/player/planet/toggle-exhaust",
         json={"player_id": "p1", "component_id": "jord"},
     )
-    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    p = _web_data(client, "local")["playerData"][0]
     assert "jord" not in p["exhaustedPlanets"]
 
 
@@ -392,14 +414,14 @@ def test_toggle_tech_exhaust(client: TestClient) -> None:
         "/player/tech/toggle-exhaust",
         json={"player_id": "p1", "component_id": "gf"},
     )
-    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    p = _web_data(client, "local")["playerData"][0]
     assert "gf" in p["exhaustedTechs"]
 
 
 def test_set_leader_state(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     # Wyczerp dowolnego lidera Sol przez endpoint stanu lidera.
-    leaders = client.get("/api/public/game/local/web-data").json()["playerData"][0][
+    leaders = _web_data(client, "local")["playerData"][0][
         "leaders"
     ]
     leader_id = leaders[0]["id"]
@@ -408,7 +430,7 @@ def test_set_leader_state(client: TestClient) -> None:
         json={"player_id": "p1", "leader_id": leader_id, "state": "exhausted"},
     )
     assert resp.status_code == 200
-    p = client.get("/api/public/game/local/web-data").json()["playerData"][0]
+    p = _web_data(client, "local")["playerData"][0]
     target = next(leader for leader in p["leaders"] if leader["id"] == leader_id)
     assert target["exhausted"] is True
     # Nieznany stan → 422.
@@ -557,7 +579,7 @@ def test_tactical_activate_sets_active_system_and_token(client: TestClient) -> N
     assert state["systems"]["101"]["command_tokens"] == ["p1"]
 
     # web-data: aktywny system + żeton w ccs (jako klucz tożsamości = frakcja).
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client, "g")
     assert data["gameState"]["activeSystem"] == "101"
     assert data["gameState"]["tacticalStep"] == "MOVEMENT"
     assert data["tileUnitData"]["101"]["ccs"] == ["sol"]
@@ -589,11 +611,11 @@ def test_god_mode_command_token_add_remove(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     # Dodanie żetonu God-Mode (bez zużycia puli).
     client.post("/system/102/command-token", json={"faction": "sol"})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client, "g")
     assert data["tileUnitData"]["102"]["ccs"] == ["sol"]
     # Zdjęcie żetonu.
     client.request("DELETE", "/system/102/command-token", json={"faction": "sol"})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client, "g")
     assert data["tileUnitData"]["102"]["ccs"] == []
 
 
@@ -652,7 +674,7 @@ def test_capture_planet_endpoint(client: TestClient) -> None:
     )
     assert resp.status_code == 200
     # web-data: planeta kontrolowana teraz przez sol.
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client, "g")
     planet = data["tileUnitData"]["101"]["planets"]["somePlanet"]
     assert planet["controlledBy"] == "sol"
 

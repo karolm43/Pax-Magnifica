@@ -50,6 +50,34 @@ polskie etykiety, skala liczbowa)? Zmiana wyłącznie w `engine_config.json`, be
 
 ---
 
+### ✅ Zadanie 9.1 (feature `player-model-and-setup-ui`) — delegacja walidacji do `resolve_players` w endpointach setupu (ukończone)
+
+**Cel:** uczynić endpointy `/game/new` i `/setup/player` cienkimi — cała walidacja/
+normalizacja graczy (liczba, nazwy, kolory, frakcje, typ sterowania, trudność, technologie,
+losowy dobór frakcji) idzie do `resolve_players` w `core`, a router tylko buduje mapę,
+nanosi `ResolvedPlayer` na stan i ustawia nowe pola `PlayerState`.
+
+**Co zrobione (`src/api/routers/game.py`):**
+- `post_new_game`: usunięto ręczną pętlę walidacji (frakcja/kolor/slot) i limit „za dużo
+  graczy" — delegowane do `resolve_players` (`available_colors` z `AUTO_SLOT_ORDER`,
+  `max_players=len(AUTO_SLOT_ORDER)`, `valid_difficulties` z registry). Iteracja po
+  `ResolvedPlayer`; auto `home_position` ze slotu, gdy niepodany (R14.3).
+- `post_setup_player`: analogiczna delegacja z jednoelementową listą; pula kolorów
+  pomniejszona o kolory już rozstawionych graczy, by auto-dobór nie powielił koloru.
+- Nowe helpery: `_available_colors`, `_validate_home_position` (R14.4 — istnieje na mapie
+  i nieprzypisana; `HTTPException(422)`), `_apply_resolved_player` (woła
+  `apply_setup_to_state` + ustawia `display_name`/`control_type`/`difficulty`).
+- Usunięto tymczasowe strażniki z zad. 7.1 (`faction_id is None → 404`) — losowa frakcja
+  (R8.5) działa teraz przez `resolve_players`.
+
+**Decyzja (kontrakt błędów):** nieznana frakcja daje teraz **HTTP 422** (było 404), spójnie
+z resztą błędów walidacji setupu (`ValueError → 422`, design §Error Handling). Zaktualizowano
+test `test_setup_unknown_faction_404` → `test_setup_unknown_faction_422` w `tests/test_api.py`.
+
+**QA:** 280 testów zielonych, `ruff` i `mypy --strict` czyste. Anomalia web-data nie wystąpiła.
+
+---
+
 ### ✅ Blok E4·UI³ — menu RMB w player-area przy mapie + „Aktywuj system" na kafelku
 
 **Uwagi użytkownika + co zrobione:**

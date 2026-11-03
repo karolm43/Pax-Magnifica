@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
+    EngineConfigInfo,
     FactionInfo,
     MapStringRequest,
     MapView,
@@ -26,6 +29,11 @@ from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
 from src.core.models import FactionDef
 from src.core.registry import StaticDataRegistry
+from src.core.setup_service import (
+    PlayerSetupInput,
+    ResolvedPlayer,
+    resolve_players,
+)
 
 # Synenetyczne heksy dla rogów off-board (poza planszą) — daleko od pierścieni,
 # by nie kolidowały geometrycznie z kafelkami planszy. Sąsiedztwo do bramy idzie
@@ -58,12 +66,26 @@ def get_game_events(game_id: str) -> list[dict[str, object]]:
 
 @router.get("/api/public/game/{game_id}/web-data")
 def get_web_data(
-    game_id: str, ctx: AppContext = Depends(get_ctx)
+    game_id: str,
+    viewing_player: str | None = None,
+    ctx: AppContext = Depends(get_ctx),
 ) -> dict[str, object]:
-    """Dokument ``PlayerDataResponse`` dla frontendu ti4_web (viewer planszy)."""
-    return build_web_data(
-        ctx.current_grid, ctx.registry, ctx.service.current_state(), game_name=game_id
-    )
+    """Dokument ``PlayerDataResponse`` dla frontendu ti4_web (viewer planszy).
+
+    Opcjonalny query param ``viewing_player`` wyznacza perspektywę dokumentu (R6.6);
+    brak → aktywny gracz. Nieudane ustalenie viewera lub nieznany viewer →
+    ``ValueError`` z warstwy ``core``/serializacji, mapowany na HTTP 422.
+    """
+    try:
+        return build_web_data(
+            ctx.current_grid,
+            ctx.registry,
+            ctx.service.current_state(),
+            game_name=game_id,
+            viewing_player=viewing_player,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/factions", response_model=list[FactionInfo])
@@ -83,6 +105,19 @@ def get_factions(ctx: AppContext = Depends(get_ctx)) -> list[FactionInfo]:
         # Pomijamy placeholdery systemowe (Neutral/Lazax) — nie są grywalne.
         if f.is_playable
     ]
+
+
+@router.get("/engine/config", response_model=EngineConfigInfo)
+def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
+    """Konfiguracja silnika dla setupu (dozwolony zbiór poziomów trudności bota).
+
+    Front pobiera zbiór trudności STĄD zamiast trzymać własną kopię — wartości
+    pochodzą z ``engine_config.json`` przez ``StaticDataRegistry`` (R10.2,
+    docs/RULES.md 30). Lista jest posortowana dla deterministycznej prezentacji.
+    """
+    return EngineConfigInfo(
+        valid_difficulties=sorted(ctx.registry.valid_difficulties())
+    )
 
 
 @router.post("/map/load", response_model=MapView)
@@ -163,21 +198,119 @@ def _setup_home_tiles(
     return corner, real_home
 
 
+def _available_colors() -> list[str]:
+    """Zbiór dozwolonych kolorów graczy ze slotów domowych (R7.7).
+
+    Źródłem jest ``AUTO_SLOT_ORDER`` (kolory rogów domowych układu 6-osobowego),
+    wstrzykiwany do ``resolve_players`` zamiast hardkodowania listy w ``core``.
+    """
+    return [color for _position, color in AUTO_SLOT_ORDER]
+
+
+def _validate_home_position(
+    grid: HexGrid, home_position: str, player_id: str, taken: set[str]
+) -> None:
+    """Waliduje przypisanie pozycji domowej względem mapy (R14.4).
+
+    Pozycja musi ISTNIEĆ na mapie (inaczej flota się nie renderuje — Bug 8) oraz
+    nie może być już PRZYPISANA innemu graczowi. Naruszenie → ``HTTPException(422)``
+    z komunikatem wskazującym gracza; stan setupu pozostaje niezmieniony.
+    """
+    if home_position not in grid.positions:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Pozycja domowa {home_position!r} gracza {player_id!r} nie "
+                f"istnieje na tej mapie. Podaj home_position pasującą do map_string."
+            ),
+        )
+    if home_position in taken:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Pozycja domowa {home_position!r} gracza {player_id!r} jest już "
+                f"przypisana innemu graczowi."
+            ),
+        )
+
+
+def _apply_resolved_player(
+    state: GameState,
+    resolved: ResolvedPlayer,
+    faction: FactionDef,
+    *,
+    home_position: str,
+    unit_position: str,
+    unit_system_id: str,
+) -> GameState:
+    """Nanosi jednego ``ResolvedPlayer`` na stan i ustawia nowe pola ``PlayerState``.
+
+    Woła ``apply_setup_to_state`` (flota, kontrola planet, technologie), a następnie
+    dopisuje pola setupu modelu gracza: ``display_name``, ``control_type``,
+    ``difficulty`` (R11.1/R11.2). Walidacja odbyła się już w ``resolve_players``,
+    więc tutaj nie powtarzamy sprawdzeń.
+    """
+    new_state = apply_setup_to_state(
+        state,
+        player_id=resolved.player_id,
+        color=resolved.color,
+        faction=faction,
+        home_position=home_position,
+        chosen_tech=resolved.starting_tech,
+        unit_position=unit_position,
+        unit_system_id=unit_system_id,
+    )
+    player = new_state.players[resolved.player_id]
+    player.display_name = resolved.display_name
+    player.control_type = resolved.control_type
+    player.difficulty = resolved.difficulty
+    return new_state
+
+
 @router.post("/setup/player", response_model=MapView)
 async def post_setup_player(
     request: SetupPlayerRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
-    faction = ctx.registry.factions.get(request.faction_id)
-    if faction is None:
-        raise HTTPException(
-            status_code=404, detail=f"Nieznana frakcja: {request.faction_id}"
+    """Setup pojedynczego gracza na wskazanym slocie domowym.
+
+    Walidacja konfiguracji (nazwa, kolor, frakcja, trudność, technologie) jest
+    delegowana do ``resolve_players`` z jednoelementową listą — ten sam kontrakt
+    co ``/game/new`` (R8.5: ``faction_id=None`` → losowa frakcja). ``ValueError``
+    z walidacji → ``HTTPException(422)``. ``home_position`` jest wymagany w tym
+    kontrakcie i walidowany względem grida (R14.4).
+    """
+    current = ctx.service.current_state()
+    # Kolory już zajęte przez rozstawionych graczy — wykluczamy je z puli, żeby
+    # auto-dobór w ``resolve_players`` nie powielił koloru istniejącego gracza.
+    used_colors = {p.color for p in current.players.values() if p.color is not None}
+    available = [c for c in _available_colors() if c not in used_colors]
+    try:
+        # SetupPlayerRequest spełnia PlayerSetupInput strukturalnie; jego pola
+        # ``color``/``home_position`` są węższe (str zamiast str|None), co mypy
+        # traktuje jak niezgodność atrybutu mutowalnego protokołu — rzutujemy
+        # jawnie na protokół (duck typing jest poprawny w czasie działania).
+        resolved_list = resolve_players(
+            [cast("PlayerSetupInput", request)],
+            ctx.registry,
+            available_colors=available,
+            max_players=len(AUTO_SLOT_ORDER),
+            valid_difficulties=ctx.registry.valid_difficulties(),
         )
-    if not faction.is_playable:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Frakcja '{request.faction_id}' nie jest grywalna (placeholder systemowy).",
-        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    resolved = resolved_list[0]
+    faction = ctx.registry.factions[resolved.faction_id]
+
     grid = ctx.current_grid
+    # R14.4: pozycja domowa musi istnieć na mapie i nie może być zajęta przez
+    # innego już rozstawionego gracza (home_position z ich PlayerState).
+    taken_homes = {
+        p.home_position
+        for pid, p in current.players.items()
+        if pid != resolved.player_id and p.home_position is not None
+    }
+    _validate_home_position(grid, request.home_position, resolved.player_id, taken_homes)
+
     # Najpierw połóż kafelki domowe (ustala, gdzie trafią jednostki — off-board dla
     # Ghost/Crimson), zbierając zajęte rogi z już rozstawionych graczy.
     taken_corners = {p for p in grid.positions if p in {"tr", "br", "bl", "tl"}}
@@ -185,30 +318,25 @@ async def post_setup_player(
         grid, faction, request.home_position, ctx.registry, taken_corners
     )
     grid.build_edges()
-    try:
-        new_state = apply_setup_to_state(
-            ctx.service.current_state(),
-            player_id=request.player_id,
-            color=request.color,
-            faction=faction,
-            home_position=request.home_position,
-            chosen_tech=request.starting_tech,
-            unit_position=unit_position,
-            unit_system_id=unit_system_id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    new_state = _apply_resolved_player(
+        current,
+        resolved,
+        faction,
+        home_position=request.home_position,
+        unit_position=unit_position,
+        unit_system_id=unit_system_id,
+    )
 
     # Utrzymaj kolejność miejsc (RULES.md 24): dopisz nowego gracza na koniec
     # stołu. Pierwszy gracz zostaje mówcą. W fazie strategii zaktualizuj, kto
     # wybiera (mówca, gdy jeszcze nikt nie wybierał).
-    if request.player_id not in new_state.seating_order:
-        new_state.seating_order = [*new_state.seating_order, request.player_id]
+    if resolved.player_id not in new_state.seating_order:
+        new_state.seating_order = [*new_state.seating_order, resolved.player_id]
     if new_state.speaker_id is None:
         new_state.speaker_id = new_state.seating_order[0]
     if new_state.phase is Phase.STRATEGY:
         new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
-    ctx.service.replace_state(new_state, label=f"setup:{request.faction_id}")
+    ctx.service.replace_state(new_state, label=f"setup:{resolved.faction_id}")
 
     await ctx.service.broadcast()
     await ctx.broadcast_map()
@@ -219,13 +347,14 @@ async def post_setup_player(
 async def post_new_game(
     request: NewGameRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
-    """Tworzy nową grę w jednym kroku: reset stanu + mapa + setup graczy."""
-    if len(request.players) > len(AUTO_SLOT_ORDER):
-        raise HTTPException(
-            status_code=422,
-            detail=f"Za dużo graczy: max {len(AUTO_SLOT_ORDER)} (układ 6-osobowy).",
-        )
+    """Tworzy nową grę w jednym kroku: reset stanu + mapa + setup graczy.
 
+    Walidacja konfiguracji graczy (liczba, nazwy, kolory, frakcje, typ sterowania,
+    trudność, technologie) jest w całości delegowana do ``resolve_players``
+    (warstwa ``core``). Endpoint pozostaje cienki: buduje mapę, rozwiązuje graczy,
+    iteruje ``ResolvedPlayer`` i nanosi ich na stan. ``ValueError`` z walidacji →
+    ``HTTPException(422)`` z komunikatem wskazującym pole i gracza (R11.4).
+    """
     map_string = request.map_string or DEFAULT_MAP_STRING
     try:
         grid = build_grid_from_map_string(
@@ -239,51 +368,44 @@ async def post_new_game(
             detail="Map string nie dał żadnego znanego systemu (sprawdź ID i źródła).",
         )
 
+    # Delegacja całej walidacji/normalizacji graczy do core (R11.1–R11.6, R8.5).
+    # Zakres liczby graczy, losowy dobór frakcji i auto-kolory obsługuje resolve_players.
+    try:
+        resolved_players = resolve_players(
+            request.players,
+            ctx.registry,
+            available_colors=_available_colors(),
+            max_players=len(AUTO_SLOT_ORDER),
+            valid_difficulties=ctx.registry.valid_difficulties(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     new_state = GameState()
     seating: list[str] = []  # kolejność graczy przy stole (RULES.md 24)
     taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
-    for index, player in enumerate(request.players):
-        faction = ctx.registry.factions.get(player.faction_id)
-        if faction is None:
-            raise HTTPException(
-                status_code=404, detail=f"Nieznana frakcja: {player.faction_id}"
-            )
-        if not faction.is_playable:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Frakcja '{player.faction_id}' nie jest grywalna (placeholder systemowy).",
-            )
-        slot_position, slot_color = AUTO_SLOT_ORDER[index]
-        home_position = player.home_position or slot_position
-        color = player.color or slot_color
-        player_id = player.player_id or f"p{index + 1}"
-        # Bug 8: pozycja domowa MUSI istnieć na mapie — inaczej flota nie renderuje się.
-        if home_position not in grid.positions:
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    f"Pozycja domowa {home_position!r} gracza {player_id!r} nie "
-                    f"istnieje na tej mapie. Podaj home_position pasującą do map_string."
-                ),
-            )
-        seating.append(player_id)
+    taken_homes: set[str] = set()  # zajęte pozycje domowe (R14.4)
+    for index, resolved in enumerate(resolved_players):
+        faction = ctx.registry.factions[resolved.faction_id]
+        # home_position opcjonalny (R14.3): podany → walidacja względem mapy (R14.4),
+        # pominięty → auto ze slotu wg kolejności gracza (AUTO_SLOT_ORDER).
+        slot_position = AUTO_SLOT_ORDER[index][0]
+        home_position = resolved.home_position or slot_position
+        _validate_home_position(grid, home_position, resolved.player_id, taken_homes)
+        taken_homes.add(home_position)
+        seating.append(resolved.player_id)
         # Połóż kafelki domowe (off-board dla Ghost/Crimson) i ustal gdzie flota.
         unit_position, unit_system_id = _setup_home_tiles(
             grid, faction, home_position, ctx.registry, taken_corners
         )
-        try:
-            new_state = apply_setup_to_state(
-                new_state,
-                player_id=player_id,
-                color=color,
-                faction=faction,
-                home_position=home_position,
-                chosen_tech=player.starting_tech,
-                unit_position=unit_position,
-                unit_system_id=unit_system_id,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        new_state = _apply_resolved_player(
+            new_state,
+            resolved,
+            faction,
+            home_position=home_position,
+            unit_position=unit_position,
+            unit_system_id=unit_system_id,
+        )
     grid.build_edges()
 
     # Kolejność miejsc + mówca (RULES.md 24): pierwszy gracz = mówca na start.
