@@ -201,19 +201,13 @@ function isNameLengthValid(name: string): boolean {
   return name.trim().length <= MAX_NAME_LENGTH;
 }
 
-/**
- * Waliduje konfigurację pod kątem reguł, które front egzekwuje PRZED wysłaniem
- * (R7.4–R7.6, R9.2/R9.5, R10.2). Zwraca komunikat błędu (po polsku, wskazujący slot)
- * albo `null`, gdy konfiguracja jest kompletna i spójna.
- *
- * Uwaga: ostateczną, autorytatywną walidację robi backend (`resolve_players`); tu
- * blokujemy „Dalej"/„Generuj", by nie wysyłać ewidentnie błędnej konfiguracji.
- */
-export function validateSetup(
-  slots: SetupSlot[],
-  factionById: Map<string, FactionInfo>,
-): string | null {
-  // Nazwy: długość i brak duplikatów niepustych (case-insensitive, po strip) — R7.4/R7.5.
+// Walidacje per reguła — każda zwraca komunikat (po polsku, wskazujący slot) albo
+// `null`. Rozbite na osobne funkcje, by walidacja „Dalej" mogła sprawdzać TYLKO
+// reguły bieżącego kroku (patrz `validateStep`), a nie wymagać np. technologii,
+// zanim gracz w ogóle dojdzie do kroku technologii (to blokowało przejście dalej).
+
+/** Nazwy: długość + brak duplikatów niepustych (case-insensitive, po strip) — R7.4/R7.5. */
+function validateNames(slots: SetupSlot[]): string | null {
   const seenNames = new Set<string>();
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
@@ -228,8 +222,11 @@ export function validateSetup(
       seenNames.add(normalized);
     }
   }
+  return null;
+}
 
-  // Kolory: ze zbioru i bez duplikatów — R7.6/R7.8.
+/** Kolory: ze zbioru i bez duplikatów — R7.6/R7.8. */
+function validateColors(slots: SetupSlot[]): string | null {
   const seenColors = new Set<string>();
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
@@ -241,8 +238,11 @@ export function validateSetup(
     }
     seenColors.add(slot.color);
   }
+  return null;
+}
 
-  // Frakcje: duplikaty jawnych wyborów — R8.8 (losowe pomijamy, dobiera backend).
+/** Frakcje: duplikaty jawnych wyborów — R8.8 (losowe pomijamy, dobiera backend). */
+function validateFactions(slots: SetupSlot[]): string | null {
   const seenFactions = new Set<string>();
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
@@ -252,8 +252,14 @@ export function validateSetup(
     }
     seenFactions.add(slot.factionId);
   }
+  return null;
+}
 
-  // Technologie startowe: liczba zaznaczeń == wymagana przez frakcję — R9.2/R9.5.
+/** Technologie startowe: liczba zaznaczeń == wymagana przez frakcję — R9.2/R9.5. */
+function validateStartingTech(
+  slots: SetupSlot[],
+  factionById: Map<string, FactionInfo>,
+): string | null {
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot.factionId === RANDOM_FACTION) continue;
@@ -263,16 +269,64 @@ export function validateSetup(
       return `Gracz ${i + 1}: wybierz dokładnie ${amount} technologii startowych.`;
     }
   }
+  return null;
+}
 
-  // Sterowanie: BOT wymaga wybranej trudności — R10.2.
+/** Sterowanie: BOT wymaga wybranej trudności — R10.2. */
+function validateControl(slots: SetupSlot[]): string | null {
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot.controlType === "BOT" && !slot.difficulty) {
       return `Gracz ${i + 1}: wybierz poziom trudności bota.`;
     }
   }
-
   return null;
+}
+
+/**
+ * Waliduje reguły TYLKO danego kroku kreatora. Używane do blokady „Dalej": nie można
+ * wymagać technologii startowych, zanim gracz dojdzie do kroku technologii, więc każdy
+ * krok sprawdza wyłącznie SWOJE reguły. Zwraca komunikat błędu albo `null`.
+ */
+export function validateStep(
+  stepId: SetupStepDef["id"],
+  slots: SetupSlot[],
+  factionById: Map<string, FactionInfo>,
+): string | null {
+  switch (stepId) {
+    case "name-color":
+      return validateNames(slots) ?? validateColors(slots);
+    case "faction":
+      return validateFactions(slots);
+    case "starting-tech":
+      return validateStartingTech(slots, factionById);
+    case "control":
+      return validateControl(slots);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Pełna walidacja konfiguracji — wszystkie reguły naraz (R7.4–R7.6, R9.2/R9.5, R10.2).
+ * Używana przy „Generuj" (ostatni krok): dopiero wtedy wymagamy kompletu. Zwraca
+ * komunikat błędu (po polsku, wskazujący slot) albo `null`, gdy konfiguracja jest
+ * kompletna i spójna.
+ *
+ * Uwaga: ostateczną, autorytatywną walidację robi backend (`resolve_players`); tu
+ * blokujemy „Generuj", by nie wysyłać ewidentnie błędnej konfiguracji.
+ */
+export function validateSetup(
+  slots: SetupSlot[],
+  factionById: Map<string, FactionInfo>,
+): string | null {
+  return (
+    validateNames(slots) ??
+    validateColors(slots) ??
+    validateFactions(slots) ??
+    validateStartingTech(slots, factionById) ??
+    validateControl(slots)
+  );
 }
 
 /**

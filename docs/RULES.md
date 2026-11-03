@@ -541,9 +541,14 @@ wyborze), `PlayStrategyCardService`. Zweryfikowane 2026-10 na kodzie bota.
 - W fazie strategii wybór idzie **od mówcy (speaker) zgodnie z ruchem zegara**
   (speaker order — RULES.md 24). Każdy gracz wybiera po kolei jedną kartę z puli.
 - **Pick_Count (liczba kart na gracza) — zależna od liczby graczy:**
+  - **2 graczy → 2 karty/gracz** — ⚠️ **ZAŁOŻENIE** (oficjalne TI4 nie definiuje trybu
+    2-osobowego). Przyjmujemy wariant spójny z progiem 3–4 graczy (2 karty/gracz, z
+    DRUGĄ rundą wyboru), żeby silnik solo vs 1 bot / hot-seat 1v1 działał w fazie
+    strategii. Do potwierdzenia przez użytkownika; zmiana w jednym miejscu
+    (`strategy_phase.pick_count`), jeśli preferowany jest inny wariant (np. 3 karty/gracz).
   - **3–4 graczy → 2 karty/gracz** (gra przewiduje DRUGĄ rundę wyboru, patrz niżej),
   - **5–8 graczy → 1 karta/gracz**,
-  - **liczba graczy < 3 lub > 8 → NIEOBSŁUGIWANA (błąd).** Silnik odrzuca ustalenie
+  - **liczba graczy < 2 lub > 8 → NIEOBSŁUGIWANA (błąd).** Silnik odrzuca ustalenie
     `Pick_Count` i nie zmienia stanu fazy.
 
   Źródło: tirules [Strategy Phase](rules_tirules/R_strategy_phase.md) — Step 1: „When

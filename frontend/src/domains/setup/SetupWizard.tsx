@@ -16,15 +16,18 @@
 import { useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Group, Paper, Stack, Text } from "@/ds";
+import { Button, Group, NumberInput, Paper, Stack, Text, TextInput } from "@/ds";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
 import { SETUP_STEPS, type SetupStepId } from "./setupSteps";
 import StepControl from "./steps/Step_Control";
 import {
   currentStep,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
   toNewGameRequest,
   useSetupStore,
   validateSetup,
+  validateStep,
 } from "./useSetupStore";
 import Step_NameColor from "./steps/Step_NameColor";
 import Step_Faction from "./steps/Step_Faction";
@@ -62,6 +65,9 @@ export default function SetupWizard() {
 
   const slots = useSetupStore((s) => s.slots);
   const mapString = useSetupStore((s) => s.mapString);
+  const playerCount = useSetupStore((s) => s.playerCount);
+  const setPlayerCount = useSetupStore((s) => s.setPlayerCount);
+  const setMapString = useSetupStore((s) => s.setMapString);
   const currentStepIndex = useSetupStore((s) => s.currentStepIndex);
   const nextStep = useSetupStore((s) => s.nextStep);
   const prevStep = useSetupStore((s) => s.prevStep);
@@ -79,11 +85,23 @@ export default function SetupWizard() {
   const step = currentStep(currentStepIndex);
   const isLastStep = currentStepIndex >= SETUP_STEPS.length - 1;
 
-  // Komunikat walidacji (null = konfiguracja OK). Blokuje „Dalej"/„Generuj", gdy ustawiony.
-  const validationError = useMemo(
+  // Walidacja bieżącego kroku — blokuje „Dalej". Sprawdza TYLKO reguły tego kroku,
+  // więc np. brak wyboru technologii (krok późniejszy) nie blokuje wyjścia z kroku
+  // frakcji. To była przyczyna „nie da się przejść dalej" dla frakcji z wyborem tech.
+  const stepError = useMemo(
+    () => validateStep(step.id, slots, factionById),
+    [step.id, slots, factionById],
+  );
+
+  // Pełna walidacja — wymagana dopiero przy „Generuj" (ostatni krok): komplet reguł.
+  const fullError = useMemo(
     () => validateSetup(slots, factionById),
     [slots, factionById],
   );
+
+  // Komunikat pod krokiem: na ostatnim kroku pokazuje pełny błąd (co jeszcze brakuje),
+  // na wcześniejszych — błąd bieżącego kroku.
+  const validationError = isLastStep ? fullError : stepError;
 
   const StepComponent = STEP_COMPONENTS[step.id];
 
@@ -115,6 +133,33 @@ export default function SetupWizard() {
             {step.label}
           </Text>
         </Stack>
+
+        {/*
+         * Ustawienia gry (liczba graczy + map string) — pokazywane tylko na PIERWSZYM
+         * kroku, bo zmiana liczby graczy PRZEBUDOWUJE sloty wszystkich kroków
+         * (`setPlayerCount` → `resizeSlots`). Dzięki temu konfigurujesz liczbę graczy,
+         * zanim zaczniesz wypełniać ich dane. Oba pola są w `useSetupStore`.
+         */}
+        {currentStepIndex === 0 && (
+          <Group grow align="flex-start">
+            <NumberInput
+              label="Liczba graczy"
+              value={playerCount}
+              min={MIN_PLAYERS}
+              max={MAX_PLAYERS}
+              onChange={(v) => {
+                const n = typeof v === "number" ? v : Number(v);
+                if (Number.isFinite(n)) setPlayerCount(n);
+              }}
+            />
+            <TextInput
+              label="Map string (opcjonalnie)"
+              placeholder="Puste = mapa testowa"
+              value={mapString}
+              onChange={(e) => setMapString(e.currentTarget.value)}
+            />
+          </Group>
+        )}
 
         {/* Bieżący krok (stub lub realny komponent z 12.x). */}
         <StepComponent factions={factions ?? []} factionById={factionById} />

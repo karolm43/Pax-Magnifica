@@ -64,14 +64,20 @@ def pick_count(state: GameState) -> int:
     graczy liczona jako ``len(state.players)``. Czysta funkcja — tylko oblicza,
     nie zmienia stanu.
 
+    ⚠️ ZAŁOŻENIE (gra 2-osobowa) — RULES.md 13: oficjalne TI4 nie definiuje trybu
+    2-osobowego, więc przyjmujemy wariant spójny z progiem 3–4 graczy: **2 karty na
+    gracza**. Dzięki temu silnik (solo vs 1 bot, hot-seat 1v1) nie wywraca się w
+    fazie strategii. Wartość do potwierdzenia przez użytkownika — zmiana tutaj w
+    jednym miejscu, jeśli preferowany jest inny wariant (np. 3 karty/gracz).
+
     Raises:
-        ValueError: Gdy liczba graczy jest mniejsza niż 3 lub większa niż 8
+        ValueError: Gdy liczba graczy jest mniejsza niż 2 lub większa niż 8
             (liczba nieobsługiwana przez regułę); stan pozostaje bez zmian, bo
             funkcja go nie dotyka.
     """
     n = len(state.players)
-    if n < 3 or n > 8:
-        raise ValueError(f"Nieprawidłowa liczba graczy: {n} (dozwolone 3–8).")
+    if n < 2 or n > 8:
+        raise ValueError(f"Nieprawidłowa liczba graczy: {n} (dozwolone 2–8).")
     return 2 if n <= 4 else 1
 
 
@@ -82,26 +88,39 @@ def next_strategy_picker(state: GameState) -> str | None:
     gracza, który ma mniej niż ``pick_count(state)`` kart. Gdy wszyscy osiągnęli
     ``Pick_Count`` — zwraca None (faza strategii gotowa do przejścia w akcję).
 
-    Obsługuje drugą rundę przy 3–4 graczach bez licznika rund: warunek
-    ``< pick_count`` nie patrzy na numer rundy, a ``speaker_order`` zawsze zaczyna
-    od mówcy, więc po skompletowaniu pierwszej karty przez wszystkich pierwszym
-    graczem z <Pick_Count znów będzie mówca — naturalnie realizuje „drugą rundę od
-    mówcy" (RULES.md 13, 24).
+    Druga runda wyboru (3–4 graczy, a także 2 graczy — ⚠️ ZAŁOŻENIE) jest RUNDOWA,
+    zgodnie ze źródłem (tirules „Strategy Phase", Step 1): *„After the last player has
+    received their first strategy card, each player chooses a second strategy card,
+    starting with the speaker and proceeding clockwise."* Czyli NAJPIERW wszyscy biorą
+    PIERWSZĄ kartę (w speaker order), a DOPIERO potem wszyscy drugą — a nie jeden gracz
+    obie z rzędu. Realizujemy to bez osobnego licznika rund: „bieżąca runda" = najmniejsza
+    liczba kart wśród graczy (``floor``), a następny picker to pierwszy w speaker order,
+    który ma DOKŁADNIE tyle kart (czyli jeszcze nie wybierał w tej rundzie) i wciąż jest
+    poniżej ``Pick_Count``. Dzięki temu kolejność to p1, p2, …, p1, p2, … (RULES.md 13, 24).
 
-    Robustność dla niepełnego setu (<3 lub >8 graczy): ``pick_count`` rzuca wtedy
+    Robustność dla niepełnego setu (<2 lub >8 graczy): ``pick_count`` rzuca wtedy
     ``ValueError``; tutaj ŁAPIEMY go i zwracamy None, by nie psuć wywołań
     wewnętrznych z niepełnym setem (np. setup, gra budowana w God-Mode). Twardy błąd
     liczby graczy pozostaje tam, gdzie to świadoma akcja gracza
-    (``pick_strategy_card``/``ensure_strategy_complete``). Sygnatura bez zmian —
-    wszystkie dotychczasowe wywołania działają bez zmian; przy 5–8 graczach
-    (``pick_count == 1``) wynik jest identyczny jak dawniej (pierwszy bez karty).
+    (``pick_strategy_card``/``ensure_strategy_complete``). Przy 5–8 graczach
+    (``pick_count == 1``) jest tylko jedna runda, więc wynik jest identyczny jak dawniej
+    (pierwszy gracz bez karty).
     """
     try:
         needed = pick_count(state)
     except ValueError:
         return None
-    for pid in speaker_order(state):
-        if len(state.players[pid].strategy_cards) < needed:
+    order = speaker_order(state)
+    if not order:
+        return None
+    # Bieżąca runda = najmniejsza liczba kart wśród graczy. Następny wybiera pierwszy
+    # w speaker order, który ma jeszcze TYLE kart (nie wybierał w tej rundzie) i wciąż
+    # < Pick_Count. Gdy wszyscy osiągnęli Pick_Count → None (faza gotowa do akcji).
+    current_round = min(len(state.players[pid].strategy_cards) for pid in order)
+    if current_round >= needed:
+        return None
+    for pid in order:
+        if len(state.players[pid].strategy_cards) == current_round:
             return pid
     return None
 
@@ -115,7 +134,7 @@ def ensure_strategy_complete(state: GameState) -> None:
 
     Czysta kontrola: NIE zmienia stanu (nie klonuje, nie mutuje), jedynie czyta
     liczbę kart każdego gracza. ``pick_count`` propaguje własny ``ValueError`` przy
-    nieobsługiwanej liczbie graczy (<3 lub >8) — tu świadomie nie łapiemy go, bo
+    nieobsługiwanej liczbie graczy (<2 lub >8) — tu świadomie nie łapiemy go, bo
     sprawdzenie kompletności dla takiego setu nie ma sensu.
 
     Spójność kolejności (znalezisko #1 przeglądu): ``speaker_order`` iteruje po
@@ -246,12 +265,12 @@ def accumulate_unpicked_tg(
 
     Wariant guardu (znalezisko #2/#3 przeglądu): wołamy ``ensure_strategy_complete``
     zamiast wnioskować z ``next_strategy_picker(state) is not None``. Poprzedni guard
-    był dziurawy dla liczby graczy spoza 3–8: ``next_strategy_picker`` ŁAPIE
-    ``ValueError`` z ``pick_count`` i zwraca ``None``, więc dla 2 graczy guard
+    był dziurawy dla liczby graczy spoza 2–8: ``next_strategy_picker`` ŁAPIE
+    ``ValueError`` z ``pick_count`` i zwraca ``None``, więc dla 1 gracza guard
     „czy jest picker" fałszywie uznawał fazę za zakończoną i ``/round/next``
     przepuszczało akumulację zamiast ją odrzucić. ``ensure_strategy_complete`` woła
     ``pick_count`` BEZPOŚREDNIO, więc:
-    - dla <3/>8 graczy propaguje „Nieprawidłowa liczba graczy…" (akumulacja
+    - dla <2/>8 graczy propaguje „Nieprawidłowa liczba graczy…" (akumulacja
       ODRZUCONA — nieobsługiwany set nie może być „zakończoną fazą");
     - dla niekompletnego wyboru rzuca „Wybór kart strategii nie został ukończony." —
       owijamy to w dotychczasowy komunikat akumulacji, by zachować kontrakt.
@@ -259,7 +278,7 @@ def accumulate_unpicked_tg(
     Raises:
         ValueError: Gdy faza strategii nie została zakończona (niekompletny wybór) —
             komunikat „Nie można akumulować: faza strategii niezakończona." (R7.5);
-            albo gdy liczba graczy jest spoza 3–8 (propagacja z ``pick_count``).
+            albo gdy liczba graczy jest spoza 2–8 (propagacja z ``pick_count``).
     """
     try:
         ensure_strategy_complete(state)

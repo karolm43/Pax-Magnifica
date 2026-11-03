@@ -113,6 +113,28 @@ def project_for_viewer(state: GameState, viewing_player_id: str) -> GameState:
     return projected
 
 
+def project_all_redacted(state: GameState) -> GameState:
+    """Zwraca NOWY ``GameState`` z rękami WSZYSTKICH graczy zredagowanymi (brak viewera).
+
+    Perspektywa „nikt nie patrzy": używana, gdy nie da się ustalić viewera (brak
+    jawnego ``viewing_player`` i brak aktywnego gracza — np. między turami, po
+    komplecie wyboru kart strategii, w fazach bez aktywnego gracza). To POPRAWNY,
+    normalny stan gry, nie błąd — dokument web-data musi się wtedy zbudować, tylko
+    bez pełnej ręki kogokolwiek. Każda prywatna ręka jest zredagowana do liczebności
+    (``hidden_card_counts``), więc widoczność jest bezpieczna (R4.3, R4.4): skoro
+    nie wiadomo, kto patrzy, nie ujawniamy niczyich kart.
+
+    Czysta funkcja (R4.6): wejście nie jest mutowane (redakcja na ``clone()``).
+    Pusty stan → kopia pustego stanu (R4.7).
+    """
+    if not state.players:
+        return state.clone()
+    projected = state.clone()
+    for player in projected.players.values():
+        _redact_player(player)
+    return projected
+
+
 def _redact_player(player: PlayerState) -> None:
     """Redaguje ``Private_Info`` pojedynczego gracza (w miejscu, na kopii).
 

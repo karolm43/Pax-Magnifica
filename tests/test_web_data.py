@@ -527,14 +527,17 @@ def test_strategy_pick_transfers_trade_goods(client: TestClient) -> None:
             ]
         },
     )
-    # Speaker p1 (sol) → picker dobiera obie karty, zanim kolej idzie dalej:
+    # Wybór RUNDOWY (tirules „Strategy Phase", Step 1): najpierw każdy bierze
+    # pierwszą kartę w speaker order (p1, p2, p3), potem drugą. Docelowo:
     # p1: 1,2 · p2: 3,4 · p3: 6,7. Karty 5 i 8 zostają niewybrane.
-    for player_id, inits in (("p1", (1, 2)), ("p2", (3, 4)), ("p3", (6, 7))):
-        for initiative in inits:
-            client.post(
-                "/strategy/pick",
-                json={"player_id": player_id, "initiative": initiative},
-            )
+    for player_id, initiative in (
+        ("p1", 1), ("p2", 3), ("p3", 6),  # runda 1
+        ("p1", 2), ("p2", 4), ("p3", 7),  # runda 2
+    ):
+        client.post(
+            "/strategy/pick",
+            json={"player_id": player_id, "initiative": initiative},
+        )
     # Nowa runda: akumulacja +1 TG na kartach 5 i 8 (niewybrane), reset puli.
     client.post("/round/next")
     cards = client.get("/strategy/cards").json()
@@ -599,14 +602,17 @@ def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
             ]
         },
     )
-    # Picker dobiera obie karty, zanim kolej przejdzie dalej (speaker p1 pierwszy):
-    # p1 (sol): 6,7 · p2 (hacan): 1,2 · p3 (mentak): 3,4. Najniższa karta (1) → p2.
-    for player_id, inits in (("p1", (6, 7)), ("p2", (1, 2)), ("p3", (3, 4))):
-        for initiative in inits:
-            client.post(
-                "/strategy/pick",
-                json={"player_id": player_id, "initiative": initiative},
-            )
+    # Wybór RUNDOWY (speaker p1 pierwszy): runda 1 = p1:6, p2:1, p3:3; runda 2 =
+    # p1:7, p2:2, p3:4. Docelowo p1 (sol): 6,7 · p2 (hacan): 1,2 · p3 (mentak): 3,4.
+    # Najniższa karta (1) należy do p2 → p2 aktywny w fazie akcji.
+    for player_id, initiative in (
+        ("p1", 6), ("p2", 1), ("p3", 3),  # runda 1
+        ("p1", 7), ("p2", 2), ("p3", 4),  # runda 2
+    ):
+        client.post(
+            "/strategy/pick",
+            json={"player_id": player_id, "initiative": initiative},
+        )
     # Przejdź do fazy akcji — aktywny powinien być p2 (hacan), bo ma kartę 1.
     client.post("/phase/next")  # strategy -> action
     data = _web_data(client)

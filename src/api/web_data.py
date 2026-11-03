@@ -38,7 +38,7 @@ from src.core.unit_catalog import (
     UNIT_CAP_BY_ASYNC_ID,
     is_space_unit,
 )
-from src.core.visibility import project_for_viewer
+from src.core.visibility import project_all_redacted, project_for_viewer
 
 # Wersja schematu dokumentu web-data wymagana przez frontend ti4_web
 # (``REQUIRED_VERSION_SCHEMA`` w ``GameMapPage.tsx``). Dokument ze starszą/brakującą
@@ -1171,22 +1171,29 @@ def build_web_data(
     Returns:
         Słownik gotowy do serializacji JSON zgodny z ``PlayerDataResponse``.
 
-    Raises:
-        ValueError: gdy nie da się ustalić viewera (brak ``viewing_player`` i brak
-            aktywnego gracza) przy niepustym stanie (R6.7) — zamiast budować
-            częściowy/niezredagowany dokument.
+    Perspektywa dokumentu (R6.6/R6.7):
+
+    * jawny ``viewing_player`` → projekcja z jego perspektywy (pełna ręka viewera,
+      reszta zredagowana);
+    * brak ``viewing_player``, ale jest aktywny gracz → perspektywa aktywnego;
+    * brak OBU (``active_player_id is None`` — normalny stan: między turami, po
+      komplecie wyboru kart strategii, fazy bez aktywnego gracza) → dokument z
+      rękami WSZYSTKICH graczy zredagowanymi (``project_all_redacted``). To NIE
+      jest błąd — po prostu nikt nie ma w tym momencie wglądu w pełną rękę, więc
+      pokazujemy same liczniki. Dokument buduje się normalnie.
     """
     # R6.6: brak jawnego viewera → aktywny gracz jako perspektywa domyślna.
     viewer = viewing_player or state.active_player_id
-    # R6.7: brak viewera i brak aktywnego gracza przy niepustym stanie → błąd
-    # (warstwa api mapuje na HTTP 422), nie częściowy dokument.
-    if viewer is None and state.players:
-        raise ValueError(
-            "Brak gracza perspektywy (viewing_player/active_player)."
-        )
-    # R6.1: projekcja PRZED serializacją (gdy jest kogo rzutować). Pusty stan bez
-    # viewera serializujemy wprost — nie ma prywatnych rąk do zredagowania.
-    projected = project_for_viewer(state, viewer) if viewer is not None else state
+    # R6.1: projekcja PRZED serializacją. Gdy znamy viewera → jego perspektywa.
+    # Gdy viewera brak (jawnego i aktywnego), a stan niepusty → redagujemy ręce
+    # wszystkich (perspektywa „nikt nie patrzy"), zamiast rzucać — ``None`` to
+    # poprawny stan gry. Pusty stan serializujemy wprost (brak rąk do redakcji).
+    if viewer is not None:
+        projected = project_for_viewer(state, viewer)
+    elif state.players:
+        projected = project_all_redacted(state)
+    else:
+        projected = state
 
     # Jedna mapa klucz-tożsamości dla CAŁEGO dokumentu (jednostki, planety, heksy,
     # playerData). Spójny klucz eliminuje desync panel↔mapa (Bug 1/2).

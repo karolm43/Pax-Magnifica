@@ -102,13 +102,16 @@ def test_accumulate_adds_one_tg_to_unpicked(
     registry: StaticDataRegistry,
 ) -> None:
     # 3 graczy, Pick_Count=2: akumulacja wymaga ZAKOŃCZONEGO wyboru (guard R7.5).
-    # p1, p2, p3 biorą po 2 karty (1–6); karty 7 i 8 zostają niewybrane.
+    # Wybór jest RUNDOWY (p1, p2, p3, potem p1, p2, p3) — każdy bierze po 2 karty
+    # (1–6); karty 7 i 8 zostają niewybrane.
     state = _state()  # speaker p1, kolejność p1, p2, p3
-    for player_id, inits in (("p1", (1, 2)), ("p2", (3, 4)), ("p3", (5, 6))):
-        for initiative in inits:
-            state = strategy_phase.pick_strategy_card(
-                state, registry, player_id, initiative
-            )
+    for player_id, initiative in (
+        ("p1", 1), ("p2", 2), ("p3", 3),  # runda 1
+        ("p1", 4), ("p2", 5), ("p3", 6),  # runda 2
+    ):
+        state = strategy_phase.pick_strategy_card(
+            state, registry, player_id, initiative
+        )
     acc = strategy_phase.accumulate_unpicked_tg(state, registry)
     # Wybrane karty 1..6 bez TG; niewybrane 7, 8 dostają +1.
     for init in [1, 2, 3, 4, 5, 6]:
@@ -178,21 +181,22 @@ def test_next_picker_starts_with_speaker() -> None:
 def test_pick_advances_active_in_speaker_order(
     registry: StaticDataRegistry,
 ) -> None:
-    # 3 graczy → Pick_Count=2 (RULES.md 13): każdy gracz musi zebrać DWIE karty.
-    # ``next_strategy_picker`` zwraca PIERWSZEGO w speaker order poniżej Pick_Count,
-    # więc bieżący gracz dobiera obie swoje karty, zanim kolej przejdzie dalej
-    # (p2, p2, p3, p3, p1, p1 — druga runda „od mówcy" realizuje się naturalnie).
+    # 3 graczy → Pick_Count=2 (RULES.md 13): wybór jest RUNDOWY (tirules „Strategy
+    # Phase", Step 1): najpierw KAŻDY bierze pierwszą kartę w speaker order, potem
+    # KAŻDY drugą. Mówca p2, kolejność p2, p3, p1 → p2, p3, p1, p2, p3, p1.
     state = _seated_state()  # speaker p2, kolejność p2, p3, p1
     state.active_player_id = "p2"
+    # Runda 1: p2 → p3 → p1.
     after = strategy_phase.pick_strategy_card(state, registry, "p2", 1)
-    assert after.active_player_id == "p2"  # p2 ma 1 < 2 → wciąż p2
-    after = strategy_phase.pick_strategy_card(after, registry, "p2", 4)
-    assert after.active_player_id == "p3"  # p2 ma komplet → kolej na p3
-    after = strategy_phase.pick_strategy_card(after, registry, "p3", 2)
     assert after.active_player_id == "p3"
-    after = strategy_phase.pick_strategy_card(after, registry, "p3", 5)
+    after = strategy_phase.pick_strategy_card(after, registry, "p3", 2)
     assert after.active_player_id == "p1"
     after = strategy_phase.pick_strategy_card(after, registry, "p1", 3)
+    assert after.active_player_id == "p2"  # runda 1 kompletna → znów mówca p2
+    # Runda 2: p2 → p3 → p1.
+    after = strategy_phase.pick_strategy_card(after, registry, "p2", 4)
+    assert after.active_player_id == "p3"
+    after = strategy_phase.pick_strategy_card(after, registry, "p3", 5)
     assert after.active_player_id == "p1"
     # Ostatnia karta — wszyscy mają po 2 → brak kolejnego wybierającego.
     after = strategy_phase.pick_strategy_card(after, registry, "p1", 6)
@@ -316,16 +320,18 @@ def test_ensure_complete_allows_empty_seating_order(
 def test_accumulate_rejects_wrong_player_count(
     registry: StaticDataRegistry,
 ) -> None:
-    """Liczba graczy spoza 3–8 (znalezisko #2/#3): ``accumulate_unpicked_tg`` na
-    stanie 2-osobowym RZUCA (zabezpiecza ścieżkę /round/next), zamiast cicho
+    """Liczba graczy spoza 2–8 (znalezisko #2/#3): ``accumulate_unpicked_tg`` na
+    stanie 1-osobowym RZUCA (zabezpiecza ścieżkę /round/next), zamiast cicho
     przepuścić akumulację. Dawny guard na ``next_strategy_picker`` by przepuścił.
+
+    Uwaga: próg zmieniony na 2–8 (gra 2-osobowa jest teraz wspierana, ⚠️ ZAŁOŻENIE
+    w RULES.md 13), więc nieobsługiwanym setem jest dopiero 1 gracz.
     """
     state = GameState(
-        seating_order=["p1", "p2"],
+        seating_order=["p1"],
         speaker_id="p1",
         players={
             "p1": PlayerState(player_id="p1"),
-            "p2": PlayerState(player_id="p2"),
         },
     )
     with pytest.raises(ValueError, match="Nieprawidłowa liczba graczy"):
