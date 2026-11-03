@@ -25,7 +25,9 @@ from src import config
 from src.core.models import (
     AbilityDef,
     BreakthroughDef,
+    EngineConfig,
     FactionDef,
+    HandLimits,
     LeaderDef,
     PlanetDef,
     StrategyCardDef,
@@ -111,6 +113,10 @@ class StaticDataRegistry:
         self.technologies: dict[str, TechnologyDef] = {}
         self.breakthroughs: dict[str, BreakthroughDef] = {}
 
+        # Konfiguracja silnika (limity rąk TI4 + zbiór poziomów trudności bota).
+        # Ładowana z assetów (NIE hardkodowana) — patrz docs/RULES.md 30.
+        self.engine_config: EngineConfig = EngineConfig()
+
         # Mapowania id -> gęsty indeks int (pod FastState)
         self.unit_index: dict[str, int] = {}
         self.planet_index: dict[str, int] = {}
@@ -168,9 +174,44 @@ class StaticDataRegistry:
             _iter_dir_entries(config.BREAKTHROUGHS_DATA_DIR), BreakthroughDef
         )
 
+        self.engine_config = self._load_engine_config()
+
         self.unit_index = {uid: i for i, uid in enumerate(sorted(self.units))}
         self.planet_index = {pid: i for i, pid in enumerate(sorted(self.planets))}
         self.system_index = {sid: i for i, sid in enumerate(sorted(self.systems))}
+
+    @staticmethod
+    def _load_engine_config() -> EngineConfig:
+        """Wczytuje konfigurację silnika z ``engine_config.json``.
+
+        Gdy plik nie istnieje, zwraca domyślną (pustą) konfigurację — dzięki temu
+        rejestr działa też bez pliku (limity ``None`` = brak kapu, zbiór trudności
+        pusty). Zasada projektu: limity rąk i zbiór trudności NIE są hardkodowane
+        w logice, tylko czytane stąd (patrz docs/RULES.md 30).
+        """
+        if not config.ENGINE_CONFIG_PATH.is_file():
+            return EngineConfig()
+        raw = json.loads(config.ENGINE_CONFIG_PATH.read_text(encoding="utf-8"))
+        return EngineConfig.model_validate(raw)
+
+    # --- Konfiguracja silnika (limity rąk, poziomy trudności) ----------
+
+    def hand_limits(self) -> HandLimits:
+        """Limity rozmiarów rąk gracza (reguły TI4; docs/RULES.md 30).
+
+        ``None`` dla danej ręki = brak górnego limitu. Czytane z assetów, nie
+        hardkodowane — warstwa setup/``core`` używa tych wartości do walidacji.
+        """
+        return self.engine_config.hand_limits
+
+    def valid_difficulties(self) -> frozenset[str]:
+        """Dozwolony, skończony zbiór poziomów trudności bota (R1.8).
+
+        ⚠️ ZAŁOŻENIE — poziomy trudności nie są regułą TI4 (to koncepcja warstwy AI),
+        więc zbiór jest wartością konfigurowalną czytaną z ``engine_config.json``,
+        a nie stałą w kodzie. Patrz docs/RULES.md 30.
+        """
+        return frozenset(self.engine_config.valid_difficulties)
 
     # --- Karty strategii -----------------------------------------------
 

@@ -260,3 +260,46 @@ class SystemDef(_StaticModel):
         if self.is_gravity_rift:
             result.add("GRAVITY_RIFT")
         return result
+
+
+class HandLimits(BaseModel):
+    """Limity rozmiarów rąk gracza (reguły TI4 — patrz docs/RULES.md 30).
+
+    ``None`` oznacza BRAK górnego limitu dla danej ręki (reguła TI4 nie nakłada
+    limitu). Wartości liczbowe pochodzą z assetów (``engine_config.json``), nie są
+    hardkodowane w logice silnika.
+
+    Źródła reguł (tirules2.com, zrzut offline w ``docs/rules_tirules/``):
+    - ``action_cards`` — max 7 kart akcji na ręce (R_action_cards: „maximum of seven
+      action cards"); efekty gry mogą zmienić limit.
+    - ``secret_objectives`` — max 3 tajne obiektywy (zrealizowane + niezrealizowane)
+      łącznie (R_objective_cards: „up to three total scored and unscored").
+    - ``promissory_notes`` — reguły NIE nakładają limitu na rękę promissory notes
+      (R_promissory_notes); liczebność ręki jest informacją jawną, ale bez górnego
+      kapu → ``None``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_cards: int | None = None
+    secret_objectives: int | None = None
+    promissory_notes: int | None = None
+
+
+class EngineConfig(BaseModel):
+    """Konfiguracja silnika czytana z ``assets/config/engine_config.json``.
+
+    Jedno autorytatywne źródło dla wartości, których NIE wolno hardkodować z pamięci:
+    limitów rąk (reguły TI4) oraz zbioru poziomów trudności bota (⚠️ ZAŁOŻENIE —
+    poziomy trudności nie istnieją w TI4, to koncepcja warstwy AI silnika).
+
+    Pole ``_comment`` w pliku JSON jest ignorowane (``extra="ignore"``) — służy tylko
+    jako notatka dla edytującego plik.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    hand_limits: HandLimits = Field(default_factory=HandLimits)
+    # Dozwolony, skończony zbiór poziomów trudności bota (R1.8). ⚠️ ZAŁOŻENIE —
+    # wartości konfigurowalne, nie reguła TI4 (patrz docs/RULES.md 30).
+    valid_difficulties: list[str] = Field(default_factory=list)

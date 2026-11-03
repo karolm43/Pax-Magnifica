@@ -51,6 +51,12 @@ SOURCES_PATH: Path = DATA_DIR / "sources" / "sources.json"
 # Manifest aktywnych źródeł (edytowalny bez dotykania kodu)
 ENABLED_SOURCES_PATH: Path = ASSETS_DIR / "enabled_sources.json"
 
+# Konfiguracja silnika (limity rąk TI4 + zbiór poziomów trudności bota).
+# Edytowalna bez dotykania kodu; czytana przez StaticDataRegistry. Zasada projektu:
+# limity rąk to reguły TI4 (źródło: docs/RULES.md 30), a nie wartości z pamięci;
+# zbiór poziomów trudności to ⚠️ ZAŁOŻENIE (koncepcja warstwy AI, nie reguła TI4).
+ENGINE_CONFIG_PATH: Path = ASSETS_DIR / "config" / "engine_config.json"
+
 
 # --- Ładowanie manifestu aktywnych źródeł -------------------------------
 

@@ -1,0 +1,13 @@
+{
+  "_comment": "Konfiguracja silnika Custodian Engine czytana przez StaticDataRegistry. Limity rak = reguly TI4 (zrodlo: tirules2.com, patrz docs/RULES.md 30). valid_difficulties = ZALOZENIE (poziomy trudnosci bota nie istnieja w TI4; to koncepcja warstwy AI). Zmieniaj TUTAJ, nie w kodzie.",
+  "hand_limits": {
+    "action_cards": 7,
+    "secret_objectives": 3,
+    "promissory_notes": null
+  },
+  "valid_difficulties": [
+    "EASY",
+    "NORMAL",
+    "HARD"
+  ]
+}

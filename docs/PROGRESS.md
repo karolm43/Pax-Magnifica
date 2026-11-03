@@ -21,6 +21,35 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Zadanie 5.1 (feature `player-model-and-setup-ui`) — weryfikacja limitów rąk + poziomów trudności (ukończone)
+
+**Cel (zadanie BADAWCZE, blokujące zad. 8 i 9):** potwierdzić ze źródeł wartości dotąd
+oznaczone jako ⚠️ ZAŁOŻENIE (limity rąk, zbiór poziomów trudności bota) i udostępnić je
+jako konfigurację czytaną przez `StaticDataRegistry` — bez hardkodowania liczb w regułach.
+
+**Zweryfikowane ze źródeł (tirules2.com / lokalny zrzut `docs/rules_tirules/`):**
+- Karty akcji — **max 7** na ręce (`R_action_cards`); efekty gry mogą zmienić limit.
+- Tajne obiektywy — **max 3** łącznie zrealizowane + niezrealizowane (`R_objective_cards`).
+- Promissory notes — **brak limitu** ręki w regułach (`R_promissory_notes`) → `null`.
+- Poziomy trudności bota — **nie istnieją w TI4** (brak w assetach i w regułach) →
+  ⚠️ ZAŁOŻENIE, zbiór konfigurowalny `["EASY", "NORMAL", "HARD"]` do potwierdzenia.
+
+**Co zrobione:**
+- Nowy asset `assets/config/engine_config.json` (limity rąk + `valid_difficulties`).
+- `src/config.py` — ścieżka `ENGINE_CONFIG_PATH`.
+- `src/core/models.py` — modele `HandLimits`, `EngineConfig` (Pydantic v2).
+- `src/core/registry.py` — ładowanie configu + `hand_limits()` / `valid_difficulties()`.
+- `docs/RULES.md` — nowa sekcja 30 (źródła + ⚠️ ZAŁOŻENIE trudności) + wpis w spisie treści.
+- `tests/test_registry.py` — 3 testy (limity z assetu, zbiór trudności, fallback bez pliku).
+
+**QA:** 280 testów zielonych, `ruff` i `mypy --strict` czyste.
+
+**⚠️ Decyzja do potwierdzenia przez użytkownika:** zbiór poziomów trudności bota
+(`["EASY", "NORMAL", "HARD"]`) — czy właściwy, czy preferowany inny (więcej poziomów,
+polskie etykiety, skala liczbowa)? Zmiana wyłącznie w `engine_config.json`, bez kodu.
+
+---
+
 ### ✅ Blok E4·UI³ — menu RMB w player-area przy mapie + „Aktywuj system" na kafelku
 
 **Uwagi użytkownika + co zrobione:**

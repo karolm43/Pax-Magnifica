@@ -51,6 +51,11 @@ assets/*
 
 # ...ale wersjonuj konfiguracje i dane potrzebne silnikowi:
 !assets/enabled_sources.json
+# Katalog konfiguracji silnika: wersjonujemy TYLKO nasz engine_config.json
+# (reszta plików w assets/config/ to artefakty AsyncTI4 — pozostają ignorowane).
+!assets/config/
+assets/config/*
+!assets/config/engine_config.json
 !assets/data/
 !assets/systems/
 !assets/planets/

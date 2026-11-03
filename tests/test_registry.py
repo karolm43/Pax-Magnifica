@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from src.core.registry import StaticDataRegistry
 
 
@@ -116,3 +118,45 @@ def test_explicit_alias_overrides_canonical_choice() -> None:
     ids = [card.id for card in registry.strategy_card_set("pok")]
     assert "pok4construction" in ids
     assert "te4construction" not in ids
+
+
+# --- Konfiguracja silnika: limity rąk + poziomy trudności (RULES.md 30) -----
+
+
+def test_hand_limits_from_assets() -> None:
+    """Limity rąk pochodzą z assetu i zgadzają się z regułami TI4 (RULES.md 30.1).
+
+    action_cards=7, secret_objectives=3, promissory_notes=None (brak limitu).
+    """
+    registry = StaticDataRegistry()
+    limits = registry.hand_limits()
+    assert limits.action_cards == 7
+    assert limits.secret_objectives == 3
+    assert limits.promissory_notes is None
+
+
+def test_valid_difficulties_is_nonempty_frozenset() -> None:
+    """Zbiór poziomów trudności (⚠️ ZAŁOŻENIE) jest wczytany jako niepusty frozenset."""
+    registry = StaticDataRegistry()
+    difficulties = registry.valid_difficulties()
+    assert isinstance(difficulties, frozenset)
+    assert len(difficulties) > 0
+    # Zbiór jest konfigurowalny (z assetu), nie hardkodowany — sprawdzamy spójność
+    # z bieżącą zawartością engine_config.json.
+    assert difficulties == frozenset(registry.engine_config.valid_difficulties)
+
+
+def test_engine_config_defaults_when_file_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Brak pliku konfiguracji → domyślna (pusta) konfiguracja, bez błędu."""
+    from pathlib import Path
+
+    from src import config
+
+    monkeypatch.setattr(
+        config, "ENGINE_CONFIG_PATH", Path("nieistniejacy_plik_engine_config.json")
+    )
+    registry = StaticDataRegistry(enabled_sources=["base"])
+    assert registry.hand_limits().action_cards is None
+    assert registry.valid_difficulties() == frozenset()
