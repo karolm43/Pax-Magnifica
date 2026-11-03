@@ -204,10 +204,17 @@
 
 /* ── Detail (summary) ─────────────────────────────────────────────────── */
 
+/*
+ * Panel szczegółów: przyklejony do góry viewportu, z WŁASNYM przewijaniem ograniczonym
+ * do wysokości okna (minus margines). Dzięki temu panel NIE wychodzi poza ekran, nawet
+ * gdy summary jest wysokie (lore, liderzy, flota) — to naprawia „wychodzi poza okno".
+ */
 .detail {
   position: sticky;
-  top: 0;
-  max-height: 520px;
+  top: var(--ds-space-sm);
+  max-height: calc(100vh - 2 * var(--ds-space-lg));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--ds-space-md);
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-lg);
@@ -218,5 +225,6 @@
   .detail {
     position: static;
     max-height: none;
+    overflow: visible;
   }
 }

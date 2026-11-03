@@ -297,9 +297,11 @@ export function validateStep(
     case "name-color":
       return validateNames(slots) ?? validateColors(slots);
     case "faction":
-      return validateFactions(slots);
-    case "starting-tech":
-      return validateStartingTech(slots, factionById);
+      // Wybór technologii startowych jest teraz wbudowany w krok frakcji (panel
+      // podglądu), więc tu walidujemy i frakcje, i komplet technologii startowych.
+      return (
+        validateFactions(slots) ?? validateStartingTech(slots, factionById)
+      );
     case "control":
       return validateControl(slots);
     default:

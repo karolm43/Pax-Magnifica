@@ -35,6 +35,7 @@ function slotFactionLabel(
 export default function Step_Faction({ factions, factionById }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
   const setFaction = useSetupStore((s) => s.setFaction);
+  const updateSlot = useSetupStore((s) => s.updateSlot);
 
   // Który gracz jest właśnie konfigurowany (indeks slotu).
   const [activeSlot, setActiveSlot] = useState(0);
@@ -199,6 +200,18 @@ export default function Step_Faction({ factions, factionById }: SetupStepProps) 
         <div className={styles.detail}>
           <FactionSummary
             faction={previewFaction}
+            // Wybór technologii startowych pokazujemy TYLKO, gdy oglądana frakcja jest
+            // przypisana aktywnemu graczowi (wtedy zapis idzie do jego slotu). Scala to
+            // dawny osobny krok „Technologie startowe" w ten panel.
+            startingTech={
+              previewFaction && selectedForActive === previewFaction.id
+                ? {
+                    value: slots[activeSlot]?.startingTech ?? [],
+                    onChange: (techs) =>
+                      updateSlot(activeSlot, { startingTech: techs }),
+                  }
+                : undefined
+            }
             footer={
               previewFaction && (
                 <Stack gap="xs">

@@ -21,6 +21,42 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Wybór frakcji (setup) — iteracja 2: scalenie techów, pełne nazwy, portret+lore (ukończone)
+
+**Cel (uwagi użytkownika do iteracji 1):** panel wychodził poza okno; osobny krok wyboru
+technologii był zbędny; skróty zamiast pełnych nazw (flota „cv", system domowy jako ID);
+brakowało przełomu (breakthrough) i wszystkich jednostek frakcyjnych (np. argent_destroyer);
+brak miejsca na portret i (długie) lore frakcji.
+
+**Backend (`src/api/schemas.py`, `src/api/routers/game.py`):**
+- `FactionInfo` dostał `breakthrough` (id dopasowany po `BreakthroughDef.faction`) i
+  `starting_units` (lista `StartingUnit{base_type,count,placement}` budowana przez
+  `parse_starting_fleet` — jedno źródło parsera floty, bez duplikowania kodów na froncie).
+- Handler `get_factions` zrefaktorowany na helper `_faction_info` + `_faction_starting_units`
+  + `_faction_breakthrough_id`.
+
+**Frontend:**
+- `FactionSummary.tsx` przebudowany: portret frakcji (z fallbackiem do ikony), sekcja lore
+  (własny scroll — lore bywa długie), breakthrough (`Breakthrough`), WSZYSTKIE jednostki
+  frakcyjne (filtr po `getUnitData(id).faction`, nie tylko flagship/mech), pełne nazwy
+  jednostek/systemu/planet (`getUnitData`/`getTileById`/`getPlanetData`), wbudowany wybór
+  technologii startowych (`StartingTechChoice`) — pokazywany, gdy frakcja jest przypisana
+  aktywnemu graczowi.
+- `factionLore.ts` (NOWY) — miejsce na lore (mapa `FACTION_LORE`) + konwencja portretów
+  `/faction_portraits/<id>.{jpg,png,webp}`; `frontend/public/faction_portraits/README.md`.
+- Scalono krok „Technologie startowe" z krokiem frakcji: `setupSteps.ts` (3 kroki zamiast 4),
+  `useSetupStore.validateStep("faction")` waliduje też komplet techów; usunięto
+  `Step_StartingTech.tsx` i `StartingTechPicker.tsx`.
+- Naprawa „wychodzi poza okno": panel detalu `position: sticky` + `max-height: calc(100vh-…)`
+  + własny `overflow-y` (nie wychodzi poza viewport).
+
+**Gdzie użytkownik wkleja treść:** lore → `frontend/src/domains/setup/factionLore.ts`
+(mapa `FACTION_LORE`, klucz = id frakcji); portrety → `frontend/public/faction_portraits/`.
+
+**QA:** backend 280 testów + ruff + mypy czyste; front tsc + eslint + build czyste.
+
+---
+
 ### ✅ Przeróbka ekranu wyboru frakcji (setup) — galeria + faction summary (ukończone)
 
 **Cel (prośba użytkownika):** dawny krok wyboru frakcji renderował osobną przewijalną

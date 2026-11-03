@@ -24,7 +24,7 @@
   background: var(--ds-socket);
 }
 
-/* ── Nagłówek frakcji ─────────────────────────────────────────────────── */
+/* ── Nagłówek frakcji (portret + nazwa) ───────────────────────────────── */
 
 .header {
   display: flex;
@@ -32,6 +32,30 @@
   gap: var(--ds-space-md);
   padding-bottom: var(--ds-space-md);
   border-bottom: 1px solid var(--ds-h10);
+}
+
+/* Portret frakcji — miejsce na obrazek wrzucany do /faction_portraits/<id>. */
+.portrait {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-socket);
+}
+
+/* Placeholder portretu (brak pliku) — ikona frakcji w ramce. */
+.portraitFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: var(--ds-radius-md);
+  border: 1px dashed var(--ds-h22);
+  background: var(--ds-socket);
 }
 
 .headerText {
@@ -66,9 +90,7 @@
 .sections {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: var(--ds-space-md) 2px var(--ds-space-md) 0;
+  padding: var(--ds-space-md) 0;
 }
 
 .section {
@@ -89,6 +111,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-xs);
+}
+
+/* ── Lore (długi tekst) ───────────────────────────────────────────────── */
+
+.lore {
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ds-space-sm);
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  font-size: var(--ds-fz-sm);
+  line-height: 1.5;
+  color: var(--ds-ink);
+  white-space: pre-line; /* zachowaj akapity z pustych linii */
 }
 
 /* Rzędy „chipów" (zdolności, technologie, weksle) — zawijają się. */
@@ -179,19 +217,28 @@
 
 .startRow {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 150px 1fr;
   gap: var(--ds-space-sm);
   align-items: baseline;
 }
 
-.startRow dt {
+/* Wiersz na całą szerokość (np. picker technologii startowych) — etykieta nad treścią. */
+.startRowFull {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.startRow dt,
+.startRowFull dt {
   font-size: var(--ds-fz-xs);
   color: var(--ds-ink-lo);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.startRow dd {
+.startRow dd,
+.startRowFull dd {
   margin: 0;
   font-size: var(--ds-fz-sm);
   color: var(--ds-ink);

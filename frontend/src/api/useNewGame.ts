@@ -24,6 +24,18 @@ export type FactionInfo = {
   promissory_notes: string[];
   commodities: number;
   complexity: string | null;
+  // Przełom frakcji (breakthrough) — identyfikator lub null, gdy frakcja go nie ma.
+  breakthrough: string | null;
+  // Flota startowa rozbita na pozycje (liczba + typ jednostki). Front rozwiązuje
+  // `base_type` na pełną nazwę jednostki (bez surowych kodów typu `cv`/`dd`).
+  starting_units: StartingUnit[];
+};
+
+/** Jedna pozycja floty startowej frakcji (liczba + typ jednostki). */
+export type StartingUnit = {
+  base_type: string;
+  count: number;
+  placement: string;
 };
 
 /**

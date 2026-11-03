@@ -2,10 +2,9 @@
 //
 // Odpowiedzialności (zadanie 11.3):
 //  1. Renderuje BIEŻĄCY krok wg uporządkowanej sekwencji `SETUP_STEPS` (R14.1). Mapowanie
-//     „id kroku → komponent" trzyma lekki rejestr `STEP_COMPONENTS`; właściwe kroki
-//     (Step_NameColor, Step_Faction, Step_StartingTech, Step_Control) to osobne zadania
-//     12.x — do tego czasu pod ich identyfikatorami renderują się STUBY (placeholdery),
-//     które podmienimy bez dotykania kontenera ani nawigacji.
+//     „id kroku → komponent" trzyma lekki rejestr `STEP_COMPONENTS` (Step_NameColor,
+//     Step_Faction, Step_Control). Wybór technologii startowych NIE jest już osobnym
+//     krokiem — jest wbudowany w panel podglądu frakcji (`FactionSummary`) w kroku frakcji.
 //  2. Blokuje „Dalej"/„Generuj" przy niespełnionej walidacji (R7.4–R7.6, R9.2/R9.5, R10.2)
 //     — logika w czystej funkcji `validateSetup` ze store'a.
 //  3. Mapuje stan store'a na `NewGameRequest` (`toNewGameRequest`) i wysyła `/game/new`.
@@ -31,7 +30,6 @@ import {
 } from "./useSetupStore";
 import Step_NameColor from "./steps/Step_NameColor";
 import Step_Faction from "./steps/Step_Faction";
-import Step_StartingTech from "./steps/Step_StartingTech";
 
 /**
  * Propsy współdzielone przez komponenty kroków. Każdy krok dostaje listę frakcji
@@ -50,7 +48,6 @@ export interface SetupStepProps {
 const STEP_COMPONENTS: Record<SetupStepId, ComponentType<SetupStepProps>> = {
   "name-color": Step_NameColor,
   faction: Step_Faction,
-  "starting-tech": Step_StartingTech,
   control: StepControl,
 };
 

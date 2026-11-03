@@ -14,6 +14,7 @@ from src.api.schemas import (
     MapView,
     NewGameRequest,
     SetupPlayerRequest,
+    StartingUnit,
     StateEnvelope,
 )
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
@@ -23,6 +24,7 @@ from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
     off_board_corner,
+    parse_starting_fleet,
 )
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
@@ -88,28 +90,68 @@ def get_web_data(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+def _faction_starting_units(faction: FactionDef) -> list[StartingUnit]:
+    """Flota startowa frakcji jako lista pozycji (liczba + typ) z pełnymi nazwami w UI.
+
+    Używa tego samego parsera co setup (``parse_starting_fleet``), więc kody floty
+    (``cv``/``dd``/...) są rozwiązywane w jednym miejscu. Przy niepoprawnym stringu
+    (teoretycznie — dane są spójne) zwraca pustą listę, by nie wywalić listy frakcji.
+    """
+    if not faction.starting_fleet:
+        return []
+    try:
+        entries = parse_starting_fleet(faction.starting_fleet, faction.home_planets)
+    except ValueError:
+        return []
+    return [
+        StartingUnit(
+            base_type=entry.base_type,
+            count=entry.count,
+            placement=str(entry.placement),
+        )
+        for entry in entries
+    ]
+
+
+def _faction_breakthrough_id(
+    faction_id: str, registry: StaticDataRegistry
+) -> str | None:
+    """Identyfikator przełomu (breakthrough) frakcji lub None — dopasowanie po ``faction``."""
+    return next(
+        (bt.id for bt in registry.breakthroughs.values() if bt.faction == faction_id),
+        None,
+    )
+
+
+def _faction_info(f: FactionDef, registry: StaticDataRegistry) -> FactionInfo:
+    """Buduje ``FactionInfo`` (pola bogate do faction summary) ze statycznego rejestru."""
+    return FactionInfo(
+        id=f.id,
+        name=f.name,
+        home_system=f.home_system,
+        home_planets=list(f.home_planets),
+        starting_fleet=f.starting_fleet,
+        preferred_colours=list(f.preferred_colours),
+        starting_tech_options=list(f.starting_tech_options),
+        starting_tech_amount=f.starting_tech_amount,
+        # Pola bogate do faction summary (identyfikatory ze statycznego rejestru).
+        starting_tech=list(f.starting_tech),
+        abilities=list(f.abilities),
+        faction_tech=list(f.faction_tech),
+        leaders=list(f.leaders),
+        units=list(f.units),
+        promissory_notes=list(f.promissory_notes),
+        commodities=f.commodities,
+        complexity=f.complexity,
+        breakthrough=_faction_breakthrough_id(f.id, registry),
+        starting_units=_faction_starting_units(f),
+    )
+
+
 @router.get("/factions", response_model=list[FactionInfo])
 def get_factions(ctx: AppContext = Depends(get_ctx)) -> list[FactionInfo]:
     return [
-        FactionInfo(
-            id=f.id,
-            name=f.name,
-            home_system=f.home_system,
-            home_planets=list(f.home_planets),
-            starting_fleet=f.starting_fleet,
-            preferred_colours=list(f.preferred_colours),
-            starting_tech_options=list(f.starting_tech_options),
-            starting_tech_amount=f.starting_tech_amount,
-            # Pola bogate do faction summary (identyfikatory ze statycznego rejestru).
-            starting_tech=list(f.starting_tech),
-            abilities=list(f.abilities),
-            faction_tech=list(f.faction_tech),
-            leaders=list(f.leaders),
-            units=list(f.units),
-            promissory_notes=list(f.promissory_notes),
-            commodities=f.commodities,
-            complexity=f.complexity,
-        )
+        _faction_info(f, ctx.registry)
         for f in sorted(ctx.registry.factions.values(), key=lambda x: x.name)
         # Pomijamy placeholdery systemowe (Neutral/Lazax) — nie są grywalne.
         if f.is_playable

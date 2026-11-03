@@ -138,6 +138,22 @@ class StateEnvelope(BaseModel):
     history: HistoryInfo
 
 
+class StartingUnit(BaseModel):
+    """Jeden wpis floty startowej frakcji — liczba + typ jednostki (pełna nazwa z danych).
+
+    Buduje je backend z ``startingFleet`` przez ``parse_starting_fleet`` (jedno źródło
+    parsera, RULES.md 2c). ``base_type`` to generyczny typ (np. ``carrier``), który front
+    rozwiązuje na pełną nazwę przez swoje dane jednostek — zamiast pokazywać surowe kody
+    (``cv``, ``dd``). ``placement`` (SPACE/PLANET) dla ewentualnego pogrupowania w UI.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str
+    count: int
+    placement: str
+
+
 class FactionInfo(BaseModel):
     """Informacja o frakcji dla ekranu wyboru (setup)."""
 
@@ -165,6 +181,14 @@ class FactionInfo(BaseModel):
     promissory_notes: list[str] = Field(default_factory=list)
     commodities: int = 0
     complexity: str | None = None
+    # Przełom frakcji (breakthrough, Thunder's Edge) — identyfikator dopasowany po
+    # ``BreakthroughDef.faction``; None, gdy frakcja go nie ma. Front rozwiązuje go po
+    # swoich danych (komponent ``Breakthrough``), tak jak panel gracza w grze.
+    breakthrough: str | None = None
+    # Flota startowa rozbita na pozycje (liczba + typ jednostki). Zastępuje surowy
+    # ``starting_fleet`` w UI pełnymi nazwami jednostek. ``starting_fleet`` zostaje jako
+    # oryginalny string (zgodność wsteczna / debug).
+    starting_units: list[StartingUnit] = Field(default_factory=list)
 
 
 class EngineConfigInfo(BaseModel):
