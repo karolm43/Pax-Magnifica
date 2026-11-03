@@ -100,6 +100,15 @@ def get_factions(ctx: AppContext = Depends(get_ctx)) -> list[FactionInfo]:
             preferred_colours=list(f.preferred_colours),
             starting_tech_options=list(f.starting_tech_options),
             starting_tech_amount=f.starting_tech_amount,
+            # Pola bogate do faction summary (identyfikatory ze statycznego rejestru).
+            starting_tech=list(f.starting_tech),
+            abilities=list(f.abilities),
+            faction_tech=list(f.faction_tech),
+            leaders=list(f.leaders),
+            units=list(f.units),
+            promissory_notes=list(f.promissory_notes),
+            commodities=f.commodities,
+            complexity=f.complexity,
         )
         for f in sorted(ctx.registry.factions.values(), key=lambda x: x.name)
         # Pomijamy placeholdery systemowe (Neutral/Lazax) — nie są grywalne.

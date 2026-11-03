@@ -13,6 +13,17 @@ export type FactionInfo = {
   // `starting_tech_options`. Gdy amount == 0, frakcja ma stałe technologie.
   starting_tech_options: string[];
   starting_tech_amount: number;
+  // Pola bogate do podglądu frakcji (faction summary) — same identyfikatory z rejestru
+  // backendu; front rozwiązuje je po swoich danych AsyncTI4 (te same komponenty co
+  // panel gracza w grze). Zdolności, technologie frakcyjne, liderzy, jednostki, weksle.
+  starting_tech: string[];
+  abilities: string[];
+  faction_tech: string[];
+  leaders: string[];
+  units: string[];
+  promissory_notes: string[];
+  commodities: number;
+  complexity: string | null;
 };
 
 /**

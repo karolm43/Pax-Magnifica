@@ -1,0 +1,222 @@
+/*
+ * Układ kroku wyboru frakcji (master-detail): pasek graczy + galeria + summary.
+ * Tokeny DS (ds/tokens.css); akcent zaznaczenia = niebieski DS (sygnał interakcji),
+ * ciepły bursztyn TI4 jako drugorzędne wyróżnienie (gracz-aktywny / podgląd).
+ */
+
+/* ── Pasek graczy (przełącznik) ───────────────────────────────────────── */
+
+.playerBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.playerTab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  flex: 1 1 120px;
+  padding: 6px 10px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.playerTab:hover {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+}
+
+.playerTabActive {
+  border-color: var(--ds-accent);
+  background: rgb(var(--ds-accent-rgb) / 0.12);
+}
+
+.playerTabHead {
+  font-size: var(--ds-fz-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink-lo);
+}
+
+.playerTabFaction {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.playerTabName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ds-fz-sm);
+  color: var(--ds-ink-hi);
+}
+
+.randomDot {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── Układ master-detail ──────────────────────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: var(--ds-space-lg);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Galeria (master) ─────────────────────────────────────────────────── */
+
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-sm);
+  min-width: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 92px;
+  padding: 10px 6px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard),
+    transform var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.card:hover {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+  transform: translateY(-1px);
+}
+
+.card:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+/* Oglądana frakcja (podgląd w summary) — ciepły akcent TI4. */
+.cardPreview {
+  border-color: rgb(252 162 43);
+  box-shadow: inset 0 0 0 1px rgb(252 162 43 / 0.4);
+}
+
+/* Frakcja przypisana AKTYWNEMU graczowi — niebieski sygnał zaznaczenia. */
+.cardSelected {
+  border-color: var(--ds-accent);
+  background: rgb(var(--ds-accent-rgb) / 0.14);
+  color: var(--ds-ink-hi);
+}
+
+/* Frakcja wzięta przez innego gracza — przygaszona (można nadpisać). */
+.cardTaken {
+  opacity: 0.55;
+}
+
+.cardName {
+  font-size: var(--ds-fz-sm);
+  text-align: center;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.randomCard {
+  min-height: 92px;
+}
+
+.randomIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  font-size: 22px;
+}
+
+/* Znaczniki w rogu kafla. */
+.badgeSelected,
+.badgeTaken {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.badgeSelected {
+  background: var(--ds-accent);
+  color: #fff;
+}
+
+.badgeTaken {
+  background: var(--ds-h22);
+  color: var(--ds-ink-lo);
+}
+
+/* ── Detail (summary) ─────────────────────────────────────────────────── */
+
+.detail {
+  position: sticky;
+  top: 0;
+  max-height: 520px;
+  padding: var(--ds-space-md);
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-ground);
+}
+
+@media (max-width: 900px) {
+  .detail {
+    position: static;
+    max-height: none;
+  }
+}

@@ -1,120 +1,229 @@
-// Krok setupu: wybór frakcji per gracz (zadanie 12.2, R8).
+// Krok setupu: wybór frakcji per gracz (R8) — układ master-detail.
 //
-// Prezentuje listę WSZYSTKICH grywalnych frakcji ze StaticDataRegistry (przez
-// `useFactions`, reużyty z kontenera przez propsy `factions`/`factionById`), per slot
-// gracza. Dla każdej frakcji pokazuje:
-//   - nazwę frakcji,
-//   - identyfikator (`faction.id`),
-//   - quick reference z CDN na hover/focus (`QuickReferenceImage`, degraduje bez błędu).
-//
-// ⚠️ DECYZJA (design.md, Data Models / R8.2): krok prezentuje TYLKO nazwę + identyfikator
-// + quick reference. Opisu stylu gry NIE prezentujemy — assety AsyncTI4 nie mają takiego
-// pola, więc jego brak NIE jest błędem (R8.2/R8.4: brak pola → pokaż resztę bez błędu).
+// Zastępuje dawną listę-pod-listą (osobna przewijalna lista 30+ frakcji dla KAŻDEGO
+// slotu). Nowy układ:
+//   1. Przełącznik graczy u góry — jeden widok galerii obsługuje wszystkich graczy;
+//      pasek pokazuje, kto już wybrał frakcję (ikona + nazwa frakcji).
+//   2. Galeria frakcji (lewa kolumna) — responsywna siatka większych kafli (ikona +
+//      nazwa) z polem wyszukiwania. „Losowa" jako pierwszy kafel. Klik = PODGLĄD
+//      (nie od razu przypisanie), żeby dało się obejrzeć frakcję przed wyborem.
+//   3. Faction summary (prawa kolumna) — bogate dane frakcji (zdolności, technologie
+//      frakcyjne, liderzy, weksel, jednostki) renderowane TYMI SAMYMI komponentami co
+//      panel gracza w grze (`FactionSummary`). Pod spodem przycisk „Wybierz dla gracza N".
 //
 // Stan konfiguracji żyje w `useSetupStore` (jedno źródło prawdy). Zmiana frakcji przez
-// `setFaction` czyści technologie startowe slotu (R9.4). Podgląd quick reference degraduje
-// bez błędu, gdy obrazu nie ma (R8.3/R8.4) — obsługuje to `QuickReferenceImage`.
+// `setFaction` czyści technologie startowe slotu (R9.4). Podgląd/przełącznik to stan
+// lokalny kroku (który gracz jest aktywny, którą frakcję oglądamy) — nie wpływa na model.
 
-import { useMemo, useState } from "react";
-import { Stack, Text } from "@/ds";
+import { useEffect, useMemo, useState } from "react";
+import { Button, Stack, Text, TextInput } from "@/ds";
+import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import type { SetupStepProps } from "../SetupWizard";
 import { RANDOM_FACTION, useSetupStore } from "../useSetupStore";
-import { FactionItem, factionListStyles as styles } from "../FactionList";
+import { FactionSummary } from "../FactionSummary";
+import styles from "./Step_Faction.module.css";
 
-/**
- * Lista frakcji dla jednego slotu gracza: „Losowa" na górze + wszystkie grywalne
- * frakcje posortowane po nazwie. Stan podglądu quick reference trzymamy lokalnie
- * (per slot), więc naraz widać najwyżej jeden podgląd, a wyjście myszą poza listę
- * zawsze go chowa — to likwiduje „zacinający się" hover przy szybkim przeskakiwaniu.
- */
-function FactionSlotList({
-  slotIndex,
-  selectedId,
-  sortedFactions,
-}: {
-  slotIndex: number;
-  selectedId: string;
-  sortedFactions: SetupStepProps["factions"];
-}) {
-  const setFaction = useSetupStore((s) => s.setFaction);
-  // Która frakcja ma pokazany podgląd (id) albo null — stan lokalny slotu.
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-
-  return (
-    <div
-      className={styles.factionList}
-      role="listbox"
-      aria-label={`Frakcja gracza ${slotIndex + 1}`}
-      // Wyjście myszą poza listę zawsze chowa podgląd slotu.
-      onMouseLeave={() => setHoveredId(null)}
-      // Scroll listy chowa podgląd — inaczej karta „odjeżdża" od swojej pozycji
-      // i zostaje wisieć (popover nie nadąża za przewijanym kontenerem).
-      onScroll={() => setHoveredId((prev) => (prev == null ? prev : null))}
-    >
-      <button
-        type="button"
-        className={`${styles.factionItem} ${
-          selectedId === RANDOM_FACTION ? styles.factionItemActive : ""
-        }`}
-        aria-pressed={selectedId === RANDOM_FACTION}
-        onClick={() => setFaction(slotIndex, RANDOM_FACTION)}
-      >
-        <span className={styles.randomIcon} aria-hidden>
-          🎲
-        </span>
-        <span className={styles.factionItemLabel}>Losowa</span>
-      </button>
-
-      {sortedFactions.map((faction) => (
-        <FactionItem
-          key={faction.id}
-          faction={faction}
-          active={selectedId === faction.id}
-          opened={hoveredId === faction.id}
-          // R8.2: w kroku wyboru pokazujemy nazwę + identyfikator frakcji.
-          showId
-          onHover={setHoveredId}
-          // Zmiana frakcji czyści technologie startowe slotu (R9.4) — robi to `setFaction`.
-          onPick={() => setFaction(slotIndex, faction.id)}
-        />
-      ))}
-    </div>
-  );
+/** Etykieta frakcji slotu w pasku graczy („Losowa" / nazwa / „—"). */
+function slotFactionLabel(
+  factionId: string,
+  factionById: SetupStepProps["factionById"],
+): string {
+  if (factionId === RANDOM_FACTION) return "Losowa";
+  return factionById.get(factionId)?.name ?? factionId;
 }
 
-/**
- * Krok wyboru frakcji. Renderuje listę frakcji dla każdego slotu gracza. Dane frakcji
- * (lista grywalnych ze StaticDataRegistry) przychodzą z kontenera przez `factions`.
- */
-export default function Step_Faction({ factions }: SetupStepProps) {
+export default function Step_Faction({ factions, factionById }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
+  const setFaction = useSetupStore((s) => s.setFaction);
 
-  // Frakcje do listy wyboru, posortowane alfabetycznie po nazwie (stabilna kolejność).
-  const sortedFactions = useMemo(
-    () => [...factions].sort((a, b) => a.name.localeCompare(b.name)),
-    [factions],
-  );
+  // Który gracz jest właśnie konfigurowany (indeks slotu).
+  const [activeSlot, setActiveSlot] = useState(0);
+  // Którą frakcję oglądamy w summary (id) — podgląd, zanim przypiszemy do slotu.
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  // Filtr galerii.
+  const [query, setQuery] = useState("");
+
+  // Przy przełączeniu gracza pokaż jego aktualnie wybraną frakcję (jeśli jawna).
+  const activeSlotFaction = slots[activeSlot]?.factionId;
+  useEffect(() => {
+    setPreviewId(
+      activeSlotFaction && activeSlotFaction !== RANDOM_FACTION
+        ? activeSlotFaction
+        : null,
+    );
+  }, [activeSlot, activeSlotFaction]);
+
+  // Frakcje do galerii, posortowane po nazwie i przefiltrowane zapytaniem.
+  const visibleFactions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...factions]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter(
+        (f) =>
+          q.length === 0 ||
+          f.name.toLowerCase().includes(q) ||
+          f.id.toLowerCase().includes(q),
+      );
+  }, [factions, query]);
+
+  const previewFaction = previewId ? factionById.get(previewId) ?? null : null;
+  const selectedForActive = slots[activeSlot]?.factionId;
+
+  // Czy frakcja jest już wzięta przez INNEGO gracza (jawny wybór) — pokazujemy ostrzeżenie.
+  const takenBy = useMemo(() => {
+    const map = new Map<string, number>();
+    slots.forEach((slot, i) => {
+      if (slot.factionId !== RANDOM_FACTION) map.set(slot.factionId, i);
+    });
+    return map;
+  }, [slots]);
+
+  const assign = (factionId: string) => {
+    setFaction(activeSlot, factionId);
+  };
+
+  const previewTakenByOther =
+    previewId && takenBy.has(previewId) && takenBy.get(previewId) !== activeSlot;
 
   return (
-    <Stack gap="lg">
+    <Stack gap="md">
       <Text size="sm" c="dimmed">
-        Wybierz frakcję dla każdego gracza albo zostaw „Losową" — backend dobierze
-        nieprzypisaną frakcję bez powtórzeń. Najedź na frakcję, by zobaczyć jej quick
-        reference (kartę pomocy).
+        Wybierz gracza, obejrzyj frakcje w galerii i kliknij „Wybierz dla gracza N".
+        Zostaw „Losową", by backend dobrał nieprzypisaną frakcję bez powtórzeń.
       </Text>
 
-      {slots.map((slot, index) => (
-        <Stack key={index} gap="xs">
-          <Text fw={600} size="sm">
-            Gracz {index + 1}
-          </Text>
-          <FactionSlotList
-            slotIndex={index}
-            selectedId={slot.factionId}
-            sortedFactions={sortedFactions}
+      {/* Przełącznik graczy — kto jest konfigurowany + co już wybrał. */}
+      <div className={styles.playerBar} role="tablist" aria-label="Gracze">
+        {slots.map((slot, index) => {
+          const isRandom = slot.factionId === RANDOM_FACTION;
+          return (
+            <button
+              key={index}
+              type="button"
+              role="tab"
+              aria-selected={index === activeSlot}
+              className={`${styles.playerTab} ${
+                index === activeSlot ? styles.playerTabActive : ""
+              }`}
+              onClick={() => setActiveSlot(index)}
+            >
+              <span className={styles.playerTabHead}>Gracz {index + 1}</span>
+              <span className={styles.playerTabFaction}>
+                {!isRandom ? (
+                  <CircularFactionIcon faction={slot.factionId} size={18} />
+                ) : (
+                  <span className={styles.randomDot} aria-hidden>
+                    🎲
+                  </span>
+                )}
+                <span className={styles.playerTabName}>
+                  {slotFactionLabel(slot.factionId, factionById)}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={styles.layout}>
+        {/* Galeria frakcji (master). */}
+        <div className={styles.gallery}>
+          <TextInput
+            placeholder="Szukaj frakcji…"
+            value={query}
+            onChange={(e) => setQuery(e.currentTarget.value)}
+            aria-label="Szukaj frakcji"
           />
-        </Stack>
-      ))}
+          <div className={styles.grid} role="listbox" aria-label="Frakcje">
+            {/* „Losowa" jako pierwszy kafel — wybiera od razu (nie ma co podglądać). */}
+            <button
+              type="button"
+              role="option"
+              aria-selected={selectedForActive === RANDOM_FACTION}
+              className={`${styles.card} ${styles.randomCard} ${
+                selectedForActive === RANDOM_FACTION ? styles.cardSelected : ""
+              }`}
+              onClick={() => {
+                setPreviewId(null);
+                assign(RANDOM_FACTION);
+              }}
+            >
+              <span className={styles.randomIcon} aria-hidden>
+                🎲
+              </span>
+              <span className={styles.cardName}>Losowa</span>
+            </button>
+
+            {visibleFactions.map((faction) => {
+              const isSelectedHere = selectedForActive === faction.id;
+              const otherOwner =
+                takenBy.has(faction.id) && takenBy.get(faction.id) !== activeSlot;
+              return (
+                <button
+                  key={faction.id}
+                  type="button"
+                  role="option"
+                  aria-selected={previewId === faction.id}
+                  className={`${styles.card} ${
+                    isSelectedHere ? styles.cardSelected : ""
+                  } ${previewId === faction.id ? styles.cardPreview : ""} ${
+                    otherOwner ? styles.cardTaken : ""
+                  }`}
+                  onClick={() => setPreviewId(faction.id)}
+                >
+                  <CircularFactionIcon faction={faction.id} size={34} />
+                  <span className={styles.cardName}>{faction.name}</span>
+                  {isSelectedHere && (
+                    <span className={styles.badgeSelected} aria-hidden>
+                      ✓
+                    </span>
+                  )}
+                  {otherOwner && (
+                    <span
+                      className={styles.badgeTaken}
+                      title={`Wybrana przez gracza ${
+                        (takenBy.get(faction.id) ?? 0) + 1
+                      }`}
+                      aria-hidden
+                    >
+                      G{(takenBy.get(faction.id) ?? 0) + 1}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Summary (detail). */}
+        <div className={styles.detail}>
+          <FactionSummary
+            faction={previewFaction}
+            footer={
+              previewFaction && (
+                <Stack gap="xs">
+                  {previewTakenByOther && (
+                    <Text size="xs" c="red">
+                      Ta frakcja jest już wybrana przez gracza{" "}
+                      {(takenBy.get(previewFaction.id) ?? 0) + 1}. Wybór przypisze ją
+                      graczowi {activeSlot + 1} (duplikat zablokuje przejście dalej).
+                    </Text>
+                  )}
+                  <Button
+                    fullWidth
+                    disabled={selectedForActive === previewFaction.id}
+                    onClick={() => assign(previewFaction.id)}
+                  >
+                    {selectedForActive === previewFaction.id
+                      ? `Wybrana dla gracza ${activeSlot + 1}`
+                      : `Wybierz dla gracza ${activeSlot + 1}`}
+                  </Button>
+                </Stack>
+              )
+            }
+          />
+        </div>
+      </div>
     </Stack>
   );
 }

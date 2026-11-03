@@ -153,6 +153,18 @@ class FactionInfo(BaseModel):
     # ``starting_tech_amount == 0``, frakcja nie wybiera (stałe technologie).
     starting_tech_options: list[str] = Field(default_factory=list)
     starting_tech_amount: int = 0
+    # Pola bogate — do podglądu frakcji (faction summary) na ekranie setupu. To same
+    # identyfikatory ze statycznego rejestru (``FactionDef``); front rozwiązuje je po
+    # swoich danych AsyncTI4 (te same komponenty co panel gracza w grze). Dzięki temu
+    # wybór frakcji pokazuje zdolności / technologie / liderów / jednostki bez stanu gry.
+    starting_tech: list[str] = Field(default_factory=list)
+    abilities: list[str] = Field(default_factory=list)
+    faction_tech: list[str] = Field(default_factory=list)
+    leaders: list[str] = Field(default_factory=list)
+    units: list[str] = Field(default_factory=list)
+    promissory_notes: list[str] = Field(default_factory=list)
+    commodities: int = 0
+    complexity: str | None = None
 
 
 class EngineConfigInfo(BaseModel):

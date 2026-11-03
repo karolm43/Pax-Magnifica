@@ -1,0 +1,219 @@
+/*
+ * Style podglądu frakcji (FactionSummary) na ekranie setupu. Czytamy tokeny DS
+ * (ds/tokens.css) dla spójności z resztą aplikacji; akcent frakcji w cieple TI4
+ * (bursztyn/złoto), niebieski DS zostaje sygnałem interakcji, nie dekoracją.
+ */
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Pusty stan — brak wybranej frakcji. */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 220px;
+  padding: var(--ds-space-lg);
+  border: 1px dashed var(--ds-h10);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-socket);
+}
+
+/* ── Nagłówek frakcji ─────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-md);
+  padding-bottom: var(--ds-space-md);
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.factionName {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-lg);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ds-ink-hi);
+  /* Ciepły akcent TI4 wycięty w napisie nazwy frakcji. */
+  background: linear-gradient(90deg, #f24a21, #fca22b, #ffd34a);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.complexity {
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Sekcje ───────────────────────────────────────────────────────────── */
+
+.sections {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ds-space-md) 2px var(--ds-space-md) 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-xs);
+}
+
+.sectionTitle {
+  font-size: var(--ds-fz-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgb(252 162 43);
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-xs);
+}
+
+/* Rzędy „chipów" (zdolności, technologie, weksle) — zawijają się. */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+/* ── Jednostki frakcyjne ──────────────────────────────────────────────── */
+
+.unitRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-sm);
+}
+
+.unitChip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 72px;
+  padding: 6px 4px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.unitChip:hover,
+.unitChip:focus-visible {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+  outline: none;
+}
+
+.unitChip:focus-visible {
+  border-color: var(--ds-accent);
+}
+
+.unitSprite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.unitSprite img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.unitName {
+  font-size: var(--ds-fz-xs);
+  text-align: center;
+  line-height: 1.1;
+  color: var(--ds-ink-lo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── Liderzy ──────────────────────────────────────────────────────────── */
+
+.leaderGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Start gry (lista definicji) ──────────────────────────────────────── */
+
+.startList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.startRow {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--ds-space-sm);
+  align-items: baseline;
+}
+
+.startRow dt {
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.startRow dd {
+  margin: 0;
+  font-size: var(--ds-fz-sm);
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+}
+
+.startChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── Stopka (akcje) ───────────────────────────────────────────────────── */
+
+.footer {
+  padding-top: var(--ds-space-md);
+  border-top: 1px solid var(--ds-h10);
+}
+
+@media (max-width: 720px) {
+  .startRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

@@ -102,12 +102,21 @@ class FactionDef(_StaticModel):
     )
     starting_tech_amount: int = Field(default=0, alias="startingTechAmount")
     commodities: int = 0
+    # Złożoność frakcji (Low/Moderate/High) z danych AsyncTI4 — czysto informacyjna,
+    # pokazywana w podglądzie frakcji na ekranie setupu. Brak w danych → None.
+    complexity: str | None = None
     preferred_colours: list[str] = Field(default_factory=list, alias="preferredColours")
     # Liderzy frakcji (agent/commander/hero) — identyfikatory z danych AsyncTI4.
     leaders: list[str] = Field(default_factory=list)
     # Zdolności frakcji (faction abilities), np. ["mitosis"] dla Arborec. Identyfikatory
     # z danych frakcji; opisy w AbilityDef (assets/data/abilities/).
     abilities: list[str] = Field(default_factory=list)
+    # Weksle frakcji (promissory notes), np. ["stymie"] dla Arborec. Pole ``promissoryNotes``
+    # danych frakcji; definicje po stronie frontendu (AsyncTI4). Potrzebne do podglądu
+    # frakcji na ekranie setupu (faction summary).
+    promissory_notes: list[str] = Field(
+        default_factory=list, alias="promissoryNotes"
+    )
     # Technologie frakcyjne (faction tech), np. ["bio", "lw2"] dla Arborec. Identyfikatory
     # z POLA factionTech danych frakcji; definicje w TechnologyDef.
     faction_tech: list[str] = Field(default_factory=list, alias="factionTech")

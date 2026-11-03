@@ -21,6 +21,43 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Przeróbka ekranu wyboru frakcji (setup) — galeria + faction summary (ukończone)
+
+**Cel (prośba użytkownika):** dawny krok wyboru frakcji renderował osobną przewijalną
+listę 30+ frakcji dla KAŻDEGO slotu gracza (ściana tekstu, małe przyciski, wybór z listy).
+Nowy układ: klik we frakcję → bogaty podgląd (faction summary) z danymi, które widać też
+w panelu gracza (zdolności, technologie frakcyjne, flagship/mech, liderzy, weksel). UI
+spójne z resztą aplikacji (komponenty AsyncTI4) i wygodne w użyciu.
+
+**Backend — rozszerzenie danych frakcji (dane statyczne z rejestru, bez stanu gry):**
+- `src/core/models.py` — `FactionDef` dostał pola `promissory_notes` (alias `promissoryNotes`,
+  dotąd po cichu pomijane przez `extra="ignore"`) i `complexity` (Low/Moderate/High).
+- `src/api/schemas.py` — `FactionInfo` rozszerzony o pola bogate: `starting_tech`,
+  `abilities`, `faction_tech`, `leaders`, `units`, `promissory_notes`, `commodities`,
+  `complexity` (same identyfikatory; front rozwiązuje je po danych AsyncTI4).
+- `src/api/routers/game.py` — handler `GET /factions` mapuje nowe pola z `FactionDef`.
+
+**Frontend — układ master-detail:**
+- `frontend/src/api/useNewGame.ts` — typ `FactionInfo` zsynchronizowany z backendem.
+- `frontend/src/domains/setup/FactionSummary.tsx` (+ `.module.css`) — NOWY panel podglądu;
+  reużywa komponenty panelu gracza (`Ability`, `Tech`, `LeaderChip`, `PromissoryNote`,
+  `UnitDetailsCard`, `Unit`). Działa na etapie setupu, bo hooki stanu gry degradują do
+  `undefined` poza providerem (bez rzutów).
+- `frontend/src/domains/setup/steps/Step_Faction.tsx` (+ `.module.css`) — PRZEPISANY:
+  pasek graczy (przełącznik, pokazuje kto co wybrał) + responsywna galeria kafli z
+  wyszukiwarką + summary z przyciskiem „Wybierz dla gracza N". Klik w kafel = PODGLĄD,
+  przypisanie dopiero przyciskiem. Frakcje wzięte przez innych graczy są przygaszone.
+- Usunięto nieużywany już `FactionList.tsx` + `.module.css` (dawny quick-reference-on-hover
+  zastąpiony pełnym summary).
+
+**Zasady UI (zgodnie z preferencjami):** akcent zaznaczenia = niebieski DS (sygnał
+interakcji); ciepły bursztyn/złoto TI4 jako wyróżnienie podglądu i nazwy frakcji.
+
+**QA:** backend 280 testów zielonych, `ruff` + `mypy --strict` czyste; frontend `tsc`,
+`eslint` i `vite build` czyste.
+
+---
+
 ### ✅ Zadanie 5.1 (feature `player-model-and-setup-ui`) — weryfikacja limitów rąk + poziomów trudności (ukończone)
 
 **Cel (zadanie BADAWCZE, blokujące zad. 8 i 9):** potwierdzić ze źródeł wartości dotąd
