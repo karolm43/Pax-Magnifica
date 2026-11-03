@@ -55,21 +55,8 @@ assets/*
 !assets/systems/
 !assets/planets/
 !assets/alias/
+!assets/extra/
 
-# Grafiki i fonty NIE wchodza do repo (setki MB) - leca z CDN:
-assets/**/*.png
-assets/**/*.webp
-assets/**/*.jpg
-assets/**/*.jpeg
-assets/**/*.gif
-assets/**/*.svg
-assets/**/*.ttf
-assets/**/*.otf
-assets/**/*.woff
-assets/**/*.woff2
-assets/**/*.mp3
-assets/**/*.mp4
-assets/**/*.webm
 
 #ignorowanie plików asynca
 TI4_map_generator_bot/
