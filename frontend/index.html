@@ -106,14 +106,58 @@
           align-items: center;
           gap: 2rem;
         }
+        #boot-splash .bs-brand-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
+        }
+        /*
+          Logo splashu MUSI wygladac tak samo jak React BootScreen (ten sam krój
+          Ambroise Firmin + gradient TI4 wyciety w literach + scaleY), inaczej
+          przejscie splash -> React wyglada jak przeskok dwóch róznych ekranów.
+          Wartosci zsynchronizowane z .menuTitle/.bootTitle w StartScreen.module.css.
+        */
         #boot-splash .bs-brand {
-          margin: 0;
+          margin: 0.22em 0;
+          font-family: "Ambroise Firmin", "Slider", system-ui, serif;
           font-weight: 700;
-          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          text-indent: 0.12em;
           font-size: clamp(2rem, 6vw, 3.75rem);
-          line-height: 1.05;
-          color: #f1f5f9;
-          text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+          line-height: 1;
+          transform: scaleY(1.45);
+          transform-origin: center;
+          background: linear-gradient(
+            180deg,
+            #f24a21 0%,
+            #f6792a 32%,
+            #fca22b 62%,
+            #ffd34a 100%
+          );
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
+          filter: drop-shadow(0 0 18px rgba(246, 121, 42, 0.35));
+        }
+        /* Pozioma kreska pod logo — jak w React BootScreen (.titleRule). */
+        #boot-splash .bs-rule {
+          width: min(72vw, 640px);
+          height: 3px;
+          border-radius: 2px;
+          margin-top: 0.1rem;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            #f24a21 12%,
+            #fca22b 50%,
+            #ffd34a 72%,
+            #f24a21 88%,
+            transparent 100%
+          );
+          box-shadow: 0 0 16px rgba(246, 121, 42, 0.5);
         }
         #boot-splash .bs-status {
           display: flex;
@@ -163,16 +207,34 @@
             left: 102%;
           }
         }
+        @keyframes bs-pulse {
+          0%,
+          100% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+        /*
+          Reduced-motion: zamiast zatrzymywać pasek (wygląda jak zawieszony),
+          zostawiamy spokojne pulsowanie na pełnej szerokości — tak samo jak
+          React BootScreen (bootPulse). Ruch poziomy wyłączony, pulsowanie zostaje.
+        */
         @media (prefers-reduced-motion: reduce) {
           #boot-splash .bs-bar {
-            animation: none;
-            left: 30%;
+            animation: bs-pulse 1.4s ease-in-out infinite;
+            left: 0;
+            width: 100%;
           }
         }
       </style>
       <div id="boot-splash">
         <div class="bs-inner">
-          <h1 class="bs-brand">Custodian Engine</h1>
+          <div class="bs-brand-wrap">
+            <h1 class="bs-brand">Custodian Engine</h1>
+            <div class="bs-rule"></div>
+          </div>
           <div class="bs-status">
             <div class="bs-track"><span class="bs-bar"></span></div>
             <p class="bs-sub">Ładowanie zasobów gry…</p>

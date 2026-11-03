@@ -158,6 +158,24 @@ def get_factions(ctx: AppContext = Depends(get_ctx)) -> list[FactionInfo]:
     ]
 
 
+@router.get("/factions/{faction_id}", response_model=FactionInfo)
+def get_faction(
+    faction_id: str, ctx: AppContext = Depends(get_ctx)
+) -> FactionInfo:
+    """Pełne dane JEDNEJ frakcji po id — także NIEGRYWALNEJ (np. Obsidian).
+
+    `/factions` zwraca tylko grywalne (pula wyboru). Ten endpoint dociąga detal
+    dowolnej frakcji z rejestru na żądanie — używane dla edge-case'u Firmament →
+    Obsidian: Obsidian nie jest wybieralny przy setupie, ale gracz może podejrzeć
+    jego komponenty (wchodzi do gry przez akcję Firmamentu). Placeholdery systemowe
+    (pusty home / brak liderów) odrzucamy — nie mają czego pokazać.
+    """
+    faction = ctx.registry.factions.get(faction_id)
+    if faction is None or (not faction.home_system and not faction.leaders):
+        raise HTTPException(status_code=404, detail=f"Nieznana frakcja: {faction_id!r}")
+    return _faction_info(faction, ctx.registry)
+
+
 @router.get("/engine/config", response_model=EngineConfigInfo)
 def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
     """Konfiguracja silnika dla setupu (dozwolony zbiór poziomów trudności bota).

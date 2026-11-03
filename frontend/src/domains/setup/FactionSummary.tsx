@@ -1,20 +1,23 @@
 // Podgląd wybranej frakcji na ekranie setupu (faction summary).
 //
-// Pokazuje bogate dane frakcji — portret + lore (uzupełniane w `factionLore.ts`),
-// zdolności, przełom (breakthrough), technologie frakcyjne, liderów, weksel, WSZYSTKIE
-// jednostki frakcyjne (warianty specyficzne dla frakcji), technologie startowe (z
-// wyborem wbudowanym TUTAJ, bez osobnego kroku) oraz dane startu z PEŁNYMI nazwami
-// (jednostki, system domowy, planety — nie surowe kody).
+// Pokazuje bogate dane frakcji — portret z boku (postać, fade-in), lore (uzupełniane
+// w `factionLore.ts`), zdolności, przełom (breakthrough), technologie frakcyjne,
+// liderów, weksel, WSZYSTKIE jednostki frakcyjne, oraz dane startu z PEŁNYMI nazwami
+// (jednostki) i planety z ich resource/influence.
+//
+// Edge-case Firmament → Obsidian: Obsidian to „druga frakcja" Firmamentu (rozwinięcie),
+// niewybieralna przy setupie, ale wchodząca do gry przez akcję Firmamentu. Dla Firmamentu
+// pokazujemy przycisk „Zobacz Obsidian", który dociąga i renderuje summary Obsidiana
+// (osobny endpoint /factions/{id}).
 //
 // Reużywa komponenty panelu gracza (`Ability`, `Tech`, `LeaderChip`, `PromissoryNote`,
 // `Breakthrough`, `UnitDetailsCard`) — identyfikatory rozwiązywane po danych AsyncTI4,
-// więc summary jest wizualnie spójne z grą. Działa na etapie setupu (hooki stanu gry
-// degradują do undefined poza providerem, bez rzutów).
+// spójnie z grą. Działa na etapie setupu (hooki stanu gry degradują do undefined).
 
 import { useMemo, useState } from "react";
-import { MultiSelect, Stack, Text } from "@/ds";
-import type { FactionInfo } from "@/api/useNewGame";
-import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
+import { Button, MultiSelect, Stack, Text } from "@/ds";
+import { IconArrowLeft, IconChevronRight } from "@tabler/icons-react";
+import { type FactionInfo, useFaction } from "@/api/useNewGame";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { Ability } from "@/domains/player/components/Ability";
 import { Tech } from "@/domains/player/components/Tech";
@@ -28,7 +31,6 @@ import { getUnitData } from "@/entities/lookup/units";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { getTechData } from "@/entities/lookup/tech";
 import { getPlanetData } from "@/entities/lookup/planets";
-import { getTileById } from "@/entities/lookup/systems";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import {
   defaultPortraitCandidates,
@@ -39,6 +41,15 @@ import styles from "./FactionSummary.module.css";
 /** Kolejność slotów liderów — jak w panelu gracza (agent → commander → hero). */
 const LEADER_ORDER = ["agent", "commander", "hero"] as const;
 
+/**
+ * Mapa „frakcja → jej frakcja pochodna" (rozwinięcie, osobny komplet komponentów).
+ * Jedyny przypadek: Firmament → Obsidian (Thunder's Edge). Obsidian nie jest wybieralny,
+ * ale gracz może go podejrzeć. Rozszerzalna, gdyby doszły kolejne takie pary.
+ */
+const DERIVED_FACTION: Record<string, string> = {
+  firmament: "obsidian",
+};
+
 /** Usuwa końcówkę poziomu z nazwy jednostki bazowej („Carrier I" → „Carrier"). */
 function cleanUnitName(name: string): string {
   return name.replace(/\s+I$/i, "").trim();
@@ -48,17 +59,6 @@ function cleanUnitName(name: string): string {
 function unitTypeName(baseType: string): string {
   const data = getUnitData(baseType);
   return data ? cleanUnitName(data.name) : baseType;
-}
-
-/** Pełna nazwa planety po id (lub id, gdy brak w danych). */
-function planetName(planetId: string): string {
-  return getPlanetData(planetId)?.name ?? planetId;
-}
-
-/** Pełna nazwa systemu po id kafelka (lub id, gdy brak w danych). */
-function systemName(systemId: string): string {
-  const tile = getTileById(systemId);
-  return tile?.name ? `${tile.name} (${systemId})` : systemId;
 }
 
 /** Sekcja summary z nagłówkiem i treścią. */
@@ -78,16 +78,15 @@ function Section({
 }
 
 /**
- * Portret frakcji: próbuje kolejnych ścieżek z `factionLore` (jpg→png→webp) albo
- * własnej ścieżki z wpisu lore; gdy żadna nie istnieje — placeholder z ikoną frakcji.
+ * Portret frakcji (postać) — z boku panelu. Próbuje kolejnych ścieżek z `factionLore`
+ * (jpg→png→webp) albo własnej ścieżki; gdy brak pliku — placeholder z ikoną frakcji.
+ * `key` na frakcji resetuje fade-in przy zmianie frakcji.
  */
 function FactionPortrait({ faction }: { faction: FactionInfo }) {
   const lore = getFactionLore(faction.id);
   const candidates = useMemo(
     () =>
-      lore?.portrait
-        ? [lore.portrait]
-        : defaultPortraitCandidates(faction.id),
+      lore?.portrait ? [lore.portrait] : defaultPortraitCandidates(faction.id),
     [faction.id, lore?.portrait],
   );
   const [index, setIndex] = useState(0);
@@ -95,16 +94,32 @@ function FactionPortrait({ faction }: { faction: FactionInfo }) {
 
   if (exhausted) {
     return (
-      <div className={styles.portraitFallback}>
-        <CircularFactionIcon faction={faction.id} size={72} />
+      <div className={`${styles.portraitFallback} ${styles.fadeIn}`}>
+        {/*
+          Placeholder portretu = LOKALNA ikona frakcji z assetów (serwowana przez backend
+          pod /static/factions/<id>.png), NIE z zewnętrznego CDN. Gdy i tej brak — chowamy
+          obrazek przez onError (zostaje sam podpis).
+        */}
+        <img
+          src={`/static/factions/${faction.id}.png`}
+          alt={faction.name}
+          className={styles.portraitIcon}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+        <Text size="xs" c="dimmed" ta="center">
+          Brak portretu — dodaj plik do /faction_portraits/{faction.id}
+        </Text>
       </div>
     );
   }
   return (
     <img
+      key={candidates[index]}
       src={candidates[index]}
       alt={`Portret: ${faction.name}`}
-      className={styles.portrait}
+      className={`${styles.portrait} ${styles.fadeIn}`}
       onError={() => setIndex((i) => i + 1)}
     />
   );
@@ -179,14 +194,38 @@ function StartingTechChoice({
   );
 }
 
+/** Lista planet startowych z ich wartościami resource / influence. */
+function PlanetList({ planetIds }: { planetIds: string[] }) {
+  return (
+    <ul className={styles.planetList}>
+      {planetIds.map((id) => {
+        const data = getPlanetData(id);
+        const name = data?.name ?? id;
+        return (
+          <li key={id} className={styles.planetItem}>
+            <span className={styles.planetName}>{name}</span>
+            <span className={styles.planetValues}>
+              <span className={`${styles.pval} ${styles.pvalRes}`}>
+                {data?.resources ?? "?"}
+              </span>
+              <span className={`${styles.pval} ${styles.pvalInf}`}>
+                {data?.influence ?? "?"}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export interface FactionSummaryProps {
   faction: FactionInfo | null;
   /** Akcje pod summary (np. przycisk „Wybierz dla gracza N"). */
   footer?: React.ReactNode;
   /**
    * Wybór technologii startowych — pokazywany TYLKO gdy frakcja wymaga wyboru
-   * (`starting_tech_amount > 0`) i podana jest para value/onChange (tj. frakcja jest
-   * przypisana aktywnemu graczowi). Brak → sekcja technologii jest informacyjna.
+   * i podana jest para value/onChange (frakcja przypisana aktywnemu graczowi).
    */
   startingTech?: {
     value: string[];
@@ -195,13 +234,19 @@ export interface FactionSummaryProps {
 }
 
 /**
- * Panel szczegółów frakcji (po prawej od galerii). `faction === null` → zachęta.
+ * Panel szczegółów frakcji (po prawej od galerii). Zarządza też podglądem frakcji
+ * pochodnej (Firmament → Obsidian): po kliknięciu „Zobacz Obsidian" dociąga ją i
+ * pokazuje w tym samym panelu z przyciskiem powrotu.
  */
 export function FactionSummary({
   faction,
   footer,
   startingTech,
 }: FactionSummaryProps) {
+  // Id frakcji pochodnej aktualnie oglądanej (np. "obsidian") albo null.
+  const [derivedId, setDerivedId] = useState<string | null>(null);
+  const derived = useFaction(derivedId);
+
   if (!faction) {
     return (
       <div className={styles.emptyState}>
@@ -213,6 +258,55 @@ export function FactionSummary({
     );
   }
 
+  // Widok frakcji pochodnej (Obsidian) — bez footera/techów (nie jest wybieralna).
+  if (derivedId) {
+    return (
+      <div className={styles.summary}>
+        <Button
+          variant="subtle"
+          size="sm"
+          leftSection={<IconArrowLeft size={16} />}
+          onClick={() => setDerivedId(null)}
+          className={styles.backButton}
+        >
+          Wróć do {faction.name}
+        </Button>
+        {derived.isLoading && <Text c="dimmed">Ładowanie…</Text>}
+        {derived.isError && (
+          <Text c="red">Nie udało się wczytać danych frakcji.</Text>
+        )}
+        {derived.data && <SummaryBody faction={derived.data} />}
+      </div>
+    );
+  }
+
+  const derivedFactionId = DERIVED_FACTION[faction.id] ?? null;
+
+  return (
+    <div className={styles.summary}>
+      <SummaryBody
+        faction={faction}
+        startingTech={startingTech}
+        derivedFactionId={derivedFactionId}
+        onViewDerived={() => setDerivedId(derivedFactionId)}
+      />
+      {footer && <div className={styles.footer}>{footer}</div>}
+    </div>
+  );
+}
+
+/** Treść podglądu jednej frakcji (bez zarządzania stanem pochodnej). */
+function SummaryBody({
+  faction,
+  startingTech,
+  derivedFactionId,
+  onViewDerived,
+}: {
+  faction: FactionInfo;
+  startingTech?: FactionSummaryProps["startingTech"];
+  derivedFactionId?: string | null;
+  onViewDerived?: () => void;
+}) {
   const lore = getFactionLore(faction.id)?.lore;
 
   // Liderzy w kanonicznej kolejności (agent → commander → hero), reszta na końcu.
@@ -225,15 +319,12 @@ export function FactionSummary({
     ),
   ];
 
-  // Jednostki frakcyjne = warianty specyficzne dla frakcji (mają pole `faction` w
-  // danych jednostek, np. argent_destroyer, *_flagship, *_mech). Pokazujemy WSZYSTKIE,
-  // nie tylko flagship/mech — Argent Flight ma np. własny niszczyciel.
+  // Jednostki frakcyjne = warianty specyficzne dla frakcji (mają pole `faction`).
   const factionUnits = faction.units.filter(
     (id) => getUnitData(id)?.faction !== undefined,
   );
 
-  // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu (np. piechota
-  // z różnych planet) w jedną liczbę.
+  // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu.
   const fleetByType = new Map<string, number>();
   for (const u of faction.starting_units) {
     fleetByType.set(u.base_type, (fleetByType.get(u.base_type) ?? 0) + u.count);
@@ -245,9 +336,9 @@ export function FactionSummary({
   const requiresTechChoice = faction.starting_tech_amount > 0;
 
   return (
-    <div className={styles.summary}>
-      <div className={styles.header}>
-        <FactionPortrait faction={faction} />
+    <>
+      {/* Nagłówek: po lewej nazwa + akcje, po prawej PORTRET (postać). */}
+      <div className={`${styles.header} ${styles.fadeIn}`} key={faction.id}>
         <div className={styles.headerText}>
           <Text className={styles.factionName}>{faction.name}</Text>
           {faction.complexity && (
@@ -255,16 +346,31 @@ export function FactionSummary({
               Złożoność: {faction.complexity}
             </Text>
           )}
+          {derivedFactionId && onViewDerived && (
+            <Button
+              variant="light"
+              size="xs"
+              rightSection={<IconChevronRight size={14} />}
+              onClick={onViewDerived}
+              className={styles.derivedButton}
+            >
+              Zobacz Obsidian
+            </Button>
+          )}
+        </div>
+        {/* Prawa kolumna nagłówka: portret (postać) + lore pod spodem. */}
+        <div className={styles.portraitSlot}>
+          <FactionPortrait faction={faction} />
+          {lore && (
+            <div className={styles.loreAside}>
+              <Text className={styles.loreTitle}>Lore</Text>
+              <div className={styles.lore}>{lore}</div>
+            </div>
+          )}
         </div>
       </div>
 
       <Stack gap="md" className={styles.sections}>
-        {lore && (
-          <Section title="Lore">
-            <div className={styles.lore}>{lore}</div>
-          </Section>
-        )}
-
         {faction.abilities.length > 0 && (
           <Section title="Zdolności frakcji">
             <div className={styles.chipRow}>
@@ -369,22 +475,18 @@ export function FactionSummary({
                 </div>
               )
             )}
+            {faction.home_planets.length > 0 && (
+              <div className={styles.startRowFull}>
+                <dt>Planety</dt>
+                <dd>
+                  <PlanetList planetIds={faction.home_planets} />
+                </dd>
+              </div>
+            )}
             {fleetSummary && (
               <div className={styles.startRow}>
                 <dt>Flota startowa</dt>
                 <dd>{fleetSummary}</dd>
-              </div>
-            )}
-            {faction.home_system && (
-              <div className={styles.startRow}>
-                <dt>System domowy</dt>
-                <dd>{systemName(faction.home_system)}</dd>
-              </div>
-            )}
-            {faction.home_planets.length > 0 && (
-              <div className={styles.startRow}>
-                <dt>Planety domowe</dt>
-                <dd>{faction.home_planets.map(planetName).join(", ")}</dd>
               </div>
             )}
             <div className={styles.startRow}>
@@ -394,8 +496,6 @@ export function FactionSummary({
           </dl>
         </Section>
       </Stack>
-
-      {footer && <div className={styles.footer}>{footer}</div>}
-    </div>
+    </>
   );
 }

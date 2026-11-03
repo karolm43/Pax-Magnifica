@@ -1,7 +1,6 @@
 /*
- * Style podglądu frakcji (FactionSummary) na ekranie setupu. Czytamy tokeny DS
- * (ds/tokens.css) dla spójności z resztą aplikacji; akcent frakcji w cieple TI4
- * (bursztyn/złoto), niebieski DS zostaje sygnałem interakcji, nie dekoracją.
+ * Style podglądu frakcji (FactionSummary) na ekranie setupu. Tokeny DS (ds/tokens.css);
+ * akcent frakcji w cieple TI4 (bursztyn/złoto), niebieski DS = sygnał interakcji.
  */
 
 .summary {
@@ -24,45 +23,111 @@
   background: var(--ds-socket);
 }
 
-/* ── Nagłówek frakcji (portret + nazwa) ───────────────────────────────── */
+/* ── Fade-in (pojawienie się boxa i portretu) ─────────────────────────── */
+
+.fadeIn {
+  animation: summaryFadeIn var(--ds-dur, 0.2s) var(--ds-ease, ease) both;
+}
+
+@keyframes summaryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fadeIn {
+    animation: summaryFadeInRM var(--ds-dur, 0.2s) ease both;
+  }
+  @keyframes summaryFadeInRM {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* ── Nagłówek frakcji (nazwa/akcje + portret z boku) ──────────────────── */
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--ds-space-md);
   padding-bottom: var(--ds-space-md);
   border-bottom: 1px solid var(--ds-h10);
 }
 
-/* Portret frakcji — miejsce na obrazek wrzucany do /faction_portraits/<id>. */
-.portrait {
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Prawa kolumna nagłówka: portret (postać) + lore pod spodem. */
+.portraitSlot {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-sm);
+  width: 220px;
+}
+
+/* Lokalna ikona frakcji jako placeholder portretu (z /static/factions/<id>.png). */
+.portraitIcon {
   width: 72px;
   height: 72px;
-  flex-shrink: 0;
+  object-fit: contain;
+}
+
+/* Lore obok portretu (w prawej kolumnie). */
+.loreAside {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loreTitle {
+  font-size: var(--ds-fz-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgb(252 162 43);
+}
+
+.portrait {
+  display: block;
+  width: 100%;
+  height: 200px;
   object-fit: cover;
+  object-position: top center;
   border-radius: var(--ds-radius-md);
   border: 1px solid var(--ds-h22);
   background: var(--ds-socket);
 }
 
-/* Placeholder portretu (brak pliku) — ikona frakcji w ramce. */
+/* Placeholder portretu (brak pliku) — lokalna ikona + podpowiedź gdzie wrzucić obraz. */
 .portraitFallback {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
+  gap: 6px;
+  width: 100%;
+  height: 160px;
+  padding: 8px;
   border-radius: var(--ds-radius-md);
   border: 1px dashed var(--ds-h22);
   background: var(--ds-socket);
-}
-
-.headerText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
 }
 
 .factionName {
@@ -71,7 +136,6 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--ds-ink-hi);
-  /* Ciepły akcent TI4 wycięty w napisie nazwy frakcji. */
   background: linear-gradient(90deg, #f24a21, #fca22b, #ffd34a);
   background-clip: text;
   -webkit-background-clip: text;
@@ -83,6 +147,17 @@
   color: var(--ds-ink-lo);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+/* Przyciski: „Zobacz Obsidian" (frakcja pochodna) i „Wróć". */
+.derivedButton {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.backButton {
+  align-self: flex-start;
+  margin-bottom: var(--ds-space-sm);
 }
 
 /* ── Sekcje ───────────────────────────────────────────────────────────── */
@@ -116,17 +191,17 @@
 /* ── Lore (długi tekst) ───────────────────────────────────────────────── */
 
 .lore {
-  max-height: 200px;
+  max-height: 260px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--ds-space-sm);
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
   background: var(--ds-socket);
-  font-size: var(--ds-fz-sm);
+  font-size: var(--ds-fz-xs);
   line-height: 1.5;
   color: var(--ds-ink);
-  white-space: pre-line; /* zachowaj akapity z pustych linii */
+  white-space: pre-line;
 }
 
 /* Rzędy „chipów" (zdolności, technologie, weksle) — zawijają się. */
@@ -150,8 +225,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  width: 72px;
-  padding: 6px 4px;
+  width: 76px;
+  padding: 8px 4px 6px;
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
   background: var(--ds-socket);
@@ -173,17 +248,37 @@
   border-color: var(--ds-accent);
 }
 
+/*
+ * Pole sprite'a — STAŁY box 34×34; sprite skalowany, by w nim zmieścić (object-fit).
+ * To naprawia „ikony jednostek za duże, nie pasują do boxów".
+ */
 .unitSprite {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
 }
 
-.unitSprite img {
+/*
+ * Sprite jednostki (`.unit-sprite` — div ze skalowanym tłem przez `scaleSprite`)
+ * wymuszamy do rozmiaru pola 34×34, inaczej przyjmuje natywny rozmiar arkusza
+ * (~60px) i „wylewa się" z boxa. To naprawia „ikony jednostek za duże".
+ */
+.unitSprite :global(.unit-sprite) {
+  width: 34px !important;
+  height: 34px !important;
+  aspect-ratio: auto !important;
+}
+
+/* Fallback dla jednostek renderowanych jako <img> (BaseUnitImage). */
+.unitSprite :global(img) {
   max-width: 100%;
   max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .unitName {
@@ -211,7 +306,7 @@
 .startList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--ds-space-sm);
   margin: 0;
 }
 
@@ -222,7 +317,6 @@
   align-items: baseline;
 }
 
-/* Wiersz na całą szerokość (np. picker technologii startowych) — etykieta nad treścią. */
 .startRowFull {
   display: flex;
   flex-direction: column;
@@ -249,6 +343,68 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* ── Planety z wartościami resource / influence ───────────────────────── */
+
+.planetList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-sm);
+  padding: 4px 8px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-socket);
+}
+
+.planetName {
+  font-size: var(--ds-fz-sm);
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planetValues {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Wartości planety: żeton resource (żółty) i influence (niebieski). */
+.pval {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: var(--ds-fz-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pvalRes {
+  background: rgb(250 204 21 / 0.18);
+  color: #facc15;
+  border: 1px solid rgb(250 204 21 / 0.4);
+}
+
+.pvalInf {
+  background: rgb(96 165 250 / 0.18);
+  color: #93c5fd;
+  border: 1px solid rgb(96 165 250 / 0.4);
 }
 
 /* ── Stopka (akcje) ───────────────────────────────────────────────────── */

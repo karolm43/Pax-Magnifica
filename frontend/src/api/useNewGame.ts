@@ -84,6 +84,25 @@ export function useFactions() {
 }
 
 /**
+ * Pobiera pełne dane JEDNEJ frakcji po id (GET /factions/{id}) — także niegrywalnej
+ * (np. Obsidian). Używane dla edge-case'u Firmament → Obsidian: podgląd komponentów
+ * frakcji, której nie ma w puli wyboru. `enabled` pozwala odpalić zapytanie dopiero,
+ * gdy faktycznie potrzebujemy detalu (po kliknięciu „Zobacz Obsidian").
+ */
+export function useFaction(factionId: string | null) {
+  return useQuery<FactionInfo>({
+    queryKey: ["faction", factionId],
+    queryFn: () =>
+      fetchJson<FactionInfo>(
+        `${BOT_ROOT}/factions/${factionId}`,
+        `faction ${factionId}`,
+      ),
+    enabled: factionId !== null,
+    staleTime: Infinity,
+  });
+}
+
+/**
  * Konfiguracja silnika wystawiana na potrzeby setupu (GET /engine/config).
  *
  * Niesie dozwolony zbiór poziomów trudności bota (R10.2). Front NIE trzyma

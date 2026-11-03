@@ -21,6 +21,34 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Wybór frakcji (setup) — iteracja 3: boot, Obsidian, portret+lore z boku (ukończone)
+
+**Cel (kolejne uwagi użytkownika):**
+- ekran rozruchu „przeskakiwał" między dwoma wyglądami (splash HTML vs React BootScreen);
+- ikony jednostek za duże względem boxów;
+- planety: bez etykiet „system domowy"/„domowe", za to z wartościami resource/influence;
+- edge-case Firmament → Obsidian: Obsidian to rozwinięcie Firmamentu — przycisk podglądu;
+- portret postaci z boku + lore obok niego; prosty fade-in boxa i zdjęcia;
+- ikona frakcji (placeholder portretu) z LOKALNYCH assetów, nie z CDN; usunąć legendę R/I.
+
+**Co zrobione:**
+- **Boot:** zsynchronizowano splash HTML (`index.html`) z React BootScreen — ten sam
+  krój Ambroise + gradient TI4 + kreska pod logo + pulsujący pasek przy reduced-motion.
+  Znika „przeskok dwóch ekranów" na starcie.
+- **Backend:** nowy `GET /factions/{id}` (`_faction_info`) — pełne dane JEDNEJ frakcji,
+  także NIEGRYWALNEJ (Obsidian), by dało się ją podejrzeć mimo braku w puli wyboru.
+- **Frontend `useNewGame.ts`:** hook `useFaction(id)` (enabled na żądanie).
+- **FactionSummary:** sprite jednostki wymuszony do boxa 34×34 (`:global(.unit-sprite)`);
+  planety jako lista z wartościami resource (żółty) / influence (niebieski), bez etykiet
+  „domowe"; przycisk „Zobacz Obsidian" dla Firmamentu → podgląd frakcji pochodnej z
+  przyciskiem powrotu (mapa `DERIVED_FACTION`); portret postaci + lore w PRAWEJ kolumnie
+  nagłówka; fade-in (`summaryFadeIn`, reduced-motion = sam opacity); placeholder portretu
+  = LOKALNA ikona `/static/factions/<id>.png` (nie CDN); usunięto legendę „zasoby/wpływ".
+
+**QA:** backend 280 testów + ruff + mypy czyste; front tsc + eslint + build czyste.
+
+---
+
 ### ✅ Wybór frakcji (setup) — iteracja 2: scalenie techów, pełne nazwy, portret+lore (ukończone)
 
 **Cel (uwagi użytkownika do iteracji 1):** panel wychodził poza okno; osobny krok wyboru
