@@ -15,11 +15,24 @@ export type FactionInfo = {
   starting_tech_amount: number;
 };
 
-/** Gracz w żądaniu nowej gry; pola opcjonalne przydziela backend automatycznie. */
+/**
+ * Gracz w żądaniu nowej gry; pola opcjonalne przydziela backend automatycznie.
+ *
+ * Kontrakt zgodny z `NewGamePlayer` z backendu (design.md §5): `faction_id`
+ * pominięty → backend losuje frakcję bez powtórzeń (R8.5); `name` pusty → auto-nazwa
+ * (R7.3); `control_type` domyślnie "HUMAN"; `difficulty` tylko dla botów (R10.3).
+ */
 export type NewGamePlayer = {
-  faction_id: string;
+  // Pominięty = losowa frakcja (dobierana przez backend bez powtórzeń).
+  faction_id?: string;
   player_id?: string;
+  // Nazwa wyświetlana; pusta/pominięta → backend nada automatyczną.
+  name?: string;
   color?: string;
+  // Typ sterowania: "HUMAN" (domyślny po stronie backendu) lub "BOT".
+  control_type?: string;
+  // Poziom trudności bota; wysyłany tylko gdy control_type === "BOT".
+  difficulty?: string;
   home_position?: string;
   // Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
   starting_tech?: string[];
@@ -43,6 +56,28 @@ export function useFactions() {
   return useQuery<FactionInfo[]>({
     queryKey: ["factions"],
     queryFn: () => fetchJson<FactionInfo[]>(`${BOT_ROOT}/factions`, "factions"),
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Konfiguracja silnika wystawiana na potrzeby setupu (GET /engine/config).
+ *
+ * Niesie dozwolony zbiór poziomów trudności bota (R10.2). Front NIE trzyma
+ * własnej kopii tej listy — zbiór jest konfiguracją backendu (`engine_config.json`
+ * → `valid_difficulties`, ⚠️ ZAŁOŻENIE, patrz docs/RULES.md 30) czytaną przez
+ * `StaticDataRegistry`.
+ */
+export type EngineConfigInfo = {
+  valid_difficulties: string[];
+};
+
+/** Pobiera konfigurację silnika (dozwolony zbiór trudności bota). */
+export function useEngineConfig() {
+  return useQuery<EngineConfigInfo>({
+    queryKey: ["engineConfig"],
+    queryFn: () =>
+      fetchJson<EngineConfigInfo>(`${BOT_ROOT}/engine/config`, "engine config"),
     staleTime: Infinity,
   });
 }

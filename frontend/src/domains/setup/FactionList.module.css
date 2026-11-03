@@ -1,0 +1,122 @@
+/*
+ * Style wyniesionych (z `pages/StartScreen`) komponentów listy frakcji:
+ * `FactionItem` (pozycja listy) i `QuickReferenceImage` (podgląd karty pomocy).
+ *
+ * Są reużywane przez ekran startowy ORAZ krok `Step_Faction` kreatora setupu
+ * (`domains/setup`). Wartości czytamy z tokenów design systemu (ds/tokens.css),
+ * żeby utrzymać ciemny klimat TI4 i spójność z resztą aplikacji.
+ */
+
+/* ── Lista frakcji (przewijalna) ──────────────────────────────────────── */
+
+.factionList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 184px;
+  overflow-y: auto;
+  padding: 2px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+}
+
+/* Pojedyncza pozycja na liście frakcji — klikalny button (a11y). */
+.factionItem {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-xs);
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-ink);
+  font-size: var(--ds-fz-sm);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.factionItem:hover,
+.factionItem:focus-visible {
+  background: var(--ds-ground);
+  border-color: var(--ds-h22);
+  outline: none;
+}
+
+.factionItem:focus-visible {
+  border-color: var(--ds-accent);
+}
+
+/* Aktualnie wybrana frakcja dla slotu. */
+.factionItemActive {
+  background: rgb(var(--ds-accent-rgb) / 0.14);
+  border-color: var(--ds-accent);
+  color: var(--ds-ink-hi);
+}
+
+.factionItemLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Identyfikator frakcji (faction.id) pokazywany obok nazwy — przygaszony,
+ * monospace, nie rozpycha wiersza. To świadoma część kroku (R8.2): prezentujemy
+ * nazwę + identyfikator, bez opisu stylu gry.
+ */
+.factionItemId {
+  flex-shrink: 0;
+  font-family: var(--ds-font-mono, monospace);
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink-lo);
+  opacity: 0.85;
+}
+
+/* Ikona losowej frakcji — wyśrodkowany emoji w kółku rozmiaru ikony frakcji. */
+.randomIcon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+/* ── Quick reference (podgląd na hover) ───────────────────────────────── */
+
+.quickRefCard {
+  padding: var(--ds-space-sm);
+  border: 1px solid var(--ds-h22);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-ground);
+  box-shadow: var(--ds-shadow-xl);
+}
+
+/*
+ * Obraz quick reference pokazywany na hover/focus. Limit `90vw` chroni przed
+ * wyjściem poza viewport na wąskich ekranach.
+ */
+.quickRefImage {
+  display: block;
+  width: 680px;
+  max-width: 90vw;
+  height: auto;
+  border-radius: var(--ds-radius-md);
+}
+
+.quickRefName {
+  margin: 0 0 4px;
+  padding: 0 2px;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-sm);
+  letter-spacing: 0.04em;
+  color: var(--ds-ink-hi);
+}

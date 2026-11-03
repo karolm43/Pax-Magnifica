@@ -40,6 +40,18 @@ class TacticalStep(StrEnum):
     PRODUCTION = "PRODUCTION"
 
 
+class ControlType(StrEnum):
+    """Typ sterowania graczem (R1.6).
+
+    Dokładnie dwie wartości: gracz-człowiek oraz gracz-bot (docelowo sterowany
+    przez warstwę AI). Wartość spoza tego zbioru jest odrzucana przez Pydantic
+    jako ``ValidationError`` (R1.7).
+    """
+
+    HUMAN = "HUMAN"
+    BOT = "BOT"
+
+
 class WindowType(StrEnum):
     """Typ okna czasowego (timing window) — RULES.md 29.2.
 
@@ -101,12 +113,42 @@ class TimingWindow(BaseModel):
             return None
         return self.queue[self.cursor]
 
+class PlayerPrivateState(BaseModel):
+    """Prywatne (tajne) komponenty gracza — widoczne tylko właścicielowi (R2.3).
+
+    Wydzielone w osobny podmodel, aby klasyfikacja Public/Private pozostała
+    jednopoziomowa i oczywista (całe pole ``private`` jest tajne), a redakcja
+    w projekcji widoczności sprowadzała się do podmiany jednego pola. Listy
+    trzymają identyfikatory kart (Hand_Card) i domyślnie są puste (R1.10).
+
+    Limity rozmiarów rąk (max kart akcji / tajnych obiektywów / promissory notes)
+    to ⚠️ ZAŁOŻENIE wg R1 — NIE są tu hardkodowane; górny limit (gdy potwierdzony
+    ze źródła) dojdzie jako wartość czytana ze ``StaticDataRegistry`` w warstwie setup.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_cards: list[str] = Field(default_factory=list)  # R1.1
+    secret_objectives: list[str] = Field(default_factory=list)  # R1.2
+    promissory_notes: list[str] = Field(default_factory=list)  # R1.3
+
+
 class PlayerState(BaseModel):
     """Stan pojedynczego gracza."""
 
     model_config = ConfigDict(extra="forbid")
 
     player_id: str
+    # Nazwa wyświetlana gracza — odrębna od ``player_id`` (R1.4). Docelowy zakres
+    # 1..50 znaków wymuszany w warstwie setup; default ``""`` zapewnia wsteczną
+    # kompatybilność migawek bez tego pola (R3.3). Pole JAWNE (Public_Info).
+    display_name: str = ""
+    # Typ sterowania graczem — domyślnie HUMAN (R1.11). Pole JAWNE (Public_Info).
+    control_type: ControlType = ControlType.HUMAN
+    # Poziom trudności bota — ustawiany wyłącznie dla ``BOT``; dla ``HUMAN`` None
+    # (R10.4). Dozwolony zbiór wartości to ⚠️ ZAŁOŻENIE (R1.8) — nie enum, bo zbiór
+    # jest danymi konfigurowalnymi, nie strukturą kodu. Pole JAWNE (Public_Info).
+    difficulty: str | None = None
     faction: str | None = None
     color: str | None = None
     # Pozycja ``RPP`` slotu domowego gracza (gdzie stoi jego kafelek domowy).
@@ -155,6 +197,15 @@ class PlayerState(BaseModel):
     breakthrough_unlocked: bool = False
     breakthrough_exhausted: bool = False
     breakthrough_tg: int = 0
+
+    # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
+    # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).
+    # Domyślnie puste ręce (R1.10).
+    private: PlayerPrivateState = Field(default_factory=PlayerPrivateState)
+    # Liczniki ukrytych kart — wypełniane WYŁĄCZNIE przez projekcję widoczności dla
+    # graczy ≠ viewer (R4.4). W pełnym (niezredagowanym) stanie zawsze pusty słownik.
+    # Klucze: "action_cards" / "secret_objectives" / "promissory_notes".
+    hidden_card_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class SystemState(BaseModel):

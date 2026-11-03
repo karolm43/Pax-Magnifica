@@ -1677,3 +1677,39 @@ export function GameStatePanel() {
     />
   );
 }
+
+/**
+ * Same kontrolki akcji co w ``GameStatePanel`` (okno czasowe + panel fazy/akcji
+ * taktycznej + baner odrzuconej akcji), ale BEZ pływającej/przeciąganej obudowy —
+ * do osadzenia w zakładce (``Player_Tab``, zadanie 13.2). Reużywa ten sam
+ * ``PlateBody`` (jedno źródło logiki akcji) i te same hooki danych web-data,
+ * więc panel i zakładka zawsze pokazują ten sam stan gry.
+ *
+ * Akcje sterowane są przez ``pendingWindow``/``tacticalStep`` z ``gameState``
+ * (R12.2). Akcja nielegalna → endpoint zwraca 422 → ``NoticeBanner`` (w
+ * ``PlateBody``) pokazuje komunikat; stan gry pozostaje bez zmian (R12.3 —
+ * egzekwowane po stronie core/API). Zwraca ``null``, gdy brak sensownej fazy.
+ */
+export function GameStateActionControls() {
+  const params = useParams<{ mapid: string }>();
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
+  const { data: gameState } = useGameState(gameId);
+  const gameData = useGameData();
+  const playerData = gameData?.playerData ?? [];
+
+  if (!gameState?.phase || gameState.phase === "unknown") return null;
+
+  return (
+    <PlateBody
+      gameState={gameState}
+      playerData={playerData}
+      locations={{
+        system: systemLabel(gameState.activeSystem, gameData?.tiles),
+        combat: systemLabel(
+          gameState.activeCombat?.system ?? null,
+          gameData?.tiles,
+        ),
+      }}
+    />
+  );
+}

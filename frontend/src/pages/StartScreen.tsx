@@ -5,17 +5,15 @@ import {
   Box,
   Button,
   Modal,
-  MultiSelect,
   NumberInput,
   Paper,
   Stack,
   Text,
   TextInput,
 } from "@/ds";
-import { SmoothPopover } from "@/shared/ui/SmoothPopover";
-import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
-import { getTechData } from "@/entities/lookup/tech";
+import { FactionItem } from "@/domains/setup/FactionList";
+import StartingTechPicker from "@/domains/setup/StartingTechPicker";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
 
@@ -42,134 +40,6 @@ const RANDOM = "__random__";
 
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
-}
-
-/**
- * Podgląd quick reference frakcji: duży obraz pokazywany na hover/focus.
- * Źródło to Thunder's Edge (TE); gdy plik TE nie istnieje, przełączamy się
- * na PoK przez `onError`. Gdy oba zawiodą — po prostu nie ma obrazu (bez błędu,
- * np. Keleres nie ma pliku quick reference).
- */
-function QuickReferenceImage({ faction }: { faction: FactionInfo }) {
-  const te = `/static/quick_reference/TE/${faction.id}.png`;
-  const pok = `/static/quick_reference/PoK/${faction.id}.png`;
-  // Stan źródła per frakcja: zaczynamy od TE, degradujemy do PoK, potem chowamy.
-  const [src, setSrc] = useState(te);
-  const [hidden, setHidden] = useState(false);
-
-  if (hidden) {
-    return (
-      <Text size="xs" c="dimmed" px={4}>
-        Brak podglądu quick reference.
-      </Text>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={`Quick reference: ${faction.name}`}
-      className={styles.quickRefImage}
-      onError={() => {
-        // TE -> PoK, a jeśli i PoK zawiedzie — schowaj bez błędu.
-        if (src === te) setSrc(pok);
-        else setHidden(true);
-      }}
-    />
-  );
-}
-
-/**
- * Pozycja frakcji na liście wyboru. Klik = wybór dla slotu; hover/focus =
- * podgląd quick reference w `SmoothPopover`. Dla „losowej" nie ma podglądu.
- */
-function FactionItem({
-  faction,
-  active,
-  opened,
-  onHover,
-  onPick,
-}: {
-  faction: FactionInfo;
-  active: boolean;
-  /** Czy to właśnie TEN element ma pokazywać podgląd (stan trzymany w slocie). */
-  opened: boolean;
-  /** Zgłasza, która frakcja jest „pod myszą/focusem" (id) albo że żadna (null). */
-  onHover: (id: string | null) => void;
-  onPick: () => void;
-}) {
-  return (
-    <SmoothPopover
-      opened={opened}
-      // Gdy sam popover chce się zamknąć (np. klik poza), wyczyść wspólny stan.
-      onChange={(next) => {
-        if (!next) onHover(null);
-      }}
-      position="right"
-      withArrow
-    >
-      <SmoothPopover.Target>
-        <button
-          type="button"
-          className={`${styles.factionItem} ${active ? styles.factionItemActive : ""}`}
-          aria-pressed={active}
-          onClick={onPick}
-          onMouseEnter={() => onHover(faction.id)}
-          // Opuszczenie SAMEGO elementu też chowa podgląd (jeśli to ten element
-          // był otwarty). To trzecia, niezależna ścieżka zamknięcia obok
-          // mouseleave listy i scrolla — dzięki niej karta nie „zostaje", gdy
-          // kursor wyjdzie poza listę nie przez jej obszar.
-          onMouseLeave={() => {
-            if (opened) onHover(null);
-          }}
-          onFocus={() => onHover(faction.id)}
-          onBlur={() => onHover(null)}
-        >
-          <CircularFactionIcon faction={faction.id} size={28} />
-          <span className={styles.factionItemLabel}>{faction.name}</span>
-        </button>
-      </SmoothPopover.Target>
-      <SmoothPopover.Dropdown>
-        <div className={styles.quickRefCard}>
-          <p className={styles.quickRefName}>{faction.name}</p>
-          <QuickReferenceImage faction={faction} />
-        </div>
-      </SmoothPopover.Dropdown>
-    </SmoothPopover>
-  );
-}
-
-/**
- * Menu wyboru technologii startowej dla frakcji, która NIE ma stałych technologii
- * (np. Winnu wybiera 1 z 8, Argent 2 z 3). Pokazuje się tylko gdy
- * `starting_tech_amount > 0`. Ogranicza wybór do wymaganej liczby.
- */
-function StartingTechPicker({
-  faction,
-  value,
-  onChange,
-}: {
-  faction: FactionInfo | undefined;
-  value: string[];
-  onChange: (techs: string[]) => void;
-}) {
-  if (!faction || faction.starting_tech_amount <= 0) return null;
-  const amount = faction.starting_tech_amount;
-  const options = faction.starting_tech_options.map((alias) => ({
-    value: alias,
-    label: getTechData(alias)?.name ?? alias,
-  }));
-  return (
-    <MultiSelect
-      label={`Technologie startowe (wybierz ${amount})`}
-      placeholder={`Wybierz ${amount}`}
-      data={options}
-      value={value}
-      onChange={(next) => {
-        // Nie pozwól wybrać więcej niż wymaga frakcja (bierzemy ostatnie `amount`).
-        onChange(next.length > amount ? next.slice(next.length - amount) : next);
-      }}
-    />
-  );
 }
 
 /**

@@ -28,6 +28,7 @@ import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSideb
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
 import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
 import { PhaseTransitionBanner } from "@/domains/game-shell/components/PhaseTransitionBanner/PhaseTransitionBanner";
+import { MapPlayerPanelsOverlay } from "@/domains/game-shell/components/mapPlayerPanels/MapPlayerPanels";
 
 type Props = {
   gameId: string;
@@ -217,6 +218,20 @@ export function MapView({
               gatingu fazy (render tylko w fazie strategii). Zadanie 9.1/9.2. */}
           <StrategyCardTable />
         </Box>
+      )}
+
+      {/* Map_View — powiększony panel aktywnego gracza + pionowy stos
+          nieaktywnych z collapse/expand (R13). Pływa przy prawej krawędzi
+          obszaru mapy, z odsunięciem o szerokość prawego paska (dossier), więc
+          nie nachodzi na niego. Rodzic `.mapContainer` jest `position: relative`,
+          więc nakładka nie przewija się razem z mapą. */}
+      {!embedded && (
+        <MapPlayerPanelsOverlay
+          gameId={gameId}
+          rightOffset={
+            settings.rightPanelCollapsed ? "12px" : `calc(${sidebarWidth}vw + 12px)`
+          }
+        />
       )}
 
       {!embedded && (

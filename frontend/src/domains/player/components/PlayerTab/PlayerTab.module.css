@@ -1,0 +1,46 @@
+/* Układ zakładki Player: pełna karta aktywnego gracza w głównej kolumnie,
+   prywatna ręka + kontrolki akcji w węższej kolumnie bocznej. Na wąskich
+   ekranach kolumny składają się w jeden pion (karta na górze). */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.main {
+  min-width: 0;
+}
+
+.side {
+  min-width: 0;
+}
+
+/* Blok sekcji bocznej (private info / actions) — ten sam język wizualny,
+   co pływający panel stanu gry (ciemne tło, cienka obwódka, zaokrąglenie). */
+.panel {
+  padding: 10px 12px 12px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.panelTitle {
+  margin: 0 0 8px;
+  color: var(--ds-ink-hi);
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 24px;
+}

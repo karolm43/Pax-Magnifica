@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import production, strategy_phase
-from src.core.game_state import GameState
+from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
 from src.core.positions import load_positions
@@ -38,6 +38,7 @@ from src.core.unit_catalog import (
     UNIT_CAP_BY_ASYNC_ID,
     is_space_unit,
 )
+from src.core.visibility import project_for_viewer
 
 # Wersja schematu dokumentu web-data wymagana przez frontend ti4_web
 # (``REQUIRED_VERSION_SCHEMA`` w ``GameMapPage.tsx``). Dokument ze starszą/brakującą
@@ -886,6 +887,26 @@ def _build_stat_tile_positions(
     return result
 
 
+def _hand_count(player: PlayerState, key: str) -> int:
+    """Liczebność prywatnej ręki gracza ``key`` w dokumencie web-data (R6.5, R4.4).
+
+    Dokument buduje się z PROJEKCJI (``project_for_viewer``): ręce viewera pozostają
+    pełnymi listami, a ręce pozostałych graczy są zredagowane (listy puste, liczebność
+    w ``hidden_card_counts``). Dlatego:
+
+    * gdy prywatna lista jest niepusta → to viewer, zwracamy jej realną długość;
+    * w przeciwnym razie (gracz ≠ viewer po redakcji ALBO pusta ręka viewera) →
+      liczebność z ``hidden_card_counts`` (0, gdy brak wpisu — pusta ręka, R5.3).
+
+    Dzięki temu web-data nigdy nie ujawnia cudzych identyfikatorów kart (R6.1, R6.5),
+    a liczniki są realne (dawne stałe 0 zastąpione faktyczną liczebnością).
+    """
+    hand = getattr(player.private, key)
+    if hand:
+        return len(hand)
+    return player.hidden_card_counts.get(key, 0)
+
+
 def _build_player_data(
     state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
 ) -> list[dict[str, Any]]:
@@ -930,6 +951,13 @@ def _build_player_data(
                 "color": player.color or "gray",
                 "displayName": faction_display,
                 "flexibleDisplayName": faction_display,
+                # Model per-gracz (R6.2/R6.3/R6.4): nazwa wyświetlana gracza,
+                # typ sterowania (HUMAN/BOT) i poziom trudności (str dla BOT,
+                # None dla HUMAN). Pola addytywne — frontend AsyncTI4 je ignoruje,
+                # nasze panele odczytają.
+                "playerName": player.display_name,
+                "controlType": player.control_type.value,
+                "difficulty": player.difficulty,
                 "isSpeaker": state.speaker_id == player_id,
                 "isTyrant": False,
                 "passed": player.passed,
@@ -989,9 +1017,12 @@ def _build_player_data(
                 "scs": list(player.strategy_cards),
                 "exhaustedSCs": list(player.exhausted_strategy_cards),
                 "neighbors": [],
-                "soCount": 0,
-                "pnCount": 0,
-                "acCount": 0,
+                # Realne liczebności prywatnych rąk (R6.5, R4.4). Dla viewera —
+                # długości jego list; dla innych — z hidden_card_counts wypełnionego
+                # przez projekcję. Nigdy nie ujawniamy cudzych identyfikatorów kart.
+                "soCount": _hand_count(player, "secret_objectives"),
+                "pnCount": _hand_count(player, "promissory_notes"),
+                "acCount": _hand_count(player, "action_cards"),
                 "unitCounts": unit_counts,
                 # Ekonomia planet z rejestru (reguła AsyncTI4, RULES.md 7).
                 # resources/influence = dostępne (zakładamy wszystkie gotowe);
@@ -1120,8 +1151,13 @@ def build_web_data(
     *,
     game_name: str,
     vps_to_win: int = 10,
+    viewing_player: str | None = None,
 ) -> dict[str, Any]:
     """Serializuje stan gry do dokumentu ``PlayerDataResponse`` dla frontendu ti4_web.
+
+    Dokument budowany jest z PROJEKCJI stanu do perspektywy jednego „gracza
+    patrzącego" (``project_for_viewer``): ręce viewera są pełne, a prywatne ręce
+    pozostałych graczy zredagowane do samych liczebności (R6.1, R6.5).
 
     Args:
         grid: Bieżąca mapa (źródło pozycji, systemów, anomalii).
@@ -1129,19 +1165,38 @@ def build_web_data(
         state: Bieżący stan gry (gracze, jednostki).
         game_name: Identyfikator gry wyświetlany/używany przez frontend.
         vps_to_win: Próg punktów zwycięstwa.
+        viewing_player: Gracz, z którego perspektywy rzutujemy dokument (R6.6).
+            ``None`` → używamy aktywnego gracza (``state.active_player_id``).
 
     Returns:
         Słownik gotowy do serializacji JSON zgodny z ``PlayerDataResponse``.
+
+    Raises:
+        ValueError: gdy nie da się ustalić viewera (brak ``viewing_player`` i brak
+            aktywnego gracza) przy niepustym stanie (R6.7) — zamiast budować
+            częściowy/niezredagowany dokument.
     """
+    # R6.6: brak jawnego viewera → aktywny gracz jako perspektywa domyślna.
+    viewer = viewing_player or state.active_player_id
+    # R6.7: brak viewera i brak aktywnego gracza przy niepustym stanie → błąd
+    # (warstwa api mapuje na HTTP 422), nie częściowy dokument.
+    if viewer is None and state.players:
+        raise ValueError(
+            "Brak gracza perspektywy (viewing_player/active_player)."
+        )
+    # R6.1: projekcja PRZED serializacją (gdy jest kogo rzutować). Pusty stan bez
+    # viewera serializujemy wprost — nie ma prywatnych rąk do zredagowania.
+    projected = project_for_viewer(state, viewer) if viewer is not None else state
+
     # Jedna mapa klucz-tożsamości dla CAŁEGO dokumentu (jednostki, planety, heksy,
     # playerData). Spójny klucz eliminuje desync panel↔mapa (Bug 1/2).
-    entity_keys = _entity_key_map(state)
+    entity_keys = _entity_key_map(projected)
     tile_unit_data, tile_positions = _build_tile_unit_data(
-        grid, registry, state, entity_keys
+        grid, registry, projected, entity_keys
     )
     return {
         "gameName": game_name,
-        "gameRound": state.round_number,
+        "gameRound": projected.round_number,
         "ringCount": _ring_count(grid),
         "vpsToWin": vps_to_win,
         # Wersja schematu danych oczekiwana przez frontend (ti4_web). Poniżej tej
@@ -1150,11 +1205,11 @@ def build_web_data(
         "versionSchema": WEB_DATA_SCHEMA_VERSION,
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
-        "playerData": _build_player_data(state, registry, entity_keys),
-        "statTilePositions": _build_stat_tile_positions(state, grid, entity_keys),
-        "gameState": _build_game_state(state),
+        "playerData": _build_player_data(projected, registry, entity_keys),
+        "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
+        "gameState": _build_game_state(projected),
         "lawsInPlay": [],
-        "strategyCards": _build_strategy_cards(state, registry, entity_keys),
+        "strategyCards": _build_strategy_cards(projected, registry, entity_keys),
         "objectives": _empty_objectives(),
         "cardPool": _empty_card_pool(),
         "expeditions": _empty_expeditions(),

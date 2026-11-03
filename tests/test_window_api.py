@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -38,8 +40,21 @@ def client(registry: StaticDataRegistry) -> TestClient:
     return TestClient(app)
 
 
+def _web_data(client: TestClient, viewer: str = "p1") -> dict[str, Any]:
+    """Pobiera web-data z perspektywy ``viewer`` (domyślnie ``p1``).
+
+    Stan testowy ma graczy, ale nie ustawia aktywnego — po integracji projekcji
+    widoczności (R6) endpoint wymaga wtedy jawnego ``viewing_player`` (R6.7).
+    """
+    data: dict[str, Any] = client.get(
+        "/api/public/game/g/web-data",
+        params={"viewing_player": viewer},
+    ).json()
+    return data
+
+
 def test_web_data_pending_window_null_by_default(client: TestClient) -> None:
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     assert data["gameState"]["pendingWindow"] is None
 
 
@@ -54,7 +69,7 @@ def test_open_window_exposes_responder_as_color(client: TestClient) -> None:
         },
     )
     assert resp.status_code == 200
-    pw = client.get("/api/public/game/g/web-data").json()["gameState"]["pendingWindow"]
+    pw = _web_data(client)["gameState"]["pendingWindow"]
     assert pw is not None
     assert pw["windowType"] == "STRATEGY_SECONDARY"
     assert pw["currentResponder"] == "green"  # p2 jako kolor
@@ -72,13 +87,13 @@ def test_respond_advances_queue(client: TestClient) -> None:
     )
     r1 = client.post("/window/respond", json={"player_id": "p2", "decision": "pass"})
     assert r1.status_code == 200
-    pw = client.get("/api/public/game/g/web-data").json()["gameState"]["pendingWindow"]
+    pw = _web_data(client)["gameState"]["pendingWindow"]
     assert pw["currentResponderId"] == "p3"
     assert pw["responded"] == ["green"]
 
     r2 = client.post("/window/respond", json={"player_id": "p3"})
     assert r2.status_code == 200
-    pw = client.get("/api/public/game/g/web-data").json()["gameState"]["pendingWindow"]
+    pw = _web_data(client)["gameState"]["pendingWindow"]
     assert pw["isComplete"] is True
     assert pw["currentResponder"] is None
 
@@ -115,7 +130,7 @@ def test_close_window_clears_pending(client: TestClient) -> None:
     client.post("/window/open", json={"window_type": "REACTION", "queue": ["p2"]})
     resp = client.post("/window/close")
     assert resp.status_code == 200
-    pw = client.get("/api/public/game/g/web-data").json()["gameState"]["pendingWindow"]
+    pw = _web_data(client)["gameState"]["pendingWindow"]
     assert pw is None
 
 

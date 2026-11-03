@@ -155,29 +155,66 @@ class FactionInfo(BaseModel):
     starting_tech_amount: int = 0
 
 
+class EngineConfigInfo(BaseModel):
+    """Konfiguracja silnika wystawiana frontendowi (setup).
+
+    Obecnie niesie dozwolony zbiór poziomów trudności bota (R10.2) — front NIE
+    trzyma własnej kopii tej listy, tylko pobiera ją stąd. Wartości pochodzą
+    z ``engine_config.json`` czytanego przez ``StaticDataRegistry`` (⚠️ ZAŁOŻENIE,
+    patrz docs/RULES.md 30), więc gdy zbiór się zmieni w assecie, front dostanie
+    aktualny bez zmian w kodzie.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Posortowana lista dozwolonych poziomów trudności bota (R10.2).
+    valid_difficulties: list[str] = Field(default_factory=list)
+
+
 class SetupPlayerRequest(BaseModel):
-    """Żądanie setupu gracza: frakcja + kolor na wskazanym slocie domowym."""
+    """Żądanie setupu gracza: frakcja + kolor na wskazanym slocie domowym.
+
+    ``faction_id`` jest opcjonalny — gdy pominięty, backend dobiera losową,
+    nieprzypisaną frakcję (R8.5). ``name``/``control_type``/``difficulty``
+    rozszerzają kontrakt o nazwę wyświetlaną i tryb sterowania (R10.1–R10.3);
+    ``difficulty`` ma sens tylko dla ``control_type == "BOT"``.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     player_id: str
-    faction_id: str
+    # Opcjonalny: None → losowa, nieprzypisana frakcja (R8.5).
+    faction_id: str | None = None
     color: str
     home_position: str
+    # Nazwa wyświetlana (R7.1); pusta/None → auto-nazwa przy setupie (R7.3).
+    name: str | None = None
+    # Tryb sterowania (R10.1): "HUMAN" (domyślnie) lub "BOT".
+    control_type: str = "HUMAN"
+    # Poziom trudności bota (R10.2/R10.3); wymagany dla BOT, ignorowany dla HUMAN.
+    difficulty: str | None = None
     # Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
     starting_tech: list[str] | None = None
 
 
 class NewGamePlayer(BaseModel):
-    """Pojedynczy gracz w żądaniu nowej gry (frakcja; reszta auto)."""
+    """Pojedynczy gracz w żądaniu nowej gry (frakcja opcjonalna; reszta auto)."""
 
     model_config = ConfigDict(extra="forbid")
 
-    faction_id: str
+    # Opcjonalny: None → losowa, nieprzypisana frakcja (R8.5).
+    faction_id: str | None = None
     # Opcjonalne: gdy pominięte, kolor/slot/id przydzielane automatycznie
     # wg kolejności (gracz 1 → red/301, 2 → green/304, ...).
     player_id: str | None = None
+    # Nazwa wyświetlana (R7.1); pusta/None → auto-nazwa przy setupie (R7.3).
+    name: str | None = None
     color: str | None = None
+    # Tryb sterowania (R10.1): "HUMAN" (domyślnie) lub "BOT".
+    control_type: str = "HUMAN"
+    # Poziom trudności bota (R10.2/R10.3); wymagany dla BOT, ignorowany dla HUMAN.
+    difficulty: str | None = None
+    # Opcjonalny slot domowy — pod przyszły draft slice (R14.3).
     home_position: str | None = None
     # Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
     starting_tech: list[str] | None = None

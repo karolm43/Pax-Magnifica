@@ -9,6 +9,8 @@ nie z pamięci.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -34,9 +36,26 @@ def client(registry: StaticDataRegistry) -> TestClient:
     return TestClient(app)
 
 
+def _web_data(
+    client: TestClient, game_id: str = "g", viewer: str = "p1"
+) -> dict[str, Any]:
+    """Pobiera dokument web-data z perspektywy ``viewer`` (domyślnie ``p1``).
+
+    Po integracji projekcji widoczności (R6) web-data wymaga gracza perspektywy:
+    gdy brak jawnego ``viewing_player`` i brak aktywnego gracza przy niepustym
+    stanie, endpoint zwraca 422 (R6.7). Te testy budują stany God-Mode / setup bez
+    aktywnego gracza, więc podają viewera jawnie — tak jak robi to frontend.
+    """
+    data: dict[str, Any] = client.get(
+        f"/api/public/game/{game_id}/web-data",
+        params={"viewing_player": viewer},
+    ).json()
+    return data
+
+
 def test_web_data_has_required_top_level_keys(client: TestClient) -> None:
     client.post("/map/load", json={"map_string": SAMPLE_MAP_STRING})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     for key in (
         "gameName",
         "gameRound",
@@ -59,7 +78,7 @@ def test_web_data_has_required_top_level_keys(client: TestClient) -> None:
 
 def test_web_data_tile_positions_format(client: TestClient) -> None:
     client.post("/map/load", json={"map_string": SAMPLE_MAP_STRING})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     # Centrum zawsze obecne jako "000:18" (Mecatol).
     assert "000:18" in data["tilePositions"]
     # Każdy wpis to "<pozycja>:<systemId>" i ma odpowiadający klucz w tileUnitData.
@@ -82,7 +101,7 @@ def test_web_data_units_use_async_ids(client: TestClient) -> None:
             "home_position": "301",
         },
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
 
     tile = data["tileUnitData"]["301"]
     # Statki w przestrzeni frakcji Sol — kluczowane asyncId, entityType "unit".
@@ -108,7 +127,7 @@ def test_web_data_player_economy_sums_controlled_planets(
         "/game/new",
         json={"players": [{"faction_id": "sol"}]},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     # Panel gracza pokazuje ekonomię z kontrolowanych planet (nie zera).
     assert sol["resources"] > 0
@@ -121,7 +140,7 @@ def test_web_data_player_economy_sums_controlled_planets(
 
 def test_web_data_player_leaders(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     leaders = sol["leaders"]
     types = {ldr["type"] for ldr in leaders}
@@ -141,7 +160,7 @@ def test_web_data_leader_state_override(client: TestClient) -> None:
         "/player/p1/edit",
         json={"leader_states": {"solcommander": "unlocked"}},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     commander = next(ldr for ldr in sol["leaders"] if ldr["type"] == "commander")
     hero = next(ldr for ldr in sol["leaders"] if ldr["type"] == "hero")
@@ -154,7 +173,7 @@ def test_leader_states_merge_not_replace(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     client.post("/player/p1/edit", json={"leader_states": {"solcommander": "unlocked"}})
     client.post("/player/p1/edit", json={"leader_states": {"solhero": "unlocked"}})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     states = {ldr["type"]: ldr["locked"] for ldr in sol["leaders"]}
     # Oba odblokowane równocześnie (commander nie wrócił do locked po edycji hero).
@@ -169,7 +188,7 @@ def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
         json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
     )
     assert resp.status_code == 200
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     # Mapa testowa się załadowała (Mecatol + pierścienie).
     assert "000:18" in data["tilePositions"]
     assert len(data["tilePositions"]) > 10
@@ -194,7 +213,7 @@ def test_web_data_units_owned_is_real_base_ids(client: TestClient) -> None:
     # wszystkie jednostki — [].includes zawsze False). Wysyłamy realne ID jednostek
     # BAZOWYCH (bez ulepszeń), by panel nie pokazywał błędnie „Upgraded".
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     owned = data["playerData"][0]["unitsOwned"]
     assert isinstance(owned, list) and len(owned) > 0
     # Dla każdego asyncId JEDNA jednostka: wariant frakcyjny Sola wygrywa z generycznym.
@@ -210,7 +229,7 @@ def test_web_data_units_owned_is_real_base_ids(client: TestClient) -> None:
 def test_web_data_muaat_owns_innate_warsun(client: TestClient) -> None:
     # Muaat ma wrodzony War Sun (muaat_warsun, bez wymaganej technologii).
     client.post("/game/new", json={"players": [{"faction_id": "muaat"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     owned = data["playerData"][0]["unitsOwned"]
     assert "muaat_warsun" in owned
     # Generyczny warsun (za techem) nadal nieposiadany.
@@ -219,7 +238,7 @@ def test_web_data_muaat_owns_innate_warsun(client: TestClient) -> None:
 
 def test_web_data_unit_counts_cap_and_deployed(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     counts = data["playerData"][0]["unitCounts"]
     # Limity supply z AsyncTI4 (reinforcements.properties).
     assert counts["cv"]["unitCap"] == 4
@@ -234,7 +253,7 @@ def test_web_data_stat_tile_positions(client: TestClient) -> None:
         "/game/new",
         json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     stats = data["statTilePositions"]
     # Każda frakcja ma 3 pozycje pierścienia 4 (heksy player-stats).
     assert set(stats.keys()) == {"sol", "hacan"}
@@ -260,7 +279,7 @@ def test_web_data_has_game_state(client: TestClient) -> None:
             ]
         },
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     gs = data["gameState"]
     assert gs["phase"] == "strategy"  # domyślna faza, format frontendu
     # Aktywny gracz podawany jako KOLOR (frontend dopasowuje po kolorze).
@@ -270,7 +289,7 @@ def test_web_data_has_game_state(client: TestClient) -> None:
 
 def test_web_data_command_counters(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     p = data["playerData"][0]
     # Startowe żetony dowodzenia (RULES.md 5): 3 taktyczne, 3 floty, 2 strategiczne.
     assert p["tacticalCC"] == 3
@@ -290,7 +309,7 @@ def test_web_data_player_data_carries_counters(client: TestClient) -> None:
             "home_position": "301",
         },
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     assert len(data["playerData"]) == 1
     player = data["playerData"][0]
     assert player["faction"] == "sol"
@@ -306,7 +325,7 @@ def test_unit_upgrade_tech_swaps_owned_variant(client: TestClient) -> None:
     # Bug 11: zbadanie technologii ulepszenia podmienia wpis w unitsOwned na wariant
     # ulepszony (frontend preferUpgradedUnit pokaże właściwe statystyki).
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    before = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+    before = _web_data(client)["playerData"][0][
         "unitsOwned"
     ]
     # Sol ma wariant frakcyjny carriera (Advanced Carrier) → przed zbadaniem: bazowy
@@ -314,7 +333,7 @@ def test_unit_upgrade_tech_swaps_owned_variant(client: TestClient) -> None:
     assert "sol_carrier" in before and "sol_carrier2" not in before
     # God-Mode: nadaj technologię Advanced Carrier II (alias 'ac2').
     client.post("/player/p1/edit", json={"technologies": ["ac2"]})
-    after = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+    after = _web_data(client)["playerData"][0][
         "unitsOwned"
     ]
     # Po zbadaniu: ulepszony wariant zastępuje bazowy (jeden wpis na asyncId cv).
@@ -325,7 +344,7 @@ def test_warsun_tech_grants_generic_warsun(client: TestClient) -> None:
     # Bug 11 (pokrewny): War Sun jest posiadany dopiero po zbadaniu technologii 'ws'.
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     client.post("/player/p1/edit", json={"technologies": ["ws"]})
-    owned = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+    owned = _web_data(client)["playerData"][0][
         "unitsOwned"
     ]
     assert "warsun" in owned
@@ -341,7 +360,7 @@ def test_duplicate_faction_keeps_both_players_units(client: TestClient) -> None:
         "/system/301/edit-units",
         json={"zone": "space", "faction": "p2", "asyncId": "dd", "delta": 2},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     # Obaj gracze obecni w playerData.
     keys = {p["faction"] for p in data["playerData"]}
     assert "p2" in keys  # drugi gracz pod kluczem player_id (kolizja frakcji)
@@ -360,7 +379,7 @@ def test_resolve_player_prefers_exact_player_id(client: TestClient) -> None:
         "/system/305/edit-units",
         json={"zone": "space", "faction": "p2", "asyncId": "ca", "delta": 1},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     space = data["tileUnitData"]["305"]["space"]
     # Dokładnie p2 dostał cruisera (nie p1/sol).
     assert "p2" in space and "sol" not in space
@@ -372,7 +391,7 @@ def test_planet_control_single_source_player_edit(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     # Znajdź planetę z mapy, którą nadamy Solowi (Mecatol Rex = 'mr' w systemie 18).
     client.post("/player/p1/edit", json={"controlled_planets": ["mr"]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     # Panel: Mecatol na liście planet gracza.
     assert "mr" in sol["planets"]
@@ -387,7 +406,7 @@ def test_planet_control_single_source_system_edit(client: TestClient) -> None:
         "/system/000/planet/mr",
         json={"changes": [], "owner_id": "p1"},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     assert "mr" in sol["planets"]
 
@@ -396,7 +415,7 @@ def test_unit_counts_has_no_monument_row(client: TestClient) -> None:
     # Bug 6: 'monument' nie jest asyncId standardowej jednostki — nie może pojawić
     # się jako widmowy wiersz w panelu rezerwy.
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     counts = data["playerData"][0]["unitCounts"]
     assert "monument" not in counts
 
@@ -407,7 +426,7 @@ def test_active_and_passed_is_not_contradictory(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     # God-Mode: pierwszy (aktywny) gracz pasuje bezpośrednio.
     client.post("/player/p1/edit", json={"passed": True})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     assert data["gameState"]["activePlayer"] is None
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     assert sol["active"] is False and sol["passed"] is True
@@ -418,7 +437,7 @@ def test_active_color_ambiguous_when_duplicate_color(client: TestClient) -> None
     # niejednoznaczne — nie wskazujemy aktywnego po kolorze.
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     client.post("/player/p2/edit", json={"faction": "hacan", "color": "red"})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     # p1 jest aktywny i ma kolor red; p2 też red → activePlayer null.
     assert data["gameState"]["activePlayer"] is None
 
@@ -448,7 +467,7 @@ def test_stat_tile_anchored_to_home_not_conquest(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     # Sol zdobywa Mecatol (system 000, pierścień 0) — nie może przeciągnąć heksa tam.
     client.post("/system/000/planet/mr", json={"changes": [], "owner_id": "p1"})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     positions = data["statTilePositions"]["sol"]
     # Heksy nadal przy domu (pierścień 4), nie przy zdobytym Mecatolu (pierścień 0).
     assert all(p.startswith("4") for p in positions)
@@ -486,7 +505,7 @@ def test_strategy_pick_assigns_and_appears_in_web_data(client: TestClient) -> No
     politics = next(c for c in cards if c["initiative"] == 3)
     assert politics["picked_by"] == "p1"
     # web-data: strategyCards + playerData.scs odzwierciedlają wybór.
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sc3 = next(c for c in data["strategyCards"] if c["initiative"] == 3)
     assert sc3["picked"] is True
     assert sc3["pickedByFaction"] == "sol"  # klucz tożsamości = frakcja
@@ -522,12 +541,12 @@ def test_strategy_pick_transfers_trade_goods(client: TestClient) -> None:
     card5 = next(c for c in cards if c["initiative"] == 5)
     assert card5["trade_goods"] == 1  # +1 z akumulacji
     # Po resecie wybór zaczyna od nowa mówca p1 (sol) — bierze kartę 5 z 1 TG.
-    data_before = client.get("/api/public/game/g/web-data").json()
+    data_before = _web_data(client)
     sol_tg_before = next(
         p for p in data_before["playerData"] if p["faction"] == "sol"
     )["tg"]
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 5})
-    data_after = client.get("/api/public/game/g/web-data").json()
+    data_after = _web_data(client)
     sol_tg_after = next(
         p for p in data_after["playerData"] if p["faction"] == "sol"
     )["tg"]
@@ -550,7 +569,7 @@ def test_strategy_play_marks_exhausted_in_web_data(client: TestClient) -> None:
     )
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
     client.post("/strategy/play", json={"player_id": "p1", "initiative": 6})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     sc6 = next(c for c in data["strategyCards"] if c["initiative"] == 6)
     assert sc6["exhausted"] is True and sc6["played"] is True
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
@@ -590,7 +609,7 @@ def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
             )
     # Przejdź do fazy akcji — aktywny powinien być p2 (hacan), bo ma kartę 1.
     client.post("/phase/next")  # strategy -> action
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     hacan = next(p for p in data["playerData"] if p["faction"] == "hacan")
     assert hacan["active"] is True
 
@@ -604,7 +623,7 @@ def test_keleres_all_variants_own_shared_faction_units(client: TestClient) -> No
     # wszystkie 3 warianty muszą mieć flagship i mech (inaczej panel ich nie pokazuje).
     for faction_id in ("keleresa", "keleresm", "keleresx"):
         client.post("/game/new", json={"players": [{"faction_id": faction_id}]})
-        owned = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+        owned = _web_data(client)["playerData"][0][
             "unitsOwned"
         ]
         assert "keleres_flagship" in owned
@@ -614,7 +633,7 @@ def test_keleres_all_variants_own_shared_faction_units(client: TestClient) -> No
 def test_faction_units_do_not_leak_across_factions(client: TestClient) -> None:
     # Regresja: Sol nie może dostać cudzych wariantów (np. keleres_*).
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    owned = client.get("/api/public/game/g/web-data").json()["playerData"][0][
+    owned = _web_data(client)["playerData"][0][
         "unitsOwned"
     ]
     assert "sol_flagship" in owned
@@ -630,7 +649,7 @@ def test_keleres_leaders_typed_from_data(client: TestClient) -> None:
         ("keleresx", "keleresheroodlynn"),
     ):
         client.post("/game/new", json={"players": [{"faction_id": faction_id}]})
-        p = client.get("/api/public/game/g/web-data").json()["playerData"][0]
+        p = _web_data(client)["playerData"][0]
         types = {ldr["type"] for ldr in p["leaders"]}
         assert types == {"agent", "commander", "hero"}
         hero = next(ldr for ldr in p["leaders"] if ldr["type"] == "hero")
@@ -656,7 +675,7 @@ def test_starting_tech_choice_applied(client: TestClient) -> None:
         "/game/new",
         json={"players": [{"faction_id": "argent", "starting_tech": ["nm", "ps"]}]},
     )
-    p = client.get("/api/public/game/g/web-data").json()["playerData"][0]
+    p = _web_data(client)["playerData"][0]
     assert set(p["techs"]) == {"nm", "ps"}
 
 
@@ -681,14 +700,14 @@ def test_starting_tech_choice_validates_option(client: TestClient) -> None:
 def test_starting_tech_default_when_omitted(client: TestClient) -> None:
     # Quick-start bez wyboru: fallback na pierwsze N opcji (gra nie pada).
     client.post("/game/new", json={"players": [{"faction_id": "winnu"}]})
-    p = client.get("/api/public/game/g/web-data").json()["playerData"][0]
+    p = _web_data(client)["playerData"][0]
     assert len(p["techs"]) == 1  # Winnu: 1 technologia
 
 
 def test_ghost_home_system_off_board(client: TestClient) -> None:
     # Ghost: brama (sys 17) na slocie 301, prawdziwy dom (sys 51, planeta creuss) off-board.
     client.post("/game/new", json={"players": [{"faction_id": "ghost"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     tp = dict(entry.split(":") for entry in data["tilePositions"])
     assert tp.get("301") == "17"  # brama na slocie
     # Prawdziwy dom w rogu off-board (tr/br/bl) — kafelek 51.
@@ -706,7 +725,7 @@ def test_crimson_home_system_off_board(client: TestClient) -> None:
         "/game/new",
         json={"players": [{"faction_id": "crimson", "starting_tech": ["det"]}]},
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     tp = dict(entry.split(":") for entry in data["tilePositions"])
     assert tp.get("301") == "94"  # brama The Sorrow
     off = {pos: sid for pos, sid in tp.items() if pos in {"tr", "br", "bl", "tl"}}
@@ -724,7 +743,7 @@ def test_ghost_and_crimson_corner_collision(client: TestClient) -> None:
             ]
         },
     )
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     tp = dict(entry.split(":") for entry in data["tilePositions"])
     off = {pos for pos in tp if pos in {"tr", "br", "bl", "tl"}}
     assert len(off) == 2  # dwa różne rogi, bez nakładania
@@ -733,7 +752,7 @@ def test_ghost_and_crimson_corner_collision(client: TestClient) -> None:
 def test_web_data_faction_abilities(client: TestClient) -> None:
     """Panel gracza dostaje ID zdolności frakcji (``abilities``)."""
     client.post("/game/new", json={"players": [{"faction_id": "arborec"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
     # Arborec ma zdolność Mitosis (z danych frakcji, nie z pamięci).
     assert "mitosis" in arborec["abilities"]
@@ -748,14 +767,14 @@ def test_web_data_faction_techs_researched_split(client: TestClient) -> None:
     """
     client.post("/game/new", json={"players": [{"faction_id": "arborec"}]})
     # Na starcie żaden z techów frakcyjnych nie jest zbadany.
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
     assert set(arborec["factionTechs"]) == {"bio", "lw2"}
     assert set(arborec["notResearchedFactionTechs"]) == {"bio", "lw2"}
 
     # God-Mode: zbadaj "bio".
     client.post("/player/p1/edit", json={"technologies": ["bio"]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
     assert set(arborec["factionTechs"]) == {"bio", "lw2"}
     # "bio" zbadane -> tylko "lw2" niezbadane; "bio" w racku techów.
@@ -766,7 +785,7 @@ def test_web_data_faction_techs_researched_split(client: TestClient) -> None:
 def test_web_data_breakthrough_for_te_faction(client: TestClient) -> None:
     """Frakcja z Thunder's Edge dostaje obiekt ``breakthrough`` ze stanem."""
     client.post("/game/new", json={"players": [{"faction_id": "arborec"}]})
-    data = client.get("/api/public/game/g/web-data").json()
+    data = _web_data(client)
     arborec = next(p for p in data["playerData"] if p["faction"] == "arborec")
     bt = arborec["breakthrough"]
     assert bt is not None

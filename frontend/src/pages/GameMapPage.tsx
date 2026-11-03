@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { AppShell, Box, Tabs, SimpleGrid } from "@/ds";
+import { AppShell, Box, Tabs } from "@/ds";
 import { SiteHeader } from "@/layout/SiteHeader";
 import classes from "@/shared/ui/map/MapUI.module.css";
 import ScoreBoard from "@/domains/objectives/components/ScoreBoard/ScoreBoard";
@@ -17,7 +17,8 @@ import {
   useGameData as useGameContext,
   useGameDataState,
 } from "@/state/useGameContext";
-import PlayerCard from "@/domains/player/components/composition/PlayerCard";
+import PlayersTab from "@/domains/game-shell/components/PlayersTab";
+import { PlayerTab } from "@/domains/player/components/PlayerTab/PlayerTab";
 import { TabsControls } from "@/domains/game-shell/components/TabsControls";
 import { useTabManagement } from "@/domains/tabs/hooks/useTabManagement";
 import GeneralArea from "@/domains/game-shell/components/GeneralArea";
@@ -31,7 +32,6 @@ import { NavigationDrawer } from "@/domains/game-shell/components/navigation/Nav
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import { PlayerDataErrorAlert } from "@/shared/ui/PlayerDataErrorAlert";
-import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
 import { MAIN_TAB_CONFIGS } from "@/domains/game-shell/components/mainTabs";
 import { TabPanelSection } from "@/domains/game-shell/components/TabPanelSection";
 import { APP_HEADER_HEIGHT } from "@/shared/ui/AppHeader";
@@ -193,6 +193,20 @@ function GameMapContent({ pannable }: ContentProps) {
             </Tabs.Panel>
 
             <TabPanelSection
+              value="player"
+              className={classes.playersTabContent}
+              visited={visitedTabs.has("player")}
+            >
+              <TabContent
+                gameId={gameId}
+                ready={!!data?.playerData}
+                isError={isError}
+              >
+                <PlayerTab />
+              </TabContent>
+            </TabPanelSection>
+
+            <TabPanelSection
               value="players"
               className={classes.playersTabContent}
               visited={visitedTabs.has("players")}
@@ -202,13 +216,7 @@ function GameMapContent({ pannable }: ContentProps) {
                 ready={!!data?.playerData}
                 isError={isError}
               >
-                <SimpleGrid cols={{ base: 1, md: 2, xl2: 3 }} spacing="sm">
-                  {filterPlayersWithAssignedFaction(data?.playerData ?? []).map(
-                    (player) => (
-                      <PlayerCard key={player.color} playerData={player} />
-                    ),
-                  )}
-                </SimpleGrid>
+                <PlayersTab playerData={data?.playerData ?? []} />
               </TabContent>
             </TabPanelSection>
 
