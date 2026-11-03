@@ -21,6 +21,27 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Wybór frakcji (setup) — iteracja 4: wysuwany panel „postać + lore" (ukończone)
+
+**Cel (uwaga użytkownika):** nagłówek panelu ma wrócić do prostego (ikona + nazwa +
+złożoność), a portret POSTACI (lider) + duży box na lore mają być OSOBNYM panelem
+wysuwanym z prawej po kliknięciu, z animacją.
+
+**Co zrobione (`FactionSummary.tsx` + `.module.css`):**
+- Nagłówek uproszczony: lokalna ikona frakcji (`/static/factions/<id>.png`) + nazwa +
+  złożoność + akcje (przycisk „Postać i lore", „Zobacz Obsidian" dla Firmamentu).
+- Nowy `LoreDrawer` — panel `position: fixed` przy prawej krawędzi ekranu (nie daje się
+  przyciąć przez `overflow` panelu szczegółów), wjeżdża `translateX` po kliknięciu
+  „Postać i lore"; duży portret postaci + duży box na lore; zamykany przyciskiem.
+- Portret postaci (`LeaderPortrait`) — łańcuch źródeł LOKALNYCH: własny plik gracza
+  `/faction_portraits/<id>.{jpg,png,webp}` → portret bohatera frakcji `/leaders/<heroId>.webp`
+  → ikona frakcji `/static/factions/<id>.png`. Bez zewnętrznego CDN.
+- Panel zamyka się automatycznie przy zmianie frakcji / wejściu w Obsidiana.
+
+**QA:** front tsc + eslint + build czyste.
+
+---
+
 ### ✅ Wybór frakcji (setup) — iteracja 3: boot, Obsidian, portret+lore z boku (ukończone)
 
 **Cel (kolejne uwagi użytkownika):**

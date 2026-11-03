@@ -54,80 +54,47 @@
   }
 }
 
-/* ── Nagłówek frakcji (nazwa/akcje + portret z boku) ──────────────────── */
+/*
+ * Kontener pozycjonujący: mieści panel szczegółów + wysuwany panel „postać + lore".
+ * Drawer jest absolutny względem tego wrappera i wjeżdża z prawej strony panelu.
+ */
+.summaryWrap {
+  position: relative;
+  height: 100%;
+}
+
+/* ── Prosty nagłówek frakcji (ikona + nazwa + złożoność + akcje) ──────── */
 
 .header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ds-space-md);
+  align-items: center;
+  gap: var(--ds-space-sm);
   padding-bottom: var(--ds-space-md);
   border-bottom: 1px solid var(--ds-h10);
+}
+
+/* Lokalna ikona frakcji w nagłówku (z /static/factions/<id>.png — nie CDN). */
+.headerIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .headerText {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
   flex: 1;
 }
 
-/* Prawa kolumna nagłówka: portret (postać) + lore pod spodem. */
-.portraitSlot {
-  flex-shrink: 0;
+.headerActions {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-space-sm);
-  width: 220px;
-}
-
-/* Lokalna ikona frakcji jako placeholder portretu (z /static/factions/<id>.png). */
-.portraitIcon {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-}
-
-/* Lore obok portretu (w prawej kolumnie). */
-.loreAside {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.loreTitle {
-  font-size: var(--ds-fz-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgb(252 162 43);
-}
-
-.portrait {
-  display: block;
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  object-position: top center;
-  border-radius: var(--ds-radius-md);
-  border: 1px solid var(--ds-h22);
-  background: var(--ds-socket);
-}
-
-/* Placeholder portretu (brak pliku) — lokalna ikona + podpowiedź gdzie wrzucić obraz. */
-.portraitFallback {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 6px;
-  width: 100%;
-  height: 160px;
-  padding: 8px;
-  border-radius: var(--ds-radius-md);
-  border: 1px dashed var(--ds-h22);
-  background: var(--ds-socket);
+  flex-shrink: 0;
+  align-items: flex-end;
 }
 
 .factionName {
@@ -149,16 +116,106 @@
   letter-spacing: 0.08em;
 }
 
-/* Przyciski: „Zobacz Obsidian" (frakcja pochodna) i „Wróć". */
-.derivedButton {
-  align-self: flex-start;
-  margin-top: 2px;
-}
-
 .backButton {
   align-self: flex-start;
   margin-bottom: var(--ds-space-sm);
 }
+
+/* ── Wysuwany panel „postać + lore" ───────────────────────────────────── */
+
+/*
+ * Wysuwany panel „postać + lore". Przyklejony do PRAWEJ krawędzi ekranu (fixed), żeby
+ * nie dać się przyciąć przez `overflow` panelu szczegółów. Domyślnie schowany za prawą
+ * krawędzią (translateX(100%)); po otwarciu wjeżdża płynnie w kadr. Szeroki — duży
+ * portret postaci + duży box na lore.
+ */
+.loreDrawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  width: min(380px, 92vw);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-sm);
+  padding: var(--ds-space-lg);
+  border-left: 1px solid var(--ds-h22);
+  background: var(--ds-ground);
+  box-shadow: -16px 0 48px rgb(0 0 0 / 0.5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateX(100%);
+  transition: transform var(--ds-dur, 0.2s) var(--ds-ease-standard);
+}
+
+.loreDrawerOpen {
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loreDrawer {
+    transition: none;
+  }
+}
+
+.loreDrawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-sm);
+}
+
+.loreDrawerTitle {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-md);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ds-ink-hi);
+}
+
+.loreDrawerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loreTitle {
+  font-size: var(--ds-fz-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgb(252 162 43);
+}
+
+/* Duży portret postaci w panelu wysuwanym. */
+.portrait {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-socket);
+}
+
+/* Placeholder portretu (brak pliku lokalnego) — podpowiedź gdzie wrzucić obraz. */
+.portraitFallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 200px;
+  padding: var(--ds-space-md);
+  border-radius: var(--ds-radius-md);
+  border: 1px dashed var(--ds-h22);
+  background: var(--ds-socket);
+}
+
+
 
 /* ── Sekcje ───────────────────────────────────────────────────────────── */
 
@@ -190,16 +247,17 @@
 
 /* ── Lore (długi tekst) ───────────────────────────────────────────────── */
 
+/* Box na lore w panelu wysuwanym — duży, własne przewijanie przy długim tekście. */
 .lore {
-  max-height: 260px;
+  max-height: 360px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--ds-space-sm);
+  padding: var(--ds-space-md);
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
   background: var(--ds-socket);
-  font-size: var(--ds-fz-xs);
-  line-height: 1.5;
+  font-size: var(--ds-fz-sm);
+  line-height: 1.6;
   color: var(--ds-ink);
   white-space: pre-line;
 }
