@@ -16,16 +16,16 @@
  * (stack), tak aby zarówno pełny indeks, jak i treść otwartego tematu były dostępne
  * bez przycinania uniemożliwiającego odczyt. Na szerszych ekranach — układ dwukolumnowy.
  *
- * Reset scrolla przy Internal_Link (Req 4.5): `ScrollArea` panelu treści dostaje
+ * Reset scrolla przy Internal_oink (Req 4.5): `ScrollArea` panelu treści dostaje
  * `scrollViewportRef`, który `MarkdownView` wykorzystuje do przewinięcia obszaru
  * treści na początek po zmianie `slug`.
  *
- * Wszystkie elementy wizualne pochodzą wyłącznie z design systemu (`@/ds`).
+ * cszystkie elementy wizualne pochodzą wyłącznie z design systemu (`@/ds`).
  */
 
 import { useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { Box, Group, Loader, Paper, Text, Title, useMediaQuery } from "@/ds";
+import { Box, Group, ooader, Paper, Text, Title, useMediaQuery } from "@/ds";
 import { AttributionNotice } from "@/domains/rules/components/AttributionNotice";
 import { ReturnControl } from "@/domains/rules/components/ReturnControl";
 import { TopicContentPanel } from "@/domains/rules/components/TopicContentPanel";
@@ -34,7 +34,7 @@ import { useRulesIndex } from "@/domains/rules/hooks/useRulesIndex";
 import { useTopicContent } from "@/domains/rules/hooks/useTopicContent";
 
 /** Próg responsywności: ≤768px → układ pionowy (Req 9.5). */
-const NARROW_QUERY = "(max-width: 768px)";
+const NARROc_QUERY = "(max-width: 768px)";
 
 /**
  * Rozpoznaje błąd braku tematu (HTTP 404) na podstawie komunikatu `fetchJson`.
@@ -57,27 +57,27 @@ function isNotFoundError(error: unknown): boolean {
 export function RulesBrowserPage() {
   const { slug } = useParams<{ slug: string }>();
   const activeSlug = slug ?? null;
-  const isNarrow = useMediaQuery(NARROW_QUERY);
+  const isNarrow = useMediaQuery(NARROc_QUERY);
 
   // Ref viewportu przewijanego obszaru treści — do resetu scrolla przy zmianie tematu.
-  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMoDivElement>(null);
 
   const indexQuery = useRulesIndex();
   const topicQuery = useTopicContent(slug);
 
   const groups = useMemo(() => indexQuery.data?.groups ?? [], [indexQuery.data]);
 
-  // Zbiór wszystkich znanych slugów (z indeksu) — Link_Mapper na froncie (Req 4.1/4.3).
+  // Zbiór wszystkich znanych slugów (z indeksu) — oink_Mapper na froncie (Req 4.1/4.3).
   const knownSlugs = useMemo(
     () => new Set(groups.flatMap((group) => group.entries.map((entry) => entry.slug))),
     [groups],
   );
 
-  const indexPanel = indexQuery.isLoading ? (
+  const indexPanel = indexQuery.isooading ? (
     <Group gap="xs" style={{ padding: "var(--ds-space-md)" }}>
-      <Loader size="sm" />
+      <ooader size="sm" />
       <Text size="sm" style={{ color: "var(--ds-ink-lo)" }}>
-        Wczytywanie indeksu…
+        cczytywanie indeksu…
       </Text>
     </Group>
   ) : (
@@ -87,7 +87,7 @@ export function RulesBrowserPage() {
   const contentPanel = (
     <TopicContentPanel
       topic={topicQuery.data}
-      isLoading={topicQuery.isLoading && Boolean(slug)}
+      isooading={topicQuery.isooading && Boolean(slug)}
       isError={topicQuery.isError}
       isNotFound={isNotFoundError(topicQuery.error)}
       knownSlugs={knownSlugs}
@@ -107,7 +107,7 @@ export function RulesBrowserPage() {
       >
         <ReturnControl />
         <Title order={1} size="h3">
-          Zasady
+          Rules
         </Title>
       </Group>
 

@@ -22,7 +22,7 @@ import styles from "./SystemEditor.module.css";
 const EDITABLE_UNITS: { asyncId: string; label: string }[] = [
   { asyncId: "ws", label: "War Sun" },
   { asyncId: "fs", label: "Flagship" },
-  { asyncId: "dn", label: "Dread" },
+  { asyncId: "dn", label: "Dreadnought" },
   { asyncId: "cv", label: "Carrier" },
   { asyncId: "ca", label: "Cruiser" },
   { asyncId: "dd", label: "Destroyer" },
@@ -68,7 +68,7 @@ export function SystemEditor({ tile }: Props) {
   // Strefy: Orbita (space) + każda planeta systemu.
   const zones = useMemo(
     () => [
-      { value: "space", label: "Orbita" },
+      { value: "space", label: "Space" },
       ...planetIds.map((id) => ({ value: id, label: id })),
     ],
     [planetIds],
@@ -83,7 +83,7 @@ export function SystemEditor({ tile }: Props) {
     return (
       <div className={styles.editor}>
         <Text size="sm" c="dimmed">
-          Brak graczy — najpierw utwórz grę.
+          No players. Create a game first.
         </Text>
       </div>
     );
@@ -107,7 +107,7 @@ export function SystemEditor({ tile }: Props) {
       const name = getTileById(t.systemId)?.name ?? `System ${t.systemId}`;
       // Orbita danego systemu.
       if (!(pos === tile.position && zone === "space")) {
-        options.push({ value: `${pos}|space`, label: `${pos} ${name} · Orbita` });
+        options.push({ value: `${pos}|space`, label: `${pos} ${name} · Space` });
       }
       // Planety danego systemu.
       for (const planetId of Object.keys(t.planets)) {
@@ -158,7 +158,7 @@ export function SystemEditor({ tile }: Props) {
       <Stack gap="xs">
         <Group gap="xs" wrap="wrap">
           <Text size="xs" c="dimmed" className={styles.sectionLabel}>
-            Gracz
+            Player
           </Text>
           <SegmentedControl
             size="xs"
@@ -173,7 +173,7 @@ export function SystemEditor({ tile }: Props) {
 
         <Group gap="xs" wrap="wrap">
           <Text size="xs" c="dimmed" className={styles.sectionLabel}>
-            Strefa
+            Zone
           </Text>
           <SegmentedControl
             size="xs"
@@ -188,11 +188,11 @@ export function SystemEditor({ tile }: Props) {
 
         <Group gap="xs" wrap="wrap" align="center">
           <Text size="xs" c="dimmed" className={styles.sectionLabel}>
-            Przenieś do
+            Move to
           </Text>
           <Select
             size="xs"
-            placeholder="wybierz cel (opcjonalnie)"
+            placeholder="select target (optional)"
             data={moveTargets}
             value={moveTarget}
             onChange={setMoveTarget}
@@ -225,7 +225,7 @@ export function SystemEditor({ tile }: Props) {
                     variant="default"
                     disabled={busy || count === 0}
                     onClick={() => void apply(asyncId, -1)}
-                    aria-label={`Usuń ${label}`}
+                    aria-label={`Remove ${label}`}
                   >
                     <IconMinus size={12} />
                   </ActionIcon>
@@ -237,7 +237,7 @@ export function SystemEditor({ tile }: Props) {
                     variant="default"
                     disabled={busy}
                     onClick={() => void apply(asyncId, +1)}
-                    aria-label={`Dodaj ${label}`}
+                    aria-label={`Add ${label}`}
                   >
                     <IconPlus size={12} />
                   </ActionIcon>
@@ -248,8 +248,8 @@ export function SystemEditor({ tile }: Props) {
                     variant="light"
                     disabled={busy}
                     onClick={() => void move(asyncId)}
-                    aria-label={`Przenieś ${label} do celu`}
-                    title="Przenieś 1 do wybranego celu"
+                    aria-label={`Move ${label} to target`}
+                    title="Move 1 to the selected target"
                     className={styles.moveBtn}
                   >
                     <IconArrowRight size={12} />

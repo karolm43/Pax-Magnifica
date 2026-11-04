@@ -32,13 +32,13 @@ const NUMERIC_FIELDS: {
   get: (p: PlayerData) => number;
   min?: number;
 }[] = [
-  { key: "victory_points", label: "Punkty zwycięstwa (VP)", get: (p) => p.totalVps, min: 0 },
+  { key: "victory_points", label: "Victory points (VP)", get: (p) => p.totalVps, min: 0 },
   { key: "trade_goods", label: "Trade goods", get: (p) => p.tg, min: 0 },
   { key: "commodities", label: "Commodities", get: (p) => p.commodities, min: 0 },
-  { key: "tactical_cc", label: "Żetony taktyczne", get: (p) => p.tacticalCC, min: 0 },
-  { key: "fleet_cc", label: "Żetony floty", get: (p) => p.fleetCC, min: 0 },
-  { key: "strategic_cc", label: "Żetony strategiczne", get: (p) => p.strategicCC, min: 0 },
-  { key: "cc_reinf", label: "Żetony w rezerwie", get: (p) => p.ccReinf, min: 0 },
+  { key: "tactical_cc", label: "Tactical tokens", get: (p) => p.tacticalCC, min: 0 },
+  { key: "fleet_cc", label: "Fleet tokens", get: (p) => p.fleetCC, min: 0 },
+  { key: "strategic_cc", label: "Strategic tokens", get: (p) => p.strategicCC, min: 0 },
+  { key: "cc_reinf", label: "Reinforcement tokens", get: (p) => p.ccReinf, min: 0 },
 ];
 
 const LEADER_STATE_LABEL: Record<string, string> = {
@@ -168,12 +168,12 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
     <AppModal
       opened={opened}
       onClose={onClose}
-      title="God-Mode · edycja gracza"
+      title="God Mode · edit player"
       size={560}
     >
       {players.length === 0 ? (
         <Text size="sm" c="dimmed">
-          Brak graczy — najpierw utwórz grę.
+          No players - create a game first.
         </Text>
       ) : (
         <Stack gap="md">
@@ -192,7 +192,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
             <>
               <Group gap="sm" grow>
                 <TextInput
-                  label="Frakcja"
+                  label="Faction"
                   defaultValue={player.faction}
                   onBlur={(e) => {
                     const v = e.currentTarget.value.trim();
@@ -200,7 +200,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                   }}
                 />
                 <TextInput
-                  label="Kolor"
+                  label="Color"
                   defaultValue={player.color}
                   onBlur={(e) => {
                     const v = e.currentTarget.value.trim();
@@ -257,7 +257,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
               </Stack>
 
               <Switch
-                label="Spasował (passed)"
+                label="Passed"
                 checked={player.passed}
                 onChange={(e) => void apply({ passed: e.currentTarget.checked })}
               />
@@ -306,7 +306,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                 </Text>
                 <Select
                   size="xs"
-                  placeholder="Dodaj technologię (nazwa · skrót)…"
+                  placeholder="Add technology (name · abbreviation)…"
                   data={techOptions}
                   value={techToAdd}
                   onChange={(v) => void addTech(v)}
@@ -324,7 +324,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                         rightSection={<IconX size={11} />}
                         disabled={busy}
                         onClick={() => void removeTech(techId)}
-                        title="Usuń technologię"
+                        title="Remove technology"
                       >
                         {t ? t.name : techId}
                       </Button>
@@ -332,14 +332,14 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                   })}
                   {player.techs.length === 0 && (
                     <Text size="xs" c="dimmed">
-                      Brak technologii.
+                      No technologies.
                     </Text>
                   )}
                 </Group>
               </Stack>
 
               <TextInput
-                label="Kontrolowane planety (ID po przecinku)"
+                label="Controlled planets (comma-separated IDs)"
                 defaultValue={player.planets.join(", ")}
                 onBlur={(e) => {
                   const planets = e.currentTarget.value
@@ -352,7 +352,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
 
               <Group justify="flex-end">
                 <Button variant="default" size="xs" onClick={onClose}>
-                  Zamknij
+                  Close
                 </Button>
               </Group>
             </>

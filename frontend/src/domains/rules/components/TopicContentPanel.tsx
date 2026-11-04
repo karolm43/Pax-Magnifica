@@ -5,7 +5,7 @@
  * zadanie 8.2) — jeden z widoków:
  * - brak wybranego tematu → komunikat zachęcający do wyboru z indeksu (indeks
  *   pozostaje widoczny po stronie strony — Req 3.4);
- * - ładowanie → informacja „Wczytywanie…";
+ * - ładowanie → informacja „Loading…";
  * - błąd 404 (brak tematu) → `Alert` „Brak tematu", indeks zachowany (Req 3.6/6.3);
  * - inny błąd odczytu → `Alert` „Błąd odczytu treści" (Req 2.7/6.5);
  * - sukces → nagłówek tematu (`Title`), opcjonalny trwały baner not-doprecyzowań
@@ -67,31 +67,31 @@ export function TopicContentPanel({
       <Box style={{ padding: "var(--ds-space-lg)" }}>
         <Alert
           color="yellow"
-          title="Brak tematu"
+          title="Topic not found"
           icon={<IconAlertTriangle size={18} aria-hidden="true" />}
         >
-          Żądany temat nie istnieje w lokalnym zrzucie reguł. Wybierz temat z indeksu.
+          The requested topic does not exist in the local rules dump. Select a topic from the index.
         </Alert>
       </Box>
     ) : (
       <Box style={{ padding: "var(--ds-space-lg)" }}>
         <Alert
           color="red"
-          title="Błąd odczytu treści"
+          title="Content load error"
           icon={<IconAlertTriangle size={18} aria-hidden="true" />}
         >
-          Nie udało się wczytać treści tematu. Spróbuj ponownie lub wybierz inny temat.
+          Failed to load the topic content. Try again or select another topic.
         </Alert>
       </Box>
     );
   }
 
   if (isLoading) {
-    return <MessageView>Wczytywanie…</MessageView>;
+    return <MessageView>Loading…</MessageView>;
   }
 
   if (!topic) {
-    return <MessageView>Wybierz temat z indeksu, aby wyświetlić jego treść.</MessageView>;
+    return <MessageView>Select a topic from the index to view its content.</MessageView>;
   }
 
   // Trwały baner not-doprecyzowań — tylko dla grup Frakcje / Komponenty (Req 7.2).
@@ -119,7 +119,7 @@ export function TopicContentPanel({
           <Stack gap="sm">
             {/* Komunikat o braku not — nagłówek i blockquote źródła pozostają widoczne (Req 7.3). */}
             <Text size="sm" style={{ color: "var(--ds-ink-lo)" }}>
-              Dla tego tematu brak not-doprecyzowań.
+              No clarification notes for this topic.
             </Text>
             <MarkdownView
               markdown={topic.markdown}

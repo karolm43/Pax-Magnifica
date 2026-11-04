@@ -521,16 +521,16 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
             onClick={decode.toggle}
           >
             {decode.busy
-              ? "Rozszyfrowuję…"
+              ? "Decoding…"
               : decode.mode === "glyph"
-                ? "Przetłumacz"
-                : "Pokaż oryginał"}
+                ? "Translate"
+                : "Show original"}
           </button>
         </div>
       )}
       {blocks.length === 0 ? (
         <p className={styles.loreEmpty} style={{ ["--i" as string]: 2 }}>
-          Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
+          No lore — add it in factionLore.ts (key "{faction.id}").
         </p>
       ) : (
         <div className={styles.loreColumns}>

@@ -49,7 +49,7 @@ export function PlayerTab() {
   if (!activePlayer) {
     return (
       <Box className={styles.empty}>
-        <Text c="dimmed">Brak aktywnego gracza w bieżącym stanie gry.</Text>
+        <Text c="dimmed">No active player in the current game state.</Text>
       </Box>
     );
   }
@@ -76,7 +76,7 @@ export function PlayerTab() {
             />
           ) : (
             <Text c="dimmed" size="sm">
-              Pełna ręka widoczna tylko dla zalogowanego gracza w tej grze.
+              Full hand visible only to the logged-in player in this game.
             </Text>
           )}
         </Box>

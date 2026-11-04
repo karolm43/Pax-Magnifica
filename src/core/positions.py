@@ -48,7 +48,7 @@ def _parse_alias(text: str) -> dict[str, Hex]:
         a, b, position = int(match.group(1)), int(match.group(2)), match.group(3)
         if (b - a) % 2 != 0:
             # Niespójny wpis (nie powinno wystąpić dla map heksagonalnych).
-            raise ValueError(f"Niespójna pozycja w aliasie: {line!r} ((b-a) nieparzyste)")
+            raise ValueError(f"Inconsistent position in alias: {line!r} ((b-a) is odd)")
         result[position] = _axial_to_hex(a, b)
     return result
 
@@ -71,7 +71,7 @@ def load_positions(path: str | Path | None = None) -> dict[str, Hex]:
     """
     alias_path = Path(path) if path is not None else config.POSITION_ALIAS_PATH
     if not alias_path.is_file():
-        raise FileNotFoundError(f"Brak pliku alias pozycji: {alias_path}")
+        raise FileNotFoundError(f"Position alias file missing: {alias_path}")
     return _parse_alias(alias_path.read_text(encoding="utf-8"))
 
 

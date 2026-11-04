@@ -77,7 +77,7 @@ def pick_count(state: GameState) -> int:
     """
     n = len(state.players)
     if n < 2 or n > 8:
-        raise ValueError(f"Nieprawidłowa liczba graczy: {n} (dozwolone 2–8).")
+        raise ValueError(f"Invalid number of players: {n} (allowed 2-8).")
     return 2 if n <= 4 else 1
 
 
@@ -155,13 +155,13 @@ def ensure_strategy_complete(state: GameState) -> None:
     """
     if state.seating_order and set(state.seating_order) != set(state.players):
         raise ValueError(
-            "Niespójny stan: lista miejsc (seating_order) nie pokrywa się z "
-            "graczami. Użyj God-Mode, by naprawić."
+            "Inconsistent state: seating_order does not match the "
+            "players. Use God-Mode to fix it."
         )
     needed = pick_count(state)
     for pid in speaker_order(state):
         if len(state.players[pid].strategy_cards) < needed:
-            raise ValueError("Wybór kart strategii nie został ukończony.")
+            raise ValueError("Strategy card selection has not been completed.")
 
 
 def pick_strategy_card(
@@ -194,19 +194,19 @@ def pick_strategy_card(
             limit ``Pick_Count`` (R3.5).
     """
     if player_id not in state.players:
-        raise ValueError(f"Nieznany gracz: {player_id}")
+        raise ValueError(f"Unknown player: {player_id}")
     if initiative not in available_initiatives(registry, set_alias):
-        raise ValueError(f"Karta inicjatywy {initiative} nie jest w zestawie.")
+        raise ValueError(f"Initiative card {initiative} is not in the set.")
     if initiative in picked_initiatives(state):
-        raise ValueError(f"Karta inicjatywy {initiative} już wybrana.")
+        raise ValueError(f"Initiative card {initiative} is already taken.")
     # Kolejność (R4.5): wybierać może tylko bieżący picker w speaker order.
     picker = next_strategy_picker(state)
     if player_id != picker:
-        raise ValueError(f"Wybór poza kolejnością: teraz wybiera {picker}.")
+        raise ValueError(f"Out-of-turn pick: it is now the pick of {picker}.")
     # Limit Pick_Count (R3.5): gracz nie może przekroczyć dozwolonej liczby kart.
     allowed = pick_count(state)
     if len(state.players[player_id].strategy_cards) >= allowed:
-        raise ValueError(f"Przekroczono dozwoloną liczbę kart ({allowed}).")
+        raise ValueError(f"Allowed number of cards exceeded ({allowed}).")
 
     new_state = state.clone()
     player = new_state.players[player_id]
@@ -235,10 +235,10 @@ def play_strategy_card(
         ValueError: Gdy gracz nie posiada tej karty.
     """
     if player_id not in state.players:
-        raise ValueError(f"Nieznany gracz: {player_id}")
+        raise ValueError(f"Unknown player: {player_id}")
     player = state.players[player_id]
     if initiative not in player.strategy_cards:
-        raise ValueError(f"Gracz nie posiada karty inicjatywy {initiative}.")
+        raise ValueError(f"Player does not hold the initiative card {initiative}.")
 
     new_state = state.clone()
     target = new_state.players[player_id]
@@ -286,9 +286,9 @@ def accumulate_unpicked_tg(
         # Niekompletny wybór → zachowujemy komunikat akumulacji (kontrakt R7.5).
         # Pozostałe błędy (zła liczba graczy, rozjazd seating_order) propagujemy
         # z oryginalnym, sensownym komunikatem.
-        if "nie został ukończony" in str(exc):
+        if "has not been completed" in str(exc):
             raise ValueError(
-                "Nie można akumulować: faza strategii niezakończona."
+                "Cannot accumulate: strategy phase not completed."
             ) from exc
         raise
     new_state = state.clone()
@@ -337,13 +337,13 @@ def ensure_card_fields_complete(cards: list[StrategyCardDef]) -> None:
     """
     for card in cards:
         if not card.name:
-            raise ValueError(f"Karta {card.id}: brak pola nazwa.")
+            raise ValueError(f"Card {card.id}: missing name field.")
         if not card.primary_texts:
-            raise ValueError(f"Karta {card.id}: brak pola tekst primary.")
+            raise ValueError(f"Card {card.id}: missing primary text field.")
         if not card.secondary_texts:
-            raise ValueError(f"Karta {card.id}: brak pola tekst secondary.")
+            raise ValueError(f"Card {card.id}: missing secondary text field.")
         if not card.colour_hex_code:
-            raise ValueError(f"Karta {card.id}: brak pola kolor.")
+            raise ValueError(f"Card {card.id}: missing color field.")
 
 
 def validate_strategy_card_set(
@@ -376,7 +376,7 @@ def validate_strategy_card_set(
 
     if len(cards) != 8:
         raise ValueError(
-            f"Niespójny zestaw kart: oczekiwano 8 kart, jest {len(cards)}."
+            f"Inconsistent card set: expected 8 cards, got {len(cards)}."
         )
 
     initiatives = [card.initiative for card in cards]
@@ -384,14 +384,14 @@ def validate_strategy_card_set(
     out_of_range = sorted({i for i in initiatives if i < 1 or i > 8})
     if out_of_range:
         raise ValueError(
-            "Niespójny zestaw kart: inicjatywa poza zakresem 1–8: "
+            "Inconsistent card set: initiative outside range 1-8: "
             f"{out_of_range}."
         )
 
     duplicates = sorted({i for i in initiatives if initiatives.count(i) > 1})
     if duplicates:
         raise ValueError(
-            f"Niespójny zestaw kart: zduplikowane inicjatywy: {duplicates}."
+            f"Inconsistent card set: duplicate initiatives: {duplicates}."
         )
 
     # Komplet pól każdej karty (R6.4) — ostatnia kontrola po sprawdzeniu kompletu

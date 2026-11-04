@@ -19,7 +19,7 @@ function parseDetail(raw: string, status: number): string {
   } catch {
     // nie-JSON — użyj surowego tekstu niżej
   }
-  return raw || `Błąd ${status}`;
+  return raw || `Error ${status}`;
 }
 
 async function post(path: string, body: unknown): Promise<void> {

@@ -92,7 +92,7 @@ def project_for_viewer(state: GameState, viewing_player_id: str) -> GameState:
     #    klonowaliśmy mutująco, więc ``state`` pozostaje nietknięty.
     if viewing_player_id not in state.players:
         raise VisibilityError(
-            f"Gracz perspektywy '{viewing_player_id}' nie istnieje w stanie gry."
+            f"Perspective player '{viewing_player_id}' does not exist in the game state."
         )
 
     # 3. Pracujemy wyłącznie na głębokiej kopii (czystość, R4.6).
@@ -161,6 +161,6 @@ def _assert_no_leak(projected: GameState, viewing_player_id: str) -> None:
         for field in _PRIVATE_LIST_FIELDS:
             if getattr(private, field):
                 raise VisibilityError(
-                    "Naruszenie widoczności: prywatna lista "
-                    f"'{field}' gracza '{player_id}' nie została zredagowana."
+                    "Visibility violation: private list "
+                    f"'{field}' of player '{player_id}' was not redacted."
                 )

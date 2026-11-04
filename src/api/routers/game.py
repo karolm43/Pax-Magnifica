@@ -172,7 +172,7 @@ def get_faction(
     """
     faction = ctx.registry.factions.get(faction_id)
     if faction is None or (not faction.home_system and not faction.leaders):
-        raise HTTPException(status_code=404, detail=f"Nieznana frakcja: {faction_id!r}")
+        raise HTTPException(status_code=404, detail=f"Unknown faction: {faction_id!r}")
     return _faction_info(faction, ctx.registry)
 
 
@@ -202,7 +202,7 @@ async def post_load_map(
     if not grid.positions:
         raise HTTPException(
             status_code=422,
-            detail="Map string nie dał żadnego znanego systemu (sprawdź ID i źródła).",
+            detail="The map string produced no known system (check IDs and sources).",
         )
     ctx.current_grid = grid
     await ctx.broadcast_map()
@@ -289,15 +289,15 @@ def _validate_home_position(
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Pozycja domowa {home_position!r} gracza {player_id!r} nie "
-                f"istnieje na tej mapie. Podaj home_position pasującą do map_string."
+                f"Home position {home_position!r} of player {player_id!r} does not "
+                f"exist on this map. Provide a home_position matching the map_string."
             ),
         )
     if home_position in taken:
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Pozycja domowa {home_position!r} gracza {player_id!r} jest już "
+                f"Home position {home_position!r} of player {player_id!r} is already "
                 f"przypisana innemu graczowi."
             ),
         )
@@ -434,7 +434,7 @@ async def post_new_game(
     if not grid.positions:
         raise HTTPException(
             status_code=422,
-            detail="Map string nie dał żadnego znanego systemu (sprawdź ID i źródła).",
+            detail="The map string produced no known system (check IDs and sources).",
         )
 
     # Delegacja całej walidacji/normalizacji graczy do core (R11.1–R11.6, R8.5).

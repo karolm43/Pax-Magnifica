@@ -152,17 +152,17 @@ def resolve_starting_tech(
     options = set(faction.starting_tech_options)
     if len(chosen) != faction.starting_tech_amount:
         raise ValueError(
-            f"Frakcja {faction.id} wybiera {faction.starting_tech_amount} technologii "
-            f"startowych — podano {len(chosen)}."
+            f"Faction {faction.id} chooses {faction.starting_tech_amount} starting technologies "
+            f"- {len(chosen)} given."
         )
     invalid = [t for t in chosen if t not in options]
     if invalid:
         raise ValueError(
-            f"Niedozwolone technologie startowe dla {faction.id}: {invalid}. "
-            f"Dozwolone: {sorted(options)}."
+            f"Invalid starting technologies for {faction.id}: {invalid}. "
+            f"Allowed: {sorted(options)}."
         )
     if len(set(chosen)) != len(chosen):
-        raise ValueError(f"Powtórzone technologie startowe: {chosen}.")
+        raise ValueError(f"Duplicate starting technologies: {chosen}.")
     return list(chosen)
 
 
@@ -262,11 +262,11 @@ def parse_starting_fleet(
             continue
         match = _FLEET_TOKEN.match(token)
         if match is None:
-            raise ValueError(f"Niepoprawny token startingFleet: {token!r}")
+            raise ValueError(f"Invalid startingFleet token: {token!r}")
         count_str, code, suffix = match.groups()
         base_type = FLEET_CODE_TO_BASE_TYPE.get(code.lower())
         if base_type is None:
-            raise ValueError(f"Nieznany kod jednostki w startingFleet: {code!r}")
+            raise ValueError(f"Unknown unit code in startingFleet: {code!r}")
         count = int(count_str) if count_str else 1
         placement = placement_of(base_type)
         prefix = suffix if placement is Placement.PLANET else None

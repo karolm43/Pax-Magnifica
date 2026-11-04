@@ -585,9 +585,9 @@ export function SystemDossier({
             variant={editing ? "filled" : "default"}
             leftSection={<IconPencil size={13} />}
             onClick={() => setEditing((v) => !v)}
-            title="God-Mode: dodawaj/usuwaj jednostki (bez sprawdzania zasad)"
+            title="God-Mode: add/remove units (no rules checking)"
           >
-            {editing ? "Zakończ edycję" : "Edytuj planszę"}
+            {editing ? "Finish editing" : "Edit board"}
           </Button>
           <SystemBattleLinks
             tile={tile}

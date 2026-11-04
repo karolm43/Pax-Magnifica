@@ -47,7 +47,7 @@ async def get_topic(slug: str, ctx: AppContext = Depends(get_ctx)) -> TopicConte
     try:
         topic = rules_content.load_topic(config.RULES_DIR, slug)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=f"Brak tematu: {slug}") from exc
+        raise HTTPException(status_code=404, detail=f"Topic not found: {slug}") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return TopicContentDTO.from_core(topic)

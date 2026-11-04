@@ -75,14 +75,14 @@ def _ensure_port_free(host: str, port: int) -> None:
     """Zwalnia port przed startem (jeśli zajęty) i czeka chwilę na zwolnienie."""
     if not _port_in_use(host, port):
         return
-    print(f"[health-check] Port {port} zajęty — zwalniam osierocony proces...")
+    print(f"[health-check] Port {port} is busy - releasing orphaned process...")
     _free_port_windows(port)
     for _ in range(10):
         if not _port_in_use(host, port):
-            print(f"[health-check] Port {port} zwolniony.")
+            print(f"[health-check] Port {port} released.")
             return
         time.sleep(0.3)
-    print(f"[health-check] UWAGA: port {port} nadal zajęty — start może się nie udać.")
+    print(f"[health-check] WARNING: port {port} is still busy - startup may fail.")
 
 
 def main() -> None:

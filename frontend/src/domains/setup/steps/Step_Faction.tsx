@@ -38,7 +38,7 @@ function slotFactionLabel(
   factionId: string,
   factionById: SetupStepProps["factionById"],
 ): string {
-  if (factionId === RANDOM_FACTION) return "Losowa";
+  if (factionId === RANDOM_FACTION) return "Random";
   return factionById.get(factionId)?.name ?? factionId;
 }
 
@@ -109,10 +109,10 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
       {/* Pasek górny: Wstecz · przełącznik graczy · Start gry (zastępuje ramkę kreatora). */}
       <div className={styles.topBar}>
         <button type="button" className={styles.backButton} onClick={stage?.onBack}>
-          ← Wstecz
+          ← Back
         </button>
 
-        <div className={styles.playerBar} role="tablist" aria-label="Gracze">
+        <div className={styles.playerBar} role="tablist" aria-label="Players">
           {slots.map((slot, index) => {
             const isRandom = slot.factionId === RANDOM_FACTION;
             return (
@@ -126,7 +126,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
                 }`}
                 onClick={() => setActiveSlot(index)}
               >
-                <span className={styles.playerTabHead}>Gracz {index + 1}</span>
+                <span className={styles.playerTabHead}>Player {index + 1}</span>
                 <span className={styles.playerTabFaction}>
                   {!isRandom ? (
                     <CircularFactionIcon faction={slot.factionId} size={16} />
@@ -156,7 +156,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
           disabled={!stage?.canSubmit}
           onClick={stage?.onSubmit}
         >
-          Start gry →
+          Start game →
         </Button>
       </div>
 
@@ -220,9 +220,9 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
           <div className={styles.pickBar} key={`pick-${previewFaction.id}`}>
             {previewTakenByOther && (
               <p className={styles.pickNote}>
-                Ta frakcja jest już wybrana przez gracza{" "}
-                {(takenBy.get(previewFaction.id) ?? 0) + 1}. Wybór przypisze ją graczowi{" "}
-                {activeSlot + 1} (duplikat zablokuje start gry).
+                This faction is already chosen by player{" "}
+                {(takenBy.get(previewFaction.id) ?? 0) + 1}. Choosing it will assign it to player{" "}
+                {activeSlot + 1} (a duplicate will block starting the game).
               </p>
             )}
             <button
@@ -236,8 +236,8 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
               }}
             >
               {selectedForActive === previewFaction.id
-                ? `✓ Wybrana dla gracza ${activeSlot + 1}`
-                : `Wybierz dla gracza ${activeSlot + 1}`}
+                ? `✓ Chosen for player ${activeSlot + 1}`
+                : `Choose for player ${activeSlot + 1}`}
             </button>
           </div>
         )}
@@ -245,12 +245,12 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
         {/* Lista frakcji (prawo) — sam klik wybiera podgląd, bez hover-popoverów. */}
         <div className={styles.gallery}>
           <TextInput
-            placeholder="Szukaj frakcji…"
+            placeholder="Search factions…"
             value={query}
             onChange={(e) => setQuery(e.currentTarget.value)}
-            aria-label="Szukaj frakcji"
+            aria-label="Search factions"
           />
-          <div className={styles.list} role="listbox" aria-label="Frakcje">
+          <div className={styles.list} role="listbox" aria-label="Factions">
             {/* „Losowa" jako pierwsza pozycja — wybiera od razu (nie ma co podglądać). */}
             <button
               type="button"
@@ -267,7 +267,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
               <span className={styles.randomDot2} aria-hidden>
                 🎲
               </span>
-              <span className={styles.itemName}>Losowa</span>
+              <span className={styles.itemName}>Random</span>
             </button>
 
             {visibleFactions.map((faction) => {
@@ -297,7 +297,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
                   {otherOwner && (
                     <span
                       className={styles.badgeTaken}
-                      title={`Wybrana przez gracza ${
+                      title={`Chosen by player ${
                         (takenBy.get(faction.id) ?? 0) + 1
                       }`}
                       aria-hidden

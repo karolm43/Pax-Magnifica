@@ -3,8 +3,8 @@
  *
  * Rozstrzyga, dokąd kieruje kontrolka powrotu, zależnie od miejsca otwarcia ekranu
  * Zasad (Req 10.5/10.6):
- * - otwarcie z panelu gry (`/rules?from=game`) → powrót do `/game` („Wróć do gry");
- * - otwarcie z menu głównego (bez `from=game`) → powrót do `/` („Menu główne").
+ * - otwarcie z panelu gry (`/rules?from=game`) → powrót do `/game` („Back to game");
+ * - otwarcie z menu głównego (bez `from=game`) → powrót do `/` („Main menu").
  *
  * Źródłem sygnału jest w pierwszej kolejności parametr zapytania `?from=game`
  * (czytany przez `useSearchParams`), a jako fallback — `location.state.from`
@@ -24,16 +24,16 @@ export type ReturnTarget = {
 };
 
 /** Cel powrotu do panelu gry (otwarcie z `/rules?from=game`). */
-const GAME_TARGET: ReturnTarget = { path: "/game", label: "Wróć do gry" };
+const GAME_TARGET: ReturnTarget = { path: "/game", label: "Back to game" };
 
 /** Domyślny cel powrotu do menu głównego (otwarcie z menu). */
-const MENU_TARGET: ReturnTarget = { path: "/", label: "Menu główne" };
+const MENU_TARGET: ReturnTarget = { path: "/", label: "Main menu" };
 
 /**
  * Wyznacza cel powrotu na podstawie `?from=game` z fallbackiem na `location.state`.
  *
- * @returns `{ path: "/game", label: "Wróć do gry" }`, gdy ekran otwarto z panelu
- *   gry (`from === "game"`); w przeciwnym razie `{ path: "/", label: "Menu główne" }`.
+ * @returns `{ path: "/game", label: "Back to game" }`, gdy ekran otwarto z panelu
+ *   gry (`from === "game"`); w przeciwnym razie `{ path: "/", label: "Main menu" }`.
  */
 export function useReturnTarget(): ReturnTarget {
   const [searchParams] = useSearchParams();

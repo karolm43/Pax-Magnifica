@@ -37,21 +37,21 @@ function BootScreen({
             <div
               className={styles.progressTrack}
               role="progressbar"
-              aria-label="Ładowanie zasobów gry"
+              aria-label="Loading game assets"
             >
               <span className={styles.progressBar} />
             </div>
-            <p className={styles.bootLabel}>Ładowanie zasobów gry…</p>
+            <p className={styles.bootLabel}>Loading game assets…</p>
           </div>
         ) : (
           <div className={styles.bootStatus}>
             <p className={styles.bootError}>
-              Nie udało się pobrać danych gry. Sprawdź, czy backend działa
-              (port 8000), i spróbuj ponownie.
+              Failed to load game data. Check that the backend is running
+              (port 8000) and try again.
             </p>
             {onRetry && (
               <Button variant="default" onClick={onRetry}>
-                Spróbuj ponownie
+                Try again
               </Button>
             )}
           </div>
@@ -131,14 +131,14 @@ export default function StartScreen() {
             <p className={styles.menuTagline}>Twilight Imperium 4 — web game</p>
           </div>
 
-          <nav className={styles.menuButtons} aria-label="Menu główne">
+          <nav className={styles.menuButtons} aria-label="Main menu">
             <Button
               size="xl"
               fullWidth
               className={styles.menuButton}
               onClick={() => setView("setup")}
             >
-              Graj
+              Play
             </Button>
             <Button
               size="xl"
@@ -147,7 +147,7 @@ export default function StartScreen() {
               className={styles.menuButton}
               onClick={() => setSettingsOpen(true)}
             >
-              Ustawienia
+              Settings
             </Button>
             <Button
               size="xl"
@@ -156,7 +156,7 @@ export default function StartScreen() {
               className={styles.menuButton}
               onClick={() => navigate("/rules")}
             >
-              Zasady
+              Rules
             </Button>
           </nav>
         </div>
@@ -184,7 +184,7 @@ export default function StartScreen() {
                 className={styles.backButton}
                 onClick={() => setView("menu")}
               >
-                ← Menu główne
+                ← Main menu
               </button>
               <SetupWizard />
             </Stack>
@@ -196,17 +196,17 @@ export default function StartScreen() {
       <Modal
         opened={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        title="Ustawienia"
+        title="Settings"
         size="md"
       >
         <Stack gap="md">
           <Text c="dimmed" size="sm">
-            Ustawienia gry pojawią się tutaj. Na razie to szkielet — wypełnimy
-            go kolejnymi opcjami (np. motyw, dźwięk, warianty reguł).
+            Game settings will appear here. For now this is a placeholder that
+            will be filled with options (e.g. theme, sound, rule variants).
           </Text>
           <div className={styles.modalActions}>
             <Button variant="default" onClick={() => setSettingsOpen(false)}>
-              Zamknij
+              Close
             </Button>
           </div>
         </Stack>

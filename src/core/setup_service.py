@@ -1,4 +1,4 @@
-"""SetupService (core) — walidacja i normalizacja konfiguracji nowej gry.
+﻿"""SetupService (core) — walidacja i normalizacja konfiguracji nowej gry.
 
 Czysta logika domenowa setupu wydzielona z routera (R7–R11), żeby endpoint
 pozostał cienki, a reguły były testowalne bez HTTP. Moduł należy do warstwy
@@ -134,7 +134,7 @@ def resolve_players(
     count = len(players)
     if count < 1 or count > max_players:
         raise ValueError(
-            f"Nieprawidłowa liczba graczy: {count}. Dozwolony zakres: "
+            f"Invalid number of players: {count}. Allowed range: "
             f"1..{max_players}."
         )
 
@@ -193,8 +193,8 @@ def _resolve_names(
         raw = (player.name or "").strip()
         if len(raw) > _NAME_MAX_LEN:
             raise ValueError(
-                f"Nazwa gracza {player_ids[index]!r} jest za długa "
-                f"({len(raw)} znaków po usunięciu białych; max {_NAME_MAX_LEN})."
+                f"Player name {player_ids[index]!r} is too long "
+                f"({len(raw)} characters after trimming whitespace; max {_NAME_MAX_LEN})."
             )
         stripped.append(raw)
 
@@ -206,8 +206,8 @@ def _resolve_names(
         key = name.casefold()
         if key in seen:
             raise ValueError(
-                f"Zduplikowana nazwa gracza {name!r} (gracze "
-                f"{player_ids[seen[key]]!r} i {player_ids[index]!r})."
+                f"Duplicate player name {name!r} (players "
+                f"{player_ids[seen[key]]!r} and {player_ids[index]!r})."
             )
         seen[key] = index
 
@@ -228,7 +228,7 @@ def _next_auto_name(player_id: str, taken: set[str]) -> str:
 
     Bazą jest ``"Gracz {player_id}"``; przy kolizji dokłada sufiks liczbowy.
     """
-    base = f"Gracz {player_id}"
+    base = f"Player {player_id}"
     if base.casefold() not in taken:
         return base
     suffix = 2
@@ -264,13 +264,13 @@ def _resolve_colors(
             continue
         if color not in allowed_set:
             raise ValueError(
-                f"Nieprawidłowy kolor {color!r} gracza {player_ids[index]!r}. "
-                f"Dozwolone: {sorted(allowed_set)}."
+                f"Invalid color {color!r} of player {player_ids[index]!r}. "
+                f"Allowed: {sorted(allowed_set)}."
             )
         if color in used:
             raise ValueError(
-                f"Zduplikowany kolor {color!r} (gracze "
-                f"{player_ids[used[color]]!r} i {player_ids[index]!r})."
+                f"Duplicate color {color!r} (players "
+                f"{player_ids[used[color]]!r} and {player_ids[index]!r})."
             )
         used[color] = index
         assigned[index] = color
@@ -285,8 +285,8 @@ def _resolve_colors(
             picked = next(free_iter)
         except StopIteration as exc:  # pragma: no cover — chroni R7.7
             raise ValueError(
-                f"Brak wolnego koloru dla gracza {player_ids[index]!r} "
-                f"(pula kolorów wyczerpana)."
+                f"No free color for player {player_ids[index]!r} "
+                f"(color pool exhausted)."
             ) from exc
         assigned[index] = picked
         used[picked] = index
@@ -323,17 +323,17 @@ def _resolve_factions(
         faction = registry.factions.get(fid)
         if faction is None:
             raise ValueError(
-                f"Nieznana frakcja {fid!r} gracza {player_ids[index]!r}."
+                f"Unknown faction {fid!r} of player {player_ids[index]!r}."
             )
         if not faction.is_playable:
             raise ValueError(
-                f"Frakcja {fid!r} gracza {player_ids[index]!r} nie jest grywalna "
-                f"(placeholder systemowy)."
+                f"Faction {fid!r} of player {player_ids[index]!r} is not playable "
+                f"(system placeholder)."
             )
         if fid in used:
             raise ValueError(
-                f"Zduplikowana frakcja {fid!r} (gracze "
-                f"{player_ids[used[fid]]!r} i {player_ids[index]!r})."
+                f"Duplicate faction {fid!r} (players "
+                f"{player_ids[used[fid]]!r} and {player_ids[index]!r})."
             )
         used[fid] = index
         assigned[index] = fid
@@ -349,8 +349,8 @@ def _resolve_factions(
             picked = next(pool_iter)
         except StopIteration as exc:  # R8.6 — brak dostępnych frakcji
             raise ValueError(
-                f"Brak dostępnych grywalnych frakcji do losowego przydziału dla "
-                f"gracza {player_ids[index]!r}."
+                f"No playable factions available for random assignment for "
+                f"player {player_ids[index]!r}."
             ) from exc
         assigned[index] = picked
 
@@ -386,7 +386,7 @@ def _resolve_control_type(
     raw = (player.control_type or "").strip()
     if not raw:
         raise ValueError(
-            f"Gracz {player_id!r} nie ma wybranego typu sterowania "
+            f"Player {player_id!r} has no control type selected "
             f"(control_type)."
         )
     try:
@@ -394,8 +394,8 @@ def _resolve_control_type(
     except ValueError as exc:
         allowed = ", ".join(ct.value for ct in ControlType)
         raise ValueError(
-            f"Nieprawidłowy typ sterowania {raw!r} gracza {player_id!r}. "
-            f"Dozwolone: {allowed}."
+            f"Invalid control type {raw!r} of player {player_id!r}. "
+            f"Allowed: {allowed}."
         ) from exc
 
 
@@ -417,8 +417,8 @@ def _resolve_difficulty(
     difficulty = player.difficulty
     if difficulty is None or difficulty not in valid_difficulties:
         raise ValueError(
-            f"Nieprawidłowy poziom trudności {difficulty!r} bota "
-            f"{player_id!r}. Dozwolone: {sorted(valid_difficulties)}."
+            f"Invalid difficulty level {difficulty!r} for bot "
+            f"{player_id!r}. Allowed: {sorted(valid_difficulties)}."
         )
     return difficulty
 
@@ -441,5 +441,5 @@ def _resolve_tech(
     try:
         tech = resolve_starting_tech(faction, player.starting_tech)
     except ValueError as exc:
-        raise ValueError(f"Gracz {player_id!r}: {exc}") from exc
+        raise ValueError(f"Player {player_id!r}: {exc}") from exc
     return tech or None

@@ -74,8 +74,8 @@ export function TopicIndexPanel({ groups, activeSlug }: TopicIndexPanelProps) {
   return (
     <Stack gap="sm" style={{ height: "100%" }}>
       <TextInput
-        aria-label="Szukaj tematu"
-        placeholder="Szukaj tematu…"
+        aria-label="Search topics"
+        placeholder="Search topics…"
         value={query}
         maxLength={MAX_QUERY_LENGTH}
         leftSection={<IconSearch size={16} aria-hidden="true" />}
@@ -119,7 +119,7 @@ export function TopicIndexPanel({ groups, activeSlug }: TopicIndexPanelProps) {
           </Stack>
         ) : (
           <Text size="sm" style={{ color: "var(--ds-ink-lo)" }}>
-            Brak pasujących wyników.
+            No matching results.
           </Text>
         )}
       </ScrollArea>

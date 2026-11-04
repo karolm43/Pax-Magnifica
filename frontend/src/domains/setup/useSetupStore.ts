@@ -212,12 +212,12 @@ function validateNames(slots: SetupSlot[]): string | null {
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (!isNameLengthValid(slot.name)) {
-      return `Gracz ${i + 1}: nazwa może mieć najwyżej ${MAX_NAME_LENGTH} znaków.`;
+      return `Player ${i + 1}: the name may have at most ${MAX_NAME_LENGTH} characters.`;
     }
     const normalized = slot.name.trim().toLowerCase();
     if (normalized.length > 0) {
       if (seenNames.has(normalized)) {
-        return `Gracz ${i + 1}: nazwa „${slot.name.trim()}" jest zduplikowana.`;
+        return `Player ${i + 1}: the name "${slot.name.trim()}" is duplicated.`;
       }
       seenNames.add(normalized);
     }
@@ -231,10 +231,10 @@ function validateColors(slots: SetupSlot[]): string | null {
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (!AVAILABLE_COLORS.includes(slot.color)) {
-      return `Gracz ${i + 1}: kolor „${slot.color}" jest spoza dozwolonego zbioru.`;
+      return `Player ${i + 1}: the color "${slot.color}" is not in the allowed set.`;
     }
     if (seenColors.has(slot.color)) {
-      return `Gracz ${i + 1}: kolor „${slot.color}" jest zduplikowany.`;
+      return `Player ${i + 1}: the color "${slot.color}" is duplicated.`;
     }
     seenColors.add(slot.color);
   }
@@ -248,7 +248,7 @@ function validateFactions(slots: SetupSlot[]): string | null {
     const slot = slots[i];
     if (slot.factionId === RANDOM_FACTION) continue;
     if (seenFactions.has(slot.factionId)) {
-      return `Gracz ${i + 1}: frakcja jest zduplikowana.`;
+      return `Player ${i + 1}: the faction is duplicated.`;
     }
     seenFactions.add(slot.factionId);
   }
@@ -266,7 +266,7 @@ function validateStartingTech(
     const faction = factionById.get(slot.factionId);
     const amount = faction?.starting_tech_amount ?? 0;
     if (amount > 0 && slot.startingTech.length !== amount) {
-      return `Gracz ${i + 1}: wybierz dokładnie ${amount} technologii startowych.`;
+      return `Player ${i + 1}: choose exactly ${amount} starting technologies.`;
     }
   }
   return null;
@@ -277,7 +277,7 @@ function validateControl(slots: SetupSlot[]): string | null {
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot.controlType === "BOT" && !slot.difficulty) {
-      return `Gracz ${i + 1}: wybierz poziom trudności bota.`;
+      return `Player ${i + 1}: select the bot difficulty level.`;
     }
   }
   return null;

@@ -1,4 +1,4 @@
-﻿"""Testy okien czasowych (core/timing.py) — mechanika kolejki reagujących."""
+"""Testy okien czasowych (core/timing.py) — mechanika kolejki reagujących."""
 
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ def test_open_window_sets_pending_and_first_responder() -> None:
 def test_open_window_rejects_nested_window() -> None:
     state = _state_with_players(["p1", "p2"])
     opened = timing.open_window(state, WindowType.REACTION, ["p2"])
-    with pytest.raises(ValueError, match="już trwa"):
+    with pytest.raises(ValueError, match="already open"):
         timing.open_window(opened, WindowType.REACTION, ["p1"])
 
 
@@ -104,13 +104,13 @@ def test_respond_advances_queue_in_order() -> None:
 def test_respond_out_of_order_rejected() -> None:
     state = _state_with_players(["p1", "p2", "p3"])
     s = timing.open_window(state, WindowType.STRATEGY_SECONDARY, ["p2", "p3"])
-    with pytest.raises(ValueError, match="poza kolejnością"):
+    with pytest.raises(ValueError, match="out-of-order"):
         timing.respond_current(s, "p3")  # kolej p2, nie p3
 
 
 def test_respond_without_window_rejected() -> None:
     state = _state_with_players(["p1"])
-    with pytest.raises(ValueError, match="Brak otwartego okna"):
+    with pytest.raises(ValueError, match="No open timing window"):
         timing.respond_current(state, "p1")
 
 
@@ -118,7 +118,7 @@ def test_respond_on_complete_window_rejected() -> None:
     state = _state_with_players(["p1", "p2"])
     s = timing.open_window(state, WindowType.REACTION, ["p2"])
     s = timing.respond_current(s, "p2")  # okno zakończone
-    with pytest.raises(ValueError, match="już zakończone"):
+    with pytest.raises(ValueError, match="already closed"):
         timing.respond_current(s, "p2")
 
 

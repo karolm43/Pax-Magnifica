@@ -131,7 +131,7 @@ export default function SetupWizard() {
       await queryClient.invalidateQueries({ queryKey: ["playerData"] });
       navigate("/game");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Nieznany błąd przy tworzeniu gry.");
+      setError(e instanceof Error ? e.message : "Unknown error while creating the game.");
       setSubmitting(false);
     }
   };
@@ -159,7 +159,7 @@ export default function SetupWizard() {
         {/* Pasek postępu kroków — prosty wskaźnik „krok N z M" + etykieta. */}
         <Stack gap={4}>
           <Text size="sm" c="dimmed">
-            Krok {currentStepIndex + 1} z {SETUP_STEPS.length}
+            Step {currentStepIndex + 1} of {SETUP_STEPS.length}
           </Text>
           <Text fw={700} size="lg">
             {step.label}
@@ -175,7 +175,7 @@ export default function SetupWizard() {
         {currentStepIndex === 0 && (
           <Group grow align="flex-start">
             <NumberInput
-              label="Liczba graczy"
+              label="Number of players"
               value={playerCount}
               min={MIN_PLAYERS}
               max={MAX_PLAYERS}
@@ -185,8 +185,8 @@ export default function SetupWizard() {
               }}
             />
             <TextInput
-              label="Map string (opcjonalnie)"
-              placeholder="Puste = mapa testowa"
+              label="Map string (optional)"
+              placeholder="Empty = test map"
               value={mapString}
               onChange={(e) => setMapString(e.currentTarget.value)}
             />
@@ -210,7 +210,7 @@ export default function SetupWizard() {
             onClick={prevStep}
             disabled={currentStepIndex === 0 || submitting}
           >
-            Wstecz
+            Back
           </Button>
 
           {isLastStep ? (
@@ -220,7 +220,7 @@ export default function SetupWizard() {
               disabled={validationError !== null || !factions}
               onClick={() => void handleSubmit()}
             >
-              Generuj i graj
+              Generate and play
             </Button>
           ) : (
             <Button
@@ -228,7 +228,7 @@ export default function SetupWizard() {
               disabled={validationError !== null}
               onClick={nextStep}
             >
-              Dalej
+              Next
             </Button>
           )}
         </Group>

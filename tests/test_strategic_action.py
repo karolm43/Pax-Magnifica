@@ -1,4 +1,4 @@
-﻿"""Testy akcji strategicznej (E8-T3): primary + okno secondary (RULES.md 30)."""
+"""Testy akcji strategicznej (E8-T3): primary + okno secondary (RULES.md 30)."""
 
 from __future__ import annotations
 
@@ -57,19 +57,19 @@ def test_play_opens_secondary_window_for_others(
 
 
 def test_play_rejects_card_not_owned(registry: StaticDataRegistry) -> None:
-    with pytest.raises(ValueError, match="nie posiada karty"):
+    with pytest.raises(ValueError, match="does not hold"):
         strategic_action.play_strategy_card(_state_three(), registry, "p1", 5)
 
 
 def test_play_rejects_unknown_player(registry: StaticDataRegistry) -> None:
-    with pytest.raises(ValueError, match="Nieznany gracz"):
+    with pytest.raises(ValueError, match="Unknown player"):
         strategic_action.play_strategy_card(_state_three(), registry, "x", 1)
 
 
 def test_play_rejects_when_window_already_open(registry: StaticDataRegistry) -> None:
     state = _state_three()
     state = timing.open_window(state, WindowType.REACTION, ["p2"])
-    with pytest.raises(ValueError, match="okno czasowe już trwa"):
+    with pytest.raises(ValueError, match="timing window is already open"):
         strategic_action.play_strategy_card(state, registry, "p1", 1)
 
 
@@ -86,17 +86,17 @@ def test_secondary_advances_and_closes(registry: StaticDataRegistry) -> None:
 
 def test_secondary_out_of_order_rejected(registry: StaticDataRegistry) -> None:
     state = strategic_action.play_strategy_card(_state_three(), registry, "p1", 1)
-    with pytest.raises(ValueError, match="poza kolejnością"):
+    with pytest.raises(ValueError, match="out-of-order"):
         strategic_action.resolve_secondary(state, registry, "p3", execute=True)
 
 
 def test_secondary_without_window_rejected(registry: StaticDataRegistry) -> None:
-    with pytest.raises(ValueError, match="Brak otwartego okna secondary"):
+    with pytest.raises(ValueError, match="No open strategy card secondary window"):
         strategic_action.resolve_secondary(_state_three(), registry, "p2", execute=True)
 
 
 def test_secondary_rejects_wrong_window_type(registry: StaticDataRegistry) -> None:
     state = _state_three()
     state = timing.open_window(state, WindowType.REACTION, ["p2"])
-    with pytest.raises(ValueError, match="Brak otwartego okna secondary"):
+    with pytest.raises(ValueError, match="No open strategy card secondary window"):
         strategic_action.resolve_secondary(state, registry, "p2", execute=True)

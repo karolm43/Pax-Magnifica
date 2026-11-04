@@ -270,7 +270,7 @@ export function FloatingMapToolbar({
               </>
             ) : (
               <>
-                <PanelHeader title="Historia / Events" onClose={() => setOpenPanel(null)}>
+                <PanelHeader title="History / Events" onClose={() => setOpenPanel(null)}>
                   <Switch
                     size="xs"
                     label="Animated"

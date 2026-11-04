@@ -73,14 +73,14 @@ def load_enabled_sources() -> list[str]:
     """
     if not ENABLED_SOURCES_PATH.is_file():
         raise FileNotFoundError(
-            f"Brak manifestu aktywnych źródeł: {ENABLED_SOURCES_PATH}"
+            f"Missing active sources manifest: {ENABLED_SOURCES_PATH}"
         )
 
     raw = json.loads(ENABLED_SOURCES_PATH.read_text(encoding="utf-8"))
 
     if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
         raise ValueError(
-            f"{ENABLED_SOURCES_PATH} musi zawierać listę napisów (identyfikatorów źródeł)."
+            f"{ENABLED_SOURCES_PATH} must contain a list of strings (source identifiers)."
         )
 
     return raw

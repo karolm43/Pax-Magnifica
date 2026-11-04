@@ -1,4 +1,4 @@
-﻿"""Testy akcji taktycznej (Etap E3) — czyste funkcje ``tactical`` + God-Mode CC.
+"""Testy akcji taktycznej (Etap E3) — czyste funkcje ``tactical`` + God-Mode CC.
 
 Aplikacja prowadzi kroki akcji taktycznej, ale NIE waliduje reguł TI4 — testy
 sprawdzają mechaniczne operacje na stanie (aktywacja kładzie żeton i ustawia krok,
@@ -59,7 +59,7 @@ def test_activate_system_places_token_and_sets_step(
 def test_activate_without_active_player_raises(registry: StaticDataRegistry) -> None:
     grid = _grid(registry)
     state = GameState(phase=Phase.ACTION)  # brak active_player_id
-    with pytest.raises(ValueError, match="aktywnego gracza"):
+    with pytest.raises(ValueError, match="No active player"):
         tactical.activate_system(state, grid, "101")
 
 
@@ -67,7 +67,7 @@ def test_activate_rejects_own_command_token(registry: StaticDataRegistry) -> Non
     # RULES.md 33.1: nie można aktywować systemu z własnym żetonem dowodzenia.
     grid = _grid(registry)
     once = tactical.activate_system(_state(), grid, "101")
-    with pytest.raises(ValueError, match="żeton dowodzenia"):
+    with pytest.raises(ValueError, match="command token"):
         tactical.activate_system(once, grid, "101")
 
 
@@ -76,7 +76,7 @@ def test_activate_rejects_empty_tactic_pool(registry: StaticDataRegistry) -> Non
     grid = _grid(registry)
     state = _state()
     state.players["p1"].tactical_cc = 0
-    with pytest.raises(ValueError, match="puli taktycznej"):
+    with pytest.raises(ValueError, match="tactical pool"):
         tactical.activate_system(state, grid, "101")
 
 

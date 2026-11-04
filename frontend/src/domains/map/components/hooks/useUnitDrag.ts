@@ -67,7 +67,7 @@ function rawZoneAt(clientX: number, clientY: number): RawZone {
       .slice("planet:".length);
     return { position, zone: planetId, label: planetId };
   }
-  return { position, zone: "space", label: "Orbita" };
+  return { position, zone: "space", label: "Space" };
 }
 
 /** Rozstrzygnięty cel: strefa po regule umiejscowienia + czy ruch dozwolony. */
@@ -100,7 +100,7 @@ function resolveTarget(
   if (ship && zone !== "space") {
     // Statek na planetę → orbita tego kafelka.
     zone = "space";
-    label = "Orbita";
+    label = "Space";
   } else if (!ship && zone === "space") {
     // Jednostka naziemna/struktura nie może stać w przestrzeni.
     valid = false;

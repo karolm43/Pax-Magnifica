@@ -10,7 +10,7 @@
 //
 // Edge-case Firmament → Obsidian: Obsidian to „druga frakcja" Firmamentu (rozwinięcie),
 // niewybieralna przy setupie, ale wchodząca do gry przez akcję Firmamentu. Dla Firmamentu
-// pokazujemy przycisk „Zobacz Obsidian", który dociąga i renderuje summary Obsidiana
+// pokazujemy przycisk „View Obsidian", który dociąga i renderuje summary Obsidiana
 // (osobny endpoint /factions/{id}).
 //
 // Reużywa komponenty panelu gracza (`Ability`, `Tech`, `LeaderChip`, `PromissoryNote`,
@@ -130,8 +130,8 @@ function StartingTechChoice({
   return (
     <Stack gap={4}>
       <MultiSelect
-        label={`Technologie startowe (wybierz ${amount})`}
-        placeholder={`Wybierz ${amount}`}
+        label={`Starting technologies (choose ${amount})`}
+        placeholder={`Choose ${amount}`}
         data={options}
         value={value}
         onChange={(next) =>
@@ -139,7 +139,7 @@ function StartingTechChoice({
         }
       />
       <Text size="xs" c={value.length === amount ? "dimmed" : "red"}>
-        Wybrano {value.length} z {amount}.
+        Chosen {value.length} of {amount}.
       </Text>
     </Stack>
   );
@@ -222,8 +222,8 @@ export function FactionSummary({
     return (
       <div className={styles.emptyState}>
         <Text c="dimmed" ta="center">
-          Kliknij frakcję na liście, aby zobaczyć jej portret, lore, zdolności,
-          technologie, liderów i jednostki.
+          Click a faction in the list to see its portrait, lore, abilities,
+          technologies, leaders and units.
         </Text>
       </div>
     );
@@ -240,11 +240,11 @@ export function FactionSummary({
           onClick={() => setDerivedId(null)}
           className={styles.backButton}
         >
-          Wróć do {faction.name}
+          Back to {faction.name}
         </Button>
-        {derived.isLoading && <Text c="dimmed">Ładowanie…</Text>}
+        {derived.isLoading && <Text c="dimmed">Loading…</Text>}
         {derived.isError && (
-          <Text c="red">Nie udało się wczytać danych frakcji.</Text>
+          <Text c="red">Failed to load faction data.</Text>
         )}
         {derived.data && <SummaryBody faction={derived.data} />}
       </div>
@@ -320,7 +320,7 @@ function SummaryBody({
           <Text className={styles.factionName}>{faction.name}</Text>
           {faction.complexity && (
             <Text className={styles.complexity}>
-              Złożoność: {faction.complexity}
+              Complexity: {faction.complexity}
             </Text>
           )}
         </div>
@@ -332,7 +332,7 @@ function SummaryBody({
               rightSection={<IconChevronRight size={14} />}
               onClick={onViewDerived}
             >
-              Zobacz Obsidian
+              View Obsidian
             </Button>
           </div>
         )}
@@ -341,7 +341,7 @@ function SummaryBody({
       {/* `key` odtwarza kaskadowe pojawianie się sekcji przy każdej zmianie frakcji. */}
       <Stack gap="md" className={styles.sections} key={`sections-${faction.id}`}>
         {faction.abilities.length > 0 && (
-          <Section title="Zdolności frakcji">
+          <Section title="Faction abilities">
             <div className={styles.chipRow}>
               {faction.abilities.map((id) => (
                 <Ability key={id} id={id} />
@@ -351,7 +351,7 @@ function SummaryBody({
         )}
 
         {faction.breakthrough && (
-          <Section title="Przełom (breakthrough)">
+          <Section title="Breakthrough">
             <div className={styles.chipRow}>
               <Breakthrough breakthroughId={faction.breakthrough} unlocked />
             </div>
@@ -359,7 +359,7 @@ function SummaryBody({
         )}
 
         {faction.faction_tech.length > 0 && (
-          <Section title="Technologie frakcyjne">
+          <Section title="Faction technologies">
             <div className={styles.chipRow}>
               {faction.faction_tech.map((id) => (
                 <Tech key={id} techId={id} unresearched />
@@ -369,7 +369,7 @@ function SummaryBody({
         )}
 
         {factionUnits.length > 0 && (
-          <Section title="Jednostki frakcyjne">
+          <Section title="Faction units">
             <div className={styles.unitRow}>
               {factionUnits.map((id) => (
                 <FactionUnit key={id} unitId={id} />
@@ -379,7 +379,7 @@ function SummaryBody({
         )}
 
         {orderedLeaders.length > 0 && (
-          <Section title="Liderzy">
+          <Section title="Leaders">
             <div className={styles.leaderGrid}>
               {orderedLeaders.map((id) => {
                 const data = getLeaderById(id);
@@ -403,7 +403,7 @@ function SummaryBody({
         )}
 
         {faction.promissory_notes.length > 0 && (
-          <Section title="Weksel frakcji">
+          <Section title="Faction promissory note">
             <div className={styles.chipRow}>
               {faction.promissory_notes.map((id) => (
                 <PromissoryNote key={id} promissoryNoteId={id} />
@@ -412,11 +412,11 @@ function SummaryBody({
           </Section>
         )}
 
-        <Section title="Start gry">
+        <Section title="Game start">
           <dl className={styles.startList}>
             {requiresTechChoice ? (
               <div className={styles.startRowFull}>
-                <dt>Technologie startowe</dt>
+                <dt>Starting technologies</dt>
                 <dd>
                   {startingTech ? (
                     <StartingTechChoice
@@ -426,8 +426,8 @@ function SummaryBody({
                     />
                   ) : (
                     <Text size="sm" c="dimmed">
-                      Ta frakcja wybiera {faction.starting_tech_amount} technologii.
-                      Przypisz ją graczowi (przycisk niżej), by wybrać.
+                      This faction chooses {faction.starting_tech_amount} technologies.
+                      Assign it to a player (button below) to choose.
                     </Text>
                   )}
                 </dd>
@@ -435,7 +435,7 @@ function SummaryBody({
             ) : (
               faction.starting_tech.length > 0 && (
                 <div className={styles.startRowFull}>
-                  <dt>Technologie startowe</dt>
+                  <dt>Starting technologies</dt>
                   <dd className={styles.startChips}>
                     {faction.starting_tech.map((id) => (
                       <Tech key={id} techId={id} />
@@ -446,7 +446,7 @@ function SummaryBody({
             )}
             {faction.home_planets.length > 0 && (
               <div className={styles.startRowFull}>
-                <dt>Planety</dt>
+                <dt>Planets</dt>
                 <dd>
                   <PlanetList planetIds={faction.home_planets} />
                 </dd>
@@ -454,12 +454,12 @@ function SummaryBody({
             )}
             {fleetSummary && (
               <div className={styles.startRow}>
-                <dt>Flota startowa</dt>
+                <dt>Starting fleet</dt>
                 <dd>{fleetSummary}</dd>
               </div>
             )}
             <div className={styles.startRow}>
-              <dt>Towary (commodities)</dt>
+              <dt>Commodities</dt>
               <dd>{faction.commodities}</dd>
             </div>
           </dl>

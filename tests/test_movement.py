@@ -1,4 +1,4 @@
-﻿"""Testy ruchu statków (E8-T5): walidacja R1–R6 + wykonanie (RULES.md 32)."""
+"""Testy ruchu statków (E8-T5): walidacja R1–R6 + wykonanie (RULES.md 32)."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def test_move_requires_active_system(registry: StaticDataRegistry) -> None:
     state = _state_with_destroyer_at("101", "000")
     state.active_system = None
     ok, reason = movement.can_move(state, grid, registry, "101", "destroyer", "p1")
-    assert not ok and "aktywnego systemu" in reason
+    assert not ok and "No active system" in reason
 
 
 def test_move_out_of_range_rejected(registry: StaticDataRegistry) -> None:
@@ -130,7 +130,7 @@ def test_move_start_with_own_cc_rejected(registry: StaticDataRegistry) -> None:
     state = _state_with_destroyer_at("101", "000")
     state.systems["101"].command_tokens = ["p1"]  # własny CC w źródle
     ok, reason = movement.can_move(state, grid, registry, "101", "destroyer", "p1")
-    assert not ok and "żetonem dowodzenia" in reason
+    assert not ok and "command token" in reason
 
 
 def test_move_supernova_target_rejected(registry: StaticDataRegistry) -> None:
@@ -171,7 +171,7 @@ def test_fighter_cannot_move_alone(registry: StaticDataRegistry) -> None:
 def test_move_not_enough_ships(registry: StaticDataRegistry) -> None:
     grid = _line_grid([("000", "18", set()), ("101", "20", set())])
     state = _state_with_destroyer_at("101", "000")
-    with pytest.raises(ValueError, match="Za mało statków"):
+    with pytest.raises(ValueError, match="Not enough"):
         movement.move_ships(state, grid, registry, "101", "destroyer", 5, "p1")
 
 

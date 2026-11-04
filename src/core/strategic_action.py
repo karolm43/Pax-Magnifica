@@ -1,4 +1,4 @@
-﻿"""Akcja strategiczna: primary + okno secondary kart strategii (Etap E8-T3).
+"""Akcja strategiczna: primary + okno secondary kart strategii (Etap E8-T3).
 
 Rozstrzyga PRIMARY karty aktywnego gracza i otwiera OKNO CZASOWE ``STRATEGY_SECONDARY``
 dla pozostałych graczy (kolejka od gracza po aktywnym, zgodnie z zegarem — RULES.md 30.1).
@@ -101,12 +101,14 @@ def play_strategy_card(
         ValueError: Gdy gracz nie istnieje, nie posiada karty, albo inne okno już trwa.
     """
     if player_id not in state.players:
-        raise ValueError(f"Nieznany gracz: {player_id}")
+        raise ValueError(f"Unknown player: {player_id}")
     player = state.players[player_id]
     if initiative not in player.strategy_cards:
-        raise ValueError(f"Gracz nie posiada karty inicjatywy {initiative}.")
+        raise ValueError(f"Player does not hold the initiative card {initiative}.")
     if state.pending_window is not None:
-        raise ValueError("Inne okno czasowe już trwa — zakończ je przed akcją strategiczną.")
+        raise ValueError(
+            "Another timing window is already open - resolve it before the strategic action."
+        )
 
     new_state = state.clone()
     target = new_state.players[player_id]
@@ -151,7 +153,7 @@ def resolve_secondary(
     """
     window = state.pending_window
     if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
-        raise ValueError("Brak otwartego okna secondary karty strategii.")
+        raise ValueError("No open strategy card secondary window.")
 
     # Wykonanie efektu PRZED przesunięciem kolejki (gdy gracz wybrał „wykonaj").
     new_state = state.clone()

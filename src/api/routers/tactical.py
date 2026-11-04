@@ -107,7 +107,7 @@ async def post_tactical_produce(
 
     active = state.active_system
     if active is None:
-        raise HTTPException(status_code=422, detail="Brak aktywnego systemu.")
+        raise HTTPException(status_code=422, detail="No active system.")
 
     # Postawienie jednostek po walidacji (przez edit_units — strefa wg zamówienia).
     new_state = state
@@ -117,13 +117,13 @@ async def post_tactical_produce(
         async_id = ASYNC_ID_BY_BASE_TYPE.get(item.base_type)
         if async_id is None:
             raise HTTPException(
-                status_code=422, detail=f"Nieznany typ jednostki: {item.base_type}"
+                status_code=422, detail=f"Unknown unit type: {item.base_type}"
             )
         zone = item.zone or ("space" if is_space_unit(item.base_type) else None)
         if zone is None:
             raise HTTPException(
                 status_code=422,
-                detail=f"Siła naziemna {item.base_type} wymaga planety (pole zone).",
+                detail=f"Ground force {item.base_type} requires a planet (zone field).",
             )
         new_state = board_edit.edit_units(
             new_state, ctx.current_grid, active, zone, request.faction, async_id,
@@ -162,7 +162,7 @@ async def post_set_step(
     try:
         step = TacticalStep(request.step)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=f"Nieznany krok: {request.step}") from exc
+        raise HTTPException(status_code=422, detail=f"Unknown step: {request.step}") from exc
     return await _commit_flow(
         ctx, tactical.set_step(ctx.service.current_state(), step), "tactical:set-step"
     )

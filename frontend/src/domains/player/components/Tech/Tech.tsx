@@ -91,7 +91,7 @@ export function Tech({
     playerId && !unresearched
       ? [
           {
-            label: isExhausted ? "Odśwież (ready)" : "Wyczerp (exhaust)",
+            label: isExhausted ? "Refresh (ready)" : "Exhaust",
             icon: <IconFlame size={14} />,
             onSelect: () => void toggleTechExhaust(playerId, techId),
           },

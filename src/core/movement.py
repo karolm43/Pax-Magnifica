@@ -147,9 +147,9 @@ def can_move(
     """
     active = state.active_system
     if active is None:
-        return False, "Brak aktywnego systemu — ruch tylko w akcji taktycznej (R1)."
+        return False, "No active system - movement is only allowed during a tactical action (R1)."
     if not is_space_unit(base_type):
-        return False, f"Jednostka {base_type} nie jest statkiem — nie wykonuje ruchu."
+        return False, f"Unit {base_type} is not a ship - it cannot move."
 
     # R2: wartość ruchu z WARIANTU jednostki gracza (nie bazowego) — uwzględnia
     # ulepszenia wg posiadanych technologii. Np. Fighter II (tech ff2) ma moveValue=2,
@@ -162,7 +162,7 @@ def can_move(
     move_value = unit.move_value if unit is not None else None
     if not move_value or move_value <= 0:
         return False, (
-            f"Jednostka {base_type} nie ma wartości ruchu "
+            f"Unit {base_type} has no move value "
             "(porusza się transportem — capacity, TODO)."
         )
 
@@ -173,17 +173,17 @@ def can_move(
         and source is not None
         and player_id in source.command_tokens
     ):
-        return False, "Statek nie może ruszyć z systemu z własnym żetonem dowodzenia (R3)."
+        return False, "A ship cannot move out of a system containing its own command token (R3)."
 
     has_antimass = _has_antimass(state, player_id)
     dist = _shortest_legal_distance(
         grid, state, from_pos, active, player_id, has_antimass=has_antimass
     )
     if dist is None:
-        return False, "Brak legalnej trasy do aktywnego systemu (R4/R6)."
+        return False, "No legal route to the active system (R4/R6)."
     if dist > move_value:
         return False, (
-            f"Zasięg za mały: trasa {dist} > moveValue {move_value} (R2)."
+            f"Range too short: route {dist} > moveValue {move_value} (R2)."
         )
     return True, ""
 
@@ -207,7 +207,7 @@ def move_ships(
         ValueError: Gdy ruch nielegalny (R1–R6) albo brak tylu statków w źródle.
     """
     if count <= 0:
-        raise ValueError("Liczba przenoszonych statków musi być dodatnia.")
+        raise ValueError("The number of ships to move must be positive.")
     ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
     if not ok:
         raise ValueError(reason)
@@ -218,7 +218,7 @@ def move_ships(
         available = source.space_units.get(player_id, {}).get(base_type, 0)
     if available < count:
         raise ValueError(
-            f"Za mało statków {base_type} w {from_pos}: jest {available}, żądano {count}."
+            f"Not enough {base_type} ships in {from_pos}: have {available}, requested {count}."
         )
 
     active = state.active_system

@@ -54,7 +54,7 @@ def strict_initiative_order(state: GameState) -> list[str]:
     for player_id in state.players:
         if not state.players[player_id].strategy_cards:
             raise ValueError(
-                f"Gracz {player_id} nie ma przypisanej karty strategii."
+                f"Player {player_id} has no strategy card assigned."
             )
 
     def key(player_id: str) -> tuple[int, str]:
@@ -107,12 +107,12 @@ def _require_action_turn(state: GameState, player_id: str | None) -> None:
             jest aktywnym graczem.
     """
     if state.phase is not Phase.ACTION:
-        raise ValueError("Zakończyć/spasować turę można tylko w fazie akcji.")
+        raise ValueError("A turn can only be ended/passed during the action phase.")
     if state.active_player_id is None:
-        raise ValueError("Brak aktywnego gracza w fazie akcji.")
+        raise ValueError("No active player in the action phase.")
     if player_id is not None and player_id != state.active_player_id:
         raise ValueError(
-            f"To nie tura gracza {player_id} (aktywny: {state.active_player_id})."
+            f"It is not {player_id}'s turn (active: {state.active_player_id})."
         )
 
 
@@ -157,7 +157,7 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
         and not player.exhausted_strategy_cards
     ):
         raise ValueError(
-            "Nie można spasować przed wykonaniem akcji strategicznej (zagraj kartę)."
+            "Cannot pass before performing the strategic action (play a strategy card)."
         )
     new_state = state.clone()
     new_state.players[current].passed = True

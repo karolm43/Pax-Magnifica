@@ -1,4 +1,4 @@
-﻿"""Testy przepływu faz i tur (Etap E1) — czyste funkcje ``turn_flow``."""
+"""Testy przepływu faz i tur (Etap E1) — czyste funkcje ``turn_flow``."""
 
 from __future__ import annotations
 
@@ -139,13 +139,13 @@ def test_next_phase_into_strategy_sets_speaker() -> None:
 def test_end_turn_wrong_phase_rejected() -> None:
     state = _state_with_players()
     state.phase = Phase.STRATEGY
-    with pytest.raises(ValueError, match="tylko w fazie akcji"):
+    with pytest.raises(ValueError, match="only be ended/passed during the action phase"):
         turn_flow.end_turn(state, "p1")
 
 
 def test_end_turn_wrong_player_rejected() -> None:
     state = _state_with_players()
-    with pytest.raises(ValueError, match="To nie tura"):
+    with pytest.raises(ValueError, match="It is not"):
         turn_flow.end_turn(state, "p2")  # aktywny jest p1
 
 
@@ -153,7 +153,7 @@ def test_pass_before_strategic_action_rejected() -> None:
     state = _state_with_players()
     # p1 ma kartę, ale jej NIE zagrał (brak exhausted).
     state.players["p1"].exhausted_strategy_cards = []
-    with pytest.raises(ValueError, match="akcji strategicznej"):
+    with pytest.raises(ValueError, match="strategic action"):
         turn_flow.pass_turn(state, "p1")
 
 
@@ -190,7 +190,7 @@ def test_next_phase_rejects_seating_players_mismatch() -> None:
             "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
         },
     )
-    with pytest.raises(ValueError, match="nie pokrywa się z graczami"):
+    with pytest.raises(ValueError, match="does not match the players"):
         turn_flow.next_phase(state)
 
 

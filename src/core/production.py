@@ -1,4 +1,4 @@
-﻿"""Walidacja produkcji jednostek w akcji taktycznej (Etap E8-T6).
+"""Walidacja produkcji jednostek w akcji taktycznej (Etap E8-T6).
 
 Egzekwuje LIMIT produkcji (suma wartości PRODUCTION jednostek gracza w aktywnym
 systemie), BUDŻET (koszt ≤ dostępne zasoby — SPRAWDZENIE bez realnego wydawania,
@@ -176,7 +176,7 @@ def validate_production(
     """
     active = state.active_system
     if active is None:
-        raise ValueError("Brak aktywnego systemu — produkcja tylko w akcji taktycznej.")
+        raise ValueError("No active system - production is only allowed during a tactical action.")
     orders = [o for o in orders if o.count > 0]
     if not orders:
         return
@@ -190,7 +190,7 @@ def validate_production(
     limit = production_limit(state, grid, registry, player_id)
     if total_units > limit:
         raise ValueError(
-            f"Limit produkcji przekroczony: {total_units} sztuk > PRODUCTION {limit}."
+            f"Production limit exceeded: {total_units} units > PRODUCTION {limit}."
         )
 
     # BLOKADA statków: obce statki w aktywnym systemie → statków nie produkujemy.
@@ -205,8 +205,8 @@ def validate_production(
         for o in orders:
             if is_space_unit(o.base_type):
                 raise ValueError(
-                    "Nie można produkować statków w systemie z obcymi statkami "
-                    f"(blokada): {o.base_type}."
+                    "Cannot produce ships in a system containing enemy ships "
+                    f"(blockade): {o.base_type}."
                 )
 
     # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania).
@@ -216,6 +216,6 @@ def validate_production(
     budget = available_budget(state, registry, player_id)
     if total_cost > budget:
         raise ValueError(
-            f"Za mało zasobów: koszt {total_cost:g} > dostępne {budget} "
-            "(planety gotowe + trade goods)."
+            f"Not enough resources: cost {total_cost:g} > available {budget} "
+            "(ready planets + trade goods)."
         )

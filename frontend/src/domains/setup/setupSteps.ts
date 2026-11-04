@@ -55,8 +55,8 @@ export interface SetupStepDef {
  * z krokiem nazwy i koloru (jeden panel na gracza).
  */
 export const SETUP_STEPS: SetupStepDef[] = [
-  { id: "name-color", order: 1, label: "Gracze" },
-  { id: "faction", order: 2, label: "Frakcja i technologie startowe" },
+  { id: "name-color", order: 1, label: "Players" },
+  { id: "faction", order: 2, label: "Faction & starting technologies" },
 ];
 
 /**

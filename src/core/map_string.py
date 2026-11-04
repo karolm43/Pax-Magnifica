@@ -67,13 +67,14 @@ def parse_map_string(
     """
     tokens = map_string.split()
     if not tokens:
-        raise ValueError("Pusty map string.")
+        raise ValueError("Empty map string.")
 
     positions = ordered_positions(alias_path)
     if len(tokens) > len(positions):
         raise ValueError(
-            f"Map string ma {len(tokens)} kafelków, a dostępnych pozycji jest "
-            f"{len(positions)} (dołóż obsługę dalszych pierścieni w aliasie)."
+            f"Map string has {len(tokens)} tiles, but only "
+            f"{len(positions)} positions are available "
+            f"(add support for further rings in the alias)."
         )
 
     placed: list[PlacedTile] = []

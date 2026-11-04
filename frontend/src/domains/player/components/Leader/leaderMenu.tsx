@@ -33,7 +33,7 @@ export function leaderContextMenuItems(
   if (exhausted) {
     return [
       {
-        label: "Odśwież (ready)",
+        label: "Refresh (ready)",
         icon: <IconFlame size={14} />,
         onSelect: set("unlocked"),
       },

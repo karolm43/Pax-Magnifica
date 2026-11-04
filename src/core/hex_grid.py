@@ -56,7 +56,7 @@ class Hex:
     def __post_init__(self) -> None:
         if self.q + self.r + self.s != 0:
             raise ValueError(
-                f"Niepoprawna współrzędna kubiczna: q+r+s != 0 ({self.q},{self.r},{self.s})"
+                f"Invalid cube coordinate: q+r+s != 0 ({self.q},{self.r},{self.s})"
             )
 
     def distance(self, other: Hex) -> int:
@@ -92,7 +92,7 @@ def position_to_hex(position: str) -> Hex:
         ValueError: Gdy format pozycji jest niepoprawny.
     """
     if len(position) != 3 or not position.isdigit():
-        raise ValueError(f"Niepoprawny format pozycji (oczekiwano 'RPP'): {position!r}")
+        raise ValueError(f"Invalid position format (expected 'RPP'): {position!r}")
 
     # Format AsyncTI4: pierwsza cyfra = pierścień, dwie ostatnie = indeks pozycji.
     ring = int(position[0])

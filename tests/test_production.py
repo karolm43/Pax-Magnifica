@@ -1,4 +1,4 @@
-﻿"""Testy walidacji produkcji (E8-T6): limit, budżet, blokada statków (RULES.md 33.2)."""
+"""Testy walidacji produkcji (E8-T6): limit, budżet, blokada statków (RULES.md 33.2)."""
 
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ def test_validate_rejects_over_limit(registry: StaticDataRegistry) -> None:
     grid = _grid()
     state = _state_with_dock_on_jord(trade_goods=100)
     # 7 infantry > limit 6 (każda sztuka liczy do limitu).
-    with pytest.raises(ValueError, match="Limit produkcji"):
+    with pytest.raises(ValueError, match="Production limit exceeded"):
         production.validate_production(
             state, grid, registry, "p1", [ProductionOrder("infantry", 7)]
         )
@@ -95,7 +95,7 @@ def test_validate_rejects_over_budget(registry: StaticDataRegistry) -> None:
     state = _state_with_dock_on_jord(trade_goods=0)
     # Dreadnought kosztuje 4; budżet = 4 (Jord) → ok. Dwa = 8 > 4 → ale limit 6 ok,
     # budżet nie. Sprawdźmy koszt: użyjmy cruiserów (koszt 2 każdy): 3×2=6 > budżet 4.
-    with pytest.raises(ValueError, match="Za mało zasobów"):
+    with pytest.raises(ValueError, match="Not enough resources"):
         production.validate_production(
             state, grid, registry, "p1", [ProductionOrder("cruiser", 3)]
         )
@@ -109,7 +109,7 @@ def test_validate_rejects_ships_when_enemy_present(
     # Dodaj obce statki w aktywnym systemie → blokada statków.
     state.systems["000"].space_units["p2"] = {"destroyer": 1}
     state.players["p2"] = PlayerState(player_id="p2")
-    with pytest.raises(ValueError, match="blokada"):
+    with pytest.raises(ValueError, match="blockade"):
         production.validate_production(
             state, grid, registry, "p1", [ProductionOrder("destroyer", 1)]
         )
@@ -123,7 +123,7 @@ def test_validate_no_active_system_rejected(registry: StaticDataRegistry) -> Non
     grid = _grid()
     state = _state_with_dock_on_jord()
     state.active_system = None
-    with pytest.raises(ValueError, match="aktywnego systemu"):
+    with pytest.raises(ValueError, match="No active system"):
         production.validate_production(
             state, grid, registry, "p1", [ProductionOrder("infantry", 1)]
         )

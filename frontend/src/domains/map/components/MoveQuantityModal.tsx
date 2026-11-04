@@ -39,7 +39,7 @@ export function MoveQuantityModal() {
   const toName =
     getTileById(gameData?.tiles?.[drop.toPosition]?.systemId ?? "")?.name ??
     drop.toPosition;
-  const fromZoneLabel = drop.fromZone === "space" ? "Orbita" : drop.fromZone;
+  const fromZoneLabel = drop.fromZone === "space" ? "Space" : drop.fromZone;
 
   const clamp = (n: number) => Math.max(1, Math.min(drop.available, n));
 
@@ -68,7 +68,7 @@ export function MoveQuantityModal() {
     <AppModal
       opened={!!drop}
       onClose={clearUnitDrop}
-      title={`Przenieś: ${drop.fromPosition} ${fromName} → ${drop.toPosition} ${toName}`}
+      title={`Move: ${drop.fromPosition} ${fromName} → ${drop.toPosition} ${toName}`}
       size={420}
     >
       <Stack gap="md">
@@ -92,7 +92,7 @@ export function MoveQuantityModal() {
 
         <Group gap="xs" align="center">
           <Text size="sm" c="dimmed" style={{ minWidth: 72 }}>
-            Ile przenieść
+            How many
           </Text>
           <NumberInput
             size="sm"
@@ -103,7 +103,7 @@ export function MoveQuantityModal() {
             style={{ width: 90 }}
           />
           <Text size="xs" c="dimmed">
-            z {drop.available}
+            of {drop.available}
           </Text>
         </Group>
 
@@ -122,7 +122,7 @@ export function MoveQuantityModal() {
             onClick={() => setCount(half)}
             disabled={busy || drop.available < 2}
           >
-            Połowa ({half})
+            Half ({half})
           </Button>
           <Button
             size="xs"
@@ -130,16 +130,16 @@ export function MoveQuantityModal() {
             onClick={() => setCount(drop.available)}
             disabled={busy}
           >
-            Wszystkie ({drop.available})
+            All ({drop.available})
           </Button>
         </Group>
 
         <Group justify="flex-end" gap="xs">
           <Button variant="subtle" onClick={clearUnitDrop} disabled={busy}>
-            Anuluj
+            Cancel
           </Button>
           <Button onClick={() => void confirm()} loading={busy}>
-            Przenieś {clamp(count)}
+            Move {clamp(count)}
           </Button>
         </Group>
       </Stack>

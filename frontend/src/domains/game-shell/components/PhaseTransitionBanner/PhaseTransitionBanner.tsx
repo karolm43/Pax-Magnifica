@@ -63,10 +63,10 @@ const BANNER_FILE: Record<string, string> = {
  * `BANNER_FILE`, więc każda wyzwalana faza ma swoją etykietę.
  */
 const PHASE_LABEL: Record<string, string> = {
-  strategy: "FAZA STRATEGII",
-  action: "FAZA AKCJI",
-  status: "FAZA STATUSU",
-  agenda: "FAZA AGENDY",
+  strategy: "STRATEGY PHASE",
+  action: "ACTION PHASE",
+  status: "STATUS PHASE",
+  agenda: "AGENDA PHASE",
 };
 
 /*
@@ -258,7 +258,7 @@ export function PhaseTransitionBanner(): ReactElement | null {
       <div className={styles.text}>
         <div className={styles.phase}>{label}</div>
         {gameRound !== undefined && (
-          <div className={styles.round}>Runda {gameRound}</div>
+          <div className={styles.round}>Round {gameRound}</div>
         )}
       </div>
     </div>

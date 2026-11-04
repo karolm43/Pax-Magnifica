@@ -289,7 +289,7 @@ function PlateHeader({
       className={styles.header}
       onPointerDown={onHandlePointerDown}
       onDoubleClick={onResetPosition}
-      title="Przeciągnij, aby przesunąć panel · dwuklik resetuje pozycję"
+      title="Drag to move the panel · double-click resets its position"
     >
       <span className={styles.dragGrip} aria-hidden="true">
         <IconGripVertical size={13} />
@@ -400,8 +400,8 @@ function ScDisc({ initiative }: { initiative: number | null }) {
 const SEAT_STATUS_LABEL: Record<SeatStatus, string> = {
   acting: "rusza",
   picking: "wybiera",
-  passed: "spasował",
-  picked: "wybrał",
+  passed: "passed",
+  picked: "picked",
   waiting: "czeka",
 };
 
@@ -416,7 +416,7 @@ function TurnOrder({
 }) {
   if (seats.length === 0) return null;
   const orderLabel =
-    phase === "strategy" ? "Kolejność wyboru (od mówcy)" : "Kolejność tur (inicjatywa)";
+    phase === "strategy" ? "Pick order (from Speaker)" : "Turn order (initiative)";
   return (
     <div className={styles.section}>
       <span className={styles.label}>{orderLabel}</span>
@@ -636,8 +636,8 @@ function NoticeBanner() {
         type="button"
         className={styles.noticeClose}
         onClick={clearNotice}
-        aria-label="Zamknij komunikat"
-        title="Zamknij"
+        aria-label="Dismiss message"
+        title="Dismiss"
       >
         ×
       </button>
@@ -647,10 +647,10 @@ function NoticeBanner() {
 
 /** Czytelne etykiety typów okien czasowych (RULES.md 29.2). */
 const WINDOW_LABELS: Record<string, string> = {
-  STRATEGY_SECONDARY: "Secondary karty strategii",
-  COMBAT_ASSIGN_HITS: "Przypisanie strat w walce",
-  SPACE_CANNON: "Space Cannon (ostrzał)",
-  REACTION: "Okno reakcji",
+  STRATEGY_SECONDARY: "Strategy Card secondary",
+  COMBAT_ASSIGN_HITS: "Assign hits in combat",
+  SPACE_CANNON: "Space Cannon",
+  REACTION: "Reaction window",
 };
 
 /**
@@ -708,7 +708,7 @@ function WindowSection({
       {window.isComplete || !window.currentResponderId ? (
         <>
           <span className={styles.label}>
-            Wszyscy odpowiedzieli — zamknij okno
+            Everyone has responded — close the window
           </span>
           <div className={styles.controls}>
             <button
@@ -717,7 +717,7 @@ function WindowSection({
               disabled={busy}
               onClick={() => void run(() => closeWindow())}
             >
-              Zamknij okno
+              Close window
             </button>
           </div>
         </>
@@ -730,14 +730,14 @@ function WindowSection({
           >
             {responder ? <FactionMark player={responder} size={22} /> : null}
             <span className={styles.pickerText}>
-              <small className={styles.pickerLabel}>Reaguje</small>
+              <small className={styles.pickerLabel}>Responding</small>
               <b className={styles.pickerName}>
                 {responderName ?? window.currentResponderId}
               </b>
             </span>
           </div>
           <span className={styles.label}>
-            Pozostało w kolejce: {window.remaining}
+            Remaining in queue: {window.remaining}
           </span>
           <div className={styles.controls}>
             <button
@@ -745,18 +745,18 @@ function WindowSection({
               className={styles.scPickBtn}
               disabled={busy}
               onClick={() => respond(true)}
-              title="Wykonaj akcję w tym oknie"
+              title="Take the action in this window"
             >
-              Wykonaj
+              Execute
             </button>
             <button
               type="button"
               className={styles.scPickBtn}
               disabled={busy}
               onClick={() => respond(false)}
-              title="Zrezygnuj (pas)"
+              title="Decline (pass)"
             >
-              Pas
+              Pass
             </button>
           </div>
         </>
@@ -821,16 +821,16 @@ function StrategyCardPicker({
         >
           <FactionMark player={picker.player} size={22} />
           <span className={styles.pickerText}>
-            <small className={styles.pickerLabel}>Wybiera kartę</small>
+            <small className={styles.pickerLabel}>Picking a card</small>
             <b className={styles.pickerName}>{picker.name}</b>
           </span>
         </div>
       ) : allPicked ? (
         <span className={styles.label}>
-          Wszyscy wybrali — przejdź do fazy akcji
+          Everyone has picked — move on to the Action Phase
         </span>
       ) : (
-        <span className={styles.label}>Wybór kart strategii</span>
+        <span className={styles.label}>Strategy Card selection</span>
       )}
 
       <div className={styles.scList}>
@@ -854,9 +854,9 @@ function StrategyCardPicker({
               }
               title={
                 owner
-                  ? `Wybrana: ${getPlayerDisplayName(owner.player, owner.player.color)}`
+                  ? `Picked by: ${getPlayerDisplayName(owner.player, owner.player.color)}`
                   : picker
-                    ? `Wybierz dla: ${picker.name}`
+                    ? `Pick for: ${picker.name}`
                     : card.name
               }
             >
@@ -868,7 +868,7 @@ function StrategyCardPicker({
               </span>
               <span className={styles.scName}>{card.name}</span>
               {card.trade_goods > 0 && (
-                <span className={styles.scTg} title="Trade goods na karcie">
+                <span className={styles.scTg} title="Trade Goods on the card">
                   +{card.trade_goods} TG
                 </span>
               )}
@@ -882,7 +882,7 @@ function StrategyCardPicker({
 
       {/* Zmiana mówcy (kto zaczyna wybór) — operator, gdy trzeba. */}
       <div className={styles.speakerRow}>
-        <span className={styles.label}>Mówca</span>
+        <span className={styles.label}>Speaker</span>
         <div className={styles.speakerChips}>
           {seats.map((seat) => (
             <button
@@ -894,7 +894,7 @@ function StrategyCardPicker({
               onClick={() =>
                 void run(() => setSpeaker(seat.player.discordId))
               }
-              title={`Ustaw mówcę: ${seat.name}`}
+              title={`Set Speaker: ${seat.name}`}
             >
               <FactionMark player={seat.player} size={16} />
             </button>
@@ -939,7 +939,7 @@ function ProductionPanel({
   if (!faction || !data) {
     return (
       <span className={styles.prodNote}>
-        Brak aktywnego gracza z frakcją — nie można produkować.
+        No active player with a faction — cannot produce.
       </span>
     );
   }
@@ -970,15 +970,15 @@ function ProductionPanel({
       <div className={styles.prodHead}>
         <span className={styles.label}>
           <IconStack2 size={11} aria-hidden="true" />
-          Produkcja
+          Production
         </span>
-        <span className={styles.prodRes} title="Zasoby z kontrolowanych planet">
-          {data.availableResources} zasobów
+        <span className={styles.prodRes} title="Resources from controlled planets">
+          {data.availableResources} resources
         </span>
       </div>
 
       {/* Statki → przestrzeń aktywnego systemu. */}
-      <span className={styles.prodZoneLabel}>Statki · przestrzeń</span>
+      <span className={styles.prodZoneLabel}>Ships · space</span>
       <div className={styles.unitGrid}>
         {ships.map((u) => (
           <ProductionUnitTile
@@ -997,7 +997,7 @@ function ProductionPanel({
       {ground.length > 0 && (
         <>
           <div className={styles.prodZoneRow}>
-            <span className={styles.prodZoneLabel}>Naziemne · planeta</span>
+            <span className={styles.prodZoneLabel}>Ground · planet</span>
             {planets.length > 0 ? (
               <div className={styles.planetTabs}>
                 {planets.map((p) => (
@@ -1013,7 +1013,7 @@ function ProductionPanel({
                 ))}
               </div>
             ) : (
-              <span className={styles.prodNote}>Brak planet w systemie</span>
+              <span className={styles.prodNote}>No planets in this system</span>
             )}
           </div>
           {planet && (
@@ -1070,7 +1070,7 @@ function ProductionUnitTile({
         />
       </div>
       <span className={styles.unitTileName}>{unit.name}</span>
-      <span className={styles.unitTileCost} title="Koszt · ile sztuk za koszt">
+      <span className={styles.unitTileCost} title="Cost · units produced per cost">
         {unit.cost}
         {perCost}
       </span>
@@ -1080,8 +1080,8 @@ function ProductionUnitTile({
           className={styles.unitStep}
           disabled={busy}
           onClick={onRemove}
-          aria-label={`Usuń ${unit.name}`}
-          title="Usuń z planszy"
+          aria-label={`Remove ${unit.name}`}
+          title="Remove from the board"
         >
           <IconMinus size={13} />
         </button>
@@ -1090,8 +1090,8 @@ function ProductionUnitTile({
           className={cx(styles.unitStep, styles.unitStepAdd)}
           disabled={busy}
           onClick={onAdd}
-          aria-label={`Wyprodukuj ${unit.name}`}
-          title="Wyprodukuj (postaw na planszy)"
+          aria-label={`Produce ${unit.name}`}
+          title="Produce (place on the board)"
         >
           <IconPlus size={13} />
         </button>
@@ -1106,11 +1106,11 @@ const TACTICAL_STEPS: {
   label: string;
   short: string;
 }[] = [
-  { step: "MOVEMENT", label: "Ruch", short: "Ruch" },
-  { step: "SPACE_CANNON", label: "Działa kosmiczne", short: "Działa" },
-  { step: "SPACE_COMBAT", label: "Walka kosmiczna", short: "Walka" },
-  { step: "INVASION", label: "Inwazja", short: "Inwazja" },
-  { step: "PRODUCTION", label: "Produkcja", short: "Produkcja" },
+  { step: "MOVEMENT", label: "Movement", short: "Move" },
+  { step: "SPACE_CANNON", label: "Space Cannon", short: "Cannon" },
+  { step: "SPACE_COMBAT", label: "Space Combat", short: "Combat" },
+  { step: "INVASION", label: "Invasion", short: "Invasion" },
+  { step: "PRODUCTION", label: "Production", short: "Production" },
 ];
 
 /**
@@ -1189,11 +1189,11 @@ function TacticalActionPanel({
         type="button"
         className={cx(styles.bigAction, activateMode && styles.bigActionOn)}
         onClick={toggleActivateMode}
-        title="Kliknij, potem wskaż system na mapie, aby go aktywować"
+        title="Click, then pick a system on the map to activate it"
       >
         <IconTarget size={16} aria-hidden="true" />
         <span>
-          {activateMode ? "Wskaż system na mapie…" : "Aktywuj system"}
+          {activateMode ? "Pick a system on the map…" : "Activate system"}
         </span>
       </button>
     );
@@ -1212,14 +1212,14 @@ function TacticalActionPanel({
           className={styles.endAction}
           disabled={busy}
           onClick={() => void run(endTactical)}
-          title="Zakończ bieżącą akcję taktyczną"
+          title="End the current tactical action"
         >
-          Zakończ akcję
+          End action
         </button>
       </div>
 
       {/* Kroki jako klikalne pigułki — skok do dowolnego kroku (asystent). */}
-      <div className={styles.stepPills} aria-label="Krok akcji taktycznej">
+      <div className={styles.stepPills} aria-label="Tactical action step">
         {TACTICAL_STEPS.map((s, index) => {
           const state =
             index < currentIndex
@@ -1236,7 +1236,7 @@ function TacticalActionPanel({
               disabled={busy}
               aria-current={state === "now" ? "step" : undefined}
               onClick={() => void run(() => tacticalSetStep(s.step))}
-              title={`Przejdź do kroku: ${s.label}`}
+              title={`Go to step: ${s.label}`}
             >
               <span className={styles.stepIndex}>{index + 1}</span>
               <span className={styles.stepName}>{s.short}</span>
@@ -1254,11 +1254,11 @@ function TacticalActionPanel({
               className={cx(styles.ctlBtn, styles.ctlPrimary)}
               onClick={() => openCombat(activeSystem, null)}
             >
-              <IconSwords size={13} /> Otwórz okno walki kosmicznej
+              <IconSwords size={13} /> Open space combat window
             </button>
           ) : (
             <span className={styles.prodNote}>
-              Brak drugiej floty — walka kosmiczna niepotrzebna.
+              No opposing fleet — space combat not needed.
             </span>
           )}
         </div>
@@ -1268,7 +1268,7 @@ function TacticalActionPanel({
         <div className={styles.stepBody}>
           {activePlanets.length > 0 ? (
             <>
-              <span className={styles.prodNote}>Walka naziemna na planecie:</span>
+              <span className={styles.prodNote}>Ground combat on planet:</span>
               <div className={styles.planetTabs}>
                 {activePlanets.map((planet) => (
                   <button
@@ -1276,7 +1276,7 @@ function TacticalActionPanel({
                     type="button"
                     className={styles.planetTab}
                     onClick={() => openCombat(activeSystem, planet)}
-                    title={`Okno walki naziemnej na ${planet}`}
+                    title={`Ground combat window on ${planet}`}
                   >
                     {planet}
                   </button>
@@ -1284,7 +1284,7 @@ function TacticalActionPanel({
               </div>
             </>
           ) : (
-            <span className={styles.prodNote}>Brak planet w systemie.</span>
+            <span className={styles.prodNote}>No planets in this system.</span>
           )}
         </div>
       )}
@@ -1303,9 +1303,9 @@ function TacticalActionPanel({
         className={styles.nextStep}
         disabled={busy}
         onClick={() => void run(tacticalNextStep)}
-        title="Przejdź do następnego kroku (po produkcji kończy akcję)"
+        title="Go to the next step (after Production this ends the action)"
       >
-        Następny krok →
+        Next step →
       </button>
     </div>
   );
@@ -1322,20 +1322,20 @@ const ACTION_KINDS: {
 }[] = [
   {
     kind: "tactical",
-    label: "Taktyczna",
-    hint: "Aktywuj system: ruch, walka, inwazja, produkcja.",
+    label: "Tactical",
+    hint: "Activate a system: movement, combat, invasion, production.",
     icon: <IconTarget size={15} aria-hidden="true" />,
   },
   {
     kind: "strategy",
-    label: "Strategiczna",
-    hint: "Rozlicz kartę strategii (secondary pozostałych graczy).",
+    label: "Strategic",
+    hint: "Resolve a Strategy Card (other players' secondary abilities).",
     icon: <IconBolt size={15} aria-hidden="true" />,
   },
   {
     kind: "component",
-    label: "Komponentowa",
-    hint: "Zagraj kartę akcji, aktywuj lidera, technologię lub relikt.",
+    label: "Component",
+    hint: "Play an Action Card, or use a leader, technology or relic.",
     icon: <IconLayoutGrid size={15} aria-hidden="true" />,
   },
 ];
@@ -1367,11 +1367,11 @@ function ActionPhasePanel({
     <div className={styles.section}>
       <span className={styles.label}>
         <IconArrowsMove size={11} aria-hidden="true" />
-        Rodzaj akcji
+        Action type
       </span>
 
       {/* Trzy rodzaje akcji jako segmentowany wybór. */}
-      <div className={styles.actionKinds} role="tablist" aria-label="Rodzaj akcji">
+      <div className={styles.actionKinds} role="tablist" aria-label="Action type">
         {ACTION_KINDS.map((a) => (
           <button
             key={a.kind}
@@ -1410,13 +1410,14 @@ function ActionPhasePanel({
       {effectiveKind === "component" && (
         <div className={styles.kindBody}>
           <span className={styles.prodNote}>
-            Akcja komponentowa = zagranie karty z napisem „ACTION" (karta akcji,
-            lider, technologia-akcja, relikt). Rozegraj ją przy stole, a efekt
-            nanieś na planszę. Dedykowane pickery pojawią się w etapie E4.
+            A Component Action means using a component marked "ACTION" (Action
+            Card, leader, action technology, relic). Resolve it at the table and
+            record the effect on the board. Dedicated pickers will arrive in
+            stage E4.
           </span>
           <span className={styles.prodNote}>
-            Wyczerpywanie planet, technologii i liderów robisz prawym przyciskiem
-            myszy na komponencie w panelu gracza (menu „Wyczerp / Odśwież").
+            Exhaust planets, technologies and leaders by right-clicking the
+            component in the player panel (the "Exhaust / Ready" menu).
           </span>
         </div>
       )}
@@ -1448,14 +1449,14 @@ function StrategicActionControl({
   if (!active) {
     return (
       <span className={styles.prodNote}>
-        Brak aktywnego gracza — nie można zagrać karty strategii.
+        No active player — cannot play a Strategy Card.
       </span>
     );
   }
   if (myCards.length === 0) {
     return (
       <span className={styles.prodNote}>
-        {active.name} nie ma karty strategii do zagrania.
+        {active.name} has no Strategy Card to play.
       </span>
     );
   }
@@ -1486,8 +1487,8 @@ function StrategicActionControl({
           }
           title={
             card.exhausted
-              ? `${card.name} już zagrana (czeka na secondary)`
-              : `Zagraj ${card.name} (primary + okno secondary)`
+              ? `${card.name} already played (awaiting secondary)`
+              : `Play ${card.name} (primary + secondary window)`
           }
         >
           <span
@@ -1497,7 +1498,7 @@ function StrategicActionControl({
             {card.initiative}
           </span>
           <span className={styles.scName}>
-            {card.exhausted ? `${card.name} — zagrana` : `Zagraj: ${card.name}`}
+            {card.exhausted ? `${card.name} — played` : `Play: ${card.name}`}
           </span>
         </button>
       ))}
@@ -1543,16 +1544,16 @@ function PhaseControls({
             disabled={busy}
             onClick={() => void run(() => endTurn(activePlayerId ?? undefined))}
           >
-            Zakończ turę
+            End turn
           </button>
           <button
             type="button"
             className={styles.ctlBtn}
             disabled={busy}
             onClick={() => void run(() => passTurn(activePlayerId ?? undefined))}
-            title="Pasuj — pomijany do końca fazy akcji"
+            title="Pass — skipped for the rest of the Action Phase"
           >
-            Pas
+            Pass
           </button>
         </>
       )}
@@ -1565,7 +1566,7 @@ function PhaseControls({
             disabled={busy}
             onClick={() => void run(nextPhase)}
           >
-            Następna faza
+            Next phase
           </button>
         )}
         <button
@@ -1574,7 +1575,7 @@ function PhaseControls({
           disabled={busy}
           onClick={() => void run(nextRound)}
         >
-          Nowa runda
+          New round
         </button>
       </div>
     </div>

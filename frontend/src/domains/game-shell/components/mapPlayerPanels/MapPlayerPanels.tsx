@@ -60,7 +60,7 @@ function InactivePlayerPanel({
         <ActionIcon
           variant="subtle"
           size="sm"
-          aria-label={collapsed ? `Rozwiń panel: ${label}` : `Zwiń panel: ${label}`}
+          aria-label={collapsed ? `Expand panel: ${label}` : `Collapse panel: ${label}`}
           aria-expanded={!collapsed}
           onClick={onToggle}
         >

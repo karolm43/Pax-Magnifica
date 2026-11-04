@@ -32,11 +32,11 @@ export function AttributionNotice() {
     <Paper
       withBorder
       role="contentinfo"
-      aria-label="Atrybucja i licencja treści Zasad"
+      aria-label="Rules content attribution and license"
       style={{ padding: "var(--ds-space-xs) var(--ds-space-sm)" }}
     >
       <Text size="xs" style={{ color: "var(--ds-ink-lo)" }}>
-        Treść reguł © Fantasy Flight Games. Zrzut pochodzi z repozytorium{" "}
+        Rules content © Fantasy Flight Games. The dump comes from the{" "}
         <Anchor
           href="https://github.com/dangothemango/tirules"
           target="_blank"
@@ -44,12 +44,12 @@ export function AttributionNotice() {
         >
           tirules
         </Anchor>{" "}
-        na licencji GPL-3.0, pobrany ze strony{" "}
+        repository (GPL-3.0 license), scraped from{" "}
         <Anchor href={TIRULES_URL} target="_blank" rel="noopener noreferrer">
           tirules2.com
           <IconExternalLink
             size={13}
-            aria-label="odnośnik zewnętrzny (otwiera się w nowej karcie)"
+            aria-label="external link (opens in a new tab)"
             role="img"
             style={{
               display: "inline-block",

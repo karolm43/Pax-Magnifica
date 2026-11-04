@@ -49,8 +49,8 @@ function CombatSide({
         <Text size="sm" fw={600}>
           {(player?.flexibleDisplayName || side.faction).toUpperCase()}
         </Text>
-        <Text size="xs" c="dimmed" title="Suma kości · oczekiwane trafienia">
-          {side.totalDice} kości · ~{side.expectedHits} traf.
+        <Text size="xs" c="dimmed" title="Total dice · expected hits">
+          {side.totalDice} dice · ~{side.expectedHits} hits
         </Text>
       </Group>
       {planet && (
@@ -60,9 +60,9 @@ function CombatSide({
           size="compact-xs"
           variant="light"
           onClick={() => void capturePlanet(position, planet, side.faction)}
-          title={`Przejmij kontrolę ${planet} dla tego gracza`}
+          title={`Take control of ${planet} for this player`}
         >
-          Przejmij {planet}
+          Take {planet}
         </Button>
       )}
       {side.units.map((u) => (
@@ -79,7 +79,7 @@ function CombatSide({
             <Text size="sm">
               <b>{u.count}×</b> {u.name}
             </Text>
-            <Text size="xs" c="dimmed" title="Trafia na X+ · liczba kości na sztukę">
+            <Text size="xs" c="dimmed" title="Hits on X+ · dice per unit">
               {u.combatHitsOn}+ ×{u.combatDieCount} · ~{u.expectedHits}
             </Text>
           </Group>
@@ -88,7 +88,7 @@ function CombatSide({
             variant="light"
             color="red"
             onClick={() => removeOne(u.asyncId)}
-            title="Usuń 1 (zniszczona)"
+            title="Remove 1 (destroyed)"
           >
             <IconMinus size={13} />
           </ActionIcon>
@@ -119,17 +119,17 @@ export function CombatModal() {
     <AppModal
       opened={!!combatTarget}
       onClose={closeCombat}
-      title={`Walka ${planet ? "naziemna" : "kosmiczna"}: ${where ?? ""}`}
+      title={`${planet ? "Ground" : "Space"} Combat: ${where ?? ""}`}
       size={620}
     >
       <Stack gap="md">
         <Text size="xs" c="dimmed">
-          Pomoc liczbowa — rzuty i trafienia ustalacie przy stole. Odejmuj
-          zniszczone jednostki przyciskiem „−1".
+          Numeric aid: dice rolls and hits are resolved at the table. Remove
+          destroyed units with the "−1" button.
         </Text>
         {!data || data.sides.length === 0 ? (
           <Text size="sm" c="dimmed">
-            Brak walki w tym miejscu (potrzebne siły co najmniej dwóch graczy).
+            No combat here (forces of at least two players are required).
           </Text>
         ) : (
           <Group align="flex-start" grow gap="lg">

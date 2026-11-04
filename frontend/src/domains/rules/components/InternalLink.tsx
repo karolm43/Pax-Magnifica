@@ -79,7 +79,7 @@ export function InternalLink({ target, children }: InternalLinkProps) {
       {children}
       <IconExternalLink
         size={14}
-        aria-label="odnośnik zewnętrzny (otwiera się w nowej karcie)"
+        aria-label="external link (opens in a new tab)"
         role="img"
         style={{ display: "inline-block", verticalAlign: "middle", marginLeft: 3 }}
       />

@@ -120,8 +120,8 @@ export const MapTile = React.memo<Props>(
         ? [
             {
               label: activePlayer
-                ? "Aktywuj system"
-                : "Aktywuj system (brak aktywnego gracza)",
+                ? "Activate system"
+                : "Activate system (no active player)",
               icon: <IconTarget size={14} />,
               disabled: !activePlayer,
               onSelect: () => void activateSystem(mapTile.position),

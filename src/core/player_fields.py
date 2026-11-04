@@ -89,7 +89,7 @@ def assert_classification_complete() -> None:
     overlap = PUBLIC_FIELDS & PRIVATE_FIELDS
     if overlap:
         raise ValueError(
-            "Pola sklasyfikowane podwójnie (Public i Private jednocześnie): "
+            "Fields classified twice (both Public and Private): "
             f"{sorted(overlap)}"
         )
 
@@ -100,7 +100,7 @@ def assert_classification_complete() -> None:
     unknown = classified - model_fields
     if unknown:
         raise ValueError(
-            "Klasyfikacja wskazuje pola nieistniejące w PlayerState: "
+            "Classification references fields missing from PlayerState: "
             f"{sorted(unknown)}"
         )
 
@@ -108,6 +108,6 @@ def assert_classification_complete() -> None:
     unclassified = model_fields - classified
     if unclassified:
         raise ValueError(
-            "Pola PlayerState bez klasyfikacji Public/Private: "
+            "PlayerState fields without a Public/Private classification: "
             f"{sorted(unclassified)}"
         )

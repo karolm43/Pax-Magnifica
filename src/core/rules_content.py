@@ -207,7 +207,7 @@ def group_of(slug: str) -> str:
     for prefix, group in _PREFIX_TO_GROUP.items():
         if slug.startswith(prefix):
             return group
-    raise ValueError(f"Slug spoza zrzutu reguł (nieznany prefiks): {slug!r}")
+    raise ValueError(f"Slug outside the rules dump (unknown prefix): {slug!r}")
 
 
 # --- Czyste funkcje: mapowanie linków i klasyfikacja rulingu Dane -------
@@ -341,9 +341,9 @@ def active_slugs(
 
 #: Etykiety grup po polsku dla indeksu (Req 2.2). Klucz → etykieta widoczna w UI.
 _GROUP_LABELS: dict[str, str] = {
-    "rules": "Reguły",
-    "factions": "Frakcje",
-    "components": "Komponenty",
+    "rules": "Rules",
+    "factions": "Factions",
+    "components": "Components",
 }
 
 #: Kolejność grup w indeksie (Req 2.3): Reguły → Frakcje → Komponenty. Wynika
@@ -459,7 +459,7 @@ def load_topic(rules_dir: Path, slug: str) -> TopicContent:
             ``rules_dir`` (nieznany slug albo próba path-traversal).
     """
     if slug not in list_topic_slugs(rules_dir):
-        raise FileNotFoundError(f"Brak tematu o slug: {slug!r}")
+        raise FileNotFoundError(f"No topic with slug: {slug!r}")
 
     markdown = _topic_path(rules_dir, slug).read_text(encoding="utf-8")
     title = parse_title(markdown, slug)

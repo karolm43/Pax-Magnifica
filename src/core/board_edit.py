@@ -31,7 +31,7 @@ def validate_base_type(base_type: str) -> None:
         ValueError: Gdy typ spoza ``ASYNC_ID_BY_BASE_TYPE`` (Bug 5).
     """
     if base_type not in ASYNC_ID_BY_BASE_TYPE:
-        raise ValueError(f"Nieznany baseType: {base_type}")
+        raise ValueError(f"Unknown baseType: {base_type}")
 
 
 def base_type_for_async(async_id: str) -> str:
@@ -42,7 +42,7 @@ def base_type_for_async(async_id: str) -> str:
     """
     base_type = BASE_TYPE_BY_ASYNC_ID.get(async_id)
     if base_type is None:
-        raise ValueError(f"Nieznany asyncId: {async_id}")
+        raise ValueError(f"Unknown asyncId: {async_id}")
     return base_type
 
 
@@ -266,14 +266,14 @@ def move_units(
     """
     base_type = base_type_for_async(async_id)
     if count <= 0:
-        raise ValueError("count musi być > 0")
+        raise ValueError("count must be > 0")
     # Reguła umiejscowienia (RULES.md 26): statek nigdy na planetę; jednostka
     # naziemna/struktura nigdy do przestrzeni. Egzekwowane w core — chroni UI i bota.
     if not placement_allows_zone(base_type, to_zone):
-        where = "przestrzeni" if zone_is_space(to_zone) else f"planecie {to_zone!r}"
+        where = "space" if zone_is_space(to_zone) else f"planet {to_zone!r}"
         raise ValueError(
-            f"Jednostka {async_id!r} ({base_type}) nie może stać w {where} "
-            f"— statki tylko w przestrzeni, siły naziemne/struktury tylko na planecie."
+            f"Unit {async_id!r} ({base_type}) cannot be placed in {where} "
+            f"- ships only in space, ground forces/structures only on a planet."
         )
     new_state = state.clone()
     player_id = resolve_player_id(faction_key, new_state)
@@ -283,7 +283,7 @@ def move_units(
     available = src_bucket.get(base_type, 0)
     moved = min(available, count)
     if moved <= 0:
-        raise ValueError("Brak jednostek do przesunięcia.")
+        raise ValueError("No units to move.")
     remaining = available - moved
     if remaining == 0:
         src_bucket.pop(base_type, None)
@@ -410,7 +410,7 @@ def set_leader_state(
         ValueError: Gdy ``leader_state`` spoza dozwolonych.
     """
     if leader_state not in _LEADER_STATES:
-        raise ValueError(f"Nieznany stan lidera: {leader_state}")
+        raise ValueError(f"Unknown leader state: {leader_state}")
     new_state = state.clone()
     player = new_state.players.get(player_id) or PlayerState(player_id=player_id)
     merged = dict(player.leader_states)

@@ -69,19 +69,19 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
     """
     active_id = state.active_player_id
     if active_id is None:
-        raise ValueError("Brak aktywnego gracza — nie można aktywować systemu.")
+        raise ValueError("No active player - cannot activate a system.")
 
     # R: nie można aktywować systemu z własnym żetonem dowodzenia.
     existing = state.systems.get(position)
     if existing is not None and active_id in existing.command_tokens:
         raise ValueError(
-            "Nie można aktywować systemu, w którym masz już żeton dowodzenia."
+            "Cannot activate a system that already contains your command token."
         )
 
     # R: potrzebny żeton w puli taktycznej.
     player0 = state.players.get(active_id)
     if player0 is None or player0.tactical_cc <= 0:
-        raise ValueError("Brak żetonu w puli taktycznej — nie można aktywować systemu.")
+        raise ValueError("No token in the tactical pool - cannot activate a system.")
 
     new_state = state.clone()
     system = _ensure_system(new_state, position, grid)

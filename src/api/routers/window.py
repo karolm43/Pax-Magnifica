@@ -43,7 +43,7 @@ async def post_window_open(
         window_type = WindowType(request.window_type)
     except ValueError as exc:
         raise HTTPException(
-            status_code=422, detail=f"Nieznany typ okna: {request.window_type}"
+            status_code=422, detail=f"Unknown window type: {request.window_type}"
         ) from exc
 
     state = ctx.service.current_state()

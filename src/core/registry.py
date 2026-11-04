@@ -79,16 +79,16 @@ class RegistryReport:
     def summary(self) -> str:
         """Czytelne podsumowanie raportu."""
         lines = [
-            f"Aktywne źródła: {', '.join(self.enabled_sources)}",
-            f"Jednostki:  {self.unit_count}",
-            f"Planety:    {self.planet_count}",
-            f"Systemy:    {self.system_count}",
+            f"Active sources: {', '.join(self.enabled_sources)}",
+            f"Units:      {self.unit_count}",
+            f"Planets:    {self.planet_count}",
+            f"Systems:    {self.system_count}",
         ]
         if self.skipped_sources:
             skipped = ", ".join(
                 f"{src} ({cnt})" for src, cnt in sorted(self.skipped_sources.items())
             )
-            lines.append(f"Pominięte źródła: {skipped}")
+            lines.append(f"Skipped sources: {skipped}")
         return "\n".join(lines)
 
 
@@ -342,11 +342,11 @@ def main() -> None:
 
     missing = registry.missing_planet_references()
     if missing:
-        print(f"\nUWAGA: {len(missing)} systemów ma brakujące referencje do planet:")
+        print(f"\nWARNING: {len(missing)} systems have missing planet references:")
         for system_id, planets in sorted(missing.items())[:20]:
             print(f"  system {system_id}: {planets}")
     else:
-        print("\nSpójność referencji planet: OK")
+        print("\nPlanet reference consistency: OK")
 
 
 if __name__ == "__main__":

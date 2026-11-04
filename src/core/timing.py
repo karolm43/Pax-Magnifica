@@ -82,7 +82,7 @@ def open_window(
             okien nie zagnieżdżamy w tym modelu (jedno naraz).
     """
     if state.pending_window is not None:
-        raise ValueError("Inne okno czasowe już trwa — nie można otworzyć kolejnego.")
+        raise ValueError("Another timing window is already open - cannot open a new one.")
     new_state = state.clone()
     new_state.pending_window = TimingWindow(
         window_type=window_type,
@@ -118,14 +118,14 @@ def respond_current(state: GameState, player_id: str) -> GameState:
             ``player_id`` nie jest bieżącym respondentem (gra poza kolejnością).
     """
     if state.pending_window is None:
-        raise ValueError("Brak otwartego okna czasowego.")
+        raise ValueError("No open timing window.")
     window = state.pending_window
     if window.is_complete:
-        raise ValueError("Okno czasowe jest już zakończone.")
+        raise ValueError("The timing window is already closed.")
     expected = window.queue[window.cursor]
     if player_id != expected:
         raise ValueError(
-            f"Teraz odpowiada {expected}, nie {player_id} (odpowiedź poza kolejnością)."
+            f"It is now {expected}'s turn to respond, not {player_id} (out-of-order response)."
         )
     new_state = state.clone()
     assert new_state.pending_window is not None  # zachowane przez clone

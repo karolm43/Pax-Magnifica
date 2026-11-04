@@ -219,16 +219,16 @@ export function StrategyCardTable(): ReactElement | null {
     // to wewnętrzny ``.table`` ma ``pointer-events: auto``, więc karty pozostają
     // klikalne. Wyłącznie struktura/layout — ZERO zmian logiki interakcji i danych.
     <div className={styles.overlay}>
-      <div className={styles.table} aria-label="Karty strategii na stole">
+      <div className={styles.table} aria-label="Strategy Cards on the table">
       {/*
        * Nagłówek w stylu AsyncTI4: WYŚRODKOWany tytuł fazy, a pod nim wiersz
        * (zawijalny) z aktualnym pickerem i mówcą — każdy z IKONĄ frakcji
        * (``FactionMark``) i PEŁNĄ nazwą frakcji (Requirement 1). Komunikaty braku
        * zostają bez ikony: brak pickera → „brak gracza do wskazania" (R1.5), brak
-       * mówcy → „brak ustawionego mówcy" (R1.4).
+       * mówcy → „no Speaker set" (R1.4).
        */}
       <div className={styles.header}>
-        <h2 className={styles.heading}>Faza strategii</h2>
+        <h2 className={styles.heading}>Strategy Phase</h2>
         <div className={styles.meta}>
           {/*
            * Stan wyboru:
@@ -239,37 +239,37 @@ export function StrategyCardTable(): ReactElement | null {
            */}
           {pickerName ? (
             <span className={styles.metaItem}>
-              <span className={styles.metaLabel}>Teraz wybiera:</span>
+              <span className={styles.metaLabel}>Now picking:</span>
               <FactionMark player={pickerPlayer} size={22} />
               <b className={styles.metaName}>{pickerName}</b>
             </span>
           ) : allPicked ? (
             <span className={styles.metaItem}>
-              <b className={styles.metaName}>Wszyscy wybrali karty</b>
+              <b className={styles.metaName}>Everyone has picked a card</b>
               <button
                 type="button"
                 className={styles.nextPhaseBtn}
                 disabled={busy}
                 onClick={() => void run(nextPhase)}
               >
-                Następna faza
+                Next phase
               </button>
             </span>
           ) : (
             <span className={styles.metaItem}>
-              <span className={styles.metaName}>Wybór kart strategii</span>
+              <span className={styles.metaName}>Strategy Card selection</span>
             </span>
           )}
           {/* Mówca — ikona + pełna nazwa frakcji mówcy (lub komunikat braku). */}
           <span className={styles.metaItem}>
-            <span className={styles.metaLabel}>Mówca:</span>
+            <span className={styles.metaLabel}>Speaker:</span>
             {speakerName ? (
               <>
                 <FactionMark player={speakerPlayer} size={22} />
                 <b className={styles.metaName}>{speakerName}</b>
               </>
             ) : (
-              <span className={styles.metaName}>brak ustawionego mówcy</span>
+              <span className={styles.metaName}>no Speaker set</span>
             )}
           </span>
         </div>
@@ -416,7 +416,7 @@ export function StrategyCardTable(): ReactElement | null {
 
                   {/* Trade goods zaparkowane na karcie — pigułka w górnym rogu. */}
                   {card.trade_goods > 0 && (
-                    <span className={styles.tg} title="Trade goods na karcie">
+                    <span className={styles.tg} title="Trade Goods on the card">
                       +{card.trade_goods} TG
                     </span>
                   )}

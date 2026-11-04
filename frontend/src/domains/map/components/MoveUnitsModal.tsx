@@ -41,7 +41,7 @@ function collectMovables(tile: Tile): Movable[] {
       }
     }
   };
-  push("space", "Orbita", tile.unitsByFaction);
+  push("space", "Space", tile.unitsByFaction);
   for (const [planetId, planet] of Object.entries(tile.planets)) {
     push(planetId, planetId, planet.unitsByFaction);
   }
@@ -54,7 +54,7 @@ function destZones(tile: Tile): { value: string; label: string }[] {
     .map((p) => p.id)
     .filter((id) => tile.planets[id] !== undefined);
   return [
-    { value: "space", label: "Orbita" },
+    { value: "space", label: "Space" },
     ...planetIds.map((id) => ({ value: id, label: id })),
   ];
 }
@@ -112,15 +112,15 @@ export function MoveUnitsModal() {
       onClose={clearMove}
       title={
         movePair
-          ? `Przenieś: ${movePair.from} ${fromName} → ${movePair.to} ${toName}`
-          : "Przenieś"
+          ? `Move: ${movePair.from} ${fromName} → ${movePair.to} ${toName}`
+          : "Move"
       }
       size={520}
     >
       <Stack gap="md">
         <Group gap="xs" align="center">
           <Text size="sm" c="dimmed">
-            Strefa docelowa
+            Destination zone
           </Text>
           <Select
             size="xs"
@@ -132,7 +132,7 @@ export function MoveUnitsModal() {
 
         {movables.length === 0 && (
           <Text size="sm" c="dimmed">
-            System źródłowy nie ma jednostek do przeniesienia.
+            The source system has no units to move.
           </Text>
         )}
 
@@ -172,7 +172,7 @@ export function MoveUnitsModal() {
                     variant="light"
                     disabled={busy}
                     onClick={() => void move(m, 1)}
-                    title="Przenieś 1"
+                    title="Move 1"
                   >
                     <IconArrowRight size={13} />
                   </ActionIcon>
@@ -181,9 +181,9 @@ export function MoveUnitsModal() {
                     variant="default"
                     disabled={busy}
                     onClick={() => void move(m, m.count)}
-                    title="Przenieś wszystkie"
+                    title="Move all"
                   >
-                    Wszystkie
+                    All
                   </Button>
                 </Group>
               </Group>
@@ -193,7 +193,7 @@ export function MoveUnitsModal() {
 
         <Group justify="flex-end">
           <Button variant="default" size="xs" onClick={clearMove}>
-            Zamknij
+            Close
           </Button>
         </Group>
       </Stack>

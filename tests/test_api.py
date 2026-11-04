@@ -140,7 +140,7 @@ def test_setup_rejects_non_playable_faction(client: TestClient) -> None:
         },
     )
     assert resp.status_code == 422
-    assert "grywalna" in resp.json()["detail"]
+    assert "not playable" in resp.json()["detail"]
 
 
 def test_setup_player_places_units(client: TestClient) -> None:

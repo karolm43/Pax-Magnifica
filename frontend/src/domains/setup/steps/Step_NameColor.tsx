@@ -38,7 +38,7 @@ import {
 
 /** Dozwolone wartości przełącznika sterowania (R10.1) — odwzorowują `ControlType`. */
 const CONTROL_OPTIONS: { label: string; value: ControlType }[] = [
-  { label: "Człowiek", value: "HUMAN" },
+  { label: "Human", value: "HUMAN" },
   { label: "Bot", value: "BOT" },
 ];
 
@@ -61,14 +61,14 @@ const COLOR_SWATCH: Record<PlayerColor, string> = {
 function slotNameError(slot: SetupSlot, index: number, slots: SetupSlot[]): string | null {
   const name = slot.name.trim();
   if (name.length > MAX_NAME_LENGTH) {
-    return `Najwyżej ${MAX_NAME_LENGTH} znaków.`;
+    return `At most ${MAX_NAME_LENGTH} characters.`;
   }
   if (name.length === 0) return null; // pusta nazwa jest OK — backend nada automatyczną
   // Duplikat niepustej nazwy (case-insensitive) z WCZEŚNIEJSZYM slotem — R7.5.
   const normalized = name.toLowerCase();
   for (let i = 0; i < index; i++) {
     if (slots[i].name.trim().toLowerCase() === normalized) {
-      return `Nazwa „${name}" jest już użyta przez Gracza ${i + 1}.`;
+      return `The name "${name}" is already used by Player ${i + 1}.`;
     }
   }
   return null;
@@ -104,19 +104,19 @@ function SlotRow({
   const isBot = slot.controlType === "BOT";
   // Dla bota trudność jest wymagana (R10.2); puste pole = błąd (spina się z blokadą „Dalej").
   const difficultyError =
-    isBot && !slot.difficulty ? "Wybierz poziom trudności bota." : undefined;
+    isBot && !slot.difficulty ? "Select the bot difficulty level." : undefined;
 
   return (
     <Paper radius="md" withBorder p="md">
       <Stack gap="sm">
         <Text fw={600} size="sm">
-          Gracz {index + 1}
+          Player {index + 1}
         </Text>
 
         {/* Nazwa wyświetlana — zapis wprost do store'a (dane zachowane między krokami). */}
         <TextInput
-          label="Nazwa"
-          placeholder="(puste → nazwa automatyczna)"
+          label="Name"
+          placeholder="(empty → automatic name)"
           value={slot.name}
           maxLength={MAX_NAME_LENGTH}
           onChange={(e) => updateSlot(index, { name: e.currentTarget.value })}
@@ -126,9 +126,9 @@ function SlotRow({
         {/* Wybór koloru ze zbioru AVAILABLE_COLORS — próbki jako przyciski radio. */}
         <Stack gap={4}>
           <Text size="sm" fw={500}>
-            Kolor
+            Color
           </Text>
-          <Group gap="xs" role="radiogroup" aria-label={`Kolor gracza ${index + 1}`}>
+          <Group gap="xs" role="radiogroup" aria-label={`Player ${index + 1} color`}>
             {AVAILABLE_COLORS.map((color) => {
               const selected = slot.color === color;
               return (
@@ -155,7 +155,7 @@ function SlotRow({
           </Group>
           {colorDuplicate ? (
             <Text c="red" size="xs">
-              Ten kolor jest już użyty przez innego gracza.
+              This color is already used by another player.
             </Text>
           ) : null}
         </Stack>
@@ -163,10 +163,10 @@ function SlotRow({
         {/* Sterowanie: człowiek / bot. Zmiana na HUMAN czyści trudność (R10.4). */}
         <Stack gap={4}>
           <Text size="sm" fw={500}>
-            Sterowanie
+            Control
           </Text>
           <SegmentedControl
-            aria-label={`Typ sterowania gracza ${index + 1}`}
+            aria-label={`Player ${index + 1} control type`}
             data={CONTROL_OPTIONS}
             value={slot.controlType}
             onChange={(value) => setControlType(index, value as ControlType)}
@@ -178,14 +178,14 @@ function SlotRow({
           (isLoading ? (
             <Loader size="sm" />
           ) : isError ? (
-            <Alert color="red" title="Nie udało się pobrać poziomów trudności">
-              Spróbuj ponownie — bez dozwolonego zbioru nie można ustawić bota.
+            <Alert color="red" title="Failed to load difficulty levels">
+              Try again — a bot cannot be configured without the allowed set.
             </Alert>
           ) : (
             <Select
-              aria-label={`Poziom trudności bota gracza ${index + 1}`}
-              label="Poziom trudności"
-              placeholder="Wybierz poziom"
+              aria-label={`Player ${index + 1} bot difficulty level`}
+              label="Difficulty level"
+              placeholder="Select level"
               data={difficulties}
               value={slot.difficulty}
               onChange={(value) => updateSlot(index, { difficulty: value ?? null })}
@@ -209,9 +209,9 @@ export default function Step_NameColor(_props: SetupStepProps) {
   return (
     <Stack gap="md">
       <Text size="sm" c="dimmed">
-        Nadaj nazwę i kolor każdemu graczowi oraz wybierz, czy steruje nim człowiek,
-        czy bot (dla bota także poziom trudności). Puste pole nazwy zostanie
-        uzupełnione automatycznie. Kolory i nazwy muszą być unikalne.
+        Set a name and color for each player and choose whether they are controlled
+        by a human or a bot (for a bot, also the difficulty level). An empty name
+        field will be filled in automatically. Colors and names must be unique.
       </Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         {slots.map((slot, index) => (

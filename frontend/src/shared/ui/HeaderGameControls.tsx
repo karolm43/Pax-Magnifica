@@ -55,9 +55,9 @@ export function HeaderGameControls() {
         leftSection={<IconArrowBackUp size={14} />}
         disabled={busy !== null}
         onClick={() => void run("undo")}
-        title="Cofnij (Undo)"
+        title="Undo"
       >
-        Cofnij
+        Undo
       </Button>
       <Button
         variant="default"
@@ -66,9 +66,9 @@ export function HeaderGameControls() {
         leftSection={<IconArrowForwardUp size={14} />}
         disabled={busy !== null}
         onClick={() => void run("redo")}
-        title="Ponów (Redo)"
+        title="Redo"
       >
-        Ponów
+        Redo
       </Button>
       <Button
         variant={moveMode ? "filled" : "default"}
@@ -76,13 +76,13 @@ export function HeaderGameControls() {
         className={hud.hudButton}
         leftSection={<IconArrowsExchange size={14} />}
         onClick={toggleMoveMode}
-        title="Tryb przenoszenia: kliknij system źródłowy, potem docelowy"
+        title="Move mode: click the source system, then the destination"
       >
         {moveMode
           ? moveFrom
-            ? "Wybierz cel…"
-            : "Wybierz źródło…"
-          : "Przenieś"}
+            ? "Pick destination…"
+            : "Pick source…"
+          : "Move"}
       </Button>
       <Button
         variant="default"
@@ -90,9 +90,9 @@ export function HeaderGameControls() {
         className={hud.hudButton}
         leftSection={<IconUserEdit size={14} />}
         onClick={() => setPlayerEditorOpen(true)}
-        title="God-Mode: edytuj dane graczy"
+        title="God-Mode: edit player data"
       >
-        Gracze
+        Players
       </Button>
       <Button
         variant="default"
@@ -103,9 +103,9 @@ export function HeaderGameControls() {
         }
         disabled={loading}
         onClick={() => dataState?.refetch?.()}
-        title="Odśwież planszę"
+        title="Refresh the board"
       >
-        Odśwież
+        Refresh
       </Button>
       {/* Przeglądarka Zasad TI4; `from=game` daje w niej powrót „Wróć do gry". */}
       <Button
@@ -114,9 +114,9 @@ export function HeaderGameControls() {
         className={hud.hudButton}
         leftSection={<IconBook2 size={14} />}
         onClick={() => navigate("/rules?from=game")}
-        title="Otwórz przeglądarkę Zasad"
+        title="Open the Rules browser"
       >
-        Zasady
+        Rules
       </Button>
     </Group>
   );

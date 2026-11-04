@@ -1,4 +1,4 @@
-﻿"""Testy API okien czasowych (E8-T2): /window/open, /respond, /close + web-data."""
+"""Testy API okien czasowych (E8-T2): /window/open, /respond, /close + web-data."""
 
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ def test_respond_out_of_order_rejected(client: TestClient) -> None:
     )
     resp = client.post("/window/respond", json={"player_id": "p3"})
     assert resp.status_code == 422
-    assert "kolejn" in resp.json()["detail"].lower()
+    assert "out-of-order" in resp.json()["detail"].lower()
 
 
 def test_respond_without_window_rejected(client: TestClient) -> None:

@@ -89,7 +89,7 @@ async def post_set_speaker(
     state = ctx.service.current_state()
     if request.player_id not in state.players:
         raise HTTPException(
-            status_code=422, detail=f"Nieznany gracz: {request.player_id}"
+            status_code=422, detail=f"Unknown player: {request.player_id}"
         )
     new_state = state.clone()
     new_state.speaker_id = request.player_id

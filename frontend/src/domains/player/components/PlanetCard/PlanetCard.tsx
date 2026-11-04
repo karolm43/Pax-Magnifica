@@ -118,7 +118,7 @@ export function PlanetCard({
   const menuItems: ContextMenuItem[] = playerId
     ? [
         {
-          label: isExhausted ? "Odśwież (ready)" : "Wyczerp (exhaust)",
+          label: isExhausted ? "Refresh (ready)" : "Exhaust",
           icon: <IconFlame size={14} />,
           onSelect: () => void togglePlanetExhaust(playerId, planetId),
         },

@@ -134,7 +134,7 @@ export async function createNewGame(request: NewGameRequest): Promise<void> {
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(
-      `Nie udało się utworzyć gry (${response.status}). ${detail}`.trim()
+      `Failed to create game (${response.status}). ${detail}`.trim()
     );
   }
 }

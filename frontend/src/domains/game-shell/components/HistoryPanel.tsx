@@ -10,38 +10,38 @@ import styles from "./HistoryPanel.module.css";
  */
 function describe(label: string): { icon: string; text: string } {
   const exact: Record<string, { icon: string; text: string }> = {
-    initial: { icon: "🎬", text: "Początek gry" },
-    "game:new": { icon: "✨", text: "Nowa gra" },
-    "move-units": { icon: "➡️", text: "Przeniesienie jednostek" },
-    "god-mode-patch": { icon: "🛠️", text: "Korekta God-Mode" },
-    replace: { icon: "🛠️", text: "Nadpisanie stanu" },
-    "turn:end": { icon: "⏭️", text: "Koniec tury" },
-    "turn:pass": { icon: "🏳️", text: "Pas" },
-    "phase:next": { icon: "🔄", text: "Następna faza" },
-    "round:next": { icon: "🔁", text: "Nowa runda" },
+    initial: { icon: "🎬", text: "Game start" },
+    "game:new": { icon: "✨", text: "New game" },
+    "move-units": { icon: "➡️", text: "Units moved" },
+    "god-mode-patch": { icon: "🛠️", text: "God-Mode correction" },
+    replace: { icon: "🛠️", text: "State overwritten" },
+    "turn:end": { icon: "⏭️", text: "End of turn" },
+    "turn:pass": { icon: "🏳️", text: "Pass" },
+    "phase:next": { icon: "🔄", text: "Next phase" },
+    "round:next": { icon: "🔁", text: "New round" },
   };
   if (label in exact) return exact[label];
 
   if (label.startsWith("setup:")) {
-    return { icon: "🧩", text: `Setup frakcji · ${label.slice(6)}` };
+    return { icon: "🧩", text: `Faction setup · ${label.slice(6)}` };
   }
   if (label.startsWith("player:")) {
-    return { icon: "👤", text: `Edycja gracza · ${label.slice(7)}` };
+    return { icon: "👤", text: `Player edit · ${label.slice(7)}` };
   }
   if (label.startsWith("edit:")) {
     const [, pos, zone] = label.split(":");
-    const where = zone === "space" ? "przestrzeń" : zone ? `planeta ${zone}` : "";
+    const where = zone === "space" ? "space" : zone ? `planet ${zone}` : "";
     return {
       icon: "✏️",
-      text: `Edycja jednostek · ${pos}${where ? ` (${where})` : ""}`,
+      text: `Unit edit · ${pos}${where ? ` (${where})` : ""}`,
     };
   }
   if (label.startsWith("space:")) {
-    return { icon: "🚀", text: `Jednostki w przestrzeni · ${label.slice(6)}` };
+    return { icon: "🚀", text: `Units in space · ${label.slice(6)}` };
   }
   if (label.startsWith("planet:")) {
     const [, pos, planet] = label.split(":");
-    return { icon: "🪐", text: `Jednostki na planecie · ${planet ?? pos}` };
+    return { icon: "🪐", text: `Units on planet · ${planet ?? pos}` };
   }
   return { icon: "•", text: label };
 }
@@ -64,7 +64,7 @@ export function HistoryPanel() {
   if (isError || !entries) {
     return (
       <Text size="sm" c="dimmed" className={styles.state}>
-        Nie udało się pobrać historii.
+        Failed to load history.
       </Text>
     );
   }
@@ -82,7 +82,7 @@ export function HistoryPanel() {
             className={styles.row}
             data-current={entry.is_current || undefined}
             onClick={() => void gotoHistory(entry.seq)}
-            title={`Wróć do: ${text}`}
+            title={`Go back to: ${text}`}
           >
             <span className={styles.dot}>
               {entry.is_current ? (

@@ -195,5 +195,5 @@ class EventStore:
             "SELECT state_json FROM snapshots WHERE seq = ?", (seq,)
         ).fetchone()
         if row is None:
-            raise KeyError(f"Brak migawki o seq={seq}")
+            raise KeyError(f"No snapshot with seq={seq}")
         return GameState.model_validate_json(row["state_json"])

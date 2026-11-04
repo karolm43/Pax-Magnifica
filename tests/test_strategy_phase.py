@@ -66,17 +66,17 @@ def test_pick_transfers_trade_goods_from_card(
 
 def test_pick_rejects_already_picked(registry: StaticDataRegistry) -> None:
     state = strategy_phase.pick_strategy_card(_state(), registry, "p1", 3)
-    with pytest.raises(ValueError, match="już wybrana"):
+    with pytest.raises(ValueError, match="already taken"):
         strategy_phase.pick_strategy_card(state, registry, "p2", 3)
 
 
 def test_pick_rejects_card_outside_set(registry: StaticDataRegistry) -> None:
-    with pytest.raises(ValueError, match="nie jest w zestawie"):
+    with pytest.raises(ValueError, match="not in the set"):
         strategy_phase.pick_strategy_card(_state(), registry, "p1", 9)
 
 
 def test_pick_rejects_unknown_player(registry: StaticDataRegistry) -> None:
-    with pytest.raises(ValueError, match="Nieznany gracz"):
+    with pytest.raises(ValueError, match="Unknown player"):
         strategy_phase.pick_strategy_card(_state(), registry, "ghost", 1)
 
 
@@ -94,7 +94,7 @@ def test_play_is_idempotent(registry: StaticDataRegistry) -> None:
 
 
 def test_play_rejects_card_not_owned(registry: StaticDataRegistry) -> None:
-    with pytest.raises(ValueError, match="nie posiada karty"):
+    with pytest.raises(ValueError, match="does not hold"):
         strategy_phase.play_strategy_card(_state(), "p1", 4)
 
 
@@ -261,21 +261,21 @@ def test_validate_canonical_te_set_is_complete() -> None:
 
 def test_validate_set_rejects_wrong_count() -> None:
     fake = _FakeRegistry([_card(i) for i in range(1, 8)])  # tylko 7 kart
-    with pytest.raises(ValueError, match="Niespójny zestaw kart"):
+    with pytest.raises(ValueError, match="Inconsistent card set"):
         strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
 
 
 def test_validate_set_rejects_initiative_out_of_range() -> None:
     cards = [_card(i) for i in range(1, 8)] + [_card(9)]  # 8 kart, ale 9 poza 1..8
     fake = _FakeRegistry(cards)
-    with pytest.raises(ValueError, match="poza zakresem"):
+    with pytest.raises(ValueError, match="outside range"):
         strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
 
 
 def test_validate_set_rejects_duplicate_initiative() -> None:
     cards = [_card(i) for i in range(1, 8)] + [_card(1)]  # 8 kart, duplikat 1
     fake = _FakeRegistry(cards)
-    with pytest.raises(ValueError, match="zduplikowane"):
+    with pytest.raises(ValueError, match="duplicate initiatives"):
         strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
 
 
@@ -296,7 +296,7 @@ def test_ensure_complete_rejects_seating_players_mismatch() -> None:
             "p3": PlayerState(player_id="p3", strategy_cards=[5, 6]),
         },
     )
-    with pytest.raises(ValueError, match="nie pokrywa się z graczami"):
+    with pytest.raises(ValueError, match="does not match the players"):
         strategy_phase.ensure_strategy_complete(state)
 
 
@@ -334,7 +334,7 @@ def test_accumulate_rejects_wrong_player_count(
             "p1": PlayerState(player_id="p1"),
         },
     )
-    with pytest.raises(ValueError, match="Nieprawidłowa liczba graczy"):
+    with pytest.raises(ValueError, match="Invalid number of players"):
         strategy_phase.accumulate_unpicked_tg(state, registry)
 
 
@@ -345,7 +345,7 @@ def test_accumulate_incomplete_pick_keeps_message(
     pozostaje bez zmian (kontrakt R7.5).
     """
     state = _state()  # 3 graczy, nikt nie wybrał kart
-    with pytest.raises(ValueError, match="faza strategii niezakończona"):
+    with pytest.raises(ValueError, match="strategy phase not completed"):
         strategy_phase.accumulate_unpicked_tg(state, registry)
 
 
@@ -371,5 +371,5 @@ def test_validate_set_rejects_missing_card_field() -> None:
     blank.name = ""  # brak nazwy — łamie komplet pól
     cards.append(blank)
     fake = _FakeRegistry(cards)
-    with pytest.raises(ValueError, match="brak pola nazwa"):
+    with pytest.raises(ValueError, match="missing name field"):
         strategy_phase.validate_strategy_card_set(fake)  # type: ignore[arg-type]
