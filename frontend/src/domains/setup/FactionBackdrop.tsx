@@ -428,60 +428,70 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
       );
       const target = paragraphs[Math.floor(Math.random() * paragraphs.length)];
       // Akapit „rwie się": przesunięcie z skosem, rozdwojenie kolorów i ucięte pasy.
+      // UWAGA: `easing` ustawiamy W KAŻDEJ KLATCE KLUCZOWEJ (skok skokowy do następnej).
+      // Opcja `easing` na poziomie animate() działa na cały przebieg i trzymałaby
+      // animację w pierwszej klatce aż do końca — efekt byłby niewidoczny.
+      const jump = "steps(1, end)";
       target?.animate(
         [
-          { transform: "none", clipPath: "inset(0 0 0 0)", offset: 0 },
+          { transform: "none", clipPath: "inset(0 0 0 0)", easing: jump, offset: 0 },
           {
-            transform: "translate(-5px, 0) skewX(-7deg)",
-            textShadow: "3px 0 #ff2a2a, -3px 0 #2ae0ff",
+            transform: "translate(-6px, 0) skewX(-8deg)",
+            textShadow: "4px 0 #ff2a2a, -4px 0 #2ae0ff",
             clipPath: "inset(8% 0 62% 0)",
-            offset: 0.2,
+            filter: "brightness(1.6)",
+            easing: jump,
+            offset: 0.15,
           },
           {
-            transform: "translate(6px, 1px) skewX(5deg)",
-            textShadow: "-3px 0 #ff2a2a, 3px 0 #2ae0ff",
+            transform: "translate(7px, 1px) skewX(6deg)",
+            textShadow: "-4px 0 #ff2a2a, 4px 0 #2ae0ff",
             clipPath: "inset(58% 0 6% 0)",
-            offset: 0.45,
+            filter: "brightness(0.6)",
+            easing: jump,
+            offset: 0.4,
           },
           {
-            transform: "translate(-2px, -1px)",
-            textShadow: "2px 0 #ff2a2a",
-            clipPath: "inset(0 0 0 0)",
-            offset: 0.7,
+            transform: "translate(-3px, -1px)",
+            textShadow: "3px 0 #ff2a2a",
+            clipPath: "inset(30% 0 30% 0)",
+            easing: jump,
+            offset: 0.65,
           },
           { transform: "none", clipPath: "inset(0 0 0 0)", offset: 1 },
         ],
-        { duration: 520, easing: "steps(1, end)" },
+        { duration: 600 },
       );
       // Czasem światło „przygasa" na ułamek sekundy.
-      if (Math.random() < 0.3) {
+      if (Math.random() < 0.4) {
         article.animate(
           [
-            { opacity: 1 },
-            { opacity: 0.15, offset: 0.18 },
-            { opacity: 1, offset: 0.3 },
-            { opacity: 0.45, offset: 0.5 },
-            { opacity: 1 },
+            { opacity: 1, easing: jump, offset: 0 },
+            { opacity: 0.1, easing: jump, offset: 0.18 },
+            { opacity: 1, easing: jump, offset: 0.3 },
+            { opacity: 0.4, easing: jump, offset: 0.5 },
+            { opacity: 1, offset: 1 },
           ],
-          { duration: 360, easing: "steps(1, end)" },
+          { duration: 420 },
         );
       }
-      // Czasem coś „przebija" przez tekst: krótki błysk frazy w losowym miejscu.
-      if (phrases.length > 0 && Math.random() < 0.5) {
+      // Często coś „przebija" przez tekst: krótki błysk frazy w losowym miejscu.
+      if (phrases.length > 0 && Math.random() < 0.65) {
         setFlash({
           text: phrases[Math.floor(Math.random() * phrases.length)],
           x: rand(2, 55),
           y: rand(8, 82),
           size: rand(2, 3.4),
         });
-        timers.push(window.setTimeout(() => setFlash(null), rand(120, 260)));
+        timers.push(window.setTimeout(() => setFlash(null), rand(160, 340)));
       }
       schedule();
     };
 
     const schedule = (first = false) => {
-      // Pierwszy glitch dopiero, gdy lore się w pełni odsłoni (wejście trwa ok. 9 s).
-      timers.push(window.setTimeout(fire, first ? rand(10000, 14000) : rand(3500, 9500)));
+      // Pierwszy glitch krótko po odsłonięciu lore (wejście trwa ok. 6–10 s), potem co
+      // kilka sekund.
+      timers.push(window.setTimeout(fire, first ? rand(6000, 9000) : rand(2500, 6500)));
     };
     schedule(true);
 
