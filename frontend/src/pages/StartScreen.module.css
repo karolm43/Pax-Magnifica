@@ -118,6 +118,15 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/*
+ * Krok pełnoekranowy (scena wyboru frakcji): kontener nie przewija, nie ma paddingu —
+ * scena sama wypełnia dokładnie jeden ekran.
+ */
+.setupScreenStage {
+  padding: 0;
+  overflow: hidden;
+}
+
 /* ── Ekran tytułowy (menu główne) ─────────────────────────────────────── */
 
 .menuScreen {

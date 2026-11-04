@@ -12,15 +12,35 @@
 // Komponent jest „cienki": nie trzyma własnego stanu konfiguracji ani nie duplikuje
 // reguł walidacji z `useSetupStore.ts` — czyta sloty i woła akcje store'a.
 
-import { Group, Paper, SimpleGrid, Stack, Text, TextInput, UnstyledButton } from "@/ds";
+import {
+  Alert,
+  Group,
+  Loader,
+  Paper,
+  SegmentedControl,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  UnstyledButton,
+} from "@/ds";
+import { useEngineConfig } from "@/api/useNewGame";
 import type { SetupStepProps } from "../SetupWizard";
 import {
   AVAILABLE_COLORS,
   MAX_NAME_LENGTH,
+  type ControlType,
   type PlayerColor,
   type SetupSlot,
   useSetupStore,
 } from "../useSetupStore";
+
+/** Dozwolone wartości przełącznika sterowania (R10.1) — odwzorowują `ControlType`. */
+const CONTROL_OPTIONS: { label: string; value: ControlType }[] = [
+  { label: "Człowiek", value: "HUMAN" },
+  { label: "Bot", value: "BOT" },
+];
 
 /** Mapa nazw kolorów (id ze zbioru) na kod CSS dla próbek — tylko prezentacja. */
 const COLOR_SWATCH: Record<PlayerColor, string> = {
@@ -73,8 +93,18 @@ function SlotRow({
   slots: SetupSlot[];
 }) {
   const updateSlot = useSetupStore((s) => s.updateSlot);
+  const setControlType = useSetupStore((s) => s.setControlType);
   const nameError = slotNameError(slot, index, slots);
   const colorDuplicate = isColorDuplicate(slot, index, slots);
+
+  // Dozwolony zbiór trudności botów pochodzi z backendu (`/engine/config`) — zero
+  // hardkodowania konfiguracji silnika na froncie.
+  const { data: engineConfig, isLoading, isError } = useEngineConfig();
+  const difficulties = engineConfig?.valid_difficulties ?? [];
+  const isBot = slot.controlType === "BOT";
+  // Dla bota trudność jest wymagana (R10.2); puste pole = błąd (spina się z blokadą „Dalej").
+  const difficultyError =
+    isBot && !slot.difficulty ? "Wybierz poziom trudności bota." : undefined;
 
   return (
     <Paper radius="md" withBorder p="md">
@@ -129,6 +159,40 @@ function SlotRow({
             </Text>
           ) : null}
         </Stack>
+
+        {/* Sterowanie: człowiek / bot. Zmiana na HUMAN czyści trudność (R10.4). */}
+        <Stack gap={4}>
+          <Text size="sm" fw={500}>
+            Sterowanie
+          </Text>
+          <SegmentedControl
+            aria-label={`Typ sterowania gracza ${index + 1}`}
+            data={CONTROL_OPTIONS}
+            value={slot.controlType}
+            onChange={(value) => setControlType(index, value as ControlType)}
+          />
+        </Stack>
+
+        {/* Trudność tylko dla bota (przy HUMAN ukryta — R10.2). */}
+        {isBot &&
+          (isLoading ? (
+            <Loader size="sm" />
+          ) : isError ? (
+            <Alert color="red" title="Nie udało się pobrać poziomów trudności">
+              Spróbuj ponownie — bez dozwolonego zbioru nie można ustawić bota.
+            </Alert>
+          ) : (
+            <Select
+              aria-label={`Poziom trudności bota gracza ${index + 1}`}
+              label="Poziom trudności"
+              placeholder="Wybierz poziom"
+              data={difficulties}
+              value={slot.difficulty}
+              onChange={(value) => updateSlot(index, { difficulty: value ?? null })}
+              error={difficultyError}
+              required
+            />
+          ))}
       </Stack>
     </Paper>
   );
@@ -145,8 +209,9 @@ export default function Step_NameColor(_props: SetupStepProps) {
   return (
     <Stack gap="md">
       <Text size="sm" c="dimmed">
-        Nadaj nazwę i kolor każdemu graczowi. Puste pole nazwy zostanie uzupełnione
-        automatycznie. Kolory i nazwy muszą być unikalne.
+        Nadaj nazwę i kolor każdemu graczowi oraz wybierz, czy steruje nim człowiek,
+        czy bot (dla bota także poziom trudności). Puste pole nazwy zostanie
+        uzupełnione automatycznie. Kolory i nazwy muszą być unikalne.
       </Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
         {slots.map((slot, index) => (

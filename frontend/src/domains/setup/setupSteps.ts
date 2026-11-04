@@ -13,7 +13,7 @@
  * Identyfikatory kroków setupu. Zbiór jest rozszerzalny — gdy dojdzie draft slice,
  * dopisujemy tu kolejny wariant (np. "slice-draft") bez naruszania pozostałych.
  */
-export type SetupStepId = "name-color" | "faction" | "control";
+export type SetupStepId = "name-color" | "faction";
 
 /**
  * Konfiguracja pojedynczego slotu gracza w setupie.
@@ -46,16 +46,17 @@ export interface SetupStepDef {
 }
 
 /**
- * Domyślna sekwencja kroków setupu, posortowana rosnąco po `order` (1..4).
+ * Domyślna sekwencja kroków setupu, posortowana rosnąco po `order` (1..2).
  *
- * Kolejność: nazwa + kolor → frakcja (wraz z wyborem technologii startowych,
- * wbudowanym w panel podglądu frakcji) → człowiek/bot + trudność. Dawny osobny krok
- * „Technologie startowe" został scalony z krokiem frakcji (wybór w faction summary).
+ * Kolejność: nazwa + kolor + sterowanie (człowiek/bot + trudność) → frakcja (wraz
+ * z wyborem technologii startowej, wbudowanym w panel podglądu frakcji — pełnoekranowa
+ * scena wyboru). Dawny osobny krok „Technologie startowe" został scalony z krokiem
+ * frakcji (wybór w faction summary); dawny osobny krok „Człowiek/bot" został scalony
+ * z krokiem nazwy i koloru (jeden panel na gracza).
  */
 export const SETUP_STEPS: SetupStepDef[] = [
-  { id: "name-color", order: 1, label: "Nazwa i kolor" },
+  { id: "name-color", order: 1, label: "Gracze" },
   { id: "faction", order: 2, label: "Frakcja i technologie startowe" },
-  { id: "control", order: 3, label: "Człowiek / bot" },
 ];
 
 /**

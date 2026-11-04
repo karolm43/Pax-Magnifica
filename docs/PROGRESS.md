@@ -21,6 +21,49 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Wybór frakcji (setup) — iteracja 5: scena pełnoekranowa + sterowanie w kroku 1 (ukończone)
+
+**Cel (uwaga użytkownika):** portret i lore mają tworzyć JEDNĄ kompozycję (lore nałożone
+na portret, nie osobny wysuwany panel), krok wyboru frakcji ma zajmować cały ekran, a
+przełącznik „człowiek/bot" przenosi się do kroku nazwy/koloru (krok „Człowiek/bot" znika).
+
+**Co zrobione:**
+- `SETUP_STEPS` ma teraz 2 kroki: `name-color` (nazwa + kolor + sterowanie) i `faction`
+  (scena pełnoekranowa). Usunięty `Step_Control.tsx`; `Step_NameColor.tsx` dostał
+  `SegmentedControl` HUMAN/BOT + `Select` trudności (przeniesione 1:1, z `useEngineConfig`).
+  Walidacja `validateControl` przeniesiona do `validateStep("name-color")` w `useSetupStore.ts`.
+- `SetupWizard.tsx`: nowy typ `StageActions` i zbiór `STAGE_STEP_IDS` — krok „faction" jest
+  renderowany BEZ ramki kreatora (`Paper`), komponent kroku dostaje własne akcje nawigacji
+  (`onBack`, `onSubmit`, `canSubmit`, `message`) i sam rysuje pasek górny.
+- `StartScreen.tsx`: w kroku scenicznym kontener `.setupScreen` traci padding/scroll
+  (`.setupScreenStage`) i nie renderuje panelu/przycisku „← Menu główne" — scena zajmuje
+  cały ekran.
+- Nowy `FactionBackdrop.tsx` (+ `.module.css`) zastępuje `LoreDrawer`/`LorePanel`: portret
+  (`FactionPortraitLayer`) stoi maksymalnie przy LEWEJ krawędzi ekranu (tło sceny, ~62%
+  szerokości, `object-position: left bottom`), a `FactionLore` nakłada tekst na jego dolną
+  część przez gradientowy „scrim" (bez osobnego boxa) — DWIE kolumny (`column-count: 2`),
+  mała czcionka (`clamp(10.5px, 0.72vw, 13px)`), żeby lore zmieściło się bez przewijania.
+  Nagłówek lore i śródtytuły: krój Ambroise Firmin (jak logo menu); treść: szeryfowy stack.
+- `Step_Faction.tsx` przepisany na scenę: pasek górny (Wstecz · przełącznik graczy ·
+  Start gry) + trzy warstwy w `.content` — portret+lore (tło, `position:absolute`),
+  `FactionSummary` na szkle (`backdrop-filter: blur`) pośrodku, pionowa lista frakcji
+  z wyszukiwarką po prawej (sam KLIK zmienia podgląd — bez hover-popoverów, zgodnie z
+  gotchą „karta zostaje na hover"). Zmiana frakcji odtwarza animacje wejścia (`key` na
+  warstwach portretu/lore/detail): portret wjeżdża z lewej (`translateX`), lore i sekcje
+  `FactionSummary` wchodzą kaskadowo (`animation-delay` z indeksu bloku/sekcji).
+  `prefers-reduced-motion` redukuje wszystko do samego fade.
+- `FactionSummary.tsx`/`.module.css`: usunięty `LorePanel`/`LeaderPortrait`/`LoreBlocks`
+  (przeniesione do `FactionBackdrop.tsx`); nagłówek stracił cytat (przeniesiony do lore na
+  scenie); sekcje dostały kaskadowe wejście (`.sections > :nth-child(n)`).
+
+**QA:** front tsc + eslint + build czyste (`npm run build` ok, chunk >500kB to istniejące
+ostrzeżenie niezwiązane ze zmianą). Brak testów jednostkowych frontu do uruchomienia.
+
+**Otwarte (do ustalenia z userem później):** tło sceny (`main_menu.jpg` przyciemnione) —
+user zaznaczył, że może się zmienić; pozycja portretu (max-lewo) też może się przesunąć.
+
+---
+
 ### ✅ Wybór frakcji (setup) — iteracja 4: wysuwany panel „postać + lore" (ukończone)
 
 **Cel (uwaga użytkownika):** nagłówek panelu ma wrócić do prostego (ikona + nazwa +

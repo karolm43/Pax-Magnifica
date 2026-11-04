@@ -1,24 +1,81 @@
 /*
- * Układ kroku wyboru frakcji (master-detail): pasek graczy + galeria + summary.
+ * Scena pełnoekranowa wyboru frakcji. Jedna kompozycja: duży portret po LEWEJ
+ * krawędzi ekranu z lore nałożonym na niego (dwie kolumny), panel szczegółów
+ * (FactionSummary) na szkle pośrodku i lista frakcji po prawej. Pasek graczy i
+ * akcje (Wstecz / Start gry) pozostają w pasku górnym na każdym kroku.
+ *
  * Tokeny DS (ds/tokens.css); akcent zaznaczenia = niebieski DS (sygnał interakcji),
  * ciepły bursztyn TI4 jako drugorzędne wyróżnienie (gracz-aktywny / podgląd).
  */
 
-/* ── Pasek graczy (przełącznik) ───────────────────────────────────────── */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(
+      ellipse 120% 80% at 50% -10%,
+      rgb(252 162 43 / 0.08),
+      transparent 60%
+    ),
+    linear-gradient(rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.72)),
+    url("/static/extra/main_menu.jpg") center / cover no-repeat,
+    var(--ds-page);
+}
+
+/* ── Pasek górny: Wstecz · pasek graczy · Start gry ───────────────────── */
+
+.topBar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-md);
+  padding: var(--ds-space-sm) var(--ds-space-lg);
+  background: color-mix(in oklab, var(--ds-ground) 70%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.backButton {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-ink-lo);
+  font-size: var(--ds-fz-sm);
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.backButton:hover,
+.backButton:focus-visible {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h22);
+  outline: none;
+}
 
 .playerBar {
+  flex: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
 }
 
 .playerTab {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 120px;
-  flex: 1 1 120px;
-  padding: 6px 10px;
+  min-width: 100px;
+  flex: 1 1 100px;
+  padding: 5px 8px;
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
   background: var(--ds-socket);
@@ -41,7 +98,7 @@
 }
 
 .playerTabHead {
-  font-size: var(--ds-fz-xs);
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ds-ink-lo);
@@ -58,165 +115,154 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--ds-fz-sm);
+  font-size: var(--ds-fz-xs);
   color: var(--ds-ink-hi);
 }
 
 .randomDot {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
 }
 
-/* ── Układ: galeria | panel szczegółów | kolumna postaci (pełny ekran) ─── */
+.submitButton {
+  flex-shrink: 0;
+}
 
-/*
- * Trzy kolumny wykorzystujące całą szerokość okna: galeria (rośnie) | panel szczegółów
- * (nazwa/umiejętności/dane) | kolumna POSTACI (duży portret + lore). Kolumna postaci
- * pojawia się, gdy jakaś frakcja jest podglądana.
- */
-.layout {
+.topMessage {
+  flex-shrink: 0;
+  max-width: 320px;
+  font-size: var(--ds-fz-xs);
+}
+
+/* ── Zawartość sceny: portret+lore (tło) | detail (szkło) | lista (prawo) ─ */
+
+.content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   display: flex;
-  gap: var(--ds-space-xl);
-  align-items: flex-start;
+  align-items: stretch;
 }
 
-.gallery {
-  flex: 1 1 320px;
-  min-width: 0;
+/* Portret i lore leżą w tym samym warstwowym bloku po lewej — jedna kompozycja. */
+.backdropWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  padding: 0 0 6vh;
 }
 
+.loreSlot {
+  grid-column: 1;
+  align-self: end;
+  max-height: 86%;
+  max-width: 620px;
+  margin-left: clamp(16px, 4vw, 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Panel szczegółów (FactionSummary) — szkło pośrodku, nad portretem. */
 .detail {
-  flex: 1 1 440px;
+  position: relative;
+  z-index: 2;
+  flex: 1 1 480px;
   min-width: 0;
-}
-
-/* Kolumna postaci — szeroka, przyklejona do góry, własny scroll przy długim lore. */
-.characterCol {
-  flex: 1 1 460px;
-  min-width: 0;
-  position: sticky;
-  top: var(--ds-space-sm);
-  align-self: flex-start;
-  max-height: calc(100vh - 2 * var(--ds-space-lg));
+  margin-left: min(34vw, 560px);
+  padding: var(--ds-space-lg) var(--ds-space-lg) 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: color-mix(in oklab, var(--ds-ground) 55%, transparent);
+  backdrop-filter: blur(10px);
+  border-left: 1px solid var(--ds-h10);
+  border-right: 1px solid var(--ds-h10);
 }
 
-@media (max-width: 1200px) {
-  .layout {
-    flex-wrap: wrap;
-  }
-  .gallery,
-  .detail,
-  .characterCol {
-    flex: 1 1 100%;
-  }
-  .detail,
-  .characterCol {
-    position: static;
-    max-height: none;
-    overflow: visible;
-  }
-}
-
-/* ── Galeria (master) ─────────────────────────────────────────────────── */
-
+/* Lista frakcji (prawo) — pionowa, własny scroll, bez hover-podglądu. */
 .gallery {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 300px;
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-sm);
-  min-width: 0;
+  padding: var(--ds-space-lg);
+  background: color-mix(in oklab, var(--ds-ground) 78%, transparent);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 8px;
-  max-height: 460px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 2px;
-}
-
-.card {
-  position: relative;
+.list {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.item {
+  display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  min-height: 92px;
-  padding: 10px 6px;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
   background: var(--ds-socket);
   color: var(--ds-ink);
+  text-align: left;
   cursor: pointer;
   transition:
     border-color var(--ds-dur-fast) var(--ds-ease-standard),
-    background var(--ds-dur-fast) var(--ds-ease-standard),
-    transform var(--ds-dur-fast) var(--ds-ease-standard);
+    background var(--ds-dur-fast) var(--ds-ease-standard);
 }
 
-.card:hover {
+.item:hover {
   border-color: var(--ds-h22);
   background: var(--ds-ground);
-  transform: translateY(-1px);
 }
 
-.card:focus-visible {
+.item:focus-visible {
   outline: none;
   border-color: var(--ds-accent);
 }
 
-/* Oglądana frakcja (podgląd w summary) — ciepły akcent TI4. */
-.cardPreview {
+/* Oglądana (podgląd w summary) — ciepły akcent TI4. */
+.itemPreview {
   border-color: rgb(252 162 43);
   box-shadow: inset 0 0 0 1px rgb(252 162 43 / 0.4);
 }
 
-/* Frakcja przypisana AKTYWNEMU graczowi — niebieski sygnał zaznaczenia. */
-.cardSelected {
+/* Przypisana aktywnemu graczowi — niebieski sygnał zaznaczenia. */
+.itemSelected {
   border-color: var(--ds-accent);
   background: rgb(var(--ds-accent-rgb) / 0.14);
   color: var(--ds-ink-hi);
 }
 
-/* Frakcja wzięta przez innego gracza — przygaszona (można nadpisać). */
-.cardTaken {
+.itemTaken {
   opacity: 0.55;
 }
 
-.cardName {
-  font-size: var(--ds-fz-sm);
-  text-align: center;
-  line-height: 1.15;
+.itemName {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
+  font-size: var(--ds-fz-sm);
 }
 
-.randomCard {
-  min-height: 92px;
-}
-
-.randomIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  font-size: 22px;
-}
-
-/* Znaczniki w rogu kafla. */
 .badgeSelected,
 .badgeTaken {
-  position: absolute;
-  top: 4px;
-  right: 4px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -239,30 +285,33 @@
   color: var(--ds-ink-lo);
 }
 
-/* ── Detail (summary) ─────────────────────────────────────────────────── */
-
-/*
- * Panel szczegółów: przyklejony do góry viewportu, z WŁASNYM przewijaniem ograniczonym
- * do wysokości okna (minus margines). Dzięki temu panel NIE wychodzi poza ekran, nawet
- * gdy summary jest wysokie (lore, liderzy, flota) — to naprawia „wychodzi poza okno".
- */
-.detail {
-  position: sticky;
-  top: var(--ds-space-sm);
-  max-height: calc(100vh - 2 * var(--ds-space-lg));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  /* Mniej „boxa": tylko cienka linia oddzielająca od kolumny postaci, bez tła/ramki. */
-  padding: 0 var(--ds-space-lg) 0 0;
-  border-right: 1px solid var(--ds-h10);
+.randomDot2 {
+  font-size: 16px;
+  line-height: 1;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@media (max-width: 1200px) {
+.footer {
+  padding-top: var(--ds-space-sm);
+}
+
+@media (max-width: 1100px) {
+  .backdropWrap {
+    display: none;
+  }
   .detail {
-    position: static;
-    max-height: none;
-    overflow: visible;
-    padding: 0;
-    border-right: none;
+    margin-left: 0;
+    background: var(--ds-ground);
+    backdrop-filter: none;
+  }
+  .content {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .gallery {
+    flex: 0 0 auto;
   }
 }

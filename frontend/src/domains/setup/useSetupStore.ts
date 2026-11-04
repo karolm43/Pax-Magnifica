@@ -295,15 +295,16 @@ export function validateStep(
 ): string | null {
   switch (stepId) {
     case "name-color":
-      return validateNames(slots) ?? validateColors(slots);
+      // Krok „Gracze": nazwa, kolor ORAZ sterowanie (człowiek/bot + trudność bota).
+      return (
+        validateNames(slots) ?? validateColors(slots) ?? validateControl(slots)
+      );
     case "faction":
       // Wybór technologii startowych jest teraz wbudowany w krok frakcji (panel
       // podglądu), więc tu walidujemy i frakcje, i komplet technologii startowych.
       return (
         validateFactions(slots) ?? validateStartingTech(slots, factionById)
       );
-    case "control":
-      return validateControl(slots);
     default:
       return null;
   }

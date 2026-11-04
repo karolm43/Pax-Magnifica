@@ -1,14 +1,12 @@
 // Podgląd wybranej frakcji na ekranie setupu (faction summary).
 //
-// Panel główny: prosty nagłówek (lokalna ikona frakcji + nazwa + cytat + złożoność) oraz
+// Panel środkowy sceny: prosty nagłówek (lokalna ikona frakcji + nazwa + złożoność) oraz
 // bogate dane — zdolności, przełom (breakthrough), technologie frakcyjne, liderzy, weksel,
 // WSZYSTKIE jednostki frakcyjne, dane startu z PEŁNYMI nazwami i planety z resource/influence.
 //
-// Portret POSTACI + lore żyją w OSOBNYM komponencie `LorePanel`, renderowanym przez
-// `Step_Faction` jako WYSUWANA kolumna obok panelu (styl „wybór frakcji w grze", np.
-// Endless Legend: duży portret jako tło + nazwa na dole + lore pod spodem). `FactionSummary`
-// steruje tylko przełącznikiem (`onToggleLore`) i zgłasza, KTÓRĄ frakcję pokazać w panelu
-// lore (`onActiveFactionChange`) — bo widok pochodnej (Obsidian) zmienia aktywną frakcję.
+// Portret POSTACI + lore żyją w `FactionBackdrop.tsx` (warstwy sceny rysowane przez
+// `Step_Faction`). `FactionSummary` zgłasza tylko, KTÓRĄ frakcję pokazać na scenie
+// (`onActiveFactionChange`) — bo widok pochodnej (Obsidian) zmienia aktywną frakcję.
 //
 // Edge-case Firmament → Obsidian: Obsidian to „druga frakcja" Firmamentu (rozwinięcie),
 // niewybieralna przy setupie, ale wchodząca do gry przez akcję Firmamentu. Dla Firmamentu
@@ -19,9 +17,9 @@
 // `Breakthrough`, `UnitDetailsCard`) — identyfikatory rozwiązywane po danych AsyncTI4,
 // spójnie z grą. Działa na etapie setupu (hooki stanu gry degradują do undefined).
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, MultiSelect, Stack, Text } from "@/ds";
-import { IconArrowLeft, IconBook, IconChevronRight } from "@tabler/icons-react";
+import { IconArrowLeft, IconChevronRight } from "@tabler/icons-react";
 import { type FactionInfo, useFaction } from "@/api/useNewGame";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { Ability } from "@/domains/player/components/Ability";
@@ -37,11 +35,6 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import { getTechData } from "@/entities/lookup/tech";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { useDisclosure } from "@/hooks/useDisclosure";
-import {
-  defaultPortraitCandidates,
-  getFactionLore,
-  loreToBlocks,
-} from "./factionLore";
 import styles from "./FactionSummary.module.css";
 
 /** Kolejność slotów liderów — jak w panelu gracza (agent → commander → hero). */
@@ -79,152 +72,6 @@ function Section({
     <div className={styles.section}>
       <Text className={styles.sectionTitle}>{title}</Text>
       <div className={styles.sectionBody}>{children}</div>
-    </div>
-  );
-}
-
-/** Id lidera-bohatera (hero) frakcji — do domyślnego portretu, gdy brak własnego pliku. */
-function heroLeaderId(faction: FactionInfo): string | undefined {
-  return faction.leaders.find((id) => getLeaderById(id)?.type === "hero");
-}
-
-/**
- * Duży portret postaci do panelu lore. Łańcuch źródeł LOKALNYCH (pierwsze istniejące):
- *   1. własny plik gracza `/faction_portraits/<id>.{png,jpg,jpeg,webp}` (lub `lore.portrait`),
- *   2. portret BOHATERA frakcji `/leaders/<heroId>.webp`,
- *   3. lokalna ikona frakcji `/static/factions/<id>.png` (placeholder).
- * Bez zewnętrznego CDN. Degraduje bez błędu (onError → następne źródło).
- */
-function LeaderPortrait({ faction }: { faction: FactionInfo }) {
-  const lore = getFactionLore(faction.id);
-  const candidates = useMemo(() => {
-    const own = lore?.portrait
-      ? [lore.portrait]
-      : defaultPortraitCandidates(faction.id);
-    const hero = heroLeaderId(faction);
-    return [
-      ...own,
-      ...(hero ? [`/leaders/${hero}.webp`] : []),
-      `/static/factions/${faction.id}.png`,
-    ];
-  }, [faction, lore?.portrait]);
-
-  const [index, setIndex] = useState(0);
-  // Reset źródła przy zmianie frakcji (inaczej zostałby wyczerpany index).
-  useEffect(() => setIndex(0), [candidates]);
-  const exhausted = index >= candidates.length;
-
-  if (exhausted) {
-    return (
-      <div className={styles.portraitFallback}>
-        <Text size="xs" c="dimmed" ta="center">
-          Brak portretu — dodaj plik do /faction_portraits/{faction.id}.png
-        </Text>
-      </div>
-    );
-  }
-  return (
-    <img
-      key={candidates[index]}
-      src={candidates[index]}
-      alt={`Portret: ${faction.name}`}
-      className={styles.portrait}
-      onError={() => setIndex((i) => i + 1)}
-    />
-  );
-}
-
-/** Renderuje lore jako bloki (akapit / śródtytuł / cytat) z własnymi stylami. */
-function LoreBlocks({ faction }: { faction: FactionInfo }) {
-  const blocks = loreToBlocks(getFactionLore(faction.id)?.lore);
-  if (blocks.length === 0) {
-    return (
-      <Text size="sm" c="dimmed">
-        Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
-      </Text>
-    );
-  }
-  return (
-    <div className={styles.lore}>
-      {blocks.map((block, i) => {
-        if (block.kind === "heading") {
-          return (
-            <h4 key={i} className={styles.loreHeading}>
-              {block.text}
-            </h4>
-          );
-        }
-        if (block.kind === "quote") {
-          return (
-            <blockquote key={i} className={styles.loreQuote}>
-              {block.text}
-            </blockquote>
-          );
-        }
-        return (
-          <p key={i} className={styles.loreParagraph}>
-            {block.text}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
-/**
- * Kolumna „postać" (prawa, styl wyboru frakcji w grze): DUŻY portret PNG bez tła,
- * wtopiony w stronę (brak ramki/boxa) — stoi na wspólnym tle z poświatą. Pod nazwą
- * przycisk „Pokaż / Ukryj lore"; lore jest DOMYŚLNIE UKRYTE i rozwija się pod portretem.
- * Portret pojawia się z animacją przy KAŻDEJ zmianie frakcji (`key` resetuje animację).
- */
-export function LorePanel({
-  faction,
-  loreOpen = false,
-  onToggleLore,
-}: {
-  faction: FactionInfo | null;
-  loreOpen?: boolean;
-  onToggleLore?: () => void;
-}) {
-  if (!faction) return null;
-  const quote = getFactionLore(faction.id)?.quote;
-  const hasLore = loreToBlocks(getFactionLore(faction.id)?.lore).length > 0;
-  return (
-    <div className={styles.character} key={faction.id}>
-      {/* Duży portret PNG (przezroczyste tło) wtopiony w poświatę — bez boxa. */}
-      <div className={styles.portraitStage}>
-        <LeaderPortrait faction={faction} />
-      </div>
-
-      <div className={styles.characterCaption}>
-        <Text className={styles.characterName}>{faction.name}</Text>
-        {quote && <p className={styles.characterQuote}>„{quote}”</p>}
-        {onToggleLore && (
-          <Button
-            variant="subtle"
-            size="xs"
-            leftSection={<IconBook size={14} />}
-            onClick={onToggleLore}
-            className={styles.loreToggle}
-          >
-            {loreOpen ? "Ukryj lore" : "Pokaż lore"}
-          </Button>
-        )}
-      </div>
-
-      {/* Lore — domyślnie ukryte; rozwija się pod portretem. */}
-      <div
-        className={`${styles.loreReveal} ${loreOpen ? styles.loreRevealOpen : ""}`}
-        aria-hidden={!loreOpen}
-      >
-        {hasLore ? (
-          <LoreBlocks faction={faction} />
-        ) : (
-          <Text size="sm" c="dimmed">
-            Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
-          </Text>
-        )}
-      </div>
     </div>
   );
 }
@@ -336,8 +183,8 @@ export interface FactionSummaryProps {
     onChange: (techs: string[]) => void;
   };
   /**
-   * Zgłasza, KTÓRĄ frakcję pokazywać w kolumnie postaci/lore (zmienia się przy
-   * wejściu/wyjściu w podgląd pochodnej — Obsidian). `Step_Faction` renderuje `LorePanel`.
+   * Zgłasza, KTÓRĄ frakcję pokazywać na scenie (portret + lore) — zmienia się przy
+   * wejściu/wyjściu w podgląd pochodnej (Obsidian). `Step_Faction` renderuje warstwy.
    */
   onActiveFactionChange?: (faction: FactionInfo | null) => void;
 }
@@ -375,8 +222,8 @@ export function FactionSummary({
     return (
       <div className={styles.emptyState}>
         <Text c="dimmed" ta="center">
-          Kliknij frakcję z galerii, aby zobaczyć jej zdolności, technologie, liderów
-          i jednostki. Przycisk „Postać i lore" wysunie panel z portretem.
+          Kliknij frakcję na liście, aby zobaczyć jej portret, lore, zdolności,
+          technologie, liderów i jednostki.
         </Text>
       </div>
     );
@@ -471,11 +318,6 @@ function SummaryBody({
         />
         <div className={styles.headerText}>
           <Text className={styles.factionName}>{faction.name}</Text>
-          {getFactionLore(faction.id)?.quote && (
-            <Text className={styles.headerQuote}>
-              „{getFactionLore(faction.id)?.quote}”
-            </Text>
-          )}
           {faction.complexity && (
             <Text className={styles.complexity}>
               Złożoność: {faction.complexity}
@@ -496,7 +338,8 @@ function SummaryBody({
         )}
       </div>
 
-      <Stack gap="md" className={styles.sections}>
+      {/* `key` odtwarza kaskadowe pojawianie się sekcji przy każdej zmianie frakcji. */}
+      <Stack gap="md" className={styles.sections} key={`sections-${faction.id}`}>
         {faction.abilities.length > 0 && (
           <Section title="Zdolności frakcji">
             <div className={styles.chipRow}>

@@ -100,14 +100,6 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* Cytat frakcji — pod nazwą, kursywa, ciepły akcent. */
-.headerQuote {
-  font-style: italic;
-  font-size: var(--ds-fz-sm);
-  line-height: 1.35;
-  color: var(--ds-ink);
-}
-
 .complexity {
   font-size: var(--ds-fz-xs);
   color: var(--ds-ink-lo);
@@ -119,159 +111,6 @@
   align-self: flex-start;
   margin-bottom: var(--ds-space-sm);
 }
-
-/* ── Kolumna POSTACI: duży portret PNG wtopiony w tło + lore ───────────── */
-
-/*
- * Bez boxa/ramki — postać „stoi" na wspólnym tle strony. Delikatna poświata (radial)
- * za postacią osadza przezroczysty PNG w kadrze, zamiast kłaść go na płaskim polu.
- */
-.character {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--ds-space-sm);
-  min-width: 0;
-}
-
-/* Scena portretu: poświata za postacią + animacja pojawienia (fade + slide-up). */
-.portraitStage {
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding-top: var(--ds-space-md);
-  animation: characterEnter 0.45s var(--ds-ease, ease) both;
-}
-
-/* Miękka poświata w cieple TI4 za postacią (osadza PNG w tle). */
-.portraitStage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 60% 55% at 50% 42%,
-    rgb(252 162 43 / 0.16),
-    transparent 70%
-  );
-}
-
-@keyframes characterEnter {
-  from {
-    opacity: 0;
-    transform: translateY(22px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .portraitStage {
-    animation: characterEnterRM 0.3s ease both;
-  }
-  @keyframes characterEnterRM {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-}
-
-/*
- * Duży portret PNG BEZ TŁA — żadnej ramki/boxa. `object-fit: contain`, by zachować
- * proporcje postaci; cień u dołu „osadza" ją na tle. Wysoki (dominuje kolumnę).
- */
-.portrait {
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  max-height: 72vh;
-  height: auto;
-  object-fit: contain;
-  object-position: bottom center;
-  filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.55));
-}
-
-/* Placeholder (brak pliku) — bez ramki, sama podpowiedź. */
-.portraitFallback {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 220px;
-  padding: var(--ds-space-lg);
-}
-
-/* Podpis pod postacią: nazwa + cytat + przełącznik lore. */
-.characterCaption {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-  max-width: 540px;
-}
-
-.characterName {
-  font-family: var(--ds-font-display);
-  font-size: var(--ds-fz-xl);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #f24a21, #fca22b, #ffd34a);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.characterQuote {
-  margin: 0;
-  font-style: italic;
-  font-size: var(--ds-fz-sm);
-  line-height: 1.4;
-  color: var(--ds-ink);
-}
-
-.loreToggle {
-  margin-top: 2px;
-}
-
-/* Lore — domyślnie ukryte (max-height 0), rozwija się płynnie w dół. */
-.loreReveal {
-  width: 100%;
-  max-width: 560px;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition:
-    max-height var(--ds-dur-slow, 0.3s) var(--ds-ease-standard),
-    opacity var(--ds-dur-slow, 0.3s) var(--ds-ease-standard);
-}
-
-.loreRevealOpen {
-  max-height: 2000px;
-  opacity: 1;
-  margin-top: var(--ds-space-xs);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .loreReveal {
-    transition: opacity var(--ds-dur, 0.2s) ease;
-  }
-}
-
-
 
 /* ── Sekcje ───────────────────────────────────────────────────────────── */
 
@@ -285,6 +124,34 @@
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-xs);
+  /* Kaskadowe pojawianie się sekcji po wyborze frakcji (opóźnienie z kolejności). */
+  animation: sectionIn 0.5s var(--ds-ease, ease) both;
+}
+
+.sections > :nth-child(1) { animation-delay: 0.18s; }
+.sections > :nth-child(2) { animation-delay: 0.26s; }
+.sections > :nth-child(3) { animation-delay: 0.34s; }
+.sections > :nth-child(4) { animation-delay: 0.42s; }
+.sections > :nth-child(5) { animation-delay: 0.5s; }
+.sections > :nth-child(6) { animation-delay: 0.58s; }
+.sections > :nth-child(n + 7) { animation-delay: 0.66s; }
+
+@keyframes sectionIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section {
+    animation: summaryFadeInRM 0.25s ease both;
+    animation-delay: 0s !important;
+  }
 }
 
 .sectionTitle {
@@ -301,45 +168,7 @@
   gap: var(--ds-space-xs);
 }
 
-/* ── Lore (długi tekst) ───────────────────────────────────────────────── */
-
-/* Kontener lore w drawerze — bloki (akapit/śródtytuł/cytat) jeden pod drugim. */
-.lore {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ds-space-sm);
-  color: var(--ds-ink);
-}
-
-/* Blok: zwykły akapit lore. */
-.loreParagraph {
-  margin: 0;
-  font-size: var(--ds-fz-sm);
-  line-height: 1.6;
-}
-
-/* Blok: śródtytuł sekcji lore. */
-.loreHeading {
-  margin: var(--ds-space-xs) 0 0;
-  font-family: var(--ds-font-display);
-  font-size: var(--ds-fz-md);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--ds-ink-hi);
-}
-
-/* Blok: wyróżniony cytat w lore. */
-.loreQuote {
-  margin: 0;
-  padding: var(--ds-space-xs) var(--ds-space-sm);
-  border-left: 3px solid var(--ds-h28);
-  font-style: italic;
-  font-size: var(--ds-fz-sm);
-  line-height: 1.5;
-  color: var(--ds-ink-hi);
-  background: var(--ds-socket);
-  border-radius: 0 var(--ds-radius-sm) var(--ds-radius-sm) 0;
-}
+/* ── (Lore przeniesione do FactionBackdrop.module.css — nakładka na portret) ── */
 
 /* Rzędy „chipów" (zdolności, technologie, weksle) — zawijają się. */
 .chipRow {

@@ -2,8 +2,8 @@
 //
 // Odpowiedzialności (zadanie 11.3):
 //  1. Renderuje BIEŻĄCY krok wg uporządkowanej sekwencji `SETUP_STEPS` (R14.1). Mapowanie
-//     „id kroku → komponent" trzyma lekki rejestr `STEP_COMPONENTS` (Step_NameColor,
-//     Step_Faction, Step_Control). Wybór technologii startowych NIE jest już osobnym
+//     „id kroku → komponent" trzyma lekki rejestr `STEP_COMPONENTS` (Step_NameColor —
+//     nazwa/kolor/sterowanie, Step_Faction — pełnoekranowa scena). Wybór technologii startowych NIE jest już osobnym
 //     krokiem — jest wbudowany w panel podglądu frakcji (`FactionSummary`) w kroku frakcji.
 //  2. Blokuje „Dalej"/„Generuj" przy niespełnionej walidacji (R7.4–R7.6, R9.2/R9.5, R10.2)
 //     — logika w czystej funkcji `validateSetup` ze store'a.
@@ -18,7 +18,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button, Group, NumberInput, Paper, Stack, Text, TextInput } from "@/ds";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
 import { SETUP_STEPS, type SetupStepId } from "./setupSteps";
-import StepControl from "./steps/Step_Control";
 import {
   currentStep,
   MAX_PLAYERS,
@@ -39,7 +38,26 @@ import Step_Faction from "./steps/Step_Faction";
 export interface SetupStepProps {
   factions: FactionInfo[];
   factionById: Map<string, FactionInfo>;
+  /** Akcje nawigacji — przekazywane tylko krokom pełnoekranowym (scena frakcji). */
+  stage?: StageActions;
 }
+
+/**
+ * Akcje paska górnego sceny pełnoekranowej (krok frakcji nie ma ramki kreatora, więc
+ * „Wstecz" i „Generuj i graj" renderuje sam w swoim pasku).
+ */
+export interface StageActions {
+  onBack: () => void;
+  onSubmit: () => void;
+  submitting: boolean;
+  /** Czy konfiguracja przeszła walidację (przycisk startu aktywny). */
+  canSubmit: boolean;
+  /** Komunikat walidacji / błąd wysyłki (albo `null`). */
+  message: string | null;
+}
+
+/** Kroki rysowane na całym ekranie, poza ramką kreatora (scena). */
+export const STAGE_STEP_IDS: ReadonlySet<SetupStepId> = new Set(["faction"]);
 
 /**
  * Rejestr „id kroku → komponent". Każdy krok kreatora ma tu swój komponent; dodanie
@@ -48,7 +66,6 @@ export interface SetupStepProps {
 const STEP_COMPONENTS: Record<SetupStepId, ComponentType<SetupStepProps>> = {
   "name-color": Step_NameColor,
   faction: Step_Faction,
-  control: StepControl,
 };
 
 /**
@@ -101,6 +118,7 @@ export default function SetupWizard() {
   const validationError = isLastStep ? fullError : stepError;
 
   const StepComponent = STEP_COMPONENTS[step.id];
+  const isStage = STAGE_STEP_IDS.has(step.id);
 
   const handleSubmit = async () => {
     if (!factions || validationError) return;
@@ -117,6 +135,23 @@ export default function SetupWizard() {
       setSubmitting(false);
     }
   };
+
+  // Scena pełnoekranowa (frakcja): bez ramki kreatora, własny pasek górny z akcjami.
+  if (isStage) {
+    return (
+      <StepComponent
+        factions={factions ?? []}
+        factionById={factionById}
+        stage={{
+          onBack: prevStep,
+          onSubmit: () => void handleSubmit(),
+          submitting,
+          canSubmit: validationError === null && !!factions,
+          message: error ?? validationError,
+        }}
+      />
+    );
+  }
 
   return (
     <Paper radius="lg" withBorder shadow="xl" p="xl">

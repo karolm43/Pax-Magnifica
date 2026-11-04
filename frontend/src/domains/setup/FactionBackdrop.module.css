@@ -1,0 +1,206 @@
+/*
+ * Portret + lore sceny wyboru frakcji. Cały układ ma wyglądać jak JEDNA kompozycja:
+ * postać stoi przy lewej krawędzi, a tekst lore leży na jej dolnej części, na miękkim
+ * ciemnym gradiencie (bez ramki/boxa). Kolory w cieple TI4 (bursztyn/złoto).
+ *
+ * Kroje: nazwa i śródtytuły = Ambroise Firmin (jak logo menu), treść = szeryfowy
+ * system stack — czytelny przy małym rozmiarze (lore ma się mieścić bez przewijania).
+ */
+
+/* ── Portret (warstwa tła sceny) ──────────────────────────────────────── */
+
+.portraitLayer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  /* Maksymalnie na lewo; szerokość ogranicza proporcję postaci, nie ekran. */
+  width: min(62%, 1100px);
+  z-index: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  animation: portraitIn 0.85s var(--ds-ease, ease) both;
+}
+
+/* Miękka poświata za postacią osadza przezroczysty PNG w tle. */
+.portraitLayer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 65% at 30% 55%,
+    rgb(252 162 43 / 0.2),
+    transparent 70%
+  );
+}
+
+.portrait {
+  position: relative;
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left bottom;
+  filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.6));
+}
+
+/* Brak portretu: sama ikona frakcji jako duży, przygaszony symbol. */
+.portraitIcon {
+  position: relative;
+  display: block;
+  width: min(36vw, 46vh);
+  margin: 0 0 22vh 6vw;
+  opacity: 0.32;
+  object-fit: contain;
+  filter: drop-shadow(0 0 40px rgb(252 162 43 / 0.35));
+}
+
+@keyframes portraitIn {
+  from {
+    opacity: 0;
+    transform: translateX(-56px) scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* ── Lore (nałożone na portret) ───────────────────────────────────────── */
+
+.lore {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-height: 100%;
+  padding: 28px 8px 4px 4px;
+  color: rgb(235 228 214);
+  font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+  font-size: clamp(10.5px, 0.72vw, 13px);
+  line-height: 1.5;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
+}
+
+/* Gradient „scrim" pod tekstem — wtapia lore w portret zamiast osobnego boxa. */
+.lore::before {
+  content: "";
+  position: absolute;
+  inset: -60px -24px -24px -48px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgb(5 4 3 / 0.86) 0%,
+    rgb(5 4 3 / 0.7) 55%,
+    transparent 100%
+  );
+}
+
+.loreName {
+  margin: 0;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: clamp(1.4rem, 2.4vw, 2.3rem);
+  line-height: 1.05;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #f6792a, #fca22b 55%, #ffd34a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 10px rgb(0 0 0 / 0.7));
+}
+
+.loreQuote {
+  margin: 0 0 4px;
+  font-style: italic;
+  font-size: 1.1em;
+  color: rgb(252 214 150);
+}
+
+/* Dwie kolumny, wypełniane po kolei; zawartość ma się mieścić bez scrolla. */
+.loreColumns {
+  column-count: 2;
+  column-gap: 22px;
+  column-fill: balance;
+  min-height: 0;
+}
+
+.loreParagraph {
+  margin: 0 0 0.7em;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.loreHeading {
+  margin: 0.4em 0 0.3em;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: 1.15em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(252 162 43);
+  break-after: avoid;
+}
+
+.loreBlockQuote {
+  margin: 0 0 0.7em;
+  padding-left: 10px;
+  border-left: 2px solid rgb(252 162 43 / 0.6);
+  font-style: italic;
+  color: rgb(252 214 150);
+}
+
+.loreEmpty {
+  margin: 0;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Kaskadowe pojawianie się elementów lore (nazwa → cytat → kolejne bloki). */
+.loreName,
+.loreQuote,
+.loreParagraph,
+.loreHeading,
+.loreBlockQuote,
+.loreEmpty {
+  animation: loreIn 0.6s var(--ds-ease, ease) both;
+  animation-delay: calc(0.28s + min(var(--i, 0), 18) * 65ms);
+}
+
+@keyframes loreIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portraitLayer {
+    animation: fadeOnly 0.3s ease both;
+  }
+  .loreName,
+  .loreQuote,
+  .loreParagraph,
+  .loreHeading,
+  .loreBlockQuote,
+  .loreEmpty {
+    animation: fadeOnly 0.3s ease both;
+    animation-delay: 0s;
+  }
+  @keyframes fadeOnly {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
