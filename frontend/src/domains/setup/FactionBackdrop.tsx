@@ -161,6 +161,7 @@ function measureAlphaInset(
  * Gothic), pod nią cytat w cudzysłowie, pod nim autor cytatu. Dopiero potem lore.
  */
 export function FactionHeader({ faction }: { faction: FactionInfo }) {
+  const accent = useFactionAccent(faction.id);
   const data = getFactionLore(faction.id);
   // Cudzysłowy dokłada komponent — w danych cytat wklejasz BEZ nich. Jeśli jednak
   // zostały wklejone, zdejmujemy je z brzegów, żeby nie dublować.
@@ -169,12 +170,117 @@ export function FactionHeader({ faction }: { faction: FactionInfo }) {
   const author = data?.quoteAuthor?.trim().replace(/^[—–-]\s*/, "");
 
   return (
-    <header className={styles.head}>
-      <h2 className={styles.headName}>{faction.name}</h2>
-      {quote && <blockquote className={styles.headQuote}>“{quote}”</blockquote>}
-      {quote && author && <p className={styles.headAuthor}>— {author}</p>}
+    <header
+      className={styles.head}
+      style={{ ["--accent" as string]: accent } as React.CSSProperties}
+    >
+      <div className={styles.headInner}>
+        <img
+          src={`/static/factions/${faction.id}.png`}
+          alt=""
+          className={styles.headIcon}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+        <div className={styles.headText}>
+          <h2 className={styles.headName}>{faction.name}</h2>
+          {quote && (
+            <blockquote className={styles.headQuote}>“{quote}”</blockquote>
+          )}
+          {quote && author && <p className={styles.headAuthor}>— {author}</p>}
+        </div>
+      </div>
     </header>
   );
+}
+
+/** Akcent, gdy ikony nie da się odczytać (ciepły bursztyn TI4). */
+const DEFAULT_ACCENT = "hsl(33 96% 58%)";
+const accentCache = new Map<string, string>();
+
+/**
+ * Kolor akcentu frakcji wyliczony z jej LOKALNEJ ikony (`/static/factions/<id>.png`):
+ * średnia z nasyceniem jako wagą (tło i szarości prawie nie liczą się), potem
+ * normalizacja do żywego, czytelnego odcienia. Zero kolorów wpisanych na sztywno —
+ * nowa frakcja dostaje akcent automatycznie. Wynik jest cache'owany po id.
+ */
+function useFactionAccent(factionId: string): string {
+  const [accent, setAccent] = useState(accentCache.get(factionId) ?? DEFAULT_ACCENT);
+
+  useEffect(() => {
+    const cached = accentCache.get(factionId);
+    if (cached) {
+      setAccent(cached);
+      return;
+    }
+    setAccent(DEFAULT_ACCENT);
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      const color = extractAccent(img) ?? DEFAULT_ACCENT;
+      accentCache.set(factionId, color);
+      if (!cancelled) setAccent(color);
+    };
+    img.src = `/static/factions/${factionId}.png`;
+    return () => {
+      cancelled = true;
+    };
+  }, [factionId]);
+
+  return accent;
+}
+
+/** Dominujący, nasycony kolor ikony jako `hsl(...)` albo `null` (ikona szara/pusta). */
+function extractAccent(img: HTMLImageElement): string | null {
+  const size = 48;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, size, size);
+  let data: Uint8ClampedArray;
+  try {
+    data = ctx.getImageData(0, 0, size, size).data;
+  } catch {
+    return null;
+  }
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let weight = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 128) continue;
+    const max = Math.max(data[i], data[i + 1], data[i + 2]);
+    const min = Math.min(data[i], data[i + 1], data[i + 2]);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const w = sat * sat * (max / 255) + 0.0001;
+    r += data[i] * w;
+    g += data[i + 1] * w;
+    b += data[i + 2] * w;
+    weight += w;
+  }
+  if (weight <= 0.01) return null;
+  r /= weight;
+  g /= weight;
+  b /= weight;
+  const max = Math.max(r, g, b) / 255;
+  const min = Math.min(r, g, b) / 255;
+  const delta = max - min;
+  // Praktycznie szara ikona — odcień nie ma znaczenia, zostaje domyślny akcent.
+  if (delta < 0.08) return null;
+  let hue: number;
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  if (max === rn) hue = ((gn - bn) / delta) % 6;
+  else if (max === gn) hue = (bn - rn) / delta + 2;
+  else hue = (rn - gn) / delta + 4;
+  hue = Math.round(((hue * 60 + 360) % 360));
+  // Stała, żywa saturacja i jasność: akcent czytelny na ciemnej płycie niezależnie
+  // od tego, jak ciemna lub wyblakła jest sama ikona.
+  return `hsl(${hue} 72% 58%)`;
 }
 
 /** Czy frakcja ma cytat (steruje rezerwacją paska nad postacią i lore). */

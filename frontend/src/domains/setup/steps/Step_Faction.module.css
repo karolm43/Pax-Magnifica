@@ -159,7 +159,7 @@
   /* Odstęp lore od góry strefy (box lore jest wyrównany do góry, nie do środka). */
   --lore-top: clamp(4px, 1.5vh, 16px);
   /* Wysokość nagłówka sceny (nazwa [+ cytat + autor]) nad postacią i lore. Sama nazwa: */
-  --quote-h: clamp(60px, 8.5vh, 92px);
+  --quote-h: clamp(88px, 12vh, 132px);
   position: relative;
   z-index: 1;
   flex: 1 1 0;

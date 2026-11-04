@@ -113,48 +113,103 @@
  */
 .head {
   /*
-   * Wyśrodkowany NAD WIDOCZNĄ SYLWETKĄ: `--figure-cx` (środek sylwetki, px od lewej
-   * krawędzi strefy) ustawia Step_Faction po pomiarze obrazka; przed pomiarem — środek
-   * pasa portretu. Szerokość = dwukrotność odległości środka od krawędzi, więc blok
-   * nie wychodzi poza ekran; tekst się zawija. Bez żadnego boxa/tła pod spodem.
+   * Panel w stylu nagłówka karty frakcji z planszówki: ciemna płyta ze ściętymi rogami,
+   * obrys w KOLORZE FRAKCJI (`--accent`, wyliczany z jej ikony), ikona po lewej, tekst
+   * po prawej od ikony (do lewej). Zewnętrzny element = obrys (tło-gradient + 1.5px
+   * padding), `.headInner` = ciemna płyta; oba mają to samo cięcie rogów (clip-path).
+   *
+   * Położenie: wyśrodkowany NAD WIDOCZNĄ SYLWETKĄ. `--figure-cx` (środek sylwetki, px od
+   * lewej krawędzi strefy) ustawia Step_Faction po pomiarze obrazka; przed pomiarem —
+   * środek pasa portretu. `--head-w` to maksymalna szerokość, przy której panel nie
+   * wychodzi poza lewą krawędź; tekst w nim się zawija.
    */
+  --cut: clamp(10px, 1vw, 18px);
   --head-w: max(
-    min(calc(var(--figure-cx, calc(var(--portrait-w, 46%) / 2)) * 2 - 24px), 720px),
+    min(calc(var(--figure-cx, calc(var(--portrait-w, 46%) / 2)) * 2 - 24px), 760px),
     300px
   );
   position: absolute;
-  top: 0;
-  left: max(
-    8px,
-    calc(var(--figure-cx, calc(var(--portrait-w, 46%) / 2)) - var(--head-w) / 2)
-  );
-  width: var(--head-w);
+  top: clamp(8px, 1.6vh, 18px);
+  left: var(--figure-cx, calc(var(--portrait-w, 46%) / 2));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: var(--head-w);
+  min-width: min(340px, var(--head-w));
   box-sizing: border-box;
-  text-align: center;
-  height: var(--quote-h, 0px);
   z-index: 2;
+  padding: 1.5px;
+  background: linear-gradient(
+    100deg,
+    var(--accent, #fca22b),
+    color-mix(in oklab, var(--accent, #fca22b) 50%, transparent) 65%,
+    color-mix(in oklab, var(--accent, #fca22b) 22%, transparent)
+  );
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+  pointer-events: none;
+  /* Płyta pojawia się razem z nazwą (nie sama, przed treścią). */
+  animation: headBoxIn 1.6s cubic-bezier(0.33, 0, 0.2, 1) 0.4s both;
+}
+
+.headInner {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1vw, 18px);
+  padding: clamp(8px, 1.3vh, 14px) clamp(14px, 1.3vw, 24px) clamp(8px, 1.3vh, 14px)
+    clamp(10px, 1vw, 18px);
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in oklab, var(--accent, #fca22b) 14%, rgb(9 8 7 / 0.9)),
+      rgb(9 8 7 / 0.78)
+    );
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+
+/* Ikona frakcji po lewej, w poświacie koloru frakcji. */
+.headIcon {
+  flex-shrink: 0;
+  width: clamp(40px, 3.8vw, 68px);
+  height: clamp(40px, 3.8vw, 68px);
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px color-mix(in oklab, var(--accent, #fca22b) 70%, transparent));
+}
+
+/* Tekst obok ikony — do lewej (nie wyśrodkowany). */
+.headText {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  text-align: left;
   gap: clamp(3px, 0.6vh, 8px);
-  padding-top: clamp(8px, 1.6vh, 18px);
-  pointer-events: none;
+  min-width: 0;
 }
 
 .headName {
   margin: 0;
   font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
   font-weight: 700;
-  font-size: clamp(1.3rem, min(2.1vw, 3.6vh), 2.4rem);
+  font-size: clamp(1.2rem, min(1.9vw, 3.3vh), 2.2rem);
   line-height: 1.05;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   text-wrap: balance;
-  background: linear-gradient(180deg, #f6792a, #fca22b 55%, #ffd34a);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 12px rgb(0 0 0 / 0.75));
+  /* Jasny odcień koloru frakcji — czytelny na ciemnej płycie, spójny z obrysem. */
+  color: color-mix(in oklab, var(--accent, #fca22b) 35%, #ffffff);
+  text-shadow: 0 0 14px color-mix(in oklab, var(--accent, #fca22b) 45%, transparent);
   animation: headIn 1.8s cubic-bezier(0.33, 0, 0.2, 1) 0.5s both;
 }
 
@@ -163,13 +218,9 @@
   max-width: 100%;
   font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
   font-style: italic;
-  font-size: clamp(0.88rem, min(1.05vw, 1.85vh), 1.25rem);
+  font-size: clamp(0.86rem, min(1vw, 1.8vh), 1.2rem);
   line-height: 1.3;
-  color: #ffe6b0;
-  /* Bez tła pod spodem — czytelność z cienia tekstu; tekst może się zawijać. */
-  text-shadow:
-    0 0 16px rgb(0 0 0 / 0.85),
-    0 2px 8px rgb(0 0 0 / 0.95);
+  color: color-mix(in oklab, var(--accent, #fca22b) 14%, #f1e7d3);
   text-wrap: balance;
   animation: headIn 2.2s cubic-bezier(0.33, 0, 0.2, 1) 1.5s both;
 }
@@ -178,18 +229,28 @@
   margin: 0;
   font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
   font-style: normal;
-  font-size: clamp(0.74rem, min(0.85vw, 1.5vh), 0.95rem);
+  font-size: clamp(0.72rem, min(0.82vw, 1.45vh), 0.92rem);
   letter-spacing: 0.05em;
-  color: rgb(252 162 43);
-  text-shadow: 0 2px 8px rgb(0 0 0 / 0.95);
+  color: var(--accent, #fca22b);
   animation: headIn 1.6s cubic-bezier(0.33, 0, 0.2, 1) 2.8s both;
+}
+
+@keyframes headBoxIn {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
 }
 
 @keyframes headIn {
   from {
     opacity: 0;
-    transform: translateY(-16px);
-    filter: blur(10px);
+    transform: translateY(-12px);
+    filter: blur(8px);
   }
   to {
     opacity: 1;
@@ -324,6 +385,9 @@
   }
   .portraitLayer::before {
     animation: none;
+  }
+  .head {
+    animation: slowFade 1.4s ease-in-out 0.3s both;
   }
   .headName {
     animation: slowFade 1.6s ease-in-out 0.4s both;
