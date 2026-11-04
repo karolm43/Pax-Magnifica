@@ -219,7 +219,19 @@ class StaticDataRegistry:
         timing_specs = build_timing_specs(
             tables, leaders=self.leaders, abilities=self.abilities
         )
-        self.catalog = ComponentCatalog(tables, timing_specs)
+        # Słowniki kategorii spoza katalogu (frakcje, liderzy, zdolności, technologie,
+        # jednostki, przełomy) przekazujemy do katalogu, by faction_bundle mógł złożyć
+        # paczkę frakcji w jednym wywołaniu (R5.6), wyłącznie z list FactionDef.
+        self.catalog = ComponentCatalog(
+            tables,
+            timing_specs,
+            factions=self.factions,
+            leaders=self.leaders,
+            abilities=self.abilities,
+            technologies=self.technologies,
+            units=self.units,
+            breakthroughs=self.breakthroughs,
+        )
 
         # Spójność referencji (R7): po złożeniu katalogu, bo sprawdzamy m.in. talie,
         # eksploracje i żetony. Nierozwiązane referencje NIE blokują startu (dane są
