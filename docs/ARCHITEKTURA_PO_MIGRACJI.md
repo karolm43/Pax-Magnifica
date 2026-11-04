@@ -18,19 +18,20 @@ Frontend (React, katalog `frontend/`) jest **viewerem**: pobiera jeden dokument
 `web-data` i renderuje z niego całą planszę + panele graczy. Backend tłumaczy swój
 wewnętrzny `GameState` na format, którego oczekuje frontend (`PlayerDataResponse`).
 Statyczne dane gry (jednostki, planety, systemy) frontend ma **wbudowane** i
-rozwiązuje po ID — backend wysyła tylko stan. Grafiki (kafelki, jednostki) idą ze
-zdalnego CDN AsyncTI4.
+rozwiązuje po ID — backend wysyła tylko stan. Grafiki (kafelki, jednostki) idą
+**lokalnie** z Backendu (`/static/...`) przez Resolver_Zasobów — bez CDN (spec
+`local-ti4-data-foundation`, decyzja D1).
 
 ```
 ┌───────────────────────────┐     GET /api/public/game/{id}/web-data     ┌──────────────────────────┐
 │  Frontend (frontend/)     │  ◄─────────── PlayerDataResponse ───────────│  Backend (src/)          │
 │  React + Vite viewer      │                                             │  FastAPI + GameState     │
 │  - plansza, panele graczy │     POST /map/load, /setup/player, ...       │  - HexGrid, rejestr      │
-│  - czyta ID, grafiki z CDN│  ──────────── mutacje stanu ───────────────►│  - EventStore (SQLite)   │
+│  - czyta ID, grafiki local│  ──────────── mutacje stanu ───────────────►│  - EventStore (SQLite)   │
 └───────────────────────────┘                                             └──────────────────────────┘
-         │  grafiki (webp)                                                        │  assety JSON
+         │  grafiki (webp) /static                                               │  assety JSON
          ▼                                                                        ▼
-   images.asyncti4.com (CDN)                                            assets/ (lokalne, poza repo)
+   Backend /static/... (lokalnie)                                       assets/ (JSON w repo; grafiki poza repo, D1)
 ```
 
 ---
@@ -109,7 +110,14 @@ npm run type-check ; npm run lint ; npm run build
 | `PUT /state`, `POST /god-mode/patch` | God-Mode: nadpisanie / patch stanu. |
 | `POST /undo`, `POST /redo` | Nawigacja po historii. |
 | `WS /ws` | Strumień `StateEnvelope` (nasz prosty WS — NIE STOMP, patrz luki). |
-| `GET /static/*` | Assety JSON z `assets/`. |
+| `GET /static/*` | Assety z `assets/` (JSON oraz lokalne grafiki/fonty — źródło dla Resolvera_Zasobów). |
+| `GET /components`, `/components/{kat}`, `/components/{kat}/{id}` | **Tylko-odczyt Katalog_Komponentów** (komponent + `TimingSpec` + status efektu + tematy reguł). Spec `local-ti4-data-foundation` (R11). |
+| `GET /components/factions/{id}/bundle` | Paczka frakcji (liderzy, zdolności, techy, promissory, jednostki, przełom). |
+| `GET /timing-specs?trigger=&phase=` | Komponenty pasujące do rodzaju wyzwalacza i fazy (Specyfikacja_Czasowa). |
+
+> **Audytor_Danych (CLI, nie endpoint):** `uv run python -m src.audit` — raport spójności danych
+> i lokalności (liczby wpisów, referencje, zewnętrzne URL-e, brakujące grafiki z manifestu);
+> błąd krytyczny → niezerowy kod wyjścia. Szczegóły: `ARCHITEKTURA_KODU.md` §4a.
 
 ### 3.4. Kontrakt `web-data` — reguły mapowania (nie zgaduj!)
 - `tilePositions`: lista `"<pozycja>:<systemId>"` (np. `"101:72"`). Frontend sam liczy
@@ -140,7 +148,10 @@ react-query, react-router, Zustand). Po migracji ZREDUKOWANY do pojedynczego wid
 - `src/api/usePlayerData.ts` — jedyne wejście danych: `fetch({gameDataUrl}/{id}/web-data)`.
 - `src/entities/data/*.ts` — WBUDOWANE statyczne katalogi (systemy/jednostki/planety…),
   auto-generowane z assetów AsyncTI4. Frontend rozwiązuje ID lokalnie, zero fetchu katalogów.
-- `src/entities/data/cdnImage.ts` — grafiki z `https://images.asyncti4.com/...`.
+- `src/shared/assets/resolveAsset.ts` — **Resolver_Zasobów**: grafiki LOKALNIE z Backendu
+  (`/static/...`), `assetUrl`/`sheetUrl` + `assetManifest.json`, placeholder dla braków.
+  Zastąpił dawny `cdnImage.ts` (usunięty) — bez żądań do `images.asyncti4.com`. Spec
+  `local-ti4-data-foundation` (R2), decyzja D1. Fonty lokalne przez `@fontsource/*` (D11).
 
 ### 4.2. Co usunięto (portal AsyncTI — nam niepotrzebne)
 Landing page, lista gier, dashboard, logowanie-jako-strona, stary „OLD UI" (image-map),

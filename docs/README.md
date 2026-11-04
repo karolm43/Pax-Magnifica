@@ -61,8 +61,15 @@ Pax Magnifica/
 ├── docs/                         # DOKUMENTACJA (ten katalog) — patrz tabela wyżej
 ├── src/                          # BACKEND (Python / FastAPI) — źródło prawdy o stanie
 │   ├── core/                     #   rdzeń: stan, rejestr danych, mapa, silnik reguł
-│   │   ├── registry.py           #     StaticDataRegistry — ładuje dane z assets/ po `source`
+│   │   ├── registry.py           #     StaticDataRegistry — ładuje dane z assets/ po `source` (+ catalog)
 │   │   ├── models.py             #     modele statyczne (UnitDef, PlanetDef, FactionDef, ...)
+│   │   ├── sources.py            #     priorytet i walidacja źródeł kanonicznych (SOURCE_PRIORITY)
+│   │   ├── components.py         #     Katalog_Komponentów: modele kategorii + CATEGORY_SPECS + ComponentCatalog
+│   │   ├── component_loader.py   #     ładowanie/wybór wpisów po `source` (select_entries, LoadReport)
+│   │   ├── references.py         #     spójność referencji (frakcje, talie, attachmenty)
+│   │   ├── timing_spec.py        #     Specyfikacja_Czasowa: parse_timing + TRIGGER_WINDOW_MAP (D10)
+│   │   ├── effects_registry.py   #     Rejestr_Efektów: id komponentu -> status (not/impl/manual)
+│   │   ├── rules_links.py        #     powiązania komponentów z tematami Zrzutu_Reguł (INDEX)
 │   │   ├── game_state.py         #     GameState / PlayerState / SystemState (+ clone)
 │   │   ├── hex_grid.py           #     siatka heksów (q,r,s), sąsiedztwo, wormhole, anomalie
 │   │   ├── map_string.py         #     parser map stringa AsyncTI4 -> HexGrid
@@ -71,9 +78,19 @@ Pax Magnifica/
 │   │   ├── faction_setup.py      #     setup frakcji (parser startingFleet, rozstawienie)
 │   │   ├── turn_flow.py          #     E1: fazy + kolejność tur (czyste funkcje)
 │   │   ├── strategy_phase.py     #     E2: faza strategii (wybór kart, trade goods)
+│   │   ├── timing.py             #     okna czasowe (kolejka respondentów) — RULES.md 29.2
 │   │   └── event_store.py        #     EventStore (SQLite) — Undo/Redo/God-Mode
+│   ├── audit/                    #   AUDYTOR_DANYCH (CLI: `uv run python -m src.audit`)
+│   │   ├── locality.py           #     Strażnik_Lokalności: ścieżki referencyjne, odczyty spoza repo, URL-e
+│   │   ├── assets_manifest.py    #     manifest grafik/fontów (path+size+sha256), diff z dyskiem
+│   │   ├── frontend_data.py      #     diff id wbudowanych danych frontu vs Katalog (R11.5)
+│   │   ├── diffs.py              #     różnice liczb/zbiorów, luki źródeł kanonicznych (expected_gaps)
+│   │   ├── report.py             #     AuditReport / build_report / render_text / exit_code
+│   │   └── sync_assets.py        #     kopiowanie brakujących grafik z manifestu (`--from <katalog>`)
 │   └── api/                      #   warstwa HTTP/WS
-│       ├── app.py                #     fabryka FastAPI + wszystkie endpointy + WebSocket
+│       ├── app.py                #     fabryka FastAPI (montaż routerów) + WebSocket
+│       ├── routers/              #     cienkie endpointy tematyczne (game, board, components, ...)
+│       │   └── components.py     #       /components, /components/{kat}/{id}, /timing-specs, bundle frakcji
 │       ├── web_data.py           #     build_web_data: GameState -> dokument dla frontu (KONTRAKT UI)
 │       ├── schemas.py            #     DTO żądań/odpowiedzi (Pydantic)
 │       └── state_service.py      #     jedyne miejsce mutujące stan (commit + broadcast)
@@ -82,14 +99,20 @@ Pax Magnifica/
 │       ├── api/                  #   hooki danych (useBoardEditor, useNewGame, ...)
 │       ├── domains/              #   funkcjonalne obszary UI (map, player, game-shell, cards, ...)
 │       ├── entities/             #   WBUDOWANE statyczne dane (jednostki/planety/techy) + lookupy
+│       ├── shared/assets/        #   Resolver_Zasobów (assetUrl/sheetUrl) + assetManifest.json (lokalne URL)
 │       ├── state/                #   store (Zustand) + kontekst gry
 │       └── ds/                   #   design system (komponenty bazowe)
-├── tests/                        # TESTY backendu (pytest) — jeden plik per moduł core/api
-├── assets/                       # DANE GRY (AsyncTI4): JSON w repo (~5 MB), grafiki z CDN
+├── tests/                        # TESTY backendu (pytest) — jeden plik per moduł core/api/audit
+├── audit/                        # KONFIG AUDYTORA (w repo — D1/D12): manifest grafik, baseline liczb,
+│   │                             #   wyjątki luk, allowlist URL, nieużywane katalogi assets/
+│   ├── assets_manifest.json      #   manifest wymaganych grafik/fontów (grafiki poza repo — D1)
+│   └── baseline_counts.json      #   wartości referencyjne liczb wpisów (test regresji)
+├── assets/                       # DANE GRY (AsyncTI4): JSON w repo (~5 MB), grafiki POZA repo (D1)
 │   ├── enabled_sources.json      #   aktywne źródła danych (base, pok, codex1-4, thunders_edge)
+│   ├── config/effects_status.json #  Rejestr_Efektów (w repo); engine_config.json; reszta ignorowana
 │   ├── data/ systems/ planets/ alias/   # dane silnika (wersjonowane)
-│   └── ... (grafiki/fonty — ignorowane przez .gitignore)
-└── TI4_map_generator_bot/        # ŹRÓDŁO REGUŁ (Java, poza repo) — czytamy, nie linkujemy
+│   └── ... (grafiki/fonty — poza repo, lokalnie przez manifest + sync_assets; patrz .gitignore)
+└── TI4_map_generator_bot/        # ŹRÓDŁO REFERENCYJNE (Java, poza repo) — czytamy, nie linkujemy
 ```
 
 ---
@@ -104,6 +127,12 @@ Pax Magnifica/
   - frontend: `npm run type-check` ; `npm run lint` ; `npm run build` (w `frontend/`)
 - **Dokumentacja i komentarze po polsku.** Staguj konkretne pliki (nie `git add .`).
   Nie pushuj (`git push`) bez zgody.
+- **Wszystko lokalne (offline).** Frontend ładuje grafiki i fonty wyłącznie lokalnie
+  (Resolver_Zasobów `frontend/src/shared/assets/resolveAsset.ts`, fonty `@fontsource/*`) —
+  żadnego CDN. Grafiki/fonty są POZA repo (D1); manifest `audit/assets_manifest.json`
+  opisuje wymagany zestaw, a `uv run python -m src.audit sync_assets --from <katalog>`
+  kopiuje je lokalnie. Spójność danych i lokalność sprawdza Audytor_Danych:
+  `uv run python -m src.audit` (liczby wpisów, referencje, zewnętrzne URL-e, brakujące pliki).
 - **Kod > dokument.** Przy wątpliwości sprawdzaj `src/` i testy, nie pamięć ani opis.
 
 ---

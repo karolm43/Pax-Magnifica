@@ -39,11 +39,13 @@ frontend/.vite/
 Thumbs.db
 
 # ============================================================
-#  ASSETY
+#  ASSETY (decyzja D1 ze spec local-ti4-data-foundation)
 #  Dane gry (JSON/properties) WCHODZA do repo, zeby `git clone`
 #  wystarczal do uruchomienia silnika (~5 MB). Grafiki i fonty
-#  pozostaja ignorowane na stale (setki MB) - frontend bierze je
-#  z CDN AsyncTI4 (images.asyncti4.com).
+#  pozostaja POZA repo na stale (setki MB) - lokalnosc offline
+#  zapewnia manifest `audit/assets_manifest.json` (sciezka+rozmiar+
+#  sha256), a skrypt `uv run python -m src.audit sync_assets --from
+#  <katalog>` kopiuje brakujace pliki z manifestu do `assets/`.
 # ============================================================
 
 # Domyslnie ignoruj caly katalog assetow...
@@ -52,7 +54,9 @@ assets/*
 # ...ale wersjonuj konfiguracje i dane potrzebne silnikowi:
 !assets/enabled_sources.json
 # Katalog konfiguracji silnika: wersjonujemy TYLKO nasz engine_config.json
-# (reszta plików w assets/config/ to artefakty AsyncTI4 — pozostają ignorowane).
+# oraz Rejestr_Efektow (effects_status.json: id komponentu -> status efektu,
+# D12 ze spec local-ti4-data-foundation). Reszta plików w assets/config/ to
+# artefakty AsyncTI4 — pozostają ignorowane.
 !assets/config/
 assets/config/*
 !assets/config/engine_config.json
@@ -71,3 +75,20 @@ TI4_map_generator_bot/
 frontend/build/
 frontend/node_modules/
 TI4_map_generator_bot.rar
+
+# ============================================================
+#  AUDYTOR DANYCH / LOKALNOSC OFFLINE (D1, D12)
+#  Pliki konfiguracyjne i manifesty Audytora_Danych SA wersjonowane
+#  (sam `git clone` daje komplet). W szczegolnosci manifest grafik
+#  i wartosci referencyjne liczb wpisow MUSZA byc w repo (D1):
+#    audit/assets_manifest.json   - manifest grafik/fontow (sciezka,rozmiar,sha256)
+#    audit/baseline_counts.json   - wartosci referencyjne liczb wpisow (regresja)
+#    audit/expected_gaps.json     - potwierdzone braki zrodel kanonicznych
+#    audit/external_url_allowlist.json - dozwolone hiperlacza nawigacyjne (D2)
+#    audit/unused_asset_dirs.json - lista nieuzywanych katalogow assets/ (D8)
+#  Manifest frontendu (kopia assets_manifest dla Resolvera_Zasobow) tez w repo:
+#    frontend/src/shared/assets/assetManifest.json
+#  Powyzsze NIE sa ignorowane — wpis tylko dokumentuje decyzje. Gdyby w
+#  przyszlosci doszla szeroka regula `audit/*`, odkomentuj wyjatki:
+# !audit/*.json
+# !frontend/src/shared/assets/assetManifest.json

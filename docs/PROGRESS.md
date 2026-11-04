@@ -946,3 +946,38 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - Nowy test `tests/test_docs_numbering.py`: identyfikatory `## N.` są unikalne (blokuje ponowne duplikaty), sekcja audytu 37 istnieje, wpisy założeń (`TRIGGER_WINDOW_MAP`, `<color>`, `explores_cpti`) obecne.
 - Bramka QA zielona: `uv run pytest -q` (441 passed), `uv run ruff check src tests` (All checks passed!), `uv run mypy src tests` (Success, 107 plików), `npm run type-check` (czysto — zmiana w `useNewGame.ts` to tylko komentarz).
 - UWAGA: równolegle trwa zadanie 13.2 edytujące inne pliki docs. Staging TYLKO moich plików (nie `git add .`). Wymagania: 6.6, 12.4, 12.7.
+
+### ✅ Blok local-ti4-data-foundation 13.2 — dokumentacja fundacji danych + `.gitignore` (ukończony)
+Domknięcie dokumentacji po całej fundacji danych (zadania 1–12 zrealizowane). Blok tylko
+docs + `.gitignore` (bez zmian w kodzie → QA backendu/frontendu niekonieczna). Wymagania: 3.3, 12.3, 12.5.
+
+- **`docs/README.md`** — sekcja 3 (struktura repo) rozbudowana o nowe moduły fundacji:
+  `core/sources.py`, `core/components.py` (Katalog_Komponentów), `core/component_loader.py`,
+  `core/references.py`, `core/timing_spec.py`, `core/effects_registry.py`, `core/rules_links.py`,
+  cały katalog `src/audit/` (Audytor_Danych: `locality.py`, `assets_manifest.py`, `frontend_data.py`,
+  `diffs.py`, `report.py`, `sync_assets.py`), router `api/routers/components.py`, Resolver_Zasobów
+  (`frontend/src/shared/assets/`) i katalog `audit/` (manifest + baseline w repo, D1). Usunięte
+  framingi „grafiki z CDN"; sekcja 4 dostała bullet o pełnej lokalności offline (Resolver_Zasobów,
+  `@fontsource/*`, manifest + `sync_assets`, `uv run python -m src.audit`).
+- **`docs/ARCHITEKTURA_KODU.md`** — mapa §2 uzupełniona o wszystkie nowe moduły `core/` i warstwę
+  `src/audit/`; §4 (routery) dostał wiersz `api/routers/components.py` (tylko-odczyt); nowa sekcja
+  **§4a „Fundacja danych i Audytor_Danych"** opisująca Katalog_Komponentów, wybór po `source` (D9),
+  Specyfikację_Czasową (D10), Rejestr_Efektów (pod hooki, bez efektów kart), powiązania z regułami
+  i lokalność grafik/fontów (D1/D12).
+- **`docs/ARCHITEKTURA_PO_MIGRACJI.md`** — poprawione wszystkie opisy „grafiki z CDN /
+  images.asyncti4.com": obraz całości, diagram ASCII i §4.1 (dawny `cdnImage.ts` → Resolver_Zasobów
+  `resolveAsset.ts`, grafiki z `/static`, fonty `@fontsource/*`, D1/D11).
+- **`.gitignore`** — nagłówek sekcji ASSETY opisuje decyzję D1 (grafiki/fonty POZA repo; lokalność
+  przez `audit/assets_manifest.json` + `src.audit sync_assets --from <katalog>`); komentarz przy
+  `assets/config/effects_status.json` tłumaczy Rejestr_Efektów (D12). Dodany blok dokumentujący, że
+  konfiguracja Audytora i manifesty SĄ wersjonowane — `audit/assets_manifest.json`,
+  `audit/baseline_counts.json` (D1: MUSZĄ być w repo), `expected_gaps.json`, `external_url_allowlist.json`,
+  `unused_asset_dirs.json` oraz `frontend/src/shared/assets/assetManifest.json`.
+- **Stan `.gitignore` zweryfikowany (`git check-ignore`):** grafiki (`assets/units/sheets`,
+  `assets/factions`, `assets/tokens/sheets`) są ignorowane (poza repo, D1); `audit/*.json`,
+  `assets/config/effects_status.json` i frontendowy `assetManifest.json` NIE są ignorowane i są
+  śledzone (`git ls-files`). Żadnych nowych wyjątków nie trzeba było dodawać — wpis w `.gitignore`
+  dokumentuje decyzję i zabezpiecza przed przyszłą szeroką regułą `audit/*`.
+
+**Następny krok:** zadanie 14 (final checkpoint — pełny `uv run pytest -q` / `ruff` / `mypy` oraz
+front type-check/lint/build zielone) i decyzje D1–D12 do potwierdzenia przez użytkownika.

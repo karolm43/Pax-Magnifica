@@ -42,14 +42,23 @@ Trzy warstwy, ściśle rozdzielone. **Zależności idą tylko w jedną stronę:*
 |---|---|---|
 | Stan gry (model) | `core/game_state.py` | `GameState`, `PlayerState`, `SystemState` |
 | Dane statyczne (model) | `core/models.py` | `UnitDef`, `FactionDef`, `StrategyCardDef` |
-| Ładowanie danych | `core/registry.py` | `StaticDataRegistry`, `strategy_card_set()` |
+| Ładowanie danych | `core/registry.py` | `StaticDataRegistry`, `strategy_card_set()`, `catalog` |
+| Źródła kanoniczne | `core/sources.py` | `SOURCE_PRIORITY`, `validate_enabled_sources` |
+| **Katalog_Komponentów** | `core/components.py` | modele kategorii, `CATEGORY_SPECS`, `ComponentCatalog` |
+| Ładowanie komponentów | `core/component_loader.py` | `select_entries`, `load_components`, `LoadReport` |
+| Spójność referencji | `core/references.py` | `find_unresolved_references`, `ReferenceReport` |
+| Specyfikacja_Czasowa | `core/timing_spec.py` | `parse_timing`, `TRIGGER_WINDOW_MAP` (D10) |
+| Rejestr_Efektów | `core/effects_registry.py` | `EffectStatus`, `EffectRegistry`, `coverage` |
+| Powiązania z regułami | `core/rules_links.py` | `RulesTopicIndex`, `match` (Zrzut_Reguł) |
 | Tabele reguł jednostek | `core/unit_catalog.py` | umiejscowienie, asyncId, limity |
-| **Reguły fazy/akcji** | `core/<faza>.py` | `turn_flow.py`, `strategy_phase.py`, (przyszłe: `tactical.py`, `combat.py`, `status.py`, `agenda.py`) |
+| **Reguły fazy/akcji** | `core/<faza>.py` | `turn_flow.py`, `strategy_phase.py`, `tactical.py`, `movement.py`, `combat.py`, `production.py`, `strategic_action.py` |
+| Okna czasowe | `core/timing.py` | kolejka respondentów (RULES.md 29.2) |
 | Setup / mapa | `core/faction_setup.py`, `core/map_string.py`, `core/hex_grid.py` | |
 | Historia / Undo | `core/event_store.py` | |
+| **Audytor_Danych / lokalność** | `src/audit/` | `locality.py`, `assets_manifest.py`, `frontend_data.py`, `diffs.py`, `report.py`, `sync_assets.py` (CLI `python -m src.audit`) |
 | Serializacja do UI | `api/web_data.py` | `build_web_data` (kontrakt z frontem) |
 | Endpointy HTTP/WS | `api/routers/<temat>.py` | (po refaktorze — patrz §4) |
-| DTO żądań/odpowiedzi | `api/schemas.py` | |
+| DTO żądań/odpowiedzi | `api/schemas.py`, `api/schemas_components.py` | |
 | Mutacja + broadcast | `api/state_service.py` | jedyne miejsce commitujące stan |
 | Decyzje bota (przyszłość) | `ai/` | strategiczna → operacyjna → taktyczna |
 
@@ -97,6 +106,7 @@ Endpointy pogrupowane tematycznie w `api/routers/`, logika God-Mode w `core/boar
 | `api/routers/players.py` | ~34 | edycja gracza. |
 | `api/routers/flow.py` | ~61 | tury/fazy/runda (E1). |
 | `api/routers/strategy.py` | ~86 | pula kart, wybór, zagranie (E2). |
+| `api/routers/components.py` | — | **tylko-odczyt** Katalog_Komponentów: `/components`, `/components/{kat}`, `/components/{kat}/{id}` (komponent + `TimingSpec` + status efektu + tematy reguł), `/components/factions/{id}/bundle`, `/timing-specs?trigger=&phase=`. Bez `broadcast`; 404 z kategorią i id. |
 | `api/routers/history.py` | ~76 | patch God-Mode, PUT state, historia, undo/redo. |
 
 **Wzorzec routera (trzymaj się go przy E3):**
@@ -115,6 +125,43 @@ async def handler(request: XRequest, ctx: AppContext = Depends(get_ctx)) -> ...:
 **Pozostały dług (niski priorytet):** `web_data.py` (~885) — jeden temat (serializacja),
 rośnie liniowo. Podzielić na podmoduły (`web_data/players.py`, `.../tiles.py`, `.../strategy.py`)
 gdy przekroczy ~1000 linii. Przy E3 dodajemy `core/tactical.py` + `api/routers/tactical.py`.
+
+---
+
+## 4a. Fundacja danych i Audytor_Danych (spec local-ti4-data-foundation)
+
+Osobna warstwa, która KARMI `core/` kompletem danych TI4 i pilnuje lokalności. Trzyma się
+tej samej zasady co reszta: logika to czyste funkcje, I/O cienkie, zero reguł z pamięci.
+
+- **Katalog_Komponentów (`core/components.py`).** Jedno miejsce z typowanymi modelami
+  WSZYSTKICH kategorii TI4 (karty akcji, agendy, cele, attachmenty, eksploracje, relikty,
+  promissory, żetony, anomalie graniczne, wydarzenia, karty generyczne, talie + istniejące
+  jednostki/planety/frakcje/techy/liderzy). Kształty JSON żyją TYLKO w `CATEGORY_SPECS` —
+  zero zahardkodowanych komponentów. Pola spoza modelu lądują w `raw` (nic nie ginie, R5.7).
+- **Wybór po `source` (`core/component_loader.py`, `core/sources.py`).** Filtr po POLU
+  `source` (nie po nazwie pliku) wg `assets/enabled_sources.json`; kolizje `id` rozstrzyga
+  priorytet źródła `thunders_edge > pok > codex4..1 > base` (D9, RULES.md 14). `LoadReport`
+  liczy pominięte/bez źródła.
+- **Specyfikacja_Czasowa (`core/timing_spec.py`).** `parse_timing` klasyfikuje frazę okna
+  (`when/after/before/instead/...`) po prefiksie, zachowując oryginalny tekst; `TRIGGER_WINDOW_MAP`
+  (D10, ⚠️ ZAŁOŻENIE w RULES.md) wiąże rodzaj z `WindowType` z `core/game_state.py`. Pod przyszłe
+  reakcje when/after na modelu okien (RULES.md 29.2).
+- **Rejestr_Efektów (`core/effects_registry.py`).** `id komponentu -> status` (`not_implemented`
+  / `implemented` / `manual`), dane w `assets/config/effects_status.json`. Pod hooki z RULES.md 29;
+  SAM w sobie nie koduje żadnego efektu karty (to przyszłe hooki, patrz §3).
+- **Powiązania z regułami (`core/rules_links.py`).** Deterministyczne (równość znormalizowanej
+  nazwy/aliasu, bez zgadywania) łączenie komponentu z tematami Zrzutu_Reguł (`docs/rules_tirules/`).
+  Reguła + doprecyzowanie → Zrzut_Reguł; treść/parametry karty → JSON w `assets/data/`.
+- **Audytor_Danych (`src/audit/`).** CLI `uv run python -m src.audit` (raport tekstowy; `--json`,
+  `--write-baseline`, `--write-manifest`). Liczy wpisy per kategoria×źródło, wykrywa nierozwiązane
+  referencje, `unclassified` timing, zewnętrzne URL-e, brakujące/nieużywane grafiki z manifestu.
+  `locality.py` = Strażnik_Lokalności (żaden odczyt spoza `PROJECT_ROOT`, brak ścieżek do
+  Źródeł_Referencyjnych w kodzie). Błąd krytyczny → niezerowy kod wyjścia.
+- **Lokalność grafik/fontów (D1).** Grafiki i fonty są POZA repo; `audit/assets_manifest.json`
+  (w repo) opisuje wymagany zestaw, a `src/audit/sync_assets.py --from <katalog>` kopiuje je
+  lokalnie. Frontend bierze je przez Resolver_Zasobów (`frontend/src/shared/assets/resolveAsset.ts`,
+  `assetManifest.json`) — zero CDN. Konfiguracja Audytora i baseline liczb są wersjonowane
+  (`audit/*.json`, D1/D12 — patrz `.gitignore`).
 
 ---
 
