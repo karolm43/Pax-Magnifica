@@ -26,7 +26,12 @@ from typing import Any
 import pytest
 
 from src import config
-from src.audit.locality import collect_sources, find_reference_path_usage
+from src.audit.locality import (
+    collect_sources,
+    find_reference_path_usage,
+    load_allowlist,
+    scan_external_urls,
+)
 
 # Nazwy folderów referencyjnych AsyncTI4 (źródła tylko do czytania przez człowieka).
 # Celowo trzymane w teście — kod produkcyjny nie może ich zawierać (R1.1).
@@ -96,6 +101,40 @@ def test_frontend_sources_have_no_reference_folder_usage() -> None:
     )
     assert findings == [], (
         "Frontend importuje/proxy'uje folder referencyjny: "
+        + ", ".join(f"{f.file}:{f.line} -> {f.text}" for f in findings)
+    )
+
+
+# --- R2.5 / R2.6 / R12.2: brak zewnętrznych URL spoza listy dozwolonej ---
+
+# Wzorce glob frontendu skanowane pod kątem zewnętrznych ``http(s)://`` URL.
+# ``index.html`` i ``vite.config.ts`` dokładane są osobno (leżą w korzeniu frontu).
+_FRONTEND_URL_PATTERNS: tuple[str, ...] = (
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.css",
+    "index.html",
+    "vite.config.ts",
+)
+
+
+def test_frontend_has_no_external_urls_outside_allowlist() -> None:
+    """``frontend/src`` i ``index.html`` nie zawierają URL spoza listy dozwolonej.
+
+    Skaner (``scan_external_urls``) pomija pliki ``*.test.ts(x)`` oraz hosty
+    lokalne (``localhost``/``127.0.0.1``). Pozostałe adresy muszą pasować do
+    prefiksu z ``audit/external_url_allowlist.json`` (adresy nawigacyjne,
+    atrybucyjne i identyfikator przestrzeni nazw SVG) — R2.5, R2.6, R12.2.
+    """
+    allowlist = load_allowlist()
+    findings = scan_external_urls(
+        config.FRONTEND_DIR, _FRONTEND_URL_PATTERNS, allowlist
+    )
+    assert findings == [], (
+        "Zewnętrzny URL spoza listy dozwolonej w froncie "
+        "(dodaj do audit/external_url_allowlist.json z notą, jeśli jest zasadny): "
         + ", ".join(f"{f.file}:{f.line} -> {f.text}" for f in findings)
     )
 

@@ -2,5 +2,6 @@
   {"prefix": "https://www.tirules2.com", "note": "atrybucja / link otwierany przez użytkownika"},
   {"prefix": "https://github.com/dangothemango/tirules", "note": "atrybucja zrzutu reguł"},
   {"prefix": "https://ti4battle.com", "note": "link nawigacyjny kalkulatora bitew"},
-  {"prefix": "https://discord.com", "note": "tylko online, za flagą config.features.onlineLogin (D2)"}
+  {"prefix": "https://discord.com", "note": "tylko online, za flagą config.features.onlineLogin (D2)"},
+  {"prefix": "http://www.w3.org/2000/svg", "note": "identyfikator przestrzeni nazw SVG (xmlns) w osadzonych maskach data:image/svg+xml; nie jest pobierany po sieci"}
 ]
