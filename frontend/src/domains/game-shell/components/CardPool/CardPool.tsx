@@ -1,11 +1,14 @@
 import { Box, Text } from "@/ds";
-import { Cardback } from "@/shared/ui/Cardback";
-import { assetUrl } from "@/shared/assets/resolveAsset";
 import { CardPoolData } from "@/entities/data/types";
 import styles from "./CardPool.module.css";
 import { ExplorationCardBack } from "@/domains/cards/components/ExplorationCardBack";
 import { SecretDeckCardBack } from "@/domains/cards/components/SecretDeckCardBack";
 import { RelicDeckCardBack } from "@/domains/cards/components/RelicDeckCardBack";
+import {
+  ActionCardDeckCardBack,
+  AgendaDeckCardBack,
+  PublicObjectiveDeckCardBack,
+} from "@/domains/cards/components/PoolDeckCardBack";
 
 type Props = {
   cardPool?: CardPoolData;
@@ -19,16 +22,10 @@ function CardPool({ cardPool }: Props) {
 
   return (
     <Box className={styles.pool}>
-      <Cardback
-        src={assetUrl("/player_area/cardback_action.jpg")}
-        alt="action cards"
-        count={cardPool.actionCardDeckSize ?? "–"}
-      />
-      <Cardback
-        src={assetUrl("/player_area/cardback_agenda.png")}
-        alt="agenda cards"
-        count={cardPool.agendaDeckSize ?? "–"}
-      />
+      <ActionCardDeckCardBack count={cardPool.actionCardDeckSize} />
+      <AgendaDeckCardBack count={cardPool.agendaDeckSize} />
+      <PublicObjectiveDeckCardBack stage={1} />
+      <PublicObjectiveDeckCardBack stage={2} />
       <SecretDeckCardBack
         deck={cardPool.secretObjectiveDeck || []}
         discard={cardPool.secretObjectiveDiscard || []}
