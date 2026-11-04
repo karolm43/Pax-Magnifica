@@ -137,6 +137,34 @@ Pax Magnifica/
 
 ---
 
+## 4a. Jak korzystać z Katalogu_Komponentów (dla następnych sesji)
+
+Potrzebujesz karty akcji, agendy, celu, żetonu, talii, promissory note itd.?
+**Czytaj z `registry.catalog` (`ComponentCatalog`) — NIE pisz własnego parsera JSON
+i NIE hardkoduj list.** Katalog jest już zbudowany w `StaticDataRegistry` (filtr po
+polu `source`, deduplikacja wg priorytetu źródeł).
+
+```python
+from src.core.components import ComponentCategory, ComponentRef
+
+catalog = registry.catalog
+cards = catalog.all(ComponentCategory.ACTION_CARD)      # słownik id -> model
+agenda = catalog.get(ComponentCategory.AGENDA, "censure")  # pojedynczy model albo None
+bundle = catalog.faction_bundle("arborec")               # liderzy/tech/promissory/… frakcji
+refs = catalog.query_timing(trigger, phase)              # komponenty wg okna czasowego
+```
+
+- **Źródła kanoniczne (oficjalne)** definiuje WYŁĄCZNIE `src/core/sources.py`
+  (`SOURCE_PRIORITY`). Importuj stamtąd — nie przeklejaj listy `base/pok/codex1-4/thunders_edge`.
+- **Przez API (tylko odczyt):** `GET /components`, `/components/{kategoria}`,
+  `/components/{kategoria}/{id}`, `/components/factions/{id}/bundle`, `/timing-specs`.
+- **Gwarancje:** filtr po polu `source` (tylko aktywne/oficjalne źródła, nie po nazwie
+  pliku); test regresji liczb (`audit/baseline_counts.json`); test anty-hardkodowania
+  (`tests/test_no_hardcoded_data_guard.py`) — pilnuje, by nikt nie obchodził rejestru
+  własnym loaderem ani nie duplikował listy źródeł.
+
+---
+
 ## 5. Kolejność czytania na start sesji
 
 1. Ten `README.md` — orientacja (cel + gdzie co jest).

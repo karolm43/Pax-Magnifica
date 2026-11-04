@@ -1005,3 +1005,29 @@ docs + `.gitignore` (bez zmian w kodzie → QA backendu/frontendu niekonieczna).
 
 **Następny krok:** zadanie 14 (final checkpoint — pełny `uv run pytest -q` / `ruff` / `mypy` oraz
 front type-check/lint/build zielone) i decyzje D1–D12 do potwierdzenia przez użytkownika.
+
+---
+
+### ✅ Strażnik anty-hardkodowania danych + instrukcja Katalogu_Komponentów (ukończone)
+- Nowy test `tests/test_no_hardcoded_data_guard.py` (skanery AST, wzór
+  `test_locality_guard.py`) pilnujący, by przyszłe moduły faktycznie używały lejka
+  danych zamiast go obchodzić. Dwa testy:
+  - **`test_zrodla_kanoniczne_tylko_w_sources_py`** — kolekcja literałów z ≥3 nazwami
+    źródeł kanonicznych (`base`/`pok`/`codex1-4`/`thunders_edge`) jest DOZWOLONA tylko
+    w `src/core/sources.py` (`SOURCE_PRIORITY`). Pojedyncze porównania (`source == "pok"`),
+    komentarze i docstringi nie są łapane (odporność na fałszywe alarmy). Łapie
+    „ktoś przekleił listę źródeł zamiast zaimportować `SOURCE_PRIORITY`".
+  - **`test_dane_gry_czytane_tylko_przez_rejestr_i_loader`** — żaden plik w `src/core/`
+    (poza `registry.py`, `component_loader.py`, `references.py`, `components.py`) ani
+    `src/api/` nie odwołuje się do `config.<KATEGORIA>_DATA_DIR` RAZEM z odczytem dysku
+    (`glob`/`open`/`read_*`) ani nie globuje `assets/data/<kategoria>`. Kategorie starsze
+    (units/technologies/factions/leaders/abilities/breakthroughs) wyłączone — czyta je
+    celowo `registry.py`. Lista katalogów kategorii wyliczana z modułu `config`, więc
+    test nie rozjeżdża się przy dodaniu nowej kategorii.
+- **Wynik skanu:** ZERO naruszeń w istniejącym kodzie — architektura jest lejkowa
+  (`SOURCE_PRIORITY` importowany wszędzie z `sources.py`; dane kategorii czytane wyłącznie
+  przez `load_components`/`StaticDataRegistry.catalog`).
+- `docs/README.md`: nowa sekcja **„4a. Jak korzystać z Katalogu_Komponentów"** z
+  przykładem (`catalog.all/get/faction_bundle/query_timing`), listą endpointów API i
+  gwarancjami (filtr po `source`, regresja liczb, test anty-hardkodowania).
+- QA zielone: `uv run pytest -q`, `uv run ruff check src tests`, `uv run mypy src tests`.
