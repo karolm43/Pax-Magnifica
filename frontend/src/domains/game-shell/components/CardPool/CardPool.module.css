@@ -1,7 +1,64 @@
+/* Pula kart: grupy (Cele / Talie / Eksploracja), w każdej rząd rewersów z
+   podpisem. Rzędy zawijają się i nigdy nie wychodzą poza box (min-width: 0,
+   flex-wrap), a każde gniazdo ma stałą szerokość karty (65px). */
 .pool {
   display: grid;
-  grid-template-columns: repeat(4, max-content);
-  gap: 8px;
+  gap: 14px;
+  min-width: 0;
+}
+
+.group {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.groupTitle {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Gniazdo trzyma rewers + podpis w pionie i przycina szerokość do karty, więc
+   rozciągliwy trigger (Stack, align: stretch) nie rozpycha rzędu. */
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 65px;
+  flex: 0 0 auto;
+}
+
+.slot > :first-child {
+  width: 65px;
+}
+
+/* Rewersy pochodzą z plików o RÓŻNYCH proporcjach (public1/2 są węższe niż
+   action/secret/explore), więc ich naturalna wysokość się różni. Wymuszamy
+   jeden rozmiar karty TI4 (65×91, ~2.5:3.5) z przycięciem, by rząd był równy.
+   Celujemy w obraz wewnątrz Cardback, nie ruszając współdzielonego komponentu. */
+.slot :global(img) {
+  width: 65px;
+  height: 91px;
+  object-fit: cover;
+}
+
+.slotLabel {
+  font-size: var(--text-micro);
+  line-height: 1.1;
+  text-align: center;
+  color: var(--ds-ink);
 }
 
 .empty {

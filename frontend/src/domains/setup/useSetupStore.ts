@@ -52,7 +52,8 @@ export const MAX_NAME_LENGTH = 50;
  * - `factionId` — `RANDOM_FACTION` oznacza „losowa"; inaczej id grywalnej frakcji.
  * - `startingTech` — wybrane technologie startowe (tylko dla frakcji z wyborem).
  * - `controlType` — HUMAN/BOT (R10.1).
- * - `difficulty` — poziom trudności bota; `null` dla HUMAN (R10.4).
+ * - `difficulty` — poziom trudności bota; `null` = losowa (BOT) lub brak (HUMAN, R10.4).
+ * - `personality` — osobowość bota; `null` = losowa (BOT) lub brak (HUMAN).
  */
 export interface SetupSlot {
   name: string;
@@ -61,6 +62,7 @@ export interface SetupSlot {
   startingTech: string[];
   controlType: ControlType;
   difficulty: string | null;
+  personality: string | null;
 }
 
 /** Projekcja pełnego slotu do minimalnego `SlotConfig` wymaganego przez `setupSteps.ts`. */
@@ -82,6 +84,7 @@ function makeDefaultSlot(index: number): SetupSlot {
     startingTech: [],
     controlType: "HUMAN",
     difficulty: null,
+    personality: null,
   };
 }
 
@@ -161,8 +164,10 @@ export const useSetupStore = create<SetupStore>((set) => ({
           ? {
               ...slot,
               controlType,
-              // HUMAN nie ma trudności; BOT zaczyna z pustym wyborem.
+              // HUMAN nie ma trudności ani osobowości; BOT zaczyna z pustym
+              // wyborem (= losowo).
               difficulty: controlType === "HUMAN" ? null : slot.difficulty,
+              personality: controlType === "HUMAN" ? null : slot.personality,
             }
           : slot,
       ),
@@ -272,14 +277,8 @@ function validateStartingTech(
   return null;
 }
 
-/** Sterowanie: BOT wymaga wybranej trudności — R10.2. */
-function validateControl(slots: SetupSlot[]): string | null {
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i];
-    if (slot.controlType === "BOT" && !slot.difficulty) {
-      return `Player ${i + 1}: select the bot difficulty level.`;
-    }
-  }
+/** Sterowanie: trudność i osobowość bota są opcjonalne (brak = losowo), więc bez błędów. */
+function validateControl(_slots: SetupSlot[]): string | null {
   return null;
 }
 
@@ -357,6 +356,7 @@ export function toNewGameRequest(
       color: slot.color,
       control_type: slot.controlType,
       difficulty: slot.controlType === "BOT" ? slot.difficulty ?? undefined : undefined,
+      personality: slot.controlType === "BOT" ? slot.personality ?? undefined : undefined,
     };
     if (needsTechChoice && slot.startingTech.length > 0) {
       player.starting_tech = slot.startingTech;

@@ -101,10 +101,8 @@ function SlotRow({
   // hardkodowania konfiguracji silnika na froncie.
   const { data: engineConfig, isLoading, isError } = useEngineConfig();
   const difficulties = engineConfig?.valid_difficulties ?? [];
+  const personalities = engineConfig?.valid_personalities ?? [];
   const isBot = slot.controlType === "BOT";
-  // Dla bota trudność jest wymagana (R10.2); puste pole = błąd (spina się z blokadą „Dalej").
-  const difficultyError =
-    isBot && !slot.difficulty ? "Select the bot difficulty level." : undefined;
 
   return (
     <Paper radius="md" withBorder p="md">
@@ -173,25 +171,35 @@ function SlotRow({
           />
         </Stack>
 
-        {/* Trudność tylko dla bota (przy HUMAN ukryta — R10.2). */}
+        {/* Trudność i osobowość tylko dla bota; puste pole = losowo. */}
         {isBot &&
           (isLoading ? (
             <Loader size="sm" />
           ) : isError ? (
-            <Alert color="red" title="Failed to load difficulty levels">
-              Try again — a bot cannot be configured without the allowed set.
+            <Alert color="red" title="Failed to load bot options">
+              Try again — the bot options could not be loaded.
             </Alert>
           ) : (
-            <Select
-              aria-label={`Player ${index + 1} bot difficulty level`}
-              label="Difficulty level"
-              placeholder="Select level"
-              data={difficulties}
-              value={slot.difficulty}
-              onChange={(value) => updateSlot(index, { difficulty: value ?? null })}
-              error={difficultyError}
-              required
-            />
+            <>
+              <Select
+                aria-label={`Player ${index + 1} bot difficulty level`}
+                label="Difficulty level"
+                placeholder="Random"
+                data={difficulties}
+                value={slot.difficulty}
+                onChange={(value) => updateSlot(index, { difficulty: value ?? null })}
+                clearable
+              />
+              <Select
+                aria-label={`Player ${index + 1} bot personality`}
+                label="Personality"
+                placeholder="Random"
+                data={personalities}
+                value={slot.personality}
+                onChange={(value) => updateSlot(index, { personality: value ?? null })}
+                clearable
+              />
+            </>
           ))}
       </Stack>
     </Paper>
@@ -210,7 +218,8 @@ export default function Step_NameColor(_props: SetupStepProps) {
     <Stack gap="md">
       <Text size="sm" c="dimmed">
         Set a name and color for each player and choose whether they are controlled
-        by a human or a bot (for a bot, also the difficulty level). An empty name
+        by a human or a bot (for a bot, also difficulty and personality; left empty
+        they are picked at random). An empty name
         field will be filled in automatically. Colors and names must be unique.
       </Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">

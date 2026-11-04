@@ -5,12 +5,20 @@ import { CardPoolBrowser } from "@/domains/cards/components/CardPoolBrowser/Card
 import {
   actionCardPool,
   agendaPool,
+  explorationPool,
   publicObjectivePool,
+  relicPool,
+  secretObjectivePool,
+  type PoolGroup,
 } from "@/domains/cards/model/cardPoolBrowser";
 
-/** Liczba kart we wszystkich grupach puli. */
-function totalCount(groups: { entries: unknown[] }[]): number {
-  return groups.reduce((sum, group) => sum + group.entries.length, 0);
+/** Liczba FIZYCZNYCH kart we wszystkich grupach puli (sumuje kopie). */
+function totalCount(groups: PoolGroup[]): number {
+  return groups.reduce(
+    (sum, group) =>
+      sum + group.entries.reduce((n, e) => n + (e.copies ?? 1), 0),
+    0,
+  );
 }
 
 type BackProps = {
@@ -31,6 +39,7 @@ export function AgendaDeckCardBack({ count }: BackProps) {
       alt="agenda cards"
       title="Agendas"
       count={count || totalCount(groups)}
+      modalSize={880}
     >
       <CardPoolBrowser groups={groups} />
     </CardbackModal>
@@ -46,6 +55,7 @@ export function ActionCardDeckCardBack({ count }: BackProps) {
       alt="action cards"
       title="Action cards"
       count={count || totalCount(groups)}
+      modalSize={880}
     >
       <CardPoolBrowser groups={groups} />
     </CardbackModal>
@@ -68,6 +78,61 @@ export function PublicObjectiveDeckCardBack({ stage, count }: ObjectiveBackProps
       alt={`public stage ${stage} objectives`}
       title={title}
       count={count || totalCount(groups)}
+      modalSize={880}
+    >
+      <CardPoolBrowser groups={groups} />
+    </CardbackModal>
+  );
+}
+
+/** Rewers talii celów sekretnych; klik → pełna pula sekretów (referencja). */
+export function SecretObjectiveDeckCardBack({ count }: BackProps) {
+  const groups = useMemo(() => secretObjectivePool(), []);
+  return (
+    <CardbackModal
+      imageSrc={assetUrl("/player_area/cardback_secret.jpg")}
+      alt="secret objectives"
+      title="Secret objectives"
+      count={count || totalCount(groups)}
+      modalSize={880}
+    >
+      <CardPoolBrowser groups={groups} />
+    </CardbackModal>
+  );
+}
+
+/** Rewers talii relikwii; klik → pełna pula relikwii. */
+export function RelicDeckCardBack({ count }: BackProps) {
+  const groups = useMemo(() => relicPool(), []);
+  return (
+    <CardbackModal
+      imageSrc={assetUrl("/player_area/cardback_relic.jpg")}
+      alt="relics"
+      title="Relics"
+      count={count || totalCount(groups)}
+      modalSize={880}
+    >
+      <CardPoolBrowser groups={groups} />
+    </CardbackModal>
+  );
+}
+
+type ExploreBackProps = BackProps & {
+  /** Cecha eksploracji: Cultural / Industrial / Hazardous / Frontier. */
+  type: "Cultural" | "Industrial" | "Hazardous" | "Frontier";
+};
+
+/** Rewers talii eksploracji danej cechy; klik → pełna pula tej cechy. */
+export function ExplorationDeckCardBack({ type, count }: ExploreBackProps) {
+  const groups = useMemo(() => explorationPool(type), [type]);
+  return (
+    <CardbackModal
+      cardKey={type}
+      imageSrc={assetUrl(`/player_area/cardback_${type.toLowerCase()}.jpg`)}
+      alt={`${type} explore`}
+      title={`${type} exploration`}
+      count={count || totalCount(groups)}
+      modalSize={880}
     >
       <CardPoolBrowser groups={groups} />
     </CardbackModal>

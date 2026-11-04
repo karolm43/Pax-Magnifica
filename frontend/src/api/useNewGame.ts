@@ -56,6 +56,8 @@ export type NewGamePlayer = {
   control_type?: string;
   // Poziom trudności bota; wysyłany tylko gdy control_type === "BOT".
   difficulty?: string;
+  // Osobowość bota; pominięta → backend losuje.
+  personality?: string;
   home_position?: string;
   // Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
   starting_tech?: string[];
@@ -107,11 +109,13 @@ export function useFaction(factionId: string | null) {
  *
  * Niesie dozwolony zbiór poziomów trudności bota (R10.2). Front NIE trzyma
  * własnej kopii tej listy — zbiór jest konfiguracją backendu (`engine_config.json`
- * → `valid_difficulties`, ⚠️ ZAŁOŻENIE, patrz docs/RULES.md 30) czytaną przez
+ * → `valid_difficulties`, ⚠️ ZAŁOŻENIE, patrz docs/RULES.md 36) czytaną przez
  * `StaticDataRegistry`.
  */
 export type EngineConfigInfo = {
   valid_difficulties: string[];
+  // Dozwolone osobowości (style gry) bota — też z `engine_config.json`.
+  valid_personalities: string[];
 };
 
 /** Pobiera konfigurację silnika (dozwolony zbiór trudności bota). */

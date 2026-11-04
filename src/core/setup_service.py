@@ -17,7 +17,7 @@ konsumuje DTO setupu), nie łamiąc warstw.
 
 Wszystkie wyszukiwania frakcji/technologii idą przez ``StaticDataRegistry`` (R11.5);
 zbiór poziomów trudności i limity są WSTRZYKIWANE (z zadania 5 / ``engine_config``),
-nie hardkodowane (⚠️ ZAŁOŻENIE, docs/RULES.md 30). Pierwszy wykryty problem →
+nie hardkodowane (⚠️ ZAŁOŻENIE, docs/RULES.md 36). Pierwszy wykryty problem →
 ``ValueError`` z komunikatem wskazującym pole i gracza (R11.4). Żaden ``GameState``
 nie powstaje przed pełną walidacją.
 """
@@ -56,6 +56,7 @@ class PlayerSetupInput(Protocol):
     color: str | None
     control_type: str
     difficulty: str | None
+    personality: str | None
     home_position: str | None
     starting_tech: list[str] | None
 
@@ -76,6 +77,7 @@ class ResolvedPlayer:
     faction_id: str
     control_type: ControlType
     difficulty: str | None
+    personality: str | None
     starting_tech: list[str] | None
     home_position: str | None
 
@@ -87,6 +89,7 @@ def resolve_players(
     available_colors: Sequence[str],
     max_players: int,
     valid_difficulties: frozenset[str],
+    valid_personalities: frozenset[str] = frozenset(),
     rng: random.Random | None = None,
 ) -> list[ResolvedPlayer]:
     """Waliduje i normalizuje graczy w jednym przebiegu (R7, R8, R10, R11).
@@ -154,7 +157,10 @@ def resolve_players(
         faction = registry.factions[faction_ids[index]]
         control_type = _resolve_control_type(player, pid)
         difficulty = _resolve_difficulty(
-            player, pid, control_type, valid_difficulties
+            player, pid, control_type, valid_difficulties, chooser
+        )
+        personality = _resolve_personality(
+            player, pid, control_type, valid_personalities, chooser
         )
         starting_tech = _resolve_tech(player, pid, faction)
         resolved.append(
@@ -165,6 +171,7 @@ def resolve_players(
                 faction_id=faction_ids[index],
                 control_type=control_type,
                 difficulty=difficulty,
+                personality=personality,
                 starting_tech=starting_tech,
                 home_position=player.home_position,
             )
@@ -404,23 +411,54 @@ def _resolve_difficulty(
     player_id: str,
     control_type: ControlType,
     valid_difficulties: frozenset[str],
+    chooser: random.Random,
 ) -> str | None:
     """Rozwiązuje poziom trudności zależnie od typu sterowania (R10.3–R10.5).
 
     - HUMAN → trudność czyszczona do ``None`` (R10.4), niezależnie od wejścia.
-    - BOT → trudność WYMAGANA i musi należeć do ``valid_difficulties`` (R10.3);
-      brak lub wartość spoza zbioru → ``ValueError`` (R10.5).
+    - BOT bez wybranej trudności → losowa ze zbioru ``valid_difficulties``.
+    - BOT z wartością spoza zbioru → ``ValueError`` (R10.5).
     """
     if control_type is ControlType.HUMAN:
         return None  # R10.4 — człowiek nie ma poziomu trudności
 
     difficulty = player.difficulty
+    if difficulty is None and valid_difficulties:
+        return chooser.choice(sorted(valid_difficulties))
     if difficulty is None or difficulty not in valid_difficulties:
         raise ValueError(
             f"Invalid difficulty level {difficulty!r} for bot "
             f"{player_id!r}. Allowed: {sorted(valid_difficulties)}."
         )
     return difficulty
+
+
+def _resolve_personality(
+    player: PlayerSetupInput,
+    player_id: str,
+    control_type: ControlType,
+    valid_personalities: frozenset[str],
+    chooser: random.Random,
+) -> str | None:
+    """Rozwiązuje osobowość bota: HUMAN → ``None``; BOT bez wyboru → losowa.
+
+    Wartość spoza ``valid_personalities`` → ``ValueError``. Gdy zbiór jest pusty
+    (brak konfiguracji), osobowość pozostaje ``None``.
+    """
+    if control_type is ControlType.HUMAN:
+        return None
+
+    personality = player.personality
+    if personality is None:
+        if not valid_personalities:
+            return None
+        return chooser.choice(sorted(valid_personalities))
+    if personality not in valid_personalities:
+        raise ValueError(
+            f"Invalid personality {personality!r} for bot "
+            f"{player_id!r}. Allowed: {sorted(valid_personalities)}."
+        )
+    return personality
 
 
 # --- Technologie startowe (R9 / R11.6) ---------------------------------
