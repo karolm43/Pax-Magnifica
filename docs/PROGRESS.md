@@ -673,3 +673,7 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - `src/audit/locality.py`: czyste funkcje nad tekstem `find_reference_path_usage` (literały kodu poza docstringami; nazwy folderów referencyjnych podaje wołający, nie ma ich w kodzie produkcyjnym), `find_outside_root_reads`, `find_external_urls` (hosty lokalne + lista dozwolona po granicy segmentu) oraz cienka otoczka (`collect_sources`, `scan_external_urls`, `load_allowlist`, `load_unused_asset_dirs`).
 - `audit/expected_gaps.json` (`[]`), `audit/external_url_allowlist.json` (D2), `audit/unused_asset_dirs.json` (D8, nic nie jest usuwane).
 - Test: `tests/test_audit_locality.py`. Skan realnego `src/` i `scripts/`: zero odwołań do folderów referencyjnych w kodzie i zero odczytów spoza korzenia.
+### ✅ Blok local-ti4-data-foundation 2.1 — `core/components.py` (ukończony)
+- `src/core/components.py`: `ComponentCategory`, `ComponentRef`, `ComponentBase` (pole `raw` z surowym JSON), modele kategorii (`ActionCardDef`, `AgendaDef`, `ObjectiveDef`, `AttachmentDef`, `ExplorationDef`, `RelicDef`, `PromissoryNoteDef`, `TokenDef`, `BorderAnomalyDef`, `GalacticEventDef`, `GenericCardDef`, `DeckDef`).
+- `CATEGORY_SPECS` = jedyne miejsce kształtów JSON (`alias` vs `id`, pola tekstowe, pole okna); `build_component` łączy `flavorText`/`flavourText`, `cardIDs` rozcina po białych znakach. Zero hardkodowanych komponentów.
+- `ComponentCatalog`: `get`, `all`, `counts`. Test: `tests/test_components.py`. Wszystkie realne wpisy 13 kategorii walidują się w modelach.
