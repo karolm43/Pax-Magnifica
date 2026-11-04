@@ -694,3 +694,8 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - `src/core/component_loader.py`: `EntryOrigin`, `iter_entries_with_origin`, `LoadReport` (`loaded`, `skipped`, `skipped_index`, `sourceless`, `invalid_id`, `conflicts`), czysta `select_entries` (filtr po `source`, wpisy bez źródła, wybór po `source_rank`, deterministyczny remis po `(file, index)`), `load_components(enabled)` z walidacją modelu i `DataValidationError(kategoria, plik, id)`.
 - `load_components` przyjmuje opcjonalną tabelę `specs` (domyślnie `CATEGORY_SPECS`), co pozwala testować na `tmp_path`. Loader jeszcze nie jest wpięty w rejestr (zadanie 2.3).
 - Test: `tests/test_component_loader.py`.
+
+### ✅ Blok local-ti4-data-foundation 7.1 — `core/effects_registry.py` (ukończony)
+- `src/core/effects_registry.py`: `EffectStatus` (`not_implemented`/`implemented`/`manual`), niemutowalny `EffectRegistry` (`status_of` z domyślnym `NOT_IMPLEMENTED`, `with_status` zwraca nowy rejestr, `load` z brakiem pliku = pusty, `to_json_dict`), `coverage` per kategoria (CoverageRow: total/implemented/manual/percent) i `resolve_action_card_ref` po `automationID` (z deterministycznym remisem, zapasowo po aliasie). Czysta struktura danych bez importów FastAPI/HTTP; zero logiki efektów jakiejkolwiek karty.
+- `assets/config/effects_status.json` (`{}`) z wyjątkiem w `.gitignore` (obok `engine_config.json`).
+- Test: `tests/test_effects_registry.py`. QA zielone dla moich plików (pytest 332 passed, ruff + mypy czyste). Wymagania: 9.1–9.7.

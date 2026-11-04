@@ -56,6 +56,7 @@ assets/*
 !assets/config/
 assets/config/*
 !assets/config/engine_config.json
+!assets/config/effects_status.json
 !assets/data/
 !assets/systems/
 !assets/planets/
