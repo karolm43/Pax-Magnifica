@@ -24,7 +24,12 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFac
 import type { SetupStepProps } from "../SetupWizard";
 import { RANDOM_FACTION, useSetupStore } from "../useSetupStore";
 import { FactionSummary } from "../FactionSummary";
-import { FactionLore, FactionPortraitLayer } from "../FactionBackdrop";
+import {
+  FactionLore,
+  FactionPortraitLayer,
+  FactionQuote,
+  hasFactionQuote,
+} from "../FactionBackdrop";
 import type { FactionInfo } from "@/api/useNewGame";
 import styles from "./Step_Faction.module.css";
 
@@ -157,10 +162,17 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
       <div className={styles.content}>
         {/* Strefa postaci: strefa jest zawsze (zajmuje wolne miejsce), zawartość
             remontowana przy zmianie frakcji — to odtwarza wolne wyłanianie. */}
-        <div className={styles.characterZone}>
+        <div
+          className={`${styles.characterZone} ${
+            stageFaction && hasFactionQuote(stageFaction.id)
+              ? styles.characterZoneQuote
+              : ""
+          }`}
+        >
           {stageFaction && (
             <Fragment key={`character-${stageFaction.id}`}>
               <FactionPortraitLayer faction={stageFaction} />
+              <FactionQuote faction={stageFaction} />
               <div className={styles.loreSlot}>
                 <FactionLore faction={stageFaction} />
               </div>

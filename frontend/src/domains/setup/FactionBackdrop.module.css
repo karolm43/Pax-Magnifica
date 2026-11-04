@@ -11,7 +11,10 @@
 
 .portraitLayer {
   position: absolute;
-  inset: 0 auto 0 0;
+  /* Od dołu do paska cytatu (`--quote-h`, 0 gdy brak cytatu); lewa krawędź = ekran. */
+  top: var(--quote-h, 0px);
+  bottom: 0;
+  left: 0;
   /* Szerokość z `--portrait-w` strefy postaci (Step_Faction.module.css). */
   width: var(--portrait-w, 46%);
   z-index: 0;
@@ -20,22 +23,38 @@
   align-items: flex-end;
   justify-content: flex-start;
   /* Prawa krawędź zanika — postać wtapia się w tło przy tekście lore. */
-  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 100%);
-  mask-image: linear-gradient(to right, #000 68%, transparent 100%);
-  /* BARDZO wolne wyłanianie: z mgły (blur + zero krycia) do ostrej postaci. */
-  animation: portraitEmerge 3.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  -webkit-mask-image: linear-gradient(to right, #000 62%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 62%, transparent 100%);
+  /*
+   * DUŻE, wolne wyłanianie (~5.5 s): z gęstej mgły (rozmycie, brak koloru, odsunięcie
+   * w lewo i powiększenie) do ostrej postaci. Krzywa jest łagodna na początku i końcu,
+   * więc ruch rozkłada się równo na cały czas, a nie kończy w pierwszej sekundzie.
+   */
+  animation: portraitEmerge 5.5s cubic-bezier(0.45, 0.05, 0.25, 1) 0.25s both;
 }
 
-/* Miękka poświata za postacią osadza przezroczysty PNG w tle. */
+/* Miękka poświata za postacią osadza przezroczysty PNG w tle i „rozbłyska" wraz z nią. */
 .portraitLayer::before {
   content: "";
   position: absolute;
   inset: 0;
   background: radial-gradient(
     ellipse 70% 65% at 35% 55%,
-    rgb(252 162 43 / 0.2),
+    rgb(252 162 43 / 0.26),
     transparent 70%
   );
+  animation: portraitGlow 7s ease-in-out 0.25s both;
+}
+
+@keyframes portraitGlow {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /*
@@ -67,21 +86,75 @@
 @keyframes portraitEmerge {
   0% {
     opacity: 0;
-    filter: blur(22px) brightness(0.6);
-    transform: translateX(-48px) scale(1.06);
+    filter: blur(38px) brightness(0.2) saturate(0.3);
+    transform: translateX(-150px) scale(1.16);
   }
-  45% {
-    opacity: 0.55;
-    filter: blur(9px) brightness(0.85);
+  30% {
+    opacity: 0.3;
+    filter: blur(22px) brightness(0.45) saturate(0.6);
+  }
+  65% {
+    opacity: 0.8;
+    filter: blur(8px) brightness(0.8) saturate(0.9);
   }
   100% {
     opacity: 1;
-    filter: blur(0) brightness(1);
+    filter: blur(0) brightness(1) saturate(1);
     transform: translateX(0) scale(1);
   }
 }
 
-/* ── Lore (nałożone na portret) ───────────────────────────────────────── */
+/* ── Cytat frakcji (nad postacią) ─────────────────────────────────────── */
+
+/*
+ * Pull-quote w pasku nad głową postaci: wielki złoty cudzysłów i kursywa. Pasek ma
+ * wysokość `--quote-h` (ustawia ją strefa postaci tylko, gdy frakcja ma cytat), a tekst
+ * siedzi przy jego dolnej krawędzi — tuż nad głową. Wchodzi po tym, jak postać się wyłoni.
+ */
+.quote {
+  position: absolute;
+  top: 0;
+  left: clamp(8px, 0.8vw, 16px);
+  width: calc(var(--portrait-w, 46%) * 1.05);
+  height: var(--quote-h, 0px);
+  margin: 0;
+  padding-bottom: clamp(8px, 1.6vh, 20px);
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(8px, 0.9vw, 16px);
+  pointer-events: none;
+  animation: quoteIn 3.2s cubic-bezier(0.33, 0, 0.2, 1) 2.6s both;
+}
+
+.quoteText {
+  margin: 0;
+  font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+  font-style: italic;
+  font-size: clamp(1rem, min(1.5vw, 2.5vh), 1.6rem);
+  line-height: 1.32;
+  color: rgb(252 222 168);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.9);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes quoteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ── Lore (obok portretu) ─────────────────────────────────────────────── */
 
 .lore {
   position: relative;
@@ -89,11 +162,11 @@
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  max-height: 100%;
   padding: 28px 8px 4px 4px;
   color: rgb(235 228 214);
   font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
-  font-size: clamp(12px, 0.75vw, 14.5px);
+  /* Wartość startowa; właściwy rozmiar dobiera FactionLore (dopasowanie do boxa). */
+  font-size: clamp(13px, 0.95vw, 17px);
   line-height: 1.5;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
 }
@@ -111,6 +184,20 @@
     rgb(5 4 3 / 0.38) 60%,
     transparent 100%
   );
+  /*
+   * Tło lore wyłania się RAZEM z tekstem (te same opóźnienie i czas co nazwa), żeby na
+   * początku animacji nie było widać samego ciemnego boxa bez zawartości.
+   */
+  animation: scrimIn 2.4s cubic-bezier(0.33, 0, 0.2, 1) 2.4s both;
+}
+
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .loreName {
@@ -127,13 +214,6 @@
   -webkit-text-fill-color: transparent;
   text-shadow: none;
   filter: drop-shadow(0 2px 10px rgb(0 0 0 / 0.7));
-}
-
-.loreQuote {
-  margin: 0 0 4px;
-  font-style: italic;
-  font-size: 1.1em;
-  color: rgb(252 214 150);
 }
 
 /* Dwie kolumny, wypełniane po kolei; zawartość ma się mieścić bez scrolla. */
@@ -177,21 +257,20 @@
 
 /* Kaskadowe pojawianie się elementów lore (nazwa → cytat → kolejne bloki). */
 .loreName,
-.loreQuote,
 .loreParagraph,
 .loreHeading,
 .loreBlockQuote,
 .loreEmpty {
-  /* Wolno: tekst pojawia się dopiero, gdy postać zaczyna się wyłaniać. */
-  animation: loreIn 1.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  animation-delay: calc(1.3s + min(var(--i, 0), 18) * 170ms);
+  /* Wolno: tekst pojawia się dopiero, gdy postać jest już wyraźnie widoczna. */
+  animation: loreIn 2.4s cubic-bezier(0.33, 0, 0.2, 1) both;
+  animation-delay: calc(2.4s + min(var(--i, 0), 18) * 230ms);
 }
 
 @keyframes loreIn {
   from {
     opacity: 0;
-    transform: translateY(14px);
-    filter: blur(4px);
+    transform: translateY(24px);
+    filter: blur(7px);
   }
   to {
     opacity: 1;
@@ -200,20 +279,33 @@
   }
 }
 
+/*
+ * Reduced motion: usuwamy RUCH (przesunięcia, skalowanie, rozmycie), ale ZOSTAWIAMY
+ * wolne, wyraźnie widoczne pojawianie się samym kryciem — to prezentacja wyboru, nie
+ * ozdobnik, a krótki fade sprawiał, że animacji nie było widać.
+ */
 @media (prefers-reduced-motion: reduce) {
   .portraitLayer {
-    animation: fadeOnly 0.3s ease both;
+    animation: slowFade 3.4s ease-in-out 0.2s both;
+  }
+  .portraitLayer::before {
+    animation: none;
+  }
+  .quote {
+    animation: slowFade 2.4s ease-in-out 2s both;
+  }
+  .lore::before {
+    animation: slowFade 1.8s ease-in-out 1.8s both;
   }
   .loreName,
-  .loreQuote,
   .loreParagraph,
   .loreHeading,
   .loreBlockQuote,
   .loreEmpty {
-    animation: fadeOnly 0.3s ease both;
-    animation-delay: 0s;
+    animation: slowFade 1.8s ease-in-out both;
+    animation-delay: calc(1.8s + min(var(--i, 0), 18) * 150ms);
   }
-  @keyframes fadeOnly {
+  @keyframes slowFade {
     from {
       opacity: 0;
     }

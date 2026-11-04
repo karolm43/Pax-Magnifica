@@ -154,7 +154,9 @@
  * a sylwetka pozostaje w całości widoczna.
  */
 .characterZone {
-  --portrait-w: clamp(300px, 46%, 800px);
+  --portrait-w: clamp(320px, 50%, 840px);
+  /* Wysokość paska cytatu nad głową postaci; 0, gdy frakcja nie ma cytatu. */
+  --quote-h: 0px;
   position: relative;
   z-index: 1;
   flex: 1 1 0;
@@ -170,15 +172,17 @@
   z-index: 1;
   align-self: center;
   /* Bez przewijania w typowym przypadku; awaryjnie cienki scroll przy bardzo długim lore. */
-  max-height: calc(100% - var(--pick-h) - 12px);
+  max-height: calc(100% - var(--pick-h) - var(--quote-h) - 12px);
+  /* Zostawia pasek cytatu (`--quote-h`) wolny — lore centruje się w obszarze pod nim. */
+  margin-top: var(--quote-h);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgb(252 162 43 / 0.35) transparent;
   /* Padding = zapas na miękki scrim (.lore::before), żeby nie był przycięty. */
   padding: 36px 28px 36px 52px;
-  /* Lekko wchodzi pod zanikającą krawędź portretu. */
-  margin-left: calc(var(--portrait-w) - 4% - 52px);
-  margin-right: calc(clamp(12px, 2vw, 32px) - 28px);
+  /* Box lore zaczyna się już pod zanikającą prawą częścią portretu (większe pole). */
+  margin-left: calc(var(--portrait-w) * 0.8 - 52px);
+  margin-right: calc(clamp(8px, 1.2vw, 24px) - 28px);
   margin-bottom: var(--pick-h);
   display: flex;
   flex-direction: column;
@@ -186,11 +190,16 @@
   min-width: 0;
 }
 
+/* Gdy frakcja ma cytat — rezerwujemy nad postacią pasek na pull-quote. */
+.characterZoneQuote {
+  --quote-h: clamp(96px, 16vh, 170px);
+}
+
 /* Panel szczegółów (FactionSummary) — WĄSKI pasek na szkle (lista chipów). */
 .detail {
   position: relative;
   z-index: 2;
-  flex: 0 0 clamp(300px, 21vw, 380px);
+  flex: 0 0 clamp(280px, 18.5vw, 350px);
   min-width: 0;
   padding: var(--ds-space-md) var(--ds-space-md) 0;
   overflow-y: auto;
@@ -204,7 +213,7 @@
 .gallery {
   position: relative;
   z-index: 2;
-  flex: 0 0 clamp(220px, 15vw, 270px);
+  flex: 0 0 clamp(200px, 13vw, 250px);
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-sm);
@@ -328,7 +337,7 @@
   gap: 6px;
   pointer-events: none; /* klikalny jest tylko sam przycisk */
   background: linear-gradient(to top, rgb(0 0 0 / 0.55), transparent);
-  animation: pickIn 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.9s both;
+  animation: pickIn 2s cubic-bezier(0.33, 0, 0.2, 1) 3s both;
 }
 
 .pickNote {
@@ -409,7 +418,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pickBar {
-    animation: none;
+    animation: pickFade 1.6s ease-in-out 2s both;
+  }
+  @keyframes pickFade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }
 

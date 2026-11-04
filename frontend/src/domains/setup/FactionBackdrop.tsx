@@ -5,7 +5,7 @@
 // więc KAŻDA zmiana frakcji odtwarza animacje wejścia: portret wjeżdża z lewej, a
 // kolejne bloki lore pojawiają się kaskadowo (opóźnienie z indeksu bloku).
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FactionInfo } from "@/api/useNewGame";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import {
@@ -120,23 +120,80 @@ function measureAlphaInset(
 }
 
 /**
- * Lore nałożone na portret: nazwa (krój Ambroise) + cytat + tekst w DWÓCH kolumnach,
- * małą czcionką, bez przewijania. Każdy blok wchodzi z opóźnieniem `--i`.
+ * Cytat frakcji nad postacią (pasek o wysokości `--quote-h` nad portretem). Zwraca
+ * `null`, gdy frakcja nie ma cytatu — wtedy pasek się nie rezerwuje (patrz `hasFactionQuote`).
+ */
+export function FactionQuote({ faction }: { faction: FactionInfo }) {
+  const quote = getFactionLore(faction.id)?.quote;
+  if (!quote) return null;
+  return (
+    <figure className={styles.quote}>
+      <blockquote className={styles.quoteText}>{quote}</blockquote>
+    </figure>
+  );
+}
+
+/** Czy frakcja ma cytat (steruje rezerwacją miejsca nad portretem). */
+export function hasFactionQuote(factionId: string): boolean {
+  return Boolean(getFactionLore(factionId)?.quote);
+}
+
+/**
+ * Lore obok portretu: nazwa (krój Ambroise) + tekst w DWÓCH kolumnach, bez przewijania —
+ * rozmiar czcionki dopasowuje się do boxa i okna. Każdy blok wchodzi z opóźnieniem `--i`.
  */
 export function FactionLore({ faction }: { faction: FactionInfo }) {
   const data = getFactionLore(faction.id);
   const blocks = loreToBlocks(data?.lore);
+  const articleRef = useRef<HTMLElement>(null);
+
+  // Dopasowanie rozmiaru czcionki do boxa: największy rozmiar (do limitu zależnego od
+  // rozmiaru okna), przy którym lore mieści się bez przewijania. Skaluje się z oknem.
+  useLayoutEffect(() => {
+    const article = articleRef.current;
+    const slot = article?.parentElement;
+    const zone = slot?.parentElement;
+    if (!article || !slot || !zone) return;
+
+    const fit = () => {
+      const style = getComputedStyle(slot);
+      const padV = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      // Limit rośnie z oknem (szerokość i wysokość), nie przekracza czytelnych granic.
+      const max = Math.min(
+        19,
+        Math.max(13, Math.min(window.innerWidth * 0.0105, window.innerHeight * 0.019)),
+      );
+      const min = 10.5;
+      const fits = (size: number) => {
+        article.style.fontSize = `${size}px`;
+        // Tylko wysokość: scrim (.lore::before) wystaje poza article, więc test
+        // szerokości zawsze zawodził i zbijał czcionkę do minimum.
+        return article.offsetHeight + padV <= slot.clientHeight + 1;
+      };
+      if (fits(max)) return;
+      let lo = min;
+      let hi = max;
+      for (let i = 0; i < 8; i++) {
+        const mid = (lo + hi) / 2;
+        if (fits(mid)) lo = mid;
+        else hi = mid;
+      }
+      article.style.fontSize = `${lo}px`;
+    };
+
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(zone);
+    // Po wczytaniu fontów (Ambroise) metryki się zmieniają — dopasuj ponownie.
+    void document.fonts?.ready.then(fit);
+    return () => observer.disconnect();
+  }, [faction.id]);
 
   return (
-    <article className={styles.lore}>
+    <article className={styles.lore} ref={articleRef}>
       <h2 className={styles.loreName} style={{ ["--i" as string]: 0 }}>
         {faction.name}
       </h2>
-      {data?.quote && (
-        <p className={styles.loreQuote} style={{ ["--i" as string]: 1 }}>
-          „{data.quote}”
-        </p>
-      )}
       {blocks.length === 0 ? (
         <p className={styles.loreEmpty} style={{ ["--i" as string]: 2 }}>
           Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
