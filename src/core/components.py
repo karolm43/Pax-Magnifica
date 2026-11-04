@@ -17,6 +17,9 @@ from typing import Any, NamedTuple
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src import config
+from src.core.game_state import Phase
+from src.core.models import AbilityDef, LeaderDef
+from src.core.timing_spec import TimingSpec, TriggerKind, parse_timing
 
 
 class ComponentCategory(StrEnum):
@@ -241,15 +244,71 @@ def build_component(entry: Mapping[str, Any], spec: CategorySpec) -> ComponentBa
     return spec.model.model_validate(data)
 
 
+def build_timing_specs(
+    tables: Mapping[ComponentCategory, Mapping[str, ComponentBase]],
+    leaders: Mapping[str, LeaderDef] | None = None,
+    abilities: Mapping[str, AbilityDef] | None = None,
+) -> dict[ComponentRef, TimingSpec]:
+    """Buduje specyfikacje czasowe wyłącznie z pól JSON (R8.2).
+
+    Źródła fraz okna: karty akcji (``window`` + ``phase`` + ``playTiming``),
+    zdolności frakcji (``window`` + ``windowEffect``), liderzy (``abilityWindow``).
+    Komponenty bez frazy okna nie dostają specyfikacji.
+    """
+    specs: dict[ComponentRef, TimingSpec] = {}
+    for comp_id, component in tables.get(ComponentCategory.ACTION_CARD, {}).items():
+        if not isinstance(component, ActionCardDef):
+            continue
+        spec = parse_timing(
+            component.window,
+            phase=component.phase,
+            play_timing=component.play_timing,
+            source_field="window",
+        )
+        if spec is not None:
+            specs[ComponentRef(ComponentCategory.ACTION_CARD, comp_id)] = spec
+    for ability_id, ability in (abilities or {}).items():
+        spec = parse_timing(
+            ability.window,
+            source_field="window",
+            effect_text=ability.window_effect,
+        )
+        if spec is not None:
+            specs[ComponentRef(ComponentCategory.ABILITY, ability_id)] = spec
+    for leader_id, leader in (leaders or {}).items():
+        spec = parse_timing(leader.ability_window, source_field="abilityWindow")
+        if spec is not None:
+            specs[ComponentRef(ComponentCategory.LEADER, leader_id)] = spec
+    return specs
+
+
 class ComponentCatalog:
     """Niemutowalny katalog komponentów pogrupowanych w kategorie."""
 
     def __init__(
-        self, tables: Mapping[ComponentCategory, Mapping[str, ComponentBase]]
+        self,
+        tables: Mapping[ComponentCategory, Mapping[str, ComponentBase]],
+        timing_specs: Mapping[ComponentRef, TimingSpec] | None = None,
     ) -> None:
         self._tables: dict[ComponentCategory, dict[str, ComponentBase]] = {
             category: dict(table) for category, table in tables.items()
         }
+        self._timing_specs: dict[ComponentRef, TimingSpec] = dict(timing_specs or {})
+
+    def timing_spec(self, ref: ComponentRef) -> TimingSpec | None:
+        """Zwraca specyfikację czasową komponentu albo ``None``."""
+        return self._timing_specs.get(ref)
+
+    def query_timing(
+        self, trigger: TriggerKind, phase: Phase | None = None
+    ) -> list[ComponentRef]:
+        """Komponenty o danym wyzwalaczu (i fazie, jeśli podana), posortowane."""
+        matches = [
+            ref
+            for ref, spec in self._timing_specs.items()
+            if spec.trigger is trigger and (phase is None or spec.phase is phase)
+        ]
+        return sorted(matches, key=lambda ref: (ref.category.value, ref.id))
 
     def get(self, category: ComponentCategory, component_id: str) -> ComponentBase | None:
         """Zwraca komponent albo ``None``, gdy brak kategorii lub identyfikatora."""

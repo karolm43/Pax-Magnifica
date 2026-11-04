@@ -29,6 +29,17 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 - Testy: `tests/test_timing_spec.py`. Dalej: 5.2 (`build_timing_specs`, `query_timing`).
 ---
 
+### ✅ Baza danych TI4 · 5.2: specyfikacje czasowe w katalogu + `query_timing` (ukończone)
+- `build_timing_specs(tables, leaders, abilities)` w `core/components.py`: buduje
+  `TimingSpec` WYŁĄCZNIE z pól JSON (R8.2) — karty akcji (`window`+`phase`+`playTiming`),
+  zdolności frakcji (`window`+`windowEffect`→`effect_text`), liderzy (`abilityWindow`).
+  Komponenty bez frazy okna nie dostają specyfikacji.
+- `ComponentCatalog` dostał opcjonalny parametr `timing_specs` (zgodny wstecz) oraz metody
+  `timing_spec(ref)` i `query_timing(trigger, phase=None)` (filtr po wyzwalaczu i fazie,
+  wynik posortowany deterministycznie po kategorii i id, R8.4/R8.6).
+- Testy: `tests/test_components.py::test_build_timing_specs_i_query_timing`. QA zielone.
+---
+
 ### ✅ Keleres (3 warianty): przełom i technologie wg Thunder's Edge (ukończone)
 
 - **Błąd:** przełom TE Keleres ma `faction="keleres"`, a warianty to `keleresm/x/a` →

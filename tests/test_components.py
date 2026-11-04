@@ -74,3 +74,45 @@ def test_catalog_get_all_counts() -> None:
     assert set(catalog.all(ComponentCategory.ACTION_CARD)) == {"amendment", "b"}
     assert catalog.all(ComponentCategory.AGENDA) == {}
     assert catalog.counts() == {ComponentCategory.ACTION_CARD: {"base": 1, "pok": 1}}
+
+
+def test_build_timing_specs_i_query_timing() -> None:
+    from src.core.components import ComponentRef, build_timing_specs
+    from src.core.game_state import Phase
+    from src.core.models import AbilityDef, LeaderDef
+    from src.core.timing_spec import TriggerKind
+
+    spec = CATEGORY_SPECS[ComponentCategory.ACTION_CARD]
+    card = build_component({**_ACTION, "alias": "c1", "phase": "Agenda",
+                            "window": "When an agenda is revealed",
+                            "playTiming": "AGENDA_WHEN"}, spec)
+    no_window = build_component({"alias": "c2", "source": "base"}, spec)
+    leaders = {"l1": LeaderDef.model_validate(
+        {"id": "l1", "type": "agent", "name": "L", "source": "base",
+         "abilityWindow": "ACTION:"})}
+    abilities = {"a1": AbilityDef.model_validate(
+        {"id": "a1", "name": "A", "source": "base",
+         "window": "After a unit is destroyed", "windowEffect": "efekt"})}
+    tables = {ComponentCategory.ACTION_CARD: {"c1": card, "c2": no_window}}
+
+    specs = build_timing_specs(tables, leaders, abilities)
+    assert set(specs) == {
+        ComponentRef(ComponentCategory.ACTION_CARD, "c1"),
+        ComponentRef(ComponentCategory.LEADER, "l1"),
+        ComponentRef(ComponentCategory.ABILITY, "a1"),
+    }
+    ability_spec = specs[ComponentRef(ComponentCategory.ABILITY, "a1")]
+    assert ability_spec.effect_text == "efekt"
+
+    catalog = ComponentCatalog(tables, specs)
+    assert catalog.timing_spec(ComponentRef(ComponentCategory.LEADER, "l1")) is not None
+    assert catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, "c2")) is None
+    assert catalog.query_timing(TriggerKind.WHEN) == [
+        ComponentRef(ComponentCategory.ACTION_CARD, "c1")
+    ]
+    assert catalog.query_timing(TriggerKind.WHEN, Phase.AGENDA) == [
+        ComponentRef(ComponentCategory.ACTION_CARD, "c1")
+    ]
+    assert catalog.query_timing(TriggerKind.WHEN, Phase.STATUS) == []
+    # konstruktor bez timing_specs (zgodność wsteczna)
+    assert ComponentCatalog({}).query_timing(TriggerKind.WHEN) == []
