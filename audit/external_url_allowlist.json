@@ -1,0 +1,6 @@
+[
+  {"prefix": "https://www.tirules2.com", "note": "atrybucja / link otwierany przez użytkownika"},
+  {"prefix": "https://github.com/dangothemango/tirules", "note": "atrybucja zrzutu reguł"},
+  {"prefix": "https://ti4battle.com", "note": "link nawigacyjny kalkulatora bitew"},
+  {"prefix": "https://discord.com", "note": "tylko online, za flagą config.features.onlineLogin (D2)"}
+]

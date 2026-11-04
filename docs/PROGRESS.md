@@ -669,3 +669,7 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - `src/core/sources.py`: `SOURCE_PRIORITY` (RULES.md 14), `source_rank`, `known_source_ids`, `validate_enabled_sources`, `UnknownSourcesError`.
 - `StaticDataRegistry`: `_STRATEGY_SET_SOURCE_PRIORITY` = `SOURCE_PRIORITY` (bez zmiany zachowania); `__init__` waliduje źródła przed `_load()`.
 - Test `test_registry` używał nieistniejącego źródła `anarchy` → zastąpione znanym homebrew `absol`. Nowe testy: `tests/test_sources.py`.
+### ✅ Blok local-ti4-data-foundation 8.1 — `src/audit/locality.py` + pliki konfiguracyjne `audit/` (ukończony)
+- `src/audit/locality.py`: czyste funkcje nad tekstem `find_reference_path_usage` (literały kodu poza docstringami; nazwy folderów referencyjnych podaje wołający, nie ma ich w kodzie produkcyjnym), `find_outside_root_reads`, `find_external_urls` (hosty lokalne + lista dozwolona po granicy segmentu) oraz cienka otoczka (`collect_sources`, `scan_external_urls`, `load_allowlist`, `load_unused_asset_dirs`).
+- `audit/expected_gaps.json` (`[]`), `audit/external_url_allowlist.json` (D2), `audit/unused_asset_dirs.json` (D8, nic nie jest usuwane).
+- Test: `tests/test_audit_locality.py`. Skan realnego `src/` i `scripts/`: zero odwołań do folderów referencyjnych w kodzie i zero odczytów spoza korzenia.
