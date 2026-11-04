@@ -20,6 +20,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { portraitCandidates, useFactionAccent } from "./FactionBackdrop";
+import { getFactionLore } from "./factionLore";
 import type { IntroPlayer } from "./introPlayers";
 import styles from "./GameIntro.module.css";
 
@@ -278,6 +279,10 @@ function RosterCard({ player, index }: { player: IntroPlayer; index: number }) {
   const isIcon = sourceIndex === sources.length - 1;
   const exhausted = sourceIndex >= sources.length;
   const swatch = player.color ? COLOR_SWATCH[player.color] : undefined;
+  // Cytat frakcji z `factionLore.ts` (zapisany bez cudzysłowu; zdejmujemy ewentualne).
+  const lore = getFactionLore(player.faction.id);
+  const quote = lore?.quote?.trim().replace(/^["“”„«»]+|["“”„«»]+$/g, "").trim();
+  const author = lore?.quoteAuthor?.trim().replace(/^[—–-]\s*/, "");
 
   return (
     <li
@@ -311,6 +316,12 @@ function RosterCard({ player, index }: { player: IntroPlayer; index: number }) {
           }}
         />
         <h2 className={styles.cardFaction}>{player.faction.name}</h2>
+        {quote && (
+          <blockquote className={styles.cardQuote}>
+            “{quote}”
+            {author && <footer className={styles.cardAuthor}>— {author}</footer>}
+          </blockquote>
+        )}
         <p className={styles.cardPlayer}>
           <span className={styles.cardDot} aria-hidden />
           {player.name}

@@ -14,9 +14,9 @@
   --t-title-delay: 0.5s;
   --t-title-dur: 2.6s;
   --t-crawl-delay: 2.4s;
-  --t-cards-delay: 7s;
-  --t-cards-step: 1.5s;
-  --t-cards-dur: 2.4s;
+  --t-cards-delay: 10s;
+  --t-cards-step: 3.2s;
+  --t-cards-dur: 4.5s;
 
   position: fixed;
   inset: 0;
@@ -273,7 +273,7 @@
 .card {
   position: relative;
   flex: 0 1 clamp(130px, 14vw, 230px);
-  height: clamp(170px, 27vh, 290px);
+  height: clamp(210px, 33vh, 340px);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -371,6 +371,28 @@
   text-transform: uppercase;
   color: var(--accent, #fca22b);
   text-shadow: 0 2px 8px rgb(0 0 0 / 0.9);
+}
+
+/* Cytat frakcji — kursywa, krótki; więcej niż 4 linii jest ucinane wielokropkiem. */
+.cardQuote {
+  margin: 5px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: clamp(0.62rem, 0.78vw, 0.8rem);
+  line-height: 1.35;
+  color: rgb(246 234 208 / 0.85);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
+.cardAuthor {
+  margin-top: 2px;
+  font-size: 0.9em;
+  font-style: normal;
+  color: color-mix(in oklab, var(--accent, #fca22b) 75%, white);
 }
 
 .cardPlayer {
