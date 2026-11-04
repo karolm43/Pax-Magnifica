@@ -29,6 +29,8 @@ import {
 } from "./useSetupStore";
 import Step_NameColor from "./steps/Step_NameColor";
 import Step_Faction from "./steps/Step_Faction";
+import GameIntro from "./GameIntro";
+import { loadIntroPlayers, type IntroPlayer } from "./introPlayers";
 
 /**
  * Propsy współdzielone przez komponenty kroków. Każdy krok dostaje listę frakcji
@@ -88,6 +90,8 @@ export default function SetupWizard() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Uczestnicy do planszy otwierającej; `null` = intro nie jest pokazywane.
+  const [introPlayers, setIntroPlayers] = useState<IntroPlayer[] | null>(null);
 
   // Mapa frakcji po id — do walidacji (liczba wymaganych tech) i mapowania żądania.
   const factionById = useMemo(() => {
@@ -129,31 +133,53 @@ export default function SetupWizard() {
       await createNewGame(request);
       // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
       await queryClient.invalidateQueries({ queryKey: ["playerData"] });
-      navigate("/game");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error while creating the game.");
       setSubmitting(false);
+      return;
     }
+    // Plansza otwierająca (tytuł, kronika, uczestnicy) przed pierwszą fazą strategii.
+    // To tylko oprawa: gdy nie da się pobrać uczestników, wchodzimy prosto do gry.
+    try {
+      const players = await loadIntroPlayers(factionById);
+      if (players.length > 0) {
+        setIntroPlayers(players); // `submitting` zostaje, dopóki intro się nie skończy
+        return;
+      }
+    } catch {
+      /* intro pominięte */
+    }
+    navigate("/game");
   };
+
+  // Plansza otwierająca nakłada się na kreator (portal) aż do wejścia w grę.
+  const intro = introPlayers && (
+    <GameIntro players={introPlayers} onFinish={() => navigate("/game")} />
+  );
 
   // Scena pełnoekranowa (frakcja): bez ramki kreatora, własny pasek górny z akcjami.
   if (isStage) {
     return (
-      <StepComponent
-        factions={factions ?? []}
-        factionById={factionById}
-        stage={{
-          onBack: prevStep,
-          onSubmit: () => void handleSubmit(),
-          submitting,
-          canSubmit: validationError === null && !!factions,
-          message: error ?? validationError,
-        }}
-      />
+      <>
+        <StepComponent
+          factions={factions ?? []}
+          factionById={factionById}
+          stage={{
+            onBack: prevStep,
+            onSubmit: () => void handleSubmit(),
+            submitting,
+            canSubmit: validationError === null && !!factions,
+            message: error ?? validationError,
+          }}
+        />
+        {intro}
+      </>
     );
   }
 
   return (
+    <>
+    {intro}
     <Paper radius="lg" withBorder shadow="xl" p="xl">
       <Stack gap="xl">
         {/* Pasek postępu kroków — prosty wskaźnik „krok N z M" + etykieta. */}
@@ -234,5 +260,6 @@ export default function SetupWizard() {
         </Group>
       </Stack>
     </Paper>
+    </>
   );
 }

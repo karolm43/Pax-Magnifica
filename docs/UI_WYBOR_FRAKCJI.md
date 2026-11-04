@@ -201,3 +201,23 @@ Obsidian ma w `factionLore.ts` flagę `glyphLore: true`:
 Brak testów jednostkowych frontu. Po zmianie: `npm run type-check` (lub `npx tsc --noEmit`),
 `npm run lint`, `npm run build` w `frontend/`. Efekty wizualne (animacje, glitche,
 centrowanie) weryfikuje się wyłącznie w przeglądarce.
+
+---
+
+## 12. Plansza otwierająca grę (`GameIntro`)
+
+Po „Start gry" (gra już utworzona przez `/game/new`), a przed wejściem na `/game`
+(pierwszy baner fazy strategii), `SetupWizard` pokazuje pełnoekranową planszę w portalu
+na `document.body` (przodkowie mają `transform` — `fixed` inaczej by się psuł).
+
+- **Dane**: `introPlayers.ts` → `GET /bot/state` (frakcje losowe są dobierane przez
+  backend, więc czytamy faktyczny stan; kolejność = `seating_order`). Błąd/brak graczy =
+  intro pominięte, wejście prosto do gry.
+- **Treść**: tytuł „Twilight Imperium" (Ambroise + gradient jak logo menu), crawl kroniki
+  (`CHRONICLE` w `GameIntro.tsx`), rząd kart frakcji (portret z `portraitCandidates`,
+  akcent z `useFactionAccent`, nazwa, gracz + kolor, człowiek/bot), przycisk „Begin".
+- **Crawl**: trasa i czas liczone z pomiaru (stała prędkość — `CRAWL_VIEWPORTS_PER_SECOND`),
+  zmienne CSS `--from/--to/--dur`. „Begin" pojawia się po dojechaniu tekstu; Skip/Esc/
+  Enter/Spacja kończą w każdej chwili.
+- **Tempo**: zmienne `--t-*` na początku `.overlay` w `GameIntro.module.css`.
+- Reduced-motion: tekst stoi (przewijany ręcznie), karty i tytuł tylko wolny fade.

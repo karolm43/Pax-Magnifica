@@ -23,6 +23,24 @@ function heroLeaderId(faction: FactionInfo): string | undefined {
 }
 
 /**
+ * Łańcuch źródeł portretu frakcji (pierwsze istniejące wygrywa): własny plik →
+ * portret bohatera → ikona frakcji (ostatni element = placeholder). Wspólny dla sceny
+ * wyboru frakcji i planszy otwierającej grę (`GameIntro`).
+ */
+export function portraitCandidates(faction: FactionInfo): string[] {
+  const lore = getFactionLore(faction.id);
+  const own = lore?.portrait
+    ? [lore.portrait]
+    : defaultPortraitCandidates(faction.id);
+  const hero = heroLeaderId(faction);
+  return [
+    ...own,
+    ...(hero ? [`/leaders/${hero}.webp`] : []),
+    `/static/factions/${faction.id}.png`,
+  ];
+}
+
+/**
  * Warstwa portretu: łańcuch źródeł LOKALNYCH (pierwsze istniejące):
  *   1. własny plik `/faction_portraits/<id>.{png,jpg,jpeg,webp}` (lub `lore.portrait`),
  *   2. portret BOHATERA frakcji `/leaders/<heroId>.webp`,
@@ -37,18 +55,7 @@ export function FactionPortraitLayer({
   /** Środek widocznej sylwetki w px od lewej krawędzi strefy (`null` = brak/nieznany). */
   onFigureCenter?: (centerPx: number | null) => void;
 }) {
-  const lore = getFactionLore(faction.id);
-  const candidates = useMemo(() => {
-    const own = lore?.portrait
-      ? [lore.portrait]
-      : defaultPortraitCandidates(faction.id);
-    const hero = heroLeaderId(faction);
-    return [
-      ...own,
-      ...(hero ? [`/leaders/${hero}.webp`] : []),
-      `/static/factions/${faction.id}.png`,
-    ];
-  }, [faction, lore?.portrait]);
+  const candidates = useMemo(() => portraitCandidates(faction), [faction]);
 
   const [index, setIndex] = useState(0);
   // Reset źródła przy zmianie frakcji (inaczej zostałby wyczerpany index).
@@ -206,7 +213,7 @@ const accentCache = new Map<string, string>();
  * normalizacja do żywego, czytelnego odcienia. Zero kolorów wpisanych na sztywno —
  * nowa frakcja dostaje akcent automatycznie. Wynik jest cache'owany po id.
  */
-function useFactionAccent(factionId: string): string {
+export function useFactionAccent(factionId: string): string {
   const [accent, setAccent] = useState(accentCache.get(factionId) ?? DEFAULT_ACCENT);
 
   useEffect(() => {
