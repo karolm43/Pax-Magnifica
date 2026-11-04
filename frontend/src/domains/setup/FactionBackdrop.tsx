@@ -366,8 +366,8 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
       const padV = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
       // Limit rośnie z oknem (szerokość i wysokość), nie przekracza czytelnych granic.
       const max = Math.min(
-        19,
-        Math.max(13, Math.min(window.innerWidth * 0.0105, window.innerHeight * 0.019)),
+        21,
+        Math.max(14, Math.min(window.innerWidth * 0.0115, window.innerHeight * 0.021)),
       );
       const min = 10.5;
       const fits = (size: number) => {

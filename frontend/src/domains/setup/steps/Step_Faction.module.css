@@ -184,7 +184,14 @@
   /* Padding = zapas na miękki scrim (.lore::before), żeby nie był przycięty. */
   padding: 36px 28px 36px 52px;
   /* Box lore zaczyna się już pod zanikającą prawą częścią portretu (większe pole). */
-  margin-left: calc(var(--portrait-w) * 0.78 - 52px);
+  /*
+   * Lore zaczyna się tuż przy prawej krawędzi widocznej sylwetki (2 × `--figure-cx`) i
+   * delikatnie na nią nachodzi (~14%), zamiast stać w sztywnej odległości od lewej krawędzi.
+   * Przed pomiarem obrazka — oszacowanie z szerokości pasa portretu.
+   */
+  margin-left: calc(
+    var(--figure-cx, calc(var(--portrait-w) * 0.42)) * 2 * 0.86 - 52px
+  );
   margin-right: calc(clamp(8px, 1.2vw, 24px) - 28px);
   display: flex;
   flex-direction: column;
