@@ -1,0 +1,60 @@
+{
+  "action_cards": {
+    "base": 82,
+    "codex1": 21,
+    "pok": 20,
+    "thunders_edge": 20
+  },
+  "agendas": {
+    "base": 50,
+    "pok": 13
+  },
+  "attachments": {
+    "codex3": 2,
+    "pok": 18,
+    "thunders_edge": 2
+  },
+  "border_anomalies": {
+    "thunders_edge": 1
+  },
+  "decks": {
+    "base": 9,
+    "pok": 11,
+    "thunders_edge": 5
+  },
+  "explores": {
+    "codex3": 6,
+    "pok": 74
+  },
+  "galactic_events": {
+    "thunders_edge": 20
+  },
+  "genericcards": {
+    "thunders_edge": 10
+  },
+  "promissory_notes": {
+    "base": 21,
+    "codex3": 4,
+    "pok": 9,
+    "thunders_edge": 6
+  },
+  "public_objectives": {
+    "base": 20,
+    "pok": 20
+  },
+  "relics": {
+    "codex2": 3,
+    "codex4": 3,
+    "pok": 11,
+    "thunders_edge": 7
+  },
+  "secret_objectives": {
+    "base": 20,
+    "pok": 20
+  },
+  "tokens": {
+    "base": 6,
+    "pok": 14,
+    "thunders_edge": 9
+  }
+}
