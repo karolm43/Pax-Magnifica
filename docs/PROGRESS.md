@@ -885,3 +885,11 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - Router zarejestrowany w fabryce `src/api/app.py` (`include_router(components.router)`); kolejność ścieżek bez kolizji (różna liczba segmentów: `/components/{category}/{component_id}` vs `/components/factions/{faction_id}/bundle`).
 - Smoke-test TestClient potwierdził: `GET /components` → 13 kategorii, `action_cards` → 143 wpisy, detal zwraca `effect_status`, 404 dla złej kategorii i złego id z poprawnym komunikatem, `trigger=when` → 69 trafień, `trigger=bogus` → 422, bundle frakcji `arborec` → 3 liderów, 1 zdolność, 10 jednostek, przełom obecny.
 - Bramka QA zielona: `uv run pytest -q` (425 passed), `uv run ruff check src tests` (All checks passed!), `uv run mypy src tests` (Success: no issues found in 105 source files). Wymagania: 11.1, 11.2, 11.3, 11.4.
+
+### Blok 10.2 — Testy API Katalogu_Komponentów
+
+- Nowy plik `tests/test_components_api.py` (pytest + FastAPI `TestClient`): testuje router `src/api/routers/components.py` na REALNYM `StaticDataRegistry` (fixture `registry` o zasięgu modułu) z osobnym `EventStore(":memory:")` na każdy test (fixture `client`), wzorzec z `tests/test_api.py`.
+- Pokrycie endpointów (R11.1): `GET /components` (lista kategorii + liczniki, `total == sum(by_source)`, sortowanie po nazwie), `GET /components/{category}` (słownik `id -> komponent`, `count == len`), `GET /components/{category}/{id}` (detal z `timing_spec`/`effect_status`/`rules_topics`, `source` z aktywnego manifestu — R11.2), `GET /components/factions/{faction_id}/bundle` (paczka frakcji z realnym id z `/factions`, R5.6), `GET /timing-specs?trigger=&phase=` (lista adresów, propagacja fazy).
+- Mapowanie błędów (R11.3): 404 dla nieznanej kategorii (`Component not found: <category>/`), nieznanego id (`<category>/<id>`) i nieznanej frakcji (`factions/<id>`); 422 dla nieprawidłowego `trigger` (enum FastAPI) i braku wymaganego `trigger`.
+- Kategorie/identyfikatory wybierane dynamicznie z katalogu (pierwsza niepusta kategoria, pierwszy jej wpis) — test odporny na zmiany danych. Frakcje adresowane przez `/factions`, bo nie są tabelą katalogu.
+- Bramka QA zielona: `uv run pytest -q` (437 passed), `uv run ruff check src tests` (All checks passed!), `uv run mypy src tests` (Success: no issues found in 106 source files). Wymagania: 11.1, 11.2, 11.3, 11.4.
