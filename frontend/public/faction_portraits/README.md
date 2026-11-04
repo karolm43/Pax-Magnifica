@@ -16,3 +16,5 @@ Własną (niestandardową) ścieżkę portretu możesz podać w
 `frontend/src/domains/setup/factionLore.ts` w polu `portrait` danej frakcji.
 
 Lore (tekst) uzupełniasz w tym samym pliku `factionLore.ts` w mapie `FACTION_LORE`.
+
+Wyj�tek: trzy warianty Keleres (keleresm/keleresx/keleresa) u�ywaj� jednego pliku keleres.png.

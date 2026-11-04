@@ -429,12 +429,27 @@ lore:[
  * Kolejność: png → jpg → jpeg → webp (Twoje pliki to przeważnie png).
  */
 export function defaultPortraitCandidates(factionId: string): string[] {
+  const key = portraitKey(factionId);
   return [
-    `/faction_portraits/${factionId}.png`,
-    `/faction_portraits/${factionId}.jpg`,
-    `/faction_portraits/${factionId}.jpeg`,
-    `/faction_portraits/${factionId}.webp`,
+    `/faction_portraits/${key}.png`,
+    `/faction_portraits/${key}.jpg`,
+    `/faction_portraits/${key}.jpeg`,
+    `/faction_portraits/${key}.webp`,
   ];
+}
+
+/**
+ * Warianty jednej frakcji dzielą jeden portret: Keleres (keleresm/keleresx/keleresa)
+ * używa pliku `keleres.png`, więc nie trzeba dublować grafiki per wariant.
+ */
+const PORTRAIT_FAMILIES: Record<string, string> = {
+  keleresm: "keleres",
+  keleresx: "keleres",
+  keleresa: "keleres",
+};
+
+function portraitKey(factionId: string): string {
+  return PORTRAIT_FAMILIES[factionId] ?? factionId;
 }
 
 /** Wpis lore frakcji (lub undefined, gdy nie uzupełniono). */
