@@ -34,3 +34,20 @@
   font-style: normal;
   font-display: swap;
 }
+
+/*
+ * Handel Gothic D Bold — krój NAZWY FRAKCJI na scenie wyboru frakcji (setup).
+ * KOMERCYJNY: plik wgrywa użytkownik do `frontend/public/font/` (NIE commituj bez zgody).
+ * Przeglądarka próbuje po kolei: woff2 → otf → ttf; brakujące pliki pomija i spada na
+ * kolejny krój ze stosu (Ambroise Firmin → display DS), więc brak pliku nie psuje UI.
+ */
+@font-face {
+  font-family: "Handel Gothic";
+  src:
+    url("/font/handel-gothic-d-bold.woff2") format("woff2"),
+    url("/font/Handel Gothic D Bold.otf") format("opentype"),
+    url("/font/Handel Gothic D Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

@@ -3,7 +3,12 @@
 // ───────────────────────────────────────────────────────────────────────────
 // GDZIE CO WKLEJAĆ (wszystko w mapie `FACTION_LORE`, klucz = id frakcji, np. "arborec"):
 //
-// 1) CYTAT (`quote`) — krótki cytat frakcji. Pokazuje się POD NAZWĄ w nagłówku panelu.
+// 1) CYTAT (`quote`) + AUTOR (`quoteAuthor`) — pokazują się POD NAZWĄ frakcji, nad lore.
+//    Cytat wklejaj BEZ cudzysłowu — komponent sam otoczy go “ ” (jeśli wkleisz z cudzysłowem,
+//    zostanie zdjęty z brzegów). Autor to osobna linia „— Autor", poza cudzysłowem; wiodący
+//    myślnik możesz pominąć. Autor pokazuje się tylko razem z cytatem.
+//      quote: "Do you hear, flesh-thing?...",
+//      quoteAuthor: "Imię lub tytuł autora",
 //
 // 2) LORE (`lore`) — treść opisu. Możesz podać na DWA sposoby:
 //    a) PROSTO jako jeden string (puste linie rozdzielą akapity) — szybkie wklejenie.
@@ -41,8 +46,10 @@ export type LoreContent = string | LoreBlock[];
 
 /** Wpis jednej frakcji. Wszystkie pola opcjonalne. */
 export interface FactionLore {
-  /** Krótki cytat frakcji — pod nazwą w nagłówku. */
+  /** Cytat frakcji — wklejaj BEZ cudzysłowu (dokłada go komponent). Pod nazwą w nagłówku. */
   quote?: string;
+  /** Autor cytatu — wyświetlany pod cytatem jako „— Autor", poza cudzysłowem. */
+  quoteAuthor?: string;
   /** Opis frakcji: string (akapity po pustych liniach) albo tablica bloków. */
   lore?: LoreContent;
   /** Własna ścieżka portretu (nadpisuje domyślne /faction_portraits/<id>.<ext>). */
@@ -69,16 +76,13 @@ export const FACTION_LORE: Record<string, FactionLore> = {
   // Portret: wrzuć frontend/public/faction_portraits/arborec.png (już dodany).
   // Cytat (quote) zostaw lub wstaw oficjalny — uzupełnij, gdy go znajdziesz.
   arborec: {
-    // quote: "…", // ← wstaw cytat frakcji (pojawi się pod nazwą).
+    quote: "Do you hear, flesh-thing? The harmonies of the Arborec? Your golems of metal and noise and fire have deafened you to the symphony", // ← wstaw cytat frakcji (pojawi się pod nazwą).
     lore: [
       {
         kind: "paragraph",
         text: "On first approach to Nestphar, a first-time visitor may be surprised by the soupy haze that bleeds from the planet's atmosphere like a dusty cloud. This cloud consists of quadrillions of tiny living spores emitted by Nestphar's many Flaah, city-sized floating forests in its stratosphere. The short-lived (and therefore continually resupplied) orbital presence of the Flaah spores allows the Arborec denizens in Nestphar's space-stations and shipyards to remain in continuous symbiotic contact with their planet. The Arborec term for this vital connection, shared among all living things on Nestphar, is best translated as \u201cthe Symphony.\u201d",
       },
-      {
-        kind: "heading",
-        text: "The Letani",
-      },
+
       {
         kind: "paragraph",
         text: "When traveling beyond the reach of Nestphar's Flaah spores, and therefore outside connection to the prime Symphony, the Arborec employ the massive Letani. Physically, the Letani are the largest sentient beings yet discovered in the galaxy (each slightly larger than a Sol Elephantus), their bodies resembling a kraken-shaped mushroom crossed with a monstrous carnivorous flower. The Letani are each uniquely capable of embodying a powerful instance of the Symphony (and are therefore closest to an \u201cindividual\u201d within Arborec society) which may act as a harmonic nexus for Arborec organisms in near proximity. All ships in the Arborec fleet are based around the presence of at least one (with some ships as many as five) Letani orchestrating the unity of Arborec lifeforms crewing the vessel. Once a Letani returns to the embrace of Nestphar's prime Symphony, its experiences are reconnected and absorbed into the Arborec, as a data-capsule would be reconnected to its mainframe.",
@@ -87,10 +91,7 @@ export const FACTION_LORE: Record<string, FactionLore> = {
         kind: "paragraph",
         text: "While surely intelligent and demonstrably capable of crafting impressive technologies, structures, and a sophisticated fleet of interstellar craft, the Arborec's method of communication remains a source of great controversy. Being a race of vegetative and fungal matter, handling its own data transmission and emotive projection through the prime Symphony, the Arborec have never developed any form of visual or auditory communication (concepts which, to this day, remain foreign to them).",
       },
-      {
-        kind: "heading",
-        text: "The Dirzuga",
-      },
+
       {
         kind: "paragraph",
         text: "Arborec scientists found the solution to this dilemma in the Sol merchant vessel Dies Opulen. The crew of the Dies Opulen had tragically become infected by Yborin Plague on Maaluk and had later died in deep space. When the derelict ship was found by an Arborec scout, it was determined the cool bodies of the human crew were in perfect condition for an ambitious experiment. The bodies were sent to the great laboratories in Kushin, near the Arborec capital Phara.",

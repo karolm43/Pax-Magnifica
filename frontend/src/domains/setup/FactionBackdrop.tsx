@@ -121,16 +121,23 @@ function measureAlphaInset(
 }
 
 /**
- * Cytat frakcji jako nagłówek sceny nad postacią i lore — pierwszy punkt uwagi.
- * Zwraca `null`, gdy frakcja nie ma cytatu.
+ * Nagłówek sceny nad postacią i lore — pierwszy punkt uwagi: nazwa frakcji (Handel
+ * Gothic), pod nią cytat w cudzysłowie, pod nim autor cytatu. Dopiero potem lore.
  */
-export function FactionQuote({ faction }: { faction: FactionInfo }) {
-  const quote = getFactionLore(faction.id)?.quote;
-  if (!quote) return null;
+export function FactionHeader({ faction }: { faction: FactionInfo }) {
+  const data = getFactionLore(faction.id);
+  // Cudzysłowy dokłada komponent — w danych cytat wklejasz BEZ nich. Jeśli jednak
+  // zostały wklejone, zdejmujemy je z brzegów, żeby nie dublować.
+  const quote = data?.quote?.trim().replace(/^["“”„«»]+|["“”„«»]+$/g, "").trim();
+  // Autor jest poza cudzysłowem, w osobnej linii; wiodący myślnik usuwamy (dodajemy swój).
+  const author = data?.quoteAuthor?.trim().replace(/^[—–-]\s*/, "");
+
   return (
-    <figure className={styles.quote}>
-      <blockquote className={styles.quoteText}>{quote}</blockquote>
-    </figure>
+    <header className={styles.head}>
+      <h2 className={styles.headName}>{faction.name}</h2>
+      {quote && <blockquote className={styles.headQuote}>“{quote}”</blockquote>}
+      {quote && author && <p className={styles.headAuthor}>— {author}</p>}
+    </header>
   );
 }
 
@@ -248,9 +255,6 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
 
   return (
     <article className={styles.lore} ref={articleRef} lang="en">
-      <h2 className={styles.loreName} style={{ ["--i" as string]: 0 }}>
-        {faction.name}
-      </h2>
       {blocks.length === 0 ? (
         <p className={styles.loreEmpty} style={{ ["--i" as string]: 2 }}>
           Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").

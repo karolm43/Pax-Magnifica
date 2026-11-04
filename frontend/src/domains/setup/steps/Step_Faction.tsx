@@ -27,7 +27,7 @@ import { FactionSummary } from "../FactionSummary";
 import {
   FactionLore,
   FactionPortraitLayer,
-  FactionQuote,
+  FactionHeader,
   hasFactionQuote,
 } from "../FactionBackdrop";
 import type { FactionInfo } from "@/api/useNewGame";
@@ -172,7 +172,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
           {stageFaction && (
             <Fragment key={`character-${stageFaction.id}`}>
               <FactionPortraitLayer faction={stageFaction} />
-              <FactionQuote faction={stageFaction} />
+              <FactionHeader faction={stageFaction} />
               <div className={styles.loreSlot}>
                 <FactionLore faction={stageFaction} />
               </div>
