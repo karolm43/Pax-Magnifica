@@ -28,6 +28,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "display_name",
         "control_type",
         "difficulty",
+        "personality",
         "faction",
         "color",
         "home_position",
@@ -49,6 +50,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "breakthrough_unlocked",
         "breakthrough_exhausted",
         "breakthrough_tg",
+        "promissory_notes_in_play",
     }
 )
 

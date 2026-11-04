@@ -46,6 +46,7 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 2b | [Klasyfikacja jednostek: przestrzeń vs planeta](#2b-klasyfikacja-jednostek-przestrzeń-vs-planeta---zweryfikowane) | ✅ | [Units](rules_tirules/R_units.md) |
 | 2c | [Format `startingFleet` i setup frakcji](#2c-format-startingfleet-i-setup-frakcji---zweryfikowane) | ✅ | [Ships](rules_tirules/R_ships.md) |
 | 2d | [Sąsiedztwo graczy (Neighbors)](#2d-sąsiedztwo-graczy-neighbors---zweryfikowane-częściowo) | ✅ częściowo | [Neighbors](rules_tirules/R_neighbors.md) |
+| 2e | [Promissory notes: ręka vs strefa gracza](#2e-promissory-notes-ręka-vs-strefa-gracza---zweryfikowane-model) | ✅ | [Promissory Notes](rules_tirules/R_promissory_notes.md) |
 | 3 | [Ruch (Movement)](#3-ruch-movement---do-zrobienia-warstwa-logiki-ruchu-późniejsza-faza) | ⬜ | [Movement](rules_tirules/R_movement.md) |
 | 3a | [Limity sztuk jednostek (supply caps)](#3a-limity-sztuk-jednostek-plastic--supply-caps---zweryfikowane) | ✅ | [Reinforcements](rules_tirules/R_reinforcements.md) |
 | 4 | [Pozycje stat-area](#4-pozycje-stat-area-player-stats-heksy---zweryfikowane-port-algorytmu-asyncti4) | ✅ | [Game Board](rules_tirules/R_game_board.md) |
@@ -313,6 +314,32 @@ mapuje `player_id` → kolor.
   nie są jeszcze uwzględnione (jak w sekcji 2).
 - Efekty frakcyjne/agendy zmieniające adjacency (np. Creuss *Quantum Entanglement*,
   Mentak przez wormhole) nie są modelowane — wejdą przez hooki, gdy powstaną.
+
+---
+
+## 2e. Promissory notes: ręka vs strefa gracza — ✅ ZWERYFIKOWANE (model)
+
+📎 tirules: [Promissory Notes](rules_tirules/R_promissory_notes.md) · [Transactions](rules_tirules/R_transactions.md)
+
+Źródło: tirules2.com → `docs/rules_tirules/R_promissory_notes.md`. Sparafrazowane.
+
+Promissory notes istnieją w DWÓCH rozłącznych miejscach — rozróżnienie istotne dla
+widoczności (R2/R6) i dla handlu:
+
+- **RĘKA (hand)** — notki trzymane do ewentualnego przehandlowania. **TAJNA**
+  (prywatna): inni widzą tylko LICZEBNOŚĆ (jawna — „the number of promissory notes
+  in a player's hand is public information"), nigdy identyfikatory. Model:
+  `PlayerState.private.promissory_notes`; licznik w web-data to `pnCount`.
+- **STREFA GRACZA (play area)** — notki ZAGRANE i leżące odkryte (np. *Support for
+  the Throne*, *Alliance*, które muszą być zagrane natychmiast). **JAWNE**: widoczne
+  dla wszystkich. „Promissory notes in the play area cannot be traded." Model:
+  `PlayerState.promissory_notes_in_play`; w web-data pole `promissoryNotesInPlayArea`,
+  które panel gracza renderuje w racku holdings (obok relikwii i tajnych celów).
+
+**⚠️ Zakres:** pole strefy istnieje i jest JAWNE (klasyfikacja w `player_fields.py`),
+emitowane do viewera i edytowalne przez God-Mode (`/player/{id}/edit`). Automatyczne
+przenoszenie notki z ręki do strefy przy jej zagraniu wejdzie dopiero z logiką
+transakcji/zagrywania notek (okna czasowe, E8+). Do tego czasu strefę zasila operator.
 
 ---
 

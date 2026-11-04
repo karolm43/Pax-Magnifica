@@ -1024,7 +1024,10 @@ def _build_player_data(
                 "knownUnscoredSecrets": {},
                 "numUnscoredSecrets": 0,
                 "numScoreableSecrets": 0,
-                "promissoryNotesInPlayArea": [],
+                # Promissory notes w strefie gracza (jawne — RULES.md 2d). ODRĘBNE
+                # od licznika ręki ``pnCount`` (ręka tajna). Puste do czasu logiki
+                # zagrywania notek; dziś zasilane przez God-Mode.
+                "promissoryNotesInPlayArea": list(player.promissory_notes_in_play),
                 "followedSCs": [],
                 "unfollowedSCs": [],
                 # Karty strategii gracza (numery inicjatywy) — kolejność tur w panelu faz.

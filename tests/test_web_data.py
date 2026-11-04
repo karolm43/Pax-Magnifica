@@ -181,6 +181,32 @@ def test_leader_states_merge_not_replace(client: TestClient) -> None:
     assert states["hero"] is False
 
 
+def test_web_data_promissory_notes_in_play_area(client: TestClient) -> None:
+    # Promissory notes w strefie gracza (jawne, RULES.md 2d) — domyślnie puste,
+    # zasilane przez God-Mode i emitowane w promissoryNotesInPlayArea.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    sol = next(
+        p for p in _web_data(client)["playerData"] if p["faction"] == "sol"
+    )
+    assert sol["promissoryNotesInPlayArea"] == []
+    # God-Mode: połóż notkę w strefie gracza.
+    resp = client.post(
+        "/player/p1/edit",
+        json={"promissory_notes_in_play": ["sftt"]},
+    )
+    assert resp.status_code == 200
+    sol = next(
+        p for p in _web_data(client)["playerData"] if p["faction"] == "sol"
+    )
+    assert sol["promissoryNotesInPlayArea"] == ["sftt"]
+    # Edycja jest w historii — Undo cofa położenie notki.
+    client.post("/undo")
+    sol = next(
+        p for p in _web_data(client)["playerData"] if p["faction"] == "sol"
+    )
+    assert sol["promissoryNotesInPlayArea"] == []
+
+
 def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
     # Bez map stringa — backend używa mapy testowej; kolory/sloty auto.
     resp = client.post(

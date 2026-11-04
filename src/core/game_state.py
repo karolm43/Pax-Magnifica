@@ -149,6 +149,8 @@ class PlayerState(BaseModel):
     # (R10.4). Dozwolony zbiór wartości to ⚠️ ZAŁOŻENIE (R1.8) — nie enum, bo zbiór
     # jest danymi konfigurowalnymi, nie strukturą kodu. Pole JAWNE (Public_Info).
     difficulty: str | None = None
+    # Osobowość (styl gry) bota — tylko dla ``BOT``, dla ``HUMAN`` None. Pole JAWNE.
+    personality: str | None = None
     faction: str | None = None
     color: str | None = None
     # Pozycja ``RPP`` slotu domowego gracza (gdzie stoi jego kafelek domowy).
@@ -197,6 +199,14 @@ class PlayerState(BaseModel):
     breakthrough_unlocked: bool = False
     breakthrough_exhausted: bool = False
     breakthrough_tg: int = 0
+
+    # Promissory notes POŁOŻONE w strefie gracza (play area) — identyfikatory kart
+    # zagranych i leżących odkryte, np. Support for the Throne, Alliance (RULES.md 2d,
+    # R_promissory_notes: „promissory notes in the play area cannot be traded").
+    # Pole JAWNE (Public_Info) — ODRĘBNE od prywatnej RĘKI (``private.promissory_notes``,
+    # tajnej). Puste do czasu, aż silnik zacznie obsługiwać zagrywanie notek; dziś
+    # edytowalne przez God-Mode. NIE mieszać z ręką: ręka jest ukryta, strefa — jawna.
+    promissory_notes_in_play: list[str] = Field(default_factory=list)
 
     # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
     # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).

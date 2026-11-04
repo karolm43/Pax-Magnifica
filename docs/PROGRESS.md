@@ -38,10 +38,14 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
   jest własnym sąsiadem".
 - **Ograniczenia (RULES.md 2d):** hyperlanes i efekty frakcyjne zmieniające
   adjacency jeszcze nieuwzględnione (jak sekcja 2).
-- **⚠️ Promissory notes „in play area" — NIEZROBIONE (świadomie, do decyzji):** patrz
-  niżej. `promissoryNotesInPlayArea` pozostaje `[]`, bo brak modelu stanu dla notek
-  zagranych/położonych w strefie gracza.
-- **QA:** `pytest` 452 ✅, `ruff` ✅, `mypy` ✅.
+- **Promissory notes „in play area" (RULES.md 2e):** nowe JAWNE pole
+  `PlayerState.promissory_notes_in_play` (strefa gracza — notki zagrane, odkryte,
+  np. Support for the Throne; odrębne od tajnej RĘKI `private.promissory_notes`).
+  Sklasyfikowane jako Public w `player_fields.py`, emitowane do viewera przez
+  `promissoryNotesInPlayArea`, edytowalne przez God-Mode (`PlayerEditRequest`).
+  Automatyczne przenoszenie notki z ręki do strefy przy zagraniu — przy logice
+  transakcji (E8+); dziś zasila operator.
+- **QA:** `pytest` 454 ✅, `ruff` ✅, `mypy` ✅.
 
 ---
 

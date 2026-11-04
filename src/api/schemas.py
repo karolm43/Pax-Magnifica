@@ -197,7 +197,7 @@ class EngineConfigInfo(BaseModel):
     Obecnie niesie dozwolony zbiór poziomów trudności bota (R10.2) — front NIE
     trzyma własnej kopii tej listy, tylko pobiera ją stąd. Wartości pochodzą
     z ``engine_config.json`` czytanego przez ``StaticDataRegistry`` (⚠️ ZAŁOŻENIE,
-    patrz docs/RULES.md 30), więc gdy zbiór się zmieni w assecie, front dostanie
+    patrz docs/RULES.md 36), więc gdy zbiór się zmieni w assecie, front dostanie
     aktualny bez zmian w kodzie.
     """
 
@@ -205,6 +205,8 @@ class EngineConfigInfo(BaseModel):
 
     # Posortowana lista dozwolonych poziomów trudności bota (R10.2).
     valid_difficulties: list[str] = Field(default_factory=list)
+    # Posortowana lista dozwolonych osobowości bota (⚠️ ZAŁOŻENIE).
+    valid_personalities: list[str] = Field(default_factory=list)
 
 
 class SetupPlayerRequest(BaseModel):
@@ -229,6 +231,8 @@ class SetupPlayerRequest(BaseModel):
     control_type: str = "HUMAN"
     # Poziom trudności bota (R10.2/R10.3); wymagany dla BOT, ignorowany dla HUMAN.
     difficulty: str | None = None
+    # Osobowość bota; brak → losowa (tylko BOT), ignorowana dla HUMAN.
+    personality: str | None = None
     # Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
     starting_tech: list[str] | None = None
 
@@ -250,6 +254,8 @@ class NewGamePlayer(BaseModel):
     control_type: str = "HUMAN"
     # Poziom trudności bota (R10.2/R10.3); wymagany dla BOT, ignorowany dla HUMAN.
     difficulty: str | None = None
+    # Osobowość bota; brak → losowa (tylko BOT), ignorowana dla HUMAN.
+    personality: str | None = None
     # Opcjonalny slot domowy — pod przyszły draft slice (R14.3).
     home_position: str | None = None
     # Wybrane technologie startowe (dla frakcji z wyborem, np. Winnu/Argent).
@@ -354,6 +360,9 @@ class PlayerEditRequest(BaseModel):
     exhausted_technologies: list[str] | None = None
     # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}.
     leader_states: dict[str, str] | None = None
+    # Promissory notes w strefie gracza (play area) — jawne, odrębne od ręki
+    # (RULES.md 2d). God-Mode zasila je ręcznie do czasu logiki zagrywania notek.
+    promissory_notes_in_play: list[str] | None = None
 
 
 class PlayerComponentToggleRequest(BaseModel):
