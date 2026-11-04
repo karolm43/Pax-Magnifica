@@ -21,6 +21,28 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Baza danych TI4 · 4.1: spójność referencji `core/references.py` (ukończone)
+- Nowy moduł `src/core/references.py` (czysty, bez I/O): `UnresolvedReference`,
+  `TemplateReference`, `ReferenceReport`, `find_unresolved_references`,
+  `build_reference_report`. Sprawdza listy frakcji (`leaders`, `abilities`,
+  `promissoryNotes`, `factionTech`, `units`, `startingTech`, `startingTechOptions`),
+  `cardIDs` talii kanonicznych (po `type` talii → kategoria celu), `attachmentId`
+  eksploracji i `attachmentID` żetonów. Zachowane `missing_planet_references` (R7.4).
+- Flaga `leaks_noncanonical` (R7.6) z `LoadReport.skipped_index`: cel istnieje, ale
+  pochodzi ze źródła niekanonicznego (przeciek homebrew).
+- Placeholder `<color>` (promissory `color.json`) raportowany OSOBNO jako „szablon”
+  (`templates`), nie jako nierozwiązana referencja — ⚠️ ZAŁOŻENIE w `RULES.md` 35.
+- Wpięcie w `StaticDataRegistry`: atrybut `reference_report` (budowany w `_load()` po
+  złożeniu katalogu) i metoda `unresolved_references()`. Nierozwiązane referencje NIE
+  blokują startu (dane lokalne, God-Mode działa) — zgłasza je Audytor_Danych (R7.5).
+- Realne dane: 22 nierozwiązane referencje do zgłoszenia przez Audytora (deck
+  `explores_cpti` → karty niekanoniczne z flagą leak; `attachmentId` eksploracji
+  `mirage`/`gamma`/`ionalpha` bez odpowiadającego attachmentu). Rozstrzygnięcie
+  (wyjątek/poprawka) należy do użytkownika/konfiguracji audytu.
+- QA zielone: `pytest -q` (396 passed), `ruff check src tests`, `mypy src tests`.
+- Dalej: 4.2 (`faction_bundle` + `FactionBundle`), 4.3/4.4 (testy referencji).
+---
+
 ### ✅ Baza danych TI4 · 8.5 + 8.6: testy właściwościowe Audytora (ukończone)
 - `tests/test_audit_props.py` (Hypothesis, min. 100 iteracji każdy):
   - **Property 15** (skaner zewnętrznych URL, `audit/locality.find_external_urls`,

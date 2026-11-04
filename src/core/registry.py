@@ -37,6 +37,12 @@ from src.core.models import (
     TechnologyDef,
     UnitDef,
 )
+from src.core.references import (
+    ReferenceReport,
+    UnresolvedReference,
+    build_reference_report,
+    find_unresolved_references,
+)
 from src.core.sources import SOURCE_PRIORITY, known_source_ids, validate_enabled_sources
 
 
@@ -122,6 +128,9 @@ class StaticDataRegistry:
         # jego ładowania. Budowane w _load() z load_components (design: R4.1, R5.1).
         self.catalog: ComponentCatalog = ComponentCatalog({})
         self.load_report: LoadReport = LoadReport()
+        # Raport spójności referencji (frakcje, talie, eksploracje, żetony, planety).
+        # Budowany w _load() po złożeniu katalogu — patrz core/references.py (R7).
+        self.reference_report: ReferenceReport = ReferenceReport()
         # Kolizje id w 9 STARYCH kategoriach: kategoria -> posortowane id, które
         # wystąpiły w wielu aktywnych wpisach. Tylko RAPORT (D9) — zachowanie
         # „ostatni wpis wygrywa" pozostaje bez zmian, by uniknąć regresji.
@@ -211,6 +220,11 @@ class StaticDataRegistry:
             tables, leaders=self.leaders, abilities=self.abilities
         )
         self.catalog = ComponentCatalog(tables, timing_specs)
+
+        # Spójność referencji (R7): po złożeniu katalogu, bo sprawdzamy m.in. talie,
+        # eksploracje i żetony. Nierozwiązane referencje NIE blokują startu (dane są
+        # lokalne, God-Mode ma działać); Audytor_Danych zgłasza je i ustawia kod ≠ 0.
+        self.reference_report = build_reference_report(self)
 
         self.engine_config = self._load_engine_config()
 
@@ -419,6 +433,14 @@ class StaticDataRegistry:
             if absent:
                 missing[system.id] = absent
         return missing
+
+    def unresolved_references(self) -> list[UnresolvedReference]:
+        """Nierozwiązane (lub przeciekające) referencje między danymi (R7.1-7.6).
+
+        Szablony ``<color>`` (promissory notes) nie są tu liczone — pełny raport,
+        w tym szablony, trzyma ``self.reference_report``.
+        """
+        return find_unresolved_references(self)
 
     def report(self) -> RegistryReport:
         """Buduje raport spójności po załadowaniu."""
