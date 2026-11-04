@@ -41,7 +41,7 @@ const COLOR_SWATCH: Record<string, string> = {
  */
 const MUSIC_SRC = "/intro/background.mp3";
 const MUSIC_SECONDS = 110;
-const MUSIC_VOLUME = 0.5;
+const MUSIC_VOLUME = 0.25;
 /** Narrator (`/intro/final.mp3`, 1:35) czyta kronikę; wchodzi 5 s po starcie planszy. */
 const NARRATOR_SRC = "/intro/final.mp3";
 const NARRATOR_VOLUME = 1;
