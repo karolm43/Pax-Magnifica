@@ -77,6 +77,7 @@ export const FACTION_LORE: Record<string, FactionLore> = {
   // Cytat (quote) zostaw lub wstaw oficjalny — uzupełnij, gdy go znajdziesz.
   arborec: {
     quote: "Do you hear, flesh-thing? The harmonies of the Arborec? Your golems of metal and noise and fire have deafened you to the symphony", // ← wstaw cytat frakcji (pojawi się pod nazwą).
+    quoteAuthor: "Dirzuga Rophal",
     lore: [
       {
         kind: "paragraph",
@@ -118,6 +119,82 @@ export const FACTION_LORE: Record<string, FactionLore> = {
       },
     ],
   },
+  mahact: {
+    quote: "KNEEL",
+    quoteAuthor: "Airo Shir Aur",
+    lore: [
+{
+kind: "paragraph",
+text: "Gene-sorcerers. Mad tyrants. Kings. The Mahact are a primal tale from ancient history. In the distant past, the Mahact dynasties terrorized the galaxy with their infighting and gene-sorcery. They could warp the forms of living beings, compel eternal obedience with a gesture, and turn the biospheres of entire worlds into seething, caustic hells. They unleashed their most vile technologies in war or even in debauched sport, and it seemed, even as their houses crumbled, that their fall might bring down all of civilized space."
+},
+{
+kind: "paragraph",
+text: "But in the midst of their orgy of self-destruction, a new Empire rose to challenge them. The Lazax, a young and fiery race, led the effort to destroy the Mahact and restore peace. When the last Mahact King was slain, the Lazax claimed the fruits of their victory, establishing just dominion over the ashes of the Mahact’s kingdoms."
+},
+{
+kind: "heading",
+text: "The Fall and the Gate of Acheron"
+},
+{
+kind: "quote",
+text: "However, the truth was somewhat more complicated than the Lazax wished anyone to remember."
+},
+{
+kind: "paragraph",
+text: "The new Empire did overthrow the Mahact Kings, slaying many of them and claiming the Mahact’s main fortress of Mecatol as their own. However, the Mahact were too powerful to defeat utterly. The last of them retreated into Mecatol, sowing anarchy and chaos in their wake, and leaving agents and sleepers to do their bidding. They fled the galaxy to their original home, the planet of Ixt. This world lay far beyond the furthest wisps of dust on the galactic arms, unreachable except through the great wormhole gate of Acheron. Here, in their ancient fastness, the remaining Mahact plotted their eventual return."
+},
+{
+kind: "paragraph",
+text: "The Lazax pursued the foes to the entrance of the gate on Acheron, but every attempt they made to invade Ixt failed. So the young Empire tried a different plan. They studied the gate’s arcane workings, and though they could not destroy it, they could shut it down. Thus, Lazax engineers deactivated the gate and buried its machinery beneath an entire ocean to guarantee that none would ever discover it again. They even purged all nearby worlds of life, turning surrounding space into a wilderness."
+},
+{
+kind: "paragraph",
+text: "Without control of the machinery on Acheron, the Mahact could not reopen their gate, or even rip it free and set its endpoint somewhere else in the galaxy. They were trapped on their dying world, overlooking a galaxy that was steadily forgetting their existence. Eventually, the remaining Mahact entered the stasis crypts beneath their dead city, to sleep until the stars burned out around them."
+},
+{
+kind: "heading",
+text: "The Awakening"
+},
+{
+kind: "paragraph",
+text: "And there they remained, until the Creuss expedition discovered the Acheron gate, opened it, and awoke them."
+},
+{
+kind: "paragraph",
+text: "In an instant, the first Mahact saw the Creuss explorers and used arcane techno-rituals to dominate them and summon their ships through the Acheron Gate. Then, having no desire to remain prisoners on Ixt, the Mahact used the gate machinery to rip Ixt free from its star and hurl it into the heart of the galaxy. Never again would they be trapped on their homeworld."
+},
+{
+kind: "paragraph",
+text: "Now Ixt sails untethered through the galactic core, and the Mahact survey their former domain. Though there are only a handful of them left, each has the power of eons of techno-sorcery at their fingertips. The remaining Mahact turn to their own holdings, awakening their Tethian bio-factories and assemblers, and summoning their dormant agents and their genetic descendants."
+},
+{
+kind: "paragraph",
+text: "The corridors and halls of Ixt’s great city-machines fill with gene-sorcerers’ thrall legions. Immense dreadnoughts have begun to rise from the underground assembler halls to hang in orbit above the planet, ready to march to war."
+},
+{
+kind: "heading",
+text: "The Golden Emissaries"
+},
+{
+kind: "paragraph",
+text: "As the Mahact began to marshal their forces, a single golden ship appeared in orbit over Mecatol Rex. It descended to the Senate Promenade in the heart of Mecatol City, touching down on the perfectly manicured trile grass lawn. The hatches opened, and four emissaries stepped out. Each was one of the observers the Council had dispatched to the Creuss expedition to Ixt, reported lost by the few survivors who escaped. Now they were robes of gold and steel, and were flanked by hulking Creuss legionaries, whose armor seethed with an ominous crimson glow."
+},
+{
+kind: "paragraph",
+text: "They walked into the chambers of the Galactic Senate without fanfare or invitation and stood in the middle of the hall. Before the stunned audience, they announced that they were the emissaries of Verta Auran Oblis, first amongst the galaxy’s rightful race of rulers."
+},
+{
+kind: "quote",
+text: "As Oblis was a magnanimous ruler, all those who surrendered immediately would be favored slaves."
+},
+{
+kind: "paragraph",
+text: "The emissaries returned to their ship and left the city behind. However, many fear that it is only a matter of time before a golden armada returns to the sky above Mecatol Rex. And when it does, the Mahact will return the world to the center of their kingdom."
+}
+
+
+    ]
+  }
 };
 
 /**
