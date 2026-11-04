@@ -27,6 +27,13 @@ from src.audit.diffs import (
 )
 from src.audit.frontend_data import diff_embedded_ids
 from src.audit.locality import LOCAL_HOSTS, LocalityFinding, find_external_urls
+from src.audit.report import (
+    AuditReport,
+    ExternalUrlHit,
+    SuspiciousEntry,
+    exit_code,
+)
+from src.core.components import ComponentCategory, ComponentRef
 
 # ---------------------------------------------------------------------------
 # Property 15: Skaner zewnętrznych URL
@@ -354,3 +361,145 @@ def test_diff_counts_jest_dokladna_roznica_slownikow(
         assert change.baseline != change.current
         assert change.baseline == baseline.get(category, {}).get(source)
         assert change.current == current.get(category, {}).get(source)
+
+
+# ---------------------------------------------------------------------------
+# Property 14: Kod wyjścia audytu odzwierciedla błędy krytyczne
+# ---------------------------------------------------------------------------
+#
+# ``exit_code(report)`` zwraca ≠ 0 wtedy i tylko wtedy, gdy raport zawiera BŁĄD
+# KRYTYCZNY: nierozwiązana referencja, brakujący plik z manifestu, zewnętrzny URL
+# spoza listy dozwolonej albo błąd walidacji wpisu kanonicznego (R3.4, R7.5, R12.2).
+# Ostrzeżenia (wpisy podejrzane, luki do potwierdzenia, 'unclassified', 'bez noty',
+# osierocone statusy, pliki nieużywane z manifestu) NIE zmieniają kodu 0.
+#
+# Budujemy ``AuditReport`` bezpośrednio z losowych kombinacji pól krytycznych i
+# ostrzegawczych (bez dysku i bez rejestru), a oczekiwanie wyznaczamy modelem
+# referencyjnym niezależnym od ``has_critical``.
+
+_category = st.sampled_from(list(ComponentCategory))
+_short_id = st.text(alphabet="abcdef0123", min_size=1, max_size=5)
+
+# --- Generatory pól KRYTYCZNYCH (każdy niepusty => błąd krytyczny) ---------
+
+_unresolved = st.lists(st.text(max_size=10), max_size=4)
+_manifest_missing = st.lists(_short_id, max_size=4)
+_external_urls = st.lists(
+    st.builds(
+        ExternalUrlHit,
+        st.sampled_from(["index.html", "a.ts", "b.tsx"]),
+        st.integers(min_value=1, max_value=50),
+        st.sampled_from(["https://x.example/a", "https://images.asyncti4.com/u.png"]),
+    ),
+    max_size=3,
+)
+_validation_error = st.one_of(st.none(), st.text(min_size=1, max_size=10))
+
+# --- Generatory pól OSTRZEGAWCZYCH (nigdy nie zmieniają kodu) ---------------
+
+_suspicious = st.lists(
+    st.builds(SuspiciousEntry, _category, _short_id, st.just("codex1"), _short_id),
+    max_size=3,
+)
+_gap_category = st.sampled_from(["agenda", "objective"])
+_gaps = st.lists(
+    st.builds(CategorySourceGap, _gap_category, st.just("thunders_edge")),
+    max_size=3,
+)
+_refs = st.lists(st.builds(ComponentRef, _category, _short_id), max_size=3)
+_manifest_unused = st.lists(_short_id, max_size=4)
+
+
+# Feature: local-ti4-data-foundation, Property 14: Kod wyjścia audytu odzwierciedla błędy krytyczne
+@settings(max_examples=200)
+@given(
+    unresolved=_unresolved,
+    manifest_missing=_manifest_missing,
+    external_urls=_external_urls,
+    validation_error=_validation_error,
+    suspicious=_suspicious,
+    gaps=_gaps,
+    unclassified=_refs,
+    no_rules_note=_refs,
+    orphans=_refs,
+    manifest_unused=_manifest_unused,
+)
+def test_exit_code_jest_niezerowy_dokladnie_przy_bledzie_krytycznym(
+    unresolved: list[str],
+    manifest_missing: list[str],
+    external_urls: list[ExternalUrlHit],
+    validation_error: str | None,
+    suspicious: list[SuspiciousEntry],
+    gaps: list[CategorySourceGap],
+    unclassified: list[ComponentRef],
+    no_rules_note: list[ComponentRef],
+    orphans: list[ComponentRef],
+    manifest_unused: list[str],
+) -> None:
+    """``exit_code`` ≠ 0 ⇔ istnieje błąd krytyczny; ostrzeżenia nie zmieniają kodu 0.
+
+    Model referencyjny: kod jest niezerowy dokładnie wtedy, gdy którekolwiek z pól
+    krytycznych (nierozwiązane referencje, brakujące pliki manifestu, zewnętrzne URL,
+    błąd walidacji) jest niepuste — niezależnie od obecności ostrzeżeń.
+
+    **Validates: Requirements 3.4, 7.5, 12.1, 12.2**
+    """
+    report = AuditReport(
+        unresolved=unresolved,
+        manifest=ManifestDiff(
+            missing=frozenset(manifest_missing), unused=frozenset(manifest_unused)
+        ),
+        external_urls=external_urls,
+        validation_error=validation_error,
+        suspicious=suspicious,
+        gaps_to_confirm=gaps,
+        unclassified_timing=unclassified,
+        no_rules_note=no_rules_note,
+        orphan_effect_statuses=orphans,
+    )
+
+    has_critical_ref = bool(
+        unresolved or manifest_missing or external_urls or validation_error
+    )
+
+    assert report.has_critical is has_critical_ref
+    assert exit_code(report) == (1 if has_critical_ref else 0)
+    # Kod wyjścia jest zawsze 0 albo 1 (zgodne z semantyką procesu).
+    assert exit_code(report) in (0, 1)
+
+
+# Feature: local-ti4-data-foundation, Property 14: same ostrzeżenia nigdy nie dają błędu
+@settings(max_examples=100)
+@given(
+    suspicious=_suspicious,
+    gaps=_gaps,
+    unclassified=_refs,
+    no_rules_note=_refs,
+    orphans=_refs,
+    manifest_unused=_manifest_unused,
+)
+def test_exit_code_zero_gdy_tylko_ostrzezenia(
+    suspicious: list[SuspiciousEntry],
+    gaps: list[CategorySourceGap],
+    unclassified: list[ComponentRef],
+    no_rules_note: list[ComponentRef],
+    orphans: list[ComponentRef],
+    manifest_unused: list[str],
+) -> None:
+    """Dowolny zestaw samych ostrzeżeń (bez pól krytycznych) daje kod wyjścia 0.
+
+    Pliki 'unused' z manifestu, wpisy podejrzane, luki, 'unclassified', 'bez noty'
+    i osierocone statusy są ostrzeżeniami (R3.4, R12.2).
+
+    **Validates: Requirements 3.4, 7.5, 12.2**
+    """
+    report = AuditReport(
+        suspicious=suspicious,
+        gaps_to_confirm=gaps,
+        unclassified_timing=unclassified,
+        no_rules_note=no_rules_note,
+        orphan_effect_statuses=orphans,
+        manifest=ManifestDiff(missing=frozenset(), unused=frozenset(manifest_unused)),
+    )
+    assert report.has_critical is False
+    assert exit_code(report) == 0
