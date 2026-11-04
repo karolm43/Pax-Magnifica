@@ -24,17 +24,30 @@ FRONTEND_MANIFEST_PATH: Path = (
     config.FRONTEND_DIR / "src" / "shared" / "assets" / "assetManifest.json"
 )
 
-# Katalogi grafik używane przez frontend (D1); parametr ``dirs`` pozwala to zmienić.
-DEFAULT_ASSET_DIRS: tuple[str, ...] = (
-    "units",
-    "command_token",
-    "player_area",
-    "factions",
-    "planet_cards",
-    "tokens",
-    "extra",
-    "general",
-    "decals",
+# Domyślnie skanujemy CAŁE drzewo ``assets/`` pod kątem grafik (``dirs=None``).
+# Wcześniej lista była zawężona do 9 katalogów i POMIJAŁA kluczowe grafiki planszy
+# (``tiles``, ``emojis``, ``attachment_token`` i inne), przez co Resolver_Zasobów
+# zwracał placeholder dla tilesów i tokenów. Skan całości jest odporny na przyszłe
+# katalogi grafik (nowy katalog trafia do manifestu automatycznie). Jawna lista
+# ``dirs`` nadal zawęża skan do podanych katalogów (wsteczna kompatybilność).
+DEFAULT_ASSET_DIRS: None = None
+
+# Katalogi pomijane przy skanie całości (``dirs=None``): dane/konfiguracja i surowe
+# materiały, które NIE są grafikami serwowanymi frontowi. Grafiki poza tą listą
+# (w tym nowe katalogi) trafiają do manifestu automatycznie. Nazwy to top-level
+# katalogi względem ``assets/``.
+EXCLUDED_ASSET_DIRS: frozenset[str] = frozenset(
+    {
+        "data",
+        "config",
+        "raw",
+        "META-INF",
+        "voices",
+        "hover_images",
+        "systems",
+        "planets",
+        "alias",
+    }
 )
 IMAGE_SUFFIXES: frozenset[str] = frozenset({".png", ".jpg", ".jpeg", ".webp", ".svg"})
 
@@ -59,11 +72,32 @@ def diff_manifest(manifest_paths: Iterable[str], files_on_disk: Iterable[str]) -
 
 
 def list_asset_files(
-    assets_dir: Path = config.ASSETS_DIR, dirs: Iterable[str] = DEFAULT_ASSET_DIRS
+    assets_dir: Path = config.ASSETS_DIR, dirs: Iterable[str] | None = DEFAULT_ASSET_DIRS
 ) -> list[str]:
-    """Ścieżki POSIX (względem ``assets_dir``) plików graficznych w podanych katalogach."""
+    """Ścieżki POSIX (względem ``assets_dir``) plików graficznych.
+
+    Gdy ``dirs is None`` (domyślnie), skanuje CAŁE drzewo ``assets_dir`` pod kątem
+    plików graficznych (``IMAGE_SUFFIXES``), pomijając wyłącznie top-level katalogi
+    z ``EXCLUDED_ASSET_DIRS`` (dane/konfiguracja/surowce). Dzięki temu grafiki planszy
+    (``tiles``, ``emojis``, ``attachment_token`` itd.) trafiają do manifestu, a nowe
+    katalogi grafik są obejmowane automatycznie.
+
+    Gdy ``dirs`` to jawna lista (nie None), zachowuje dotychczasowe zachowanie:
+    iteruje tylko po podanych katalogach (wsteczna kompatybilność, wygodne w testach).
+    """
+    scan_dirs: Iterable[str]
+    if dirs is None:
+        # Skan całości: top-level katalogi grafik względem ``assets_dir``, bez wykluczonych.
+        scan_dirs = sorted(
+            entry.name
+            for entry in assets_dir.iterdir()
+            if entry.is_dir() and entry.name not in EXCLUDED_ASSET_DIRS
+        )
+    else:
+        scan_dirs = dirs
+
     found: list[str] = []
-    for name in dirs:
+    for name in scan_dirs:
         base = assets_dir / name
         if not base.is_dir():
             continue
@@ -76,9 +110,13 @@ def list_asset_files(
 
 
 def build_manifest(
-    assets_dir: Path = config.ASSETS_DIR, dirs: Iterable[str] = DEFAULT_ASSET_DIRS
+    assets_dir: Path = config.ASSETS_DIR, dirs: Iterable[str] | None = DEFAULT_ASSET_DIRS
 ) -> dict[str, list[dict[str, object]]]:
-    """Buduje manifest ``{"files": [{path, size, sha256}, ...]}`` z dysku."""
+    """Buduje manifest ``{"files": [{path, size, sha256}, ...]}`` z dysku.
+
+    ``dirs=None`` (domyślnie) skanuje całe ``assets/`` poza ``EXCLUDED_ASSET_DIRS``;
+    jawna lista ``dirs`` zawęża skan do podanych katalogów (patrz ``list_asset_files``).
+    """
     files: list[dict[str, object]] = []
     for rel in list_asset_files(assets_dir, dirs):
         data = (assets_dir / rel).read_bytes()

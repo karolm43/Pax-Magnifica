@@ -21,6 +21,30 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### 🐛 Naprawa regresji: manifest grafik obejmuje teraz całe `assets/` (ukończone)
+
+- **Objaw:** po migracji grafik z CDN na lokalne plansza nie pokazywała żadnych
+  grafik (brak tilesów planet, tokenów, emoji).
+- **Źródło błędu:** `src/audit/assets_manifest.py` — stała `DEFAULT_ASSET_DIRS`
+  zawierała tylko 9 katalogów i POMIJAŁA kluczowe grafiki planszy (`tiles`,
+  `emojis`, `attachment_token` i inne). Manifest frontu (`assetManifest.json`) nie
+  zawierał tych ścieżek, więc Resolver_Zasobów (`resolveAsset.ts`) zwracał
+  `PLACEHOLDER_URL` dla każdego brakującego wpisu → tile'y planszy znikały.
+- **Naprawa (odporna na przyszłość):** `DEFAULT_ASSET_DIRS = None`; przy `dirs=None`
+  `list_asset_files()`/`build_manifest()` skanują CAŁE drzewo `assets/` pod kątem
+  grafik (`IMAGE_SUFFIXES`), pomijając tylko `EXCLUDED_ASSET_DIRS` (dane/konfiguracja/
+  surowce: `data`, `config`, `raw`, `META-INF`, `voices`, `hover_images`, `systems`,
+  `planets`, `alias`). Nowe katalogi grafik trafiają do manifestu automatycznie.
+  Jawna lista `dirs` zachowuje stare zachowanie (wsteczna kompatybilność).
+- **Manifest po regeneracji:** 8666 wpisów (było 9 katalogów), w tym `tiles/` (848),
+  `emojis/` (1556), `attachment_token/` (144). Oba manifesty (`audit/` i frontu)
+  odtworzone przez `uv run python -m src.audit --write-manifest`.
+- **Testy:** `tests/test_audit_diffs.py` — nowy test skanu całości przy `dirs=None`
+  oraz test obecności grafik planszy w manifeście projektu.
+- **QA:** `pytest` 443 ✅, `ruff` ✅, `mypy` ✅; frontend `npm run build` ✅.
+
+---
+
 ### ✅ Baza danych TI4 · 4.1: spójność referencji `core/references.py` (ukończone)
 - Nowy moduł `src/core/references.py` (czysty, bez I/O): `UnresolvedReference`,
   `TemplateReference`, `ReferenceReport`, `find_unresolved_references`,

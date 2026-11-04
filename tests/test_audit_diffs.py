@@ -35,6 +35,7 @@ def test_build_manifest_roundtrip(tmp_path: Path) -> None:
     (tmp_path / "other").mkdir()
     (tmp_path / "other" / "y.png").write_bytes(b"zzz")
 
+    # Jawna lista katalogów (wsteczna kompatybilność): skan tylko po ``units``.
     assert list_asset_files(tmp_path, ["units"]) == ["units/x.png"]
     manifest = build_manifest(tmp_path, ["units"])
     entry = manifest["files"][0]
@@ -46,6 +47,46 @@ def test_build_manifest_roundtrip(tmp_path: Path) -> None:
     write_manifest(manifest, target)
     assert load_manifest_paths(target) == ["units/x.png"]
     assert load_manifest_paths(tmp_path / "brak.json") == []
+
+
+def test_list_asset_files_scans_whole_tree_when_dirs_none(tmp_path: Path) -> None:
+    """``dirs=None`` skanuje całe drzewo grafik, pomijając tylko wykluczone katalogi."""
+    # Grafiki w różnych katalogach — w tym te wcześniej pomijane (tiles/emojis/...).
+    (tmp_path / "tiles").mkdir()
+    (tmp_path / "tiles" / "t.png").write_bytes(b"tile")
+    (tmp_path / "emojis").mkdir()
+    (tmp_path / "emojis" / "e.webp").write_bytes(b"emoji")
+    (tmp_path / "attachment_token").mkdir()
+    (tmp_path / "attachment_token" / "a.png").write_bytes(b"att")
+    (tmp_path / "units").mkdir()
+    (tmp_path / "units" / "u.png").write_bytes(b"unit")
+    (tmp_path / "units" / "notes.txt").write_bytes(b"skip")
+    # Katalogi wykluczone i pliki nie-graficzne nie trafiają do manifestu.
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "x.png").write_bytes(b"data-img")
+    (tmp_path / "systems").mkdir()
+    (tmp_path / "systems" / "s.png").write_bytes(b"sys-img")
+
+    assert list_asset_files(tmp_path, None) == [
+        "attachment_token/a.png",
+        "emojis/e.webp",
+        "tiles/t.png",
+        "units/u.png",
+    ]
+
+
+def test_manifest_zawiera_grafiki_planszy() -> None:
+    """Manifest projektu zawiera grafiki planszy: tiles, emojis i attachment_token.
+
+    Regresja: wcześniej manifest obejmował tylko 9 katalogów i POMIJAŁ grafiki
+    planszy, przez co Resolver_Zasobów zwracał placeholder dla tilesów i tokenów.
+    """
+    paths = load_manifest_paths()
+    assert paths, "Manifest grafik jest pusty — uruchom `python -m src.audit --write-manifest`."
+    for prefix in ("tiles/", "emojis/", "attachment_token/"):
+        assert any(
+            p.startswith(prefix) for p in paths
+        ), f"Brak grafik z katalogu {prefix} w manifeście."
 
 
 def test_extract_embedded_ids_top_level_only() -> None:
