@@ -11,8 +11,8 @@
 
 .portraitLayer {
   position: absolute;
-  /* Pełna wysokość strefy; lewa i dolna krawędź = krawędzie ekranu. */
-  top: 0;
+  /* Pod paskiem cytatu (`--quote-h`, 0 gdy brak); lewa i dolna krawędź = ekran. */
+  top: var(--quote-h, 0px);
   bottom: 0;
   left: 0;
   /* Szerokość z `--portrait-w` strefy postaci (Step_Faction.module.css). */
@@ -104,36 +104,55 @@
   }
 }
 
-/* ── Cytat frakcji (dół sceny, po lewej od przycisku wyboru) ───────────── */
+/* ── Cytat frakcji (nagłówek sceny, nad postacią) ──────────────────────── */
 
 /*
- * Cytat siedzi w dolnym rzędzie sceny (wysokość `--pick-h`), po LEWEJ od wyśrodkowanego
- * przycisku wyboru — nie zabiera miejsca portretowi ani lore. Szerokość ograniczona do
- * połowy ekranu minus połowa przycisku, więc nigdy na niego nie nachodzi. Wchodzi
- * dopiero, gdy postać jest już wyraźnie widoczna.
+ * Cytat jest PIERWSZYM punktem uwagi: duży, jasny złoty, na miękkim ciepłym blasku,
+ * rozpięty nad postacią i lore (pasek `--quote-h` nad nimi). W sekwencji wejścia pojawia
+ * się zaraz po starcie postaci — przed lore — a potem lore i reszta schodzą na dalszy plan.
  */
 .quote {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: clamp(14px, 1.4vw, 28px);
-  width: calc(50vw - min(230px, 24vw) - clamp(14px, 1.4vw, 28px) - 12px);
-  height: var(--pick-h, 96px);
+  right: clamp(14px, 1.6vw, 32px);
+  height: var(--quote-h, 0px);
   margin: 0;
+  padding-bottom: clamp(6px, 1.2vh, 14px);
   z-index: 2;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   pointer-events: none;
-  animation: quoteIn 3.2s cubic-bezier(0.33, 0, 0.2, 1) 3s both;
+  animation: quoteIn 2.6s cubic-bezier(0.33, 0, 0.2, 1) 0.7s both;
+}
+
+/* Ciepły blask za cytatem odcina go od tła i prowadzi wzrok. */
+.quote::before {
+  content: "";
+  position: absolute;
+  inset: -10% -4% -10% -6%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 90% at 30% 55%,
+    rgb(246 121 42 / 0.28),
+    rgb(5 4 3 / 0.5) 45%,
+    transparent 78%
+  );
 }
 
 .quoteText {
   margin: 0;
+  max-width: 62ch;
   font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
   font-style: italic;
-  font-size: clamp(0.85rem, min(1.2vw, 2.1vh), 1.3rem);
-  line-height: 1.32;
-  color: rgb(252 222 168);
-  text-shadow: 0 2px 10px rgb(0 0 0 / 0.95);
+  font-weight: 600;
+  font-size: clamp(1.25rem, min(2.1vw, 3.5vh), 2.4rem);
+  line-height: 1.28;
+  color: #ffe6b0;
+  text-shadow:
+    0 0 22px rgb(252 162 43 / 0.55),
+    0 2px 12px rgb(0 0 0 / 0.95);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -143,12 +162,16 @@
 @keyframes quoteIn {
   from {
     opacity: 0;
-    transform: translateY(14px);
-    filter: blur(8px);
+    transform: translateY(-22px) scale(0.97);
+    filter: blur(14px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(2px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     filter: blur(0);
   }
 }
@@ -187,7 +210,7 @@
    * Tło lore wyłania się RAZEM z tekstem (te same opóźnienie i czas co nazwa), żeby na
    * początku animacji nie było widać samego ciemnego boxa bez zawartości.
    */
-  animation: scrimIn 2.4s cubic-bezier(0.33, 0, 0.2, 1) 2.4s both;
+  animation: scrimIn 2.4s cubic-bezier(0.33, 0, 0.2, 1) 3.4s both;
 }
 
 @keyframes scrimIn {
@@ -266,9 +289,9 @@
 .loreHeading,
 .loreBlockQuote,
 .loreEmpty {
-  /* Wolno: tekst pojawia się dopiero, gdy postać jest już wyraźnie widoczna. */
+  /* Wolno i PO cytacie (który wchodzi ok. 0.7–3.3 s): lore to drugi plan uwagi. */
   animation: loreIn 2.4s cubic-bezier(0.33, 0, 0.2, 1) both;
-  animation-delay: calc(2.4s + min(var(--i, 0), 18) * 230ms);
+  animation-delay: calc(3.4s + min(var(--i, 0), 18) * 230ms);
 }
 
 @keyframes loreIn {
@@ -297,10 +320,10 @@
     animation: none;
   }
   .quote {
-    animation: slowFade 2.4s ease-in-out 2s both;
+    animation: slowFade 2s ease-in-out 0.6s both;
   }
   .lore::before {
-    animation: slowFade 1.8s ease-in-out 1.8s both;
+    animation: slowFade 1.8s ease-in-out 2.6s both;
   }
   .loreName,
   .loreParagraph,
@@ -308,7 +331,7 @@
   .loreBlockQuote,
   .loreEmpty {
     animation: slowFade 1.8s ease-in-out both;
-    animation-delay: calc(1.8s + min(var(--i, 0), 18) * 150ms);
+    animation-delay: calc(2.6s + min(var(--i, 0), 18) * 150ms);
   }
   @keyframes slowFade {
     from {

@@ -121,8 +121,8 @@ function measureAlphaInset(
 }
 
 /**
- * Cytat frakcji na dole sceny, po lewej — w rzędzie przycisku wyboru, obok niego. Nie
- * zabiera miejsca portretowi ani lore. Zwraca `null`, gdy frakcja nie ma cytatu.
+ * Cytat frakcji jako nagłówek sceny nad postacią i lore — pierwszy punkt uwagi.
+ * Zwraca `null`, gdy frakcja nie ma cytatu.
  */
 export function FactionQuote({ faction }: { faction: FactionInfo }) {
   const quote = getFactionLore(faction.id)?.quote;
@@ -132,6 +132,11 @@ export function FactionQuote({ faction }: { faction: FactionInfo }) {
       <blockquote className={styles.quoteText}>{quote}</blockquote>
     </figure>
   );
+}
+
+/** Czy frakcja ma cytat (steruje rezerwacją paska nad postacią i lore). */
+export function hasFactionQuote(factionId: string): boolean {
+  return Boolean(getFactionLore(factionId)?.quote);
 }
 
 /** Znaczniki końców zdań (pozycja PO zdaniu i spacji) — do podziału długiego akapitu. */
