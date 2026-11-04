@@ -119,6 +119,45 @@ export const FACTION_LORE: Record<string, FactionLore> = {
       },
     ],
   },
+  letnev:{
+quote:"Hold your fire until the main fleet arrives. Our armada will blot out their sun-when they die, they will die in darkness!",
+quoteAuthor: "Baron Unlenn",
+lore: [
+{
+    kind: "paragraph",
+    text: "In the third deep of Arc Prime, Vvlos Samrac XVII, the Baron of Letnev, has awaited the Days of Reckoning with ill-contained wroth. Ever since he slit the throat of his father at age 19, Vvlos has presided over a populace as near to revolt as to starvation. The Baron is keenly aware that the shadows may soon leap for his own throat, should he not manage to improve the lot of the Letnev and feed their ambition for glory and conquest.",
+  },
+  {
+    kind: "heading",
+    text: "The Quann Conflict & The Embargoes",
+  },
+  {
+    kind: "paragraph",
+    text: "When his father burned the ancient papers of submission, in the wake of the Quann Conflict nearly seventy years prior, the old man expected a military response from the Lazax. Such a response would have allowed Vvlos' father to unite the sparring Letnev dynasties, and - more importantly - given him more direct authority over the Cimm Fenn: the powerful Letnev security force whose assassins and operatives infiltrated nearly every echelon of the empire.",
+  },
+  {
+    kind: "paragraph",
+    text: "Instead, the intolerable Lazax hit the Barony with a range of cowardly trade embargoes and out-planet asset seizures. Unlike the Sol Federation (who had also abdicated at that time), such measures bit the Letnev deep. Despite its incredible metallurgical wealth, Arc Prime suffered from chronic foodstuff and water shortages, and worse, the unstated ambitions of its warrior nobility.",
+  },
+  {
+    kind: "heading",
+    text: "The Fall of Mecatol & Secret Deployments",
+  },
+  {
+    kind: "paragraph",
+    text: "Only a few short months ago, by word of the Cimm Fenn masters, Vvlos learned of Sol's assault on Mecatol Rex. In this, Vvlos tasted the day long-awaited. With only months to spare, the Baron wasted no time. As the humans would strike their dagger into the heart of the empire, Letnev raiders would be ready to assault vital neighboring systems. Here they would reap food sources and slaves, bolstering the Letnev engine of war that Vvlos meant to unleash on the galaxy.",
+  },
+  {
+    kind: "paragraph",
+    text: "While his ambition far exceeds the conquest of a single planet, Vvlos understands that ceding a trophy such as Mecatol Rex to the humans would be unwise. To counter the Sol power-grab, Vvlos has, with the support of the Cimm Fenn, smuggled hundreds of capable operatives and thousands of Letnev special forces to the surface of Mecatol Rex. Secretly encased in shipping containers, or covertly undercover in Mecatol City, they await the Days of Reckoning. Should the situation warrant additional attention, the Baron has arranged for military transportation to Mecatol Rex by means of the Hacan Gisnada group. Hungry for access to the metals of Arc Prime, the opportunist felines have guaranteed safe delivery of additional Letnev forces despite \"possible objections by third parties\".",
+  },
+  {
+    kind: "quote",
+    text: "The days foreseen are surely at hand, and when that hour finally comes, the Baron of Letnev intends to plunge a spear deep into the side of an already wounded galaxy.",
+  },
+
+]
+  },
   mahact: {
     quote: "KNEEL",
     quoteAuthor: "Airo Shir Aur",
