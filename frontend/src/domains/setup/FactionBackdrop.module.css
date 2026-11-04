@@ -55,14 +55,17 @@
     var(--t-portrait-delay, 0.25s) both;
 }
 
+/*
+ * Poświata rozjaśnia się TYLKO przez krycie. Wcześniej skalowała się (scale 0.7 → 1), a że
+ * jej gradient sięga lewej krawędzi ekranu, skurczone pudełko odsłaniało po lewej widoczny
+ * pasek, który się „zmieniał" w trakcie animacji.
+ */
 @keyframes portraitGlow {
   from {
     opacity: 0;
-    transform: scale(0.7);
   }
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
