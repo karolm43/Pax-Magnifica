@@ -122,11 +122,21 @@ Tempo jest **celowo zróżnicowane**: oprawa wolna, informacja robocza szybka.
 
 | Element | Start | Czas |
 |---|---|---|
-| Postać (mgła → ostrość, blur+jasność+przesunięcie) | 0.25 s | 5.5 s |
+| Postać (krycie + przesunięcie + jasność; **rozmycie schodzi osobno w 2.2 s**) | 0.25 s | 5.5 s |
 | Panel nagłówka → nazwa → cytat → autor | 0.4 / 0.5 / 1.5 / 2.8 s | 1.6–2.2 s |
 | Lore (blok po bloku, 230 ms/blok) + jego tło | od 4.2 s | 2.4 s |
 | Panel szczegółów (nagłówek + sekcje) | 0.05–0.6 s | 0.4–0.45 s |
 | Przycisk wyboru | 0.4 s | 0.9 s |
+
+**Gdzie stroić tempo:** blok zmiennych `--t-*` na początku `.stage` w
+`steps/Step_Faction.module.css` (z opisem każdej). Mniejsza liczba = szybciej. Kluczowe:
+`--t-portrait-fade` (całe wyłanianie postaci), `--t-portrait-unblur` (jak długo postać jest
+rozmyta — osobna animacja `portraitUnblur`, domyślnie 2.2 s), `--t-quote-delay`,
+`--t-lore-delay`, `--t-lore-step`, `--t-detail-*`, `--t-pick-*`. Kształt samych animacji
+(ruch, kolejne etapy krycia/jasności) jest w `@keyframes` w `FactionBackdrop.module.css`
+(`portraitFade`, `portraitUnblur`, `portraitGrade`, `headIn`, `loreIn`) i `FactionSummary.module.css`
+(`sectionIn`). Postać składa się z trzech animacji na różnych właściwościach (warstwa:
+krycie/ruch + rozmycie; obrazek: jasność), dlatego rozmycie można skrócić niezależnie.
 
 Wszystko odtwarza się przy każdej zmianie frakcji (`key` na warstwach).
 `prefers-reduced-motion`: bez ruchu/blura, ale **zostaje wolny, widoczny fade** (krótki fade

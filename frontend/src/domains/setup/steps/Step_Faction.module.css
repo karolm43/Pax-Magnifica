@@ -9,6 +9,45 @@
  */
 
 .stage {
+  /*
+   * ═══ CZASY ANIMACJI SCENY — TU STROISZ TEMPO ═══
+   * Zmienne są dziedziczone przez całą scenę (FactionBackdrop / FactionSummary czytają je
+   * z `var(--t-…, domyślna)`). Mniejsza liczba = szybciej. Przy `prefers-reduced-motion`
+   * obowiązują osobne, krótsze reguły w `@media` w każdym pliku CSS.
+   *
+   * POSTAĆ
+   *   --t-portrait-delay   start wyłaniania postaci
+   *   --t-portrait-fade    całe wyłanianie: krycie + ruch + jasność (wolne)
+   *   --t-portrait-unblur  ile postać jest ROZMYTA (krótsze = ostra szybciej)
+   *   --t-portrait-glow    poświata za postacią
+   * NAGŁÓWEK (panel → nazwa → cytat → autor)
+   *   --t-head-delay       start panelu (nazwa: +0.1 s)
+   *   --t-quote-delay      start cytatu
+   *   --t-author-delay     start autora
+   * LORE
+   *   --t-lore-delay       start pierwszego bloku (+ jego tła)
+   *   --t-lore-step        odstęp między kolejnymi blokami
+   *   --t-lore-dur         czas pojawiania się bloku
+   * PANEL SZCZEGÓŁÓW (szybki) i PRZYCISK WYBORU
+   *   --t-detail-delay / --t-detail-step / --t-detail-dur
+   *   --t-pick-delay / --t-pick-dur
+   */
+  --t-portrait-delay: 0.25s;
+  --t-portrait-fade: 5.5s;
+  --t-portrait-unblur: 2.2s;
+  --t-portrait-glow: 7s;
+  --t-head-delay: 0.4s;
+  --t-quote-delay: 1.5s;
+  --t-author-delay: 2.8s;
+  --t-lore-delay: 4.2s;
+  --t-lore-step: 230ms;
+  --t-lore-dur: 2.4s;
+  --t-detail-delay: 0.1s;
+  --t-detail-step: 0.07s;
+  --t-detail-dur: 0.45s;
+  --t-pick-delay: 0.4s;
+  --t-pick-dur: 0.9s;
+
   position: relative;
   width: 100%;
   height: 100vh;
@@ -345,7 +384,8 @@
   gap: 6px;
   pointer-events: none; /* klikalny jest tylko sam przycisk */
   background: linear-gradient(to top, rgb(0 0 0 / 0.55), transparent);
-  animation: pickIn 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) 0.4s both;
+  animation: pickIn var(--t-pick-dur, 0.9s) cubic-bezier(0.22, 0.61, 0.36, 1)
+    var(--t-pick-delay, 0.4s) both;
 }
 
 .pickNote {
