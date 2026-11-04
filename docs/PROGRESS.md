@@ -59,6 +59,23 @@ przełącznik „człowiek/bot" przenosi się do kroku nazwy/koloru (krok „Cz�
 **QA:** front tsc + eslint + build czyste (`npm run build` ok, chunk >500kB to istniejące
 ostrzeżenie niezwiązane ze zmianą). Brak testów jednostkowych frontu do uruchomienia.
 
+**Korekty po przeglądzie usera (ta sama iteracja):**
+- Układ: portret NIE leży pod tekstem — strefa postaci (`.characterZone`) = portret po lewej
+  (prawa krawędź zanika maską), lore w 2 kolumnach OBOK postaci; panel detali zwężony do
+  ~21vw, lista frakcji ~15vw.
+- Animacje bardzo wolne: portret „wyłania się" z mgły (3.6 s, blur + brightness + opacity),
+  lore (opóźnienie 1.3 s, 170 ms/blok) i sekcje detali wchodzą po nim.
+- Portret równo z krawędzią: `FactionPortraitLayer` mierzy przezroczysty margines PNG
+  (canvas, alfa > 16) po `onLoad` i koryguje `transform: translate(%)` — działa dla każdego
+  pliku (np. `arborec.png` miał ~4.6% pustki z lewej i ~2% od dołu). Obraz ma box = widoczna
+  treść (`max-width/max-height` + `auto`, bez `object-fit`), dzięki czemu % przesunięcie jest dokładne.
+- Lore większe: `clamp(12px, 0.75vw, 14.5px)`; `.loreSlot` ma awaryjny cienki scroll,
+  gdyby bardzo długie lore się nie zmieściło.
+- Przycisk „Wybierz dla gracza N" wyjęty z panelu detali: osobny, wyśrodkowany element na
+  dole sceny (`.pickBar`, złoty gradient, krój Ambroise, poświata); po wyborze stan
+  „✓ Wybrana dla gracza N". Strefa postaci sięga pod pasek (`margin-bottom: -var(--pick-h)`),
+  więc portret dochodzi do dolnej krawędzi ekranu.
+
 **Otwarte (do ustalenia z userem później):** tło sceny (`main_menu.jpg` przyciemnione) —
 user zaznaczył, że może się zmienić; pozycja portretu (max-lewo) też może się przesunąć.
 

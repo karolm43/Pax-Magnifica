@@ -12,14 +12,18 @@
 .portraitLayer {
   position: absolute;
   inset: 0 auto 0 0;
-  /* Maksymalnie na lewo; szerokość ogranicza proporcję postaci, nie ekran. */
-  width: min(62%, 1100px);
+  /* Szerokość z `--portrait-w` strefy postaci (Step_Faction.module.css). */
+  width: var(--portrait-w, 46%);
   z-index: 0;
   pointer-events: none;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  animation: portraitIn 0.85s var(--ds-ease, ease) both;
+  /* Prawa krawędź zanika — postać wtapia się w tło przy tekście lore. */
+  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 68%, transparent 100%);
+  /* BARDZO wolne wyłanianie: z mgły (blur + zero krycia) do ostrej postaci. */
+  animation: portraitEmerge 3.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 /* Miękka poświata za postacią osadza przezroczysty PNG w tle. */
@@ -28,19 +32,24 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse 70% 65% at 30% 55%,
+    ellipse 70% 65% at 35% 55%,
     rgb(252 162 43 / 0.2),
     transparent 70%
   );
 }
 
+/*
+ * `max-width` + `max-height` przy `auto` zachowują proporcje, więc box obrazka = dokładnie
+ * to, co widać. Dzięki temu przesunięcie w % (inline `transform`, z pomiaru
+ * przezroczystego marginesu w FactionBackdrop.tsx) trafia sylwetkę w krawędź ekranu.
+ */
 .portrait {
   position: relative;
   display: block;
-  height: 100%;
+  width: auto;
+  height: auto;
   max-width: 100%;
-  object-fit: contain;
-  object-position: left bottom;
+  max-height: 100%;
   filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.6));
 }
 
@@ -48,20 +57,26 @@
 .portraitIcon {
   position: relative;
   display: block;
-  width: min(36vw, 46vh);
-  margin: 0 0 22vh 6vw;
+  width: min(30vw, 46vh);
+  margin: 0 0 22vh 4vw;
   opacity: 0.32;
   object-fit: contain;
   filter: drop-shadow(0 0 40px rgb(252 162 43 / 0.35));
 }
 
-@keyframes portraitIn {
-  from {
+@keyframes portraitEmerge {
+  0% {
     opacity: 0;
-    transform: translateX(-56px) scale(1.04);
+    filter: blur(22px) brightness(0.6);
+    transform: translateX(-48px) scale(1.06);
   }
-  to {
+  45% {
+    opacity: 0.55;
+    filter: blur(9px) brightness(0.85);
+  }
+  100% {
     opacity: 1;
+    filter: blur(0) brightness(1);
     transform: translateX(0) scale(1);
   }
 }
@@ -78,22 +93,22 @@
   padding: 28px 8px 4px 4px;
   color: rgb(235 228 214);
   font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
-  font-size: clamp(10.5px, 0.72vw, 13px);
+  font-size: clamp(12px, 0.75vw, 14.5px);
   line-height: 1.5;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
 }
 
-/* Gradient „scrim" pod tekstem — wtapia lore w portret zamiast osobnego boxa. */
+/* Miękki „scrim" pod tekstem (bez krawędzi) — czytelność bez osobnego boxa. */
 .lore::before {
   content: "";
   position: absolute;
-  inset: -60px -24px -24px -48px;
+  inset: -36px -28px -36px -52px;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(
-    to top,
-    rgb(5 4 3 / 0.86) 0%,
-    rgb(5 4 3 / 0.7) 55%,
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 50%,
+    rgb(5 4 3 / 0.62),
+    rgb(5 4 3 / 0.38) 60%,
     transparent 100%
   );
 }
@@ -167,18 +182,21 @@
 .loreHeading,
 .loreBlockQuote,
 .loreEmpty {
-  animation: loreIn 0.6s var(--ds-ease, ease) both;
-  animation-delay: calc(0.28s + min(var(--i, 0), 18) * 65ms);
+  /* Wolno: tekst pojawia się dopiero, gdy postać zaczyna się wyłaniać. */
+  animation: loreIn 1.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(1.3s + min(var(--i, 0), 18) * 170ms);
 }
 
 @keyframes loreIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 

@@ -45,6 +45,11 @@ export function FactionPortraitLayer({ faction }: { faction: FactionInfo }) {
   // Reset źródła przy zmianie frakcji (inaczej zostałby wyczerpany index).
   useEffect(() => setIndex(0), [candidates]);
 
+  // Przezroczysty margines PNG (ułamek wymiaru obrazka) od lewej i od dołu — mierzony
+  // po załadowaniu, żeby sylwetka dotykała krawędzi ekranu niezależnie od pliku.
+  const [inset, setInset] = useState({ left: 0, bottom: 0 });
+  useEffect(() => setInset({ left: 0, bottom: 0 }), [index, candidates]);
+
   if (index >= candidates.length) return null;
   // Ostatni kandydat to ikona frakcji — pokazujemy ją jako symbol, nie jako postać.
   const isIconFallback = index === candidates.length - 1;
@@ -55,10 +60,63 @@ export function FactionPortraitLayer({ faction }: { faction: FactionInfo }) {
         src={candidates[index]}
         alt=""
         className={isIconFallback ? styles.portraitIcon : styles.portrait}
+        style={
+          isIconFallback
+            ? undefined
+            : {
+                transform: `translate(${-inset.left * 100}%, ${inset.bottom * 100}%)`,
+              }
+        }
+        onLoad={(e) => {
+          if (!isIconFallback) {
+            const measured = measureAlphaInset(e.currentTarget);
+            if (measured) setInset(measured);
+          }
+        }}
         onError={() => setIndex((i) => i + 1)}
       />
     </div>
   );
+}
+
+/**
+ * Mierzy przezroczysty margines obrazka od lewej i od dołu (jako ułamek szerokości /
+ * wysokości). Rysuje pomniejszoną kopię na canvasie i szuka pierwszych pikseli o
+ * alfie > 16. Zwraca `null`, gdy się nie da (brak kontekstu, obraz pusty).
+ */
+function measureAlphaInset(
+  img: HTMLImageElement,
+): { left: number; bottom: number } | null {
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  if (!w || !h) return null;
+  const scale = Math.min(1, 256 / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * scale));
+  const ch = Math.max(1, Math.round(h * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, cw, ch);
+  let data: Uint8ClampedArray;
+  try {
+    data = ctx.getImageData(0, 0, cw, ch).data;
+  } catch {
+    return null;
+  }
+  let minX = cw;
+  let maxY = -1;
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      if (data[(y * cw + x) * 4 + 3] > 16) {
+        if (x < minX) minX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxY < 0) return null;
+  return { left: minX / cw, bottom: (ch - 1 - maxY) / ch };
 }
 
 /**

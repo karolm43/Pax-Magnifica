@@ -3,11 +3,13 @@
 // Jedna kompozycja na cały ekran:
 //   - pasek górny: „Wstecz" + przełącznik graczy + „Start gry" (zastępuje ramkę
 //     kreatora — ten krok jest ostatni i renderowany bez `Paper` z `SetupWizard`);
-//   - duży portret postaci maksymalnie przy LEWEJ krawędzi (tło sceny) z lore
-//     nałożonym na jego dolną część, w dwóch kolumnach (`FactionBackdrop.tsx`);
-//   - panel szczegółów (`FactionSummary`) na szkle, pośrodku, NAD portretem;
+//   - strefa postaci: duży portret równo z LEWĄ i DOLNĄ krawędzią ekranu (prawa
+//     krawędź zanika maską), lore w dwóch kolumnach tuż OBOK postaci, nie na niej
+//     (`FactionBackdrop.tsx`); portret powoli „wyłania się" z mgły;
+//   - WĄSKI panel szczegółów (`FactionSummary`) na szkle;
 //   - pionowa lista frakcji po prawej, z wyszukiwarką — sam klik wybiera podgląd
-//     (bez hover-popoverów, by nie migało przy przewijaniu).
+//     (bez hover-popoverów, by nie migało przy przewijaniu);
+//   - wyróżniony przycisk „Wybierz dla gracza N" wyśrodkowany na dole sceny.
 //
 // Zmiana podglądanej frakcji odtwarza animacje wejścia (`key={previewId}` na warstwach
 // portretu/lore/detail), więc całość „pojawia się" przy każdym wyborze, nie tylko portret.
@@ -16,7 +18,7 @@
 // `setFaction` czyści technologie startowe slotu (R9.4). Podgląd/przełącznik gracza to
 // stan lokalny kroku — nie wpływa na model.
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Button, TextInput } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import type { SetupStepProps } from "../SetupWizard";
@@ -89,6 +91,12 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
     setFaction(activeSlot, factionId);
   };
 
+  // Oglądana frakcja jest już wzięta przez INNEGO gracza — pokazujemy ostrzeżenie.
+  const previewTakenByOther =
+    previewId !== null &&
+    takenBy.has(previewId) &&
+    takenBy.get(previewId) !== activeSlot;
+
   return (
     <div className={styles.stage}>
       {/* Pasek górny: Wstecz · przełącznik graczy · Start gry (zastępuje ramkę kreatora). */}
@@ -147,16 +155,20 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
 
       {/* Zawartość: portret+lore (tło pełnoekranowe) | detail (szkło) | lista (prawo). */}
       <div className={styles.content}>
-        {stageFaction && (
-          <div className={styles.backdropWrap} key={`backdrop-${stageFaction.id}`}>
-            <FactionPortraitLayer faction={stageFaction} />
-            <div className={styles.loreSlot}>
-              <FactionLore faction={stageFaction} />
-            </div>
-          </div>
-        )}
+        {/* Strefa postaci: strefa jest zawsze (zajmuje wolne miejsce), zawartość
+            remontowana przy zmianie frakcji — to odtwarza wolne wyłanianie. */}
+        <div className={styles.characterZone}>
+          {stageFaction && (
+            <Fragment key={`character-${stageFaction.id}`}>
+              <FactionPortraitLayer faction={stageFaction} />
+              <div className={styles.loreSlot}>
+                <FactionLore faction={stageFaction} />
+              </div>
+            </Fragment>
+          )}
+        </div>
 
-        {/* Summary (detail) — szkło nad portretem. */}
+        {/* Summary (detail) — wąski pasek na szkle. */}
         <div className={styles.detail} key={`detail-${previewFaction?.id ?? "empty"}`}>
           <FactionSummary
             faction={previewFaction}
@@ -173,31 +185,39 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
                   }
                 : undefined
             }
-            footer={
-              previewFaction && (
-                <div className={styles.footer}>
-                  {takenBy.has(previewFaction.id) &&
-                    takenBy.get(previewFaction.id) !== activeSlot && (
-                      <p style={{ color: "var(--ds-ink-lo)", fontSize: 12 }}>
-                        Ta frakcja jest już wybrana przez gracza{" "}
-                        {(takenBy.get(previewFaction.id) ?? 0) + 1}. Wybór przypisze
-                        ją graczowi {activeSlot + 1} (duplikat zablokuje start gry).
-                      </p>
-                    )}
-                  <Button
-                    fullWidth
-                    disabled={selectedForActive === previewFaction.id}
-                    onClick={() => assign(previewFaction.id)}
-                  >
-                    {selectedForActive === previewFaction.id
-                      ? `Wybrana dla gracza ${activeSlot + 1}`
-                      : `Wybierz dla gracza ${activeSlot + 1}`}
-                  </Button>
-                </div>
-              )
-            }
           />
         </div>
+
+        {/*
+         * Przycisk wyboru — OSOBNY, wyśrodkowany element na dole sceny (nie w panelu
+         * szczegółów). Pokazywany dla oglądanej frakcji; po wyborze zmienia się w stan
+         * „zatwierdzone". `key` odtwarza płynne pojawienie się przy zmianie frakcji.
+         */}
+        {previewFaction && (
+          <div className={styles.pickBar} key={`pick-${previewFaction.id}`}>
+            {previewTakenByOther && (
+              <p className={styles.pickNote}>
+                Ta frakcja jest już wybrana przez gracza{" "}
+                {(takenBy.get(previewFaction.id) ?? 0) + 1}. Wybór przypisze ją graczowi{" "}
+                {activeSlot + 1} (duplikat zablokuje start gry).
+              </p>
+            )}
+            <button
+              type="button"
+              className={`${styles.pickButton} ${
+                selectedForActive === previewFaction.id ? styles.pickButtonDone : ""
+              }`}
+              aria-disabled={selectedForActive === previewFaction.id}
+              onClick={() => {
+                if (selectedForActive !== previewFaction.id) assign(previewFaction.id);
+              }}
+            >
+              {selectedForActive === previewFaction.id
+                ? `✓ Wybrana dla gracza ${activeSlot + 1}`
+                : `Wybierz dla gracza ${activeSlot + 1}`}
+            </button>
+          </div>
+        )}
 
         {/* Lista frakcji (prawo) — sam klik wybiera podgląd, bez hover-popoverów. */}
         <div className={styles.gallery}>
