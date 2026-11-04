@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from src.core.components import (
     CATEGORY_SPECS,
     ActionCardDef,
@@ -116,3 +118,87 @@ def test_build_timing_specs_i_query_timing() -> None:
     assert catalog.query_timing(TriggerKind.WHEN, Phase.STATUS) == []
     # konstruktor bez timing_specs (zgodność wsteczna)
     assert ComponentCatalog({}).query_timing(TriggerKind.WHEN) == []
+
+
+def test_faction_bundle_sklada_komponenty_z_list_faction_def() -> None:
+    """faction_bundle rozwiązuje identyfikatory z list FactionDef na modele."""
+    from src.core.models import (
+        AbilityDef,
+        BreakthroughDef,
+        FactionDef,
+        LeaderDef,
+        TechnologyDef,
+        UnitDef,
+    )
+
+    faction = FactionDef.model_validate(
+        {
+            "alias": "arborec",
+            "factionName": "The Arborec",
+            "source": "base",
+            "shortName": "Arborec",
+            "leaders": ["arborecagent", "brak_lidera"],
+            "abilities": ["mitosis"],
+            "promissoryNotes": ["stymie"],
+            "factionTech": ["bio"],
+            "units": ["letani_warrior"],
+        }
+    )
+    leaders = {
+        "arborecagent": LeaderDef.model_validate(
+            {"id": "arborecagent", "type": "agent", "name": "Agent", "source": "base"}
+        )
+    }
+    abilities = {
+        "mitosis": AbilityDef.model_validate(
+            {"id": "mitosis", "name": "Mitosis", "source": "base"}
+        )
+    }
+    technologies = {
+        "bio": TechnologyDef.model_validate(
+            {"alias": "bio", "name": "Bioplasmosis", "source": "base"}
+        )
+    }
+    units = {
+        "letani_warrior": UnitDef.model_validate(
+            {"id": "letani_warrior", "baseType": "infantry",
+             "name": "Letani Warrior", "source": "base"}
+        )
+    }
+    promissory_spec = CATEGORY_SPECS[ComponentCategory.PROMISSORY_NOTE]
+    stymie = build_component(
+        {"alias": "stymie", "name": "Stymie", "text": "t", "source": "base"},
+        promissory_spec,
+    )
+    breakthroughs = {
+        "arborec_bt": BreakthroughDef.model_validate(
+            {"id": "arborec_bt", "name": "BT", "source": "thunders_edge",
+             "faction": "arborec"}
+        )
+    }
+
+    catalog = ComponentCatalog(
+        {ComponentCategory.PROMISSORY_NOTE: {stymie.id: stymie}},
+        factions={faction.id: faction},
+        leaders=leaders,
+        abilities=abilities,
+        technologies=technologies,
+        units=units,
+        breakthroughs=breakthroughs,
+    )
+    bundle = catalog.faction_bundle("arborec")
+
+    assert bundle.faction is faction
+    # Nierozwiązany "brak_lidera" jest pomijany, rozwiązany agent wchodzi do paczki.
+    assert [leader.id for leader in bundle.leaders] == ["arborecagent"]
+    assert [a.id for a in bundle.abilities] == ["mitosis"]
+    assert [t.id for t in bundle.faction_tech] == ["bio"]
+    assert [p.id for p in bundle.promissory_notes] == ["stymie"]
+    assert [u.id for u in bundle.units] == ["letani_warrior"]
+    # Przełom dopasowany po rodzinie (short_name małymi literami).
+    assert bundle.breakthrough is not None and bundle.breakthrough.id == "arborec_bt"
+
+
+def test_faction_bundle_nieznana_frakcja_rzuca_key_error() -> None:
+    with pytest.raises(KeyError):
+        ComponentCatalog({}).faction_bundle("nieistnieje")

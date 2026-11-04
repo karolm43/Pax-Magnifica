@@ -18,7 +18,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src import config
 from src.core.game_state import Phase
-from src.core.models import AbilityDef, LeaderDef
+from src.core.models import (
+    AbilityDef,
+    BreakthroughDef,
+    FactionDef,
+    LeaderDef,
+    TechnologyDef,
+    UnitDef,
+)
 from src.core.timing_spec import TimingSpec, TriggerKind, parse_timing
 
 
@@ -282,6 +289,32 @@ def build_timing_specs(
     return specs
 
 
+@dataclass(frozen=True)
+class FactionBundle:
+    """Komplet komponentów powiązanych z jedną frakcją (R5.6).
+
+    Zbiera w jednym miejscu komponenty, których identyfikatory frakcja wymienia na
+    swoich listach (``FactionDef``): liderów, zdolności, technologie frakcyjne,
+    promissory notes, jednostki oraz przełom (breakthrough, Thunder's Edge).
+
+    Każda lista zawiera modele rozwiązane z odpowiednich słowników — wyłącznie te
+    identyfikatory, które udało się rozwiązać. Nierozwiązane identyfikatory NIE
+    trafiają tu (spójność referencji sprawdza osobno ``core/references.py``);
+    pozostają jednak dostępne na ``faction`` (surowe listy ``FactionDef``).
+
+    ``faction_bundle`` NIE hardkoduje żadnych nazw ani list — czyta wyłącznie
+    ``FactionDef`` i mapuje identyfikatory na modele.
+    """
+
+    faction: FactionDef
+    leaders: list[LeaderDef]
+    abilities: list[AbilityDef]
+    faction_tech: list[TechnologyDef]
+    promissory_notes: list[PromissoryNoteDef]
+    units: list[UnitDef]
+    breakthrough: BreakthroughDef | None
+
+
 class ComponentCatalog:
     """Niemutowalny katalog komponentów pogrupowanych w kategorie."""
 
@@ -289,11 +322,27 @@ class ComponentCatalog:
         self,
         tables: Mapping[ComponentCategory, Mapping[str, ComponentBase]],
         timing_specs: Mapping[ComponentRef, TimingSpec] | None = None,
+        *,
+        factions: Mapping[str, FactionDef] | None = None,
+        leaders: Mapping[str, LeaderDef] | None = None,
+        abilities: Mapping[str, AbilityDef] | None = None,
+        technologies: Mapping[str, TechnologyDef] | None = None,
+        units: Mapping[str, UnitDef] | None = None,
+        breakthroughs: Mapping[str, BreakthroughDef] | None = None,
     ) -> None:
         self._tables: dict[ComponentCategory, dict[str, ComponentBase]] = {
             category: dict(table) for category, table in tables.items()
         }
         self._timing_specs: dict[ComponentRef, TimingSpec] = dict(timing_specs or {})
+        # Słowniki kategorii żyjących poza Katalogiem_Komponentów (w rejestrze):
+        # potrzebne do złożenia paczki frakcji (R5.6). Puste, gdy katalog budowany
+        # bez rejestru (np. w testach jednostkowych modeli).
+        self._factions: dict[str, FactionDef] = dict(factions or {})
+        self._leaders: dict[str, LeaderDef] = dict(leaders or {})
+        self._abilities: dict[str, AbilityDef] = dict(abilities or {})
+        self._technologies: dict[str, TechnologyDef] = dict(technologies or {})
+        self._units: dict[str, UnitDef] = dict(units or {})
+        self._breakthroughs: dict[str, BreakthroughDef] = dict(breakthroughs or {})
 
     def timing_spec(self, ref: ComponentRef) -> TimingSpec | None:
         """Zwraca specyfikację czasową komponentu albo ``None``."""
@@ -309,6 +358,61 @@ class ComponentCatalog:
             if spec.trigger is trigger and (phase is None or spec.phase is phase)
         ]
         return sorted(matches, key=lambda ref: (ref.category.value, ref.id))
+
+    def faction_bundle(self, faction_id: str) -> FactionBundle:
+        """Zwraca komplet komponentów powiązanych z frakcją w jednym wywołaniu (R5.6).
+
+        Identyfikatory czytane są WYŁĄCZNIE z list ``FactionDef`` (``leaders``,
+        ``abilities``, ``faction_tech``, ``promissory_notes``, ``units``) i mapowane
+        na modele z odpowiednich słowników. Nic nie jest hardkodowane. Identyfikatory
+        nierozwiązane (brak w słowniku) są pomijane — ich wykryciem zajmuje się
+        ``core/references.py``.
+
+        Przełom (breakthrough, Thunder's Edge) nie figuruje na liście ``FactionDef``;
+        dopasowywany jest po polu ``faction`` przełomu równym id frakcji LUB jej
+        „rodzinie" (``short_name`` małymi literami) — tak samo jak w rejestrze, bez
+        listy frakcji w kodzie.
+
+        Args:
+            faction_id: Identyfikator frakcji (klucz w słowniku frakcji).
+
+        Raises:
+            KeyError: Gdy frakcja o podanym identyfikatorze nie istnieje.
+        """
+        faction = self._factions[faction_id]
+        leaders = [self._leaders[i] for i in faction.leaders if i in self._leaders]
+        abilities = [
+            self._abilities[i] for i in faction.abilities if i in self._abilities
+        ]
+        faction_tech = [
+            self._technologies[i]
+            for i in faction.faction_tech
+            if i in self._technologies
+        ]
+        promissory = self._tables.get(ComponentCategory.PROMISSORY_NOTE, {})
+        promissory_notes = [
+            note
+            for i in faction.promissory_notes
+            if isinstance(note := promissory.get(i), PromissoryNoteDef)
+        ]
+        units = [self._units[i] for i in faction.units if i in self._units]
+        breakthrough = self._breakthrough_for(faction)
+        return FactionBundle(
+            faction=faction,
+            leaders=leaders,
+            abilities=abilities,
+            faction_tech=faction_tech,
+            promissory_notes=promissory_notes,
+            units=units,
+            breakthrough=breakthrough,
+        )
+
+    def _breakthrough_for(self, faction: FactionDef) -> BreakthroughDef | None:
+        """Przełom frakcji dopasowany po id wariantu lub rodzinie (bez listy nazw)."""
+        keys = {faction.id, (faction.short_name or faction.id).lower()}
+        return next(
+            (bt for bt in self._breakthroughs.values() if bt.faction in keys), None
+        )
 
     def get(self, category: ComponentCategory, component_id: str) -> ComponentBase | None:
         """Zwraca komponent albo ``None``, gdy brak kategorii lub identyfikatora."""
