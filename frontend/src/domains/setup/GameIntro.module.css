@@ -272,8 +272,9 @@
 
 .card {
   position: relative;
-  flex: 0 1 clamp(130px, 14vw, 230px);
-  height: clamp(210px, 33vh, 340px);
+  flex: 0 1 clamp(150px, 15.5vw, 270px);
+  /* min-height: karta rośnie, gdy cytat jest długi (równe wysokości w rzędzie), zamiast ucinać. */
+  min-height: clamp(250px, 38vh, 400px);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -373,7 +374,7 @@
   text-shadow: 0 2px 8px rgb(0 0 0 / 0.9);
 }
 
-/* Cytat frakcji — kursywa, krótki; więcej niż 4 linii jest ucinane wielokropkiem. */
+/* Cytat frakcji — kursywa, pełny (bez ucinania; karta dopasowuje wysokość). */
 .cardQuote {
   margin: 5px 0 0;
   font-family: Georgia, "Times New Roman", serif;
@@ -381,11 +382,6 @@
   font-size: clamp(0.62rem, 0.78vw, 0.8rem);
   line-height: 1.35;
   color: rgb(246 234 208 / 0.85);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  overflow: hidden;
 }
 
 .cardAuthor {
