@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -26,7 +26,21 @@ from src.core.models import (
     TechnologyDef,
     UnitDef,
 )
+from src.core.rules_links import RulesTopic, RulesTopicIndex
 from src.core.timing_spec import TimingSpec, TriggerKind, parse_timing
+
+if TYPE_CHECKING:
+    from src.core.effects_registry import EffectStatus
+
+
+class _EffectRegistryLike(Protocol):
+    """Minimalny protokół rejestru efektów używany przez katalog.
+
+    Pozwala wpiąć ``EffectRegistry`` bez importu z ``effects_registry`` (ten moduł
+    sam importuje ``components``, więc import w drugą stronę dałby cykl).
+    """
+
+    def status_of(self, ref: ComponentRef) -> EffectStatus: ...
 
 
 class ComponentCategory(StrEnum):
@@ -329,6 +343,8 @@ class ComponentCatalog:
         technologies: Mapping[str, TechnologyDef] | None = None,
         units: Mapping[str, UnitDef] | None = None,
         breakthroughs: Mapping[str, BreakthroughDef] | None = None,
+        effect_registry: _EffectRegistryLike | None = None,
+        rules_index: RulesTopicIndex | None = None,
     ) -> None:
         self._tables: dict[ComponentCategory, dict[str, ComponentBase]] = {
             category: dict(table) for category, table in tables.items()
@@ -343,6 +359,11 @@ class ComponentCatalog:
         self._technologies: dict[str, TechnologyDef] = dict(technologies or {})
         self._units: dict[str, UnitDef] = dict(units or {})
         self._breakthroughs: dict[str, BreakthroughDef] = dict(breakthroughs or {})
+        # Rejestr efektów i indeks tematów reguł są opcjonalne i addytywne (R9.3, R10.1):
+        # katalog budowany bez nich (np. w testach modeli) działa jak dotąd. Brak
+        # rejestru → status zawsze NOT_IMPLEMENTED; brak indeksu → pusty indeks.
+        self._effect_registry: _EffectRegistryLike | None = effect_registry
+        self._rules_index: RulesTopicIndex = rules_index or RulesTopicIndex()
 
     def timing_spec(self, ref: ComponentRef) -> TimingSpec | None:
         """Zwraca specyfikację czasową komponentu albo ``None``."""
@@ -431,3 +452,29 @@ class ComponentCatalog:
                 per_source[component.source] = per_source.get(component.source, 0) + 1
             result[category] = per_source
         return result
+
+    def effect_status(self, ref: ComponentRef) -> EffectStatus:
+        """Status implementacji efektu komponentu (R9.3).
+
+        Deleguje do wpiętego ``EffectRegistry``; gdy rejestru brak, zwraca domyślny
+        ``NOT_IMPLEMENTED`` — tak samo jak pusty rejestr. Import lokalny, by uniknąć
+        cyklu (``effects_registry`` importuje ``components``).
+        """
+        from src.core.effects_registry import EffectStatus
+
+        if self._effect_registry is None:
+            return EffectStatus.NOT_IMPLEMENTED
+        return self._effect_registry.status_of(ref)
+
+    def rules_topics(self, ref: ComponentRef) -> list[RulesTopic]:
+        """Tematy zrzutu reguł powiązane z komponentem (R10.1).
+
+        Dopasowanie deterministyczne (równość znormalizowanych nazw) po nazwie i
+        identyfikatorze komponentu oraz temat kategorialny z ``CATEGORY_TOPIC_HINTS``.
+        Nieznany komponent lub brak trafień → pusta lista; nic nie jest zgadywane.
+        """
+        component = self.get(ref.category, ref.id)
+        names: list[str] = [ref.id]
+        if component is not None and component.name:
+            names.append(component.name)
+        return self._rules_index.match(*names, category=ref.category.value)

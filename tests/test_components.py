@@ -202,3 +202,47 @@ def test_faction_bundle_sklada_komponenty_z_list_faction_def() -> None:
 def test_faction_bundle_nieznana_frakcja_rzuca_key_error() -> None:
     with pytest.raises(KeyError):
         ComponentCatalog({}).faction_bundle("nieistnieje")
+
+
+def test_effect_status_i_rules_topics_wpiete_w_katalog() -> None:
+    """Katalog deleguje status efektu do rejestru i tematy do indeksu reguł."""
+    from src.core.components import ComponentRef
+    from src.core.effects_registry import EffectRegistry, EffectStatus
+    from src.core.rules_links import RulesTopic, RulesTopicIndex
+
+    spec = CATEGORY_SPECS[ComponentCategory.ACTION_CARD]
+    card = build_component({**_ACTION, "alias": "sabotage", "name": "Sabotage"}, spec)
+    ref = ComponentRef(ComponentCategory.ACTION_CARD, "sabotage")
+    tables = {ComponentCategory.ACTION_CARD: {card.id: card}}
+
+    registry = EffectRegistry().with_status(ref, EffectStatus.MANUAL)
+    index = RulesTopicIndex(
+        [
+            RulesTopic(code="C_action_cards", category="component", title="Action Cards"),
+            RulesTopic(code="C_sabotage", category="component", title="Sabotage"),
+        ]
+    )
+    catalog = ComponentCatalog(tables, effect_registry=registry, rules_index=index)
+
+    # Status efektu pochodzi z wpiętego rejestru.
+    assert catalog.effect_status(ref) is EffectStatus.MANUAL
+    # Brak wpisu → domyślny NOT_IMPLEMENTED.
+    other = ComponentRef(ComponentCategory.ACTION_CARD, "amendment")
+    assert catalog.effect_status(other) is EffectStatus.NOT_IMPLEMENTED
+
+    # Tematy reguł: trafienie po nazwie karty + temat kategorialny kart akcji.
+    topics = {t.code for t in catalog.rules_topics(ref)}
+    assert topics == {"C_sabotage", "C_action_cards"}
+    # Nieznany komponent → pusta lista, nic nie jest zgadywane.
+    assert catalog.rules_topics(ComponentRef(ComponentCategory.AGENDA, "nope")) == []
+
+
+def test_katalog_bez_rejestru_i_indeksu_dziala_wstecz() -> None:
+    """Zgodność wsteczna: brak effect_registry/rules_index zwraca wartości domyślne."""
+    from src.core.components import ComponentRef
+    from src.core.effects_registry import EffectStatus
+
+    catalog = ComponentCatalog({})
+    ref = ComponentRef(ComponentCategory.ACTION_CARD, "cokolwiek")
+    assert catalog.effect_status(ref) is EffectStatus.NOT_IMPLEMENTED
+    assert catalog.rules_topics(ref) == []

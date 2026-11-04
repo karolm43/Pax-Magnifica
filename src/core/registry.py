@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from src import config
 from src.core.component_loader import LoadReport, load_components
 from src.core.components import ComponentCatalog, build_timing_specs
+from src.core.effects_registry import EffectRegistry
 from src.core.models import (
     AbilityDef,
     BreakthroughDef,
@@ -43,6 +44,7 @@ from src.core.references import (
     build_reference_report,
     find_unresolved_references,
 )
+from src.core.rules_links import RulesTopicIndex
 from src.core.sources import SOURCE_PRIORITY, known_source_ids, validate_enabled_sources
 
 
@@ -219,9 +221,17 @@ class StaticDataRegistry:
         timing_specs = build_timing_specs(
             tables, leaders=self.leaders, abilities=self.abilities
         )
+        # Rejestr efektów (status implementacji per komponent; brak pliku = pusty,
+        # R9.4) oraz indeks tematów zrzutu reguł (brak tirules.json = pusty, R10.2).
+        # Oba są opcjonalne i wczytywane z lokalnych assetów — nic nie jest w kodzie.
+        self.effect_registry: EffectRegistry = EffectRegistry.load()
+        self.rules_index: RulesTopicIndex = RulesTopicIndex.from_json()
+
         # Słowniki kategorii spoza katalogu (frakcje, liderzy, zdolności, technologie,
         # jednostki, przełomy) przekazujemy do katalogu, by faction_bundle mógł złożyć
-        # paczkę frakcji w jednym wywołaniu (R5.6), wyłącznie z list FactionDef.
+        # paczkę frakcji w jednym wywołaniu (R5.6), wyłącznie z list FactionDef. Wpięty
+        # rejestr efektów i indeks reguł udostępniają catalog.effect_status i
+        # catalog.rules_topics (R9.3, R10.1).
         self.catalog = ComponentCatalog(
             tables,
             timing_specs,
@@ -231,6 +241,8 @@ class StaticDataRegistry:
             technologies=self.technologies,
             units=self.units,
             breakthroughs=self.breakthroughs,
+            effect_registry=self.effect_registry,
+            rules_index=self.rules_index,
         )
 
         # Spójność referencji (R7): po złożeniu katalogu, bo sprawdzamy m.in. talie,
