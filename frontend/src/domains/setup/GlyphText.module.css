@@ -1,0 +1,25 @@
+/* Kroje tekstu lore pisanego pismem z gry (patrz GlyphText.tsx). */
+
+/* Oryginalne pismo (Lazaxian). Brak pliku → spadek na szeryfowy krój. */
+.glyph {
+  font-family: "Lazaxian", Georgia, "Palatino Linotype", "Book Antiqua", serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Tłumaczenie: czytelny szeryfowy krój jak w lore pozostałych frakcji. */
+.plain {
+  font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* „Kursor" fali rozszyfrowania: jedna świecąca czerwona litera na froncie. */
+.front {
+  font-family: "Lazaxian", Georgia, serif;
+  font-weight: 700;
+  color: #ff4a3d;
+  text-shadow:
+    0 0 6px #ff4a3d,
+    0 0 16px rgb(255 59 48 / 0.85);
+}

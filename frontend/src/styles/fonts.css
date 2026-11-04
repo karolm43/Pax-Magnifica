@@ -41,6 +41,19 @@
  * Przeglądarka próbuje po kolei: woff2 → otf → ttf; brakujące pliki pomija i spada na
  * kolejny krój ze stosu (Ambroise Firmin → display DS), więc brak pliku nie psuje UI.
  */
+/*
+ * Lazaxian Bold — pismo z uniwersum TI4 (lore frakcji Obsidian na scenie wyboru frakcji).
+ * Plik w `frontend/public/font/`. Teksty podajemy wielkimi literami; krój zamienia je
+ * na glify. Brak pliku = spadek na szeryfowy krój z reszty lore (tekst nadal czytelny).
+ */
+@font-face {
+  font-family: "Lazaxian";
+  src: url("/font/Lazaxian-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: "Handel Gothic";
   src:

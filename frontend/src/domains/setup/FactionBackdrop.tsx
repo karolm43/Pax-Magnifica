@@ -14,6 +14,7 @@ import {
   loreToBlocks,
   type LoreBlock,
 } from "./factionLore";
+import { DecodedText, useDecode } from "./GlyphText";
 import styles from "./FactionBackdrop.module.css";
 
 /** Id lidera-bohatera (hero) frakcji — do domyślnego portretu, gdy brak własnego pliku. */
@@ -352,6 +353,9 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
   const data = getFactionLore(faction.id);
   const blocks = loreToBlocks(data?.lore);
   const articleRef = useRef<HTMLElement>(null);
+  // Lore w piśmie z gry: domyślnie glify, przycisk „Przetłumacz" rozszyfrowuje tekst.
+  const isGlyph = data?.glyphLore === true;
+  const decode = useDecode();
 
   // Dopasowanie rozmiaru czcionki do boxa: największy rozmiar (do limitu zależnego od
   // rozmiaru okna), przy którym lore mieści się bez przewijania. Skaluje się z oknem.
@@ -360,6 +364,9 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
     const slot = article?.parentElement;
     const zone = slot?.parentElement;
     if (!article || !slot || !zone) return;
+    // W trakcie rozszyfrowywania szerokości znaków zmieniają się co klatkę — dopasowanie
+    // robimy dopiero po zakończeniu przejścia (efekt uruchomi się ponownie, gdy `busy` = false).
+    if (decode.busy) return;
 
     const fit = () => {
       const style = getComputedStyle(slot);
@@ -393,39 +400,84 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
     // Po wczytaniu fontów (Ambroise) metryki się zmieniają — dopasuj ponownie.
     void document.fonts?.ready.then(fit);
     return () => observer.disconnect();
-  }, [faction.id]);
+  }, [faction.id, decode.busy, decode.mode]);
+
+  const columns = splitLoreColumns(blocks);
+  const total = columns[0].length + columns[1].length;
 
   return (
-    <article className={styles.lore} ref={articleRef} lang="en">
+    <article
+      className={`${styles.lore} ${isGlyph ? styles.loreGlyph : ""} ${
+        decode.busy ? styles.decoding : ""
+      }`}
+      ref={articleRef}
+      lang="en"
+    >
+      {isGlyph && blocks.length > 0 && (
+        <div className={styles.loreTools} style={{ ["--i" as string]: 1 }}>
+          <button
+            type="button"
+            className={styles.translateBtn}
+            disabled={decode.busy}
+            onClick={decode.toggle}
+          >
+            {decode.busy
+              ? "Rozszyfrowuję…"
+              : decode.mode === "glyph"
+                ? "Przetłumacz"
+                : "Pokaż oryginał"}
+          </button>
+        </div>
+      )}
       {blocks.length === 0 ? (
         <p className={styles.loreEmpty} style={{ ["--i" as string]: 2 }}>
           Brak lore — uzupełnij w factionLore.ts (klucz „{faction.id}").
         </p>
       ) : (
         <div className={styles.loreColumns}>
-          {splitLoreColumns(blocks).map((column, c) => (
+          {columns.map((column, c) => (
             <div key={c} className={styles.loreCol}>
               {column.map((block, i) => {
                 // Indeks animacji liczony w obrębie kolumny: obie kolumny odsłaniają
                 // się równolegle od góry, a nie jedna po drugiej.
                 const style = { ["--i" as string]: i + 2 };
+                // Numer bloku w kolejności czytania (kolumna 1, potem 2) — dla fali
+                // rozszyfrowania.
+                const readingIndex = (c === 0 ? 0 : columns[0].length) + i;
+                const content = isGlyph ? (
+                  <DecodedText
+                    text={block.text}
+                    mode={decode.mode}
+                    progress={decode.progress}
+                    index={readingIndex}
+                    total={total}
+                  />
+                ) : (
+                  block.text
+                );
                 if (block.kind === "heading") {
                   return (
                     <h3 key={i} className={styles.loreHeading} style={style}>
-                      {block.text}
+                      {content}
                     </h3>
                   );
                 }
                 if (block.kind === "quote") {
                   return (
                     <blockquote key={i} className={styles.loreBlockQuote} style={style}>
-                      {block.text}
+                      {content}
                     </blockquote>
                   );
                 }
+                const variant = [
+                  block.tone === "red" ? styles.toneRed : "",
+                  block.tone === "dark-red" ? styles.toneDarkRed : "",
+                  block.size === "large" ? styles.sizeLarge : "",
+                  block.size === "small" ? styles.sizeSmall : "",
+                ].join(" ");
                 return (
-                  <p key={i} className={styles.loreParagraph} style={style}>
-                    {block.text}
+                  <p key={i} className={`${styles.loreParagraph} ${variant}`} style={style}>
+                    {content}
                   </p>
                 );
               })}

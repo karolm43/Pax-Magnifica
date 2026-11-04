@@ -39,6 +39,10 @@ export type LoreBlockKind = "paragraph" | "heading" | "quote";
 export interface LoreBlock {
   kind: LoreBlockKind;
   text: string;
+  /** Kolor wyróżnienia: `red` (czerwień), `dark-red` (przyciemniona). Brak = zwykły. */
+  tone?: "red" | "dark-red";
+  /** Rozmiar względem reszty: `large` (większy napis) lub `small` (drobny). */
+  size?: "large" | "small";
 }
 
 /** Lore jako prosty string ALBO jako lista bloków (do dzielenia i stylowania). */
@@ -54,6 +58,12 @@ export interface FactionLore {
   lore?: LoreContent;
   /** Własna ścieżka portretu (nadpisuje domyślne /faction_portraits/<id>.<ext>). */
   portrait?: string;
+  /**
+   * Lore napisane w piśmie z gry (czcionka Lazaxian). Domyślnie pokazywane glifami, a
+   * przycisk „Przetłumacz" zamienia je na czytelny tekst z efektem „rozszyfrowania".
+   * Teksty podawaj WIELKIMI LITERAMI — to zwykły angielski, tylko wyświetlany krojem pisma.
+   */
+  glyphLore?: boolean;
 }
 
 /**
@@ -72,6 +82,99 @@ export interface FactionLore {
  *   },
  */
 export const FACTION_LORE: Record<string, FactionLore> = {
+  // ── Obsidian (frakcja pochodna Firmamentu) — lore w piśmie z gry. ──
+  // Tekst to transkrypcja fanowska z karty lore: znaczniki ligatur typu „(TH)" zdjęte,
+  // uwagi transkrybującego usunięte, nieczytelne fragmenty pominięte. Kolejność: kolumna
+  // lewa (góra→dół), środkowa, a na końcu teksty ukośne. `tone` = czerwień z oryginału,
+  // `size` = większy/mniejszy krój. Przycisk „Przetłumacz" odsłania treść po angielsku.
+  obsidian: {
+    quote: "This is the nightmare scenario. Case midnight omega. Mayday mayday mayday",
+quoteAuthor:"Keleres Agent Niall, final report",
+    glyphLore: true,
+    lore: [
+      { kind: "paragraph", text: "HOMEWORLD: A FALSE CONCEPT, COMFORT FOR CHILDREN" },
+      {
+        kind: "paragraph",
+        text: "GOVERNMENTS ARE LIES REPEATED SO OFTEN THEY CREATE THEMSELVES A DELUSIONAL TRUTH",
+      },
+      {
+        kind: "paragraph",
+        text: "WHAT LIES BEYOND BEYOND THE VEIL BEYOND THE EDGE? WITHIN THE BLACK OF SLEEP IS WITHIN YOU",
+      },
+      {
+        kind: "paragraph",
+        size: "large",
+        text: "WHAT IS FEARED BY FEAR ITSELF? WHAT CONSUMES THE ALL-CONSUMING?",
+      },
+      { kind: "paragraph", tone: "dark-red", text: "EYES IN THE DARK." },
+      {
+        kind: "paragraph",
+        text: "I REMEMBER BEING SANE. I DON'T REMEMBER WHEN IT CHANGED. I SOUND SANE NOW BUT I KNOW THAT I'M NOT. ONE THING I KNOW: THAT THEY CAN ONLY BE CONTEMPLATED BY THE MAD. IT'S THE KNIFE THAT DRAWS ACROSS THE VEIL OF FLESH, THE VEIL OF STARS. IN THE WORLD THAT IS TO BLAME.",
+      },
+      { kind: "paragraph", tone: "red", text: "BLOOD THAT BLEEDS FROM THE WOUND" },
+      {
+        kind: "paragraph",
+        text: "WHAT IS THE POINT OF A THRONE? LAST IDIOT IN THE KINGDOM OF THE DEAD.",
+      },
+      {
+        kind: "paragraph",
+        text: "ENTROPY HAS TEETH, OBLIVION IS THE NATURAL STATE OF ALL THAT LIVES",
+      },
+      { kind: "paragraph", size: "large", text: "ONE UNIVERSE IS NOT ENOUGH" },
+      {
+        kind: "paragraph",
+        text: "WHAT'S THE POINT OF SANITY IN THE FACE OF THE TRUTH?",
+      },
+      {
+        kind: "paragraph",
+        tone: "dark-red",
+        text: "THE TRUTH HAS SO MANY EYES SO MANY TEETH",
+      },
+      { kind: "paragraph", text: "BUBBLING THE BLACK TAR OF THE MEMBRANE" },
+      {
+        kind: "paragraph",
+        text: "THE KNIFE DRAWS ACROSS THE VEIL OF FLESH, THE VEIL OF STARS.",
+      },
+      { kind: "paragraph", tone: "red", text: "BLOOD THAT BLEEDS FROM THE WOUND" },
+      { kind: "paragraph", text: "BUBBLING THE VEIL. THE OLD FILM BURNING." },
+      { kind: "paragraph", tone: "red", text: "BLACK TAR" },
+      {
+        kind: "paragraph",
+        size: "large",
+        text: "ONE WORLD IS NOT ENOUGH. ONE UNIVERSE IS NOT ENOUGH.",
+      },
+      {
+        kind: "paragraph",
+        text: "I DRAW THE KNIFE ACROSS THE VEIL OF STARS THROUGH TO FIND MORE AND MORE AND MORE BUT MORE ALWAYS ENDS IN NOTHING.",
+      },
+      {
+        kind: "paragraph",
+        text: "EVERY EXCHANGE OF ENERGY ALWAYS INCREASE ENTROPY. THE UNIVERSE IS A CLOCK AND EVERY TICK WINDS DOWN THIS UNIVERSE. TICK TICK TICK",
+      },
+      {
+        kind: "paragraph",
+        text: "BACK OF YOUR MIND. MELDS BIOPLAS BURNS THROUGH. THEY FLASH AND GONE, LIGHT AND DARKNESS. WORLD DRAWS AWAY.",
+      },
+      { kind: "paragraph", text: "A NEW UNIVERSE TO END." },
+      { kind: "paragraph", text: "THE BREAK THROUGH TO THE NEXT, A NEW TOP." },
+      {
+        kind: "paragraph",
+        tone: "dark-red",
+        text: "A NEW FEAST THAT LURKS AT THE END OF EVERYTHING",
+      },
+      {
+        kind: "paragraph",
+        
+        text: "THE KNIFE THAT CUTS THAT CUTS",
+      },
+       {
+        kind: "paragraph",
+        
+        text: "OF STARS",
+      },
+    ],
+  },
+
   // ── Przykład wypełniony (Arborec) — wzorzec do kopiowania dla reszty frakcji. ──
   // Portret: wrzuć frontend/public/faction_portraits/arborec.png (już dodany).
   // Cytat (quote) zostaw lub wstaw oficjalny — uzupełnij, gdy go znajdziesz.
@@ -233,7 +336,78 @@ text: "The emissaries returned to their ship and left the city behind. However, 
 
 
     ]
-  }
+  },
+  firmament:{
+quote:"Asking 'who should rule us?' is overlooking a more important question: 'why have rulers at all?'",
+quoteAuthor:"Sharsiss of Druaa",
+lore:[
+  {
+    kind: "paragraph",
+    text: "Whether the Firmament is a collection of revolutionary idealists or a sprawling and secretive criminal empire is a matter of perspective. To the Great Powers, the important question is: Who will be the next to inherit the Imperial throne? But the founders of the Firmament dared to ask: ",
+  },
+  {
+    kind: "quote",
+    text: "Why should there be an Imperial throne at all?",
+  },
+  {
+    kind: "paragraph",
+    text: "To these philosophers, diplomats, and soldiers, assuming that empire was the galaxy’s natural state was a monumental error. After all, twenty-four millennia of the Lazax Imperium had led to stagnation, repression, and exploitation. The more the Lazax Emperors had attempted to control their subjects, the greater the resentment. Eventually, this resentment created the Twilight Wars, and how many trillions had died as a result? For over three thousand years the galaxy had been in the grip of the worst dark ages in recorded history, and now with that age overcome, was the best plan really Imperium again, but with someone else in charge?",
+  },
+  {
+    kind: "heading",
+    text: "Origins and the Soft Power Phase",
+  },
+  {
+    kind: "paragraph",
+    text: "These individuals spoke out against the course they saw their various governments taking. They wrote treatises, published holo-books, and engaged in fiery debates in the halls of power across the galaxy. They proposed a single, pangalactic society, without any of the divisions of the Great Civilizations or the rule of an Emperor, and they were almost universally ignored.",
+  },
+  {
+    kind: "paragraph",
+    text: "So, they reached out to one another in search of kindred spirits. They began to meet, and eventually, they began to organize. They chose a name for themselves, the “Firmament,” and pledged loyalty to their new cause.",
+  },
+  {
+    kind: "paragraph",
+    text: "At first, the Firmament avoided direct action. Instead they amassed soft power through projects such as restoring lost galactic monuments. They hoped to persuade so many people to join their cause that the Great Civilizations would be forced to listen. But when the Great Civilizations did, their response was framed in terms of mass arrests and “peacekeepers” in riot gear.",
+  },
+  {
+    kind: "heading",
+    text: "Sharsiss and the Obsidian",
+  },
+  {
+    kind: "paragraph",
+    text: "Then a young Druaa dissident uncovered an ancient artifact on a forgotten world. Sharsiss grew up on Druaa, consigned to the lower roles in his society. He grew sick of the “equality” of the Naalu Collective and left as soon as he was able. Sharsiss rose to become a prominent player in the Firmament’s dispersed leadership, and became an obvious choice to lead the latest expedition searching for fragments of the Lazax maps. On distant Oranth XI, Sharsiss found a crashed vault ship. Deep in its hold, the young Druaa uncovered the ships only cargo: a massive sword called the Obsidian. The blade seemed perfectly black, though Sharsiss thought he could make out something stirring in its inky depths. Then he grasped the hilt...",
+  },
+  {
+    kind: "paragraph",
+    text: "Sharsiss returned to the Firmament changed. He had been ambitious, but now he was driven. He gathered the cadre leaders and proclaimed that if they wanted to see their dream realized, they would have to take action. The Great Powers already considered them criminals. Why not prove them right? The leadership would form an action committee, and as many members as stars in the sky. And with that power at their disposal, they would become a force to rival the Great Civilizations.",
+  },
+  {
+    kind: "heading",
+    text: "Expansion: Cronos and Tallin",
+  },
+  {
+    kind: "paragraph",
+    text: "The first step to power was on Cronos. Firmament members emigrated there in large numbers and took on roles as political and business leaders. They crafted a message to their fellow citizens that portrayed Cronos as the key to a bright galactic future with wealth and prosperity for all. The Firmament never needed to fire a shot; the next election cycle saw Firmament members elected to every leadership role in the government.",
+  },
+  {
+    kind: "paragraph",
+    text: "Since then, covert and overt Firmament sympathizers have spread to dozens of nearby systems. Sharsiss himself orchestrated a slightly less peaceful takeover of Tallin, which had long been a haven for criminals and pirates from across the galaxy. In addition to strengthening the Firmament’s control over various criminal concerns, Tallin’s leaders have also begun a rapid armament program. New warships leave the spacedocks every week, and hordes of eager volunteers flock to the army recruitment centers on both Cronos and Tallin.",
+  },
+  {
+    kind: "heading",
+    text: "Divergence at Thunder's Edge",
+  },
+  {
+    kind: "paragraph",
+    text: "Some of the Firmament’s founding members quietly worry about this new militarism, just as they worry that Sharsiss has amassed too much power around himself, and that he never goes anywhere without his blade. They have researched the Obsidian, and found obscure references to a blade that drives its bearers to conquest and destruction. But that does not explain why Sharsiss has begun to take an interest in Thunder’s Edge, or why he has begun to retask assets from the eventual populist uprising on Mecatol Rex to take the newly discovered world.",
+  },
+  {
+    kind: "quote",
+    text: "What is so compelling about that strange world when there’s an entire imperium to overthrow?",
+  },
+]
+  },
+
 };
 
 /**
