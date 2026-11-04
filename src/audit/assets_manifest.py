@@ -17,6 +17,13 @@ from src import config
 
 MANIFEST_PATH: Path = config.AUDIT_DIR / "assets_manifest.json"
 
+# Kopia manifestu dla frontendu (tylko logiczne ścieżki). Jedyne źródło prawdy to
+# ``audit/assets_manifest.json`` — ten plik jest ARTEFAKTEM generowanym z niego
+# i sprawdzanym testem zgodności (R3.1; design.md, sekcja Resolver_Zasobów).
+FRONTEND_MANIFEST_PATH: Path = (
+    config.FRONTEND_DIR / "src" / "shared" / "assets" / "assetManifest.json"
+)
+
 # Katalogi grafik używane przez frontend (D1); parametr ``dirs`` pozwala to zmienić.
 DEFAULT_ASSET_DIRS: tuple[str, ...] = (
     "units",
@@ -85,6 +92,25 @@ def write_manifest(
     """Zapisuje manifest jako JSON (deterministycznie, z końcowym newline)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def write_frontend_manifest(
+    manifest: dict[str, list[dict[str, object]]], path: Path = FRONTEND_MANIFEST_PATH
+) -> None:
+    """Zapisuje kopię manifestu dla frontendu: tylko logiczne ścieżki (``{"paths": [...]}``).
+
+    Resolver_Zasobów (`resolveAsset.ts`) czyta wyłącznie listę ścieżek, bez rozmiarów
+    ani sum kontrolnych — te zostają w głównym manifeście w ``audit/``.
+    """
+    paths = sorted(
+        str(item["path"])
+        for item in manifest.get("files", [])
+        if isinstance(item, dict) and "path" in item
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"paths": paths}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def load_manifest_paths(path: Path = MANIFEST_PATH) -> list[str]:

@@ -43,6 +43,7 @@ from src.audit.assets_manifest import (
     diff_manifest,
     list_asset_files,
     load_manifest_paths,
+    write_frontend_manifest,
     write_manifest,
 )
 from src.audit.diffs import (
@@ -511,7 +512,10 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--write-manifest",
         action="store_true",
-        help="zapisz manifest grafik do audit/assets_manifest.json",
+        help=(
+            "zapisz manifest grafik do audit/assets_manifest.json "
+            "oraz kopię logicznych ścieżek do frontend/src/shared/assets/assetManifest.json"
+        ),
     )
     parser.add_argument(
         "--json",
@@ -561,7 +565,9 @@ def main(argv: list[str] | None = None) -> int:
     report = build_report(registry, collect_scans(registry))
 
     if args.write_manifest:
-        write_manifest(build_manifest())
+        manifest = build_manifest()
+        write_manifest(manifest)
+        write_frontend_manifest(manifest)
     if args.write_baseline:
         write_baseline(report)
 
