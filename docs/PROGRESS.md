@@ -679,3 +679,7 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - `ComponentCatalog`: `get`, `all`, `counts`. Test: `tests/test_components.py`. Wszystkie realne wpisy 13 kategorii walidują się w modelach.
 ### ✅ Blok local-ti4-data-foundation 1.2 — test właściwościowy walidacji źródeł (ukończony)
 - `tests/test_source_selection_props.py`: Property 3 (Hypothesis, 100 przykładów) — `validate_enabled_sources` zgłasza `UnknownSourcesError` wtedy i tylko wtedy, gdy są identyfikatory spoza zbioru znanych, a wyjątek wymienia dokładnie te nieznane. Validates: Requirements 4.2.
+### ✅ Blok local-ti4-data-foundation 2.2 — `core/component_loader.py` (ukończony)
+- `src/core/component_loader.py`: `EntryOrigin`, `iter_entries_with_origin`, `LoadReport` (`loaded`, `skipped`, `skipped_index`, `sourceless`, `invalid_id`, `conflicts`), czysta `select_entries` (filtr po `source`, wpisy bez źródła, wybór po `source_rank`, deterministyczny remis po `(file, index)`), `load_components(enabled)` z walidacją modelu i `DataValidationError(kategoria, plik, id)`.
+- `load_components` przyjmuje opcjonalną tabelę `specs` (domyślnie `CATEGORY_SPECS`), co pozwala testować na `tmp_path`. Loader jeszcze nie jest wpięty w rejestr (zadanie 2.3).
+- Test: `tests/test_component_loader.py`.
