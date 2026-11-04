@@ -8,7 +8,7 @@ import {
   mergePlanetTraits,
   type PlanetTrait,
 } from "@/entities/game/planetTraits";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getAttachmentData } from "@/entities/lookup/attachments";
 import { getAttachmentModifiers } from "@/entities/game/planets";
@@ -82,7 +82,7 @@ function AttachmentList({ attachments }: { attachments: string[] }) {
         const effects = attachmentEffects(data);
         return (
           <span key={`${attachmentId}-${index}`} className={styles.attachment}>
-            <img src={cdnImage(`/attachment_token/${data.imagePath}`)} alt="" />
+            <img src={assetUrl(`/attachment_token/${data.imagePath}`)} alt="" />
             {data.name ?? attachmentId}
             {effects && <em>{effects}</em>}
           </span>
@@ -98,7 +98,7 @@ function LegendaryAbility({ planet }: { planet: PlanetData }) {
     <div className={styles.legend}>
       <span className={styles.legendTag}>
         <span className={styles.legendCore}>
-          <img src={cdnImage("/planet_cards/pc_legendary_rdy.png")} alt="" />
+          <img src={assetUrl("/planet_cards/pc_legendary_rdy.png")} alt="" />
         </span>
         {planet.legendaryAbilityName ?? "Legendary ability"}
       </span>

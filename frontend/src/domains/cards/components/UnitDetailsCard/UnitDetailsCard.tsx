@@ -1,5 +1,5 @@
 import { Image } from "@/ds";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { getUnitData, isNekroFlagship } from "@/entities/lookup/units";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
@@ -87,14 +87,14 @@ export function UnitDetailsCard({
             shape="unit"
             icon={
               <Image
-                src={cdnImage(`/units/${getColorAlias(color)}_${unitData.asyncId}.png`)}
+                src={assetUrl(`/units/${getColorAlias(color)}_${unitData.asyncId}.png`)}
                 alt=""
               />
             }
             badge={
               unitData.faction ? (
                 <Image
-                  src={cdnImage(`/factions/${unitData.faction.toLowerCase()}.png`)}
+                  src={assetUrl(`/factions/${unitData.faction.toLowerCase()}.png`)}
                   alt={`${unitData.faction} faction`}
                 />
               ) : undefined

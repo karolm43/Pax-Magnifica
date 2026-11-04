@@ -11,7 +11,7 @@ import {
   getColorAlias,
   getPrimaryColorWithOpacity,
 } from "@/entities/lookup/colors";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import {
   SC_COLORS,
   SC_NUMBER_COLORS,
@@ -174,7 +174,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
             <Group gap={1} justify="center" style={{ position: "relative" }}>
               {playerData.hasZeroToken && (
                 <img
-                  src={cdnImage("/player_area/pa_foresight.webp")}
+                  src={assetUrl("/player_area/pa_foresight.webp")}
                   alt="Zero Token"
                   className={styles.zeroTokenImage}
                 />
@@ -201,7 +201,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
                 {Array.from({ length: numScoredSecrets }, (_, index) => (
                   <img
                     key={`scored-${index}`}
-                    src={cdnImage("/player_area/pa_so-icon_scored.png")}
+                    src={assetUrl("/player_area/pa_so-icon_scored.png")}
                     alt="Scored Secret"
                   />
                 ))}
@@ -213,7 +213,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
                   (_, index) => (
                     <img
                       key={`unscored-${index}`}
-                      src={cdnImage("/player_area/pa_so-icon_hand.png")}
+                      src={assetUrl("/player_area/pa_so-icon_hand.png")}
                       alt="Secret in Hand"
                     />
                   ),
@@ -231,7 +231,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
                   (_, index) => (
                     <img
                       key={`empty-${index}`}
-                      src={cdnImage("/player_area/pa_so-icon_hand.png")}
+                      src={assetUrl("/player_area/pa_so-icon_hand.png")}
                       alt="Empty Secret Slot"
                       style={{ opacity: 0.2 }}
                     />
@@ -310,7 +310,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
           <Group gap="md" align="center" className={styles.tradeGoodsGroup}>
             <div className={styles.tradeGoodsContainer}>
               <img
-                src={cdnImage("/player_area/pa_cardbacks_tradegoods.png")}
+                src={assetUrl("/player_area/pa_cardbacks_tradegoods.png")}
                 className={styles.tradeGoodsImage}
               />
               <Text size="24px" fw={600} c="white" ff="heading">
@@ -320,7 +320,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
 
             <div className={styles.commoditiesContainer}>
               <img
-                src={cdnImage("/player_area/pa_cardbacks_commodities.png")}
+                src={assetUrl("/player_area/pa_cardbacks_commodities.png")}
                 className={styles.commoditiesImage}
               />
               <Text
@@ -350,13 +350,13 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
           </Group>
           {playerData.isSpeaker && (
             <img
-              src={cdnImage("/tokens/token_speaker.png")}
+              src={assetUrl("/tokens/token_speaker.png")}
               alt="Speaker Token"
             />
           )}
           {playerData.isTyrant && (
             <img
-              src={cdnImage("/tokens/token_tyrant.png")}
+              src={assetUrl("/tokens/token_tyrant.png")}
               alt="Tyrant Token"
             />
           )}

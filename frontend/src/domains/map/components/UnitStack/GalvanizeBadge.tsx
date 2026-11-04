@@ -1,5 +1,5 @@
 import { Group, Text } from "@/ds";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import classes from "../UnitStack.module.css";
 
 export function GalvanizeBadge({
@@ -15,7 +15,7 @@ export function GalvanizeBadge({
     <Group w="45px" h="20px" gap="xs" className={className} style={style}>
       <div className={classes.galvanizeBadgeInner}>
         <img
-          src={cdnImage("/extra/marker_galvanize.png")}
+          src={assetUrl("/extra/marker_galvanize.png")}
           alt="Galvanize"
           className={classes.galvanizeBadgeImage}
         />

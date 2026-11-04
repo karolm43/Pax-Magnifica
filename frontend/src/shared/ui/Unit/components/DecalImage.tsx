@@ -1,10 +1,10 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 export function DecalImage({ path }: { path?: string }) {
   if (!path) return null;
   return (
     <img
-      src={cdnImage(`/decals/${path}`)}
+      src={assetUrl(`/decals/${path}`)}
       onError={(e) => {
         e.currentTarget.style.display = "none";
       }}

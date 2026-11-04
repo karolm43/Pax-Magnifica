@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getTokenImagePath } from "@/entities/lookup/tokens";
 import {
   type TokenDescriptor,
@@ -15,7 +15,7 @@ export function GhostWormholeTokens({ wormholeIds }: Props) {
     if (!tokenPath) return acc;
     acc.push({
       key: `${wormholeId}-${index}`,
-      src: cdnImage(tokenPath),
+      src: assetUrl(tokenPath),
       alt: `${wormholeId} Token`,
     });
     return acc;

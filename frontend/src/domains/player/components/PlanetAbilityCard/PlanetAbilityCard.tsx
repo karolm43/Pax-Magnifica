@@ -4,7 +4,7 @@ import { useDisclosure } from "@/hooks/useDisclosure";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { PlanetAbilityDetailsCard } from "@/domains/cards/components/PlanetAbilityDetailsCard/PlanetAbilityDetailsCard";
 import styles from "./PlanetAbilityCard.module.css";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type Props = {
   planetId: string;
@@ -39,7 +39,7 @@ export function PlanetAbilityCard({
         >
           <Stack className={styles.bottomStack}>
             <Image
-              src={cdnImage("/planet_cards/pc_legendary_rdy.png")}
+              src={assetUrl("/planet_cards/pc_legendary_rdy.png")}
               className={styles.legendaryIcon}
             />
             <div style={{ flex: 1 }} />

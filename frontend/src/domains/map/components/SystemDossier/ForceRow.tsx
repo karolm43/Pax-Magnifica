@@ -6,7 +6,7 @@ import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { useDisclosure } from "@/hooks/useDisclosure";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getColorAlias } from "@/entities/lookup/colors";
 import type { Unit } from "@/entities/data/types";
 import type { TilePdsEntry } from "@/entities/game/types";
@@ -113,7 +113,7 @@ function UnitChip({
               }
             >
               <img
-                src={cdnImage(`/units/${colorAlias}_${unit.asyncId}.png`)}
+                src={assetUrl(`/units/${colorAlias}_${unit.asyncId}.png`)}
                 alt=""
               />
               {count}
@@ -212,7 +212,7 @@ export function FireRow({
       <span className={styles.units}>
         <span className={cx(styles.unit, styles.unitStatic)}>
           <img
-            src={cdnImage(`/units/${getColorAlias(entry.color)}_pd.png`)}
+            src={assetUrl(`/units/${getColorAlias(entry.color)}_pd.png`)}
             alt=""
           />
           {entry.count}

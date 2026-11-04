@@ -1,6 +1,6 @@
 import { Image } from "@/ds";
 import { getActionCard } from "@/entities/lookup/actionCards";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 
 type Props = {
@@ -23,7 +23,7 @@ export function ActionCardDetailsCard({ actionCardId }: Props) {
             shape="card"
             icon={
               <Image
-                src={cdnImage("/player_area/cardback_action.jpg")}
+                src={assetUrl("/player_area/cardback_action.jpg")}
                 alt=""
               />
             }

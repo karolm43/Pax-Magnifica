@@ -902,3 +902,10 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - Bramka frontendowa zielona dla plików tego bloku: `npm run type-check` (OK), `npx eslint src/shared/assets/resolveAsset.ts` (0 błędów), `npm run build` (OK). Uwaga: `npm run lint` dla całego repo zgłasza 2 PREISTNIEJĄCE błędy w `src/domains/rules/RulesBrowserPage.tsx` (plik niemodyfikowany w tym bloku, poza zakresem 11.1).
 - Bramka backendowa zielona (zmiany w `src/audit/`): `uv run pytest -q` (437 passed), `uv run ruff check src tests` (All checks passed!), `uv run mypy src tests` (Success, 106 plików).
 - Wymagania: 2.1, 2.6, 3.1.
+### ✅ Blok local-ti4-data-foundation 11.2 — zastąpienie `cdnImage()` Resolverem_Zasobów (ukończony)
+- Mechaniczna zamiana wszystkich wywołań `cdnImage()` na `assetUrl()` (ta sama sygnatura `string -> string`) w 59 plikach `frontend/src`: import `@/entities/data/cdnImage` → `@/shared/assets/resolveAsset`, każde wywołanie `cdnImage(` → `assetUrl(`. Po zmianie w `frontend/src` nie pozostało żadne funkcjonalne odwołanie do `cdnImage` ani do CDN AsyncTI4 (jedyne wzmianki to komentarze w `resolveAsset.ts` opisujące zastąpienie).
+- Usunięty przestarzały moduł `frontend/src/entities/data/cdnImage.ts` (wraz z budowaniem URL `https://images.asyncti4.com/...` i parametrem `?v=4`). Konwersja rozszerzeń `.png/.jpg -> .webp` nie jest już kopiowana — rozstrzyga ją manifest w Resolverze_Zasobów (zgodnie z 11.1 i design.md).
+- Zaktualizowany `frontend/README.md`: wpis „Grafiki idą z CDN AsyncTI4 (cdnImage.ts)" zastąpiony opisem lokalnych grafik serwowanych pod `/static` przez Resolver_Zasobów (`src/shared/assets/resolveAsset.ts`).
+- Bramka frontendowa zielona: `npm run type-check` (OK), `npm run build` (`tsc && vite build` — OK, exit 0). `npm run lint` zgłasza WYŁĄCZNIE 2 PREISTNIEJĄCE błędy w `src/domains/rules/RulesBrowserPage.tsx` (plik niemodyfikowany, poza zakresem 11.2) — zmiany tego bloku nie wprowadziły żadnych nowych uwag lintera.
+- UWAGA: niezacommitowane zmiany innej osoby (`useNewGame.ts`, `Step_NameColor.tsx`, `useSetupStore.ts`, nowe pliki `faction_portraits`) NIE były ruszane ani stagowane.
+- Wymagania: 2.1, 2.2, 2.6.

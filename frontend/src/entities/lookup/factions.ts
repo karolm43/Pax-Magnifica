@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { FactionImageMap } from "@/entities/game/types";
 import type { PlayerData } from "@/entities/data/types";
 
@@ -11,7 +11,7 @@ export function getFactionImage(
     return `https://emoji-cdn.mqrio.dev/${factionImage}?style=twitter`;
   }
   if (factionImageType === "DISCORD") return factionImage;
-  return cdnImage(`/factions/${faction}.png`);
+  return assetUrl(`/factions/${faction}.png`);
 }
 
 export function buildFactionImageMap(

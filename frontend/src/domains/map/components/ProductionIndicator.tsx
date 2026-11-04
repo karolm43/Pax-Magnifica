@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { PRODUCTION_INDICATOR_SIZE } from "@/entities/positioning/constants";
 import classes from "./ProductionIndicator.module.css";
 
@@ -20,7 +20,7 @@ export const ProductionIndicator = ({ x, y, productionValue }: Props) => {
       }}
     >
       <img
-        src={cdnImage("/tiles/production_representation.png")}
+        src={assetUrl("/tiles/production_representation.png")}
         alt="Production"
         className={classes.productionIcon}
       />

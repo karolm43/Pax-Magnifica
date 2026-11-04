@@ -1,6 +1,6 @@
 import { Tile } from "@/entities/game/types";
 import { getAttachmentImagePath } from "@/entities/lookup/attachments";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { PlanetMarkersLayer } from "./PlanetMarkersLayer";
 
 type Props = {
@@ -21,7 +21,7 @@ export function AttachmentsLayer({ systemId, mapTile }: Props) {
           return [
             <img
               key={`${systemId}-${planetId}-attachment-${attachmentId}-${index}`}
-              src={cdnImage(imagePath)}
+              src={assetUrl(imagePath)}
               alt={`Attachment: ${attachmentId}`}
               title={attachmentId}
               style={{

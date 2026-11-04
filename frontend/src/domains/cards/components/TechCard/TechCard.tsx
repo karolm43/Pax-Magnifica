@@ -10,7 +10,7 @@ import {
 } from "@/entities/lookup/tech";
 import { getGenericUnitDataByRequiredTechId } from "@/entities/lookup/units";
 import { getColorAlias } from "@/entities/lookup/colors";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type Props = {
   techId: string;
@@ -34,7 +34,7 @@ function unitUpgradeImage(techId: string, techData: TechData) {
     techData.baseUpgrade || techId
   );
   if (!unitData?.asyncId) return undefined;
-  const src = cdnImage(`/units/${getColorAlias(undefined)}_${unitData.asyncId}.png`);
+  const src = assetUrl(`/units/${getColorAlias(undefined)}_${unitData.asyncId}.png`);
   return <Image src={src} alt="" />;
 }
 

@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { useGameData } from "@/state/useGameContext";
 import { useSettingsStore } from "@/state/appStore";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { ThemeSwatches } from "./ThemeSwatches";
 import { BoardSearch } from "@/domains/search/BoardSearch";
@@ -97,7 +97,7 @@ function LensToolbar({
           onClick={handlers.togglePlanetTypesMode}
         >
           <img
-            src={cdnImage("/planet_cards/pc_attribute_combo_CHI.webp")}
+            src={assetUrl("/planet_cards/pc_attribute_combo_CHI.webp")}
             alt=""
             height={16}
             className={classes.lensArt}
@@ -137,7 +137,7 @@ function LensToolbar({
             onClick={handlers.togglePdsMode}
           >
             <img
-              src={cdnImage("/units/gry_pd.webp")}
+              src={assetUrl("/units/gry_pd.webp")}
               alt=""
               height={20}
               className={classes.lensArt}

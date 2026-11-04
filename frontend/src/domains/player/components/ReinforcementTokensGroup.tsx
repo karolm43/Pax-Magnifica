@@ -1,5 +1,5 @@
 import { Group, GroupProps } from "@/ds";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getTokenImagePath } from "@/entities/lookup/tokens";
 import { GhostWormholeTokens } from "./GhostWormholeTokens";
 import {
@@ -35,20 +35,20 @@ export function ReinforcementTokensGroup({
     <Group gap={0} wrap="wrap" align="flex-start" {...groupProps}>
       <CountTokenStrip
         count={breachTokensReinf}
-        src={cdnImage("/tokens/token_breachActive.webp")}
+        src={assetUrl("/tokens/token_breachActive.webp")}
         alt="Breach Token"
       />
       {sleeperPath && (
         <CountTokenStrip
           count={sleeperTokensReinf}
-          src={cdnImage(sleeperPath)}
+          src={assetUrl(sleeperPath)}
           alt="Sleeper Token"
         />
       )}
       <GhostWormholeTokens wormholeIds={ghostWormholesReinf} />
       <CountTokenStrip
         count={galvanizeTokensReinf}
-        src={cdnImage("/extra/marker_galvanize.png")}
+        src={assetUrl("/extra/marker_galvanize.png")}
         alt="Galvanize Token"
         horizontalSpacing={18}
         verticalOffset={10}

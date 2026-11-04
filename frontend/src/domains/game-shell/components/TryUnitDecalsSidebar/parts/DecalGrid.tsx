@@ -1,5 +1,5 @@
 import { Box, SimpleGrid } from "@/ds";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { DECAL_IDS } from "@/entities/data/decalIds";
 import classes from "../TryUnitDecalsSidebar.module.css";
 
@@ -26,7 +26,7 @@ export function DecalGrid({ activeDecalId, onDecalClick }: Props) {
             onClick={() => onDecalClick(decalId)}
           >
             <img
-              src={cdnImage(
+              src={assetUrl(
                 `/decals/${decalId}_${PREVIEW_UNIT_TYPE}${PREVIEW_COLOR_SUFFIX}.png`
               )}
               className={classes.decalImage}

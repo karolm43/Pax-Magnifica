@@ -31,7 +31,7 @@ npm run build        # tsc && vite build
 - Wejście: `src/main.tsx` → `pages/GameMapPage.tsx` (`gameId` domyślny = `"local"`).
 - Dane: `src/api/usePlayerData.ts` pobiera `GET /bot/api/public/game/{id}/web-data`.
 - Statyczne katalogi (systemy/jednostki/planety) są WBUDOWANE w `src/entities/data/`.
-- Grafiki idą z CDN AsyncTI4 (`src/entities/data/cdnImage.ts`).
+- Grafiki są lokalne (serwowane przez backend pod `/static`); logiczne ścieżki rozwiązuje Resolver_Zasobów (`src/shared/assets/resolveAsset.ts`).
 - Branding (lewy róg): `src/shared/ui/Logo.tsx`.
 
 Pełny opis architektury, kontraktu `web-data` i luk: **`../docs/ARCHITEKTURA_PO_MIGRACJI.md`**.

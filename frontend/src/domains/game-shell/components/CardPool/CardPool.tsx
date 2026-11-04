@@ -1,6 +1,6 @@
 import { Box, Text } from "@/ds";
 import { Cardback } from "@/shared/ui/Cardback";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { CardPoolData } from "@/entities/data/types";
 import styles from "./CardPool.module.css";
 import { ExplorationCardBack } from "@/domains/cards/components/ExplorationCardBack";
@@ -20,12 +20,12 @@ function CardPool({ cardPool }: Props) {
   return (
     <Box className={styles.pool}>
       <Cardback
-        src={cdnImage("/player_area/cardback_action.jpg")}
+        src={assetUrl("/player_area/cardback_action.jpg")}
         alt="action cards"
         count={cardPool.actionCardDeckSize ?? "–"}
       />
       <Cardback
-        src={cdnImage("/player_area/cardback_agenda.png")}
+        src={assetUrl("/player_area/cardback_agenda.png")}
         alt="agenda cards"
         count={cardPool.agendaDeckSize ?? "–"}
       />

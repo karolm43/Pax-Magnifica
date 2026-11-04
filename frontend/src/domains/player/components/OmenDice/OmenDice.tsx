@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./OmenDice.module.css";
 
 type Props = {
@@ -18,7 +18,7 @@ export function OmenDice({ dice }: Props) {
         <img
           key={`${index}-${value}`}
           className={styles.die}
-          src={cdnImage(`/player_area/pa_ds_myko_omen_${value % 10}.png`)}
+          src={assetUrl(`/player_area/pa_ds_myko_omen_${value % 10}.png`)}
           alt={`Omen die: ${value}`}
           title={`Omen die: ${value}`}
           draggable={false}

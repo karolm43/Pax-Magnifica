@@ -4,7 +4,7 @@ import styles from "./Relic.module.css";
 import { searchKey } from "@/domains/search/searchKeys";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { useDisclosure } from "@/hooks/useDisclosure";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import {
   ObjectGlyph,
   ObjectLabel,
@@ -39,7 +39,7 @@ export function Relic({ relicId, isExhausted = false }: Props) {
           <ObjectGlyph
             src={
               isFake
-                ? cdnImage("/tokens/token_frontier.webp")
+                ? assetUrl("/tokens/token_frontier.webp")
                 : "/relicicon.webp"
             }
             size={16}

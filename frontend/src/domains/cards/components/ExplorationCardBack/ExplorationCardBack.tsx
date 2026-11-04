@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { ExplorationCardDetailsModal } from "../ExplorationCardDetailsModal";
 import { CardbackModal } from "@/shared/ui/CardbackModal";
 
@@ -19,7 +19,7 @@ export function ExplorationCardBack({ type, deck, discard }: Props) {
   return (
     <CardbackModal
       cardKey={type}
-      imageSrc={cdnImage(`/player_area/cardback_${type.toLowerCase()}.jpg`)}
+      imageSrc={assetUrl(`/player_area/cardback_${type.toLowerCase()}.jpg`)}
       alt={`${type} explore`}
       title={`${type.charAt(0).toUpperCase()}${type.slice(1).toLowerCase()} exploration`}
       count={deck?.length ?? 0}

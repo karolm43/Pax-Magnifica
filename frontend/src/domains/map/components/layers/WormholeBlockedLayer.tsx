@@ -1,5 +1,5 @@
 import { useGameData } from "@/state/useGameContext";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getTileById } from "@/entities/lookup/systems";
 
 type Props = {
@@ -41,7 +41,7 @@ export function WormholeBlockedLayer({ systemId }: Props) {
       {coordinates.map((coord, index) => (
         <img
           key={`${systemId}-wh-blocked-${index}`}
-          src={cdnImage(`/tokens/${imageName}`)}
+          src={assetUrl(`/tokens/${imageName}`)}
           alt="Wormhole Blocked"
           style={{
             position: "absolute",

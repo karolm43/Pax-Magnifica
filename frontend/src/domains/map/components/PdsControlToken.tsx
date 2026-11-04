@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getFactionImage } from "@/entities/lookup/factions";
 import styles from "./PdsControlToken.module.css";
 
@@ -22,7 +22,7 @@ export const PdsControlToken = ({
     <div style={style}>
       <div className={styles.container}>
         <img
-          src={cdnImage(`/command_token/control_${colorAlias}.png`)}
+          src={assetUrl(`/command_token/control_${colorAlias}.png`)}
           alt={`${faction} control token`}
           className={styles.controlTokenImage}
         />

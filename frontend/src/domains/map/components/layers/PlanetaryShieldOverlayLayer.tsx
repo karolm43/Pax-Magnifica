@@ -1,5 +1,5 @@
 import { getPlanetPositionsBySystemId, getPlanetData } from "@/entities/lookup/planets";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./PlanetaryShieldOverlayLayer.module.css";
 import type { Tile } from "@/entities/game/types";
 import { isLargeLegendaryPlanet } from "./legendaryPlanetSize";
@@ -29,7 +29,7 @@ export function PlanetaryShieldOverlayLayer({ systemId, mapTile }: Props) {
       return [
         <img
           key={`${systemId}-${planetId}-pshield`}
-          src={cdnImage("/tokens/token_planetaryShield.png")}
+          src={assetUrl("/tokens/token_planetaryShield.png")}
           alt="Planetary Shield"
           className={styles.icon}
           style={{

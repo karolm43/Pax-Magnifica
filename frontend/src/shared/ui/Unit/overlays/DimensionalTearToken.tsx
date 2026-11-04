@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 /**
  * Renders the dimensional tear (gravity rift) token underneath Cabal space docks.
@@ -7,7 +7,7 @@ import { cdnImage } from "@/entities/data/cdnImage";
 export function DimensionalTearToken() {
   return (
     <img
-      src={cdnImage("/tokens/token_gravityrift.png")}
+      src={assetUrl("/tokens/token_gravityrift.png")}
       alt="Dimensional Tear"
       style={{
         position: "absolute",

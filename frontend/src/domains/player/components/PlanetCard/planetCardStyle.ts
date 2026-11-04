@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { TilePlanet } from "@/entities/game/types";
 import type { Planet } from "@/entities/data/types";
 import { getPlanetTraitIconSrc, type PlanetTrait } from "@/entities/game/planetTraits";
@@ -85,7 +85,7 @@ export function getPlanetIconSrc(
     planetData.planetType === "FACTION" ||
     planetData.planetTypes?.includes("FACTION");
   if (isFaction && planetData.factionHomeworld) {
-    return cdnImage(`/factions/${planetData.factionHomeworld}.png`);
+    return assetUrl(`/factions/${planetData.factionHomeworld}.png`);
   }
   if (finalTraits.length === 0) return null;
   return getPlanetTraitIconSrc(finalTraits);

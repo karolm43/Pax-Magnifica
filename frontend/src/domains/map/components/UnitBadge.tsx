@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getUnitZIndex } from "@/utils/zIndexLayers";
 import { SpriteUnitImage } from "@/shared/ui/Unit/components/SpriteUnitImage";
 import { getUnitSprite } from "@/shared/ui/Unit/unitSprites";
@@ -34,7 +34,7 @@ export function UnitBadge({
           />
         ) : (
           <img
-            src={cdnImage(`/units/${colorAlias}_tkn_${unitType}.png`)}
+            src={assetUrl(`/units/${colorAlias}_tkn_${unitType}.png`)}
             alt={`${faction} ${unitType}`}
             className={classes.unitIcon}
           />

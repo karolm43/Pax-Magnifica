@@ -1,6 +1,6 @@
 import { Image } from "@/ds";
 import styles from "./UnitCard.module.css";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { BaseCard } from "./BaseCard";
 import { DenseUnitCell } from "./DenseUnitCell";
 import { getColorAlias } from "@/entities/lookup/colors";
@@ -24,7 +24,7 @@ export function CommandTokenCard({
 }: Props) {
   const colorAlias = getColorAlias(color);
   const factionUrl = useFactionTokenImage(faction);
-  const tokenSrc = cdnImage(`/command_token/command_${colorAlias}.png`);
+  const tokenSrc = assetUrl(`/command_token/command_${colorAlias}.png`);
   const tokenAlt = `${faction || "command"} command token`;
 
   if (condensed) {

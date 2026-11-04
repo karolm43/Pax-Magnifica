@@ -1,5 +1,5 @@
 import cx from "clsx";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./FragmentStack.module.css";
 
 type FragmentType = "crf" | "hrf" | "irf" | "urf";
@@ -28,7 +28,7 @@ export function FragmentStack({ count, type }: Props) {
 
   const relicReady = count >= RELIC_EXCHANGE_COUNT;
   const kind = FRAGMENT_LABELS[type];
-  const src = cdnImage(`/player_area/pa_fragment_${type}.png`);
+  const src = assetUrl(`/player_area/pa_fragment_${type}.png`);
 
   return (
     <span

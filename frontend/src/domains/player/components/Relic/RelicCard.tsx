@@ -1,7 +1,7 @@
 import { Image } from "@/ds";
 import { getRelicData } from "@/entities/lookup/relics";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type Props = {
   relicId: string;
@@ -13,7 +13,7 @@ export function RelicCard({ relicId }: Props) {
   if (!relicData) return null;
 
   const isFake = relicData.isFakeRelic ?? false;
-  const iconSrc = isFake ? cdnImage("/tokens/token_frontier.webp") : "/relicicon.webp";
+  const iconSrc = isFake ? assetUrl("/tokens/token_frontier.webp") : "/relicicon.webp";
 
   return (
     <DetailsCard width={320} color={isFake ? "none" : "gold"}>

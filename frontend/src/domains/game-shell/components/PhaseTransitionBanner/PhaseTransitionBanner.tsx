@@ -9,7 +9,7 @@ import styles from "./PhaseTransitionBanner.module.css";
 
 /*
  * Baza statycznych assetów serwowanych przez backend (`app.mount("/static", ...)`).
- * Ścieżka WZGLĘDNA (nie `cdnImage()`): w dev proxy Vite kieruje `/static` na
+ * Ścieżka WZGLĘDNA (nie `assetUrl()`): w dev proxy Vite kieruje `/static` na
  * backend :8000, a w prod front i backend są za tym samym originem — więc ten sam
  * zapis działa w obu trybach bez doklejania hosta (decyzja z design.md).
  */

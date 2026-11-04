@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type DamageMarkerProps = {
   show: boolean | undefined;
@@ -47,7 +47,7 @@ export function DamageMarker(
       }}
     >
       <img
-        src={cdnImage(`/extra/marker_damage.png`)}
+        src={assetUrl(`/extra/marker_damage.png`)}
         alt={alt}
         style={{ display: "block" }}
       />

@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 export type PlanetTrait = "cultural" | "hazardous" | "industrial";
 
@@ -44,5 +44,5 @@ export function getPlanetTraitIconSrc(traits: PlanetTrait[]): string | null {
     ? "CHI"
     : `${hasC ? "C" : ""}${hasH ? "H" : ""}${hasI ? "I" : ""}`;
 
-  return cdnImage(`/planet_cards/pc_attribute_combo_${suffix}.png`);
+  return assetUrl(`/planet_cards/pc_attribute_combo_${suffix}.png`);
 }

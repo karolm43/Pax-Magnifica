@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { ExpeditionTokens } from "./ExpeditionTokens";
 import { useGameData } from "@/state/useGameContext";
 
@@ -23,7 +23,7 @@ export function ExpeditionLayer({ contentSize }: Props) {
   return (
     <>
       <img
-        src={cdnImage(`/general/Expeditions.png`)}
+        src={assetUrl(`/general/Expeditions.png`)}
         alt="Expeditions"
         style={{ position: "absolute", left, top, zIndex: 50 }}
       />

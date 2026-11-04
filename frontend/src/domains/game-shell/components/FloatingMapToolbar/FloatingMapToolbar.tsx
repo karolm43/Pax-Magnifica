@@ -9,7 +9,7 @@ import { HistoryPanel } from "@/domains/game-shell/components/HistoryPanel";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
 import { useSettingsStore } from "@/state/appStore";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { PlayerHandData } from "@/shared/types/playerHand";
 import zoomClasses from "@/shared/ui/map/ZoomControls.module.css";
 import classes from "./FloatingMapToolbar.module.css";
@@ -69,8 +69,8 @@ function EventsButton({
 
 const FAN_BACKS = [
   "/cardback/cardback_action.png",
-  cdnImage("/player_area/cardback_secret.jpg"),
-  cdnImage("/player_area/pa_cardbacks_pn.png"),
+  assetUrl("/player_area/cardback_secret.jpg"),
+  assetUrl("/player_area/pa_cardbacks_pn.png"),
 ];
 
 function handSummary(hand: PlayerHandData | undefined): string {

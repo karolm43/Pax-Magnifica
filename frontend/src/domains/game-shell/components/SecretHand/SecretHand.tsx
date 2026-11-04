@@ -10,7 +10,7 @@ import { getActionCard } from "@/entities/lookup/actionCards";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { useFactionColors } from "@/hooks/useFactionColors";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { resolvePromissoryNoteText } from "@/entities/game/playerUtils";
 import { useGameData } from "@/state/useGameContext";
 import { PlayerHandData } from "@/shared/types/playerHand";
@@ -60,8 +60,8 @@ function ActionCardRow({ id, onClick }: { id: string; onClick: () => void }) {
   );
 }
 
-const SECRET_BACK = cdnImage("/player_area/cardback_secret.jpg");
-const NOTE_BACK = cdnImage("/player_area/pa_cardbacks_pn.png");
+const SECRET_BACK = assetUrl("/player_area/cardback_secret.jpg");
+const NOTE_BACK = assetUrl("/player_area/pa_cardbacks_pn.png");
 
 /**
  * A secret or note lying face-up in the hand: the action card's silhouette in

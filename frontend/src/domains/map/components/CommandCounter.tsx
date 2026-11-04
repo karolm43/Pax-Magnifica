@@ -1,5 +1,5 @@
 import React from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { useFactionTokenImage } from "@/hooks/useFactionTokenImage";
 
 type CommandCounterProps = {
@@ -20,7 +20,7 @@ export const CommandCounter = ({
     <div style={style}>
       <div style={{ position: "relative" }}>
         <img
-          src={cdnImage(`/command_token/${type}_${colorAlias}.png`)}
+          src={assetUrl(`/command_token/${type}_${colorAlias}.png`)}
           alt={`${faction || type} ${type} token`}
         />
         {faction && type === "command" && factionUrl && (

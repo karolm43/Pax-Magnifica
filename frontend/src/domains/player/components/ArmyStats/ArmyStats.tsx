@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import cx from "clsx";
 import type { CSSProperties } from "react";
 import classes from "./ArmyStats.module.css";
@@ -111,9 +111,9 @@ export function ArmyStats({ stats, rank }: Props) {
       className={classes.root}
       style={
         {
-          "--army-res-icon": `url("${cdnImage("/player_area/pa_resources.png")}")`,
-          "--army-health-icon": `url("${cdnImage("/player_area/pa_health.png")}")`,
-          "--army-combat-icon": `url("${cdnImage("/player_area/pa_hit.png")}")`,
+          "--army-res-icon": `url("${assetUrl("/player_area/pa_resources.png")}")`,
+          "--army-health-icon": `url("${assetUrl("/player_area/pa_health.png")}")`,
+          "--army-combat-icon": `url("${assetUrl("/player_area/pa_hit.png")}")`,
         } as CSSProperties
       }
     >

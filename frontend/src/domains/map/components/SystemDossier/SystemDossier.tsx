@@ -10,7 +10,7 @@ import InfluenceIcon from "@/shared/ui/InfluenceIcon";
 import { lookupUnit } from "@/entities/lookup/units";
 import { MapTile } from "../MapTile";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getTileById } from "@/entities/lookup/systems";
 import { TILE_HEIGHT, TILE_WIDTH } from "@/entities/geometry/tilePositioning";
 import { getPlanetData, getPlanetsByTileId } from "@/entities/lookup/planets";
@@ -99,7 +99,7 @@ function FeatureIcon({ feature }: { feature: SystemFeature }) {
   if (!feature.imagePath) return null;
   return (
     <img
-      src={cdnImage(`/tokens/${feature.imagePath}`)}
+      src={assetUrl(`/tokens/${feature.imagePath}`)}
       alt=""
       className={styles.featureIcon}
     />

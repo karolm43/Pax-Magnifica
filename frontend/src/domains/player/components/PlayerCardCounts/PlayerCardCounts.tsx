@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./PlayerCardCounts.module.css";
 
 type Props = {
@@ -44,7 +44,7 @@ export function PlayerCardCounts({ pnCount, acCount }: Props) {
         className={styles.ac}
       />
       <HandBack
-        src={cdnImage("/player_area/pa_cardbacks_pn.png")}
+        src={assetUrl("/player_area/pa_cardbacks_pn.png")}
         count={pnCount}
         label="promissory notes"
         className={styles.pn}

@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Box, Text, Stack, Group, Image } from "@/ds";
 import { IconArrowRight } from "@tabler/icons-react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { TECH_PREREQ_ICON } from "@/entities/lookup/tech";
 import type { Unit } from "@/entities/data/types";
 import {
@@ -257,7 +257,7 @@ export function AssimilatedAbilityList({
         title: (
           <Group gap={6} mb={3}>
             <Image
-              src={cdnImage(`/factions/${entry.faction.toLowerCase()}.png`)}
+              src={assetUrl(`/factions/${entry.faction.toLowerCase()}.png`)}
               alt={entry.faction}
               w={16}
               h={16}

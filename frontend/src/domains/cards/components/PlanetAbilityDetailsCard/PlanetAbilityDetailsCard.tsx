@@ -1,5 +1,5 @@
 import { Image } from "@/ds";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { PlanetActionCardsSection } from "./PlanetActionCardsSection";
@@ -32,7 +32,7 @@ export function PlanetAbilityDetailsCard({
             shape="round"
             icon={
               <Image
-                src={cdnImage("/planet_cards/pc_legendary_rdy.png")}
+                src={assetUrl("/planet_cards/pc_legendary_rdy.png")}
                 alt=""
               />
             }

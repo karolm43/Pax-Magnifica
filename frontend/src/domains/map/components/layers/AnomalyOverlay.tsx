@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import classes from "../MapTile.module.css";
 
 type Props = {
@@ -11,7 +11,7 @@ export function AnomalyOverlay({ show, width, height }: Props) {
   if (!show) return null;
   return (
     <img
-      src={cdnImage("/emojis/tiles/Anomaly.png")}
+      src={assetUrl("/emojis/tiles/Anomaly.png")}
       alt="Anomaly"
       className={classes.anomalyOverlay}
       style={{ width, height }}

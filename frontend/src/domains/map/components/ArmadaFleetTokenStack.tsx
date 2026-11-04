@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { FLEET_TOKEN_STEP, FleetTokenStackBase } from "./FleetTokenStackBase";
 
 const ARMADA_BONUS = 2;
@@ -34,11 +34,11 @@ export function ArmadaFleetTokenStack({
         >
           <div style={{ position: "relative" }}>
             <img
-              src={cdnImage(`/command_token/fleet_${colorAlias}.png`)}
+              src={assetUrl(`/command_token/fleet_${colorAlias}.png`)}
               alt={`${faction} armada fleet token`}
             />
             <img
-              src={cdnImage("/command_token/fleet_armada.png")}
+              src={assetUrl("/command_token/fleet_armada.png")}
               alt="armada"
               style={{
                 position: "absolute",

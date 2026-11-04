@@ -1,5 +1,5 @@
 import React from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type BaseUnitImageProps = {
   urlColor: string;
@@ -12,7 +12,7 @@ export function BaseUnitImage(props: BaseUnitImageProps): React.ReactElement {
   const { urlColor, unitType, alt, className } = props;
   return (
     <img
-      src={cdnImage(`/units/${urlColor}_${unitType}.png`)}
+      src={assetUrl(`/units/${urlColor}_${unitType}.png`)}
       alt={alt}
       className={className}
       decoding="async"

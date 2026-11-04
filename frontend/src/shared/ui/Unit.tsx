@@ -13,7 +13,7 @@ import { LawOverlay } from "./Unit/overlays/LawOverlay";
 import { DamageMarker } from "./Unit/overlays/DamageMarker";
 import { DimensionalTearToken } from "./Unit/overlays/DimensionalTearToken";
 import { SpecialUnitsOverlay } from "./Unit/overlays/SpecialUnitsOverlay";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getUnitSprite } from "./Unit/unitSprites";
 
 type UnitProps = {
@@ -158,7 +158,7 @@ function GalvanizeMarker({ alt, zIndex, unitType }: GalvanizeMarkerProps) {
         };
   return (
     <img
-      src={cdnImage("/extra/marker_galvanize.png")}
+      src={assetUrl("/extra/marker_galvanize.png")}
       alt={alt}
       style={{
         position: "absolute",

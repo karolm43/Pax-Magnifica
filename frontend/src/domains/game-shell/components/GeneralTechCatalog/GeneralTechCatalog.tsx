@@ -8,7 +8,7 @@ import {
 } from "@/entities/lookup/tech";
 import { getGenericUnitDataByRequiredTechId } from "@/entities/lookup/units";
 import { getColorAlias } from "@/entities/lookup/colors";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { PlayerData, Tech } from "@/entities/data/types";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { RailLabel } from "@/domains/objectives/components/RailLabel";
@@ -126,7 +126,7 @@ function getUnitUpgradeImageSrc(tech: Tech) {
   const unitData = getGenericUnitDataByRequiredTechId(tech.baseUpgrade || tech.alias);
   if (!unitData?.asyncId) return undefined;
 
-  return cdnImage(`/units/${getColorAlias(undefined)}_${unitData.asyncId}.png`);
+  return assetUrl(`/units/${getColorAlias(undefined)}_${unitData.asyncId}.png`);
 }
 
 type Seat = Pick<

@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { RelicDeckDetailsCard } from "@/domains/cards/components/RelicDeckDetailsCard";
 import { CardbackModal } from "@/shared/ui/CardbackModal";
 
@@ -10,7 +10,7 @@ type Props = {
 export function RelicDeckCardBack({ deck, discard }: Props) {
   return (
     <CardbackModal
-      imageSrc={cdnImage("/player_area/cardback_relic.jpg")}
+      imageSrc={assetUrl("/player_area/cardback_relic.jpg")}
       alt="relics"
       title="Relics"
       count={deck.length}

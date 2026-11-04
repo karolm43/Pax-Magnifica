@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getTokenImagePath, getTokenData } from "@/entities/lookup/tokens";
 import { getAttachmentImagePath } from "@/entities/lookup/attachments";
 import { getTokenSprite } from "@/shared/ui/Token/tokenSprites";
@@ -28,7 +28,7 @@ export const Token = ({ tokenId, faction, x, y, zIndex }: TokenProps) => {
     });
     return (
       <img
-        src={cdnImage(imagePath)}
+        src={assetUrl(imagePath)}
         alt={alt}
         style={{
           width: `${footprint.width}px`,

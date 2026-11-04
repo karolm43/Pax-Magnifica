@@ -1,5 +1,5 @@
 import type { PlayerData } from "@/entities/data/types";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { FragmentsPool } from "@/domains/player/components/FragmentsPool";
 import { DebtTokens } from "@/domains/player/components/DebtTokens";
 import styles from "./StoresStrip.module.css";
@@ -53,7 +53,7 @@ export function StoresStrip({
         <b>{acCount}</b>
       </span>
       <span className={`${styles.sx} ${styles.card}`} title={`${pnCount} promissory notes`}>
-        <img src={cdnImage("/player_area/pa_cardbacks_pn.png")} alt="" />
+        <img src={assetUrl("/player_area/pa_cardbacks_pn.png")} alt="" />
         <b>{pnCount}</b>
       </span>
       {showCommandTokens && (

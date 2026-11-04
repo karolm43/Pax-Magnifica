@@ -1,6 +1,6 @@
 import { Image } from "@/ds";
 import InfluenceIcon from "@/shared/ui/InfluenceIcon";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getFactionImage } from "@/entities/lookup/factions";
 import { PlanetTraitIcon } from "@/shared/ui/PlanetTraitIcon";
 import { TechSkipIcon, TechType } from "@/shared/ui/TechSkipIcon";
@@ -74,7 +74,7 @@ function AttachmentRow({ attachmentId }: { attachmentId: string }) {
 
   return (
     <div className={classes.attachment}>
-      <img src={cdnImage(`/attachment_token/${data.imagePath}`)} alt="" />
+      <img src={assetUrl(`/attachment_token/${data.imagePath}`)} alt="" />
       <span className={classes.attachmentName}>{data.name || attachmentId}</span>
       <span className={classes.attachmentMods}>
         {data.resourcesModifier ? (
@@ -157,7 +157,7 @@ export function PlanetDetailsCard({ planetId, planetTile }: Props) {
           title={
             <span className={classes.legendary}>
               <Image
-                src={cdnImage("/planet_cards/pc_legendary_rdy.png")}
+                src={assetUrl("/planet_cards/pc_legendary_rdy.png")}
                 alt=""
                 w={14}
                 h={14}

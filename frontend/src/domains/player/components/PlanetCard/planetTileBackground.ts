@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { getTileById } from "@/entities/lookup/systems";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { Planet } from "@/entities/data/types";
 import { getPlanetLocalPosition } from "@/entities/lookup/planets";
 
@@ -26,7 +26,7 @@ export function getPlanetTileBackground(planetData: Planet) {
   const focusOuter = focusRadius + focusFade;
 
   return {
-    src: cdnImage(`/tiles/${tile.imagePath}`),
+    src: assetUrl(`/tiles/${tile.imagePath}`),
     imageStyle: {
       width: TILE_ART_WIDTH,
       height: TILE_ART_HEIGHT,

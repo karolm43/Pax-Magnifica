@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { Tile } from "@/entities/game/types";
 import { HEXAGON_EDGE_MIDPOINTS } from "@/entities/geometry/tilePositioning";
 import classes from "./BorderAnomalyLayer.module.css";
@@ -43,7 +43,7 @@ export function BorderAnomalyLayer({ mapTile }: Props) {
         return (
           <img
             key={`border-anomaly-${mapTile.position}-${anomaly.direction}-${index}`}
-            src={cdnImage(imagePath)}
+            src={assetUrl(imagePath)}
             alt={`${anomaly.type} border anomaly`}
             className={classes.borderAnomaly}
             style={{

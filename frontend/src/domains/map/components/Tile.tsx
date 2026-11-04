@@ -1,5 +1,5 @@
 import type { ImgHTMLAttributes } from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getTileById } from "@/entities/lookup/systems";
 import { boardImageLoadingProps } from "@/shared/ui/imageLoading";
 
@@ -15,7 +15,7 @@ export const Tile = ({ systemId, alt, ...imgProps }: TileProps) => {
   return (
     <img
       {...boardImageLoadingProps}
-      src={cdnImage(`/tiles/${tile.imagePath}`)}
+      src={assetUrl(`/tiles/${tile.imagePath}`)}
       alt={alt || `System ${systemId}`}
       {...imgProps}
     />

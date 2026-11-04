@@ -2,7 +2,7 @@ import { memo, type CSSProperties, type ReactNode } from "react";
 import cx from "clsx";
 import type { PlayerData } from "@/entities/data/types";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { useGameData } from "@/state/useGameContext";
 import { useSettingsStore } from "@/state/appStore";
 import { PlayerColorSwatch } from "@/shared/ui/PlayerColor/PlayerColor";
@@ -131,7 +131,7 @@ function Seat({
         {player.isSpeaker && (
           <img
             className={styles.speaker}
-            src={cdnImage("/tokens/token_speaker.png")}
+            src={assetUrl("/tokens/token_speaker.png")}
             alt="Speaker"
             title="Speaker"
           />

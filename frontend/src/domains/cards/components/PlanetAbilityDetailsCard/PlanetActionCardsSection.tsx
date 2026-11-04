@@ -1,5 +1,5 @@
 import { Image } from "@/ds";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import classes from "./PlanetAbilityDetailsCard.module.css";
@@ -27,7 +27,7 @@ export function PlanetActionCardsSection({ actionCards = [] }: Props) {
             return (
               <span key={alias} className={classes.cardRow}>
                 <Image
-                  src={cdnImage("/player_area/cardback_action.jpg")}
+                  src={assetUrl("/player_area/cardback_action.jpg")}
                   alt={`Action card ${cardLabel}`}
                   w={18}
                   h={12}

@@ -1,4 +1,4 @@
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type LawOverlayProps = {
   tokenPath: string;
@@ -8,7 +8,7 @@ type LawOverlayProps = {
 export function LawOverlay({ tokenPath, alt }: LawOverlayProps) {
   return (
     <img
-      src={cdnImage(tokenPath)}
+      src={assetUrl(tokenPath)}
       alt={alt}
       style={{
         position: "absolute",

@@ -1,5 +1,5 @@
 import React from "react";
-import { cdnImage } from "@/entities/data/cdnImage";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import { useFactionTokenImage } from "@/hooks/useFactionTokenImage";
 
 type ControlTokenProps = {
@@ -18,7 +18,7 @@ export const ControlToken = ({
     <div style={style}>
       <div style={{ position: "relative" }}>
         <img
-          src={cdnImage(`/command_token/control_${colorAlias}.png`)}
+          src={assetUrl(`/command_token/control_${colorAlias}.png`)}
           alt={`${faction || "control"} control token`}
         />
         {faction && factionUrl && (
@@ -50,7 +50,7 @@ export const SmallControlToken = ({
     <div style={style}>
       <div style={{ position: "relative", height: "24px" }}>
         <img
-          src={cdnImage(`/command_token/control_${colorAlias}.png`)}
+          src={assetUrl(`/command_token/control_${colorAlias}.png`)}
           alt={`${faction || "control"} control token`}
           style={{ height: "24px" }}
         />
