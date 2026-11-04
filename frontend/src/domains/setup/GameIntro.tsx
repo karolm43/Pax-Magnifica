@@ -41,9 +41,10 @@ const COLOR_SWATCH: Record<string, string> = {
 const MUSIC_SRC = "/intro/background.mp3";
 const MUSIC_SECONDS = 110;
 const MUSIC_VOLUME = 0.5;
-/** Narrator (`/intro/final.mp3`, 1:35) rusza razem z przewijaniem tekstu. */
+/** Narrator (`/intro/final.mp3`, 1:35) czyta kronikę; wchodzi 5 s po starcie planszy. */
 const NARRATOR_SRC = "/intro/final.mp3";
 const NARRATOR_VOLUME = 1;
+const NARRATOR_DELAY_S = 5;
 /** Start przewijania (s) — MUSI być równy opóźnieniu `--t-crawl-delay` w CSS. */
 const CRAWL_DELAY_S = 2.4;
 /** Gdzie (ułamek wysokości okna) zatrzymuje się dolny brzeg tekstu po dojechaniu. */
@@ -99,7 +100,7 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
     play(music);
     const timer = window.setTimeout(
       () => play(narrator),
-      reduced ? 0 : CRAWL_DELAY_S * 1000,
+      reduced ? 0 : NARRATOR_DELAY_S * 1000,
     );
     return () => {
       window.clearTimeout(timer);
