@@ -45,6 +45,7 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 2a | [Map string i pozycje planszy (AsyncTI4)](#2a-map-string-i-pozycje-planszy-asyncti4---zweryfikowane) | ✅ | [Game Board](rules_tirules/R_game_board.md) |
 | 2b | [Klasyfikacja jednostek: przestrzeń vs planeta](#2b-klasyfikacja-jednostek-przestrzeń-vs-planeta---zweryfikowane) | ✅ | [Units](rules_tirules/R_units.md) |
 | 2c | [Format `startingFleet` i setup frakcji](#2c-format-startingfleet-i-setup-frakcji---zweryfikowane) | ✅ | [Ships](rules_tirules/R_ships.md) |
+| 2d | [Sąsiedztwo graczy (Neighbors)](#2d-sąsiedztwo-graczy-neighbors---zweryfikowane-częściowo) | ✅ częściowo | [Neighbors](rules_tirules/R_neighbors.md) |
 | 3 | [Ruch (Movement)](#3-ruch-movement---do-zrobienia-warstwa-logiki-ruchu-późniejsza-faza) | ⬜ | [Movement](rules_tirules/R_movement.md) |
 | 3a | [Limity sztuk jednostek (supply caps)](#3a-limity-sztuk-jednostek-plastic--supply-caps---zweryfikowane) | ✅ | [Reinforcements](rules_tirules/R_reinforcements.md) |
 | 4 | [Pozycje stat-area](#4-pozycje-stat-area-player-stats-heksy---zweryfikowane-port-algorytmu-asyncti4) | ✅ | [Game Board](rules_tirules/R_game_board.md) |
@@ -280,6 +281,38 @@ base+pok (2026-10). Format sparafrazowany; wzorzec potwierdzony empirycznie.
 
 **Grafiki jednostek:** `assets/units/<kolor>_<asyncId>.png`. UWAGA: `asyncId` ≠ kod
 `startingFleet` (np. cruiser: `asyncId=ca`, kod fleet=`cr`). Mapowanie przez `baseType`.
+
+---
+
+## 2d. Sąsiedztwo graczy (Neighbors) — ✅ ZWERYFIKOWANE (częściowo)
+
+📎 tirules: [Neighbors](rules_tirules/R_neighbors.md) · [Adjacency](rules_tirules/R_adjacency.md) · [Transactions](rules_tirules/R_transactions.md)
+
+Źródło: tirules2.com → `docs/rules_tirules/R_neighbors.md`. Treść sparafrazowana.
+
+Pojęcie GRACZA (kto z kim graniczy), odrębne od statycznego sąsiedztwa mapy
+(sekcja 2): sąsiedztwo systemów jest wejściem, sąsiedztwo graczy — wynikiem.
+
+- Dwóch graczy jest **sąsiadami (neighbors)**, jeśli OBAJ mają jednostkę lub
+  kontrolują planetę w **tym samym systemie**.
+- Są sąsiadami również, gdy obaj mają jednostkę lub kontrolują planetę w systemach
+  **sąsiadujących** ze sobą (sąsiedztwo przez wormhole wliczone — bo to część
+  adjacency z sekcji 2).
+- „Obecność" w systemie = jednostka w przestrzeni, jednostka na planecie LUB
+  kontrola planety (`planet_owners`). Puste stosy (0 sztuk) nie liczą się.
+- Relacja jest **symetryczna**; gracz nie jest własnym sąsiadem.
+- Znaczenie: tylko sąsiedzi mogą zawierać transakcje (R_transactions). Pole
+  `neighbors` w web-data zasila panel gracza (ikony sąsiadów), jako lista KOLORÓW.
+
+**Zakres w kodzie:** `src/core/neighbors.py` (`neighbors_of`, `neighbors_by_player`)
+— czyste funkcje nad `GameState` + `HexGrid`. Serializacja w `api/web_data.py`
+mapuje `player_id` → kolor.
+
+**⚠️ Ograniczenia (do rozbudowy z pełną warstwą adjacency):**
+- Sąsiedztwo systemów bierzemy z `HexGrid` (geometria + wormhole); **hyperlanes**
+  nie są jeszcze uwzględnione (jak w sekcji 2).
+- Efekty frakcyjne/agendy zmieniające adjacency (np. Creuss *Quantum Entanglement*,
+  Mentak przez wormhole) nie są modelowane — wejdą przez hooki, gdy powstaną.
 
 ---
 

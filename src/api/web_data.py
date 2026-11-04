@@ -31,6 +31,7 @@ from src.core import production, strategy_phase
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
+from src.core.neighbors import neighbors_by_player
 from src.core.positions import load_positions
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
@@ -905,12 +906,19 @@ def _hand_count(player: PlayerState, key: str) -> int:
 
 
 def _build_player_data(
-    state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    entity_keys: dict[str, str],
 ) -> list[dict[str, Any]]:
     """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
     players: list[dict[str, Any]] = []
     deployed_by_player = _deployed_counts_by_player(state)
     active_id = _effective_active_id(state)  # spójny z activePlayer (Bug 7)
+    # Sąsiedzi (Neighbors) policzeni raz dla wszystkich graczy (RULES.md 2,
+    # R_neighbors). Wynik to player_id; na kolory mapujemy przy serializacji
+    # (``Neighbors.tsx`` czyta kolory i odwzorowuje je na frakcje).
+    neighbor_ids_by_player = neighbors_by_player(state, grid)
     for player_id, player in sorted(state.players.items()):
         faction = entity_keys.get(player_id, player_id)
         # Pełna nazwa frakcji do WYŚWIETLANIA (displayName/flexibleDisplayName).
@@ -940,6 +948,14 @@ def _build_player_data(
             player.faction, player.technologies, registry
         )
         breakthrough = _player_breakthrough(player.faction, player, registry)
+        # Sąsiedzi jako KOLORY (kontrakt viewera): z player_id na kolor przez
+        # ``_color_of``; gracze bez jednoznacznego koloru są pomijani (viewer i tak
+        # mapuje kolor→frakcja). Sortujemy dla stabilności dokumentu.
+        neighbor_colors = sorted(
+            color
+            for neighbor_id in neighbor_ids_by_player.get(player_id, set())
+            if (color := _color_of(state, neighbor_id)) is not None
+        )
         players.append(
             {
                 "discordId": player_id,
@@ -1014,7 +1030,8 @@ def _build_player_data(
                 # Karty strategii gracza (numery inicjatywy) — kolejność tur w panelu faz.
                 "scs": list(player.strategy_cards),
                 "exhaustedSCs": list(player.exhausted_strategy_cards),
-                "neighbors": [],
+                # Sąsiedzi (Neighbors) jako kolory — RULES.md 2 / R_neighbors.
+                "neighbors": neighbor_colors,
                 # Realne liczebności prywatnych rąk (R6.5, R4.4). Dla viewera —
                 # długości jego list; dla innych — z hidden_card_counts wypełnionego
                 # przez projekcję. Nigdy nie ujawniamy cudzych identyfikatorów kart.
@@ -1210,7 +1227,7 @@ def build_web_data(
         "versionSchema": WEB_DATA_SCHEMA_VERSION,
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
-        "playerData": _build_player_data(projected, registry, entity_keys),
+        "playerData": _build_player_data(projected, registry, grid, entity_keys),
         "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
         "gameState": _build_game_state(projected),
         "lawsInPlay": [],

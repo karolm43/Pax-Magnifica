@@ -21,6 +21,30 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Sąsiedzi gracza (Neighbors) w panelu + pole `neighbors` w web-data (ukończone)
+
+- **Cel:** panel gracza (viewer ti4_web) pokazywał ikony sąsiadów, ale backend
+  emitował `playerData[].neighbors` jako pustą listę — nic się nie renderowało.
+- **Reguła (zweryfikowana, nie z pamięci):** RULES.md 2d na bazie
+  `docs/rules_tirules/R_neighbors.md` (tirules2.com). Dwóch graczy jest sąsiadami,
+  gdy obaj mają jednostkę lub kontrolują planetę w tym samym systemie LUB w
+  systemach sąsiednich (sąsiedztwo przez wormhole wliczone).
+- **Kod:** nowy czysty moduł `src/core/neighbors.py` (`neighbors_of`,
+  `neighbors_by_player`) nad `GameState` + `HexGrid`. `api/web_data.py`:
+  `_build_player_data` dostaje `grid`, liczy sąsiadów raz dla wszystkich graczy i
+  emituje ich jako KOLORY (kontrakt viewera — `Neighbors.tsx` mapuje kolor→frakcja).
+- **Testy:** `tests/test_neighbors.py` — ten sam system, systemy sąsiednie,
+  nie-sąsiednie, kontrola planety bez jednostek, puste stosy, symetria, „gracz nie
+  jest własnym sąsiadem".
+- **Ograniczenia (RULES.md 2d):** hyperlanes i efekty frakcyjne zmieniające
+  adjacency jeszcze nieuwzględnione (jak sekcja 2).
+- **⚠️ Promissory notes „in play area" — NIEZROBIONE (świadomie, do decyzji):** patrz
+  niżej. `promissoryNotesInPlayArea` pozostaje `[]`, bo brak modelu stanu dla notek
+  zagranych/położonych w strefie gracza.
+- **QA:** `pytest` 452 ✅, `ruff` ✅, `mypy` ✅.
+
+---
+
 ### 🐛 Naprawa regresji: manifest grafik obejmuje teraz całe `assets/` (ukończone)
 
 - **Objaw:** po migracji grafik z CDN na lokalne plansza nie pokazywała żadnych
