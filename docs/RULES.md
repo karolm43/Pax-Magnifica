@@ -1447,3 +1447,26 @@ Zaproponowany zbiór startowy (⚠️ ZAŁOŻENIE): `["EASY", "NORMAL", "HARD"]`
 (np. dodać „VERY_HARD"/„INSANE", użyć polskich etykiet, albo skali liczbowej 1–5)? Zbiór
 można zmienić wyłącznie edycją `assets/config/engine_config.json` — bez zmian w kodzie.
 Do czasu potwierdzenia traktujemy ten zbiór jako tymczasowe założenie.
+
+---
+
+## 34. Specyfikacja czasowa komponentów: wyzwalacz → typ okna — ⚠ ZAŁOŻENIE (D10)
+
+📎 tirules: [Action Cards](rules_tirules/R_action_cards.md) · [Abilities](rules_tirules/R_abilities.md)
+
+Implementacja: `src/core/timing_spec.py` (`TriggerKind`, `TimingSpec`, `parse_timing`,
+`TRIGGER_WINDOW_MAP`); spec `local-ti4-data-foundation`, R8.
+
+**Zweryfikowane (dane):** frazy okien (`window` kart akcji i zdolności frakcji,
+`abilityWindow` liderów) są czytane z JSON AsyncTI4 i klasyfikowane wyłącznie po
+prefiksie: `when ` / `after ` / `before ` / `instead of` / `at the start` / `at the end` /
+`during ` / `action`; reszta → `unclassified`. Tekst okna zostaje bez zmian (`raw_text`).
+`playTiming` (`AGENDA_WHEN`/`AGENDA_AFTER`) służy tylko do kontroli zgodności z oknem.
+
+**⚠ ZAŁOŻENIE (do potwierdzenia przez użytkownika):** odwzorowanie rodzaju wyzwalacza na
+`WindowType` silnika: `when`, `after`, `before`, `instead` → `REACTION`; `at_start`,
+`at_end`, `during`, `action`, `unclassified` → „brak okna" (`None`). To decyzja
+projektowa (D10), nie reguła TI4 — np. „at the start of..." może w przyszłości wymagać
+własnego okna. Zmiana = edycja jednej tablicy `TRIGGER_WINDOW_MAP` + test.
+Numer sekcji 34 wybrany, bo w pliku są dwie sekcje „30" (porządkuje je zadanie 13.1, które
+doda też wpis tej sekcji do spisu treści).

@@ -166,6 +166,9 @@ class LeaderDef(_StaticModel):
     title: str | None = None
     ability_name: str | None = Field(default=None, alias="abilityName")
     ability_text: str | None = Field(default=None, alias="abilityText")
+    # Fraza okna użycia lidera (np. „When a player's unit is destroyed", „ACTION:").
+    # Parsowana do TimingSpec w core/timing_spec.py.
+    ability_window: str | None = Field(default=None, alias="abilityWindow")
     unlock_condition: str | None = Field(default=None, alias="unlockCondition")
 
 

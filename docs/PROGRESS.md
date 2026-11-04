@@ -21,6 +21,14 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Baza danych TI4 · 5.1: specyfikacja czasowa `core/timing_spec.py` (ukończone)
+- `TriggerKind`, `TimingSpec`, `parse_timing`, `TRIGGER_WINDOW_MAP` (D10: when/after/before/
+  instead → `REACTION`, reszta → brak okna; ⚠️ ZAŁOŻENIE w RULES.md 34). Klasyfikacja tylko
+  po prefiksach, `raw_text` bez zmian, `play_timing_agrees` z `AGENDA_WHEN`/`AGENDA_AFTER`.
+- `LeaderDef.ability_window` (alias `abilityWindow`). `core/timing.py` i `WindowType` bez zmian.
+- Testy: `tests/test_timing_spec.py`. Dalej: 5.2 (`build_timing_specs`, `query_timing`).
+---
+
 ### ✅ Keleres (3 warianty): przełom i technologie wg Thunder's Edge (ukończone)
 
 - **Błąd:** przełom TE Keleres ma `faction="keleres"`, a warianty to `keleresm/x/a` →
