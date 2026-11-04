@@ -15,6 +15,14 @@
 export const DEFAULT_GAME_ID = "local";
 
 export const config = {
+  /**
+   * Flagi funkcji. `onlineLogin` włącza logowanie przez Discord OAuth — domyślnie
+   * WYŁĄCZONE (D2), bo Custodian Engine działa offline. Gdy `false`, komponenty
+   * logowania nie renderują się i żaden adres `discord.com` nie jest używany.
+   */
+  features: {
+    onlineLogin: false,
+  },
   api: {
     // GET {gameDataUrl}/{gameId}/web-data  -> dokument PlayerDataResponse.
     // GET {gameDataUrl}/{gameId}/events    -> log zdarzeń gry.

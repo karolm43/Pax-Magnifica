@@ -2,6 +2,7 @@ import {
   getUnitSpriteFrame,
   type SpriteFrame,
 } from "@/entities/data/renderedSpriteDimensions";
+import { sheetUrl } from "@/shared/assets/resolveAsset";
 
 const COLORED_SPRITE_COLORS = new Set([
   "abr",
@@ -168,8 +169,8 @@ function createUnitSprite(color: string, unit: string): UnitSprite | undefined {
   if (!frame) return undefined;
 
   const hasSheet = color === "shared" || COLORED_SPRITE_COLORS.has(color);
-  const image = hasSheet
-    ? `https://images.asyncti4.com/units/sheets/${color}.webp?v=4`
-    : undefined;
+  // Sprite sheet jednostek z LOKALNEGO backendu (`/static/units/sheets/...`),
+  // bez CDN AsyncTI4 (R2.1). Rozszerzenie `.webp` rozstrzyga `sheetUrl`.
+  const image = hasSheet ? sheetUrl("units", color) : undefined;
   return { color, unit, image, ...frame };
 }

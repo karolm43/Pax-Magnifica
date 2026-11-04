@@ -7,10 +7,13 @@ export function getFactionImage(
   factionImage?: string,
   factionImageType?: string
 ): string | undefined {
-  if (factionImageType === "EMOJI") {
-    return `https://emoji-cdn.mqrio.dev/${factionImage}?style=twitter`;
-  }
-  if (factionImageType === "DISCORD") return factionImage;
+  // Niegdyś ikona frakcji typu EMOJI szła z `emoji-cdn.mqrio.dev`, a typ DISCORD
+  // z surowego URL profilu Discorda. Custodian Engine działa offline (R2.4): oba
+  // zastępujemy LOKALNĄ grafiką frakcji z backendu. Gdy brak pliku w manifeście,
+  // `assetUrl` zwraca lokalny placeholder — nigdy adres zewnętrzny.
+  // Typy `factionImage*` są celowo ignorowane (zostają tylko dla zgodności danych).
+  void factionImage;
+  void factionImageType;
   return assetUrl(`/factions/${faction}.png`);
 }
 

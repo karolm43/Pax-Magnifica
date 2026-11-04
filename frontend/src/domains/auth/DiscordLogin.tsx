@@ -17,6 +17,11 @@ export function DiscordAuthButton(props: ButtonProps) {
 export function DiscordLogin() {
   const { user, resetUser } = useUser();
 
+  // Logowanie online (Discord OAuth) jest WYŁĄCZONE w trybie offline (D2, R2.5).
+  // Gdy flaga `onlineLogin` jest fałszywa, komponent się nie renderuje, więc
+  // adres `discord.com` nigdy nie trafia do DOM.
+  if (!config.features.onlineLogin) return null;
+
   if (!user?.authenticated) {
     return (
       <DiscordAuthButton

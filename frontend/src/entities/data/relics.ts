@@ -645,8 +645,9 @@ export const relics: Relic[] = [
     source: "dane_leaks",
     flavourText:
       '*Ank-Syl Siven flared, bright red briefly overtaking blue. "Would I lie to you?" The flame pulsed, suspended in the air before him. Was it real? Or just an illusion?*',
-    imageURL:
-      "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/src/main/resources/hover_images/relics/misc_homebrew/the_silver_flame.png",
+    // Grafika LOKALNA (bez CDN `cdn.statically.io`, R2.4). Ścieżka logiczna
+    // względem `assets/`; Resolver_Zasobów mapuje ją na `/static/...` lub placeholder.
+    imageURL: "/hover_images/relics/misc_homebrew/the_silver_flame.png",
   },
   {
     alias: "space_frog",
