@@ -45,6 +45,12 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
   `promissoryNotesInPlayArea`, edytowalne przez God-Mode (`PlayerEditRequest`).
   Automatyczne przenoszenie notki z ręki do strefy przy zagraniu — przy logice
   transakcji (E8+); dziś zasila operator.
+- **Własna frakcyjna notka (loadout) — `customPromissoryNotes` (RULES.md 2e):**
+  web-data emitował to pole jako brak (panel nie pokazywał startowej notki frakcji,
+  np. Sol Military Support). Dodany helper `_faction_promissory_notes` czyta listę z
+  danych frakcji (`FactionDef.promissoryNotes`), nie z pamięci; emitowane w
+  `customPromissoryNotes`. Obsłużone edge-case: `neutral` → `[]`, Empyrean → dwie
+  notki. Test w `tests/test_web_data.py` (Sol `ms`, Hacan `convoys`).
 - **QA:** `pytest` 454 ✅, `ruff` ✅, `mypy` ✅.
 
 ---

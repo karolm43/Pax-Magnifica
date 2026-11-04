@@ -730,6 +730,29 @@ def _faction_abilities(
     return sorted(faction.abilities)
 
 
+def _faction_promissory_notes(
+    faction_id: str | None, registry: StaticDataRegistry
+) -> list[str]:
+    """Własna FRAKCYJNA promissory note gracza (pole ``promissoryNotes`` frakcji).
+
+    Każdy gracz zaczyna grę z unikalną notką swojej frakcji (np. Sol ``ms`` =
+    Military Support, Hacan ``convoys`` = Trade Convoys). To stały, JAWNY fakt
+    (frakcja X ma notkę Y) — czytany WYŁĄCZNIE z danych frakcji
+    (``FactionDef.promissory_notes``), nigdy z pamięci. Frontend renderuje je w
+    sekcji loadoutu karty gracza (pole ``customPromissoryNotes``), rozwiązując ID
+    po swoich statycznych danych notek (``getPromissoryNoteData``). Sortujemy dla
+    stabilności dokumentu.
+
+    UWAGA: to NIE jest ręka (``private.promissory_notes`` — tajna, licznik
+    ``pnCount``) ani strefa gry (``promissory_notes_in_play`` — notki zagrane).
+    To statyczny „identyfikator" notki frakcji, pokazywany jako loadout.
+    """
+    faction = registry.factions.get(faction_id) if faction_id else None
+    if faction is None:
+        return []
+    return sorted(faction.promissory_notes)
+
+
 def _faction_techs(
     faction_id: str | None,
     technologies: list[str],
@@ -947,6 +970,7 @@ def _build_player_data(
         faction_techs, not_researched_ft = _faction_techs(
             player.faction, player.technologies, registry
         )
+        faction_notes = _faction_promissory_notes(player.faction, registry)
         breakthrough = _player_breakthrough(player.faction, player, registry)
         # Sąsiedzi jako KOLORY (kontrakt viewera): z player_id na kolor przez
         # ``_color_of``; gracze bez jednoznacznego koloru są pomijani (viewer i tak
@@ -1028,6 +1052,10 @@ def _build_player_data(
                 # od licznika ręki ``pnCount`` (ręka tajna). Puste do czasu logiki
                 # zagrywania notek; dziś zasilane przez God-Mode.
                 "promissoryNotesInPlayArea": list(player.promissory_notes_in_play),
+                # Własna FRAKCYJNA notka gracza (loadout — każdy zaczyna z jedną,
+                # np. Sol ``ms``, Hacan ``convoys``). Jawny fakt statyczny z danych
+                # frakcji; frontend renderuje w sekcji loadoutu (abilities/techy).
+                "customPromissoryNotes": faction_notes,
                 "followedSCs": [],
                 "unfollowedSCs": [],
                 # Karty strategii gracza (numery inicjatywy) — kolejność tur w panelu faz.

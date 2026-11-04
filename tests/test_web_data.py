@@ -207,6 +207,21 @@ def test_web_data_promissory_notes_in_play_area(client: TestClient) -> None:
     assert sol["promissoryNotesInPlayArea"] == []
 
 
+def test_web_data_faction_promissory_note_loadout(client: TestClient) -> None:
+    # Każdy gracz startuje z WŁASNĄ frakcyjną notką (loadout, pole
+    # customPromissoryNotes) — czytaną z danych frakcji, nie z pamięci.
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    data = _web_data(client)
+    sol = next(p for p in data["playerData"] if p["faction"] == "sol")
+    hacan = next(p for p in data["playerData"] if p["faction"] == "hacan")
+    # Sol: Military Support ("ms"); Hacan: Trade Convoys ("convoys").
+    assert sol["customPromissoryNotes"] == ["ms"]
+    assert hacan["customPromissoryNotes"] == ["convoys"]
+
+
 def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
     # Bez map stringa — backend używa mapy testowej; kolory/sloty auto.
     resp = client.post(

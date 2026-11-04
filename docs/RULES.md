@@ -323,8 +323,8 @@ mapuje `player_id` → kolor.
 
 Źródło: tirules2.com → `docs/rules_tirules/R_promissory_notes.md`. Sparafrazowane.
 
-Promissory notes istnieją w DWÓCH rozłącznych miejscach — rozróżnienie istotne dla
-widoczności (R2/R6) i dla handlu:
+Promissory notes występują w TRZECH rozłącznych reprezentacjach — rozróżnienie
+istotne dla widoczności (R2/R6) i dla handlu:
 
 - **RĘKA (hand)** — notki trzymane do ewentualnego przehandlowania. **TAJNA**
   (prywatna): inni widzą tylko LICZEBNOŚĆ (jawna — „the number of promissory notes
@@ -335,6 +335,12 @@ widoczności (R2/R6) i dla handlu:
   dla wszystkich. „Promissory notes in the play area cannot be traded." Model:
   `PlayerState.promissory_notes_in_play`; w web-data pole `promissoryNotesInPlayArea`,
   które panel gracza renderuje w racku holdings (obok relikwii i tajnych celów).
+- **WŁASNA FRAKCYJNA (loadout)** — unikalna notka, z którą KAŻDY gracz zaczyna grę
+  (np. Sol `ms` = Military Support, Hacan `convoys` = Trade Convoys; Empyrean ma dwie:
+  `dark_pact`, `blood_pact`). To stały, JAWNY fakt (frakcja X ma notkę Y) czytany z
+  danych frakcji (`FactionDef.promissoryNotes`), NIE stan rozgrywki. W web-data pole
+  `customPromissoryNotes` (helper `_faction_promissory_notes`); panel renderuje je w
+  sekcji loadoutu (obok zdolności i techów frakcyjnych), gated `showPlayerAreaFactionAbilities`.
 
 **⚠️ Zakres:** pole strefy istnieje i jest JAWNE (klasyfikacja w `player_fields.py`),
 emitowane do viewera i edytowalne przez God-Mode (`/player/{id}/edit`). Automatyczne
