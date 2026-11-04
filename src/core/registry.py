@@ -22,6 +22,8 @@ from typing import Protocol, TypeVar, cast
 from pydantic import BaseModel
 
 from src import config
+from src.core.component_loader import LoadReport, load_components
+from src.core.components import ComponentCatalog, build_timing_specs
 from src.core.models import (
     AbilityDef,
     BreakthroughDef,
@@ -116,6 +118,15 @@ class StaticDataRegistry:
         self.technologies: dict[str, TechnologyDef] = {}
         self.breakthroughs: dict[str, BreakthroughDef] = {}
 
+        # Katalog_Komponentów (nowe kategorie: karty, cele, żetony, talie…) i raport
+        # jego ładowania. Budowane w _load() z load_components (design: R4.1, R5.1).
+        self.catalog: ComponentCatalog = ComponentCatalog({})
+        self.load_report: LoadReport = LoadReport()
+        # Kolizje id w 9 STARYCH kategoriach: kategoria -> posortowane id, które
+        # wystąpiły w wielu aktywnych wpisach. Tylko RAPORT (D9) — zachowanie
+        # „ostatni wpis wygrywa" pozostaje bez zmian, by uniknąć regresji.
+        self.legacy_id_collisions: dict[str, list[str]] = {}
+
         # Konfiguracja silnika (limity rąk TI4 + zbiór poziomów trudności bota).
         # Ładowana z assetów (NIE hardkodowana) — patrz docs/RULES.md 30.
         self.engine_config: EngineConfig = EngineConfig()
@@ -133,9 +144,15 @@ class StaticDataRegistry:
         self,
         entries: Iterable[dict[str, object]],
         model_cls: type[TModel],
+        label: str | None = None,
     ) -> dict[str, TModel]:
-        """Filtruje wpisy po aktywnym ``source`` i buduje słownik id -> model."""
+        """Filtruje wpisy po aktywnym ``source`` i buduje słownik id -> model.
+
+        Gdy podano ``label``, kolizje ``id`` między aktywnymi wpisami są tylko
+        raportowane w ``legacy_id_collisions`` (D9); wygrywa ostatni wpis jak dotąd.
+        """
         result: dict[str, TModel] = {}
+        collided: set[str] = set()
         for entry in entries:
             source = entry.get("source")
             if not isinstance(source, str):
@@ -145,39 +162,55 @@ class StaticDataRegistry:
                 continue
             model = model_cls.model_validate(entry)
             entry_id = cast("_HasId", model).id
+            if entry_id in result:
+                collided.add(entry_id)
             result[entry_id] = model
+        if label is not None and collided:
+            self.legacy_id_collisions[label] = sorted(collided)
         return result
 
     def _load(self) -> None:
         self.units = self._collect(
-            _iter_dir_entries(config.UNITS_DATA_DIR), UnitDef
+            _iter_dir_entries(config.UNITS_DATA_DIR), UnitDef, "units"
         )
         self.planets = self._collect(
-            _iter_dir_entries(config.PLANETS_DIR), PlanetDef
+            _iter_dir_entries(config.PLANETS_DIR), PlanetDef, "planets"
         )
         self.systems = self._collect(
-            _iter_dir_entries(config.SYSTEMS_DIR), SystemDef
+            _iter_dir_entries(config.SYSTEMS_DIR), SystemDef, "systems"
         )
         self.factions = self._collect(
-            _iter_dir_entries(config.FACTIONS_DATA_DIR), FactionDef
+            _iter_dir_entries(config.FACTIONS_DATA_DIR), FactionDef, "factions"
         )
         self.strategy_cards = self._collect(
-            _iter_dir_entries(config.STRATEGY_CARDS_DIR), StrategyCardDef
+            _iter_dir_entries(config.STRATEGY_CARDS_DIR), StrategyCardDef,
+            "strategy_cards",
         )
         self.leaders = self._collect(
-            _iter_dir_entries(config.LEADERS_DATA_DIR), LeaderDef
+            _iter_dir_entries(config.LEADERS_DATA_DIR), LeaderDef, "leaders"
         )
         self.abilities = self._collect(
-            _iter_dir_entries(config.ABILITIES_DATA_DIR), AbilityDef
+            _iter_dir_entries(config.ABILITIES_DATA_DIR), AbilityDef, "abilities"
         )
         self.technologies = self._collect(
-            _iter_dir_entries(config.TECHNOLOGIES_DATA_DIR), TechnologyDef
+            _iter_dir_entries(config.TECHNOLOGIES_DATA_DIR), TechnologyDef,
+            "technologies",
         )
         self.breakthroughs = self._collect(
-            _iter_dir_entries(config.BREAKTHROUGHS_DATA_DIR), BreakthroughDef
+            _iter_dir_entries(config.BREAKTHROUGHS_DATA_DIR), BreakthroughDef,
+            "breakthroughs",
         )
 
         self._apply_thunders_edge_breakthrough_techs()
+
+        # Katalog_Komponentów: nowe kategorie przez czysty loader (filtr po source,
+        # deterministyczny wybór przy kolizji id — D9). Specyfikacje czasowe budujemy
+        # z kart akcji, zdolności frakcji i liderów (R8.2).
+        tables, self.load_report = load_components(self._enabled)
+        timing_specs = build_timing_specs(
+            tables, leaders=self.leaders, abilities=self.abilities
+        )
+        self.catalog = ComponentCatalog(tables, timing_specs)
 
         self.engine_config = self._load_engine_config()
 
