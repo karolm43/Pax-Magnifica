@@ -1,3 +1,25 @@
+/*
+ * Fonty tekstu i danych — IBM Plex Sans (UI) i IBM Plex Mono (liczby) z pakietów
+ * @fontsource (dokładnie przypięte wersje w package.json). Bundlowane przez Vite
+ * jako lokalne pliki .woff2 — ZERO żądań do Google Fonts / gstatic. Importujemy
+ * tylko wagi z drabiny typograficznej (typography.css): Sans 400/500/600/700,
+ * Mono 400/500/700. Podzbiory `latin` + `latin-ext` dają polskie znaki (ą, ę, ł…).
+ */
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-sans/latin-700.css";
+import "@fontsource/ibm-plex-sans/latin-ext-400.css";
+import "@fontsource/ibm-plex-sans/latin-ext-500.css";
+import "@fontsource/ibm-plex-sans/latin-ext-600.css";
+import "@fontsource/ibm-plex-sans/latin-ext-700.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
+import "@fontsource/ibm-plex-mono/latin-700.css";
+import "@fontsource/ibm-plex-mono/latin-ext-400.css";
+import "@fontsource/ibm-plex-mono/latin-ext-500.css";
+import "@fontsource/ibm-plex-mono/latin-ext-700.css";
+
 import "./ds/tokens.css";
 import "./ds/base.css";
 import "./styles/fonts.css";
