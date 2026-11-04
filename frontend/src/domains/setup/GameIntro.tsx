@@ -34,9 +34,9 @@ const COLOR_SWATCH: Record<string, string> = {
 };
 
 /** Prędkość crawl: tyle wysokości okna tekstu przejeżdża w ciągu 1 s (mniej = wolniej). */
-const CRAWL_VIEWPORTS_PER_SECOND = 1 / 11;
+const CRAWL_VIEWPORTS_PER_SECOND = 1 / 26;
 /** Gdzie (ułamek wysokości okna) zatrzymuje się dolny brzeg tekstu po dojechaniu. */
-const CRAWL_REST_FRACTION = 0.62;
+const CRAWL_REST_FRACTION = 0.6;
 /** Czas wygaszenia treści przed przejściem do gry (ms) — zgodny z CSS `.leaving`. */
 const LEAVE_MS = 700;
 
@@ -110,7 +110,6 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
 
         <Crawl
           reduced={reduced}
-          playerCount={players.length}
           onArrived={() => setArrived(true)}
         />
 
@@ -149,11 +148,9 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
  */
 function Crawl({
   reduced,
-  playerCount,
   onArrived,
 }: {
   reduced: boolean;
-  playerCount: number;
   onArrived: () => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -217,13 +214,9 @@ function Crawl({
         <p className={styles.author}>— {CHRONICLE_AUTHOR}</p>
 
         <div className={styles.outro}>
-          <p className={styles.outroLine}>The Galactic Council convenes.</p>
-          <p className={styles.outroLine}>
-            {playerCount} {playerCount === 1 ? "power" : "powers"}. One throne.
-          </p>
-          <p className={`${styles.outroLine} ${styles.outroStrong}`}>
-            The Strategy Phase begins.
-          </p>
+          <p className={styles.motto}>Pax Magnifica</p>
+          <p className={styles.motto}>Bellum Gloriosum</p>
+          <p className={styles.outroLine}>The Strategy Phase begins</p>
         </div>
       </div>
     </div>

@@ -195,8 +195,32 @@
 }
 
 .outro {
-  margin-top: 4em;
+  margin-top: 5em;
   padding-bottom: 0.5em;
+}
+
+/* Duże hasło na zakończenie — krój i gradient jak tytuł. */
+.motto {
+  margin: 0 0 0.15em;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: clamp(2.2rem, min(6.2vw, 10vh), 5.4rem);
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-indent: 0.1em;
+  background: linear-gradient(180deg, #f24a21 0%, #f6792a 32%, #fca22b 62%, #ffd34a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 22px rgb(246 121 42 / 0.5))
+    drop-shadow(0 2px 10px rgb(0 0 0 / 0.65));
+}
+
+.motto + .outroLine {
+  margin-top: 1.6em;
 }
 
 .outroLine {
