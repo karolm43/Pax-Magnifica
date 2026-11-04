@@ -402,6 +402,95 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
     return () => observer.disconnect();
   }, [faction.id, decode.busy, decode.mode]);
 
+  // Groza Obsidiana (tylko `glyphLore`): losowe glitche akapitów, przygasanie światła i
+  // krótkie błyski ukrytych fraz. Zdarzenia lecą z timerów (nie z renderu), więc losowość
+  // nie psuje czystości komponentu. Wstrzymane na czas rozszyfrowywania (ma własny glitch)
+  // i przy `prefers-reduced-motion`.
+  const [flash, setFlash] = useState<{
+    text: string;
+    x: number;
+    y: number;
+    size: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const article = articleRef.current;
+    if (!isGlyph || decode.busy || !article) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const phrases = getFactionLore(faction.id)?.glitchPhrases ?? [];
+    const timers: number[] = [];
+
+    const rand = (min: number, max: number) => min + Math.random() * (max - min);
+
+    const fire = () => {
+      const paragraphs = article.querySelectorAll<HTMLElement>(
+        `.${styles.loreParagraph}`,
+      );
+      const target = paragraphs[Math.floor(Math.random() * paragraphs.length)];
+      // Akapit „rwie się": przesunięcie z skosem, rozdwojenie kolorów i ucięte pasy.
+      target?.animate(
+        [
+          { transform: "none", clipPath: "inset(0 0 0 0)", offset: 0 },
+          {
+            transform: "translate(-5px, 0) skewX(-7deg)",
+            textShadow: "3px 0 #ff2a2a, -3px 0 #2ae0ff",
+            clipPath: "inset(8% 0 62% 0)",
+            offset: 0.2,
+          },
+          {
+            transform: "translate(6px, 1px) skewX(5deg)",
+            textShadow: "-3px 0 #ff2a2a, 3px 0 #2ae0ff",
+            clipPath: "inset(58% 0 6% 0)",
+            offset: 0.45,
+          },
+          {
+            transform: "translate(-2px, -1px)",
+            textShadow: "2px 0 #ff2a2a",
+            clipPath: "inset(0 0 0 0)",
+            offset: 0.7,
+          },
+          { transform: "none", clipPath: "inset(0 0 0 0)", offset: 1 },
+        ],
+        { duration: 520, easing: "steps(1, end)" },
+      );
+      // Czasem światło „przygasa" na ułamek sekundy.
+      if (Math.random() < 0.3) {
+        article.animate(
+          [
+            { opacity: 1 },
+            { opacity: 0.15, offset: 0.18 },
+            { opacity: 1, offset: 0.3 },
+            { opacity: 0.45, offset: 0.5 },
+            { opacity: 1 },
+          ],
+          { duration: 360, easing: "steps(1, end)" },
+        );
+      }
+      // Czasem coś „przebija" przez tekst: krótki błysk frazy w losowym miejscu.
+      if (phrases.length > 0 && Math.random() < 0.5) {
+        setFlash({
+          text: phrases[Math.floor(Math.random() * phrases.length)],
+          x: rand(2, 55),
+          y: rand(8, 82),
+          size: rand(2, 3.4),
+        });
+        timers.push(window.setTimeout(() => setFlash(null), rand(120, 260)));
+      }
+      schedule();
+    };
+
+    const schedule = (first = false) => {
+      // Pierwszy glitch dopiero, gdy lore się w pełni odsłoni (wejście trwa ok. 9 s).
+      timers.push(window.setTimeout(fire, first ? rand(10000, 14000) : rand(3500, 9500)));
+    };
+    schedule(true);
+
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      setFlash(null);
+    };
+  }, [faction.id, isGlyph, decode.busy]);
+
   const columns = splitLoreColumns(blocks);
   const total = columns[0].length + columns[1].length;
 
@@ -484,6 +573,15 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
             </div>
           ))}
         </div>
+      )}
+      {flash && (
+        <span
+          aria-hidden
+          className={`${styles.flash} ${decode.mode === "glyph" ? styles.flashGlyph : ""}`}
+          style={{ left: `${flash.x}%`, top: `${flash.y}%`, fontSize: `${flash.size}em` }}
+        >
+          {flash.text}
+        </span>
       )}
     </article>
   );

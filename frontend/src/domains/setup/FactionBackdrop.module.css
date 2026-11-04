@@ -351,6 +351,65 @@
 
 /* ── Lore pisane pismem z gry (Obsidian): wyróżnienia, przycisk, glitch ──── */
 
+/*
+ * Tło lore Obsidiana: zimniejsza, czerwonawa ciemność, która „bije jak serce" (podwójny
+ * puls co kilka sekund) — dopiero po pełnym odsłonięciu lore (opóźnienie > wejście).
+ * Tylko `glyphLore`; zwykłe lore frakcji zostaje bez zmian.
+ */
+.loreGlyph::before {
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 50%,
+    rgb(34 6 8 / 0.5),
+    rgb(20 5 7 / 0.3) 60%,
+    transparent 100%
+  );
+  animation:
+    scrimIn 2.4s cubic-bezier(0.33, 0, 0.2, 1) 4.2s both,
+    heartbeat 6.5s ease-in-out 11s infinite;
+}
+
+@keyframes heartbeat {
+  0%,
+  40%,
+  100% {
+    opacity: 1;
+  }
+  8% {
+    opacity: 0.45;
+  }
+  14% {
+    opacity: 1;
+  }
+  22% {
+    opacity: 0.55;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* Błysk ukrytej frazy: czerwony napis, który na chwilę „przebija" przez lore. */
+.flash {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #ff2a2a;
+  text-shadow:
+    0 0 12px rgb(255 30 30 / 0.9),
+    3px 0 rgb(40 220 255 / 0.55),
+    -3px 0 rgb(255 40 40 / 0.7);
+  mix-blend-mode: screen;
+  transform: rotate(-2deg) skewX(-6deg);
+}
+
+.flashGlyph {
+  font-family: "Lazaxian", Georgia, serif;
+}
+
 /* Pismo nie ma sensu dzielić myślnikami. */
 .loreGlyph .loreParagraph {
   hyphens: manual;

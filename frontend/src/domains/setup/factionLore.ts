@@ -64,6 +64,12 @@ export interface FactionLore {
    * Teksty podawaj WIELKIMI LITERAMI — to zwykły angielski, tylko wyświetlany krojem pisma.
    */
   glyphLore?: boolean;
+  /**
+   * Krótkie frazy, które tylko dla `glyphLore` na ułamek sekundy „przebijają" przez lore
+   * w losowych miejscach (efekt grozy). Pisz WIELKIMI LITERAMI; w trybie glifów są
+   * nieczytelne, po „Przetłumacz" czytelne.
+   */
+  glitchPhrases?: string[];
 }
 
 /**
@@ -91,6 +97,14 @@ export const FACTION_LORE: Record<string, FactionLore> = {
     quote: "This is the nightmare scenario. Case midnight omega. Mayday mayday mayday",
 quoteAuthor:"Keleres Agent Niall, final report",
     glyphLore: true,
+    // Frazy „przebijające" przez lore (autorstwa projektu, w tonie karty) — edytuj dowolnie.
+    glitchPhrases: [
+      "I SEE YOU",
+      "DO NOT LOOK AWAY",
+      "IT WATCHES",
+      "YOU ARE NOT ALONE",
+      "EYES IN THE DARK",
+    ],
     lore: [
       { kind: "paragraph", text: "HOMEWORLD: A FALSE CONCEPT, COMFORT FOR CHILDREN" },
       {
