@@ -36,6 +36,31 @@ ABILITIES_DATA_DIR: Path = DATA_DIR / "abilities"
 # Przełomy (breakthroughs) frakcji — mechanika Thunder's Edge (karta per frakcja).
 BREAKTHROUGHS_DATA_DIR: Path = DATA_DIR / "breakthroughs"
 
+# Katalogi danych kategorii Katalogu_Komponentów (karty, cele, żetony, talie…).
+ACTION_CARDS_DATA_DIR: Path = DATA_DIR / "action_cards"
+AGENDAS_DATA_DIR: Path = DATA_DIR / "agendas"
+PUBLIC_OBJECTIVES_DATA_DIR: Path = DATA_DIR / "public_objectives"
+SECRET_OBJECTIVES_DATA_DIR: Path = DATA_DIR / "secret_objectives"
+ATTACHMENTS_DATA_DIR: Path = DATA_DIR / "attachments"
+EXPLORES_DATA_DIR: Path = DATA_DIR / "explores"
+RELICS_DATA_DIR: Path = DATA_DIR / "relics"
+PROMISSORY_NOTES_DATA_DIR: Path = DATA_DIR / "promissory_notes"
+TOKENS_DATA_DIR: Path = DATA_DIR / "tokens"
+BORDER_ANOMALIES_DATA_DIR: Path = DATA_DIR / "border_anomalies"
+GALACTIC_EVENTS_DATA_DIR: Path = DATA_DIR / "galactic_events"
+GENERIC_CARDS_DATA_DIR: Path = DATA_DIR / "genericcards"
+DECKS_DATA_DIR: Path = DATA_DIR / "decks"
+
+# Wersjonowane pliki konfiguracyjne audytu (baseline, wyjątki, manifest) — w repo,
+# poza ``assets/`` (które jest w .gitignore).
+AUDIT_DIR: Path = PROJECT_ROOT / "audit"
+
+# Statusy implementacji efektów komponentów (Rejestr_Efektów).
+EFFECTS_STATUS_PATH: Path = ASSETS_DIR / "config" / "effects_status.json"
+
+# Kod frontendu (skanowany przez Strażnika_Lokalności i Audytora).
+FRONTEND_DIR: Path = PROJECT_ROOT / "frontend"
+
 # Grafiki kafelków mapy (poza repo — .gitignore; serwowane lokalnie z dysku).
 TILES_DIR: Path = ASSETS_DIR / "tiles"
 

@@ -1,4 +1,4 @@
-"""Testy StaticDataRegistry — ładowanie, filtrowanie źródeł, spójność."""
+﻿"""Testy StaticDataRegistry — ładowanie, filtrowanie źródeł, spójność."""
 
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def test_active_strategy_card_set_alias_base_only() -> None:
 
 def test_active_strategy_card_set_alias_homebrew_falls_back_to_pok() -> None:
     """Źródła homebrew spoza listy priorytetu są ignorowane → fallback ``pok``."""
-    registry = StaticDataRegistry(enabled_sources=["anarchy", "luminous"])
+    registry = StaticDataRegistry(enabled_sources=["absol", "luminous"])
     assert registry.active_strategy_card_set_alias() == "pok"
 
 

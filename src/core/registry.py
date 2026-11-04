@@ -35,6 +35,7 @@ from src.core.models import (
     TechnologyDef,
     UnitDef,
 )
+from src.core.sources import SOURCE_PRIORITY, known_source_ids, validate_enabled_sources
 
 
 class _HasId(Protocol):
@@ -101,6 +102,8 @@ class StaticDataRegistry:
             if enabled_sources is not None
             else config.load_enabled_sources()
         )
+        # Nieznane identyfikatory źródeł to błąd konfiguracji — przerywamy przed _load().
+        validate_enabled_sources(self._enabled, known_source_ids())
         self._skipped: dict[str, int] = {}
 
         self.units: dict[str, UnitDef] = {}
@@ -290,15 +293,7 @@ class StaticDataRegistry:
     # (homebrew: anarchy, luminous, tispoon…) są IGNOROWANE przy wyborze kanonicznym,
     # by nie nadpisały standardowego zestawu. Reguła: RULES.md 14,
     # ``active_strategy_card_set_alias``.
-    _STRATEGY_SET_SOURCE_PRIORITY: tuple[str, ...] = (
-        "thunders_edge",
-        "pok",
-        "codex4",
-        "codex3",
-        "codex2",
-        "codex1",
-        "base",
-    )
+    _STRATEGY_SET_SOURCE_PRIORITY: tuple[str, ...] = SOURCE_PRIORITY
 
     def _read_strategy_card_sets(self) -> list[dict[str, object]]:
         """Wczytuje surowe definicje zestawów z ``strategyCardSets.json``.
