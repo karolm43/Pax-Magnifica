@@ -28,7 +28,14 @@ function heroLeaderId(faction: FactionInfo): string | undefined {
  *   3. lokalna ikona frakcji `/static/factions/<id>.png` (placeholder, rysowany mniejszy).
  * Bez zewnętrznego CDN. Degraduje bez błędu (onError → następne źródło).
  */
-export function FactionPortraitLayer({ faction }: { faction: FactionInfo }) {
+export function FactionPortraitLayer({
+  faction,
+  onFigureCenter,
+}: {
+  faction: FactionInfo;
+  /** Środek widocznej sylwetki w px od lewej krawędzi strefy (`null` = brak/nieznany). */
+  onFigureCenter?: (centerPx: number | null) => void;
+}) {
   const lore = getFactionLore(faction.id);
   const candidates = useMemo(() => {
     const own = lore?.portrait
@@ -48,15 +55,37 @@ export function FactionPortraitLayer({ faction }: { faction: FactionInfo }) {
 
   // Przezroczysty margines PNG (ułamek wymiaru obrazka) od lewej i od dołu — mierzony
   // po załadowaniu, żeby sylwetka dotykała krawędzi ekranu niezależnie od pliku.
-  const [inset, setInset] = useState({ left: 0, bottom: 0 });
-  useEffect(() => setInset({ left: 0, bottom: 0 }), [index, candidates]);
+  const [inset, setInset] = useState({ left: 0, bottom: 0, width: 1 });
+  useEffect(() => setInset({ left: 0, bottom: 0, width: 1 }), [index, candidates]);
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  if (index >= candidates.length) return null;
-  // Ostatni kandydat to ikona frakcji — pokazujemy ją jako symbol, nie jako postać.
   const isIconFallback = index === candidates.length - 1;
+  const exhausted = index >= candidates.length;
+
+  // Zgłasza środek WIDOCZNEJ sylwetki (px od lewej krawędzi strefy), żeby nagłówek
+  // (nazwa + cytat) centrował się dokładnie nad postacią, a nie nad całym pasem portretu.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!onFigureCenter || exhausted || isIconFallback || !img) {
+      onFigureCenter?.(null);
+      return;
+    }
+    const report = () => onFigureCenter((inset.width / 2) * img.offsetWidth);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(img);
+    return () => {
+      observer.disconnect();
+      onFigureCenter(null);
+    };
+  }, [inset, index, exhausted, isIconFallback, onFigureCenter]);
+
+  if (exhausted) return null;
+  // Ostatni kandydat to ikona frakcji — pokazujemy ją jako symbol, nie jako postać.
   return (
     <div className={styles.portraitLayer} aria-hidden>
       <img
+        ref={imgRef}
         key={candidates[index]}
         src={candidates[index]}
         alt=""
@@ -81,13 +110,13 @@ export function FactionPortraitLayer({ faction }: { faction: FactionInfo }) {
 }
 
 /**
- * Mierzy przezroczysty margines obrazka od lewej i od dołu (jako ułamek szerokości /
- * wysokości). Rysuje pomniejszoną kopię na canvasie i szuka pierwszych pikseli o
+ * Mierzy przezroczysty margines obrazka od lewej i od dołu oraz szerokość widocznej
+ * sylwetki (jako ułamki wymiarów obrazka). Rysuje pomniejszoną kopię na canvasie i szuka pierwszych pikseli o
  * alfie > 16. Zwraca `null`, gdy się nie da (brak kontekstu, obraz pusty).
  */
 function measureAlphaInset(
   img: HTMLImageElement,
-): { left: number; bottom: number } | null {
+): { left: number; bottom: number; width: number } | null {
   const w = img.naturalWidth;
   const h = img.naturalHeight;
   if (!w || !h) return null;
@@ -107,17 +136,24 @@ function measureAlphaInset(
     return null;
   }
   let minX = cw;
+  let maxX = -1;
   let maxY = -1;
   for (let y = 0; y < ch; y++) {
     for (let x = 0; x < cw; x++) {
       if (data[(y * cw + x) * 4 + 3] > 16) {
         if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
         if (y > maxY) maxY = y;
       }
     }
   }
   if (maxY < 0) return null;
-  return { left: minX / cw, bottom: (ch - 1 - maxY) / ch };
+  // `width` = szerokość widocznej sylwetki jako ułamek szerokości obrazka.
+  return {
+    left: minX / cw,
+    bottom: (ch - 1 - maxY) / ch,
+    width: (maxX + 1 - minX) / cw,
+  };
 }
 
 /**

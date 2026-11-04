@@ -193,7 +193,7 @@
 
 /* Frakcja z cytatem — nagłówek wyższy: nazwa + cytat (do 3 linii) + autor. */
 .characterZoneQuote {
-  --quote-h: clamp(128px, 20vh, 205px);
+  --quote-h: clamp(130px, 21vh, 215px);
 }
 
 /* Panel szczegółów (FactionSummary) — WĄSKI pasek na szkle (lista chipów). */

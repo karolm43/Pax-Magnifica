@@ -56,6 +56,8 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
   // Frakcja aktywna na scenie (bazowa albo pochodna — Obsidian); `FactionSummary`
   // zgłasza ją przez callback, bo podgląd pochodnej zmienia, co pokazujemy na scenie.
   const [stageFaction, setStageFaction] = useState<FactionInfo | null>(null);
+  // Środek widocznej sylwetki postaci (px od lewej krawędzi strefy) albo null.
+  const [figureCx, setFigureCx] = useState<number | null>(null);
 
   // Przy przełączeniu gracza pokaż jego aktualnie wybraną frakcję (jeśli jawna).
   const activeSlotFaction = slots[activeSlot]?.factionId;
@@ -168,10 +170,19 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
               ? styles.characterZoneQuote
               : ""
           }`}
+          // Środek widocznej sylwetki — nagłówek (nazwa/cytat) centruje się nad nią.
+          style={
+            figureCx !== null
+              ? ({ ["--figure-cx" as string]: `${figureCx}px` } as React.CSSProperties)
+              : undefined
+          }
         >
           {stageFaction && (
             <Fragment key={`character-${stageFaction.id}`}>
-              <FactionPortraitLayer faction={stageFaction} />
+              <FactionPortraitLayer
+                faction={stageFaction}
+                onFigureCenter={setFigureCx}
+              />
               <FactionHeader faction={stageFaction} />
               <div className={styles.loreSlot}>
                 <FactionLore faction={stageFaction} />
