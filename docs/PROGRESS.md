@@ -699,3 +699,9 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 - `src/core/effects_registry.py`: `EffectStatus` (`not_implemented`/`implemented`/`manual`), niemutowalny `EffectRegistry` (`status_of` z domyślnym `NOT_IMPLEMENTED`, `with_status` zwraca nowy rejestr, `load` z brakiem pliku = pusty, `to_json_dict`), `coverage` per kategoria (CoverageRow: total/implemented/manual/percent) i `resolve_action_card_ref` po `automationID` (z deterministycznym remisem, zapasowo po aliasie). Czysta struktura danych bez importów FastAPI/HTTP; zero logiki efektów jakiejkolwiek karty.
 - `assets/config/effects_status.json` (`{}`) z wyjątkiem w `.gitignore` (obok `engine_config.json`).
 - Test: `tests/test_effects_registry.py`. QA zielone dla moich plików (pytest 332 passed, ruff + mypy czyste). Wymagania: 9.1–9.7.
+### ✅ Blok local-ti4-data-foundation 8.2 — moduły różnic Audytora (ukończony)
+- `src/audit/diffs.py`: `IdDiff`, `diff_sets`, `diff_counts` (dokładne różnice tablic liczników kategoria×źródło, regresja względem baseline), `find_gaps` (pary kategoria/źródło kanoniczne z zerem, minus `audit/expected_gaps.json`), `load_expected_gaps`, `load_baseline_counts`.
+- `src/audit/assets_manifest.py`: `build_manifest`/`write_manifest`/`load_manifest_paths` (lista `{path,size,sha256}` grafik, ścieżki POSIX względem `assets/`), `diff_manifest` (`missing`/`unused`), `list_asset_files`. Grafiki poza repo (D1) — manifest to jedyny wersjonowany ślad.
+- `src/audit/frontend_data.py`: `extract_embedded_ids` (regex po `alias`/`id` tylko na najwyższym wcięciu wpisu TS), `scan_embedded_ids`, `diff_embedded_ids` (`extra`/`missing`, R11.5) nad danymi `frontend/src/entities/data/*.ts`.
+- Czyste funkcje bez I/O (poza `load_*`/`build_manifest`), gotowe pod testy właściwościowe 8.6. Test przykładowy: `tests/test_audit_diffs.py`.
+- QA: pytest (346 + 7 nowych) zielone, ruff + mypy czyste na plikach bloku.
