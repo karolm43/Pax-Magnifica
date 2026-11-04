@@ -21,6 +21,23 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Baza danych TI4 · 8.5 + 8.6: testy właściwościowe Audytora (ukończone)
+- `tests/test_audit_props.py` (Hypothesis, min. 100 iteracji każdy):
+  - **Property 15** (skaner zewnętrznych URL, `audit/locality.find_external_urls`,
+    Validates 2.5): zgłasza DOKŁADNIE adresy `http(s)://` spoza `LOCAL_HOSTS` i listy
+    dozwolonej (dopasowanie prefiksu po granicy segmentu), numer linii i nazwa pliku
+    zgodne z modelem referencyjnym; hosty lokalne nigdy nie wpadają.
+  - **Property 12** (luki źródeł kanonicznych z wyjątkami, `audit/diffs.find_gaps`,
+    Validates 3.2/6.2/6.3/6.5/11.5): luka = (kategoria, źródło) z licznikiem zero
+    (brak klucza = zero) minus potwierdzone wyjątki; wynik posortowany; wyjątki
+    pokrywające wszystko → pusto.
+  - **Property 13** (różnice to dokładne różnice zbiorów/słowników): `diff_sets`,
+    `diff_embedded_ids`, `diff_manifest` (rozłączne `extra`/`missing`, `unused`/`missing`,
+    pokrycie różnicy symetrycznej), `diff_counts` (dokładne pary o różnych licznikach,
+    `None` jako różnica, pusty ⇔ tablice równe).
+- QA zielone: `pytest -q` (373 passed), `ruff check src tests`, `mypy src tests`.
+---
+
 ### ✅ Baza danych TI4 · 5.1: specyfikacja czasowa `core/timing_spec.py` (ukończone)
 - `TriggerKind`, `TimingSpec`, `parse_timing`, `TRIGGER_WINDOW_MAP` (D10: when/after/before/
   instead → `REACTION`, reszta → brak okna; ⚠️ ZAŁOŻENIE w RULES.md 34). Klasyfikacja tylko
