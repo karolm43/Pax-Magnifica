@@ -33,8 +33,19 @@ const COLOR_SWATCH: Record<string, string> = {
   yellow: "#e0c23a",
 };
 
-/** Prędkość crawl: tyle wysokości okna tekstu przejeżdża w ciągu 1 s (mniej = wolniej). */
-const CRAWL_VIEWPORTS_PER_SECOND = 1 / 26;
+/**
+ * Muzyka tła (`/intro/background.mp3`, 1:50) gra od startu planszy. Crawl jest do niej
+ * dopasowany: tekst dojeżdża na miejsce (hasło „Pax Magnifica") dokładnie w chwili końca
+ * utworu, więc czas przewijania wynika z długości muzyki, a nie ze stałej prędkości.
+ */
+const MUSIC_SRC = "/intro/background.mp3";
+const MUSIC_SECONDS = 110;
+const MUSIC_VOLUME = 0.5;
+/** Narrator (`/intro/final.mp3`, 1:35) rusza razem z przewijaniem tekstu. */
+const NARRATOR_SRC = "/intro/final.mp3";
+const NARRATOR_VOLUME = 1;
+/** Start przewijania (s) — MUSI być równy opóźnieniu `--t-crawl-delay` w CSS. */
+const CRAWL_DELAY_S = 2.4;
 /** Gdzie (ułamek wysokości okna) zatrzymuje się dolny brzeg tekstu po dojechaniu. */
 const CRAWL_REST_FRACTION = 0.6;
 /** Czas wygaszenia treści przed przejściem do gry (ms) — zgodny z CSS `.leaving`. */
@@ -75,10 +86,45 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
   const [leaving, setLeaving] = useState(false);
   const finishedRef = useRef(false);
 
+  // Dźwięk: muzyka od razu, narrator razem z początkiem crawl. Brak pliku albo
+  // zablokowany autoplay = cisza (intro działa dalej). Cleanup zatrzymuje oba tory.
+  const audioRef = useRef<HTMLAudioElement[]>([]);
+  useEffect(() => {
+    const music = new Audio(MUSIC_SRC);
+    music.volume = MUSIC_VOLUME;
+    const narrator = new Audio(NARRATOR_SRC);
+    narrator.volume = NARRATOR_VOLUME;
+    audioRef.current = [music, narrator];
+    const play = (a: HTMLAudioElement) => void a.play().catch(() => undefined);
+    play(music);
+    const timer = window.setTimeout(
+      () => play(narrator),
+      reduced ? 0 : CRAWL_DELAY_S * 1000,
+    );
+    return () => {
+      window.clearTimeout(timer);
+      music.pause();
+      narrator.pause();
+      audioRef.current = [];
+    };
+  }, [reduced]);
+
   const finish = useCallback(() => {
     if (finishedRef.current) return;
     finishedRef.current = true;
     setLeaving(true);
+    // Dźwięk cichnie razem z wygaszaniem treści.
+    const tracks = audioRef.current;
+    const startVolumes = tracks.map((a) => a.volume);
+    const steps = 14;
+    let step = 0;
+    const fade = window.setInterval(() => {
+      step += 1;
+      tracks.forEach((a, i) => {
+        a.volume = Math.max(0, startVolumes[i] * (1 - step / steps));
+      });
+      if (step >= steps) window.clearInterval(fade);
+    }, LEAVE_MS / steps);
     window.setTimeout(onFinish, reduced ? 0 : LEAVE_MS);
   }, [onFinish, reduced]);
 
@@ -143,8 +189,8 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
 
 /**
  * Przewijany tekst kroniki. Po zmierzeniu okna i treści wylicza trasę (od dołu okna do
- * pozycji spoczynku) oraz czas z STAŁEJ prędkości, więc tempo nie zależy od długości
- * tekstu ani rozmiaru ekranu. Zmienne CSS `--from/--to/--dur` czyta animacja `crawl`.
+ * pozycji spoczynku); czas = długość muzyki minus opóźnienie startu, więc koniec
+ * przewijania pokrywa się z końcem utworu. Zmienne CSS `--from/--to/--dur` czyta animacja `crawl`.
  */
 function Crawl({
   reduced,
@@ -170,13 +216,12 @@ function Crawl({
       const h = box.clientHeight;
       const from = h;
       const to = h * CRAWL_REST_FRACTION - text.scrollHeight;
-      const speed = h * CRAWL_VIEWPORTS_PER_SECOND; // px / s
       setRoute((prev) => {
         // Pomiar po załadowaniu fontów bywa o piksele inny — nie restartuj animacji.
         if (prev && Math.abs(prev.to - to) < 24 && Math.abs(prev.from - from) < 24) {
           return prev;
         }
-        return { from, to, dur: Math.max(8, (from - to) / speed) };
+        return { from, to, dur: MUSIC_SECONDS - CRAWL_DELAY_S };
       });
     };
     measure();
@@ -189,6 +234,7 @@ function Crawl({
         "--from": `${route.from}px`,
         "--to": `${route.to}px`,
         "--dur": `${route.dur}s`,
+        "--t-crawl-delay": `${CRAWL_DELAY_S}s`,
       } as CSSProperties)
     : undefined;
 

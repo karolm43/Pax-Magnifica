@@ -3,7 +3,8 @@
  *
  * ═══ CZASY — TU STROISZ TEMPO (mniejsza liczba = szybciej) ═══
  *   --t-title-delay   start tytułu            --t-title-dur   wyłanianie tytułu
- *   --t-crawl-delay   start przewijania tekstu
+ *   --t-crawl-delay   start przewijania tekstu (nadpisywane z `CRAWL_DELAY_S` w GameIntro.tsx,
+ *                     bo czas crawl jest dopasowany do długości muzyki)
  *   --t-cards-delay   start pierwszej frakcji --t-cards-step  odstęp między frakcjami
  *   --t-cards-dur     wyłanianie jednej karty
  * Prędkość samego crawl to stała `CRAWL_VIEWPORTS_PER_SECOND` w GameIntro.tsx.
