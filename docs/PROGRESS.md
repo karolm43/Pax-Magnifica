@@ -21,185 +21,55 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
-### ✅ Wybór frakcji (setup) — iteracja 5: scena pełnoekranowa + sterowanie w kroku 1 (ukończone)
+### ✅ Wybór frakcji (setup) — iteracja 5: pełnoekranowa scena, nagłówek frakcji, Obsidian (ukończone)
 
-**Cel (uwaga użytkownika):** portret i lore mają tworzyć JEDNĄ kompozycję (lore nałożone
-na portret, nie osobny wysuwany panel), krok wyboru frakcji ma zajmować cały ekran, a
-przełącznik „człowiek/bot" przenosi się do kroku nazwy/koloru (krok „Człowiek/bot" znika).
+**Pełny opis (układ, pliki, format treści, animacje, gotchas): `UI_WYBOR_FRAKCJI.md`.**
 
-**Co zrobione:**
-- `SETUP_STEPS` ma teraz 2 kroki: `name-color` (nazwa + kolor + sterowanie) i `faction`
-  (scena pełnoekranowa). Usunięty `Step_Control.tsx`; `Step_NameColor.tsx` dostał
-  `SegmentedControl` HUMAN/BOT + `Select` trudności (przeniesione 1:1, z `useEngineConfig`).
-  Walidacja `validateControl` przeniesiona do `validateStep("name-color")` w `useSetupStore.ts`.
-- `SetupWizard.tsx`: nowy typ `StageActions` i zbiór `STAGE_STEP_IDS` — krok „faction" jest
-  renderowany BEZ ramki kreatora (`Paper`), komponent kroku dostaje własne akcje nawigacji
-  (`onBack`, `onSubmit`, `canSubmit`, `message`) i sam rysuje pasek górny.
-- `StartScreen.tsx`: w kroku scenicznym kontener `.setupScreen` traci padding/scroll
-  (`.setupScreenStage`) i nie renderuje panelu/przycisku „← Menu główne" — scena zajmuje
-  cały ekran.
-- Nowy `FactionBackdrop.tsx` (+ `.module.css`) zastępuje `LoreDrawer`/`LorePanel`: portret
-  (`FactionPortraitLayer`) stoi maksymalnie przy LEWEJ krawędzi ekranu (tło sceny, ~62%
-  szerokości, `object-position: left bottom`), a `FactionLore` nakłada tekst na jego dolną
-  część przez gradientowy „scrim" (bez osobnego boxa) — DWIE kolumny (`column-count: 2`),
-  mała czcionka (`clamp(10.5px, 0.72vw, 13px)`), żeby lore zmieściło się bez przewijania.
-  Nagłówek lore i śródtytuły: krój Ambroise Firmin (jak logo menu); treść: szeryfowy stack.
-- `Step_Faction.tsx` przepisany na scenę: pasek górny (Wstecz · przełącznik graczy ·
-  Start gry) + trzy warstwy w `.content` — portret+lore (tło, `position:absolute`),
-  `FactionSummary` na szkle (`backdrop-filter: blur`) pośrodku, pionowa lista frakcji
-  z wyszukiwarką po prawej (sam KLIK zmienia podgląd — bez hover-popoverów, zgodnie z
-  gotchą „karta zostaje na hover"). Zmiana frakcji odtwarza animacje wejścia (`key` na
-  warstwach portretu/lore/detail): portret wjeżdża z lewej (`translateX`), lore i sekcje
-  `FactionSummary` wchodzą kaskadowo (`animation-delay` z indeksu bloku/sekcji).
-  `prefers-reduced-motion` redukuje wszystko do samego fade.
-- `FactionSummary.tsx`/`.module.css`: usunięty `LorePanel`/`LeaderPortrait`/`LoreBlocks`
-  (przeniesione do `FactionBackdrop.tsx`); nagłówek stracił cytat (przeniesiony do lore na
-  scenie); sekcje dostały kaskadowe wejście (`.sections > :nth-child(n)`).
-
-**QA:** front tsc + eslint + build czyste (`npm run build` ok, chunk >500kB to istniejące
-ostrzeżenie niezwiązane ze zmianą). Brak testów jednostkowych frontu do uruchomienia.
-
-**Korekty po przeglądzie usera (ta sama iteracja):**
-- Układ: portret NIE leży pod tekstem — strefa postaci (`.characterZone`) = portret po lewej
-  (prawa krawędź zanika maską), lore w 2 kolumnach OBOK postaci; panel detali zwężony do
-  ~21vw, lista frakcji ~15vw.
-- Animacje bardzo wolne: portret „wyłania się" z mgły (3.6 s, blur + brightness + opacity),
-  lore (opóźnienie 1.3 s, 170 ms/blok) i sekcje detali wchodzą po nim.
-- Portret równo z krawędzią: `FactionPortraitLayer` mierzy przezroczysty margines PNG
-  (canvas, alfa > 16) po `onLoad` i koryguje `transform: translate(%)` — działa dla każdego
-  pliku (np. `arborec.png` miał ~4.6% pustki z lewej i ~2% od dołu). Obraz ma box = widoczna
-  treść (`max-width/max-height` + `auto`, bez `object-fit`), dzięki czemu % przesunięcie jest dokładne.
-- Lore większe: `clamp(12px, 0.75vw, 14.5px)`; `.loreSlot` ma awaryjny cienki scroll,
-  gdyby bardzo długie lore się nie zmieściło.
-- Przycisk „Wybierz dla gracza N" wyjęty z panelu detali: osobny, wyśrodkowany element na
-  dole sceny (`.pickBar`, złoty gradient, krój Ambroise, poświata); po wyborze stan
-  „✓ Wybrana dla gracza N". Strefa postaci sięga pod pasek (`margin-bottom: -var(--pick-h)`),
-  więc portret dochodzi do dolnej krawędzi ekranu.
-
-**Otwarte (do ustalenia z userem później):** tło sceny (`main_menu.jpg` przyciemnione) —
-user zaznaczył, że może się zmienić; pozycja portretu (max-lewo) też może się przesunąć.
-
----
-
-### ✅ Wybór frakcji (setup) — iteracja 4: wysuwany panel „postać + lore" (ukończone)
-
-**Cel (uwaga użytkownika):** nagłówek panelu ma wrócić do prostego (ikona + nazwa +
-złożoność), a portret POSTACI (lider) + duży box na lore mają być OSOBNYM panelem
-wysuwanym z prawej po kliknięciu, z animacją.
-
-**Co zrobione (`FactionSummary.tsx` + `.module.css`):**
-- Nagłówek uproszczony: lokalna ikona frakcji (`/static/factions/<id>.png`) + nazwa +
-  złożoność + akcje (przycisk „Postać i lore", „Zobacz Obsidian" dla Firmamentu).
-- Nowy `LoreDrawer` — panel `position: fixed` przy prawej krawędzi ekranu (nie daje się
-  przyciąć przez `overflow` panelu szczegółów), wjeżdża `translateX` po kliknięciu
-  „Postać i lore"; duży portret postaci + duży box na lore; zamykany przyciskiem.
-- Portret postaci (`LeaderPortrait`) — łańcuch źródeł LOKALNYCH: własny plik gracza
-  `/faction_portraits/<id>.{jpg,png,webp}` → portret bohatera frakcji `/leaders/<heroId>.webp`
-  → ikona frakcji `/static/factions/<id>.png`. Bez zewnętrznego CDN.
-- Panel zamyka się automatycznie przy zmianie frakcji / wejściu w Obsidiana.
-
-**QA:** front tsc + eslint + build czyste.
-
----
-
-### ✅ Wybór frakcji (setup) — iteracja 3: boot, Obsidian, portret+lore z boku (ukończone)
-
-**Cel (kolejne uwagi użytkownika):**
-- ekran rozruchu „przeskakiwał" między dwoma wyglądami (splash HTML vs React BootScreen);
-- ikony jednostek za duże względem boxów;
-- planety: bez etykiet „system domowy"/„domowe", za to z wartościami resource/influence;
-- edge-case Firmament → Obsidian: Obsidian to rozwinięcie Firmamentu — przycisk podglądu;
-- portret postaci z boku + lore obok niego; prosty fade-in boxa i zdjęcia;
-- ikona frakcji (placeholder portretu) z LOKALNYCH assetów, nie z CDN; usunąć legendę R/I.
+**Cel (uwagi usera):** portret + lore jako JEDNA kompozycja na cały ekran; kolejność uwagi
+nazwa → cytat → autor → lore; panel umiejętności szybki; sterowanie człowiek/bot w kroku 1;
+osobny, „dziwny" wyjątek dla Obsidiana (lore pismem z gry).
 
 **Co zrobione:**
-- **Boot:** zsynchronizowano splash HTML (`index.html`) z React BootScreen — ten sam
-  krój Ambroise + gradient TI4 + kreska pod logo + pulsujący pasek przy reduced-motion.
-  Znika „przeskok dwóch ekranów" na starcie.
-- **Backend:** nowy `GET /factions/{id}` (`_faction_info`) — pełne dane JEDNEJ frakcji,
-  także NIEGRYWALNEJ (Obsidian), by dało się ją podejrzeć mimo braku w puli wyboru.
-- **Frontend `useNewGame.ts`:** hook `useFaction(id)` (enabled na żądanie).
-- **FactionSummary:** sprite jednostki wymuszony do boxa 34×34 (`:global(.unit-sprite)`);
-  planety jako lista z wartościami resource (żółty) / influence (niebieski), bez etykiet
-  „domowe"; przycisk „Zobacz Obsidian" dla Firmamentu → podgląd frakcji pochodnej z
-  przyciskiem powrotu (mapa `DERIVED_FACTION`); portret postaci + lore w PRAWEJ kolumnie
-  nagłówka; fade-in (`summaryFadeIn`, reduced-motion = sam opacity); placeholder portretu
-  = LOKALNA ikona `/static/factions/<id>.png` (nie CDN); usunięto legendę „zasoby/wpływ".
+- **Kreator ma 2 kroki** (`setupSteps.ts`): `name-color` („Gracze": nazwa + kolor + sterowanie
+  HUMAN/BOT + trudność z `/engine/config`) i `faction` (scena). Usunięty `Step_Control.tsx`;
+  `validateControl` przeniesione do `validateStep("name-color")`. Krok sceny jest w
+  `STAGE_STEP_IDS` → renderowany bez ramki kreatora (`StageActions` w `SetupWizard.tsx`),
+  `StartScreen` zdejmuje padding/scroll (`.setupScreenStage`).
+- **Scena** (`Step_Faction.tsx`): pasek górny (Wstecz · gracze · Start gry), strefa postaci
+  (portret przy lewej/dolnej krawędzi ekranu, maska wygaszająca prawą stronę, lore w 2
+  kolumnach tuż przy sylwetce, delikatnie na nią nachodzące), wąski panel szczegółów
+  (`FactionSummary` na szkle), pionowa lista frakcji (sam klik), osobny wyśrodkowany przycisk
+  „Wybierz dla gracza N" na dole.
+- **Portret** (`FactionBackdrop.tsx`): pomiar przezroczystego marginesu PNG (canvas) →
+  sylwetka równo z krawędzią ekranu + środek sylwetki (`--figure-cx`) do centrowania nagłówka
+  i ustawienia lore.
+- **Nagłówek** (`FactionHeader`): panel w stylu karty frakcji (ścięte rogi, ikona, nazwa
+  Handel Gothic D Bold, cytat w “ ”, autor „— …"), akcent koloru **wyliczany z ikony frakcji**.
+  Nowe pola `quote`/`quoteAuthor` w `factionLore.ts`.
+- **Lore**: dwie jawne kolumny (`splitLoreColumns`, cięcie na końcu zdania), auto-dopasowanie
+  czcionki do boxa bez przewijania, tło lekkie i przezroczyste.
+- **Animacje**: postać wyłania się z mgły (5.5 s), potem nagłówek (nazwa → cytat → autor), na
+  końcu lore od 4.2 s; panel szczegółów i przycisk wchodzą szybko (~0.4 s). Reduced-motion:
+  wolny fade bez ruchu (krótki fade był „niewidoczny").
+- **Obsidian** (`glyphLore` w `factionLore.ts`): lore krojem **Lazaxian**, przycisk
+  „Przetłumacz" z efektem rozszyfrowania (`GlyphText.tsx`: fala znak po znaku, migotanie,
+  glitch, aberracja, skanlinie) + groza (losowe glitche akapitów przez WAAPI, przygasanie,
+  błyski fraz `glitchPhrases`, bijące serce tła). Transkrypcja lore jest fanowska (lista
+  pominiętych fragmentów w `UI_WYBOR_FRAKCJI.md`).
+- Usunięte: `LoreDrawer`/`LorePanel`/`LeaderPortrait`/`LoreBlocks` z `FactionSummary.tsx`
+  (przeniesione/zastąpione w `FactionBackdrop.tsx`).
 
-**QA:** backend 280 testów + ruff + mypy czyste; front tsc + eslint + build czyste.
+**Pułapki odkryte po drodze** (szczegóły w `UI_WYBOR_FRAKCJI.md` §9): `easing` w WAAPI działa
+na cały przebieg (steps(1) = niewidoczny efekt); podmiana `animation` na elemencie z
+animacją wejścia restartuje ją; `text-wrap: balance` nie zwęża kontenera; test szerokości
+z pseudo-elementem wystającym zbijał czcionkę do minimum.
 
----
+**QA:** front `tsc` + `eslint` + `build` czyste. Brak testów jednostkowych frontu; efekty
+wizualne weryfikowane tylko w przeglądarce.
 
-### ✅ Wybór frakcji (setup) — iteracja 2: scalenie techów, pełne nazwy, portret+lore (ukończone)
-
-**Cel (uwagi użytkownika do iteracji 1):** panel wychodził poza okno; osobny krok wyboru
-technologii był zbędny; skróty zamiast pełnych nazw (flota „cv", system domowy jako ID);
-brakowało przełomu (breakthrough) i wszystkich jednostek frakcyjnych (np. argent_destroyer);
-brak miejsca na portret i (długie) lore frakcji.
-
-**Backend (`src/api/schemas.py`, `src/api/routers/game.py`):**
-- `FactionInfo` dostał `breakthrough` (id dopasowany po `BreakthroughDef.faction`) i
-  `starting_units` (lista `StartingUnit{base_type,count,placement}` budowana przez
-  `parse_starting_fleet` — jedno źródło parsera floty, bez duplikowania kodów na froncie).
-- Handler `get_factions` zrefaktorowany na helper `_faction_info` + `_faction_starting_units`
-  + `_faction_breakthrough_id`.
-
-**Frontend:**
-- `FactionSummary.tsx` przebudowany: portret frakcji (z fallbackiem do ikony), sekcja lore
-  (własny scroll — lore bywa długie), breakthrough (`Breakthrough`), WSZYSTKIE jednostki
-  frakcyjne (filtr po `getUnitData(id).faction`, nie tylko flagship/mech), pełne nazwy
-  jednostek/systemu/planet (`getUnitData`/`getTileById`/`getPlanetData`), wbudowany wybór
-  technologii startowych (`StartingTechChoice`) — pokazywany, gdy frakcja jest przypisana
-  aktywnemu graczowi.
-- `factionLore.ts` (NOWY) — miejsce na lore (mapa `FACTION_LORE`) + konwencja portretów
-  `/faction_portraits/<id>.{jpg,png,webp}`; `frontend/public/faction_portraits/README.md`.
-- Scalono krok „Technologie startowe" z krokiem frakcji: `setupSteps.ts` (3 kroki zamiast 4),
-  `useSetupStore.validateStep("faction")` waliduje też komplet techów; usunięto
-  `Step_StartingTech.tsx` i `StartingTechPicker.tsx`.
-- Naprawa „wychodzi poza okno": panel detalu `position: sticky` + `max-height: calc(100vh-…)`
-  + własny `overflow-y` (nie wychodzi poza viewport).
-
-**Gdzie użytkownik wkleja treść:** lore → `frontend/src/domains/setup/factionLore.ts`
-(mapa `FACTION_LORE`, klucz = id frakcji); portrety → `frontend/public/faction_portraits/`.
-
-**QA:** backend 280 testów + ruff + mypy czyste; front tsc + eslint + build czyste.
-
----
-
-### ✅ Przeróbka ekranu wyboru frakcji (setup) — galeria + faction summary (ukończone)
-
-**Cel (prośba użytkownika):** dawny krok wyboru frakcji renderował osobną przewijalną
-listę 30+ frakcji dla KAŻDEGO slotu gracza (ściana tekstu, małe przyciski, wybór z listy).
-Nowy układ: klik we frakcję → bogaty podgląd (faction summary) z danymi, które widać też
-w panelu gracza (zdolności, technologie frakcyjne, flagship/mech, liderzy, weksel). UI
-spójne z resztą aplikacji (komponenty AsyncTI4) i wygodne w użyciu.
-
-**Backend — rozszerzenie danych frakcji (dane statyczne z rejestru, bez stanu gry):**
-- `src/core/models.py` — `FactionDef` dostał pola `promissory_notes` (alias `promissoryNotes`,
-  dotąd po cichu pomijane przez `extra="ignore"`) i `complexity` (Low/Moderate/High).
-- `src/api/schemas.py` — `FactionInfo` rozszerzony o pola bogate: `starting_tech`,
-  `abilities`, `faction_tech`, `leaders`, `units`, `promissory_notes`, `commodities`,
-  `complexity` (same identyfikatory; front rozwiązuje je po danych AsyncTI4).
-- `src/api/routers/game.py` — handler `GET /factions` mapuje nowe pola z `FactionDef`.
-
-**Frontend — układ master-detail:**
-- `frontend/src/api/useNewGame.ts` — typ `FactionInfo` zsynchronizowany z backendem.
-- `frontend/src/domains/setup/FactionSummary.tsx` (+ `.module.css`) — NOWY panel podglądu;
-  reużywa komponenty panelu gracza (`Ability`, `Tech`, `LeaderChip`, `PromissoryNote`,
-  `UnitDetailsCard`, `Unit`). Działa na etapie setupu, bo hooki stanu gry degradują do
-  `undefined` poza providerem (bez rzutów).
-- `frontend/src/domains/setup/steps/Step_Faction.tsx` (+ `.module.css`) — PRZEPISANY:
-  pasek graczy (przełącznik, pokazuje kto co wybrał) + responsywna galeria kafli z
-  wyszukiwarką + summary z przyciskiem „Wybierz dla gracza N". Klik w kafel = PODGLĄD,
-  przypisanie dopiero przyciskiem. Frakcje wzięte przez innych graczy są przygaszone.
-- Usunięto nieużywany już `FactionList.tsx` + `.module.css` (dawny quick-reference-on-hover
-  zastąpiony pełnym summary).
-
-**Zasady UI (zgodnie z preferencjami):** akcent zaznaczenia = niebieski DS (sygnał
-interakcji); ciepły bursztyn/złoto TI4 jako wyróżnienie podglądu i nazwy frakcji.
-
-**QA:** backend 280 testów zielonych, `ruff` + `mypy --strict` czyste; frontend `tsc`,
-`eslint` i `vite build` czyste.
+**Otwarte:** tło sceny (`main_menu.jpg` przyciemnione) i pozycja portretu — user dopuścił
+zmiany; uzupełnienie lore/cytatów/autorów pozostałych frakcji w `factionLore.ts`;
+`obsidian.png`, `firmament.png` i `Lazaxian-Bold.ttf` mogą być jeszcze niezacommitowane.
 
 ---
 

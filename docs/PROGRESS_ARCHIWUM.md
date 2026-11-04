@@ -1587,4 +1587,127 @@ czyste. Reguła zaktualizowana: RULES.md 27 (sekcja „UI — menu kontekstowe, 
 **Następnie (do rozbudowy menu RMB, wg uznania):** kolejne pozycje — np. „Pokaż kartę",
 „Odczep attachment" (planety), „Aktywuj lidera" (gdy wejdzie E4), „Zwróć do rezerwy" itd.
 
+---
+
+### ✅ Przeróbka ekranu wyboru frakcji (setup) — galeria + faction summary (ukończone)
+
+**Cel (prośba użytkownika):** dawny krok wyboru frakcji renderował osobną przewijalną
+listę 30+ frakcji dla KAŻDEGO slotu gracza (ściana tekstu, małe przyciski, wybór z listy).
+Nowy układ: klik we frakcję → bogaty podgląd (faction summary) z danymi, które widać też
+w panelu gracza (zdolności, technologie frakcyjne, flagship/mech, liderzy, weksel). UI
+spójne z resztą aplikacji (komponenty AsyncTI4) i wygodne w użyciu.
+
+**Backend — rozszerzenie danych frakcji (dane statyczne z rejestru, bez stanu gry):**
+- `src/core/models.py` — `FactionDef` dostał pola `promissory_notes` (alias `promissoryNotes`,
+  dotąd po cichu pomijane przez `extra="ignore"`) i `complexity` (Low/Moderate/High).
+- `src/api/schemas.py` — `FactionInfo` rozszerzony o pola bogate: `starting_tech`,
+  `abilities`, `faction_tech`, `leaders`, `units`, `promissory_notes`, `commodities`,
+  `complexity` (same identyfikatory; front rozwiązuje je po danych AsyncTI4).
+- `src/api/routers/game.py` — handler `GET /factions` mapuje nowe pola z `FactionDef`.
+
+**Frontend — układ master-detail:**
+- `frontend/src/api/useNewGame.ts` — typ `FactionInfo` zsynchronizowany z backendem.
+- `frontend/src/domains/setup/FactionSummary.tsx` (+ `.module.css`) — NOWY panel podglądu;
+  reużywa komponenty panelu gracza (`Ability`, `Tech`, `LeaderChip`, `PromissoryNote`,
+  `UnitDetailsCard`, `Unit`). Działa na etapie setupu, bo hooki stanu gry degradują do
+  `undefined` poza providerem (bez rzutów).
+- `frontend/src/domains/setup/steps/Step_Faction.tsx` (+ `.module.css`) — PRZEPISANY:
+  pasek graczy (przełącznik, pokazuje kto co wybrał) + responsywna galeria kafli z
+  wyszukiwarką + summary z przyciskiem „Wybierz dla gracza N". Klik w kafel = PODGLĄD,
+  przypisanie dopiero przyciskiem. Frakcje wzięte przez innych graczy są przygaszone.
+- Usunięto nieużywany już `FactionList.tsx` + `.module.css` (dawny quick-reference-on-hover
+  zastąpiony pełnym summary).
+
+**Zasady UI (zgodnie z preferencjami):** akcent zaznaczenia = niebieski DS (sygnał
+interakcji); ciepły bursztyn/złoto TI4 jako wyróżnienie podglądu i nazwy frakcji.
+
+**QA:** backend 280 testów zielonych, `ruff` + `mypy --strict` czyste; frontend `tsc`,
+`eslint` i `vite build` czyste.
+
+---
+
+### ✅ Wybór frakcji (setup) — iteracja 2: scalenie techów, pełne nazwy, portret+lore (ukończone)
+
+**Cel (uwagi użytkownika do iteracji 1):** panel wychodził poza okno; osobny krok wyboru
+technologii był zbędny; skróty zamiast pełnych nazw (flota „cv", system domowy jako ID);
+brakowało przełomu (breakthrough) i wszystkich jednostek frakcyjnych (np. argent_destroyer);
+brak miejsca na portret i (długie) lore frakcji.
+
+**Backend (`src/api/schemas.py`, `src/api/routers/game.py`):**
+- `FactionInfo` dostał `breakthrough` (id dopasowany po `BreakthroughDef.faction`) i
+  `starting_units` (lista `StartingUnit{base_type,count,placement}` budowana przez
+  `parse_starting_fleet` — jedno źródło parsera floty, bez duplikowania kodów na froncie).
+- Handler `get_factions` zrefaktorowany na helper `_faction_info` + `_faction_starting_units`
+  + `_faction_breakthrough_id`.
+
+**Frontend:**
+- `FactionSummary.tsx` przebudowany: portret frakcji (z fallbackiem do ikony), sekcja lore
+  (własny scroll — lore bywa długie), breakthrough (`Breakthrough`), WSZYSTKIE jednostki
+  frakcyjne (filtr po `getUnitData(id).faction`, nie tylko flagship/mech), pełne nazwy
+  jednostek/systemu/planet (`getUnitData`/`getTileById`/`getPlanetData`), wbudowany wybór
+  technologii startowych (`StartingTechChoice`) — pokazywany, gdy frakcja jest przypisana
+  aktywnemu graczowi.
+- `factionLore.ts` (NOWY) — miejsce na lore (mapa `FACTION_LORE`) + konwencja portretów
+  `/faction_portraits/<id>.{jpg,png,webp}`; `frontend/public/faction_portraits/README.md`.
+- Scalono krok „Technologie startowe" z krokiem frakcji: `setupSteps.ts` (3 kroki zamiast 4),
+  `useSetupStore.validateStep("faction")` waliduje też komplet techów; usunięto
+  `Step_StartingTech.tsx` i `StartingTechPicker.tsx`.
+- Naprawa „wychodzi poza okno": panel detalu `position: sticky` + `max-height: calc(100vh-…)`
+  + własny `overflow-y` (nie wychodzi poza viewport).
+
+**Gdzie użytkownik wkleja treść:** lore → `frontend/src/domains/setup/factionLore.ts`
+(mapa `FACTION_LORE`, klucz = id frakcji); portrety → `frontend/public/faction_portraits/`.
+
+**QA:** backend 280 testów + ruff + mypy czyste; front tsc + eslint + build czyste.
+
+---
+
+### ✅ Wybór frakcji (setup) — iteracja 3: boot, Obsidian, portret+lore z boku (ukończone)
+
+**Cel (kolejne uwagi użytkownika):**
+- ekran rozruchu „przeskakiwał" między dwoma wyglądami (splash HTML vs React BootScreen);
+- ikony jednostek za duże względem boxów;
+- planety: bez etykiet „system domowy"/„domowe", za to z wartościami resource/influence;
+- edge-case Firmament → Obsidian: Obsidian to rozwinięcie Firmamentu — przycisk podglądu;
+- portret postaci z boku + lore obok niego; prosty fade-in boxa i zdjęcia;
+- ikona frakcji (placeholder portretu) z LOKALNYCH assetów, nie z CDN; usunąć legendę R/I.
+
+**Co zrobione:**
+- **Boot:** zsynchronizowano splash HTML (`index.html`) z React BootScreen — ten sam
+  krój Ambroise + gradient TI4 + kreska pod logo + pulsujący pasek przy reduced-motion.
+  Znika „przeskok dwóch ekranów" na starcie.
+- **Backend:** nowy `GET /factions/{id}` (`_faction_info`) — pełne dane JEDNEJ frakcji,
+  także NIEGRYWALNEJ (Obsidian), by dało się ją podejrzeć mimo braku w puli wyboru.
+- **Frontend `useNewGame.ts`:** hook `useFaction(id)` (enabled na żądanie).
+- **FactionSummary:** sprite jednostki wymuszony do boxa 34×34 (`:global(.unit-sprite)`);
+  planety jako lista z wartościami resource (żółty) / influence (niebieski), bez etykiet
+  „domowe"; przycisk „Zobacz Obsidian" dla Firmamentu → podgląd frakcji pochodnej z
+  przyciskiem powrotu (mapa `DERIVED_FACTION`); portret postaci + lore w PRAWEJ kolumnie
+  nagłówka; fade-in (`summaryFadeIn`, reduced-motion = sam opacity); placeholder portretu
+  = LOKALNA ikona `/static/factions/<id>.png` (nie CDN); usunięto legendę „zasoby/wpływ".
+
+**QA:** backend 280 testów + ruff + mypy czyste; front tsc + eslint + build czyste.
+
+---
+
+### ✅ Wybór frakcji (setup) — iteracja 4: wysuwany panel „postać + lore" (ukończone)
+
+**Cel (uwaga użytkownika):** nagłówek panelu ma wrócić do prostego (ikona + nazwa +
+złożoność), a portret POSTACI (lider) + duży box na lore mają być OSOBNYM panelem
+wysuwanym z prawej po kliknięciu, z animacją.
+
+**Co zrobione (`FactionSummary.tsx` + `.module.css`):**
+- Nagłówek uproszczony: lokalna ikona frakcji (`/static/factions/<id>.png`) + nazwa +
+  złożoność + akcje (przycisk „Postać i lore", „Zobacz Obsidian" dla Firmamentu).
+- Nowy `LoreDrawer` — panel `position: fixed` przy prawej krawędzi ekranu (nie daje się
+  przyciąć przez `overflow` panelu szczegółów), wjeżdża `translateX` po kliknięciu
+  „Postać i lore"; duży portret postaci + duży box na lore; zamykany przyciskiem.
+- Portret postaci (`LeaderPortrait`) — łańcuch źródeł LOKALNYCH: własny plik gracza
+  `/faction_portraits/<id>.{jpg,png,webp}` → portret bohatera frakcji `/leaders/<heroId>.webp`
+  → ikona frakcji `/static/factions/<id>.png`. Bez zewnętrznego CDN.
+- Panel zamyka się automatycznie przy zmianie frakcji / wejściu w Obsidiana.
+
+**QA:** front tsc + eslint + build czyste.
+
+---
 
