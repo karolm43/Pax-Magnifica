@@ -174,11 +174,75 @@ class StaticDataRegistry:
             _iter_dir_entries(config.BREAKTHROUGHS_DATA_DIR), BreakthroughDef
         )
 
+        self._apply_thunders_edge_breakthrough_techs()
+
         self.engine_config = self._load_engine_config()
 
         self.unit_index = {uid: i for i, uid in enumerate(sorted(self.units))}
         self.planet_index = {pid: i for i, pid in enumerate(sorted(self.planets))}
         self.system_index = {sid: i for i, sid in enumerate(sorted(self.systems))}
+
+    # --- Rodzina frakcji i przełomy (Thunder's Edge) --------------------
+
+    @staticmethod
+    def faction_family(faction: FactionDef) -> str:
+        """Klucz „rodziny" frakcji: ``shortName`` z danych (małe litery) lub id.
+
+        Warianty jednej frakcji (Keleres: keleresm/keleresx/keleresa) dzielą
+        ``shortName``, a karty (przełom, technologie, liderzy) są przypisane do
+        rodziny (``faction="keleres"``), nie do id wariantu.
+        """
+        return (faction.short_name or faction.id).lower()
+
+    def breakthrough_for_faction(self, faction_id: str | None) -> BreakthroughDef | None:
+        """Przełom frakcji (TE) — dopasowanie po id wariantu LUB po jego rodzinie."""
+        if faction_id is None:
+            return None
+        faction = self.factions.get(faction_id)
+        keys = {faction_id}
+        if faction is not None:
+            keys.add(self.faction_family(faction))
+        return next(
+            (bt for bt in self.breakthroughs.values() if bt.faction in keys), None
+        )
+
+    def _apply_thunders_edge_breakthrough_techs(self) -> None:
+        """Przy włączonym TE zamienia technologię frakcyjną na jej przełom.
+
+        W Thunder's Edge część technologii frakcyjnych została zastąpiona przełomem
+        (Keleres: technologia „I.I.H.Q. Modernization" → przełom o tej samej nazwie)
+        i dostała nowe technologie z TE (Keleres: „Executive Order"). Reguła z danych,
+        bez listy frakcji: dla frakcji z przełomem TE usuwamy z ``factionTech``
+        technologię o nazwie równej nazwie przełomu, a w jej miejsce dodajemy
+        technologie ``thunders_edge`` tej rodziny frakcji, których jeszcze brak.
+        Frakcje bez takiego zbiegu nazw pozostają bez zmian.
+        """
+        if "thunders_edge" not in self._enabled:
+            return
+        for faction_id, faction in list(self.factions.items()):
+            breakthrough = self.breakthrough_for_faction(faction_id)
+            if breakthrough is None or breakthrough.source != "thunders_edge":
+                continue
+            replaced = [
+                t
+                for t in faction.faction_tech
+                if t in self.technologies
+                and self.technologies[t].name == breakthrough.name
+            ]
+            if not replaced:
+                continue
+            family = self.faction_family(faction)
+            kept = [t for t in faction.faction_tech if t not in replaced]
+            added = [
+                t.id
+                for t in self.technologies.values()
+                if t.source == "thunders_edge"
+                and t.faction == family
+                and t.id not in kept
+            ]
+            self.factions[faction_id] = faction.model_copy(
+                update={"faction_tech": added + kept}
+            )
 
     @staticmethod
     def _load_engine_config() -> EngineConfig:
@@ -212,6 +276,10 @@ class StaticDataRegistry:
         a nie stałą w kodzie. Patrz docs/RULES.md 30.
         """
         return frozenset(self.engine_config.valid_difficulties)
+
+    def valid_personalities(self) -> frozenset[str]:
+        """Dozwolony zbiór osobowości bota (⚠️ ZAŁOŻENIE) — z ``engine_config.json``."""
+        return frozenset(self.engine_config.valid_personalities)
 
     # --- Karty strategii -----------------------------------------------
 

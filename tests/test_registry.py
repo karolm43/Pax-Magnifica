@@ -160,3 +160,34 @@ def test_engine_config_defaults_when_file_absent(
     registry = StaticDataRegistry(enabled_sources=["base"])
     assert registry.hand_limits().action_cards is None
     assert registry.valid_difficulties() == frozenset()
+
+
+_KELERES_VARIANTS = ("keleresm", "keleresx", "keleresa")
+_TE_SOURCES = ["base", "pok", "codex1", "codex2", "codex3", "codex4", "thunders_edge"]
+
+
+def test_keleres_te_tech_replaces_iihq_with_executive_order() -> None:
+    """TE: I.I.H.Q. przestaje być technologią (jest przełomem), wchodzi Executive Order."""
+    registry = StaticDataRegistry(enabled_sources=_TE_SOURCES)
+    for faction_id in _KELERES_VARIANTS:
+        assert registry.factions[faction_id].faction_tech == ["executiveorder", "asn"]
+
+
+def test_keleres_without_te_keeps_pok_techs() -> None:
+    """Bez Thunder's Edge Keleres zostaje przy technologiach z Codexu (iihq, asn)."""
+    registry = StaticDataRegistry(
+        enabled_sources=["base", "pok", "codex1", "codex2", "codex3", "codex4"]
+    )
+    for faction_id in _KELERES_VARIANTS:
+        assert registry.factions[faction_id].faction_tech == ["iihq", "asn"]
+
+
+def test_keleres_all_variants_have_te_breakthrough() -> None:
+    """Przełom TE (faction=keleres) dopasowuje się do KAŻDEGO wariantu Keleres."""
+    registry = StaticDataRegistry(enabled_sources=_TE_SOURCES)
+    for faction_id in _KELERES_VARIANTS:
+        breakthrough = registry.breakthrough_for_faction(faction_id)
+        assert breakthrough is not None
+        assert breakthrough.id == "keleresbt"
+    assert registry.breakthrough_for_faction("sol") is not None
+    assert registry.breakthrough_for_faction(None) is None

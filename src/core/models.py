@@ -89,6 +89,10 @@ class FactionDef(_StaticModel):
     id: str = Field(alias="alias")
     name: str = Field(alias="factionName")
     source: str
+    # Nazwa skrócona z danych (np. „Keleres" dla keleresm/x/a). Wspólna dla wariantów
+    # jednej frakcji — pozwala dopasować karty przypisane do „rodziny" (przełom TE,
+    # technologie, liderzy mają ``faction="keleres"``, a nie id wariantu).
+    short_name: str | None = Field(default=None, alias="shortName")
 
     home_system: str | None = Field(default=None, alias="homeSystem")
     home_planets: list[str] = Field(default_factory=list, alias="homePlanets")
@@ -312,3 +316,5 @@ class EngineConfig(BaseModel):
     # Dozwolony, skończony zbiór poziomów trudności bota (R1.8). ⚠️ ZAŁOŻENIE —
     # wartości konfigurowalne, nie reguła TI4 (patrz docs/RULES.md 30).
     valid_difficulties: list[str] = Field(default_factory=list)
+    # Dozwolony zbiór osobowości (stylów gry) bota. ⚠️ ZAŁOŻENIE — koncepcja warstwy AI.
+    valid_personalities: list[str] = Field(default_factory=list)

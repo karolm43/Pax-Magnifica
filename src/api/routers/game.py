@@ -117,10 +117,8 @@ def _faction_breakthrough_id(
     faction_id: str, registry: StaticDataRegistry
 ) -> str | None:
     """Identyfikator przełomu (breakthrough) frakcji lub None — dopasowanie po ``faction``."""
-    return next(
-        (bt.id for bt in registry.breakthroughs.values() if bt.faction == faction_id),
-        None,
-    )
+    breakthrough = registry.breakthrough_for_faction(faction_id)
+    return breakthrough.id if breakthrough is not None else None
 
 
 def _faction_info(f: FactionDef, registry: StaticDataRegistry) -> FactionInfo:
@@ -185,7 +183,8 @@ def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
     docs/RULES.md 30). Lista jest posortowana dla deterministycznej prezentacji.
     """
     return EngineConfigInfo(
-        valid_difficulties=sorted(ctx.registry.valid_difficulties())
+        valid_difficulties=sorted(ctx.registry.valid_difficulties()),
+        valid_personalities=sorted(ctx.registry.valid_personalities()),
     )
 
 
@@ -333,6 +332,7 @@ def _apply_resolved_player(
     player.display_name = resolved.display_name
     player.control_type = resolved.control_type
     player.difficulty = resolved.difficulty
+    player.personality = resolved.personality
     return new_state
 
 
@@ -364,6 +364,7 @@ async def post_setup_player(
             available_colors=available,
             max_players=len(AUTO_SLOT_ORDER),
             valid_difficulties=ctx.registry.valid_difficulties(),
+            valid_personalities=ctx.registry.valid_personalities(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -446,6 +447,7 @@ async def post_new_game(
             available_colors=_available_colors(),
             max_players=len(AUTO_SLOT_ORDER),
             valid_difficulties=ctx.registry.valid_difficulties(),
+            valid_personalities=ctx.registry.valid_personalities(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

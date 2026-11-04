@@ -768,14 +768,11 @@ def _player_breakthrough(
     """
     if faction_id is None:
         return None
-    breakthrough_id = next(
-        (bt.id for bt in registry.breakthroughs.values() if bt.faction == faction_id),
-        None,
-    )
-    if breakthrough_id is None:
+    breakthrough = registry.breakthrough_for_faction(faction_id)
+    if breakthrough is None:
         return None
     return {
-        "breakthroughId": breakthrough_id,
+        "breakthroughId": breakthrough.id,
         "unlocked": player.breakthrough_unlocked,
         "exhausted": player.breakthrough_exhausted,
         "tradeGoodsStored": player.breakthrough_tg,
@@ -958,6 +955,7 @@ def _build_player_data(
                 "playerName": player.display_name,
                 "controlType": player.control_type.value,
                 "difficulty": player.difficulty,
+                "personality": player.personality,
                 "isSpeaker": state.speaker_id == player_id,
                 "isTyrant": False,
                 "passed": player.passed,

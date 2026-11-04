@@ -21,6 +21,20 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Keleres (3 warianty): przełom i technologie wg Thunder's Edge (ukończone)
+
+- **Błąd:** przełom TE Keleres ma `faction="keleres"`, a warianty to `keleresm/x/a` →
+  dopasowanie po id nie znajdowało przełomu. Technologie frakcyjne były z Codexu
+  (`iihq`, `asn`), a w TE I.I.H.Q. jest przełomem, a technologią frakcyjną jest Executive Order.
+- **Naprawa:** `FactionDef.short_name` (rodzina frakcji), `registry.breakthrough_for_faction`
+  (id lub rodzina), `registry._apply_thunders_edge_breakthrough_techs` (przy włączonym TE:
+  technologia o nazwie przełomu wypada z `factionTech`, wchodzą techy TE rodziny →
+  `executiveorder`, `asn`). Bez TE bez zmian. Testy w `tests/test_registry.py`.
+- Nie ruszone: technologie startowe Keleres (zdolność The Tribuni — wybór 2 z cudzych
+  startowych) nadal niezaimplementowane (RULES.md 16).
+
+---
+
 ### ✅ Wybór frakcji (setup) — iteracja 5: pełnoekranowa scena, nagłówek frakcji, Obsidian (ukończone)
 
 **Pełny opis (układ, pliki, format treści, animacje, gotchas): `UI_WYBOR_FRAKCJI.md`.**
