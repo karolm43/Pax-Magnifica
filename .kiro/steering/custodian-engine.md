@@ -15,15 +15,26 @@ ruch, walka, agenda, punktacja). Dojrzałość w trzech etapach:
 Mapa dokumentacji i cel szczegółowo: `docs/README.md`. Wizja/architektura:
 `docs/specyfikacja_techniczna_i_architektura_systemu.md`.
 
-## Jak czytać stan projektu na starcie sesji
+## Jak czytać stan projektu na starcie sesji (OSZCZĘDZAJ KONTEKST)
 
-Zawsze na początku sesji sprawdź w tej kolejności:
-1. `docs/README.md` — indeks dokumentacji: cel, struktura repo, gdzie co jest.
-2. `docs/PROGRESS.md` — co zrobione, co następne, decyzje projektowe.
-3. `docs/PLAN_PELNA_ROZGRYWKA.md` — który etap silnika (E1–E8) robimy teraz + frakcje.
-4. `docs/RULES.md` — zweryfikowane reguły TI4 (źródło prawdy dla mechanik).
-5. Realny kod w `src/` i testy w `tests/` — nadrzędne źródło prawdy o stanie,
-   ważniejsze niż pamięć czy opisy.
+WAŻNE dla kosztu: `docs/PROGRESS.md`, `docs/RULES.md` i `docs/PROGRESS_ARCHIWUM.md`
+są bardzo duże (po ~100+ KB każdy). NIE wczytuj ich w całości „na wszelki wypadek" —
+to główne źródło zużycia kredytów. Czytaj tylko to, czego dotyczy bieżące zadanie,
+i tylko potrzebne fragmenty (grep/offset), a nie całe pliki.
+
+Minimalny start sesji:
+1. `docs/README.md` — indeks dokumentacji (mały): cel, struktura repo, gdzie co leży.
+   To wystarcza, żeby wiedzieć, dokąd sięgnąć dalej.
+2. Dopiero GDY zadanie tego wymaga, doczytaj PUNKTOWO:
+   - `docs/PROGRESS.md` — stan/następne kroki. Szukaj konkretnej sekcji (grep po temacie),
+     nie czytaj całości.
+   - `docs/PLAN_PELNA_ROZGRYWKA.md` (mały) — który etap silnika (E1–E8) + frakcje.
+   - `docs/RULES.md` — reguła, której dotyczy zadanie. Znajdź wpis po numerze/temacie
+     (grep), zamiast ładować cały plik. Dla samej treści reguły preferuj `docs/rules_tirules/`
+     (osobne małe pliki tematyczne) — to taniej niż duży `RULES.md`.
+   - `docs/PROGRESS_ARCHIWUM.md` — tylko gdy potrzebny historyczny szczegół; nigdy na start.
+3. Realny kod w `src/` i testy w `tests/` — nadrzędne źródło prawdy o stanie,
+   ważniejsze niż pamięć czy opisy. Przy zadaniu frontendowym NIE ruszaj dokumentów reguł.
 
 ## Zasady reguł Twilight Imperium (KLUCZOWE)
 
