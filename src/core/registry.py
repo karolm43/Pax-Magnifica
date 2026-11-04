@@ -139,7 +139,7 @@ class StaticDataRegistry:
         self.legacy_id_collisions: dict[str, list[str]] = {}
 
         # Konfiguracja silnika (limity rąk TI4 + zbiór poziomów trudności bota).
-        # Ładowana z assetów (NIE hardkodowana) — patrz docs/RULES.md 30.
+        # Ładowana z assetów (NIE hardkodowana) — patrz docs/RULES.md 36.
         self.engine_config: EngineConfig = EngineConfig()
 
         # Mapowania id -> gęsty indeks int (pod FastState)
@@ -325,7 +325,7 @@ class StaticDataRegistry:
         Gdy plik nie istnieje, zwraca domyślną (pustą) konfigurację — dzięki temu
         rejestr działa też bez pliku (limity ``None`` = brak kapu, zbiór trudności
         pusty). Zasada projektu: limity rąk i zbiór trudności NIE są hardkodowane
-        w logice, tylko czytane stąd (patrz docs/RULES.md 30).
+        w logice, tylko czytane stąd (patrz docs/RULES.md 36).
         """
         if not config.ENGINE_CONFIG_PATH.is_file():
             return EngineConfig()
@@ -335,7 +335,7 @@ class StaticDataRegistry:
     # --- Konfiguracja silnika (limity rąk, poziomy trudności) ----------
 
     def hand_limits(self) -> HandLimits:
-        """Limity rozmiarów rąk gracza (reguły TI4; docs/RULES.md 30).
+        """Limity rozmiarów rąk gracza (reguły TI4; docs/RULES.md 36).
 
         ``None`` dla danej ręki = brak górnego limitu. Czytane z assetów, nie
         hardkodowane — warstwa setup/``core`` używa tych wartości do walidacji.
@@ -347,7 +347,7 @@ class StaticDataRegistry:
 
         ⚠️ ZAŁOŻENIE — poziomy trudności nie są regułą TI4 (to koncepcja warstwy AI),
         więc zbiór jest wartością konfigurowalną czytaną z ``engine_config.json``,
-        a nie stałą w kodzie. Patrz docs/RULES.md 30.
+        a nie stałą w kodzie. Patrz docs/RULES.md 36.
         """
         return frozenset(self.engine_config.valid_difficulties)
 

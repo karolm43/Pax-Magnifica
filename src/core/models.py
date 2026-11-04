@@ -279,7 +279,7 @@ class SystemDef(_StaticModel):
 
 
 class HandLimits(BaseModel):
-    """Limity rozmiarów rąk gracza (reguły TI4 — patrz docs/RULES.md 30).
+    """Limity rozmiarów rąk gracza (reguły TI4 — patrz docs/RULES.md 36).
 
     ``None`` oznacza BRAK górnego limitu dla danej ręki (reguła TI4 nie nakłada
     limitu). Wartości liczbowe pochodzą z assetów (``engine_config.json``), nie są
@@ -317,7 +317,7 @@ class EngineConfig(BaseModel):
 
     hand_limits: HandLimits = Field(default_factory=HandLimits)
     # Dozwolony, skończony zbiór poziomów trudności bota (R1.8). ⚠️ ZAŁOŻENIE —
-    # wartości konfigurowalne, nie reguła TI4 (patrz docs/RULES.md 30).
+    # wartości konfigurowalne, nie reguła TI4 (patrz docs/RULES.md 36).
     valid_difficulties: list[str] = Field(default_factory=list)
     # Dozwolony zbiór osobowości (stylów gry) bota. ⚠️ ZAŁOŻENIE — koncepcja warstwy AI.
     valid_personalities: list[str] = Field(default_factory=list)

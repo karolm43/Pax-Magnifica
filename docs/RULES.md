@@ -46,7 +46,7 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 2b | [Klasyfikacja jednostek: przestrzeń vs planeta](#2b-klasyfikacja-jednostek-przestrzeń-vs-planeta---zweryfikowane) | ✅ | [Units](rules_tirules/R_units.md) |
 | 2c | [Format `startingFleet` i setup frakcji](#2c-format-startingfleet-i-setup-frakcji---zweryfikowane) | ✅ | [Ships](rules_tirules/R_ships.md) |
 | 3 | [Ruch (Movement)](#3-ruch-movement---do-zrobienia-warstwa-logiki-ruchu-późniejsza-faza) | ⬜ | [Movement](rules_tirules/R_movement.md) |
-| 3 (bis) | [Limity sztuk jednostek (supply caps)](#3-limity-sztuk-jednostek-plastic--supply-caps---zweryfikowane) | ✅ | [Reinforcements](rules_tirules/R_reinforcements.md) |
+| 3a | [Limity sztuk jednostek (supply caps)](#3a-limity-sztuk-jednostek-plastic--supply-caps---zweryfikowane) | ✅ | [Reinforcements](rules_tirules/R_reinforcements.md) |
 | 4 | [Pozycje stat-area](#4-pozycje-stat-area-player-stats-heksy---zweryfikowane-port-algorytmu-asyncti4) | ✅ | [Game Board](rules_tirules/R_game_board.md) |
 | 5 | [Startowe żetony dowodzenia](#5-startowe-żetony-dowodzenia-command-counters---zweryfikowane) | ✅ | [Command Tokens](rules_tirules/R_command_tokens.md) |
 | 6 | [Fazy gry — mapowanie na frontend](#6-fazy-gry--mapowanie-na-format-frontendu---format--logika) | ✅/⬜ | [Game Round](rules_tirules/R_game_round.md) |
@@ -73,7 +73,14 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 27 | [Wyczerpywanie komponentów (exhaust/ready)](#27-wyczerpywanie-komponentów-planety-technologie-liderzy-exhaustready---zweryfikowane-lrr--dane) | ✅ | [Exhausted](rules_tirules/R_exhausted.md) |
 | 28 | [Grywalne frakcje vs placeholdery](#28-grywalne-frakcje-vs-placeholdery-systemowe-neutrallazax---zweryfikowane-dane-asyncti4) | ✅ | [Neutral Units](rules_tirules/R_neutral_units.md) |
 | 29 | [ZMIANA KIERUNKU: silnik-SĘDZIA + okna czasowe](#29-zmiana-kierunku-silnik-sędzia--okna-czasowe-zastępuje-asystent-nie-sędzia) | decyzja | [Strategic Action](rules_tirules/R_strategic_action.md) |
-| 30 | [Limity rąk i zbiór poziomów trudności bota](#30-limity-rąk-i-zbiór-poziomów-trudności-bota----zweryfikowane-reguły-ti4--założenie-trudność) | ✅ / ⚠️ | [Action Cards](rules_tirules/R_action_cards.md) |
+| 30 | [Akcja strategiczna: primary + okno secondary](#30-akcja-strategiczna-primary--okno-secondary---zweryfikowane-lrr-20) | ✅ | [Strategic Action](rules_tirules/R_strategic_action.md) |
+| 31 | [Walidacja przepływu fazy akcji + aktywny gracz](#31-walidacja-przepływu-fazy-akcji--aktywny-gracz-twarda-egzekucja---zweryfikowane-lrr-20) | ✅ | [Action Phase](rules_tirules/R_action_phase.md) |
+| 32 | [Ruch statków: egzekucja legalności](#32-ruch-statków-egzekucja-legalności-akcja-taktyczna---zweryfikowane-lrr-20) | ✅ | [Movement](rules_tirules/R_movement.md) |
+| 33 | [Walidacja aktywacji i produkcji](#33-walidacja-aktywacji-i-produkcji-twarda-egzekucja---zweryfikowane-lrr-20) | ✅ | [Producing Units](rules_tirules/R_producing_units.md) |
+| 34 | [Specyfikacja czasowa komponentów: wyzwalacz → typ okna](#34-specyfikacja-czasowa-komponentów-wyzwalacz--typ-okna---założenie-d10) | ⚠️ | [Action Cards](rules_tirules/R_action_cards.md) |
+| 35 | [Spójność referencji: placeholder `<color>` jako szablon](#35-spójność-referencji-placeholder-color-promissory-notes-jako-szablon---założenie) | ⚠️ | [Promissory Notes](rules_tirules/R_promissory_notes.md) |
+| 36 | [Limity rąk i zbiór poziomów trudności bota](#36-limity-rąk-i-zbiór-poziomów-trudności-bota----zweryfikowane-reguły-ti4--założenie-trudność) | ✅ / ⚠️ | [Action Cards](rules_tirules/R_action_cards.md) |
+| 37 | [Wyniki audytu danych (baseline, luki, założenia)](#37-wyniki-audytu-danych-baseline-luki-referencyjne-założenia) | 📊 | [Technology](rules_tirules/R_technology.md) |
 
 ---
 
@@ -303,7 +310,7 @@ Zweryfikowane zasady do zaimplementowania, gdy powstanie logika ruchu
 
 ---
 
-## 3. Limity sztuk jednostek (plastic / supply caps) — ✅ ZWERYFIKOWANE
+## 3a. Limity sztuk jednostek (plastic / supply caps) — ✅ ZWERYFIKOWANE
 
 📎 tirules: [Reinforcements](rules_tirules/R_reinforcements.md) · [Units](rules_tirules/R_units.md) · [Fighter Tokens](rules_tirules/R_fighter_tokens.md) · [Infantry Tokens](rules_tirules/R_infantry_tokens.md)
 
@@ -1402,54 +1409,6 @@ God-Mode (`board_edit.place_command_token`) nadal omija (korekta bez zużycia pu
 
 ---
 
-## 30. Limity rąk i zbiór poziomów trudności bota — ✅ ZWERYFIKOWANE (reguły TI4) + ⚠️ ZAŁOŻENIE (trudność)
-
-📎 tirules: [Action Cards](rules_tirules/R_action_cards.md) · [Objective Cards](rules_tirules/R_objective_cards.md) · [Promissory Notes](rules_tirules/R_promissory_notes.md)
-
-Weryfikacja dla specyfikacji `player-model-and-setup-ui`, zadanie 5.1 (blokujące walidację
-setupu w zad. 8 i 9). Wartości czytane są z assetu `assets/config/engine_config.json`
-przez `StaticDataRegistry` (`hand_limits()`, `valid_difficulties()`) — NIE są hardkodowane
-w logice silnika. Data weryfikacji: 2026-10.
-
-### 30.1. Limity rąk (reguły TI4) — ✅ ZWERYFIKOWANE
-
-Źródło główne: tirules2.com (lokalny zrzut `docs/rules_tirules/`). Reguła nadrzędna:
-limit może być zmieniony przez efekty gry (karty/technologie) — bazowy limit poniżej.
-
-| Ręka | Limit | Źródło (tirules) | Cytat-doprecyzowanie |
-|---|---|---|---|
-| Karty akcji (action cards) | **7** | [R_action_cards](rules_tirules/R_action_cards.md) | „Each player's hand can have a maximum of seven action cards." + „A game effect can increase or decrease the number of cards a player's hand can have." |
-| Tajne obiektywy (secret objectives) | **3** (łącznie zrealizowane + niezrealizowane) | [R_objective_cards](rules_tirules/R_objective_cards.md) | „Each player can have up to three total scored and unscored secret objectives." (nadmiar → zwrot do talii) |
-| Promissory notes | **brak limitu** (`null`) | [R_promissory_notes](rules_tirules/R_promissory_notes.md) | Reguły NIE podają górnego limitu ręki promissory notes. Gracz startuje z 6 własnymi (1 unikalna + 5 generycznych), lecz są one rozdawane innym; „The number of promissory notes in a player's hand is public information", ale bez kapu. |
-
-Uwaga do tajnych obiektywów: limit „3 total" dotyczy zrealizowanych + niezrealizowanych.
-W modelu (`PlayerPrivateState.secret_objectives`) trzymamy obecnie tylko NIEzrealizowane
-(na ręce). Egzekucja limitu z uwzględnieniem zrealizowanych dojdzie, gdy powstanie
-mechanika punktowania sekretów. Do tego czasu `secret_objectives = 3` jest limitem ręki
-niezrealizowanych (zgodnym z regułą jako górne ograniczenie).
-
-Zapis w assecie (`assets/config/engine_config.json`):
-```json
-"hand_limits": { "action_cards": 7, "secret_objectives": 3, "promissory_notes": null }
-```
-`null` = brak górnego limitu (reguła go nie nakłada).
-
-### 30.2. Zbiór poziomów trudności bota — ⚠️ ZAŁOŻENIE (do potwierdzenia przez użytkownika)
-
-Poziomy trudności bota **NIE istnieją w regułach TI4** — to koncepcja naszej warstwy AI
-(sprawdzono: brak „difficulty" w assetach AsyncTI4 oraz w zrzucie reguł tirules). Zgodnie
-z zasadą projektu nie hardkodujemy zbioru w kodzie: jest to wartość KONFIGUROWALNA czytana
-z `engine_config.json` przez `StaticDataRegistry.valid_difficulties()`.
-
-Zaproponowany zbiór startowy (⚠️ ZAŁOŻENIE): `["EASY", "NORMAL", "HARD"]`.
-
-**Prośba o decyzję użytkownika:** czy ten zbiór jest właściwy, czy preferujesz inny
-(np. dodać „VERY_HARD"/„INSANE", użyć polskich etykiet, albo skali liczbowej 1–5)? Zbiór
-można zmienić wyłącznie edycją `assets/config/engine_config.json` — bez zmian w kodzie.
-Do czasu potwierdzenia traktujemy ten zbiór jako tymczasowe założenie.
-
----
-
 ## 34. Specyfikacja czasowa komponentów: wyzwalacz → typ okna — ⚠ ZAŁOŻENIE (D10)
 
 📎 tirules: [Action Cards](rules_tirules/R_action_cards.md) · [Abilities](rules_tirules/R_abilities.md)
@@ -1468,8 +1427,6 @@ prefiksie: `when ` / `after ` / `before ` / `instead of` / `at the start` / `at 
 `at_end`, `during`, `action`, `unclassified` → „brak okna" (`None`). To decyzja
 projektowa (D10), nie reguła TI4 — np. „at the start of..." może w przyszłości wymagać
 własnego okna. Zmiana = edycja jednej tablicy `TRIGGER_WINDOW_MAP` + test.
-Numer sekcji 34 wybrany, bo w pliku są dwie sekcje „30" (porządkuje je zadanie 13.1, które
-doda też wpis tej sekcji do spisu treści).
 
 ---
 
@@ -1501,3 +1458,142 @@ Dopasowanie referencji odbywa się po dosłownym `id`, bez rozwijania koloru. To
 projektowa (design R7, sekcja `core/references.py`), nie reguła TI4 — do potwierdzenia
 po pierwszym raporcie Audytora_Danych. Zmiana = rozwinięcie szablonu na realne kolory
 graczy (osobny krok) albo odmienne traktowanie w `references.py`.
+
+---
+
+## 36. Limity rąk i zbiór poziomów trudności bota — ✅ ZWERYFIKOWANE (reguły TI4) + ⚠️ ZAŁOŻENIE (trudność)
+
+📎 tirules: [Action Cards](rules_tirules/R_action_cards.md) · [Objective Cards](rules_tirules/R_objective_cards.md) · [Promissory Notes](rules_tirules/R_promissory_notes.md)
+
+Weryfikacja dla specyfikacji `player-model-and-setup-ui`, zadanie 5.1 (blokujące walidację
+setupu w zad. 8 i 9). Wartości czytane są z assetu `assets/config/engine_config.json`
+przez `StaticDataRegistry` (`hand_limits()`, `valid_difficulties()`) — NIE są hardkodowane
+w logice silnika. Data weryfikacji: 2026-10.
+
+### 36.1. Limity rąk (reguły TI4) — ✅ ZWERYFIKOWANE
+
+Źródło główne: tirules2.com (lokalny zrzut `docs/rules_tirules/`). Reguła nadrzędna:
+limit może być zmieniony przez efekty gry (karty/technologie) — bazowy limit poniżej.
+
+| Ręka | Limit | Źródło (tirules) | Cytat-doprecyzowanie |
+|---|---|---|---|
+| Karty akcji (action cards) | **7** | [R_action_cards](rules_tirules/R_action_cards.md) | „Each player's hand can have a maximum of seven action cards." + „A game effect can increase or decrease the number of cards a player's hand can have." |
+| Tajne obiektywy (secret objectives) | **3** (łącznie zrealizowane + niezrealizowane) | [R_objective_cards](rules_tirules/R_objective_cards.md) | „Each player can have up to three total scored and unscored secret objectives." (nadmiar → zwrot do talii) |
+| Promissory notes | **brak limitu** (`null`) | [R_promissory_notes](rules_tirules/R_promissory_notes.md) | Reguły NIE podają górnego limitu ręki promissory notes. Gracz startuje z 6 własnymi (1 unikalna + 5 generycznych), lecz są one rozdawane innym; „The number of promissory notes in a player's hand is public information", ale bez kapu. |
+
+Uwaga do tajnych obiektywów: limit „3 total" dotyczy zrealizowanych + niezrealizowanych.
+W modelu (`PlayerPrivateState.secret_objectives`) trzymamy obecnie tylko NIEzrealizowane
+(na ręce). Egzekucja limitu z uwzględnieniem zrealizowanych dojdzie, gdy powstanie
+mechanika punktowania sekretów. Do tego czasu `secret_objectives = 3` jest limitem ręki
+niezrealizowanych (zgodnym z regułą jako górne ograniczenie).
+
+Zapis w assecie (`assets/config/engine_config.json`):
+```json
+"hand_limits": { "action_cards": 7, "secret_objectives": 3, "promissory_notes": null }
+```
+`null` = brak górnego limitu (reguła go nie nakłada).
+
+### 36.2. Zbiór poziomów trudności bota — ⚠️ ZAŁOŻENIE (do potwierdzenia przez użytkownika)
+
+Poziomy trudności bota **NIE istnieją w regułach TI4** — to koncepcja naszej warstwy AI
+(sprawdzono: brak „difficulty" w assetach AsyncTI4 oraz w zrzucie reguł tirules). Zgodnie
+z zasadą projektu nie hardkodujemy zbioru w kodzie: jest to wartość KONFIGUROWALNA czytana
+z `engine_config.json` przez `StaticDataRegistry.valid_difficulties()`.
+
+Zaproponowany zbiór startowy (⚠️ ZAŁOŻENIE): `["EASY", "NORMAL", "HARD"]`.
+
+**Prośba o decyzję użytkownika:** czy ten zbiór jest właściwy, czy preferujesz inny
+(np. dodać „VERY_HARD"/„INSANE", użyć polskich etykiet, albo skali liczbowej 1–5)? Zbiór
+można zmienić wyłącznie edycją `assets/config/engine_config.json` — bez zmian w kodzie.
+Do czasu potwierdzenia traktujemy ten zbiór jako tymczasowe założenie.
+
+---
+
+## 37. Wyniki audytu danych (baseline, luki referencyjne, założenia) — 📊 RAPORT
+
+📎 tirules: [Technology](rules_tirules/R_technology.md) · [Promissory Notes](rules_tirules/R_promissory_notes.md) · [Exploration](rules_tirules/R_exploration.md)
+
+Źródło danych: Audytor_Danych (`uv run python -m src.audit`), spec
+`local-ti4-data-foundation` (R6, R7, R12). Liczby poniżej to zrzut z aktualnego rejestru
+(źródła aktywne: `assets/enabled_sources.json` = `base, pok, codex1-4, thunders_edge`).
+Baseline liczb trzymany jest maszynowo w `audit/baseline_counts.json` (test regresji
+`tests/test_audit_baseline.py`, R6.4/R6.5) — tabela niżej jest jego ludzkim podsumowaniem.
+**Zero liczb z pamięci:** wszystkie wartości pochodzą z `StaticDataCatalog.counts()`.
+
+### 37.1. Liczby komponentów per Źródło_Kanoniczne (baseline)
+
+| Kategoria | Σ | base | pok | codex1 | codex2 | codex3 | codex4 | thunders_edge |
+|---|---|---|---|---|---|---|---|---|
+| action_cards | 143 | 82 | 20 | 21 | — | — | — | 20 |
+| agendas | 63 | 50 | 13 | — | — | — | — | — |
+| attachments | 22 | — | 18 | — | — | 2 | — | 2 |
+| border_anomalies | 1 | — | — | — | — | — | — | 1 |
+| decks | 25 | 9 | 11 | — | — | — | — | 5 |
+| explores | 80 | — | 74 | — | — | 6 | — | — |
+| galactic_events | 20 | — | — | — | — | — | — | 20 |
+| genericcards | 10 | — | — | — | — | — | — | 10 |
+| promissory_notes | 40 | 21 | 9 | — | — | 4 | — | 6 |
+| public_objectives | 40 | 20 | 20 | — | — | — | — | — |
+| relics | 24 | — | 11 | — | 3 | — | 3 | 7 |
+| secret_objectives | 40 | 20 | 20 | — | — | — | — | — |
+| tokens | 29 | 6 | 14 | — | — | — | — | 9 |
+
+„—" = brak wpisów danego źródła w kategorii. To NIE jest błąd: większość kart base/PoK
+nie ma erraty Codex ani dodatków Thunder's Edge. Pełna, maszynowa lista braków
+(„do potwierdzenia") jest w `audit/expected_gaps.json`; audyt raportuje 59 takich luk
+(np. brak agend, celów publicznych i tajnych z `codex*` i `thunders_edge`) — to pozycje
+do potwierdzenia przez użytkownika (R6.2), nie usterki.
+
+### 37.2. Znane luki referencyjne (homebrew — udokumentowane, nie usterki)
+
+Audytor wykrywa 22 nierozwiązane referencje. **Wszystkie pochodzą z treści homebrew**,
+która mimo niekanonicznego źródła odwołuje się do komponentów nieładowanych przez rejestr.
+Są tu świadomie udokumentowane jako znane i NIE blokują dalszego kodowania reguł
+kanonicznych (do finalnego potwierdzenia przez użytkownika):
+
+- **`explores_cpti`** (talia homebrew „cpti") — 18 wpisów `deck.cardIDs` wskazujących
+  nieistniejące karty (`fiveac1..3`, `fivetg1..3`, `freetech1..3`, `gain*agent`, `kel3`).
+  Flaga `leaks_noncanonical=True` (przeciek homebrew, R7.6). Talia nie jest kanoniczna —
+  do wykluczenia lub zignorowania.
+- **`mirage`** — `exploration.attachmentId='mirage'` → brak attachmentu `mirage`
+  (homebrew / wariant nieładowany).
+- **`gamma`** i **`gw`** — `exploration.attachmentId='gamma'` → brak attachmentu `gamma`
+  (homebrew anomalii „gamma wormhole").
+- **`ion`** — `exploration.attachmentId='ionalpha'` → brak attachmentu `ionalpha`
+  (homebrew „ion storm").
+
+Rekomendacja: traktować te referencje jako przeciek treści fanowskiej. Docelowo filtr
+źródeł lub wykluczenie talii homebrew usunie je z raportu; do tego czasu są tu spisane,
+by audyt nie był „czerwony z nieznanego powodu".
+
+### 37.3. Anomalia danych: wpis `codex1` w `theodisi.json` — ⚠️ ZAŁOŻENIE (do potwierdzenia)
+
+Audytor oznacza jako „podejrzane" wpisy ze Źródłem_Kanonicznym leżące w plikach o nazwie
+wskazującej na homebrew (R4.5). Kluczowy przypadek: karta akcji ze `source=codex1`
+w pliku homebrew `theodisi.json`. **Przyjęte zachowanie (D6):** wpis jest ŁADOWANY
+(filtr działa po polu `source`, nie po nazwie pliku), więc trafia do katalogu jako
+kanoniczny `codex1`. To ⚠️ ZAŁOŻENIE — do potwierdzenia przez użytkownika, czy to
+prawdziwa karta Codex 1, czy błąd oznaczenia w pliku homebrew.
+
+### 37.4. Założenia projektowe powiązane z audytem — ⚠️ ZAŁOŻENIA
+
+- **`TRIGGER_WINDOW_MAP` (D10)** — odwzorowanie rodzaju wyzwalacza na `WindowType`
+  (`when/after/before/instead` → `REACTION`; reszta → brak okna). Opis i prośba
+  o potwierdzenie: [sekcja 34](#34-specyfikacja-czasowa-komponentów-wyzwalacz--typ-okna---założenie-d10).
+  Audyt raportuje 11 komponentów ze specyfikacją `unclassified`.
+- **Placeholder `<color>` w promissory notes (D35 / sekcja 35)** — identyfikatory
+  szablonowe (`<color>_cf`, `<color>_sftt`) traktowane jako SZABLON, raportowane osobno
+  i NIE liczone jako nierozwiązane referencje. Opis i prośba o potwierdzenie:
+  [sekcja 35](#35-spójność-referencji-placeholder-color-promissory-notes-jako-szablon---założenie).
+
+### 37.5. Odświeżenie liczb
+
+Aktualny zrzut generuje się jedną komendą:
+
+```bash
+uv run python -m src.audit --json        # liczby + statystyki w JSON
+uv run python -m src.audit               # pełny raport tekstowy (kod ≠ 0 przy błędach krytycznych)
+uv run python -m src.audit --write-baseline   # zapis audit/baseline_counts.json
+```
+
+Po zmianie liczb (nowe źródło, errata) zaktualizuj baseline i to podsumowanie razem.

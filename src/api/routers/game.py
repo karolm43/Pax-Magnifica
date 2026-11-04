@@ -180,7 +180,7 @@ def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
 
     Front pobiera zbiór trudności STĄD zamiast trzymać własną kopię — wartości
     pochodzą z ``engine_config.json`` przez ``StaticDataRegistry`` (R10.2,
-    docs/RULES.md 30). Lista jest posortowana dla deterministycznej prezentacji.
+    docs/RULES.md 36). Lista jest posortowana dla deterministycznej prezentacji.
     """
     return EngineConfigInfo(
         valid_difficulties=sorted(ctx.registry.valid_difficulties()),

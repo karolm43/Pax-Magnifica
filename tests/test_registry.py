@@ -120,11 +120,11 @@ def test_explicit_alias_overrides_canonical_choice() -> None:
     assert "te4construction" not in ids
 
 
-# --- Konfiguracja silnika: limity rąk + poziomy trudności (RULES.md 30) -----
+# --- Konfiguracja silnika: limity rąk + poziomy trudności (RULES.md 36) -----
 
 
 def test_hand_limits_from_assets() -> None:
-    """Limity rąk pochodzą z assetu i zgadzają się z regułami TI4 (RULES.md 30.1).
+    """Limity rąk pochodzą z assetu i zgadzają się z regułami TI4 (RULES.md 36.1).
 
     action_cards=7, secret_objectives=3, promissory_notes=None (brak limitu).
     """
