@@ -28,7 +28,6 @@ import {
   FactionLore,
   FactionPortraitLayer,
   FactionQuote,
-  hasFactionQuote,
 } from "../FactionBackdrop";
 import type { FactionInfo } from "@/api/useNewGame";
 import styles from "./Step_Faction.module.css";
@@ -162,13 +161,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
       <div className={styles.content}>
         {/* Strefa postaci: strefa jest zawsze (zajmuje wolne miejsce), zawartość
             remontowana przy zmianie frakcji — to odtwarza wolne wyłanianie. */}
-        <div
-          className={`${styles.characterZone} ${
-            stageFaction && hasFactionQuote(stageFaction.id)
-              ? styles.characterZoneQuote
-              : ""
-          }`}
-        >
+        <div className={styles.characterZone}>
           {stageFaction && (
             <Fragment key={`character-${stageFaction.id}`}>
               <FactionPortraitLayer faction={stageFaction} />

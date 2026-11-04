@@ -12,6 +12,7 @@ import {
   defaultPortraitCandidates,
   getFactionLore,
   loreToBlocks,
+  type LoreBlock,
 } from "./factionLore";
 import styles from "./FactionBackdrop.module.css";
 
@@ -120,8 +121,8 @@ function measureAlphaInset(
 }
 
 /**
- * Cytat frakcji nad postacią (pasek o wysokości `--quote-h` nad portretem). Zwraca
- * `null`, gdy frakcja nie ma cytatu — wtedy pasek się nie rezerwuje (patrz `hasFactionQuote`).
+ * Cytat frakcji na dole sceny, po lewej — w rzędzie przycisku wyboru, obok niego. Nie
+ * zabiera miejsca portretowi ani lore. Zwraca `null`, gdy frakcja nie ma cytatu.
  */
 export function FactionQuote({ faction }: { faction: FactionInfo }) {
   const quote = getFactionLore(faction.id)?.quote;
@@ -133,9 +134,60 @@ export function FactionQuote({ faction }: { faction: FactionInfo }) {
   );
 }
 
-/** Czy frakcja ma cytat (steruje rezerwacją miejsca nad portretem). */
-export function hasFactionQuote(factionId: string): boolean {
-  return Boolean(getFactionLore(factionId)?.quote);
+/** Znaczniki końców zdań (pozycja PO zdaniu i spacji) — do podziału długiego akapitu. */
+function sentenceEnds(text: string): number[] {
+  const ends: number[] = [];
+  const re = /[.!?]["”')]?\s+/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) ends.push(m.index + m[0].length);
+  return ends;
+}
+
+/**
+ * Dzieli bloki lore na DWIE kolumny o zbliżonej długości, każda wyrównana od góry.
+ * Cięcie wypada na granicy bloku albo — gdy środek tekstu trafia w długi akapit — na
+ * końcu zdania wewnątrz akapitu (żeby jeden olbrzymi akapit nie rozpychał kolumny).
+ * Śródtytuł nigdy nie zostaje samotnie na końcu pierwszej kolumny.
+ */
+function splitLoreColumns(blocks: LoreBlock[]): [LoreBlock[], LoreBlock[]] {
+  const weight = (b: LoreBlock) => (b.kind === "heading" ? 80 : b.text.length);
+  const total = blocks.reduce((sum, b) => sum + weight(b), 0);
+  const target = total / 2;
+
+  const cutAt = (cut: number): [LoreBlock[], LoreBlock[]] => {
+    let adjusted = cut;
+    while (adjusted > 0 && blocks[adjusted - 1].kind === "heading") adjusted--;
+    if (adjusted === 0) adjusted = cut;
+    return [blocks.slice(0, adjusted), blocks.slice(adjusted)];
+  };
+
+  let cumulative = 0;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const w = weight(block);
+    if (cumulative + w >= target) {
+      const inside = target - cumulative;
+      if (block.kind === "paragraph" && inside > w * 0.2 && inside < w * 0.8) {
+        let best = -1;
+        let bestDist = Infinity;
+        for (const end of sentenceEnds(block.text)) {
+          const dist = Math.abs(end - inside);
+          if (end < block.text.length && dist < bestDist) {
+            best = end;
+            bestDist = dist;
+          }
+        }
+        if (best > 0) {
+          const head = { ...block, text: block.text.slice(0, best).trim() };
+          const tail = { ...block, text: block.text.slice(best).trim() };
+          return [[...blocks.slice(0, i), head], [tail, ...blocks.slice(i + 1)]];
+        }
+      }
+      return cutAt(inside < w / 2 ? i : i + 1);
+    }
+    cumulative += w;
+  }
+  return [blocks, []];
 }
 
 /**
@@ -190,7 +242,7 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
   }, [faction.id]);
 
   return (
-    <article className={styles.lore} ref={articleRef}>
+    <article className={styles.lore} ref={articleRef} lang="en">
       <h2 className={styles.loreName} style={{ ["--i" as string]: 0 }}>
         {faction.name}
       </h2>
@@ -200,28 +252,34 @@ export function FactionLore({ faction }: { faction: FactionInfo }) {
         </p>
       ) : (
         <div className={styles.loreColumns}>
-          {blocks.map((block, i) => {
-            const style = { ["--i" as string]: i + 2 };
-            if (block.kind === "heading") {
-              return (
-                <h3 key={i} className={styles.loreHeading} style={style}>
-                  {block.text}
-                </h3>
-              );
-            }
-            if (block.kind === "quote") {
-              return (
-                <blockquote key={i} className={styles.loreBlockQuote} style={style}>
-                  {block.text}
-                </blockquote>
-              );
-            }
-            return (
-              <p key={i} className={styles.loreParagraph} style={style}>
-                {block.text}
-              </p>
-            );
-          })}
+          {splitLoreColumns(blocks).map((column, c) => (
+            <div key={c} className={styles.loreCol}>
+              {column.map((block, i) => {
+                // Indeks animacji liczony w obrębie kolumny: obie kolumny odsłaniają
+                // się równolegle od góry, a nie jedna po drugiej.
+                const style = { ["--i" as string]: i + 2 };
+                if (block.kind === "heading") {
+                  return (
+                    <h3 key={i} className={styles.loreHeading} style={style}>
+                      {block.text}
+                    </h3>
+                  );
+                }
+                if (block.kind === "quote") {
+                  return (
+                    <blockquote key={i} className={styles.loreBlockQuote} style={style}>
+                      {block.text}
+                    </blockquote>
+                  );
+                }
+                return (
+                  <p key={i} className={styles.loreParagraph} style={style}>
+                    {block.text}
+                  </p>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
     </article>

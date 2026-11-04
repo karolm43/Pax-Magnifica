@@ -154,9 +154,10 @@
  * a sylwetka pozostaje w całości widoczna.
  */
 .characterZone {
-  --portrait-w: clamp(320px, 50%, 840px);
-  /* Wysokość paska cytatu nad głową postaci; 0, gdy frakcja nie ma cytatu. */
-  --quote-h: 0px;
+  /* Większa postać: szerszy pas portretu (wysokość jest ograniczona szerokością). */
+  --portrait-w: clamp(340px, 58%, 980px);
+  /* Odstęp lore od góry strefy (box lore jest wyrównany do góry, nie do środka). */
+  --lore-top: clamp(4px, 1.5vh, 16px);
   position: relative;
   z-index: 1;
   flex: 1 1 0;
@@ -170,29 +171,22 @@
 .loreSlot {
   position: relative;
   z-index: 1;
-  align-self: center;
+  /* Wyrównane do GÓRY strefy (wyżej niż środek); dół zostaje dla cytatu i przycisku. */
+  align-self: flex-start;
   /* Bez przewijania w typowym przypadku; awaryjnie cienki scroll przy bardzo długim lore. */
-  max-height: calc(100% - var(--pick-h) - var(--quote-h) - 12px);
-  /* Zostawia pasek cytatu (`--quote-h`) wolny — lore centruje się w obszarze pod nim. */
-  margin-top: var(--quote-h);
+  max-height: calc(100% - var(--pick-h) - var(--lore-top) - 12px);
+  margin-top: var(--lore-top);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgb(252 162 43 / 0.35) transparent;
   /* Padding = zapas na miękki scrim (.lore::before), żeby nie był przycięty. */
   padding: 36px 28px 36px 52px;
   /* Box lore zaczyna się już pod zanikającą prawą częścią portretu (większe pole). */
-  margin-left: calc(var(--portrait-w) * 0.8 - 52px);
+  margin-left: calc(var(--portrait-w) * 0.78 - 52px);
   margin-right: calc(clamp(8px, 1.2vw, 24px) - 28px);
-  margin-bottom: var(--pick-h);
   display: flex;
   flex-direction: column;
-  justify-content: center;
   min-width: 0;
-}
-
-/* Gdy frakcja ma cytat — rezerwujemy nad postacią pasek na pull-quote. */
-.characterZoneQuote {
-  --quote-h: clamp(96px, 16vh, 170px);
 }
 
 /* Panel szczegółów (FactionSummary) — WĄSKI pasek na szkle (lista chipów). */
