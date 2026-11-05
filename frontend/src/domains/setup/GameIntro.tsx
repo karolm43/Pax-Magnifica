@@ -90,13 +90,58 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
 
   // Dźwięk: muzyka od razu, narrator razem z początkiem crawl. Brak pliku albo
   // zablokowany autoplay = cisza (intro działa dalej). Cleanup zatrzymuje oba tory.
+  //
+  // WAŻNE (bug „muzyka czasem za cicho"): oba tory idą przez JEDEN graf Web Audio
+  // (`AudioContext` + `GainNode` na każdy tor → wspólne wyjście). Dwa niezależne elementy
+  // <audio> potrafiły być losowo ściszane przez automatyczne „duckowanie" przeglądarki/OS,
+  // gdy ruszał drugi tor (narrator) — stąd wrażenie, że muzyka raz jest głośniej, raz
+  // ciszej. W jednym grafie nie ma duckowania między torami, a głośność sterujemy sami
+  // przez gain. Gdy Web Audio jest niedostępne, degradujemy do `element.volume`.
   const audioRef = useRef<HTMLAudioElement[]>([]);
+  const gainRef = useRef<GainNode[]>([]);
+  const ctxRef = useRef<AudioContext | null>(null);
   useEffect(() => {
     const music = new Audio(MUSIC_SRC);
-    music.volume = MUSIC_VOLUME;
+    music.crossOrigin = "anonymous";
     const narrator = new Audio(NARRATOR_SRC);
-    narrator.volume = NARRATOR_VOLUME;
+    narrator.crossOrigin = "anonymous";
     audioRef.current = [music, narrator];
+
+    // Graf Web Audio: element → gain → wyjście. Fallback: sam `element.volume`.
+    type WindowWithWebkitAudio = Window &
+      typeof globalThis & { webkitAudioContext?: typeof AudioContext };
+    const Ctx =
+      window.AudioContext ??
+      (window as WindowWithWebkitAudio).webkitAudioContext;
+    let musicGain: GainNode | null = null;
+    if (Ctx) {
+      try {
+        const ctx = new Ctx();
+        ctxRef.current = ctx;
+        musicGain = ctx.createGain();
+        musicGain.gain.value = MUSIC_VOLUME;
+        const narratorGain = ctx.createGain();
+        narratorGain.gain.value = NARRATOR_VOLUME;
+        ctx.createMediaElementSource(music).connect(musicGain).connect(ctx.destination);
+        ctx
+          .createMediaElementSource(narrator)
+          .connect(narratorGain)
+          .connect(ctx.destination);
+        gainRef.current = [musicGain, narratorGain];
+        // Intro pojawia się PO kliknięciu „Start game", więc gest użytkownika już był —
+        // `resume()` powinien przejść. Gdyby kontekst wstał zawieszony, i tak próbujemy.
+        void ctx.resume().catch(() => undefined);
+      } catch {
+        ctxRef.current = null;
+        gainRef.current = [];
+      }
+    }
+    // Bez Web Audio (lub przy błędzie grafu) steruj głośnością na elementach.
+    if (gainRef.current.length === 0) {
+      music.volume = MUSIC_VOLUME;
+      narrator.volume = NARRATOR_VOLUME;
+    }
+
     const play = (a: HTMLAudioElement) => void a.play().catch(() => undefined);
     play(music);
     const timer = window.setTimeout(
@@ -108,6 +153,10 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
       music.pause();
       narrator.pause();
       audioRef.current = [];
+      gainRef.current = [];
+      const ctx = ctxRef.current;
+      ctxRef.current = null;
+      if (ctx) void ctx.close().catch(() => undefined);
     };
   }, [reduced]);
 
@@ -115,16 +164,28 @@ export default function GameIntro({ players, onFinish }: GameIntroProps) {
     if (finishedRef.current) return;
     finishedRef.current = true;
     setLeaving(true);
-    // Dźwięk cichnie razem z wygaszaniem treści.
+    // Dźwięk cichnie razem z wygaszaniem treści. Gdy jest graf Web Audio, ściszamy przez
+    // `gain` (jedno źródło prawdy o głośności); inaczej przez `element.volume`.
+    const gains = gainRef.current;
     const tracks = audioRef.current;
-    const startVolumes = tracks.map((a) => a.volume);
+    const useGain = gains.length > 0;
+    const startValues = useGain
+      ? gains.map((g) => g.gain.value)
+      : tracks.map((a) => a.volume);
     const steps = 14;
     let step = 0;
     const fade = window.setInterval(() => {
       step += 1;
-      tracks.forEach((a, i) => {
-        a.volume = Math.max(0, startVolumes[i] * (1 - step / steps));
-      });
+      const factor = Math.max(0, 1 - step / steps);
+      if (useGain) {
+        gains.forEach((g, i) => {
+          g.gain.value = startValues[i] * factor;
+        });
+      } else {
+        tracks.forEach((a, i) => {
+          a.volume = Math.max(0, startValues[i] * factor);
+        });
+      }
       if (step >= steps) window.clearInterval(fade);
     }, LEAVE_MS / steps);
     window.setTimeout(onFinish, reduced ? 0 : LEAVE_MS);
