@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useCallback, useRef, useState, type ReactElement } from "react";
 import cx from "clsx";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
@@ -151,6 +151,60 @@ export function StrategyCardTable(): ReactElement | null {
   // Jeden stan dla całego rzędu (naraz tooltip pokazuje jedna karta).
   const [hovered, setHovered] = useState<number | null>(null);
 
+  // MINIMALIZACJA panelu (prośba użytkownika): gdy ``true``, panel zwija się do
+  // kompaktowego paska nagłówka (same karty schowane), żeby nie zasłaniać mapy.
+  // Stan czysto lokalny/wizualny — nie dotyka logiki wyboru ani danych gry.
+  const [minimized, setMinimized] = useState(false);
+
+  // PRZESUWANIE OKNA (prośba użytkownika): przesunięcie panelu względem jego
+  // wyśrodkowanej pozycji (``dx``/``dy`` w px). Panel domyślnie stoi na środku
+  // (overlay = ``place-items: center``); drag dokłada ``translate(dx, dy)``.
+  const [offset, setOffset] = useState<{ dx: number; dy: number }>({
+    dx: 0,
+    dy: 0,
+  });
+  // Ref do stanu przeciągania — trzyma punkt startowy kursora i offsetu, żeby
+  // handlery ``pointermove`` nie zależały od re-renderów (unikamy stale closure).
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    baseDx: number;
+    baseDy: number;
+  } | null>(null);
+
+  // Start przeciągania — tylko z „uchwytu" (nagłówka). Pomijamy drag, gdy klik
+  // padł na element interaktywny (przycisk collapse/next phase), żeby nie kradł
+  // kliknięcia. Rejestrujemy globalne listenery na czas przeciągania.
+  const onHandlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if ((e.target as HTMLElement).closest("button")) return;
+      e.preventDefault();
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        baseDx: offset.dx,
+        baseDy: offset.dy,
+      };
+
+      const onMove = (ev: PointerEvent) => {
+        const d = dragRef.current;
+        if (!d) return;
+        setOffset({
+          dx: d.baseDx + (ev.clientX - d.startX),
+          dy: d.baseDy + (ev.clientY - d.startY),
+        });
+      };
+      const onUp = () => {
+        dragRef.current = null;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [offset.dx, offset.dy],
+  );
+
   // Gating fazy: render tylko w fazie strategii (Requirement 8.1). Poza nią —
   // komponent nie istnieje w drzewie (zwraca ``null``), więc nie dubluje się z
   // innymi nakładkami i nie wpływa na pozostałe fazy.
@@ -219,7 +273,29 @@ export function StrategyCardTable(): ReactElement | null {
     // to wewnętrzny ``.table`` ma ``pointer-events: auto``, więc karty pozostają
     // klikalne. Wyłącznie struktura/layout — ZERO zmian logiki interakcji i danych.
     <div className={styles.overlay}>
-      <div className={styles.table} aria-label="Strategy Cards on the table">
+      <div
+        className={styles.table}
+        data-minimized={minimized || undefined}
+        aria-label="Strategy Cards on the table"
+        style={{
+          transform: `translate(${offset.dx}px, ${offset.dy}px)`,
+        }}
+      >
+        {/*
+         * Przycisk ZWIŃ/ROZWIŃ (prośba użytkownika) — w rogu panelu. Dyskretna
+         * ikona-chip; chowa rząd kart do kompaktowego paska, żeby odsłonić mapę.
+         * Tylko prezentacja: nie zmienia stanu wyboru ani danych gry.
+         */}
+        <button
+          type="button"
+          className={styles.minimizeBtn}
+          aria-expanded={!minimized}
+          aria-label={minimized ? "Expand strategy cards" : "Collapse strategy cards"}
+          title={minimized ? "Expand strategy cards" : "Collapse strategy cards"}
+          onClick={() => setMinimized((m) => !m)}
+        >
+          {minimized ? "▢" : "–"}
+        </button>
       {/*
        * Nagłówek w stylu AsyncTI4: WYŚRODKOWany tytuł fazy, a pod nim wiersz
        * (zawijalny) z aktualnym pickerem i mówcą — każdy z IKONĄ frakcji
@@ -227,7 +303,11 @@ export function StrategyCardTable(): ReactElement | null {
        * zostają bez ikony: brak pickera → „brak gracza do wskazania" (R1.5), brak
        * mówcy → „no Speaker set" (R1.4).
        */}
-      <div className={styles.header}>
+      <div
+        className={styles.header}
+        onPointerDown={onHandlePointerDown}
+        title="Drag to move"
+      >
         <h2 className={styles.heading}>Strategy Phase</h2>
         <div className={styles.meta}>
           {/*
@@ -275,6 +355,8 @@ export function StrategyCardTable(): ReactElement | null {
         </div>
       </div>
 
+      {/* Rząd kart ukrywany po zwinięciu panelu (minimized) — zostaje sam nagłówek. */}
+      {!minimized && (
       <div className={styles.cards} role="list">
         {cards.map((card, i, arr) => {
           // Definicja karty po KANONICZNYM ``id`` z backendu (wybór wariantu robi
@@ -472,6 +554,7 @@ export function StrategyCardTable(): ReactElement | null {
           );
         })}
       </div>
+      )}
       </div>
     </div>
   );

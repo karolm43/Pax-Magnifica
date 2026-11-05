@@ -40,7 +40,7 @@ export function deferredStartingTechNotice(factionId: string): string | null {
     case "deepwrought":
       return (
         "During setup, the Scholarate researches two technologies of its choosing. " +
-        "This is resolved in play — before the first agenda phase, once every other " +
+        "This is resolved in play — before the first strategy phase, once every other " +
         "empire has claimed its starting technology."
       );
     case "keleresm":
@@ -48,7 +48,7 @@ export function deferredStartingTechNotice(factionId: string): string | null {
     case "keleresa":
       return (
         "The Council claims up to two non-faction technologies already held by rival " +
-        "empires. This is resolved in play — before the first agenda phase, once every " +
+        "empires. This is resolved in play — before the first strategy phase, once every " +
         "other empire has claimed its starting technology."
       );
     default:

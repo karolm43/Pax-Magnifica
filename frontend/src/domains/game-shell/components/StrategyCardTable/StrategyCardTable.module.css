@@ -65,11 +65,14 @@
   inset: -8px -24px -16px;
   z-index: -1;
   background: linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2));
-  border: 1px solid var(--ds-h28);
-  border-radius: var(--ds-radius-lg);
+  /* LŻEJSZY, mniej „chunky" panel (prośba użytkownika): cieńsza/delikatniejsza
+     obwódka (hairline zamiast grubej 0.28), MOCNIEJSZE zaokrąglenie (``--radius-xl``
+     zamiast ``lg``) i spokojniejszy cień. */
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-xl);
   box-shadow:
-    var(--ds-shadow-md),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
+    var(--ds-shadow-sm),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
   backdrop-filter: blur(4px);
 }
 
@@ -85,13 +88,24 @@
   align-items: center;
   text-align: center;
   gap: var(--ds-space-xs);
+  /* Nagłówek = UCHWYT do przesuwania okna (prośba użytkownika). ``grab`` sygnalizuje
+     przeciąganie; ``user-select: none`` zapobiega zaznaczaniu tekstu podczas drag. */
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
   padding: var(--ds-space-sm) var(--ds-space-md) var(--ds-space-md);
+  /* Akcent nagłówka = NIEBIESKI akcent interakcji design-systemu (``--ds-accent-rgb``),
+     spójny z resztą UI; wcześniejszy zielony (``--ds-sig-bio``) odstawał od palety strony. */
   background: linear-gradient(
     180deg,
-    rgb(var(--ds-sig-bio, 110 231 183) / 0.08),
+    rgb(var(--ds-accent-rgb) / 0.1),
     transparent
   );
   border-bottom: 1px solid var(--ds-h10);
+}
+
+.header:active {
+  cursor: grabbing;
 }
 
 /* Tytuł panelu — RESPONSYWNY (skaluje się z szerokością okna, w granicach tokenów). */
@@ -201,10 +215,11 @@
   /* Kolor karty do poświaty — HEX wstrzyknięty z komponentu (``--sc-hue``); fallback
      neutralny, gdy brak. */
   --sc-hue: var(--ds-h35);
-  /* Parametry UNIESIENIA na hover — zmienne, by media query mogło je STONOWAĆ na
-     małych ekranach (mniej „skakania"). Domyślnie jak dotąd. */
-  --hover-lift: -14px;
-  --hover-scale: 1.18;
+  /* Parametry hover. ``--hover-lift: 0`` — BEZ pionowego „skoku w górę" (prośba
+     użytkownika: to konkretnie skakanie się nie podobało). Karta na hover zostaje
+     w miejscu w pionie, a dalej się PROSTUJE i delikatnie POWIĘKSZA (to zostaje). */
+  --hover-lift: 0px;
+  --hover-scale: 1.04;
   /* Łuk: obrót + opad + skala liczone z --rot/--lift/--scale; obrót od dołu środka
      (wachlarz). ``--scale`` delikatnie powiększa skrajne karty (1 i 8). */
   transform: rotate(var(--rot)) translateY(var(--lift)) scale(var(--scale));
@@ -221,8 +236,9 @@
  * ``color-mix`` daje półprzezroczystość barwy karty.
  */
 .card.pickable {
+  /* STONOWANE: spokojniejsza poświata spoczynkowa (było 75%). */
   filter: drop-shadow(
-    0 0 10px color-mix(in srgb, var(--sc-hue) 75%, transparent)
+    0 0 8px color-mix(in srgb, var(--sc-hue) 50%, transparent)
   );
 }
 
@@ -236,8 +252,9 @@
 .card:focus-visible {
   z-index: 5;
   transform: rotate(0deg) translateY(var(--hover-lift)) scale(var(--hover-scale));
-  /* Wyróżnienie przez cień dopasowany do kształtu obrazu (zamiast prostokąta). */
-  filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.55));
+  /* Wyróżnienie przez cień dopasowany do kształtu obrazu (zamiast prostokąta).
+     STONOWANE: lżejszy cień niż wcześniej (było 0 8px 18px / 0.55). */
+  filter: drop-shadow(0 5px 12px rgb(0 0 0 / 0.4));
 }
 
 /*
@@ -247,9 +264,10 @@
  */
 .card:not([data-disabled]):hover,
 .card:not([data-disabled]):focus-visible {
+  /* STONOWANE: lżejszy cień i delikatniejszy barwny glow (było 0.55 / 85%). */
   filter:
-    drop-shadow(0 8px 18px rgb(0 0 0 / 0.55))
-    drop-shadow(0 0 14px color-mix(in srgb, var(--sc-hue) 85%, transparent));
+    drop-shadow(0 5px 12px rgb(0 0 0 / 0.4))
+    drop-shadow(0 0 10px color-mix(in srgb, var(--sc-hue) 55%, transparent));
 }
 
 .card:focus-visible {
@@ -410,20 +428,95 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   color: var(--ds-ink-hi);
-  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.2);
-  border: 1px solid rgb(var(--ds-sig-bio, 110 231 183) / 0.55);
+  /* NIEBIESKI akcent interakcji (``--ds-accent-rgb``) — spójny z resztą UI. */
+  background: rgb(var(--ds-accent-rgb) / 0.2);
+  border: 1px solid rgb(var(--ds-accent-rgb) / 0.55);
   border-radius: var(--ds-radius-md);
   cursor: pointer;
   transition: background var(--ds-dur-fast) var(--ds-ease);
 }
 
 .nextPhaseBtn:hover:not(:disabled) {
-  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.32);
+  background: rgb(var(--ds-accent-rgb) / 0.32);
 }
 
 .nextPhaseBtn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/*
+ * Przycisk ZWIŃ/ROZWIŃ (minimalizacja panelu) — dyskretny, w PRAWYM GÓRNYM rogu
+ * boksu. Styl „hairline chip" spójny z design-systemem: subtelne tło, cienka
+ * obwódka, akcent na hover. ``position: absolute`` — nie wpływa na układ nagłówka.
+ */
+.minimizeBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 6;
+  /* DYSKRETNY okrągły chip (prośba: collapse był za „chunky"). Mała ikona ± zamiast
+     grubego przycisku z tekstem — subtelne tło, hairline, delikatny hover. */
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-family: var(--ds-font-text);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ds-ink-lo);
+  background: transparent;
+  border: 1px solid var(--ds-h14);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease),
+    color var(--ds-dur-fast) var(--ds-ease),
+    border-color var(--ds-dur-fast) var(--ds-ease);
+}
+
+.minimizeBtn:hover {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-accent-rgb) / 0.16);
+  border-color: rgb(var(--ds-accent-rgb) / 0.45);
+}
+
+.minimizeBtn:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+/*
+ * PANEL ZWINIĘTY — gdy ``data-minimized`` na ``.table``: kompaktowy pasek z samym
+ * nagłówkiem (rząd kart jest usuwany z drzewa w komponencie). Zdejmujemy duże
+ * zapasy u dołu (były na opadnięte karty łuku) i usuwamy hairline pod nagłówkiem,
+ * żeby pasek był zwarty i nie zasłaniał mapy.
+ */
+.table[data-minimized] {
+  /* Zwinięty panel = kompaktowy pasek: ciasne, równe zapasy ze wszystkich stron
+     (prośba: „po collapse niech będzie mniejsze"). */
+  padding: 6px clamp(12px, 2vw, 28px);
+}
+
+.table[data-minimized] .header {
+  padding: 2px var(--ds-space-sm);
+  border-bottom: none;
+  gap: 2px;
+}
+
+/* Zwinięty: mniejszy tytuł fazy. */
+.table[data-minimized] .heading {
+  font-size: clamp(var(--ds-fz-md), 1.3vw, var(--ds-h5));
+}
+
+/* Zwinięty: mniejszy wiersz picker/mówca. */
+.table[data-minimized] .meta {
+  gap: var(--ds-space-sm);
+}
+
+.table[data-minimized] .metaItem {
+  font-size: clamp(var(--ds-fz-xs), 1vw, var(--ds-fz-sm));
 }
 
 /*
@@ -434,22 +527,22 @@
  */
 @media (max-width: 1400px) {
   .card {
-    --hover-lift: -10px;
-    --hover-scale: 1.12;
+    --hover-lift: 0px;
+    --hover-scale: 1.035;
   }
 }
 
 @media (max-width: 1100px) {
   .card {
-    --hover-lift: -7px;
-    --hover-scale: 1.08;
+    --hover-lift: 0px;
+    --hover-scale: 1.03;
   }
 }
 
 @media (max-width: 860px) {
   .card {
-    --hover-lift: -4px;
-    --hover-scale: 1.05;
+    --hover-lift: 0px;
+    --hover-scale: 1.025;
   }
 }
 

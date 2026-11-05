@@ -630,6 +630,11 @@
   display: grid;
   place-items: center;
   padding: var(--ds-space-xl);
+  /* Wygaszanie rozruchu: z `.bootLeaving` ekran płynnie znika zamiast przeskakiwać
+     wprost do menu. Czas (0.45s) musi odpowiadać `BOOT_FADE_MS` w StartScreen.tsx,
+     które steruje odmontowaniem nakładki. */
+  opacity: 1;
+  transition: opacity 0.45s var(--ds-ease, ease);
   background:
     radial-gradient(
       ellipse 100% 70% at 50% 40%,
@@ -639,6 +644,22 @@
     linear-gradient(rgb(0 0 0 / 0.86), rgb(0 0 0 / 0.92)),
     url("/static/extra/main_menu.jpg") center / cover no-repeat,
     var(--ds-page);
+}
+
+/*
+ * Nakładka rozruchu nad menu — leży na całym viewporcie, ponad treścią decku
+ * (`.deck` ma z-index 2), więc podczas wygaszania zasłania gotowe już menu.
+ */
+.bootOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+}
+
+/* Faza wyjścia rozruchu: płynne wygaszenie całego ekranu (nad menu). */
+.bootLeaving {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Winieta na ekranie rozruchu — ten sam filmowy kadr co w menu. */
@@ -664,38 +685,39 @@
   animation: menuRise 0.6s var(--ds-ease) both;
 }
 
-/* Ciepłe szyny HUD u góry i dołu — jak na ekranie menu. */
-.bootInner::before,
-.bootInner::after {
+/*
+ * Ciepłe szyny HUD u góry i dołu ekranu — przyklejone do KRAWĘDZI viewportu
+ * (nie do panelu statusu). Dlatego kotwiczymy je na `.boot` (pełny ekran), a nie
+ * na `.bootInner` (który centruje treść — tam `fixed` dawało przypadkowy pasek
+ * tuż nad panelem „Loading game assets…").
+ */
+.boot::after {
   content: "";
-  position: fixed;
+  position: absolute;
   left: 50%;
+  top: clamp(24px, 6vh, 64px);
+  bottom: clamp(24px, 6vh, 64px);
   transform: translateX(-50%);
   width: min(86vw, 1100px);
-  height: 1px;
   pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(252 162 43 / 0.3) 25%,
-    rgb(252 162 43 / 0.3) 75%,
-    transparent
-  );
-}
-
-.bootInner::before {
-  top: clamp(24px, 6vh, 64px);
-}
-
-.bootInner::after {
-  bottom: clamp(24px, 6vh, 64px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bootInner::before,
-  .bootInner::after {
-    display: none;
-  }
+  z-index: 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgb(252 162 43 / 0.3) 25%,
+      rgb(252 162 43 / 0.3) 75%,
+      transparent
+    )
+      top / 100% 1px no-repeat,
+    linear-gradient(
+      90deg,
+      transparent,
+      rgb(252 162 43 / 0.3) 25%,
+      rgb(252 162 43 / 0.3) 75%,
+      transparent
+    )
+      bottom / 100% 1px no-repeat;
 }
 
 /* Na ekranie rozruchu logo jest nieco mniejsze niż w pełnym menu. */
@@ -772,6 +794,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .boot::after {
+    display: none;
+  }
   .bootInner {
     animation: none;
   }

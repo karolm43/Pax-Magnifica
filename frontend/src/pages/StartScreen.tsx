@@ -17,13 +17,20 @@ import styles from "./StartScreen.module.css";
 function BootScreen({
   state,
   onRetry,
+  leaving = false,
 }: {
   state: "loading" | "error";
   onRetry?: () => void;
+  /** Faza wyjścia: ekran płynnie się wygasza (nad gotowym już menu). */
+  leaving?: boolean;
 }) {
   const themeClassName = usePageThemeClass();
   return (
-    <div className={`${themeClassName} ${styles.boot}`}>
+    <div
+      className={`${themeClassName} ${styles.boot} ${
+        leaving ? styles.bootLeaving : ""
+      }`}
+    >
       <div className={styles.bootInner}>
         <div className={styles.menuTitleWrap}>
           <h1 className={`${styles.menuTitle} ${styles.bootTitle}`}>
@@ -83,11 +90,25 @@ export default function StartScreen() {
   // natychmiast, więc bez tego BootScreen tylko by „mignął". Dzięki temu rozruch
   // jest widoczny i płynnie znika, zamiast przeskakiwać od razu do menu.
   const MIN_BOOT_MS = 1100;
+  // Czas wygaszania rozruchu — musi odpowiadać `--ds-dur-slow` z transition w CSS
+  // (fallback 0.45s), żeby odmontować dopiero po zakończeniu fade-outu.
+  const BOOT_FADE_MS = 450;
   const [bootMinElapsed, setBootMinElapsed] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setBootMinElapsed(true), MIN_BOOT_MS);
     return () => window.clearTimeout(t);
   }, []);
+
+  // Rozruch znika PŁYNNIE, nie przeskokiem: gdy dane są gotowe i minął minimalny
+  // czas, renderujemy menu, a BootScreen trzymamy jeszcze jako wygaszaną nakładkę
+  // na wierzchu, po czym go odmontowujemy.
+  const bootDataReady = !isLoading && !isError && bootMinElapsed;
+  const [bootGone, setBootGone] = useState(false);
+  useEffect(() => {
+    if (!bootDataReady || bootGone) return;
+    const t = window.setTimeout(() => setBootGone(true), BOOT_FADE_MS);
+    return () => window.clearTimeout(t);
+  }, [bootDataReady, bootGone]);
 
   // Widok ekranu startowego: "menu" (ekran tytułowy z 3 przyciskami) lub "setup"
   // (kreator nowej gry). Oba leżą w jednym pionowym „decku" wysokim na dwa ekrany;
@@ -105,10 +126,20 @@ export default function StartScreen() {
   // zamiast migać pustym menu bez danych. Boot utrzymujemy też przez minimalne
   // okno czasu, żeby przy błyskawicznym backendzie nie „mignął".
   if (isError) return <BootScreen state="error" onRetry={() => void refetch()} />;
-  if (isLoading || !bootMinElapsed) return <BootScreen state="loading" />;
+  if (!bootDataReady) return <BootScreen state="loading" />;
 
   return (
     <Box className={`${themeClassName} ${styles.root}`}>
+      {/*
+       * Nakładka wygaszanego rozruchu NAD menu: menu jest już w pełni zmontowane,
+       * a boot płynnie znika (opacity), więc przejście jest smooth — bez przeskoku.
+       * Po zakończeniu fade-outu (`bootGone`) nakładka znika z drzewa.
+       */}
+      {!bootGone && (
+        <div className={styles.bootOverlay}>
+          <BootScreen state="loading" leaving />
+        </div>
+      )}
       {/*
        * Pionowy „deck" wysoki na dwa ekrany. Klasa `deckSetup` przesuwa go w
        * górę o 50% (translateY) z animacją, odsłaniając ekran konfiguracji —
