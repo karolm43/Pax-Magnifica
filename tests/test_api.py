@@ -693,3 +693,56 @@ def test_production_help_endpoint(client: TestClient) -> None:
     assert fighter["placement"] == "space"
     infantry = next(u for u in body["units"] if u["baseType"] == "infantry")
     assert infantry["placement"] == "planet"
+
+
+def _complete_strategy_three_players(client: TestClient) -> None:
+    """Tworzy grę 3-osobową i kompletuje wybór kart (gotowe do /phase/next)."""
+    client.post(
+        "/game/new",
+        json={
+            "players": [
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+                {"faction_id": "mentak"},
+            ]
+        },
+    )
+    # Speaker = p1; wybór rundowy. p1:1,2 · p2:3,4 · p3:5,6.
+    for player_id, initiative in (
+        ("p1", 1), ("p2", 3), ("p3", 5),
+        ("p1", 2), ("p2", 4), ("p3", 6),
+    ):
+        client.post(
+            "/strategy/pick",
+            json={"player_id": player_id, "initiative": initiative},
+        )
+
+
+def test_phase_next_rejects_non_speaker(client: TestClient) -> None:
+    """RULES.md 31.4: przejście fazy ogłasza MÓWCA. /phase/next z player_id != speaker
+    jest odrzucane (422), a faza zostaje bez zmian — kolejne wywołanie przez mówcę
+    nadal przechodzi STRATEGY→ACTION (dowód, że stan nie został zmieniony)."""
+    _complete_strategy_three_players(client)  # speaker = p1
+    resp = client.post("/phase/next", json={"player_id": "p2"})
+    assert resp.status_code == 422
+    assert "speaker" in resp.json()["detail"].lower()
+    # Faza nie zmieniona: prawidłowe wywołanie mówcy wciąż przechodzi do akcji.
+    ok = client.post("/phase/next", json={"player_id": "p1"})
+    assert ok.status_code == 200
+    assert ok.json()["state"]["phase"] == "ACTION"
+
+
+def test_phase_next_accepts_speaker(client: TestClient) -> None:
+    """RULES.md 31.4: /phase/next z player_id == speaker przechodzi STRATEGY→ACTION."""
+    _complete_strategy_three_players(client)  # speaker = p1
+    resp = client.post("/phase/next", json={"player_id": "p1"})
+    assert resp.status_code == 200
+    assert resp.json()["state"]["phase"] == "ACTION"
+
+
+def test_phase_next_without_player_id_backward_compatible(client: TestClient) -> None:
+    """Bez player_id (legacy) /phase/next nie waliduje mówcy — działa jak dotąd."""
+    _complete_strategy_three_players(client)
+    resp = client.post("/phase/next")
+    assert resp.status_code == 200
+    assert resp.json()["state"]["phase"] == "ACTION"

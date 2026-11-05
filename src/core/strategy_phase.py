@@ -217,9 +217,13 @@ def pick_strategy_card(
     new_state.strategy_card_tg[initiative] = 0
     # Lista kart utrzymywana rosnąco (R5.1) — ustala poprawną inicjatywę tur.
     player.strategy_cards = sorted([*player.strategy_cards, initiative])
-    # Przekaż turę wyboru następnemu graczowi w speaker order (lub None, gdy
-    # wszyscy już wybrali — faza gotowa do przejścia w akcję). RULES.md 24.
-    new_state.active_player_id = next_strategy_picker(new_state)
+    # Przekaż turę wyboru następnemu graczowi w speaker order. Gdy wszyscy już
+    # wybrali (picker = None), faza jest gotowa do przejścia w akcję, ale aktywny
+    # NIE staje się None — wskazuje MÓWCĘ, który ogłosi tranzycję przez /phase/next
+    # (RULES.md 24, 31.4; zasada "zawsze czyjaś tura").
+    new_state.active_player_id = (
+        next_strategy_picker(new_state) or new_state.speaker_id
+    )
     return new_state
 
 
@@ -313,7 +317,11 @@ def reset_strategy_cards(state: GameState) -> GameState:
         player.strategy_cards = []
         player.exhausted_strategy_cards = []
     # Nowa faza strategii zaczyna wybierać mówca (speaker) — RULES.md 24.
-    new_state.active_player_id = next_strategy_picker(new_state)
+    # Fallback na mówcę przy niepełnym secie (picker = None), by nie zostawić
+    # None w toczącej się partii (RULES.md 31.4).
+    new_state.active_player_id = (
+        next_strategy_picker(new_state) or new_state.speaker_id
+    )
     return new_state
 
 

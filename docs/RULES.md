@@ -1338,14 +1338,19 @@ Etap E8-T4. Źródło: lokalny LRR 2.0 — `docs/rules_tirules/R_active_player.m
 (treść © FFG; patrz SOURCE.md). Pierwszy element „sędziego" (RULES.md 29.1): zwykłe akcje
 flow walidowane TWARDO; God-Mode omija.
 
-### 31.1. Aktywny gracz istnieje TYLKO w fazie akcji — ✅ ZWERYFIKOWANE
+### 31.1. Aktywny gracz wg LRR vs DECYZJA PROJEKTOWA — ⚠️ ODEJŚCIE OD ŹRÓDŁA (patrz 31.4)
 
-- „The active player is the player taking a turn during the action phase." Oraz wprost:
-  „During the strategy, status and agenda phases, NO player is the active player."
-- **Wniosek dla kodu (KORYGUJE wcześniejszy zamysł T4):** NIE wprowadzamy sztucznego
-  „aktywnego gracza" w STATUS/AGENDA. `active_player_id` jest ustawiony tylko w ACTION
-  (i chwilowo w STRATEGY jako „kto wybiera" — nasza konwencja, RULES.md 24). W STATUS/AGENDA
-  `active_player_id` pozostaje `None`; kolejność czynności to KOLEJKA (patrz 31.3), nie „tura".
+- Reguła źródłowa (R_active_player): „The active player is the player taking a turn during
+  the action phase." Oraz w notach wprost: „During the strategy, status and agenda phases,
+  no player is the active player."
+- **Decyzja projektowa (2026-11, ustalona z użytkownikiem — KORYGUJE wcześniejszy zamysł
+  T4, patrz 31.4):** silnik ŚWIADOMIE odchodzi od „no active player". W TOCZĄCEJ SIĘ partii
+  (≥2 graczy) `active_player_id` jest ZAWSZE ustawiony — także w STRATEGY, STATUS i AGENDA —
+  nigdy `None`. Powód: UI i bot AI zawsze potrzebują wskazanego gracza, a koniec tury/fazy
+  ma być TRANZYCJĄ (ogłaszaną przez mówcę), nie stanem „niczyjej tury". `None` pozostaje
+  LEGALNY wyłącznie jako stan „gra nie ruszyła / <2 graczy / God-Mode buduje stół".
+- Kolejność czynności w STATUS/AGENDA to nadal KOLEJKA wg inicjatywy/speaker order (31.3);
+  „aktywny gracz" w tych fazach jest tylko WSKAŹNIKIEM „czyja teraz kolej", nie zmienia reguł.
 
 ### 31.2. Walidacja przepływu fazy akcji — ✅ ZWERYFIKOWANE
 
@@ -1375,14 +1380,44 @@ Reguły (R_action_phase, R_active_player):
   clockwise" (R_agenda_phase) — czyli SPEAKER ORDER od gracza po mówcy. To ta sama mechanika,
   co kolejka okna czasowego (RULES.md 29.2, `timing.build_response_queue` z inicjatorem = mówca).
 - **Wniosek dla kodu:** gdy dojdą realne kroki statusu/agendy (osobne etapy), użyją KOLEJKI
-  (initiative albo speaker order) zamiast `active_player_id`. T4 kładzie tylko fundament:
-  `active_player_id` pozostaje None w tych fazach, a `turn_flow` dostarcza `initiative_order`
-  (= `turn_order`) jako kolejność dla statusu.
+  (initiative albo speaker order). `turn_flow` dostarcza `initiative_order` (= `turn_order`)
+  jako kolejność dla statusu. Od decyzji 31.4 `active_player_id` w STATUS/AGENDA wskazuje
+  pierwszego gracza tej kolejki (nie `None`), ale rozstrzyganie kroków i tak pójdzie przez
+  kolejkę — wskaźnik „aktywnego" nie zmienia reguł.
+
+### 31.4. ZASADA „zawsze czyjaś tura" + mówca ogłasza tranzycję — ⚠️ DECYZJA PROJEKTOWA (2026-11)
+
+Ustalono z użytkownikiem. Fundament pod docelowo do 6 ludzkich graczy (hot-seat / sieć) i
+bota AI: w każdej chwili toczącej się partii musi być jasne, CZYJA jest tura.
+
+**(1) `active_player_id` nigdy `None` w toczącej się partii (≥2 graczy):**
+- STRATEGY: aktywny = bieżący picker; po komplecie wyborów = MÓWCA (czeka na ogłoszenie).
+- ACTION: aktywny = gracz wg inicjatywy; gdy ostatni spasuje = MÓWCA (faza wciąż ACTION,
+  bez auto-przejścia — zostają okna czasowe „end of turn"/„end of action phase").
+- STATUS/AGENDA: aktywny = pierwszy gracz w initiative order (odejście od LRR — 31.1).
+- `None` TYLKO poza rozgrywką: 0–1 graczy, pusty setup, God-Mode budujący stół. `pick_count`
+  nie obsługuje <2 graczy, więc `next_strategy_picker` zwraca tam `None`; kod robi fallback na
+  `speaker_id`, który też bywa `None` w pustej grze — i to jedyny dozwolony `None`.
+
+**(2) Brak auto-tranzycji; przejście fazy OGŁASZA MÓWCA:**
+- Spasowanie/koniec tury ostatniego gracza NIE przełącza fazy automatycznie — przy końcu tury
+  i fazy jest wiele okien czasowych, których auto-przejście by nie uruchomiło.
+- Fazę zmienia `/phase/next`, egzekwowane jako akcja mówcy: gdy żądanie podaje `player_id`,
+  musi być równy `speaker_id` (inaczej HTTP 422). God-Mode (`/god-mode/patch`) omija.
+
+**Egzekucja w kodzie:**
+- `turn_flow.end_turn`/`pass_turn`: gdy brak następnego niespasowanego → `active_player_id =
+  speaker_id` (faza nadal ACTION), zamiast `None`+STATUS.
+- `turn_flow.next_phase`: ACTION → initiative[0]; STRATEGY → picker ∥ speaker; STATUS/AGENDA →
+  initiative[0] ∥ speaker. `next_round`, `strategy_phase.pick_strategy_card`/
+  `reset_strategy_cards`: picker ∥ speaker.
+- `api/routers/flow.post_next_phase`: walidacja „to mówca" (opcjonalny `player_id`).
 
 **Status wdrożenia:**
-- ✅ T4: `active_player_id` None w STATUS/AGENDA (potwierdzone regułą); walidacja end_turn/pass_turn
-  (faza, aktywny gracz, pas dopiero po akcji strategicznej); God-Mode omija.
-- ⬜ Realne kroki statusu (punktowanie, odświeżanie) — etap E5, użyją initiative order.
+- ✅ Zasada „zawsze czyjaś tura" + fallback na mówcę we wszystkich funkcjach flow/strategii.
+- ✅ Walidacja mówcy w `/phase/next`; walidacja end_turn/pass_turn (faza, aktywny gracz, pas
+  dopiero po akcji strategicznej); God-Mode omija.
+- ⬜ Realne kroki statusu (punktowanie, odświeżanie) — etap E5, użyją initiative order (kolejka).
 - ⬜ Realne głosowanie agendy — etap E6, użyje speaker order (kolejka jak okno czasowe).
 
 ---

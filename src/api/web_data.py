@@ -64,12 +64,17 @@ def _to_web_phase(phase: object) -> str:
 
 
 def _effective_active_id(state: GameState) -> str | None:
-    """Spójny identyfikator aktywnego gracza (Bug 7).
+    """Spójny identyfikator aktywnego gracza do WYŚWIETLENIA (Bug 7).
 
-    Gracz nie może być jednocześnie aktywny i spasowany — to sprzeczny stan, który
-    może powstać tylko przez ręczną edycję God-Mode (silnik tur go nie tworzy).
-    W takim przypadku traktujemy, że nie ma aktywnego gracza (null), zamiast
-    wysyłać do frontendu sprzeczne sygnały ``active`` + ``passed``.
+    Na poziomie STANU ``active_player_id`` w toczącej się partii nigdy nie jest None
+    (RULES.md 31.4, „zawsze czyjaś tura"). To jest jednak projekcja DO FRONTENDU:
+    gdy wskazany gracz jest spasowany, NIE podświetlamy go jako „active" (sprzeczne
+    sygnały ``active`` + ``passed``), tylko zwracamy None jako kolor podświetlenia.
+
+    Taka sytuacja powstaje teraz także normalnie: gdy w fazie akcji WSZYSCY spasują,
+    silnik ustawia ``active_player_id`` na MÓWCĘ (ogłosi tranzycję — RULES.md 31.4),
+    a mówca też ma ``passed=True``. Panel tury pokaże wtedy brak podświetlenia
+    aktywnego, choć stan nadal wskazuje mówcę (``isSpeaker`` niesie tę informację).
     """
     active_id = state.active_player_id
     if active_id is None:

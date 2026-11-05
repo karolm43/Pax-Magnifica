@@ -198,9 +198,13 @@ def test_pick_advances_active_in_speaker_order(
     assert after.active_player_id == "p3"
     after = strategy_phase.pick_strategy_card(after, registry, "p3", 5)
     assert after.active_player_id == "p1"
-    # Ostatnia karta — wszyscy mają po 2 → brak kolejnego wybierającego.
+    # Ostatnia karta — wszyscy mają po 2 → brak kolejnego wybierającego, ale
+    # aktywny NIE staje się None (RULES.md 31.4): wskazuje MÓWCĘ (p2), który
+    # ogłosi przejście w fazę akcji przez /phase/next.
     after = strategy_phase.pick_strategy_card(after, registry, "p1", 6)
-    assert after.active_player_id is None
+    assert after.active_player_id == "p2"
+    # Wybór jest ukończony (gotowy do tranzycji) — potwierdza osobny mechanizm.
+    strategy_phase.ensure_strategy_complete(after)
 
 
 def test_reset_sets_active_to_speaker(registry: StaticDataRegistry) -> None:

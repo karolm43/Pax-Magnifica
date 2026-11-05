@@ -68,14 +68,18 @@ def test_pass_turn_marks_and_advances() -> None:
     assert nxt.active_player_id == "p2"
 
 
-def test_all_passed_ends_action_phase() -> None:
+def test_all_passed_hands_turn_to_speaker_without_auto_transition() -> None:
     state = _state_with_players()
+    state.speaker_id = "p2"
     state.players["p2"].passed = True
     state.players["p3"].passed = True
-    # p1 pasuje jako ostatni → faza akcji się kończy (status).
+    # p1 pasuje jako ostatni → faza akcji NIE przechodzi automatycznie (RULES.md
+    # 31.4: brak auto-tranzycji, przejście ogłasza mówca). Faza wciąż ACTION,
+    # aktywny = MÓWCA (zawsze czyjaś tura — nigdy None).
     nxt = turn_flow.pass_turn(state)
-    assert nxt.phase is Phase.STATUS
-    assert nxt.active_player_id is None
+    assert nxt.phase is Phase.ACTION
+    assert nxt.active_player_id == "p2"
+    assert nxt.players["p1"].passed is True
 
 
 def test_next_phase_cycles_and_sets_active_on_action() -> None:
@@ -211,3 +215,52 @@ def test_next_phase_strategy_to_action_consistent_state_ok() -> None:
     nxt = turn_flow.next_phase(state)
     assert nxt.phase is Phase.ACTION
     assert nxt.active_player_id == "p1"
+
+
+def test_next_phase_action_to_status_sets_initiative_first() -> None:
+    """RULES.md 31.4 (decyzja projektowa): wejście w STATUS NIE zostawia None.
+
+    Odejście od LRR „no active player" — aktywny = pierwszy gracz w INITIATIVE
+    ORDER (najniższy numer karty), by UI/bot zawsze miały wskazanego gracza.
+    """
+    state = _state_with_players()  # p1=[1], p2=[3], p3=[5]
+    state.speaker_id = "p2"
+    nxt = turn_flow.next_phase(state)  # ACTION -> STATUS
+    assert nxt.phase is Phase.STATUS
+    assert nxt.active_player_id == "p1"  # inicjatywa 1
+
+
+def test_next_phase_status_to_agenda_sets_initiative_first() -> None:
+    """RULES.md 31.4: wejście w AGENDA też wskazuje pierwszego wg inicjatywy."""
+    state = _state_with_players()
+    state.phase = Phase.STATUS
+    state.speaker_id = "p3"
+    nxt = turn_flow.next_phase(state)  # STATUS -> AGENDA
+    assert nxt.phase is Phase.AGENDA
+    assert nxt.active_player_id == "p1"
+
+
+def test_end_turn_only_active_unpassed_keeps_turn() -> None:
+    """end_turn (NIE pas) nie wyczerpuje aktywnego gracza: gdy p2/p3 spasowali,
+    a p1 tylko kończy turę, tura wraca do p1 (jedyny niespasowany). Faza ACTION,
+    aktywny nigdy None (RULES.md 31.4)."""
+    state = _state_with_players()
+    state.speaker_id = "p3"
+    state.players["p2"].passed = True
+    state.players["p3"].passed = True
+    nxt = turn_flow.end_turn(state)  # p1 kończy turę, ale NIE pasuje
+    assert nxt.phase is Phase.ACTION
+    assert nxt.active_player_id == "p1"
+
+
+def test_pass_last_player_hands_to_speaker_no_transition() -> None:
+    """RULES.md 31.4: gdy OSTATNI niespasowany gracz PASUJE, faza NIE przechodzi
+    automatycznie do statusu — zostaje ACTION, a aktywny = mówca (ogłosi tranzycję)."""
+    state = _state_with_players()
+    state.speaker_id = "p3"
+    state.players["p2"].passed = True
+    state.players["p3"].passed = True
+    nxt = turn_flow.pass_turn(state)  # p1 pasuje jako ostatni → wszyscy spasowali
+    assert nxt.phase is Phase.ACTION
+    assert nxt.active_player_id == "p3"  # mówca
+    assert nxt.players["p1"].passed is True

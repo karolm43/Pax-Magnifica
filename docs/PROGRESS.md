@@ -772,6 +772,50 @@ res 4 = 6). Mapa renderuje koło zębate z „6" na kafelku — jak w AsyncTI4.
 
 **QA:** backend 262 testy zielone, ruff + mypy czyste. Frontend type-check + lint + build czyste.
 
+### ✅ Blok E8-T7 — zasada „zawsze czyjaś tura" + mówca ogłasza tranzycję (ukończony)
+
+**Cel (ustalony z użytkownikiem):** fundament pod docelowo do 6 ludzkich graczy (hot-seat /
+sieć) i bota AI — w toczącej się partii ZAWSZE wiadomo, czyja jest tura. Koniec tury/fazy to
+TRANZYCJA ogłaszana przez mówcę, nie stan „niczyjej tury" (`None`).
+
+**Decyzja projektowa (⚠️ odejście od LRR) — RULES.md 31.4:** oficjalna reguła (R_active_player)
+mówi „during the strategy, status and agenda phases, no player is the active player". Świadomie
+od niej odchodzimy: `active_player_id` w partii ≥2 graczy nigdy nie jest `None` (także w STRATEGY
+/ STATUS / AGENDA). `None` pozostaje legalny TYLKO poza rozgrywką (0–1 graczy, pusty setup,
+God-Mode budujący stół). Brak auto-tranzycji: przejście fazy ogłasza mówca przez `/phase/next`.
+
+**Core (`turn_flow.py`):**
+- [x] `end_turn`/`pass_turn`: gdy brak następnego niespasowanego → `active_player_id = speaker_id`
+  (faza nadal ACTION), zamiast `None` + skok do STATUS. Okna czasowe końca tury/fazy zostają otwarte.
+- [x] `next_phase`: STATUS/AGENDA → aktywny = pierwszy wg inicjatywy (`turn_order`), fallback mówca;
+  STRATEGY → picker ∥ mówca; ACTION bez zmian (initiative[0]).
+- [x] `next_round`: picker ∥ mówca.
+
+**Core (`strategy_phase.py`):**
+- [x] `pick_strategy_card` / `reset_strategy_cards`: po komplecie wyboru aktywny = mówca (nie `None`).
+
+**API (`routers/flow.py`):**
+- [x] `/phase/next` przyjmuje opcjonalny `player_id`; gdy podany, musi być `speaker_id` (inaczej 422,
+  „Only the speaker announces a phase transition"). Pominięty = zgodność wsteczna. God-Mode omija.
+- [x] `/speaker/set`: w STRATEGY po komplecie wyboru aktywny = nowy mówca (nie `None`).
+
+**Projekcja (`web_data.py`):**
+- [x] `_effective_active_id`: zaktualizowany komentarz — stan active+passed powstaje teraz także
+  normalnie (wszyscy spasowali → aktywny = mówca, też `passed`). Panel nie podświetla wtedy
+  aktywnego (spójność `active`/`passed`), ale `isSpeaker` niesie informację „kto ogłasza".
+
+**Testy:** +7 (łącznie 467 zielonych). `test_turn_flow.py`: STATUS/AGENDA wskazują initiative[0];
+pas ostatniego gracza → ACTION + mówca (bez skoku do STATUS); end_turn nie wyczerpuje aktywnego.
+`test_strategy_phase.py`: po komplecie wyboru aktywny = mówca. `test_api.py`: `/phase/next`
+odrzuca nie-mówcę (422), przyjmuje mówcę, działa bez `player_id` (legacy).
+
+**QA:** `uv run pytest -q` (467 passed), `uv run ruff check src tests` (All checks passed!),
+`uv run mypy src tests` (Success, 110 plików).
+
+**Otwarte (do decyzji użytkownika):** czy panel tury ma podświetlać mówcę jako „active" także
+gdy wszyscy spasowali (dziś: null, bo mówca jest passed — zachowanie z Bug 7). Zmiana dotyczy
+tylko warstwy wyświetlania, nie stanu.
+
 ### ✅ Blok local-ti4-data-foundation 1.1 — `core/sources.py` + stałe w `config.py` (ukończony)
 - `src/config.py`: katalogi danych nowych kategorii (karty akcji, agendy, cele, attachmenty, eksploracje, relikty, promissory, żetony, anomalie graniczne, wydarzenia, karty generyczne, talie), `AUDIT_DIR`, `EFFECTS_STATUS_PATH`, `FRONTEND_DIR`.
 - `src/core/sources.py`: `SOURCE_PRIORITY` (RULES.md 14), `source_rank`, `known_source_ids`, `validate_enabled_sources`, `UnknownSourcesError`.

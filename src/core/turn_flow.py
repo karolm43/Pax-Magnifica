@@ -120,7 +120,11 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     """Kończy turę aktywnego gracza i przekazuje ją następnemu niespasowanemu.
 
     Twardo waliduje fazę akcji i (gdy podano) tożsamość aktywnego gracza — RULES.md 31.2.
-    Gdy nikt nie został (wszyscy spasowali) — przechodzi do fazy statusu.
+    Gdy nikt nie został (wszyscy spasowali) — faza AKCJI pozostaje aktywna, a aktywny
+    gracz wskazuje MÓWCĘ (RULES.md 31.4): to on ogłosi przejście fazy przez
+    ``/phase/next``. NIE przechodzimy automatycznie do statusu — między ostatnim pasem
+    a przejściem są okna czasowe końca tury/fazy ("end of turn"/"end of action phase").
+    ``active_player_id`` NIGDY nie staje się tu ``None`` (zasada "zawsze czyjaś tura").
 
     Raises:
         ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``).
@@ -129,8 +133,9 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     new_state = state.clone()
     nxt = next_unpassed_player(new_state, new_state.active_player_id)
     if nxt is None:
-        new_state.phase = Phase.STATUS
-        new_state.active_player_id = None
+        # Wszyscy spasowali: faza akcji "wyczerpana", ale wciąż ACTION. Aktywny =
+        # mówca (ogłosi tranzycję); fallback na dotychczasowego, gdy mówca nieznany.
+        new_state.active_player_id = new_state.speaker_id or new_state.active_player_id
     else:
         new_state.active_player_id = nxt
     return new_state
@@ -163,8 +168,10 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
     new_state.players[current].passed = True
     nxt = next_unpassed_player(new_state, current)
     if nxt is None:
-        new_state.phase = Phase.STATUS
-        new_state.active_player_id = None
+        # Ostatni gracz spasował: faza akcji "wyczerpana", ale wciąż ACTION. Aktywny
+        # = mówca (ogłosi tranzycję przez /phase/next — RULES.md 31.4). Brak
+        # auto-przejścia (okna czasowe końca fazy); active_player_id NIGDY nie None.
+        new_state.active_player_id = new_state.speaker_id or current
     else:
         new_state.active_player_id = nxt
     return new_state
@@ -198,10 +205,18 @@ def next_phase(state: GameState) -> GameState:
         new_state.active_player_id = strict_initiative_order(new_state)[0]
     elif new_state.phase is Phase.STRATEGY:
         # Faza strategii: wybór zaczyna MÓWCA, dalej speaker order (RULES.md 24).
-        new_state.active_player_id = next_strategy_picker(new_state)
+        # Przy komplecie/niepełnym secie picker = None → fallback na mówcę, by w
+        # toczącej się partii zawsze ktoś był aktywny (RULES.md 31.4).
+        new_state.active_player_id = (
+            next_strategy_picker(new_state) or new_state.speaker_id
+        )
     else:
-        # Status/Agenda nie mają pojęcia "aktywnej tury" w tym szkielecie.
-        new_state.active_player_id = None
+        # Status/Agenda: wg DECYZJI PROJEKTOWEJ (RULES.md 31.4) aktywny = pierwszy
+        # gracz w INITIATIVE ORDER (odejście od reguły "no active player" z LRR 2.0,
+        # by UI/bot zawsze miały wskazanego gracza). Gdy brak graczy z kartą (np.
+        # stan przejściowy), fallback na mówcę.
+        order = turn_order(new_state)
+        new_state.active_player_id = order[0] if order else new_state.speaker_id
     return new_state
 
 
@@ -214,5 +229,9 @@ def next_round(state: GameState) -> GameState:
         player.passed = False
     # Nowa runda zaczyna się fazą strategii: wybiera mówca (RULES.md 24).
     # Wołane po reset_strategy_cards (flow.py), więc karty są już wyczyszczone.
-    new_state.active_player_id = next_strategy_picker(new_state)
+    # Fallback na mówcę, gdy picker = None (niepełny set), by nie zostawić None
+    # w toczącej się partii (RULES.md 31.4).
+    new_state.active_player_id = (
+        next_strategy_picker(new_state) or new_state.speaker_id
+    )
     return new_state

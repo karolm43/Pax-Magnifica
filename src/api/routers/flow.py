@@ -49,10 +49,28 @@ async def post_pass_turn(
 
 
 @router.post("/phase/next", response_model=StateEnvelope)
-async def post_next_phase(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
-    """Przechodzi do następnej fazy rundy (Strategia→Akcja→Status→Agenda)."""
+async def post_next_phase(
+    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Przechodzi do następnej fazy rundy (Strategia→Akcja→Status→Agenda).
+
+    Przejście fazy OGŁASZA MÓWCA (RULES.md 31.4): gdy podano ``player_id``, musi być
+    równy ``speaker_id`` — inaczej 422. Pominięty ``player_id`` omija kontrolę
+    tożsamości (zgodność wsteczna / wywołania wewnętrzne). God-Mode zmienia fazę
+    własnym kanałem (``/god-mode/patch``) i tej walidacji nie przechodzi.
+    """
+    state = ctx.service.current_state()
+    player_id = request.player_id if request is not None else None
+    if player_id is not None and player_id != state.speaker_id:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Only the speaker announces a phase transition "
+                f"(speaker: {state.speaker_id})."
+            ),
+        )
     try:
-        new_state = turn_flow.next_phase(ctx.service.current_state())
+        new_state = turn_flow.next_phase(state)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, "phase:next")
@@ -96,7 +114,10 @@ async def post_set_speaker(
     if request.player_id not in new_state.seating_order:
         new_state.seating_order = [*new_state.seating_order, request.player_id]
     # W fazie strategii zmiana mówcy przestawia, kto teraz wybiera (od nowego
-    # mówcy w górę), ale tylko dopóki trwa wybór (ktoś jeszcze nie ma karty).
+    # mówcy w górę). Gdy wybór już skończony (picker = None), aktywny wskazuje
+    # nowego mówcę — nie None (RULES.md 31.4, zasada "zawsze czyjaś tura").
     if new_state.phase is Phase.STRATEGY:
-        new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
+        new_state.active_player_id = (
+            strategy_phase.next_strategy_picker(new_state) or new_state.speaker_id
+        )
     return await _commit_flow(ctx, new_state, f"speaker:{request.player_id}")
