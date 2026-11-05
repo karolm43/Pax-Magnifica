@@ -82,15 +82,26 @@ export type PlayerEdit = {
 export function useBoardEditor() {
   const queryClient = useQueryClient();
 
-  const refresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["playerData"] });
-    await queryClient.invalidateQueries({ queryKey: ["history"] });
-    await queryClient.invalidateQueries({ queryKey: ["strategyCards"] });
-    await queryClient.invalidateQueries({ queryKey: ["combat"] });
-    await queryClient.invalidateQueries({ queryKey: ["production"] });
-    // Pasek ręki na mapie pokazuje rękę AKTYWNEGO gracza — po zmianie tury /
-    // dobraniu kart trzeba ją odświeżyć (endpoint /game/{id}/hand).
-    await queryClient.invalidateQueries({ queryKey: ["playerHand"] });
+  const refresh = useCallback((): Promise<void> => {
+    // WAŻNE (UX): NIE czekamy na zakończenie refetchy. `invalidateQueries`
+    // zwraca Promise rozwiązywany dopiero, gdy wszystkie zapytania się
+    // przeładują — wcześniej `await refresh()` trzymał przycisk w stanie
+    // `disabled` na czas pełnego round-tripu („cooldown" po kliknięciu). Teraz
+    // tylko OZNACZAMY zapytania jako nieświeże (react-query przeładuje je w tle)
+    // i od razu zwracamy rozwiązany Promise, więc akcja kończy się tuż po
+    // sukcesie POST. Klucze: stan gracza, historia, karty strategii, walka,
+    // produkcja i ręka gracza (pasek ręki = ręka AKTYWNEGO gracza, po zmianie tury).
+    for (const key of [
+      "playerData",
+      "history",
+      "strategyCards",
+      "combat",
+      "production",
+      "playerHand",
+    ]) {
+      void queryClient.invalidateQueries({ queryKey: [key] });
+    }
+    return Promise.resolve();
   }, [queryClient]);
 
   const editUnit = useCallback(

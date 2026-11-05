@@ -27,6 +27,7 @@ import {
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
 import type { PlayerData } from "@/entities/data/types";
+import { TurnControlBar } from "./TurnControlBar";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -225,6 +226,10 @@ export function BottomHandDock() {
           />
         </UnstyledButton>
       </div>
+
+      {/* Pasek sterowania turą (wybrana karta strategii + Play / Pass / End turn
+          / Next phase) — przypięty na mapie, sam gatuje widoczność po fazie. */}
+      {open && <TurnControlBar active={active} />}
 
       {open && (
         <div className={styles.fan} role="tabpanel">
