@@ -562,7 +562,7 @@ function SummaryBody({
                 </dd>
               </div>
             )}
-            <div className={styles.startRow}>
+            <div className={styles.startRowFull}>
               <dt>Commodities</dt>
               <dd>
                 <span className={styles.commodityChip}>

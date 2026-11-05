@@ -22,7 +22,9 @@
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  /* Prawa krawędź zanika — postać wtapia się w tło przy tekście lore. */
+  /*
+   * Prawa krawędź zanika — postać wtapia się w tło przy tekście lore.
+   */
   -webkit-mask-image: linear-gradient(to right, #000 62%, transparent 100%);
   mask-image: linear-gradient(to right, #000 62%, transparent 100%);
   /*
@@ -82,8 +84,57 @@
   max-width: 100%;
   max-height: 100%;
   filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.6));
-  animation: portraitGrade var(--t-portrait-fade, 5.5s) cubic-bezier(0.45, 0.05, 0.25, 1)
-    var(--t-portrait-delay, 0.25s) both;
+  /*
+   * Grafiki postaci to PNG przycięte „na ostro" po krawędziach — surowy brzeg obrazka
+   * wyglądał brzydko (twarde ścięcie). Maska zmiękcza KRAWĘDZIE samego obrazka
+   * (prawa + dół, lekko góra), więc kadr wtapia się w tło zamiast urywać się linią.
+   * Dwie maski składane przez `mask-composite: intersect` (prawa pionowa + dolna pozioma).
+   *
+   * WAŻNE: maska dochodzi do pełnej przezroczystości PRZED fizyczną krawędzią (np. 99%),
+   * a nie dokładnie na 100% — inaczej ostatni rząd pikseli zostaje częściowo widoczny i
+   * razem z `drop-shadow` tworzy jasną „białą kreskę" na brzegu. Piórko jest cienkie
+   * (ostatnie ~3%), ale kończy się zerowym alfa tuż przy krawędzi.
+   */
+  -webkit-mask-image: linear-gradient(to right, #000 96%, transparent 99%),
+    linear-gradient(to bottom, transparent 1%, #000 4%, #000 96%, transparent 99%);
+  mask-image: linear-gradient(to right, #000 96%, transparent 99%),
+    linear-gradient(to bottom, transparent 1%, #000 4%, #000 96%, transparent 99%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  backface-visibility: hidden;
+  will-change: filter;
+  /*
+   * UWAGA: <img> ma własny inline `transform` (dosuwa sylwetkę do krawędzi po pomiarze
+   * alfa w FactionBackdrop.tsx). Dlatego NIE animujemy tu `transform` — zrobiłby to
+   * nadpisanie inline i postać przeskakiwałaby. Idle („oddech") jest na wrapperze
+   * `.portraitFloat`. Tu zostaje tylko grade (filter).
+   */
+  animation: portraitGrade var(--t-portrait-fade, 5.5s)
+    cubic-bezier(0.45, 0.05, 0.25, 1) var(--t-portrait-delay, 0.25s) both;
+}
+
+/*
+ * Wrapper „oddechu" postaci. Osobna warstwa, żeby animacja transformu NIE kolidowała z
+ * inline `transform` obrazka (dosunięcie do krawędzi). Delikatne unoszenie + mikro-ruch,
+ * pętla tam-i-z-powrotem; startuje dopiero PO wyłanianiu. Własna warstwa GPU od początku
+ * (`translateZ(0)` + `will-change`), więc wejście w animację jest bezszwowe.
+ */
+.portraitFloat {
+  /*
+   * Wypełnia warstwę (wysokość + szerokość), żeby `max-height/max-width: 100%` obrazka
+   * dalej odnosiło się do wymiaru warstwy, a sylwetka trzymała się lewej i dolnej
+   * krawędzi — tak samo jak gdy <img> był bezpośrednim dzieckiem flexa.
+   */
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+  animation: portraitIdle var(--t-portrait-idle, 9s) ease-in-out
+    calc(var(--t-portrait-delay, 0.25s) + var(--t-portrait-fade, 5.5s)) infinite;
 }
 
 /* Brak portretu: sama ikona frakcji jako duży, przygaszony symbol. */
@@ -138,6 +189,23 @@
   }
   100% {
     filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.6)) brightness(1) saturate(1);
+  }
+}
+
+/*
+ * Delikatny „oddech" postaci po zakończeniu wyłaniania: bardzo subtelne unoszenie w pionie
+ * + mikro-kołysanie i oddech skali. Ruch jest celowo mały (kilka px, ~0.6% skali), żeby
+ * scena żyła, ale nie rozpraszała. Pętla tam-i-z-powrotem (0% == 100%), czas `--t-portrait-idle`.
+ */
+@keyframes portraitIdle {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(1.5px, -5px, 0) scale(1.005) rotate(0.14deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
   }
 }
 
@@ -640,7 +708,8 @@
     animation: slowFade 3.4s ease-in-out 0.2s both;
   }
   .portraitLayer::before,
-  .portrait {
+  .portrait,
+  .portraitFloat {
     animation: none;
   }
   .head {

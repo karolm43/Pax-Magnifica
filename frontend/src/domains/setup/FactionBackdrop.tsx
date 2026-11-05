@@ -45,7 +45,7 @@ export function portraitCandidates(faction: FactionInfo): string[] {
  * do lewej krawędzi z pomiaru alfy. Dodatni = w prawo. Mały margines, żeby sylwetka nie
  * dotykała samej krawędzi ekranu.
  */
-const PORTRAIT_NUDGE_X = 4;
+const PORTRAIT_NUDGE_X = 0;
 
 /**
  * Warstwa portretu: łańcuch źródeł LOKALNYCH (pierwsze istniejące):
