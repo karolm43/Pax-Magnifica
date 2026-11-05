@@ -29,6 +29,7 @@ import {
   useBoardEditor,
   useProductionHelp,
   useStrategyCards,
+  type StrategyCardState,
 } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
@@ -545,33 +546,56 @@ function WinnerCallout({
 
 type Locations = { system: string | null; combat: string | null };
 
+/**
+ * Tryb renderowania wnętrza panelu stanu:
+ * - ``"info"`` — pływający panel „Game state": TYLKO warstwa informacyjna (kto gra,
+ *   faza, kolejka, pomoc przy wyborze kart jako PODGLĄD). Zero klikalnych akcji —
+ *   przeniesione w inne miejsca (faza akcji, sterowanie turą/rundą).
+ * - ``"full"`` — kontrolki akcji (zakładka gracza): pełny zestaw z przyciskami
+ *   (okno czasowe, wybór/zagranie kart, faza akcji, End turn/Pass/Next phase).
+ *
+ * Żaden komponent nie jest usuwany — w trybie ``info`` renderujemy jego
+ * informacyjny wariant, a klikalne elementy pomijamy.
+ */
+type PanelVariant = "info" | "full";
+
 function PlateBody({
   gameState,
   playerData,
   locations,
+  variant = "full",
 }: {
   gameState: GameState;
   playerData: PlayerData[];
   locations: Locations;
+  variant?: PanelVariant;
 }) {
   const { phase, activePlayer, winner, activeCombat } = gameState;
   if (phase === "finished" && winner) {
     return <WinnerCallout winner={winner} playerData={playerData} />;
   }
 
+  const isInfo = variant === "info";
   const seatColors = speakerOrderColors(gameState);
   const seats = buildSeats(playerData, phase, seatColors);
   const active = playerData.find((p) => p.color === activePlayer);
   const isAgenda = phase.startsWith("agenda");
   const showOrder = phase === "action" || phase === "strategy";
 
+  // Status karty strategii aktywnego gracza (faza akcji): czy ma kartę i czy
+  // już ją zagrał. Steruje bramką przycisku „Pass" (nie można pasować przed
+  // akcją strategiczną — RULES.md 31.2 / R_action_phase) i banerem statusu.
+  const strategyStatus = usePlayerStrategyStatus(active);
+
   return (
     <>
-      <NoticeBanner />
+      {/* Baner odrzuconej akcji (422) dotyczy klikania — tylko w trybie z akcjami. */}
+      {!isInfo && <NoticeBanner />}
       {gameState.pendingWindow && (
         <WindowSection
           window={gameState.pendingWindow}
           playerData={playerData}
+          variant={variant}
         />
       )}
       {activePlayer && (
@@ -596,16 +620,23 @@ function PlateBody({
           seats={seats}
           activeColor={activePlayer}
           pickCount={gameState.strategyPickCount ?? null}
+          variant={variant}
         />
       )}
-      {phase === "action" && (
-        <ActionPhasePanel
-          seats={seats}
-          activeSystem={gameState.activeSystem}
-          tacticalStep={gameState.tacticalStep ?? null}
-          systemLabel={locations.system}
-          activePlayerColor={gameState.activePlayer}
-        />
+      {/* Faza akcji = same klikalne akcje → tylko w trybie pełnym (osobne miejsce). */}
+      {phase === "action" && !isInfo && (
+        <>
+          {/* Wyraźny status karty strategii aktywnego gracza: jaką kartę ma i
+              czy ją zagrał. Odpowiada na „chcę widzieć jaką kartę wybrałem". */}
+          <StrategyCardStatus player={active} status={strategyStatus} />
+          <ActionPhasePanel
+            seats={seats}
+            activeSystem={gameState.activeSystem}
+            tacticalStep={gameState.tacticalStep ?? null}
+            systemLabel={locations.system}
+            activePlayerColor={gameState.activePlayer}
+          />
+        </>
       )}
       {isAgenda && (
         <AgendaRow
@@ -615,7 +646,15 @@ function PlateBody({
           playerData={playerData}
         />
       )}
-      <PhaseControls phase={phase} activePlayerId={active?.discordId ?? null} />
+      {/* Sterowanie turą/fazą/rundą = klikalne akcje → tylko w trybie pełnym. */}
+      {!isInfo && (
+        <PhaseControls
+          phase={phase}
+          activePlayerId={active?.discordId ?? null}
+          canPass={strategyStatus.canPass}
+          passBlockReason={strategyStatus.passBlockReason}
+        />
+      )}
     </>
   );
 }
@@ -665,13 +704,16 @@ const WINDOW_LABELS: Record<string, string> = {
 function WindowSection({
   window,
   playerData,
+  variant = "full",
 }: {
   window: NonNullable<GameState["pendingWindow"]>;
   playerData: PlayerData[];
+  variant?: PanelVariant;
 }) {
   const { respondWindow, strategySecondary, closeWindow } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
+  const isInfo = variant === "info";
   const label = WINDOW_LABELS[window.windowType] ?? window.windowType;
   const responderColor = window.currentResponder;
   const responder = playerData.find((p) => p.color === responderColor);
@@ -708,18 +750,23 @@ function WindowSection({
       {window.isComplete || !window.currentResponderId ? (
         <>
           <span className={styles.label}>
-            Everyone has responded — close the window
+            {isInfo
+              ? "Everyone has responded"
+              : "Everyone has responded — close the window"}
           </span>
-          <div className={styles.controls}>
-            <button
-              type="button"
-              className={styles.scPickBtn}
-              disabled={busy}
-              onClick={() => void run(() => closeWindow())}
-            >
-              Close window
-            </button>
-          </div>
+          {/* Zamknięcie okna = klikalna akcja → tylko w trybie pełnym. */}
+          {!isInfo && (
+            <div className={styles.controls}>
+              <button
+                type="button"
+                className={styles.scPickBtn}
+                disabled={busy}
+                onClick={() => void run(() => closeWindow())}
+              >
+                Close window
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -739,26 +786,29 @@ function WindowSection({
           <span className={styles.label}>
             Remaining in queue: {window.remaining}
           </span>
-          <div className={styles.controls}>
-            <button
-              type="button"
-              className={styles.scPickBtn}
-              disabled={busy}
-              onClick={() => respond(true)}
-              title="Take the action in this window"
-            >
-              Execute
-            </button>
-            <button
-              type="button"
-              className={styles.scPickBtn}
-              disabled={busy}
-              onClick={() => respond(false)}
-              title="Decline (pass)"
-            >
-              Pass
-            </button>
-          </div>
+          {/* Odpowiedź w oknie = klikalne akcje → tylko w trybie pełnym. */}
+          {!isInfo && (
+            <div className={styles.controls}>
+              <button
+                type="button"
+                className={styles.scPickBtn}
+                disabled={busy}
+                onClick={() => respond(true)}
+                title="Take the action in this window"
+              >
+                Execute
+              </button>
+              <button
+                type="button"
+                className={styles.scPickBtn}
+                disabled={busy}
+                onClick={() => respond(false)}
+                title="Decline (pass)"
+              >
+                Pass
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -777,6 +827,7 @@ function StrategyCardPicker({
   seats,
   activeColor,
   pickCount,
+  variant = "full",
 }: {
   seats: Seat[];
   activeColor: string | null;
@@ -785,10 +836,13 @@ function StrategyCardPicker({
    * nieznana (liczba graczy spoza 3..8). Decyduje, kiedy wybór jest kompletny.
    */
   pickCount: number | null;
+  variant?: PanelVariant;
 }) {
   const { data: cards } = useStrategyCards();
   const { pickStrategyCard, setSpeaker } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+
+  const isInfo = variant === "info";
 
   if (!cards || cards.length === 0) return null;
 
@@ -838,6 +892,38 @@ function StrategyCardPicker({
           const owner = seats.find(
             (s) => s.player.discordId === card.picked_by,
           );
+          // Tryb info: karty to PODGLĄD (kto co ma), nie klikalny wybór. Ten sam
+          // wygląd (``scCard``), ale jako nieinteraktywny ``div`` bez onClick.
+          if (isInfo) {
+            return (
+              <div
+                key={card.initiative}
+                className={styles.scCard}
+                data-picked={!!owner || undefined}
+                title={
+                  owner
+                    ? `Picked by: ${getPlayerDisplayName(owner.player, owner.player.color)}`
+                    : card.name
+                }
+              >
+                <span
+                  className={styles.disc}
+                  style={toneStyle({ "--scc": SC_TONE[card.initiative] })}
+                >
+                  {card.initiative}
+                </span>
+                <span className={styles.scName}>{card.name}</span>
+                {card.trade_goods > 0 && (
+                  <span className={styles.scTg} title="Trade Goods on the card">
+                    +{card.trade_goods} TG
+                  </span>
+                )}
+                <span className={styles.scActions}>
+                  {owner && <FactionMark player={owner.player} size={18} />}
+                </span>
+              </div>
+            );
+          }
           const canPick = !owner && !!picker;
           return (
             <button
@@ -880,27 +966,29 @@ function StrategyCardPicker({
         })}
       </div>
 
-      {/* Zmiana mówcy (kto zaczyna wybór) — operator, gdy trzeba. */}
-      <div className={styles.speakerRow}>
-        <span className={styles.label}>Speaker</span>
-        <div className={styles.speakerChips}>
-          {seats.map((seat) => (
-            <button
-              key={seat.player.discordId}
-              type="button"
-              className={styles.scPickBtn}
-              data-active={seat.player.isSpeaker || undefined}
-              disabled={busy}
-              onClick={() =>
-                void run(() => setSpeaker(seat.player.discordId))
-              }
-              title={`Set Speaker: ${seat.name}`}
-            >
-              <FactionMark player={seat.player} size={16} />
-            </button>
-          ))}
+      {/* Zmiana mówcy (kto zaczyna wybór) = klikalna akcja → tylko w trybie pełnym. */}
+      {!isInfo && (
+        <div className={styles.speakerRow}>
+          <span className={styles.label}>Speaker</span>
+          <div className={styles.speakerChips}>
+            {seats.map((seat) => (
+              <button
+                key={seat.player.discordId}
+                type="button"
+                className={styles.scPickBtn}
+                data-active={seat.player.isSpeaker || undefined}
+                disabled={busy}
+                onClick={() =>
+                  void run(() => setSpeaker(seat.player.discordId))
+                }
+                title={`Set Speaker: ${seat.name}`}
+              >
+                <FactionMark player={seat.player} size={16} />
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1311,6 +1399,86 @@ function TacticalActionPanel({
   );
 }
 
+/**
+ * Status karty strategii aktywnego gracza w fazie akcji: które karty ma (numery
+ * inicjatywy + nazwy), czy zagrał już przynajmniej jedną (``exhausted``) oraz czy
+ * wolno mu spasować. Reguła: nie można spasować przed wykonaniem akcji
+ * strategicznej (RULES.md 31.2 / R_action_phase) — tę bramkę egzekwuje backend
+ * (422), a tu odwzorowujemy ją proaktywnie, by gracz dostał natychmiastowy sygnał
+ * zamiast baneru błędu. Gdy gracz nie ma karty strategii (stan brzegowy), pas jest
+ * dozwolony. Hook, bo czyta pulę kart strategii (``useStrategyCards``).
+ */
+type PlayerStrategyStatus = {
+  cards: StrategyCardState[];
+  hasCard: boolean;
+  played: boolean;
+  canPass: boolean;
+  passBlockReason: string | null;
+};
+
+function usePlayerStrategyStatus(
+  player: PlayerData | undefined,
+): PlayerStrategyStatus {
+  const { data: cards } = useStrategyCards();
+  const mine = (cards ?? []).filter((c) => c.picked_by === player?.discordId);
+  const hasCard = mine.length > 0;
+  // Zagrana = którakolwiek karta gracza jest wyczerpana (zagrano primary).
+  const played = mine.some((c) => c.exhausted);
+  // Pas dozwolony, gdy gracz nie ma karty (brzegowo) albo już zagrał.
+  const canPass = !hasCard || played;
+  const passBlockReason = canPass
+    ? null
+    : "Play your Strategy Card before passing.";
+  return { cards: mine, hasCard, played, canPass, passBlockReason };
+}
+
+/**
+ * Baner statusu karty strategii aktywnego gracza (faza akcji). Pokazuje WYRAŹNIE,
+ * jaką kartę gracz wybrał w fazie strategii i czy już ją zagrał w tej turze —
+ * z odznaką stanu (dysk inicjatywy w barwie karty + „Played"/„Not played yet").
+ * To czysty wskaźnik; zagranie karty dzieje się w zakładce „Strategic" niżej.
+ */
+function StrategyCardStatus({
+  player,
+  status,
+}: {
+  player: PlayerData | undefined;
+  status: PlayerStrategyStatus;
+}) {
+  if (!player || !status.hasCard) return null;
+  return (
+    <div className={styles.scStatus}>
+      <span className={styles.label}>
+        <IconBolt size={11} aria-hidden="true" />
+        Your Strategy Card
+      </span>
+      <div className={styles.scStatusCards}>
+        {status.cards.map((card) => (
+          <div
+            key={card.initiative}
+            className={styles.scStatusCard}
+            data-played={card.exhausted || undefined}
+          >
+            <span
+              className={styles.disc}
+              style={toneStyle({ "--scc": SC_TONE[card.initiative] })}
+            >
+              {card.initiative}
+            </span>
+            <span className={styles.scStatusName}>{card.name}</span>
+            <span
+              className={styles.scStatusBadge}
+              data-played={card.exhausted || undefined}
+            >
+              {card.exhausted ? "Played" : "Not played"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Trzy rodzaje akcji w fazie akcji TI4 (RULES.md 19). */
 type ActionKind = "tactical" | "strategy" | "component";
 
@@ -1513,9 +1681,15 @@ function StrategicActionControl({
 function PhaseControls({
   phase,
   activePlayerId,
+  canPass = true,
+  passBlockReason = null,
 }: {
   phase: GamePhase;
   activePlayerId: string | null;
+  /** Czy aktywny gracz może spasować (po akcji strategicznej — RULES.md 31.2). */
+  canPass?: boolean;
+  /** Powód blokady pasa (tooltip), gdy ``canPass`` === false. */
+  passBlockReason?: string | null;
 }) {
   const { endTurn, passTurn, nextPhase, nextRound } = useBoardEditor();
   const [busy, setBusy] = useState(false);
@@ -1549,12 +1723,20 @@ function PhaseControls({
           <button
             type="button"
             className={styles.ctlBtn}
-            disabled={busy}
+            disabled={busy || !canPass}
             onClick={() => void run(() => passTurn(activePlayerId ?? undefined))}
-            title="Pass — skipped for the rest of the Action Phase"
+            title={
+              canPass
+                ? "Pass — skipped for the rest of the Action Phase"
+                : (passBlockReason ?? "You cannot pass yet.")
+            }
           >
             Pass
           </button>
+          {/* Dlaczego pas jest zablokowany — czytelna podpowiedź przy przycisku. */}
+          {!canPass && passBlockReason && (
+            <span className={styles.passHint}>{passBlockReason}</span>
+          )}
         </>
       )}
       {/* Drobne sterowanie fazami (operator) — osobny, cichszy rząd. */}
@@ -1644,10 +1826,14 @@ function GameStatePanelContent({
       />
       <Collapse in={isOpen} id={DETAILS_ID} transitionDuration={160}>
         <PhaseTrack step={config.step} />
+        {/* Pływający panel „Game state" = TYLKO status/informacja (bez klikalnych
+            akcji). Funkcjonalność (faza akcji, sterowanie turą/rundą) żyje w innych
+            miejscach — tu jej nie renderujemy (``variant="info"``). */}
         <PlateBody
           gameState={gameState}
           playerData={playerData}
           locations={locations}
+          variant="info"
         />
       </Collapse>
     </section>
@@ -1711,6 +1897,7 @@ export function GameStateActionControls() {
           gameData?.tiles,
         ),
       }}
+      variant="full"
     />
   );
 }

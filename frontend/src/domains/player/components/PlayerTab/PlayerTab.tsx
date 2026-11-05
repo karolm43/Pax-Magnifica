@@ -61,12 +61,33 @@ export function PlayerTab() {
         <PlayerCard key={activePlayer.color} playerData={activePlayer} />
       </Box>
 
-      {/* Boczna kolumna: prywatna ręka z identyfikatorami + kontrolki akcji. */}
+      {/* Boczna kolumna = „pulpit sterowania" aktywnego gracza. Kolejność wg
+          wagi w turze: najpierw AKCJE (co mogę teraz zrobić: zagrać kartę
+          strategii, akcja taktyczna/komponentowa, zakończ turę / pas), pod spodem
+          RĘKA (karty akcji / sekrety / weksle jako zakładki z licznikami). */}
       <Stack className={styles.side} gap="md">
         <Box className={styles.panel}>
           <Title order={4} className={styles.panelTitle}>
-            Private info
+            Actions
           </Title>
+          <Text c="dimmed" size="xs" className={styles.panelHint}>
+            Your turn in the action phase: play your strategy card, take a
+            tactical or component action, then end your turn or pass.
+          </Text>
+          {/* Kontrolki okna czasowego / kroku taktycznego — zawierają własny baner
+              komunikatu odrzuconej akcji (422 → R12.3). Zwracają null, gdy brak
+              sensownej fazy (np. przed startem gry). */}
+          <GameStateActionControls />
+        </Box>
+
+        <Box className={styles.panel}>
+          <Title order={4} className={styles.panelTitle}>
+            Your hand
+          </Title>
+          <Text c="dimmed" size="xs" className={styles.panelHint}>
+            Action cards, secret objectives and promissory notes — tap a tab,
+            then a card to read it.
+          </Text>
           {canViewSecretHand ? (
             <SecretHand
               handData={handData}
@@ -79,16 +100,6 @@ export function PlayerTab() {
               Full hand visible only to the logged-in player in this game.
             </Text>
           )}
-        </Box>
-
-        <Box className={styles.panel}>
-          <Title order={4} className={styles.panelTitle}>
-            Actions
-          </Title>
-          {/* Kontrolki okna czasowego / kroku taktycznego — zawierają własny baner
-              komunikatu odrzuconej akcji (422 → R12.3). Zwracają null, gdy brak
-              sensownej fazy (np. przed startem gry). */}
-          <GameStateActionControls />
         </Box>
       </Stack>
     </Box>

@@ -1174,3 +1174,81 @@
   color: var(--ds-ink-hi);
 }
 
+
+/* === Status karty strategii aktywnego gracza (faza akcji) ================= */
+
+/* Blok „Your Strategy Card": wyraźny wskaźnik wybranej karty i czy zagrana. */
+.scStatus {
+  display: grid;
+  gap: 6px;
+  margin: 8px 10px 0;
+  padding: 8px 9px;
+  border: 1px solid var(--ds-h14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.scStatusCards {
+  display: grid;
+  gap: 4px;
+}
+
+/* Jedna karta: dysk inicjatywy (w barwie karty) + nazwa + odznaka stanu. */
+.scStatusCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 2px 0 0 rgb(var(--ds-sig-warn) / 0.55);
+}
+
+/* Zagrana karta: akcent zmienia się na „gotowe" (zielony), lekko wygaszony. */
+.scStatusCard[data-played] {
+  box-shadow: inset 2px 0 0 rgb(var(--ds-sig-ok) / 0.6);
+  opacity: 0.85;
+}
+
+.scStatusName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-body, 13px);
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Odznaka stanu: „Not played" (ostrzegawczo) / „Played" (gotowe). */
+.scStatusBadge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  border-radius: 999px;
+  color: rgb(var(--ds-sig-warn));
+  background: rgb(var(--ds-sig-warn) / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-warn) / 0.4);
+}
+
+.scStatusBadge[data-played] {
+  color: rgb(var(--ds-sig-ok));
+  background: rgb(var(--ds-sig-ok) / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-ok) / 0.4);
+}
+
+/* Podpowiedź pod zablokowanym przyciskiem „Pass" (dlaczego nie można pasować). */
+.passHint {
+  flex: 1 1 100%;
+  margin-top: -2px;
+  font-size: var(--text-micro, 10px);
+  line-height: 1.3;
+  color: rgb(var(--ds-sig-warn));
+}
