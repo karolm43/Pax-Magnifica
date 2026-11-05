@@ -161,6 +161,9 @@ class FactionInfo(BaseModel):
 
     id: str
     name: str
+    # Źródło/dodatek frakcji (np. „base", „pok", „thunders_edge", „codex3"). Front używa
+    # go do pogrupowania listy wyboru wg dodatków (Base Game / PoK / Thunder's Edge).
+    source: str
     home_system: str | None = None
     home_planets: list[str] = Field(default_factory=list)
     starting_fleet: str | None = None

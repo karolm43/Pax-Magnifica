@@ -170,10 +170,26 @@ function PlanetList({ planetIds }: { planetIds: string[] }) {
   );
 }
 
+/**
+ * Przełącznik wariantu frakcji (np. Keleres: Mentak/Xxcha/Argent). Gdy podany, panel
+ * pokazuje dobrze widoczny przycisk, który cyklicznie przełącza wariant oglądanej
+ * frakcji. Rodzina zajmuje jeden wpis na liście; TU wybiera się konkretny wariant.
+ */
+export interface VariantSwitch {
+  /** Warianty rodziny (id + krótka etykieta, np. „Mentak"). */
+  variants: { id: string; label: string }[];
+  /** Id aktualnie oglądanego wariantu. */
+  currentId: string;
+  /** Wybiera konkretny wariant (podgląd + ew. zapis do slotu). */
+  onSelect: (id: string) => void;
+}
+
 export interface FactionSummaryProps {
   faction: FactionInfo | null;
   /** Akcje pod summary (np. przycisk „Wybierz dla gracza N"). */
   footer?: React.ReactNode;
+  /** Przełącznik wariantu frakcji (Keleres) — pokazywany w nagłówku, gdy podany. */
+  variantSwitch?: VariantSwitch;
   /**
    * Wybór technologii startowych — pokazywany TYLKO gdy frakcja wymaga wyboru
    * i podana jest para value/onChange (frakcja przypisana aktywnemu graczowi).
@@ -198,6 +214,7 @@ export function FactionSummary({
   faction,
   footer,
   startingTech,
+  variantSwitch,
   onActiveFactionChange,
 }: FactionSummaryProps) {
   // Id frakcji pochodnej aktualnie oglądanej (np. "obsidian") albo null.
@@ -258,6 +275,7 @@ export function FactionSummary({
       <SummaryBody
         faction={faction}
         startingTech={startingTech}
+        variantSwitch={variantSwitch}
         derivedFactionId={derivedFactionId}
         onViewDerived={() => setDerivedId(derivedFactionId)}
       />
@@ -270,11 +288,13 @@ export function FactionSummary({
 function SummaryBody({
   faction,
   startingTech,
+  variantSwitch,
   derivedFactionId,
   onViewDerived,
 }: {
   faction: FactionInfo;
   startingTech?: FactionSummaryProps["startingTech"];
+  variantSwitch?: VariantSwitch;
   derivedFactionId?: string | null;
   onViewDerived?: () => void;
 }) {
@@ -337,6 +357,33 @@ function SummaryBody({
           </div>
         )}
       </div>
+
+      {/* Wybór wariantu (np. Keleres) — trzy duże, klikalne przyciski. Aktywny wariant
+          jest wyróżniony; klik wybiera konkretny wariant (podgląd + ew. zapis do slotu). */}
+      {variantSwitch && variantSwitch.variants.length > 1 && (
+        <div
+          className={styles.variantSwitch}
+          role="group"
+          aria-label="Choose faction variant"
+        >
+          {variantSwitch.variants.map((v) => {
+            const active = v.id === variantSwitch.currentId;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                aria-pressed={active}
+                className={`${styles.variantButton} ${
+                  active ? styles.variantButtonActive : ""
+                }`}
+                onClick={() => variantSwitch.onSelect(v.id)}
+              >
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* `key` odtwarza kaskadowe pojawianie się sekcji przy każdej zmianie frakcji. */}
       <Stack gap="md" className={styles.sections} key={`sections-${faction.id}`}>

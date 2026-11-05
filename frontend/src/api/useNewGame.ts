@@ -5,6 +5,9 @@ import { fetchJson } from "@/api/fetchJson";
 export type FactionInfo = {
   id: string;
   name: string;
+  // Źródło/dodatek frakcji ("base" / "pok" / "thunders_edge" / "codex3" …) — backend.
+  // Front grupuje listę wyboru wg dodatków na jego podstawie.
+  source: string;
   home_system: string | null;
   home_planets: string[];
   starting_fleet: string | null;

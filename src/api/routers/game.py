@@ -126,6 +126,7 @@ def _faction_info(f: FactionDef, registry: StaticDataRegistry) -> FactionInfo:
     return FactionInfo(
         id=f.id,
         name=f.name,
+        source=f.source,
         home_system=f.home_system,
         home_planets=list(f.home_planets),
         starting_fleet=f.starting_fleet,

@@ -89,6 +89,55 @@
   align-items: flex-end;
 }
 
+/* Wybór wariantu (np. Keleres) — trzy duże, klikalne przyciski pod nagłówkiem. */
+.variantSwitch {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgb(252 162 43 / 0.45);
+  border-radius: var(--ds-radius-md);
+  background: rgb(252 162 43 / 0.08);
+}
+
+.variantButton {
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 10px 14px;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  font-size: var(--ds-fz-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard),
+    color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.variantButton:hover {
+  border-color: rgb(252 162 43);
+  background: rgb(252 162 43 / 0.16);
+}
+
+.variantButton:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+.variantButtonActive {
+  border-color: rgb(252 162 43);
+  background: rgb(252 162 43);
+  color: #1a1206;
+}
+
+.variantButtonActive:hover {
+  background: rgb(252 162 43);
+}
+
 .factionName {
   font-family: var(--ds-font-display);
   font-size: var(--ds-fz-lg);

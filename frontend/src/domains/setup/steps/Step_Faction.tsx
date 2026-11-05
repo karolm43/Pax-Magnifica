@@ -31,6 +31,14 @@ import {
   hasFactionQuote,
 } from "../FactionBackdrop";
 import type { FactionInfo } from "@/api/useNewGame";
+import {
+  type FactionListEntry,
+  familyOfVariant,
+  firstVariant,
+  groupByExpansion,
+  VARIANT_FAMILIES,
+  VARIANT_LABEL,
+} from "../factionVariants";
 import styles from "./Step_Faction.module.css";
 
 /** Etykieta frakcji slotu w pasku graczy („Losowa" / nazwa / „—"). */
@@ -51,6 +59,13 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
   const [activeSlot, setActiveSlot] = useState(0);
   // Którą frakcję oglądamy w summary (id) — podgląd, zanim przypiszemy do slotu.
   const [previewId, setPreviewId] = useState<string | null>(null);
+  // Aktywny wariant w każdej rodzinie wariantów (np. keleres → keleresm/x/a). Rodzina
+  // zajmuje JEDEN wiersz listy, a przycisk cyklu przełącza, który wariant jest aktywny.
+  const [familyVariant, setFamilyVariant] = useState<Record<string, string>>({});
+
+  /** Aktualny wariant rodziny — jawnie wybrany albo domyślnie pierwszy. */
+  const activeVariant = (family: string): string =>
+    familyVariant[family] ?? firstVariant(family);
   // Filtr listy.
   const [query, setQuery] = useState("");
   // Frakcja aktywna na scenie (bazowa albo pochodna — Obsidian); `FactionSummary`
@@ -62,17 +77,24 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
   // Przy przełączeniu gracza pokaż jego aktualnie wybraną frakcję (jeśli jawna).
   const activeSlotFaction = slots[activeSlot]?.factionId;
   useEffect(() => {
-    setPreviewId(
+    const explicit =
       activeSlotFaction && activeSlotFaction !== RANDOM_FACTION
         ? activeSlotFaction
-        : null,
-    );
+        : null;
+    setPreviewId(explicit);
+    // Jeśli gracz ma wybrany wariant, ustaw go jako aktywny w jego rodzinie, by wiersz
+    // rodziny i przycisk cyklu pokazały właśnie ten wariant.
+    const family = explicit ? familyOfVariant(explicit) : null;
+    if (family && explicit) {
+      setFamilyVariant((prev) => ({ ...prev, [family]: explicit }));
+    }
   }, [activeSlot, activeSlotFaction]);
 
-  // Frakcje do listy, posortowane po nazwie i przefiltrowane zapytaniem.
-  const visibleFactions = useMemo(() => {
+  // Frakcje do listy: przefiltrowane zapytaniem, zwinięte warianty (Keleres → jeden
+  // wpis) i pogrupowane wg dodatków (Base Game / PoK / Thunder's Edge).
+  const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return [...factions]
+    const sorted = [...factions]
       .sort((a, b) => a.name.localeCompare(b.name))
       .filter(
         (f) =>
@@ -80,10 +102,36 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
           f.name.toLowerCase().includes(q) ||
           f.id.toLowerCase().includes(q),
       );
+    return groupByExpansion(sorted);
   }, [factions, query]);
 
   const previewFaction = previewId ? factionById.get(previewId) ?? null : null;
   const selectedForActive = slots[activeSlot]?.factionId;
+
+  // Przełącznik wariantu dla panelu szczegółów: aktywny, gdy oglądana frakcja należy do
+  // rodziny wariantów (np. Keleres). Przełączenie zmienia podgląd, a gdy rodzina jest już
+  // przypisana aktywnemu graczowi — także jego slot. Przekazywane do `FactionSummary`,
+  // żeby przycisk był dobrze widoczny tam, gdzie pokazujemy dane frakcji.
+  const previewFamily = previewId ? familyOfVariant(previewId) : null;
+  const variantSwitch =
+    previewFamily && previewId
+      ? {
+          variants: (VARIANT_FAMILIES[previewFamily] ?? []).map((id) => ({
+            id,
+            label: VARIANT_LABEL[id] ?? id,
+          })),
+          currentId: previewId,
+          // Klik w konkretny wariant: od razu podgląd, a gdy rodzina jest już przypisana
+          // aktywnemu graczowi — także zapis do jego slotu.
+          onSelect: (id: string) => {
+            setFamilyVariant((prev) => ({ ...prev, [previewFamily]: id }));
+            setPreviewId(id);
+            if (familyOfVariant(selectedForActive ?? "") === previewFamily) {
+              assign(id);
+            }
+          },
+        }
+      : undefined;
 
   // Czy frakcja jest już wzięta przez INNEGO gracza (jawny wybór) — pokazujemy znacznik.
   const takenBy = useMemo(() => {
@@ -103,6 +151,93 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
     previewId !== null &&
     takenBy.has(previewId) &&
     takenBy.get(previewId) !== activeSlot;
+
+  /** Renderuje jeden wiersz listy — zwykłą frakcję albo rodzinę wariantów (jeden wpis). */
+  const renderEntry = (entry: FactionListEntry) => {
+    // Rodzina wariantów (np. Keleres): JEDEN wiersz reprezentujący aktywny wariant.
+    // Przełącznik wariantu jest w panelu szczegółów, nie tutaj — klik wiersza podgląda
+    // aktywny wariant rodziny.
+    if (entry.kind === "family") {
+      const currentId = activeVariant(entry.family);
+      const isSelectedHere =
+        selectedForActive !== undefined &&
+        familyOfVariant(selectedForActive) === entry.family;
+      const ownerSlot = entry.variants
+        .map((v) => takenBy.get(v.id))
+        .find((i) => i !== undefined && i !== activeSlot);
+      const otherOwner = ownerSlot !== undefined;
+      const previewsThis =
+        previewId !== null && familyOfVariant(previewId) === entry.family;
+      return (
+        <button
+          key={entry.family}
+          type="button"
+          role="option"
+          aria-selected={previewsThis}
+          className={`${styles.item} ${
+            isSelectedHere ? styles.itemSelected : ""
+          } ${previewsThis ? styles.itemPreview : ""} ${
+            otherOwner ? styles.itemTaken : ""
+          }`}
+          onClick={() => setPreviewId(currentId)}
+        >
+          <CircularFactionIcon faction={currentId} size={22} />
+          <span className={styles.itemName}>{entry.label}</span>
+          {isSelectedHere && (
+            <span className={styles.badgeSelected} aria-hidden>
+              ✓
+            </span>
+          )}
+          {otherOwner && (
+            <span
+              className={styles.badgeTaken}
+              title={`Chosen by player ${(ownerSlot ?? 0) + 1}`}
+              aria-hidden
+            >
+              G{(ownerSlot ?? 0) + 1}
+            </span>
+          )}
+        </button>
+      );
+    }
+
+    // Zwykła frakcja — jeden wiersz.
+    const faction = entry.faction;
+    const isSelectedHere = selectedForActive === faction.id;
+    const otherOwner =
+      takenBy.has(faction.id) && takenBy.get(faction.id) !== activeSlot;
+    return (
+      <button
+        key={faction.id}
+        type="button"
+        role="option"
+        aria-selected={previewId === faction.id}
+        className={`${styles.item} ${
+          isSelectedHere ? styles.itemSelected : ""
+        } ${previewId === faction.id ? styles.itemPreview : ""} ${
+          otherOwner ? styles.itemTaken : ""
+        }`}
+        onClick={() => setPreviewId(faction.id)}
+      >
+        <CircularFactionIcon faction={faction.id} size={22} />
+        <span className={styles.itemName}>{faction.name}</span>
+        {isSelectedHere && (
+          <span className={styles.badgeSelected} aria-hidden>
+            ✓
+          </span>
+        )}
+        {otherOwner && (
+          <span
+            className={styles.badgeTaken}
+            title={`Chosen by player ${(takenBy.get(faction.id) ?? 0) + 1}`}
+            aria-hidden
+          >
+            G{(takenBy.get(faction.id) ?? 0) + 1}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className={styles.stage}>
@@ -196,6 +331,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
           <FactionSummary
             faction={previewFaction}
             onActiveFactionChange={setStageFaction}
+            variantSwitch={variantSwitch}
             // Wybór technologii startowych pokazujemy TYLKO, gdy oglądana frakcja jest
             // przypisana aktywnemu graczowi (wtedy zapis idzie do jego slotu). Scala to
             // dawny osobny krok „Technologie startowe" w ten panel.
@@ -270,44 +406,13 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
               <span className={styles.itemName}>Random</span>
             </button>
 
-            {visibleFactions.map((faction) => {
-              const isSelectedHere = selectedForActive === faction.id;
-              const otherOwner =
-                takenBy.has(faction.id) && takenBy.get(faction.id) !== activeSlot;
-              return (
-                <button
-                  key={faction.id}
-                  type="button"
-                  role="option"
-                  aria-selected={previewId === faction.id}
-                  className={`${styles.item} ${
-                    isSelectedHere ? styles.itemSelected : ""
-                  } ${previewId === faction.id ? styles.itemPreview : ""} ${
-                    otherOwner ? styles.itemTaken : ""
-                  }`}
-                  onClick={() => setPreviewId(faction.id)}
-                >
-                  <CircularFactionIcon faction={faction.id} size={22} />
-                  <span className={styles.itemName}>{faction.name}</span>
-                  {isSelectedHere && (
-                    <span className={styles.badgeSelected} aria-hidden>
-                      ✓
-                    </span>
-                  )}
-                  {otherOwner && (
-                    <span
-                      className={styles.badgeTaken}
-                      title={`Chosen by player ${
-                        (takenBy.get(faction.id) ?? 0) + 1
-                      }`}
-                      aria-hidden
-                    >
-                      G{(takenBy.get(faction.id) ?? 0) + 1}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {/* Sekcje wg dodatków (Base Game / PoK / Thunder's Edge) z nagłówkami. */}
+            {sections.map((section) => (
+              <div key={section.group} className={styles.section} role="group">
+                <div className={styles.sectionHeader}>{section.label}</div>
+                {section.entries.map((entry) => renderEntry(entry))}
+              </div>
+            ))}
           </div>
         </div>
       </div>

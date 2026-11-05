@@ -112,8 +112,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 100px;
-  flex: 1 1 100px;
+  min-width: 132px;
+  flex: 1 1 132px;
   padding: 5px 8px;
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
@@ -151,10 +151,12 @@
 }
 
 .playerTabName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Zawijanie zamiast ucinania — długie nazwy (np. warianty Keleres) mieszczą się
+     w dwóch liniach, bez obcinania wielokropkiem. */
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: var(--ds-fz-xs);
+  line-height: 1.2;
   color: var(--ds-ink-hi);
 }
 
@@ -332,6 +334,33 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--ds-fz-sm);
+}
+
+/* Sekcja dodatku na liście (Base Game / PoK / Thunder's Edge). */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section + .section {
+  margin-top: 8px;
+}
+
+/* Nagłówek sekcji dodatku — mały, lepki na górze przewijanej listy. */
+.sectionHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ds-ink-lo);
+  background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid var(--ds-h10);
 }
 
 .badgeSelected,
