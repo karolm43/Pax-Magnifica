@@ -1,66 +1,108 @@
 /*
- * Sterowanie turą — jak rzeczy LEŻĄCE PRZED GRACZEM. Dwie osobne, przypięte do
- * ekranu strefy:
- *   .cardZone   — karta strategii gracza jako DUŻY obrazek (PNG, przezroczyste
- *                 tło, bez kadrowania), lewy dolny róg;
- *   .actionZone — osobny, WYRAŹNY panel przycisków tury, prawy dolny róg.
- * Rozdzielone celowo: karta to karta, przyciski to przyciski (nie mieszają się
- * z ręką kart w doku na środku).
+ * Sterowanie turą — „rzeczy przed graczem". Dwie przypięte strefy:
+ *   .cardZone   (lewy dół)  — karta strategii jako duży obrazek, lekko przechylona,
+ *                             z poświatą w barwie karty; prostuje się i unosi na hover.
+ *   .actionZone (prawy dół) — elegancki panel akcji tury (nagłówek + przyciski
+ *                             z ikonami, poświatą i stagger-animacją wejścia).
+ * --sc-hue = barwa karty strategii (HEX). --i = indeks karty (kaskada wejścia).
+ * --d = opóźnienie wejścia przycisku.
  */
 
-/* --- Strefa karty strategii (lewy dół) --- */
+/* ========================= STREFA KARTY (lewy dół) ========================= */
 .cardZone {
   position: fixed;
-  left: 18px;
-  bottom: 16px;
+  left: 22px;
+  bottom: 20px;
   z-index: 200;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  pointer-events: none; /* tło strefy nie łapie klików; łapią je karty/przyciski */
+  pointer-events: none; /* klikają tylko karty/przyciski w środku */
 }
 
 .cards {
   display: flex;
   align-items: flex-end;
-  gap: 14px;
+  gap: 16px;
   pointer-events: auto;
 }
 
 .noCard {
-  padding: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
   font-size: var(--text-meta, 12px);
   color: var(--ds-ink-lo);
+  background: color-mix(in oklab, var(--ds-ground) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-md);
+  pointer-events: auto;
 }
 
 /*
- * Karta strategii = SAM OBRAZEK (PNG z własną ramką/rogami). Bez ciemnego kafla,
- * bez kadrowania — przezroczyste tło, cały obraz widoczny (object-fit: contain).
- * DUŻA (wysokość ~rozmiar „karty przed graczem"), skaluje się do wysokości okna.
+ * Karta: wrapper z poświatą (::before) + wewnętrzny .cardInner, który obraca się
+ * i unosi. Rozdzielenie wrappera i inner pozwala poświacie zostać na miejscu,
+ * gdy karta się prostuje. Spoczynek: lekkie przechylenie (leży na stole).
  */
 .card {
+  --tilt: -6deg;
   position: relative;
-  display: block;
-  height: clamp(150px, 26vh, 260px);
-  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
-  transition: transform 140ms ease, filter 140ms ease;
+  height: clamp(160px, 27vh, 280px);
+  pointer-events: auto;
+  animation: cardDeal 0.5s var(--ds-ease) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 120ms);
 }
 
-.card:hover {
-  transform: translateY(-6px);
-  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.65));
+/* Poświata karty w jej barwie — miękka elipsa pod kartą. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -14% -10% -20%;
+  z-index: -1;
+  border-radius: 40%;
+  background: radial-gradient(
+    ellipse 60% 55% at 50% 60%,
+    color-mix(in srgb, var(--sc-hue, #888) 55%, transparent),
+    transparent 72%
+  );
+  opacity: 0.35;
+  filter: blur(14px);
+  transition: opacity var(--ds-dur) var(--ds-ease);
 }
 
-/* Zagrana karta — lekko wygaszona. */
+.card:hover::before {
+  opacity: 0.8;
+}
+
+.cardInner {
+  position: relative;
+  height: 100%;
+  transform: rotate(var(--tilt));
+  transform-origin: bottom center;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55));
+  transition:
+    transform var(--ds-dur) var(--ds-ease),
+    filter var(--ds-dur) var(--ds-ease);
+}
+
+/* Hover: karta prostuje się, unosi i delikatnie powiększa. */
+.card:hover .cardInner,
+.card:focus-within .cardInner {
+  transform: rotate(0deg) translateY(-10px) scale(1.05);
+  filter: drop-shadow(0 20px 34px rgba(0, 0, 0, 0.62));
+}
+
+/* Zagrana karta — wygaszona i mocniej położona (mniej „aktywna"). */
 .card[data-played] {
-  opacity: 0.72;
+  --tilt: -3deg;
+  opacity: 0.68;
 }
 
 .cardImage {
   display: block;
   height: 100%;
   width: auto;
-  object-fit: contain; /* PNG z przezroczystością: cały obraz, zero czarnego tła */
+  object-fit: contain; /* PNG: cały obraz, zero czarnego kafla */
+  border-radius: 8px;
 }
 
 /* Fallback tekstowy (brak/zła grafika) — jedyny przypadek z tłem i ramką. */
@@ -81,15 +123,15 @@
   justify-self: center;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   font-family: var(--font-data);
   font-size: var(--text-title, 16px);
   font-weight: var(--weight-title);
   color: var(--ds-ink-hi);
   background: var(--ds-socket);
-  box-shadow: inset 0 0 0 2px var(--ds-h22);
+  box-shadow: inset 0 0 0 2px var(--sc-hue, var(--ds-h22));
 }
 
 .name {
@@ -99,36 +141,45 @@
   color: var(--ds-ink-hi);
 }
 
-/*
- * Nakładka „Play" — pojawia się PO NAJECHANIU na kartę (nie osobny przycisk).
- * Przyklejona do obrysu obrazka (inset:0). Wyraźny, czytelny napis.
- */
+/* Nakładka „Play" — fade-in na hover, pulsujący pierścień akcentu. */
 .playOverlay {
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
   font-family: var(--font-display);
-  font-size: clamp(16px, 2.4vh, 24px);
+  font-size: clamp(14px, 1.9vh, 20px);
   font-weight: var(--weight-title);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #fff;
   background: radial-gradient(
-    ellipse 70% 70% at 50% 60%,
-    rgb(var(--ds-sig-break) / 0.55),
-    rgb(var(--ds-sig-break) / 0.15)
+    ellipse 75% 70% at 50% 55%,
+    color-mix(in srgb, var(--sc-hue, #39b54a) 70%, transparent),
+    color-mix(in srgb, var(--sc-hue, #39b54a) 20%, transparent) 70%,
+    transparent
   );
-  border: none;
+  border: 2px solid color-mix(in srgb, var(--sc-hue, #39b54a) 85%, white 10%);
   border-radius: 10px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 140ms ease;
+  transform: scale(0.98);
+  transition:
+    opacity var(--ds-dur) var(--ds-ease),
+    transform var(--ds-dur) var(--ds-ease);
 }
 
 .card:hover .playOverlay,
 .playOverlay:focus-visible {
   opacity: 1;
+  transform: scale(1);
+}
+
+.playOverlay svg {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  animation: playPulse 1.6s ease-in-out infinite;
 }
 
 .playOverlay:disabled {
@@ -139,7 +190,7 @@
 .playedBadge {
   position: absolute;
   left: 50%;
-  bottom: 8px;
+  bottom: 10px;
   transform: translateX(-50%);
   padding: 3px 12px;
   font-family: var(--ds-label-font);
@@ -150,67 +201,127 @@
   background: color-mix(in oklab, var(--ds-ground) 85%, transparent);
   border-radius: 999px;
   box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-ok) / 0.5);
-  pointer-events: none;
 }
 
-/* --- Strefa przycisków tury (prawy dół) — osobny, wyraźny panel --- */
+/* ====================== STREFA PRZYCISKÓW (prawy dół) ====================== */
 .actionZone {
   position: fixed;
-  right: 18px;
-  bottom: 16px;
+  right: 22px;
+  bottom: 20px;
   z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-width: 212px;
   padding: 12px;
-  background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
-  backdrop-filter: blur(10px);
+  background: color-mix(in oklab, var(--ds-ground) 90%, transparent);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-md);
-  box-shadow: var(--ds-shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.5));
-  pointer-events: auto;
+  border-radius: var(--ds-radius-lg, 14px);
+  box-shadow: var(--ds-shadow-lg, 0 14px 44px rgba(0, 0, 0, 0.55));
+  animation: zoneRise 0.42s var(--ds-ease) both;
 }
 
-.btn,
+/* Nagłówek: faza + aktywny gracz (ikona frakcji). */
+.actionHead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 4px 8px;
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.actionHeadText {
+  display: grid;
+  min-width: 0;
+}
+
+.actionPhase {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.actionWho {
+  font-family: var(--font-display);
+  font-size: var(--text-body, 13px);
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.actionBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Wspólny styl przycisku akcji: ikona + etykieta, hover-glow, press. */
+.pass,
 .endTurn,
-.ghost {
-  min-width: 150px;
-  padding: 11px 18px;
+.nextPhase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
   font-size: var(--text-body, 13px);
   font-weight: 700;
   letter-spacing: 0.03em;
-  border-radius: 9px;
+  border-radius: 10px;
   cursor: pointer;
-  text-align: center;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease,
+  text-align: left;
+  animation: btnIn 0.36s var(--ds-ease) both;
+  animation-delay: var(--d, 0ms);
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease),
+    border-color var(--ds-dur-fast) var(--ds-ease),
+    box-shadow var(--ds-dur-fast) var(--ds-ease),
     transform 80ms ease;
 }
 
-.btn:active:not(:disabled),
+.pass svg,
+.endTurn svg,
+.nextPhase svg {
+  flex: none;
+}
+
+.pass span,
+.endTurn span,
+.nextPhase span {
+  flex: 1 1 auto;
+}
+
+.pass:active:not(:disabled),
 .endTurn:active:not(:disabled),
-.ghost:active:not(:disabled) {
+.nextPhase:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-.btn:disabled,
+.pass:disabled,
 .endTurn:disabled,
-.ghost:disabled {
+.nextPhase:disabled {
   opacity: 0.45;
   cursor: default;
 }
 
-/* Pass — wyraźny, ostrzegawczy akcent (to decyzja „kończę aktywność"). */
-.btn {
+/* Pass — ostrzegawczy akcent (decyzja „kończę aktywność w rundzie"). */
+.pass {
   color: var(--ds-ink-hi);
   background: rgb(var(--ds-sig-warn) / 0.16);
-  border: 1px solid rgb(var(--ds-sig-warn) / 0.55);
+  border: 1px solid rgb(var(--ds-sig-warn) / 0.5);
 }
 
-.btn:hover:not(:disabled) {
+.pass:hover:not(:disabled) {
   background: rgb(var(--ds-sig-warn) / 0.26);
+  box-shadow: 0 0 0 1px rgb(var(--ds-sig-warn) / 0.4),
+    0 6px 18px rgb(var(--ds-sig-warn) / 0.25);
 }
 
-/* End turn — główna akcja fazy akcji (zielony, najbardziej widoczny). */
+/* End turn — główna akcja (zielony, najmocniejszy akcent). */
 .endTurn {
   color: var(--ds-ink-hi);
   background: rgb(var(--ds-sig-bio) / 0.22);
@@ -219,32 +330,103 @@
 
 .endTurn:hover:not(:disabled) {
   background: rgb(var(--ds-sig-bio) / 0.34);
+  box-shadow: 0 0 0 1px rgb(var(--ds-sig-bio) / 0.5),
+    0 6px 18px rgb(var(--ds-sig-bio) / 0.3);
 }
 
-/* Next phase — nadal wyraźny, ale neutralny (operatorskie przejście fazy). */
-.ghost {
+/* Next phase — neutralny, ale wyraźny. */
+.nextPhase {
   color: var(--ds-ink);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--ds-h22);
 }
 
-.ghost:hover:not(:disabled) {
+.nextPhase:hover:not(:disabled) {
   color: var(--ds-ink-hi);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 
-/* Na telefonie strefy schodzą niżej i nie nachodzą na dok ręki na środku. */
+.hint {
+  margin: 0;
+  padding: 0 2px;
+  font-size: var(--text-micro, 10px);
+  line-height: 1.3;
+  color: rgb(var(--ds-sig-warn));
+}
+
+/* ============================== Animacje ================================== */
+@keyframes cardDeal {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes zoneRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes btnIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes playPulse {
+  50% {
+    transform: scale(1.14);
+  }
+}
+
+/* ============================== Responsywność ============================= */
 :global(.mobile) .cardZone {
-  left: 8px;
-  bottom: 8px;
+  left: 10px;
+  bottom: 10px;
 }
 
 :global(.mobile) .actionZone {
-  right: 8px;
-  bottom: 8px;
-  padding: 8px;
+  right: 10px;
+  bottom: 10px;
+  min-width: 0;
+  padding: 10px;
 }
 
 :global(.mobile) .card {
   height: clamp(120px, 20vh, 180px);
+}
+
+/* Zredukowany ruch: bez animacji wejścia/pulsu, karta bez przechyłu. */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .actionZone,
+  .pass,
+  .endTurn,
+  .nextPhase {
+    animation: none;
+  }
+
+  .card {
+    --tilt: 0deg;
+  }
+
+  .playOverlay svg {
+    animation: none;
+  }
 }
