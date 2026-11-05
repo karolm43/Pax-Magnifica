@@ -4,14 +4,16 @@ import { authenticatedFetch, getBotApiUrl } from "@/api/auth";
 import { fetchJson } from "@/api/fetchJson";
 import { useSecretHandAccess } from "./useSecretHandAccess";
 
-const fetchPlayerHand = (gameId: string) =>
-  fetchJson<PlayerHandData>(
-    getBotApiUrl(`/game/${gameId}/hand`),
+const fetchPlayerHand = (gameId: string, player?: string | null) => {
+  const q = player ? `?player=${encodeURIComponent(player)}` : "";
+  return fetchJson<PlayerHandData>(
+    getBotApiUrl(`/game/${gameId}/hand${q}`),
     "player hand",
     {
       fetcher: authenticatedFetch,
     },
   );
+};
 
 type UsePlayerHandOptions = {
   /**
@@ -21,17 +23,29 @@ type UsePlayerHandOptions = {
    * działa (zakładka gracza pokazuje tylko rękę zalogowanego gracza w grze).
    */
   ignoreAuthGate?: boolean;
+  /**
+   * Którego gracza rękę pobrać (``player_id``). Gdy pominięty — backend zwraca
+   * rękę AKTYWNEGO gracza. Dok ręki podaje tu „gracza pulpitu" (aktywny → mówca
+   * → pierwszy), by pulpit działał też między turami (status/agenda, brak
+   * aktywnego gracza).
+   */
+  player?: string | null;
 };
 
 export const usePlayerHand = (
   gameId: string,
-  { ignoreAuthGate = false }: UsePlayerHandOptions = {},
+  { ignoreAuthGate = false, player = null }: UsePlayerHandOptions = {},
 ) => {
   const { userId, canViewSecretHand } = useSecretHandAccess();
 
   return useQuery({
-    queryKey: ["playerHand", gameId, ignoreAuthGate ? "local" : userId],
-    queryFn: () => fetchPlayerHand(gameId),
+    queryKey: [
+      "playerHand",
+      gameId,
+      ignoreAuthGate ? "local" : userId,
+      player ?? "active",
+    ],
+    queryFn: () => fetchPlayerHand(gameId, player),
     enabled: ignoreAuthGate || canViewSecretHand,
     staleTime: 0,
   });

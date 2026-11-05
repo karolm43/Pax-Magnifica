@@ -10,7 +10,6 @@ import {
 } from "@tabler/icons-react";
 import { UnstyledButton } from "@/ds";
 import { DEFAULT_GAME_ID } from "@/config";
-import { useGameData } from "@/state/useGameContext";
 import { useFactionColors } from "@/hooks/useFactionColors";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -26,7 +25,7 @@ import {
   loadStoredChoice,
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
-import type { PlayerData } from "@/entities/data/types";
+import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -145,11 +144,14 @@ function HandCard({ tab, id }: { tab: HandTab; id: string }) {
 export function BottomHandDock() {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
-  const gameData = useGameData();
-  const playerData = gameData?.playerData ?? [];
-  const active: PlayerData | undefined = playerData.find((p) => p.active);
+  // „Gracz pulpitu" — aktywny → mówca → pierwszy posadzony. Dzięki temu dok ręki
+  // jest widoczny CAŁY CZAS (także w status/agenda, gdy brak aktywnego gracza).
+  const active = useDeskPlayer();
 
-  const { data: hand } = usePlayerHand(gameId, { ignoreAuthGate: true });
+  const { data: hand } = usePlayerHand(gameId, {
+    ignoreAuthGate: true,
+    player: active?.discordId ?? null,
+  });
   const [open, setOpen] = useDockOpen();
   const [tab, setTab] = useState<HandTab>("actions");
 

@@ -14,7 +14,6 @@ import {
   useStrategyCards,
   type StrategyCardState,
 } from "@/api/useBoardEditor";
-import { useGameData } from "@/state/useGameContext";
 import {
   getStrategyCardById,
   getStrategyCardByInitiative,
@@ -25,7 +24,7 @@ import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { DetailsCard, type DetailsCardColor } from "@/shared/ui/DetailsCard";
 import { Stack } from "@/ds";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
-import type { PlayerData } from "@/entities/data/types";
+import { useDeskPlayer } from "./useDeskPlayer";
 import styles from "./TurnControls.module.css";
 
 /* Initiative → wariant koloru DetailsCard (tooltip treści) — jak w StrategyCardTable. */
@@ -69,18 +68,29 @@ export function TurnControls() {
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
   const { data: cards } = useStrategyCards();
-  const gameData = useGameData();
   const { playStrategyCard, passTurn, endTurn, nextPhase } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
-  const phase = gameState?.phase ?? "unknown";
-  if (phase !== "action" && phase !== "strategy") return null;
-
-  const players: PlayerData[] = gameData?.playerData ?? [];
-  const active = players.find((p) => p.active);
+  // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
+  // pierwszy). Zwraca null tylko, gdy nie ma żadnego posadzonego gracza.
+  const active = useDeskPlayer();
   if (!active) return null;
 
-  const isAction = phase === "action";
+  const phase = gameState?.phase ?? "unknown";
+  const isStrategy = phase === "strategy";
+  // Pass / End turn mają sens tylko w fazie akcji i dla GRACZA, który faktycznie
+  // jest teraz aktywny (nie dla mówcy-fallbacku między turami).
+  const isAction = phase === "action" && active.active === true;
+  // Czytelna etykieta fazy w nagłówku pulpitu.
+  const phaseLabel = phase.startsWith("agenda")
+    ? "Agenda phase"
+    : phase.startsWith("status")
+      ? "Status phase"
+      : phase === "action"
+        ? "Action phase"
+        : phase === "strategy"
+          ? "Strategy phase"
+          : "Turn";
   const myCards = (cards ?? []).filter((c) => c.picked_by === active.discordId);
   const hasCard = myCards.length > 0;
   const played = myCards.some((c) => c.exhausted);
@@ -118,7 +128,7 @@ export function TurnControls() {
               <div className={styles.slotEmpty}>
                 <IconBolt size={18} aria-hidden="true" />
                 <span>
-                  {isAction ? "Strategy Card" : "Pick a Strategy Card"}
+                  {isStrategy ? "Pick a Strategy Card" : "Strategy Card"}
                 </span>
               </div>
             </div>
@@ -133,9 +143,7 @@ export function TurnControls() {
             <CircularFactionIcon faction={active.faction} size={22} />
           )}
           <span className={styles.actionHeadText}>
-            <small className={styles.actionPhase}>
-              {isAction ? "Action phase" : "Strategy phase"}
-            </small>
+            <small className={styles.actionPhase}>{phaseLabel}</small>
             <b className={styles.actionWho}>{activeName}</b>
           </span>
         </header>
