@@ -489,7 +489,10 @@ function SummaryBody({
                     id={id}
                     type={type}
                     exhausted={false}
-                    locked={type !== "agent"}
+                    // W podglądzie frakcji (setup) pokazujemy WSZYSTKICH liderów jako
+                    // odblokowanych. Blokada ma sens dopiero w grze (commander/hero
+                    // odblokowuje się warunkami) — tutaj ma być widoczna pełna karta.
+                    locked={false}
                     active={false}
                   />
                 );
