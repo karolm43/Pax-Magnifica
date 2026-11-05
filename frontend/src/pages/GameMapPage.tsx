@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs } from "@/ds";
 import { SiteHeader } from "@/layout/SiteHeader";
@@ -23,10 +23,8 @@ import { TabsControls } from "@/domains/game-shell/components/TabsControls";
 import { useTabManagement } from "@/domains/tabs/hooks/useTabManagement";
 import GeneralArea from "@/domains/game-shell/components/GeneralArea";
 import { PannableMapView } from "@/domains/game-shell/components/layouts/PannableMapView";
-import { MapView } from "@/domains/game-shell/components/layouts/MapView";
 import { MapLoadingState } from "@/domains/map/components/MapLoadingState";
 import { MapViewportLoader } from "@/shared/ui/primitives/MapViewportLoader";
-import { MapViewSelectionModal } from "@/domains/game-shell/components/MapViewSelectionModal";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { NavigationDrawer } from "@/domains/game-shell/components/navigation/NavigationDrawer";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -43,10 +41,6 @@ import { MobileEventsSheet } from "@/domains/game-shell/components/GameEventPane
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
 
 const REQUIRED_VERSION_SCHEMA = 5;
-
-type ContentProps = {
-  pannable: boolean;
-};
 
 type TabContentProps = {
   gameId: string;
@@ -66,7 +60,7 @@ function TabContent({ gameId, ready, isError, children }: TabContentProps) {
   return <MapViewportLoader label="Acquiring game state" />;
 }
 
-function GameMapContent({ pannable }: ContentProps) {
+function GameMapContent() {
   const data = useGameContext();
   const gameDataState = useGameDataState();
   const isError = !!gameDataState?.isError;
@@ -184,10 +178,8 @@ function GameMapContent({ pannable }: ContentProps) {
               <TabActiveContext value={activeTab === "map"}>
                 {!data ? (
                   <MapLoadingState gameId={gameId} />
-                ) : pannable ? (
-                  <PannableMapView gameId={gameId} />
                 ) : (
-                  <MapView gameId={gameId} />
+                  <PannableMapView gameId={gameId} />
                 )}
               </TabActiveContext>
             </Tabs.Panel>
@@ -291,40 +283,14 @@ function GameMapPage() {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const themeClassName = usePageThemeClass({ mobile: isMobileDevice() });
-  const mapViewPreference = useSettingsStore(
-    (state) => state.settings.mapViewPreference,
-  );
-  const handlers = useSettingsStore((state) => state.handlers);
-
-  const [showSelectionModal, setShowSelectionModal] = useState(false);
-
-  useEffect(() => {
-    if (isMobileDevice()) {
-      setShowSelectionModal(false);
-      return;
-    }
-    if (!mapViewPreference) {
-      setShowSelectionModal(true);
-    }
-  }, [mapViewPreference]);
-
-  const effectivePannable = isMobileDevice() || mapViewPreference !== "panels";
-
+  // Układ „panels" (MapView) jest wyłączony — używamy WYŁĄCZNIE pannable
+  // (decyzja użytkownika). Brak wyboru = brak modala selekcji.
   return (
-    <>
-      <GameContextProvider gameId={gameId}>
-        <div className={themeClassName}>
-          <GameMapContent pannable={effectivePannable} />
-        </div>
-      </GameContextProvider>
-      {!isMobileDevice() && (
-        <MapViewSelectionModal
-          opened={showSelectionModal}
-          onClose={() => setShowSelectionModal(false)}
-          onSelect={handlers.setMapViewPreference}
-        />
-      )}
-    </>
+    <GameContextProvider gameId={gameId}>
+      <div className={themeClassName}>
+        <GameMapContent />
+      </div>
+    </GameContextProvider>
   );
 }
 

@@ -21,6 +21,7 @@ import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKe
 import { useTryDecalsToggle } from "@/domains/map/components/hooks/useTryDecalsToggle";
 import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
+import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { BoardHud } from "./BoardHud";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
@@ -235,6 +236,11 @@ export function PannableMapView({ gameId }: { gameId: string }) {
         opened={tryDecalsOpened}
         onClose={() => setTryDecalsOpened(false)}
       />
+
+      {/* Pasek ręki aktywnego gracza — PRZYPIĘTY do ekranu (position: fixed),
+          nie przewija się z mapą. Styl stołu: karty akcji / sekrety / weksle
+          jako wachlarz z podglądem. Sam zwraca null, gdy brak aktywnego gracza. */}
+      <BottomHandDock />
     </Box>
   );
 }
