@@ -73,6 +73,8 @@ export type PlayerEdit = {
   technologies?: string[];
   exhausted_technologies?: string[];
   leader_states?: Record<string, string>;
+  /** Promissory notes w strefie gracza (play area) — jawne, odrębne od ręki. */
+  promissory_notes_in_play?: string[];
 };
 
 /**

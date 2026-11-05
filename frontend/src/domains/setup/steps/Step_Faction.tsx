@@ -300,7 +300,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
         <div className={styles.startZone}>
           <span className={styles.readyLabel}>
             {allChosen ? (
-              <span className={styles.readyAll}>✦ All empires ready</span>
+              <span className={styles.readyAll}></span>
             ) : (
               <span className={styles.readyPartial}>
                 {chosenCount} of {slots.length} empires chosen

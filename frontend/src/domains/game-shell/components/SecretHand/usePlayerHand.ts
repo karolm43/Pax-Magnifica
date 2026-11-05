@@ -4,14 +4,20 @@ import { authenticatedFetch, getBotApiUrl } from "@/api/auth";
 import { fetchJson } from "@/api/fetchJson";
 import { useSecretHandAccess } from "./useSecretHandAccess";
 
-const fetchPlayerHand = (gameId: string, player?: string | null) => {
+const fetchPlayerHand = (
+  gameId: string,
+  player?: string | null,
+  // Tryb lokalny/solo (ignoreAuthGate): użyj ZWYKŁEGO fetch, bo authenticatedFetch
+  // RZUCA „No authentication token available", gdy nikt nie jest zalogowany przez
+  // Discord — a backend tego endpointu nie wymaga tokenu. To była przyczyna pustego
+  // paska ręki mimo poprawnych danych w backendzie.
+  local = false,
+) => {
   const q = player ? `?player=${encodeURIComponent(player)}` : "";
   return fetchJson<PlayerHandData>(
     getBotApiUrl(`/game/${gameId}/hand${q}`),
     "player hand",
-    {
-      fetcher: authenticatedFetch,
-    },
+    local ? {} : { fetcher: authenticatedFetch },
   );
 };
 
@@ -45,7 +51,7 @@ export const usePlayerHand = (
       ignoreAuthGate ? "local" : userId,
       player ?? "active",
     ],
-    queryFn: () => fetchPlayerHand(gameId, player),
+    queryFn: () => fetchPlayerHand(gameId, player, ignoreAuthGate),
     enabled: ignoreAuthGate || canViewSecretHand,
     staleTime: 0,
   });

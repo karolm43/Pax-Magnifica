@@ -1,23 +1,50 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActionIcon,
   Button,
   Group,
   NumberInput,
+  ScrollArea,
   SegmentedControl,
   Select,
   Stack,
   Switch,
+  Tabs,
   Text,
   TextInput,
 } from "@/ds";
-import { IconMinus, IconPlus, IconX } from "@tabler/icons-react";
+import {
+  IconCards,
+  IconCrown,
+  IconMinus,
+  IconPlanet,
+  IconPlus,
+  IconSettings,
+  IconUsers,
+  IconX,
+} from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useGameData } from "@/state/useGameContext";
-import { useBoardEditor, type PlayerEdit } from "@/api/useBoardEditor";
+import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
+import {
+  useBoardEditor,
+  useStrategyCards,
+  type PlayerEdit,
+} from "@/api/useBoardEditor";
 import { techs as ALL_TECHS } from "@/entities/data/tech";
 import { getTechData } from "@/entities/lookup/tech";
+import { getPlanetData } from "@/entities/lookup/planets";
+import { getActionCard } from "@/entities/lookup/actionCards";
+import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
+import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import type { PlayerData } from "@/entities/data/types";
+import {
+  actionCardOptions,
+  promissoryNoteOptions,
+  secretObjectiveOptions,
+} from "./cardOptions";
+import { CardListEditor } from "./CardListEditor";
+import { usePlayerHandById } from "./usePlayerHandById";
 import styles from "./PlayerEditorModal.module.css";
 
 type Props = {
@@ -97,43 +124,64 @@ function techCode(requirements: string | undefined, types: string[]): string {
 }
 
 /**
- * Edytor stanu gracza (God-Mode). Wybierasz gracza i edytujesz wszystkie wartości:
- * liczby stepperem, liderów klikiem, technologie z listy (nazwa + skrót) — bez
- * wpisywania ID. Bez sprawdzania zasad. Zmiany idą do backendu (z historią = Undo).
+ * Edytor stanu gracza (God-Mode). Jeden panel na wszystko, co da się edytować bez
+ * reguł: liczby i żetony, mówca, karty strategii, technologie (z wyczerpaniem),
+ * planety (z wyczerpaniem), liderzy, prywatna ręka (karty akcji / tajne cele /
+ * weksle) oraz weksle w strefie gry. Zmiany idą przez backend (z historią = Undo).
  */
 export function PlayerEditorModal({ opened, onClose }: Props) {
   const gameData = useGameData();
-  const { editPlayer } = useBoardEditor();
+  const {
+    editPlayer,
+    setSpeaker,
+    toggleTechExhaust,
+    togglePlanetExhaust,
+    setLeaderState,
+    setPlayerHand,
+  } = useBoardEditor();
+  const { data: strategyCards } = useStrategyCards();
+  const deskPlayer = useDeskPlayer();
   const players = gameData?.playerData ?? [];
-  const [selected, setSelected] = useState<string>(players[0]?.discordId ?? "");
+  const gameName = gameData?.gameName ?? "";
+  const factionColorMap = gameData?.factionColorMap ?? {};
+
+  // Domyślnie wybieramy GRACZA PULPITU (aktywny → mówca → pierwszy) — to jego
+  // rękę pokazuje dok ręki na mapie. Dzięki temu karty dodane do ręki od razu
+  // widać w doku (operator nie edytuje „po cichu" innego gracza). Można zmienić
+  // gracza przełącznikiem — wtedy zmiany ręki widać dopiero po przełączeniu doku.
+  const [selected, setSelected] = useState<string>("");
   const [busy, setBusy] = useState(false);
-  const [techToAdd, setTechToAdd] = useState<string | null>(null);
 
   const player = players.find((p) => p.discordId === selected) ?? players[0];
+  const playerId = player?.discordId ?? null;
+
+  // Zasiej zaznaczenie graczem pulpitu (gdy jeszcze nie wybrano) — albo pierwszym
+  // graczem, gdy pulpitu nie da się ustalić (pusty stan).
+  useEffect(() => {
+    if (selected) return;
+    const seed = deskPlayer?.discordId ?? players[0]?.discordId;
+    if (seed) setSelected(seed);
+  }, [deskPlayer, players, selected]);
+
+  const { data: hand } = usePlayerHandById(gameName, playerId);
 
   // Opcje technologii: TYLKO oficjalne źródła (+ thunders_edge). Dla każdej
   // RODZINY karty (nazwa bez Ω/ΩΩ) zostaje NAJNOWSZY wariant wg priorytetu źródła
   // — errata ΩΩ (codex4) wygrywa z Ω (codex1) i z base. Ogólne + frakcji gracza.
   const techOptions = useMemo(() => {
-    // 1) Filtr źródeł i frakcji.
     const eligible = ALL_TECHS.filter((t) => {
       if (!OFFICIAL_TECH_SOURCES.has(t.source)) return false;
-      // Frakcyjne: tylko bieżącego gracza; ogólne (bez faction) zawsze.
       if (t.faction && player && t.faction !== player.faction) return false;
       return true;
     });
-    // 2) Dla każdej rodziny karty wybierz najnowszą wersję (najwyższy priorytet).
     const bestByFamily = new Map<string, (typeof eligible)[number]>();
     for (const t of eligible) {
       const key = `${t.faction ?? ""}|${techFamilyKey(t.name)}`;
       const current = bestByFamily.get(key);
       const rank = SOURCE_PRIORITY[t.source] ?? 1;
-      const currentRank = current
-        ? (SOURCE_PRIORITY[current.source] ?? 1)
-        : -1;
+      const currentRank = current ? (SOURCE_PRIORITY[current.source] ?? 1) : -1;
       if (!current || rank > currentRank) bestByFamily.set(key, t);
     }
-    // 3) Etykieta: nazwa + skrót; sortowanie alfabetyczne.
     return [...bestByFamily.values()]
       .map((t) => ({
         value: t.alias,
@@ -141,6 +189,10 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [player]);
+
+  const acOptions = useMemo(() => actionCardOptions(), []);
+  const soOptions = useMemo(() => secretObjectiveOptions(), []);
+  const pnOptions = useMemo(() => promissoryNoteOptions(), []);
 
   const apply = async (edit: PlayerEdit) => {
     if (!player || busy) return;
@@ -152,31 +204,50 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
     }
   };
 
-  const addTech = async (techId: string | null) => {
-    if (!techId || !player) return;
-    if (player.techs.includes(techId)) return;
-    setTechToAdd(null);
-    await apply({ technologies: [...player.techs, techId] });
+  const runBusy = async (fn: () => Promise<void>) => {
+    if (!player || busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const removeTech = async (techId: string) => {
-    if (!player) return;
-    await apply({ technologies: player.techs.filter((t) => t !== techId) });
+  // --- Technologie ---
+  const addTech = (techId: string) => {
+    if (!player || player.techs.includes(techId)) return;
+    void apply({ technologies: [...player.techs, techId] });
   };
+  const removeTech = (techId: string) =>
+    player && void apply({ technologies: player.techs.filter((t) => t !== techId) });
+
+  // --- Ręka (prywatna) ---
+  const updateHand = (patch: {
+    actionCards?: string[];
+    secretObjectives?: string[];
+    promissoryNotes?: string[];
+  }) => playerId && void runBusy(() => setPlayerHand(playerId, patch));
+
+  // --- Nazwy kart do chipów ---
+  const acName = (id: string) => getActionCard(id)?.name ?? id;
+  const soName = (id: string) => getSecretObjectiveData(id)?.name ?? id;
+  const pnName = (id: string) =>
+    getPromissoryNoteData(id, factionColorMap)?.displayName ?? id;
 
   return (
     <AppModal
       opened={opened}
       onClose={onClose}
       title="God Mode · edit player"
-      size={560}
+      size={820}
     >
       {players.length === 0 ? (
         <Text size="sm" c="dimmed">
           No players - create a game first.
         </Text>
       ) : (
-        <Stack gap="md">
+        <Stack gap="sm">
           <SegmentedControl
             size="xs"
             fullWidth
@@ -189,174 +260,466 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
           />
 
           {player && (
-            <>
-              <Group gap="sm" grow>
-                <TextInput
-                  label="Faction"
-                  defaultValue={player.faction}
-                  onBlur={(e) => {
-                    const v = e.currentTarget.value.trim();
-                    if (v && v !== player.faction) void apply({ faction: v });
-                  }}
-                />
-                <TextInput
-                  label="Color"
-                  defaultValue={player.color}
-                  onBlur={(e) => {
-                    const v = e.currentTarget.value.trim();
-                    if (v && v !== player.color) void apply({ color: v });
-                  }}
-                />
-              </Group>
+            <Tabs defaultValue="general" keepMounted={false}>
+              <Tabs.List grow>
+                <Tabs.Tab value="general" leftSection={<IconSettings size={14} />}>
+                  General
+                </Tabs.Tab>
+                <Tabs.Tab value="tech" leftSection={<IconCards size={14} />}>
+                  Tech
+                </Tabs.Tab>
+                <Tabs.Tab value="planets" leftSection={<IconPlanet size={14} />}>
+                  Planets
+                </Tabs.Tab>
+                <Tabs.Tab value="leaders" leftSection={<IconCrown size={14} />}>
+                  Leaders
+                </Tabs.Tab>
+                <Tabs.Tab value="hand" leftSection={<IconUsers size={14} />}>
+                  Hand
+                </Tabs.Tab>
+              </Tabs.List>
 
-              {/* Liczby: etykieta | [−] [input] [+] w stałej, wyrównanej kolumnie. */}
-              <Stack gap={4}>
-                {NUMERIC_FIELDS.map(({ key, label, get, min }) => {
-                  const value = get(player);
-                  return (
-                    <div key={key} className={styles.numRow}>
-                      <Text size="sm" className={styles.numLabel}>
-                        {label}
-                      </Text>
-                      <div className={styles.numCtl}>
-                        <ActionIcon
-                          size="sm"
-                          variant="subtle"
-                          disabled={busy || value <= (min ?? 0)}
-                          onClick={() => void apply({ [key]: value - 1 })}
-                          aria-label={`−1 ${label}`}
-                        >
-                          <IconMinus size={12} />
-                        </ActionIcon>
-                        <NumberInput
-                          size="xs"
-                          value={value}
-                          min={min}
-                          hideControls
-                          classNames={{ input: styles.numInput }}
-                          onChange={(v) => {
-                            const n = typeof v === "number" ? v : Number(v);
-                            if (!Number.isNaN(n) && n !== value) {
-                              void apply({ [key]: n });
-                            }
+              <ScrollArea mah="min(68vh, 620px)" offsetScrollbars>
+                <div className={styles.tabBody}>
+                  {/* === GENERAL === */}
+                  <Tabs.Panel value="general">
+                    <Stack gap="md">
+                      <Group gap="sm" grow>
+                        <TextInput
+                          label="Faction"
+                          defaultValue={player.faction}
+                          key={`faction-${player.discordId}`}
+                          onBlur={(e) => {
+                            const v = e.currentTarget.value.trim();
+                            if (v && v !== player.faction) void apply({ faction: v });
                           }}
                         />
-                        <ActionIcon
-                          size="sm"
-                          variant="subtle"
-                          disabled={busy}
-                          onClick={() => void apply({ [key]: value + 1 })}
-                          aria-label={`+1 ${label}`}
-                        >
-                          <IconPlus size={12} />
-                        </ActionIcon>
-                      </div>
-                    </div>
-                  );
-                })}
-              </Stack>
+                        <TextInput
+                          label="Color"
+                          defaultValue={player.color}
+                          key={`color-${player.discordId}`}
+                          onBlur={(e) => {
+                            const v = e.currentTarget.value.trim();
+                            if (v && v !== player.color) void apply({ color: v });
+                          }}
+                        />
+                      </Group>
 
-              <Switch
-                label="Passed"
-                checked={player.passed}
-                onChange={(e) => void apply({ passed: e.currentTarget.checked })}
-              />
+                      <Stack gap={4}>
+                        {NUMERIC_FIELDS.map(({ key, label, get, min }) => {
+                          const value = get(player);
+                          return (
+                            <div key={key} className={styles.numRow}>
+                              <Text size="sm" className={styles.numLabel}>
+                                {label}
+                              </Text>
+                              <div className={styles.numCtl}>
+                                <ActionIcon
+                                  size="sm"
+                                  variant="subtle"
+                                  disabled={busy || value <= (min ?? 0)}
+                                  onClick={() => void apply({ [key]: value - 1 })}
+                                  aria-label={`−1 ${label}`}
+                                >
+                                  <IconMinus size={12} />
+                                </ActionIcon>
+                                <NumberInput
+                                  size="xs"
+                                  value={value}
+                                  min={min}
+                                  hideControls
+                                  classNames={{ input: styles.numInput }}
+                                  onChange={(v) => {
+                                    const n = typeof v === "number" ? v : Number(v);
+                                    if (!Number.isNaN(n) && n !== value) {
+                                      void apply({ [key]: n });
+                                    }
+                                  }}
+                                />
+                                <ActionIcon
+                                  size="sm"
+                                  variant="subtle"
+                                  disabled={busy}
+                                  onClick={() => void apply({ [key]: value + 1 })}
+                                  aria-label={`+1 ${label}`}
+                                >
+                                  <IconPlus size={12} />
+                                </ActionIcon>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </Stack>
 
-              {player.leaders.length > 0 && (
-                <Stack gap={4}>
-                  <Text size="xs" c="dimmed">
-                    Liderzy (klik: zablokowany → gotowy → wyczerpany)
-                  </Text>
-                  <Group gap={6} wrap="wrap">
-                    {player.leaders.map((leader) => {
-                      const state = leader.locked
-                        ? "locked"
-                        : leader.exhausted
-                          ? "exhausted"
-                          : "unlocked";
-                      const next =
-                        state === "locked"
-                          ? "unlocked"
-                          : state === "unlocked"
-                            ? "exhausted"
-                            : "locked";
-                      return (
-                        <Button
-                          key={leader.id}
-                          size="xs"
-                          variant={state === "unlocked" ? "filled" : "default"}
-                          disabled={busy}
-                          onClick={() =>
-                            void apply({ leader_states: { [leader.id]: next } })
+                      <Group justify="space-between">
+                        <Switch
+                          label="Passed"
+                          checked={player.passed}
+                          onChange={(e) =>
+                            void apply({ passed: e.currentTarget.checked })
                           }
-                          title={`${leader.type}: ${state} → ${next}`}
-                        >
-                          {LEADER_STATE_LABEL[state]} {leader.type}
-                        </Button>
-                      );
-                    })}
-                  </Group>
-                </Stack>
-              )}
+                        />
+                        <Switch
+                          label="Speaker"
+                          checked={player.isSpeaker}
+                          disabled={busy || player.isSpeaker}
+                          onChange={() =>
+                            void runBusy(() => setSpeaker(player.discordId))
+                          }
+                        />
+                      </Group>
 
-              {/* Technologie: lista z nazwą + skrótem (bez wpisywania ID). */}
-              <Stack gap={6}>
-                <Text size="xs" c="dimmed">
-                  Technologie
-                </Text>
-                <Select
-                  size="xs"
-                  placeholder="Add technology (name · abbreviation)…"
-                  data={techOptions}
-                  value={techToAdd}
-                  onChange={(v) => void addTech(v)}
-                  searchable
-                  clearable
-                />
-                <Group gap={6} wrap="wrap">
-                  {player.techs.map((techId) => {
-                    const t = getTechData(techId);
-                    return (
-                      <Button
-                        key={techId}
+                      {/* Karty strategii (po numerze inicjatywy). */}
+                      <Stack gap={6}>
+                        <Text size="xs" c="dimmed">
+                          Strategy cards (click to assign / unassign)
+                        </Text>
+                        <Group gap={6} wrap="wrap">
+                          {(strategyCards ?? []).map((card) => {
+                            const owned = player.scs.includes(card.initiative);
+                            const takenByOther =
+                              !owned && card.picked_by !== null;
+                            return (
+                              <Button
+                                key={card.initiative}
+                                size="xs"
+                                variant={owned ? "filled" : "default"}
+                                disabled={busy || takenByOther}
+                                onClick={() => {
+                                  const next = owned
+                                    ? player.scs.filter((i) => i !== card.initiative)
+                                    : [...player.scs, card.initiative];
+                                  void apply({ strategy_cards: next });
+                                }}
+                                title={
+                                  takenByOther
+                                    ? `Taken by ${card.picked_by}`
+                                    : card.name
+                                }
+                              >
+                                {card.initiative}. {card.name}
+                              </Button>
+                            );
+                          })}
+                          {(strategyCards ?? []).length === 0 && (
+                            <Text size="xs" c="dimmed">
+                              No strategy card set loaded.
+                            </Text>
+                          )}
+                        </Group>
+                      </Stack>
+                    </Stack>
+                  </Tabs.Panel>
+
+                  {/* === TECH === */}
+                  <Tabs.Panel value="tech">
+                    <Stack gap={8}>
+                      <Text size="xs" c="dimmed">
+                        Add a technology (name · prerequisite), then click a chip to
+                        toggle exhausted (⟲) / ready, or the × to remove it.
+                      </Text>
+                      <Select
                         size="xs"
-                        variant="default"
-                        rightSection={<IconX size={11} />}
+                        placeholder="Add technology…"
+                        data={techOptions}
+                        value={null}
+                        onChange={(v) => {
+                          if (v) addTech(v);
+                        }}
+                        searchable
+                        clearable
                         disabled={busy}
-                        onClick={() => void removeTech(techId)}
-                        title="Remove technology"
-                      >
-                        {t ? t.name : techId}
-                      </Button>
-                    );
-                  })}
-                  {player.techs.length === 0 && (
-                    <Text size="xs" c="dimmed">
-                      No technologies.
-                    </Text>
-                  )}
-                </Group>
-              </Stack>
+                      />
+                      <Group gap={6} wrap="wrap">
+                        {player.techs.map((techId) => {
+                          const t = getTechData(techId);
+                          const exhausted = player.exhaustedTechs.includes(techId);
+                          return (
+                            <Group key={techId} gap={2} wrap="nowrap">
+                              <Button
+                                size="xs"
+                                variant={exhausted ? "light" : "default"}
+                                disabled={busy}
+                                onClick={() =>
+                                  void runBusy(() =>
+                                    toggleTechExhaust(player.discordId, techId),
+                                  )
+                                }
+                                title={
+                                  exhausted
+                                    ? "Exhausted — click to ready"
+                                    : "Ready — click to exhaust"
+                                }
+                              >
+                                {exhausted ? "⟲ " : ""}
+                                {t ? t.name : techId}
+                              </Button>
+                              <ActionIcon
+                                size="input-xs"
+                                variant="default"
+                                disabled={busy}
+                                onClick={() => removeTech(techId)}
+                                aria-label="Remove technology"
+                              >
+                                <IconX size={11} />
+                              </ActionIcon>
+                            </Group>
+                          );
+                        })}
+                        {player.techs.length === 0 && (
+                          <Text size="xs" c="dimmed">
+                            No technologies.
+                          </Text>
+                        )}
+                      </Group>
+                    </Stack>
+                  </Tabs.Panel>
 
-              <TextInput
-                label="Controlled planets (comma-separated IDs)"
-                defaultValue={player.planets.join(", ")}
-                onBlur={(e) => {
-                  const planets = e.currentTarget.value
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter(Boolean);
-                  void apply({ controlled_planets: planets });
-                }}
-              />
+                  {/* === PLANETS === */}
+                  <Tabs.Panel value="planets">
+                    <Stack gap={8}>
+                      <Text size="xs" c="dimmed">
+                        Click a planet to toggle exhausted (⟲) / ready. Edit the full
+                        controlled set below (comma-separated planet IDs).
+                      </Text>
+                      <Group gap={6} wrap="wrap">
+                        {player.planets.map((planetId) => {
+                          const data = getPlanetData(planetId);
+                          const exhausted =
+                            player.exhaustedPlanets.includes(planetId);
+                          return (
+                            <Button
+                              key={planetId}
+                              size="xs"
+                              variant={exhausted ? "light" : "default"}
+                              disabled={busy}
+                              onClick={() =>
+                                void runBusy(() =>
+                                  togglePlanetExhaust(player.discordId, planetId),
+                                )
+                              }
+                              title={
+                                exhausted
+                                  ? "Exhausted — click to ready"
+                                  : "Ready — click to exhaust"
+                              }
+                            >
+                              {exhausted ? "⟲ " : ""}
+                              {data?.name ?? planetId}
+                            </Button>
+                          );
+                        })}
+                        {player.planets.length === 0 && (
+                          <Text size="xs" c="dimmed">
+                            No controlled planets.
+                          </Text>
+                        )}
+                      </Group>
+                      <TextInput
+                        label="Controlled planets (comma-separated IDs)"
+                        defaultValue={player.planets.join(", ")}
+                        key={`planets-${player.discordId}`}
+                        onBlur={(e) => {
+                          const planets = e.currentTarget.value
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean);
+                          void apply({ controlled_planets: planets });
+                        }}
+                      />
+                    </Stack>
+                  </Tabs.Panel>
 
-              <Group justify="flex-end">
-                <Button variant="default" size="xs" onClick={onClose}>
-                  Close
-                </Button>
-              </Group>
-            </>
+                  {/* === LEADERS === */}
+                  <Tabs.Panel value="leaders">
+                    {player.leaders.length > 0 ? (
+                      <Stack gap={6}>
+                        <Text size="xs" c="dimmed">
+                          Click to cycle: locked 🔒 → ready ✓ → exhausted ⟲
+                        </Text>
+                        <Group gap={6} wrap="wrap">
+                          {player.leaders.map((leader) => {
+                            const state = leader.locked
+                              ? "locked"
+                              : leader.exhausted
+                                ? "exhausted"
+                                : "unlocked";
+                            const next =
+                              state === "locked"
+                                ? "unlocked"
+                                : state === "unlocked"
+                                  ? "exhausted"
+                                  : "locked";
+                            return (
+                              <Button
+                                key={leader.id}
+                                size="xs"
+                                variant={state === "unlocked" ? "filled" : "default"}
+                                disabled={busy}
+                                onClick={() =>
+                                  void runBusy(() =>
+                                    setLeaderState(player.discordId, leader.id, next),
+                                  )
+                                }
+                                title={`${leader.type}: ${state} → ${next}`}
+                              >
+                                {LEADER_STATE_LABEL[state]} {leader.type}
+                              </Button>
+                            );
+                          })}
+                        </Group>
+                      </Stack>
+                    ) : (
+                      <Text size="xs" c="dimmed">
+                        No leaders for this faction.
+                      </Text>
+                    )}
+                  </Tabs.Panel>
+
+                  {/* === HAND === */}
+                  <Tabs.Panel value="hand">
+                    <Stack gap="md">
+                      {deskPlayer &&
+                        player.discordId !== deskPlayer.discordId && (
+                          <Text size="xs" c="var(--ds-sig-war)">
+                            Heads up: the on-map hand dock only shows{" "}
+                            {(
+                              deskPlayer.flexibleDisplayName ||
+                              deskPlayer.faction
+                            ).toUpperCase()}
+                            {" "}(the active / speaker player). Hand edits here go
+                            to{" "}
+                            {(
+                              player.flexibleDisplayName || player.faction
+                            ).toUpperCase()}
+                            , so they won't appear in the dock until that player is
+                            active.
+                          </Text>
+                        )}
+                      <Stack gap={4}>
+                        <Text size="sm" fw={600}>
+                          Action cards
+                        </Text>
+                        <CardListEditor
+                          ids={hand?.actionCards ?? []}
+                          options={acOptions}
+                          labelFor={acName}
+                          placeholder="Add action card…"
+                          emptyLabel="Empty hand."
+                          disabled={busy || !hand}
+                          onAdd={(id) =>
+                            updateHand({
+                              actionCards: [...(hand?.actionCards ?? []), id],
+                            })
+                          }
+                          onRemove={(id) =>
+                            updateHand({
+                              actionCards: (hand?.actionCards ?? []).filter(
+                                (x) => x !== id,
+                              ),
+                            })
+                          }
+                        />
+                      </Stack>
+
+                      <Stack gap={4}>
+                        <Text size="sm" fw={600}>
+                          Secret objectives
+                        </Text>
+                        <CardListEditor
+                          ids={hand?.secretObjectives ?? []}
+                          options={soOptions}
+                          labelFor={soName}
+                          placeholder="Add secret objective…"
+                          emptyLabel="No secret objectives."
+                          disabled={busy || !hand}
+                          onAdd={(id) =>
+                            updateHand({
+                              secretObjectives: [
+                                ...(hand?.secretObjectives ?? []),
+                                id,
+                              ],
+                            })
+                          }
+                          onRemove={(id) =>
+                            updateHand({
+                              secretObjectives: (
+                                hand?.secretObjectives ?? []
+                              ).filter((x) => x !== id),
+                            })
+                          }
+                        />
+                      </Stack>
+
+                      <Stack gap={4}>
+                        <Text size="sm" fw={600}>
+                          Promissory notes (hand)
+                        </Text>
+                        <CardListEditor
+                          ids={hand?.promissoryNotes ?? []}
+                          options={pnOptions}
+                          labelFor={pnName}
+                          placeholder="Add promissory note…"
+                          emptyLabel="No promissory notes."
+                          disabled={busy || !hand}
+                          onAdd={(id) =>
+                            updateHand({
+                              promissoryNotes: [
+                                ...(hand?.promissoryNotes ?? []),
+                                id,
+                              ],
+                            })
+                          }
+                          onRemove={(id) =>
+                            updateHand({
+                              promissoryNotes: (
+                                hand?.promissoryNotes ?? []
+                              ).filter((x) => x !== id),
+                            })
+                          }
+                        />
+                      </Stack>
+
+                      <Stack gap={4}>
+                        <Text size="sm" fw={600}>
+                          Promissory notes in play area
+                        </Text>
+                        <CardListEditor
+                          ids={player.promissoryNotesInPlayArea ?? []}
+                          options={pnOptions}
+                          labelFor={pnName}
+                          placeholder="Add note to play area…"
+                          emptyLabel="Play area empty."
+                          disabled={busy}
+                          onAdd={(id) =>
+                            void apply({
+                              promissory_notes_in_play: [
+                                ...(player.promissoryNotesInPlayArea ?? []),
+                                id,
+                              ],
+                            })
+                          }
+                          onRemove={(id) =>
+                            void apply({
+                              promissory_notes_in_play: (
+                                player.promissoryNotesInPlayArea ?? []
+                              ).filter((x) => x !== id),
+                            })
+                          }
+                        />
+                      </Stack>
+                    </Stack>
+                  </Tabs.Panel>
+                </div>
+              </ScrollArea>
+            </Tabs>
           )}
+
+          <Group justify="flex-end">
+            <Button variant="default" size="xs" onClick={onClose}>
+              Close
+            </Button>
+          </Group>
         </Stack>
       )}
     </AppModal>

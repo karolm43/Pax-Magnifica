@@ -39,82 +39,213 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--ds-space-sm);
   /* DUŻE karty — panel sięga niemal krawędzi ekranu (rząd prawie na całą szerokość). */
   max-width: 98vw;
-  /* RESPONSYWNE zapasy (clamp zależne od viewportu) zamiast sztywnych px — box i
-     odstępy skalują się z oknem/ekranem. Boki rosną z szerokością, dół z wysokością
-     (by objąć opadnięte skrajne karty łuku i uniesioną na hover kartę). */
-  padding: clamp(10px, 1.6vh, 24px) clamp(16px, 4vw, 64px)
-    clamp(72px, 14vh, 150px);
+  /* RESPONSYWNE zapasy (clamp zależne od viewportu). Bez bocznego „boxa": zapas boków
+     mały (sam łuk kart tworzy kształt), dół większy (obejmuje opadnięte skrajne karty
+     i uniesioną na hover kartę). */
+  padding: 0 clamp(8px, 2vw, 32px) clamp(60px, 12vh, 130px);
   color: var(--ds-ink);
 }
 
 /*
- * TŁO BOKSU jako osobna warstwa (``::before``) w JĘZYKU DESIGN-SYSTEMU — identyczna
- * powierzchnia co ``DetailsCard``/panele gracza: pionowy gradient ``--ds-ground →
- * --ds-ground-2``, cienka obwódka ``--ds-h28``, zaokrąglenie ``--ds-radius-lg``,
- * miękki cień ``--ds-shadow-md`` z wewnętrznym rozjaśnieniem górnej krawędzi (ten
- * sam ``inset 0 1px 0`` co karty). Zamiast „prostego czarnego prostokąta" — spójny,
- * profesjonalny panel. Warstwa jest nieco SZERSZA/WYŻSZA niż obszar kart (ujemny
- * ``inset``), więc karty rysują się pewnie W jej obrysie. Leży POD treścią (``-1``).
+ * ANIMACJE WEJŚCIA — odpalane TYLKO gdy na ``.table`` jest ``data-intro`` (stan
+ * ``intro`` w komponencie). Po odegraniu sekwencji atrybut schodzi i WSZYSTKIE
+ * reguły animacji przestają obowiązywać → kolejne re-rendery (hover/busy) NIE
+ * resetują ani nie migają kartami. To rozwiązuje znikanie kart z czystego CSS.
+ *
+ * ``--intro-cards-start`` — moment startu KASKADY KART. Dobrany tak, by karty
+ * zaczęły się pojawiać DOPIERO PO wejściu banera (prośba użytkownika), nie pod nim.
+ */
+/* Karty montują się dopiero PO banerze (``showCards`` w komponencie), więc kaskada
+   startuje od zera — tu już NIE czekamy na baner (to robi mount). Zostaje tylko
+   odstęp między kolejnymi kartami. */
+.table[data-intro] {
+  --intro-cards-start: 0s;
+}
+
+/* Tylko OPACITY panelu na wejściu — bez transformu, żeby NIE kolidować z inline
+   ``translate(dx, dy)`` z przeciągania okna (transform zostaje w gestii inline). */
+.table[data-intro] {
+  animation: tableFadeIn 0.3s var(--ds-ease) both;
+}
+
+@keyframes tableFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Placeholder rezerwujący wysokość rzędu kart, zanim się zamontują (w czasie
+ * wejścia banera). Dzięki temu panel ma od razu docelową wysokość i nie „podskakuje"
+ * w chwili pojawienia się kart. Wysokość ≈ karta w łuku + zapas na opad brzegów.
+ */
+.cardsPlaceholder {
+  width: 100%;
+  height: clamp(180px, 20vw, 320px);
+  pointer-events: none;
+}
+
+/*
+ * TŁO POD KARTAMI — miękki scrim-łuk SAM POD RZĘDEM KART (nie pod nagłówkiem).
+ * Nagłówek dostał własny, zwarty baner (patrz ``.header``), więc tutaj zostaje tylko
+ * delikatne „podłoże" pod wachlarzem: owalna, zanikająca ku górze i bokom poświata,
+ * bez twardej geometrii pudełka. Leży POD treścią (``-1``).
  */
 .table::before {
   content: "";
   position: absolute;
-  inset: -8px -24px -16px;
+  left: 2%;
+  right: 2%;
+  bottom: -2%;
+  /* Sięga tylko do strefy kart (nie pod nagłówek) — nagłówek ma własne tło. */
+  top: 30%;
   z-index: -1;
-  background: linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2));
-  /* LŻEJSZY, mniej „chunky" panel (prośba użytkownika): cieńsza/delikatniejsza
-     obwódka (hairline zamiast grubej 0.28), MOCNIEJSZE zaokrąglenie (``--radius-xl``
-     zamiast ``lg``) i spokojniejszy cień. */
-  border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-xl);
-  box-shadow:
-    var(--ds-shadow-sm),
-    inset 0 1px 0 rgb(255 255 255 / 0.04);
-  backdrop-filter: blur(4px);
+  background:
+    radial-gradient(
+      ellipse 55% 60% at 50% 78%,
+      rgb(var(--ds-accent-rgb) / 0.12),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 78% 92% at 50% 92%,
+      rgb(9 10 13 / 0.68),
+      rgb(9 10 13 / 0.3) 55%,
+      transparent 82%
+    );
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 100% at 50% 85%,
+    #000 60%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 90% 100% at 50% 85%,
+    #000 60%,
+    transparent 100%
+  );
+  backdrop-filter: blur(3px);
 }
 
 /*
- * Nagłówek — pasek w stylu nagłówka ``DetailsCard``: subtelny gradient akcentu
- * schodzący do przezroczystości, oddzielony cienką hairline od rzędu kart. Bez
- * ciężkiego czarnego bloku — spójny z resztą UI.
+ * NAGŁÓWEK = zwarty „command banner" fazy, w stylu HUD z TI4: ciemny pasek ze
+ * ŚCIĘTYMI narożnikami (clip-path), cienką linią akcentu u góry i dołu oraz tytułem
+ * i wierszem picker/mówca W ŚRODKU paska (jako JEDNA kompozycja). Dzięki temu tytuł
+ * nie „wisi" nad tłem i nie wychodzi poza nie — wszystko jest spójnym elementem UI.
+ * Baner nie rozciąga się na całą szerokość; obejmuje swoją treść (``width:
+ * max-content``) i jest wyśrodkowany nad łukiem kart.
  */
 .header {
-  align-self: stretch;
+  --cut: 14px;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--ds-space-xs);
-  /* Nagłówek = UCHWYT do przesuwania okna (prośba użytkownika). ``grab`` sygnalizuje
-     przeciąganie; ``user-select: none`` zapobiega zaznaczaniu tekstu podczas drag. */
+  gap: 6px;
+  width: max-content;
+  max-width: min(92vw, 1100px);
+  margin-bottom: var(--ds-space-md);
+  /* Prawy zapas większy — rezerwuje miejsce na przycisk collapse na banerze,
+     żeby nie nachodził na tytuł/meta. */
+  padding: clamp(8px, 1.4vh, 16px) clamp(44px, 4vw, 70px)
+    clamp(8px, 1.4vh, 16px) clamp(22px, 3vw, 54px);
+  /* Ciemna płyta banera + delikatny akcent interakcji w tle. */
+  background:
+    linear-gradient(
+      180deg,
+      rgb(var(--ds-accent-rgb) / 0.12),
+      transparent 60%
+    ),
+    linear-gradient(180deg, rgb(10 11 14 / 0.94), rgb(10 11 14 / 0.86));
+  /* Ścięte narożniki — sygnatura TI4-owego HUD zamiast prostokąta. */
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+  box-shadow: var(--ds-shadow-md);
+  /* Nagłówek = UCHWYT do przesuwania okna. ``grab`` sygnalizuje przeciąganie;
+     ``user-select: none`` zapobiega zaznaczaniu tekstu podczas drag. */
   cursor: grab;
   user-select: none;
   touch-action: none;
-  padding: var(--ds-space-sm) var(--ds-space-md) var(--ds-space-md);
-  /* Akcent nagłówka = NIEBIESKI akcent interakcji design-systemu (``--ds-accent-rgb``),
-     spójny z resztą UI; wcześniejszy zielony (``--ds-sig-bio``) odstawał od palety strony. */
+}
+
+/* Wejście banera: szybki zjazd z góry + rozjaśnienie — TYLKO na starcie
+   (``data-intro``), wyprzedza kaskadę kart. */
+.table[data-intro] .header {
+  animation: headerIn 0.4s var(--ds-ease) 0.05s both;
+}
+
+@keyframes headerIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * Linie akcentu u góry i dołu banera (cienkie, zanikające na końcach) — „świetlista
+ * krawędź" HUD. Górna przez ``::before``, dolna przez ``::after``.
+ */
+.header::before,
+.header::after {
+  content: "";
+  position: absolute;
+  left: clamp(18px, 2.5vw, 44px);
+  right: clamp(18px, 2.5vw, 44px);
+  height: 1px;
   background: linear-gradient(
-    180deg,
-    rgb(var(--ds-accent-rgb) / 0.1),
+    90deg,
+    transparent,
+    rgb(var(--ds-accent-rgb) / 0.75) 25%,
+    rgb(var(--ds-accent-rgb) / 0.75) 75%,
     transparent
   );
-  border-bottom: 1px solid var(--ds-h10);
+}
+
+.header::before {
+  top: 4px;
+}
+
+.header::after {
+  bottom: 4px;
 }
 
 .header:active {
   cursor: grabbing;
 }
 
-/* Tytuł panelu — RESPONSYWNY (skaluje się z szerokością okna, w granicach tokenów). */
+/*
+ * Tytuł fazy — W ŚRODKU banera (jedna kompozycja z paskiem). Display font,
+ * uppercase, z poświatą akcentu; cień dla głębi.
+ */
 .heading {
   margin: 0;
   font-family: var(--ds-font-display);
-  font-size: clamp(var(--ds-h4), 2.2vw, var(--ds-h1));
+  font-size: clamp(var(--ds-h5), 2vw, var(--ds-h2));
   line-height: var(--ds-lh-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--ds-ink-hi);
+  text-shadow:
+    0 1px 3px rgb(0 0 0 / 0.8),
+    0 0 20px rgb(var(--ds-accent-rgb) / 0.4);
 }
 
 /*
@@ -140,16 +271,18 @@
   line-height: var(--ds-lh-sm);
 }
 
-/* Etykieta („Teraz wybiera:", „Mówca:") — stonowana. */
+/* Etykieta („Teraz wybiera:", „Mówca:") — stonowana, czytelna na scrimie. */
 .metaLabel {
   color: var(--ds-ink-lo);
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.8);
 }
 
-/* Nazwa frakcji (lub komunikat braku) — display font, wyróżniona. */
+/* Nazwa frakcji (lub komunikat braku) — display font, wyróżniona na scrimie. */
 .metaName {
   font-family: var(--ds-font-display);
   color: var(--ds-ink-hi);
   font-weight: 600;
+  text-shadow: 0 1px 5px rgb(0 0 0 / 0.85);
 }
 
 /*
@@ -231,43 +364,89 @@
 }
 
 /*
- * Karta WOLNA do wyboru, gdy jest wskazany picker — „glow" w KOLORZE KARTY
- * (``--sc-hue``), dopasowany do KSZTAŁTU obrazu (drop-shadow, nie prostokąt).
- * ``color-mix`` daje półprzezroczystość barwy karty.
+ * KASKADOWE WEJŚCIE „rozdania wachlarza" — TYLKO na starcie (``data-intro`` na
+ * ``.table``). Po odegraniu atrybut schodzi i ta reguła znika → re-rendery nie
+ * resetują kart (koniec ze znikaniem). Karty wjeżdżają po kolei (od lewej), od
+ * stanu niżej/spłaszczonego do docelowej pozycji w łuku. Start CAŁEJ kaskady
+ * dopiero PO banerze (``--intro-cards-start``), potem opóźnienie per karta z ``--i``.
+ * ``both`` jest tu BEZPIECZNE: reguła istnieje tylko podczas intro, więc nie blokuje
+ * hoveru po zakończeniu (po intro w ogóle jej nie ma).
  */
-.card.pickable {
-  /* STONOWANE: spokojniejsza poświata spoczynkowa (było 75%). */
-  filter: drop-shadow(
-    0 0 8px color-mix(in srgb, var(--sc-hue) 50%, transparent)
+.table[data-intro] .card {
+  animation: cardIn 0.46s var(--ds-ease) both;
+  animation-delay: calc(
+    var(--intro-cards-start, 0.5s) + var(--i, 0) * 0.055s
   );
 }
 
 /*
- * HOVER/FOCUS: karta PROSTUJE się (rotate 0), unosi i POWIĘKSZA (zmienne
- * ``--hover-lift``/``--hover-scale`` — mniejsze na wąskich ekranach) oraz wychodzi
- * NA WIERZCH (z-index). Dotyczy KAŻDEJ karty (także ``[data-disabled]``), więc
- * tooltip działa wszędzie.
+ * Keyframes wejścia karty. Używamy custom-properties łuku (``--rot``/``--lift``/
+ * ``--scale``) WPROST w ``transform``, więc animacja kończy się DOKŁADNIE na
+ * docelowej pozycji karty w wachlarzu (brak „skoku" po zakończeniu). Start: niżej,
+ * spłaszczona (mniejszy obrót) i przezroczysta.
+ */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: rotate(calc(var(--rot) * 0.3))
+      translateY(calc(var(--lift) + 40px)) scale(calc(var(--scale) * 0.9));
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--rot)) translateY(var(--lift)) scale(var(--scale));
+  }
+}
+
+/*
+ * PODŚWIETLENIE KART w ICH kolorze (``--sc-hue``) — JEDNA, spójna struktura filtra
+ * dla wszystkich stanów, żeby ``transition: filter`` płynnie interpolował i NIE
+ * MIGAŁ. Wcześniej hover i spoczynek miały różną LICZBĘ warstw ``drop-shadow``
+ * (1 vs 2) oraz różne reguły o różnej specyficzności — przeglądarka nie potrafi
+ * zinterpolować filtra o innej liczbie funkcji i „przeskakiwała", co dawało
+ * miganie. Teraz KAŻDY stan ma DOKŁADNIE te same dwie warstwy (cień głębi + barwny
+ * glow), zmienia się tylko ich siła przez zmienne ``--glow`` / ``--depth``.
+ *
+ * Siła glow MOCNIEJSZA niż wcześniej (prośba użytkownika).
+ */
+.card {
+  /* Domyślne siły warstw filtra (spoczynek). */
+  --glow-blur: 10px;
+  --glow-strength: 50%;
+  --depth-blur: 0px;
+  --depth-alpha: 0;
+  filter:
+    drop-shadow(0 var(--depth-blur) calc(var(--depth-blur) * 1.4)
+        rgb(0 0 0 / var(--depth-alpha)))
+    drop-shadow(0 0 var(--glow-blur)
+        color-mix(in srgb, var(--sc-hue) var(--glow-strength), transparent));
+}
+
+/* Karta WOLNA do wyboru — mocniejszy barwny glow (wyróżnia karty do wyboru). */
+.card.pickable {
+  --glow-blur: 14px;
+  --glow-strength: 70%;
+}
+
+/*
+ * HOVER/FOCUS: karta ZOSTAJE w swoim łuku (bez prostowania do poziomu — prośba
+ * użytkownika), delikatnie POWIĘKSZA się i wychodzi NA WIERZCH. Glow i cień
+ * WZMACNIAMY tylko przez zmianę zmiennych (``--glow-*``/``--depth-*``) — struktura
+ * filtra bez zmian, więc ``transition`` jest płynny i NIE MIGA.
  */
 .card:hover,
 .card:focus-visible {
   z-index: 5;
-  transform: rotate(0deg) translateY(var(--hover-lift)) scale(var(--hover-scale));
-  /* Wyróżnienie przez cień dopasowany do kształtu obrazu (zamiast prostokąta).
-     STONOWANE: lżejszy cień niż wcześniej (było 0 8px 18px / 0.55). */
-  filter: drop-shadow(0 5px 12px rgb(0 0 0 / 0.4));
+  transform: rotate(var(--rot)) translateY(calc(var(--lift) + var(--hover-lift)))
+    scale(calc(var(--scale) * var(--hover-scale)));
+  --glow-blur: 20px;
+  --glow-strength: 85%;
+  --depth-blur: 6px;
+  --depth-alpha: 0.45;
 }
 
-/*
- * Mocniejszy glow w KOLORZE KARTY na hover/focus TYLKO dla kart wybieralnych
- * (bez ``[data-disabled]``). Prostowanie/powiększenie i tooltip działają dla
- * WSZYSTKICH kart (reguła wyżej), tu dokładamy jedynie barwny akcent „do wyboru".
- */
-.card:not([data-disabled]):hover,
-.card:not([data-disabled]):focus-visible {
-  /* STONOWANE: lżejszy cień i delikatniejszy barwny glow (było 0.55 / 85%). */
-  filter:
-    drop-shadow(0 5px 12px rgb(0 0 0 / 0.4))
-    drop-shadow(0 0 10px color-mix(in srgb, var(--sc-hue) 55%, transparent));
+.card:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
 }
 
 .card:focus-visible {
@@ -356,23 +535,48 @@
 }
 
 /*
- * Trade goods zaparkowane na karcie — mała pigułka w GÓRNYM rogu obrazu (dół karty
- * zajmuje teraz baner właściciela). ``pointer-events: none`` — nie przechwytuje
- * klików/hoveru.
+ * Trade goods zaparkowane na karcie — pigułka U DOŁU karty, WYŚRODKOWANA (prośba
+ * użytkownika: nie w rogu). Dotyczy kart WOLNYCH (wybrana karta ma u dołu baner
+ * właściciela — patrz ``.ownerBar`` — więc TG i baner się nie nakładają: TG
+ * pokazujemy tylko gdy ``trade_goods > 0``, a to karty niewybrane).
+ * ``pointer-events: none`` — nie przechwytuje klików/hoveru.
  */
 .tg {
   position: absolute;
-  top: var(--ds-space-xs);
-  right: var(--ds-space-xs);
+  bottom: clamp(8px, 1vw, 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--ds-font-data);
-  font-size: var(--ds-fz-xs);
   color: rgb(var(--ds-sig-tg));
-  background: rgb(0 0 0 / 0.72);
-  padding: 2px 8px;
+  background: rgb(0 0 0 / 0.78);
+  padding: 4px 10px 4px 7px;
   border-radius: 999px;
+  box-shadow:
+    var(--ds-shadow-sm),
+    inset 0 0 0 1px rgb(var(--ds-sig-tg) / 0.4);
   white-space: nowrap;
-  box-shadow: var(--ds-shadow-sm);
   pointer-events: none;
+}
+
+/* Żeton trade goods (grafika ``/tg.png``) — skaluje się z szerokością karty. */
+.tgIcon {
+  display: block;
+  width: clamp(14px, 1.4vw, 20px);
+  height: clamp(14px, 1.4vw, 20px);
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+}
+
+/* Liczba żetonów obok grafiki — jasny napis w kolorze TG. */
+.tgCount {
+  font-size: clamp(var(--ds-fz-xs), 1.1vw, var(--ds-fz-md));
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ds-ink-hi);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
 }
 
 /*
@@ -420,70 +624,125 @@
  * głównym przyciskiem akcji panelu stanu (``.ctlPrimary``): akcent ``--ds-sig-bio``,
  * zaokrąglony, z hoverem. Widoczny tylko gdy ``allPicked``.
  */
+/*
+ * Przycisk „Następna faza" — MOCNY akcent (prośba: był mało widoczny). Wypełniony,
+ * jasny napis na pełnym niebieskim akcencie interakcji, z poświatą i delikatnym
+ * pulsem, który zwraca uwagę po skompletowaniu wyboru. Wyraźny hover (podbicie
+ * jasności + unoszenie), spójny z językiem interakcji strony.
+ */
 .nextPhaseBtn {
   margin-left: var(--ds-space-sm);
-  padding: clamp(4px, 0.7vw, 8px) clamp(10px, 1.4vw, 18px);
+  padding: clamp(6px, 0.9vw, 11px) clamp(16px, 2vw, 28px);
   font-family: var(--ds-font-display);
   font-size: clamp(var(--ds-fz-sm), 1.2vw, var(--ds-fz-lg));
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--ds-ink-hi);
-  /* NIEBIESKI akcent interakcji (``--ds-accent-rgb``) — spójny z resztą UI. */
-  background: rgb(var(--ds-accent-rgb) / 0.2);
-  border: 1px solid rgb(var(--ds-accent-rgb) / 0.55);
+  /* Wypełniony akcent zamiast ledwie widocznej przezroczystości. */
+  background: linear-gradient(
+    180deg,
+    rgb(var(--ds-accent-rgb) / 0.95),
+    rgb(var(--ds-accent-rgb) / 0.75)
+  );
+  border: 1px solid rgb(var(--ds-accent-rgb) / 1);
   border-radius: var(--ds-radius-md);
   cursor: pointer;
-  transition: background var(--ds-dur-fast) var(--ds-ease);
+  box-shadow:
+    0 2px 10px rgb(var(--ds-accent-rgb) / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+  transition:
+    filter var(--ds-dur-fast) var(--ds-ease),
+    transform var(--ds-dur-fast) var(--ds-ease),
+    box-shadow var(--ds-dur-fast) var(--ds-ease);
+  animation: nextPhasePulse 2.4s ease-in-out infinite;
 }
 
 .nextPhaseBtn:hover:not(:disabled) {
-  background: rgb(var(--ds-accent-rgb) / 0.32);
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 16px rgb(var(--ds-accent-rgb) / 0.6),
+    inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+.nextPhaseBtn:focus-visible {
+  outline: 2px solid var(--ds-accent-ink);
+  outline-offset: 2px;
 }
 
 .nextPhaseBtn:disabled {
   opacity: 0.5;
   cursor: default;
+  animation: none;
+  box-shadow: none;
+}
+
+/* Delikatny puls poświaty — zachęca do kliknięcia, gdy wybór jest kompletny. */
+@keyframes nextPhasePulse {
+  0%,
+  100% {
+    box-shadow:
+      0 2px 10px rgb(var(--ds-accent-rgb) / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.2);
+  }
+  50% {
+    box-shadow:
+      0 2px 16px rgb(var(--ds-accent-rgb) / 0.75),
+      inset 0 1px 0 rgb(255 255 255 / 0.25);
+  }
 }
 
 /*
- * Przycisk ZWIŃ/ROZWIŃ (minimalizacja panelu) — dyskretny, w PRAWYM GÓRNYM rogu
- * boksu. Styl „hairline chip" spójny z design-systemem: subtelne tło, cienka
- * obwódka, akcent na hover. ``position: absolute`` — nie wpływa na układ nagłówka.
+ * Przycisk ZWIŃ/ROZWIŃ (minimalizacja panelu) — NA BANERZE nagłówka (``.header``
+ * jest ``position: relative``), w jego prawym rogu. WYRAŹNY chip (prośba
+ * użytkownika): wypełnione tło akcentu, czytelna ikona, ścięty narożnik spójny z
+ * banerem, wyraźny hover. ``z-index`` nad liniami akcentu banera.
  */
 .minimizeBtn {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 50%;
+  right: clamp(8px, 1vw, 14px);
+  transform: translateY(-50%);
   z-index: 6;
-  /* DYSKRETNY okrągły chip (prośba: collapse był za „chunky"). Mała ikona ± zamiast
-     grubego przycisku z tekstem — subtelne tło, hairline, delikatny hover. */
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   font-family: var(--ds-font-text);
-  font-size: 14px;
+  font-size: 18px;
+  font-weight: 700;
   line-height: 1;
-  color: var(--ds-ink-lo);
-  background: transparent;
-  border: 1px solid var(--ds-h14);
-  border-radius: 50%;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-accent-rgb) / 0.28);
+  border: 1px solid rgb(var(--ds-accent-rgb) / 0.7);
+  /* Ścięty narożnik — spójny z banerem (HUD TI4). */
+  border-radius: var(--ds-radius-sm);
+  clip-path: polygon(
+    4px 0,
+    100% 0,
+    100% calc(100% - 4px),
+    calc(100% - 4px) 100%,
+    0 100%,
+    0 4px
+  );
   cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
   transition:
     background var(--ds-dur-fast) var(--ds-ease),
-    color var(--ds-dur-fast) var(--ds-ease),
-    border-color var(--ds-dur-fast) var(--ds-ease);
+    border-color var(--ds-dur-fast) var(--ds-ease),
+    filter var(--ds-dur-fast) var(--ds-ease);
 }
 
 .minimizeBtn:hover {
-  color: var(--ds-ink-hi);
-  background: rgb(var(--ds-accent-rgb) / 0.16);
-  border-color: rgb(var(--ds-accent-rgb) / 0.45);
+  background: rgb(var(--ds-accent-rgb) / 0.5);
+  border-color: rgb(var(--ds-accent-rgb) / 1);
+  filter: brightness(1.12);
 }
 
 .minimizeBtn:focus-visible {
-  outline: 2px solid var(--ds-accent);
+  outline: 2px solid var(--ds-accent-ink);
   outline-offset: 2px;
 }
 
@@ -499,10 +758,31 @@
   padding: 6px clamp(12px, 2vw, 28px);
 }
 
+/*
+ * Zwinięty: scrim-łuk nie pasuje do wąskiego paska, więc zamieniamy go na prostą,
+ * zwartą, zanikającą na bokach poświatę (dalej BEZ twardej ramki/rogów).
+ */
+.table[data-minimized]::before {
+  inset: -4px -12px;
+  background: radial-gradient(
+    ellipse 80% 120% at 50% 50%,
+    rgb(10 11 14 / 0.7),
+    transparent 85%
+  );
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 .table[data-minimized] .header {
-  padding: 2px var(--ds-space-sm);
-  border-bottom: none;
+  padding: 6px clamp(16px, 2vw, 32px);
   gap: 2px;
+  margin-bottom: 0;
+}
+
+/* Zwinięty: bez linii akcentu banera (kompaktowy pasek). */
+.table[data-minimized] .header::before,
+.table[data-minimized] .header::after {
+  display: none;
 }
 
 /* Zwinięty: mniejszy tytuł fazy. */
@@ -555,13 +835,26 @@
 @media (prefers-reduced-motion: reduce) {
   .card {
     transition: none;
+    /* Bez kaskadowego wejścia — karta od razu w docelowej pozycji łuku. */
+    animation: none;
   }
 
   .card:hover,
   .card:focus-visible {
     z-index: 5;
-    /* Bez prostowania/dodatkowego powiększania — zachowujemy spoczynkowy transform
-       łuku (obrót + opad + skala per karta). */
+    /* Bez dodatkowego powiększania — zachowujemy spoczynkowy transform łuku
+       (obrót + opad + skala per karta). */
     transform: rotate(var(--rot)) translateY(var(--lift)) scale(var(--scale));
+  }
+
+  /* Bez animacji wejścia panelu/banera/kart i bez pulsu akcentu — statycznie. */
+  .table[data-intro],
+  .table[data-intro] .header,
+  .table[data-intro] .card {
+    animation: none;
+  }
+
+  .nextPhaseBtn {
+    animation: none;
   }
 }

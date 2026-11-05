@@ -1,4 +1,10 @@
-import { useCallback, useRef, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 import cx from "clsx";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
@@ -156,6 +162,31 @@ export function StrategyCardTable(): ReactElement | null {
   // Stan czysto lokalny/wizualny — nie dotyka logiki wyboru ani danych gry.
   const [minimized, setMinimized] = useState(false);
 
+  // ANIMACJA WEJŚCIA — JEDNORAZOWA, sterowana stanem (nie samym CSS). Problem z
+  // czystym CSS: panel re-renderuje się często (hover/busy/stan gry), a animacje z
+  // ``fill-mode`` przy skumulowanych opóźnieniach powodowały miganie/znikanie kart.
+  // Rozwiązanie: ``intro`` jest ``true`` tylko na starcie; po odegraniu pełnej
+  // sekwencji (baner → kaskada kart) zdejmujemy klasy animacji (``data-intro``
+  // schodzi), więc kolejne re-rendery NIE dotykają już animacji — zero migania.
+  const [intro, setIntro] = useState(true);
+  // Karty MONTUJĄ SIĘ dopiero PO wejściu banera (prośba użytkownika: „zacznij dopiero
+  // po bannerze"). Sterowanie przez MOUNT (nie tylko opóźnienie CSS) daje twardą
+  // gwarancję kolejności: dopóki ``showCards`` jest ``false``, rząd kart nie istnieje
+  // w DOM, więc nie może „już być" na starcie. Po banerze flaga wchodzi i karty
+  // rozdają się kaskadowo (każda animuje wejście przy swoim montażu).
+  const [showCards, setShowCards] = useState(false);
+  useEffect(() => {
+    // 1) Po wejściu banera (~0.45s) montujemy karty → zaczyna się kaskada.
+    const tCards = window.setTimeout(() => setShowCards(true), 480);
+    // 2) Po pełnej kaskadzie zdejmujemy ``intro`` → reguły animacji znikają, więc
+    //    późniejsze re-rendery (hover/wybór) nie migają kartami.
+    const tDone = window.setTimeout(() => setIntro(false), 1700);
+    return () => {
+      window.clearTimeout(tCards);
+      window.clearTimeout(tDone);
+    };
+  }, []);
+
   // PRZESUWANIE OKNA (prośba użytkownika): przesunięcie panelu względem jego
   // wyśrodkowanej pozycji (``dx``/``dy`` w px). Panel domyślnie stoi na środku
   // (overlay = ``place-items: center``); drag dokłada ``translate(dx, dy)``.
@@ -276,26 +307,14 @@ export function StrategyCardTable(): ReactElement | null {
       <div
         className={styles.table}
         data-minimized={minimized || undefined}
+        // ``data-intro`` włącza animacje wejścia TYLKO na starcie (patrz stan
+        // ``intro``); po odegraniu sekwencji schodzi, więc re-rendery nie migają.
+        data-intro={intro || undefined}
         aria-label="Strategy Cards on the table"
         style={{
           transform: `translate(${offset.dx}px, ${offset.dy}px)`,
         }}
       >
-        {/*
-         * Przycisk ZWIŃ/ROZWIŃ (prośba użytkownika) — w rogu panelu. Dyskretna
-         * ikona-chip; chowa rząd kart do kompaktowego paska, żeby odsłonić mapę.
-         * Tylko prezentacja: nie zmienia stanu wyboru ani danych gry.
-         */}
-        <button
-          type="button"
-          className={styles.minimizeBtn}
-          aria-expanded={!minimized}
-          aria-label={minimized ? "Expand strategy cards" : "Collapse strategy cards"}
-          title={minimized ? "Expand strategy cards" : "Collapse strategy cards"}
-          onClick={() => setMinimized((m) => !m)}
-        >
-          {minimized ? "▢" : "–"}
-        </button>
       {/*
        * Nagłówek w stylu AsyncTI4: WYŚRODKOWany tytuł fazy, a pod nim wiersz
        * (zawijalny) z aktualnym pickerem i mówcą — każdy z IKONĄ frakcji
@@ -308,6 +327,24 @@ export function StrategyCardTable(): ReactElement | null {
         onPointerDown={onHandlePointerDown}
         title="Drag to move"
       >
+        {/*
+         * Przycisk ZWIŃ/ROZWIŃ (prośba użytkownika) — NA BANERZE nagłówka, w jego
+         * prawym rogu. Wyraźny chip ze ściętym narożnikiem, spójny z banerem. Tylko
+         * prezentacja: nie zmienia stanu wyboru ani danych gry.
+         */}
+        <button
+          type="button"
+          className={styles.minimizeBtn}
+          aria-expanded={!minimized}
+          aria-label={minimized ? "Expand strategy cards" : "Collapse strategy cards"}
+          title={minimized ? "Expand strategy cards" : "Collapse strategy cards"}
+          // Przycisk siedzi na „uchwycie" do przeciągania (nagłówku); ``onPointerDown``
+          // zatrzymujemy, żeby klik w collapse nie startował przeciągania okna.
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setMinimized((m) => !m)}
+        >
+          {minimized ? "▢" : "–"}
+        </button>
         <h2 className={styles.heading}>Strategy Phase</h2>
         <div className={styles.meta}>
           {/*
@@ -355,8 +392,16 @@ export function StrategyCardTable(): ReactElement | null {
         </div>
       </div>
 
-      {/* Rząd kart ukrywany po zwinięciu panelu (minimized) — zostaje sam nagłówek. */}
-      {!minimized && (
+      {/*
+       * Rząd kart: ukrywany po zwinięciu panelu (``minimized``) oraz NIEMONTOWANY,
+       * dopóki baner nie wejdzie (``showCards`` — twarda gwarancja, że karty
+       * startują PO banerze). Gdy nie montujemy, rezerwujemy wysokość placeholderem,
+       * żeby panel nie „podskakiwał" w momencie wejścia kart.
+       */}
+      {!minimized && !showCards && (
+        <div className={styles.cardsPlaceholder} aria-hidden="true" />
+      )}
+      {!minimized && showCards && (
       <div className={styles.cards} role="list">
         {cards.map((card, i, arr) => {
           // Definicja karty po KANONICZNYM ``id`` z backendu (wybór wariantu robi
@@ -455,6 +500,9 @@ export function StrategyCardTable(): ReactElement | null {
                     ["--rot" as string]: `${rot}deg`,
                     ["--lift" as string]: `${lift}px`,
                     ["--scale" as string]: `${scale}`,
+                    // Indeks karty dla KASKADOWEGO wejścia (animacja ``cardIn`` liczy
+                    // opóźnienie od środka wachlarza ku brzegom — patrz CSS).
+                    ["--i" as string]: `${i}`,
                   }}
                   // Tooltip otwieramy na hover ORAZ focus (a11y), zamykamy na
                   // opuszczeniu/blur. To DODATEK — nie koliduje z klikiem/wyborem.
@@ -496,10 +544,19 @@ export function StrategyCardTable(): ReactElement | null {
                     </div>
                   )}
 
-                  {/* Trade goods zaparkowane na karcie — pigułka w górnym rogu. */}
+                  {/*
+                   * Trade goods zaparkowane na karcie — GRAFIKA żetonu TG (``/tg.png``,
+                   * ten sam asset, co w ``StrategyCard``/``StoresStrip``) z liczbą,
+                   * zamiast tekstu „+N TG". Pigułka w górnym rogu; ``pointer-events:
+                   * none`` — nie przechwytuje klików/hoveru.
+                   */}
                   {card.trade_goods > 0 && (
-                    <span className={styles.tg} title="Trade Goods on the card">
-                      +{card.trade_goods} TG
+                    <span
+                      className={styles.tg}
+                      title={`${card.trade_goods} Trade Goods on the card`}
+                    >
+                      <img className={styles.tgIcon} src="/tg.png" alt="" />
+                      <b className={styles.tgCount}>{card.trade_goods}</b>
                     </span>
                   )}
 

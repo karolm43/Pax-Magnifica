@@ -26,3 +26,8 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* Treść pod paskiem zakładek — oddech wewnątrz obszaru przewijania. */
+.tabBody {
+  padding: 12px 4px 4px;
+}
