@@ -177,6 +177,46 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
     return new_state
 
 
+def advance_active_player(state: GameState, player_id: str | None = None) -> GameState:
+    """Przekazuje „bycie aktywnym" następnemu graczowi w kolejności INICJATYWY.
+
+    Używane w fazach STATUS i AGENDA, gdzie — wg decyzji projektowej (RULES.md 31.4) —
+    zawsze jest wskazany aktywny gracz (UI/bot), ale NIE ma pojęcia „pasowania" ani
+    kończenia tury jak w fazie akcji. To proste przesunięcie wskaźnika aktywnego
+    gracza po kręgu (initiative order), żeby operator mógł przeklikać kolejnych
+    graczy (status: krok po kroku wg inicjatywy R31.3; agenda: kolejni gracze
+    reagują/głosują). Owinięcie listy jest cykliczne — po ostatnim wraca pierwszy.
+
+    ``player_id`` (gdy podany) musi być bieżącym aktywnym graczem — spójnie z
+    ``end_turn``/``pass_turn``. Faza MUSI być STATUS albo AGENDA.
+
+    Raises:
+        ValueError: Gdy faza != STATUS/AGENDA, brak aktywnego gracza, albo
+            ``player_id`` nie jest aktywnym graczem.
+    """
+    if state.phase not in (Phase.STATUS, Phase.AGENDA):
+        raise ValueError(
+            "Advancing to the next player is only allowed in the status/agenda phase."
+        )
+    current = state.active_player_id
+    if current is None:
+        raise ValueError("No active player to advance from.")
+    if player_id is not None and player_id != current:
+        raise ValueError(
+            f"It is not {player_id}'s turn (active: {current})."
+        )
+    order = turn_order(state)
+    if not order:
+        return state.clone()
+    new_state = state.clone()
+    if current in order:
+        idx = order.index(current)
+        new_state.active_player_id = order[(idx + 1) % len(order)]
+    else:
+        new_state.active_player_id = order[0]
+    return new_state
+
+
 def next_phase(state: GameState) -> GameState:
     """Przechodzi do następnej fazy w sekwencji (bez zmiany rundy).
 

@@ -177,6 +177,16 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Przekazuje aktywność następnemu graczowi (initiative order) — tylko STATUS/
+  // AGENDA. Zasila „Next player" (status) i „Pass" (agenda) w pulpicie tury.
+  const nextPlayer = useCallback(
+    async (playerId?: string) => {
+      await post("/turn/next-player", { player_id: playerId ?? null });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const nextPhase = useCallback(async () => {
     await post("/phase/next", {});
     await refresh();
@@ -391,6 +401,7 @@ export function useBoardEditor() {
     editPlayer,
     endTurn,
     passTurn,
+    nextPlayer,
     nextPhase,
     nextRound,
     pickStrategyCard,

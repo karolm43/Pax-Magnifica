@@ -48,6 +48,26 @@ async def post_pass_turn(
     return await _commit_flow(ctx, new_state, "turn:pass")
 
 
+@router.post("/turn/next-player", response_model=StateEnvelope)
+async def post_next_player(
+    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Przekazuje aktywność następnemu graczowi (initiative order) w STATUS/AGENDA.
+
+    Proste przesunięcie wskaźnika aktywnego gracza — bez pasowania/kończenia tury
+    (to tylko faza akcji). Służy do przeklikania kolejnych graczy w fazie statusu
+    (krok po kroku) i agendy (kolejni gracze). Faza spoza STATUS/AGENDA → 422.
+    """
+    player_id = request.player_id if request is not None else None
+    try:
+        new_state = turn_flow.advance_active_player(
+            ctx.service.current_state(), player_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "turn:next-player")
+
+
 @router.post("/phase/next", response_model=StateEnvelope)
 async def post_next_phase(
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)

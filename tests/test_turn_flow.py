@@ -264,3 +264,42 @@ def test_pass_last_player_hands_to_speaker_no_transition() -> None:
     assert nxt.phase is Phase.ACTION
     assert nxt.active_player_id == "p3"  # mówca
     assert nxt.players["p1"].passed is True
+
+
+def test_advance_active_player_status_rotates_initiative() -> None:
+    # W fazie statusu „następny gracz" przesuwa aktywnego wg inicjatywy (p1→p2→p3→p1).
+    state = _state_with_players()
+    state.phase = Phase.STATUS
+    state.active_player_id = "p1"
+    s2 = turn_flow.advance_active_player(state)
+    assert s2.active_player_id == "p2"
+    s3 = turn_flow.advance_active_player(s2)
+    assert s3.active_player_id == "p3"
+    # Zawijanie: po ostatnim wraca pierwszy.
+    s4 = turn_flow.advance_active_player(s3)
+    assert s4.active_player_id == "p1"
+
+
+def test_advance_active_player_agenda_allowed() -> None:
+    state = _state_with_players()
+    state.phase = Phase.AGENDA
+    state.active_player_id = "p2"
+    assert turn_flow.advance_active_player(state).active_player_id == "p3"
+
+
+def test_advance_active_player_rejects_action_phase() -> None:
+    # Poza STATUS/AGENDA (np. ACTION) „następny gracz" jest niedozwolony.
+    state = _state_with_players()  # phase=ACTION
+    with pytest.raises(ValueError, match="status/agenda"):
+        turn_flow.advance_active_player(state)
+
+
+def test_advance_active_player_checks_identity() -> None:
+    state = _state_with_players()
+    state.phase = Phase.STATUS
+    state.active_player_id = "p1"
+    # Podany gracz musi być aktywnym (spójnie z end_turn/pass_turn).
+    with pytest.raises(ValueError, match="not p2's turn"):
+        turn_flow.advance_active_player(state, "p2")
+    # Aktywny gracz przechodzi bez błędu.
+    assert turn_flow.advance_active_player(state, "p1").active_player_id == "p2"

@@ -68,7 +68,8 @@ export function TurnControls() {
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
   const { data: cards } = useStrategyCards();
-  const { playStrategyCard, passTurn, endTurn, nextPhase } = useBoardEditor();
+  const { playStrategyCard, passTurn, endTurn, nextPlayer, nextPhase, nextRound } =
+    useBoardEditor();
   const [busy, setBusy] = useState(false);
 
   // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
@@ -81,6 +82,10 @@ export function TurnControls() {
   // Pass / End turn mają sens tylko w fazie akcji i dla GRACZA, który faktycznie
   // jest teraz aktywny (nie dla mówcy-fallbacku między turami).
   const isAction = phase === "action" && active.active === true;
+  // Status: „Next player" (krok po kroku wg inicjatywy). Agenda: „Pass" (kolejny
+  // gracz). Oba wołają ten sam backend ``/turn/next-player`` (przesuw aktywnego).
+  const isStatus = phase.startsWith("status");
+  const isAgenda = phase.startsWith("agenda");
   // Czytelna etykieta fazy w nagłówku pulpitu.
   const phaseLabel = phase.startsWith("agenda")
     ? "Agenda phase"
@@ -149,6 +154,7 @@ export function TurnControls() {
         </header>
 
         <div className={styles.actionBtns}>
+          {/* Faza AKCJI: Pass (po akcji strategicznej) + End turn. */}
           {isAction && (
             <>
               <button
@@ -179,16 +185,53 @@ export function TurnControls() {
               </button>
             </>
           )}
+
+          {/* Faza STATUS: „Next player" (krok po kroku wg inicjatywy). */}
+          {isStatus && (
+            <button
+              type="button"
+              className={styles.endTurn}
+              style={{ "--d": "0ms" } as CSSProperties}
+              disabled={busy}
+              onClick={() => run(() => nextPlayer(active.discordId))}
+              title="Pass the step to the next player (initiative order)"
+            >
+              <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
+              <span>Next player</span>
+            </button>
+          )}
+
+          {/* Faza AGENDA: „Pass" (kolejny gracz reaguje/głosuje). */}
+          {isAgenda && (
+            <button
+              type="button"
+              className={styles.pass}
+              style={{ "--d": "0ms" } as CSSProperties}
+              disabled={busy}
+              onClick={() => run(() => nextPlayer(active.discordId))}
+              title="Pass to the next player"
+            >
+              <IconHandStop size={16} aria-hidden="true" />
+              <span>Pass</span>
+            </button>
+          )}
+
+          {/* Przejście fazy. PO AGENDZIE = nowa runda (runda +1, reset pasów,
+              TG na niewybranych kartach) — wołamy /round/next zamiast /phase/next. */}
           <button
             type="button"
             className={styles.nextPhase}
-            style={{ "--d": isAction ? "120ms" : "0ms" } as CSSProperties}
+            style={{ "--d": isAction ? "120ms" : "60ms" } as CSSProperties}
             disabled={busy}
-            onClick={() => run(nextPhase)}
-            title="Advance to the next phase"
+            onClick={() => run(isAgenda ? nextRound : nextPhase)}
+            title={
+              isAgenda
+                ? "End the agenda phase and start the next round"
+                : "Advance to the next phase"
+            }
           >
             <IconChevronsRight size={16} aria-hidden="true" />
-            <span>Next phase</span>
+            <span>{isAgenda ? "Next round" : "Next phase"}</span>
           </button>
         </div>
 
