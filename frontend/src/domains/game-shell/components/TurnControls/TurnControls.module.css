@@ -31,76 +31,120 @@
   pointer-events: auto;
 }
 
-.noCard {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  font-size: var(--text-meta, 12px);
-  color: var(--ds-ink-lo);
-  background: color-mix(in oklab, var(--ds-ground) 88%, transparent);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-md);
-  pointer-events: auto;
+/* Wspólna wysokość slotu/karty. */
+.cardZone {
+  --card-h: clamp(160px, 27vh, 280px);
 }
 
 /*
- * Karta: wrapper z poświatą (::before) + wewnętrzny .cardInner, który obraca się
- * i unosi. Rozdzielenie wrappera i inner pozwala poświacie zostać na miejscu,
- * gdy karta się prostuje. Spoczynek: lekkie przechylenie (leży na stole).
+ * SLOT — PROSTY, równy box na kartę (żadnej rotacji). Kształt karty strategii
+ * (proporcja ~400:499), z lekko wklęsłym tłem i cienką ramką, jak wyznaczone
+ * „gniazdo" na stole. Widoczny także pusty (sam zarys miejsca). Karta leży w nim
+ * prosto; na hover unosi się nieco PONAD górną krawędź slotu.
+ */
+.slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--card-h);
+  aspect-ratio: 400 / 499;
+  padding: 7px;
+  border: 1px solid var(--ds-h22);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    radial-gradient(
+      ellipse 75% 65% at 50% 50%,
+      rgba(0, 0, 0, 0.3),
+      transparent 78%
+    ),
+    rgba(255, 255, 255, 0.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 22px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+
+/* Wypełniony slot: subtelniejsza ramka (karta wypełnia miejsce). Nie przycina
+   uniesionej na hover karty. */
+.slot[data-filled] {
+  border-color: var(--ds-h14);
+  overflow: visible;
+}
+
+/* Pusty slot — zarys miejsca + delikatny podpis. */
+.slotEmpty {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ds-ink-lo);
+  opacity: 0.55;
+}
+
+.slotEmpty svg {
+  opacity: 0.7;
+}
+
+/*
+ * Karta w slocie: wrapper z poświatą (::before) + wewnętrzny .cardInner, który
+ * unosi się i powiększa na hover (BEZ żadnej rotacji). Karta wypełnia slot.
  */
 .card {
-  --tilt: -6deg;
   position: relative;
-  height: clamp(160px, 27vh, 280px);
+  height: 100%;
   pointer-events: auto;
-  animation: cardDeal 0.5s var(--ds-ease) both;
-  animation-delay: calc(var(--i, 0) * 90ms + 120ms);
+  animation: cardDeal 0.3s var(--ds-ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
 }
 
 /* Poświata karty w jej barwie — miękka elipsa pod kartą. */
 .card::before {
   content: "";
   position: absolute;
-  inset: -14% -10% -20%;
+  inset: -12% -8% -16%;
   z-index: -1;
   border-radius: 40%;
   background: radial-gradient(
-    ellipse 60% 55% at 50% 60%,
+    ellipse 60% 55% at 50% 55%,
     color-mix(in srgb, var(--sc-hue, #888) 55%, transparent),
     transparent 72%
   );
-  opacity: 0.35;
-  filter: blur(14px);
+  opacity: 0.16;
+  filter: blur(16px);
   transition: opacity var(--ds-dur) var(--ds-ease);
 }
 
 .card:hover::before {
-  opacity: 0.8;
+  opacity: 0.38;
 }
 
 .cardInner {
   position: relative;
   height: 100%;
-  transform: rotate(var(--tilt));
   transform-origin: bottom center;
-  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
   transition:
     transform var(--ds-dur) var(--ds-ease),
     filter var(--ds-dur) var(--ds-ease);
 }
 
-/* Hover: karta prostuje się, unosi i delikatnie powiększa. */
+/* Hover: karta unosi się SUBTELNIE (prosto, bez rotacji). */
 .card:hover .cardInner,
 .card:focus-within .cardInner {
-  transform: rotate(0deg) translateY(-10px) scale(1.05);
-  filter: drop-shadow(0 20px 34px rgba(0, 0, 0, 0.62));
+  transform: translateY(-6px) scale(1.025);
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.52));
 }
 
-/* Zagrana karta — wygaszona i mocniej położona (mniej „aktywna"). */
+/* Zagrana karta — wygaszona. */
 .card[data-played] {
-  --tilt: -3deg;
   opacity: 0.68;
 }
 
@@ -118,7 +162,7 @@
   place-content: center;
   gap: 8px;
   height: 100%;
-  aspect-ratio: 5 / 7;
+  aspect-ratio: 400 / 499;
   padding: 10px;
   text-align: center;
   background: var(--ds-tex-rail, rgba(255, 255, 255, 0.04));
@@ -164,11 +208,11 @@
   color: #fff;
   background: radial-gradient(
     ellipse 75% 70% at 50% 55%,
-    color-mix(in srgb, var(--sc-hue, #39b54a) 70%, transparent),
-    color-mix(in srgb, var(--sc-hue, #39b54a) 20%, transparent) 70%,
+    color-mix(in srgb, var(--sc-hue, #39b54a) 52%, transparent),
+    color-mix(in srgb, var(--sc-hue, #39b54a) 14%, transparent) 70%,
     transparent
   );
-  border: 2px solid color-mix(in srgb, var(--sc-hue, #39b54a) 85%, white 10%);
+  border: 1.5px solid color-mix(in srgb, var(--sc-hue, #39b54a) 70%, transparent);
   border-radius: 10px;
   cursor: pointer;
   opacity: 0;
@@ -186,7 +230,7 @@
 
 .playOverlay svg {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
-  animation: playPulse 1.6s ease-in-out infinite;
+  animation: playPulse 2.4s ease-in-out infinite;
 }
 
 .playOverlay:disabled {
@@ -323,9 +367,8 @@
 }
 
 .pass:hover:not(:disabled) {
-  background: rgb(var(--ds-sig-warn) / 0.26);
-  box-shadow: 0 0 0 1px rgb(var(--ds-sig-warn) / 0.4),
-    0 6px 18px rgb(var(--ds-sig-warn) / 0.25);
+  background: rgb(var(--ds-sig-warn) / 0.22);
+  border-color: rgb(var(--ds-sig-warn) / 0.65);
 }
 
 /* End turn — główna akcja (zielony, najmocniejszy akcent). */
@@ -336,9 +379,8 @@
 }
 
 .endTurn:hover:not(:disabled) {
-  background: rgb(var(--ds-sig-bio) / 0.34);
-  box-shadow: 0 0 0 1px rgb(var(--ds-sig-bio) / 0.5),
-    0 6px 18px rgb(var(--ds-sig-bio) / 0.3);
+  background: rgb(var(--ds-sig-bio) / 0.3);
+  border-color: rgb(var(--ds-sig-bio) / 0.7);
 }
 
 /* Next phase — neutralny, ale wyraźny. */
@@ -350,8 +392,7 @@
 
 .nextPhase:hover:not(:disabled) {
   color: var(--ds-ink-hi);
-  background: rgba(255, 255, 255, 0.13);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.11);
 }
 
 .hint {
@@ -366,11 +407,11 @@
 @keyframes cardDeal {
   from {
     opacity: 0;
-    transform: translateY(26px) scale(0.96);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -388,7 +429,7 @@
 @keyframes btnIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -398,7 +439,7 @@
 
 @keyframes playPulse {
   50% {
-    transform: scale(1.14);
+    transform: scale(1.05);
   }
 }
 
@@ -406,6 +447,7 @@
 :global(.mobile) .cardZone {
   right: 140px;
   bottom: 10px;
+  --card-h: clamp(120px, 20vh, 180px);
 }
 
 :global(.mobile) .actionZone {
@@ -415,22 +457,15 @@
   padding: 10px;
 }
 
-:global(.mobile) .card {
-  height: clamp(120px, 20vh, 180px);
-}
-
 /* Zredukowany ruch: bez animacji wejścia/pulsu, karta bez przechyłu. */
 @media (prefers-reduced-motion: reduce) {
+  .card,
   .card,
   .actionZone,
   .pass,
   .endTurn,
   .nextPhase {
     animation: none;
-  }
-
-  .card {
-    --tilt: 0deg;
   }
 
   .playOverlay svg {
