@@ -8,12 +8,19 @@
  * --d = opóźnienie wejścia przycisku.
  */
 
-/* ========================= STREFA KARTY (lewy dół) ========================= */
+/* ===================== STREFA KARTY (prawy dół, przy przyciskach) =========
+ * Karta siedzi MIĘDZY ręką (dok na środku dołu) a panelem przycisków (prawy
+ * róg) — kotwiczona do PRAWEJ krawędzi, tuż na lewo od panelu akcji. Offset =
+ * szerokość panelu przycisków (~212px min + 22px margines + odstęp). Ustawiona
+ * do prawej (align: flex-end), żeby „dociskała się" do panelu przycisków.
+ */
 .cardZone {
   position: fixed;
-  left: 22px;
+  right: 258px;
   bottom: 20px;
   z-index: 200;
+  display: flex;
+  justify-content: flex-end;
   pointer-events: none; /* klikają tylko karty/przyciski w środku */
 }
 
@@ -397,7 +404,7 @@
 
 /* ============================== Responsywność ============================= */
 :global(.mobile) .cardZone {
-  left: 10px;
+  right: 140px;
   bottom: 10px;
 }
 
