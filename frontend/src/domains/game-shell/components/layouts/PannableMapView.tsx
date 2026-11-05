@@ -22,6 +22,7 @@ import { useTryDecalsToggle } from "@/domains/map/components/hooks/useTryDecalsT
 import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
 import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
+import { TurnControls } from "@/domains/game-shell/components/TurnControls";
 import { BoardHud } from "./BoardHud";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
@@ -241,6 +242,11 @@ export function PannableMapView({ gameId }: { gameId: string }) {
           nie przewija się z mapą. Styl stołu: karty akcji / sekrety / weksle
           jako wachlarz z podglądem. Sam zwraca null, gdy brak aktywnego gracza. */}
       <BottomHandDock />
+
+      {/* Sterowanie turą — ODDZIELNE od ręki (lewy dolny róg, też przypięte).
+          Karta strategii jako obrazek (Play na hover) + Pass / End turn /
+          Next phase. Sam gatuje widoczność po fazie / aktywnym graczu. */}
+      <TurnControls />
     </Box>
   );
 }

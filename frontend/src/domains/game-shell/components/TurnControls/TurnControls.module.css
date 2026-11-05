@@ -1,0 +1,250 @@
+/*
+ * Sterowanie turą — jak rzeczy LEŻĄCE PRZED GRACZEM. Dwie osobne, przypięte do
+ * ekranu strefy:
+ *   .cardZone   — karta strategii gracza jako DUŻY obrazek (PNG, przezroczyste
+ *                 tło, bez kadrowania), lewy dolny róg;
+ *   .actionZone — osobny, WYRAŹNY panel przycisków tury, prawy dolny róg.
+ * Rozdzielone celowo: karta to karta, przyciski to przyciski (nie mieszają się
+ * z ręką kart w doku na środku).
+ */
+
+/* --- Strefa karty strategii (lewy dół) --- */
+.cardZone {
+  position: fixed;
+  left: 18px;
+  bottom: 16px;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none; /* tło strefy nie łapie klików; łapią je karty/przyciski */
+}
+
+.cards {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.noCard {
+  padding: 0 0 8px;
+  font-size: var(--text-meta, 12px);
+  color: var(--ds-ink-lo);
+}
+
+/*
+ * Karta strategii = SAM OBRAZEK (PNG z własną ramką/rogami). Bez ciemnego kafla,
+ * bez kadrowania — przezroczyste tło, cały obraz widoczny (object-fit: contain).
+ * DUŻA (wysokość ~rozmiar „karty przed graczem"), skaluje się do wysokości okna.
+ */
+.card {
+  position: relative;
+  display: block;
+  height: clamp(150px, 26vh, 260px);
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.65));
+}
+
+/* Zagrana karta — lekko wygaszona. */
+.card[data-played] {
+  opacity: 0.72;
+}
+
+.cardImage {
+  display: block;
+  height: 100%;
+  width: auto;
+  object-fit: contain; /* PNG z przezroczystością: cały obraz, zero czarnego tła */
+}
+
+/* Fallback tekstowy (brak/zła grafika) — jedyny przypadek z tłem i ramką. */
+.cardFallback {
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  height: 100%;
+  aspect-ratio: 5 / 7;
+  padding: 10px;
+  text-align: center;
+  background: var(--ds-tex-rail, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--ds-h14);
+  border-radius: 10px;
+}
+
+.disc {
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: var(--font-data);
+  font-size: var(--text-title, 16px);
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 2px var(--ds-h22);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--text-body, 13px);
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+}
+
+/*
+ * Nakładka „Play" — pojawia się PO NAJECHANIU na kartę (nie osobny przycisk).
+ * Przyklejona do obrysu obrazka (inset:0). Wyraźny, czytelny napis.
+ */
+.playOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2.4vh, 24px);
+  font-weight: var(--weight-title);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: radial-gradient(
+    ellipse 70% 70% at 50% 60%,
+    rgb(var(--ds-sig-break) / 0.55),
+    rgb(var(--ds-sig-break) / 0.15)
+  );
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.card:hover .playOverlay,
+.playOverlay:focus-visible {
+  opacity: 1;
+}
+
+.playOverlay:disabled {
+  cursor: default;
+}
+
+/* Znacznik „Played" — plakietka u dołu zagranej karty. */
+.playedBadge {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: rgb(var(--ds-sig-ok));
+  background: color-mix(in oklab, var(--ds-ground) 85%, transparent);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-ok) / 0.5);
+  pointer-events: none;
+}
+
+/* --- Strefa przycisków tury (prawy dół) — osobny, wyraźny panel --- */
+.actionZone {
+  position: fixed;
+  right: 18px;
+  bottom: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.5));
+  pointer-events: auto;
+}
+
+.btn,
+.endTurn,
+.ghost {
+  min-width: 150px;
+  padding: 11px 18px;
+  font-size: var(--text-body, 13px);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease,
+    transform 80ms ease;
+}
+
+.btn:active:not(:disabled),
+.endTurn:active:not(:disabled),
+.ghost:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled,
+.endTurn:disabled,
+.ghost:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Pass — wyraźny, ostrzegawczy akcent (to decyzja „kończę aktywność"). */
+.btn {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-warn) / 0.16);
+  border: 1px solid rgb(var(--ds-sig-warn) / 0.55);
+}
+
+.btn:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-warn) / 0.26);
+}
+
+/* End turn — główna akcja fazy akcji (zielony, najbardziej widoczny). */
+.endTurn {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-bio) / 0.22);
+  border: 1px solid rgb(var(--ds-sig-bio) / 0.6);
+}
+
+.endTurn:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-bio) / 0.34);
+}
+
+/* Next phase — nadal wyraźny, ale neutralny (operatorskie przejście fazy). */
+.ghost {
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ds-h22);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Na telefonie strefy schodzą niżej i nie nachodzą na dok ręki na środku. */
+:global(.mobile) .cardZone {
+  left: 8px;
+  bottom: 8px;
+}
+
+:global(.mobile) .actionZone {
+  right: 8px;
+  bottom: 8px;
+  padding: 8px;
+}
+
+:global(.mobile) .card {
+  height: clamp(120px, 20vh, 180px);
+}
