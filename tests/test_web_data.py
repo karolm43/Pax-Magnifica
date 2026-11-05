@@ -850,3 +850,80 @@ def test_web_data_breakthrough_for_te_faction(client: TestClient) -> None:
     assert bt["unlocked"] is False
     assert bt["exhausted"] is False
     assert bt["tradeGoodsStored"] == 0
+
+
+def _set_private_hand(
+    client: TestClient,
+    player_id: str,
+    *,
+    action_cards: list[str] | None = None,
+    secret_objectives: list[str] | None = None,
+    promissory_notes: list[str] | None = None,
+) -> None:
+    """Wstrzykuje prywatną rękę gracza wprost do stanu (brak endpointu God-Mode dla ręki).
+
+    Ręka (``private``) jest tajna i nie jest edytowalna przez ``/player/{id}/edit``;
+    w teście sięgamy do serwisu stanu, by przygotować dane dla endpointu ręki.
+    """
+    ctx = client.app.state.ctx  # type: ignore[attr-defined]
+    state = ctx.service.current_state().clone()
+    player = state.players[player_id]
+    if action_cards is not None:
+        player.private.action_cards = list(action_cards)
+    if secret_objectives is not None:
+        player.private.secret_objectives = list(secret_objectives)
+    if promissory_notes is not None:
+        player.private.promissory_notes = list(promissory_notes)
+    ctx.service.replace_state(state, label="test:hand")
+
+
+def test_player_hand_returns_active_player_ids(client: TestClient) -> None:
+    # Pasek ręki na mapie: endpoint zwraca JAWNE ID kart aktywnego gracza (tryb
+    # lokalny, operator widzi wszystko). Domyślnie — aktywny gracz.
+    client.post(
+        "/game/new",
+        json={
+            "players": [
+                {"faction_id": "mentak"},
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+            ]
+        },
+    )
+    # Aktywny gracz w fazie strategii = red (p1). Wstrzyknij mu rękę.
+    _set_private_hand(
+        client,
+        "p1",
+        action_cards=["sabotage", "sabotage"],
+        secret_objectives=["sb1"],
+        promissory_notes=["ms"],
+    )
+    resp = client.get("/api/game/g/hand")
+    assert resp.status_code == 200
+    hand = resp.json()
+    assert hand["actionCards"] == ["sabotage", "sabotage"]
+    assert hand["secretObjectives"] == ["sb1"]
+    assert hand["promissoryNotes"] == ["ms"]
+
+
+def test_player_hand_explicit_player_param(client: TestClient) -> None:
+    # Query param ``player`` wskazuje konkretnego gracza (nie aktywnego).
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    _set_private_hand(client, "p2", action_cards=["direct_hit"])
+    resp = client.get("/api/game/g/hand", params={"player": "p2"})
+    assert resp.status_code == 200
+    assert resp.json()["actionCards"] == ["direct_hit"]
+
+
+def test_player_hand_empty_when_no_player(client: TestClient) -> None:
+    # Brak gracza do pokazania (pusty stan) → puste listy, nie błąd.
+    resp = client.get("/api/game/g/hand", params={"player": "nope"})
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "actionCards": [],
+        "secretObjectives": [],
+        "promissoryNotes": [],
+    }

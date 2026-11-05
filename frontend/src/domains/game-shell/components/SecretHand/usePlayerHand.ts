@@ -13,12 +13,26 @@ const fetchPlayerHand = (gameId: string) =>
     },
   );
 
-export const usePlayerHand = (gameId: string) => {
+type UsePlayerHandOptions = {
+  /**
+   * Pomija bramkę uwierzytelniania (Discord) i zawsze pobiera rękę. W trybie
+   * lokalnym/solo operator widzi wszystko, a backend zwraca rękę AKTYWNEGO
+   * gracza — więc „pasek ręki" na mapie działa bez logowania. Domyślnie bramka
+   * działa (zakładka gracza pokazuje tylko rękę zalogowanego gracza w grze).
+   */
+  ignoreAuthGate?: boolean;
+};
+
+export const usePlayerHand = (
+  gameId: string,
+  { ignoreAuthGate = false }: UsePlayerHandOptions = {},
+) => {
   const { userId, canViewSecretHand } = useSecretHandAccess();
 
   return useQuery({
-    queryKey: ["playerHand", gameId, userId],
+    queryKey: ["playerHand", gameId, ignoreAuthGate ? "local" : userId],
     queryFn: () => fetchPlayerHand(gameId),
-    enabled: canViewSecretHand,
+    enabled: ignoreAuthGate || canViewSecretHand,
+    staleTime: 0,
   });
 };

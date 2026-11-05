@@ -88,6 +88,9 @@ export function useBoardEditor() {
     await queryClient.invalidateQueries({ queryKey: ["strategyCards"] });
     await queryClient.invalidateQueries({ queryKey: ["combat"] });
     await queryClient.invalidateQueries({ queryKey: ["production"] });
+    // Pasek ręki na mapie pokazuje rękę AKTYWNEGO gracza — po zmianie tury /
+    // dobraniu kart trzeba ją odświeżyć (endpoint /game/{id}/hand).
+    await queryClient.invalidateQueries({ queryKey: ["playerHand"] });
   }, [queryClient]);
 
   const editUnit = useCallback(

@@ -13,6 +13,7 @@ from src.api.schemas import (
     MapStringRequest,
     MapView,
     NewGameRequest,
+    PlayerHandResponse,
     SetupPlayerRequest,
     StartingUnit,
     StateEnvelope,
@@ -88,6 +89,35 @@ def get_web_data(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get("/api/game/{game_id}/hand", response_model=PlayerHandResponse)
+def get_player_hand(
+    game_id: str,
+    player: str | None = None,
+    ctx: AppContext = Depends(get_ctx),
+) -> PlayerHandResponse:
+    """Prywatna ręka gracza (karty akcji / tajne cele / promissory notes) z ID.
+
+    Tryb solo/lokalny: operator widzi wszystko (God-Mode), więc endpoint zwraca
+    JAWNIE identyfikatory kart — w odróżnieniu od web-data, które cudze ręce
+    redaguje do samych liczników (R6.1). Query param ``player`` wskazuje gracza
+    (``player_id``); brak → AKTYWNY gracz. To zasila „pasek ręki" na mapie
+    (styl stołu) oraz zakładkę gracza.
+
+    Zwraca puste listy, gdy nie da się ustalić gracza (np. przed startem gry) —
+    panel ręki pokazuje wtedy po prostu pustą rękę zamiast błędu.
+    """
+    state = ctx.service.current_state()
+    player_id = player or state.active_player_id
+    target = state.players.get(player_id) if player_id else None
+    if target is None:
+        return PlayerHandResponse()
+    return PlayerHandResponse(
+        actionCards=list(target.private.action_cards),
+        secretObjectives=list(target.private.secret_objectives),
+        promissoryNotes=list(target.private.promissory_notes),
+    )
 
 
 def _faction_starting_units(faction: FactionDef) -> list[StartingUnit]:

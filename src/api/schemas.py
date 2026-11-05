@@ -138,6 +138,22 @@ class StateEnvelope(BaseModel):
     history: HistoryInfo
 
 
+class PlayerHandResponse(BaseModel):
+    """Prywatna ręka gracza (ID kart) dla „paska ręki" na mapie i zakładki gracza.
+
+    Klucze w camelCase, by wprost pasowały do typu ``PlayerHandData`` na froncie
+    (``actionCards``/``secretObjectives``/``promissoryNotes``). W trybie lokalnym
+    operator widzi wszystko, więc endpoint zwraca jawne identyfikatory — inaczej
+    niż web-data, które cudze ręce redaguje do liczników (R6.1).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    actionCards: list[str] = Field(default_factory=list)  # noqa: N815
+    secretObjectives: list[str] = Field(default_factory=list)  # noqa: N815
+    promissoryNotes: list[str] = Field(default_factory=list)  # noqa: N815
+
+
 class StartingUnit(BaseModel):
     """Jeden wpis floty startowej frakcji — liczba + typ jednostki (pełna nazwa z danych).
 

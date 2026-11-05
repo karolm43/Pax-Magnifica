@@ -29,6 +29,7 @@ import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
 import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
 import { PhaseTransitionBanner } from "@/domains/game-shell/components/PhaseTransitionBanner/PhaseTransitionBanner";
 import { MapPlayerPanelsOverlay } from "@/domains/game-shell/components/mapPlayerPanels/MapPlayerPanels";
+import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 
 type Props = {
   gameId: string;
@@ -219,6 +220,11 @@ export function MapView({
           <StrategyCardTable />
         </Box>
       )}
+
+      {/* Pasek ręki aktywnego gracza u dołu mapy (styl stołu): karty akcji /
+          sekrety / weksle jako wachlarz kart z podglądem. Sam zwraca null, gdy
+          brak aktywnego gracza. */}
+      {!embedded && <BottomHandDock />}
 
       {/* Map_View — powiększony panel aktywnego gracza + pionowy stos
           nieaktywnych z collapse/expand (R13). Pływa przy prawej krawędzi
