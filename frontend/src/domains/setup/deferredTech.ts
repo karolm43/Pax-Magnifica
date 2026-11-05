@@ -40,8 +40,7 @@ export function deferredStartingTechNotice(factionId: string): string | null {
     case "deepwrought":
       return (
         "During setup, the Scholarate researches two technologies of its choosing. " +
-        "This is resolved in play — before the first strategy phase, once every other " +
-        "empire has claimed its starting technology."
+        "This is resolved in play — before the first strategy phase."
       );
     case "keleresm":
     case "keleresx":
