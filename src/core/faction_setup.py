@@ -217,7 +217,11 @@ def apply_setup_to_state(
         faction=faction.id,
         color=color,
         home_position=home_position,
-        commodities=plan.commodities,
+        # Start gry = ZERO commodities (tirules R_commodities: „A player starts the
+        # game with zero commodities"). ``plan.commodities`` to commodity VALUE z karty
+        # frakcji = MAKSIMUM, nie ilość startowa — zapisujemy je jako ``commodity_value``.
+        commodities=0,
+        commodity_value=plan.commodities,
         technologies=list(starting_tech),
         controlled_planets=list(plan.home_planets),
     )

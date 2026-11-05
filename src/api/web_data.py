@@ -1003,8 +1003,12 @@ def _build_player_data(
                 "active": active_id == player_id,
                 # Zasoby / liczniki (viewer czyta je w panelach gracza).
                 "tg": player.trade_goods,
+                # ``commodities`` = bieżące; ``commoditiesTotal`` = MAKSIMUM (commodity
+                # value z karty frakcji). Wcześniej total = bieżące, więc panel zawsze
+                # pokazywał „pełne" (np. 3/3) niezależnie od stanu — błąd. Teraz
+                # pokazuje realne „bieżące / maks" (start: 0 / commodity_value).
                 "commodities": player.commodities,
-                "commoditiesTotal": player.commodities,
+                "commoditiesTotal": player.commodity_value,
                 # Żetony dowodzenia (CC) — panele gracza + heks stat-area.
                 "tacticalCC": player.tactical_cc,
                 "fleetCC": player.fleet_cc,

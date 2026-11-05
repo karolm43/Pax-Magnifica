@@ -278,7 +278,12 @@ base+pok (2026-10). Format sparafrazowany; wzorzec potwierdzony empirycznie.
 2. `startingFleet` rozkładany: statki → `space_units`; naziemne/struktury → `planet_units`
    na planecie wskazanej sufiksem.
 3. Gracz kontroluje planety domowe (`homePlanets` → `planet_owners`).
-4. `startingTech`, `commodities` ustawiane na stanie gracza.
+4. `startingTech` ustawiane na stanie gracza. **`commodities` NIE są ilością startową:**
+   pole frakcji `commodities` to **commodity value = MAKSIMUM** (limit, do którego
+   gracz „replenishuje"). Zapisujemy je jako `commodity_value`, a **bieżące
+   `commodities` startują z 0** — 📎 tirules [Commodities](rules_tirules/R_commodities.md):
+   „A player starts the game with zero commodities". Viewer pokazuje
+   `commodities / commoditiesTotal` = bieżące / `commodity_value`.
 
 **Grafiki jednostek:** `assets/units/<kolor>_<asyncId>.png`. UWAGA: `asyncId` ≠ kod
 `startingFleet` (np. cruiser: `asyncId=ca`, kod fleet=`cr`). Mapowanie przez `baseType`.

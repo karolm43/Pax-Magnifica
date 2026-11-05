@@ -160,7 +160,15 @@ class PlayerState(BaseModel):
 
     victory_points: int = 0
     trade_goods: int = 0
+    # Commodities AKTUALNIE posiadane. Gracz ZACZYNA GRĘ Z ZEREM
+    # (tirules R_commodities: „A player starts the game with zero commodities").
+    # Uzupełniane dopiero przez efekty (np. Trade) do ``commodity_value``.
     commodities: int = 0
+    # Commodity value = MAKSIMUM commodities gracza (z karty frakcji). To NIE jest
+    # ilość startowa — to górny limit, do którego gracz „replenishuje" (R_commodities).
+    # Ustawiane przy setupie z ``faction.commodities``. Viewer pokazuje
+    # ``commodities / commodity_value`` (bieżące / maks).
+    commodity_value: int = 0
 
     # Żetony dowodzenia (command counters). Start TI4: 3 taktyczne, 3 floty,
     # 2 strategiczne (reguła spisana w docs/RULES.md 5). Rezerwa = ccReinf.

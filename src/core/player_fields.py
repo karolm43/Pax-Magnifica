@@ -35,6 +35,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "victory_points",
         "trade_goods",
         "commodities",
+        "commodity_value",
         "tactical_cc",
         "fleet_cc",
         "strategic_cc",
