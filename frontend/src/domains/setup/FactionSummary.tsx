@@ -28,6 +28,7 @@ import { LeaderChip } from "@/domains/player/components/Leader/LeaderChip";
 import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
 import { Breakthrough } from "@/domains/player/components/Breakthrough/Breakthrough";
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard/UnitDetailsCard";
+import { PlanetDetailsCard } from "@/domains/cards/components/PlanetDetailsCard";
 import { Unit } from "@/shared/ui/Unit";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { getUnitData } from "@/entities/lookup/units";
@@ -166,15 +167,25 @@ function StartingTechChoice({
   );
 }
 
-/** Lista planet startowych z ich wartościami resource / influence. */
-function PlanetList({ planetIds }: { planetIds: string[] }) {
+/**
+ * Jedna planeta startowa — klikalny wiersz, który w popoverze pokazuje pełną kartę
+ * planety (`PlanetDetailsCard`: nazwa, typ/„Faction homeworld", resources/influence,
+ * tech-skip, opis). Ta sama karta co w grze (po kliknięciu w planetę na mapie).
+ */
+function PlanetItem({ planetId }: { planetId: string }) {
+  const { opened, setOpened, toggle } = useDisclosure(false);
+  const data = getPlanetData(planetId);
+  const name = data?.name ?? planetId;
   return (
-    <ul className={styles.planetList}>
-      {planetIds.map((id) => {
-        const data = getPlanetData(id);
-        const name = data?.name ?? id;
-        return (
-          <li key={id} className={styles.planetItem}>
+    <li className={styles.planetItem}>
+      <SmoothPopover opened={opened} onChange={setOpened}>
+        <SmoothPopover.Target>
+          <button
+            type="button"
+            className={styles.planetRow}
+            onClick={toggle}
+            title={`Show details for ${name}`}
+          >
             <span className={styles.planetName}>{name}</span>
             <span className={styles.planetValues}>
               <span className={`${styles.pval} ${styles.pvalRes}`}>
@@ -184,9 +195,23 @@ function PlanetList({ planetIds }: { planetIds: string[] }) {
                 {data?.influence ?? "?"}
               </span>
             </span>
-          </li>
-        );
-      })}
+          </button>
+        </SmoothPopover.Target>
+        <SmoothPopover.Dropdown p={0}>
+          <PlanetDetailsCard planetId={planetId} />
+        </SmoothPopover.Dropdown>
+      </SmoothPopover>
+    </li>
+  );
+}
+
+/** Lista planet startowych — każda klikalna, z kartą szczegółów w popoverze. */
+function PlanetList({ planetIds }: { planetIds: string[] }) {
+  return (
+    <ul className={styles.planetList}>
+      {planetIds.map((id) => (
+        <PlanetItem key={id} planetId={id} />
+      ))}
     </ul>
   );
 }
@@ -540,7 +565,7 @@ function SummaryBody({
             <div className={styles.startRow}>
               <dt>Commodities</dt>
               <dd>
-                <span className={styles.commodityValue}>
+                <span className={styles.commodityChip}>
                   <img
                     src="/comms.png"
                     alt=""

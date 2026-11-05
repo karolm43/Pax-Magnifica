@@ -289,19 +289,23 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 40px;
+  height: 44px;
+  line-height: 0;
 }
 
 /*
  * Sprite jednostki (`.unit-sprite` — div ze skalowanym tłem przez `scaleSprite`):
  * ograniczamy WYSOKOŚĆ do pola, a szerokość wyliczamy z jego naturalnego aspect ratio
- * (zmienna `--unit-sprite-aspect`). Dzięki temu procentowe `background-size/position`
- * pozostają spójne i sprite jest cały, wyśrodkowany, niezależnie od proporcji jednostki.
+ * (zmienna `--unit-sprite-aspect`). `display: block` + auto-margines dają pewne pionowe
+ * wyśrodkowanie (sam flex czasem zostawiał sprite „za wysoko"). Tło (liczone w % boxa)
+ * pozostaje spójne, więc sprite jest cały i nieprzesunięty niezależnie od proporcji.
  */
 .unitSprite :global(.unit-sprite) {
+  display: block;
   height: 40px !important;
   width: auto !important;
   max-width: 100%;
+  margin: auto;
   aspect-ratio: var(--unit-sprite-aspect) !important;
 }
 
@@ -415,18 +419,21 @@
   color: var(--ds-ink);
 }
 
-/* Mała ikonka jednostki w chipie floty — stała wysokość, aspekt zachowany. */
+/* Mała ikonka jednostki w chipie floty — stała wysokość, aspekt zachowany, wyśrodkowana. */
 .fleetSprite {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 22px;
+  height: 24px;
+  line-height: 0;
 }
 
 .fleetSprite :global(.unit-sprite) {
-  height: 22px !important;
+  display: block;
+  height: 24px !important;
   width: auto !important;
-  max-width: 40px;
+  max-width: 44px;
+  margin: auto;
   aspect-ratio: var(--unit-sprite-aspect) !important;
 }
 
@@ -436,36 +443,33 @@
   object-fit: contain;
 }
 
-/* Commodities — grafika commodities (/comms.png) z liczbą nałożoną na środku. */
-.commodityValue {
+/*
+ * Commodities — chip „ikona + liczba", spójny z chipami floty startowej. Liczba OBOK
+ * ikony (nie nałożona), więc jest czytelna niezależnie od grafiki /comms.png.
+ */
+.commodityChip {
   display: inline-flex;
-  position: relative;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
+  gap: 6px;
+  padding: 3px 12px 3px 4px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 999px;
+  background: var(--ds-socket);
 }
 
 .commodityIcon {
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 .commodityCount {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1a1206;
+  color: var(--ds-ink-hi);
   font-size: var(--ds-fz-sm);
-  font-weight: 800;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
-  /* Lekki obrys, by liczba była czytelna na dowolnym tle ikony. */
-  text-shadow:
-    0 1px 1px rgb(255 255 255 / 0.6),
-    0 -1px 1px rgb(255 255 255 / 0.6);
 }
 
 /* ── Planety z wartościami resource / influence ───────────────────────── */
@@ -481,13 +485,35 @@
 
 .planetItem {
   display: flex;
+}
+
+/* Klikalny wiersz planety — otwiera kartę szczegółów w popoverze. */
+.planetRow {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--ds-space-sm);
+  width: 100%;
   padding: 4px 8px;
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-sm);
   background: var(--ds-socket);
+  color: var(--ds-ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.planetRow:hover {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+}
+
+.planetRow:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
 }
 
 .planetName {
