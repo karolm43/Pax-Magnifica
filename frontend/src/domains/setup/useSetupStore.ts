@@ -12,6 +12,7 @@
 
 import { create } from "zustand";
 import { SETUP_STEPS, type SetupStepDef, type SlotConfig } from "./setupSteps";
+import { hasDeferredStartingTech } from "./deferredTech";
 import type { FactionInfo, NewGamePlayer } from "@/api/useNewGame";
 
 /** Typ sterowania graczem — odwzorowuje `ControlType` z backendu (R10.1). */
@@ -268,6 +269,9 @@ function validateStartingTech(
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot.factionId === RANDOM_FACTION) continue;
+    // Frakcje z ODROCZONYM wyborem (Keleres, Deepwrought) wybierają technologie w grze,
+    // nie w setupie — nie wymagamy od nich zaznaczenia (i tak nie mają panelu wyboru).
+    if (hasDeferredStartingTech(slot.factionId)) continue;
     const faction = factionById.get(slot.factionId);
     const amount = faction?.starting_tech_amount ?? 0;
     if (amount > 0 && slot.startingTech.length !== amount) {
@@ -348,7 +352,10 @@ export function toNewGameRequest(
     const name = slot.name.trim();
     const isRandom = slot.factionId === RANDOM_FACTION;
     const faction = isRandom ? undefined : factionById.get(slot.factionId);
-    const needsTechChoice = (faction?.starting_tech_amount ?? 0) > 0;
+    // Frakcje z odroczonym wyborem (Keleres, Deepwrought) NIE wysyłają technologii —
+    // backend startuje je bez technologii, a wybór następuje w grze.
+    const deferred = !isRandom && hasDeferredStartingTech(slot.factionId);
+    const needsTechChoice = !deferred && (faction?.starting_tech_amount ?? 0) > 0;
 
     const player: NewGamePlayer = {
       faction_id: isRandom ? undefined : slot.factionId,

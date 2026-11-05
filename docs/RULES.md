@@ -775,10 +775,35 @@ gracz WYBIERA ``startingTechAmount`` technologii spośród ``startingTechOptions
 | The Crimson Rebellion (TE) | 1 | det, amd, ps, aida |
 | The Ral Nel Consortium (TE) | 1 | nm, pa, ps, aida |
 
-Keleres (3 warianty) ma `startingTech=[]` i brak opcji — startuje bez technologii (celowo).
 Implementacja: `faction_setup.resolve_starting_tech` (walidacja liczności i dozwolonych
 opcji) + wybór przekazywany przez `starting_tech` w żądaniu setupu/nowej gry; UI pokazuje
 menu wyboru N z listy, gdy `startingTechAmount > 0`.
+
+### 16a. Odroczony wybór technologii: Keleres i Deepwrought — ✅ ZWERYFIKOWANE (tirules)
+
+📎 tirules: [Council Keleres](rules_tirules/F_keleres.md) (The Tribunii) ·
+[The Deepwrought Scholarate](rules_tirules/F_deepwrought.md) (Research Team)
+
+Dwie frakcje wybierają technologie startowe NIE w setupie, tylko PÓŹNIEJ — w grze, po tym
+jak WSZYSCY pozostali gracze otrzymają swoje technologie startowe:
+
+- **The Council Keleres** (`keleresm`/`keleresx`/`keleresa`) — reguła „The Tribunii": wybiera
+  DO 2 nie-frakcyjnych technologii POSIADANYCH przez innych graczy (jeśli nie ma 2 unikalnych,
+  startuje z mniejszą liczbą). W danych: `startingTech=[]`, brak opcji → `startingTechAmount=0`.
+- **The Deepwrought Scholarate** (`deepwrought`) — zdolność „Research Team": „research
+  technology twice" (2 dowolne technologie z początku drzewka, zgodnie z prerekwizytami).
+  W danych: `startingTechAmount=2`, ale `startingTechOptions=[]` (PUSTE).
+
+Stan implementacji:
+- `resolve_starting_tech` traktuje „amount > 0 przy pustej liście opcji" jako frakcję
+  z odroczonym wyborem → zwraca `[]` (start bez technologii), zamiast błędu/fallbacku.
+- UI setupu (`frontend/.../setup/deferredTech.ts`) klasyfikuje te 4 id jako „deferred":
+  nie pokazuje panelu wyboru, tylko komunikat (po angielsku), że wybór nastąpi w grze
+  przed 1. fazą agendy; walidacja ich nie wymaga i `starting_tech` nie jest wysyłane.
+- ⚠️ ZAŁOŽENIE / TODO: faktyczny ODROCZONY wybór w grze (okno czasowe po rozstawieniu
+  wszystkich graczy; dla Keleresa odczyt technologii innych graczy + prereqs dla
+  Deepwrought) NIE jest jeszcze zakodowany — na razie operator nadaje te technologie
+  ręcznie (God-Mode). Do dokodowania przy odpowiednim etapie silnika (okna czasowe).
 
 ## 17. Systemy domowe poza planszą: Ghost of Creuss, Crimson Rebellion — ✅ ZWERYFIKOWANE (bot)
 

@@ -144,6 +144,14 @@ def resolve_starting_tech(
     """
     if faction.starting_tech_amount <= 0:
         return list(faction.starting_tech)
+    # Frakcja z ODROCZONYM wyborem technologii: ``starting_tech_amount > 0``, ale PUSTA
+    # lista opcji (np. The Deepwrought Scholarate — „research technology twice"; podobnie
+    # Keleres zależny od technologii innych graczy). Taka frakcja wybiera technologie
+    # dopiero w grze, po pozostałych graczach (docs/rules_tirules/F_deepwrought.md,
+    # F_keleres.md; docs/RULES.md 16), więc przy setupie startuje BEZ technologii.
+    # UI nie pokazuje jej panelu wyboru — zwracamy pustą listę zamiast błędu/fallbacku.
+    if not faction.starting_tech_options:
+        return []
     # Brak wyboru od gracza → domyślnie pierwsze N opcji (żeby szybka gra nie padła).
     # UI pokazuje menu wyboru; to tylko bezpieczny fallback dla quick-startu.
     if chosen_tech is None:

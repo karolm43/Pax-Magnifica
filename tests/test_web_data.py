@@ -751,6 +751,15 @@ def test_starting_tech_default_when_omitted(client: TestClient) -> None:
     assert len(p["techs"]) == 1  # Winnu: 1 technologia
 
 
+def test_deepwrought_starts_without_tech(client: TestClient) -> None:
+    # Deepwrought ma startingTechAmount=2, ale PUSTE opcje — wybór odroczony do gry
+    # (RULES.md 16a). Setup nie może paść i startuje go BEZ technologii startowych.
+    resp = client.post("/game/new", json={"players": [{"faction_id": "deepwrought"}]})
+    assert resp.status_code == 200
+    p = _web_data(client)["playerData"][0]
+    assert p["techs"] == []
+
+
 def test_ghost_home_system_off_board(client: TestClient) -> None:
     # Ghost: brama (sys 17) na slocie 301, prawdziwy dom (sys 51, planeta creuss) off-board.
     client.post("/game/new", json={"players": [{"faction_id": "ghost"}]})

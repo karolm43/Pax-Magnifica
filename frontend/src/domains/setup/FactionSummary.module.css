@@ -382,6 +382,24 @@
   gap: 6px;
 }
 
+/*
+ * Komunikat o ODROCZONYM wyborze technologii (Keleres / Deepwrought): wybór następuje
+ * w grze, nie w setupie. Delikatna „karta na szkle" z ciepłym akcentem TI4, żeby
+ * czytało się jak nota w podręczniku, a nie jak błąd.
+ */
+.deferredNotice {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(252 162 43 / 0.35);
+  border-left: 3px solid rgb(252 162 43 / 0.8);
+  border-radius: var(--ds-radius-sm);
+  background: rgb(252 162 43 / 0.08);
+  color: var(--ds-ink-hi);
+  font-size: var(--ds-fz-sm);
+  font-style: italic;
+  line-height: 1.5;
+}
+
 /* Flota startowa jako chipy „liczba × nazwa" — spójne z resztą paneli. */
 .fleetChips {
   display: flex;

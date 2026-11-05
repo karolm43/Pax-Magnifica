@@ -36,6 +36,7 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import { getTechData } from "@/entities/lookup/tech";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { useDisclosure } from "@/hooks/useDisclosure";
+import { deferredStartingTechNotice, hasDeferredStartingTech } from "./deferredTech";
 import styles from "./FactionSummary.module.css";
 
 /** Kolejność slotów liderów — jak w panelu gracza (agent → commander → hero). */
@@ -371,7 +372,13 @@ function SummaryBody({
     name: unitTypeName(baseType),
   }));
 
-  const requiresTechChoice = faction.starting_tech_amount > 0;
+  // Frakcje z ODROCZONYM wyborem technologii (Keleres, Deepwrought) wybierają w grze,
+  // nie w setupie — zamiast panelu wyboru pokazujemy komunikat. Ma pierwszeństwo przed
+  // „requiresTechChoice", bo Deepwrought ma amount>0, ale i tak wybiera później.
+  const deferredNotice = hasDeferredStartingTech(faction.id)
+    ? deferredStartingTechNotice(faction.id)
+    : null;
+  const requiresTechChoice = !deferredNotice && faction.starting_tech_amount > 0;
 
   return (
     <>
@@ -513,7 +520,14 @@ function SummaryBody({
 
         <Section title="Game start">
           <dl className={styles.startList}>
-            {requiresTechChoice ? (
+            {deferredNotice ? (
+              <div className={styles.startRowFull}>
+                <dt>Starting technologies</dt>
+                <dd>
+                  <p className={styles.deferredNotice}>{deferredNotice}</p>
+                </dd>
+              </div>
+            ) : requiresTechChoice ? (
               <div className={styles.startRowFull}>
                 <dt>Starting technologies</dt>
                 <dd>

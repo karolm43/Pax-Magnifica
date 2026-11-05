@@ -19,7 +19,7 @@
 // stan lokalny kroku — nie wpływa na model.
 
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Button, TextInput } from "@/ds";
+import { TextInput } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import type { SetupStepProps } from "../SetupWizard";
 import { RANDOM_FACTION, useSetupStore } from "../useSetupStore";
@@ -39,6 +39,7 @@ import {
   VARIANT_FAMILIES,
   VARIANT_LABEL,
 } from "../factionVariants";
+import { hasDeferredStartingTech } from "../deferredTech";
 import styles from "./Step_Faction.module.css";
 
 /** Etykieta frakcji slotu w pasku graczy („Losowa" / nazwa / „—"). */
@@ -145,6 +146,13 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
   const assign = (factionId: string) => {
     setFaction(activeSlot, factionId);
   };
+
+  // Gotowość: ilu graczy ma już wybraną frakcję (jawną albo losową). Służy do
+  // czytelnego podpisu przy przycisku startu („wszyscy gotowi" vs „N z M"). To tylko
+  // sygnał wizualny — autorytatywną blokadę startu daje `stage.canSubmit` (walidacja).
+  const chosenCount = slots.filter((s) => s.factionId.length > 0).length;
+  const allChosen = chosenCount === slots.length;
+  const ready = (stage?.canSubmit ?? false) && allChosen;
 
   // Oglądana frakcja jest już wzięta przez INNEGO gracza — pokazujemy ostrzeżenie.
   const previewTakenByOther =
@@ -280,19 +288,37 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
         </div>
 
         {stage?.message && (
-          <span className={styles.topMessage} style={{ color: "var(--ds-ink-lo)" }}>
-            {stage.message}
-          </span>
+          <span className={styles.topMessage}>{stage.message}</span>
         )}
 
-        <Button
-          className={styles.submitButton}
-          loading={stage?.submitting}
-          disabled={!stage?.canSubmit}
-          onClick={stage?.onSubmit}
-        >
-          Start game →
-        </Button>
+        {/*
+         * Strefa startu: czytelny podpis gotowości + duży, „świecący" przycisk startu.
+         * Przycisk jest głównym wezwaniem do akcji sceny — wyróżniony kolorem akcentu,
+         * większy od reszty paska i pulsujący, gdy wszyscy gracze są gotowi, żeby nie
+         * ginął w prawym górnym rogu.
+         */}
+        <div className={styles.startZone}>
+          <span className={styles.readyLabel}>
+            {allChosen ? (
+              <span className={styles.readyAll}>✦ All empires ready</span>
+            ) : (
+              <span className={styles.readyPartial}>
+                {chosenCount} of {slots.length} empires chosen
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            className={`${styles.startButton} ${ready ? styles.startButtonReady : ""}`}
+            disabled={!stage?.canSubmit || stage?.submitting}
+            onClick={stage?.onSubmit}
+          >
+            {stage?.submitting ? "Starting…" : "Start game"}
+            <span className={styles.startArrow} aria-hidden>
+              →
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Zawartość: portret+lore (tło pełnoekranowe) | detail (szkło) | lista (prawo). */}
@@ -334,9 +360,13 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
             variantSwitch={variantSwitch}
             // Wybór technologii startowych pokazujemy TYLKO, gdy oglądana frakcja jest
             // przypisana aktywnemu graczowi (wtedy zapis idzie do jego slotu). Scala to
-            // dawny osobny krok „Technologie startowe" w ten panel.
+            // dawny osobny krok „Technologie startowe" w ten panel. Frakcje z ODROCZONYM
+            // wyborem (Keleres, Deepwrought) wybierają w grze — nie dostają panelu wyboru,
+            // tylko komunikat w summary, więc nie przekazujemy im propsów wyboru.
             startingTech={
-              previewFaction && selectedForActive === previewFaction.id
+              previewFaction &&
+              selectedForActive === previewFaction.id &&
+              !hasDeferredStartingTech(previewFaction.id)
                 ? {
                     value: slots[activeSlot]?.startingTech ?? [],
                     onChange: (techs) =>
