@@ -253,9 +253,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  width: 76px;
-  padding: 8px 4px 6px;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 84px;
+  padding: 10px 6px 8px;
   border: 1px solid var(--ds-h10);
   border-radius: var(--ds-radius-md);
   background: var(--ds-socket);
@@ -278,33 +279,36 @@
 }
 
 /*
- * Pole sprite'a — STAŁY box 34×34; sprite skalowany, by w nim zmieścić (object-fit).
- * To naprawia „ikony jednostek za duże, nie pasują do boxów".
+ * Pole sprite'a — stała WYSOKOŚĆ 40px, szerokość na całą kartę; sprite centrowany.
+ * Bez przycinania (`overflow: visible`) i bez wymuszania kwadratu — sprite zachowuje
+ * własny aspect ratio, więc tło (liczone w procentach jego boxa) nie jest przesuwane
+ * ani ucinane. To naprawia „ikony nie na środku i ucinane".
  */
 .unitSprite {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  overflow: hidden;
+  width: 100%;
+  height: 40px;
 }
 
 /*
- * Sprite jednostki (`.unit-sprite` — div ze skalowanym tłem przez `scaleSprite`)
- * wymuszamy do rozmiaru pola 34×34, inaczej przyjmuje natywny rozmiar arkusza
- * (~60px) i „wylewa się" z boxa. To naprawia „ikony jednostek za duże".
+ * Sprite jednostki (`.unit-sprite` — div ze skalowanym tłem przez `scaleSprite`):
+ * ograniczamy WYSOKOŚĆ do pola, a szerokość wyliczamy z jego naturalnego aspect ratio
+ * (zmienna `--unit-sprite-aspect`). Dzięki temu procentowe `background-size/position`
+ * pozostają spójne i sprite jest cały, wyśrodkowany, niezależnie od proporcji jednostki.
  */
 .unitSprite :global(.unit-sprite) {
-  width: 34px !important;
-  height: 34px !important;
-  aspect-ratio: auto !important;
+  height: 40px !important;
+  width: auto !important;
+  max-width: 100%;
+  aspect-ratio: var(--unit-sprite-aspect) !important;
 }
 
 /* Fallback dla jednostek renderowanych jako <img> (BaseUnitImage). */
 .unitSprite :global(img) {
   max-width: 100%;
-  max-height: 100%;
+  max-height: 40px;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -372,6 +376,60 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Flota startowa jako chipy „liczba × nazwa" — spójne z resztą paneli. */
+.fleetChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fleetChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 3px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 999px;
+  background: var(--ds-socket);
+}
+
+.fleetCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ds-h22);
+  color: var(--ds-ink-hi);
+  font-size: var(--ds-fz-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fleetName {
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink);
+}
+
+/* Commodities — wyróżniona „pigułka" z wartością (zamiast gołej liczby). */
+.commodityValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-socket);
+  color: var(--ds-ink-hi);
+  font-size: var(--ds-fz-sm);
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* ── Planety z wartościami resource / influence ───────────────────────── */

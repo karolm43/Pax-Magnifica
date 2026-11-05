@@ -313,14 +313,17 @@ function SummaryBody({
     (id) => getUnitData(id)?.faction !== undefined,
   );
 
-  // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu.
+  // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu. Trzymamy jako
+  // listę pozycji (liczba + nazwa) — renderowana jako „chipy", nie goły tekst.
   const fleetByType = new Map<string, number>();
   for (const u of faction.starting_units) {
     fleetByType.set(u.base_type, (fleetByType.get(u.base_type) ?? 0) + u.count);
   }
-  const fleetSummary = [...fleetByType.entries()]
-    .map(([baseType, count]) => `${count}× ${unitTypeName(baseType)}`)
-    .join(", ");
+  const fleetItems = [...fleetByType.entries()].map(([baseType, count]) => ({
+    baseType,
+    count,
+    name: unitTypeName(baseType),
+  }));
 
   const requiresTechChoice = faction.starting_tech_amount > 0;
 
@@ -499,15 +502,24 @@ function SummaryBody({
                 </dd>
               </div>
             )}
-            {fleetSummary && (
-              <div className={styles.startRow}>
+            {fleetItems.length > 0 && (
+              <div className={styles.startRowFull}>
                 <dt>Starting fleet</dt>
-                <dd>{fleetSummary}</dd>
+                <dd className={styles.fleetChips}>
+                  {fleetItems.map((item) => (
+                    <span key={item.baseType} className={styles.fleetChip}>
+                      <span className={styles.fleetCount}>{item.count}</span>
+                      <span className={styles.fleetName}>{item.name}</span>
+                    </span>
+                  ))}
+                </dd>
               </div>
             )}
             <div className={styles.startRow}>
               <dt>Commodities</dt>
-              <dd>{faction.commodities}</dd>
+              <dd>
+                <span className={styles.commodityValue}>{faction.commodities}</span>
+              </dd>
             </div>
           </dl>
         </Section>
