@@ -388,8 +388,8 @@
 .fleetChip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px 3px 3px;
+  gap: 5px;
+  padding: 3px 10px 3px 3px;
   border: 1px solid var(--ds-h10);
   border-radius: 999px;
   background: var(--ds-socket);
@@ -415,21 +415,57 @@
   color: var(--ds-ink);
 }
 
-/* Commodities — wyróżniona „pigułka" z wartością (zamiast gołej liczby). */
-.commodityValue {
+/* Mała ikonka jednostki w chipie floty — stała wysokość, aspekt zachowany. */
+.fleetSprite {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
   height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid var(--ds-h22);
-  background: var(--ds-socket);
-  color: var(--ds-ink-hi);
+}
+
+.fleetSprite :global(.unit-sprite) {
+  height: 22px !important;
+  width: auto !important;
+  max-width: 40px;
+  aspect-ratio: var(--unit-sprite-aspect) !important;
+}
+
+.fleetSprite :global(img) {
+  max-height: 22px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Commodities — grafika commodities (/comms.png) z liczbą nałożoną na środku. */
+.commodityValue {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.commodityIcon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.commodityCount {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1206;
   font-size: var(--ds-fz-sm);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
+  /* Lekki obrys, by liczba była czytelna na dowolnym tle ikony. */
+  text-shadow:
+    0 1px 1px rgb(255 255 255 / 0.6),
+    0 -1px 1px rgb(255 255 255 / 0.6);
 }
 
 /* ── Planety z wartościami resource / influence ───────────────────────── */

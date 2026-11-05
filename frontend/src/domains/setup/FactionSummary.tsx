@@ -112,6 +112,27 @@ function FactionUnit({ unitId }: { unitId: string }) {
   );
 }
 
+/**
+ * Mała ikonka jednostki floty startowej (generyczny typ, neutralny kolor). Renderuje
+ * ten sam sprite co lista jednostek frakcyjnych, ale w mniejszym, stałej wysokości boxie.
+ * Gdy typ nie ma danych sprite'a, nie rysuje nic (nie psuje chipa).
+ */
+function FleetUnitIcon({ baseType }: { baseType: string }) {
+  const unitData = getUnitData(baseType);
+  if (!unitData) return null;
+  return (
+    <span className={styles.fleetSprite} aria-hidden>
+      <Unit
+        unitType={unitData.asyncId}
+        colorAlias={getColorAlias(undefined)}
+        faction={unitData.faction}
+        scaleSprite
+        showFactionTokens={false}
+      />
+    </span>
+  );
+}
+
 /** Wbudowany wybór technologii startowych (zastępuje osobny krok kreatora). */
 function StartingTechChoice({
   faction,
@@ -509,6 +530,7 @@ function SummaryBody({
                   {fleetItems.map((item) => (
                     <span key={item.baseType} className={styles.fleetChip}>
                       <span className={styles.fleetCount}>{item.count}</span>
+                      <FleetUnitIcon baseType={item.baseType} />
                       <span className={styles.fleetName}>{item.name}</span>
                     </span>
                   ))}
@@ -518,7 +540,17 @@ function SummaryBody({
             <div className={styles.startRow}>
               <dt>Commodities</dt>
               <dd>
-                <span className={styles.commodityValue}>{faction.commodities}</span>
+                <span className={styles.commodityValue}>
+                  <img
+                    src="/comms.png"
+                    alt=""
+                    className={styles.commodityIcon}
+                    aria-hidden
+                  />
+                  <span className={styles.commodityCount}>
+                    {faction.commodities}
+                  </span>
+                </span>
               </dd>
             </div>
           </dl>

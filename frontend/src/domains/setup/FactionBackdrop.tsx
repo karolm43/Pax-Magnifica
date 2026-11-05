@@ -41,6 +41,13 @@ export function portraitCandidates(faction: FactionInfo): string[] {
 }
 
 /**
+ * Delikatne przesunięcie portretu w PRAWO (w % szerokości obrazka), nakładane na dosunięcie
+ * do lewej krawędzi z pomiaru alfy. Dodatni = w prawo. Mały margines, żeby sylwetka nie
+ * dotykała samej krawędzi ekranu.
+ */
+const PORTRAIT_NUDGE_X = 4;
+
+/**
  * Warstwa portretu: łańcuch źródeł LOKALNYCH (pierwsze istniejące):
  *   1. własny plik `/faction_portraits/<id>.{png,jpg,jpeg,webp}` (lub `lore.portrait`),
  *   2. portret BOHATERA frakcji `/leaders/<heroId>.webp`,
@@ -78,7 +85,12 @@ export function FactionPortraitLayer({
       onFigureCenter?.(null);
       return;
     }
-    const report = () => onFigureCenter((inset.width / 2) * img.offsetWidth);
+    // Środek sylwetki uwzględnia to samo przesunięcie w prawo co inline `transform`
+    // obrazka, żeby nagłówek nadal centrował się dokładnie nad postacią.
+    const report = () =>
+      onFigureCenter(
+        (inset.width / 2 + PORTRAIT_NUDGE_X / 100) * img.offsetWidth,
+      );
     report();
     const observer = new ResizeObserver(report);
     observer.observe(img);
@@ -90,29 +102,43 @@ export function FactionPortraitLayer({
 
   if (exhausted) return null;
   // Ostatni kandydat to ikona frakcji — pokazujemy ją jako symbol, nie jako postać.
+  const img = (
+    <img
+      ref={imgRef}
+      key={candidates[index]}
+      src={candidates[index]}
+      alt=""
+      className={isIconFallback ? styles.portraitIcon : styles.portrait}
+      style={
+        isIconFallback
+          ? undefined
+          : {
+              // Dosuwamy sylwetkę do lewej krawędzi (pomiar alfy), ale zostawiamy mały
+              // margines oddechu w prawo (PORTRAIT_NUDGE_X), żeby postać nie kleiła się
+              // do samej krawędzi ekranu.
+              transform: `translate(${-inset.left * 100 + PORTRAIT_NUDGE_X}%, ${
+                inset.bottom * 100
+              }%)`,
+            }
+      }
+      onLoad={(e) => {
+        if (!isIconFallback) {
+          const measured = measureAlphaInset(e.currentTarget);
+          if (measured) setInset(measured);
+        }
+      }}
+      onError={() => setIndex((i) => i + 1)}
+    />
+  );
   return (
     <div className={styles.portraitLayer} aria-hidden>
-      <img
-        ref={imgRef}
-        key={candidates[index]}
-        src={candidates[index]}
-        alt=""
-        className={isIconFallback ? styles.portraitIcon : styles.portrait}
-        style={
-          isIconFallback
-            ? undefined
-            : {
-                transform: `translate(${-inset.left * 100}%, ${inset.bottom * 100}%)`,
-              }
-        }
-        onLoad={(e) => {
-          if (!isIconFallback) {
-            const measured = measureAlphaInset(e.currentTarget);
-            if (measured) setInset(measured);
-          }
-        }}
-        onError={() => setIndex((i) => i + 1)}
-      />
+      {/*
+       * Delikatny „oddech" postaci jest na OSOBNEJ warstwie (`.portraitFloat`), a nie na
+       * samym <img>. Obrazek ma własny inline `transform` (dosuwa sylwetkę do krawędzi po
+       * pomiarze alfa) — animacja transformu na img NADPISYWAŁABY ten inline, przez co
+       * postać przeskakiwała po wjeździe. Wrapper składa oba ruchy bez kolizji.
+       */}
+      {isIconFallback ? img : <div className={styles.portraitFloat}>{img}</div>}
     </div>
   );
 }
