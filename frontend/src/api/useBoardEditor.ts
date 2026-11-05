@@ -329,6 +329,28 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // God-Mode: ustawia prywatną rękę gracza (karty akcji / sekrety / weksle).
+  // Głównie do testów „paska ręki" na mapie. Pominięte listy zostają bez zmian.
+  const setPlayerHand = useCallback(
+    async (
+      playerId: string,
+      hand: {
+        actionCards?: string[];
+        secretObjectives?: string[];
+        promissoryNotes?: string[];
+      },
+    ) => {
+      await post("/player/hand/set", {
+        player_id: playerId,
+        action_cards: hand.actionCards ?? null,
+        secret_objectives: hand.secretObjectives ?? null,
+        promissory_notes: hand.promissoryNotes ?? null,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // --- Okna czasowe (timing windows, E8-T2) ---
 
   const respondWindow = useCallback(
@@ -383,6 +405,7 @@ export function useBoardEditor() {
     togglePlanetExhaust,
     toggleTechExhaust,
     setLeaderState,
+    setPlayerHand,
     respondWindow,
     strategySecondary,
     closeWindow,

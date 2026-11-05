@@ -927,3 +927,49 @@ def test_player_hand_empty_when_no_player(client: TestClient) -> None:
         "secretObjectives": [],
         "promissoryNotes": [],
     }
+
+
+def test_set_player_hand_endpoint_populates_hand(client: TestClient) -> None:
+    # God-Mode: ustawienie ręki przez endpoint zasila /hand (pasek ręki na mapie).
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
+    )
+    resp = client.post(
+        "/player/hand/set",
+        json={
+            "player_id": "p1",
+            "action_cards": ["blitz", "bounty", "coup"],
+            "secret_objectives": ["btv", "ctr"],
+            "promissory_notes": ["ms", "convoys"],
+        },
+    )
+    assert resp.status_code == 200
+    hand = client.get("/api/game/g/hand", params={"player": "p1"}).json()
+    assert hand["actionCards"] == ["blitz", "bounty", "coup"]
+    assert hand["secretObjectives"] == ["btv", "ctr"]
+    assert hand["promissoryNotes"] == ["ms", "convoys"]
+    # Edycja jest w historii — Undo czyści wgraną rękę.
+    client.post("/undo")
+    hand_after = client.get("/api/game/g/hand", params={"player": "p1"}).json()
+    assert hand_after == {
+        "actionCards": [],
+        "secretObjectives": [],
+        "promissoryNotes": [],
+    }
+
+
+def test_set_player_hand_partial_keeps_other_lists(client: TestClient) -> None:
+    # Pominięta lista (None) zostaje bez zmian; podana — nadpisuje.
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    client.post(
+        "/player/hand/set",
+        json={"player_id": "p1", "action_cards": ["blitz"]},
+    )
+    client.post(
+        "/player/hand/set",
+        json={"player_id": "p1", "secret_objectives": ["btv"]},
+    )
+    hand = client.get("/api/game/g/hand", params={"player": "p1"}).json()
+    assert hand["actionCards"] == ["blitz"]  # nienaruszone przez drugą edycję
+    assert hand["secretObjectives"] == ["btv"]

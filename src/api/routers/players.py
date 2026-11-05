@@ -9,6 +9,7 @@ from src.api.schemas import (
     LeaderStateRequest,
     PlayerComponentToggleRequest,
     PlayerEditRequest,
+    SetPlayerHandRequest,
     StateEnvelope,
 )
 from src.core import board_edit
@@ -84,3 +85,22 @@ async def post_set_leader_state(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"leader:{request.leader_id}:{request.state}")
+
+
+@router.post("/player/hand/set", response_model=StateEnvelope)
+async def post_set_player_hand(
+    request: SetPlayerHandRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """God-Mode: ustawia prywatną rękę gracza (karty akcji / sekrety / weksle).
+
+    Podane listy nadpisują daną rękę, pominięte zostają bez zmian. Głównie do
+    testów „paska ręki" na mapie. Commit → historia (Undo cofa).
+    """
+    new_state = board_edit.set_player_hand(
+        ctx.service.current_state(),
+        request.player_id,
+        action_cards=request.action_cards,
+        secret_objectives=request.secret_objectives,
+        promissory_notes=request.promissory_notes,
+    )
+    return await _commit(ctx, new_state, f"hand:{request.player_id}")

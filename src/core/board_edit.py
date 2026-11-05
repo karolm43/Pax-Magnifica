@@ -420,6 +420,35 @@ def set_leader_state(
     return new_state
 
 
+def set_player_hand(
+    state: GameState,
+    player_id: str,
+    *,
+    action_cards: list[str] | None = None,
+    secret_objectives: list[str] | None = None,
+    promissory_notes: list[str] | None = None,
+) -> GameState:
+    """God-Mode: ustawia prywatną rękę gracza (karty akcji / sekrety / weksle).
+
+    Ręka (``PlayerState.private``) jest TAJNA i nie da się jej edytować przez
+    ``edit_player`` — to osobny kanał operatora, przydatny do testów UI „paska
+    ręki". Podane listy NADPISUJĄ odpowiednie ręce; pominięte (``None``) zostają
+    bez zmian. Zero walidacji istnienia kart (operator wie, co kładzie) — spójne z
+    resztą God-Mode. Zwraca NOWY ``GameState`` (clone), więc edycja jest w historii
+    (Undo cofa wgranie ręki).
+    """
+    new_state = state.clone()
+    player = new_state.players.get(player_id) or PlayerState(player_id=player_id)
+    if action_cards is not None:
+        player.private.action_cards = list(action_cards)
+    if secret_objectives is not None:
+        player.private.secret_objectives = list(secret_objectives)
+    if promissory_notes is not None:
+        player.private.promissory_notes = list(promissory_notes)
+    new_state.players[player_id] = player
+    return new_state
+
+
 def place_command_token(
     state: GameState,
     grid: HexGrid,

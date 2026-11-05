@@ -138,6 +138,21 @@ class StateEnvelope(BaseModel):
     history: HistoryInfo
 
 
+class SetPlayerHandRequest(BaseModel):
+    """God-Mode: ustawienie prywatnej ręki gracza (karty akcji / sekrety / weksle).
+
+    Każda lista opcjonalna — podana NADPISUJE daną rękę, pominięta zostaje bez
+    zmian. Służy głównie do testów „paska ręki" na mapie (operator widzi wszystko).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    action_cards: list[str] | None = None
+    secret_objectives: list[str] | None = None
+    promissory_notes: list[str] | None = None
+
+
 class PlayerHandResponse(BaseModel):
     """Prywatna ręka gracza (ID kart) dla „paska ręki" na mapie i zakładki gracza.
 
