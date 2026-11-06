@@ -32,8 +32,17 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
   Jawny wybór dwóch wariantów tej samej rodziny → `ValueError` (HTTP 422), obok
   istniejącej walidacji duplikatu `faction_id`.
 - **Reguła:** `RULES.md` 28.1 (źródło: struktura danych + `F_keleres.md`).
-- **Testy:** `tests/test_setup_factions.py` (losowanie bez dwóch Keleres, jawny Keleres
-  blokuje losowanie wariantu, dwa jawne warianty → błąd). QA zielone: pytest 507, ruff, mypy.
+- **Testy backendu:** `tests/test_setup_factions.py` (losowanie bez dwóch Keleres, jawny
+  Keleres blokuje losowanie wariantu, dwa jawne warianty → błąd). QA: pytest 507, ruff, mypy.
+- **Fix frontendu (ten sam problem w UI):** przy ręcznym wyborze gracze mogli klikać różne
+  warianty Keleres i zobaczyć błąd dopiero przy starcie (422). Teraz:
+  - `useSetupStore.ts` → `validateFactions` wykrywa duplikat RODZINY (`familyOfVariant`),
+    nie tylko identycznego `faction_id` — blokuje przycisk „Start game";
+  - `Step_Faction.tsx` → przycisk „Choose" jest ZABLOKOWANY („Already taken"), gdy inny
+    gracz ma już wariant tej rodziny; komunikat mówi o Council Keleres (jedna frakcja),
+    a nie o duplikacie id.
+  - Testy: `frontend/src/domains/setup/useSetupStore.test.ts`. QA frontu: type-check,
+    eslint (pliki zmienione), vitest 19, build — zielone.
 
 ---
 

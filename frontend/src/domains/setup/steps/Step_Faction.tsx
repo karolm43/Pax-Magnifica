@@ -147,6 +147,23 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
     setFaction(activeSlot, factionId);
   };
 
+  /**
+   * Slot INNEGO gracza, który zajmuje tę samą „rodzinę" co dane id frakcji, albo
+   * `undefined`. Dla wariantów (Keleres: keleresm/x/a) rodzina blokuje się jako całość —
+   * wzięcie jednego wariantu przez gracza B blokuje KAŻDY wariant dla gracza A (jedna
+   * frakcja, RULES.md 28.1). Dla zwykłych frakcji sprowadza się to do tego samego id.
+   */
+  const familyOwnerOther = (factionId: string): number | undefined => {
+    const family = familyOfVariant(factionId);
+    for (const [takenId, slotIndex] of takenBy) {
+      if (slotIndex === activeSlot) continue;
+      const sameFamily =
+        family !== null ? familyOfVariant(takenId) === family : takenId === factionId;
+      if (sameFamily) return slotIndex;
+    }
+    return undefined;
+  };
+
   // Gotowość: ilu graczy ma już wybraną frakcję (jawną albo losową). Służy do
   // czytelnego podpisu przy przycisku startu („wszyscy gotowi" vs „N z M"). To tylko
   // sygnał wizualny — autorytatywną blokadę startu daje `stage.canSubmit` (walidacja).
@@ -154,11 +171,11 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
   const allChosen = chosenCount === slots.length;
   const ready = (stage?.canSubmit ?? false) && allChosen;
 
-  // Oglądana frakcja jest już wzięta przez INNEGO gracza — pokazujemy ostrzeżenie.
-  const previewTakenByOther =
-    previewId !== null &&
-    takenBy.has(previewId) &&
-    takenBy.get(previewId) !== activeSlot;
+  // Oglądana frakcja (lub inny wariant jej rodziny) jest już wzięta przez INNEGO
+  // gracza — wybór jest zablokowany, bo dałby duplikat (dla Keleres: ta sama rodzina).
+  const previewOwnerOther =
+    previewId !== null ? familyOwnerOther(previewId) : undefined;
+  const previewTakenByOther = previewOwnerOther !== undefined;
 
   /** Renderuje jeden wiersz listy — zwykłą frakcję albo rodzinę wariantów (jeden wpis). */
   const renderEntry = (entry: FactionListEntry) => {
@@ -382,31 +399,40 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
          * szczegółów). Pokazywany dla oglądanej frakcji; po wyborze zmienia się w stan
          * „zatwierdzone". `key` odtwarza płynne pojawienie się przy zmianie frakcji.
          */}
-        {previewFaction && (
-          <div className={styles.pickBar} key={`pick-${previewFaction.id}`}>
-            {previewTakenByOther && (
-              <p className={styles.pickNote}>
-                This faction is already chosen by player{" "}
-                {(takenBy.get(previewFaction.id) ?? 0) + 1}. Choosing it will assign it to player{" "}
-                {activeSlot + 1} (a duplicate will block starting the game).
-              </p>
-            )}
-            <button
-              type="button"
-              className={`${styles.pickButton} ${
-                selectedForActive === previewFaction.id ? styles.pickButtonDone : ""
-              }`}
-              aria-disabled={selectedForActive === previewFaction.id}
-              onClick={() => {
-                if (selectedForActive !== previewFaction.id) assign(previewFaction.id);
-              }}
-            >
-              {selectedForActive === previewFaction.id
-                ? `✓ Chosen for player ${activeSlot + 1}`
-                : `Choose for player ${activeSlot + 1}`}
-            </button>
-          </div>
-        )}
+        {previewFaction &&
+          (() => {
+            const isDone = selectedForActive === previewFaction.id;
+            // Blokujemy wybór, gdy rodzina frakcji jest zajęta przez innego gracza —
+            // nie pozwalamy w ogóle przypisać duplikatu (zamiast ostrzegać po fakcie).
+            const blocked = previewTakenByOther && !isDone;
+            // Komunikat zależny od rodzaju kolizji: wariant (Keleres) vs zwykła frakcja.
+            const ownerLabel = `player ${(previewOwnerOther ?? 0) + 1}`;
+            const note = familyOfVariant(previewFaction.id)
+              ? `Council Keleres is already chosen by ${ownerLabel}. Only one Keleres variant is allowed per game.`
+              : `This faction is already chosen by ${ownerLabel}.`;
+            return (
+              <div className={styles.pickBar} key={`pick-${previewFaction.id}`}>
+                {blocked && <p className={styles.pickNote}>{note}</p>}
+                <button
+                  type="button"
+                  className={`${styles.pickButton} ${
+                    isDone ? styles.pickButtonDone : ""
+                  }`}
+                  aria-disabled={isDone || blocked}
+                  disabled={blocked}
+                  onClick={() => {
+                    if (!isDone && !blocked) assign(previewFaction.id);
+                  }}
+                >
+                  {isDone
+                    ? `✓ Chosen for player ${activeSlot + 1}`
+                    : blocked
+                      ? "Already taken"
+                      : `Choose for player ${activeSlot + 1}`}
+                </button>
+              </div>
+            );
+          })()}
 
         {/* Lista frakcji (prawo) — sam klik wybiera podgląd, bez hover-popoverów. */}
         <div className={styles.gallery}>

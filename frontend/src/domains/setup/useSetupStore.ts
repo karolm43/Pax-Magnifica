@@ -13,6 +13,7 @@
 import { create } from "zustand";
 import { SETUP_STEPS, type SetupStepDef, type SlotConfig } from "./setupSteps";
 import { hasDeferredStartingTech } from "./deferredTech";
+import { familyOfVariant } from "./factionVariants";
 import type { FactionInfo, NewGamePlayer } from "@/api/useNewGame";
 
 /** Typ sterowania graczem — odwzorowuje `ControlType` z backendu (R10.1). */
@@ -247,16 +248,28 @@ function validateColors(slots: SetupSlot[]): string | null {
   return null;
 }
 
-/** Frakcje: duplikaty jawnych wyborów — R8.8 (losowe pomijamy, dobiera backend). */
+/**
+ * Frakcje: bez duplikatów jawnych wyborów — R8.8 (losowe pomijamy, dobiera backend).
+ *
+ * Duplikat wykrywamy na dwóch poziomach, dokładnie jak backend
+ * (`setup_service._resolve_factions` → `faction_family`):
+ * 1. ten sam identyfikator frakcji (np. dwa razy `sol`);
+ * 2. dwa RÓŻNE warianty jednej rodziny (np. `keleresm` + `keleresx`) — Council Keleres
+ *    to jedna frakcja z trzema wariantami mentora, więc w grze może być tylko jeden
+ *    (RULES.md 28.1). Bez tego kroku UI puszczało dwa warianty aż do błędu 422 backendu.
+ *
+ * Klucz do porównań: `familyOfVariant(id)` dla wariantów, sam `id` dla reszty.
+ */
 function validateFactions(slots: SetupSlot[]): string | null {
-  const seenFactions = new Set<string>();
+  const seenKeys = new Set<string>();
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot.factionId === RANDOM_FACTION) continue;
-    if (seenFactions.has(slot.factionId)) {
+    const key = familyOfVariant(slot.factionId) ?? slot.factionId;
+    if (seenKeys.has(key)) {
       return `Player ${i + 1}: the faction is duplicated.`;
     }
-    seenFactions.add(slot.factionId);
+    seenKeys.add(key);
   }
   return null;
 }
