@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import {
   IconBolt,
@@ -12,6 +12,8 @@ import {
   IconUserStar,
   IconFlask,
   IconDiamond,
+  IconTarget,
+  IconCrosshair,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -38,6 +40,7 @@ import { DetailsCard, type DetailsCardColor } from "@/shared/ui/DetailsCard";
 import { Button, Group, Stack, Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
+import { useAppStore } from "@/state/appStore";
 import { useDeskPlayer } from "./useDeskPlayer";
 import styles from "./TurnControls.module.css";
 
@@ -107,8 +110,16 @@ export function TurnControls() {
     phaseStep,
     nextPhase,
     nextRound,
+    activateSystem,
   } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  // Tryb aktywacji systemu (akcja taktyczna) — współdzielony ze store. Klik przycisku
+  // włącza tryb „wskaż system", a klik w kafelek na mapie uruchamia aktywację (ten sam
+  // potok, który odbiera panel taktyczny). Blok A: wygodne wejście z prawego dolnego rogu.
+  const activateMode = useAppStore((s) => s.activateMode);
+  const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
+  const activateRequest = useAppStore((s) => s.activateRequest);
+  const clearActivateRequest = useAppStore((s) => s.clearActivateRequest);
   // Krok potwierdzenia pasa: pas jest „jak akcja" i NIE kończy tury — gracz łatwo
   // to przeoczy, więc najpierw pytamy „na pewno?", a po pasie wołamy o oddanie tury.
   const [confirmingPass, setConfirmingPass] = useState(false);
@@ -125,6 +136,26 @@ export function TurnControls() {
     ignoreAuthGate: true,
     player: active?.discordId ?? null,
   });
+
+  // Odbiór kliknięcia w kafelek w trybie aktywacji: gdy store zgłosi pozycję
+  // (``activateRequest``), aktywujemy ten system, czyścimy żądanie i wyłączamy tryb.
+  // Efekt żyje TU (TurnControls jest zamontowany przez całą fazę akcji), niezależnie
+  // od tego, którą zakładkę pokazuje GameStatePanel — dzięki temu przycisk „Activate
+  // system" z rogu działa zawsze (Blok A). Hook wołany ZAWSZE (przed early-return).
+  useEffect(() => {
+    if (!activateRequest) return;
+    const position = activateRequest;
+    clearActivateRequest();
+    if (activateMode) toggleActivateMode();
+    void activateSystem(position);
+  }, [
+    activateRequest,
+    activateMode,
+    activateSystem,
+    clearActivateRequest,
+    toggleActivateMode,
+  ]);
+
   if (!active) return null;
 
   const phase = gameState?.phase ?? "unknown";
@@ -184,6 +215,14 @@ export function TurnControls() {
   // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
   // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
   const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
+  // Akcja TAKTYCZNA (RULES.md 31.7 / R_tactical_action) — aktywacja systemu. Dostępna
+  // jak każda akcja tury: faza akcji, gracz jeszcze nie działał ani nie spasował, brak
+  // otwartego okna. Trwająca akcja (activeSystem != null) → zamiast przycisku pokazujemy
+  // wskaźnik „akcja w toku" (kroki są w panelu taktycznym). Blok A.
+  const activeSystem = gameState?.activeSystem ?? null;
+  const inTacticalAction = activeSystem != null;
+  const canActivate =
+    isAction && !tookAction && !hasPassed && !windowOpen && !inTacticalAction;
   // Wszystkie KOMPONENTY Z AKCJĄ („Action") dostępne aktywnemu graczowi: karty akcji
   // z ręki + zdolności frakcji + liderzy + techy + relikty, które posiada. Dane z
   // web-data (``playerData``) + ręki — zero hardkodowania (patrz componentActions.ts).
@@ -252,10 +291,47 @@ export function TurnControls() {
               możliwy dopiero po akcji lub pasie (RULES.md 31.7). */}
           {isAction && (
             <>
+              {/* Akcja TAKTYCZNA — aktywacja systemu (główna akcja fazy akcji). Gdy akcja
+                  już trwa, pokazujemy wskaźnik „w toku" (kroki w panelu taktycznym).
+                  Inaczej: toggle trybu „wskaż system" (klik w kafelek aktywuje). */}
+              {inTacticalAction ? (
+                <div
+                  className={styles.tacticalLive}
+                  title="Tactical action in progress — resolve the steps in the tactical panel"
+                >
+                  <IconCrosshair size={16} aria-hidden="true" />
+                  <span>Tactical action in progress</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.activate}
+                  style={{ "--d": "0ms" } as CSSProperties}
+                  data-on={activateMode || undefined}
+                  disabled={busy || !canActivate}
+                  onClick={() => toggleActivateMode()}
+                  title={
+                    windowOpen
+                      ? "Wait — every player must decide on the secondary first"
+                      : hasPassed
+                        ? "You already passed this action phase"
+                        : tookAction
+                          ? "You already acted this turn — End turn instead"
+                          : activateMode
+                            ? "Now click a system on the map to activate it"
+                            : "Activate a system (tactical action): click, then pick a system"
+                  }
+                >
+                  <IconTarget size={16} aria-hidden="true" />
+                  <span>
+                    {activateMode ? "Pick a system on the map…" : "Activate system"}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.pass}
-                style={{ "--d": "0ms" } as CSSProperties}
+                style={{ "--d": "60ms" } as CSSProperties}
                 disabled={busy || hasPassed || tookAction || !canPass}
                 onClick={() => setConfirmingPass(true)}
                 title={
@@ -277,7 +353,7 @@ export function TurnControls() {
               <button
                 type="button"
                 className={styles.component}
-                style={{ "--d": "60ms" } as CSSProperties}
+                style={{ "--d": "120ms" } as CSSProperties}
                 disabled={busy || !canComponentAction}
                 onClick={() => setComponentOpen(true)}
                 title={
@@ -296,7 +372,7 @@ export function TurnControls() {
               <button
                 type="button"
                 className={styles.endTurn}
-                style={{ "--d": "120ms" } as CSSProperties}
+                style={{ "--d": "180ms" } as CSSProperties}
                 data-nudge={nudgeEndTurn ? "true" : undefined}
                 disabled={busy || !canEndTurn}
                 onClick={() => run(() => endTurn())}
@@ -387,6 +463,13 @@ export function TurnControls() {
           )}
         </div>
 
+        {/* Tryb aktywacji włączony — prowadź gracza do kliknięcia systemu na mapie. */}
+        {isAction && activateMode && !inTacticalAction && (
+          <p className={styles.hintPassed}>
+            <IconTarget size={13} aria-hidden="true" />
+            <span>Click a system on the map to activate it.</span>
+          </p>
+        )}
         {/* Podpowiedź, gdy Pass zablokowany (zanim zagrasz kartę). */}
         {isAction && !canPass && !hasPassed && (
           <p className={styles.hint}>

@@ -315,6 +315,7 @@
 }
 
 /* Wspólny styl przycisku akcji: ikona + etykieta, hover-glow, press. */
+.activate,
 .pass,
 .component,
 .endTurn,
@@ -338,6 +339,7 @@
     transform 80ms ease;
 }
 
+.activate svg,
 .pass svg,
 .component svg,
 .endTurn svg,
@@ -345,6 +347,7 @@
   flex: none;
 }
 
+.activate span,
 .pass span,
 .component span,
 .endTurn span,
@@ -352,6 +355,7 @@
   flex: 1 1 auto;
 }
 
+.activate:active:not(:disabled),
 .pass:active:not(:disabled),
 .component:active:not(:disabled),
 .endTurn:active:not(:disabled),
@@ -361,6 +365,7 @@
 
 /* Wyłączony przycisk = SZARY (neutralny), bez barwy akcji. Czytelny sygnał
    „nie teraz" zamiast wyblakłego kolorowego guzika. */
+.activate:disabled,
 .pass:disabled,
 .component:disabled,
 .endTurn:disabled,
@@ -371,6 +376,64 @@
   border-color: var(--ds-h14);
   box-shadow: none;
   animation: none;
+}
+
+/* Activate system — GŁÓWNA akcja taktyczna fazy akcji (akcent, najmocniejszy sygnał
+   „to jest podstawowy ruch"). Stan włączony (data-on) = tryb „wskaż system": pulsujący
+   pierścień, by było jasne, że aplikacja czeka na klik w kafelek. */
+.activate {
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 55%, transparent);
+}
+
+.activate:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--ds-accent) 30%, transparent);
+  border-color: color-mix(in oklab, var(--ds-accent) 72%, transparent);
+}
+
+.activate[data-on] {
+  background: color-mix(in oklab, var(--ds-accent) 34%, transparent);
+  border-color: color-mix(in oklab, var(--ds-accent) 85%, transparent);
+  animation:
+    btnIn 0.36s var(--ds-ease) both,
+    activatePulse 1.5s ease-in-out 0.36s infinite;
+}
+
+@keyframes activatePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--ds-accent) 50%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--ds-accent) 0%, transparent);
+  }
+}
+
+/* Wskaźnik „akcja taktyczna w toku" — NIE przycisk (kroki rozwiązuje panel
+   taktyczny). Delikatny, informacyjny chip w barwie akcentu z ikoną celownika. */
+.tacticalLive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  font-size: var(--text-body, 13px);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 10px;
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 16%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 45%, transparent);
+  animation: btnIn 0.36s var(--ds-ease) both;
+}
+
+.tacticalLive svg {
+  flex: none;
+  color: var(--ds-accent);
+}
+
+.tacticalLive span {
+  flex: 1 1 auto;
 }
 
 /* Pass — ostrzegawczy akcent (decyzja „kończę aktywność w rundzie"). */
@@ -626,11 +689,18 @@
   .card,
   .card,
   .actionZone,
+  .activate,
   .pass,
   .component,
   .endTurn,
   .nextPhase {
     animation: none;
+  }
+
+  /* Bez ruchu: tryb aktywacji oznacz statycznym pierścieniem (bez pulsu). */
+  .activate[data-on] {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ds-accent) 40%, transparent);
   }
 
   /* Bez ruchu: zamiast pulsu po pasie zostaw statyczną zieloną poświatę (nadal

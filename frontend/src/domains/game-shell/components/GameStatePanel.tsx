@@ -1,5 +1,4 @@
 ﻿import {
-  useEffect,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -1208,12 +1207,9 @@ function TacticalActionPanel({
   systemLabel: string | null;
   activePlayerColor: string | null;
 }) {
-  const { activateSystem, tacticalSetStep, tacticalNextStep, endTactical } =
-    useBoardEditor();
+  const { tacticalSetStep, tacticalNextStep, endTactical } = useBoardEditor();
   const activateMode = useAppStore((s) => s.activateMode);
   const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
-  const activateRequest = useAppStore((s) => s.activateRequest);
-  const clearActivateRequest = useAppStore((s) => s.clearActivateRequest);
   const openCombat = useAppStore((s) => s.openCombat);
   const gameData = useGameData();
   const [busy, setBusy] = useState(false);
@@ -1234,21 +1230,9 @@ function TacticalActionPanel({
   // Planety aktywnego systemu (inwazja / produkcja naziemna) — id z danych kafelka.
   const activePlanets = activeTile ? Object.keys(activeTile.planets ?? {}) : [];
 
-  // Gdy w trybie aktywacji klik w kafelek zgłosił pozycję — aktywuj system,
-  // wyłącz tryb i wyczyść żądanie (jednorazowa aktywacja na klik).
-  useEffect(() => {
-    if (!activateRequest) return;
-    const position = activateRequest;
-    clearActivateRequest();
-    if (activateMode) toggleActivateMode();
-    void activateSystem(position);
-  }, [
-    activateRequest,
-    activateMode,
-    activateSystem,
-    clearActivateRequest,
-    toggleActivateMode,
-  ]);
+  // Uwaga: odbiór kliknięcia w kafelek w trybie aktywacji (``activateRequest``) żyje
+  // teraz w ``TurnControls`` (zamontowany przez całą fazę akcji), żeby przycisk
+  // „Activate system" z rogu działał niezależnie od aktywnej zakładki panelu (Blok A).
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
