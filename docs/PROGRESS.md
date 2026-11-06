@@ -1180,3 +1180,32 @@ mypy --strict czyste (110 plików). Frontend `npm run type-check`, `npm run lint
 
 **Następny krok:** dokładanie realnych efektów secondary kartą po karcie (dispatch w
 `strategic_action`, RULES.md 30) oraz kolejne typy okien (assign-hits w walce — T7/T8).
+
+### ✅ Blok E8-T3b-fix — aktywny gracz nie znika po pasie / zamknięciu okna (ukończony)
+
+**Zgłoszenie użytkownika:** po tym, jak aktywny gracz w fazie akcji SPASUJE (pas jest
+„jak akcja" — trzeba potem i tak oddać turę) albo gdy po zamknięciu okna secondary gracz
+jest spasowany, przycisk „End turn" ZNIKAŁ — nie dało się dokończyć tury.
+
+**Diagnoza:** web-data gasi aktywnego gracza do PODŚWIETLENIA, gdy jest `passed`
+(`_effective_active_id` → `activePlayer`=null, `playerData[].active`=false, Bug 7). Panel
+tury (`TurnControls`/`useDeskPlayer`) opierał „czyja tura" właśnie na tych polach, więc po
+pasie tracił gracza i chował przyciski. Backend przez cały czas trzymał poprawne
+`active_player_id` (end_turn działał na 200) — problem był czysto w projekcji/UI.
+
+**Naprawa (rozdział „podświetlenie" vs „czyja tura"):**
+- [x] `src/api/web_data.py` — NOWE pole `gameState.activeTurnPlayer` (kolor gracza wg
+  `active_player_id`, BEZ gaszenia przez `passed`; przez `_color_of`). `activePlayer`
+  (highlight) bez zmian — dalej gaśnie dla spasowanego (Bug 7).
+- [x] `frontend/src/entities/data/types.ts` — pole `activeTurnPlayer?: string | null`.
+- [x] `useDeskPlayer` — „gracz pulpitu" najpierw po `activeTurnPlayer`, potem fallback na
+  `playerData[].active`/mówcę/pierwszego posadzonego (zgodność ze starymi migawkami).
+- [x] `TurnControls` — `isAction` liczony z `activeTurnPlayer` (czyja tura), nie z
+  `active.active` (gaśnie przy passed).
+- [x] `GameStatePanel.PlateBody` — gracz tury z `activeTurnPlayer ?? activePlayer`
+  (status karty / canPass / PhaseControls nie gubią gracza po pasie).
+- [x] `tests/test_web_data.py::test_active_turn_player_survives_pass_in_action_phase`
+  (nowy): spasowany aktywny gracz → `activePlayer`=null, ale `activeTurnPlayer`=jego kolor.
+
+**QA (wszystko zielone):** backend `uv run pytest -q` 483 passed (+1), ruff + mypy czyste;
+frontend type-check + lint + build czyste.

@@ -469,6 +469,14 @@ export type GameStateCombat = {
 export type GameState = {
   phase: GamePhase;
   activePlayer: string | null;
+  /**
+   * Kolor gracza, którego jest TURA — w odróżnieniu od ``activePlayer`` NIE gaśnie,
+   * gdy ten gracz już spasował w tej fazie. Panel sterowania turą (End turn/Pass)
+   * używa tego pola, by wiedzieć „czyja tura", nawet gdy aktywny gracz zagrał kartę
+   * i spasował, a okno secondary jeszcze trwa (RULES.md 31.4/31.6). ``activePlayer``
+   * nadal służy do PODŚWIETLENIA (gaśnie dla spasowanego).
+   */
+  activeTurnPlayer?: string | null;
   /** Mówca (kolor) — otwiera wybór kart w fazie strategii (speaker order). */
   speaker?: string | null;
   /** Kolejność miejsc przy stole jako kolory (speaker order rotuje od mówcy). */

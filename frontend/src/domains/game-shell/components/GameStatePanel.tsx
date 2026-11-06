@@ -578,7 +578,11 @@ function PlateBody({
   const isInfo = variant === "info";
   const seatColors = speakerOrderColors(gameState);
   const seats = buildSeats(playerData, phase, seatColors);
-  const active = playerData.find((p) => p.color === activePlayer);
+  // Gracz, którego jest TURA: preferujemy ``activeTurnPlayer`` (nie gaśnie przy
+  // passed), spadając na ``activePlayer`` (highlight). Dzięki temu po pasie panel
+  // wciąż wie, czyja tura — End turn/Pass i status karty nie znikają (RULES.md 31.4).
+  const turnColor = gameState.activeTurnPlayer ?? activePlayer;
+  const active = playerData.find((p) => p.color === turnColor);
   const isAgenda = phase.startsWith("agenda");
   const showOrder = phase === "action" || phase === "strategy";
 

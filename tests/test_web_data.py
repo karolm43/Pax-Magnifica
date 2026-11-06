@@ -473,6 +473,47 @@ def test_active_and_passed_is_not_contradictory(client: TestClient) -> None:
     assert sol["active"] is False and sol["passed"] is True
 
 
+def test_active_turn_player_survives_pass_in_action_phase(client: TestClient) -> None:
+    """``activeTurnPlayer`` (czyja TURA) NIE gaśnie, gdy aktywny gracz spasuje.
+
+    Regresja (zgłoszenie użytkownika): po tym, jak aktywny gracz w fazie akcji zagra
+    kartę strategii i spasuje (ostatnia tura), ``activePlayer`` gaśnie (bo passed),
+    więc panel sterowania turą nie wiedział, dla kogo pokazać „End turn" — przycisk
+    znikał. ``activeTurnPlayer`` niesie surową turę (bez gaszenia przy passed), więc
+    pulpit tury dalej wie, czyja jest tura (RULES.md 31.4/31.6).
+    """
+    from src.core.game_state import GameState, Phase, PlayerState
+
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        speaker_id="p1",
+        seating_order=["p1", "p2"],
+        players={
+            "p1": PlayerState(
+                player_id="p1",
+                color="red",
+                strategy_cards=[1],
+                exhausted_strategy_cards=[1],
+                passed=True,
+            ),
+            "p2": PlayerState(player_id="p2", color="green", strategy_cards=[3]),
+        },
+    )
+    app = create_app(
+        registry=StaticDataRegistry(),
+        store=EventStore(":memory:"),
+        initial_state=state,
+    )
+    c = TestClient(app)
+    gs = c.get(
+        "/api/public/game/g/web-data", params={"viewing_player": "p1"}
+    ).json()["gameState"]
+    # Podświetlenie gaśnie (gracz spasowany), ALE tura wciąż jego.
+    assert gs["activePlayer"] is None
+    assert gs["activeTurnPlayer"] == "red"
+
+
 def test_active_color_ambiguous_when_duplicate_color(client: TestClient) -> None:
     # Bug 7: gdy dwóch graczy ma ten sam kolor, dopasowanie po kolorze jest
     # niejednoznaczne — nie wskazujemy aktywnego po kolorze.

@@ -86,9 +86,16 @@ export function TurnControls() {
 
   const phase = gameState?.phase ?? "unknown";
   const isStrategy = phase === "strategy";
-  // Pass / End turn mają sens tylko w fazie akcji i dla GRACZA, który faktycznie
-  // jest teraz aktywny (nie dla mówcy-fallbacku między turami).
-  const isAction = phase === "action" && active.active === true;
+  // Pass / End turn mają sens tylko w fazie akcji i dla GRACZA, którego jest TURA
+  // (nie dla mówcy-fallbacku między turami). Używamy ``activeTurnPlayer`` (czyja
+  // tura, nie gaśnie przy passed), nie ``active.active`` — ten ostatni gaśnie dla
+  // spasowanego gracza, przez co przyciski znikały, gdy gracz zagrał kartę i
+  // spasował, a okno secondary wciąż trwało (RULES.md 31.4/31.6).
+  const isTurnPlayer =
+    gameState?.activeTurnPlayer != null &&
+    active.color === gameState.activeTurnPlayer;
+  const isAction =
+    phase === "action" && (isTurnPlayer || active.active === true);
   // Dopóki trwa OTWARTE OKNO czasowe (np. secondary karty strategii), aktywny gracz
   // NIE może zakończyć tury — wszyscy inni muszą najpierw zdecydować (RULES.md 31.6).
   // Blokada w UI (czytelna) + twarda walidacja w backendzie (end_turn → 422).

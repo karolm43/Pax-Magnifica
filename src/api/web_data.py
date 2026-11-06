@@ -182,6 +182,14 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
     return {
         "phase": _to_web_phase(state.phase),
         "activePlayer": _active_color(state),
+        # Kolor gracza, którego jest TURA (``active_player_id``) — BEZ gaszenia
+        # przez ``passed`` (w odróżnieniu od ``activePlayer``, który służy do
+        # PODŚWIETLENIA i gaśnie dla spasowanego). To pole odpowiada na „czyja tura",
+        # by panel sterowania turą (End turn/Pass) wiedział, dla kogo renderować,
+        # nawet gdy aktywny gracz już spasował w tej fazie (zagrał kartę, spasował,
+        # a okno secondary wciąż otwarte — RULES.md 31.4/31.6). Null tylko, gdy
+        # realnie brak aktywnego (np. kolizja kolorów God-Mode) lub stan pusty.
+        "activeTurnPlayer": _color_of(state, state.active_player_id),
         # Mówca (kolor) — otwiera wybór kart w fazie strategii (speaker order,
         # RULES.md 24). Nasze rozszerzenie kontraktu; panel tury je odczyta.
         "speaker": _color_of(state, state.speaker_id),
