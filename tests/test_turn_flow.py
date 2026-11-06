@@ -161,6 +161,24 @@ def test_end_turn_wrong_phase_rejected() -> None:
         turn_flow.end_turn(state, "p1")
 
 
+def test_end_turn_blocked_while_timing_window_open() -> None:
+    """RULES.md 31.6: nie można zakończyć tury, gdy trwa otwarte okno czasowe.
+
+    Odzwierciedla R_strategic_action: po zagraniu karty strategii każdy inny gracz ma
+    okazję na secondary; aktywny gracz kontynuuje DOPIERO po zamknięciu okna.
+    """
+    from src.core.game_state import TimingWindow, WindowType
+
+    state = _state_with_players()
+    state.pending_window = TimingWindow(
+        window_type=WindowType.STRATEGY_SECONDARY,
+        queue=["p2", "p3"],
+        context={"initiative": 1},
+    )
+    with pytest.raises(ValueError, match="while a timing window is open"):
+        turn_flow.end_turn(state, "p1")
+
+
 def test_end_turn_wrong_player_rejected() -> None:
     state = _state_with_players()
     with pytest.raises(ValueError, match="It is not"):

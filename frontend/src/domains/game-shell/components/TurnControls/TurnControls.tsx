@@ -89,6 +89,10 @@ export function TurnControls() {
   // Pass / End turn mają sens tylko w fazie akcji i dla GRACZA, który faktycznie
   // jest teraz aktywny (nie dla mówcy-fallbacku między turami).
   const isAction = phase === "action" && active.active === true;
+  // Dopóki trwa OTWARTE OKNO czasowe (np. secondary karty strategii), aktywny gracz
+  // NIE może zakończyć tury — wszyscy inni muszą najpierw zdecydować (RULES.md 31.6).
+  // Blokada w UI (czytelna) + twarda walidacja w backendzie (end_turn → 422).
+  const windowOpen = gameState?.pendingWindow != null;
   // Status: „Next player" kończy krok gracza (/turn/phase-step). Agenda: „Pass"
   // kończy część gracza (/turn/phase-step), „Next player" tylko przewija (/turn/
   // next-player). „Next phase" u mówcy pojawia się wg ``canAdvancePhase``.
@@ -191,9 +195,13 @@ export function TurnControls() {
                 type="button"
                 className={styles.endTurn}
                 style={{ "--d": "60ms" } as CSSProperties}
-                disabled={busy}
+                disabled={busy || windowOpen}
                 onClick={() => run(() => endTurn())}
-                title="End your turn (also after passing)"
+                title={
+                  windowOpen
+                    ? "Wait — every player must decide on the secondary first"
+                    : "End your turn (also after passing)"
+                }
               >
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
                 <span>End turn</span>
@@ -275,6 +283,12 @@ export function TurnControls() {
         {/* Podpowiedź, gdy Pass zablokowany (zanim zagrasz kartę). */}
         {isAction && !canPass && (
           <p className={styles.hint}>Play your Strategy Card first to pass.</p>
+        )}
+        {/* Podpowiedź, gdy End turn zablokowany przez otwarte okno secondary. */}
+        {isAction && windowOpen && (
+          <p className={styles.hint}>
+            Waiting for every player to follow or decline the secondary.
+          </p>
         )}
       </div>
     </>

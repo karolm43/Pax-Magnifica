@@ -1139,3 +1139,44 @@ front type-check/lint/build zielone) i decyzje D1–D12 do potwierdzenia przez u
   przykładem (`catalog.all/get/faction_bundle/query_timing`), listą endpointów API i
   gwarancjami (filtr po `source`, regresja liczb, test anty-hardkodowania).
 - QA zielone: `uv run pytest -q`, `uv run ruff check src tests`, `uv run mypy src tests`.
+
+### ✅ Blok E8-T3b — popup decyzji secondary (follow/don't follow) + blokada End turn (ukończony)
+
+**Cel (ustalenie z użytkownikiem):** gdy aktywny gracz ZAGRA kartę strategii, pozostali
+gracze — po kolei, od gracza na lewo od aktywnego, zegarowo — dostają JAWNY wybór
+„follow / don't follow" secondary (język planszówki). Dopiero gdy WSZYSCY zdecydują,
+aktywny gracz może dać „End turn". Co dokładnie robi follow (efekt liczbowy) — poza
+zakresem; tu tylko wybór i przesunięcie kolejki. Tryb: dziś hot-seat na jednym
+komputerze, docelowo sieć — dlatego pyta graczy po kolei, nie zakłada jednego operatora.
+
+**Backend (sędzia — RULES.md 31.6, R_strategic_action):**
+- [x] `src/core/turn_flow.py::end_turn` — twarda blokada: gdy `state.pending_window is not
+  None`, `ValueError` → HTTP 422 („Cannot end the turn while a timing window is open…").
+  Dotyczy KAŻDEGO typu okna (secondary, assign-hits, space cannon, reakcja), nie tylko
+  secondary — turę oddaje się tylko „między" oknami. Okno secondary już otwierał
+  `strategic_action.play_strategy_card` (T3), a `/strategy/secondary` (execute true/false)
+  przesuwa kolejkę i auto-zamyka po ostatnim graczu — bez zmian.
+- [x] `docs/RULES.md` — nowa podsekcja 31.6 (End turn zablokowany, dopóki trwa okno;
+  źródło R_strategic_action; „follow"/„don't follow" = `execute` true/false; popup +
+  wygaszony End turn).
+- [x] `tests/test_turn_flow.py::test_end_turn_blocked_while_timing_window_open` (nowy).
+
+**Frontend (język planszówki + popup):**
+- [x] `frontend/src/domains/game-shell/components/SecondaryDecisionModal.tsx` (NOWY):
+  nieodrzucalny popup (`AppModal`, bez krzyżyka / klik poza / Escape) pytający BIEŻĄCEGO
+  respondenta okna `STRATEGY_SECONDARY`: „Follow" (execute=true) / „Don't follow"
+  (execute=false). Pokazuje ikonę+nazwę gracza, nazwę karty (z `context.initiative`) i ilu
+  graczy jeszcze po nim. Adresuje po `currentResponderId`; znika, gdy backend domknie okno.
+- [x] `frontend/src/pages/GameMapPage.tsx` — modal zamontowany obok pozostałych modali.
+- [x] `TurnControls.tsx` i `GameStatePanel.tsx::PhaseControls` — „End turn" WYGASZONY
+  (`disabled`) i z tooltipem, dopóki `pendingWindow` ≠ null; dodatkowa podpowiedź w
+  `TurnControls`.
+- [x] `GameStatePanel.tsx::WindowSection` — dla secondary etykiety przycisków panelu
+  bocznego zmienione na „Follow" / „Don't follow" (inne okna zostają przy Execute/Pass).
+
+**QA (wszystko zielone):** backend `uv run pytest -q` 482 passed (było 481, +1), ruff +
+mypy --strict czyste (110 plików). Frontend `npm run type-check`, `npm run lint`,
+`npm run build` czyste (warn o rozmiarze chunku bez zmian).
+
+**Następny krok:** dokładanie realnych efektów secondary kartą po karcie (dispatch w
+`strategic_action`, RULES.md 30) oraz kolejne typy okien (assign-hits w walce — T7/T8).

@@ -691,6 +691,11 @@ function WindowSection({
 
   const isInfo = variant === "info";
   const label = WINDOW_LABELS[window.windowType] ?? window.windowType;
+  // Secondary karty strategii mówi językiem planszówki: „Follow"/„Don't follow"
+  // (RULES.md 31.6). Pozostałe okna zostają przy ogólnym „Execute"/„Pass".
+  const isSecondary = window.windowType === "STRATEGY_SECONDARY";
+  const yesLabel = isSecondary ? "Follow" : "Execute";
+  const noLabel = isSecondary ? "Don't follow" : "Pass";
   const responderColor = window.currentResponder;
   const responder = playerData.find((p) => p.color === responderColor);
   const responderName = responderColor
@@ -770,18 +775,22 @@ function WindowSection({
                 className={styles.scPickBtn}
                 disabled={busy}
                 onClick={() => respond(true)}
-                title="Take the action in this window"
+                title={
+                  isSecondary
+                    ? "Follow — resolve the secondary ability"
+                    : "Take the action in this window"
+                }
               >
-                Execute
+                {yesLabel}
               </button>
               <button
                 type="button"
                 className={styles.scPickBtn}
                 disabled={busy}
                 onClick={() => respond(false)}
-                title="Decline (pass)"
+                title={isSecondary ? "Decline the secondary" : "Decline (pass)"}
               >
-                Pass
+                {noLabel}
               </button>
             </div>
           )}
@@ -1686,6 +1695,8 @@ function PhaseControls({
   const isAction = phase === "action";
   const isStatus = phase.startsWith("status");
   const isAgenda = phase.startsWith("agenda");
+  // Otwarte okno czasowe (secondary itp.) blokuje End turn (RULES.md 31.6).
+  const windowOpen = gameState.pendingWindow != null;
   // „Next phase" widzi ZAWSZE mówca; gdy przejście nie jest dozwolone, klik zwróci
   // 422 i panel komunikatów to pokaże (DECYZJA 2026-11). Bez twardego ukrywania.
   const isSpeaker =
@@ -1701,9 +1712,13 @@ function PhaseControls({
           <button
             type="button"
             className={cx(styles.ctlBtn, styles.ctlPrimary)}
-            disabled={busy}
+            disabled={busy || windowOpen}
             onClick={() => void run(() => endTurn())}
-            title="End your turn (also after passing)"
+            title={
+              windowOpen
+                ? "Wait — every player must decide on the secondary first"
+                : "End your turn (also after passing)"
+            }
           >
             End turn
           </button>

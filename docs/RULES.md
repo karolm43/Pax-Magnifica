@@ -1477,6 +1477,45 @@ semantykę w silniku, spójnie dla wszystkich faz.
 - Frontend: `TurnControls`, `GameStatePanel.PhaseControls` (przyciski per faza + brama),
   `PhaseNoticePanel` (+ `phaseNoticeMessage`), hook `useBoardEditor.phaseStep`.
 
+### 31.6. End turn zablokowany, dopóki trwa okno czasowe — ✅ ZWERYFIKOWANE (R_strategic_action) + ⚠️ DECYZJA UI (2026-11)
+
+📎 tirules: [Strategic Action](rules_tirules/R_strategic_action.md)
+
+Ustalono z użytkownikiem. Wiąże secondary kart strategii (okno 29.2) z zakończeniem tury:
+aktywny gracz, który ZAGRAŁ kartę strategii, może dać „End turn" DOPIERO gdy wszyscy inni
+gracze zdecydowali o secondary („follow"/„don't follow").
+
+**Reguła źródłowa (R_strategic_action):** po rozstrzygnięciu PRIMARY przez aktywnego gracza
+każdy inny gracz — „beginning with the player to the left of the active player and proceeding
+clockwise" — MA OKAZJĘ („may resolve") na secondary (follow jest dobrowolny). Dopiero „after
+each player has had an opportunity to resolve a strategy card's secondary ability" aktywny
+gracz wyczerpuje kartę i kontynuuje. Czyli: nie można zakończyć tury „w środku" okna.
+
+**Egzekucja (sędzia):**
+- `turn_flow.end_turn` rzuca `ValueError`, gdy `state.pending_window is not None`
+  („Nie można zakończyć tury, gdy trwa okno czasowe…") → HTTP 422. Blokada dotyczy KAŻDEGO
+  typu okna (secondary, przypisanie strat, space cannon, reakcja), nie tylko secondary —
+  turę oddaje się tylko „między" oknami.
+- Okno secondary otwiera `strategic_action.play_strategy_card` (kolejka od gracza po aktywnym,
+  zegarowo — `timing.build_response_queue`), a każdy respondent odpowiada przez
+  `/strategy/secondary` (`execute=True` = follow, `execute=False` = don't follow). Po
+  odpowiedzi ostatniego kolejka się dopełnia i okno zamyka się samo (`resolve_secondary`).
+  Wtedy dopiero `end_turn` przechodzi.
+- God-Mode (`/god-mode/patch`) i tu omija — operator może domknąć/skasować okno ręcznie.
+
+**UI (język planszówki + popup):**
+- Decyzja secondary nazwana „Follow" / „Don't follow" (potoczny termin planszówkowy TI4;
+  „follow the strategy card"). W silniku to wciąż `execute` true/false.
+- Pytanie do bieżącego respondenta pokazuje MODAL (popup) na środku ekranu —
+  `SecondaryDecisionModal` — a nie tylko panel boczny. Modal adresuje respondenta po
+  `currentResponderId`; po decyzji kolejka przechodzi do następnego gracza (nowy modal).
+- „End turn" (oba miejsca: `TurnControls` i `GameStatePanel.PhaseControls`) jest WYGASZONY
+  i zablokowany, dopóki `pendingWindow` ≠ null, z tooltipem wyjaśniającym (czekamy aż
+  wszyscy zdecydują o secondary). Twarda walidacja i tak siedzi w `end_turn` (422).
+- ZAKRES: modal daje tylko WYBÓR follow/don't follow i przesuwa kolejkę — CO dokładnie
+  robi „follow" (efekt liczbowy secondary) jest poza zakresem tego kroku (dispatch efektów
+  w `strategic_action` dojdzie kartą po karcie, patrz RULES.md 30).
+
 ---
 
 ## 32. Ruch statków: egzekucja legalności (akcja taktyczna) — ✅ ZWERYFIKOWANE (LRR 2.0)

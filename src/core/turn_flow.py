@@ -159,10 +159,24 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     okna czasowe końca tury/fazy ("end of turn"/"end of action phase").
     ``active_player_id`` NIGDY nie staje się tu ``None`` (zasada "zawsze czyjaś tura").
 
+    SĘDZIA okna czasowego (RULES.md 29, R_strategic_action): dopóki trwa OTWARTE OKNO
+    (``pending_window`` ≠ None), aktywny gracz NIE może zakończyć tury. Odpowiada to
+    regule TI4: po zagraniu karty strategii KAŻDY inny gracz (od lewej aktywnego,
+    zegarowo) ma OKAZJĘ na secondary, i DOPIERO gdy wszyscy zdecydowali (okno się
+    domknie i zamknie), aktywny gracz kontynuuje/kończy turę. Blokada dotyczy każdego
+    typu okna (secondary, przypisanie strat, space cannon, reakcja) — turę można oddać
+    tylko „między" oknami, nie w ich trakcie.
+
     Raises:
-        ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``).
+        ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``), lub
+            gdy trwa otwarte okno czasowe (najpierw je rozstrzygnij).
     """
     _require_action_turn(state, player_id)
+    if state.pending_window is not None:
+        raise ValueError(
+            "Cannot end the turn while a timing window is open - every player must "
+            "decide on the secondary first."
+        )
     new_state = state.clone()
     nxt = next_unpassed_player(new_state, new_state.active_player_id)
     if nxt is None:
