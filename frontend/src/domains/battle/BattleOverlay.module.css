@@ -1,4 +1,4 @@
-/*
+﻿/*
  * OKNO POLA BITWY (RULES.md 39) — pełny ekran nad mapą (pod modalami aplikacji).
  *
  * Styl: stonowany, „taktyczny" (ciemne panele, cienkie ramki, oszczędne poświaty), bo pod
@@ -70,10 +70,11 @@
   align-items: center;
   gap: 12px;
   padding: 8px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(214, 178, 94, 0.28);
   border-radius: 10px;
-  background: rgba(10, 13, 22, 0.82);
+  background: linear-gradient(180deg, rgba(18, 22, 36, 0.9), rgba(9, 12, 20, 0.85));
   backdrop-filter: blur(6px);
+  animation: frameGlow 6s ease-in-out infinite;
 }
 
 .topTitle {
@@ -176,6 +177,10 @@
   gap: 12px;
 }
 
+.field[data-hits] {
+  animation: screenShake 0.5s ease-in-out 0.7s both;
+}
+
 /* --- Flota --- */
 .fleet {
   position: relative;
@@ -186,9 +191,20 @@
   min-height: 0;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(8, 11, 19, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    radial-gradient(ellipse 90% 60% at var(--glow-x, 50%) 50%, rgb(var(--side-rgb) / 0.12), transparent 70%),
+    rgba(8, 11, 19, 0.6);
+  box-shadow: 0 0 30px rgb(var(--side-rgb) / 0.12), inset 0 0 40px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+}
+
+.fleet[data-align="left"] {
+  --glow-x: 15%;
+}
+
+.fleet[data-align="right"] {
+  --glow-x: 85%;
 }
 
 .fleet[data-align="left"] {
@@ -353,8 +369,8 @@
   border: 1px solid transparent;
   border-radius: 8px;
   /* Wejście ARMADY: cała flota wlatuje z boku, szeregi tylne wcześniej, przednie za nimi. */
-  animation: armadaIn 1.15s cubic-bezier(0.16, 0.84, 0.3, 1) both;
-  animation-delay: calc((5 - var(--rank, 0)) * 90ms + var(--i, 0) * 45ms);
+  animation: armadaIn 3.4s cubic-bezier(0.18, 0.7, 0.2, 1) both;
+  animation-delay: calc((5 - var(--rank, 0)) * 260ms + var(--i, 0) * 140ms);
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
@@ -389,16 +405,65 @@
  * Lewa flota → obrót o 45° = dziób w prawo; prawa → obrót i odbicie = dziób w lewo.
  * Myśliwce zostają bez obrotu (wyglądają dobrze tak, jak są). Walka naziemna bez obrotu.
  */
-.overlay[data-kind="space"] .ship[data-side="left"]:not([data-base="ff"]) .shipSprite {
-  transform: rotate(45deg);
+.overlay[data-kind="space"] .ship[data-side="left"] .shipSprite {
+  transform: rotate(var(--heading-left, 90deg));
 }
 
-.overlay[data-kind="space"] .ship[data-side="right"]:not([data-base="ff"]) .shipSprite {
-  transform: scaleX(-1) rotate(45deg);
+.overlay[data-kind="space"] .ship[data-side="right"] .shipSprite {
+  transform: rotate(var(--heading-right, -90deg));
+}
+
+/* Poświata w barwie strony + dryf „w miejscu" (osobna właściwość `translate`, żeby nie
+   nadpisać obrotu z `transform`). Każdy okręt ma własną fazę, więc flota nie pływa jak jeden. */
+.shipSprite {
+  filter: drop-shadow(0 0 6px rgb(var(--side-rgb, 255 255 255) / 0.55))
+    drop-shadow(0 0 16px rgb(var(--side-rgb, 255 255 255) / 0.25));
+  animation: shipIdle 5.5s ease-in-out infinite;
+  animation-delay: calc(var(--rank, 0) * -0.9s + var(--i, 0) * -1.3s);
+}
+
+.ship[data-side="left"] {
+  --side-rgb: var(--left-rgb);
+}
+
+.ship[data-side="right"] {
+  --side-rgb: var(--right-rgb);
+}
+
+/* Płomień silników z rufy (rufa = dół sprite'a przed obrotem). */
+.overlay[data-kind="space"] .shipSprite::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2%;
+  width: 22%;
+  height: 34%;
+  translate: -50% 40%;
+  border-radius: 50% 50% 60% 60%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgb(var(--side-rgb, 125 211 252) / 0.85) 35%,
+    transparent
+  );
+  filter: blur(2px);
+  transform-origin: 50% 0;
+  animation: engineFlicker 0.35s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.overlay[data-kind="space"] .ship[data-base="ff"] .shipSprite::before {
+  height: 24%;
 }
 
 .ship[data-damaged] .shipSprite {
-  filter: saturate(0.55) brightness(0.8) drop-shadow(0 0 3px rgba(220, 38, 38, 0.7));
+  filter: saturate(0.55) brightness(0.8) drop-shadow(0 0 4px rgba(220, 38, 38, 0.85))
+    drop-shadow(0 0 12px rgba(220, 38, 38, 0.35));
+}
+
+.ship[data-damaged] .shipSprite::before {
+  animation-duration: 0.13s; /* rwący się silnik */
+  opacity: 0.6;
 }
 
 .ship[data-selectable] {
@@ -473,8 +538,10 @@
 
 .explosion {
   position: absolute;
-  inset: 15%;
+  inset: -20%;
   border-radius: 50%;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 18px rgba(251, 146, 60, 0.9));
   background: radial-gradient(circle, rgba(255, 245, 220, 0.95) 0%, rgba(251, 191, 36, 0.8) 22%, rgba(234, 88, 12, 0.55) 45%, transparent 70%);
   animation: explode 0.8s ease-out 0.55s both;
   pointer-events: none;
@@ -541,10 +608,11 @@
   min-height: 0;
   padding: 12px;
   overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(214, 178, 94, 0.3);
   border-radius: 12px;
-  background: rgba(9, 12, 20, 0.86);
+  background: linear-gradient(180deg, rgba(16, 20, 33, 0.92), rgba(8, 11, 19, 0.9));
   backdrop-filter: blur(6px);
+  animation: frameGlow 6s ease-in-out infinite;
 }
 
 .roundBadge {
@@ -887,8 +955,8 @@
   position: absolute;
   left: 0;
   top: -1px;
-  width: 34px;
-  height: 2px;
+  width: 54px;
+  height: 3px;
   border-radius: 2px;
   opacity: 0;
   background: linear-gradient(90deg, transparent, rgba(186, 230, 253, 0.85));
@@ -896,10 +964,10 @@
 }
 
 .beam[data-hit] .beamCore {
-  height: 3px;
-  top: -1.5px;
-  background: linear-gradient(90deg, transparent, rgba(254, 202, 202, 0.95));
-  box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
+  height: 5px;
+  top: -2.5px;
+  background: linear-gradient(90deg, transparent, rgba(254, 226, 226, 1));
+  box-shadow: 0 0 12px 2px rgba(248, 113, 113, 0.85);
 }
 
 .beam:not([data-hit]) .beamCore {
@@ -915,9 +983,9 @@
 /* Błysk wylotu przy strzelcu. */
 .muzzle {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
   border-radius: 50%;
   opacity: 0;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(186, 230, 253, 0.4) 50%, transparent 70%);
@@ -927,9 +995,11 @@
 /* Trafienie na celu. */
 .impact {
   position: absolute;
-  width: 42px;
-  height: 42px;
-  margin: -21px 0 0 -21px;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 14px rgba(251, 146, 60, 0.9));
   border-radius: 50%;
   opacity: 0;
   background: radial-gradient(circle, rgba(255, 245, 220, 0.95) 0%, rgba(251, 191, 36, 0.75) 25%, rgba(234, 88, 12, 0.45) 50%, transparent 70%);
@@ -977,17 +1047,80 @@
 @keyframes armadaIn {
   0% {
     opacity: 0;
-    transform: translateX(calc(var(--dir, -1) * 60vw));
+    transform: translateX(calc(var(--dir, -1) * 70vw)) scale(0.6);
   }
-  15% {
+  12% {
     opacity: 1;
   }
-  85% {
-    transform: translateX(calc(var(--dir, -1) * -6px));
+  /* długie hamowanie, lekkie przestrzelenie i osiadanie w szyku */
+  78% {
+    transform: translateX(calc(var(--dir, -1) * -14px)) scale(1.02);
+  }
+  90% {
+    transform: translateX(calc(var(--dir, -1) * 4px)) scale(1);
   }
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes shipIdle {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  33% {
+    translate: 2px -4px;
+  }
+  66% {
+    translate: -2px 3px;
+  }
+}
+
+@keyframes engineFlicker {
+  from {
+    opacity: 0.65;
+    transform: scaleY(0.75);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1.25);
+  }
+}
+
+@keyframes frameGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(214, 178, 94, 0.14),
+      0 0 22px rgba(214, 178, 94, 0.08),
+      inset 0 0 24px rgba(214, 178, 94, 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(214, 178, 94, 0.3),
+      0 0 34px rgba(214, 178, 94, 0.18),
+      inset 0 0 34px rgba(214, 178, 94, 0.08);
+  }
+}
+
+@keyframes screenShake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  15% {
+    translate: -5px 3px;
+  }
+  35% {
+    translate: 4px -3px;
+  }
+  55% {
+    translate: -3px -2px;
+  }
+  75% {
+    translate: 2px 2px;
   }
 }
 
@@ -997,11 +1130,11 @@
     transform: none;
   }
   30% {
-    filter: brightness(1.8);
+    filter: brightness(3) drop-shadow(0 0 20px rgba(251, 191, 36, 1));
   }
   100% {
     opacity: 0;
-    transform: scale(0.7) rotate(14deg);
+    transform: scale(0.55) rotate(24deg);
   }
 }
 
@@ -1015,7 +1148,7 @@
   }
   100% {
     opacity: 0;
-    transform: scale(1.9);
+    transform: scale(2.8);
   }
 }
 
@@ -1029,7 +1162,7 @@
   }
   100% {
     opacity: 1;
-    transform: translateX(calc(var(--len) - 34px));
+    transform: translateX(calc(var(--len) - 54px));
   }
 }
 
@@ -1105,6 +1238,11 @@
   .overlay,
   .stars,
   .ship,
+  .shipSprite,
+  .shipSprite::before,
+  .topBar,
+  .center,
+  .field[data-hits],
   .ship[data-dying],
   .explosion,
   .beamCore,

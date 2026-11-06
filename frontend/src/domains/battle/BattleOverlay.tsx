@@ -303,7 +303,12 @@ function Battlefield({ view }: { view: BattleView }) {
         </div>
       )}
 
-      <div className={styles.field} ref={fieldRef}>
+      <div
+        className={styles.field}
+        ref={fieldRef}
+        data-volley={volley ? volley.id : undefined}
+        data-hits={volley?.bolts.some((b) => b.hit) || undefined}
+      >
         <BattleFleet
           side={attacker}
           views={attackerViews}
