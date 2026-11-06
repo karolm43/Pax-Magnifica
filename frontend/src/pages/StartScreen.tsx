@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Modal, Stack, Text } from "@/ds";
+import { Box, Button, Stack } from "@/ds";
 import { useFactions } from "@/api/useNewGame";
 import SetupWizard, { STAGE_STEP_IDS } from "@/domains/setup/SetupWizard";
+import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { currentStep, useSetupStore } from "@/domains/setup/useSetupStore";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
@@ -223,25 +224,13 @@ export default function StartScreen() {
         </div>
       </div>
 
-      {/* ── Okno szkieletowe: Ustawienia (do wypełnienia później) ───────── */}
-      <Modal
+      {/* Ustawienia — ten sam panel co w grze (`SettingsModal`), żeby np. tryb
+          administratora (szybkie testy) dało się włączyć JESZCZE przed startem gry,
+          zanim pojawi się intro. Stan jest współdzielony przez `useSettingsStore`. */}
+      <SettingsModal
         opened={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        title="Settings"
-        size="md"
-      >
-        <Stack gap="md">
-          <Text c="dimmed" size="sm">
-            Game settings will appear here. For now this is a placeholder that
-            will be filled with options (e.g. theme, sound, rule variants).
-          </Text>
-          <div className={styles.modalActions}>
-            <Button variant="default" onClick={() => setSettingsOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </Stack>
-      </Modal>
+      />
     </Box>
   );
 }
