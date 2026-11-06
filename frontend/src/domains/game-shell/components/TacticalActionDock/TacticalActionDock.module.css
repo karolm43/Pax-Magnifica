@@ -1,0 +1,70 @@
+/*
+ * Pływający dok akcji taktycznej — przypięty do LEWEJ krawędzi, nieco powyżej
+ * dołu, żeby nie kolidować z ręką (środek dołu) ani sterowaniem turą (prawy dół).
+ * Pokazuje panel kroków (stepper + pomoc kroku) przez całą akcję taktyczną.
+ */
+.dock {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 200;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px;
+  background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 40%, var(--ds-h14));
+  border-radius: var(--ds-radius-lg, 14px);
+  box-shadow: var(--ds-shadow-lg, 0 14px 44px rgba(0, 0, 0, 0.55));
+  animation: dockRise 0.42s var(--ds-ease) both;
+}
+
+.dockHead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 2px 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.dockHead svg {
+  flex: none;
+  color: var(--ds-accent);
+}
+
+.dockTitle {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+@keyframes dockRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock {
+    animation: none;
+  }
+}
+
+/* Na telefonie dok schodzi niżej i zwęża się do szerokości ekranu. */
+:global(.mobile) .dock {
+  left: 10px;
+  bottom: 10px;
+  width: calc(100vw - 20px);
+  max-height: 46vh;
+}

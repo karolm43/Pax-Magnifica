@@ -399,11 +399,11 @@ function ScDisc({ initiative }: { initiative: number | null }) {
 
 /** Etykiety statusu miejsca po polsku (planszówkowy, czytelny ton). */
 const SEAT_STATUS_LABEL: Record<SeatStatus, string> = {
-  acting: "rusza",
-  picking: "wybiera",
+  acting: "Active",
+  picking: "Picking",
   passed: "passed",
   picked: "picked",
-  waiting: "czeka",
+  waiting: "Waiting",
 };
 
 function TurnOrder({
@@ -1195,8 +1195,12 @@ const TACTICAL_STEPS: {
  * działa → walka → inwazja → produkcja) BEZ walidacji reguł — gracze grają
  * fizycznie i wprowadzają wynik. Kroki są klikalnymi „pigułkami" (skok do kroku),
  * z wyróżnionym bieżącym. Krok produkcji otwiera pełny edytor stawiania jednostek.
+ *
+ * Eksportowany, bo poza osadzeniem w panelu fazy (``ActionPhasePanel``) jest też
+ * reużywany w pływającym doku na map view (``TacticalActionDock``) — żeby panel
+ * kroków był WIDOCZNY i POMOCNY na mapie przez całą akcję taktyczną (Blok A/UX).
  */
-function TacticalActionPanel({
+export function TacticalActionPanel({
   activeSystem,
   tacticalStep,
   systemLabel,
