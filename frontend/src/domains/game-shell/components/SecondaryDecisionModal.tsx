@@ -8,7 +8,10 @@ import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
-import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
+import {
+  getStrategyCardById,
+  getStrategyCardByInitiative,
+} from "@/entities/lookup/strategyCards";
 import { SC_NAMES, SC_HUES } from "@/entities/data/strategyCardColors";
 import {
   getPlayerDisplayName,
@@ -65,9 +68,7 @@ export function SecondaryDecisionModal() {
     ? getPlayerDisplayName(responder, responderColor ?? "")
     : (window?.currentResponderId ?? "");
 
-  // Karta, której dotyczy secondary (z kontekstu okna: {"initiative": n}). Wariant
-  // kanoniczny bierzemy z ``strategyCardIdMap`` backendu — to samo źródło co hover
-  // karty strategii, więc teksty są spójne z resztą UI.
+  // Karta, której dotyczy secondary (z kontekstu okna: {"initiative": n}).
   const initiativeRaw = window?.context?.initiative;
   const initiative =
     typeof initiativeRaw === "number"
@@ -75,10 +76,20 @@ export function SecondaryDecisionModal() {
       : typeof initiativeRaw === "string"
         ? Number(initiativeRaw)
         : null;
-  const card =
+  // WARIANT KANONICZNY wybiera BACKEND i podaje jego ``id`` w ``gameData.strategyCards``
+  // (przy włączonym Thunder's Edge init 4/6 → te4construction/te6warfare, nie
+  // base/pok — RULES.md 14). Bierzemy kartę PO TYM ``id`` (getStrategyCardById), żeby
+  // teksty były zgodne z aktywnym zestawem gry. Dopiero gdy nie znajdziemy wpisu,
+  // spadamy na lookup po initiative (stare migawki / brak puli).
+  const cardId =
     initiative != null
-      ? getStrategyCardByInitiative(initiative, gameData?.strategyCardIdMap)
+      ? gameData?.strategyCards?.find((c) => c.initiative === initiative)?.id
       : undefined;
+  const card =
+    (cardId ? getStrategyCardById(cardId) : undefined) ??
+    (initiative != null
+      ? getStrategyCardByInitiative(initiative, gameData?.strategyCardIdMap)
+      : undefined);
   const cardName =
     card?.name ||
     (initiative != null ? SC_NAMES[initiative] : undefined) ||
