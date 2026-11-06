@@ -851,13 +851,18 @@
   cursor: default;
 }
 
-/* Kroki taktyczne jako klikalne pigułki. */
+/* Kroki taktyczne jako wskaźnik postępu (lista <ol>, nie klikalne). */
 .stepPills {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
+/* Pigułki kroków = WSKAŹNIK postępu (lista, nie przyciski). Bez kursora/hovera —
+   nie są klikalne, akcja taktyczna idzie po kolei (postęp przez „Next step"). */
 .stepPill {
   display: grid;
   justify-items: center;
@@ -867,20 +872,11 @@
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.02);
   color: var(--ds-ink-lo);
-  cursor: pointer;
+  list-style: none;
   transition:
     background 120ms ease,
     border-color 120ms ease,
     color 120ms ease;
-}
-
-.stepPill:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--ds-ink);
-}
-
-.stepPill:disabled {
-  cursor: default;
 }
 
 .stepIndex {
@@ -947,6 +943,24 @@
 .nextStep:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Stan „uzbrojony" (czeka na drugie kliknięcie) — wyraźny ostrzegawczy akcent,
+   żeby gracz widział, że kolejny klik potwierdza nieodwracalny krok/koniec akcji.
+   Wspólny dla „Next step/Finish" i „End action". */
+.nextStep.confirmArmed,
+.endAction.confirmArmed {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-warn) / 0.22);
+  border-color: rgb(var(--ds-sig-warn) / 0.7);
+  box-shadow: 0 0 0 2px rgb(var(--ds-sig-warn) / 0.25);
+}
+
+.nextStep.confirmArmed:hover:not(:disabled),
+.endAction.confirmArmed:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-warn) / 0.3);
+  border-color: rgb(var(--ds-sig-warn) / 0.85);
+  color: var(--ds-ink-hi);
 }
 
 /* Duży przycisk „Aktywuj system" (brak aktywnej akcji). */

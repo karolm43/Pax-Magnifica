@@ -1211,12 +1211,18 @@ export function TacticalActionPanel({
   systemLabel: string | null;
   activePlayerColor: string | null;
 }) {
-  const { tacticalSetStep, tacticalNextStep, endTactical } = useBoardEditor();
+  const { tacticalNextStep, endTactical } = useBoardEditor();
   const activateMode = useAppStore((s) => s.activateMode);
   const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
   const openCombat = useAppStore((s) => s.openCombat);
   const gameData = useGameData();
   const [busy, setBusy] = useState(false);
+  // Potwierdzenia nawigacji: przejście do następnego kroku i zakończenie akcji są
+  // „nieodwracalne po stronie przepływu" (kroków nie da się już swobodnie cofnąć),
+  // więc wymagają DRUGIEGO kliknięcia (inline confirm), żeby nie kończyć/przeskakiwać
+  // akcji przypadkiem. Reset po chwili bezczynności.
+  const [confirmNext, setConfirmNext] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   const activeTile = activeSystem ? gameData?.tiles?.[activeSystem] : undefined;
 
@@ -1273,19 +1279,35 @@ export function TacticalActionPanel({
         <span className={styles.tacticalSystem}>
           {systemLabel ?? activeSystem}
         </span>
+        {/* End action — wymaga DRUGIEGO kliknięcia (nie kończ akcji przypadkiem). */}
         <button
           type="button"
-          className={styles.endAction}
+          className={cx(styles.endAction, confirmEnd && styles.confirmArmed)}
           disabled={busy}
-          onClick={() => void run(endTactical)}
-          title="End the current tactical action"
+          onClick={() => {
+            if (confirmEnd) {
+              setConfirmEnd(false);
+              void run(endTactical);
+            } else {
+              setConfirmNext(false);
+              setConfirmEnd(true);
+            }
+          }}
+          onBlur={() => setConfirmEnd(false)}
+          title={
+            confirmEnd
+              ? "Click again to confirm ending the tactical action"
+              : "End the current tactical action (asks to confirm)"
+          }
         >
-          End action
+          {confirmEnd ? "Confirm end?" : "End action"}
         </button>
       </div>
 
-      {/* Kroki jako klikalne pigułki — skok do dowolnego kroku (asystent). */}
-      <div className={styles.stepPills} aria-label="Tactical action step">
+      {/* Kroki jako WSKAŹNIK postępu (nie przełącznik) — pokazują gdzie jesteśmy,
+          ale NIE pozwalają swobodnie skakać w przód/w tył (akcja taktyczna idzie
+          po kolei; skakanie psuło przepływ). Postęp prowadzi wyłącznie „Next step". */}
+      <ol className={styles.stepPills} aria-label="Tactical action step">
         {TACTICAL_STEPS.map((s, index) => {
           const state =
             index < currentIndex
@@ -1294,22 +1316,19 @@ export function TacticalActionPanel({
                 ? "now"
                 : undefined;
           return (
-            <button
+            <li
               key={s.step}
-              type="button"
               className={styles.stepPill}
               data-s={state}
-              disabled={busy}
               aria-current={state === "now" ? "step" : undefined}
-              onClick={() => void run(() => tacticalSetStep(s.step))}
-              title={`Go to step: ${s.label}`}
+              title={s.label}
             >
               <span className={styles.stepIndex}>{index + 1}</span>
               <span className={styles.stepName}>{s.short}</span>
-            </button>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       {/* Zawartość bieżącego kroku. */}
       {tacticalStep === "SPACE_COMBAT" && (
@@ -1363,16 +1382,44 @@ export function TacticalActionPanel({
         />
       )}
 
-      {/* Nawigacja kroków — „następny krok" zawsze dostępny. */}
-      <button
-        type="button"
-        className={styles.nextStep}
-        disabled={busy}
-        onClick={() => void run(tacticalNextStep)}
-        title="Go to the next step (after Production this ends the action)"
-      >
-        Next step →
-      </button>
+      {/* Nawigacja kroków — „następny krok" wymaga DRUGIEGO kliknięcia, bo kroków
+          nie da się już swobodnie cofnąć (po produkcji kończy całą akcję). */}
+      {(() => {
+        const isLast = currentIndex >= TACTICAL_STEPS.length - 1;
+        const label = confirmNext
+          ? isLast
+            ? "Confirm: finish action?"
+            : "Confirm next step?"
+          : isLast
+            ? "Finish action →"
+            : "Next step →";
+        return (
+          <button
+            type="button"
+            className={cx(styles.nextStep, confirmNext && styles.confirmArmed)}
+            disabled={busy}
+            onClick={() => {
+              if (confirmNext) {
+                setConfirmNext(false);
+                void run(tacticalNextStep);
+              } else {
+                setConfirmEnd(false);
+                setConfirmNext(true);
+              }
+            }}
+            onBlur={() => setConfirmNext(false)}
+            title={
+              confirmNext
+                ? "Click again to confirm"
+                : isLast
+                  ? "Finish the tactical action (asks to confirm)"
+                  : "Advance to the next step (asks to confirm — you cannot freely go back)"
+            }
+          >
+            {label}
+          </button>
+        );
+      })()}
     </div>
   );
 }

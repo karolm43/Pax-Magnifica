@@ -22,6 +22,13 @@
   animation: dockRise 0.42s var(--ds-ease) both;
 }
 
+/* W trakcie przeciągania bez animacji wejścia (panel ma podążać za kursorem). */
+.dock[data-dragging] {
+  animation: none;
+  cursor: grabbing;
+}
+
+/* Nagłówek = uchwyt przeciągania (grab). W trakcie drag kursor „grabbing". */
 .dockHead {
   display: flex;
   align-items: center;
@@ -29,11 +36,29 @@
   padding: 2px 2px 10px;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--ds-h10);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.dock[data-dragging] .dockHead {
+  cursor: grabbing;
 }
 
 .dockHead svg {
   flex: none;
   color: var(--ds-accent);
+}
+
+/* Chwyt — subtelna ikona „kropek", sygnał „można przeciągać". */
+.grip {
+  display: inline-flex;
+  color: var(--ds-ink-lo);
+  opacity: 0.7;
+}
+
+.grip svg {
+  color: inherit;
 }
 
 .dockTitle {
