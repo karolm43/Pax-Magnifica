@@ -46,6 +46,27 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ E8 Blok F1 — Space Cannon Offense (silnik + zasięg + panel) (ukończone)
+
+- **Reguła (zweryfikowana):** `RULES.md` 38 ze źródłem `docs/rules_tirules/R_space_cannon.md`.
+  Strzela NIE tylko aktywny gracz: okno `SPACE_CANNON`, kolejka od aktywnego zgodnie z zegarem,
+  nieaktywni celują w aktywnego, aktywny wybiera cel, gracz bez celu pominięty.
+- **Zasięg z danych:** `UnitDef.spaceCannonHitsOn/DieCount/deepSpaceCannon`; wariant po technologiach
+  gracza (PDS I 6+ → PDS II 5+ i deep = strzela z systemu sąsiedniego). Zero list technologii w kodzie.
+- **Backend:** `core/dice.py` (seedowalny d10 w stanie gry — Undo deterministyczne; podstawa pod walkę),
+  `core/space_cannon.py` (strzelcy, `coverage`, `offense_queue`, `open/fire/pass/assign_hits`),
+  `api/routers/space_cannon.py` (panel + fire/pass/assign). Wejście w krok otwiera okno; wyjście z kroku
+  blokowane (422) przy otwartym oknie; dziennik zostaje po zamknięciu okna (`space_cannon_log`).
+  `web_data`: `tileUnitData[pos].pds` = pokrycie ostrzałem. +23 testy (535 razem).
+- **Frontend:** soczewka mapy „**Space Cannon range**" (istniejąca soczewka PDS, teraz zasilona danymi)
+  + osobny panel `SpaceCannonStepPanel`: kolejka, karta bieżącego strzelca (próg, kości, zasięg),
+  wybór celu, Fire/Don't fire, animowane kości (trafienia świecą), przypisanie strat przez gracza-cel,
+  dziennik. Przełącznik „Range" w panelu włącza soczewkę.
+- **⚠️ Założenia/TODO (RULES.md 38.4):** Sustain Damage (brak modelu uszkodzeń → Blok C), wymuszenie
+  capacity po stratach, Plasma Scoring, hooki frakcji (E7). **Backend wymaga restartu** (nowy router).
+
+---
+
 ### ✅ E8 Blok B1–B6 — MOVEMENT dopracowany (drag&drop, monitor, zasięg, załadunek) (ukończone)
 
 - **Decyzja (z użytkownikiem):** drag & drop statków to PREFEROWANY sposób ruchu; w akcji

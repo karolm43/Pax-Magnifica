@@ -132,7 +132,7 @@ function LensToolbar({
         {showPds && (
           <Lens
             active={settings.showPDSLayer}
-            label="PDS coverage"
+            label="Space Cannon range"
             shortcut="P"
             onClick={handlers.togglePdsMode}
           >

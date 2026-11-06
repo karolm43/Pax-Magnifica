@@ -1,0 +1,549 @@
+/*
+ * Panel kroku SPACE CANNON (Offense). Układ pionowy w doku akcji taktycznej: pasek
+ * tytułu z przełącznikiem zasięgu, kolejka strzelających, karta tury / wynik rzutu /
+ * przypisanie strat, dziennik. Wszystkie siatki mają `min-width: 0`, a przyciski stałą
+ * szerokość, żeby nic nie wylewało się poza dok (lekcja z kafelków Production).
+ */
+.root {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.lens {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lens[aria-pressed="true"] {
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 22%, transparent);
+  border-color: color-mix(in oklab, var(--ds-accent) 60%, transparent);
+}
+
+.note,
+.done {
+  margin: 0;
+  font-size: var(--text-meta, 12px);
+  line-height: 1.45;
+  color: var(--ds-ink-lo);
+  overflow-wrap: anywhere;
+}
+
+.done {
+  padding: 8px 10px;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.12);
+  border: 1px solid rgb(var(--ds-sig-bio, 110 231 183) / 0.4);
+  border-radius: 8px;
+}
+
+.muted {
+  color: var(--ds-ink-lo);
+}
+
+/* --- Kolejka strzelających --- */
+.queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queueItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+  border: 1px solid var(--ds-h10);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.queueItem[data-state="now"] {
+  color: var(--ds-ink-hi);
+  border-color: color-mix(in oklab, var(--ds-accent) 65%, transparent);
+  background: color-mix(in oklab, var(--ds-accent) 16%, transparent);
+}
+
+.queueItem[data-state="done"] {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* --- Karta tury --- */
+.turn {
+  display: grid;
+  gap: 8px;
+  padding: 9px;
+  min-width: 0;
+  border: 1px solid var(--ds-h14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.turnHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.turnWho {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.turnWho small {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.turnWho b {
+  font-size: 13px;
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.expected {
+  flex: none;
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--ds-ink-lo);
+  white-space: nowrap;
+}
+
+.shooters {
+  display: grid;
+  gap: 4px;
+}
+
+.shooterRow {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon name stat"
+    "icon badge badge";
+  align-items: center;
+  column-gap: 7px;
+  row-gap: 1px;
+  padding: 4px 6px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.02);
+  min-width: 0;
+}
+
+.icon {
+  grid-area: icon;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+}
+
+.icon :global(.unit-sprite) {
+  width: 24px;
+  height: 24px;
+}
+
+.shooterName {
+  grid-area: name;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.shooterStat {
+  grid-area: stat;
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+
+.badge {
+  grid-area: badge;
+  justify-self: start;
+  padding: 0 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgb(var(--ds-sig-ability, 167 139 250));
+  background: rgb(var(--ds-sig-ability, 167 139 250) / 0.14);
+  border-radius: 999px;
+}
+
+/* --- Wybór celu --- */
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.targets small {
+  width: 100%;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.target {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  font-size: 11px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.target[data-active] {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.16);
+  border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.6);
+}
+
+/* --- Fire / pass --- */
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.fire,
+.pass,
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease),
+    transform 80ms ease;
+}
+
+.fire,
+.confirm {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.2);
+  border: 1px solid rgb(var(--ds-sig-danger, 248 113 113) / 0.6);
+}
+
+.fire:hover:not(:disabled),
+.confirm:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.3);
+}
+
+.pass {
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ds-h14);
+}
+
+.fire:disabled,
+.pass:disabled,
+.confirm:disabled {
+  cursor: default;
+  color: var(--ds-ink-lo);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ds-h14);
+}
+
+.confirm {
+  width: 100%;
+}
+
+/* --- Wynik rzutu --- */
+.shotHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ds-ink);
+}
+
+.hitCount {
+  flex: none;
+  padding: 1px 8px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ds-ink-lo);
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+}
+
+.hitCount[data-hits] {
+  color: #fff;
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.35);
+  border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.8);
+}
+
+/* Wiązka: pasek „strzału" w stronę celu — tylko gdy są trafienia. */
+.beam {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ds-h10);
+}
+
+.beam[data-hits] {
+  background: linear-gradient(90deg, transparent, rgb(255 90 90));
+  box-shadow: 0 0 10px rgb(255 90 90 / 0.8);
+  transform-origin: left center;
+  animation: beamShot 0.55s var(--ds-ease) both;
+}
+
+@keyframes beamShot {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.rolls {
+  display: grid;
+  gap: 4px;
+}
+
+.rollRow {
+  display: grid;
+  gap: 3px;
+}
+
+.rollLabel {
+  font-size: 11px;
+  color: var(--ds-ink);
+}
+
+.rollLabel small {
+  color: var(--ds-ink-lo);
+}
+
+.diceRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.die {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 3px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ds-ink-lo);
+  border: 1px solid var(--ds-h14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: diePop 0.3s var(--ds-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.die[data-hit] {
+  color: #fff;
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.4);
+  border-color: rgb(var(--ds-sig-danger, 248 113 113));
+  box-shadow: 0 0 8px rgb(var(--ds-sig-danger, 248 113 113) / 0.7);
+}
+
+@keyframes diePop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Przypisanie strat --- */
+.assign {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  min-width: 0;
+  border: 1px solid rgb(var(--ds-sig-danger, 248 113 113) / 0.45);
+  border-radius: 10px;
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.06);
+}
+
+.assignHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ds-ink);
+}
+
+.assignHead > span:not(.counter) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.counter {
+  flex: none;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ds-ink-lo);
+}
+
+.counter[data-ready] {
+  color: rgb(var(--ds-sig-bio, 110 231 183));
+}
+
+.ships {
+  display: grid;
+  gap: 4px;
+}
+
+.shipTile {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 7px;
+  padding: 4px 6px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.02);
+  min-width: 0;
+}
+
+.shipName {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.shipCount {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--ds-ink);
+}
+
+.shipBtns {
+  display: flex;
+  flex: none;
+  gap: 3px;
+}
+
+.step {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ds-h14);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.step[data-danger]:not(:disabled) {
+  color: rgb(var(--ds-sig-danger, 248 113 113));
+  border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.5);
+}
+
+.step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- Dziennik --- */
+.log {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.logRow {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ds-ink);
+  border: 1px solid var(--ds-h10);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow-wrap: anywhere;
+}
+
+.logRow[data-hit] {
+  border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .die,
+  .beam[data-hits] {
+    animation: none;
+  }
+}

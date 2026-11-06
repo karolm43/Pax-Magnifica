@@ -100,6 +100,7 @@ export function useBoardEditor() {
       "combat",
       "production",
       "moveRange",
+      "spaceCannon",
       "playerHand",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
@@ -317,6 +318,40 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Space Cannon Offense (RULES.md 38) — strzał (rzut kośćmi po stronie silnika), pas
+  // i przypisanie strat przez gracza-cel. 422 z powodem trafia do panelu komunikatów.
+  const spaceCannonFire = useCallback(
+    async (faction: string, target?: string) => {
+      await post("/tactical/space-cannon/fire", {
+        faction,
+        target: target ?? null,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const spaceCannonPass = useCallback(
+    async (faction: string) => {
+      await post("/tactical/space-cannon/pass", { faction });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const spaceCannonAssign = useCallback(
+    async (faction: string, losses: { baseType: string; count: number }[]) => {
+      await post("/tactical/space-cannon/assign", {
+        faction,
+        losses: losses
+          .filter((l) => l.count > 0)
+          .map((l) => ({ baseType: l.baseType, count: l.count })),
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const tacticalNextStep = useCallback(async () => {
     await post("/tactical/step/next", {});
     await refresh();
@@ -458,6 +493,9 @@ export function useBoardEditor() {
     activateSystem,
     moveShips,
     produce,
+    spaceCannonFire,
+    spaceCannonPass,
+    spaceCannonAssign,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,
@@ -491,6 +529,96 @@ export type ProductionHelp = {
   productionLimit: number;
   units: ProducibleUnitHelp[];
 };
+
+// --- Space Cannon Offense (RULES.md 38) ---
+
+export type SpaceCannonShooter = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  count: number;
+  hitsOn: number;
+  dicePerUnit: number;
+  totalDice: number;
+  expectedHits: number;
+  position: string;
+  zone: string;
+  /** Wariant ma Deep Space Cannon (może strzelać z systemu sąsiedniego). */
+  deep: boolean;
+  /** Strzela z systemu SĄSIEDNIEGO do aktywnego. */
+  remote: boolean;
+};
+
+export type SpaceCannonSide = {
+  faction: string;
+  playerId: string;
+  shooters: SpaceCannonShooter[];
+  totalDice: number;
+  expectedHits: number;
+  /** Legalne cele (klucze graczy). */
+  targets: string[];
+};
+
+export type SpaceCannonRoll = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  hitsOn: number;
+  position: string;
+  zone: string;
+  dice: number[];
+  hits: number;
+};
+
+export type SpaceCannonPending = {
+  roller: string;
+  target: string;
+  hits: number;
+  /** Ile statków trzeba zniszczyć: min(trafienia, statki celu). */
+  required: number;
+  rolls: SpaceCannonRoll[];
+};
+
+export type SpaceCannonShip = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  count: number;
+};
+
+export type SpaceCannonLogEntry = {
+  roller: string;
+  target: string;
+  hits: number;
+  passed: boolean;
+  rolls: SpaceCannonRoll[];
+  destroyed: Record<string, number>;
+};
+
+export type SpaceCannonPanel = {
+  position: string | null;
+  isOpen: boolean;
+  /** Okno zamknięte, ale było rozstrzygnięcie (dziennik niepusty). */
+  resolved: boolean;
+  queue: string[];
+  responded: string[];
+  current: string | null;
+  sides: SpaceCannonSide[];
+  pending: SpaceCannonPending | null;
+  targetShips: SpaceCannonShip[];
+  log: SpaceCannonLogEntry[];
+};
+
+/** Stan panelu Space Cannon Offense (kolejka, strzelcy, straty do przypisania, dziennik). */
+export function useSpaceCannon(enabled: boolean) {
+  return useQuery<SpaceCannonPanel>({
+    queryKey: ["spaceCannon"],
+    enabled,
+    queryFn: async () =>
+      fetchJson<SpaceCannonPanel>("/bot/tactical/space-cannon", "spaceCannon"),
+    staleTime: 0,
+  });
+}
 
 export type MoveRange = {
   active: string | null;

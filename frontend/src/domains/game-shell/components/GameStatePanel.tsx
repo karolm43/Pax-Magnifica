@@ -34,6 +34,7 @@ import {
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { MovementStepPanel } from "./MovementStepPanel";
+import { SpaceCannonStepPanel } from "./SpaceCannonStepPanel";
 import { DEFAULT_GAME_ID } from "@/config";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
@@ -1343,10 +1344,7 @@ export function TacticalActionPanel({
 
       {tacticalStep === "SPACE_CANNON" && (
         <div className={styles.stepBody}>
-          <span className={styles.prodNote}>
-            Space Cannon Offense — units with Space Cannon may fire at the active
-            player's ships. Full interactive step arrives in a later block.
-          </span>
+          <SpaceCannonStepPanel />
         </div>
       )}
 
