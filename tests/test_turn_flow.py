@@ -12,13 +12,18 @@ def _state_with_players() -> GameState:
     """Stan z 3 graczami, kartami strategii i JUŻ wykonaną akcją strategiczną.
 
     ``exhausted_strategy_cards`` = karta zagrana, więc gracz może pasować (RULES.md 31.2).
+    ``took_action_this_turn=True`` dla aktywnego p1 — wykonał akcję strategiczną, więc
+    może zakończyć turę (RULES.md 31.7). Pozostali dostają turę świeżą (reset w end_turn).
     """
     return GameState(
         phase=Phase.ACTION,
         active_player_id="p1",
         players={
             "p1": PlayerState(
-                player_id="p1", strategy_cards=[1], exhausted_strategy_cards=[1]
+                player_id="p1",
+                strategy_cards=[1],
+                exhausted_strategy_cards=[1],
+                took_action_this_turn=True,
             ),
             "p2": PlayerState(
                 player_id="p2", strategy_cards=[3], exhausted_strategy_cards=[3]
@@ -177,6 +182,45 @@ def test_end_turn_blocked_while_timing_window_open() -> None:
     )
     with pytest.raises(ValueError, match="while a timing window is open"):
         turn_flow.end_turn(state, "p1")
+
+
+def test_end_turn_requires_action_or_pass() -> None:
+    """RULES.md 31.7: nie można oddać tury bez akcji ani pasu (R_action_phase).
+
+    Aktywny gracz, który nic nie zrobił (``took_action_this_turn`` False) i nie
+    spasował, dostaje ValueError przy End turn.
+    """
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        players={
+            "p1": PlayerState(player_id="p1", strategy_cards=[1]),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3]),
+        },
+    )
+    with pytest.raises(ValueError, match="must take an action"):
+        turn_flow.end_turn(state, "p1")
+
+
+def test_end_turn_after_action_resets_next_player_flag() -> None:
+    """Po akcji End turn przechodzi, a NASTĘPNY gracz dostaje świeżą turę.
+
+    p1 wykonał akcję (flaga True) → End turn OK; p2 zaczyna z ``took_action_this_turn``
+    False (jego tura jest świeża — musi dopiero zrobić akcję/pas).
+    """
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        players={
+            "p1": PlayerState(
+                player_id="p1", strategy_cards=[1], took_action_this_turn=True
+            ),
+            "p2": PlayerState(player_id="p2", strategy_cards=[3]),
+        },
+    )
+    nxt = turn_flow.end_turn(state, "p1")
+    assert nxt.active_player_id == "p2"
+    assert nxt.players["p2"].took_action_this_turn is False
 
 
 def test_end_turn_wrong_player_rejected() -> None:

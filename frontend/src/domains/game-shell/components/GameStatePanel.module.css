@@ -481,9 +481,14 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Wyłączony = SZARY (neutralny), bez barwy akcji ani pulsu — także dla ctlPrimary. */
 .ctlBtn:disabled {
-  opacity: 0.5;
   cursor: default;
+  color: var(--ds-ink-lo, #94a3b8);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ds-h14, rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+  animation: none;
 }
 
 /* Picker kart strategii (faza strategii, Etap E2) --------------------- */
@@ -1262,34 +1267,7 @@
   color: rgb(var(--ds-sig-bio));
 }
 
-/* Inline potwierdzenie pasa w panelu faz. */
-.passConfirm {
-  flex: 1 1 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgb(var(--ds-sig-warn) / 0.12);
-  border: 1px solid rgb(var(--ds-sig-warn) / 0.4);
-}
-
-.passConfirmText {
-  font-size: var(--text-micro, 10px);
-  line-height: 1.35;
-  color: var(--ds-ink-hi);
-}
-
-.passConfirmBtns {
-  display: flex;
-  gap: 6px;
-}
-
-.passConfirmBtns .ctlBtn {
-  flex: 1 1 auto;
-}
-
-/* End turn „woła o uwagę" po pasie — pulsująca zielona poświata. */
+/* End turn „woła o uwagę" po akcji/pasie — pulsująca zielona poświata. */
 .ctlPrimary[data-nudge="true"] {
   border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.85);
   background: rgb(var(--ds-sig-bio, 110 231 183) / 0.34);

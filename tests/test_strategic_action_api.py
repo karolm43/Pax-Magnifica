@@ -86,3 +86,52 @@ def test_secondary_out_of_order_rejected(client: TestClient) -> None:
 def test_play_card_not_owned_rejected(client: TestClient) -> None:
     resp = client.post("/strategy/play", json={"player_id": "p1", "initiative": 4})
     assert resp.status_code == 422
+
+
+def test_playing_card_counts_as_action_enables_end_turn() -> None:
+    """RULES.md 31.7: zagranie karty strategii = AKCJA → End turn bez pasu.
+
+    Scenariusz fazy akcji: aktywny gracz zagrywa kartę (akcja strategiczna), co otwiera
+    okno secondary. End turn jest zablokowany, dopóki okno trwa (RULES.md 31.6). Po
+    decyzji wszystkich respondentów okno się zamyka, a End turn PRZECHODZI bez pasu, bo
+    gracz wykonał akcję (``tookActionThisTurn``).
+    """
+    from src.core.game_state import Phase
+
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        speaker_id="p1",
+        seating_order=["p1", "p2", "p3"],
+        players={
+            "p1": PlayerState(player_id="p1", color="red", strategy_cards=[1]),
+            "p2": PlayerState(player_id="p2", color="green", strategy_cards=[3]),
+            "p3": PlayerState(player_id="p3", color="blue", strategy_cards=[5]),
+        },
+    )
+    app = create_app(
+        registry=StaticDataRegistry(), store=EventStore(":memory:"), initial_state=state
+    )
+    client = TestClient(app)
+
+    # Zagranie karty = akcja strategiczna; otwiera okno secondary.
+    assert (
+        client.post("/strategy/play", json={"player_id": "p1", "initiative": 1}).status_code
+        == 200
+    )
+    data = client.get(
+        "/api/public/game/g/web-data", params={"viewing_player": "p1"}
+    ).json()
+    p1 = next(p for p in data["playerData"] if p["color"] == "red")
+    assert p1["tookActionThisTurn"] is True
+    assert p1["passed"] is False
+
+    # End turn w trakcie okna — zablokowany (RULES.md 31.6).
+    assert client.post("/turn/end", json={"player_id": "p1"}).status_code == 422
+
+    # Wszyscy odmawiają secondary → okno zamknięte.
+    client.post("/strategy/secondary", json={"player_id": "p2", "execute": False})
+    client.post("/strategy/secondary", json={"player_id": "p3", "execute": False})
+
+    # End turn BEZ pasu — przechodzi, bo gracz wykonał akcję strategiczną.
+    assert client.post("/turn/end", json={"player_id": "p1"}).status_code == 200

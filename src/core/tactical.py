@@ -92,6 +92,9 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
 
     # Zużycie z puli taktycznej (gwarantowane > 0 przez walidację).
     new_state.players[active_id].tactical_cc -= 1
+    # RULES.md 31.7: aktywacja systemu rozpoczyna AKCJĘ TAKTYCZNĄ — liczy się jako
+    # akcja tury, więc gracz będzie mógł zakończyć turę (End turn).
+    new_state.players[active_id].took_action_this_turn = True
 
     new_state.active_system = position
     new_state.tactical_step = TacticalStep.MOVEMENT

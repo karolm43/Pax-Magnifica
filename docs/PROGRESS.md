@@ -1209,3 +1209,34 @@ pasie tracił gracza i chował przyciski. Backend przez cały czas trzymał popr
 
 **QA (wszystko zielone):** backend `uv run pytest -q` 483 passed (+1), ruff + mypy czyste;
 frontend type-check + lint + build czyste.
+
+
+### ✅ Blok E8-T3b-ui — reguła „akcja albo pas przed End turn" + dopieszczony UI tury (ukończony)
+
+**Zgłoszenia użytkownika:** (1) box potwierdzenia pasa rozpychał panel (resize, brak
+spójności); (2) ważna reguła — gracz musi wykonać JAKĄŚ akcję (strategiczna/taktyczna/
+komponentu) albo spasować, i dopiero wtedy może dać End turn; (3) wyłączony przycisk dalej
+miał kolor akcji — ma być szary; (4) „Next phase" nie powinien wyglądać na szary (wyblakły).
+Dodatkowo potwierdzenie: ZAGRANIE KARTY STRATEGII to akcja (odblokowuje End turn).
+
+**Backend (sędzia — RULES.md 31.7, R_action_phase):**
+- [x] `PlayerState.took_action_this_turn` — flaga „akcja w bieżącej turze".
+- [x] Ustawiana: `strategic_action.play_strategy_card` (akcja strategiczna = zagranie karty),
+  `tactical.activate_system` (akcja taktyczna). Resetowana w `turn_flow.end_turn` (następny
+  gracz) i `next_phase` (wejście w fazę akcji).
+- [x] `turn_flow.end_turn` — 422, gdy aktywny gracz nie wykonał akcji ANI nie spasował.
+- [x] `web_data`: `playerData[].tookActionThisTurn` do frontu.
+- [x] `docs/RULES.md` 31.7; testy: `test_turn_flow` (wymóg akcji/pasu + reset flagi),
+  `test_strategic_action_api` (zagranie karty = akcja → End turn bez pasu po oknie).
+
+**Frontend (UI):**
+- [x] Potwierdzenie pasa = MODAL (`AppModal`), NIE inline — panel tury nie zmienia rozmiaru
+  (stabilny, spójny UI). Dotyczy `TurnControls` i `GameStatePanel.PhaseControls`.
+- [x] „End turn" aktywny dopiero gdy `tookActionThisTurn || passed` i brak okna; inaczej
+  SZARY + podpowiedź „Take an action or pass, then End turn." Po akcji/pasie pulsuje (nudge).
+- [x] Wyłączone przyciski = SZARE (neutralne), bez barwy akcji (CSS `:disabled` w obu panelach).
+- [x] „Next phase" dostał realny akcent (color-mix na `--ds-accent`), nie wygląda na szary.
+- [x] `types.ts`: `GameState.activeTurnPlayer` (z poprzedniego bloku) + `PlayerData.tookActionThisTurn`.
+
+**QA (wszystko zielone):** backend `uv run pytest -q` 486 passed, ruff + mypy czyste; frontend
+type-check + lint + build czyste.

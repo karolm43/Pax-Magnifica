@@ -118,9 +118,12 @@ def play_strategy_card(
     if effect is not None:
         effect(new_state, registry, player_id)
 
-    # 3. Oznacz kartę jako zagraną (idempotentnie).
+    # 3. Oznacz kartę jako zagraną (idempotentnie) + akcja strategiczna = akcja tury.
     if initiative not in target.exhausted_strategy_cards:
         target.exhausted_strategy_cards = [*target.exhausted_strategy_cards, initiative]
+    # RULES.md 31.7: akcja strategiczna liczy się jako AKCJA tury — gracz może teraz
+    # zakończyć turę (End turn przestaje być zablokowany „brakiem akcji").
+    target.took_action_this_turn = True
 
     # 4. Otwórz okno secondary z kolejką pozostałych graczy (inicjator pominięty).
     queue = timing.build_response_queue(new_state, player_id)

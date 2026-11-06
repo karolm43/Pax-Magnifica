@@ -23,7 +23,8 @@ import { SC_NAMES } from "@/entities/data/strategyCardColors";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { DetailsCard, type DetailsCardColor } from "@/shared/ui/DetailsCard";
-import { Stack } from "@/ds";
+import { Button, Group, Stack, Text } from "@/ds";
+import { AppModal } from "@/shared/ui/AppModal";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { useDeskPlayer } from "./useDeskPlayer";
 import styles from "./TurnControls.module.css";
@@ -132,12 +133,16 @@ export function TurnControls() {
   const canPass = !hasCard || played;
   const activeName = getPlayerFactionDisplayName(active);
   // Czy gracz JUŻ spasował w tej fazie akcji. Pas ≠ koniec tury (RULES.md 31.5):
-  // po pasie trzeba jeszcze oddać turę przez End turn. Steruje wyróżnieniem
-  // (nudge) przycisku End turn i podpowiedzią.
+  // po pasie trzeba jeszcze oddać turę przez End turn.
   const hasPassed = active.passed === true;
-  // End turn „woła o uwagę" tylko gdy gracz spasował, a nic nie blokuje oddania
-  // tury (okno secondary zamknięte).
-  const nudgeEndTurn = isAction && hasPassed && !windowOpen;
+  // Czy gracz wykonał AKCJĘ w tej turze (strategiczna/taktyczna/komponentu —
+  // RULES.md 31.7). End turn jest możliwy dopiero po akcji LUB pasie.
+  const tookAction = active.tookActionThisTurn === true;
+  // End turn wolno dać, gdy gracz zrobił akcję albo spasował, i nie trwa okno.
+  const canEndTurn = isAction && (tookAction || hasPassed) && !windowOpen;
+  // End turn „woła o uwagę" (nudge), gdy jest już możliwy do kliknięcia — głównie po
+  // pasie, ale też po akcji, gdy gracz może zapomnieć oddać turę.
+  const nudgeEndTurn = canEndTurn;
 
   const run = (fn: () => Promise<void>) => {
     if (busy) return;
@@ -191,73 +196,43 @@ export function TurnControls() {
         </header>
 
         <div className={styles.actionBtns}>
-          {/* Faza AKCJI: Pass (po akcji strategicznej) + End turn. Pas przechodzi
-              przez krok POTWIERDZENIA, bo łatwo przeoczyć, że trzeba jeszcze oddać
-              turę (pas ≠ koniec tury, RULES.md 31.5). */}
+          {/* Faza AKCJI: Pass (po akcji strategicznej) + End turn. Pas otwiera MODAL
+              potwierdzenia (bez przerzucania layoutu panelu — RULES.md 31.5). End turn
+              możliwy dopiero po akcji lub pasie (RULES.md 31.7). */}
           {isAction && (
             <>
-              {confirmingPass ? (
-                <div className={styles.confirm}>
-                  <p className={styles.confirmText}>Pass this round?</p>
-                  <p className={styles.confirmSub}>
-                    Passing ends your turns for this Action Phase. You still have
-                    to hand over this turn with End turn afterwards.
-                  </p>
-                  <div className={styles.confirmBtns}>
-                    <button
-                      type="button"
-                      className={styles.confirmNo}
-                      disabled={busy}
-                      onClick={() => setConfirmingPass(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.confirmYes}
-                      disabled={busy}
-                      onClick={() =>
-                        run(() =>
-                          passTurn().finally(() => setConfirmingPass(false)),
-                        )
-                      }
-                    >
-                      Yes, pass
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.pass}
-                  style={{ "--d": "0ms" } as CSSProperties}
-                  disabled={busy || hasPassed}
-                  onClick={() => setConfirmingPass(true)}
-                  title={
-                    hasPassed
-                      ? "You already passed — hand over with End turn"
-                      : canPass
-                        ? "Pass, then End turn to hand over"
-                        : "Play your Strategy Card before passing."
-                  }
-                >
-                  <IconHandStop size={16} aria-hidden="true" />
-                  <span>Pass</span>
-                </button>
-              )}
+              <button
+                type="button"
+                className={styles.pass}
+                style={{ "--d": "0ms" } as CSSProperties}
+                disabled={busy || hasPassed || !canPass}
+                onClick={() => setConfirmingPass(true)}
+                title={
+                  hasPassed
+                    ? "You already passed — hand over with End turn"
+                    : canPass
+                      ? "Pass, then End turn to hand over"
+                      : "Play your Strategy Card before passing."
+                }
+              >
+                <IconHandStop size={16} aria-hidden="true" />
+                <span>Pass</span>
+              </button>
               <button
                 type="button"
                 className={styles.endTurn}
                 style={{ "--d": "60ms" } as CSSProperties}
                 data-nudge={nudgeEndTurn ? "true" : undefined}
-                disabled={busy || windowOpen}
+                disabled={busy || !canEndTurn}
                 onClick={() => run(() => endTurn())}
                 title={
                   windowOpen
                     ? "Wait — every player must decide on the secondary first"
                     : hasPassed
                       ? "You passed — end your turn to hand over"
-                      : "End your turn (also after passing)"
+                      : tookAction
+                        ? "End your turn to hand over"
+                        : "Take an action or pass before ending your turn"
                 }
               >
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
@@ -338,7 +313,7 @@ export function TurnControls() {
         </div>
 
         {/* Podpowiedź, gdy Pass zablokowany (zanim zagrasz kartę). */}
-        {isAction && !canPass && (
+        {isAction && !canPass && !hasPassed && (
           <p className={styles.hint}>Play your Strategy Card first to pass.</p>
         )}
         {/* Podpowiedź, gdy End turn zablokowany przez otwarte okno secondary. */}
@@ -347,14 +322,60 @@ export function TurnControls() {
             Waiting for every player to follow or decline the secondary.
           </p>
         )}
-        {/* Po pasie: jawne przypomnienie, że tura wciąż trzeba oddać (pas ≠ koniec). */}
-        {isAction && hasPassed && !windowOpen && !confirmingPass && (
+        {/* Trzeba najpierw wykonać akcję albo spasować (RULES.md 31.7). */}
+        {isAction && !tookAction && !hasPassed && !windowOpen && (
+          <p className={styles.hint}>
+            <IconInfoCircle size={13} aria-hidden="true" />
+            <span>Take an action or pass, then End turn.</span>
+          </p>
+        )}
+        {/* Po akcji/pasie: przypomnienie, że tura wciąż trzeba oddać. */}
+        {isAction && canEndTurn && (
           <p className={styles.hintPassed}>
             <IconInfoCircle size={13} aria-hidden="true" />
-            <span>You passed — now press End turn to hand over.</span>
+            <span>
+              {hasPassed
+                ? "You passed — now press End turn to hand over."
+                : "Action done — press End turn to hand over."}
+            </span>
           </p>
         )}
       </div>
+
+      {/* MODAL potwierdzenia pasa — osobny overlay, żeby panel akcji NIE zmieniał
+          rozmiaru (spójny, stabilny UI). Pas jest „jak akcja", ale nie kończy tury. */}
+      <AppModal
+        opened={confirmingPass}
+        onClose={() => setConfirmingPass(false)}
+        title="Pass this round?"
+        size={420}
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Passing ends your turns for this Action Phase. You can still resolve
+            other players' strategy card secondaries. You still have to hand over
+            this turn with <b>End turn</b> afterwards.
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button
+              variant="default"
+              disabled={busy}
+              onClick={() => setConfirmingPass(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={busy}
+              leftSection={<IconHandStop size={16} />}
+              onClick={() =>
+                run(() => passTurn().finally(() => setConfirmingPass(false)))
+              }
+            >
+              Yes, pass
+            </Button>
+          </Group>
+        </Stack>
+      </AppModal>
     </>
   );
 }

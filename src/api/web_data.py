@@ -1019,6 +1019,9 @@ def _build_player_data(
                 "isSpeaker": state.speaker_id == player_id,
                 "isTyrant": False,
                 "passed": player.passed,
+                # Czy gracz wykonał już akcję w BIEŻĄCEJ turze fazy akcji (RULES.md
+                # 31.7). UI blokuje „End turn", dopóki to False i gracz nie spasował.
+                "tookActionThisTurn": player.took_action_this_turn,
                 "eliminated": False,
                 "active": active_id == player_id,
                 # Zasoby / liczniki (viewer czyta je w panelach gracza).

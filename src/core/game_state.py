@@ -179,6 +179,13 @@ class PlayerState(BaseModel):
 
     # Czy gracz spasował w fazie akcji.
     passed: bool = False
+    # Czy gracz WYKONAŁ już akcję w BIEŻĄCEJ turze fazy akcji (RULES.md 31.7,
+    # R_action_phase: „During a player's turn, they perform a single action"). Jedna
+    # z: akcja strategiczna, taktyczna (aktywacja systemu) albo komponentu — pas jest
+    # osobną ścieżką (``passed``). Flaga jest RESETOWANA przy każdym przekazaniu tury
+    # (``end_turn``) i przy wejściu w fazę akcji, bo dotyczy POJEDYNCZEJ tury, nie całej
+    # fazy. End turn jest zablokowany, dopóki gracz nie wykona akcji LUB nie spasuje.
+    took_action_this_turn: bool = False
     # Karty strategii gracza (numery inicjatywy, np. [3]); puste poza fazą.
     strategy_cards: list[int] = Field(default_factory=list)
     # Zagrane (wyczerpane) karty strategii gracza — po użyciu primary (odwrócone).

@@ -1516,6 +1516,38 @@ gracz wyczerpuje kartę i kontynuuje. Czyli: nie można zakończyć tury „w ś
   robi „follow" (efekt liczbowy secondary) jest poza zakresem tego kroku (dispatch efektów
   w `strategic_action` dojdzie kartą po karcie, patrz RULES.md 30).
 
+### 31.7. End turn wymaga AKCJI albo PASU — ✅ ZWERYFIKOWANE (R_action_phase)
+
+📎 tirules: [Action Phase](rules_tirules/R_action_phase.md)
+
+Ustalono z użytkownikiem. Gracz nie może oddać tury „bez niczego": w swojej turze fazy
+akcji musi wykonać JEDNĄ akcję albo spasować, i dopiero wtedy odda turę.
+
+**Reguła źródłowa (R_action_phase):** „During a player's turn, they perform a **single
+action**" — jedna z trzech: akcja strategiczna, taktyczna albo komponentu. „If a player
+cannot perform an action, they must pass." Czyli tura = akcja XOR pas; nie ma „pustej" tury.
+
+**Model (``PlayerState.took_action_this_turn``):** flaga „gracz wykonał akcję w BIEŻĄCEJ
+turze". Ustawiana na `True` przez:
+- akcję strategiczną — `strategic_action.play_strategy_card` (ZAGRANIE KARTY STRATEGII
+  liczy się jako akcja);
+- akcję taktyczną — `tactical.activate_system` (aktywacja systemu rozpoczyna akcję);
+- (akcja komponentu — gdy dojdzie jej endpoint, ustawi tę samą flagę).
+RESETOWANA przy każdym przekazaniu tury (`end_turn` zeruje ją następnemu graczowi) i przy
+wejściu w fazę akcji (`next_phase`) — bo dotyczy POJEDYNCZEJ tury, nie całej fazy.
+
+**Egzekucja (sędzia):**
+- `turn_flow.end_turn` rzuca `ValueError` („You must take an action … or pass before ending
+  your turn.") → HTTP 422, gdy aktywny gracz NIE ma `took_action_this_turn` ANI `passed`.
+- Pas (`pass_turn`) jest osobną, dozwoloną ścieżką zakończenia tury (RULES.md 31.5): po pasie
+  End turn przechodzi mimo braku „akcji" (pas JEST zakończeniem aktywności w rundzie).
+- God-Mode omija (operator może oddać turę ręcznie).
+
+**UI (web-data + panele):** `playerData[].tookActionThisTurn` niesie flagę do frontu. „End
+turn" jest aktywny dopiero, gdy `tookActionThisTurn || passed` i nie trwa okno; wcześniej
+jest SZARY (wyłączony) z podpowiedzią „Take an action or pass, then End turn." Po akcji/pasie
+przycisk pulsuje (nudge) + drobna informacja, że trzeba jeszcze oddać turę.
+
 ---
 
 ## 32. Ruch statków: egzekucja legalności (akcja taktyczna) — ✅ ZWERYFIKOWANE (LRR 2.0)

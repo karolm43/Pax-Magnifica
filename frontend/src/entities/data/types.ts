@@ -561,6 +561,12 @@ export type PlayerData = {
   isSpeaker: boolean;
   isTyrant: boolean;
   passed: boolean;
+  /**
+   * Czy gracz wykonał już akcję w BIEŻĄCEJ turze fazy akcji (RULES.md 31.7). UI
+   * blokuje „End turn", dopóki to false i gracz nie spasował. Pole opcjonalne dla
+   * zgodności ze starymi migawkami (brak = traktuj jak false).
+   */
+  tookActionThisTurn?: boolean;
   eliminated: boolean;
   active: boolean;
   tacticalCC: number;

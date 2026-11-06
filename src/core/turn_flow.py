@@ -167,15 +167,33 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     typu okna (secondary, przypisanie strat, space cannon, reakcja) — turę można oddać
     tylko „między" oknami, nie w ich trakcie.
 
+    SĘDZIA akcji (RULES.md 31.7, R_action_phase „perform a single action"): aktywny
+    gracz musi w tej turze WYKONAĆ akcję (``took_action_this_turn``) albo SPASOWAĆ
+    (``passed``), zanim odda turę. Nie wolno oddać tury „bez niczego". Po przekazaniu
+    tury flaga akcji NASTĘPNEGO gracza jest resetowana (to jego świeża tura).
+
     Raises:
-        ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``), lub
-            gdy trwa otwarte okno czasowe (najpierw je rozstrzygnij).
+        ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``),
+            gdy trwa otwarte okno czasowe (najpierw je rozstrzygnij), lub gdy aktywny
+            gracz nie wykonał w tej turze żadnej akcji ani nie spasował.
     """
     _require_action_turn(state, player_id)
     if state.pending_window is not None:
         raise ValueError(
             "Cannot end the turn while a timing window is open - every player must "
             "decide on the secondary first."
+        )
+    current = state.active_player_id
+    assert current is not None  # zagwarantowane przez _require_action_turn
+    current_player = state.players.get(current)
+    if (
+        current_player is not None
+        and not current_player.took_action_this_turn
+        and not current_player.passed
+    ):
+        raise ValueError(
+            "You must take an action (strategic, tactical, or component) or pass "
+            "before ending your turn."
         )
     new_state = state.clone()
     nxt = next_unpassed_player(new_state, new_state.active_player_id)
@@ -185,6 +203,10 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
         new_state.active_player_id = new_state.speaker_id or new_state.active_player_id
     else:
         new_state.active_player_id = nxt
+    # Nowa tura dla następnego aktywnego gracza — zeruj jego znacznik „akcja w turze".
+    nxt_id = new_state.active_player_id
+    if nxt_id is not None and nxt_id in new_state.players:
+        new_state.players[nxt_id].took_action_this_turn = False
     return new_state
 
 
@@ -308,6 +330,10 @@ def next_phase(state: GameState) -> GameState:
     # mówcy „Next phase" pojawiał się dopiero po komplecie (DECYZJA PROJEKTOWA 2026-11).
     for player in new_state.players.values():
         player.passed = False
+    # Wejście w nową fazę = świeże tury: zeruj znacznik „akcja w turze" wszystkim
+    # (dotyczy fazy akcji; w innych fazach pole i tak nieużywane, ale trzymamy czysto).
+    for player in new_state.players.values():
+        player.took_action_this_turn = False
     if new_state.phase is Phase.ACTION:
         # Faza akcji: kolejność tur wg ŚCISŁEJ INICJATYWY kart (RULES.md 9, R9.6).
         # Komplet kart zagwarantowany przez ensure_strategy_complete powyżej.

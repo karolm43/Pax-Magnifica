@@ -6,7 +6,8 @@
   type ReactNode,
 } from "react";
 import { useParams } from "react-router-dom";
-import { Collapse, UnstyledButton } from "@/ds";
+import { Button, Collapse, Group, Stack, Text, UnstyledButton } from "@/ds";
+import { AppModal } from "@/shared/ui/AppModal";
 import {
   IconArrowsMove,
   IconBolt,
@@ -1703,10 +1704,12 @@ function PhaseControls({
   const isAgenda = phase.startsWith("agenda");
   // Otwarte okno czasowe (secondary itp.) blokuje End turn (RULES.md 31.6).
   const windowOpen = gameState.pendingWindow != null;
-  // Czy aktywny gracz już spasował — po pasie wyróżniamy End turn i przypominamy,
-  // że trzeba jeszcze oddać turę.
+  // Czy aktywny gracz już spasował / wykonał akcję w tej turze (RULES.md 31.5/31.7).
   const hasPassed = activePlayer?.passed === true;
-  const nudgeEndTurn = isAction && hasPassed && !windowOpen;
+  const tookAction = activePlayer?.tookActionThisTurn === true;
+  // End turn możliwy dopiero po akcji lub pasie i gdy nie trwa okno czasowe.
+  const canEndTurn = isAction && (tookAction || hasPassed) && !windowOpen;
+  const nudgeEndTurn = canEndTurn;
   // „Next phase" widzi ZAWSZE mówca; gdy przejście nie jest dozwolone, klik zwróci
   // 422 i panel komunikatów to pokaże (DECYZJA 2026-11). Bez twardego ukrywania.
   const isSpeaker =
@@ -1723,35 +1726,73 @@ function PhaseControls({
             type="button"
             className={cx(styles.ctlBtn, styles.ctlPrimary)}
             data-nudge={nudgeEndTurn ? "true" : undefined}
-            disabled={busy || windowOpen}
+            disabled={busy || !canEndTurn}
             onClick={() => void run(() => endTurn())}
             title={
               windowOpen
                 ? "Wait — every player must decide on the secondary first"
                 : hasPassed
                   ? "You passed — end your turn to hand over"
-                  : "End your turn (also after passing)"
+                  : tookAction
+                    ? "End your turn to hand over"
+                    : "Take an action or pass before ending your turn"
             }
           >
             End turn
           </button>
-          {confirmingPass ? (
-            <div className={styles.passConfirm}>
-              <span className={styles.passConfirmText}>
-                Pass this round? You still have to End turn afterwards.
-              </span>
-              <div className={styles.passConfirmBtns}>
-                <button
-                  type="button"
-                  className={styles.ctlBtn}
+          <button
+            type="button"
+            className={styles.ctlBtn}
+            disabled={busy || hasPassed || !canPass}
+            onClick={() => setConfirmingPass(true)}
+            title={
+              hasPassed
+                ? "You already passed — hand over with End turn"
+                : canPass
+                  ? "Pass — then End turn to hand over"
+                  : (passBlockReason ?? "You cannot pass yet.")
+            }
+          >
+            Pass
+          </button>
+          {/* Dlaczego pas jest zablokowany — czytelna podpowiedź przy przycisku. */}
+          {!canPass && !hasPassed && passBlockReason && (
+            <span className={styles.passHint}>{passBlockReason}</span>
+          )}
+          {/* Trzeba najpierw wykonać akcję albo spasować (RULES.md 31.7). */}
+          {!tookAction && !hasPassed && !windowOpen && (
+            <span className={styles.passHint}>
+              Take an action or pass, then End turn.
+            </span>
+          )}
+          {/* Po akcji/pasie: przypomnienie, że tura wciąż trzeba oddać. */}
+          {canEndTurn && (
+            <span className={styles.passedHint}>
+              {hasPassed
+                ? "You passed — now press End turn to hand over."
+                : "Action done — press End turn to hand over."}
+            </span>
+          )}
+          <AppModal
+            opened={confirmingPass}
+            onClose={() => setConfirmingPass(false)}
+            title="Pass this round?"
+            size={420}
+          >
+            <Stack gap="md">
+              <Text size="sm">
+                Passing ends your turns for this Action Phase. You still have to
+                hand over this turn with <b>End turn</b> afterwards.
+              </Text>
+              <Group justify="flex-end" gap="sm">
+                <Button
+                  variant="default"
                   disabled={busy}
                   onClick={() => setConfirmingPass(false)}
                 >
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  className={styles.ctlBtn}
+                </Button>
+                <Button
                   disabled={busy}
                   onClick={() =>
                     void run(() =>
@@ -1760,36 +1801,10 @@ function PhaseControls({
                   }
                 >
                   Yes, pass
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className={styles.ctlBtn}
-              disabled={busy || hasPassed}
-              onClick={() => setConfirmingPass(true)}
-              title={
-                hasPassed
-                  ? "You already passed — hand over with End turn"
-                  : canPass
-                    ? "Pass — then End turn to hand over"
-                    : (passBlockReason ?? "You cannot pass yet.")
-              }
-            >
-              Pass
-            </button>
-          )}
-          {/* Dlaczego pas jest zablokowany — czytelna podpowiedź przy przycisku. */}
-          {!canPass && !hasPassed && passBlockReason && (
-            <span className={styles.passHint}>{passBlockReason}</span>
-          )}
-          {/* Po pasie: przypomnienie, że tura wciąż trzeba oddać. */}
-          {hasPassed && !windowOpen && !confirmingPass && (
-            <span className={styles.passedHint}>
-              You passed — now press End turn to hand over.
-            </span>
-          )}
+                </Button>
+              </Group>
+            </Stack>
+          </AppModal>
         </>
       )}
       {/* Faza statusu: „Next player" KOŃCZY krok gracza i przesuwa dalej. Wołamy
