@@ -1004,6 +1004,50 @@
   gap: 7px;
 }
 
+/* Monitor floty: nagłówek „Fleet here" + plakietka pojemności. */
+.moveMonitorHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.capBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--ds-ink);
+  background: rgb(var(--ds-sig-ability) / 0.14);
+  border: 1px solid rgb(var(--ds-sig-ability) / 0.4);
+  border-radius: 999px;
+}
+
+/* Przekroczona pojemność — czerwony sygnał (nadwyżkę trzeba zdjąć). */
+.capBadge[data-over] {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.2);
+  border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.6);
+}
+
+/* Przełącznik „pokaż/ukryj kreator ruchu" (link-button, subtelny). */
+.moveToggle {
+  justify-self: start;
+  padding: 3px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-ink-lo);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.moveToggle:hover {
+  color: var(--ds-ink-hi);
+}
+
 .prodHead {
   display: flex;
   align-items: center;
