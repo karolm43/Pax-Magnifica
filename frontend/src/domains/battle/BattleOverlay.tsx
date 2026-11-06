@@ -1,4 +1,10 @@
-import { useState, type CSSProperties } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { IconMinimize, IconSwords } from "@tabler/icons-react";
@@ -25,37 +31,131 @@ import { BattleFleet } from "./BattleFleet";
 import { BattleCenter } from "./BattleCenter";
 import styles from "./BattleOverlay.module.css";
 
-/** Warstwa pocisków salwy: tory od strzelającej strony do przeciwnej, rozbłysk przy trafieniu. */
-function VolleyLayer({ volley }: { volley: Volley | null }) {
-  if (!volley) return null;
+/* Czas lotu pocisku (ms) — spójny z animacją `beamTravel` w CSS. */
+const TRAVEL_MS = 420;
+
+/* Grafika tła pola bitwy (podmienna przez użytkownika): plik w `assets/extra/`, serwowany
+   przez backend pod `/static`. Brak pliku = brak obrazka (bez placeholdera). */
+const BATTLE_BACKGROUND: Record<"space" | "ground", string> = {
+  space: "/static/extra/battle_background.jpg",
+  ground: "/static/extra/battle_ground.jpg",
+};
+
+type Shot = {
+  id: string;
+  x1: number;
+  y1: number;
+  tx: number;
+  ty: number;
+  len: number;
+  angle: number;
+  hit: boolean;
+  afb: boolean;
+  delayMs: number;
+};
+
+/**
+ * Warstwa salwy: każdy pocisk startuje z KONKRETNEGO okrętu (typ, który rzucał kością) i
+ * leci do okrętu przeciwnika — trafienie kończy się rozbłyskiem na celu, pudło mija cel.
+ * Położenia mierzymy z DOM (atrybuty ``data-ship-side``/``data-ship-base`` okrętów) w chwili
+ * salwy, względem pola bitwy. AFB celuje w myśliwce, gdy są.
+ */
+function VolleyLayer({
+  volley,
+  fieldRef,
+}: {
+  volley: Volley | null;
+  fieldRef: RefObject<HTMLDivElement | null>;
+}) {
+  const [shots, setShots] = useState<{ id: number; list: Shot[] } | null>(null);
+
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    if (!volley || !field) return;
+    const box = field.getBoundingClientRect();
+    const center = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
+    };
+    const query = (selector: string) => [...field.querySelectorAll(selector)];
+    const list = volley.bolts.flatMap((bolt): Shot[] => {
+      const enemy = bolt.from === "left" ? "right" : "left";
+      const own = query(`[data-ship-side="${bolt.from}"][data-ship-base="${bolt.baseType}"]`);
+      const pool = own.length ? own : query(`[data-ship-side="${bolt.from}"]`);
+      const fighters =
+        volley.phase === "AFB"
+          ? query(`[data-ship-side="${enemy}"][data-ship-base="fighter"]`)
+          : [];
+      const targets = fighters.length ? fighters : query(`[data-ship-side="${enemy}"]`);
+      if (pool.length === 0 || targets.length === 0) return [];
+      const from = center(pool[bolt.shot % pool.length]);
+      const to = center(targets[Math.floor(Math.random() * targets.length)]);
+      // Pudło: pocisk mija cel (odchylenie w pionie i poziomie).
+      const tx = bolt.hit ? to.x : to.x + (Math.random() - 0.5) * 90;
+      const ty = bolt.hit
+        ? to.y
+        : to.y + (Math.random() < 0.5 ? -1 : 1) * (36 + Math.random() * 46);
+      const dx = tx - from.x;
+      const dy = ty - from.y;
+      return [
+        {
+          id: bolt.id,
+          x1: from.x,
+          y1: from.y,
+          tx,
+          ty,
+          len: Math.hypot(dx, dy),
+          angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+          hit: bolt.hit,
+          afb: volley.phase === "AFB",
+          delayMs: bolt.delayMs,
+        },
+      ];
+    });
+    setShots({ id: volley.id, list });
+  }, [volley, fieldRef]);
+
+  if (!volley || !shots || shots.id !== volley.id) return null;
   return (
-    <div className={styles.volleyLayer} aria-hidden="true" key={volley.id}>
-      {volley.bolts.map((bolt) => (
+    <div className={styles.volleyLayer} aria-hidden="true">
+      {shots.list.map((s) => (
         <span
-          key={bolt.id}
-          className={styles.bolt}
-          data-from={bolt.from}
-          data-hit={bolt.hit || undefined}
-          data-afb={volley.phase === "AFB" || undefined}
+          key={s.id}
+          className={styles.beam}
+          data-hit={s.hit || undefined}
+          data-afb={s.afb || undefined}
           style={
             {
-              "--lane": `${bolt.lane}%`,
-              "--delay": `${bolt.delayMs}ms`,
+              left: s.x1,
+              top: s.y1,
+              width: s.len,
+              transform: `rotate(${s.angle}deg)`,
+              "--len": `${s.len}px`,
+              "--delay": `${s.delayMs}ms`,
             } as CSSProperties
           }
+        >
+          <span className={styles.beamCore} />
+        </span>
+      ))}
+      {shots.list.map((s) => (
+        <span
+          key={`${s.id}-muzzle`}
+          className={styles.muzzle}
+          style={{ left: s.x1, top: s.y1, "--delay": `${s.delayMs}ms` } as CSSProperties}
         />
       ))}
-      {volley.bolts
-        .filter((bolt) => bolt.hit)
-        .map((bolt) => (
+      {shots.list
+        .filter((s) => s.hit)
+        .map((s) => (
           <span
-            key={`${bolt.id}-impact`}
+            key={`${s.id}-impact`}
             className={styles.impact}
-            data-from={bolt.from}
             style={
               {
-                "--lane": `${bolt.lane}%`,
-                "--delay": `${bolt.delayMs + 430}ms`,
+                left: s.tx,
+                top: s.ty,
+                "--delay": `${s.delayMs + TRAVEL_MS}ms`,
               } as CSSProperties
             }
           />
@@ -88,6 +188,7 @@ function Battlefield({ view }: { view: BattleView }) {
   const clearNotice = useAppStore((s) => s.clearNotice);
   const { battleAfb, battleRoll, battleAssign, battleClose } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  const fieldRef = useRef<HTMLDivElement>(null);
 
   const attacker = view.attacker!;
   const defender = view.defender!;
@@ -160,6 +261,15 @@ function Battlefield({ view }: { view: BattleView }) {
       aria-label={`${view.kind === "ground" ? "Ground" : "Space"} combat: ${a.name} vs ${d.name}`}
       style={{ "--left-rgb": a.rgb, "--right-rgb": d.rgb } as CSSProperties}
     >
+      {/* Miejsce na grafikę tła (assets/extra/battle_background.jpg / battle_ground.jpg)
+          + przyciemnienie dla czytelności. Bez pliku zostaje ciemne tło z gwiazdami. */}
+      <div
+        className={styles.backdrop}
+        style={{
+          backgroundImage: `url("${BATTLE_BACKGROUND[view.kind === "ground" ? "ground" : "space"]}")`,
+        }}
+        aria-hidden="true"
+      />
       <div className={styles.stars} aria-hidden="true" />
       <header className={styles.topBar}>
         <span className={styles.topTitle}>
@@ -193,7 +303,7 @@ function Battlefield({ view }: { view: BattleView }) {
         </div>
       )}
 
-      <div className={styles.field}>
+      <div className={styles.field} ref={fieldRef}>
         <BattleFleet
           side={attacker}
           views={attackerViews}
@@ -235,7 +345,7 @@ function Battlefield({ view }: { view: BattleView }) {
           marks={view.assigning === defender.faction ? marks : {}}
           onToggle={toggle}
         />
-        <VolleyLayer volley={volley} />
+        <VolleyLayer volley={volley} fieldRef={fieldRef} />
       </div>
     </div>
   );

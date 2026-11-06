@@ -50,8 +50,10 @@ export type Bolt = {
   /** Strona strzelająca: lewa (atakujący) albo prawa (obrońca). */
   from: "left" | "right";
   hit: boolean;
-  /** Tor w pionie (0–100 %). */
-  lane: number;
+  /** Typ jednostki, która oddała strzał (pocisk startuje z okrętu tego typu). */
+  baseType: string;
+  /** Indeks pocisku w obrębie typu — rozdziela strzały między egzemplarze. */
+  shot: number;
   delayMs: number;
 };
 
@@ -65,19 +67,25 @@ function boltsFor(
 ): Bolt[] {
   const rolls = entry.rolls[player] ?? [];
   const dice = rolls.flatMap((roll) =>
-    roll.dice.map((value) => value + roll.modifier >= roll.hitsOn),
+    roll.dice.map((value, shot) => ({
+      baseType: roll.baseType,
+      shot,
+      hit: value + roll.modifier >= roll.hitsOn,
+    })),
   );
   // Trafienia najpierw, żeby przy limicie pocisków zawsze były widoczne.
-  const ordered = [...dice.filter(Boolean), ...dice.filter((hit) => !hit)].slice(
+  const ordered = [...dice.filter((d) => d.hit), ...dice.filter((d) => !d.hit)].slice(
     0,
     MAX_BOLTS_PER_SIDE,
   );
-  return ordered.map((hit, i) => ({
+  return ordered.map((die, i) => ({
     id: `${volleyId}-${from}-${i}`,
     from,
-    hit,
-    lane: 12 + Math.random() * 76,
-    delayMs: (from === "left" ? 0 : 520) + i * 70 + Math.random() * 40,
+    hit: die.hit,
+    baseType: die.baseType,
+    shot: die.shot,
+    // Atakujący strzela pierwszy, obrońca odpowiada (RULES.md 39 W5).
+    delayMs: (from === "left" ? 0 : 650) + i * 85 + Math.random() * 50,
   }));
 }
 

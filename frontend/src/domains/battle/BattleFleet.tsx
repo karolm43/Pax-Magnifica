@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { IconShieldHalfFilled, IconSkull, IconSwords } from "@tabler/icons-react";
+import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { BattleSide } from "@/api/useBoardEditor";
@@ -7,21 +7,36 @@ import type { Mark, ShipEntity } from "./battleAssign";
 import type { ShipView } from "./useBattleFx";
 import styles from "./BattleOverlay.module.css";
 
-/* Rozmiar okrętu na polu bitwy wg typu (asyncId) — duże okręty liniowe, małe myśliwce. */
+/* Rozmiar okrętu na polu bitwy wg typu (asyncId): okręty liniowe wyraźnie większe od
+   eskorty, myśliwce i piechota małe — skala oddaje „wagę" jednostki. */
 const SHIP_SIZE: Record<string, number> = {
-  ws: 92,
-  fs: 92,
-  dn: 78,
-  cv: 70,
-  ca: 64,
-  dd: 58,
-  mf: 62,
-  ff: 42,
-  gf: 44,
+  ws: 112,
+  fs: 108,
+  dn: 94,
+  cv: 84,
+  ca: 72,
+  dd: 62,
+  ff: 36,
+  mf: 66,
+  gf: 42,
+};
+
+/* Szereg w szyku bitewnym (0 = pierwsza linia, najbliżej przeciwnika): myśliwce i
+   niszczyciele z przodu, okręty liniowe z tyłu; w walce naziemnej piechota przed mechami. */
+const RANK: Record<string, number> = {
+  ff: 0,
+  gf: 0,
+  dd: 1,
+  mf: 1,
+  ca: 2,
+  cv: 3,
+  dn: 4,
+  fs: 5,
+  ws: 5,
 };
 
 function shipSize(asyncId: string): number {
-  return SHIP_SIZE[asyncId] ?? 60;
+  return SHIP_SIZE[asyncId] ?? 64;
 }
 
 /** „Życie" egzemplarza: 2 punkty (Sustain gotowy), 1 (uszkodzony/zwykły). */
@@ -30,8 +45,19 @@ function hpPips(ship: ShipEntity): { full: number; total: number } {
   return { full: 1, total: 1 };
 }
 
+/** Grupuje egzemplarze w szeregi wg ``RANK`` (od pierwszej linii). */
+function ranks(views: ShipView[]): ShipView[][] {
+  const byRank = new Map<number, ShipView[]>();
+  for (const view of views) {
+    const rank = RANK[view.ship.asyncId] ?? 3;
+    byRank.set(rank, [...(byRank.get(rank) ?? []), view]);
+  }
+  return [...byRank.entries()].sort((a, b) => a[0] - b[0]).map(([, list]) => list);
+}
+
 function ShipToken({
   view,
+  rank,
   index,
   side,
   colorAlias,
@@ -41,6 +67,7 @@ function ShipToken({
   onToggle,
 }: {
   view: ShipView;
+  rank: number;
   index: number;
   side: "left" | "right";
   colorAlias: string;
@@ -53,12 +80,29 @@ function ShipToken({
   const size = shipSize(ship.asyncId);
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
+  const style = {
+    "--rank": rank,
+    "--i": index,
+    "--dir": side === "left" ? -1 : 1,
+    "--slot": `${size}px`,
+    "--ship-size": `${Math.round(size * 0.78)}px`,
+  } as CSSProperties;
+  const common = {
+    className: styles.ship,
+    style,
+    "data-side": side,
+    "data-base": ship.asyncId,
+    "data-damaged": ship.damaged || undefined,
+    "data-mark": mark,
+    // Cel pocisków salwy — warstwa animacji mierzy położenia po tych atrybutach. Także
+    // egzemplarze eksplodujące (np. myśliwce zestrzelone przez AFB w tej samej salwie):
+    // pociski do nich dolatują, zanim wybuchną (wybuch jest opóźniony w CSS).
+    "data-ship-side": side,
+    "data-ship-base": ship.baseType,
+  };
   const content = (
     <>
-      <span
-        className={styles.shipSprite}
-        style={{ width: size, height: size, "--ship-size": `${size}px` } as CSSProperties}
-      >
+      <span className={styles.shipSprite}>
         <Unit unitType={ship.asyncId} colorAlias={colorAlias} faction={faction} scaleSprite />
       </span>
       <span className={styles.pips} aria-label={`${pips.full} of ${pips.total} hit points`}>
@@ -68,29 +112,20 @@ function ShipToken({
       </span>
       {mark && (
         <span className={styles.markBadge} data-mark={mark}>
-          {(mark === "sustain" || mark === "both") && <IconShieldHalfFilled size={13} />}
-          {(mark === "destroy" || mark === "both") && <IconSkull size={13} />}
+          {(mark === "sustain" || mark === "both") && <IconShieldHalfFilled size={12} />}
+          {(mark === "destroy" || mark === "both") && <IconSkull size={12} />}
         </span>
       )}
       {dying && <span className={styles.explosion} aria-hidden="true" />}
     </>
   );
 
-  const style = {
-    "--i": index,
-    "--dir": side === "left" ? -1 : 1,
-  } as CSSProperties;
-
   if (selectable && !dying) {
     return (
       <button
         type="button"
-        className={styles.ship}
-        data-side={side}
-        data-damaged={ship.damaged || undefined}
-        data-mark={mark}
+        {...common}
         data-selectable
-        style={style}
         onClick={() => onToggle(ship)}
         title={`${label} — click to ${ship.canSustain ? "use Sustain Damage / destroy" : "destroy"}`}
         aria-pressed={mark !== undefined}
@@ -100,14 +135,7 @@ function ShipToken({
     );
   }
   return (
-    <div
-      className={styles.ship}
-      data-side={side}
-      data-damaged={ship.damaged || undefined}
-      data-dying={dying || undefined}
-      style={style}
-      title={label}
-    >
+    <div {...common} data-dying={dying || undefined} title={label}>
       {content}
     </div>
   );
@@ -115,8 +143,9 @@ function ShipToken({
 
 /**
  * Kolumna jednej strony: nagłówek (frakcja, rola, kości, oczekiwane trafienia, pasek
- * życia), okręty na polu bitwy (wlatują z boku, eksplodują po zniszczeniu) i spis jednostek
- * z wartościami bojowymi. W kroku przypisania strat okręty strony stają się klikalne.
+ * życia), szyk bitewny (szeregi od pierwszej linii — myśliwce z przodu, okręty liniowe z
+ * tyłu; wejście armady z boku) i spis jednostek z wartościami bojowymi. W kroku
+ * przypisania strat okręty strony stają się klikalne.
  */
 export function BattleFleet({
   side,
@@ -150,10 +179,9 @@ export function BattleFleet({
       aria-label={`${side.role === "attacker" ? "Attacker" : "Defender"}: ${name}`}
     >
       <header className={styles.fleetHead}>
-        <CircularFactionIcon faction={side.faction} size={42} />
+        <CircularFactionIcon faction={side.faction} size={38} />
         <div className={styles.fleetWho}>
           <span className={styles.role}>
-            <IconSwords size={11} aria-hidden="true" />
             {side.role === "attacker" ? "Attacker" : "Defender"}
             {isWinner && <b className={styles.victor}>Victor</b>}
           </span>
@@ -174,18 +202,23 @@ export function BattleFleet({
 
       <div className={styles.formation}>
         {views.length === 0 && <span className={styles.wiped}>Fleet destroyed</span>}
-        {views.map((view, i) => (
-          <ShipToken
-            key={view.ship.id}
-            view={view}
-            index={i}
-            side={align}
-            colorAlias={colorAlias}
-            faction={side.faction}
-            mark={marks[view.ship.id]}
-            selectable={assigning}
-            onToggle={onToggle}
-          />
+        {ranks(views).map((rankViews, rank) => (
+          <div key={rankViews[0].ship.asyncId} className={styles.rank}>
+            {rankViews.map((view, i) => (
+              <ShipToken
+                key={view.ship.id}
+                view={view}
+                rank={rank}
+                index={i}
+                side={align}
+                colorAlias={colorAlias}
+                faction={side.faction}
+                mark={marks[view.ship.id]}
+                selectable={assigning}
+                onToggle={onToggle}
+              />
+            ))}
+          </div>
         ))}
       </div>
 
