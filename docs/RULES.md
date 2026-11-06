@@ -83,6 +83,7 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 35 | [Spójność referencji: placeholder `<color>` jako szablon](#35-spójność-referencji-placeholder-color-promissory-notes-jako-szablon---założenie) | ⚠️ | [Promissory Notes](rules_tirules/R_promissory_notes.md) |
 | 36 | [Limity rąk i zbiór poziomów trudności bota](#36-limity-rąk-i-zbiór-poziomów-trudności-bota----zweryfikowane-reguły-ti4--założenie-trudność) | ✅ / ⚠️ | [Action Cards](rules_tirules/R_action_cards.md) |
 | 37 | [Wyniki audytu danych (baseline, luki, założenia)](#37-wyniki-audytu-danych-baseline-luki-referencyjne-założenia) | 📊 | [Technology](rules_tirules/R_technology.md) |
+| 38 | [Space Cannon Offense: kolejność, zasięg, rzuty, straty](#38-space-cannon-offense-kolejność-zasięg-deep-space-cannon-rzuty-straty---zweryfikowane-lrr-20) | ✅ / ⚠️ | [Space Cannon](rules_tirules/R_space_cannon.md) |
 
 ---
 
@@ -1969,3 +1970,68 @@ uv run python -m src.audit --write-baseline   # zapis audit/baseline_counts.json
 ```
 
 Po zmianie liczb (nowe źródło, errata) zaktualizuj baseline i to podsumowanie razem.
+
+
+---
+
+## 38. Space Cannon Offense: kolejność, zasięg (Deep Space Cannon), rzuty, straty — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+📎 tirules: [Space Cannon](rules_tirules/R_space_cannon.md) · [PDS](rules_tirules/R_pds.md) · [Adjacency](rules_tirules/R_adjacency.md) · [Active Player](rules_tirules/R_active_player.md) · [Sustain Damage](rules_tirules/R_sustain_damage.md) · [Capacity](rules_tirules/R_capacity.md)
+
+Etap E8, krok SPACE_CANNON akcji taktycznej. Źródło: lokalny `R_space_cannon.md` (treść © FFG;
+patrz SOURCE.md). Dane liczbowe wyłącznie z UnitDef (`spaceCannonHitsOn`, `spaceCannonDieCount`,
+`deepSpaceCannon`) — zero liczb z pamięci.
+
+### 38.1. Reguły (Space Cannon Offense)
+
+- **(S1) Po ruchu, przed walką.** Po kroku Move Ships każdy gracz MOŻE użyć Space Cannon swoich
+  jednostek w AKTYWNYM systemie. Działa także, gdy nikt nie ruszył statków.
+- **(S2) NIE tylko aktywny gracz.** „A player is **not** required to be the active player". Kolejność:
+  zaczyna AKTYWNY gracz i idzie ZGODNIE Z ZEGAREM (`seating_order` obrócone tak, by aktywny był
+  pierwszy). To okno czasowe (`WindowType.SPACE_CANNON`, RULES.md 29.2), nie ruch aktywnego gracza.
+- **(S3) Cele.** Gracze inni niż aktywny MUSZĄ celować w jednostki aktywnego gracza. Aktywny gracz,
+  używając własnych jednostek, WYBIERA gracza mającego statki w aktywnym systemie. Gracz bez
+  legalnego celu (nikt do trafienia) jest pomijany w kolejce.
+- **(S4) Rzut.** Jeden rzut (d10) na każdą kość każdej jednostki z Space Cannon w aktywnym systemie
+  (statki w przestrzeni ORAZ struktury/jednostki na planetach tego systemu). Trafienie = wynik ≥
+  `spaceCannonHitsOn`. Kości = `spaceCannonDieCount` (brak wartości = 1 kość). „0" na d10 = 10.
+  Efekty modyfikujące/przerzucające rzuty bojowe NIE dotyczą rzutów space cannon.
+- **(S5) Wszystko albo nic.** Gracz używający Space Cannon musi użyć go dla WSZYSTKICH swoich
+  kwalifikujących się jednostek (łącznie z sąsiednimi — S6).
+- **(S6) Zasięg — Deep Space Cannon.** Jednostka z Space Cannon stojąca w systemie SĄSIEDNIM do
+  aktywnego (sąsiedztwo grafu, `R_adjacency`: geometria + wormhole) strzela TYLKO wtedy, gdy jej
+  WARIANT u danego gracza ma `deepSpaceCannon`. Wariant zależy od technologii gracza: PDS I
+  (`spaceCannonHitsOn=6`, bez deep) → PDS II (tech `pds2`: `5`, `deepSpaceCannon=true`). Trafienia
+  nadal trafiają jednostki w AKTYWNYM systemie. Wariant wybiera `combat.resolve_unit_variant`
+  (frakcyjny-ulepszony > … > generyczny-bazowy), nie lista technologii wpisana w kod.
+- **(S7) Przypisanie strat.** Gracz trafiony niszczy po jednym SWOIM statku w aktywnym systemie za
+  każde trafienie (łącznie z myśliwcami). Nie może przypisać trafień do cudzych jednostek.
+  Liczba zniszczonych = min(trafienia, liczba jego statków w systemie).
+- **(S8) Kolejność w obrębie okna.** Najpierw rozstrzygają się straty po rzucie danego gracza,
+  dopiero potem rzuca następny.
+
+### 38.2. Zasięg do podglądu na mapie („Space Cannon range")
+
+Soczewka mapy pokazuje, które systemy są POD OSTRZAŁEM: dla każdego kafelka i każdego gracza liczy
+jednostki z Space Cannon stojące w tym kafelku (bezpośrednio) oraz jednostki z `deepSpaceCannon`
+stojące w sąsiednich. Wynik trafia do web-data jako `tileUnitData[pos].pds[faction] = {count,
+expected}` (kontrakt, który front AsyncTI4 już rysuje); `expected` = Σ kości × (11 − hitsOn)/10.
+
+### 38.3. Implementacja
+
+- `core/dice.py` — seedowalny rzut d10 trzymany w stanie gry (`GameState.rng_seed/rng_counter`),
+  więc Undo/Redo są deterministyczne. Wspólna podstawa pod walkę (Blok C).
+- `core/space_cannon.py` — strzelcy, pokrycie, kolejka, `open_offense`/`fire`/`pass`/`assign_hits`.
+- `api/routers/space_cannon.py` — `GET /tactical/space-cannon`, `POST …/fire`, `…/pass`, `…/assign`.
+- Wejście do kroku SPACE_CANNON (`/tactical/step/next`) otwiera okno automatycznie; wyjście z kroku
+  jest blokowane (422), dopóki okno trwa.
+
+### 38.4. ⚠️ ZAŁOŻENIA / TODO (do potwierdzenia)
+
+- ⚠️ **Sustain Damage nie jest modelowany** (stan nie rozróżnia uszkodzonych jednostek) — trafienie
+  zawsze niszczy statek. `R_space_cannon`: statek MOŻE użyć Sustain Damage, by anulować trafienie.
+  Dojdzie z modelem uszkodzeń w Bloku C (walka).
+- ⚠️ **Capacity po stratach** — reguła wymaga rozstrzygnąć capacity po przypisaniu strat (a przed
+  rzutem następnego gracza); na razie nie wymuszamy, nadwyżkę usuwa operator.
+- ⚠️ **Plasma Scoring** (tech `ps`: +1 kość dla jednej jednostki) — nie zaimplementowane.
+- ⚠️ Efekty zdolności frakcji/kart modyfikujące Space Cannon — hooki E7.

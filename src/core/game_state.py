@@ -281,6 +281,11 @@ class GameState(BaseModel):
     # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między
     # graczami (RULES.md 29.2). Mechanika: ``core/timing.py``.
     pending_window: TimingWindow | None = None
+    # Generator losowy silnika (rzuty kośćmi — ``core/dice.py``). ``rng_seed`` = 0 oznacza
+    # „jeszcze nie zasiane": pierwszy rzut losuje ziarno i zapisuje je w stanie. Ziarno +
+    # licznik są częścią stanu, więc Undo/Redo i powtórka migawki dają TE SAME wyniki.
+    rng_seed: int = 0
+    rng_counter: int = 0
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

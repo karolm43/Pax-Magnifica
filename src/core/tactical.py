@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.core.combat import resolve_unit_variant
-from src.core.game_state import GameState, SystemState, TacticalStep
+from src.core.game_state import GameState, SystemState, TacticalStep, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
@@ -110,6 +110,13 @@ def next_step(state: GameState) -> GameState:
     """
     if state.tactical_step is None:
         return state.clone()
+    # Nie wolno opuścić kroku, dopóki trwa okno Space Cannon (gracze jeszcze strzelają /
+    # przypisują straty — RULES.md 38): inaczej kroki „uciekałyby" sprzed rozstrzygnięcia.
+    window = state.pending_window
+    if window is not None and window.window_type is WindowType.SPACE_CANNON:
+        raise ValueError(
+            "Space Cannon is still being resolved - finish it before the next step."
+        )
     idx = _STEP_SEQUENCE.index(state.tactical_step)
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)
@@ -137,6 +144,11 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.active_system = None
     new_state.tactical_step = None
+    # Okno Space Cannon dotyczy aktywnego systemu — po zakończeniu akcji nie ma już czego
+    # rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
+    window = new_state.pending_window
+    if window is not None and window.window_type is WindowType.SPACE_CANNON:
+        new_state.pending_window = None
     return new_state
 
 

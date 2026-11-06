@@ -808,3 +808,136 @@ class TopicContentDTO(BaseModel):
             markdown=topic.markdown,
             is_empty_note=topic.is_empty_note,
         )
+
+
+# --- Space Cannon Offense (RULES.md 38) ---
+
+
+class SpaceCannonShooterHelp(BaseModel):
+    """Grupa jednostek z Space Cannon (panel kroku SPACE_CANNON)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    name: str
+    count: int
+    hits_on: int = Field(serialization_alias="hitsOn")
+    dice_per_unit: int = Field(serialization_alias="dicePerUnit")
+    total_dice: int = Field(serialization_alias="totalDice")
+    expected_hits: float = Field(serialization_alias="expectedHits")
+    position: str
+    zone: str
+    deep: bool
+    remote: bool
+
+
+class SpaceCannonSideHelp(BaseModel):
+    """Strona w kolejce Space Cannon: gracz, jego strzelcy i legalne cele."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    faction: str
+    player_id: str = Field(serialization_alias="playerId")
+    shooters: list[SpaceCannonShooterHelp]
+    total_dice: int = Field(serialization_alias="totalDice")
+    expected_hits: float = Field(serialization_alias="expectedHits")
+    targets: list[str]
+
+
+class SpaceCannonRollHelp(BaseModel):
+    """Wynik rzutu jednej grupy strzelców: kości i trafienia."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    name: str
+    hits_on: int = Field(serialization_alias="hitsOn")
+    position: str
+    zone: str
+    dice: list[int]
+    hits: int
+
+
+class SpaceCannonPendingHelp(BaseModel):
+    """Trafienia czekające na przypisanie strat."""
+
+    roller: str
+    target: str
+    hits: int
+    required: int  # ile statków trzeba zniszczyć (min(trafienia, statki celu))
+    rolls: list[SpaceCannonRollHelp]
+
+
+class SpaceCannonShipHelp(BaseModel):
+    """Statek gracza-celu w aktywnym systemie (do przypisania strat)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    name: str
+    count: int
+
+
+class SpaceCannonLogEntry(BaseModel):
+    """Wpis dziennika okna: kto strzelił w kogo, ile trafień i jakie straty."""
+
+    roller: str
+    target: str
+    hits: int
+    passed: bool
+    rolls: list[SpaceCannonRollHelp]
+    destroyed: dict[str, int]
+
+
+class SpaceCannonPanelResponse(BaseModel):
+    """Stan panelu Space Cannon Offense (jeden odczyt na cały panel)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    position: str | None
+    is_open: bool = Field(serialization_alias="isOpen")
+    queue: list[str]
+    responded: list[str]
+    current: str | None
+    sides: list[SpaceCannonSideHelp]
+    pending: SpaceCannonPendingHelp | None
+    target_ships: list[SpaceCannonShipHelp] = Field(serialization_alias="targetShips")
+    log: list[SpaceCannonLogEntry]
+
+
+class SpaceCannonFireRequest(BaseModel):
+    """Strzał: kto strzela i (opcjonalnie) w kogo — klucze tożsamości jak w tileUnitData."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    target: str | None = None
+
+
+class SpaceCannonPassRequest(BaseModel):
+    """Rezygnacja ze strzału bieżącego gracza."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+
+
+class SpaceCannonLossItem(BaseModel):
+    """Pozycja strat: typ statku + liczba zniszczonych."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str = Field(alias="baseType")
+    count: int = 1
+
+
+class SpaceCannonAssignRequest(BaseModel):
+    """Przypisanie strat przez gracza-cel (``faction`` = klucz gracza-celu)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    losses: list[SpaceCannonLossItem]

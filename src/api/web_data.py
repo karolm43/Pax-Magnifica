@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import production, strategy_phase, turn_flow
+from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
@@ -334,6 +334,23 @@ def _tile_production(
     return result
 
 
+def _pds_coverage_entry(
+    covering: dict[str, tuple[int, float]] | None,
+    entity_keys: dict[str, str],
+) -> dict[str, dict[str, float | int]] | None:
+    """Kształt ``tileUnitData[pos].pds`` ({klucz gracza: {count, expected}}) lub None.
+
+    ``covering`` = ``{player_id: (liczba jednostek, oczekiwane trafienia)}`` z
+    ``space_cannon.coverage``. Klucz tożsamości gracza jak w reszcie web-data.
+    """
+    if not covering:
+        return None
+    return {
+        entity_keys.get(player_id, player_id): {"count": count, "expected": expected}
+        for player_id, (count, expected) in covering.items()
+    }
+
+
 def _build_tile_unit_data(
     grid: HexGrid,
     registry: StaticDataRegistry,
@@ -347,6 +364,9 @@ def _build_tile_unit_data(
     """
     tile_unit_data: dict[str, dict[str, Any]] = {}
     tile_positions: list[str] = []
+    # Pokrycie ostrzałem Space Cannon (soczewka „Space Cannon range", RULES.md 38.2) liczone
+    # RAZ dla całej mapy; per kafelek mapowane niżej na klucze tożsamości graczy.
+    sc_coverage = space_cannon.coverage(state, grid, registry)
 
     for position in sorted(grid.positions):
         system_id = grid.system_id_at(position)
@@ -397,7 +417,7 @@ def _build_tile_unit_data(
             "ccs": ccs,
             "anomaly": bool(grid.anomalies_at(position)),
             "production": _tile_production(state, grid, registry, position),
-            "pds": None,
+            "pds": _pds_coverage_entry(sc_coverage.get(position), entity_keys),
         }
 
     return tile_unit_data, tile_positions

@@ -30,7 +30,15 @@ from src.api.schemas import (
 )
 from src.api.serializers import build_map_view
 from src.api.web_data import entity_key_map
-from src.core import board_edit, combat, component_action, movement, production, tactical
+from src.core import (
+    board_edit,
+    combat,
+    component_action,
+    movement,
+    production,
+    space_cannon,
+    tactical,
+)
 from src.core.combat import PlayerCombat
 from src.core.game_state import GameState, TacticalStep
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
@@ -187,10 +195,20 @@ async def post_component_action(
 
 @router.post("/tactical/step/next", response_model=StateEnvelope)
 async def post_next_step(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
-    """Przechodzi do następnego kroku akcji taktycznej (po produkcji — kończy akcję)."""
-    return await _commit_flow(
-        ctx, tactical.next_step(ctx.service.current_state()), "tactical:step"
-    )
+    """Przechodzi do następnego kroku akcji taktycznej (po produkcji — kończy akcję).
+
+    Wejście w krok SPACE_CANNON otwiera okno Space Cannon Offense (RULES.md 38) dla graczy
+    mających strzelców i cel; opuszczenie kroku przy otwartym oknie → 422.
+    """
+    try:
+        new_state = tactical.next_step(ctx.service.current_state())
+        if new_state.tactical_step == TacticalStep.SPACE_CANNON:
+            new_state = space_cannon.open_offense(
+                new_state, ctx.current_grid, ctx.registry
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "tactical:step")
 
 
 @router.post("/tactical/step/set", response_model=StateEnvelope)

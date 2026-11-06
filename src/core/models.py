@@ -40,6 +40,12 @@ class UnitDef(_StaticModel):
     capacity_used: int | None = Field(default=None, alias="capacityUsed")
     combat_hits_on: int | None = Field(default=None, alias="combatHitsOn")
     combat_die_count: int | None = Field(default=None, alias="combatDieCount")
+    # Space Cannon (RULES.md 38): trafia na X+ (``spaceCannonHitsOn``), ``spaceCannonDieCount``
+    # kości (brak = 1). ``deepSpaceCannon`` = jednostka strzela też do SĄSIEDNICH systemów
+    # (np. PDS II). Wariant jednostki zależy od technologii gracza (resolve_unit_variant).
+    space_cannon_hits_on: int | None = Field(default=None, alias="spaceCannonHitsOn")
+    space_cannon_die_count: int | None = Field(default=None, alias="spaceCannonDieCount")
+    deep_space_cannon: bool = Field(default=False, alias="deepSpaceCannon")
 
     is_ship: bool = Field(default=False, alias="isShip")
     is_structure: bool = Field(default=False, alias="isStructure")

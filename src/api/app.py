@@ -30,6 +30,7 @@ from src.api.routers import (
     history,
     players,
     rules,
+    space_cannon,
     strategy,
     tactical,
     window,
@@ -93,6 +94,7 @@ def create_app(
     app.include_router(strategy.router)
     app.include_router(history.router)
     app.include_router(tactical.router)
+    app.include_router(space_cannon.router)
     app.include_router(window.router)
     app.include_router(rules.router)
     app.include_router(components.router)
