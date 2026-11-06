@@ -46,6 +46,30 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ E8 Blok C+D — Walka: silnik + pełnoekranowe okno pola bitwy (ukończone)
+
+- **Reguła (zweryfikowana):** `RULES.md` 39 ze źródłami `R_space_combat`, `R_ground_combat`,
+  `R_anti_fighter_barrage`, `R_sustain_damage`, `R_attacker`, `R_nebula`, `R_status_phase`.
+  Atakujący = aktywny gracz; AFB w 1. rundzie kosmicznej; rzuty atakujący→obrońca; mgławica +1
+  obrońcy; straty w oknie `COMBAT_ASSIGN_HITS` (obrońca, potem atakujący) z Sustain Damage;
+  koniec gdy ≤1 strona; naprawa uszkodzeń przy wejściu w STATUS.
+- **Backend:** `core/battle.py` (start/AFB/roll/assign/close, wartości z wariantu gracza),
+  `core/damage.py` + `SystemState.damaged_units`, `GameState.active_combat`. Krok SPACE_COMBAT
+  nieopuszczalny przy dwóch flotach / trwającej walce; ruch przenosi uszkodzenia. Router `battle`
+  (`GET /tactical/battle`, `POST start/afb/roll/assign/close`); web-data: `activeCombat` (kontrakt
+  AsyncTI4) + `EntityData.sustained` (znacznik uszkodzenia na mapie). +21 testów (556 razem).
+- **Frontend:** `domains/battle/` — pełnoekranowe **okno pola bitwy** (`BattleOverlay`): floty
+  wlatują z lewej (atakujący) i prawej (obrońca), okręty zwrócone ku sobie, punkty życia (Sustain),
+  pasek HP strony, spis jednostek z wartościami (combat/AFB/Sustain), tor kroków, salwy z animacją
+  pocisków i rozbłysków trafień, animowane kości, eksplozje zniszczonych, ekran zwycięstwa/remisu.
+  Przypisanie strat KLIKANIEM okrętów (tarcza = Sustain, czaszka = zniszczenie, „Auto"), licznik
+  pokrycia. „Hide" chowa okno (plakietka „return"); dok: „Start space combat" / walka naziemna per
+  planeta / „Return to battle". Komunikaty 422 w oknie. +6 testów vitest (`battleAssign`).
+- **⚠️ TODO (RULES.md 39.4):** odwroty (Blok E), capacity po walce, zdolności frakcji/karty akcji
+  (E7), Sustain w Space Cannon. **Backend wymaga restartu** (nowy router i pola stanu).
+
+---
+
 ### ✅ E8 Blok F1 — Space Cannon Offense (silnik + zasięg + panel) (ukończone)
 
 - **Reguła (zweryfikowana):** `RULES.md` 38 ze źródłem `docs/rules_tirules/R_space_cannon.md`.

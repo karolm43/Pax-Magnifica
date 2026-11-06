@@ -196,6 +196,14 @@ type AppStore = {
    * (useUnitDrag.onMove), czyszczony po zakończeniu. Pozwala UI podświetlić ten statek
    * i pokazać na „duchu" sygnał „załaduj". ``asyncId`` + ``position`` identyfikują stos.
    */
+  /*
+   * Okno pola bitwy (RULES.md 39) jest pełnoekranowe i pokazuje się samo, gdy trwa walka.
+   * ``battleHidden`` pozwala je chwilowo schować (podgląd mapy) — wraca przyciskiem
+   * „Return to battle" w doku albo pływającej plakietce.
+   */
+  battleHidden: boolean;
+  setBattleHidden: (hidden: boolean) => void;
+
   dragLoadTarget: { position: string; asyncId: string } | null;
   setDragLoadTarget: (
     target: { position: string; asyncId: string } | null,
@@ -331,6 +339,9 @@ export const useAppStore = create<AppStore>((set) => {
     loadTransport: null,
     openLoadTransport: (target) => set({ loadTransport: target }),
     closeLoadTransport: () => set({ loadTransport: null }),
+
+    battleHidden: false,
+    setBattleHidden: (hidden: boolean) => set({ battleHidden: hidden }),
 
     dragLoadTarget: null,
     setDragLoadTarget: (target) => set({ dragLoadTarget: target }),

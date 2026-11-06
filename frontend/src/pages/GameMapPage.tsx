@@ -10,6 +10,7 @@ import { SystemDossierModal } from "@/domains/map/components/SystemDossier/Syste
 import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
 import { MoveQuantityModal } from "@/domains/map/components/MoveQuantityModal";
 import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal";
+import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
@@ -247,6 +248,8 @@ function GameMapContent() {
       <MoveQuantityModal />
       <LoadTransportModal />
       <CombatModal />
+      {/* Okno POLA BITWY — pełny ekran, samo pojawia się, gdy trwa walka (RULES.md 39). */}
+      <BattleOverlay />
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}
       <SecondaryDecisionModal />

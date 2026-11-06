@@ -101,6 +101,7 @@ export function useBoardEditor() {
       "production",
       "moveRange",
       "spaceCannon",
+      "battle",
       "playerHand",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
@@ -352,6 +353,48 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Walka (RULES.md 39) — start, AFB, rzuty, pokrycie trafień, zamknięcie. Rzuty po
+  // stronie silnika; 422 z powodem trafia do panelu komunikatów.
+  const battleStart = useCallback(
+    async (planet?: string | null) => {
+      await post("/tactical/battle/start", { planet: planet ?? null });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const battleAfb = useCallback(async () => {
+    await post("/tactical/battle/afb", {});
+    await refresh();
+  }, [refresh]);
+
+  const battleRoll = useCallback(async () => {
+    await post("/tactical/battle/roll", {});
+    await refresh();
+  }, [refresh]);
+
+  const battleAssign = useCallback(
+    async (faction: string, plan: BattleAssignPlan) => {
+      const items = (m: Record<string, number>) =>
+        Object.entries(m)
+          .filter(([, count]) => count > 0)
+          .map(([baseType, count]) => ({ baseType, count }));
+      await post("/tactical/battle/assign", {
+        faction,
+        sustain: items(plan.sustain),
+        destroy: items(plan.destroy),
+        destroyDamaged: items(plan.destroyDamaged),
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const battleClose = useCallback(async () => {
+    await post("/tactical/battle/close", {});
+    await refresh();
+  }, [refresh]);
+
   const tacticalNextStep = useCallback(async () => {
     await post("/tactical/step/next", {});
     await refresh();
@@ -496,6 +539,11 @@ export function useBoardEditor() {
     spaceCannonFire,
     spaceCannonPass,
     spaceCannonAssign,
+    battleStart,
+    battleAfb,
+    battleRoll,
+    battleAssign,
+    battleClose,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,
@@ -529,6 +577,97 @@ export type ProductionHelp = {
   productionLimit: number;
   units: ProducibleUnitHelp[];
 };
+
+// --- Walka: okno pola bitwy (RULES.md 39) ---
+
+export type BattleUnit = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  count: number;
+  damaged: number;
+  /** Próg trafienia PO modyfikatorze (np. mgławica obrońcy). */
+  hitsOn: number;
+  baseHitsOn: number;
+  modifier: number;
+  dicePerUnit: number;
+  totalDice: number;
+  expectedHits: number;
+  sustain: boolean;
+  sustainable: number;
+  afbHitsOn: number | null;
+  afbDice: number;
+};
+
+export type BattleSide = {
+  faction: string;
+  playerId: string;
+  role: "attacker" | "defender";
+  units: BattleUnit[];
+  unitCount: number;
+  totalDice: number;
+  expectedHits: number;
+  /** Trafienia, które strona może jeszcze przyjąć (jednostki + Sustain Damage). */
+  hp: number;
+};
+
+export type BattleRoll = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  hitsOn: number;
+  modifier: number;
+  dice: number[];
+  hits: number;
+};
+
+export type BattleLogEntry = {
+  round: number;
+  phase: "AFB" | "COMBAT";
+  rolls: Record<string, BattleRoll[]>;
+  hits: Record<string, number>;
+  losses: Record<string, Record<string, number>>;
+  sustained: Record<string, Record<string, number>>;
+};
+
+export type BattleView = {
+  active: boolean;
+  kind: "space" | "ground" | null;
+  position: string | null;
+  planet: string | null;
+  round: number;
+  step: "AFB" | "ROLL" | "ASSIGN" | "DONE" | null;
+  nebula: boolean;
+  attacker: BattleSide | null;
+  defender: BattleSide | null;
+  pendingHits: Record<string, number>;
+  /** Ile trafień gracz musi pokryć (min(trafienia, jednostki + Sustain)). */
+  required: Record<string, number>;
+  /** Gracz, który teraz pokrywa trafienia (okno COMBAT_ASSIGN_HITS). */
+  assigning: string | null;
+  rolls: Record<string, BattleRoll[]>;
+  afb: Record<string, BattleRoll[]>;
+  log: BattleLogEntry[];
+  winner: string | null;
+  outcome: "winner" | "draw" | null;
+};
+
+/** Plan pokrycia trafień: Sustain Damage + niszczone nieuszkodzone/uszkodzone (baseType → liczba). */
+export type BattleAssignPlan = {
+  sustain: Record<string, number>;
+  destroy: Record<string, number>;
+  destroyDamaged: Record<string, number>;
+};
+
+/** Stan okna pola bitwy (strony, jednostki, rzuty, straty, historia). */
+export function useBattle(enabled: boolean) {
+  return useQuery<BattleView>({
+    queryKey: ["battle"],
+    enabled,
+    queryFn: async () => fetchJson<BattleView>("/bot/tactical/battle", "battle"),
+    staleTime: 0,
+  });
+}
 
 // --- Space Cannon Offense (RULES.md 38) ---
 

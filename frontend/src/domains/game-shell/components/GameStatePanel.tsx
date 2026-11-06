@@ -1179,6 +1179,11 @@ function ProductionUnitTile({
   );
 }
 
+/* Statki (asyncId) — kto ma flotę w systemie (walka kosmiczna) — i siły naziemne
+   (walka naziemna). Spójne z backendowym PLACEMENT_BY_BASE_TYPE. */
+const SHIP_ASYNC_IDS = new Set(["ff", "dd", "ca", "cv", "dn", "fs", "ws"]);
+const GROUND_ASYNC_IDS = new Set(["gf", "mf"]);
+
 /** Kroki akcji taktycznej + etykiety i ikony (RULES.md 19). */
 const TACTICAL_STEPS: {
   step: string;
@@ -1213,10 +1218,14 @@ export function TacticalActionPanel({
   systemLabel: string | null;
   activePlayerColor: string | null;
 }) {
-  const { tacticalNextStep, endTactical } = useBoardEditor();
+  const { tacticalNextStep, endTactical, battleStart } = useBoardEditor();
   const activateMode = useAppStore((s) => s.activateMode);
   const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
-  const openCombat = useAppStore((s) => s.openCombat);
+  const setBattleHidden = useAppStore((s) => s.setBattleHidden);
+  const params = useParams<{ mapid: string }>();
+  const { data: liveGameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
+  // Trwająca walka (RULES.md 39) — okno pola bitwy pokazuje się samo; tu tylko powrót.
+  const inCombat = liveGameState?.activeCombat != null;
   const gameData = useGameData();
   const [busy, setBusy] = useState(false);
   // Potwierdzenia nawigacji: przejście do następnego kroku i zakończenie akcji są
@@ -1228,19 +1237,33 @@ export function TacticalActionPanel({
 
   const activeTile = activeSystem ? gameData?.tiles?.[activeSystem] : undefined;
 
-  // Czy w aktywnym systemie są statki co najmniej dwóch graczy (jest walka?).
+  // Czy w aktywnym systemie STATKI ma co najmniej dwóch graczy (walka obowiązkowa —
+  // RULES.md 39 W2). Siły naziemne w przestrzeni (ładunek) nie liczą się jako statki.
   const hasSpaceCombat = (() => {
     if (!activeTile) return false;
     const factionsWithShips = Object.values(
       activeTile.unitsByFaction ?? {},
     ).filter((entities) =>
-      entities.some((e) => e.entityType === "unit" && e.count > 0),
+      entities.some(
+        (e) => e.entityType === "unit" && e.count > 0 && SHIP_ASYNC_IDS.has(e.entityId),
+      ),
     );
     return factionsWithShips.length >= 2;
   })();
 
   // Planety aktywnego systemu (inwazja / produkcja naziemna) — id z danych kafelka.
   const activePlanets = activeTile ? Object.keys(activeTile.planets ?? {}) : [];
+  // Planety, na których siły naziemne ma dwóch graczy — tu toczy się walka naziemna (W3).
+  const contestedPlanets = activePlanets.filter((planetId) => {
+    const byFaction = activeTile?.planets?.[planetId]?.unitsByFaction ?? {};
+    return (
+      Object.values(byFaction).filter((entities) =>
+        entities.some(
+          (e) => e.entityType === "unit" && e.count > 0 && GROUND_ASYNC_IDS.has(e.entityId),
+        ),
+      ).length >= 2
+    );
+  });
 
   // Uwaga: odbiór kliknięcia w kafelek w trybie aktywacji (``activateRequest``) żyje
   // teraz w ``TurnControls`` (zamontowany przez całą fazę akcji), żeby przycisk
@@ -1350,14 +1373,33 @@ export function TacticalActionPanel({
 
       {tacticalStep === "SPACE_COMBAT" && (
         <div className={styles.stepBody}>
-          {hasSpaceCombat ? (
+          {inCombat ? (
             <button
               type="button"
               className={cx(styles.ctlBtn, styles.ctlPrimary)}
-              onClick={() => openCombat(activeSystem, null)}
+              onClick={() => setBattleHidden(false)}
             >
-              <IconSwords size={13} /> Open space combat window
+              <IconSwords size={13} /> Return to battle
             </button>
+          ) : hasSpaceCombat ? (
+            <>
+              <span className={styles.prodNote}>
+                Two fleets share this system — space combat is mandatory.
+              </span>
+              <button
+                type="button"
+                className={cx(styles.ctlBtn, styles.ctlPrimary)}
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    setBattleHidden(false);
+                    await battleStart(null);
+                  })
+                }
+              >
+                <IconSwords size={13} /> Start space combat
+              </button>
+            </>
           ) : (
             <span className={styles.prodNote}>
               No opposing fleet — space combat not needed.
@@ -1368,25 +1410,43 @@ export function TacticalActionPanel({
 
       {tacticalStep === "INVASION" && (
         <div className={styles.stepBody}>
-          {activePlanets.length > 0 ? (
+          {inCombat ? (
+            <button
+              type="button"
+              className={cx(styles.ctlBtn, styles.ctlPrimary)}
+              onClick={() => setBattleHidden(false)}
+            >
+              <IconSwords size={13} /> Return to battle
+            </button>
+          ) : contestedPlanets.length > 0 ? (
             <>
-              <span className={styles.prodNote}>Ground combat on planet:</span>
+              <span className={styles.prodNote}>Start ground combat on:</span>
               <div className={styles.planetTabs}>
-                {activePlanets.map((planet) => (
+                {contestedPlanets.map((planet) => (
                   <button
                     key={planet}
                     type="button"
                     className={styles.planetTab}
-                    onClick={() => openCombat(activeSystem, planet)}
-                    title={`Ground combat window on ${planet}`}
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        setBattleHidden(false);
+                        await battleStart(planet);
+                      })
+                    }
+                    title={`Start ground combat on ${planet}`}
                   >
-                    {planet}
+                    <IconSwords size={11} /> {planet}
                   </button>
                 ))}
               </div>
             </>
           ) : (
-            <span className={styles.prodNote}>No planets in this system.</span>
+            <span className={styles.prodNote}>
+              {activePlanets.length > 0
+                ? "No contested planet. Landing ground forces (Commit Ground Forces) comes with the invasion step."
+                : "No planets in this system."}
+            </span>
           )}
         </div>
       )}
