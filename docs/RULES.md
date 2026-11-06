@@ -2025,6 +2025,8 @@ expected}` (kontrakt, który front AsyncTI4 już rysuje); `expected` = Σ kości
 - `api/routers/space_cannon.py` — `GET /tactical/space-cannon`, `POST …/fire`, `…/pass`, `…/assign`.
 - Wejście do kroku SPACE_CANNON (`/tactical/step/next`) otwiera okno automatycznie; wyjście z kroku
   jest blokowane (422), dopóki okno trwa.
+- Po ostatnim graczu okno się zamyka, ale dziennik rozstrzygnięcia (rzuty, trafienia, straty) zostaje
+  w `GameState.space_cannon_log` do końca akcji taktycznej — panel pokazuje wynik (`resolved`).
 
 ### 38.4. ⚠️ ZAŁOŻENIA / TODO (do potwierdzenia)
 
