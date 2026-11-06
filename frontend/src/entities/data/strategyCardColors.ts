@@ -30,3 +30,19 @@ export const SC_NAMES: Record<number, string> = {
   7: "TECHNOLOGY",
   8: "IMPERIAL",
 };
+
+/**
+ * Barwa (hex) karty strategii po numerze inicjatywy — akcent wizualny/fallback,
+ * gdy dane karty nie niosą ``colourHexCode``. Współdzielone przez panele tury
+ * (``TurnControls``) i okno follow secondary (``SecondaryDecisionModal``).
+ */
+export const SC_HUES: Record<number, string> = {
+  1: "#ec1c24",
+  2: "#f69421",
+  3: "#fff200",
+  4: "#39b54a",
+  5: "#00a99d",
+  6: "#008ed4",
+  7: "#15489f",
+  8: "#752b90",
+};

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Group, Stack, Text } from "@/ds";
 import { IconBolt, IconHandStop } from "@tabler/icons-react";
@@ -9,7 +9,7 @@ import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
-import { SC_NAMES } from "@/entities/data/strategyCardColors";
+import { SC_NAMES, SC_HUES } from "@/entities/data/strategyCardColors";
 import {
   getPlayerDisplayName,
   type GameStatePlayer,
@@ -65,7 +65,9 @@ export function SecondaryDecisionModal() {
     ? getPlayerDisplayName(responder, responderColor ?? "")
     : (window?.currentResponderId ?? "");
 
-  // Nazwa karty, której dotyczy secondary (z kontekstu okna: {"initiative": n}).
+  // Karta, której dotyczy secondary (z kontekstu okna: {"initiative": n}). Wariant
+  // kanoniczny bierzemy z ``strategyCardIdMap`` backendu — to samo źródło co hover
+  // karty strategii, więc teksty są spójne z resztą UI.
   const initiativeRaw = window?.context?.initiative;
   const initiative =
     typeof initiativeRaw === "number"
@@ -73,12 +75,19 @@ export function SecondaryDecisionModal() {
       : typeof initiativeRaw === "string"
         ? Number(initiativeRaw)
         : null;
-  const cardName =
+  const card =
     initiative != null
-      ? getStrategyCardByInitiative(initiative)?.name ||
-        SC_NAMES[initiative] ||
-        `Strategy Card ${initiative}`
-      : "Strategy Card";
+      ? getStrategyCardByInitiative(initiative, gameData?.strategyCardIdMap)
+      : undefined;
+  const cardName =
+    card?.name ||
+    (initiative != null ? SC_NAMES[initiative] : undefined) ||
+    (initiative != null ? `Strategy Card ${initiative}` : "Strategy Card");
+  const secondaryLines = card?.secondaryTexts ?? [];
+  const hue =
+    card?.colourHexCode ||
+    (initiative != null ? SC_HUES[initiative] : undefined) ||
+    "#8a8f98";
 
   const decide = (execute: boolean) => {
     const id = window?.currentResponderId;
@@ -117,6 +126,47 @@ export function SecondaryDecisionModal() {
           <b>{cardName}</b> was played. Do you want to <b>follow</b> and resolve
           its secondary ability?
         </Text>
+
+        {/* Treść SECONDARY tej karty — to samo źródło co hover karty strategii
+            (getStrategyCardByInitiative). Odpowiada na „co robi follow". */}
+        <div
+          style={
+            {
+              "--sc-hue": hue,
+              borderLeft: "3px solid var(--sc-hue)",
+              background:
+                "color-mix(in srgb, var(--sc-hue) 10%, transparent)",
+              borderRadius: 8,
+              padding: "10px 12px",
+            } as CSSProperties
+          }
+        >
+          <Text
+            size="xs"
+            fw={700}
+            style={{
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "var(--sc-hue)",
+              marginBottom: 4,
+            }}
+          >
+            Secondary
+          </Text>
+          {secondaryLines.length > 0 ? (
+            <Stack gap={6}>
+              {secondaryLines.map((line, i) => (
+                <Text key={i} size="sm" style={{ lineHeight: 1.4 }}>
+                  {line}
+                </Text>
+              ))}
+            </Stack>
+          ) : (
+            <Text size="sm" c="dimmed">
+              No secondary ability text available.
+            </Text>
+          )}
+        </div>
 
         <Text size="xs" c="dimmed">
           Following is optional. Players respond in turn order — the player to
