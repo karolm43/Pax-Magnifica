@@ -103,6 +103,7 @@ function resolveTarget(
   const raw = rawZoneAt(clientX, clientY);
   if (!raw) return null;
   const ship = isShipUnit(data.asyncId);
+  const inTactical = activeSystem !== null;
   let zone = raw.zone;
   let label = raw.label;
   let valid = true;
@@ -114,14 +115,20 @@ function resolveTarget(
     // Siła naziemna/struktura w przestrzeni jest zabroniona w stanie spoczynkowym,
     // ALE podczas akcji taktycznej piechota/mech jadą jako ŁADUNEK i stoją w
     // przestrzeni AKTYWNEGO systemu aż do Commit Ground Forces (RULES.md 26 wyjątek
-    // transportu / 32.3). Dlatego dopuszczamy je na orbitę aktywnego systemu.
+    // transportu / 32.3). Dopuszczamy je TYLKO na orbitę aktywnego systemu (załadunek
+    // z przestrzeni) — ale realny transport z planety robi okno „Load transport".
     const isCargoToActive =
-      activeSystem !== null &&
+      inTactical &&
       raw.position === activeSystem &&
       GROUND_CARGO_ASYNC.has(data.asyncId);
     if (!isCargoToActive) {
       valid = false;
     }
+  } else if (!ship && zone !== "space" && inTactical) {
+    // RULES.md 32.3/R_invasion: podczas ruchu NIE wolno przenosić sił naziemnych
+    // planeta→planeta — lądowanie na planecie to osobny krok Commit Ground Forces.
+    // Zdejmowanie piechoty z planety na statek robi okno „Load transport", nie drag.
+    valid = false;
   }
   // Brak ruchu, gdy cel = źródło.
   if (

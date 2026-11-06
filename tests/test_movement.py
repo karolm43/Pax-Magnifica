@@ -327,3 +327,53 @@ def test_legal_move_sources_empty_without_active(
     state = _state_with_destroyer_at("101", "000")
     state.active_system = None
     assert movement.legal_move_sources(state, grid, registry, "p1") == {}
+
+
+# --- Pickup ładunku z PLANETY systemu źródłowego (RULES.md 32.3 T3) ---
+
+
+def test_transport_ground_from_planet(registry: StaticDataRegistry) -> None:
+    """Carrier zabiera piechotę Z PLANETY systemu źródłowego do przestrzeni aktywnego."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        active_system="000",
+        players={"p1": PlayerState(player_id="p1", color="red")},
+        systems={
+            "101": SystemState(
+                position="101",
+                system_id="20",
+                space_units={"p1": {"carrier": 1}},
+                planet_units={"planet_a": {"p1": {"infantry": 2}}},
+            )
+        },
+    )
+    new = movement.move_fleet(
+        state,
+        grid,
+        registry,
+        "101",
+        {"carrier": 1},
+        [movement.CargoPickup(base_type="infantry", count=2, from_zone="planet_a")],
+        "p1",
+    )
+    # Piechota zjechała z planety i jedzie w PRZESTRZENI aktywnego systemu (T2).
+    assert new.systems["000"].space_units["p1"]["infantry"] == 2
+    assert "p1" not in new.systems["101"].planet_units.get("planet_a", {})
+
+
+def test_fighter_cannot_be_picked_from_planet(registry: StaticDataRegistry) -> None:
+    """Myśliwiec nie stoi na planecie — pickup z planety odrzucony."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_carrier_cargo("101", "000", fighters=2)
+    with pytest.raises(ValueError, match="only be picked up from space"):
+        movement.move_fleet(
+            state,
+            grid,
+            registry,
+            "101",
+            {"carrier": 1},
+            [movement.CargoPickup(base_type="fighter", count=1, from_zone="planet_a")],
+            "p1",
+        )

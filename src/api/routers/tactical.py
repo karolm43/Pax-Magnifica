@@ -75,10 +75,13 @@ async def post_tactical_move(
     for item in request.ships:
         if item.count > 0:
             ships[item.base_type] = ships.get(item.base_type, 0) + item.count
-    cargo: dict[str, int] = {}
-    for item in request.cargo:
-        if item.count > 0:
-            cargo[item.base_type] = cargo.get(item.base_type, 0) + item.count
+    cargo = [
+        movement.CargoPickup(
+            base_type=item.base_type, count=item.count, from_zone=item.from_zone
+        )
+        for item in request.cargo
+        if item.count > 0
+    ]
     try:
         new_state = movement.move_fleet(
             ctx.service.current_state(),

@@ -485,16 +485,19 @@ class SetSpeakerRequest(BaseModel):
 
 
 class MoveCargoItem(BaseModel):
-    """Pozycja ładunku transportu (RULES.md 32.3): typ jednostki + liczba.
+    """Pozycja ładunku transportu (RULES.md 32.3): typ, liczba i strefa źródłowa.
 
     Ładunek to myśliwce / siły naziemne przewożone statkami w tym samym ruchu
-    (``fighter``/``infantry``/``mech``). Backend waliduje typ i limit capacity.
+    (``fighter``/``infantry``/``mech``). ``from_zone`` = ``"space"`` (z przestrzeni
+    systemu źródłowego) albo id PLANETY w tym systemie (statek zabiera piechotę/mecha
+    z planety). Backend waliduje typ, strefę i limit capacity.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     base_type: str = Field(alias="baseType")
     count: int = 1
+    from_zone: str = Field(default="space", alias="fromZone")
 
 
 class MoveShipsRequest(BaseModel):

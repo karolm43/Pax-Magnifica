@@ -1032,6 +1032,28 @@
   border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.6);
 }
 
+/* Kafelek transportu do załadunku — jak unitTile, ale klikalny (otwiera okno). */
+.transportTile {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  column-gap: 6px;
+  padding: 5px 6px;
+  text-align: left;
+  border: 1px solid rgb(var(--ds-sig-ability) / 0.35);
+  border-radius: 7px;
+  background: rgb(var(--ds-sig-ability) / 0.08);
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease),
+    border-color var(--ds-dur-fast) var(--ds-ease);
+}
+
+.transportTile:hover {
+  background: rgb(var(--ds-sig-ability) / 0.16);
+  border-color: rgb(var(--ds-sig-ability) / 0.6);
+}
+
 /* Przełącznik „pokaż/ukryj kreator ruchu" (link-button, subtelny). */
 .moveToggle {
   justify-self: start;

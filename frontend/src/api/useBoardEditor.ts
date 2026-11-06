@@ -279,8 +279,9 @@ export function useBoardEditor() {
       // Pełna flota ruszająca naraz (typy statków) — dla dedykowanego okna ruchu.
       ships?: { baseType: string; count: number }[];
       // Ładunek: myśliwce / siły naziemne przewożone razem (RULES.md 32.3).
+      // ``fromZone`` = "space" albo id planety (pickup z planety systemu źródłowego).
       // Limit capacity egzekwuje backend (422 z powodem, gdy przekroczony).
-      cargo?: { baseType: string; count: number }[];
+      cargo?: { baseType: string; count: number; fromZone?: string }[];
     }) => {
       await post("/tactical/move", {
         fromPosition: args.fromPosition,
@@ -292,7 +293,11 @@ export function useBoardEditor() {
           .map((s) => ({ baseType: s.baseType, count: s.count })),
         cargo: (args.cargo ?? [])
           .filter((c) => c.count > 0)
-          .map((c) => ({ baseType: c.baseType, count: c.count })),
+          .map((c) => ({
+            baseType: c.baseType,
+            count: c.count,
+            fromZone: c.fromZone ?? "space",
+          })),
       });
       await refresh();
     },

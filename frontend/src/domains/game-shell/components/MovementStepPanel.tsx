@@ -127,6 +127,27 @@ export function MovementStepPanel({
       .sort((a, b) => a.position.localeCompare(b.position));
   }, [gameData?.tiles, faction, activeSystem]);
 
+  // Transporty (statki z capacity) w systemach źródłowych — skrót do okna załadunku.
+  // Wyeksponowane WPROST (bez ukrywania), bo transport to główna część ruchu.
+  const transports = useMemo(() => {
+    const tiles = gameData?.tiles ?? {};
+    if (!faction || !player) return [] as { position: string; asyncId: string }[];
+    const out: { position: string; asyncId: string }[] = [];
+    for (const [pos, tile] of Object.entries(tiles)) {
+      if (pos === activeSystem) continue;
+      for (const e of tile.unitsByFaction?.[faction] ?? []) {
+        if (
+          e.entityType === "unit" &&
+          e.count > 0 &&
+          (lookupUnit(e.entityId, faction, player)?.capacityValue ?? 0) > 0
+        ) {
+          out.push({ position: pos, asyncId: e.entityId });
+        }
+      }
+    }
+    return out.sort((a, b) => a.position.localeCompare(b.position));
+  }, [gameData?.tiles, faction, player, activeSystem]);
+
   const sourceTile = source ? gameData?.tiles?.[source] : undefined;
   const stacks = faction ? playerSpaceStacks(sourceTile, faction) : [];
   const ships = stacks.filter((s) => SHIP_ONLY_ASYNC.has(s.asyncId));
@@ -211,6 +232,47 @@ export function MovementStepPanel({
             </div>
           ))}
         </div>
+      )}
+
+      {/* TRANSPORT — główny sposób zabrania myśliwców/piechoty (z przestrzeni i planet
+          systemu źródłowego). Wprost widoczny, jedno kliknięcie otwiera okno załadunku. */}
+      {transports.length > 0 && (
+        <>
+          <span className={styles.prodZoneLabel}>
+            <IconPackage size={11} aria-hidden="true" /> Load a transport
+          </span>
+          <div className={styles.unitGrid}>
+            {transports.map((t) => (
+              <button
+                key={`${t.position}-${t.asyncId}`}
+                type="button"
+                className={styles.transportTile}
+                onClick={() =>
+                  faction &&
+                  openLoadTransport({
+                    fromPosition: t.position,
+                    faction,
+                    shipAsyncId: t.asyncId,
+                  })
+                }
+                title={`Load ${t.asyncId.toUpperCase()} in ${t.position} with fighters / ground forces`}
+              >
+                <div className={styles.unitTileIcon}>
+                  <Unit
+                    unitType={t.asyncId}
+                    colorAlias={colorAlias}
+                    faction={faction}
+                    scaleSprite
+                  />
+                </div>
+                <span className={styles.unitTileName}>
+                  {t.asyncId.toUpperCase()}
+                </span>
+                <span className={styles.unitTileCost}>{t.position}</span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       <button

@@ -13,6 +13,7 @@ istnienia legalnej trasy o długości ≤ moveValue (węzły pośrednie respektu
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass
 
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
@@ -25,6 +26,20 @@ from src.core.unit_catalog import is_space_unit
 # R_capacity/R_transport — „fighters and ground forces". Trzymane jawnie, bo to
 # reguła klasy jednostek, nie dane liczbowe (te czytamy z UnitDef).
 _CARGO_BASE_TYPES = frozenset({"fighter", "infantry", "mech"})
+
+
+@dataclass(frozen=True)
+class CargoPickup:
+    """Pozycja ładunku do zabrania: typ, liczba i STREFA źródłowa (RULES.md 32.3 T3).
+
+    ``from_zone`` = ``"space"`` (ładunek z przestrzeni systemu źródłowego) albo id
+    planety w tym systemie (statek zabiera piechotę/mecha z planety). Myśliwce
+    pobiera się tylko z przestrzeni (nie stoją na planetach).
+    """
+
+    base_type: str
+    count: int
+    from_zone: str = "space"
 
 # Alias technologii Antimass Deflectors (z danych: assets/.../technologies/pok.json →
 # "amd"; nie z pamięci). Pozwala ruch przez/na asteroid field (RULES.md 1.1).
@@ -321,25 +336,39 @@ def legal_move_sources(
     return result
 
 
+def _available_in_zone(
+    source: SystemState | None, player_id: str, base_type: str, zone: str
+) -> int:
+    """Liczba jednostek gracza ``base_type`` w danej strefie źródła (space/planeta)."""
+    if source is None:
+        return 0
+    if zone == "space":
+        return source.space_units.get(player_id, {}).get(base_type, 0)
+    return source.planet_units.get(zone, {}).get(player_id, {}).get(base_type, 0)
+
+
 def move_fleet(
     state: GameState,
     grid: HexGrid,
     registry: StaticDataRegistry,
     from_pos: str,
     ships: dict[str, int],
-    cargo: dict[str, int],
+    cargo: list[CargoPickup] | dict[str, int],
     player_id: str,
 ) -> GameState:
     """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
 
     ``ships`` = statki RUSZAJĄCE (``{base_type: count}``), każdy walidowany jak w
-    ``can_move`` (R1–R6). ``cargo`` = myśliwce/siły naziemne przewożone razem
-    (``{base_type: count}``), zabierane z PRZESTRZENI systemu źródłowego (T3), w ramach
-    wolnej pojemności statków ruszających (T1/T5). Ładunek ląduje w PRZESTRZENI celu (T2).
+    ``can_move`` (R1–R6). ``cargo`` = myśliwce/siły naziemne przewożone razem — lista
+    ``CargoPickup`` z STREFĄ źródłową (przestrzeń lub PLANETA systemu źródłowego, T3).
+    Dla zgodności wstecznej przyjmuje też ``{base_type: count}`` (strefa = przestrzeń).
+    Ładunek ląduje w PRZESTRZENI celu (T2) — siły naziemne zejdą na planetę dopiero w
+    Commit Ground Forces.
 
     Zasady egzekwowane (twarde, ValueError):
     - każdy statek ruszający musi być legalny (``can_move``) i dostępny w źródle;
-    - ładunek tylko z ``_CARGO_BASE_TYPES`` i dostępny w przestrzeni źródła;
+    - ładunek tylko z ``_CARGO_BASE_TYPES`` i dostępny w swojej strefie źródłowej;
+    - myśliwce pobiera się tylko z przestrzeni (nie z planet);
     - pickup z systemu z WŁASNYM CC zabroniony, chyba że to aktywny system (T4);
     - suma ``capacityUsed`` ładunku ≤ suma ``capacityValue`` statków ruszających (T1/T5).
 
@@ -347,8 +376,15 @@ def move_fleet(
         ValueError: Przy złamaniu którejkolwiek reguły albo braku jednostek w źródle.
     """
     ships = {bt: c for bt, c in ships.items() if c > 0}
-    cargo = {bt: c for bt, c in cargo.items() if c > 0}
-    if not ships and not cargo:
+    # Normalizacja ładunku do listy ``CargoPickup`` (zgodność wsteczna z dict).
+    cargo_items: list[CargoPickup]
+    if isinstance(cargo, dict):
+        cargo_items = [
+            CargoPickup(base_type=bt, count=c) for bt, c in cargo.items() if c > 0
+        ]
+    else:
+        cargo_items = [c for c in cargo if c.count > 0]
+    if not ships and not cargo_items:
         raise ValueError("Nothing to move (no ships and no cargo).")
 
     active = state.active_system
@@ -367,18 +403,14 @@ def move_fleet(
         ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
         if not ok:
             raise ValueError(reason)
-        available = (
-            source.space_units.get(player_id, {}).get(base_type, 0)
-            if source is not None
-            else 0
-        )
+        available = _available_in_zone(source, player_id, base_type, "space")
         if available < count:
             raise ValueError(
                 f"Not enough {base_type} ships in {from_pos}: "
                 f"have {available}, requested {count}."
             )
 
-    if cargo:
+    if cargo_items:
         # Ładunek wymaga statku-nosiciela ruszającego w tym samym ruchu.
         if not ships:
             raise ValueError(
@@ -393,21 +425,26 @@ def move_fleet(
             raise ValueError(
                 "Cannot pick up units from a system containing your own command token (T4)."
             )
-        # Ładunek musi być jednostką transportowalną i dostępny w przestrzeni źródła.
-        for base_type, count in cargo.items():
-            if base_type not in _CARGO_BASE_TYPES:
+        # Zsumuj żądania po (typ, strefa) — i waliduj dostępność w tej strefie.
+        needed_by_key: dict[tuple[str, str], int] = {}
+        for item in cargo_items:
+            if item.base_type not in _CARGO_BASE_TYPES:
                 raise ValueError(
-                    f"Unit {base_type} cannot be transported "
+                    f"Unit {item.base_type} cannot be transported "
                     "(only fighters and ground forces)."
                 )
-            available = (
-                source.space_units.get(player_id, {}).get(base_type, 0)
-                if source is not None
-                else 0
+            # Myśliwiec stoi w przestrzeni — nie zbiera się go z planety.
+            if item.base_type == "fighter" and item.from_zone != "space":
+                raise ValueError("Fighters can only be picked up from space.")
+            needed_by_key[(item.base_type, item.from_zone)] = (
+                needed_by_key.get((item.base_type, item.from_zone), 0) + item.count
             )
+        for (base_type, zone), count in needed_by_key.items():
+            available = _available_in_zone(source, player_id, base_type, zone)
             if available < count:
+                where = "space" if zone == "space" else f"planet {zone}"
                 raise ValueError(
-                    f"Not enough {base_type} to transport in {from_pos}: "
+                    f"Not enough {base_type} to transport from {where} in {from_pos}: "
                     f"have {available}, requested {count}."
                 )
 
@@ -417,8 +454,9 @@ def move_fleet(
             for bt, c in ships.items()
         )
         needed = sum(
-            _capacity_used(registry, faction_id, technologies, bt) * c
-            for bt, c in cargo.items()
+            _capacity_used(registry, faction_id, technologies, item.base_type)
+            * item.count
+            for item in cargo_items
         )
         if needed > provided:
             raise ValueError(
@@ -427,27 +465,46 @@ def move_fleet(
 
     new_state = state.clone()
     src = new_state.systems.get(from_pos)
+    assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
 
-    def _take(base_type: str, count: int) -> None:
-        """Zdejmuje ``count`` jednostek gracza ``base_type`` z przestrzeni źródła."""
-        assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
+    def _take_space(base_type: str, count: int) -> None:
+        """Zdejmuje ``count`` jednostek gracza ``base_type`` z PRZESTRZENI źródła."""
         src.space_units[player_id][base_type] -= count
         if src.space_units[player_id][base_type] <= 0:
             del src.space_units[player_id][base_type]
         if not src.space_units[player_id]:
             del src.space_units[player_id]
 
-    for base_type, count in {**ships, **cargo}.items():
-        _take(base_type, count)
+    def _take_planet(planet: str, base_type: str, count: int) -> None:
+        """Zdejmuje ``count`` sił naziemnych gracza z PLANETY źródła (pickup transportu)."""
+        by_player = src.planet_units[planet]
+        by_player[player_id][base_type] -= count
+        if by_player[player_id][base_type] <= 0:
+            del by_player[player_id][base_type]
+        if not by_player[player_id]:
+            del by_player[player_id]
 
-    # Dodaj do aktywnego (utwórz system/wpisy, gdy trzeba). Ładunek też ląduje w
-    # przestrzeni (T2) — na statku, do czasu lądowania w kroku INWAZJA.
+    # Zdejmij statki (zawsze z przestrzeni).
+    for base_type, count in ships.items():
+        _take_space(base_type, count)
+    # Zdejmij ładunek z jego strefy źródłowej (przestrzeń lub planeta).
+    for item in cargo_items:
+        if item.from_zone == "space":
+            _take_space(item.base_type, item.count)
+        else:
+            _take_planet(item.from_zone, item.base_type, item.count)
+
+    # Dodaj do aktywnego (utwórz system/wpisy, gdy trzeba). WSZYSTKO ląduje w
+    # PRZESTRZENI celu (T2) — ładunek na statku, do czasu lądowania w kroku INWAZJA.
     dest = new_state.systems.get(active)
     if dest is None:
         system_id = grid.system_id_at(active) if active in grid.positions else ""
         dest = SystemState(position=active, system_id=system_id)
         new_state.systems[active] = dest
-    for base_type, count in {**ships, **cargo}.items():
+    moved: dict[str, int] = dict(ships)
+    for item in cargo_items:
+        moved[item.base_type] = moved.get(item.base_type, 0) + item.count
+    for base_type, count in moved.items():
         dest.space_units.setdefault(player_id, {}).setdefault(base_type, 0)
         dest.space_units[player_id][base_type] += count
     return new_state

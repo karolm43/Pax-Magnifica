@@ -1696,9 +1696,11 @@ patrz SOURCE.md). Domyka ruch o przewożenie myśliwców i sił naziemnych przez
   (nie ląduje — lądowanie to krok INWAZJA). Myśliwce są statkami (`space`), ale bez własnego
   `moveValue` ruszają się wyłącznie jako ładunek (chyba że Fighter II — wtedy mają własny ruch).
   Siły naziemne (piechota/mech) w trakcie transportu są w przestrzeni jako „ładunek na statku".
-- **(T3) Skąd pickup (akcja taktyczna).** Ładunek można zabrać z systemu źródłowego statku
-  (z przestrzeni oraz z planet tego systemu) — w T-zakresie Bloku B obsługujemy pickup z
-  PRZESTRZENI systemu źródłowego. Pickup z planet i z systemów mijanych po drodze = rozbudowa.
+- **(T3) Skąd pickup (akcja taktyczna).** Ładunek można zabrać z systemu źródłowego statku:
+  z PRZESTRZENI oraz z PLANET tego systemu (źródło: R_transport „from the active system, the
+  system it started its movement in, and each system it moves through"; „A ship may pick up
+  ground forces from a planet"). Siły naziemne zdjęte z planety jadą w przestrzeni jako ładunek
+  i lądują dopiero w Commit Ground Forces. Pickup z systemów MIJANYCH po drodze = rozbudowa.
 - **(T4) Blokada CC przy pickup.** Nie wolno zabierać myśliwców/sił naziemnych z systemu,
   który zawiera WŁASNY żeton dowodzenia gracza (wyjątek: aktywny system).
 - **(T5) Limit capacity w systemie.** Łączna `capacityValue` statków gracza w systemie
@@ -1714,8 +1716,9 @@ przez `can_move` (R1–R6), liczy wolną capacity (suma `capacityValue` wariant�
 Endpoint `POST /tactical/move` dostaje opcjonalne pole `cargo`. Złamanie reguły → `ValueError`
 → 422. God-Mode (`/units/move`) nadal omija.
 
-**Status:** ✅ transport z przestrzeni źródła (ships + cargo, limit capacity). ⬜ pickup z planet,
-⬜ pickup z systemów mijanych, ⬜ usuwanie nadwyżki capacity poza ruchem — rozbudowa.
+**Status:** ✅ transport z przestrzeni ORAZ z planet systemu źródłowego (ships + cargo z
+``from_zone``, limit capacity). ⬜ pickup z systemów mijanych, ⬜ usuwanie nadwyżki capacity
+poza ruchem — rozbudowa.
 
 ---
 

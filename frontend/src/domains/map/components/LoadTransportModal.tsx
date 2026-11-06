@@ -42,31 +42,49 @@ export function LoadTransportModal() {
     : null;
   const shipCapacity = shipUnit?.capacityValue ?? 0;
 
-  // Dostępny ładunek w przestrzeni systemu źródłowego (myśliwce / siły naziemne).
+  // Dostępny ładunek w systemie źródłowym: myśliwce/siły naziemne z PRZESTRZENI
+  // ORAZ siły naziemne z PLANET (statek może je zabrać — RULES.md 32.3 T3). Każda
+  // pozycja niesie strefę źródłową (``fromZone``: "space" albo id planety).
   const cargoStacks = useMemo(() => {
-    if (!target) return [] as { asyncId: string; count: number }[];
+    if (!target) return [] as { asyncId: string; zone: string; label: string; count: number }[];
     const tile = gameData?.tiles?.[target.fromPosition];
-    const entities = tile?.unitsByFaction?.[target.faction] ?? [];
-    return entities
-      .filter(
-        (e) => e.entityType === "unit" && e.count > 0 && CARGO_ASYNC.has(e.entityId),
-      )
-      .map((e) => ({ asyncId: e.entityId, count: e.count }));
+    const out: { asyncId: string; zone: string; label: string; count: number }[] = [];
+    for (const e of tile?.unitsByFaction?.[target.faction] ?? []) {
+      if (e.entityType === "unit" && e.count > 0 && CARGO_ASYNC.has(e.entityId)) {
+        out.push({ asyncId: e.entityId, zone: "space", label: "space", count: e.count });
+      }
+    }
+    // Planety tego systemu — tylko siły naziemne (myśliwiec nie stoi na planecie).
+    for (const [planetId, planet] of Object.entries(tile?.planets ?? {})) {
+      for (const e of planet.unitsByFaction?.[target.faction] ?? []) {
+        if (
+          e.entityType === "unit" &&
+          e.count > 0 &&
+          CARGO_ASYNC.has(e.entityId) &&
+          e.entityId !== "ff"
+        ) {
+          out.push({ asyncId: e.entityId, zone: planetId, label: planetId, count: e.count });
+        }
+      }
+    }
+    return out;
   }, [target, gameData?.tiles]);
 
   if (!target) return null;
 
+  // Klucz wyboru = „asyncId@strefa" (ten sam typ z przestrzeni i z planety to różne pozycje).
+  const keyOf = (asyncId: string, zone: string) => `${asyncId}@${zone}`;
   const loaded = Object.values(picked).reduce((a, b) => a + b, 0);
   const free = Math.max(shipCapacity - loaded, 0);
 
-  const pick = (asyncId: string, max: number, delta: number) => {
+  const pick = (k: string, max: number, delta: number) => {
     setPicked((prev) => {
-      const current = prev[asyncId] ?? 0;
+      const current = prev[k] ?? 0;
       // Nie pozwól przekroczyć capacity (suma) ani dostępnej liczby (max).
       const wouldBe = current + delta;
       const capped =
         delta > 0 ? Math.min(wouldBe, current + free, max) : Math.max(wouldBe, 0);
-      return { ...prev, [asyncId]: capped };
+      return { ...prev, [k]: capped };
     });
   };
 
@@ -75,7 +93,7 @@ export function LoadTransportModal() {
     const next: Record<string, number> = {};
     for (const s of cargoStacks) {
       const take = Math.min(s.count, remaining);
-      if (take > 0) next[s.asyncId] = take;
+      if (take > 0) next[keyOf(s.asyncId, s.zone)] = take;
       remaining -= take;
       if (remaining <= 0) break;
     }
@@ -87,8 +105,12 @@ export function LoadTransportModal() {
     setBusy(true);
     try {
       const cargo = cargoStacks
-        .filter((s) => (picked[s.asyncId] ?? 0) > 0)
-        .map((s) => ({ baseType: baseTypeOf(s.asyncId), count: picked[s.asyncId] }));
+        .filter((s) => (picked[keyOf(s.asyncId, s.zone)] ?? 0) > 0)
+        .map((s) => ({
+          baseType: baseTypeOf(s.asyncId),
+          count: picked[keyOf(s.asyncId, s.zone)],
+          fromZone: s.zone,
+        }));
       await moveShips({
         fromPosition: target.fromPosition,
         faction: target.faction,
@@ -141,9 +163,10 @@ export function LoadTransportModal() {
         ) : (
           <Stack gap={6}>
             {cargoStacks.map((s) => {
-              const sel = picked[s.asyncId] ?? 0;
+              const k = keyOf(s.asyncId, s.zone);
+              const sel = picked[k] ?? 0;
               return (
-                <Group key={s.asyncId} gap="sm" justify="space-between" wrap="nowrap">
+                <Group key={k} gap="sm" justify="space-between" wrap="nowrap">
                   <Group gap="xs" wrap="nowrap">
                     <div className={styles.unitIcon}>
                       <Unit
@@ -156,13 +179,16 @@ export function LoadTransportModal() {
                     <Text size="sm">
                       <b>{sel}</b>/{s.count} {s.asyncId.toUpperCase()}
                     </Text>
+                    <Text size="xs" c="dimmed" title="Pickup zone">
+                      from {s.label}
+                    </Text>
                   </Group>
                   <Group gap={4} wrap="nowrap">
                     <ActionIcon
                       size="sm"
                       variant="light"
                       disabled={busy || sel <= 0}
-                      onClick={() => pick(s.asyncId, s.count, -1)}
+                      onClick={() => pick(k, s.count, -1)}
                       aria-label={`Unload ${s.asyncId}`}
                     >
                       <IconMinus size={13} />
@@ -171,7 +197,7 @@ export function LoadTransportModal() {
                       size="sm"
                       variant="light"
                       disabled={busy || sel >= s.count || free <= 0}
-                      onClick={() => pick(s.asyncId, s.count, +1)}
+                      onClick={() => pick(k, s.count, +1)}
                       aria-label={`Load ${s.asyncId}`}
                     >
                       <IconPlus size={13} />
