@@ -899,6 +899,8 @@ class SpaceCannonPanelResponse(BaseModel):
 
     position: str | None
     is_open: bool = Field(serialization_alias="isOpen")
+    # Okno już zamknięte, ale było rozstrzygnięcie (dziennik niepusty) — panel pokazuje wynik.
+    resolved: bool = False
     queue: list[str]
     responded: list[str]
     current: str | None

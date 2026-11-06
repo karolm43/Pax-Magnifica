@@ -242,11 +242,15 @@ def is_open(state: GameState) -> bool:
 
 
 def read_log(state: GameState) -> list[dict[str, Any]]:
-    """Dziennik rozstrzygnięć okna (kto, w kogo, trafienia, rzuty, straty)."""
-    if not is_open(state):
-        return []
-    assert state.pending_window is not None
-    raw = state.pending_window.context.get("log", "[]")
+    """Dziennik rozstrzygnięć (kto, w kogo, trafienia, rzuty, straty).
+
+    Gdy okno trwa — z jego kontekstu; po zamknięciu — z ``GameState.space_cannon_log``
+    (zachowany do końca akcji taktycznej, żeby panel pokazał wynik).
+    """
+    if state.pending_window is not None and is_open(state):
+        raw = state.pending_window.context.get("log", "[]")
+    else:
+        raw = state.space_cannon_log
     return cast("list[dict[str, Any]]", json.loads(str(raw)))
 
 
@@ -286,9 +290,12 @@ def _advance(state: GameState) -> GameState:
     window = _window(state)
     responder = window.current_responder
     assert responder is not None
+    log_json = str(window.context.get("log", "[]"))
     new_state = timing.respond_current(state, responder)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
+        # Okno znika, wynik zostaje w stanie (panel pokazuje rozstrzygnięcie).
+        new_state.space_cannon_log = log_json
     return new_state
 
 
@@ -308,13 +315,17 @@ def open_offense(
         )
     queue = offense_queue(state, grid, registry)
     if not queue:
-        return state.clone()
-    return timing.open_window(
+        nothing = state.clone()
+        nothing.space_cannon_log = "[]"
+        return nothing
+    opened = timing.open_window(
         state,
         WindowType.SPACE_CANNON,
         queue,
         context={"position": state.active_system, "log": "[]"},
     )
+    opened.space_cannon_log = "[]"
+    return opened
 
 
 def _require_turn(state: GameState, player_id: str) -> TimingWindow:

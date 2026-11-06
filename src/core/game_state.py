@@ -286,6 +286,10 @@ class GameState(BaseModel):
     # licznik są częścią stanu, więc Undo/Redo i powtórka migawki dają TE SAME wyniki.
     rng_seed: int = 0
     rng_counter: int = 0
+    # Dziennik ostatniego rozstrzygnięcia Space Cannon Offense (JSON listy wpisów). Okno
+    # czasowe znika po ostatnim graczu, a panel musi nadal pokazać, co się stało (rzuty,
+    # trafienia, straty) — do końca akcji taktycznej (RULES.md 38.3).
+    space_cannon_log: str = "[]"
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

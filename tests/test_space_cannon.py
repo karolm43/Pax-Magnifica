@@ -265,6 +265,18 @@ def test_pass_advances_and_closes_window(registry: StaticDataRegistry) -> None:
     assert passed.systems["000"].space_units["p1"] == {"destroyer": 1}
 
 
+def test_log_survives_window_close_until_action_ends(
+    registry: StaticDataRegistry,
+) -> None:
+    """Wynik zostaje w stanie po zamknięciu okna (panel go pokazuje) i znika z końcem akcji."""
+    state = _state(pds={"p2": 1}, ships={"p1": {"destroyer": 1}})
+    passed = space_cannon.pass_offense(_open(state, registry), "p2")
+    assert passed.pending_window is None
+    log = space_cannon.read_log(passed)
+    assert [(e["roller"], e["passed"]) for e in log] == [("p2", True)]
+    assert space_cannon.read_log(tactical.end_tactical_action(passed)) == []
+
+
 def test_fire_with_explicit_illegal_target_rejected(registry: StaticDataRegistry) -> None:
     state = _state(pds={"p2": 1}, ships={"p1": {"destroyer": 1}, "p3": {"cruiser": 1}})
     opened = _open(state, registry)
@@ -350,6 +362,8 @@ def test_api_fire_and_pass_resolve_window(registry: StaticDataRegistry) -> None:
     assert client.post("/tactical/space-cannon/pass", json={"faction": "p2"}).status_code == 200
     panel = client.get("/tactical/space-cannon").json()
     assert panel["isOpen"] is False
+    assert panel["resolved"] is True  # okno zamknięte, ale wynik (pas) jest w dzienniku
+    assert panel["log"][0]["passed"] is True
 
 
 def test_web_data_exposes_space_cannon_range(registry: StaticDataRegistry) -> None:

@@ -88,13 +88,8 @@ def _build_panel(ctx: AppContext, state: GameState) -> SpaceCannonPanelResponse:
 
     is_open = space_cannon.is_open(state)
     window = state.pending_window if is_open else None
-    queue = (
-        list(window.queue)
-        if window is not None
-        else space_cannon.offense_queue(state, ctx.current_grid, ctx.registry)
-        if state.active_system is not None
-        else []
-    )
+    # Kolejka tylko z TRWAJĄCEGO okna — po zamknięciu panel pokazuje wynik z dziennika.
+    queue = list(window.queue) if window is not None else []
 
     sides: list[SpaceCannonSideHelp] = []
     for player_id in queue:
@@ -159,6 +154,7 @@ def _build_panel(ctx: AppContext, state: GameState) -> SpaceCannonPanelResponse:
     return SpaceCannonPanelResponse(
         position=state.active_system,
         is_open=is_open,
+        resolved=(not is_open and len(log) > 0),
         queue=[key(p) for p in queue],
         responded=[key(p) for p in window.responded] if window is not None else [],
         current=(

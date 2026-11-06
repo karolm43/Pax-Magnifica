@@ -144,6 +144,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.active_system = None
     new_state.tactical_step = None
+    new_state.space_cannon_log = "[]"
     # Okno Space Cannon dotyczy aktywnego systemu — po zakończeniu akcji nie ma już czego
     # rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
     window = new_state.pending_window
