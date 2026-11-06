@@ -69,6 +69,8 @@ export type DragGhost = {
   asyncId: string;
   count: number;
   imageUrl?: string | null;
+  /** Czy kursor jest nad statkiem-nosicielem (duch pokazuje sygnał „załaduj"). */
+  loading?: boolean;
 };
 
 type RawZone = { position: string; zone: string; label: string } | null;
@@ -167,6 +169,7 @@ export function useUnitDrag(data: UnitDragData | null) {
   const setDraggingUnit = useAppStore((s) => s.setDraggingUnit);
   const setDragOver = useAppStore((s) => s.setDragOver);
   const openLoadTransport = useAppStore((s) => s.openLoadTransport);
+  const setDragLoadTarget = useAppStore((s) => s.setDragLoadTarget);
   const { moveUnit, moveShips } = useBoardEditor();
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
@@ -183,6 +186,35 @@ export function useUnitDrag(data: UnitDragData | null) {
   // listenery czytają świeżą wartość bez przebudowy domknięcia.
   const activeSystemRef = useRef<string | null>(gameState?.activeSystem ?? null);
   activeSystemRef.current = gameState?.activeSystem ?? null;
+
+  // Statek-nosiciel pod kursorem, na który upuszczenie DANEGO ładunku otworzy okno
+  // załadunku (ten sam warunek dla feedbacku w ``onMove`` i akcji w ``endDrag``).
+  // Zwraca ``{asyncId, position}`` albo null. Warunki: akcja taktyczna, przeciągany
+  // ładunek, statek tej samej frakcji w TYM SAMYM systemie, inny niż ładunek, z capacity.
+  const loadShipAt = useCallback(
+    (clientX: number, clientY: number, info: UnitDragData) => {
+      if (activeSystemRef.current === null || !isCargoUnit(info.asyncId)) return null;
+      const ship = shipStackAt(clientX, clientY);
+      if (
+        !ship ||
+        ship.faction !== info.faction ||
+        ship.position !== info.fromPosition ||
+        ship.asyncId === info.asyncId
+      ) {
+        return null;
+      }
+      const player = playersRef.current?.find((p) => p.faction === info.faction);
+      const unit = player ? lookupUnit(ship.asyncId, info.faction, player) : null;
+      // Nosiciel = STATEK z capacity. Struktury (space dock, PDS) mają capacity w
+      // danych, ale NIE przewożą jednostek — wykluczamy je (bug: ładowanie do doku).
+      const cap = unit?.capacityValue ?? 0;
+      const isStructure = unit?.isStructure === true || ship.asyncId === "sd" || ship.asyncId === "pd";
+      return cap > 0 && !isStructure
+        ? { asyncId: ship.asyncId, position: ship.position }
+        : null;
+    },
+    [],
+  );
 
   // Stan jednego aktywnego przeciągania (ref — bez re-renderów na mousemove).
   const drag = useRef<{
@@ -203,40 +235,22 @@ export function useUnitDrag(data: UnitDragData | null) {
       setGhost(null);
       setDraggingUnit(false);
       setDragOver(null);
+      setDragLoadTarget(null);
       document.body.classList.remove("dragging-unit");
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
 
-      // „Wkładanie do statku": upuszczenie ŁADUNKU (myśliwiec / siła naziemna) NA
-      // statek-nosiciel z capacity → otwórz okno załadunku (ekwipunek statku) zamiast
-      // zwykłego ruchu. Nosiciel i ładunek muszą być w TYM SAMYM systemie (załadunek
-      // u źródła, RULES.md 32.3). Działa tylko w akcji taktycznej.
-      if (activeSystemRef.current !== null && isCargoUnit(info.asyncId)) {
-        const ship = shipStackAt(clientX, clientY);
-        if (
-          ship &&
-          ship.faction === info.faction &&
-          ship.position === info.fromPosition &&
-          ship.asyncId !== info.asyncId
-        ) {
-          const player = playersRef.current?.find((p) => p.faction === info.faction);
-          const cap = player
-            ? (lookupUnit(ship.asyncId, info.faction, player)?.capacityValue ?? 0)
-            : 0;
-          if (cap > 0) {
-            openLoadTransport({
-              fromPosition: ship.position,
-              faction: info.faction,
-              shipAsyncId: ship.asyncId,
-              preselect: {
-                asyncId: info.asyncId,
-                fromZone: info.fromZone,
-                count: 1,
-              },
-            });
-            return;
-          }
-        }
+      // „Wkładanie do statku": upuszczenie ŁADUNKU NA statek-nosiciela z capacity →
+      // otwórz okno załadunku (ekwipunek statku) z preselekcją tej jednostki.
+      const loadShip = loadShipAt(clientX, clientY, info);
+      if (loadShip) {
+        openLoadTransport({
+          fromPosition: loadShip.position,
+          faction: info.faction,
+          shipAsyncId: loadShip.asyncId,
+          preselect: { asyncId: info.asyncId, fromZone: info.fromZone, count: 1 },
+        });
+        return;
       }
 
       const target = resolveTarget(info, clientX, clientY, activeSystemRef.current);
@@ -285,7 +299,16 @@ export function useUnitDrag(data: UnitDragData | null) {
         tactical: toActive,
       });
     },
-    [beginUnitDrop, moveUnit, setDraggingUnit, setDragOver],
+    [
+      beginUnitDrop,
+      moveUnit,
+      moveShips,
+      openLoadTransport,
+      loadShipAt,
+      setDraggingUnit,
+      setDragOver,
+      setDragLoadTarget,
+    ],
   );
 
   // Globalne listenery ruchu/końca dopięte dopiero po starcie gestu (gdy ``drag`` jest
@@ -306,25 +329,35 @@ export function useUnitDrag(data: UnitDragData | null) {
       e.preventDefault();
       const info = dataRef.current;
       if (info) {
+        // Czy pod kursorem jest statek-nosiciel do załadunku? (feedback „włóż do statku").
+        const loadShip = loadShipAt(e.clientX, e.clientY, info);
         setGhost({
           x: e.clientX,
           y: e.clientY,
           asyncId: info.asyncId,
           count: info.count,
           imageUrl: info.imageUrl,
+          loading: loadShip !== null,
         });
+        setDragLoadTarget(loadShip);
         // Podświetl kafelek-cel pod kursorem (planszówkowy feedback „tu upuścisz").
-        const target = resolveTarget(
-          info,
-          e.clientX,
-          e.clientY,
-          activeSystemRef.current,
-        );
-        setDragOver(
-          target
-            ? { position: target.position, zone: target.zone, valid: target.valid }
-            : null,
-        );
+        // Gdy celujemy w statek-nosiciela, NIE pokazujemy zwykłego drop-highlightu
+        // (załadunek ma własny sygnał na statku + duchu).
+        if (loadShip) {
+          setDragOver(null);
+        } else {
+          const target = resolveTarget(
+            info,
+            e.clientX,
+            e.clientY,
+            activeSystemRef.current,
+          );
+          setDragOver(
+            target
+              ? { position: target.position, zone: target.zone, valid: target.valid }
+              : null,
+          );
+        }
       }
     };
     const onUp = (e: PointerEvent) => endDrag(e.clientX, e.clientY, true);
@@ -337,7 +370,7 @@ export function useUnitDrag(data: UnitDragData | null) {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
     };
-  }, [endDrag, setDraggingUnit, setDragOver]);
+  }, [endDrag, loadShipAt, setDraggingUnit, setDragOver, setDragLoadTarget]);
 
   // Callback ref: podpina natywne listenery startu gestu w fazie CAPTURE na sprite'cie.
   // Capture + stopPropagation blokuje dragscroll (pan) ZANIM złapie mousedown.

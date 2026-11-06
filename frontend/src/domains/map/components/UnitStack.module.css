@@ -32,6 +32,31 @@
   cursor: grabbing;
 }
 
+/* Cel załadunku — statek pod kursorem z ładunkiem. Fioletowa poświata + lekkie
+   powiększenie: wyraźny sygnał „tu włożysz jednostkę" (spójne z plakietką ⊕ Load
+   na duchu). Pulsuje, by przyciągać wzrok; wyłączone przy prefers-reduced-motion. */
+.loadTarget {
+  filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.95))
+    drop-shadow(0 0 16px rgba(124, 58, 237, 0.7));
+  animation: loadTargetPulse 1s ease-in-out infinite;
+}
+
+@keyframes loadTargetPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadTarget {
+    animation: none;
+  }
+}
+
 .badgeInnerWrapper {
   position: relative;
 }

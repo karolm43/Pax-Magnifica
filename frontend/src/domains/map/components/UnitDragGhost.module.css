@@ -41,3 +41,47 @@
   background: #ffd45e;
   border-radius: 999px;
 }
+
+/* Duch nad statkiem-nosicielem — mocniejszy, „aktywny" wygląd (załadunek). */
+.ghost[data-loading] {
+  opacity: 1;
+  filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.9));
+}
+
+/* Plakietka „Load" nad duchem — czytelny, schludny sygnał „upuść = włóż do statku". */
+.loadTag {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  font-family: var(--ds-label-font, sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.98),
+    rgba(109, 40, 217, 0.98)
+  );
+  border: 1px solid rgba(196, 181, 253, 0.6);
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(76, 29, 149, 0.5);
+}
+
+/* Mała strzałka pod plakietką — „wskazuje" na jednostkę (dymek). */
+.loadTag::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(109, 40, 217, 0.98);
+}

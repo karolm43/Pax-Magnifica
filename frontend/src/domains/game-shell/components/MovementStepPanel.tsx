@@ -19,6 +19,7 @@ import type { Tile } from "@/entities/game/types";
 import {
   BASE_TYPE_BY_ASYNC,
   CARGO_ASYNC,
+  isStructureUnit,
   SHIP_ONLY_ASYNC,
 } from "@/domains/map/components/UnitStack/cargo";
 import styles from "./GameStatePanel.module.css";
@@ -50,9 +51,8 @@ function fleetCapacity(stacks: Stack[], faction: string, player?: PlayerData): C
   let used = 0;
   for (const s of stacks) {
     const unit = lookupUnit(s.asyncId, faction, player);
-    const baseType = unit?.baseType ?? BASE_TYPE_BY_ASYNC[s.asyncId];
-    // Doki nie dają pojemności transportu (ignored w largestCapacity).
-    if (unit?.capacityValue && baseType !== "spacedock") {
+    // Struktury (dok/PDS) nie dają pojemności transportu, mimo capacity w danych.
+    if (unit?.capacityValue && !isStructureUnit(s.asyncId)) {
       total += unit.capacityValue * s.count;
     }
     // Myśliwce i siły naziemne zajmują pojemność jako ładunek.
@@ -139,6 +139,7 @@ export function MovementStepPanel({
         if (
           e.entityType === "unit" &&
           e.count > 0 &&
+          !isStructureUnit(e.entityId) &&
           (lookupUnit(e.entityId, faction, player)?.capacityValue ?? 0) > 0
         ) {
           out.push({ position: pos, asyncId: e.entityId });
@@ -350,6 +351,7 @@ export function MovementStepPanel({
                     ships
                       .filter(
                         (s) =>
+                          !isStructureUnit(s.asyncId) &&
                           (lookupUnit(s.asyncId, faction, player)?.capacityValue ??
                             0) > 0,
                       )

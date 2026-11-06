@@ -35,3 +35,12 @@ export function baseTypeOf(asyncId: string): string {
 export function isCargoUnit(asyncId: string): boolean {
   return CARGO_ASYNC.has(asyncId);
 }
+
+/* Struktury (asyncId) — NIE przewożą jednostek, mimo że w danych mają capacity
+   (space dock daje „capacity" dla reguł floty/produkcji, nie dla transportu). */
+export const STRUCTURE_ASYNC = new Set(["sd", "pd"]);
+
+/** Czy jednostka (asyncId) to STRUKTURA (space dock / PDS) — nie nosiciel transportu. */
+export function isStructureUnit(asyncId: string): boolean {
+  return STRUCTURE_ASYNC.has(asyncId);
+}

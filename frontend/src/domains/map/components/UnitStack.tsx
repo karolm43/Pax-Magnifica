@@ -26,6 +26,7 @@ import type { MapUnitTransition, StateCounts } from "@/entities/replay/types";
 import { stateCount, stackHolder, unitStates } from "@/entities/replay/unitState";
 import { useUnitDrag } from "./hooks/useUnitDrag";
 import { UnitDragGhost } from "./UnitDragGhost";
+import { useAppStore } from "@/state/appStore";
 import classes from "./UnitStack.module.css";
 
 const EMPTY_STATES: StateCounts = [0, 0, 0, 0];
@@ -104,6 +105,13 @@ export function UnitStack({
           "data-ship-pos": tilePosition,
         }
       : {};
+  // Czy ten statek jest aktualnym celem załadunku (kursor z ładunkiem nad nim) —
+  // wtedy go podświetlamy, by było jasne „tu włożysz jednostkę".
+  const dragLoadTarget = useAppStore((s) => s.dragLoadTarget);
+  const isLoadTarget =
+    !!tilePosition &&
+    dragLoadTarget?.position === tilePosition &&
+    dragLoadTarget?.asyncId === unitType;
   /* Combat badges are compact summaries and must stay legible above the much
      larger rotated ship silhouettes in the transition layer. */
   const baseZIndex =
@@ -153,7 +161,7 @@ export function UnitStack({
     return (
       <div
         ref={setWrapperRef}
-        className={`${classes.badgeContainer} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
+        className={`${classes.badgeContainer} ${wrapperClass} ${dndEnabled ? classes.draggable : ""} ${isLoadTarget ? classes.loadTarget : ""}`}
         style={{
           left: `${x}px`,
           top: `${y}px`,
@@ -216,7 +224,7 @@ export function UnitStack({
       {...handlers}
       {...dragProps}
       {...shipTag}
-      className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
+      className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""} ${isLoadTarget ? classes.loadTarget : ""}`}
       style={{
         left: `${x + (footprint.left + footprint.right) / 2}px`,
         top: `${y + (footprint.top + footprint.bottom) / 2}px`,

@@ -191,6 +191,17 @@ type AppStore = {
   closeLoadTransport: () => void;
 
   /*
+   * Podczas przeciągania ŁADUNKU: statek-nosiciel pod kursorem, na który upuszczenie
+   * otworzy okno załadunku („włóż do statku"). Ustawiany na żywo w trakcie gestu
+   * (useUnitDrag.onMove), czyszczony po zakończeniu. Pozwala UI podświetlić ten statek
+   * i pokazać na „duchu" sygnał „załaduj". ``asyncId`` + ``position`` identyfikują stos.
+   */
+  dragLoadTarget: { position: string; asyncId: string } | null;
+  setDragLoadTarget: (
+    target: { position: string; asyncId: string } | null,
+  ) => void;
+
+  /*
    * Okno walki (asystent trafień, E3). Gdy ustawione, otwarty jest modal walki dla
    * danego miejsca: ``planet`` = null → walka kosmiczna, inaczej walka naziemna.
    */
@@ -320,6 +331,9 @@ export const useAppStore = create<AppStore>((set) => {
     loadTransport: null,
     openLoadTransport: (target) => set({ loadTransport: target }),
     closeLoadTransport: () => set({ loadTransport: null }),
+
+    dragLoadTarget: null,
+    setDragLoadTarget: (target) => set({ dragLoadTarget: target }),
 
     combatTarget: null,
     openCombat: (position: string, planet: string | null) =>

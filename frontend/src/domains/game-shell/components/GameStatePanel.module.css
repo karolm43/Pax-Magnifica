@@ -1152,10 +1152,12 @@
 
 .unitTileIcon {
   grid-area: icon;
+  position: relative;
   display: grid;
   place-items: center;
   width: 24px;
   height: 24px;
+  overflow: hidden; /* klip sprite'a do pudełka — arkusz nie wylewa się na sąsiadów */
 }
 
 /* Sprite jednostki (scaled) renderuje się jako <div> z tłem = wycinek arkusza,
