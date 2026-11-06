@@ -66,20 +66,32 @@ async def post_tactical_move(
     start nie z własnym CC). Nielegalny ruch → 422.
     """
     player_id = board_edit.resolve_player_id(request.faction, ctx.service.current_state())
+    # Statki (pojedynczy stos ``base_type``/``count`` dla zgodności wstecznej ORAZ
+    # lista ``ships`` dla pełnej floty z UI) + ładunek → słowniki {base_type: count}.
+    ships: dict[str, int] = {}
+    if request.base_type is not None and request.count > 0:
+        ships[request.base_type] = request.count
+    for item in request.ships:
+        if item.count > 0:
+            ships[item.base_type] = ships.get(item.base_type, 0) + item.count
+    cargo: dict[str, int] = {}
+    for item in request.cargo:
+        if item.count > 0:
+            cargo[item.base_type] = cargo.get(item.base_type, 0) + item.count
     try:
-        new_state = movement.move_ships(
+        new_state = movement.move_fleet(
             ctx.service.current_state(),
             ctx.current_grid,
             ctx.registry,
             request.from_position,
-            request.base_type,
-            request.count,
+            ships,
+            cargo,
             player_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(
-        ctx, new_state, f"tactical:move:{request.from_position}:{request.base_type}"
+        ctx, new_state, f"tactical:move:{request.from_position}"
     )
 
 

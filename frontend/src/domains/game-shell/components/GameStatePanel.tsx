@@ -33,6 +33,7 @@ import {
 } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
+import { MovementStepPanel } from "./MovementStepPanel";
 import { DEFAULT_GAME_ID } from "@/config";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
@@ -1331,6 +1332,24 @@ export function TacticalActionPanel({
       </ol>
 
       {/* Zawartość bieżącego kroku. */}
+      {tacticalStep === "MOVEMENT" && (
+        <div className={styles.stepBody}>
+          <MovementStepPanel
+            activeSystem={activeSystem}
+            activePlayerColor={activePlayerColor}
+          />
+        </div>
+      )}
+
+      {tacticalStep === "SPACE_CANNON" && (
+        <div className={styles.stepBody}>
+          <span className={styles.prodNote}>
+            Space Cannon Offense — units with Space Cannon may fire at the active
+            player's ships. Full interactive step arrives in a later block.
+          </span>
+        </div>
+      )}
+
       {tacticalStep === "SPACE_COMBAT" && (
         <div className={styles.stepBody}>
           {hasSpaceCombat ? (

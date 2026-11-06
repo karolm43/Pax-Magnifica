@@ -271,15 +271,27 @@ export function useBoardEditor() {
   const moveShips = useCallback(
     async (args: {
       fromPosition: string;
-      baseType: string;
-      count?: number;
       faction: string;
+      // Pojedynczy stos (zgodność wsteczna) — opcjonalny, gdy używamy ``ships``.
+      baseType?: string;
+      count?: number;
+      // Pełna flota ruszająca naraz (typy statków) — dla dedykowanego okna ruchu.
+      ships?: { baseType: string; count: number }[];
+      // Ładunek: myśliwce / siły naziemne przewożone razem (RULES.md 32.3).
+      // Limit capacity egzekwuje backend (422 z powodem, gdy przekroczony).
+      cargo?: { baseType: string; count: number }[];
     }) => {
       await post("/tactical/move", {
         fromPosition: args.fromPosition,
-        baseType: args.baseType,
-        count: args.count ?? 1,
+        baseType: args.baseType ?? null,
+        count: args.baseType ? (args.count ?? 1) : 0,
         faction: args.faction,
+        ships: (args.ships ?? [])
+          .filter((s) => s.count > 0)
+          .map((s) => ({ baseType: s.baseType, count: s.count })),
+        cargo: (args.cargo ?? [])
+          .filter((c) => c.count > 0)
+          .map((c) => ({ baseType: c.baseType, count: c.count })),
       });
       await refresh();
     },

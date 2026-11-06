@@ -998,6 +998,12 @@
   gap: 7px;
 }
 
+/* Okno ruchu (krok MOVEMENT) — ten sam układ gridu co produkcja. */
+.movement {
+  display: grid;
+  gap: 7px;
+}
+
 .prodHead {
   display: flex;
   align-items: center;

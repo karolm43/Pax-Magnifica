@@ -195,3 +195,101 @@ def test_fighter_ii_can_move_with_upgrade(registry: StaticDataRegistry) -> None:
     state.players["p1"].technologies = []
     ok2, _ = movement.can_move(state, grid, registry, "101", "fighter", "p1")
     assert not ok2
+
+
+# --- Transport (capacity) — RULES.md 32.3 (Blok B) ---
+
+
+def _state_with_carrier_cargo(
+    from_pos: str,
+    active: str,
+    *,
+    fighters: int = 0,
+    infantry: int = 0,
+    carriers: int = 1,
+    player: str = "p1",
+) -> GameState:
+    """Stan: gracz z ``carriers`` nosicielami + ładunkiem w przestrzeni ``from_pos``."""
+    space: dict[str, int] = {"carrier": carriers}
+    if fighters:
+        space["fighter"] = fighters
+    if infantry:
+        space["infantry"] = infantry
+    return GameState(
+        phase=Phase.ACTION,
+        active_player_id=player,
+        active_system=active,
+        players={player: PlayerState(player_id=player, color="red")},
+        systems={
+            from_pos: SystemState(
+                position=from_pos, system_id="x", space_units={player: space}
+            ),
+        },
+    )
+
+
+def test_transport_fighters_with_carrier(registry: StaticDataRegistry) -> None:
+    """Carrier (capacity 4) przewozi 2 myśliwce do aktywnego systemu (T1/T2)."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_carrier_cargo("101", "000", fighters=2)
+    new = movement.move_fleet(
+        state, grid, registry, "101", {"carrier": 1}, {"fighter": 2}, "p1"
+    )
+    dest = new.systems["000"].space_units["p1"]
+    assert dest["carrier"] == 1
+    assert dest["fighter"] == 2
+    # Źródło opustoszało (wszystko ruszyło).
+    assert "p1" not in new.systems["101"].space_units
+
+
+def test_transport_ground_forces_land_in_space(registry: StaticDataRegistry) -> None:
+    """Piechota jedzie w przestrzeni jako ładunek (T2) — nie na planecie."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_carrier_cargo("101", "000", infantry=3)
+    new = movement.move_fleet(
+        state, grid, registry, "101", {"carrier": 1}, {"infantry": 3}, "p1"
+    )
+    assert new.systems["000"].space_units["p1"]["infantry"] == 3
+
+
+def test_transport_exceeds_capacity_rejected(registry: StaticDataRegistry) -> None:
+    """Ładunek > capacity ruszających statków → odrzucony (T1/T5)."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    # 1 carrier = capacity 4; próbujemy przewieźć 5 myśliwców.
+    state = _state_with_carrier_cargo("101", "000", fighters=5)
+    with pytest.raises(ValueError, match="[Cc]apacity"):
+        movement.move_fleet(
+            state, grid, registry, "101", {"carrier": 1}, {"fighter": 5}, "p1"
+        )
+
+
+def test_cargo_without_ship_rejected(registry: StaticDataRegistry) -> None:
+    """Ładunek bez statku-nosiciela → odrzucony (fighter nie rusza się sam)."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_carrier_cargo("101", "000", fighters=2, carriers=0)
+    with pytest.raises(ValueError, match="transporting ship"):
+        movement.move_fleet(
+            state, grid, registry, "101", {}, {"fighter": 2}, "p1"
+        )
+
+
+def test_cargo_pickup_blocked_by_own_cc(registry: StaticDataRegistry) -> None:
+    """Pickup ładunku z systemu z własnym CC (nie aktywnym) → odrzucony (T4)."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_carrier_cargo("101", "000", fighters=2)
+    # Własny żeton dowodzenia w systemie źródłowym (nie aktywnym).
+    state.systems["101"].command_tokens = ["p1"]
+    # Statek nie może nawet ruszyć z własnego CC (R3) — ale komunikat T4 dotyczy
+    # pickupu; tu sprawdzamy, że ruch z ładunkiem jest nielegalny.
+    with pytest.raises(ValueError):
+        movement.move_fleet(
+            state, grid, registry, "101", {"carrier": 1}, {"fighter": 2}, "p1"
+        )
+
+
+def test_move_ships_still_works_as_wrapper(registry: StaticDataRegistry) -> None:
+    """Zgodność wsteczna: ``move_ships`` (jeden stos, bez ładunku) nadal działa."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_destroyer_at("101", "000")
+    new = movement.move_ships(state, grid, registry, "101", "destroyer", 1, "p1")
+    assert new.systems["000"].space_units["p1"]["destroyer"] == 1

@@ -484,20 +484,41 @@ class SetSpeakerRequest(BaseModel):
     player_id: str
 
 
+class MoveCargoItem(BaseModel):
+    """Pozycja ładunku transportu (RULES.md 32.3): typ jednostki + liczba.
+
+    Ładunek to myśliwce / siły naziemne przewożone statkami w tym samym ruchu
+    (``fighter``/``infantry``/``mech``). Backend waliduje typ i limit capacity.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str = Field(alias="baseType")
+    count: int = 1
+
+
 class MoveShipsRequest(BaseModel):
-    """Ruch statków w akcji taktycznej (E8-T5): źródło + typ + liczba + gracz.
+    """Ruch floty w akcji taktycznej (E8): źródło + statki + ładunek + gracz.
 
     Walidowana akcja (RULES.md 32), w odróżnieniu od God-Mode ``/units/move``.
     ``faction`` to klucz tożsamości gracza (jak w tileUnitData) — rozwiązywany na
     ``player_id`` jak w pozostałych endpointach taktycznych. Cel = aktywny system.
+
+    Dwa warianty wejścia (łączone):
+    - ``base_type`` + ``count`` — pojedynczy stos statków (zgodność wsteczna z T5);
+    - ``ships`` — lista typów statków ruszających naraz (pełna flota, dla UI ruchu).
+    ``cargo`` = myśliwce/siły naziemne przewożone razem w ramach łącznej capacity
+    WSZYSTKICH ruszających statków (RULES.md 32.3).
     """
 
     model_config = ConfigDict(extra="forbid")
 
     from_position: str = Field(alias="fromPosition")
-    base_type: str = Field(alias="baseType")
+    base_type: str | None = Field(default=None, alias="baseType")
     count: int = 1
     faction: str
+    ships: list[MoveCargoItem] = Field(default_factory=list)
+    cargo: list[MoveCargoItem] = Field(default_factory=list)
 
 class ActivateSystemRequest(BaseModel):
     """Aktywacja systemu w akcji taktycznej (E3): pozycja kafelka."""

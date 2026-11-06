@@ -1652,8 +1652,42 @@ Statek rusza do AKTYWNEGO systemu (akcja taktyczna, krok 2), przestrzegając:
   NADAL omija (osobny kanał, bez reguł — RULES.md 25/26).
 - Endpoint: `POST /tactical/move` (router tactical). UI podłączy w kroku ruchu (MOVEMENT).
 
-**Status:** ✅ T5 ruch statków z walidacją R1–R6 (pojedynczy stos). ⬜ transport/capacity,
-⬜ wybór trasy pod gravity rift, ⬜ ruch zdolnościami — rozbudowa.
+**Status:** ✅ T5 ruch statków z walidacją R1–R6 (pojedynczy stos). ⬜ wybór trasy pod
+gravity rift, ⬜ ruch zdolnościami — rozbudowa. (Transport/capacity → 32.3 niżej.)
+
+### 32.3. Transport (capacity) — ✅ ZWERYFIKOWANE (LRR 2.0 / tirules)
+
+Etap E8 Blok B. Źródło: `docs/rules_tirules/R_transport.md`, `R_capacity.md` (treść © FFG;
+patrz SOURCE.md). Domyka ruch o przewożenie myśliwców i sił naziemnych przez statki.
+
+- **(T1) Capacity = limit ładunku statku.** Statek może przewieźć dowolną kombinację
+  myśliwców i sił naziemnych, pod warunkiem że łączna liczba przewożonych jednostek nie
+  przekracza jego wartości `capacityValue` (z WARIANTU gracza — ulepszenia liczą się, np.
+  Carrier/upgrade). Każdy myśliwiec/piechota/mech zajmuje `capacityUsed` (zwykle 1).
+- **(T2) Ładunek rusza razem ze statkiem** i pozostaje w PRZESTRZENI systemu docelowego
+  (nie ląduje — lądowanie to krok INWAZJA). Myśliwce są statkami (`space`), ale bez własnego
+  `moveValue` ruszają się wyłącznie jako ładunek (chyba że Fighter II — wtedy mają własny ruch).
+  Siły naziemne (piechota/mech) w trakcie transportu są w przestrzeni jako „ładunek na statku".
+- **(T3) Skąd pickup (akcja taktyczna).** Ładunek można zabrać z systemu źródłowego statku
+  (z przestrzeni oraz z planet tego systemu) — w T-zakresie Bloku B obsługujemy pickup z
+  PRZESTRZENI systemu źródłowego. Pickup z planet i z systemów mijanych po drodze = rozbudowa.
+- **(T4) Blokada CC przy pickup.** Nie wolno zabierać myśliwców/sił naziemnych z systemu,
+  który zawiera WŁASNY żeton dowodzenia gracza (wyjątek: aktywny system).
+- **(T5) Limit capacity w systemie.** Łączna `capacityValue` statków gracza w systemie
+  ogranicza liczbę myśliwców + sił naziemnych, jakie gracz może mieć w przestrzeni tego
+  systemu. Nadwyżkę trzeba usunąć (gracz wybiera). W Bloku B egzekwujemy to jako walidację
+  ruchu: ładunek ≤ wolna capacity statków RUSZAJĄCYCH w tym ruchu.
+
+**Model/implementacja:** `core/movement.py` — nowa funkcja `move_fleet(state, grid, registry,
+from_pos, ships, cargo, player_id)` (ships/cargo = `{base_type: count}`): waliduje każdy statek
+przez `can_move` (R1–R6), liczy wolną capacity (suma `capacityValue` wariantów statków − suma
+`capacityUsed` ładunku) i przenosi statki + ładunek do aktywnego systemu w `space_units`.
+`move_ships` zostaje jako cienki wrapper (jeden typ statku, bez ładunku — zgodność wsteczna).
+Endpoint `POST /tactical/move` dostaje opcjonalne pole `cargo`. Złamanie reguły → `ValueError`
+→ 422. God-Mode (`/units/move`) nadal omija.
+
+**Status:** ✅ transport z przestrzeni źródła (ships + cargo, limit capacity). ⬜ pickup z planet,
+⬜ pickup z systemów mijanych, ⬜ usuwanie nadwyżki capacity poza ruchem — rozbudowa.
 
 ---
 

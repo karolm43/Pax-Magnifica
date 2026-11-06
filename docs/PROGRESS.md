@@ -21,6 +21,48 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ E8 Blok A+B — UX akcji taktycznej + ruch z transportem (ukończone)
+
+- **Cel (ustalony z użytkownikiem):** profesjonalna akcja taktyczna z ładnym UI na każdy z 5
+  kroków. Start aktywacji wygodnie z prawego dolnego rogu; panel-przewodnik po krokach widoczny
+  na MAP VIEW; ruch jako prawdziwy krok z transportem (nie tylko God-Mode).
+- **Blok A — UX (frontend):**
+  - Przycisk „**Activate system**" w `TurnControls` (prawy dolny róg, przy karcie strategii) —
+    reużywa `activateMode`/`activateSystem`; odbiór kliknięcia w kafelek przeniesiony do
+    `TurnControls` (żeby działał niezależnie od zakładki panelu). Wskaźnik „Tactical action in
+    progress", gdy akcja trwa.
+  - `TacticalActionDock` (NOWY) — PŁYWAJĄCY, PRZESUWANY dok na map view (`useDraggablePanel`,
+    pozycja w localStorage, dwuklik = reset). Pokazuje panel kroków (reużyty `TacticalActionPanel`)
+    TYLKO gdy trwa akcja (`activeSystem != null`). Powód: pływający „Game state" na mapie jest
+    `variant="info"` i nie pokazywał kroków — brakowało przewodnika na samej mapie.
+  - Pigułki kroków = WSKAŹNIK postępu (lista `<ol>`, nie przełącznik): nie wolno swobodnie skakać
+    w przód/w tył. „Next step/Finish" i „End action" wymagają DRUGIEGO kliknięcia (inline confirm
+    z ostrzegawczym akcentem) — nie kończy/przeskakuje akcji przypadkiem.
+- **Blok B — ruch z transportem (backend + frontend):**
+  - **Reguła (zweryfikowana, nie z pamięci):** `RULES.md` 32.3 ze źródłem
+    `docs/rules_tirules/R_transport.md`, `R_capacity.md` (tirules2.com). Capacity = limit ładunku
+    statku (myśliwce + siły naziemne), ładunek rusza razem i zostaje w przestrzeni (ląduje dopiero
+    w INWAZJI), pickup z przestrzeni źródła, blokada CC przy pickupie, limit capacity w systemie.
+  - `src/core/movement.py`: nowa `move_fleet(state, grid, registry, from_pos, ships, cargo,
+    player_id)` — statki (każdy walidowany R1–R6) + ładunek w ramach wolnej capacity (odczyt
+    `capacityValue`/`capacityUsed` z WARIANTU gracza). `move_ships` zostaje jako cienki wrapper
+    (zgodność wsteczna). Capacity i klasyfikacja ładunku z danych/UnitDef, nie z pamięci.
+  - `src/api/schemas.py`: `MoveShipsRequest` rozszerzony o `ships[]` (pełna flota) i `cargo[]`;
+    `base_type` teraz opcjonalny. `src/api/routers/tactical.py`: `/tactical/move` woła `move_fleet`.
+  - `tests/test_movement.py`: +6 testów transportu (przewóz myśliwców/piechoty, limit capacity,
+    ładunek bez statku, blokada CC, wrapper `move_ships`).
+  - `frontend` `MovementStepPanel` (NOWY): dedykowane okno kroku MOVEMENT — wybór systemu
+    źródłowego (gdzie gracz ma statki), wybór statków + ładunku z licznikami, ruch do aktywnego
+    systemu przez walidowany `moveShips` (422 z powodem → panel komunikatów). Zastępuje poleganie
+    na trybie „move" na mapie w kroku ruchu.
+- **Ograniczenia (świadome, do rozbudowy):** pickup ładunku tylko z przestrzeni źródła (nie z
+  planet ani systemów mijanych); brak usuwania nadwyżki capacity poza ruchem; krok SPACE_CANNON
+  na razie z notką (pełna interakcja w kolejnym bloku).
+- **QA:** backend 503 testy zielone (ruff + mypy --strict czyste); frontend type-check + lint +
+  build czyste.
+
+---
+
 ### ✅ Akcja komponentu — trzeci typ akcji fazy akcji + modal „co zagrałeś?" (ukończone)
 
 - **Cel (ustalony z użytkownikiem):** dać opcję zagrania AKCJI KOMPONENTU (trzeci typ akcji

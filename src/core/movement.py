@@ -20,6 +20,12 @@ from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 
+# Jednostki, które mogą być ŁADUNKIEM transportu (R_transport): myśliwce i siły
+# naziemne. To jedyne jednostki zajmujące capacity (``capacityUsed``). Źródło:
+# R_capacity/R_transport — „fighters and ground forces". Trzymane jawnie, bo to
+# reguła klasy jednostek, nie dane liczbowe (te czytamy z UnitDef).
+_CARGO_BASE_TYPES = frozenset({"fighter", "infantry", "mech"})
+
 # Alias technologii Antimass Deflectors (z danych: assets/.../technologies/pok.json →
 # "amd"; nie z pamięci). Pozwala ruch przez/na asteroid field (RULES.md 1.1).
 # Weryfikowany testem względem rejestru.
@@ -241,4 +247,171 @@ def move_ships(
         new_state.systems[active] = dest
     dest.space_units.setdefault(player_id, {}).setdefault(base_type, 0)
     dest.space_units[player_id][base_type] += count
+    return new_state
+
+
+def _capacity_provided(
+    registry: StaticDataRegistry,
+    faction_id: str | None,
+    technologies: list[str],
+    base_type: str,
+) -> int:
+    """Pojemność transportowa jednego statku ``base_type`` (wariant gracza) — RULES.md 32.3 T1.
+
+    Czyta ``capacityValue`` z WARIANTU jednostki (uwzględnia ulepszenia). Zwraca 0,
+    gdy jednostka nie ma pojemności (np. destroyer, cruiser) lub jest nieznana.
+    """
+    unit = resolve_unit_variant(registry, faction_id, technologies, base_type)
+    if unit is None or unit.capacity_value is None:
+        return 0
+    return max(unit.capacity_value, 0)
+
+
+def _capacity_used(
+    registry: StaticDataRegistry,
+    faction_id: str | None,
+    technologies: list[str],
+    base_type: str,
+) -> int:
+    """Ile capacity zajmuje jedna jednostka ładunku ``base_type`` (RULES.md 32.3 T1).
+
+    Czyta ``capacityUsed`` z wariantu (fighter/infantry/mech = zwykle 1). Gdy pole
+    puste, a jednostka jest ładunkiem (``_CARGO_BASE_TYPES``), przyjmujemy 1
+    (bezpieczny domyślny — ładunek zawsze coś zajmuje). Dla nie-ładunku: 0.
+    """
+    unit = resolve_unit_variant(registry, faction_id, technologies, base_type)
+    if unit is not None and unit.capacity_used is not None:
+        return max(unit.capacity_used, 0)
+    return 1 if base_type in _CARGO_BASE_TYPES else 0
+
+
+def move_fleet(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    from_pos: str,
+    ships: dict[str, int],
+    cargo: dict[str, int],
+    player_id: str,
+) -> GameState:
+    """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
+
+    ``ships`` = statki RUSZAJĄCE (``{base_type: count}``), każdy walidowany jak w
+    ``can_move`` (R1–R6). ``cargo`` = myśliwce/siły naziemne przewożone razem
+    (``{base_type: count}``), zabierane z PRZESTRZENI systemu źródłowego (T3), w ramach
+    wolnej pojemności statków ruszających (T1/T5). Ładunek ląduje w PRZESTRZENI celu (T2).
+
+    Zasady egzekwowane (twarde, ValueError):
+    - każdy statek ruszający musi być legalny (``can_move``) i dostępny w źródle;
+    - ładunek tylko z ``_CARGO_BASE_TYPES`` i dostępny w przestrzeni źródła;
+    - pickup z systemu z WŁASNYM CC zabroniony, chyba że to aktywny system (T4);
+    - suma ``capacityUsed`` ładunku ≤ suma ``capacityValue`` statków ruszających (T1/T5).
+
+    Raises:
+        ValueError: Przy złamaniu którejkolwiek reguły albo braku jednostek w źródle.
+    """
+    ships = {bt: c for bt, c in ships.items() if c > 0}
+    cargo = {bt: c for bt, c in cargo.items() if c > 0}
+    if not ships and not cargo:
+        raise ValueError("Nothing to move (no ships and no cargo).")
+
+    active = state.active_system
+    if active is None:
+        raise ValueError(
+            "No active system - movement is only allowed during a tactical action (R1)."
+        )
+
+    player = state.players.get(player_id)
+    faction_id = player.faction if player is not None else None
+    technologies = player.technologies if player is not None else []
+    source = state.systems.get(from_pos)
+
+    # Statki: walidacja legalności + dostępności (R1–R6, policzone per typ).
+    for base_type, count in ships.items():
+        ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
+        if not ok:
+            raise ValueError(reason)
+        available = (
+            source.space_units.get(player_id, {}).get(base_type, 0)
+            if source is not None
+            else 0
+        )
+        if available < count:
+            raise ValueError(
+                f"Not enough {base_type} ships in {from_pos}: "
+                f"have {available}, requested {count}."
+            )
+
+    if cargo:
+        # Ładunek wymaga statku-nosiciela ruszającego w tym samym ruchu.
+        if not ships:
+            raise ValueError(
+                "Cargo (fighters / ground forces) needs a transporting ship moving with it."
+            )
+        # T4: pickup z systemu z własnym CC zabroniony (wyjątek: aktywny system).
+        if (
+            from_pos != active
+            and source is not None
+            and player_id in source.command_tokens
+        ):
+            raise ValueError(
+                "Cannot pick up units from a system containing your own command token (T4)."
+            )
+        # Ładunek musi być jednostką transportowalną i dostępny w przestrzeni źródła.
+        for base_type, count in cargo.items():
+            if base_type not in _CARGO_BASE_TYPES:
+                raise ValueError(
+                    f"Unit {base_type} cannot be transported "
+                    "(only fighters and ground forces)."
+                )
+            available = (
+                source.space_units.get(player_id, {}).get(base_type, 0)
+                if source is not None
+                else 0
+            )
+            if available < count:
+                raise ValueError(
+                    f"Not enough {base_type} to transport in {from_pos}: "
+                    f"have {available}, requested {count}."
+                )
+
+        # T1/T5: ładunek ≤ wolna pojemność statków ruszających.
+        provided = sum(
+            _capacity_provided(registry, faction_id, technologies, bt) * c
+            for bt, c in ships.items()
+        )
+        needed = sum(
+            _capacity_used(registry, faction_id, technologies, bt) * c
+            for bt, c in cargo.items()
+        )
+        if needed > provided:
+            raise ValueError(
+                f"Capacity exceeded: cargo needs {needed}, moving ships provide {provided}."
+            )
+
+    new_state = state.clone()
+    src = new_state.systems.get(from_pos)
+
+    def _take(base_type: str, count: int) -> None:
+        """Zdejmuje ``count`` jednostek gracza ``base_type`` z przestrzeni źródła."""
+        assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
+        src.space_units[player_id][base_type] -= count
+        if src.space_units[player_id][base_type] <= 0:
+            del src.space_units[player_id][base_type]
+        if not src.space_units[player_id]:
+            del src.space_units[player_id]
+
+    for base_type, count in {**ships, **cargo}.items():
+        _take(base_type, count)
+
+    # Dodaj do aktywnego (utwórz system/wpisy, gdy trzeba). Ładunek też ląduje w
+    # przestrzeni (T2) — na statku, do czasu lądowania w kroku INWAZJA.
+    dest = new_state.systems.get(active)
+    if dest is None:
+        system_id = grid.system_id_at(active) if active in grid.positions else ""
+        dest = SystemState(position=active, system_id=system_id)
+        new_state.systems[active] = dest
+    for base_type, count in {**ships, **cargo}.items():
+        dest.space_units.setdefault(player_id, {}).setdefault(base_type, 0)
+        dest.space_units[player_id][base_type] += count
     return new_state
