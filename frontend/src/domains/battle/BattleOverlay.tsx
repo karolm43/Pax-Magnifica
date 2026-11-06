@@ -373,9 +373,21 @@ function Battlefield({ view }: { view: BattleView }) {
           </small>
         </span>
         <span className={styles.versus}>
-          <b style={{ color: `rgb(${a.rgb})` }}>{a.name}</b>
+          <b
+            className={styles.vsName}
+            style={{ "--c": a.rgb } as CSSProperties}
+          >
+            <span className={styles.vsDot} />
+            {a.name}
+          </b>
           <i>vs</i>
-          <b style={{ color: `rgb(${d.rgb})` }}>{d.name}</b>
+          <b
+            className={styles.vsName}
+            style={{ "--c": d.rgb } as CSSProperties}
+          >
+            <span className={styles.vsDot} />
+            {d.name}
+          </b>
         </span>
         <button
           type="button"

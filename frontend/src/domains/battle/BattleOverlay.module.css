@@ -80,7 +80,7 @@
 .topTitle {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
   font-family: var(--font-display);
   font-size: 16px;
@@ -113,10 +113,28 @@
 
 .versus i {
   font-style: normal;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: 10px;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--ds-ink-lo);
+  opacity: 0.7;
+}
+
+.vsName {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: var(--weight-title);
+  letter-spacing: 0.02em;
+  color: var(--ds-ink-hi);
+}
+
+.vsDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(var(--c) / 0.9);
+  box-shadow: 0 0 7px rgb(var(--c) / 0.7);
 }
 
 .hideBtn {
@@ -282,17 +300,21 @@
 .hpBar {
   position: relative;
   flex: none;
-  height: 12px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
 
 .hpFill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: rgb(var(--side-rgb) / 0.42);
-  transition: width 0.6s ease;
+  background: linear-gradient(180deg, rgb(var(--side-rgb) / 0.62), rgb(var(--side-rgb) / 0.34));
+  box-shadow: 0 0 10px rgb(var(--side-rgb) / 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-radius: 9px;
+  transition: width 0.7s cubic-bezier(0.3, 0.8, 0.3, 1);
 }
 
 .fleet[data-align="right"] .hpFill {
@@ -305,10 +327,11 @@
   font-family: var(--font-data);
   font-size: 9px;
   font-weight: 700;
-  line-height: 12px;
+  line-height: 18px;
+  letter-spacing: 0.04em;
   text-align: center;
   color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 1);
 }
 
 /*
@@ -419,10 +442,22 @@
 /* Poświata w barwie strony + dryf „w miejscu" (osobna właściwość `translate`, żeby nie
    nadpisać obrotu z `transform`). Każdy okręt ma własną fazę, więc flota nie pływa jak jeden. */
 .shipSprite {
-  filter: drop-shadow(0 0 4px rgb(var(--side-rgb, 255 255 255) / 0.28))
-    drop-shadow(0 0 10px rgb(var(--side-rgb, 255 255 255) / 0.12));
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 4px rgb(var(--side-rgb, 255 255 255) / 0.26))
+    drop-shadow(0 0 10px rgb(var(--side-rgb, 255 255 255) / 0.1));
   animation: shipIdle 5.5s ease-in-out infinite;
   animation-delay: calc(var(--rank, 0) * -0.9s + var(--i, 0) * -1.3s);
+}
+
+/* Okręty liniowe = większa masa: wolniejszy, mniejszy dryf i mocniejsza poświata/cień. */
+.ship[data-base="ws"] .shipSprite,
+.ship[data-base="fs"] .shipSprite,
+.ship[data-base="dn"] .shipSprite,
+.ship[data-base="cv"] .shipSprite {
+  animation-duration: 9s;
+  filter: drop-shadow(0 6px 9px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 7px rgb(var(--side-rgb, 255 255 255) / 0.3))
+    drop-shadow(0 0 18px rgb(var(--side-rgb, 255 255 255) / 0.12));
 }
 
 .ship[data-side="left"] {
@@ -511,6 +546,19 @@
   animation: none;
 }
 
+/* Lekki rozbłysk silników w chwili, gdy flota dolatuje na pozycję (impet). */
+.formation:not([data-entered]) .ship::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(var(--side-rgb) / 0.18), transparent 70%);
+  opacity: 0;
+  animation: arriveGlow calc(4s * var(--entry, 1)) ease-out both;
+  animation-delay: calc((5 - var(--rank, 0)) * 160ms + var(--i, 0) * 90ms);
+}
+
 .formation[data-entered] .ship[data-dying] {
   animation: shipDie 2.6s ease-in 1.1s both;
 }
@@ -518,13 +566,25 @@
 /* SUSTAIN DAMAGE: błysk energetycznej tarczy wokół okrętu (nie zniszczenie). */
 .sustainFx {
   position: absolute;
-  inset: -8%;
+  inset: -22%;
   z-index: 2;
-  border-radius: 10px;
+  aspect-ratio: 1;
+  margin: auto;
+  border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle, transparent 46%, rgba(147, 197, 253, 0.35) 62%, rgba(96, 165, 250, 0.12) 78%, transparent 86%);
-  box-shadow: inset 0 0 14px rgba(147, 197, 253, 0.5);
+  background: radial-gradient(circle, transparent 52%, rgba(147, 197, 253, 0.4) 66%, rgba(96, 165, 250, 0.1) 80%, transparent 88%);
   animation: sustainFlash 1.3s ease-out both;
+}
+
+/* Cienki pierścień tarczy, który rozchodzi się na zewnątrz. */
+.sustainFx::after {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  border: 2px solid rgba(191, 219, 254, 0.8);
+  box-shadow: 0 0 12px rgba(147, 197, 253, 0.7);
+  animation: sustainRing 1.3s ease-out both;
 }
 
 .pips {
@@ -1189,6 +1249,20 @@
   }
 }
 
+@keyframes sustainRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
 @keyframes blastBurst {
   0% {
     opacity: 0;
@@ -1203,16 +1277,45 @@
   }
 }
 
+@keyframes arriveGlow {
+  0%,
+  82% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes shipIdle {
   0%,
   100% {
     translate: 0 0;
   }
   33% {
-    translate: 2px -4px;
+    translate: 1.5px -3px;
   }
   66% {
-    translate: -2px 3px;
+    translate: -1.5px 2px;
+  }
+}
+
+.ship[data-base="ws"] .shipSprite,
+.ship[data-base="fs"] .shipSprite,
+.ship[data-base="dn"] .shipSprite {
+  animation-name: shipIdleHeavy;
+}
+
+@keyframes shipIdleHeavy {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -2px;
   }
 }
 
