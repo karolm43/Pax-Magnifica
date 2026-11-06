@@ -2,13 +2,13 @@ import type { GamePhase, GameState, PlayerData } from "@/entities/data/types";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 
 /**
- * Model komunikatu prowadzącego gracza przez fazę (standaryzowany „wording stołu").
- *
- * ``tone`` steruje kolorem akcentu paska (spójnie z sygnałami fazy). ``phase`` niesie
- * główną fazę, by pasek mógł pokolorować akcent zgodnie z tonem fazy. ``title`` to
- * krótki nagłówek (co się dzieje), ``body`` — jedno zdanie instrukcji dla operatora.
+ * Model komunikatu pokazywanego w panelu (osobny box u góry ekranu). ``tone`` steruje
+ * kolorem akcentu (spójnie z sygnałami fazy). ``title`` — krótki nagłówek, ``body`` —
+ * jedno zdanie. ``key`` identyfikuje komunikat, by nie pokazywać go dwa razy (ten sam
+ * event przy kolejnych odświeżeniach stanu nie „mignie" ponownie).
  */
 export type PhaseNotice = {
+  key: string;
   tone: "strategy" | "action" | "status" | "agenda" | "neutral";
   title: string;
   body: string;
@@ -19,110 +19,110 @@ function mainPhase(phase: GamePhase): string {
   return phase.split(".")[0];
 }
 
-/** Gracz dopasowany po KOLORZE (kontrakt web-data adresuje graczy kolorem). */
-function playerByColor(
-  players: readonly PlayerData[],
-  color: string | null | undefined,
-): PlayerData | undefined {
-  if (!color) return undefined;
-  return players.find((p) => p.color === color);
-}
+const PHASE_TONE: Record<string, PhaseNotice["tone"]> = {
+  strategy: "strategy",
+  action: "action",
+  status: "status",
+  agenda: "agenda",
+};
 
-/** Czytelna nazwa gracza (frakcja) albo fallback na kolor/„—". */
+const PHASE_LABEL: Record<string, string> = {
+  strategy: "Strategy phase",
+  action: "Action phase",
+  status: "Status phase",
+  agenda: "Agenda phase",
+};
+
+/** Czytelna nazwa gracza (frakcja) po KOLORZE albo fallback na kolor/„—". */
 function nameOf(
   players: readonly PlayerData[],
   color: string | null | undefined,
 ): string {
-  const player = playerByColor(players, color);
-  if (player) return getPlayerFactionDisplayName(player);
-  return color ?? "—";
-}
-
-/** Czy gracz jest „posadzony" (ma frakcję, nie jest talią/neutralny). */
-function seated(players: readonly PlayerData[]): PlayerData[] {
-  return players.filter((p) => p.faction && p.faction !== "neutral");
+  if (!color) return "The speaker";
+  const player = players.find((p) => p.color === color);
+  return player ? getPlayerFactionDisplayName(player) : color;
 }
 
 /**
- * Buduje kontekstowy komunikat fazy z bieżącego stanu gry. Zwraca ``null``, gdy nie
- * ma nic sensownego do pokazania (np. setup, koniec gry) — pasek się wtedy nie renderuje.
+ * Wyznacza komunikat NA PODSTAWIE ZMIANY STANU (prev → next). Panel ma być reaktywny
+ * („coś się zmieniło / coś jest nie tak"), NIE stałym przypomnieniem — dlatego zwraca
+ * komunikat tylko dla ZDARZEŃ wartych ogłoszenia (DECYZJA 2026-11, uwaga użytkownika):
  *
- * Wording celowo prowadzi operatora: mówi, czyja kolej i co odblokowuje przejście
- * fazy (DECYZJA PROJEKTOWA 2026-11: „Next phase" dopiero po komplecie pasów/kroków).
+ *  1. zmiana głównej fazy (np. wejście w Action phase),
+ *  2. moment „mówca może teraz zakończyć fazę" (canAdvancePhase: false → true w
+ *     fazie akcji/statusu, albo wszyscy spasowali/zrobili krok).
+ *
+ * W pozostałych przypadkach (zwykły przebieg tury) zwraca ``null`` — panel milczy.
+ * ``prev`` = ``null`` (pierwszy render) celowo NIE ogłasza nic, by nie „witać" gracza
+ * banerem przy wejściu na mapę.
  */
-export function buildPhaseNotice(
-  gameState: GameState | undefined,
+export function announcementFor(
+  prev: GameState | null,
+  next: GameState | undefined,
   players: readonly PlayerData[],
 ): PhaseNotice | null {
-  if (!gameState) return null;
-  const phase = mainPhase(gameState.phase);
-  const seatedPlayers = seated(players);
-  const speakerName = nameOf(players, gameState.speaker);
-  const activeName = nameOf(players, gameState.activePlayer);
-  const canAdvance = gameState.canAdvancePhase ?? true;
-  const allDone = gameState.allPassed ?? false;
+  if (!next || !prev) return null;
 
-  if (phase === "strategy") {
-    const pickCount = gameState.strategyPickCount ?? null;
-    // Ilu graczy skompletowało wybór (ma >= pickCount kart). Picker = aktywny.
-    const everyonePicked = canAdvance;
-    if (everyonePicked) {
+  const prevPhase = mainPhase(prev.phase);
+  const nextPhase = mainPhase(next.phase);
+
+  // (1) Zmiana głównej fazy — krótkie „weszliśmy w fazę X".
+  if (prevPhase !== nextPhase) {
+    const label = PHASE_LABEL[nextPhase];
+    if (label) {
+      const roundTail =
+        next.phase.startsWith("strategy") && prevPhase === "agenda"
+          ? " A new round begins."
+          : "";
       return {
-        tone: "strategy",
-        title: "Strategy phase — selection complete",
-        body: `All players have chosen their Strategy Cards. ${speakerName} may advance to the Action Phase.`,
+        key: `phase:${nextPhase}:${next.turnStartedAt ?? ""}`,
+        tone: PHASE_TONE[nextPhase] ?? "neutral",
+        title: label,
+        body: nextPhaseBody(nextPhase, next, players) + roundTail,
       };
     }
-    const pickText =
-      pickCount && pickCount > 1 ? `${pickCount} Strategy Cards` : "a Strategy Card";
-    return {
-      tone: "strategy",
-      title: "Strategy phase — choosing cards",
-      body: `${activeName} is picking. Every player must choose ${pickText} before the phase can end.`,
-    };
   }
 
-  if (phase === "action") {
-    if (allDone) {
-      return {
-        tone: "action",
-        title: "Action phase — everyone has passed",
-        body: `All players have passed. ${speakerName} may end the Action Phase.`,
-      };
-    }
-    const passedCount = seatedPlayers.filter((p) => p.passed).length;
-    const total = seatedPlayers.length;
-    const passTail =
-      passedCount > 0 ? ` (${passedCount}/${total} passed)` : "";
+  // (2) „Mówca może teraz zakończyć fazę" — tylko gdy brama właśnie się otworzyła
+  //     (false → true) w fazie, gdzie to coś znaczy (akcja/status). Agenda/strategia
+  //     nie ogłaszają tego osobno (strategia: wejście w akcję ogłosi punkt 1).
+  const prevCan = prev.canAdvancePhase ?? false;
+  const nextCan = next.canAdvancePhase ?? false;
+  if (!prevCan && nextCan && (nextPhase === "action" || nextPhase === "status")) {
+    const speakerName = nameOf(players, next.speaker);
+    const what =
+      nextPhase === "action"
+        ? "All players have passed."
+        : "Every player has taken their Status step.";
+    const nextLabel = nextPhase === "action" ? "Status Phase" : "Agenda Phase";
     return {
-      tone: "action",
-      title: "Action phase",
-      body: `${activeName} is active. Take an action, then End turn — or Pass, then End turn${passTail}.`,
-    };
-  }
-
-  if (phase === "status") {
-    if (allDone) {
-      return {
-        tone: "status",
-        title: "Status phase — all steps done",
-        body: `Every player has taken their Status step. ${speakerName} may advance to the Agenda Phase.`,
-      };
-    }
-    return {
-      tone: "status",
-      title: "Status phase",
-      body: `${activeName}'s step. Each player resolves their Status step in initiative order, then Next player.`,
-    };
-  }
-
-  if (phase === "agenda") {
-    return {
-      tone: "agenda",
-      title: "Agenda phase",
-      body: `${activeName} may react or vote. Pass to decline, or Next player to pass the floor. ${speakerName} ends the phase.`,
+      key: `advance:${nextPhase}`,
+      tone: PHASE_TONE[nextPhase] ?? "neutral",
+      title: "Ready to advance",
+      body: `${what} ${speakerName} can now end the phase and move to the ${nextLabel}.`,
     };
   }
 
   return null;
+}
+
+/** Jedno zdanie opisujące, co robić po wejściu w daną fazę. */
+function nextPhaseBody(
+  phase: string,
+  state: GameState,
+  players: readonly PlayerData[],
+): string {
+  const activeName = nameOf(players, state.activePlayer);
+  switch (phase) {
+    case "strategy":
+      return `${activeName} picks first. Each player chooses a Strategy Card.`;
+    case "action":
+      return `${activeName} goes first in initiative order.`;
+    case "status":
+      return "Each player resolves their Status step in initiative order.";
+    case "agenda":
+      return "Reveal and resolve the agenda. Players react and vote in order.";
+    default:
+      return "";
+  }
 }

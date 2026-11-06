@@ -778,3 +778,20 @@ def test_phase_next_blocks_status_until_all_steps(client: TestClient) -> None:
     ok = client.post("/phase/next", json={"player_id": "p1"})
     assert ok.status_code == 200
     assert ok.json()["state"]["phase"] == "AGENDA"
+
+
+def test_phase_step_without_player_id_uses_active(client: TestClient) -> None:
+    """Frontend woła /turn/phase-step BEZ player_id (backend adresuje swojego
+    aktywnego gracza — fix rozjazdu „gracza pulpitu", 2026-11). Kolejne kliknięcia
+    bez id przeklikują wszystkich graczy w kolejności inicjatywy."""
+    _complete_strategy_three_players(client)  # speaker = p1
+    client.post("/god-mode/patch", json={"phase": "STATUS", "active_player_id": "p1"})
+    seen = []
+    for _ in range(3):
+        resp = client.post("/turn/phase-step", json={})
+        assert resp.status_code == 200
+        seen.append(resp.json()["state"]["active_player_id"])
+    # p1 (zrobił) → p2 → p3 → z powrotem p1; wszyscy oznaczeni passed.
+    assert seen == ["p2", "p3", "p1"]
+    state = client.get("/state").json()["state"]
+    assert all(p["passed"] for p in state["players"].values())

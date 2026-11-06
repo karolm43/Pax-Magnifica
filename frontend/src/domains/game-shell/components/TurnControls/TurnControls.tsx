@@ -95,9 +95,9 @@ export function TurnControls() {
   const isStatus = phase.startsWith("status");
   const isAgenda = phase.startsWith("agenda");
   // Czy MÓWCA może już ogłosić przejście fazy (backend: akcja/status po komplecie
-  // pasów/kroków; strategia po pełnym wyborze; agenda zawsze). Gdy backend nie
-  // podał pola (starszy stan), domyślnie pozwalamy — nie blokujemy sterowania.
-  const canAdvancePhase = gameState?.canAdvancePhase ?? true;
+  // pasów/kroków; strategia po pełnym wyborze; agenda zawsze). Domyślnie FALSE —
+  // „Next phase" ma być BRAMOWANE; pokazujemy je tylko, gdy backend jawnie pozwala.
+  const canAdvancePhase = gameState?.canAdvancePhase ?? false;
   const isSpeaker =
     gameState?.speaker != null && active.color === gameState.speaker;
   // „Next phase" pokazujemy mówcy tylko, gdy wolno już przejść dalej. W agendzie
@@ -179,10 +179,10 @@ export function TurnControls() {
                 className={styles.pass}
                 style={{ "--d": "0ms" } as CSSProperties}
                 disabled={busy || !canPass}
-                onClick={() => run(() => passTurn(active.discordId))}
+                onClick={() => run(() => passTurn())}
                 title={
                   canPass
-                    ? "Pass — skipped for the rest of the Action Phase"
+                    ? "Pass, then End turn to hand over"
                     : "Play your Strategy Card before passing."
                 }
               >
@@ -194,8 +194,8 @@ export function TurnControls() {
                 className={styles.endTurn}
                 style={{ "--d": "60ms" } as CSSProperties}
                 disabled={busy}
-                onClick={() => run(() => endTurn(active.discordId))}
-                title="End your turn"
+                onClick={() => run(() => endTurn())}
+                title="End your turn (also after passing)"
               >
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
                 <span>End turn</span>
@@ -204,14 +204,16 @@ export function TurnControls() {
           )}
 
           {/* Faza STATUS: „Next player" KOŃCZY krok gracza (passed=True) i przesuwa
-              dalej — po komplecie kroków mówca dostaje „Next phase". */}
+              dalej — po komplecie kroków mówca dostaje „Next phase". Wołamy BEZ
+              player_id: backend adresuje swojego ``active_player_id`` (unikamy
+              rozjazdu „gracza pulpitu" useDeskPlayer z realnym aktywnym — BUG 1). */}
           {isStatus && (
             <button
               type="button"
               className={styles.endTurn}
               style={{ "--d": "0ms" } as CSSProperties}
               disabled={busy}
-              onClick={() => run(() => phaseStep(active.discordId))}
+              onClick={() => run(() => phaseStep())}
               title="Finish your Status step and pass to the next player"
             >
               <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
@@ -220,7 +222,8 @@ export function TurnControls() {
           )}
 
           {/* Faza AGENDA: „Pass" KOŃCZY część gracza (reakcja/głos), „Next player"
-              tylko przewija wskaźnik bez kończenia kogokolwiek. */}
+              tylko przewija wskaźnik bez kończenia kogokolwiek. Oba BEZ player_id —
+              backend adresuje swojego aktywnego gracza. */}
           {isAgenda && (
             <>
               <button
@@ -228,7 +231,7 @@ export function TurnControls() {
                 className={styles.pass}
                 style={{ "--d": "0ms" } as CSSProperties}
                 disabled={busy}
-                onClick={() => run(() => phaseStep(active.discordId))}
+                onClick={() => run(() => phaseStep())}
                 title="Pass — decline your reaction/vote this agenda"
               >
                 <IconHandStop size={16} aria-hidden="true" />
@@ -239,7 +242,7 @@ export function TurnControls() {
                 className={styles.endTurn}
                 style={{ "--d": "60ms" } as CSSProperties}
                 disabled={busy}
-                onClick={() => run(() => nextPlayer(active.discordId))}
+                onClick={() => run(() => nextPlayer())}
                 title="Pass the floor to the next player (no pass recorded)"
               >
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />

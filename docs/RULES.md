@@ -1448,10 +1448,20 @@ semantykę w silniku, spójnie dla wszystkich faz.
 - Projekcja do UI przez pola web-data `canAdvancePhase` + `allPassed`. Twarda walidacja
   także w `api/routers/flow.post_next_phase` (czytelny 422, gdy mówca próbuje za wcześnie).
 
-**(4) Panel komunikatów (UI, „głos stołu"):**
-- Osobny box przypięty u GÓRY ekranu (`frontend/.../PhaseNoticePanel`) — prowadzi gracza
-  przez fazę (czyja kolej / co odblokowuje przejście) i pokazuje odrzucone akcje (422).
-  Zastępuje dawny lokalny `NoticeBanner` w panelu stanu (jedno, spójne miejsce komunikatów).
+**(4) Panel komunikatów (UI, REAKTYWNY):**
+- Osobny box przypięty u GÓRY ekranu (`frontend/.../PhaseNoticePanel`). NIE jest stałym
+  przypomnieniem — pokazuje się tylko, gdy „coś jest nie tak albo coś się zmienia":
+  odrzucona akcja (422) albo ZDARZENIE stanu (zmiana fazy / „mówca może zakończyć fazę").
+  Komunikat zdarzenia liczony z RÓŻNICY prev→next stanu (`announcementFor`), ma krzyżyk
+  i auto-znika po ~7 s. Zastępuje dawny lokalny `NoticeBanner`.
+
+**(5) Przyciski flow wołają backend BEZ `player_id`:**
+- UI wysyła `/turn/pass`, `/turn/end`, `/turn/phase-step`, `/turn/next-player` bez
+  `player_id` — backend adresuje własny `active_player_id`. Powód: „gracz pulpitu"
+  (`useDeskPlayer`) bywa fallbackiem na mówcę i rozjeżdżał się z realnym aktywnym
+  graczem (status „Next player" wysyłał zły id → 422 → „klik nic nie robił").
+- Front domyślnie `canAdvancePhase ?? false` (brama ukrywa „Next phase", gdy backend
+  nie potwierdzi — zamiast otwierać ją przy braku pola).
 
 **Egzekucja w kodzie:**
 - `turn_flow`: `pass_turn` (tylko flaga), `end_turn` (jedyne oddanie tury), `all_passed`,

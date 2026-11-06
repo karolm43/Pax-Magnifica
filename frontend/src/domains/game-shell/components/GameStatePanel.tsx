@@ -652,7 +652,6 @@ function PlateBody({
         <PhaseControls
           gameState={gameState}
           activePlayer={active}
-          activePlayerId={active?.discordId ?? null}
           canPass={strategyStatus.canPass}
           passBlockReason={strategyStatus.passBlockReason}
         />
@@ -1658,14 +1657,12 @@ function StrategicActionControl({
 function PhaseControls({
   gameState,
   activePlayer,
-  activePlayerId,
   canPass = true,
   passBlockReason = null,
 }: {
   gameState: GameState;
   /** „Gracz pulpitu" (PlayerData) — jego kolor porównujemy z mówcą. */
   activePlayer?: PlayerData | null;
-  activePlayerId: string | null;
   /** Czy aktywny gracz może spasować (po akcji strategicznej — RULES.md 31.2). */
   canPass?: boolean;
   /** Powód blokady pasa (tooltip), gdy ``canPass`` === false. */
@@ -1691,7 +1688,8 @@ function PhaseControls({
   const isAgenda = phase.startsWith("agenda");
   // „Next phase" tylko gdy mówca może już przejść (akcja/status po komplecie
   // pasów/kroków; strategia po pełnym wyborze) — DECYZJA PROJEKTOWA 2026-11.
-  const canAdvancePhase = gameState.canAdvancePhase ?? true;
+  // Domyślnie FALSE: brama ma ukrywać „Next phase", gdy backend nie potwierdzi.
+  const canAdvancePhase = gameState.canAdvancePhase ?? false;
   const isSpeaker =
     gameState.speaker != null && activePlayer?.color === gameState.speaker;
   const showNextPhase = isSpeaker && canAdvancePhase;
@@ -1706,7 +1704,7 @@ function PhaseControls({
             type="button"
             className={cx(styles.ctlBtn, styles.ctlPrimary)}
             disabled={busy}
-            onClick={() => void run(() => endTurn(activePlayerId ?? undefined))}
+            onClick={() => void run(() => endTurn())}
             title="End your turn (also after passing)"
           >
             End turn
@@ -1715,7 +1713,7 @@ function PhaseControls({
             type="button"
             className={styles.ctlBtn}
             disabled={busy || !canPass}
-            onClick={() => void run(() => passTurn(activePlayerId ?? undefined))}
+            onClick={() => void run(() => passTurn())}
             title={
               canPass
                 ? "Pass — then End turn to hand over"
@@ -1730,26 +1728,28 @@ function PhaseControls({
           )}
         </>
       )}
-      {/* Faza statusu: „Next player" KOŃCZY krok gracza i przesuwa dalej. */}
+      {/* Faza statusu: „Next player" KOŃCZY krok gracza i przesuwa dalej. Wołamy
+          BEZ player_id — backend adresuje swojego aktywnego gracza (BUG 1). */}
       {isStatus && (
         <button
           type="button"
           className={cx(styles.ctlBtn, styles.ctlPrimary)}
           disabled={busy}
-          onClick={() => void run(() => phaseStep(activePlayerId ?? undefined))}
+          onClick={() => void run(() => phaseStep())}
           title="Finish your Status step and pass to the next player"
         >
           Next player
         </button>
       )}
-      {/* Faza agendy: „Pass" kończy część gracza, „Next player" tylko przewija. */}
+      {/* Faza agendy: „Pass" kończy część gracza, „Next player" tylko przewija.
+          Oba BEZ player_id — backend adresuje swojego aktywnego gracza. */}
       {isAgenda && (
         <>
           <button
             type="button"
             className={styles.ctlBtn}
             disabled={busy}
-            onClick={() => void run(() => phaseStep(activePlayerId ?? undefined))}
+            onClick={() => void run(() => phaseStep())}
             title="Pass — decline your reaction/vote this agenda"
           >
             Pass
@@ -1758,7 +1758,7 @@ function PhaseControls({
             type="button"
             className={styles.ctlBtn}
             disabled={busy}
-            onClick={() => void run(() => nextPlayer(activePlayerId ?? undefined))}
+            onClick={() => void run(() => nextPlayer())}
             title="Pass the floor to the next player (no pass recorded)"
           >
             Next player
