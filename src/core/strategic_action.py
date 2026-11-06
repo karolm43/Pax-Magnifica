@@ -126,7 +126,13 @@ def play_strategy_card(
     target.took_action_this_turn = True
 
     # 4. Otwórz okno secondary z kolejką pozostałych graczy (inicjator pominięty).
+    #    Gdy NIE MA kogo pytać (gra solo / tylko bieżący gracz / pozostali poza stołem),
+    #    NIE otwieramy okna — puste okno byłoby od razu „zakończone", ale nikt by go nie
+    #    zamknął, więc ``pending_window`` zostawałby ustawiony i blokował End turn na stałe
+    #    (bug: zagranie karty → End turn szary na zawsze). Brak respondentów = brak okna.
     queue = timing.build_response_queue(new_state, player_id)
+    if not queue:
+        return new_state
     new_state = timing.open_window(
         new_state,
         WindowType.STRATEGY_SECONDARY,

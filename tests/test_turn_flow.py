@@ -9,21 +9,19 @@ from src.core.game_state import GameState, Phase, PlayerState
 
 
 def _state_with_players() -> GameState:
-    """Stan z 3 graczami, kartami strategii i JUŻ wykonaną akcją strategiczną.
+    """Stan z 3 graczami, kartami strategii wcześniej ZAGRANYMI w tej rundzie.
 
-    ``exhausted_strategy_cards`` = karta zagrana, więc gracz może pasować (RULES.md 31.2).
-    ``took_action_this_turn=True`` dla aktywnego p1 — wykonał akcję strategiczną, więc
-    może zakończyć turę (RULES.md 31.7). Pozostali dostają turę świeżą (reset w end_turn).
+    ``exhausted_strategy_cards`` = karta zagrana (wcześniejsza tura), więc gracz MOŻE
+    pasować (RULES.md 31.2). ``took_action_this_turn`` domyślnie False — to ŚWIEŻA tura
+    p1 (jeszcze nie wykonał w niej akcji), więc może spasować; testy kończące turę PO
+    akcji ustawiają tę flagę jawnie (``_acted``).
     """
     return GameState(
         phase=Phase.ACTION,
         active_player_id="p1",
         players={
             "p1": PlayerState(
-                player_id="p1",
-                strategy_cards=[1],
-                exhausted_strategy_cards=[1],
-                took_action_this_turn=True,
+                player_id="p1", strategy_cards=[1], exhausted_strategy_cards=[1]
             ),
             "p2": PlayerState(
                 player_id="p2", strategy_cards=[3], exhausted_strategy_cards=[3]
@@ -33,6 +31,12 @@ def _state_with_players() -> GameState:
             ),
         },
     )
+
+
+def _acted(state: GameState, player_id: str = "p1") -> GameState:
+    """Oznacza, że ``player_id`` wykonał akcję w tej turze (może zakończyć turę)."""
+    state.players[player_id].took_action_this_turn = True
+    return state
 
 
 def test_turn_order_by_initiative() -> None:
@@ -51,7 +55,7 @@ def test_turn_order_no_cards_falls_back_to_id() -> None:
 
 
 def test_end_turn_advances_to_next() -> None:
-    state = _state_with_players()
+    state = _acted(_state_with_players())  # p1 wykonał akcję → może zakończyć turę
     nxt = turn_flow.end_turn(state)
     assert nxt.active_player_id == "p2"
     # Wejście nie jest mutowane.
@@ -59,7 +63,7 @@ def test_end_turn_advances_to_next() -> None:
 
 
 def test_pass_skips_passed_players() -> None:
-    state = _state_with_players()
+    state = _acted(_state_with_players())  # p1 wykonał akcję → kończy turę
     # p2 pasuje — po p1 tura powinna trafić do p3 (p2 pominięty).
     state.players["p2"].passed = True
     nxt = turn_flow.end_turn(state)
@@ -246,6 +250,16 @@ def test_pass_without_strategy_card_allowed() -> None:
     assert nxt.players["p1"].passed is True
 
 
+def test_pass_rejected_after_taking_action() -> None:
+    """RULES.md 31.7: po wykonaniu akcji w tej turze nie wolno pasować — tylko End turn.
+
+    Pas jest ALTERNATYWĄ dla akcji w danej turze, nie dodatkiem po niej.
+    """
+    state = _acted(_state_with_players())  # p1 wykonał akcję w tej turze
+    with pytest.raises(ValueError, match="already took an action"):
+        turn_flow.pass_turn(state, "p1")
+
+
 def test_initiative_order_alias() -> None:
     state = _state_with_players()
     assert turn_flow.initiative_order(state) == turn_flow.turn_order(state)
@@ -320,7 +334,7 @@ def test_end_turn_only_active_unpassed_keeps_turn() -> None:
     """end_turn (NIE pas) nie wyczerpuje aktywnego gracza: gdy p2/p3 spasowali,
     a p1 tylko kończy turę, tura wraca do p1 (jedyny niespasowany). Faza ACTION,
     aktywny nigdy None (RULES.md 31.4)."""
-    state = _state_with_players()
+    state = _acted(_state_with_players())  # p1 wykonał akcję → może zakończyć turę
     state.speaker_id = "p3"
     state.players["p2"].passed = True
     state.players["p3"].passed = True

@@ -1743,14 +1743,16 @@ function PhaseControls({
           <button
             type="button"
             className={styles.ctlBtn}
-            disabled={busy || hasPassed || !canPass}
+            disabled={busy || hasPassed || tookAction || !canPass}
             onClick={() => setConfirmingPass(true)}
             title={
               hasPassed
                 ? "You already passed — hand over with End turn"
-                : canPass
-                  ? "Pass — then End turn to hand over"
-                  : (passBlockReason ?? "You cannot pass yet.")
+                : tookAction
+                  ? "You already acted this turn — End turn instead"
+                  : canPass
+                    ? "Pass — then End turn to hand over"
+                    : (passBlockReason ?? "You cannot pass yet.")
             }
           >
             Pass

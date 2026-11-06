@@ -1539,14 +1539,23 @@ wejściu w fazę akcji (`next_phase`) — bo dotyczy POJEDYNCZEJ tury, nie całe
 **Egzekucja (sędzia):**
 - `turn_flow.end_turn` rzuca `ValueError` („You must take an action … or pass before ending
   your turn.") → HTTP 422, gdy aktywny gracz NIE ma `took_action_this_turn` ANI `passed`.
+- `turn_flow.pass_turn` rzuca `ValueError` („You already took an action this turn - end your
+  turn instead of passing."), gdy gracz w TEJ turze już wykonał akcję. Pas jest ALTERNATYWĄ
+  dla akcji w danej turze, nie dodatkiem po niej (R_action_phase: „perform a single action …
+  or pass"). Czyli po zagraniu karty / aktywacji systemu jedyne wyjście to `end_turn`.
 - Pas (`pass_turn`) jest osobną, dozwoloną ścieżką zakończenia tury (RULES.md 31.5): po pasie
   End turn przechodzi mimo braku „akcji" (pas JEST zakończeniem aktywności w rundzie).
+- PUSTE OKNO secondary: gdy kolejka respondentów jest pusta (gra solo / brak innych graczy),
+  `strategic_action.play_strategy_card` NIE otwiera okna — inaczej `pending_window` zostawałby
+  ustawiony (okno „zakończone", ale nikt go nie zamyka) i blokował End turn na stałe.
 - God-Mode omija (operator może oddać turę ręcznie).
 
 **UI (web-data + panele):** `playerData[].tookActionThisTurn` niesie flagę do frontu. „End
 turn" jest aktywny dopiero, gdy `tookActionThisTurn || passed` i nie trwa okno; wcześniej
 jest SZARY (wyłączony) z podpowiedzią „Take an action or pass, then End turn." Po akcji/pasie
-przycisk pulsuje (nudge) + drobna informacja, że trzeba jeszcze oddać turę.
+przycisk pulsuje (nudge) + drobna informacja, że trzeba jeszcze oddać turę. Przycisk „Pass"
+jest WYŁĄCZONY, gdy gracz już wykonał akcję w tej turze (`tookActionThisTurn`) — z tooltipem
+„You already acted this turn — End turn instead".
 
 ---
 

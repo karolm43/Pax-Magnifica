@@ -205,14 +205,16 @@ export function TurnControls() {
                 type="button"
                 className={styles.pass}
                 style={{ "--d": "0ms" } as CSSProperties}
-                disabled={busy || hasPassed || !canPass}
+                disabled={busy || hasPassed || tookAction || !canPass}
                 onClick={() => setConfirmingPass(true)}
                 title={
                   hasPassed
                     ? "You already passed — hand over with End turn"
-                    : canPass
-                      ? "Pass, then End turn to hand over"
-                      : "Play your Strategy Card before passing."
+                    : tookAction
+                      ? "You already acted this turn — End turn instead"
+                      : canPass
+                        ? "Pass, then End turn to hand over"
+                        : "Play your Strategy Card before passing."
                 }
               >
                 <IconHandStop size={16} aria-hidden="true" />

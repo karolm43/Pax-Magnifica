@@ -61,6 +61,24 @@ def test_play_rejects_card_not_owned(registry: StaticDataRegistry) -> None:
         strategic_action.play_strategy_card(_state_three(), registry, "p1", 5)
 
 
+def test_play_solo_opens_no_window(registry: StaticDataRegistry) -> None:
+    """Solo (brak innych graczy) — zagranie karty NIE otwiera okna secondary.
+
+    Regresja: puste okno (kolejka []) zostawałoby ustawione jako ``pending_window``
+    i BLOKOWAŁO End turn na stałe (nikt by go nie zamknął). Bez respondentów = bez okna,
+    więc aktywny gracz może od razu zakończyć turę. Akcja i tak jest zaliczona.
+    """
+    state = GameState(
+        active_player_id="p1",
+        seating_order=["p1"],
+        players={"p1": PlayerState(player_id="p1", color="red", strategy_cards=[1])},
+    )
+    new = strategic_action.play_strategy_card(state, registry, "p1", 1)
+    assert new.pending_window is None
+    assert new.players["p1"].took_action_this_turn is True
+    assert 1 in new.players["p1"].exhausted_strategy_cards
+
+
 def test_play_rejects_unknown_player(registry: StaticDataRegistry) -> None:
     with pytest.raises(ValueError, match="Unknown player"):
         strategic_action.play_strategy_card(_state_three(), registry, "x", 1)

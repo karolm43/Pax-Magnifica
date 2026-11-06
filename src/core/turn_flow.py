@@ -220,13 +220,18 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
     zwykły ruch, czy pas. ``active_player_id`` pozostaje bez zmian (to nadal jego tura
     aż do ``end_turn``).
 
-    Twardo waliduje fazę akcji i tożsamość (RULES.md 31.2). Dodatkowo: gracz NIE MOŻE
-    spasować, dopóki nie wykona akcji strategicznej swojej karty (zagranie karty =
-    wpis w ``exhausted_strategy_cards``) — reguła R_action_phase. Powtórny pas tego
-    samego gracza jest idempotentny (flaga pozostaje ``True``).
+    Twardo waliduje fazę akcji i tożsamość (RULES.md 31.2). Dodatkowo:
+    - gracz NIE MOŻE spasować, dopóki nie wykona akcji strategicznej swojej karty
+      (zagranie karty = wpis w ``exhausted_strategy_cards``) — reguła R_action_phase;
+    - gracz NIE MOŻE spasować, jeśli W TEJ TURZE wykonał już AKCJĘ
+      (``took_action_this_turn``) — pas jest ALTERNATYWĄ dla akcji w danej turze
+      („perform a single action … or pass"), nie dodatkiem po akcji. Gdy zagrałeś
+      kartę/aktywowałeś system w tej turze, jedyne wyjście to ``end_turn``
+      (RULES.md 31.7). Powtórny pas niespasowanego-jeszcze gracza jest idempotentny.
 
     Raises:
-        ValueError: Gdy nie wolno spasować (zła faza/tura albo brak akcji strategicznej).
+        ValueError: Gdy nie wolno spasować (zła faza/tura, brak akcji strategicznej,
+            albo gracz już wykonał akcję w tej turze).
     """
     _require_action_turn(state, player_id)
     current = state.active_player_id
@@ -240,6 +245,16 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
     ):
         raise ValueError(
             "Cannot pass before performing the strategic action (play a strategy card)."
+        )
+    # Nie można pasować PO wykonaniu akcji w tej turze — pas zastępuje akcję, nie
+    # następuje po niej. Wyjątek: gracz już spasowany (idempotentny powtórny pas).
+    if (
+        player is not None
+        and player.took_action_this_turn
+        and not player.passed
+    ):
+        raise ValueError(
+            "You already took an action this turn - end your turn instead of passing."
         )
     new_state = state.clone()
     new_state.players[current].passed = True
