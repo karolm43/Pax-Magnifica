@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import production, strategy_phase
+from src.core import production, strategy_phase, turn_flow
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
@@ -207,6 +207,13 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),
+        # Czy MÓWCA może już ogłosić przejście fazy — steruje widocznością „Next phase"
+        # w panelu tury (akcja/status: dopiero po komplecie pasów/kroków; strategia:
+        # po pełnym wyborze kart; agenda: zawsze). DECYZJA PROJEKTOWA 2026-11.
+        "canAdvancePhase": turn_flow.can_advance_phase(state),
+        # Czy wszyscy skończyli swoją część bieżącej fazy (pas/krok). Frontend
+        # pokazuje na tej podstawie kontekstowy komunikat „Wszyscy spasowali…".
+        "allPassed": turn_flow.all_passed(state),
     }
 
 

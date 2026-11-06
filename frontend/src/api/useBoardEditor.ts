@@ -177,11 +177,24 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  // Przekazuje aktywność następnemu graczowi (initiative order) — tylko STATUS/
-  // AGENDA. Zasila „Next player" (status) i „Pass" (agenda) w pulpicie tury.
+  // Przekazuje aktywność następnemu graczowi (initiative order) BEZ oznaczania
+  // „skończył fazę" — tylko STATUS/AGENDA. Zasila „Next player" w AGENDZIE
+  // (operator przewija graczy, nikogo nie kończąc).
   const nextPlayer = useCallback(
     async (playerId?: string) => {
       await post("/turn/next-player", { player_id: playerId ?? null });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Bieżący gracz KOŃCZY swoją część fazy STATUS/AGENDA (passed=True) i przekazuje
+  // dalej. Zasila „Next player" (STATUS: gracz zrobił swój krok) oraz „Pass"
+  // (AGENDA: gracz zrezygnował z reakcji/głosu). Dzięki temu all_passed wykrywa
+  // komplet i mówca dostaje „Next phase" (DECYZJA PROJEKTOWA 2026-11).
+  const phaseStep = useCallback(
+    async (playerId?: string) => {
+      await post("/turn/phase-step", { player_id: playerId ?? null });
       await refresh();
     },
     [refresh],
@@ -402,6 +415,7 @@ export function useBoardEditor() {
     endTurn,
     passTurn,
     nextPlayer,
+    phaseStep,
     nextPhase,
     nextRound,
     pickStrategyCard,

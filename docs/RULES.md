@@ -1420,6 +1420,48 @@ bota AI: w każdej chwili toczącej się partii musi być jasne, CZYJA jest tura
 - ⬜ Realne kroki statusu (punktowanie, odświeżanie) — etap E5, użyją initiative order (kolejka).
 - ⬜ Realne głosowanie agendy — etap E6, użyje speaker order (kolejka jak okno czasowe).
 
+### 31.5. Pas jako akcja + jedna flaga „skończył fazę" + brama „Next phase" — ⚠️ DECYZJA PROJEKTOWA (2026-11)
+
+Ustalono z użytkownikiem. Standaryzuje sterowanie przepływem w UI i odpowiadającą mu
+semantykę w silniku, spójnie dla wszystkich faz.
+
+**(1) Pas jest „jak akcja", nie zakończeniem tury (faza AKCJI):**
+- `turn_flow.pass_turn` oznacza aktywnego gracza `passed=True`, ale NIE oddaje tury —
+  `active_player_id` pozostaje bez zmian. Turę oddaje się JEDNYM, spójnym klikiem
+  `end_turn` (również PO pasie). Dzięki temu każda tura kończy się tak samo, niezależnie
+  od tego, czy był to zwykły ruch, czy pas. `end_turn` pomija już spasowanych
+  (`next_unpassed_player`).
+- Bramka „pas dopiero po akcji strategicznej" (R_action_phase) bez zmian.
+
+**(2) Jedna flaga `passed` = „gracz skończył swoją część TEJ fazy":**
+- Flaga `PlayerState.passed` jest RESETOWANA przy KAŻDYM wejściu w nową fazę
+  (`turn_flow.next_phase`). Niesie: pas w AKCJI, krok w STATUSIE (R31.3), reakcję/głos
+  w AGENDZIE.
+- STATUS „Next player" i AGENDA „Pass" wołają `advance_active_player(mark_passed=True)`
+  (`/turn/phase-step`) — oznaczają gracza i przesuwają wskaźnik. AGENDA „Next player"
+  woła `advance_active_player()` bez oznaczania (`/turn/next-player`) — tylko przewija.
+
+**(3) „Next phase" (mówca) widoczny dopiero po komplecie:**
+- `turn_flow.can_advance_phase`: STRATEGY — po `ensure_strategy_complete`; ACTION/STATUS —
+  gdy `all_passed` (wszyscy skończyli swoją część); AGENDA — zawsze (kolejne głosowania
+  modelujemy oknami, nie tą bramą).
+- Projekcja do UI przez pola web-data `canAdvancePhase` + `allPassed`. Twarda walidacja
+  także w `api/routers/flow.post_next_phase` (czytelny 422, gdy mówca próbuje za wcześnie).
+
+**(4) Panel komunikatów (UI, „głos stołu"):**
+- Osobny box przypięty u GÓRY ekranu (`frontend/.../PhaseNoticePanel`) — prowadzi gracza
+  przez fazę (czyja kolej / co odblokowuje przejście) i pokazuje odrzucone akcje (422).
+  Zastępuje dawny lokalny `NoticeBanner` w panelu stanu (jedno, spójne miejsce komunikatów).
+
+**Egzekucja w kodzie:**
+- `turn_flow`: `pass_turn` (tylko flaga), `end_turn` (jedyne oddanie tury), `all_passed`,
+  `can_advance_phase`, `advance_active_player(mark_passed=…)`, reset flag w `next_phase`.
+- `api/routers/flow`: `/turn/pass`, `/turn/end`, `/turn/phase-step` (nowy), `/turn/next-player`,
+  brama w `/phase/next`.
+- `api/web_data`: pola `canAdvancePhase`, `allPassed`.
+- Frontend: `TurnControls`, `GameStatePanel.PhaseControls` (przyciski per faza + brama),
+  `PhaseNoticePanel` (+ `phaseNoticeMessage`), hook `useBoardEditor.phaseStep`.
+
 ---
 
 ## 32. Ruch statków: egzekucja legalności (akcja taktyczna) — ✅ ZWERYFIKOWANE (LRR 2.0)

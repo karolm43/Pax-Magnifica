@@ -61,11 +61,13 @@ def test_pass_skips_passed_players() -> None:
     assert nxt.active_player_id == "p3"
 
 
-def test_pass_turn_marks_and_advances() -> None:
+def test_pass_turn_marks_but_does_not_advance() -> None:
+    # DECYZJA PROJEKTOWA 2026-11: pas jest „jak akcja" — oznacza gracza spasowanym,
+    # ale NIE oddaje tury. Aktywny pozostaje ten sam (odda turę przez end_turn).
     state = _state_with_players()
     nxt = turn_flow.pass_turn(state)  # p1 pasuje
     assert nxt.players["p1"].passed is True
-    assert nxt.active_player_id == "p2"
+    assert nxt.active_player_id == "p1"
 
 
 def test_all_passed_hands_turn_to_speaker_without_auto_transition() -> None:
@@ -73,11 +75,23 @@ def test_all_passed_hands_turn_to_speaker_without_auto_transition() -> None:
     state.speaker_id = "p2"
     state.players["p2"].passed = True
     state.players["p3"].passed = True
-    # p1 pasuje jako ostatni → faza akcji NIE przechodzi automatycznie (RULES.md
-    # 31.4: brak auto-tranzycji, przejście ogłasza mówca). Faza wciąż ACTION,
-    # aktywny = MÓWCA (zawsze czyjaś tura — nigdy None).
-    nxt = turn_flow.pass_turn(state)
+    # p1 pasuje (oznaczony), a następnie KOŃCZY turę jako ostatni niespasowany →
+    # faza akcji NIE przechodzi automatycznie (RULES.md 31.4: brak auto-tranzycji,
+    # przejście ogłasza mówca). Faza wciąż ACTION, aktywny = MÓWCA (zawsze czyjaś
+    # tura — nigdy None).
+    passed = turn_flow.pass_turn(state)
+    nxt = turn_flow.end_turn(passed)
     assert nxt.phase is Phase.ACTION
+    assert nxt.active_player_id == "p2"
+    assert nxt.players["p1"].passed is True
+
+
+def test_pass_then_end_turn_skips_self() -> None:
+    # Po pasie i zakończeniu tury spasowany gracz jest pomijany (tura idzie do p2).
+    state = _state_with_players()
+    passed = turn_flow.pass_turn(state)  # p1 pasuje, nadal aktywny
+    assert passed.active_player_id == "p1"
+    nxt = turn_flow.end_turn(passed)  # p1 oddaje turę
     assert nxt.active_player_id == "p2"
     assert nxt.players["p1"].passed is True
 
@@ -254,13 +268,16 @@ def test_end_turn_only_active_unpassed_keeps_turn() -> None:
 
 
 def test_pass_last_player_hands_to_speaker_no_transition() -> None:
-    """RULES.md 31.4: gdy OSTATNI niespasowany gracz PASUJE, faza NIE przechodzi
-    automatycznie do statusu — zostaje ACTION, a aktywny = mówca (ogłosi tranzycję)."""
+    """RULES.md 31.4: gdy OSTATNI niespasowany gracz PASUJE i KOŃCZY turę, faza NIE
+    przechodzi automatycznie do statusu — zostaje ACTION, a aktywny = mówca (ogłosi
+    tranzycję). Pas sam w sobie nie oddaje tury (DECYZJA 2026-11), robi to end_turn."""
     state = _state_with_players()
     state.speaker_id = "p3"
     state.players["p2"].passed = True
     state.players["p3"].passed = True
-    nxt = turn_flow.pass_turn(state)  # p1 pasuje jako ostatni → wszyscy spasowali
+    passed = turn_flow.pass_turn(state)  # p1 pasuje jako ostatni → wszyscy spasowali
+    assert passed.active_player_id == "p1"  # pas nie oddaje tury
+    nxt = turn_flow.end_turn(passed)  # p1 kończy turę
     assert nxt.phase is Phase.ACTION
     assert nxt.active_player_id == "p3"  # mówca
     assert nxt.players["p1"].passed is True
@@ -303,3 +320,67 @@ def test_advance_active_player_checks_identity() -> None:
         turn_flow.advance_active_player(state, "p2")
     # Aktywny gracz przechodzi bez błędu.
     assert turn_flow.advance_active_player(state, "p1").active_player_id == "p2"
+
+
+def test_advance_active_player_mark_passed_sets_flag() -> None:
+    # STATUS „Next player" / AGENDA „Pass": gracz kończy swój krok (passed=True)
+    # i wskaźnik przesuwa się dalej (DECYZJA 2026-11).
+    state = _state_with_players()
+    state.phase = Phase.STATUS
+    state.active_player_id = "p1"
+    for p in state.players.values():
+        p.passed = False
+    nxt = turn_flow.advance_active_player(state, mark_passed=True)
+    assert nxt.players["p1"].passed is True
+    assert nxt.active_player_id == "p2"
+
+
+def test_advance_active_player_without_mark_keeps_flags() -> None:
+    # AGENDA „Next player": samo przesunięcie, bez oznaczania gracza.
+    state = _state_with_players()
+    state.phase = Phase.AGENDA
+    state.active_player_id = "p1"
+    for p in state.players.values():
+        p.passed = False
+    nxt = turn_flow.advance_active_player(state)
+    assert nxt.players["p1"].passed is False
+    assert nxt.active_player_id == "p2"
+
+
+def test_next_phase_resets_passed_flags() -> None:
+    # Flaga passed niesie „skończył swoją część TEJ fazy" — reset przy każdym wejściu
+    # w nową fazę, by all_passed liczyło od zera (DECYZJA 2026-11).
+    state = _state_with_players()  # phase=ACTION
+    for p in state.players.values():
+        p.passed = True
+    state.speaker_id = "p1"
+    nxt = turn_flow.next_phase(state)  # ACTION → STATUS
+    assert nxt.phase is Phase.STATUS
+    assert all(not p.passed for p in nxt.players.values())
+
+
+def test_can_advance_phase_action_needs_all_passed() -> None:
+    state = _state_with_players()  # phase=ACTION
+    assert turn_flow.can_advance_phase(state) is False
+    for p in state.players.values():
+        p.passed = True
+    assert turn_flow.can_advance_phase(state) is True
+
+
+def test_can_advance_phase_status_needs_all_steps() -> None:
+    state = _state_with_players()
+    state.phase = Phase.STATUS
+    for p in state.players.values():
+        p.passed = False
+    assert turn_flow.can_advance_phase(state) is False
+    for p in state.players.values():
+        p.passed = True
+    assert turn_flow.can_advance_phase(state) is True
+
+
+def test_can_advance_phase_agenda_always_true() -> None:
+    state = _state_with_players()
+    state.phase = Phase.AGENDA
+    for p in state.players.values():
+        p.passed = False
+    assert turn_flow.can_advance_phase(state) is True

@@ -85,10 +85,37 @@ def next_unpassed_player(state: GameState, current_id: str | None) -> str | None
 
 
 def all_passed(state: GameState) -> bool:
-    """Czy wszyscy gracze spasowali (koniec fazy akcji)."""
+    """Czy wszyscy gracze spasowali / skończyli swoją część bieżącej fazy.
+
+    Flaga ``passed`` jest resetowana przy każdym wejściu w fazę (``next_phase``), więc
+    znaczy „skończył swoją część TEJ fazy": pas w akcji, krok w statusie, reakcja/głos
+    w agendzie. ``all_passed`` liczy komplet dla bieżącej fazy.
+    """
     if not state.players:
         return False
     return all(player.passed for player in state.players.values())
+
+
+def can_advance_phase(state: GameState) -> bool:
+    """Czy MÓWCA może już ogłosić przejście fazy (przycisk „Next phase" widoczny).
+
+    DECYZJA PROJEKTOWA (2026-11): w fazach, gdzie każdy gracz robi swoją część po kolei
+    (AKCJA — pasy; STATUS — kroki), ``Next phase`` pojawia się dopiero, gdy WSZYSCY
+    skończyli (``all_passed``). W STRATEGII bramą jest kompletny wybór kart
+    (``ensure_strategy_complete``). W AGENDZIE przejście (koniec agendy → nowa runda)
+    jest zawsze dostępne dla mówcy — kolejne głosowania są modelowane oknami, nie tą
+    bramą. To projekcja do UI; twarda walidacja i tak siedzi w ``next_phase``.
+    """
+    if state.phase is Phase.STRATEGY:
+        try:
+            ensure_strategy_complete(state)
+        except ValueError:
+            return False
+        return True
+    if state.phase in (Phase.ACTION, Phase.STATUS):
+        return all_passed(state)
+    # AGENDA (i stany spoza głównej czwórki): mówca decyduje bez bramy „wszyscy".
+    return True
 
 
 # Alias czytelnościowy: kolejność inicjatywy = kolejność tur fazy akcji ORAZ kroków
@@ -119,11 +146,17 @@ def _require_action_turn(state: GameState, player_id: str | None) -> None:
 def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     """Kończy turę aktywnego gracza i przekazuje ją następnemu niespasowanemu.
 
+    JEDYNE miejsce oddające turę w fazie akcji (RULES.md 31.2). Działa tak samo po
+    zwykłej akcji, jak i po pasie: spasowany gracz (``passed=True``) również kończy
+    turę tym klikiem — a że jest już spasowany, ``next_unpassed_player`` go pominie
+    w kolejnych okrążeniach.
+
     Twardo waliduje fazę akcji i (gdy podano) tożsamość aktywnego gracza — RULES.md 31.2.
     Gdy nikt nie został (wszyscy spasowali) — faza AKCJI pozostaje aktywna, a aktywny
     gracz wskazuje MÓWCĘ (RULES.md 31.4): to on ogłosi przejście fazy przez
-    ``/phase/next``. NIE przechodzimy automatycznie do statusu — między ostatnim pasem
-    a przejściem są okna czasowe końca tury/fazy ("end of turn"/"end of action phase").
+    ``/phase/next`` (przycisk „Next phase" pojawia się dopiero, gdy ``all_passed``).
+    NIE przechodzimy automatycznie do statusu — między ostatnim pasem a przejściem są
+    okna czasowe końca tury/fazy ("end of turn"/"end of action phase").
     ``active_player_id`` NIGDY nie staje się tu ``None`` (zasada "zawsze czyjaś tura").
 
     Raises:
@@ -142,11 +175,19 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
 
 
 def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
-    """Aktywny gracz pasuje (pomijany do końca fazy akcji); tura idzie dalej.
+    """Aktywny gracz pasuje — oznacza go jako spasowanego, ale NIE oddaje tury.
+
+    DECYZJA PROJEKTOWA (2026-11): pas jest „jak akcja", nie zakończeniem tury. Gracz
+    najpierw PASUJE (``passed=True``), a dopiero potem kończy swoją turę przez
+    ``end_turn`` (tak jak po każdej innej akcji). Dzięki temu każda tura w fazie akcji
+    kończy się jednym, spójnym klikiem ``End turn`` — niezależnie od tego, czy był to
+    zwykły ruch, czy pas. ``active_player_id`` pozostaje bez zmian (to nadal jego tura
+    aż do ``end_turn``).
 
     Twardo waliduje fazę akcji i tożsamość (RULES.md 31.2). Dodatkowo: gracz NIE MOŻE
     spasować, dopóki nie wykona akcji strategicznej swojej karty (zagranie karty =
-    wpis w ``exhausted_strategy_cards``) — reguła R_action_phase.
+    wpis w ``exhausted_strategy_cards``) — reguła R_action_phase. Powtórny pas tego
+    samego gracza jest idempotentny (flaga pozostaje ``True``).
 
     Raises:
         ValueError: Gdy nie wolno spasować (zła faza/tura albo brak akcji strategicznej).
@@ -166,26 +207,32 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
         )
     new_state = state.clone()
     new_state.players[current].passed = True
-    nxt = next_unpassed_player(new_state, current)
-    if nxt is None:
-        # Ostatni gracz spasował: faza akcji "wyczerpana", ale wciąż ACTION. Aktywny
-        # = mówca (ogłosi tranzycję przez /phase/next — RULES.md 31.4). Brak
-        # auto-przejścia (okna czasowe końca fazy); active_player_id NIGDY nie None.
-        new_state.active_player_id = new_state.speaker_id or current
-    else:
-        new_state.active_player_id = nxt
+    # Pas NIE przekazuje tury — gracz nadal aktywny, odda turę przez end_turn.
     return new_state
 
 
-def advance_active_player(state: GameState, player_id: str | None = None) -> GameState:
+def advance_active_player(
+    state: GameState,
+    player_id: str | None = None,
+    *,
+    mark_passed: bool = False,
+) -> GameState:
     """Przekazuje „bycie aktywnym" następnemu graczowi w kolejności INICJATYWY.
 
     Używane w fazach STATUS i AGENDA, gdzie — wg decyzji projektowej (RULES.md 31.4) —
-    zawsze jest wskazany aktywny gracz (UI/bot), ale NIE ma pojęcia „pasowania" ani
-    kończenia tury jak w fazie akcji. To proste przesunięcie wskaźnika aktywnego
-    gracza po kręgu (initiative order), żeby operator mógł przeklikać kolejnych
-    graczy (status: krok po kroku wg inicjatywy R31.3; agenda: kolejni gracze
-    reagują/głosują). Owinięcie listy jest cykliczne — po ostatnim wraca pierwszy.
+    zawsze jest wskazany aktywny gracz (UI/bot). To przesunięcie wskaźnika aktywnego
+    gracza po kręgu (initiative order), żeby operator mógł przeklikać kolejnych graczy
+    (status: krok po kroku wg inicjatywy R31.3; agenda: kolejni gracze reagują/głosują).
+    Owinięcie listy jest cykliczne — po ostatnim wraca pierwszy.
+
+    ``mark_passed`` (DECYZJA PROJEKTOWA 2026-11): gdy ``True``, bieżący gracz jest
+    oznaczany jako „skończył swoją część tej fazy" (``passed=True``) ZANIM przesuniemy
+    wskaźnik. Jedna flaga ``passed`` jest resetowana przy każdym wejściu w nową fazę
+    (``next_phase``), więc służy uniwersalnie: w AKCJI (pas), w STATUSIE (gracz zrobił
+    swój krok — ``Next player``) i w AGENDZIE (gracz spasował reakcję/głos — ``Pass``).
+    Pozwala to wykryć „wszyscy skończyli" (``all_passed``) i dopiero wtedy pokazać
+    mówcy ``Next phase``. Gdy ``False`` (agenda ``Next player``), tylko przesuwamy
+    wskaźnik bez oznaczania — operator przewija graczy, nikogo nie kończąc.
 
     ``player_id`` (gdy podany) musi być bieżącym aktywnym graczem — spójnie z
     ``end_turn``/``pass_turn``. Faza MUSI być STATUS albo AGENDA.
@@ -209,6 +256,8 @@ def advance_active_player(state: GameState, player_id: str | None = None) -> Gam
     if not order:
         return state.clone()
     new_state = state.clone()
+    if mark_passed and current in new_state.players:
+        new_state.players[current].passed = True
     if current in order:
         idx = order.index(current)
         new_state.active_player_id = order[(idx + 1) % len(order)]
@@ -239,6 +288,12 @@ def next_phase(state: GameState) -> GameState:
     new_state = state.clone()
     idx = _PHASE_SEQUENCE.index(new_state.phase)
     new_state.phase = _PHASE_SEQUENCE[(idx + 1) % len(_PHASE_SEQUENCE)]
+    # Jedna flaga ``passed`` niesie „gracz skończył swoją część TEJ fazy" (pas w akcji,
+    # krok w statusie, reakcja/głos w agendzie). Resetujemy ją przy KAŻDYM wejściu w
+    # nową fazę, żeby „wszyscy skończyli" (all_passed) liczyło się od nowa i przycisk
+    # mówcy „Next phase" pojawiał się dopiero po komplecie (DECYZJA PROJEKTOWA 2026-11).
+    for player in new_state.players.values():
+        player.passed = False
     if new_state.phase is Phase.ACTION:
         # Faza akcji: kolejność tur wg ŚCISŁEJ INICJATYWY kart (RULES.md 9, R9.6).
         # Komplet kart zagwarantowany przez ensure_strategy_complete powyżej.

@@ -54,9 +54,9 @@ async def post_next_player(
 ) -> StateEnvelope:
     """Przekazuje aktywność następnemu graczowi (initiative order) w STATUS/AGENDA.
 
-    Proste przesunięcie wskaźnika aktywnego gracza — bez pasowania/kończenia tury
-    (to tylko faza akcji). Służy do przeklikania kolejnych graczy w fazie statusu
-    (krok po kroku) i agendy (kolejni gracze). Faza spoza STATUS/AGENDA → 422.
+    Proste przesunięcie wskaźnika aktywnego gracza — BEZ oznaczania „skończył fazę".
+    Służy do przeklikiwania kolejnych graczy w AGENDZIE (operator przewija graczy,
+    nikogo nie kończąc). Faza spoza STATUS/AGENDA → 422.
     """
     player_id = request.player_id if request is not None else None
     try:
@@ -66,6 +66,28 @@ async def post_next_player(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, "turn:next-player")
+
+
+@router.post("/turn/phase-step", response_model=StateEnvelope)
+async def post_phase_step(
+    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Bieżący gracz KOŃCZY swoją część fazy STATUS/AGENDA i przekazuje dalej.
+
+    Oznacza aktywnego gracza jako „skończył" (``passed=True``) i przesuwa wskaźnik do
+    następnego (initiative order). Służy jako: STATUS „Next player" (gracz zrobił swój
+    krok R31.3) oraz AGENDA „Pass" (gracz zrezygnował z reakcji/głosu). Dzięki temu
+    ``all_passed`` wykrywa komplet i mówca dostaje „Next phase". Faza spoza
+    STATUS/AGENDA → 422.
+    """
+    player_id = request.player_id if request is not None else None
+    try:
+        new_state = turn_flow.advance_active_player(
+            ctx.service.current_state(), player_id, mark_passed=True
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "turn:phase-step")
 
 
 @router.post("/phase/next", response_model=StateEnvelope)
@@ -89,6 +111,19 @@ async def post_next_phase(
                 f"(speaker: {state.speaker_id})."
             ),
         )
+    # Brama „wszyscy skończyli" (akcja: pasy; status: kroki) — czytelny komunikat
+    # zamiast surowego błędu z głębi silnika (DECYZJA PROJEKTOWA 2026-11).
+    if not turn_flow.can_advance_phase(state):
+        if state.phase is Phase.ACTION:
+            detail = "Every player must pass before the speaker can end the Action Phase."
+        elif state.phase is Phase.STATUS:
+            detail = (
+                "Every player must take their Status step before the speaker "
+                "can end the Status Phase."
+            )
+        else:
+            detail = "All players must pick their Strategy Cards before advancing."
+        raise HTTPException(status_code=422, detail=detail)
     try:
         new_state = turn_flow.next_phase(state)
     except ValueError as exc:

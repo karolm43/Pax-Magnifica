@@ -23,6 +23,7 @@ import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
 import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { TurnControls } from "@/domains/game-shell/components/TurnControls";
+import { PhaseNoticePanel } from "@/domains/game-shell/components/PhaseNoticePanel";
 import { BoardHud } from "./BoardHud";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
@@ -157,6 +158,9 @@ export function PannableMapView({ gameId }: { gameId: string }) {
       {/* Phase_Banner — nakładka nad mapą reagująca na zmianę głównej fazy;
           `pointer-events: none`, sama pilnuje mapowalności fazy. Zadanie 10.1. */}
       <PhaseTransitionBanner />
+      {/* Panel komunikatów — przypięty u góry, prowadzi gracza przez fazę i pokazuje
+          odrzucone akcje (standaryzowany „głos stołu", DECYZJA 2026-11). */}
+      <PhaseNoticePanel />
       <Box className={classes.gameStateOverlay}>
         <GameStatePanel />
         {/* Card_Table_View — nakładka „na stole" obok panelu; sama pilnuje

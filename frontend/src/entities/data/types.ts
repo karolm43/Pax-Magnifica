@@ -488,6 +488,14 @@ export type GameState = {
    * 3..8 i wartość jest nieobsługiwana (web-data nie rzuca wtedy błędu). RULES.md 13.
    */
   strategyPickCount?: number | null;
+  /**
+   * Czy MÓWCA może już ogłosić przejście fazy — steruje widocznością „Next phase"
+   * w panelu tury. Akcja/status: dopiero po komplecie pasów/kroków; strategia:
+   * po pełnym wyborze kart; agenda: zawsze. (DECYZJA PROJEKTOWA 2026-11.)
+   */
+  canAdvancePhase?: boolean;
+  /** Czy wszyscy gracze skończyli swoją część bieżącej fazy (pas/krok). */
+  allPassed?: boolean;
 };
 
 /**

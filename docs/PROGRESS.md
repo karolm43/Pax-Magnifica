@@ -21,6 +21,36 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Standaryzacja sterowania fazami: Pass≠End turn + brama „Next phase" + panel komunikatów (ukończone)
+
+- **Cel (ustalony z użytkownikiem):** ujednolicić przyciski per faza i rozdzielić pas
+  od zakończenia tury. Reguła projektowa: `RULES.md` 31.5 (DECYZJA 2026-11).
+- **Pas jako akcja (AKCJA):** `turn_flow.pass_turn` tylko OZNACZA gracza
+  (`passed=True`), NIE oddaje tury. Turę oddaje jedyny, spójny `end_turn` — także po
+  pasie. `end_turn` pomija spasowanych.
+- **Jedna flaga `passed` = „skończył swoją część fazy":** resetowana przy KAŻDYM
+  wejściu w fazę (`next_phase`). STATUS „Next player" i AGENDA „Pass" wołają
+  `/turn/phase-step` (`advance_active_player(mark_passed=True)`); AGENDA „Next player"
+  woła `/turn/next-player` (bez oznaczania).
+- **Brama „Next phase" (mówca):** `turn_flow.can_advance_phase` — STRATEGY po
+  komplecie wyboru; ACTION/STATUS po `all_passed`; AGENDA zawsze. Projekcja do UI przez
+  web-data `canAdvancePhase`+`allPassed`; twardy 422 z czytelnym komunikatem w
+  `/phase/next`.
+- **Przyciski per faza (frontend):** STRATEGY → Next phase (po komplecie); ACTION →
+  Pass + End turn + (Next phase po komplecie); STATUS → Next player + Next phase (po
+  komplecie); AGENDA → Pass + Next player + Next round. Spójnie w `TurnControls` i
+  `GameStatePanel.PhaseControls`.
+- **Panel komunikatów (UI):** nowy `PhaseNoticePanel` — osobny box przypięty u GÓRY
+  ekranu, styl stołu (hairline + akcent tonu fazy). Prowadzi gracza przez fazę
+  (`phaseNoticeMessage`) i pokazuje odrzucone akcje (422). Zastąpił lokalny
+  `NoticeBanner` w panelu stanu.
+- **Testy:** `test_turn_flow.py` (pas-bez-oddania, phase-step, reset flag,
+  can_advance_phase × faza), `test_api.py` (phase-step w statusie, brama
+  `/phase/next` w statusie). QA zielone: pytest 480, ruff, mypy; front type-check +
+  build.
+
+---
+
 ### ✅ Sąsiedzi gracza (Neighbors) w panelu + pole `neighbors` w web-data (ukończone)
 
 - **Cel:** panel gracza (viewer ti4_web) pokazywał ikony sąsiadów, ale backend

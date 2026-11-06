@@ -589,8 +589,9 @@ function PlateBody({
 
   return (
     <>
-      {/* Baner odrzuconej akcji (422) dotyczy klikania — tylko w trybie z akcjami. */}
-      {!isInfo && <NoticeBanner />}
+      {/* Odrzucone akcje (422) pokazuje teraz PANEL KOMUNIKATÓW u góry ekranu
+          (PhaseNoticePanel) — jedno, spójne miejsce. Dawny lokalny NoticeBanner
+          usunięty, by nie dublować komunikatu (DECYZJA 2026-11). */}
       {gameState.pendingWindow && (
         <WindowSection
           window={gameState.pendingWindow}
@@ -649,38 +650,14 @@ function PlateBody({
       {/* Sterowanie turą/fazą/rundą = klikalne akcje → tylko w trybie pełnym. */}
       {!isInfo && (
         <PhaseControls
-          phase={phase}
+          gameState={gameState}
+          activePlayer={active}
           activePlayerId={active?.discordId ?? null}
           canPass={strategyStatus.canPass}
           passBlockReason={strategyStatus.passBlockReason}
         />
       )}
     </>
-  );
-}
-
-/**
- * Przelotny baner komunikatu (odrzucona akcja walidacji: „system już aktywowany",
- * „za mało zasobów" itp.). Czyta ``notice`` ze store (ustawiane przez useBoardEditor
- * przy 422). Gracz zamyka go krzyżykiem; kolejna akcja go nadpisuje.
- */
-function NoticeBanner() {
-  const notice = useAppStore((s) => s.notice);
-  const clearNotice = useAppStore((s) => s.clearNotice);
-  if (!notice) return null;
-  return (
-    <div className={styles.notice} data-kind={notice.kind} role="alert">
-      <span className={styles.noticeText}>{notice.text}</span>
-      <button
-        type="button"
-        className={styles.noticeClose}
-        onClick={clearNotice}
-        aria-label="Dismiss message"
-        title="Dismiss"
-      >
-        ×
-      </button>
-    </div>
   );
 }
 
@@ -1679,19 +1656,23 @@ function StrategicActionControl({
  * następna faza, nowa runda. Wywołuje endpointy przepływu (commit → historia).
  */
 function PhaseControls({
-  phase,
+  gameState,
+  activePlayer,
   activePlayerId,
   canPass = true,
   passBlockReason = null,
 }: {
-  phase: GamePhase;
+  gameState: GameState;
+  /** „Gracz pulpitu" (PlayerData) — jego kolor porównujemy z mówcą. */
+  activePlayer?: PlayerData | null;
   activePlayerId: string | null;
   /** Czy aktywny gracz może spasować (po akcji strategicznej — RULES.md 31.2). */
   canPass?: boolean;
   /** Powód blokady pasa (tooltip), gdy ``canPass`` === false. */
   passBlockReason?: string | null;
 }) {
-  const { endTurn, passTurn, nextPhase, nextRound } = useBoardEditor();
+  const { endTurn, passTurn, nextPlayer, phaseStep, nextPhase, nextRound } =
+    useBoardEditor();
   const [busy, setBusy] = useState(false);
 
   const run = async (fn: () => Promise<void>) => {
@@ -1704,12 +1685,21 @@ function PhaseControls({
     }
   };
 
+  const phase = gameState.phase;
   const isAction = phase === "action";
+  const isStatus = phase.startsWith("status");
   const isAgenda = phase.startsWith("agenda");
+  // „Next phase" tylko gdy mówca może już przejść (akcja/status po komplecie
+  // pasów/kroków; strategia po pełnym wyborze) — DECYZJA PROJEKTOWA 2026-11.
+  const canAdvancePhase = gameState.canAdvancePhase ?? true;
+  const isSpeaker =
+    gameState.speaker != null && activePlayer?.color === gameState.speaker;
+  const showNextPhase = isSpeaker && canAdvancePhase;
 
   return (
     <div className={styles.controls}>
-      {/* Faza akcji: główna akcja to „Zakończ turę" (duży, wyróżniony). */}
+      {/* Faza akcji: główna akcja to „Zakończ turę" (duży, wyróżniony). Pas już
+          NIE oddaje tury — oznacza gracza spasowanym, turę kończy End turn. */}
       {isAction && (
         <>
           <button
@@ -1717,6 +1707,7 @@ function PhaseControls({
             className={cx(styles.ctlBtn, styles.ctlPrimary)}
             disabled={busy}
             onClick={() => void run(() => endTurn(activePlayerId ?? undefined))}
+            title="End your turn (also after passing)"
           >
             End turn
           </button>
@@ -1727,7 +1718,7 @@ function PhaseControls({
             onClick={() => void run(() => passTurn(activePlayerId ?? undefined))}
             title={
               canPass
-                ? "Pass — skipped for the rest of the Action Phase"
+                ? "Pass — then End turn to hand over"
                 : (passBlockReason ?? "You cannot pass yet.")
             }
           >
@@ -1739,9 +1730,46 @@ function PhaseControls({
           )}
         </>
       )}
-      {/* Drobne sterowanie fazami (operator) — osobny, cichszy rząd. */}
+      {/* Faza statusu: „Next player" KOŃCZY krok gracza i przesuwa dalej. */}
+      {isStatus && (
+        <button
+          type="button"
+          className={cx(styles.ctlBtn, styles.ctlPrimary)}
+          disabled={busy}
+          onClick={() => void run(() => phaseStep(activePlayerId ?? undefined))}
+          title="Finish your Status step and pass to the next player"
+        >
+          Next player
+        </button>
+      )}
+      {/* Faza agendy: „Pass" kończy część gracza, „Next player" tylko przewija. */}
+      {isAgenda && (
+        <>
+          <button
+            type="button"
+            className={styles.ctlBtn}
+            disabled={busy}
+            onClick={() => void run(() => phaseStep(activePlayerId ?? undefined))}
+            title="Pass — decline your reaction/vote this agenda"
+          >
+            Pass
+          </button>
+          <button
+            type="button"
+            className={styles.ctlBtn}
+            disabled={busy}
+            onClick={() => void run(() => nextPlayer(activePlayerId ?? undefined))}
+            title="Pass the floor to the next player (no pass recorded)"
+          >
+            Next player
+          </button>
+        </>
+      )}
+      {/* Drobne sterowanie fazami (operator) — osobny, cichszy rząd. Przejście
+          fazy ogłasza MÓWCA i tylko gdy wolno (``showNextPhase``). Po agendzie
+          mówca startuje nową rundę. */}
       <div className={styles.controlsMinor}>
-        {!isAgenda && (
+        {!isAgenda && showNextPhase && (
           <button
             type="button"
             className={styles.ctlBtnGhost}
@@ -1751,14 +1779,16 @@ function PhaseControls({
             Next phase
           </button>
         )}
-        <button
-          type="button"
-          className={styles.ctlBtnGhost}
-          disabled={busy}
-          onClick={() => void run(nextRound)}
-        >
-          New round
-        </button>
+        {isAgenda && isSpeaker && (
+          <button
+            type="button"
+            className={styles.ctlBtnGhost}
+            disabled={busy}
+            onClick={() => void run(nextRound)}
+          >
+            New round
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1873,8 +1903,8 @@ export function GameStatePanel() {
  * więc panel i zakładka zawsze pokazują ten sam stan gry.
  *
  * Akcje sterowane są przez ``pendingWindow``/``tacticalStep`` z ``gameState``
- * (R12.2). Akcja nielegalna → endpoint zwraca 422 → ``NoticeBanner`` (w
- * ``PlateBody``) pokazuje komunikat; stan gry pozostaje bez zmian (R12.3 —
+ * (R12.2). Akcja nielegalna → endpoint zwraca 422 → ``PhaseNoticePanel`` (u góry
+ * ekranu) pokazuje komunikat; stan gry pozostaje bez zmian (R12.3 —
  * egzekwowane po stronie core/API). Zwraca ``null``, gdy brak sensownej fazy.
  */
 export function GameStateActionControls() {

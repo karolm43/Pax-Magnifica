@@ -746,3 +746,35 @@ def test_phase_next_without_player_id_backward_compatible(client: TestClient) ->
     resp = client.post("/phase/next")
     assert resp.status_code == 200
     assert resp.json()["state"]["phase"] == "ACTION"
+
+
+def test_phase_step_marks_player_and_advances_in_status(client: TestClient) -> None:
+    """/turn/phase-step (STATUS „Next player") oznacza gracza passed i przesuwa
+    aktywnego dalej (DECYZJA 2026-11). Po komplecie kroków mówca może iść dalej."""
+    _complete_strategy_three_players(client)  # speaker = p1
+    client.post("/phase/next", json={"player_id": "p1"})  # STRATEGY → ACTION
+    # Zakończ akcję szybko przez God-Mode: ustaw fazę STATUS bez pasów.
+    client.post("/god-mode/patch", json={"phase": "STATUS", "active_player_id": "p1"})
+    # p1 robi krok → passed, aktywny = p2.
+    resp = client.post("/turn/phase-step", json={"player_id": "p1"})
+    assert resp.status_code == 200
+    state = resp.json()["state"]
+    assert state["players"]["p1"]["passed"] is True
+    assert state["active_player_id"] == "p2"
+
+
+def test_phase_next_blocks_status_until_all_steps(client: TestClient) -> None:
+    """Brama „wszyscy skończyli": w STATUSIE /phase/next (mówca) jest odrzucane (422),
+    dopóki każdy gracz nie zrobi swojego kroku (DECYZJA 2026-11)."""
+    _complete_strategy_three_players(client)  # speaker = p1
+    client.post("/god-mode/patch", json={"phase": "STATUS", "active_player_id": "p1"})
+    # Nikt jeszcze nie zrobił kroku → mówca nie może przejść dalej.
+    blocked = client.post("/phase/next", json={"player_id": "p1"})
+    assert blocked.status_code == 422
+    assert "status" in blocked.json()["detail"].lower()
+    # Każdy gracz robi swój krok.
+    for player_id in ("p1", "p2", "p3"):
+        client.post("/turn/phase-step", json={"player_id": player_id})
+    ok = client.post("/phase/next", json={"player_id": "p1"})
+    assert ok.status_code == 200
+    assert ok.json()["state"]["phase"] == "AGENDA"

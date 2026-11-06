@@ -1,0 +1,127 @@
+/*
+ * Panel komunikatów fazy — przypięty u GÓRY ekranu, wyśrodkowany. Styl stołu:
+ * ciemna „szyba" z hairline-ramką, lewym paskiem akcentu w tonie fazy i delikatną
+ * poświatą. --accent = trójka RGB tonu (ustawiana inline przez komponent).
+ */
+
+.wrap {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 420; /* nad mapą i panelami stanu, pod modalami */
+  display: flex;
+  justify-content: center;
+  width: max-content;
+  max-width: min(680px, calc(100vw - 32px));
+  pointer-events: none; /* panning mapy pod spodem; klik tylko na wnętrzu */
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 16px;
+  border: 1px solid var(--ds-h22);
+  border-left: 3px solid rgb(var(--accent) / 0.85);
+  border-radius: var(--ds-radius-overlay);
+  background:
+    linear-gradient(
+      180deg,
+      rgb(var(--accent) / 0.08),
+      transparent 60%
+    ),
+    rgb(12 12 14 / 0.92);
+  box-shadow:
+    var(--ds-shadow-md),
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 0 0 1px rgb(var(--accent) / 0.1);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  animation: slideDown var(--ds-dur-slow) var(--ds-ease);
+}
+
+/* Kropka tonu fazy — spokojny sygnał „co się dzieje". */
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(var(--accent) / 0.95);
+  box-shadow: 0 0 10px rgb(var(--accent) / 0.6);
+}
+
+.icon {
+  flex: none;
+  display: inline-flex;
+  color: rgb(var(--accent) / 0.95);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ds-ink-hi);
+  line-height: 1.25;
+}
+
+.body {
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink);
+  line-height: 1.4;
+}
+
+.close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 4px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-ink-lo);
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease),
+    background var(--ds-dur-fast) var(--ds-ease);
+}
+
+.close:hover {
+  color: var(--ds-ink-hi);
+  background: var(--ds-h14);
+}
+
+/* Notice błędu/info — mocniejszy akcent (border-left już nadany inline przez tone). */
+.panel[data-notice][data-kind="error"] {
+  border-left-color: rgb(var(--ds-sig-danger) / 0.9);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
