@@ -1106,11 +1106,22 @@ base_type, zone)` — czysta reguła świata, wołana przez UI (drag-and-drop) i
 
 **UX drag-and-drop (prezentacja, nie reguła):** upuszczenie STATKU na planetę nie jest błędem
 dla gracza — front celuje wtedy w ORBITĘ (`"space"`) tego samego kafelka (gracz wskazał system).
-Jednostkę naziemną/strukturę upuszczoną na orbitę front odrzuca (brak sensownej planety-celu).
 Backend i tak waliduje twardo — to tylko wygodne mapowanie gestu na dozwoloną strefę.
 
+**⚠️ WYJĄTEK TRANSPORTU (Blok B2) — siły naziemne/myśliwce W PRZESTRZENI podczas ruchu.**
+Reguła „naziemne tylko na planecie" dotyczy stanu SPOCZYNKOWEGO (setup, God-Mode edycja). W
+AKCJI TAKTYCZNEJ siły naziemne i myśliwce jadą statkiem jako ŁADUNEK i stoją w PRZESTRZENI
+systemu docelowego aż do kroku **Commit Ground Forces** (inwazja), kiedy lądują na planecie
+(źródło: `R_transport.md`, `R_invasion.md` — „Units are considered to be on the planet for game
+effects from the Commit Ground Forces step onward"). Dlatego podczas MOVEMENT front NIE blokuje
+piechoty/mecha upuszczonego na ORBITĘ aktywnego systemu (wcześniej `resolveTarget valid=false` —
+to był błąd). Blokada „naziemne nie na orbitę" obowiązuje nadal POZA akcją taktyczną (God-Mode:
+`board_edit.move_units` + `placement_allows_zone`). Capacity transportu i tak waliduje
+`move_fleet` (RULES.md 32.3).
+
 Implementacja: `unit_catalog.placement_allows_zone`/`zone_is_space`, `board_edit.move_units`
-(walidacja), frontend `useUnitDrag` (mapowanie statek→orbita, podświetlenie dozwolonego celu).
+(walidacja God-Mode), frontend `useUnitDrag` (mapowanie statek→orbita; w akcji taktycznej
+dopuszcza ładunek naziemny w przestrzeni aktywnego systemu).
 
 
 ## 27. Wyczerpywanie komponentów: planety, technologie, liderzy (exhaust/ready) — ✅ ZWERYFIKOWANE (LRR + dane)

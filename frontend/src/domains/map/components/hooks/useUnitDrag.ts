@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
+import { useGameState } from "@/api/useGameState";
+import { DEFAULT_GAME_ID } from "@/config";
 import { isShipUnit } from "../UnitStack/unitType";
+import { baseTypeOf, isCargoUnit } from "../UnitStack/cargo";
 
 /**
  * Drag-and-drop przeciągania jednostek na mapie (God-Mode, bez reguł).
@@ -86,10 +90,15 @@ type ResolvedTarget = {
  *   niedozwolone (``valid=false``), front nie wykona ruchu.
  * - Upuszczenie w tę samą strefę co źródło → niedozwolone (brak ruchu).
  */
+/* Siły naziemne transportowalne jako ładunek (piechota/mech). Myśliwiec (ff) jest
+   statkiem (orbita), więc nie podlega wyjątkowi „naziemne w przestrzeni". */
+const GROUND_CARGO_ASYNC = new Set(["gf", "mf"]);
+
 function resolveTarget(
   data: UnitDragData,
   clientX: number,
   clientY: number,
+  activeSystem: string | null,
 ): ResolvedTarget {
   const raw = rawZoneAt(clientX, clientY);
   if (!raw) return null;
@@ -102,8 +111,17 @@ function resolveTarget(
     zone = "space";
     label = "Space";
   } else if (!ship && zone === "space") {
-    // Jednostka naziemna/struktura nie może stać w przestrzeni.
-    valid = false;
+    // Siła naziemna/struktura w przestrzeni jest zabroniona w stanie spoczynkowym,
+    // ALE podczas akcji taktycznej piechota/mech jadą jako ŁADUNEK i stoją w
+    // przestrzeni AKTYWNEGO systemu aż do Commit Ground Forces (RULES.md 26 wyjątek
+    // transportu / 32.3). Dlatego dopuszczamy je na orbitę aktywnego systemu.
+    const isCargoToActive =
+      activeSystem !== null &&
+      raw.position === activeSystem &&
+      GROUND_CARGO_ASYNC.has(data.asyncId);
+    if (!isCargoToActive) {
+      valid = false;
+    }
   }
   // Brak ruchu, gdy cel = źródło.
   if (
@@ -117,15 +135,23 @@ function resolveTarget(
 }
 
 export function useUnitDrag(data: UnitDragData | null) {
+  const params = useParams<{ mapid: string }>();
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
+  const { data: gameState } = useGameState(gameId);
   const beginUnitDrop = useAppStore((s) => s.beginUnitDrop);
   const setDraggingUnit = useAppStore((s) => s.setDraggingUnit);
   const setDragOver = useAppStore((s) => s.setDragOver);
-  const { moveUnit } = useBoardEditor();
+  const { moveUnit, moveShips } = useBoardEditor();
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
   // Najświeższe dane jednostki w ref — natywne listenery nie łapią ich przez domknięcie.
   const dataRef = useRef<UnitDragData | null>(data);
   dataRef.current = data;
+
+  // Aktywny system w ref (dla wyjątku transportu w ``resolveTarget``) — natywne
+  // listenery czytają świeżą wartość bez przebudowy domknięcia.
+  const activeSystemRef = useRef<string | null>(gameState?.activeSystem ?? null);
+  activeSystemRef.current = gameState?.activeSystem ?? null;
 
   // Stan jednego aktywnego przeciągania (ref — bez re-renderów na mousemove).
   const drag = useRef<{
@@ -149,18 +175,38 @@ export function useUnitDrag(data: UnitDragData | null) {
       document.body.classList.remove("dragging-unit");
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
-      const target = resolveTarget(info, clientX, clientY);
+      const target = resolveTarget(info, clientX, clientY, activeSystemRef.current);
       if (!target || !target.valid) return; // niedozwolony cel = brak ruchu
+
+      // Ruch TAKTYCZNY (walidowany): cel = aktywny system podczas akcji taktycznej.
+      // Idzie przez /tactical/move (reguły + capacity). Poza tym — God-Mode /units/move.
+      const toActive =
+        activeSystemRef.current !== null &&
+        target.position === activeSystemRef.current &&
+        target.zone === "space";
+
       if (info.count <= 1) {
-        void moveUnit({
-          fromPosition: info.fromPosition,
-          fromZone: info.fromZone,
-          toPosition: target.position,
-          toZone: target.zone,
-          faction: info.faction,
-          asyncId: info.asyncId,
-          count: 1,
-        });
+        if (toActive) {
+          const baseType = baseTypeOf(info.asyncId);
+          const asCargo = isCargoUnit(info.asyncId);
+          void moveShips({
+            fromPosition: info.fromPosition,
+            faction: info.faction,
+            ...(asCargo
+              ? { cargo: [{ baseType, count: 1 }] }
+              : { baseType, count: 1 }),
+          });
+        } else {
+          void moveUnit({
+            fromPosition: info.fromPosition,
+            fromZone: info.fromZone,
+            toPosition: target.position,
+            toZone: target.zone,
+            faction: info.faction,
+            asyncId: info.asyncId,
+            count: 1,
+          });
+        }
         return;
       }
       beginUnitDrop({
@@ -172,6 +218,7 @@ export function useUnitDrag(data: UnitDragData | null) {
         faction: info.faction,
         asyncId: info.asyncId,
         available: info.count,
+        tactical: toActive,
       });
     },
     [beginUnitDrop, moveUnit, setDraggingUnit, setDragOver],
@@ -203,7 +250,12 @@ export function useUnitDrag(data: UnitDragData | null) {
           imageUrl: info.imageUrl,
         });
         // Podświetl kafelek-cel pod kursorem (planszówkowy feedback „tu upuścisz").
-        const target = resolveTarget(info, e.clientX, e.clientY);
+        const target = resolveTarget(
+          info,
+          e.clientX,
+          e.clientY,
+          activeSystemRef.current,
+        );
         setDragOver(
           target
             ? { position: target.position, zone: target.zone, valid: target.valid }

@@ -7,6 +7,7 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { Unit } from "@/shared/ui/Unit";
 import { useBoardEditor } from "@/api/useBoardEditor";
+import { baseTypeOf, isCargoUnit } from "./UnitStack/cargo";
 import styles from "./MoveUnitsModal.module.css";
 
 /**
@@ -20,7 +21,7 @@ export function MoveQuantityModal() {
   const drop = useAppStore((s) => s.unitDrop);
   const clearUnitDrop = useAppStore((s) => s.clearUnitDrop);
   const gameData = useGameData();
-  const { moveUnit } = useBoardEditor();
+  const { moveUnit, moveShips } = useBoardEditor();
   const [count, setCount] = useState(1);
   const [busy, setBusy] = useState(false);
 
@@ -47,15 +48,28 @@ export function MoveQuantityModal() {
     if (busy) return;
     setBusy(true);
     try {
-      await moveUnit({
-        fromPosition: drop.fromPosition,
-        fromZone: drop.fromZone,
-        toPosition: drop.toPosition,
-        toZone: drop.toZone,
-        faction: drop.faction,
-        asyncId: drop.asyncId,
-        count: clamp(count),
-      });
+      const n = clamp(count);
+      if (drop.tactical) {
+        // Ruch TAKTYCZNY (walidowany) — cel to aktywny system; statek vs ładunek.
+        const baseType = baseTypeOf(drop.asyncId);
+        await moveShips({
+          fromPosition: drop.fromPosition,
+          faction: drop.faction,
+          ...(isCargoUnit(drop.asyncId)
+            ? { cargo: [{ baseType, count: n }] }
+            : { baseType, count: n }),
+        });
+      } else {
+        await moveUnit({
+          fromPosition: drop.fromPosition,
+          fromZone: drop.fromZone,
+          toPosition: drop.toPosition,
+          toZone: drop.toZone,
+          faction: drop.faction,
+          asyncId: drop.asyncId,
+          count: n,
+        });
+      }
       clearUnitDrop();
     } finally {
       setBusy(false);

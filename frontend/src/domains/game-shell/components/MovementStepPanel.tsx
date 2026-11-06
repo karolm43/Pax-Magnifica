@@ -6,29 +6,15 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { Unit } from "@/shared/ui/Unit";
 import type { Tile } from "@/entities/game/types";
+import {
+  BASE_TYPE_BY_ASYNC,
+  CARGO_ASYNC,
+  SHIP_ONLY_ASYNC,
+} from "@/domains/map/components/UnitStack/cargo";
 import styles from "./GameStatePanel.module.css";
 
-/* asyncId -> baseType (ten sam zbiór co backend ASYNC_ID_BY_BASE_TYPE). To tłumaczenie
-   identyfikatorów (nie reguła/statystyka), więc trzymane jawnie we froncie. */
-const BASE_TYPE_BY_ASYNC: Record<string, string> = {
-  ff: "fighter",
-  dd: "destroyer",
-  ca: "cruiser",
-  cv: "carrier",
-  dn: "dreadnought",
-  fs: "flagship",
-  ws: "warsun",
-  gf: "infantry",
-  mf: "mech",
-};
-
-/* Statki (stoją w przestrzeni, mogą ruszać / nosić ładunek). */
-const SHIP_ASYNC = new Set(["dd", "ca", "cv", "dn", "fs", "ws", "ff"]);
-/* Ładunek transportu: myśliwce + siły naziemne (RULES.md 32.3). */
-const CARGO_ASYNC = new Set(["ff", "gf", "mf"]);
-/* Myśliwce bazowe nie ruszają się same — traktujemy je jako ŁADUNEK w oknie ruchu
-   (Fighter II z ruchem to rzadki przypadek; backend i tak zwaliduje). */
-const SHIP_ONLY_ASYNC = new Set(["dd", "ca", "cv", "dn", "fs", "ws"]);
+/* Wszystkie statki (ruszające + myśliwiec-ładunek) — do wykrycia systemów źródłowych. */
+const SHIP_ASYNC = new Set([...SHIP_ONLY_ASYNC, "ff"]);
 
 type Stack = { asyncId: string; count: number };
 

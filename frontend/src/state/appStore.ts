@@ -185,6 +185,9 @@ type AppStore = {
     faction: string;
     asyncId: string;
     available: number; // ile sztuk jest w źródle (górny limit)
+    // Ruch TAKTYCZNY (walidowany) — gdy true, drop celuje w aktywny system i idzie
+    // przez /tactical/move (reguły R1–R6 + capacity), a nie God-Mode /units/move.
+    tactical?: boolean;
   } | null;
   beginUnitDrop: (drop: NonNullable<AppStore["unitDrop"]>) => void;
   clearUnitDrop: () => void;
