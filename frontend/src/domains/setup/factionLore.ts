@@ -1396,7 +1396,7 @@ lore:[
   },],
   },
   xxcha: {
-    quote: "To fight without cause is not the way, human.. Curb your anger. Let us walk through the gardens and consider how to proceed.",
+    quote: "To fight without cause is not the way, human. Curb your anger. Let us walk through the gardens and consider how to proceed.",
     quoteAuthor: "Elder Qanoj",
     lore: [{
     kind: "paragraph",
