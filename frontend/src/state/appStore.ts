@@ -181,6 +181,9 @@ type AppStore = {
     fromPosition: string;
     faction: string;
     shipAsyncId: string; // nosiciel (carrier/dread/warsun/flagship)
+    // Wstępnie zaznaczony ładunek (gdy okno otwarto przez upuszczenie jednostki NA
+    // statek) — asyncId + strefa źródłowa ("space" albo id planety) + liczba.
+    preselect?: { asyncId: string; fromZone: string; count: number };
   } | null;
   openLoadTransport: (
     target: NonNullable<AppStore["loadTransport"]>,

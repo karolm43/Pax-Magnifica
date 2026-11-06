@@ -93,6 +93,17 @@ export function UnitStack({
   const dragProps = dndEnabled
     ? { onClickCapture: unitDrag.onClickCapture }
     : {};
+  /* Oznaczenie stosu STATKU w DOM — pozwala drop-detekcji (``elementFromPoint``)
+     rozpoznać „upuszczono ładunek NA ten statek" i otworzyć okno załadunku. Niesie
+     asyncId/frakcję/pozycję; capacity rozstrzyga logika dragu (useUnitDrag). */
+  const shipTag =
+    entityType === "unit" && tilePosition
+      ? {
+          "data-ship-async": unitType,
+          "data-ship-faction": faction,
+          "data-ship-pos": tilePosition,
+        }
+      : {};
   /* Combat badges are compact summaries and must stay legible above the much
      larger rotated ship silhouettes in the transition layer. */
   const baseZIndex =
@@ -151,6 +162,7 @@ export function UnitStack({
         }}
         {...handlers}
         {...dragProps}
+        {...shipTag}
       >
         <UnitDragGhost ghost={unitDrag.ghost} />
         <div
@@ -203,6 +215,7 @@ export function UnitStack({
       ref={setWrapperRef}
       {...handlers}
       {...dragProps}
+      {...shipTag}
       className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""}`}
       style={{
         left: `${x + (footprint.left + footprint.right) / 2}px`,

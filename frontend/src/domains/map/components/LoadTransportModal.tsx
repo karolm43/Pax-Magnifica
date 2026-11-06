@@ -29,8 +29,15 @@ export function LoadTransportModal() {
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
 
+  // Wstępne zaznaczenie, gdy okno otwarto przez upuszczenie jednostki NA statek
+  // („włożyłem tego fightera") — zaznacz 1 sztukę tej jednostki z jej strefy.
   useEffect(() => {
-    setPicked({});
+    if (target?.preselect) {
+      const { asyncId, fromZone, count } = target.preselect;
+      setPicked({ [`${asyncId}@${fromZone}`]: count });
+    } else {
+      setPicked({});
+    }
   }, [target]);
 
   const player = gameData?.playerData?.find((p) => p.faction === target?.faction);

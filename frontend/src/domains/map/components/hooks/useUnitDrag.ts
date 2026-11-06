@@ -3,9 +3,26 @@ import { useParams } from "react-router-dom";
 import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
+import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
+import { lookupUnit } from "@/entities/lookup/units";
 import { isShipUnit } from "../UnitStack/unitType";
 import { baseTypeOf, isCargoUnit } from "../UnitStack/cargo";
+
+/** Statek-nosiciel pod kursorem (z atrybutów data-ship-* stosu w DOM) lub null. */
+function shipStackAt(
+  clientX: number,
+  clientY: number,
+): { asyncId: string; faction: string; position: string } | null {
+  const el = document.elementFromPoint(clientX, clientY);
+  const ship = el?.closest<HTMLElement>("[data-ship-async]");
+  if (!ship) return null;
+  const asyncId = ship.getAttribute("data-ship-async");
+  const faction = ship.getAttribute("data-ship-faction");
+  const position = ship.getAttribute("data-ship-pos");
+  if (!asyncId || !faction || !position) return null;
+  return { asyncId, faction, position };
+}
 
 /**
  * Drag-and-drop przeciągania jednostek na mapie (God-Mode, bez reguł).
@@ -145,11 +162,18 @@ export function useUnitDrag(data: UnitDragData | null) {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
+  const gameData = useGameData();
   const beginUnitDrop = useAppStore((s) => s.beginUnitDrop);
   const setDraggingUnit = useAppStore((s) => s.setDraggingUnit);
   const setDragOver = useAppStore((s) => s.setDragOver);
+  const openLoadTransport = useAppStore((s) => s.openLoadTransport);
   const { moveUnit, moveShips } = useBoardEditor();
   const [ghost, setGhost] = useState<DragGhost | null>(null);
+
+  // playerData w ref — do sprawdzenia capacity statku pod kursorem (lookupUnit)
+  // w natywnych listenerach bez przebudowy domknięcia.
+  const playersRef = useRef(gameData?.playerData);
+  playersRef.current = gameData?.playerData;
 
   // Najświeższe dane jednostki w ref — natywne listenery nie łapią ich przez domknięcie.
   const dataRef = useRef<UnitDragData | null>(data);
@@ -182,6 +206,39 @@ export function useUnitDrag(data: UnitDragData | null) {
       document.body.classList.remove("dragging-unit");
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
+
+      // „Wkładanie do statku": upuszczenie ŁADUNKU (myśliwiec / siła naziemna) NA
+      // statek-nosiciel z capacity → otwórz okno załadunku (ekwipunek statku) zamiast
+      // zwykłego ruchu. Nosiciel i ładunek muszą być w TYM SAMYM systemie (załadunek
+      // u źródła, RULES.md 32.3). Działa tylko w akcji taktycznej.
+      if (activeSystemRef.current !== null && isCargoUnit(info.asyncId)) {
+        const ship = shipStackAt(clientX, clientY);
+        if (
+          ship &&
+          ship.faction === info.faction &&
+          ship.position === info.fromPosition &&
+          ship.asyncId !== info.asyncId
+        ) {
+          const player = playersRef.current?.find((p) => p.faction === info.faction);
+          const cap = player
+            ? (lookupUnit(ship.asyncId, info.faction, player)?.capacityValue ?? 0)
+            : 0;
+          if (cap > 0) {
+            openLoadTransport({
+              fromPosition: ship.position,
+              faction: info.faction,
+              shipAsyncId: ship.asyncId,
+              preselect: {
+                asyncId: info.asyncId,
+                fromZone: info.fromZone,
+                count: 1,
+              },
+            });
+            return;
+          }
+        }
+      }
+
       const target = resolveTarget(info, clientX, clientY, activeSystemRef.current);
       if (!target || !target.valid) return; // niedozwolony cel = brak ruchu
 
