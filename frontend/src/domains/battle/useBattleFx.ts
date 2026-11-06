@@ -15,22 +15,46 @@ const DYING_MS = 3800;
 const VOLLEY_MS = 5200;
 const MAX_BOLTS_PER_SIDE = 22;
 
-export type ShipView = { ship: ShipEntity; dying: boolean };
+const SUSTAIN_MS = 1400;
+
+export type ShipView = {
+  ship: ShipEntity;
+  dying: boolean;
+  justSustained: boolean;
+};
 
 export function useDyingShips(ships: ShipEntity[]): ShipView[] {
   const previous = useRef<ShipEntity[]>(ships);
   const latest = useRef<ShipEntity[]>(ships);
   latest.current = ships;
   const [dying, setDying] = useState<ShipEntity[]>([]);
+  // Egzemplarze, które WŁAŚNIE przyjęły Sustain Damage (były całe, teraz uszkodzone) —
+  // błyskają tarczą przez chwilę, potem wracają do zwykłego wyglądu uszkodzonego.
+  const [sustained, setSustained] = useState<Set<string>>(new Set());
   // Stabilna sygnatura składu floty: efekt reaguje tylko na realną zmianę egzemplarzy
   // (tablica ``ships`` jest nowa przy każdym renderze — zależność od niej kasowałaby timer).
   const signature = ships.map((s) => `${s.id}:${s.damaged ? 1 : 0}`).join(",");
 
   useEffect(() => {
     const ships = latest.current;
+    const prev = previous.current;
     const current = new Set(ships.map((s) => s.id));
-    const gone = previous.current.filter((s) => !current.has(s.id));
+    const gone = prev.filter((s) => !current.has(s.id));
+    const wasWhole = new Set(prev.filter((s) => !s.damaged).map((s) => s.id));
+    const freshSustain = ships
+      .filter((s) => s.damaged && wasWhole.has(s.id))
+      .map((s) => s.id);
     previous.current = ships;
+    if (freshSustain.length > 0) {
+      setSustained((set) => new Set([...set, ...freshSustain]));
+      window.setTimeout(() => {
+        setSustained((set) => {
+          const next = new Set(set);
+          for (const id of freshSustain) next.delete(id);
+          return next;
+        });
+      }, SUSTAIN_MS);
+    }
     if (gone.length === 0) return;
     setDying((list) => [...list.filter((s) => !current.has(s.id)), ...gone]);
     window.setTimeout(() => {
@@ -40,10 +64,14 @@ export function useDyingShips(ships: ShipEntity[]): ShipView[] {
 
   const alive = new Set(ships.map((s) => s.id));
   return [
-    ...ships.map((ship) => ({ ship, dying: false })),
+    ...ships.map((ship) => ({
+      ship,
+      dying: false,
+      justSustained: sustained.has(ship.id),
+    })),
     ...dying
       .filter((s) => !alive.has(s.id))
-      .map((ship) => ({ ship, dying: true })),
+      .map((ship) => ({ ship, dying: true, justSustained: false })),
   ];
 }
 

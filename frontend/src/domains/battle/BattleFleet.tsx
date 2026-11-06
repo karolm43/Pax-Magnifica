@@ -91,19 +91,22 @@ function ShipToken({
   selectable: boolean;
   onToggle: (ship: ShipEntity) => void;
 }) {
-  const { ship, dying } = view;
+  const { ship, dying, justSustained } = view;
   const size = shipSize(ship.asyncId);
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
   // Szyk-klin: okręty skrajne szeregu cofnięte względem środkowych (łuk ku wrogowi).
   const spread = Math.abs(index - (count - 1) / 2);
   const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22);
+  // Tempo wejścia różne dla każdego okrętu (0.78..1.28× bazy) — flota nie leci jak blok.
+  const entrySpeed = 0.78 + (jitter(ship.id, 3, 250) + 250) / 1000;
   const style = {
     "--rank": rank,
     "--i": index,
     "--dir": side === "left" ? -1 : 1,
     "--jx": `${jitter(ship.id, 1, 8) + arcX}px`,
     "--jy": `${jitter(ship.id, 2, 12)}px`,
+    "--entry": entrySpeed.toFixed(2),
     "--slot": `${size}px`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
@@ -113,6 +116,7 @@ function ShipToken({
     "data-side": side,
     "data-base": ship.asyncId,
     "data-damaged": ship.damaged || undefined,
+    "data-sustained": justSustained || undefined,
     "data-mark": mark,
     // Cel pocisków salwy — warstwa animacji mierzy położenia po tych atrybutach. Także
     // egzemplarze eksplodujące (np. myśliwce zestrzelone przez AFB w tej samej salwie):
@@ -149,6 +153,9 @@ function ShipToken({
           )}
           {(mark === "destroy" || mark === "both") && <IconSkull size={12} />}
         </span>
+      )}
+      {justSustained && (
+        <span className={styles.sustainFx} aria-hidden="true" />
       )}
       {dying && <span className={styles.explosion} aria-hidden="true" />}
     </>
