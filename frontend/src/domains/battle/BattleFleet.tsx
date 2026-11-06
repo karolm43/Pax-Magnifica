@@ -55,7 +55,10 @@ function ShipToken({
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
   const content = (
     <>
-      <span className={styles.shipSprite} style={{ width: size, height: size }}>
+      <span
+        className={styles.shipSprite}
+        style={{ width: size, height: size, "--ship-size": `${size}px` } as CSSProperties}
+      >
         <Unit unitType={ship.asyncId} colorAlias={colorAlias} faction={faction} scaleSprite />
       </span>
       <span className={styles.pips} aria-label={`${pips.full} of ${pips.total} hit points`}>

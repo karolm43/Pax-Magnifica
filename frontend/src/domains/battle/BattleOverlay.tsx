@@ -72,7 +72,9 @@ function usePlayers() {
     return {
       name: player ? getPlayerFactionDisplayName(player) : key,
       colorAlias: getColorAlias(player?.color),
-      rgb: rgb ? `${rgb.red}, ${rgb.green}, ${rgb.blue}` : "148, 163, 184",
+      // Składowe ODDZIELONE SPACJAMI — CSS używa `rgb(var(--x) / alfa)`, a ta składnia
+      // nie akceptuje przecinków (cała deklaracja tła byłaby odrzucona → przezroczyste okno).
+      rgb: rgb ? `${rgb.red} ${rgb.green} ${rgb.blue}` : "148 163 184",
     };
   };
 }
