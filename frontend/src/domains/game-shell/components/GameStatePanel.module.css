@@ -1252,3 +1252,63 @@
   line-height: 1.3;
   color: rgb(var(--ds-sig-warn));
 }
+
+/* Po pasie: przypomnienie „oddaj jeszcze turę" (akcent bio/OK, nie ostrzeżenie). */
+.passedHint {
+  flex: 1 1 100%;
+  margin-top: -2px;
+  font-size: var(--text-micro, 10px);
+  line-height: 1.3;
+  color: rgb(var(--ds-sig-bio));
+}
+
+/* Inline potwierdzenie pasa w panelu faz. */
+.passConfirm {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgb(var(--ds-sig-warn) / 0.12);
+  border: 1px solid rgb(var(--ds-sig-warn) / 0.4);
+}
+
+.passConfirmText {
+  font-size: var(--text-micro, 10px);
+  line-height: 1.35;
+  color: var(--ds-ink-hi);
+}
+
+.passConfirmBtns {
+  display: flex;
+  gap: 6px;
+}
+
+.passConfirmBtns .ctlBtn {
+  flex: 1 1 auto;
+}
+
+/* End turn „woła o uwagę" po pasie — pulsująca zielona poświata. */
+.ctlPrimary[data-nudge="true"] {
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.85);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.34);
+  animation: ctlEndTurnNudge 1.25s ease-in-out infinite;
+}
+
+@keyframes ctlEndTurnNudge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--ds-sig-bio, 110 231 183) / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(var(--ds-sig-bio, 110 231 183) / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctlPrimary[data-nudge="true"] {
+    animation: none;
+    box-shadow: 0 0 0 3px rgb(var(--ds-sig-bio, 110 231 183) / 0.4);
+  }
+}

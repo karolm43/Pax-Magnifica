@@ -6,6 +6,7 @@ import {
   IconPlayerPlayFilled,
   IconPlayerTrackNextFilled,
   IconChevronsRight,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -78,6 +79,9 @@ export function TurnControls() {
     nextRound,
   } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  // Krok potwierdzenia pasa: pas jest „jak akcja" i NIE kończy tury — gracz łatwo
+  // to przeoczy, więc najpierw pytamy „na pewno?", a po pasie wołamy o oddanie tury.
+  const [confirmingPass, setConfirmingPass] = useState(false);
 
   // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
   // pierwszy). Zwraca null tylko, gdy nie ma żadnego posadzonego gracza.
@@ -127,6 +131,13 @@ export function TurnControls() {
   const played = myCards.some((c) => c.exhausted);
   const canPass = !hasCard || played;
   const activeName = getPlayerFactionDisplayName(active);
+  // Czy gracz JUŻ spasował w tej fazie akcji. Pas ≠ koniec tury (RULES.md 31.5):
+  // po pasie trzeba jeszcze oddać turę przez End turn. Steruje wyróżnieniem
+  // (nudge) przycisku End turn i podpowiedzią.
+  const hasPassed = active.passed === true;
+  // End turn „woła o uwagę" tylko gdy gracz spasował, a nic nie blokuje oddania
+  // tury (okno secondary zamknięte).
+  const nudgeEndTurn = isAction && hasPassed && !windowOpen;
 
   const run = (fn: () => Promise<void>) => {
     if (busy) return;
@@ -180,34 +191,73 @@ export function TurnControls() {
         </header>
 
         <div className={styles.actionBtns}>
-          {/* Faza AKCJI: Pass (po akcji strategicznej) + End turn. */}
+          {/* Faza AKCJI: Pass (po akcji strategicznej) + End turn. Pas przechodzi
+              przez krok POTWIERDZENIA, bo łatwo przeoczyć, że trzeba jeszcze oddać
+              turę (pas ≠ koniec tury, RULES.md 31.5). */}
           {isAction && (
             <>
-              <button
-                type="button"
-                className={styles.pass}
-                style={{ "--d": "0ms" } as CSSProperties}
-                disabled={busy}
-                onClick={() => run(() => passTurn())}
-                title={
-                  canPass
-                    ? "Pass, then End turn to hand over"
-                    : "Play your Strategy Card before passing."
-                }
-              >
-                <IconHandStop size={16} aria-hidden="true" />
-                <span>Pass</span>
-              </button>
+              {confirmingPass ? (
+                <div className={styles.confirm}>
+                  <p className={styles.confirmText}>Pass this round?</p>
+                  <p className={styles.confirmSub}>
+                    Passing ends your turns for this Action Phase. You still have
+                    to hand over this turn with End turn afterwards.
+                  </p>
+                  <div className={styles.confirmBtns}>
+                    <button
+                      type="button"
+                      className={styles.confirmNo}
+                      disabled={busy}
+                      onClick={() => setConfirmingPass(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.confirmYes}
+                      disabled={busy}
+                      onClick={() =>
+                        run(() =>
+                          passTurn().finally(() => setConfirmingPass(false)),
+                        )
+                      }
+                    >
+                      Yes, pass
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.pass}
+                  style={{ "--d": "0ms" } as CSSProperties}
+                  disabled={busy || hasPassed}
+                  onClick={() => setConfirmingPass(true)}
+                  title={
+                    hasPassed
+                      ? "You already passed — hand over with End turn"
+                      : canPass
+                        ? "Pass, then End turn to hand over"
+                        : "Play your Strategy Card before passing."
+                  }
+                >
+                  <IconHandStop size={16} aria-hidden="true" />
+                  <span>Pass</span>
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.endTurn}
                 style={{ "--d": "60ms" } as CSSProperties}
+                data-nudge={nudgeEndTurn ? "true" : undefined}
                 disabled={busy || windowOpen}
                 onClick={() => run(() => endTurn())}
                 title={
                   windowOpen
                     ? "Wait — every player must decide on the secondary first"
-                    : "End your turn (also after passing)"
+                    : hasPassed
+                      ? "You passed — end your turn to hand over"
+                      : "End your turn (also after passing)"
                 }
               >
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
@@ -295,6 +345,13 @@ export function TurnControls() {
         {isAction && windowOpen && (
           <p className={styles.hint}>
             Waiting for every player to follow or decline the secondary.
+          </p>
+        )}
+        {/* Po pasie: jawne przypomnienie, że tura wciąż trzeba oddać (pas ≠ koniec). */}
+        {isAction && hasPassed && !windowOpen && !confirmingPass && (
+          <p className={styles.hintPassed}>
+            <IconInfoCircle size={13} aria-hidden="true" />
+            <span>You passed — now press End turn to hand over.</span>
           </p>
         )}
       </div>

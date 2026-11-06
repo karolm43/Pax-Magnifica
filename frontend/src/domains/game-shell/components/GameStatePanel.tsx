@@ -1684,6 +1684,8 @@ function PhaseControls({
   const { endTurn, passTurn, nextPlayer, phaseStep, nextPhase, nextRound } =
     useBoardEditor();
   const [busy, setBusy] = useState(false);
+  // Potwierdzenie pasa (pas ≠ koniec tury — RULES.md 31.5).
+  const [confirmingPass, setConfirmingPass] = useState(false);
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -1701,6 +1703,10 @@ function PhaseControls({
   const isAgenda = phase.startsWith("agenda");
   // Otwarte okno czasowe (secondary itp.) blokuje End turn (RULES.md 31.6).
   const windowOpen = gameState.pendingWindow != null;
+  // Czy aktywny gracz już spasował — po pasie wyróżniamy End turn i przypominamy,
+  // że trzeba jeszcze oddać turę.
+  const hasPassed = activePlayer?.passed === true;
+  const nudgeEndTurn = isAction && hasPassed && !windowOpen;
   // „Next phase" widzi ZAWSZE mówca; gdy przejście nie jest dozwolone, klik zwróci
   // 422 i panel komunikatów to pokaże (DECYZJA 2026-11). Bez twardego ukrywania.
   const isSpeaker =
@@ -1716,32 +1722,73 @@ function PhaseControls({
           <button
             type="button"
             className={cx(styles.ctlBtn, styles.ctlPrimary)}
+            data-nudge={nudgeEndTurn ? "true" : undefined}
             disabled={busy || windowOpen}
             onClick={() => void run(() => endTurn())}
             title={
               windowOpen
                 ? "Wait — every player must decide on the secondary first"
-                : "End your turn (also after passing)"
+                : hasPassed
+                  ? "You passed — end your turn to hand over"
+                  : "End your turn (also after passing)"
             }
           >
             End turn
           </button>
-          <button
-            type="button"
-            className={styles.ctlBtn}
-            disabled={busy}
-            onClick={() => void run(() => passTurn())}
-            title={
-              canPass
-                ? "Pass — then End turn to hand over"
-                : (passBlockReason ?? "You cannot pass yet.")
-            }
-          >
-            Pass
-          </button>
+          {confirmingPass ? (
+            <div className={styles.passConfirm}>
+              <span className={styles.passConfirmText}>
+                Pass this round? You still have to End turn afterwards.
+              </span>
+              <div className={styles.passConfirmBtns}>
+                <button
+                  type="button"
+                  className={styles.ctlBtn}
+                  disabled={busy}
+                  onClick={() => setConfirmingPass(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.ctlBtn}
+                  disabled={busy}
+                  onClick={() =>
+                    void run(() =>
+                      passTurn().finally(() => setConfirmingPass(false)),
+                    )
+                  }
+                >
+                  Yes, pass
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.ctlBtn}
+              disabled={busy || hasPassed}
+              onClick={() => setConfirmingPass(true)}
+              title={
+                hasPassed
+                  ? "You already passed — hand over with End turn"
+                  : canPass
+                    ? "Pass — then End turn to hand over"
+                    : (passBlockReason ?? "You cannot pass yet.")
+              }
+            >
+              Pass
+            </button>
+          )}
           {/* Dlaczego pas jest zablokowany — czytelna podpowiedź przy przycisku. */}
-          {!canPass && passBlockReason && (
+          {!canPass && !hasPassed && passBlockReason && (
             <span className={styles.passHint}>{passBlockReason}</span>
+          )}
+          {/* Po pasie: przypomnienie, że tura wciąż trzeba oddać. */}
+          {hasPassed && !windowOpen && !confirmingPass && (
+            <span className={styles.passedHint}>
+              You passed — now press End turn to hand over.
+            </span>
           )}
         </>
       )}
