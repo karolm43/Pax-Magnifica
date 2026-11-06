@@ -46,6 +46,10 @@ class UnitDef(_StaticModel):
     space_cannon_hits_on: int | None = Field(default=None, alias="spaceCannonHitsOn")
     space_cannon_die_count: int | None = Field(default=None, alias="spaceCannonDieCount")
     deep_space_cannon: bool = Field(default=False, alias="deepSpaceCannon")
+    # Anti-Fighter Barrage (RULES.md 39 W4) i Sustain Damage (W8) — z wariantu jednostki.
+    afb_hits_on: int | None = Field(default=None, alias="afbHitsOn")
+    afb_die_count: int | None = Field(default=None, alias="afbDieCount")
+    sustain_damage: bool = Field(default=False, alias="sustainDamage")
 
     is_ship: bool = Field(default=False, alias="isShip")
     is_structure: bool = Field(default=False, alias="isStructure")

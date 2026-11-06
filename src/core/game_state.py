@@ -9,6 +9,7 @@ zapisywać go jako lekkie migawki (Snapshot Stack) w ``EventStore``.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -251,6 +252,46 @@ class SystemState(BaseModel):
     # ``Space.ccList`` w AsyncTI4; patrz RULES.md 19). Kontrola przestrzeni NIE jest
     # tu trzymana — wynika z obecności statków (``space_units``).
     command_tokens: list[str] = Field(default_factory=list)
+    # Jednostki USZKODZONE (Sustain Damage, RULES.md 39 W8): {strefa: {player_id:
+    # {base_type: liczba}}}, strefa = "space" albo id planety. Liczba ≤ liczba jednostek
+    # (odczyt przycinany w ``core/damage.py``). Naprawa w fazie statusu (W10).
+    damaged_units: dict[str, dict[str, dict[str, int]]] = Field(default_factory=dict)
+
+
+class CombatStep(StrEnum):
+    """Krok trwającej walki (RULES.md 39.2)."""
+
+    AFB = "AFB"  # Anti-Fighter Barrage (tylko 1. runda walki kosmicznej)
+    ROLL = "ROLL"  # rzuty combat obu stron
+    ASSIGN = "ASSIGN"  # przypisanie strat (okno COMBAT_ASSIGN_HITS)
+    DONE = "DONE"  # walka zakończona (zwycięzca/remis), czeka na zamknięcie okna
+
+
+class ActiveCombat(BaseModel):
+    """Trwająca walka w aktywnym systemie (RULES.md 39.3).
+
+    ``kind`` = "space" albo "ground" (wtedy ``planet`` = id planety). ``attacker`` to
+    aktywny gracz (W1). ``pending_hits`` = trafienia do pokrycia przez danego gracza
+    (wyprodukowane przez przeciwnika). ``rolls`` = rzuty bieżącej rundy per gracz,
+    ``afb`` = rzuty AFB, ``log`` = historia rund (zasila okno pola bitwy).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str
+    position: str
+    planet: str | None = None
+    attacker: str
+    defender: str
+    round: int = 1
+    step: CombatStep = CombatStep.ROLL
+    pending_hits: dict[str, int] = Field(default_factory=dict)
+    rolls: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+    afb: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+    log: list[dict[str, Any]] = Field(default_factory=list)
+    winner: str | None = None
+    # Wynik zakończonej walki: "winner" / "draw" (None, dopóki trwa).
+    outcome: str | None = None
 
 
 class GameState(BaseModel):
@@ -290,6 +331,8 @@ class GameState(BaseModel):
     # czasowe znika po ostatnim graczu, a panel musi nadal pokazać, co się stało (rzuty,
     # trafienia, straty) — do końca akcji taktycznej (RULES.md 38.3).
     space_cannon_log: str = "[]"
+    # Trwająca walka (kosmiczna/naziemna) — None, gdy żadna nie trwa (RULES.md 39).
+    active_combat: ActiveCombat | None = None
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

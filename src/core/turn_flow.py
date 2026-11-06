@@ -10,6 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
+from src.core.damage import repair_all
 from src.core.game_state import GameState, Phase
 from src.core.strategy_phase import ensure_strategy_complete, next_strategy_picker
 
@@ -349,6 +350,10 @@ def next_phase(state: GameState) -> GameState:
     # (dotyczy fazy akcji; w innych fazach pole i tak nieużywane, ale trzymamy czysto).
     for player in new_state.players.values():
         player.took_action_this_turn = False
+    if new_state.phase is Phase.STATUS:
+        # Faza statusu, krok 7 „Repair Units": wszystkie uszkodzone jednostki są naprawiane
+        # (R_status_phase; RULES.md 39 W10). Robimy to przy wejściu w STATUS.
+        repair_all(new_state)
     if new_state.phase is Phase.ACTION:
         # Faza akcji: kolejność tur wg ŚCISŁEJ INICJATYWY kart (RULES.md 9, R9.6).
         # Komplet kart zagwarantowany przez ensure_strategy_complete powyżej.

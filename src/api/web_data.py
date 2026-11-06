@@ -155,6 +155,28 @@ def _pending_window(state: GameState) -> dict[str, Any] | None:
         "isComplete": window.is_complete,
     }
 
+def _active_combat(state: GameState) -> dict[str, Any] | None:
+    """Kontrakt ``GameStateCombat`` AsyncTI4 dla trwającej walki (lub None).
+
+    ``unitHolder`` = "space" albo id planety, ``participantColors`` = kolory stron.
+    Panel „Game state" barwi się na „Combat", gdy pole jest niepuste.
+    """
+    combat = state.active_combat
+    if combat is None:
+        return None
+    colors = [
+        color
+        for pid in (combat.attacker, combat.defender)
+        if (color := _color_of(state, pid)) is not None
+    ]
+    return {
+        "system": combat.position,
+        "unitHolder": combat.planet or "space",
+        "round": combat.round,
+        "participantColors": colors,
+    }
+
+
 def _safe_pick_count(state: GameState) -> int | None:
     """Liczba kart strategii na gracza (``Pick_Count``) lub None, gdy nieobsługiwana.
 
@@ -211,7 +233,9 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
         "tacticalStep": (
             state.tactical_step.value if state.tactical_step is not None else None
         ),
-        "activeCombat": None,
+        # Trwająca walka (RULES.md 39) — kontrakt AsyncTI4 ``GameStateCombat``; pełne dane
+        # pola bitwy idą osobnym endpointem ``GET /tactical/battle``.
+        "activeCombat": _active_combat(state),
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),
@@ -257,6 +281,7 @@ def _entity_key_map(state: GameState) -> dict[str, str]:
 def _entities_from_counts(
     counts_by_player: dict[str, dict[str, int]],
     entity_keys: dict[str, str],
+    damaged_by_player: dict[str, dict[str, int]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Buduje ``FactionUnits`` (``{klucz: [EntityData]}``) z liczników stanu.
 
@@ -279,9 +304,18 @@ def _entities_from_counts(
             async_id = ASYNC_ID_BY_BASE_TYPE.get(base_type)
             if async_id is None:
                 continue
-            entities.append(
-                {"entityId": async_id, "entityType": "unit", "count": count}
+            entity: dict[str, Any] = {
+                "entityId": async_id,
+                "entityType": "unit",
+                "count": count,
+            }
+            # Uszkodzone (Sustain Damage, RULES.md 39): front AsyncTI4 rysuje znacznik.
+            damaged = min(
+                count, (damaged_by_player or {}).get(player_id, {}).get(base_type, 0)
             )
+            if damaged > 0:
+                entity["sustained"] = damaged
+            entities.append(entity)
         if entities:
             result[key] = entities
     return result
@@ -383,7 +417,11 @@ def _build_tile_unit_data(
 
         ccs: list[str] = []
         if sys_state is not None:
-            space = _entities_from_counts(sys_state.space_units, entity_keys)
+            space = _entities_from_counts(
+                sys_state.space_units,
+                entity_keys,
+                sys_state.damaged_units.get("space"),
+            )
             for planet_id, by_player in sys_state.planet_units.items():
                 owner_id = sys_state.planet_owners.get(planet_id)
                 planets[planet_id] = _build_planet_entry(
@@ -393,6 +431,7 @@ def _build_tile_unit_data(
                     owner_id,
                     entity_keys,
                     _planet_is_exhausted(planet_id, owner_id, state),
+                    sys_state.damaged_units.get(planet_id),
                 )
             # Żetony dowodzenia w przestrzeni (aktywacja) — klucz tożsamości gracza,
             # spójny z grupowaniem jednostek (frontend porównuje ccs z faction).
@@ -453,15 +492,18 @@ def _build_planet_entry(
     owner_id: str | None,
     entity_keys: dict[str, str],
     exhausted: bool = False,
+    damaged_by_player: dict[str, dict[str, int]] | None = None,
 ) -> dict[str, Any]:
     """Buduje ``PlanetEntityData`` dla planety z jednostkami naziemnymi.
 
     Zasoby/wpływy pochodzą z rejestru (statyczne dane planety) — także dla planet
     kontrolowanych/zajętych, nie tylko pustych (bez tego panele graczy i tooltipy
-    pokazywałyby zera).
+    pokazywałyby zera). ``damaged_by_player`` = uszkodzenia na tej planecie (mechy).
     """
     entry = _planet_base(planet_id, owner_id, entity_keys, exhausted)
-    entry["entities"] = _entities_from_counts(units_by_player, entity_keys)
+    entry["entities"] = _entities_from_counts(
+        units_by_player, entity_keys, damaged_by_player
+    )
     _fill_planet_stats(entry, registry, planet_id)
     return entry
 

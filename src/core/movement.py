@@ -16,6 +16,7 @@ from collections import deque
 from dataclasses import dataclass
 
 from src.core.combat import resolve_unit_variant
+from src.core.damage import move_damage
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -484,27 +485,33 @@ def move_fleet(
         if not by_player[player_id]:
             del by_player[player_id]
 
-    # Zdejmij statki (zawsze z przestrzeni).
-    for base_type, count in ships.items():
-        _take_space(base_type, count)
-    # Zdejmij ładunek z jego strefy źródłowej (przestrzeń lub planeta).
-    for item in cargo_items:
-        if item.from_zone == "space":
-            _take_space(item.base_type, item.count)
-        else:
-            _take_planet(item.from_zone, item.base_type, item.count)
-
-    # Dodaj do aktywnego (utwórz system/wpisy, gdy trzeba). WSZYSTKO ląduje w
-    # PRZESTRZENI celu (T2) — ładunek na statku, do czasu lądowania w kroku INWAZJA.
+    # Cel (utwórz system, gdy trzeba). WSZYSTKO ląduje w PRZESTRZENI celu (T2) — ładunek
+    # na statku, do czasu lądowania w kroku INWAZJA.
     dest = new_state.systems.get(active)
     if dest is None:
         system_id = grid.system_id_at(active) if active in grid.positions else ""
         dest = SystemState(position=active, system_id=system_id)
         new_state.systems[active] = dest
-    moved: dict[str, int] = dict(ships)
-    for item in cargo_items:
-        moved[item.base_type] = moved.get(item.base_type, 0) + item.count
-    for base_type, count in moved.items():
+
+    def _arrive(base_type: str, count: int) -> None:
         dest.space_units.setdefault(player_id, {}).setdefault(base_type, 0)
         dest.space_units[player_id][base_type] += count
+
+    # Statki (zawsze z przestrzeni) — uszkodzenia jadą razem z nimi (RULES.md 39.3).
+    for base_type, count in ships.items():
+        before = _available_in_zone(src, player_id, base_type, "space")
+        _take_space(base_type, count)
+        _arrive(base_type, count)
+        move_damage(src, "space", dest, "space", player_id, base_type, count, before)
+    # Ładunek z jego strefy źródłowej (przestrzeń lub planeta).
+    for item in cargo_items:
+        before = _available_in_zone(src, player_id, item.base_type, item.from_zone)
+        if item.from_zone == "space":
+            _take_space(item.base_type, item.count)
+        else:
+            _take_planet(item.from_zone, item.base_type, item.count)
+        _arrive(item.base_type, item.count)
+        move_damage(
+            src, item.from_zone, dest, "space", player_id, item.base_type, item.count, before
+        )
     return new_state

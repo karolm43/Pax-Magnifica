@@ -19,8 +19,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.core.battle import space_combat_required
 from src.core.combat import resolve_unit_variant
-from src.core.game_state import GameState, SystemState, TacticalStep, WindowType
+from src.core.game_state import (
+    CombatStep,
+    GameState,
+    SystemState,
+    TacticalStep,
+    WindowType,
+)
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
@@ -117,11 +124,21 @@ def next_step(state: GameState) -> GameState:
         raise ValueError(
             "Space Cannon is still being resolved - finish it before the next step."
         )
+    # Walka (RULES.md 39): trwającej nie wolno porzucić; walka kosmiczna jest obowiązkowa,
+    # gdy dwóch graczy ma statki w aktywnym systemie (W2).
+    combat = state.active_combat
+    if combat is not None and combat.step is not CombatStep.DONE:
+        raise ValueError("A combat is in progress - finish it before the next step.")
+    if state.tactical_step is TacticalStep.SPACE_COMBAT and space_combat_required(state):
+        raise ValueError(
+            "Two players have ships in the active system - resolve the space combat first."
+        )
     idx = _STEP_SEQUENCE.index(state.tactical_step)
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)
     new_state = state.clone()
     new_state.tactical_step = _STEP_SEQUENCE[idx + 1]
+    new_state.active_combat = None  # zakończona walka zostaje za nami
     return new_state
 
 
@@ -145,10 +162,14 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.active_system = None
     new_state.tactical_step = None
     new_state.space_cannon_log = "[]"
-    # Okno Space Cannon dotyczy aktywnego systemu — po zakończeniu akcji nie ma już czego
-    # rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
+    new_state.active_combat = None
+    # Okna Space Cannon / przypisania strat dotyczą aktywnego systemu — po zakończeniu akcji
+    # nie ma już czego rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
     window = new_state.pending_window
-    if window is not None and window.window_type is WindowType.SPACE_CANNON:
+    if window is not None and window.window_type in (
+        WindowType.SPACE_CANNON,
+        WindowType.COMBAT_ASSIGN_HITS,
+    ):
         new_state.pending_window = None
     return new_state
 

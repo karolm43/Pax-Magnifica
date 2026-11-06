@@ -943,3 +943,123 @@ class SpaceCannonAssignRequest(BaseModel):
 
     faction: str
     losses: list[SpaceCannonLossItem]
+
+
+# --- Walka: okno pola bitwy (RULES.md 39) ---
+
+
+class BattleUnitView(BaseModel):
+    """Grupa jednostek strony w walce (jeden typ) — wartości wariantu gracza."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    name: str
+    count: int
+    damaged: int
+    hits_on: int = Field(serialization_alias="hitsOn")
+    base_hits_on: int = Field(serialization_alias="baseHitsOn")
+    modifier: int
+    dice_per_unit: int = Field(serialization_alias="dicePerUnit")
+    total_dice: int = Field(serialization_alias="totalDice")
+    expected_hits: float = Field(serialization_alias="expectedHits")
+    sustain: bool
+    sustainable: int
+    afb_hits_on: int | None = Field(serialization_alias="afbHitsOn")
+    afb_dice: int = Field(serialization_alias="afbDice")
+
+
+class BattleSideView(BaseModel):
+    """Strona walki: kto, rola, jednostki i sumy (kości, oczekiwane trafienia, „życie")."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    faction: str
+    player_id: str = Field(serialization_alias="playerId")
+    role: str  # "attacker" | "defender"
+    units: list[BattleUnitView]
+    unit_count: int = Field(serialization_alias="unitCount")
+    total_dice: int = Field(serialization_alias="totalDice")
+    expected_hits: float = Field(serialization_alias="expectedHits")
+    # „Życie" strony = trafienia, które może jeszcze przyjąć (jednostki + Sustain Damage).
+    hp: int
+
+
+class BattleRollView(BaseModel):
+    """Rzut jednej grupy jednostek: kości, próg i trafienia."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(serialization_alias="baseType")
+    async_id: str = Field(serialization_alias="asyncId")
+    name: str
+    hits_on: int = Field(serialization_alias="hitsOn")
+    modifier: int
+    dice: list[int]
+    hits: int
+
+
+class BattleLogView(BaseModel):
+    """Wpis historii walki: runda, faza (AFB/COMBAT), rzuty, trafienia, straty."""
+
+    round: int
+    phase: str
+    rolls: dict[str, list[BattleRollView]]
+    hits: dict[str, int]
+    losses: dict[str, dict[str, int]]
+    sustained: dict[str, dict[str, int]]
+
+
+class BattleResponse(BaseModel):
+    """Pełny stan okna pola bitwy (jeden odczyt na całe okno)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    active: bool
+    kind: str | None = None
+    position: str | None = None
+    planet: str | None = None
+    round: int = 0
+    step: str | None = None
+    nebula: bool = False
+    attacker: BattleSideView | None = None
+    defender: BattleSideView | None = None
+    pending_hits: dict[str, int] = Field(default_factory=dict, serialization_alias="pendingHits")
+    required: dict[str, int] = Field(default_factory=dict)
+    assigning: str | None = None
+    rolls: dict[str, list[BattleRollView]] = Field(default_factory=dict)
+    afb: dict[str, list[BattleRollView]] = Field(default_factory=dict)
+    log: list[BattleLogView] = Field(default_factory=list)
+    winner: str | None = None
+    outcome: str | None = None
+
+
+class BattleStartRequest(BaseModel):
+    """Start walki w aktywnym systemie: bez planety = kosmiczna, z planetą = naziemna."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    planet: str | None = None
+
+
+class BattleLossItem(BaseModel):
+    """Pozycja strat: typ jednostki + liczba."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str = Field(alias="baseType")
+    count: int = 1
+
+
+class BattleAssignRequest(BaseModel):
+    """Pokrycie trafień przez gracza: Sustain Damage + niszczone (nieuszkodzone/uszkodzone)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    sustain: list[BattleLossItem] = Field(default_factory=list)
+    destroy: list[BattleLossItem] = Field(default_factory=list)
+    destroy_damaged: list[BattleLossItem] = Field(
+        default_factory=list, alias="destroyDamaged"
+    )

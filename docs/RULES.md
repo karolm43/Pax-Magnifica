@@ -84,6 +84,7 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 36 | [Limity rąk i zbiór poziomów trudności bota](#36-limity-rąk-i-zbiór-poziomów-trudności-bota----zweryfikowane-reguły-ti4--założenie-trudność) | ✅ / ⚠️ | [Action Cards](rules_tirules/R_action_cards.md) |
 | 37 | [Wyniki audytu danych (baseline, luki, założenia)](#37-wyniki-audytu-danych-baseline-luki-referencyjne-założenia) | 📊 | [Technology](rules_tirules/R_technology.md) |
 | 38 | [Space Cannon Offense: kolejność, zasięg, rzuty, straty](#38-space-cannon-offense-kolejność-zasięg-deep-space-cannon-rzuty-straty---zweryfikowane-lrr-20) | ✅ / ⚠️ | [Space Cannon](rules_tirules/R_space_cannon.md) |
+| 39 | [Walka: rundy, AFB, rzuty, Sustain Damage, straty](#39-walka-kosmiczna-i-naziemna-rundy-afb-rzuty-sustain-damage-straty---zweryfikowane-lrr-20) | ✅ / ⚠️ | [Space Combat](rules_tirules/R_space_combat.md) |
 
 ---
 
@@ -2037,3 +2038,66 @@ expected}` (kontrakt, który front AsyncTI4 już rysuje); `expected` = Σ kości
   rzutem następnego gracza); na razie nie wymuszamy, nadwyżkę usuwa operator.
 - ⚠️ **Plasma Scoring** (tech `ps`: +1 kość dla jednej jednostki) — nie zaimplementowane.
 - ⚠️ Efekty zdolności frakcji/kart modyfikujące Space Cannon — hooki E7.
+
+
+---
+
+## 39. Walka (kosmiczna i naziemna): rundy, AFB, rzuty, Sustain Damage, straty — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+📎 tirules: [Space Combat](rules_tirules/R_space_combat.md) · [Ground Combat](rules_tirules/R_ground_combat.md) · [Anti–Fighter Barrage](rules_tirules/R_anti_fighter_barrage.md) · [Sustain Damage](rules_tirules/R_sustain_damage.md) · [Combat](rules_tirules/R_combat.md) · [Attacker](rules_tirules/R_attacker.md) · [Nebula](rules_tirules/R_nebula.md) · [Status Phase](rules_tirules/R_status_phase.md)
+
+Etap E8, Blok C (silnik walki) + D (okno pola bitwy). Źródło: lokalne pliki tirules (treść © FFG;
+patrz SOURCE.md). Dane liczbowe wyłącznie z UnitDef wariantu gracza (`combatHitsOn`,
+`combatDieCount`, `afbHitsOn`, `afbDieCount`, `sustainDamage`) — zero liczb z pamięci.
+
+### 39.1. Strony i uczestnicy
+
+- **(W1) Atakujący = aktywny gracz** (`R_attacker`); obrońca = jego przeciwnik w walce.
+- **(W2) Walka kosmiczna**: gdy w aktywnym systemie statki ma dwóch graczy (`R_space_combat`). Walczą
+  statki (przestrzeń) z wartością `combat`; siły naziemne w przestrzeni NIE walczą.
+- **(W3) Walka naziemna**: na planecie aktywnego systemu, gdy siły naziemne mają tam aktywny gracz i
+  inny gracz (`R_ground_combat`). Walczą siły naziemne z wartością `combat` (struktury bez combat nie).
+- ⚠️ ZAŁOŻENIE: gdy w miejscu walki jest więcej niż jeden przeciwnik aktywnego gracza — silnik odmawia
+  (422) i rozstrzyga się to God-Mode (sytuacja brzegowa, brak jednoznacznej reguły w zrzucie).
+
+### 39.2. Przebieg rundy
+
+- **(W4) AFB** — tylko 1. runda walki KOSMICZNEJ: obaj gracze rzucają jednocześnie dla jednostek z
+  `Anti–Fighter Barrage` (trafienie = wynik ≥ `afbHitsOn`, kości = `afbDieCount`). Każdy niszczy swoje
+  MYŚLIWCE za trafienia przeciwnika; nadwyżka przepada; Sustain Damage NIE anuluje trafień AFB.
+  Krok występuje także bez myśliwców. Gdy po AFB któraś strona nie ma statków — walka kończy się.
+- **(W5) Rzuty** — każda jednostka rzuca `combatDieCount` kości (brak = 1); trafienie = wynik ≥ wartość
+  combat. Najpierw rzuca atakujący, potem obrońca. „0" na d10 = 10.
+- **(W6) Mgławica** — w walce KOSMICZNEJ w mgławicy obrońca dodaje +1 do każdego rzutu combat swoich
+  statków (nie dotyczy AFB, space cannon, bombardmentu ani walki naziemnej) — `R_nebula`.
+- **(W7) Przypisanie strat** — każdy gracz niszczy SWOJE jednostki w walce za każde trafienie
+  przeciwnika. Kolejność w oknie czasowym `COMBAT_ASSIGN_HITS` (RULES.md 29.2): obrońca, potem atakujący.
+  Liczba trafień do pokrycia = min(trafienia, jednostki + nieuszkodzone jednostki z Sustain Damage).
+- **(W8) Sustain Damage** — przed przypisaniem gracz może użyć Sustain Damage dowolnych swoich
+  NIEUSZKODZONYCH jednostek z tą zdolnością: każda anuluje jedno trafienie i staje się USZKODZONA.
+  Uszkodzona jednostka działa normalnie, ale nie może ponownie użyć Sustain Damage do naprawy.
+- **(W9) Koniec walki** — gdy po rundzie najwyżej jeden gracz ma jednostki w walce. Zwycięzca = ten,
+  komu zostały jednostki; brak jednostek u obu = remis. Inaczej kolejna runda (bez AFB).
+- **(W10) Naprawa** — w fazie statusu (krok 7 „Repair Units") wszystkie uszkodzone jednostki są
+  naprawiane (`R_status_phase`). Silnik czyści stan uszkodzeń przy wejściu w STATUS.
+
+### 39.3. Model i implementacja
+
+- `SystemState.damaged_units` = `{strefa: {player_id: {base_type: liczba}}}` (strefa `"space"` albo id
+  planety). Liczba uszkodzonych ≤ liczba jednostek (odczyt przycinany). Web-data wystawia
+  `EntityData.sustained` (front AsyncTI4 rysuje znacznik uszkodzenia).
+- `GameState.active_combat` (`ActiveCombat`: rodzaj, miejsce, atakujący/obrońca, runda, krok
+  `AFB/ROLL/ASSIGN/DONE`, trafienia, rzuty rundy, dziennik, zwycięzca).
+- `core/battle.py` — `start_combat`/`resolve_afb`/`roll_round`/`assign_combat_hits`/`close_combat`.
+  Rzuty przez `core/dice.py` (seedowalne, w stanie).
+- Krok SPACE_COMBAT nie może zostać opuszczony, gdy dwóch graczy ma statki w aktywnym systemie albo
+  walka trwa (422). Zakończenie akcji czyści walkę (wentyl).
+- Ruch (`move_fleet`) przenosi uszkodzenia razem ze statkami: najpierw ruszają nieuszkodzone
+  (⚠️ ZAŁOŻENIE — wybór konkretnych egzemplarzy nie jest modelowany).
+
+### 39.4. ⚠️ TODO (kolejne bloki)
+
+- Odwroty (Announce Retreats / Retreat) — Blok E.
+- Capacity po walce (usunięcie nadwyżki myśliwców/sił naziemnych) — nie wymuszane.
+- Zdolności frakcji, karty akcji (Shields Holding, Direct Hit), Non-Euclidean Shielding — hooki E7.
+- Space Cannon Offense nie korzysta jeszcze z Sustain Damage (RULES.md 38.4) — do ujednolicenia.
