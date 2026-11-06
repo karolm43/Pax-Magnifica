@@ -263,7 +263,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 212px;
+  /* STAŁA szerokość — panel NIE zmienia rozmiaru od długości podpowiedzi (hinty
+     zawijają się w tej szerokości, nie rozpychają boxa). */
+  width: 236px;
+  box-sizing: border-box;
   padding: 12px;
   background: color-mix(in oklab, var(--ds-ground) 90%, transparent);
   backdrop-filter: blur(12px);
@@ -401,24 +404,40 @@
   border-color: color-mix(in oklab, var(--ds-accent) 70%, transparent);
 }
 
-.hint {
-  margin: 0;
-  padding: 0 2px;
-  font-size: var(--text-micro, 10px);
-  line-height: 1.3;
-  color: rgb(var(--ds-sig-warn));
-}
-
-/* Wariant podpowiedzi „spasowano — oddaj jeszcze turę" (akcent bio/OK, nie ostrzeżenie). */
+/*
+ * PODPOWIEDŹ = mały „chip" informacyjny: ikona + tekst w subtelnym, zaokrąglonym
+ * tle. Tekst ZAWIJA się w szerokości panelu (word-wrap), więc nie rozpycha boxa.
+ * Dwa warianty koloru: ostrzeżenie (warn) i OK/akcja (bio) przez zmienną --chip.
+ */
+.hint,
 .hintPassed {
-  color: rgb(var(--ds-sig-bio));
+  --chip: var(--ds-sig-warn);
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: var(--text-micro, 10px);
+  line-height: 1.35;
+  color: color-mix(in oklab, rgb(var(--chip)) 72%, var(--ds-ink));
+  background: rgb(var(--chip) / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--chip) / 0.28);
+  /* Kluczowe dla stabilnej szerokości panelu: zawijaj długie zdania. */
+  overflow-wrap: anywhere;
+  animation: btnIn 0.28s var(--ds-ease) both;
 }
 
+/* Wariant OK/akcja — „oddaj turę" (zielony akcent). */
+.hintPassed {
+  --chip: var(--ds-sig-bio);
+}
+
+.hint svg,
 .hintPassed svg {
   flex: none;
+  margin-top: 1px;
+  opacity: 0.9;
 }
 
 /*
@@ -431,18 +450,18 @@
   border-color: rgb(var(--ds-sig-bio) / 0.85);
   animation:
     btnIn 0.36s var(--ds-ease) both,
-    endTurnNudge 1.25s ease-in-out 0.36s infinite;
+    endTurnNudge 1.6s ease-in-out 0.36s infinite;
 }
 
+/* Spokojny „oddech" poświaty (bez skalowania — pełnoszerokościowy przycisk nie
+   drga, tylko delikatnie pulsuje ramką/glow). */
 @keyframes endTurnNudge {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(var(--ds-sig-bio) / 0.55);
-    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(var(--ds-sig-bio) / 0.5);
   }
   50% {
-    box-shadow: 0 0 0 6px rgb(var(--ds-sig-bio) / 0);
-    transform: scale(1.03);
+    box-shadow: 0 0 0 5px rgb(var(--ds-sig-bio) / 0);
   }
 }
 

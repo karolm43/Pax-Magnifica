@@ -1249,22 +1249,26 @@
   box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-ok) / 0.4);
 }
 
-/* Podpowiedź pod zablokowanym przyciskiem „Pass" (dlaczego nie można pasować). */
-.passHint {
+/* Podpowiedzi pod przyciskami tury = małe „chipy" (spójne z TurnControls). Tekst
+   zawija się w szerokości rzędu, nie rozpycha panelu. */
+.passHint,
+.passedHint {
+  --chip: var(--ds-sig-warn);
   flex: 1 1 100%;
-  margin-top: -2px;
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
   font-size: var(--text-micro, 10px);
-  line-height: 1.3;
-  color: rgb(var(--ds-sig-warn));
+  line-height: 1.35;
+  color: color-mix(in oklab, rgb(var(--chip)) 72%, var(--ds-ink, #e2e8f0));
+  background: rgb(var(--chip) / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--chip) / 0.28);
+  overflow-wrap: anywhere;
 }
 
 /* Po pasie: przypomnienie „oddaj jeszcze turę" (akcent bio/OK, nie ostrzeżenie). */
 .passedHint {
-  flex: 1 1 100%;
-  margin-top: -2px;
-  font-size: var(--text-micro, 10px);
-  line-height: 1.3;
-  color: rgb(var(--ds-sig-bio));
+  --chip: var(--ds-sig-bio);
 }
 
 /* End turn „woła o uwagę" po akcji/pasie — pulsująca zielona poświata. */

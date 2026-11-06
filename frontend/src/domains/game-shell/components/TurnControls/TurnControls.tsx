@@ -316,19 +316,23 @@ export function TurnControls() {
 
         {/* Podpowiedź, gdy Pass zablokowany (zanim zagrasz kartę). */}
         {isAction && !canPass && !hasPassed && (
-          <p className={styles.hint}>Play your Strategy Card first to pass.</p>
+          <p className={styles.hint}>
+            <IconInfoCircle size={13} aria-hidden="true" />
+            <span>Play your Strategy Card first to pass.</span>
+          </p>
         )}
         {/* Podpowiedź, gdy End turn zablokowany przez otwarte okno secondary. */}
         {isAction && windowOpen && (
           <p className={styles.hint}>
-            Waiting for every player to follow or decline the secondary.
+            <IconInfoCircle size={13} aria-hidden="true" />
+            <span>Waiting for players to decide on the secondary.</span>
           </p>
         )}
         {/* Trzeba najpierw wykonać akcję albo spasować (RULES.md 31.7). */}
         {isAction && !tookAction && !hasPassed && !windowOpen && (
           <p className={styles.hint}>
             <IconInfoCircle size={13} aria-hidden="true" />
-            <span>Take an action or pass, then End turn.</span>
+            <span>Take an action or pass, then end your turn.</span>
           </p>
         )}
         {/* Po akcji/pasie: przypomnienie, że tura wciąż trzeba oddać. */}
@@ -337,7 +341,7 @@ export function TurnControls() {
             <IconInfoCircle size={13} aria-hidden="true" />
             <span>
               {hasPassed
-                ? "You passed — now press End turn to hand over."
+                ? "You passed — press End turn to hand over."
                 : "Action done — press End turn to hand over."}
             </span>
           </p>
