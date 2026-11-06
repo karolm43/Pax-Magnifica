@@ -1,4 +1,4 @@
-// Auto-generated file - Do not edit manually
+﻿// Auto-generated file - Do not edit manually
 // Generated from src/main/resources/data/promissory_notes/*.json files
 
 import { PromissoryNote } from "./types";
@@ -127,7 +127,7 @@ export const promissoryNotes: PromissoryNote[] = [
     color: "",
     playArea: true,
     source: "balacasi",
-    text: "If you are not the Kalora player, place this card face up in your play area. You may use the Kalora’s PRIMORDIAL faction ability. Both you and the Kalora player consider yourself as first to score an objective if no player other than each other has scored that objective. If you activate a system containing 1 or more of Kalora’s units, return this card to the Kalora player.",
+    text: "If you are not the Kalora player, place this card face up in your play area. You may use the Kalora's PRIMORDIAL faction ability. Both you and the Kalora player consider yourself as first to score an objective if no player other than each other has scored that objective. If you activate a system containing 1 or more of Kalora's units, return this card to the Kalora player.",
   },
   {
     alias: "bapnluna",
@@ -140,7 +140,7 @@ export const promissoryNotes: PromissoryNote[] = [
   },
   {
     alias: "bapntyri",
-    name: "Fate’s Bargain",
+    name: "Fate's Bargain",
     faction: "tyris",
     color: "",
     playArea: false,
@@ -158,12 +158,12 @@ export const promissoryNotes: PromissoryNote[] = [
   },
   {
     alias: "bapnxan",
-    name: "Warlord’s Decree",
+    name: "Warlord's Decree",
     faction: "xan",
     color: "",
     playArea: false,
     source: "balacasi",
-    text: "At the start of a space combat: You may choose up to 3 of your opponents’ ships that have SUSTAIN DAMAGE to become damaged. Then, return this card to the Xan player.",
+    text: "At the start of a space combat: You may choose up to 3 of your opponents' ships that have SUSTAIN DAMAGE to become damaged. Then, return this card to the Xan player.",
   },
   {
     alias: "bapnzeph",
@@ -237,7 +237,7 @@ export const promissoryNotes: PromissoryNote[] = [
     playArea: true,
     playImmediately: false,
     source: "base",
-    text: "ACTION: Place this card faceup in your play area. While this card is in your play area, you may negotiate transactions with players who are not your neighbor.  If you activate a system that contains 1 or more of the Hacan player's units, return this card to the Hacan player.",
+    text: "ACTION: Place this card faceup in your play area. While this card is in your play area, you may negotiate transactions with players who are not your neighbor. If you activate a system that contains 1 or more of the Hacan player's units, return this card to the Hacan player.",
   },
   {
     alias: "crucible",
@@ -301,7 +301,7 @@ export const promissoryNotes: PromissoryNote[] = [
     color: "",
     playArea: false,
     source: "ds",
-    text: "At the start of combat: Roll 4 dice, for each result of 8 or greater, destroy up to 1 of your opponent’s fighters or infantry participating in that combat.Then, return this card to the Belkosea player.",
+    text: "At the start of combat: Roll 4 dice, for each result of 8 or greater, destroy up to 1 of your opponent's fighters or infantry participating in that combat.Then, return this card to the Belkosea player.",
   },
   {
     alias: "dspnbent",
@@ -565,7 +565,7 @@ export const promissoryNotes: PromissoryNote[] = [
     color: "",
     playArea: true,
     source: "ds",
-    text: "When you receive this card, if you are not the Pharad'n player, you must place it face up in your play area.\nAfter 1 of your opponent’s infantry is destroyed during ground combat, you may exhaust this card to place 1 infantry from your reinforcements on that planet. Then, the Pharad'n player captures 1 infantry from their reinforcements.",
+    text: "When you receive this card, if you are not the Pharad'n player, you must place it face up in your play area.\nAfter 1 of your opponent's infantry is destroyed during ground combat, you may exhaust this card to place 1 infantry from your reinforcements on that planet. Then, the Pharad'n player captures 1 infantry from their reinforcements.",
   },
   {
     alias: "dspnqhet",
@@ -721,7 +721,7 @@ export const promissoryNotes: PromissoryNote[] = [
     color: "",
     playArea: false,
     source: "eronous",
-    text: "After you activate a system:Choose 1 of your units, that unit can move through other players’ ships during this movement. Then, return this card to the Eidolon player",
+    text: "After you activate a system:Choose 1 of your units, that unit can move through other players' ships during this movement. Then, return this card to the Eidolon player",
   },
   {
     alias: "favor",
@@ -737,7 +737,7 @@ export const promissoryNotes: PromissoryNote[] = [
     faction: "muaat",
     playArea: false,
     source: "base",
-    text: "ACTION: Remove 1 token from the Muaat player's fleet pool and return it to their reinforcements. Then, gain your war sun unit upgrade technology card.  Then, return this card to the Muaat Player.",
+    text: "ACTION: Remove 1 token from the Muaat player's fleet pool and return it to their reinforcements. Then, gain your war sun unit upgrade technology card. Then, return this card to the Muaat Player.",
     shrinkName: true,
   },
   {
@@ -1118,7 +1118,7 @@ export const promissoryNotes: PromissoryNote[] = [
     color: "",
     playArea: false,
     source: "eronous",
-    text: "After an agenda is revealed:You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, place 1 unit that costs no more than 4 resources from your reinforcements into your home system, if it contains no other players’ ships.Then, return this card to the Skalidur player.",
+    text: "After an agenda is revealed:You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, place 1 unit that costs no more than 4 resources from your reinforcements into your home system, if it contains no other players' ships.Then, return this card to the Skalidur player.",
   },
   {
     alias: "shareknowledge",

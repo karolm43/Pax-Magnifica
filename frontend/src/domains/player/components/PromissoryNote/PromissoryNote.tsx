@@ -18,6 +18,14 @@ type Props = {
   promissoryNoteId: string;
   onClick?: () => void;
   showDetails?: boolean;
+  /**
+   * Gdy `true`, etykieta pokazuje pełną nazwę karty zamiast skróconego
+   * `shortName` (np. "Cybernetic Enhancements" zamiast "Cybernetic
+   * Enh'nc'm'nts"). Używane tam, gdzie jest miejsce na pełną nazwę — np. panel
+   * wyboru frakcji. W ciasnych układach (dok ręki, żetony na mapie) zostaje
+   * domyślny skrót z danych AsyncTI4.
+   */
+  preferFullName?: boolean;
 };
 
 /** The owner's colour as a space-separated RGB triplet for the ticket stub. */
@@ -44,6 +52,7 @@ export function PromissoryNote({
   promissoryNoteId,
   onClick,
   showDetails = true,
+  preferFullName = false,
 }: Props) {
   const [opened, setOpened] = useState(false);
   const factionColorMap = useFactionColors();
@@ -55,7 +64,9 @@ export function PromissoryNote({
   if (!promissoryNoteData) return null;
 
   const { noteData, faction, color, displayName } = promissoryNoteData;
-  const name = noteData.shortName || displayName;
+  const name = preferFullName
+    ? displayName
+    : noteData.shortName || displayName;
   const ownerRgb = getOwnerRgb(faction, color, factionColorMap);
   const handleClick = () => {
     if (showDetails) setOpened((o) => !o);
