@@ -85,6 +85,7 @@ export function MovementStepPanel({
   const gameData = useGameData();
   const { moveShips, undo } = useBoardEditor();
   const setMoveRangeSources = useAppStore((s) => s.setMoveRangeSources);
+  const openLoadTransport = useAppStore((s) => s.openLoadTransport);
   const [source, setSource] = useState<string | null>(null);
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
@@ -281,6 +282,33 @@ export function MovementStepPanel({
                       />
                     ))}
                   </div>
+                  {/* Statki z pojemnością → skrót do okna załadunku (zapakuj i rusz). */}
+                  {cargo.length > 0 &&
+                    source &&
+                    ships
+                      .filter(
+                        (s) =>
+                          (lookupUnit(s.asyncId, faction, player)?.capacityValue ??
+                            0) > 0,
+                      )
+                      .map((s) => (
+                        <button
+                          key={`load-${s.asyncId}`}
+                          type="button"
+                          className={styles.moveToggle}
+                          onClick={() =>
+                            openLoadTransport({
+                              fromPosition: source,
+                              faction,
+                              shipAsyncId: s.asyncId,
+                            })
+                          }
+                          title="Open the load window to pack this ship with cargo"
+                        >
+                          <IconPackage size={12} aria-hidden="true" /> Load{" "}
+                          {s.asyncId.toUpperCase()} with cargo…
+                        </button>
+                      ))}
                 </>
               )}
               {cargo.length > 0 && (

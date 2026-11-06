@@ -172,6 +172,22 @@ type AppStore = {
   setMoveRangeSources: (positions: Set<string>) => void;
 
   /*
+   * Okno ZAŁADUNKU transportu (krok MOVEMENT, RULES.md 32.3). Gdy ustawione, otwarte
+   * jest okno „pakowania": wybrany statek-nosiciel w systemie źródłowym + dostępny
+   * ładunek (myśliwce/siły naziemne) z tego systemu, do spakowania w ramach capacity
+   * i ruszenia razem do aktywnego systemu jednym walidowanym /tactical/move.
+   */
+  loadTransport: {
+    fromPosition: string;
+    faction: string;
+    shipAsyncId: string; // nosiciel (carrier/dread/warsun/flagship)
+  } | null;
+  openLoadTransport: (
+    target: NonNullable<AppStore["loadTransport"]>,
+  ) => void;
+  closeLoadTransport: () => void;
+
+  /*
    * Okno walki (asystent trafień, E3). Gdy ustawione, otwarty jest modal walki dla
    * danego miejsca: ``planet`` = null → walka kosmiczna, inaczej walka naziemna.
    */
@@ -297,6 +313,10 @@ export const useAppStore = create<AppStore>((set) => {
     moveRangeSources: new Set<string>(),
     setMoveRangeSources: (positions: Set<string>) =>
       set({ moveRangeSources: positions }),
+
+    loadTransport: null,
+    openLoadTransport: (target) => set({ loadTransport: target }),
+    closeLoadTransport: () => set({ loadTransport: null }),
 
     combatTarget: null,
     openCombat: (position: string, planet: string | null) =>

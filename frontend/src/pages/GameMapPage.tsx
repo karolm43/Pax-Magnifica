@@ -9,6 +9,7 @@ import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { SystemDossierModal } from "@/domains/map/components/SystemDossier/SystemDossierModal";
 import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
 import { MoveQuantityModal } from "@/domains/map/components/MoveQuantityModal";
+import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
@@ -244,6 +245,7 @@ function GameMapContent() {
       <SystemDossierModal />
       <MoveUnitsModal />
       <MoveQuantityModal />
+      <LoadTransportModal />
       <CombatModal />
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}

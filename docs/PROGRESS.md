@@ -46,6 +46,39 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ E8 Blok B1–B6 — MOVEMENT dopracowany (drag&drop, monitor, zasięg, załadunek) (ukończone)
+
+- **Decyzja (z użytkownikiem):** drag & drop statków to PREFEROWANY sposób ruchu; w akcji
+  taktycznej idzie przez WALIDOWANY kanał (`/tactical/move`, reguły + capacity). Panel kroku
+  MOVEMENT = MONITOR floty z cofaniem. Dok ma być ładny, przesuwany i skalowalny. Na mapie
+  podgląd zasięgu. Zatrzymujemy się na MOVEMENT.
+- **B1 — dok (fix + resizable):** root cause „dok rośnie / klei się do dołu" = `useDraggablePanel`
+  nie zdejmował CSS-owego `bottom`/`right` → przy `fixed` z `top`+`bottom` bez `height` panel się
+  rozciągał. Teraz `style` zwraca `bottom:auto`+`right:auto`. Nowy `useResizablePanel` (uchwyt w
+  rogu, rozmiar w localStorage). Dok: stały nagłówek + przewijane ciało + przypięty uchwyt resize.
+- **B2+B4 — piechota w przestrzeni + drag walidowany:** `RULES.md` 26 (wyjątek transportu, źródło
+  `R_transport`/`R_invasion`): siły naziemne/myśliwce jadą jako ładunek i stoją w PRZESTRZENI
+  aktywnego systemu do Commit Ground Forces; blokada „tylko planeta" tylko poza akcją (God-Mode).
+  `useUnitDrag`: drop na aktywny system w akcji taktycznej → walidowany `moveShips` (statek vs
+  ładunek po asyncId), poza akcją → God-Mode. `MoveQuantityModal` też routuje taktycznie. Wspólny
+  `UnitStack/cargo.ts` (baseType/ship/cargo).
+- **B3 — zasięg na mapie:** `core.movement.legal_move_sources` + `GET /tactical/move-range`
+  (+3 testy). `useMoveRange` hook; `refresh()` invaliduje `moveRange`. `MapTile`: bursztynowe,
+  pulsujące podświetlenie heksów będących legalnym źródłem ruchu.
+- **B6 — panel = MONITOR floty:** krok MOVEMENT pokazuje flotę w przestrzeni AKTYWNEGO systemu
+  + plakietka pojemności (zajęte/wolne, czerwona gdy przekroczona; liczona dla KONKRETNEGO gracza
+  z `lookupUnit`). „Undo last move" (globalny `/undo`). Kreator ruchu schowany pod przełącznikiem.
+- **B5 — okno ZAŁADUNKU transportu:** `LoadTransportModal` + store `loadTransport` — dla statku
+  z capacity w systemie źródłowym: pokazuje jego pojemność i dostępny ładunek z tego systemu,
+  „Fill to capacity"/„Clear", i rusza nosiciela + ładunek jednym walidowanym `/tactical/move`.
+  Skrót „Load … with cargo…" w kreatorze ruchu.
+- **Ograniczenia (świadome):** pickup ładunku tylko z przestrzeni systemu źródłowego; undo jest
+  globalne (cofa ostatni commit, nie granularnie jeden statek); multi-select Ctrl/Shift na mapie
+  — do rozbudowy (okno załadunku pokrywa wygodny multi-pickup transportu).
+- **QA:** backend 510 testów zielonych (ruff + mypy --strict); frontend type-check + lint + build.
+
+---
+
 ### ✅ E8 Blok A+B — UX akcji taktycznej + ruch z transportem (ukończone)
 
 - **Cel (ustalony z użytkownikiem):** profesjonalna akcja taktyczna z ładnym UI na każdy z 5
