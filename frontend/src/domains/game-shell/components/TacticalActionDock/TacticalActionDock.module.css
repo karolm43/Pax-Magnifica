@@ -1,19 +1,24 @@
 /*
- * Pływający dok akcji taktycznej — przypięty do LEWEJ krawędzi, nieco powyżej
- * dołu, żeby nie kolidować z ręką (środek dołu) ani sterowaniem turą (prawy dół).
- * Pokazuje panel kroków (stepper + pomoc kroku) przez całą akcję taktyczną.
+ * Pływający dok akcji taktycznej — PRZESUWANY i SKALOWALNY. Domyślnie w lewym
+ * dolnym rogu, ale pozycjonowany od GÓRY nie będzie (useDraggablePanel zdejmuje
+ * bottom/right przy przesunięciu). Pokazuje panel kroków przez całą akcję.
+ *
+ * Układ: [nagłówek stały] + [ciało przewijane] + [uchwyt resize w rogu]. Przewija
+ * się TYLKO ciało, więc uchwyt skalowania zostaje przypięty do rogu.
  */
 .dock {
   position: fixed;
   left: 20px;
   bottom: 20px;
   z-index: 200;
-  width: 320px;
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  height: clamp(280px, 56vh, 560px);
   max-width: calc(100vw - 40px);
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
+  max-height: calc(100vh - 40px);
   box-sizing: border-box;
-  padding: 12px;
+  padding: 12px 12px 10px;
   background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
   backdrop-filter: blur(12px);
   border: 1px solid color-mix(in oklab, var(--ds-accent) 40%, var(--ds-h14));
@@ -22,14 +27,16 @@
   animation: dockRise 0.42s var(--ds-ease) both;
 }
 
-/* W trakcie przeciągania bez animacji wejścia (panel ma podążać za kursorem). */
-.dock[data-dragging] {
+/* W trakcie przeciągania/skalowania bez animacji (panel ma podążać za kursorem). */
+.dock[data-dragging],
+.dock[data-resizing] {
   animation: none;
-  cursor: grabbing;
+  user-select: none;
 }
 
-/* Nagłówek = uchwyt przeciągania (grab). W trakcie drag kursor „grabbing". */
+/* Nagłówek = uchwyt przeciągania (grab). Stały (nie przewija się). */
 .dockHead {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -69,6 +76,41 @@
   color: var(--ds-ink-lo);
 }
 
+/* Ciało — JEDYNE przewijane (nagłówek i uchwyt resize zostają na miejscu). */
+.dockBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+/* Uchwyt skalowania — trójkąt w prawym-dolnym rogu. */
+.resizeHandle {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: linear-gradient(
+    135deg,
+    transparent 0 50%,
+    color-mix(in oklab, var(--ds-accent) 55%, transparent) 50% 60%,
+    transparent 60% 72%,
+    color-mix(in oklab, var(--ds-accent) 55%, transparent) 72% 82%,
+    transparent 82%
+  );
+  border-bottom-right-radius: var(--ds-radius-lg, 14px);
+  opacity: 0.6;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease);
+}
+
+.resizeHandle:hover {
+  opacity: 1;
+}
+
 @keyframes dockRise {
   from {
     opacity: 0;
@@ -91,5 +133,5 @@
   left: 10px;
   bottom: 10px;
   width: calc(100vw - 20px);
-  max-height: 46vh;
+  height: 46vh;
 }

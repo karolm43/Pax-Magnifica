@@ -140,7 +140,17 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
   }, [persist]);
 
   const style: CSSProperties = position
-    ? { position: "fixed", left: position.x, top: position.y, right: "auto" }
+    ? {
+        position: "fixed",
+        left: position.x,
+        top: position.y,
+        // KLUCZOWE: zdejmujemy CSS-owe ``bottom``/``right`` — inaczej przy ``fixed``
+        // z jednoczesnym ``top`` i ``bottom`` (bez ``height``) panel rozciąga się
+        // pionowo (bug „dok rośnie przy przesuwaniu"). Pozycjonujemy wyłącznie od
+        // lewego-górnego rogu.
+        right: "auto",
+        bottom: "auto",
+      }
     : {};
 
   return { style, onHandlePointerDown, isDragging, reset };

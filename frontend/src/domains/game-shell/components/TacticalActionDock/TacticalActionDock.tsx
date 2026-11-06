@@ -5,11 +5,13 @@ import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { getTileById } from "@/entities/lookup/systems";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { TacticalActionPanel } from "@/domains/game-shell/components/GameStatePanel";
 import styles from "./TacticalActionDock.module.css";
 
-/** Klucz zapisu pozycji doku (localStorage) — pamięta przesunięcie między sesjami. */
+/** Klucze zapisu pozycji/rozmiaru doku (localStorage) — pamięć między sesjami. */
 const DOCK_POS_KEY = "ti4_tactical_dock_pos";
+const DOCK_SIZE_KEY = "ti4_tactical_dock_size";
 
 /**
  * Pływający dok akcji taktycznej na MAP VIEW.
@@ -32,6 +34,12 @@ export function TacticalActionDock() {
   const { data: gameState } = useGameState(gameId);
   const gameData = useGameData();
   const drag = useDraggablePanel(DOCK_POS_KEY);
+  const resize = useResizablePanel(DOCK_SIZE_KEY, {
+    minW: 300,
+    minH: 220,
+    maxW: 560,
+    maxH: 860,
+  });
 
   const activeSystem = gameState?.activeSystem ?? null;
   // Dok ma sens wyłącznie podczas trwającej akcji taktycznej.
@@ -49,10 +57,11 @@ export function TacticalActionDock() {
   return (
     <aside
       className={styles.dock}
-      style={drag.style}
+      style={{ ...drag.style, ...resize.style }}
       aria-label="Tactical action"
       data-draggable-panel
       data-dragging={drag.isDragging || undefined}
+      data-resizing={resize.isResizing || undefined}
     >
       {/* Nagłówek = uchwyt przeciągania (pointer-down zaczyna drag). Dwuklik =
           reset pozycji. Elementy [data-no-drag] nie startują przeciągania. */}
@@ -68,11 +77,23 @@ export function TacticalActionDock() {
         <IconCrosshair size={15} aria-hidden="true" />
         <span className={styles.dockTitle}>Tactical action</span>
       </header>
-      <TacticalActionPanel
-        activeSystem={activeSystem}
-        tacticalStep={gameState?.tacticalStep ?? null}
-        systemLabel={label}
-        activePlayerColor={activePlayerColor}
+      <div className={styles.dockBody}>
+        <TacticalActionPanel
+          activeSystem={activeSystem}
+          tacticalStep={gameState?.tacticalStep ?? null}
+          systemLabel={label}
+          activePlayerColor={activePlayerColor}
+        />
+      </div>
+      {/* Uchwyt skalowania w prawym-dolnym rogu. [data-no-drag], żeby nie startował
+          przeciągania; dwuklik resetuje rozmiar do domyślnego. */}
+      <span
+        className={styles.resizeHandle}
+        data-no-drag
+        onPointerDown={resize.onHandlePointerDown}
+        onDoubleClick={resize.reset}
+        title="Drag to resize · double-click resets size"
+        aria-hidden="true"
       />
     </aside>
   );
