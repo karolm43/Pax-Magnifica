@@ -507,6 +507,20 @@ class ActivateSystemRequest(BaseModel):
     position: str
 
 
+class ComponentActionRequest(BaseModel):
+    """Akcja komponentu — trzeci typ akcji fazy akcji (RULES.md 31.8).
+
+    ``player_id`` opcjonalny — gdy podany, backend waliduje, że to tura tego gracza.
+    ``component_id`` to ADNOTACJA „co zagrano" (karta akcji / relikt / tech / zdolność);
+    na razie nie steruje żadnym efektem (szkielet), trafia tylko do etykiety eventu.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str | None = None
+    component_id: str | None = None
+
+
 class TacticalStepRequest(BaseModel):
     """Skok do konkretnego kroku akcji taktycznej (E3)."""
 

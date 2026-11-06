@@ -1557,6 +1557,40 @@ przycisk pulsuje (nudge) + drobna informacja, że trzeba jeszcze oddać turę. P
 jest WYŁĄCZONY, gdy gracz już wykonał akcję w tej turze (`tookActionThisTurn`) — z tooltipem
 „You already acted this turn — End turn instead".
 
+### 31.8. Akcja komponentu — trzeci typ akcji fazy akcji — ✅ ZWERYFIKOWANE (R_component_action)
+
+📎 tirules: [Component Action](rules_tirules/R_component_action.md) · [Action Phase](rules_tirules/R_action_phase.md)
+
+**Reguła źródłowa (R_component_action):** akcja komponentu to typ akcji wykonywany w swojej
+turze fazy akcji. Jest oznaczona nagłówkiem „**Action**" na komponencie — karcie akcji,
+technologii, liderze, relikcie, karcie eksploracji, promissory note albo arkuszu frakcji.
+„To perform a component action, a player reads the action's text and follows the instructions."
+Akcja komponentu NIE może być wykonana, jeśli jej efektu nie da się w pełni rozstrzygnąć; jeśli
+zostanie anulowana, NIE zużywa akcji gracza. Karta akcji BEZ nagłówka „Action" nie jest akcją
+komponentu (R_action_cards). To jedna z trzech akcji tury (RULES.md 31.7): akcja = strategiczna
+XOR taktyczna XOR komponentu, albo pas.
+
+**Model (`core/component_action.play_component_action`):** CZYSTA funkcja `state -> state`.
+ZAKRES (świadomy szkielet, „make it exist first"): rejestruje, że gracz wykonał akcję komponentu
+w tej turze (`took_action_this_turn = True`, jak akcja strategiczna/taktyczna) — i nic więcej.
+Efekt KONKRETNEGO komponentu NIE jest wykonywany; dojdzie dispatchem po `component_id`,
+komponent po komponencie, z osobnym wpisem reguły/źródłem. `component_id` jest na razie wyłącznie
+ADNOTACJĄ „co zagrano" (trafia do etykiety eventu), opcjonalną — bo akcja bywa też z reliktu/
+techu/zdolności, nie tylko z karty.
+
+**Egzekucja (sędzia):** `play_component_action` rzuca `ValueError` → HTTP 422, gdy: faza ≠ ACTION;
+brak aktywnego gracza; `player_id` ≠ aktywny gracz; trwa otwarte okno (`pending_window`); gracz
+już wykonał akcję w tej turze (`took_action_this_turn` — jedna akcja na turę); gracz spasował
+(`passed` — po pasie nie wykonuje już akcji w tej fazie, R_action_phase). Po sukcesie `End turn`
+jest dostępny (ta sama ścieżka co po akcji strategicznej/taktycznej). Endpoint:
+`POST /tactical/component-action` (`ComponentActionRequest{player_id?, component_id?}`).
+
+**UI (`TurnControls`):** w fazie akcji, obok Pass/End turn, przycisk „**Component action**"
+(ikona kostki/iskry, akcent neutralny-fiolet). Klik otwiera MAŁY modal „co zagrałeś?": lista kart
+akcji z ręki z oknem „Action" (`actionCardTiming(id) === "Action"`) + opcja „Other (relic, tech,
+ability…)" dla źródeł nie-kartowych. Wybór to tylko adnotacja (`component_id`); efekt = oznaczenie
+akcji wykonanej. Przycisk WYŁĄCZONY, gdy gracz już działał / spasował / trwa okno (spójnie z Pass).
+
 ---
 
 ## 32. Ruch statków: egzekucja legalności (akcja taktyczna) — ✅ ZWERYFIKOWANE (LRR 2.0)

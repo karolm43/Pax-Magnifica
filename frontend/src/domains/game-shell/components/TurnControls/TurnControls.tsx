@@ -7,6 +7,8 @@ import {
   IconPlayerTrackNextFilled,
   IconChevronsRight,
   IconInfoCircle,
+  IconCards,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -15,6 +17,9 @@ import {
   useStrategyCards,
   type StrategyCardState,
 } from "@/api/useBoardEditor";
+import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
+import { getActionCard } from "@/entities/lookup/actionCards";
+import { actionCardTiming } from "@/domains/game-shell/components/actionCardTiming";
 import {
   getStrategyCardById,
   getStrategyCardByInitiative,
@@ -61,7 +66,10 @@ const SC_HUE: Record<number, string> = {
  *    (leży na stole), prostuje się i unosi na hover; zagranie = nakładka „Play"
  *    pojawiająca się na hover (NIE osobny przycisk);
  *  - .actionZone (prawy dół): elegancki panel akcji tury (faza + gracz w nagłówku,
- *    duże przyciski z ikonami i poświatą) — Pass / End turn / Next phase.
+ *    duże przyciski z ikonami i poświatą) — Pass / Component action / End turn /
+ *    Next phase. „Component action" (RULES.md 31.8) otwiera modal „co zagrałeś?"
+ *    (karty akcji z oknem „Action" + opcja dla reliktu/techu/zdolności); na razie
+ *    tylko rejestruje akcję tury, bez mechaniki konkretnego komponentu.
  *
  * Render tylko w fazie akcji/strategii i gdy jest aktywny gracz (inaczej null).
  */
@@ -74,6 +82,7 @@ export function TurnControls() {
     playStrategyCard,
     passTurn,
     endTurn,
+    playComponentAction,
     nextPlayer,
     phaseStep,
     nextPhase,
@@ -83,10 +92,19 @@ export function TurnControls() {
   // Krok potwierdzenia pasa: pas jest „jak akcja" i NIE kończy tury — gracz łatwo
   // to przeoczy, więc najpierw pytamy „na pewno?", a po pasie wołamy o oddanie tury.
   const [confirmingPass, setConfirmingPass] = useState(false);
+  // Modal akcji komponentu: „co zagrałeś?". Wybór to tylko adnotacja (RULES.md 31.8).
+  const [componentOpen, setComponentOpen] = useState(false);
 
   // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
   // pierwszy). Zwraca null tylko, gdy nie ma żadnego posadzonego gracza.
   const active = useDeskPlayer();
+  // Ręka aktywnego gracza — do listy „co zagrałeś?" w modalu akcji komponentu
+  // (karty z oknem „Action"). Hook wołany ZAWSZE (przed early-return) — stała
+  // kolejność hooków. ``player=null`` → backend oddaje rękę aktywnego gracza.
+  const { data: hand } = usePlayerHand(gameId, {
+    ignoreAuthGate: true,
+    player: active?.discordId ?? null,
+  });
   if (!active) return null;
 
   const phase = gameState?.phase ?? "unknown";
@@ -143,6 +161,14 @@ export function TurnControls() {
   // End turn „woła o uwagę" (nudge), gdy jest już możliwy do kliknięcia — głównie po
   // pasie, ale też po akcji, gdy gracz może zapomnieć oddać turę.
   const nudgeEndTurn = canEndTurn;
+  // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
+  // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
+  const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
+  // Karty z ręki, które są AKCJĄ komponentu (nagłówek „Action") — lista „co zagrałeś?".
+  // Reszta kart (When/After/…) to reakcje, nie akcje tury — świadomie je pomijamy.
+  const actionCardChoices = (hand?.actionCards ?? [])
+    .filter((id) => actionCardTiming(id) === "Action")
+    .map((id) => ({ id, name: getActionCard(id)?.name ?? id }));
 
   const run = (fn: () => Promise<void>) => {
     if (busy) return;
@@ -220,10 +246,32 @@ export function TurnControls() {
                 <IconHandStop size={16} aria-hidden="true" />
                 <span>Pass</span>
               </button>
+              {/* Akcja komponentu (RULES.md 31.8) — karta akcji „Action", relikt,
+                  tech, zdolność. Otwiera modal „co zagrałeś?"; na razie tylko
+                  rejestruje akcję (bez mechaniki komponentu). */}
+              <button
+                type="button"
+                className={styles.component}
+                style={{ "--d": "60ms" } as CSSProperties}
+                disabled={busy || !canComponentAction}
+                onClick={() => setComponentOpen(true)}
+                title={
+                  windowOpen
+                    ? "Wait — every player must decide on the secondary first"
+                    : hasPassed
+                      ? "You already passed this action phase"
+                      : tookAction
+                        ? "You already acted this turn — End turn instead"
+                        : "Play a component ability (action card, relic, tech…)"
+                }
+              >
+                <IconSparkles size={16} aria-hidden="true" />
+                <span>Component action</span>
+              </button>
               <button
                 type="button"
                 className={styles.endTurn}
-                style={{ "--d": "60ms" } as CSSProperties}
+                style={{ "--d": "120ms" } as CSSProperties}
                 data-nudge={nudgeEndTurn ? "true" : undefined}
                 disabled={busy || !canEndTurn}
                 onClick={() => run(() => endTurn())}
@@ -378,6 +426,80 @@ export function TurnControls() {
               }
             >
               Yes, pass
+            </Button>
+          </Group>
+        </Stack>
+      </AppModal>
+
+      {/* MODAL akcji komponentu — „co zagrałeś?". Lista = karty akcji z oknem
+          „Action" z ręki + opcja dla źródeł nie-kartowych (relikt/tech/zdolność).
+          Wybór to tylko ADNOTACJA (component_id); efekt = oznaczenie akcji w turze
+          (mechanika konkretnego komponentu dojdzie później — RULES.md 31.8). */}
+      <AppModal
+        opened={componentOpen}
+        onClose={() => setComponentOpen(false)}
+        title="Play a component action"
+        size={440}
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Pick what you're playing. This records a component action for your turn
+            so you can end it — the component's effect is applied manually for now.
+          </Text>
+
+          <div className={styles.compList} role="list">
+            {actionCardChoices.map((choice) => (
+              <button
+                key={choice.id}
+                type="button"
+                role="listitem"
+                className={styles.compItem}
+                disabled={busy}
+                onClick={() =>
+                  run(() =>
+                    playComponentAction(active.discordId, choice.id).finally(() =>
+                      setComponentOpen(false),
+                    ),
+                  )
+                }
+              >
+                <IconCards size={17} aria-hidden="true" />
+                <span className={styles.compItemName}>{choice.name}</span>
+                <small className={styles.compItemTag}>Action card</small>
+              </button>
+            ))}
+
+            {/* Zawsze dostępna opcja dla źródeł nie-kartowych (relikt/tech/frakcja/
+                promissory) — nie mamy ich jeszcze w ręce jako listy do wyboru. */}
+            <button
+              type="button"
+              role="listitem"
+              className={styles.compItem}
+              data-other
+              disabled={busy}
+              onClick={() =>
+                run(() =>
+                  playComponentAction(active.discordId).finally(() =>
+                    setComponentOpen(false),
+                  ),
+                )
+              }
+            >
+              <IconSparkles size={17} aria-hidden="true" />
+              <span className={styles.compItemName}>
+                Other (relic, tech, ability…)
+              </span>
+              <small className={styles.compItemTag}>Any component</small>
+            </button>
+          </div>
+
+          <Group justify="flex-end" gap="sm">
+            <Button
+              variant="default"
+              disabled={busy}
+              onClick={() => setComponentOpen(false)}
+            >
+              Cancel
             </Button>
           </Group>
         </Stack>

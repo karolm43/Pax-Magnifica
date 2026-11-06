@@ -316,6 +316,7 @@
 
 /* Wspólny styl przycisku akcji: ikona + etykieta, hover-glow, press. */
 .pass,
+.component,
 .endTurn,
 .nextPhase {
   display: flex;
@@ -338,18 +339,21 @@
 }
 
 .pass svg,
+.component svg,
 .endTurn svg,
 .nextPhase svg {
   flex: none;
 }
 
 .pass span,
+.component span,
 .endTurn span,
 .nextPhase span {
   flex: 1 1 auto;
 }
 
 .pass:active:not(:disabled),
+.component:active:not(:disabled),
 .endTurn:active:not(:disabled),
 .nextPhase:active:not(:disabled) {
   transform: translateY(1px);
@@ -358,6 +362,7 @@
 /* Wyłączony przycisk = SZARY (neutralny), bez barwy akcji. Czytelny sygnał
    „nie teraz" zamiast wyblakłego kolorowego guzika. */
 .pass:disabled,
+.component:disabled,
 .endTurn:disabled,
 .nextPhase:disabled {
   cursor: default;
@@ -378,6 +383,19 @@
 .pass:hover:not(:disabled) {
   background: rgb(var(--ds-sig-warn) / 0.22);
   border-color: rgb(var(--ds-sig-warn) / 0.65);
+}
+
+/* Component action — akcja „ze zdolności" (fioletowy akcent, barwa ability/law).
+   Osobny kolor od Pass (warn) i End turn (bio), by trzy akcje były rozróżnialne. */
+.component {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-ability) / 0.16);
+  border: 1px solid rgb(var(--ds-sig-ability) / 0.5);
+}
+
+.component:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-ability) / 0.24);
+  border-color: rgb(var(--ds-sig-ability) / 0.68);
 }
 
 /* End turn — główna akcja (zielony, najmocniejszy akcent). */
@@ -467,6 +485,88 @@
 
 
 
+/* ================= MODAL AKCJI KOMPONENTU — lista „co zagrałeś?" =========== */
+.compList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 48vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Pozycja listy = klikany wiersz: ikona + nazwa + mały tag źródła. */
+.compItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-ability) / 0.08);
+  border: 1px solid rgb(var(--ds-sig-ability) / 0.28);
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease),
+    border-color var(--ds-dur-fast) var(--ds-ease),
+    transform 80ms ease;
+}
+
+.compItem:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-ability) / 0.16);
+  border-color: rgb(var(--ds-sig-ability) / 0.5);
+}
+
+.compItem:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.compItem:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.compItem svg {
+  flex: none;
+  color: rgb(var(--ds-sig-ability));
+}
+
+/* Wariant „Other" — neutralny (nie-kartowe źródło akcji komponentu). */
+.compItem[data-other] {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--ds-h14);
+}
+
+.compItem[data-other]:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--ds-h22);
+}
+
+.compItem[data-other] svg {
+  color: var(--ds-ink);
+}
+
+.compItemName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-body, 13px);
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.compItemTag {
+  flex: none;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
 /* ============================== Animacje ================================== */
 @keyframes cardDeal {
   from {
@@ -527,6 +627,7 @@
   .card,
   .actionZone,
   .pass,
+  .component,
   .endTurn,
   .nextPhase {
     animation: none;

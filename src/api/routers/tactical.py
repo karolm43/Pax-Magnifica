@@ -18,6 +18,7 @@ from src.api.schemas import (
     CombatSideHelp,
     CombatUnitHelp,
     CommandTokenRequest,
+    ComponentActionRequest,
     MapView,
     MoveShipsRequest,
     ProduceRequest,
@@ -28,7 +29,7 @@ from src.api.schemas import (
 )
 from src.api.serializers import build_map_view
 from src.api.web_data import entity_key_map
-from src.core import board_edit, combat, movement, production, tactical
+from src.core import board_edit, combat, component_action, movement, production, tactical
 from src.core.combat import PlayerCombat
 from src.core.game_state import GameState, TacticalStep
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
@@ -144,6 +145,28 @@ async def post_activate_system(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, f"tactical:activate:{request.position}")
+
+
+@router.post("/tactical/component-action", response_model=StateEnvelope)
+async def post_component_action(
+    request: ComponentActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Akcja komponentu — trzeci typ akcji fazy akcji (RULES.md 31.8).
+
+    Rejestruje, że aktywny gracz wykonał akcję komponentu w tej turze
+    (``took_action_this_turn``), tak jak akcja strategiczna/taktyczna — dzięki temu
+    ``End turn`` się odblokowuje. NIE wykonuje efektu konkretnego komponentu (szkielet);
+    ``component_id`` jest tylko adnotacją „co zagrano". Walidacja (faza/tura/okno/jedna
+    akcja) siedzi w ``core.component_action`` — ``ValueError`` → HTTP 422.
+    """
+    try:
+        new_state = component_action.play_component_action(
+            ctx.service.current_state(), request.player_id, request.component_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    label = f"component-action:{request.component_id or 'other'}"
+    return await _commit_flow(ctx, new_state, label)
 
 
 @router.post("/tactical/step/next", response_model=StateEnvelope)

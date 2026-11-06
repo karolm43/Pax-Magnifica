@@ -250,6 +250,21 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Akcja komponentu (RULES.md 31.8) — trzeci typ akcji fazy akcji. NA RAZIE szkielet:
+  // tylko rejestruje „gracz wykonał akcję komponentu w tej turze" (odblokowuje End turn),
+  // bez mechaniki konkretnego komponentu. ``componentId`` to adnotacja „co zagrano"
+  // (karta akcji / relikt / tech / zdolność), opcjonalna.
+  const playComponentAction = useCallback(
+    async (playerId?: string, componentId?: string) => {
+      await post("/tactical/component-action", {
+        player_id: playerId ?? null,
+        component_id: componentId ?? null,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // Ruch WALIDOWANY (RULES.md 32) — w odróżnieniu od God-Mode moveUnit (bez reguł).
   // Cel = aktywny system; backend egzekwuje zasięg/anomalie/blokady i zwraca 422,
   // gdy ruch nielegalny (wtedy post() rzuca błąd z detalem).
@@ -421,6 +436,7 @@ export function useBoardEditor() {
     pickStrategyCard,
     playStrategyCard,
     setSpeaker,
+    playComponentAction,
     activateSystem,
     moveShips,
     produce,
