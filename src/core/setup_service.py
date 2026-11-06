@@ -314,15 +314,24 @@ def _resolve_factions(
 
     - Frakcja jawna nieznana lub niegrywalna w registry → ``ValueError`` (R8.7).
     - Ten sam identyfikator frakcji u dwóch graczy → ``ValueError`` (R8.8).
+    - Dwa warianty tej samej RODZINY frakcji (np. keleresm + keleresx) →
+      ``ValueError``: Keleres to jedna frakcja z trzema wariantami mentora,
+      więc w jednej grze może wystąpić najwyżej jeden (RULES.md 10,
+      docs/rules_tirules/F_keleres.md).
     - Brak frakcji (``None``) → losowy dobór spośród grywalnych, jeszcze
-      nieprzypisanych (R8.5). Pusta pula przy losowaniu → ``ValueError`` (R8.6).
+      nieprzypisanych (R8.5). Pula bierze najwyżej jednego przedstawiciela
+      z każdej rodziny, więc losowanie nie da dwóch wariantów Keleres.
+      Pusta pula przy losowaniu → ``ValueError`` (R8.6).
 
     Lookupy idą wyłącznie przez ``registry.factions`` (R11.5).
     """
     assigned: list[str | None] = [None] * len(players)
     used: dict[str, int] = {}
+    # Rodziny frakcji (klucz ``registry.faction_family``) już zajęte — jawnie
+    # lub przez losowanie. Pozwala egzekwować „max 1 wariant z rodziny" (Keleres).
+    used_families: dict[str, int] = {}
 
-    # 1) Frakcje jawne — walidacja grywalności i duplikatów.
+    # 1) Frakcje jawne — walidacja grywalności oraz duplikatów (id i rodziny).
     for index, player in enumerate(players):
         fid = player.faction_id
         if fid is None:
@@ -342,11 +351,20 @@ def _resolve_factions(
                 f"Duplicate faction {fid!r} (players "
                 f"{player_ids[used[fid]]!r} and {player_ids[index]!r})."
             )
+        family = registry.faction_family(faction)
+        if family in used_families:
+            raise ValueError(
+                f"Duplicate faction variant {fid!r} (players "
+                f"{player_ids[used_families[family]]!r} and {player_ids[index]!r}): "
+                f"only one variant of faction family {family!r} is allowed."
+            )
         used[fid] = index
+        used_families[family] = index
         assigned[index] = fid
 
     # 2) Losowy dobór dla slotów bez jawnej frakcji (R8.5) spośród nieprzypisanych.
-    pool = _playable_faction_pool(registry, exclude=set(used))
+    #    Pula wyklucza całe zajęte rodziny i daje jednego przedstawiciela na rodzinę.
+    pool = _playable_faction_pool(registry, exclude_families=set(used_families))
     chooser.shuffle(pool)
     pool_iter = iter(pool)
     for index, fid in enumerate(assigned):
@@ -365,18 +383,31 @@ def _resolve_factions(
 
 
 def _playable_faction_pool(
-    registry: StaticDataRegistry, *, exclude: set[str]
+    registry: StaticDataRegistry, *, exclude_families: set[str]
 ) -> list[str]:
-    """Posortowana pula grywalnych frakcji z registry, bez już przypisanych.
+    """Pula grywalnych frakcji z registry, po jednym wariancie na rodzinę.
 
-    Sortowanie po identyfikatorze daje deterministyczną kolejność bazową, na
-    której działa seedowalny ``shuffle`` (powtarzalność testów przy danym seedzie).
+    Warianty tej samej rodziny (Keleres: keleresm/keleresx/keleresa) dzielą
+    klucz ``registry.faction_family``; do losowania wpuszczamy tylko jednego
+    przedstawiciela każdej rodziny, by losowy dobór nie przydzielił dwóm graczom
+    dwóch wariantów tej samej frakcji (RULES.md 10). Pomijamy też rodziny już
+    zajęte przez jawny wybór.
+
+    Deterministyczny wybór przedstawiciela (najmniejsze id w rodzinie) i końcowe
+    sortowanie po id dają powtarzalną kolejność bazową, na której działa seedowalny
+    ``shuffle`` (powtarzalność testów przy danym seedzie).
     """
-    return sorted(
-        fid
-        for fid, faction in registry.factions.items()
-        if faction.is_playable and fid not in exclude
-    )
+    representatives: dict[str, str] = {}
+    for fid, faction in registry.factions.items():
+        if not faction.is_playable:
+            continue
+        family = registry.faction_family(faction)
+        if family in exclude_families:
+            continue
+        current = representatives.get(family)
+        if current is None or fid < current:
+            representatives[family] = fid
+    return sorted(representatives.values())
 
 
 # --- Typ sterowania + trudność (R10.3–R10.6) ---------------------------

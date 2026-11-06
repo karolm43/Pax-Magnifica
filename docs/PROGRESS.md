@@ -21,6 +21,22 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### ✅ Fix — dobór frakcji: Keleres max 1 wariant (losowanie + jawny wybór)
+
+- **Problem:** przy wyborze „random" losowanie mogło przydzielić dwóm graczom różne
+  warianty Council Keleres (`keleresm`/`keleresx`/`keleresa`) — a to jedna frakcja
+  z trzema wariantami mentora, więc w grze może być najwyżej jeden.
+- **Fix (`src/core/setup_service.py` → `_resolve_factions` / `_playable_faction_pool`):**
+  pula losowania dedupuje po rodzinie frakcji (`registry.faction_family`) i bierze
+  jednego przedstawiciela na rodzinę; rodziny zajęte jawnym wyborem są pomijane.
+  Jawny wybór dwóch wariantów tej samej rodziny → `ValueError` (HTTP 422), obok
+  istniejącej walidacji duplikatu `faction_id`.
+- **Reguła:** `RULES.md` 28.1 (źródło: struktura danych + `F_keleres.md`).
+- **Testy:** `tests/test_setup_factions.py` (losowanie bez dwóch Keleres, jawny Keleres
+  blokuje losowanie wariantu, dwa jawne warianty → błąd). QA zielone: pytest 507, ruff, mypy.
+
+---
+
 ### ✅ E8 Blok A+B — UX akcji taktycznej + ruch z transportem (ukończone)
 
 - **Cel (ustalony z użytkownikiem):** profesjonalna akcja taktyczna z ładnym UI na każdy z 5

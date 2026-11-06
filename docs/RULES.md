@@ -1189,6 +1189,23 @@ Reguła w danych (nie z pamięci): Obsidian ma zdolność **`nocturne`**
 Obsidian; setup odrzuca Obsidian (422). Gdyby doszła inna frakcja „non-setup" (np. druga strona
 innego kafelka), oznaczymy ją tą samą zdolnością w danych — kod jej nie wymaga zmieniać.
 
+**28.1 Keleres: jedna frakcja, trzy warianty — MAX 1 w grze.** Council Keleres
+występuje w danych AsyncTI4 jako trzy osobne, grywalne wpisy (`keleresm`, `keleresx`,
+`keleresa`) — to warianty jednego „mentora" tej samej frakcji, dzielące wspólną
+`shortName` „Keleres" (patrz nota o rodzinie frakcji w `core/registry.py` →
+`faction_family`). Gracz Keleresa wybiera JEDEN wariant, więc w jednej grze może
+wystąpić najwyżej jeden przedstawiciel rodziny. Źródło: struktura danych (trzy wpisy
+wspólnej `shortName`) + doprecyzowania frakcji w [Council Keleres](rules_tirules/F_keleres.md);
+to jedna frakcja, a nie trzy niezależne.
+
+Egzekucja w setupie (`src/core/setup_service.py` → `_resolve_factions`):
+- jawny wybór dwóch różnych wariantów Keleres u różnych graczy → `ValueError` (HTTP 422),
+  obok istniejącej walidacji duplikatu tego samego `faction_id`;
+- losowy dobór („random") bierze najwyżej jednego przedstawiciela z każdej rodziny
+  (`_playable_faction_pool` dedupuje po `faction_family`) i pomija rodziny już zajęte
+  jawnym wyborem — dzięki temu losowanie nie przydzieli dwóm graczom dwóch wariantów
+  Keleres. Testy: `tests/test_setup_factions.py`.
+
 ---
 
 ## 29. ZMIANA KIERUNKU: silnik-SĘDZIA + okna czasowe (zastępuje "asystent, nie sędzia")
