@@ -15,9 +15,73 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 | E1–E2 | Fazy + kolejność tur + faza strategii | ✅ ukończone |
 | E3 | Akcja taktyczna (aktywacja, ruch, walka, inwazja, produkcja) | ✅ fundament |
 | E4 | Kontrola komponentów (exhaust/refresh) + menu RMB | ✅ ukończone |
-| E8 | Silnik-SĘDZIA: walidacja reguł + okna czasowe (T1–T3 done) | 🔧 w toku |
+| E8 | Silnik-SĘDZIA: walidacja reguł + okna czasowe (T1–T7 + faza akcji 31.7/31.8) | 🔧 w toku |
 
 > Pełna historia ukończonych bloków ze szczegółami: `PROGRESS_ARCHIWUM.md`.
+
+---
+
+### ✅ Akcja komponentu — trzeci typ akcji fazy akcji + modal „co zagrałeś?" (ukończone)
+
+- **Cel (ustalony z użytkownikiem):** dać opcję zagrania AKCJI KOMPONENTU (trzeci typ akcji
+  tury obok strategicznej i taktycznej) i pójść dalej. NA RAZIE bez mechaniki konkretnego
+  komponentu — gracz oznacza „zagrałem coś z nagłówkiem Action", co odblokowuje End turn.
+- **Reguła (zweryfikowana, nie z pamięci):** `RULES.md` 31.8 ze źródłem
+  `docs/rules_tirules/R_component_action.md` (tirules2.com). Akcja komponentu bywa na karcie
+  akcji, zdolności frakcji, liderze, technologii, relikcie, karcie eksploracji, promissory
+  note, arkuszu frakcji — oznaczona nagłówkiem „Action". To akcja XOR pas w danej turze
+  (31.7, R_action_phase).
+- **Backend (core → api, silnik-sędzia):**
+  - `src/core/component_action.py` (NOWY): `play_component_action(state, player_id?, component_id?)`
+    — CZYSTA funkcja. Waliduje jak pozostałe akcje tury (faza ACTION, czyja tura, brak otwartego
+    okna, jedna akcja na turę, nie po pasie) i ustawia `took_action_this_turn=True`. Efekt
+    konkretnego komponentu NIE jest wykonywany (świadomy szkielet); `component_id` to adnotacja
+    „co zagrano" (trafia do etykiety eventu), opcjonalna.
+  - `src/api/schemas.py`: `ComponentActionRequest{player_id?, component_id?}`.
+  - `src/api/routers/tactical.py`: `POST /tactical/component-action` (commit `_commit_flow`,
+    `ValueError`→422). **UWAGA:** nowy endpoint wymaga RESTARTU backendu (stan w pamięci; stary
+    proces serwuje stare trasy → 404 „Not Found").
+  - `tests/test_component_action.py` (NOWY, 9): core (oznaczenie akcji, walidacje faza/tura/okno/
+    po-akcji/po-pasie) + API (odblokowanie End turn, odmowa drugiej akcji).
+- **Frontend (lista = WSZYSTKIE komponenty gracza z „Action", zero hardkodowania):**
+  - `api/useBoardEditor.ts`: akcja `playComponentAction(playerId?, componentId?)` → endpoint.
+  - `TurnControls.tsx`: przycisk „**Component action**" (fioletowy akcent ability) w panelu
+    tury — między Pass a End turn; WYŁĄCZONY gdy gracz już działał / spasował / trwa okno.
+    Klik otwiera modal „co zagrałeś?".
+  - `componentActions.ts` (NOWY) `collectComponentActions(player, handActionCards)`: zbiera
+    pozycje z DANYCH — karty akcji z ręki (`actionCardTiming==="Action"`), zdolności frakcji
+    (`getAbilityKind==="action"`), liderzy (`abilityWindow`/`abilityText` od „ACTION"), techy
+    i relikty (`text` z „ACTION"). Czyta to, co gracz REALNIE ma z web-data `playerData[]`
+    (`abilities`/`leaderIDs`/`techs`/`relics`) + ręka. Deduplikacja po (kind,id), ikona + tag
+    kategorii per wiersz.
+  - Opcja awaryjna „Something else" na końcu listy — dla źródeł nieśledzonych jako posiadane
+    (eksploracja / promissory). **TODO (ustalone z użytkownikiem):** docelowo USUNĄĆ „Something
+    else" i listować też te źródła — do okodowania, gdy dojdzie ich śledzenie w stanie.
+- **Ograniczenie (świadome):** relikty w web-data to na razie `[]` (backend ich nie emituje) —
+  pojawią się na liście automatycznie, gdy dojdzie ich model. Efekt komponentu = TODO (dispatch
+  po `component_id`, komponent po komponencie, z regułą/źródłem).
+- **QA:** backend 497 testów zielonych (ruff + mypy --strict czyste); frontend type-check +
+  lint + build czyste.
+
+---
+
+### ✅ Faza akcji: End turn wymaga akcji albo pasu (31.7) + dopieszczony UI tury (ukończone)
+
+- **Reguła:** `RULES.md` 31.7 (źródło `R_action_phase`): w swojej turze gracz wykonuje JEDNĄ
+  akcję (strategiczna/taktyczna/komponentu) ALBO pasuje — nie ma „pustej" tury.
+- **Egzekucja (sędzia, `turn_flow`):** `end_turn` rzuca 422, gdy gracz nie ma
+  `took_action_this_turn` ANI `passed`; `pass_turn` rzuca 422, gdy gracz już wykonał akcję w
+  tej turze (pas jest ALTERNATYWĄ dla akcji, nie dodatkiem). Flaga `took_action_this_turn`
+  ustawiana przez akcję strategiczną i taktyczną (a od 31.8 także komponentu), zerowana przy
+  przekazaniu tury i wejściu w fazę.
+- **Fix pustego okna secondary:** gdy kolejka respondentów jest pusta (gra solo / brak innych),
+  `play_strategy_card` NIE otwiera okna — inaczej `pending_window` zostawał ustawiony i blokował
+  End turn na stałe (bug: zagranie karty → End turn szary na zawsze). Dodano też możliwość pasu
+  po akcji strategicznej.
+- **UI tury (`TurnControls`):** potwierdzenie pasa w MODALU (pas ≠ koniec tury — trzeba jeszcze
+  oddać turę), „nudge" na End turn po pasie/akcji, podpowiedzi jako zawijane „chipy" i STAŁA
+  szerokość panelu (koniec przeskakiwania rozmiaru). End turn wygaszony na czas otwartego okna.
+- **QA:** backend zielony (pytest + ruff + mypy), frontend type-check + lint + build czyste.
 
 ---
 
