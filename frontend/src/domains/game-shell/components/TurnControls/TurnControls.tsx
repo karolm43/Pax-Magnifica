@@ -94,15 +94,13 @@ export function TurnControls() {
   // next-player). „Next phase" u mówcy pojawia się wg ``canAdvancePhase``.
   const isStatus = phase.startsWith("status");
   const isAgenda = phase.startsWith("agenda");
-  // Czy MÓWCA może już ogłosić przejście fazy (backend: akcja/status po komplecie
-  // pasów/kroków; strategia po pełnym wyborze; agenda zawsze). Domyślnie FALSE —
-  // „Next phase" ma być BRAMOWANE; pokazujemy je tylko, gdy backend jawnie pozwala.
-  const canAdvancePhase = gameState?.canAdvancePhase ?? false;
   const isSpeaker =
     gameState?.speaker != null && active.color === gameState.speaker;
-  // „Next phase" pokazujemy mówcy tylko, gdy wolno już przejść dalej. W agendzie
-  // przycisk (Next round) jest zawsze — kolejne głosowania to okna, nie ta brama.
-  const showNextPhase = isAgenda || (isSpeaker && canAdvancePhase);
+  // „Next phase" widzi ZAWSZE mówca (w każdej głównej fazie). Gdy przejście nie jest
+  // jeszcze dozwolone (np. nie wszyscy wybrali/spasowali), klik zwróci 422 i panel
+  // pokaże komunikat — zgodnie z decyzją „komunikat przy niedozwolonej akcji"
+  // (2026-11, uwaga użytkownika). Brak twardego ukrywania przycisku.
+  const showNextPhase = isAgenda || isSpeaker;
   // Czytelna etykieta fazy w nagłówku pulpitu.
   const phaseLabel = phase.startsWith("agenda")
     ? "Agenda phase"
@@ -178,7 +176,7 @@ export function TurnControls() {
                 type="button"
                 className={styles.pass}
                 style={{ "--d": "0ms" } as CSSProperties}
-                disabled={busy || !canPass}
+                disabled={busy}
                 onClick={() => run(() => passTurn())}
                 title={
                   canPass

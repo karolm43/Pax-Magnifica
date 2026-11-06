@@ -1686,13 +1686,11 @@ function PhaseControls({
   const isAction = phase === "action";
   const isStatus = phase.startsWith("status");
   const isAgenda = phase.startsWith("agenda");
-  // „Next phase" tylko gdy mówca może już przejść (akcja/status po komplecie
-  // pasów/kroków; strategia po pełnym wyborze) — DECYZJA PROJEKTOWA 2026-11.
-  // Domyślnie FALSE: brama ma ukrywać „Next phase", gdy backend nie potwierdzi.
-  const canAdvancePhase = gameState.canAdvancePhase ?? false;
+  // „Next phase" widzi ZAWSZE mówca; gdy przejście nie jest dozwolone, klik zwróci
+  // 422 i panel komunikatów to pokaże (DECYZJA 2026-11). Bez twardego ukrywania.
   const isSpeaker =
     gameState.speaker != null && activePlayer?.color === gameState.speaker;
-  const showNextPhase = isSpeaker && canAdvancePhase;
+  const showNextPhase = isSpeaker;
 
   return (
     <div className={styles.controls}>
@@ -1712,7 +1710,7 @@ function PhaseControls({
           <button
             type="button"
             className={styles.ctlBtn}
-            disabled={busy || !canPass}
+            disabled={busy}
             onClick={() => void run(() => passTurn())}
             title={
               canPass

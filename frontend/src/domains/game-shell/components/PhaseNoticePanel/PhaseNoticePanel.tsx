@@ -1,145 +1,101 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
 import { IconX, IconInfoCircle, IconAlertTriangle } from "@tabler/icons-react";
-import { DEFAULT_GAME_ID } from "@/config";
-import { useGameState } from "@/api/useGameState";
-import { useGameData } from "@/state/useGameContext";
 import { useAppStore } from "@/state/appStore";
-import type { GameState } from "@/entities/data/types";
-import { announcementFor, type PhaseNotice } from "./phaseNoticeMessage";
 import styles from "./PhaseNoticePanel.module.css";
 
-/* Ton → trójka RGB akcentu (sygnały design systemu). */
-const TONE_RGB: Record<PhaseNotice["tone"], string> = {
-  strategy: "var(--ds-sig-break)",
-  action: "var(--ds-sig-bio)",
-  status: "var(--ds-sig-warn)",
-  agenda: "var(--ds-sig-law)",
-  neutral: "var(--ds-hair-rgb)",
-};
+/** Jak długo komunikat jest widoczny, zanim ruszy fade-out (ms). */
+const AUTO_DISMISS_MS = 6000;
+/** Czas trwania animacji fade-out przed odmontowaniem (ms) — zgodny z CSS. */
+const FADE_OUT_MS = 320;
 
-/** Ile widoczny jest komunikat zanim sam zniknie (ms). */
-const AUTO_DISMISS_MS = 7000;
-
-type Shown =
-  | { source: "notice"; kind: "error" | "info"; title: string; body: string }
-  | { source: "phase"; notice: PhaseNotice };
+type Shown = { kind: "error" | "info"; title: string; body: string };
 
 /**
- * PANEL KOMUNIKATÓW — osobny box PRZYPIĘTY u GÓRY ekranu. REAKTYWNY, nie stały:
- * pojawia się tylko gdy „coś jest nie tak albo coś się zmienia" (uwaga użytkownika,
- * DECYZJA 2026-11), po czym sam znika po czasie i można go zamknąć krzyżykiem.
+ * PANEL KOMUNIKATÓW — osobny box PRZYPIĘTY u GÓRY ekranu. Pokazuje WYŁĄCZNIE komunikaty
+ * o NIEDOZWOLONYCH / odrzuconych akcjach (``notice`` z appStore, ustawiane przy 422 w
+ * ``useBoardEditor.post``) — np. „Next phase" w strategii zanim wszyscy wybiorą kartę,
+ * „Pass" zanim zagrasz kartę strategii (DECYZJA 2026-11, uwaga użytkownika).
  *
- * Dwa źródła, jedno miejsce:
- *  1. ODRZUCONA AKCJA (``notice`` z appStore, np. 422) — pokazywana natychmiast.
- *  2. ZDARZENIE STANU (``announcementFor``): zmiana fazy albo „mówca może zakończyć
- *     fazę". Liczone z RÓŻNICY prev→next stanu — nie przypomina w kółko.
- *
- * Nie przechwytuje panningu mapy (pointer-events tylko na wnętrzu).
+ * Reaktywny: pojawia się na zdarzenie, po czym ZNIKA Z FADE-OUT (auto po czasie lub po
+ * kliknięciu krzyżyka). Nie jest stałym przypomnieniem. Nie przechwytuje panningu mapy
+ * (pointer-events tylko na wnętrzu).
  */
 export function PhaseNoticePanel() {
-  const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid ?? DEFAULT_GAME_ID;
-  const { data: gameState } = useGameState(gameId);
-  const gameData = useGameData();
-  const players = gameData?.playerData ?? [];
-
   const notice = useAppStore((s) => s.notice);
   const clearNotice = useAppStore((s) => s.clearNotice);
 
   const [shown, setShown] = useState<Shown | null>(null);
-  const prevStateRef = useRef<GameState | null>(null);
-  const lastKeyRef = useRef<string | null>(null);
-  const timerRef = useRef<number | null>(null);
+  // ``closing`` wyzwala animację fade-out PRZED odmontowaniem (CSS data-closing).
+  const [closing, setClosing] = useState(false);
+  const autoTimer = useRef<number | null>(null);
+  const fadeTimer = useRef<number | null>(null);
 
-  const dismiss = () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = null;
-    setShown(null);
+  const clearTimers = () => {
+    if (autoTimer.current) window.clearTimeout(autoTimer.current);
+    if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
+    autoTimer.current = null;
+    fadeTimer.current = null;
   };
 
-  const armAutoDismiss = () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => setShown(null), AUTO_DISMISS_MS);
+  // Rozpoczyna znikanie: najpierw fade-out (CSS), po FADE_OUT_MS odmontowanie.
+  const beginClose = () => {
+    if (fadeTimer.current) return; // już się zamyka
+    setClosing(true);
+    fadeTimer.current = window.setTimeout(() => {
+      setShown(null);
+      setClosing(false);
+      fadeTimer.current = null;
+    }, FADE_OUT_MS);
   };
 
-  // Źródło 1: odrzucona akcja / info — ma pierwszeństwo, pokazujemy natychmiast.
+  // Nowy komunikat 422/info: pokaż natychmiast, uzbrój auto-fade po czasie.
   useEffect(() => {
     if (!notice) return;
+    clearTimers();
+    setClosing(false);
     setShown({
-      source: "notice",
       kind: notice.kind,
       title: notice.kind === "error" ? "Action not allowed" : "Notice",
       body: notice.text,
     });
-    armAutoDismiss();
-    // Czyścimy w store, by ten sam komunikat nie „przykleił się" do kolejnych zmian.
-    const clearTimer = window.setTimeout(() => clearNotice(), 100);
-    return () => window.clearTimeout(clearTimer);
+    autoTimer.current = window.setTimeout(beginClose, AUTO_DISMISS_MS);
+    // Czyścimy w store, by ten sam tekst mógł pojawić się ponownie przy kolejnej
+    // odrzuconej akcji (inaczej identyczny notice nie wyzwoliłby efektu).
+    const storeClear = window.setTimeout(() => clearNotice(), 80);
+    return () => window.clearTimeout(storeClear);
   }, [notice, clearNotice]);
 
-  // Źródło 2: zdarzenie stanu (zmiana fazy / brama „można zakończyć fazę").
-  useEffect(() => {
-    const prev = prevStateRef.current;
-    const announcement = announcementFor(prev, gameState, players);
-    prevStateRef.current = gameState ?? null;
-    if (!announcement) return;
-    // Nie powtarzaj tego samego zdarzenia (klucz) ani nie nadpisuj świeżego notice.
-    if (announcement.key === lastKeyRef.current) return;
-    lastKeyRef.current = announcement.key;
-    setShown((cur) =>
-      cur?.source === "notice" ? cur : { source: "phase", notice: announcement },
-    );
-    armAutoDismiss();
-  }, [gameState, players]);
-
-  useEffect(() => () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-  }, []);
+  useEffect(() => clearTimers, []);
 
   if (!shown) return null;
 
-  const isNoticeError = shown.source === "notice" && shown.kind === "error";
-  const accent =
-    shown.source === "notice"
-      ? isNoticeError
-        ? "var(--ds-sig-danger)"
-        : "var(--ds-sig-prop)"
-      : TONE_RGB[shown.notice.tone];
-  const title = shown.source === "notice" ? shown.title : shown.notice.title;
-  const body = shown.source === "notice" ? shown.body : shown.notice.body;
+  const isError = shown.kind === "error";
+  const accent = isError ? "var(--ds-sig-danger)" : "var(--ds-sig-prop)";
 
   return (
     <div
       className={styles.wrap}
       role="status"
       aria-live="polite"
+      data-closing={closing || undefined}
       style={{ "--accent": accent } as React.CSSProperties}
     >
-      <div
-        className={styles.panel}
-        data-source={shown.source}
-        data-kind={shown.source === "notice" ? shown.kind : undefined}
-      >
-        {shown.source === "notice" ? (
-          <span className={styles.icon} aria-hidden="true">
-            {isNoticeError ? (
-              <IconAlertTriangle size={20} />
-            ) : (
-              <IconInfoCircle size={20} />
-            )}
-          </span>
-        ) : (
-          <span className={styles.dot} aria-hidden="true" />
-        )}
+      <div className={styles.panel} data-kind={shown.kind}>
+        <span className={styles.icon} aria-hidden="true">
+          {isError ? (
+            <IconAlertTriangle size={20} />
+          ) : (
+            <IconInfoCircle size={20} />
+          )}
+        </span>
         <span className={styles.text}>
-          <b className={styles.title}>{title}</b>
-          <span className={styles.body}>{body}</span>
+          <b className={styles.title}>{shown.title}</b>
+          <span className={styles.body}>{shown.body}</span>
         </span>
         <button
           type="button"
           className={styles.close}
-          onClick={dismiss}
+          onClick={beginClose}
           aria-label="Dismiss message"
           title="Dismiss"
         >

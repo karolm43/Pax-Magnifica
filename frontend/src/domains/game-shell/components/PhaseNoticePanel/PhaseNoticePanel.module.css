@@ -1,7 +1,8 @@
 /*
- * Panel komunikatów fazy — przypięty u GÓRY ekranu, wyśrodkowany. Styl stołu:
- * ciemna „szyba" z hairline-ramką, lewym paskiem akcentu w tonie fazy i delikatną
- * poświatą. --accent = trójka RGB tonu (ustawiana inline przez komponent).
+ * Panel komunikatów o niedozwolonych akcjach — przypięty u GÓRY ekranu, wyśrodkowany.
+ * Styl stołu: ciemna „szyba" z hairline-ramką, lewym paskiem akcentu i delikatną
+ * poświatą. --accent = trójka RGB (danger dla błędu, prop dla info). Wejście: slideDown;
+ * wyjście: fadeOut (data-closing na .wrap) przed odmontowaniem.
  */
 
 .wrap {
@@ -43,14 +44,9 @@
   animation: slideDown var(--ds-dur-slow) var(--ds-ease);
 }
 
-/* Kropka tonu fazy — spokojny sygnał „co się dzieje". */
-.dot {
-  flex: none;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: rgb(var(--accent) / 0.95);
-  box-shadow: 0 0 12px rgb(var(--accent) / 0.7);
+/* Fade-out przy zamykaniu (auto po czasie albo krzyżyk) — płynne znikanie. */
+.wrap[data-closing] .panel {
+  animation: fadeOut 320ms var(--ds-ease-standard) forwards;
 }
 
 .icon {
@@ -105,8 +101,8 @@
   background: var(--ds-h14);
 }
 
-/* Notice błędu — mocniejszy akcent (border-left już nadany inline przez tone). */
-.panel[data-source="notice"][data-kind="error"] {
+/* Błąd — mocniejszy akcent (border-left już nadany inline przez --accent). */
+.panel[data-kind="error"] {
   border-left-color: rgb(var(--ds-sig-danger) / 0.9);
 }
 
@@ -121,8 +117,23 @@
   }
 }
 
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .panel {
+  .panel,
+  .wrap[data-closing] .panel {
     animation: none;
+  }
+  .wrap[data-closing] {
+    opacity: 0;
   }
 }

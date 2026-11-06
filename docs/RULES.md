@@ -1448,20 +1448,25 @@ semantykę w silniku, spójnie dla wszystkich faz.
 - Projekcja do UI przez pola web-data `canAdvancePhase` + `allPassed`. Twarda walidacja
   także w `api/routers/flow.post_next_phase` (czytelny 422, gdy mówca próbuje za wcześnie).
 
-**(4) Panel komunikatów (UI, REAKTYWNY):**
-- Osobny box przypięty u GÓRY ekranu (`frontend/.../PhaseNoticePanel`). NIE jest stałym
-  przypomnieniem — pokazuje się tylko, gdy „coś jest nie tak albo coś się zmienia":
-  odrzucona akcja (422) albo ZDARZENIE stanu (zmiana fazy / „mówca może zakończyć fazę").
-  Komunikat zdarzenia liczony z RÓŻNICY prev→next stanu (`announcementFor`), ma krzyżyk
-  i auto-znika po ~7 s. Zastępuje dawny lokalny `NoticeBanner`.
+**(4) Panel komunikatów (UI) = TYLKO niedozwolone akcje:**
+- Osobny box przypięty u GÓRY ekranu (`frontend/.../PhaseNoticePanel`). Pokazuje
+  WYŁĄCZNIE komunikaty o odrzuconych akcjach (422 → `notice` w appStore): np. „Next
+  phase" w strategii zanim wszyscy wybiorą, „Pass" zanim zagrasz kartę strategii.
+  Pojawia się na zdarzenie i ZNIKA Z FADE-OUT (auto po ~6 s albo krzyżyk). NIE jest
+  stałym przypomnieniem ani nie ogłasza zmian faz. Zastępuje dawny `NoticeBanner`.
 
-**(5) Przyciski flow wołają backend BEZ `player_id`:**
+**(5) „Next phase" widoczny zawsze dla mówcy; brama egzekwowana przez 422:**
+- Zamiast ukrywać przycisk do czasu kompletu, mówca ZAWSZE widzi „Next phase" w
+  głównych fazach. Gdy przejście nie jest dozwolone (strategia: nie wszyscy wybrali;
+  akcja/status: nie wszyscy spasowali/zrobili krok), klik zwraca 422 z czytelnym
+  komunikatem, który pokazuje panel. Twarda walidacja: `can_advance_phase` +
+  `/phase/next`. Pola web-data `canAdvancePhase`/`allPassed` zostają (diagnostyka/bot).
+
+**(6) Przyciski flow wołają backend BEZ `player_id`:**
 - UI wysyła `/turn/pass`, `/turn/end`, `/turn/phase-step`, `/turn/next-player` bez
   `player_id` — backend adresuje własny `active_player_id`. Powód: „gracz pulpitu"
   (`useDeskPlayer`) bywa fallbackiem na mówcę i rozjeżdżał się z realnym aktywnym
   graczem (status „Next player" wysyłał zły id → 422 → „klik nic nie robił").
-- Front domyślnie `canAdvancePhase ?? false` (brama ukrywa „Next phase", gdy backend
-  nie potwierdzi — zamiast otwierać ją przy braku pola).
 
 **Egzekucja w kodzie:**
 - `turn_flow`: `pass_turn` (tylko flaga), `end_turn` (jedyne oddanie tury), `all_passed`,
