@@ -132,6 +132,17 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
         </Tabs.List>
 
         <Tabs.Panel value="general" className={styles.panel}>
+          <SettingGroup label="Admin / testing">
+            <SwitchRow
+              label="Fast mode (skip intro & phase banners)"
+              description="Skip the opening intro screen and full-screen phase transition banners for the quickest possible testing. Game rules are unaffected."
+              checked={settings.adminFastMode}
+              onToggle={(checked) =>
+                handlers.updateSettings({ adminFastMode: checked })
+              }
+            />
+          </SettingGroup>
+
           <SettingGroup label="Map display">
             <SwitchRow
               label="Ownership overlays"

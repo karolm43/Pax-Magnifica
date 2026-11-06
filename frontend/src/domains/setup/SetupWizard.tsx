@@ -15,6 +15,7 @@
 import { useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSettingsStore } from "@/state/appStore";
 import { Button, Group, NumberInput, Paper, Stack, Text, TextInput } from "@/ds";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
 import { SETUP_STEPS, type SetupStepId } from "./setupSteps";
@@ -92,6 +93,8 @@ export default function SetupWizard() {
   const [error, setError] = useState<string | null>(null);
   // Uczestnicy do planszy otwierającej; `null` = intro nie jest pokazywane.
   const [introPlayers, setIntroPlayers] = useState<IntroPlayer[] | null>(null);
+  // Tryb administratora (szybkie testy) pomija planszę otwierającą i wchodzi prosto do gry.
+  const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
 
   // Mapa frakcji po id — do walidacji (liczba wymaganych tech) i mapowania żądania.
   const factionById = useMemo(() => {
@@ -140,14 +143,17 @@ export default function SetupWizard() {
     }
     // Plansza otwierająca (tytuł, kronika, uczestnicy) przed pierwszą fazą strategii.
     // To tylko oprawa: gdy nie da się pobrać uczestników, wchodzimy prosto do gry.
-    try {
-      const players = await loadIntroPlayers(factionById);
-      if (players.length > 0) {
-        setIntroPlayers(players); // `submitting` zostaje, dopóki intro się nie skończy
-        return;
+    // Tryb administratora (szybkie testy) świadomie pomija intro — od razu do gry.
+    if (!adminFastMode) {
+      try {
+        const players = await loadIntroPlayers(factionById);
+        if (players.length > 0) {
+          setIntroPlayers(players); // `submitting` zostaje, dopóki intro się nie skończy
+          return;
+        }
+      } catch {
+        /* intro pominięte */
       }
-    } catch {
-      /* intro pominięte */
     }
     navigate("/game");
   };

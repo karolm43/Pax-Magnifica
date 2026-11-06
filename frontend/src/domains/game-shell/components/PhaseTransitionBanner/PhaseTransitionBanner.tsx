@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
+import { useSettingsStore } from "@/state/appStore";
 import { DEFAULT_GAME_ID } from "@/config";
 import styles from "./PhaseTransitionBanner.module.css";
 
@@ -114,6 +115,8 @@ const FADE_OUT_MS = 400;
 export function PhaseTransitionBanner(): ReactElement | null {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
+  // Tryb administratora (szybkie testy) całkowicie wyłącza planszę przejścia faz.
+  const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
   const { data: gameState } = useGameState(gameId);
   // Numer rundy z OSOBNEGO źródła (web-data). Hook może zwrócić `undefined`
   // (brak kontekstu/jeszcze niezaładowane) — zabezpieczamy `?.` i pomijamy
@@ -158,8 +161,11 @@ export function PhaseTransitionBanner(): ReactElement | null {
     }
 
     // Doszło do ZMIANY głównej fazy. Baner wyzwalamy TYLKO dla faz mapowalnych
-    // (obecnych w `BANNER_FILE`); dla faz spoza mapy baner się nie pojawia.
-    if (BANNER_FILE[mainPhase]) {
+    // (obecnych w `BANNER_FILE`) i gdy NIE jesteśmy w trybie administratora
+    // (szybkie testy pomijają planszę przejścia); dla faz spoza mapy baner się
+    // nie pojawia. `prevPhase.current` aktualizujemy niżej tak czy inaczej, więc
+    // wyłączenie trybu w kolejnej fazie znów pokaże baner poprawnie.
+    if (BANNER_FILE[mainPhase] && !adminFastMode) {
       setActive(mainPhase);
       // Nowe wyzwolenie zaczyna się od stanu „widoczny" — resetujemy ewentualne
       // wygaszanie po poprzednim banerze, żeby fade-in zadziałał od zera.
@@ -189,7 +195,7 @@ export function PhaseTransitionBanner(): ReactElement | null {
     // `prevPhase.current` aktualizujemy ZAWSZE przy zmianie — także dla faz spoza
     // mapy — żeby późniejsze wejście w fazę mapowalną poprawnie wykryć jako przejście.
     prevPhase.current = mainPhase;
-  }, [mainPhase]);
+  }, [mainPhase, adminFastMode]);
 
   // Drugi krok cyklu życia: gdy baner wchodzi w fazę wygaszania (`leaving === true`),
   // odczekujemy `FADE_OUT_MS` (czas przejścia opacity w CSS) i dopiero wtedy

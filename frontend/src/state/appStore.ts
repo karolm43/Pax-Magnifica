@@ -69,6 +69,7 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaReinforcements: true,
   showPlayerAreaFactionAbilities: true,
   showPlayerAreaNeighborship: true,
+  adminFastMode: false,
 };
 
 /** Legacy settings stored a boolean `showControlTokens` instead of the mode. */
@@ -360,6 +361,13 @@ export type Settings = {
   showPlayerAreaReinforcements: boolean;
   showPlayerAreaFactionAbilities: boolean;
   showPlayerAreaNeighborship: boolean;
+  /*
+   * Tryb administratora / szybkie testowanie. Gdy włączony, silnik POMIJA oprawę
+   * wizualną spowalniającą testy: planszę otwierającą (`GameIntro`) i pełnoekranowe
+   * plansze przejścia faz (`PhaseTransitionBanner`). Reguły gry pozostają bez zmian —
+   * to wyłącznie przyspieszenie przejść dla dewelopera.
+   */
+  adminFastMode: boolean;
 };
 
 type BooleanSettingKey = {
