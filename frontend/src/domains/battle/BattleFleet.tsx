@@ -36,7 +36,7 @@ const RANK: Record<string, number> = {
 };
 
 /** Czas wejścia armady (zgodny z `armadaIn` + opóźnieniami w CSS). */
-const ENTRY_MS = 14000;
+const ENTRY_MS = 10000;
 
 /** Deterministyczne odchylenie (−max..max) z id okrętu — szyk nie stoi w idealnej linii. */
 function jitter(id: string, salt: number, max: number): number {
@@ -71,6 +71,7 @@ function ShipToken({
   view,
   rank,
   index,
+  count,
   side,
   colorAlias,
   faction,
@@ -81,6 +82,8 @@ function ShipToken({
   view: ShipView;
   rank: number;
   index: number;
+  /** Liczba okrętów w szeregu — do ułożenia szyku w łuk (klin). */
+  count: number;
   side: "left" | "right";
   colorAlias: string;
   faction: string;
@@ -92,12 +95,15 @@ function ShipToken({
   const size = shipSize(ship.asyncId);
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
+  // Szyk-klin: okręty skrajne szeregu cofnięte względem środkowych (łuk ku wrogowi).
+  const spread = Math.abs(index - (count - 1) / 2);
+  const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22);
   const style = {
     "--rank": rank,
     "--i": index,
     "--dir": side === "left" ? -1 : 1,
-    "--jx": `${jitter(ship.id, 1, 14)}px`,
-    "--jy": `${jitter(ship.id, 2, 22)}px`,
+    "--jx": `${jitter(ship.id, 1, 8) + arcX}px`,
+    "--jy": `${jitter(ship.id, 2, 12)}px`,
     "--slot": `${size}px`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
@@ -258,6 +264,7 @@ export function BattleFleet({
                 view={view}
                 rank={rank}
                 index={i}
+                count={rankViews.length}
                 side={align}
                 colorAlias={colorAlias}
                 faction={side.faction}

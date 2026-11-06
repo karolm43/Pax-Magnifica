@@ -320,7 +320,7 @@
   min-height: 0;
   display: flex;
   align-items: center;
-  gap: clamp(14px, 2.4vw, 44px);
+  gap: clamp(20px, 3.2vw, 60px);
   padding: 6px 4px;
   overflow: hidden;
 }
@@ -372,8 +372,8 @@
   border: 1px solid transparent;
   border-radius: 8px;
   /* Wejście ARMADY: cała flota wlatuje z boku, szeregi tylne wcześniej, przednie za nimi. */
-  animation: armadaIn 8s cubic-bezier(0.3, 0.2, 0.25, 1) both;
-  animation-delay: calc((5 - var(--rank, 0)) * 450ms + var(--i, 0) * 260ms);
+  animation: armadaIn 5.5s cubic-bezier(0.3, 0.2, 0.25, 1) both;
+  animation-delay: calc((5 - var(--rank, 0)) * 220ms + var(--i, 0) * 110ms);
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
@@ -437,10 +437,11 @@
 .overlay[data-kind="space"] .shipSprite::before {
   content: "";
   position: absolute;
-  right: 8%;
-  bottom: 8%;
+  left: 77%;
+  top: 77%;
   width: 11%;
-  height: 20%;
+  height: 24%;
+  margin-left: -5.5%;
   rotate: -45deg;
   transform-origin: 50% 0;
   border-radius: 50% 50% 60% 60%;
@@ -1032,6 +1033,27 @@
   box-shadow: 0 0 10px 2px rgb(var(--rgb) / 0.6);
 }
 
+/* AFB (Anti-Fighter Barrage): seria drobnych, szybkich pocisków przeciwlotniczych w barwie
+   ostrzegawczej (bursztyn) — wyraźnie inne niż laser/plazma głównej walki. */
+.beam[data-kind="flak"] .beamLaser {
+  display: none;
+}
+
+.beam[data-kind="flak"] .beamCore {
+  width: 12px;
+  height: 3px;
+  top: -1.5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fde68a 60%, #fff);
+  box-shadow: 0 0 6px 1px rgba(251, 191, 36, 0.9);
+  animation-duration: 0.55s;
+}
+
+.beam[data-kind="flak"]:not([data-hit]) .beamCore {
+  animation-name: beamMiss;
+  animation-duration: 0.55s;
+}
+
 /* Błysk wylotu przy strzelcu. */
 .muzzle {
   position: absolute;
@@ -1070,6 +1092,15 @@
   background: radial-gradient(circle, rgba(255, 250, 235, 1) 0%, rgba(251, 191, 36, 0.9) 18%, rgba(234, 88, 12, 0.65) 40%, rgba(185, 28, 28, 0.3) 60%, transparent 72%);
   filter: drop-shadow(0 0 30px rgba(251, 146, 60, 1));
   animation: blastBurst 2s ease-out var(--delay) both;
+}
+
+/* Trafienie AFB: mały bursztynowy rozprysk flak (zamiast dużego wybuchu). */
+.impact[data-afb] {
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  background: radial-gradient(circle, #fff 0%, rgba(253, 224, 71, 0.9) 25%, rgba(245, 158, 11, 0.45) 55%, transparent 72%);
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.9));
 }
 
 /* --- Plakietka powrotu (okno schowane) --- */
@@ -1248,8 +1279,12 @@
   12% {
     opacity: 1;
   }
-  100% {
+  92% {
     opacity: 1;
+    transform: translateX(calc(var(--len) - 26px));
+  }
+  100% {
+    opacity: 0;
     transform: translateX(calc(var(--len) - 26px));
   }
 }

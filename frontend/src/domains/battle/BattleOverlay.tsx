@@ -110,17 +110,28 @@ function VolleyLayer({
         volley.phase === "AFB"
           ? query(`[data-ship-side="${enemy}"][data-ship-base="fighter"]`)
           : [];
-      const targets = fighters.length
-        ? fighters
-        : query(`[data-ship-side="${enemy}"]`);
+      // AFB celuje WYŁĄCZNIE w myśliwce (brak myśliwców = brak strzałów).
+      const targets =
+        volley.phase === "AFB"
+          ? fighters
+          : query(`[data-ship-side="${enemy}"]`);
       if (pool.length === 0 || targets.length === 0) return [];
-      const from = center(pool[bolt.shot % pool.length]);
+      const shooter = pool[bolt.shot % pool.length];
+      const center0 = center(shooter);
       const to = center(targets[Math.floor(Math.random() * targets.length)]);
       // Pudło: pocisk mija cel (odchylenie w pionie i poziomie).
       const tx = bolt.hit ? to.x : to.x + (Math.random() - 0.5) * 90;
       const ty = bolt.hit
         ? to.y
         : to.y + (Math.random() < 0.5 ? -1 : 1) * (36 + Math.random() * 46);
+      // Strzał wychodzi z KRAWĘDZI okrętu (od strony wroga), nie ze środka sprite'a.
+      const sr = shooter.getBoundingClientRect();
+      const reach = Math.min(sr.width, sr.height) * 0.42;
+      const d0 = Math.hypot(tx - center0.x, ty - center0.y) || 1;
+      const from = {
+        x: center0.x + ((tx - center0.x) / d0) * reach,
+        y: center0.y + ((ty - center0.y) / d0) * reach,
+      };
       const dx = tx - from.x;
       const dy = ty - from.y;
       return [
@@ -141,6 +152,7 @@ function VolleyLayer({
     });
     // Rozbłysk w środku formacji każdej strony, która została trafiona (siła ~ liczba trafień).
     const blasts = (["left", "right"] as const).flatMap((side): Blast[] => {
+      if (volley.phase === "AFB") return [];
       const hits = list.filter((s) => s.hit && s.target === side);
       const zone = field.querySelector(`[data-formation="${side}"]`);
       if (hits.length === 0 || !zone) return [];
@@ -166,7 +178,7 @@ function VolleyLayer({
         <span
           key={s.id}
           className={styles.beam}
-          data-kind={n % 3 === 0 ? "laser" : "plasma"}
+          data-kind={s.afb ? "flak" : n % 3 === 0 ? "laser" : "plasma"}
           data-hit={s.hit || undefined}
           data-afb={s.afb || undefined}
           style={
@@ -219,11 +231,12 @@ function VolleyLayer({
           <span
             key={`${s.id}-impact`}
             className={styles.impact}
+            data-afb={s.afb || undefined}
             style={
               {
                 left: s.tx,
                 top: s.ty,
-                "--delay": `${s.delayMs + TRAVEL_MS}ms`,
+                "--delay": `${s.delayMs + (s.afb ? 550 : TRAVEL_MS)}ms`,
               } as CSSProperties
             }
           />
