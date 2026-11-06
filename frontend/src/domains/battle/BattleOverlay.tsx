@@ -1,4 +1,4 @@
-import {
+﻿import {
   useLayoutEffect,
   useRef,
   useState,
@@ -10,7 +10,11 @@ import { useParams } from "react-router-dom";
 import { IconMinimize, IconSwords } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
-import { useBattle, useBoardEditor, type BattleView } from "@/api/useBoardEditor";
+import {
+  useBattle,
+  useBoardEditor,
+  type BattleView,
+} from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
 import { useAppStore } from "@/state/appStore";
 import { getColorAlias, resolvePrimaryRgb } from "@/entities/lookup/colors";
@@ -52,6 +56,17 @@ type Shot = {
   hit: boolean;
   afb: boolean;
   delayMs: number;
+  /** Strona, do której leci pocisk (cel). */
+  target: "left" | "right";
+};
+
+/** Duży rozbłysk w środku pola strony, która dostaje trafienia. */
+type Blast = {
+  id: string;
+  x: number;
+  y: number;
+  delayMs: number;
+  power: number;
 };
 
 /**
@@ -67,7 +82,11 @@ function VolleyLayer({
   volley: Volley | null;
   fieldRef: RefObject<HTMLDivElement | null>;
 }) {
-  const [shots, setShots] = useState<{ id: number; list: Shot[] } | null>(null);
+  const [shots, setShots] = useState<{
+    id: number;
+    list: Shot[];
+    blasts: Blast[];
+  } | null>(null);
 
   useLayoutEffect(() => {
     const field = fieldRef.current;
@@ -75,18 +94,25 @@ function VolleyLayer({
     const box = field.getBoundingClientRect();
     const center = (el: Element) => {
       const r = el.getBoundingClientRect();
-      return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
+      return {
+        x: r.left - box.left + r.width / 2,
+        y: r.top - box.top + r.height / 2,
+      };
     };
     const query = (selector: string) => [...field.querySelectorAll(selector)];
     const list = volley.bolts.flatMap((bolt): Shot[] => {
       const enemy = bolt.from === "left" ? "right" : "left";
-      const own = query(`[data-ship-side="${bolt.from}"][data-ship-base="${bolt.baseType}"]`);
+      const own = query(
+        `[data-ship-side="${bolt.from}"][data-ship-base="${bolt.baseType}"]`,
+      );
       const pool = own.length ? own : query(`[data-ship-side="${bolt.from}"]`);
       const fighters =
         volley.phase === "AFB"
           ? query(`[data-ship-side="${enemy}"][data-ship-base="fighter"]`)
           : [];
-      const targets = fighters.length ? fighters : query(`[data-ship-side="${enemy}"]`);
+      const targets = fighters.length
+        ? fighters
+        : query(`[data-ship-side="${enemy}"]`);
       if (pool.length === 0 || targets.length === 0) return [];
       const from = center(pool[bolt.shot % pool.length]);
       const to = center(targets[Math.floor(Math.random() * targets.length)]);
@@ -109,10 +135,28 @@ function VolleyLayer({
           hit: bolt.hit,
           afb: volley.phase === "AFB",
           delayMs: bolt.delayMs,
+          target: enemy,
         },
       ];
     });
-    setShots({ id: volley.id, list });
+    // Rozbłysk w środku formacji każdej strony, która została trafiona (siła ~ liczba trafień).
+    const blasts = (["left", "right"] as const).flatMap((side): Blast[] => {
+      const hits = list.filter((s) => s.hit && s.target === side);
+      const zone = field.querySelector(`[data-formation="${side}"]`);
+      if (hits.length === 0 || !zone) return [];
+      const c = center(zone);
+      const last = Math.max(...hits.map((h) => h.delayMs));
+      return [
+        {
+          id: `${volley.id}-blast-${side}`,
+          x: c.x,
+          y: c.y,
+          delayMs: last + TRAVEL_MS,
+          power: Math.min(hits.length, 6),
+        },
+      ];
+    });
+    setShots({ id: volley.id, list, blasts });
   }, [volley, fieldRef]);
 
   if (!volley || !shots || shots.id !== volley.id) return null;
@@ -142,7 +186,27 @@ function VolleyLayer({
         <span
           key={`${s.id}-muzzle`}
           className={styles.muzzle}
-          style={{ left: s.x1, top: s.y1, "--delay": `${s.delayMs}ms` } as CSSProperties}
+          style={
+            {
+              left: s.x1,
+              top: s.y1,
+              "--delay": `${s.delayMs}ms`,
+            } as CSSProperties
+          }
+        />
+      ))}
+      {shots.blasts.map((b) => (
+        <span
+          key={b.id}
+          className={styles.blast}
+          style={
+            {
+              left: b.x,
+              top: b.y,
+              "--delay": `ms`,
+              "--power": b.power,
+            } as CSSProperties
+          }
         />
       ))}
       {shots.list
@@ -196,15 +260,22 @@ function Battlefield({ view }: { view: BattleView }) {
   const defenderShips = expandShips(defender);
   const attackerViews = useDyingShips(attackerShips);
   const defenderViews = useDyingShips(defenderShips);
-  const attackerMax = useMaxHp(`${view.position}-${attacker.faction}`, attacker.hp);
-  const defenderMax = useMaxHp(`${view.position}-${defender.faction}`, defender.hp);
+  const attackerMax = useMaxHp(
+    `${view.position}-${attacker.faction}`,
+    attacker.hp,
+  );
+  const defenderMax = useMaxHp(
+    `${view.position}-${defender.faction}`,
+    defender.hp,
+  );
   const volley = useVolley(view);
 
   // Znaczniki strat są ważne tylko dla bieżącego przypisania (runda + gracz + salwa).
   const assignKey = `${view.round}:${view.assigning ?? ""}:${view.log.length}`;
-  const [marksState, setMarksState] = useState<{ key: string; marks: Record<string, Mark> }>(
-    { key: "", marks: {} },
-  );
+  const [marksState, setMarksState] = useState<{
+    key: string;
+    marks: Record<string, Mark>;
+  }>({ key: "", marks: {} });
   const marks = marksState.key === assignKey ? marksState.marks : {};
   const assigningShips =
     view.assigning === attacker.faction
@@ -215,7 +286,8 @@ function Battlefield({ view }: { view: BattleView }) {
   const required = view.assigning ? (view.required[view.assigning] ?? 0) : 0;
   const covered = absorbed(marks);
 
-  const setMarks = (next: Record<string, Mark>) => setMarksState({ key: assignKey, marks: next });
+  const setMarks = (next: Record<string, Mark>) =>
+    setMarksState({ key: assignKey, marks: next });
 
   const toggle = (ship: ShipEntity) => {
     const current = marks[ship.id];
@@ -247,9 +319,13 @@ function Battlefield({ view }: { view: BattleView }) {
   const d = players(defender.faction);
   const nameOf = (key: string) => players(key).name;
   const tile = view.position ? gameData?.tiles?.[view.position] : undefined;
-  const systemName = tile ? (getTileById(tile.systemId)?.name ?? view.position) : view.position;
+  const systemName = tile
+    ? (getTileById(tile.systemId)?.name ?? view.position)
+    : view.position;
   const where =
-    view.kind === "ground" ? `${view.planet ?? ""} · ${systemName ?? ""}` : (systemName ?? "");
+    view.kind === "ground"
+      ? `${view.planet ?? ""} · ${systemName ?? ""}`
+      : (systemName ?? "");
 
   return (
     <div
@@ -317,7 +393,9 @@ function Battlefield({ view }: { view: BattleView }) {
           colorAlias={a.colorAlias}
           maxHp={attackerMax}
           isWinner={view.winner === attacker.faction}
-          assigning={view.step === "ASSIGN" && view.assigning === attacker.faction}
+          assigning={
+            view.step === "ASSIGN" && view.assigning === attacker.faction
+          }
           marks={view.assigning === attacker.faction ? marks : {}}
           onToggle={toggle}
         />
@@ -333,7 +411,10 @@ function Battlefield({ view }: { view: BattleView }) {
           onConfirmAssign={() =>
             view.assigning &&
             void run(() =>
-              battleAssign(view.assigning!, planFromMarks(assigningShips, marks)),
+              battleAssign(
+                view.assigning!,
+                planFromMarks(assigningShips, marks),
+              ),
             )
           }
           onClose={() => void run(battleClose)}
@@ -346,7 +427,9 @@ function Battlefield({ view }: { view: BattleView }) {
           colorAlias={d.colorAlias}
           maxHp={defenderMax}
           isWinner={view.winner === defender.faction}
-          assigning={view.step === "ASSIGN" && view.assigning === defender.faction}
+          assigning={
+            view.step === "ASSIGN" && view.assigning === defender.faction
+          }
           marks={view.assigning === defender.faction ? marks : {}}
           onToggle={toggle}
         />
@@ -371,11 +454,16 @@ export function BattleOverlay() {
   const inCombat = gameState?.activeCombat != null;
   const { data: view } = useBattle(inCombat);
 
-  if (!inCombat || !view?.active || !view.attacker || !view.defender) return null;
+  if (!inCombat || !view?.active || !view.attacker || !view.defender)
+    return null;
 
   if (hidden) {
     return createPortal(
-      <button type="button" className={styles.returnPill} onClick={() => setHidden(false)}>
+      <button
+        type="button"
+        className={styles.returnPill}
+        onClick={() => setHidden(false)}
+      >
         <IconSwords size={16} aria-hidden="true" />
         Battle in progress — return
       </button>,

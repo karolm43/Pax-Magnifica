@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+﻿import { useEffect, useState, type CSSProperties } from "react";
 import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -35,6 +35,9 @@ const RANK: Record<string, number> = {
   ws: 5,
 };
 
+/** Czas wejścia armady (zgodny z `armadaIn` + opóźnieniami w CSS). */
+const ENTRY_MS = 9000;
+
 function shipSize(asyncId: string): number {
   return SHIP_SIZE[asyncId] ?? 64;
 }
@@ -52,7 +55,9 @@ function ranks(views: ShipView[]): ShipView[][] {
     const rank = RANK[view.ship.asyncId] ?? 3;
     byRank.set(rank, [...(byRank.get(rank) ?? []), view]);
   }
-  return [...byRank.entries()].sort((a, b) => a[0] - b[0]).map(([, list]) => list);
+  return [...byRank.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, list]) => list);
 }
 
 function ShipToken({
@@ -103,16 +108,30 @@ function ShipToken({
   const content = (
     <>
       <span className={styles.shipSprite}>
-        <Unit unitType={ship.asyncId} colorAlias={colorAlias} faction={faction} scaleSprite />
+        <Unit
+          unitType={ship.asyncId}
+          colorAlias={colorAlias}
+          faction={faction}
+          scaleSprite
+        />
       </span>
-      <span className={styles.pips} aria-label={`${pips.full} of ${pips.total} hit points`}>
+      <span
+        className={styles.pips}
+        aria-label={`${pips.full} of ${pips.total} hit points`}
+      >
         {Array.from({ length: pips.total }, (_, i) => (
-          <span key={i} className={styles.pip} data-full={i < pips.full || undefined} />
+          <span
+            key={i}
+            className={styles.pip}
+            data-full={i < pips.full || undefined}
+          />
         ))}
       </span>
       {mark && (
         <span className={styles.markBadge} data-mark={mark}>
-          {(mark === "sustain" || mark === "both") && <IconShieldHalfFilled size={12} />}
+          {(mark === "sustain" || mark === "both") && (
+            <IconShieldHalfFilled size={12} />
+          )}
           {(mark === "destroy" || mark === "both") && <IconSkull size={12} />}
         </span>
       )}
@@ -170,6 +189,12 @@ export function BattleFleet({
   marks: Record<string, Mark>;
   onToggle: (ship: ShipEntity) => void;
 }) {
+  // Wejście armady gra tylko raz — późniejsze przemontowania okrętów (zmiana kroku) nie powtarzają go.
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setEntered(true), ENTRY_MS);
+    return () => window.clearTimeout(t);
+  }, []);
   const hpRatio = maxHp > 0 ? Math.max(0, side.hp / maxHp) : 0;
   return (
     <section
@@ -187,21 +212,35 @@ export function BattleFleet({
           </span>
           <b className={styles.fleetName}>{name}</b>
           <span className={styles.fleetStats}>
-            {side.unitCount} unit{side.unitCount === 1 ? "" : "s"} · {side.totalDice} dice · ~
-            {side.expectedHits} hits
+            {side.unitCount} unit{side.unitCount === 1 ? "" : "s"} ·{" "}
+            {side.totalDice} dice · ~{side.expectedHits} hits
           </span>
         </div>
       </header>
 
-      <div className={styles.hpBar} role="meter" aria-valuenow={side.hp} aria-valuemax={maxHp}>
-        <span className={styles.hpFill} style={{ width: `${hpRatio * 100}%` }} />
+      <div
+        className={styles.hpBar}
+        role="meter"
+        aria-valuenow={side.hp}
+        aria-valuemax={maxHp}
+      >
+        <span
+          className={styles.hpFill}
+          style={{ width: `${hpRatio * 100}%` }}
+        />
         <span className={styles.hpText}>
           {side.hp} / {maxHp} HP
         </span>
       </div>
 
-      <div className={styles.formation}>
-        {views.length === 0 && <span className={styles.wiped}>Fleet destroyed</span>}
+      <div
+        className={styles.formation}
+        data-formation={align}
+        data-entered={entered || undefined}
+      >
+        {views.length === 0 && (
+          <span className={styles.wiped}>Fleet destroyed</span>
+        )}
         {ranks(views).map((rankViews, rank) => (
           <div key={rankViews[0].ship.asyncId} className={styles.rank}>
             {rankViews.map((view, i) => (
@@ -236,13 +275,19 @@ export function BattleFleet({
             <tr key={u.baseType}>
               <td>
                 <b>{u.count}×</b> {u.name}
-                {u.damaged > 0 && <span className={styles.dmgTag}>{u.damaged} dmg</span>}
+                {u.damaged > 0 && (
+                  <span className={styles.dmgTag}>{u.damaged} dmg</span>
+                )}
               </td>
               <td>
                 {u.hitsOn}+ ×{u.dicePerUnit}
-                {u.modifier > 0 && <span className={styles.modTag}>+{u.modifier}</span>}
+                {u.modifier > 0 && (
+                  <span className={styles.modTag}>+{u.modifier}</span>
+                )}
               </td>
-              <td>{u.afbHitsOn !== null ? `${u.afbHitsOn}+ ×${u.afbDice}` : "—"}</td>
+              <td>
+                {u.afbHitsOn !== null ? `${u.afbHitsOn}+ ×${u.afbDice}` : "—"}
+              </td>
               <td>{u.sustain ? `${u.sustainable}/${u.count}` : "—"}</td>
             </tr>
           ))}
