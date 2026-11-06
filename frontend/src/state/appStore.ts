@@ -163,6 +163,15 @@ type AppStore = {
   clearActivateRequest: () => void;
 
   /*
+   * Podgląd zasięgu ruchu (krok MOVEMENT akcji taktycznej): zbiór pozycji systemów,
+   * z których gracz ma statki mogące legalnie ruszyć do aktywnego systemu. Ustawiany
+   * przez panel ruchu (z ``/tactical/move-range``), czytany przez ``MapTile`` do
+   * podświetlenia heksów. Pusty zbiór = brak podglądu.
+   */
+  moveRangeSources: Set<string>;
+  setMoveRangeSources: (positions: Set<string>) => void;
+
+  /*
    * Okno walki (asystent trafień, E3). Gdy ustawione, otwarty jest modal walki dla
    * danego miejsca: ``planet`` = null → walka kosmiczna, inaczej walka naziemna.
    */
@@ -284,6 +293,10 @@ export const useAppStore = create<AppStore>((set) => {
     pickActivateTile: (position: string) =>
       set((s) => (s.activateMode ? { activateRequest: position } : {})),
     clearActivateRequest: () => set({ activateRequest: null }),
+
+    moveRangeSources: new Set<string>(),
+    setMoveRangeSources: (positions: Set<string>) =>
+      set({ moveRangeSources: positions }),
 
     combatTarget: null,
     openCombat: (position: string, planet: string | null) =>

@@ -138,6 +138,35 @@
 }
 
 /*
+ * Podgląd ZASIĘGU ruchu (krok MOVEMENT) — heks jest legalnym ŹRÓDŁEM ruchu do
+ * aktywnego systemu. Bursztynowy kontur (odróżnialny od zielonego „źródła" God-Mode
+ * i cyjanowego „kandydata"), delikatnie pulsujący, by zachęcał do złapania statku.
+ */
+.moveHighlight.moveRangeSource {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8));
+  animation: moveRangePulse 2s ease-in-out infinite;
+}
+
+.moveHighlight.moveRangeSource path {
+  stroke: rgba(253, 224, 71, 0.9);
+  stroke-width: 4;
+  stroke-dasharray: 8 6;
+  fill: rgba(251, 191, 36, 0.08);
+}
+
+@keyframes moveRangePulse {
+  50% {
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.95));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moveHighlight.moveRangeSource {
+    animation: none;
+  }
+}
+
+/*
  * Podświetlenie celu drag-and-drop jednostki — kafelek pod kursorem w trakcie
  * przeciągania. Zielony = dozwolone, czerwony = niedozwolone (np. piechota nad orbitą).
  * Wyraźna „ramka stołu" + delikatne wypełnienie, by było czuć „tu wyląduje".

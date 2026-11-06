@@ -285,6 +285,42 @@ def _capacity_used(
     return 1 if base_type in _CARGO_BASE_TYPES else 0
 
 
+def legal_move_sources(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+) -> dict[str, list[str]]:
+    """Mapa {pozycja źródłowa -> lista base_type statków, które mogą ruszyć stamtąd}.
+
+    Dla każdego systemu (poza aktywnym), w którym gracz ma statki, sprawdza które
+    typy statków mają legalną trasę do aktywnego systemu (``can_move``, R1–R6). System
+    trafia do wyniku tylko, gdy ma ≥1 ruszalny statek. Służy podglądowi zasięgu/ścieżki
+    w UI (które heksy są legalnym źródłem ruchu). Nie mutuje stanu.
+
+    Myśliwce bez własnego ruchu (ładunek) NIE trafiają tu jako „ruszalny statek" —
+    jadą transportem, więc o legalności ich systemu źródłowego decyduje nosiciel.
+    """
+    active = state.active_system
+    if active is None:
+        return {}
+    result: dict[str, list[str]] = {}
+    for position, system in state.systems.items():
+        if position == active:
+            continue
+        by_type = system.space_units.get(player_id, {})
+        movable: list[str] = []
+        for base_type, count in sorted(by_type.items()):
+            if count <= 0 or not is_space_unit(base_type):
+                continue
+            ok, _ = can_move(state, grid, registry, position, base_type, player_id)
+            if ok:
+                movable.append(base_type)
+        if movable:
+            result[position] = movable
+    return result
+
+
 def move_fleet(
     state: GameState,
     grid: HexGrid,

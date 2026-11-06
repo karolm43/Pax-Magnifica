@@ -99,6 +99,7 @@ export function useBoardEditor() {
       "strategyCards",
       "combat",
       "production",
+      "moveRange",
       "playerHand",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
@@ -485,6 +486,30 @@ export type ProductionHelp = {
   productionLimit: number;
   units: ProducibleUnitHelp[];
 };
+
+export type MoveRange = {
+  active: string | null;
+  /** {pozycja źródłowa -> lista base_type statków, które mogą stamtąd ruszyć}. */
+  sources: Record<string, string[]>;
+};
+
+/**
+ * Podgląd zasięgu ruchu (RULES.md 32): które systemy mają statki gracza mogące
+ * legalnie ruszyć do aktywnego systemu. Do podświetlenia zasięgu/ścieżki na mapie.
+ * Pusta mapa ``sources`` = brak legalnego ruchu (albo brak aktywnego systemu).
+ */
+export function useMoveRange(faction: string | null, enabled: boolean) {
+  return useQuery<MoveRange>({
+    queryKey: ["moveRange", faction],
+    enabled: enabled && faction !== null,
+    queryFn: async () =>
+      fetchJson<MoveRange>(
+        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}`,
+        "moveRange",
+      ),
+    staleTime: 0,
+  });
+}
 
 /** Pomoc liczbowa produkcji (dostępne zasoby + koszty jednostek gracza). */
 export function useProductionHelp(faction: string | null) {

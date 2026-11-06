@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IconArrowRight, IconMinus, IconPlus, IconShip } from "@tabler/icons-react";
 import { useGameData } from "@/state/useGameContext";
-import { useBoardEditor } from "@/api/useBoardEditor";
+import { useBoardEditor, useMoveRange } from "@/api/useBoardEditor";
+import { useAppStore } from "@/state/appStore";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { Unit } from "@/shared/ui/Unit";
@@ -44,6 +45,7 @@ export function MovementStepPanel({
 }) {
   const gameData = useGameData();
   const { moveShips } = useBoardEditor();
+  const setMoveRangeSources = useAppStore((s) => s.setMoveRangeSources);
   const [source, setSource] = useState<string | null>(null);
   // Wybrane liczby do ruszenia: {asyncId: liczba}. Reset przy zmianie źródła.
   const [picked, setPicked] = useState<Record<string, number>>({});
@@ -52,6 +54,15 @@ export function MovementStepPanel({
   const player = gameData?.playerData?.find((p) => p.color === activePlayerColor);
   const faction = player?.faction ?? null;
   const colorAlias = getColorAlias(player?.color);
+
+  // Podgląd zasięgu ruchu z backendu (legalne systemy źródłowe) — podświetla heksy
+  // na mapie. Odświeża się z każdym stanem gry (statki się ruszają). Czyszczone przy
+  // odmontowaniu panelu (wyjście z kroku MOVEMENT / zakończenie akcji).
+  const { data: moveRange } = useMoveRange(faction, Boolean(activeSystem));
+  useEffect(() => {
+    setMoveRangeSources(new Set(Object.keys(moveRange?.sources ?? {})));
+    return () => setMoveRangeSources(new Set());
+  }, [moveRange, setMoveRangeSources]);
 
   // Systemy źródłowe: kafelki (poza aktywnym), w których gracz ma statki w przestrzeni.
   const sources = useMemo(() => {

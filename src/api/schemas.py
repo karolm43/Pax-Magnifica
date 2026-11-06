@@ -520,6 +520,20 @@ class MoveShipsRequest(BaseModel):
     ships: list[MoveCargoItem] = Field(default_factory=list)
     cargo: list[MoveCargoItem] = Field(default_factory=list)
 
+class MoveRangeResponse(BaseModel):
+    """Podgląd zasięgu ruchu (RULES.md 32): legalne systemy źródłowe do aktywnego.
+
+    ``sources`` = mapa {pozycja -> lista base_type statków, które mogą stamtąd ruszyć
+    do aktywnego systemu}. ``active`` = pozycja aktywnego systemu (cel). Służy
+    podświetleniu zasięgu/ścieżki na mapie; pusta mapa = brak legalnego ruchu.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    active: str | None
+    sources: dict[str, list[str]] = Field(default_factory=dict)
+
+
 class ActivateSystemRequest(BaseModel):
     """Aktywacja systemu w akcji taktycznej (E3): pozycja kafelka."""
 

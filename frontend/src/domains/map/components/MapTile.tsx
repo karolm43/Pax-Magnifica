@@ -95,6 +95,7 @@ export const MapTile = React.memo<Props>(
     const activateMode = useAppStore((state) => state.activateMode);
     const pickActivateTile = useAppStore((state) => state.pickActivateTile);
     const dragOver = useAppStore((state) => state.dragOver);
+    const moveRangeSources = useAppStore((state) => state.moveRangeSources);
     const { activateSystem } = useBoardEditor();
     const tileMenu = useContextMenu();
 
@@ -169,6 +170,11 @@ export const MapTile = React.memo<Props>(
     const isDragTarget = !embedded && dragOver?.position === mapTile.position;
     const dragTargetValid = isDragTarget && dragOver?.valid === true;
 
+    /* Podgląd zasięgu ruchu (krok MOVEMENT): heks jest LEGALNYM ŹRÓDŁEM ruchu do
+       aktywnego systemu (gracz ma tam statki z trasą). Reużywa wzorzec konturu SVG. */
+    const isMoveRangeSource =
+      !embedded && !isHyperlane && moveRangeSources.has(mapTile.position);
+
     return (
       <div
         id={`tile-${ringPosition}`}
@@ -228,6 +234,15 @@ export const MapTile = React.memo<Props>(
               className={`${classes.moveHighlight} ${
                 isMoveSource ? classes.moveSource : classes.moveCandidate
               }`}
+              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              aria-hidden="true"
+            >
+              <path d={HEX_PATH} />
+            </svg>
+          )}
+          {isMoveRangeSource && (
+            <svg
+              className={`${classes.moveHighlight} ${classes.moveRangeSource}`}
               viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
               aria-hidden="true"
             >

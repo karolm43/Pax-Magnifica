@@ -20,6 +20,7 @@ from src.api.schemas import (
     CommandTokenRequest,
     ComponentActionRequest,
     MapView,
+    MoveRangeResponse,
     MoveShipsRequest,
     ProduceRequest,
     ProducibleUnitHelp,
@@ -303,6 +304,28 @@ async def post_capture_planet(
         request.faction,
     )
     return await _commit_map(ctx, new_state, f"capture:{position}:{request.planet}")
+
+
+@router.get(
+    "/tactical/move-range",
+    response_model=MoveRangeResponse,
+    response_model_by_alias=True,
+)
+async def get_move_range(
+    faction: str, ctx: AppContext = Depends(get_ctx)
+) -> MoveRangeResponse:
+    """Podgląd zasięgu ruchu: legalne systemy źródłowe do aktywnego (RULES.md 32).
+
+    ``faction`` to klucz tożsamości gracza (jak w tileUnitData). Zwraca mapę
+    {pozycja -> ruszalne base_type} przez ``movement.legal_move_sources`` (cienki
+    wrapper, zero mutacji). Służy podświetleniu zasięgu/ścieżki na mapie.
+    """
+    state = ctx.service.current_state()
+    player_id = board_edit.resolve_player_id(faction, state)
+    sources = movement.legal_move_sources(
+        state, ctx.current_grid, ctx.registry, player_id
+    )
+    return MoveRangeResponse(active=state.active_system, sources=sources)
 
 
 @router.get(

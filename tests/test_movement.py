@@ -293,3 +293,37 @@ def test_move_ships_still_works_as_wrapper(registry: StaticDataRegistry) -> None
     state = _state_with_destroyer_at("101", "000")
     new = movement.move_ships(state, grid, registry, "101", "destroyer", 1, "p1")
     assert new.systems["000"].space_units["p1"]["destroyer"] == 1
+
+
+# --- Podgląd zasięgu: legalne systemy źródłowe (RULES.md 32, Blok B3) ---
+
+
+def test_legal_move_sources_lists_reachable(registry: StaticDataRegistry) -> None:
+    """Zwraca system źródłowy z ruszalnym statkiem (destroyer sąsiaduje z aktywnym)."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_destroyer_at("101", "000")
+    sources = movement.legal_move_sources(state, grid, registry, "p1")
+    assert "101" in sources
+    assert "destroyer" in sources["101"]
+
+
+def test_legal_move_sources_excludes_active(registry: StaticDataRegistry) -> None:
+    """Aktywny system nie jest źródłem (nie ruszamy „sam do siebie")."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_destroyer_at("101", "000")
+    # Dołóż statki gracza w samym aktywnym systemie.
+    state.systems["000"] = SystemState(
+        position="000", system_id="18", space_units={"p1": {"cruiser": 1}}
+    )
+    sources = movement.legal_move_sources(state, grid, registry, "p1")
+    assert "000" not in sources
+
+
+def test_legal_move_sources_empty_without_active(
+    registry: StaticDataRegistry,
+) -> None:
+    """Bez aktywnego systemu podgląd zasięgu jest pusty."""
+    grid = _line_grid([("000", "18", set()), ("101", "20", set())])
+    state = _state_with_destroyer_at("101", "000")
+    state.active_system = None
+    assert movement.legal_move_sources(state, grid, registry, "p1") == {}
