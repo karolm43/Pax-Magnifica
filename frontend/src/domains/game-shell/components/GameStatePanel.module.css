@@ -1007,12 +1007,15 @@
 /* Monitor floty: nagłówek „Fleet here" + plakietka pojemności. */
 .moveMonitorHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px 8px;
 }
 
 .capBadge {
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1034,9 +1037,17 @@
 
 /* Kafelek transportu do załadunku — jak unitTile, ale klikalny (otwiera okno). */
 .transportTile {
+  min-width: 0;
   display: grid;
-  grid-template-columns: 26px 1fr auto;
+  /* Obszary MUSZĄ być zdefiniowane — ikona/nazwa/koszt używają grid-area z unitTile*. */
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-areas:
+    "icon name"
+    "icon cost";
   align-items: center;
+  row-gap: 1px;
+  font: inherit;
+  color: var(--ds-ink);
   column-gap: 6px;
   padding: 5px 6px;
   text-align: left;
@@ -1131,13 +1142,16 @@
 
 .unitGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  /* 128px: ikona (26) + odstępy + dwa przyciski +/− (2×20) muszą się zmieścić w
+     kafelku, inaczej przyciski wylewają się na sąsiada. */
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
   gap: 5px;
 }
 
 .unitTile {
+  min-width: 0;
   display: grid;
-  grid-template-columns: 26px 1fr auto;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   grid-template-areas:
     "icon name name"
     "icon cost btns";
@@ -1189,6 +1203,7 @@
 .unitTileBtns {
   grid-area: btns;
   display: flex;
+  flex: none;
   gap: 3px;
 }
 
