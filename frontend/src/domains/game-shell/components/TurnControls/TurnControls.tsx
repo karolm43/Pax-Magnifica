@@ -9,17 +9,24 @@ import {
   IconInfoCircle,
   IconCards,
   IconSparkles,
+  IconUserStar,
+  IconFlask,
+  IconDiamond,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
+import { usePlayerData } from "@/api/usePlayerData";
 import {
   useBoardEditor,
   useStrategyCards,
   type StrategyCardState,
 } from "@/api/useBoardEditor";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
-import { getActionCard } from "@/entities/lookup/actionCards";
-import { actionCardTiming } from "@/domains/game-shell/components/actionCardTiming";
+import {
+  collectComponentActions,
+  KIND_LABEL,
+  type ComponentActionKind,
+} from "./componentActions";
 import {
   getStrategyCardById,
   getStrategyCardByInitiative,
@@ -44,6 +51,18 @@ const SC_DETAILS_COLOR: Record<number, DetailsCardColor> = {
   6: "cyan",
   7: "blue",
   8: "violet",
+};
+
+/* Ikona wiersza listy akcji komponentu wg rodzaju źródła (karta/zdolność/lider/…). */
+const COMPONENT_KIND_ICON: Record<
+  ComponentActionKind,
+  typeof IconCards
+> = {
+  "action-card": IconCards,
+  ability: IconSparkles,
+  leader: IconUserStar,
+  technology: IconFlask,
+  relic: IconDiamond,
 };
 
 /* Initiative → barwa karty (fallback glow, gdy brak colourHexCode w danych). */
@@ -77,6 +96,7 @@ export function TurnControls() {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
+  const { data: webData } = usePlayerData(gameId);
   const { data: cards } = useStrategyCards();
   const {
     playStrategyCard,
@@ -164,11 +184,16 @@ export function TurnControls() {
   // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
   // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
   const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
-  // Karty z ręki, które są AKCJĄ komponentu (nagłówek „Action") — lista „co zagrałeś?".
-  // Reszta kart (When/After/…) to reakcje, nie akcje tury — świadomie je pomijamy.
-  const actionCardChoices = (hand?.actionCards ?? [])
-    .filter((id) => actionCardTiming(id) === "Action")
-    .map((id) => ({ id, name: getActionCard(id)?.name ?? id }));
+  // Wszystkie KOMPONENTY Z AKCJĄ („Action") dostępne aktywnemu graczowi: karty akcji
+  // z ręki + zdolności frakcji + liderzy + techy + relikty, które posiada. Dane z
+  // web-data (``playerData``) + ręki — zero hardkodowania (patrz componentActions.ts).
+  const activePlayerData = webData?.playerData?.find(
+    (p) => p.color === active.color,
+  );
+  const componentChoices = collectComponentActions(
+    activePlayerData,
+    hand?.actionCards ?? [],
+  );
 
   const run = (fn: () => Promise<void>) => {
     if (busy) return;
@@ -448,29 +473,35 @@ export function TurnControls() {
           </Text>
 
           <div className={styles.compList} role="list">
-            {actionCardChoices.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                role="listitem"
-                className={styles.compItem}
-                disabled={busy}
-                onClick={() =>
-                  run(() =>
-                    playComponentAction(active.discordId, choice.id).finally(() =>
-                      setComponentOpen(false),
-                    ),
-                  )
-                }
-              >
-                <IconCards size={17} aria-hidden="true" />
-                <span className={styles.compItemName}>{choice.name}</span>
-                <small className={styles.compItemTag}>Action card</small>
-              </button>
-            ))}
+            {componentChoices.map((choice) => {
+              const Icon = COMPONENT_KIND_ICON[choice.kind];
+              return (
+                <button
+                  key={`${choice.kind}:${choice.id}`}
+                  type="button"
+                  role="listitem"
+                  className={styles.compItem}
+                  disabled={busy}
+                  onClick={() =>
+                    run(() =>
+                      playComponentAction(active.discordId, choice.id).finally(
+                        () => setComponentOpen(false),
+                      ),
+                    )
+                  }
+                >
+                  <Icon size={17} aria-hidden="true" />
+                  <span className={styles.compItemName}>{choice.name}</span>
+                  <small className={styles.compItemTag}>
+                    {KIND_LABEL[choice.kind]}
+                  </small>
+                </button>
+              );
+            })}
 
-            {/* Zawsze dostępna opcja dla źródeł nie-kartowych (relikt/tech/frakcja/
-                promissory) — nie mamy ich jeszcze w ręce jako listy do wyboru. */}
+            {/* Zawsze dostępna opcja awaryjna — źródło akcji spoza listy (np. karta
+                eksploracji / promissory note, albo komponent, którego jeszcze nie
+                śledzimy jako posiadany). Rejestruje akcję bez konkretnej adnotacji. */}
             <button
               type="button"
               role="listitem"
@@ -487,7 +518,7 @@ export function TurnControls() {
             >
               <IconSparkles size={17} aria-hidden="true" />
               <span className={styles.compItemName}>
-                Other (relic, tech, ability…)
+                Something else (exploration, note…)
               </span>
               <small className={styles.compItemTag}>Any component</small>
             </button>

@@ -1586,10 +1586,15 @@ jest dostępny (ta sama ścieżka co po akcji strategicznej/taktycznej). Endpoin
 `POST /tactical/component-action` (`ComponentActionRequest{player_id?, component_id?}`).
 
 **UI (`TurnControls`):** w fazie akcji, obok Pass/End turn, przycisk „**Component action**"
-(ikona kostki/iskry, akcent neutralny-fiolet). Klik otwiera MAŁY modal „co zagrałeś?": lista kart
-akcji z ręki z oknem „Action" (`actionCardTiming(id) === "Action"`) + opcja „Other (relic, tech,
-ability…)" dla źródeł nie-kartowych. Wybór to tylko adnotacja (`component_id`); efekt = oznaczenie
-akcji wykonanej. Przycisk WYŁĄCZONY, gdy gracz już działał / spasował / trwa okno (spójnie z Pass).
+(ikona iskry, fioletowy akcent ability). Klik otwiera modal „co zagrałeś?" z listą WSZYSTKICH
+komponentów z nagłówkiem „Action" dostępnych aktywnemu graczowi — zebranych z danych, bez
+hardkodowania (`componentActions.collectComponentActions`): karty akcji z ręki (`window`
+„Action"), zdolności frakcji (`getAbilityKind === "action"`), liderzy (`abilityWindow`/
+`abilityText` od „ACTION"), technologie i relikty (`text` z nagłówkiem „ACTION"). Lista czyta to,
+co gracz REALNIE posiada (web-data `playerData[]`: `abilities`/`leaderIDs`/`techs`/`relics` +
+ręka). Na końcu zawsze opcja „Something else" (eksploracja / promissory / nieśledzone źródło).
+Wybór to tylko adnotacja (`component_id`); efekt = oznaczenie akcji wykonanej. Przycisk WYŁĄCZONY,
+gdy gracz już działał / spasował / trwa okno (spójnie z Pass).
 
 ---
 
