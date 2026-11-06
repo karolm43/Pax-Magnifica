@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import type { BattleLogEntry, BattleView } from "@/api/useBoardEditor";
 import type { ShipEntity } from "./battleAssign";
 
@@ -11,8 +11,8 @@ import type { ShipEntity } from "./battleAssign";
  *   pocisków do animacji (strona, tor, trafienie, opóźnienie).
  */
 
-const DYING_MS = 900;
-const VOLLEY_MS = 2600;
+const DYING_MS = 3800;
+const VOLLEY_MS = 5200;
 const MAX_BOLTS_PER_SIDE = 22;
 
 export type ShipView = { ship: ShipEntity; dying: boolean };
@@ -41,7 +41,9 @@ export function useDyingShips(ships: ShipEntity[]): ShipView[] {
   const alive = new Set(ships.map((s) => s.id));
   return [
     ...ships.map((ship) => ({ ship, dying: false })),
-    ...dying.filter((s) => !alive.has(s.id)).map((ship) => ({ ship, dying: true })),
+    ...dying
+      .filter((s) => !alive.has(s.id))
+      .map((ship) => ({ ship, dying: true })),
   ];
 }
 
@@ -57,7 +59,11 @@ export type Bolt = {
   delayMs: number;
 };
 
-export type Volley = { id: number; phase: BattleLogEntry["phase"]; bolts: Bolt[] };
+export type Volley = {
+  id: number;
+  phase: BattleLogEntry["phase"];
+  bolts: Bolt[];
+};
 
 function boltsFor(
   entry: BattleLogEntry,
@@ -74,10 +80,10 @@ function boltsFor(
     })),
   );
   // Trafienia najpierw, żeby przy limicie pocisków zawsze były widoczne.
-  const ordered = [...dice.filter((d) => d.hit), ...dice.filter((d) => !d.hit)].slice(
-    0,
-    MAX_BOLTS_PER_SIDE,
-  );
+  const ordered = [
+    ...dice.filter((d) => d.hit),
+    ...dice.filter((d) => !d.hit),
+  ].slice(0, MAX_BOLTS_PER_SIDE);
   return ordered.map((die, i) => ({
     id: `${volleyId}-${from}-${i}`,
     from,
@@ -85,7 +91,7 @@ function boltsFor(
     baseType: die.baseType,
     shot: die.shot,
     // Atakujący strzela pierwszy, obrońca odpowiada (RULES.md 39 W5).
-    delayMs: (from === "left" ? 0 : 650) + i * 85 + Math.random() * 50,
+    delayMs: (from === "left" ? 0 : 1500) + i * 190 + Math.random() * 120,
   }));
 }
 
@@ -121,7 +127,10 @@ export function useVolley(view: BattleView | undefined): Volley | null {
         ...boltsFor(entry, view.defender.faction, "right", id),
       ],
     });
-    window.setTimeout(() => setVolley((v) => (v?.id === id ? null : v)), VOLLEY_MS);
+    window.setTimeout(
+      () => setVolley((v) => (v?.id === id ? null : v)),
+      VOLLEY_MS,
+    );
   }, [length]);
 
   return volley;

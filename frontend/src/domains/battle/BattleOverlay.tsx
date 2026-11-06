@@ -36,7 +36,7 @@ import { BattleCenter } from "./BattleCenter";
 import styles from "./BattleOverlay.module.css";
 
 /* Czas lotu pocisku (ms) — spójny z animacją `beamTravel` w CSS. */
-const TRAVEL_MS = 420;
+const TRAVEL_MS = 900;
 
 /* Grafika tła pola bitwy (podmienna przez użytkownika): plik w `assets/extra/`, serwowany
    przez backend pod `/static`. Brak pliku = brak obrazka (bez placeholdera). */
@@ -162,10 +162,11 @@ function VolleyLayer({
   if (!volley || !shots || shots.id !== volley.id) return null;
   return (
     <div className={styles.volleyLayer} aria-hidden="true">
-      {shots.list.map((s) => (
+      {shots.list.map((s, n) => (
         <span
           key={s.id}
           className={styles.beam}
+          data-kind={n % 3 === 0 ? "laser" : "plasma"}
           data-hit={s.hit || undefined}
           data-afb={s.afb || undefined}
           style={
@@ -175,11 +176,14 @@ function VolleyLayer({
               width: s.len,
               transform: `rotate(${s.angle}deg)`,
               "--len": `${s.len}px`,
+              "--rgb":
+                s.target === "left" ? "var(--right-rgb)" : "var(--left-rgb)",
               "--delay": `${s.delayMs}ms`,
             } as CSSProperties
           }
         >
           <span className={styles.beamCore} />
+          <span className={styles.beamLaser} />
         </span>
       ))}
       {shots.list.map((s) => (

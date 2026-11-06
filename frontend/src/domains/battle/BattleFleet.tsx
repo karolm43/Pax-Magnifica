@@ -36,7 +36,14 @@ const RANK: Record<string, number> = {
 };
 
 /** Czas wejścia armady (zgodny z `armadaIn` + opóźnieniami w CSS). */
-const ENTRY_MS = 9000;
+const ENTRY_MS = 14000;
+
+/** Deterministyczne odchylenie (−max..max) z id okrętu — szyk nie stoi w idealnej linii. */
+function jitter(id: string, salt: number, max: number): number {
+  let h = salt * 2654435761;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return Math.round(((h % 1000) / 1000 - 0.5) * 2 * max);
+}
 
 function shipSize(asyncId: string): number {
   return SHIP_SIZE[asyncId] ?? 64;
@@ -89,6 +96,8 @@ function ShipToken({
     "--rank": rank,
     "--i": index,
     "--dir": side === "left" ? -1 : 1,
+    "--jx": `${jitter(ship.id, 1, 14)}px`,
+    "--jy": `${jitter(ship.id, 2, 22)}px`,
     "--slot": `${size}px`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
