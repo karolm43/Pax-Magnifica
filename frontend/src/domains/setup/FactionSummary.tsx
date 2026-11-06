@@ -37,6 +37,7 @@ import { getTechData } from "@/entities/lookup/tech";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { deferredStartingTechNotice, hasDeferredStartingTech } from "./deferredTech";
+import { breakthroughComponents } from "./breakthroughComponents";
 import styles from "./FactionSummary.module.css";
 
 /** Kolejność slotów liderów — jak w panelu gracza (agent → commander → hero). */
@@ -56,9 +57,28 @@ function cleanUnitName(name: string): string {
   return name.replace(/\s+I$/i, "").trim();
 }
 
-/** Pełna nazwa typu jednostki (generyczna baza) po `base_type` — bez surowych kodów. */
-function unitTypeName(baseType: string): string {
-  const data = getUnitData(baseType);
+/**
+ * Rozwiązuje typ floty startowej (`base_type`, np. „flagship") na konkretną jednostkę
+ * frakcji, jeśli frakcja ma swój wariant tego typu (np. Nomad „Memoria", Argent „Quetzecoatl").
+ * Dzięki temu flota startowa pokazuje nazwę/sprite jednostki frakcyjnej zamiast
+ * generycznego „Factionless Flagship".
+ *
+ * Dopasowanie po `baseType` wśród jednostek frakcyjnych (`faction.units`) — preferuje
+ * wariant BAZOWY (bez `upgradesFromUnitId`), bo na starcie gracz ma pierwszy poziom.
+ * Gdy frakcja nie ma własnego wariantu danego typu, zwraca generyczny `base_type`.
+ */
+function resolveFleetUnitId(baseType: string, factionUnitIds: string[]): string {
+  const candidates = factionUnitIds
+    .map((id) => getUnitData(id))
+    .filter((u) => u !== undefined && u.faction !== undefined && u.baseType === baseType);
+  if (candidates.length === 0) return baseType;
+  const base = candidates.find((u) => !u!.upgradesFromUnitId);
+  return (base ?? candidates[0])!.id;
+}
+
+/** Pełna nazwa typu jednostki po `base_type` — wariant frakcyjny, jeśli istnieje. */
+function unitTypeName(baseType: string, factionUnitIds: string[]): string {
+  const data = getUnitData(resolveFleetUnitId(baseType, factionUnitIds));
   return data ? cleanUnitName(data.name) : baseType;
 }
 
@@ -119,8 +139,8 @@ function FactionUnit({ unitId }: { unitId: string }) {
  * ten sam sprite co lista jednostek frakcyjnych, ale w mniejszym, stałej wysokości boxie.
  * Gdy typ nie ma danych sprite'a, nie rysuje nic (nie psuje chipa).
  */
-function FleetUnitIcon({ baseType }: { baseType: string }) {
-  const unitData = getUnitData(baseType);
+function FleetUnitIcon({ unitId }: { unitId: string }) {
+  const unitData = getUnitData(unitId);
   if (!unitData) return null;
   return (
     <span className={styles.fleetSprite} aria-hidden>
@@ -355,9 +375,17 @@ function SummaryBody({
     ),
   ];
 
-  // Jednostki frakcyjne = warianty specyficzne dla frakcji (mają pole `faction`).
+  // Komponent wprowadzany przez przełom: planeta (Muaat → Avernus, Keleres → Custodia
+  // Vigilia) lub jednostka (Mentak → Corsair, Naaz-Rokha → Eidolon Maximum). NIE mieszamy
+  // go z planetami domowymi ani z resztą jednostek — ma własną sekcję „Breakthrough
+  // component", renderowaną tymi samymi klikalnymi kartami (planety / jednostki frakcyjnej).
+  const btComponents = breakthroughComponents(faction.breakthrough);
+  const btUnitIds = new Set(btComponents?.unitIds ?? []);
+
+  // Jednostki frakcyjne = warianty specyficzne dla frakcji (mają pole `faction`), ale BEZ
+  // jednostki z przełomu — tę pokazujemy osobno w sekcji „Breakthrough component".
   const factionUnits = faction.units.filter(
-    (id) => getUnitData(id)?.faction !== undefined,
+    (id) => getUnitData(id)?.faction !== undefined && !btUnitIds.has(id),
   );
 
   // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu. Trzymamy jako
@@ -369,7 +397,9 @@ function SummaryBody({
   const fleetItems = [...fleetByType.entries()].map(([baseType, count]) => ({
     baseType,
     count,
-    name: unitTypeName(baseType),
+    name: unitTypeName(baseType, faction.units),
+    // Konkretna jednostka do narysowania: wariant frakcyjny, jeśli frakcja go ma.
+    unitId: resolveFleetUnitId(baseType, faction.units),
   }));
 
   // Frakcje z ODROCZONYM wyborem technologii (Keleres, Deepwrought) wybierają w grze,
@@ -460,6 +490,23 @@ function SummaryBody({
             </div>
           </Section>
         )}
+
+        {btComponents &&
+          (btComponents.planetIds.length > 0 ||
+            btComponents.unitIds.length > 0) && (
+            <Section title="Breakthrough component">
+              {btComponents.unitIds.length > 0 && (
+                <div className={styles.unitRow}>
+                  {btComponents.unitIds.map((id) => (
+                    <FactionUnit key={id} unitId={id} />
+                  ))}
+                </div>
+              )}
+              {btComponents.planetIds.length > 0 && (
+                <PlanetList planetIds={btComponents.planetIds} />
+              )}
+            </Section>
+          )}
 
         {faction.faction_tech.length > 0 && (
           <Section title="Faction technologies">
@@ -572,7 +619,7 @@ function SummaryBody({
                   {fleetItems.map((item) => (
                     <span key={item.baseType} className={styles.fleetChip}>
                       <span className={styles.fleetCount}>{item.count}</span>
-                      <FleetUnitIcon baseType={item.baseType} />
+                      <FleetUnitIcon unitId={item.unitId} />
                       <span className={styles.fleetName}>{item.name}</span>
                     </span>
                   ))}
