@@ -28,7 +28,11 @@ export type ShipEntity = {
 export type Mark = "sustain" | "destroy" | "both";
 
 /** Ile trafień pokrywa znacznik egzemplarza. */
-export const MARK_WEIGHT: Record<Mark, number> = { sustain: 1, destroy: 1, both: 2 };
+export const MARK_WEIGHT: Record<Mark, number> = {
+  sustain: 1,
+  destroy: 1,
+  both: 2,
+};
 
 /** Rozwija jednostki strony w egzemplarze; pierwsze ``damaged`` sztuk danego typu są uszkodzone. */
 export function expandShips(side: BattleSide | null): ShipEntity[] {
@@ -52,7 +56,10 @@ export function expandShips(side: BattleSide | null): ShipEntity[] {
 }
 
 /** Kolejny znacznik po kliknięciu: z Sustain → sustain → destroy → oba → brak. */
-export function nextMark(ship: ShipEntity, current: Mark | undefined): Mark | undefined {
+export function nextMark(
+  ship: ShipEntity,
+  current: Mark | undefined,
+): Mark | undefined {
   if (ship.canSustain) {
     if (current === undefined) return "sustain";
     if (current === "sustain") return "destroy";
@@ -75,7 +82,11 @@ export function planFromMarks(
   ships: ShipEntity[],
   marks: Record<string, Mark>,
 ): BattleAssignPlan {
-  const plan: BattleAssignPlan = { sustain: {}, destroy: {}, destroyDamaged: {} };
+  const plan: BattleAssignPlan = {
+    sustain: {},
+    destroy: {},
+    destroyDamaged: {},
+  };
   const add = (bucket: Record<string, number>, baseType: string) => {
     bucket[baseType] = (bucket[baseType] ?? 0) + 1;
   };
@@ -97,7 +108,10 @@ export function planFromMarks(
  * (najwyższy próg trafienia = najsłabsza walka; uszkodzone przed nieuszkodzonymi),
  * a gdy trafień wciąż zostaje — dobijamy egzemplarze, które użyły Sustain.
  */
-export function autoMarks(ships: ShipEntity[], required: number): Record<string, Mark> {
+export function autoMarks(
+  ships: ShipEntity[],
+  required: number,
+): Record<string, Mark> {
   const marks: Record<string, Mark> = {};
   let left = required;
   for (const ship of ships) {
@@ -109,7 +123,8 @@ export function autoMarks(ships: ShipEntity[], required: number): Record<string,
   }
   const weakestFirst = [...ships].sort(
     (a, b) =>
-      b.unit.baseHitsOn - a.unit.baseHitsOn || Number(b.damaged) - Number(a.damaged),
+      b.unit.baseHitsOn - a.unit.baseHitsOn ||
+      Number(b.damaged) - Number(a.damaged),
   );
   for (const ship of weakestFirst) {
     if (left <= 0) break;

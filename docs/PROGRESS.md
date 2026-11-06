@@ -21,6 +21,49 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+## ▶ START KOLEJNEJ SESJI — stan akcji taktycznej (2026-11-06, commit `786549e`)
+
+Cel etapu: pełna akcja taktyczna wg `R_tactical_action` (Activation → Movement + Space Cannon
+Offense → Space Combat → Invasion → Production). FSM: `TacticalStep` (`core/game_state.py`),
+kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 testów vitest.
+
+**Gotowe (szczegóły w blokach E8 niżej):**
+- UX: „Activate system" w `TurnControls`; `TacticalActionDock` (przesuwany + skalowalny,
+  kroki jako wskaźnik, potwierdzenia „Next step"/„End action").
+- MOVEMENT: `move_fleet` z ładunkiem z przestrzeni i planet (`CargoPickup.from_zone`),
+  `GET /tactical/move-range` (podświetlenie źródeł), drag&drop walidowany w akcji taktycznej,
+  „włóż do statku" (drop ładunku na nosiciela → `LoadTransportModal`), monitor floty z Undo.
+- SPACE CANNON: `core/dice.py` (seedowalny d10 w stanie), `core/space_cannon.py`, panel kroku,
+  soczewka „Space Cannon range" (`tileUnitData.pds`).
+- WALKA: `core/battle.py` + `core/damage.py`, pełnoekranowe okno `domains/battle/BattleOverlay`
+  (szyk bitewny, armada, okręty obrócone 45° ku sobie, salwy okręt→okręt, straty klikaniem).
+  Tło do podmiany: `assets/extra/battle_background.jpg` i `assets/extra/battle_ground.jpg`.
+
+**Do zrobienia (proponowana kolejność):**
+1. Feedback do nowego pola bitwy — kąt 45° na sprite'ach i ścisk dużych flot NIE były
+   sprawdzone na żywo.
+2. Odwroty w walce (Announce Retreats / Retreat) — Blok E.
+3. Pełna INWAZJA (`R_invasion`): Bombardment → Commit Ground Forces (lądowanie ładunku
+   z przestrzeni) → Space Cannon Defense → walka naziemna (silnik gotowy) → Establish
+   Control (exhaust karty planety, niszczenie struktur).
+4. PRODUKCJA: realne wyczerpywanie planet/TG (dziś tylko sprawdzenie budżetu), limity rezerw.
+5. Braki: Sustain Damage w Space Cannon, capacity po walce, Plasma Scoring, multi-select
+   Ctrl/Shift na mapie, pickup z systemów mijanych, >2 stron w walce (dziś 422).
+
+**Pułapki (sprawdzone w tej sesji):**
+- Zmiany backendu wymagają RESTARTU backendu, który kasuje grę w pamięci — pytać przed restartem.
+- CSS `rgb(var(--x) / a)` wymaga składowych ze SPACJAMI (`255 0 0`), nie przecinków —
+  inaczej cała deklaracja jest odrzucana (przezroczyste tła).
+- Sprite `<Unit scaleSprite>`: wysokość w PIKSELACH; wrapper `<Unit>` nie ma wysokości, więc
+  `100%` zapada się do zera (niewidoczne jednostki).
+- Siatki kafelków jednostek: `minmax(0, 1fr)`, przyciski `flex: none`, a `grid-area` dzieci
+  wymaga zdefiniowanych `grid-template-areas` u rodzica.
+- Zmienna użyta przed definicją w komponencie → TDZ („Cannot access X before initialization").
+- Okno pola bitwy przykrywa panel komunikatów mapy — 422 pokazujemy w samym oknie.
+- W drzewie roboczym bywają obce zmiany z innej sesji — nie wciągać ich do commitów.
+
+---
+
 ### ✅ Fix — dobór frakcji: Keleres max 1 wariant (losowanie + jawny wybór)
 
 - **Problem:** przy wyborze „random" losowanie mogło przydzielić dwóm graczom różne

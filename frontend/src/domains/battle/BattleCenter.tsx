@@ -8,7 +8,11 @@ import {
   IconTrophy,
   IconWand,
 } from "@tabler/icons-react";
-import type { BattleLogEntry, BattleRoll, BattleView } from "@/api/useBoardEditor";
+import type {
+  BattleLogEntry,
+  BattleRoll,
+  BattleView,
+} from "@/api/useBoardEditor";
 import styles from "./BattleOverlay.module.css";
 
 type Step = NonNullable<BattleView["step"]>;
@@ -18,12 +22,18 @@ function steps(view: BattleView): { key: Step; label: string }[] {
   if (view.kind === "space" && view.round === 1 && hasAfbHistoryOrStep(view)) {
     list.push({ key: "AFB", label: "Barrage" });
   }
-  list.push({ key: "ROLL", label: "Roll" }, { key: "ASSIGN", label: "Assign hits" });
+  list.push(
+    { key: "ROLL", label: "Roll" },
+    { key: "ASSIGN", label: "Assign hits" },
+  );
   return list;
 }
 
 function hasAfbHistoryOrStep(view: BattleView): boolean {
-  return view.step === "AFB" || view.log.some((e) => e.phase === "AFB" && e.round === 1);
+  return (
+    view.step === "AFB" ||
+    view.log.some((e) => e.phase === "AFB" && e.round === 1)
+  );
 }
 
 function DiceGroup({ rolls }: { rolls: BattleRoll[] }) {
@@ -33,7 +43,10 @@ function DiceGroup({ rolls }: { rolls: BattleRoll[] }) {
       {rolls.map((roll, ri) => (
         <div key={`${roll.baseType}-${ri}`} className={styles.diceLine}>
           <span className={styles.diceUnit}>
-            {roll.name} <small>{roll.hitsOn}+{roll.modifier > 0 ? ` (+${roll.modifier})` : ""}</small>
+            {roll.name}{" "}
+            <small>
+              {roll.hitsOn}+{roll.modifier > 0 ? ` (+${roll.modifier})` : ""}
+            </small>
           </span>
           <span className={styles.diceRow}>
             {roll.dice.map((value, di) => {
@@ -73,14 +86,20 @@ function LastVolley({
     <section className={styles.volley} aria-label="Last volley">
       <header className={styles.volleyHead}>
         <IconDice5 size={14} aria-hidden="true" />
-        {entry.phase === "AFB" ? "Anti-Fighter Barrage" : `Round ${entry.round} — combat rolls`}
+        {entry.phase === "AFB"
+          ? "Anti-Fighter Barrage"
+          : `Round ${entry.round} — combat rolls`}
       </header>
       {[attacker, defender].map((key) => (
         <div key={key} className={styles.volleySide}>
           <div className={styles.volleyWho}>
             <b>{nameOf(key)}</b>
-            <span className={styles.hitPill} data-hits={(entry.hits[key] ?? 0) > 0 || undefined}>
-              {entry.hits[key] ?? 0} hit{(entry.hits[key] ?? 0) === 1 ? "" : "s"}
+            <span
+              className={styles.hitPill}
+              data-hits={(entry.hits[key] ?? 0) > 0 || undefined}
+            >
+              {entry.hits[key] ?? 0} hit
+              {(entry.hits[key] ?? 0) === 1 ? "" : "s"}
             </span>
           </div>
           <DiceGroup rolls={entry.rolls[key] ?? []} />
@@ -128,7 +147,9 @@ export function BattleCenter({
   return (
     <div className={styles.center}>
       <div className={styles.roundBadge}>
-        <small>{view.kind === "ground" ? "Ground combat" : "Space combat"}</small>
+        <small>
+          {view.kind === "ground" ? "Ground combat" : "Space combat"}
+        </small>
         <b>Round {view.round}</b>
       </div>
 
@@ -143,16 +164,24 @@ export function BattleCenter({
       )}
 
       {view.nebula && (
-        <p className={styles.notice}>Nebula: the defender adds +1 to each combat roll.</p>
+        <p className={styles.notice}>
+          Nebula: the defender adds +1 to each combat roll.
+        </p>
       )}
 
       {step === "AFB" && (
         <div className={styles.actionCard}>
           <p>
-            Before the first round, units with <b>Anti-Fighter Barrage</b> fire at enemy
-            fighters. Both sides roll at once; Sustain Damage cannot cancel these hits.
+            Before the first round, units with <b>Anti-Fighter Barrage</b> fire
+            at enemy fighters. Both sides roll at once; Sustain Damage cannot
+            cancel these hits.
           </p>
-          <button type="button" className={styles.primary} disabled={busy} onClick={onAfb}>
+          <button
+            type="button"
+            className={styles.primary}
+            disabled={busy}
+            onClick={onAfb}
+          >
             <IconTargetArrow size={17} aria-hidden="true" /> Fire barrage
           </button>
         </div>
@@ -161,10 +190,15 @@ export function BattleCenter({
       {step === "ROLL" && (
         <div className={styles.actionCard}>
           <p>
-            {nameOf(attacker)} rolls first, then {nameOf(defender)}. Each die at or above the
-            unit's combat value is a hit.
+            {nameOf(attacker)} rolls first, then {nameOf(defender)}. Each die at
+            or above the unit's combat value is a hit.
           </p>
-          <button type="button" className={styles.primary} disabled={busy} onClick={onRoll}>
+          <button
+            type="button"
+            className={styles.primary}
+            disabled={busy}
+            onClick={onRoll}
+          >
             <IconBolt size={17} aria-hidden="true" /> Roll combat dice
           </button>
         </div>
@@ -173,19 +207,29 @@ export function BattleCenter({
       {step === "ASSIGN" && assigning && (
         <div className={styles.actionCard} data-assign>
           <p>
-            <b>{nameOf(assigning)}</b> covers <b>{required}</b> hit{required === 1 ? "" : "s"}.
-            Click your ships: <span className={styles.legendShield}>shield</span> = Sustain
-            Damage (cancels a hit), <span className={styles.legendSkull}>skull</span> =
+            <b>{nameOf(assigning)}</b> covers <b>{required}</b> hit
+            {required === 1 ? "" : "s"}. Click your ships:{" "}
+            <span className={styles.legendShield}>shield</span> = Sustain Damage
+            (cancels a hit), <span className={styles.legendSkull}>skull</span> =
             destroyed.
           </p>
           <div className={styles.assignMeter} data-ready={ready || undefined}>
-            <span style={{ width: `${required ? (absorbed / required) * 100 : 0}%` }} />
+            <span
+              style={{
+                width: `${required ? (absorbed / required) * 100 : 0}%`,
+              }}
+            />
             <b>
               {absorbed} / {required}
             </b>
           </div>
           <div className={styles.assignBtns}>
-            <button type="button" className={styles.ghost} disabled={busy} onClick={onAuto}>
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={busy}
+              onClick={onAuto}
+            >
               <IconWand size={15} aria-hidden="true" /> Auto
             </button>
             <button
@@ -215,7 +259,9 @@ export function BattleCenter({
               <IconTrophy size={34} aria-hidden="true" />
               <small>Victory</small>
               <b>{nameOf(view.winner)}</b>
-              <span>wins the {view.kind === "ground" ? "ground" : "space"} combat</span>
+              <span>
+                wins the {view.kind === "ground" ? "ground" : "space"} combat
+              </span>
             </>
           ) : (
             <>
@@ -224,14 +270,24 @@ export function BattleCenter({
               <span>No units remain on either side</span>
             </>
           )}
-          <button type="button" className={styles.primary} disabled={busy} onClick={onClose}>
+          <button
+            type="button"
+            className={styles.primary}
+            disabled={busy}
+            onClick={onClose}
+          >
             Close battle
           </button>
         </div>
       )}
 
       {last && (
-        <LastVolley entry={last} attacker={attacker} defender={defender} nameOf={nameOf} />
+        <LastVolley
+          entry={last}
+          attacker={attacker}
+          defender={defender}
+          nameOf={nameOf}
+        />
       )}
     </div>
   );

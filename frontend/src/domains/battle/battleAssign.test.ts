@@ -110,7 +110,11 @@ describe("planFromMarks", () => {
       destroyDamaged: { dreadnought: 2 },
     });
     expect(
-      absorbed({ "dreadnought-0": "destroy", "dreadnought-1": "both", "fighter-0": "destroy" }),
+      absorbed({
+        "dreadnought-0": "destroy",
+        "dreadnought-1": "both",
+        "fighter-0": "destroy",
+      }),
     ).toBe(4);
   });
 });
@@ -119,7 +123,10 @@ describe("autoMarks", () => {
   it("najpierw Sustain Damage, potem najsłabsze jednostki", () => {
     const ships = expandShips(side([dreadnoughts, fighters]));
     const marks = autoMarks(ships, 2);
-    expect(marks).toEqual({ "dreadnought-1": "sustain", "fighter-0": "destroy" });
+    expect(marks).toEqual({
+      "dreadnought-1": "sustain",
+      "fighter-0": "destroy",
+    });
     expect(absorbed(marks)).toBe(2);
   });
 
