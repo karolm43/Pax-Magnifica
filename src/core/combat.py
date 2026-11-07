@@ -89,7 +89,11 @@ def resolve_unit_variant(
         mine = belongs(unit)
         # Ranking: frakcyjny-ulepszony(3) > frakcyjny-bazowy(2) >
         # generyczny-ulepszony(1) > generyczny-bazowy(0).
-        rank = (2 if mine else 0) + (1 if is_upgrade else 0)
+        rank = 2 * ((2 if mine else 0) + (1 if is_upgrade else 0))
+        # Jednostka odblokowana technologią (np. War Sun, ``ws``) wygrywa z
+        # placeholderem bez statystyk (``nowarsun``) o tym samym ranku.
+        if unit.required_tech_id is not None:
+            rank += 1
         if rank > best_rank:
             best_rank = rank
             best = unit
