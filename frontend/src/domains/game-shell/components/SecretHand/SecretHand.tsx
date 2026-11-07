@@ -1,7 +1,10 @@
 import { Collapse } from "@/ds";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { ScoredSecret } from "@/domains/player/components/ScoredSecret";
-import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
+import {
+  PromissoryNote,
+  getOwnerRgb,
+} from "@/domains/player/components/PromissoryNote";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
@@ -73,12 +76,15 @@ function FaceUpRow({
   name,
   tag,
   text,
+  tinted = false,
 }: {
   tone: string;
   back: string;
   name: string;
   tag?: string;
   text: string;
+  /** Kolor właściciela (nie sygnał obiektu) — karta dostaje wyraźniejszy odcień. */
+  tinted?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -86,6 +92,7 @@ function FaceUpRow({
       type="button"
       className={classes.acard}
       style={{ "--hk": tone } as CSSProperties}
+      data-tinted={tinted || undefined}
       aria-expanded={expanded}
       onClick={() => setExpanded((open) => !open)}
     >
@@ -124,9 +131,12 @@ function NoteRow({ id }: { id: string }) {
   const gameData = useGameData();
   const note = getPromissoryNoteData(id, factionColorMap);
   if (!note) return null;
+  // Karta w kolorze gracza, do którego należy nota; brak koloru → cyjan.
+  const ownerRgb = getOwnerRgb(note.faction, note.color, factionColorMap);
   return (
     <FaceUpRow
-      tone="var(--gd-cyan)"
+      tone={ownerRgb ?? "var(--gd-cyan)"}
+      tinted={ownerRgb !== undefined}
       back={NOTE_BACK}
       name={note.noteData.shortName || note.displayName}
       tag={note.faction}

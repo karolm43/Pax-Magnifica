@@ -169,6 +169,23 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
+/* Nota w kolorze właściciela: cały kafelek wyraźnie zabarwiony (sama grafika
+   rewersu zostaje bez zmian). */
+.card[data-tinted] {
+  background:
+    linear-gradient(180deg, rgba(var(--hk), 0.45), rgba(var(--hk), 0.2) 70%),
+    var(--ds-field);
+  border-color: rgba(var(--hk), 0.75);
+}
+
+.card[data-tinted]:hover,
+.card[data-tinted][data-open] {
+  border-color: rgb(var(--hk));
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.45),
+    0 0 12px rgba(var(--hk), 0.35);
+}
+
 .card:focus-visible {
   outline: 2px solid var(--ds-accent);
   outline-offset: 2px;

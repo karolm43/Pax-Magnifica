@@ -21,6 +21,7 @@ import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDeta
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
 import { PromissoryNoteCard } from "@/domains/cards/components/PromissoryNoteCard";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
+import { getOwnerRgb } from "@/domains/player/components/PromissoryNote";
 import {
   loadStoredChoice,
   saveStoredChoice,
@@ -80,7 +81,10 @@ function useDockOpen(): [boolean, (next: boolean) => void] {
 }
 
 /** Nazwa/etykieta karty wg kategorii (z wbudowanych danych AsyncTI4). */
-function useCardLabel(tab: HandTab, id: string): { name: string; tag?: string } {
+function useCardLabel(
+  tab: HandTab,
+  id: string,
+): { name: string; tag?: string; ownerRgb?: string } {
   const factionColorMap = useFactionColors();
   if (tab === "actions") {
     const card = getActionCard(id);
@@ -97,6 +101,10 @@ function useCardLabel(tab: HandTab, id: string): { name: string; tag?: string } 
   return {
     name: note?.noteData.shortName || note?.displayName || id,
     tag: note?.faction,
+    // Nota w kolorze gracza, do którego należy (także gdy leży w cudzej ręce).
+    ownerRgb: note
+      ? getOwnerRgb(note.faction, note.color, factionColorMap)
+      : undefined,
   };
 }
 
@@ -110,8 +118,9 @@ function CardDetails({ tab, id }: { tab: HandTab; id: string }) {
 /** Jeden kafelek karty w wachlarzu: rewers + nazwa + znacznik; klik = podgląd. */
 function HandCard({ tab, id }: { tab: HandTab; id: string }) {
   const [open, setOpen] = useState(false);
-  const { name, tag } = useCardLabel(tab, id);
-  const tone = TABS.find((t) => t.key === tab)?.tone ?? "148, 163, 184";
+  const { name, tag, ownerRgb } = useCardLabel(tab, id);
+  const tone =
+    ownerRgb ?? TABS.find((t) => t.key === tab)?.tone ?? "148, 163, 184";
   return (
     <SmoothPopover opened={open} onChange={setOpen} position="top">
       <SmoothPopover.Target>
@@ -120,6 +129,7 @@ function HandCard({ tab, id }: { tab: HandTab; id: string }) {
           className={styles.card}
           style={{ "--hk": tone } as CSSProperties}
           data-open={open || undefined}
+          data-tinted={ownerRgb ? true : undefined}
           onClick={() => setOpen((v) => !v)}
           title={name}
         >

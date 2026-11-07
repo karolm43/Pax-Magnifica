@@ -1,1 +1,1 @@
-export { PromissoryNote } from "./PromissoryNote";
+export { PromissoryNote, getOwnerRgb } from "./PromissoryNote";

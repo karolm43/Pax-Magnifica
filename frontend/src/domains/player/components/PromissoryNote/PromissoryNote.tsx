@@ -29,16 +29,18 @@ type Props = {
 };
 
 /** The owner's colour as a space-separated RGB triplet for the ticket stub. */
-function getOwnerRgb(
+export function getOwnerRgb(
   faction: string,
   color: string | undefined,
   factionColorMap: FactionColorMap,
 ): string | undefined {
+  // Mapa jest kluczowana i frakcją, i kolorem — bierzemy pole `color`, nie klucz
+  // (klucz bywa nazwą frakcji, której resolvePrimaryRgb nie zna).
   const ownerColor =
     color ??
-    Object.entries(factionColorMap).find(
-      ([, data]) => data.faction === faction,
-    )?.[0];
+    factionColorMap[faction]?.color ??
+    Object.values(factionColorMap).find((data) => data.faction === faction)
+      ?.color;
   const rgb = ownerColor ? resolvePrimaryRgb(ownerColor) : undefined;
   return rgb ? `${rgb.red}, ${rgb.green}, ${rgb.blue}` : undefined;
 }
