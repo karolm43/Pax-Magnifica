@@ -28,7 +28,6 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import production, space_cannon, strategy_phase, turn_flow
-from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
@@ -614,7 +613,6 @@ def _units_owned_for_faction(
     faction_id: str | None,
     technologies: list[str],
     registry: StaticDataRegistry,
-    breakthrough_unlocked: bool = False,
 ) -> list[str]:
     """Lista ID jednostek posiadanych przez gracza (baza/ulepszenie, generyczne/frakcyjne).
 
@@ -671,8 +669,6 @@ def _units_owned_for_faction(
             continue  # pomija cavalry/placeholdery/nietypowe asyncId
         if unit.id == "nowarsun":
             continue
-        if unit.id in BREAKTHROUGH_UNIT_IDS and not breakthrough_unlocked:
-            continue  # Corsair/Eidolon Maximum dopiero po odblokowaniu przełomu
         is_upgrade = unit.upgrades_from_unit_id is not None
         if not has_tech(unit):
             continue  # jednostka/ulepszenie za technologią, której gracz nie ma
@@ -1056,10 +1052,7 @@ def _build_player_data(
         econ = _planet_economy(controlled, registry)
         leaders = _player_leaders(player.faction, registry, player.leader_states)
         units_owned = _units_owned_for_faction(
-            player.faction,
-            player.technologies,
-            registry,
-            player.breakthrough_unlocked,
+            player.faction, player.technologies, registry
         )
         unit_counts = _unit_counts(deployed_by_player.get(player_id, {}))
         abilities = _faction_abilities(player.faction, registry)

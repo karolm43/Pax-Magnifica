@@ -133,7 +133,6 @@ def unit_variant(
         player.faction if player is not None else None,
         player.technologies if player is not None else [],
         base_type,
-        player.breakthrough_unlocked if player is not None else False,
     )
 
 
