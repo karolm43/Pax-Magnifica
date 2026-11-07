@@ -112,6 +112,7 @@ def combat_units(
             player.faction if player is not None else None,
             player.technologies if player is not None else [],
             base_type,
+            player.breakthrough_unlocked if player is not None else False,
         )
         if unit is None or unit.combat_hits_on is None:
             continue
