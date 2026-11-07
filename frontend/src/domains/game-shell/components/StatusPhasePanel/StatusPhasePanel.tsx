@@ -9,6 +9,7 @@ import {
   IconTrophy,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
+import { Tooltip } from "@/ds";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
 import { usePlayerData } from "@/api/usePlayerData";
@@ -132,12 +133,30 @@ export function StatusPhasePanel() {
         {STEPS.map((step) => {
           const state = step.n < current ? "done" : step.n === current ? "now" : "next";
           return (
-            <li key={step.n} className={styles.step} data-state={state} data-auto={step.auto || undefined}>
-              <span className={styles.stepNo}>
-                {state === "done" ? <IconCheck size={12} aria-hidden="true" /> : step.n}
-              </span>
-              <span className={styles.stepLabel}>{step.label}</span>
-            </li>
+            <Tooltip
+              key={step.n}
+              multiline
+              w={290}
+              openDelay={80}
+              position="top"
+              label={
+                <StepTip
+                  n={step.n}
+                  state={state}
+                  status={status}
+                  nameOf={nameOf}
+                  objectivesByKey={objectivesByKey}
+                  custodiansRemoved={status.custodiansRemoved}
+                />
+              }
+            >
+              <li className={styles.step} data-state={state} data-auto={step.auto || undefined} tabIndex={0}>
+                <span className={styles.stepNo}>
+                  {state === "done" ? <IconCheck size={12} aria-hidden="true" /> : step.n}
+                </span>
+                <span className={styles.stepLabel}>{step.label}</span>
+              </li>
+            </Tooltip>
           );
         })}
       </ol>
@@ -269,6 +288,114 @@ export function StatusPhasePanel() {
         )}
       </div>
     </aside>
+  );
+}
+
+/** Co robi dany krok fazy statusu (R_status_phase) — pokazywane w podpowiedzi. */
+const STEP_RULES: string[] = [
+  "In initiative order each player may score one public and one secret objective whose requirements they meet right now. Spend-type objectives are paid on scoring.",
+  "The speaker reveals the next public objective (Stage I first, Stage II only after all Stage I are revealed). With nothing left to reveal the game ends.",
+  "In initiative order each player draws one action card. If the deck runs short, the lowest-initiative players draw first, then the discard pile is reshuffled.",
+  "Every command token is taken off the board and returned to its owner's reinforcements.",
+  "Each player gains two command tokens, then freely splits all of them between the tactic, fleet and strategy pools.",
+  "All exhausted planets, technologies, leaders and strategy cards are readied.",
+  "All damaged units are repaired, even ones that lost Sustain Damage.",
+  "The speaker returns all Strategy Cards. If the Custodians token was removed, the agenda phase follows; otherwise a new round starts.",
+];
+
+type Entry = { step: number; label: string; [key: string]: unknown };
+
+function countsText(
+  record: unknown,
+  nameOf: (id: string) => string,
+  unit: string,
+): string[] {
+  if (!record || typeof record !== "object") return [];
+  return Object.entries(record as Record<string, number>)
+    .filter(([, n]) => n > 0)
+    .map(([id, n]) => `${nameOf(id)}: ${n} ${unit}`);
+}
+
+/** Zawartość podpowiedzi kroku: reguła + (gdy już się odbył) co dokładnie się stało. */
+function StepTip({
+  n,
+  state,
+  status,
+  nameOf,
+  objectivesByKey,
+  custodiansRemoved,
+}: {
+  n: number;
+  state: "done" | "now" | "next";
+  status: StatusPhaseData;
+  nameOf: (id: string) => string;
+  objectivesByKey: Map<string, Objective>;
+  custodiansRemoved: boolean;
+}) {
+  const entries = (status.log as Entry[]).filter((e) => e.step === n);
+  const lines: string[] = [];
+  let card: { name: string; points: number; text?: string } | null = null;
+
+  for (const entry of entries) {
+    if (entry.label === "scored") {
+      const key = String(entry.objective);
+      const secret = entry.kind === "secret";
+      const name = secret
+        ? (getSecretObjectiveData(key)?.name ?? key)
+        : (objectivesByKey.get(key)?.name ?? key);
+      lines.push(`${nameOf(String(entry.player))} scored ${secret ? "a secret objective" : name}${secret ? ` (${name})` : ""}`);
+    } else if (entry.label === "revealed") {
+      const key = String(entry.objective);
+      const objective = objectivesByKey.get(key);
+      card = {
+        name: objective?.name ?? key,
+        points: objective?.pointValue ?? 1,
+        text: publicText.get(key),
+      };
+    } else if (entry.label === "game_end_no_objectives") {
+      lines.push("No public objectives left — the game ended.");
+    } else if (entry.label === "drew_action_cards") {
+      lines.push(...countsText(entry.drawn, nameOf, "action card"));
+    } else if (entry.label === "removed_command_tokens") {
+      lines.push(...countsText(entry.returned, nameOf, "token returned"));
+    } else if (entry.label === "gained_command_tokens") {
+      lines.push(...countsText(entry.gained, nameOf, "new token"));
+    } else if (entry.label === "redistributed") {
+      lines.push(
+        `${nameOf(String(entry.player))}: tactic ${Number(entry.tactical)} · fleet ${Number(entry.fleet)} · strategy ${Number(entry.strategic)}`,
+      );
+    }
+  }
+  if (n === 1 && state === "done" && lines.length === 0) lines.push("Nobody scored an objective.");
+  if (n === 8) {
+    lines.push(custodiansRemoved ? "Next: agenda phase." : "Next: new round (strategy phase).");
+  }
+
+  return (
+    <div className={styles.tip}>
+      <b>
+        {n}. {STEP_TITLES[n - 1]}
+        {STEPS[n - 1].auto && <em> · automatic</em>}
+      </b>
+      <span>{STEP_RULES[n - 1]}</span>
+      {card && (
+        <div className={styles.tipCard}>
+          <small>Revealed</small>
+          <strong>
+            {card.name} <i>+{card.points} VP</i>
+          </strong>
+          {card.text && <span>{card.text}</span>}
+        </div>
+      )}
+      {lines.length > 0 && (
+        <ul>
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
+      {state === "next" && <small className={styles.tipHint}>Not reached yet.</small>}
+    </div>
   );
 }
 
