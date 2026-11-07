@@ -379,8 +379,13 @@
   animation: fleetFly 5s cubic-bezier(0.22, 0.6, 0.18, 1) both;
 }
 
-.formation:not([data-entered]) .ship[data-base="ws"] {
-  animation: wormholeIn 5s ease-out both;
+/* War sun nie wlatuje: wysuwa się DZIOBEM NAPRZÓD z wormhole otwartego tuż za nim. */
+.formation:not([data-entered]) .ship[data-side="left"][data-base="ws"] .emerge {
+  animation: emergeLeft 5s cubic-bezier(0.3, 0.1, 0.2, 1) both;
+}
+
+.formation:not([data-entered]) .ship[data-side="right"][data-base="ws"] .emerge {
+  animation: emergeRight 5s cubic-bezier(0.3, 0.1, 0.2, 1) both;
 }
 
 .rank {
@@ -461,6 +466,20 @@
 
 .overlay[data-kind="space"] .ship[data-side="right"] .shipSprite {
   transform: rotate(var(--heading-right, -45deg));
+}
+
+/* War sun ma grafikę zwróconą dziobem W GÓRĘ (nie w lewy-górny róg jak reszta). */
+.overlay[data-kind="space"] .ship[data-side="left"][data-base="ws"] .shipSprite {
+  transform: rotate(90deg);
+}
+
+.overlay[data-kind="space"] .ship[data-side="right"][data-base="ws"] .shipSprite {
+  transform: rotate(-90deg);
+}
+
+.emerge {
+  display: grid;
+  place-items: center;
 }
 
 /* KADŁUB: sprite + silniki dryfują RAZEM (silnik nie odkleja się od okrętu). Każdy okręt
@@ -545,23 +564,28 @@
   background: linear-gradient(to right, rgba(254, 215, 170, 0.7), rgba(234, 88, 12, 0.4) 35%, transparent);
 }
 
-/* WORMHOLE war suna: wir otwiera się na polu bitwy, z niego wyłania się okręt. */
+/* WORMHOLE war suna: pionowa, owalna szczelina za rufą (stonowany indygo, bez wirowania),
+   otwiera się, przepuszcza okręt i zamyka. */
 .portal {
   position: absolute;
-  left: 50%;
   top: 50%;
-  width: calc(var(--slot) * 1.5);
-  height: calc(var(--slot) * 1.5);
-  margin: calc(var(--slot) * -0.75) 0 0 calc(var(--slot) * -0.75);
+  width: calc(var(--slot) * 0.26);
+  height: calc(var(--slot) * 1.05);
+  margin-top: calc(var(--slot) * -0.525);
   border-radius: 50%;
   pointer-events: none;
   opacity: 0;
-  background:
-    radial-gradient(circle, rgba(0, 0, 0, 0.95) 0%, rgba(10, 5, 30, 0.9) 22%, transparent 34%),
-    conic-gradient(from 0deg, rgba(167, 139, 250, 0), rgba(167, 139, 250, 0.85), rgba(56, 189, 248, 0.2), rgba(251, 146, 60, 0.8), rgba(167, 139, 250, 0));
-  mask: radial-gradient(circle, #000 52%, transparent 70%);
-  filter: blur(1px) drop-shadow(0 0 18px rgba(167, 139, 250, 0.8));
+  background: radial-gradient(ellipse, rgba(3, 4, 12, 0.98) 0%, rgba(20, 22, 48, 0.95) 40%, rgba(129, 140, 248, 0.55) 62%, rgba(199, 210, 254, 0.25) 72%, transparent 78%);
+  box-shadow: 0 0 22px 4px rgba(129, 140, 248, 0.35);
   animation: portalOpen 5s ease-in-out both;
+}
+
+.ship[data-side="left"] .portal {
+  left: 4%;
+}
+
+.ship[data-side="right"] .portal {
+  right: 4%;
 }
 
 .formation[data-entered] .portal {
@@ -575,12 +599,12 @@
 
 /* Podpis jednostek wyjątkowych (flagowiec) i frakcyjnych. */
 .unitTag {
-  max-width: calc(var(--slot) + 40px);
+  max-width: calc(var(--slot) + 60px);
   overflow: hidden;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
+  line-height: 1.25;
+  letter-spacing: 0.03em;
   text-align: center;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -589,7 +613,7 @@
 
 .unitTag b {
   display: block;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1319,6 +1343,70 @@
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.9));
 }
 
+/* Karta opisu jednostki (portal do body, nad oknem bitwy 2900, pod modalami 3500). */
+.unitHover {
+  position: fixed;
+  z-index: 3000;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.6));
+  animation: resultIn 0.18s ease-out both;
+}
+
+/* ---- WAR SUN: słoneczny ogień ----
+   Kula żaru z długim warkoczem, ładowanie przed strzałem (narastający żar u wylotu)
+   i pożoga na celu z pierścieniem fali. */
+.beam[data-kind="sun"] .beamLaser {
+  display: none;
+}
+
+.beam[data-kind="sun"] .beamCore {
+  width: 40px;
+  height: 22px;
+  top: -11px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 70% 50%, #fff 0%, #fde68a 22%, rgba(251, 146, 60, 0.95) 45%, rgba(220, 38, 38, 0.4) 70%, transparent 78%);
+  box-shadow:
+    0 0 22px 8px rgba(251, 146, 60, 0.75),
+    -46px 0 26px 4px rgba(234, 88, 12, 0.45),
+    -90px 0 30px 2px rgba(185, 28, 28, 0.25);
+}
+
+.muzzle[data-sun] {
+  width: 70px;
+  height: 70px;
+  margin: -35px 0 0 -35px;
+  background: radial-gradient(circle, #fff 0%, rgba(253, 230, 138, 0.9) 25%, rgba(251, 146, 60, 0.5) 50%, transparent 72%);
+  animation: sunCharge 1.1s ease-in var(--delay) both;
+}
+
+.impact[data-sun] {
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  background: radial-gradient(circle, #fff 0%, #fde68a 18%, rgba(251, 146, 60, 0.85) 38%, rgba(185, 28, 28, 0.45) 58%, transparent 72%);
+  filter: drop-shadow(0 0 26px rgba(251, 146, 60, 1));
+  animation-duration: 1.6s;
+}
+
+@keyframes sunCharge {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  55% {
+    opacity: 0.9;
+    transform: scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
 /* --- Plakietka powrotu (okno schowane) --- */
 .returnPill {
   position: fixed;
@@ -1420,42 +1508,73 @@
   }
 }
 
-@keyframes wormholeIn {
+/* Wysunięcie z wormhole: okręt jedzie do przodu, a część „za szczeliną" jest jeszcze ukryta
+   (clip-path odsłania od dziobu). Lewa strona leci w prawo, prawa w lewo. */
+@keyframes emergeLeft {
   0%,
-  42% {
+  34% {
     opacity: 0;
-    transform: scale(0.05) rotate(-40deg);
-    filter: brightness(3);
+    translate: calc(var(--slot) * -0.8) 0;
+    clip-path: inset(0 0 0 92%);
+    filter: brightness(2.2);
   }
-  62% {
+  38% {
     opacity: 1;
-    transform: scale(0.7) rotate(-8deg);
-    filter: brightness(2) drop-shadow(0 0 30px rgba(167, 139, 250, 1));
+  }
+  82% {
+    translate: 0 0;
+    clip-path: inset(0 0 0 10%);
+    filter: brightness(1.3);
   }
   100% {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
+    clip-path: inset(0 0 0 0);
+    filter: none;
+  }
+}
+
+@keyframes emergeRight {
+  0%,
+  34% {
+    opacity: 0;
+    translate: calc(var(--slot) * 0.8) 0;
+    clip-path: inset(0 92% 0 0);
+    filter: brightness(2.2);
+  }
+  38% {
+    opacity: 1;
+  }
+  82% {
+    translate: 0 0;
+    clip-path: inset(0 10% 0 0);
+    filter: brightness(1.3);
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    clip-path: inset(0 0 0 0);
     filter: none;
   }
 }
 
 @keyframes portalOpen {
   0%,
-  25% {
+  18% {
     opacity: 0;
-    transform: scale(0.1) rotate(0deg);
+    transform: scaleY(0.05) scaleX(0.4);
   }
-  45% {
+  32% {
     opacity: 1;
-    transform: scale(1) rotate(260deg);
+    transform: scaleY(1) scaleX(1);
   }
-  70% {
-    opacity: 0.9;
-    transform: scale(1.05) rotate(520deg);
+  80% {
+    opacity: 1;
+    transform: scaleY(1) scaleX(1);
   }
   100% {
     opacity: 0;
-    transform: scale(0.3) rotate(800deg);
+    transform: scaleY(0.05) scaleX(0.3);
   }
 }
 
@@ -1721,6 +1840,7 @@
   .hull,
   .engine,
   .portal,
+  .emerge,
   .debris,
   .muzzle,
   .blast,

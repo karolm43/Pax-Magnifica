@@ -5,7 +5,9 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import { useGameData } from "@/state/useGameContext";
+import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { playBattleSound, preloadBattleSounds } from "./battleSound";
 import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
@@ -106,10 +108,13 @@ function ShipToken({
   mark,
   selectable,
   onToggle,
+  onHover,
 }: {
   view: ShipView;
   /** Podpis jednostki wyjątkowej (flagowiec) lub frakcyjnej; brak = zwykła jednostka. */
   tag: UnitTag | null;
+  /** Najechanie / zjechanie kursorem — karta opisu jednostki jak na planszy. */
+  onHover: (ship: ShipEntity | null, el?: HTMLElement) => void;
   rank: number;
   index: number;
   /** Liczba okrętów w szeregu — do ułożenia szyku w łuk (klin). */
@@ -190,6 +195,9 @@ function ShipToken({
     // pociski do nich dolatują, zanim wybuchną (wybuch jest opóźniony w CSS).
     "data-ship-side": side,
     "data-ship-base": ship.baseType,
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) =>
+      onHover(ship, e.currentTarget),
+    onMouseLeave: () => onHover(null),
   };
   const content = (
     <>
@@ -212,13 +220,16 @@ function ShipToken({
             }
           />
         ))}
-        <span className={styles.shipSprite}>
-          <Unit
-            unitType={ship.asyncId}
-            colorAlias={colorAlias}
-            faction={faction}
-            scaleSprite
-          />
+        {/* .emerge: nieobracana warstwa wyłaniania (war sun z wormhole, bokiem do przodu). */}
+        <span className={styles.emerge}>
+          <span className={styles.shipSprite}>
+            <Unit
+              unitType={ship.asyncId}
+              colorAlias={colorAlias}
+              faction={faction}
+              scaleSprite
+            />
+          </span>
         </span>
       </span>
       {tag && (
@@ -351,6 +362,17 @@ export function BattleFleet({
     const data = lookupUnit(asyncId, side.faction, player);
     return data?.faction ? { kind: "faction", name } : null;
   };
+  // Karta opisu jednostki przy najechaniu (ten sam UnitDetailsCard co na planszy). Portal do
+  // body: pole bitwy drży przy salwach (`translate`), co psułoby pozycję `fixed` w środku.
+  const [hover, setHover] = useState<{
+    ship: ShipEntity;
+    rect: DOMRect;
+  } | null>(null);
+  const onHover = (ship: ShipEntity | null, el?: HTMLElement) =>
+    setHover(ship && el ? { ship, rect: el.getBoundingClientRect() } : null);
+  const hoverUnitId = hover
+    ? lookupUnit(hover.ship.asyncId, side.faction, player)?.id
+    : undefined;
   const hpRatio = maxHp > 0 ? Math.max(0, side.hp / maxHp) : 0;
   return (
     <section
@@ -414,6 +436,7 @@ export function BattleFleet({
                 colorAlias={colorAlias}
                 faction={side.faction}
                 tag={tagOf(view.ship.asyncId, view.ship.name)}
+                onHover={onHover}
                 mark={marks[view.ship.id]}
                 selectable={assigning}
                 onToggle={onToggle}
@@ -422,6 +445,30 @@ export function BattleFleet({
           </div>
         ))}
       </div>
+
+      {hover &&
+        hoverUnitId &&
+        createPortal(
+          <div
+            className={styles.unitHover}
+            style={{
+              left:
+                align === "left" ? hover.rect.right + 14 : hover.rect.left - 14,
+              top: Math.max(
+                12,
+                Math.min(
+                  hover.rect.top + hover.rect.height / 2 - 190,
+                  window.innerHeight - 400,
+                ),
+              ),
+              transform: align === "left" ? undefined : "translateX(-100%)",
+            }}
+            role="tooltip"
+          >
+            <UnitDetailsCard unitId={hoverUnitId} color={player?.color} />
+          </div>,
+          document.body,
+        )}
 
       <table className={styles.roster}>
         <thead>

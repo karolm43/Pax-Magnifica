@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useLayoutEffect,
   useRef,
@@ -50,11 +50,13 @@ import styles from "./BattleOverlay.module.css";
 /* Okręty z ciężkim uzbrojeniem (war sun, flagowiec, dreadnought): grubsze wiązki i dźwięk. */
 const HEAVY_BASES = new Set(["ws", "fs", "dn"]);
 
-type ShotKind = "laser" | "plasma" | "flak";
+type ShotKind = "laser" | "plasma" | "flak" | "sun";
 
 /** Rodzaj broni pocisku: AFB = flak; reszta na przemian laser (co 3.) i plazma. */
-function shotKind(s: { afb: boolean }, n: number): ShotKind {
-  return s.afb ? "flak" : n % 3 === 0 ? "laser" : "plasma";
+function shotKind(s: { afb: boolean; sun: boolean }, n: number): ShotKind {
+  if (s.afb) return "flak";
+  if (s.sun) return "sun"; // war sun: słoneczny ogień
+  return n % 3 === 0 ? "laser" : "plasma";
 }
 
 /* Czas lotu pocisku (ms) — spójny z animacją `beamTravel` w CSS. */
@@ -82,6 +84,8 @@ type Shot = {
   target: "left" | "right";
   /** Strzela okręt ciężki (war sun / flagowiec / dreadnought). */
   heavy: boolean;
+  /** Strzela war sun (własny efekt: kula żaru z ładowaniem). */
+  sun: boolean;
 };
 
 /** Duży rozbłysk w środku pola strony, która dostaje trafienia. */
@@ -173,6 +177,7 @@ function VolleyLayer({
           delayMs: bolt.delayMs,
           target: enemy,
           heavy,
+          sun: shooter.getAttribute("data-base") === "ws",
         },
       ];
     });
@@ -214,6 +219,14 @@ function VolleyLayer({
                 gain: s.heavy ? 1 : 0.55,
               }),
             s.delayMs,
+          ),
+        );
+      }
+      if (s.sun && s.hit) {
+        timers.push(
+          window.setTimeout(
+            () => playBattleSound("explosion", { pan: -pan, gain: 0.7 }),
+            s.delayMs + TRAVEL_MS,
           ),
         );
       }
@@ -267,11 +280,13 @@ function VolleyLayer({
         <span
           key={`${s.id}-muzzle`}
           className={styles.muzzle}
+          data-sun={s.sun || undefined}
           style={
             {
               left: s.x1,
               top: s.y1,
-              "--delay": `${s.delayMs}ms`,
+              // War sun „ładuje" żar ~0,6 s przed wystrzałem.
+              "--delay": `${s.sun ? s.delayMs - 600 : s.delayMs}ms`,
             } as CSSProperties
           }
         />
@@ -297,6 +312,7 @@ function VolleyLayer({
             key={`${s.id}-impact`}
             className={styles.impact}
             data-afb={s.afb || undefined}
+            data-sun={s.sun || undefined}
             style={
               {
                 left: s.tx,
