@@ -1,4 +1,5 @@
-﻿import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { playBattleSound, preloadBattleSounds } from "./battleSound";
 import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -10,9 +11,9 @@ import styles from "./BattleOverlay.module.css";
 /* Rozmiar okrętu na polu bitwy wg typu (asyncId): okręty liniowe wyraźnie większe od
    eskorty, myśliwce i piechota małe — skala oddaje „wagę" jednostki. */
 const SHIP_SIZE: Record<string, number> = {
-  ws: 112,
-  fs: 108,
-  dn: 94,
+  ws: 150,
+  fs: 138,
+  dn: 100,
   cv: 84,
   ca: 72,
   dd: 62,
@@ -35,8 +36,8 @@ const RANK: Record<string, number> = {
   ws: 5,
 };
 
-/** Czas wejścia armady (zgodny z `armadaIn` + opóźnieniami w CSS). */
-const ENTRY_MS = 10000;
+/** Czas wejścia formacji (zgodny z `armadaIn` w CSS, 5 s + zapas). */
+const ENTRY_MS = 5400;
 
 /** Deterministyczne odchylenie (−max..max) z id okrętu — szyk nie stoi w idealnej linii. */
 function jitter(id: string, salt: number, max: number): number {
@@ -44,6 +45,9 @@ function jitter(id: string, salt: number, max: number): number {
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return Math.round(((h % 1000) / 1000 - 0.5) * 2 * max);
 }
+
+/** Jednostki „ciężkie": inne dźwięki, grubsze działa, specjalna aura (war sun, flagowiec). */
+const HEAVY = new Set(["ws", "fs", "dn"]);
 
 function shipSize(asyncId: string): number {
   return SHIP_SIZE[asyncId] ?? 64;
@@ -98,15 +102,30 @@ function ShipToken({
   // Szyk-klin: okręty skrajne szeregu cofnięte względem środkowych (łuk ku wrogowi).
   const spread = Math.abs(index - (count - 1) / 2);
   const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22);
-  // Tempo wejścia różne dla każdego okrętu (0.78..1.28× bazy) — flota nie leci jak blok.
-  const entrySpeed = 0.78 + (jitter(ship.id, 3, 250) + 250) / 1000;
+  const heavy = HEAVY.has(ship.asyncId);
+  // Dźwięki zdarzeń okrętu: Sustain Damage i zniszczenie (wybuch opóźniony jak animacja).
+  useEffect(() => {
+    if (!justSustained) return;
+    playBattleSound("sustain", { pan: side === "left" ? -0.5 : 0.5, heavy });
+  }, [justSustained, side, heavy]);
+  useEffect(() => {
+    if (!dying) return;
+    const t = window.setTimeout(
+      () =>
+        playBattleSound(heavy ? "explosionHeavy" : "explosion", {
+          pan: side === "left" ? -0.5 : 0.5,
+          heavy,
+        }),
+      1100,
+    );
+    return () => window.clearTimeout(t);
+  }, [dying, side, heavy]);
   const style = {
     "--rank": rank,
     "--i": index,
     "--dir": side === "left" ? -1 : 1,
     "--jx": `${jitter(ship.id, 1, 8) + arcX}px`,
     "--jy": `${jitter(ship.id, 2, 12)}px`,
-    "--entry": entrySpeed.toFixed(2),
     "--slot": `${size}px`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
@@ -158,6 +177,21 @@ function ShipToken({
         <span className={styles.sustainFx} aria-hidden="true" />
       )}
       {dying && <span className={styles.explosion} aria-hidden="true" />}
+      {dying &&
+        Array.from({ length: heavy ? 14 : 7 }, (_, i) => (
+          <span
+            key={i}
+            className={styles.debris}
+            aria-hidden="true"
+            style={
+              {
+                "--dx": `${jitter(ship.id, 10 + i, size)}px`,
+                "--dy": `${jitter(ship.id, 40 + i, size)}px`,
+                "--rot": `${jitter(ship.id, 70 + i, 540)}deg`,
+              } as CSSProperties
+            }
+          />
+        ))}
     </>
   );
 
@@ -215,7 +249,21 @@ export function BattleFleet({
   const [entered, setEntered] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setEntered(true), ENTRY_MS);
-    return () => window.clearTimeout(t);
+    // Dźwięk: narastający pomruk lotu floty, a w chwili osiadania ciężki łoskot
+    // (głębszy, gdy w szyku jest war sun / flagowiec / dreadnought).
+    preloadBattleSounds();
+    const pan = align === "left" ? -0.6 : 0.6;
+    const hasHeavy = views.some((v) => HEAVY.has(v.ship.asyncId));
+    playBattleSound("fleetEnter", { pan });
+    const thud = window.setTimeout(
+      () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan }),
+      4500,
+    );
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(thud);
+    };
+    // Tylko przy montowaniu: wejście floty gra raz.
   }, []);
   const hpRatio = maxHp > 0 ? Math.max(0, side.hp / maxHp) : 0;
   return (
@@ -264,7 +312,11 @@ export function BattleFleet({
           <span className={styles.wiped}>Fleet destroyed</span>
         )}
         {ranks(views).map((rankViews, rank) => (
-          <div key={rankViews[0].ship.asyncId} className={styles.rank}>
+          <div
+            key={rankViews[0].ship.asyncId}
+            className={styles.rank}
+            style={{ "--rank": rank } as CSSProperties}
+          >
             {rankViews.map((view, i) => (
               <ShipToken
                 key={view.ship.id}

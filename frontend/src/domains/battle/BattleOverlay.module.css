@@ -1,4 +1,4 @@
-﻿/*
+/*
  * OKNO POLA BITWY (RULES.md 39) — pełny ekran nad mapą (pod modalami aplikacji).
  *
  * Styl: stonowany, „taktyczny" (ciemne panele, cienkie ramki, oszczędne poświaty), bo pod
@@ -137,8 +137,13 @@
   box-shadow: 0 0 7px rgb(var(--c) / 0.7);
 }
 
-.hideBtn {
+.topActions {
   justify-self: end;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.hideBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -358,6 +363,24 @@
   justify-content: center;
 }
 
+/* WEJŚCIE FORMACJI: cały szyk leci jako jedna bryła (okręty nie mogą się przenikać), a
+   szeregi tylne „doganiają" o tyle, o ile były rozciągnięte — ciężkie okręty osiadają ostatnie. */
+.fleet[data-align="left"] .formation {
+  --dir: -1;
+}
+
+.fleet[data-align="right"] .formation {
+  --dir: 1;
+}
+
+.formation:not([data-entered]) {
+  animation: armadaIn 5s cubic-bezier(0.22, 0.6, 0.18, 1) both;
+}
+
+.formation:not([data-entered]) .rank {
+  animation: rankSettle 5s cubic-bezier(0.22, 0.6, 0.18, 1) both;
+}
+
 .rank {
   display: flex;
   flex-direction: column;
@@ -395,8 +418,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   /* Wejście ARMADY: cała flota wlatuje z boku, szeregi tylne wcześniej, przednie za nimi. */
-  animation: armadaIn calc(4s * var(--entry, 1)) cubic-bezier(0.3, 0.2, 0.25, 1) both;
-  animation-delay: calc((5 - var(--rank, 0)) * 160ms + var(--i, 0) * 90ms);
+  isolation: isolate;
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
@@ -468,33 +490,46 @@
   --side-rgb: var(--right-rgb);
 }
 
-/* Płomień silników z rufy (rufa = dół sprite'a przed obrotem). */
-.overlay[data-kind="space"] .shipSprite::before {
+/* SILNIKI: smuga w osi rufy (środek wysokości okrętu, po stronie przeciwnej do wroga).
+   Poza obracanym sprite'em, więc zawsze leży poziomo za kadłubem. */
+.overlay[data-kind="space"] .ship:not([data-base="ff"])::before {
   content: "";
   position: absolute;
-  left: 77%;
-  top: 77%;
-  width: 11%;
-  height: 24%;
-  margin-left: -5.5%;
-  rotate: -45deg;
-  transform-origin: 50% 0;
-  border-radius: 50% 50% 60% 60%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.55),
-    rgb(var(--side-rgb, 125 211 252) / 0.4) 40%,
-    transparent
-  );
+  top: calc(var(--slot) / 2 + 3px - var(--flame-h, 5px) / 2);
+  width: calc(var(--slot) * var(--flame-w, 0.26));
+  height: var(--flame-h, 5px);
+  border-radius: 50%;
+  pointer-events: none;
   filter: blur(1.5px);
   opacity: 0.55;
-  transform-origin: 50% 0;
-  animation: engineFlicker 0.35s ease-in-out infinite alternate;
-  pointer-events: none;
+  z-index: -1;
 }
 
-.overlay[data-kind="space"] .ship[data-base="ff"] .shipSprite::before {
-  display: none;
+.overlay[data-kind="space"] .ship[data-side="left"]:not([data-base="ff"])::before {
+  right: calc(50% + var(--slot) * 0.4);
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.75), rgb(var(--side-rgb) / 0.45) 38%, transparent);
+  transform-origin: 100% 50%;
+  animation: engineGlow 0.5s ease-in-out infinite alternate;
+}
+
+.overlay[data-kind="space"] .ship[data-side="right"]:not([data-base="ff"])::before {
+  left: calc(50% + var(--slot) * 0.4);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.75), rgb(var(--side-rgb) / 0.45) 38%, transparent);
+  transform-origin: 0 50%;
+  animation: engineGlow 0.5s ease-in-out infinite alternate;
+}
+
+/* Duże okręty: szersze, dłuższe ślady silników. */
+.ship[data-base="dn"],
+.ship[data-base="cv"] {
+  --flame-h: 8px;
+  --flame-w: 0.34;
+}
+
+.ship[data-base="ws"],
+.ship[data-base="fs"] {
+  --flame-h: 14px;
+  --flame-w: 0.5;
 }
 
 .ship[data-damaged] .shipSprite {
@@ -502,9 +537,9 @@
     drop-shadow(0 0 12px rgba(220, 38, 38, 0.35));
 }
 
-.ship[data-damaged] .shipSprite::before {
-  animation-duration: 0.13s; /* rwący się silnik */
-  opacity: 0.5;
+.ship[data-damaged]::before {
+  animation-duration: 0.14s !important; /* rwący się silnik */
+  opacity: 0.4 !important;
 }
 
 .ship[data-selectable] {
@@ -546,6 +581,45 @@
   animation: none;
 }
 
+/* ---- SIŁA: war sun i flagowiec to jednostki szczególne ----
+   Stała aura mocy pod kadłubem (puls) + okrąg fali uderzeniowej przy osiadaniu. */
+.formation[data-entered] .ship[data-base="ws"]::after,
+.formation[data-entered] .ship[data-base="fs"]::after {
+  content: "";
+  position: absolute;
+  inset: -22% -30%;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(ellipse, rgb(var(--aura) / 0.3) 0%, rgb(var(--aura) / 0.1) 45%, transparent 70%);
+  animation: auraPulse 4.5s ease-in-out infinite;
+}
+
+.ship[data-base="ws"] {
+  --aura: 251 146 60; /* war sun: żar gwiazdy */
+}
+
+.ship[data-base="fs"] {
+  --aura: var(--side-rgb); /* flagowiec: barwa dowództwa strony */
+}
+
+.ship[data-base="ws"] .shipSprite,
+.ship[data-base="fs"] .shipSprite {
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.7))
+    drop-shadow(0 0 10px rgb(var(--aura) / 0.55))
+    drop-shadow(0 0 26px rgb(var(--aura) / 0.25));
+}
+
+.formation:not([data-entered]) .ship[data-base="ws"]::after,
+.formation:not([data-entered]) .ship[data-base="fs"]::after {
+  inset: -40%;
+  border-radius: 50%;
+  background: none;
+  border: 2px solid rgb(var(--aura) / 0.85);
+  box-shadow: 0 0 24px rgb(var(--aura) / 0.5);
+  animation: shockwave 5s ease-out both;
+}
+
 /* Lekki rozbłysk silników w chwili, gdy flota dolatuje na pozycję (impet). */
 .formation:not([data-entered]) .ship::after {
   content: "";
@@ -555,8 +629,7 @@
   pointer-events: none;
   background: radial-gradient(circle, rgb(var(--side-rgb) / 0.18), transparent 70%);
   opacity: 0;
-  animation: arriveGlow calc(4s * var(--entry, 1)) ease-out both;
-  animation-delay: calc((5 - var(--rank, 0)) * 160ms + var(--i, 0) * 90ms);
+  animation: arriveGlow 5s ease-out both;
 }
 
 .formation[data-entered] .ship[data-dying] {
@@ -632,6 +705,35 @@
   background: radial-gradient(circle, rgba(255, 245, 220, 0.95) 0%, rgba(251, 191, 36, 0.8) 22%, rgba(234, 88, 12, 0.55) 45%, transparent 70%);
   animation: explode 2.2s ease-out 1.1s both;
   pointer-events: none;
+}
+
+/* Okruchy kadłuba rozlatujące się przy zniszczeniu. */
+.debris {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 3px;
+  border-radius: 1px;
+  background: rgba(200, 205, 215, 0.9);
+  box-shadow: 0 0 6px rgba(251, 146, 60, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  animation: debrisFly 2.2s ease-out 1.5s both;
+}
+
+@keyframes debrisFly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+  }
 }
 
 /* Spis jednostek strony. */
@@ -1126,6 +1228,45 @@
   animation-duration: 0.55s;
 }
 
+/* Działa wielkich okrętów (war sun, flagowiec, dreadnought): grubsze wiązki i pociski. */
+.beam[data-heavy] .beamLaser {
+  height: 8px;
+  top: -4px;
+  box-shadow:
+    0 0 16px 4px rgb(var(--rgb) / 0.9),
+    0 0 44px 12px rgb(var(--rgb) / 0.4);
+}
+
+.beam[data-heavy][data-kind="plasma"] .beamCore {
+  width: 44px;
+  height: 18px;
+  top: -9px;
+}
+
+/* Pierścień fali uderzeniowej na celu. */
+.impact::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 237, 213, 0.9);
+  animation: impactRing 1.1s ease-out var(--delay) both;
+}
+
+@keyframes impactRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
 /* Błysk wylotu przy strzelcu. */
 .muzzle {
   position: absolute;
@@ -1274,6 +1415,54 @@
   100% {
     opacity: 0;
     transform: scale(1.6);
+  }
+}
+
+@keyframes rankSettle {
+  0% {
+    transform: translateX(calc(var(--dir, -1) * var(--rank, 0) * 70px));
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes engineGlow {
+  from {
+    opacity: 0.35;
+    transform: scaleX(0.75);
+  }
+  to {
+    opacity: 0.8;
+    transform: scaleX(1.2);
+  }
+}
+
+@keyframes auraPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes shockwave {
+  0%,
+  86% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  90% {
+    opacity: 1;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
   }
 }
 
@@ -1518,7 +1707,6 @@
   .stars,
   .ship,
   .shipSprite,
-  .shipSprite::before,
   .topBar,
   .center,
   .field[data-hits],
@@ -1526,6 +1714,11 @@
   .explosion,
   .beamCore,
   .beamLaser,
+  .formation,
+  .rank,
+  .ship::before,
+  .ship::after,
+  .debris,
   .muzzle,
   .blast,
   .sustainFx,

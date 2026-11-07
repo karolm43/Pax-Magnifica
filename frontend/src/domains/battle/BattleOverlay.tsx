@@ -1,4 +1,5 @@
-﻿import {
+import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -7,7 +8,12 @@
 } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
-import { IconMinimize, IconSwords } from "@tabler/icons-react";
+import {
+  IconMinimize,
+  IconSwords,
+  IconVolume,
+  IconVolumeOff,
+} from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import {
@@ -33,7 +39,23 @@ import {
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet } from "./BattleFleet";
 import { BattleCenter } from "./BattleCenter";
+import {
+  isBattleMuted,
+  playBattleSound,
+  preloadBattleSounds,
+  setBattleMuted,
+} from "./battleSound";
 import styles from "./BattleOverlay.module.css";
+
+/* Okręty z ciężkim uzbrojeniem (war sun, flagowiec, dreadnought): grubsze wiązki i dźwięk. */
+const HEAVY_BASES = new Set(["ws", "fs", "dn"]);
+
+type ShotKind = "laser" | "plasma" | "flak";
+
+/** Rodzaj broni pocisku: AFB = flak; reszta na przemian laser (co 3.) i plazma. */
+function shotKind(s: { afb: boolean }, n: number): ShotKind {
+  return s.afb ? "flak" : n % 3 === 0 ? "laser" : "plasma";
+}
 
 /* Czas lotu pocisku (ms) — spójny z animacją `beamTravel` w CSS. */
 const TRAVEL_MS = 900;
@@ -58,6 +80,8 @@ type Shot = {
   delayMs: number;
   /** Strona, do której leci pocisk (cel). */
   target: "left" | "right";
+  /** Strzela okręt ciężki (war sun / flagowiec / dreadnought). */
+  heavy: boolean;
 };
 
 /** Duży rozbłysk w środku pola strony, która dostaje trafienia. */
@@ -128,6 +152,7 @@ function VolleyLayer({
       const sr = shooter.getBoundingClientRect();
       const reach = Math.min(sr.width, sr.height) * 0.42;
       const d0 = Math.hypot(tx - center0.x, ty - center0.y) || 1;
+      const heavy = HEAVY_BASES.has(shooter.getAttribute("data-base") ?? "");
       const from = {
         x: center0.x + ((tx - center0.x) / d0) * reach,
         y: center0.y + ((ty - center0.y) / d0) * reach,
@@ -147,6 +172,7 @@ function VolleyLayer({
           afb: volley.phase === "AFB",
           delayMs: bolt.delayMs,
           target: enemy,
+          heavy,
         },
       ];
     });
@@ -169,6 +195,44 @@ function VolleyLayer({
       ];
     });
     setShots({ id: volley.id, list, blasts });
+
+    // DŹWIĘKI salwy zsynchronizowane z animacją (wylot, trafienie). Limit, żeby duża
+    // salwa nie zamieniła się w ścianę hałasu.
+    const timers: number[] = [];
+    let heard = 0;
+    let impacts = 0;
+    list.forEach((s, n) => {
+      const pan = s.target === "right" ? -0.6 : 0.6; // strzela strona przeciwna do celu
+      if (heard < 12 || s.heavy) {
+        heard += 1;
+        timers.push(
+          window.setTimeout(
+            () =>
+              playBattleSound(shotKind(s, n), {
+                pan,
+                heavy: s.heavy,
+                gain: s.heavy ? 1 : 0.55,
+              }),
+            s.delayMs,
+          ),
+        );
+      }
+      if (s.hit && impacts < 8) {
+        impacts += 1;
+        timers.push(
+          window.setTimeout(
+            () =>
+              playBattleSound("impact", {
+                pan: -pan,
+                heavy: s.heavy,
+                gain: s.afb ? 0.4 : 0.8,
+              }),
+            s.delayMs + (s.afb ? 550 : TRAVEL_MS),
+          ),
+        );
+      }
+    });
+    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [volley, fieldRef]);
 
   if (!volley || !shots || shots.id !== volley.id) return null;
@@ -178,7 +242,8 @@ function VolleyLayer({
         <span
           key={s.id}
           className={styles.beam}
-          data-kind={s.afb ? "flak" : n % 3 === 0 ? "laser" : "plasma"}
+          data-kind={shotKind(s, n)}
+          data-heavy={s.heavy || undefined}
           data-hit={s.hit || undefined}
           data-afb={s.afb || undefined}
           style={
@@ -269,6 +334,8 @@ function Battlefield({ view }: { view: BattleView }) {
   const clearNotice = useAppStore((s) => s.clearNotice);
   const { battleAfb, battleRoll, battleAssign, battleClose } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  const [muted, setMuted] = useState(isBattleMuted);
+  useEffect(() => preloadBattleSounds(), []);
   const fieldRef = useRef<HTMLDivElement>(null);
 
   const attacker = view.attacker!;
@@ -389,14 +456,36 @@ function Battlefield({ view }: { view: BattleView }) {
             {d.name}
           </b>
         </span>
-        <button
-          type="button"
-          className={styles.hideBtn}
-          onClick={() => setHidden(true)}
-          title="Hide the battle and look at the map (the combat keeps going)"
-        >
-          <IconMinimize size={15} aria-hidden="true" /> Hide
-        </button>
+        <span className={styles.topActions}>
+          <button
+            type="button"
+            className={styles.hideBtn}
+            data-sound
+            onClick={() => {
+              setBattleMuted(!muted);
+              setMuted(!muted);
+            }}
+            title={
+              muted ? "Sound off — click to enable" : "Sound on — click to mute"
+            }
+            aria-pressed={!muted}
+          >
+            {muted ? (
+              <IconVolumeOff size={15} aria-hidden="true" />
+            ) : (
+              <IconVolume size={15} aria-hidden="true" />
+            )}
+            {muted ? "Muted" : "Sound"}
+          </button>
+          <button
+            type="button"
+            className={styles.hideBtn}
+            onClick={() => setHidden(true)}
+            title="Hide the battle and look at the map (the combat keeps going)"
+          >
+            <IconMinimize size={15} aria-hidden="true" /> Hide
+          </button>
+        </span>
       </header>
 
       {notice && (
