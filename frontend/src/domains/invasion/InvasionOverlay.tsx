@@ -284,7 +284,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                               )
                             }
                           >
-                            <IconMinus size={11} />
+                            <IconMinus size={18} />
                           </button>
                         )}
                         <span>
@@ -301,7 +301,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                               )
                             }
                           >
-                            <IconPlus size={11} />
+                            <IconPlus size={18} />
                           </button>
                         )}
                       </span>

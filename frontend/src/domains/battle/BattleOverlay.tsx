@@ -53,8 +53,18 @@ const HEAVY_BASES = new Set(["ws", "fs", "dn"]);
 type ShotKind = "laser" | "plasma" | "flak" | "sun" | "tracer" | "shell";
 
 /** Czas lotu pocisku (ms): kule smugowe i flak są szybkie, reszta wolniejsza. */
-const travelOf = (s: { afb: boolean; ground?: "tracer" | "shell" }) =>
-  s.ground === "shell" ? 1500 : s.afb ? 550 : TRAVEL_MS;
+const travelOf = (s: {
+  afb: boolean;
+  heavy?: boolean;
+  ground?: "tracer" | "shell";
+}) =>
+  s.ground === "shell"
+    ? s.heavy
+      ? 1900
+      : 1500
+    : s.afb
+      ? 550
+      : TRAVEL_MS;
 
 /** Rodzaj broni pocisku: AFB = flak; reszta na przemian laser (co 3.) i plazma. */
 function shotKind(
@@ -171,7 +181,9 @@ function VolleyLayer({
       const sr = shooter.getBoundingClientRect();
       const reach = Math.min(sr.width, sr.height) * 0.42;
       const d0 = Math.hypot(tx - center0.x, ty - center0.y) || 1;
-      const heavy = HEAVY_BASES.has(shooter.getAttribute("data-base") ?? "");
+      // Walka naziemna: mech to „ciężka artyleria" (większy pocisk, wolniejszy, większy wybuch).
+      const base = shooter.getAttribute("data-base") ?? "";
+      const heavy = HEAVY_BASES.has(base) || (ground && base === "mf");
       const from = {
         x: center0.x + ((tx - center0.x) / d0) * reach,
         y: center0.y + ((ty - center0.y) / d0) * reach,
@@ -275,7 +287,7 @@ function VolleyLayer({
       }
     });
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [volley, fieldRef]);
+  }, [volley, fieldRef, ground]);
 
   if (!volley || !shots || shots.id !== volley.id) return null;
   return (
@@ -344,6 +356,7 @@ function VolleyLayer({
             data-afb={s.afb || undefined}
             data-sun={s.sun || undefined}
             data-ground={s.ground || undefined}
+            data-heavy={s.heavy || undefined}
             style={
               {
                 left: s.tx,

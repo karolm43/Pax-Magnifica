@@ -12,8 +12,8 @@ import styles from "./InvasionOverlay.module.css";
  * Efekty okna inwazji (czysto wizualne, bez wpływu na stan):
  * - ``PlanetStage``: okrągła planeta (powierzchnia z gradientów wg typu), nad nią orbita ze
  *   statkami; kopuła Planetary Shield otacza glob (stoi / zapada się pod war sunem);
- * - ``StrikeLayer``: bombardowanie to powolne lance z okrętów na orbicie (ładowanie →
- *   wiązka → ognista kula); Space Cannon Defense to szybkie wyładowania jonowe z ziemi w górę.
+ * - ``StrikeLayer``: bombardowanie to powolne, ciężkie ładunki z okrętów na orbicie (ładowanie →
+ *   opadanie → wielka kula ognia, fala i słup dymu); Space Cannon Defense to szybkie wyładowania jonowe z ziemi w górę.
  * Każda salwa sprząta po sobie: po zakończeniu warstwa znika z DOM (żadnych pozostałości).
  */
 
@@ -106,7 +106,7 @@ function spread(n: number, salt: number): number {
 }
 
 /** Najdłuższa animacja salwy (ms) - po tym czasie warstwa jest zdejmowana z DOM. */
-const BOMBARD_MS = 4200;
+const BOMBARD_MS = 9400;
 const DEFENSE_MS = 2600;
 
 /**
@@ -176,8 +176,10 @@ export function StrikeLayer({
             }
           >
             <i className={styles.charge} />
-            <i className={styles.lance} />
+            <i className={styles.bomb} />
+            <i className={styles.ion} />
             <i className={styles.fireball} />
+            <i className={styles.smoke} />
             <i className={styles.shock} />
           </span>
         );

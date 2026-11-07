@@ -2328,9 +2328,9 @@
 
 .beam[data-kind="shell"] .beamCore,
 .beam[data-kind="shell"]:not([data-hit]) .beamCore {
-  width: 15px;
-  height: 15px;
-  top: -7.5px;
+  width: 11px;
+  height: 11px;
+  top: -5.5px;
   border-radius: 50%;
   background: radial-gradient(circle, #fff 0%, #fdba74 45%, transparent 75%);
   box-shadow:
@@ -2348,6 +2348,25 @@
   filter: none;
   background: radial-gradient(circle, rgba(255, 237, 200, 0.95) 0%, rgba(251, 146, 60, 0.7) 22%, rgba(120, 100, 80, 0.55) 50%, transparent 72%);
   animation: groundImpact 1.6s ease-out var(--delay) both;
+}
+
+/* Mech: ciężka artyleria - większy, wolniejszy pocisk i potężniejszy wybuch. */
+.beam[data-kind="shell"][data-heavy] .beamCore,
+.beam[data-kind="shell"][data-heavy]:not([data-hit]) .beamCore {
+  width: 26px;
+  height: 26px;
+  top: -13px;
+  box-shadow:
+    0 0 18px 6px rgba(251, 146, 60, 0.85),
+    -34px 0 18px 4px rgba(120, 113, 108, 0.55);
+  animation-duration: 1.9s;
+}
+
+.impact[data-ground][data-heavy] {
+  width: 170px;
+  height: 170px;
+  margin: -85px 0 0 -85px;
+  animation-duration: 2.2s;
 }
 
 @keyframes groundDrop {

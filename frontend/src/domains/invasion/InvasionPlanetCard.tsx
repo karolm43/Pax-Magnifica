@@ -381,7 +381,17 @@ export function InvasionPlanetCard({
             <>
               {view.cargo.map((unit) => (
                 <div className={styles.stepper} key={unit.baseType}>
-                  <span>{unit.name}</span>
+                  <span className={styles.stepLabel}>
+                    <span className={styles.stepSprite}>
+                      <Unit
+                        unitType={unit.asyncId}
+                        colorAlias={look(attacker).colorAlias}
+                        faction={attacker}
+                        scaleSprite
+                      />
+                    </span>
+                    {unit.name}
+                  </span>
                   <button
                     type="button"
                     className={styles.stepBtn}
@@ -389,9 +399,9 @@ export function InvasionPlanetCard({
                     disabled={(staged[unit.baseType] ?? 0) === 0}
                     onClick={() => actions.onBump(info.planet, unit.baseType, -1)}
                   >
-                    <IconMinus size={12} />
+                    <IconMinus size={18} />
                   </button>
-                  <b>{staged[unit.baseType] ?? 0}</b>
+                  <b className={styles.stepNum}>{staged[unit.baseType] ?? 0}</b>
                   <button
                     type="button"
                     className={styles.stepBtn}
@@ -399,22 +409,35 @@ export function InvasionPlanetCard({
                     disabled={remainingOf(view.cargo, actions.stage, unit.baseType) === 0}
                     onClick={() => actions.onBump(info.planet, unit.baseType, 1)}
                   >
-                    <IconPlus size={12} />
+                    <IconPlus size={18} />
                   </button>
                 </div>
               ))}
-              <button
-                type="button"
-                className={styles.ghostBtn}
-                onClick={() => actions.onLandAll(info.planet)}
-                title="Send everything still in orbit to this planet"
-              >
-                Land all here
-              </button>
-              {stagedCount > 0 && (
-                <span className={styles.note}>{stagedCount} to land</span>
-              )}
-            </>
+              <div className={styles.row}>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={() => actions.onLandAll(info.planet)}
+                  title="Send everything still in orbit to this planet"
+                >
+                  All here
+                </button>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  disabled={stagedCount === 0}
+                  onClick={() => {
+                    for (const [bt, n] of Object.entries(staged)) {
+                      actions.onBump(info.planet, bt, -n);
+                    }
+                  }}
+                >
+                  Clear
+                </button>
+                <span className={styles.stagedNote}>
+                  {stagedCount > 0 ? `${stagedCount} to land` : ""}
+                </span>
+              </div>            </>
           )}
         </div>
       )}

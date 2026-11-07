@@ -139,7 +139,7 @@ export function InvasionStepPanel() {
                     setStage((s) => bumpStage(s, view.cargo, p.planet, u.baseType, -1))
                   }
                 >
-                  <IconMinus size={11} />
+                  <IconMinus size={16} />
                 </button>
                 <b>{staged[u.baseType] ?? 0}</b>
                 <button
@@ -151,7 +151,7 @@ export function InvasionStepPanel() {
                     setStage((s) => bumpStage(s, view.cargo, p.planet, u.baseType, 1))
                   }
                 >
-                  <IconPlus size={11} />
+                  <IconPlus size={16} />
                 </button>
               </div>
             ))}
