@@ -373,12 +373,14 @@
   --dir: 1;
 }
 
-.formation:not([data-entered]) {
-  animation: armadaIn 5s cubic-bezier(0.22, 0.6, 0.18, 1) both;
+/* Każdy okręt leci TYM SAMYM ruchem (ten sam czas, bez opóźnień) — szyk się nie przenika;
+   szeregi tylne startują dalej (--rank) i domykają odstęp. War sun nie wlatuje (wormhole). */
+.formation:not([data-entered]) .ship:not([data-base="ws"]) {
+  animation: fleetFly 5s cubic-bezier(0.22, 0.6, 0.18, 1) both;
 }
 
-.formation:not([data-entered]) .rank {
-  animation: rankSettle 5s cubic-bezier(0.22, 0.6, 0.18, 1) both;
+.formation:not([data-entered]) .ship[data-base="ws"] {
+  animation: wormholeIn 5s ease-out both;
 }
 
 .rank {
@@ -461,25 +463,37 @@
   transform: rotate(var(--heading-right, -45deg));
 }
 
-/* Poświata w barwie strony + dryf „w miejscu" (osobna właściwość `translate`, żeby nie
-   nadpisać obrotu z `transform`). Każdy okręt ma własną fazę, więc flota nie pływa jak jeden. */
-.shipSprite {
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 4px rgb(var(--side-rgb, 255 255 255) / 0.26))
-    drop-shadow(0 0 10px rgb(var(--side-rgb, 255 255 255) / 0.1));
-  animation: shipIdle 5.5s ease-in-out infinite;
+/* KADŁUB: sprite + silniki dryfują RAZEM (silnik nie odkleja się od okrętu). Każdy okręt
+   ma własną fazę, więc flota nie pływa jak jeden. */
+.hull {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--slot);
+  height: var(--slot);
+  animation: shipIdle 6s ease-in-out infinite;
   animation-delay: calc(var(--rank, 0) * -0.9s + var(--i, 0) * -1.3s);
 }
 
-/* Okręty liniowe = większa masa: wolniejszy, mniejszy dryf i mocniejsza poświata/cień. */
+.ship[data-base="ws"] .hull,
+.ship[data-base="fs"] .hull,
+.ship[data-base="dn"] .hull {
+  animation-name: shipIdleHeavy;
+  animation-duration: 10s;
+}
+
+.shipSprite {
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 4px rgb(var(--side-rgb, 255 255 255) / 0.24));
+}
+
+/* Duże okręty = masa: głębszy cień. */
 .ship[data-base="ws"] .shipSprite,
 .ship[data-base="fs"] .shipSprite,
 .ship[data-base="dn"] .shipSprite,
 .ship[data-base="cv"] .shipSprite {
-  animation-duration: 9s;
-  filter: drop-shadow(0 6px 9px rgba(0, 0, 0, 0.6))
-    drop-shadow(0 0 7px rgb(var(--side-rgb, 255 255 255) / 0.3))
-    drop-shadow(0 0 18px rgb(var(--side-rgb, 255 255 255) / 0.12));
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.65))
+    drop-shadow(0 0 6px rgb(var(--side-rgb, 255 255 255) / 0.26));
 }
 
 .ship[data-side="left"] {
@@ -490,46 +504,68 @@
   --side-rgb: var(--right-rgb);
 }
 
-/* SILNIKI: smuga w osi rufy (środek wysokości okrętu, po stronie przeciwnej do wroga).
-   Poza obracanym sprite'em, więc zawsze leży poziomo za kadłubem. */
-.overlay[data-kind="space"] .ship:not([data-base="ff"])::before {
-  content: "";
+/* SILNIKI: osobne dysze (liczba wg typu okrętu), w osi rufy zmierzonej z sprite'a
+   (--ey = środek kadłuba, --rear = odległość rufy od środka). Spokojny „oddech", bez migania. */
+.engine {
   position: absolute;
-  top: calc(var(--slot) / 2 + 3px - var(--flame-h, 5px) / 2);
-  width: calc(var(--slot) * var(--flame-w, 0.26));
-  height: var(--flame-h, 5px);
+  top: calc(50% + var(--ey, 0px) + var(--off, 0) * var(--slot) - var(--eh) / 2);
+  width: calc(var(--slot) * var(--el, 0.2));
+  height: var(--eh);
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(1.5px);
-  opacity: 0.55;
-  z-index: -1;
+  filter: blur(1.2px);
+  opacity: 0.6;
+  animation: engineBreath 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--k, 0) * -0.7s);
 }
 
-.overlay[data-kind="space"] .ship[data-side="left"]:not([data-base="ff"])::before {
-  right: calc(50% + var(--slot) * 0.4);
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.75), rgb(var(--side-rgb) / 0.45) 38%, transparent);
+.ship[data-side="left"] .engine {
+  right: calc(50% - var(--ex, 0px) + var(--rear, 30px));
   transform-origin: 100% 50%;
-  animation: engineGlow 0.5s ease-in-out infinite alternate;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.8), rgb(var(--side-rgb) / 0.5) 35%, transparent);
 }
 
-.overlay[data-kind="space"] .ship[data-side="right"]:not([data-base="ff"])::before {
-  left: calc(50% + var(--slot) * 0.4);
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.75), rgb(var(--side-rgb) / 0.45) 38%, transparent);
+.ship[data-side="right"] .engine {
+  left: calc(50% + var(--ex, 0px) + var(--rear, 30px));
   transform-origin: 0 50%;
-  animation: engineGlow 0.5s ease-in-out infinite alternate;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgb(var(--side-rgb) / 0.5) 35%, transparent);
 }
 
-/* Duże okręty: szersze, dłuższe ślady silników. */
-.ship[data-base="dn"],
-.ship[data-base="cv"] {
-  --flame-h: 8px;
-  --flame-w: 0.34;
+.overlay[data-kind="ground"] .engine {
+  display: none;
 }
 
-.ship[data-base="ws"],
-.ship[data-base="fs"] {
-  --flame-h: 14px;
-  --flame-w: 0.5;
+.ship[data-damaged] .engine {
+  animation-name: engineSputter;
+  animation-duration: 2.4s;
+  background: linear-gradient(to left, rgba(254, 215, 170, 0.7), rgba(234, 88, 12, 0.4) 35%, transparent);
+}
+
+.ship[data-side="right"][data-damaged] .engine {
+  background: linear-gradient(to right, rgba(254, 215, 170, 0.7), rgba(234, 88, 12, 0.4) 35%, transparent);
+}
+
+/* WORMHOLE war suna: wir otwiera się na polu bitwy, z niego wyłania się okręt. */
+.portal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--slot) * 1.5);
+  height: calc(var(--slot) * 1.5);
+  margin: calc(var(--slot) * -0.75) 0 0 calc(var(--slot) * -0.75);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle, rgba(0, 0, 0, 0.95) 0%, rgba(10, 5, 30, 0.9) 22%, transparent 34%),
+    conic-gradient(from 0deg, rgba(167, 139, 250, 0), rgba(167, 139, 250, 0.85), rgba(56, 189, 248, 0.2), rgba(251, 146, 60, 0.8), rgba(167, 139, 250, 0));
+  mask: radial-gradient(circle, #000 52%, transparent 70%);
+  filter: blur(1px) drop-shadow(0 0 18px rgba(167, 139, 250, 0.8));
+  animation: portalOpen 5s ease-in-out both;
+}
+
+.formation[data-entered] .portal {
+  display: none;
 }
 
 .ship[data-damaged] .shipSprite {
@@ -537,9 +573,27 @@
     drop-shadow(0 0 12px rgba(220, 38, 38, 0.35));
 }
 
-.ship[data-damaged]::before {
-  animation-duration: 0.14s !important; /* rwący się silnik */
-  opacity: 0.4 !important;
+/* Podpis jednostek wyjątkowych (flagowiec) i frakcyjnych. */
+.unitTag {
+  max-width: calc(var(--slot) + 40px);
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgb(var(--side-rgb) / 0.75);
+}
+
+.unitTag b {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #d6b25e;
 }
 
 .ship[data-selectable] {
@@ -579,57 +633,6 @@
 /* Po wejściu armady okręty nie wlatują ponownie (np. po rzucie czy przypisaniu strat). */
 .formation[data-entered] .ship {
   animation: none;
-}
-
-/* ---- SIŁA: war sun i flagowiec to jednostki szczególne ----
-   Stała aura mocy pod kadłubem (puls) + okrąg fali uderzeniowej przy osiadaniu. */
-.formation[data-entered] .ship[data-base="ws"]::after,
-.formation[data-entered] .ship[data-base="fs"]::after {
-  content: "";
-  position: absolute;
-  inset: -22% -30%;
-  z-index: -1;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(ellipse, rgb(var(--aura) / 0.3) 0%, rgb(var(--aura) / 0.1) 45%, transparent 70%);
-  animation: auraPulse 4.5s ease-in-out infinite;
-}
-
-.ship[data-base="ws"] {
-  --aura: 251 146 60; /* war sun: żar gwiazdy */
-}
-
-.ship[data-base="fs"] {
-  --aura: var(--side-rgb); /* flagowiec: barwa dowództwa strony */
-}
-
-.ship[data-base="ws"] .shipSprite,
-.ship[data-base="fs"] .shipSprite {
-  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.7))
-    drop-shadow(0 0 10px rgb(var(--aura) / 0.55))
-    drop-shadow(0 0 26px rgb(var(--aura) / 0.25));
-}
-
-.formation:not([data-entered]) .ship[data-base="ws"]::after,
-.formation:not([data-entered]) .ship[data-base="fs"]::after {
-  inset: -40%;
-  border-radius: 50%;
-  background: none;
-  border: 2px solid rgb(var(--aura) / 0.85);
-  box-shadow: 0 0 24px rgb(var(--aura) / 0.5);
-  animation: shockwave 5s ease-out both;
-}
-
-/* Lekki rozbłysk silników w chwili, gdy flota dolatuje na pozycję (impet). */
-.formation:not([data-entered]) .ship::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 10px;
-  pointer-events: none;
-  background: radial-gradient(circle, rgb(var(--side-rgb) / 0.18), transparent 70%);
-  opacity: 0;
-  animation: arriveGlow 5s ease-out both;
 }
 
 .formation[data-entered] .ship[data-dying] {
@@ -1353,21 +1356,6 @@
   }
 }
 
-/* Armada: daleki dolot z boku, hamowanie przy pozycji (lekki dryf na końcu). */
-@keyframes armadaIn {
-  0% {
-    opacity: 0;
-    transform: translateX(calc(var(--dir, -1) * 70vw));
-  }
-  10% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @keyframes sustainFlash {
   0% {
     opacity: 0;
@@ -1418,64 +1406,83 @@
   }
 }
 
-@keyframes rankSettle {
+@keyframes fleetFly {
   0% {
-    transform: translateX(calc(var(--dir, -1) * var(--rank, 0) * 70px));
+    opacity: 0;
+    transform: translateX(calc(var(--dir, -1) * (70vw + var(--rank, 0) * 60px)));
+  }
+  8% {
+    opacity: 1;
   }
   100% {
+    opacity: 1;
     transform: none;
   }
 }
 
-@keyframes engineGlow {
-  from {
-    opacity: 0.35;
-    transform: scaleX(0.75);
+@keyframes wormholeIn {
+  0%,
+  42% {
+    opacity: 0;
+    transform: scale(0.05) rotate(-40deg);
+    filter: brightness(3);
   }
-  to {
-    opacity: 0.8;
-    transform: scaleX(1.2);
+  62% {
+    opacity: 1;
+    transform: scale(0.7) rotate(-8deg);
+    filter: brightness(2) drop-shadow(0 0 30px rgba(167, 139, 250, 1));
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
   }
 }
 
-@keyframes auraPulse {
+@keyframes portalOpen {
+  0%,
+  25% {
+    opacity: 0;
+    transform: scale(0.1) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1) rotate(260deg);
+  }
+  70% {
+    opacity: 0.9;
+    transform: scale(1.05) rotate(520deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(800deg);
+  }
+}
+
+@keyframes engineBreath {
   0%,
   100% {
     opacity: 0.55;
-    transform: scale(0.96);
+    transform: scaleX(0.94);
   }
   50% {
-    opacity: 1;
-    transform: scale(1.06);
+    opacity: 0.72;
+    transform: scaleX(1.05);
   }
 }
 
-@keyframes shockwave {
+@keyframes engineSputter {
   0%,
-  86% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  90% {
-    opacity: 1;
-    transform: scale(0.5);
-  }
+  44%,
+  56%,
   100% {
-    opacity: 0;
-    transform: scale(1.5);
+    opacity: 0.45;
   }
-}
-
-@keyframes arriveGlow {
-  0%,
-  82% {
-    opacity: 0;
+  50% {
+    opacity: 0.12;
   }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
+  78% {
+    opacity: 0.3;
   }
 }
 
@@ -1492,11 +1499,6 @@
   }
 }
 
-.ship[data-base="ws"] .shipSprite,
-.ship[data-base="fs"] .shipSprite,
-.ship[data-base="dn"] .shipSprite {
-  animation-name: shipIdleHeavy;
-}
 
 @keyframes shipIdleHeavy {
   0%,
@@ -1716,8 +1718,9 @@
   .beamLaser,
   .formation,
   .rank,
-  .ship::before,
-  .ship::after,
+  .hull,
+  .engine,
+  .portal,
   .debris,
   .muzzle,
   .blast,

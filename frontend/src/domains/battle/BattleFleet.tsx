@@ -1,4 +1,12 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { useGameData } from "@/state/useGameContext";
+import { lookupUnit } from "@/entities/lookup/units";
 import { playBattleSound, preloadBattleSounds } from "./battleSound";
 import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
 import { Unit } from "@/shared/ui/Unit";
@@ -11,13 +19,13 @@ import styles from "./BattleOverlay.module.css";
 /* Rozmiar okrętu na polu bitwy wg typu (asyncId): okręty liniowe wyraźnie większe od
    eskorty, myśliwce i piechota małe — skala oddaje „wagę" jednostki. */
 const SHIP_SIZE: Record<string, number> = {
-  ws: 150,
-  fs: 138,
-  dn: 100,
-  cv: 84,
-  ca: 72,
-  dd: 62,
-  ff: 36,
+  ws: 180, // war sun — największa jednostka pola bitwy
+  fs: 128,
+  dn: 108,
+  cv: 96,
+  ca: 80,
+  dd: 66,
+  ff: 38,
   mf: 66,
   gf: 42,
 };
@@ -46,8 +54,23 @@ function jitter(id: string, salt: number, max: number): number {
   return Math.round(((h % 1000) / 1000 - 0.5) * 2 * max);
 }
 
+/* DYSZE silników wg typu: przesunięcia w poprzek osi kadłuba (ułamek slotu), długość smugi
+   (--el, ułamek slotu) i grubość (px). War sun bez silników (wyłania się z wormhole). */
+const ENGINES: Record<
+  string,
+  { offsets: number[]; length: number; height: number }
+> = {
+  dd: { offsets: [0], length: 0.22, height: 5 },
+  ca: { offsets: [-0.05, 0.05], length: 0.22, height: 4 },
+  cv: { offsets: [-0.12, -0.04, 0.04, 0.12], length: 0.16, height: 3 },
+  dn: { offsets: [-0.07, 0.07], length: 0.3, height: 6 },
+  fs: { offsets: [-0.1, 0, 0.1], length: 0.34, height: 7 },
+};
+
 /** Jednostki „ciężkie": inne dźwięki, grubsze działa, specjalna aura (war sun, flagowiec). */
 const HEAVY = new Set(["ws", "fs", "dn"]);
+
+type UnitTag = { kind: "flagship" | "faction"; name: string };
 
 function shipSize(asyncId: string): number {
   return SHIP_SIZE[asyncId] ?? 64;
@@ -79,11 +102,14 @@ function ShipToken({
   side,
   colorAlias,
   faction,
+  tag,
   mark,
   selectable,
   onToggle,
 }: {
   view: ShipView;
+  /** Podpis jednostki wyjątkowej (flagowiec) lub frakcyjnej; brak = zwykła jednostka. */
+  tag: UnitTag | null;
   rank: number;
   index: number;
   /** Liczba okrętów w szeregu — do ułożenia szyku w łuk (klin). */
@@ -103,6 +129,28 @@ function ShipToken({
   const spread = Math.abs(index - (count - 1) / 2);
   const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22);
   const heavy = HEAVY.has(ship.asyncId);
+  const engines = ENGINES[ship.asyncId];
+  // Oś kadłuba MIERZONA z wyrenderowanego sprite'a (grafiki mają różne marginesy): środek
+  // obrazka względem kadłuba (--ex/--ey) i odległość rufy od środka (--rear).
+  const hullRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const hull = hullRef.current;
+    const img = hull?.querySelector<HTMLElement>(".unit-sprite, img");
+    if (!hull || !img) return;
+    const h = hull.getBoundingClientRect();
+    const r = img.getBoundingClientRect();
+    hull.style.setProperty(
+      "--ex",
+      `${(r.left + r.width / 2 - (h.left + h.width / 2)).toFixed(1)}px`,
+    );
+    hull.style.setProperty(
+      "--ey",
+      `${(r.top + r.height / 2 - (h.top + h.height / 2)).toFixed(1)}px`,
+    );
+    // Obrazek obrócony ~45°: kadłub leży wzdłuż przekątnej; rufa ≈ 0,5 × przekątnej boku.
+    const side = (img.offsetWidth + img.offsetHeight) / 2;
+    hull.style.setProperty("--rear", `${(side * 0.5).toFixed(1)}px`);
+  }, [size]);
   // Dźwięki zdarzeń okrętu: Sustain Damage i zniszczenie (wybuch opóźniony jak animacja).
   useEffect(() => {
     if (!justSustained) return;
@@ -145,14 +193,40 @@ function ShipToken({
   };
   const content = (
     <>
-      <span className={styles.shipSprite}>
-        <Unit
-          unitType={ship.asyncId}
-          colorAlias={colorAlias}
-          faction={faction}
-          scaleSprite
-        />
+      <span className={styles.hull} ref={hullRef}>
+        {ship.asyncId === "ws" && (
+          <span className={styles.portal} aria-hidden="true" />
+        )}
+        {engines?.offsets.map((off, k) => (
+          <span
+            key={k}
+            className={styles.engine}
+            aria-hidden="true"
+            style={
+              {
+                "--off": off,
+                "--k": k,
+                "--el": engines.length,
+                "--eh": `${engines.height}px`,
+              } as CSSProperties
+            }
+          />
+        ))}
+        <span className={styles.shipSprite}>
+          <Unit
+            unitType={ship.asyncId}
+            colorAlias={colorAlias}
+            faction={faction}
+            scaleSprite
+          />
+        </span>
       </span>
+      {tag && (
+        <span className={styles.unitTag} title={tag.name}>
+          {tag.kind === "flagship" && <b>Flagship</b>}
+          {tag.name}
+        </span>
+      )}
       <span
         className={styles.pips}
         aria-label={`${pips.full} of ${pips.total} hit points`}
@@ -255,6 +329,9 @@ export function BattleFleet({
     const pan = align === "left" ? -0.6 : 0.6;
     const hasHeavy = views.some((v) => HEAVY.has(v.ship.asyncId));
     playBattleSound("fleetEnter", { pan });
+    const warp = views.some((v) => v.ship.asyncId === "ws")
+      ? window.setTimeout(() => playBattleSound("warp", { pan }), 1300)
+      : undefined;
     const thud = window.setTimeout(
       () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan }),
       4500,
@@ -262,9 +339,18 @@ export function BattleFleet({
     return () => {
       window.clearTimeout(t);
       window.clearTimeout(thud);
+      window.clearTimeout(warp);
     };
     // Tylko przy montowaniu: wejście floty gra raz.
   }, []);
+  // Podpisy: flagowiec zawsze; inne jednostki, gdy dane mają je jako frakcyjne (asset JSON).
+  const gameData = useGameData();
+  const player = gameData?.playerData?.find((p) => p.faction === side.faction);
+  const tagOf = (asyncId: string, name: string): UnitTag | null => {
+    if (asyncId === "fs") return { kind: "flagship", name };
+    const data = lookupUnit(asyncId, side.faction, player);
+    return data?.faction ? { kind: "faction", name } : null;
+  };
   const hpRatio = maxHp > 0 ? Math.max(0, side.hp / maxHp) : 0;
   return (
     <section
@@ -327,6 +413,7 @@ export function BattleFleet({
                 side={align}
                 colorAlias={colorAlias}
                 faction={side.faction}
+                tag={tagOf(view.ship.asyncId, view.ship.name)}
                 mark={marks[view.ship.id]}
                 selectable={assigning}
                 onToggle={onToggle}
