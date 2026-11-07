@@ -205,7 +205,7 @@ type AppStore = {
    */
   battleHidden: boolean;
   setBattleHidden: (hidden: boolean) => void;
-  /** Okno produkcji (RULES.md 33.3) schowane na mapę; wraca przyciskiem w panelu pomocy. */
+  /** Okno produkcji (RULES.md 33.3): domyślnie ZAMKNIĘTE (true); otwiera je przycisk „Open production". */
   productionHidden: boolean;
   setProductionHidden: (hidden: boolean) => void;
 
@@ -368,7 +368,7 @@ export const useAppStore = create<AppStore>((set) => {
 
     battleHidden: false,
     setBattleHidden: (hidden: boolean) => set({ battleHidden: hidden }),
-    productionHidden: false,
+    productionHidden: true,
     setProductionHidden: (hidden: boolean) => set({ productionHidden: hidden }),
 
     dragLoadTarget: null,

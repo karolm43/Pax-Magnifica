@@ -6,7 +6,6 @@ import {
   IconArrowRight,
   IconBuildingFactory2,
   IconCheck,
-  IconCoin,
   IconMinimize,
   IconMinus,
   IconPlus,
@@ -164,10 +163,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
         </div>
         <div className={styles.unitInfo}>
           <b>{u.name}</b>
-          <small>
-            Cost {fmt(u.cost)}
-            {u.unitsPerCost > 1 ? ` for ${u.unitsPerCost}` : ""}
-          </small>
+          <span className={styles.costLine} title="Resource cost">
+            <b>{fmt(u.cost)}</b>
+            <i>res{u.unitsPerCost > 1 ? ` for ${u.unitsPerCost}` : ""}</i>
+          </span>
           <small className={styles.onBoard}>
             On board: {u.onBoard}
             {n > 0 ? ` (+${n})` : ""}
@@ -229,8 +228,13 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           <span className={styles.stat}>
             <b>{view.remaining}</b> slots left
           </span>
-          <span className={styles.stat}>
-            <b>{readyRes}</b> res + <b>{view.tradeGoods}</b> TG
+          <span className={styles.stat} title="Ready resources + trade goods">
+            <b>{readyRes}</b> res +{" "}
+            <img className={styles.tgIcon} src="/tg.png" alt="Trade goods" />{" "}
+            <b>{view.tradeGoods}</b>
+          </span>
+          <span className={styles.stat} data-kind="cost" data-bad={short > 0 || undefined}>
+            Order cost <b>{fmt(cost)}</b>
           </span>
         </span>
         <span className={styles.topActions}>
@@ -419,7 +423,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
 
           <div className={styles.tgRow}>
             <span className={styles.tgLabel}>
-              <IconCoin size={18} aria-hidden="true" /> Trade goods
+              <img className={styles.tgIcon} src="/tg.png" alt="" aria-hidden="true" /> Trade goods
             </span>
             <span className={styles.stepper}>
               <button
@@ -445,27 +449,9 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             <small>of {view.tradeGoods}</small>
           </div>
 
-          <dl className={styles.sum}>
-            <div>
-              <dt>Cost</dt>
-              <dd>{fmt(cost)}</dd>
-            </div>
-            <div>
-              <dt>Paying</dt>
-              <dd data-bad={short > 0 || undefined}>{paid}</dd>
-            </div>
-            {short > 0 ? (
-              <div data-bad>
-                <dt>Short by</dt>
-                <dd>{fmt(short)}</dd>
-              </div>
-            ) : (
-              <div>
-                <dt>Lost surplus</dt>
-                <dd data-warn={wasted > 0 || undefined}>{fmt(wasted)}</dd>
-              </div>
-            )}
-          </dl>
+          <p className={styles.payLine} data-bad={short > 0 || undefined}>
+            Paying <b>{paid}</b> of <b>{fmt(cost)}</b> needed
+          </p>
         </section>
       </div>
 
@@ -495,6 +481,19 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             </div>
           )}
         </section>
+        <div className={styles.costBox} data-bad={short > 0 || undefined} aria-live="polite">
+          <span className={styles.costLabel}>Cost</span>
+          <b className={styles.costValue}>{fmt(cost)}</b>
+          <small>
+            {queued === 0
+              ? "nothing queued"
+              : short > 0
+                ? `short by ${fmt(short)}`
+                : wasted > 0
+                  ? `${fmt(wasted)} surplus is lost`
+                  : "fully covered"}
+          </small>
+        </div>
         <div className={styles.dockActions}>
           <button
             type="button"
@@ -551,9 +550,10 @@ export function ProductionOverlay() {
     if (active) void queryClient.invalidateQueries({ queryKey: ["production"] });
   }, [gameState, active, queryClient]);
 
-  // Poza krokiem PRODUCTION chowanie się resetuje - kolejna produkcja otwiera okno od nowa.
+  // Poza krokiem PRODUCTION okno wraca do stanu zamkniętego - kolejna produkcja zaczyna się
+  // od przycisku „Open production", a nie od okna wyskakującego samo.
   useEffect(() => {
-    if (!active && hidden) setHidden(false);
+    if (!active && !hidden) setHidden(true);
   }, [active, hidden, setHidden]);
 
   if (!active || !view?.active) return null;
@@ -565,7 +565,7 @@ export function ProductionOverlay() {
         onClick={() => setHidden(false)}
       >
         <IconBuildingFactory2 size={16} aria-hidden="true" />
-        Production in progress - return
+        Open production
       </button>,
       document.body,
     );

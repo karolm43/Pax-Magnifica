@@ -540,7 +540,7 @@
   min-height: 38px;
 }
 
-/* Karty planet z stref graczy (PlanetCard) - klik zaznacza planet? do zap?aty. */
+/* Karty planet z stref graczy (PlanetCard) - klik zaznacza planetę do zapłaty. */
 .planets {
   display: flex;
   flex-wrap: wrap;
@@ -631,7 +631,7 @@
 /* --- Dok --- */
 .dock {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 16px;
   padding: 10px 14px;
@@ -719,8 +719,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .overlay,
-  .slot,
-  .planetBox {
+  .slot {
     animation: none;
     transition: none;
   }
@@ -748,4 +747,112 @@
 
 .onBoard {
   color: #fde68a;
+}
+
+/* --- Koszt: duży, tuż przy przycisku Produce --- */
+.costBox {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "label value"
+    "note note";
+  align-items: baseline;
+  justify-items: end;
+  gap: 0 10px;
+  min-width: 150px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 200, 74, 0.5);
+  background: rgba(120, 83, 9, 0.28);
+}
+
+.costBox[data-bad] {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(127, 29, 29, 0.35);
+}
+
+.costLabel {
+  grid-area: label;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.costValue {
+  grid-area: value;
+  font-size: 34px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: #f4c84a;
+}
+
+.costBox[data-bad] .costValue {
+  color: #fca5a5;
+}
+
+.costBox small {
+  grid-area: note;
+  font-size: 11.5px;
+  color: var(--ds-ink-lo);
+}
+
+.costBox[data-bad] small {
+  color: #fca5a5;
+}
+
+/* Cena na karcie jednostki - czytelna liczba w kolorze zasobów. */
+.costLine {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.costLine b {
+  font-size: 22px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #f4c84a;
+}
+
+.costLine i {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--ds-ink-lo);
+}
+
+.payLine {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--ds-ink-lo);
+}
+
+.payLine b {
+  font-size: 17px;
+  color: var(--ds-ink-hi);
+}
+
+.payLine[data-bad] b:first-of-type {
+  color: #fca5a5;
+}
+
+/* Symbol trade goods (jak w panelu gracza). */
+.tgIcon {
+  width: 20px;
+  height: 20px;
+  vertical-align: -5px;
+  object-fit: contain;
+}
+
+.stat[data-kind="cost"] {
+  border-color: rgba(244, 200, 74, 0.5);
+}
+
+.stat[data-kind="cost"] b {
+  color: #f4c84a;
+  font-size: 16px;
+}
+
+.stat[data-kind="cost"][data-bad] b {
+  color: #fca5a5;
 }

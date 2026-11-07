@@ -120,7 +120,7 @@ describe("limity", () => {
   });
 });
 
-describe("osobne zdolno?ci PRODUCTION (Arborec)", () => {
+describe("osobne zdolności PRODUCTION (Arborec)", () => {
   const dock = producer({ forbids: ["infantry"] });
   const letani = producer({
     baseType: "infantry",
@@ -135,7 +135,7 @@ describe("osobne zdolno?ci PRODUCTION (Arborec)", () => {
     expect(fitsProducers([dock, letani], { infantry: 2, fighter: 6 })).toBe(true);
     expect(fitsProducers([dock, letani], { infantry: 2, fighter: 7 })).toBe(false);
   });
-  it("maxMore piechoty ogranicza jej w?asna produkcja, nie suma", () => {
+  it("maxMore piechoty ogranicza jej własna produkcja, nie suma", () => {
     const v = view({
       limit: 8,
       remaining: 8,

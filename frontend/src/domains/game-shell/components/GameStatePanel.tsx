@@ -984,8 +984,8 @@ function StrategyCardPicker({
 
 /**
  * Krok PRODUCTION w panelu pomocy: właściwa produkcja dzieje się w dużym oknie
- * (`ProductionOverlay`, RULES.md 33.3), które otwiera się samo. Tu tylko powrót do niego,
- * gdy gracz je schował, żeby zerknąć na mapę.
+ * (`ProductionOverlay`, RULES.md 33.3), które otwiera się DOPIERO po kliknięciu „Open
+ * production" (tu albo w pływającym przycisku na mapie) - wejście w krok go nie pokazuje.
  */
 function ProductionStepPanel() {
   const setHidden = useAppStore((s) => s.setProductionHidden);
@@ -999,7 +999,7 @@ function ProductionStepPanel() {
         className={cx(styles.ctlBtn, styles.ctlPrimary)}
         onClick={() => setHidden(false)}
       >
-        <IconStack2 size={13} /> Open production window
+        <IconStack2 size={13} /> Open production
       </button>
     </div>
   );
