@@ -13,7 +13,7 @@ export function useDelayedHover(
   const handleMouseEnter = (e: React.MouseEvent) => {
     if (!onUnitMouseOver) return;
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = setTimeout(() => {
+    hoverTimeoutRef.current = window.setTimeout(() => {
       onUnitMouseOver(stackKey, e);
       hoverTimeoutRef.current = null;
     }, HOVER_DELAY_MS);

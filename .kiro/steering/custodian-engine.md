@@ -127,7 +127,12 @@ dlatego trzymamy ostry podział warstw, zależności tylko w dół:
 - **Asymetria (frakcje/tech/karty)** = hooki w oknach silnika (`core/rules_hooks.py` przy
   E7), NIE `if faction == ...` w regule bazowej.
 - Nowa mechanika: reguła → `RULES.md` ze źródłem → czysta funkcja w `core/` + test →
-  cienki endpoint w `api/routers/<temat>.py`. Plik > ~300 linii → podział tematyczny.
+  cienki endpoint w `api/routers/<temat>.py`.
+- **Rozmiar plików to miękka wskazówka, nie twardy limit.** Spójny moduł do ok. 500 linii
+  jest w porządku. Dziel tematycznie, gdy plik zaczyna obejmować różne tematy albo nowa
+  funkcja otwiera nowy temat (np. jedna karta strategii = osobny plik). Nie dziel spójnego
+  modułu tylko po to, by zejść poniżej liczby. Istniejących dużych plików nie przerabiaj
+  na zapas; dziel je przy okazji większej zmiany w nim.
 - **Struktura API (po refaktorze):** `app.py` to cienka fabryka; endpointy w
   `api/routers/*`; logika God-Mode w `core/board_edit.py`; współdzielone zależności w
   `AppContext` (`api/context.py`, zależność `get_ctx`). Wzorzec routera: ARCHITEKTURA_KODU.md §4.

@@ -70,7 +70,7 @@ export function PlanetCirclesLayer({
 
   const handlePlanetMouseEnter = (planetId: string, x: number, y: number) => {
     if (!onPlanetMouseEnter) return;
-    hoverTimeoutRef.current[planetId] = setTimeout(() => {
+    hoverTimeoutRef.current[planetId] = window.setTimeout(() => {
       onPlanetMouseEnter(planetId, position.x + x, position.y + y);
     }, HOVER_DELAY_MS);
   };

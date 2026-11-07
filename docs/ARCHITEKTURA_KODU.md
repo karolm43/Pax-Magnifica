@@ -173,5 +173,5 @@ tej samej zasady co reszta: logika to czyste funkcje, I/O cienkie, zero reguł z
 - [ ] Wyjątek domenowy (`ValueError`/własny) w `core/`, mapowany na HTTP w `api/`.
 - [ ] Modyfikator frakcji/tech/karty = hook, nie `if` w regule bazowej.
 - [ ] Test: jednostkowy dla `core/`, integracyjny (TestClient) dla endpointu.
-- [ ] Plik > ~300 linii? → rozważ podział na podmoduł tematyczny.
+- [ ] Plik obejmuje już różne tematy (zwykle > ~500 linii)? → rozważ podział na podmoduł tematyczny. Spójnego modułu nie dziel tylko dla liczby linii.
 - [ ] QA zielone (pytest/ruff/mypy + frontend build) → commit po polsku.

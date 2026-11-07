@@ -227,7 +227,7 @@ Treść kart WYŁĄCZNIE z `assets/data/strategy_cards/*.json`; reguły z `docs/
 - Nowe podsystemy dobudowane „na zamówienie" przez karty (np. talia kart akcji, badanie tech) — każdy z własnym RULES,
   testem i oznaczeniem ⚠, jeśli reguła niejasna.
 - Secondary jest zagrywane w oknie, w którym wszyscy są pytani — nie wymaga STOP (RULES.md 43.4).
-- Plik `strategic_action.py` > ~300 linii ⇒ podział tematyczny (`core/strategy_cards/<karta>.py` + dispatch).
+- Każda karta strategii to osobny temat ⇒ osobny plik (`core/strategy_cards/<karta>.py`) + cienki dispatch w `strategic_action.py`.
 - DoD: 8 kart ma działające primary i secondary (lub jawnie ⚠ MANUAL, z uzasadnieniem), status w `effects_registry`.
 
 ### Zależności frakcyjne kart strategii

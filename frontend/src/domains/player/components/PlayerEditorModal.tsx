@@ -327,8 +327,6 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                                   size="xs"
                                   value={value}
                                   min={min}
-                                  hideControls
-                                  classNames={{ input: styles.numInput }}
                                   onChange={(v) => {
                                     const n = typeof v === "number" ? v : Number(v);
                                     if (!Number.isNaN(n) && n !== value) {
