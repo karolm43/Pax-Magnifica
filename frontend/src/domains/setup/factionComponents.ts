@@ -31,8 +31,12 @@ export interface FactionComponent {
   name: string;
   /** Liczba sztuk komponentu w pudełku frakcji. */
   count: number;
-  /** Krótki opis roli komponentu (tooltip). */
+  /** Opis roli komponentu (sekcja „Role" karty szczegółów). */
   description: string;
+  /** Rodzaj komponentu w podpisie karty (domyślnie „Faction component"). */
+  kind?: string;
+  /** Ukrywa pigułkę z liczbą (dla pojedynczych, nazwanych kart — np. plotów). */
+  hideCount?: boolean;
   /**
    * Ikona: ścieżka logiczna grafiki (rozwiązywana `assetUrl`), `{ card: true }` = ikona
    * karty (brak grafiki karty w assetach) albo `{ glyph }` = krótki znak rysowany w kółku.
@@ -49,14 +53,59 @@ const SLEEPER: FactionComponent = {
   icon: "/tokens/token_sleeper.png",
 };
 
-const PLOTS: FactionComponent = {
-  id: "plots",
-  name: "Plot cards",
-  count: 5,
-  description:
-    "Enervate, Siphon, Seethe, Assail, Extract — facedown cards attached to puppeted players.",
-  icon: { card: true },
-};
+/** Karty Plot — teksty 1:1 z ``assets/data/genericcards/firmament_plots.json``. */
+const PLOT_CARDS: FactionComponent[] = [
+  {
+    id: "plot-enervate",
+    name: "Enervate",
+    count: 1,
+    kind: "Plot card",
+    hideCount: true,
+    description:
+      "You can perform the secondary abilities of the puppeted player's strategy cards without spending command tokens; for \"Leadership,\" you can perform the primary ability instead.",
+    icon: { card: true },
+  },
+  {
+    id: "plot-siphon",
+    name: "Siphon",
+    count: 1,
+    kind: "Plot card",
+    hideCount: true,
+    description:
+      "When the puppeted player gains commodities, you gain an equal number of trade goods.",
+    icon: { card: true },
+  },
+  {
+    id: "plot-seethe",
+    name: "Seethe",
+    count: 1,
+    kind: "Plot card",
+    hideCount: true,
+    description:
+      "When this card is revealed, destroy all units on a non-home planet controlled by the puppeted player.\nAt the start of the status phase, destroy 1 of the puppeted player's infantry in any system.",
+    icon: { card: true },
+  },
+  {
+    id: "plot-assail",
+    name: "Assail",
+    count: 1,
+    kind: "Plot card",
+    hideCount: true,
+    description:
+      "Apply +1 to the results of each of your combat and unit ability rolls against the puppeted player.",
+    icon: { card: true },
+  },
+  {
+    id: "plot-extract",
+    name: "Extract",
+    count: 1,
+    kind: "Plot card",
+    hideCount: true,
+    description:
+      "When this card is revealed, gain 1 non-faction technology owned by the puppeted player.\nWhen the puppeted player gains a non-faction technology, you may spend 4 resources to gain that technology.",
+    icon: { card: true },
+  },
+];
 
 /** Mapa: id frakcji → jej specjalne komponenty (tylko frakcje, które jakieś mają). */
 const FACTION_COMPONENTS: Record<string, FactionComponent[]> = {
@@ -164,18 +213,8 @@ const FACTION_COMPONENTS: Record<string, FactionComponent[]> = {
       icon: "/extra/marker_galvanize.png",
     },
   ],
-  deepwrought: [
-    {
-      id: "ocean",
-      name: "Ocean cards",
-      count: 5,
-      description:
-        "Deep Abyss, Brine Pool, Coral Reef, Ice Shelf, Lost Fleet — planet-like cards worth 1/1.",
-      icon: "/tokens/token_oceanus.png",
-    },
-  ],
-  firmament: [PLOTS],
-  obsidian: [PLOTS],
+  firmament: PLOT_CARDS,
+  obsidian: PLOT_CARDS,
 };
 
 /** Specjalne komponenty frakcji o danym id (pusta lista, gdy frakcja nie ma żadnych). */
@@ -184,4 +223,20 @@ export function factionComponents(
 ): FactionComponent[] {
   if (!factionId) return [];
   return FACTION_COMPONENTS[factionId] ?? [];
+}
+
+/**
+ * Komponenty frakcji będące KARTAMI PLANET (Deepwrought: 5 kart Ocean, każda 1/1) —
+ * renderowane jak planety (klikalna karta planety); id z danych planet.
+ */
+const FACTION_COMPONENT_PLANETS: Record<string, string[]> = {
+  deepwrought: ["ocean1", "ocean2", "ocean3", "ocean4", "ocean5"],
+};
+
+/** Id kart planet będących komponentami frakcji (pusta lista, gdy brak). */
+export function factionComponentPlanets(
+  factionId: string | null | undefined,
+): string[] {
+  if (!factionId) return [];
+  return FACTION_COMPONENT_PLANETS[factionId] ?? [];
 }

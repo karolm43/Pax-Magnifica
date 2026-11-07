@@ -39,7 +39,11 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { deferredStartingTechNotice, hasDeferredStartingTech } from "./deferredTech";
 import { breakthroughComponents } from "./breakthroughComponents";
-import { type FactionComponent, factionComponents } from "./factionComponents";
+import {
+  type FactionComponent,
+  factionComponentPlanets,
+  factionComponents,
+} from "./factionComponents";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./FactionSummary.module.css";
 
@@ -188,7 +192,9 @@ function FactionComponentChip({ component }: { component: FactionComponent }) {
     <SmoothPopover opened={opened} onChange={setOpened}>
       <SmoothPopover.Target>
         <button type="button" className={styles.componentChip} onClick={toggle}>
-          <span className={styles.fleetCount}>{component.count}</span>
+          {!component.hideCount && (
+            <span className={styles.fleetCount}>{component.count}</span>
+          )}
           <ComponentIcon icon={component.icon} />
           <span className={styles.fleetName}>{component.name}</span>
         </button>
@@ -197,8 +203,8 @@ function FactionComponentChip({ component }: { component: FactionComponent }) {
         <DetailsCard width={320}>
           <DetailsCard.Title
             title={component.name}
-            type="Faction component"
-            meta={[`${component.count} in the box`]}
+            type={component.kind ?? "Faction component"}
+            meta={component.hideCount ? [] : [`${component.count} in the box`]}
             icon={
               <DetailsCard.Icon
                 shape="round"
@@ -449,6 +455,7 @@ function SummaryBody({
   // Specjalne żetony/karty frakcji (Sleepers, Plots, Breach, Void Tether...) — patrz
   // `factionComponents.ts`; puste dla frakcji bez własnych komponentów.
   const components = factionComponents(faction.id);
+  const componentPlanets = factionComponentPlanets(faction.id);
 
   // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu. Trzymamy jako
   // listę pozycji (liczba + nazwa) — renderowana jako „chipy", nie goły tekst.
@@ -590,13 +597,18 @@ function SummaryBody({
           </Section>
         )}
 
-        {components.length > 0 && (
+        {(components.length > 0 || componentPlanets.length > 0) && (
           <Section title="Faction components">
-            <div className={styles.fleetChips}>
-              {components.map((c) => (
-                <FactionComponentChip key={c.id} component={c} />
-              ))}
-            </div>
+            {components.length > 0 && (
+              <div className={styles.fleetChips}>
+                {components.map((c) => (
+                  <FactionComponentChip key={c.id} component={c} />
+                ))}
+              </div>
+            )}
+            {componentPlanets.length > 0 && (
+              <PlanetList planetIds={componentPlanets} />
+            )}
           </Section>
         )}
 
