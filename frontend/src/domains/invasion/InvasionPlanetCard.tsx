@@ -11,7 +11,12 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { BattleAssignPlan } from "@/api/useBoardEditor";
 import { AssignPanel } from "./AssignPanel";
-import { PlanetStage, StrikeLayer, surfaceOf } from "./InvasionFx";
+import {
+  PlanetStage,
+  StrikeLayer,
+  surfaceOf,
+  type OrbitItem,
+} from "./InvasionFx";
 import { Unit } from "@/shared/ui/Unit";
 import { DiceRow, GroundToken, expandForces, usePlayerLook } from "./invasionUi";
 import { remainingOf, type BombardPlan, type Stage } from "./invasionStage";
@@ -101,13 +106,78 @@ export function InvasionPlanetCard({
       }
     }
   }
-  const orbitShips = Object.entries(orbitCounts).flatMap(([bt, n]) => {
+  const bombardShips = Object.entries(orbitCounts).flatMap(([bt, n]) => {
     const g = view.bombard.groups.find((x) => x.baseType === bt);
     return Array.from({ length: n }, () => ({
+      baseType: bt,
       asyncId: g?.asyncId ?? bt,
       name: g?.name ?? bt,
     }));
-  });  const staged = actions.stage[info.planet] ?? {};
+  });
+  // Statki: war sun jak na planszy (bez obrotu), reszta poziomo - na przemian w prawo i w lewo.
+  const shipItems: OrbitItem[] = bombardShips.map((s, n) => ({
+    node: (
+      <span
+        key={n}
+        className={styles.shipSprite}
+        data-base={s.asyncId}
+        data-face={n % 2 === 0 ? "right" : "left"}
+        title={s.name}
+      >
+        <Unit
+          unitType={s.asyncId}
+          colorAlias={look(attacker).colorAlias}
+          faction={attacker}
+          scaleSprite
+        />
+      </span>
+    ),
+  }));
+
+  // Kapsuły desantu (małe jednostki spadające na planetę): przy lądowaniu spadają,
+  // w Space Cannon Defense zawisają w locie, są ostrzeliwane (zestrzelone wybuchają),
+  // a ocalałe lądują.
+  const ASYNC: Record<string, string> = { infantry: "gf", mech: "mf" };
+  const landed = (info.forces[attacker] ?? []).flatMap((u) =>
+    Array.from({ length: u.count }, () => ({ asyncId: u.asyncId, name: u.name })),
+  );
+  const lostPods = Object.entries(defenseLog?.losses ?? {}).flatMap(([bt, n]) =>
+    Array.from({ length: n }, () => ({
+      asyncId: ASYNC[bt] ?? bt,
+      name: bt,
+    })),
+  );
+  const podState = (survivor: boolean): OrbitItem["state"] => {
+    if (phase === "COMMIT") return "drop";
+    if (!survivor) return "dead";
+    return defense?.status === "resolved" ? "land" : "hold";
+  };
+  const podItems: OrbitItem[] =
+    phase === "COMMIT" && landed.length > 0
+      ? landed.map((u, n) => ({ node: podNode(u, n), state: podState(true) }))
+      : phase === "SPACE_CANNON_DEFENSE" && defense
+        ? [
+            ...landed.map((u, n) => ({ node: podNode(u, n), state: podState(true) })),
+            ...lostPods.map((u, n) => ({
+              node: podNode(u, n + 100),
+              state: podState(false),
+            })),
+          ]
+        : [];
+  function podNode(u: { asyncId: string; name: string }, n: number) {
+    return (
+      <span key={n} className={styles.pod} title={u.name}>
+        <Unit
+          unitType={u.asyncId}
+          colorAlias={look(attacker).colorAlias}
+          faction={attacker}
+          scaleSprite
+        />
+      </span>
+    );
+  }
+  const orbitItems = phase === "BOMBARDMENT" ? shipItems : podItems;
+  const staged = actions.stage[info.planet] ?? {};
   const stagedCount = Object.values(staged).reduce((a, b) => a + b, 0);
 
   const onDragOver = (e: DragEvent<HTMLElement>) => {
@@ -136,39 +206,26 @@ export function InvasionPlanetCard({
         surface={surfaceOf(data?.planetType)}
         shielded={info.shielded}
         collapsed={info.hasShield && !info.shielded}
-        ships={orbitShips.map((s, n) => (
-          <span
-            key={n}
-            className={styles.shipSprite}
-            data-base={s.asyncId}
-            title={s.name}
-          >
-            <Unit
-              unitType={s.asyncId}
-              colorAlias={look(attacker).colorAlias}
-              faction={attacker}
-              scaleSprite
-            />
-          </span>
-        ))}
+        ships={orbitItems}
         strike={
           phase === "BOMBARDMENT" ? (
             <StrikeLayer
               entry={bombardLog}
               entryId={idOf("BOMBARDMENT")}
               from="orbit"
-              shipCount={orbitShips.length}
+              shipCount={bombardShips.length}
             />
           ) : phase === "SPACE_CANNON_DEFENSE" ? (
             <StrikeLayer
               entry={defenseLog}
               entryId={idOf("DEFENSE")}
               from="ground"
-              shipCount={0}
+              shipCount={podItems.length}
             />
           ) : null
         }
-      />      <header className={styles.planetHead}>
+      />
+      <header className={styles.planetHead}>
         <div className={styles.planetTitle}>
           <b>{data?.name ?? info.planet}</b>
           <small>

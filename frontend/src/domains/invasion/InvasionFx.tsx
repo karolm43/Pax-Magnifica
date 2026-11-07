@@ -28,13 +28,21 @@ export function surfaceOf(type: string | undefined): string {
   return "neutral";
 }
 
-/** Odstęp statków na orbicie (px) - ten sam wzór liczy punkt startu lancy. */
+/** Maksymalny odstęp elementów na orbicie (px). */
 export const SHIP_GAP = 74;
 
-/** Przesunięcie (px) n-tego z `count` statków względem środka globu. */
+/** Przesunięcie (px) n-tego z `count` elementów względem środka globu (zagęszcza tłum). */
 export function shipDx(n: number, count: number): number {
-  return (n - (count - 1) / 2) * SHIP_GAP;
+  const gap = count > 1 ? Math.min(SHIP_GAP, 250 / (count - 1)) : 0;
+  return (n - (count - 1) / 2) * gap;
 }
+
+/** Element orbity: statek bombardujący albo mała jednostka desantu (kapsuła). */
+export type OrbitItem = {
+  node: ReactNode;
+  /** Stan kapsuły: drop (zrzut), hold (zawieszona w locie), dead (zestrzelona), land (ląduje). */
+  state?: "drop" | "hold" | "dead" | "land";
+};
 
 /**
  * Scena planety: orbita ze statkami (``children``), okrągły glob z kopułą tarczy i warstwa
@@ -51,7 +59,7 @@ export function PlanetStage({
   surface: string;
   shielded: boolean;
   collapsed: boolean;
-  ships: ReactNode[];
+  ships: OrbitItem[];
   children?: ReactNode;
   strike: ReactNode;
 }) {
@@ -62,6 +70,7 @@ export function PlanetStage({
           <span
             key={n}
             className={styles.orbitShip}
+            data-state={ship.state}
             style={
               {
                 "--dx": `${shipDx(n, ships.length)}px`,
@@ -69,7 +78,7 @@ export function PlanetStage({
               } as CSSProperties
             }
           >
-            {ship}
+            {ship.node}
           </span>
         ))}
       </div>
@@ -121,9 +130,15 @@ export function StrikeLayer({
   const [finished, setFinished] = useState(-1);
   const fresh = !!entry && !entry.passed && entryId !== initial.current;
   const bolts = fresh
-    ? entry.rolls.flatMap((r, ri) =>
-        r.dice.map((d, di) => ({ hit: d >= r.hitsOn, id: `${ri}-${di}` })),
-      )
+    ? entry.rolls.flatMap((r, ri) => {
+        const offset = entry.rolls.slice(0, ri).reduce((n, x) => n + x.count, 0);
+        return r.dice.map((d, di) => ({
+          hit: d >= r.hitsOn,
+          id: `${ri}-${di}`,
+          sun: r.baseType === "warsun",
+          ship: offset + (di % Math.max(1, r.count)),
+        }));
+      })
     : [];
   const total =
     (from === "orbit" ? BOMBARD_MS : DEFENSE_MS) + bolts.length * 380;
@@ -144,13 +159,14 @@ export function StrikeLayer({
       {bolts.map((b, n) => {
         const dx =
           shipCount > 0
-            ? shipDx(n % shipCount, shipCount)
+            ? shipDx(from === "orbit" ? b.ship : n % shipCount, shipCount)
             : (spread(n, 1) - 0.5) * 120;
         return (
           <span
             key={b.id}
             className={styles.strike}
             data-hit={b.hit || undefined}
+            data-sun={b.sun || undefined}
             style={
               {
                 "--dx": `${dx}px`,
