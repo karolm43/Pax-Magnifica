@@ -304,6 +304,19 @@ def _entity_key_map(state: GameState) -> dict[str, str]:
     return result
 
 
+def _planet_attachment_ids(
+    state: GameState, registry: StaticDataRegistry, planet_id: str
+) -> list[str]:
+    """Id attachmentów (z kart eksploracji) przyczepionych do planety — do żetonów na mapie."""
+    result: list[str] = []
+    for card_id in state.planet_attachments.get(planet_id, []):
+        card = registry.catalog.get(ComponentCategory.EXPLORATION, card_id)
+        attachment_id = getattr(card, "attachment_id", None)
+        if isinstance(attachment_id, str) and attachment_id:
+            result.append(attachment_id)
+    return result
+
+
 def _entities_from_counts(
     counts_by_player: dict[str, dict[str, int]],
     entity_keys: dict[str, str],
@@ -484,6 +497,14 @@ def _build_tile_unit_data(
                     "neutral", []
                 ).append({"entityId": "custodian", "entityType": "token", "count": 1})
                 break
+
+        # Attachmenty z eksploracji (RULES.md 46): żeton przy planecie, rysowany przez front
+        # jak inne wpisy `entityType: "attachment"` (id = `attachmentId` karty, np. "dysonsphere").
+        for planet_id, entry in planets.items():
+            for attachment_id in _planet_attachment_ids(state, registry, planet_id):
+                entry.setdefault("entities", {}).setdefault("neutral", []).append(
+                    {"entityId": attachment_id, "entityType": "attachment", "count": 1}
+                )
 
         tile_unit_data[position] = {
             "space": space,

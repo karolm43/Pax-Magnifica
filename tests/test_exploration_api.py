@@ -83,3 +83,18 @@ def test_full_flow_through_endpoints(registry: StaticDataRegistry) -> None:
     assert client.post("/exploration/finish").status_code == 200
     assert client.get("/exploration").json()["active"] is False
     assert client.post("/tactical/invasion/next").status_code == 200
+
+
+def test_attachment_appears_as_token_entity_in_web_data(registry: StaticDataRegistry) -> None:
+    state = _state()
+    client = _client(registry, state)
+    tiles = client.get("/api/public/game/g/web-data").json()["tileUnitData"]
+    planet = next(p for t in tiles.values() for p in t["planets"])
+    state.planet_attachments = {planet: ["ds"]}  # Dyson Sphere
+    tiles = _client(registry, state).get("/api/public/game/g/web-data").json()["tileUnitData"]
+    entities = next(t["planets"][planet] for t in tiles.values() if planet in t["planets"])[
+        "entities"
+    ]
+    assert {"entityId": "dysonsphere", "entityType": "attachment", "count": 1} in entities[
+        "neutral"
+    ]
