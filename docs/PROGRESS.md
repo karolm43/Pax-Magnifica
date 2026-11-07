@@ -62,8 +62,13 @@ resolve,finish}`), `GameState.exploration`, `DecksState.exploration_deck/_discar
 `planet_attachments`, `PlayerState.relic_fragments`; blokada zamknięcia inwazji i wyjścia z kroku
 do końca eksploracji. Front: `domains/exploration/`; panel prostej inwazji ma teraz „Close invasion".
 Testy: `tests/test_exploration.py`, `tests/test_exploration_api.py`.
-**Do zrobienia:** statystyki z attachmentów w ekonomii/produkcji/celach, eksploracja frontier
-(Dark Energy Tap), rozstrzyganie fragmentów reliktów, Freelancers i żetony wormhole ręcznie (RULES.md 46.3).
+**Domknięte w tej samej sesji (RULES.md 46 X6–X8):** `core/planet_stats.py` (attachmenty zmieniają
+zasoby/wpływy/specjalności w produkcji, celach i ekonomii), Freelancers przez okno produkcji
+(`GameState.production_grant`, `POST /tactical/production/skip-grant`, UI: `ProductionOverlay` w trybie
+karty), Gamma Wormhole jako żeton w systemie (`SystemState.wormhole_tokens`, `HexGrid.sync_token_wormholes`,
+synchronizacja przy odczycie `ctx.current_grid`).
+**Do zrobienia:** eksploracja frontier (Dark Energy Tap), rozstrzyganie fragmentów reliktów, handel w
+oknie po ujawnieniu karty, reguła „zdejmij jednostkę z planszy" przy braku w rezerwie.
 
 ## ✅ Transakcje między graczami + żetony długu (debt) (2026-11-07) — RULES.md 47
 

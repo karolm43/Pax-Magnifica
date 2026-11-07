@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import exploration, invasion, tactical
+from src.core import exploration, invasion, production, tactical
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.game_state import (
     ExplorationState,
@@ -16,6 +16,7 @@ from src.core.game_state import (
     TacticalStep,
 )
 from src.core.hex_grid import HexGrid
+from src.core.planet_stats import PlanetStats, effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 
 # Kafelek 107: tiamat (cultural) i hercalor (industrial). Planeta dwucechowa: lazulrex.
@@ -23,6 +24,7 @@ _TILE = "107"
 _CULT = "tiamat"
 _IND = "hercalor"
 _DUAL = "lazulrex"
+_PLAIN = "abaddon"  # planeta z cechą, bez specjalności technologicznej
 
 
 @pytest.fixture(scope="module")
@@ -226,9 +228,116 @@ def test_demilitarized_zone_clears_the_planet(registry: StaticDataRegistry) -> N
 
 def test_token_card_is_purged(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Gamma Wormhole")
-    done = exploration.resolve(state, registry, "manual")
+    done = exploration.resolve(state, registry, "place")
     assert done.decks.exploration_discard.get("cultural", []) == []
     assert done.exploration is not None and done.exploration.log[-1]["fate"] == "purged"
+    assert done.systems["000"].wormhole_tokens == ["GAMMA"]
+
+
+def test_gamma_token_links_systems_through_the_grid() -> None:
+    grid = HexGrid()
+    grid.place_system("000", _TILE, anomalies=set())
+    grid.place_system("301", "27", anomalies=set())  # daleko od 000 — brak sąsiedztwa
+    grid.build_edges()
+    assert not grid.are_adjacent("000", "301")
+    grid.sync_token_wormholes({"000": ["GAMMA"], "301": ["GAMMA"]})
+    assert grid.are_adjacent("000", "301")
+    grid.sync_token_wormholes({})  # np. po Undo — żetony znikają, mapa wraca
+    assert not grid.are_adjacent("000", "301")
+
+
+# ---------------------------------------------------------- statystyki z attachmentów
+
+
+def test_attachments_change_planet_stats(registry: StaticDataRegistry) -> None:
+    base = registry.planets[_PLAIN]
+    state = _state()
+    assert planet_stats(state, registry, _PLAIN) == PlanetStats(
+        base.resources, base.influence, ()
+    )
+    state.planet_attachments = {_PLAIN: [_card_id(registry, "Dyson Sphere")]}
+    stats = planet_stats(state, registry, _PLAIN)
+    assert stats is not None
+    assert (stats.resources, stats.influence) == (base.resources + 2, base.influence + 1)
+    # Wspólny widok „efektywnych planet" dla kodu liczącego po rejestrze.
+    assert effective_planets(state, registry).planets[_PLAIN].resources == stats.resources
+
+
+def test_research_facility_gives_specialty_then_bonus_instead(
+    registry: StaticDataRegistry,
+) -> None:
+    base = registry.planets[_PLAIN]
+    state = _state()
+    biotic, cyber = _card_id(registry, "Biotic Research Facility"), _card_id(
+        registry, "Cybernetic Research Facility"
+    )
+    state.planet_attachments = {_PLAIN: [biotic]}
+    first = planet_stats(state, registry, _PLAIN)
+    assert first is not None and first.tech_specialties == ("biotic",)
+    assert (first.resources, first.influence) == (base.resources, base.influence)
+    # Druga fabryka: planeta ma już specjalność → +1/+1 ZAMIAST kolejnej.
+    state.planet_attachments = {_PLAIN: [biotic, cyber]}
+    second = planet_stats(state, registry, _PLAIN)
+    assert second is not None and second.tech_specialties == ("biotic",)
+    assert (second.resources, second.influence) == (base.resources + 1, base.influence + 1)
+
+
+def test_attachments_feed_production_budget(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.systems["000"].planet_owners[_CULT] = "p1"
+    before = production.available_budget(state, registry, "p1")
+    state.planet_attachments = {_CULT: [_card_id(registry, "Mining World")]}  # +2 zasoby
+    assert production.available_budget(state, registry, "p1") == before + 2
+
+
+# ------------------------------------------------------------------------- Freelancers
+
+
+def test_freelancers_opens_one_unit_production_paid_with_influence(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = _grid()
+    state = _with_card(
+        _state(planets={_CULT: {"infantry": 1}}), registry, "Freelancers"
+    )
+    state.systems["000"].planet_owners[_CULT] = "p1"
+    state.players["p1"].controlled_planets = [_CULT]
+    planet = registry.planets[_CULT]
+    opened = exploration.resolve(state, registry, "produce")
+    grant = opened.production_grant
+    assert grant is not None and grant.units == 1 and grant.influence_as_resources
+    # Okno eksploracji czeka na produkcję.
+    with pytest.raises(ValueError, match="production first"):
+        exploration.finish(opened)
+
+    # Wpływ liczy się jak zasoby: planeta płaci max(zasoby, wpływ); limit = 1 sztuka.
+    assert production.pay_value(opened, registry, _CULT, "p1") == max(
+        planet.resources, planet.influence
+    )
+    with pytest.raises(ValueError, match="limit exceeded"):
+        production.produce(
+            opened, grid, registry, "p1",
+            [production.ProductionOrder("infantry", 3, _CULT)],
+        )
+    opened.players["p1"].trade_goods = 5
+    done = production.produce(
+        opened, grid, registry, "p1",
+        [production.ProductionOrder("infantry", 1, _CULT)],
+        production.Spend(planets=(), trade_goods=1),
+    )
+    assert done.production_grant is None
+    assert done.production_used == 0  # nie zużywa limitu kroku PRODUCTION
+    assert done.systems["000"].planet_units[_CULT]["p1"]["infantry"] == 2
+    # Po produkcji eksplorację można zamknąć.
+    assert exploration.finish(done).exploration is None
+
+
+def test_freelancers_can_be_skipped(registry: StaticDataRegistry) -> None:
+    state = _with_card(_state(), registry, "Freelancers")
+    opened = exploration.resolve(state, registry, "produce")
+    assert production.skip_grant(opened).production_grant is None
+    with pytest.raises(ValueError, match="no card-granted"):
+        production.skip_grant(_state())
 
 
 # ---------------------------------------------------------------------- skutki kart

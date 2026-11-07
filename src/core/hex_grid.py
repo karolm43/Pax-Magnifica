@@ -134,6 +134,9 @@ class HexGrid:
         self._systems: dict[str, _PlacedSystem] = {}
         # Wormhole: typ -> zbior pozycji, ktore go zawieraja.
         self._wormholes: dict[str, set[str]] = {}
+        # Wormhole z ŻETONÓW położonych w trakcie gry (np. Gamma Wormhole z eksploracji):
+        # typ -> pozycje. Osobno od wbudowanych, żeby Undo/Redo dawało spójną mapę.
+        self._token_wormholes: dict[str, set[str]] = {}
 
     # --- Umieszczanie systemów -----------------------------------------
 
@@ -190,12 +193,32 @@ class HexGrid:
                     continue
                 self._graph.add_edge(pos, neighbor_pos, kind="adjacent")
 
-        # Krawędzie wormhole (ten sam typ łączy wszystkie zawierające go systemy)
-        for positions in self._wormholes.values():
+        # Krawędzie wormhole (ten sam typ łączy wszystkie zawierające go systemy —
+        # wbudowane w kafelek ORAZ z żetonów położonych w grze).
+        combined: dict[str, set[str]] = {}
+        for source in (self._wormholes, self._token_wormholes):
+            for wh_type, positions in source.items():
+                combined.setdefault(wh_type, set()).update(
+                    p for p in positions if p in self._systems
+                )
+        for positions in combined.values():
             pos_list = sorted(positions)
             for i, a in enumerate(pos_list):
                 for b in pos_list[i + 1 :]:
                     self._graph.add_edge(a, b, kind="wormhole")
+
+    def sync_token_wormholes(self, tokens: dict[str, list[str]]) -> None:
+        """Ustawia wormhole z żetonów (pozycja → typy) i przebudowuje krawędzie, gdy się zmieniły.
+
+        Wołane przy każdym odczycie stanu przez warstwę API; tanie, gdy nic się nie zmieniło.
+        """
+        wanted: dict[str, set[str]] = {}
+        for position, types in tokens.items():
+            for wh_type in types:
+                wanted.setdefault(wh_type.upper(), set()).add(position)
+        if wanted != self._token_wormholes:
+            self._token_wormholes = wanted
+            self.build_edges()
 
     # --- Zapytania ------------------------------------------------------
 

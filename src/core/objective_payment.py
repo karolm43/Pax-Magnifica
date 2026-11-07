@@ -16,6 +16,7 @@ from src.core.objective_progress import (
     mixed_spend_plan,
     threshold,
 )
+from src.core.planet_stats import effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 
 _TRADE_GOODS = {"trade_routes", "centralize_trade"}
@@ -71,7 +72,9 @@ def pay_for_objective(
         new_state.decks.action_card_discard.extend(discarded)
     elif objective_id in _MIXED:
         ready = View(new_state, registry, grid, player_id).ready_planets()
-        plan = mixed_spend_plan(ready, registry, player.trade_goods, _MIXED[objective_id])
+        plan = mixed_spend_plan(
+            ready, effective_planets(new_state, registry), player.trade_goods, _MIXED[objective_id]
+        )
         if plan is None:
             raise ValueError("You cannot afford this objective.")
         res_planets, inf_planets, tg_spent = plan
@@ -81,9 +84,9 @@ def pay_for_objective(
         kind = "resources" if objective_id in _RESOURCES else "influence"
         ready = View(new_state, registry, grid, player_id).ready_planets()
         values = [
-            (p, (planet.resources if kind == "resources" else planet.influence))
+            (p, (stats.resources if kind == "resources" else stats.influence))
             for p in ready
-            if (planet := registry.planets.get(p)) is not None
+            if (stats := planet_stats(new_state, registry, p)) is not None
         ]
         spent, rest = _pick_planets(values, goal)
         if rest > player.trade_goods:

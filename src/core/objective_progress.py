@@ -22,6 +22,7 @@ from src.core import production
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player
+from src.core.planet_stats import PlanetLookup, effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 
 # Progi z AsyncTI4 (``getObjectiveThreshold``); zgodne z tekstami kart w katalogu.
@@ -128,7 +129,9 @@ class View:
     def wormholes(self, position: str) -> set[str]:
         system = self.state.systems.get(position)
         definition = self.registry.systems.get(system.system_id) if system else None
-        return {w.upper() for w in definition.wormholes} if definition else set()
+        found = {w.upper() for w in definition.wormholes} if definition else set()
+        # Żetony wormhole z kart (np. Gamma Wormhole z eksploracji) liczą się jak wbudowane.
+        return found | {w.upper() for w in system.wormhole_tokens} if system else found
 
     def is_anomaly(self, position: str) -> bool:
         return bool(self.grid.anomalies_at(position))
@@ -207,10 +210,10 @@ class View:
         return [p for p in self.owned if p not in exhausted]
 
     def planet_value(self, planet_id: str, kind: str) -> int:
-        planet = self.registry.planets.get(planet_id)
-        if planet is None:
+        stats = planet_stats(self.state, self.registry, planet_id)
+        if stats is None:
             return 0
-        return planet.resources if kind == "res" else planet.influence
+        return stats.resources if kind == "res" else stats.influence
 
     def available(self, kind: str) -> int:
         return sum(self.planet_value(p, kind) for p in self.ready_planets())
@@ -285,8 +288,8 @@ def _p_non_home_planets(v: View) -> int:
 
 def _p_tech_skips(v: View) -> int:
     def has_skip(pid: str) -> bool:
-        planet = v.registry.planets.get(pid)
-        return bool(planet and planet.tech_specialties)
+        stats = planet_stats(v.state, v.registry, pid)
+        return bool(stats and stats.tech_specialties)
 
     return v.planets_with(has_skip)
 
@@ -315,18 +318,19 @@ def _p_spend_both(goal: int) -> Callable[[View], int]:
 
 def threshold_progress_for_mixed(v: View, goal: int) -> int:
     """Postęp celów „X influence + X resources + X trade goods" (amass/vast)."""
-    plan = mixed_spend_plan(v.ready_planets(), v.registry, v.player.trade_goods, goal)
+    values = effective_planets(v.state, v.registry)
+    plan = mixed_spend_plan(v.ready_planets(), values, v.player.trade_goods, goal)
     if plan is not None:
         return goal * 3
     best = 0
-    for res, inf in _reachable_pairs(v.ready_planets(), v.registry, goal):
+    for res, inf in _reachable_pairs(v.ready_planets(), values, goal):
         total = min(res, goal) + min(inf, goal) + min(v.player.trade_goods, goal)
         best = max(best, total)
     return min(best, goal * 3 - 1)
 
 
 def _reachable_pairs(
-    planets: list[str], registry: StaticDataRegistry, goal: int
+    planets: list[str], registry: PlanetLookup, goal: int
 ) -> set[tuple[int, int]]:
     states: set[tuple[int, int]] = {(0, 0)}
     for planet_id in planets:
@@ -342,7 +346,7 @@ def _reachable_pairs(
 
 
 def mixed_spend_plan(
-    planets: list[str], registry: StaticDataRegistry, trade_goods: int, goal: int
+    planets: list[str], registry: PlanetLookup, trade_goods: int, goal: int
 ) -> tuple[list[str], list[str], int] | None:
     """Plan wydania „goal res + goal inf + goal TG": (planety→res, planety→inf, TG).
 

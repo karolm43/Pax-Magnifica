@@ -32,6 +32,7 @@ from src.core.game_state import (
     WindowType,
 )
 from src.core.hex_grid import HexGrid
+from src.core.planet_stats import resources_of
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
 
@@ -250,6 +251,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.active_combat = None
     new_state.invasion = None
     new_state.exploration = None
+    new_state.production_grant = None
     # Okna Space Cannon / przypisania strat dotyczą aktywnego systemu — po zakończeniu akcji
     # nie ma już czego rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
     window = new_state.pending_window
@@ -333,9 +335,7 @@ def _controlled_resources(
         for planet_id, owner in system.planet_owners.items():
             if owner != player_id:
                 continue
-            planet = registry.planets.get(planet_id)
-            if planet is not None:
-                total += planet.resources
+            total += resources_of(state, registry, planet_id)
     return total
 
 

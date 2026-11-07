@@ -18,7 +18,13 @@ from dataclasses import dataclass, field
 
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.dice import next_rng
-from src.core.game_state import ExplorationState, ExploreCurrent, GameState, SystemState
+from src.core.game_state import (
+    ExplorationState,
+    ExploreCurrent,
+    GameState,
+    ProductionGrant,
+    SystemState,
+)
 from src.core.production import reinforcements_left
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
@@ -189,16 +195,34 @@ def _apply_mercenary(
     return "Placed 1 infantry on the planet."
 
 
-def _opts_manual_production(
+def _opts_freelancers(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent
 ) -> list[ExploreOption]:
+    here = state.active_system == ex.position
     return [
         ExploreOption(
-            "manual",
-            "Resolved by hand (produce 1 unit in this system via God-Mode)",
+            "produce",
+            "Produce 1 unit in this system (influence counts as resources)",
+            here,
+            "" if here else "The explored system is not the active system.",
         ),
         _SKIP,
     ]
+
+
+def _apply_freelancers(
+    state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
+) -> str:
+    if option == "skip":
+        return "Declined."
+    state.production_grant = ProductionGrant(
+        player_id=ex.player_id,
+        position=ex.position,
+        units=1,
+        influence_as_resources=True,
+        source="Freelancers",
+    )
+    return "Production opened: 1 unit in this system, influence counts as resources."
 
 
 def _apply_manual(
@@ -440,7 +464,7 @@ def _apply_pay(
 
 _INSTANT_OPTIONS: dict[str, _Options] = {
     "mercenary outfit": _opts_mercenary,
-    "freelancers": _opts_manual_production,
+    "freelancers": _opts_freelancers,
     "volatile fuel source": _opts_volatile,
     "expedition": _opts_hazard_plain,
     "core mine": _opts_hazard_plain,
@@ -450,7 +474,7 @@ _INSTANT_OPTIONS: dict[str, _Options] = {
 }
 _INSTANT_APPLY: dict[str, _Apply] = {
     "mercenary outfit": _apply_mercenary,
-    "freelancers": _apply_manual,
+    "freelancers": _apply_freelancers,
     "volatile fuel source": _apply_volatile,
     "expedition": _apply_expedition,
     "core mine": _apply_core_mine,
@@ -500,6 +524,8 @@ def options_for(
     if kind == "fragment":
         return [ExploreOption("keep", "Place in your play area")]
     if kind == "token":
+        if card.attachment_id == "gamma":
+            return [ExploreOption("place", "Place a gamma wormhole token in this system")]
         return [
             ExploreOption("manual", "Place the token by hand (God-Mode); the card is purged")
         ]
@@ -519,6 +545,13 @@ def _auto(state: GameState, registry: StaticDataRegistry) -> None:
         traits = planet_traits(registry, ex.queue[0])
         if len(traits) == 1:
             _draw_for(state, registry, ex.queue[0], traits[0])
+
+
+def _require_no_grant(state: GameState) -> None:
+    """Karta z produkcją (Freelancers) jest rozstrzygnięta dopiero po produkcji / rezygnacji."""
+    if state.production_grant is not None:
+        source = state.production_grant.source or "card"
+        raise ValueError(f"Finish the {source} production first (or skip it).")
 
 
 def _draw_for(state: GameState, registry: StaticDataRegistry, planet: str, deck: str) -> None:
@@ -568,6 +601,7 @@ def draw(
 ) -> GameState:
     """Gracz wybiera planetę (kolejność) i — przy kilku cechach — talię; ujawnia kartę."""
     ex = _exp(state)
+    _require_no_grant(state)
     if ex.current is not None:
         raise ValueError("Resolve the revealed exploration card first.")
     if planet not in ex.queue:
@@ -616,7 +650,13 @@ def resolve(
         summary = "Placed face-up in the play area."
         fate = "kept"
     elif kind == "token":
-        summary = "Place the token by hand; the card is purged."
+        if card.attachment_id == "gamma":
+            tokens = _system(new_state, new_ex).wormhole_tokens
+            if "GAMMA" not in tokens:
+                tokens.append("GAMMA")
+            summary = "Gamma wormhole token placed in the system; the card is purged."
+        else:
+            summary = "Place the token by hand; the card is purged."
         fate = "purged"
     else:
         handler = _INSTANT_APPLY.get((card.name or "").lower(), _apply_manual)
@@ -643,6 +683,7 @@ def resolve(
 def finish(state: GameState) -> GameState:
     """Zamyka okno eksploracji (dozwolone dopiero, gdy wszystko rozstrzygnięto)."""
     ex = _exp(state)
+    _require_no_grant(state)
     if ex.current is not None or ex.queue:
         raise ValueError("Finish exploring every planet first.")
     new_state = state.clone()

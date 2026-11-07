@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/api/fetchJson";
+import { useAppStore } from "@/state/appStore";
 
 /*
  * Okno PRODUKCJI (RULES.md 33.3): odczyt liczbowy kroku PRODUCTION
@@ -27,6 +28,8 @@ export type ProductionPlanet = {
   position: string;
   resources: number;
   influence: number;
+  /** Ile planeta wnosi do płatności (zasoby; przy Freelancers wpływ liczy się jak zasoby). */
+  payValue: number;
   planetType: string | null;
   exhausted: boolean;
   inActiveSystem: boolean;
@@ -47,8 +50,16 @@ export type ProductionProducer = {
   forbids: string[];
 };
 
+/** Jednorazowa produkcja z karty (np. Freelancers) - poza krokiem PRODUCTION. */
+export type ProductionGrant = {
+  source: string;
+  units: number;
+  influenceAsResources: boolean;
+};
+
 export type ProductionBody = {
   active: true;
+  grant: ProductionGrant | null;
   position: string;
   playerId: string;
   faction: string | null;
@@ -77,4 +88,25 @@ export function useProductionView(enabled: boolean) {
       fetchJson<ProductionView>("/bot/tactical/production/view", "production"),
     staleTime: 0,
   });
+}
+
+/** Rezygnacja z jednorazowej produkcji z karty (Freelancers: "you may produce"). */
+export async function skipProductionGrant(): Promise<void> {
+  const response = await fetch("/bot/tactical/production/skip-grant", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const raw = await response.text().catch(() => "");
+    let message = raw || `Error ${response.status}`;
+    try {
+      const parsed = JSON.parse(raw) as { detail?: unknown };
+      if (typeof parsed.detail === "string") message = parsed.detail;
+    } catch {
+      // nie-JSON - zostaje surowy tekst
+    }
+    useAppStore.getState().setNotice(message, "error");
+    throw new Error(message);
+  }
 }

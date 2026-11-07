@@ -382,6 +382,10 @@ class SystemState(BaseModel):
     # Żeton frontier w przestrzeni systemu (R_frontier_tokens): kładziony w setupie na każdym
     # systemie bez planet; max jeden na system. Zdejmowany przez eksplorację (poza zakresem).
     frontier_token: bool = False
+    # Żetony wormhole położone w systemie (np. Gamma Wormhole z eksploracji): lista typów
+    # ("GAMMA"...). Dodają systemowi sąsiedztwo przez wormhole — mapa (HexGrid) jest z nich
+    # synchronizowana przy każdym odczycie stanu (RULES.md 46).
+    wormhole_tokens: list[str] = Field(default_factory=list)
 
 
 class CombatStep(StrEnum):
@@ -460,6 +464,23 @@ class InvasionState(BaseModel):
     combat_results: dict[str, dict[str, Any]] = Field(default_factory=dict)
     results: list[dict[str, Any]] = Field(default_factory=list)
     log: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ProductionGrant(BaseModel):
+    """Jednorazowe prawo do produkcji z efektu karty (np. Freelancers), poza krokiem PRODUCTION.
+
+    ``units`` = ile jednostek wolno wyprodukować (zamiast limitu z wartości PRODUCTION),
+    ``influence_as_resources`` = planeta płaci wpływem tak, jakby był zasobami. Znika po
+    produkcji albo rezygnacji (RULES.md 46).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    position: str
+    units: int = 1
+    influence_as_resources: bool = False
+    source: str = ""
 
 
 class ExploreCurrent(BaseModel):
@@ -541,6 +562,8 @@ class GameState(BaseModel):
     invasion: InvasionState | None = None
     # Trwająca eksploracja planet (po Establish Control) — None, gdy żadna (RULES.md 46).
     exploration: ExplorationState | None = None
+    # Jednorazowa produkcja z efektu karty (Freelancers) — None, gdy brak (RULES.md 46).
+    production_grant: ProductionGrant | None = None
     # Karty eksploracji PRZYCZEPIONE do planet (attach): {planet_id: [card_id, ...]}. Zostają
     # przy planecie niezależnie od zmiany kontroli (R_attach).
     planet_attachments: dict[str, list[str]] = Field(default_factory=dict)

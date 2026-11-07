@@ -54,7 +54,7 @@ export const readyPlanets = (planets: ProductionPlanet[]) =>
 
 /** Wszystkie zasoby do wydania: gotowe planety + trade goods. */
 export const fundsTotal = (view: ProductionBody): number =>
-  readyPlanets(view.planets).reduce((n, p) => n + p.resources, 0) +
+  readyPlanets(view.planets).reduce((n, p) => n + p.payValue, 0) +
   view.tradeGoods;
 
 export const paymentTotal = (
@@ -63,7 +63,7 @@ export const paymentTotal = (
 ): number =>
   planets
     .filter((p) => payment.planets.includes(p.planet))
-    .reduce((n, p) => n + p.resources, 0) + payment.tradeGoods;
+    .reduce((n, p) => n + p.payValue, 0) + payment.tradeGoods;
 
 /** Automatyczna płatność: najpierw planety (od największych), zbędne zdejmij, TG tylko na resztę. */
 export function autoPay(
@@ -74,19 +74,19 @@ export function autoPay(
   const need = Math.ceil(cost);
   if (need <= 0) return { planets: [], tradeGoods: 0 };
   const ranked = readyPlanets(planets)
-    .filter((p) => p.resources > 0)
-    .sort((a, b) => b.resources - a.resources || a.planet.localeCompare(b.planet));
+    .filter((p) => p.payValue > 0)
+    .sort((a, b) => b.payValue - a.payValue || a.planet.localeCompare(b.planet));
   const chosen: ProductionPlanet[] = [];
   let total = 0;
   for (const p of ranked) {
     if (total >= need) break;
     chosen.push(p);
-    total += p.resources;
+    total += p.payValue;
   }
-  for (const p of [...chosen].sort((a, b) => a.resources - b.resources)) {
-    if (total - p.resources >= need) {
+  for (const p of [...chosen].sort((a, b) => a.payValue - b.payValue)) {
+    if (total - p.payValue >= need) {
       chosen.splice(chosen.indexOf(p), 1);
-      total -= p.resources;
+      total -= p.payValue;
     }
   }
   return {

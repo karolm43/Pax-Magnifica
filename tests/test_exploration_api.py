@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from src.api.app import create_app
 from src.core import invasion
 from src.core.event_store import EventStore
-from src.core.game_state import GameState
+from src.core.game_state import GameState, ProductionGrant, SystemState
 from src.core.registry import StaticDataRegistry
 from tests.test_exploration import _CULT, _IND, _grid, _state
 
@@ -98,3 +98,37 @@ def test_attachment_appears_as_token_entity_in_web_data(registry: StaticDataRegi
     assert {"entityId": "dysonsphere", "entityType": "attachment", "count": 1} in entities[
         "neutral"
     ]
+
+
+def test_gamma_token_reaches_web_data_and_grid(registry: StaticDataRegistry) -> None:
+    probe = _client(registry, _state()).get("/api/public/game/g/web-data").json()
+    pairs = [p.split(":") for p in probe["tilePositions"]]
+    (pos_a, sys_a), (pos_b, sys_b) = pairs[0], pairs[-1]
+    state = _state()
+    state.systems = {
+        pos_a: SystemState(position=pos_a, system_id=sys_a, wormhole_tokens=["GAMMA"]),
+        pos_b: SystemState(position=pos_b, system_id=sys_b, wormhole_tokens=["GAMMA"]),
+    }
+    app = create_app(registry=registry, store=EventStore(":memory:"), initial_state=state)
+    client = TestClient(app)
+    tiles = client.get("/api/public/game/g/web-data").json()["tileUnitData"]
+    token = {"entityId": "gamma", "entityType": "token", "count": 1}
+    assert token in tiles[pos_a]["space"]["neutral"]
+    assert app.state.ctx.current_grid.are_adjacent(pos_a, pos_b)
+
+
+def test_production_view_in_grant_mode(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.systems["000"].planet_owners[_CULT] = "p1"
+    state.production_grant = ProductionGrant(
+        player_id="p1", position="000", units=1, influence_as_resources=True, source="Freelancers"
+    )
+    client = _client(registry, state)
+    view = client.get("/tactical/production/view").json()
+    assert view["grant"] == {"source": "Freelancers", "units": 1, "influenceAsResources": True}
+    assert view["remaining"] == 1 and view["limit"] == 1
+    planet = next(p for p in view["planets"] if p["planet"] == _CULT)
+    assert planet["payValue"] == max(planet["resources"], planet["influence"])
+    assert client.post("/tactical/production/skip-grant").status_code == 200
+    assert client.get("/tactical/production/view").json()["grant"] is None
+    assert client.post("/tactical/production/skip-grant").status_code == 422

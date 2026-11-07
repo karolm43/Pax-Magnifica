@@ -21,6 +21,7 @@ const planet = (id: string, resources: number, exhausted = false): ProductionPla
   position: "000",
   resources,
   influence: 0,
+  payValue: resources,
   planetType: null,
   exhausted,
   inActiveSystem: true,
@@ -62,6 +63,7 @@ const infantry = unit({
 
 const view = (over: Partial<ProductionBody> = {}): ProductionBody => ({
   active: true,
+  grant: null,
   position: "000",
   playerId: "p1",
   faction: "sol",

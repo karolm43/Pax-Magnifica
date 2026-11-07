@@ -121,6 +121,9 @@ class AttachmentDef(ComponentBase):
     planet_types: list[str] = Field(default_factory=list, alias="planetTypes")
     is_legendary: bool = Field(default=False, alias="isLegendary")
     token: str | None = None
+    # Modyfikatory wartości planety (Dyson Sphere +2/+1 itd.) — dane AsyncTI4.
+    resources_modifier: int = Field(default=0, alias="resourcesModifier")
+    influence_modifier: int = Field(default=0, alias="influenceModifier")
 
 
 class ExplorationDef(ComponentBase):

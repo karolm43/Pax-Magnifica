@@ -35,6 +35,7 @@ from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, MECATOL_SYSTEM_ID
 from src.core.neighbors import neighbors_by_player
+from src.core.planet_stats import planet_stats
 from src.core.positions import load_positions
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
@@ -257,6 +258,13 @@ def _build_game_state(
         "activeExploration": (
             {"system": state.exploration.position}
             if state.exploration is not None
+            else None
+        ),
+        # Jednorazowa produkcja z karty (Freelancers) — okno produkcji otwiera się poza krokiem
+        # PRODUCTION (RULES.md 46). Nasze rozszerzenie kontraktu.
+        "productionGrant": (
+            {"system": state.production_grant.position, "source": state.production_grant.source}
+            if state.production_grant is not None
             else None
         ),
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
@@ -503,6 +511,14 @@ def _build_tile_unit_data(
                     "neutral", []
                 ).append({"entityId": "custodian", "entityType": "token", "count": 1})
                 break
+
+        # Żetony wormhole z kart (np. Gamma Wormhole, RULES.md 46): neutralny token w przestrzeni
+        # (id tokenu = typ małymi literami, np. "gamma" — z katalogu żetonów frontendu).
+        if sys_state is not None:
+            for wormhole in sys_state.wormhole_tokens:
+                space.setdefault("neutral", []).append(
+                    {"entityId": wormhole.lower(), "entityType": "token", "count": 1}
+                )
 
         # Attachmenty z eksploracji (RULES.md 46): żeton przy planecie, rysowany przez front
         # jak inne wpisy `entityType: "attachment"` (id = `attachmentId` karty, np. "dysonsphere").
@@ -783,7 +799,7 @@ class _Economy:
 
 
 def _planet_economy(
-    controlled_planets: list[str], registry: StaticDataRegistry
+    controlled_planets: list[str], registry: StaticDataRegistry, state: GameState
 ) -> _Economy:
     """Liczy ekonomię kontrolowanych planet: sumy + optimal/flex.
 
@@ -794,10 +810,10 @@ def _planet_economy(
     """
     econ = _Economy()
     for planet_id in controlled_planets:
-        planet = registry.planets.get(planet_id)
-        if planet is None:
+        stats = planet_stats(state, registry, planet_id)
+        if stats is None:
             continue
-        res, inf = planet.resources, planet.influence
+        res, inf = stats.resources, stats.influence
         econ.resources += res
         econ.influence += inf
         if res > inf:
@@ -1119,7 +1135,7 @@ def _build_player_data(
         # Opcja A: planety gracza WYLICZANE z planet_owners systemów (jedno źródło
         # prawdy), nie z player.controlled_planets — eliminuje desync panel↔mapa (Bug 3).
         controlled = _controlled_planets_from_systems(player_id, state)
-        econ = _planet_economy(controlled, registry)
+        econ = _planet_economy(controlled, registry, state)
         leaders = _player_leaders(player.faction, registry, player.leader_states)
         units_owned = _units_owned_for_faction(
             player.faction,

@@ -40,6 +40,7 @@ import {
   type Payment,
 } from "./productionMath";
 import {
+  skipProductionGrant,
   useProductionView,
   type ProductionBody,
   type ProductionUnit,
@@ -58,6 +59,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const clearNotice = useAppStore((s) => s.clearNotice);
   const setHidden = useAppStore((s) => s.setProductionHidden);
   const { produce, tacticalNextStep } = useBoardEditor();
+  const queryClient = useQueryClient();
+  const grant = view.grant;
   const [busy, setBusy] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [zone, setZone] = useState<string | null>(null);
@@ -146,12 +149,12 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const sorted = [...view.planets].sort(
     (a, b) =>
       Number(a.exhausted) - Number(b.exhausted) ||
-      b.resources - a.resources ||
+      b.payValue - a.payValue ||
       a.name.localeCompare(b.name),
   );
   const readyRes = view.planets
     .filter((p) => !p.exhausted)
-    .reduce((n, p) => n + p.resources, 0);
+    .reduce((n, p) => n + p.payValue, 0);
 
   const unitName = (baseType: string) =>
     view.units.find((u) => u.baseType === baseType)?.name ?? baseType;
@@ -231,7 +234,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
       <header className={styles.topBar}>
         <span className={styles.title}>
           <IconBuildingFactory2 size={18} aria-hidden="true" />
-          Production
+          {grant ? grant.source : "Production"}
           <small>
             {view.position} · {systemName}
           </small>
@@ -277,9 +280,13 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
       )}
 
       <p className={styles.hint}>
-        Pay with resources of ready planets and trade goods; overpaying is lost. Total units are
-        capped by the PRODUCTION of your units in this system. Ground forces go only on planets
-        with a producing unit.
+        {grant
+          ? `${grant.source}: produce ${grant.units} unit in this system. ${
+              grant.influenceAsResources
+                ? "A planet's influence counts as resources (a planet pays with one or the other). "
+                : ""
+            }Ground forces go on a planet you control here, or to space. This is optional.`
+          : "Pay with resources of ready planets and trade goods; overpaying is lost. Total units are capped by the PRODUCTION of your units in this system. Ground forces go only on planets with a producing unit."}
       </p>
 
       <div className={styles.grid}>
@@ -309,12 +316,17 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
 
           <FleetPoolWarning extra={queuedShips} extraFighters={queuedFighters} />
 
-          <h4>Producing units</h4>
+          <h4>{grant ? "Granted production" : "Producing units"}</h4>
           <div className={styles.producers}>
-            {view.producers.length === 0 && (
+            {grant && (
+              <span className={styles.empty}>
+                Limit comes from the card, not from PRODUCTION values.
+              </span>
+            )}
+            {!grant && view.producers.length === 0 && (
               <span className={styles.empty}>No unit with PRODUCTION in this system.</span>
             )}
-            {view.producers.map((p) => (
+            {(grant ? [] : view.producers).map((p) => (
               <div className={styles.producer} key={`${p.zone}-${p.baseType}`}>
                 <span className={styles.producerSprite}>
                   <Unit
@@ -346,7 +358,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             ))}
           </div>
 
-          {view.producers.length > 1 && (
+          {!grant && view.producers.length > 1 && (
             <p className={styles.producerNote}>
               Each line is a separate PRODUCTION ability. Their values add up to the limit, but
               each keeps its own restrictions.
@@ -532,15 +544,32 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             <IconBuildingFactory2 size={14} aria-hidden="true" />
             {queued > 0 ? `Produce ${queued} for ${fmt(cost)}` : "Produce"}
           </button>
-          <button
-            type="button"
-            className={styles.ghostBtn}
-            disabled={busy || queued > 0}
-            title={queued > 0 ? "Produce or clear the order first" : "Finish the tactical action"}
-            onClick={() => void run(tacticalNextStep)}
-          >
-            Finish action <IconArrowRight size={14} aria-hidden="true" />
-          </button>
+          {grant ? (
+            <button
+              type="button"
+              className={styles.ghostBtn}
+              disabled={busy || queued > 0}
+              title={queued > 0 ? "Produce or clear the order first" : "Do not produce"}
+              onClick={() =>
+                void run(async () => {
+                  await skipProductionGrant();
+                  void queryClient.invalidateQueries({ queryKey: ["exploration"] });
+                })
+              }
+            >
+              Skip production <IconArrowRight size={14} aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.ghostBtn}
+              disabled={busy || queued > 0}
+              title={queued > 0 ? "Produce or clear the order first" : "Finish the tactical action"}
+              onClick={() => void run(tacticalNextStep)}
+            >
+              Finish action <IconArrowRight size={14} aria-hidden="true" />
+            </button>
+          )}
         </div>
       </footer>
     </div>,
@@ -559,7 +588,10 @@ export function ProductionOverlay() {
   const queryClient = useQueryClient();
   const hidden = useAppStore((s) => s.productionHidden);
   const setHidden = useAppStore((s) => s.setProductionHidden);
-  const active = gameState?.tacticalStep === "PRODUCTION";
+  const grantOpen = gameState?.productionGrant != null;
+  // Okno produkcji otwiera się w kroku PRODUCTION ALBO przy jednorazowej produkcji z karty
+  // (Freelancers z eksploracji, RULES.md 46).
+  const active = gameState?.tacticalStep === "PRODUCTION" || grantOpen;
   const { data: view } = useProductionView(active);
 
   // Zmiana stanu gry (płatność, ruch innego gracza...) odświeża widok produkcji.
@@ -569,6 +601,11 @@ export function ProductionOverlay() {
       void queryClient.invalidateQueries({ queryKey: ["fleetPool"] });
     }
   }, [gameState, active, queryClient]);
+
+  // Produkcja z karty otwiera okno od razu (gracz właśnie ją wybrał).
+  useEffect(() => {
+    if (grantOpen) setHidden(false);
+  }, [grantOpen, setHidden]);
 
   // Poza krokiem PRODUCTION okno wraca do stanu zamkniętego - kolejna produkcja zaczyna się
   // od przycisku „Open production", a nie od okna wyskakującego samo.

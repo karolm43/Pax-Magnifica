@@ -15,8 +15,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.core.combat import resolve_unit_variant
-from src.core.game_state import GameState
+from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
+from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
     ASYNC_ID_BY_BASE_TYPE,
@@ -102,13 +103,41 @@ def fits_producers(producers: list[Producer], counts: dict[str, int]) -> bool:
     return True
 
 
-def _planet_resources(registry: StaticDataRegistry, planet_id: str) -> int:
-    """Wartość ``resources`` planety z rejestru (0, gdy nieznana)."""
-    planet = registry.planets.get(planet_id)
-    return planet.resources if planet is not None else 0
+def _planet_resources(state: GameState, registry: StaticDataRegistry, planet_id: str) -> int:
+    """Zasoby planety z attachmentami (0, gdy nieznana) — ``core/planet_stats``."""
+    return resources_of(state, registry, planet_id)
+
+
+def active_grant(state: GameState, player_id: str) -> ProductionGrant | None:
+    """Jednorazowa produkcja z efektu karty (Freelancers) dla gracza w aktywnym systemie."""
+    grant = state.production_grant
+    if (
+        grant is not None
+        and grant.player_id == player_id
+        and grant.position == state.active_system
+    ):
+        return grant
+    return None
+
+
+def pay_value(
+    state: GameState, registry: StaticDataRegistry, planet_id: str, player_id: str
+) -> int:
+    """Ile planeta wnosi do płatności za produkcję.
+
+    Zwykle jej zasoby; przy ``ProductionGrant.influence_as_resources`` (Freelancers) wpływ
+    liczy się jak zasoby — planetę wyczerpuje się na zasoby ALBO wpływ, nie oba (nota
+    Freelancers), więc wartość to większa z dwóch.
+    """
+    resources = resources_of(state, registry, planet_id)
+    grant = active_grant(state, player_id)
+    if grant is not None and grant.influence_as_resources:
+        return max(resources, influence_of(state, registry, planet_id))
+    return resources
 
 
 def _unit_production_value(
+    state: GameState,
     registry: StaticDataRegistry,
     faction_id: str | None,
     technologies: list[str],
@@ -133,7 +162,7 @@ def _unit_production_value(
         modifier = int(text.replace("+", "")) if text else 0
     except ValueError:
         return 0
-    base = _planet_resources(registry, planet_id) if planet_id is not None else 0
+    base = _planet_resources(state, registry, planet_id) if planet_id is not None else 0
     return base + modifier
 
 
@@ -196,7 +225,7 @@ def producers(
     result: list[Producer] = []
     for base_type, total in system.space_units.get(player_id, {}).items():
         count = total - fresh.get("space", {}).get(base_type, 0)
-        pv = _unit_production_value(registry, faction_id, technologies, base_type, None)
+        pv = _unit_production_value(state, registry, faction_id, technologies, base_type, None)
         if pv > 0 and count > 0:
             result.append(
                 Producer(
@@ -208,7 +237,7 @@ def producers(
         for base_type, total in by_player.get(player_id, {}).items():
             count = total - fresh.get(planet_id, {}).get(base_type, 0)
             pv = _unit_production_value(
-                registry, faction_id, technologies, base_type, planet_id
+                state, registry, faction_id, technologies, base_type, planet_id
             )
             if pv > 0 and count > 0:
                 result.append(
@@ -236,6 +265,9 @@ def remaining_production(
     player_id: str,
 ) -> int:
     """Ile jednostek można jeszcze wyprodukować w tej akcji (limit − już wyprodukowane)."""
+    grant = active_grant(state, player_id)
+    if grant is not None:
+        return grant.units  # Freelancers itp.: własny limit, niezależny od wartości PRODUCTION
     return max(0, production_limit(state, grid, registry, player_id) - state.production_used)
 
 
@@ -261,6 +293,16 @@ def allowed_ground_zones(
     Planety, na których stoi jednostka z PRODUCTION (dok). Jeśli produkuje jednostka w
     przestrzeni — dodatkowo każda planeta gracza w systemie albo sama przestrzeń.
     """
+    if active_grant(state, player_id) is not None:
+        # Efekt „produce w tym systemie" (Freelancers): bez doków — siły naziemne na planety
+        # gracza w systemie albo do przestrzeni (jak przy produkcji statkiem).
+        system = state.systems.get(position)
+        owned = (
+            [p for p, owner in system.planet_owners.items() if owner == player_id]
+            if system is not None
+            else []
+        )
+        return [*owned, "space"]
     prods = producers(state, registry, player_id, position)
     zones: list[str] = []
     for p in prods:
@@ -334,7 +376,7 @@ def available_budget(
         for planet_id, owner in system.planet_owners.items():
             if owner != player_id or planet_id in exhausted:
                 continue
-            resources += _planet_resources(registry, planet_id)
+            resources += pay_value(state, registry, planet_id, player_id)
     return resources + player.trade_goods
 
 
@@ -413,7 +455,9 @@ def validate_production(
     cumulative = used_by_type(state)
     for o in orders:
         cumulative[o.base_type] = cumulative.get(o.base_type, 0) + o.count
-    if not fits_producers(producers(state, registry, player_id, active), cumulative):
+    if active_grant(state, player_id) is None and not fits_producers(
+        producers(state, registry, player_id, active), cumulative
+    ):
         raise ValueError(
             "Production limit exceeded for these unit types: part of the PRODUCTION cannot "
             "produce them (e.g. Arborec space docks cannot produce infantry)."
@@ -471,7 +515,7 @@ def auto_pay(
     tg = player.trade_goods if player is not None else 0
     ready = [pid for pid, _ in ready_planets(state, registry, player_id)]
     ranked = sorted(
-        ((pid, _planet_resources(registry, pid)) for pid in ready),
+        ((pid, pay_value(state, registry, pid, player_id)) for pid in ready),
         key=lambda item: (-item[1], item[0]),
     )
     chosen: list[tuple[str, int]] = []
@@ -512,7 +556,10 @@ def _validate_spend(
         raise ValueError(
             f"Not enough trade goods: {spend.trade_goods} > {player.trade_goods}."
         )
-    paid = sum(_planet_resources(registry, pid) for pid in spend.planets) + spend.trade_goods
+    paid = (
+        sum(pay_value(state, registry, pid, player_id) for pid in spend.planets)
+        + spend.trade_goods
+    )
     if paid < cost:
         raise ValueError(f"Payment too low: {paid} spent < cost {cost:g}.")
 
@@ -585,10 +632,23 @@ def produce(
     player = new_state.players[player_id]
     player.exhausted_planets = [*player.exhausted_planets, *pay.planets]
     player.trade_goods -= pay.trade_goods
-    new_state.production_used = state.production_used + sum(o.count for o in orders)
+    if active_grant(state, player_id) is not None:
+        # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika.
+        new_state.production_grant = None
+    else:
+        new_state.production_used = state.production_used + sum(o.count for o in orders)
     placed_now = {zone: dict(by_type) for zone, by_type in state.production_placed.items()}
     for o, zone in placed:
         by_type = placed_now.setdefault(zone, {})
         by_type[o.base_type] = by_type.get(o.base_type, 0) + o.count
     new_state.production_placed = placed_now
+    return new_state
+
+
+def skip_grant(state: GameState) -> GameState:
+    """Rezygnacja z jednorazowej produkcji z karty (Freelancers: „you MAY produce")."""
+    if state.production_grant is None:
+        raise ValueError("There is no card-granted production to skip.")
+    new_state = state.clone()
+    new_state.production_grant = None
     return new_state

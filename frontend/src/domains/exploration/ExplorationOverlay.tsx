@@ -273,7 +273,9 @@ export function ExplorationOverlay() {
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
   const queryClient = useQueryClient();
-  const active = gameState?.activeExploration != null;
+  // Podczas produkcji z karty (Freelancers) okno produkcji ma pierwszeństwo.
+  const active =
+    gameState?.activeExploration != null && gameState.productionGrant == null;
   const { data: view } = useExploration(active);
 
   // Każda zmiana stanu gry odświeża widok eksploracji.
