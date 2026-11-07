@@ -246,13 +246,12 @@ export function InvasionPlanetCard({
             <span className={styles.empty}>—</span>
           ) : (
             <div className={styles.tokens}>
-              {expandForces(attacker, info.forces[attacker]).map((ship, n) => (
+              {expandForces(attacker, info.forces[attacker]).map((ship) => (
                 <GroundToken
                   key={ship.id}
                   ship={ship}
                   colorAlias={look(attacker).colorAlias}
                   faction={attacker}
-                  dropIndex={n}
                 />
               ))}
             </div>

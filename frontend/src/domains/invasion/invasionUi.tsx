@@ -70,15 +70,12 @@ export function GroundToken({
   faction,
   mark,
   onClick,
-  dropIndex,
 }: {
   ship: ShipEntity;
   colorAlias: string;
   faction: string;
   mark?: Mark;
   onClick?: () => void;
-  /** Numer jednostki w lądowaniu: gdy podany, spada z orbity (animacja przy montowaniu). */
-  dropIndex?: number;
 }) {
   const body = (
     <>
@@ -127,8 +124,6 @@ export function GroundToken({
     <span
       className={styles.token}
       title={title}
-      data-drop={dropIndex !== undefined || undefined}
-      style={dropIndex !== undefined ? ({ "--i": dropIndex } as CSSProperties) : undefined}
     >
       {body}
     </span>
