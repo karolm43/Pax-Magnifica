@@ -211,7 +211,7 @@ export const MapTile = React.memo<Props>(
               searchTarget(searchKey("system", ringPosition), "map-tile"))}
           />
 
-          {dossierEligible && <SystemHexTarget onOpen={handleDossierOpen} />}
+          {dossierEligible && <SystemHexTarget onOpen={handleDossierOpen} systemId={systemId} />}
 
           <AnomalyOverlay
             show={mapTile.hasAnomaly}
