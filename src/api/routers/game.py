@@ -27,7 +27,7 @@ from src.core.faction_setup import (
     off_board_corner,
     parse_starting_fleet,
 )
-from src.core.game_setup import begin_setup
+from src.core.game_setup import begin_setup, place_frontier_tokens
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
@@ -534,6 +534,8 @@ async def post_new_game(
     # Gracze, mówca i żeton Custodians kończą setup w UI (``/setup/*``); do tego czasu
     # karty strategii są zablokowane (RULES.md 45).
     new_state = begin_setup(new_state, ctx.registry)
+    # Żetony frontier na systemach bez planet (w tym bramy Creuss Gate / The Sorrow).
+    new_state = place_frontier_tokens(new_state, grid, ctx.registry)
     ctx.current_grid = grid
     ctx.service.replace_state(new_state, label="game:new")
     await ctx.service.broadcast()

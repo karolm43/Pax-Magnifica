@@ -79,9 +79,11 @@ def test_status_flow_via_endpoints(client: TestClient) -> None:
     game_state = _web(client)["gameState"]
     assert game_state["status"]["step"] == "SCORE_OBJECTIVES"
     assert game_state["canAdvancePhase"] is False
-    # Nikt jeszcze nie spełnia wymagań losowych celów — lista „można zdobyć" jest pusta,
-    # a opcje pokazują postęp (albo znacznik 'manual').
-    assert game_state["status"]["scoreablePublic"]["p1"] == []
+    # Cele są losowane bez ziarna, a część (np. Lead, cele ręczne) bywa spełniona od startu —
+    # sprawdzamy więc tylko, że „można zdobyć" to podzbiór odkrytych celów. Konkretne
+    # wymagania testuje niżej deterministyczny zestaw celów (God-Mode).
+    revealed_now = client.get("/state").json()["state"]["objectives"]["revealed"]
+    assert set(game_state["status"]["scoreablePublic"]["p1"]) <= set(revealed_now)
     assert len(game_state["status"]["publicOptions"]["p1"]) == 2
     # Ustawiamy deterministyczne cele (God-Mode): Trade Routes (5 TG) i Lead (3 żetony).
     raw = client.get("/state").json()["state"]

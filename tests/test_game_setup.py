@@ -188,3 +188,34 @@ def test_skip_setup_randomizes_secrets_places_custodians_and_reveals(
     assert len(state["objectives"]["revealed"]) == 2
     # Po domkniętym setupu skip nie ma już czego pomijać.
     assert client.post("/setup/skip").status_code == 422
+
+
+def test_frontier_tokens_only_on_planetless_systems(
+    client: TestClient, registry: StaticDataRegistry
+) -> None:
+    client.post(
+        "/game/new",
+        json={"players": [{"faction_id": "sol"}, {"faction_id": "ghost"}]},
+    )
+    systems = _state(client)["systems"]
+    with_token = {s["system_id"] for s in systems.values() if s["frontier_token"]}
+    assert "17" in with_token  # Creuss Gate
+    for system_id in with_token:
+        system = registry.systems[system_id]
+        assert not system.planets and system.name != "Hyperlane"
+    # Systemy z planetami (np. Mecatol Rex) nie dostają żetonu.
+    assert all(
+        not s["frontier_token"]
+        for s in systems.values()
+        if registry.systems[s["system_id"]].planets
+    )
+    # Żeton jest widoczny w web-data jako token w przestrzeni systemu.
+    tiles = _web(client)["tileUnitData"]
+    tokens = [
+        e
+        for tile in tiles.values()
+        for entities in tile["space"].values()
+        for e in entities
+        if e["entityType"] == "token"
+    ]
+    assert tokens and all(t["entityId"] == "frontier" for t in tokens)

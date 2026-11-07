@@ -489,6 +489,12 @@ def _build_tile_unit_data(
                     ),
                 )
 
+        # Żeton frontier (systemy bez planet) — neutralny token w przestrzeni systemu.
+        if sys_state is not None and sys_state.frontier_token:
+            space.setdefault("neutral", []).append(
+                {"entityId": "frontier", "entityType": "token", "count": 1}
+            )
+
         # Żeton Custodians na Mecatol Rex: neutralny token planety (klucz "neutral" — nie jest
         # żadnym graczem), rysowany jak inne tokeny z `entityType: "token"`.
         if system_id == MECATOL_SYSTEM_ID and web_setup.custodian_on_board(state):

@@ -24,7 +24,9 @@ from src.core.game_state import (
     GameState,
     SetupStage,
     SetupState,
+    SystemState,
 )
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
 # Placeholder koloru w identyfikatorach wspólnych promissory notes (plik color.json).
@@ -56,6 +58,33 @@ def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> Gam
             hand.extend(n for n in faction.promissory_notes if n not in hand)
         player.private.promissory_notes = hand
     return new_state
+
+
+def place_frontier_tokens(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Kładzie żeton frontier w każdym systemie bez planet (R_frontier_tokens).
+
+    Dotyczy pustej przestrzeni, anomalii bez planet, wormholi oraz bram Creuss Gate i The
+    Sorrow (systemy bez planet). Pomija kafelki hyperlane i puste sloty domowe. Idempotentne:
+    max jeden żeton na system.
+    """
+    new_state = state.clone()
+    for position in grid.positions:
+        system_id = grid.system_id_at(position)
+        system = registry.systems.get(system_id)
+        if system is None or system.planets or _is_hyperlane(system.name):
+            continue
+        sys_state = new_state.systems.get(position)
+        if sys_state is None:
+            sys_state = SystemState(position=position, system_id=system_id)
+            new_state.systems[position] = sys_state
+        sys_state.frontier_token = True
+    return new_state
+
+
+def _is_hyperlane(name: str | None) -> bool:
+    return (name or "").strip().lower() == "hyperlane"
 
 
 def current_chooser(state: GameState) -> str | None:

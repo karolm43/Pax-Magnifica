@@ -2510,6 +2510,7 @@ Cel: partia do 6 graczy przez sieć (ludzie + boty), obok trybów solo vs boty i
 - (S2) Żeton Custodians jest w setupie położony na Mecatol Rex (R_mecatol_rex). Zdjęcie: RULES.md 41 / R_custodians_token.
 - (S3) Każdy gracz zaczyna z jedną ręką promissory notes: **5 wspólnych** (szablony `<color>_*` z katalogu: Ceasefire, Political Secret, Support for the Throne, Trade Agreement, Alliance) w kolorze gracza + **1 frakcyjna** (`faction.promissory_notes`).
 - (S4) Każdy gracz zaczyna z jednym tajnym celem (R_objective_cards).
+- (S5) Żetony frontier (R_frontier_tokens): w setupie **jeden** żeton w każdym systemie **bez planet** — pusta przestrzeń, anomalie bez planet, wormhole, a także **Creuss Gate** (17) i **The Sorrow** (94). **Nie** na kafelkach hyperlane. Najwyżej jeden żeton na system.
 
 ### 45.2. ⚠ ZAŁOŻENIE (decyzja użytkownika)
 - Zrzut tirules mówi „każdy zaczyna z jednym tajnym celem" i nie opisuje doboru. Wg decyzji użytkownika każdy gracz **dobiera 2 tajne cele, zatrzymuje 1, a drugi wraca do talii (talia tasowana)** — tak jak w instrukcji planszówki. Stąd etap `SECRETS`.
@@ -2522,6 +2523,7 @@ Cel: partia do 6 graczy przez sieć (ludzie + boty), obok trybów solo vs boty i
 - Endpointy: `POST /setup/secret`, `/setup/custodians` (tylko mówca), `/setup/reveal-objectives` (tylko mówca; kończy setup i oddaje turę pierwszemu wybierającemu kartę strategii).
 - `strategy_phase.pick_strategy_card` odrzuca wybór karty, dopóki `state.setup` nie jest `None` (silnik-sędzia).
 - web-data: `gameState.setup`; żeton Custodians jako token planety `mr` pod kluczem `neutral`, dopóki leży na planszy (`web_setup.custodian_on_board`).
+- Frontier: `SystemState.frontier_token: bool`; `game_setup.place_frontier_tokens(state, grid, registry)` wołane w `/game/new` (systemy z rejestru bez `planets`, z pominięciem nazwy „Hyperlane"). web-data: token `frontier` w `space` pod kluczem `neutral`. Zdjęcie żetonu przez eksplorację (Dark Energy Tap) — do zrobienia w RULES.md 46.
 - UI: pełnoekranowe okno z bramką „przekaż ekran" przed pokazaniem tajnych celów (hot-seat); w grze sieciowej backend ma wysyłać kandydatów tylko ich właścicielowi (RULES.md 44).
 
 ---

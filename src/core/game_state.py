@@ -379,6 +379,9 @@ class SystemState(BaseModel):
     # {base_type: liczba}}}, strefa = "space" albo id planety. Liczba ≤ liczba jednostek
     # (odczyt przycinany w ``core/damage.py``). Naprawa w fazie statusu (W10).
     damaged_units: dict[str, dict[str, dict[str, int]]] = Field(default_factory=dict)
+    # Żeton frontier w przestrzeni systemu (R_frontier_tokens): kładziony w setupie na każdym
+    # systemie bez planet; max jeden na system. Zdejmowany przez eksplorację (poza zakresem).
+    frontier_token: bool = False
 
 
 class CombatStep(StrEnum):
