@@ -153,7 +153,8 @@ export function InvasionPlanetCard({
     return defense?.status === "resolved" ? "land" : "hold";
   };
   const podItems: OrbitItem[] =
-    phase === "COMMIT" && landed.length > 0
+    // Zrzut gra RAZ: w Commit tylko gdy planeta nie ma Space Cannon (inaczej spadają w kroku obrony).
+    phase === "COMMIT" && landed.length > 0 && !info.hasSpaceCannon
       ? landed.map((u, n) => ({ node: podNode(u, n), state: podState(true) }))
       : phase === "SPACE_CANNON_DEFENSE" && defense
         ? [
