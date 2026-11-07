@@ -7,7 +7,6 @@ import random
 import pytest
 
 from src.core import objectives, status_phase, turn_flow
-from src.core.components import ComponentCategory
 from src.core.game_state import (
     GameState,
     Phase,
@@ -15,7 +14,10 @@ from src.core.game_state import (
     StatusStep,
     SystemState,
 )
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+
+GRID = HexGrid()
 
 
 @pytest.fixture(scope="module")
@@ -91,82 +93,96 @@ def test_entering_status_initialises_steps_without_repair(registry: StaticDataRe
     assert out.active_player_id == "p1"  # inicjatywa 1
 
 
-def test_score_public_awards_points_and_limits_to_one(registry: StaticDataRegistry) -> None:
-    state = _enter_status(_state(registry))
-    first, second = state.objectives.revealed
-    state = status_phase.score_objective(state, registry, "p1", "public", first)
+def _rigged(state: GameState) -> GameState:
+    """Odkryte: Trade Routes (5 TG) i Lead from the Front (3 żetony); p1 ma 5 TG."""
+    state.objectives.revealed = ["trade_routes", "lead"]
+    state.players["p1"].trade_goods = 5
+    return state
+
+
+def test_score_public_pays_cost_awards_points_and_limits_to_one(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _rigged(_enter_status(_state(registry)))
+    state = status_phase.score_objective(state, registry, GRID, "p1", "public", "trade_routes")
     assert state.players["p1"].victory_points == 1
-    assert state.objectives.scored[first] == ["p1"]
+    assert state.players["p1"].trade_goods == 0  # koszt wydany (R_objective_cards)
+    assert state.objectives.scored["trade_routes"] == ["p1"]
     with pytest.raises(ValueError, match="already scored a public"):
-        status_phase.score_objective(state, registry, "p1", "public", second)
+        status_phase.score_objective(state, registry, GRID, "p1", "public", "lead")
+
+
+def test_score_requires_card_requirements(registry: StaticDataRegistry) -> None:
+    state = _rigged(_enter_status(_state(registry)))
+    state.players["p1"].trade_goods = 4  # Trade Routes wymaga 5
+    with pytest.raises(ValueError, match=r"requirements not met \(4/5\)"):
+        status_phase.score_objective(state, registry, GRID, "p1", "public", "trade_routes")
+    assert state.players["p1"].victory_points == 0
+
+
+def test_spending_tokens_goes_to_reinforcements(registry: StaticDataRegistry) -> None:
+    state = _rigged(_enter_status(_state(registry)))
+    reinf = state.players["p1"].cc_reinf
+    state = status_phase.score_objective(state, registry, GRID, "p1", "public", "lead")
+    p1 = state.players["p1"]
+    assert (p1.tactical_cc, p1.strategic_cc) == (0, 2) and p1.cc_reinf == reinf + 3
 
 
 def test_score_public_requires_players_turn(registry: StaticDataRegistry) -> None:
-    state = _enter_status(_state(registry))
+    state = _rigged(_enter_status(_state(registry)))
     with pytest.raises(ValueError, match="not p2's turn"):
-        status_phase.score_objective(
-            state, registry, "p2", "public", state.objectives.revealed[0]
-        )
+        status_phase.score_objective(state, registry, GRID, "p2", "public", "lead")
 
 
 def test_score_public_rejects_unrevealed_and_duplicate(registry: StaticDataRegistry) -> None:
-    state = _enter_status(_state(registry))
+    state = _rigged(_enter_status(_state(registry)))
     with pytest.raises(ValueError, match="not revealed"):
         status_phase.score_objective(
-            state, registry, "p1", "public", state.objectives.stage1_deck[0]
+            state, registry, GRID, "p1", "public", state.objectives.stage1_deck[0]
         )
-    done = status_phase.score_objective(
-        state, registry, "p1", "public", state.objectives.revealed[0]
-    )
+    done = status_phase.score_objective(state, registry, GRID, "p1", "public", "lead")
     with pytest.raises(ValueError, match="already scored"):
-        objectives.score_public(done, registry, "p1", state.objectives.revealed[0])
+        objectives.score_public(done, registry, GRID, "p1", "lead")
 
 
 def test_score_public_requires_home_planets(registry: StaticDataRegistry) -> None:
-    state = _enter_status(_state(registry))
+    state = _rigged(_enter_status(_state(registry)))
     faction_id = next(
         fid for fid, f in registry.factions.items() if f.home_planets and f.leaders
     )
     state.players["p1"].faction = faction_id  # planety domowe nie należą do p1
     with pytest.raises(ValueError, match="home system"):
-        status_phase.score_objective(
-            state, registry, "p1", "public", state.objectives.revealed[0]
-        )
+        status_phase.score_objective(state, registry, GRID, "p1", "public", "lead")
 
 
 def test_score_secret_reveals_card_and_limits_to_one(registry: StaticDataRegistry) -> None:
     state = _enter_status(_state(registry))
-    status_secrets = [
-        sid
-        for sid in registry.catalog.all(ComponentCategory.SECRET_OBJECTIVE)
-        if (definition := objectives.objective_def(registry, sid)) is not None
-        and definition.phase == "Status"
-    ]
-    state.players["p1"].private.secret_objectives = status_secrets[:2]
-    state = status_phase.score_objective(state, registry, "p1", "secret", status_secrets[0])
-    assert state.players["p1"].scored_secrets == [status_secrets[0]]
-    assert state.players["p1"].private.secret_objectives == [status_secrets[1]]
+    state.players["p1"].private.secret_objectives = ["sb", "ctr"]
+    state.players["p1"].promissory_notes_in_play = ["alliance"]  # spełnia „sb"
+    state = status_phase.score_objective(state, registry, GRID, "p1", "secret", "sb")
+    assert state.players["p1"].scored_secrets == ["sb"]
+    assert state.players["p1"].private.secret_objectives == ["ctr"]
     assert state.players["p1"].victory_points == 1
     with pytest.raises(ValueError, match="already scored a secret"):
-        status_phase.score_objective(state, registry, "p1", "secret", status_secrets[1])
+        status_phase.score_objective(state, registry, GRID, "p1", "secret", "ctr")
 
 
-def test_score_secret_must_be_in_hand(registry: StaticDataRegistry) -> None:
+def test_score_secret_requires_requirements_and_hand(registry: StaticDataRegistry) -> None:
     state = _enter_status(_state(registry))
+    state.players["p1"].private.secret_objectives = ["ctr"]  # 6 systemów ze statkami
+    with pytest.raises(ValueError, match=r"requirements not met \(0/6\)"):
+        status_phase.score_objective(state, registry, GRID, "p1", "secret", "ctr")
     with pytest.raises(ValueError, match="not in your hand"):
-        status_phase.score_objective(state, registry, "p1", "secret", "nonexistent")
+        status_phase.score_objective(state, registry, GRID, "p1", "secret", "nonexistent")
 
 
 def test_reaching_vp_limit_ends_the_game(registry: StaticDataRegistry) -> None:
-    state = _enter_status(_state(registry))
+    state = _rigged(_enter_status(_state(registry)))
     state.players["p1"].victory_points = 9
-    state = status_phase.score_objective(
-        state, registry, "p1", "public", state.objectives.revealed[0]
-    )
+    state = status_phase.score_objective(state, registry, GRID, "p1", "public", "trade_routes")
     assert state.winner_id == "p1"
     with pytest.raises(ValueError, match="game has ended"):
         status_phase.finish_scoring(state, registry, "p1")
-
 
 # --------------------------------------------------------------------------- kroki 2-8
 

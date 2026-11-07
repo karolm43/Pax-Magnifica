@@ -1,0 +1,658 @@
+"""Sprawdzanie celów (objectives): postęp gracza względem wymagań karty (RULES.md 41.4).
+
+Port logiki AsyncTI4 ``ListPlayerInfoService.getPlayerProgressOnObjective`` /
+``getObjectiveThreshold`` na nasz ``GameState`` + ``HexGrid`` + ``StaticDataRegistry``.
+Czyste funkcje (bez mutacji). Wynik ``progress`` to liczba porównywana z ``threshold``;
+cel jest spełniony, gdy ``progress >= threshold``.
+
+``progress`` zwraca ``None``, gdy stan gry NIE modeluje potrzebnych danych (załączniki
+planet, fragmenty reliktów, prawa w grze) — wtedy cel jest „do ręcznego potwierdzenia"
+i silnik go nie blokuje (⚠ ZAŁOŻENIE, RULES.md 41.4).
+
+Cele „wydaj X" (Spend…) sprawdzają, czy gracz MA wystarczająco zasobów; samo wydanie
+robi ``objective_payment`` przy zdobywaniu celu.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass, field
+
+from src.core import production
+from src.core.game_state import GameState, PlayerState, SystemState
+from src.core.hex_grid import HexGrid
+from src.core.neighbors import neighbors_by_player
+from src.core.registry import StaticDataRegistry
+
+# Progi z AsyncTI4 (``getObjectiveThreshold``); zgodne z tekstami kart w katalogu.
+THRESHOLDS: dict[str, int] = {
+    # etap I
+    "push_boundaries": 2, "outer_rim": 3, "ancient_monuments": 3, "revolutionize": 3,
+    "deep_space": 3, "lead": 3, "research_outposts": 3, "infrastructure": 3,
+    "make_history": 2, "corner": 4, "become_legend": 4, "master_science": 4,
+    "build_defenses": 4, "develop": 2, "diversify": 2, "monument": 8,
+    "command_armada": 8, "sway_council": 8, "expand_borders": 6, "intimidate": 2,
+    "trade_routes": 5, "amass_wealth": 9, "lost_outposts": 2, "engineer_marvel": 1,
+    "raise_fleet": 5,
+    # etap II
+    "centralize_trade": 10, "conquer": 1, "brain_trust": 5, "golden_age": 16,
+    "galvanize": 6, "manipulate_law": 16, "subdue": 11, "unify_colonies": 6,
+    "supremacy": 1, "massive_cities": 7, "control_borderlands": 5, "vast_reserves": 18,
+    "vast_territories": 5, "protect_border": 5, "distant_lands": 2,
+    # tajne (faza statusu)
+    "pem": 8, "sai": 1, "syc": 1, "sb": 1, "otf": 9, "mtm": 4, "hrm": 12, "eh": 12,
+    "dp": 3, "dhw": 2, "dfat": 1, "te": 1, "ose": 3, "mrm": 4, "mlp": 4, "mp": 4,
+    "lsc": 3, "fwm": 3, "fsn": 5, "gamf": 5, "ans": 2, "btgk": 2, "ctr": 6, "csl": 1,
+    "eap": 4, "faa": 4,
+}
+
+_MAIN_TECH_COLORS = ("BIOTIC", "PROPULSION", "CYBERNETIC", "WARFARE")
+_STRUCTURES = ("spacedock", "pds")
+_GROUND = ("infantry", "mech")
+_TRAITS = ("CULTURAL", "HAZARDOUS", "INDUSTRIAL")
+# Cele, w których wydaje się żetony/zasoby (patrz ``objective_payment``).
+SPEND_OBJECTIVES = frozenset({
+    "trade_routes", "centralize_trade", "lead", "galvanize", "monument", "golden_age",
+    "sway_council", "manipulate_law", "amass_wealth", "vast_reserves", "fsn",
+})
+
+
+def threshold(objective_id: str, state: GameState) -> int:
+    """Próg celu (0 = nieznany cel — brak automatycznego sprawdzania)."""
+    if objective_id == "fc":
+        return max(len(state.players) - 1, 1)
+    return THRESHOLDS.get(objective_id, 0)
+
+
+# --- Widok pomocniczy ----------------------------------------------------------------------
+
+
+@dataclass
+class View:
+    state: GameState
+    registry: StaticDataRegistry
+    grid: HexGrid
+    pid: str
+    player: PlayerState = field(init=False)
+    homes: dict[str, str] = field(init=False)  # player_id -> pozycja systemu domowego
+    owned: list[str] = field(init=False)  # planety punktowane (bez stacji kosmicznych)
+    planet_pos: dict[str, str] = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.player = self.state.players[self.pid]
+        self.homes = {}
+        for other_id, other in self.state.players.items():
+            faction = self.registry.factions.get(other.faction or "")
+            if faction is None or not faction.home_system:
+                continue
+            for position, system in self.state.systems.items():
+                if system.system_id == faction.home_system:
+                    self.homes[other_id] = position
+                    break
+        self.planet_pos = {}
+        self.owned = []
+        for position, system in self.state.systems.items():
+            for planet_id, owner in system.planet_owners.items():
+                self.planet_pos[planet_id] = position
+                if owner == self.pid and self._counts_as_planet(planet_id):
+                    self.owned.append(planet_id)
+
+    def _counts_as_planet(self, planet_id: str) -> bool:
+        # R_space_stations: stacje kosmiczne nie są planetami dla celów.
+        planet = self.registry.planets.get(planet_id)
+        return planet is None or planet.planet_type != "SPACESTATION"
+
+    # -- mapa --
+    def my_home(self) -> str | None:
+        return self.homes.get(self.pid)
+
+    def other_homes(self) -> list[str]:
+        return [pos for pid, pos in self.homes.items() if pid != self.pid]
+
+    def all_homes(self) -> set[str]:
+        return set(self.homes.values())
+
+    def planets_of_system(self, position: str) -> list[str]:
+        system = self.state.systems.get(position)
+        definition = self.registry.systems.get(system.system_id) if system else None
+        return list(definition.planets) if definition else []
+
+    def mecatol(self) -> str | None:
+        for position in self.state.systems:
+            for planet_id in self.planets_of_system(position):
+                planet = self.registry.planets.get(planet_id)
+                if planet is not None and planet.planet_type == "MR" and planet_id == "mr":
+                    return position
+        return None
+
+    def wormholes(self, position: str) -> set[str]:
+        system = self.state.systems.get(position)
+        definition = self.registry.systems.get(system.system_id) if system else None
+        return {w.upper() for w in definition.wormholes} if definition else set()
+
+    def is_anomaly(self, position: str) -> bool:
+        return bool(self.grid.anomalies_at(position))
+
+    # -- jednostki --
+    def units_in(self, position: str, pid: str | None = None) -> int:
+        system = self.state.systems.get(position)
+        return _unit_total(system, pid or self.pid) if system else 0
+
+    def ships_in(self, position: str, pid: str | None = None) -> int:
+        system = self.state.systems.get(position)
+        if system is None:
+            return 0
+        return sum(system.space_units.get(pid or self.pid, {}).values())
+
+    def non_fighter_ships_in(self, position: str) -> int:
+        system = self.state.systems.get(position)
+        if system is None:
+            return 0
+        return sum(
+            n for t, n in system.space_units.get(self.pid, {}).items() if t != "fighter"
+        )
+
+    def count_units(self, *base_types: str) -> int:
+        """Liczba jednostek danych typów gracza na całej planszy (przestrzeń + planety)."""
+        total = 0
+        for system in self.state.systems.values():
+            for base_type in base_types:
+                total += system.space_units.get(self.pid, {}).get(base_type, 0)
+                for by_player in system.planet_units.values():
+                    total += by_player.get(self.pid, {}).get(base_type, 0)
+        return total
+
+    def unit_on(self, planet_id: str, base_types: tuple[str, ...]) -> int:
+        total = 0
+        for system in self.state.systems.values():
+            by_type = system.planet_units.get(planet_id, {}).get(self.pid, {})
+            total += sum(by_type.get(t, 0) for t in base_types)
+        return total
+    # -- planety --
+    def trait_count(self, trait: str) -> int:
+        count = 0
+        for planet_id in self.owned:
+            planet = self.registry.planets.get(planet_id)
+            if planet is None:
+                continue
+            traits = set(planet.planet_types or [])
+            if planet.planet_type:
+                traits.add(planet.planet_type)
+            if trait in traits:
+                count += 1
+        return count
+
+    def planets_with(self, predicate: Callable[[str], bool]) -> int:
+        return sum(1 for planet_id in self.owned if predicate(planet_id))
+
+    def in_non_home(self, planet_id: str) -> bool:
+        return self.planet_pos.get(planet_id) not in self.all_homes()
+
+    # -- technologie --
+    def tech_types(self, tech_id: str) -> list[str]:
+        tech = self.registry.technologies.get(tech_id)
+        return list(tech.types) if tech is not None else []
+
+    def color_counts(self) -> dict[str, int]:
+        counts = dict.fromkeys(_MAIN_TECH_COLORS, 0)
+        for tech_id in self.player.technologies:
+            for color in self.tech_types(tech_id):
+                if color in counts:
+                    counts[color] += 1
+        return counts
+
+    # -- ekonomia --
+    def ready_planets(self) -> list[str]:
+        exhausted = set(self.player.exhausted_planets)
+        return [p for p in self.owned if p not in exhausted]
+
+    def planet_value(self, planet_id: str, kind: str) -> int:
+        planet = self.registry.planets.get(planet_id)
+        if planet is None:
+            return 0
+        return planet.resources if kind == "res" else planet.influence
+
+    def available(self, kind: str) -> int:
+        return sum(self.planet_value(p, kind) for p in self.ready_planets())
+
+
+def _unit_total(system: SystemState, pid: str) -> int:
+    total = sum(system.space_units.get(pid, {}).values())
+    for by_player in system.planet_units.values():
+        total += sum(by_player.get(pid, {}).values())
+    return total
+
+
+# --- Funkcje postępu ----------------------------------------------------------------------
+
+
+def _systems_with_units(v: View, predicate: Callable[[str], bool]) -> int:
+    return sum(1 for pos in v.state.systems if v.units_in(pos) > 0 and predicate(pos))
+
+
+def _p_push_boundaries(v: View) -> int:
+    mine = len(v.owned)
+    neighbours = neighbors_by_player(v.state, v.grid).get(v.pid, set())
+    above = 0
+    for other_id in neighbours:
+        other = View(v.state, v.registry, v.grid, other_id)
+        if mine > len(other.owned):
+            above += 1
+    return above
+
+
+def _p_edge(v: View) -> int:
+    return _systems_with_units(v, lambda pos: v.grid.is_edge(pos) and pos != v.my_home())
+
+
+def _p_legendary_or_anomaly(v: View) -> int:
+    mecatol = v.mecatol()
+
+    def counts(pos: str) -> bool:
+        legendary = any(
+            bool(p.legendary_ability_name)
+            for pid in v.planets_of_system(pos)
+            if (p := v.registry.planets.get(pid)) is not None
+        )
+        return pos == mecatol or v.is_anomaly(pos) or legendary
+
+    return _systems_with_units(v, counts)
+
+
+def _p_structures_outside_home(v: View) -> int:
+    return sum(
+        1
+        for pid in v.owned
+        if v.planet_pos.get(pid) != v.my_home() and v.unit_on(pid, _STRUCTURES) > 0
+    )
+
+
+def _p_same_trait(v: View) -> int:
+    return max(v.trait_count(t) for t in _TRAITS)
+
+
+def _p_unit_upgrades(v: View) -> int:
+    return sum("UNITUPGRADE" in v.tech_types(t) for t in v.player.technologies)
+
+
+def _p_diversify(v: View) -> int:
+    return sum(1 for n in v.color_counts().values() if n >= 2)
+
+
+def _p_non_home_planets(v: View) -> int:
+    return v.planets_with(v.in_non_home)
+
+
+def _p_tech_skips(v: View) -> int:
+    def has_skip(pid: str) -> bool:
+        planet = v.registry.planets.get(pid)
+        return bool(planet and planet.tech_specialties)
+
+    return v.planets_with(has_skip)
+
+
+def _p_intimidate(v: View) -> int:
+    mecatol = v.mecatol()
+    if mecatol is None:
+        return 0
+    return sum(1 for pos in v.grid.neighbors(mecatol) if v.ships_in(pos) > 0)
+
+
+def _p_command_tokens(v: View) -> int:
+    return v.player.tactical_cc + v.player.strategic_cc
+
+
+def _p_trade_goods(v: View) -> int:
+    return v.player.trade_goods
+
+
+def _p_spend_both(goal: int) -> Callable[[View], int]:
+    def progress(v: View) -> int:
+        return threshold_progress_for_mixed(v, goal)
+
+    return progress
+
+
+def threshold_progress_for_mixed(v: View, goal: int) -> int:
+    """Postęp celów „X influence + X resources + X trade goods" (amass/vast)."""
+    plan = mixed_spend_plan(v.ready_planets(), v.registry, v.player.trade_goods, goal)
+    if plan is not None:
+        return goal * 3
+    best = 0
+    for res, inf in _reachable_pairs(v.ready_planets(), v.registry, goal):
+        total = min(res, goal) + min(inf, goal) + min(v.player.trade_goods, goal)
+        best = max(best, total)
+    return min(best, goal * 3 - 1)
+
+
+def _reachable_pairs(
+    planets: list[str], registry: StaticDataRegistry, goal: int
+) -> set[tuple[int, int]]:
+    states: set[tuple[int, int]] = {(0, 0)}
+    for planet_id in planets:
+        planet = registry.planets.get(planet_id)
+        if planet is None:
+            continue
+        new_states = set(states)
+        for res, inf in states:
+            new_states.add((min(res + planet.resources, goal), inf))
+            new_states.add((res, min(inf + planet.influence, goal)))
+        states = new_states
+    return states
+
+
+def mixed_spend_plan(
+    planets: list[str], registry: StaticDataRegistry, trade_goods: int, goal: int
+) -> tuple[list[str], list[str], int] | None:
+    """Plan wydania „goal res + goal inf + goal TG": (planety→res, planety→inf, TG).
+
+    Planeta zasila ALBO zasoby ALBO wpływy (R_resources/R_influence). Brakujące punkty
+    dopłacają trade goods (TG liczą się jako zasoby/wpływy — R_trade_goods). Wybiera plan
+    o najmniejszej liczbie wydanych TG. ``None`` gdy niewykonalne.
+    """
+    states: dict[tuple[int, int], tuple[list[str], list[str]]] = {(0, 0): ([], [])}
+    for planet_id in planets:
+        planet = registry.planets.get(planet_id)
+        if planet is None:
+            continue
+        updated = dict(states)
+        for (res, inf), (res_list, inf_list) in states.items():
+            key_r = (min(res + planet.resources, goal), inf)
+            key_i = (res, min(inf + planet.influence, goal))
+            if planet.resources > 0 and key_r not in updated:
+                updated[key_r] = ([*res_list, planet_id], inf_list)
+            if planet.influence > 0 and key_i not in updated:
+                updated[key_i] = (res_list, [*inf_list, planet_id])
+        states = updated
+    best: tuple[int, list[str], list[str]] | None = None
+    for (res, inf), (res_list, inf_list) in states.items():
+        extra = max(0, goal - res) + max(0, goal - inf)
+        need_tg = goal + extra
+        if need_tg > trade_goods:
+            continue
+        cost = (extra, len(res_list) + len(inf_list))
+        if best is None or cost < (best[0], len(best[1]) + len(best[2])):
+            best = (extra, res_list, inf_list)
+    if best is None:
+        return None
+    return best[1], best[2], goal + best[0]
+
+
+def _p_resources(v: View) -> int:
+    return v.available("res") + v.player.trade_goods
+
+
+def _p_influence(v: View) -> int:
+    return v.available("inf") + v.player.trade_goods
+
+
+def _p_structures(v: View) -> int:
+    return v.count_units(*_STRUCTURES)
+
+
+def _p_engineer(v: View) -> int:
+    return v.count_units("flagship", "warsun")
+
+
+def _p_no_planet_systems(v: View) -> int:
+    return _systems_with_units(v, lambda pos: not v.planets_of_system(pos))
+
+
+def _p_max_fleet(v: View) -> int:
+    return max((v.non_fighter_ships_in(pos) for pos in v.state.systems), default=0)
+
+
+def _p_conquer(v: View) -> int:
+    homes = set(v.other_homes())
+    return v.planets_with(lambda pid: v.planet_pos.get(pid) in homes)
+
+
+def _p_supremacy(v: View) -> int:
+    targets = {*v.other_homes()}
+    mecatol = v.mecatol()
+    if mecatol is not None:
+        targets.add(mecatol)
+    return sum(
+        1
+        for pos in targets
+        if (system := v.state.systems.get(pos)) is not None
+        and any(
+            system.space_units.get(v.pid, {}).get(t, 0) > 0 for t in ("flagship", "warsun")
+        )
+    )
+
+
+def _p_distant_lands(v: View) -> int:
+    planets: set[str] = set()
+    homes_touched: set[str] = set()
+    for home in v.other_homes():
+        zone = {home, *v.grid.neighbors(home)}
+        for planet_id in v.owned:
+            if v.planet_pos.get(planet_id) in zone:
+                planets.add(planet_id)
+                homes_touched.add(home)
+    return min(len(planets), len(homes_touched))
+
+
+def _p_production(v: View) -> int:
+    return max(
+        (
+            production.system_production_value(v.state, v.grid, v.registry, v.pid, pos)
+            for pos in v.state.systems
+        ),
+        default=0,
+    )
+
+
+def _p_legendary_planet(v: View) -> int:
+    return v.planets_with(
+        lambda pid: bool((p := v.registry.planets.get(pid)) and p.legendary_ability_name)
+    )
+
+
+def _p_shared_system(v: View) -> int:
+    count = 0
+    for planet_id in v.owned:
+        position = v.planet_pos.get(planet_id)
+        system = v.state.systems.get(position or "")
+        if system is None:
+            continue
+        if any(owner != v.pid for owner in system.planet_owners.values()):
+            count += 1
+    return count
+
+
+def _p_notes_in_play(v: View) -> int:
+    return len(v.player.promissory_notes_in_play)
+
+
+def _p_big_ground_stack(v: View) -> int:
+    best = 0
+    for system in v.state.systems.values():
+        for by_player in system.planet_units.values():
+            mine = by_player.get(v.pid, {})
+            if mine.get("spacedock", 0) > 0:
+                continue
+            best = max(best, sum(mine.get(t, 0) for t in _GROUND))
+    return best
+
+
+def _p_mechs(v: View) -> int:
+    return sum(
+        1
+        for system in v.state.systems.values()
+        for by_player in system.planet_units.values()
+        if by_player.get(v.pid, {}).get("mech", 0) > 0
+    )
+
+def _p_resource_sum(v: View) -> int:
+    return sum(v.planet_value(p, "res") for p in v.owned)
+
+
+def _p_influence_sum(v: View) -> int:
+    return sum(v.planet_value(p, "inf") for p in v.owned)
+
+
+def _p_nexus(v: View) -> int:
+    for position in v.state.systems:
+        if "mallice" in v.planets_of_system(position) and v.units_in(position) > 0:
+            return 1
+    return 0
+
+
+def _p_next_to_home(v: View) -> int:
+    return sum(
+        1 for home in v.other_homes() for pos in v.grid.neighbors(home) if v.ships_in(pos) > 0
+    )
+
+
+def _p_seat_of_empire(v: View) -> int:
+    mecatol = v.mecatol()
+    if mecatol is None or "mr" not in v.owned:
+        return 0
+    return v.ships_in(mecatol)
+
+
+def _p_hazardous(v: View) -> int:
+    return v.trait_count("HAZARDOUS")
+
+
+def _p_industrial(v: View) -> int:
+    return v.trait_count("INDUSTRIAL")
+
+
+def _p_cultural(v: View) -> int:
+    return v.trait_count("CULTURAL")
+
+
+def _p_same_color_techs(v: View) -> int:
+    return max(v.color_counts().values())
+
+
+def _p_adjacent_to_anomaly(v: View) -> int:
+    return sum(
+        1
+        for pos in v.state.systems
+        if v.ships_in(pos) > 0 and any(v.is_anomaly(n) for n in v.grid.neighbors(pos))
+    )
+
+
+def _p_space_docks(v: View) -> int:
+    return v.count_units("spacedock")
+
+
+def _p_pds(v: View) -> int:
+    return v.count_units("pds")
+
+
+def _p_dreadnoughts(v: View) -> int:
+    return v.count_units("dreadnought")
+
+
+def _p_action_cards(v: View) -> int:
+    return len(v.player.private.action_cards) or v.player.hidden_card_counts.get(
+        "action_cards", 0
+    )
+
+
+def _p_faction_techs(v: View) -> int:
+    count = 0
+    for tech_id in v.player.technologies:
+        tech = v.registry.technologies.get(tech_id)
+        if tech is not None and tech.faction and tech_id not in ("vax", "vay"):
+            count += 1
+    return count
+
+
+def _p_both_wormholes(v: View) -> int:
+    alpha = any(v.ships_in(p) > 0 and "ALPHA" in v.wormholes(p) for p in v.state.systems)
+    beta = any(v.ships_in(p) > 0 and "BETA" in v.wormholes(p) for p in v.state.systems)
+    return int(alpha) + int(beta)
+
+
+def _p_ship_systems(v: View) -> int:
+    return sum(1 for pos in v.state.systems if v.ships_in(pos) > 0)
+
+
+def _p_blockade_dock(v: View) -> int:
+    count = 0
+    for other_id in v.state.players:
+        if other_id == v.pid:
+            continue
+        for pos, system in v.state.systems.items():
+            has_dock = any(
+                by_player.get(other_id, {}).get("spacedock", 0) > 0
+                for by_player in system.planet_units.values()
+            )
+            if has_dock and v.ships_in(pos) > 0:
+                count += 1
+    return count
+
+
+def _p_neighbours(v: View) -> int:
+    return len(neighbors_by_player(v.state, v.grid).get(v.pid, set()))
+
+
+_PROGRESS: dict[str, Callable[[View], int]] = {
+    "push_boundaries": _p_push_boundaries,
+    "outer_rim": _p_edge, "control_borderlands": _p_edge,
+    "make_history": _p_legendary_or_anomaly, "become_legend": _p_legendary_or_anomaly,
+    "infrastructure": _p_structures_outside_home, "protect_border": _p_structures_outside_home,
+    "corner": _p_same_trait, "unify_colonies": _p_same_trait,
+    "develop": _p_unit_upgrades, "revolutionize": _p_unit_upgrades,
+    "diversify": _p_diversify, "master_science": _p_diversify,
+    "monument": _p_resources, "golden_age": _p_resources,
+    "sway_council": _p_influence, "manipulate_law": _p_influence,
+    "expand_borders": _p_non_home_planets, "subdue": _p_non_home_planets,
+    "research_outposts": _p_tech_skips, "brain_trust": _p_tech_skips,
+    "intimidate": _p_intimidate,
+    "lead": _p_command_tokens, "galvanize": _p_command_tokens,
+    "trade_routes": _p_trade_goods, "centralize_trade": _p_trade_goods,
+    "amass_wealth": _p_spend_both(3), "vast_reserves": _p_spend_both(6),
+    "build_defenses": _p_structures, "massive_cities": _p_structures,
+    "engineer_marvel": _p_engineer,
+    "deep_space": _p_no_planet_systems, "vast_territories": _p_no_planet_systems,
+    "raise_fleet": _p_max_fleet, "command_armada": _p_max_fleet,
+    "conquer": _p_conquer, "supremacy": _p_supremacy, "distant_lands": _p_distant_lands,
+    "pem": _p_production, "sai": _p_legendary_planet, "syc": _p_shared_system,
+    "sb": _p_notes_in_play, "otf": _p_big_ground_stack, "mtm": _p_mechs,
+    "hrm": _p_resource_sum, "eh": _p_influence_sum, "dfat": _p_nexus,
+    "te": _p_next_to_home, "ose": _p_seat_of_empire, "mrm": _p_hazardous,
+    "mlp": _p_same_color_techs, "mp": _p_industrial, "lsc": _p_adjacent_to_anomaly,
+    "fwm": _p_space_docks, "fsn": _p_action_cards, "gamf": _p_dreadnoughts,
+    "ans": _p_faction_techs, "btgk": _p_both_wormholes, "ctr": _p_ship_systems,
+    "csl": _p_blockade_dock, "eap": _p_pds, "faa": _p_cultural, "fc": _p_neighbours,
+}
+
+# Cele, których warunku stan gry nie modeluje (załączniki, fragmenty, prawa w grze).
+MANUAL_OBJECTIVES = frozenset({"ancient_monuments", "lost_outposts", "dhw", "dp"})
+
+
+def progress(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    objective_id: str,
+) -> int | None:
+    """Postęp gracza względem celu; ``None`` = warunek niemodelowany (potwierdza operator)."""
+    if objective_id in MANUAL_OBJECTIVES or objective_id not in _PROGRESS:
+        return None
+    if player_id not in state.players:
+        return 0
+    return _PROGRESS[objective_id](View(state, registry, grid, player_id))
+
+
+def evaluate(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    objective_id: str,
+) -> tuple[int | None, int, bool]:
+    """(postęp, próg, czy można zdobyć). Cel niemodelowany → można (potwierdza operator)."""
+    value = progress(state, registry, grid, player_id, objective_id)
+    goal = threshold(objective_id, state)
+    if value is None or goal <= 0:
+        return value, goal, True
+    return value, goal, value >= goal

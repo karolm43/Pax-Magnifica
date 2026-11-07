@@ -752,6 +752,8 @@ class GodModePatch(BaseModel):
     # Żeton Custodians zdjęty z Mecatol Rex (dodaje fazę agendy do każdej rundy). Do czasu
     # pełnej obsługi inwazji na Mecatol Rex ustawiany ręcznie (RULES.md 41.6).
     custodians_removed: bool | None = None
+    # Cele publiczne (talie, odkryte, zdobyte) — nadpisuje CAŁY podstan celów.
+    objectives: dict[str, object] | None = None
     players: dict[str, dict[str, object]] | None = None
     systems: dict[str, dict[str, object]] | None = None
 

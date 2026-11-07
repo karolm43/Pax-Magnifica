@@ -13,8 +13,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import objective_progress
 from src.core import objectives as obj
 from src.core.game_state import GameState, PlayerState, StatusStep
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
 # Limit tajnych celów (zdobytych + niezdobytych) — R_objective_cards: „up to three total".
@@ -46,10 +48,21 @@ def _scored_factions(
 def _objective_entry(
     state: GameState,
     registry: StaticDataRegistry,
+    grid: HexGrid,
     objective_id: str,
     entity_keys: dict[str, str],
 ) -> dict[str, Any]:
     definition = obj.objective_def(registry, objective_id)
+    goal = objective_progress.threshold(objective_id, state)
+    progress: dict[str, int] = {}
+    if goal > 0:
+        for pid in state.players:
+            value = objective_progress.progress(state, registry, grid, pid, objective_id)
+            if value is None:
+                progress = {}
+                goal = 0  # warunek niemodelowany — bez miernika postępu
+                break
+            progress[entity_keys.get(pid, pid)] = value
     return {
         "key": objective_id,
         "name": _name_of(registry, objective_id),
@@ -59,9 +72,8 @@ def _objective_entry(
         "peekingFactions": [],
         "multiScoring": False,
         "hasRedTape": False,
-        # Postęp względem wymagań karty nie jest jeszcze liczony (RULES.md 41.4).
-        "progressThreshold": 0,
-        "factionProgress": {},
+        "progressThreshold": goal,
+        "factionProgress": progress,
     }
 
 
@@ -81,17 +93,20 @@ def _hidden_entry(stage: int, index: int, points: int) -> dict[str, Any]:
 
 
 def build_objectives(
-    state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    entity_keys: dict[str, str],
 ) -> dict[str, Any]:
     """Struktura ``Objectives``: odkryte cele z podziałem na etapy + zakryte placeholdery."""
     state_obj = state.objectives
     stage1 = [
-        _objective_entry(state, registry, oid, entity_keys)
+        _objective_entry(state, registry, grid, oid, entity_keys)
         for oid in state_obj.revealed
         if obj.objective_stage(registry, oid) == 1
     ]
     stage2 = [
-        _objective_entry(state, registry, oid, entity_keys)
+        _objective_entry(state, registry, grid, oid, entity_keys)
         for oid in state_obj.revealed
         if obj.objective_stage(registry, oid) == 2
     ]
@@ -140,7 +155,11 @@ def _entry(
 
 
 def _player_breakdown(
-    state: GameState, registry: StaticDataRegistry, player_id: str, player: PlayerState
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    player: PlayerState,
 ) -> dict[str, Any]:
     """Wpisy toru punktów jednego gracza: zdobyte, potem możliwe (jak ``WebScoreBreakdown``)."""
     entries: list[dict[str, Any]] = []
@@ -170,7 +189,7 @@ def _player_breakdown(
             )
 
     # Możliwe punkty: jeden cel publiczny na fazę statusu (najwyżej punktowany) …
-    candidates = obj.scoreable_public_objectives(state, registry, player_id)
+    candidates = obj.scoreable_public_objectives(state, registry, grid, player_id)
     if candidates:
         best = max(
             candidates,
@@ -195,11 +214,14 @@ def _player_breakdown(
 
 
 def build_score_breakdowns(
-    state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    entity_keys: dict[str, str],
 ) -> dict[str, Any]:
     """Rozbicie punktów per gracz (klucz = tożsamość frakcji jak w ``playerData``)."""
     return {
-        entity_keys.get(pid, pid): _player_breakdown(state, registry, pid, player)
+        entity_keys.get(pid, pid): _player_breakdown(state, registry, grid, pid, player)
         for pid, player in sorted(state.players.items())
     }
 
@@ -220,7 +242,7 @@ def secret_fields(player: PlayerState, registry: StaticDataRegistry) -> dict[str
 
 
 def build_status_payload(
-    state: GameState, registry: StaticDataRegistry
+    state: GameState, registry: StaticDataRegistry, grid: HexGrid
 ) -> dict[str, Any] | None:
     """Stan kroków fazy statusu dla panelu (``None`` poza zainicjowaną fazą statusu).
 
@@ -231,7 +253,45 @@ def build_status_payload(
     status = state.status
     if status is None:
         return None
+
+    def option(pid: str, oid: str) -> dict[str, Any]:
+        value, goal, ok = objective_progress.evaluate(state, registry, grid, pid, oid)
+        return {
+            "key": oid,
+            "progress": value,
+            "threshold": goal,
+            # Cel publiczny wymaga też kontroli planet domowych (R_status_phase, Notes).
+            "ready": ok
+            and (
+                oid not in state.objectives.revealed
+                or obj.controls_home_planets(state, registry, pid)
+            ),
+            "manual": value is None,
+        }
+
+    def public_options(pid: str) -> list[dict[str, Any]]:
+        return [
+            option(pid, oid)
+            for oid in state.objectives.revealed
+            if not obj.has_scored_public(state, pid, oid)
+            and (d := obj.objective_def(registry, oid)) is not None
+            and d.phase == obj.STATUS_PHASE_LABEL
+        ]
+
+    def secret_options(pid: str) -> list[dict[str, Any]]:
+        return [
+            option(pid, oid)
+            for oid in state.players[pid].private.secret_objectives
+            if (d := obj.objective_def(registry, oid)) is not None
+            and d.phase == obj.STATUS_PHASE_LABEL
+        ]
+
     return {
+        "publicOptions": {pid: public_options(pid) for pid in state.players},
+        "secretOptions": {pid: secret_options(pid) for pid in state.players},
+        "homeControlled": {
+            pid: obj.controls_home_planets(state, registry, pid) for pid in state.players
+        },
         "step": status.step.value,
         "scoredPublic": list(status.scored_public),
         "scoredSecret": list(status.scored_secret),
@@ -239,11 +299,11 @@ def build_status_payload(
         "unassignedCc": dict(status.unassigned_cc),
         "fleetExcess": {pid: dict(v) for pid, v in status.fleet_excess.items()},
         "scoreablePublic": {
-            pid: obj.scoreable_public_objectives(state, registry, pid)
+            pid: obj.scoreable_public_objectives(state, registry, grid, pid)
             for pid in state.players
         },
         "scoreableSecret": {
-            pid: obj.scoreable_secret_objectives(state, registry, pid)
+            pid: obj.scoreable_secret_objectives(state, registry, grid, pid)
             for pid in state.players
         },
         "log": list(status.log),

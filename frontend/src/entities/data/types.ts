@@ -512,6 +512,14 @@ export type GameState = {
   winnerId?: string | null;
 };
 
+export type StatusObjectiveOption = {
+  key: string;
+  progress: number | null;
+  threshold: number;
+  ready: boolean;
+  manual: boolean;
+};
+
 export type StatusStepName = "SCORE_OBJECTIVES" | "REDISTRIBUTE" | "COMPLETE";
 
 /**
@@ -527,6 +535,11 @@ export type StatusPhaseData = {
   fleetExcess: Record<string, Record<string, number>>;
   scoreablePublic: Record<string, string[]>;
   scoreableSecret: Record<string, string[]>;
+  /** Cele do wyboru w kroku 1 per gracz: postęp względem karty (null = ręcznie). */
+  publicOptions: Record<string, StatusObjectiveOption[]>;
+  secretOptions: Record<string, StatusObjectiveOption[]>;
+  /** Czy gracz kontroluje wszystkie planety domowe (warunek celów publicznych). */
+  homeControlled: Record<string, boolean>;
   log: { step: number; label: string; [key: string]: unknown }[];
   isComplete: boolean;
   custodiansRemoved: boolean;

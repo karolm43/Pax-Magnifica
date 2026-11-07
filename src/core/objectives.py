@@ -18,6 +18,9 @@ from collections.abc import Sequence
 
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
 from src.core.game_state import GameState, ObjectivesState
+from src.core.hex_grid import HexGrid
+from src.core.objective_payment import pay_for_objective
+from src.core.objective_progress import evaluate
 from src.core.registry import StaticDataRegistry
 
 # R_objective_cards: „Each game contains five stage I and five stage II public objective
@@ -100,6 +103,8 @@ def setup_objectives(
         stage1_deck=drawn1[reveal_count:],
         stage2_deck=drawn2,
         revealed=drawn1[:reveal_count],
+        # „Inne punkty": żeton Custodians (+1 VP) jest na stole od początku gry.
+        custom_points={"custodians": 1},
     )
 
     secrets_deck = deck_card_ids(registry, _SECRET_DECK)
@@ -185,9 +190,9 @@ def has_scored_public(state: GameState, player_id: str, objective_id: str) -> bo
 
 
 def scoreable_public_objectives(
-    state: GameState, registry: StaticDataRegistry, player_id: str
+    state: GameState, registry: StaticDataRegistry, grid: HexGrid, player_id: str
 ) -> list[str]:
-    """Odkryte cele publiczne, które gracz MOŻE teraz zgłosić (bez kontroli treści karty)."""
+    """Odkryte cele publiczne, które gracz MOŻE teraz zdobyć (spełnia wymagania karty)."""
     if not controls_home_planets(state, registry, player_id):
         return []
     result: list[str] = []
@@ -197,27 +202,58 @@ def scoreable_public_objectives(
             continue
         if has_scored_public(state, player_id, objective_id):
             continue
+        if not evaluate(state, registry, grid, player_id, objective_id)[2]:
+            continue
         result.append(objective_id)
     return result
 
 
 def scoreable_secret_objectives(
-    state: GameState, registry: StaticDataRegistry, player_id: str
+    state: GameState, registry: StaticDataRegistry, grid: HexGrid, player_id: str
 ) -> list[str]:
-    """Tajne cele z ręki gracza punktowane w fazie statusu."""
+    """Tajne cele z ręki gracza, które może teraz zdobyć w fazie statusu."""
     player = state.players.get(player_id)
     if player is None:
         return []
     result: list[str] = []
     for objective_id in player.private.secret_objectives:
         definition = objective_def(registry, objective_id)
-        if definition is not None and definition.phase == STATUS_PHASE_LABEL:
+        if (
+            definition is not None
+            and definition.phase == STATUS_PHASE_LABEL
+            and evaluate(state, registry, grid, player_id, objective_id)[2]
+        ):
             result.append(objective_id)
     return result
 
 
+def _name(registry: StaticDataRegistry, objective_id: str) -> str:
+    definition = objective_def(registry, objective_id)
+    return (definition.name if definition and definition.name else None) or objective_id
+
+
+def _ensure_requirements(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    objective_id: str,
+) -> None:
+    """Twarda kontrola wymagań karty (``objective_progress``); niemodelowane → przepuszcza."""
+    value, goal, ok = evaluate(state, registry, grid, player_id, objective_id)
+    if not ok:
+        raise ValueError(
+            f"Objective requirements not met ({value}/{goal}): "
+            f"{_name(registry, objective_id)}."
+        )
+
+
 def score_public(
-    state: GameState, registry: StaticDataRegistry, player_id: str, objective_id: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    objective_id: str,
 ) -> GameState:
     """Gracz zdobywa odkryty cel publiczny (bez limitu na fazę — to sprawdza wołający).
 
@@ -241,14 +277,19 @@ def score_public(
             "You cannot score public objectives without controlling every planet "
             "in your home system."
         )
-    new_state = state.clone()
+    _ensure_requirements(state, registry, grid, player_id, objective_id)
+    new_state = pay_for_objective(state, registry, grid, player_id, objective_id)
     record_public_score(new_state, player_id, objective_id)
     award_points(new_state, player_id, definition.points or 1)
     return new_state
 
 
 def score_secret(
-    state: GameState, registry: StaticDataRegistry, player_id: str, objective_id: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    objective_id: str,
 ) -> GameState:
     """Gracz ujawnia i zdobywa tajny cel z ręki (cel fazy statusu).
 
@@ -265,7 +306,8 @@ def score_secret(
         raise ValueError(f"Unknown objective: {objective_id}")
     if definition.phase != STATUS_PHASE_LABEL:
         raise ValueError("This secret objective is not scored in the status phase.")
-    new_state = state.clone()
+    _ensure_requirements(state, registry, grid, player_id, objective_id)
+    new_state = pay_for_objective(state, registry, grid, player_id, objective_id)
     target = new_state.players[player_id]
     target.private.secret_objectives = [
         o for o in target.private.secret_objectives if o != objective_id

@@ -1,0 +1,93 @@
+"""Wydanie kosztu celów typu „Spend…" przy ich zdobywaniu (RULES.md 41.4).
+
+R_objective_cards: cel wymagający wydania zasobów/żetonów trzeba opłacić w chwili
+punktowania (w fazie statusu). Silnik wybiera płatność AUTOMATYCZNIE (⚠ ZAŁOŻENIE —
+gracz nie wskazuje planet/pul): najpierw wyczerpuje planety, brak dopłaca trade goods;
+żetony dowodzenia schodzą najpierw z puli taktycznej, potem strategicznej.
+"""
+
+from __future__ import annotations
+
+from src.core.game_state import GameState
+from src.core.hex_grid import HexGrid
+from src.core.objective_progress import (
+    SPEND_OBJECTIVES,
+    View,
+    mixed_spend_plan,
+    threshold,
+)
+from src.core.registry import StaticDataRegistry
+
+_TRADE_GOODS = {"trade_routes", "centralize_trade"}
+_TOKENS = {"lead", "galvanize"}
+_RESOURCES = {"monument", "golden_age"}
+_INFLUENCE = {"sway_council", "manipulate_law"}
+_MIXED = {"amass_wealth": 3, "vast_reserves": 6}
+
+
+def _pick_planets(
+    candidates: list[tuple[str, int]], need: int
+) -> tuple[list[str], int]:
+    """Dobiera planety (id, wartość) tak, by pokryć ``need``; zwraca (id…, reszta do TG)."""
+    chosen: list[str] = []
+    remaining = need
+    pool = sorted((c for c in candidates if c[1] > 0), key=lambda c: -c[1])
+    while remaining > 0 and pool:
+        fitting = [c for c in pool if c[1] <= remaining]
+        pick = fitting[0] if fitting else min(pool, key=lambda c: c[1])
+        pool.remove(pick)
+        chosen.append(pick[0])
+        remaining -= pick[1]
+    return chosen, max(remaining, 0)
+
+
+def pay_for_objective(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    objective_id: str,
+) -> GameState:
+    """Zwraca NOWY stan po opłaceniu celu; cele bez kosztu zwraca bez zmian (klon).
+
+    Raises:
+        ValueError: Gdy gracza nie stać (nie powinno się zdarzyć po sprawdzeniu postępu).
+    """
+    new_state = state.clone()
+    if objective_id not in SPEND_OBJECTIVES:
+        return new_state
+    player = new_state.players[player_id]
+    goal = threshold(objective_id, new_state)
+    if objective_id in _TRADE_GOODS:
+        player.trade_goods -= goal
+    elif objective_id in _TOKENS:
+        from_tactical = min(player.tactical_cc, goal)
+        player.tactical_cc -= from_tactical
+        player.strategic_cc -= goal - from_tactical
+        player.cc_reinf += goal
+    elif objective_id == "fsn":
+        discarded = player.private.action_cards[:goal]
+        player.private.action_cards = player.private.action_cards[goal:]
+        new_state.decks.action_card_discard.extend(discarded)
+    elif objective_id in _MIXED:
+        ready = View(new_state, registry, grid, player_id).ready_planets()
+        plan = mixed_spend_plan(ready, registry, player.trade_goods, _MIXED[objective_id])
+        if plan is None:
+            raise ValueError("You cannot afford this objective.")
+        res_planets, inf_planets, tg_spent = plan
+        player.exhausted_planets = [*player.exhausted_planets, *res_planets, *inf_planets]
+        player.trade_goods -= tg_spent
+    else:
+        kind = "resources" if objective_id in _RESOURCES else "influence"
+        ready = View(new_state, registry, grid, player_id).ready_planets()
+        values = [
+            (p, (planet.resources if kind == "resources" else planet.influence))
+            for p in ready
+            if (planet := registry.planets.get(p)) is not None
+        ]
+        spent, rest = _pick_planets(values, goal)
+        if rest > player.trade_goods:
+            raise ValueError("You cannot afford this objective.")
+        player.exhausted_planets = [*player.exhausted_planets, *spent]
+        player.trade_goods -= rest
+    return new_state

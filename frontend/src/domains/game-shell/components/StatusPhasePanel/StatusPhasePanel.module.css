@@ -1,100 +1,127 @@
-/* Panel fazy statusu — środek dołu planszy; ten sam język wizualny co panel akcji tury. */
+/*
+ * Status phase panel — same make as the other plates: a grey plate with the
+ * header set straight on it (phase colour as a 1px line on top) and the work
+ * sunk into one well below. Stage colours mark the objective rows' spines,
+ * the way the objective tables do.
+ */
 .panel {
+  --ph: var(--ds-hair-rgb);
   position: fixed;
-  left: calc(50% - 250px);
+  left: calc(50% - 340px);
   bottom: 20px;
   z-index: 190;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 500px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-  box-sizing: border-box;
-  padding: 12px;
-  background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
-  backdrop-filter: blur(12px);
+  width: 680px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 110px);
+  overflow: hidden;
+  color: var(--ds-ink);
+  background: color-mix(in oklab, var(--ds-ground) 94%, transparent);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-lg, 14px);
-  box-shadow: var(--ds-shadow-lg, 0 14px 44px rgba(0, 0, 0, 0.55));
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg, var(--ds-shadow-md));
 }
 .panel[data-dragging] {
   user-select: none;
 }
 
-.head {
-  display: grid;
-  gap: 2px;
-  padding: 2px 4px 8px;
-  border-bottom: 1px solid var(--ds-h10);
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 18px;
+  background:
+    linear-gradient(180deg, rgb(var(--ph) / 0.035), transparent),
+    var(--ds-tex-rail);
+  box-shadow: inset 0 1px 0 rgb(var(--ph) / 0.385);
+  border-bottom: 1px solid var(--ds-h14);
 }
-.head[data-grab] {
+.header[data-grab] {
   cursor: grab;
 }
-.head small {
+.label {
   font-family: var(--ds-label-font);
-  font-size: var(--text-micro, 10px);
+  font-size: var(--text-label);
+  font-weight: var(--weight-rail);
   letter-spacing: var(--ds-label-track);
   text-transform: uppercase;
   color: var(--ds-ink-lo);
 }
-.head b {
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: var(--text-body, 13px);
+  font-size: var(--text-title, 16px);
   font-weight: var(--weight-title);
   color: var(--ds-ink-hi);
 }
+.round {
+  flex: none;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
 
-/* Lista 8 kroków: dwie kolumny, bieżący podświetlony, wykonane z ptaszkiem. */
+/* Eight steps as one strip: done / now / next; automatic ones stay quiet. */
 .steps {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 12px 18px 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
 }
 .step {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
   min-width: 0;
-  font-size: var(--text-micro, 11px);
   color: var(--ds-ink-lo);
 }
+.step::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: calc(50% + 14px);
+  right: calc(-50% + 14px);
+  height: 1px;
+  background: var(--ds-h14);
+}
+.step:last-child::before {
+  display: none;
+}
 .stepNo {
-  flex: none;
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 21px;
+  height: 21px;
   border-radius: 50%;
   font-family: var(--font-data);
-  font-size: 10px;
+  font-size: 11px;
   background: var(--ds-socket);
-  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  box-shadow: inset 0 0 0 1px var(--ds-h22);
+}
+.step[data-auto] .stepNo {
+  opacity: 0.7;
 }
 .stepLabel {
-  flex: 1 1 auto;
-  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-.step em {
-  flex: none;
-  font-style: normal;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.6;
+  font-size: var(--text-meta);
 }
 .step[data-state="done"] {
   color: var(--ds-ink-mid, var(--ds-ink-lo));
 }
 .step[data-state="done"] .stepNo {
-  background: color-mix(in srgb, var(--gd-green, #39b54a) 28%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gd-green, #39b54a) 70%, transparent);
+  background: rgb(var(--ds-sig-stage1) / 0.18);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-stage1) / 0.6);
   color: var(--ds-ink-hi);
 }
 .step[data-state="now"] {
@@ -102,21 +129,30 @@
   font-weight: 700;
 }
 .step[data-state="now"] .stepNo {
-  background: color-mix(in srgb, var(--gd-yellow, #f2c94c) 30%, transparent);
-  box-shadow: inset 0 0 0 1.5px var(--gd-yellow, #f2c94c);
+  background: rgb(var(--ds-sig-stage2) / 0.25);
+  box-shadow: inset 0 0 0 1.5px rgb(var(--ds-sig-stage2));
   color: var(--ds-ink-hi);
 }
 
-.body {
+/* The work area, sunk below the steps. */
+.well {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--seat-well, rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 1px 0 var(--ds-h22);
+}
+.section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  padding: 16px 18px 18px;
 }
 .note,
 .hint {
   margin: 0;
-  font-size: var(--text-micro, 12px);
-  line-height: 1.45;
+  font-size: var(--text-meta);
+  line-height: 1.5;
   color: var(--ds-ink-lo);
 }
 .hint {
@@ -125,21 +161,12 @@
   gap: 6px;
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--ds-h10);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-}
 .cardHead {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--ds-ink-hi);
-  font-size: var(--text-body, 13px);
+  font-size: var(--text-body, 14px);
 }
 .cardHead b {
   flex: 1 1 auto;
@@ -151,43 +178,217 @@
 .left {
   flex: none;
   font-family: var(--font-data);
-  font-size: var(--text-micro, 11px);
-  color: var(--gd-yellow, #f2c94c);
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
 }
 .left[data-ok] {
-  color: var(--gd-green, #39b54a);
+  color: rgb(var(--ds-sig-stage1));
 }
 
+/* Objective groups */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.group h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 2px;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-label);
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-mid, var(--ds-ink-lo));
+}
+.group h4 small {
+  font-family: var(--font-text);
+  font-size: var(--text-meta);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ds-ink-lo);
+}
+.empty {
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+.warnLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-meta);
+  color: rgb(var(--ds-sig-stage1));
+}
+
+.row {
+  --k: var(--ds-sig-stage1);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 104px;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px 9px 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 4px;
+  box-shadow:
+    inset 3px 0 0 rgb(var(--k) / 0.55),
+    inset 0 0 0 1px var(--ds-h10);
+}
+.row[data-stage="blue"] {
+  --k: var(--ds-sig-stage2);
+}
+.row[data-stage="red"] {
+  --k: 236 28 36;
+}
+.row[data-ready] {
+  background: rgb(var(--k) / 0.09);
+  box-shadow:
+    inset 3px 0 0 rgb(var(--k)),
+    inset 0 0 0 1px rgb(var(--k) / 0.35);
+}
+.rowText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rowName {
+  font-size: var(--text-body, 14px);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+.rowReq {
+  font-size: var(--text-meta);
+  line-height: 1.35;
+  color: var(--ds-ink-lo);
+}
+
+/* Progress toward the card's requirement, drawn like the objective tables. */
+.meter {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+.count {
+  font-family: var(--font-data);
+  font-size: var(--text-body, 14px);
+  color: var(--ds-ink-hi);
+}
+.count i {
+  font-style: normal;
+  color: var(--ds-ink-lo);
+}
+.bar {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ds-h14);
+  overflow: hidden;
+}
+.bar::after {
+  content: "";
+  display: block;
+  width: calc(var(--fill, 0) * 100%);
+  height: 100%;
+  background: rgb(var(--k));
+}
+.manual {
+  font-size: var(--text-meta);
+  font-style: italic;
+  color: var(--ds-ink-lo);
+}
+
+.score,
+.primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: var(--text-body, 13px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--k, var(--ds-sig-stage1)) / 0.22);
+  border: 1px solid rgb(var(--k, var(--ds-sig-stage1)) / 0.65);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease),
+    transform 80ms ease;
+}
+.primary {
+  --k: var(--ds-sig-stage1);
+  padding: 10px 16px;
+  align-self: flex-end;
+  min-width: 170px;
+}
+.score:hover:not(:disabled),
+.primary:hover:not(:disabled) {
+  background: rgb(var(--k, var(--ds-sig-stage1)) / 0.4);
+}
+.score:active:not(:disabled),
+.primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.score:disabled,
+.primary:disabled {
+  cursor: default;
+  color: var(--ds-ink-lo);
+  background: transparent;
+  border-color: var(--ds-h14);
+}
+
+/* Command token step */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--ds-h10);
+}
 .pools {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 .pool {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-micro, 11px);
+  gap: 6px;
+  justify-items: center;
+  font-size: var(--text-meta);
   color: var(--ds-ink-lo);
 }
 .pool > span {
-  grid-column: 1 / -1;
   text-transform: uppercase;
   letter-spacing: var(--ds-label-track);
 }
+.pool > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .pool b {
-  min-width: 18px;
+  min-width: 22px;
   text-align: center;
   font-family: var(--font-data);
-  font-size: var(--text-body, 14px);
+  font-size: var(--text-title, 16px);
   color: var(--ds-ink-hi);
 }
 .pool button {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   color: var(--ds-ink-hi);
   background: var(--ds-socket);
@@ -200,113 +401,30 @@
   cursor: default;
 }
 
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.group small {
-  font-family: var(--ds-label-font);
-  font-size: var(--text-micro, 10px);
-  letter-spacing: var(--ds-label-track);
-  text-transform: uppercase;
-  color: var(--ds-ink-lo);
-}
-.empty {
-  font-size: var(--text-micro, 12px);
-  color: var(--ds-ink-lo);
-  opacity: 0.7;
-}
-.score {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  text-align: left;
-  font-size: var(--text-body, 13px);
-  font-weight: 600;
-  color: var(--ds-ink-hi);
-  background: color-mix(in srgb, var(--gd-orange, #f69421) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gd-orange, #f69421) 45%, transparent);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background var(--ds-dur-fast) var(--ds-ease);
-}
-.score[data-secret] {
-  background: color-mix(in srgb, var(--gd-red, #ec1c24) 14%, transparent);
-  border-color: color-mix(in srgb, var(--gd-red, #ec1c24) 45%, transparent);
-}
-.score:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--gd-orange, #f69421) 28%, transparent);
-}
-.score span {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.score em {
-  flex: none;
-  font-style: normal;
-  font-family: var(--font-data);
-  color: var(--gd-yellow, #f2c94c);
-}
-.score:disabled {
-  cursor: default;
-  color: var(--ds-ink-lo);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--ds-h14);
-}
-
-.confirm {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 9px 14px;
-  font-size: var(--text-body, 13px);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--ds-ink-hi);
-  background: color-mix(in srgb, var(--gd-green, #39b54a) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gd-green, #39b54a) 60%, transparent);
-  border-radius: 10px;
-  cursor: pointer;
-  transition:
-    background var(--ds-dur-fast) var(--ds-ease),
-    transform 80ms ease;
-}
-.confirm:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--gd-green, #39b54a) 38%, transparent);
-}
-.confirm:active:not(:disabled) {
-  transform: translateY(1px);
-}
-.confirm:disabled {
-  cursor: default;
-  color: var(--ds-ink-lo);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--ds-h14);
-}
-
 .warn {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 8px 10px;
-  font-size: var(--text-micro, 12px);
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: var(--text-meta);
   color: var(--ds-ink-hi);
-  background: color-mix(in srgb, var(--gd-red, #ec1c24) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gd-red, #ec1c24) 50%, transparent);
-  border-radius: 8px;
+  background: rgb(236 28 36 / 0.12);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgb(236 28 36 / 0.45);
+}
+.warn > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .winner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 10px 12px;
+  gap: 10px;
+  margin: 16px 18px;
+  padding: 12px 14px;
   color: var(--ds-ink-hi);
-  background: color-mix(in srgb, var(--gd-yellow, #f2c94c) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gd-yellow, #f2c94c) 55%, transparent);
-  border-radius: 10px;
+  background: rgb(var(--ds-sig-stage1) / 0.14);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-stage1) / 0.5);
 }

@@ -1,4 +1,4 @@
-﻿"""Serializacja stanu gry do formatu ``web-data`` frontendu (ti4_web).
+"""Serializacja stanu gry do formatu ``web-data`` frontendu (ti4_web).
 
 Frontend ``ti4_web`` renderuje planszę z JEDNEGO dokumentu HTTP
 (``GET /api/public/game/{gameId}/web-data``) o kształcie ``PlayerDataResponse``.
@@ -194,7 +194,9 @@ def _safe_pick_count(state: GameState) -> int | None:
         return None
 
 
-def _build_game_state(state: GameState, registry: StaticDataRegistry) -> dict[str, Any]:
+def _build_game_state(
+    state: GameState, registry: StaticDataRegistry, grid: HexGrid
+) -> dict[str, Any]:
     """Buduje obiekt ``gameState`` — zasila panel faz + kolejność tur we froncie.
 
     Faza, aktywny gracz (kolor) oraz akcja taktyczna (E3): ``activeSystem`` =
@@ -234,7 +236,7 @@ def _build_game_state(state: GameState, registry: StaticDataRegistry) -> dict[st
         "winnerId": state.winner_id,
         "agenda": None,
         # Stan kroków fazy statusu (RULES.md 41) — None poza zainicjowaną fazą statusu.
-        "status": web_objectives.build_status_payload(state, registry),
+        "status": web_objectives.build_status_payload(state, registry, grid),
         "activeSystem": state.active_system,
         "tacticalStep": (
             state.tactical_step.value if state.tactical_step is not None else None
@@ -1356,12 +1358,14 @@ def build_web_data(
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(projected, registry, grid, entity_keys),
         "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
-        "gameState": _build_game_state(projected, registry),
+        "gameState": _build_game_state(projected, registry, grid),
         "lawsInPlay": [],
         "strategyCards": _build_strategy_cards(projected, registry, entity_keys),
-        "objectives": web_objectives.build_objectives(projected, registry, entity_keys),
+        "objectives": web_objectives.build_objectives(
+            projected, registry, grid, entity_keys
+        ),
         "scoreBreakdowns": web_objectives.build_score_breakdowns(
-            projected, registry, entity_keys
+            projected, registry, grid, entity_keys
         ),
         "cardPool": {**_empty_card_pool(), **web_objectives.card_pool_counts(projected)},
         "expeditions": _empty_expeditions(),

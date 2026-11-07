@@ -209,6 +209,18 @@ class HexGrid:
             return set()
         return set(self._graph.neighbors(position))
 
+    def is_edge(self, position: str) -> bool:
+        """Czy system leży na KRAWĘDZI planszy: któraś z 6 stron nie dotyka innego kafelka.
+
+        R_objectives (Control the Borderlands): „on the edge of the game board". Liczy się
+        tylko styk geometryczny (nie wormhole). Nieznana pozycja → ``False``.
+        """
+        data = self._systems.get(position)
+        if data is None:
+            return False
+        occupied = {s.hex for s in self._systems.values()}
+        return any(neighbor not in occupied for neighbor in data.hex.neighbors())
+
     def distance(self, pos_a: str, pos_b: str) -> int:
         """Odległość geometryczna (kubiczna) między pozycjami."""
         return self._systems[pos_a].hex.distance(self._systems[pos_b].hex)

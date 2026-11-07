@@ -76,8 +76,24 @@ def test_status_flow_via_endpoints(client: TestClient) -> None:
     game_state = _web(client)["gameState"]
     assert game_state["status"]["step"] == "SCORE_OBJECTIVES"
     assert game_state["canAdvancePhase"] is False
-    scoreable = game_state["status"]["scoreablePublic"]["p1"]
-    assert len(scoreable) == 2
+    # Nikt jeszcze nie spełnia wymagań losowych celów — lista „można zdobyć" jest pusta,
+    # a opcje pokazują postęp (albo znacznik 'manual').
+    assert game_state["status"]["scoreablePublic"]["p1"] == []
+    assert len(game_state["status"]["publicOptions"]["p1"]) == 2
+    # Ustawiamy deterministyczne cele (God-Mode): Trade Routes (5 TG) i Lead (3 żetony).
+    raw = client.get("/state").json()["state"]
+    objectives = {**raw["objectives"], "revealed": ["trade_routes", "lead"]}
+    p1 = {**raw["players"]["p1"], "trade_goods": 5}
+    client.post("/god-mode/patch", json={
+        "objectives": objectives, "players": {**raw["players"], "p1": p1},
+    })
+    scoreable = _web(client)["gameState"]["status"]["scoreablePublic"]["p1"]
+    assert scoreable == ["trade_routes", "lead"]
+    # Niespełnione wymagania → 422 (p2 nie ma 5 TG), choć to nie jego kolej: tura liczona pierwsza.
+    assert client.post(
+        "/status/score",
+        json={"player_id": "p1", "kind": "public", "objective_id": "nonexistent"},
+    ).status_code == 422
 
     # Punktowanie: tylko gracz, którego kolej; limit 1 cel publiczny.
     assert client.post(

@@ -31,6 +31,7 @@ from src.core.game_state import (
     StatusPhaseState,
     StatusStep,
 )
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import PLACEMENT_BY_BASE_TYPE, Placement
 
@@ -73,6 +74,7 @@ def _log(status: StatusPhaseState, step: int, label: str, **extra: object) -> No
 def score_objective(
     state: GameState,
     registry: StaticDataRegistry,
+    grid: HexGrid,
     player_id: str,
     kind: str,
     objective_id: str,
@@ -96,13 +98,13 @@ def score_objective(
     if kind == "public":
         if player_id in status.scored_public:
             raise ValueError("You have already scored a public objective this phase.")
-        new_state = objectives.score_public(state, registry, player_id, objective_id)
+        new_state = objectives.score_public(state, registry, grid, player_id, objective_id)
         assert new_state.status is not None
         new_state.status.scored_public.append(player_id)
     elif kind == "secret":
         if player_id in status.scored_secret:
             raise ValueError("You have already scored a secret objective this phase.")
-        new_state = objectives.score_secret(state, registry, player_id, objective_id)
+        new_state = objectives.score_secret(state, registry, grid, player_id, objective_id)
         assert new_state.status is not None
         new_state.status.scored_secret.append(player_id)
     else:

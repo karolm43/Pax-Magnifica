@@ -38,6 +38,7 @@ async def post_score(
         new_state = status_phase.score_objective(
             ctx.service.current_state(),
             ctx.registry,
+            ctx.current_grid,
             request.player_id,
             request.kind,
             request.objective_id,
