@@ -3,7 +3,7 @@ import {
   getTokenSpriteDimensions,
   getUnitSpriteDimensions,
 } from "@/entities/data/renderedSpriteDimensions";
-import { getTokenData } from "@/entities/lookup/tokens";
+import { getTokenScale } from "@/entities/lookup/tokens";
 
 const SPLAY_OFFSET_X = 10;
 const SPLAY_OFFSET_Y = 10;
@@ -90,7 +90,7 @@ function getBaseFootprint(
     getTokenSpriteDimensions("attachment", entityId);
   if (!token) return DEFAULT_FOOTPRINT;
 
-  const scale = getTokenData(entityId)?.scale ?? 1;
+  const scale = getTokenScale(entityId);
   return centeredFootprint(token.width * scale, token.height * scale);
 }
 

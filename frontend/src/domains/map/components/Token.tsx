@@ -1,8 +1,12 @@
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { assetUrl } from "@/shared/assets/resolveAsset";
-import { getTokenImagePath, getTokenData } from "@/entities/lookup/tokens";
+import { getTokenImagePath, getTokenScale } from "@/entities/lookup/tokens";
 import { getAttachmentImagePath } from "@/entities/lookup/attachments";
 import { getTokenSprite } from "@/shared/ui/Token/tokenSprites";
 import { getRenderedStackFootprint } from "@/entities/geometry/renderedStackGeometry";
+import { SmoothPopover } from "@/shared/ui/SmoothPopover";
+import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { getTokenRule } from "./SystemDossier/featureRules";
 import { PositionedSprite } from "./PositionedSprite";
 
 type TokenProps = {
@@ -12,6 +16,9 @@ type TokenProps = {
   y: number;
   zIndex: number;
 };
+
+/** Opóźnienie dymka po najechaniu — jak przy planetach, ale krócej (żeton jest mały). */
+const HOVER_DELAY_MS = 500;
 
 export const Token = ({ tokenId, faction, x, y, zIndex }: TokenProps) => {
   const alt = `${faction || "token"} ${tokenId}`;
@@ -43,23 +50,133 @@ export const Token = ({ tokenId, faction, x, y, zIndex }: TokenProps) => {
     );
   }
 
-  const scale = getTokenData(tokenId)?.scale || 1;
+  const scale = getTokenScale(tokenId);
+  const sprite = getTokenSprite(tokenImagePath ? "token" : "attachment", tokenId);
+  const transform =
+    scale !== 1
+      ? `translate(-50%, -50%) scale(${scale})`
+      : "translate(-50%, -50%)";
 
+  const rule = getTokenRule(tokenId);
+  if (!rule || !sprite) {
+    return (
+      <PositionedSprite
+        sprite={sprite}
+        imagePath={imagePath}
+        alt={alt}
+        style={{
+          position: "absolute",
+          left: `${x}px`,
+          top: `${y}px`,
+          transform,
+          zIndex,
+        }}
+      />
+    );
+  }
+
+  // Żeton z opisem reguły: ramka o rozmiarze PO skalowaniu jest celem dymka
+  // (najechanie z opóźnieniem albo kliknięcie), a sprite stoi w jej środku.
+  const width = sprite.width * scale;
+  const height = sprite.height * scale;
   return (
-    <PositionedSprite
-      sprite={getTokenSprite(tokenImagePath ? "token" : "attachment", tokenId)}
+    <TokenWithInfo
+      rule={rule}
       imagePath={imagePath}
-      alt={alt}
-      style={{
+      frameStyle={{
         position: "absolute",
         left: `${x}px`,
         top: `${y}px`,
-        transform:
-          scale !== 1
-            ? `translate(-50%, -50%) scale(${scale})`
-            : "translate(-50%, -50%)",
+        width: `${width}px`,
+        height: `${height}px`,
+        transform: "translate(-50%, -50%)",
         zIndex,
       }}
-    />
+    >
+      <PositionedSprite
+        sprite={sprite}
+        imagePath={imagePath}
+        alt={alt}
+        style={{
+          position: "absolute",
+          left: `${width / 2}px`,
+          top: `${height / 2}px`,
+          transform,
+        }}
+      />
+    </TokenWithInfo>
   );
 };
+
+function TokenWithInfo({
+  rule,
+  imagePath,
+  frameStyle,
+  children,
+}: {
+  rule: { name: string; rule: string };
+  imagePath: string;
+  frameStyle: CSSProperties;
+  children: React.ReactNode;
+}) {
+  const [opened, setOpened] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  return (
+    <SmoothPopover opened={opened} onChange={setOpened}>
+      <SmoothPopover.Target>
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={rule.name}
+          style={{ ...frameStyle, cursor: "help", pointerEvents: "auto" }}
+          onMouseEnter={() => {
+            window.clearTimeout(timer.current);
+            timer.current = window.setTimeout(() => setOpened(true), HOVER_DELAY_MS);
+          }}
+          onMouseLeave={() => {
+            window.clearTimeout(timer.current);
+            setOpened(false);
+          }}
+          // Klik nie może przelecieć na heks (otwarcie dossier) ani rozpocząć pan mapy.
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.clearTimeout(timer.current);
+            setOpened((o) => !o);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setOpened((o) => !o);
+            }
+          }}
+        >
+          {children}
+        </span>
+      </SmoothPopover.Target>
+      <SmoothPopover.Dropdown p={0}>
+        <DetailsCard width={320}>
+          <DetailsCard.Title
+            title={rule.name}
+            type="Map token"
+            icon={
+              <DetailsCard.Icon
+                shape="round"
+                icon={
+                  <img
+                    src={assetUrl(imagePath)}
+                    alt=""
+                    style={{ width: 30, height: 30, objectFit: "contain" }}
+                  />
+                }
+              />
+            }
+          />
+          <DetailsCard.Section title="Rule" content={rule.rule} />
+        </DetailsCard>
+      </SmoothPopover.Dropdown>
+    </SmoothPopover>
+  );
+}

@@ -161,6 +161,13 @@ type AnomalyId = (typeof SYSTEM_ANOMALY_FLAGS)[number][1];
  * The anomalies in force in a system, whether printed on the tile or brought
  * by a token placed on it.
  */
+/** Opis reguły żetonu mapy (frontier, custodians…) — dla dymka na mapie i dossier. */
+export function getTokenRule(
+  tokenId: string,
+): { name: string; rule: string; imagePath?: string } | undefined {
+  return TOKEN_RULES[tokenId];
+}
+
 export function systemAnomalies(tile: Tile): AnomalyId[] {
   const tileData = getTileById(tile.systemId);
   const printed = SYSTEM_ANOMALY_FLAGS.filter(([flag]) => tileData?.[flag]);
