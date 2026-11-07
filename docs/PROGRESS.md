@@ -42,7 +42,12 @@ kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 te
 **Do zrobienia (proponowana kolejność):**
 1. Feedback do nowego pola bitwy — kąt 45° na sprite'ach i ścisk dużych flot NIE były
    sprawdzone na żywo.
-2. Odwroty w walce (Announce Retreats / Retreat) — Blok E.
+2. ✅ Odwroty w walce (RULES.md 39.5, commit `5d15835`): `core/retreat.py` (cele O4, wykonanie
+   O5/O6 z ładunkiem i żetonem), kroki `CombatStep.ANNOUNCE`/`RETREAT` + okno `COMBAT_RETREAT`
+   w `core/battle.py`, `POST /tactical/battle/announce-retreat` i `/retreat`, w oknie bitwy
+   karty ogłoszenia/wyboru systemu, odlot floty (zamiast eksplozji) i dźwięki. 13 testów
+   `tests/test_retreat.py`. TODO: gravity rift przy odwrocie, wyjątki frakcji/kart (E7), UI
+   jawnego wyboru ładunku/puli żetonów (backend już przyjmuje `cargo`/`tokenPool`).
 3. Pełna INWAZJA (`R_invasion`): Bombardment → Commit Ground Forces (lądowanie ładunku
    z przestrzeni) → Space Cannon Defense → walka naziemna (silnik gotowy) → Establish
    Control (exhaust karty planety, niszczenie struktur).
