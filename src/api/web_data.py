@@ -1223,7 +1223,9 @@ def _build_player_data(
                 "exhaustedPlanetAbilities": [],
                 "relics": [],
                 "exhaustedRelics": [],
-                "fragments": [],
+                # Fragmenty reliktów z eksploracji (id kart: crf*/hrf*/irf*/urf*) — front liczy je
+                # po prefiksie i rysuje w player area.
+                "fragments": list(player.relic_fragments),
                 "leaders": leaders,
                 "leaderIDs": [str(leader["id"]) for leader in leaders],
                 # Przełom frakcji (Thunder's Edge). Pole opcjonalne we froncie —

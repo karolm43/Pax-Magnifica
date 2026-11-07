@@ -132,3 +132,12 @@ def test_production_view_in_grant_mode(registry: StaticDataRegistry) -> None:
     assert client.post("/tactical/production/skip-grant").status_code == 200
     assert client.get("/tactical/production/view").json()["grant"] is None
     assert client.post("/tactical/production/skip-grant").status_code == 422
+
+
+def test_relic_fragments_reach_player_data(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.players["p1"].relic_fragments = ["crf1", "crf2", "hrf1"]
+    data = _client(registry, state).get("/api/public/game/g/web-data").json()
+    mine = next(p for p in data["playerData"] if p.get("fragments"))
+    assert mine["fragments"] == ["crf1", "crf2", "hrf1"]
+    assert [f["id"] for f in mine["relicFragmentCards"]] == ["crf1", "crf2", "hrf1"]
