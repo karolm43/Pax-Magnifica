@@ -48,6 +48,11 @@ kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 te
    karty ogłoszenia/wyboru systemu, odlot floty (zamiast eksplozji) i dźwięki. 13 testów
    `tests/test_retreat.py`. TODO: gravity rift przy odwrocie, wyjątki frakcji/kart (E7), UI
    jawnego wyboru ładunku/puli żetonów (backend już przyjmuje `cargo`/`tokenPool`).
+   ✅ Limit pojemności (RULES.md 39.6): `core/capacity.py` (statki + dok tylko dla myśliwców,
+   ładunek = myśliwce/piechota/mechy w PRZESTRZENI), okno `CAPACITY` po zwycięstwie w walce
+   kosmicznej i przy przejściu kroku (`next_step(state, registry)` — krok zostaje, gdy nadwyżka),
+   `GET /tactical/capacity` + `POST /tactical/capacity/resolve`, globalny `CapacityModal`
+   (ładownia, +/-, Auto = najtańsze najpierw). TODO: dok Cabal bez `capacityValue` w danych.
 3. ✅ Pełna INWAZJA (RULES.md 40): `core/invasion.py` (Bombardment z Planetary Shield, Commit,
    Space Cannon Defense, wynik walki naziemnej, Establish Control), `GameState.invasion`,
    router `/tactical/invasion/*`, pełnoekranowe okno `domains/invasion/InvasionOverlay`

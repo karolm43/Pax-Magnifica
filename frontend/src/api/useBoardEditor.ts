@@ -102,6 +102,7 @@ export function useBoardEditor() {
       "moveRange",
       "spaceCannon",
       "battle",
+      "capacity",
       "playerHand",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
@@ -395,6 +396,20 @@ export function useBoardEditor() {
     await refresh();
   }, [refresh]);
 
+  // Limit pojemności (RULES.md 39.6): gracz usuwa nadwyżkę ładunku z przestrzeni systemu.
+  const capacityResolve = useCallback(
+    async (faction: string, remove: Record<string, number>) => {
+      await post("/tactical/capacity/resolve", {
+        faction,
+        remove: Object.entries(remove)
+          .filter(([, count]) => count > 0)
+          .map(([baseType, count]) => ({ baseType, count })),
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // Odwroty (RULES.md 39.5): ogłoszenie / walka dalej, potem wykonanie do sąsiedniego systemu.
   const battleAnnounceRetreat = useCallback(
     async (faction: string, announce: boolean) => {
@@ -563,6 +578,7 @@ export function useBoardEditor() {
     battleClose,
     battleAnnounceRetreat,
     battleRetreat,
+    capacityResolve,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,
@@ -703,6 +719,46 @@ export function useBattle(enabled: boolean) {
     enabled,
     queryFn: async () =>
       fetchJson<BattleView>("/bot/tactical/battle", "battle"),
+    staleTime: 0,
+  });
+}
+
+// --- Limit pojemności (RULES.md 39.6) ---
+
+export type CapacityCargo = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  count: number;
+  /** Ile pojemności zajmuje jedna sztuka (capacityUsed). */
+  cost: number;
+};
+
+export type CapacityView = {
+  active: boolean;
+  position: string | null;
+  /** Klucz encji (kolor) bieżącego respondenta okna CAPACITY. */
+  player: string | null;
+  playerId: string | null;
+  /** Pojemność statków (ogólna). */
+  general: number;
+  /** Przydział doków na planetach — tylko dla myśliwców. */
+  fighterOnly: number;
+  used: number;
+  excess: number;
+  cargo: CapacityCargo[];
+  /** Podpowiedź „Auto" (najtańsze jednostki najpierw). */
+  suggestion: Record<string, number>;
+  remaining: number;
+};
+
+/** Stan okna limitu pojemności (kto usuwa nadwyżkę i z czego wybiera). */
+export function useCapacity(enabled: boolean) {
+  return useQuery<CapacityView>({
+    queryKey: ["capacity"],
+    enabled,
+    queryFn: async () =>
+      fetchJson<CapacityView>("/bot/tactical/capacity", "capacity"),
     staleTime: 0,
   });
 }

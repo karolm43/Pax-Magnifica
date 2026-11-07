@@ -1,0 +1,251 @@
+/*
+ * Okno limitu pojemności (RULES.md 39.6). Styl spójny z resztą modali: ciemne panele, cienkie
+ * ramki, złoty akcent strony; czerwień = przepełnienie, morski = przydział doku (myśliwce).
+ */
+
+/* --- Ładownia --- */
+.hold {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.holdHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.holdHead span:last-child {
+  font-family: var(--font-data);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ds-ink-hi);
+}
+
+.holdHead small {
+  font-family: var(--font-body, inherit);
+  color: var(--ds-ink-lo);
+}
+
+.cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cells[data-over] {
+  animation: holdStrain 1.6s ease-in-out infinite;
+}
+
+.noCells {
+  font-size: 12px;
+  color: #fca5a5;
+}
+
+.cell {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(214, 178, 94, 0.45);
+  background: rgba(214, 178, 94, 0.06);
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.cell[data-full] {
+  border-color: rgba(232, 201, 122, 0.9);
+  background: linear-gradient(180deg, rgba(232, 201, 122, 0.85), rgba(214, 178, 94, 0.55));
+}
+
+.cell[data-kind="dock"] {
+  border-color: rgba(94, 234, 212, 0.45);
+  background: rgba(94, 234, 212, 0.06);
+}
+
+.cell[data-kind="dock"][data-full] {
+  border-color: rgba(153, 246, 228, 0.9);
+  background: linear-gradient(180deg, rgba(94, 234, 212, 0.75), rgba(20, 184, 166, 0.5));
+}
+
+.cell[data-kind="over"] {
+  border-color: rgba(248, 113, 113, 0.9);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(220, 38, 38, 0.75) 0 4px,
+    rgba(127, 29, 29, 0.75) 4px 8px
+  );
+  animation: cellIn 0.25s ease-out both;
+}
+
+/* --- Wiersze jednostek --- */
+.row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Sprite w PIKSELACH — wrapper <Unit> nie ma wysokości (inaczej znika). */
+.sprite {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+}
+
+.sprite :global(.unit-sprite),
+.sprite img {
+  height: 34px;
+  width: auto;
+  max-width: 40px;
+  object-fit: contain;
+}
+
+.rowInfo {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.rowInfo small {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.token {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(232, 201, 122, 0.85);
+  box-shadow: 0 0 4px rgba(232, 201, 122, 0.4);
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.token[data-removed] {
+  opacity: 0.55;
+  transform: scale(0.8);
+  background: rgba(248, 113, 113, 0.9);
+  box-shadow: 0 0 4px rgba(248, 113, 113, 0.6);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.stepper button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stepper button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.stepValue {
+  min-width: 22px;
+  font-family: var(--font-data);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ds-ink-lo);
+}
+
+.stepValue[data-active] {
+  color: #fca5a5;
+}
+
+/* --- Status wyboru --- */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.status[data-status="over"] {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.status[data-status="tooMany"] {
+  color: #fde7b0;
+  background: rgba(242, 184, 75, 0.1);
+  border-color: rgba(242, 184, 75, 0.35);
+}
+
+.status[data-status="exact"] {
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.3);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+@keyframes holdStrain {
+  0%,
+  100% {
+    filter: none;
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.55));
+  }
+}
+
+@keyframes cellIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cells[data-over],
+  .cell[data-kind="over"] {
+    animation: none;
+  }
+}

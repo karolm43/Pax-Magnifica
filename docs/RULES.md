@@ -2135,10 +2135,34 @@ Hits → **Retreat** → (kolejna runda od Announce Retreats).
 - ⚠️ TODO: rzuty gravity rift przy odwrocie z gravity rift (`R_gravity_rift`), wyjątki frakcji/technologii
   (Magmus Reactor — supernova, Empyrean — mgławica, Dark Energy Tap, Skilled Retreat) — hooki E7.
 
+### 39.6. Limit pojemności (capacity) w przestrzeni systemu — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+📎 tirules: [Capacity](rules_tirules/R_capacity.md) · [Space Combat](rules_tirules/R_space_combat.md) · [Space Dock](rules_tirules/R_space_dock.md)
+
+- **(C1) Co się liczy** — łączna `capacityValue` statków gracza w systemie wyznacza, ile myśliwców i sił
+  naziemnych (piechota, mech) gracz może mieć w PRZESTRZENI tego systemu. Siły naziemne na planetach się
+  nie liczą. Każda jednostka ładunku zajmuje `capacityUsed` z wariantu (brak = 1).
+- **(C2) Nadwyżka** — gdy ładunku w przestrzeni jest więcej niż pojemności, gracz MUSI usunąć nadmiar
+  (wraca do rezerwy) i SAM wybiera, które jednostki. Usuwa tylko tyle, ile trzeba.
+- **(C3) Kiedy** — w trakcie walki limit nie obowiązuje. Sprawdzany jest po wyłonieniu zwycięzcy walki
+  kosmicznej (można wygrać samymi myśliwcami, a potem je usunąć) oraz przed Space Cannon Offense / walką
+  kosmiczną, jeśli nosiciel zginął albo ruch dowiózł ładunek (`R_capacity` Notes).
+- **(C4) Dok** — dane doku (`assets/.../units`: `capacityValue` + zdolność „Up to N fighters in this
+  system do not count against your ships' capacity") → dok gracza na planecie systemu daje pojemność
+  TYLKO dla myśliwców, równą `capacityValue` wariantu. Jednostka typu dok stojąca w przestrzeni (Saar,
+  „Floating Factory") daje zwykłą pojemność jak statek.
+- Model: okno czasowe `CAPACITY` (RULES.md 29.2), kolejka = gracze z nadwyżką w aktywnym systemie, od
+  aktywnego zgodnie z zegarem. Dopóki trwa, nie można przejść do kolejnego kroku akcji.
+- ⚠️ ZAŁOŻENIE: dok Mahact/Cabal (Dimensional Tear) ma w danych opis „6 fighters", ale BRAK
+  `capacityValue` — silnik liczy wtedy 0 (dane rozstrzygają; do uzupełnienia hookiem frakcji E7).
+- ⚠️ ZAŁOŻENIE: przycisk „Auto" w UI usuwa najpierw jednostki najtańsze (`cost` z danych). To tylko
+  podpowiedź — wybór gracza jest walidowany regułą C2.
+- ⚠️ TODO: limit przy produkcji (myśliwce/piechota w przestrzeni) i po Commit Ground Forces nie otwiera
+  jeszcze okna samodzielnie — przy kolejnym przejściu kroku silnik i tak wykryje nadwyżkę.
+
 ### 39.4. ⚠️ TODO (kolejne bloki)
 
 - Odwroty: wyjątki frakcji/kart i gravity rift (39.5 TODO).
-- Capacity po walce (usunięcie nadwyżki myśliwców/sił naziemnych) — nie wymuszane.
 - Zdolności frakcji, karty akcji (Shields Holding, Direct Hit), Non-Euclidean Shielding — hooki E7.
 - Space Cannon Offense nie korzysta jeszcze z Sustain Damage (RULES.md 38.4) — do ujednolicenia.
 

@@ -1,4 +1,4 @@
-﻿"""Akcja taktyczna — maszyna kroków i aktywacja systemu (czyste funkcje nad ``GameState``).
+"""Akcja taktyczna — maszyna kroków i aktywacja systemu (czyste funkcje nad ``GameState``).
 
 Etap E3 planu pełnej rozgrywki (``docs/PLAN_PELNA_ROZGRYWKA.md``). Aplikacja PROWADZI
 gracza przez kroki akcji taktycznej (aktywacja → ruch → space cannon → walka kosmiczna →
@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.core.battle import space_combat_required
+from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import (
     CombatStep,
@@ -109,7 +110,7 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
     return new_state
 
 
-def next_step(state: GameState) -> GameState:
+def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> GameState:
     """Przechodzi do następnego kroku akcji taktycznej.
 
     Po ostatnim kroku (``PRODUCTION``) kończy akcję taktyczną (czyści krok i aktywny
@@ -121,6 +122,9 @@ def next_step(state: GameState) -> GameState:
     # Nie wolno opuścić kroku, dopóki trwa okno Space Cannon (gracze jeszcze strzelają /
     # przypisują straty — RULES.md 38): inaczej kroki „uciekałyby" sprzed rozstrzygnięcia.
     window = state.pending_window
+    # Limit pojemności (RULES.md 39.6): nadwyżkę trzeba usunąć, zanim akcja pójdzie dalej.
+    if window is not None and window.window_type is WindowType.CAPACITY:
+        raise ValueError("Some units exceed capacity - remove the excess before the next step.")
     if window is not None and window.window_type is WindowType.SPACE_CANNON:
         raise ValueError(
             "Space Cannon is still being resolved - finish it before the next step."
@@ -143,6 +147,12 @@ def next_step(state: GameState) -> GameState:
         raise ValueError(
             "Two players have ships in the active system - resolve the space combat first."
         )
+    # 39.6 C3: przed przejściem dalej (np. przed Space Cannon / walką, gdy nosiciel zginął)
+    # wykryta nadwyżka otwiera okno CAPACITY — krok zostaje, gracz najpierw usuwa nadmiar.
+    if registry is not None and state.active_system is not None and window is None:
+        checked = open_capacity_check(state, registry, state.active_system)
+        if checked.pending_window is not None:
+            return checked
     idx = _STEP_SEQUENCE.index(state.tactical_step)
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)
@@ -183,6 +193,7 @@ def end_tactical_action(state: GameState) -> GameState:
         WindowType.SPACE_CANNON,
         WindowType.COMBAT_ASSIGN_HITS,
         WindowType.COMBAT_RETREAT,
+        WindowType.CAPACITY,
     ):
         new_state.pending_window = None
     return new_state

@@ -201,8 +201,12 @@ async def post_next_step(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     mających strzelców i cel; opuszczenie kroku przy otwartym oknie → 422.
     """
     try:
-        new_state = tactical.next_step(ctx.service.current_state())
-        if new_state.tactical_step == TacticalStep.SPACE_CANNON:
+        state = ctx.service.current_state()
+        # registry → silnik sprawdza limit pojemności przed przejściem (RULES.md 39.6); gdy
+        # jest nadwyżka, krok ZOSTAJE i otwiera się okno CAPACITY (wtedy bez Space Cannon).
+        new_state = tactical.next_step(state, ctx.registry)
+        entered = new_state.tactical_step != state.tactical_step
+        if entered and new_state.tactical_step == TacticalStep.SPACE_CANNON:
             new_state = space_cannon.open_offense(
                 new_state, ctx.current_grid, ctx.registry
             )

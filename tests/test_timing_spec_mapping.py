@@ -113,6 +113,7 @@ def test_windowtype_zawiera_tylko_znane_typy_okien() -> None:
         "SPACE_CANNON",
         "REACTION",
         "COMBAT_RETREAT",  # ogłoszenie odwrotów w walce kosmicznej (RULES.md 39.5)
+        "CAPACITY",  # nadwyżka ponad pojemność (RULES.md 39.6)
     }
 
 

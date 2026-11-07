@@ -10,6 +10,7 @@ import { SystemDossierModal } from "@/domains/map/components/SystemDossier/Syste
 import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
 import { MoveQuantityModal } from "@/domains/map/components/MoveQuantityModal";
 import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal";
+import { CapacityModal } from "@/domains/map/components/CapacityModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
@@ -253,6 +254,9 @@ function GameMapContent() {
       {/* Okno INWAZJI (RULES.md 40) — pod polem bitwy, żeby walka naziemna otwierała się nad nim. */}
       <InvasionOverlay />
       <BattleOverlay />
+      {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje
+          przy oknie CAPACITY (myśliwce, piechota, mechy w przestrzeni ponad capacity). */}
+      <CapacityModal />
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}
       <SecondaryDecisionModal />

@@ -1,4 +1,4 @@
-﻿"""GameState — dynamiczny, walidowany i serializowalny stan gry.
+"""GameState — dynamiczny, walidowany i serializowalny stan gry.
 
 Model opisuje bieżący stan fizycznej planszy odwzorowany cyfrowo: graczy wraz
 z zasobami i punktami zwycięstwa, jednostki rozmieszczone w systemach, właścicieli
@@ -61,7 +61,8 @@ class WindowType(StrEnum):
     - ``COMBAT_ASSIGN_HITS`` — przypisanie strat w walce (obrońca wskazuje, co ginie);
     - ``SPACE_CANNON`` — space cannon offense (okno przed walką kosmiczną);
     - ``REACTION`` — uniwersalne okno „when/after" (karty akcji, technologie reagujące);
-    - ``COMBAT_RETREAT`` — ogłoszenie odwrotu w walce kosmicznej (obrońca, potem atakujący).
+    - ``COMBAT_RETREAT`` — ogłoszenie odwrotu w walce kosmicznej (obrońca, potem atakujący);
+    - ``CAPACITY`` — usunięcie nadwyżki myśliwców/sił naziemnych ponad pojemność (RULES.md 39.6).
 
     Model kolejki jest WSPÓLNY (``TimingWindow``); typ niesie tylko znaczenie okna
     i pozwala warstwom wyżej (``core`` fazy/walki, UI) rozpoznać, co rozstrzygać.
@@ -72,6 +73,7 @@ class WindowType(StrEnum):
     SPACE_CANNON = "SPACE_CANNON"
     REACTION = "REACTION"
     COMBAT_RETREAT = "COMBAT_RETREAT"
+    CAPACITY = "CAPACITY"
 
 
 class TimingWindow(BaseModel):

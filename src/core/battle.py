@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import timing
+from src.core import capacity, timing
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -512,6 +512,9 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         combat.outcome = "winner" if alive else "draw"
         combat.pending_hits = {}
         combat.retreating = []
+        # 39.6 C3: limit pojemności sprawdzany po wyłonieniu zwycięzcy walki kosmicznej.
+        if combat.kind == "space":
+            return capacity.open_capacity_check(new_state, registry, combat.position)
         return new_state
     combat.pending_hits = {}
     if combat.step is CombatStep.AFB:

@@ -672,6 +672,7 @@ const WINDOW_LABELS: Record<string, string> = {
   STRATEGY_SECONDARY: "Strategy Card secondary",
   COMBAT_ASSIGN_HITS: "Assign hits in combat",
   COMBAT_RETREAT: "Announce retreats",
+  CAPACITY: "Capacity exceeded",
   SPACE_CANNON: "Space Cannon",
   REACTION: "Reaction window",
 };

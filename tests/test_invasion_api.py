@@ -87,7 +87,9 @@ def test_api_commit_defense_and_establish(registry: StaticDataRegistry) -> None:
 def test_api_invasion_starts_on_button_and_is_simple_without_defenders(
     registry: StaticDataRegistry,
 ) -> None:
-    state = _state({"p1": {"infantry": 2}})
+    # Nosiciel jest potrzebny: piechota w przestrzeni bez pojemności to nadwyżka (RULES.md 39.6),
+    # a wtedy przejście kroku otwiera okno CAPACITY zamiast wejść w INVASION.
+    state = _state({"p1": {"carrier": 1, "infantry": 2}})
     state.tactical_step = TacticalStep.SPACE_COMBAT
     client = _client(registry, state)
     assert client.post("/tactical/step/next").status_code == 200
