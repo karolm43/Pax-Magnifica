@@ -37,6 +37,39 @@ export function SystemHexTarget({ onOpen, systemId }: Props) {
   return (
     <>
       {imagePath && (
+        <svg className={classes.filterDefs} aria-hidden="true">
+          <filter
+            id="system-shape-wash"
+            x="-5%"
+            y="-5%"
+            width="110%"
+            height="110%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feFlood className={classes.washFill} result="fill" />
+            <feComposite in="fill" in2="SourceAlpha" operator="in" result="body" />
+            <feMorphology
+              in="SourceAlpha"
+              operator="erode"
+              radius="1.5"
+              result="inner"
+            />
+            <feComposite
+              in="SourceAlpha"
+              in2="inner"
+              operator="out"
+              result="edge"
+            />
+            <feFlood className={classes.washStroke} result="line" />
+            <feComposite in="line" in2="edge" operator="in" result="outline" />
+            <feMerge>
+              <feMergeNode in="body" />
+              <feMergeNode in="outline" />
+            </feMerge>
+          </filter>
+        </svg>
+      )}
+      {imagePath && (
         <img
           className={`system-hex-target ${classes.shapeWash}`}
           src={assetUrl(`/tiles/${imagePath}`)}
