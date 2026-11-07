@@ -30,6 +30,7 @@ import { Breakthrough } from "@/domains/player/components/Breakthrough/Breakthro
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard/UnitDetailsCard";
 import { PlanetDetailsCard } from "@/domains/cards/components/PlanetDetailsCard";
 import { Unit } from "@/shared/ui/Unit";
+import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { getUnitData } from "@/entities/lookup/units";
 import { getColorAlias } from "@/entities/lookup/colors";
@@ -182,15 +183,33 @@ function ComponentIcon({ icon }: { icon: FactionComponent["icon"] }) {
 
 /** Chip specjalnego komponentu frakcji: liczba × ikona + nazwa (opis w tooltipie). */
 function FactionComponentChip({ component }: { component: FactionComponent }) {
+  const { opened, setOpened, toggle } = useDisclosure(false);
   return (
-    <span
-      className={styles.componentChip}
-      title={`${component.name} ×${component.count} — ${component.description}`}
-    >
-      <span className={styles.fleetCount}>{component.count}</span>
-      <ComponentIcon icon={component.icon} />
-      <span className={styles.fleetName}>{component.name}</span>
-    </span>
+    <SmoothPopover opened={opened} onChange={setOpened}>
+      <SmoothPopover.Target>
+        <button type="button" className={styles.componentChip} onClick={toggle}>
+          <span className={styles.fleetCount}>{component.count}</span>
+          <ComponentIcon icon={component.icon} />
+          <span className={styles.fleetName}>{component.name}</span>
+        </button>
+      </SmoothPopover.Target>
+      <SmoothPopover.Dropdown p={0}>
+        <DetailsCard width={320}>
+          <DetailsCard.Title
+            title={component.name}
+            type="Faction component"
+            meta={[`${component.count} in the box`]}
+            icon={
+              <DetailsCard.Icon
+                shape="round"
+                icon={<ComponentIcon icon={component.icon} />}
+              />
+            }
+          />
+          <DetailsCard.Section title="Role" content={component.description} />
+        </DetailsCard>
+      </SmoothPopover.Dropdown>
+    </SmoothPopover>
   );
 }
 
