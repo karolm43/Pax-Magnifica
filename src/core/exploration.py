@@ -120,18 +120,29 @@ def _add_unit(system: SystemState, planet: str, player_id: str, base_type: str) 
     units[base_type] = units.get(base_type, 0) + 1
 
 
-def _draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str:
-    """Dobiera wierzchnią kartę talii (leniwy setup; pusta talia → tasowanie odrzuconych)."""
+def deck_card_ids(registry: StaticDataRegistry, deck: str) -> list[str]:
+    """Wszystkie karty talii eksploracji (posortowane) wg typu karty w katalogu."""
+    return sorted(
+        card_id
+        for card_id, card in registry.catalog.all(ComponentCategory.EXPLORATION).items()
+        if isinstance(card, ExplorationDef) and (card.type or "").lower() == deck
+    )
+
+
+def seed_deck(state: GameState, registry: StaticDataRegistry, deck: str) -> None:
+    """Zasiewa (tasuje) talię eksploracji, jeśli jeszcze nie istnieje — MUTUJE ``state``."""
     decks = state.decks
     if deck not in decks.exploration_deck:
-        ids = sorted(
-            card_id
-            for card_id, card in registry.catalog.all(ComponentCategory.EXPLORATION).items()
-            if isinstance(card, ExplorationDef) and (card.type or "").lower() == deck
-        )
+        ids = deck_card_ids(registry, deck)
         next_rng(state).shuffle(ids)
         decks.exploration_deck[deck] = ids
         decks.exploration_discard.setdefault(deck, [])
+
+
+def _draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str:
+    """Dobiera wierzchnią kartę talii (leniwy setup; pusta talia → tasowanie odrzuconych)."""
+    decks = state.decks
+    seed_deck(state, registry, deck)
     if not decks.exploration_deck[deck]:
         discard = list(decks.exploration_discard.get(deck, []))
         if not discard:
@@ -650,6 +661,7 @@ def resolve(
         summary = "Placed face-up in the play area."
         fate = "kept"
     elif kind == "token":
+        new_state.decks.purged.append(new_cur.card_id)  # purge ≠ odrzucenie (RULES.md 46 X3)
         if card.attachment_id == "gamma":
             tokens = _system(new_state, new_ex).wormhole_tokens
             if "GAMMA" not in tokens:

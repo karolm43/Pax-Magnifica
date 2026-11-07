@@ -80,10 +80,14 @@ def _with_card(
         (c.type or "").lower() for c in _cards(registry).values() if c.name == name
     )
     new_state = state.clone()
+    card_id = _card_id(registry, name)
+    # Jak po prawdziwym dobraniu: talia zasiana, a ujawniona karta już z niej zeszła.
+    exploration.seed_deck(new_state, registry, deck)
+    new_state.decks.exploration_deck[deck].remove(card_id)
     new_state.exploration = ExplorationState(
         player_id="p1",
         position="000",
-        current=ExploreCurrent(planet=planet, deck=deck, card_id=_card_id(registry, name)),
+        current=ExploreCurrent(planet=planet, deck=deck, card_id=card_id),
     )
     return new_state
 

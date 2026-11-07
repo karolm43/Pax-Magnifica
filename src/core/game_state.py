@@ -192,6 +192,9 @@ class DecksState(BaseModel):
     # (żetony wormhole), nie trafiają na stos odrzuconych.
     exploration_deck: dict[str, list[str]] = Field(default_factory=dict)
     exploration_discard: dict[str, list[str]] = Field(default_factory=dict)
+    # Stos kart PURGE'OWANYCH (usuniętych z gry): karty eksploracji i inne — wspólny dla
+    # wszystkich talii. Purge to nie odrzucenie: te karty nie wracają przy tasowaniu.
+    purged: list[str] = Field(default_factory=list)
 
 
 class PlayerPrivateState(BaseModel):

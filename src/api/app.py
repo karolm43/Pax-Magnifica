@@ -27,6 +27,7 @@ from src.api.routers import (
     board,
     capacity,
     components,
+    decks,
     exploration,
     fleet_pool,
     flow,
@@ -111,6 +112,7 @@ def create_app(
     app.include_router(fleet_pool.router)
     app.include_router(invasion.router)
     app.include_router(exploration.router)
+    app.include_router(decks.router)
     app.include_router(production.router)
     app.include_router(transactions.router)
     app.include_router(window.router)

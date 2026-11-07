@@ -96,3 +96,37 @@
   color: var(--ds-ink-lo);
   overflow-wrap: anywhere;
 }
+
+/* Szansa dobrania karty (% kopii w talii) - obok liczby kopii w nagłówku. */
+.chance {
+  flex: none;
+  padding: 1px 6px;
+  font-family: var(--font-data);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-data);
+  color: var(--ds-ink-hi);
+  border: 1px solid rgb(var(--dk) / 0.6);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.25);
+}
+
+.next {
+  padding: 3px 10px;
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fde68a;
+  background: rgb(250 204 21 / 0.14);
+  border-top: 1px solid rgb(250 204 21 / 0.4);
+}
+
+/* Przyciski debug pod kartą. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 7px 10px 9px;
+  border-top: 1px solid rgb(var(--dk) / 0.2);
+  background: rgb(0 0 0 / 0.18);
+}

@@ -2560,6 +2560,13 @@ Kod: `core/exploration.py`, `api/routers/exploration.py`, `api/schemas_explorati
 - ⚠ ZAŁOŻENIE: wszystkie przejęte planety są już kontrolowane w chwili eksploracji (reguła: wiele planet w systemie → „zdobądź i eksploruj po kolei"); wpływa tylko na Freelancers, który i tak jest ręczny.
 - ⚠ TODO: eksploracja frontier (Dark Energy Tap, żetony frontier, Enigmatic Device, Ion Storm), „explore" jako osobny efekt kart/zdolności, relikty (rozstrzyganie fragmentów), Dead World / Entropic Field i inne karty spoza bazowego PoK, handel w oknie po ujawnieniu karty (transakcje — RULES.md 47).
 
+### 46.4. Stosy kart (talia / odrzucone / purge) i narzędzia debug
+
+- (X9) Każda karta jest w JEDNYM miejscu: w talii, na stosie odrzuconych swojej talii, na wspólnym stosie purge (`DecksState.purged`), w ręce/strefie gracza (fragmenty reliktów), przyczepiona do planety albo właśnie ujawniona. Dobrana karta znika z talii; karta purge'owana (żeton wormhole) NIE trafia na stos odrzuconych i nie wraca przy tasowaniu.
+- (X10) Panel General (Card pool) pokazuje stan talii z `cardPool`: liczba kart, które ZOSTAŁY w talii eksploracji (cultural / hazardous / industrial / frontier) i kart akcji, stosy odrzuconych per talia oraz jeden stos purge. Listy kart w talii są wysyłane POSORTOWANE (nie zdradzają kolejności). Szansa dobrania karty = kopie karty / karty w talii (liczona na froncie).
+- (X11) **Debug** (`core/deck_piles.move_card`, `POST /decks/move`, God-Mode — omija reguły): przenosi kartę między talią / odrzuconymi / purge. Cel `top` = wierzch talii, czyli ustawienie, jaka karta będzie dobrana jako NASTĘPNA; `deck` = w losowe miejsce. Przełącznik „Debug" w oknie talii (pamiętany w localStorage). Wierzch talii (`cardPool.exploreTop`) jest widoczny tylko w trybie debug.
+- ⚠ ZAŁOŻENIE: talie relikwii, agend i celów nie śledzą jeszcze stosów (relikty nie mają talii w stanie gry); talia kart akcji pokazuje pełną pulę, dopóki gra nie przejdzie przez setup.
+
 ---
 
 ## 47. Transakcje między graczami + żetony długu (debt) — ✅ ZWERYFIKOWANE (tirules2.com) + ⚠ ZAŁOŻENIA

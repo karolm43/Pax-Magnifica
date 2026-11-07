@@ -67,6 +67,10 @@ zasoby/wpływy/specjalności w produkcji, celach i ekonomii), Freelancers przez 
 (`GameState.production_grant`, `POST /tactical/production/skip-grant`, UI: `ProductionOverlay` w trybie
 karty), Gamma Wormhole jako żeton w systemie (`SystemState.wormhole_tokens`, `HexGrid.sync_token_wormholes`,
 synchronizacja przy odczycie `ctx.current_grid`).
+**Stosy kart w General (RULES.md 46.4):** talie pokazują, ile kart ZOSTAŁO (dobrane znikają), każda
+talia (eksploracja ×4, akcje) ma stos odrzuconych, jest wspólny stos purge; w oknie talii szansa dobrania
+każdej karty (%), zakładki Talia/Odrzucone/Purge i tryb Debug („Make next", przenoszenie kart,
+`POST /decks/move`). Kod: `core/deck_piles.py`, `routers/decks.py`, front `domains/cards/components/DeckInspector`.
 **Do zrobienia:** eksploracja frontier (Dark Energy Tap), rozstrzyganie fragmentów reliktów, handel w
 oknie po ujawnieniu karty, reguła „zdejmij jednostkę z planszy" przy braku w rezerwie.
 

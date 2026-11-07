@@ -17,6 +17,12 @@ export type PoolEntry = {
   copies?: number;
   /** Tekst klimatyczny (flavor) z karty — wyświetlany kursywą na dole. */
   flavor?: string;
+  /** Szansa dobrania tej karty jako następnej, w % (kopie / karty w talii). */
+  chance?: number;
+  /** Identyfikatory fizycznych kart za tą pozycją (do ruchów debug między stosami). */
+  ids?: string[];
+  /** Ta karta jest teraz na wierzchu talii (wiadomo to tylko w trybie debug). */
+  next?: boolean;
 };
 
 /** Grupa pozycji (np. „Laws", „Directives", „Stage I") z własnym kolorem sygnału. */

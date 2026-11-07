@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
-import type { PoolGroup } from "@/domains/cards/model/cardPoolBrowser";
+import type { CSSProperties, ReactNode } from "react";
+import type { PoolEntry, PoolGroup } from "@/domains/cards/model/cardPoolBrowser";
 import {
   DeckGroup,
   DeckList,
@@ -16,9 +16,18 @@ function CardText({ text }: { text: string }) {
   );
 }
 
+/** Procent z rozsądną precyzją: 12.5% , 5%, <0.1%. */
+function formatChance(percent: number): string {
+  if (percent > 0 && percent < 0.1) return "<0.1%";
+  const rounded = Math.round(percent * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}%`;
+}
+
 type Props = {
   /** Grupy całej puli kart (np. Prawa/Dyrektywy, Etap I/II). */
   groups: PoolGroup[];
+  /** Dodatkowe przyciski pod kartą (np. ruchy debug między stosami). */
+  renderActions?: (entry: PoolEntry) => ReactNode;
 };
 
 /**
@@ -27,7 +36,7 @@ type Props = {
  * kolorowy pasek nagłówka (nazwa + liczba kopii), okno/metadane, treść reguł i
  * oddzielony stopką tekst klimatyczny (flavor) kursywą.
  */
-export function CardPoolBrowser({ groups }: Props) {
+export function CardPoolBrowser({ groups, renderActions }: Props) {
   const visible = groups.filter((group) => group.entries.length > 0);
 
   return (
@@ -51,6 +60,14 @@ export function CardPoolBrowser({ groups }: Props) {
                     {entry.copies && entry.copies > 1 && (
                       <span className={styles.copies}>×{entry.copies}</span>
                     )}
+                    {entry.chance !== undefined && (
+                      <span
+                        className={styles.chance}
+                        title="Chance this is the next card drawn"
+                      >
+                        {formatChance(entry.chance)}
+                      </span>
+                    )}
                   </header>
                   {entry.meta && <div className={styles.meta}>{entry.meta}</div>}
                   <p className={styles.text}>
@@ -58,6 +75,10 @@ export function CardPoolBrowser({ groups }: Props) {
                   </p>
                   {entry.flavor && (
                     <p className={styles.flavor}>{entry.flavor}</p>
+                  )}
+                  {entry.next && <div className={styles.next}>Next card</div>}
+                  {renderActions && (
+                    <div className={styles.actions}>{renderActions(entry)}</div>
                   )}
                 </article>
               ))}

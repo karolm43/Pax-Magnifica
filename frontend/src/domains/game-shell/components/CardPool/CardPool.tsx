@@ -1,15 +1,19 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Box, Text } from "@/ds";
 import { CardPoolData } from "@/entities/data/types";
 import styles from "./CardPool.module.css";
 import {
-  ActionCardDeckCardBack,
   AgendaDeckCardBack,
-  ExplorationDeckCardBack,
   PublicObjectiveDeckCardBack,
   RelicDeckCardBack,
   SecretObjectiveDeckCardBack,
 } from "@/domains/cards/components/PoolDeckCardBack";
+import {
+  DeckBack,
+  PileSlot,
+  PurgedPile,
+} from "@/domains/cards/components/DeckInspector/DeckInspector";
+import { deckSpecs } from "@/domains/cards/model/deckPiles";
 
 type Props = {
   cardPool?: CardPoolData;
@@ -35,11 +39,19 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Deck card backs, grouped by kind; click a deck to browse its full pool. */
+/**
+ * Deck card backs, grouped by kind. Exploration and action decks track the REAL game
+ * state: the count is what is LEFT, a drawn card is gone from the deck, and each deck has
+ * its own discard pile plus one shared purge pile. Click a deck/pile to browse it.
+ */
 function CardPool({ cardPool }: Props) {
+  const specs = useMemo(() => (cardPool ? deckSpecs(cardPool) : []), [cardPool]);
   if (!cardPool) {
     return <Text className={styles.empty}>No card pool data available</Text>;
   }
+  const bySpec = (key: string) => specs.find((s) => s.key === key);
+  const action = bySpec("action");
+  const explore = specs.filter((s) => s.kind === "explore");
 
   return (
     <Box className={styles.pool}>
@@ -56,9 +68,11 @@ function CardPool({ cardPool }: Props) {
       </Group>
 
       <Group title="Decks">
-        <Slot label="Action">
-          <ActionCardDeckCardBack count={cardPool.actionCardDeckSize} />
-        </Slot>
+        {action && (
+          <Slot label="Action">
+            <DeckBack spec={action} />
+          </Slot>
+        )}
         <Slot label="Agenda">
           <AgendaDeckCardBack count={cardPool.agendaDeckSize} />
         </Slot>
@@ -68,17 +82,29 @@ function CardPool({ cardPool }: Props) {
       </Group>
 
       <Group title="Exploration">
-        <Slot label="Cultural">
-          <ExplorationDeckCardBack type="Cultural" />
-        </Slot>
-        <Slot label="Industrial">
-          <ExplorationDeckCardBack type="Industrial" />
-        </Slot>
-        <Slot label="Hazardous">
-          <ExplorationDeckCardBack type="Hazardous" />
-        </Slot>
-        <Slot label="Frontier">
-          <ExplorationDeckCardBack type="Frontier" />
+        {explore.map((spec) => (
+          <Slot key={spec.key} label={spec.label}>
+            <DeckBack spec={spec} />
+          </Slot>
+        ))}
+      </Group>
+
+      <Group title="Discard piles">
+        {action && (
+          <Slot label="Action">
+            <PileSlot spec={action} tab="discard" />
+          </Slot>
+        )}
+        {explore.map((spec) => (
+          <Slot key={spec.key} label={spec.label}>
+            <PileSlot spec={spec} tab="discard" />
+          </Slot>
+        ))}
+      </Group>
+
+      <Group title="Purged">
+        <Slot label="All decks">
+          <PurgedPile specs={specs} />
         </Slot>
       </Group>
     </Box>

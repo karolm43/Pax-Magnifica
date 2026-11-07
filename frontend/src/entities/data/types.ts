@@ -257,6 +257,13 @@ export type CardPoolData = {
   actionCardFullDeckSize: number;
   actionCardDiscardSize: number;
   actionCardPurgedSize: number;
+  /** Karty akcji w talii (posortowane - nie zdradzają kolejności) i na stosie odrzuconych. */
+  actionCardDeck?: string[];
+  actionCardDiscard?: string[];
+  /** Wspólny stos kart PURGE'owanych (eksploracja, akcje...). */
+  purgedCards?: string[];
+  /** Wierzch każdej talii eksploracji (klucz = talia) - używa go tylko tryb debug. */
+  exploreTop?: Record<string, string>;
   culturalExploreDeck: string[];
   culturalExploreDiscard: string[];
   industrialExploreDeck: string[];

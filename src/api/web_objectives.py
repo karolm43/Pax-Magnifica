@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import fleet_pool, objective_progress
+from src.core import deck_piles, fleet_pool, objective_progress
 from src.core import objectives as obj
 from src.core.game_state import GameState, PlayerState, StatusStep
 from src.core.hex_grid import HexGrid
@@ -314,10 +314,33 @@ def build_status_payload(
     }
 
 
-def card_pool_counts(state: GameState) -> dict[str, int]:
-    """Rozmiary talii (bez ujawniania zawartości) do ``cardPool``."""
-    return {
+def card_pool_counts(state: GameState, registry: StaticDataRegistry) -> dict[str, Any]:
+    """Stan talii do ``cardPool``: rozmiary oraz zawartość talii, odrzuconych i purge.
+
+    Listy kart w talii są SORTOWANE (nie ujawniają kolejności); wierzch talii eksploracji
+    idzie osobno w ``exploreTop`` (używa go tylko tryb debug). Talia eksploracji jeszcze
+    niezasiana = pełna pula.
+    """
+    explore_keys = {
+        "cultural": "culturalExplore",
+        "hazardous": "hazardousExplore",
+        "industrial": "industrialExplore",
+        "frontier": "frontierExplore",
+    }
+    pool: dict[str, Any] = {
         "secretObjectiveDeckSize": len(state.decks.secret_objective_deck),
         "actionCardDeckSize": len(state.decks.action_card_deck),
         "actionCardDiscardSize": len(state.decks.action_card_discard),
+        "actionCardDeck": sorted(state.decks.action_card_deck),
+        "actionCardDiscard": list(state.decks.action_card_discard),
+        "purgedCards": list(state.decks.purged),
     }
+    top: dict[str, str] = {}
+    for deck, prefix in explore_keys.items():
+        piles = deck_piles.explore_piles(state, registry, deck)
+        pool[f"{prefix}Deck"] = sorted(piles.deck)
+        pool[f"{prefix}Discard"] = list(piles.discard)
+        if piles.deck:
+            top[deck] = piles.deck[0]
+    pool["exploreTop"] = top
+    return pool

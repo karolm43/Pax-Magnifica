@@ -1456,7 +1456,10 @@ def build_web_data(
         "scoreBreakdowns": web_objectives.build_score_breakdowns(
             projected, registry, grid, entity_keys
         ),
-        "cardPool": {**_empty_card_pool(), **web_objectives.card_pool_counts(projected)},
+        "cardPool": {
+            **_empty_card_pool(),
+            **web_objectives.card_pool_counts(projected, registry),
+        },
         "expeditions": _empty_expeditions(),
     }
 
