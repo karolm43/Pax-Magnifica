@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from src.api.app import create_app
 from src.core.event_store import EventStore
 from src.core.registry import StaticDataRegistry
+from tests.setup_helpers import finish_setup
 
 
 @pytest.fixture(scope="module")
@@ -38,6 +39,7 @@ def _new_game_in_status(client: TestClient) -> None:
             ]
         },
     )
+    finish_setup(client)
     assert resp.status_code == 200
     cards = {"p1": [1, 4], "p2": [2, 5], "p3": [3, 6]}
     state = client.get("/state").json()["state"]
@@ -56,6 +58,7 @@ def test_new_game_exposes_objectives_in_web_data(client: TestClient) -> None:
         "/game/new",
         json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
     )
+    finish_setup(client)
     data = _web(client)
     objectives = data["objectives"]
     revealed1 = [o for o in objectives["stage1Objectives"] if o["revealed"]]

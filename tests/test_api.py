@@ -11,6 +11,7 @@ from src.api.app import create_app
 from src.core.event_store import EventStore
 from src.core.game_state import GameState, PlayerState
 from src.core.registry import StaticDataRegistry
+from tests.setup_helpers import finish_setup
 
 
 @pytest.fixture(scope="module")
@@ -707,6 +708,7 @@ def _complete_strategy_three_players(client: TestClient) -> None:
             ]
         },
     )
+    finish_setup(client)
     # Speaker = p1; wybór rundowy. p1:1,2 · p2:3,4 · p3:5,6.
     for player_id, initiative in (
         ("p1", 1), ("p2", 3), ("p3", 5),

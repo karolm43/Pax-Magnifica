@@ -599,6 +599,35 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Setup startowy (tajne cele, żeton Custodians, odkrycie celów; RULES.md 45) ---
+
+  const setupSecret = useCallback(
+    async (playerId: string, objectiveId: string) => {
+      await post("/setup/secret", {
+        player_id: playerId,
+        objective_id: objectiveId,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const setupCustodians = useCallback(
+    async (playerId: string) => {
+      await post("/setup/custodians", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const setupRevealObjectives = useCallback(
+    async (playerId: string) => {
+      await post("/setup/reveal-objectives", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const closeWindow = useCallback(async () => {
     await post("/window/close", {});
     await refresh();
@@ -651,6 +680,9 @@ export function useBoardEditor() {
     setPlayerHand,
     respondWindow,
     strategySecondary,
+    setupSecret,
+    setupCustodians,
+    setupRevealObjectives,
     closeWindow,
   };
 }

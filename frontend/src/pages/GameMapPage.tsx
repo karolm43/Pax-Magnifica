@@ -16,6 +16,7 @@ import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
+import { GameSetupOverlay } from "@/domains/setup/GameSetupOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
@@ -259,6 +260,9 @@ function GameMapContent() {
       {/* Okno PRODUKCJI (RULES.md 33.3) — otwiera się samo w kroku PRODUCTION, pod inwazją. */}
       <ProductionOverlay />
       <InvasionOverlay />
+      {/* Setup startowy (RULES.md 45): tajne cele, żeton Custodians, odkrycie celów —
+          pełny ekran do domknięcia setupu, zanim ruszy faza strategii. */}
+      <GameSetupOverlay />
       <BattleOverlay />
       {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje
           przy oknie CAPACITY (myśliwce, piechota, mechy w przestrzeni ponad capacity). */}

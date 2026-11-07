@@ -1,4 +1,4 @@
-﻿export type Point = { x: number; y: number };
+export type Point = { x: number; y: number };
 
 export type RGBColor = { red: number; green: number; blue: number };
 
@@ -492,6 +492,8 @@ export type GameState = {
   activeInvasion?: { system: string; phase: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
   pendingWindow?: PendingWindow | null;
+  /** Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — null po zakończeniu. */
+  setup?: GameSetup | null;
   /**
    * Liczba kart strategii na gracza (``Pick_Count``) wyliczona z liczby graczy:
    * 2 przy 3–4 graczach, 1 przy 5–8. ``null``/brak, gdy liczba graczy jest spoza
@@ -739,6 +741,33 @@ export type Planet = {
   spaceCannonDieCount?: number;
   spaceCannonHitsOn?: number;
   searchTags?: string[];
+};
+
+/** Etapy setupu startowego gry (backend: ``SetupStage``, RULES.md 45). */
+export type GameSetupStage = "SECRETS" | "CUSTODIANS" | "OBJECTIVES";
+
+export type GameSetupPlayer = {
+  id: string;
+  name: string;
+  color: string | null;
+  faction: string | null;
+  isBot: boolean;
+  /** Czy gracz już zatrzymał swój tajny cel. */
+  chosen: boolean;
+};
+
+export type GameSetup = {
+  stage: GameSetupStage;
+  speakerId: string | null;
+  /** Gracz wybierający teraz tajny cel (etap SECRETS). */
+  chooserId: string | null;
+  players: GameSetupPlayer[];
+  /** Dwa dobrane tajne cele wybierającego (puste dla pozostałych etapów). */
+  candidates: string[];
+  custodiansPlaced: boolean;
+  /** Zakryte cele publiczne w taliach I i II etapu. */
+  stage1Hidden: number;
+  stage2Hidden: number;
 };
 
 export type Objective = {

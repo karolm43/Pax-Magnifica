@@ -27,11 +27,11 @@ from src.core.faction_setup import (
     off_board_corner,
     parse_starting_fleet,
 )
+from src.core.game_setup import begin_setup
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
 from src.core.models import FactionDef
-from src.core.objectives import setup_objectives
 from src.core.registry import StaticDataRegistry
 from src.core.setup_service import (
     PlayerSetupInput,
@@ -268,6 +268,17 @@ def _place_off_board_home(
     )
 
 
+def _place_locked_mallice(grid: HexGrid, registry: StaticDataRegistry) -> None:
+    """Kładzie Wormhole Nexus stroną nieaktywną (82a, tylko gamma) z boku mapy.
+
+    Kafelek leży poza pierścieniami, w rogu ``tl`` (jak w AsyncTI4). Pomijamy, gdy
+    róg jest już zajęty albo kafelek nie jest załadowany (wyłączone źródło).
+    """
+    if "tl" in grid.positions or "82a" not in registry.systems:
+        return
+    _place_off_board_home(grid, "82a", "tl", registry)
+
+
 def _setup_home_tiles(
     grid: HexGrid,
     faction: FactionDef,
@@ -484,6 +495,8 @@ async def post_new_game(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    _place_locked_mallice(grid, ctx.registry)
+
     new_state = GameState()
     seating: list[str] = []  # kolejność graczy przy stole (RULES.md 24)
     taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
@@ -518,7 +531,9 @@ async def post_new_game(
     new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
     # Cele i talie (RULES.md 41.1): 5+5 celów publicznych, dwa cele I etapu odkryte,
     # po jednym tajnym celu na gracza, potasowana talia kart akcji.
-    new_state = setup_objectives(new_state, ctx.registry)
+    # Gracze, mówca i żeton Custodians kończą setup w UI (``/setup/*``); do tego czasu
+    # karty strategii są zablokowane (RULES.md 45).
+    new_state = begin_setup(new_state, ctx.registry)
     ctx.current_grid = grid
     ctx.service.replace_state(new_state, label="game:new")
     await ctx.service.broadcast()

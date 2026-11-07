@@ -27,12 +27,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.api import web_objectives
+from src.api import web_objectives, web_setup
 from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
-from src.core.map_string import HOME_SLOT_SYSTEM_ID
+from src.core.map_string import HOME_SLOT_SYSTEM_ID, MECATOL_SYSTEM_ID
 from src.core.neighbors import neighbors_by_player
 from src.core.positions import load_positions
 from src.core.registry import StaticDataRegistry
@@ -254,6 +254,9 @@ def _build_game_state(
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),
+        # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None po zakończeniu.
+        # Nasze rozszerzenie kontraktu; okno setupu na froncie. RULES.md 43.
+        "setup": web_setup.build_setup_payload(state),
         # Czy MÓWCA może już ogłosić przejście fazy — steruje widocznością „Next phase"
         # w panelu tury (akcja/status: dopiero po komplecie pasów/kroków; strategia:
         # po pełnym wyborze kart; agenda: zawsze). DECYZJA PROJEKTOWA 2026-11.
@@ -464,6 +467,15 @@ def _build_tile_unit_data(
                         registry, planet_id, state, position, entity_keys
                     ),
                 )
+
+        # Żeton Custodians na Mecatol Rex: neutralny token planety (klucz "neutral" — nie jest
+        # żadnym graczem), rysowany jak inne tokeny z `entityType: "token"`.
+        if system_id == MECATOL_SYSTEM_ID and web_setup.custodian_on_board(state):
+            for planet_id in system.planets if system is not None else []:
+                planets[planet_id].setdefault("entities", {}).setdefault(
+                    "neutral", []
+                ).append({"entityId": "custodian", "entityType": "token", "count": 1})
+                break
 
         tile_unit_data[position] = {
             "space": space,

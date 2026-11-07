@@ -206,6 +206,36 @@ class PlayerPrivateState(BaseModel):
     action_cards: list[str] = Field(default_factory=list)  # R1.1
     secret_objectives: list[str] = Field(default_factory=list)  # R1.2
     promissory_notes: list[str] = Field(default_factory=list)  # R1.3
+    # Dwa tajne cele dobrane w setupie, z których gracz zatrzymuje JEDEN (drugi wraca do
+    # talii). Pusta lista poza etapem wyboru (RULES.md 45).
+    secret_candidates: list[str] = Field(default_factory=list)
+
+
+class SetupStage(StrEnum):
+    """Etap setupu gry po rozstawieniu graczy, a przed pierwszą fazą strategii (RULES.md 45).
+
+    - ``SECRETS`` — każdy gracz po kolei dobiera 2 tajne cele i zatrzymuje 1;
+    - ``CUSTODIANS`` — mówca kładzie żeton Custodians na Mecatol Rex;
+    - ``OBJECTIVES`` — mówca odkrywa dwa cele publiczne I etapu.
+    """
+
+    SECRETS = "SECRETS"
+    CUSTODIANS = "CUSTODIANS"
+    OBJECTIVES = "OBJECTIVES"
+
+
+class SetupState(BaseModel):
+    """Trwający setup gry (``None`` w ``GameState.setup`` = setup zakończony).
+
+    ``secrets_chosen`` = gracze, którzy już wybrali tajny cel. ``custodians_placed`` = żeton
+    leży na Mecatol Rex (widoczny na mapie).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    stage: SetupStage = SetupStage.SECRETS
+    secrets_chosen: list[str] = Field(default_factory=list)
+    custodians_placed: bool = False
 
 
 class PlayerState(BaseModel):
@@ -474,6 +504,9 @@ class GameState(BaseModel):
     objectives: ObjectivesState = Field(default_factory=ObjectivesState)
     decks: DecksState = Field(default_factory=DecksState)
     status: StatusPhaseState | None = None
+    # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None, gdy zakończony
+    # albo gdy stan nie przechodził przez ``/game/new`` (testy, God-Mode). RULES.md 43.
+    setup: SetupState | None = None
     # Żeton Custodians zdjęty z Mecatol Rex => faza agendy dodana do KAŻDEJ rundy
     # (R_custodians_token). Do czasu zdjęcia status kończy rundę bez fazy agendy.
     custodians_removed: bool = False

@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from src.api.app import create_app
 from src.core.event_store import EventStore
 from src.core.registry import StaticDataRegistry
+from tests.setup_helpers import finish_setup
 
 # Prawdziwy map string AsyncTI4 (6 graczy, pierścień 3): rogi domowe jako "0".
 SAMPLE_MAP_STRING = (
@@ -581,6 +582,7 @@ def test_strategy_pick_assigns_and_appears_in_web_data(client: TestClient) -> No
             ]
         },
     )
+    finish_setup(client)
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 3})
     # Pula: karta 3 ma właściciela p1.
     cards = client.get("/strategy/cards").json()
@@ -609,6 +611,7 @@ def test_strategy_pick_transfers_trade_goods(client: TestClient) -> None:
             ]
         },
     )
+    finish_setup(client)
     # Wybór RUNDOWY (tirules „Strategy Phase", Step 1): najpierw każdy bierze
     # pierwszą kartę w speaker order (p1, p2, p3), potem drugą. Docelowo:
     # p1: 1,2 · p2: 3,4 · p3: 6,7. Karty 5 i 8 zostają niewybrane.
@@ -652,6 +655,7 @@ def test_strategy_play_marks_exhausted_in_web_data(client: TestClient) -> None:
             ]
         },
     )
+    finish_setup(client)
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
     client.post("/strategy/play", json={"player_id": "p1", "initiative": 6})
     data = _web_data(client)
@@ -684,6 +688,7 @@ def test_strategy_pick_sets_action_phase_initiative(client: TestClient) -> None:
             ]
         },
     )
+    finish_setup(client)
     # Wybór RUNDOWY (speaker p1 pierwszy): runda 1 = p1:6, p2:1, p3:3; runda 2 =
     # p1:7, p2:2, p3:4. Docelowo p1 (sol): 6,7 · p2 (hacan): 1,2 · p3 (mentak): 3,4.
     # Najniższa karta (1) należy do p2 → p2 aktywny w fazie akcji.
@@ -842,7 +847,9 @@ def test_ghost_and_crimson_corner_collision(client: TestClient) -> None:
     )
     data = _web_data(client)
     tp = dict(entry.split(":") for entry in data["tilePositions"])
-    off = {pos for pos in tp if pos in {"tr", "br", "bl", "tl"}}
+    # "tl" zajmuje Wormhole Nexus (82a), więc rogi domowe to tylko tr/br/bl.
+    assert tp.get("tl") == "82a"
+    off = {pos for pos in tp if pos in {"tr", "br", "bl"}}
     assert len(off) == 2  # dwa różne rogi, bez nakładania
 
 
@@ -976,6 +983,7 @@ def test_set_player_hand_endpoint_populates_hand(client: TestClient) -> None:
         "/game/new",
         json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
     )
+    finish_setup(client)
     # Ręka po setupie: jeden startowy tajny cel (R_objective_cards), reszta pusta.
     hand_before = client.get("/api/game/g/hand", params={"player": "p1"}).json()
     assert len(hand_before["secretObjectives"]) == 1

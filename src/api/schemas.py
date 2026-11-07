@@ -498,6 +498,23 @@ class StatusRedistributeRequest(BaseModel):
     strategic: int
 
 
+class SetupSecretRequest(BaseModel):
+    """Wybór tajnego celu w setupie: gracz zatrzymuje ``objective_id`` z dwóch dobranych."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    objective_id: str
+
+
+class SetupActorRequest(BaseModel):
+    """Akcja mówcy w setupie (żeton Custodians, odkrycie celów) — ``player_id`` = mówca."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+
+
 class SetSpeakerRequest(BaseModel):
     """Ustawienie mówcy (speaker) — otwiera wybór kart w fazie strategii."""
 

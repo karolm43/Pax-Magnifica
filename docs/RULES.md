@@ -2499,3 +2499,26 @@ Cel: partia do 6 graczy przez sieć (ludzie + boty), obok trybów solo vs boty i
 - ⚠ ZAŁOŻENIE: timeout i przejęcie przez bota/pas przy nieobecnym graczu.
 - ⚠ TODO: nie sprawdzono jeszcze, które istniejące endpointy akcji przyjmują identyfikator gracza i które
   go walidują; audyt przed etapem N (lista endpointów bez `actor_id`).
+
+## 45. Setup startowy: tajne cele, notki, ┼╝eton Custodians, cele publiczne ÔÇö Ôťů ZWERYFIKOWANE (tirules2.com) + ÔÜá ZA┼üO┼╗ENIA
+
+┼╣r├│d┼éo: `rules_tirules/R_objective_cards.md`, `R_mecatol_rex.md`, `R_custodians_token.md`, `R_promissory_notes.md`. Kod: `core/game_setup.py`, `api/routers/setup.py`, `api/web_setup.py`, UI `frontend/src/domains/setup/GameSetupOverlay.tsx`.
+
+### 45.1. Regu┼éy
+- (S1) Gra ma po **pi─Ö─ç** cel├│w publicznych I i II etapu, zakrytych; m├│wca odkrywa **dwa cele I etapu** (R_objective_cards). Pozosta┼ée osiem le┼╝y zakryte do fazy statusu.
+- (S2) ┼╗eton Custodians jest w setupie po┼éo┼╝ony na Mecatol Rex (R_mecatol_rex). Zdj─Öcie: RULES.md 41 / R_custodians_token.
+- (S3) Ka┼╝dy gracz zaczyna z jedn─ů r─Ök─ů promissory notes: **5 wsp├│lnych** (szablony `<color>_*` z katalogu: Ceasefire, Political Secret, Support for the Throne, Trade Agreement, Alliance) w kolorze gracza + **1 frakcyjna** (`faction.promissory_notes`).
+- (S4) Ka┼╝dy gracz zaczyna z jednym tajnym celem (R_objective_cards).
+
+### 45.2. ÔÜá ZA┼üO┼╗ENIE (decyzja u┼╝ytkownika)
+- Zrzut tirules m├│wi ÔÇ×ka┼╝dy zaczyna z jednym tajnym celem" i nie opisuje doboru. Wg decyzji u┼╝ytkownika ka┼╝dy gracz **dobiera 2 tajne cele, zatrzymuje 1, a drugi wraca do talii (talia tasowana)** ÔÇö tak jak w instrukcji plansz├│wki. St─ůd etap `SECRETS`.
+
+### 45.3. Implementacja
+- `GameState.setup: SetupState | None` (`stage` Ôłł `SECRETS|CUSTODIANS|OBJECTIVES`, `secrets_chosen`, `custodians_placed`); `None` = setup zako┼äczony (te┼╝ dla stan├│w spoza `/game/new`).
+- `PlayerPrivateState.secret_candidates` ÔÇö dwa dobrane cele (prywatne; redakcja widoczno┼Ťci dzia┼éa automatycznie).
+- `objectives.setup_objectives(..., interactive=True)`: 5+5 zakrytych, 2 kandydaci na gracza; tryb domy┼Ťlny (testy) zachowany.
+- `/game/new` Ôćĺ `begin_setup` (talie, r─Öka notek, boty wybieraj─ů losowo). Kolejka wyboru = kolejno┼Ť─ç zasiadania; `active_player_id` = wybieraj─ůcy, potem m├│wca.
+- Endpointy: `POST /setup/secret`, `/setup/custodians` (tylko m├│wca), `/setup/reveal-objectives` (tylko m├│wca; ko┼äczy setup i oddaje tur─Ö pierwszemu wybieraj─ůcemu kart─Ö strategii).
+- `strategy_phase.pick_strategy_card` odrzuca wyb├│r karty, dop├│ki `state.setup` nie jest `None` (silnik-s─Ödzia).
+- web-data: `gameState.setup`; ┼╝eton Custodians jako token planety `mr` pod kluczem `neutral`, dop├│ki le┼╝y na planszy (`web_setup.custodian_on_board`).
+- UI: pe┼énoekranowe okno z bramk─ů ÔÇ×przeka┼╝ ekran" przed pokazaniem tajnych cel├│w (hot-seat); w grze sieciowej backend ma wysy┼éa─ç kandydat├│w tylko ich w┼éa┼Ťcicielowi (RULES.md 44).

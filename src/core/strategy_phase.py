@@ -195,6 +195,8 @@ def pick_strategy_card(
     """
     if player_id not in state.players:
         raise ValueError(f"Unknown player: {player_id}")
+    if state.setup is not None:
+        raise ValueError("Finish the game setup (secret objectives, tokens, objectives) first.")
     if initiative not in available_initiatives(registry, set_alias):
         raise ValueError(f"Initiative card {initiative} is not in the set.")
     if initiative in picked_initiatives(state):

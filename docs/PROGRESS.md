@@ -52,6 +52,15 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+## ✅ Setup graczy domknięty (2026-11-07) — RULES.md 45
+
+`/game/new` zostawia grę w setupie: ręka promissory notes (5 wspólnych + 1 frakcyjna), 2 tajne cele
+na gracza (zatrzymaj 1, drugi do talii), żeton Custodians kładzie mówca, mówca klika i odkrywa dwa
+cele I etapu (pozostałe 8 zakryte). Backend: `core/game_setup.py`, `routers/setup.py`, `web_setup.py`;
+front: `GameSetupOverlay`. Wybór karty strategii zablokowany do końca setupu. Testy: `tests/test_game_setup.py`
+(+ `tests/setup_helpers.py::finish_setup` w testach faz gry). Do zrobienia: ręka notek w oknie setupu,
+wysyłka kandydatów tylko właścicielowi w grze sieciowej.
+
 ## ▶ START KOLEJNEJ SESJI — stan akcji taktycznej (2026-11-06, commit `786549e`)
 
 Cel etapu: pełna akcja taktyczna wg `R_tactical_action` (Activation → Movement + Space Cannon

@@ -27,6 +27,8 @@ from src.core.registry import StaticDataRegistry
 # cards"; mówca odkrywa dwa cele I etapu w setupie.
 PUBLIC_OBJECTIVES_PER_STAGE = 5
 REVEALED_AT_SETUP = 2
+# Setup: każdy gracz dobiera 2 tajne cele, zatrzymuje 1 (RULES.md 45).
+SECRET_CANDIDATES = 2
 
 # Typy talii w katalogu (``DeckDef.deck_type``).
 _STAGE1_DECK = "public_stage_1_objective"
@@ -77,15 +79,22 @@ def objective_stage(registry: StaticDataRegistry, objective_id: str) -> int | No
 
 
 def setup_objectives(
-    state: GameState, registry: StaticDataRegistry, rng: random.Random | None = None
+    state: GameState,
+    registry: StaticDataRegistry,
+    rng: random.Random | None = None,
+    *,
+    interactive: bool = False,
 ) -> GameState:
     """Przygotowanie celów i talii w setupie (R_objective_cards).
 
     - losuje po 5 celów publicznych I i II etapu (kolejność = kolejność odkrywania),
-    - odkrywa dwa pierwsze cele I etapu (mówca),
-    - tasuje talię tajnych celów i rozdaje każdemu graczowi JEDEN (⚠️ ZAŁOŻENIE: bez
-      etapu „dobierz dwa, zachowaj jeden" — RULES.md 41.2),
+    - tasuje talię tajnych celów,
     - tasuje talię kart akcji (gracze dobiorą pierwsze karty w pierwszej fazie statusu).
+
+    Tryb domyślny (``interactive=False``, testy/skrót): mówca od razu odkrywa dwa cele I
+    etapu, a każdy gracz dostaje JEDEN tajny cel. Tryb ``interactive=True`` (``/game/new``,
+    RULES.md 45): wszystkie 5+5 celów zostaje ZAKRYTE (odkrywa je mówca kliknięciem), a każdy
+    gracz dostaje DWA kandydujące tajne cele (``private.secret_candidates``) do wyboru.
 
     Wołane raz, po rozstawieniu graczy w ``/game/new``. Seedowalne przez ``rng``.
     """
@@ -98,7 +107,7 @@ def setup_objectives(
     count2 = min(PUBLIC_OBJECTIVES_PER_STAGE, len(stage2))
     drawn1 = chooser.sample(stage1, count1)
     drawn2 = chooser.sample(stage2, count2)
-    reveal_count = min(REVEALED_AT_SETUP, len(drawn1))
+    reveal_count = 0 if interactive else min(REVEALED_AT_SETUP, len(drawn1))
     new_state.objectives = ObjectivesState(
         stage1_deck=drawn1[reveal_count:],
         stage2_deck=drawn2,
@@ -112,7 +121,13 @@ def setup_objectives(
     for player_id in new_state.players:
         if not secrets_deck:
             break
-        new_state.players[player_id].private.secret_objectives = [secrets_deck.pop(0)]
+        private = new_state.players[player_id].private
+        if interactive:
+            private.secret_candidates = [
+                secrets_deck.pop(0) for _ in range(min(SECRET_CANDIDATES, len(secrets_deck)))
+            ]
+        else:
+            private.secret_objectives = [secrets_deck.pop(0)]
     new_state.decks.secret_objective_deck = secrets_deck
 
     actions = deck_card_ids(registry, _ACTION_DECK)

@@ -35,6 +35,7 @@ from src.api.routers import (
     players,
     production,
     rules,
+    setup,
     space_cannon,
     status,
     strategy,
@@ -97,6 +98,7 @@ def create_app(
     app.include_router(board.router)
     app.include_router(players.router)
     app.include_router(flow.router)
+    app.include_router(setup.router)
     app.include_router(status.router)
     app.include_router(strategy.router)
     app.include_router(history.router)

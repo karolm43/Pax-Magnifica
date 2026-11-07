@@ -1,0 +1,405 @@
+/*
+ * Okno setupu startowego (GameSetupOverlay): tajne cele → żeton Custodians → cele publiczne.
+ * Tło i krój spójne z planszą otwierającą (GameIntro) i sceną wyboru frakcji.
+ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4500;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: clamp(12px, 3vh, 32px) clamp(12px, 3vw, 40px);
+  color: #f6ead0;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgb(252 162 43 / 0.1), transparent 62%),
+    linear-gradient(rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.88)),
+    url("/static/extra/main_menu.jpg") center / cover no-repeat,
+    #050505;
+  animation: setupIn 0.5s ease-out both;
+}
+
+@keyframes setupIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  width: min(1100px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2vh, 20px);
+  align-items: center;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgb(246 234 208 / 0.6);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: linear-gradient(#ffe9b0, #fca22b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Pasek postępu ─────────────────────────────────────────────────────── */
+
+.progress {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progressItem {
+  padding: 3px 12px;
+  border: 1px solid rgb(246 234 208 / 0.25);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(246 234 208 / 0.5);
+}
+
+.progressNow {
+  border-color: #fca22b;
+  color: #fca22b;
+  background: rgb(252 162 43 / 0.12);
+}
+
+.progressDone {
+  border-color: rgb(246 234 208 / 0.5);
+  color: rgb(246 234 208 / 0.85);
+}
+
+/* ── Lista graczy (etap tajnych celów) ─────────────────────────────────── */
+
+.roster {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rosterItem {
+  --player: #8a8f98;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 8px;
+  border: 1px solid rgb(246 234 208 / 0.18);
+  border-left: 3px solid var(--player);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.4);
+  font-size: 0.9rem;
+  opacity: 0.6;
+}
+
+.rosterActive {
+  opacity: 1;
+  border-color: var(--player);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--player) 45%, transparent);
+}
+
+.rosterState {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: rgb(246 234 208 / 0.65);
+}
+
+.body {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Wspólne: tekst i przyciski ────────────────────────────────────────── */
+
+.lead {
+  margin: 0;
+  max-width: 62ch;
+  text-align: center;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgb(246 234 208 / 0.6);
+}
+
+.primary {
+  padding: 10px 26px;
+  border: 1px solid #fca22b;
+  border-radius: 8px;
+  background: rgb(252 162 43 / 0.16);
+  color: #ffe9b0;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.primary:hover:not(:disabled),
+.primary:focus-visible {
+  background: rgb(252 162 43 / 0.3);
+  box-shadow: 0 0 16px rgb(252 162 43 / 0.35);
+  outline: none;
+}
+
+.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Etap 1: tajne cele ────────────────────────────────────────────────── */
+
+.gate,
+.secrets,
+.custodians {
+  --player: #fca22b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.gate {
+  padding: 28px 36px;
+  border: 1px solid color-mix(in srgb, var(--player) 60%, transparent);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.choice {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.choice:hover,
+.choice:focus-visible {
+  transform: translateY(-3px);
+  outline: none;
+}
+
+.choicePicked {
+  border-color: var(--player);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--player) 55%, transparent);
+}
+
+/* ── Etap 2: żeton Custodians ──────────────────────────────────────────── */
+
+.custodianToken {
+  width: clamp(96px, 16vh, 150px);
+  height: auto;
+  filter: drop-shadow(0 0 18px rgb(252 162 43 / 0.5));
+  animation: tokenFloat 3s ease-in-out infinite;
+}
+
+@keyframes tokenFloat {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* ── Etap 3: cele publiczne ────────────────────────────────────────────── */
+
+.objectives {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.rowLabel {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgb(246 234 208 / 0.7);
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.card {
+  position: relative;
+  width: clamp(110px, 15vw, 170px);
+  aspect-ratio: 5 / 7;
+  border-radius: 8px;
+}
+
+.cardBack {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.55);
+}
+
+.cardFlipped .cardBack {
+  visibility: hidden;
+}
+
+/* Odkryta karta: obrót z rewersu na awers, z opóźnieniem wg pozycji (--i). */
+.cardFront {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid #fca22b;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #2a2112, #120d06);
+  box-shadow: 0 0 20px rgb(252 162 43 / 0.35);
+  animation: flipIn 0.9s cubic-bezier(0.3, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 0.4s + 0.2s);
+  backface-visibility: hidden;
+}
+
+@keyframes flipIn {
+  from {
+    transform: perspective(700px) rotateY(180deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    transform: perspective(700px) rotateY(0);
+    opacity: 1;
+  }
+}
+
+.cardName {
+  font-size: clamp(0.8rem, 1.1vw, 0.98rem);
+  color: #ffe9b0;
+}
+
+.cardText {
+  flex: 1;
+  font-size: clamp(0.66rem, 0.9vw, 0.8rem);
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.cardPoints {
+  align-self: flex-end;
+  font-weight: 700;
+  color: #fca22b;
+}
+
+.revealBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 36px;
+  border: 2px dashed #fca22b;
+  border-radius: 12px;
+  background: rgb(252 162 43 / 0.1);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.revealBox:hover:not(:disabled),
+.revealBox:focus-visible {
+  background: rgb(252 162 43 / 0.24);
+  box-shadow: 0 0 24px rgb(252 162 43 / 0.4);
+  outline: none;
+}
+
+.revealBox:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.revealTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffe9b0;
+}
+
+.revealHint {
+  font-size: 0.85rem;
+  color: rgb(246 234 208 / 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .cardFront,
+  .custodianToken {
+    animation: none;
+  }
+}
