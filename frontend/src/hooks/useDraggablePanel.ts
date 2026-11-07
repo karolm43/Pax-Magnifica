@@ -86,6 +86,12 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
   useEffect(() => {
     if (!isDragging) return;
 
+    // Na czas przeciągania wyłączamy zaznaczanie tekstu/kafelków na całej stronie
+    // (inaczej kursor „maluje" zaznaczenie po mapie).
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+    window.getSelection()?.removeAllRanges();
+
     const handleMove = (event: PointerEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
@@ -108,6 +114,7 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
     window.addEventListener("pointerup", handleUp);
     window.addEventListener("pointercancel", handleUp);
     return () => {
+      document.body.style.userSelect = previousUserSelect;
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
       window.removeEventListener("pointercancel", handleUp);
@@ -120,6 +127,8 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
     if (target.closest("[data-no-drag]")) return;
+    // Zapobiega startowi zaznaczania tekstu już na pointerdown.
+    event.preventDefault();
 
     // Panel = najbliższy przodek z atrybutem data-draggable-panel (sam panel).
     const handle = event.currentTarget as HTMLElement;

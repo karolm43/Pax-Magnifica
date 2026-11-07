@@ -20,8 +20,52 @@
   bottom: 20px;
   z-index: 200;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
   pointer-events: none; /* klikają tylko karty/przyciski w środku */
+}
+
+/* Uchwyt do przesuwania boxa karty (nad kartą) — mała pastylka „grip". */
+.dragGrip {
+  position: relative;
+  z-index: 5; /* ponad uniesioną kartą i jej poświatą */
+  pointer-events: auto;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: 28px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--ds-ground) 80%, transparent);
+  border: 1px solid var(--ds-h14);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.dragGrip:hover {
+  opacity: 1;
+}
+.dragGrip > span {
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ds-ink-lo);
+}
+.cardZone[data-dragging] .dragGrip,
+.actionZone[data-dragging] .actionHead {
+  cursor: grabbing;
+}
+.cardZone[data-dragging],
+.actionZone[data-dragging] {
+  user-select: none;
+}
+.actionHead[data-grab] {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .cards {
@@ -29,6 +73,14 @@
   align-items: flex-end;
   gap: 16px;
   pointer-events: auto;
+}
+/* Podczas przeciągania karta nie reaguje na hover (bez „skakania"). */
+.cardZone[data-dragging] .cards {
+  pointer-events: none;
+}
+.cardZone[data-dragging] .cards * {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* Wspólna wysokość slotu/karty. */
@@ -119,6 +171,8 @@
   );
   opacity: 0.16;
   filter: blur(16px);
+  /* Poświata wystaje poza kartę — nie może łapać hovera ani przykrywać uchwytu. */
+  pointer-events: none;
   transition: opacity var(--ds-dur) var(--ds-ease);
 }
 

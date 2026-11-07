@@ -735,6 +735,7 @@ function StrategyCardImage({
                 className={styles.cardImage}
                 src={imageURL}
                 alt={name}
+                draggable={false}
                 loading="lazy"
                 onError={() => setFailed(true)}
               />
@@ -750,6 +751,7 @@ function StrategyCardImage({
               <button
                 type="button"
                 className={styles.playOverlay}
+                data-no-drag
                 disabled={busy}
                 onClick={onPlay}
                 title={`Play ${name} (primary + secondary window)`}

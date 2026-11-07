@@ -191,3 +191,146 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
   dopiero PO silniku bazowym (E3–E6), frakcja po frakcji, jako hooki w oknach silnika.
 
 Szczegółowy dziennik postępu: `PROGRESS.md`. Mapa dokumentacji: `README.md` (w `docs/`).
+
+## Kolejność prac (korekta, ustalona z użytkownikiem): karty strategii → hooki → STOP/karty akcji → sieć
+
+Powód: karty strategii to reguły BAZOWE (8 kart, każda partia), szkielet już jest, a odblokowują model
+wydawania zasobów/wpływu potrzebny wszystkiemu dalej. Hooki mają sens, gdy jest co modyfikować. Sieć
+budujemy po silniku bazowym, ale zasada `actor_id` (RULES.md 44.1) obowiązuje od teraz.
+
+Kolejność: **S** (karty strategii) → **H0–H2** (hooki) → **H1b** (STOP) → **H3–H6** (karty akcji, frakcje, agendy) → **N** (sieć).
+`actor_id` w nowych endpointach: od teraz. Wszystkie bloki: RULES.md ze źródłem → kod w `core/` → test → cienki
+endpoint → QA (pytest/ruff/mypy) → commit. Wątpliwa reguła = ⚠ ZAŁOŻENIE i pytanie do użytkownika.
+
+## Plan kart strategii (S0–S9) — PLAN, jeszcze nie rozpoczęty
+
+Stan: `core/strategic_action.py` ma okno secondary (`STRATEGY_SECONDARY`) i tablice dispatchu
+`_PRIMARY_EFFECTS`/`_SECONDARY_EFFECTS` po numerze inicjatywy. Realnie działa tylko primary Leadership
+(+3 żetony); secondary Leadership jest NO-OP (TODO: kupno żetonów za wpływ, wymaga modelu wydawania).
+Treść kart WYŁĄCZNIE z `assets/data/strategy_cards/*.json`; reguły z `docs/rules_tirules/` (`R_<karta>.md`,
+`R_strategic_action.md`); nic z pamięci. Wpis w RULES.md 30 rozszerzamy kartą po karcie (30.x).
+
+### S0 — Model wydawania zasobów i wpływu (fundament dla wszystkich kart)
+- Czysta funkcja `core/spending.py`: wyczerpanie planet (exhaust), sumowanie resources/influence z uwzględnieniem
+  flex/optimal (RULES.md 7, 27), trade goods jako zamiennik, walidacja „czy stać gracza", zwrot reszty/nadpłaty.
+- Wspólny punkt zaczepienia dla produkcji, technologii, głosowania, kart (jedno miejsce, później hook).
+- DoD: wydawanie testowane na przypadkach brzegowych; produkcja przepięta na ten model bez zmiany wyniku.
+
+### S1 — Przegląd danych i zależności 8 kart
+- Z JSON + tirules: tabela „karta → primary / secondary → od jakich podsystemów zależy" (np. talia kart akcji,
+  badanie technologii, stawianie struktur, produkcja, punktowanie, ruch). Wynik w RULES.md 30.
+- Ustalenie kolejności S2–S9 wg zależności (najpierw karty bez nowych podsystemów).
+
+### S2–S9 — Karty strategii po jednej (kolejność wg S1)
+- Każda karta = osobny blok: RULES.md 30.x ze źródłem → primary + secondary w `strategic_action.py` (dispatch)
+  → test → endpointy/okno w UI (komponenty `StrategyCardDetailsCard` itp.) → QA → commit.
+- Nowe podsystemy dobudowane „na zamówienie" przez karty (np. talia kart akcji, badanie tech) — każdy z własnym RULES,
+  testem i oznaczeniem ⚠, jeśli reguła niejasna.
+- Secondary jest zagrywane w oknie, w którym wszyscy są pytani — nie wymaga STOP (RULES.md 43.4).
+- Plik `strategic_action.py` > ~300 linii ⇒ podział tematyczny (`core/strategy_cards/<karta>.py` + dispatch).
+- DoD: 8 kart ma działające primary i secondary (lub jawnie ⚠ MANUAL, z uzasadnieniem), status w `effects_registry`.
+
+### Zależności frakcyjne kart strategii
+- Wyjątki frakcji dotyczące kart strategii (modyfikujące primary/secondary) NIE wchodzą do S2–S9; dochodzą po H2
+  jako hooki (RULES.md 43), żeby nie wplatać `if faction == ...` w reguły kart.
+
+## Etap sieciowy (N) — PLAN, po silniku bazowym (RULES.md 44)
+
+Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika w `core/`/`api/`, WebSocket
+(`ConnectionManager`), projekcja widoczności (`core/visibility.py`), okna czasowe z kolejką, `EventStore`.
+**Od teraz:** każdy nowy endpoint akcji ma `actor_id` (RULES.md 44.1).
+
+- **N0 — Audyt:** które endpointy akcji nie mają `actor_id`, które walidują gracza; lista luk.
+- **N1 — Tożsamość i autoryzacja:** token na miejsce przy stole (link zaproszenia), role host/observer,
+  `actor_id` ustalane z tokenu, `viewing_player` z tokenu w trybie sieciowym (44.2).
+- **N2 — Push per gracz:** WebSocket z własną projekcją dla każdego połączenia; wiadomości jawne/prywatne;
+  testy „nic nie wycieka" (44.3).
+- **N3 — Wiele gier i trwałość:** `game_id`, lobby/pokoje, zapis `EventStore` na dysk, wznowienie po restarcie
+  i ponownym połączeniu (44.4).
+- **N4 — Współbieżność:** blokada na grę, idempotencja żądań, odtwarzanie stanu po reconnect (44.4).
+- **N5 — UI wielu graczy:** „czekamy na gracza X", równoległe odpowiedzi tam, gdzie reguły pozwalają,
+  timeouty i przejęcie przez bota/pas (44.5); STOP z jednolitym timerem (43.4).
+- DoD: partia 6 graczy (z botami) w sieci; żaden klient nie widzi cudzej ręki; restart serwera nie kasuje gry.
+- Ryzyko największe: wyciek informacji (autoryzacja + projekcja) — testy bezpieczeństwa przed udostępnieniem innym.
+
+## Plan hooków i wyjątków (E7 + E4 + E6) — PLAN, jeszcze nie rozpoczęty (po blokach S)
+
+Zasady architektury: **RULES.md 43** (hooki, kolejność, MANUAL vs IMPLEMENTED). Cel: dodawanie wyjątków
+(frakcje, karty akcji, agendy) bez ruszania reguł bazowych, kodowane po jednym, z wpisem w RULES + testem.
+
+Baza, która już jest (nie budujemy od zera): `core/effects_registry.py` (status efektu per komponent:
+`NOT_IMPLEMENTED/IMPLEMENTED/MANUAL`), `core/timing_spec.py` (wyzwalacz → typ okna, RULES.md 34),
+`core/timing.py` (okna), `core/component_action.py` (szkielet akcji komponentu — bez efektów),
+`core/components.py` + `component_loader.py` (katalog komponentów z assetów). Brakuje: `core/rules_hooks.py`
+i punktów zaczepienia w regułach; wyjątek Arborec jest dziś na sztywno w `production.py` (`_PRODUCTION_FORBIDS`).
+
+### H0 — Przygotowanie (bez kodu gry)
+- Przejrzeć miejsca w `core/` z twardymi wyjątkami (grep po `faction`/`_FORBIDS`/id kart) — lista „długu".
+- Ustalić w RULES.md 43 ⚠ założenia z użytkownikiem (typy hooków, kolejność, MANUAL vs blokada).
+- DoD: lista punktów zaczepienia potrzebnych na start + zatwierdzone założenia.
+
+### H1 — Szkielet `core/rules_hooks.py`
+- Rejestr: `(źródło komponentu, punkt zaczepienia, kategoria, funkcja)`; pobieranie hooków dla stanu
+  (kto posiada frakcję/kartę/tech/prawo) w deterministycznej kolejności (RULES.md 43.1 pkt 5).
+- API: `apply_modifiers(point, state, ctx, base)`, `check_permissions(...)`, `collect_triggers(...)`,
+  `resolve_replace(...)`. Czyste funkcje, zero HTTP.
+- Test regresji: pusty rejestr ⇒ wszystkie obecne testy bez zmian.
+- DoD: szkielet + testy jednostkowe kolejności/konfliktów; pytest + ruff + mypy zielone.
+
+### H1b — Model reakcji: punkty kontrolne + STOP (RULES.md 43.4)
+- Oznaczanie migawek `EventStore` jako punkt kontrolny / nieodwracalny (rzut, ujawnienie karty, dobór);
+  `goto(seq)` już istnieje, dochodzi tylko metadane i blokada cofania poza punktem kontrolnym.
+- Filtr po informacji jawnej (liczba kart akcji itp.) wyznaczający, kogo w ogóle można pytać.
+- Odpytywanie botów wewnętrzne (bez UI); STOP człowieka otwiera okno czasowe (`core/timing.py`)
+  z zatrzymującym graczem jako pierwszym.
+- UI: baner „ostatnia akcja" z przyciskiem STOP, aktywny do najbliższego punktu nieodwracalnego (w walce:
+  przycisk „Rzuć" jako naturalna granica).
+- Robimy PRZED kartami akcji (H4): od tego zależy, jak wchodzi każda reakcja.
+- DoD: jedna testowa reakcja (np. prosta karta „when/after") działa przez STOP bez pytania wszystkich
+  graczy; test: zachowanie dla gracza z kartą i bez karty jest identyczne z zewnątrz.
+
+### H2 — Punkty zaczepienia w istniejących regułach (cienkie wywołania)
+- Produkcja (`production.py`): `production_forbids`, `production_value`, `cost_modifier`.
+- Ruch (`movement.py`): `move_value`, `can_pass_system`, `ignore_anomaly`, `capacity`.
+- Walka (`combat.py`/`battle.py`/`space_cannon.py`/`invasion.py`): `roll_modifier`, `extra_dice`,
+  `reroll`, `hit_assignment`, `before_combat`/`after_combat` (przez okna).
+- Status/agenda: `status_start`, `status_end`, `vote_modifier`.
+- **Pierwszy przypadek:** przenieść wyjątek Arborec z `production.py` do hooka (zachowanie bez zmian, testy zielone).
+- DoD: żadna reguła bazowa nie zawiera `if faction == ...`; Arborec działa przez rejestr.
+
+### H3 — Raport pokrycia (priorytetyzacja)
+- Rozszerzyć audyt (`src/audit/`, `effects_registry`) o: komponent → wymagany punkt zaczepienia
+  (z `timing_spec` + typ efektu). Wynik: ile kart/zdolności obsłuży każdy punkt.
+- DoD: raport w `docs/` (generowany, nie ręczny) + kolejka kolejnych kroków wg liczby obsłużonych komponentów.
+
+### H4 — Karty akcji (E4)
+- Dispatch po `component_id` w `component_action`/oknach REACTION; każda karta: tekst z assetów → wpis RULES →
+  hook → test; status w `effects_registry` na `IMPLEMENTED`. Karty bez hooka zostają `MANUAL`.
+- Kolejność: najpierw karty o prostym, jednofazowym efekcie (modyfikatory, +/- zasoby), potem z oknami reakcji,
+  na końcu „instead of"/zmiana kolejności.
+- DoD (iteracyjnie): % pokrycia kart akcji rośnie, brak regresji.
+
+### H5 — Frakcje (E7)
+- Wg tabel w sekcji „Frakcje": najpierw modyfikatory liczb/legalności (np. Sardakk, Jol-Nar, Sol, Letnev,
+  Winnu, Hacan), potem zdolności z oknami (Mentak, Xxcha, Saar), na końcu strukturalne
+  (Nekro, Creuss, Mahact, Naalu, Yssaril, Titans, Cabal, Obsidian, Firmament, Crimson, Deepwrought, Ral Nel,
+  Last Bastion). Liderzy, tech frakcyjne i jednostki specjalne jako osobne hooki tej samej frakcji.
+- Jedna frakcja = jeden blok: RULES.md + hooki + test + commit.
+- DoD: frakcja ma status `IMPLEMENTED` dla wszystkich swoich zdolności lub jawnie `MANUAL` dla wybranych.
+
+### H6 — Faza agendy i agendy (E6)
+- Warunek wstępny: `core/agenda_phase.py` (odsłonięcie, głosowanie wg wpływów, rozstrzygnięcie, okna
+  „when/after agenda revealed", remisy po stronie mówcy wg reguł) — NAJPIERW z tirules2 (`R_agenda_phase`).
+- Prawa jako hooki `PERSISTENT` (wygasanie przy odrzuceniu/zamianie), dyrektywy jako jednorazowe efekty.
+- DoD: pełna faza agendy działa bez agend-wyjątków; potem agendy po jednej wg tej samej procedury.
+
+### H7 — Dokumentacja i porządek
+- Po każdym bloku: RULES.md (43 + wpis komponentu), PROGRESS.md, `effects_registry`, QA
+  (`uv run pytest -q`, `uv run ruff check src tests`, `uv run mypy src tests`), commit (konkretne pliki).
+- Po H2 zaktualizować `docs/ARCHITEKTURA_KODU.md` (sekcja o `rules_hooks` i katalogu `hooks/`).
+
+### Ryzyka
+- Interakcje wielu efektów (np. dwa „instead of" na jednym kroku) → obsługa przez kolejność z RULES 43.1 pkt 5
+  i weryfikacja na tirules2; nierozstrzygnięte przypadki zostają ⚠ ZAŁOŻENIEM do decyzji użytkownika.
+- Thunder's Edge: część mechanik może odbiegać od LRR — źródłem są assety + potwierdzenie użytkownika.
+- Rozrost rejestru: pilnować podziału tematycznego plików (pkt 12) i raportu pokrycia (H3).

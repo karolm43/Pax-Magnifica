@@ -2308,11 +2308,11 @@ Etap E8 (faza statusu). Źródło: lokalne pliki tirules (treść © FFG; patrz 
   aktywny gracz w aktywnym systemie — do ostrzeżeń), `POST /tactical/fleet-pool/resolve`.
 - **UI:** `FleetPoolWarning` (pasek „N / pula", ostrzeżenie o nadwyżce) w oknie produkcji (liczy
   też statki z koszyka) i w panelu kroku ruchu; `FleetPoolModal` — wymuszone okno wyboru.
-- **Faza statusu (krok 5, redystrybucja ┼╝eton├│w):** zmniejszenie puli floty mo┼╝e stworzy─ç nadwy┼╝k─Ö.
-  Panel pokazuje `FleetPoolStatusMeter` (najwi─Öksza flota vs planowana pula, lista system├│w do
+- **Faza statusu (krok 5, redystrybucja żetonów):** zmniejszenie puli floty może stworzyć nadwyżkę.
+  Panel pokazuje `FleetPoolStatusMeter` (największa flota vs planowana pula, lista systemów do
   oczyszczenia; dane `status.fleetShips`). Po zatwierdzeniu `status_phase.advance_fleet_check`
-  otwiera okno `FLEET_POOL` (kontekst `phase=status`) dla pierwszego systemu z nadwy┼╝k─ů; po jego
-  zamkni─Öciu ÔÇö kolejny system/gracz. Kroki 6ÔÇô7 (`finalize_status`) czekaj─ů, a┼╝ nadwy┼╝ek nie b─Ödzie.
+  otwiera okno `FLEET_POOL` (kontekst `phase=status`) dla pierwszego systemu z nadwyżką; po jego
+  zamknięciu — kolejny system/gracz. Kroki 6–7 (`finalize_status`) czekają, aż nadwyżek nie będzie.
 
 ⚠️ ZAŁOŻENIA / luki: (1) God-Mode (edit-units, drag&drop w trybie bez reguł) omija pulę — wentyl;
 (2) sprawdzenie następuje przy zmianie kroku, nie „w każdej chwili" (np. nie w trakcie walki — tam
@@ -2387,3 +2387,115 @@ i agend wynika wyłącznie z assetów JSON, a reguły ich interakcji z tirules2.
   twarde blokowanie zagrania nieobsługiwanej karty — decyzja użytkownika.
 - ⚠ ZAŁOŻENIE: kolejność wdrażania w 43.2 (karty akcji → frakcje proste → frakcje złożone → agendy).
 - ⚠ TODO: faza agendy nie ma jeszcze osobnego modułu `core/` (głosowanie, prawa) — warunek wstępny dla agend.
+
+### 43.4. Reakcje gracza i przycisk STOP (model przerwania) — ⚠ ZAŁOŻENIE (decyzja projektowa, do potwierdzenia)
+
+To zasada projektowa (jak silnik daje szansę na reakcję), nie reguła TI4. Dotyczy kart i zdolności
+zagrywanych „w reakcji" (when / after / before / instead of — klasyfikacja w `timing_spec.py`, RULES.md 34).
+Cel: nie pytać każdego gracza po każdej akcji „czy zagrywasz kartę?" i jednocześnie nie ujawniać,
+kto ją ma. Odwzorowuje grę przy stole: „stop, zanim to się stanie, gram kartę".
+
+**Trzy warstwy (obowiązują łącznie):**
+1. **Filtr po informacji JAWNEJ.** Gracza nie pytamy, gdy z danych publicznych wynika, że nie może
+   zareagować (np. 0 kart akcji w ręce; liczba kart akcji jest jawna). Filtr NIGDY nie korzysta z treści ręki
+   ani z żadnej informacji ukrytej, więc jego działanie nie ujawnia, kto ma kartę.
+2. **Boty decydują wewnętrznie.** Silnik odpytuje bota bez udziału UI. Interfejs pokazuje coś dopiero,
+   gdy bot faktycznie zagra kartę. Bot niereagujący nie wydłuża gry ani nie zdradza stanu ręki.
+3. **Człowiek ma przycisk STOP.** Krok akcji stosuje się od razu (optymistycznie). Silnik pamięta stan
+   sprzed ostatniego kroku. STOP przywraca ten stan, otwiera okno czasowe z zatrzymującym graczem
+   jako pierwszym respondentem (reszta w kolejności okien, RULES.md 29.2), a po rozstrzygnięciu
+   wznawia przerwaną akcję. STOP używa tej samej maszynerii co okna (`core/timing.py`), nie osobnej ścieżki.
+
+**Punkty kontrolne i granica nieodwracalności:**
+- Każdy krok akcji, na który może zareagować jakaś karta/zdolność, jest PUNKTEM KONTROLNYM
+  (wyznacza go `timing_spec`). STOP cofa wyłącznie do ostatniego punktu kontrolnego, nie całą akcję.
+- STOP działa tylko do najbliższego punktu NIEODWRACALNEGO: rzut kośćmi, ujawnienie karty,
+  dobranie z talii (informacja ukryta lub losowa). Po nim cofanie jest zablokowane. Powód: zapobiega
+  używaniu wiedzy z przyszłości (zobaczenie wyniku rzutu i dopiero potem STOP). Przy stole odpowiada temu
+  reguła „mów przed rzutem". Naturalny punkt w UI: przycisk „Rzuć".
+- Wyniki losowe są zapisane (seedowalny RNG, memory: kości po stronie silnika), więc cofnięcie przed
+  rzutem nie pozwala go przerzucić.
+- Po zagraniu karty z STOP przerwany krok wznawia się od tego samego punktu kontrolnego, z uwzględnieniem
+  efektu karty (hook typu REPLACE/MODIFY, 43.1). Jeśli karta anuluje krok („instead of"), krok się nie wykonuje.
+
+**Mechanizm cofania (istniejący kod):** `core/event_store.py` trzyma stos migawek stanu z `goto(seq)`
+i `undo()`/`redo()`. Silnik opiera się na `state -> state`, więc „stan sprzed kroku" już istnieje. Nowe jest
+wyłącznie oznaczanie migawek jako punktów kontrolnych/nieodwracalnych oraz blokada cofania poza punktem kontrolnym.
+UWAGA: zwykłe Undo operatora (God-Mode, historia) jest czym innym niż STOP i dalej nie podlega tym ograniczeniom.
+
+**⚠ ZAŁOŻENIA / do potwierdzenia przez użytkownika:**
+- ⚠ ZAŁOŻENIE: STOP działa do rzutu kośćmi / ujawnienia karty / dobrania z talii (granica nieodwracalności).
+- ⚠ ZAŁOŻENIE: cofamy jeden krok do ostatniego punktu kontrolnego, nie całą akcję.
+- ⚠ ZAŁOŻENIE: filtr jawny = tylko liczba kart akcji w ręce i fakt posiadania właściwego typu komponentu
+  (jawnego). Szerszy filtr wymaga potwierdzenia, że niczego nie ujawnia.
+- ⚠ TODO (tryb sieciowy): przy grze sieciowej STOP musi mieć krótki, jednolity timer niezależny od zawartości
+  ręki, inaczej sama obecność pauzy zdradza posiadanie karty. Hot-seat i solo vs boty tego nie wymagają.
+- ⚠ TODO: ujawnienie informacji przez samą zmianę zachowania UI (np. szybsze/wolniejsze przejście kroku)
+  należy testować — kroki dla graczy z kartą i bez karty mają wyglądać identycznie.
+
+---
+
+## 44. Gra sieciowa (do 6 graczy): tożsamość, autoryzacja, widoczność, zasada `actor_id` — ⚠ ZAŁOŻENIE (decyzja projektowa, do potwierdzenia)
+
+📎 tirules: [Active Player](rules_tirules/R_active_player.md) · [Initiative Order](rules_tirules/R_initiative_order.md) · [Speaker](rules_tirules/R_speaker.md) · [Transactions](rules_tirules/R_transactions.md)
+
+Status: PLAN (poza `actor_id` w punkcie 44.1 nic nie jest jeszcze w kodzie). To są zasady PROJEKTOWE
+(architektura sieci), nie reguły TI4. Etap realizacji: `docs/PLAN_PELNA_ROZGRYWKA.md`, sekcja „Etap sieciowy (N)".
+Cel: partia do 6 graczy przez sieć (ludzie + boty), obok trybów solo vs boty i hot-seat (steering: tryby gry).
+
+### 44.1. Zasada `actor_id` (OBOWIĄZUJE JUŻ TERAZ dla każdego nowego endpointu akcji)
+
+- Każda akcja gracza (nie God-Mode) w `api/` przyjmuje jawne `actor_id` — kto ją wykonuje — i przekazuje je do `core/`.
+  Dziś może to być zaufane (hot-seat/solo), ale pole MUSI istnieć, żeby późniejsza autoryzacja nie wymagała
+  zmiany sygnatur w kilkudziesięciu endpointach.
+- `core/` waliduje `actor_id` względem stanu gry (jest to gracz aktywny, respondent bieżącego okna albo gracz
+  uprawniony do danej akcji), tak jak już robi to dla `player_id` (np. `component_action`, RULES.md 31). Nie wolno
+  zakładać, że „klient jest uczciwy".
+- `core/` pozostaje nieświadome sieci: nie zna sesji, tokenów, WebSocketów ani HTTP. Zna wyłącznie `player_id`.
+- Akcje God-Mode (`/god-mode/*`, `core/board_edit.*`) mają osobne uprawnienie (operator/host), nie `actor_id` gracza.
+
+### 44.2. Tożsamość i autoryzacja (warstwa `api/`)
+
+- Każde miejsce przy stole ma token (np. link zaproszenia). Token mapuje się na `player_id`; to `api/` ustala `actor_id`
+  z tokenu, a NIE z treści żądania ani parametru w URL.
+- **Widok (`viewing_player`) nie może być parametrem swobodnie wybieranym przez klienta** w trybie sieciowym —
+  dziś jest on parametrem zapytania (RULES.md 6/web-data), co w sieci pozwalałoby podejrzeć cudzą rękę. W trybie sieciowym
+  perspektywa wynika z tokenu; w hot-seat/solo zostaje jak dotychczas.
+- Rola `host` (tworzy grę, God-Mode, odtwarza po awarii) i rola `observer` (bez rąk, tylko jawne informacje) —
+  ⚠ ZAŁOŻENIE do potwierdzenia.
+- Błędy autoryzacji mapowane w `api/` (nie w `core/`) na 401/403; błędy reguł jak dotąd 422.
+
+### 44.3. Widoczność per gracz (używa istniejącego `core/visibility.py`)
+
+- Każde połączenie WebSocket dostaje WŁASNĄ projekcję stanu (`project_for_viewer`), nigdy wspólny broadcast pełnego stanu.
+  Obecny `broadcast_map` (jedna wiadomość do wszystkich) wolno stosować wyłącznie do danych w pełni jawnych.
+- Zasada: serwer wysyła klientowi tylko to, co klient wolno zobaczyć. Ukrycie po stronie UI NIE jest zabezpieczeniem.
+- Zdarzenia (np. „zagrano kartę", wynik rzutu) mają typ jawny/prywatny; prywatne trafiają tylko do uprawnionych.
+- Test obowiązkowy dla każdej nowej wiadomości: nie ujawnia cudzych kart, tajnych celów ani liczb innych niż jawne
+  (por. 43.4: zachowanie z zewnątrz nie może zdradzać zawartości ręki).
+
+### 44.4. Pokoje, trwałość i współbieżność
+
+- Wiele gier naraz: identyfikator gry (`game_id`) w stanie serwisu; dziś stan jest w pamięci jednego procesu i
+  restart backendu kasuje partię. Docelowo zapis (`EventStore` na dysku) i wznowienie po restarcie.
+- Akcje w jednej grze są serializowane (jedna blokada na grę); dwie akcje naraz nie mogą się przeplatać.
+- Idempotencja: powtórzone żądanie (ponowne kliknięcie, retry po zerwaniu) nie może wykonać akcji dwa razy
+  (numer migawki/`seq` w żądaniu lub klucz idempotentności) — ⚠ ZAŁOŻENIE co do mechanizmu.
+- Klient po ponownym połączeniu pobiera pełny aktualny stan (własną projekcję), zamiast dogrywać zdarzenia.
+
+### 44.5. Interakcje równoległe i nieobecni gracze
+
+- Okna czasowe (RULES.md 29.2) już pytają graczy po kolei; w sieci UI pokazuje „czekamy na gracza X".
+  Tam, gdzie reguły pozwalają, by kilku graczy działało jednocześnie (np. wybory bez wpływu na siebie nawzajem),
+  rozważyć odpowiedzi równoległe — ⚠ ZAŁOŻENIE, do decyzji po zbadaniu każdego przypadku w tirules2.
+- Rozłączenie / brak odpowiedzi: timeout okna → przejęcie decyzji przez bota (poziom trudności z RULES.md 36)
+  albo pas — ⚠ ZAŁOŻENIE do potwierdzenia przez użytkownika.
+- STOP (43.4) w sieci wymaga jednolitego timera niezależnego od zawartości ręki; w hot-seat i solo nie dotyczy.
+
+### 44.6. ⚠ ZAŁOŻENIA / do potwierdzenia przez użytkownika
+
+- ⚠ ZAŁOŻENIE: token na miejsce przy stole (link zaproszenia) jako mechanizm tożsamości; role host/observer.
+- ⚠ ZAŁOŻENIE: projekcja per połączenie (push zmian) zamiast pobierania całości co chwilę (polling).
+- ⚠ ZAŁOŻENIE: timeout i przejęcie przez bota/pas przy nieobecnym graczu.
+- ⚠ TODO: nie sprawdzono jeszcze, które istniejące endpointy akcji przyjmują identyfikator gracza i które
+  go walidują; audyt przed etapem N (lista endpointów bez `actor_id`).
