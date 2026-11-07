@@ -14,21 +14,16 @@ import {
   IconChevronDown,
   IconGripVertical,
   IconLayoutGrid,
-  IconMinus,
-  IconPlus,
   IconStack2,
   IconSwords,
   IconTarget,
   IconTrophy,
 } from "@tabler/icons-react";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
-import { getColorAlias } from "@/entities/lookup/colors";
-import { Unit } from "@/shared/ui/Unit";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import {
   useBoardEditor,
-  useProductionHelp,
   useStrategyCards,
   type StrategyCardState,
 } from "@/api/useBoardEditor";
@@ -988,196 +983,24 @@ function StrategyCardPicker({
 }
 
 /**
- * Panel produkcji (krok PRODUCTION) — pełnoprawny edytor stawiania jednostek.
- * W TI4 produkcja DODAJE nowe jednostki na planszę: statki do przestrzeni
- * aktywnego systemu, siły naziemne/struktury na wybraną planetę. Panel pokazuje
- * dostępne zasoby (podpowiedź) i pozwala +/− każdą jednostkę przez God-Mode
- * (``editUnit``). NIE waliduje limitu zasobów — gracz pilnuje kosztu sam
- * (asystent, nie sędzia). Reguła umiejscowienia: RULES.md 26.
+ * Krok PRODUCTION w panelu pomocy: właściwa produkcja dzieje się w dużym oknie
+ * (`ProductionOverlay`, RULES.md 33.3), które otwiera się samo. Tu tylko powrót do niego,
+ * gdy gracz je schował, żeby zerknąć na mapę.
  */
-function ProductionPanel({
-  activeSystem,
-  activePlayerColor,
-  planets,
-}: {
-  activeSystem: string;
-  activePlayerColor: string | null;
-  planets: string[];
-}) {
-  const gameData = useGameData();
-  const { editUnit, produce } = useBoardEditor();
-  const player = gameData?.playerData?.find(
-    (p) => p.color === activePlayerColor,
-  );
-  const faction = player?.faction ?? null;
-  const colorAlias = getColorAlias(player?.color);
-  const { data } = useProductionHelp(faction);
-
-  // Strefa docelowa dla sił naziemnych/struktur: wybrana planeta (domyślnie
-  // pierwsza w systemie). Statki zawsze trafiają do „space".
-  const [planet, setPlanet] = useState<string | null>(planets[0] ?? null);
-  const [busy, setBusy] = useState(false);
-
-  if (!faction || !data) {
-    return (
+function ProductionStepPanel() {
+  const setHidden = useAppStore((s) => s.setProductionHidden);
+  return (
+    <div className={styles.stepBody}>
       <span className={styles.prodNote}>
-        No active player with a faction — cannot produce.
+        Build units with the PRODUCTION of your units in this system.
       </span>
-    );
-  }
-
-  // Dodawanie jednostek idzie przez WALIDOWANY endpoint produkcji (koszt/limit/
-  // blokada — RULES.md 33.2); odrzucenie pokazuje baner (notice). Usuwanie to
-  // korekta God-Mode (nie jest akcją reguł). ``baseType`` z asyncId przez katalog.
-  const addUnit = (baseType: string, zone: string) => {
-    if (busy) return;
-    setBusy(true);
-    void produce(faction, [{ baseType, count: 1, zone }]).finally(() =>
-      setBusy(false),
-    );
-  };
-
-  const removeUnit = (asyncId: string, zone: string, count: number) => {
-    if (busy) return;
-    setBusy(true);
-    void editUnit({ position: activeSystem, zone, faction, asyncId, delta: -count })
-      .finally(() => setBusy(false));
-  };
-
-  const ships = data.units.filter((u) => u.placement === "space");
-  const ground = data.units.filter((u) => u.placement === "planet");
-
-  return (
-    <div className={styles.production}>
-      <div className={styles.prodHead}>
-        <span className={styles.label}>
-          <IconStack2 size={11} aria-hidden="true" />
-          Production
-        </span>
-        <span className={styles.prodRes} title="Resources from controlled planets">
-          {data.availableResources} resources
-        </span>
-      </div>
-
-      {/* Statki → przestrzeń aktywnego systemu. */}
-      <span className={styles.prodZoneLabel}>Ships · space</span>
-      <div className={styles.unitGrid}>
-        {ships.map((u) => (
-          <ProductionUnitTile
-            key={u.asyncId}
-            unit={u}
-            colorAlias={colorAlias}
-            faction={faction}
-            busy={busy}
-            onAdd={() => addUnit(u.baseType, "space")}
-            onRemove={() => removeUnit(u.asyncId, "space", u.unitsPerCost)}
-          />
-        ))}
-      </div>
-
-      {/* Siły naziemne / struktury → wybrana planeta. */}
-      {ground.length > 0 && (
-        <>
-          <div className={styles.prodZoneRow}>
-            <span className={styles.prodZoneLabel}>Ground · planet</span>
-            {planets.length > 0 ? (
-              <div className={styles.planetTabs}>
-                {planets.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={styles.planetTab}
-                    data-active={p === planet || undefined}
-                    onClick={() => setPlanet(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <span className={styles.prodNote}>No planets in this system</span>
-            )}
-          </div>
-          {planet && (
-            <div className={styles.unitGrid}>
-              {ground.map((u) => (
-                <ProductionUnitTile
-                  key={u.asyncId}
-                  unit={u}
-                  colorAlias={colorAlias}
-                  faction={faction}
-                  busy={busy}
-                  onAdd={() => addUnit(u.baseType, planet)}
-                  onRemove={() => removeUnit(u.asyncId, planet, u.unitsPerCost)}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-/** Kafelek jednej produkowalnej jednostki: ikona, koszt, +/− (stawia na planszę). */
-function ProductionUnitTile({
-  unit,
-  colorAlias,
-  faction,
-  busy,
-  onAdd,
-  onRemove,
-}: {
-  unit: {
-    asyncId: string;
-    name: string;
-    cost: number;
-    unitsPerCost: number;
-  };
-  colorAlias: string;
-  faction: string;
-  busy: boolean;
-  onAdd: () => void;
-  onRemove: () => void;
-}) {
-  const perCost = unit.unitsPerCost > 1 ? `×${unit.unitsPerCost}` : "";
-  return (
-    <div className={styles.unitTile} title={unit.name}>
-      <div className={styles.unitTileIcon}>
-        <Unit
-          unitType={unit.asyncId}
-          colorAlias={colorAlias}
-          faction={faction}
-          scaleSprite
-        />
-      </div>
-      <span className={styles.unitTileName}>{unit.name}</span>
-      <span className={styles.unitTileCost} title="Cost · units produced per cost">
-        {unit.cost}
-        {perCost}
-      </span>
-      <div className={styles.unitTileBtns}>
-        <button
-          type="button"
-          className={styles.unitStep}
-          disabled={busy}
-          onClick={onRemove}
-          aria-label={`Remove ${unit.name}`}
-          title="Remove from the board"
-        >
-          <IconMinus size={13} />
-        </button>
-        <button
-          type="button"
-          className={cx(styles.unitStep, styles.unitStepAdd)}
-          disabled={busy}
-          onClick={onAdd}
-          aria-label={`Produce ${unit.name}`}
-          title="Produce (place on the board)"
-        >
-          <IconPlus size={13} />
-        </button>
-      </div>
+      <button
+        type="button"
+        className={cx(styles.ctlBtn, styles.ctlPrimary)}
+        onClick={() => setHidden(false)}
+      >
+        <IconStack2 size={13} /> Open production window
+      </button>
     </div>
   );
 }
@@ -1253,8 +1076,6 @@ export function TacticalActionPanel({
     return factionsWithShips.length >= 2;
   })();
 
-  // Planety aktywnego systemu (inwazja / produkcja naziemna) — id z danych kafelka.
-  const activePlanets = activeTile ? Object.keys(activeTile.planets ?? {}) : [];
   // Uwaga: odbiór kliknięcia w kafelek w trybie aktywacji (``activateRequest``) żyje
   // teraz w ``TurnControls`` (zamontowany przez całą fazę akcji), żeby przycisk
   // „Activate system" z rogu działał niezależnie od aktywnej zakładki panelu (Blok A).
@@ -1404,13 +1225,7 @@ export function TacticalActionPanel({
         </div>
       )}
 
-      {tacticalStep === "PRODUCTION" && (
-        <ProductionPanel
-          activeSystem={activeSystem}
-          activePlayerColor={activePlayerColor}
-          planets={activePlanets}
-        />
-      )}
+      {tacticalStep === "PRODUCTION" && <ProductionStepPanel />}
 
       {/* Nawigacja kroków — „następny krok" wymaga DRUGIEGO kliknięcia, bo kroków
           nie da się już swobodnie cofnąć (po produkcji kończy całą akcję). */}

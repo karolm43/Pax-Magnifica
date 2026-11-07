@@ -107,6 +107,7 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
 
     new_state.active_system = position
     new_state.tactical_step = TacticalStep.MOVEMENT
+    new_state.production_used = 0
     return new_state
 
 
@@ -183,6 +184,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.active_system = None
     new_state.tactical_step = None
+    new_state.production_used = 0
     new_state.space_cannon_log = "[]"
     new_state.active_combat = None
     new_state.invasion = None
@@ -304,7 +306,9 @@ def production_help(
                 async_id=ASYNC_ID_BY_BASE_TYPE[base_type],
                 unit_id=unit.id,
                 name=unit.name,
-                cost=unit.cost,
+                # Cena JEDNEJ produkcji: dane trzymają koszt per sztuka (0.5), a para
+                # fighter/infantry kosztuje 1 (R_cost: dwie ikony = dwie sztuki za koszt).
+                cost=unit.cost * (2 if base_type in _DUAL_PRODUCTION else 1),
                 units_per_cost=2 if base_type in _DUAL_PRODUCTION else 1,
                 placement="space" if is_space_unit(base_type) else "planet",
             )

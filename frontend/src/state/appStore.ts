@@ -203,6 +203,9 @@ type AppStore = {
    */
   battleHidden: boolean;
   setBattleHidden: (hidden: boolean) => void;
+  /** Okno produkcji (RULES.md 33.3) schowane na mapę; wraca przyciskiem w panelu pomocy. */
+  productionHidden: boolean;
+  setProductionHidden: (hidden: boolean) => void;
 
   dragLoadTarget: { position: string; asyncId: string } | null;
   setDragLoadTarget: (
@@ -342,6 +345,8 @@ export const useAppStore = create<AppStore>((set) => {
 
     battleHidden: false,
     setBattleHidden: (hidden: boolean) => set({ battleHidden: hidden }),
+    productionHidden: false,
+    setProductionHidden: (hidden: boolean) => set({ productionHidden: hidden }),
 
     dragLoadTarget: null,
     setDragLoadTarget: (target) => set({ dragLoadTarget: target }),

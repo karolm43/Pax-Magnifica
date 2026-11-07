@@ -13,6 +13,7 @@ import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal"
 import { CapacityModal } from "@/domains/map/components/CapacityModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
+import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
@@ -252,6 +253,8 @@ function GameMapContent() {
       <CombatModal />
       {/* Okno POLA BITWY — pełny ekran, samo pojawia się, gdy trwa walka (RULES.md 39). */}
       {/* Okno INWAZJI (RULES.md 40) — pod polem bitwy, żeby walka naziemna otwierała się nad nim. */}
+      {/* Okno PRODUKCJI (RULES.md 33.3) — otwiera się samo w kroku PRODUCTION, pod inwazją. */}
+      <ProductionOverlay />
       <InvasionOverlay />
       <BattleOverlay />
       {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje

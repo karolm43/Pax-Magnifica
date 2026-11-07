@@ -1779,7 +1779,33 @@ God-Mode (`board_edit.place_command_token`) nadal omija (korekta bez zużycia pu
 - Czyste funkcje. God-Mode (`/system/{pos}/edit-units`) NADAL omija (wentyl bez reguł).
 
 **Status:** ✅ T6 aktywacja (własny CC + pula) + produkcja (budżet-check, limit, blokada statków).
-⬜ realne wydawanie zasobów (wyczerpanie planet/TG), ⬜ component limitations (rezerwy) — rozbudowa.
+Realne wydawanie i rezerwy — patrz 33.3 (✅ zrobione, z jednym wyjątkiem opisanym niżej).
+
+### 33.3. Krok PRODUCTION domknięty: płatność, wspólny limit, strefy, rezerwa — ✅ ZWERYFIKOWANE
+
+📎 tirules: [Production](rules_tirules/R_production.md) · [Producing Units](rules_tirules/R_producing_units.md) · [Cost](rules_tirules/R_cost.md) · [Component Limitations](rules_tirules/R_component_limitations.md) · [Blockaded](rules_tirules/R_blockaded.md)
+
+Zastępuje „opcję b" z 33.2. `core/production.produce(...)` (endpoint `POST /tactical/produce`):
+- **Płatność REALNA:** wybrane planety są wyczerpywane (`exhausted_planets`), TG schodzą z puli;
+  planety muszą być kontrolowane i gotowe; zapłata ≥ koszt, nadwyżka przepada. Pominięte `spend`
+  → `auto_pay` (planety od największych, zbędne zdejmowane, TG tylko na resztę — dla bota).
+- **Koszt pary:** dane AsyncTI4 trzymają koszt PER SZTUKA (fighter/infantry = 0.5); karta mówi „1
+  za dwie". Para = 2 × koszt sztuki, N sztuk = ⌈N/2⌉ par, liczone łącznie dla typu (piechota na dwóch
+  planetach to nadal jedna para). Poprzedni kod pobierał pół ceny — naprawione.
+- **Limit WSPÓLNY dla akcji:** `GameState.production_used` (zerowane przy aktywacji/końcu akcji);
+  kolejne zamówienia w tym samym kroku liczą się do tego samego limitu PRODUCTION.
+- **Strefy (R_production):** statki → tylko przestrzeń aktywnego systemu. Siły naziemne → planety z
+  jednostką PRODUCTION (dok); gdy produkuje jednostka w przestrzeni — także każda planeta gracza w
+  systemie albo sama przestrzeń (`allowed_ground_zones`).
+- **Rezerwa (R_component_limitations):** typy poza fighter/infantry ograniczone plastikiem
+  (`UNIT_CAP_BY_ASYNC_ID`); brak w rezerwie → odrzucenie.
+- Widok dla okna: `GET /tactical/production/view` (limit, użyte, producenci, strefy, planety, TG,
+  jednostki z rezerwą). Front: `frontend/src/domains/production/` (okno otwiera się samo w kroku).
+
+⚠️ ZAŁOŻENIA / luki (do decyzji użytkownika): (1) „usuń jednostkę z planszy, by dostawić z rezerwy"
+(R_component_limitations) NIE jest zaimplementowane — brak rezerwy blokuje, wentylem jest God-Mode;
+(2) Arborec: wartość PRODUCTION doków Arborec nie może produkować piechoty — to hook frakcji (E7),
+nie ma go jeszcze; (3) modyfikatory kosztu/limitu z kart i technologii (E7) pominięte.
 
 
 ---

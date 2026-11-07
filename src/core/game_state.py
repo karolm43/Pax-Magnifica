@@ -363,6 +363,10 @@ class GameState(BaseModel):
     # zakończeniu akcji. Aplikacja prowadzi kroki, ale nie waliduje reguł.
     active_system: str | None = None
     tactical_step: TacticalStep | None = None
+    # Ile jednostek wyprodukowano już w TEJ akcji taktycznej (limit PRODUCTION jest
+    # wspólny dla całego kroku, nie per zamówienie — RULES.md 33.3). Zerowane przy
+    # aktywacji i zakończeniu akcji.
+    production_used: int = 0
     # Otwarte okno czasowe (timing window) — None, gdy żadne nie trwa. Trzyma kolejkę
     # graczy reagujących po kolei (secondary kart strategii, przypisanie strat w walce,
     # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między

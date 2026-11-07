@@ -625,6 +625,15 @@ class ProduceOrderItem(BaseModel):
     zone: str | None = None
 
 
+class ProduceSpend(BaseModel):
+    """Płatność za produkcję: planety do wyczerpania + trade goods."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    planets: list[str] = Field(default_factory=list)
+    trade_goods: int = Field(default=0, alias="tradeGoods")
+
+
 class ProduceRequest(BaseModel):
     """Walidowana produkcja jednostek w aktywnym systemie (E8-T6).
 
@@ -636,6 +645,8 @@ class ProduceRequest(BaseModel):
 
     faction: str
     orders: list[ProduceOrderItem] = Field(default_factory=list)
+    # Czym płacimy; pominięte = płatność automatyczna (najmniejsza nadwyżka).
+    spend: ProduceSpend | None = None
 
 class CapturePlanetRequest(BaseModel):
     """Przejęcie kontroli planety po inwazji (E3): planeta + gracz."""

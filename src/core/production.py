@@ -5,9 +5,9 @@ systemie), BUDŻET (koszt ≤ dostępne zasoby — SPRAWDZENIE bez realnego wyda
 opcja „b") oraz BLOKADĘ statków (nie produkuj statków w systemie z obcymi statkami).
 Reguły: RULES.md 33.2 (źródło LRR R_production / R_producing_units). Funkcje CZYSTE.
 
-Zakres T6 (szkielet, „make it exist first"): sprawdzamy legalność zamówienia produkcji;
-realne wyczerpywanie planet / zdejmowanie TG oraz component limitations (rezerwy) = TODO
-z modelem wpływu. God-Mode (edit-units) nadal omija (wentyl bez reguł).
+``produce`` (RULES.md 33.3) domyka krok: waliduje całość (limit WSPÓLNY dla akcji, blokada,
+strefy umieszczenia, rezerwa), REALNIE płaci (wyczerpuje planety, zdejmuje TG) i stawia
+jednostki. God-Mode (edit-units) nadal omija (wentyl bez reguł).
 """
 
 from __future__ import annotations
@@ -18,7 +18,11 @@ from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import is_space_unit
+from src.core.unit_catalog import (
+    ASYNC_ID_BY_BASE_TYPE,
+    UNIT_CAP_BY_ASYNC_ID,
+    is_space_unit,
+)
 
 # Jednostki produkowane podwójnie (2 sztuki za koszt) — RULES.md 22/33.2.
 _DUAL = {"fighter", "infantry"}
@@ -30,6 +34,30 @@ class ProductionOrder:
 
     base_type: str
     count: int
+    # Strefa docelowa: "space" albo id planety. None = domyślnie (statek → przestrzeń).
+    zone: str | None = None
+
+
+@dataclass(frozen=True)
+class Spend:
+    """Czym płacimy za produkcję: wyczerpywane planety + trade goods (R_producing_units)."""
+
+    planets: tuple[str, ...] = ()
+    trade_goods: int = 0
+
+
+@dataclass(frozen=True)
+class Producer:
+    """Jednostka(i) z PRODUCTION w aktywnym systemie: gdzie stoją i ile dają łącznie."""
+
+    zone: str  # "space" albo id planety
+    base_type: str
+    count: int
+    value: int  # łączna wartość PRODUCTION tej grupy (wartość jednostki × liczba)
+
+
+# Struktury nie są "produkowane" przez PRODUCTION (to Construction) — poza zamówieniami.
+STRUCTURES = {"pds", "spacedock"}
 
 
 def _planet_resources(registry: StaticDataRegistry, planet_id: str) -> int:
@@ -98,26 +126,127 @@ def system_production_value(
     na której stoi. Gdy system/jednostek brak — 0. Używane też do wskaźnika produkcji
     na kafelku mapy (web-data ``tileUnitData[pos].production``).
     """
+    return sum(p.value for p in producers(state, registry, player_id, position))
+
+
+def producers(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    position: str,
+) -> list[Producer]:
+    """Jednostki gracza z PRODUCTION > 0 w danym systemie (R_production).
+
+    Przestrzeń: statki z PRODUCTION (np. warianty flagowca/war suna). Planety: struktury
+    (doki) — modyfikator względny ("+N") liczony od zasobów planety, na której stoją.
+    """
     system = state.systems.get(position)
     if system is None:
-        return 0
+        return []
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
 
-    total = 0
-    # Przestrzeń: statki gracza z wartością PRODUCTION (np. warsun/flagship warianty).
+    result: list[Producer] = []
     for base_type, count in system.space_units.get(player_id, {}).items():
         pv = _unit_production_value(registry, faction_id, technologies, base_type, None)
-        total += pv * count
-    # Planety: struktury gracza (doki) — modyfikator względny od zasobów planety.
+        if pv > 0 and count > 0:
+            result.append(Producer("space", base_type, count, pv * count))
     for planet_id, by_player in system.planet_units.items():
         for base_type, count in by_player.get(player_id, {}).items():
             pv = _unit_production_value(
                 registry, faction_id, technologies, base_type, planet_id
             )
-            total += pv * count
+            if pv > 0 and count > 0:
+                result.append(Producer(planet_id, base_type, count, pv * count))
+    return result
+
+
+def remaining_production(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+) -> int:
+    """Ile jednostek można jeszcze wyprodukować w tej akcji (limit − już wyprodukowane)."""
+    return max(0, production_limit(state, grid, registry, player_id) - state.production_used)
+
+
+def is_blockaded(state: GameState, player_id: str, position: str) -> bool:
+    """Czy w systemie stoją OBCE statki (R_producing_units: wtedy statków nie produkujemy)."""
+    system = state.systems.get(position)
+    if system is None:
+        return False
+    return any(
+        owner != player_id and any(c > 0 for c in by_type.values())
+        for owner, by_type in system.space_units.items()
+    )
+
+
+def allowed_ground_zones(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    position: str,
+) -> list[str]:
+    """Gdzie wolno postawić wyprodukowane SIŁY NAZIEMNE (R_production).
+
+    Planety, na których stoi jednostka z PRODUCTION (dok). Jeśli produkuje jednostka w
+    przestrzeni — dodatkowo każda planeta gracza w systemie albo sama przestrzeń.
+    """
+    prods = producers(state, registry, player_id, position)
+    zones: list[str] = []
+    for p in prods:
+        if p.zone != "space" and p.zone not in zones:
+            zones.append(p.zone)
+    if any(p.zone == "space" for p in prods):
+        system = state.systems.get(position)
+        if system is not None:
+            for planet_id, owner in system.planet_owners.items():
+                if owner == player_id and planet_id not in zones:
+                    zones.append(planet_id)
+        zones.append("space")
+    return zones
+
+
+def deployed_count(state: GameState, player_id: str, base_type: str) -> int:
+    """Ile jednostek danego typu gracz ma na planszy (przestrzeń + planety, wszystkie systemy)."""
+    total = 0
+    for system in state.systems.values():
+        total += system.space_units.get(player_id, {}).get(base_type, 0)
+        for by_player in system.planet_units.values():
+            total += by_player.get(player_id, {}).get(base_type, 0)
     return total
+
+
+def reinforcements_left(
+    state: GameState, player_id: str, base_type: str
+) -> int | None:
+    """Ile sztuk zostało w rezerwie; ``None`` = bez limitu (żetony fighter/infantry).
+
+    R_component_limitations: myśliwce i siły naziemne mają żetony zastępcze, reszta jest
+    ograniczona plastikiem (limity z ``UNIT_CAP_BY_ASYNC_ID``).
+    """
+    if base_type in _DUAL:
+        return None
+    cap = UNIT_CAP_BY_ASYNC_ID.get(ASYNC_ID_BY_BASE_TYPE.get(base_type, ""))
+    if cap is None:
+        return None
+    return max(0, cap - deployed_count(state, player_id, base_type))
+
+
+def ready_planets(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[tuple[str, str]]:
+    """Planety gracza gotowe do wydania (id, pozycja systemu) — kontrolowane, nie wyczerpane."""
+    player = state.players.get(player_id)
+    exhausted = set(player.exhausted_planets) if player is not None else set()
+    result: list[tuple[str, str]] = []
+    for position, system in state.systems.items():
+        for planet_id, owner in system.planet_owners.items():
+            if owner == player_id and planet_id not in exhausted:
+                result.append((planet_id, position))
+    return result
 
 
 def available_budget(
@@ -152,10 +281,29 @@ def _order_cost(
     unit = resolve_unit_variant(registry, faction_id, technologies, order.base_type)
     cost = unit.cost if unit is not None and unit.cost is not None else 0.0
     if order.base_type in _DUAL:
-        # Para za koszt: N sztuk = ceil(N/2) kosztów (1 sztuka też pełny koszt).
+        # Dane AsyncTI4 trzymają koszt PER SZTUKA (piechota/myśliwiec = 0.5); karta mówi
+        # „1 za dwie". Para = 2 × koszt sztuki; N sztuk = ceil(N/2) par (1 sztuka też pełna para).
         pairs = (order.count + 1) // 2
-        return cost * pairs
+        return cost * 2 * pairs
     return cost * order.count
+
+
+def _total_cost(
+    registry: StaticDataRegistry,
+    faction_id: str | None,
+    technologies: list[str],
+    orders: list[ProductionOrder],
+) -> float:
+    """Koszt całego zamówienia; sztuki tego samego typu (np. piechota na dwóch planetach)
+    łączą się w pary, bo para fighter/infantry to jeden koszt niezależnie od strefy."""
+    merged: dict[str, int] = {}
+    for o in orders:
+        if o.count > 0:
+            merged[o.base_type] = merged.get(o.base_type, 0) + o.count
+    return sum(
+        _order_cost(registry, faction_id, technologies, ProductionOrder(bt, n))
+        for bt, n in merged.items()
+    )
 
 
 def validate_production(
@@ -187,10 +335,10 @@ def validate_production(
 
     # LIMIT: łączna liczba sztuk ≤ suma PRODUCTION w aktywnym systemie.
     total_units = sum(o.count for o in orders)
-    limit = production_limit(state, grid, registry, player_id)
+    limit = remaining_production(state, grid, registry, player_id)
     if total_units > limit:
         raise ValueError(
-            f"Production limit exceeded: {total_units} units > PRODUCTION {limit}."
+            f"Production limit exceeded: {total_units} units > PRODUCTION {limit} left."
         )
 
     # BLOKADA statków: obce statki w aktywnym systemie → statków nie produkujemy.
@@ -210,12 +358,154 @@ def validate_production(
                 )
 
     # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania).
-    total_cost = sum(
-        _order_cost(registry, faction_id, technologies, o) for o in orders
-    )
+    total_cost = _total_cost(registry, faction_id, technologies, orders)
     budget = available_budget(state, registry, player_id)
     if total_cost > budget:
         raise ValueError(
             f"Not enough resources: cost {total_cost:g} > available {budget} "
             "(ready planets + trade goods)."
         )
+
+
+def order_cost(
+    state: GameState, registry: StaticDataRegistry, player_id: str, orders: list[ProductionOrder]
+) -> float:
+    """Łączny koszt zamówienia (para fighter/infantry = jeden koszt)."""
+    player = state.players.get(player_id)
+    faction_id = player.faction if player is not None else None
+    technologies = player.technologies if player is not None else []
+    return _total_cost(registry, faction_id, technologies, orders)
+
+
+def auto_pay(
+    state: GameState, registry: StaticDataRegistry, player_id: str, cost: float
+) -> Spend:
+    """Wybiera czym zapłacić z minimalną nadwyżką: najpierw planety, TG tylko na resztę.
+
+    Zachłannie: planety od największych zasobów do pokrycia kosztu, potem zdejmuje
+    zbędne (od najmniejszych), jeśli suma nadal wystarcza. Brakującą część dopłaca TG.
+    Gdy zasobów brak — zwraca wszystko, co jest (walidacja odrzuci niedobór).
+    """
+    need = int(-(-cost // 1))  # ceil bez importu math
+    if need <= 0:
+        return Spend()
+    player = state.players.get(player_id)
+    tg = player.trade_goods if player is not None else 0
+    ready = [pid for pid, _ in ready_planets(state, registry, player_id)]
+    ranked = sorted(
+        ((pid, _planet_resources(registry, pid)) for pid in ready),
+        key=lambda item: (-item[1], item[0]),
+    )
+    chosen: list[tuple[str, int]] = []
+    total = 0
+    for pid, res in ranked:
+        if total >= need:
+            break
+        if res <= 0:
+            continue
+        chosen.append((pid, res))
+        total += res
+    for item in sorted(chosen, key=lambda i: i[1]):
+        if total - item[1] >= need:
+            chosen.remove(item)
+            total -= item[1]
+    missing = max(0, need - total)
+    return Spend(tuple(pid for pid, _ in chosen), min(tg, missing))
+
+
+def _validate_spend(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    spend: Spend,
+    cost: float,
+) -> None:
+    """Sprawdza, że płatność jest legalna i pokrywa koszt (nadwyżka przepada)."""
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}.")
+    if len(set(spend.planets)) != len(spend.planets):
+        raise ValueError("The same planet was selected to pay twice.")
+    ready = {pid for pid, _ in ready_planets(state, registry, player_id)}
+    for pid in spend.planets:
+        if pid not in ready:
+            raise ValueError(f"Planet {pid} is not controlled or is already exhausted.")
+    if spend.trade_goods < 0 or spend.trade_goods > player.trade_goods:
+        raise ValueError(
+            f"Not enough trade goods: {spend.trade_goods} > {player.trade_goods}."
+        )
+    paid = sum(_planet_resources(registry, pid) for pid in spend.planets) + spend.trade_goods
+    if paid < cost:
+        raise ValueError(f"Payment too low: {paid} spent < cost {cost:g}.")
+
+
+def produce(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+    orders: list[ProductionOrder],
+    spend: Spend | None = None,
+) -> GameState:
+    """Wykonuje produkcję w aktywnym systemie: walidacja → płatność → postawienie jednostek.
+
+    Reguły (RULES.md 33.2–33.3, R_production / R_producing_units / R_component_limitations):
+    limit PRODUCTION wspólny dla akcji; blokada statków; siły naziemne tylko na planetach z
+    producentem (lub planetach gracza/przestrzeni, gdy produkuje jednostka w przestrzeni);
+    rezerwa (poza fighter/infantry); koszt płacony zasobami gotowych planet (wyczerpywane)
+    i TG, nadwyżka przepada. ``spend=None`` → automatyczna płatność (``auto_pay``).
+
+    Raises:
+        ValueError: Przy złamaniu którejkolwiek reguły (stan wejściowy bez zmian).
+    """
+    from src.core import board_edit  # lokalnie: board_edit nie zna produkcji (brak cyklu)
+
+    active = state.active_system
+    orders = [o for o in orders if o.count > 0]
+    validate_production(state, grid, registry, player_id, orders)
+    if active is None or not orders:
+        return state.clone()
+
+    zones = allowed_ground_zones(state, registry, player_id, active)
+    wanted: dict[str, int] = {}
+    placed: list[tuple[ProductionOrder, str]] = []
+    for o in orders:
+        if o.base_type in STRUCTURES or o.base_type not in ASYNC_ID_BY_BASE_TYPE:
+            raise ValueError(f"Unit {o.base_type} cannot be produced.")
+        if is_space_unit(o.base_type):
+            if o.zone not in (None, "space"):
+                raise ValueError(f"Ship {o.base_type} can only be placed in space.")
+            zone = "space"
+        else:
+            if o.zone is None:
+                raise ValueError(f"Ground force {o.base_type} requires a planet.")
+            if o.zone not in zones:
+                raise ValueError(
+                    f"Cannot place {o.base_type} on {o.zone}: needs a planet with your "
+                    "producing unit (or your planet / space when a ship produces)."
+                )
+            zone = o.zone
+        wanted[o.base_type] = wanted.get(o.base_type, 0) + o.count
+        placed.append((o, zone))
+    for base_type, count in wanted.items():
+        left = reinforcements_left(state, player_id, base_type)
+        if left is not None and count > left:
+            raise ValueError(
+                f"Not enough {base_type} in reinforcements: {count} > {left} left."
+            )
+
+    cost = order_cost(state, registry, player_id, orders)
+    pay = spend if spend is not None else auto_pay(state, registry, player_id, cost)
+    _validate_spend(state, registry, player_id, pay, cost)
+
+    new_state = state
+    for o, zone in placed:
+        new_state = board_edit.edit_units(
+            new_state, grid, active, zone, player_id,
+            ASYNC_ID_BY_BASE_TYPE[o.base_type], o.count,
+        )
+    player = new_state.players[player_id]
+    player.exhausted_planets = [*player.exhausted_planets, *pay.planets]
+    player.trade_goods -= pay.trade_goods
+    new_state.production_used = state.production_used + sum(o.count for o in orders)
+    return new_state

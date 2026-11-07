@@ -60,7 +60,13 @@ kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 te
    „Fight" otwiera pole bitwy NAD oknem inwazji). 13+3 testy backendu, 6 vitest.
    NIE sprawdzone na żywo (wymaga restartu backendu). TODO: Custodians na Mecatol, eksploracja
    po przejęciu (UI tylko sygnalizuje), mech z Bombardment, Plasma Scoring (RULES.md 40.3).
-4. PRODUKCJA: realne wyczerpywanie planet/TG (dziś tylko sprawdzenie budżetu), limity rezerw.
+4. ✅ PRODUKCJA (RULES.md 33.3): `core/production.produce` — realna płatność (wyczerpanie planet,
+   TG), limit PRODUCTION wspólny dla akcji (`GameState.production_used`), strefy umieszczenia,
+   rezerwa, koszt pary (naprawiony błąd: pół ceny). `GET /tactical/production/view`, pełnoekranowe
+   okno `domains/production/ProductionOverlay` (sloty „ile można zbudować", producenci, karty
+   jednostek z +/−, planety jako klikalne boxy, TG, rachunek, zamówienie). Tło do podmiany:
+   `assets/extra/production_bg.jpg` (fallback: starfield.png). NIE sprawdzone na żywo (restart
+   backendu). TODO: „usuń z planszy, by dostawić z rezerwy", hook Arborec (piechota), karty/tech (E7).
 5. Braki: Sustain Damage w Space Cannon, capacity po walce, Plasma Scoring, multi-select
    Ctrl/Shift na mapie, pickup z systemów mijanych, >2 stron w walce (dziś 422).
 

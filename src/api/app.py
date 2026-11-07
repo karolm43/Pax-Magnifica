@@ -32,6 +32,7 @@ from src.api.routers import (
     history,
     invasion,
     players,
+    production,
     rules,
     space_cannon,
     strategy,
@@ -101,6 +102,7 @@ def create_app(
     app.include_router(battle.router)
     app.include_router(capacity.router)
     app.include_router(invasion.router)
+    app.include_router(production.router)
     app.include_router(window.router)
     app.include_router(rules.router)
     app.include_router(components.router)
