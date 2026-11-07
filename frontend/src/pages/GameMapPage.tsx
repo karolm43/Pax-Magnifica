@@ -11,6 +11,7 @@ import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
 import { MoveQuantityModal } from "@/domains/map/components/MoveQuantityModal";
 import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
+import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
 import { KeyboardShortcutsModal } from "@/domains/game-shell/components/KeyboardShortcutsModal";
@@ -249,6 +250,8 @@ function GameMapContent() {
       <LoadTransportModal />
       <CombatModal />
       {/* Okno POLA BITWY — pełny ekran, samo pojawia się, gdy trwa walka (RULES.md 39). */}
+      {/* Okno INWAZJI (RULES.md 40) — pod polem bitwy, żeby walka naziemna otwierała się nad nim. */}
+      <InvasionOverlay />
       <BattleOverlay />
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}

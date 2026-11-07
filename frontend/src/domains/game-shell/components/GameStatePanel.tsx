@@ -1445,7 +1445,7 @@ export function TacticalActionPanel({
           ) : (
             <span className={styles.prodNote}>
               {activePlanets.length > 0
-                ? "No contested planet. Landing ground forces (Commit Ground Forces) comes with the invasion step."
+                ? "Nothing to bombard or land. The invasion window opens when there are ground forces in orbit or a bombardment target."
                 : "No planets in this system."}
             </span>
           )}

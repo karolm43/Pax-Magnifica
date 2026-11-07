@@ -488,6 +488,8 @@ export type GameState = {
   /** Bieżący krok akcji taktycznej (rozszerzenie Custodian Engine, E3). */
   tacticalStep?: string | null;
   activeCombat: GameStateCombat | null;
+  /** Trwająca inwazja (Custodian Engine, RULES.md 40) — null, gdy brak. */
+  activeInvasion?: { system: string; phase: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
   pendingWindow?: PendingWindow | null;
   /**
