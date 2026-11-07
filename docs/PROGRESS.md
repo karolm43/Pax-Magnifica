@@ -61,6 +61,17 @@ front: `GameSetupOverlay`. Wybór karty strategii zablokowany do końca setupu. 
 (+ `tests/setup_helpers.py::finish_setup` w testach faz gry). Do zrobienia: ręka notek w oknie setupu,
 wysyłka kandydatów tylko właścicielowi w grze sieciowej.
 
+## ✅ Wybór frakcji — sekcja „Faction components" (2026-11-07)
+
+Panel `FactionSummary` pokazuje specjalne żetony/karty frakcji (ikona + liczba + nazwa, opis w
+tooltipie): Creuss (Alpha/Beta/Gamma), Naalu („0"), Nekro (X/Y/Z), Empyrean (Void Tether ×2),
+Titans (Sleepers ×5), Cabal (Dimensional Tear), Crimson (Breach ×7, Sever), Bastion (Galvanize ×7),
+Deepwrought (Ocean cards ×5), Firmament/Obsidian (Plot cards ×5). Dane: `frontend/src/domains/setup/
+factionComponents.ts` (źródła liczb w nagłówku pliku). Komponenty-jednostki/planety zostają w
+„Breakthrough component". ⚠️ ZAŁOŻENIA do potwierdzenia: Valefar „Z" ×7 (limit z AsyncTI4),
+Dimensional Tear ×3 (jeden na dok), Void Tether ×2 (z logiki `VoidTetherService` bota).
+Ingress tokeny (Fracture) celowo pominięte — wspólny komponent gry, nie frakcji.
+
 ## ▶ START KOLEJNEJ SESJI — stan akcji taktycznej (2026-11-06, commit `786549e`)
 
 Cel etapu: pełna akcja taktyczna wg `R_tactical_action` (Activation → Movement + Space Cannon

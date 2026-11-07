@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, MultiSelect, Stack, Text } from "@/ds";
-import { IconArrowLeft, IconChevronRight } from "@tabler/icons-react";
+import { IconArrowLeft, IconCards, IconChevronRight } from "@tabler/icons-react";
 import { type FactionInfo, useFaction } from "@/api/useNewGame";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { Ability } from "@/domains/player/components/Ability";
@@ -38,6 +38,8 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { deferredStartingTechNotice, hasDeferredStartingTech } from "./deferredTech";
 import { breakthroughComponents } from "./breakthroughComponents";
+import { type FactionComponent, factionComponents } from "./factionComponents";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./FactionSummary.module.css";
 
 /** Kolejność slotów liderów — jak w panelu gracza (agent → commander → hero). */
@@ -151,6 +153,43 @@ function FleetUnitIcon({ unitId }: { unitId: string }) {
         scaleSprite
         showFactionTokens={false}
       />
+    </span>
+  );
+}
+
+/** Ikona specjalnego komponentu: grafika żetonu, ikona karty albo znak w kółku. */
+function ComponentIcon({ icon }: { icon: FactionComponent["icon"] }) {
+  if (typeof icon === "object" && "card" in icon) {
+    return (
+      <span className={styles.componentIcon} aria-hidden>
+        <IconCards size={20} stroke={1.6} />
+      </span>
+    );
+  }
+  if (typeof icon === "object") {
+    return (
+      <span className={`${styles.componentIcon} ${styles.componentGlyph}`} aria-hidden>
+        {icon.glyph}
+      </span>
+    );
+  }
+  return (
+    <span className={styles.componentIcon} aria-hidden>
+      <img src={assetUrl(icon)} alt="" className={styles.componentImg} />
+    </span>
+  );
+}
+
+/** Chip specjalnego komponentu frakcji: liczba × ikona + nazwa (opis w tooltipie). */
+function FactionComponentChip({ component }: { component: FactionComponent }) {
+  return (
+    <span
+      className={styles.componentChip}
+      title={`${component.name} ×${component.count} — ${component.description}`}
+    >
+      <span className={styles.fleetCount}>{component.count}</span>
+      <ComponentIcon icon={component.icon} />
+      <span className={styles.fleetName}>{component.name}</span>
     </span>
   );
 }
@@ -388,6 +427,10 @@ function SummaryBody({
     (id) => getUnitData(id)?.faction !== undefined && !btUnitIds.has(id),
   );
 
+  // Specjalne żetony/karty frakcji (Sleepers, Plots, Breach, Void Tether...) — patrz
+  // `factionComponents.ts`; puste dla frakcji bez własnych komponentów.
+  const components = factionComponents(faction.id);
+
   // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu. Trzymamy jako
   // listę pozycji (liczba + nazwa) — renderowana jako „chipy", nie goły tekst.
   const fleetByType = new Map<string, number>();
@@ -523,6 +566,16 @@ function SummaryBody({
             <div className={styles.unitRow}>
               {factionUnits.map((id) => (
                 <FactionUnit key={id} unitId={id} />
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {components.length > 0 && (
+          <Section title="Faction components">
+            <div className={styles.fleetChips}>
+              {components.map((c) => (
+                <FactionComponentChip key={c.id} component={c} />
               ))}
             </div>
           </Section>

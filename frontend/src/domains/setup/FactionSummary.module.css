@@ -461,6 +461,43 @@
   object-fit: contain;
 }
 
+/* Specjalne komponenty frakcji (żetony/karty) — chip jak flota: liczba, ikona, nazwa. */
+.componentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 3px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 999px;
+  background: var(--ds-socket);
+  cursor: help;
+}
+
+.componentIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: var(--ds-ink-hi);
+}
+
+.componentImg {
+  max-width: 26px;
+  max-height: 26px;
+  object-fit: contain;
+}
+
+/* Żeton bez grafiki (np. „0" Naalu) — znak w kółku. */
+.componentGlyph {
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: var(--ds-fz-sm);
+  font-weight: 700;
+  line-height: 1;
+}
+
 /*
  * Commodities — chip „ikona + liczba", spójny z chipami floty startowej. Liczba OBOK
  * ikony (nie nałożona), więc jest czytelna niezależnie od grafiki /comms.png.
