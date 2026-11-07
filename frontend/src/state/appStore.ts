@@ -71,6 +71,7 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaNeighborship: true,
   adminFastMode: false,
   freeUnitDrag: false,
+  skipPhases: false,
 };
 
 /** Legacy settings stored a boolean `showControlTokens` instead of the mode. */
@@ -488,6 +489,12 @@ export type Settings = {
    * Włączone: jednostkę można upuścić w dowolnym miejscu (omija reguły, /units/move).
    */
   freeUnitDrag: boolean;
+  /*
+   * Przeskok faz (God-Mode, testy). Włączone: w panelu tury pojawia się przycisk
+   * „Skip phase" (/phase/skip) omijający bramy, okna i wybór kart strategii.
+   * Wyłączone (domyślnie): zwykły, walidowany przepływ.
+   */
+  skipPhases: boolean;
 };
 
 type BooleanSettingKey = {

@@ -149,6 +149,14 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
                 handlers.updateSettings({ freeUnitDrag: checked })
               }
             />
+            <SwitchRow
+              label="Skip phases button (God-Mode)"
+              description="Show a Skip phase button in the turn panel. It jumps to the next phase ignoring passes, open windows and strategy card picks (missing cards are auto-picked). Normal Next phase is unchanged."
+              checked={settings.skipPhases}
+              onToggle={(checked) =>
+                handlers.updateSettings({ skipPhases: checked })
+              }
+            />
           </SettingGroup>
 
           <SettingGroup label="Map display">

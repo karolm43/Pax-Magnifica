@@ -204,6 +204,11 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  const skipPhase = useCallback(async () => {
+    await post("/phase/skip", {});
+    await refresh();
+  }, [refresh]);
+
   const nextPhase = useCallback(async () => {
     await post("/phase/next", {});
     await refresh();
@@ -561,6 +566,7 @@ export function useBoardEditor() {
     nextPlayer,
     phaseStep,
     nextPhase,
+    skipPhase,
     nextRound,
     pickStrategyCard,
     playStrategyCard,

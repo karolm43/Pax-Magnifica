@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import SetSpeakerRequest, StateEnvelope, TurnActionRequest
-from src.core import strategy_phase, turn_flow
+from src.core import skip_flow, strategy_phase, turn_flow
 from src.core.game_state import GameState, Phase
 
 router = APIRouter()
@@ -129,6 +129,19 @@ async def post_next_phase(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, "phase:next")
+
+
+@router.post("/phase/skip", response_model=StateEnvelope)
+async def post_skip_phase(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+    """Tryb testowy (God-Mode): przeskakuje fazę z pominięciem bram i okien.
+
+    Włączany w UI ustawieniem „Skip phases". Zwykłe ``/phase/next`` zostaje bez zmian.
+    """
+    try:
+        new_state = skip_flow.skip_phase(ctx.service.current_state(), ctx.registry)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "phase:skip")
 
 
 @router.post("/round/next", response_model=StateEnvelope)

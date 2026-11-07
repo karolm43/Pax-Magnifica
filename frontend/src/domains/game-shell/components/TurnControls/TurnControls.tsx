@@ -40,7 +40,8 @@ import { DetailsCard, type DetailsCardColor } from "@/shared/ui/DetailsCard";
 import { Button, Group, Stack, Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
-import { useAppStore } from "@/state/appStore";
+import { useAppStore, useSettingsStore } from "@/state/appStore";
+import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useDeskPlayer } from "./useDeskPlayer";
 import styles from "./TurnControls.module.css";
 
@@ -109,10 +110,17 @@ export function TurnControls() {
     nextPlayer,
     phaseStep,
     nextPhase,
+    skipPhase,
     nextRound,
     activateSystem,
   } = useBoardEditor();
+  // God-Mode (Settings → Admin / testing): pokaż przycisk przeskoku fazy.
+  const skipPhasesEnabled = useSettingsStore((s) => s.settings.skipPhases);
   const [busy, setBusy] = useState(false);
+  // Oba boxy (karta strategii i panel przycisków) są PRZESUWALNE; pozycje zapisują
+  // się w localStorage, dwuklik na uchwycie resetuje do domyślnej.
+  const cardDrag = useDraggablePanel("turnControls.cardZone.pos");
+  const actionDrag = useDraggablePanel("turnControls.actionZone.pos");
   // Tryb aktywacji systemu (akcja taktyczna) — współdzielony ze store. Klik przycisku
   // włącza tryb „wskaż system", a klik w kafelek na mapie uruchamia aktywację (ten sam
   // potok, który odbiera panel taktyczny). Blok A: wygodne wejście z prawego dolnego rogu.
@@ -244,7 +252,21 @@ export function TurnControls() {
     <>
       {/* STREFA KARTY — karta w SLOCIE (wyznaczone miejsce przy stole). Slot ma
           stały kształt karty i jest widoczny także, gdy karty nie ma (pusty zarys). */}
-      <div className={styles.cardZone} aria-label="Your Strategy Card">
+      <div
+        className={styles.cardZone}
+        aria-label="Your Strategy Card"
+        style={cardDrag.style}
+        data-draggable-panel
+        data-dragging={cardDrag.isDragging || undefined}
+      >
+        <div
+          className={styles.dragGrip}
+          onPointerDown={cardDrag.onHandlePointerDown}
+          onDoubleClick={cardDrag.reset}
+          title="Drag to move · double-click resets position"
+        >
+          <span aria-hidden="true" />
+        </div>
         <div className={styles.cards}>
           {hasCard ? (
             myCards.map((card, i) => (
@@ -274,8 +296,20 @@ export function TurnControls() {
       </div>
 
       {/* STREFA PRZYCISKÓW (prawy dół) — elegancki panel akcji tury. */}
-      <div className={styles.actionZone} aria-label="Turn actions">
-        <header className={styles.actionHead}>
+      <div
+        className={styles.actionZone}
+        aria-label="Turn actions"
+        style={actionDrag.style}
+        data-draggable-panel
+        data-dragging={actionDrag.isDragging || undefined}
+      >
+        <header
+          className={styles.actionHead}
+          data-grab
+          onPointerDown={actionDrag.onHandlePointerDown}
+          onDoubleClick={actionDrag.reset}
+          title="Drag to move · double-click resets position"
+        >
           {active.faction && (
             <CircularFactionIcon faction={active.faction} size={22} />
           )}
@@ -459,6 +493,20 @@ export function TurnControls() {
             >
               <IconChevronsRight size={16} aria-hidden="true" />
               <span>{isAgenda ? "Next round" : "Next phase"}</span>
+            </button>
+          )}
+
+          {/* God-Mode (testy): przeskok fazy z pominięciem bram/okien/wyboru kart. */}
+          {skipPhasesEnabled && (
+            <button
+              type="button"
+              className={styles.nextPhase}
+              disabled={busy}
+              onClick={() => run(skipPhase)}
+              title="God-Mode: skip to the next phase, ignoring passes, windows and card picks"
+            >
+              <IconChevronsRight size={16} aria-hidden="true" />
+              <span>Skip phase</span>
             </button>
           )}
         </div>

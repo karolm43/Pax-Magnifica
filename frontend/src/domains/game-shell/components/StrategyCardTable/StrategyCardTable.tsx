@@ -8,6 +8,7 @@ import {
 import cx from "clsx";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
+import { useSettingsStore } from "@/state/appStore";
 import { useBoardEditor, useStrategyCards } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
 import { SC_NAMES } from "@/entities/data/strategyCardColors";
@@ -142,7 +143,8 @@ export function StrategyCardTable(): ReactElement | null {
   const gameData = useGameData();
   // Akcje: wybór karty (jak w ``GameStatePanel``) oraz przejście do następnej fazy
   // (``/phase/next``) — przycisk aktywny po skompletowaniu wyboru przez wszystkich.
-  const { pickStrategyCard, nextPhase } = useBoardEditor();
+  const { pickStrategyCard, nextPhase, skipPhase } = useBoardEditor();
+  const skipPhasesEnabled = useSettingsStore((s) => s.settings.skipPhases);
 
   // Karty, których grafika nie wczytała się (``onError``) — przełączamy je na
   // fallback tekstowy (R8.8). Klucz = initiative.
@@ -376,6 +378,18 @@ export function StrategyCardTable(): ReactElement | null {
             <span className={styles.metaItem}>
               <span className={styles.metaName}>Strategy Card selection</span>
             </span>
+          )}
+          {/* God-Mode (testy): przeskok fazy — auto-wybiera brakujące karty. */}
+          {skipPhasesEnabled && !allPicked && (
+            <button
+              type="button"
+              className={styles.nextPhaseBtn}
+              disabled={busy}
+              onClick={() => void run(skipPhase)}
+              title="God-Mode: auto-pick the remaining cards and skip to the action phase"
+            >
+              Skip phase
+            </button>
           )}
           {/* Mówca — ikona + pełna nazwa frakcji mówcy (lub komunikat braku). */}
           <span className={styles.metaItem}>
