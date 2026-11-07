@@ -15,6 +15,7 @@ import { CapacityModal } from "@/domains/map/components/CapacityModal";
 import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
+import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
 import { GameSetupOverlay } from "@/domains/setup/GameSetupOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
@@ -260,6 +261,8 @@ function GameMapContent() {
       {/* Okno PRODUKCJI (RULES.md 33.3) — otwiera się samo w kroku PRODUCTION, pod inwazją. */}
       <ProductionOverlay />
       <InvasionOverlay />
+      {/* Okno EKSPLORACJI (RULES.md 46) - po Establish Control, nad oknem inwazji. */}
+      <ExplorationOverlay />
       {/* Setup startowy (RULES.md 45): tajne cele, żeton Custodians, odkrycie celów —
           pełny ekran do domknięcia setupu, zanim ruszy faza strategii. */}
       <GameSetupOverlay />

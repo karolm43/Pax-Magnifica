@@ -1,0 +1,380 @@
+/*
+ * OKNO EKSPLORACJI (RULES.md 46) - modal nad mapą i oknem inwazji (2800), pod polem bitwy
+ * (2900). Styl zgodny z oknem inwazji: ciemne panele, cienkie złote ramki.
+ * Kolor eksplorującego gracza: --att-rgb (składowe oddzielone SPACJAMI).
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2850;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: var(--ds-ink);
+  background: radial-gradient(
+      ellipse 70% 60% at 50% 40%,
+      rgb(var(--att-rgb) / 0.14),
+      transparent 70%
+    ),
+    rgba(4, 6, 12, 0.82);
+  animation: expIn 0.25s ease-out both;
+}
+
+@keyframes expIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(880px, 100%);
+  max-height: 100%;
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+  border: 1px solid rgba(214, 178, 94, 0.32);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(18, 22, 36, 0.96), rgba(9, 12, 20, 0.96));
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+.topBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: var(--weight-title);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-hi);
+}
+
+.title small {
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ds-ink-lo);
+}
+
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgb(var(--att-rgb) / 0.6);
+  border-radius: 999px;
+  background: rgb(var(--att-rgb) / 0.16);
+}
+
+h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+/* --- Kolejność planet --- */
+.queue ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.order {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  border-radius: 50%;
+  background: rgb(var(--att-rgb) / 0.3);
+  color: var(--ds-ink-hi);
+}
+
+.queueName {
+  flex: 1;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.traits {
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+/* --- Karta + opcje --- */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  --deck: 148 163 184;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px 18px;
+  border: 1px solid rgb(var(--deck) / 0.7);
+  border-radius: 12px;
+  background: linear-gradient(
+    165deg,
+    rgb(var(--deck) / 0.22),
+    rgba(10, 13, 22, 0.94) 60%
+  );
+  box-shadow:
+    0 0 28px rgb(var(--deck) / 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: cardIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.card[data-deck="cultural"] {
+  --deck: 96 165 250;
+}
+
+.card[data-deck="hazardous"] {
+  --deck: 248 113 113;
+}
+
+.card[data-deck="industrial"] {
+  --deck: 74 222 128;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotateX(10deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deckTag {
+  color: rgb(var(--deck));
+}
+
+.cardPlanet {
+  color: var(--ds-ink-lo);
+}
+
+.cardName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--ds-ink-hi);
+}
+
+.cardText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.flavor {
+  margin: 0;
+  padding-top: 8px;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--ds-ink-lo);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.optionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.paramRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ds-ink);
+}
+
+.reason {
+  padding-left: 4px;
+  font-size: 11.5px;
+  color: #fca5a5;
+}
+
+/* --- Historia --- */
+.log ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log li {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  border-left: 3px solid rgba(148, 163, 184, 0.6);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.log li[data-deck="cultural"] {
+  border-left-color: rgb(96 165 250);
+}
+
+.log li[data-deck="hazardous"] {
+  border-left-color: rgb(248 113 113);
+}
+
+.log li[data-deck="industrial"] {
+  border-left-color: rgb(74 222 128);
+}
+
+.log small {
+  color: var(--ds-ink-lo);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- Przyciski (>= 42 px, bez skakania układu) --- */
+.primaryBtn,
+.ghostBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+  border-radius: 8px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.primaryBtn {
+  border: 1px solid rgb(var(--att-rgb) / 0.8);
+  background: rgb(var(--att-rgb) / 0.28);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: rgb(var(--att-rgb) / 0.45);
+}
+
+.ghostBtn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ghostBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.primaryBtn:disabled,
+.ghostBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.restore {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2850;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+  border: 1px solid rgba(214, 178, 94, 0.5);
+  border-radius: 999px;
+  background: rgba(14, 18, 30, 0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .card {
+    animation: none;
+  }
+}

@@ -186,6 +186,12 @@ class DecksState(BaseModel):
     action_card_deck: list[str] = Field(default_factory=list)
     action_card_discard: list[str] = Field(default_factory=list)
     secret_objective_deck: list[str] = Field(default_factory=list)
+    # Talie eksploracji (RULES.md 46): klucz = "cultural"/"hazardous"/"industrial"/"frontier".
+    # Talia powstaje LENIWIE przy pierwszym dobraniu (brak klucza = jeszcze niezasiana);
+    # pusta talia tasuje się z własnego stosu odrzuconych. Karty, które się purge'ują
+    # (żetony wormhole), nie trafiają na stos odrzuconych.
+    exploration_deck: dict[str, list[str]] = Field(default_factory=dict)
+    exploration_discard: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class PlayerPrivateState(BaseModel):
@@ -291,17 +297,17 @@ class PlayerState(BaseModel):
     # (``end_turn``) i przy wejściu w fazę akcji, bo dotyczy POJEDYNCZEJ tury, nie całej
     # fazy. End turn jest zablokowany, dopóki gracz nie wykona akcji LUB nie spasuje.
     took_action_this_turn: bool = False
+    # Z kim (``player_id`` partnera) aktywny gracz JUŻ rozstrzygnął transakcję w tej turze
+    # (RULES.md 47, R_transactions: „up to one transaction with each of their neighbors").
+    # Resetowane razem z ``took_action_this_turn`` (nowa tura). Utrata i ponowne uzyskanie
+    # sąsiedztwa w tej samej turze NIE daje drugiej transakcji — stąd lista, nie wyliczenie.
+    transacted_with: list[str] = Field(default_factory=list)
     # Karty strategii gracza (numery inicjatywy, np. [3]); puste poza fazą.
     strategy_cards: list[int] = Field(default_factory=list)
     # Zagrane (wyczerpane) karty strategii gracza — po użyciu primary (odwrócone).
     exhausted_strategy_cards: list[int] = Field(default_factory=list)
 
     # Planety kontrolowane przez gracza (identyfikatory planet).
-    # Z kim (``player_id`` partnera) aktywny gracz JU┼╗ rozstrzygn─ů┼é transakcj─Ö w tej turze
-    # (RULES.md 47, R_transactions: ÔÇ×up to one transaction with each of their neighbors").
-    # Resetowane razem z ``took_action_this_turn`` (nowa tura). Utrata i ponowne uzyskanie
-    # s─ůsiedztwa w tej samej turze NIE daje drugiej transakcji ÔÇö st─ůd lista, nie wyliczenie.
-    transacted_with: list[str] = Field(default_factory=list)
     controlled_planets: list[str] = Field(default_factory=list)
     # Planety WYCZERPANE (exhausted) — po wydaniu ich zasobów/wpływów. Gotowe
     # (ready) planety to te kontrolowane, których tu NIE ma. Odświeżenie w fazie
@@ -337,16 +343,16 @@ class PlayerState(BaseModel):
     # JAWNE: tajny cel po zdobyciu leży odkryty w strefie gracza (R_objective_cards).
     scored_secrets: list[str] = Field(default_factory=list)
 
+    # Fragmenty reliktów (karty eksploracji) leżące odkryte w strefie gracza — identyfikatory
+    # kart (RULES.md 46). JAWNE: reguła każe położyć je „faceup in play area".
+    relic_fragments: list[str] = Field(default_factory=list)
+
     # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
     # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).
     # Domyślnie puste ręce (R1.10).
     private: PlayerPrivateState = Field(default_factory=PlayerPrivateState)
     # Liczniki ukrytych kart — wypełniane WYŁĄCZNIE przez projekcję widoczności dla
     # graczy ≠ viewer (R4.4). W pełnym (niezredagowanym) stanie zawsze pusty słownik.
-    # Fragmenty relikt├│w (karty eksploracji) le┼╝─ůce odkryte w strefie gracza ÔÇö identyfikatory
-    # kart (RULES.md 46). JAWNE: regu┼éa ka┼╝e po┼éo┼╝y─ç je ÔÇ×faceup in play area".
-    relic_fragments: list[str] = Field(default_factory=list)
-
     # Klucze: "action_cards" / "secret_objectives" / "promissory_notes".
     hidden_card_counts: dict[str, int] = Field(default_factory=dict)
 
@@ -453,6 +459,33 @@ class InvasionState(BaseModel):
     log: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class ExploreCurrent(BaseModel):
+    """Odkryta (ujawniona wszystkim) karta eksploracji czekająca na rozstrzygnięcie."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    planet: str
+    deck: str  # "cultural" / "hazardous" / "industrial"
+    card_id: str
+
+
+class ExplorationState(BaseModel):
+    """Okno eksploracji po Establish Control (RULES.md 46).
+
+    ``queue`` = planety czekające na eksplorację (gracz wybiera kolejność; jedna karta
+    rozstrzygana w całości przed następną). ``current`` = ujawniona karta. ``log`` = historia
+    rozstrzygnięć tego okna. Okno zamyka ``exploration.finish`` (gdy kolejka pusta).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    position: str
+    queue: list[str] = Field(default_factory=list)
+    current: ExploreCurrent | None = None
+    log: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class GameState(BaseModel):
     """Pełny, serializowalny stan gry."""
 
@@ -503,10 +536,20 @@ class GameState(BaseModel):
     active_combat: ActiveCombat | None = None
     # Trwająca inwazja (krok INVASION akcji taktycznej) — None, gdy żadna (RULES.md 40).
     invasion: InvasionState | None = None
+    # Trwająca eksploracja planet (po Establish Control) — None, gdy żadna (RULES.md 46).
+    exploration: ExplorationState | None = None
+    # Karty eksploracji PRZYCZEPIONE do planet (attach): {planet_id: [card_id, ...]}. Zostają
+    # przy planecie niezależnie od zmiany kontroli (R_attach).
+    planet_attachments: dict[str, list[str]] = Field(default_factory=dict)
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).
     strategy_card_tg: dict[int, int] = Field(default_factory=dict)
+    # Żetony obietnic (nieformalna zasada stołu, NIE reguła TI4 — RULES.md 47.3): małe żetony
+    # kontroli gracza-wystawcy oddane innemu graczowi jako „dług"/obietnica (np. 3 TG do
+    # zapłaty = 3 żetony). Niewiążące dla silnika, tylko pamięć stołu. Format:
+    # ``{holder_id: {issuer_id: liczba}}`` — kto trzyma czyje żetony. Wpisy z zerem znikają.
+    promise_tokens: dict[str, dict[str, int]] = Field(default_factory=dict)
 
     # Cele publiczne, talie wspólne i stan fazy statusu (RULES.md 41). ``status`` = None
     # poza fazą statusu (i dla stanów wprowadzonych God-Mode bez inicjalizacji kroków).
@@ -530,8 +573,3 @@ class GameState(BaseModel):
     def clone(self) -> GameState:
         """Zwraca głęboką kopię stanu (przez walidowaną serializację)."""
         return GameState.model_validate(self.model_dump())
-    # ┼╗etony obietnic (nieformalna zasada sto┼éu, NIE regu┼éa TI4 ÔÇö RULES.md 47.3): ma┼ée ┼╝etony
-    # kontroli gracza-wystawcy oddane innemu graczowi jako ÔÇ×d┼éug"/obietnica (np. 3 TG do
-    # zap┼éaty = 3 ┼╝etony). Niewi─ů┼╝─ůce dla silnika, tylko pami─Ö─ç sto┼éu. Format:
-    # ``{holder_id: {issuer_id: liczba}}`` ÔÇö kto trzyma czyje ┼╝etony. Wpisy z zerem znikaj─ů.
-    promise_tokens: dict[str, dict[str, int]] = Field(default_factory=dict)

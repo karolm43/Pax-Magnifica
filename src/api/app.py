@@ -27,6 +27,7 @@ from src.api.routers import (
     board,
     capacity,
     components,
+    exploration,
     fleet_pool,
     flow,
     game,
@@ -40,8 +41,8 @@ from src.api.routers import (
     status,
     strategy,
     tactical,
-    window,
     transactions,
+    window,
 )
 from src.api.state_service import StateService
 from src.core.event_store import EventStore
@@ -109,10 +110,11 @@ def create_app(
     app.include_router(capacity.router)
     app.include_router(fleet_pool.router)
     app.include_router(invasion.router)
+    app.include_router(exploration.router)
     app.include_router(production.router)
+    app.include_router(transactions.router)
     app.include_router(window.router)
     app.include_router(rules.router)
-    app.include_router(transactions.router)
     app.include_router(components.router)
 
     @app.websocket("/ws")

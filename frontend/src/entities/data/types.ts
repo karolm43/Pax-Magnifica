@@ -490,6 +490,8 @@ export type GameState = {
   activeCombat: GameStateCombat | null;
   /** Trwająca inwazja (Custodian Engine, RULES.md 40) — null, gdy brak. */
   activeInvasion?: { system: string; phase: string } | null;
+  /** Trwająca eksploracja planet po Establish Control (Custodian Engine, RULES.md 46). */
+  activeExploration?: { system: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
   pendingWindow?: PendingWindow | null;
   /** Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — null po zakończeniu. */
@@ -671,14 +673,14 @@ export type PlayerData = {
   exhaustedSCs: number[];
   totalVps: number;
   neighbors: string[];
+  /** Kolory graczy, z którymi gracz już transakcjonował w tej turze (RULES.md 47). */
+  transactedWith?: string[];
+  /** Fragmenty reliktów gracza (id + nazwa z katalogu) — wymiana w transakcjach. */
+  relicFragmentCards?: { id: string; name: string }[];
+  /** Żetony obietnic, które gracz TRZYMA: {kolor wystawcy: liczba} (RULES.md 47.3). */
+  promiseTokensHeld?: Record<string, number>;
   debtTokens?: Record<string, number>;
   nombox?: CapturedUnitsData;
-  /** Kolory graczy, z kt├│rymi gracz ju┼╝ transakcjonowa┼é w tej turze (RULES.md 47). */
-  transactedWith?: string[];
-  /** Fragmenty relikt├│w gracza (id + nazwa z katalogu) ÔÇö wymiana w transakcjach. */
-  relicFragmentCards?: { id: string; name: string }[];
-  /** ┼╗etony obietnic, kt├│re gracz TRZYMA: {kolor wystawcy: liczba} (RULES.md 47.3). */
-  promiseTokensHeld?: Record<string, number>;
   abilities?: string[];
   decalId?: string;
 

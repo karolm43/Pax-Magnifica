@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import battle, space_cannon
+from src.core import battle, exploration, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.damage import move_damage
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -223,7 +223,7 @@ def _enter(
     if phase is InvasionPhase.GROUND_COMBAT and not combat_planets(new_state, registry):
         return _enter(new_state, grid, registry, InvasionPhase.ESTABLISH)
     if phase is InvasionPhase.ESTABLISH:
-        _establish_control(new_state)
+        _establish_control(new_state, registry)
     return new_state
 
 
@@ -712,8 +712,12 @@ def combat_planets(state: GameState, registry: StaticDataRegistry) -> list[str]:
 # ------------------------------------------------------------------------ establish control
 
 
-def _establish_control(state: GameState) -> None:
-    """Establish Control (I5) — MUTUJE ``state`` (klon): przejęcie planet, struktury, karta."""
+def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
+    """Establish Control (I5) — MUTUJE ``state`` (klon): przejęcie planet, struktury, karta.
+
+    Planety przejęte bez wcześniejszego właściciela są EKSPLOROWANE (RULES.md 46): otwiera się
+    okno eksploracji, które blokuje zamknięcie inwazji do rozstrzygnięcia kart.
+    """
     inv = _inv(state)
     system = _system(state)
     attacker = state.players.get(inv.attacker)
@@ -759,7 +763,7 @@ def _establish_control(state: GameState) -> None:
                     attacker.exhausted_planets.append(planet)
             result["outcome"] = "captured"
             result["destroyedStructures"] = destroyed
-            result["explore"] = owner is None
+            result["explore"] = owner is None and exploration.explorable(registry, planet)
         elif combat_result is not None and combat_result.get("outcome") == "draw":
             defender = str(combat_result["defender"])
             result["outcome"] = "retained"
@@ -767,6 +771,9 @@ def _establish_control(state: GameState) -> None:
                 system.planet_owners[planet] = defender
         results.append(result)
     inv.results = results
+    explored = [str(r["planet"]) for r in results if r["explore"]]
+    if explored:
+        exploration.start_exploration(state, registry, inv.attacker, inv.position, explored)
 
 
 # ------------------------------------------------------------------------------ nawigacja
@@ -801,4 +808,6 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
         if combat_planets(state, registry):
             raise ValueError("Ground combat is still to be fought on a planet.")
         return _enter(state, grid, registry, InvasionPhase.ESTABLISH)
+    if state.exploration is not None:
+        raise ValueError("Finish exploring the captured planets first.")
     return clear_invasion(state)

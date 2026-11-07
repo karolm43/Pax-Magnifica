@@ -52,6 +52,31 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+## ✅ Eksploracja planet po Establish Control (2026-11-07) — RULES.md 46
+
+Przejęcie niczyjej planety z cechą (cultural/hazardous/industrial) otwiera okno eksploracji:
+karta dobierana automatycznie (jedna planeta, jedna cecha) albo gracz wybiera kolejność planet i
+talię; każda karta rozstrzygana w całości (opcje z powodami niedostępności), potem „Done exploring".
+Backend: `core/exploration.py`, `routers/exploration.py` (`GET /exploration`, `POST /exploration/{draw,
+resolve,finish}`), `GameState.exploration`, `DecksState.exploration_deck/_discard`,
+`planet_attachments`, `PlayerState.relic_fragments`; blokada zamknięcia inwazji i wyjścia z kroku
+do końca eksploracji. Front: `domains/exploration/`; panel prostej inwazji ma teraz „Close invasion".
+Testy: `tests/test_exploration.py`, `tests/test_exploration_api.py`.
+**Do zrobienia:** statystyki z attachmentów w ekonomii/produkcji/celach, eksploracja frontier
+(Dark Energy Tap), rozstrzyganie fragmentów reliktów, Freelancers i żetony wormhole ręcznie (RULES.md 46.3).
+
+## ✅ Transakcje między graczami + żetony obietnic (2026-11-07) — RULES.md 47
+
+Przycisk **Transaction** w pasku fazy akcji (`TurnControls`) otwiera `TransactionModal` (ładny
+modal, 2 zakładki). Core: `core/transaction.py` (1 transakcja na sąsiada na turę, `PlayerState.
+transacted_with` zerowane z nową turą; TG/commodities/1 notka/fragmenty reliktów; commodity → TG
+u odbiorcy; nie jest akcją tury, nie blokuje go okno ani pas) i `core/promises.py` (nieformalne
+żetony obietnic `GameState.promise_tokens`, bez sąsiedztwa, w dowolnej chwili). API:
+`/transactions/resolve`, `/promises/give|return`; web-data: `transactedWith`,
+`relicFragmentCards`, `promiseTokensHeld`. Testy: `tests/test_transaction.py`.
+**Poza zakresem (⚠️ RULES.md 47.2):** Hacan (karty akcji — hook E7), zwrot pojmanych jednostek,
+transakcje w agendzie (agendy poza zakresem), zgoda partnera (hot-seat: jeden operator).
+
 ## ✅ Setup graczy domknięty (2026-11-07) — RULES.md 45
 
 `/game/new` zostawia grę w setupie: ręka promissory notes (5 wspólnych + 1 frakcyjna), 2 tajne cele

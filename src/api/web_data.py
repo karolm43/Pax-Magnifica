@@ -252,6 +252,13 @@ def _build_game_state(
             if state.invasion is not None
             else None
         ),
+        # Trwająca eksploracja planet po Establish Control (RULES.md 46) — sygnał dla okna;
+        # pełne dane idą endpointem `GET /exploration`. Nasze rozszerzenie kontraktu.
+        "activeExploration": (
+            {"system": state.exploration.position}
+            if state.exploration is not None
+            else None
+        ),
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),
@@ -1041,17 +1048,10 @@ def _hand_count(player: PlayerState, key: str) -> int:
     return player.hidden_card_counts.get(key, 0)
 
 
-def _build_player_data(
-    state: GameState,
-    registry: StaticDataRegistry,
-    grid: HexGrid,
-    entity_keys: dict[str, str],
-) -> list[dict[str, Any]]:
-    """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
 def _relic_fragment_cards(
     player: PlayerState, registry: StaticDataRegistry
 ) -> list[dict[str, str]]:
-    """Fragmenty relikt├│w gracza jako ``{id, name}`` (nazwa z katalogu, fallback = id)."""
+    """Fragmenty reliktów gracza jako ``{id, name}`` (nazwa z katalogu, fallback = id)."""
     cards: list[dict[str, str]] = []
     for fragment_id in player.relic_fragments:
         card = registry.catalog.get(ComponentCategory.EXPLORATION, fragment_id)
@@ -1060,6 +1060,13 @@ def _relic_fragment_cards(
     return cards
 
 
+def _build_player_data(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    entity_keys: dict[str, str],
+) -> list[dict[str, Any]]:
+    """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
     players: list[dict[str, Any]] = []
     deployed_by_player = _deployed_counts_by_player(state)
     active_id = _effective_active_id(state)  # spójny z activePlayer (Bug 7)
@@ -1196,16 +1203,9 @@ def _relic_fragment_cards(
                 "exhaustedSCs": list(player.exhausted_strategy_cards),
                 # Sąsiedzi (Neighbors) jako kolory — RULES.md 2 / R_neighbors.
                 "neighbors": neighbor_colors,
-                # Realne liczebności prywatnych rąk (R6.5, R4.4). Dla viewera —
-                # długości jego list; dla innych — z hidden_card_counts wypełnionego
-                # przez projekcję. Nigdy nie ujawniamy cudzych identyfikatorów kart.
-                "soCount": _hand_count(player, "secret_objectives"),
-                "pnCount": _hand_count(player, "promissory_notes"),
-                "acCount": _hand_count(player, "action_cards"),
-                "unitCounts": unit_counts,
-                # Transakcje (RULES.md 47): z kim gracz ju┼╝ transakcjonowa┼é w tej turze
-                # (kolory), jawne fragmenty relikt├│w (id + nazwa z katalogu) oraz ┼╝etony
-                # obietnic, kt├│re gracz TRZYMA: {kolor wystawcy: liczba}.
+                # Transakcje (RULES.md 47): z kim gracz już transakcjonował w tej turze
+                # (kolory), jawne fragmenty reliktów (id + nazwa z katalogu) oraz żetony
+                # obietnic, które gracz TRZYMA: {kolor wystawcy: liczba}.
                 "transactedWith": sorted(
                     c
                     for pid in player.transacted_with
@@ -1217,6 +1217,13 @@ def _relic_fragment_cards(
                     for issuer_id, count in state.promise_tokens.get(player_id, {}).items()
                     if (color := _color_of(state, issuer_id)) is not None
                 },
+                # Realne liczebności prywatnych rąk (R6.5, R4.4). Dla viewera —
+                # długości jego list; dla innych — z hidden_card_counts wypełnionego
+                # przez projekcję. Nigdy nie ujawniamy cudzych identyfikatorów kart.
+                "soCount": _hand_count(player, "secret_objectives"),
+                "pnCount": _hand_count(player, "promissory_notes"),
+                "acCount": _hand_count(player, "action_cards"),
+                "unitCounts": unit_counts,
                 # Ekonomia planet z rejestru (reguła AsyncTI4, RULES.md 7).
                 # resources/influence = dostępne (zakładamy wszystkie gotowe);
                 # tot* = sumy łączne; optimal/flex per reguła getOptimal*.

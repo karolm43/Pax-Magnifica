@@ -100,10 +100,38 @@ export function InvasionStepPanel() {
         (r) => `${getPlanetData(r.planet)?.name ?? r.planet}: ${OUTCOME[r.outcome]}`,
       )
       .join(" · ");
-    await actions.next(); // zamknięcie inwazji
     setStage({});
+    // Przejęcie niczyjej planety otwiera okno eksploracji (RULES.md 46): inwazję zamknie dopiero
+    // przycisk poniżej, po rozstrzygnięciu kart.
+    if (after.results.some((r) => r.explore)) {
+      setNotice(`${text} · explore the captured planets`, "info");
+      return;
+    }
+    await actions.next(); // zamknięcie inwazji
     setNotice(text || "No landing.", "info");
   };
+
+  // Lądowanie zrobione (Establish Control), czeka tylko na eksplorację / zamknięcie.
+  if (view.phase === "ESTABLISH") {
+    const exploring = gameState?.activeExploration != null;
+    return (
+      <div className={styles.box}>
+        <span className={styles.note}>
+          {exploring
+            ? "Resolve the exploration cards to continue."
+            : "Control is settled."}
+        </span>
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={busy || exploring}
+          onClick={() => void run(actions.next)}
+        >
+          <IconFlag size={14} aria-hidden="true" /> Close invasion
+        </button>
+      </div>
+    );
+  }
 
   const total = stageTotal(stage);
   return (

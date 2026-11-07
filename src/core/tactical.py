@@ -151,6 +151,9 @@ def _check_can_leave(
         and invasion.phase is not InvasionPhase.ESTABLISH
     ):
         raise ValueError(f"The invasion is in progress - finish it before {what}.")
+    # Eksploracja (RULES.md 46): karta musi zostać rozstrzygnięta, zanim akcja pójdzie dalej.
+    if state.exploration is not None:
+        raise ValueError(f"Exploration is in progress - finish it before {what}.")
     if require_space_combat and space_combat_required(state):
         raise ValueError(
             "Two players have ships in the active system - resolve the space combat first."
@@ -216,6 +219,7 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
     new_state.tactical_step = _STEP_SEQUENCE[idx + 1]
     new_state.active_combat = None  # zakończona walka zostaje za nami
     new_state.invasion = None
+    new_state.exploration = None
     return new_state
 
 
@@ -227,6 +231,7 @@ def set_step(state: GameState, step: TacticalStep) -> GameState:
     new_state = state.clone()
     new_state.tactical_step = step
     new_state.invasion = None
+    new_state.exploration = None
     return new_state
 
 
@@ -244,6 +249,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.space_cannon_log = "[]"
     new_state.active_combat = None
     new_state.invasion = None
+    new_state.exploration = None
     # Okna Space Cannon / przypisania strat dotyczą aktywnego systemu — po zakończeniu akcji
     # nie ma już czego rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
     window = new_state.pending_window
