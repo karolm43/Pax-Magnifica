@@ -9,6 +9,7 @@ import { calculateStatTilePositions } from "@/entities/geometry/tilePositioning"
 import { determineOpenSides } from "@/entities/game/tileAdjacency";
 import {
   getColorAlias,
+  getPrimaryColorCSS,
   getPrimaryColorWithOpacity,
 } from "@/entities/lookup/colors";
 import { assetUrl } from "@/shared/assets/resolveAsset";
@@ -34,6 +35,14 @@ function playerHasArmada(playerData: PlayerData): boolean {
     ...(playerData.techs ?? []),
     ...(playerData.factionTechs ?? []),
   ].some((id) => ARMADA_IDS.has(id.toLowerCase().replace(/[^a-z0-9]/g, "")));
+}
+
+/** Długie nazwy frakcji (np. „THE EMBERS OF MUAAT") zmniejszamy, by mieściły się w kole. */
+function factionNameFontSize(name: string): number {
+  if (name.length <= 10) return 28;
+  if (name.length <= 16) return 24;
+  if (name.length <= 24) return 20;
+  return 17;
 }
 
 /** The initiative numeral on the plate; a click opens the card's text. */
@@ -124,6 +133,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
     determineOpenSides(statTilePositions),
   );
   const borderColor = getPrimaryColorWithOpacity(color, 0.8);
+  const factionDisplayName = getPlayerFactionDisplayName(playerData).toUpperCase();
 
   const backgroundTint = playerData.active
     ? "rgba(34, 197, 94, 0.4)"
@@ -163,8 +173,14 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
             }}
           />
           <div className={styles.textContainer}>
-            <div className={styles.factionName}>
-              {getPlayerFactionDisplayName(playerData).toUpperCase()}
+            <div
+              className={styles.factionName}
+              style={{
+                color: getPrimaryColorCSS(color),
+                fontSize: factionNameFontSize(factionDisplayName),
+              }}
+            >
+              {factionDisplayName}
             </div>
 
             {playerData.userName && (

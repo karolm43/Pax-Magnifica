@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+﻿import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import {
   IconBolt,
@@ -227,6 +227,9 @@ export function TurnControls() {
   // End turn „woła o uwagę" (nudge), gdy jest już możliwy do kliknięcia — głównie po
   // pasie, ale też po akcji, gdy gracz może zapomnieć oddać turę.
   const nudgeEndTurn = canEndTurn;
+
+  // Jedna zwięzła podpowiedź (najważniejsza w danym stanie) zamiast stosu chipów.
+  // ``ok`` = zielony wariant („zrób następny krok"), inaczej ostrzegawczy.
   // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
   // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
   const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
@@ -236,6 +239,26 @@ export function TurnControls() {
   // wskaźnik „akcja w toku" (kroki są w panelu taktycznym). Blok A.
   const activeSystem = gameState?.activeSystem ?? null;
   const inTacticalAction = activeSystem != null;
+
+  let turnHint: { ok: boolean; text: string } | null = null;
+  if (isAction) {
+    if (activateMode && !inTacticalAction) {
+      turnHint = { ok: true, text: "Click a system on the map to activate it." };
+    } else if (windowOpen) {
+      turnHint = { ok: false, text: "Waiting for players to decide on the secondary." };
+    } else if (canEndTurn) {
+      turnHint = {
+        ok: true,
+        text: hasPassed
+          ? "You passed — press End turn to hand over."
+          : "Action done — press End turn to hand over.",
+      };
+    } else if (!canPass && !hasPassed) {
+      turnHint = { ok: false, text: "Play your Strategy Card first to pass." };
+    } else if (!tookAction && !hasPassed) {
+      turnHint = { ok: false, text: "Take an action or pass, then end your turn." };
+    }
+  }
   const canActivate =
     isAction && !tookAction && !hasPassed && !windowOpen && !inTacticalAction;
   // Wszystkie KOMPONENTY Z AKCJĄ („Action") dostępne aktywnemu graczowi: karty akcji
@@ -371,7 +394,7 @@ export function TurnControls() {
               )}
               <button
                 type="button"
-                className={styles.pass}
+                className={`${styles.pass} ${styles.tile}`}
                 style={{ "--d": "60ms" } as CSSProperties}
                 disabled={busy || hasPassed || tookAction || !canPass}
                 onClick={() => setConfirmingPass(true)}
@@ -393,7 +416,7 @@ export function TurnControls() {
                   rejestruje akcję (bez mechaniki komponentu). */}
               <button
                 type="button"
-                className={styles.component}
+                className={`${styles.component} ${styles.tile}`}
                 style={{ "--d": "120ms" } as CSSProperties}
                 disabled={busy || !canComponentAction}
                 onClick={() => setComponentOpen(true)}
@@ -408,14 +431,14 @@ export function TurnControls() {
                 }
               >
                 <IconSparkles size={16} aria-hidden="true" />
-                <span>Component action</span>
+                <span>Component</span>
               </button>
               {/* Transakcja z sąsiadem (RULES.md 47) — NIE jest akcją tury: wolno ją
                   rozstrzygnąć w dowolnym momencie tury (także po akcji/pasie i w
                   trakcie walki/okna), więc przycisk nie zależy od took_action/passed. */}
               <button
                 type="button"
-                className={styles.transaction}
+                className={`${styles.transaction} ${styles.tile}`}
                 style={{ "--d": "150ms" } as CSSProperties}
                 disabled={busy}
                 onClick={() => setTransactionOpen(true)}
@@ -538,43 +561,10 @@ export function TurnControls() {
           )}
         </div>
 
-        {/* Tryb aktywacji włączony — prowadź gracza do kliknięcia systemu na mapie. */}
-        {isAction && activateMode && !inTacticalAction && (
-          <p className={styles.hintPassed}>
-            <IconTarget size={13} aria-hidden="true" />
-            <span>Click a system on the map to activate it.</span>
-          </p>
-        )}
-        {/* Podpowiedź, gdy Pass zablokowany (zanim zagrasz kartę). */}
-        {isAction && !canPass && !hasPassed && (
-          <p className={styles.hint}>
+        {turnHint && (
+          <p className={turnHint.ok ? styles.hintPassed : styles.hint}>
             <IconInfoCircle size={13} aria-hidden="true" />
-            <span>Play your Strategy Card first to pass.</span>
-          </p>
-        )}
-        {/* Podpowiedź, gdy End turn zablokowany przez otwarte okno secondary. */}
-        {isAction && windowOpen && (
-          <p className={styles.hint}>
-            <IconInfoCircle size={13} aria-hidden="true" />
-            <span>Waiting for players to decide on the secondary.</span>
-          </p>
-        )}
-        {/* Trzeba najpierw wykonać akcję albo spasować (RULES.md 31.7). */}
-        {isAction && !tookAction && !hasPassed && !windowOpen && (
-          <p className={styles.hint}>
-            <IconInfoCircle size={13} aria-hidden="true" />
-            <span>Take an action or pass, then end your turn.</span>
-          </p>
-        )}
-        {/* Po akcji/pasie: przypomnienie, że tura wciąż trzeba oddać. */}
-        {isAction && canEndTurn && (
-          <p className={styles.hintPassed}>
-            <IconInfoCircle size={13} aria-hidden="true" />
-            <span>
-              {hasPassed
-                ? "You passed — press End turn to hand over."
-                : "Action done — press End turn to hand over."}
-            </span>
+            <span>{turnHint.text}</span>
           </p>
         )}
       </div>

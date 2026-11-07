@@ -40,10 +40,26 @@
 .factionName {
   font-size: 28px;
   font-weight: var(--weight-rail);
+  line-height: 1.1;
+  max-width: 210px;
+  margin-inline: auto;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  /* Kolor gracza ustawiany inline; obrys zapewnia czytelność ciemnych kolorów. */
   color: rgba(255, 255, 255, 0.9);
+  -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.55);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 6px rgba(0, 0, 0, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .playerName {
+  max-width: 210px;
+  margin-inline: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 22px;
   font-weight: var(--weight-regular);
   color: rgba(255, 255, 255, 0.8);
