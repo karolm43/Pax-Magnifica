@@ -297,6 +297,11 @@ class PlayerState(BaseModel):
     exhausted_strategy_cards: list[int] = Field(default_factory=list)
 
     # Planety kontrolowane przez gracza (identyfikatory planet).
+    # Z kim (``player_id`` partnera) aktywny gracz JU┼╗ rozstrzygn─ů┼é transakcj─Ö w tej turze
+    # (RULES.md 47, R_transactions: ÔÇ×up to one transaction with each of their neighbors").
+    # Resetowane razem z ``took_action_this_turn`` (nowa tura). Utrata i ponowne uzyskanie
+    # s─ůsiedztwa w tej samej turze NIE daje drugiej transakcji ÔÇö st─ůd lista, nie wyliczenie.
+    transacted_with: list[str] = Field(default_factory=list)
     controlled_planets: list[str] = Field(default_factory=list)
     # Planety WYCZERPANE (exhausted) — po wydaniu ich zasobów/wpływów. Gotowe
     # (ready) planety to te kontrolowane, których tu NIE ma. Odświeżenie w fazie
@@ -338,6 +343,10 @@ class PlayerState(BaseModel):
     private: PlayerPrivateState = Field(default_factory=PlayerPrivateState)
     # Liczniki ukrytych kart — wypełniane WYŁĄCZNIE przez projekcję widoczności dla
     # graczy ≠ viewer (R4.4). W pełnym (niezredagowanym) stanie zawsze pusty słownik.
+    # Fragmenty relikt├│w (karty eksploracji) le┼╝─ůce odkryte w strefie gracza ÔÇö identyfikatory
+    # kart (RULES.md 46). JAWNE: regu┼éa ka┼╝e po┼éo┼╝y─ç je ÔÇ×faceup in play area".
+    relic_fragments: list[str] = Field(default_factory=list)
+
     # Klucze: "action_cards" / "secret_objectives" / "promissory_notes".
     hidden_card_counts: dict[str, int] = Field(default_factory=dict)
 
@@ -521,3 +530,8 @@ class GameState(BaseModel):
     def clone(self) -> GameState:
         """Zwraca głęboką kopię stanu (przez walidowaną serializację)."""
         return GameState.model_validate(self.model_dump())
+    # ┼╗etony obietnic (nieformalna zasada sto┼éu, NIE regu┼éa TI4 ÔÇö RULES.md 47.3): ma┼ée ┼╝etony
+    # kontroli gracza-wystawcy oddane innemu graczowi jako ÔÇ×d┼éug"/obietnica (np. 3 TG do
+    # zap┼éaty = 3 ┼╝etony). Niewi─ů┼╝─ůce dla silnika, tylko pami─Ö─ç sto┼éu. Format:
+    # ``{holder_id: {issuer_id: liczba}}`` ÔÇö kto trzyma czyje ┼╝etony. Wpisy z zerem znikaj─ů.
+    promise_tokens: dict[str, dict[str, int]] = Field(default_factory=dict)

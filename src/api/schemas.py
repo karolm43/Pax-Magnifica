@@ -1167,3 +1167,35 @@ class BattleAssignRequest(BaseModel):
     destroy_damaged: list[BattleLossItem] = Field(
         default_factory=list, alias="destroyDamaged"
     )
+
+
+class TransactionSideRequest(BaseModel):
+    """Jedna strona transakcji: to, co dany gracz ODDAJE (RULES.md 47)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    trade_goods: int = 0
+    commodities: int = 0
+    promissory_note: str | None = None
+    relic_fragments: list[str] = Field(default_factory=list)
+
+
+class TransactionRequest(BaseModel):
+    """Transakcja aktywnego gracza z sąsiadem (RULES.md 47): ``give`` oddaje, ``receive`` bierze."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    partner_id: str
+    give: TransactionSideRequest = Field(default_factory=TransactionSideRequest)
+    receive: TransactionSideRequest = Field(default_factory=TransactionSideRequest)
+    player_id: str | None = None
+
+
+class PromiseTokensRequest(BaseModel):
+    """Żetony obietnic między graczami (RULES.md 47.3): wystawca → posiadacz (give) albo zwrot."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    issuer_id: str
+    holder_id: str
+    count: int = 1

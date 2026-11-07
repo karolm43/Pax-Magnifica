@@ -41,6 +41,8 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "strategic_cc",
         "cc_reinf",
         "passed",
+        "took_action_this_turn",
+        "transacted_with",
         "strategy_cards",
         "exhausted_strategy_cards",
         "controlled_planets",
@@ -53,6 +55,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "breakthrough_tg",
         "promissory_notes_in_play",
         "scored_secrets",
+        "relic_fragments",
     }
 )
 

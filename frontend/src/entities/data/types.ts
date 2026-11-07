@@ -673,6 +673,12 @@ export type PlayerData = {
   neighbors: string[];
   debtTokens?: Record<string, number>;
   nombox?: CapturedUnitsData;
+  /** Kolory graczy, z kt├│rymi gracz ju┼╝ transakcjonowa┼é w tej turze (RULES.md 47). */
+  transactedWith?: string[];
+  /** Fragmenty relikt├│w gracza (id + nazwa z katalogu) ÔÇö wymiana w transakcjach. */
+  relicFragmentCards?: { id: string; name: string }[];
+  /** ┼╗etony obietnic, kt├│re gracz TRZYMA: {kolor wystawcy: liczba} (RULES.md 47.3). */
+  promiseTokensHeld?: Record<string, number>;
   abilities?: string[];
   decalId?: string;
 

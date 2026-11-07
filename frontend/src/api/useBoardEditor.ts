@@ -37,6 +37,14 @@ async function post(path: string, body: unknown): Promise<void> {
   }
 }
 
+/** Jedna strona transakcji: to, co dany gracz ODDAJE partnerowi (RULES.md 47). */
+export type TransactionSide = {
+  tradeGoods: number;
+  commodities: number;
+  promissoryNote: string | null;
+  relicFragments: string[];
+};
+
 export type EditUnitArgs = {
   position: string;
   zone: string; // "space" albo ID planety
@@ -305,6 +313,57 @@ export function useBoardEditor() {
       await post("/tactical/component-action", {
         player_id: playerId ?? null,
         component_id: componentId ?? null,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Transakcja z sąsiadem (RULES.md 47). ``give`` = co oddaje aktywny gracz, ``receive`` =
+  // co dostaje od partnera. Backend egzekwuje reguły (sąsiad, 1/turę, stan posiadania) i
+  // przy błędzie zwraca 422 → ``post`` pokazuje powód w komunikacie.
+  const resolveTransaction = useCallback(
+    async (args: {
+      partnerId: string;
+      give: TransactionSide;
+      receive: TransactionSide;
+    }) => {
+      const side = (s: TransactionSide) => ({
+        trade_goods: s.tradeGoods,
+        commodities: s.commodities,
+        promissory_note: s.promissoryNote,
+        relic_fragments: s.relicFragments,
+      });
+      await post("/transactions/resolve", {
+        partner_id: args.partnerId,
+        give: side(args.give),
+        receive: side(args.receive),
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Żetony obietnic (nieformalna zasada stołu, RULES.md 47.3): wystawca → posiadacz.
+  const givePromiseTokens = useCallback(
+    async (issuerId: string, holderId: string, count: number) => {
+      await post("/promises/give", {
+        issuer_id: issuerId,
+        holder_id: holderId,
+        count,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Posiadacz zwraca wystawcy jego żetony (dług spłacony/odpuszczony).
+  const returnPromiseTokens = useCallback(
+    async (holderId: string, issuerId: string, count: number) => {
+      await post("/promises/return", {
+        issuer_id: issuerId,
+        holder_id: holderId,
+        count,
       });
       await refresh();
     },
@@ -659,6 +718,9 @@ export function useBoardEditor() {
     playStrategyCard,
     setSpeaker,
     playComponentAction,
+    resolveTransaction,
+    givePromiseTokens,
+    returnPromiseTokens,
     activateSystem,
     moveShips,
     produce,

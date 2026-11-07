@@ -211,6 +211,7 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     nxt_id = new_state.active_player_id
     if nxt_id is not None and nxt_id in new_state.players:
         new_state.players[nxt_id].took_action_this_turn = False
+        new_state.players[nxt_id].transacted_with = []
     return new_state
 
 
@@ -357,6 +358,7 @@ def next_phase(state: GameState) -> GameState:
     # (dotyczy fazy akcji; w innych fazach pole i tak nieużywane, ale trzymamy czysto).
     for player in new_state.players.values():
         player.took_action_this_turn = False
+        player.transacted_with = []
     # Faza statusu (RULES.md 41): wejście inicjuje kroki (punktowanie → ... → zwrot kart);
     # naprawa jednostek to krok 7 (``status_phase``), nie samo wejście w fazę. Poza statusem
     # stan kroków jest czyszczony.

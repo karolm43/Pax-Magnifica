@@ -392,6 +392,7 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
     for player in new_state.players.values():
         player.passed = False
         player.took_action_this_turn = False
+        player.transacted_with = []
     # Bez kart strategii porządek wyznacza mówca (R_victory_points: „nearest the speaker").
     new_state.active_player_id = new_state.speaker_id
     return new_state

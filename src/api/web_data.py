@@ -30,6 +30,7 @@ from typing import Any
 from src.api import web_objectives, web_setup
 from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
+from src.core.components import ComponentCategory
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, MECATOL_SYSTEM_ID
@@ -1047,6 +1048,18 @@ def _build_player_data(
     entity_keys: dict[str, str],
 ) -> list[dict[str, Any]]:
     """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
+def _relic_fragment_cards(
+    player: PlayerState, registry: StaticDataRegistry
+) -> list[dict[str, str]]:
+    """Fragmenty relikt├│w gracza jako ``{id, name}`` (nazwa z katalogu, fallback = id)."""
+    cards: list[dict[str, str]] = []
+    for fragment_id in player.relic_fragments:
+        card = registry.catalog.get(ComponentCategory.EXPLORATION, fragment_id)
+        name = (card.name if card is not None else None) or fragment_id
+        cards.append({"id": fragment_id, "name": name})
+    return cards
+
+
     players: list[dict[str, Any]] = []
     deployed_by_player = _deployed_counts_by_player(state)
     active_id = _effective_active_id(state)  # spójny z activePlayer (Bug 7)
@@ -1190,6 +1203,20 @@ def _build_player_data(
                 "pnCount": _hand_count(player, "promissory_notes"),
                 "acCount": _hand_count(player, "action_cards"),
                 "unitCounts": unit_counts,
+                # Transakcje (RULES.md 47): z kim gracz ju┼╝ transakcjonowa┼é w tej turze
+                # (kolory), jawne fragmenty relikt├│w (id + nazwa z katalogu) oraz ┼╝etony
+                # obietnic, kt├│re gracz TRZYMA: {kolor wystawcy: liczba}.
+                "transactedWith": sorted(
+                    c
+                    for pid in player.transacted_with
+                    if (c := _color_of(state, pid)) is not None
+                ),
+                "relicFragmentCards": _relic_fragment_cards(player, registry),
+                "promiseTokensHeld": {
+                    color: count
+                    for issuer_id, count in state.promise_tokens.get(player_id, {}).items()
+                    if (color := _color_of(state, issuer_id)) is not None
+                },
                 # Ekonomia planet z rejestru (reguła AsyncTI4, RULES.md 7).
                 # resources/influence = dostępne (zakładamy wszystkie gotowe);
                 # tot* = sumy łączne; optimal/flex per reguła getOptimal*.

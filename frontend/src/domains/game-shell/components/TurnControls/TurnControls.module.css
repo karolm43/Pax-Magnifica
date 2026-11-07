@@ -515,6 +515,19 @@
   border-color: rgb(var(--ds-sig-ability) / 0.68);
 }
 
+/* Transaction — wymiana z sąsiadem (złoty akcent trade goods). Nie jest akcją tury, więc
+   dostępna także po akcji/pasie; bazowy kształt dziedziczy po .component. */
+.transaction {
+  composes: component;
+  background: rgb(var(--ds-sig-tg) / 0.14);
+  border: 1px solid rgb(var(--ds-sig-tg) / 0.5);
+}
+
+.transaction:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-tg) / 0.22);
+  border-color: rgb(var(--ds-sig-tg) / 0.68);
+}
+
 /* End turn — główna akcja (zielony, najmocniejszy akcent). */
 .endTurn {
   color: var(--ds-ink-hi);

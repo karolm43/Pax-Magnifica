@@ -14,6 +14,7 @@ import {
   IconDiamond,
   IconTarget,
   IconCrosshair,
+  IconArrowsExchange,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -43,6 +44,7 @@ import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useDeskPlayer } from "./useDeskPlayer";
+import { TransactionModal } from "./TransactionModal";
 import styles from "./TurnControls.module.css";
 
 /* Initiative → wariant koloru DetailsCard (tooltip treści) — jak w StrategyCardTable. */
@@ -133,6 +135,8 @@ export function TurnControls() {
   const [confirmingPass, setConfirmingPass] = useState(false);
   // Modal akcji komponentu: „co zagrałeś?". Wybór to tylko adnotacja (RULES.md 31.8).
   const [componentOpen, setComponentOpen] = useState(false);
+  // Okno transakcji (RULES.md 47): wymiana z sąsiadem + żetony obietnic.
+  const [transactionOpen, setTransactionOpen] = useState(false);
 
   // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
   // pierwszy). Zwraca null tylko, gdy nie ma żadnego posadzonego gracza.
@@ -406,6 +410,20 @@ export function TurnControls() {
                 <IconSparkles size={16} aria-hidden="true" />
                 <span>Component action</span>
               </button>
+              {/* Transakcja z sąsiadem (RULES.md 47) — NIE jest akcją tury: wolno ją
+                  rozstrzygnąć w dowolnym momencie tury (także po akcji/pasie i w
+                  trakcie walki/okna), więc przycisk nie zależy od took_action/passed. */}
+              <button
+                type="button"
+                className={styles.transaction}
+                style={{ "--d": "150ms" } as CSSProperties}
+                disabled={busy}
+                onClick={() => setTransactionOpen(true)}
+                title="Trade with a neighbor (one transaction per neighbor each turn) or hand out promise tokens"
+              >
+                <IconArrowsExchange size={16} aria-hidden="true" />
+                <span>Transaction</span>
+              </button>
               <button
                 type="button"
                 className={styles.endTurn}
@@ -595,6 +613,22 @@ export function TurnControls() {
           </Group>
         </Stack>
       </AppModal>
+
+      {/* MODAL transakcji (RULES.md 47) — montowany tylko, gdy otwarty, by hooki ręki
+          (usePlayerHand) nie odpytywały backendu przez cały czas. Gracz = ten, którego
+          jest tura (``active``); wpis ``playerData`` niesie sąsiadów i stan posiadania. */}
+      {transactionOpen && activePlayerData && (
+        <TransactionModal
+          opened
+          onClose={() => setTransactionOpen(false)}
+          gameId={gameId}
+          me={activePlayerData}
+          players={(webData?.playerData ?? []).filter(
+            (p) => p.faction && p.faction !== "neutral",
+          )}
+          canTrade={isAction && isTurnPlayer}
+        />
+      )}
 
       {/* MODAL akcji komponentu — „co zagrałeś?". Lista = karty akcji z oknem
           „Action" z ręki + opcja dla źródeł nie-kartowych (relikt/tech/zdolność).

@@ -2237,7 +2237,7 @@ Etap E8 (krok INVASION akcji taktycznej). Źródło: lokalne pliki tirules (tre�
 - ⚠ ZAŁOŻENIE: bombardują wyłącznie STATKI w przestrzeni (mech z Bombardment, np. L1Z1X, nie jest modelowany).
 - ⚠ ZAŁOŻENIE: przy >1 obrońcy na planecie (koegzystencja) bombardowanie i walka → 422 (God-Mode), jak w walce 39.1.
 - ⚠ ZAŁOŻENIE: Space Cannon Defense strzela WSZYSTKIMI jednostkami Space Cannon nie-atakujących graczy na planecie naraz (jedna decyzja „strzelać / nie" na planetę).
-- ⚠ TODO: żeton Custodians na Mecatol Rex (musi zostać zdjęty przed lądowaniem), eksploracja po przejęciu (UI tylko sygnalizuje `explore`), karta legendarnej planety, Plasma Scoring, Magen Defense Grid, X-89, L1Z1X Harrow, Sustain Damage w Space Cannon — hooki E7.
+- ⚠ TODO: żeton Custodians na Mecatol Rex (musi zostać zdjęty przed lądowaniem), (eksploracja po przejęciu → ZROBIONE, patrz 46), karta legendarnej planety, Plasma Scoring, Magen Defense Grid, X-89, L1Z1X Harrow, Sustain Damage w Space Cannon — hooki E7.
 
 ---
 
@@ -2523,3 +2523,73 @@ Cel: partia do 6 graczy przez sieć (ludzie + boty), obok trybów solo vs boty i
 - `strategy_phase.pick_strategy_card` odrzuca wybór karty, dopóki `state.setup` nie jest `None` (silnik-sędzia).
 - web-data: `gameState.setup`; żeton Custodians jako token planety `mr` pod kluczem `neutral`, dopóki leży na planszy (`web_setup.custodian_on_board`).
 - UI: pełnoekranowe okno z bramką „przekaż ekran" przed pokazaniem tajnych celów (hot-seat); w grze sieciowej backend ma wysyłać kandydatów tylko ich właścicielowi (RULES.md 44).
+
+---
+
+## 46. Eksploracja planet po przejęciu kontroli — ✅ ZWERYFIKOWANE (tirules2.com) + ⚠ ZAŁOŻENIA
+
+📎 tirules: [Exploration](rules_tirules/R_exploration.md) · [Exploration Cards (noty)](rules_tirules/C_exploration_cards.md) · [Attach](rules_tirules/R_attach.md) · [Control](rules_tirules/R_control.md) · [Relics](rules_tirules/R_relics.md) · [Frontier Tokens](rules_tirules/R_frontier_tokens.md)
+
+Kod: `core/exploration.py`, `api/routers/exploration.py`, `api/schemas_exploration.py`; UI `frontend/src/domains/exploration/`. Karty (typ, treść, rozstrzygnięcie) wyłącznie z katalogu komponentów (`ComponentCategory.EXPLORATION`).
+
+### 46.1. Reguły
+
+- (X1) Gracz, który przejmuje planetę NIEkontrolowaną przez nikogo, ją **eksploruje**: dobiera i rozstrzyga kartę z talii odpowiadającej cesze planety (cultural / hazardous / industrial). Planeta bez cechy (Mecatol Rex, planety domowe, stacje) nie podlega eksploracji.
+- (X2) Planeta z kilkoma cechami → gracz wybiera talię. Kilka planet naraz → gracz wybiera kolejność; każda karta jest rozstrzygana W CAŁOŚCI przed następną. Karta jest ujawniana wszystkim przed rozstrzygnięciem.
+- (X3) Rozstrzygnięcie: gracz czyta kartę, podejmuje decyzje, wykonuje efekt. Karta inna niż fragment reliktu i attach trafia na stos odrzuconych swojej talii; karta purge'ująca się (żetony wormhole) NIE trafia na stos odrzuconych. Pusta talia → stos odrzuconych tasuje się w nową talię.
+- (X4) Karta z nagłówkiem „attach" zostaje przy planecie (też po zmianie kontroli — R_attach). Karta „relic fragment" leży jawnie w strefie gracza (można je wymieniać w transakcjach — RULES.md 47).
+- (X5) Limit commodities: gracz nie może mieć więcej niż commodity value (noty Abandoned Warehouses / Functioning Base / Local Fabricators).
+
+### 46.2. Model i implementacja
+
+- `GameState.exploration: ExplorationState | None` (`player_id`, `position`, `queue`, `current`, `log`) — okno otwiera się w `invasion._establish_control` dla planet z `result["explore"]` (przejęta, bez poprzedniego właściciela, z cechą). Karta dobierana jest **automatycznie**, gdy nie ma wyboru (jedna planeta w kolejce, jedna cecha); inaczej gracz wybiera planetę (kolejność) i talię (`exploration.draw`).
+- Talie: `DecksState.exploration_deck/_discard` (klucz = nazwa talii), zasiewane LENIWIE przy pierwszym dobraniu (`next_rng` — seedowalne, Undo-safe). `GameState.planet_attachments {planeta: [karta]}`, `PlayerState.relic_fragments [karta]` (JAWNE).
+- Rozstrzygnięcie: `exploration.options_for` (opcje z flagą `enabled` i powodem) → `exploration.resolve(opcja, param)`; zamknięcie okna: `exploration.finish` (dopiero przy pustej kolejce i braku ujawnionej karty).
+- Blokady: `invasion.advance` z ESTABLISH, `tactical.next_step` i `tactical.end_action` → 422, dopóki trwa eksploracja. God-Mode (`end_tactical_action`, `set_step`) czyści okno.
+- API: `GET /exploration`, `POST /exploration/{draw, resolve, finish}`; sygnał `gameState.activeExploration` w web-data.
+- Skutki zautomatyzowane: Mercenary Outfit (piechota), Volatile Fuel Source (żeton do wybranej puli), Expedition (ready), Core Mine (TG), Abandoned Warehouses, Functioning Base (dobranie karty akcji), Local Fabricators (mech), wszystkie attach (w tym Demilitarized Zone: struktury znikają, siły naziemne wracają na orbitę) i fragmenty reliktów.
+
+### 46.3. ⚠ ZAŁOŻENIA / TODO
+
+- ⚠ TODO: **statystyki z attachmentów** (Dyson Sphere, Mining World, Research Facility…) są ZAPISANE przy planecie, ale zasoby/wpływy/specjalność technologiczna liczone są nadal z samych danych planety (ekonomia, produkcja, cele). Potrzebny wspólny helper statystyk planety.
+- ⚠ ZAŁOŻENIE: Freelancers (produkcja 1 jednostki) i żetony wormhole (Gamma Wormhole) są rozstrzygane RĘCZNIE przez operatora (God-Mode) — silnik tylko odkłada kartę (purge dla żetonu). Brak modelu żetonów systemu.
+- ⚠ ZAŁOŻENIE: przy braku mecha / piechoty w rezerwie opcja jest niedostępna (reguła pozwala zdjąć jednostkę z planszy z systemu bez własnego żetonu — niezaimplementowane).
+- ⚠ ZAŁOŻENIE: wszystkie przejęte planety są już kontrolowane w chwili eksploracji (reguła: wiele planet w systemie → „zdobądź i eksploruj po kolei"); wpływa tylko na Freelancers, który i tak jest ręczny.
+- ⚠ TODO: eksploracja frontier (Dark Energy Tap, żetony frontier, Enigmatic Device, Ion Storm), „explore" jako osobny efekt kart/zdolności, relikty (rozstrzyganie fragmentów), Dead World / Entropic Field i inne karty spoza bazowego PoK, handel w oknie po ujawnieniu karty (transakcje — RULES.md 47).
+
+---
+
+## 47. Transakcje między graczami + żetony obietnic — ✅ ZWERYFIKOWANE (tirules2.com) + ⚠ ZAŁOŻENIA
+
+Źródło: `docs/rules_tirules/R_transactions.md`, `R_commodities.md`, `R_promissory_notes.md`,
+`R_relics.md`, `R_neighbors.md` (tirules2.com).
+
+### 47.1 Reguła (zaimplementowana: `core/transaction.py`, `POST /transactions/resolve`)
+- W swojej turze aktywny gracz może rozstrzygnąć **do jednej transakcji z każdym sąsiadem**
+  (RULES.md 2 — sąsiedztwo z `neighbors_of`), w dowolnym momencie tury, także w trakcie walki
+  → brak blokady oknem czasowym i brak wpływu na `took_action_this_turn` (to nie akcja).
+- Gracz oddaje dowolną liczbę **trade goods i commodities** oraz maks. **jedną promissory note
+  z ręki**; w zamian dostaje dowolną liczbę TG, commodities i **fragmentów reliktów** oraz
+  maks. jedną promissory note. Transakcja nie musi być równa (można dawać za darmo).
+- **Commodity oddana innemu graczowi staje się u odbiorcy trade goodem** (R_commodities).
+- Promissory notes w strefie gracza (`promissory_notes_in_play`) nie podlegają wymianie;
+  relikty same — też nie (tylko fragmenty).
+- Utrata i ponowne uzyskanie sąsiedztwa w tej samej turze nie daje drugiej transakcji →
+  `PlayerState.transacted_with` (lista partnerów), zerowana razem z `took_action_this_turn`.
+- Pusta transakcja jest odrzucana (wybór projektowy — nic do wymiany, nie zużywa limitu).
+- Po rozstrzygnięciu nie ma cofnięcia poza Undo silnika (zgodnie z „nie da się cofnąć").
+
+### 47.2 Poza zakresem (jeszcze)
+- ⚠️ **Hacan**: może wymieniać też karty akcji — hook w E7 (`rules_hooks`), nie `if faction`.
+- ⚠️ Zwrot **pojmanych jednostek** w ramach transakcji (po wdrożeniu Capture).
+- ⚠️ **Agenda**: transakcja z KAŻDYM graczem bez sąsiedztwa przy każdej agendzie (agendy
+  jeszcze nie ruszamy). Funkcja `resolve_transaction` wymaga dziś fazy akcji + sąsiedztwa.
+- ⚠️ Zgoda partnera nie jest modelowana: operator (hot-seat) składa obie strony umowy w jednym
+  oknie; zgoda sieciowa/bota dojdzie z oknami czasowymi (RULES.md 29).
+
+### 47.3 Żetony obietnic — ⚠️ NIEOFICJALNA ZASADA STOŁU (decyzja użytkownika)
+Nie ma jej w regułach TI4. Gracze zwyczajowo oddają sobie małe żetony kontroli jako niewiążące
+obietnice/długi (3 TG do zapłaty = 3 żetony wystawcy). Silnik tylko **zapamiętuje** kto ma czyje
+żetony (`GameState.promise_tokens = {holder: {issuer: n}}`, `core/promises.py`,
+`POST /promises/give`, `/promises/return`) — niczego nie egzekwuje. Działa **bez sąsiedztwa**,
+w dowolnej fazie i turze. Wierzyciel zwraca żetony wystawcy, gdy dług spłacony/odpuszczony.
