@@ -2308,6 +2308,11 @@ Etap E8 (faza statusu). Źródło: lokalne pliki tirules (treść © FFG; patrz 
   aktywny gracz w aktywnym systemie — do ostrzeżeń), `POST /tactical/fleet-pool/resolve`.
 - **UI:** `FleetPoolWarning` (pasek „N / pula", ostrzeżenie o nadwyżce) w oknie produkcji (liczy
   też statki z koszyka) i w panelu kroku ruchu; `FleetPoolModal` — wymuszone okno wyboru.
+- **Faza statusu (krok 5, redystrybucja ┼╝eton├│w):** zmniejszenie puli floty mo┼╝e stworzy─ç nadwy┼╝k─Ö.
+  Panel pokazuje `FleetPoolStatusMeter` (najwi─Öksza flota vs planowana pula, lista system├│w do
+  oczyszczenia; dane `status.fleetShips`). Po zatwierdzeniu `status_phase.advance_fleet_check`
+  otwiera okno `FLEET_POOL` (kontekst `phase=status`) dla pierwszego systemu z nadwy┼╝k─ů; po jego
+  zamkni─Öciu ÔÇö kolejny system/gracz. Kroki 6ÔÇô7 (`finalize_status`) czekaj─ů, a┼╝ nadwy┼╝ek nie b─Ödzie.
 
 ⚠️ ZAŁOŻENIA / luki: (1) God-Mode (edit-units, drag&drop w trybie bez reguł) omija pulę — wentyl;
 (2) sprawdzenie następuje przy zmianie kroku, nie „w każdej chwili" (np. nie w trakcie walki — tam

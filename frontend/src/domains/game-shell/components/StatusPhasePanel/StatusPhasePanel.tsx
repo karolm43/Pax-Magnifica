@@ -23,6 +23,7 @@ import { publicObjectives } from "@/entities/data/publicObjectives";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { FleetPoolStatusMeter } from "@/domains/map/components/FleetPoolWarning";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import styles from "./StatusPhasePanel.module.css";
 
@@ -217,6 +218,11 @@ export function StatusPhasePanel() {
                         {pool("f", "Fleet")}
                         {pool("s", "Strategy")}
                       </div>
+                      {/* Fleet pool (RULES.md 42): podgląd floty względem planowanej puli. */}
+                      <FleetPoolStatusMeter
+                        pool={alloc.f}
+                        ships={status.fleetShips?.[player.discordId] ?? {}}
+                      />
                       <button
                         type="button"
                         className={styles.primary}

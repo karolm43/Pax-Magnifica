@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import objective_progress
+from src.core import fleet_pool, objective_progress
 from src.core import objectives as obj
 from src.core.game_state import GameState, PlayerState, StatusStep
 from src.core.hex_grid import HexGrid
@@ -298,6 +298,8 @@ def build_status_payload(
         "done": list(status.done),
         "unassignedCc": dict(status.unassigned_cc),
         "fleetExcess": {pid: dict(v) for pid, v in status.fleet_excess.items()},
+        # Statki liczone do fleet pool per system — podgląd przy zmianie puli floty (RULES.md 42).
+        "fleetShips": {pid: fleet_pool.ships_by_system(state, pid) for pid in state.players},
         "scoreablePublic": {
             pid: obj.scoreable_public_objectives(state, registry, grid, pid)
             for pid in state.players

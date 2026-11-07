@@ -22,7 +22,7 @@ Kroki LRR i ich realizacja:
 
 from __future__ import annotations
 
-from src.core import objectives, strategy_phase, turn_flow
+from src.core import objectives, strategy_phase, timing, turn_flow
 from src.core.damage import repair_all
 from src.core.dice import next_rng
 from src.core.game_state import (
@@ -30,6 +30,7 @@ from src.core.game_state import (
     Phase,
     StatusPhaseState,
     StatusStep,
+    WindowType,
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -294,11 +295,6 @@ def redistribute(
     target.tactical_cc, target.fleet_cc, target.strategic_cc = tactical, fleet, strategic
     new_state.status.unassigned_cc[player_id] = 0
     new_state.status.done.append(player_id)
-    excess = fleet_excess(new_state, player_id)
-    if excess:
-        new_state.status.fleet_excess[player_id] = excess
-    else:
-        new_state.status.fleet_excess.pop(player_id, None)
     _log(
         new_state.status,
         5,
@@ -308,9 +304,45 @@ def redistribute(
         fleet=fleet,
         strategic=strategic,
     )
-    if all(p in new_state.status.done for p in new_state.players):
-        return finalize_status(new_state, registry)
-    return new_state
+    return advance_fleet_check(new_state, registry)
+
+
+def _refresh_fleet_excess(state: GameState) -> None:
+    """Przelicza ``status.fleet_excess`` dla graczy, którzy już zatwierdzili pule."""
+    assert state.status is not None
+    for pid in state.status.done:
+        excess = fleet_excess(state, pid)
+        if excess:
+            state.status.fleet_excess[pid] = excess
+        else:
+            state.status.fleet_excess.pop(pid, None)
+
+
+def advance_fleet_check(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Fleet pool po zmianie puli floty (RULES.md 42): nadwyżkę trzeba usunąć od razu.
+
+    Dla graczy, którzy zatwierdzili rozdział (w kolejności zatwierdzania), otwiera okno
+    ``FLEET_POOL`` na pierwszym systemie z nadwyżką. Gdy nadwyżek brak, a wszyscy zatwierdzili
+    — kroki 6–7 (``finalize_status``). Wołane po ``redistribute`` i po zamknięciu okna puli.
+    """
+    if state.status is None or state.status.step is not StatusStep.REDISTRIBUTE:
+        return state
+    _refresh_fleet_excess(state)
+    if state.pending_window is not None:
+        return state
+    for pid in state.status.done:
+        excess = state.status.fleet_excess.get(pid)
+        if excess:
+            position = sorted(excess)[0]
+            return timing.open_window(
+                state,
+                WindowType.FLEET_POOL,
+                [pid],
+                context={"position": position, "phase": "status"},
+            )
+    if all(p in state.status.done for p in state.players):
+        return finalize_status(state, registry)
+    return state
 
 
 def finalize_status(state: GameState, registry: StaticDataRegistry) -> GameState:
@@ -374,6 +406,10 @@ def complete_status(state: GameState, registry: StaticDataRegistry) -> GameState
     work = state.clone()
     if work.status is None:
         work.status = StatusPhaseState()
+    # Wentyl testowy: niedokończone usuwanie nadwyżki floty nie blokuje domknięcia fazy.
+    window = work.pending_window
+    if window is not None and window.window_type is WindowType.FLEET_POOL:
+        work.pending_window = None
     if work.status.step is StatusStep.SCORE_OBJECTIVES:
         work = _after_scoring(work, registry)
     if work.status is not None and work.status.step is StatusStep.REDISTRIBUTE:

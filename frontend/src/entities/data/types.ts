@@ -533,6 +533,8 @@ export type StatusPhaseData = {
   done: string[];
   unassignedCc: Record<string, number>;
   fleetExcess: Record<string, Record<string, number>>;
+  /** Statki liczone do fleet pool per gracz i system (podgląd zmiany puli, RULES.md 42). */
+  fleetShips?: Record<string, Record<string, number>>;
   scoreablePublic: Record<string, string[]>;
   scoreableSecret: Record<string, string[]>;
   /** Cele do wyboru w kroku 1 per gracz: postęp względem karty (null = ręcznie). */

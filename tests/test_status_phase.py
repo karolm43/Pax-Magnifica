@@ -6,13 +6,14 @@ import random
 
 import pytest
 
-from src.core import objectives, status_phase, turn_flow
+from src.core import fleet_pool, objectives, status_phase, turn_flow
 from src.core.game_state import (
     GameState,
     Phase,
     PlayerState,
     StatusStep,
     SystemState,
+    WindowType,
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -287,6 +288,31 @@ def test_fleet_excess_reported_after_reducing_fleet_pool(registry: StaticDataReg
     assert state.status is not None
     # 3 krążowniki (myśliwce się nie liczą) przy fleet pool 2 → nadwyżka 1.
     assert state.status.fleet_excess == {"p1": {"101": 1}}
+    # Nadwyżkę trzeba usunąć od razu: okno FLEET_POOL dla p1 w systemie 101 (RULES.md 42).
+    window = state.pending_window
+    assert window is not None and window.window_type is WindowType.FLEET_POOL
+    assert window.queue == ["p1"] and window.context["position"] == "101"
+
+
+def test_fleet_pool_window_blocks_finalize_until_resolved(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _finish_all_scoring(_enter_status(_state(registry)), registry)
+    state.systems["101"].space_units = {"p1": {"cruiser": 3}}
+    state = status_phase.redistribute(state, registry, "p1", 6, 2, 2)
+    for pid in ("p2", "p3"):
+        s = state.players[pid]
+        state = status_phase.redistribute(
+            state, registry, pid, s.tactical_cc + 2, s.fleet_cc, s.strategic_cc
+        )
+    assert state.status is not None
+    # Wszyscy zatwierdzili, ale nadwyżka p1 wstrzymuje kroki 6–7.
+    assert state.status.step is StatusStep.REDISTRIBUTE
+    state = fleet_pool.resolve_fleet_pool(state, registry, "p1", {"cruiser": 1})
+    assert state.pending_window is None
+    assert state.systems["101"].space_units["p1"] == {"cruiser": 2}
+    assert state.status is not None and state.status.step is StatusStep.COMPLETE
+    assert state.status.fleet_excess == {}
 
 
 def test_finish_status_without_custodians_starts_new_round(

@@ -85,6 +85,24 @@ def unit_name(
     return unit.name if unit is not None else base_type
 
 
+def ships_by_system(state: GameState, player_id: str) -> dict[str, int]:
+    """Statki gracza liczone do puli w każdym systemie, gdzie jakieś ma: ``{pozycja: ile}``.
+
+    Do podglądu przy zmianie puli floty (faza statusu): największa flota = minimalna pula
+    bez strat.
+    """
+    result: dict[str, int] = {}
+    for position, system in state.systems.items():
+        n = sum(
+            c
+            for bt, c in system.space_units.get(player_id, {}).items()
+            if c > 0 and counts_toward_pool(bt)
+        )
+        if n > 0:
+            result[position] = n
+    return result
+
+
 def players_with_excess(state: GameState, position: str) -> list[str]:
     """Gracze z nadwyżką statków w systemie — od aktywnego, zgodnie z kolejnością zasiadania."""
     system = state.systems.get(position)
@@ -189,4 +207,9 @@ def resolve_fleet_pool(
     new_state = timing.respond_current(new_state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
+        # Faza statusu (zmiana puli floty): kolejny system / gracz z nadwyżką albo kroki 6–7.
+        if new_state.status is not None:
+            from src.core import status_phase  # lokalnie: status_phase importuje fleet_pool
+
+            new_state = status_phase.advance_fleet_check(new_state, registry)
     return new_state

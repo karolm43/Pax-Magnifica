@@ -95,3 +95,69 @@ export function FleetPoolWarning({
 }
 
 export default FleetPoolWarning;
+
+/**
+ * Ten sam wskaźnik FLEET POOL dla FAZY STATUSU (RULES.md 42): gracz zmienia liczbę żetonów
+ * w puli floty, a pasek pokazuje jego NAJWIĘKSZĄ flotę względem nowej puli. Gdy pula spada
+ * poniżej floty w jakimś systemie, ostrzega, ile statków i gdzie trzeba będzie usunąć - po
+ * zatwierdzeniu silnik otworzy wymuszone okno usuwania.
+ */
+export function FleetPoolStatusMeter({
+  pool,
+  ships,
+  systemName,
+}: {
+  /** Planowana liczba żetonów w puli floty. */
+  pool: number;
+  /** Statki liczone do puli per system: `{pozycja: ile}`. */
+  ships: Record<string, number>;
+  systemName?: (position: string) => string;
+}) {
+  const entries = Object.entries(ships).sort((a, b) => b[1] - a[1]);
+  const largest = entries[0]?.[1] ?? 0;
+  const where = entries[0]?.[0];
+  const overList = entries.filter(([, n]) => n > pool);
+  const overTotal = overList.reduce((sum, [, n]) => sum + (n - pool), 0);
+  const cells = Math.max(pool, largest);
+  const label = (pos: string) => systemName?.(pos) ?? pos;
+  return (
+    <div className={styles.box} data-over={overTotal > 0 || undefined} role="status">
+      <div className={styles.head}>
+        <span className={styles.label}>
+          <IconShip size={14} aria-hidden="true" /> Fleet pool
+        </span>
+        <b className={styles.count}>
+          {largest}
+          <small> / {pool} ships</small>
+        </b>
+      </div>
+      <div className={styles.cells} aria-hidden="true">
+        {Array.from({ length: cells }, (_, i) => (
+          <span
+            key={i}
+            className={styles.cell}
+            data-kind={i >= pool ? "over" : i < largest ? "have" : undefined}
+          />
+        ))}
+      </div>
+      {overTotal > 0 ? (
+        <p className={styles.warn}>
+          <IconAlertTriangle size={14} aria-hidden="true" />
+          <span>
+            Too few fleet tokens. You will have to remove{" "}
+            {overList
+              .map(([pos, n]) => `${n - pool} ship${n - pool === 1 ? "" : "s"} in ${label(pos)}`)
+              .join(", ")}
+            .
+          </span>
+        </p>
+      ) : (
+        <small className={styles.ok}>
+          {where
+            ? `Largest fleet: ${largest} in ${label(where)}. Fighters don't count.`
+            : "No ships on the board."}
+        </small>
+      )}
+    </div>
+  );
+}
