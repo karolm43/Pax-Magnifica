@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  IconAlertTriangle,
   IconArrowRight,
+  IconInfoCircle,
   IconBuildingFactory2,
   IconCheck,
   IconMinimize,
@@ -22,6 +24,7 @@ import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
+import { FleetPoolWarning } from "@/domains/map/components/FleetPoolWarning";
 import {
   SPACE,
   autoPay,
@@ -87,6 +90,13 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const short = Math.max(0, cost - paid);
   const wasted = Math.max(0, paid - cost);
   const canProduce = queued > 0 && short === 0 && !busy;
+  const costState =
+    queued === 0 ? "empty" : short > 0 ? "short" : wasted > 0 ? "surplus" : "ok";
+  // Statki z koszyka liczone do fleet pool (bez myśliwców) - do ostrzeżenia o przekroczeniu.
+  const queuedShips = cart.reduce((n, l) => {
+    const u = view.units.find((x) => x.baseType === l.baseType);
+    return u?.placement === "space" && u.baseType !== "fighter" ? n + l.count : n;
+  }, 0);
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -295,6 +305,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             <span data-state="free">free {free}</span>
           </div>
 
+          <FleetPoolWarning extra={queuedShips} />
+
           <h4>Producing units</h4>
           <div className={styles.producers}>
             {view.producers.length === 0 && (
@@ -481,18 +493,21 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             </div>
           )}
         </section>
-        <div className={styles.costBox} data-bad={short > 0 || undefined} aria-live="polite">
-          <span className={styles.costLabel}>Cost</span>
-          <b className={styles.costValue}>{fmt(cost)}</b>
-          <small>
-            {queued === 0
-              ? "nothing queued"
-              : short > 0
-                ? `short by ${fmt(short)}`
-                : wasted > 0
-                  ? `${fmt(wasted)} surplus is lost`
-                  : "fully covered"}
-          </small>
+        <div className={styles.costBox} data-state={costState} aria-live="polite">
+          <span className={styles.costLabel}>Total cost</span>
+          <span className={styles.costValue}>
+            <b>{fmt(cost)}</b>
+            <i>res</i>
+          </span>
+          <span className={styles.costStatus}>
+            {costState === "short" && <IconAlertTriangle size={14} aria-hidden="true" />}
+            {costState === "ok" && <IconCheck size={14} aria-hidden="true" />}
+            {costState === "surplus" && <IconInfoCircle size={14} aria-hidden="true" />}
+            {costState === "empty" && "Nothing queued"}
+            {costState === "short" && `Short by ${fmt(short)}`}
+            {costState === "ok" && "Fully covered"}
+            {costState === "surplus" && `${fmt(wasted)} surplus is lost`}
+          </span>
         </div>
         <div className={styles.dockActions}>
           <button
@@ -547,7 +562,10 @@ export function ProductionOverlay() {
 
   // Zmiana stanu gry (płatność, ruch innego gracza...) odświeża widok produkcji.
   useEffect(() => {
-    if (active) void queryClient.invalidateQueries({ queryKey: ["production"] });
+    if (active) {
+      void queryClient.invalidateQueries({ queryKey: ["production"] });
+      void queryClient.invalidateQueries({ queryKey: ["fleetPool"] });
+    }
   }, [gameState, active, queryClient]);
 
   // Poza krokiem PRODUCTION okno wraca do stanu zamkniętego - kolejna produkcja zaczyna się

@@ -12,6 +12,7 @@ import { MoveQuantityModal } from "@/domains/map/components/MoveQuantityModal";
 import { MultiSelectHud } from "@/domains/map/components/MultiSelectHud";
 import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal";
 import { CapacityModal } from "@/domains/map/components/CapacityModal";
+import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
@@ -262,6 +263,8 @@ function GameMapContent() {
       {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje
           przy oknie CAPACITY (myśliwce, piechota, mechy w przestrzeni ponad capacity). */}
       <CapacityModal />
+      {/* Fleet pool (RULES.md 42) - statki ponad pulę floty trzeba zwrócić do rezerwy. */}
+      <FleetPoolModal />
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}
       <SecondaryDecisionModal />

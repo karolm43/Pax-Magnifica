@@ -14,6 +14,7 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { lookupUnit } from "@/entities/lookup/units";
 import { Unit } from "@/shared/ui/Unit";
+import { FleetPoolWarning } from "@/domains/map/components/FleetPoolWarning";
 import type { PlayerData } from "@/entities/data/types";
 import type { Tile } from "@/entities/game/types";
 import {
@@ -217,6 +218,8 @@ export function MovementStepPanel({
         </span>
       </div>
 
+      {/* Fleet pool (RULES.md 42): ruch ponad pulę jest dozwolony, ale nadwyżka zostanie usunięta. */}
+      <FleetPoolWarning />
       {fleet.length === 0 ? (
         <span className={styles.prodNote}>
           Nothing moved here yet. Drag ships onto this system, or use the mover below.

@@ -103,6 +103,7 @@ export function useBoardEditor() {
       "spaceCannon",
       "battle",
       "capacity",
+      "fleetPool",
       "playerHand",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
@@ -439,6 +440,19 @@ export function useBoardEditor() {
   }, [refresh]);
 
   // Limit pojemności (RULES.md 39.6): gracz usuwa nadwyżkę ładunku z przestrzeni systemu.
+  // Fleet pool (RULES.md 42): gracz zwraca nadwyżkę statków ponad pulę floty do rezerwy.
+  const fleetPoolResolve = useCallback(
+    async (faction: string, remove: Record<string, number>) => {
+      await post("/tactical/fleet-pool/resolve", {
+        faction,
+        remove: Object.entries(remove)
+          .filter(([, count]) => count > 0)
+          .map(([baseType, count]) => ({ baseType, count })),
+      });
+      await refresh();
+    },
+    [refresh],
+  );
   const capacityResolve = useCallback(
     async (faction: string, remove: Record<string, number>) => {
       await post("/tactical/capacity/resolve", {
@@ -625,6 +639,7 @@ export function useBoardEditor() {
     battleAnnounceRetreat,
     battleRetreat,
     capacityResolve,
+    fleetPoolResolve,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,
@@ -805,6 +820,46 @@ export function useCapacity(enabled: boolean) {
     enabled,
     queryFn: async () =>
       fetchJson<CapacityView>("/bot/tactical/capacity", "capacity"),
+    staleTime: 0,
+  });
+}
+
+// --- Fleet pool (RULES.md 42) ---
+
+export type FleetShip = {
+  baseType: string;
+  asyncId: string;
+  name: string;
+  count: number;
+};
+
+export type FleetPoolView = {
+  /** true = trwa okno FLEET_POOL (usunięcie wymuszone); false = tylko ostrzeżenie. */
+  active: boolean;
+  known: boolean;
+  position: string | null;
+  player: string | null;
+  playerId: string | null;
+  /** Żetony w puli floty = maks. liczba statków nie-myśliwskich w systemie. */
+  pool: number;
+  total: number;
+  excess: number;
+  ships: FleetShip[];
+  /** Podpowiedź „Auto" (najtańsze statki najpierw). */
+  suggestion: Record<string, number>;
+  remaining: number;
+};
+
+/**
+ * Stan fleet pool: respondent okna FLEET_POOL albo aktywny gracz w aktywnym systemie
+ * (ostrzeżenie w produkcji / ruchu, zanim nadwyżka zostanie wymuszona).
+ */
+export function useFleetPool(enabled: boolean) {
+  return useQuery<FleetPoolView>({
+    queryKey: ["fleetPool"],
+    enabled,
+    queryFn: async () =>
+      fetchJson<FleetPoolView>("/bot/tactical/fleet-pool", "fleetPool"),
     staleTime: 0,
   });
 }

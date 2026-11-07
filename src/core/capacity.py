@@ -168,7 +168,9 @@ def _check_removal(report: CapacityReport, remove: dict[str, int]) -> None:
             raise ValueError("You are removing more units than the capacity limit requires.")
 
 
-def _remove(system: SystemState, player_id: str, base_type: str, count: int) -> None:
+def remove_space_units(
+    system: SystemState, player_id: str, base_type: str, count: int
+) -> None:
     units = system.space_units.get(player_id, {})
     left = units.get(base_type, 0) - count
     if left > 0:
@@ -209,7 +211,7 @@ def resolve_capacity(
     system = new_state.systems[position]
     for base_type, count in remove.items():
         if count > 0:
-            _remove(system, player_id, base_type, count)
+            remove_space_units(system, player_id, base_type, count)
     new_state = timing.respond_current(new_state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)

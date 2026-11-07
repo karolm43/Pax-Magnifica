@@ -1,0 +1,192 @@
+"""Fleet pool: limit statków nie-myśliwskich w systemie i usuwanie nadwyżki (RULES.md 42).
+
+Źródło: ``docs/rules_tirules/R_fleet_pool.md``. Liczba żetonów w puli floty (``fleet_cc``) to
+maksymalna liczba statków NIE-myśliwskich gracza w jednym systemie. Nadwyżkę gracz wybiera i
+zwraca do rezerwy „w każdej chwili" — ale ruch/produkcja/umieszczenie WOLNO wykonać mimo
+przekroczenia (statki trzeba usunąć zaraz po). Dlatego silnik nie blokuje akcji, tylko:
+
+- ``fleet_report`` — stan puli w systemie (do OSTRZEŻENIA przed i w trakcie akcji);
+- ``open_fleet_pool_check`` — otwiera okno ``FLEET_POOL`` dla graczy z nadwyżką (wołane przed
+  przejściem kroku akcji taktycznej: po ruchu, produkcji, walce);
+- ``resolve_fleet_pool`` — gracz wskazuje, które statki wracają do rezerwy (dokładnie tyle,
+  ile trzeba).
+
+Myśliwce i siły naziemne NIE liczą się do fleet pool (liczą się do capacity — RULES.md 39.6).
+Statki przewożone w ruchu i jednostki na planetach też nie. Funkcje CZYSTE (``state -> state``).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from src.core import timing
+from src.core.capacity import remove_space_units
+from src.core.combat import resolve_unit_variant
+from src.core.game_state import GameState, WindowType
+from src.core.registry import StaticDataRegistry
+from src.core.unit_catalog import PLACEMENT_BY_BASE_TYPE, Placement
+
+_FIGHTER = "fighter"
+
+
+def counts_toward_pool(base_type: str) -> bool:
+    """Czy typ liczy się do fleet pool: statek w przestrzeni, ale nie myśliwiec."""
+    return base_type != _FIGHTER and PLACEMENT_BY_BASE_TYPE.get(base_type) is Placement.SPACE
+
+
+@dataclass
+class FleetReport:
+    """Stan fleet pool gracza w jednym systemie."""
+
+    pool: int = 0  # żetony w puli floty = maks. liczba statków
+    ships: dict[str, int] = field(default_factory=dict)  # statki liczone do puli, wg typu
+
+    @property
+    def total(self) -> int:
+        return sum(self.ships.values())
+
+    @property
+    def excess(self) -> int:
+        return max(0, self.total - self.pool)
+
+
+def fleet_report(state: GameState, position: str, player_id: str) -> FleetReport:
+    """Pula floty i statki gracza w przestrzeni systemu ``position``."""
+    player = state.players.get(player_id)
+    report = FleetReport(pool=player.fleet_cc if player is not None else 0)
+    system = state.systems.get(position)
+    if system is None:
+        return report
+    for base_type, count in system.space_units.get(player_id, {}).items():
+        if count > 0 and counts_toward_pool(base_type):
+            report.ships[base_type] = count
+    return report
+
+
+def unit_cost(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
+) -> float:
+    """Koszt wariantu jednostki gracza (do podpowiedzi „usuń najtańsze")."""
+    player = state.players.get(player_id)
+    faction = player.faction if player is not None else None
+    techs = player.technologies if player is not None else []
+    unit = resolve_unit_variant(registry, faction, techs, base_type)
+    return float(unit.cost) if unit is not None and unit.cost is not None else 0.0
+
+
+def unit_name(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
+) -> str:
+    """Nazwa wariantu jednostki gracza (np. Duha Menaimon zamiast „flagship")."""
+    player = state.players.get(player_id)
+    faction = player.faction if player is not None else None
+    techs = player.technologies if player is not None else []
+    unit = resolve_unit_variant(registry, faction, techs, base_type)
+    return unit.name if unit is not None else base_type
+
+
+def players_with_excess(state: GameState, position: str) -> list[str]:
+    """Gracze z nadwyżką statków w systemie — od aktywnego, zgodnie z kolejnością zasiadania."""
+    system = state.systems.get(position)
+    if system is None:
+        return []
+    order = list(state.seating_order) or list(state.players)
+    active = state.active_player_id
+    if active in order:
+        i = order.index(active)
+        order = order[i:] + order[:i]
+    order += [pid for pid in system.space_units if pid not in order]
+    return [
+        pid
+        for pid in order
+        if pid in system.space_units and fleet_report(state, position, pid).excess > 0
+    ]
+
+
+def open_fleet_pool_check(state: GameState, position: str) -> GameState:
+    """Otwiera okno ``FLEET_POOL`` dla graczy z nadwyżką. Bez nadwyżki / przy innym oknie —
+    stan bez zmian."""
+    if state.pending_window is not None:
+        return state
+    queue = players_with_excess(state, position)
+    if not queue:
+        return state
+    return timing.open_window(
+        state, WindowType.FLEET_POOL, queue, context={"position": position}
+    )
+
+
+def auto_removal(
+    state: GameState, registry: StaticDataRegistry, player_id: str, report: FleetReport
+) -> dict[str, int]:
+    """Podpowiedź: usuń najtańsze statki najpierw, aż mieszczą się w puli (⚠️ ZAŁOŻENIE)."""
+    remaining = dict(report.ships)
+    removal: dict[str, int] = {}
+    need = report.excess
+    order = sorted(
+        remaining, key=lambda bt: (unit_cost(state, registry, player_id, bt), bt)
+    )
+    for base_type in order:
+        while need > 0 and remaining.get(base_type, 0) > 0:
+            remaining[base_type] -= 1
+            removal[base_type] = removal.get(base_type, 0) + 1
+            need -= 1
+    return removal
+
+
+def check_removal(report: FleetReport, remove: dict[str, int]) -> None:
+    """Usunięcie ma zlikwidować nadwyżkę i nie zabrać nic ponad potrzebę.
+
+    Raises:
+        ValueError: Zły typ (myśliwiec/naziemna), za mało/za dużo sztuk.
+    """
+    removed = 0
+    for base_type, count in remove.items():
+        if count <= 0:
+            continue
+        if not counts_toward_pool(base_type):
+            raise ValueError(
+                f"Only non-fighter ships count against the fleet pool ({base_type})."
+            )
+        if count > report.ships.get(base_type, 0):
+            raise ValueError(f"You have only {report.ships.get(base_type, 0)} {base_type} here.")
+        removed += count
+    if removed < report.excess:
+        raise ValueError(
+            f"Still over the fleet pool - remove {report.excess - removed} more ship(s)."
+        )
+    if removed > report.excess:
+        raise ValueError("You are removing more ships than the fleet pool requires.")
+
+
+def resolve_fleet_pool(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    remove: dict[str, int],
+) -> GameState:
+    """Gracz zwraca nadwyżkę statków do rezerwy z okna ``FLEET_POOL``.
+
+    Raises:
+        ValueError: Brak okna, nie kolej gracza, zły wybór.
+    """
+    window = state.pending_window
+    if window is None or window.window_type is not WindowType.FLEET_POOL:
+        raise ValueError("No fleet pool check is pending.")
+    if window.current_responder != player_id:
+        raise ValueError(
+            f"It is now {window.current_responder}'s turn to remove excess ships, "
+            f"not {player_id}."
+        )
+    position = str(window.context.get("position", ""))
+    report = fleet_report(state, position, player_id)
+    check_removal(report, remove)
+    new_state = state.clone()
+    system = new_state.systems[position]
+    for base_type, count in remove.items():
+        if count > 0:
+            remove_space_units(system, player_id, base_type, count)
+    new_state = timing.respond_current(new_state, player_id)
+    if timing.is_window_complete(new_state):
+        new_state = timing.close_window(new_state)
+    return new_state

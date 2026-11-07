@@ -63,6 +63,7 @@ class WindowType(StrEnum):
     - ``REACTION`` — uniwersalne okno „when/after" (karty akcji, technologie reagujące);
     - ``COMBAT_RETREAT`` — ogłoszenie odwrotu w walce kosmicznej (obrońca, potem atakujący);
     - ``CAPACITY`` — usunięcie nadwyżki myśliwców/sił naziemnych ponad pojemność (RULES.md 39.6).
+    - ``FLEET_POOL`` — usunięcie statków ponad pulę floty w systemie (RULES.md 42).
 
     Model kolejki jest WSPÓLNY (``TimingWindow``); typ niesie tylko znaczenie okna
     i pozwala warstwom wyżej (``core`` fazy/walki, UI) rozpoznać, co rozstrzygać.
@@ -74,6 +75,7 @@ class WindowType(StrEnum):
     REACTION = "REACTION"
     COMBAT_RETREAT = "COMBAT_RETREAT"
     CAPACITY = "CAPACITY"
+    FLEET_POOL = "FLEET_POOL"
 
 
 class TimingWindow(BaseModel):

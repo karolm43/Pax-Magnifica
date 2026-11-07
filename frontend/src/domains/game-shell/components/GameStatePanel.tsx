@@ -668,6 +668,7 @@ const WINDOW_LABELS: Record<string, string> = {
   COMBAT_ASSIGN_HITS: "Assign hits in combat",
   COMBAT_RETREAT: "Announce retreats",
   CAPACITY: "Capacity exceeded",
+  FLEET_POOL: "Fleet pool exceeded",
   SPACE_CANNON: "Space Cannon",
   REACTION: "Reaction window",
 };

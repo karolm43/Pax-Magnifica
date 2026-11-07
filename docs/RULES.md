@@ -2282,3 +2282,102 @@ Etap E8 (faza statusu). Źródło: lokalne pliki tirules (treść © FFG; patrz 
 - ⚠ ZAŁOŻENIE: nadwyżka statków ponad fleet pool jest tylko **zgłaszana** (`status.fleet_excess`, ostrzeżenie w panelu) — usuwa się ją ręcznie (narzędzia planszy/God-Mode); nie blokuje zakończenia kroku 5.
 - ⚠ ZAŁOŻENIE: „gotowy" lider po kroku 6 = stan `unlocked` (agenci); tajne cele fazy Akcji/Agendy nie są punktowane w statusie.
 - ⚠ TODO: zdjęcie żetonu Custodians (6 influence + lądowanie na Mecatol Rex, +1 VP, `custodians_removed`) — do czasu integracji z inwazją ustawiane God-Mode (`custodians_removed` w `/god-mode/patch`); Imperial/Support for the Throne/relikty jako źródła VP; cele akcji/agendy punktowane poza statusem; remis-złamanie przy równoczesnym 10. VP.
+
+
+---
+
+## 42. Fleet pool: limit statków w systemie i usuwanie nadwyżki — ✅ ZWERYFIKOWANE (tirules2.com)
+
+📎 tirules: [Fleet Pool](rules_tirules/R_fleet_pool.md) · [Capacity](rules_tirules/R_capacity.md) · [Command Sheet](rules_tirules/R_command_sheet.md)
+
+- **Limit (R_fleet_pool):** liczba żetonów w puli floty (`PlayerState.fleet_cc`) = maks. liczba
+  statków NIE-myśliwskich gracza w jednym systemie. Nie liczą się: myśliwce i siły naziemne (to
+  capacity, RULES.md 39.6), jednostki na planetach, statki przewożone w ruchu. Struktur w
+  przestrzeni (poza statkami) nie liczymy.
+- **Wolno przekroczyć, trzeba usunąć:** statki WOLNO ruszyć / wyprodukować / postawić ponad pulę
+  (ruch może też przejść przez zapchany system), ale nadwyżkę gracz wybiera i zwraca do rezerwy.
+  Silnik więc NIE blokuje akcji, tylko (1) OSTRZEGA przed nią, (2) wymusza usunięcie po niej.
+- **Implementacja:** `core/fleet_pool.py` — `fleet_report` (pula, statki, nadwyżka),
+  `open_fleet_pool_check` (okno `WindowType.FLEET_POOL`, kolejka od aktywnego gracza),
+  `resolve_fleet_pool` (usuń DOKŁADNIE nadwyżkę; tylko statki nie-myśliwskie), `auto_removal`
+  (podpowiedź: najtańsze najpierw — ⚠️ ZAŁOŻENIE, wybór należy do gracza).
+- **Kiedy sprawdzamy:** w `tactical.next_step` przed opuszczeniem kroku (po ruchu, produkcji,
+  walce, Space Cannon) — zaraz po sprawdzeniu capacity. Krok zostaje, dopóki okno trwa. Koniec
+  akcji taktycznej czyści okno. Endpointy: `GET /tactical/fleet-pool` (respondent okna ALBO
+  aktywny gracz w aktywnym systemie — do ostrzeżeń), `POST /tactical/fleet-pool/resolve`.
+- **UI:** `FleetPoolWarning` (pasek „N / pula", ostrzeżenie o nadwyżce) w oknie produkcji (liczy
+  też statki z koszyka) i w panelu kroku ruchu; `FleetPoolModal` — wymuszone okno wyboru.
+
+⚠️ ZAŁOŻENIA / luki: (1) God-Mode (edit-units, drag&drop w trybie bez reguł) omija pulę — wentyl;
+(2) sprawdzenie następuje przy zmianie kroku, nie „w każdej chwili" (np. nie w trakcie walki — tam
+nadwyżka z efektów kart jest dozwolona do końca walki); (3) Myśliwce II liczone do capacity, nigdy
+do puli (zgodnie z notą w R_fleet_pool); (4) faza statusu ma osobne `status_phase.fleet_excess`
+(redystrybucja żetonów) — obie ścieżki mówią o tej samej regule.
+
+---
+
+## 43. Asymetria i wyjątki (frakcje, karty akcji, agendy): zasady architektury hooków — ⚠ ZAŁOŻENIE (decyzja projektowa, do potwierdzenia)
+
+📎 tirules: [Abilities](rules_tirules/R_abilities.md) · [Modifiers](rules_tirules/R_modifiers.md) · [Action Cards](rules_tirules/R_action_cards.md) · [Agenda Phase](rules_tirules/R_agenda_phase.md) · [Agenda Card](rules_tirules/R_agenda_card.md)
+
+Status: PLAN (nic z tej sekcji nie jest jeszcze w kodzie). Realizacja krok po kroku: `docs/PLAN_PELNA_ROZGRYWKA.md`, sekcja „Plan hooków i wyjątków (E7 + E4 + E6)".
+To są zasady PROJEKTOWE (jak kodujemy wyjątki), nie reguły TI4. Treść konkretnych kart, zdolności
+i agend wynika wyłącznie z assetów JSON, a reguły ich interakcji z tirules2.com (zasada z steering).
+
+### 43.1. Zasady (obowiązują każdą implementację wyjątku)
+
+1. **Reguła bazowa nie zna wyjątków.** W `core/` nie wolno pisać `if faction == ...`, `if card_id == ...`
+   ani warunków na konkretną kartę/agendę/technologię. Reguła bazowa wywołuje PUNKT ZACZEPIENIA
+   (hook point), a wyjątek rejestruje się osobno w `core/rules_hooks.py`.
+2. **Wyjątek = rejestracja, nie edycja reguły.** Dodanie karty/frakcji = nowy wpis rejestru
+   (źródło komponentu → punkt zaczepienia → funkcja) + wpis w RULES.md + test. Zero zmian w regule bazowej,
+   chyba że brakuje punktu zaczepienia (wtedy dodajemy punkt, a nie obejście).
+3. **Hooki są czystymi funkcjami** (`state, kontekst -> wynik/state`), bez I/O i HTTP, deterministyczne
+   (losowość tylko przez seedowalny RNG silnika). Hook nie mutuje wejścia (klon jak reszta `core/`).
+4. **Typy punktów zaczepienia (kategorie):**
+   - `MODIFY` — zmienia liczbę/flagę w trakcie liczenia (ruch, rzut, koszt, limit, zasięg, wartość produkcji);
+   - `PERMIT/FORBID` — rozszerza lub zawęża legalność akcji (walidacja → `ValueError` → 422);
+   - `TRIGGER` — reakcja na zdarzenie silnika, otwiera OKNO czasowe (when/after/before/instead of);
+   - `REPLACE` — „instead of": podmienia rozstrzygnięcie kroku (jawnie, z pierwszeństwem);
+   - `PERSISTENT` — efekt trwały (prawo agendy, trwała karta), z wygaśnięciem (do końca fazy/rundy/gry).
+5. **Kolejność i konflikty są jawne.** Wiele hooków na jednym punkcie ⇒ deterministyczna kolejność:
+   najpierw REPLACE, potem FORBID, PERMIT, MODIFY (addytywne przed multiplikatywnymi), na końcu TRIGGER.
+   Remis: kolejność inicjatywy / od aktywnego gracza zgodnie z ruchem zegara (jak okna, RULES.md 29.2).
+   Reguła „zakaz wygrywa z pozwoleniem" (can't > can) — do potwierdzenia na tirules2 przy pierwszym konflikcie.
+6. **Okna czasowe dla reakcji.** Każdy hook typu TRIGGER działa przez `core/timing.py` (kolejka graczy),
+   a nie własną ścieżką. Klasyfikacja wyzwalacza = `timing_spec.py` (RULES.md 34).
+7. **Brak hooka ≠ błąd.** Komponent bez implementacji jest „martwy" i oznaczony w `effects_registry`
+   (`NOT_IMPLEMENTED`); silnik wtedy NIE zgaduje, tylko oddaje decyzję operatorowi (`MANUAL`, God-Mode)
+   i jasno to komunikuje w UI. Status `IMPLEMENTED` wolno ustawić dopiero, gdy jest hook + wpis w RULES + test.
+8. **Źródło prawdy o treści:** tekst karty/zdolności z assetów JSON; doprecyzowania z tirules2.com
+   (`docs/rules_tirules/`). Nigdy z pamięci. Każdy hook ma w RULES.md: komponent, tekst (lub id w assetach),
+   punkt zaczepienia, timing, źródło, status ✅/⚠.
+9. **Dane bez zmian:** wartości liczbowe (jednostki, koszty, tech) dalej tylko przez `StaticDataRegistry`;
+   hook modyfikuje wynik, nie duplikuje statystyk.
+10. **Wyjątki testujemy parami:** test „bez wyjątku → reguła bazowa" oraz „z wyjątkiem → zmieniony wynik".
+    Dodatkowo test regresji: rejestr pusty ⇒ zachowanie identyczne jak przed wprowadzeniem hooków.
+11. **God-Mode omija hooki** tak samo jak reguły (RULES.md 29) — to wentyl. Zdarzenie z God-Mode nie odpala TRIGGER-ów.
+12. **Plik > ~300 linii ⇒ podział tematyczny.** Hooki grupujemy per temat (`hooks/factions_*.py`,
+    `hooks/action_cards.py`, `hooks/agendas.py`), rejestr w jednym miejscu; nie jeden wielki plik.
+
+### 43.2. Kolejność wdrażania (uzasadnienie)
+
+1. **Najpierw mechanizm, potem treść.** Szkielet `rules_hooks` + punkty zaczepienia w istniejących regułach
+   (ruch, walka, produkcja, status, okna), przeniesienie wyjątku Arborec z `production.py` jako pierwszy
+   przypadek testowy. Powód: bez szkieletu każdy z ~30 wyjątków frakcji i setek kart wymusiłby edycję reguł bazowych.
+2. **Raport pokrycia** na bazie `effects_registry` + `timing_spec`: ile komponentów trafia w który punkt
+   zaczepienia ⇒ priorytet = punkty obsługujące najwięcej komponentów.
+3. **Karty akcji** (jednolity schemat: timing + efekt) — pierwszy duży test szkieletu.
+4. **Frakcje**: najpierw proste (modyfikatory liczb/legalności), na końcu te łamiące strukturę gry
+   (np. Nekro, Creuss, Mahact, Naalu, Yssaril, Titans, Cabal, Obsidian, Firmament).
+5. **Agendy** na końcu: wymagają działającej fazy agendy (głosowanie) i trwałych praw (`PERSISTENT`).
+6. Długi ogon kart bez hooka zostaje `MANUAL` (God-Mode) — świadomy kompromis, nie dług do ukrycia.
+
+### 43.3. ⚠ ZAŁOŻENIA / do potwierdzenia przez użytkownika
+
+- ⚠ ZAŁOŻENIE: pięć typów punktów zaczepienia (43.1 pkt 4) i kolejność rozstrzygania (pkt 5) to propozycja
+  projektowa; po napotkaniu realnego konfliktu kart zweryfikować na tirules2.com (`R_abilities`, `R_modifiers`).
+- ⚠ ZAŁOŻENIE: komponent bez hooka ⇒ `MANUAL` (operator rozstrzyga), zamiast blokować grę. Alternatywa:
+  twarde blokowanie zagrania nieobsługiwanej karty — decyzja użytkownika.
+- ⚠ ZAŁOŻENIE: kolejność wdrażania w 43.2 (karty akcji → frakcje proste → frakcje złożone → agendy).
+- ⚠ TODO: faza agendy nie ma jeszcze osobnego modułu `core/` (głosowanie, prawa) — warunek wstępny dla agend.

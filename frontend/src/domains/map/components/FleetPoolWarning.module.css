@@ -1,0 +1,97 @@
+/* Wskaźnik fleet pool: pasek komórek (statki vs żetony puli) + ostrzeżenie o nadwyżce. */
+.box {
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.box[data-over] {
+  border-color: rgba(251, 191, 36, 0.7);
+  background: rgba(120, 83, 9, 0.28);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.count {
+  font-size: 20px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink-hi);
+}
+
+.count small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-ink-lo);
+}
+
+.box[data-over] .count {
+  color: #fcd34d;
+}
+
+.cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cell {
+  width: 22px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+}
+
+.cell[data-kind="have"] {
+  border-color: rgba(147, 197, 253, 0.8);
+  background: rgba(96, 165, 250, 0.55);
+}
+
+.cell[data-kind="new"] {
+  border-color: rgb(var(--att-rgb, 148 163 184) / 0.9);
+  background: rgb(var(--att-rgb, 148 163 184) / 0.55);
+}
+
+.cell[data-kind="over"] {
+  border-color: rgba(251, 191, 36, 0.95);
+  background: rgba(245, 158, 11, 0.75);
+}
+
+.warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #fde68a;
+}
+
+.warn svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.ok {
+  font-size: 11.5px;
+  color: var(--ds-ink-lo);
+}

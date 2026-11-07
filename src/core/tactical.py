@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from src.core.battle import space_combat_required
 from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
+from src.core.fleet_pool import open_fleet_pool_check
 from src.core.game_state import (
     CombatStep,
     GameState,
@@ -127,6 +128,10 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
     # Limit pojemności (RULES.md 39.6): nadwyżkę trzeba usunąć, zanim akcja pójdzie dalej.
     if window is not None and window.window_type is WindowType.CAPACITY:
         raise ValueError("Some units exceed capacity - remove the excess before the next step.")
+    if window is not None and window.window_type is WindowType.FLEET_POOL:
+        raise ValueError(
+            "Some ships exceed the fleet pool - remove the excess before the next step."
+        )
     if window is not None and window.window_type is WindowType.SPACE_CANNON:
         raise ValueError(
             "Space Cannon is still being resolved - finish it before the next step."
@@ -155,6 +160,12 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
         checked = open_capacity_check(state, registry, state.active_system)
         if checked.pending_window is not None:
             return checked
+    # Fleet pool (RULES.md 42): ruch/produkcja/umieszczenie WOLNO wykonać ponad pulę, ale
+    # nadwyżkę statków trzeba zwrócić do rezerwy, zanim akcja pójdzie dalej.
+    if state.active_system is not None and window is None:
+        pooled = open_fleet_pool_check(state, state.active_system)
+        if pooled.pending_window is not None:
+            return pooled
     idx = _STEP_SEQUENCE.index(state.tactical_step)
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)
@@ -198,6 +209,7 @@ def end_tactical_action(state: GameState) -> GameState:
         WindowType.COMBAT_ASSIGN_HITS,
         WindowType.COMBAT_RETREAT,
         WindowType.CAPACITY,
+        WindowType.FLEET_POOL,
     ):
         new_state.pending_window = None
     return new_state

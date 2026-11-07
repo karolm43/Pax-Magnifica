@@ -99,6 +99,9 @@ kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 te
    z `onPick/picked`); karty jednostek pokazują „On board"; PRODUCTION to OSOBNE zdolności
    (Arborec: dok nie produkuje piechoty, piechota ma własne PRODUCTION 1) — RULES.md 33.3,
    `fits_producers`, `GameState.production_placed`; świeże jednostki nie dokładają PRODUCTION.
+   FLEET POOL (RULES.md 42): `core/fleet_pool.py`, okno `FLEET_POOL` przy zmianie kroku akcji,
+   `/tactical/fleet-pool`, ostrzeżenie w produkcji i ruchu (`FleetPoolWarning`) + wymuszony
+   `FleetPoolModal`. Nie sprawdzone na żywo (restart backendu).
 5. Braki: Sustain Damage w Space Cannon, capacity po walce, Plasma Scoring, multi-select
    Ctrl/Shift na mapie, pickup z systemów mijanych, >2 stron w walce (dziś 422).
 

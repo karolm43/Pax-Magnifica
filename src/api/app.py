@@ -27,6 +27,7 @@ from src.api.routers import (
     board,
     capacity,
     components,
+    fleet_pool,
     flow,
     game,
     history,
@@ -103,6 +104,7 @@ def create_app(
     app.include_router(space_cannon.router)
     app.include_router(battle.router)
     app.include_router(capacity.router)
+    app.include_router(fleet_pool.router)
     app.include_router(invasion.router)
     app.include_router(production.router)
     app.include_router(window.router)
