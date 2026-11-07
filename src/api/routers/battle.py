@@ -12,19 +12,24 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
+    BattleAnnounceRetreatRequest,
     BattleAssignRequest,
     BattleLogView,
     BattleLossItem,
     BattleResponse,
+    BattleRetreatRequest,
     BattleRollView,
     BattleSideView,
     BattleStartRequest,
     BattleUnitView,
+    RetreatOptionView,
     StateEnvelope,
 )
 from src.api.web_data import entity_key_map
 from src.core import battle, board_edit
-from src.core.game_state import GameState, WindowType
+from src.core.game_state import CombatStep, GameState, WindowType
+from src.core.movement import CargoPickup
+from src.core.retreat import retreat_destinations
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
 router = APIRouter()
@@ -108,6 +113,28 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         and window.current_responder is not None
         else None
     )
+    announcing = (
+        key(window.current_responder)
+        if window is not None
+        and window.window_type is WindowType.COMBAT_RETREAT
+        and window.current_responder is not None
+        else None
+    )
+    grid = ctx.current_grid
+    retreat_options = (
+        {
+            key(pid): [
+                RetreatOptionView(
+                    position=pos,
+                    system_id=grid.system_id_at(pos) if pos in grid.positions else "",
+                )
+                for pos in retreat_destinations(state, grid, combat.position, pid)
+            ]
+            for pid in (combat.attacker, combat.defender)
+        }
+        if combat.kind == "space" and combat.step is not CombatStep.DONE
+        else {}
+    )
     required = {
         key(pid): battle.required_hits(state, ctx.current_grid, ctx.registry, pid)
         for pid in (combat.attacker, combat.defender)
@@ -123,6 +150,11 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
             sustained={
                 key(pid): dict(v) for pid, v in dict(e.get("sustained", {})).items()
             },
+            retreat=(
+                {**dict(e["retreat"]), "player": key(str(e["retreat"].get("player", "")))}
+                if e.get("retreat")
+                else None
+            ),
         )
         for e in combat.log
     ]
@@ -145,6 +177,10 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         log=log,
         winner=key(combat.winner) if combat.winner is not None else None,
         outcome=combat.outcome,
+        announcing=announcing,
+        retreating=[key(pid) for pid in combat.retreating],
+        retreated={key(pid): pos for pid, pos in combat.retreated.items()},
+        retreat_options=retreat_options,
     )
 
 
@@ -230,3 +266,50 @@ async def post_battle_close(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, "battle:close")
+
+
+@router.post("/tactical/battle/announce-retreat", response_model=StateEnvelope)
+async def post_battle_announce_retreat(
+    request: BattleAnnounceRetreatRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Ogłoszenie odwrotu albo walka dalej (okno COMBAT_RETREAT — RULES.md 39.5 O2)."""
+    state = ctx.service.current_state()
+    try:
+        player_id = board_edit.resolve_player_id(request.faction, state)
+        new_state = battle.announce_retreat(
+            state, ctx.current_grid, player_id, announce=request.announce
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    verb = "announce" if request.announce else "stay"
+    return await _commit(ctx, new_state, f"battle:retreat-{verb}:{player_id}")
+
+
+@router.post("/tactical/battle/retreat", response_model=StateEnvelope)
+async def post_battle_retreat(
+    request: BattleRetreatRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Wykonanie ogłoszonego odwrotu do sąsiedniego systemu (RULES.md 39.5 O3–O6)."""
+    state = ctx.service.current_state()
+    cargo = (
+        [
+            CargoPickup(base_type=c.base_type, count=c.count, from_zone=c.from_zone)
+            for c in request.cargo
+        ]
+        if request.cargo is not None
+        else None
+    )
+    try:
+        player_id = board_edit.resolve_player_id(request.faction, state)
+        new_state = battle.retreat_from_combat(
+            state,
+            ctx.current_grid,
+            ctx.registry,
+            player_id,
+            request.destination,
+            cargo=cargo,
+            token_pool=request.token_pool,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"battle:retreat:{player_id}:{request.destination}")

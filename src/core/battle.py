@@ -26,7 +26,9 @@ from src.core.game_state import (
     WindowType,
 )
 from src.core.hex_grid import HexGrid
+from src.core.movement import CargoPickup
 from src.core.registry import StaticDataRegistry
+from src.core.retreat import perform_retreat, retreat_destinations
 from src.core.unit_catalog import is_space_unit
 
 # Anomalia dająca obrońcy +1 do rzutów combat w walce kosmicznej (R_nebula; RULES.md 39 W6).
@@ -225,8 +227,10 @@ def start_combat(
         for pid in (attacker, defender)
         for u in side_units(new_state, grid, registry, pid)
     )
-    combat.step = CombatStep.AFB if has_afb else CombatStep.ROLL
-    return new_state
+    if has_afb:
+        combat.step = CombatStep.AFB
+        return new_state
+    return _begin_round(new_state, grid)
 
 
 # ---------------------------------------------------------------------------- rzuty
@@ -456,18 +460,146 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         if side_units(new_state, grid, registry, pid)
     ]
     if len(alive) <= 1:
+        # Także O3: ogłoszony odwrót nie następuje, gdy przeciwnikowi nie zostały statki.
         combat.step = CombatStep.DONE
         combat.winner = alive[0] if alive else None
         combat.outcome = "winner" if alive else "draw"
         combat.pending_hits = {}
+        combat.retreating = []
         return new_state
-    if combat.step is CombatStep.AFB:
-        combat.step = CombatStep.ROLL  # AFB nie zmienia numeru rundy (to 1. runda)
-    else:
-        combat.round += 1
-        combat.step = CombatStep.ROLL
     combat.pending_hits = {}
+    if combat.step is CombatStep.AFB:
+        # AFB nie zmienia numeru rundy (to 1. runda) — dalej Announce Retreats (39.5).
+        return _begin_round(new_state, grid)
+    # O3: krok Retreat — ogłoszony odwrót MUSI się odbyć, o ile wciąż jest dozwolony cel.
+    if combat.retreating and combat.step is not CombatStep.RETREAT:
+        pid = combat.retreating[0]
+        if retreat_destinations(new_state, grid, combat.position, pid):
+            combat.step = CombatStep.RETREAT
+            return new_state
+        combat.retreating = []  # brak celu — odwrót nie następuje, walka trwa
+    combat.retreating = []
+    combat.round += 1
+    return _begin_round(new_state, grid)
+
+
+def _begin_round(state: GameState, grid: HexGrid) -> GameState:
+    """Początek rundy po AFB: Announce Retreats (walka kosmiczna) albo od razu rzuty (39.5 O2).
+
+    Kolejka okna ``COMBAT_RETREAT`` = obrońca, potem atakujący — tylko gracze z dozwolonym
+    celem odwrotu. Pusta kolejka (albo walka naziemna, O1) = krok pomijany.
+    """
+    new_state = state.clone()
+    combat = _combat(new_state)
+    combat.retreating = []
+    queue = (
+        [
+            pid
+            for pid in (combat.defender, combat.attacker)
+            if retreat_destinations(new_state, grid, combat.position, pid)
+        ]
+        if combat.kind == "space"
+        else []
+    )
+    if not queue:
+        combat.step = CombatStep.ROLL
+        return new_state
+    combat.step = CombatStep.ANNOUNCE
+    return timing.open_window(
+        new_state,
+        WindowType.COMBAT_RETREAT,
+        queue,
+        context={"position": combat.position, "round": combat.round},
+    )
+
+
+def announce_retreat(
+    state: GameState, grid: HexGrid, player_id: str, *, announce: bool
+) -> GameState:
+    """Gracz ogłasza odwrót (``announce=True``) albo walczy dalej (39.5 O2).
+
+    Ogłoszenie obrońcy zamyka okno — atakujący nie może już ogłosić odwrotu w tej rundzie.
+
+    Raises:
+        ValueError: Nie ten krok/okno, nie kolej gracza, brak dozwolonego celu odwrotu.
+    """
+    combat = _combat(state)
+    window = state.pending_window
+    if (
+        combat.step is not CombatStep.ANNOUNCE
+        or window is None
+        or window.window_type is not WindowType.COMBAT_RETREAT
+    ):
+        raise ValueError("Retreats are not being announced right now.")
+    if window.current_responder != player_id:
+        raise ValueError(
+            f"It is now {window.current_responder}'s turn to announce a retreat, not {player_id}."
+        )
+    new_state = state.clone()
+    combat = _combat(new_state)
+    if announce:
+        if not retreat_destinations(new_state, grid, combat.position, player_id):
+            raise ValueError("There is no eligible system to retreat to.")
+        combat.retreating = [*combat.retreating, player_id]
+    new_state = timing.respond_current(new_state, player_id)
+    defender_retreats = announce and player_id == _combat(new_state).defender
+    if defender_retreats or timing.is_window_complete(new_state):
+        new_state = timing.close_window(new_state)
+        _combat(new_state).step = CombatStep.ROLL
     return new_state
+
+
+def retreat_from_combat(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+    destination: str,
+    *,
+    cargo: list[CargoPickup] | None = None,
+    token_pool: str | None = None,
+) -> GameState:
+    """Krok Retreat: gracz, który ogłosił odwrót, wycofuje się do ``destination`` (39.5 O3–O7).
+
+    Po odwrocie: gdy obaj nadal mają statki w systemie — kolejna runda od Announce Retreats;
+    inaczej walka się kończy (zwycięzca = gracz ze statkami).
+
+    Raises:
+        ValueError: Nie krok Retreat, gracz nie ogłaszał odwrotu, zły cel/ładunek/pula.
+    """
+    combat = _combat(state)
+    if combat.step is not CombatStep.RETREAT or player_id not in combat.retreating:
+        raise ValueError("You have no retreat to carry out right now.")
+    new_state, result = perform_retreat(
+        state,
+        grid,
+        registry,
+        combat.position,
+        player_id,
+        destination,
+        cargo=cargo,
+        token_pool=token_pool,
+    )
+    combat = _combat(new_state)
+    combat.retreating = []
+    combat.retreated = {**combat.retreated, player_id: destination}
+    combat.log.append(
+        {
+            "round": combat.round,
+            "phase": "RETREAT",
+            "rolls": {},
+            "hits": {},
+            "losses": {player_id: dict(result.removed)} if result.removed else {},
+            "sustained": {},
+            "retreat": {
+                "player": player_id,
+                "destination": destination,
+                "units": dict(result.moved),
+                "tokenPlaced": result.token_placed,
+            },
+        }
+    )
+    return _after_losses(new_state, grid, registry)
 
 
 def close_combat(state: GameState) -> GameState:

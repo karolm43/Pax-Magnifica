@@ -8,7 +8,7 @@ typowane kreatory (wizards) dojdą w kolejnych blokach.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -1009,6 +1009,17 @@ class BattleLogView(BaseModel):
     hits: dict[str, int]
     losses: dict[str, dict[str, int]]
     sustained: dict[str, dict[str, int]]
+    # Wpis RETREAT (RULES.md 39.5): {"player", "destination", "units", "tokenPlaced"}.
+    retreat: dict[str, Any] | None = None
+
+
+class RetreatOptionView(BaseModel):
+    """Dozwolony system odwrotu (RULES.md 39.5 O4)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    position: str
+    system_id: str = Field(serialization_alias="systemId")
 
 
 class BattleResponse(BaseModel):
@@ -1033,6 +1044,44 @@ class BattleResponse(BaseModel):
     log: list[BattleLogView] = Field(default_factory=list)
     winner: str | None = None
     outcome: str | None = None
+    # Odwroty (RULES.md 39.5): kto teraz ogłasza (okno COMBAT_RETREAT), kto ogłosił odwrót
+    # w tej rundzie, wykonane odwroty {strona: system} i dozwolone cele per strona.
+    announcing: str | None = None
+    retreating: list[str] = Field(default_factory=list)
+    retreated: dict[str, str] = Field(default_factory=dict)
+    retreat_options: dict[str, list[RetreatOptionView]] = Field(
+        default_factory=dict, serialization_alias="retreatOptions"
+    )
+
+
+class BattleAnnounceRetreatRequest(BaseModel):
+    """Ogłoszenie odwrotu (``announce=True``) albo walka dalej (``False``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    announce: bool = True
+
+
+class RetreatCargoItem(BaseModel):
+    """Ładunek odwrotu: typ, liczba i strefa (``space`` albo id planety kontrolowanej)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str = Field(alias="baseType")
+    count: int = 1
+    from_zone: str = Field(default="space", alias="fromZone")
+
+
+class BattleRetreatRequest(BaseModel):
+    """Wykonanie odwrotu do ``destination``. Brak ``cargo`` = ładunek domyślny."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    destination: str
+    cargo: list[RetreatCargoItem] | None = None
+    token_pool: str | None = Field(default=None, alias="tokenPool")
 
 
 class BattleStartRequest(BaseModel):

@@ -1460,6 +1460,225 @@
   }
 }
 
+/* ================================ ODWROTY (RULES.md 39.5) ================================ */
+
+/* Plakietka stanu odwrotu w nagłówku floty. */
+.retreatTag {
+  padding: 1px 7px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #1c1405;
+  background: #f2b84b;
+  border-radius: 4px;
+  animation: retreatPulse 1.6s ease-in-out infinite;
+}
+
+.retreatTag[data-state="withdrew"] {
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.1);
+  animation: none;
+}
+
+/* Flota, która ogłosiła odwrót: bursztynowy akcent i silniki „na rozgrzewce". */
+.fleet[data-retreat="announced"],
+.fleet[data-retreat="withdrawing"] {
+  border-color: rgba(242, 184, 75, 0.45);
+  box-shadow:
+    inset 0 0 0 1px rgba(242, 184, 75, 0.2),
+    0 0 26px rgba(242, 184, 75, 0.12);
+}
+
+.fleet[data-retreat="announced"] .engine,
+.fleet[data-retreat="withdrawing"] .engine {
+  opacity: 0.9;
+  animation-duration: 1.4s;
+  filter: blur(1px) brightness(1.4);
+}
+
+.fleet[data-retreat="withdrawing"] .engine {
+  animation: engineSpool 0.9s ease-in-out infinite;
+}
+
+/* ODLOT: okręt rozpędza się ku własnej krawędzi pola (--dir: lewa -1, prawa 1), z płomieniem
+   silników na pełnej mocy, rozmyciem prędkości i błyskiem skoku na końcu. Kolejność szeregów
+   jak przy wejściu, tylko odwrotna: najpierw linia frontu osłania odwrót, ciężkie wychodzą pierwsze. */
+.formation .ship[data-leaving],
+.formation[data-entered] .ship[data-leaving] {
+  pointer-events: none;
+  animation: shipRetreat 3.2s cubic-bezier(0.55, 0, 0.75, 0.2) both;
+  animation-delay: calc(var(--rank, 0) * -0.12s + 0.9s + var(--i, 0) * 0.08s);
+}
+
+.ship[data-leaving] .engine {
+  opacity: 1 !important;
+  animation: engineBurn 0.25s ease-in-out infinite alternate !important;
+  filter: blur(1.5px) brightness(1.8);
+}
+
+.ship[data-leaving] .hull::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgb(var(--side-rgb) / 0.9), #fff);
+  box-shadow: 0 0 10px rgb(var(--side-rgb) / 0.8);
+  opacity: 0;
+  animation: warpStreak 3.2s ease-in both;
+  animation-delay: inherit;
+}
+
+.ship[data-side="left"][data-leaving] .hull::after {
+  right: 50%;
+}
+
+.ship[data-side="right"][data-leaving] .hull::after {
+  left: 50%;
+  transform: scaleX(-1);
+}
+
+/* Karta akcji odwrotu (bursztyn = wycofanie, odróżnia się od czerwieni strat). */
+.actionCard[data-retreat] {
+  border-color: rgba(242, 184, 75, 0.4);
+  background: linear-gradient(180deg, rgba(242, 184, 75, 0.07), rgba(255, 255, 255, 0.02));
+}
+
+.retreatTargets {
+  font-size: 11px !important;
+  color: var(--ds-ink-lo) !important;
+}
+
+.retreatBtns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.retreatDest {
+  display: grid;
+  gap: 6px;
+}
+
+.retreatBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c1405;
+  background: linear-gradient(180deg, #f6c766, #e0a23a);
+  border: 1px solid #f8d78f;
+  border-radius: 7px;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(242, 184, 75, 0.25);
+  transition:
+    filter 0.15s ease,
+    transform 80ms ease;
+}
+
+.retreatBtn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.retreatBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.retreatBtn:disabled {
+  cursor: default;
+  filter: grayscale(0.6) brightness(0.7);
+}
+
+.retreatNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #fde7b0;
+  background: rgba(242, 184, 75, 0.1);
+  border: 1px solid rgba(242, 184, 75, 0.35);
+  border-radius: 6px;
+}
+
+.result .retreatResult {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  color: #f6c766;
+}
+
+@keyframes retreatPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(242, 184, 75, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(242, 184, 75, 0.7);
+  }
+}
+
+@keyframes engineSpool {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1.5);
+  }
+}
+
+@keyframes engineBurn {
+  from {
+    transform: scaleX(1.8);
+  }
+  to {
+    transform: scaleX(2.6);
+  }
+}
+
+@keyframes shipRetreat {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  /* krótkie przyczajenie — okręt zbiera moc */
+  18% {
+    opacity: 1;
+    transform: translateX(calc(var(--dir, -1) * -6px));
+  }
+  85% {
+    opacity: 1;
+    transform: translateX(calc(var(--dir, -1) * 55vw)) scaleX(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(var(--dir, -1) * 75vw)) scaleX(1.3);
+  }
+}
+
+@keyframes warpStreak {
+  0%,
+  40% {
+    opacity: 0;
+    width: 0;
+  }
+  80% {
+    opacity: 0.9;
+    width: calc(var(--slot) * 2.2);
+  }
+  100% {
+    opacity: 0;
+    width: calc(var(--slot) * 3);
+  }
+}
+
 /* --- Plakietka powrotu (okno schowane) --- */
 .returnPill {
   position: fixed;
@@ -1965,6 +2184,7 @@
   .emerge,
   .spark,
   .smoke,
+  .retreatTag,
   .sustainSpark,
   .debris,
   .muzzle,

@@ -169,6 +169,7 @@ def end_tactical_action(state: GameState) -> GameState:
     if window is not None and window.window_type in (
         WindowType.SPACE_CANNON,
         WindowType.COMBAT_ASSIGN_HITS,
+        WindowType.COMBAT_RETREAT,
     ):
         new_state.pending_window = None
     return new_state

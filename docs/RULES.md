@@ -2095,9 +2095,48 @@ patrz SOURCE.md). Dane liczbowe wyłącznie z UnitDef wariantu gracza (`combatHi
 - Ruch (`move_fleet`) przenosi uszkodzenia razem ze statkami: najpierw ruszają nieuszkodzone
   (⚠️ ZAŁOŻENIE — wybór konkretnych egzemplarzy nie jest modelowany).
 
+### 39.5. Odwroty (Announce Retreats / Retreat) — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+📎 tirules: [Space Combat](rules_tirules/R_space_combat.md) · [Ground Combat](rules_tirules/R_ground_combat.md) · [Movement](rules_tirules/R_movement.md) · [Nebula](rules_tirules/R_nebula.md) · [Gravity Rift](rules_tirules/R_gravity_rift.md) · [Neutral Units](rules_tirules/R_neutral_units.md) · [Command Tokens](rules_tirules/R_command_tokens.md)
+
+Kolejność kroków rundy walki KOSMICZNEJ: AFB (tylko 1. runda) → **Announce Retreats** → Roll → Assign
+Hits → **Retreat** → (kolejna runda od Announce Retreats).
+
+- **(O1) Tylko walka kosmiczna.** Z walki naziemnej nie ma odwrotu (`R_ground_combat`). Jednostki
+  neutralne się nie wycofują (`R_neutral_units`).
+- **(O2) Ogłoszenie** — każdy gracz MOŻE ogłosić odwrót, zaczynając od obrońcy. Odwrót nie następuje
+  od razu, tylko w kroku Retreat. Gdy obrońca ogłosi odwrót, atakujący NIE może go ogłosić w tej rundzie.
+  Gracz nie może ogłosić odwrotu bez co najmniej jednego dozwolonego systemu (O4).
+  Model: okno czasowe `COMBAT_RETREAT` (RULES.md 29.2), kolejka = [obrońca, atakujący] przefiltrowana
+  do graczy z dozwolonym celem; gdy nikt nie ma celu — krok jest pomijany.
+- **(O3) Wykonanie** — w kroku Retreat gracz, który ogłosił odwrót, MUSI się wycofać, o ile wciąż ma
+  dozwolony system. Gdy przeciwnikowi nie zostały statki — walka kończy się od razu, odwrót nie
+  następuje. Gdy dozwolonego systemu już nie ma — odwrót nie następuje, walka toczy się dalej.
+- **(O4) Dozwolony system** — SĄSIEDNI z aktywnym; zawiera jednostki gracza lub planetę, którą kontroluje
+  (albo oba); NIE zawiera statków innego gracza. Anomalie: nie do mgławicy (nie jest systemem aktywnym —
+  `R_nebula`), nie do supernowej, do pola asteroid tylko z Antimass Deflectors. Do gravity rift wolno.
+- **(O5) Ruch** — wycofują się WSZYSTKIE statki gracza z wartością ruchu (wariant gracza: `moveValue`),
+  razem, do JEDNEGO systemu. Wartość ruchu nie ma znaczenia (tylko sąsiedni). Statki mogą przewieźć
+  myśliwce i siły naziemne z przestrzeni aktywnego systemu (w granicach `capacityValue`) oraz siły naziemne
+  z planet, które gracz kontroluje w aktywnym systemie (`R_space_combat` Notes). Gracz NIE może zostawić
+  myśliwców/sił naziemnych z przestrzeni, jeśli ma wolną pojemność. Myśliwce i siły naziemne z przestrzeni,
+  których nie da się przewieźć, są USUWANE. Transport z aktywnego systemu jest dozwolony (`R_movement`).
+- **(O6) Żeton dowodzenia** — gdy jakiekolwiek jednostki faktycznie się wycofały, gracz kładzie żeton z
+  REZERWY (`cc_reinf`) w systemie docelowym; gdy już ma tam żeton — nie kładzie drugiego. Pusta rezerwa →
+  żeton z arkusza dowodzenia (wybór puli). Same myśliwce I (bez ruchu) → zostają usunięte, żetonu nie ma.
+- **(O7) Po kroku Retreat** — jeśli obaj gracze nadal mają statki w aktywnym systemie, kolejna runda
+  od Announce Retreats; inaczej walka się kończy (zwycięzca = gracz ze statkami).
+- ⚠️ ZAŁOŻENIE: gdy rezerwa żetonów jest pusta i gracz nie wskazał puli, silnik bierze żeton kolejno z
+  puli taktycznej, floty, strategicznej (reguła pozwala graczowi wybrać — UI może podać pulę jawnie).
+- ⚠️ ZAŁOŻENIE: domyślny ładunek (gdy gracz go nie wskaże) = najpierw mechy, potem piechota, potem myśliwce
+  z przestrzeni, do zapełnienia pojemności; bez sił naziemnych z planet. Jawny wybór jest walidowany
+  regułą O5.
+- ⚠️ TODO: rzuty gravity rift przy odwrocie z gravity rift (`R_gravity_rift`), wyjątki frakcji/technologii
+  (Magmus Reactor — supernova, Empyrean — mgławica, Dark Energy Tap, Skilled Retreat) — hooki E7.
+
 ### 39.4. ⚠️ TODO (kolejne bloki)
 
-- Odwroty (Announce Retreats / Retreat) — Blok E.
+- Odwroty: wyjątki frakcji/kart i gravity rift (39.5 TODO).
 - Capacity po walce (usunięcie nadwyżki myśliwców/sił naziemnych) — nie wymuszane.
 - Zdolności frakcji, karty akcji (Shields Holding, Direct Hit), Non-Euclidean Shielding — hooki E7.
 - Space Cannon Offense nie korzysta jeszcze z Sustain Damage (RULES.md 38.4) — do ujednolicenia.

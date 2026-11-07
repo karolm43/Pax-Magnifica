@@ -112,6 +112,7 @@ def test_windowtype_zawiera_tylko_znane_typy_okien() -> None:
         "COMBAT_ASSIGN_HITS",
         "SPACE_CANNON",
         "REACTION",
+        "COMBAT_RETREAT",  # ogłoszenie odwrotów w walce kosmicznej (RULES.md 39.5)
     }
 
 

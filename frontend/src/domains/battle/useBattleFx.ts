@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BattleLogEntry, BattleView } from "@/api/useBoardEditor";
 import type { ShipEntity } from "./battleAssign";
 
@@ -20,14 +20,27 @@ const SUSTAIN_MS = 1400;
 export type ShipView = {
   ship: ShipEntity;
   dying: boolean;
+  /** Okręt właśnie WYCOFUJE się z walki (odwrót) — odlatuje zamiast wybuchać. */
+  leaving: boolean;
   justSustained: boolean;
 };
 
-export function useDyingShips(ships: ShipEntity[]): ShipView[] {
+/**
+ * ``leaving`` = jednostki strony przeniesione w OSTATNIM odwrocie (baseType → liczba, z wpisu
+ * RETREAT dziennika). Znikające egzemplarze tych typów odlatują; pozostałe (np. myśliwce bez
+ * transportu, usunięte przy odwrocie) eksplodują jak zwykle.
+ */
+export function useDyingShips(
+  ships: ShipEntity[],
+  leaving: Record<string, number> | null = null,
+): ShipView[] {
   const previous = useRef<ShipEntity[]>(ships);
   const latest = useRef<ShipEntity[]>(ships);
   latest.current = ships;
+  const leavingRef = useRef(leaving);
+  leavingRef.current = leaving;
   const [dying, setDying] = useState<ShipEntity[]>([]);
+  const [departing, setDeparting] = useState<Set<string>>(new Set());
   // Egzemplarze, które WŁAŚNIE przyjęły Sustain Damage (były całe, teraz uszkodzone) —
   // błyskają tarczą przez chwilę, potem wracają do zwykłego wyglądu uszkodzonego.
   const [sustained, setSustained] = useState<Set<string>>(new Set());
@@ -56,9 +69,26 @@ export function useDyingShips(ships: ShipEntity[]): ShipView[] {
       }, SUSTAIN_MS);
     }
     if (gone.length === 0) return;
+    // Podział znikających: odlatujące (budżet z odwrotu wg typu) vs zniszczone.
+    const budget = { ...(leavingRef.current ?? {}) };
+    const leavingIds: string[] = [];
+    for (const ship of gone) {
+      if ((budget[ship.baseType] ?? 0) > 0) {
+        budget[ship.baseType] -= 1;
+        leavingIds.push(ship.id);
+      }
+    }
+    if (leavingIds.length > 0) {
+      setDeparting((set) => new Set([...set, ...leavingIds]));
+    }
     setDying((list) => [...list.filter((s) => !current.has(s.id)), ...gone]);
     window.setTimeout(() => {
       setDying((list) => list.filter((s) => !gone.some((g) => g.id === s.id)));
+      setDeparting((set) => {
+        const next = new Set(set);
+        for (const id of leavingIds) next.delete(id);
+        return next;
+      });
     }, DYING_MS);
   }, [signature]);
 
@@ -67,11 +97,15 @@ export function useDyingShips(ships: ShipEntity[]): ShipView[] {
     ...ships.map((ship) => ({
       ship,
       dying: false,
+      leaving: false,
       justSustained: sustained.has(ship.id),
     })),
     ...dying
       .filter((s) => !alive.has(s.id))
-      .map((ship) => ({ ship, dying: true, justSustained: false })),
+      .map((ship) => {
+        const leaves = departing.has(ship.id);
+        return { ship, dying: !leaves, leaving: leaves, justSustained: false };
+      }),
   ];
 }
 

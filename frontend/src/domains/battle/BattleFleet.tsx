@@ -128,7 +128,7 @@ function ShipToken({
   selectable: boolean;
   onToggle: (ship: ShipEntity) => void;
 }) {
-  const { ship, dying, justSustained } = view;
+  const { ship, dying, leaving, justSustained } = view;
   const size = shipSize(ship.asyncId);
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
@@ -327,7 +327,7 @@ function ShipToken({
     </>
   );
 
-  if (selectable && !dying) {
+  if (selectable && !dying && !leaving) {
     return (
       <button
         type="button"
@@ -342,7 +342,12 @@ function ShipToken({
     );
   }
   return (
-    <div {...common} data-dying={dying || undefined} title={label}>
+    <div
+      {...common}
+      data-dying={dying || undefined}
+      data-leaving={leaving || undefined}
+      title={label}
+    >
       {content}
     </div>
   );
@@ -362,6 +367,7 @@ export function BattleFleet({
   colorAlias,
   maxHp,
   isWinner,
+  retreat,
   assigning,
   marks,
   onToggle,
@@ -373,6 +379,11 @@ export function BattleFleet({
   colorAlias: string;
   maxHp: number;
   isWinner: boolean;
+  /** Odwrót strony (RULES.md 39.5): ogłoszony w tej rundzie, wykonywany teraz albo wykonany. */
+  retreat: {
+    state: "announced" | "withdrawing" | "withdrew";
+    to: string | null;
+  } | null;
   assigning: boolean;
   marks: Record<string, Mark>;
   onToggle: (ship: ShipEntity) => void;
@@ -431,6 +442,7 @@ export function BattleFleet({
       className={styles.fleet}
       data-align={align}
       data-assigning={assigning || undefined}
+      data-retreat={retreat?.state}
       aria-label={`${side.role === "attacker" ? "Attacker" : "Defender"}: ${name}`}
     >
       <header className={styles.fleetHead}>
@@ -439,6 +451,15 @@ export function BattleFleet({
           <span className={styles.role}>
             {side.role === "attacker" ? "Attacker" : "Defender"}
             {isWinner && <b className={styles.victor}>Victor</b>}
+            {retreat && (
+              <b className={styles.retreatTag} data-state={retreat.state}>
+                {retreat.state === "announced"
+                  ? "Retreat announced"
+                  : retreat.state === "withdrawing"
+                    ? "Withdrawing"
+                    : "Withdrew"}
+              </b>
+            )}
           </span>
           <b className={styles.fleetName}>{name}</b>
           <span className={styles.fleetStats}>
@@ -469,7 +490,11 @@ export function BattleFleet({
         data-entered={entered || undefined}
       >
         {views.length === 0 && (
-          <span className={styles.wiped}>Fleet destroyed</span>
+          <span className={styles.wiped}>
+            {retreat?.state === "withdrew"
+              ? `Fleet withdrew${retreat.to ? ` to ${retreat.to}` : ""}`
+              : "Fleet destroyed"}
+          </span>
         )}
         {ranks(views).map((rankViews, rank) => (
           <div

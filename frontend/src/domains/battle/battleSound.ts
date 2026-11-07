@@ -19,7 +19,9 @@ export type SoundName =
   | "explosionHeavy"
   | "sustain"
   | "warSunEnter" // war sun wyłania się z wormhole (miejsce na własny plik)
-  | "sunfire"; // strzał war suna
+  | "sunfire" // strzał war suna
+  | "retreatHorn" // ogłoszenie odwrotu
+  | "retreat"; // flota odlatuje z pola bitwy
 
 export type SoundOpts = {
   /** Panorama stereo −1 (lewo) … 1 (prawo). */
@@ -55,6 +57,8 @@ const ALL: SoundName[] = [
   "sustain",
   "warSunEnter",
   "sunfire",
+  "retreatHorn",
+  "retreat",
 ];
 
 export function isBattleMuted(): boolean {
@@ -241,6 +245,17 @@ function synth(name: SoundName, o: Out, heavy: boolean): void {
       burst(o, "lowpass", 2600, 45, 1, 0.01, 2.4);
       tone(o, "sine", 70, 22, 1, 0.01, 2.0);
       tone(o, "sawtooth", 60, 28, 0.2, 0.02, 1.8);
+      break;
+    case "retreatHorn":
+      // dwa opadające sygnały — „wycofać się"
+      tone(o, "triangle", 520, 500, 0.22, 0.02, 0.32);
+      tone({ ...o, t: o.t + 0.38 }, "triangle", 390, 360, 0.22, 0.02, 0.5);
+      break;
+    case "retreat":
+      // narastający świst silników na pełnej mocy, który oddala się i cichnie
+      burst(o, "bandpass", 260, 2600, 0.45, 1.1, 1.4);
+      tone(o, "sawtooth", 70, 240, 0.12, 1.2, 1.2);
+      tone(o, "sine", 140, 420, 0.18, 1.0, 1.3);
       break;
     case "sunfire":
       tone(o, "sine", 220, 50, 0.6, 0.02, 0.9);

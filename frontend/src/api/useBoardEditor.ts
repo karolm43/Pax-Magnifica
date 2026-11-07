@@ -1,4 +1,4 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { fetchJson } from "@/api/fetchJson";
 import { useAppStore } from "@/state/appStore";
@@ -395,6 +395,23 @@ export function useBoardEditor() {
     await refresh();
   }, [refresh]);
 
+  // Odwroty (RULES.md 39.5): ogłoszenie / walka dalej, potem wykonanie do sąsiedniego systemu.
+  const battleAnnounceRetreat = useCallback(
+    async (faction: string, announce: boolean) => {
+      await post("/tactical/battle/announce-retreat", { faction, announce });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const battleRetreat = useCallback(
+    async (faction: string, destination: string) => {
+      await post("/tactical/battle/retreat", { faction, destination });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const tacticalNextStep = useCallback(async () => {
     await post("/tactical/step/next", {});
     await refresh();
@@ -544,6 +561,8 @@ export function useBoardEditor() {
     battleRoll,
     battleAssign,
     battleClose,
+    battleAnnounceRetreat,
+    battleRetreat,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,
@@ -623,12 +642,22 @@ export type BattleRoll = {
 
 export type BattleLogEntry = {
   round: number;
-  phase: "AFB" | "COMBAT";
+  phase: "AFB" | "COMBAT" | "RETREAT";
   rolls: Record<string, BattleRoll[]>;
   hits: Record<string, number>;
   losses: Record<string, Record<string, number>>;
   sustained: Record<string, Record<string, number>>;
+  /** Wykonany odwrót (tylko wpis RETREAT): strona, system, przeniesione jednostki. */
+  retreat: {
+    player: string;
+    destination: string;
+    units: Record<string, number>;
+    tokenPlaced: boolean;
+  } | null;
 };
+
+/** Dozwolony system odwrotu (RULES.md 39.5 O4). */
+export type RetreatOption = { position: string; systemId: string };
 
 export type BattleView = {
   active: boolean;
@@ -636,7 +665,7 @@ export type BattleView = {
   position: string | null;
   planet: string | null;
   round: number;
-  step: "AFB" | "ROLL" | "ASSIGN" | "DONE" | null;
+  step: "AFB" | "ANNOUNCE" | "ROLL" | "ASSIGN" | "RETREAT" | "DONE" | null;
   nebula: boolean;
   attacker: BattleSide | null;
   defender: BattleSide | null;
@@ -650,6 +679,14 @@ export type BattleView = {
   log: BattleLogEntry[];
   winner: string | null;
   outcome: "winner" | "draw" | null;
+  /** Kto teraz ogłasza odwrót (okno COMBAT_RETREAT; obrońca, potem atakujący). */
+  announcing: string | null;
+  /** Strony, które ogłosiły odwrót w tej rundzie (wykonanie w kroku RETREAT). */
+  retreating: string[];
+  /** Wykonane odwroty: strona → system docelowy. */
+  retreated: Record<string, string>;
+  /** Dozwolone cele odwrotu per strona (pusta lista = nie może się wycofać). */
+  retreatOptions: Record<string, RetreatOption[]>;
 };
 
 /** Plan pokrycia trafień: Sustain Damage + niszczone nieuszkodzone/uszkodzone (baseType → liczba). */
@@ -664,7 +701,8 @@ export function useBattle(enabled: boolean) {
   return useQuery<BattleView>({
     queryKey: ["battle"],
     enabled,
-    queryFn: async () => fetchJson<BattleView>("/bot/tactical/battle", "battle"),
+    queryFn: async () =>
+      fetchJson<BattleView>("/bot/tactical/battle", "battle"),
     staleTime: 0,
   });
 }

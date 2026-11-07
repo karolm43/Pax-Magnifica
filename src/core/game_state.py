@@ -60,7 +60,8 @@ class WindowType(StrEnum):
     - ``STRATEGY_SECONDARY`` — secondary karty strategii (po primary aktywnego gracza);
     - ``COMBAT_ASSIGN_HITS`` — przypisanie strat w walce (obrońca wskazuje, co ginie);
     - ``SPACE_CANNON`` — space cannon offense (okno przed walką kosmiczną);
-    - ``REACTION`` — uniwersalne okno „when/after" (karty akcji, technologie reagujące).
+    - ``REACTION`` — uniwersalne okno „when/after" (karty akcji, technologie reagujące);
+    - ``COMBAT_RETREAT`` — ogłoszenie odwrotu w walce kosmicznej (obrońca, potem atakujący).
 
     Model kolejki jest WSPÓLNY (``TimingWindow``); typ niesie tylko znaczenie okna
     i pozwala warstwom wyżej (``core`` fazy/walki, UI) rozpoznać, co rozstrzygać.
@@ -70,6 +71,7 @@ class WindowType(StrEnum):
     COMBAT_ASSIGN_HITS = "COMBAT_ASSIGN_HITS"
     SPACE_CANNON = "SPACE_CANNON"
     REACTION = "REACTION"
+    COMBAT_RETREAT = "COMBAT_RETREAT"
 
 
 class TimingWindow(BaseModel):
@@ -262,8 +264,10 @@ class CombatStep(StrEnum):
     """Krok trwającej walki (RULES.md 39.2)."""
 
     AFB = "AFB"  # Anti-Fighter Barrage (tylko 1. runda walki kosmicznej)
+    ANNOUNCE = "ANNOUNCE"  # ogłoszenie odwrotów (okno COMBAT_RETREAT) — RULES.md 39.5
     ROLL = "ROLL"  # rzuty combat obu stron
     ASSIGN = "ASSIGN"  # przypisanie strat (okno COMBAT_ASSIGN_HITS)
+    RETREAT = "RETREAT"  # wykonanie ogłoszonego odwrotu (wybór systemu) — RULES.md 39.5
     DONE = "DONE"  # walka zakończona (zwycięzca/remis), czeka na zamknięcie okna
 
 
@@ -292,6 +296,10 @@ class ActiveCombat(BaseModel):
     winner: str | None = None
     # Wynik zakończonej walki: "winner" / "draw" (None, dopóki trwa).
     outcome: str | None = None
+    # Odwroty (RULES.md 39.5): gracze, którzy OGŁOSILI odwrót w bieżącej rundzie (wykonanie w
+    # kroku RETREAT) oraz wykonane odwroty {player_id: pozycja systemu docelowego}.
+    retreating: list[str] = Field(default_factory=list)
+    retreated: dict[str, str] = Field(default_factory=dict)
 
 
 class GameState(BaseModel):

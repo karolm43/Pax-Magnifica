@@ -3,7 +3,10 @@ import {
   IconBolt,
   IconCheck,
   IconDice5,
+  IconArrowBackUp,
   IconFlag,
+  IconRun,
+  IconShield,
   IconTargetArrow,
   IconTrophy,
   IconWand,
@@ -22,10 +25,18 @@ function steps(view: BattleView): { key: Step; label: string }[] {
   if (view.kind === "space" && view.round === 1 && hasAfbHistoryOrStep(view)) {
     list.push({ key: "AFB", label: "Barrage" });
   }
+  // Walka kosmiczna: Announce Retreats przed rzutami i Retreat po stratach (RULES.md 39.5).
+  if (view.kind === "space") list.push({ key: "ANNOUNCE", label: "Retreat?" });
   list.push(
     { key: "ROLL", label: "Roll" },
     { key: "ASSIGN", label: "Assign hits" },
   );
+  if (
+    view.kind === "space" &&
+    (view.retreating.length > 0 || view.step === "RETREAT")
+  ) {
+    list.push({ key: "RETREAT", label: "Retreat" });
+  }
   return list;
 }
 
@@ -124,6 +135,9 @@ export function BattleCenter({
   onClearMarks,
   onConfirmAssign,
   onClose,
+  onAnnounce,
+  onRetreat,
+  systemLabel,
 }: {
   view: BattleView;
   nameOf: (key: string) => string;
@@ -135,11 +149,25 @@ export function BattleCenter({
   onClearMarks: () => void;
   onConfirmAssign: () => void;
   onClose: () => void;
+  onAnnounce: (announce: boolean) => void;
+  onRetreat: (destination: string) => void;
+  systemLabel: (position: string) => string;
 }) {
   const attacker = view.attacker?.faction ?? "";
   const defender = view.defender?.faction ?? "";
   const step = view.step;
-  const last = view.log.length > 0 ? view.log[view.log.length - 1] : null;
+  // Taca kości: ostatnia SALWA (wpis odwrotu nie ma rzutów).
+  const last =
+    [...view.log].reverse().find((e) => e.phase !== "RETREAT") ?? null;
+  const announcing = view.announcing;
+  const announceOptions = announcing
+    ? (view.retreatOptions[announcing] ?? [])
+    : [];
+  const retreater = view.retreating[0] ?? null;
+  const retreatOptions = retreater
+    ? (view.retreatOptions[retreater] ?? [])
+    : [];
+  const retreatedEntries = Object.entries(view.retreated);
   const assigning = view.assigning;
   const required = assigning ? (view.required[assigning] ?? 0) : 0;
   const ready = assigning !== null && absorbed === required;
@@ -185,6 +213,70 @@ export function BattleCenter({
             <IconTargetArrow size={17} aria-hidden="true" /> Fire barrage
           </button>
         </div>
+      )}
+
+      {step === "ANNOUNCE" && announcing && (
+        <div className={styles.actionCard} data-retreat>
+          <p>
+            <b>{nameOf(announcing)}</b> may announce a retreat. Ships still
+            fight this round and withdraw after losses are assigned.
+            {announcing === defender &&
+              " If the defender retreats, the attacker cannot retreat this round."}
+          </p>
+          <p className={styles.retreatTargets}>
+            Can withdraw to:{" "}
+            {announceOptions.map((o) => systemLabel(o.position)).join(", ")}
+          </p>
+          <div className={styles.retreatBtns}>
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={busy}
+              onClick={() => onAnnounce(false)}
+            >
+              <IconShield size={16} aria-hidden="true" /> Stand and fight
+            </button>
+            <button
+              type="button"
+              className={styles.retreatBtn}
+              disabled={busy}
+              onClick={() => onAnnounce(true)}
+            >
+              <IconRun size={16} aria-hidden="true" /> Announce retreat
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === "RETREAT" && retreater && (
+        <div className={styles.actionCard} data-retreat>
+          <p>
+            <b>{nameOf(retreater)}</b> retreats. All ships with movement
+            withdraw to one adjacent system and place a command token there.
+            Fighters and ground forces in space that cannot be carried are lost.
+          </p>
+          <div className={styles.retreatDest}>
+            {retreatOptions.map((o) => (
+              <button
+                key={o.position}
+                type="button"
+                className={styles.retreatBtn}
+                disabled={busy}
+                onClick={() => onRetreat(o.position)}
+              >
+                <IconArrowBackUp size={16} aria-hidden="true" />{" "}
+                {systemLabel(o.position)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === "ROLL" && view.retreating.length > 0 && (
+        <p className={styles.retreatNote}>
+          <IconRun size={14} aria-hidden="true" /> {nameOf(view.retreating[0])}{" "}
+          will retreat after this round.
+        </p>
       )}
 
       {step === "ROLL" && (
@@ -260,8 +352,16 @@ export function BattleCenter({
               <small>Victory</small>
               <b>{nameOf(view.winner)}</b>
               <span>
-                wins the {view.kind === "ground" ? "ground" : "space"} combat
+                {retreatedEntries.length > 0
+                  ? "holds the system"
+                  : `wins the ${view.kind === "ground" ? "ground" : "space"} combat`}
               </span>
+              {retreatedEntries.map(([key, pos]) => (
+                <span key={key} className={styles.retreatResult}>
+                  <IconArrowBackUp size={14} aria-hidden="true" /> {nameOf(key)}{" "}
+                  withdrew to {systemLabel(pos)}
+                </span>
+              ))}
             </>
           ) : (
             <>

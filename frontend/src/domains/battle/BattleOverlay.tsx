@@ -353,7 +353,14 @@ function Battlefield({ view }: { view: BattleView }) {
   // Okno przykrywa panel komunikatów mapy — odrzucenia (422) pokazujemy tutaj.
   const notice = useAppStore((s) => s.notice);
   const clearNotice = useAppStore((s) => s.clearNotice);
-  const { battleAfb, battleRoll, battleAssign, battleClose } = useBoardEditor();
+  const {
+    battleAfb,
+    battleRoll,
+    battleAssign,
+    battleClose,
+    battleAnnounceRetreat,
+    battleRetreat,
+  } = useBoardEditor();
   const [busy, setBusy] = useState(false);
   const [muted, setMuted] = useState(isBattleMuted);
   useEffect(() => preloadBattleSounds(), []);
@@ -363,8 +370,56 @@ function Battlefield({ view }: { view: BattleView }) {
   const defender = view.defender!;
   const attackerShips = expandShips(attacker);
   const defenderShips = expandShips(defender);
-  const attackerViews = useDyingShips(attackerShips);
-  const defenderViews = useDyingShips(defenderShips);
+  // Ostatni wykonany odwrót (wpis RETREAT na końcu dziennika) — jego statki ODLATUJĄ.
+  const lastEntry = view.log.length > 0 ? view.log[view.log.length - 1] : null;
+  const lastRetreat = lastEntry?.phase === "RETREAT" ? lastEntry.retreat : null;
+  const leavingOf = (key: string) =>
+    lastRetreat && lastRetreat.player === key ? lastRetreat.units : null;
+  const attackerViews = useDyingShips(
+    attackerShips,
+    leavingOf(attacker.faction),
+  );
+  const defenderViews = useDyingShips(
+    defenderShips,
+    leavingOf(defender.faction),
+  );
+
+  // Dźwięki odwrotów: sygnał przy ogłoszeniu, świst silników przy odlocie.
+  const retreatingCount = view.retreating.length;
+  useEffect(() => {
+    if (retreatingCount > 0) playBattleSound("retreatHorn");
+  }, [retreatingCount]);
+  const retreatLogKey = lastRetreat
+    ? `${view.log.length}:${lastRetreat.player}`
+    : null;
+  const retreatSide = lastRetreat?.player === attacker.faction ? -0.6 : 0.6;
+  useEffect(() => {
+    if (retreatLogKey) playBattleSound("retreat", { pan: retreatSide });
+  }, [retreatLogKey, retreatSide]);
+
+  const systemLabel = (position: string) => {
+    const t = gameData?.tiles?.[position];
+    const name = t ? getTileById(t.systemId)?.name : undefined;
+    return name ? `${name} (${position})` : position;
+  };
+  const retreatOf = (key: string) => {
+    if (view.retreated[key]) {
+      return {
+        state: "withdrew" as const,
+        to: systemLabel(view.retreated[key]),
+      };
+    }
+    if (view.retreating.includes(key)) {
+      return {
+        state:
+          view.step === "RETREAT"
+            ? ("withdrawing" as const)
+            : ("announced" as const),
+        to: null,
+      };
+    }
+    return null;
+  };
   const attackerMax = useMaxHp(
     `${view.position}-${attacker.faction}`,
     attacker.hp,
@@ -532,6 +587,7 @@ function Battlefield({ view }: { view: BattleView }) {
           colorAlias={a.colorAlias}
           maxHp={attackerMax}
           isWinner={view.winner === attacker.faction}
+          retreat={retreatOf(attacker.faction)}
           assigning={
             view.step === "ASSIGN" && view.assigning === attacker.faction
           }
@@ -557,6 +613,15 @@ function Battlefield({ view }: { view: BattleView }) {
             )
           }
           onClose={() => void run(battleClose)}
+          systemLabel={systemLabel}
+          onAnnounce={(announce) =>
+            view.announcing &&
+            void run(() => battleAnnounceRetreat(view.announcing!, announce))
+          }
+          onRetreat={(destination) =>
+            view.retreating[0] &&
+            void run(() => battleRetreat(view.retreating[0], destination))
+          }
         />
         <BattleFleet
           side={defender}
@@ -566,6 +631,7 @@ function Battlefield({ view }: { view: BattleView }) {
           colorAlias={d.colorAlias}
           maxHp={defenderMax}
           isWinner={view.winner === defender.faction}
+          retreat={retreatOf(defender.faction)}
           assigning={
             view.step === "ASSIGN" && view.assigning === defender.faction
           }
