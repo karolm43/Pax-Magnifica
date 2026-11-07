@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import BattleLossItem, StateEnvelope
 from src.api.web_data import entity_key_map
-from src.core import board_edit, fleet_pool
+from src.core import board_edit, capacity, fleet_pool
 from src.core.game_state import WindowType
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
@@ -30,6 +30,23 @@ class FleetShipView(BaseModel):
     async_id: str = Field(serialization_alias="asyncId")
     name: str
     count: int
+
+
+class CapacityInfo(BaseModel):
+    """Pojemność gracza w przestrzeni systemu (RULES.md 39.6) - do prognozy w produkcji.
+
+    ``fighter_only`` = miejsca doków na planetach TYLKO dla myśliwców (np. „do 3 myśliwców nie
+    liczy się do capacity"), ``used`` = zajęta pojemność ładunku (myśliwce, piechota, mechy).
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    general: int = 0
+    fighter_only: int = Field(default=0, serialization_alias="fighterOnly")
+    fighters: int = 0  # myśliwce w przestrzeni (sztuki)
+    fighter_cost: int = Field(default=1, serialization_alias="fighterCost")
+    other_load: int = Field(default=0, serialization_alias="otherLoad")  # reszta ładunku
+    excess: int = 0
 
 
 class FleetPoolView(BaseModel):
@@ -48,6 +65,7 @@ class FleetPoolView(BaseModel):
     ships: list[FleetShipView] = Field(default_factory=list)
     suggestion: dict[str, int] = Field(default_factory=dict)
     remaining: int = 0  # ilu graczy czeka w kolejce (łącznie z bieżącym)
+    capacity: CapacityInfo = Field(default_factory=CapacityInfo)
 
 
 class FleetPoolResolveRequest(BaseModel):
@@ -82,6 +100,9 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
     if pid is None or position is None or pid not in state.players:
         return FleetPoolView(active=False)
     report = fleet_pool.fleet_report(state, position, pid)
+    cap = capacity.capacity_report(state, ctx.registry, position, pid)
+    fighters = cap.cargo.get("fighter", 0)
+    fighter_cost = cap.cost.get("fighter", 1)
     return FleetPoolView(
         active=bool(in_window),
         known=True,
@@ -102,6 +123,14 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
         ],
         suggestion=fleet_pool.auto_removal(state, ctx.registry, pid, report),
         remaining=remaining,
+        capacity=CapacityInfo(
+            general=cap.general,
+            fighter_only=cap.fighter_only,
+            fighters=fighters,
+            fighter_cost=fighter_cost,
+            other_load=cap.used - fighters * fighter_cost,
+            excess=cap.excess,
+        ),
     )
 
 

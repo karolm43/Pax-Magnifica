@@ -848,6 +848,18 @@ export type FleetPoolView = {
   /** Podpowiedź „Auto" (najtańsze statki najpierw). */
   suggestion: Record<string, number>;
   remaining: number;
+  /** Pojemność w przestrzeni systemu (RULES.md 39.6) - prognoza dla produkcji. */
+  capacity: {
+    /** Pojemność statków. */
+    general: number;
+    /** Miejsca doków TYLKO dla myśliwców (np. „do 3 myśliwców nie liczy się"). */
+    fighterOnly: number;
+    fighters: number;
+    fighterCost: number;
+    /** Zajęta pojemność przez resztę ładunku (piechota, mechy w przestrzeni). */
+    otherLoad: number;
+    excess: number;
+  };
 };
 
 /**

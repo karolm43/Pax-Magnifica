@@ -150,3 +150,15 @@ def test_fleet_pool_api(registry: StaticDataRegistry) -> None:
     )
     assert good.status_code == 200
     assert client.get("/tactical/fleet-pool").json()["active"] is False
+
+
+def test_fleet_pool_view_reports_dock_fighter_slots(registry: StaticDataRegistry) -> None:
+    """Dok daje miejsca TYLKO dla myśliwców (capacity) - widok zwraca je do prognozy."""
+    state = _state({"carrier": 1, "fighter": 6}, pool=3)
+    state.systems["000"].planet_units["pl"] = {"p1": {"spacedock": 1}}
+    client = TestClient(
+        create_app(registry=registry, store=EventStore(":memory:"), initial_state=state)
+    )
+    cap = client.get("/tactical/fleet-pool").json()["capacity"]
+    assert cap["fighterOnly"] == 3 and cap["general"] == 4
+    assert cap["fighters"] == 6 and cap["otherLoad"] == 0 and cap["excess"] == 0

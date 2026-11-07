@@ -92,6 +92,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const canProduce = queued > 0 && short === 0 && !busy;
   const costState =
     queued === 0 ? "empty" : short > 0 ? "short" : wasted > 0 ? "surplus" : "ok";
+  // Myśliwce z koszyka trafiają do przestrzeni i zajmują capacity (dok: do N nie liczy się).
+  const queuedFighters = countOf(cart, "fighter");
   // Statki z koszyka liczone do fleet pool (bez myśliwców) - do ostrzeżenia o przekroczeniu.
   const queuedShips = cart.reduce((n, l) => {
     const u = view.units.find((x) => x.baseType === l.baseType);
@@ -305,7 +307,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             <span data-state="free">free {free}</span>
           </div>
 
-          <FleetPoolWarning extra={queuedShips} />
+          <FleetPoolWarning extra={queuedShips} extraFighters={queuedFighters} />
 
           <h4>Producing units</h4>
           <div className={styles.producers}>
