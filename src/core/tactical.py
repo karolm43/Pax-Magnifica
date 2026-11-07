@@ -113,34 +113,35 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
     return new_state
 
 
-def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> GameState:
-    """Przechodzi do następnego kroku akcji taktycznej.
+def _check_can_leave(
+    state: GameState,
+    registry: StaticDataRegistry | None,
+    what: str,
+    *,
+    require_space_combat: bool,
+) -> GameState | None:
+    """Wspólne blokady opuszczenia kroku / zakończenia akcji taktycznej.
 
-    Po ostatnim kroku (``PRODUCTION``) kończy akcję taktyczną (czyści krok i aktywny
-    system — patrz ``end_tactical_action``). Gdy akcja nie trwa (``tactical_step`` jest
-    None) — bez zmian.
+    Rzuca ``ValueError``, gdy coś jest nierozstrzygnięte (okno, walka, inwazja,
+    obowiązkowa walka kosmiczna). Zwraca stan z otwartym oknem CAPACITY / FLEET_POOL,
+    gdy wykryto nadwyżkę (krok zostaje, gracz najpierw ją usuwa), a ``None``, gdy
+    droga wolna. ``what`` — fraza do komunikatu („the next step" / „ending the action").
     """
-    if state.tactical_step is None:
-        return state.clone()
     # Nie wolno opuścić kroku, dopóki trwa okno Space Cannon (gracze jeszcze strzelają /
     # przypisują straty — RULES.md 38): inaczej kroki „uciekałyby" sprzed rozstrzygnięcia.
     window = state.pending_window
     # Limit pojemności (RULES.md 39.6): nadwyżkę trzeba usunąć, zanim akcja pójdzie dalej.
     if window is not None and window.window_type is WindowType.CAPACITY:
-        raise ValueError("Some units exceed capacity - remove the excess before the next step.")
+        raise ValueError(f"Some units exceed capacity - remove the excess before {what}.")
     if window is not None and window.window_type is WindowType.FLEET_POOL:
-        raise ValueError(
-            "Some ships exceed the fleet pool - remove the excess before the next step."
-        )
+        raise ValueError(f"Some ships exceed the fleet pool - remove the excess before {what}.")
     if window is not None and window.window_type is WindowType.SPACE_CANNON:
-        raise ValueError(
-            "Space Cannon is still being resolved - finish it before the next step."
-        )
+        raise ValueError(f"Space Cannon is still being resolved - finish it before {what}.")
     # Walka (RULES.md 39): trwającej nie wolno porzucić; walka kosmiczna jest obowiązkowa,
     # gdy dwóch graczy ma statki w aktywnym systemie (W2).
     combat = state.active_combat
     if combat is not None and combat.step is not CombatStep.DONE:
-        raise ValueError("A combat is in progress - finish it before the next step.")
+        raise ValueError(f"A combat is in progress - finish it before {what}.")
     # Inwazja (RULES.md 40): z kroku INVASION wychodzi się dopiero po rozstrzygnięciu
     # (ESTABLISH = wszystko załatwione, zostaje tylko zamknięcie).
     invasion = state.invasion
@@ -149,8 +150,8 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
         and invasion is not None
         and invasion.phase is not InvasionPhase.ESTABLISH
     ):
-        raise ValueError("The invasion is in progress - finish it before the next step.")
-    if state.tactical_step is TacticalStep.SPACE_COMBAT and space_combat_required(state):
+        raise ValueError(f"The invasion is in progress - finish it before {what}.")
+    if require_space_combat and space_combat_required(state):
         raise ValueError(
             "Two players have ships in the active system - resolve the space combat first."
         )
@@ -166,6 +167,48 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
         pooled = open_fleet_pool_check(state, state.active_system)
         if pooled.pending_window is not None:
             return pooled
+    return None
+
+
+def end_action(state: GameState, registry: StaticDataRegistry | None = None) -> GameState:
+    """Walidowane zakończenie akcji taktycznej z dowolnego kroku (przycisk „End action").
+
+    W przeciwieństwie do ``end_tactical_action`` (surowe czyszczenie, używane przez
+    ``next_step`` i God-Mode) NIE pozwala porzucić nierozstrzygniętych spraw: trwającej
+    walki, okna Space Cannon / pojemności / puli floty, niedokończonej inwazji ani
+    obowiązkowej walki kosmicznej (gdy dwóch graczy ma statki w aktywnym systemie, a
+    krok walki jeszcze nie minął). Pominięcie ruchu / inwazji / produkcji jest legalne.
+    """
+    if state.tactical_step is None:
+        return state.clone()
+    combat_pending = _STEP_SEQUENCE.index(state.tactical_step) <= _STEP_SEQUENCE.index(
+        TacticalStep.SPACE_COMBAT
+    )
+    blocked = _check_can_leave(
+        state, registry, "ending the action", require_space_combat=combat_pending
+    )
+    if blocked is not None:
+        return blocked
+    return end_tactical_action(state)
+
+
+def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> GameState:
+    """Przechodzi do następnego kroku akcji taktycznej.
+
+    Po ostatnim kroku (``PRODUCTION``) kończy akcję taktyczną (czyści krok i aktywny
+    system — patrz ``end_tactical_action``). Gdy akcja nie trwa (``tactical_step`` jest
+    None) — bez zmian.
+    """
+    if state.tactical_step is None:
+        return state.clone()
+    blocked = _check_can_leave(
+        state,
+        registry,
+        "the next step",
+        require_space_combat=state.tactical_step is TacticalStep.SPACE_COMBAT,
+    )
+    if blocked is not None:
+        return blocked
     idx = _STEP_SEQUENCE.index(state.tactical_step)
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)

@@ -336,6 +336,22 @@ def test_space_combat_step_cannot_be_skipped(registry: StaticDataRegistry) -> No
         tactical.next_step(started)
 
 
+def test_end_action_is_validated_during_combat(registry: StaticDataRegistry) -> None:
+    # „End action" nie może być furtką: ani przy obowiązkowej walce, ani w jej trakcie.
+    state = _state({"p1": {"cruiser": 1}, "p2": {"carrier": 1}})
+    with pytest.raises(ValueError, match="resolve the space combat"):
+        tactical.end_action(state, registry)
+    started = battle.start_combat(state, _grid(), registry)
+    with pytest.raises(ValueError, match="in progress"):
+        tactical.end_action(started, registry)
+
+
+def test_end_action_allowed_without_pending_combat(registry: StaticDataRegistry) -> None:
+    state = _state({"p1": {"cruiser": 1}})
+    ended = tactical.end_action(state, registry)
+    assert ended.active_system is None and ended.tactical_step is None
+
+
 def test_end_action_clears_combat(registry: StaticDataRegistry) -> None:
     rolled = _rolled_with_hits(registry, {"p1": {"cruiser": 6}, "p2": {"cruiser": 6}})
     ended = tactical.end_tactical_action(rolled)

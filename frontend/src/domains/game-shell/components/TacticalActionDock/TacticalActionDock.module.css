@@ -80,9 +80,14 @@
 .dockBody {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 2px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Panel akcji wypełnia dok; przewija się tylko zawartość kroku, stopka (Next/End) stoi. */
+.dockBody > * {
+  margin-top: 0;
 }
 
 /* Uchwyt skalowania — trójkąt w prawym-dolnym rogu. */

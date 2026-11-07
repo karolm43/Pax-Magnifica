@@ -216,9 +216,11 @@ async def post_set_step(
 
 @router.post("/tactical/end", response_model=StateEnvelope)
 async def post_end_tactical(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
-    """Kończy bieżącą akcję taktyczną (czyści aktywny system i krok)."""
+    """Kończy bieżącą akcję taktyczną (walidowane: nie podczas walki / okien / inwazji)."""
     return await _commit_flow(
-        ctx, tactical.end_tactical_action(ctx.service.current_state()), "tactical:end"
+        ctx,
+        tactical.end_action(ctx.service.current_state(), ctx.registry),
+        "tactical:end",
     )
 
 

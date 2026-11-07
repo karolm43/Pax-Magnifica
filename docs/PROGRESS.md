@@ -1552,3 +1552,10 @@ Dodatkowo potwierdzenie: ZAGRANIE KARTY STRATEGII to akcja (odblokowuje End turn
 type-check + lint + build czyste.
 
 - Front/ruch: drag jednostek na mapie domyślnie tylko do aktywnego systemu (walidowany `/tactical/move`); swobodny drag (God-Mode) pod ustawieniem „Free unit dragging". Ctrl+klik zaznacza grupę (1 klik = 1 sztuka, statki + myśliwce/piechota/mechy), plakietka „Cap użyte/pojemność" przy kursorze, drag grupy = jedna komenda ruchu.
+
+### Tactical action dock: stała stopka + walidowany „End action" (2026-11-07)
+- `core/tactical.end_action` (+ wspólny `_check_can_leave` z `next_step`): `/tactical/end` nie pozwala
+  porzucić trwającej walki, okien Space Cannon/CAPACITY/FLEET_POOL, niedokończonej inwazji ani
+  obowiązkowej walki kosmicznej (422). Surowe `end_tactical_action` zostaje dla `next_step`/wewnętrznie.
+- Front: panel akcji = nagłówek + kroki + przewijana zawartość + STOPKA przypięta (Next/End nie skaczą);
+  przyciski wyszarzone z powodem blokady; usunięte skróty jednostek (flota/transport) z kroku Movement.

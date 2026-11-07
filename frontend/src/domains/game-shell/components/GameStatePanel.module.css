@@ -799,20 +799,38 @@
 }
 
 /* Panel akcji taktycznej -------------------------------------------------- */
+/* Kolumna: [nagłówek][kroki] stałe + [zawartość kroku] przewijana + [stopka] przypięta.
+   Dzięki temu przyciski nie „skaczą" przy zmianie wysokości zawartości kroku. W doku
+   (flex-rodzic ze stałą wysokością) panel wypełnia całość; poza dokiem rośnie z treścią. */
 .tactical {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 10px;
   margin-top: 8px;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid var(--ds-h10);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--ph) / 0.06),
+    rgba(255, 255, 255, 0.015) 60%
+  );
 }
 
 .tacticalHead {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ds-h10);
+  color: rgb(var(--ph));
+}
+
+.tacticalHead svg {
+  flex: none;
 }
 
 .tacticalSystem {
@@ -827,28 +845,79 @@
   text-overflow: ellipsis;
 }
 
-.endAction {
+/* Jedyna przewijana część panelu. */
+.tacticalScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+/* Stopka przypięta do dołu — stała wysokość, bez względu na treść kroku. */
+.tacticalFoot {
   flex: none;
-  padding: 3px 8px;
-  font-size: 10px;
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ds-h10);
+}
+
+/* Powód blokady („Combat in progress…") — nad przyciskami, w tonie ostrzegawczym. */
+.blockNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--ds-ink);
+  background: rgb(var(--ds-sig-warn) / 0.12);
+  border: 1px solid rgb(var(--ds-sig-warn) / 0.35);
+  border-radius: 6px;
+}
+
+.blockNote svg {
+  flex: none;
+  color: rgb(var(--ds-sig-warn));
+}
+
+/* Stały układ 1fr / 2fr — zmiana etykiety (np. „Confirm?") nie przesuwa przycisków. */
+.footBtns {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+}
+
+.endAction {
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
   color: var(--ds-ink-lo);
   background: transparent;
   border: 1px solid var(--ds-h14);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .endAction:hover:not(:disabled) {
   color: rgb(var(--ds-sig-danger, 248 113 113));
   border-color: rgb(var(--ds-sig-danger, 248 113 113) / 0.5);
+  background: rgb(var(--ds-sig-danger, 248 113 113) / 0.08);
 }
 
 .endAction:disabled {
-  opacity: 0.5;
-  cursor: default;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Kroki taktyczne jako wskaźnik postępu (lista <ol>, nie klikalne). */
@@ -925,6 +994,42 @@
 }
 
 .nextStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ph) / 0.2);
+  border: 1px solid rgb(var(--ph) / 0.55);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.nextStep:hover:not(:disabled) {
+  background: rgb(var(--ph) / 0.32);
+  border-color: rgb(var(--ph) / 0.8);
+}
+
+.nextStep:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Drugorzędny przycisk wewnątrz kroku (Undo / Move) — stonowany, nie konkuruje z „Next". */
+.subAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 6px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -935,12 +1040,12 @@
   cursor: pointer;
 }
 
-.nextStep:hover:not(:disabled) {
+.subAction:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   color: var(--ds-ink-hi);
 }
 
-.nextStep:disabled {
+.subAction:disabled {
   opacity: 0.5;
   cursor: default;
 }

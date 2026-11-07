@@ -9,11 +9,13 @@ import { useParams } from "react-router-dom";
 import { Button, Collapse, Group, Stack, Text, UnstyledButton } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import {
+  IconArrowRight,
   IconArrowsMove,
   IconBolt,
   IconChevronDown,
   IconGripVertical,
   IconLayoutGrid,
+  IconLock,
   IconStack2,
   IconSwords,
   IconTarget,
@@ -1109,36 +1111,46 @@ export function TacticalActionPanel({
   }
 
   const currentIndex = TACTICAL_STEPS.findIndex((x) => x.step === tacticalStep);
+  const isLast = currentIndex >= TACTICAL_STEPS.length - 1;
+
+  // Blokady wyjścia z kroku / zakończenia akcji — lustro twardych reguł backendu
+  // (core/tactical._check_can_leave): trwająca walka, okno Space Cannon / pojemności /
+  // puli floty, niedokończona inwazja, obowiązkowa walka kosmiczna. Backend i tak
+  // odrzuci (422); tu dajemy czytelny powód i wyszarzamy przyciski.
+  const windowType = liveGameState?.pendingWindow?.windowType ?? null;
+  const invasionOpen =
+    tacticalStep === "INVASION" &&
+    liveGameState?.activeInvasion != null &&
+    liveGameState.activeInvasion.phase !== "ESTABLISH";
+  const spaceCombatIndex = TACTICAL_STEPS.findIndex(
+    (x) => x.step === "SPACE_COMBAT",
+  );
+  const commonBlock: string | null = inCombat
+    ? "Combat in progress - finish it first."
+    : windowType === "SPACE_CANNON"
+      ? "Space Cannon is being resolved."
+      : windowType === "CAPACITY"
+        ? "Units exceed capacity - remove the excess."
+        : windowType === "FLEET_POOL"
+          ? "Ships exceed the fleet pool - remove the excess."
+          : invasionOpen
+            ? "Invasion in progress - finish it first."
+            : null;
+  const combatOwed = hasSpaceCombat && currentIndex <= spaceCombatIndex;
+  const combatReason = "Space combat is mandatory - resolve it first.";
+  const nextBlock =
+    commonBlock ??
+    (hasSpaceCombat && tacticalStep === "SPACE_COMBAT" ? combatReason : null);
+  const endBlock = commonBlock ?? (combatOwed ? combatReason : null);
+  const blockReason = nextBlock ?? endBlock;
 
   return (
     <div className={styles.tactical}>
       <div className={styles.tacticalHead}>
-        <span className={styles.tacticalSystem}>
+        <IconTarget size={14} aria-hidden="true" />
+        <span className={styles.tacticalSystem} title={systemLabel ?? activeSystem}>
           {systemLabel ?? activeSystem}
         </span>
-        {/* End action — wymaga DRUGIEGO kliknięcia (nie kończ akcji przypadkiem). */}
-        <button
-          type="button"
-          className={cx(styles.endAction, confirmEnd && styles.confirmArmed)}
-          disabled={busy}
-          onClick={() => {
-            if (confirmEnd) {
-              setConfirmEnd(false);
-              void run(endTactical);
-            } else {
-              setConfirmNext(false);
-              setConfirmEnd(true);
-            }
-          }}
-          onBlur={() => setConfirmEnd(false)}
-          title={
-            confirmEnd
-              ? "Click again to confirm ending the tactical action"
-              : "End the current tactical action (asks to confirm)"
-          }
-        >
-          {confirmEnd ? "Confirm end?" : "End action"}
-        </button>
       </div>
 
       {/* Kroki jako WSKAŹNIK postępu (nie przełącznik) — pokazują gdzie jesteśmy,
@@ -1167,7 +1179,8 @@ export function TacticalActionPanel({
         })}
       </ol>
 
-      {/* Zawartość bieżącego kroku. */}
+      {/* Zawartość bieżącego kroku — JEDYNA przewijana część panelu. */}
+      <div className={styles.tacticalScroll}>
       {tacticalStep === "MOVEMENT" && (
         <div className={styles.stepBody}>
           <MovementStepPanel
@@ -1227,23 +1240,45 @@ export function TacticalActionPanel({
       )}
 
       {tacticalStep === "PRODUCTION" && <ProductionStepPanel />}
+      </div>
 
-      {/* Nawigacja kroków — „następny krok" wymaga DRUGIEGO kliknięcia, bo kroków
-          nie da się już swobodnie cofnąć (po produkcji kończy całą akcję). */}
-      {(() => {
-        const isLast = currentIndex >= TACTICAL_STEPS.length - 1;
-        const label = confirmNext
-          ? isLast
-            ? "Confirm: finish action?"
-            : "Confirm next step?"
-          : isLast
-            ? "Finish action →"
-            : "Next step →";
-        return (
+      {/* STOPKA przypięta do dołu panelu (nie przesuwa się wraz z zawartością kroku).
+          „Next step"/„End action" wymagają DRUGIEGO kliknięcia (kroków nie da się
+          cofnąć); przy blokadzie reguł są wyszarzone z podanym powodem. */}
+      <footer className={styles.tacticalFoot}>
+        {blockReason && (
+          <p className={styles.blockNote} role="status">
+            <IconLock size={12} aria-hidden="true" /> {blockReason}
+          </p>
+        )}
+        <div className={styles.footBtns}>
+          <button
+            type="button"
+            className={cx(styles.endAction, confirmEnd && styles.confirmArmed)}
+            disabled={busy || endBlock !== null}
+            onClick={() => {
+              if (confirmEnd) {
+                setConfirmEnd(false);
+                void run(endTactical);
+              } else {
+                setConfirmNext(false);
+                setConfirmEnd(true);
+              }
+            }}
+            onBlur={() => setConfirmEnd(false)}
+            title={
+              endBlock ??
+              (confirmEnd
+                ? "Click again to confirm ending the tactical action"
+                : "End the tactical action now (asks to confirm)")
+            }
+          >
+            {confirmEnd ? "Sure?" : "End action"}
+          </button>
           <button
             type="button"
             className={cx(styles.nextStep, confirmNext && styles.confirmArmed)}
-            disabled={busy}
+            disabled={busy || nextBlock !== null}
             onClick={() => {
               if (confirmNext) {
                 setConfirmNext(false);
@@ -1255,17 +1290,23 @@ export function TacticalActionPanel({
             }}
             onBlur={() => setConfirmNext(false)}
             title={
-              confirmNext
+              nextBlock ??
+              (confirmNext
                 ? "Click again to confirm"
                 : isLast
                   ? "Finish the tactical action (asks to confirm)"
-                  : "Advance to the next step (asks to confirm — you cannot freely go back)"
+                  : "Advance to the next step (asks to confirm - you cannot go back)")
             }
           >
-            {label}
+            {confirmNext
+              ? "Confirm?"
+              : isLast
+                ? "Finish action"
+                : "Next step"}
+            <IconArrowRight size={14} aria-hidden="true" />
           </button>
-        );
-      })()}
+        </div>
+      </footer>
     </div>
   );
 }
