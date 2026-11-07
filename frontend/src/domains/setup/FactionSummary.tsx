@@ -643,7 +643,7 @@ function SummaryBody({
           <Section title="Faction promissory note">
             <div className={styles.chipRow}>
               {faction.promissory_notes.map((id) => (
-                <PromissoryNote key={id} promissoryNoteId={id} preferFullName />
+                <PromissoryNote key={id} promissoryNoteId={id} />
               ))}
             </div>
           </Section>

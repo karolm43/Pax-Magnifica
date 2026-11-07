@@ -138,7 +138,7 @@ function NoteRow({ id }: { id: string }) {
       tone={ownerRgb ?? "var(--gd-cyan)"}
       tinted={ownerRgb !== undefined}
       back={NOTE_BACK}
-      name={note.noteData.shortName || note.displayName}
+      name={note.displayName}
       tag={note.faction}
       text={resolvePromissoryNoteText(
         note.noteData.text,

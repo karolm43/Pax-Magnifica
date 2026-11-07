@@ -99,7 +99,7 @@ function useCardLabel(
   }
   const note = getPromissoryNoteData(id, factionColorMap);
   return {
-    name: note?.noteData.shortName || note?.displayName || id,
+    name: note?.displayName || id,
     tag: note?.faction,
     // Nota w kolorze gracza, do którego należy (także gdy leży w cudzej ręce).
     ownerRgb: note

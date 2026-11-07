@@ -43,7 +43,9 @@ export function PromissoryNoteCard({ promissoryNoteId }: Props) {
 
   if (!noteData) return null;
 
-  const displayName = noteData.noteData.shortName || noteData.displayName;
+  // Zawsze pełna nazwa (decyzja użytkownika) — skróty AsyncTI4 typu
+  // "Enh'nc'm'nts" są nieczytelne.
+  const displayName = noteData.displayName;
   const displayText = resolvePromissoryNoteText(
     noteData.noteData.text,
     noteData,
