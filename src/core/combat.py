@@ -22,6 +22,9 @@ from src.core.models import UnitDef
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 
+# Jednostki przyznawane przez przełom (breakthrough) frakcji — Thunder's Edge.
+BREAKTHROUGH_UNIT_IDS: frozenset[str] = frozenset({"mentak_cruiser3", "naaz_voltron"})
+
 
 @dataclass(frozen=True)
 class UnitCombat:
@@ -52,8 +55,13 @@ def resolve_unit_variant(
     faction_id: str | None,
     technologies: list[str],
     base_type: str,
+    breakthrough_unlocked: bool = False,
 ) -> UnitDef | None:
     """Wybiera wariant jednostki gracza dla danego ``base_type`` (RULES.md 20).
+
+    Jednostki z przełomu Thunder's Edge (``BREAKTHROUGH_UNIT_IDS``: Corsair Mentaka,
+    Eidolon Maximum Naaz-Rokha) wchodzą w grę dopiero przy ``breakthrough_unlocked``
+    — nie są częścią startowej floty/zestawu frakcji.
 
     Priorytet (jak w ``web_data._units_owned_for_faction``): frakcyjny-ulepszony >
     frakcyjny-bazowy > generyczny-ulepszony > generyczny-bazowy. Ulepszenie liczy się
@@ -82,6 +90,8 @@ def resolve_unit_variant(
             continue
         if not has_tech(unit):
             continue
+        if unit.id in BREAKTHROUGH_UNIT_IDS and not breakthrough_unlocked:
+            continue  # jednostka z przełomu — dopiero po jego odblokowaniu
         is_faction = unit.faction is not None
         if is_faction and not belongs(unit):
             continue  # cudzy wariant frakcyjny

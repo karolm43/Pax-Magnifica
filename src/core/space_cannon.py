@@ -97,7 +97,11 @@ def _system_shooters(
             if count <= 0:
                 continue
             unit = resolve_unit_variant(
-                registry, player.faction, player.technologies, base_type
+                registry,
+                player.faction,
+                player.technologies,
+                base_type,
+                player.breakthrough_unlocked,
             )
             if unit is None or unit.space_cannon_hits_on is None:
                 continue
