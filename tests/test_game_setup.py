@@ -173,3 +173,18 @@ def test_setup_payload_hides_other_players_candidates(client: TestClient) -> Non
     assert setup["chooserId"] == "p1"
     assert setup["candidates"] == state["players"]["p1"]["private"]["secret_candidates"]
     assert [p["id"] for p in setup["players"]] == ["p1", "p2"]
+
+
+def test_skip_setup_randomizes_secrets_places_custodians_and_reveals(
+    client: TestClient,
+) -> None:
+    client.post("/game/new", json=PLAYERS)
+    assert client.post("/setup/skip").status_code == 200
+    state = _state(client)
+    assert state["setup"] is None
+    for player in state["players"].values():
+        assert len(player["private"]["secret_objectives"]) == 1
+        assert player["private"]["secret_candidates"] == []
+    assert len(state["objectives"]["revealed"]) == 2
+    # Po domkniętym setupu skip nie ma już czego pomijać.
+    assert client.post("/setup/skip").status_code == 422

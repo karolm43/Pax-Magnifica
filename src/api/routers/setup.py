@@ -52,6 +52,16 @@ async def post_custodians(
     return await _commit(ctx, new_state, "setup:custodians")
 
 
+@router.post("/skip", response_model=StateEnvelope)
+async def post_skip(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+    """Pomija setup: losowe tajne cele, żeton Custodians, odkrycie celów publicznych."""
+    try:
+        new_state = game_setup.skip_setup(ctx.service.current_state())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, "setup:skip")
+
+
 @router.post("/reveal-objectives", response_model=StateEnvelope)
 async def post_reveal_objectives(
     request: SetupActorRequest, ctx: AppContext = Depends(get_ctx)

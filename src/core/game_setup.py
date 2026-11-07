@@ -144,6 +144,38 @@ def reveal_objectives(state: GameState, player_id: str) -> GameState:
     return new_state
 
 
+def skip_setup(state: GameState, rng: random.Random | None = None) -> GameState:
+    """Pomija resztę setupu: losuje brakujące tajne cele, kładzie Custodians, odkrywa cele.
+
+    Skrót dla operatora (bez sprawdzania, kto jest mówcą) — działa z dowolnego etapu.
+
+    Raises:
+        ValueError: setup nie jest w toku.
+    """
+    if state.setup is None:
+        raise ValueError("Setup is not in progress.")
+    chooser = rng if rng is not None else random.Random()
+    new_state = state.clone()
+    if new_state.setup is not None and new_state.setup.stage is SetupStage.SECRETS:
+        for player_id in list(new_state.seating_order):
+            player = new_state.players.get(player_id)
+            if (
+                player is not None
+                and player_id not in new_state.setup.secrets_chosen
+                and player.private.secret_candidates
+            ):
+                _apply_secret_choice(
+                    new_state, player_id, chooser.choice(player.private.secret_candidates), chooser
+                )
+        new_state = _advance(new_state)
+    speaker = new_state.speaker_id
+    if speaker is None:
+        raise ValueError("There is no speaker.")
+    if new_state.setup is not None and new_state.setup.stage is SetupStage.CUSTODIANS:
+        new_state = place_custodians(new_state, speaker)
+    return reveal_objectives(new_state, speaker)
+
+
 def _require_speaker_stage(state: GameState, player_id: str, stage: SetupStage) -> None:
     if state.setup is None or state.setup.stage is not stage:
         raise ValueError(f"Setup is not at the {stage.value} stage.")

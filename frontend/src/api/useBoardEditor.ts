@@ -628,6 +628,11 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  const setupSkip = useCallback(async () => {
+    await post("/setup/skip", {});
+    await refresh();
+  }, [refresh]);
+
   const closeWindow = useCallback(async () => {
     await post("/window/close", {});
     await refresh();
@@ -683,6 +688,7 @@ export function useBoardEditor() {
     setupSecret,
     setupCustodians,
     setupRevealObjectives,
+    setupSkip,
     closeWindow,
   };
 }

@@ -53,7 +53,7 @@ export function GameSetupOverlay() {
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
   const gameData = useGameData();
-  const { setupSecret, setupCustodians, setupRevealObjectives } = useBoardEditor();
+  const { setupSecret, setupCustodians, setupRevealObjectives, setupSkip } = useBoardEditor();
 
   const setup = gameState?.setup ?? null;
   const [busy, setBusy] = useState(false);
@@ -192,6 +192,29 @@ export function GameSetupOverlay() {
         )}
 
         <div className={styles.body}>{content}</div>
+
+        {setup && (
+          <footer className={styles.footer}>
+            <button
+              type="button"
+              className={styles.primary}
+              disabled={busy}
+              title="Random secret objectives, Custodians token placed, two Stage I objectives revealed"
+              onClick={() =>
+                run(
+                  () => setupSkip(),
+                  () => {
+                    setPicked(null);
+                    setReadyFor(null);
+                    setDismissed(true);
+                  },
+                )
+              }
+            >
+              Skip setup (random)
+            </button>
+          </footer>
+        )}
 
         {finished && (
           <footer className={styles.footer}>
