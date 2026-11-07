@@ -476,6 +476,28 @@ class TurnActionRequest(BaseModel):
 
     player_id: str | None = None
 
+
+class StatusScoreRequest(BaseModel):
+    """Zdobycie celu w kroku 1 fazy statusu: ``kind`` = ``public`` albo ``secret``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    kind: str
+    objective_id: str
+
+
+class StatusRedistributeRequest(BaseModel):
+    """Rozdział żetonów dowodzenia w kroku 5 fazy statusu (suma = dostępne żetony)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    tactical: int
+    fleet: int
+    strategic: int
+
+
 class SetSpeakerRequest(BaseModel):
     """Ustawienie mówcy (speaker) — otwiera wybór kart w fazie strategii."""
 
@@ -727,6 +749,9 @@ class GodModePatch(BaseModel):
     round_number: int | None = None
     phase: str | None = None
     active_player_id: str | None = None
+    # Żeton Custodians zdjęty z Mecatol Rex (dodaje fazę agendy do każdej rundy). Do czasu
+    # pełnej obsługi inwazji na Mecatol Rex ustawiany ręcznie (RULES.md 41.6).
+    custodians_removed: bool | None = None
     players: dict[str, dict[str, object]] | None = None
     systems: dict[str, dict[str, object]] | None = None
 

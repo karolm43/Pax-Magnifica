@@ -43,6 +43,19 @@ def roll_dice(state: GameState, count: int, sides: int = DIE_SIDES) -> tuple[Gam
     return new_state, results
 
 
+def next_rng(state: GameState) -> random.Random:
+    """Zwraca seedowalny generator i przesuwa licznik w PRZEKAZANYM stanie (mutuje!).
+
+    Dla tasowania talii i innych losowań poza kośćmi. Wołający pracuje na własnym klonie
+    (jak w ``roll_dice``). Strumień zależy tylko od (ziarno, licznik) — Undo/Redo bezpieczne.
+    """
+    if state.rng_seed == 0:
+        state.rng_seed = secrets.randbelow(2**31 - 1) + 1
+    rng = random.Random(f"{state.rng_seed}:{state.rng_counter}")
+    state.rng_counter += 1
+    return rng
+
+
 def count_hits(results: list[int], hits_on: int) -> int:
     """Liczba trafień: wyniki równe lub większe od ``hits_on`` (RULES.md 38, S4)."""
     return sum(1 for value in results if value >= hits_on)

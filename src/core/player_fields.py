@@ -52,6 +52,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "breakthrough_exhausted",
         "breakthrough_tg",
         "promissory_notes_in_play",
+        "scored_secrets",
     }
 )
 

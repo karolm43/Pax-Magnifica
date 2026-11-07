@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
-from src.core import battle, damage, movement, tactical, turn_flow
+from src.core import battle, damage, movement, status_phase, tactical, turn_flow
 from src.core.combat import resolve_unit_variant
 from src.core.event_store import EventStore
 from src.core.game_state import (
@@ -363,12 +363,16 @@ def test_ground_combat_in_invasion_step(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------- naprawa i ruch uszkodzeń
 
 
-def test_status_phase_repairs_damaged_units() -> None:
+def test_status_phase_repairs_damaged_units(registry: StaticDataRegistry) -> None:
+    """Naprawa to krok 7 fazy statusu (R_status_phase), nie samo wejście w fazę."""
     state = _state({"p1": {"dreadnought": 1}})
     damage.set_damaged(state.systems["000"], "space", "p1", "dreadnought", 1)
     status = turn_flow.next_phase(state)
     assert status.phase is Phase.STATUS
-    assert status.systems["000"].damaged_units == {}
+    # Samo wejście w STATUS niczego nie naprawia — jednostki wciąż uszkodzone.
+    assert status.systems["000"].damaged_units != {}
+    repaired = status_phase.finalize_status(status, registry)
+    assert repaired.systems["000"].damaged_units == {}
 
 
 def test_moving_damaged_ships_moves_damage_undamaged_first(

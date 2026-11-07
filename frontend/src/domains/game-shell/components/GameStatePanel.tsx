@@ -1581,6 +1581,9 @@ function PhaseControls({
   const phase = gameState.phase;
   const isAction = phase === "action";
   const isStatus = phase.startsWith("status");
+  // Zainicjowana faza statusu (RULES.md 41) jest prowadzona panelem kroków; stary
+  // przycisk „Next player" zostaje tylko dla statusu wprowadzonego God-Mode.
+  const statusInSteps = isStatus && gameState.status != null;
   const isAgenda = phase.startsWith("agenda");
   // Otwarte okno czasowe (secondary itp.) blokuje End turn (RULES.md 31.6).
   const windowOpen = gameState.pendingWindow != null;
@@ -1691,7 +1694,7 @@ function PhaseControls({
       )}
       {/* Faza statusu: „Next player" KOŃCZY krok gracza i przesuwa dalej. Wołamy
           BEZ player_id — backend adresuje swojego aktywnego gracza (BUG 1). */}
-      {isStatus && (
+      {isStatus && !statusInSteps && (
         <button
           type="button"
           className={cx(styles.ctlBtn, styles.ctlPrimary)}
@@ -1734,7 +1737,7 @@ function PhaseControls({
           <button
             type="button"
             className={styles.ctlBtnGhost}
-            disabled={busy}
+            disabled={busy || (statusInSteps && gameState.canAdvancePhase !== true)}
             onClick={() => void run(nextPhase)}
           >
             Next phase

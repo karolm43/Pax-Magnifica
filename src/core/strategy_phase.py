@@ -325,6 +325,17 @@ def reset_strategy_cards(state: GameState) -> GameState:
     return new_state
 
 
+def close_round_cards(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Koniec rundy: TG na niewybranych kartach + zwrot kart strategii do puli.
+
+    Gdy nikt już nie trzyma kart (zwrócono je w kroku 8 fazy statusu — RULES.md 41), nic
+    nie robi: akumulacja TG i reset już się odbyły. Inaczej: ``accumulate`` → ``reset``.
+    """
+    if not any(player.strategy_cards for player in state.players.values()):
+        return state.clone()
+    return reset_strategy_cards(accumulate_unpicked_tg(state, registry))
+
+
 def ensure_card_fields_complete(cards: list[StrategyCardDef]) -> None:
     """Sprawdza komplet pól per-karta wymaganych do opisu puli (R6.4).
 

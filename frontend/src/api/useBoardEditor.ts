@@ -204,6 +204,42 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Faza statusu (RULES.md 41) ---
+
+  // Krok 1: gracz, którego kolej, zdobywa cel publiczny albo tajny.
+  const statusScore = useCallback(
+    async (playerId: string, kind: "public" | "secret", objectiveId: string) => {
+      await post("/status/score", {
+        player_id: playerId,
+        kind,
+        objective_id: objectiveId,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Krok 1: gracz kończy punktowanie; ostatni uruchamia kroki 2–4.
+  const statusFinishScoring = useCallback(
+    async (playerId?: string) => {
+      await post("/status/finish-scoring", { player_id: playerId ?? null });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Krok 5: gracz zatwierdza rozdział WSZYSTKICH żetonów w pulach.
+  const statusRedistribute = useCallback(
+    async (
+      playerId: string,
+      pools: { tactical: number; fleet: number; strategic: number },
+    ) => {
+      await post("/status/redistribute", { player_id: playerId, ...pools });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const skipPhase = useCallback(async () => {
     await post("/phase/skip", {});
     await refresh();
@@ -565,6 +601,9 @@ export function useBoardEditor() {
     passTurn,
     nextPlayer,
     phaseStep,
+    statusScore,
+    statusFinishScoring,
+    statusRedistribute,
     nextPhase,
     skipPhase,
     nextRound,

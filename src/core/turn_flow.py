@@ -10,8 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
-from src.core.damage import repair_all
-from src.core.game_state import GameState, Phase
+from src.core.game_state import GameState, Phase, StatusPhaseState, StatusStep
 from src.core.strategy_phase import ensure_strategy_complete, next_strategy_picker
 
 # Kolejność faz rundy TI4.
@@ -113,6 +112,10 @@ def can_advance_phase(state: GameState) -> bool:
         except ValueError:
             return False
         return True
+    if state.phase is Phase.STATUS and state.status is not None:
+        # Zainicjowana faza statusu (RULES.md 41): mówca ogłasza krok 8 dopiero, gdy
+        # kroki 1–7 są wykonane (i gra nie zakończyła się w kroku 2).
+        return state.status.step is StatusStep.COMPLETE and state.winner_id is None
     if state.phase in (Phase.ACTION, Phase.STATUS):
         return all_passed(state)
     # AGENDA (i stany spoza głównej czwórki): mówca decyduje bez bramy „wszyscy".
@@ -297,6 +300,10 @@ def advance_active_player(
         raise ValueError(
             "Advancing to the next player is only allowed in the status/agenda phase."
         )
+    if state.phase is Phase.STATUS and state.status is not None:
+        raise ValueError(
+            "The status phase runs in steps - use the status-phase actions instead."
+        )
     current = state.active_player_id
     if current is None:
         raise ValueError("No active player to advance from.")
@@ -350,10 +357,10 @@ def next_phase(state: GameState) -> GameState:
     # (dotyczy fazy akcji; w innych fazach pole i tak nieużywane, ale trzymamy czysto).
     for player in new_state.players.values():
         player.took_action_this_turn = False
-    if new_state.phase is Phase.STATUS:
-        # Faza statusu, krok 7 „Repair Units": wszystkie uszkodzone jednostki są naprawiane
-        # (R_status_phase; RULES.md 39 W10). Robimy to przy wejściu w STATUS.
-        repair_all(new_state)
+    # Faza statusu (RULES.md 41): wejście inicjuje kroki (punktowanie → ... → zwrot kart);
+    # naprawa jednostek to krok 7 (``status_phase``), nie samo wejście w fazę. Poza statusem
+    # stan kroków jest czyszczony.
+    new_state.status = StatusPhaseState() if new_state.phase is Phase.STATUS else None
     if new_state.phase is Phase.ACTION:
         # Faza akcji: kolejność tur wg ŚCISŁEJ INICJATYWY kart (RULES.md 9, R9.6).
         # Komplet kart zagwarantowany przez ensure_strategy_complete powyżej.
@@ -380,6 +387,7 @@ def next_round(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.round_number += 1
     new_state.phase = Phase.STRATEGY
+    new_state.status = None
     for player in new_state.players.values():
         player.passed = False
     # Nowa runda zaczyna się fazą strategii: wybiera mówca (RULES.md 24).

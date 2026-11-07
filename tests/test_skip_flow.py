@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import skip_flow, turn_flow
+from src.core import objectives, skip_flow, turn_flow
 from src.core.game_state import GameState, Phase, PlayerState
 from src.core.registry import StaticDataRegistry
 
@@ -45,10 +45,26 @@ def test_skip_action_ignores_passes(registry: StaticDataRegistry) -> None:
     assert out.phase is Phase.STATUS
 
 
-def test_skip_agenda_starts_next_round(registry: StaticDataRegistry) -> None:
-    state = skip_flow.skip_phase(_state(), registry)  # -> ACTION
+def test_skip_status_without_custodians_starts_next_round(
+    registry: StaticDataRegistry,
+) -> None:
+    """R_status_phase krok 8: bez zdjętego Custodians nie ma agendy — nowa runda."""
+    state = objectives.setup_objectives(_state(), registry)
+    state = skip_flow.skip_phase(state, registry)  # -> ACTION
     state = skip_flow.skip_phase(state, registry)  # -> STATUS
-    state = skip_flow.skip_phase(state, registry)  # -> AGENDA
+    assert state.phase is Phase.STATUS
+    out = skip_flow.skip_phase(state, registry)  # kroki 1-8
+    assert out.phase is Phase.STRATEGY
+    assert out.round_number == state.round_number + 1
+    assert all(not p.strategy_cards for p in out.players.values())
+
+
+def test_skip_agenda_starts_next_round(registry: StaticDataRegistry) -> None:
+    state = objectives.setup_objectives(_state(), registry)
+    state.custodians_removed = True
+    state = skip_flow.skip_phase(state, registry)  # -> ACTION
+    state = skip_flow.skip_phase(state, registry)  # -> STATUS
+    state = skip_flow.skip_phase(state, registry)  # -> AGENDA (Custodians zdjęty)
     assert state.phase is Phase.AGENDA
     out = skip_flow.skip_phase(state, registry)
     assert out.phase is Phase.STRATEGY

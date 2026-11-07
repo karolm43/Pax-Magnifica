@@ -118,6 +118,74 @@ class TimingWindow(BaseModel):
             return None
         return self.queue[self.cursor]
 
+class StatusStep(StrEnum):
+    """Krok fazy statusu, na którym aktualnie stoi gra (R_status_phase).
+
+    Fazę statusu dzielimy na trzy etapy INTERAKCJI; reszta kroków LRR jest automatyczna:
+    - ``SCORE_OBJECTIVES`` — krok 1: gracze po kolei (initiative order) punktują cele;
+    - ``REDISTRIBUTE`` — kroki 2–4 wykonane automatycznie, krok 5: gracze rozdzielają
+      żetony dowodzenia (równolegle);
+    - ``COMPLETE`` — kroki 6–7 wykonane automatycznie; czeka na krok 8 (mówca „Next phase").
+    """
+
+    SCORE_OBJECTIVES = "SCORE_OBJECTIVES"
+    REDISTRIBUTE = "REDISTRIBUTE"
+    COMPLETE = "COMPLETE"
+
+
+class StatusPhaseState(BaseModel):
+    """Stan trwającej fazy statusu (``None`` poza nią) — RULES.md 41.
+
+    ``scored_public`` / ``scored_secret`` = gracze, którzy W TEJ fazie statusu zdobyli już
+    publiczny / tajny cel (limit: po jednym na fazę — R_objective_cards). ``done`` = gracze,
+    którzy zakończyli swoją część bieżącego kroku (krok 1: „skończyłem punktować", krok 5:
+    „zatwierdziłem rozdział żetonów"). ``unassigned_cc`` = żetony zdobyte w kroku 5, a jeszcze
+    nieprzydzielone do puli (strategy/tactic/fleet). ``fleet_excess`` = nadwyżka statków ponad
+    fleet pool po redystrybucji (pozycja → liczba), do ręcznego usunięcia. ``log`` = dziennik
+    automatycznych kroków 2–8 (zasila panel).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    step: StatusStep = StatusStep.SCORE_OBJECTIVES
+    scored_public: list[str] = Field(default_factory=list)
+    scored_secret: list[str] = Field(default_factory=list)
+    done: list[str] = Field(default_factory=list)
+    unassigned_cc: dict[str, int] = Field(default_factory=dict)
+    fleet_excess: dict[str, dict[str, int]] = Field(default_factory=dict)
+    log: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ObjectivesState(BaseModel):
+    """Cele publiczne gry: talie, odkryte i zdobyte (RULES.md 41.1).
+
+    ``stage1_deck`` / ``stage2_deck`` = ZAKRYTE cele (od góry talii, ``[0]`` = następny do
+    odkrycia). Setup losuje po 5 z każdego etapu, a mówca odkrywa dwa cele I etapu
+    (R_objective_cards). ``revealed`` = odkryte w kolejności odsłaniania (I i II etap).
+    ``scored`` = ``{id_celu: [player_id, ...]}`` — kto zdobył dany cel publiczny (też
+    „inne punkty": custodians itd.); powtórzony gracz = punkt zdobyty wielokrotnie.
+    ``custom_points`` = ``{klucz: VP}`` dla punktów spoza kart (custodians, imperial...).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    stage1_deck: list[str] = Field(default_factory=list)
+    stage2_deck: list[str] = Field(default_factory=list)
+    revealed: list[str] = Field(default_factory=list)
+    scored: dict[str, list[str]] = Field(default_factory=dict)
+    custom_points: dict[str, int] = Field(default_factory=dict)
+
+
+class DecksState(BaseModel):
+    """Talie wspólne: karty akcji i tajne cele (kolejność = od góry, ``[0]`` dobierana)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_card_deck: list[str] = Field(default_factory=list)
+    action_card_discard: list[str] = Field(default_factory=list)
+    secret_objective_deck: list[str] = Field(default_factory=list)
+
+
 class PlayerPrivateState(BaseModel):
     """Prywatne (tajne) komponenty gracza — widoczne tylko właścicielowi (R2.3).
 
@@ -227,6 +295,10 @@ class PlayerState(BaseModel):
     # tajnej). Puste do czasu, aż silnik zacznie obsługiwać zagrywanie notek; dziś
     # edytowalne przez God-Mode. NIE mieszać z ręką: ręka jest ukryta, strefa — jawna.
     promissory_notes_in_play: list[str] = Field(default_factory=list)
+
+    # Zdobyte (ujawnione) tajne cele gracza — identyfikatory kart, w kolejności zdobycia.
+    # JAWNE: tajny cel po zdobyciu leży odkryty w strefie gracza (R_objective_cards).
+    scored_secrets: list[str] = Field(default_factory=list)
 
     # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
     # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).
@@ -394,6 +466,19 @@ class GameState(BaseModel):
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).
     strategy_card_tg: dict[int, int] = Field(default_factory=dict)
+
+    # Cele publiczne, talie wspólne i stan fazy statusu (RULES.md 41). ``status`` = None
+    # poza fazą statusu (i dla stanów wprowadzonych God-Mode bez inicjalizacji kroków).
+    objectives: ObjectivesState = Field(default_factory=ObjectivesState)
+    decks: DecksState = Field(default_factory=DecksState)
+    status: StatusPhaseState | None = None
+    # Żeton Custodians zdjęty z Mecatol Rex => faza agendy dodana do KAŻDEJ rundy
+    # (R_custodians_token). Do czasu zdjęcia status kończy rundę bez fazy agendy.
+    custodians_removed: bool = False
+    # Próg punktów zwycięstwa (R_victory_points: 10, albo 14 na drugiej stronie toru).
+    vps_to_win: int = 10
+    # Zwycięzca (koniec gry) — None, dopóki gra trwa.
+    winner_id: str | None = None
 
     players: dict[str, PlayerState] = Field(default_factory=dict)
     systems: dict[str, SystemState] = Field(default_factory=dict)

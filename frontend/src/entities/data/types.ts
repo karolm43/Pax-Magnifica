@@ -506,6 +506,30 @@ export type GameState = {
   canAdvancePhase?: boolean;
   /** Czy wszyscy gracze skończyli swoją część bieżącej fazy (pas/krok). */
   allPassed?: boolean;
+  /** Stan kroków fazy statusu (RULES.md 41) — null poza zainicjowaną fazą statusu. */
+  status?: StatusPhaseData | null;
+  /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
+  winnerId?: string | null;
+};
+
+export type StatusStepName = "SCORE_OBJECTIVES" | "REDISTRIBUTE" | "COMPLETE";
+
+/**
+ * Fazy statusu: kroki 1 (punktowanie) i 5 (żetony) są interaktywne, 2–4 i 6–7 wykonuje
+ * silnik, krok 8 ogłasza mówca. Klucze map graczy to ``player_id`` (``discordId``).
+ */
+export type StatusPhaseData = {
+  step: StatusStepName;
+  scoredPublic: string[];
+  scoredSecret: string[];
+  done: string[];
+  unassignedCc: Record<string, number>;
+  fleetExcess: Record<string, Record<string, number>>;
+  scoreablePublic: Record<string, string[]>;
+  scoreableSecret: Record<string, string[]>;
+  log: { step: number; label: string; [key: string]: unknown }[];
+  isComplete: boolean;
+  custodiansRemoved: boolean;
 };
 
 /**

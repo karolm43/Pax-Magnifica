@@ -186,6 +186,9 @@ export function TurnControls() {
   // kończy część gracza (/turn/phase-step), „Next player" tylko przewija (/turn/
   // next-player). „Next phase" u mówcy pojawia się wg ``canAdvancePhase``.
   const isStatus = phase.startsWith("status");
+  // Zainicjowana faza statusu (RULES.md 41) prowadzi panel kroków (StatusPhasePanel);
+  // stary przycisk „Next player" zostaje tylko dla statusu wprowadzonego God-Mode.
+  const statusInSteps = isStatus && gameState?.status != null;
   const isAgenda = phase.startsWith("agenda");
   const isSpeaker =
     gameState?.speaker != null && active.color === gameState.speaker;
@@ -430,7 +433,7 @@ export function TurnControls() {
               dalej — po komplecie kroków mówca dostaje „Next phase". Wołamy BEZ
               player_id: backend adresuje swojego ``active_player_id`` (unikamy
               rozjazdu „gracza pulpitu" useDeskPlayer z realnym aktywnym — BUG 1). */}
-          {isStatus && (
+          {isStatus && !statusInSteps && (
             <button
               type="button"
               className={styles.endTurn}
@@ -483,12 +486,18 @@ export function TurnControls() {
               type="button"
               className={styles.nextPhase}
               style={{ "--d": isAction ? "120ms" : "60ms" } as CSSProperties}
-              disabled={busy}
+              disabled={
+                busy || (statusInSteps && gameState?.canAdvancePhase !== true)
+              }
               onClick={() => run(isAgenda ? nextRound : nextPhase)}
               title={
                 isAgenda
                   ? "End the agenda phase and start the next round"
-                  : "Advance to the next phase"
+                  : statusInSteps
+                    ? gameState?.canAdvancePhase
+                      ? "Return the Strategy Cards and finish the status phase"
+                      : "Finish the status steps first (score objectives, redistribute tokens)"
+                    : "Advance to the next phase"
               }
             >
               <IconChevronsRight size={16} aria-hidden="true" />

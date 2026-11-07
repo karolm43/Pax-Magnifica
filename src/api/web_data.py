@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api import web_objectives
 from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.game_state import GameState, PlayerState
@@ -193,7 +194,7 @@ def _safe_pick_count(state: GameState) -> int | None:
         return None
 
 
-def _build_game_state(state: GameState) -> dict[str, Any]:
+def _build_game_state(state: GameState, registry: StaticDataRegistry) -> dict[str, Any]:
     """Buduje obiekt ``gameState`` — zasila panel faz + kolejność tur we froncie.
 
     Faza, aktywny gracz (kolor) oraz akcja taktyczna (E3): ``activeSystem`` =
@@ -228,8 +229,12 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
             if (color := _color_of(state, pid)) is not None
         ],
         "turnStartedAt": None,
-        "winner": None,
+        # Zwycięzca (kolor) po zakończeniu gry — R_victory_points (próg VP albo brak celów).
+        "winner": _color_of(state, state.winner_id),
+        "winnerId": state.winner_id,
         "agenda": None,
+        # Stan kroków fazy statusu (RULES.md 41) — None poza zainicjowaną fazą statusu.
+        "status": web_objectives.build_status_payload(state, registry),
         "activeSystem": state.active_system,
         "tacticalStep": (
             state.tactical_step.value if state.tactical_step is not None else None
@@ -1147,10 +1152,8 @@ def _build_player_data(
                 # Przełom frakcji (Thunder's Edge). Pole opcjonalne we froncie —
                 # emitujemy tylko gdy frakcja go ma (inaczej None i slot się chowa).
                 "breakthrough": breakthrough,
-                "secretsScored": {},
-                "knownUnscoredSecrets": {},
-                "numUnscoredSecrets": 0,
-                "numScoreableSecrets": 0,
+                # Tajne cele: zdobyte (jawne) + znane niezdobyte (tylko ręka viewera).
+                **web_objectives.secret_fields(player, registry),
                 # Promissory notes w strefie gracza (jawne — RULES.md 2d). ODRĘBNE
                 # od licznika ręki ``pnCount`` (ręka tajna). Puste do czasu logiki
                 # zagrywania notek; dziś zasilane przez God-Mode.
@@ -1240,16 +1243,6 @@ def _build_strategy_cards(
     return cards
 
 
-def _empty_objectives() -> dict[str, Any]:
-    """Pusta struktura ``Objectives`` (viewer wymaga obecności pól)."""
-    return {
-        "stage1Objectives": [],
-        "stage2Objectives": [],
-        "customObjectives": [],
-        "allObjectives": [],
-    }
-
-
 def _empty_card_pool() -> dict[str, Any]:
     """Pusta struktura ``CardPoolData`` (viewer wymaga obecności pól)."""
     return {
@@ -1299,7 +1292,7 @@ def build_web_data(
     state: GameState,
     *,
     game_name: str,
-    vps_to_win: int = 10,
+    vps_to_win: int | None = None,
     viewing_player: str | None = None,
 ) -> dict[str, Any]:
     """Serializuje stan gry do dokumentu ``PlayerDataResponse`` dla frontendu ti4_web.
@@ -1354,7 +1347,7 @@ def build_web_data(
         "gameName": game_name,
         "gameRound": projected.round_number,
         "ringCount": _ring_count(grid),
-        "vpsToWin": vps_to_win,
+        "vpsToWin": vps_to_win if vps_to_win is not None else projected.vps_to_win,
         # Wersja schematu danych oczekiwana przez frontend (ti4_web). Poniżej tej
         # wartości frontend blokuje render ekranem "Update Needed". Trzymamy stałą
         # zgodną z REQUIRED_VERSION_SCHEMA w GameMapPage.tsx.
@@ -1363,11 +1356,14 @@ def build_web_data(
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(projected, registry, grid, entity_keys),
         "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
-        "gameState": _build_game_state(projected),
+        "gameState": _build_game_state(projected, registry),
         "lawsInPlay": [],
         "strategyCards": _build_strategy_cards(projected, registry, entity_keys),
-        "objectives": _empty_objectives(),
-        "cardPool": _empty_card_pool(),
+        "objectives": web_objectives.build_objectives(projected, registry, entity_keys),
+        "scoreBreakdowns": web_objectives.build_score_breakdowns(
+            projected, registry, entity_keys
+        ),
+        "cardPool": {**_empty_card_pool(), **web_objectives.card_pool_counts(projected)},
         "expeditions": _empty_expeditions(),
     }
 

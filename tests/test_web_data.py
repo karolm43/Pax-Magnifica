@@ -976,6 +976,9 @@ def test_set_player_hand_endpoint_populates_hand(client: TestClient) -> None:
         "/game/new",
         json={"players": [{"faction_id": "sol"}, {"faction_id": "hacan"}]},
     )
+    # Ręka po setupie: jeden startowy tajny cel (R_objective_cards), reszta pusta.
+    hand_before = client.get("/api/game/g/hand", params={"player": "p1"}).json()
+    assert len(hand_before["secretObjectives"]) == 1
     resp = client.post(
         "/player/hand/set",
         json={
@@ -990,14 +993,10 @@ def test_set_player_hand_endpoint_populates_hand(client: TestClient) -> None:
     assert hand["actionCards"] == ["blitz", "bounty", "coup"]
     assert hand["secretObjectives"] == ["btv", "ctr"]
     assert hand["promissoryNotes"] == ["ms", "convoys"]
-    # Edycja jest w historii — Undo czyści wgraną rękę.
+    # Edycja jest w historii — Undo przywraca rękę sprzed edycji.
     client.post("/undo")
     hand_after = client.get("/api/game/g/hand", params={"player": "p1"}).json()
-    assert hand_after == {
-        "actionCards": [],
-        "secretObjectives": [],
-        "promissoryNotes": [],
-    }
+    assert hand_after == hand_before
 
 
 def test_set_player_hand_partial_keeps_other_lists(client: TestClient) -> None:

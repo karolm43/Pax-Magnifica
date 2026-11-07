@@ -23,6 +23,7 @@ import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
 import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { TurnControls } from "@/domains/game-shell/components/TurnControls";
+import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePanel";
 import { TacticalActionDock } from "@/domains/game-shell/components/TacticalActionDock";
 import { PhaseNoticePanel } from "@/domains/game-shell/components/PhaseNoticePanel";
 import { BoardHud } from "./BoardHud";
@@ -252,6 +253,10 @@ export function PannableMapView({ gameId }: { gameId: string }) {
           Karta strategii jako obrazek (Play na hover) + Pass / End turn /
           Next phase. Sam gatuje widoczność po fazie / aktywnym graczu. */}
       <TurnControls />
+
+      {/* Panel fazy statusu (RULES.md 41): 8 kroków, punktowanie celów i rozdział
+          żetonów dowodzenia. Sam gatuje widoczność po fazie i stanie statusu. */}
+      <StatusPhasePanel />
 
       {/* Dok akcji taktycznej (lewy dół) — panel-przewodnik po krokach akcji
           (ruch → cannon → walka → inwazja → produkcja). Pokazuje się TYLKO, gdy

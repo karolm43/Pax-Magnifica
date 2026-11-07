@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import SetSpeakerRequest, StateEnvelope, TurnActionRequest
-from src.core import skip_flow, strategy_phase, turn_flow
+from src.core import skip_flow, status_phase, strategy_phase, turn_flow
 from src.core.game_state import GameState, Phase
 
 router = APIRouter()
@@ -116,6 +116,13 @@ async def post_next_phase(
     if not turn_flow.can_advance_phase(state):
         if state.phase is Phase.ACTION:
             detail = "Every player must pass before the speaker can end the Action Phase."
+        elif state.phase is Phase.STATUS and state.winner_id is not None:
+            detail = "The game has ended."
+        elif state.phase is Phase.STATUS and state.status is not None:
+            detail = (
+                "Finish the Status Phase steps (score objectives, then redistribute "
+                "command tokens) before the speaker can return the Strategy Cards."
+            )
         elif state.phase is Phase.STATUS:
             detail = (
                 "Every player must take their Status step before the speaker "
@@ -125,7 +132,11 @@ async def post_next_phase(
             detail = "All players must pick their Strategy Cards before advancing."
         raise HTTPException(status_code=422, detail=detail)
     try:
-        new_state = turn_flow.next_phase(state)
+        if state.phase is Phase.STATUS and state.status is not None:
+            # Krok 8 fazy statusu: zwrot kart strategii, potem agenda albo nowa runda.
+            new_state = status_phase.finish_status(state, ctx.registry)
+        else:
+            new_state = turn_flow.next_phase(state)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, "phase:next")
@@ -154,8 +165,7 @@ async def post_next_round(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """
     state = ctx.service.current_state()
     try:
-        state = strategy_phase.accumulate_unpicked_tg(state, ctx.registry)
-        state = strategy_phase.reset_strategy_cards(state)
+        state = strategy_phase.close_round_cards(state, ctx.registry)
         state = turn_flow.next_round(state)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
