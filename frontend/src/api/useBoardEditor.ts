@@ -344,10 +344,10 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  // Żetony obietnic (nieformalna zasada stołu, RULES.md 47.3): wystawca → posiadacz.
-  const givePromiseTokens = useCallback(
+  // Żetony długu (debt) (nieformalna zasada stołu, RULES.md 47.3): wystawca → posiadacz.
+  const giveDebtTokens = useCallback(
     async (issuerId: string, holderId: string, count: number) => {
-      await post("/promises/give", {
+      await post("/debt/give", {
         issuer_id: issuerId,
         holder_id: holderId,
         count,
@@ -358,9 +358,9 @@ export function useBoardEditor() {
   );
 
   // Posiadacz zwraca wystawcy jego żetony (dług spłacony/odpuszczony).
-  const returnPromiseTokens = useCallback(
+  const returnDebtTokens = useCallback(
     async (holderId: string, issuerId: string, count: number) => {
-      await post("/promises/return", {
+      await post("/debt/return", {
         issuer_id: issuerId,
         holder_id: holderId,
         count,
@@ -719,8 +719,8 @@ export function useBoardEditor() {
     setSpeaker,
     playComponentAction,
     resolveTransaction,
-    givePromiseTokens,
-    returnPromiseTokens,
+    giveDebtTokens,
+    returnDebtTokens,
     activateSystem,
     moveShips,
     produce,

@@ -677,8 +677,7 @@ export type PlayerData = {
   transactedWith?: string[];
   /** Fragmenty reliktów gracza (id + nazwa z katalogu) — wymiana w transakcjach. */
   relicFragmentCards?: { id: string; name: string }[];
-  /** Żetony obietnic, które gracz TRZYMA: {kolor wystawcy: liczba} (RULES.md 47.3). */
-  promiseTokensHeld?: Record<string, number>;
+  /** Żetony długu (debt), które gracz TRZYMA: {kolor wystawcy: liczba} (RULES.md 47.3). */
   debtTokens?: Record<string, number>;
   nombox?: CapturedUnitsData;
   abilities?: string[];

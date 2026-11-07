@@ -1,7 +1,7 @@
-"""Router transakcji między graczami + żetonów obietnic (RULES.md 47).
+"""Router transakcji między graczami + żetonów długu (RULES.md 47).
 
 Cienka warstwa HTTP: walidacja i zmiana stanu siedzą w ``core.transaction`` oraz
-``core.promises``; tu tylko wywołanie, commit + broadcast i mapowanie ``ValueError`` → 422.
+``core.debt``; tu tylko wywołanie, commit + broadcast i mapowanie ``ValueError`` → 422.
 """
 
 from __future__ import annotations
@@ -10,12 +10,12 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
-    PromiseTokensRequest,
+    DebtTokensRequest,
     StateEnvelope,
     TransactionRequest,
     TransactionSideRequest,
 )
-from src.core import promises, transaction
+from src.core import debt, transaction
 from src.core.game_state import GameState
 
 router = APIRouter()
@@ -57,33 +57,33 @@ async def post_resolve_transaction(
     return await _commit(ctx, new_state, f"transaction:{request.partner_id}")
 
 
-@router.post("/promises/give", response_model=StateEnvelope)
-async def post_give_promise_tokens(
-    request: PromiseTokensRequest, ctx: AppContext = Depends(get_ctx)
+@router.post("/debt/give", response_model=StateEnvelope)
+async def post_give_debt_tokens(
+    request: DebtTokensRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Wystawca oddaje posiadaczowi żetony obietnic (nieformalna zasada stołu, RULES.md 47.3)."""
+    """Wystawca oddaje posiadaczowi żetony długu (zasada stołu, RULES.md 47.3)."""
     try:
-        new_state = promises.give_promise_tokens(
+        new_state = debt.give_debt_tokens(
             ctx.service.current_state(), request.issuer_id, request.holder_id, request.count
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(
-        ctx, new_state, f"promise:give:{request.issuer_id}->{request.holder_id}"
+        ctx, new_state, f"debt:give:{request.issuer_id}->{request.holder_id}"
     )
 
 
-@router.post("/promises/return", response_model=StateEnvelope)
-async def post_return_promise_tokens(
-    request: PromiseTokensRequest, ctx: AppContext = Depends(get_ctx)
+@router.post("/debt/return", response_model=StateEnvelope)
+async def post_return_debt_tokens(
+    request: DebtTokensRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Posiadacz zwraca wystawcy jego żetony obietnic (dług spłacony/odpuszczony)."""
+    """Posiadacz zwraca wystawcy jego żetony długu (debt) (dług spłacony/odpuszczony)."""
     try:
-        new_state = promises.return_promise_tokens(
+        new_state = debt.return_debt_tokens(
             ctx.service.current_state(), request.holder_id, request.issuer_id, request.count
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(
-        ctx, new_state, f"promise:return:{request.holder_id}->{request.issuer_id}"
+        ctx, new_state, f"debt:return:{request.holder_id}->{request.issuer_id}"
     )

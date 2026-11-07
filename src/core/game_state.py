@@ -545,11 +545,11 @@ class GameState(BaseModel):
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).
     strategy_card_tg: dict[int, int] = Field(default_factory=dict)
-    # Żetony obietnic (nieformalna zasada stołu, NIE reguła TI4 — RULES.md 47.3): małe żetony
+    # Żetony długu (debt) (nieformalna zasada stołu, NIE reguła TI4 — RULES.md 47.3): małe żetony
     # kontroli gracza-wystawcy oddane innemu graczowi jako „dług"/obietnica (np. 3 TG do
     # zapłaty = 3 żetony). Niewiążące dla silnika, tylko pamięć stołu. Format:
     # ``{holder_id: {issuer_id: liczba}}`` — kto trzyma czyje żetony. Wpisy z zerem znikają.
-    promise_tokens: dict[str, dict[str, int]] = Field(default_factory=dict)
+    debt_tokens: dict[str, dict[str, int]] = Field(default_factory=dict)
 
     # Cele publiczne, talie wspólne i stan fazy statusu (RULES.md 41). ``status`` = None
     # poza fazą statusu (i dla stanów wprowadzonych God-Mode bez inicjalizacji kroków).

@@ -65,15 +65,15 @@ Testy: `tests/test_exploration.py`, `tests/test_exploration_api.py`.
 **Do zrobienia:** statystyki z attachmentów w ekonomii/produkcji/celach, eksploracja frontier
 (Dark Energy Tap), rozstrzyganie fragmentów reliktów, Freelancers i żetony wormhole ręcznie (RULES.md 46.3).
 
-## ✅ Transakcje między graczami + żetony obietnic (2026-11-07) — RULES.md 47
+## ✅ Transakcje między graczami + żetony długu (debt) (2026-11-07) — RULES.md 47
 
 Przycisk **Transaction** w pasku fazy akcji (`TurnControls`) otwiera `TransactionModal` (ładny
 modal, 2 zakładki). Core: `core/transaction.py` (1 transakcja na sąsiada na turę, `PlayerState.
 transacted_with` zerowane z nową turą; TG/commodities/1 notka/fragmenty reliktów; commodity → TG
-u odbiorcy; nie jest akcją tury, nie blokuje go okno ani pas) i `core/promises.py` (nieformalne
-żetony obietnic `GameState.promise_tokens`, bez sąsiedztwa, w dowolnej chwili). API:
-`/transactions/resolve`, `/promises/give|return`; web-data: `transactedWith`,
-`relicFragmentCards`, `promiseTokensHeld`. Testy: `tests/test_transaction.py`.
+u odbiorcy; nie jest akcją tury, nie blokuje go okno ani pas) i `core/debt.py` (nieformalne
+żetony długu (debt) `GameState.debt_tokens`, bez sąsiedztwa, w dowolnej chwili). API:
+`/transactions/resolve`, `/debt/give|return`; web-data: `transactedWith`,
+`relicFragmentCards`, `debtTokens`. Testy: `tests/test_transaction.py`.
 **Poza zakresem (⚠️ RULES.md 47.2):** Hacan (karty akcji — hook E7), zwrot pojmanych jednostek,
 transakcje w agendzie (agendy poza zakresem), zgoda partnera (hot-seat: jeden operator).
 

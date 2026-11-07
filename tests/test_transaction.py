@@ -1,4 +1,4 @@
-"""Testy transakcji między graczami i żetonów obietnic — RULES.md 47.
+"""Testy transakcji między graczami i żetonów długu — RULES.md 47.
 
 Reguła (tirules2.com → ``docs/rules_tirules/R_transactions.md``): aktywny gracz robi do jednej
 transakcji z każdym sąsiadem w turze; oddaje TG/commodities (+1 notka), dostaje TG/commodities/
@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
-from src.core import promises, transaction, turn_flow
+from src.core import debt, transaction, turn_flow
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.transaction import TransactionSide
@@ -149,29 +149,29 @@ def test_new_turn_resets_transacted_with() -> None:
     assert after.players["p2"].transacted_with == []
 
 
-def test_promise_tokens_give_and_return() -> None:
+def test_debt_tokens_give_and_return() -> None:
     state = _state()
-    state = promises.give_promise_tokens(state, "p1", "p2", 3)
-    state = promises.give_promise_tokens(state, "p1", "p2", 1)
-    assert state.promise_tokens == {"p2": {"p1": 4}}
-    state = promises.return_promise_tokens(state, "p2", "p1", 3)
-    assert promises.held_tokens(state, "p2", "p1") == 1
-    state = promises.return_promise_tokens(state, "p2", "p1", 1)
-    assert state.promise_tokens == {}
+    state = debt.give_debt_tokens(state, "p1", "p2", 3)
+    state = debt.give_debt_tokens(state, "p1", "p2", 1)
+    assert state.debt_tokens == {"p2": {"p1": 4}}
+    state = debt.return_debt_tokens(state, "p2", "p1", 3)
+    assert debt.held_tokens(state, "p2", "p1") == 1
+    state = debt.return_debt_tokens(state, "p2", "p1", 1)
+    assert state.debt_tokens == {}
 
 
-def test_promise_tokens_validation_and_no_neighbor_needed() -> None:
+def test_debt_tokens_validation_and_no_neighbor_needed() -> None:
     state = _state()
     # p3 nie jest sąsiadem p1 — obietnice i tak działają (nie reguła TI4).
-    assert promises.give_promise_tokens(state, "p1", "p3", 2).promise_tokens == {"p3": {"p1": 2}}
+    assert debt.give_debt_tokens(state, "p1", "p3", 2).debt_tokens == {"p3": {"p1": 2}}
     with pytest.raises(ValueError, match="only 0 held"):
-        promises.return_promise_tokens(state, "p2", "p1", 1)
+        debt.return_debt_tokens(state, "p2", "p1", 1)
     with pytest.raises(ValueError, match="at least 1"):
-        promises.give_promise_tokens(state, "p1", "p2", 0)
+        debt.give_debt_tokens(state, "p1", "p2", 0)
     with pytest.raises(ValueError, match="different players"):
-        promises.give_promise_tokens(state, "p1", "p1", 1)
+        debt.give_debt_tokens(state, "p1", "p1", 1)
     with pytest.raises(ValueError, match="Unknown player"):
-        promises.give_promise_tokens(state, "p1", "zzz", 1)
+        debt.give_debt_tokens(state, "p1", "zzz", 1)
 
 
 # ------------------------------- endpoint ------------------------------------
@@ -208,13 +208,13 @@ def test_endpoint_transaction_and_web_data(client: TestClient) -> None:
     assert "already made a transaction" in again.json()["detail"]
 
 
-def test_endpoint_promise_tokens_roundtrip(client: TestClient) -> None:
-    ok = client.post("/promises/give", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
+def test_endpoint_debt_tokens_roundtrip(client: TestClient) -> None:
+    ok = client.post("/debt/give", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
     assert ok.status_code == 200
     data = client.get("/api/public/game/g/web-data").json()
     p3 = next(p for p in data["playerData"] if p["color"] == "green")
-    assert p3["promiseTokensHeld"] == {"red": 3}
-    back = client.post("/promises/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 5})
+    assert p3["debtTokens"] == {"red": 3}
+    back = client.post("/debt/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 5})
     assert back.status_code == 422
-    done = client.post("/promises/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
+    done = client.post("/debt/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
     assert done.status_code == 200

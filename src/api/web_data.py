@@ -1212,9 +1212,9 @@ def _build_player_data(
                     if (c := _color_of(state, pid)) is not None
                 ),
                 "relicFragmentCards": _relic_fragment_cards(player, registry),
-                "promiseTokensHeld": {
+                "debtTokens": {
                     color: count
-                    for issuer_id, count in state.promise_tokens.get(player_id, {}).items()
+                    for issuer_id, count in state.debt_tokens.get(player_id, {}).items()
                     if (color := _color_of(state, issuer_id)) is not None
                 },
                 # Realne liczebności prywatnych rąk (R6.5, R4.4). Dla viewera —

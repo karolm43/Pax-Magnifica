@@ -2559,7 +2559,7 @@ Kod: `core/exploration.py`, `api/routers/exploration.py`, `api/schemas_explorati
 
 ---
 
-## 47. Transakcje między graczami + żetony obietnic — ✅ ZWERYFIKOWANE (tirules2.com) + ⚠ ZAŁOŻENIA
+## 47. Transakcje między graczami + żetony długu (debt) — ✅ ZWERYFIKOWANE (tirules2.com) + ⚠ ZAŁOŻENIA
 
 Źródło: `docs/rules_tirules/R_transactions.md`, `R_commodities.md`, `R_promissory_notes.md`,
 `R_relics.md`, `R_neighbors.md` (tirules2.com).
@@ -2587,9 +2587,9 @@ Kod: `core/exploration.py`, `api/routers/exploration.py`, `api/schemas_explorati
 - ⚠️ Zgoda partnera nie jest modelowana: operator (hot-seat) składa obie strony umowy w jednym
   oknie; zgoda sieciowa/bota dojdzie z oknami czasowymi (RULES.md 29).
 
-### 47.3 Żetony obietnic — ⚠️ NIEOFICJALNA ZASADA STOŁU (decyzja użytkownika)
+### 47.3 Żetony długu (debt) — ⚠️ NIEOFICJALNA ZASADA STOŁU (decyzja użytkownika)
 Nie ma jej w regułach TI4. Gracze zwyczajowo oddają sobie małe żetony kontroli jako niewiążące
 obietnice/długi (3 TG do zapłaty = 3 żetony wystawcy). Silnik tylko **zapamiętuje** kto ma czyje
-żetony (`GameState.promise_tokens = {holder: {issuer: n}}`, `core/promises.py`,
-`POST /promises/give`, `/promises/return`) — niczego nie egzekwuje. Działa **bez sąsiedztwa**,
+żetony (`GameState.debt_tokens = {holder: {issuer: n}}`, `core/debt.py`,
+`POST /debt/give`, `/debt/return`) — niczego nie egzekwuje. Działa **bez sąsiedztwa**,
 w dowolnej fazie i turze. Wierzyciel zwraca żetony wystawcy, gdy dług spłacony/odpuszczony.

@@ -1,4 +1,4 @@
-﻿"""Schematy DTO warstwy API (Pydantic v2).
+"""Schematy DTO warstwy API (Pydantic v2).
 
 Oddzielają kontrakt sieciowy od wewnętrznych modeli domenowych. Mapa jest
 serializowana jako lista pozycji ze współrzędnymi kubicznymi (dla renderera SVG)
@@ -1191,8 +1191,8 @@ class TransactionRequest(BaseModel):
     player_id: str | None = None
 
 
-class PromiseTokensRequest(BaseModel):
-    """Żetony obietnic między graczami (RULES.md 47.3): wystawca → posiadacz (give) albo zwrot."""
+class DebtTokensRequest(BaseModel):
+    """Żetony długu (debt) między graczami (RULES.md 47.3): wystawca → posiadacz lub zwrot."""
 
     model_config = ConfigDict(extra="forbid")
 

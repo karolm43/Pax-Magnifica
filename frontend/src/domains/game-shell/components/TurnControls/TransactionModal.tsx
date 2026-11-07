@@ -136,7 +136,7 @@ function PlayerPick({
 }
 
 /**
- * Transakcje między graczami (RULES.md 47) + nieformalne żetony obietnic.
+ * Transakcje między graczami (RULES.md 47) + nieformalne żetony długu (debt).
  *
  * Dwie zakładki:
  *  - „Transaction": do jednej transakcji z każdym SĄSIADEM w turze — oddaję TG/commodities,
@@ -144,7 +144,7 @@ function PlayerPick({
  *    Reguły egzekwuje backend (422 z powodem), tu tylko ograniczamy wybór do tego, co
  *    gracze faktycznie mają. Zgoda partnera nie jest modelowana (hot-seat: obie strony
  *    umowy składa jeden operator).
- *  - „Promise tokens": zwyczajowe żetony kontroli jako niewiążące długi — bez sąsiedztwa.
+ *  - „Debt tokens": zwyczajowe żetony kontroli jako niewiążące długi — bez sąsiedztwa.
  */
 export function TransactionModal({
   opened,
@@ -154,7 +154,7 @@ export function TransactionModal({
   players,
   canTrade,
 }: Props) {
-  const { resolveTransaction, givePromiseTokens, returnPromiseTokens } =
+  const { resolveTransaction, giveDebtTokens, returnDebtTokens } =
     useBoardEditor();
   const [tab, setTab] = useState<Tab>("trade");
   const [busy, setBusy] = useState(false);
@@ -303,9 +303,9 @@ export function TransactionModal({
   );
 
   // --- Zakładka obietnic: stan stołu ---
-  const heldByMe = Object.entries(me.promiseTokensHeld ?? {});
+  const heldByMe = Object.entries(me.debtTokens ?? {});
   const myTokensElsewhere = others
-    .map((o) => ({ holder: o, count: o.promiseTokensHeld?.[me.color] ?? 0 }))
+    .map((o) => ({ holder: o, count: o.debtTokens?.[me.color] ?? 0 }))
     .filter((e) => e.count > 0);
   const issuerOf = (color: string) => players.find((p) => p.color === color);
 
@@ -338,7 +338,7 @@ export function TransactionModal({
             onClick={() => setTab("promises")}
           >
             <IconCircleFilled size={14} aria-hidden="true" />
-            Promise tokens
+            Debt tokens
             {heldByMe.length + myTokensElsewhere.length > 0 && (
               <b className={styles.tabBadge}>
                 {heldByMe.reduce((n, [, c]) => n + c, 0) +
@@ -467,7 +467,7 @@ export function TransactionModal({
                     disabled={busy || promiseCount < 1}
                     onClick={() =>
                       run(() =>
-                        givePromiseTokens(
+                        giveDebtTokens(
                           me.discordId,
                           promisePartner.discordId,
                           promiseCount,
@@ -482,7 +482,7 @@ export function TransactionModal({
                     disabled={busy || promiseCount < 1}
                     onClick={() =>
                       run(() =>
-                        givePromiseTokens(
+                        giveDebtTokens(
                           promisePartner.discordId,
                           me.discordId,
                           promiseCount,
@@ -518,7 +518,7 @@ export function TransactionModal({
                         disabled={busy}
                         onClick={() =>
                           run(() =>
-                            returnPromiseTokens(me.discordId, issuer.discordId, 1),
+                            returnDebtTokens(me.discordId, issuer.discordId, 1),
                           )
                         }
                       >
@@ -531,7 +531,7 @@ export function TransactionModal({
                         leftSection={<IconHandStop size={14} />}
                         onClick={() =>
                           run(() =>
-                            returnPromiseTokens(
+                            returnDebtTokens(
                               me.discordId,
                               issuer.discordId,
                               count,
@@ -562,7 +562,7 @@ export function TransactionModal({
                       disabled={busy}
                       onClick={() =>
                         run(() =>
-                          returnPromiseTokens(holder.discordId, me.discordId, 1),
+                          returnDebtTokens(holder.discordId, me.discordId, 1),
                         )
                       }
                     >
@@ -574,7 +574,7 @@ export function TransactionModal({
                       disabled={busy}
                       onClick={() =>
                         run(() =>
-                          returnPromiseTokens(
+                          returnDebtTokens(
                             holder.discordId,
                             me.discordId,
                             count,
