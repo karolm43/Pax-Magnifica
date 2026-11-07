@@ -517,6 +517,15 @@ def _p_seat_of_empire(v: View) -> int:
     return v.ships_in(mecatol)
 
 
+def _p_attachments(v: View) -> int:
+    """Kontrolowane planety z attachmentem (karta attach z eksploracji, RULES.md 46).
+
+    Liczą się wyłącznie karty w ``GameState.planet_attachments``. Żeton wormhole (np. Gamma
+    Wormhole) leży w systemie, nie na planecie, i attachmentem NIE jest.
+    """
+    return v.planets_with(lambda p: bool(v.state.planet_attachments.get(p)))
+
+
 def _p_hazardous(v: View) -> int:
     return v.trait_count("HAZARDOUS")
 
@@ -619,6 +628,7 @@ _PROGRESS: dict[str, Callable[[View], int]] = {
     "raise_fleet": _p_max_fleet, "command_armada": _p_max_fleet,
     "conquer": _p_conquer, "supremacy": _p_supremacy, "distant_lands": _p_distant_lands,
     "pem": _p_production, "sai": _p_legendary_planet, "syc": _p_shared_system,
+    "ancient_monuments": _p_attachments, "lost_outposts": _p_attachments,
     "sb": _p_notes_in_play, "otf": _p_big_ground_stack, "mtm": _p_mechs,
     "hrm": _p_resource_sum, "eh": _p_influence_sum, "dfat": _p_nexus,
     "te": _p_next_to_home, "ose": _p_seat_of_empire, "mrm": _p_hazardous,
@@ -628,8 +638,8 @@ _PROGRESS: dict[str, Callable[[View], int]] = {
     "csl": _p_blockade_dock, "eap": _p_pds, "faa": _p_cultural, "fc": _p_neighbours,
 }
 
-# Cele, których warunku stan gry nie modeluje (załączniki, fragmenty, prawa w grze).
-MANUAL_OBJECTIVES = frozenset({"ancient_monuments", "lost_outposts", "dhw", "dp"})
+# Cele, których warunku stan gry nie modeluje (fragmenty, prawa w grze).
+MANUAL_OBJECTIVES = frozenset({"dhw", "dp"})
 
 
 def progress(

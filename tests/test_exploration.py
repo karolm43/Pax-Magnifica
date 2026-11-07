@@ -480,3 +480,31 @@ def test_owned_or_traitless_planets_are_not_explored(registry: StaticDataRegistr
     # (Atakujący nie wygrał walki — nie ma obrońcy, więc przejmuje planetę, ale NIE eksploruje.)
     assert state.invasion is not None
     assert state.exploration is None
+
+
+# ---------------------------------------------------- cele „planety z attachmentami"
+
+
+def test_attachment_objectives_count_only_attached_planets(registry: StaticDataRegistry) -> None:
+    from src.core import objective_progress
+
+    state = _state()
+    system = state.systems["000"]
+    system.planet_owners = {_CULT: "p1", _IND: "p1"}
+    state.players["p1"].controlled_planets = [_CULT, _IND]
+    grid = HexGrid()
+
+    def progress() -> int | None:
+        return objective_progress.progress(state, registry, grid, "p1", "lost_outposts")
+
+    assert progress() == 0
+    # Gamma Wormhole to żeton w systemie, NIE attachment planety — nie liczy się do celu.
+    system.wormhole_tokens = ["GAMMA"]
+    assert progress() == 0
+    state.planet_attachments = {_CULT: [_card_id(registry, "Dyson Sphere")]}
+    assert progress() == 1
+    state.planet_attachments[_IND] = [_card_id(registry, "Mining World")]
+    assert progress() == 2
+    # Attachment na planecie, której gracz nie kontroluje, się nie liczy.
+    system.planet_owners[_IND] = "p2"
+    assert progress() == 1

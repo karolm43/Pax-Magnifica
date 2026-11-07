@@ -114,7 +114,7 @@ def test_fleet_and_edge_progress(registry: StaticDataRegistry) -> None:
 
 def test_unmodelled_objectives_are_manual(registry: StaticDataRegistry) -> None:
     state = _state()
-    assert _progress(state, registry, "lost_outposts") is None
+    assert _progress(state, registry, "dp") is None
     value, goal, ok = objective_progress.evaluate(state, registry, HexGrid(), "p1", "dhw")
     assert (value, goal, ok) == (None, 2, True)
 
