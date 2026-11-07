@@ -118,6 +118,19 @@ def _system_shooters(
     return shooters
 
 
+def zone_shooters(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    position: str,
+    zone: str,
+) -> list[SpaceCannonShooter]:
+    """Grupy z Space Cannon gracza w JEDNEJ strefie systemu (np. planeta — Space Cannon Defense)."""
+    return [
+        s for s in _system_shooters(state, registry, player_id, position) if s.zone == zone
+    ]
+
+
 def offense_shooters(
     state: GameState,
     grid: HexGrid,

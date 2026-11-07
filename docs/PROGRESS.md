@@ -48,9 +48,13 @@ kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 te
    karty ogłoszenia/wyboru systemu, odlot floty (zamiast eksplozji) i dźwięki. 13 testów
    `tests/test_retreat.py`. TODO: gravity rift przy odwrocie, wyjątki frakcji/kart (E7), UI
    jawnego wyboru ładunku/puli żetonów (backend już przyjmuje `cargo`/`tokenPool`).
-3. Pełna INWAZJA (`R_invasion`): Bombardment → Commit Ground Forces (lądowanie ładunku
-   z przestrzeni) → Space Cannon Defense → walka naziemna (silnik gotowy) → Establish
-   Control (exhaust karty planety, niszczenie struktur).
+3. ✅ Pełna INWAZJA (RULES.md 40): `core/invasion.py` (Bombardment z Planetary Shield, Commit,
+   Space Cannon Defense, wynik walki naziemnej, Establish Control), `GameState.invasion`,
+   router `/tactical/invasion/*`, pełnoekranowe okno `domains/invasion/InvasionOverlay`
+   (karty planet, lądowanie +/−/drag&drop/„Land all", przydział bombardowania, klikane straty;
+   „Fight" otwiera pole bitwy NAD oknem inwazji). 13+3 testy backendu, 6 vitest.
+   NIE sprawdzone na żywo (wymaga restartu backendu). TODO: Custodians na Mecatol, eksploracja
+   po przejęciu (UI tylko sygnalizuje), mech z Bombardment, Plasma Scoring (RULES.md 40.3).
 4. PRODUKCJA: realne wyczerpywanie planet/TG (dziś tylko sprawdzenie budżetu), limity rezerw.
 5. Braki: Sustain Damage w Space Cannon, capacity po walce, Plasma Scoring, multi-select
    Ctrl/Shift na mapie, pickup z systemów mijanych, >2 stron w walce (dziś 422).

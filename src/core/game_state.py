@@ -302,6 +302,42 @@ class ActiveCombat(BaseModel):
     retreated: dict[str, str] = Field(default_factory=dict)
 
 
+class InvasionPhase(StrEnum):
+    """Podkrok inwazji (RULES.md 40.2): Bombardment → Commit → Space Cannon Defense →
+    Ground Combat → Establish Control."""
+
+    BOMBARDMENT = "BOMBARDMENT"
+    COMMIT = "COMMIT"
+    SPACE_CANNON_DEFENSE = "SPACE_CANNON_DEFENSE"
+    GROUND_COMBAT = "GROUND_COMBAT"
+    ESTABLISH = "ESTABLISH"
+
+
+class InvasionState(BaseModel):
+    """Trwająca inwazja w aktywnym systemie (RULES.md 40.3).
+
+    ``committed`` = siły naziemne zlądowane w tej inwazji ``{planeta: {base_type: n}}``.
+    ``bombard_pending`` / ``defense_pending`` = trafienia czekające na przypisanie strat
+    (bombardowanie: obrońca planety; Space Cannon Defense: atakujący). ``log`` = historia
+    rozstrzygnięć bombardowania i obrony (zasila okno inwazji), ``combat_results`` = wynik
+    zamkniętej walki naziemnej per planeta, ``results`` = wyniki Establish Control.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    position: str
+    attacker: str
+    phase: InvasionPhase = InvasionPhase.BOMBARDMENT
+    bombarded: bool = False
+    bombard_pending: dict[str, int] = Field(default_factory=dict)
+    committed: dict[str, dict[str, int]] = Field(default_factory=dict)
+    defense_resolved: list[str] = Field(default_factory=list)
+    defense_pending: dict[str, int] = Field(default_factory=dict)
+    combat_results: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    results: list[dict[str, Any]] = Field(default_factory=list)
+    log: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class GameState(BaseModel):
     """Pełny, serializowalny stan gry."""
 
@@ -341,6 +377,8 @@ class GameState(BaseModel):
     space_cannon_log: str = "[]"
     # Trwająca walka (kosmiczna/naziemna) — None, gdy żadna nie trwa (RULES.md 39).
     active_combat: ActiveCombat | None = None
+    # Trwająca inwazja (krok INVASION akcji taktycznej) — None, gdy żadna (RULES.md 40).
+    invasion: InvasionState | None = None
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

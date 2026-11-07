@@ -1,4 +1,4 @@
-﻿# Zweryfikowane reguły Twilight Imperium 4 (źródło prawdy dla kodu)
+# Zweryfikowane reguły Twilight Imperium 4 (źródło prawdy dla kodu)
 
 Ten plik jest **jedynym źródłem prawdy** dla reguł TI4 implementowanych w kodzie.
 Zasada projektu (spec 5.1): żadna reguła ani statystyka nie jest kodowana z pamięci.
@@ -85,6 +85,7 @@ Każda sekcja ma odnośnik `📎 tirules:` do odpowiedniego tematu w lokalnym zr
 | 37 | [Wyniki audytu danych (baseline, luki, założenia)](#37-wyniki-audytu-danych-baseline-luki-referencyjne-założenia) | 📊 | [Technology](rules_tirules/R_technology.md) |
 | 38 | [Space Cannon Offense: kolejność, zasięg, rzuty, straty](#38-space-cannon-offense-kolejność-zasięg-deep-space-cannon-rzuty-straty---zweryfikowane-lrr-20) | ✅ / ⚠️ | [Space Cannon](rules_tirules/R_space_cannon.md) |
 | 39 | [Walka: rundy, AFB, rzuty, Sustain Damage, straty](#39-walka-kosmiczna-i-naziemna-rundy-afb-rzuty-sustain-damage-straty---zweryfikowane-lrr-20) | ✅ / ⚠️ | [Space Combat](rules_tirules/R_space_combat.md) |
+| 40 | [Inwazja: Bombardment, Commit, Space Cannon Defense, walka naziemna, Establish Control](#40-inwazja-bombardment-commit-space-cannon-defense-walka-naziemna-establish-control---zweryfikowane-lrr-20) | ✅ / ⚠ | [Invasion](rules_tirules/R_invasion.md) |
 
 ---
 
@@ -2140,3 +2141,37 @@ Hits → **Retreat** → (kolejna runda od Announce Retreats).
 - Capacity po walce (usunięcie nadwyżki myśliwców/sił naziemnych) — nie wymuszane.
 - Zdolności frakcji, karty akcji (Shields Holding, Direct Hit), Non-Euclidean Shielding — hooki E7.
 - Space Cannon Offense nie korzysta jeszcze z Sustain Damage (RULES.md 38.4) — do ujednolicenia.
+
+---
+
+## 40. Inwazja: Bombardment, Commit, Space Cannon Defense, walka naziemna, Establish Control — ✅ ZWERYFIKOWANE (LRR 2.0)
+
+📎 tirules: [Invasion](rules_tirules/R_invasion.md) · [Bombardment](rules_tirules/R_bombardment.md) · [Planetary Shield](rules_tirules/R_planetary_shield.md) · [Ground Combat](rules_tirules/R_ground_combat.md) · [Space Cannon](rules_tirules/R_space_cannon.md) · [Control](rules_tirules/R_control.md)
+
+Etap E8 (krok INVASION akcji taktycznej). Źródło: lokalne pliki tirules (treść © FFG; patrz SOURCE.md).
+
+### 40.1. Reguły
+
+- (I1) **Pięć podkroków** w stałej kolejności: Bombardment → Commit Ground Forces → Space Cannon Defense → Ground Combat → Establish Control. Jednostki są „na planecie" (dla efektów gry) od Commit.
+- (I2) **Bombardment**: tylko aktywny gracz. Wybiera planetę dla każdej jednostki z Bombardment i rzuca `X (×Y)` kośćmi; trafienie = wynik ≥ X. Efekty modyfikujące rzuty bojowe NIE działają na bombardowanie. Kości jednej jednostki idą w JEDNĄ planetę. Gracz może nie bombardować wcale, ale jeśli bombarduje, MUSI użyć Bombardment KAŻDEJ swojej jednostki w aktywnym systemie.
+- (I3) Obrońca planety niszczy własne siły naziemne za każde trafienie (nadwyżka przepada); mech może użyć Sustain Damage, by anulować trafienie. Bombardment dzieje się POZA walką (nie liczy się do celów „wygraj walkę").
+- (I4) **Planetary Shield**: planety z jednostką Planetary Shield (PDS) nie mogą być bombardowane. War sun (`disablesPlanetaryShield`) ignoruje tarcze cudzych jednostek w swoim systemie — wtedy bombardować mogą wszystkie jednostki z Bombardment. Tarcza jednej planety nie chroni innych planet systemu.
+- (I5) **Commit Ground Forces**: aktywny gracz może zlądować dowolną liczbę sił naziemnych z przestrzeni aktywnego systemu na dowolne planety systemu (także z cudzymi siłami). Brak lądowania → od razu Production.
+- (I6) **Space Cannon Defense**: jednostki Space Cannon STOJĄCE NA planecie, na którą zlądowano siły, mogą strzelać w zlądowane siły (opcjonalnie). Aktywny gracz wybiera kolejność planet. Trafienia pokrywa atakujący (Sustain Damage dozwolone).
+- (I7) **Ground Combat**: planeta, na której aktywny gracz i inny gracz mają siły naziemne → walka (RULES.md 39, kind="ground"). Po Space Cannon Defense na WSZYSTKICH planetach, przed Establish Control na jakiejkolwiek. Aktywny gracz wybiera kolejność walk. Bez odwrotów.
+- (I8) **Establish Control**: aktywny gracz przejmuje każdą planetę, na którą lądował, jeśli wciąż ma tam siłę naziemną. Struktury innych graczy na planecie są natychmiast niszczone; gracz dostaje kartę planety i ją WYCZERPUJE. Nie można przejąć planety już kontrolowanej. Gdy była walka i zginęły wszystkie jednostki obu stron — obrońca zachowuje kontrolę (kładzie żeton kontroli). Przejęcie niekontrolowanej planety → eksploracja.
+
+### 40.2. Model i implementacja
+
+- `GameState.invasion: InvasionState | None` (`phase: InvasionPhase`, `committed`, `bombard_pending`, `defense_pending/resolved`, `combat_results`, `results`, `log`). Otwierana przy wejściu w krok INVASION (`invasion.begin_invasion`); nie otwiera się, gdy nie ma ani bombardowania, ani sił do lądowania.
+- `core/invasion.py`: `bombard` / `assign_bombard_hits`, `commit_ground_forces`, `defense_fire` / `defense_pass` / `assign_defense_hits`, `advance` (pomija podkroki bez pracy), `_establish_control`. Wartości z wariantu jednostki (`bombardHitsOn/DieCount`, `planetaryShield`, `disablesPlanetaryShield`, `spaceCannon*`).
+- Walka naziemna = `core/battle.py` (`start_combat(planet)`); `close_combat` zapisuje wynik w `invasion.combat_results` (remis → obrońca zachowuje planetę). Wspólny kod strat: `battle.plan_losses` / `apply_losses`.
+- Z kroku INVASION nie wolno wyjść (`tactical.next_step`) dopóki inwazja nie doszła do ESTABLISH.
+- API: `GET /tactical/invasion`, `POST /tactical/invasion/{bombard, bombard/assign, commit, defense/fire, defense/pass, defense/assign, next}`.
+
+### 40.3. ⚠ ZAŁOŻENIA / TODO
+
+- ⚠ ZAŁOŻENIE: bombardują wyłącznie STATKI w przestrzeni (mech z Bombardment, np. L1Z1X, nie jest modelowany).
+- ⚠ ZAŁOŻENIE: przy >1 obrońcy na planecie (koegzystencja) bombardowanie i walka → 422 (God-Mode), jak w walce 39.1.
+- ⚠ ZAŁOŻENIE: Space Cannon Defense strzela WSZYSTKIMI jednostkami Space Cannon nie-atakujących graczy na planecie naraz (jedna decyzja „strzelać / nie" na planetę).
+- ⚠ TODO: żeton Custodians na Mecatol Rex (musi zostać zdjęty przed lądowaniem), eksploracja po przejęciu (UI tylko sygnalizuje `explore`), karta legendarnej planety, Plasma Scoring, Magen Defense Grid, X-89, L1Z1X Harrow, Sustain Damage w Space Cannon — hooki E7.

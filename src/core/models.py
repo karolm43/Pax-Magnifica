@@ -50,6 +50,12 @@ class UnitDef(_StaticModel):
     afb_hits_on: int | None = Field(default=None, alias="afbHitsOn")
     afb_die_count: int | None = Field(default=None, alias="afbDieCount")
     sustain_damage: bool = Field(default=False, alias="sustainDamage")
+    # Bombardment X (xY) i Planetary Shield (RULES.md 40.1). ``bombardHitsOn`` <= 0 = brak
+    # zdolności (część plików homebrew zeruje pola). War sun ignoruje Planetary Shield.
+    bombard_hits_on: int | None = Field(default=None, alias="bombardHitsOn")
+    bombard_die_count: int | None = Field(default=None, alias="bombardDieCount")
+    planetary_shield: bool = Field(default=False, alias="planetaryShield")
+    disables_planetary_shield: bool = Field(default=False, alias="disablesPlanetaryShield")
 
     is_ship: bool = Field(default=False, alias="isShip")
     is_structure: bool = Field(default=False, alias="isStructure")

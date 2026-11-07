@@ -236,6 +236,13 @@ def _build_game_state(state: GameState) -> dict[str, Any]:
         # Trwająca walka (RULES.md 39) — kontrakt AsyncTI4 ``GameStateCombat``; pełne dane
         # pola bitwy idą osobnym endpointem ``GET /tactical/battle``.
         "activeCombat": _active_combat(state),
+        # Trwająca inwazja (RULES.md 40) — sygnał dla okna inwazji; pełne dane idą osobnym
+        # endpointem ``GET /tactical/invasion``. Nasze rozszerzenie kontraktu.
+        "activeInvasion": (
+            {"system": state.invasion.position, "phase": state.invasion.phase.value}
+            if state.invasion is not None
+            else None
+        ),
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),

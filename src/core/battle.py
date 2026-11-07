@@ -251,8 +251,16 @@ def _remove_units(
     state: GameState, combat: ActiveCombat, player_id: str, base_type: str, count: int
 ) -> None:
     """Zdejmuje ``count`` jednostek gracza z miejsca walki (mutuje ``state``)."""
-    system = state.systems[combat.position]
-    zone = _zone(combat.kind, combat.planet)
+    remove_units_in_zone(
+        state, combat.position, _zone(combat.kind, combat.planet), player_id, base_type, count
+    )
+
+
+def remove_units_in_zone(
+    state: GameState, position: str, zone: str, player_id: str, base_type: str, count: int
+) -> None:
+    """Zdejmuje ``count`` jednostek gracza ze strefy (``"space"``/planeta) — mutuje ``state``."""
+    system = state.systems[position]
     units = _units_map(system, zone, player_id)
     remaining = units.get(base_type, 0) - count
     if remaining > 0:
@@ -364,6 +372,76 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
 # -------------------------------------------------------------------------- straty
 
 
+def plan_losses(
+    units: dict[str, CombatUnit],
+    sustain: dict[str, int],
+    destroy: dict[str, int],
+    destroy_damaged: dict[str, int],
+    required: int,
+) -> dict[str, tuple[int, int]]:
+    """Waliduje pokrycie trafień (W7/W8) i zwraca plan ``{base_type: (nowa liczba, uszkodzone)}``.
+
+    Współdzielone przez walkę, bombardowanie i Space Cannon Defense (RULES.md 40): w każdym
+    przypadku właściciel jednostek sam wybiera straty, a Sustain Damage anuluje trafienie.
+
+    Raises:
+        ValueError: Zła liczba/typ, nadużycie Sustain Damage, suma różna od ``required``.
+    """
+    plan: dict[str, tuple[int, int]] = {}
+    total = 0
+    for base_type in set(sustain) | set(destroy) | set(destroy_damaged):
+        s = max(0, sustain.get(base_type, 0))
+        d = max(0, destroy.get(base_type, 0))
+        dd = max(0, destroy_damaged.get(base_type, 0))
+        if s + d + dd == 0:
+            continue
+        unit = units.get(base_type)
+        if unit is None:
+            raise ValueError(f"You have no {base_type} in this combat.")
+        if s > unit.sustainable:
+            raise ValueError(
+                f"Only {unit.sustainable} {unit.name} can use Sustain Damage."
+            )
+        damaged_after = unit.damaged + s
+        undamaged_after = unit.count - damaged_after
+        if d > undamaged_after or dd > damaged_after:
+            raise ValueError(f"Not enough {unit.name} for these losses.")
+        plan[base_type] = (unit.count - d - dd, damaged_after - dd)
+        total += s + d + dd
+    if total != required:
+        raise ValueError(f"Cover exactly {required} hit(s).")
+    return plan
+
+
+def apply_losses(
+    state: GameState,
+    position: str,
+    zone: str,
+    player_id: str,
+    units: dict[str, CombatUnit],
+    plan: dict[str, tuple[int, int]],
+) -> None:
+    """Stosuje plan strat w strefie ``zone`` systemu ``position`` (MUTUJE ``state`` — klon)."""
+    system = state.systems[position]
+    for base_type, (count, damaged) in plan.items():
+        lost = units[base_type].count - count
+        if lost:
+            remove_units_in_zone(state, position, zone, player_id, base_type, lost)
+        set_damaged(system, zone, player_id, base_type, damaged)
+
+
+def losses_of(
+    units: dict[str, CombatUnit], plan: dict[str, tuple[int, int]]
+) -> dict[str, int]:
+    """Ile sztuk każdego typu zginęło wg planu (do dziennika)."""
+    return {bt: units[bt].count - c for bt, (c, _) in plan.items() if units[bt].count - c}
+
+
+def sustained_of(plan: dict[str, tuple[int, int]], sustain: dict[str, int]) -> dict[str, int]:
+    """Ile razy użyto Sustain Damage per typ (do dziennika)."""
+    return {bt: max(0, sustain.get(bt, 0)) for bt in plan if sustain.get(bt, 0) > 0}
+
+
 def assign_combat_hits(
     state: GameState,
     grid: HexGrid,
@@ -397,50 +475,18 @@ def assign_combat_hits(
         )
 
     units = {u.base_type: u for u in side_units(state, grid, registry, player_id)}
-    plan: dict[str, tuple[int, int]] = {}  # base_type -> (nowa liczba, nowe uszkodzone)
-    total = 0
-    for base_type in set(sustain) | set(destroy) | set(destroy_damaged):
-        s = max(0, sustain.get(base_type, 0))
-        d = max(0, destroy.get(base_type, 0))
-        dd = max(0, destroy_damaged.get(base_type, 0))
-        if s + d + dd == 0:
-            continue
-        unit = units.get(base_type)
-        if unit is None:
-            raise ValueError(f"You have no {base_type} in this combat.")
-        if s > unit.sustainable:
-            raise ValueError(
-                f"Only {unit.sustainable} {unit.name} can use Sustain Damage."
-            )
-        damaged_after = unit.damaged + s
-        undamaged_after = unit.count - damaged_after
-        if d > undamaged_after or dd > damaged_after:
-            raise ValueError(f"Not enough {unit.name} for these losses.")
-        plan[base_type] = (unit.count - d - dd, damaged_after - dd)
-        total += s + d + dd
-
     required = required_hits(state, grid, registry, player_id)
-    if total != required:
-        raise ValueError(f"Cover exactly {required} hit(s).")
+    plan = plan_losses(units, sustain, destroy, destroy_damaged, required)
 
     new_state = state.clone()
     combat = _combat(new_state)
-    system = new_state.systems[combat.position]
     zone = _zone(combat.kind, combat.planet)
-    for base_type, (count, damaged) in plan.items():
-        lost = units[base_type].count - count
-        if lost:
-            _remove_units(new_state, combat, player_id, base_type, lost)
-        set_damaged(system, zone, player_id, base_type, damaged)
+    apply_losses(new_state, combat.position, zone, player_id, units, plan)
 
     entry = combat.log[-1] if combat.log else None
     if entry is not None:
-        entry["losses"][player_id] = {
-            bt: units[bt].count - c for bt, (c, _) in plan.items() if units[bt].count - c
-        }
-        entry["sustained"][player_id] = {
-            bt: max(0, sustain.get(bt, 0)) for bt in plan if sustain.get(bt, 0) > 0
-        }
+        entry["losses"][player_id] = losses_of(units, plan)
+        entry["sustained"][player_id] = sustained_of(plan, sustain)
     combat.pending_hits[player_id] = 0
 
     new_state = timing.respond_current(new_state, player_id)
@@ -613,6 +659,16 @@ def close_combat(state: GameState) -> GameState:
         raise ValueError("The combat is not finished yet.")
     new_state = state.clone()
     new_state.active_combat = None
+    # Wynik walki naziemnej zapamiętujemy w inwazji — Establish Control potrzebuje wiedzieć,
+    # czy był remis (obrońca zachowuje kontrolę — RULES.md 40.1 I8).
+    if combat.kind == "ground" and combat.planet and new_state.invasion is not None:
+        new_state.invasion.combat_results[combat.planet] = {
+            "attacker": combat.attacker,
+            "defender": combat.defender,
+            "winner": combat.winner,
+            "outcome": combat.outcome,
+            "rounds": combat.round,
+        }
     return new_state
 
 

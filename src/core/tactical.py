@@ -24,6 +24,7 @@ from src.core.combat import resolve_unit_variant
 from src.core.game_state import (
     CombatStep,
     GameState,
+    InvasionPhase,
     SystemState,
     TacticalStep,
     WindowType,
@@ -129,6 +130,15 @@ def next_step(state: GameState) -> GameState:
     combat = state.active_combat
     if combat is not None and combat.step is not CombatStep.DONE:
         raise ValueError("A combat is in progress - finish it before the next step.")
+    # Inwazja (RULES.md 40): z kroku INVASION wychodzi się dopiero po rozstrzygnięciu
+    # (ESTABLISH = wszystko załatwione, zostaje tylko zamknięcie).
+    invasion = state.invasion
+    if (
+        state.tactical_step is TacticalStep.INVASION
+        and invasion is not None
+        and invasion.phase is not InvasionPhase.ESTABLISH
+    ):
+        raise ValueError("The invasion is in progress - finish it before the next step.")
     if state.tactical_step is TacticalStep.SPACE_COMBAT and space_combat_required(state):
         raise ValueError(
             "Two players have ships in the active system - resolve the space combat first."
@@ -139,6 +149,7 @@ def next_step(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.tactical_step = _STEP_SEQUENCE[idx + 1]
     new_state.active_combat = None  # zakończona walka zostaje za nami
+    new_state.invasion = None
     return new_state
 
 
@@ -149,6 +160,7 @@ def set_step(state: GameState, step: TacticalStep) -> GameState:
     """
     new_state = state.clone()
     new_state.tactical_step = step
+    new_state.invasion = None
     return new_state
 
 
@@ -163,6 +175,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.tactical_step = None
     new_state.space_cannon_log = "[]"
     new_state.active_combat = None
+    new_state.invasion = None
     # Okna Space Cannon / przypisania strat dotyczą aktywnego systemu — po zakończeniu akcji
     # nie ma już czego rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
     window = new_state.pending_window
