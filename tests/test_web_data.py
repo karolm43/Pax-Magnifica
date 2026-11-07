@@ -1014,3 +1014,24 @@ def test_set_player_hand_partial_keeps_other_lists(client: TestClient) -> None:
     hand = client.get("/api/game/g/hand", params={"player": "p1"}).json()
     assert hand["actionCards"] == ["blitz"]  # nienaruszone przez drugą edycję
     assert hand["secretObjectives"] == ["btv"]
+
+
+def test_mentak_starts_without_corsair(client: TestClient) -> None:
+    """Corsair (``mentak_cruiser3``) to jednostka z przełomu — nie od startu gry.
+
+    Po setupie Mentak ma zwykłe Cruisery; Corsair dopiero po ``breakthrough_unlocked``.
+    """
+    client.post(
+        "/game/new",
+        json={
+            "players": [
+                {"faction_id": "mentak"},
+                {"faction_id": "sol"},
+                {"faction_id": "hacan"},
+            ]
+        },
+    )
+    data = _web_data(client)
+    mentak = next(p for p in data["playerData"] if p["faction"] == "mentak")
+    assert "mentak_cruiser3" not in mentak["unitsOwned"]
+    assert "cruiser" in mentak["unitsOwned"]
