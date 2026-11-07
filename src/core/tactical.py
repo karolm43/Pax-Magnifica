@@ -108,6 +108,7 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
     new_state.active_system = position
     new_state.tactical_step = TacticalStep.MOVEMENT
     new_state.production_used = 0
+    new_state.production_placed = {}
     return new_state
 
 
@@ -185,6 +186,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.active_system = None
     new_state.tactical_step = None
     new_state.production_used = 0
+    new_state.production_placed = {}
     new_state.space_cannon_log = "[]"
     new_state.active_combat = None
     new_state.invasion = None

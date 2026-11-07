@@ -22,7 +22,7 @@ import { useGameData } from "@/state/useGameContext";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
-import { surfaceOf } from "@/domains/invasion/InvasionFx";
+import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import {
   SPACE,
   autoPay,
@@ -142,6 +142,9 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
     .filter((p) => !p.exhausted)
     .reduce((n, p) => n + p.resources, 0);
 
+  const unitName = (baseType: string) =>
+    view.units.find((u) => u.baseType === baseType)?.name ?? baseType;
+
   const ships = view.units.filter((u) => u.placement === "space");
   const ground = view.units.filter((u) => u.placement === "planet");
 
@@ -164,6 +167,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           <small>
             Cost {fmt(u.cost)}
             {u.unitsPerCost > 1 ? ` for ${u.unitsPerCost}` : ""}
+          </small>
+          <small className={styles.onBoard}>
+            On board: {u.onBoard}
+            {n > 0 ? ` (+${n})` : ""}
           </small>
           <small className={styles.reinf}>
             {u.reinforcements === null
@@ -304,7 +311,15 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
                     {p.count > 1 ? `${p.count}× ` : ""}
                     {p.name}
                   </b>
-                  <small>{p.zone === SPACE ? "in space" : `on ${nameOf(p.zone)}`}</small>
+                  <small>
+                    {p.zone === SPACE ? "in space" : `on ${nameOf(p.zone)}`}
+                    {p.count > 1 ? ` · PRODUCTION ${p.perUnit} each` : ""}
+                  </small>
+                  {p.forbids.length > 0 && (
+                    <span className={styles.forbid}>
+                      can&apos;t produce {p.forbids.map(unitName).join(", ")}
+                    </span>
+                  )}
                 </span>
                 <span className={styles.producerVal} title="PRODUCTION value">
                   {p.value}
@@ -312,6 +327,13 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
               </div>
             ))}
           </div>
+
+          {view.producers.length > 1 && (
+            <p className={styles.producerNote}>
+              Each line is a separate PRODUCTION ability. Their values add up to the limit, but
+              each keeps its own restrictions.
+            </p>
+          )}
 
           {view.blockaded && (
             <p className={styles.warn}>
@@ -375,32 +397,22 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             {sorted.length === 0 && <span className={styles.empty}>You control no planets.</span>}
             {sorted.map((p) => {
               const chosen = payment.planets.includes(p.planet);
+              // Te same karty planet co w strefach graczy; wyczerpanej nie da się wybrać.
+              const pickable = !p.exhausted && !busy;
               return (
-                <button
-                  type="button"
+                <div
+                  className={styles.planetSlot}
                   key={p.planet}
-                  className={styles.planetBox}
-                  data-surface={surfaceOf(p.planetType ?? undefined)}
-                  data-selected={chosen || undefined}
-                  data-exhausted={p.exhausted || undefined}
-                  disabled={p.exhausted || busy}
-                  aria-pressed={chosen}
-                  onClick={() => togglePlanet(p.planet)}
-                  title={
-                    p.exhausted
-                      ? `${p.name} is exhausted`
-                      : `${p.name}: ${p.resources} resources, ${p.influence} influence`
-                  }
+                  data-here={p.inActiveSystem || undefined}
                 >
-                  <span className={styles.globe} aria-hidden="true" />
-                  <span className={styles.planetName}>
-                    {p.name}
-                    {p.inActiveSystem && <small>this system</small>}
-                  </span>
-                  <span className={styles.res}>{p.resources}</span>
-                  <span className={styles.inf}>{p.influence}</span>
-                  {p.exhausted && <span className={styles.spent}>exhausted</span>}
-                </button>
+                  <PlanetCard
+                    planetId={p.planet}
+                    isExhausted={p.exhausted}
+                    picked={chosen}
+                    onPick={pickable ? () => togglePlanet(p.planet) : undefined}
+                  />
+                  {p.inActiveSystem && <small>here</small>}
+                </div>
               );
             })}
           </div>

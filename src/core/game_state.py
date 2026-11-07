@@ -367,6 +367,11 @@ class GameState(BaseModel):
     # wspólny dla całego kroku, nie per zamówienie — RULES.md 33.3). Zerowane przy
     # aktywacji i zakończeniu akcji.
     production_used: int = 0
+    # Co wyprodukowano w tej akcji i gdzie: strefa ("space"/id planety) → typ → sztuki.
+    # Potrzebne, bo (1) osobne zdolności PRODUCTION mają ograniczenia typów (Arborec: dok nie
+    # produkuje piechoty), (2) świeżo wyprodukowane jednostki NIE dokładają PRODUCTION w tym
+    # samym kroku (np. piechota Arborec).
+    production_placed: dict[str, dict[str, int]] = Field(default_factory=dict)
     # Otwarte okno czasowe (timing window) — None, gdy żadne nie trwa. Trzyma kolejkę
     # graczy reagujących po kolei (secondary kart strategii, przypisanie strat w walce,
     # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między

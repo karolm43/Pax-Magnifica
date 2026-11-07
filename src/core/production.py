@@ -48,16 +48,58 @@ class Spend:
 
 @dataclass(frozen=True)
 class Producer:
-    """Jednostka(i) z PRODUCTION w aktywnym systemie: gdzie stoją i ile dają łącznie."""
+    """Jednostka(i) z PRODUCTION w aktywnym systemie: gdzie stoją i ile dają łącznie.
+
+    Każdy producent to OSOBNA zdolność PRODUCTION (R_production): wartości się sumują do
+    limitu, ale mogą mieć własne ograniczenia (``forbids``) — np. dok Arborec nie produkuje
+    piechoty, a piechota Arborec (PRODUCTION 1 za sztukę) to osobne źródło. Dlatego nie
+    wolno traktować ich jak „jednej produkcji × N".
+    """
 
     zone: str  # "space" albo id planety
     base_type: str
     count: int
     value: int  # łączna wartość PRODUCTION tej grupy (wartość jednostki × liczba)
+    per_unit: int = 0  # wartość PRODUCTION jednej sztuki (value = per_unit × count)
+    # Typy jednostek, których TA zdolność PRODUCTION nie może produkować (hook frakcji).
+    forbids: tuple[str, ...] = ()
 
 
 # Struktury nie są "produkowane" przez PRODUCTION (to Construction) — poza zamówieniami.
 STRUCTURES = {"pds", "spacedock"}
+
+# Ograniczenia typów produkowanych przez daną zdolność PRODUCTION (frakcja, typ producenta)
+# → zakazane typy. R_production: „Production value from Arborec space docks cannot be used to
+# produce infantry" (piechota Arborec ma własne PRODUCTION 1 i nadal może produkować).
+# Docelowo przeniesione do hooków frakcji (core/rules_hooks.py, E7).
+_PRODUCTION_FORBIDS: dict[tuple[str, str], tuple[str, ...]] = {
+    ("arborec", "spacedock"): ("infantry",),
+}
+
+
+def forbidden_types(faction_id: str | None, producer_type: str) -> tuple[str, ...]:
+    """Typy jednostek, których producent danego typu (frakcji) nie może produkować."""
+    if faction_id is None:
+        return ()
+    return _PRODUCTION_FORBIDS.get((faction_id, producer_type), ())
+
+
+def fits_producers(producers: list[Producer], counts: dict[str, int]) -> bool:
+    """Czy da się rozdzielić ``counts`` (typ → sztuki) między producentów (warunek Halla).
+
+    Każda sztuka zajmuje 1 z wartości PRODUCTION producenta, który może ją wyprodukować
+    (nie jest w jego ``forbids``). Dla każdego podzbioru typów suma sztuk nie może
+    przekraczać łącznej wartości producentów dopuszczających choć jeden typ z podzbioru.
+    Typów jest kilka, więc pełne wyliczenie podzbiorów jest tanie.
+    """
+    types = [t for t, n in counts.items() if n > 0]
+    for mask in range(1, 1 << len(types)):
+        chosen = [types[i] for i in range(len(types)) if mask >> i & 1]
+        need = sum(counts[t] for t in chosen)
+        have = sum(p.value for p in producers if any(t not in p.forbids for t in chosen))
+        if need > have:
+            return False
+    return True
 
 
 def _planet_resources(registry: StaticDataRegistry, planet_id: str) -> int:
@@ -147,19 +189,44 @@ def producers(
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
 
+    # Jednostki wyprodukowane w TEJ akcji nie dokładają PRODUCTION (producent = stan sprzed
+    # kroku), więc odejmujemy je od liczby sztuk w strefie.
+    fresh = state.production_placed if position == state.active_system else {}
+
     result: list[Producer] = []
-    for base_type, count in system.space_units.get(player_id, {}).items():
+    for base_type, total in system.space_units.get(player_id, {}).items():
+        count = total - fresh.get("space", {}).get(base_type, 0)
         pv = _unit_production_value(registry, faction_id, technologies, base_type, None)
         if pv > 0 and count > 0:
-            result.append(Producer("space", base_type, count, pv * count))
+            result.append(
+                Producer(
+                    "space", base_type, count, pv * count, pv,
+                    forbidden_types(faction_id, base_type),
+                )
+            )
     for planet_id, by_player in system.planet_units.items():
-        for base_type, count in by_player.get(player_id, {}).items():
+        for base_type, total in by_player.get(player_id, {}).items():
+            count = total - fresh.get(planet_id, {}).get(base_type, 0)
             pv = _unit_production_value(
                 registry, faction_id, technologies, base_type, planet_id
             )
             if pv > 0 and count > 0:
-                result.append(Producer(planet_id, base_type, count, pv * count))
+                result.append(
+                    Producer(
+                        planet_id, base_type, count, pv * count, pv,
+                        forbidden_types(faction_id, base_type),
+                    )
+                )
     return result
+
+
+def used_by_type(state: GameState) -> dict[str, int]:
+    """Ile sztuk każdego typu wyprodukowano w tej akcji (suma po strefach)."""
+    totals: dict[str, int] = {}
+    for by_type in state.production_placed.values():
+        for base_type, n in by_type.items():
+            totals[base_type] = totals.get(base_type, 0) + n
+    return totals
 
 
 def remaining_production(
@@ -341,6 +408,17 @@ def validate_production(
             f"Production limit exceeded: {total_units} units > PRODUCTION {limit} left."
         )
 
+    # Osobne zdolności PRODUCTION: niektóre nie mogą produkować każdego typu (np. dok
+    # Arborec nie produkuje piechoty). Liczymy łącznie z tym, co już powstało w tej akcji.
+    cumulative = used_by_type(state)
+    for o in orders:
+        cumulative[o.base_type] = cumulative.get(o.base_type, 0) + o.count
+    if not fits_producers(producers(state, registry, player_id, active), cumulative):
+        raise ValueError(
+            "Production limit exceeded for these unit types: part of the PRODUCTION cannot "
+            "produce them (e.g. Arborec space docks cannot produce infantry)."
+        )
+
     # BLOKADA statków: obce statki w aktywnym systemie → statków nie produkujemy.
     system = state.systems.get(active)
     enemy_ships = False
@@ -508,4 +586,9 @@ def produce(
     player.exhausted_planets = [*player.exhausted_planets, *pay.planets]
     player.trade_goods -= pay.trade_goods
     new_state.production_used = state.production_used + sum(o.count for o in orders)
+    placed_now = {zone: dict(by_type) for zone, by_type in state.production_placed.items()}
+    for o, zone in placed:
+        by_type = placed_now.setdefault(zone, {})
+        by_type[o.base_type] = by_type.get(o.base_type, 0) + o.count
+    new_state.production_placed = placed_now
     return new_state

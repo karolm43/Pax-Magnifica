@@ -272,3 +272,73 @@ def test_production_view_and_produce_api(registry: StaticDataRegistry) -> None:
               "spend": {"planets": ["jord"]}},
     )
     assert bad.status_code == 422
+
+
+# --- Arborec: osobne zdolności PRODUCTION (R_production) ---
+
+
+def _arborec_state(infantry: int = 2) -> GameState:
+    """Arborec: dok na Jord (PRODUCTION 6) + piechota Letani Warrior (PRODUCTION 1 za sztukę)."""
+    state = _state_with_dock_on_jord(trade_goods=100)
+    state.players["p1"].faction = "arborec"
+    state.systems["000"].planet_units["jord"]["p1"]["infantry"] = infantry
+    return state
+
+
+def test_arborec_infantry_is_separate_production(registry: StaticDataRegistry) -> None:
+    state = _arborec_state(infantry=2)
+    prods = {p.base_type: p for p in production.producers(state, registry, "p1", "000")}
+    assert prods["spacedock"].value == 6 and prods["spacedock"].forbids == ("infantry",)
+    assert prods["infantry"].value == 2 and prods["infantry"].per_unit == 1
+    assert prods["infantry"].forbids == ()
+    # Limit to suma obu zdolności, ale zdolności pozostają rozróżnialne.
+    assert production.production_limit(state, _grid(), registry, "p1") == 8
+
+
+def test_arborec_dock_production_cannot_make_infantry(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = _grid()
+    state = _arborec_state(infantry=2)
+    # 8 piechoty mieści się w sumie (6+2), ale dok nie może jej produkować → tylko 2.
+    with pytest.raises(ValueError, match="cannot produce them"):
+        production.validate_production(
+            state, grid, registry, "p1", [ProductionOrder("infantry", 3, zone="jord")]
+        )
+    production.validate_production(
+        state, grid, registry, "p1", [ProductionOrder("infantry", 2, zone="jord")]
+    )
+    # Pozostałe 6 z doku idzie na inne jednostki: razem 8 sztuk jest legalne.
+    production.validate_production(
+        state, grid, registry, "p1",
+        [ProductionOrder("infantry", 2, zone="jord"), ProductionOrder("fighter", 6)],
+    )
+
+
+def test_arborec_restriction_counts_earlier_orders(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = _grid()
+    state = _arborec_state(infantry=2)
+    state = production.produce(
+        state, grid, registry, "p1", [ProductionOrder("infantry", 2, zone="jord")]
+    )
+    assert state.production_placed == {"jord": {"infantry": 2}}
+    assert production.used_by_type(state) == {"infantry": 2}
+    # Świeża piechota nie dokłada PRODUCTION w tym samym kroku: limit nadal 8.
+    assert production.production_limit(state, grid, registry, "p1") == 8
+    # Produkcja piechoty z piechoty wyczerpana; dok nadal nie może jej robić.
+    with pytest.raises(ValueError, match="cannot produce them"):
+        production.validate_production(
+            state, grid, registry, "p1", [ProductionOrder("infantry", 1, zone="jord")]
+        )
+
+
+def test_non_arborec_dock_produces_infantry(registry: StaticDataRegistry) -> None:
+    grid = _grid()
+    state = _state_with_dock_on_jord(trade_goods=100)
+    prods = production.producers(state, registry, "p1", "000")
+    assert all(p.forbids == () for p in prods)
+    production.validate_production(
+        state, grid, registry, "p1", [ProductionOrder("infantry", 6, zone="jord")]
+    )

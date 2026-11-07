@@ -78,6 +78,14 @@
     );
 }
 
+/* Zaznaczona w trybie wyboru (np. płatność za produkcję). */
+.mainStack.picked {
+  border-color: #fcd34d;
+  box-shadow:
+    0 0 0 1px #fcd34d,
+    0 0 12px rgb(252 211 77 / 0.35);
+}
+
 .mainStack:hover {
   border-color: color-mix(in oklab, var(--planet-border), var(--ds-white) 25%);
 }

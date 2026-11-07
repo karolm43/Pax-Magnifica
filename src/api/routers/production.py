@@ -40,6 +40,8 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
                 "name": variant.name if variant is not None else p.base_type,
                 "count": p.count,
                 "value": p.value,
+                "perUnit": p.per_unit,
+                "forbids": list(p.forbids),
             }
         )
 
@@ -78,6 +80,7 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
                 "reinforcements": production.reinforcements_left(
                     state, player_id, u.base_type
                 ),
+                "onBoard": production.deployed_count(state, player_id, u.base_type),
             }
         )
 
@@ -88,6 +91,7 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
         "faction": player.faction,
         "limit": limit,
         "used": state.production_used,
+        "usedByType": production.used_by_type(state),
         "remaining": max(0, limit - state.production_used),
         "blockaded": production.is_blockaded(state, player_id, position),
         "producers": producers,

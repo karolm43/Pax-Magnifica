@@ -1,6 +1,7 @@
 import type {
   ProductionBody,
   ProductionPlanet,
+  ProductionProducer,
   ProductionUnit,
 } from "./useProduction";
 
@@ -94,6 +95,39 @@ export function autoPay(
   };
 }
 
+/**
+ * Czy da się rozdzielić `counts` (typ → sztuki) między OSOBNE zdolności PRODUCTION (warunek Halla;
+ * lustro `core/production.fits_producers`). Każda sztuka zajmuje 1 z wartości producenta, który
+ * może ją wyprodukować (typ nie jest w jego `forbids`).
+ */
+export function fitsProducers(
+  producers: ProductionProducer[],
+  counts: Record<string, number>,
+): boolean {
+  const types = Object.keys(counts).filter((t) => counts[t] > 0);
+  for (let mask = 1; mask < 1 << types.length; mask += 1) {
+    const chosen = types.filter((_, i) => (mask >> i) & 1);
+    const need = chosen.reduce((n, t) => n + counts[t], 0);
+    const have = producers
+      .filter((p) => chosen.some((t) => !p.forbids.includes(t)))
+      .reduce((n, p) => n + p.value, 0);
+    if (need > have) return false;
+  }
+  return true;
+}
+
+/** Już wyprodukowane w tej akcji + koszyk, wg typu. */
+function demandWithCart(
+  view: ProductionBody,
+  cart: CartLine[],
+): Record<string, number> {
+  const total: Record<string, number> = { ...view.usedByType };
+  for (const line of cart) {
+    total[line.baseType] = (total[line.baseType] ?? 0) + line.count;
+  }
+  return total;
+}
+
 /** Powód, dla którego NIE wolno dodać kolejnej sztuki (null = wolno). */
 export function whyNotAdd(
   view: ProductionBody,
@@ -113,6 +147,11 @@ export function whyNotAdd(
     return "No place for ground forces (needs a dock on a planet)";
   const target = unit.placement === "space" ? SPACE : (zone ?? "");
   const next = bumpCart(cart, unit.baseType, target, 1);
+  if (!fitsProducers(view.producers, demandWithCart(view, next))) {
+    return view.producers.some((p) => p.forbids.includes(unit.baseType))
+      ? "The rest of your PRODUCTION can't make this unit"
+      : "No production slots left";
+  }
   if (cartCost(view.units, next) > fundsTotal(view)) return "Not enough resources";
   return null;
 }

@@ -1,3 +1,4 @@
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Stack, Box, Text } from "@/ds";
 import cx from "clsx";
 import { IconFlame } from "@tabler/icons-react";
@@ -40,6 +41,10 @@ type Props = {
   isExhausted?: boolean;
   /** Właściciel (``discordId``) — włącza menu kontekstowe wyczerp/odśwież. */
   playerId?: string;
+  /** Tryb wyboru (np. płatność w produkcji): klik woła to zamiast otwierać kartę szczegółów. */
+  onPick?: () => void;
+  /** Zaznaczenie w trybie wyboru (złota ramka). */
+  picked?: boolean;
 };
 
 function PlanetCompactValues({
@@ -100,6 +105,8 @@ export function PlanetCard({
   legendaryAbilityExhausted = false,
   isExhausted: isExhaustedProp,
   playerId,
+  onPick,
+  picked = false,
 }: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
   const planetData = getPlanetData(planetId);
@@ -150,9 +157,26 @@ export function PlanetCard({
       <SmoothPopover.Target>
         <Stack
           onClick={() => {
+            if (onPick) {
+              onPick();
+              return;
+            }
             toggle();
             setScrollToPlanetId(planetId);
           }}
+          role={onPick ? "button" : undefined}
+          tabIndex={onPick ? 0 : undefined}
+          aria-pressed={onPick ? picked : undefined}
+          onKeyDown={
+            onPick
+              ? (event: ReactKeyboardEvent) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onPick();
+                  }
+                }
+              : undefined
+          }
           onContextMenu={menuItems.length > 0 ? ctx.onContextMenu : undefined}
           onMouseEnter={() => setHoveredPlanetId(planetId)}
           onMouseLeave={() => setHoveredPlanetId(null)}
@@ -163,6 +187,7 @@ export function PlanetCard({
             hasLegendaryAbility && styles.noRightRadius,
             isExhausted && styles.exhausted,
             planetIconSrc && styles.hasPlanetIcon,
+            picked && styles.picked,
           )}
           style={{ ...cssVariables, ...getPlanetIconStyle(planetIconSrc) }}
         >

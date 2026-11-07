@@ -1802,10 +1802,22 @@ Zastępuje „opcję b" z 33.2. `core/production.produce(...)` (endpoint `POST /
 - Widok dla okna: `GET /tactical/production/view` (limit, użyte, producenci, strefy, planety, TG,
   jednostki z rezerwą). Front: `frontend/src/domains/production/` (okno otwiera się samo w kroku).
 
+**Osobne zdolności PRODUCTION (R_production) — ✅ ZWERYFIKOWANE:** każda jednostka z PRODUCTION to
+osobne źródło (`Producer`: strefa, typ, `per_unit`, `value`, `forbids`). Wartości SUMUJĄ się do limitu,
+ale ograniczenia typów są per źródło. Arborec: „Production value from Arborec space docks cannot be
+used to produce infantry" — dok (`("arborec","spacedock")` → `forbids=("infantry",)`) nie produkuje
+piechoty; piechota Letani Warrior ma własne PRODUCTION 1 (II: 2) za sztukę i produkuje dowolny typ.
+Walidacja = warunek Halla (`fits_producers`) na SKUMULOWANYCH sztukach tej akcji, więc kolejność
+zamówień nie ma znaczenia. `GameState.production_placed` (strefa→typ→sztuki) trzyma, co powstało w
+akcji; świeżo wyprodukowane jednostki NIE dokładają PRODUCTION w tym samym kroku (producenci =
+stan sprzed kroku). Widok: `producers[].perUnit/forbids`, `usedByType`, `units[].onBoard`.
+
 ⚠️ ZAŁOŻENIA / luki (do decyzji użytkownika): (1) „usuń jednostkę z planszy, by dostawić z rezerwy"
 (R_component_limitations) NIE jest zaimplementowane — brak rezerwy blokuje, wentylem jest God-Mode;
-(2) Arborec: wartość PRODUCTION doków Arborec nie może produkować piechoty — to hook frakcji (E7),
-nie ma go jeszcze; (3) modyfikatory kosztu/limitu z kart i technologii (E7) pominięte.
+(2) ograniczenie doku Arborec siedzi na razie w tabeli `_PRODUCTION_FORBIDS` (docelowo hook frakcji,
+E7); (3) modyfikatory kosztu/limitu z kart i technologii (E7) pominięte; (4) umiejscowienie naziemnych
+nie jest wiązane z konkretnym producentem (planeta z dowolną zdolnością PRODUCTION przyjmuje sztuki
+dowolnego producenta w systemie — zgodnie z przykładem z R_production).
 
 
 ---

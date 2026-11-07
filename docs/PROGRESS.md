@@ -66,7 +66,11 @@ kroki w `core/tactical.py`. QA na koniec sesji: backend 556 testów, front 25 te
    okno `domains/production/ProductionOverlay` (sloty „ile można zbudować", producenci, karty
    jednostek z +/−, planety jako klikalne boxy, TG, rachunek, zamówienie). Tło do podmiany:
    `assets/extra/production_bg.jpg` (fallback: starfield.png). NIE sprawdzone na żywo (restart
-   backendu). TODO: „usuń z planszy, by dostawić z rezerwy", hook Arborec (piechota), karty/tech (E7).
+   backendu). TODO: „usuń z planszy, by dostawić z rezerwy", karty/tech (E7).
+   Poprawka: płatność wybiera się tymi samymi kartami planet co w strefach graczy (`PlanetCard`
+   z `onPick/picked`); karty jednostek pokazują „On board"; PRODUCTION to OSOBNE zdolności
+   (Arborec: dok nie produkuje piechoty, piechota ma własne PRODUCTION 1) — RULES.md 33.3,
+   `fits_producers`, `GameState.production_placed`; świeże jednostki nie dokładają PRODUCTION.
 5. Braki: Sustain Damage w Space Cannon, capacity po walce, Plasma Scoring, multi-select
    Ctrl/Shift na mapie, pickup z systemów mijanych, >2 stron w walce (dziś 422).
 

@@ -3,6 +3,7 @@ import {
   autoPay,
   bumpCart,
   cartCost,
+  fitsProducers,
   fundsTotal,
   maxMore,
   whyNotAdd,
@@ -10,6 +11,7 @@ import {
 import type {
   ProductionBody,
   ProductionPlanet,
+  ProductionProducer,
   ProductionUnit,
 } from "./useProduction";
 
@@ -32,6 +34,19 @@ const unit = (over: Partial<ProductionUnit>): ProductionUnit => ({
   unitsPerCost: 1,
   placement: "space",
   reinforcements: 8,
+  onBoard: 0,
+  ...over,
+});
+
+const producer = (over: Partial<ProductionProducer>): ProductionProducer => ({
+  zone: "jord",
+  baseType: "spacedock",
+  asyncId: "sd",
+  name: "Space Dock",
+  count: 1,
+  value: 6,
+  perUnit: 6,
+  forbids: [],
   ...over,
 });
 
@@ -53,8 +68,9 @@ const view = (over: Partial<ProductionBody> = {}): ProductionBody => ({
   limit: 6,
   used: 0,
   remaining: 6,
+  usedByType: {},
   blockaded: false,
-  producers: [],
+  producers: [producer({})],
   groundZones: ["jord"],
   planets: [planet("jord", 4), planet("spent", 3, true)],
   tradeGoods: 1,
@@ -101,5 +117,34 @@ describe("limity", () => {
   it("siły naziemne wymagają strefy z producentem", () => {
     const v = view();
     expect(whyNotAdd(v, [], infantry, "nowhere")).toMatch(/No place/);
+  });
+});
+
+describe("osobne zdolno?ci PRODUCTION (Arborec)", () => {
+  const dock = producer({ forbids: ["infantry"] });
+  const letani = producer({
+    baseType: "infantry",
+    name: "Letani Warrior",
+    count: 2,
+    value: 2,
+    perUnit: 1,
+  });
+  it("dok Arborec nie produkuje piechoty, piechota tak", () => {
+    expect(fitsProducers([dock, letani], { infantry: 2 })).toBe(true);
+    expect(fitsProducers([dock, letani], { infantry: 3 })).toBe(false);
+    expect(fitsProducers([dock, letani], { infantry: 2, fighter: 6 })).toBe(true);
+    expect(fitsProducers([dock, letani], { infantry: 2, fighter: 7 })).toBe(false);
+  });
+  it("maxMore piechoty ogranicza jej w?asna produkcja, nie suma", () => {
+    const v = view({
+      limit: 8,
+      remaining: 8,
+      producers: [dock, letani],
+      planets: [planet("jord", 20)],
+    });
+    expect(maxMore(v, [], infantry, "jord")).toBe(2);
+    expect(whyNotAdd(v, bumpCart([], "infantry", "jord", 2), infantry, "jord")).toMatch(
+      /can't make this unit/,
+    );
   });
 });

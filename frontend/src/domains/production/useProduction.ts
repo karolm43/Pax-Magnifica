@@ -17,6 +17,8 @@ export type ProductionUnit = {
   placement: "space" | "planet";
   /** Ile sztuk zostało w rezerwie; null = bez limitu (żetony fighter/infantry). */
   reinforcements: number | null;
+  /** Ile sztuk tego typu stoi teraz na planszy (przestrzeń + planety, wszystkie systemy). */
+  onBoard: number;
 };
 
 export type ProductionPlanet = {
@@ -39,6 +41,10 @@ export type ProductionProducer = {
   count: number;
   /** Łączna wartość PRODUCTION tej grupy. */
   value: number;
+  /** Wartość PRODUCTION jednej sztuki (value = perUnit × count). */
+  perUnit: number;
+  /** Typy, których ta zdolność PRODUCTION NIE może produkować (np. dok Arborec → infantry). */
+  forbids: string[];
 };
 
 export type ProductionBody = {
@@ -49,6 +55,8 @@ export type ProductionBody = {
   limit: number;
   used: number;
   remaining: number;
+  /** Co już wyprodukowano w tej akcji, wg typu (do rozdziału między osobne zdolności). */
+  usedByType: Record<string, number>;
   blockaded: boolean;
   producers: ProductionProducer[];
   /** Strefy, gdzie wolno postawić siły naziemne (planety z producentem / "space"). */
