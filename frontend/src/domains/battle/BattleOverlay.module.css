@@ -2239,3 +2239,199 @@
     padding: 10px;
   }
 }
+
+
+/* =====================================================================================
+   WALKA NAZIEMNA (data-kind="ground") — inny charakter niż kosmiczna: obrońcy już stoją
+   w szyku, atakujący SPADAJĄ z orbity w kapsułach, brak dryfu i silników; pociski to kule
+   smugowe i artyleria łukiem, trafienia wzbijają pył, w tle dym i błyski odległego ognia.
+   ===================================================================================== */
+
+/* Obrońca (prawa strona) stoi od początku — bez lotu floty. */
+.overlay[data-kind="ground"] .formation[data-formation="right"]:not([data-entered]) .ship {
+  animation: groundHold 0.9s ease-out both;
+}
+
+/* Atakujący (lewa strona): kapsuły desantowe spadają z góry, szereg po szeregu. */
+.overlay[data-kind="ground"] .formation[data-formation="left"]:not([data-entered]) .ship {
+  animation: groundDrop 1.15s cubic-bezier(0.55, 0, 0.85, 0.4)
+    calc(0.5s + var(--rank, 0) * 0.35s + var(--i, 0) * 0.14s) both;
+}
+
+.overlay[data-kind="ground"] .formation[data-formation="left"]:not([data-entered]) .ship::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 40%;
+  width: 3px;
+  height: 120px;
+  margin-left: -1.5px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(180deg, transparent, rgba(254, 215, 170, 0.95));
+  box-shadow: 0 0 12px 2px rgba(251, 146, 60, 0.75);
+  animation: groundStreak 1.15s linear calc(0.5s + var(--rank, 0) * 0.35s + var(--i, 0) * 0.14s) both;
+}
+
+/* Brak okrętowego dryfu. */
+.overlay[data-kind="ground"] .hull {
+  animation: none;
+}
+
+/* Zniszczona jednostka naziemna: mniejszy wybuch, bez wielkich okruchów. */
+.overlay[data-kind="ground"] .explosion {
+  scale: 0.5;
+}
+
+.overlay[data-kind="ground"] .debris {
+  scale: 0.5;
+}
+
+/* Atmosfera: dryfujący dym/pył i błyski odległej artylerii na horyzoncie. */
+.overlay[data-kind="ground"] .field::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 40% 18% at 20% 92%, rgba(120, 100, 80, 0.28), transparent 70%),
+    radial-gradient(ellipse 45% 20% at 78% 94%, rgba(100, 90, 80, 0.3), transparent 70%),
+    radial-gradient(ellipse 30% 14% at 50% 88%, rgba(90, 80, 70, 0.22), transparent 70%);
+  animation: groundSmoke 14s ease-in-out infinite alternate;
+}
+
+.overlay[data-kind="ground"] .field::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 22%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 8% 60% at 18% 100%, rgba(255, 200, 120, 0.55), transparent 70%),
+    radial-gradient(ellipse 7% 55% at 83% 100%, rgba(255, 190, 110, 0.5), transparent 70%);
+  opacity: 0;
+  animation: horizonFlash 7s steps(1) infinite;
+}
+
+/* KULA SMUGOWA: cienka, szybka kreska. */
+.beam[data-kind="tracer"] .beamLaser {
+  display: none;
+}
+
+.beam[data-kind="tracer"] .beamCore {
+  width: 18px;
+  height: 2px;
+  top: -1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fef3c7 65%, #fff);
+  box-shadow: 0 0 6px 1px rgba(253, 224, 71, 0.9);
+  animation-duration: 0.55s;
+}
+
+.beam[data-kind="tracer"]:not([data-hit]) .beamCore {
+  animation-name: beamMiss;
+  animation-duration: 0.55s;
+}
+
+/* ARTYLERIA: pocisk leci łukiem (tor obrócony wzdłuż strzału; --arc odwraca łuk w lewo). */
+.beam[data-kind="shell"] .beamLaser {
+  display: none;
+}
+
+.beam[data-kind="shell"] .beamCore,
+.beam[data-kind="shell"]:not([data-hit]) .beamCore {
+  width: 11px;
+  height: 11px;
+  top: -5.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #fdba74 45%, transparent 75%);
+  box-shadow:
+    0 0 10px 3px rgba(251, 146, 60, 0.8),
+    -20px 0 12px 2px rgba(120, 113, 108, 0.5);
+  animation: shellArc 0.9s linear var(--delay) both;
+}
+
+/* Trafienie naziemne: obłok pyłu i ognia zamiast okrętowego rozbłysku. */
+.impact[data-ground] {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  mix-blend-mode: normal;
+  filter: none;
+  background: radial-gradient(circle, rgba(255, 237, 200, 0.95) 0%, rgba(251, 146, 60, 0.7) 22%, rgba(120, 100, 80, 0.55) 50%, transparent 72%);
+  animation: groundImpact 1s ease-out var(--delay) both;
+}
+
+@keyframes groundDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-110vh) scale(1.4);
+    filter: brightness(2);
+  }
+  12% {
+    opacity: 1;
+  }
+  90% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: none;
+  }
+}
+
+@keyframes groundStreak {
+  0% { opacity: 0; }
+  15%, 78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes groundHold {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shellArc {
+  0% { opacity: 0; transform: translate(0, 0); }
+  6% { opacity: 1; }
+  25% { transform: translate(calc(var(--len) * 0.25), calc(var(--arc, 1) * -52px)); }
+  50% { transform: translate(calc(var(--len) * 0.5), calc(var(--arc, 1) * -72px)); }
+  75% { transform: translate(calc(var(--len) * 0.75), calc(var(--arc, 1) * -52px)); }
+  98% { opacity: 1; transform: translate(var(--len), 0); }
+  100% { opacity: 0; transform: translate(var(--len), 0); }
+}
+
+@keyframes groundImpact {
+  0% { opacity: 0; transform: scale(0.3); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.6) translateY(-10px); }
+}
+
+@keyframes groundSmoke {
+  from { transform: translateX(-2%); opacity: 0.75; }
+  to { transform: translateX(2%); opacity: 1; }
+}
+
+@keyframes horizonFlash {
+  0%, 100% { opacity: 0; }
+  12% { opacity: 0.9; }
+  14% { opacity: 0; }
+  47% { opacity: 0.7; }
+  49% { opacity: 0; }
+  81% { opacity: 0.85; }
+  83% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay[data-kind="ground"] .formation .ship,
+  .overlay[data-kind="ground"] .field::before,
+  .overlay[data-kind="ground"] .field::after {
+    animation: none;
+  }
+}

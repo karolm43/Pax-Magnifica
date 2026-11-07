@@ -68,6 +68,7 @@ class PlanetInfo:
     defenders: list[str]  # gracze (≠ atakujący) z siłami naziemnymi na planecie
     shielded: bool  # Planetary Shield (blokuje Bombardment, chyba że war sun)
     has_space_cannon: bool  # ktoś ≠ atakujący ma tu Space Cannon (Defense)
+    has_shield: bool = False  # na planecie stoi jednostka z tarczą (nawet gdy war sun ją łamie)
 
 
 @dataclass(frozen=True)
@@ -187,6 +188,7 @@ def planet_infos(state: GameState, registry: StaticDataRegistry) -> list[PlanetI
     ignores = _attacker_ignores_shield(state, registry)
     infos: list[PlanetInfo] = []
     for planet in system_planets(state, registry, invasion.position):
+        has_shield = _planet_shielded(state, registry, planet)
         has_cannon = any(
             space_cannon.zone_shooters(state, registry, pid, invasion.position, planet)
             for pid in system.planet_units.get(planet, {})
@@ -197,8 +199,9 @@ def planet_infos(state: GameState, registry: StaticDataRegistry) -> list[PlanetI
                 planet=planet,
                 owner=system.planet_owners.get(planet),
                 defenders=_defenders(state, planet, invasion.position, invasion.attacker),
-                shielded=(not ignores) and _planet_shielded(state, registry, planet),
+                shielded=(not ignores) and has_shield,
                 has_space_cannon=has_cannon,
+                has_shield=has_shield,
             )
         )
     return infos

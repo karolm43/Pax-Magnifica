@@ -2167,6 +2167,7 @@ Etap E8 (krok INVASION akcji taktycznej). Źródło: lokalne pliki tirules (tre�
 - `core/invasion.py`: `bombard` / `assign_bombard_hits`, `commit_ground_forces`, `defense_fire` / `defense_pass` / `assign_defense_hits`, `advance` (pomija podkroki bez pracy), `_establish_control`. Wartości z wariantu jednostki (`bombardHitsOn/DieCount`, `planetaryShield`, `disablesPlanetaryShield`, `spaceCannon*`).
 - Walka naziemna = `core/battle.py` (`start_combat(planet)`); `close_combat` zapisuje wynik w `invasion.combat_results` (remis → obrońca zachowuje planetę). Wspólny kod strat: `battle.plan_losses` / `apply_losses`.
 - Z kroku INVASION nie wolno wyjść (`tactical.next_step`) dopóki inwazja nie doszła do ESTABLISH.
+- Inwazja startuje PRZYCISKIEM w panelu pomocy (`POST /tactical/invasion/begin`), nie przy wejściu w krok. „Prosta inwazja" (`simple`: brak celu bombardowania, brak sił naziemnych obrońcy i brak Space Cannon na planetach) pomija kroki 1, 3, 4 — lądowanie robi się w panelu pomocy (ile piechoty/mechów na którą planetę); pełne okno inwazji otwiera się tylko, gdy ktoś broni planety.
 - API: `GET /tactical/invasion`, `POST /tactical/invasion/{bombard, bombard/assign, commit, defense/fire, defense/pass, defense/assign, next}`.
 
 ### 40.3. ⚠ ZAŁOŻENIA / TODO

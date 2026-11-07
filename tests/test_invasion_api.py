@@ -84,13 +84,32 @@ def test_api_commit_defense_and_establish(registry: StaticDataRegistry) -> None:
     assert client.get("/tactical/invasion").json()["active"] is False
 
 
-def test_api_next_step_opens_invasion(registry: StaticDataRegistry) -> None:
+def test_api_invasion_starts_on_button_and_is_simple_without_defenders(
+    registry: StaticDataRegistry,
+) -> None:
     state = _state({"p1": {"infantry": 2}})
     state.tactical_step = TacticalStep.SPACE_COMBAT
     client = _client(registry, state)
     assert client.post("/tactical/step/next").status_code == 200
+    # Wejście w krok NIE otwiera inwazji - robi to przycisk.
+    assert client.get("/tactical/invasion").json()["active"] is False
+    assert client.post("/tactical/invasion/begin").status_code == 200
     view = client.get("/tactical/invasion").json()
     assert view["active"] is True
+    assert view["simple"] is True
     assert view["phase"] == InvasionPhase.COMMIT.value
     # Z kroku INVASION nie wolno wyjść w trakcie inwazji.
     assert client.post("/tactical/step/next").status_code == 422
+
+
+def test_api_invasion_not_simple_with_defenders_and_nothing_to_begin(
+    registry: StaticDataRegistry,
+) -> None:
+    empty = _client(registry, _state({"p1": {"cruiser": 1}}))
+    assert empty.post("/tactical/invasion/begin").status_code == 422
+    state = _state(
+        {"p1": {"infantry": 2}}, {_PL1: {"p2": {"infantry": 1}}}, {_PL1: "p2"}
+    )
+    client = _client(registry, state)
+    assert client.post("/tactical/invasion/begin").status_code == 200
+    assert client.get("/tactical/invasion").json()["simple"] is False

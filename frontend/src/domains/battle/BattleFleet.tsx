@@ -401,6 +401,25 @@ export function BattleFleet({
     preloadBattleSounds();
     const pan = align === "left" ? -0.6 : 0.6;
     const hasHeavy = views.some((v) => HEAVY.has(v.ship.asyncId));
+    // Walka naziemna: obrońcy już stoją w szyku, atakujący SPADAJĄ z orbity — bez lotu floty.
+    const ground =
+      views.length > 0 &&
+      views.every((v) => v.ship.asyncId === "gf" || v.ship.asyncId === "mf");
+    if (ground) {
+      const drops =
+        align === "left"
+          ? [900, 1250, 1600].map((ms) =>
+              window.setTimeout(
+                () => playBattleSound("impact", { pan, gain: 0.5 }),
+                ms,
+              ),
+            )
+          : [];
+      return () => {
+        window.clearTimeout(t);
+        drops.forEach((d) => window.clearTimeout(d));
+      };
+    }
     playBattleSound("fleetEnter", { pan });
     // War sun: własny dźwięk (assets/extra/sfx/warSunEnter.mp3), gdy szczelina się otwiera.
     const warp = withWarSun

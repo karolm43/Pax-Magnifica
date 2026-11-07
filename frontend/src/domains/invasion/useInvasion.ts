@@ -31,6 +31,8 @@ export type InvasionPlanet = {
   planet: string;
   owner: string | null;
   shielded: boolean;
+  /** Tarcza stoi, ale war sun ją łamie (animacja zapadnięcia). */
+  hasShield: boolean;
   hasSpaceCannon: boolean;
   /** Siły naziemne per gracz (klucz tożsamości). */
   forces: Record<string, InvasionUnit[]>;
@@ -107,6 +109,8 @@ export type InvasionResult = {
 
 export type InvasionView = {
   active: boolean;
+  /** Prosta inwazja (brak obrońców/bombardowania) - lądowanie w panelu pomocy. */
+  simple: boolean;
   phase: InvasionPhase | null;
   position: string | null;
   attacker: string | null;
@@ -253,12 +257,18 @@ export function useInvasionActions() {
     [refresh],
   );
 
+  const begin = useCallback(async () => {
+    await post("/tactical/invasion/begin", {});
+    refresh();
+  }, [refresh]);
+
   const next = useCallback(async () => {
     await post("/tactical/invasion/next", {});
     refresh();
   }, [refresh]);
 
   return {
+    begin,
     bombard,
     assignBombard,
     commit,

@@ -32,6 +32,8 @@ class InvasionPlanetView(BaseModel):
     planet: str
     owner: str | None = None
     shielded: bool = False
+    # Tarcza fizycznie stoi, ale war sun ją łamie (shielded=False) — animacja „zapadnięcia".
+    has_shield: bool = Field(default=False, serialization_alias="hasShield")
     has_space_cannon: bool = Field(default=False, serialization_alias="hasSpaceCannon")
     # Siły naziemne i struktury per gracz (klucz tożsamości gracza).
     forces: dict[str, list[InvasionUnitView]] = Field(default_factory=dict)
@@ -103,6 +105,9 @@ class InvasionResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     active: bool
+    # Prosta inwazja: nie ma co bombardować, nikt nie broni planet ani nie ma Space Cannon —
+    # wystarczy lądowanie w panelu pomocy, bez pełnego okna (kroki 1, 3, 4 pominięte).
+    simple: bool = False
     phase: str | None = None
     position: str | None = None
     attacker: str | None = None

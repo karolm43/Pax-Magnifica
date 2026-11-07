@@ -24,9 +24,21 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background-color: #05070c;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transition: background-image 0.4s;
+}
+
+/* Przyciemnienie + winieta + poświata koloru atakującego (czytelność kart nad grafiką). */
+.backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   background:
     radial-gradient(ellipse 70% 60% at 50% 40%, rgb(var(--att-rgb) / 0.12), transparent 70%),
-    linear-gradient(180deg, rgba(8, 11, 20, 0.96), rgba(4, 6, 12, 0.98));
+    linear-gradient(180deg, rgba(5, 7, 14, 0.7), rgba(4, 6, 12, 0.82));
 }
 
 .overlay > * {
@@ -231,6 +243,8 @@
 }
 
 .planet {
+  position: relative;
+  overflow: hidden;
   flex: 1 1 340px;
   max-width: 520px;
   display: flex;
@@ -760,6 +774,207 @@ button.token {
   .overlay,
   .die,
   .token[data-selectable] {
+    animation: none;
+  }
+}
+
+/* --- Kopuła Planetary Shield --- */
+.dome {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: -34%;
+  height: 78%;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2px solid rgba(147, 197, 253, 0.65);
+  background:
+    repeating-conic-gradient(from 0deg at 50% 100%, rgba(147, 197, 253, 0.1) 0 6deg, transparent 6deg 12deg),
+    radial-gradient(ellipse at 50% 100%, rgba(96, 165, 250, 0.32), rgba(96, 165, 250, 0.06) 70%, transparent);
+  box-shadow: 0 0 26px 4px rgba(96, 165, 250, 0.4) inset, 0 0 22px rgba(96, 165, 250, 0.35);
+  animation: domePulse 3.4s ease-in-out infinite;
+}
+
+/* Tarcza istnieje, ale war sun ją łamie: migocze i zapada się raz. */
+.dome[data-state="down"] {
+  animation: domeCollapse 2.4s ease-in both;
+}
+
+@keyframes domePulse {
+  50% {
+    opacity: 0.65;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes domeCollapse {
+  0% { opacity: 0.9; }
+  15% { opacity: 0.2; }
+  30% { opacity: 0.8; }
+  45% { opacity: 0.1; }
+  60% { opacity: 0.5; }
+  100% { opacity: 0; transform: scale(0.9) translateY(-14%); }
+}
+
+/* --- Salwa orbitalna / kontrostrzał z ziemi --- */
+.strikes {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.strikes[data-hits] {
+  animation: groundShake 0.55s ease-in-out 0.7s both;
+}
+
+.strike {
+  position: absolute;
+  left: var(--x);
+  top: 0;
+  width: 0;
+  height: 100%;
+}
+
+.strikeTrail {
+  position: absolute;
+  left: -2px;
+  top: -30%;
+  width: 4px;
+  height: 30%;
+  opacity: 0;
+  border-radius: 3px;
+  background: linear-gradient(180deg, transparent, rgba(254, 215, 170, 0.95) 60%, #fff);
+  box-shadow: 0 0 12px 3px rgba(251, 146, 60, 0.85);
+  animation: strikeFall 0.75s cubic-bezier(0.5, 0, 0.9, 0.6) var(--delay) both;
+}
+
+.strike:not([data-hit]) .strikeTrail {
+  animation-name: strikeDeflect;
+  box-shadow: 0 0 8px 2px rgba(147, 197, 253, 0.7);
+  background: linear-gradient(180deg, transparent, rgba(191, 219, 254, 0.9));
+}
+
+.strikeBlast {
+  position: absolute;
+  left: -34px;
+  top: var(--land);
+  width: 68px;
+  height: 68px;
+  margin-top: -34px;
+  border-radius: 50%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle, #fff 0%, #fde68a 22%, rgba(234, 88, 12, 0.7) 48%, transparent 72%);
+  animation: strikeBlast 0.9s ease-out calc(var(--delay) + 0.6s) both;
+}
+
+.strike:not([data-hit]) .strikeBlast {
+  display: none;
+}
+
+/* Kontrostrzał z ziemi: pociski lecą w górę. */
+.strikes[data-from="ground"] .strikeTrail {
+  top: auto;
+  bottom: -30%;
+  background: linear-gradient(0deg, transparent, rgba(253, 230, 138, 0.95) 60%, #fff);
+  animation-name: counterRise;
+}
+
+.strikes[data-from="ground"] .strikeBlast {
+  top: calc(100% - var(--land));
+}
+
+@keyframes strikeFall {
+  0% { opacity: 0; transform: translateY(0); }
+  10% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(calc(var(--land) * 3.34)); }
+}
+
+@keyframes strikeDeflect {
+  0% { opacity: 0; transform: translateY(0); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(150%) translateX(24px); }
+}
+
+@keyframes counterRise {
+  0% { opacity: 0; transform: translateY(0); }
+  10% { opacity: 1; }
+  100% { opacity: 0.2; transform: translateY(-340%); }
+}
+
+@keyframes strikeBlast {
+  0% { opacity: 0; transform: scale(0.2); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+@keyframes groundShake {
+  0%, 100% { transform: none; }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, -1px); }
+  80% { transform: translate(2px, 1px); }
+}
+
+/* --- Lądowanie: jednostki spadają z orbity, uderzają, wzbijają pył --- */
+.token[data-drop] {
+  animation: podDrop 1.1s cubic-bezier(0.55, 0, 0.85, 0.4) calc(var(--i, 0) * 140ms) both;
+}
+
+.token[data-drop]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 3px;
+  height: 90px;
+  margin-left: -1.5px;
+  background: linear-gradient(180deg, transparent, rgba(254, 215, 170, 0.9));
+  box-shadow: 0 0 10px 2px rgba(251, 146, 60, 0.7);
+  opacity: 0;
+  animation: podStreak 1.1s linear calc(var(--i, 0) * 140ms) both;
+}
+
+.token[data-drop]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(214, 190, 150, 0.8);
+  opacity: 0;
+  animation: podDust 0.9s ease-out calc(var(--i, 0) * 140ms + 0.95s) both;
+}
+
+@keyframes podDrop {
+  0% { opacity: 0; transform: translateY(-260px) scale(1.5); filter: brightness(2.2); }
+  15% { opacity: 1; }
+  88% { transform: translateY(0) scale(1); filter: brightness(1.6); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: none; }
+}
+
+@keyframes podStreak {
+  0% { opacity: 0; }
+  15%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes podDust {
+  0% { opacity: 0.9; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(3.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dome,
+  .strikes,
+  .token[data-drop],
+  .token[data-drop]::before,
+  .token[data-drop]::after {
     animation: none;
   }
 }

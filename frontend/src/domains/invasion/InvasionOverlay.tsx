@@ -49,6 +49,17 @@ const PHASES: { key: InvasionPhase; label: string }[] = [
   { key: "ESTABLISH", label: "Establish control" },
 ];
 
+/* Grafiki tła (podmienne, w `assets/extra/`, serwowane pod `/static`); brak pliku = ciemne tło. */
+const BOMBARD_BG = "/static/extra/invasion_bombard.jpg";
+const COMMIT_BG = "/static/extra/invasion_commit.jpg";
+const BACKDROP: Record<InvasionPhase, string> = {
+  BOMBARDMENT: BOMBARD_BG,
+  COMMIT: COMMIT_BG,
+  SPACE_CANNON_DEFENSE: BOMBARD_BG,
+  GROUND_COMBAT: COMMIT_BG,
+  ESTABLISH: COMMIT_BG,
+};
+
 const HINT: Record<InvasionPhase, string> = {
   BOMBARDMENT:
     "Choose a planet for each bombarding ship. If you bombard, every unit with Bombardment must be used.",
@@ -177,7 +188,11 @@ function InvasionWindow({ view }: { view: InvasionView }) {
       aria-label={`Invasion of ${systemName ?? ""}`}
       style={{ "--att-rgb": attacker?.rgb ?? "148 163 184" } as CSSProperties}
     >
-      <div className={styles.backdrop} aria-hidden="true" />
+      <div
+        className={styles.backdrop}
+        style={{ backgroundImage: `url("${BACKDROP[phase]}")` }}
+        aria-hidden="true"
+      />
       <header className={styles.topBar}>
         <span className={styles.title}>
           <IconRocket size={18} aria-hidden="true" />
@@ -414,7 +429,7 @@ export function InvasionOverlay() {
     if (active) void queryClient.invalidateQueries({ queryKey: ["invasion"] });
   }, [gameState, active, queryClient]);
 
-  if (!active || !view?.active) return null;
+  if (!active || !view?.active || view.simple) return null;
   return <InvasionWindow key={view.position} view={view} />;
 }
 

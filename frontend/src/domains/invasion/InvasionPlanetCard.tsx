@@ -11,6 +11,7 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { BattleAssignPlan } from "@/api/useBoardEditor";
 import { AssignPanel } from "./AssignPanel";
+import { ShieldDome, StrikeLayer } from "./InvasionFx";
 import { DiceRow, GroundToken, expandForces, usePlayerLook } from "./invasionUi";
 import { remainingOf, type BombardPlan, type Stage } from "./invasionStage";
 import type { InvasionPlanet, InvasionView } from "./useInvasion";
@@ -70,6 +71,12 @@ export function InvasionPlanetCard({
       .find((e) => e.phase === kind && e.planet === info.planet);
   const bombardLog = logFor("BOMBARDMENT");
   const defenseLog = logFor("DEFENSE");
+  const idOf = (kind: "BOMBARDMENT" | "DEFENSE") =>
+    view.log.reduce(
+      (found, e, i) =>
+        e.phase === kind && e.planet === info.planet ? i : found,
+      -1,
+    );
   const pendingBombard = view.bombard.pending.find(
     (p) => p.planet === info.planet,
   );
@@ -105,6 +112,13 @@ export function InvasionPlanetCard({
       onDrop={onDrop}
       aria-label={`Planet ${data?.name ?? info.planet}`}
     >
+      <ShieldDome up={info.shielded} collapsed={info.hasShield && !info.shielded} />
+      {phase === "BOMBARDMENT" && (
+        <StrikeLayer entry={bombardLog} entryId={idOf("BOMBARDMENT")} from="orbit" />
+      )}
+      {phase === "SPACE_CANNON_DEFENSE" && (
+        <StrikeLayer entry={defenseLog} entryId={idOf("DEFENSE")} from="ground" />
+      )}
       <header className={styles.planetHead}>
         <div className={styles.planetTitle}>
           <b>{data?.name ?? info.planet}</b>
@@ -183,12 +197,13 @@ export function InvasionPlanetCard({
             <span className={styles.empty}>—</span>
           ) : (
             <div className={styles.tokens}>
-              {expandForces(attacker, info.forces[attacker]).map((ship) => (
+              {expandForces(attacker, info.forces[attacker]).map((ship, n) => (
                 <GroundToken
                   key={ship.id}
                   ship={ship}
                   colorAlias={look(attacker).colorAlias}
                   faction={attacker}
+                  dropIndex={n}
                 />
               ))}
             </div>

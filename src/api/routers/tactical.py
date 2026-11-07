@@ -34,7 +34,6 @@ from src.core import (
     board_edit,
     combat,
     component_action,
-    invasion,
     movement,
     production,
     space_cannon,
@@ -207,10 +206,6 @@ async def post_next_step(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
             new_state = space_cannon.open_offense(
                 new_state, ctx.current_grid, ctx.registry
             )
-        elif new_state.tactical_step == TacticalStep.INVASION:
-            new_state = invasion.begin_invasion(
-                new_state, ctx.current_grid, ctx.registry
-            )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, "tactical:step")
@@ -225,13 +220,9 @@ async def post_set_step(
         step = TacticalStep(request.step)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"Unknown step: {request.step}") from exc
-    new_state = tactical.set_step(ctx.service.current_state(), step)
-    if step is TacticalStep.INVASION:
-        try:
-            new_state = invasion.begin_invasion(new_state, ctx.current_grid, ctx.registry)
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return await _commit_flow(ctx, new_state, "tactical:set-step")
+    return await _commit_flow(
+        ctx, tactical.set_step(ctx.service.current_state(), step), "tactical:set-step"
+    )
 
 
 @router.post("/tactical/end", response_model=StateEnvelope)

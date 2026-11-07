@@ -122,6 +122,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
                 planet=info.planet,
                 owner=key(info.owner) if info.owner else None,
                 shielded=info.shielded,
+                has_shield=info.has_shield,
                 has_space_cannon=info.has_space_cannon,
                 forces=forces,
                 structures=structures,
@@ -196,8 +197,16 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
         system.space_units.get(inv.attacker, {}),
         ground=True,
     )
+    simple = (
+        not groups
+        and not inv.log
+        and not inv.combat_results
+        and not any(i.defenders for i in infos)
+        and not invasion.defense_planets(state, registry)
+    )
     return InvasionResponse(
         active=True,
+        simple=simple,
         phase=inv.phase.value,
         position=inv.position,
         attacker=key(inv.attacker),
@@ -234,6 +243,20 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
 async def get_invasion(ctx: AppContext = Depends(get_ctx)) -> InvasionResponse:
     """Stan okna inwazji (podkrok, planety, bombardowanie, obrona, wyniki)."""
     return _build(ctx, ctx.service.current_state())
+
+
+@router.post("/tactical/invasion/begin", response_model=StateEnvelope)
+async def post_invasion_begin(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+    """Rozpoczyna inwazję (przycisk w panelu pomocy); 422, gdy nie ma co robić."""
+    try:
+        new_state = invasion.begin_invasion(
+            ctx.service.current_state(), ctx.current_grid, ctx.registry
+        )
+        if new_state.invasion is None:
+            raise ValueError("Nothing to bombard or land - no ground forces in orbit.")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, "invasion:begin")
 
 
 @router.post("/tactical/invasion/bombard", response_model=StateEnvelope)

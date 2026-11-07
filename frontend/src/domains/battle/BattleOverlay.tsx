@@ -1,4 +1,4 @@
-﻿import {
+import {
   useEffect,
   useLayoutEffect,
   useRef,
@@ -50,10 +50,18 @@ import styles from "./BattleOverlay.module.css";
 /* Okręty z ciężkim uzbrojeniem (war sun, flagowiec, dreadnought): grubsze wiązki i dźwięk. */
 const HEAVY_BASES = new Set(["ws", "fs", "dn"]);
 
-type ShotKind = "laser" | "plasma" | "flak" | "sun";
+type ShotKind = "laser" | "plasma" | "flak" | "sun" | "tracer" | "shell";
+
+/** Czas lotu pocisku (ms): kule smugowe i flak są szybkie, reszta wolniejsza. */
+const travelOf = (s: { afb: boolean; ground?: "tracer" | "shell" }) =>
+  s.afb || s.ground === "tracer" ? 550 : TRAVEL_MS;
 
 /** Rodzaj broni pocisku: AFB = flak; reszta na przemian laser (co 3.) i plazma. */
-function shotKind(s: { afb: boolean; sun: boolean }, n: number): ShotKind {
+function shotKind(
+  s: { afb: boolean; sun: boolean; ground?: "tracer" | "shell" },
+  n: number,
+): ShotKind {
+  if (s.ground) return s.ground;
   if (s.afb) return "flak";
   if (s.sun) return "sun"; // war sun: słoneczny ogień
   return n % 3 === 0 ? "laser" : "plasma";
@@ -86,6 +94,10 @@ type Shot = {
   heavy: boolean;
   /** Strzela war sun (własny efekt: kula żaru z ładowaniem). */
   sun: boolean;
+  /** Walka naziemna: kula smugowa albo pocisk artylerii (łukiem). */
+  ground?: "tracer" | "shell";
+  /** Znak łuku pocisku artylerii (−1, gdy tor biegnie w lewo). */
+  arc: number;
 };
 
 /** Duży rozbłysk w środku pola strony, która dostaje trafienia. */
@@ -106,9 +118,12 @@ type Blast = {
 function VolleyLayer({
   volley,
   fieldRef,
+  ground,
 }: {
   volley: Volley | null;
   fieldRef: RefObject<HTMLDivElement | null>;
+  /** Walka naziemna: kule smugowe i artyleria zamiast laserów i plazmy. */
+  ground: boolean;
 }) {
   const [shots, setShots] = useState<{
     id: number;
@@ -163,6 +178,7 @@ function VolleyLayer({
       };
       const dx = tx - from.x;
       const dy = ty - from.y;
+      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
       return [
         {
           id: bolt.id,
@@ -171,7 +187,9 @@ function VolleyLayer({
           tx,
           ty,
           len: Math.hypot(dx, dy),
-          angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+          angle,
+          arc: Math.abs(angle) > 90 ? -1 : 1,
+          ground: ground ? (bolt.shot % 4 === 3 ? "shell" : "tracer") : undefined,
           hit: bolt.hit,
           afb: volley.phase === "AFB",
           delayMs: bolt.delayMs,
@@ -216,7 +234,13 @@ function VolleyLayer({
             () =>
               playBattleSound(
                 // Rodzaj broni = nazwa dźwięku; war sun ma własny „sunfire".
-                kind === "sun" ? "sunfire" : kind,
+                kind === "sun"
+                  ? "sunfire"
+                  : kind === "tracer"
+                    ? "flak"
+                    : kind === "shell"
+                      ? "plasma"
+                      : kind,
                 {
                   pan,
                   heavy: s.heavy,
@@ -245,7 +269,7 @@ function VolleyLayer({
                 heavy: s.heavy,
                 gain: s.afb ? 0.4 : 0.8,
               }),
-            s.delayMs + (s.afb ? 550 : TRAVEL_MS),
+            s.delayMs + travelOf(s),
           ),
         );
       }
@@ -274,6 +298,7 @@ function VolleyLayer({
               "--rgb":
                 s.target === "left" ? "var(--right-rgb)" : "var(--left-rgb)",
               "--delay": `${s.delayMs}ms`,
+              "--arc": s.arc,
             } as CSSProperties
           }
         >
@@ -318,11 +343,12 @@ function VolleyLayer({
             className={styles.impact}
             data-afb={s.afb || undefined}
             data-sun={s.sun || undefined}
+            data-ground={s.ground || undefined}
             style={
               {
                 left: s.tx,
                 top: s.ty,
-                "--delay": `${s.delayMs + (s.afb ? 550 : TRAVEL_MS)}ms`,
+                "--delay": `${s.delayMs + travelOf(s)}ms`,
               } as CSSProperties
             }
           />
@@ -638,7 +664,11 @@ function Battlefield({ view }: { view: BattleView }) {
           marks={view.assigning === defender.faction ? marks : {}}
           onToggle={toggle}
         />
-        <VolleyLayer volley={volley} fieldRef={fieldRef} />
+        <VolleyLayer
+          volley={volley}
+          fieldRef={fieldRef}
+          ground={view.kind === "ground"}
+        />
       </div>
     </div>
   );

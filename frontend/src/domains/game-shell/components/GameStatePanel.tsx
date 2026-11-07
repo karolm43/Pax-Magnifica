@@ -1,9 +1,10 @@
-﻿import {
+import {
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { InvasionStepPanel } from "@/domains/invasion/InvasionStepPanel";
 import { useParams } from "react-router-dom";
 import { Button, Collapse, Group, Stack, Text, UnstyledButton } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
@@ -1183,7 +1184,6 @@ function ProductionUnitTile({
 /* Statki (asyncId) — kto ma flotę w systemie (walka kosmiczna) — i siły naziemne
    (walka naziemna). Spójne z backendowym PLACEMENT_BY_BASE_TYPE. */
 const SHIP_ASYNC_IDS = new Set(["ff", "dd", "ca", "cv", "dn", "fs", "ws"]);
-const GROUND_ASYNC_IDS = new Set(["gf", "mf"]);
 
 /** Kroki akcji taktycznej + etykiety i ikony (RULES.md 19). */
 const TACTICAL_STEPS: {
@@ -1254,18 +1254,6 @@ export function TacticalActionPanel({
 
   // Planety aktywnego systemu (inwazja / produkcja naziemna) — id z danych kafelka.
   const activePlanets = activeTile ? Object.keys(activeTile.planets ?? {}) : [];
-  // Planety, na których siły naziemne ma dwóch graczy — tu toczy się walka naziemna (W3).
-  const contestedPlanets = activePlanets.filter((planetId) => {
-    const byFaction = activeTile?.planets?.[planetId]?.unitsByFaction ?? {};
-    return (
-      Object.values(byFaction).filter((entities) =>
-        entities.some(
-          (e) => e.entityType === "unit" && e.count > 0 && GROUND_ASYNC_IDS.has(e.entityId),
-        ),
-      ).length >= 2
-    );
-  });
-
   // Uwaga: odbiór kliknięcia w kafelek w trybie aktywacji (``activateRequest``) żyje
   // teraz w ``TurnControls`` (zamontowany przez całą fazę akcji), żeby przycisk
   // „Activate system" z rogu działał niezależnie od aktywnej zakładki panelu (Blok A).
@@ -1411,44 +1399,7 @@ export function TacticalActionPanel({
 
       {tacticalStep === "INVASION" && (
         <div className={styles.stepBody}>
-          {inCombat ? (
-            <button
-              type="button"
-              className={cx(styles.ctlBtn, styles.ctlPrimary)}
-              onClick={() => setBattleHidden(false)}
-            >
-              <IconSwords size={13} /> Return to battle
-            </button>
-          ) : contestedPlanets.length > 0 ? (
-            <>
-              <span className={styles.prodNote}>Start ground combat on:</span>
-              <div className={styles.planetTabs}>
-                {contestedPlanets.map((planet) => (
-                  <button
-                    key={planet}
-                    type="button"
-                    className={styles.planetTab}
-                    disabled={busy}
-                    onClick={() =>
-                      void run(async () => {
-                        setBattleHidden(false);
-                        await battleStart(planet);
-                      })
-                    }
-                    title={`Start ground combat on ${planet}`}
-                  >
-                    <IconSwords size={11} /> {planet}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <span className={styles.prodNote}>
-              {activePlanets.length > 0
-                ? "Nothing to bombard or land. The invasion window opens when there are ground forces in orbit or a bombardment target."
-                : "No planets in this system."}
-            </span>
-          )}
+          <InvasionStepPanel />
         </div>
       )}
 
