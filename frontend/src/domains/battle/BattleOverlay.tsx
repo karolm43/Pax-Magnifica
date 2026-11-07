@@ -210,14 +210,19 @@ function VolleyLayer({
       const pan = s.target === "right" ? -0.6 : 0.6; // strzela strona przeciwna do celu
       if (heard < 12 || s.heavy) {
         heard += 1;
+        const kind = shotKind(s, n);
         timers.push(
           window.setTimeout(
             () =>
-              playBattleSound(shotKind(s, n), {
-                pan,
-                heavy: s.heavy,
-                gain: s.heavy ? 1 : 0.55,
-              }),
+              playBattleSound(
+                // Rodzaj broni = nazwa dźwięku; war sun ma własny „sunfire".
+                kind === "sun" ? "sunfire" : kind,
+                {
+                  pan,
+                  heavy: s.heavy,
+                  gain: s.heavy ? 1 : 0.55,
+                },
+              ),
             s.delayMs,
           ),
         );

@@ -18,7 +18,8 @@ export type SoundName =
   | "explosion"
   | "explosionHeavy"
   | "sustain"
-  | "warp"; // war sun wyłania się z wormhole
+  | "warSunEnter" // war sun wyłania się z wormhole (miejsce na własny plik)
+  | "sunfire"; // strzał war suna
 
 export type SoundOpts = {
   /** Panorama stereo −1 (lewo) … 1 (prawo). */
@@ -52,7 +53,8 @@ const ALL: SoundName[] = [
   "explosion",
   "explosionHeavy",
   "sustain",
-  "warp",
+  "warSunEnter",
+  "sunfire",
 ];
 
 export function isBattleMuted(): boolean {
@@ -240,7 +242,12 @@ function synth(name: SoundName, o: Out, heavy: boolean): void {
       tone(o, "sine", 70, 22, 1, 0.01, 2.0);
       tone(o, "sawtooth", 60, 28, 0.2, 0.02, 1.8);
       break;
-    case "warp":
+    case "sunfire":
+      tone(o, "sine", 220, 50, 0.6, 0.02, 0.9);
+      burst(o, "lowpass", 1600, 90, 0.45, 0.02, 0.9);
+      tone(o, "sawtooth", 110, 40, 0.12, 0.05, 0.8);
+      break;
+    case "warSunEnter":
       // zasysający wir, potem głęboki „wydech" przejścia
       burst(o, "bandpass", 200, 1800, 0.35, 1.4, 0.6);
       tone(o, "sine", 60, 420, 0.25, 1.5, 0.5);

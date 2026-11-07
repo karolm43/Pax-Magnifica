@@ -46,8 +46,10 @@ const RANK: Record<string, number> = {
   ws: 5,
 };
 
-/** Czas wejścia formacji (zgodny z `armadaIn` w CSS, 5 s + zapas). */
+/** Czas wejścia formacji (zgodny z `fleetFly` w CSS, 5 s + zapas). */
 const ENTRY_MS = 5400;
+/** Wejście z war sunem trwa dłużej — wysuwanie z wormhole (`emerge*` w CSS, 10 s). */
+const ENTRY_WS_MS = 10400;
 
 /** Deterministyczne odchylenie (−max..max) z id okrętu — szyk nie stoi w idealnej linii. */
 function jitter(id: string, salt: number, max: number): number {
@@ -261,6 +263,51 @@ function ShipToken({
       {justSustained && (
         <span className={styles.sustainFx} aria-hidden="true" />
       )}
+      {justSustained &&
+        Array.from({ length: 10 }, (_, i) => (
+          <span
+            key={`s${i}`}
+            className={styles.sustainSpark}
+            aria-hidden="true"
+            style={
+              {
+                "--dx": `${jitter(ship.id, 200 + i, size * 0.7)}px`,
+                "--dy": `${jitter(ship.id, 230 + i, size * 0.7)}px`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      {ship.damaged && !dying && (
+        <span className={styles.damageFx} aria-hidden="true">
+          {Array.from({ length: heavy ? 7 : 4 }, (_, i) => (
+            <span
+              key={i}
+              className={styles.spark}
+              style={
+                {
+                  "--x": `${50 + jitter(ship.id, 100 + i, 26)}%`,
+                  "--y": `${50 + jitter(ship.id, 130 + i, 18)}%`,
+                  "--sx": `${jitter(ship.id, 160 + i, 18)}px`,
+                  "--d": `${(jitter(ship.id, 190 + i, 1500) + 1500) / 1000}s`,
+                } as CSSProperties
+              }
+            />
+          ))}
+          {Array.from({ length: heavy ? 3 : 2 }, (_, i) => (
+            <span
+              key={`m${i}`}
+              className={styles.smoke}
+              style={
+                {
+                  "--x": `${50 + jitter(ship.id, 300 + i, 20)}%`,
+                  "--y": `${50 + jitter(ship.id, 330 + i, 14)}%`,
+                  "--d": `${(jitter(ship.id, 360 + i, 1800) + 1800) / 1000}s`,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </span>
+      )}
       {dying && <span className={styles.explosion} aria-hidden="true" />}
       {dying &&
         Array.from({ length: heavy ? 14 : 7 }, (_, i) => (
@@ -333,15 +380,20 @@ export function BattleFleet({
   // Wejście armady gra tylko raz — późniejsze przemontowania okrętów (zmiana kroku) nie powtarzają go.
   const [entered, setEntered] = useState(false);
   useEffect(() => {
-    const t = window.setTimeout(() => setEntered(true), ENTRY_MS);
+    const withWarSun = views.some((v) => v.ship.asyncId === "ws");
+    const t = window.setTimeout(
+      () => setEntered(true),
+      withWarSun ? ENTRY_WS_MS : ENTRY_MS,
+    );
     // Dźwięk: narastający pomruk lotu floty, a w chwili osiadania ciężki łoskot
     // (głębszy, gdy w szyku jest war sun / flagowiec / dreadnought).
     preloadBattleSounds();
     const pan = align === "left" ? -0.6 : 0.6;
     const hasHeavy = views.some((v) => HEAVY.has(v.ship.asyncId));
     playBattleSound("fleetEnter", { pan });
-    const warp = views.some((v) => v.ship.asyncId === "ws")
-      ? window.setTimeout(() => playBattleSound("warp", { pan }), 1300)
+    // War sun: własny dźwięk (assets/extra/sfx/warSunEnter.mp3), gdy szczelina się otwiera.
+    const warp = withWarSun
+      ? window.setTimeout(() => playBattleSound("warSunEnter", { pan }), 1600)
       : undefined;
     const thud = window.setTimeout(
       () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan }),
