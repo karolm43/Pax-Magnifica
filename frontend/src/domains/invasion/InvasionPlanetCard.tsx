@@ -11,7 +11,8 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { BattleAssignPlan } from "@/api/useBoardEditor";
 import { AssignPanel } from "./AssignPanel";
-import { ShieldDome, StrikeLayer } from "./InvasionFx";
+import { PlanetStage, StrikeLayer, surfaceOf } from "./InvasionFx";
+import { Unit } from "@/shared/ui/Unit";
 import { DiceRow, GroundToken, expandForces, usePlayerLook } from "./invasionUi";
 import { remainingOf, type BombardPlan, type Stage } from "./invasionStage";
 import type { InvasionPlanet, InvasionView } from "./useInvasion";
@@ -87,7 +88,26 @@ export function InvasionPlanetCard({
     (n, row) => n + (row[info.planet] ?? 0),
     0,
   );
-  const staged = actions.stage[info.planet] ?? {};
+  // Statki bombardujące tę planetę: przed rzutem wg przydziału, po rzucie wg dziennika.
+  const orbitCounts: Record<string, number> = {};
+  if (phase === "BOMBARDMENT") {
+    if (bombardLog) {
+      for (const r of bombardLog.rolls) {
+        orbitCounts[r.baseType] = (orbitCounts[r.baseType] ?? 0) + r.count;
+      }
+    } else {
+      for (const [bt, row] of Object.entries(actions.bombardPlan)) {
+        if ((row[info.planet] ?? 0) > 0) orbitCounts[bt] = row[info.planet];
+      }
+    }
+  }
+  const orbitShips = Object.entries(orbitCounts).flatMap(([bt, n]) => {
+    const g = view.bombard.groups.find((x) => x.baseType === bt);
+    return Array.from({ length: n }, () => ({
+      asyncId: g?.asyncId ?? bt,
+      name: g?.name ?? bt,
+    }));
+  });  const staged = actions.stage[info.planet] ?? {};
   const stagedCount = Object.values(staged).reduce((a, b) => a + b, 0);
 
   const onDragOver = (e: DragEvent<HTMLElement>) => {
@@ -112,14 +132,43 @@ export function InvasionPlanetCard({
       onDrop={onDrop}
       aria-label={`Planet ${data?.name ?? info.planet}`}
     >
-      <ShieldDome up={info.shielded} collapsed={info.hasShield && !info.shielded} />
-      {phase === "BOMBARDMENT" && (
-        <StrikeLayer entry={bombardLog} entryId={idOf("BOMBARDMENT")} from="orbit" />
-      )}
-      {phase === "SPACE_CANNON_DEFENSE" && (
-        <StrikeLayer entry={defenseLog} entryId={idOf("DEFENSE")} from="ground" />
-      )}
-      <header className={styles.planetHead}>
+      <PlanetStage
+        surface={surfaceOf(data?.planetType)}
+        shielded={info.shielded}
+        collapsed={info.hasShield && !info.shielded}
+        ships={orbitShips.map((s, n) => (
+          <span
+            key={n}
+            className={styles.shipSprite}
+            data-base={s.asyncId}
+            title={s.name}
+          >
+            <Unit
+              unitType={s.asyncId}
+              colorAlias={look(attacker).colorAlias}
+              faction={attacker}
+              scaleSprite
+            />
+          </span>
+        ))}
+        strike={
+          phase === "BOMBARDMENT" ? (
+            <StrikeLayer
+              entry={bombardLog}
+              entryId={idOf("BOMBARDMENT")}
+              from="orbit"
+              shipCount={orbitShips.length}
+            />
+          ) : phase === "SPACE_CANNON_DEFENSE" ? (
+            <StrikeLayer
+              entry={defenseLog}
+              entryId={idOf("DEFENSE")}
+              from="ground"
+              shipCount={0}
+            />
+          ) : null
+        }
+      />      <header className={styles.planetHead}>
         <div className={styles.planetTitle}>
           <b>{data?.name ?? info.planet}</b>
           <small>

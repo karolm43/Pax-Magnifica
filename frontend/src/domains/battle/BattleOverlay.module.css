@@ -2301,22 +2301,6 @@
   animation: groundSmoke 14s ease-in-out infinite alternate;
 }
 
-.overlay[data-kind="ground"] .field::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 22%;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 8% 60% at 18% 100%, rgba(255, 200, 120, 0.55), transparent 70%),
-    radial-gradient(ellipse 7% 55% at 83% 100%, rgba(255, 190, 110, 0.5), transparent 70%);
-  opacity: 0;
-  animation: horizonFlash 7s steps(1) infinite;
-}
-
 /* KULA SMUGOWA: cienka, szybka kreska. */
 .beam[data-kind="tracer"] .beamLaser {
   display: none;
@@ -2344,26 +2328,26 @@
 
 .beam[data-kind="shell"] .beamCore,
 .beam[data-kind="shell"]:not([data-hit]) .beamCore {
-  width: 11px;
-  height: 11px;
-  top: -5.5px;
+  width: 15px;
+  height: 15px;
+  top: -7.5px;
   border-radius: 50%;
   background: radial-gradient(circle, #fff 0%, #fdba74 45%, transparent 75%);
   box-shadow:
     0 0 10px 3px rgba(251, 146, 60, 0.8),
     -20px 0 12px 2px rgba(120, 113, 108, 0.5);
-  animation: shellArc 0.9s linear var(--delay) both;
+  animation: shellArc 1.5s linear var(--delay) both;
 }
 
 /* Trafienie naziemne: obłok pyłu i ognia zamiast okrętowego rozbłysku. */
 .impact[data-ground] {
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
   mix-blend-mode: normal;
   filter: none;
   background: radial-gradient(circle, rgba(255, 237, 200, 0.95) 0%, rgba(251, 146, 60, 0.7) 22%, rgba(120, 100, 80, 0.55) 50%, transparent 72%);
-  animation: groundImpact 1s ease-out var(--delay) both;
+  animation: groundImpact 1.6s ease-out var(--delay) both;
 }
 
 @keyframes groundDrop {
@@ -2400,9 +2384,9 @@
 @keyframes shellArc {
   0% { opacity: 0; transform: translate(0, 0); }
   6% { opacity: 1; }
-  25% { transform: translate(calc(var(--len) * 0.25), calc(var(--arc, 1) * -52px)); }
-  50% { transform: translate(calc(var(--len) * 0.5), calc(var(--arc, 1) * -72px)); }
-  75% { transform: translate(calc(var(--len) * 0.75), calc(var(--arc, 1) * -52px)); }
+  25% { transform: translate(calc(var(--len) * 0.25), calc(var(--arc, 1) * -105px)); }
+  50% { transform: translate(calc(var(--len) * 0.5), calc(var(--arc, 1) * -140px)); }
+  75% { transform: translate(calc(var(--len) * 0.75), calc(var(--arc, 1) * -105px)); }
   98% { opacity: 1; transform: translate(var(--len), 0); }
   100% { opacity: 0; transform: translate(var(--len), 0); }
 }
@@ -2418,20 +2402,9 @@
   to { transform: translateX(2%); opacity: 1; }
 }
 
-@keyframes horizonFlash {
-  0%, 100% { opacity: 0; }
-  12% { opacity: 0.9; }
-  14% { opacity: 0; }
-  47% { opacity: 0.7; }
-  49% { opacity: 0; }
-  81% { opacity: 0.85; }
-  83% { opacity: 0; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .overlay[data-kind="ground"] .formation .ship,
-  .overlay[data-kind="ground"] .field::before,
-  .overlay[data-kind="ground"] .field::after {
+  .overlay[data-kind="ground"] .field::before {
     animation: none;
   }
 }

@@ -1,82 +1,171 @@
-import { useRef, type CSSProperties } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import type { InvasionLogEntry } from "./useInvasion";
 import styles from "./InvasionOverlay.module.css";
 
 /**
  * Efekty okna inwazji (czysto wizualne, bez wpływu na stan):
- * - ``ShieldDome``: kopuła Planetary Shield nad planetą (stoi / zapada się pod war sunem);
- * - ``StrikeLayer``: salwa orbitalna spadająca na planetę (bombardowanie) albo kontrostrzał
- *   z ziemi w górę (Space Cannon Defense) — jeden pocisk na kość, trafienie = rozbłysk.
+ * - ``PlanetStage``: okrągła planeta (powierzchnia z gradientów wg typu), nad nią orbita ze
+ *   statkami; kopuła Planetary Shield otacza glob (stoi / zapada się pod war sunem);
+ * - ``StrikeLayer``: bombardowanie to powolne lance z okrętów na orbicie (ładowanie →
+ *   wiązka → ognista kula); Space Cannon Defense to szybkie wyładowania jonowe z ziemi w górę.
+ * Każda salwa sprząta po sobie: po zakończeniu warstwa znika z DOM (żadnych pozostałości).
  */
 
-/** Kopuła tarczy: pulsująca siatka; ``collapsed`` = tarcza istnieje, ale war sun ją łamie. */
-export function ShieldDome({
-  up,
+/** Rodzaj powierzchni globu z typu planety (dane: CULTURAL/HAZARDOUS/INDUSTRIAL/FACTION…). */
+export function surfaceOf(type: string | undefined): string {
+  const t = (type ?? "").toLowerCase();
+  if (t.includes("cultur")) return "cultural";
+  if (t.includes("hazard")) return "hazardous";
+  if (t.includes("industr")) return "industrial";
+  if (t.includes("frontier")) return "frontier";
+  if (t.includes("faction")) return "faction";
+  return "neutral";
+}
+
+/** Odstęp statków na orbicie (px) - ten sam wzór liczy punkt startu lancy. */
+export const SHIP_GAP = 74;
+
+/** Przesunięcie (px) n-tego z `count` statków względem środka globu. */
+export function shipDx(n: number, count: number): number {
+  return (n - (count - 1) / 2) * SHIP_GAP;
+}
+
+/**
+ * Scena planety: orbita ze statkami (``children``), okrągły glob z kopułą tarczy i warstwa
+ * salwy. Bez grafik planet - powierzchnia to gradienty CSS dobierane po typie planety.
+ */
+export function PlanetStage({
+  surface,
+  shielded,
   collapsed,
+  ships,
+  children,
+  strike,
 }: {
-  up: boolean;
+  surface: string;
+  shielded: boolean;
   collapsed: boolean;
+  ships: ReactNode[];
+  children?: ReactNode;
+  strike: ReactNode;
 }) {
-  if (!up && !collapsed) return null;
   return (
-    <div
-      className={styles.dome}
-      data-state={up ? "up" : "down"}
-      aria-hidden="true"
-    />
+    <div className={styles.stage}>
+      <div className={styles.orbitRow} aria-label="Ships in orbit">
+        {ships.map((ship, n) => (
+          <span
+            key={n}
+            className={styles.orbitShip}
+            style={
+              {
+                "--dx": `${shipDx(n, ships.length)}px`,
+                "--k": n,
+              } as CSSProperties
+            }
+          >
+            {ship}
+          </span>
+        ))}
+      </div>
+      <div className={styles.globe} data-surface={surface}>
+        <div className={styles.globeSurface} />
+        <div className={styles.globeShade} />
+        {(shielded || collapsed) && (
+          <div
+            className={styles.dome}
+            data-state={shielded ? "up" : "down"}
+            aria-hidden="true"
+          />
+        )}
+        {children}
+      </div>
+      {strike}
+    </div>
   );
 }
 
-/** Pseudolosowa, ale stała pozycja pocisku (0..1) z jego numeru. */
+/** Pseudolosowa, ale stała wartość (0..1) z numeru pocisku. */
 function spread(n: number, salt: number): number {
   const h = Math.sin(n * 12.9898 + salt * 78.233) * 43758.5453;
   return h - Math.floor(h);
 }
 
+/** Najdłuższa animacja salwy (ms) - po tym czasie warstwa jest zdejmowana z DOM. */
+const BOMBARD_MS = 4200;
+const DEFENSE_MS = 2600;
+
 /**
  * Pokazuje salwę tylko dla wpisu dziennika, który POJAWIŁ SIĘ po zamontowaniu karty
- * (otwarcie okna nie odtwarza starych strzałów).
+ * (otwarcie okna nie odtwarza starych strzałów), a po jej końcu zdejmuje się sama.
  */
 export function StrikeLayer({
   entry,
   entryId,
   from,
+  shipCount,
 }: {
   entry: InvasionLogEntry | undefined;
   /** Numer wpisu w dzienniku (rośnie z każdym rozstrzygnięciem). */
   entryId: number;
   from: "orbit" | "ground";
+  /** Ile statków stoi na orbicie (źródła lanc); 0 = pociski z losowych punktów. */
+  shipCount: number;
 }) {
   const initial = useRef(entryId);
-  if (!entry || entry.passed || entryId === initial.current) return null;
-  const bolts = entry.rolls.flatMap((r, ri) =>
-    r.dice.map((d, di) => ({ hit: d >= r.hitsOn, id: `${ri}-${di}` })),
-  );
+  const [finished, setFinished] = useState(-1);
+  const fresh = !!entry && !entry.passed && entryId !== initial.current;
+  const bolts = fresh
+    ? entry.rolls.flatMap((r, ri) =>
+        r.dice.map((d, di) => ({ hit: d >= r.hitsOn, id: `${ri}-${di}` })),
+      )
+    : [];
+  const total =
+    (from === "orbit" ? BOMBARD_MS : DEFENSE_MS) + bolts.length * 380;
+  useEffect(() => {
+    if (!fresh) return;
+    const t = window.setTimeout(() => setFinished(entryId), total);
+    return () => window.clearTimeout(t);
+  }, [fresh, entryId, total]);
+
+  if (!fresh || finished === entryId) return null;
   return (
     <div
       className={styles.strikes}
       data-from={from}
       data-hits={bolts.some((b) => b.hit) || undefined}
-      key={entryId}
       aria-hidden="true"
     >
-      {bolts.map((b, n) => (
-        <span
-          key={b.id}
-          className={styles.strike}
-          data-hit={b.hit || undefined}
-          style={
-            {
-              "--x": `${10 + spread(n, 1) * 80}%`,
-              "--delay": `${n * 170 + spread(n, 2) * 120}ms`,
-              "--land": `${52 + spread(n, 3) * 26}%`,
-            } as CSSProperties
-          }
-        >
-          <i className={styles.strikeTrail} />
-          <i className={styles.strikeBlast} />
-        </span>
-      ))}
+      {bolts.map((b, n) => {
+        const dx =
+          shipCount > 0
+            ? shipDx(n % shipCount, shipCount)
+            : (spread(n, 1) - 0.5) * 120;
+        return (
+          <span
+            key={b.id}
+            className={styles.strike}
+            data-hit={b.hit || undefined}
+            style={
+              {
+                "--dx": `${dx}px`,
+                "--delay": `${n * 380}ms`,
+                "--jx": `${(spread(n, 2) - 0.5) * 70}px`,
+              } as CSSProperties
+            }
+          >
+            <i className={styles.charge} />
+            <i className={styles.lance} />
+            <i className={styles.fireball} />
+            <i className={styles.shock} />
+          </span>
+        );
+      })}
     </div>
   );
 }

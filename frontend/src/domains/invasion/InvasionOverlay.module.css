@@ -251,9 +251,9 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(20, 25, 40, 0.88), rgba(9, 12, 20, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 34px;
+  background: radial-gradient(ellipse 90% 45% at 50% 28%, rgba(60, 80, 130, 0.22), transparent 70%), linear-gradient(180deg, rgba(14, 18, 32, 0.8), rgba(7, 10, 18, 0.88));
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -778,32 +778,159 @@ button.token {
   }
 }
 
-/* --- Kopuła Planetary Shield --- */
-.dome {
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  top: -34%;
-  height: 78%;
-  border-radius: 50%;
-  pointer-events: none;
-  border: 2px solid rgba(147, 197, 253, 0.65);
-  background:
-    repeating-conic-gradient(from 0deg at 50% 100%, rgba(147, 197, 253, 0.1) 0 6deg, transparent 6deg 12deg),
-    radial-gradient(ellipse at 50% 100%, rgba(96, 165, 250, 0.32), rgba(96, 165, 250, 0.06) 70%, transparent);
-  box-shadow: 0 0 26px 4px rgba(96, 165, 250, 0.4) inset, 0 0 22px rgba(96, 165, 250, 0.35);
-  animation: domePulse 3.4s ease-in-out infinite;
+/* --- Scena planety: orbita + okrągły glob --- */
+.stage {
+  position: relative;
+  height: 350px;
+  margin: 0 -4px;
 }
 
-/* Tarcza istnieje, ale war sun ją łamie: migocze i zapada się raz. */
+.orbitRow {
+  position: absolute;
+  inset: 4px 0 auto 0;
+  height: 80px;
+}
+
+.orbitShip {
+  position: absolute;
+  left: calc(50% + var(--dx, 0px));
+  top: 0;
+  transform: translateX(-50%);
+  animation: orbitBob 7s ease-in-out infinite;
+  animation-delay: calc(var(--k, 0) * -1.7s);
+}
+
+.shipSprite {
+  display: grid;
+  place-items: center;
+  /* Sprite okrętu ma dziób w lewym-górnym rogu; obrót o 225° kieruje go w dół ku planecie. */
+  transform: rotate(225deg);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 8px rgb(var(--att-rgb) / 0.4));
+}
+
+/* War sun ma grafikę zwróconą dziobem w górę - obrót o 180°. */
+.shipSprite[data-base="ws"] {
+  transform: rotate(180deg);
+}
+
+.shipSprite :global(.unit-sprite),
+.shipSprite img {
+  height: 62px;
+  width: auto;
+}
+
+@keyframes orbitBob {
+  50% {
+    translate: 0 6px;
+  }
+}
+
+.globe {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 168px;
+  height: 168px;
+  margin-left: -84px;
+  border-radius: 50%;
+  box-shadow: 0 0 40px 6px rgba(120, 170, 255, 0.18), 0 0 90px 20px rgba(120, 170, 255, 0.08);
+}
+
+.globeSurface,
+.globeShade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+/* Powierzchnia: gradienty wg typu planety (bez grafik) + powoli dryfujące pasy chmur. */
+.globeSurface {
+  background-color: #3b4a63;
+  background-image:
+    repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.09) 0 9px, transparent 9px 31px),
+    radial-gradient(circle at 30% 38%, var(--s1) 0%, transparent 46%),
+    radial-gradient(circle at 68% 62%, var(--s2) 0%, transparent 52%),
+    radial-gradient(circle at 50% 50%, var(--s3), var(--s4));
+  background-size: 220% 100%, 100% 100%, 100% 100%, 100% 100%;
+  animation: globeSpin 90s linear infinite;
+  --s1: #6f8fb8;
+  --s2: #4a5d7a;
+  --s3: #55698a;
+  --s4: #2a3550;
+}
+
+.globe[data-surface="cultural"] .globeSurface {
+  --s1: #34d399;
+  --s2: #0ea5e9;
+  --s3: #2f7fb0;
+  --s4: #0f3a5c;
+}
+
+.globe[data-surface="hazardous"] .globeSurface {
+  --s1: #fbbf24;
+  --s2: #ef4444;
+  --s3: #a8431f;
+  --s4: #3a0f0a;
+}
+
+.globe[data-surface="industrial"] .globeSurface {
+  --s1: #e5e7eb;
+  --s2: #f59e0b;
+  --s3: #7c6f64;
+  --s4: #2b2623;
+}
+
+.globe[data-surface="frontier"] .globeSurface {
+  --s1: #d9b97a;
+  --s2: #84a35a;
+  --s3: #8a7a52;
+  --s4: #3a3220;
+}
+
+.globe[data-surface="faction"] .globeSurface {
+  --s1: #c4b5fd;
+  --s2: #818cf8;
+  --s3: #5b5aa8;
+  --s4: #1e1b4b;
+}
+
+/* Cieniowanie: oświetlenie z lewej-góry, cień z prawej-dołu i cienka atmosfera. */
+.globeShade {
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.22), transparent 42%),
+    radial-gradient(circle at 72% 74%, rgba(0, 0, 8, 0.72), transparent 62%);
+  box-shadow: inset 0 0 18px 2px rgba(147, 197, 253, 0.45);
+}
+
+@keyframes globeSpin {
+  to {
+    background-position: 220% 0, 0 0, 0 0, 0 0;
+  }
+}
+
+/* Kopuła Planetary Shield: okrąg wokół GLOBU (wycentrowany na planecie). */
+.dome {
+  position: absolute;
+  inset: -22px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2px solid rgba(147, 197, 253, 0.7);
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(147, 197, 253, 0.1) 0 5deg, transparent 5deg 10deg),
+    radial-gradient(circle, transparent 58%, rgba(96, 165, 250, 0.28) 78%, rgba(96, 165, 250, 0.08));
+  box-shadow: 0 0 24px 4px rgba(96, 165, 250, 0.4), inset 0 0 22px rgba(96, 165, 250, 0.35);
+  animation: domePulse 3.6s ease-in-out infinite;
+}
+
+/* Tarcza istnieje, ale war sun ją łamie: migocze i gaśnie. */
 .dome[data-state="down"] {
-  animation: domeCollapse 2.4s ease-in both;
+  animation: domeCollapse 2.6s ease-in forwards;
 }
 
 @keyframes domePulse {
   50% {
-    opacity: 0.65;
-    transform: scale(1.02);
+    opacity: 0.6;
+    transform: scale(1.025);
   }
 }
 
@@ -813,111 +940,185 @@ button.token {
   30% { opacity: 0.8; }
   45% { opacity: 0.1; }
   60% { opacity: 0.5; }
-  100% { opacity: 0; transform: scale(0.9) translateY(-14%); }
+  100% { opacity: 0; transform: scale(1.15); }
 }
 
-/* --- Salwa orbitalna / kontrostrzał z ziemi --- */
+/* --- Salwy (warstwa znika z DOM po zakończeniu - bez pozostałości) --- */
 .strikes {
   position: absolute;
   inset: 0;
   z-index: 3;
-  overflow: hidden;
   pointer-events: none;
-}
-
-.strikes[data-hits] {
-  animation: groundShake 0.55s ease-in-out 0.7s both;
 }
 
 .strike {
   position: absolute;
-  left: var(--x);
+  left: calc(50% + var(--dx));
   top: 0;
   width: 0;
   height: 100%;
 }
 
-.strikeTrail {
+/* BOMBARDOWANIE: ładowanie u wylotu → powoli rosnąca lanca → ognista kula na powierzchni. */
+.charge {
   position: absolute;
-  left: -2px;
-  top: -30%;
-  width: 4px;
-  height: 30%;
+  left: -22px;
+  top: 58px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   opacity: 0;
-  border-radius: 3px;
-  background: linear-gradient(180deg, transparent, rgba(254, 215, 170, 0.95) 60%, #fff);
-  box-shadow: 0 0 12px 3px rgba(251, 146, 60, 0.85);
-  animation: strikeFall 0.75s cubic-bezier(0.5, 0, 0.9, 0.6) var(--delay) both;
+  background: radial-gradient(circle, #fff 0%, #fde68a 25%, rgba(251, 146, 60, 0.6) 55%, transparent 75%);
+  animation: chargeUp 1.3s ease-in var(--delay) both;
 }
 
-.strike:not([data-hit]) .strikeTrail {
-  animation-name: strikeDeflect;
-  box-shadow: 0 0 8px 2px rgba(147, 197, 253, 0.7);
-  background: linear-gradient(180deg, transparent, rgba(191, 219, 254, 0.9));
-}
-
-.strikeBlast {
+.lance {
   position: absolute;
-  left: -34px;
-  top: var(--land);
-  width: 68px;
-  height: 68px;
-  margin-top: -34px;
+  left: -9px;
+  top: 82px;
+  width: 18px;
+  height: 0;
+  opacity: 0;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(253, 186, 116, 0.9) 40%, rgba(234, 88, 12, 0.55));
+  box-shadow: 0 0 22px 8px rgba(251, 146, 60, 0.6), 0 0 60px 18px rgba(234, 88, 12, 0.25);
+  animation: lanceGrow 2.4s cubic-bezier(0.4, 0, 0.3, 1) calc(var(--delay) + 1.1s) both;
+}
+
+.strike:not([data-hit]) .lance {
+  animation-name: lanceFizzle;
+  box-shadow: 0 0 14px 4px rgba(147, 197, 253, 0.55);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(147, 197, 253, 0.6));
+}
+
+.fireball {
+  position: absolute;
+  left: -70px;
+  top: 128px;
+  width: 140px;
+  height: 100px;
+  margin-left: var(--jx, 0px);
   border-radius: 50%;
   opacity: 0;
   mix-blend-mode: screen;
-  background: radial-gradient(circle, #fff 0%, #fde68a 22%, rgba(234, 88, 12, 0.7) 48%, transparent 72%);
-  animation: strikeBlast 0.9s ease-out calc(var(--delay) + 0.6s) both;
+  background: radial-gradient(ellipse, #fff 0%, #fde68a 20%, rgba(251, 146, 60, 0.8) 45%, rgba(185, 28, 28, 0.35) 65%, transparent 78%);
+  animation: fireballBloom 2.2s ease-out calc(var(--delay) + 2.6s) both;
 }
 
-.strike:not([data-hit]) .strikeBlast {
+.shock {
+  position: absolute;
+  left: -60px;
+  top: 150px;
+  width: 120px;
+  height: 56px;
+  margin-left: var(--jx, 0px);
+  border-radius: 50%;
+  opacity: 0;
+  border: 2px solid rgba(255, 237, 213, 0.85);
+  animation: shockSpread 2.2s ease-out calc(var(--delay) + 2.7s) both;
+}
+
+.strike:not([data-hit]) .fireball,
+.strike:not([data-hit]) .shock {
   display: none;
 }
 
-/* Kontrostrzał z ziemi: pociski lecą w górę. */
-.strikes[data-from="ground"] .strikeTrail {
+/* SPACE CANNON DEFENSE: szybkie wyładowania jonowe z ziemi w górę (zygzak), inne niż lance. */
+.strikes[data-from="ground"] .charge,
+.strikes[data-from="ground"] .fireball {
+  display: none;
+}
+
+.strikes[data-from="ground"] .lance {
   top: auto;
-  bottom: -30%;
-  background: linear-gradient(0deg, transparent, rgba(253, 230, 138, 0.95) 60%, #fff);
-  animation-name: counterRise;
+  bottom: 172px;
+  left: -3px;
+  width: 6px;
+  height: 0;
+  border-radius: 0;
+  clip-path: polygon(40% 100%, 100% 82%, 20% 64%, 90% 46%, 30% 28%, 80% 10%, 50% 0, 0 12%, 70% 30%, 10% 48%, 80% 66%, 20% 84%);
+  background: linear-gradient(0deg, #fff, #a5f3fc 50%, #38bdf8);
+  box-shadow: none;
+  filter: drop-shadow(0 0 7px rgba(56, 189, 248, 0.95));
+  animation: ionStrike 1.5s ease-out var(--delay) both;
 }
 
-.strikes[data-from="ground"] .strikeBlast {
-  top: calc(100% - var(--land));
+.strikes[data-from="ground"] .strike:not([data-hit]) .lance {
+  animation-name: ionStrikeMiss;
 }
 
-@keyframes strikeFall {
-  0% { opacity: 0; transform: translateY(0); }
-  10% { opacity: 1; }
-  100% { opacity: 1; transform: translateY(calc(var(--land) * 3.34)); }
+.strikes[data-from="ground"] .shock {
+  top: 40px;
+  border-color: rgba(125, 211, 252, 0.9);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
+  animation: ionBurst 1.6s ease-out calc(var(--delay) + 0.4s) both;
 }
 
-@keyframes strikeDeflect {
-  0% { opacity: 0; transform: translateY(0); }
-  15% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(150%) translateX(24px); }
+.strikes[data-from="ground"] .strike:not([data-hit]) .shock {
+  display: block;
+  opacity: 0;
+  animation-name: ionBurstMiss;
 }
 
-@keyframes counterRise {
-  0% { opacity: 0; transform: translateY(0); }
-  10% { opacity: 1; }
-  100% { opacity: 0.2; transform: translateY(-340%); }
-}
-
-@keyframes strikeBlast {
+@keyframes chargeUp {
   0% { opacity: 0; transform: scale(0.2); }
-  25% { opacity: 1; }
+  70% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes lanceGrow {
+  0% { opacity: 0; height: 0; }
+  12% { opacity: 1; }
+  55% { opacity: 1; height: 92px; }
+  80% { opacity: 0.85; height: 92px; }
+  100% { opacity: 0; height: 92px; }
+}
+
+@keyframes lanceFizzle {
+  0% { opacity: 0; height: 0; }
+  20% { opacity: 1; }
+  60% { opacity: 0.8; height: 64px; }
+  100% { opacity: 0; height: 64px; }
+}
+
+@keyframes fireballBloom {
+  0% { opacity: 0; transform: scale(0.15); }
+  22% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+@keyframes shockSpread {
+  0% { opacity: 0; transform: scale(0.3); }
+  20% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+
+@keyframes ionStrike {
+  0% { opacity: 0; height: 0; }
+  10% { opacity: 1; height: 130px; }
+  30% { opacity: 0.3; }
+  45% { opacity: 1; }
+  60% { opacity: 0.4; }
+  100% { opacity: 0; height: 130px; }
+}
+
+@keyframes ionStrikeMiss {
+  0% { opacity: 0; height: 0; }
+  15% { opacity: 0.8; height: 70px; }
+  100% { opacity: 0; height: 70px; }
+}
+
+@keyframes ionBurst {
+  0% { opacity: 0; transform: scale(0.2); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: scale(3.2); }
+}
+
+@keyframes ionBurstMiss {
+  0% { opacity: 0; transform: scale(0.2); }
+  20% { opacity: 0.35; }
   100% { opacity: 0; transform: scale(2.2); }
 }
-
-@keyframes groundShake {
-  0%, 100% { transform: none; }
-  20% { transform: translate(-3px, 2px); }
-  40% { transform: translate(3px, -2px); }
-  60% { transform: translate(-2px, -1px); }
-  80% { transform: translate(2px, 1px); }
-}
-
 /* --- Lądowanie: jednostki spadają z orbity, uderzają, wzbijają pył --- */
 .token[data-drop] {
   animation: podDrop 1.1s cubic-bezier(0.55, 0, 0.85, 0.4) calc(var(--i, 0) * 140ms) both;
@@ -972,6 +1173,8 @@ button.token {
 @media (prefers-reduced-motion: reduce) {
   .dome,
   .strikes,
+  .orbitShip,
+  .globeSurface,
   .token[data-drop],
   .token[data-drop]::before,
   .token[data-drop]::after {

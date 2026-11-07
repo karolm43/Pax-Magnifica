@@ -54,7 +54,7 @@ type ShotKind = "laser" | "plasma" | "flak" | "sun" | "tracer" | "shell";
 
 /** Czas lotu pocisku (ms): kule smugowe i flak są szybkie, reszta wolniejsza. */
 const travelOf = (s: { afb: boolean; ground?: "tracer" | "shell" }) =>
-  s.afb || s.ground === "tracer" ? 550 : TRAVEL_MS;
+  s.ground === "shell" ? 1500 : s.afb ? 550 : TRAVEL_MS;
 
 /** Rodzaj broni pocisku: AFB = flak; reszta na przemian laser (co 3.) i plazma. */
 function shotKind(
@@ -189,7 +189,7 @@ function VolleyLayer({
           len: Math.hypot(dx, dy),
           angle,
           arc: Math.abs(angle) > 90 ? -1 : 1,
-          ground: ground ? (bolt.shot % 4 === 3 ? "shell" : "tracer") : undefined,
+          ground: ground ? "shell" : undefined,
           hit: bolt.hit,
           afb: volley.phase === "AFB",
           delayMs: bolt.delayMs,
