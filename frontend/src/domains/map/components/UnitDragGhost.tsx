@@ -24,6 +24,14 @@ export function UnitDragGhost({ ghost }: { ghost: DragGhost | null }) {
         <span className={styles.chip}>{ghost.asyncId.toUpperCase()}</span>
       )}
       {ghost.count > 1 && <span className={styles.count}>{ghost.count}</span>}
+      {ghost.capacity && (
+        <span
+          className={styles.capTag}
+          data-over={ghost.capacity.used > ghost.capacity.total || undefined}
+        >
+          Cap {ghost.capacity.used}/{ghost.capacity.total}
+        </span>
+      )}
       {/* Sygnał „włóż do statku" — plakietka LOAD nad duchem, gdy kursor jest nad
           statkiem-nosicielem z wolną capacity. */}
       {ghost.loading && (

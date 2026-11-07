@@ -107,6 +107,20 @@ export function UnitStack({
       : {};
   // Czy ten statek jest aktualnym celem załadunku (kursor z ładunkiem nad nim) —
   // wtedy go podświetlamy, by było jasne „tu włożysz jednostkę".
+  // Zaznaczenie Ctrl+klik: ile sztuk TEGO stosu jest w grupie do wspólnego ruchu.
+  const selectedCount = useAppStore((s) =>
+    dndEnabled &&
+    s.multiSelect?.fromPosition === tilePosition &&
+    s.multiSelect.faction === faction
+      ? (s.multiSelect.items[`${unitType}|${stackHolder(stack)}`]?.count ?? 0)
+      : 0,
+  );
+  const selectedBadge =
+    selectedCount > 0 ? (
+      <span className={classes.selectedBadge}>
+        {selectedCount}/{count}
+      </span>
+    ) : null;
   const dragLoadTarget = useAppStore((s) => s.dragLoadTarget);
   const isLoadTarget =
     !!tilePosition &&
@@ -161,7 +175,7 @@ export function UnitStack({
     return (
       <div
         ref={setWrapperRef}
-        className={`${classes.badgeContainer} ${wrapperClass} ${dndEnabled ? classes.draggable : ""} ${isLoadTarget ? classes.loadTarget : ""}`}
+        className={`${classes.badgeContainer} ${wrapperClass} ${dndEnabled ? classes.draggable : ""} ${isLoadTarget ? classes.loadTarget : ""} ${selectedCount > 0 ? classes.multiSelected : ""}`}
         style={{
           left: `${x}px`,
           top: `${y}px`,
@@ -173,6 +187,7 @@ export function UnitStack({
         {...shipTag}
       >
         <UnitDragGhost ghost={unitDrag.ghost} />
+        {selectedBadge}
         <div
           className={classes.badgeInnerWrapper}
           style={{
@@ -224,7 +239,7 @@ export function UnitStack({
       {...handlers}
       {...dragProps}
       {...shipTag}
-      className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""} ${isLoadTarget ? classes.loadTarget : ""}`}
+      className={`${classes.stackWrapper} ${wrapperClass} ${dndEnabled ? classes.draggable : ""} ${isLoadTarget ? classes.loadTarget : ""} ${selectedCount > 0 ? classes.multiSelected : ""}`}
       style={{
         left: `${x + (footprint.left + footprint.right) / 2}px`,
         top: `${y + (footprint.top + footprint.bottom) / 2}px`,
@@ -235,6 +250,7 @@ export function UnitStack({
       }}
     >
       <UnitDragGhost ghost={unitDrag.ghost} />
+      {selectedBadge}
       {galvanizedCount > 1 && !showIndividualGalvanized && (
         <GalvanizeBadge
           count={galvanizedCount}

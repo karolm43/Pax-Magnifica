@@ -70,6 +70,7 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaFactionAbilities: true,
   showPlayerAreaNeighborship: true,
   adminFastMode: false,
+  freeUnitDrag: false,
 };
 
 /** Legacy settings stored a boolean `showControlTokens` instead of the mode. */
@@ -242,6 +243,27 @@ type AppStore = {
   beginUnitDrop: (drop: NonNullable<AppStore["unitDrop"]>) => void;
   clearUnitDrop: () => void;
 
+  /*
+   * Zaznaczenie wielu jednostek (Ctrl+klik) do wspólnego ruchu taktycznego. Jedno
+   * kliknięcie = +1 sztuka danego stosu (po wyczerpaniu stosu kolejny klik zdejmuje
+   * zaznaczenie). Zaznaczenie dotyczy jednego systemu źródłowego i jednej frakcji.
+   * Klucz pozycji: ``asyncId|strefa``.
+   */
+  multiSelect: {
+    fromPosition: string;
+    faction: string;
+    items: Record<string, { asyncId: string; fromZone: string; count: number }>;
+  } | null;
+  /** Dodaje 1 sztukę do zaznaczenia (cyklicznie: po ``max`` zdejmuje wpis). */
+  ctrlPickUnit: (pick: {
+    fromPosition: string;
+    faction: string;
+    asyncId: string;
+    fromZone: string;
+    max: number;
+  }) => void;
+  clearMultiSelect: () => void;
+
   /** Czy trwa przeciąganie jednostki (chowa tooltip na czas gestu). */
   isDraggingUnit: boolean;
   setDraggingUnit: (dragging: boolean) => void;
@@ -360,6 +382,29 @@ export const useAppStore = create<AppStore>((set) => {
     beginUnitDrop: (drop) => set({ unitDrop: drop }),
     clearUnitDrop: () => set({ unitDrop: null }),
 
+    multiSelect: null,
+    ctrlPickUnit: ({ fromPosition, faction, asyncId, fromZone, max }) =>
+      set((state) => {
+        const cur = state.multiSelect;
+        // Inny system/frakcja niż dotychczasowe zaznaczenie → zaczynamy od nowa.
+        const base =
+          cur && cur.fromPosition === fromPosition && cur.faction === faction
+            ? cur.items
+            : {};
+        const key = `${asyncId}|${fromZone}`;
+        const next = { ...base };
+        const have = next[key]?.count ?? 0;
+        if (have + 1 > max) delete next[key];
+        else next[key] = { asyncId, fromZone, count: have + 1 };
+        return {
+          multiSelect:
+            Object.keys(next).length > 0
+              ? { fromPosition, faction, items: next }
+              : null,
+        };
+      }),
+    clearMultiSelect: () => set({ multiSelect: null }),
+
     notice: null,
     setNotice: (text, kind = "error") => set({ notice: { text, kind } }),
     clearNotice: () => set({ notice: null }),
@@ -437,6 +482,12 @@ export type Settings = {
    * to wyłącznie przyspieszenie przejść dla dewelopera.
    */
   adminFastMode: boolean;
+  /*
+   * Swobodne przeciąganie jednostek (God-Mode). Wyłączone (domyślnie): drag na mapie
+   * przenosi jednostki WYŁĄCZNIE do aktywnego systemu (walidowany ruch taktyczny).
+   * Włączone: jednostkę można upuścić w dowolnym miejscu (omija reguły, /units/move).
+   */
+  freeUnitDrag: boolean;
 };
 
 type BooleanSettingKey = {

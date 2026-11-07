@@ -1512,3 +1512,5 @@ Dodatkowo potwierdzenie: ZAGRANIE KARTY STRATEGII to akcja (odblokowuje End turn
 
 **QA (wszystko zielone):** backend `uv run pytest -q` 486 passed, ruff + mypy czyste; frontend
 type-check + lint + build czyste.
+
+- Front/ruch: drag jednostek na mapie domyślnie tylko do aktywnego systemu (walidowany `/tactical/move`); swobodny drag (God-Mode) pod ustawieniem „Free unit dragging". Ctrl+klik zaznacza grupę (1 klik = 1 sztuka, statki + myśliwce/piechota/mechy), plakietka „Cap użyte/pojemność" przy kursorze, drag grupy = jedna komenda ruchu.

@@ -141,6 +141,14 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
                 handlers.updateSettings({ adminFastMode: checked })
               }
             />
+            <SwitchRow
+              label="Free unit dragging (God-Mode)"
+              description="Allow dragging units anywhere on the map, ignoring the rules. When off, units can only be dragged into the active system as a validated tactical move."
+              checked={settings.freeUnitDrag}
+              onToggle={(checked) =>
+                handlers.updateSettings({ freeUnitDrag: checked })
+              }
+            />
           </SettingGroup>
 
           <SettingGroup label="Map display">

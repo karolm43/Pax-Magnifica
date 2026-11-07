@@ -1,0 +1,30 @@
+/* Plakietka zaznaczenia Ctrl+klik podążająca za kursorem. */
+.hud {
+  position: fixed;
+  z-index: 9998;
+  display: flex;
+  gap: 8px;
+  padding: 3px 9px;
+  font-family: var(--font-data, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  color: #fff;
+  background: rgba(20, 24, 33, 0.94);
+  border: 1px solid rgba(255, 212, 94, 0.7);
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.cap {
+  color: #86efac;
+}
+
+.hud[data-over] {
+  border-color: rgba(248, 113, 113, 0.8);
+}
+
+.hud[data-over] .cap {
+  color: #fca5a5;
+}

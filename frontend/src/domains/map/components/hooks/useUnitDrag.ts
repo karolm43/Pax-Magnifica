@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useAppStore } from "@/state/appStore";
+import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { lookupUnit } from "@/entities/lookup/units";
 import { isShipUnit } from "../UnitStack/unitType";
-import { baseTypeOf, isCargoUnit } from "../UnitStack/cargo";
+import { baseTypeOf, isCargoUnit, isStructureUnit } from "../UnitStack/cargo";
+import {
+  summarizeSelection,
+  type MultiSelection,
+} from "../UnitStack/selectionCapacity";
 
 /** Statek-nosiciel pod kursorem (z atrybutów data-ship-* stosu w DOM) lub null. */
 function shipStackAt(
@@ -71,7 +75,23 @@ export type DragGhost = {
   imageUrl?: string | null;
   /** Czy kursor jest nad statkiem-nosicielem (duch pokazuje sygnał „załaduj"). */
   loading?: boolean;
+  /** Przy przeciąganiu grupy (Ctrl+zaznaczenie): zajęcie/pojemność zaznaczenia. */
+  capacity?: { used: number; total: number };
 };
+
+/** Grupa zaznaczona Ctrl+klikiem, do której należy przeciągana jednostka (lub null). */
+function groupFor(info: UnitDragData): MultiSelection | null {
+  const sel = useAppStore.getState().multiSelect;
+  if (
+    !sel ||
+    sel.fromPosition !== info.fromPosition ||
+    sel.faction !== info.faction ||
+    !sel.items[`${info.asyncId}|${info.fromZone}`]
+  ) {
+    return null;
+  }
+  return sel;
+}
 
 type RawZone = { position: string; zone: string; label: string } | null;
 
@@ -118,9 +138,31 @@ function resolveTarget(
   clientX: number,
   clientY: number,
   activeSystem: string | null,
+  freeDrag: boolean,
+  group: boolean,
 ): ResolvedTarget {
   const raw = rawZoneAt(clientX, clientY);
   if (!raw) return null;
+  // Grupa (Ctrl+zaznaczenie) jedzie zawsze walidowanym ruchem do przestrzeni
+  // aktywnego systemu — niezależnie od tego, co jest przeciągane z grupy.
+  if (group) {
+    return {
+      position: raw.position,
+      zone: "space",
+      label: "Space",
+      valid: activeSystem !== null && raw.position === activeSystem,
+    };
+  }
+  // Bez swobodnego draggingu (God-Mode wyłączony) wolno tylko ruch taktyczny do
+  // przestrzeni aktywnego systemu; reszta reguł poniżej (ładunek itd.) zostaje.
+  if (!freeDrag && (activeSystem === null || raw.position !== activeSystem)) {
+    return {
+      position: raw.position,
+      zone: raw.zone,
+      label: raw.label,
+      valid: false,
+    };
+  }
   const ship = isShipUnit(data.asyncId);
   const inTactical = activeSystem !== null;
   let zone = raw.zone;
@@ -171,6 +213,9 @@ export function useUnitDrag(data: UnitDragData | null) {
   const openLoadTransport = useAppStore((s) => s.openLoadTransport);
   const setDragLoadTarget = useAppStore((s) => s.setDragLoadTarget);
   const { moveUnit, moveShips } = useBoardEditor();
+  const freeDrag = useSettingsStore((s) => s.settings.freeUnitDrag);
+  const freeDragRef = useRef(freeDrag);
+  freeDragRef.current = freeDrag;
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
   // playerData w ref — do sprawdzenia capacity statku pod kursorem (lookupUnit)
@@ -240,6 +285,42 @@ export function useUnitDrag(data: UnitDragData | null) {
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
 
+      // GRUPA (Ctrl+zaznaczenie): jedna walidowana komenda ruchu dla wszystkich
+      // zaznaczonych — statki jako ``ships``, myśliwce/piechota/mechy jako ``cargo``.
+      const group = groupFor(info);
+      if (group) {
+        const gt = resolveTarget(
+          info,
+          clientX,
+          clientY,
+          activeSystemRef.current,
+          freeDragRef.current,
+          true,
+        );
+        if (!gt || !gt.valid || gt.position === group.fromPosition) return;
+        const ships: { baseType: string; count: number }[] = [];
+        const cargo: { baseType: string; count: number; fromZone: string }[] = [];
+        for (const it of Object.values(group.items)) {
+          if (isCargoUnit(it.asyncId)) {
+            cargo.push({
+              baseType: baseTypeOf(it.asyncId),
+              count: it.count,
+              fromZone: it.fromZone,
+            });
+          } else if (!isStructureUnit(it.asyncId)) {
+            ships.push({ baseType: baseTypeOf(it.asyncId), count: it.count });
+          }
+        }
+        useAppStore.getState().clearMultiSelect();
+        void moveShips({
+          fromPosition: group.fromPosition,
+          faction: group.faction,
+          ships,
+          cargo,
+        });
+        return;
+      }
+
       // „Wkładanie do statku": upuszczenie ŁADUNKU NA statek-nosiciela z capacity →
       // otwórz okno załadunku (ekwipunek statku) z preselekcją tej jednostki.
       const loadShip = loadShipAt(clientX, clientY, info);
@@ -253,7 +334,14 @@ export function useUnitDrag(data: UnitDragData | null) {
         return;
       }
 
-      const target = resolveTarget(info, clientX, clientY, activeSystemRef.current);
+      const target = resolveTarget(
+        info,
+        clientX,
+        clientY,
+        activeSystemRef.current,
+        freeDragRef.current,
+        false,
+      );
       if (!target || !target.valid) return; // niedozwolony cel = brak ruchu
 
       // Ruch TAKTYCZNY (walidowany): cel = aktywny system podczas akcji taktycznej.
@@ -330,14 +418,20 @@ export function useUnitDrag(data: UnitDragData | null) {
       const info = dataRef.current;
       if (info) {
         // Czy pod kursorem jest statek-nosiciel do załadunku? (feedback „włóż do statku").
-        const loadShip = loadShipAt(e.clientX, e.clientY, info);
+        const group = groupFor(info);
+        // W trybie grupy nie ma „włóż do statku" — cała grupa jedzie do aktywnego systemu.
+        const loadShip = group ? null : loadShipAt(e.clientX, e.clientY, info);
+        const sum = group
+          ? summarizeSelection(group, playersRef.current)
+          : null;
         setGhost({
           x: e.clientX,
           y: e.clientY,
           asyncId: info.asyncId,
-          count: info.count,
+          count: sum ? sum.total : info.count,
           imageUrl: info.imageUrl,
           loading: loadShip !== null,
+          capacity: sum ? { used: sum.used, total: sum.capacity } : undefined,
         });
         setDragLoadTarget(loadShip);
         // Podświetl kafelek-cel pod kursorem (planszówkowy feedback „tu upuścisz").
@@ -351,6 +445,8 @@ export function useUnitDrag(data: UnitDragData | null) {
             e.clientX,
             e.clientY,
             activeSystemRef.current,
+            freeDragRef.current,
+            group !== null,
           );
           setDragOver(
             target
@@ -412,13 +508,38 @@ export function useUnitDrag(data: UnitDragData | null) {
   }, []);
 
   // Gasi klik tuż po udanym przeciąganiu (jednorazowo) — dossier się nie otwiera.
-  const onClickCapture = useCallback((event: React.MouseEvent) => {
-    if (justDragged.current) {
-      justDragged.current = false;
+  const ctrlPickUnit = useAppStore((s) => s.ctrlPickUnit);
+  const setNotice = useAppStore((s) => s.setNotice);
+  const onClickCapture = useCallback(
+    (event: React.MouseEvent) => {
+      if (justDragged.current) {
+        justDragged.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      // Ctrl+klik: dodaj 1 sztukę stosu do zaznaczenia grupy (ruch taktyczny).
+      const info = dataRef.current;
+      if (!(event.ctrlKey || event.metaKey) || !info) return;
       event.preventDefault();
       event.stopPropagation();
-    }
-  }, []);
+      if (isStructureUnit(info.asyncId)) return;
+      const active = activeSystemRef.current;
+      if (active === null) {
+        setNotice("Activate a system first to select units for movement.", "info");
+        return;
+      }
+      if (info.fromPosition === active) return; // z aktywnego systemu nie ruszamy
+      ctrlPickUnit({
+        fromPosition: info.fromPosition,
+        faction: info.faction,
+        asyncId: info.asyncId,
+        fromZone: info.fromZone,
+        max: info.count,
+      });
+    },
+    [ctrlPickUnit, setNotice],
+  );
 
   return { ghost, dragRef, onClickCapture };
 }

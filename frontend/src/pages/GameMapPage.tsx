@@ -9,6 +9,7 @@ import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { SystemDossierModal } from "@/domains/map/components/SystemDossier/SystemDossierModal";
 import { MoveUnitsModal } from "@/domains/map/components/MoveUnitsModal";
 import { MoveQuantityModal } from "@/domains/map/components/MoveQuantityModal";
+import { MultiSelectHud } from "@/domains/map/components/MultiSelectHud";
 import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal";
 import { CapacityModal } from "@/domains/map/components/CapacityModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
@@ -249,6 +250,7 @@ function GameMapContent() {
       <SystemDossierModal />
       <MoveUnitsModal />
       <MoveQuantityModal />
+      <MultiSelectHud />
       <LoadTransportModal />
       <CombatModal />
       {/* Okno POLA BITWY — pełny ekran, samo pojawia się, gdy trwa walka (RULES.md 39). */}
