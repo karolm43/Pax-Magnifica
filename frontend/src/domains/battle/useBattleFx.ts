@@ -16,6 +16,8 @@ const VOLLEY_MS = 5200;
 const MAX_BOLTS_PER_SIDE = 22;
 
 const SUSTAIN_MS = 1400;
+/** Czas życia odlatujących okrętów (zawrót + odlot ~4,4 s + opóźnienia szeregów). */
+const LEAVING_MS = 6200;
 
 export type ShipView = {
   ship: ShipEntity;
@@ -89,7 +91,7 @@ export function useDyingShips(
         for (const id of leavingIds) next.delete(id);
         return next;
       });
-    }, DYING_MS);
+    }, leavingIds.length > 0 ? LEAVING_MS : DYING_MS);
   }, [signature]);
 
   const alive = new Set(ships.map((s) => s.id));

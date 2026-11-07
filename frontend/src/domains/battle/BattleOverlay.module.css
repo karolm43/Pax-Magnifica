@@ -1499,14 +1499,28 @@
   animation: engineSpool 0.9s ease-in-out infinite;
 }
 
-/* ODLOT: okręt rozpędza się ku własnej krawędzi pola (--dir: lewa -1, prawa 1), z płomieniem
-   silników na pełnej mocy, rozmyciem prędkości i błyskiem skoku na końcu. Kolejność szeregów
-   jak przy wejściu, tylko odwrotna: najpierw linia frontu osłania odwrót, ciężkie wychodzą pierwsze. */
+/* ODLOT: okręt ZAWRACA łukiem (kadłub z silnikami obraca się o 180°, kierunek skrętu --turn
+   naprzemiennie w górę/w dół), a potem rozpędza się dziobem naprzód ku własnej krawędzi pola
+   (--dir: lewa -1, prawa 1). Ciężkie okręty z tyłu zawracają pierwsze, linia frontu osłania. */
 .formation .ship[data-leaving],
 .formation[data-entered] .ship[data-leaving] {
+  --leave-delay: calc(var(--rank, 0) * -0.14s + 1s + var(--i, 0) * 0.1s);
   pointer-events: none;
-  animation: shipRetreat 3.2s cubic-bezier(0.55, 0, 0.75, 0.2) both;
-  animation-delay: calc(var(--rank, 0) * -0.12s + 0.9s + var(--i, 0) * 0.08s);
+  animation: shipRetreat 4.4s cubic-bezier(0.45, 0, 0.7, 0.3) both;
+  animation-delay: var(--leave-delay);
+}
+
+.ship[data-leaving] .hull {
+  animation: hullTurn 4.4s ease-in-out both;
+  animation-delay: var(--leave-delay);
+}
+
+.ship[data-leaving]:nth-child(odd) {
+  --turn: -1;
+}
+
+.ship[data-leaving]:nth-child(even) {
+  --turn: 1;
 }
 
 .ship[data-leaving] .engine {
@@ -1524,8 +1538,8 @@
   background: linear-gradient(90deg, transparent, rgb(var(--side-rgb) / 0.9), #fff);
   box-shadow: 0 0 10px rgb(var(--side-rgb) / 0.8);
   opacity: 0;
-  animation: warpStreak 3.2s ease-in both;
-  animation-delay: inherit;
+  animation: warpStreak 4.4s ease-in both;
+  animation-delay: var(--leave-delay);
 }
 
 .ship[data-side="left"][data-leaving] .hull::after {
@@ -1648,24 +1662,38 @@
     opacity: 1;
     transform: none;
   }
-  /* krótkie przyczajenie — okręt zbiera moc */
+  /* zawracanie łukiem: lekki wychył do przodu i w bok, bez cofania */
   18% {
-    opacity: 1;
-    transform: translateX(calc(var(--dir, -1) * -6px));
+    transform: translate(calc(var(--dir, -1) * -18px), calc(var(--turn, 1) * 14px));
   }
-  85% {
+  34% {
+    transform: translate(calc(var(--dir, -1) * -10px), calc(var(--turn, 1) * 30px));
+  }
+  /* po zwrocie: rozpęd dziobem naprzód ku własnej krawędzi */
+  86% {
     opacity: 1;
-    transform: translateX(calc(var(--dir, -1) * 55vw)) scaleX(1.15);
+    transform: translate(calc(var(--dir, -1) * 55vw), calc(var(--turn, 1) * 36px));
   }
   100% {
     opacity: 0;
-    transform: translateX(calc(var(--dir, -1) * 75vw)) scaleX(1.3);
+    transform: translate(calc(var(--dir, -1) * 75vw), calc(var(--turn, 1) * 38px));
+  }
+}
+
+/* Obrót kadłuba (właściwość `rotate` — nie koliduje z dryfem na `translate`). */
+@keyframes hullTurn {
+  0% {
+    rotate: 0deg;
+  }
+  36%,
+  100% {
+    rotate: calc(var(--turn, 1) * 180deg);
   }
 }
 
 @keyframes warpStreak {
   0%,
-  40% {
+  55% {
     opacity: 0;
     width: 0;
   }
