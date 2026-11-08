@@ -26,6 +26,7 @@ import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import {
   prettifyId,
@@ -260,7 +261,9 @@ function Podium({
         <article className={styles.agendaCard} data-type={(type ?? "").toLowerCase()}>
           <header>
             <span className={styles.agendaType}>{type ?? "Agenda"}</span>
-            <b>{name}</b>
+            <b>
+              {name} <FanSourceBadge source={data?.source} />
+            </b>
             {target ? <small>{target}</small> : null}
           </header>
           {text1 ? <p>{text1}</p> : null}

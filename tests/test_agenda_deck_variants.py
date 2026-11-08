@@ -54,3 +54,12 @@ def test_ensure_agenda_deck_uses_selected_variant(
     assert sorted(state.decks.agenda_deck) == sorted(agenda_deck_ids(registry, variant))
 
 
+
+
+def test_card_pool_exposes_agenda_variant(registry: StaticDataRegistry) -> None:
+    from src.api.web_objectives import card_pool_counts
+
+    state = GameState()
+    assert card_pool_counts(state, registry)["agendaVariant"] == "standard"
+    state.decks.agenda_variant = "absol"
+    assert card_pool_counts(state, registry)["agendaVariant"] == "absol"

@@ -1455,6 +1455,7 @@ def _empty_card_pool() -> dict[str, Any]:
         "agendaDeckSize": 0,
         "agendaFullDeckSize": 0,
         "agendaDiscardSize": 0,
+        "agendaVariant": "standard",
         "technologyDeck": [],
     }
 

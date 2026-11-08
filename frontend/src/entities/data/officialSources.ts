@@ -5,7 +5,12 @@
  * (pula kart, edytor gracza) dublowałyby pozycje. Trzymamy oficjalny zestaw:
  * base + pok + codex1–4 + thunders_edge.
  */
-import { ACTIVE_DECK_IDS, type ActiveDeckKind } from "./activeDecks";
+import {
+  ACTIVE_DECK_IDS,
+  AGENDA_VARIANT_DECK_IDS,
+  type ActiveDeckKind,
+  type AgendaVariant,
+} from "./activeDecks";
 
 export const OFFICIAL_SOURCES: ReadonlySet<string> = new Set([
   "base",
@@ -38,4 +43,28 @@ const activeDeckSets: Record<ActiveDeckKind, ReadonlySet<string>> = {
  */
 export function isInActiveDeck(kind: ActiveDeckKind, alias: string): boolean {
   return activeDeckSets[kind].has(alias);
+}
+
+const agendaVariantSets: Record<AgendaVariant, ReadonlySet<string>> = {
+  absol: new Set(AGENDA_VARIANT_DECK_IDS.absol),
+};
+
+/** Czy `variant` to znana fanowska talia agend (np. "absol"); "standard" → false. */
+export function isAgendaVariant(variant: string | undefined): variant is AgendaVariant {
+  return !!variant && variant in agendaVariantSets;
+}
+
+/**
+ * Czy agenda należy do talii agend gry. `variant` = `cardPool.agendaVariant` z backendu:
+ * "standard" (lub brak) → talia aktywnych źródeł, inaczej wskazana talia fanowska.
+ */
+export function isInAgendaDeck(variant: string | undefined, alias: string): boolean {
+  return isAgendaVariant(variant)
+    ? agendaVariantSets[variant].has(alias)
+    : activeDeckSets.agenda.has(alias);
+}
+
+/** Krótka plakietka źródła fanowskiej karty (np. "ABS" dla Absol); `null` = oficjalna. */
+export function fanSourceBadge(source: string | undefined): string | null {
+  return source === "absol" ? "ABS" : null;
 }

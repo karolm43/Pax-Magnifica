@@ -5,6 +5,7 @@ import {
   DeckList,
 } from "@/domains/cards/components/CardDetailsModal/CardDetailsModal";
 import { cardSearchKey, searchTarget } from "@/domains/search/searchKeys";
+import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import styles from "./CardPoolBrowser.module.css";
 
 const NOTE = /(\[Note:[^\]]*\])/i;
@@ -65,6 +66,7 @@ export function CardPoolBrowser({ groups, renderActions, deckId }: Props) {
                 >
                   <header className={styles.header}>
                     <span className={styles.name}>{entry.name}</span>
+                    <FanSourceBadge source={entry.source} />
                     {entry.copies && entry.copies > 1 && (
                       <span className={styles.copies}>×{entry.copies}</span>
                     )}

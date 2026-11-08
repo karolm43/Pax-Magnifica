@@ -6,6 +6,8 @@ import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { LawDetailsCard } from "@/domains/cards/components/LawDetailsCard";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
+import { getAgenda } from "@/entities/lookup/agendas";
+import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import styles from "./LawCard.module.css";
 
 type Props = {
@@ -67,7 +69,9 @@ function LawCard({ law, playerData }: Props) {
             <IconScale size={14} stroke={1.8} />
           </span>
           <span className={styles.head}>
-            <span className={styles.name}>{law.name}</span>
+            <span className={styles.name}>
+              {law.name} <FanSourceBadge source={getAgenda(law.id)?.source} />
+            </span>
             <Elected law={law} playerData={playerData} />
           </span>
           {mapText && <span className={styles.text}>{mapText}</span>}

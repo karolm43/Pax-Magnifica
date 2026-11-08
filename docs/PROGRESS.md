@@ -1787,3 +1787,7 @@ type-check + lint + build czyste.
 - Front: przełącznik „Absol agenda deck" w Ustawieniach (Game variants, `settings.absolAgendas`); `createNewGame` wysyła `agenda_deck`. Kreator setupu bez zmian.
 - Efekty kart agend nadal NIE są kodowane (ewidencja praw); nietypowe cele (`manual`) wpisuje operator.
 - Baseline audytu odświeżony (`audit/baseline_counts.json`, +agendas/decks dla Absol).
+- Pula agend na froncie idzie za talią gry: `cardPool.agendaVariant` (web-data) → `agendaPool(variant)`
+  (rewers talii agend + wyszukiwarka). `activeDecks.ts` ma `AGENDA_VARIANT_DECK_IDS` (generator
+  `scripts/gen_active_decks.py`). Karty Absol mają plakietkę „ABS" (`shared/ui/FanSourceBadge`):
+  pula kart, Rada Galaktyczna, prawa w grze, panel stanu agendy.

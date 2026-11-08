@@ -74,7 +74,10 @@ function CardPool({ cardPool }: Props) {
           </Slot>
         )}
         <Slot label="Agenda">
-          <AgendaDeckCardBack count={cardPool.agendaDeckSize} />
+          <AgendaDeckCardBack
+            count={cardPool.agendaDeckSize}
+            variant={cardPool.agendaVariant}
+          />
         </Slot>
         <Slot label="Relics">
           <RelicDeckCardBack count={cardPool.relicDeckSize} />

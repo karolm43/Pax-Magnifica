@@ -365,7 +365,11 @@ function addDeckCards(builder: IndexBuilder, gameData: GameData) {
 
   const decks: { id: string; label: string; groups: PoolGroup[] }[] = [
     { id: "action", label: "Action deck", groups: actionCardPool() },
-    { id: "agenda", label: "Agenda deck", groups: agendaPool() },
+    {
+      id: "agenda",
+      label: "Agenda deck",
+      groups: agendaPool(gameData.cardPool?.agendaVariant),
+    },
     { id: "relic", label: "Relic deck", groups: relicPool() },
     { id: "secret", label: "Secret objectives deck", groups: secretObjectivePool() },
     { id: "stage1", label: "Stage I objectives", groups: publicObjectivePool(1) },

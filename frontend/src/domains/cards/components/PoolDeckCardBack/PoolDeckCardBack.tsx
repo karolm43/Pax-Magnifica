@@ -31,8 +31,14 @@ type BackProps = {
 };
 
 /** Rewers talii agend; klik → pełna pula agend (prawa i dyrektywy). */
-export function AgendaDeckCardBack({ count }: BackProps) {
-  const groups = useMemo(() => agendaPool(), []);
+export function AgendaDeckCardBack({
+  count,
+  variant,
+}: BackProps & {
+  /** Wariant talii agend gry (`cardPool.agendaVariant`): "standard" albo "absol". */
+  variant?: string;
+}) {
+  const groups = useMemo(() => agendaPool(variant), [variant]);
   return (
     <CardbackModal
       imageSrc={assetUrl("/player_area/cardback_agenda.png")}

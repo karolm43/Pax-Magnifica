@@ -18,8 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.core.objectives import deck_card_ids  # noqa: E402
+from src.core.objectives import agenda_deck_ids, deck_card_ids  # noqa: E402
 from src.core.registry import StaticDataRegistry  # noqa: E402
+from src.core.sources import AGENDA_VARIANT_DECKS  # noqa: E402
 
 OUTPUT = ROOT / "frontend" / "src" / "entities" / "data" / "activeDecks.ts"
 
@@ -51,6 +52,20 @@ def render(registry: StaticDataRegistry) -> str:
         "} as const;",
         "",
         "export type ActiveDeckKind = keyof typeof ACTIVE_DECK_IDS;",
+        "",
+        "// Fanowskie talie agend z Ustawień (silnik: core.objectives.agenda_deck_ids).",
+        "export const AGENDA_VARIANT_DECK_IDS = {",
+    ]
+    for variant, alias in AGENDA_VARIANT_DECKS.items():
+        if alias is None:
+            continue
+        lines.append(f"  {variant}: [")
+        lines.extend(f'    "{card_id}",' for card_id in sorted(agenda_deck_ids(registry, variant)))
+        lines.append("  ],")
+    lines += [
+        "} as const;",
+        "",
+        "export type AgendaVariant = keyof typeof AGENDA_VARIANT_DECK_IDS;",
         "",
     ]
     return "\n".join(lines)

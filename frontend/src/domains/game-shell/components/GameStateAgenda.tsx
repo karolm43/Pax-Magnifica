@@ -1,5 +1,6 @@
 import { IconGavel } from "@tabler/icons-react";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { agendas } from "@/entities/data/agendas";
 import type { GamePhase, GameStateAgenda } from "@/entities/data/types";
 import {
@@ -29,6 +30,7 @@ function AgendaHeading({
           <IconGavel size={12} />
         </span>
         <b>{displayName ?? "Agenda not revealed"}</b>
+        <FanSourceBadge source={agendaData?.source} />
       </span>
       {(target || agendaData?.text1) && (
         <span className={styles.agendaText}>{target ?? agendaData?.text1}</span>

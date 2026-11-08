@@ -4,7 +4,12 @@ import { publicObjectives } from "@/entities/data/publicObjectives";
 import { secretObjectives } from "@/entities/data/secretObjectives";
 import { relics } from "@/entities/data/relics";
 import { explorations } from "@/entities/data/explorations";
-import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
+import {
+  isAgendaVariant,
+  isInActiveDeck,
+  isInAgendaDeck,
+  isOfficialSource,
+} from "@/entities/data/officialSources";
 
 /** Jedna pozycja listy w przeglądarce puli kart. */
 export type PoolEntry = {
@@ -23,6 +28,8 @@ export type PoolEntry = {
   ids?: string[];
   /** Ta karta jest teraz na wierzchu talii (wiadomo to tylko w trybie debug). */
   next?: boolean;
+  /** Źródło karty (np. "absol") - fanowskie dostają plakietkę przy nazwie. */
+  source?: string;
 };
 
 /** Grupa pozycji (np. „Laws", „Directives", „Stage I") z własnym kolorem sygnału. */
@@ -49,12 +56,16 @@ function agendaText(text1: string, text2?: string, mapText?: string): string {
 }
 
 /**
- * Pełna pula agend z aktywnych źródeł, rozbita na Prawa i Dyrektywy.
- * Źródło: statyczne dane `entities/data/agendas` (cała talia, nie stan gry).
+ * Pełna pula agend talii gry, rozbita na Prawa i Dyrektywy.
+ * `variant` = `cardPool.agendaVariant`: "standard" (aktywne źródła) albo fanowska talia
+ * (np. "absol"). Źródło: statyczne dane `entities/data/agendas` (cała talia, nie stan gry).
  */
-export function agendaPool(): PoolGroup[] {
+export function agendaPool(variant?: string): PoolGroup[] {
+  const fan = isAgendaVariant(variant);
   const official = agendas.filter(
-    (a) => isOfficialSource(a.source) && isInActiveDeck("agenda", a.alias),
+    (a) =>
+      (fan ? a.source === variant : isOfficialSource(a.source)) &&
+      isInAgendaDeck(variant, a.alias),
   );
   const laws: PoolEntry[] = [];
   const directives: PoolEntry[] = [];
@@ -69,6 +80,7 @@ export function agendaPool(): PoolGroup[] {
       name: a.name,
       text: body,
       meta: a.type,
+      source: a.source,
     };
     if ((a.type || "").toLowerCase() === "law") laws.push(entry);
     else directives.push(entry);
