@@ -87,6 +87,7 @@ export function FleetPoolModal() {
 
   return (
     <AppModal
+      minimizable
       opened
       // Wymuszone: nadwyżkę statków trzeba zwrócić (R_fleet_pool) - modal znika po zamknięciu okna.
       onClose={() => {}}

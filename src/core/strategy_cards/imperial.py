@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import objectives
+from src.core import objective_progress, objectives
 from src.core.dice import next_rng
 from src.core.game_state import GameState
 from src.core.map_string import MECATOL_SYSTEM_ID
@@ -146,6 +146,9 @@ def _options(
     }
     if step is not None:
         result["mecatol"] = controls_mecatol(state, player_id)
+        result["home_controlled"] = objectives.controls_home_planets(
+            state, ctx.registry, player_id
+        )
         result["objectives"] = (
             objectives.scoreable_public_objectives(
                 state, ctx.registry, ctx.require_grid(), player_id, ignore_phase=True
@@ -153,7 +156,33 @@ def _options(
             if ctx.grid is not None
             else []
         )
+        # Pełna lista odkrytych, niezdobytych celów z postępem - ten sam kształt co
+        # ``status.publicOptions`` (panel punktowania fazy statusu), dla spójnego UI.
+        result["public_options"] = (
+            _public_options(state, ctx, player_id) if ctx.grid is not None else []
+        )
     return result
+
+
+def _public_options(state: GameState, ctx: CardContext, player_id: str) -> list[dict[str, Any]]:
+    home = objectives.controls_home_planets(state, ctx.registry, player_id)
+    options: list[dict[str, Any]] = []
+    for objective_id in state.objectives.revealed:
+        if objectives.has_scored_public(state, player_id, objective_id):
+            continue
+        value, goal, ok = objective_progress.evaluate(
+            state, ctx.registry, ctx.require_grid(), player_id, objective_id
+        )
+        options.append(
+            {
+                "key": objective_id,
+                "progress": value,
+                "threshold": goal,
+                "ready": ok and home,
+                "manual": value is None,
+            }
+        )
+    return options
 
 
 SPEC = CardSpec(

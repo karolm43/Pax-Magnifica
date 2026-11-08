@@ -1388,6 +1388,9 @@ innych graczy do darmowego, obowiązkowego secondary (krok `choose_free_players`
 uzupełnij commodities (koszt: 1 żeton ze strategy pool, o ile nie wskazany). Kolejność kroków i
 fakt, że umowy obejmujące późniejsze kroki są niewiążące — notka R_trade, poza zakresem silnika.
 Efekty „when replenishes commodities" (np. Trade Agreement) dojdą hookami (E7).
+DECYZJA użytkownika (2026-11): gracze wskazani przez aktywnego rozstrzygają secondary AUTOMATYCZNIE,
+w swojej kolejności w oknie (bez pytania i bez żetonu) - nie ma w nim żadnego wyboru, a okno „follow"
+z informacją o koszcie żetonu tylko myliło (`strategic_action._auto_resolve_free`).
 
 ### 30.7. Leadership — wydawanie wpływu — ✅ ZWERYFIKOWANE (R_leadership, R_influence, R_trade_goods)
 
@@ -1401,6 +1404,10 @@ Efekty „when replenishes commodities" (np. Trade Agreement) dojdą hookami (E7
   tirules nie opisuje pustej rezerwy, stosujemy ogólną regułę „tokens come from reinforcements").
 - Kształt UI: `GET /strategy/options?player_id=` zwraca opcje kroku; `needs_input` w secondary mówi,
   czy „follow" wymaga widoku wyboru.
+- DECYZJA użytkownika (UI, 2026-11): okno NIE pozwala na zbędny wydatek - żadnej planety ani trade
+  good, które da się odjąć bez utraty żetonu (np. 2 wpływu za 0 żetonów, 5 za 1). Nadwyżka nieunikniona
+  (planeta o wpływie 4 = 1 żeton) jest dozwolona. Silnik nadal akceptuje każdą legalną płatność (reguła
+  dopuszcza marnowanie) - ograniczenie jest wyłącznie w interfejsie.
 
 ### 30.8. Diplomacy (errata Codex I) — ✅ ZWERYFIKOWANE (R_diplomacy)
 
@@ -1421,6 +1428,9 @@ Primary w kolejności: nowy mówca (gracz bez żetonu mówcy, także aktywny) �
 górnych agend, każda na górę/spód talii (obie na jednej stronie → dowolna kolejność). Podgląd PRYWATNY:
 opcje kroku zwracane tylko właścicielowi, szkic nie zawiera kart. Secondary (1 żeton): 2 karty akcji.
 Talia agend powstaje leniwie (`core/card_draw.ensure_agenda_deck`, `DecksState.agenda_deck`).
+Mówca i 2 karty akcji są rozstrzygane od razu w kroku `choose_speaker` (kolejność efektów karty), żeby
+gracz widział dobrane karty przed układaniem agend; lista dobranych kart leży w prywatnym kluczu szkicu
+`_drawn` (klucze z „_" nie trafiają do publicznego `pendingStrategy` w web-data).
 ⚠️ Limit ręki 7 kart nie jest modelowany (jak w fazie statusu, 41.5). ⚠️ `/state` ujawnia zawartość talii
 (jak talię akcji) - do ukrycia przy module sieciowym.
 

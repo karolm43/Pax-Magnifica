@@ -251,3 +251,33 @@ def test_imperial_secondary_draws_with_token_and_limit(registry: StaticDataRegis
     state = strategic_action.resolve_secondary(state, registry, "p2", execute=True)
     assert state.players["p2"].private.secret_objectives == ["s1"]
     assert state.players["p2"].strategic_cc == 1
+
+
+def test_politics_draws_at_speaker_step_and_hides_cards(registry: StaticDataRegistry) -> None:
+    from src.api.web_data import _pending_strategy
+
+    state = _politics_ready(registry)
+    hand = state.players["p1"].private.action_cards
+    assert hand == ["a1", "a2"]  # dobrane od razu po wyborze mówcy
+    assert state.speaker_id == "p3"
+    own = strategic_action.step_options(state, registry, "p1")
+    assert own is not None and own["options"]["drawn"] == ["a1", "a2"]
+    public = _pending_strategy(state)
+    assert public is not None and "_drawn" not in public["draft"]
+
+
+def test_imperial_options_carry_progress_rows(registry: StaticDataRegistry) -> None:
+    from src.core.hex_grid import HexGrid
+
+    grid = HexGrid()
+    grid.place_system("000", "18")
+    grid.place_system("101", "26")
+    grid.build_edges()
+    state = _state(8)
+    state.objectives.revealed = ["corner"]
+    state = strategic_action.play_strategy_card(state, registry, "p1", 8, grid=grid)
+    prompt = strategic_action.step_options(state, registry, "p1", grid)
+    assert prompt is not None
+    rows = prompt["options"]["public_options"]
+    assert [r["key"] for r in rows] == ["corner"]
+    assert set(rows[0]) == {"key", "progress", "threshold", "ready", "manual"}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { type CSSProperties } from "react";
 import { Tile } from "./Tile";
 import classes from "./MapTile.module.css";
 import { useSettingsStore, useAppStore } from "@/state/appStore";
@@ -98,6 +98,12 @@ export const MapTile = React.memo<Props>(
     const moveRangeSources = useAppStore((state) => state.moveRangeSources);
     const { activateSystem } = useBoardEditor();
     const tileMenu = useContextMenu();
+    const systemPick = useAppStore((state) =>
+      state.mapPick?.kind === "system" ? state.mapPick : null,
+    );
+    const planetPickActive = useAppStore((state) => state.mapPick?.kind === "planet");
+    const isSystemPickTarget =
+      !embedded && (systemPick?.targets.includes(mapTile.position) ?? false);
 
     /* Hyperlanes have nothing to report. Hover feedback is pure CSS so the
        tile never re-renders under a moving cursor. */
@@ -106,6 +112,9 @@ export const MapTile = React.memo<Props>(
     /* Klik w kafelek zależy od trybu: przenoszenie → wybór źródła/celu;
        aktywacja (akcja taktyczna) → aktywacja systemu; inaczej → dossier. */
     const handleDossierOpen = () => {
+      // Wybór celu na mapie (okno karty strategii) ma pierwszeństwo przed resztą trybów.
+      if (isSystemPickTarget && systemPick) return systemPick.onPick(mapTile.position);
+      if (systemPick || planetPickActive) return; // tryb wyboru: klik obok celu nic nie robi
       if (moveMode) return pickMoveTile(mapTile.position);
       if (activateMode) return pickActivateTile(mapTile.position);
       return openSystemDossier(mapTile.position, mapTile.systemId);
@@ -184,7 +193,11 @@ export const MapTile = React.memo<Props>(
           top: embedded ? 0 : `${position.y}px`,
           position: embedded ? "relative" : undefined,
           opacity: getTileOpacity(),
-          cursor: moveMode || activateMode ? "crosshair" : undefined,
+          cursor: isSystemPickTarget
+            ? "pointer"
+            : moveMode || activateMode
+              ? "crosshair"
+              : undefined,
         }}
         onContextMenu={
           tileMenuItems.length > 0 ? tileMenu.onContextMenu : undefined
@@ -223,6 +236,21 @@ export const MapTile = React.memo<Props>(
             <svg
               key={`${mapReplay.key}-system-highlight`}
               className={classes.tacticalActivationGlow}
+              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              aria-hidden="true"
+            >
+              <path d={HEX_PATH} />
+            </svg>
+          )}
+          {isSystemPickTarget && (
+            <svg
+              className={classes.mapPickHex}
+              data-selected={systemPick?.selected === mapTile.position || undefined}
+              style={
+                systemPick?.hue
+                  ? ({ "--pick-hue": systemPick.hue } as CSSProperties)
+                  : undefined
+              }
               viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
               aria-hidden="true"
             >

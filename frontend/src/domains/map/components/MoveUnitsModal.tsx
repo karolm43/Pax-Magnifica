@@ -108,6 +108,7 @@ export function MoveUnitsModal() {
 
   return (
     <AppModal
+      minimizable
       opened={!!movePair}
       onClose={clearMove}
       title={

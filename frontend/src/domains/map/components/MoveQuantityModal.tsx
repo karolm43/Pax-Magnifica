@@ -80,6 +80,7 @@ export function MoveQuantityModal() {
 
   return (
     <AppModal
+      minimizable
       opened={!!drop}
       onClose={clearUnitDrop}
       title={`Move: ${drop.fromPosition} ${fromName} → ${drop.toPosition} ${toName}`}

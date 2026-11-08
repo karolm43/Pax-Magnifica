@@ -191,7 +191,9 @@ def _pending_strategy(state: GameState) -> dict[str, Any] | None:
         "ownerId": pending.owner_id,
         "ownerColor": _color_of(state, pending.owner_id),
         "step": pending.step,
-        "draft": dict(pending.draft),
+        # Klucze z prefiksem „_" są PRYWATNE (np. dobrane karty akcji w Politics) - nie
+        # trafiają do publicznego dokumentu; właściciel dostaje je przez /strategy/options.
+        "draft": {k: v for k, v in pending.draft.items() if not k.startswith("_")},
     }
 
 

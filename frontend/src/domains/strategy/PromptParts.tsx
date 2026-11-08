@@ -148,21 +148,21 @@ export function PaymentPicker({
           </div>
         )}
       </Section>
-      {tradeGoodsAvailable > 0 ? (
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>
-            Trade goods
-            <small>1 trade good = 1 {unit}</small>
-          </span>
-          <Stepper
-            value={value.tradeGoods}
-            max={tradeGoodsAvailable}
-            onChange={(tradeGoods) => onChange({ ...value, tradeGoods })}
-            disabled={busy}
-            label="trade goods"
-          />
-        </div>
-      ) : null}
+      <div className={styles.row}>
+        <span className={styles.rowLabel}>
+          <img className={styles.tgIcon} src="/tg.png" alt="" aria-hidden="true" /> Trade goods
+          <small>
+            1 trade good = 1 {unit} · you have {tradeGoodsAvailable}
+          </small>
+        </span>
+        <Stepper
+          value={value.tradeGoods}
+          max={tradeGoodsAvailable}
+          onChange={(tradeGoods) => onChange({ ...value, tradeGoods })}
+          disabled={busy || tradeGoodsAvailable === 0}
+          label="trade goods"
+        />
+      </div>
     </>
   );
 }

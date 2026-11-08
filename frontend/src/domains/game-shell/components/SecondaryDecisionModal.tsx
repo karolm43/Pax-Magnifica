@@ -18,7 +18,27 @@ import {
   type GameStatePlayer,
 } from "./gameStatePlayers";
 import { StrategyPrimaryStepModal } from "./StrategyPrimaryStepModal";
-import { SECONDARY_VIEWS } from "@/domains/strategy/cards";
+import { SECONDARY_MODE, SECONDARY_VIEWS } from "@/domains/strategy/cards";
+import { DrawnActionCards } from "@/domains/strategy/cards/Politics";
+import { PromptDock } from "@/domains/strategy/PromptDock";
+import { fetchJson } from "@/api/fetchJson";
+import { getBotApiUrl } from "@/api/auth/botApiUrl";
+import type { PlayerHandData } from "@/shared/types/playerHand";
+
+const POLITICS_INITIATIVE = 3;
+
+/** Karty akcji na ręce gracza (lokalny tryb: operator widzi każdą rękę). */
+async function fetchActionCards(gameId: string, playerId: string): Promise<string[]> {
+  try {
+    const hand = await fetchJson<PlayerHandData>(
+      getBotApiUrl(`/game/${gameId}/hand?player=${encodeURIComponent(playerId)}`),
+      "player hand",
+    );
+    return [...(hand.actionCards ?? [])];
+  } catch {
+    return [];
+  }
+}
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 
@@ -55,6 +75,8 @@ export function SecondaryDecisionModal() {
   const [busy, setBusy] = useState(false);
   // Kursor okna, dla którego respondent wybiera dane do „follow" (null = decyzja).
   const [composingCursor, setComposingCursor] = useState<number | null>(null);
+  // Karty akcji dobrane przez „follow" (Politics) - pokazywane respondentowi po decyzji.
+  const [drawn, setDrawn] = useState<{ name: string; cards: string[] } | null>(null);
 
   const window = gameState?.pendingWindow ?? null;
   // Pokazujemy TYLKO dla okna secondary z czekającym respondentem. Pozostałe typy
@@ -112,7 +134,30 @@ export function SecondaryDecisionModal() {
     const id = window?.currentResponderId;
     if (!id || busy) return;
     setBusy(true);
-    void strategySecondary(id, execute, payload).finally(() => setBusy(false));
+    // Karty dobierające karty akcji (Politics): pokaż respondentowi, co dobrał - różnica
+    // ręki przed/po (ręka jest prywatna, więc pytamy tylko o jego własną).
+    const showDraws = execute && initiative === POLITICS_INITIATIVE;
+    void (async () => {
+      try {
+        const before = showDraws ? await fetchActionCards(gameId, id) : [];
+        await strategySecondary(id, execute, payload);
+        if (showDraws) {
+          const after = await fetchActionCards(gameId, id);
+          const pool = [...before];
+          const fresh = after.filter((card) => {
+            const i = pool.indexOf(card);
+            if (i >= 0) {
+              pool.splice(i, 1);
+              return false;
+            }
+            return true;
+          });
+          setDrawn({ name: responderName, cards: fresh });
+        }
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   // Karty, których „follow" wymaga wyborów (np. Leadership: planety + rozkład żetonów),
@@ -133,18 +178,55 @@ export function SecondaryDecisionModal() {
 
   // Koszt follow: żeton ze strategy pool (window.context.cost = 1), chyba że respondent
   // został wskazany jako „free" (wtedy secondary jest DARMOWE i OBOWIĄZKOWE).
-  const isFree = (String(window?.context?.free ?? "").split(",") as string[]).includes(
+  const isFree = String(window?.context?.free ?? "").split(",").includes(
     window?.currentResponderId ?? "\0",
   );
   const needsToken = Number(window?.context?.cost ?? 0) > 0 && !isFree;
   const poolTokens = (responder as { strategicCC?: number } | undefined)?.strategicCC;
   const cannotAfford = needsToken && (poolTokens ?? 1) < 1;
 
+  // Wybór na mapie (Construction): widok wyborów w nieblokującym doku zamiast modala.
+  const inDock =
+    composing && initiative != null && SECONDARY_MODE[initiative] === "dock";
+  const inputView =
+    composing && InputView && prompt ? (
+      <InputView
+        key={window?.cursor}
+        prompt={prompt}
+        shell={shell}
+        responder={(responder as PromptPlayer | undefined) ?? undefined}
+        players={playerData as unknown as PromptPlayer[]}
+        busy={busy}
+        submit={(payload) => decide(true, payload)}
+        back={() => setComposingCursor(null)}
+      />
+    ) : null;
+
   return (
     <>
     <StrategyPrimaryStepModal />
+    {inDock && inputView ? (
+      <PromptDock label={`${cardName} - secondary`}>{inputView}</PromptDock>
+    ) : null}
     <AppModal
-      opened={isSecondary}
+      opened={drawn != null}
+      onClose={() => setDrawn(null)}
+      title="Action cards drawn"
+      size={460}
+    >
+      <Stack gap="md">
+        <Text size="sm">
+          <b>{drawn?.name}</b> drew {drawn?.cards.length ?? 0} action card(s):
+        </Text>
+        <DrawnActionCards cards={drawn?.cards ?? []} />
+        <Group justify="flex-end">
+          <Button onClick={() => setDrawn(null)}>OK</Button>
+        </Group>
+      </Stack>
+    </AppModal>
+    <AppModal
+      minimizable={`${cardName} - secondary`}
+      opened={isSecondary && !inDock}
       // Modal wymuszony: nie zamykamy go samodzielnie — zniknie, gdy backend domknie
       // okno (po decyzji ostatniego gracza). onClose to no-op (wymagany przez typ).
       onClose={() => {}}
@@ -154,17 +236,8 @@ export function SecondaryDecisionModal() {
       title="Strategy Card — secondary ability"
       size={composing ? 560 : 460}
     >
-      {composing && InputView && prompt ? (
-        <InputView
-          key={window?.cursor}
-          prompt={prompt}
-          shell={shell}
-          responder={(responder as PromptPlayer | undefined) ?? undefined}
-          players={playerData as unknown as PromptPlayer[]}
-          busy={busy}
-          submit={(payload) => decide(true, payload)}
-          back={() => setComposingCursor(null)}
-        />
+      {inputView ? (
+        inputView
       ) : (
       <Stack gap="md">
         {/* Kto teraz decyduje. */}

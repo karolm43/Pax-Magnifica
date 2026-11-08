@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { IconArrowLeft, IconCheck } from "@tabler/icons-react";
+import { IconArrowLeft, IconCheck, IconTarget } from "@tabler/icons-react";
+import { useMapPick } from "../mapPick";
 import { Button } from "@/ds";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
@@ -62,7 +63,6 @@ function useToggle(): [string[], (id: string) => void] {
 }
 
 export function DiplomacyPrimary({ prompt, shell, busy, submit }: PrimaryViewProps) {
-  const [system, setSystem] = useState<string | null>(null);
   const [planets, toggle] = useToggle();
 
   if (prompt.step === "ready_planets") {
@@ -97,51 +97,58 @@ export function DiplomacyPrimary({ prompt, shell, busy, submit }: PrimaryViewPro
     );
   }
 
+  return <ChooseSystem prompt={prompt} shell={shell} busy={busy} submit={submit} />;
+}
+
+/** Krok wyboru systemu: legalne systemy świecą na mapie, klik wybiera (dok u góry ekranu). */
+function ChooseSystem({
+  prompt,
+  shell,
+  busy,
+  submit,
+}: Pick<PrimaryViewProps, "prompt" | "shell" | "busy" | "submit">) {
+  const [system, setSystem] = useState<string | null>(null);
   const systems = (prompt.options.systems ?? {}) as Record<string, string[]>;
   const positions = Object.keys(systems);
+  useMapPick("system", positions, setSystem, {
+    hue: shell.hue,
+    selected: system,
+    enabled: !busy,
+  });
+  const names = system
+    ? systems[system].map((id) => getPlanetData(id)?.name ?? id).join(" · ")
+    : null;
   return (
     <PromptShell
       hue={shell.hue}
       initiative={shell.initiative}
       title={shell.title}
       badge="Primary"
-      subtitle="Choose a system"
+      subtitle="Choose a system on the map"
       footer={
         <ConfirmButton
           disabled={busy || (positions.length > 0 && system == null)}
           icon={<IconCheck size={16} />}
           onClick={() => submit({ system })}
         >
-          {positions.length === 0 ? "Continue (no valid system)" : "Place command tokens"}
+          {positions.length === 0
+            ? "Continue (no valid system)"
+            : names
+              ? `Place command tokens in ${names}`
+              : "Click a highlighted system"}
         </ConfirmButton>
       }
     >
-      <Hint>
-        Choose a system <b>other than Mecatol Rex</b> that contains a planet you control. Each
-        other player places a command token there from their reinforcements.
-      </Hint>
       {positions.length === 0 ? (
-        <span className={styles.empty}>
-          You control no planet outside Mecatol Rex - nobody places a token.
-        </span>
+        <Hint>
+          You control no planet outside Mecatol Rex - nobody places a command token.
+        </Hint>
       ) : (
-        <Section title="Systems with your planets">
-          <div className={styles.chips}>
-            {positions.map((pos) => (
-              <button
-                key={pos}
-                type="button"
-                className={styles.chip}
-                data-on={system === pos || undefined}
-                disabled={busy}
-                onClick={() => setSystem(pos)}
-              >
-                {systems[pos].map((id) => getPlanetData(id)?.name ?? id).join(" · ")}
-                <small>({pos})</small>
-              </button>
-            ))}
-          </div>
-        </Section>
+        <Hint>
+          <IconTarget size={14} aria-hidden="true" /> <b>Click a highlighted system</b> on the
+          map (not Mecatol Rex, with a planet you control). Every other player places a command
+          token there from their reinforcements, so they cannot activate it.
+        </Hint>
       )}
     </PromptShell>
   );

@@ -220,14 +220,224 @@
   cursor: not-allowed;
 }
 
-/* Nieblokujący dok kroku (mapa i panel akcji taktycznej zostają klikalne). */
-.dock {
+
+
+/* --- Żeton gracza (ikona frakcji + kolor gracza) --- */
+.playerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--pc) 45%, var(--ds-h22));
+  background: color-mix(in srgb, var(--pc) 10%, var(--ds-ground));
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+  text-align: left;
+}
+
+.playerChip[data-on] {
+  border-color: var(--pc);
+  background: color-mix(in srgb, var(--pc) 26%, var(--ds-ground));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc) 45%, transparent);
+}
+
+.playerChip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.playerIcon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--pc);
+  background: var(--ds-ground-2);
+  flex: none;
+}
+
+.playerText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.playerText b {
+  font-size: 13px;
+}
+
+.playerText small {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+  text-transform: capitalize;
+}
+
+.playerBadge {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pc);
+}
+
+/* --- Koło stołu (wybór mówcy w Politics) --- */
+.table {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 4px auto;
+}
+
+.tableFelt {
+  position: absolute;
+  inset: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--ds-h14);
+  background: radial-gradient(circle, color-mix(in srgb, var(--sc-hue) 14%, var(--ds-ground)) 0%, var(--ds-ground-2) 75%);
+  color: var(--ds-ink-lo);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.seat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 84px;
+  transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
+  border: none;
+  background: none;
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+  padding: 0;
+}
+
+.seat:disabled {
+  cursor: not-allowed;
+}
+
+.seatIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 4px solid var(--pc);
+  background: var(--ds-ground-2);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.seat:not(:disabled):hover .seatIcon {
+  transform: scale(1.08);
+}
+
+.seat[data-on] .seatIcon {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 55%, transparent), 0 0 24px var(--pc);
+}
+
+.seat:disabled .seatIcon {
+  opacity: 0.55;
+}
+
+.seatName {
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.seatTag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.seatTag[data-kind="speaker"] {
+  color: var(--ds-yellow-4);
+}
+
+.seatTag[data-kind="new"] {
+  color: var(--ds-green-4);
+}
+
+.speakerToken {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ds-yellow-5);
+  color: var(--ds-black);
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
+}
+
+.speakerToken[data-ghost] {
+  background: transparent;
+  border: 2px dashed var(--ds-green-4);
+  color: var(--ds-green-4);
+}
+
+/* --- Dobrane karty akcji --- */
+.cardList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actionCard {
+  flex: 1 1 200px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--ds-red-6) 45%, var(--ds-h22));
+  background: color-mix(in srgb, var(--ds-red-9) 14%, var(--ds-ground));
+}
+
+.actionCard b {
+  display: block;
+  font-size: 13px;
+  color: var(--ds-ink-hi);
+}
+
+.actionCard small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ds-ink);
+}
+
+/* --- Nieblokujący dok kroku: u GÓRY ekranu (nie zasłania kart przy dolnej krawędzi) --- */
+.topDock {
   position: fixed;
   left: 50%;
-  bottom: 96px;
+  top: 70px;
   transform: translateX(-50%);
-  z-index: var(--z-app-modal, 400);
-  width: min(520px, calc(100vw - 32px));
+  z-index: var(--z-app-modal, 3000);
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
+  overflow: auto;
   padding: 12px;
   border-radius: 12px;
   border: 1px solid var(--ds-h22);
@@ -235,3 +445,16 @@
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.55);
 }
 
+.dockBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.tgIcon {
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  vertical-align: -4px;
+  object-fit: contain;
+}

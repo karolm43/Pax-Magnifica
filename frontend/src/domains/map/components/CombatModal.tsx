@@ -117,6 +117,7 @@ export function CombatModal() {
 
   return (
     <AppModal
+      minimizable
       opened={!!combatTarget}
       onClose={closeCombat}
       title={`${planet ? "Ground" : "Space"} Combat: ${where ?? ""}`}

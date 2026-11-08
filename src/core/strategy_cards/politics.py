@@ -19,6 +19,8 @@ from src.core.strategy_cards.common import str_list
 INITIATIVE = 3
 ACTION_CARDS_DRAWN = 2  # „draws two action cards" (primary i secondary)
 AGENDA_PEEK = 2  # „top two cards of the agenda deck"
+# Klucz szkicu z dobranymi kartami akcji - prywatny (prefiks „_" nie wychodzi do web-data).
+PRIVATE_DRAWN_KEY = "_drawn"
 
 
 def _peek(state: GameState) -> list[str]:
@@ -39,6 +41,16 @@ def _on_step(
             raise ValueError("Choose a player to become the speaker.")
         if chosen == state.speaker_id:
             raise ValueError("The chosen player already has the speaker token.")
+        # Efekty „od góry do dołu" (R_strategic_action): mówca, potem 2 karty akcji - od razu,
+        # żeby gracz widział dobrane karty przed decyzją o agendach.
+        state.speaker_id = chosen
+        drawn_before = len(state.players[owner_id].private.action_cards)
+        for _ in range(ACTION_CARDS_DRAWN):
+            draw_action_card(state, owner_id)
+        hand = state.players[owner_id].private.action_cards
+        # Klucz z „_" jest PRYWATNY: nie trafia do publicznego ``pendingStrategy`` (web-data),
+        # widzi go tylko właściciel przez opcje kroku.
+        draft[PRIVATE_DRAWN_KEY] = list(hand[drawn_before:])
         draft["speaker"] = chosen
         # Talia agend musi istnieć przed podglądem (zasiew trafia do klonu stanu).
         ensure_agenda_deck(state, ctx.registry)
@@ -57,9 +69,7 @@ def _on_step(
 def _primary(
     state: GameState, ctx: CardContext, owner_id: str, draft: Draft
 ) -> None:
-    state.speaker_id = draft["speaker"]
-    for _ in range(ACTION_CARDS_DRAWN):
-        draw_action_card(state, owner_id)
+    # Mówca i karty akcji rozstrzygnięte już w kroku ``choose_speaker``; tu tylko agendy.
     ensure_agenda_deck(state, ctx.registry)
     decks = state.decks
     peeked = _peek(state)
@@ -87,7 +97,7 @@ def _options(
         # Odczyt bez mutacji oryginału: zasiew na kopii (talia i tak powstała w kroku 1).
         view = state.clone()
         ensure_agenda_deck(view, ctx.registry)
-        return {"cards": _peek(view)}
+        return {"cards": _peek(view), "drawn": list(_draft.get(PRIVATE_DRAWN_KEY, []))}
     return {"needs_input": False}
 
 

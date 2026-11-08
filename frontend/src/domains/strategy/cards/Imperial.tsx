@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { IconArrowLeft, IconCheck } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCheck } from "@tabler/icons-react";
 import { Button } from "@/ds";
-import { getPublicObjective } from "@/entities/lookup/publicObjectives";
+import { publicObjectives } from "@/entities/data/publicObjectives";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
+import type { StatusObjectiveOption } from "@/entities/data/types";
+import { ObjectiveRow } from "@/domains/game-shell/components/StatusPhasePanel/StatusPhasePanel";
+import statusStyles from "@/domains/game-shell/components/StatusPhasePanel/StatusPhasePanel.module.css";
 import { ConfirmButton, Hint, PromptShell, Section } from "../PromptParts";
 import styles from "../StrategyPrompt.module.css";
 import { num, strList, type StrategyPrompt } from "../strategyPrompt";
@@ -10,9 +13,17 @@ import type { PrimaryViewProps, SecondaryViewProps } from "./types";
 
 /*
  * Imperial (RULES.md 30.10): primary - zdobądź cel publiczny (jeśli spełniasz), potem 1 VP
- * za Mecatol albo tajny cel; secondary - tajny cel. Limit 3 tajnych: nadmiar wymaga zwrotu
+ * za Mecatol albo tajny cel; secondary - tajny cel. Cele pokazuje TEN SAM wiersz z paskiem
+ * postępu co panel punktowania fazy statusu. Limit 3 tajnych: nadmiar wymaga zwrotu
  * jednego NIEzdobytego celu (albo świeżo dobranego, "drawn").
  */
+
+const objectiveInfo = new Map(publicObjectives.map((o) => [o.alias, o]));
+
+function optionsOf(prompt: StrategyPrompt): StatusObjectiveOption[] {
+  const raw = prompt.options.public_options;
+  return Array.isArray(raw) ? (raw as StatusObjectiveOption[]) : [];
+}
 
 function ReturnPicker({
   unscored,
@@ -26,7 +37,7 @@ function ReturnPicker({
   busy: boolean;
 }) {
   return (
-    <Section title="You would hold more than 3 secret objectives - return one">
+    <Section title="You would hold more than 3 secret objectives - return one first">
       <div className={styles.chips}>
         {unscored.map((id) => (
           <button
@@ -57,12 +68,13 @@ function ReturnPicker({
 
 export function ImperialPrimary({ prompt, shell, busy, submit }: PrimaryViewProps) {
   const o = prompt.options;
-  const objectives = strList(o.objectives);
   const mecatol = o.mecatol === true;
+  const homeOk = o.home_controlled !== false;
   const overLimit = o.over_limit === true && !mecatol;
-  const [objective, setObjective] = useState<string | null>(null);
   const [giveBack, setGiveBack] = useState<string | null>(null);
-  const ready = !overLimit || giveBack != null;
+  const blocked = overLimit && giveBack == null;
+  const rows = [...optionsOf(prompt)].sort((a, b) => Number(b.ready) - Number(a.ready));
+  const send = (objective: string | null) => submit({ objective, return: giveBack });
   return (
     <PromptShell
       hue={shell.hue}
@@ -72,58 +84,26 @@ export function ImperialPrimary({ prompt, shell, busy, submit }: PrimaryViewProp
       subtitle="Score an objective"
       footer={
         <ConfirmButton
-          disabled={busy || !ready}
+          disabled={busy || blocked}
           icon={<IconCheck size={16} />}
-          onClick={() => submit({ objective, return: giveBack })}
+          onClick={() => send(null)}
         >
-          {objective ? "Score and continue" : "Continue without scoring"}
+          Score nothing
         </ConfirmButton>
       }
     >
       <Hint>
-        You may immediately score <b>1 public objective</b> whose requirements you meet.{" "}
+        You may immediately score <b>1 public objective</b> whose requirements you meet. Then{" "}
         {mecatol ? (
           <>
-            You control Mecatol Rex, so you then <b>gain 1 victory point</b>.
+            you control Mecatol Rex, so you <b>gain 1 victory point</b>.
           </>
         ) : (
           <>
-            You do not control Mecatol Rex, so you then <b>draw 1 secret objective</b>.
+            you do not control Mecatol Rex, so you <b>draw 1 secret objective</b>.
           </>
         )}
       </Hint>
-      <Section title="Public objectives you can score now">
-        {objectives.length === 0 ? (
-          <span className={styles.empty}>
-            None - you meet no requirements (or do not control all of your home planets).
-          </span>
-        ) : (
-          <div className={styles.chips}>
-            <button
-              type="button"
-              className={styles.chip}
-              data-on={objective == null || undefined}
-              disabled={busy}
-              onClick={() => setObjective(null)}
-            >
-              Score none
-            </button>
-            {objectives.map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={styles.chip}
-                data-on={objective === id || undefined}
-                disabled={busy}
-                onClick={() => setObjective(id)}
-                title={getPublicObjective(id)?.text}
-              >
-                {getPublicObjective(id)?.name ?? id}
-              </button>
-            ))}
-          </div>
-        )}
-      </Section>
       {overLimit ? (
         <ReturnPicker
           unscored={strList(o.unscored)}
@@ -132,6 +112,38 @@ export function ImperialPrimary({ prompt, shell, busy, submit }: PrimaryViewProp
           busy={busy}
         />
       ) : null}
+      <div className={statusStyles.group}>
+        <h4>
+          Public objectives
+          <small>score up to one</small>
+        </h4>
+        {!homeOk && (
+          <p className={statusStyles.warnLine}>
+            <IconAlertTriangle size={14} aria-hidden="true" />
+            You do not control every planet in your home system - public objectives are locked.
+          </p>
+        )}
+        {rows.length === 0 && (
+          <span className={statusStyles.empty}>No revealed objectives left to score.</span>
+        )}
+        {rows.map((option) => {
+          const info = objectiveInfo.get(option.key);
+          const points = info?.points ?? 1;
+          return (
+            <ObjectiveRow
+              key={option.key}
+              name={info?.name ?? option.key}
+              text={info?.text}
+              points={points}
+              option={option}
+              stage={points >= 2 ? "blue" : "orange"}
+              scored={false}
+              busy={busy || blocked}
+              onScore={() => send(option.key)}
+            />
+          );
+        })}
+      </div>
     </PromptShell>
   );
 }
@@ -148,7 +160,12 @@ export function ImperialSecondary({ prompt, shell, busy, submit, back }: Seconda
       subtitle="Draw a secret objective"
       footer={
         <>
-          <Button variant="default" disabled={busy} leftSection={<IconArrowLeft size={16} />} onClick={back}>
+          <Button
+            variant="default"
+            disabled={busy}
+            leftSection={<IconArrowLeft size={16} />}
+            onClick={back}
+          >
             Back
           </Button>
           <ConfirmButton
@@ -174,5 +191,3 @@ export function ImperialSecondary({ prompt, shell, busy, submit, back }: Seconda
     </PromptShell>
   );
 }
-
-export type { StrategyPrompt };

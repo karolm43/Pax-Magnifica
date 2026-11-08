@@ -128,6 +128,18 @@ function getInitialZoomIndex() {
   return isMobileDevice() ? 0 : defaultZoomIndex;
 }
 
+/** Wybór celu na mapie (patrz ``AppStore.mapPick``). */
+export type MapPick = {
+  kind: "system" | "planet";
+  /** Dozwolone cele: pozycje systemów (``kind=system``) albo id planet (``kind=planet``). */
+  targets: string[];
+  onPick: (target: string) => void;
+  /** Kolor podświetlenia (np. kolor karty strategii); domyślnie akcent. */
+  hue?: string;
+  /** Aktualnie wybrany cel (rysowany mocniej). */
+  selected?: string | null;
+};
+
 type AppStore = {
   hoveredPlanetId: string | null;
   scrollToPlanetId: string | null;
@@ -163,6 +175,15 @@ type AppStore = {
   toggleActivateMode: () => void;
   pickActivateTile: (position: string) => void;
   clearActivateRequest: () => void;
+
+  /*
+   * Wybór CELU NA MAPIE dla okien gry (karty strategii: system w Diplomacy / Warfare,
+   * planeta pod strukturę w Construction). Okno ustawia listę dozwolonych celów i
+   * callback; ``MapTile`` / ``PlanetCirclesLayer`` podświetlają cele i przekazują klik.
+   * Ma pierwszeństwo przed dossier i trybami ruchu/aktywacji. ``null`` = brak wyboru.
+   */
+  mapPick: MapPick | null;
+  setMapPick: (pick: MapPick | null) => void;
 
   /*
    * Podgląd zasięgu ruchu (krok MOVEMENT akcji taktycznej): zbiór pozycji systemów,
@@ -357,6 +378,9 @@ export const useAppStore = create<AppStore>((set) => {
     pickActivateTile: (position: string) =>
       set((s) => (s.activateMode ? { activateRequest: position } : {})),
     clearActivateRequest: () => set({ activateRequest: null }),
+
+    mapPick: null,
+    setMapPick: (pick: MapPick | null) => set({ mapPick: pick }),
 
     moveRangeSources: new Set<string>(),
     setMoveRangeSources: (positions: Set<string>) =>

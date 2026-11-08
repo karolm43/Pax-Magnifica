@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { IconArrowLeft, IconBuildingFactory2, IconCheck, IconHammer } from "@tabler/icons-react";
+import {
+  IconArrowLeft,
+  IconBuildingFactory2,
+  IconCheck,
+  IconHammer,
+  IconTarget,
+} from "@tabler/icons-react";
+import { useMapPick } from "../mapPick";
 import { Button } from "@/ds";
 import { getPlanetData } from "@/entities/lookup/planets";
-import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { ConfirmButton, Hint, PromptShell, Section } from "../PromptParts";
 import styles from "../StrategyPrompt.module.css";
 import type { StrategyPrompt } from "../strategyPrompt";
@@ -28,58 +34,58 @@ function placeableOf(prompt: StrategyPrompt): Record<string, string[]> {
   return raw && typeof raw === "object" ? (raw as Record<string, string[]>) : {};
 }
 
-/** Wybór planety i struktury do położenia (wspólny dla obu kroków primary i secondary). */
+/**
+ * Wybór planety NA MAPIE (podświetlone legalne planety) i rodzaju struktury w doku.
+ * Wspólny dla obu kroków primary i dla secondary.
+ */
 function StructurePicker({
   placeable,
   value,
   onChange,
   busy,
+  hue,
 }: {
   placeable: Record<string, string[]>;
   value: { planet: string; structure: string } | null;
   onChange: (next: { planet: string; structure: string } | null) => void;
   busy: boolean;
+  hue: string;
 }) {
   const planets = Object.keys(placeable);
+  useMapPick(
+    "planet",
+    planets,
+    (id) => onChange({ planet: id, structure: placeable[id]?.[0] ?? "pds" }),
+    { hue, selected: value?.planet ?? null, enabled: !busy },
+  );
   if (planets.length === 0) {
     return <span className={styles.empty}>You have no legal place for a structure.</span>;
   }
+  if (value == null) {
+    return (
+      <Hint>
+        <IconTarget size={14} aria-hidden="true" /> <b>Click a highlighted planet</b> on the map
+        to place the structure there.
+      </Hint>
+    );
+  }
   return (
-    <Section title="Planet and structure">
-      <div className={styles.planets}>
-        {planets.map((id) => {
-          const picked = value?.planet === id;
-          return (
-            <div className={styles.planetSlot} key={id}>
-              <PlanetCard
-                planetId={id}
-                picked={picked}
-                onPick={busy ? undefined : () => onChange(picked ? null : { planet: id, structure: placeable[id][0] })}
-              />
-              {picked ? (
-                <div className={styles.chips}>
-                  {placeable[id].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={styles.chip}
-                      data-on={value?.structure === s || undefined}
-                      disabled={busy}
-                      onClick={() => onChange({ planet: id, structure: s })}
-                    >
-                      {STRUCTURE_LABEL[s] ?? s}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <span className={styles.planetValue}>
-                  {getPlanetData(id)?.name ?? id}
-                </span>
-              )}
-            </div>
-          );
-        })}
+    <Section title={`Structure on ${getPlanetData(value.planet)?.name ?? value.planet}`}>
+      <div className={styles.chips}>
+        {(placeable[value.planet] ?? []).map((s) => (
+          <button
+            key={s}
+            type="button"
+            className={styles.chip}
+            data-on={value.structure === s || undefined}
+            disabled={busy}
+            onClick={() => onChange({ planet: value.planet, structure: s })}
+          >
+            {STRUCTURE_LABEL[s] ?? s}
+          </button>
+        ))}
       </div>
+      <Hint>Click another highlighted planet to change it.</Hint>
     </Section>
   );
 }
@@ -185,7 +191,13 @@ export function ConstructionPrimary({ prompt, shell, busy, submit }: PrimaryView
         Place <b>1 structure</b> (PDS or space dock) on a planet you control. Limits: 1 space
         dock and 2 PDS per planet, none on the Demilitarized Zone.
       </Hint>
-      <StructurePicker placeable={placeable} value={pick} onChange={setPick} busy={busy} />
+      <StructurePicker
+        placeable={placeable}
+        value={pick}
+        onChange={setPick}
+        busy={busy}
+        hue={shell.hue}
+      />
     </PromptShell>
   );
 }
@@ -214,7 +226,13 @@ export function ConstructionSecondary({ prompt, shell, busy, submit, back }: Sec
         Spend <b>1 token from your strategy pool</b> to place 1 structure on a planet you
         control.
       </Hint>
-      <StructurePicker placeable={placeableOf(prompt)} value={pick} onChange={setPick} busy={busy} />
+      <StructurePicker
+        placeable={placeableOf(prompt)}
+        value={pick}
+        onChange={setPick}
+        busy={busy}
+        hue={shell.hue}
+      />
     </PromptShell>
   );
 }

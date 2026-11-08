@@ -38,6 +38,12 @@ export type StepMode = "modal" | "dock" | "hidden";
  * oknie (produkcja, akcja taktyczna), więc modal zasłaniałby to, czego potrzebuje.
  */
 export const PRIMARY_STEP_MODE: Record<number, Record<string, StepMode>> = {
-  4: { production: "hidden" },
+  2: { choose_system: "dock" },
+  4: { production: "hidden", place_structure: "dock", place_structure_2: "dock" },
   6: { activate_system: "dock", tactical_action: "dock" },
+};
+
+/** Secondary z wyborem na mapie pokazujemy w doku (nie w modalu), żeby mapa była klikalna. */
+export const SECONDARY_MODE: Record<number, StepMode> = {
+  4: "dock",
 };

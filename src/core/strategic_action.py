@@ -77,7 +77,7 @@ def _finish_primary(
     if not queue:
         return state
     free = [p for p in draft.get("free_players", []) if p in queue]
-    return timing.open_window(
+    opened = timing.open_window(
         state,
         WindowType.STRATEGY_SECONDARY,
         queue,
@@ -88,6 +88,29 @@ def _finish_primary(
             "cost": 1 if spec.secondary_costs_token else 0,
         },
     )
+    return _auto_resolve_free(opened, ctx)
+
+
+def _auto_resolve_free(state: GameState, ctx: CardContext) -> GameState:
+    """Rozstrzyga AUTOMATYCZNIE secondary graczy „free" (Trade), gdy przychodzi ich kolej.
+
+    Wskazany gracz MUSI wykonać secondary (R_trade) i nie ma w nim żadnego wyboru (uzupełnienie
+    commodities), więc nie pytamy go oknem - efekt stosujemy w jego kolejce (kolejność od
+    lewej aktywnego zostaje zachowana). Zatrzymuje się na pierwszym nie-„free" respondencie.
+    """
+    current = state
+    while True:
+        window = current.pending_window
+        if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
+            return current
+        responder = window.current_responder
+        if responder is None or responder not in _free_players(window.context):
+            return current
+        spec = _spec(int(window.context.get("initiative", 0)))
+        current = current.clone()
+        if spec.secondary is not None:
+            spec.secondary(current, ctx, responder, {})
+        current = _advance_window(current, responder)
 
 
 def play_strategy_card(
@@ -261,7 +284,7 @@ def resolve_secondary(
         }
         return new_state
 
-    return _advance_window(new_state, player_id)
+    return _auto_resolve_free(_advance_window(new_state, player_id), CardContext(registry, grid))
 
 
 def _advance_window(state: GameState, player_id: str) -> GameState:

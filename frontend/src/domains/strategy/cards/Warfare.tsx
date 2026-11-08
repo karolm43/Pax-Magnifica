@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { IconCheck, IconTarget } from "@tabler/icons-react";
-import { useAppStore } from "@/state/appStore";
 import { ConfirmButton, Hint, PoolDistributor, PromptShell } from "../PromptParts";
-import { num, type PoolSplit } from "../strategyPrompt";
+import { useMapPick } from "../mapPick";
+import { num, strList, type PoolSplit } from "../strategyPrompt";
 import type { PrimaryViewProps } from "./types";
 
 /*
@@ -68,16 +68,18 @@ function Redistribute({
   );
 }
 
-/** Włącza tryb "wskaż system na mapie" na czas kroku; klik obsługuje TurnControls. */
-function ActivateDock({ shell }: PrimaryViewProps) {
-  const activateMode = useAppStore((s) => s.activateMode);
-  const toggleActivateMode = useAppStore((s) => s.toggleActivateMode);
-  useEffect(() => {
-    if (!useAppStore.getState().activateMode) toggleActivateMode();
-    return () => {
-      if (useAppStore.getState().activateMode) toggleActivateMode();
-    };
-  }, [toggleActivateMode]);
+/**
+ * Wybór systemu do darmowej akcji taktycznej: wszystkie systemy świecą na mapie, klik od
+ * razu aktywuje (jak zwykła aktywacja), ale przez krok karty - bez żetonu i bez puli.
+ * Nie używamy trybu aktywacji z TurnControls: tamten wywołuje zwykłą aktywację, którą
+ * silnik odrzuca („already took an action"), bo akcją tej tury jest już Warfare.
+ */
+function ActivateDock({ prompt, shell, busy, submit }: PrimaryViewProps) {
+  const systems = strList(prompt.options.systems);
+  useMapPick("system", systems, (position) => submit({ system: position }), {
+    hue: shell.hue,
+    enabled: !busy,
+  });
   return (
     <PromptShell
       hue={shell.hue}
@@ -87,10 +89,9 @@ function ActivateDock({ shell }: PrimaryViewProps) {
       subtitle="Tactical action - no command token"
     >
       <Hint>
-        <IconTarget size={14} aria-hidden="true" /> Click <b>any system on the map</b> to activate
-        it. No command token is placed (even if yours is already there) and the tactical pool is
-        not spent.
-        {activateMode ? "" : " (Picking mode is starting...)"}
+        <IconTarget size={14} aria-hidden="true" /> <b>Click any system on the map</b> to
+        activate it. No command token is placed (even if yours is already there) and your
+        tactic pool is not spent.
       </Hint>
     </PromptShell>
   );

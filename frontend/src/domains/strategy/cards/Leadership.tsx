@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconArrowLeft, IconCheck } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCheck } from "@tabler/icons-react";
 import { Button } from "@/ds";
 import {
   ConfirmButton,
@@ -28,7 +28,24 @@ function useInfluencePlan(options: Record<string, unknown>, baseGain: number) {
   const paid = paymentTotal(values, payment);
   const bought = Math.floor(paid / perToken);
   const gain = Math.min(baseGain + bought, reinforcements);
-  return { values, perToken, reinforcements, payment, setPayment, paid, bought, gain };
+  const wasted = wastefulPart(values, payment, perToken);
+  return { values, perToken, reinforcements, payment, setPayment, paid, bought, gain, wasted };
+}
+
+/**
+ * Czy płatność ma ZBĘDNĄ część: coś (planetę albo 1 trade good), co można odjąć bez utraty
+ * żetonu. Reguła pozwala zmarnować wpływ, ale UI tego nie dopuszcza (decyzja użytkownika):
+ * np. 2 wpływu za 0 żetonów albo 5 za 1. Nadwyżka nieunikniona (planeta 4 = 1 żeton) jest OK.
+ * Zwraca liczbę marnowanego wpływu (0 = płatność bez zbędnych elementów).
+ */
+function wastefulPart(values: Record<string, number>, payment: Payment, perToken: number): number {
+  const paid = paymentTotal(values, payment);
+  const tokens = Math.floor(paid / perToken);
+  const keeps = (less: number) => Math.floor((paid - less) / perToken) === tokens;
+  const removable =
+    (payment.tradeGoods > 0 && keeps(1)) ||
+    payment.planets.some((id) => (values[id] ?? 0) > 0 && keeps(values[id] ?? 0));
+  return removable ? paid - tokens * perToken : 0;
 }
 
 export function LeadershipPrimary(props: PrimaryViewProps) {
@@ -56,7 +73,7 @@ function SpendStep({
       subtitle="Gain command tokens"
       footer={
         <ConfirmButton
-          disabled={busy}
+          disabled={busy || plan.wasted > 0}
           icon={<IconCheck size={16} />}
           onClick={() =>
             submit({ planets: plan.payment.planets, trade_goods: plan.payment.tradeGoods })
@@ -67,8 +84,8 @@ function SpendStep({
       }
     >
       <Hint>
-        You gain <b>3 command tokens</b>. You may also spend any amount of influence to gain{" "}
-        <b>1 more for every {plan.perToken}</b> influence spent (extra influence is wasted).
+        You gain <b>3 command tokens</b>. You may also spend influence - planets and trade goods
+        (1 trade good = 1 influence) - to gain <b>1 more token for every {plan.perToken}</b>.
       </Hint>
       <PaymentPicker
         values={plan.values}
@@ -78,12 +95,37 @@ function SpendStep({
         unit="influence"
         busy={busy}
       />
-      <Hint>
-        Spending <b>{plan.paid}</b> influence buys <b>{plan.bought}</b> token(s) - you will gain{" "}
-        <b>{plan.gain}</b> in total
-        {plan.gain < 3 + plan.bought ? ` (limited by ${plan.reinforcements} in reinforcements)` : ""}.
-      </Hint>
+      <SpendSummary plan={plan} base={3} />
     </PromptShell>
+  );
+}
+
+/** Podsumowanie wydatku: ile żetonów, ewentualne ostrzeżenie o zbędnym wpływie. */
+function SpendSummary({
+  plan,
+  base,
+}: {
+  plan: ReturnType<typeof useInfluencePlan>;
+  base: number;
+}) {
+  if (plan.wasted > 0) {
+    return (
+      <Hint>
+        <IconAlertTriangle size={14} aria-hidden="true" /> <b>{plan.wasted} influence</b> would
+        buy nothing. Spend influence in groups of {plan.perToken} - remove a planet or a trade
+        good.
+      </Hint>
+    );
+  }
+  return (
+    <Hint>
+      Spending <b>{plan.paid}</b> influence buys <b>{plan.bought}</b> token(s) - you will gain{" "}
+      <b>{plan.gain}</b> in total
+      {plan.gain < base + plan.bought
+        ? ` (limited by ${plan.reinforcements} in reinforcements)`
+        : ""}
+      .
+    </Hint>
   );
 }
 
@@ -146,7 +188,7 @@ export function LeadershipSecondary({
             Back
           </Button>
           <ConfirmButton
-            disabled={busy || safePlaced !== plan.gain}
+            disabled={busy || safePlaced !== plan.gain || plan.wasted > 0 || plan.gain === 0}
             icon={<IconCheck size={16} />}
             onClick={() =>
               submit({
@@ -156,14 +198,15 @@ export function LeadershipSecondary({
               })
             }
           >
-            {plan.gain === 0 ? "Follow without tokens" : `Gain ${plan.gain} token(s)`}
+            {plan.gain === 0 ? "Spend at least 3 influence" : `Gain ${plan.gain} token(s)`}
           </ConfirmButton>
         </>
       }
     >
       <Hint>
-        Spend any amount of influence: <b>1 command token for every {plan.perToken}</b>. This
-        costs no token from your strategy pool.
+        Spend influence - planets and trade goods (1 trade good = 1 influence):{" "}
+        <b>1 command token for every {plan.perToken}</b>. This costs no token from your
+        strategy pool.
       </Hint>
       <PaymentPicker
         values={plan.values}
@@ -185,9 +228,7 @@ export function LeadershipSecondary({
           busy={busy}
         />
       ) : (
-        <Hint>
-          Spending <b>{plan.paid}</b> influence is not enough for a token yet.
-        </Hint>
+        <SpendSummary plan={plan} base={0} />
       )}
     </PromptShell>
   );

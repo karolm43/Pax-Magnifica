@@ -9,7 +9,7 @@ import { useBoardEditor } from "@/api/useBoardEditor";
 import { SC_HUES, SC_NAMES } from "@/entities/data/strategyCardColors";
 import { getStrategyCardById } from "@/entities/lookup/strategyCards";
 import { PRIMARY_STEP_MODE, PRIMARY_VIEWS } from "@/domains/strategy/cards";
-import promptStyles from "@/domains/strategy/StrategyPrompt.module.css";
+import { PromptDock } from "@/domains/strategy/PromptDock";
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 
@@ -75,6 +75,10 @@ export function StrategyPrimaryStepModal() {
         shell={shell}
         owner={owner}
         players={players}
+        table={{
+          seating: gameState?.seatingOrder ?? [],
+          speaker: gameState?.speaker ?? null,
+        }}
         busy={busy}
         submit={submit}
       />
@@ -84,11 +88,13 @@ export function StrategyPrimaryStepModal() {
       </Text>
     );
 
-  if (mode === "dock") return <div className={promptStyles.dock}>{body}</div>;
+  const label = `${shell?.title ?? "Strategic action"} - primary`;
+  if (mode === "dock") return <PromptDock label={label}>{body}</PromptDock>;
 
   return (
     <AppModal
       opened
+      minimizable={label}
       onClose={() => {}}
       withCloseButton={false}
       closeOnClickOutside={false}

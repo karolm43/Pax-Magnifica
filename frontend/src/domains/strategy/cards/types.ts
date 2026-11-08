@@ -3,11 +3,15 @@ import type { PromptPlayer, StrategyPrompt } from "../strategyPrompt";
 /** Wygląd karty (kolor, nazwa, numer) przekazywany widokom do nagłówka okna. */
 export type CardShell = { hue: string; initiative: number; title: string };
 
+/** Układ stołu: kolory graczy w kolejności zasiadania (zgodnie z zegarem) i mówca. */
+export type TableInfo = { seating: string[]; speaker: string | null };
+
 export type PrimaryViewProps = {
   prompt: StrategyPrompt;
   shell: CardShell;
   owner: PromptPlayer | undefined;
   players: PromptPlayer[];
+  table: TableInfo;
   busy: boolean;
   submit: (payload: Record<string, unknown>) => void;
 };

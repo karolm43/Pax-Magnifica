@@ -137,6 +137,7 @@ export function LoadTransportModal() {
 
   return (
     <AppModal
+      minimizable
       opened={!!target}
       onClose={close}
       title={`Load transport: ${target.fromPosition} ${fromName}`}

@@ -275,3 +275,54 @@
     opacity: 1;
   }
 }
+
+/*
+ * Wybór celu NA MAPIE dla okien gry (karty strategii — appStore.mapPick). Kolor z karty
+ * (--pick-hue), pulsujący kontur zachęca do kliknięcia; wybrany cel jest pełniejszy.
+ */
+.mapPickHex {
+  position: absolute;
+  inset: 0;
+  width: 345px;
+  height: 299px;
+  z-index: var(--z-tactical-activation);
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px var(--pick-hue, #67e8f9));
+  animation: mapPickPulse 1.6s ease-in-out infinite;
+}
+.mapPickHex path {
+  fill: color-mix(in srgb, var(--pick-hue, #67e8f9) 12%, transparent);
+  stroke: var(--pick-hue, #67e8f9);
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+.mapPickHex[data-selected] path {
+  fill: color-mix(in srgb, var(--pick-hue, #67e8f9) 30%, transparent);
+  stroke-width: 9;
+}
+.tileContainer:hover .mapPickHex path {
+  fill: color-mix(in srgb, var(--pick-hue, #67e8f9) 24%, transparent);
+}
+.planetCircle.mapPickPlanet {
+  cursor: pointer;
+  border: 3px solid var(--pick-hue, #67e8f9);
+  box-shadow: 0 0 18px 6px color-mix(in srgb, var(--pick-hue, #67e8f9) 55%, transparent);
+  animation: mapPickPulse 1.6s ease-in-out infinite;
+}
+.planetCircle.mapPickPlanet:hover,
+.planetCircle.mapPickPlanet[data-selected] {
+  background: color-mix(in srgb, var(--pick-hue, #67e8f9) 22%, transparent);
+  border-width: 5px;
+}
+@keyframes mapPickPulse {
+  50% {
+    opacity: 0.72;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mapPickHex,
+  .planetCircle.mapPickPlanet {
+    animation: none;
+  }
+}

@@ -115,6 +115,7 @@ export function CapacityModal() {
 
   return (
     <AppModal
+      minimizable
       opened
       // Wymuszone: nadwyżkę trzeba usunąć (RULES.md 39.6 C2) — modal znika, gdy silnik zamknie okno.
       onClose={() => {}}

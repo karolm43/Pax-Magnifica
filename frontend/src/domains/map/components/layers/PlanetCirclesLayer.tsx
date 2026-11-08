@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import cx from "clsx";
 import classes from "../MapTile.module.css";
 import {
@@ -51,6 +51,13 @@ type Props = {
   onPlanetClick?: () => void;
 };
 
+/** Planeta jest celem wyboru na mapie (``appStore.mapPick`` typu ``planet``)? */
+function usePlanetPick() {
+  return useAppStore((state) =>
+    state.mapPick?.kind === "planet" ? state.mapPick : null,
+  );
+}
+
 export function PlanetCirclesLayer({
   systemId,
   mapTile,
@@ -67,6 +74,7 @@ export function PlanetCirclesLayer({
     return planetId && mapTile.planets[planetId] ? planetId : null;
   });
   const hoverTimeoutRef = useRef<Record<string, number>>({});
+  const planetPick = usePlanetPick();
 
   const handlePlanetMouseEnter = (planetId: string, x: number, y: number) => {
     if (!onPlanetMouseEnter) return;
@@ -114,14 +122,17 @@ export function PlanetCirclesLayer({
     const showExhausted =
       isExhausted && showExhaustedPlanets && !isSpaceStation;
     const isHighlighted = hoveredPlanetId === planetId;
+    const isPickTarget = planetPick?.targets.includes(planetId) ?? false;
 
     return (
       <div
         key={`${systemId}-${planetId}${isTokenPlanet ? "-token" : ""}-circle`}
         className={cx(
           classes.planetCircle,
-          isHighlighted && classes.highlighted,
+          isHighlighted && !isPickTarget && classes.highlighted,
+          isPickTarget && classes.mapPickPlanet,
         )}
+        data-selected={(isPickTarget && planetPick?.selected === planetId) || undefined}
         {...searchTarget(searchKey("planet", planetId), "map")}
         style={{
           position: "absolute",
@@ -133,10 +144,21 @@ export function PlanetCirclesLayer({
           backdropFilter: showExhausted
             ? "brightness(0.7) grayscale(1) blur(0px)"
             : undefined,
+          ...(isPickTarget && planetPick?.hue
+            ? ({ "--pick-hue": planetPick.hue } as CSSProperties)
+            : {}),
         }}
         onMouseEnter={() => handlePlanetMouseEnter(planetId, x, y)}
         onMouseLeave={() => handlePlanetMouseLeave(planetId)}
-        onClick={onPlanetClick}
+        onClick={(event) => {
+          if (isPickTarget && planetPick) {
+            // Wybór na mapie ma pierwszeństwo przed dossier systemu.
+            event.stopPropagation();
+            planetPick.onPick(planetId);
+            return;
+          }
+          onPlanetClick?.();
+        }}
       />
     );
   };

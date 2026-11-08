@@ -426,8 +426,11 @@ function ExcessNotice({
   );
 }
 
-/** Jedna pozycja celu: nazwa + wymaganie + postęp + przycisk zdobycia. */
-function ObjectiveRow({
+/**
+ * Jedna pozycja celu: nazwa + wymaganie + postęp + przycisk zdobycia. Eksportowana -
+ * ten sam pasek postępu używa okno Imperial (spójny wygląd punktowania celów).
+ */
+export function ObjectiveRow({
   name,
   text,
   points,

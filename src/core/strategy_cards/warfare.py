@@ -123,6 +123,9 @@ def _options(
     _draft: Draft,
 ) -> dict[str, Any]:
     player = state.players[player_id]
+    if step == STEP_ACTIVATE:
+        # Każdy system na mapie (karta: „in any system"); UI podświetla je do kliknięcia.
+        return {"systems": sorted(ctx.grid.positions) if ctx.grid is not None else []}
     if step in (STEP_BEFORE, STEP_AFTER):
         return {
             "total": _pool_total(state, player_id),

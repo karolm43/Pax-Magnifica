@@ -111,13 +111,19 @@ def test_follow_without_token_rejected_but_pass_allowed(registry: StaticDataRegi
 def test_free_player_follows_without_token_and_cannot_pass(
     registry: StaticDataRegistry,
 ) -> None:
-    state = _after_primary(registry, ["p2"])
-    state.players["p2"].strategic_cc = 0
-    with pytest.raises(ValueError, match="must resolve"):
-        strategic_action.resolve_secondary(state, registry, "p2", execute=False)
-    state = strategic_action.resolve_secondary(state, registry, "p2", execute=True)
+    base = _state()
+    base.players["p2"].strategic_cc = 0
+    state = strategic_action.play_strategy_card(base, registry, "p1", 5)
+    state = strategic_action.submit_primary_step(state, registry, "p1", {"players": ["p2"]})
+    # p2 rozstrzygnięty automatycznie (bez żetonu); teraz decyduje p3.
     assert state.players["p2"].commodities == 3
     assert state.players["p2"].strategic_cc == 0
+    assert state.pending_window is not None
+    assert state.pending_window.current_responder == "p3"
+    # Ręczne wywołanie dla „free" gracza w jego kolejce wciąż odrzuca pas (wentyl API).
+    state.pending_window.cursor = 0
+    with pytest.raises(ValueError, match="must resolve"):
+        strategic_action.resolve_secondary(state, registry, "p2", execute=False)
 
 
 def test_passed_player_can_still_follow(registry: StaticDataRegistry) -> None:
@@ -171,3 +177,21 @@ def test_api_primary_step_flow(registry: StaticDataRegistry) -> None:
     assert data["pendingStrategy"] is None
     assert data["pendingWindow"]["windowType"] == "STRATEGY_SECONDARY"
     assert data["pendingWindow"]["context"]["free"] == "p2"
+
+
+def test_free_players_follow_automatically(registry: StaticDataRegistry) -> None:
+    """Wskazani w Trade gracze rozstrzygają secondary sami - bez okna i bez żetonu."""
+    state = _after_primary(registry, ["p2", "p3"])
+    assert state.pending_window is None  # obaj obsłużeni automatycznie, okno zamknięte
+    assert state.players["p2"].commodities == 3
+    assert state.players["p3"].commodities == 2
+    assert state.players["p2"].strategic_cc == 2  # żaden żeton nie został wydany
+
+
+def test_free_player_after_a_regular_responder(registry: StaticDataRegistry) -> None:
+    state = _after_primary(registry, ["p3"])
+    assert state.pending_window is not None
+    assert state.pending_window.current_responder == "p2"  # p2 decyduje normalnie
+    state = strategic_action.resolve_secondary(state, registry, "p2", execute=False)
+    assert state.pending_window is None  # p3 automatycznie, potem koniec
+    assert state.players["p3"].commodities == 2

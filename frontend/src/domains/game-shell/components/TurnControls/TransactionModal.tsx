@@ -311,6 +311,7 @@ export function TransactionModal({
 
   return (
     <AppModal
+      minimizable
       opened={opened}
       onClose={onClose}
       title="Transaction"
