@@ -7,6 +7,7 @@ import pytest
 from src.core import movement
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
+from src.core.hooks.technologies import ANTIMASS_ALIAS
 from src.core.registry import StaticDataRegistry
 
 
@@ -31,11 +32,11 @@ def _line_grid(
 
 
 def _antimass_alias_matches_registry(registry: StaticDataRegistry) -> None:
-    assert movement._ANTIMASS_ALIAS in registry.technologies
+    assert ANTIMASS_ALIAS in registry.technologies
 
 
 def test_antimass_alias_in_registry(registry: StaticDataRegistry) -> None:
-    assert movement._ANTIMASS_ALIAS in registry.technologies
+    assert ANTIMASS_ALIAS in registry.technologies
 
 
 def _state_with_destroyer_at(
@@ -145,7 +146,7 @@ def test_move_asteroid_target_needs_antimass(registry: StaticDataRegistry) -> No
     state = _state_with_destroyer_at("101", "000")
     ok, _ = movement.can_move(state, grid, registry, "101", "destroyer", "p1")
     assert not ok  # brak Antimass
-    state.players["p1"].technologies = [movement._ANTIMASS_ALIAS]
+    state.players["p1"].technologies = [ANTIMASS_ALIAS]
     ok2, _ = movement.can_move(state, grid, registry, "101", "destroyer", "p1")
     assert ok2  # z Antimass można
 

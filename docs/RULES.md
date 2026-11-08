@@ -2454,7 +2454,12 @@ do puli (zgodnie z notą w R_fleet_pool); (4) faza statusu ma osobne `status_pha
 
 📎 tirules: [Abilities](rules_tirules/R_abilities.md) · [Modifiers](rules_tirules/R_modifiers.md) · [Action Cards](rules_tirules/R_action_cards.md) · [Agenda Phase](rules_tirules/R_agenda_phase.md) · [Agenda Card](rules_tirules/R_agenda_card.md)
 
-Status: PLAN (nic z tej sekcji nie jest jeszcze w kodzie). Realizacja krok po kroku: `docs/PLAN_PELNA_ROZGRYWKA.md`, sekcja „Plan hooków i wyjątków (E7 + E4 + E6)".
+Status: SZKIELET W KODZIE (H1, 2026-11-08): `core/rules_hooks.py` (rejestr, `forbidden`/`permits`/`modify`,
+`temporary_hooks` dla testów) + pakiet `core/hooks/` (`factions_base.py`, `technologies.py`). Podpięte punkty:
+`production.forbids` (FORBID; Arborec — doki nie produkują piechoty, `_PRODUCTION_FORBIDS` usunięte) i
+`movement.enter_asteroids` (PERMIT; Antimass Deflectors, `movement._ANTIMASS_ALIAS` usunięty). REPLACE/TRIGGER/
+PERSISTENT zarezerwowane w `HookKind`, API dojdzie z pierwszym użyciem. Reszta (walka, status, agenda) — kolejne bloki.
+Realizacja krok po kroku: `docs/PLAN_PELNA_ROZGRYWKA.md`, sekcja „Plan hooków i wyjątków (E7 + E4 + E6)".
 To są zasady PROJEKTOWE (jak kodujemy wyjątki), nie reguły TI4. Treść konkretnych kart, zdolności
 i agend wynika wyłącznie z assetów JSON, a reguły ich interakcji z tirules2.com (zasada z steering).
 

@@ -20,9 +20,9 @@ from src.core.hex_grid import HexGrid
 from src.core.movement import (
     _CARGO_BASE_TYPES,
     CargoPickup,
+    _can_enter_asteroids,
     _capacity_provided,
     _capacity_used,
-    _has_antimass,
 )
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
@@ -86,7 +86,7 @@ def retreat_destinations(
     state: GameState, grid: HexGrid, position: str, player_id: str
 ) -> list[str]:
     """Systemy, do których gracz może się wycofać z walki w ``position`` (O4), posortowane."""
-    has_antimass = _has_antimass(state, player_id)
+    can_enter_asteroids = _can_enter_asteroids(state, player_id)
     result: list[str] = []
     for neighbor in sorted(grid.neighbors(position)):
         if neighbor == position:
@@ -94,7 +94,7 @@ def retreat_destinations(
         anomalies = grid.anomalies_at(neighbor)
         if _SUPERNOVA in anomalies or _NEBULA in anomalies:
             continue
-        if _ASTEROID in anomalies and not has_antimass:
+        if _ASTEROID in anomalies and not can_enter_asteroids:
             continue
         system = state.systems.get(neighbor)
         if system is None or _other_ships(system, player_id):

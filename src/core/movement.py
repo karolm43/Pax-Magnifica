@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
-from src.core import unit_ops
+from src.core import rules_hooks, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -43,11 +43,6 @@ class CargoPickup:
     count: int
     from_zone: str = "space"
 
-# Alias technologii Antimass Deflectors (z danych: assets/.../technologies/pok.json →
-# "amd"; nie z pamięci). Pozwala ruch przez/na asteroid field (RULES.md 1.1).
-# Weryfikowany testem względem rejestru.
-_ANTIMASS_ALIAS = "amd"
-
 # Anomalie znaczące dla przejezdności węzłów POŚREDNICH trasy (RULES.md 32.1 R6).
 _SUPERNOVA = "SUPERNOVA"
 _ASTEROID = "ASTEROID_FIELD"
@@ -72,7 +67,7 @@ def _node_passable_intermediate(
     position: str,
     player_id: str,
     *,
-    has_antimass: bool,
+    can_enter_asteroids: bool,
 ) -> bool:
     """Czy węzeł POŚREDNI trasy jest przejezdny dla gracza (R4 + R6).
 
@@ -83,7 +78,7 @@ def _node_passable_intermediate(
     anomalies = grid.anomalies_at(position)
     if _SUPERNOVA in anomalies:
         return False
-    if _ASTEROID in anomalies and not has_antimass:
+    if _ASTEROID in anomalies and not can_enter_asteroids:
         return False
     if _NEBULA in anomalies:
         return False
@@ -93,7 +88,7 @@ def _node_passable_intermediate(
 
 
 def _target_passable(
-    grid: HexGrid, position: str, *, has_antimass: bool
+    grid: HexGrid, position: str, *, can_enter_asteroids: bool
 ) -> bool:
     """Czy CEL (aktywny system) jest przejezdny anomalicznie (R6).
 
@@ -104,7 +99,7 @@ def _target_passable(
     anomalies = grid.anomalies_at(position)
     if _SUPERNOVA in anomalies:
         return False
-    if _ASTEROID in anomalies and not has_antimass:
+    if _ASTEROID in anomalies and not can_enter_asteroids:
         return False
     return True
 
@@ -116,7 +111,7 @@ def _shortest_legal_distance(
     to_pos: str,
     player_id: str,
     *,
-    has_antimass: bool,
+    can_enter_asteroids: bool,
 ) -> int | None:
     """Długość najkrótszej LEGALNEJ trasy (liczba wejść) albo None, gdy brak.
 
@@ -126,7 +121,7 @@ def _shortest_legal_distance(
     """
     if from_pos == to_pos:
         return 0
-    if not _target_passable(grid, to_pos, has_antimass=has_antimass):
+    if not _target_passable(grid, to_pos, can_enter_asteroids=can_enter_asteroids):
         return None
     # BFS: kolejka (pozycja, dystans). Odwiedzamy sąsiadów; do celu wchodzimy wprost,
     # przez węzeł pośredni tylko gdy przejezdny.
@@ -140,19 +135,16 @@ def _shortest_legal_distance(
             if neighbor == to_pos:
                 return dist + 1
             if _node_passable_intermediate(
-                grid, state, neighbor, player_id, has_antimass=has_antimass
+                grid, state, neighbor, player_id, can_enter_asteroids=can_enter_asteroids
             ):
                 visited.add(neighbor)
                 queue.append((neighbor, dist + 1))
     return None
 
 
-def _has_antimass(state: GameState, player_id: str) -> bool:
-    """Czy gracz posiada technologię Antimass Deflectors (alias z danych)."""
-    player = state.players.get(player_id)
-    if player is None:
-        return False
-    return _ANTIMASS_ALIAS in player.technologies
+def _can_enter_asteroids(state: GameState, player_id: str) -> bool:
+    """Czy gracz może wchodzić w pola asteroid (hook PERMIT, np. Antimass Deflectors)."""
+    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_ENTER_ASTEROIDS, state, player_id)
 
 
 def can_move(
@@ -198,9 +190,9 @@ def can_move(
     ):
         return False, "A ship cannot move out of a system containing its own command token (R3)."
 
-    has_antimass = _has_antimass(state, player_id)
+    can_enter_asteroids = _can_enter_asteroids(state, player_id)
     dist = _shortest_legal_distance(
-        grid, state, from_pos, active, player_id, has_antimass=has_antimass
+        grid, state, from_pos, active, player_id, can_enter_asteroids=can_enter_asteroids
     )
     if dist is None:
         return False, "No legal route to the active system (R4/R6)."

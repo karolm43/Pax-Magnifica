@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import control, unit_ops
+from src.core import control, rules_hooks, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
@@ -72,20 +72,18 @@ class Producer:
 # Struktury nie są "produkowane" przez PRODUCTION (to Construction) — poza zamówieniami.
 STRUCTURES = {"pds", "spacedock"}
 
-# Ograniczenia typów produkowanych przez daną zdolność PRODUCTION (frakcja, typ producenta)
-# → zakazane typy. R_production: „Production value from Arborec space docks cannot be used to
-# produce infantry" (piechota Arborec ma własne PRODUCTION 1 i nadal może produkować).
-# Docelowo przeniesione do hooków frakcji (core/rules_hooks.py, E7).
-_PRODUCTION_FORBIDS: dict[tuple[str, str], tuple[str, ...]] = {
-    ("arborec", "spacedock"): ("infantry",),
-}
+def forbidden_types(state: GameState, player_id: str, producer_type: str) -> tuple[str, ...]:
+    """Typy jednostek, których producent danego typu nie może produkować (hooki FORBID).
 
-
-def forbidden_types(faction_id: str | None, producer_type: str) -> tuple[str, ...]:
-    """Typy jednostek, których producent danego typu (frakcji) nie może produkować."""
-    if faction_id is None:
-        return ()
-    return _PRODUCTION_FORBIDS.get((faction_id, producer_type), ())
+    Np. Arborec: wartość PRODUCTION doków nie służy do piechoty (``core/hooks/factions_base``).
+    """
+    banned = rules_hooks.forbidden(
+        rules_hooks.POINT_PRODUCTION_FORBIDS,
+        state,
+        player_id,
+        {"producer_type": producer_type},
+    )
+    return tuple(sorted(banned))
 
 
 def fits_producers(producers: list[Producer], counts: dict[str, int]) -> bool:
@@ -255,7 +253,7 @@ def producers(
             result.append(
                 Producer(
                     "space", base_type, count, pv * count, pv,
-                    forbidden_types(faction_id, base_type),
+                    forbidden_types(state, player_id, base_type),
                 )
             )
     for planet_id, by_player in system.planet_units.items():
@@ -268,7 +266,7 @@ def producers(
                 result.append(
                     Producer(
                         planet_id, base_type, count, pv * count, pv,
-                        forbidden_types(faction_id, base_type),
+                        forbidden_types(state, player_id, base_type),
                     )
                 )
     grant = standalone_grant(state)
