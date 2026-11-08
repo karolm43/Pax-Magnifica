@@ -29,6 +29,7 @@ from typing import Any
 
 from src.api import web_objectives, web_setup
 from src.core import production, space_cannon, strategy_phase, turn_flow
+from src.core.army_strength import ArmyStrength, army_strength_by_player
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.components import ComponentCategory
 from src.core.game_state import GameState, PlayerState
@@ -1112,6 +1113,7 @@ def _build_player_data(
     """Buduje listę ``PlayerData`` (minimalny, kompletny dla viewera zestaw pól)."""
     players: list[dict[str, Any]] = []
     deployed_by_player = _deployed_counts_by_player(state)
+    army_by_player = army_strength_by_player(state, registry)
     active_id = _effective_active_id(state)  # spójny z activePlayer (Bug 7)
     # Sąsiedzi (Neighbors) policzeni raz dla wszystkich graczy (RULES.md 2,
     # R_neighbors). Wynik to player_id; na kolory mapujemy przy serializacji
@@ -1144,6 +1146,7 @@ def _build_player_data(
             player.breakthrough_unlocked,
         )
         unit_counts = _unit_counts(deployed_by_player.get(player_id, {}))
+        army = army_by_player.get(player_id) or ArmyStrength()
         abilities = _faction_abilities(player.faction, registry)
         faction_techs, not_researched_ft = _faction_techs(
             player.faction, player.technologies, registry
@@ -1289,12 +1292,13 @@ def _build_player_data(
                 "stasisInfantry": 0,
                 "actualHits": 0,
                 "expectedHitsTimes10": 0,
-                "spaceArmyRes": 0,
-                "groundArmyRes": 0,
-                "spaceArmyHealth": 0,
-                "groundArmyHealth": 0,
-                "spaceArmyCombat": 0,
-                "groundArmyCombat": 0,
+                # Siła armii (panel Army Strength + ranking 1/2/3) — core/army_strength.py.
+                "spaceArmyRes": army.space_res,
+                "groundArmyRes": army.ground_res,
+                "spaceArmyHealth": army.space_health,
+                "groundArmyHealth": army.ground_health,
+                "spaceArmyCombat": army.space_combat,
+                "groundArmyCombat": army.ground_combat,
             }
         )
     return players

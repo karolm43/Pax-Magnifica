@@ -48,9 +48,14 @@ export function calculateArmyRankings(
 
   armyValues.sort((a, b) => b.totalValue - a.totalValue);
 
+  // Równa siła = to samo miejsce (1, 1, 3), a nie arbitralna kolejność.
   const rankings: Record<string, number> = {};
   armyValues.forEach((item, index) => {
-    rankings[item.faction] = index + 1;
+    const prev = armyValues[index - 1];
+    rankings[item.faction] =
+      prev && Math.abs(prev.totalValue - item.totalValue) < 1e-9
+        ? rankings[prev.faction]
+        : index + 1;
   });
 
   return rankings;
