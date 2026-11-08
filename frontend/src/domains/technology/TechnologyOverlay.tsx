@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
   IconArrowLeft,
+  IconArrowsExchange,
   IconBolt,
   IconCheck,
   IconCpu,
@@ -13,6 +14,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { getTechData } from "@/entities/lookup/tech";
+import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import {
@@ -28,6 +30,7 @@ import {
   tier,
   totalMissing,
   unitUpgrades,
+  type BreakthroughInfo,
   type ResearchOptions,
   type TechColor,
   type TechRow,
@@ -202,6 +205,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
     pathColors.has(row.color);
 
   const ownedCount = (c: TechColor) => options.ownedColors[c] ?? 0;
+  const synergyPair = options.breakthrough?.synergy ?? [];
+  const synergyActive = options.breakthrough?.active === true;
   const specialtyPlanets = Object.keys(options.specialties);
   const payPlanets = Object.keys(options.planets)
     .filter((id) => !skips.includes(id))
@@ -286,6 +291,19 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                 <div className={styles.columnHead}>
                   <img src={c.icon} alt="" width={22} height={22} />
                   <span>{c.label}</span>
+                  {synergyPair.includes(c.color) ? (
+                    <span
+                      className={styles.synergyBadge}
+                      data-active={synergyActive || undefined}
+                      title={
+                        synergyActive
+                          ? "Breakthrough synergy: these two colours count as each other"
+                          : "Breakthrough synergy - locked"
+                      }
+                    >
+                      <IconArrowsExchange size={12} aria-hidden="true" />
+                    </span>
+                  ) : null}
                   <b>{ownedCount(c.color)}</b>
                 </div>
                 {grid[c.color].map((cell, level) => (
@@ -321,6 +339,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               </div>
             ))}
           </div>
+
+          {options.breakthrough ? <BreakthroughSlot info={options.breakthrough} /> : null}
 
           <h4>Unit upgrades</h4>
           <div className={styles.upgrades}>
@@ -584,6 +604,8 @@ function PrereqList({
         const stillLeft = Math.max(0, left[color] ?? 0);
         const skipped = missing - stillLeft;
         const have = Math.min(need, options.ownedColors[color] ?? 0);
+        // Reszta spełniona technologią drugiego koloru pary synergii przełomu.
+        const viaSynergy = Math.max(0, need - have - missing);
         return (
           <li key={color} style={{ "--tc": COLOR_HUE[color] } as CSSProperties}>
             <img src={COLOR_ICON[color]} alt="" width={16} height={16} />
@@ -592,6 +614,7 @@ function PrereqList({
             </span>
             <span className={styles.prereqState}>
               {have > 0 ? <em data-ok>{have} owned</em> : null}
+              {viaSynergy > 0 ? <em data-synergy>{viaSynergy} via synergy</em> : null}
               {skipped > 0 ? <em data-skip>{skipped} via specialty</em> : null}
               {stillLeft > 0 ? <em data-bad>{stillLeft} missing</em> : null}
             </span>
@@ -599,5 +622,55 @@ function PrereqList({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * Miejsce na PRZEŁOM frakcji (Thunder's Edge). Pokazany zawsze; zablokowany jest wyszarzony
+ * i NIE działa. Odblokowany daje synergię dwóch kolorów: posiadane technologie i
+ * specjalności planet jednego koloru pary liczą się jako drugi (R_synergy) - silnik
+ * uwzględnia to w prerekwizytach i skipach.
+ */
+function BreakthroughSlot({ info }: { info: BreakthroughInfo }) {
+  const text = getBreakthroughData(info.id)?.text;
+  const [a, b] = info.synergy;
+  const state = info.active ? "active" : info.unlocked ? "noSynergy" : "locked";
+  return (
+    <div className={styles.breakthrough} data-state={state}>
+      <div className={styles.btHead}>
+        <span className={styles.btLabel}>Breakthrough</span>
+        <b>{info.name}</b>
+        <span className={styles.btStatus}>
+          {info.active ? (
+            <>
+              <IconCheck size={13} aria-hidden="true" /> Synergy active
+            </>
+          ) : info.unlocked ? (
+            "No colour synergy"
+          ) : (
+            <>
+              <IconLock size={13} aria-hidden="true" /> Locked - not in effect
+            </>
+          )}
+        </span>
+      </div>
+      {a && b ? (
+        <div className={styles.btSynergy}>
+          <span style={{ "--tc": COLOR_HUE[a] } as CSSProperties}>
+            <img src={COLOR_ICON[a]} alt="" width={18} height={18} /> {COLOR_NAME[a]}
+          </span>
+          <IconArrowsExchange size={18} aria-hidden="true" />
+          <span style={{ "--tc": COLOR_HUE[b] } as CSSProperties}>
+            <img src={COLOR_ICON[b]} alt="" width={18} height={18} /> {COLOR_NAME[b]}
+          </span>
+          <small>
+            {info.active
+              ? "Your technologies and planet specialties of either colour count as the other when researching."
+              : "Unlock the breakthrough to treat these colours as each other when researching."}
+          </small>
+        </div>
+      ) : null}
+      {text ? <p className={styles.btText}>{text}</p> : null}
+    </div>
   );
 }

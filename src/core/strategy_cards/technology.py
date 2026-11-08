@@ -85,6 +85,8 @@ def research_options(
     return {
         "tree": technology.tree_view(state, ctx.registry, player_id),
         "owned_colors": dict(technology.owned_colors(state, ctx.registry, player_id)),
+        # Przełom frakcji: synergia dwóch kolorów, aktywna tylko gdy przełom odblokowany.
+        "breakthrough": technology.breakthrough_view(state, ctx.registry, player_id),
         "specialties": technology.specialty_planets(state, ctx.registry, player_id),
         "aida": technology.aida_ready(state, player_id),
         "planets": ready_planet_values(state, ctx.registry, player_id, "resources"),

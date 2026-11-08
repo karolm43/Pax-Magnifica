@@ -2751,37 +2751,45 @@ w dowolnej fazie i turze. Wierzyciel zwraca żetony wystawcy, gdy dług spłacon
 
 ---
 
-## 49. Badanie technologii + karta Technology â€” âś… ZWERYFIKOWANE (tirules2.com) + âš  ZAĹOĹ»ENIA
+## 49. Badanie technologii + karta Technology — ✅ ZWERYFIKOWANE (tirules2.com) + ⚠ ZAŁOŻENIA
 
-đź“Ž tirules: [Technology](rules_tirules/R_technology.md), [Technology (S.C.)](rules_tirules/R_technology_sc.md), [Technology notes](rules_tirules/C_technology.md)
+📎 tirules: [Technology](rules_tirules/R_technology.md), [Technology (S.C.)](rules_tirules/R_technology_sc.md), [Technology notes](rules_tirules/C_technology.md)
 
 ### 49.1. Badanie (`core/technology.py`)
 
-- Talia gracza = technologie generyczne + frakcyjne WĹASNEJ frakcji (`FactionDef.faction_tech`, z
-  podmianami TE). Cudzych frakcyjnych nie wolno badaÄ‡. Frakcyjne ulepszenie jednostki (`baseUpgrade`)
-  usuwa z talii generyczne, ktĂłre zastÄ™puje (nota R_technology).
+- Talia gracza = technologie generyczne + frakcyjne WŁASNEJ frakcji (`FactionDef.faction_tech`, z
+  podmianami TE). Cudzych frakcyjnych nie wolno badać. Frakcyjne ulepszenie jednostki (`baseUpgrade`)
+  usuwa z talii generyczne, które zastępuje (nota R_technology).
 - Generyczne = karty bez frakcji z talii typu `technology` w assetach, po JEDNEJ wersji karty: przy
-  kilku wersjach (X-89 base/Î©/Î©Î©, Magen base/Î©/Î©Î©) wygrywa najwyĹĽszy priorytet ĹşrĂłdĹ‚a (`SOURCE_PRIORITY`,
+  kilku wersjach (X-89 base/Ω/ΩΩ, Magen base/Ω/ΩΩ) wygrywa najwyższy priorytet źródła (`SOURCE_PRIORITY`,
   Codexy = oficjalne erraty, RULES.md 14).
-- Prerekwizyty: litera w `requirements` â†’ kolor (G biotic, Y cybernetic, B propulsion, R warfare;
-  konwencja danych, pilnuje test). Za kaĹĽdy symbol trzeba POSIADAÄ† technologiÄ™ tego koloru; ulepszenia
-  jednostek nie majÄ… koloru i nie speĹ‚niajÄ… prerekwizytĂłw.
-- SpecjalnoĹ›Ä‡ planety: wyczerpanie gotowej, wĹ‚asnej planety ignoruje JEDEN symbol pasujÄ…cego koloru
-  (C_technology: jedna planeta = jeden symbol). Wyczerpana planeta nie moĹĽe byÄ‡ uĹĽyta. ZbÄ™dny skip
+- Prerekwizyty: litera w `requirements` → kolor (G biotic, Y cybernetic, B propulsion, R warfare;
+  konwencja danych, pilnuje test). Za każdy symbol trzeba POSIADAĆ technologię tego koloru; ulepszenia
+  jednostek nie mają koloru i nie spełniają prerekwizytów.
+- Specjalność planety: wyczerpanie gotowej, własnej planety ignoruje JEDEN symbol pasującego koloru
+  (C_technology: jedna planeta = jeden symbol). Wyczerpana planeta nie może być użyta. Zbędny skip
   (niczego nie pokrywa) silnik odrzuca.
-- AI Development Algorithm (tekst z assetĂłw): przy badaniu ULEPSZENIA JEDNOSTKI wyczerpanie karty
-  ignoruje dowolny 1 prerekwizyt. âš  Pierwszy hook technologii zapisany w `core/technology.py` (staĹ‚a
+- AI Development Algorithm (tekst z assetów): przy badaniu ULEPSZENIA JEDNOSTKI wyczerpanie karty
+  ignoruje dowolny 1 prerekwizyt. ⚠ Pierwszy hook technologii zapisany w `core/technology.py` (stała
   `AIDA`) - do przeniesienia do `core/rules_hooks.py` (RULES.md 43).
-- â€žGain" technologii ignoruje prerekwizyty (`gain_technology`).
-- âš  Niemodelowane jeszcze (hooki): zakaz badania Nekro, Jol-Nar Specialized Compounds, zniĹĽki kosztu.
+- „Gain" technologii ignoruje prerekwizyty (`gain_technology`).
+- ⚠ Niemodelowane jeszcze (hooki): zakaz badania Nekro, Jol-Nar Specialized Compounds, zniżki kosztu.
+- Synergia przełomu (📎 [Synergy](rules_tirules/R_synergy.md), [Breakthroughs](rules_tirules/R_breakthroughs.md)):
+  ODBLOKOWANY przełom frakcji (`breakthrough_unlocked`, para z `BreakthroughDef.synergy`) pozwala traktować
+  każdą posiadaną technologię i każdą specjalność planety jednego koloru pary jako dowolny kolor pary -
+  przy badaniu (`technology.missing_prerequisites`, `specialty_planets`) i przy celach
+  (`objective_progress`: diversify / same colour). Każda technologia liczy się naraz jako JEDEN kolor.
+  Działa też, gdy przełom jest wyczerpany; zablokowany nie działa. Przełom sam nie jest technologią.
+  Bez pary kolorów (Nekro) - brak synergii. UI: okno technologii zawsze ma miejsce na przełom
+  (zablokowany wyszarzony, „not in effect"; odblokowany: znaczniki synergii na kolumnach pary).
 
 ### 49.2. Karta Technology (`core/strategy_cards/technology.py`)
 
-- Primary: 1 technologia za darmo (opcjonalnie - â€žcan research"), potem opcjonalnie druga za 6 zasobĂłw;
-  druga moĹĽe korzystaÄ‡ z pierwszej jako prerekwizytu (stan po pierwszym badaniu).
-- Secondary: 1 ĹĽeton ze strategy pool + 4 zasoby â†’ 1 technologia.
-- Planeta wyczerpana na specjalnoĹ›Ä‡ nie pĹ‚aci jednoczeĹ›nie zasobami (jest wyczerpana - silnik odrzuca
-  wspĂłlnÄ… planetÄ™ w `skips` i `planets`). 1 TG = 1 zasĂłb; nadpĹ‚ata dozwolona (przepada).
-- UI: peĹ‚noekranowe `TechnologyOverlay` (drzewo: 4 kolumny kolorĂłw Ă— poziomy prerekwizytĂłw z
-  poĹ‚Ä…czeniami, pas ulepszeĹ„ jednostek; panel: tekst, stan prerekwizytĂłw, planety ze specjalnoĹ›ciÄ…,
-  pĹ‚atnoĹ›Ä‡; automatyczny dobĂłr skipĂłw i pĹ‚atnoĹ›ci, edytowalny rÄ™cznie).
+- Primary: 1 technologia za darmo (opcjonalnie - „can research"), potem opcjonalnie druga za 6 zasobów;
+  druga może korzystać z pierwszej jako prerekwizytu (stan po pierwszym badaniu).
+- Secondary: 1 żeton ze strategy pool + 4 zasoby → 1 technologia.
+- Planeta wyczerpana na specjalność nie płaci jednocześnie zasobami (jest wyczerpana - silnik odrzuca
+  wspólną planetę w `skips` i `planets`). 1 TG = 1 zasób; nadpłata dozwolona (przepada).
+- UI: pełnoekranowe `TechnologyOverlay` (drzewo: 4 kolumny kolorów × poziomy prerekwizytów z
+  połączeniami, pas ulepszeń jednostek; panel: tekst, stan prerekwizytów, planety ze specjalnością,
+  płatność; automatyczny dobór skipów i płatności, edytowalny ręcznie).

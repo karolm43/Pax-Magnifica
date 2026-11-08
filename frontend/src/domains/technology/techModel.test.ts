@@ -23,6 +23,7 @@ const row = (over: Partial<TechRow>): TechRow => ({
 });
 
 const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
+  breakthrough: null,
   tree: [],
   ownedColors: {},
   specialties: {},

@@ -118,21 +118,70 @@ def owned_colors(state: GameState, registry: StaticDataRegistry, player_id: str)
     return counts
 
 
+def synergy(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> tuple[str, str] | None:
+    """Para kolorów synergii z ODBLOKOWANEGO przełomu frakcji (R_synergy) albo None.
+
+    Przełom zablokowany (``breakthrough_unlocked`` = False) nie daje synergii. Przełom bez
+    pary kolorów (np. Nekro: ``NONE``) też nie. Synergia działa także, gdy przełom jest
+    wyczerpany (nota R_breakthroughs: „the synergy ability always remains in effect").
+    """
+    player = state.players[player_id]
+    if not player.breakthrough_unlocked:
+        return None
+    breakthrough = registry.breakthrough_for_faction(player.faction)
+    if breakthrough is None:
+        return None
+    colors = [c for c in breakthrough.synergy if c in COLORS]
+    if len(colors) != 2 or colors[0] == colors[1]:
+        return None
+    return colors[0], colors[1]
+
+
+def _with_synergy(colors: list[str], pair: tuple[str, str] | None) -> list[str]:
+    """Kolory, jakie może „udawać" technologia / specjalność przy synergii (R_synergy)."""
+    if pair is None or not any(c in pair for c in colors):
+        return colors
+    return list(dict.fromkeys([*colors, *pair]))
+
+
 def missing_prerequisites(
     state: GameState, registry: StaticDataRegistry, player_id: str, tech: TechnologyDef
 ) -> Counter[str]:
-    """Brakujące symbole prerekwizytów (przed użyciem specjalności planet)."""
+    """Brakujące symbole prerekwizytów (przed użyciem specjalności planet).
+
+    Z synergią (R_synergy) każda posiadana technologia jednego z dwóch kolorów pary może liczyć
+    się jako dowolny kolor pary (każda osobno, ale tylko jako jeden kolor naraz) - nadwyżka
+    jednego koloru pary pokrywa niedobór drugiego.
+    """
     have = owned_colors(state, registry, player_id)
     need = prerequisites(tech)
-    return Counter({c: n - have[c] for c, n in need.items() if n > have[c]})
+    missing = Counter({c: n - have[c] for c, n in need.items() if n > have[c]})
+    pair = synergy(state, registry, player_id)
+    if pair is not None:
+        a, b = pair
+        spare_a = max(0, have[a] - need[a])
+        spare_b = max(0, have[b] - need[b])
+        moved = min(spare_a, missing[b])
+        missing[b] -= moved
+        moved = min(spare_b, missing[a])
+        missing[a] -= moved
+        missing = Counter({c: n for c, n in missing.items() if n > 0})
+    return missing
 
 
 def specialty_planets(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> dict[str, list[str]]:
-    """Gotowe planety gracza ze specjalnością technologiczną → jej kolory (np. ``BIOTIC``)."""
+    """Gotowe planety gracza ze specjalnością → kolory, które mogą pominąć (np. ``BIOTIC``).
+
+    Z synergią specjalność jednego koloru pary może pominąć symbol dowolnego koloru pary
+    (R_synergy: „each technology speciality … as any color of that synergy").
+    """
     player = state.players[player_id]
     exhausted = set(player.exhausted_planets)
+    pair = synergy(state, registry, player_id)
     result: dict[str, list[str]] = {}
     for system in state.systems.values():
         for planet_id, owner in system.planet_owners.items():
@@ -140,8 +189,29 @@ def specialty_planets(
                 continue
             stats = planet_stats(state, registry, planet_id)
             if stats is not None and stats.tech_specialties:
-                result[planet_id] = [s.upper() for s in stats.tech_specialties]
+                result[planet_id] = _with_synergy(
+                    [s.upper() for s in stats.tech_specialties], pair
+                )
     return result
+
+
+def breakthrough_view(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> dict[str, Any] | None:
+    """Przełom frakcji gracza dla UI: nazwa, para synergii i czy działa (None = brak przełomu)."""
+    player = state.players[player_id]
+    breakthrough = registry.breakthrough_for_faction(player.faction)
+    if breakthrough is None:
+        return None
+    pair = [c for c in breakthrough.synergy if c in COLORS]
+    return {
+        "id": breakthrough.id,
+        "name": breakthrough.name,
+        "synergy": pair,
+        "unlocked": player.breakthrough_unlocked,
+        "exhausted": player.breakthrough_exhausted,
+        "active": synergy(state, registry, player_id) is not None,
+    }
 
 
 def aida_ready(state: GameState, player_id: str) -> bool:
@@ -270,7 +340,6 @@ def tree_view(
     """
     player = state.players[player_id]
     planets = specialty_planets(state, registry, player_id)
-    planet_colors: Counter[str] = Counter(c for colors in planets.values() for c in colors)
     rows: list[dict[str, Any]] = []
     for tech in tech_pool(state, registry, player_id).values():
         missing = missing_prerequisites(state, registry, player_id, tech)
@@ -279,11 +348,16 @@ def tree_view(
         elif not missing:
             status = "available"
         else:
-            covered = sum(min(n, planet_colors[c]) for c, n in missing.items())
-            total = sum(missing.values())
+            # Każda planeta pokrywa najwyżej 1 symbol (zachłannie po kolorach planety).
+            left = Counter(missing)
+            for colors in planets.values():
+                color = next((c for c in colors if left[c] > 0), None)
+                if color is not None:
+                    left[color] -= 1
+            remaining = sum(n for n in left.values() if n > 0)
             if UNIT_UPGRADE in tech.types and aida_ready(state, player_id):
-                covered += 1
-            status = "skippable" if covered >= total else "locked"
+                remaining -= 1
+            status = "skippable" if remaining <= 0 else "locked"
         rows.append(
             {
                 "id": tech.id,

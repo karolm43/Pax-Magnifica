@@ -196,6 +196,12 @@ class View:
         tech = self.registry.technologies.get(tech_id)
         return list(tech.types) if tech is not None else []
 
+    def synergy(self) -> tuple[str, str] | None:
+        """Para kolorów synergii odblokowanego przełomu (R_synergy: działa też przy celach)."""
+        from src.core.technology import synergy  # lokalnie: technology nie zna celów
+
+        return synergy(self.state, self.registry, self.pid)
+
     def color_counts(self) -> dict[str, int]:
         counts = dict.fromkeys(_MAIN_TECH_COLORS, 0)
         for tech_id in self.player.technologies:
@@ -279,7 +285,14 @@ def _p_unit_upgrades(v: View) -> int:
 
 
 def _p_diversify(v: View) -> int:
-    return sum(1 for n in v.color_counts().values() if n >= 2)
+    counts = v.color_counts()
+    pair = v.synergy()
+    if pair is None:
+        return sum(1 for n in counts.values() if n >= 2)
+    # R_synergy: technologie pary można rozdzielić między oba kolory pary dowolnie.
+    pooled = counts[pair[0]] + counts[pair[1]]
+    others = sum(1 for c, n in counts.items() if c not in pair and n >= 2)
+    return others + min(2, pooled // 2)
 
 
 def _p_non_home_planets(v: View) -> int:
@@ -539,7 +552,12 @@ def _p_cultural(v: View) -> int:
 
 
 def _p_same_color_techs(v: View) -> int:
-    return max(v.color_counts().values())
+    counts = v.color_counts()
+    pair = v.synergy()
+    if pair is not None:
+        # R_synergy: wszystkie technologie pary mogą liczyć się jako jeden kolor.
+        return max(max(counts.values()), counts[pair[0]] + counts[pair[1]])
+    return max(counts.values())
 
 
 def _p_adjacent_to_anomaly(v: View) -> int:

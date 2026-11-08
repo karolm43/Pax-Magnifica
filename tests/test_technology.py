@@ -210,3 +210,79 @@ def test_card_secondary_costs_token_and_four(registry: StaticDataRegistry) -> No
     )
     p2 = state.players["p2"]
     assert tier0 in p2.technologies and p2.trade_goods == 6 and p2.strategic_cc == 1
+
+
+# --- Synergia przełomu (R_synergy) -----------------------------------------------------------
+
+
+def _synergy_pair(registry: StaticDataRegistry) -> tuple[str, str]:
+    bt = registry.breakthrough_for_faction("sol")
+    assert bt is not None
+    pair = [c for c in bt.synergy if c in technology.COLORS]
+    assert len(pair) == 2
+    return pair[0], pair[1]
+
+
+def test_locked_breakthrough_gives_no_synergy(registry: StaticDataRegistry) -> None:
+    a, b = _synergy_pair(registry)
+    tier1_b = _first(registry, b, 1)
+    state = _state(registry, [_first(registry, a, 0)], [])
+    assert technology.synergy(state, registry, "p1") is None
+    with pytest.raises(ValueError, match="missing"):
+        technology.research(state, registry, "p1", tier1_b)
+    view = technology.breakthrough_view(state, registry, "p1")
+    assert view is not None and view["unlocked"] is False and view["active"] is False
+
+
+def test_unlocked_synergy_counts_owned_tech_as_other_color(registry: StaticDataRegistry) -> None:
+    a, b = _synergy_pair(registry)
+    tier1_b = _first(registry, b, 1)
+    state = _state(registry, [_first(registry, a, 0)], [])
+    state.players["p1"].breakthrough_unlocked = True
+    assert technology.synergy(state, registry, "p1") == (a, b)
+    done = technology.research(state, registry, "p1", tier1_b)
+    assert tier1_b in done.players["p1"].technologies
+
+
+def test_synergy_tech_counts_as_only_one_color(registry: StaticDataRegistry) -> None:
+    """Jedna technologia koloru pary nie spełnia naraz symbolu A i symbolu B."""
+    a, b = _synergy_pair(registry)
+    state = _state(registry, [_first(registry, a, 0)], [])
+    state.players["p1"].breakthrough_unlocked = True
+    mixed = next(
+        t
+        for t in technology.tech_pool(state, registry, "p1").values()
+        if technology.prerequisites(t)[a] >= 1 and technology.prerequisites(t)[b] >= 1
+    )
+    need = technology.prerequisites(mixed).total()
+    # jedna technologia pokrywa dokładnie jeden symbol - reszta wciąż brakuje
+    assert technology.missing_prerequisites(state, registry, "p1", mixed).total() == need - 1
+
+
+def test_synergy_specialty_skips_either_color(registry: StaticDataRegistry) -> None:
+    a, b = _synergy_pair(registry)
+    tier1_b = _first(registry, b, 1)
+    planet_a = _specialty_planet(registry, a)
+    state = _state(registry, [], [planet_a])
+    with pytest.raises(ValueError, match="does not match"):
+        technology.research(state, registry, "p1", tier1_b, [planet_a])
+    state.players["p1"].breakthrough_unlocked = True
+    done = technology.research(state, registry, "p1", tier1_b, [planet_a])
+    assert planet_a in done.players["p1"].exhausted_planets
+
+
+def test_synergy_applies_to_tech_colour_objectives(registry: StaticDataRegistry) -> None:
+    """R_synergy: przy celach technologie pary mogą liczyć się jako dowolny kolor pary."""
+    from src.core import objective_progress
+    from src.core.hex_grid import HexGrid
+
+    a, b = _synergy_pair(registry)
+    techs = [t.id for t in technology.generic_pool(registry).values()
+             if technology.tech_color(t) == a][:4]
+    state = _state(registry, techs, [])
+    view = objective_progress.View(state, registry, HexGrid(), "p1")
+    assert objective_progress._p_diversify(view) == 1  # 4× a → tylko kolor a ma ≥2
+    state.players["p1"].breakthrough_unlocked = True
+    view = objective_progress.View(state, registry, HexGrid(), "p1")
+    assert objective_progress._p_diversify(view) == 2  # 2× a + 2× b dzięki synergii
+    assert objective_progress._p_same_color_techs(view) == 4

@@ -31,6 +31,18 @@ export type ResearchOptions = {
   tradeGoods: number;
   cost: number;
   researched: string[];
+  /** Przełom frakcji (Thunder's Edge) - synergia 2 kolorów, działa tylko odblokowany. */
+  breakthrough: BreakthroughInfo | null;
+};
+
+export type BreakthroughInfo = {
+  id: string;
+  name: string;
+  synergy: TechColor[];
+  unlocked: boolean;
+  exhausted: boolean;
+  /** Synergia działa teraz (przełom odblokowany i ma parę kolorów). */
+  active: boolean;
 };
 
 /** Kolumny drzewa: kolejność jak na kartach (niebieski, zielony, żółty, czerwony). */
@@ -63,6 +75,10 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     tradeGoods: typeof raw.trade_goods === "number" ? raw.trade_goods : 0,
     cost: typeof raw.cost === "number" ? raw.cost : 0,
     researched: Array.isArray(raw.researched) ? (raw.researched as string[]) : [],
+    breakthrough:
+      raw.breakthrough && typeof raw.breakthrough === "object"
+        ? (raw.breakthrough as BreakthroughInfo)
+        : null,
   };
 }
 
