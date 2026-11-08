@@ -205,6 +205,12 @@ class DecksState(BaseModel):
     action_card_deck: list[str] = Field(default_factory=list)
     action_card_discard: list[str] = Field(default_factory=list)
     secret_objective_deck: list[str] = Field(default_factory=list)
+    # Talia agend (kolejność = od góry) i stos odrzuconych. Powstaje LENIWIE przy pierwszym
+    # użyciu (Politics: podgląd; faza agendy) - ``agenda_deck_seeded`` odróżnia „jeszcze nie
+    # zasiana" od „zużyta". Mechanika: ``core/card_draw.py``.
+    agenda_deck: list[str] = Field(default_factory=list)
+    agenda_discard: list[str] = Field(default_factory=list)
+    agenda_deck_seeded: bool = False
     # Talie eksploracji (RULES.md 46): klucz = "cultural"/"hazardous"/"industrial"/"frontier".
     # Talia powstaje LENIWIE przy pierwszym dobraniu (brak klucza = jeszcze niezasiana);
     # pusta talia tasuje się z własnego stosu odrzuconych. Karty, które się purge'ują

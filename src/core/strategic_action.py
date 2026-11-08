@@ -29,9 +29,10 @@ from typing import Any
 
 from src.core import timing
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.strategy_cards import CARDS, CardSpec, leadership, trade
-from src.core.strategy_cards.base import Draft
+from src.core.strategy_cards.base import CardContext, Draft
 
 # Numery inicjatywy (z danych: zestaw ``te``); zgodność z rejestrem pilnują testy.
 _LEADERSHIP_INITIATIVE = leadership.INITIATIVE
@@ -53,7 +54,7 @@ def _free_players(context: dict[str, str | int]) -> set[str]:
 
 def _finish_primary(
     state: GameState,
-    registry: StaticDataRegistry,
+    ctx: CardContext,
     owner_id: str,
     initiative: int,
     draft: Draft,
@@ -66,7 +67,7 @@ def _finish_primary(
     """
     spec = _spec(initiative)
     if spec.primary is not None:
-        spec.primary(state, registry, owner_id, draft)
+        spec.primary(state, ctx, owner_id, draft)
     state.pending_strategy = None
 
     queue = timing.build_response_queue(state, owner_id)
@@ -91,6 +92,8 @@ def play_strategy_card(
     registry: StaticDataRegistry,
     player_id: str,
     initiative: int,
+    *,
+    grid: HexGrid | None = None,
 ) -> GameState:
     """Akcja strategiczna: start rozstrzygania PRIMARY (RULES.md 30.1, 30.3, 30.5).
 
@@ -144,7 +147,7 @@ def play_strategy_card(
             step=spec.primary_steps[0],
         )
         return new_state
-    return _finish_primary(new_state, registry, player_id, initiative, {})
+    return _finish_primary(new_state, CardContext(registry, grid), player_id, initiative, {})
 
 
 def submit_primary_step(
@@ -152,6 +155,8 @@ def submit_primary_step(
     registry: StaticDataRegistry,
     player_id: str,
     payload: dict[str, Any],
+    *,
+    grid: HexGrid | None = None,
 ) -> GameState:
     """Przesyła wybór dla bieżącego kroku primary (tylko właściciel karty).
 
@@ -173,10 +178,11 @@ def submit_primary_step(
     if spec.on_step is None:
         raise ValueError("This card has no interactive primary steps.")
 
+    ctx = CardContext(registry, grid)
     new_state = state.clone()
     assert new_state.pending_strategy is not None  # zachowane przez clone
     current = new_state.pending_strategy
-    spec.on_step(new_state, registry, player_id, current.step, current.draft, payload)
+    spec.on_step(new_state, ctx, player_id, current.step, current.draft, payload)
 
     if spec.next_step is not None:
         following = spec.next_step(current.step, current.draft)
@@ -186,7 +192,7 @@ def submit_primary_step(
     if following is not None:
         current.step = following
         return new_state
-    return _finish_primary(new_state, registry, player_id, current.initiative, current.draft)
+    return _finish_primary(new_state, ctx, player_id, current.initiative, current.draft)
 
 
 def resolve_secondary(
@@ -196,6 +202,7 @@ def resolve_secondary(
     *,
     execute: bool,
     payload: dict[str, Any] | None = None,
+    grid: HexGrid | None = None,
 ) -> GameState:
     """Rozstrzyga odpowiedź bieżącego respondenta w oknie secondary (RULES.md 30.1, 30.5).
 
@@ -233,7 +240,7 @@ def resolve_secondary(
             responder.strategic_cc -= 1
             responder.cc_reinf += 1  # wydany żeton wraca do rezerwy
         if spec.secondary is not None:
-            spec.secondary(new_state, registry, player_id, payload or {})
+            spec.secondary(new_state, CardContext(registry, grid), player_id, payload or {})
     elif is_free:
         raise ValueError(
             "The active player chose you - you must resolve this secondary ability."
@@ -247,7 +254,10 @@ def resolve_secondary(
 
 
 def step_options(
-    state: GameState, registry: StaticDataRegistry, player_id: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    grid: HexGrid | None = None,
 ) -> dict[str, Any] | None:
     """Dozwolone wybory dla UI gracza, który TERAZ musi odpowiedzieć (lub None).
 
@@ -256,11 +266,12 @@ def step_options(
     ``step`` oraz ``options`` z modułu karty. Dane prywatne (np. podgląd agendy) karta
     zwraca wyłącznie dla ``player_id`` właściciela monitu — nigdy dla innych graczy.
     """
+    ctx = CardContext(registry, grid)
     pending = state.pending_strategy
     if pending is not None and pending.owner_id == player_id:
         spec = _spec(pending.initiative)
         options = (
-            spec.options(state, registry, player_id, pending.step, pending.draft)
+            spec.options(state, ctx, player_id, pending.step, pending.draft)
             if spec.options is not None
             else {}
         )
@@ -280,7 +291,7 @@ def step_options(
         initiative = int(window.context.get("initiative", 0))
         spec = _spec(initiative)
         options = (
-            spec.options(state, registry, player_id, None, {})
+            spec.options(state, ctx, player_id, None, {})
             if spec.options is not None
             else {}
         )

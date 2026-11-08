@@ -214,15 +214,24 @@ def has_scored_public(state: GameState, player_id: str, objective_id: str) -> bo
 
 
 def scoreable_public_objectives(
-    state: GameState, registry: StaticDataRegistry, grid: HexGrid, player_id: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    *,
+    ignore_phase: bool = False,
 ) -> list[str]:
-    """Odkryte cele publiczne, które gracz MOŻE teraz zdobyć (spełnia wymagania karty)."""
+    """Odkryte cele publiczne, które gracz MOŻE teraz zdobyć (spełnia wymagania karty).
+
+    ``ignore_phase=True`` pomija warunek „cel fazy statusu" - dla primary Imperial, które
+    pozwala zdobyć cel publiczny natychmiast, poza fazą statusu (R_imperial).
+    """
     if not controls_home_planets(state, registry, player_id):
         return []
     result: list[str] = []
     for objective_id in state.objectives.revealed:
         definition = objective_def(registry, objective_id)
-        if definition is None or definition.phase != STATUS_PHASE_LABEL:
+        if definition is None or (not ignore_phase and definition.phase != STATUS_PHASE_LABEL):
             continue
         if has_scored_public(state, player_id, objective_id):
             continue
@@ -278,8 +287,12 @@ def score_public(
     grid: HexGrid,
     player_id: str,
     objective_id: str,
+    *,
+    ignore_phase: bool = False,
 ) -> GameState:
     """Gracz zdobywa odkryty cel publiczny (bez limitu na fazę — to sprawdza wołający).
+
+    ``ignore_phase=True`` (primary Imperial) pozwala zdobyć cel poza fazą statusu.
 
     Raises:
         ValueError: Gdy gracz/cel nieznany, cel nieodkryty, już zdobyty przez gracza,
@@ -294,7 +307,7 @@ def score_public(
         raise ValueError(f"Unknown objective: {objective_id}")
     if has_scored_public(state, player_id, objective_id):
         raise ValueError("You have already scored this objective.")
-    if definition.phase != STATUS_PHASE_LABEL:
+    if not ignore_phase and definition.phase != STATUS_PHASE_LABEL:
         raise ValueError("This objective is not scored in the status phase.")
     if not controls_home_planets(state, registry, player_id):
         raise ValueError(

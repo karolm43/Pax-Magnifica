@@ -1402,6 +1402,38 @@ Efekty „when replenishes commodities" (np. Trade Agreement) dojdą hookami (E7
 - Kształt UI: `GET /strategy/options?player_id=` zwraca opcje kroku; `needs_input` w secondary mówi,
   czy „follow" wymaga widoku wyboru.
 
+### 30.8. Diplomacy (errata Codex I) — ✅ ZWERYFIKOWANE (R_diplomacy)
+
+📎 tirules: [Diplomacy](rules_tirules/R_diplomacy.md)
+
+Primary: system inny niż Mecatol z własną planetą → każdy inny gracz (od lewej aktywnego, zegarowo)
+kładzie tam żeton ze SWOJEJ REZERWY (pomija, gdy już ma tam żeton) → odnów do 2 wyczerpanych planet.
+Brak legalnego systemu: akcja nadal dozwolona, nikt nic nie kładzie. Secondary (1 żeton strategy pool):
+odnów do 2 planet. ⚠️ ZAŁOŻENIE: gdy rezerwa gracza jest pusta, żeton schodzi z arkusza AUTOMATYCZNIE
+(taktyczna → floty → strategiczna), zamiast pytać gracza o pulę (tirules: „places one command token of
+their choice from their command sheet") - do ewentualnego dopracowania promptem dla innych graczy.
+
+### 30.9. Politics — ✅ ZWERYFIKOWANE (R_politics)
+
+📎 tirules: [Politics](rules_tirules/R_politics.md)
+
+Primary w kolejności: nowy mówca (gracz bez żetonu mówcy, także aktywny) → 2 karty akcji → podgląd 2
+górnych agend, każda na górę/spód talii (obie na jednej stronie → dowolna kolejność). Podgląd PRYWATNY:
+opcje kroku zwracane tylko właścicielowi, szkic nie zawiera kart. Secondary (1 żeton): 2 karty akcji.
+Talia agend powstaje leniwie (`core/card_draw.ensure_agenda_deck`, `DecksState.agenda_deck`).
+⚠️ Limit ręki 7 kart nie jest modelowany (jak w fazie statusu, 41.5). ⚠️ `/state` ujawnia zawartość talii
+(jak talię akcji) - do ukrycia przy module sieciowym.
+
+### 30.10. Imperial — ✅ ZWERYFIKOWANE (R_imperial)
+
+📎 tirules: [Imperial](rules_tirules/R_imperial.md)
+
+Primary: opcjonalnie zdobądź 1 cel publiczny (wymaga kontroli WSZYSTKICH planet home system i spełnienia
+wymagań; cel może być z dowolnej fazy - `score_public(ignore_phase=True)`), potem: kontrola Mecatol Rex →
++1 VP (obowiązkowo), inaczej dobierz tajny cel. Limit 3 tajnych (ręka + zdobyte): nadmiar → zwrot
+jednego NIEzdobytego do talii + tasowanie; można oddać także świeżo dobrany (`return: "drawn"`).
+Secondary (1 żeton): tajny cel (z tym samym limitem).
+
 ### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
 
 📎 tirules: [Action Phase](rules_tirules/R_action_phase.md), [Strategic Action](rules_tirules/R_strategic_action.md)

@@ -12,8 +12,7 @@ from typing import Any
 
 from src.core.game_state import GameState
 from src.core.payment import apply_payment, parse_payment, ready_planet_values, validate_payment
-from src.core.registry import StaticDataRegistry
-from src.core.strategy_cards.base import CardSpec, Draft
+from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import (
     check_distribution,
     gain_tokens,
@@ -26,15 +25,15 @@ BASE_TOKENS = 3  # primary: „gains three command tokens"
 INFLUENCE_PER_TOKEN = 3  # „one command token for every three influence"
 
 
-def _bought(state: GameState, registry: StaticDataRegistry, player_id: str,
+def _bought(state: GameState, ctx: CardContext, player_id: str,
             planets: list[str], tg: int) -> int:
-    paid = validate_payment(state, registry, player_id, "influence", planets, tg)
+    paid = validate_payment(state, ctx.registry, player_id, "influence", planets, tg)
     return paid // INFLUENCE_PER_TOKEN
 
 
 def _on_step(
     state: GameState,
-    registry: StaticDataRegistry,
+    ctx: CardContext,
     owner_id: str,
     step: str,
     draft: Draft,
@@ -42,7 +41,7 @@ def _on_step(
 ) -> None:
     if step == "spend_influence":
         planets, tg = parse_payment(payload)
-        bought = _bought(state, registry, owner_id, planets, tg)
+        bought = _bought(state, ctx, owner_id, planets, tg)
         draft["planets"] = planets
         draft["trade_goods"] = tg
         draft["gain"] = gainable_tokens(state, owner_id, BASE_TOKENS + bought)
@@ -54,17 +53,17 @@ def _on_step(
 
 
 def _primary(
-    state: GameState, _registry: StaticDataRegistry, owner_id: str, draft: Draft
+    state: GameState, _ctx: CardContext, owner_id: str, draft: Draft
 ) -> None:
     apply_payment(state, owner_id, draft.get("planets", []), int(draft.get("trade_goods", 0)))
     gain_tokens(state, owner_id, draft["pools"])
 
 
 def _secondary(
-    state: GameState, registry: StaticDataRegistry, player_id: str, payload: dict[str, Any]
+    state: GameState, ctx: CardContext, player_id: str, payload: dict[str, Any]
 ) -> None:
     planets, tg = parse_payment(payload)
-    bought = _bought(state, registry, player_id, planets, tg)
+    bought = _bought(state, ctx, player_id, planets, tg)
     gain = gainable_tokens(state, player_id, bought)
     pools = parse_pools(payload)
     check_distribution(pools, gain)
@@ -74,7 +73,7 @@ def _secondary(
 
 def _options(
     state: GameState,
-    registry: StaticDataRegistry,
+    ctx: CardContext,
     player_id: str,
     step: str | None,
     draft: Draft,
@@ -83,7 +82,7 @@ def _options(
     if step == "distribute":
         return {"gain": int(draft.get("gain", 0))}
     return {
-        "planets": ready_planet_values(state, registry, player_id, "influence"),
+        "planets": ready_planet_values(state, ctx.registry, player_id, "influence"),
         "trade_goods": player.trade_goods,
         "reinforcements": player.cc_reinf,
         "base_gain": BASE_TOKENS if step == "spend_influence" else 0,

@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.dice import next_rng
 from src.core.game_state import (
@@ -155,16 +156,7 @@ def _draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str
 
 def _draw_action_card(state: GameState, player_id: str) -> bool:
     """Dobiera kartę akcji (pusta talia → tasuje odrzucone); False, gdy nie ma żadnej."""
-    decks = state.decks
-    if not decks.action_card_deck and decks.action_card_discard:
-        reshuffled = list(decks.action_card_discard)
-        next_rng(state).shuffle(reshuffled)
-        decks.action_card_deck = reshuffled
-        decks.action_card_discard = []
-    if not decks.action_card_deck:
-        return False
-    state.players[player_id].private.action_cards.append(decks.action_card_deck.pop(0))
-    return True
+    return draw_action_card(state, player_id)
 
 
 # ------------------------------------------------------------------------- opcje kart (Instant)

@@ -13,21 +13,41 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.core.game_state import GameState
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+
+
+@dataclass(frozen=True)
+class CardContext:
+    """Zależności efektów kart: dane statyczne i (opcjonalnie) siatka mapy.
+
+    Siatka jest potrzebna kartom, które patrzą na geometrię (cele punktowe, produkcja,
+    akcja taktyczna); testy czysto-stanowe mogą ją pominąć (``require_grid`` rzuca wtedy
+    czytelny błąd tylko tam, gdzie jest faktycznie niezbędna).
+    """
+
+    registry: StaticDataRegistry
+    grid: HexGrid | None = None
+
+    def require_grid(self) -> HexGrid:
+        if self.grid is None:
+            raise ValueError("This strategy card effect needs the map grid.")
+        return self.grid
+
 
 # Szkic wyborów primary: dowolne wartości JSON (listy id, napisy, liczby).
 Draft = dict[str, Any]
-# Efekt primary: (klon_stanu, registry, owner_id, szkic) -> None.
-PrimaryFn = Callable[[GameState, StaticDataRegistry, str, Draft], None]
-# Efekt secondary: (klon_stanu, registry, respondent_id, payload) -> None.
-SecondaryFn = Callable[[GameState, StaticDataRegistry, str, dict[str, Any]], None]
-# Obsługa kroku primary: (klon, registry, owner_id, krok, szkic, payload) -> None; waliduje
+# Efekt primary: (klon_stanu, ctx, owner_id, szkic) -> None.
+PrimaryFn = Callable[[GameState, CardContext, str, Draft], None]
+# Efekt secondary: (klon_stanu, ctx, respondent_id, payload) -> None.
+SecondaryFn = Callable[[GameState, CardContext, str, dict[str, Any]], None]
+# Obsługa kroku primary: (klon, ctx, owner_id, krok, szkic, payload) -> None; waliduje
 # payload (ValueError przy błędzie) i dopisuje wybór do szkicu.
-StepFn = Callable[[GameState, StaticDataRegistry, str, str, Draft, dict[str, Any]], None]
-# Opcje dla UI: (stan, registry, player_id, krok|None, szkic) -> słownik z dozwolonymi
+StepFn = Callable[[GameState, CardContext, str, str, Draft, dict[str, Any]], None]
+# Opcje dla UI: (stan, ctx, player_id, krok|None, szkic) -> słownik z dozwolonymi
 # wyborami (planety, systemy, limity...). ``krok=None`` = secondary. Funkcja CZYSTA, tylko
 # odczyt; informacje prywatne (np. podgląd agendy) zwraca wyłącznie dla ``player_id``.
-OptionsFn = Callable[[GameState, StaticDataRegistry, str, str | None, Draft], dict[str, Any]]
+OptionsFn = Callable[[GameState, CardContext, str, str | None, Draft], dict[str, Any]]
 
 
 @dataclass(frozen=True)

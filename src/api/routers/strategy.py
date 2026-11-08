@@ -1,4 +1,4 @@
-﻿"""Router fazy strategii (Etap E2): pula kart, wybór, zagranie."""
+"""Router fazy strategii (Etap E2): pula kart, wybór, zagranie."""
 
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def get_strategy_options(
     state = ctx.service.current_state()
     if player_id not in state.players:
         raise HTTPException(status_code=404, detail=f"Unknown player: {player_id}")
-    return strategic_action.step_options(state, ctx.registry, player_id)
+    return strategic_action.step_options(state, ctx.registry, player_id, ctx.current_grid)
 
 
 async def _commit(ctx: AppContext, new_state, label: str) -> StateEnvelope:  # type: ignore[no-untyped-def]
@@ -117,6 +117,7 @@ async def post_strategy_play(
             ctx.registry,
             request.player_id,
             request.initiative,
+            grid=ctx.current_grid,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -140,6 +141,7 @@ async def post_strategy_primary_step(
             ctx.registry,
             request.player_id,
             request.payload,
+            grid=ctx.current_grid,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -162,6 +164,7 @@ async def post_strategy_secondary(
             request.player_id,
             execute=request.execute,
             payload=request.payload,
+            grid=ctx.current_grid,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

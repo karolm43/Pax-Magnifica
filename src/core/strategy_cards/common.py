@@ -17,6 +17,42 @@ def str_list(payload: dict[str, Any], key: str) -> list[str]:
     return list(raw)
 
 
+def owned_planets(state: GameState, player_id: str) -> list[str]:
+    """Planety kontrolowane przez gracza (z ``planet_owners`` systemów)."""
+    return [
+        planet_id
+        for system in state.systems.values()
+        for planet_id, owner in system.planet_owners.items()
+        if owner == player_id
+    ]
+
+
+def exhausted_owned_planets(state: GameState, player_id: str) -> list[str]:
+    """Planety gracza, które są WYCZERPANE (kandydaci do odnowienia)."""
+    exhausted = set(state.players[player_id].exhausted_planets)
+    return [p for p in owned_planets(state, player_id) if p in exhausted]
+
+
+def ready_planets_by_choice(
+    state: GameState, player_id: str, chosen: list[str], limit: int
+) -> None:
+    """Odnawia wskazane planety (mutuje klon): max ``limit``, własne i wyczerpane.
+
+    Raises:
+        ValueError: Za dużo planet, duplikat, cudza planeta albo planeta nie wyczerpana.
+    """
+    if len(chosen) > limit:
+        raise ValueError(f"You can ready at most {limit} planet(s).")
+    if len(set(chosen)) != len(chosen):
+        raise ValueError("The same planet was selected twice.")
+    allowed = set(exhausted_owned_planets(state, player_id))
+    for planet_id in chosen:
+        if planet_id not in allowed:
+            raise ValueError(f"Planet {planet_id} is not yours or is not exhausted.")
+    player = state.players[player_id]
+    player.exhausted_planets = [p for p in player.exhausted_planets if p not in chosen]
+
+
 def parse_pools(payload: dict[str, Any]) -> dict[str, int]:
     """Rozkład żetonów po pulach: ``tactical``/``fleet``/``strategic`` (liczby ≥ 0)."""
     result: dict[str, int] = {}

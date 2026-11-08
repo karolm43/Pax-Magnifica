@@ -9,8 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.game_state import GameState
-from src.core.registry import StaticDataRegistry
-from src.core.strategy_cards.base import CardSpec, Draft
+from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 
 INITIATIVE = 5
 PRIMARY_TRADE_GOODS = 3  # krok 1: „gains 3 trade goods"
@@ -24,7 +23,7 @@ def replenish_commodities(state: GameState, player_id: str) -> None:
 
 def _on_step(
     state: GameState,
-    _registry: StaticDataRegistry,
+    _ctx: CardContext,
     owner_id: str,
     step: str,
     draft: Draft,
@@ -49,21 +48,21 @@ def _on_step(
 
 
 def _primary(
-    state: GameState, _registry: StaticDataRegistry, owner_id: str, _draft: Draft
+    state: GameState, _ctx: CardContext, owner_id: str, _draft: Draft
 ) -> None:
     state.players[owner_id].trade_goods += PRIMARY_TRADE_GOODS
     replenish_commodities(state, owner_id)
 
 
 def _secondary(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, _payload: dict[str, Any]
+    state: GameState, _ctx: CardContext, player_id: str, _payload: dict[str, Any]
 ) -> None:
     replenish_commodities(state, player_id)
 
 
 def _options(
     state: GameState,
-    _registry: StaticDataRegistry,
+    _ctx: CardContext,
     player_id: str,
     _step: str | None,
     _draft: Draft,
