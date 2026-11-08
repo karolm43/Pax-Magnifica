@@ -3035,6 +3035,12 @@ Kod: `core/action_cards.py` (`play_action_card`), efekty w `core/hooks/action_ca
 | Refit Troops | `refit` | 1–2 własne piechoty na planetach -> mechy z rezerwy (limit rezerwy mechów) |
 | Scuttle | `scuttle` | 1–2 własne statki nie-myśliwce do rezerwy; TG = suma kosztów (`fleet_pool.unit_cost`) |
 
+**Formularz zagrania (UI):** `GET /action-card/{id}/inputs?player_id=` zwraca tekst karty, `implemented` i listę
+wyborów gracza (`choice` / `multi` / `number`, opcje liczone przez silnik na bieżącym stanie - własne planety,
+systemy z żetonem, cele...). Opisy rejestrują efekty przez `rules_hooks.register_effect_inputs`
+(`core/hooks/action_card_inputs.py`); front (`ActionCardPlayModal`) nie zna kart, tylko renderuje opis.
+Test spójności: parametry zbudowane tak jak w UI przechodzą walidację efektu (`test_action_cards.py`).
+
 **Nowe punkty zaczepienia (RULES.md 43):** `agenda.vote_modifier` (MODIFY, podpięte w `agenda_phase.extra_votes`),
 `combat.extra_dice` (MODIFY), `combat.reroll_misses` (PERMIT, jedno przerzucenie chybień w `battle.roll_round`).
 Źródła hooków (`owned_sources`) obejmują teraz też prawa w grze (`decks.agenda_laws`, obowiązują każdego gracza)

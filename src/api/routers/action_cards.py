@@ -5,10 +5,37 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import PlayActionCardRequest, PlayActionCardResponse
+from src.api.schemas import (
+    ActionCardInputsResponse,
+    PlayActionCardRequest,
+    PlayActionCardResponse,
+)
 from src.core import action_cards
+from src.core.components import ComponentCategory
 
 router = APIRouter()
+
+
+@router.get("/action-card/{card_id}/inputs", response_model=ActionCardInputsResponse)
+async def get_action_card_inputs(
+    card_id: str, player_id: str, ctx: AppContext = Depends(get_ctx)
+) -> ActionCardInputsResponse:
+    """Formularz zagrania karty: tekst, czy silnik ją automatyzuje i legalne wybory gracza."""
+    try:
+        implemented, inputs = action_cards.card_inputs(
+            ctx.service.current_state(), ctx.registry, player_id, card_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    card = ctx.registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
+    assert card is not None  # zagwarantowane przez card_inputs
+    return ActionCardInputsResponse(
+        card_id=card_id,
+        name=card.name or card_id,
+        text=" ".join(card.texts.values()),
+        implemented=implemented,
+        inputs=inputs,
+    )
 
 
 @router.post("/action-card/play", response_model=PlayActionCardResponse)

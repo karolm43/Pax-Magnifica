@@ -29,6 +29,7 @@ import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePla
 import {
   collectComponentActions,
   KIND_LABEL,
+  type ComponentActionChoice,
   type ComponentActionKind,
 } from "./componentActions";
 import {
@@ -46,6 +47,7 @@ import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useDeskPlayer } from "./useDeskPlayer";
 import { TransactionModal } from "./TransactionModal";
+import { ActionCardPlayModal } from "./ActionCardPlayModal";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import styles from "./TurnControls.module.css";
 
@@ -137,6 +139,8 @@ export function TurnControls() {
   const [confirmingPass, setConfirmingPass] = useState(false);
   // Modal akcji komponentu: „co zagrałeś?". Wybór to tylko adnotacja (RULES.md 31.8).
   const [componentOpen, setComponentOpen] = useState(false);
+  // Karta akcji wybrana na liście akcji komponentu - otwiera formularz zagrania (RULES.md 53).
+  const [playingCard, setPlayingCard] = useState<ComponentActionChoice | null>(null);
   // Okno transakcji (RULES.md 47): wymiana z sąsiadem + żetony obietnic.
   const [transactionOpen, setTransactionOpen] = useState(false);
   // Ekspedycja Thunder's Edge (RULES.md 50): zajęcie plastra na koniec tury.
@@ -647,6 +651,17 @@ export function TurnControls() {
         </Stack>
       </AppModal>
 
+      {playingCard && active.discordId && (
+        <ActionCardPlayModal
+          key={playingCard.id}
+          cardId={playingCard.id}
+          cardName={playingCard.name}
+          playerId={active.discordId}
+          onClose={() => setPlayingCard(null)}
+          onPlayed={() => setPlayingCard(null)}
+        />
+      )}
+
       {expeditionOpen && (
         <ExpeditionModal
           opened
@@ -684,8 +699,9 @@ export function TurnControls() {
       >
         <Stack gap="md">
           <Text size="sm" c="dimmed">
-            Pick what you're playing. This records a component action for your turn
-            so you can end it — the component's effect is applied manually for now.
+            Pick what you're playing. Action cards open a form and the engine applies
+            their effect; other components are only recorded as your action for now
+            (apply their effect by hand).
           </Text>
 
           <div className={styles.compList} role="list">
@@ -698,13 +714,19 @@ export function TurnControls() {
                   role="listitem"
                   className={styles.compItem}
                   disabled={busy}
-                  onClick={() =>
+                  onClick={() => {
+                    // Karta akcji: formularz wyborów, efekt stosuje silnik (RULES.md 53).
+                    if (choice.kind === "action-card") {
+                      setComponentOpen(false);
+                      setPlayingCard(choice);
+                      return;
+                    }
                     run(() =>
                       playComponentAction(active.discordId, choice.id).finally(
                         () => setComponentOpen(false),
                       ),
-                    )
-                  }
+                    );
+                  }}
                 >
                   <Icon size={17} aria-hidden="true" />
                   <span className={styles.compItemName}>{choice.name}</span>

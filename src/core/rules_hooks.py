@@ -86,8 +86,12 @@ class Hook:
     covers: str | None = None  # "<kategoria>:<id>" komponentu, który hook implementuje
 
 
+# Opis wyborów gracza dla efektu (formularz UI): (stan, rejestr, gracz) -> lista wejść.
+InputsFn = Callable[[GameState, Any, str], list[dict[str, Any]]]
+
 _REGISTRY: list[Hook] = []
 _EFFECTS: dict[str, EffectFn] = {}
+_INPUTS: dict[str, InputsFn] = {}
 _loaded = False
 
 
@@ -121,6 +125,24 @@ def register_effect(component_key: str) -> Callable[[EffectFn], EffectFn]:
         return fn
 
     return decorate
+
+
+def register_effect_inputs(component_key: str) -> Callable[[InputsFn], InputsFn]:
+    """Rejestruje opis wyborów gracza dla efektu komponentu (patrz ``hooks/action_card_inputs``)."""
+
+    def decorate(fn: InputsFn) -> InputsFn:
+        if component_key in _INPUTS:
+            raise ValueError(f"Inputs already registered for {component_key}.")
+        _INPUTS[component_key] = fn
+        return fn
+
+    return decorate
+
+
+def inputs_for(component_key: str) -> InputsFn | None:
+    """Opis wyborów efektu albo ``None`` (efekt bez parametrów lub brak efektu)."""
+    _ensure_loaded()
+    return _INPUTS.get(component_key)
 
 
 def effect_for(component_key: str) -> EffectFn | None:
@@ -227,9 +249,12 @@ def temporary_hooks() -> Iterator[None]:
     _ensure_loaded()
     snapshot = list(_REGISTRY)
     effects = dict(_EFFECTS)
+    inputs = dict(_INPUTS)
     try:
         yield
     finally:
         _REGISTRY[:] = snapshot
         _EFFECTS.clear()
         _EFFECTS.update(effects)
+        _INPUTS.clear()
+        _INPUTS.update(inputs)

@@ -5,6 +5,7 @@ importu - robi to leniwie ``rules_hooks``). Nowy temat = nowy moduł + wpis w im
 """
 
 from src.core.hooks import (
+    action_card_inputs,
     action_cards,
     action_cards_other,
     action_cards_units,
@@ -13,6 +14,7 @@ from src.core.hooks import (
 )
 
 __all__ = [
+    "action_card_inputs",
     "action_cards",
     "action_cards_other",
     "action_cards_units",

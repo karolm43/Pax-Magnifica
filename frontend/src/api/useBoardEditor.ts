@@ -22,7 +22,7 @@ function parseDetail(raw: string, status: number): string {
   return raw || `Error ${status}`;
 }
 
-async function post(path: string, body: unknown): Promise<void> {
+async function postRaw(path: string, body: unknown): Promise<Response> {
   const response = await fetch(`${BOT_ROOT}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -35,6 +35,11 @@ async function post(path: string, body: unknown): Promise<void> {
     useAppStore.getState().setNotice(message, "error");
     throw new Error(message);
   }
+  return response;
+}
+
+async function post(path: string, body: unknown): Promise<void> {
+  await postRaw(path, body);
 }
 
 /** Jedna strona transakcji: to, co dany gracz ODDAJE partnerowi (RULES.md 47). */
@@ -400,6 +405,26 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Zagranie karty akcji z oknem „Action" jako akcji komponentu (RULES.md 53). Silnik waliduje
+  // i stosuje efekt; ``implemented=false`` = karta bez automatyzacji (odrzucona, skutek ręcznie).
+  const playActionCard = useCallback(
+    async (
+      playerId: string,
+      cardId: string,
+      params: Record<string, unknown>,
+    ): Promise<{ implemented: boolean }> => {
+      const response = await postRaw("/action-card/play", {
+        player_id: playerId,
+        actor_id: playerId,
+        card_id: cardId,
+        params,
+      });
+      const data = (await response.json()) as { implemented: boolean };
+      await refresh();
+      return { implemented: data.implemented };
+    },
+    [refresh],
+  );
   // Transakcja z sąsiadem (RULES.md 47). ``give`` = co oddaje aktywny gracz, ``receive`` =
   // co dostaje od partnera. Backend egzekwuje reguły (sąsiad, 1/turę, stan posiadania) i
   // przy błędzie zwraca 422 → ``post`` pokazuje powód w komunikacie.
@@ -820,6 +845,7 @@ export function useBoardEditor() {
     playStrategyCard,
     setSpeaker,
     playComponentAction,
+    playActionCard,
     resolveTransaction,
     giveDebtTokens,
     returnDebtTokens,

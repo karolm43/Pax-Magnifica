@@ -1306,3 +1306,13 @@ class PlayActionCardResponse(BaseModel):
 
     envelope: StateEnvelope
     implemented: bool
+
+
+class ActionCardInputsResponse(BaseModel):
+    """Opis formularza zagrania karty akcji: tekst karty i wybory gracza (RULES.md 53)."""
+
+    card_id: str
+    name: str
+    text: str
+    implemented: bool
+    inputs: list[dict[str, Any]]

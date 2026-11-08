@@ -329,3 +329,100 @@ def test_scuttle_zwraca_statki_i_daje_tg_rowne_kosztowi(registry: StaticDataRegi
     assert new.systems["000"].space_units["p1"] == {"fighter": 3}
     with pytest.raises(ValueError, match="non-fighter"):
         _play(state, registry, "scuttle", {"ships": [{"position": "000", "base_type": "fighter"}]})
+
+
+# --------------------------------------------------------------------------- formularz (inputs)
+
+
+def _params_like_ui(inputs: list[dict[str, object]]) -> dict[str, object]:
+    """Odtwarza logikę formularza w UI: pierwsza opcja / minimalna liczba opcji / minimum."""
+    params: dict[str, object] = {}
+    for item in inputs:
+        options = item.get("options") or []
+        assert isinstance(options, list)
+        if item["kind"] == "choice":
+            assert options, f"brak opcji dla {item['key']}"
+            value = options[0]["value"]
+            if item.get("merge") and isinstance(value, dict):
+                params.update(value)
+            else:
+                params[str(item["key"])] = value
+        elif item["kind"] == "multi":
+            need = int(item["min"])  # type: ignore[call-overload]
+            assert len(options) >= need, f"za mało opcji dla {item['key']}"
+            params[str(item["key"])] = [o["value"] for o in options[:need]]
+        else:
+            params[str(item["key"])] = int(item["min"])  # type: ignore[call-overload]
+    return params
+
+
+def _rich_state(registry: StaticDataRegistry) -> GameState:
+    cultural = _planets_with(registry, "cultural", 1)[0]
+    hazardous = _planets_with(registry, "hazardous", 1)[0]
+    state = _state(registry, [], [cultural], trade_goods=3)
+    system = state.systems["000"]
+    system.planet_owners[hazardous] = "p2"
+    system.planet_units = {
+        cultural: {"p1": {"infantry": 2}},
+        hazardous: {"p2": {"infantry": 3, "pds": 1}},
+    }
+    system.space_units = {
+        "p1": {"destroyer": 1, "fighter": 2},
+        "p2": {"cruiser": 1},
+    }
+    system.command_tokens = ["p1"]
+    state.players["p2"].tactical_cc = 2
+    state.players["p2"].private.action_cards = ["x"]
+    state.decks.agenda_laws["some_law"] = "for"
+    state.decks.secret_objective_deck = ["s1"]
+    return state
+
+
+@pytest.mark.parametrize(
+    "card",
+    [
+        "mining_initiative", "f_deployment", "unexpected", "war_effort", "insub", "spy",
+        "repeal", "impersonation", "cripple", "plague", "lucky", "refit", "scuttle",
+    ],
+)
+def test_formularz_karty_daje_parametry_przyjmowane_przez_efekt(
+    registry: StaticDataRegistry, card: str
+) -> None:
+    state = _rich_state(registry)
+    state.players["p1"].private.action_cards = [card]
+    implemented, inputs = action_cards.card_inputs(state, registry, "p1", card)
+    assert implemented and inputs
+    params = _params_like_ui(inputs)
+    if card == "impersonation":
+        params["trade_goods"] = 3  # formularz pokazuje zakres; gracz wydaje wymaganą kwotę
+    new, _ = action_cards.play_action_card(state, registry, "p1", card, params)
+    assert new.players["p1"].took_action_this_turn
+
+
+def test_karty_bez_wyborow_maja_pusty_formularz(registry: StaticDataRegistry) -> None:
+    state = _rich_state(registry)
+    state.players["p1"].private.action_cards = ["messiah", "meltdown"]
+    assert action_cards.card_inputs(state, registry, "p1", "messiah") == (True, [])
+    assert action_cards.card_inputs(state, registry, "p1", "meltdown") == (False, [])
+
+
+def test_formularz_wymaga_karty_w_rece(registry: StaticDataRegistry) -> None:
+    state = _rich_state(registry)
+    with pytest.raises(ValueError, match="do not have"):
+        action_cards.card_inputs(state, registry, "p1", "messiah")
+
+
+def test_kazde_inputs_ma_zarejestrowany_efekt() -> None:
+    from src.core import rules_hooks
+
+    rules_hooks.all_hooks()  # wymusza załadowanie pakietu hooków
+    assert rules_hooks._INPUTS
+    assert set(rules_hooks._INPUTS) <= set(rules_hooks._EFFECTS)
+
+
+def test_endpoint_formularza_zwraca_422_dla_karty_spoza_reki(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}, {"faction_id": "arborec"}]})
+    player = next(iter(client.get("/state").json()["state"]["players"]))
+    resp = client.get(f"/action-card/messiah/inputs?player_id={player}")
+    assert resp.status_code == 422

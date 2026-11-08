@@ -27,6 +27,30 @@ def effect_key(card_id: str) -> str:
     return f"{ComponentCategory.ACTION_CARD.value}:{card_id}"
 
 
+def card_inputs(
+    state: GameState, registry: StaticDataRegistry, player_id: str, card_id: str
+) -> tuple[bool, list[dict[str, Any]]]:
+    """Opis wyborów do formularza zagrania karty: ``(implemented, wejścia)``.
+
+    ``implemented=False`` = karta bez efektu w silniku (zagranie = ręczne rozstrzygnięcie).
+
+    Raises:
+        ValueError: Karta nieznana albo nie ma jej w ręce gracza.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if card_id not in player.private.action_cards:
+        raise ValueError(f"You do not have the action card {card_id}.")
+    if not isinstance(registry.catalog.get(ComponentCategory.ACTION_CARD, card_id), ActionCardDef):
+        raise ValueError(f"Unknown action card: {card_id}")
+    key = effect_key(card_id)
+    if rules_hooks.effect_for(key) is None:
+        return False, []
+    inputs_fn = rules_hooks.inputs_for(key)
+    return True, (inputs_fn(state, registry, player_id) if inputs_fn is not None else [])
+
+
 def play_action_card(
     state: GameState,
     registry: StaticDataRegistry,
