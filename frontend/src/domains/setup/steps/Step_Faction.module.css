@@ -295,6 +295,9 @@
 
 .content {
   --pick-h: 96px;
+  /* Szerokości bocznych paneli (detail + lista) — wspólne dla nich i paska wyboru. */
+  --detail-w: clamp(280px, 18.5vw, 350px);
+  --gallery-w: clamp(200px, 13vw, 250px);
   position: relative;
   flex: 1;
   min-height: 0;
@@ -364,9 +367,11 @@
 .detail {
   position: relative;
   z-index: 2;
-  flex: 0 0 clamp(280px, 18.5vw, 350px);
+  flex: 0 0 var(--detail-w);
   min-width: 0;
-  padding: var(--ds-space-md) var(--ds-space-md) 0;
+  /* Panel sięga do dolnej krawędzi ekranu (bez pustego pasa pod spodem). */
+  margin-bottom: calc(-1 * var(--pick-h));
+  padding: var(--ds-space-md);
   overflow-y: auto;
   overscroll-behavior: contain;
   background: color-mix(in oklab, var(--ds-ground) 60%, transparent);
@@ -378,7 +383,9 @@
 .gallery {
   position: relative;
   z-index: 2;
-  flex: 0 0 clamp(200px, 13vw, 250px);
+  flex: 0 0 var(--gallery-w);
+  /* Lista sięga do dolnej krawędzi ekranu (bez pustego pasa pod spodem). */
+  margin-bottom: calc(-1 * var(--pick-h));
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-sm);
@@ -518,7 +525,8 @@
 .pickBar {
   position: absolute;
   left: 0;
-  right: 0;
+  /* Tylko pod strefą postaci — nie nachodzi na panel szczegółów i listę. */
+  right: calc(var(--detail-w) + var(--gallery-w));
   bottom: 0;
   height: var(--pick-h);
   z-index: 3;
@@ -638,5 +646,13 @@
   }
   .gallery {
     flex: 0 0 auto;
+  }
+  /* Układ kolumnowy: panele nie schodzą pod pasek wyboru, a pasek ma pełną szerokość. */
+  .detail,
+  .gallery {
+    margin-bottom: 0;
+  }
+  .pickBar {
+    right: 0;
   }
 }

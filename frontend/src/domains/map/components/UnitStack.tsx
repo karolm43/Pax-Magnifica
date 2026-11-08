@@ -246,6 +246,10 @@ export function UnitStack({
         width: `${footprint.width}px`,
         height: `${footprint.height}px`,
         zIndex: baseZIndex,
+        // Stos żetonu/załącznika (np. Custodians na Mecatol Rex) nie łapie klików
+        // całym prostokątem - klik ma dojść do heksa (zaznaczenie / aktywacja systemu).
+        // Sam żeton z opisem reguły ma własną ramkę (hover) w Token.tsx.
+        ...(isUnit ? {} : { pointerEvents: "none" as const }),
         ...delayStyle,
       }}
     >

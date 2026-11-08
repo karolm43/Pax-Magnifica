@@ -146,10 +146,10 @@ function TokenWithInfo({
           onClick={(e) => {
             e.stopPropagation();
             const el = e.currentTarget;
-            const prev = el.style.pointerEvents;
-            el.style.pointerEvents = "none";
-            const under = document.elementFromPoint(e.clientX, e.clientY);
-            el.style.pointerEvents = prev;
+            // Pierwszy element pod kursorem, który NIE jest tym żetonem (planeta / heks).
+            const under = document
+              .elementsFromPoint(e.clientX, e.clientY)
+              .find((node) => !el.contains(node));
             under?.dispatchEvent(
               new MouseEvent("click", {
                 bubbles: true,
