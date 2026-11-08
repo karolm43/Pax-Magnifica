@@ -118,13 +118,17 @@ def combat_units(
         )
         if unit is None or unit.combat_hits_on is None:
             continue
-        # Hook MODIFY: +N do wyniku rzutu (zdolności, technologie) obok terenu (mgławica).
+        # Hooki MODIFY: +N do wyniku rzutu i dodatkowe kości (zdolności, technologie) obok
+        # terenu (mgławica).
+        hook_ctx = {
+            "kind": kind, "position": position, "planet": planet,
+            "defender": defender, "base_type": base_type,
+        }
         modifier = terrain_modifier + rules_hooks.modify(
-            rules_hooks.POINT_COMBAT_ROLL_MODIFIER, state, player_id, 0,
-            {
-                "kind": kind, "position": position, "planet": planet,
-                "defender": defender, "base_type": base_type,
-            },
+            rules_hooks.POINT_COMBAT_ROLL_MODIFIER, state, player_id, 0, hook_ctx
+        )
+        extra_dice = rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_EXTRA_DICE, state, player_id, 0, hook_ctx
         )
         units.append(
             CombatUnit(
@@ -136,7 +140,7 @@ def combat_units(
                 hits_on=unit.combat_hits_on - modifier,
                 base_hits_on=unit.combat_hits_on,
                 modifier=modifier,
-                dice_per_unit=unit.combat_die_count or 1,
+                dice_per_unit=max(1, (unit.combat_die_count or 1) + extra_dice),
                 sustain=unit.sustain_damage,
                 afb_hits_on=unit.afb_hits_on if kind == "space" else None,
                 afb_dice=unit.afb_die_count or 1,
@@ -320,6 +324,20 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
     return _after_losses(new_state, grid, registry)
 
 
+def _reroll_misses(
+    state: GameState, unit: CombatUnit, dice: list[int]
+) -> tuple[GameState, list[int]]:
+    """Przerzuca chybienia raz (hook ``combat.reroll_misses``); trafienia zostają bez zmian."""
+    misses = [i for i, d in enumerate(dice) if d + unit.modifier < unit.base_hits_on]
+    if not misses:
+        return state, dice
+    new_state, again = roll_dice(state, len(misses))
+    result = list(dice)
+    for index, value in zip(misses, again, strict=True):
+        result[index] = value
+    return new_state, result
+
+
 def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Rzuty combat obu stron (atakujący pierwszy — W5) i otwarcie przypisania strat."""
     combat = _combat(state)
@@ -333,6 +351,10 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
         total = 0
         for unit in side_units(new_state, grid, registry, pid):
             new_state, dice = roll_dice(new_state, unit.total_dice)
+            if rules_hooks.permits(
+                rules_hooks.POINT_COMBAT_REROLL_MISSES, state, pid, {"base_type": unit.base_type}
+            ):
+                new_state, dice = _reroll_misses(new_state, unit, dice)
             hits = count_hits([d + unit.modifier for d in dice], unit.base_hits_on)
             total += hits
             entries.append(_roll_entry(unit, dice, unit.base_hits_on, hits))

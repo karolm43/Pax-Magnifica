@@ -181,3 +181,102 @@ def test_commodities_as_trade_goods_hook_in_payment_and_budget(
         payment.apply_payment(spent, "p1", [], 3)  # najpierw 1 TG, potem 2 commodities
         assert spent.players["p1"].trade_goods == 0
         assert spent.players["p1"].commodities == 0
+
+
+# --------------------------------------------------------------------------- agenda, kości, źródła
+
+
+def test_vote_modifier_hook_zmienia_dodatkowe_glosy(registry: StaticDataRegistry) -> None:
+    from src.core import agenda_phase
+
+    state = _state_with_dock_on_jord()
+    assert agenda_phase.extra_votes(state, registry, "p1") == 0
+    with rules_hooks.temporary_hooks():
+        rules_hooks.register(rules_hooks.POINT_AGENDA_VOTE_MODIFIER, SOL, HookKind.MODIFY)(
+            lambda _s, _p, _c: 3
+        )
+        assert agenda_phase.extra_votes(state, registry, "p1") == 3
+
+
+def test_extra_dice_hook_dodaje_kosci(registry: StaticDataRegistry) -> None:
+    grid = HexGrid()
+    grid.place_system("000", "18")
+    grid.build_edges()
+
+    def dice(player: str) -> int:
+        unit = battle.combat_units(
+            _battle_state(), grid, registry, kind="space", position="000", planet=None,
+            player_id=player,
+        )[0]
+        return unit.dice_per_unit
+
+    base = dice("p1")
+    with rules_hooks.temporary_hooks():
+        rules_hooks.register(rules_hooks.POINT_COMBAT_EXTRA_DICE, SOL, HookKind.MODIFY)(
+            lambda _s, _p, _c: 1
+        )
+        assert dice("p1") == base + 1
+        assert dice("p2") == base  # p2 nie ma źródła hooka
+
+
+def test_reroll_misses_hook_przerzuca_chybienia(registry: StaticDataRegistry) -> None:
+    grid = HexGrid()
+    grid.place_system("000", "18")
+    grid.build_edges()
+
+    def rolled(seed: int) -> list[int]:
+        state = _battle_state()
+        state.rng_seed = seed
+        started = battle.start_combat(state, grid, registry)
+        out = battle.roll_round(started, grid, registry)
+        combat = out.active_combat
+        assert combat is not None
+        return list(combat.rolls["p1"][0]["dice"])
+
+    differing = 0
+    for seed in range(1, 40):
+        base = rolled(seed)
+        with rules_hooks.temporary_hooks():
+            rules_hooks.register(rules_hooks.POINT_COMBAT_REROLL_MISSES, SOL, HookKind.PERMIT)(
+                lambda _s, _p, _c: True
+            )
+            with_reroll = rolled(seed)
+        assert len(with_reroll) == len(base)
+        if with_reroll != base:
+            differing += 1
+    assert differing > 0  # przynajmniej raz chybienie zostało przerzucone na inną wartość
+
+
+def test_zrodla_obejmuja_prawa_w_grze_i_notki_w_strefie() -> None:
+    state = GameState(players={"p1": PlayerState(player_id="p1", faction="sol")})
+    state.decks.agenda_laws["some_law"] = "for"
+    state.players["p1"].promissory_notes_in_play = ["alliance"]
+    sources = rules_hooks.owned_sources(state, "p1")
+    assert HookSource(rules_hooks.SOURCE_AGENDA, "some_law") in sources
+    assert HookSource(rules_hooks.SOURCE_PROMISSORY, "alliance") in sources
+    assert HookSource(rules_hooks.SOURCE_FACTION, "sol") in sources
+
+
+def test_hook_prawa_dziala_dla_kazdego_gracza_i_znika_po_odrzuceniu() -> None:
+    state = GameState(
+        players={"p1": PlayerState(player_id="p1"), "p2": PlayerState(player_id="p2")}
+    )
+    with rules_hooks.temporary_hooks():
+        rules_hooks.register(
+            "test.law", HookSource(rules_hooks.SOURCE_AGENDA, "law_x"), HookKind.PERMIT
+        )(lambda _s, _p, _c: True)
+        assert not rules_hooks.permits("test.law", state, "p1")  # prawa jeszcze nie ma
+        state.decks.agenda_laws["law_x"] = "for"
+        assert rules_hooks.permits("test.law", state, "p1")
+        assert rules_hooks.permits("test.law", state, "p2")
+        del state.decks.agenda_laws["law_x"]  # prawo odrzucone/zniesione
+        assert not rules_hooks.permits("test.law", state, "p1")
+
+
+def test_rejestr_efektow_blokuje_duplikat_i_wraca_po_bloku() -> None:
+    with rules_hooks.temporary_hooks():
+        rules_hooks.register_effect("action_cards:test_only")(lambda _s, _r, _p, _q: None)
+        assert rules_hooks.effect_for("action_cards:test_only") is not None
+        with pytest.raises(ValueError, match="already registered"):
+            rules_hooks.register_effect("action_cards:test_only")(lambda _s, _r, _p, _q: None)
+    assert rules_hooks.effect_for("action_cards:test_only") is None

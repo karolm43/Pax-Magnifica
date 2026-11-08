@@ -159,6 +159,21 @@ class ActivityFeed(BaseModel):
     current_seq: int | None = None
 
 
+class PlayActionCardRequest(BaseModel):
+    """Zagranie karty akcji z oknem ACTION jako akcji komponentu (RULES.md 53).
+
+    `actor_id` (RULES.md 44.1) - kto wykonuje akcję; gdy podany, musi być równy `player_id`.
+    `params` - wybory gracza zależne od karty (np. `{"planet": "jord"}`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    card_id: str
+    actor_id: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
 class StateEnvelope(BaseModel):
     """Koperta rozsyłana klientom: stan gry + metadane historii.
 
@@ -1285,3 +1300,9 @@ class DebtTokensRequest(BaseModel):
     holder_id: str
     count: int = 1
 
+
+class PlayActionCardResponse(BaseModel):
+    """Wynik zagrania karty: stan + czy silnik zastosował efekt (false = rozstrzyga operator)."""
+
+    envelope: StateEnvelope
+    implemented: bool

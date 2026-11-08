@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import card_draw, exhaust, objectives, strategy_phase, turn_flow
+from src.core import card_draw, exhaust, objectives, rules_hooks, strategy_phase, turn_flow
 from src.core.components import AgendaDef, ComponentCategory
 from src.core.game_state import (
     AgendaPhaseState,
@@ -200,9 +200,12 @@ def _point_to_voter(state: GameState) -> None:
 
 
 def extra_votes(state: GameState, registry: StaticDataRegistry, player_id: str) -> int:
-    """Dodatkowe głosy z efektów gry (HOOK-CANDIDATE: karty/zdolności wejdą tutaj)."""
-    del state, registry, player_id
-    return 0
+    """Dodatkowe głosy z efektów gry - hook MODIFY ``agenda.vote_modifier`` (RULES.md 43)."""
+    del registry
+    agenda_id = state.agenda.agenda_id if state.agenda is not None else None
+    return rules_hooks.modify(
+        rules_hooks.POINT_AGENDA_VOTE_MODIFIER, state, player_id, 0, {"agenda_id": agenda_id}
+    )
 
 
 def voting_planets(

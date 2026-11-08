@@ -2985,3 +2985,43 @@ Kod: `core/custodians.py`, `core/invasion.py` (`claim_custodians`, `custodians_b
 
 Źródło: docs/rules_tirules/R_wormhole_nexus.md. Nexus startuje jako 82a (tylko gamma). Gdy w systemie pojawi się jednostka albo ktoś przejmie Mallice, kafelek odwraca się na 82b (alpha + beta + gamma); jednostki i planeta (lockedmallice -> mallice) przechodzą na aktywną stronę. Implementacja: core/nexus.py (flip przy zapisie stanu w StateService, mapa synchronizowana w AppContext). ⚠️ ZAŁOŻENIE: flip następuje po całym kroku ruchu, nie dokładnie na jego końcu (wpływ tylko na Space Cannon Offense po ruchu).
 
+
+
+---
+
+## 53. Zagrywanie kart akcji (okno ACTION) + efekty jako hooki — ✅ ZWERYFIKOWANE (tirules) / ⚠ ZAŁOŻENIA
+
+📎 tirules: [Action Cards](rules_tirules/R_action_cards.md) · [Component Action](rules_tirules/R_component_action.md) · [Abilities](rules_tirules/R_abilities.md)
+
+Kod: `core/action_cards.py` (`play_action_card`), efekty w `core/hooks/action_cards.py`, rejestracja przez
+`rules_hooks.register_effect("action_cards:<id>")`, endpoint `POST /action-card/play` (z `actor_id`, RULES.md 44.1).
+
+- ✅ (R_action_cards) Karta z słowem „Action” w nagłówku rozstrzyga się jako AKCJA KOMPONENTU w fazie akcji
+  (jedna akcja na turę - walidacja `component_action`, RULES.md 31.8). Po rozstrzygnięciu karta trafia na stos
+  odrzuconych (`card_draw`). Ręka karty jest ukryta, liczba kart jawna.
+- ✅ (R_action_cards, notatki) Gracza nie można celować siebie ofensywnymi kartami; karta celująca w KONKRETNĄ liczbę
+  obiektów nie może być zagrana, gdy takich obiektów nie ma; „each / any number / up to” może dotyczyć zera obiektów.
+  Silnik: efekt wymagający wyboru (`planet`) zwraca `ValueError`, gdy wybór nielegalny - zero zmian stanu.
+- ✅ Komponent z efektem (`register_effect`) ma status IMPLEMENTED w rejestrze efektów (`covered_components`).
+- ⚠ ZAŁOŻENIE (RULES.md 43.3): karta z oknem ACTION BEZ efektu w silniku jest zagrana i odrzucona, liczy się jako
+  akcja, a API zwraca `implemented=false` - skutek rozstrzyga operator (God-Mode). Alternatywa (blokada zagrania
+  nieobsługiwanej karty) czeka na decyzję użytkownika.
+- ⚠ NIE obsługiwane: karty reakcji (when/after/before/instead) - wymagają STOP i predykatów zagrywalności
+  (43.4); anulowanie kart (Sabotage); limit 7 kart i inne karty bez okna ACTION.
+- ⚠ ZAŁOŻENIE: cechy planet (`industrial`/`cultural`/`hazardous`) z danych planety (`exploration.planet_traits`),
+  bez cech nadawanych przez attachmenty.
+
+**Zaimplementowane efekty (tekst z `assets/data/action_cards`, nie z pamięci):**
+
+| Karta | Id | Efekt w silniku |
+|---|---|---|
+| Industrial Initiative | `industrial_initiative` | +1 TG za każdą kontrolowaną planetę przemysłową (`economy`) |
+| Economic Initiative | `economic_initiative` | odświeża kontrolowane planety kulturowe (`exhaust`) |
+| Mining Initiative | `mining_initiative` | TG = zasoby wskazanej własnej planety (`params.planet`) |
+| Frontline Deployment | `f_deployment` | 3 piechoty z rezerwy na wskazaną własną planetę (`unit_ops`) |
+| Rise of a Messiah | `messiah` | 1 piechota z rezerwy na każdej własnej planecie (`unit_ops`) |
+
+**Nowe punkty zaczepienia (RULES.md 43):** `agenda.vote_modifier` (MODIFY, podpięte w `agenda_phase.extra_votes`),
+`combat.extra_dice` (MODIFY), `combat.reroll_misses` (PERMIT, jedno przerzucenie chybień w `battle.roll_round`).
+Źródła hooków (`owned_sources`) obejmują teraz też prawa w grze (`decks.agenda_laws`, obowiązują każdego gracza)
+i promissory notes w strefie gracza. ⚠ Nadal brak: liderzy, relikty, przełom (patrz docstring `owned_sources`).

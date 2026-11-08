@@ -23,6 +23,7 @@ from src.api.connection_manager import ConnectionManager
 from src.api.context import AppContext
 from src.api.demo_map import build_demo_grid
 from src.api.routers import (
+    action_cards,
     agenda,
     battle,
     board,
@@ -124,6 +125,7 @@ def create_app(
     app.include_router(window.router)
     app.include_router(rules.router)
     app.include_router(components.router)
+    app.include_router(action_cards.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:

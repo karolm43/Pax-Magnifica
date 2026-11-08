@@ -4,6 +4,6 @@ Import tego pakietu rejestruje wszystkie hooki w ``core.rules_hooks`` (efekt ubo
 robi to leniwie ``rules_hooks``). Nowy temat = nowy moduł + jedna linia importu poniżej.
 """
 
-from src.core.hooks import factions_base, technologies
+from src.core.hooks import action_cards, factions_base, technologies
 
-__all__ = ["factions_base", "technologies"]
+__all__ = ["action_cards", "factions_base", "technologies"]

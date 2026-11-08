@@ -33,6 +33,9 @@ POINT_MOVEMENT_MOVE_VALUE = "movement.move_value"  # MODIFY -> delta (ctx: base_
 POINT_MOVEMENT_PASS_FOREIGN_SHIPS = "movement.pass_foreign_ships"  # PERMIT (ctx: position)
 POINT_COMBAT_ROLL_MODIFIER = "combat.roll_modifier"  # MODIFY -> +N do wyniku rzutu
 # ctx: kind, position, planet, defender, base_type
+POINT_COMBAT_EXTRA_DICE = "combat.extra_dice"  # MODIFY -> delta kości na jednostkę (ctx jak wyżej)
+POINT_COMBAT_REROLL_MISSES = "combat.reroll_misses"  # PERMIT -> przerzut chybień (ctx: base_type)
+POINT_AGENDA_VOTE_MODIFIER = "agenda.vote_modifier"  # MODIFY -> delta głosów (ctx: agenda_id)
 POINT_PRODUCTION_VALUE = "production.value"  # MODIFY -> delta PRODUCTION jednostki
 # ctx: base_type, zone
 POINT_PRODUCTION_COST = "production.cost"  # MODIFY -> delta łącznego kosztu zamówienia
@@ -41,6 +44,8 @@ POINT_PAYMENT_COMMODITIES_AS_TG = "payment.commodities_as_trade_goods"  # PERMIT
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
 SOURCE_TECHNOLOGY = "technology"
+SOURCE_AGENDA = "agenda"  # prawo w grze (decks.agenda_laws) - obowiązuje KAŻDEGO gracza
+SOURCE_PROMISSORY = "promissory"  # notka leżąca w strefie gracza (promissory_notes_in_play)
 
 
 class HookKind(Enum):
@@ -63,6 +68,10 @@ class HookSource:
 
 
 HookFn = Callable[[GameState, str, Mapping[str, Any]], Any]
+# Efekt jednorazowy komponentu (np. karty akcji): (stan-klon, rejestr, gracz, parametry) -> None.
+# Mutuje przekazany klon; błąd walidacji = ValueError (wołający pracuje na klonie).
+# ``registry`` typowany jako Any, by uniknąć cyklu importów (registry importuje ten moduł).
+EffectFn = Callable[[GameState, Any, str, Mapping[str, Any]], None]
 
 
 @dataclass(frozen=True)
@@ -78,6 +87,7 @@ class Hook:
 
 
 _REGISTRY: list[Hook] = []
+_EFFECTS: dict[str, EffectFn] = {}
 _loaded = False
 
 
@@ -98,6 +108,27 @@ def register(
     return decorate
 
 
+def register_effect(component_key: str) -> Callable[[EffectFn], EffectFn]:
+    """Rejestruje efekt jednorazowy komponentu (``\"<kategoria>:<id>\"``), np. karty akcji.
+
+    Komponent z efektem jest IMPLEMENTED (``covered_components``). Jeden efekt na komponent.
+    """
+
+    def decorate(fn: EffectFn) -> EffectFn:
+        if component_key in _EFFECTS:
+            raise ValueError(f"Effect already registered for {component_key}.")
+        _EFFECTS[component_key] = fn
+        return fn
+
+    return decorate
+
+
+def effect_for(component_key: str) -> EffectFn | None:
+    """Efekt jednorazowy komponentu albo ``None`` (brak = MANUAL, rozstrzyga operator)."""
+    _ensure_loaded()
+    return _EFFECTS.get(component_key)
+
+
 def _ensure_loaded() -> None:
     """Leniwie importuje pakiet ``core.hooks`` (jego moduły rejestrują się przy imporcie)."""
     global _loaded
@@ -114,15 +145,25 @@ def all_hooks() -> list[Hook]:
 
 def covered_components() -> frozenset[str]:
     """Klucze ``"<kategoria>:<id>"`` komponentów, które mają zarejestrowany hook."""
-    return frozenset(h.covers for h in all_hooks() if h.covers is not None)
+    _ensure_loaded()
+    covered = {h.covers for h in _REGISTRY if h.covers is not None}
+    return frozenset(covered | set(_EFFECTS))
 
 
 def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
-    """Źródła wyjątków, które gracz aktualnie posiada (frakcja, technologie)."""
+    """Źródła wyjątków gracza: frakcja, technologie, notki w jego strefie i prawa w grze.
+
+    Prawa (``decks.agenda_laws``) obowiązują KAŻDEGO gracza; hook prawa sam sprawdza w kontekście,
+    kogo dotyczy (np. wynik wyborów w ``state.decks.agenda_laws[id]``).
+    NIE ujęte (świadomie): liderzy (stan domyślny wymaga rejestru), relikty (brak modelu własności),
+    przełom (id zależy od frakcji) - dochodzą z pierwszym hookiem tego typu.
+    """
     player = state.players.get(player_id)
     if player is None:
         return frozenset()
     sources: set[HookSource] = {HookSource(SOURCE_TECHNOLOGY, t) for t in player.technologies}
+    sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
+    sources.update(HookSource(SOURCE_AGENDA, law) for law in state.decks.agenda_laws)
     if player.faction is not None:
         sources.add(HookSource(SOURCE_FACTION, player.faction))
     return frozenset(sources)
@@ -185,7 +226,10 @@ def temporary_hooks() -> Iterator[None]:
     """Testy: rejestracje dokonane w bloku znikają po wyjściu (rejestr wraca do stanu sprzed)."""
     _ensure_loaded()
     snapshot = list(_REGISTRY)
+    effects = dict(_EFFECTS)
     try:
         yield
     finally:
         _REGISTRY[:] = snapshot
+        _EFFECTS.clear()
+        _EFFECTS.update(effects)

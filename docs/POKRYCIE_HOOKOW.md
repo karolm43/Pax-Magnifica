@@ -14,6 +14,9 @@ Razem: **2**. Opis = pierwsza linia docstringu funkcji hooka.
 
 Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
+- `agenda.vote_modifier`
+- `combat.extra_dice`
+- `combat.reroll_misses`
 - `combat.roll_modifier`
 - `movement.enter_asteroids`
 - `movement.move_value`
@@ -27,8 +30,8 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
 | Kategoria | Komponentów | Z hookiem | % |
 |---|---:|---:|---:|
-| action_cards | 143 | 0 | 0.0 |
-| agendas | 63 | 0 | 0.0 |
+| action_cards | 143 | 5 | 3.5 |
+| agendas | 123 | 0 | 0.0 |
 | explores | 80 | 0 | 0.0 |
 | relics | 24 | 0 | 0.0 |
 | promissory_notes | 40 | 0 | 0.0 |
@@ -57,29 +60,29 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 219 | 219 |
-| walka (combat.*, space_cannon, bombardment) | 185 | 184 |
-| produkcja (production.*) | 158 | 158 |
-| ekonomia i płatności (economy, payment) | 143 | 143 |
-| status i odświeżanie (status_phase) | 130 | 130 |
-| ruch (movement.*) | 118 | 117 |
-| karty (card_draw, promissory) | 109 | 109 |
-| żetony dowodzenia (command_tokens) | 88 | 88 |
-| technologie (technology) | 66 | 66 |
-| agenda i głosowanie (agenda_phase) | 49 | 49 |
-| cele i punkty (objectives) | 33 | 33 |
-| karty strategii i inicjatywa | 26 | 26 |
+| planety i eksploracja (control, exploration) | 246 | 241 |
+| walka (combat.*, space_cannon, bombardment) | 196 | 195 |
+| produkcja (production.*) | 177 | 175 |
+| ekonomia i płatności (economy, payment) | 168 | 166 |
+| karty (card_draw, promissory) | 145 | 145 |
+| status i odświeżanie (status_phase) | 143 | 142 |
+| ruch (movement.*) | 125 | 124 |
+| żetony dowodzenia (command_tokens) | 109 | 109 |
+| agenda i głosowanie (agenda_phase) | 97 | 97 |
+| technologie (technology) | 78 | 78 |
+| karty strategii i inicjatywa | 46 | 43 |
+| cele i punkty (objectives) | 45 | 45 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
 | Typ | Komponentów |
 |---|---:|
-| — | 220 |
+| — | 228 |
 | TRIGGER (okno reakcji) | 157 |
-| PERMIT (pozwolenie) | 129 |
-| MODIFY (liczba/rzut) | 94 |
-| FORBID (zakaz) | 45 |
-| REPLACE (instead of) | 34 |
+| PERMIT (pozwolenie) | 153 |
+| MODIFY (liczba/rzut) | 108 |
+| FORBID (zakaz) | 51 |
+| REPLACE (instead of) | 42 |
 
 ## 5. Przypadki szczególne: bez dopasowania do obszaru (25)
 
@@ -190,13 +193,13 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `dp2` | Diplomatic Pressure | — | when | TRIGGER (okno reakcji) | karty | — | Choose another player. That player must give you 1 promissory note from their hand. |
 | `dp3` | Diplomatic Pressure | — | when | TRIGGER (okno reakcji) | karty | — | Choose another player. That player must give you 1 promissory note from their hand. |
 | `dp4` | Diplomatic Pressure | — | when | TRIGGER (okno reakcji) | karty | — | Choose another player. That player must give you 1 promissory note from their hand. |
-| `economic_initiative` | Economic Initiative | — | action | — | planety i eksploracja, status i odświeżanie, karty strategii i inicjatywa | — | Ready each cultural planet you control. |
+| `economic_initiative` | Economic Initiative | — | action | — | planety i eksploracja, status i odświeżanie, karty strategii i inicjatywa | ✔ | Ready each cultural planet you control. |
 | `emergency` | Emergency Repairs | — | at_start | — | walka | — | Repair all of your units that have SUSTAIN DAMAGE in the active system. |
 | `exchangeprogram` | Exchange Program | — | action | PERMIT (pozwolenie) | produkcja, żetony dowodzenia, karty, planety i eksploracja | — | Choose another player. You and that player may agree to place 1 infantry from each of your reinforcements into coexistence on a planet the … |
 | `experimental` | Experimental Battlestation | — | after | TRIGGER (okno reakcji) | ruch, walka, produkcja | — | Choose 1 of your space docks that is either in or adjacent to that system. That space dock uses SPACE CANNON 5(x3) against the active playe… |
 | `extremeduress` | Extreme Duress | — | at_start | — | ekonomia i płatności, karty, cele i punkty | — | If that player's next action is not a strategic action, they discard all of their action cards, give you all of their trade goods, and show… |
 | `f_conscription` | Fighter Conscription | — | action | FORBID (zakaz) | produkcja | — | Place 1 fighter from your reinforcements in each system that contains 1 or more of your space docks or units that have capacity. They canno… |
-| `f_deployment` | Frontline Deployment | — | action | — | produkcja, planety i eksploracja | — | Place 3 infantry from your reinforcements on 1 planet you control. |
+| `f_deployment` | Frontline Deployment | — | action | — | produkcja, planety i eksploracja | ✔ | Place 3 infantry from your reinforcements on 1 planet you control. |
 | `f_prototype` | Fighter Prototype | — | at_start | MODIFY (liczba/rzut) | walka | — | Apply +2 to the result of each of your fighters' combat rolls during this combat round. |
 | `f_researched` | Focused Research | — | action | — | ekonomia i płatności, technologie | — | Spend 4 trade goods to research 1 technology |
 | `fire_team` | Fire Team | — | after | TRIGGER (okno reakcji) | — | — | Reroll any number of your dice. |
@@ -211,7 +214,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `harness` | Harness Energy | — | after | TRIGGER (okno reakcji) | ekonomia i płatności | — | Replenish your commodities. |
 | `imp_rider` | Imperial Rider | — | after | TRIGGER (okno reakcji) | agenda i głosowanie, cele i punkty | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, gain 1 victory point. |
 | `impersonation` | Impersonation | — | action | — | ekonomia i płatności, karty, cele i punkty | — | Spend 3 influence to draw 1 secret objective. |
-| `industrial_initiative` | Industrial Initiative | — | action | — | ekonomia i płatności, planety i eksploracja, karty strategii i inicjatywa | — | Gain 1 trade good for each industrial planet you control. |
+| `industrial_initiative` | Industrial Initiative | — | action | — | ekonomia i płatności, planety i eksploracja, karty strategii i inicjatywa | ✔ | Gain 1 trade good for each industrial planet you control. |
 | `infiltrate` | Infiltrate | — | when | TRIGGER (okno reakcji) | produkcja, planety i eksploracja | — | Replace each PDS and space dock that is on that planet with a matching unit from your reinforcements. |
 | `insider` | Insider Information | — | after | TRIGGER (okno reakcji) | agenda i głosowanie | — | Look at the top 3 cards of the agenda deck. |
 | `insub` | Insubordination | — | action | — | produkcja | — | Remove 1 token from another player's tactic pool and return it to their reinforcements. |
@@ -229,8 +232,8 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `mb4` | Morale Boost | — | at_start | MODIFY (liczba/rzut) | walka | — | Apply +1 to the result of each of your unit's combat rolls during this combat round. |
 | `meltdown` | Reactor Meltdown | — | action | — | walka, produkcja | — | Destroy 1 space dock in a non-home system. |
 | `mercenarycontract` | Mercenary Contract | — | action | — | ekonomia i płatności, planety i eksploracja | — | Spend 2 trade goods to place 2 neutral infantry on any non-home planet that contains no units; if that planet was owned by another player, … |
-| `messiah` | Rise of a Messiah | — | action | — | produkcja, planety i eksploracja | — | Place 1 infantry from your reinforcements on each planet you control. |
-| `mining_initiative` | Mining Initiative | — | action | — | ekonomia i płatności, planety i eksploracja, karty strategii i inicjatywa | — | Gain trade goods equal to the resource value of 1 planet you control. |
+| `messiah` | Rise of a Messiah | — | action | — | produkcja, planety i eksploracja | ✔ | Place 1 infantry from your reinforcements on each planet you control. |
+| `mining_initiative` | Mining Initiative | — | action | — | ekonomia i płatności, planety i eksploracja, karty strategii i inicjatywa | ✔ | Gain trade goods equal to the resource value of 1 planet you control. |
 | `mjets1` | Maneuvering Jets | — | before | TRIGGER (okno reakcji) | walka | — | Cancel 1 hit. |
 | `mjets2` | Maneuvering Jets | — | before | TRIGGER (okno reakcji) | walka | — | Cancel 1 hit. |
 | `mjets3` | Maneuvering Jets | — | before | TRIGGER (okno reakcji) | walka | — | Cancel 1 hit. |
@@ -304,11 +307,71 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 
 </details>
 
-<details><summary>agendas (63)</summary>
+<details><summary>agendas (123)</summary>
 
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
 | `abolishment` | Judicial Abolishment | — | — | — | karty | — | Discard the elected law from play. |
+| `absol_abolishment` | Judicial Abolishment | — | — | PERMIT (pozwolenie) | ekonomia i płatności, karty, agenda i głosowanie | — | For: At the start of the Agenda Phase, the speaker may spend 6 influence to discard any 1 law in play. Against: Reveal cards from the botto… |
+| `absol_affirmation` | Affimation of Divine Right | — | — | FORBID (zakaz) | karty, planety i eksploracja, cele i punkty, status i odświeżanie, karty strategii i inicjatywa | — | For: Mecatol Rex is a legendary planet. At the end of each strategy phase, each other player must give the player who controls Mecatol Rex … |
+| `absol_agreement` | Rearmament Agreement | — | — | MODIFY (liczba/rzut) | produkcja, żetony dowodzenia, planety i eksploracja, agenda i głosowanie | — | For: Each player places 1 mech from their reinforcements on a planet they control in their home system. The player who cast the most votes … |
+| `absol_arbiter` | Imperial Arbiter | — | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia, karty, agenda i głosowanie, karty strategii i inicjatywa | — | The elected player gains this card and gives each other player who voted for them 1 promissory note from their hand (from most votes to lea… |
+| `absol_articleswar` | Articles of War | — | — | PERMIT (pozwolenie) | walka, produkcja, karty, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" places 3 of their control tokens on this card. All mechs lose their printed abilities except … |
+| `absol_artifact` | Ixthian Artifact | — | — | MODIFY (liczba/rzut) | ruch, walka, technologie, planety i eksploracja, agenda i głosowanie, cele i punkty | — | For: The speaker rolls 1 die. If the result is 7-10, each player may research 2 technologies. If the result is 1-6, destroy all units in Me… |
+| `absol_censure` | Political Censure | — | — | FORBID (zakaz) | karty, agenda i głosowanie, cele i punkty | — | The elected player gains this card and 1 victory point. If they are speaker, the other player who cast the most votes for them takes the sp… |
+| `absol_checks` | Checks and Balances | — | — | REPLACE (instead of) | karty, planety i eksploracja, agenda i głosowanie, cele i punkty, karty strategii i inicjatywa | — | For: The player who cast the most votes "For" places 1 of their control tokens on this card. When a player chooses a strategy card during t… |
+| `absol_conscription` | Regulated Conscription | — | — | REPLACE (instead of) | produkcja, ekonomia i płatności, karty, planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | For: The player who cast the most votes "For" gains 1 trade good for every industrial planet they control. When a player produces units, th… |
+| `absol_constitution` | New Constitution | — | — | — | karty, agenda i głosowanie | — | For: Discard all laws in play, if any. The player who cast the most votes "For" takes the speaker token, then reveals cards from the bottom… |
+| `absol_conventionswar` | Conventions of War | — | — | FORBID (zakaz) | walka, ekonomia i płatności, karty, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" gains 1 trade good for each of their cultural planets. Players cannot use BOMBARDMENT against… |
+| `absol_covert` | Covert Legislation | — | — | — | agenda i głosowanie | — | The speaker reads the eligible outcomes aloud (for, against, elect player, etc); the other players vote for these outcomes as if they were … |
+| `absol_crisis` | Galactic Crisis Pact | — | — | REPLACE (instead of) | produkcja, ekonomia i płatności, żetony dowodzenia, agenda i głosowanie, karty strategii i inicjatywa | — | Each player may resolve the secondary ability of the elected strategy card without spending a command token; command tokens placed by the a… |
+| `absol_defenseact` | Homeland Defense Act | — | — | REPLACE (instead of) | walka, karty, planety i eksploracja, agenda i głosowanie | — | For: When placing 1 or more PDS on a planet, players may place an additional PDS on that planet. The player who cast the most votes "For" m… |
+| `absol_disarmament` | Compensated Disarmament | — | — | — | ekonomia i płatności, karty, planety i eksploracja, agenda i głosowanie | — | Remove each ground force on the elected planet; the player who controls that planet gains 1 trade good for each infantry removed and 2 trad… |
+| `absol_emergency1` | Emergency Session | — | — | MODIFY (liczba/rzut) | karty, agenda i głosowanie | — | When this card is revealed, place it in the common play area. This card is not an agenda, and players do not vote on this card. After all o… |
+| `absol_emergency2` | Emergency Session | — | — | MODIFY (liczba/rzut) | karty, agenda i głosowanie | — | When this card is revealed, place it in the common play area. This card is not an agenda, and players do not vote on this card. After all o… |
+| `absol_emergency3` | Emergency Session | — | — | MODIFY (liczba/rzut) | karty, agenda i głosowanie | — | When this card is revealed, place it in the common play area. This card is not an agenda, and players do not vote on this card. After all o… |
+| `absol_emergency4` | Emergency Session | — | — | MODIFY (liczba/rzut) | karty, agenda i głosowanie | — | When this card is revealed, place it in the common play area. This card is not an agenda, and players do not vote on this card. After all o… |
+| `absol_equality` | Economic Equality | — | — | PERMIT (pozwolenie) | ekonomia i płatności, agenda i głosowanie | — | Each player returns all their trade goods to the supply. All players have a commodity value of 3. The player that cast the most votes "For"… |
+| `absol_execution` | Public Execution | — | — | PERMIT (pozwolenie) | karty, planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | The elected player exhausts all of their planets, then reveals the action cards in their hand. The players that voted for the elected playe… |
+| `absol_formation` | Committee Formation | — | — | PERMIT (pozwolenie) | karty, agenda i głosowanie | — | The elected player gains this card and gives each other player who voted for them 1 promissory note from their hand (in order of most votes… |
+| `absol_government` | Representative Government | — | — | REPLACE (instead of) | ekonomia i płatności, planety i eksploracja, agenda i głosowanie, status i odświeżanie, karty strategii i inicjatywa | — | For: The player who cast the most votes "For" takes the speaker token. When casting votes, players cast votes equal to the number of planet… |
+| `absol_grant` | Research Grant Allocation | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie, agenda i głosowanie | — | The elected player researches any 1 non-faction technology. The other player who cast the most votes for the elected player may spend 2 tra… |
+| `absol_hyperlane` | Hyperlane Development Program | — | — | PERMIT (pozwolenie) | ruch, walka, produkcja, ekonomia i płatności, technologie, planety i eksploracja, agenda i głosowanie, status i odświeżanie, karty strategii i inicjatywa | — | For: The player who cast the most votes "For" may research 1 propulsion technology. Non-anomaly systems that contain no planets do not cost… |
+| `absol_incentive` | Incentive Program | — | — | PERMIT (pozwolenie) | karty, agenda i głosowanie, cele i punkty | — | For: Draw and reveal 1 stage I public objective from the deck and place it near the public objectives. The player who cast the most votes "… |
+| `absol_leak` | Classified Document Leak | — | — | PERMIT (pozwolenie) | karty, agenda i głosowanie, cele i punkty | — | The elected secret objective becomes a public objective. The player who cast the most votes for that objective may immediately score it, if… |
+| `absol_limits` | Term Limits | — | — | FORBID (zakaz) | karty, planety i eksploracja, agenda i głosowanie, status i odświeżanie, karty strategii i inicjatywa | — | For: The speaker places 1 of their control tokens on this card. When a player takes or receives the speaker token, they place 1 of their co… |
+| `absol_measures` | Unconventional Measures | — | — | — | żetony dowodzenia, karty, agenda i głosowanie, status i odświeżanie, karty strategii i inicjatywa | — | For: Each player who voted "For" draws 2 action cards. Each player who voted "Against" gains 1 command token. Against: Each player who vote… |
+| `absol_minsantique` | Minister of Antiquities | — | — | REPLACE (instead of) | ekonomia i płatności, żetony dowodzenia, karty, planety i eksploracja, cele i punkty, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may resolve the secondary ability of the Imperial strategy card without spending… |
+| `absol_minscomm` | Minister of Commerce | — | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may resolve the secondary ability of the Trade strategy card without spending a … |
+| `absol_minsexp` | Minister of Exploration | — | — | MODIFY (liczba/rzut) | żetony dowodzenia, planety i eksploracja, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card gains 1 additional command token when resolving the secondary ability of the Lea… |
+| `absol_minsindus` | Minister of Industry | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may resolve the secondary ability of the Construction strategy card without spen… |
+| `absol_minspeace` | Minister of Peace | — | — | MODIFY (liczba/rzut) | ekonomia i płatności, żetony dowodzenia, karty, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may resolve the secondary ability of the Diplomacy strategy card without spendin… |
+| `absol_minspolicy` | Minister of Policy | — | — | REPLACE (instead of) | ekonomia i płatności, żetony dowodzenia, technologie, karty, status i odświeżanie, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may use the secondary ability of the Politics strategy card without spending a c… |
+| `absol_minssci` | Minister of Sciences | — | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia, technologie, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may resolve the secondary ability of the Technology strategy card without spendi… |
+| `absol_minswar` | Minister of War | — | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia, status i odświeżanie, karty strategii i inicjatywa | — | The elected player gains this card. The owner of this card may resolve the secondary ability of the Warfare strategy card without spending … |
+| `absol_miscount` | Miscount Disclosed | — | — | MODIFY (liczba/rzut) | karty, agenda i głosowanie | — | When this agenda is revealed, if there are no laws in play, discard this card and reveal another agenda from the top of the deck. Vote on t… |
+| `absol_mutiny` | Mutiny | — | — | MODIFY (liczba/rzut) | karty, agenda i głosowanie, cele i punkty, status i odświeżanie, karty strategii i inicjatywa | — | For: Exhaust the Politics strategy card. The player who cast the most votes "For" takes the speaker token. All players who voted "For" gain… |
+| `absol_nexus` | Nexus Sovereignty | — | — | PERMIT (pozwolenie) | ruch, walka, ekonomia i płatności, planety i eksploracja, agenda i głosowanie | — | For: Alpha and beta wormholes in the wormhole nexus have no effect on movement. The player who controls Mallice may spend 1 influence at an… |
+| `absol_operations` | Clandestine Operations | — | — | — | produkcja, żetony dowodzenia, agenda i głosowanie, status i odświeżanie, karty strategii i inicjatywa | — | For: The player who cast the most votes "For" gains 2 command tokens and takes the speaker token. Then, each player removes 1 command token… |
+| `absol_pax` | Pax Magnifica, Bellum Gloriosum | — | — | FORBID (zakaz) | produkcja, żetony dowodzenia, karty, planety i eksploracja, agenda i głosowanie, status i odświeżanie, karty strategii i inicjatywa | — | For: Exhaust the Warfare strategy card. The player who cast the most votes "For" adds 2 command tokens from their reinforcements to their s… |
+| `absol_prophecy` | Prophecy of Ixth | — | — | MODIFY (liczba/rzut) | walka, produkcja, technologie, karty | — | The elected player gains this card. The owner of this card may ignore the prerequisites on fighter unit upgrade technologies and applies +1… |
+| `absol_recon` | Wormhole Reconstruction | — | — | PERMIT (pozwolenie) | ruch, produkcja, ekonomia i płatności, żetony dowodzenia, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" places 1 control token on this card. Players may treat alpha wormholes as beta wormholes duri… |
+| `absol_redistribution` | Colonial Redistribution | — | — | MODIFY (liczba/rzut) | produkcja, planety i eksploracja, cele i punkty | — | Remove each unit on the elected planet. The player who controls that planet places the removed units on 1 or more planets they control in t… |
+| `absol_reduction` | Arms Reduction | — | — | PERMIT (pozwolenie) | walka, produkcja, ekonomia i płatności, żetony dowodzenia, technologie, agenda i głosowanie | — | For: Each player destroys all of their dreadnoughts and half of their cruisers (rounding up). Players gain 2 trade goods for each dreadnoug… |
+| `absol_regulations` | Fleet Regulations | — | — | PERMIT (pozwolenie) | produkcja, żetony dowodzenia, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" places 1 of their control tokens on this card. A player whose control token is on this card c… |
+| `absol_revolution` | Anti-Intellectual Revolution | — | — | — | walka, ekonomia i płatności, technologie, status i odświeżanie, karty strategii i inicjatywa | — | For: Each player who voted "For" or abstained returns 1 technology they own with the most prerequisites to their technology decks. Double t… |
+| `absol_sanctions` | Executive Sanctions | — | — | PERMIT (pozwolenie) | karty, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes “For” places 1 of their control tokens on this card. A player whose control token is on this card c… |
+| `absol_schematics` | Publicize Weapon Schematics | — | — | PERMIT (pozwolenie) | walka, technologie, karty, agenda i głosowanie | — | When this agenda is revealed, if there are no eligible technologies in play, discard this card and reveal another agenda from the top of th… |
+| `absol_secret` | Archived Secret | — | — | — | karty, agenda i głosowanie, cele i punkty | — | The elected player draws 2 secret objectives, then gives 1 promissory note from their hand to the other player who cast the most votes for … |
+| `absol_seeds` | Seed of an Empire | — | — | PERMIT (pozwolenie) | produkcja, żetony dowodzenia, karty, agenda i głosowanie, cele i punkty | — | For: The player with the most victory points (speaker breaks ties) gains the speaker token and 1 victory point, then gives 1 promissory not… |
+| `absol_shared` | Shared Research | — | — | PERMIT (pozwolenie) | ruch, produkcja, żetony dowodzenia, technologie, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" may explore any frontier tokens in systems that contain anomalies and their ships. During tac… |
+| `absol_sites` | Preservation of Historical Sites | — | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" gains 2 trade goods for each legendary planet or planet with attachments that they control. P… |
+| `absol_spending` | Discretionary Spending | — | — | FORBID (zakaz) | produkcja, ekonomia i płatności, technologie, karty, planety i eksploracja, agenda i głosowanie | — | For: All players gain trade goods equal to the number of planets they control. The player who cast the most votes "For" replenishes their c… |
+| `absol_standardization` | Armed Forces Standardization | — | — | — | produkcja, żetony dowodzenia, karty, agenda i głosowanie | — | The elected player places command tokens from their reinforcements until they they have 3 tokens in their tactic pool, 3 tokens in their fl… |
+| `absol_swords` | Swords to Plowshares | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności, planety i eksploracja, agenda i głosowanie | — | For: Each player removes half of their infantry on each planet they control, rounding down. Each player gains trade goods equal to the numb… |
+| `absol_travelban` | Enforced Travel Ban | — | — | MODIFY (liczba/rzut) | ruch, ekonomia i płatności, karty, planety i eksploracja, agenda i głosowanie | — | For: The player who cast the most votes "For" places 3 of their control tokens on this card. Alpha and beta wormholes have no effect during… |
+| `absol_warrant` | Search Warrant | — | — | REPLACE (instead of) | karty, planety i eksploracja, agenda i głosowanie, cele i punkty | — | The non-elected player who cast the most votes for the elected player places 1 of their control tokens on this card. The elected player gai… |
+| `absol_whresearch` | Wormhole Research | — | — | MODIFY (liczba/rzut) | ruch, walka, produkcja, żetony dowodzenia, technologie, agenda i głosowanie | — | For: Players with ships in systems that contain 1 or more wormholes may research a technology with no more than 1 prerequisite per type of … |
 | `arbiter` | Imperial Arbiter | — | — | PERMIT (pozwolenie) | karty, karty strategii i inicjatywa | — | The elected player gains this card. At the end of the strategy phase, the owner of this card may discard this card to swap 1 of their strat… |
 | `arms_reduction` | Arms Reduction | — | — | — | walka, technologie, planety i eksploracja, status i odświeżanie | — | For: Each player destroys all but 2 of their dreadnoughts and all but 4 of their cruisers. Against: At the start of the next strategy phase… |
 | `articles_war` | Articles of War | — | — | — | walka, ekonomia i płatności | — | For: All mechs lose their printed abilities except for SUSTAIN DAMAGE. Against: Each player that voted "For" gains 3 trade goods. All mechs… |
