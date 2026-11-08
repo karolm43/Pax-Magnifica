@@ -493,6 +493,15 @@ class TurnActionRequest(BaseModel):
     player_id: str | None = None
 
 
+class EpilogueVoteRequest(BaseModel):
+    """Głos w epilogu: ``choice`` = ``honorable`` albo ``dishonorable`` (walidacja w core)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    choice: str
+
+
 class StatusScoreRequest(BaseModel):
     """Zdobycie celu w kroku 1 fazy statusu: ``kind`` = ``public`` albo ``secret``."""
 

@@ -200,6 +200,7 @@ def award_points(state: GameState, player_id: str, points: int) -> None:
     player.victory_points += points
     if state.winner_id is None and player.victory_points >= state.vps_to_win:
         state.winner_id = player_id
+        state.end_reason = "victory_points"
 
 
 def record_public_score(state: GameState, player_id: str, objective_id: str) -> None:

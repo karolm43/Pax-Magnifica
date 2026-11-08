@@ -161,6 +161,7 @@ def _after_scoring(state: GameState, registry: StaticDataRegistry) -> GameState:
     status = state.status
     if revealed is None:
         state.winner_id = objectives.leaders_by_points(state, order)
+        state.end_reason = "no_objectives"
         status.step = StatusStep.COMPLETE
         _log(status, 2, "game_end_no_objectives", winner=state.winner_id)
         return state
@@ -383,6 +384,13 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
         ValueError: Gdy faza statusu nie ukończyła kroków 1–7 albo wybór kart jest niepełny.
     """
     _require_status(state, StatusStep.COMPLETE)
+    # Limit rund (decyzja projektowa): po rundzie ``max_rounds`` gra się kończy, wygrywa
+    # lider VP (remis → pierwszy w inicjatywie). ⚠️ ZAŁOŻENIE: faza agendy tej rundy pomijana.
+    if state.max_rounds > 0 and state.round_number >= state.max_rounds:
+        ended = state.clone()
+        ended.winner_id = objectives.leaders_by_points(ended, _initiative(ended))
+        ended.end_reason = "round_limit"
+        return ended
     new_state = strategy_phase.accumulate_unpicked_tg(state, registry)
     new_state = strategy_phase.reset_strategy_cards(new_state)
     new_state.status = None

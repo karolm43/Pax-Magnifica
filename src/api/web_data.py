@@ -28,6 +28,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.api import web_objectives, web_setup
+from src.core import epilogue as epilogue_core
 from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.army_strength import ArmyStrength, army_strength_by_player
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
@@ -61,6 +62,18 @@ _PHASE_TO_WEB: dict[str, str] = {
     "STATUS": "status.scoring",
     "AGENDA": "agenda.voting",
 }
+
+
+def _epilogue_payload(state: GameState) -> dict[str, object] | None:
+    """Stan głosowania epilogu (None, dopóki gra trwa)."""
+    if state.winner_id is None:
+        return None
+    epilogue = state.epilogue
+    return {
+        "voters": epilogue_core.voters(state),
+        "votes": dict(epilogue.votes) if epilogue is not None else {},
+        "result": epilogue.result if epilogue is not None else None,
+    }
 
 
 def _to_web_phase(phase: object) -> str:
@@ -256,6 +269,11 @@ def _build_game_state(
         # Zwycięzca (kolor) po zakończeniu gry — R_victory_points (próg VP albo brak celów).
         "winner": _color_of(state, state.winner_id),
         "winnerId": state.winner_id,
+        # Koniec gry: powód ("victory_points" | "round_limit" | "no_objectives"), limit rund
+        # i głosowanie epilogu (honorowe / niehonorowe) — dla ekranu zwycięstwa.
+        "endReason": state.end_reason,
+        "maxRounds": state.max_rounds,
+        "epilogue": _epilogue_payload(state),
         "agenda": None,
         # Stan kroków fazy statusu (RULES.md 41) — None poza zainicjowaną fazą statusu.
         "status": web_objectives.build_status_payload(state, registry, grid),

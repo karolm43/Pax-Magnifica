@@ -237,6 +237,23 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Epilog: głosowanie nad zwycięstwem honorowym / niehonorowym ---
+
+  // Otwiera głosowanie (idempotentnie); boty głosują same.
+  const epilogueOpen = useCallback(async () => {
+    await post("/epilogue/open", {});
+    await refresh();
+  }, [refresh]);
+
+  // Gracz (nie zwycięzca) oddaje głos.
+  const epilogueVote = useCallback(
+    async (playerId: string, choice: "honorable" | "dishonorable") => {
+      await post("/epilogue/vote", { player_id: playerId, choice });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // Krok 5: gracz zatwierdza rozdział WSZYSTKICH żetonów w pulach.
   const statusRedistribute = useCallback(
     async (
@@ -723,6 +740,8 @@ export function useBoardEditor() {
     phaseStep,
     statusScore,
     statusFinishScoring,
+    epilogueOpen,
+    epilogueVote,
     statusRedistribute,
     nextPhase,
     skipPhase,

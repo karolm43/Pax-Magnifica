@@ -52,6 +52,16 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+## ✅ Ekran zwycięstwa + epilog + limit 10 rund (2026-11-08) — RULES.md 48
+
+- Backend: `GameState.max_rounds` (10), `end_reason`, `epilogue`; `finish_status` kończy grę po
+  rundzie granicznej; `core/epilogue.py` (głosowanie bez zwycięzcy, większość, remis → honorowe,
+  boty głosują same) + `/epilogue/open|vote`; web-data: `endReason`, `maxRounds`, `epilogue`.
+- Front: `domains/victory/VictoryScreen` — triumph (portret frakcji) → głosowanie → Kronika
+  epilogu (crawl jak w intrze) → klasyfikacja i „nagrody". Montowany w `GameMapPage`.
+- **Do uzupełnienia**: teksty kart epilogów per frakcja w `domains/victory/factionEpilogues.ts`
+  (`FACTION_EPILOGUES`); do tego czasu działa ogólny zapychacz.
+
 ## ✅ Aktywne talie = wersje po rozszerzeniach (agendy / karty akcji / relikwie) (2026-11-08)
 
 Audyt względem wiki TI (Agenda Cards, Action Cards) i upstreamu AsyncTI4:

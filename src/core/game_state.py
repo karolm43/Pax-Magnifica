@@ -509,6 +509,14 @@ class ProductionGrant(BaseModel):
     units: int = 1
     influence_as_resources: bool = False
     source: str = ""
+    # ``standalone`` = produkcja POZA akcją taktyczną (karty strategii: Construction/Warfare).
+    # Obowiązują wtedy ZWYKŁE reguły produkcji (limit z wartości PRODUCTION, typy, blokada)
+    # w systemie ``position`` dla ``player_id`` (może to być nie-aktywny gracz), a ``units``
+    # jest ignorowane. Granta nie zużywa jedno ``produce`` - trwa do ``skip_grant`` („Finish").
+    standalone: bool = False
+    # Opcjonalne zawężenie do jednego producenta (Construction: JEDEN dok) - id planety,
+    # na której stoi dok. ``None`` = wszyscy producenci w systemie (Warfare, TE).
+    zone: str | None = None
 
 
 class ExploreCurrent(BaseModel):
@@ -536,6 +544,20 @@ class ExplorationState(BaseModel):
     queue: list[str] = Field(default_factory=list)
     current: ExploreCurrent | None = None
     log: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class EpilogueState(BaseModel):
+    """Głosowanie nad rodzajem zwycięstwa (honorowe / niehonorowe) po końcu gry.
+
+    Głosują wszyscy gracze OPRÓCZ zwycięzcy (``core/epilogue.py``). ``votes`` =
+    ``{player_id: "honorable" | "dishonorable"}``; ``result`` ustawiane, gdy zagłosują
+    wszyscy uprawnieni.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    votes: dict[str, str] = Field(default_factory=dict)
+    result: str | None = None
 
 
 class GameState(BaseModel):
@@ -623,6 +645,13 @@ class GameState(BaseModel):
     vps_to_win: int = 10
     # Zwycięzca (koniec gry) — None, dopóki gra trwa.
     winner_id: str | None = None
+    # Limit rund (projektowy, NIE reguła TI4): po zakończeniu tylu rund gra się kończy,
+    # wygrywa lider VP. 0 = bez limitu. Patrz RULES.md (koniec gry).
+    max_rounds: int = 10
+    # Dlaczego gra się skończyła: "victory_points" | "round_limit" | "no_objectives".
+    end_reason: str | None = None
+    # Głosowanie nad zwycięstwem honorowym/niehonorowym — None, dopóki nie otwarte.
+    epilogue: EpilogueState | None = None
 
     players: dict[str, PlayerState] = Field(default_factory=dict)
     systems: dict[str, SystemState] = Field(default_factory=dict)

@@ -525,6 +525,23 @@ export type GameState = {
   status?: StatusPhaseData | null;
   /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
   winnerId?: string | null;
+  /** Dlaczego gra się skończyła (ekran zwycięstwa). */
+  endReason?: "victory_points" | "round_limit" | "no_objectives" | null;
+  /** Limit rund (0 = bez limitu). */
+  maxRounds?: number;
+  /** Głosowanie epilogu — null, dopóki gra trwa. */
+  epilogue?: EpilogueData | null;
+};
+
+export type EpilogueChoice = "honorable" | "dishonorable";
+
+export type EpilogueData = {
+  /** player_id uprawnionych do głosu (wszyscy poza zwycięzcą), w kolejności przy stole. */
+  voters: string[];
+  /** Oddane głosy: {player_id: wybór}. */
+  votes: Record<string, EpilogueChoice>;
+  /** Wynik, gdy zagłosowali wszyscy; null w trakcie. */
+  result: EpilogueChoice | null;
 };
 
 export type StatusObjectiveOption = {
@@ -672,6 +689,9 @@ export type PlayerData = {
   totFlexValue: number;
 
   unitsOwned: string[];
+  /** Nazwa gracza (nie frakcji) i typ sterowania ("HUMAN" | "BOT") — Custodian Engine. */
+  playerName?: string;
+  controlType?: string;
   followedSCs: number[];
   unfollowedSCs: number[];
   promissoryNotesInPlayArea: string[];
