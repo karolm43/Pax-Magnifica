@@ -31,6 +31,18 @@ Treść/parametry konkretnej karty czy zdolności frakcji → z assetów JSON. D
 - Data zrzutu: 2026-10-30. Źródło odzwierciedla **Living Rules Reference 2.0** (PoK),
   z notami do **Codexów I–IV** (06/2025) i wstępnymi notami do **Thunder's Edge** (10/2025).
 
+## Lokalne adaptacje (NIE pochodzą z tirules2.com)
+
+tirules2.com nie ma jeszcze wersji Thunder's Edge dwóch kart strategii, a gra używa zestawu
+`te` (patrz `docs/PROJEKT_KARTY_STRATEGII.md`). Dlatego ręcznie przepisano pod TE:
+- `R_construction.md` (karta `te4construction`),
+- `R_warfare.md` (karta `te6warfare`),
+oraz odpowiadające im wpisy w `tirules.json` (pole `local_adaptation: "thunders_edge"`).
+Źródła: `assets/data/strategy_cards/te.json`, TI Wiki, komunikat BGA o rulingu wydawcy.
+**Ponowne uruchomienie `scripts/scrape_tirules.py` NADPISZE te pliki wersją PoK — po
+odświeżeniu przywróć je z git (`git checkout -- docs/rules_tirules/R_construction.md R_warfare.md`)
+i zsynchronizuj JSON, albo sprawdź, czy tirules2.com ma już wersję TE.**
+
 ## Licencja i prawa
 
 - **Kod/struktura repo tirules:** licencja **GPL-3.0** (patrz repo źródłowe).

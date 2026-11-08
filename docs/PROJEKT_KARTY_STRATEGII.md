@@ -23,9 +23,10 @@ kolejności). Wersja każdej karty = najnowsza errata:
 | 8 | Imperial | `pok8imperial` | base |
 
 Wniosek: stary tekst Construction (PDS/dok) i Warfare (zdejmij żeton + redystrybucja) z
-`pok.json` NIE obowiązują — implementujemy teksty z `te.json`. Rulingi (tirules) dla
-`R_construction.md`/`R_warfare.md` opisują wersję PoK, więc przy TE wersji sprawdzić noty
-Thunder's Edge na tirules2.com przed kodowaniem (⚠️ do weryfikacji).
+`pok.json` NIE obowiązują — implementujemy teksty z `te.json`. tirules2.com nie ma wersji TE,
+więc `rules_tirules/R_construction.md` i `R_warfare.md` zostały przepisane lokalnie pod TE
+(patrz `SOURCE.md`, „Lokalne adaptacje"); ich ⚠️ ZAŁOŻENIA czekają na Twoje potwierdzenie.
+Secondary Warfare w TE: PRODUCTION WSZYSTKICH jednostek w home system (nie tylko doków).
 
 ## 1. Dlaczego obecny szkielet nie wystarczy
 

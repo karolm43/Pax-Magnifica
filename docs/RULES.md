@@ -1360,7 +1360,9 @@ Zestaw `te` (`strategyCardSets.json`): Leadership (base), Diplomacy (codex1), Po
 Construction (`te4construction`, Thunder's Edge), Trade (base), Warfare (`te6warfare`,
 Thunder's Edge), Technology (base), Imperial (base). Teksty z `assets/data/strategy_cards/`.
 Tabela i uwagi: `docs/PROJEKT_KARTY_STRATEGII.md` sekcja 0. ⚠️ Noty tirules dla Construction i
-Warfare opisują wersję PoK — wersję TE zweryfikować na tirules2.com przed kodowaniem.
+Warfare na tirules2.com opisują wersję PoK, więc `rules_tirules/R_construction.md` i `R_warfare.md`
+przepisano LOKALNIE pod TE (SOURCE.md, „Lokalne adaptacje"). Zawierają ⚠️ ZAŁOŻENIA czekające
+na potwierdzenie użytkownika.
 
 ### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
 

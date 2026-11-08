@@ -14901,31 +14901,33 @@
           "heading": "Rules Reference",
           "is_lrr": true,
           "paragraphs": [
-            "The Construction strategy card allows players to construct structures on planets they control. This card’s initiative value is “4”."
+            "The Construction strategy card allows players to place structures on planets they control. This card’s initiative value is “4”."
           ],
           "items": [
             {
               "text": "During the action phase, if the active player has the Construction strategy card, they can perform a strategic action to resolve that card’s primary ability."
             },
             {
-              "text": "To resolve the primary ability on the Construction strategy card, the active player may place either one PDS or one space dock on a planet they control. Then, that player may place an additional PDS on a planet they control.",
+              "text": "To resolve the primary ability on the Construction strategy card, the active player either places 1 structure on a planet they control, or uses the Production ability of 1 of their space docks. Then, that player places 1 structure on a planet they control.",
               "children": [
                 {
-                  "text": "The structures can be placed on the same planet or different planets."
-                },
-                {
-                  "text": "The structures can be placed in any systems, regardless of whether the player has a command token in the system or not."
+                  "text": "The two structures can be placed on the same planet or on different planets."
                 }
               ]
             },
             {
-              "text": "After the active player resolves the primary ability of the Construction strategy card, each other player, beginning with the player to the left of the active player and proceeding clockwise, may spend one command token from their strategy pool and place that command token in any system. If that player already has a command token in that system, the spent token is returned to their reinforcements instead. Then, that player places either one PDS or one space dock on a planet they control in that system."
-            },
-            {
-              "text": "When a player places either a PDS or space dock using the Construction strategy card, they take that PDS or space dock from their reinforcements.",
+              "text": "After the active player resolves the primary ability of the Construction strategy card, each other player, beginning with the player to the left of the active player and proceeding clockwise, may spend one command token from their strategy pool to place 1 structure on a planet they control.",
               "children": [
                 {
-                  "text": "If a player does not have the unit in their reinforcements, that player can remove a unit from any system that does not contain one of their command tokens and place that unit in their reinforcements. Then, that player must place the unit on the game board as instructed by the effect that is placing the unit."
+                  "text": "⚠️ ZAŁOŻENIE: wersja TE NIE wymaga już wskazania systemu ani położenia żetonu w nim (tekst karty: „place 1 structure on a planet you control”); żeton ze strategy pool jest tylko wydawany."
+                }
+              ]
+            },
+            {
+              "text": "When a player places a structure using the Construction strategy card, they take that structure from their reinforcements.",
+              "children": [
+                {
+                  "text": "⚠️ ZAŁOŻENIE: reguła zastępcza z PoK (brak jednostki w rezerwie → zdjęcie jednostki z dowolnego systemu bez własnego żetonu) obowiązuje dalej; TE jej nie zmienia w tekście karty."
                 }
               ]
             }
@@ -14937,13 +14939,16 @@
           "paragraphs": [],
           "items": [
             {
-              "text": "A player may have a maximum of one space dock on each planet."
+              "text": "A structure is a PDS or a space dock (patrz [Structures](https://www.tirules2.com/R_structures)). Typy struktur brać z assetów jednostek, nie z pamięci."
             },
             {
-              "text": "A player may have a maximum of two PDS units on each planet."
+              "text": "⚠️ ZAŁOŻENIE (przeniesione z PoK; TE tego nie zmienia): maksymalnie 1 space dock i 2 PDS na planetę; struktur nie można położyć na planecie z kartą eksploracji Demilitarized Zone."
             },
             {
-              "text": "Structures cannot be placed on the planet with the Demilitarized Zone exploration card attached."
+              "text": "The structures can be placed in any systems, regardless of whether the player has a command token in the system or not. ⚠️ ZAŁOŻENIE (przeniesione z PoK)."
+            },
+            {
+              "text": "The Production option of the primary ability follows the normal rules for [Production](https://www.tirules2.com/R_production) (koszt jednostek, limit z wartości Production doku)."
             }
           ]
         },
@@ -14959,6 +14964,9 @@
               "text": "PDS"
             },
             {
+              "text": "Production"
+            },
+            {
               "text": "Space Dock"
             },
             {
@@ -14972,7 +14980,8 @@
             }
           ]
         }
-      ]
+      ],
+      "local_adaptation": "thunders_edge"
     },
     {
       "code": "R_control",
@@ -21926,21 +21935,25 @@
           "heading": "Rules Reference",
           "is_lrr": true,
           "paragraphs": [
-            "The Warfare strategy card allows a player to remove a command token from the board and redistribute their command tokens between their tactic, fleet, and strategy pools. This card’s initiative value is “6”. During the action phase, if the active player has the Warfare strategy card, they can perform a strategic action to resolve that card’s primary ability.",
-            "To resolve the primary ability on the Warfare strategy card, the active player performs the following steps:"
+            "The Warfare strategy card allows a player to perform a tactical action without spending a command token, and to redistribute their command tokens around it. This card’s initiative value is “6”."
           ],
           "items": [
             {
-              "text": "Step 1: The active player removes any one of their command tokens from the game board. Then, that player gains that command token by placing it in a pool of their choice on their command sheet."
+              "text": "During the action phase, if the active player has the Warfare strategy card, they can perform a strategic action to resolve that card’s primary ability."
             },
             {
-              "text": "Step 2: The active player can redistribute their command tokens."
-            },
-            {
-              "text": "After the active player resolves the primary ability of the Warfare strategy card, each other player, beginning with the player to the left of the active player and proceeding clockwise, may spend one command token from their strategy pool to resolve the Production ability of one space dock in their home system.",
+              "text": "To resolve the primary ability on the Warfare strategy card, the active player performs a tactical action in any system without placing a command token, even if the system already has their command token in it; that system still counts as being activated.",
               "children": [
                 {
-                  "text": "The command token is not placed in their home system."
+                  "text": "The active player may redistribute their command tokens before and after this action."
+                }
+              ]
+            },
+            {
+              "text": "After the active player resolves the primary ability of the Warfare strategy card, each other player, beginning with the player to the left of the active player and proceeding clockwise, may spend one command token from their strategy pool to use the Production abilities of the units in their home system.",
+              "children": [
+                {
+                  "text": "The spent command token is not placed in their home system; it returns to their reinforcements."
                 }
               ]
             }
@@ -21952,7 +21965,16 @@
           "paragraphs": [],
           "items": [
             {
-              "text": "If the player with Warfare has no command tokens on the game board, they may still perform a strategic action. However, they will not gain a command token."
+              "text": "The secondary ability allows ALL units in the home system to use their Production ability (not only space docks, as in the PoK version)."
+            },
+            {
+              "text": "Ruling wydawcy (BGA, dot. Nullification Field / Minister of Peace): jeśli inny gracz przerwie turę w trakcie taktycznej akcji z Warfare, kończy się tylko ta akcja taktyczna; Warfare i tak rozstrzyga się do końca (redystrybucja żetonów, secondary innych graczy, wyczerpanie karty), a w reszcie tury nie ma już okien „po akcji” ani kolejnych akcji."
+            },
+            {
+              "text": "⚠️ ZAŁOŻENIE: akcja taktyczna z Warfare liczy się jako JEDNA akcja strategiczna (nie dodatkowa akcja taktyczna) – zgodnie z R_action_phase („a single action”)."
+            },
+            {
+              "text": "⚠️ ZAŁOŻENIE: poza pominięciem kładzenia żetonu akcja taktyczna przebiega normalnie (ruch, walka, inwazja, produkcja), w tym zakaz ruchu statków Z systemów zawierających własny żeton gracza. Karta zmienia tylko aktywację systemu. Do potwierdzenia przez użytkownika."
             }
           ]
         },
@@ -21980,17 +22002,18 @@
               "text": "Production"
             },
             {
-              "text": "Space Dock"
-            },
-            {
               "text": "Strategic Action"
             },
             {
               "text": "Strategy Card"
+            },
+            {
+              "text": "Tactical Action"
             }
           ]
         }
-      ]
+      ],
+      "local_adaptation": "thunders_edge"
     },
     {
       "code": "R_wormhole_nexus",
