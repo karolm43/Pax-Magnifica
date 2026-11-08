@@ -5,7 +5,8 @@ nie reguła TI4 — patrz RULES.md (Epilog). Po zakończeniu gry (``winner_id``)
 gracze głosują, czy zwycięstwo było honorowe. Głos zwycięzcy się nie liczy (nie głosuje).
 
 ⚠️ ZAŁOŻENIA (do potwierdzenia przez użytkownika):
-- decyduje zwykła większość głosów; REMIS rozstrzyga głos gracza z DRUGIEGO MIEJSCA (najwięcej VP\n  wśród głosujących; przy równych VP wcześniejszy przy stole),
+- decyduje zwykła większość głosów; REMIS rozstrzyga głos gracza z DRUGIEGO MIEJSCA
+  (najwięcej VP wśród głosujących; przy równych VP wcześniejszy przy stole),
 - boty głosują automatycznie (na razie deterministyczny pseudolosowy wybór z lekkim
   przechyleniem ku „honorowe", dopóki nie ma warstwy AI).
 """
