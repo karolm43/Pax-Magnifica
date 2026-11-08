@@ -233,6 +233,8 @@ export function TurnControls() {
   // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
   // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
   const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
+  // Akcja strategiczna to TEŻ jedna z akcji tury (RULES.md 30.3) — te same warunki.
+  const canStrategicAction = canComponentAction;
   // Akcja TAKTYCZNA (RULES.md 31.7 / R_tactical_action) — aktywacja systemu. Dostępna
   // jak każda akcja tury: faza akcji, gracz jeszcze nie działał ani nie spasował, brak
   // otwartego okna. Trwająca akcja (activeSystem != null) → zamiast przycisku pokazujemy
@@ -304,7 +306,7 @@ export function TurnControls() {
                 <StrategyCardImage
                   card={card}
                   index={i}
-                  canPlay={isAction && !card.exhausted}
+                  canPlay={canStrategicAction && !card.exhausted}
                   busy={busy}
                   onPlay={() =>
                     run(() => playStrategyCard(active.discordId, card.initiative))

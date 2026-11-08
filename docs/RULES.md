@@ -1354,6 +1354,16 @@ po karcie (``core/strategic_action.py``), nie `if` w endpointcie. Każda kolejna
 gałąź dispatchu + wpis reguły tutaj ze źródłem. Model okna niesie kontekst (numer inicjatywy),
 więc respond potrafi rozstrzygnąć właściwy secondary bez zmiany kształtu okna.
 
+### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
+
+📎 tirules: [Action Phase](rules_tirules/R_action_phase.md), [Strategic Action](rules_tirules/R_strategic_action.md)
+
+W swojej turze gracz wykonuje POJEDYNCZĄ akcję: strategiczną, taktyczną lub komponentu — albo
+pasuje. Silnik (`strategic_action.play_strategy_card`) odrzuca zagranie karty, gdy: faza ≠ ACTION,
+to nie tura gracza, gracz spasował, wykonał już akcję w tej turze, karta jest już wyczerpana albo
+trwa inne okno. Pas wymaga zagrania KAŻDEJ karty gracza (3–4 graczy: obie). Projekt rozszerzenia
+na wszystkie karty: `docs/PROJEKT_KARTY_STRATEGII.md`.
+
 **Status wdrożenia:**
 - ⬜→✅ T3: Leadership primary (+3 żetony) + okno secondary (szkielet, wykonaj/pas).
 - ⬜ Pozostałe karty (Diplomacy, Politics, Construction, Trade, Warfare, Technology, Imperial) —

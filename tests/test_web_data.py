@@ -657,6 +657,8 @@ def test_strategy_play_marks_exhausted_in_web_data(client: TestClient) -> None:
     )
     finish_setup(client)
     client.post("/strategy/pick", json={"player_id": "p1", "initiative": 6})
+    # Akcja strategiczna jest legalna tylko w fazie akcji, w turze gracza.
+    client.post("/god-mode/patch", json={"phase": "ACTION", "active_player_id": "p1"})
     client.post("/strategy/play", json={"player_id": "p1", "initiative": 6})
     data = _web_data(client)
     sc6 = next(c for c in data["strategyCards"] if c["initiative"] == 6)

@@ -245,9 +245,9 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
     # Pas dopiero po akcji strategicznej: gracz z kartą strategii musi ją zagrać.
     if (
         player is not None
-        and player.strategy_cards
-        and not player.exhausted_strategy_cards
+        and not set(player.strategy_cards) <= set(player.exhausted_strategy_cards)
     ):
+        # Przy 3-4 graczach (2 karty) trzeba zagrać KAŻDĄ kartę (R_action_phase).
         raise ValueError(
             "Cannot pass before performing the strategic action (play a strategy card)."
         )

@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from src.core import timing
-from src.core.game_state import GameState, WindowType
+from src.core.game_state import GameState, Phase, WindowType
 from src.core.registry import StaticDataRegistry
 
 # Numer inicjatywy Leadership (z danych, nie z pamięci: assets/.../pok.json → "Leadership"=1).
@@ -105,6 +105,23 @@ def play_strategy_card(
     player = state.players[player_id]
     if initiative not in player.strategy_cards:
         raise ValueError(f"Player does not hold the initiative card {initiative}.")
+    # SĘDZIA tury (RULES.md 30.3, R_action_phase): akcja strategiczna to JEDNA z akcji
+    # tury - tylko w fazie akcji, tylko aktywny gracz, tylko gdy nie spasował, nie wykonał
+    # już innej akcji w tej turze i karta nie jest jeszcze wyczerpana.
+    if state.phase is not Phase.ACTION:
+        raise ValueError("A strategic action can only be performed during the action phase.")
+    if state.active_player_id != player_id:
+        raise ValueError(
+            f"It is not {player_id}'s turn (active: {state.active_player_id})."
+        )
+    if player.passed:
+        raise ValueError("You have passed - you cannot perform a strategic action.")
+    if player.took_action_this_turn:
+        raise ValueError(
+            "You already took an action this turn - end your turn before acting again."
+        )
+    if initiative in player.exhausted_strategy_cards:
+        raise ValueError(f"Strategy card {initiative} was already played this round.")
     if state.pending_window is not None:
         raise ValueError(
             "Another timing window is already open - resolve it before the strategic action."

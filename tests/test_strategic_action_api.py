@@ -1,4 +1,4 @@
-﻿"""Testy API akcji strategicznej (E8-T3): /strategy/play + /strategy/secondary."""
+"""Testy API akcji strategicznej (E8-T3): /strategy/play + /strategy/secondary."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from src.api.app import create_app
 from src.core.event_store import EventStore
-from src.core.game_state import GameState, PlayerState
+from src.core.game_state import GameState, Phase, PlayerState
 from src.core.registry import StaticDataRegistry
 
 
@@ -20,6 +20,7 @@ def registry() -> StaticDataRegistry:
 
 def _state() -> GameState:
     return GameState(
+        phase=Phase.ACTION,
         active_player_id="p1",
         seating_order=["p1", "p2", "p3"],
         players={

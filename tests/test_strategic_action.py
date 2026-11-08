@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from src.core import strategic_action, timing
-from src.core.game_state import GameState, PlayerState, WindowType
+from src.core.game_state import GameState, Phase, PlayerState, WindowType
 from src.core.registry import StaticDataRegistry
 
 
@@ -17,6 +17,7 @@ def registry() -> StaticDataRegistry:
 def _state_three() -> GameState:
     """Trzech graczy; p1 aktywny z kartą Leadership (inicjatywa 1)."""
     return GameState(
+        phase=Phase.ACTION,
         active_player_id="p1",
         seating_order=["p1", "p2", "p3"],
         players={
@@ -69,6 +70,7 @@ def test_play_solo_opens_no_window(registry: StaticDataRegistry) -> None:
     więc aktywny gracz może od razu zakończyć turę. Akcja i tak jest zaliczona.
     """
     state = GameState(
+        phase=Phase.ACTION,
         active_player_id="p1",
         seating_order=["p1"],
         players={"p1": PlayerState(player_id="p1", color="red", strategy_cards=[1])},
@@ -118,3 +120,36 @@ def test_secondary_rejects_wrong_window_type(registry: StaticDataRegistry) -> No
     state = timing.open_window(state, WindowType.REACTION, ["p2"])
     with pytest.raises(ValueError, match="No open strategy card secondary window"):
         strategic_action.resolve_secondary(state, registry, "p2", execute=True)
+
+
+def test_play_rejected_after_other_action_this_turn(registry: StaticDataRegistry) -> None:
+    """Jedna akcja na turę: po tactical/component nie wolno zagrać karty strategii."""
+    state = _state_three()
+    state.players["p1"].took_action_this_turn = True
+    with pytest.raises(ValueError, match="already took an action"):
+        strategic_action.play_strategy_card(state, registry, "p1", 1)
+
+
+def test_play_rejected_when_not_active_player(registry: StaticDataRegistry) -> None:
+    state = _state_three()
+    state.players["p2"].strategy_cards = [2]
+    with pytest.raises(ValueError, match="not p2's turn"):
+        strategic_action.play_strategy_card(state, registry, "p2", 2)
+
+
+def test_play_rejected_outside_action_phase(registry: StaticDataRegistry) -> None:
+    state = _state_three()
+    state.phase = Phase.STRATEGY
+    with pytest.raises(ValueError, match="action phase"):
+        strategic_action.play_strategy_card(state, registry, "p1", 1)
+
+
+def test_play_rejected_when_passed_or_exhausted(registry: StaticDataRegistry) -> None:
+    passed = _state_three()
+    passed.players["p1"].passed = True
+    with pytest.raises(ValueError, match="passed"):
+        strategic_action.play_strategy_card(passed, registry, "p1", 1)
+    used = _state_three()
+    used.players["p1"].exhausted_strategy_cards = [1]
+    with pytest.raises(ValueError, match="already played"):
+        strategic_action.play_strategy_card(used, registry, "p1", 1)
