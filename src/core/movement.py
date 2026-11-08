@@ -15,12 +15,13 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
+from src.core import unit_ops
 from src.core.combat import resolve_unit_variant
-from src.core.damage import move_damage
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
+from src.core.unit_ops import UnitCause
 
 # Jednostki, które mogą być ŁADUNKIEM transportu (R_transport): myśliwce i siły
 # naziemne. To jedyne jednostki zajmujące capacity (``capacityUsed``). Źródło:
@@ -247,22 +248,16 @@ def move_ships(
     assert active is not None  # zagwarantowane przez can_move
     new_state = state.clone()
 
-    # Zdejmij ze źródła.
     src = new_state.systems[from_pos]
-    src.space_units[player_id][base_type] -= count
-    if src.space_units[player_id][base_type] <= 0:
-        del src.space_units[player_id][base_type]
-    if not src.space_units[player_id]:
-        del src.space_units[player_id]
 
-    # Dodaj do aktywnego (utwórz system/wpisy, gdy trzeba).
+    # Cel: aktywny system (utwórz, gdy trzeba). Ta ścieżka nie przenosi uszkodzeń (jak dotąd).
     dest = new_state.systems.get(active)
     if dest is None:
         system_id = grid.system_id_at(active) if active in grid.positions else ""
         dest = SystemState(position=active, system_id=system_id)
         new_state.systems[active] = dest
-    dest.space_units.setdefault(player_id, {}).setdefault(base_type, 0)
-    dest.space_units[player_id][base_type] += count
+    unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
+    unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
     return new_state
 
 
@@ -468,23 +463,6 @@ def move_fleet(
     src = new_state.systems.get(from_pos)
     assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
 
-    def _take_space(base_type: str, count: int) -> None:
-        """Zdejmuje ``count`` jednostek gracza ``base_type`` z PRZESTRZENI źródła."""
-        src.space_units[player_id][base_type] -= count
-        if src.space_units[player_id][base_type] <= 0:
-            del src.space_units[player_id][base_type]
-        if not src.space_units[player_id]:
-            del src.space_units[player_id]
-
-    def _take_planet(planet: str, base_type: str, count: int) -> None:
-        """Zdejmuje ``count`` sił naziemnych gracza z PLANETY źródła (pickup transportu)."""
-        by_player = src.planet_units[planet]
-        by_player[player_id][base_type] -= count
-        if by_player[player_id][base_type] <= 0:
-            del by_player[player_id][base_type]
-        if not by_player[player_id]:
-            del by_player[player_id]
-
     # Cel (utwórz system, gdy trzeba). WSZYSTKO ląduje w PRZESTRZENI celu (T2) — ładunek
     # na statku, do czasu lądowania w kroku INWAZJA.
     dest = new_state.systems.get(active)
@@ -493,25 +471,14 @@ def move_fleet(
         dest = SystemState(position=active, system_id=system_id)
         new_state.systems[active] = dest
 
-    def _arrive(base_type: str, count: int) -> None:
-        dest.space_units.setdefault(player_id, {}).setdefault(base_type, 0)
-        dest.space_units[player_id][base_type] += count
-
     # Statki (zawsze z przestrzeni) — uszkodzenia jadą razem z nimi (RULES.md 39.3).
     for base_type, count in ships.items():
-        before = _available_in_zone(src, player_id, base_type, "space")
-        _take_space(base_type, count)
-        _arrive(base_type, count)
-        move_damage(src, "space", dest, "space", player_id, base_type, count, before)
-    # Ładunek z jego strefy źródłowej (przestrzeń lub planeta).
+        unit_ops.transfer_units(
+            new_state, src, "space", dest, "space", player_id, base_type, count
+        )
+    # Ładunek z jego strefy źródłowej (przestrzeń lub planeta) trafia do przestrzeni celu.
     for item in cargo_items:
-        before = _available_in_zone(src, player_id, item.base_type, item.from_zone)
-        if item.from_zone == "space":
-            _take_space(item.base_type, item.count)
-        else:
-            _take_planet(item.from_zone, item.base_type, item.count)
-        _arrive(item.base_type, item.count)
-        move_damage(
-            src, item.from_zone, dest, "space", player_id, item.base_type, item.count, before
+        unit_ops.transfer_units(
+            new_state, src, item.from_zone, dest, "space", player_id, item.base_type, item.count
         )
     return new_state

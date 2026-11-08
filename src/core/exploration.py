@@ -16,9 +16,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, economy, exhaust
+from src.core import command_tokens, economy, exhaust, unit_ops
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
+from src.core.damage import clear_zone_damage
 from src.core.dice import next_rng
 from src.core.game_state import (
     ExplorationState,
@@ -30,6 +31,7 @@ from src.core.game_state import (
 from src.core.production import reinforcements_left
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
+from src.core.unit_ops import UnitCause
 
 # Talie planetarne = cechy planet (R_exploration). Planeta bez żadnej z nich (Mecatol Rex,
 # planety domowe, stacje kosmiczne) nie podlega eksploracji.
@@ -107,19 +109,16 @@ def _count(system: SystemState, planet: str, player_id: str, base_type: str) -> 
     return system.planet_units.get(planet, {}).get(player_id, {}).get(base_type, 0)
 
 
-def _remove_unit(system: SystemState, planet: str, player_id: str, base_type: str) -> None:
-    by_player = system.planet_units.get(planet, {})
-    units = by_player.get(player_id, {})
-    units[base_type] = units.get(base_type, 0) - 1
-    if units[base_type] <= 0:
-        units.pop(base_type, None)
-    if not units:
-        by_player.pop(player_id, None)
+def _remove_unit(
+    state: GameState, system: SystemState, planet: str, player_id: str, base_type: str
+) -> None:
+    unit_ops.remove_units(state, system, planet, player_id, base_type, 1, UnitCause.REMOVED)
 
 
-def _add_unit(system: SystemState, planet: str, player_id: str, base_type: str) -> None:
-    units = system.planet_units.setdefault(planet, {}).setdefault(player_id, {})
-    units[base_type] = units.get(base_type, 0) + 1
+def _add_unit(
+    state: GameState, system: SystemState, planet: str, player_id: str, base_type: str
+) -> None:
+    unit_ops.place_units(state, system, planet, player_id, base_type, 1, UnitCause.PLACED)
 
 
 def deck_card_ids(registry: StaticDataRegistry, deck: str) -> list[str]:
@@ -194,7 +193,7 @@ def _apply_mercenary(
 ) -> str:
     if option == "skip":
         return "Declined."
-    _add_unit(_system(state, ex), cur.planet, ex.player_id, "infantry")
+    _add_unit(state, _system(state, ex), cur.planet, ex.player_id, "infantry")
     return "Placed 1 infantry on the planet."
 
 
@@ -292,7 +291,7 @@ def _hazard_apply(
     if option == "skip":
         return "Declined."
     if option == "infantry":
-        _remove_unit(_system(state, ex), cur.planet, ex.player_id, "infantry")
+        _remove_unit(state, _system(state, ex), cur.planet, ex.player_id, "infantry")
         paid = "Removed 1 infantry. "
     else:
         paid = "Has a mech here. "
@@ -451,7 +450,7 @@ def _apply_pay(
     if action == "draw":
         _draw_action_card(state, ex.player_id)
         return f"Spent {paid} and drew 1 action card."
-    _add_unit(_system(state, ex), cur.planet, ex.player_id, "mech")
+    _add_unit(state, _system(state, ex), cur.planet, ex.player_id, "mech")
     return f"Spent {paid} and placed 1 mech on the planet."
 
 
@@ -492,13 +491,18 @@ def _apply_attach(
         units = system.planet_units[cur.planet][player_id]
         for base_type, count in list(units.items()):
             if count > 0 and base_type in _GROUND:
-                bucket = system.space_units.setdefault(player_id, {})
-                bucket[base_type] = bucket.get(base_type, 0) + count
-            if base_type in _GROUND or not is_space_unit(base_type):
-                del units[base_type]
-        if not units:
-            del system.planet_units[cur.planet][player_id]
-    system.damaged_units.pop(cur.planet, None)
+                # Siły naziemne wychodzą na orbitę; uszkodzenia planety i tak kasujemy niżej.
+                unit_ops.take_units(
+                    state, system, cur.planet, player_id, base_type, count, UnitCause.MOVED
+                )
+                unit_ops.place_units(
+                    state, system, "space", player_id, base_type, count, UnitCause.MOVED
+                )
+            elif base_type in _GROUND or not is_space_unit(base_type):
+                unit_ops.take_units(
+                    state, system, cur.planet, player_id, base_type, count, UnitCause.REMOVED
+                )
+    clear_zone_damage(system, cur.planet)
     return "Attached. Structures returned to reinforcements, ground forces moved to orbit."
 
 

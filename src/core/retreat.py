@@ -13,9 +13,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import command_tokens
+from src.core import command_tokens, unit_ops
 from src.core.combat import resolve_unit_variant
-from src.core.damage import damaged_count, move_damage, set_damaged
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.movement import (
@@ -27,6 +26,7 @@ from src.core.movement import (
 )
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
+from src.core.unit_ops import UnitCause
 
 # Anomalie blokujące odwrót (O4). Mgławica: cel nie jest systemem aktywnym (R_nebula);
 # supernowa: nieprzejezdna; pole asteroid: tylko z Antimass Deflectors.
@@ -102,45 +102,6 @@ def retreat_destinations(
         if _has_presence(system, player_id):
             result.append(neighbor)
     return result
-
-
-def _take(system: SystemState, zone: str, player_id: str, base_type: str, count: int) -> int:
-    """Zdejmuje ``count`` jednostek ze strefy; zwraca liczbę PRZED zdjęciem (do uszkodzeń)."""
-    if zone == "space":
-        units = system.space_units.get(player_id, {})
-    else:
-        units = system.planet_units.get(zone, {}).get(player_id, {})
-    before = units.get(base_type, 0)
-    left = before - count
-    if left > 0:
-        units[base_type] = left
-    else:
-        units.pop(base_type, None)
-    if not units:
-        if zone == "space":
-            system.space_units.pop(player_id, None)
-        else:
-            system.planet_units.get(zone, {}).pop(player_id, None)
-    return before
-
-
-def _put(system: SystemState, player_id: str, base_type: str, count: int) -> None:
-    by_type = system.space_units.setdefault(player_id, {})
-    by_type[base_type] = by_type.get(base_type, 0) + count
-
-
-def _transfer(
-    src: SystemState,
-    zone: str,
-    dest: SystemState,
-    player_id: str,
-    base_type: str,
-    count: int,
-) -> None:
-    """Przenosi jednostki (z uszkodzeniami) do PRZESTRZENI systemu docelowego."""
-    before = _take(src, zone, player_id, base_type, count)
-    _put(dest, player_id, base_type, count)
-    move_damage(src, zone, dest, "space", player_id, base_type, count, before)
 
 
 def _auto_cargo(
@@ -261,17 +222,19 @@ def perform_retreat(
     src = new_state.systems[position]
     dest = new_state.systems[destination]
     result = RetreatResult()
+    # Uszkodzenia jadą razem z jednostkami do PRZESTRZENI systemu docelowego.
     for base_type, count in movers.items():
-        _transfer(src, "space", dest, player_id, base_type, count)
+        unit_ops.transfer_units(new_state, src, "space", dest, "space", player_id, base_type, count)
         result.moved[base_type] = result.moved.get(base_type, 0) + count
     for item in chosen:
-        _transfer(src, item.from_zone, dest, player_id, item.base_type, item.count)
+        unit_ops.transfer_units(
+            new_state, src, item.from_zone, dest, "space", player_id, item.base_type, item.count
+        )
         result.moved[item.base_type] = result.moved.get(item.base_type, 0) + item.count
     # O5: ładunek z przestrzeni, którego nie dało się zabrać, jest usuwany.
     for base_type, count in left_behind.items():
-        _take(src, "space", player_id, base_type, count)
-        set_damaged(
-            src, "space", player_id, base_type, damaged_count(src, "space", player_id, base_type)
+        unit_ops.remove_units(
+            new_state, src, "space", player_id, base_type, count, UnitCause.REMOVED
         )
         result.removed[base_type] = count
 

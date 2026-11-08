@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.core import control, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
@@ -25,6 +26,7 @@ from src.core.unit_catalog import (
     UNIT_CAP_BY_ASYNC_ID,
     is_space_unit,
 )
+from src.core.unit_ops import UnitCause
 
 # Jednostki produkowane podwójnie (2 sztuki za koszt) — RULES.md 22/33.2.
 _DUAL = {"fighter", "infantry"}
@@ -615,8 +617,6 @@ def produce(
     Raises:
         ValueError: Przy złamaniu którejkolwiek reguły (stan wejściowy bez zmian).
     """
-    from src.core import board_edit  # lokalnie: board_edit nie zna produkcji (brak cyklu)
-
     active = production_system(state)
     orders = [o for o in orders if o.count > 0]
     validate_production(state, grid, registry, player_id, orders)
@@ -655,12 +655,15 @@ def produce(
     pay = spend if spend is not None else auto_pay(state, registry, player_id, cost)
     _validate_spend(state, registry, player_id, pay, cost)
 
-    new_state = state
+    new_state = state.clone()
+    system = new_state.systems[active]
     for o, zone in placed:
-        new_state = board_edit.edit_units(
-            new_state, grid, active, zone, player_id,
-            ASYNC_ID_BY_BASE_TYPE[o.base_type], o.count,
+        unit_ops.place_units(
+            new_state, system, zone, player_id, o.base_type, o.count, UnitCause.PLACED
         )
+        # Siły naziemne/struktura na planecie mogą nadać kontrolę (RULES.md 23).
+        if zone != "space":
+            control.recompute_from_units(new_state, active, zone)
     apply_payment(new_state, player_id, list(pay.planets), pay.trade_goods)
     if active_grant(state, player_id) is not None:
         # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika.

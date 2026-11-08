@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import capacity, chronicle, timing
+from src.core import capacity, chronicle, timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -30,6 +30,7 @@ from src.core.movement import CargoPickup
 from src.core.registry import StaticDataRegistry
 from src.core.retreat import perform_retreat, retreat_destinations
 from src.core.unit_catalog import is_space_unit
+from src.core.unit_ops import UnitCause
 
 # Anomalia dająca obrońcy +1 do rzutów combat w walce kosmicznej (R_nebula; RULES.md 39 W6).
 _NEBULA = "NEBULA"
@@ -261,18 +262,9 @@ def remove_units_in_zone(
     state: GameState, position: str, zone: str, player_id: str, base_type: str, count: int
 ) -> None:
     """Zdejmuje ``count`` jednostek gracza ze strefy (``"space"``/planeta) — mutuje ``state``."""
-    system = state.systems[position]
-    units = _units_map(system, zone, player_id)
-    remaining = units.get(base_type, 0) - count
-    if remaining > 0:
-        units[base_type] = remaining
-    else:
-        units.pop(base_type, None)
-    if not units:
-        if zone == "space":
-            system.space_units.pop(player_id, None)
-        else:
-            system.planet_units.get(zone, {}).pop(player_id, None)
+    unit_ops.remove_units(
+        state, state.systems[position], zone, player_id, base_type, count, UnitCause.DESTROYED
+    )
 
 
 def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:

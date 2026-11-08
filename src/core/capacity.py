@@ -12,11 +12,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import timing
+from src.core import timing, unit_ops
 from src.core.combat import resolve_unit_variant
-from src.core.damage import damaged_count, set_damaged
-from src.core.game_state import GameState, SystemState, WindowType
+from src.core.game_state import GameState, WindowType
 from src.core.registry import StaticDataRegistry
+from src.core.unit_ops import UnitCause
 
 # Ładunek zajmujący pojemność (R_capacity: „fighters and ground forces"). Kolejność = wyświetlanie.
 CARGO_TYPES: tuple[str, ...] = ("fighter", "infantry", "mech")
@@ -168,23 +168,6 @@ def _check_removal(report: CapacityReport, remove: dict[str, int]) -> None:
             raise ValueError("You are removing more units than the capacity limit requires.")
 
 
-def remove_space_units(
-    system: SystemState, player_id: str, base_type: str, count: int
-) -> None:
-    units = system.space_units.get(player_id, {})
-    left = units.get(base_type, 0) - count
-    if left > 0:
-        units[base_type] = left
-    else:
-        units.pop(base_type, None)
-    if not units:
-        system.space_units.pop(player_id, None)
-    # Uszkodzenia nie mogą przekraczać liczby jednostek (mech z Sustain Damage).
-    set_damaged(
-        system, "space", player_id, base_type, damaged_count(system, "space", player_id, base_type)
-    )
-
-
 def resolve_capacity(
     state: GameState,
     registry: StaticDataRegistry,
@@ -211,7 +194,9 @@ def resolve_capacity(
     system = new_state.systems[position]
     for base_type, count in remove.items():
         if count > 0:
-            remove_space_units(system, player_id, base_type, count)
+            unit_ops.remove_units(
+                new_state, system, "space", player_id, base_type, count, UnitCause.REMOVED
+            )
     new_state = timing.respond_current(new_state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)

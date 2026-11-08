@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import command_tokens, exhaust
+from src.core import command_tokens, exhaust, unit_ops
 from src.core.command_tokens import POOLS
 from src.core.game_state import GameState
+from src.core.unit_ops import UnitCause
 
 
 def str_list(payload: dict[str, Any], key: str) -> list[str]:
@@ -152,12 +153,9 @@ def place_structure(state: GameState, player_id: str, planet_id: str, structure:
         raise ValueError(problem)
     position = planet_position(state, planet_id)
     assert position is not None
-    bucket = (
-        state.systems[position]
-        .planet_units.setdefault(planet_id, {})
-        .setdefault(player_id, {})
+    unit_ops.place_units(
+        state, state.systems[position], planet_id, player_id, structure, 1, UnitCause.PLACED
     )
-    bucket[structure] = bucket.get(structure, 0) + 1
 
 
 # --- Produkcja z karty strategii -------------------------------------------------------------

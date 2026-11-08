@@ -15,9 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import battle, chronicle, control, exhaust, exploration, space_cannon
+from src.core import battle, chronicle, control, exhaust, exploration, space_cannon, unit_ops
 from src.core.combat import resolve_unit_variant
-from src.core.damage import move_damage
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
 from src.core.game_state import (
     GameState,
@@ -30,6 +29,7 @@ from src.core.hex_grid import HexGrid
 from src.core.models import UnitDef
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
+from src.core.unit_ops import UnitCause
 
 # Siły naziemne (mogą lądować i walczyć na planecie); struktury (pds/spacedock) NIE.
 GROUND_FORCES = frozenset({"infantry", "mech"})
@@ -507,26 +507,17 @@ def commit_ground_forces(
     new_state = state.clone()
     new_inv = _inv(new_state)
     new_system = _system(new_state)
-    space = new_system.space_units[new_inv.attacker]
     for planet, by_type in commits.items():
         for base_type, count in by_type.items():
             if count <= 0:
                 continue
-            before = space[base_type]
-            space[base_type] = before - count
-            if space[base_type] <= 0:
-                del space[base_type]
-            dest = new_system.planet_units.setdefault(planet, {}).setdefault(
-                new_inv.attacker, {}
-            )
-            dest[base_type] = dest.get(base_type, 0) + count
-            move_damage(
-                new_system, "space", new_system, planet, new_inv.attacker, base_type, count, before
+            # Lądowanie: z przestrzeni na planetę, uszkodzenia jadą razem z jednostkami.
+            unit_ops.transfer_units(
+                new_state, new_system, "space", new_system, planet, new_inv.attacker,
+                base_type, count,
             )
             landed = new_inv.committed.setdefault(planet, {})
             landed[base_type] = landed.get(base_type, 0) + count
-    if not space:
-        del new_system.space_units[new_inv.attacker]
     return new_state
 
 
@@ -745,10 +736,11 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
                     for bt, n in system.planet_units[planet][pid].items()
                     if n > 0 and bt not in GROUND_FORCES and not is_space_unit(bt)
                 }
-                for bt in structures:
-                    del system.planet_units[planet][pid][bt]
-                if not system.planet_units[planet][pid]:
-                    del system.planet_units[planet][pid]
+                # Struktury przeciwnika znikają przy zdobyciu planety (nie wracają przez rezerwę).
+                for bt, n in structures.items():
+                    unit_ops.remove_units(
+                        state, system, planet, pid, bt, n, UnitCause.DESTROYED
+                    )
                 if structures:
                     destroyed[pid] = structures
             control.set_planet_control(state, inv.position, planet, inv.attacker)

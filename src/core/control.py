@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from src.core import exhaust
 from src.core.game_state import GameState
+from src.core.unit_catalog import is_space_unit
 
 
 def set_planet_control(
@@ -52,3 +53,22 @@ def set_planet_control(
         new_player = state.players[new_owner]
         if planet not in new_player.controlled_planets:
             new_player.controlled_planets = [*new_player.controlled_planets, planet]
+
+
+def recompute_from_units(state: GameState, position: str, planet: str) -> None:
+    """Przelicza kontrolę planety po postawieniu jednostek (reguła AsyncTI4, RULES.md 23).
+
+    Gdy na planecie stoją siły naziemne/struktury DOKŁADNIE JEDNEGO gracza, ten gracz przejmuje
+    kontrolę. Brak jednostek albo ≥ 2 graczy (koegzystencja) -> bez zmian: kontrola jest „lepka".
+    Statki i inne jednostki kosmiczne nie nadają kontroli.
+    """
+    system = state.systems.get(position)
+    if system is None:
+        return
+    present = {
+        player_id
+        for player_id, by_type in system.planet_units.get(planet, {}).items()
+        if any(count > 0 and not is_space_unit(base_type) for base_type, count in by_type.items())
+    }
+    if len(present) == 1:
+        set_planet_control(state, position, planet, next(iter(present)))

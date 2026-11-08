@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from src.core import control
+from src.core import control, unit_ops
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.models import FactionDef
 from src.core.unit_catalog import FLEET_CODE_TO_BASE_TYPE, Placement, placement_of
@@ -243,9 +243,9 @@ def apply_setup_to_state(
         system.system_id = system_id
 
     if plan.space_units:
-        system.space_units[player_id] = dict(plan.space_units)
+        unit_ops.replace_zone_units(new_state, system, "space", player_id, plan.space_units)
     for planet_id, units in plan.planet_units.items():
-        system.planet_units.setdefault(planet_id, {})[player_id] = dict(units)
+        unit_ops.replace_zone_units(new_state, system, planet_id, player_id, units)
     new_state.systems[unit_pos] = system
     for planet_id in plan.home_planets:
         control.set_planet_control(new_state, unit_pos, planet_id, player_id)

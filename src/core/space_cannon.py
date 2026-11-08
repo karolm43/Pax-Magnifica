@@ -21,13 +21,14 @@ import json
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
-from src.core import timing
+from src.core import timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
 from src.core.game_state import GameState, TimingWindow, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
+from src.core.unit_ops import UnitCause
 
 # Klucze kontekstu okna dotyczące trwającego przypisywania strat.
 _PENDING_KEYS = ("roller", "target", "hits", "rolls")
@@ -471,13 +472,10 @@ def assign_hits(
     new_state = state.clone()
     assert new_state.active_system is not None
     system = new_state.systems[new_state.active_system]
-    stacks = system.space_units[target_id]
     for base_type, count in cleaned.items():
-        stacks[base_type] -= count
-        if stacks[base_type] <= 0:
-            del stacks[base_type]
-    if not stacks:
-        del system.space_units[target_id]
+        unit_ops.remove_units(
+            new_state, system, "space", target_id, base_type, count, UnitCause.DESTROYED
+        )
 
     log = read_log(new_state)
     if log:

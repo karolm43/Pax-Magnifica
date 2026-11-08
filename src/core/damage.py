@@ -75,6 +75,11 @@ def move_damage(
         set_damaged(dest, dest_zone, player_id, base_type, current + damaged_moving)
 
 
+def clear_zone_damage(system: SystemState, zone: str) -> None:
+    """Zdejmuje WSZYSTKIE uszkodzenia ze strefy (np. po wyczyszczeniu planety kartą)."""
+    system.damaged_units.pop(zone, None)
+
+
 def repair_all(state: GameState) -> None:
     """Naprawia wszystkie uszkodzone jednostki (faza statusu, krok 7 — W10). Mutuje ``state``."""
     for system in state.systems.values():

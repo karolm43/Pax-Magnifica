@@ -19,12 +19,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import timing
-from src.core.capacity import remove_space_units
+from src.core import timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, WindowType
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import PLACEMENT_BY_BASE_TYPE, Placement
+from src.core.unit_ops import UnitCause
 
 _FIGHTER = "fighter"
 
@@ -203,7 +203,9 @@ def resolve_fleet_pool(
     system = new_state.systems[position]
     for base_type, count in remove.items():
         if count > 0:
-            remove_space_units(system, player_id, base_type, count)
+            unit_ops.remove_units(
+                new_state, system, "space", player_id, base_type, count, UnitCause.REMOVED
+            )
     new_state = timing.respond_current(new_state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)

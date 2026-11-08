@@ -5,13 +5,16 @@ jest jego jedynym właścicielem. Wykrywane formy zmiany:
 
 * przypisanie ``x.pole = ...`` / ``x.pole += ...`` (także w krotce: ``a.p1, a.p2 = ...``),
 * zapis/usunięcie po kluczu: ``x.pole[k] = ...`` / ``del x.pole[k]``,
-* mutacja kolekcji: ``x.pole.append(...)`` / ``.remove`` / ``.extend`` / ``.pop`` / ``.update``...
+* mutacja kolekcji: ``x.pole.append(...)`` / ``.remove`` / ``.extend`` / ``.pop`` / ``.update``...,
+* to samo przez ALIAS: ``units = system.space_units.get(p, {}); units[bt] = n`` albo pętla
+  ``for pid, by_type in system.space_units.items(): by_type[bt] = n`` (prosta analiza aliasów
+  w obrębie funkcji; kopie ``dict(...)``/``list(...)`` aliasami nie są),
 * ``setattr(...)`` poza krótką listą modułów, które używają go ogólnie (kopiowanie stanu).
 
 Dzięki temu hook (np. „commodities jak trade goods") dopisany w funkcji centralnej obejmuje
 wszystkie miejsca, a rozproszenie nie wraca. Wyjątek: God-Mode (``core/board_edit.py``) — wentyl.
 
-Dodając kolejny punkt centralny (kontrola planet, jednostki…), dopisz wiersz do ``OWNERS``.
+Dodając kolejny punkt centralny (technologie, VP…), dopisz wiersz do ``OWNERS``.
 """
 
 from __future__ import annotations
@@ -38,6 +41,11 @@ OWNERS: dict[str, frozenset[str]] = {
     "breakthrough_exhausted": frozenset({"core/exhaust.py", _GOD_MODE}),
     "planet_owners": frozenset({"core/control.py", _GOD_MODE}),
     "controlled_planets": frozenset({"core/control.py", _GOD_MODE}),
+    # Jednostki: ``faction_setup.py`` buduje LOKALNY ``SetupPlan`` (dataclass z polami o tych
+    # samych nazwach, nie ``SystemState``); do stanu gry jednostki trafiają przez ``unit_ops``.
+    "space_units": frozenset({"core/unit_ops.py", "core/faction_setup.py", _GOD_MODE}),
+    "planet_units": frozenset({"core/unit_ops.py", "core/faction_setup.py", _GOD_MODE}),
+    "damaged_units": frozenset({"core/damage.py", _GOD_MODE}),
 }
 
 # ``setattr`` ogólnego przeznaczenia (nazwa pola zmienna): moduły dozwolone poza właścicielami pól.
@@ -58,11 +66,18 @@ _MUTATORS = frozenset(
         "update", "setdefault", "popitem",
     }
 )
+# Metody zwracające widok/element tej samej kolekcji (alias), a nie kopię.
+_ALIAS_METHODS = frozenset({"get", "setdefault", "pop", "items", "values", "keys"})
 
 
-def _protected(target: ast.expr) -> ast.expr:
-    """Dla ``x.pole[klucz]`` zwraca ``x.pole`` (zapis do słownika/listy w polu stanu)."""
-    return target.value if isinstance(target, ast.Subscript) else target
+def _names(target: ast.expr) -> list[str]:
+    if isinstance(target, ast.Name):
+        return [target.id]
+    if isinstance(target, ast.Tuple | ast.List):
+        return [name for item in target.elts for name in _names(item)]
+    if isinstance(target, ast.Starred):
+        return _names(target.value)
+    return []
 
 
 def _flatten(target: ast.expr) -> list[ast.expr]:
@@ -73,30 +88,121 @@ def _flatten(target: ast.expr) -> list[ast.expr]:
     return [target]
 
 
+class _Scan(ast.NodeVisitor):
+    """Przechodzi kod w kolejności źródła, śledząc aliasy chronionych pól w obrębie funkcji."""
+
+    def __init__(self, fields: set[str], tainted: dict[str, set[str]] | None = None) -> None:
+        self.fields = fields
+        self.tainted: dict[str, set[str]] = dict(tainted or {})
+        self.found: list[tuple[int, str]] = []
+
+    # --- aliasy ---------------------------------------------------------------------------
+
+    def alias(self, expr: ast.expr | None) -> set[str]:
+        """Które chronione pola mogą być (żywym) widokiem wartości ``expr``."""
+        if expr is None:
+            return set()
+        if isinstance(expr, ast.Attribute):
+            if expr.attr in self.fields:
+                return {expr.attr}
+            return self.alias(expr.value)
+        if isinstance(expr, ast.Subscript):
+            return self.alias(expr.value)
+        if isinstance(expr, ast.Name):
+            return set(self.tainted.get(expr.id, set()))
+        if isinstance(expr, ast.Call):
+            if isinstance(expr.func, ast.Attribute) and expr.func.attr in _ALIAS_METHODS:
+                return self.alias(expr.func.value)
+            return set()
+        if isinstance(expr, ast.BoolOp):
+            return set().union(*(self.alias(v) for v in expr.values))
+        if isinstance(expr, ast.IfExp):
+            return self.alias(expr.body) | self.alias(expr.orelse)
+        return set()
+
+    def _bind(self, targets: list[ast.expr], value: ast.expr | None) -> None:
+        fields = self.alias(value)
+        for target in targets:
+            for name in _names(target):
+                if fields:
+                    self.tainted[name] = set(fields)
+                else:
+                    self.tainted.pop(name, None)
+
+    # --- mutacje --------------------------------------------------------------------------
+
+    def _flag(self, lineno: int, fields: set[str]) -> None:
+        for field in sorted(fields & self.fields):
+            self.found.append((lineno, field))
+
+    def _mutation_target(self, target: ast.expr, lineno: int) -> None:
+        """Zapis do ``target`` (Attribute = samo pole; Subscript = element kolekcji)."""
+        if isinstance(target, ast.Attribute):
+            if target.attr in self.fields:
+                self._flag(lineno, {target.attr})
+            return
+        if isinstance(target, ast.Subscript):
+            self._flag(lineno, self.alias(target))
+
+    # --- węzły ----------------------------------------------------------------------------
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        self.visit(node.value)
+        leaves = [leaf for t in node.targets for leaf in _flatten(t)]
+        for leaf in leaves:
+            self._mutation_target(leaf, node.lineno)
+        self._bind(leaves, node.value)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if node.value is not None:
+            self.visit(node.value)
+            for leaf in _flatten(node.target):
+                self._mutation_target(leaf, node.lineno)
+            self._bind(_flatten(node.target), node.value)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        self.visit(node.value)
+        for leaf in _flatten(node.target):
+            self._mutation_target(leaf, node.lineno)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        for target in node.targets:
+            for leaf in _flatten(target):
+                self._mutation_target(leaf, node.lineno)
+
+    def visit_For(self, node: ast.For) -> None:
+        self.visit(node.iter)
+        self._bind(_flatten(node.target), node.iter)
+        for stmt in node.body + node.orelse:
+            self.visit(stmt)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _MUTATORS:
+            self._flag(node.lineno, self.alias(func.value))
+        self.generic_visit(node)
+
+    def _scope(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        inner = _Scan(self.fields, self.tainted)
+        for stmt in node.body:
+            inner.visit(stmt)
+        self.found.extend(inner.found)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._scope(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._scope(node)
+
+
+def _writes_in_source(source: str, fields: set[str]) -> list[tuple[int, str]]:
+    scan = _Scan(fields)
+    scan.visit(ast.parse(source))
+    return sorted(set(scan.found))
+
+
 def _writes(path: Path, fields: set[str]) -> list[tuple[int, str]]:
-    tree = ast.parse(path.read_text(encoding="utf-8-sig"))  # -sig: część plików ma BOM
-    found: list[tuple[int, str]] = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign):
-            targets = [leaf for t in node.targets for leaf in _flatten(t)]
-        elif isinstance(node, ast.AugAssign | ast.AnnAssign):
-            targets = _flatten(node.target)
-        elif isinstance(node, ast.Delete):
-            targets = [leaf for t in node.targets for leaf in _flatten(t)]
-        elif (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr in _MUTATORS
-            and isinstance(node.func.value, ast.Attribute)
-        ):
-            targets = [node.func.value]
-        else:
-            continue
-        for raw in targets:
-            target = _protected(raw)
-            if isinstance(target, ast.Attribute) and target.attr in fields:
-                found.append((node.lineno, target.attr))
-    return found
+    return _writes_in_source(path.read_text(encoding="utf-8-sig"), fields)  # -sig: BOM
 
 
 def _setattr_calls(path: Path) -> list[int]:
@@ -130,3 +236,44 @@ def test_setattr_tylko_w_dozwolonych_modulach() -> None:
     assert not violations, (
         "setattr() może obejść punkt centralny (nazwa pola jest zmienna):\n" + "\n".join(violations)
     )
+
+
+# --- test samego strażnika: musi łapać wszystkie formy zmiany i nie krzyczeć na kopie/odczyty ----
+
+_FIELDS = {"space_units", "trade_goods"}
+
+
+def _hits(source: str) -> list[str]:
+    return [field for _, field in _writes_in_source(source, _FIELDS)]
+
+
+def test_straznik_lapie_przypisania_krotki_i_mutacje() -> None:
+    assert _hits("def f(p):\n    p.trade_goods -= 1\n") == ["trade_goods"]
+    assert _hits("def f(p):\n    p.a, p.trade_goods = 1, 2\n") == ["trade_goods"]
+    assert _hits("def f(s):\n    s.space_units['p'] = {}\n") == ["space_units"]
+    assert _hits("def f(s):\n    del s.space_units['p']\n") == ["space_units"]
+    assert _hits("def f(s):\n    s.space_units.pop('p', None)\n") == ["space_units"]
+
+
+def test_straznik_lapie_aliasy() -> None:
+    alias_get = "def f(s):\n    u = s.space_units.get('p', {})\n    u['x'] = 1\n"
+    assert _hits(alias_get) == ["space_units"]
+    alias_loop = (
+        "def f(s):\n    for pid, by in s.space_units.items():\n        by['x'] -= 1\n"
+    )
+    assert _hits(alias_loop) == ["space_units"]
+    alias_chain = "def f(s):\n    a = s.space_units['p']\n    b = a\n    b.pop('x', None)\n"
+    assert _hits(alias_chain) == ["space_units"]
+    call_receiver = "def f(s):\n    s.space_units.get('p', {}).pop('x', None)\n"
+    assert _hits(call_receiver) == ["space_units"]
+
+
+def test_straznik_nie_krzyczy_na_odczyty_i_kopie() -> None:
+    assert _hits("def f(s):\n    return s.space_units.get('p', {}).get('x', 0)\n") == []
+    copy = "def f(s):\n    u = dict(s.space_units.get('p', {}))\n    u['x'] = 1\n"
+    assert _hits(copy) == []
+    rebound = (
+        "def f(s):\n    u = s.space_units.get('p', {})\n    u = []\n    u.append(1)\n"
+    )
+    assert _hits(rebound) == []
+    assert _hits("def f(s):\n    n = len(s.space_units)\n    n += 1\n") == []
