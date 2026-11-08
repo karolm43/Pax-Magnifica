@@ -73,12 +73,13 @@ def validate_payment(
     for planet_id in planets:
         if planet_id not in ready:
             raise ValueError(f"Planet {planet_id} is not yours or is already exhausted.")
-    if trade_goods > player.trade_goods:
-        raise ValueError(f"Not enough trade goods: {trade_goods} > {player.trade_goods}.")
+    spendable = economy.spendable_trade_goods(state, player_id)
+    if trade_goods > spendable:
+        raise ValueError(f"Not enough trade goods: {trade_goods} > {spendable}.")
     return sum(ready[p] for p in planets) + trade_goods
 
 
 def apply_payment(state: GameState, player_id: str, planets: list[str], trade_goods: int) -> None:
     """Wyczerpuje planety i zabiera TG (mutuje klon; zakłada wcześniejszą walidację)."""
     exhaust.exhaust_planets(state, player_id, planets)
-    economy.spend_trade_goods(state, player_id, trade_goods)
+    economy.spend_as_trade_goods(state, player_id, trade_goods)

@@ -11,7 +11,7 @@ Plik ``assets/config/effects_status.json`` ma kształt
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -71,6 +71,16 @@ class EffectRegistry:
         updated = dict(self.statuses)
         updated[ref] = status
         return EffectRegistry(updated)
+
+    def with_hook_coverage(self, keys: Iterable[str]) -> EffectRegistry:
+        """Dokłada IMPLEMENTED dla komponentów z hookiem (klucze ``kategoria:id``).
+
+        Jawny wpis w ``effects_status.json`` ma pierwszeństwo (np. MANUAL wybrany świadomie).
+        """
+        merged = dict(self.statuses)
+        for key in keys:
+            merged.setdefault(_parse_key(key), EffectStatus.IMPLEMENTED)
+        return EffectRegistry(merged)
 
     def to_json_dict(self) -> dict[str, str]:
         """Kształt zapisu pliku ``effects_status.json``."""

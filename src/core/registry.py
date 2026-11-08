@@ -22,6 +22,7 @@ from typing import Protocol, TypeVar, cast
 from pydantic import BaseModel
 
 from src import config
+from src.core import rules_hooks
 from src.core.component_loader import LoadReport, load_components
 from src.core.components import ComponentCatalog, build_timing_specs
 from src.core.effects_registry import EffectRegistry
@@ -224,7 +225,11 @@ class StaticDataRegistry:
         # Rejestr efektów (status implementacji per komponent; brak pliku = pusty,
         # R9.4) oraz indeks tematów zrzutu reguł (brak tirules.json = pusty, R10.2).
         # Oba są opcjonalne i wczytywane z lokalnych assetów — nic nie jest w kodzie.
-        self.effect_registry: EffectRegistry = EffectRegistry.load()
+        # Efekty z zarejestrowanym hookiem (core/rules_hooks.py, ``covers``) są IMPLEMENTED;
+        # jawne wpisy z pliku mają pierwszeństwo.
+        self.effect_registry: EffectRegistry = EffectRegistry.load().with_hook_coverage(
+            rules_hooks.covered_components()
+        )
         self.rules_index: RulesTopicIndex = RulesTopicIndex.from_json()
 
         # Słowniki kategorii spoza katalogu (frakcje, liderzy, zdolności, technologie,

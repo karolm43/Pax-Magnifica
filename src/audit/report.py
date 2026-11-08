@@ -228,7 +228,7 @@ def build_report(
 
     # Pokrycie efektów i statusy osierocone (status wskazuje nieistniejący komponent).
     effect_registry = EffectRegistry.load()
-    effect_coverage = coverage(catalog, effect_registry)
+    effect_coverage = coverage(catalog, registry.effect_registry)
     orphans = _orphan_statuses(catalog, effect_registry)
 
     # Komponenty „bez noty” reguł: kategorie z podpowiedzią tematu, dla których indeks

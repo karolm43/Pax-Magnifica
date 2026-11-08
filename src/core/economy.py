@@ -16,6 +16,7 @@ KLON roboczy — tak samo jak ``payment.apply_payment``); nie klonują go same.
 
 from __future__ import annotations
 
+from src.core import rules_hooks
 from src.core.game_state import GameState, PlayerState
 
 
@@ -41,6 +42,35 @@ def spend_trade_goods(state: GameState, player_id: str, amount: int) -> None:
     if amount > player.trade_goods:
         raise ValueError(f"Not enough trade goods: {amount} > {player.trade_goods}.")
     player.trade_goods -= amount
+
+
+def spendable_trade_goods(state: GameState, player_id: str) -> int:
+    """Ile TG-ekwiwalentów gracz może wydać: trade goods (+ commodities, gdy hook zezwala).
+
+    Punkt zaczepienia ``payment.commodities_as_trade_goods`` (PERMIT): efekt typu „wydawaj
+    commodities jak trade goods" dopisujemy jako hook, a nie w każdej płatności osobno.
+    """
+    player = _player(state, player_id)
+    if rules_hooks.permits(rules_hooks.POINT_PAYMENT_COMMODITIES_AS_TG, state, player_id):
+        return player.trade_goods + player.commodities
+    return player.trade_goods
+
+
+def spend_as_trade_goods(state: GameState, player_id: str, amount: int) -> None:
+    """Wydaje ``amount`` TG-ekwiwalentów: najpierw trade goods, resztę commodities (hook).
+
+    Raises:
+        ValueError: Gdy ``amount`` przekracza ``spendable_trade_goods``.
+    """
+    if amount < 0:
+        raise ValueError("The amount of trade goods to spend cannot be negative.")
+    if amount > spendable_trade_goods(state, player_id):
+        raise ValueError(
+            f"Not enough trade goods: {amount} > {spendable_trade_goods(state, player_id)}."
+        )
+    from_trade_goods = min(amount, _player(state, player_id).trade_goods)
+    spend_trade_goods(state, player_id, from_trade_goods)
+    spend_commodities(state, player_id, amount - from_trade_goods)
 
 
 def commodity_gap(state: GameState, player_id: str) -> int:

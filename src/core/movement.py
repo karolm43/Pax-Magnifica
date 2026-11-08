@@ -82,7 +82,11 @@ def _node_passable_intermediate(
         return False
     if _NEBULA in anomalies:
         return False
-    if _ships_of_other_players(state.systems.get(position), player_id):
+    if _ships_of_other_players(
+        state.systems.get(position), player_id
+    ) and not rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_PASS_FOREIGN_SHIPS, state, player_id, {"position": position}
+    ):
         return False
     return True
 
@@ -180,6 +184,13 @@ def can_move(
             f"Unit {base_type} has no move value "
             "(porusza się transportem — capacity, TODO)."
         )
+
+    # Hook MODIFY: bonusy/kary do wartości ruchu (technologie, zdolności) - tylko dla statków,
+    # które w ogóle się poruszają (kontrola wyżej).
+    move_value = rules_hooks.modify(
+        rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
+        {"base_type": base_type},
+    )
 
     # R3: start nie z własnym CC (wyjątek: aktywny system).
     source = state.systems.get(from_pos)

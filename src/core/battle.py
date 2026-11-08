@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import capacity, chronicle, timing, unit_ops
+from src.core import capacity, chronicle, rules_hooks, timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -101,7 +101,7 @@ def combat_units(
     system = state.systems.get(position)
     player = state.players.get(player_id)
     zone = _zone(kind, planet)
-    modifier = (
+    terrain_modifier = (
         1 if defender and kind == "space" and _NEBULA in grid.anomalies_at(position) else 0
     )
     units: list[CombatUnit] = []
@@ -117,6 +117,14 @@ def combat_units(
         )
         if unit is None or unit.combat_hits_on is None:
             continue
+        # Hook MODIFY: +N do wyniku rzutu (zdolności, technologie) obok terenu (mgławica).
+        modifier = terrain_modifier + rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_ROLL_MODIFIER, state, player_id, 0,
+            {
+                "kind": kind, "position": position, "planet": planet,
+                "defender": defender, "base_type": base_type,
+            },
+        )
         units.append(
             CombatUnit(
                 base_type=base_type,

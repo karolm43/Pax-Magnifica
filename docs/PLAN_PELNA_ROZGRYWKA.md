@@ -1,4 +1,4 @@
-﻿1# Plan: pełna rozgrywka Twilight Imperium na stronie
+1# Plan: pełna rozgrywka Twilight Imperium na stronie
 
 Cel końcowy (ustalony z użytkownikiem): **możliwość rozegrania pełnej partii TI4 w aplikacji**
 — nie tylko odwzorowanie stanu (God-Mode), ale realne fazy, akcje, walka, agenda, punktacja.
@@ -377,7 +377,7 @@ i punktów zaczepienia w regułach; wyjątek Arborec jest dziś na sztywno w `pr
 - **Pierwszy przypadek:** przenieść wyjątek Arborec z `production.py` do hooka (zachowanie bez zmian, testy zielone).
 - DoD: żadna reguła bazowa nie zawiera `if faction == ...`; Arborec działa przez rejestr.
 
-### H3 — Raport pokrycia (priorytetyzacja)
+### H3 — Raport pokrycia (priorytetyzacja) ✅ (H0-H2 szkielet + punkty MODIFY/PERMIT/FORBID także ✅; H1b ⬜)
 - Rozszerzyć audyt (`src/audit/`, `effects_registry`) o: komponent → wymagany punkt zaczepienia
   (z `timing_spec` + typ efektu). Wynik: ile kart/zdolności obsłuży każdy punkt.
 - DoD: raport w `docs/` (generowany, nie ręczny) + kolejka kolejnych kroków wg liczby obsłużonych komponentów.

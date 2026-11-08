@@ -23,6 +23,7 @@ ANTIMASS_ALIAS = "amd"
     POINT_MOVEMENT_ENTER_ASTEROIDS,
     HookSource(SOURCE_TECHNOLOGY, ANTIMASS_ALIAS),
     HookKind.PERMIT,
+    covers=f"technologies:{ANTIMASS_ALIAS}",
 )
 def antimass_enter_asteroids(
     _state: GameState, _player_id: str, _ctx: Mapping[str, Any]

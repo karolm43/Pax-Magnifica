@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import control, rules_hooks, unit_ops
+from src.core import control, economy, rules_hooks, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
@@ -223,6 +223,21 @@ def system_production_value(
     return sum(p.value for p in producers(state, registry, player_id, position))
 
 
+def _hooked_production_value(
+    state: GameState, player_id: str, base_type: str, zone: str, value: int
+) -> int:
+    """Wartość PRODUCTION jednostki po hookach MODIFY (tylko jednostki, które produkują)."""
+    if value <= 0:
+        return value
+    return max(
+        0,
+        rules_hooks.modify(
+            rules_hooks.POINT_PRODUCTION_VALUE, state, player_id, value,
+            {"base_type": base_type, "zone": zone},
+        ),
+    )
+
+
 def producers(
     state: GameState,
     registry: StaticDataRegistry,
@@ -248,7 +263,10 @@ def producers(
     result: list[Producer] = []
     for base_type, total in system.space_units.get(player_id, {}).items():
         count = total - fresh.get("space", {}).get(base_type, 0)
-        pv = _unit_production_value(state, registry, faction_id, technologies, base_type, None)
+        pv = _hooked_production_value(
+            state, player_id, base_type, "space",
+            _unit_production_value(state, registry, faction_id, technologies, base_type, None),
+        )
         if pv > 0 and count > 0:
             result.append(
                 Producer(
@@ -259,8 +277,11 @@ def producers(
     for planet_id, by_player in system.planet_units.items():
         for base_type, total in by_player.get(player_id, {}).items():
             count = total - fresh.get(planet_id, {}).get(base_type, 0)
-            pv = _unit_production_value(
-                state, registry, faction_id, technologies, base_type, planet_id
+            pv = _hooked_production_value(
+                state, player_id, base_type, planet_id,
+                _unit_production_value(
+                    state, registry, faction_id, technologies, base_type, planet_id
+                ),
             )
             if pv > 0 and count > 0:
                 result.append(
@@ -409,7 +430,7 @@ def available_budget(
             if owner != player_id or planet_id in exhausted:
                 continue
             resources += pay_value(state, registry, planet_id, player_id)
-    return resources + player.trade_goods
+    return resources + economy.spendable_trade_goods(state, player_id)
 
 
 def _order_cost(
@@ -470,10 +491,6 @@ def validate_production(
     if not orders:
         return
 
-    player = state.players.get(player_id)
-    faction_id = player.faction if player is not None else None
-    technologies = player.technologies if player is not None else []
-
     # LIMIT: łączna liczba sztuk ≤ suma PRODUCTION w aktywnym systemie.
     total_units = sum(o.count for o in orders)
     limit = remaining_production(state, grid, registry, player_id)
@@ -512,7 +529,7 @@ def validate_production(
                 )
 
     # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania).
-    total_cost = _total_cost(registry, faction_id, technologies, orders)
+    total_cost = order_cost(state, registry, player_id, orders)
     budget = available_budget(state, registry, player_id)
     if total_cost > budget:
         raise ValueError(
@@ -528,7 +545,11 @@ def order_cost(
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
-    return _total_cost(registry, faction_id, technologies, orders)
+    base_cost = _total_cost(registry, faction_id, technologies, orders)
+    return max(
+        0.0,
+        rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, state, player_id, base_cost),
+    )
 
 
 def auto_pay(
@@ -544,7 +565,7 @@ def auto_pay(
     if need <= 0:
         return Spend()
     player = state.players.get(player_id)
-    tg = player.trade_goods if player is not None else 0
+    tg = economy.spendable_trade_goods(state, player_id) if player is not None else 0
     ready = [pid for pid, _ in ready_planets(state, registry, player_id)]
     ranked = sorted(
         ((pid, pay_value(state, registry, pid, player_id)) for pid in ready),
@@ -584,10 +605,9 @@ def _validate_spend(
     for pid in spend.planets:
         if pid not in ready:
             raise ValueError(f"Planet {pid} is not controlled or is already exhausted.")
-    if spend.trade_goods < 0 or spend.trade_goods > player.trade_goods:
-        raise ValueError(
-            f"Not enough trade goods: {spend.trade_goods} > {player.trade_goods}."
-        )
+    spendable = economy.spendable_trade_goods(state, player_id)
+    if spend.trade_goods < 0 or spend.trade_goods > spendable:
+        raise ValueError(f"Not enough trade goods: {spend.trade_goods} > {spendable}.")
     paid = (
         sum(pay_value(state, registry, pid, player_id) for pid in spend.planets)
         + spend.trade_goods

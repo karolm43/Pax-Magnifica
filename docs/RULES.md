@@ -2454,11 +2454,18 @@ do puli (zgodnie z notą w R_fleet_pool); (4) faza statusu ma osobne `status_pha
 
 📎 tirules: [Abilities](rules_tirules/R_abilities.md) · [Modifiers](rules_tirules/R_modifiers.md) · [Action Cards](rules_tirules/R_action_cards.md) · [Agenda Phase](rules_tirules/R_agenda_phase.md) · [Agenda Card](rules_tirules/R_agenda_card.md)
 
-Status: SZKIELET W KODZIE (H1, 2026-11-08): `core/rules_hooks.py` (rejestr, `forbidden`/`permits`/`modify`,
+Status: SZKIELET + PUNKTY H2 W KODZIE (2026-11-08; raport pokrycia: `docs/POKRYCIE_HOOKOW.md`). Stan szkieletu (H1): `core/rules_hooks.py` (rejestr, `forbidden`/`permits`/`modify`,
 `temporary_hooks` dla testów) + pakiet `core/hooks/` (`factions_base.py`, `technologies.py`). Podpięte punkty:
 `production.forbids` (FORBID; Arborec — doki nie produkują piechoty, `_PRODUCTION_FORBIDS` usunięte) i
 `movement.enter_asteroids` (PERMIT; Antimass Deflectors, `movement._ANTIMASS_ALIAS` usunięty). REPLACE/TRIGGER/
-PERSISTENT zarezerwowane w `HookKind`, API dojdzie z pierwszym użyciem. Reszta (walka, status, agenda) — kolejne bloki.
+PERSISTENT zarezerwowane w `HookKind`, API dojdzie z pierwszym użyciem.
+Punkty H2 dodane: `movement.move_value` (MODIFY), `movement.pass_foreign_ships` (PERMIT), `combat.roll_modifier`
+(MODIFY, +N do wyniku rzutu), `production.value` (MODIFY), `production.cost` (MODIFY), `payment.commodities_as_trade_goods`
+(PERMIT: `economy.spendable_trade_goods` / `economy.spend_as_trade_goods`, używane przez `payment`, `production`).
+⚠ NIE podpięte (świadomie): TRIGGER-y status/agenda i REPLACE (wymagają okien STOP, H1b i `agenda_phase`), pojemność
+transportu (3 rozproszone miejsca w movement/retreat/capacity), wartość planet (zależy od właściciela), cele
+`objective_payment`/`objective_progress` (czytają `trade_goods` wprost). Konkretne karty/zdolności (np. Keleres) — dopiero z
+tekstem z assetów w H4/H5; punkt `payment.commodities_as_trade_goods` czeka na pierwszy hook.
 Realizacja krok po kroku: `docs/PLAN_PELNA_ROZGRYWKA.md`, sekcja „Plan hooków i wyjątków (E7 + E4 + E6)".
 To są zasady PROJEKTOWE (jak kodujemy wyjątki), nie reguły TI4. Treść konkretnych kart, zdolności
 i agend wynika wyłącznie z assetów JSON, a reguły ich interakcji z tirules2.com (zasada z steering).

@@ -79,8 +79,18 @@ reguł, `core/` stałby się nieczytelny po 10 frakcjach. Dlatego:
 
 - **Reguła bazowa** w `core/` liczy wynik „gołej" gry (np. wartość ruchu, liczba trafień).
 - **Modyfikatory** (zdolności frakcji, technologie, karty, prawa) to **hooki** rejestrowane
-  w jednym miejscu (`core/rules_hooks.py` — do utworzenia przy E7), które reguła bazowa
-  odpytuje w zdefiniowanych **oknach** (przed ruchem, po rzucie na trafienia, przy produkcji…).
+  w jednym miejscu (`core/rules_hooks.py`, GOTOWE), które reguła bazowa odpytuje w
+  zdefiniowanych **punktach zaczepienia** (ruch, walka, produkcja, płatność…).
+- **Gdzie co leży:** rejestr i API (`forbidden` / `permits` / `modify`, kolejność REPLACE>FORBID>
+  PERMIT>MODIFY>TRIGGER>PERSISTENT) w `core/rules_hooks.py`; same wyjątki tematycznie w pakiecie
+  `core/hooks/` (`factions_base.py`, `technologies.py`; kolejne dopisz i zaimportuj w
+  `hooks/__init__.py`). Nazwy punktów to stałe `POINT_*` w `rules_hooks.py`. Hook działa tylko dla
+  gracza, który posiada jego źródło (frakcja/technologia). `covers="<kategoria>:<id>"` oznacza
+  komponent jako IMPLEMENTED w rejestrze efektów; raport: `docs/POKRYCIE_HOOKOW.md` (generowany:
+  `uv run python -m src.audit.hook_coverage --write`).
+- **Nowy wyjątek (przepis):** RULES.md (komponent + źródło) -> funkcja w `core/hooks/<temat>.py`
+  z `@register(POINT_*, HookSource(...), HookKind.*, covers=...)` -> test w parze „bez/z
+  wyjątkiem” (`rules_hooks.temporary_hooks()`) -> przegeneruj raport pokrycia.
 - Hook dostaje kontekst (`state`, `player`, `system`) i zwraca modyfikator/decyzję. Nowa
   frakcja = nowy plik hooka + wpis w `RULES.md` + test. **Zero zmian w regule bazowej.**
 

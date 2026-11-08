@@ -22,13 +22,21 @@ from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from src.core.game_state import GameState
 
 # Punkty zaczepienia (nazwy). Dopisuj tu, gdy reguła bazowa dostaje nowy punkt.
 POINT_PRODUCTION_FORBIDS = "production.forbids"  # FORBID -> typy jednostek (ctx: producer_type)
 POINT_MOVEMENT_ENTER_ASTEROIDS = "movement.enter_asteroids"  # PERMIT -> bool
+POINT_MOVEMENT_MOVE_VALUE = "movement.move_value"  # MODIFY -> delta (ctx: base_type)
+POINT_MOVEMENT_PASS_FOREIGN_SHIPS = "movement.pass_foreign_ships"  # PERMIT (ctx: position)
+POINT_COMBAT_ROLL_MODIFIER = "combat.roll_modifier"  # MODIFY -> +N do wyniku rzutu
+# ctx: kind, position, planet, defender, base_type
+POINT_PRODUCTION_VALUE = "production.value"  # MODIFY -> delta PRODUCTION jednostki
+# ctx: base_type, zone
+POINT_PRODUCTION_COST = "production.cost"  # MODIFY -> delta łącznego kosztu zamówienia
+POINT_PAYMENT_COMMODITIES_AS_TG = "payment.commodities_as_trade_goods"  # PERMIT -> bool
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
@@ -66,6 +74,7 @@ class Hook:
     kind: HookKind
     fn: HookFn
     seq: int  # kolejność rejestracji (rozstrzyga remis w obrębie rodzaju)
+    covers: str | None = None  # "<kategoria>:<id>" komponentu, który hook implementuje
 
 
 _REGISTRY: list[Hook] = []
@@ -73,12 +82,17 @@ _loaded = False
 
 
 def register(
-    point: str, source: HookSource, kind: HookKind
+    point: str, source: HookSource, kind: HookKind, covers: str | None = None
 ) -> Callable[[HookFn], HookFn]:
-    """Dekorator rejestrujący funkcję jako hook na ``point`` dla ``source``."""
+    """Dekorator rejestrujący funkcję jako hook na ``point`` dla ``source``.
+
+    ``covers`` (``"<kategoria>:<id>"``, np. ``"technologies:amd"``) wskazuje komponent,
+    którego efekt hook realizuje; na tej podstawie rejestr efektów oznacza go jako
+    IMPLEMENTED i powstaje raport pokrycia (H3). Brak = hook bez przypisanego komponentu.
+    """
 
     def decorate(fn: HookFn) -> HookFn:
-        _REGISTRY.append(Hook(point, source, kind, fn, len(_REGISTRY)))
+        _REGISTRY.append(Hook(point, source, kind, fn, len(_REGISTRY), covers))
         return fn
 
     return decorate
@@ -90,6 +104,17 @@ def _ensure_loaded() -> None:
     if not _loaded:
         _loaded = True
         import src.core.hooks  # noqa: F401  (import dla efektu ubocznego: rejestracja)
+
+
+def all_hooks() -> list[Hook]:
+    """Wszystkie zarejestrowane hooki (po załadowaniu pakietu ``core.hooks``)."""
+    _ensure_loaded()
+    return list(_REGISTRY)
+
+
+def covered_components() -> frozenset[str]:
+    """Klucze ``"<kategoria>:<id>"`` komponentów, które mają zarejestrowany hook."""
+    return frozenset(h.covers for h in all_hooks() if h.covers is not None)
 
 
 def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
@@ -135,20 +160,24 @@ def permits(
     )
 
 
-def modify(
+def modify[N: (int, float)](
     point: str,
     state: GameState,
     player_id: str,
-    base: int,
+    base: N,
     ctx: Mapping[str, Any] | None = None,
-) -> int:
-    """Przepuszcza ``base`` przez hooki MODIFY (każdy: ``fn(...) -> delta`` dodawana do wyniku)."""
+) -> N:
+    """Przepuszcza ``base`` przez hooki MODIFY (każdy: ``fn(...) -> delta`` dodawana do wyniku).
+
+    Typ wyniku = typ ``base`` (int dla liczb całkowitych, float dla kosztów ułamkowych).
+    """
     context = ctx or {}
-    value = base
+    total = float(base)
     for hook in hooks_at(point, state, player_id):
         if hook.kind is HookKind.MODIFY:
-            value += int(hook.fn(state, player_id, context))
-    return value
+            total += float(hook.fn(state, player_id, context))
+    result: int | float = int(total) if isinstance(base, int) else total
+    return cast(N, result)
 
 
 @contextmanager
