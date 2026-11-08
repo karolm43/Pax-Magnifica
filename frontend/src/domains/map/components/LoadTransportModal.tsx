@@ -154,7 +154,7 @@ export function LoadTransportModal() {
             />
           </div>
           <Text size="sm" fw={600}>
-            {target.shipAsyncId.toUpperCase()}
+            {shipUnit?.name ?? target.shipAsyncId.toUpperCase()}
           </Text>
           <Text size="xs" c="dimmed" title="Cargo loaded / ship capacity">
             <IconPackage size={12} style={{ verticalAlign: -2 }} /> {loaded}/
@@ -165,7 +165,7 @@ export function LoadTransportModal() {
 
         {cargoStacks.length === 0 ? (
           <Text size="sm" c="dimmed">
-            No fighters or ground forces in this system's space to load.
+            No fighters or ground forces in this system (space or planets) to load.
           </Text>
         ) : (
           <Stack gap={6}>

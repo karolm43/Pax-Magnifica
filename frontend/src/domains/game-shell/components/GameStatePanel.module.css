@@ -1251,6 +1251,11 @@
   gap: 4px;
 }
 
+.rangeItem {
+  display: grid;
+  gap: 2px;
+}
+
 .rangeRow {
   display: flex;
   align-items: center;

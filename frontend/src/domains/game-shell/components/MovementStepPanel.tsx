@@ -178,6 +178,9 @@ export function MovementStepPanel({
           ships: ships.map((s) => ({
             ...s,
             name: lookupUnit(s.asyncId, faction, player)?.name ?? s.asyncId.toUpperCase(),
+            loadable:
+              !isStructureUnit(s.asyncId) &&
+              (lookupUnit(s.asyncId, faction, player)?.capacityValue ?? 0) > 0,
           })),
           cargo,
           capacity: cap.total,
@@ -267,8 +270,8 @@ export function MovementStepPanel({
       ) : (
         <div className={styles.rangeList}>
           {rangeRows.map((row) => (
+            <div key={row.position} className={styles.rangeItem}>
             <button
-              key={row.position}
               type="button"
               className={styles.rangeRow}
               data-active={row.position === source || undefined}
@@ -305,6 +308,29 @@ export function MovementStepPanel({
                 {row.cargoUsed}/{row.capacity}
               </span>
             </button>
+            {/* Załadunek: ładunek w przestrzeni LUB piechota/mech z planet systemu. */}
+            {row.cargo.length > 0 &&
+              row.ships
+                .filter((s) => s.loadable)
+                .map((s) => (
+                  <button
+                    key={`load-${s.asyncId}`}
+                    type="button"
+                    className={styles.moveToggle}
+                    onClick={() =>
+                      openLoadTransport({
+                        fromPosition: row.position,
+                        faction,
+                        shipAsyncId: s.asyncId,
+                      })
+                    }
+                    title="Load this ship with fighters / ground forces (from space or planets) and move it"
+                  >
+                    <IconPackage size={12} aria-hidden="true" /> Load {s.name} with
+                    cargo…
+                  </button>
+                ))}
+            </div>
           ))}
         </div>
       )}
@@ -382,7 +408,8 @@ export function MovementStepPanel({
                     ))}
                   </div>
                   {/* Statki z pojemnością → skrót do okna załadunku (zapakuj i rusz). */}
-                  {cargo.length > 0 &&
+                  {(cargo.length > 0 ||
+                    (rangeRows.find((r) => r.position === source)?.cargo.length ?? 0) > 0) &&
                     source &&
                     ships
                       .filter(
