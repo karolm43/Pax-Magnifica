@@ -4,6 +4,7 @@ import { DiplomacyPrimary, DiplomacySecondary } from "./Diplomacy";
 import { ImperialPrimary, ImperialSecondary } from "./Imperial";
 import { LeadershipPrimary, LeadershipSecondary } from "./Leadership";
 import { PoliticsPrimary } from "./Politics";
+import { TechnologyPrimary, TechnologySecondary } from "./Technology";
 import { TradePrimary } from "./Trade";
 import { WarfarePrimary } from "./Warfare";
 import type { PrimaryViewProps, SecondaryViewProps } from "./types";
@@ -16,6 +17,7 @@ export const PRIMARY_VIEWS: Record<number, ComponentType<PrimaryViewProps>> = {
   4: ConstructionPrimary,
   5: TradePrimary,
   6: WarfarePrimary,
+  7: TechnologyPrimary,
   8: ImperialPrimary,
 };
 
@@ -27,23 +29,29 @@ export const SECONDARY_VIEWS: Record<number, ComponentType<SecondaryViewProps>> 
   1: LeadershipSecondary,
   2: DiplomacySecondary,
   4: ConstructionSecondary,
+  7: TechnologySecondary,
   8: ImperialSecondary,
 };
 
-/** Jak pokazać krok primary: okno modalne (domyślnie), nieblokujący dok albo wcale. */
-export type StepMode = "modal" | "dock" | "hidden";
+/**
+ * Jak pokazać krok: okno modalne (domyślnie), nieblokujący dok u góry, wcale (inne okno
+ * przejmuje ekran) albo pełnoekranowe okno, które widok rysuje sam (``overlay``).
+ */
+export type StepMode = "modal" | "dock" | "hidden" | "overlay";
 
 /**
  * Wyjątki od domyślnego okna modalnego: kroki, w których gracz klika mapę / pracuje w innym
- * oknie (produkcja, akcja taktyczna), więc modal zasłaniałby to, czego potrzebuje.
+ * oknie (produkcja, akcja taktyczna, drzewo technologii), więc modal by przeszkadzał.
  */
 export const PRIMARY_STEP_MODE: Record<number, Record<string, StepMode>> = {
   2: { choose_system: "dock" },
   4: { production: "hidden", place_structure: "dock", place_structure_2: "dock" },
   6: { activate_system: "dock", tactical_action: "dock" },
+  7: { research: "overlay", research_paid: "overlay" },
 };
 
-/** Secondary z wyborem na mapie pokazujemy w doku (nie w modalu), żeby mapa była klikalna. */
+/** Tryb pokazania wyborów przy „follow" (dok dla mapy, overlay dla drzewa technologii). */
 export const SECONDARY_MODE: Record<number, StepMode> = {
   4: "dock",
+  7: "overlay",
 };

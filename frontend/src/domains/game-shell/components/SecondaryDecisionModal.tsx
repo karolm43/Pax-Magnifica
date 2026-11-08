@@ -186,8 +186,10 @@ export function SecondaryDecisionModal() {
   const cannotAfford = needsToken && (poolTokens ?? 1) < 1;
 
   // Wybór na mapie (Construction): widok wyborów w nieblokującym doku zamiast modala.
-  const inDock =
-    composing && initiative != null && SECONDARY_MODE[initiative] === "dock";
+  const secondaryMode = initiative != null ? SECONDARY_MODE[initiative] : undefined;
+  const inDock = composing && secondaryMode === "dock";
+  // Pełnoekranowe okno wyborów (drzewo technologii) rysuje się samo - bez modala.
+  const inOverlay = composing && secondaryMode === "overlay";
   const inputView =
     composing && InputView && prompt ? (
       <InputView
@@ -208,6 +210,7 @@ export function SecondaryDecisionModal() {
     {inDock && inputView ? (
       <PromptDock label={`${cardName} - secondary`}>{inputView}</PromptDock>
     ) : null}
+    {inOverlay && inputView ? inputView : null}
     <AppModal
       opened={drawn != null}
       onClose={() => setDrawn(null)}
@@ -226,7 +229,7 @@ export function SecondaryDecisionModal() {
     </AppModal>
     <AppModal
       minimizable={`${cardName} - secondary`}
-      opened={isSecondary && !inDock}
+      opened={isSecondary && !inDock && !inOverlay}
       // Modal wymuszony: nie zamykamy go samodzielnie — zniknie, gdy backend domknie
       // okno (po decyzji ostatniego gracza). onClose to no-op (wymagany przez typ).
       onClose={() => {}}

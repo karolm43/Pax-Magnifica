@@ -90,6 +90,7 @@ export function StrategyPrimaryStepModal() {
 
   const label = `${shell?.title ?? "Strategic action"} - primary`;
   if (mode === "dock") return <PromptDock label={label}>{body}</PromptDock>;
+  if (mode === "overlay") return body; // widok sam rysuje pełnoekranowe okno
 
   return (
     <AppModal

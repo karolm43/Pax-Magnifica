@@ -8,6 +8,7 @@ from src.core.strategy_cards import (
     imperial,
     leadership,
     politics,
+    technology,
     trade,
     warfare,
 )
@@ -21,6 +22,7 @@ CARDS: dict[int, CardSpec] = {
     construction.INITIATIVE: construction.SPEC,
     trade.INITIATIVE: trade.SPEC,
     warfare.INITIATIVE: warfare.SPEC,
+    technology.INITIATIVE: technology.SPEC,
     imperial.INITIATIVE: imperial.SPEC,
 }
 

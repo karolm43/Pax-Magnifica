@@ -226,6 +226,9 @@ class TechnologyDef(_StaticModel):
     requirements: str | None = None
     text: str | None = None
     short_name: str | None = Field(default=None, alias="shortName")
+    # Frakcyjne ulepszenie jednostki wskazuje generyczne, które zastępuje (np. ``so2`` →
+    # ``inf2``); frakcja z takim ulepszeniem nie może badać wersji generycznej (R_technology).
+    base_upgrade: str | None = Field(default=None, alias="baseUpgrade")
 
 
 class BreakthroughDef(_StaticModel):
