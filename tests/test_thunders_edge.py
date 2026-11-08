@@ -625,3 +625,14 @@ def test_api_battle_view_with_neutral_defender(registry: StaticDataRegistry) -> 
     view = client.get("/tactical/battle")
     assert view.status_code == 200, view.text
     assert view.json()["active"] is True
+
+
+def test_neutral_fleets_never_trigger_fleet_pool_or_capacity(registry: StaticDataRegistry) -> None:
+    from src.core import capacity, fleet_pool
+
+    grid = _grid(registry)
+    state = enter_play(_state(registry, grid), registry, grid, "p1")
+    for position in ("frac1", "frac4", "frac7"):
+        assert fleet_pool.players_with_excess(state, position) == []
+        assert capacity.players_with_excess(state, registry, position) == []
+        assert fleet_pool.open_fleet_pool_check(state, position).pending_window is None

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from src.core import timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, WindowType
+from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import PLACEMENT_BY_BASE_TYPE, Placement
 from src.core.unit_ops import UnitCause
@@ -113,7 +114,9 @@ def players_with_excess(state: GameState, position: str) -> list[str]:
     if active in order:
         i = order.index(active)
         order = order[i:] + order[:i]
-    order += [pid for pid in system.space_units if pid not in order]
+    # Neutralni nie mają puli floty ani capacity (R_neutral_units) - nigdy nie usuwają nadwyżki.
+    order = [pid for pid in order if pid != NEUTRAL_PLAYER_ID]
+    order += [pid for pid in system.space_units if pid not in order and pid != NEUTRAL_PLAYER_ID]
     return [
         pid
         for pid in order
