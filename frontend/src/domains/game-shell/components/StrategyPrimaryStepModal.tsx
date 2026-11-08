@@ -8,7 +8,8 @@ import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { SC_HUES, SC_NAMES } from "@/entities/data/strategyCardColors";
 import { getStrategyCardById } from "@/entities/lookup/strategyCards";
-import { PRIMARY_VIEWS } from "@/domains/strategy/cards";
+import { PRIMARY_STEP_MODE, PRIMARY_VIEWS } from "@/domains/strategy/cards";
+import promptStyles from "@/domains/strategy/StrategyPrompt.module.css";
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 
@@ -60,10 +61,34 @@ export function StrategyPrimaryStepModal() {
 
   const View = pending ? PRIMARY_VIEWS[pending.initiative] : undefined;
   const ready = prompt != null && prompt.kind === "primary" && prompt.step === pending?.step;
+  const mode =
+    (pending ? PRIMARY_STEP_MODE[pending.initiative]?.[pending.step] : undefined) ?? "modal";
+
+  // Kroki "hidden" (produkcja) oddają ekran innemu oknu; "dock" zostawia mapę klikalną.
+  if (pending == null || mode === "hidden") return null;
+
+  const body =
+    View && shell && ready ? (
+      <View
+        key={`${pending.initiative}:${pending.step}`}
+        prompt={prompt}
+        shell={shell}
+        owner={owner}
+        players={players}
+        busy={busy}
+        submit={submit}
+      />
+    ) : (
+      <Text size="sm" c="dimmed">
+        {!View ? `Unsupported card: ${pending.initiative}` : "Loading..."}
+      </Text>
+    );
+
+  if (mode === "dock") return <div className={promptStyles.dock}>{body}</div>;
 
   return (
     <AppModal
-      opened={pending != null}
+      opened
       onClose={() => {}}
       withCloseButton={false}
       closeOnClickOutside={false}
@@ -71,21 +96,7 @@ export function StrategyPrimaryStepModal() {
       title="Strategic action"
       size={560}
     >
-      {View && shell && ready ? (
-        <View
-          key={`${pending?.initiative}:${pending?.step}`}
-          prompt={prompt}
-          shell={shell}
-          owner={owner}
-          players={players}
-          busy={busy}
-          submit={submit}
-        />
-      ) : (
-        <Text size="sm" c="dimmed">
-          {pending && !View ? `Unsupported card: ${pending.initiative}` : "Loading..."}
-        </Text>
-      )}
+      {body}
     </AppModal>
   );
 }

@@ -219,3 +219,19 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Nieblokujący dok kroku (mapa i panel akcji taktycznej zostają klikalne). */
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: var(--z-app-modal, 400);
+  width: min(520px, calc(100vw - 32px));
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-deck);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.55);
+}
+

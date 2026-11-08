@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
-from src.core import invasion, production, tactical
+from src.core import invasion, production, strategic_action, tactical
 from src.core.planet_stats import influence_of, resources_of
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
@@ -23,8 +23,10 @@ router = APIRouter()
 async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, Any]:
     """Wszystko, czego okno produkcji potrzebuje: limit, producenci, planety, jednostki."""
     state = ctx.service.current_state()
-    player_id = state.active_player_id
-    position = state.active_system
+    # Produkcja z karty strategii (standalone) może toczyć się poza akcją taktyczną i dla
+    # gracza, który NIE jest aktywny (Warfare, secondary) - wtedy bierzemy ją z granta.
+    player_id = production.production_player(state)
+    position = production.production_system(state)
     if player_id is None or position is None or player_id not in state.players:
         return {"active": False}
     registry = ctx.registry
@@ -107,6 +109,7 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
             else None
         ),
         "position": position,
+        "standalone": production.standalone_grant(state) is not None,
         "playerId": player_id,
         "faction": player.faction,
         "limit": limit,
@@ -129,6 +132,8 @@ async def post_skip_grant(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Rezygnacja z jednorazowej produkcji z karty (np. Freelancers)."""
     try:
         new_state = production.skip_grant(ctx.service.current_state())
+        # Koniec produkcji z karty strategii (Construction / Warfare) wznawia jej przepływ.
+        new_state = strategic_action.after_standalone_production(new_state)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     ctx.service.replace_state(new_state, label="production:skip-grant")

@@ -1434,6 +1434,34 @@ wymagań; cel może być z dowolnej fazy - `score_public(ignore_phase=True)`), p
 jednego NIEzdobytego do talii + tasowanie; można oddać także świeżo dobrany (`return: "drawn"`).
 Secondary (1 żeton): tajny cel (z tym samym limitem).
 
+### 30.11. Warfare (Thunder's Edge `te6warfare`) — ⚠️ lokalna adaptacja tirules (R_warfare.md)
+
+📎 tirules (przepisane lokalnie pod TE): [Warfare](rules_tirules/R_warfare.md)
+
+Primary: redystrybucja żetonów (opcjonalna) → akcja taktyczna w DOWOLNYM systemie bez żetonu
+(`tactical.activate_system(free=True)`: żaden żeton nie jest kładziony ani wydawany, nawet gdy własny
+leży w systemie) → pełny normalny przebieg akcji taktycznej → redystrybucja po akcji. Primary czeka w
+kroku `tactical_action`; `tactical.end_tactical_action` wznawia je od `redistribute_after`. Całość to
+JEDNA akcja strategiczna (nie dodatkowa taktyczna). Secondary (1 żeton strategy pool): PRODUCTION
+wszystkich jednostek w home system - zwykła produkcja `standalone` (`ProductionGrant.standalone`), żeton
+NIE ląduje w systemie; kolejka okna czeka na „Finish production" (`await_production`).
+⚠️ ZAŁOŻENIA: tactical action z Warfare przebiega normalnie poza aktywacją (zakaz ruchu Z systemów z
+własnym żetonem); ruling BGA o Nullification Field / Minister of Peace (koniec tylko akcji taktycznej,
+Warfare rozstrzyga się do końca) nie jest jeszcze obsługiwany, bo nie ma tych kart w silniku.
+Dodatkowo `activate_system` odrzuca teraz aktywację po innej akcji w tej turze (jedna akcja na turę).
+
+### 30.12. Construction (Thunder's Edge `te4construction`) — ⚠️ lokalna adaptacja tirules (R_construction.md)
+
+📎 tirules (przepisane lokalnie pod TE): [Construction](rules_tirules/R_construction.md)
+
+Primary: struktura (PDS / dok) ALBO PRODUCTION jednego doku → potem druga struktura. Produkcja doku to
+zwykła produkcja (`standalone`, zawężona do producenta z wybranej planety: `ProductionGrant.zone`);
+primary czeka w kroku `production` do „Finish production" (`after_standalone_production`).
+Secondary (1 żeton): jedna struktura na swojej planecie (bez wyboru systemu i bez żetonu w systemie).
+Limity: 1 dok i 2 PDS na planetę, brak na planecie z Demilitarized Zone, struktura z rezerwy.
+⚠️ ZAŁOŻENIE: reguła zastępcza PoK (zdjęcie jednostki z systemu bez własnego żetonu, gdy rezerwa pusta)
+NIE jest modelowana - przy pustej rezerwie struktura jest po prostu niedostępna.
+
 ### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
 
 📎 tirules: [Action Phase](rules_tirules/R_action_phase.md), [Strategic Action](rules_tirules/R_strategic_action.md)

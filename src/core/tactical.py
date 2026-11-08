@@ -39,6 +39,11 @@ from src.core.registry import StaticDataRegistry
 from src.core.space_cannon import open_offense
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
 
+# Krok ``pending_strategy``, w którym karta strategii czeka na koniec akcji taktycznej, oraz
+# klucz szkicu z nazwą kroku do wznowienia po jej zakończeniu (Warfare TE, RULES.md 30.11).
+STRATEGY_TACTICAL_STEP = "tactical_action"
+STRATEGY_RESUME_KEY = "resume_step"
+
 # Kolejność kroków akcji taktycznej (okna czasowe fazy akcji — RULES.md 19).
 _STEP_SEQUENCE: list[TacticalStep] = [
     TacticalStep.ACTIVATION,
@@ -64,7 +69,9 @@ def _ensure_system(state: GameState, position: str, grid: HexGrid) -> SystemStat
     return system
 
 
-def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState:
+def activate_system(
+    state: GameState, grid: HexGrid, position: str, *, free: bool = False
+) -> GameState:
     """Aktywuje system przez aktywnego gracza (fundament akcji taktycznej).
 
     Kładzie żeton dowodzenia aktywnego gracza w przestrzeni systemu, ustawia
@@ -75,6 +82,9 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
 
     WALIDACJA (twarda, RULES.md 33.1): musi być aktywny gracz; gracz NIE może aktywować
     systemu z własnym żetonem dowodzenia; gracz musi mieć ≥1 żeton w puli taktycznej.
+    ``free=True`` (Warfare, Thunder's Edge): system jest aktywowany BEZ kładzenia żetonu i bez
+    zużycia puli taktycznej - także gdy leży w nim już własny żeton; system i tak „liczy się
+    jako aktywowany" (RULES.md 30.11).
     God-Mode (``board_edit.place_command_token``) omija tę ścieżkę (korekta bez zużycia puli).
 
     Raises:
@@ -87,25 +97,32 @@ def activate_system(state: GameState, grid: HexGrid, position: str) -> GameState
 
     # R: nie można aktywować systemu z własnym żetonem dowodzenia.
     existing = state.systems.get(position)
-    if existing is not None and active_id in existing.command_tokens:
+    if not free and existing is not None and active_id in existing.command_tokens:
         raise ValueError(
             "Cannot activate a system that already contains your command token."
         )
 
     # R: potrzebny żeton w puli taktycznej.
     player0 = state.players.get(active_id)
-    if player0 is None or player0.tactical_cc <= 0:
+    if player0 is None or (not free and player0.tactical_cc <= 0):
         raise ValueError("No token in the tactical pool - cannot activate a system.")
+    # Jedna akcja na turę (R_action_phase, RULES.md 30.3): aktywacja = akcja taktyczna, więc nie
+    # po innej akcji (strategicznej / komponentu). Warfare TE aktywuje w ramach SWOJEJ akcji.
+    if not free and player0.took_action_this_turn:
+        raise ValueError(
+            "You already took an action this turn - end your turn before acting again."
+        )
 
     new_state = state.clone()
     system = _ensure_system(new_state, position, grid)
 
     # Żeton dowodzenia aktywnego gracza w przestrzeni (bez duplikatu — już sprawdzone wyżej).
-    if active_id not in system.command_tokens:
+    if not free and active_id not in system.command_tokens:
         system.command_tokens.append(active_id)
 
     # Zużycie z puli taktycznej (gwarantowane > 0 przez walidację).
-    new_state.players[active_id].tactical_cc -= 1
+    if not free:
+        new_state.players[active_id].tactical_cc -= 1
     # RULES.md 31.7: aktywacja systemu rozpoczyna AKCJĘ TAKTYCZNĄ — liczy się jako
     # akcja tury, więc gracz będzie mógł zakończyć turę (End turn).
     new_state.players[active_id].took_action_this_turn = True
@@ -310,7 +327,13 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.active_combat = None
     new_state.invasion = None
     new_state.exploration = None
-    new_state.production_grant = None
+    # Produkcja z karty strategii (standalone) jest niezależna od akcji taktycznej - zostaje.
+    if new_state.production_grant is not None and not new_state.production_grant.standalone:
+        new_state.production_grant = None
+    # Akcja taktyczna wywołana kartą strategii (Warfare TE) dobiegła końca - wznów primary.
+    pending = new_state.pending_strategy
+    if pending is not None and pending.step == STRATEGY_TACTICAL_STEP:
+        pending.step = str(pending.draft.pop(STRATEGY_RESUME_KEY, pending.step))
     # Okna Space Cannon / przypisania strat dotyczą aktywnego systemu — po zakończeniu akcji
     # nie ma już czego rozstrzygać (wentyl: operator może zakończyć akcję w trakcie okna).
     window = new_state.pending_window

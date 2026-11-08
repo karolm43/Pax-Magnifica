@@ -61,6 +61,8 @@ export type ProductionBody = {
   active: true;
   grant: ProductionGrant | null;
   position: string;
+  /** Produkcja z karty strategii (Construction / Warfare), poza akcją taktyczną. */
+  standalone?: boolean;
   playerId: string;
   faction: string | null;
   limit: number;

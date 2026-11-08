@@ -544,12 +544,18 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             <IconBuildingFactory2 size={14} aria-hidden="true" />
             {queued > 0 ? `Produce ${queued} for ${fmt(cost)}` : "Produce"}
           </button>
-          {grant ? (
+          {grant || view.standalone ? (
             <button
               type="button"
               className={styles.ghostBtn}
               disabled={busy || queued > 0}
-              title={queued > 0 ? "Produce or clear the order first" : "Do not produce"}
+              title={
+                queued > 0
+                  ? "Produce or clear the order first"
+                  : view.standalone
+                    ? "Close the production and continue"
+                    : "Do not produce"
+              }
               onClick={() =>
                 void run(async () => {
                   await skipProductionGrant();
@@ -557,7 +563,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
                 })
               }
             >
-              Skip production <IconArrowRight size={14} aria-hidden="true" />
+              {view.standalone ? "Finish production" : "Skip production"}{" "}
+              <IconArrowRight size={14} aria-hidden="true" />
             </button>
           ) : (
             <button

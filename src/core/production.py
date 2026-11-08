@@ -109,15 +109,37 @@ def _planet_resources(state: GameState, registry: StaticDataRegistry, planet_id:
 
 
 def active_grant(state: GameState, player_id: str) -> ProductionGrant | None:
-    """Jednorazowa produkcja z efektu karty (Freelancers) dla gracza w aktywnym systemie."""
+    """Jednorazowa produkcja z efektu karty (Freelancers) dla gracza w aktywnym systemie.
+
+    Granty ``standalone`` (karty strategii) NIE są tu zwracane - mają zwykłe reguły produkcji.
+    """
     grant = state.production_grant
     if (
         grant is not None
+        and not grant.standalone
         and grant.player_id == player_id
         and grant.position == state.active_system
     ):
         return grant
     return None
+
+
+def standalone_grant(state: GameState) -> ProductionGrant | None:
+    """Trwająca produkcja z karty strategii (poza akcją taktyczną) lub None."""
+    grant = state.production_grant
+    return grant if grant is not None and grant.standalone else None
+
+
+def production_system(state: GameState) -> str | None:
+    """System, w którym toczy się produkcja: pozycja granta ``standalone`` albo aktywny."""
+    grant = standalone_grant(state)
+    return grant.position if grant is not None else state.active_system
+
+
+def production_player(state: GameState) -> str | None:
+    """Gracz, który teraz produkuje: właściciel granta ``standalone`` albo aktywny gracz."""
+    grant = standalone_grant(state)
+    return grant.player_id if grant is not None else state.active_player_id
 
 
 def pay_value(
@@ -177,7 +199,7 @@ def production_limit(
     Cienki wrapper na ``system_production_value`` dla aktywnego systemu (``active_system``).
     Zwraca 0, gdy brak aktywnego systemu.
     """
-    active = state.active_system
+    active = production_system(state)
     if active is None:
         return 0
     return system_production_value(state, grid, registry, player_id, active)
@@ -220,7 +242,7 @@ def producers(
 
     # Jednostki wyprodukowane w TEJ akcji nie dokładają PRODUCTION (producent = stan sprzed
     # kroku), więc odejmujemy je od liczby sztuk w strefie.
-    fresh = state.production_placed if position == state.active_system else {}
+    fresh = state.production_placed if position == production_system(state) else {}
 
     result: list[Producer] = []
     for base_type, total in system.space_units.get(player_id, {}).items():
@@ -246,6 +268,15 @@ def producers(
                         forbidden_types(faction_id, base_type),
                     )
                 )
+    grant = standalone_grant(state)
+    if (
+        grant is not None
+        and grant.zone is not None
+        and grant.player_id == player_id
+        and grant.position == position
+    ):
+        # Construction: do produkcji wolno użyć JEDNEGO doku - tylko producent z tej planety.
+        result = [p for p in result if p.zone == grant.zone]
     return result
 
 
@@ -431,7 +462,7 @@ def validate_production(
     Raises:
         ValueError: Przy złamaniu którejkolwiek reguły.
     """
-    active = state.active_system
+    active = production_system(state)
     if active is None:
         raise ValueError("No active system - production is only allowed during a tactical action.")
     orders = [o for o in orders if o.count > 0]
@@ -585,7 +616,7 @@ def produce(
     """
     from src.core import board_edit  # lokalnie: board_edit nie zna produkcji (brak cyklu)
 
-    active = state.active_system
+    active = production_system(state)
     orders = [o for o in orders if o.count > 0]
     validate_production(state, grid, registry, player_id, orders)
     if active is None or not orders:

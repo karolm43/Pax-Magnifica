@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import {
   IconBolt,

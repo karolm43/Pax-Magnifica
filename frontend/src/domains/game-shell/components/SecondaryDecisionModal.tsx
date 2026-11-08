@@ -63,7 +63,9 @@ export function SecondaryDecisionModal() {
     !!window &&
     window.windowType === "STRATEGY_SECONDARY" &&
     !window.isComplete &&
-    !!window.currentResponderId;
+    !!window.currentResponderId &&
+    // Respondent po "follow" produkuje (Warfare): okno produkcji ma pierwszeństwo.
+    !window.context?.await_production;
 
   const playerData = (gameData?.playerData ?? []) as GameStatePlayer[];
   const responderColor = window?.currentResponder ?? null;

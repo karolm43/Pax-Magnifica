@@ -40,6 +40,9 @@ _TRADE_INITIATIVE = trade.INITIATIVE
 
 # Klucz kontekstu okna: player_id graczy z DARMOWYM, obowiązkowym secondary (CSV).
 _FREE_KEY = "free"
+# Klucz kontekstu okna: respondent, który „follow" i czeka na koniec produkcji z karty
+# (Warfare TE); kolejka stoi, dopóki produkcja się nie zakończy.
+_AWAIT_PRODUCTION_KEY = "await_production"
 
 
 def _spec(initiative: int) -> CardSpec:
@@ -225,6 +228,8 @@ def resolve_secondary(
             f"It is now {expected}'s turn to respond, not {player_id} (out-of-order response)."
         )
 
+    if window.context.get(_AWAIT_PRODUCTION_KEY):
+        raise ValueError("Finish the production first (use 'Finish production').")
     initiative = int(window.context.get("initiative", 0))
     spec = _spec(initiative)
     is_free = player_id in _free_players(window.context)
@@ -246,11 +251,59 @@ def resolve_secondary(
             "The active player chose you - you must resolve this secondary ability."
         )
 
-    # Przesunięcie kolejki (waliduje, że player_id to bieżący respondent).
-    new_state = timing.respond_current(new_state, player_id)
+    grant = new_state.production_grant
+    if execute and grant is not None and grant.standalone and grant.player_id == player_id:
+        # Secondary otworzyło produkcję (Warfare TE): kolejka czeka na jej zakończenie.
+        assert new_state.pending_window is not None
+        new_state.pending_window.context = {
+            **new_state.pending_window.context,
+            _AWAIT_PRODUCTION_KEY: player_id,
+        }
+        return new_state
+
+    return _advance_window(new_state, player_id)
+
+
+def _advance_window(state: GameState, player_id: str) -> GameState:
+    """Przesuwa kolejkę okna secondary (waliduje respondenta) i zamyka je po dopełnieniu."""
+    new_state = timing.respond_current(state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
     return new_state
+
+
+def after_standalone_production(state: GameState) -> GameState:
+    """Wznawia kartę strategii po zakończeniu produkcji standalone (grant zniknął).
+
+    Wołane z warstwy API po ``production.skip_grant`` („Finish production"). Jeśli trwała
+    produkcja z primary (Construction, krok ``production``) - przechodzi do kroku
+    ``resume_step`` ze szkicu. Jeśli trwała produkcja z secondary (Warfare TE) - kończy
+    odpowiedź respondenta i przesuwa kolejkę okna. W innych przypadkach nic nie robi.
+    """
+    grant = state.production_grant
+    if grant is not None and grant.standalone:
+        return state  # produkcja wciąż trwa
+    pending = state.pending_strategy
+    if pending is not None and pending.step == "production":
+        new_state = state.clone()
+        assert new_state.pending_strategy is not None
+        resumed = new_state.pending_strategy
+        resumed.step = str(resumed.draft.pop("resume_step", resumed.step))
+        return new_state
+    window = state.pending_window
+    if (
+        window is not None
+        and window.window_type is WindowType.STRATEGY_SECONDARY
+        and window.context.get(_AWAIT_PRODUCTION_KEY)
+    ):
+        responder = str(window.context[_AWAIT_PRODUCTION_KEY])
+        new_state = state.clone()
+        assert new_state.pending_window is not None
+        context = dict(new_state.pending_window.context)
+        context.pop(_AWAIT_PRODUCTION_KEY, None)
+        new_state.pending_window.context = context
+        return _advance_window(new_state, responder)
+    return state
 
 
 def step_options(
