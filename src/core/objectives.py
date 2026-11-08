@@ -66,7 +66,7 @@ def deck_card_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
         if not isinstance(deck, DeckDef) or deck.deck_type != deck_type:
             continue
         if deck.source in AGENDA_VARIANT_SOURCES:
-            continue  # fanowskie talie agend wybiera się jawnie: ``agenda_deck_ids``
+            continue  # FAN-AGENDAS: fanowskie talie wybiera się jawnie (``agenda_deck_ids``)
         if best is None or (-len(deck.card_ids), source_rank(deck.source)) < (
             -len(best.card_ids),
             source_rank(best.source),
@@ -76,7 +76,7 @@ def deck_card_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
 
 
 def agenda_deck_ids(registry: StaticDataRegistry, variant: str = AGENDA_STANDARD) -> list[str]:
-    """Karty talii agend dla wariantu gry (``standard`` albo fanowski, np. ``absol``).
+    """FAN-AGENDAS: karty talii agend dla wariantu gry (``standard`` albo fanowski ``absol``).
 
     ``standard`` = talia aktywnych źródeł (PoK/TE). Warianty fanowskie biorą wskazaną talię
     z katalogu (``AGENDA_VARIANT_DECKS``). Nieznany wariant albo brak talii → ``ValueError``.

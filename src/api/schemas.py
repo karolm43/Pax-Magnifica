@@ -359,7 +359,7 @@ class NewGameRequest(BaseModel):
     players: list[NewGamePlayer] = Field(default_factory=list)
     map_string: str | None = None
     include_center: bool = True
-    # Talia agend: "standard" (PoK/TE) albo fanowska ("absol").
+    # FAN-AGENDAS: talia agend - "standard" (PoK/TE) albo fanowska "absol".
     agenda_deck: str = "standard"
 
 

@@ -334,7 +334,7 @@ def card_pool_counts(state: GameState, registry: StaticDataRegistry) -> dict[str
         "actionCardDeck": sorted(state.decks.action_card_deck),
         "actionCardDiscard": list(state.decks.action_card_discard),
         "purgedCards": list(state.decks.purged),
-        # Wariant talii agend gry ("standard" / "absol") - front pokazuje właściwą pulę.
+        # FAN-AGENDAS: wariant talii agend ("standard" / "absol") - front pokazuje właściwą pulę.
         "agendaVariant": state.decks.agenda_variant,
     }
     top: dict[str, str] = {}

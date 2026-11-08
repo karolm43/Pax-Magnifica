@@ -177,8 +177,10 @@ export const agendas: Agenda[] = [
     source: "absol",
   },
   {
-    alias: "absol_disarmamament",
-    name: "Compensated Disarmamanet",
+    // FAN-AGENDAS (Absol): alias i nazwa poprawione do assetów (`absol_disarmament`) -
+    // stare dane frontu miały literówkę, przez co karta znikała z puli i lookupów.
+    alias: "absol_disarmament",
+    name: "Compensated Disarmament",
     type: "Directive",
     target: "Elect non-home Planet",
     text1:

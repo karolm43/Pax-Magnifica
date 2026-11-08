@@ -497,7 +497,8 @@ async def post_new_game(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
-        agenda_deck_ids(ctx.registry, request.agenda_deck)  # walidacja wariantu talii agend
+        # FAN-AGENDAS: walidacja wariantu talii agend (standard / absol).
+        agenda_deck_ids(ctx.registry, request.agenda_deck)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 

@@ -45,6 +45,8 @@ export function isInActiveDeck(kind: ActiveDeckKind, alias: string): boolean {
   return activeDeckSets[kind].has(alias);
 }
 
+// FAN-AGENDAS: fanowska talia agend (Absol) wybrana w Ustawieniach - wyjątek od
+// OFFICIAL_SOURCES, tylko dla agend. Opis decyzji: `src/core/sources.py`.
 const agendaVariantSets: Record<AgendaVariant, ReadonlySet<string>> = {
   absol: new Set(AGENDA_VARIANT_DECK_IDS.absol),
 };

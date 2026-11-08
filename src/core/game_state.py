@@ -271,9 +271,9 @@ class DecksState(BaseModel):
     agenda_deck: list[str] = Field(default_factory=list)
     agenda_discard: list[str] = Field(default_factory=list)
     agenda_deck_seeded: bool = False
-    # Wariant talii agend wybrany w setupie: "standard" (PoK/TE) albo fanowski ("absol",
-    # "black_spectrum"). Ustawiany raz przy tworzeniu gry (``/game/new``); decyduje, z czego
-    # zasiewa się ``agenda_deck``.
+    # FAN-AGENDAS: wariant talii agend gry - "standard" (PoK/TE) albo fanowski "absol"
+    # (``core/sources.AGENDA_VARIANT_DECKS``). Ustawiany raz przy tworzeniu gry (``/game/new``);
+    # decyduje, z czego zasiewa się ``agenda_deck``.
     agenda_variant: str = "standard"
     # Prawa (laws) w grze: {id agendy: rozstrzygnięty wynik ("for" / id gracza / id planety…)}.
     # Prawo zostaje w grze po wyniku „For" albo „Elect" (R_agenda_card); dyrektywy i „Against"

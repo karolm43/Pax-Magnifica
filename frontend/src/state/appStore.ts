@@ -515,7 +515,7 @@ export type Settings = {
    */
   adminFastMode: boolean;
   /*
-   * Talia agend Absol zamiast standardowej (PoK). Czytana przy tworzeniu NOWEJ gry
+   * FAN-AGENDAS: talia agend Absol zamiast standardowej (PoK). Czytana przy tworzeniu NOWEJ gry
    * (`createNewGame` wysyła `agenda_deck`); zmiana nie wpływa na grę w toku.
    */
   absolAgendas: boolean;

@@ -234,7 +234,7 @@ def load_components(
             ComponentCategory.AGENDA,
             ComponentCategory.DECK,
         ):
-            # Fanowskie talie agend (Absol, Black Spectrum) - tylko agendy i talie agend.
+            # FAN-AGENDAS: fanowska talia agend (Absol) - ładujemy tylko agendy i talie agend.
             category_enabled = {*enabled, *agenda_variant_sources}
             if category is ComponentCategory.DECK:
                 entries = _without_non_agenda_variant_decks(

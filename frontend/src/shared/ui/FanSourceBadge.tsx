@@ -1,4 +1,4 @@
-// Mała plakietka źródła fanowskiej karty (np. „ABS" = Absol) przy nazwie karty.
+// FAN-AGENDAS: mała plakietka źródła fanowskiej karty (np. „ABS" = Absol) przy nazwie karty.
 // Karty oficjalne (base/PoK/codexy/TE) nie dostają plakietki.
 
 import { fanSourceBadge } from "@/entities/data/officialSources";

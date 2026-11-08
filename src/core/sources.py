@@ -24,7 +24,15 @@ SOURCE_PRIORITY: tuple[str, ...] = (
 )
 
 
-# Fanowskie warianty TALII AGEND (wybierane w setupie gry, nie w manifeście źródeł).
+# ==========================================================================================
+# FAN-AGENDAS: świadomy wyjątek od zasady „tylko oficjalne źródła" (decyzja użytkownika,
+# 2026-11-08). Agendy z podstawki/PoK zastępujemy opcjonalnie FANOWSKĄ talią Absol
+# (przełącznik „Absol agenda deck" w Ustawieniach → ``/game/new`` ``agenda_deck``).
+# Karty Absol mają INNE teksty niż oficjalne - przy kodowaniu efektu agendy sprawdź, czy
+# ``state.decks.agenda_variant`` to "absol", i bierz treść z ``assets/data/agendas/absol.json``
+# (aliasy ``absol_*``), nie z wersji base/PoK. Wszystkie miejsca: grep ``FAN-AGENDAS``.
+# ==========================================================================================
+# Fanowskie warianty TALII AGEND (wybierane w Ustawieniach, nie w manifeście źródeł).
 # Wariant -> alias talii w katalogu. ``standard`` (None) = talia aktywnych źródeł (PoK/TE).
 # Źródła fanowskie (``AGENDA_VARIANT_SOURCES``) ładują się WYŁĄCZNIE dla kart agend i talii
 # agend - reszta ich danych (jednostki, technologie, karty akcji…) pozostaje nieaktywna.
