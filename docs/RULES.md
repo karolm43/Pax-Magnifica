@@ -2980,3 +2980,8 @@ Kod: `core/custodians.py`, `core/invasion.py` (`claim_custodians`, `custodians_b
 **⚠️ ZAŁOŻENIA:**
 1. Płatność wybiera gracz (planety + TG) jak przy Leadership; po zdjęciu cofnięcie możliwe tylko przez Undo (silnik nie zwraca wpływu, gdy gracz nie wyląduje).
 2. Wymóg lądowania sprawdzamy przy wyjściu z Commit (nie przy samym zdjęciu).
+
+## Wormhole Nexus - flip na stronę aktywną
+
+Źródło: docs/rules_tirules/R_wormhole_nexus.md. Nexus startuje jako 82a (tylko gamma). Gdy w systemie pojawi się jednostka albo ktoś przejmie Mallice, kafelek odwraca się na 82b (alpha + beta + gamma); jednostki i planeta (lockedmallice -> mallice) przechodzą na aktywną stronę. Implementacja: core/nexus.py (flip przy zapisie stanu w StateService, mapa synchronizowana w AppContext). ⚠️ ZAŁOŻENIE: flip następuje po całym kroku ruchu, nie dokładnie na jego końcu (wpływ tylko na Space Cannon Offense po ruchu).
+

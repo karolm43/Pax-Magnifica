@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
-from src.core import activity, game_end
+from src.core import activity, game_end, nexus
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 
@@ -58,7 +58,8 @@ class StateService:
         """Nadpisuje cały stan (God-Mode) i commituje nową migawkę."""
         # Koniec gry po progu VP z DOWOLNEGO źródła (nie tylko punktowania celów).
         before = self._store.current()
-        after = game_end.apply_victory(state.clone())
+        # Wormhole Nexus odwraca się na stronę aktywną, gdy pojawi się w nim jednostka/kontrola.
+        after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
         entry = activity.derive_activity(label, before, after)
         self._store.commit(
             after,

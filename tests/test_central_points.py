@@ -34,13 +34,13 @@ OWNERS: dict[str, frozenset[str]] = {
     "tactical_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
     "fleet_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
     "strategic_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
-    "exhausted_planets": frozenset({"core/exhaust.py", _GOD_MODE}),
+    "exhausted_planets": frozenset({"core/exhaust.py", "core/nexus.py", _GOD_MODE}),
     "exhausted_technologies": frozenset({"core/exhaust.py", _GOD_MODE}),
     "exhausted_strategy_cards": frozenset({"core/exhaust.py", _GOD_MODE}),
     "leader_states": frozenset({"core/exhaust.py", _GOD_MODE}),
     "breakthrough_exhausted": frozenset({"core/exhaust.py", _GOD_MODE}),
     "planet_owners": frozenset({"core/control.py", _GOD_MODE}),
-    "controlled_planets": frozenset({"core/control.py", _GOD_MODE}),
+    "controlled_planets": frozenset({"core/control.py", "core/nexus.py", _GOD_MODE}),
     # Jednostki: ``faction_setup.py`` buduje LOKALNY ``SetupPlan`` (dataclass z polami o tych
     # samych nazwach, nie ``SystemState``); do stanu gry jednostki trafiają przez ``unit_ops``.
     "space_units": frozenset({"core/unit_ops.py", "core/faction_setup.py", _GOD_MODE}),

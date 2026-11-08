@@ -18,7 +18,7 @@ from fastapi import Request
 from src.api.connection_manager import ConnectionManager
 from src.api.serializers import build_map_view
 from src.api.state_service import StateService
-from src.core import fracture
+from src.core import fracture, nexus
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
@@ -47,6 +47,8 @@ class AppContext:
         )
         # The Fracture (kafle frac1..7) i portale ingress/egress - też ze stanu (Undo/Redo).
         fracture.sync_grid(self._grid, state, self.registry)
+        # Wormhole Nexus: strona kafelka (82a nieaktywna / 82b aktywna) wg stanu.
+        nexus.sync_grid(self._grid, state, self.registry)
         return self._grid
 
     @current_grid.setter

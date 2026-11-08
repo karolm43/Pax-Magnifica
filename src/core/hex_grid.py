@@ -187,6 +187,27 @@ class HexGrid:
         for wh in wormholes or []:
             self._wormholes.setdefault(wh, set()).add(position)
 
+    def swap_system_tile(
+        self,
+        position: str,
+        system_id: str,
+        wormholes: list[str],
+        anomalies: set[str],
+    ) -> None:
+        """Podmienia kafelek na pozycji (np. flip Wormhole Nexus 82a ↔ 82b), zachowując heks.
+
+        Czyści stare wormhole pozycji, wstawia nowe i przebudowuje krawędzie.
+        """
+        data = self._systems.get(position)
+        if data is None:
+            return
+        for positions in self._wormholes.values():
+            positions.discard(position)
+        self.place_system(
+            position, system_id, wormholes=wormholes, anomalies=anomalies, hex_override=data.hex
+        )
+        self.build_edges()
+
     def build_edges(self) -> None:
         """Buduje krawędzie grafu: geometryczne sąsiedztwo + wormhole.
 
