@@ -22,6 +22,7 @@ from src.core.hex_grid import HexGrid
 from src.core.objective_payment import pay_for_objective
 from src.core.objective_progress import evaluate
 from src.core.registry import StaticDataRegistry
+from src.core.sources import source_rank
 
 # R_objective_cards: „Each game contains five stage I and five stage II public objective
 # cards"; mówca odkrywa dwa cele I etapu w setupie.
@@ -45,7 +46,12 @@ def deck_card_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
 
     Katalog zawiera talie per źródło (base, pok, thunders_edge); kumulatywne są te większe
     (np. ``action_cards_te`` = base+pok+codexy+TE). Wybór „największej" jest deterministyczny
-    (remis → alias rosnąco) i nie wymaga hardkodowania identyfikatorów talii.
+    i nie wymaga hardkodowania identyfikatorów talii.
+
+    Remis rozmiaru rozstrzyga PRIORYTET ŹRÓDŁA talii (RULES.md 14: nowsze rozszerzenie
+    wygrywa), potem alias. To istotne dla agend: PoK usunął 13 kart i dodał 13 nowych,
+    więc ``agendas_pok`` i ``agendas_base_game`` mają po 50 kart — remis nie może wybrać
+    przestarzałej talii base.
     """
     best: DeckDef | None = None
     decks = registry.catalog.all(ComponentCategory.DECK)
@@ -53,7 +59,10 @@ def deck_card_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
         deck = decks[deck_id]
         if not isinstance(deck, DeckDef) or deck.deck_type != deck_type:
             continue
-        if best is None or len(deck.card_ids) > len(best.card_ids):
+        if best is None or (-len(deck.card_ids), source_rank(deck.source)) < (
+            -len(best.card_ids),
+            source_rank(best.source),
+        ):
             best = deck
     return list(best.card_ids) if best is not None else []
 

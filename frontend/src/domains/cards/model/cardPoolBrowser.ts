@@ -4,7 +4,7 @@ import { publicObjectives } from "@/entities/data/publicObjectives";
 import { secretObjectives } from "@/entities/data/secretObjectives";
 import { relics } from "@/entities/data/relics";
 import { explorations } from "@/entities/data/explorations";
-import { isOfficialSource } from "@/entities/data/officialSources";
+import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
 
 /** Jedna pozycja listy w przeglądarce puli kart. */
 export type PoolEntry = {
@@ -53,7 +53,9 @@ function agendaText(text1: string, text2?: string, mapText?: string): string {
  * Źródło: statyczne dane `entities/data/agendas` (cała talia, nie stan gry).
  */
 export function agendaPool(): PoolGroup[] {
-  const official = agendas.filter((a) => isOfficialSource(a.source));
+  const official = agendas.filter(
+    (a) => isOfficialSource(a.source) && isInActiveDeck("agenda", a.alias),
+  );
   const laws: PoolEntry[] = [];
   const directives: PoolEntry[] = [];
   for (const a of official) {
@@ -89,7 +91,7 @@ export function agendaPool(): PoolGroup[] {
 export function actionCardPool(): PoolGroup[] {
   const byCard = new Map<string, PoolEntry>();
   for (const c of actionCards) {
-    if (!isOfficialSource(c.source)) continue;
+    if (!isOfficialSource(c.source) || !isInActiveDeck("actionCard", c.alias)) continue;
     const key = c.automationID || `${c.name}\u0000${c.window}`;
     const existing = byCard.get(key);
     if (existing) {
@@ -120,7 +122,12 @@ export function publicObjectivePool(stage: 1 | 2): PoolGroup[] {
   const tone =
     stage === 1 ? "var(--ds-sig-stage1)" : "var(--ds-sig-stage2)";
   const entries: PoolEntry[] = publicObjectives
-    .filter((o) => isOfficialSource(o.source) && o.points === stage)
+    .filter(
+      (o) =>
+        isOfficialSource(o.source) &&
+        o.points === stage &&
+        isInActiveDeck(stage === 1 ? "stage1Objective" : "stage2Objective", o.alias),
+    )
     .map((o) => ({
       alias: o.alias,
       name: o.name,
@@ -138,7 +145,7 @@ export function publicObjectivePool(stage: 1 | 2): PoolGroup[] {
  */
 export function secretObjectivePool(): PoolGroup[] {
   const entries: PoolEntry[] = secretObjectives
-    .filter((o) => isOfficialSource(o.source))
+    .filter((o) => isOfficialSource(o.source) && isInActiveDeck("secretObjective", o.alias))
     .map((o) => ({
       alias: o.alias,
       name: o.name,
@@ -157,7 +164,7 @@ export function secretObjectivePool(): PoolGroup[] {
  */
 export function relicPool(): PoolGroup[] {
   const entries: PoolEntry[] = relics
-    .filter((r) => isOfficialSource(r.source))
+    .filter((r) => isOfficialSource(r.source) && isInActiveDeck("relic", r.alias))
     .map((r) => ({
       alias: r.alias,
       name: r.name,

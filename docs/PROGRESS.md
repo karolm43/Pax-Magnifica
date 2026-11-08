@@ -52,6 +52,23 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+## ✅ Aktywne talie = wersje po rozszerzeniach (agendy / karty akcji / relikwie) (2026-11-08)
+
+Audyt względem wiki TI (Agenda Cards, Action Cards) i upstreamu AsyncTI4:
+- **Błąd silnika:** `objectives.deck_card_ids` przy remisie rozmiaru brał `agendas_base_game`
+  (50) zamiast `agendas_pok` (50) — czyli stare agendy sprzed PoK. Remis rozstrzyga teraz
+  priorytet źródła talii (RULES.md 14).
+- **Błąd UI:** pule kart (przeglądarka, edytor ręki, stosy talii) filtrowały tylko po źródle,
+  więc pokazywały 63 agendy (13 usuniętych w PoK), 143 karty akcji (3 nadliczbowe) i 24 relikwie
+  (Enigmatic Device wycofane w TE). Front czyta teraz `entities/data/activeDecks.ts`,
+  generowany z silnika: `uv run python scripts/gen_active_decks.py` (po zmianie assetów).
+- Skład po poprawce: agendy 50 (PoK), karty akcji 140 (80 base + 20 codex I + 20 PoK + 20 TE),
+  relikwie 23, tajne cele 40, cele publiczne 20+20 — zgodne z wiki. Test:
+  `tests/test_active_decks_sync.py`.
+- ⚠️ Otwarte: teksty 4 kart akcji (Fighter Conscription, Blitz, Ghost Squad, War Machine) mają
+  starsze brzmienie z Codexu I; TE dał im Ω-sformułowanie (bez zmiany mechaniki). Dane pochodzą z
+  assetów AsyncTI4 — nie edytujemy ich ręcznie.
+
 ## ✅ Akcja taktyczna: bez potwierdzeń, pomijanie pustych kroków, zasięg ruchu (2026-11-08)
 
 - „Next step"/„End action" bez drugiego kliknięcia.

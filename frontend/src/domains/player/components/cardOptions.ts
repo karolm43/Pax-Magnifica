@@ -4,7 +4,7 @@ import {
 } from "@/domains/cards/model/cardPoolBrowser";
 import { promissoryNotes as ALL_PROMISSORY_NOTES } from "@/entities/data/promissoryNotes";
 import { relics as ALL_RELICS } from "@/entities/data/relics";
-import { isOfficialSource } from "@/entities/data/officialSources";
+import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
 
 /** Opcja listy wyboru (Select): wartość = id karty/komponentu, etykieta = nazwa. */
 export type CardOption = { value: string; label: string };
@@ -65,7 +65,7 @@ export function relicOptions(): CardOption[] {
   const out: CardOption[] = [];
   const seen = new Set<string>();
   for (const relic of ALL_RELICS) {
-    if (!isOfficialSource(relic.source)) continue;
+    if (!isOfficialSource(relic.source) || !isInActiveDeck("relic", relic.alias)) continue;
     if (seen.has(relic.alias)) continue;
     seen.add(relic.alias);
     out.push({ value: relic.alias, label: relic.name });

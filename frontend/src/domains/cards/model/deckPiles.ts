@@ -1,6 +1,6 @@
 import { actionCards } from "@/entities/data/actionCards";
 import { explorations } from "@/entities/data/explorations";
-import { isOfficialSource } from "@/entities/data/officialSources";
+import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
 import type { CardPoolData } from "@/entities/data/types";
 import { actionCardPool, type PoolEntry, type PoolGroup } from "./cardPoolBrowser";
 
@@ -69,6 +69,7 @@ export function entriesFromIds(
   for (const id of ids) {
     const card = kind === "explore" ? exploreById.get(id) : actionByAlias.get(id);
     if (!card || !isOfficialSource(card.source)) continue;
+    if (kind === "action" && !isInActiveDeck("actionCard", id)) continue;
     const key = `${card.name}\u0000${card.text}`;
     const existing = byCard.get(key);
     if (existing) {
