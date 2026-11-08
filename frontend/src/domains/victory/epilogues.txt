@@ -1,0 +1,242 @@
+// ============================================================================
+// EPILOGI FRAKCJI - tu wklejasz teksty kart epilogow.
+//
+// Jak uzupelniac:
+//  - Pod "### honorable" wklej epilog zwyciestwa HONOROWEGO, pod "### dishonorable" -
+//    NIEHONOROWEGO. Akapity rozdzielaj PUSTA LINIA.
+//  - Opcjonalny podpis: ostatnia linia akapitu zaczynajaca sie od "-- " (np. "-- Mahthom Iq Seerva").
+//  - Puste pole = ogolny tekst zastepczy dla tej frakcji.
+//  - Linie zaczynajace sie od "//" sa pomijane. NIE zmieniaj linii "## id | Nazwa" ani "###".
+//  - Nie trzeba restartowac nic poza odswiezeniem strony (Vite przeladuje plik).
+// ============================================================================
+## arborec | The Arborec
+### honorable
+
+
+### dishonorable
+
+
+## argent | The Argent Flight
+### honorable
+
+
+### dishonorable
+
+
+## bastion | Last Bastion
+### honorable
+
+
+### dishonorable
+
+
+## cabal | The Vuil'raith Cabal
+### honorable
+
+
+### dishonorable
+
+
+## crimson | The Crimson Rebellion
+### honorable
+
+
+### dishonorable
+
+
+## deepwrought | The Deepwrought Scholarate
+### honorable
+
+
+### dishonorable
+
+
+## empyrean | The Empyrean
+### honorable
+
+
+### dishonorable
+
+
+## firmament | The Firmament
+### honorable
+
+
+### dishonorable
+
+
+## ghost | The Ghosts of Creuss
+### honorable
+
+
+### dishonorable
+
+
+## hacan | The Emirates of Hacan
+### honorable
+
+
+### dishonorable
+
+
+## jolnar | The Universities of Jol-Nar
+### honorable
+
+
+### dishonorable
+
+
+## keleresa | The Council Keleres - Argent
+### honorable
+
+
+### dishonorable
+
+
+## keleresm | The Council Keleres - Mentak
+### honorable
+
+
+### dishonorable
+
+
+## keleresx | The Council Keleres - Xxcha
+### honorable
+
+
+### dishonorable
+
+
+## l1z1x | The L1Z1X Mindnet
+### honorable
+
+
+### dishonorable
+
+
+## letnev | The Barony of Letnev
+### honorable
+
+
+### dishonorable
+
+
+## mahact | The Mahact Gene-Sorcerers
+### honorable
+
+
+### dishonorable
+
+
+## mentak | The Mentak Coalition
+### honorable
+
+
+### dishonorable
+
+
+## muaat | The Embers of Muaat
+### honorable
+
+
+### dishonorable
+
+
+## naalu | The Naalu Collective
+### honorable
+
+
+### dishonorable
+
+
+## naaz | The Naaz-Rokha Alliance
+### honorable
+
+
+### dishonorable
+
+
+## nekro | The Nekro Virus
+### honorable
+
+
+### dishonorable
+
+
+## nomad | The Nomad
+### honorable
+
+
+### dishonorable
+
+
+## obsidian | The Obsidian
+### honorable
+
+
+### dishonorable
+
+
+## ralnel | The Ral Nel Consortium
+### honorable
+
+
+### dishonorable
+
+
+## saar | The Clan of Saar
+### honorable
+
+
+### dishonorable
+
+
+## sardakk | Sardakk Norr
+### honorable
+
+
+### dishonorable
+
+
+## sol | The Federation of Sol
+### honorable
+
+
+### dishonorable
+
+
+## titans | The Titans of Ul
+### honorable
+
+
+### dishonorable
+
+
+## winnu | The Winnu
+### honorable
+
+
+### dishonorable
+
+
+## xxcha | The Xxcha Kingdom
+### honorable
+
+
+### dishonorable
+
+
+## yin | The Yin Brotherhood
+### honorable
+
+
+### dishonorable
+
+
+## yssaril | The Yssaril Tribes
+### honorable
+
+
+### dishonorable
+
+

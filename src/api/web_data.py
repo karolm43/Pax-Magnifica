@@ -28,6 +28,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.api import web_objectives, web_setup
+from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
 from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.army_strength import ArmyStrength, army_strength_by_player
@@ -274,6 +275,10 @@ def _build_game_state(
         "endReason": state.end_reason,
         "maxRounds": state.max_rounds,
         "epilogue": _epilogue_payload(state),
+        # Wnioski z przebiegu partii (największa bitwa, zdrady…) — tylko po końcu gry.
+        "highlights": (
+            chronicle_core.highlights(state, registry) if state.winner_id is not None else []
+        ),
         "agenda": None,
         # Stan kroków fazy statusu (RULES.md 41) — None poza zainicjowaną fazą statusu.
         "status": web_objectives.build_status_payload(state, registry, grid),

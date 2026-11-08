@@ -531,6 +531,16 @@ export type GameState = {
   maxRounds?: number;
   /** Głosowanie epilogu — null, dopóki gra trwa. */
   epilogue?: EpilogueData | null;
+  /** Wnioski z przebiegu partii (największa bitwa, zdrady…) — puste, dopóki gra trwa. */
+  highlights?: GameHighlight[];
+};
+
+export type GameHighlight = {
+  key: string;
+  title: string;
+  detail: string;
+  /** player_id uczestników (do ikon frakcji). */
+  players: string[];
 };
 
 export type EpilogueChoice = "honorable" | "dishonorable";

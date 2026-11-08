@@ -1,14 +1,14 @@
 // Treść epilogów: karta na frakcję × rodzaj zwycięstwa (honorowe / niehonorowe).
 //
-// Epilog pokazuje się w Kronice po głosowaniu (VictoryScreen → etap „chronicle").
-// Tekst frakcyjny wpisujesz w `FACTION_EPILOGUES` pod id frakcji (te same id co w
-// `factionLore.ts`, np. "arborec", "hacan"). Brak wpisu = ogólny epilog z `GENERIC_*`
-// (`{faction}` zastępowane nazwą frakcji). Teksty ogólne to TYLKO zapychacz — projektu,
-// nie z gry; podmień je kartami epilogów.
+// Teksty wklejasz do PLIKU `epilogues.txt` (obok), pod nagłówkami frakcji — instrukcja jest
+// na górze tego pliku. Tu tylko parsujemy go przy starcie (Vite `?raw`) i dobieramy epilog.
+// Puste pole = ogólny epilog z `GENERIC_*` (`{faction}` → nazwa frakcji), tylko zapychacz.
 //
-// Akapity piszemy po angielsku (spójnie z Kroniką z intra i cytatami frakcji).
+// Format: `## id | Nazwa` otwiera frakcję, `### honorable` / `### dishonorable` otwiera pole,
+// akapity rozdziela pusta linia, opcjonalny podpis to linia zaczynająca się od `-- `.
 
 import type { EpilogueChoice } from "@/entities/data/types";
+import rawEpilogues from "./epilogues.txt?raw";
 
 export interface EpilogueText {
   /** Akapity epilogu, pokazywane jako przewijana Kronika. */
@@ -17,15 +17,65 @@ export interface EpilogueText {
   author?: string;
 }
 
-export interface FactionEpilogue {
-  honorable?: EpilogueText;
-  dishonorable?: EpilogueText;
+export type FactionEpilogue = Partial<Record<EpilogueChoice, EpilogueText>>;
+
+/** Zamienia treść jednego pola (linie) na akapity + opcjonalny podpis; pusta → undefined. */
+function toText(lines: string[]): EpilogueText | undefined {
+  const paragraphs: string[] = [];
+  let author: string | undefined;
+  let current: string[] = [];
+  const flush = () => {
+    if (current.length > 0) paragraphs.push(current.join(" "));
+    current = [];
+  };
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "") flush();
+    else if (trimmed.startsWith("-- ")) {
+      flush();
+      author = trimmed.slice(3).trim();
+    } else current.push(trimmed);
+  }
+  flush();
+  return paragraphs.length > 0 ? { paragraphs, author } : undefined;
 }
 
-/** Wpisy per frakcja. TU wklejasz teksty z kart epilogów. */
-export const FACTION_EPILOGUES: Record<string, FactionEpilogue> = {};
+/** Parser `epilogues.txt` → `{ id frakcji: { honorable?, dishonorable? } }`. */
+export function parseEpilogues(source: string): Record<string, FactionEpilogue> {
+  const result: Record<string, FactionEpilogue> = {};
+  let factionId: string | null = null;
+  let slot: EpilogueChoice | null = null;
+  let buffer: string[] = [];
+  const commit = () => {
+    if (factionId && slot) {
+      const text = toText(buffer);
+      if (text) (result[factionId] ??= {})[slot] = text;
+    }
+    buffer = [];
+  };
+  for (const line of source.split(/\r?\n/)) {
+    if (line.startsWith("//")) continue;
+    const faction = /^##\s+([^|#\s]+)/.exec(line);
+    const slotMatch = /^###\s+(honorable|dishonorable)\s*$/i.exec(line);
+    if (slotMatch) {
+      commit();
+      slot = slotMatch[1].toLowerCase() as EpilogueChoice;
+    } else if (faction) {
+      commit();
+      factionId = faction[1];
+      slot = null;
+    } else {
+      buffer.push(line);
+    }
+  }
+  commit();
+  return result;
+}
 
-const GENERIC_AUTHOR =
+export const FACTION_EPILOGUES: Record<string, FactionEpilogue> =
+  parseEpilogues(rawEpilogues);
+
+export const DEFAULT_EPILOGUE_AUTHOR =
   "Mahthom Iq Seerva, Winnaran keeper of the Custodian Chronicle";
 
 const GENERIC_HONORABLE: string[] = [
@@ -40,20 +90,18 @@ const GENERIC_DISHONORABLE: string[] = [
   "The Custodians record the victory as it was: complete, undeniable, and bitterly remembered. A throne won this way must be defended for the rest of its days.",
 ];
 
-/** Epilog dla frakcji i rodzaju zwycięstwa (z wpisu frakcji albo ogólny zapychacz). */
+/** Epilog dla frakcji i rodzaju zwycięstwa (z `epilogues.txt` albo ogólny zapychacz). */
 export function getEpilogue(
   factionId: string,
   factionName: string,
   choice: EpilogueChoice,
 ): EpilogueText {
   const own = FACTION_EPILOGUES[factionId]?.[choice];
-  if (own && own.paragraphs.length > 0) return own;
+  if (own) return own;
   const template =
     choice === "honorable" ? GENERIC_HONORABLE : GENERIC_DISHONORABLE;
   return {
     paragraphs: template.map((p) => p.replaceAll("{faction}", factionName)),
-    author: GENERIC_AUTHOR,
+    author: DEFAULT_EPILOGUE_AUTHOR,
   };
 }
-
-export const DEFAULT_EPILOGUE_AUTHOR = GENERIC_AUTHOR;

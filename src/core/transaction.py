@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
+from src.core import chronicle
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_of
@@ -146,4 +147,5 @@ def resolve_transaction(
     _apply_side(new_state, active_id, partner_id, give)
     _apply_side(new_state, partner_id, active_id, receive)
     new_state.players[active_id].transacted_with.append(partner_id)
+    chronicle.record_deal(new_state, active_id, partner_id)
     return new_state

@@ -546,6 +546,21 @@ class ExplorationState(BaseModel):
     log: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class GameChronicle(BaseModel):
+    """Dziennik wydarzeń partii do podsumowania końcowego (``core/chronicle.py``).
+
+    Tylko do odczytu dla UI: bitwy, podboje planet i transakcje między graczami. Wpisy to
+    proste słowniki (runda, gracze, liczby) — z nich powstają „wnioski" (największa bitwa,
+    zdrady itd.).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    battles: list[dict[str, Any]] = Field(default_factory=list)
+    conquests: list[dict[str, Any]] = Field(default_factory=list)
+    deals: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class EpilogueState(BaseModel):
     """Głosowanie nad rodzajem zwycięstwa (honorowe / niehonorowe) po końcu gry.
 
@@ -652,6 +667,8 @@ class GameState(BaseModel):
     end_reason: str | None = None
     # Głosowanie nad zwycięstwem honorowym/niehonorowym — None, dopóki nie otwarte.
     epilogue: EpilogueState | None = None
+    # Dziennik bitew/podbojów/transakcji dla podsumowania końcowego.
+    chronicle: GameChronicle = Field(default_factory=GameChronicle)
 
     players: dict[str, PlayerState] = Field(default_factory=dict)
     systems: dict[str, SystemState] = Field(default_factory=dict)

@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import battle, exploration, space_cannon
+from src.core import battle, chronicle, exploration, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.damage import move_damage
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -762,6 +762,8 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
                 if planet not in attacker.exhausted_planets:
                     attacker.exhausted_planets.append(planet)
             result["outcome"] = "captured"
+            if owner is not None and owner in state.players:
+                chronicle.record_conquest(state, inv.attacker, owner, planet)
             result["destroyedStructures"] = destroyed
             result["explore"] = owner is None and exploration.explorable(registry, planet)
         elif combat_result is not None and combat_result.get("outcome") == "draw":

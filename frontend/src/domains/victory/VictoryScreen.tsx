@@ -28,6 +28,7 @@ import { usePlayerData } from "@/api/usePlayerData";
 import { useFactions, type FactionInfo } from "@/api/useNewGame";
 import type {
   EpilogueChoice,
+  GameHighlight,
   GameState,
   PlayerData,
 } from "@/entities/data/types";
@@ -248,6 +249,7 @@ function VictoryContent({
           players={players}
           winner={winner}
           result={result}
+          highlights={gameState.highlights ?? []}
           factionById={factionById}
           onReview={onDismiss}
         />
@@ -575,12 +577,14 @@ function SummaryStage({
   players,
   winner,
   result,
+  highlights,
   factionById,
   onReview,
 }: {
   players: PlayerData[];
   winner: PlayerData;
   result: EpilogueChoice | null;
+  highlights: GameHighlight[];
   factionById: Map<string, FactionInfo>;
   onReview: () => void;
 }) {
@@ -658,6 +662,36 @@ function SummaryStage({
           </tbody>
         </table>
       </div>
+
+      {highlights.length > 0 && (
+        <div className={styles.highlightsWrap}>
+          <h2 className={styles.sectionTitle}>Chronicle of the war</h2>
+          <ul className={styles.highlights}>
+            {highlights.map((h) => {
+              const involved = h.players
+                .map((id) => players.find((p) => p.discordId === id))
+                .filter((p): p is PlayerData => p !== undefined);
+              return (
+                <li
+                  key={h.key}
+                  className={styles.highlight}
+                  data-kind={h.key === "betrayal" ? "betrayal" : undefined}
+                >
+                  <span className={styles.highlightCrests}>
+                    {involved.map((p) => (
+                      <Crest key={p.discordId} factionId={p.faction} size={30} />
+                    ))}
+                  </span>
+                  <span className={styles.awardText}>
+                    <small>{h.title}</small>
+                    <em>{h.detail}</em>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {awards.length > 0 && (
         <ul className={styles.awards} aria-label="Distinctions">

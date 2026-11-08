@@ -838,3 +838,57 @@
     animation-delay: 0s;
   }
 }
+
+/* Wnioski z przebiegu partii (największa bitwa, zdrady…). */
+.highlightsWrap {
+  width: min(100%, 78rem);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
+  font-size: clamp(0.8rem, 1.1vw, 1rem);
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgb(246 234 208 / 0.7);
+}
+
+.highlights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.highlight {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgb(9 8 7 / 0.8);
+  border-left: 3px solid #fca22b;
+}
+
+.highlight[data-kind="betrayal"] {
+  border-left-color: #d9534f;
+  background: color-mix(in oklab, #d9534f 12%, rgb(9 8 7 / 0.85));
+}
+
+.highlightCrests {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.highlight .awardText em {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgb(246 234 208 / 0.85);
+}
