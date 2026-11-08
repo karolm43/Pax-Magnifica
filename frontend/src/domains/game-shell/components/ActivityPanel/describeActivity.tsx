@@ -25,8 +25,11 @@ import type {
   ActivityKind,
   ActivityPlayer,
 } from "@/api/useBoardEditor";
+import { getExploration } from "@/entities/lookup/explorations";
 import {
   prettifyId,
+  resolveAgendaName,
+  resolveCardName,
   resolveObjectiveName,
   resolvePlanetName,
   resolveTechName,
@@ -44,7 +47,7 @@ export type ActivityContext = {
 
 export type DescribedFact = {
   key: string;
-  tone: "good" | "bad" | "info";
+  tone: "good" | "bad" | "info" | "card";
   text: ReactNode;
 };
 
@@ -96,6 +99,11 @@ function strategyCardName(ctx: ActivityContext, initiative: string | null) {
     ? getStrategyCardByInitiative(n, ctx.strategyCardIdMap)
     : undefined;
   return card?.name ?? `Strategy ${initiative}`;
+}
+
+function exploreCardName(id: string | null): string {
+  if (!id) return "an exploration card";
+  return getExploration(id)?.name ?? prettifyId(id);
 }
 
 function phaseLabel(phase: string | null): string {
@@ -285,7 +293,11 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
         </>
       );
     case "explore.resolve":
-      return <>{actor} resolved an exploration card</>;
+      return (
+        <>
+          {actor} resolved <i>{exploreCardName(a.subject)}</i>
+        </>
+      );
     case "godmode.edit":
       return <>Manual correction (God-Mode)</>;
     case "update":
@@ -303,7 +315,7 @@ function describeFact(
 ): DescribedFact | null {
   // Show whose fact it is only when it is not the actor's own.
   const who =
-    fact.player_id === a.actor_id ? null : (
+    fact.player_id === null || fact.player_id === a.actor_id ? null : (
       <b>{playerName(ctx, fact.player_id)}</b>
     );
   const prefix = who ? <>{who}: </> : null;
@@ -362,6 +374,74 @@ function describeFact(
         text: (
           <>
             {prefix}lost {resolvePlanetName(fact.value ?? "")}
+          </>
+        ),
+      };
+    case "action_card": {
+      const card = <i>{resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")}</i>;
+      return {
+        key,
+        tone: "card",
+        text: fact.player_id ? (
+          <>
+            {prefix}played {card}
+          </>
+        ) : (
+          <>Action card: {card}</>
+        ),
+      };
+    }
+    case "agenda":
+      return {
+        key,
+        tone: "card",
+        text: <>Agenda: {resolveAgendaName(fact.value ?? "")}</>,
+      };
+    case "explore_card":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}revealed {exploreCardName(fact.value)}
+            {fact.detail && <> ({prettifyId(fact.detail)})</>}
+          </>
+        ),
+      };
+    case "relic_fragment":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}kept fragment {exploreCardName(fact.value)}
+          </>
+        ),
+      };
+    case "promissory_in_play":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}played note{" "}
+            {resolveCardName("CARD_PLAY_PROMISSORY_NOTE", fact.value ?? "")}
+          </>
+        ),
+      };
+    case "objective_revealed":
+      return {
+        key,
+        tone: "card",
+        text: <>Objective revealed: {resolveObjectiveName(fact.value ?? "")}</>,
+      };
+    case "secret_scored":
+      return {
+        key,
+        tone: "good",
+        text: (
+          <>
+            {prefix}scored secret {resolveObjectiveName(fact.value ?? "")}
           </>
         ),
       };

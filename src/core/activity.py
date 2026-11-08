@@ -47,11 +47,16 @@ class ActivityFact(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    # "vp" | "tech" | "planet_gained" | "planet_lost" | "tg"
+    # "vp" | "tech" | "planet_gained" | "planet_lost" | "tg" oraz JAWNE karty/cele:
+    # "action_card" (zagrana/odrzucona), "agenda" (zużyta), "explore_card" (ujawniona),
+    # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
     type: str
-    player_id: str
-    # Identyfikator techn./planety (dla "tech"/"planet_*"); None dla liczbowych.
+    # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
+    player_id: str | None = None
+    # Identyfikator techn./planety/karty (dla faktów nieliczbowych); None dla liczbowych.
     value: str | None = None
+    # Dodatkowy kontekst (np. talia eksploracji); None, gdy zbędny.
+    detail: str | None = None
     # Zmiana liczbowa (dla "vp"/"tg"); None dla identyfikatorów.
     delta: int | None = None
 
@@ -290,6 +295,71 @@ def _facts(before: GameState | None, after: GameState) -> list[ActivityFact]:
         for planet in old.controlled_planets:
             if planet not in new.controlled_planets:
                 facts.append(ActivityFact(type="planet_lost", player_id=pid, value=planet))
+    facts.extend(_public_card_facts(before, after))
+    return facts
+
+
+def _public_card_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Karty i cele JAWNE, które zmieniły się między migawkami.
+
+    Czytamy WYŁĄCZNIE miejsca publiczne (stosy odrzuconych, strefa gracza, odkryte cele,
+    ujawniona karta eksploracji). Zawartość rąk (prywatna) nigdy nie trafia do wpisu — ręka
+    służy tylko do ustalenia, KTO zagrał kartę, która właśnie leży odkryta na stosie.
+    """
+    facts: list[ActivityFact] = []
+
+    # Karty akcji zagrane/odrzucone: nowe wpisy na stosie odrzuconych (leży odkryty).
+    old_discard = list(before.decks.action_card_discard)
+    new_discard = list(after.decks.action_card_discard)
+    if len(new_discard) > len(old_discard) and new_discard[: len(old_discard)] == old_discard:
+        for card in new_discard[len(old_discard) :]:
+            owner = next(
+                (
+                    pid
+                    for pid, old_player in before.players.items()
+                    if pid in after.players
+                    and card in old_player.private.action_cards
+                    and card not in after.players[pid].private.action_cards
+                ),
+                None,
+            )
+            facts.append(ActivityFact(type="action_card", player_id=owner, value=card))
+
+    # Agendy zużyte (ujawnione na stole).
+    for card in after.decks.agenda_discard[len(before.decks.agenda_discard) :]:
+        facts.append(ActivityFact(type="agenda", value=card))
+
+    # Karta eksploracji właśnie ujawniona (jawna dla wszystkich).
+    exploring = after.exploration
+    cur = exploring.current if exploring else None
+    prev = before.exploration.current if before.exploration else None
+    if exploring is not None and cur is not None and cur != prev:
+        facts.append(
+            ActivityFact(
+                type="explore_card",
+                player_id=exploring.player_id,
+                value=cur.card_id,
+                detail=cur.deck,
+            )
+        )
+
+    for pid, new in after.players.items():
+        old = before.players.get(pid)
+        if old is None:
+            continue
+        for card in new.relic_fragments:
+            if card not in old.relic_fragments:
+                facts.append(ActivityFact(type="relic_fragment", player_id=pid, value=card))
+        for card in new.promissory_notes_in_play:
+            if card not in old.promissory_notes_in_play:
+                facts.append(ActivityFact(type="promissory_in_play", player_id=pid, value=card))
+        for card in new.scored_secrets:
+            if card not in old.scored_secrets:
+                facts.append(ActivityFact(type="secret_scored", player_id=pid, value=card))
+
+    for objective in after.objectives.revealed:
+        if objective not in before.objectives.revealed:
+            facts.append(ActivityFact(type="objective_revealed", value=objective))
     return facts
 
 
@@ -324,6 +394,12 @@ def derive_activity(
             kind="misc", action="update", actor_id=_active(before, after), facts=facts, **base  # type: ignore[arg-type]
         )
     kind, action, actor, target, subject, detail = parsed
+    if action == "explore.resolve" and after.exploration and after.exploration.log:
+        # Rozstrzygnięta karta eksploracji jest jawna: id karty + skrót skutku z logu okna.
+        last = after.exploration.log[-1]
+        subject = str(last.get("cardId") or "") or subject
+        detail = str(last.get("summary") or "") or detail
+        actor = after.exploration.player_id
     return Activity(
         kind=kind,
         action=action,

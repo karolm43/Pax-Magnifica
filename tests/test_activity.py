@@ -93,3 +93,47 @@ def test_activity_endpoint_lists_players_and_entries(client: TestClient) -> None
     actions = [e["activity"]["action"] for e in data["entries"]]
     assert "turn.pass" in actions
     assert all(e["created_at"] is not None for e in data["entries"])
+
+
+def test_played_action_card_is_public_but_hand_stays_hidden() -> None:
+    before = _state()
+    before.players["p1"].private.action_cards = ["sabotage", "secret_card"]
+    after = _state()
+    after.players["p1"].private.action_cards = ["secret_card"]
+    after.decks.action_card_discard = ["sabotage"]
+    entry = derive_activity("component-action:other", before, after)
+    assert entry is not None
+    played = [f for f in entry.facts if f.type == "action_card"]
+    assert [(f.player_id, f.value) for f in played] == [("p1", "sabotage")]
+    assert "secret_card" not in entry.model_dump_json()
+
+
+def test_revealed_exploration_card_is_listed() -> None:
+    from src.core.game_state import ExplorationState, ExploreCurrent
+
+    before = _state()
+    after = _state()
+    after.exploration = ExplorationState(
+        player_id="p1",
+        position="101",
+        current=ExploreCurrent(planet="jord", deck="cultural", card_id="cultural_card"),
+    )
+    entry = derive_activity("exploration:draw:jord", before, after)
+    assert entry is not None
+    fact = next(f for f in entry.facts if f.type == "explore_card")
+    assert (fact.value, fact.detail, fact.player_id) == ("cultural_card", "cultural", "p1")
+
+
+def test_explore_resolve_names_card_and_summary() -> None:
+    from src.core.game_state import ExplorationState
+
+    before = _state()
+    after = _state()
+    after.exploration = ExplorationState(
+        player_id="p1",
+        position="101",
+        log=[{"cardId": "c1", "summary": "Gained 1 TG.", "fate": "discarded"}],
+    )
+    entry = derive_activity("exploration:resolve:x", before, after)
+    assert entry is not None
+    assert (entry.subject, entry.detail, entry.actor_id) == ("c1", "Gained 1 TG.", "p1")

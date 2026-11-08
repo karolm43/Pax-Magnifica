@@ -1211,10 +1211,16 @@ export function useCombatHelp(position: string | null, planet: string | null) {
 }
 
 export type ActivityFact = {
-  type: "vp" | "tech" | "planet_gained" | "planet_lost" | "tg" | (string & {});
-  player_id: string;
+  /** vp, tech, planet_gained/lost, tg + jawne karty: action_card, agenda,
+   *  explore_card, relic_fragment, promissory_in_play, objective_revealed,
+   *  secret_scored. */
+  type: string;
+  /** Null dla zdarzeń talii/stołu bez jednego właściciela. */
+  player_id: string | null;
   value: string | null;
   delta: number | null;
+  /** Kontekst, np. talia eksploracji. */
+  detail: string | null;
 };
 
 export type ActivityKind =
