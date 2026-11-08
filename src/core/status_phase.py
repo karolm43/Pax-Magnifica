@@ -155,6 +155,19 @@ def _after_scoring(state: GameState, registry: StaticDataRegistry) -> GameState:
     del registry
     order = _initiative(state)
 
+    # Limit rund: punktowanie ostatniej rundy jest ostatnim ruchem gry — kończymy od razu
+    # po nim (bez odkrywania celu, dobierania kart itd.). Wygrywa lider VP.
+    if (
+        state.winner_id is None
+        and state.max_rounds > 0
+        and state.round_number >= state.max_rounds
+        and state.status is not None
+    ):
+        state.winner_id = objectives.leaders_by_points(state, order)
+        state.end_reason = "round_limit"
+        state.status.step = StatusStep.COMPLETE
+        return state
+
     # Krok 2 — odkrycie celu przez mówcę (albo koniec gry).
     state, revealed = objectives.reveal_next_public(state)
     assert state.status is not None

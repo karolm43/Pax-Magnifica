@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
+from src.core import game_end
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 
@@ -55,7 +56,8 @@ class StateService:
 
     def replace_state(self, state: GameState, label: str = "replace") -> StateEnvelope:
         """Nadpisuje cały stan (God-Mode) i commituje nową migawkę."""
-        self._store.commit(state.clone(), label=label)
+        # Koniec gry po progu VP z DOWOLNEGO źródła (nie tylko punktowania celów).
+        self._store.commit(game_end.apply_victory(state.clone()), label=label)
         return self.envelope()
 
     def apply_patch(self, patch: GodModePatch) -> StateEnvelope:

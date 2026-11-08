@@ -4,8 +4,8 @@
 // na górze tego pliku. Tu tylko parsujemy go przy starcie (Vite `?raw`) i dobieramy epilog.
 // Puste pole = ogólny epilog z `GENERIC_*` (`{faction}` → nazwa frakcji), tylko zapychacz.
 //
-// Format: `## id | Nazwa` otwiera frakcję, `### honorable` / `### dishonorable` otwiera pole,
-// akapity rozdziela pusta linia, opcjonalny podpis to linia zaczynająca się od `-- `.
+// Format: `## id | Nazwa` otwiera frakcję, `### honorable` / `### dishonorable` otwiera pole;
+// w polu: tekst (akapity rozdzielone pustą linią), cytat (`> ...`), autor (`-- ...`).
 
 import type { EpilogueChoice } from "@/entities/data/types";
 import rawEpilogues from "./epilogues.txt?raw";
@@ -13,7 +13,9 @@ import rawEpilogues from "./epilogues.txt?raw";
 export interface EpilogueText {
   /** Akapity epilogu, pokazywane jako przewijana Kronika. */
   paragraphs: string[];
-  /** Podpis pod tekstem (np. kronikarz). Brak = domyślny kustosz Kroniki. */
+  /** Cytat pod tekstem (bez cudzysłowu; komponent dodaje “ ”). */
+  quote?: string;
+  /** Autor cytatu, pod cytatem. */
   author?: string;
 }
 
@@ -22,6 +24,7 @@ export type FactionEpilogue = Partial<Record<EpilogueChoice, EpilogueText>>;
 /** Zamienia treść jednego pola (linie) na akapity + opcjonalny podpis; pusta → undefined. */
 function toText(lines: string[]): EpilogueText | undefined {
   const paragraphs: string[] = [];
+  const quoteLines: string[] = [];
   let author: string | undefined;
   let current: string[] = [];
   const flush = () => {
@@ -34,10 +37,18 @@ function toText(lines: string[]): EpilogueText | undefined {
     else if (trimmed.startsWith("-- ")) {
       flush();
       author = trimmed.slice(3).trim();
+    } else if (trimmed.startsWith(">")) {
+      flush();
+      quoteLines.push(trimmed.slice(1).trim());
     } else current.push(trimmed);
   }
   flush();
-  return paragraphs.length > 0 ? { paragraphs, author } : undefined;
+  if (paragraphs.length === 0) return undefined;
+  const quote = quoteLines
+    .join(" ")
+    .replace(/^["“”„«»]+|["“”„«»]+$/g, "")
+    .trim();
+  return { paragraphs, quote: quote || undefined, author: author || undefined };
 }
 
 /** Parser `epilogues.txt` → `{ id frakcji: { honorable?, dishonorable? } }`. */

@@ -1,14 +1,25 @@
 // ============================================================================
 // EPILOGI FRAKCJI - tu wklejasz teksty kart epilogow.
 //
-// Jak uzupelniac:
-//  - Pod "### honorable" wklej epilog zwyciestwa HONOROWEGO, pod "### dishonorable" -
-//    NIEHONOROWEGO. Akapity rozdzielaj PUSTA LINIA.
-//  - Opcjonalny podpis: ostatnia linia akapitu zaczynajaca sie od "-- " (np. "-- Mahthom Iq Seerva").
-//  - Puste pole = ogolny tekst zastepczy dla tej frakcji.
-//  - Linie zaczynajace sie od "//" sa pomijane. NIE zmieniaj linii "## id | Nazwa" ani "###".
-//  - Nie trzeba restartowac nic poza odswiezeniem strony (Vite przeladuje plik).
+// Kazdy epilog ma 3 czesci, w tej kolejnosci:
+//   1) TEKST   - akapity rozdzielone PUSTA LINIA,
+//   2) CYTAT   - linia zaczynajaca sie od "> "  (pod tekstem, kursywa),
+//   3) AUTOR   - linia zaczynajaca sie od "-- " (pod cytatem).
+//
+// Przyklad:
+//   ### honorable
+//   Pierwszy akapit epilogu.
+//
+//   Drugi akapit epilogu.
+//   > Cytat z karty (bez cudzyslowu).
+//   -- Autor cytatu
+//
+// Pod "### honorable" wklej epilog zwyciestwa HONOROWEGO, pod "### dishonorable" -
+// NIEHONOROWEGO. Puste pole = ogolny tekst zastepczy dla tej frakcji.
+// Linie zaczynajace sie od "//" sa pomijane. NIE zmieniaj linii "## id | Nazwa" ani "###".
+// Po zapisie wystarczy odswiezyc strone.
 // ============================================================================
+
 ## arborec | The Arborec
 ### honorable
 

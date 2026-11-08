@@ -4,8 +4,9 @@ Czyste funkcje nad ``GameState``. To warstwa PREZENTACYJNA (statystyki końcowe)
 rozstrzyga w regułach TI4. Zapis dzieje się w trzech miejscach silnika: koniec walki
 (``battle``), przejęcie planety (``invasion``) i transakcja (``transaction``).
 
-⚠️ Definicja „zdrady" (projektowa): atak (walka albo przejęcie planety) na gracza, z którym
-napastnik wcześniej zawarł transakcję.
+⚠️ Definicja „zdrady" (decyzja użytkownika): atak (walka albo przejęcie planety) na gracza,
+z którym napastnik miał weksel Alliance / Support for the Throne / Ceasefire (w dowolnym
+kierunku). Transakcje są liczone tylko do „Dyplomaty".
 """
 
 from __future__ import annotations
@@ -20,9 +21,33 @@ _MIN_BIG_BATTLE = 3  # tyle jednostek łącznie musi zginąć, by bitwa była �
 _MIN_CRUSHING = 4  # tyle jednostek zwycięzca musi zniszczyć bez strat
 
 
-def _had_deal(state: GameState, a: str, b: str) -> bool:
-    pair = {a, b}
-    return any({d["a"], d["b"]} == pair for d in state.chronicle.deals)
+# Weksle „paktu" (po sufiksie id karty; id = ``<kolor wystawcy>_<sufiks>``): Ceasefire,
+# Alliance, Support for the Throne (także warianty ``*_sftt`` z dodatków).
+_PACT_SUFFIXES: tuple[tuple[str, str], ...] = (
+    ("_cf", "Ceasefire"),
+    ("_an", "Alliance"),
+    ("_sftt", "Support for the Throne"),
+)
+
+
+def pact_between(state: GameState, a: str, b: str) -> str | None:
+    """Nazwa weksla paktu między graczami (w dowolnym kierunku, w ręce albo w strefie gry).
+
+    Gracz „ma pakt" z drugim, gdy trzyma jego Ceasefire / Alliance / Support for the Throne.
+    """
+    for holder_id, issuer_id in ((a, b), (b, a)):
+        holder = state.players.get(holder_id)
+        issuer = state.players.get(issuer_id)
+        if holder is None or issuer is None or not issuer.color:
+            continue
+        prefix = f"{issuer.color}_"
+        for note in [*holder.promissory_notes_in_play, *holder.private.promissory_notes]:
+            if not note.startswith(prefix):
+                continue
+            for suffix, name in _PACT_SUFFIXES:
+                if note.endswith(suffix):
+                    return name
+    return None
 
 
 def record_deal(state: GameState, a: str, b: str) -> None:
@@ -48,7 +73,8 @@ def record_battle(state: GameState, combat: ActiveCombat) -> None:
             "winner": combat.winner,
             "rounds": combat.round,
             "losses": losses,
-            "betrayal": _had_deal(state, combat.attacker, combat.defender),
+            "pact": (pact := pact_between(state, combat.attacker, combat.defender)),
+            "betrayal": pact is not None,
         }
     )
 
@@ -61,7 +87,8 @@ def record_conquest(state: GameState, by: str, from_player: str, planet: str) ->
             "by": by,
             "from": from_player,
             "planet": planet,
-            "betrayal": _had_deal(state, by, from_player),
+            "pact": (pact := pact_between(state, by, from_player)),
+            "betrayal": pact is not None,
         }
     )
 
@@ -168,11 +195,17 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 victim_counts[v] = victim_counts.get(v, 0) + 1
         victim = max(victim_counts, key=lambda p: victim_counts[p])
         n = traitors[worst[0]]
+        pact = next(
+            e["pact"]
+            for e in betrayals
+            if (e.get("attacker") or e["by"]) == worst[0]
+            and (e.get("defender") or e["from"]) == victim
+        )
         add(
             "betrayal",
             "The Great Betrayal",
-            f"{who(worst[0])} struck {who(victim)} after trading with them"
-            + (f" ({n} treacherous attacks in total)." if n > 1 else "."),
+            f"{who(worst[0])} struck {who(victim)} while holding a {pact} promissory note"
+            f" between them" + (f" ({n} treacherous attacks in total)." if n > 1 else "."),
             [worst[0], victim],
         )
 

@@ -44,9 +44,10 @@ def test_battle_losses_are_summed_and_recorded() -> None:
     assert battle["rounds"] == 3 and battle["betrayal"] is False
 
 
-def test_attack_after_deal_is_a_betrayal() -> None:
+def test_attack_despite_pact_note_is_a_betrayal() -> None:
     state = _state()
-    chronicle.record_deal(state, "p2", "p3")
+    # p3 trzyma Alliance wystawiony przez p2 (kolor p2 = "p2").
+    state.players["p3"].promissory_notes_in_play.append("p2_an")
     chronicle.record_battle(state, _combat("p3", "p2", "p3", {"p2": 2, "p3": 0}))
     chronicle.record_conquest(state, "p3", "p2", "mecatol_rex")
     assert state.chronicle.battles[0]["betrayal"] is True
@@ -57,7 +58,7 @@ def test_highlights_cover_biggest_battle_betrayal_and_quiet_winner(
     registry: StaticDataRegistry,
 ) -> None:
     state = _state()
-    chronicle.record_deal(state, "p2", "p3")
+    state.players["p2"].private.promissory_notes.append("p3_cf")
     chronicle.record_battle(state, _combat("p3", "p2", "p3", {"p2": 5, "p3": 0}))
     keys = {h["key"] for h in chronicle.highlights(state, registry)}
     assert {"greatest_battle", "crushing_victory", "betrayal", "quiet_victory"} <= keys
@@ -65,3 +66,11 @@ def test_highlights_cover_biggest_battle_betrayal_and_quiet_winner(
 
 def test_no_highlights_for_an_empty_game(registry: StaticDataRegistry) -> None:
     assert chronicle.highlights(_state(), registry) == []
+
+
+def test_trade_without_pact_is_not_a_betrayal() -> None:
+    state = _state()
+    chronicle.record_deal(state, "p2", "p3")
+    chronicle.record_battle(state, _combat("p3", "p2", "p3", {"p2": 1, "p3": 0}))
+    assert state.chronicle.battles[0]["betrayal"] is False
+    assert chronicle.pact_between(state, "p2", "p3") is None

@@ -892,3 +892,16 @@
   line-height: 1.45;
   color: rgb(246 234 208 / 0.85);
 }
+
+/* Cytat epilogu: pod tekstem, kursywą; autor (.author) leży tuż pod nim. */
+.epilogueQuote {
+  max-width: 46rem;
+  margin: 2em auto 0;
+  font-style: italic;
+  font-size: 1.1em;
+  color: #fff3d6;
+}
+
+.epilogueQuote + .author {
+  margin-top: 0.8em;
+}

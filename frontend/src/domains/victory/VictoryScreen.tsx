@@ -545,7 +545,12 @@ function ChronicleStage({
               {paragraph}
             </p>
           ))}
-          <p className={styles.author}>— {epilogue.author ?? DEFAULT_EPILOGUE_AUTHOR}</p>
+          {epilogue.quote && (
+            <blockquote className={styles.epilogueQuote}>“{epilogue.quote}”</blockquote>
+          )}
+          {(epilogue.author || !epilogue.quote) && (
+            <p className={styles.author}>— {epilogue.author ?? DEFAULT_EPILOGUE_AUTHOR}</p>
+          )}
           <div className={styles.outro}>
             <p className={styles.motto}>Pax Magnifica</p>
             <p className={styles.outroLine}>
