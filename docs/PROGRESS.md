@@ -114,6 +114,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 
 ---
 
+## ✅ Feed aktywności „kto co zrobił" (2026-11-08)
+
+Panel History/Events miał pustą zakładkę zdarzeń (`/events` zwraca `[]`) i surowe etykiety migawek.
+Teraz ma dwie zakładki: **Activity** (domyślna) i **Snapshots** (dawny HistoryPanel, cofanie).
+
+- `core/activity.py` — czysta `derive_activity(label, before, after)`: aktor/cel/temat z etykiety
+  commitu + skutki z RÓŻNICY stanów (VP, TG, technologie, planety). Etykiety czysto wewnętrzne
+  nie tworzą wpisu, chyba że niosą skutek (np. badanie technologii w „kroku" → `misc/update`).
+- `EventStore`: kolumny `created_at`, `activity_json` (migracja idempotentna); `StateService.replace_state`
+  zapisuje wpis przy każdym commicie. Endpoint `GET /history/activity` (+ słownik graczy, `current_seq`).
+- Front: `domains/game-shell/components/ActivityPanel/` — wiersze z ikoną frakcji, jednozdaniowy opis,
+  chipy skutków, grupy rund, filtry kategorii i gracza, wpisy cofnięte Undo przygaszone, licznik nowych
+  wpisów na przycisku. Nazwy (planety, techy, karty strategii, cele) rozwiązuje front z własnych lookupów.
+- Ograniczenie: aktor z etykiet bez `player_id` to gracz aktywny PRZED commitem (np. `leader:*`).
+
 ## ✅ Ekran zwycięstwa + epilog + limit 10 rund (2026-11-08) — RULES.md 48
 
 - Backend: `GameState.max_rounds` (10), `end_reason`, `epilogue`; `finish_status` kończy grę po

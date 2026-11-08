@@ -2,7 +2,7 @@ import cx from "clsx";
 import { AppModal } from "@/shared/ui/AppModal";
 import { visualViewportModalStyles } from "@/shared/ui/visualViewportModal";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { GameEventPanel } from "./GameEventPanel";
+import { EventsHub } from "../ActivityPanel";
 import classes from "./MobileEventsSheet.module.css";
 
 const SHEET_WIDTH = 440;
@@ -25,7 +25,7 @@ export function MobileEventsSheet({ opened, onClose }: Props) {
     <AppModal
       opened={opened}
       onClose={onClose}
-      title="Event Log"
+      title="Activity & History"
       padding={0}
       classNames={{
         header: classes.sheetHeader,
@@ -40,7 +40,7 @@ export function MobileEventsSheet({ opened, onClose }: Props) {
     >
       {opened && (
         <div className={classes.sheetBody}>
-          <GameEventPanel animated={false} />
+          <EventsHub />
         </div>
       )}
     </AppModal>

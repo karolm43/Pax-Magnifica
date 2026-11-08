@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
-from src.core import game_end
+from src.core import activity, game_end
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 
@@ -57,8 +57,33 @@ class StateService:
     def replace_state(self, state: GameState, label: str = "replace") -> StateEnvelope:
         """Nadpisuje cały stan (God-Mode) i commituje nową migawkę."""
         # Koniec gry po progu VP z DOWOLNEGO źródła (nie tylko punktowania celów).
-        self._store.commit(game_end.apply_victory(state.clone()), label=label)
+        before = self._store.current()
+        after = game_end.apply_victory(state.clone())
+        entry = activity.derive_activity(label, before, after)
+        self._store.commit(
+            after,
+            label=label,
+            activity_json=entry.model_dump_json() if entry else None,
+        )
         return self.envelope()
+
+    def current_seq(self) -> int | None:
+        """Numer bieżącej migawki historii."""
+        return self._store.current_seq()
+
+    def activity_feed(self) -> list[tuple[int, str, bool, float | None, activity.Activity | None]]:
+        """Feed aktywności: ``(seq, label, is_current, created_at, wpis)`` chronologicznie."""
+        current = self._store.current_seq()
+        return [
+            (
+                seq,
+                label,
+                seq == current,
+                created_at,
+                activity.Activity.model_validate_json(raw) if raw else None,
+            )
+            for seq, label, created_at, raw in self._store.activity_rows()
+        ]
 
     def apply_patch(self, patch: GodModePatch) -> StateEnvelope:
         """Nakłada częściowy patch God-Mode na bieżący stan.

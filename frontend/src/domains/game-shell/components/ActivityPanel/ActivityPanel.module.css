@@ -1,0 +1,285 @@
+/*
+ * Activity feed: "who did what". Newest first, grouped under sticky round bands.
+ * Each row = faction mark (with a category glyph), a one-line headline and
+ * optional outcome chips (VP, technology, planets). --ek is an rgb triplet.
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+/* Filters --------------------------------------------------------------- */
+.filters {
+  flex: none;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 7px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--ds-h10);
+  mask-image: linear-gradient(90deg, black calc(100% - 24px), transparent);
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  --ek: var(--gd-gray);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-data);
+  color: var(--ds-ink);
+  background: var(--ds-socket);
+  border: 0;
+  border-radius: 11px;
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  cursor: pointer;
+}
+
+.chip i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--ek), 1);
+}
+
+.chip b {
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
+  color: var(--ds-ink-lo);
+}
+
+.chip:hover {
+  color: var(--ds-ink-hi);
+}
+
+.chip[aria-pressed="true"] {
+  color: var(--ds-ink-hi);
+  background: var(--ds-ground);
+  box-shadow: inset 0 0 0 1px var(--ds-h35);
+}
+
+.chip:focus-visible,
+.playerButton:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}
+
+/* Player filter --------------------------------------------------------- */
+.players {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.playerButton {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 120ms;
+}
+
+.playerButton:hover {
+  opacity: 0.85;
+}
+
+.playerButton[aria-pressed="true"] {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--ds-accent);
+}
+
+/* List ------------------------------------------------------------------ */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--ds-h28) transparent;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: var(--text-data);
+  color: var(--ds-ink-lo);
+}
+
+.band {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--ds-rail);
+  border-top: 1px solid var(--ds-h14);
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+section:first-child > .band {
+  border-top: 0;
+}
+
+.band b {
+  font-family: var(--font-display);
+  font-size: var(--text-data);
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+}
+
+.bandLabel {
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.bandEnd {
+  margin-left: auto;
+  font-family: var(--font-data);
+}
+
+/* Row ------------------------------------------------------------------- */
+.row {
+  --ek: var(--gd-gray);
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Undone by Undo / history jump: still listed, but visibly not in effect. */
+.row[data-undone] {
+  opacity: 0.4;
+}
+
+.mark {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+}
+
+.faction {
+  display: block;
+  line-height: 0;
+}
+
+.noFaction {
+  display: block;
+  border-radius: 50%;
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+}
+
+.glyph {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(var(--ek));
+  box-shadow: 0 0 0 2px var(--ds-ground);
+}
+
+.body {
+  min-width: 0;
+}
+
+.headline {
+  font-size: var(--text-data);
+  line-height: 1.35;
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+}
+
+.headline b {
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+}
+
+.headline i {
+  font-style: normal;
+  color: var(--ds-ink-hi);
+  border-bottom: 1px dotted var(--ds-h35);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.fact {
+  padding: 1px 7px;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ds-ink);
+  background: var(--ds-socket);
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+}
+
+.fact b {
+  font-weight: var(--weight-title);
+}
+
+.fact[data-tone="good"] {
+  color: rgb(var(--gd-green));
+  box-shadow: inset 0 0 0 1px rgba(var(--gd-green), 0.4);
+  background: rgba(var(--gd-green), 0.1);
+}
+
+.fact[data-tone="bad"] {
+  color: rgb(var(--gd-red));
+  box-shadow: inset 0 0 0 1px rgba(var(--gd-red), 0.4);
+  background: rgba(var(--gd-red), 0.1);
+}
+
+.fact[data-tone="info"] {
+  color: rgb(var(--gd-cyan));
+  box-shadow: inset 0 0 0 1px rgba(var(--gd-cyan), 0.4);
+  background: rgba(var(--gd-cyan), 0.1);
+}
+
+.time {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink-lo);
+  white-space: nowrap;
+}

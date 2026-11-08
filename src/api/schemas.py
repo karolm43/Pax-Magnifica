@@ -12,6 +12,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.core.activity import Activity
 from src.core.game_state import GameState
 from src.core.rules_content import (
     TopicContent,
@@ -122,6 +123,40 @@ class HistoryList(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     entries: list[HistoryEntry] = Field(default_factory=list)
+
+
+class ActivityEntry(BaseModel):
+    """Wpis feedu aktywności: migawka historii + opis „kto co zrobił"."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seq: int
+    is_current: bool
+    # Czas zapisu (sekundy epoki); None dla migawek sprzed wprowadzenia feedu.
+    created_at: float | None = None
+    activity: Activity
+
+
+class ActivityPlayer(BaseModel):
+    """Dane gracza do wyświetlenia we feedzie (rozwiązują ``actor_id``/``target_id``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str | None = None
+    color: str | None = None
+    display_name: str = ""
+    is_bot: bool = False
+
+
+class ActivityFeed(BaseModel):
+    """Feed aktywności: wpisy chronologicznie + słownik graczy po ``player_id``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entries: list[ActivityEntry] = Field(default_factory=list)
+    players: dict[str, ActivityPlayer] = Field(default_factory=dict)
+    # Bieżąca migawka; wpisy o większym ``seq`` są „cofnięte" (gałąź redo).
+    current_seq: int | None = None
 
 
 class StateEnvelope(BaseModel):

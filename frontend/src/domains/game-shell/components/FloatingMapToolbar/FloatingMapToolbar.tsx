@@ -1,14 +1,11 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { CloseButton, Switch, Transition } from "@/ds";
+import { CloseButton, Transition } from "@/ds";
 import { IconHistory } from "@tabler/icons-react";
 import cx from "clsx";
-import { GameEventPanel } from "@/domains/game-shell/components/GameEventPanel";
-import { useUnreadEventCount } from "@/domains/game-shell/components/GameEventPanel/sinceLastTurn";
+import { EventsHub, useActivityUnread } from "@/domains/game-shell/components/ActivityPanel";
 import { SecretHand } from "@/domains/game-shell/components/SecretHand";
-import { HistoryPanel } from "@/domains/game-shell/components/HistoryPanel";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
-import { useSettingsStore } from "@/state/appStore";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { PlayerHandData } from "@/shared/types/playerHand";
 import zoomClasses from "@/shared/ui/map/ZoomControls.module.css";
@@ -34,17 +31,15 @@ const CONTROLS_HEIGHT = 36;
 const PANEL_GAP = 8;
 
 function EventsButton({
-  gameId,
   open,
   panelId,
   onClick,
 }: {
-  gameId: string;
   open: boolean;
   panelId: string;
   onClick: () => void;
 }) {
-  const unread = useUnreadEventCount(gameId);
+  const unread = useActivityUnread(open);
   const label = unread > 0 ? `Events, ${unread} new` : "Events";
   return (
     <button
@@ -162,10 +157,6 @@ export function FloatingMapToolbar({
   const [lastPanel, setLastPanel] = useState<FloatingPanel>("events");
   const { canViewSecretHand } = useSecretHandAccess();
   const { data: handData, isLoading, error } = usePlayerHand(gameId);
-  const animateEventPreviews = useSettingsStore(
-    (state) => state.settings.animateEventPreviews,
-  );
-  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const panelId = useId();
 
   const togglePanel = (panel: FloatingPanel) => {
@@ -198,7 +189,6 @@ export function FloatingMapToolbar({
   const eventsButton = (
     <>
       <EventsButton
-        gameId={gameId}
         open={openPanel === "events"}
         panelId={panelId}
         onClick={() => togglePanel("events")}
@@ -270,22 +260,9 @@ export function FloatingMapToolbar({
               </>
             ) : (
               <>
-                <PanelHeader title="History / Events" onClose={() => setOpenPanel(null)}>
-                  <Switch
-                    size="xs"
-                    label="Animated"
-                    checked={animateEventPreviews}
-                    onChange={(event) =>
-                      updateSettings({
-                        animateEventPreviews: event.currentTarget.checked,
-                      })
-                    }
-                    classNames={{ label: classes.switchLabel }}
-                  />
-                </PanelHeader>
+                <PanelHeader title="Activity & History" onClose={() => setOpenPanel(null)} />
                 <div className={classes.panelBody}>
-                  <HistoryPanel />
-                  <GameEventPanel animated={animateEventPreviews} />
+                  <EventsHub />
                 </div>
               </>
             )}

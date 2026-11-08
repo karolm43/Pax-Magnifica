@@ -1,0 +1,57 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+.tab {
+  padding: 8px 10px 7px;
+  font-size: var(--text-data);
+  font-weight: var(--weight-data);
+  color: var(--ds-ink-lo);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--ds-ink);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--ds-ink-hi);
+  border-bottom-color: var(--ds-accent);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -2px;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The snapshot list sizes itself (max 40vh); let the tab scroll instead. */
+.snapshots {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.snapshots > * {
+  max-height: none;
+}

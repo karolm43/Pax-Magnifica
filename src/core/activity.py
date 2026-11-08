@@ -1,0 +1,336 @@
+"""Dziennik aktywności graczy — „kto co zrobił" (feed powiadomień).
+
+Każdy commit stanu ma etykietę techniczną (``strategy:pick:p2:3``, ``turn:pass``…).
+Etykieta nie mówi, KTO działał ani CO się zmieniło, więc sama nie nadaje się do
+czytelnego feedu. Ten moduł to CZYSTA funkcja ``derive_activity(label, before, after)``,
+która tłumaczy parę migawek na ustrukturyzowany wpis :class:`Activity`:
+
+- ``actor_id`` / ``target_id`` — kto działał i (opcjonalnie) kogo dotyczy akcja,
+- ``kind`` / ``action`` — kategoria (do filtrów) i klucz akcji (do opisu we froncie),
+- ``subject`` / ``detail`` — o czym mowa (planeta, system, karta, cel…),
+- ``facts`` — skutki wyliczone z RÓŻNICY stanów (VP, technologie, planety, TG).
+
+Nazwy do wyświetlenia (planety, technologie, karty) rozwiązuje frontend z własnych
+lookupów — backend przekazuje wyłącznie identyfikatory. Moduł nie zna HTTP ani rejestru
+danych; zależy tylko od ``GameState`` (warstwa ``core``).
+
+Etykiety czysto wewnętrzne (krok maszyny stanów, otwarcie okna czasowego…) nie tworzą
+wpisu, chyba że niosą widoczny skutek (``facts``) — wtedy trafiają do feedu jako
+``misc/update``. Dzięki temu np. zbadanie technologii nie ginie, nawet jeśli commituje je
+etykieta „krok".
+"""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.core.game_state import GameState
+
+# Kategorie wpisów (do filtrów w UI).
+ActivityKind = Literal[
+    "turn",  # tura, pas, zmiana fazy/rundy, mówca
+    "strategy",  # karty strategii
+    "tactical",  # aktywacja, ruch, produkcja, akcje komponentów
+    "combat",  # walka, inwazja, space cannon
+    "economy",  # transakcje, długi
+    "scoring",  # cele, punkty
+    "exploration",  # eksploracja planet
+    "misc",  # skutki widoczne tylko w różnicy stanów
+    "godmode",  # ręczne korekty operatora
+]
+
+
+class ActivityFact(BaseModel):
+    """Skutek akcji wyliczony z różnicy stanów przed/po."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # "vp" | "tech" | "planet_gained" | "planet_lost" | "tg"
+    type: str
+    player_id: str
+    # Identyfikator techn./planety (dla "tech"/"planet_*"); None dla liczbowych.
+    value: str | None = None
+    # Zmiana liczbowa (dla "vp"/"tg"); None dla identyfikatorów.
+    delta: int | None = None
+
+
+class Activity(BaseModel):
+    """Jeden wpis feedu aktywności (powiązany z migawką historii)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: ActivityKind
+    action: str
+    actor_id: str | None = None
+    target_id: str | None = None
+    subject: str | None = None
+    detail: str | None = None
+    round: int = 1
+    phase: str = ""
+    facts: list[ActivityFact] = Field(default_factory=list)
+
+
+# Wynik rozbioru etykiety: (kind, action, actor, target, subject, detail).
+_Parsed = tuple[ActivityKind, str, str | None, str | None, str | None, str | None]
+
+# Etykiety bez własnej treści — wpis powstaje tylko, gdy zmieniły się fakty.
+_QUIET_PREFIXES = (
+    "tactical:step",
+    "tactical:set-step",
+    "turn:phase-step",
+    "strategy:primary-step",
+    "window:",
+    "battle:afb",
+    "battle:roll",
+    "battle:assign",
+    "invasion:bombard",
+    "invasion:defense",
+    "invasion:next",
+    "space-cannon:pass",
+    "space-cannon:assign",
+    "cc:",
+    "planet-exhaust:",
+    "hand:",
+    "decks:",
+    "capacity:",
+    "fleet-pool:",
+    "production:skip-grant",
+    "setup:secret",
+    "setup:custodians",
+    "setup:skip",
+    "setup:reveal-objectives",
+    "epilogue:",
+    "exploration:finish",
+)
+
+_GODMODE_PREFIXES = (
+    "god-mode-patch",
+    "replace",
+    "move-units",
+    "edit:",
+    "space:",
+    "planet:",
+    "player:",
+)
+
+
+def _is_quiet(label: str) -> bool:
+    return any(label == p or label.startswith(p) for p in _QUIET_PREFIXES)
+
+
+def _is_godmode(label: str) -> bool:
+    return any(label == p or label.startswith(p) for p in _GODMODE_PREFIXES)
+
+
+def _active(before: GameState | None, after: GameState) -> str | None:
+    if before is not None and before.active_player_id is not None:
+        return before.active_player_id
+    return after.active_player_id
+
+
+def _combat_pair(before: GameState | None, after: GameState) -> tuple[str | None, str | None]:
+    combat = after.active_combat or (before.active_combat if before else None)
+    if combat is None:
+        return None, None
+    return combat.attacker, combat.defender
+
+
+def _parse_flow(
+    label: str, parts: list[str], active: str | None, after: GameState
+) -> _Parsed | None:
+    """Tury, fazy, rundy, mówca, początek gry."""
+    if label in ("initial", "game:new"):
+        return "turn", "game.start", None, None, None, None
+    if label == "turn:end":
+        return "turn", "turn.end", active, after.active_player_id, None, None
+    if label == "turn:pass":
+        return "turn", "turn.pass", active, after.active_player_id, None, None
+    if label == "turn:next-player":
+        return "turn", "turn.next", active, after.active_player_id, None, None
+    if label in ("phase:next", "phase:skip"):
+        return "turn", "phase.start", None, None, after.phase.value, None
+    if label == "round:next":
+        return "turn", "round.start", None, None, str(after.round_number), None
+    if parts[0] == "speaker" and len(parts) > 1:
+        return "turn", "speaker.set", None, parts[1], None, None
+    if parts[0] == "setup" and len(parts) == 2 and parts[1] not in ("custodians", "skip"):
+        return "turn", "setup.faction", None, None, parts[1], None
+    return None
+
+
+def _parse_strategy(parts: list[str]) -> _Parsed | None:
+    if parts[0] != "strategy" or len(parts) < 3:
+        return None
+    verb, pid = parts[1], parts[2]
+    initiative = parts[3] if len(parts) > 3 else None
+    if verb == "pick":
+        return "strategy", "strategy.pick", pid, None, initiative, None
+    if verb == "play":
+        return "strategy", "strategy.play", pid, None, initiative, None
+    if verb == "secondary":
+        return "strategy", "strategy.secondary", pid, None, None, initiative
+    return None
+
+
+def _parse_tactical(parts: list[str], active: str | None) -> _Parsed | None:
+    head = parts[0]
+    arg = parts[1] if len(parts) > 1 else None
+    if head == "tactical" and arg is not None:
+        pos = parts[2] if len(parts) > 2 else None
+        if arg in ("activate", "move", "produce"):
+            return "tactical", f"tactical.{arg}", active, None, pos, None
+        if arg == "end":
+            return "tactical", "tactical.end", active, None, None, None
+    if head == "capture" and len(parts) > 2:
+        return "tactical", "tactical.capture", active, None, parts[2], parts[1]
+    if head == "component-action":
+        return "tactical", "tactical.component", active, None, arg, None
+    if head == "tech-exhaust" and arg:
+        return "tactical", "tech.exhaust", active, None, arg, None
+    if head == "leader" and len(parts) > 2:
+        return "tactical", "leader.state", active, None, arg, parts[2]
+    return None
+
+
+def _parse_combat(
+    label: str, parts: list[str], active: str | None, before: GameState | None, after: GameState
+) -> _Parsed | None:
+    head = parts[0]
+    att, dfn = _combat_pair(before, after)
+    if label.startswith("battle:start"):
+        where = parts[2] if len(parts) > 2 else "space"
+        return "combat", "combat.start", att or active, dfn, where, None
+    if label == "battle:close":
+        return "combat", "combat.end", att or active, dfn, None, None
+    if parts[:2] == ["battle", "retreat-announce"] and len(parts) > 2:
+        return "combat", "combat.retreat_announce", parts[2], None, None, None
+    if parts[:2] == ["battle", "retreat"] and len(parts) > 3:
+        return "combat", "combat.retreat", parts[2], None, parts[3], None
+    if label == "invasion:begin":
+        return "combat", "invasion.begin", active, None, after.active_system, None
+    if label == "invasion:commit":
+        return "combat", "invasion.commit", active, None, after.active_system, None
+    if head == "space-cannon" and len(parts) > 2 and parts[1] == "fire":
+        return "combat", "spacecannon.fire", parts[2], None, None, None
+    return None
+
+
+def _parse_economy_scoring(parts: list[str], active: str | None) -> _Parsed | None:
+    head = parts[0]
+    if head == "transaction" and len(parts) > 1:
+        return "economy", "transaction", active, parts[1], None, None
+    if head == "debt" and len(parts) > 2 and "->" in parts[2]:
+        left, right = parts[2].split("->", 1)
+        action = "debt.give" if parts[1] == "give" else "debt.return"
+        return "economy", action, left, right, None, None
+    if label_is(parts, "status", "score") and len(parts) > 2:
+        return "scoring", "objective.score", active, None, parts[2], None
+    if label_is(parts, "status", "finish-scoring"):
+        return "scoring", "scoring.finish", None, None, None, None
+    if label_is(parts, "status", "redistribute") and len(parts) > 2:
+        return "scoring", "scoring.redistribute", parts[2], None, None, None
+    if head == "exploration" and len(parts) > 2:
+        if parts[1] == "draw":
+            return "exploration", "explore.draw", active, None, parts[2], None
+        if parts[1] == "resolve":
+            return "exploration", "explore.resolve", active, None, None, parts[2]
+    return None
+
+
+def label_is(parts: list[str], head: str, verb: str) -> bool:
+    return len(parts) > 1 and parts[0] == head and parts[1] == verb
+
+
+def _parse(
+    label: str, before: GameState | None, after: GameState
+) -> _Parsed | None:
+    parts = label.split(":")
+    active = _active(before, after)
+    for parsed in (
+        _parse_flow(label, parts, active, after),
+        _parse_strategy(parts),
+        _parse_tactical(parts, active),
+        _parse_combat(label, parts, active, before, after),
+        _parse_economy_scoring(parts, active),
+    ):
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _facts(before: GameState | None, after: GameState) -> list[ActivityFact]:
+    """Skutki widoczne w różnicy stanów (VP, technologie, planety, TG)."""
+    if before is None:
+        return []
+    facts: list[ActivityFact] = []
+    for pid, new in after.players.items():
+        old = before.players.get(pid)
+        if old is None:
+            continue
+        if new.victory_points != old.victory_points:
+            facts.append(
+                ActivityFact(
+                    type="vp",
+                    player_id=pid,
+                    delta=new.victory_points - old.victory_points,
+                )
+            )
+        if new.trade_goods != old.trade_goods:
+            facts.append(
+                ActivityFact(type="tg", player_id=pid, delta=new.trade_goods - old.trade_goods)
+            )
+        for tech in new.technologies:
+            if tech not in old.technologies:
+                facts.append(ActivityFact(type="tech", player_id=pid, value=tech))
+        for planet in new.controlled_planets:
+            if planet not in old.controlled_planets:
+                facts.append(ActivityFact(type="planet_gained", player_id=pid, value=planet))
+        for planet in old.controlled_planets:
+            if planet not in new.controlled_planets:
+                facts.append(ActivityFact(type="planet_lost", player_id=pid, value=planet))
+    return facts
+
+
+def derive_activity(
+    label: str, before: GameState | None, after: GameState
+) -> Activity | None:
+    """Tłumaczy commit (etykieta + stany przed/po) na wpis feedu albo ``None``.
+
+    ``None`` = zmiana czysto techniczna bez widocznego skutku (nie trafia do feedu).
+    """
+    facts = _facts(before, after)
+    base = {"round": after.round_number, "phase": after.phase.value}
+
+    if _is_godmode(label):
+        # Korekta operatora: pokazujemy tylko, gdy realnie coś zmieniła u graczy.
+        if not facts:
+            return None
+        return Activity(kind="godmode", action="godmode.edit", facts=facts, **base)  # type: ignore[arg-type]
+
+    if _is_quiet(label):
+        if not facts:
+            return None
+        return Activity(
+            kind="misc", action="update", actor_id=_active(before, after), facts=facts, **base  # type: ignore[arg-type]
+        )
+
+    parsed = _parse(label, before, after)
+    if parsed is None:
+        if not facts:
+            return None
+        return Activity(
+            kind="misc", action="update", actor_id=_active(before, after), facts=facts, **base  # type: ignore[arg-type]
+        )
+    kind, action, actor, target, subject, detail = parsed
+    return Activity(
+        kind=kind,
+        action=action,
+        actor_id=actor,
+        target_id=target,
+        subject=subject,
+        detail=detail,
+        facts=facts,
+        **base,  # type: ignore[arg-type]
+    )

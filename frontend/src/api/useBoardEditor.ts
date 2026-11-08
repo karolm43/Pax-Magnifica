@@ -1210,6 +1210,71 @@ export function useCombatHelp(position: string | null, planet: string | null) {
   });
 }
 
+export type ActivityFact = {
+  type: "vp" | "tech" | "planet_gained" | "planet_lost" | "tg" | (string & {});
+  player_id: string;
+  value: string | null;
+  delta: number | null;
+};
+
+export type ActivityKind =
+  | "turn"
+  | "strategy"
+  | "tactical"
+  | "combat"
+  | "economy"
+  | "scoring"
+  | "exploration"
+  | "misc"
+  | "godmode";
+
+export type Activity = {
+  kind: ActivityKind;
+  action: string;
+  actor_id: string | null;
+  target_id: string | null;
+  subject: string | null;
+  detail: string | null;
+  round: number;
+  phase: string;
+  facts: ActivityFact[];
+};
+
+export type ActivityEntry = {
+  seq: number;
+  is_current: boolean;
+  /** Sekundy epoki; null dla migawek sprzed wprowadzenia feedu. */
+  created_at: number | null;
+  activity: Activity;
+};
+
+export type ActivityPlayer = {
+  faction: string | null;
+  color: string | null;
+  display_name: string;
+  is_bot: boolean;
+};
+
+export type ActivityFeed = {
+  entries: ActivityEntry[];
+  players: Record<string, ActivityPlayer>;
+  /** Bieżąca migawka; wpisy o większym `seq` są cofnięte (gałąź redo). */
+  current_seq: number | null;
+};
+
+/**
+ * Feed „kto co zrobił" (powiadomienia o akcjach graczy). Klucz zaczyna się od
+ * ``history``, więc każda mutacja, która unieważnia historię, odświeża też feed.
+ */
+export function useActivityFeed() {
+  return useQuery<ActivityFeed>({
+    queryKey: ["history", "activity"],
+    queryFn: () =>
+      fetchJson<ActivityFeed>("/bot/history/activity", "activity feed"),
+    staleTime: 0,
+  });
+}
+
 export type HistoryEntry = { seq: number; label: string; is_current: boolean };
 
 /** Lista migawek historii (Event Sourcing) do panelu historii. */

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+import time
 from pathlib import Path
 
 from src.core.game_state import GameState
@@ -48,15 +49,35 @@ class EventStore:
             INSERT OR IGNORE INTO pointer (id, current) VALUES (0, NULL);
             """
         )
+        self._migrate_snapshots()
         self._conn.commit()
+
+    def _migrate_snapshots(self) -> None:
+        """Dokłada kolumny feedu aktywności do starszych baz (idempotentnie)."""
+        columns = {
+            str(row["name"])
+            for row in self._conn.execute("PRAGMA table_info(snapshots)").fetchall()
+        }
+        if "created_at" not in columns:
+            self._conn.execute("ALTER TABLE snapshots ADD COLUMN created_at REAL")
+        if "activity_json" not in columns:
+            self._conn.execute("ALTER TABLE snapshots ADD COLUMN activity_json TEXT")
 
     # --- Zapis / historia ----------------------------------------------
 
-    def commit(self, state: GameState, label: str = "commit") -> int:
+    def commit(
+        self,
+        state: GameState,
+        label: str = "commit",
+        activity_json: str | None = None,
+    ) -> int:
         """Zapisuje migawkę stanu jako nową pozycję bieżącą.
 
         Jeśli bieżąca pozycja nie jest ostatnią (po jednym lub wielu ``undo``),
         wszystkie migawki po niej są usuwane (obcięcie gałęzi redo).
+
+        ``activity_json`` to opcjonalny wpis feedu aktywności (``core.activity``),
+        zapisany razem z migawką, by feed przeżył restart i szedł za Undo/Redo.
 
         Returns:
             Numer sekwencyjny (``seq``) zapisanej migawki.
@@ -67,8 +88,9 @@ class EventStore:
                 self._conn.execute("DELETE FROM snapshots WHERE seq > ?", (current,))
 
             cursor = self._conn.execute(
-                "INSERT INTO snapshots (label, state_json) VALUES (?, ?)",
-                (label, state.model_dump_json()),
+                "INSERT INTO snapshots (label, state_json, created_at, activity_json)"
+                " VALUES (?, ?, ?, ?)",
+                (label, state.model_dump_json(), time.time(), activity_json),
             )
             new_seq = int(cursor.lastrowid or 0)
             self._set_current(new_seq)
@@ -154,6 +176,27 @@ class EventStore:
                 (int(r["seq"]), str(r["label"]), int(r["seq"]) == current)
                 for r in rows
             ]
+
+    def activity_rows(self) -> list[tuple[int, str, float | None, str | None]]:
+        """Migawki z danymi feedu: ``(seq, label, created_at, activity_json)``."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT seq, label, created_at, activity_json FROM snapshots ORDER BY seq ASC"
+            ).fetchall()
+            return [
+                (
+                    int(r["seq"]),
+                    str(r["label"]),
+                    None if r["created_at"] is None else float(r["created_at"]),
+                    None if r["activity_json"] is None else str(r["activity_json"]),
+                )
+                for r in rows
+            ]
+
+    def current_seq(self) -> int | None:
+        """Numer bieżącej migawki (None, gdy historia pusta)."""
+        with self._lock:
+            return self._current_seq()
 
     def goto(self, seq: int) -> GameState | None:
         """Przeskakuje wskaźnik na wskazaną migawkę (undo/redo do punktu).
