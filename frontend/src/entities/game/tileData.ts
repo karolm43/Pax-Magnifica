@@ -5,16 +5,16 @@ export function getTileController(
   planets: Record<string, TilePlanet>,
   unitsByFaction: FactionUnits,
 ): string | undefined {
-  const uniquePlanetFactions = new Set(
-    Object.values(planets).map((planet) => planet.controlledBy),
-  );
-  const uniqueFactions = new Set(Object.keys(unitsByFaction));
+  // Łączymy kontrolerów planet (statki i piechota liczą się razem), pomijając
+  // planety bez właściciela. Dokładnie jedna frakcja = kontrola nad systemem.
+  const factions = new Set<string>();
+  Object.values(planets).forEach((planet) => {
+    if (planet.controlledBy) factions.add(planet.controlledBy);
+  });
+  Object.keys(unitsByFaction).forEach((faction) => factions.add(faction));
 
-  if (uniquePlanetFactions.size === 1) {
-    return uniquePlanetFactions.values().next().value ?? undefined;
-  }
-  if (uniqueFactions.size === 1) {
-    return uniqueFactions.values().next().value;
+  if (factions.size === 1) {
+    return factions.values().next().value;
   }
   return undefined;
 }
