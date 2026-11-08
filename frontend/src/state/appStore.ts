@@ -70,6 +70,7 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaFactionAbilities: true,
   showPlayerAreaNeighborship: true,
   adminFastMode: false,
+  absolAgendas: false,
   freeUnitDrag: false,
   skipPhases: false,
 };
@@ -512,6 +513,11 @@ export type Settings = {
    * to wyłącznie przyspieszenie przejść dla dewelopera.
    */
   adminFastMode: boolean;
+  /*
+   * Talia agend Absol zamiast standardowej (PoK). Czytana przy tworzeniu NOWEJ gry
+   * (`createNewGame` wysyła `agenda_deck`); zmiana nie wpływa na grę w toku.
+   */
+  absolAgendas: boolean;
   /*
    * Swobodne przeciąganie jednostek (God-Mode). Wyłączone (domyślnie): drag na mapie
    * przenosi jednostki WYŁĄCZNIE do aktywnego systemu (walidowany ruch taktyczny).

@@ -159,6 +159,17 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
             />
           </SettingGroup>
 
+          <SettingGroup label="Game variants">
+            <SwitchRow
+              label="Absol agenda deck"
+              description="Use the Absol agenda deck instead of the standard one. Applies to the next new game; a game in progress keeps its deck."
+              checked={settings.absolAgendas}
+              onToggle={(checked) =>
+                handlers.updateSettings({ absolAgendas: checked })
+              }
+            />
+          </SettingGroup>
+
           <SettingGroup label="Map display">
             <SwitchRow
               label="Ownership overlays"

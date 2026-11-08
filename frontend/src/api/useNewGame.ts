@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/api/fetchJson";
+import { useSettingsStore } from "@/state/appStore";
 
 /** Frakcja do wyboru na ekranie startowym (z backendu Custodian Engine). */
 export type FactionInfo = {
@@ -135,10 +136,14 @@ export function useEngineConfig() {
 
 /** Tworzy nową grę jednym żądaniem (POST /game/new). Rzuca przy błędzie HTTP. */
 export async function createNewGame(request: NewGameRequest): Promise<void> {
+  // Talia agend pochodzi z Ustawień (Game variants), nie z kreatora setupu.
+  const agendaDeck = useSettingsStore.getState().settings.absolAgendas
+    ? "absol"
+    : "standard";
   const response = await fetch(`${BOT_ROOT}/game/new`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
+    body: JSON.stringify({ agenda_deck: agendaDeck, ...request }),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

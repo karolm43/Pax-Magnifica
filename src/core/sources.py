@@ -32,9 +32,8 @@ AGENDA_STANDARD = "standard"
 AGENDA_VARIANT_DECKS: dict[str, str | None] = {
     AGENDA_STANDARD: None,
     "absol": "agendas_absol",
-    "black_spectrum": "agendas_bsp",
 }
-AGENDA_VARIANT_SOURCES: frozenset[str] = frozenset({"absol", "black_spectrum"})
+AGENDA_VARIANT_SOURCES: frozenset[str] = frozenset({"absol"})
 
 
 class UnknownSourcesError(ValueError):

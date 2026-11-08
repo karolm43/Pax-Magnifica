@@ -1,4 +1,4 @@
-"""Fanowskie warianty talii agend (Absol, Black Spectrum) wybierane w setupie gry."""
+"""Fanowskie warianty talii agend (Absol) wybierane w Ustawieniach."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def test_standard_deck_unchanged_by_fan_decks(registry: StaticDataRegistry) -> N
     assert agenda_deck_ids(registry) == deck_card_ids(registry, "agenda")
 
 
-@pytest.mark.parametrize(("variant", "size"), [("absol", 60), ("black_spectrum", 50)])
+@pytest.mark.parametrize(("variant", "size"), [("absol", 60)])
 def test_fan_deck_cards_exist_in_catalog(
     registry: StaticDataRegistry, variant: str, size: int
 ) -> None:
@@ -33,9 +33,9 @@ def test_fan_deck_cards_exist_in_catalog(
 
 def test_fan_sources_load_only_agendas_and_agenda_decks(registry: StaticDataRegistry) -> None:
     action_cards = registry.catalog.all(ComponentCategory.ACTION_CARD)
-    assert not [c for c in action_cards.values() if c.source in ("absol", "black_spectrum")]
+    assert not [c for c in action_cards.values() if c.source in ("absol",)]
     decks = registry.catalog.all(ComponentCategory.DECK)
-    fan = [d for d in decks.values() if d.source in ("absol", "black_spectrum")]
+    fan = [d for d in decks.values() if d.source in ("absol",)]
     assert fan and all(d.id.startswith("agendas_") for d in fan)
 
 
@@ -44,7 +44,7 @@ def test_unknown_variant_rejected(registry: StaticDataRegistry) -> None:
         agenda_deck_ids(registry, "nope")
 
 
-@pytest.mark.parametrize("variant", ["standard", "absol", "black_spectrum"])
+@pytest.mark.parametrize("variant", ["standard", "absol"])
 def test_ensure_agenda_deck_uses_selected_variant(
     registry: StaticDataRegistry, variant: str
 ) -> None:
@@ -52,3 +52,5 @@ def test_ensure_agenda_deck_uses_selected_variant(
     state.decks.agenda_variant = variant
     ensure_agenda_deck(state, registry)
     assert sorted(state.decks.agenda_deck) == sorted(agenda_deck_ids(registry, variant))
+
+

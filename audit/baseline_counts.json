@@ -8,7 +8,6 @@
   "agendas": {
     "absol": 60,
     "base": 50,
-    "black_spectrum": 147,
     "pok": 13
   },
   "attachments": {
@@ -22,7 +21,6 @@
   "decks": {
     "absol": 1,
     "base": 9,
-    "black_spectrum": 4,
     "pok": 11,
     "thunders_edge": 5
   },
