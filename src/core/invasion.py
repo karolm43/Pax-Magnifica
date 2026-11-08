@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import battle, chronicle, exhaust, exploration, space_cannon
+from src.core import battle, chronicle, control, exhaust, exploration, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.damage import move_damage
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -751,14 +751,8 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
                     del system.planet_units[planet][pid]
                 if structures:
                     destroyed[pid] = structures
-            system.planet_owners[planet] = inv.attacker
-            if owner is not None and owner in state.players:
-                prev = state.players[owner]
-                prev.controlled_planets = [p for p in prev.controlled_planets if p != planet]
-                exhaust.ready_planets(state, owner, [planet])
+            control.set_planet_control(state, inv.position, planet, inv.attacker)
             if attacker is not None:
-                if planet not in attacker.controlled_planets:
-                    attacker.controlled_planets.append(planet)
                 # Zdobyta planeta zostaje wyczerpana (zachowanie bez zmian, RULES.md 21/40).
                 exhaust.exhaust_planets(state, inv.attacker, [planet])
             result["outcome"] = "captured"
@@ -770,7 +764,7 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
             defender = str(combat_result["defender"])
             result["outcome"] = "retained"
             if owner != defender:
-                system.planet_owners[planet] = defender
+                control.set_planet_control(state, inv.position, planet, defender)
         results.append(result)
     inv.results = results
     explored = [str(r["planet"]) for r in results if r["explore"]]

@@ -249,8 +249,27 @@ Uwagi:
   po C to JEDEN wpis w `payment_sources`, bo wszystkie płatności idą przez `pay(...)`.
 
 ### Faza C — bloki (czysty refaktor, bez zmiany zachowania)
+**Stan wykonania fazy C (aktualizowane po każdym bloku):**
+
+| Blok | Zakres | Status | Gdzie |
+|---|---|---|---|
+| C0 | Przegląd miejsc zapisu (skan AST per pole, nie sam grep) | ✅ robiony przy każdym bloku | — |
+| C1 | Ekonomia: trade goods, commodities (tabela, wiersze 1–2) | ✅ | `core/economy.py`; płatność za wydanie (planety + TG) przez `payment.apply_payment` |
+| C2 | Żetony dowodzenia: rezerwa + 3 pule (wiersz 3) | ✅ | `core/command_tokens.py` |
+| C3 | Wyczerpywanie/odświeżanie: planety, technologie, karty strategii, liderzy, przełom (wiersz 4) | ✅ | `core/exhaust.py` |
+| C4 | Kontrola planet: `planet_owners` + lustro `controlled_planets` (wiersz 7) | ✅ | `core/control.py` (`set_planet_control`) |
+| C5 | Operacje na jednostkach: zniszczenie/postawienie/usunięcie/ruch + limity (wiersze 8, 13) | ⬜ następny, NAJWIĘKSZY (~30 miejsc w `battle`, `invasion`, `space_cannon`, `production`, `retreat`, `movement`, `exploration`) | planowany `core/unit_ops.py` |
+| C6 | Zdobycie technologii: `gain_technology` (wiersz 9; dziś `technology.apply_research`) | ⬜ | planowany `core/technology.py` |
+| C7 | Punkty zwycięstwa i karty (wiersze 10–11) | ⬜ | `objectives.award_points`, `card_draw.py` |
+| C8 | Strażnik architektury | ✅ częściowo: pilnuje 13 pól + `setattr`; kolejne pola dopisujemy do `OWNERS` | `tests/test_central_points.py` |
+
+Reguły wykonania: skan AST (a nie grep) znajduje też zapisy w krotkach, po kluczu słownika (`x.pole[k] = …`), `del` i mutacje list;
+refaktor nie zmienia zachowania (jedyny wyjątek: operacje ponad stan — np. wydanie żetonu/TG, którego nie ma — kończą się `ValueError`
+zamiast ujemnego licznika); każdy blok = kod + testy + QA (pytest/ruff/mypy) + commit.
+
+Opis zamierzonych bloków (historyczny):
 - **C0 — Przegląd:** dla każdego wiersza tabeli: pełna lista wywołań (grep + czytanie), decyzja nazwa/sygnatura, kolejność.
-- **C1 — Ekonomia (1–2):** `core/economy.py` + `pay(...)`; przepiąć `payment`, `production`, `objective_payment`, `exploration`,
+- **C1 — Ekonomia (1–2):** `core/economy.py` + płatność; przepięte `payment`, `production`, `objective_payment`, `exploration`,
   `strategy_phase`, `transaction`, `strategy_cards/trade`. Test regresji: istniejące testy bez zmian.
 - **C2 — Żetony dowodzenia (3)** i **C3 — Exhaust/ready (4).**
 - **C4 — Kontrola planet (7)** i **C5 — Operacje na jednostkach (8, 13).**

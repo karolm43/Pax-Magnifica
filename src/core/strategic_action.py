@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import command_tokens, timing
+from src.core import command_tokens, exhaust, timing
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -161,8 +161,7 @@ def play_strategy_card(
     target = new_state.players[player_id]
     # Oznacz kartę jako zagraną (idempotentnie) + akcja strategiczna = akcja tury
     # (RULES.md 31.7: End turn przestaje być zablokowany „brakiem akcji").
-    if initiative not in target.exhausted_strategy_cards:
-        target.exhausted_strategy_cards = [*target.exhausted_strategy_cards, initiative]
+    exhaust.exhaust_strategy_card(new_state, player_id, initiative)
     target.took_action_this_turn = True
 
     spec = _spec(initiative)

@@ -4,7 +4,8 @@ Skanuje drzewo ``src/`` (AST) i pada, gdy ktoś ZMIENIA chronione pole stanu poz
 jest jego jedynym właścicielem. Wykrywane formy zmiany:
 
 * przypisanie ``x.pole = ...`` / ``x.pole += ...`` (także w krotce: ``a.p1, a.p2 = ...``),
-* mutacja listy: ``x.pole.append(...)`` / ``.remove`` / ``.extend`` / ``.pop`` / ``.clear``...
+* zapis/usunięcie po kluczu: ``x.pole[k] = ...`` / ``del x.pole[k]``,
+* mutacja kolekcji: ``x.pole.append(...)`` / ``.remove`` / ``.extend`` / ``.pop`` / ``.update``...
 * ``setattr(...)`` poza krótką listą modułów, które używają go ogólnie (kopiowanie stanu).
 
 Dzięki temu hook (np. „commodities jak trade goods") dopisany w funkcji centralnej obejmuje
@@ -32,6 +33,11 @@ OWNERS: dict[str, frozenset[str]] = {
     "strategic_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
     "exhausted_planets": frozenset({"core/exhaust.py", _GOD_MODE}),
     "exhausted_technologies": frozenset({"core/exhaust.py", _GOD_MODE}),
+    "exhausted_strategy_cards": frozenset({"core/exhaust.py", _GOD_MODE}),
+    "leader_states": frozenset({"core/exhaust.py", _GOD_MODE}),
+    "breakthrough_exhausted": frozenset({"core/exhaust.py", _GOD_MODE}),
+    "planet_owners": frozenset({"core/control.py", _GOD_MODE}),
+    "controlled_planets": frozenset({"core/control.py", _GOD_MODE}),
 }
 
 # ``setattr`` ogólnego przeznaczenia (nazwa pola zmienna): moduły dozwolone poza właścicielami pól.
@@ -46,7 +52,17 @@ _SETATTR_ALLOWED = frozenset(
     }
 )
 
-_MUTATORS = frozenset({"append", "remove", "extend", "pop", "clear", "insert", "sort", "reverse"})
+_MUTATORS = frozenset(
+    {
+        "append", "remove", "extend", "pop", "clear", "insert", "sort", "reverse",
+        "update", "setdefault", "popitem",
+    }
+)
+
+
+def _protected(target: ast.expr) -> ast.expr:
+    """Dla ``x.pole[klucz]`` zwraca ``x.pole`` (zapis do słownika/listy w polu stanu)."""
+    return target.value if isinstance(target, ast.Subscript) else target
 
 
 def _flatten(target: ast.expr) -> list[ast.expr]:
@@ -65,6 +81,8 @@ def _writes(path: Path, fields: set[str]) -> list[tuple[int, str]]:
             targets = [leaf for t in node.targets for leaf in _flatten(t)]
         elif isinstance(node, ast.AugAssign | ast.AnnAssign):
             targets = _flatten(node.target)
+        elif isinstance(node, ast.Delete):
+            targets = [leaf for t in node.targets for leaf in _flatten(t)]
         elif (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
@@ -74,7 +92,8 @@ def _writes(path: Path, fields: set[str]) -> list[tuple[int, str]]:
             targets = [node.func.value]
         else:
             continue
-        for target in targets:
+        for raw in targets:
+            target = _protected(raw)
             if isinstance(target, ast.Attribute) and target.attr in fields:
                 found.append((node.lineno, target.attr))
     return found

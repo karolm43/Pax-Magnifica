@@ -113,6 +113,33 @@ def test_wyczerpanie_i_odswiezenie_technologii() -> None:
     assert state.players["p1"].exhausted_technologies == []
 
 
+def test_karty_strategii_wyczerpanie_idempotentne_i_odswiezenie() -> None:
+    state = _state()
+    exhaust.exhaust_strategy_card(state, "p1", 3)
+    exhaust.exhaust_strategy_card(state, "p1", 3)
+    exhaust.exhaust_strategy_card(state, "p1", 5)
+    assert state.players["p1"].exhausted_strategy_cards == [3, 5]
+    exhaust.ready_all_strategy_cards(state, "p1")
+    assert state.players["p1"].exhausted_strategy_cards == []
+
+
+def test_liderzy_wyczerpanie_i_odswiezenie_nie_rusza_zablokowanych() -> None:
+    state = _state()
+    state.players["p1"].leader_states = {"agent": "unlocked", "hero": "locked"}
+    exhaust.exhaust_leader(state, "p1", "agent")
+    assert state.players["p1"].leader_states == {"agent": "exhausted", "hero": "locked"}
+    exhaust.ready_all_leaders(state, "p1")
+    assert state.players["p1"].leader_states == {"agent": "unlocked", "hero": "locked"}
+
+
+def test_przelom_wyczerpanie_i_odswiezenie() -> None:
+    state = _state()
+    exhaust.exhaust_breakthrough(state, "p1")
+    assert state.players["p1"].breakthrough_exhausted is True
+    exhaust.ready_breakthrough(state, "p1")
+    assert state.players["p1"].breakthrough_exhausted is False
+
+
 def test_nieznany_gracz_jest_bledem() -> None:
     state = _state()
     with pytest.raises(ValueError, match="Unknown player"):

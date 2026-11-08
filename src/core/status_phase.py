@@ -373,15 +373,12 @@ def finalize_status(state: GameState, registry: StaticDataRegistry) -> GameState
     """Kroki 6 (Ready Cards) i 7 (Repair Units); potem czeka na mówcę (krok 8)."""
     del registry
     assert state.status is not None
-    for player_id, player in state.players.items():
+    for player_id in state.players:
         exhaust.ready_all_planets(state, player_id)
         exhaust.ready_all_technologies(state, player_id)
-        player.exhausted_strategy_cards = []
-        player.breakthrough_exhausted = False
-        player.leader_states = {
-            leader_id: ("unlocked" if leader_state == "exhausted" else leader_state)
-            for leader_id, leader_state in player.leader_states.items()
-        }
+        exhaust.ready_all_strategy_cards(state, player_id)
+        exhaust.ready_breakthrough(state, player_id)
+        exhaust.ready_all_leaders(state, player_id)
     _log(state.status, 6, "readied_cards")
     repair_all(state)
     _log(state.status, 7, "repaired_units")

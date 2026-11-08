@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import command_tokens
+from src.core import command_tokens, control
 from src.core.battle import space_combat_required
 from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
@@ -371,9 +371,9 @@ def capture_planet(
 
     new_state = state.clone()
     player_id = resolve_player_id(faction_key, new_state)
-    system = _ensure_system(new_state, position, grid)
+    _ensure_system(new_state, position, grid)
     # Nadpisanie właściciela (jeden kontroler planety — poprzedni traci kontrolę).
-    system.planet_owners[planet] = player_id
+    control.set_planet_control(new_state, position, planet, player_id)
     return new_state
 
 

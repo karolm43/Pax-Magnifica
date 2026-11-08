@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from src.core import control
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.models import FactionDef
 from src.core.unit_catalog import FLEET_CODE_TO_BASE_TYPE, Placement, placement_of
@@ -245,10 +246,9 @@ def apply_setup_to_state(
         system.space_units[player_id] = dict(plan.space_units)
     for planet_id, units in plan.planet_units.items():
         system.planet_units.setdefault(planet_id, {})[player_id] = dict(units)
-    for planet_id in plan.home_planets:
-        system.planet_owners[planet_id] = player_id
-
     new_state.systems[unit_pos] = system
+    for planet_id in plan.home_planets:
+        control.set_planet_control(new_state, unit_pos, planet_id, player_id)
     return new_state
 
 

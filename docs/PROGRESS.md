@@ -35,13 +35,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - **C3 ✅ Wyczerpywanie:** nowy `core/exhaust.py` (`exhaust_planets`, `ready_planets`, `ready_all_planets`, `exhaust_technology`,
   `ready_all_technologies`). Przepięto: `payment`, `technology.apply_research`, `invasion` (utrata/zdobycie planety),
   `status_phase.finalize_status`, `exploration`, `strategy_cards/common`.
-- **Strażnik C8 (częściowo):** `tests/test_central_points.py` (AST) pilnuje właściciela pól `trade_goods`, `commodities`, 4 pól żetonów
-  i 2 list exhausted; wykrywa przypisania (także krotkowe), mutacje list (`append`/`remove`…) i `setattr` poza listą dozwolonych modułów.
-  Kolejne pola dopisujemy do `OWNERS`.
+- **C3 (uzupełnienie) ✅ Liderzy, karty strategii, przełom:** `core/exhaust.py` rozszerzony o `exhaust_strategy_card`/`ready_all_strategy_cards`
+  (`strategic_action`, `strategy_phase`), `exhaust_leader`/`ready_all_leaders` i `exhaust_breakthrough`/`ready_breakthrough`
+  (`status_phase`, krok 6). Uwaga: w grze liderzy są dziś wyczerpywani tylko God-Modem (brak akcji „użyj lidera"), więc `exhaust_leader`
+  czeka na pierwszego wołającego (E4/E7).
+- **C4 ✅ Kontrola planet:** nowy `core/control.py` (`set_planet_control(state, position, planet, owner|None)`): ustawia `planet_owners`,
+  utrzymuje lustro `controlled_planets` obu graczy i zdejmuje znacznik wyczerpania poprzedniemu kontrolerowi. Przepięto: `invasion`
+  (przejęcie i remis), `tactical.take_control`, `faction_setup` (planety domowe). Zdobywca nadal dostaje planetę wyczerpaną
+  (decyzja `invasion`, nie `control`). Zmiana zachowania: `tactical.take_control` aktualizuje teraz też `controlled_planets`.
+- **Strażnik C8 (częściowo):** `tests/test_central_points.py` (AST) pilnuje właściciela 13 pól (TG, commodities, 4 pola żetonów,
+  5 pól wyczerpania, `planet_owners`, `controlled_planets`); wykrywa przypisania (także krotkowe), zapis/`del` po kluczu, mutacje kolekcji
+  (`append`/`remove`/`update`…) i `setattr` poza listą dozwolonych modułów. Kolejne pola dopisujemy do `OWNERS`.
 - Zmiany zachowania (tylko ścieżki „nie do osiągnięcia" po wcześniejszej walidacji): zdjęcie żetonu/TG ponad stan i zdobycie żetonu przy
   pustej rezerwie → `ValueError` zamiast liczby ujemnej.
-- Testy: `tests/test_economy.py`, `tests/test_command_tokens_exhaust.py`; pełny zestaw 844 testów, ruff, mypy zielone.
-- **Dalej:** C4 kontrola planet, C5 operacje na jednostkach, C6 `gain_technology`, C7 VP/karty.
+- Testy: `tests/test_economy.py`, `tests/test_command_tokens_exhaust.py`, `tests/test_control.py`; pełny zestaw 853 testy, ruff, mypy zielone.
+- **Dalej:** C5 operacje na jednostkach (największy), C6 `gain_technology`, C7 VP/karty.
   Uwaga: `production.available_budget`/`auto_pay` i `objective_progress` nadal CZYTAJĄ `trade_goods` na własny sposób (odczyt, nie zapis);
   do ujednolicenia razem z hookiem źródeł płatności w H2.
 

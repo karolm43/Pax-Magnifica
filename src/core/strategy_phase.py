@@ -13,7 +13,7 @@ akumulacja +1 TG na niewybranych kartach na koniec fazy, oznaczenie karty jako z
 
 from __future__ import annotations
 
-from src.core import economy
+from src.core import economy, exhaust
 from src.core.game_state import GameState
 from src.core.models import StrategyCardDef
 from src.core.registry import StaticDataRegistry
@@ -248,12 +248,7 @@ def play_strategy_card(
         raise ValueError(f"Player does not hold the initiative card {initiative}.")
 
     new_state = state.clone()
-    target = new_state.players[player_id]
-    if initiative not in target.exhausted_strategy_cards:
-        target.exhausted_strategy_cards = [
-            *target.exhausted_strategy_cards,
-            initiative,
-        ]
+    exhaust.exhaust_strategy_card(new_state, player_id, initiative)
     return new_state
 
 
@@ -316,9 +311,9 @@ def reset_strategy_cards(state: GameState) -> GameState:
     (``strategy_card_tg``) NIE są czyszczone — akumulują się między rundami.
     """
     new_state = state.clone()
-    for player in new_state.players.values():
+    for player_id, player in new_state.players.items():
         player.strategy_cards = []
-        player.exhausted_strategy_cards = []
+        exhaust.ready_all_strategy_cards(new_state, player_id)
     # Nowa faza strategii zaczyna wybierać mówca (speaker) — RULES.md 24.
     # Fallback na mówcę przy niepełnym secie (picker = None), by nie zostawić
     # None w toczącej się partii (RULES.md 31.4).
