@@ -38,9 +38,65 @@ def _card(registry: StaticDataRegistry, agenda_id: str | None) -> dict[str, Any]
         "name": getattr(definition, "name", agenda_id),
         "type": getattr(definition, "type", None),
         "target": getattr(definition, "target", None),
-        "text1": getattr(definition, "text1", None),
-        "text2": getattr(definition, "text2", None),
+        "text1": _text(definition, "text1"),
+        "text2": _text(definition, "text2"),
     }
+
+
+def _text(definition: object, key: str) -> str | None:
+    """Tekst karty z ``texts`` (alias/text1/text2/mapText są tam, nie jako pola modelu)."""
+    texts = getattr(definition, "texts", None) or {}
+    value = texts.get(key)
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def _outcome_info(
+    state: GameState, registry: StaticDataRegistry, kind: str, outcome: str
+) -> str:
+    """Czytelny opis wyniku dla listy praw (gracz/planeta/karta strategii/prawo)."""
+    if outcome == "for":
+        return "For"
+    if outcome == "against":
+        return "Against"
+    if kind in ("planet", "planet_non_home", "planet_non_home_not_mecatol"):
+        planet = registry.planets.get(outcome)
+        return planet.name if planet is not None else outcome
+    if kind == "law":
+        other = agenda_phase.agenda_def(registry, outcome)
+        return other.name or outcome if other is not None else outcome
+    return outcome.replace("_", " ").title() if outcome not in state.players else outcome
+
+
+def build_laws_in_play(
+    state: GameState, registry: StaticDataRegistry, entity_keys: dict[str, str]
+) -> list[dict[str, Any]]:
+    """Prawa w grze w kontrakcie ``LawInPlay`` (panel General, `LawCard`)."""
+    laws: list[dict[str, Any]] = []
+    for index, (card, outcome) in enumerate(state.decks.agenda_laws.items()):
+        definition = agenda_phase.agenda_def(registry, card)
+        target = (definition.target if definition is not None else None) or ""
+        kind = agenda_phase.classify_target(target)
+        owner = agenda_phase.law_owner(state, registry, card)
+        laws.append(
+            {
+                "id": card,
+                "name": (definition.name if definition is not None else None) or card,
+                "uniqueId": index + 1,
+                "type": (definition.type if definition is not None else None) or "Law",
+                "target": target,
+                "text1": _text(definition, "text1") or "",
+                "text2": _text(definition, "text2") or "",
+                "mapText": _text(definition, "mapText") or "",
+                "electedInfo": None if owner is not None else _outcome_info(
+                    state, registry, kind, outcome
+                ),
+                "electedFaction": entity_keys.get(owner, owner) if owner is not None else None,
+                "electedType": "player" if owner is not None else kind,
+                "controlTokens": [],
+                "displaysElectedFaction": owner is not None,
+            }
+        )
+    return laws
 
 
 def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict[str, Any] | None:

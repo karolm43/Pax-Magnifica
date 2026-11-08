@@ -1,0 +1,1 @@
+export { OwnedLaw } from "./OwnedLaw";

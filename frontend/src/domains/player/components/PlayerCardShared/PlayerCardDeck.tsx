@@ -87,6 +87,7 @@ export function PlayerCardDeck({ playerData }: Props) {
   );
 
   const hasHoldings =
+    (player.lawsOwned?.length ?? 0) > 0 ||
     Object.keys(player.secretsScored ?? {}).length > 0 ||
     (player.soCount ?? 0) > 0 ||
     (player.relics?.length ?? 0) > 0 ||
@@ -172,6 +173,7 @@ export function PlayerCardDeck({ playerData }: Props) {
               soCount={player.soCount}
               promissoryNotes={promissoryNotes}
               relics={player.relics}
+              laws={player.lawsOwned}
               exhaustedRelics={player.exhaustedRelics}
             />
           </Compartment>

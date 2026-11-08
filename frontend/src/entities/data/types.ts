@@ -808,6 +808,8 @@ export type PlayerData = {
   followedSCs: number[];
   unfollowedSCs: number[];
   promissoryNotesInPlayArea: string[];
+  /** Prawa w strefie gracza (wygrane wybory „Elect Player", RULES.md 51) - id agend. */
+  lawsOwned?: string[];
   customPromissoryNotes?: string[];
   techs: string[];
   exhaustedTechs: string[];

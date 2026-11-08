@@ -497,6 +497,29 @@ def skip_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
     return turn_flow.next_round(work)
 
 
+_PLAYER_KINDS = ("player", "player_techs", "player_or_against")
+
+
+def law_owner(state: GameState, registry: StaticDataRegistry, agenda_id: str) -> str | None:
+    """Gracz, który POSIADA prawo w grze (wygrał wybory „Elect Player"), albo ``None``.
+
+    R_agenda_card: prawo leżące w strefie gracza należy do niego. Wynik wyborów gracza jest
+    zapisany w ``decks.agenda_laws`` jako jego ``player_id`` - to jedyne źródło prawdy.
+    """
+    outcome = state.decks.agenda_laws.get(agenda_id)
+    definition = agenda_def(registry, agenda_id)
+    if outcome is None or definition is None or outcome not in state.players:
+        return None
+    return outcome if classify_target(definition.target) in _PLAYER_KINDS else None
+
+
+def owned_laws(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[str]:
+    """Prawa leżące w strefie gracza (jawne, kolejność wejścia w życie)."""
+    return [
+        card for card in state.decks.agenda_laws if law_owner(state, registry, card) == player_id
+    ]
+
+
 def is_agenda_phase(state: GameState) -> bool:
     """Czy trwa zainicjowana faza agendy (steruje bramą ``Next phase`` i oknem UI)."""
     return state.phase is Phase.AGENDA and state.agenda is not None

@@ -162,6 +162,7 @@ export default function PlayerCardSidebar(props: Props) {
             soCount={player.soCount}
             promissoryNotes={promissoryNotes}
             relics={player.relics}
+            laws={player.lawsOwned}
             exhaustedRelics={player.exhaustedRelics}
           />
         </Block>

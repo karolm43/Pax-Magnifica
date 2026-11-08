@@ -233,3 +233,24 @@ def test_entering_agenda_phase_initialises_state(registry: StaticDataRegistry) -
     assert out.active_player_id == "p2"
     with pytest.raises(ValueError, match="steps"):
         turn_flow.advance_active_player(out)
+
+
+def test_elected_player_owns_law_in_play(registry: StaticDataRegistry) -> None:
+    from src.api import web_agenda
+
+    elect_law = next(
+        agenda_id
+        for agenda_id, a in registry.catalog.all(ComponentCategory.AGENDA).items()
+        if agenda_phase.classify_target(getattr(a, "target", None)) == "player"
+        and (getattr(a, "type", "") or "").lower() == "law"
+    )
+    state = agenda_phase.reveal_agenda(_state(registry, [elect_law]), registry, "p2")
+    state = agenda_phase.cast_vote(state, registry, "p3", "p1", [_planet_of(state, "p3")])
+    state = agenda_phase.abstain(state, registry, "p1")
+    state = agenda_phase.abstain(state, registry, "p2")
+    assert state.decks.agenda_laws == {elect_law: "p1"}
+    assert agenda_phase.owned_laws(state, registry, "p1") == [elect_law]
+    assert agenda_phase.owned_laws(state, registry, "p3") == []
+    laws = web_agenda.build_laws_in_play(state, registry, {"p1": "faction_a"})
+    assert laws[0]["id"] == elect_law
+    assert laws[0]["electedFaction"] == "faction_a" and laws[0]["displaysElectedFaction"]

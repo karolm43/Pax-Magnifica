@@ -3,6 +3,7 @@ import cx from "clsx";
 import { ScoredSecret } from "@/domains/player/components/ScoredSecret";
 import { UnscoredSecret } from "@/domains/player/components/ScoredSecret/UnscoredSecret";
 import { Relic } from "@/domains/player/components/Relic";
+import { OwnedLaw } from "@/domains/player/components/OwnedLaw";
 import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
 import { PhantomSlot } from "@/domains/player/components/PhantomSlot/PhantomSlot";
 import { chunkInto } from "@/domains/player/components/Tech/TechGridShared";
@@ -16,6 +17,8 @@ type ObjectivesRackProps = {
   soCount?: number;
   promissoryNotes: string[];
   relics: string[];
+  /** Prawa w strefie gracza (wygrane wybory agendy, RULES.md 51). */
+  laws?: string[];
   exhaustedRelics?: string[];
   minColumns?: number;
   /** Rack depth imposed from outside, so sibling racks share a row count. */
@@ -51,6 +54,7 @@ function countObjectiveItems({
   soCount,
   promissoryNotes,
   relics,
+  laws,
 }: ObjectiveCounts): { secretCount: number; otherCount: number } {
   const knownUnscoredCount = Object.keys(knownUnscoredSecrets ?? {}).length;
 
@@ -59,7 +63,7 @@ function countObjectiveItems({
       Object.keys(secretsScored).length +
       knownUnscoredCount +
       Math.max((soCount ?? 0) - knownUnscoredCount, 0),
-    otherCount: relics.length + promissoryNotes.length,
+    otherCount: relics.length + promissoryNotes.length + (laws?.length ?? 0),
   };
 }
 
@@ -93,6 +97,7 @@ export function getGameObjectiveColumnCount(players: PlayerData[]): number {
         soCount: player.soCount,
         promissoryNotes: player.promissoryNotesInPlayArea ?? [],
         relics: player.relics ?? [],
+        laws: player.lawsOwned ?? [],
       })
     )
   );
@@ -123,6 +128,7 @@ export function ObjectivesRack({
   soCount,
   promissoryNotes,
   relics,
+  laws = [],
   exhaustedRelics,
   minColumns = 1,
   minRows = 0,
@@ -158,6 +164,7 @@ export function ObjectivesRack({
         isExhausted={exhaustedRelics?.includes(relicId) ?? false}
       />
     )),
+    ...laws.map((lawId) => <OwnedLaw key={`law-${lawId}`} lawId={lawId} />),
     ...promissoryNotes.map((promissoryNoteId) => (
       <PromissoryNote
         key={`pn-${promissoryNoteId}`}

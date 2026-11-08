@@ -43,6 +43,9 @@ import styles from "./AgendaOverlay.module.css";
 
 const BACKDROP = 'url("/static/extra/agenda2.jpg"), url("/static/extra/starfield.png")';
 
+/** Ile żetonów głosów rysujemy przy delegacie (reszta jako „+n"). */
+const MAX_COINS = 14;
+
 type Look = { name: string; rgb: string; faction: string | null };
 
 function rgbOf(player: PlayerData | undefined): string {
@@ -113,32 +116,67 @@ function Senate({
     if (agenda.step === "VOTE" && agenda.currentVoter === id) return "now";
     return "waiting";
   };
-  const seatBody = (id: string) => {
+  /** Delegat: postać za pulpitem, plakietka, stos żetonów głosów i wybrany wynik. */
+  const seatBody = (id: string, isSpeaker = false) => {
     const look = lookOf(id);
     const st = stateOf(id);
     const vote = agenda.votes[id];
     const voter: AgendaVoter | undefined = agenda.voters[id];
+    // Żetony: po jednym na głos. Oddane = pełne, w rezerwie = puste (ile jeszcze ma do wydania).
+    const cast = vote?.votes ?? 0;
+    const reserve = st === "voted" || st === "abstained" ? 0 : (voter?.available ?? 0);
+    const shownCast = Math.min(cast, MAX_COINS);
+    const shownReserve = Math.min(reserve, Math.max(0, MAX_COINS - shownCast));
+    const hidden = cast + reserve - shownCast - shownReserve;
     return (
       <div
-        className={styles.seat}
+        className={styles.delegate}
         data-state={st}
+        data-speaker={isSpeaker || undefined}
         style={{ "--seat-rgb": look.rgb } as CSSProperties}
+        title={`${look.name}: ${cast > 0 ? `${cast} votes` : `${voter?.available ?? 0} influence ready`}`}
       >
-        <span className={styles.seatIcon}>
-          {look.faction ? <CircularFactionIcon faction={look.faction} size={34} /> : null}
-        </span>
-        <b className={styles.seatName}>{look.name}</b>
-        <span className={styles.seatInfo}>
-          {st === "voted" && vote
-            ? `${vote.votes} → ${outcomeLabel(agenda, vote.outcome, lookOf)}`
-            : st === "abstained"
-              ? "Abstained"
-              : st === "blocked"
-                ? "Cannot vote"
-                : st === "now"
-                  ? "Speaking"
-                  : `${voter?.available ?? 0} influence`}
-        </span>
+        {st === "voted" && vote ? (
+          <span className={styles.cloud}>
+            <b>{vote.votes}</b>
+            <span>{outcomeLabel(agenda, vote.outcome, lookOf)}</span>
+          </span>
+        ) : st === "abstained" ? (
+          <span className={styles.cloud} data-muted>
+            Abstains
+          </span>
+        ) : st === "now" ? (
+          <span className={styles.cloud} data-live>
+            Speaking
+          </span>
+        ) : null}
+        <div className={styles.figure} aria-hidden="true">
+          <span className={styles.head} />
+          <span className={styles.shoulders}>
+            {look.faction ? <CircularFactionIcon faction={look.faction} size={26} /> : null}
+          </span>
+        </div>
+        <div className={styles.desk}>
+          <b className={styles.seatName}>{look.name}</b>
+          <span className={styles.coins}>
+            {Array.from({ length: shownCast }, (_, i) => (
+              <i key={`c${i}`} className={styles.coin} data-cast />
+            ))}
+            {Array.from({ length: shownReserve }, (_, i) => (
+              <i key={`r${i}`} className={styles.coin} />
+            ))}
+            {hidden > 0 ? <small>+{hidden}</small> : null}
+          </span>
+          <span className={styles.seatInfo}>
+            {st === "voted"
+              ? `${cast} cast`
+              : st === "abstained"
+                ? "no votes"
+                : st === "blocked"
+                  ? "cannot vote"
+                  : `${voter?.available ?? 0} to spend`}
+          </span>
+        </div>
       </div>
     );
   };
@@ -153,8 +191,8 @@ function Senate({
           // Rozmieszczenie na łuku 180° -> 0° (lewa strona stołu = pierwszy głosujący).
           const t = count === 1 ? 0.5 : i / (count - 1);
           const angle = Math.PI * (1 - t);
-          const x = 50 + 42 * Math.cos(angle);
-          const y = 88 - 74 * Math.sin(angle);
+          const x = 50 + 40 * Math.cos(angle);
+          const y = 80 - 52 * Math.sin(angle);
           return (
             <div
               key={id}
@@ -171,7 +209,7 @@ function Senate({
             <span className={styles.podiumTag}>
               <IconCrown size={13} aria-hidden="true" /> Speaker · votes last
             </span>
-            {seatBody(speaker)}
+            {seatBody(speaker, true)}
           </div>
         ) : null}
       </div>

@@ -191,6 +191,7 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
       knownUnscoredSecrets: player.knownUnscoredSecrets,
       soCount: player.soCount,
       promissoryNotes,
+      laws: player.lawsOwned,
       relics: player.relics,
     }),
     getTechGridMobileRowCount(filteredTechs, techColumns),
@@ -325,6 +326,7 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
           soCount={player.soCount}
           promissoryNotes={promissoryNotes}
           relics={player.relics}
+          laws={player.lawsOwned}
           exhaustedRelics={player.exhaustedRelics}
           minColumns={objectiveColumns}
           minRows={rackRows}

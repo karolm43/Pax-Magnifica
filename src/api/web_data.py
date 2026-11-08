@@ -28,9 +28,9 @@ from __future__ import annotations
 from typing import Any
 
 from src.api import web_agenda, web_objectives, web_setup
+from src.core import agenda_phase, production, space_cannon, strategy_phase, turn_flow
 from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
-from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.army_strength import ArmyStrength, army_strength_by_player
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.components import ComponentCategory
@@ -1327,6 +1327,8 @@ def _build_player_data(
                 # od licznika ręki ``pnCount`` (ręka tajna). Puste do czasu logiki
                 # zagrywania notek; dziś zasilane przez God-Mode.
                 "promissoryNotesInPlayArea": list(player.promissory_notes_in_play),
+                # Prawa w strefie gracza (wygrane wybory „Elect Player", RULES.md 51) - jawne.
+                "lawsOwned": agenda_phase.owned_laws(state, registry, player_id),
                 # Własna FRAKCYJNA notka gracza (loadout — każdy zaczyna z jedną,
                 # np. Sol ``ms``, Hacan ``convoys``). Jawny fakt statyczny z danych
                 # frakcji; frontend renderuje w sekcji loadoutu (abilities/techy).
@@ -1549,7 +1551,7 @@ def build_web_data(
         "playerData": _build_player_data(projected, registry, grid, entity_keys),
         "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
         "gameState": _build_game_state(projected, registry, grid),
-        "lawsInPlay": [],
+        "lawsInPlay": web_agenda.build_laws_in_play(projected, registry, entity_keys),
         "strategyCards": _build_strategy_cards(projected, registry, entity_keys),
         "objectives": web_objectives.build_objectives(
             projected, registry, grid, entity_keys
