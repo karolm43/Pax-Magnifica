@@ -42,7 +42,7 @@ Minimalny start sesji:
   (sekcja 5.1) i świadoma decyzja — moja pamięć reguł TI4 jest zawodna.
 - **Dane liczbowe** (jednostki, planety, technologie, koszty) czytaj WYŁĄCZNIE
   z assetów AsyncTI4 przez `StaticDataRegistry`. Zero hardkodowania.
-- **GŁÓWNE ŹRÓDŁO REGUŁ: https://www.tirules2.com/** — to podstawowe, nadrzędne
+- **GŁÓWNE ŹRÓDŁO REGUŁ: folder docs/rules_tirules* — to podstawowe, nadrzędne
   źródło prawdy dla WSZYSTKICH reguł TI4 w projekcie. Zawiera pełny Living Rules
   Reference 2.0 (PoK) + noty do Codexów (do IV) i wstępne noty do Thunder's Edge,
   plus rulingi Dane Beltramiego i konsensus społeczności. KAŻDA sesja/czat weryfikuje
