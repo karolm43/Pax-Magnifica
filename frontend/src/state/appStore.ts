@@ -229,6 +229,9 @@ type AppStore = {
   /** Okno produkcji (RULES.md 33.3): domyślnie ZAMKNIĘTE (true); otwiera je przycisk „Open production". */
   productionHidden: boolean;
   setProductionHidden: (hidden: boolean) => void;
+  /** Okno Rady Galaktycznej (faza agendy, RULES.md 51): domyślnie OTWARTE; „Show board" je chowa. */
+  agendaHidden: boolean;
+  setAgendaHidden: (hidden: boolean) => void;
 
   dragLoadTarget: { position: string; asyncId: string } | null;
   setDragLoadTarget: (
@@ -394,6 +397,8 @@ export const useAppStore = create<AppStore>((set) => {
     setBattleHidden: (hidden: boolean) => set({ battleHidden: hidden }),
     productionHidden: true,
     setProductionHidden: (hidden: boolean) => set({ productionHidden: hidden }),
+    agendaHidden: false,
+    setAgendaHidden: (hidden: boolean) => set({ agendaHidden: hidden }),
 
     dragLoadTarget: null,
     setDragLoadTarget: (target) => set({ dragLoadTarget: target }),

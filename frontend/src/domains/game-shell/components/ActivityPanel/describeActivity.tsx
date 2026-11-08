@@ -8,6 +8,7 @@ import {
   IconCrown,
   IconFlag,
   IconFlame,
+  IconGavel,
   IconHexagon,
   IconPlayerPause,
   IconPlayerTrackNext,
@@ -83,6 +84,8 @@ const ACTION_GLYPH: Record<string, Glyph> = {
   "speaker.set": IconCrown,
   "tactical.activate": IconHexagon,
   "objective.score": IconTarget,
+  "agenda.reveal": IconGavel,
+  "agenda.vote": IconGavel,
   "spacecannon.fire": IconFlame,
   "setup.faction": IconUser,
 };
@@ -93,6 +96,14 @@ function playerName(ctx: ActivityContext, id: string | null): string {
   if (!p) return prettifyId(id);
   if (p.display_name.trim()) return p.display_name.trim();
   return p.faction ? prettifyId(p.faction) : prettifyId(id);
+}
+
+/** Nazwa wyniku agendy: gracz, For/Against albo planeta (reszta - ładny id). */
+function agendaOutcomeName(ctx: ActivityContext, outcome: string | null): string {
+  if (!outcome) return "an outcome";
+  if (ctx.players[outcome]) return playerName(ctx, outcome);
+  if (outcome === "for" || outcome === "against") return prettifyId(outcome);
+  return resolvePlanetName(outcome);
 }
 
 function strategyCardName(ctx: ActivityContext, initiative: string | null) {
@@ -289,6 +300,35 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           {actor} scored{" "}
           <Named kind="objective" id={a.subject ?? ""} name={resolveObjectiveName(a.subject ?? "")} />
         </>
+      );
+    case "agenda.reveal":
+      return (
+        <>
+          {actor} revealed <b>{resolveAgendaName(a.subject ?? "")}</b>
+        </>
+      );
+    case "agenda.vote":
+      return (
+        <>
+          {actor} cast <b>{a.detail ?? "?"}</b> votes for{" "}
+          <b>{agendaOutcomeName(ctx, a.subject)}</b>
+        </>
+      );
+    case "agenda.abstain":
+      return <>{actor} abstained</>;
+    case "agenda.decide":
+      return (
+        <>
+          {actor} chose <b>{agendaOutcomeName(ctx, a.subject)}</b> (tie)
+        </>
+      );
+    case "agenda.discard":
+      return <>{actor} discarded an unresolvable agenda</>;
+    case "agenda.next":
+      return a.subject === "COMPLETE" ? (
+        <>Agendas resolved - planets readied</>
+      ) : (
+        <>{actor} moved on to the next agenda</>
       );
     case "scoring.finish":
       return <>Scoring finished</>;

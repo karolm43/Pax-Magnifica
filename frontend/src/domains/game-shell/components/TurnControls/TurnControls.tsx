@@ -198,6 +198,9 @@ export function TurnControls() {
   // stary przycisk „Next player" zostaje tylko dla statusu wprowadzonego God-Mode.
   const statusInSteps = isStatus && gameState?.status != null;
   const isAgenda = phase.startsWith("agenda");
+  // Zainicjowana faza agendy (RULES.md 51) prowadzi okno Rady (AgendaOverlay): pasy i
+  // przewijanie graczy znikają, koniec fazy odblokowuje się po obu agendach.
+  const agendaInSteps = isAgenda && gameState?.agendaPhase != null;
   const isSpeaker =
     gameState?.speaker != null && active.color === gameState.speaker;
   // „Next phase" widzi ZAWSZE mówca (w każdej głównej fazie). Gdy przejście nie jest
@@ -523,7 +526,7 @@ export function TurnControls() {
           {/* Faza AGENDA: „Pass" KOŃCZY część gracza (reakcja/głos), „Next player"
               tylko przewija wskaźnik bez kończenia kogokolwiek. Oba BEZ player_id —
               backend adresuje swojego aktywnego gracza. */}
-          {isAgenda && (
+          {isAgenda && !agendaInSteps && (
             <>
               <button
                 type="button"
@@ -560,11 +563,19 @@ export function TurnControls() {
               className={styles.nextPhase}
               style={{ "--d": isAction ? "120ms" : "60ms" } as CSSProperties}
               disabled={
-                busy || (statusInSteps && gameState?.canAdvancePhase !== true)
+                busy ||
+                ((statusInSteps || agendaInSteps) &&
+                  gameState?.canAdvancePhase !== true)
               }
-              onClick={() => run(isAgenda ? nextRound : nextPhase)}
+              onClick={() =>
+                run(isAgenda && !agendaInSteps ? nextRound : nextPhase)
+              }
               title={
-                isAgenda
+                agendaInSteps
+                  ? gameState?.canAdvancePhase
+                    ? "End the agenda phase and start the next round"
+                    : "Resolve both agendas in the Galactic Council first"
+                  : isAgenda
                   ? "End the agenda phase and start the next round"
                   : statusInSteps
                     ? gameState?.canAdvancePhase

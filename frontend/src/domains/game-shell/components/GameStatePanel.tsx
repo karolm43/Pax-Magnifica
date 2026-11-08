@@ -1592,6 +1592,8 @@ function PhaseControls({
   // przycisk „Next player" zostaje tylko dla statusu wprowadzonego God-Mode.
   const statusInSteps = isStatus && gameState.status != null;
   const isAgenda = phase.startsWith("agenda");
+  // Zainicjowana faza agendy (RULES.md 51) prowadzi okno Rady (AgendaOverlay).
+  const agendaInSteps = isAgenda && gameState.agendaPhase != null;
   // Otwarte okno czasowe (secondary itp.) blokuje End turn (RULES.md 31.6).
   const windowOpen = gameState.pendingWindow != null;
   // Czy aktywny gracz już spasował / wykonał akcję w tej turze (RULES.md 31.5/31.7).
@@ -1714,7 +1716,7 @@ function PhaseControls({
       )}
       {/* Faza agendy: „Pass" kończy część gracza, „Next player" tylko przewija.
           Oba BEZ player_id — backend adresuje swojego aktywnego gracza. */}
-      {isAgenda && (
+      {isAgenda && !agendaInSteps && (
         <>
           <button
             type="button"
@@ -1754,8 +1756,8 @@ function PhaseControls({
           <button
             type="button"
             className={styles.ctlBtnGhost}
-            disabled={busy}
-            onClick={() => void run(nextRound)}
+            disabled={busy || (agendaInSteps && gameState.canAdvancePhase !== true)}
+            onClick={() => void run(agendaInSteps ? nextPhase : nextRound)}
           >
             New round
           </button>

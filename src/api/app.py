@@ -23,6 +23,7 @@ from src.api.connection_manager import ConnectionManager
 from src.api.context import AppContext
 from src.api.demo_map import build_demo_grid
 from src.api.routers import (
+    agenda,
     battle,
     board,
     capacity,
@@ -105,6 +106,7 @@ def create_app(
     app.include_router(flow.router)
     app.include_router(setup.router)
     app.include_router(status.router)
+    app.include_router(agenda.router)
     app.include_router(epilogue.router)
     app.include_router(strategy.router)
     app.include_router(history.router)

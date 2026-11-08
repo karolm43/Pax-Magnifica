@@ -179,6 +179,64 @@ class StatusPhaseState(BaseModel):
     log: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class AgendaStep(StrEnum):
+    """Krok fazy agendy, na którym stoi gra (R_agenda_phase, RULES.md 51).
+
+    - ``REVEAL`` — mówca ma ujawnić kolejną agendę (krok 1/2: „Reveal Agenda");
+    - ``VOTE`` — gracze głosują po kolei od lewej mówcy (mówca ostatni);
+    - ``TIEBREAK`` — remis albo brak głosów: mówca (nie głosem) wybiera wynik;
+    - ``RESOLVED`` — wynik ustalony i widoczny, czeka na „dalej" mówcy;
+    - ``COMPLETE`` — obie agendy rozstrzygnięte, planety odświeżone (krok 3);
+      czeka na „Next phase" mówcy.
+    """
+
+    REVEAL = "REVEAL"
+    VOTE = "VOTE"
+    TIEBREAK = "TIEBREAK"
+    RESOLVED = "RESOLVED"
+    COMPLETE = "COMPLETE"
+
+
+class AgendaVote(BaseModel):
+    """Oddane głosy jednego gracza: jeden wynik, wyczerpane planety i suma głosów."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    outcome: str
+    votes: int
+    planets: list[str] = Field(default_factory=list)
+
+
+class AgendaPhaseState(BaseModel):
+    """Stan trwającej fazy agendy (``None`` poza nią) — RULES.md 51.
+
+    ``agenda_number`` = 1 albo 2 (faza rozstrzyga dwie agendy). ``kind`` = rodzaj wyniku
+    wyliczony z pola ``target`` karty (``for_against``, ``player``, ``planet``…), a
+    ``outcomes`` = dopuszczalne wyniki zamrożone w chwili ujawnienia (głosowanie nie zmienia
+    się w trakcie). ``votes`` = oddane głosy (klucz = player_id), ``abstained`` = gracze,
+    którzy zrezygnowali, ``blocked`` = gracze, którzy NIE mogą głosować przez efekt gry.
+    ``history`` = rozstrzygnięte agendy tej fazy (panel i podsumowanie).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    step: AgendaStep = AgendaStep.REVEAL
+    agenda_number: int = 1
+    agenda_id: str | None = None
+    kind: str = ""
+    outcomes: list[str] = Field(default_factory=list)
+    # Nie da się rozstrzygnąć (brak kandydatów, np. „Elect Law" bez praw w grze) — mówca odrzuca.
+    unresolvable: bool = False
+    vote_order: list[str] = Field(default_factory=list)
+    votes: dict[str, AgendaVote] = Field(default_factory=dict)
+    abstained: list[str] = Field(default_factory=list)
+    blocked: list[str] = Field(default_factory=list)
+    tied: list[str] = Field(default_factory=list)
+    resolved_outcome: str | None = None
+    decided_by_speaker: bool = False
+    history: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class ObjectivesState(BaseModel):
     """Cele publiczne gry: talie, odkryte i zdobyte (RULES.md 41.1).
 
@@ -213,6 +271,11 @@ class DecksState(BaseModel):
     agenda_deck: list[str] = Field(default_factory=list)
     agenda_discard: list[str] = Field(default_factory=list)
     agenda_deck_seeded: bool = False
+    # Prawa (laws) w grze: {id agendy: rozstrzygnięty wynik ("for" / id gracza / id planety…)}.
+    # Prawo zostaje w grze po wyniku „For" albo „Elect" (R_agenda_card); dyrektywy i „Against"
+    # trafiają na ``agenda_discard``. Efekty praw NIE są kodowane - to tylko ewidencja
+    # (RULES.md 51).
+    agenda_laws: dict[str, str] = Field(default_factory=dict)
     # Talie eksploracji (RULES.md 46): klucz = "cultural"/"hazardous"/"industrial"/"frontier".
     # Talia powstaje LENIWIE przy pierwszym dobraniu (brak klucza = jeszcze niezasiana);
     # pusta talia tasuje się z własnego stosu odrzuconych. Karty, które się purge'ują
@@ -671,6 +734,9 @@ class GameState(BaseModel):
     objectives: ObjectivesState = Field(default_factory=ObjectivesState)
     decks: DecksState = Field(default_factory=DecksState)
     status: StatusPhaseState | None = None
+    # Stan fazy agendy (RULES.md 51) - None poza nią i dla stanów wprowadzonych God-Mode
+    # bez inicjalizacji (wtedy faza zachowuje się starą ścieżką ``turn_flow``).
+    agenda: AgendaPhaseState | None = None
     # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None, gdy zakończony
     # albo gdy stan nie przechodził przez ``/game/new`` (testy, God-Mode). RULES.md 43.
     setup: SetupState | None = None

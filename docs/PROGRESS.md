@@ -124,6 +124,14 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 
 ---
 
+## ✅ Faza agendy: Rada Galaktyczna (2026-11-08) — RULES.md 51
+
+`core/agenda_phase.py` (ujawnienie → głosowanie od lewej mówcy, mówca ostatni → wynik / remis rozstrzyga mówca →
+druga agenda → odświeżenie planet → `Next phase`), router `/agenda/*`, web-data `agendaPhase`, okno
+`domains/agenda/AgendaOverlay` (Senat w półkolu, podium z kartą i słupkami głosów, urna z planetami; tło `agenda2.jpg`).
+Efekty agend NIE kodowane (wynik tylko zapisany; prawa w `decks.agenda_laws`). Założenia: RULES.md 51. Testy:
+`tests/test_agenda_phase.py`. Zmiana: wejście w AGENDĘ wskazuje mówcę (nie inicjatywę).
+
 ## ✅ Thunder's Edge: ekspedycje + The Fracture + Thunder's Edge (2026-11-08) — RULES.md 50
 
 Cały układ i koszty modułu — BEZ kodowania zdolności przełomów / legendarnej zdolności Thunder's Edge.

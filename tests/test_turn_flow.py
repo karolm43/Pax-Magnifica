@@ -321,13 +321,13 @@ def test_next_phase_action_to_status_sets_initiative_first() -> None:
 
 
 def test_next_phase_status_to_agenda_sets_initiative_first() -> None:
-    """RULES.md 31.4: wejście w AGENDA też wskazuje pierwszego wg inicjatywy."""
+    """RULES.md 51: wejście w AGENDĘ wskazuje MÓWCĘ (on ujawnia agendę), nie inicjatywę."""
     state = _state_with_players()
     state.phase = Phase.STATUS
     state.speaker_id = "p3"
     nxt = turn_flow.next_phase(state)  # STATUS -> AGENDA
     assert nxt.phase is Phase.AGENDA
-    assert nxt.active_player_id == "p1"
+    assert nxt.active_player_id == "p3"
 
 
 def test_end_turn_only_active_unpassed_keeps_turn() -> None:

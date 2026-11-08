@@ -19,6 +19,7 @@ import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
 import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
+import { AgendaOverlay } from "@/domains/agenda/AgendaOverlay";
 import { GameSetupOverlay } from "@/domains/setup/GameSetupOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
@@ -269,6 +270,8 @@ function GameMapContent() {
       {/* Okno INWAZJI (RULES.md 40) — pod polem bitwy, żeby walka naziemna otwierała się nad nim. */}
       {/* Okno PRODUKCJI (RULES.md 33.3) — otwiera się samo w kroku PRODUCTION, pod inwazją. */}
       <ProductionOverlay />
+      {/* Okno RADY GALAKTYCZNEJ (RULES.md 51) - faza agendy: ujawnienie, głosowanie, wynik. */}
+      <AgendaOverlay />
       <InvasionOverlay />
       {/* Okno EKSPLORACJI (RULES.md 46) - po Establish Control, nad oknem inwazji. */}
       <ExplorationOverlay />

@@ -531,6 +531,8 @@ export type GameState = {
   allPassed?: boolean;
   /** Stan kroków fazy statusu (RULES.md 41) — null poza zainicjowaną fazą statusu. */
   status?: StatusPhaseData | null;
+  /** Faza agendy (RULES.md 51): ujawnienie, głosowanie, wynik — null poza nią. */
+  agendaPhase?: AgendaPhaseData | null;
   /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
   winnerId?: string | null;
   /** Dlaczego gra się skończyła (ekran zwycięstwa). */
@@ -599,6 +601,95 @@ export type StatusPhaseData = {
   log: { step: number; label: string; [key: string]: unknown }[];
   isComplete: boolean;
   custodiansRemoved: boolean;
+};
+
+export type AgendaStepName =
+  | "REVEAL"
+  | "VOTE"
+  | "TIEBREAK"
+  | "RESOLVED"
+  | "COMPLETE";
+
+/** Rodzaj wyniku agendy wyliczony z pola `target` karty (core/agenda_phase.py). */
+export type AgendaKind =
+  | "for_against"
+  | "player"
+  | "player_or_against"
+  | "player_techs"
+  | "planet"
+  | "planet_non_home"
+  | "planet_non_home_not_mecatol"
+  | "planet_trait"
+  | "strategy_card"
+  | "law"
+  | "secret_objective"
+  | "public_objective"
+  | "tech_group"
+  | "command_pool"
+  | "manual";
+
+export type AgendaVotePlanet = {
+  planet: string;
+  influence: number;
+  exhausted: boolean;
+};
+
+export type AgendaVoter = {
+  planets: AgendaVotePlanet[];
+  /** Wpływ gotowych planet (głosy do wydania). */
+  available: number;
+  total: number;
+  /** Dodatkowe głosy z efektów gry (dziś 0). */
+  extra: number;
+};
+
+export type AgendaHistoryEntry = {
+  number: number;
+  agenda: string;
+  kind?: AgendaKind;
+  outcome?: string;
+  bySpeaker?: boolean;
+  stays?: boolean;
+  discarded?: boolean;
+  totals?: Record<string, number>;
+  votes?: Record<string, { outcome: string; votes: number }>;
+};
+
+/**
+ * Faza agendy (RULES.md 51). Klucze graczy to `player_id` (`discordId`). Wszystko jest
+ * jawne — głosy ogłasza się na głos (R_agenda_phase).
+ */
+export type AgendaPhaseData = {
+  step: AgendaStepName;
+  agendaNumber: number;
+  totalAgendas: number;
+  card: {
+    id: string;
+    name: string;
+    type: string | null;
+    target: string | null;
+    text1: string | null;
+    text2: string | null;
+  } | null;
+  kind: AgendaKind | "";
+  outcomes: string[];
+  unresolvable: boolean;
+  speakerId: string | null;
+  voteOrder: string[];
+  currentVoter: string | null;
+  votes: Record<string, { outcome: string; votes: number; planets: string[] }>;
+  abstained: string[];
+  blocked: string[];
+  tied: string[];
+  totals: Record<string, number>;
+  resolvedOutcome: string | null;
+  decidedBySpeaker: boolean;
+  voters: Record<string, AgendaVoter>;
+  history: AgendaHistoryEntry[];
+  lawsInPlay: Record<string, string>;
+  deckSize: number;
+  deckSeeded: boolean;
+  discardSize: number;
 };
 
 /**

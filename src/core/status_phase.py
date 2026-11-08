@@ -34,6 +34,7 @@ from src.core import (
 )
 from src.core.damage import repair_all
 from src.core.game_state import (
+    AgendaPhaseState,
     GameState,
     Phase,
     StatusPhaseState,
@@ -409,6 +410,7 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
     if not new_state.custodians_removed:
         return turn_flow.next_round(new_state)
     new_state.phase = Phase.AGENDA
+    new_state.agenda = AgendaPhaseState()  # RULES.md 51: mówca ujawnia pierwszą agendę
     for player in new_state.players.values():
         player.passed = False
         player.took_action_this_turn = False

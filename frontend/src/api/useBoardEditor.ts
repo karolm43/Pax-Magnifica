@@ -270,6 +270,66 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // --- Faza agendy (RULES.md 51) ---
+
+  // Mówca ujawnia wierzchnią agendę i otwiera głosowanie.
+  const agendaReveal = useCallback(
+    async (playerId: string) => {
+      await post("/agenda/reveal", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Gracz, którego kolej, wyczerpuje planety i oddaje głosy na jeden wynik.
+  const agendaVote = useCallback(
+    async (playerId: string, outcome: string, planets: string[]) => {
+      await post("/agenda/vote", {
+        player_id: playerId,
+        outcome,
+        planets,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Gracz, którego kolej, wstrzymuje się od głosu.
+  const agendaAbstain = useCallback(
+    async (playerId: string) => {
+      await post("/agenda/abstain", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Mówca rozstrzyga remis / brak głosów (to nie jest głos).
+  const agendaDecide = useCallback(
+    async (playerId: string, outcome: string) => {
+      await post("/agenda/decide", { player_id: playerId, outcome });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Mówca odrzuca agendę bez możliwych wyników i ujawnia następną.
+  const agendaDiscard = useCallback(
+    async (playerId: string) => {
+      await post("/agenda/discard", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  // Mówca: po wyniku - druga agenda albo (po drugiej) odświeżenie planet.
+  const agendaContinue = useCallback(
+    async (playerId: string) => {
+      await post("/agenda/continue", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const skipPhase = useCallback(async () => {
     await post("/phase/skip", {});
     await refresh();
@@ -744,6 +804,12 @@ export function useBoardEditor() {
     phaseStep,
     statusScore,
     statusFinishScoring,
+    agendaReveal,
+    agendaVote,
+    agendaAbstain,
+    agendaDecide,
+    agendaDiscard,
+    agendaContinue,
     epilogueOpen,
     epilogueVote,
     statusRedistribute,

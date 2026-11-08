@@ -9,7 +9,7 @@ zawsze. Nowa funkcja nie zmienia semantyki żadnej istniejącej reguły ani test
 
 from __future__ import annotations
 
-from src.core import status_phase, strategy_phase, turn_flow
+from src.core import agenda_phase, status_phase, strategy_phase, turn_flow
 from src.core.game_state import GameState, Phase
 from src.core.registry import StaticDataRegistry
 
@@ -60,6 +60,9 @@ def skip_phase(state: GameState, registry: StaticDataRegistry) -> GameState:
         # Status z domyślnymi decyzjami (RULES.md 41): bez punktowania, nowe żetony do puli
         # taktycznej; po kroku 8 agenda (gdy zdjęto Custodians) albo nowa runda.
         return status_phase.complete_status(work, registry)
+    if work.phase is Phase.AGENDA and work.agenda is not None:
+        # Faza agendy z kolejnymi krokami (RULES.md 51): bez głosowań, planety gotowe, runda +1.
+        return agenda_phase.skip_agenda(work, registry)
     if work.phase is Phase.AGENDA:
         work = strategy_phase.close_round_cards(work, registry)
         return turn_flow.next_round(work)

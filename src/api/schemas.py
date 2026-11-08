@@ -532,6 +532,25 @@ class TurnActionRequest(BaseModel):
     player_id: str | None = None
 
 
+class AgendaVoteRequest(BaseModel):
+    """Głos w fazie agendy: wynik + planety do wyczerpania (głosy = suma ich wpływów)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    outcome: str
+    planets: list[str] = Field(default_factory=list)
+
+
+class AgendaOutcomeRequest(BaseModel):
+    """Wybór wyniku przez mówcę przy remisie / braku głosów (to nie jest głos)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    outcome: str
+
+
 class EpilogueVoteRequest(BaseModel):
     """Głos w epilogu: ``choice`` = ``honorable`` albo ``dishonorable`` (walidacja w core)."""
 

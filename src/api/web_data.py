@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.api import web_objectives, web_setup
+from src.api import web_agenda, web_objectives, web_setup
 from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
 from src.core import production, space_cannon, strategy_phase, turn_flow
@@ -249,7 +249,7 @@ def _build_game_state(
     ``playerData`` (``active``/``passed``/``scs``).
     """
     return {
-        "phase": _to_web_phase(state.phase),
+        "phase": web_agenda.web_phase(state) or _to_web_phase(state.phase),
         "activePlayer": _active_color(state),
         # Kolor gracza, którego jest TURA (``active_player_id``) — BEZ gaszenia
         # przez ``passed`` (w odróżnieniu od ``activePlayer``, który służy do
@@ -287,6 +287,9 @@ def _build_game_state(
             chronicle_core.highlights(state, registry) if state.winner_id is not None else []
         ),
         "agenda": None,
+        # Stan fazy agendy (RULES.md 51: ujawnienie, głosowanie, wynik) - None poza zainicjowaną
+        # fazą agendy. Nasze rozszerzenie kontraktu (kontraktowe ``agenda`` AsyncTI4 zostaje None).
+        "agendaPhase": web_agenda.build_agenda_payload(state, registry),
         # Stan kroków fazy statusu (RULES.md 41) — None poza zainicjowaną fazą statusu.
         "status": web_objectives.build_status_payload(state, registry, grid),
         "activeSystem": state.active_system,

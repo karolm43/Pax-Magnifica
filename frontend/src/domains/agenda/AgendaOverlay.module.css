@@ -1,0 +1,652 @@
+/*
+ * OKNO RADY GALAKTYCZNEJ (faza agendy, RULES.md 51) - pełny ekran nad mapą.
+ * Styl jak okna produkcji i technologii: ciemne szklane panele, cienkie ramki, kolor aktualnego
+ * głosującego w --att-rgb (składowe oddzielone SPACJAMI - wymóg `rgb(var(--x) / a)`).
+ * Tło: assets/extra/agenda2.jpg (jasne, więc przyciemniamy je warstwą ::after).
+ * Układ: [pasek] [Senat | Podium (karta + wyniki) | Urna].
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2700;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  color: var(--ds-ink);
+  background-color: #05070c;
+  overflow: hidden;
+  animation: councilIn 0.3s ease-out both;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: #05070c;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgb(var(--att-rgb) / 0.12), transparent 70%),
+    linear-gradient(180deg, rgba(5, 7, 14, 0.62), rgba(4, 6, 12, 0.8));
+}
+
+.overlay > :not(.backdrop) {
+  position: relative;
+}
+
+@keyframes councilIn {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -42%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* --- Pasek --- */
+.topBar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 14px;
+  border: 1px solid rgba(214, 178, 94, 0.32);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18, 22, 36, 0.92), rgba(9, 12, 20, 0.88));
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: var(--weight-title);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-ink-hi);
+}
+
+.title small {
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ds-ink-lo);
+}
+
+.topStats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stat {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stat b {
+  color: var(--ds-ink-hi);
+  font-size: 14px;
+}
+
+/* --- Przyciski --- */
+.ghostBtn,
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-ink);
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ghostBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.primaryBtn {
+  color: #fff;
+  border-color: rgba(252, 211, 77, 0.8);
+  background: rgba(120, 90, 20, 0.55);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: rgba(150, 112, 26, 0.7);
+}
+
+.ghostBtn:disabled,
+.primaryBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ghostBtn:focus-visible,
+.primaryBtn:focus-visible,
+.outcomeBtn:focus-visible {
+  outline: 2px solid #fcd34d;
+  outline-offset: 2px;
+}
+
+/* --- Siatka paneli --- */
+.grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(340px, 1.15fr) minmax(360px, 1.2fr) minmax(300px, 0.9fr);
+  gap: 12px;
+}
+
+.panel {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(14, 18, 30, 0.84), rgba(8, 10, 18, 0.8));
+  backdrop-filter: blur(4px);
+}
+
+.panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-ink-hi);
+}
+
+.hint,
+.note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ds-ink-lo);
+}
+
+.warn {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: #fde68a;
+  border: 1px solid rgba(252, 211, 77, 0.45);
+  border-radius: 8px;
+  background: rgba(113, 63, 18, 0.45);
+}
+
+.empty {
+  font-size: 12.5px;
+  color: var(--ds-ink-lo);
+}
+
+/* --- Senat: półkole miejsc --- */
+.hemicycle {
+  position: relative;
+  flex: 1;
+  min-height: 330px;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse 52% 62% at 50% 92%, rgba(214, 178, 94, 0.14), transparent 72%),
+    repeating-radial-gradient(
+      circle at 50% 100%,
+      transparent 0 46px,
+      rgba(255, 255, 255, 0.05) 46px 47px
+    );
+}
+
+.seatPos {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  animation: rise 0.45s ease-out both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.seatOrder {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--ds-ink-hi);
+  border-radius: 50%;
+  background: rgba(8, 10, 18, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.podium {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.podiumTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fcd34d;
+}
+
+.seat {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 104px;
+  max-width: 132px;
+  padding: 7px 9px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--seat-rgb) / 0.4);
+  background: linear-gradient(180deg, rgb(var(--seat-rgb) / 0.18), rgba(8, 10, 18, 0.86));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.seat[data-state="now"] {
+  border-color: rgb(var(--seat-rgb) / 1);
+  box-shadow:
+    0 0 0 2px rgb(var(--seat-rgb) / 0.55),
+    0 4px 18px rgba(0, 0, 0, 0.55);
+}
+
+.seat[data-state="voted"] {
+  border-color: rgb(var(--seat-rgb) / 0.8);
+}
+
+.seat[data-state="abstained"],
+.seat[data-state="blocked"] {
+  opacity: 0.6;
+}
+
+.seatIcon {
+  display: inline-flex;
+}
+
+.seatName {
+  font-size: 12.5px;
+  line-height: 1.15;
+  color: var(--ds-ink-hi);
+}
+
+.seatInfo {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ds-ink-lo);
+}
+
+.seat[data-state="voted"] .seatInfo,
+.seat[data-state="now"] .seatInfo {
+  color: var(--ds-ink-hi);
+  font-weight: 700;
+}
+
+/* --- Podium: karta agendy --- */
+.agendaCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(165, 140, 230, 0.55);
+  background: linear-gradient(180deg, rgba(40, 30, 74, 0.72), rgba(14, 12, 28, 0.82));
+}
+
+.agendaCard[data-type="directive"] {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: linear-gradient(180deg, rgba(20, 44, 84, 0.72), rgba(10, 14, 28, 0.82));
+}
+
+.agendaCard header {
+  display: grid;
+  gap: 2px;
+}
+
+.agendaCard header b {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--ds-ink-hi);
+}
+
+.agendaCard header small {
+  font-size: 11.5px;
+  color: #c4b5fd;
+}
+
+.agendaCard p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ds-ink);
+}
+
+.agendaType {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fcd34d;
+}
+
+.emptyCard {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 30px 14px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--ds-ink-lo);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+/* --- Wyniki --- */
+.outcomes {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outcome {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.outcome[data-selected] {
+  border-color: rgba(252, 211, 77, 0.85);
+  background: rgba(120, 90, 20, 0.3);
+}
+
+.outcome[data-tied] {
+  border-color: rgba(251, 146, 60, 0.7);
+}
+
+.outcome[data-winner] {
+  border-color: rgba(74, 222, 128, 0.85);
+  background: rgba(20, 83, 45, 0.4);
+}
+
+.outcomeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.outcomeBtn:disabled {
+  cursor: default;
+}
+
+.outcomeName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.outcomeVotes {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d6b25e, #fcd34d);
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px 1px 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  border-radius: 999px;
+  border: 1px solid rgb(var(--seat-rgb) / 0.6);
+  background: rgb(var(--seat-rgb) / 0.2);
+}
+
+.manualInput {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ds-ink-hi);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.history {
+  display: grid;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history h4 {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.historyRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.historyRow span {
+  color: var(--ds-ink-lo);
+  text-align: right;
+}
+
+/* --- Urna --- */
+.ballotHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--ds-ink-hi);
+  border-radius: 10px;
+  border: 1px solid rgb(var(--seat-rgb, 214 178 94) / 0.55);
+  background: rgb(var(--seat-rgb, 214 178 94) / 0.16);
+}
+
+.votesBig {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.votesBig b {
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink-hi);
+}
+
+.votesBig span {
+  font-size: 12.5px;
+  color: var(--ds-ink-lo);
+}
+
+.votesBig em {
+  font-style: normal;
+  color: #fcd34d;
+}
+
+.planets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.planetSlot {
+  display: grid;
+  justify-items: center;
+}
+
+.btnRow,
+.tieList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.7);
+  background: rgba(20, 83, 45, 0.4);
+}
+
+.result span {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.result b {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ds-ink-hi);
+}
+
+.result small {
+  color: #fcd34d;
+}
+
+.returnPill {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 2700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 18px;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid rgba(252, 211, 77, 0.7);
+  background: rgba(30, 24, 8, 0.92);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .panel {
+    overflow: visible;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .seatPos {
+    animation: none;
+  }
+
+  .bar span {
+    transition: none;
+  }
+}

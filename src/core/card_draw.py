@@ -88,3 +88,26 @@ def ensure_agenda_deck(state: GameState, registry: StaticDataRegistry) -> None:
     decks.agenda_deck = cards
     decks.agenda_discard = []
     decks.agenda_deck_seeded = True
+
+
+def draw_agenda(state: GameState, registry: StaticDataRegistry) -> str | None:
+    """Ściąga wierzchnią agendę z talii (mutuje ``state``); ``None``, gdy brak kart.
+
+    Pusta talia tasuje stos odrzuconych (⚠️ ZAŁOŻENIE jak dla kart akcji - RULES.md 51;
+    prawa leżące w grze NIE są w stosie odrzuconych, więc nie wracają do talii).
+    """
+    ensure_agenda_deck(state, registry)
+    decks = state.decks
+    if not decks.agenda_deck and decks.agenda_discard:
+        reshuffled = list(decks.agenda_discard)
+        next_rng(state).shuffle(reshuffled)
+        decks.agenda_deck = reshuffled
+        decks.agenda_discard = []
+    if not decks.agenda_deck:
+        return None
+    return decks.agenda_deck.pop(0)
+
+
+def discard_agenda(state: GameState, agenda_id: str) -> None:
+    """Kładzie agendę na stosie odrzuconych (dyrektywa, „Against", odrzucona bez wyniku)."""
+    state.decks.agenda_discard.append(agenda_id)

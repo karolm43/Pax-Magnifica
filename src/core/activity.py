@@ -244,6 +244,35 @@ def _parse_economy_scoring(parts: list[str], active: str | None) -> _Parsed | No
     return None
 
 
+def _parse_agenda(
+    parts: list[str], before: GameState | None, after: GameState
+) -> _Parsed | None:
+    """Faza agendy (RULES.md 51): ujawnienie, głos, wstrzymanie, wynik mówcy, kolejny krok."""
+    if parts[0] != "agenda" or len(parts) < 2:
+        return None
+    verb = parts[1]
+    pid = parts[2] if len(parts) > 2 else None
+    card = after.agenda.agenda_id if after.agenda is not None else None
+    if verb == "reveal":
+        return "scoring", "agenda.reveal", after.speaker_id, None, card, None
+    if verb == "vote" and pid is not None and after.agenda is not None:
+        cast = after.agenda.votes.get(pid)
+        votes = str(cast.votes) if cast is not None else None
+        return "scoring", "agenda.vote", pid, None, cast.outcome if cast else None, votes
+    if verb == "abstain" and pid is not None:
+        return "scoring", "agenda.abstain", pid, None, None, None
+    if verb == "decide" and pid is not None:
+        outcome = after.agenda.resolved_outcome if after.agenda is not None else None
+        return "scoring", "agenda.decide", pid, None, outcome, None
+    if verb == "discard":
+        return "scoring", "agenda.discard", after.speaker_id, None, None, None
+    if verb == "continue":
+        step = after.agenda.step.value if after.agenda is not None else ""
+        return "scoring", "agenda.next", after.speaker_id, None, step, None
+    del before
+    return None
+
+
 def label_is(parts: list[str], head: str, verb: str) -> bool:
     return len(parts) > 1 and parts[0] == head and parts[1] == verb
 
@@ -259,6 +288,7 @@ def _parse(
         _parse_tactical(parts, active),
         _parse_combat(label, parts, active, before, after),
         _parse_economy_scoring(parts, active),
+        _parse_agenda(parts, before, after),
     ):
         if parsed is not None:
             return parsed

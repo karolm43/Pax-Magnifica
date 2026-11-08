@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import SetSpeakerRequest, StateEnvelope, TurnActionRequest
-from src.core import skip_flow, status_phase, strategy_phase, turn_flow
+from src.core import agenda_phase, skip_flow, status_phase, strategy_phase, turn_flow
 from src.core.game_state import GameState, Phase
 
 router = APIRouter()
@@ -128,6 +128,13 @@ async def post_next_phase(
                 "Every player must take their Status step before the speaker "
                 "can end the Status Phase."
             )
+        elif state.phase is Phase.AGENDA and state.winner_id is not None:
+            detail = "The game has ended."
+        elif state.phase is Phase.AGENDA:
+            detail = (
+                "Resolve both agendas (reveal, vote, outcome) before the speaker "
+                "can end the Agenda Phase."
+            )
         else:
             detail = "All players must pick their Strategy Cards before advancing."
         raise HTTPException(status_code=422, detail=detail)
@@ -135,6 +142,9 @@ async def post_next_phase(
         if state.phase is Phase.STATUS and state.status is not None:
             # Krok 8 fazy statusu: zwrot kart strategii, potem agenda albo nowa runda.
             new_state = status_phase.finish_status(state, ctx.registry)
+        elif state.phase is Phase.AGENDA and state.agenda is not None:
+            # Koniec fazy agendy (obie agendy + odświeżenie planet): nowa runda.
+            new_state = agenda_phase.finish_agenda(state, ctx.registry)
         else:
             new_state = turn_flow.next_phase(state)
     except ValueError as exc:
