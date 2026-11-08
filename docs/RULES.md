@@ -1244,7 +1244,8 @@ zapomniane/brzegowe przypadki). Zasada: zwykłe akcje (ruch, aktywacja, pick, pr
 walidowane TWARDO (nielegalne → `ValueError` → HTTP 422); God-Mode (`/god-mode/patch`, `board_edit.*`)
 celowo nie waliduje reguł — to "ręka operatora".
 
-**Tryb gry (ustalony):** solo przeciw botom + hot-seat (wielu ludzi lokalnie), docelowo moduł sieciowy.
+**Tryb gry (ustalony; zaktualizowany 2026-11-08):** gra sieciowa (ludzie) + boty; solo przeciw botom to
+przypadek szczególny. Hot-seat NIE jest wspierany (starsze wzmianki o nim w dokumentach są historyczne).
 Dlatego okna czasowe muszą pytać graczy PO KOLEI (kolejka), a nie zakładać jednego operatora.
 
 **Zakres pierwszego wdrożenia walki (ustalony):** rdzeń najpierw — rzuty kośćmi + liczenie trafień
@@ -2546,27 +2547,53 @@ i agend wynika wyłącznie z assetów JSON, a reguły ich interakcji z tirules2.
 
 To zasada projektowa (jak silnik daje szansę na reakcję), nie reguła TI4. Dotyczy kart i zdolności
 zagrywanych „w reakcji" (when / after / before / instead of — klasyfikacja w `timing_spec.py`, RULES.md 34).
-Cel: nie pytać każdego gracza po każdej akcji „czy zagrywasz kartę?" i jednocześnie nie ujawniać,
+Cel: nie pytać każdego gracza po każdej akcji „czy zagrywasz kartę?" i jednocześnie NIE ujawniać,
 kto ją ma. Odwzorowuje grę przy stole: „stop, zanim to się stanie, gram kartę".
 
-**Trzy warstwy (obowiązują łącznie):**
-1. **Filtr po informacji JAWNEJ.** Gracza nie pytamy, gdy z danych publicznych wynika, że nie może
-   zareagować (np. 0 kart akcji w ręce; liczba kart akcji jest jawna). Filtr NIGDY nie korzysta z treści ręki
-   ani z żadnej informacji ukrytej, więc jego działanie nie ujawnia, kto ma kartę.
-2. **Boty decydują wewnętrznie.** Silnik odpytuje bota bez udziału UI. Interfejs pokazuje coś dopiero,
-   gdy bot faktycznie zagra kartę. Bot niereagujący nie wydłuża gry ani nie zdradza stanu ręki.
-3. **Człowiek ma przycisk STOP.** Krok akcji stosuje się od razu (optymistycznie). Silnik pamięta stan
-   sprzed ostatniego kroku. STOP przywraca ten stan, otwiera okno czasowe z zatrzymującym graczem
-   jako pierwszym respondentem (reszta w kolejności okien, RULES.md 29.2), a po rozstrzygnięciu
-   wznawia przerwaną akcję. STOP używa tej samej maszynerii co okna (`core/timing.py`), nie osobnej ścieżki.
+**Tryb gry (decyzja użytkownika):** gra SIECIOWA (ludzie przez sieć) + boty. Hot-seat NIE jest wspierany,
+więc jest JEDEN model reakcji dla wszystkich (bez rozdziału na tryby). Boty działają wewnątrz silnika, ale
+przechodzą tą samą ścieżką czasową co ludzie (patrz niżej: jednolity rytm).
+
+**Zasada nadrzędna: zachowanie silnika widoczne dla graczy NIE MOŻE zależeć od zawartości ręki.**
+Każda różnica widoczna z zewnątrz (pytanie wybranego gracza, natychmiastowe zatwierdzenie „bo nikt nie ma",
+inna długość pauzy) jest informacją. Szczególnie groźne przy kartach UNIKALNYCH (np. Public Disgrace jest
+jedna w grze): samo pytanie albo jego brak mówi, kto ją ma lub że nikt jej nie ma. Dlatego ODRZUCAMY
+wariant „oczekujący pick + pytanie tylko realnych posiadaczy" (przydatny wyłącznie, gdy jest jeden człowiek).
+
+**Model (obowiązuje łącznie):**
+1. **Krok akcji stosuje się OD RAZU (optymistycznie).** Nikt nie jest pytany, nikt nie dostaje okna, więc
+   silnik nie wysyła żadnego sygnału zależnego od ręki.
+2. **STOP jest zawsze dostępny** dla każdego człowieka, który mógłby zareagować wg informacji JAWNEJ
+   (filtr poniżej). Silnik pamięta stan sprzed ostatniego kroku. STOP przywraca ten stan, otwiera okno
+   czasowe z zatrzymującym graczem jako pierwszym respondentem (reszta w kolejności okien, RULES.md 29.2),
+   a po rozstrzygnięciu wznawia przerwaną akcję. STOP używa tej samej maszynerii co okna (`core/timing.py`).
+3. **Okno STOP trwa do następnej ZATWIERDZONEJ akcji** (dowolnego gracza). Rozstrzyga kolejność na serwerze:
+   jeśli następna akcja dotarła przed STOP, STOP przegrywa (brak cofania wstecz o więcej niż jeden krok).
+4. **Jednolity rytm (pauza ochronna).** Po każdym kroku, na który mogłaby zareagować jakaś karta, następna
+   akcja (także bota) jest wstrzymana o STAŁY czas, taki sam dla wszystkich i niezależny od ręk (rząd 1–2 s,
+   konfigurowalny). Gdy następnym aktorem jest człowiek, jego własny czas namysłu jest oknem „za darmo".
+   Boty posiadające kartę zagrywają ją tą samą ścieżką STOP w tym samym rytmie co ludzie (żadnej
+   natychmiastowej reakcji bota widocznej z zewnątrz tylko wtedy, gdy ma kartę).
+5. **Filtr po informacji JAWNEJ (jedyny dozwolony sposób pominięcia pauzy).** Pauzę i przycisk STOP można
+   pominąć tylko wtedy, gdy z danych PUBLICZNYCH wynika, że nikt nie może zareagować: np. wszystkie
+   potencjalnie reagujące karty są już na stosie odrzuconych/zużyte, albo żaden gracz nie ma kart akcji w ręce
+   (liczba kart akcji jest jawna). Filtr NIGDY nie korzysta z treści ręki ani z informacji ukrytej, więc jego
+   działanie nie ujawnia, kto ma kartę.
+
+**Przykład: Public Disgrace** („When another player chooses a strategy card during the strategy phase:
+that player must choose a different strategy card instead, if able"): pick wykonuje się od razu; gracz
+z kartą naciska STOP w oknie pauzy; pick zostaje cofnięty (wybór karty strategii jest jawny i
+deterministyczny, więc cofnięcie nic nie ujawnia); otwiera się okno z zatrzymującym jako pierwszym; po
+zagraniu karty wybierający MUSI wybrać inną kartę strategii. Po zagraniu i odrzuceniu karty filtr (pkt 5)
+wyłącza pauzy przy pickach, bo nikt już nie może zareagować.
 
 **Punkty kontrolne i granica nieodwracalności:**
 - Każdy krok akcji, na który może zareagować jakaś karta/zdolność, jest PUNKTEM KONTROLNYM
   (wyznacza go `timing_spec`). STOP cofa wyłącznie do ostatniego punktu kontrolnego, nie całą akcję.
-- STOP działa tylko do najbliższego punktu NIEODWRACALNEGO: rzut kośćmi, ujawnienie karty,
-  dobranie z talii (informacja ukryta lub losowa). Po nim cofanie jest zablokowane. Powód: zapobiega
-  używaniu wiedzy z przyszłości (zobaczenie wyniku rzutu i dopiero potem STOP). Przy stole odpowiada temu
-  reguła „mów przed rzutem". Naturalny punkt w UI: przycisk „Rzuć".
+- STOP działa tylko do najbliższego punktu NIEODWRACALNEGO: rzut kośćmi, ujawnienie karty, dobranie
+  z talii (informacja ukryta lub losowa). Po nim cofanie jest zablokowane. Powód: zapobiega używaniu wiedzy
+  z przyszłości (zobaczenie wyniku rzutu i dopiero potem STOP). Przy stole odpowiada temu reguła „mów przed
+  rzutem". Naturalny punkt w UI: przycisk „Rzuć".
 - Wyniki losowe są zapisane (seedowalny RNG, memory: kości po stronie silnika), więc cofnięcie przed
   rzutem nie pozwala go przerzucić.
 - Po zagraniu karty z STOP przerwany krok wznawia się od tego samego punktu kontrolnego, z uwzględnieniem
@@ -2574,18 +2601,25 @@ kto ją ma. Odwzorowuje grę przy stole: „stop, zanim to się stanie, gram kar
 
 **Mechanizm cofania (istniejący kod):** `core/event_store.py` trzyma stos migawek stanu z `goto(seq)`
 i `undo()`/`redo()`. Silnik opiera się na `state -> state`, więc „stan sprzed kroku" już istnieje. Nowe jest
-wyłącznie oznaczanie migawek jako punktów kontrolnych/nieodwracalnych oraz blokada cofania poza punktem kontrolnym.
-UWAGA: zwykłe Undo operatora (God-Mode, historia) jest czym innym niż STOP i dalej nie podlega tym ograniczeniom.
+wyłącznie oznaczanie migawek jako punktów kontrolnych/nieodwracalnych oraz blokada cofania poza punktem
+kontrolnym. UWAGA: zwykłe Undo operatora (God-Mode, historia) jest czym innym niż STOP i dalej nie podlega
+tym ograniczeniom. Dotyka plików `event_store.py` / `state_service.py` (wspólnych z feedem aktywności).
 
 **⚠ ZAŁOŻENIA / do potwierdzenia przez użytkownika:**
+- ⚠ ZAŁOŻENIE: jeden model (sieć + boty), bez hot-seatu i bez osobnego trybu solo; wariant „pytaj tylko
+  realnych posiadaczy" odrzucony jako wyciek informacji.
 - ⚠ ZAŁOŻENIE: STOP działa do rzutu kośćmi / ujawnienia karty / dobrania z talii (granica nieodwracalności).
-- ⚠ ZAŁOŻENIE: cofamy jeden krok do ostatniego punktu kontrolnego, nie całą akcję.
-- ⚠ ZAŁOŻENIE: filtr jawny = tylko liczba kart akcji w ręce i fakt posiadania właściwego typu komponentu
-  (jawnego). Szerszy filtr wymaga potwierdzenia, że niczego nie ujawnia.
-- ⚠ TODO (tryb sieciowy): przy grze sieciowej STOP musi mieć krótki, jednolity timer niezależny od zawartości
-  ręki, inaczej sama obecność pauzy zdradza posiadanie karty. Hot-seat i solo vs boty tego nie wymagają.
-- ⚠ TODO: ujawnienie informacji przez samą zmianę zachowania UI (np. szybsze/wolniejsze przejście kroku)
-  należy testować — kroki dla graczy z kartą i bez karty mają wyglądać identycznie.
+- ⚠ ZAŁOŻENIE: cofamy jeden krok do ostatniego punktu kontrolnego, nie całą akcję; następna zatwierdzona
+  akcja zamyka okno STOP (rozstrzyga kolejność na serwerze).
+- ⚠ ZAŁOŻENIE: jednolita pauza ochronna 1–2 s po krokach, na które może zareagować karta; wartość do
+  dostrojenia po testach (zbyt długa wydłuża grę, zbyt krótka uniemożliwia STOP przy szybkim bocie).
+- ⚠ ZAŁOŻENIE: filtr jawny = tylko informacja publiczna (stos odrzuconych/zużyte karty, liczba kart akcji
+  w ręce, fakt posiadania jawnego typu komponentu). Szerszy filtr wymaga dowodu, że niczego nie ujawnia.
+- ⚠ TODO: ujawnienie informacji przez samą zmianę zachowania UI (np. szybsze/wolniejsze przejście kroku,
+  inny rytm bota z kartą) należy testować — kroki dla graczy z kartą i bez karty mają wyglądać identycznie
+  (test w parach, jak w 43.1 pkt 10).
+- ⚠ TODO: karty muszą mieć predykat „czy można zagrać TERAZ" (okno + warunek) — powstaje razem z kartami
+  akcji (H4); do tego czasu silnik zna tylko rodzaj wyzwalacza (`timing_spec`).
 
 ---
 
@@ -2644,7 +2678,8 @@ Cel: partia do 6 graczy przez sieć (ludzie + boty), obok trybów solo vs boty i
   rozważyć odpowiedzi równoległe — ⚠ ZAŁOŻENIE, do decyzji po zbadaniu każdego przypadku w tirules2.
 - Rozłączenie / brak odpowiedzi: timeout okna → przejęcie decyzji przez bota (poziom trudności z RULES.md 36)
   albo pas — ⚠ ZAŁOŻENIE do potwierdzenia przez użytkownika.
-- STOP (43.4) w sieci wymaga jednolitego timera niezależnego od zawartości ręki; w hot-seat i solo nie dotyczy.
+- STOP (43.4) wymaga jednolitej pauzy ochronnej niezależnej od zawartości ręki; jeden model dla sieci i botów
+  (hot-seat nie jest wspierany — decyzja użytkownika 2026-11-08).
 
 ### 44.6. ⚠ ZAŁOŻENIA / do potwierdzenia przez użytkownika
 

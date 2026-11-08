@@ -85,8 +85,10 @@ stołu, nie sędzia".
   kolejka graczy pytanych po kolei (od gracza po aktywnym, zgodnie z zegarem; inicjator
   pomijany). Jedno pojęcie obsługuje secondary kart strategii, reakcje „when/after",
   przypisanie strat w walce, space cannon. Reguła modelu: RULES.md 29.2.
-- **Tryb gry:** solo vs boty + hot-seat (wielu ludzi lokalnie), docelowo moduł sieciowy —
-  dlatego okna pytają graczy po kolei, nie zakładają jednego operatora.
+- **Tryb gry (decyzja 2026-11-08):** gra SIECIOWA (ludzie przez sieć) + boty; solo z botami to
+  przypadek szczególny tego samego modelu. Hot-seat NIE jest wspierany. Okna pytają graczy po
+  kolei, nie zakładają jednego operatora. Reakcje (when/after/instead): STOP z cofaniem +
+  jednolita pauza, widoczne zachowanie silnika nie zależy od ręki (RULES.md 43.4).
 - **Walka:** pełna, interaktywna (rzuty kośćmi). Rdzeń: rzuty (seedowalny RNG) + liczenie
   trafień + okno „przypisz straty", wielorundowo; AFB/space cannon jako kolejne okna.
 - **E1–E3 to FUNDAMENT** — dobudowujemy walidację i okna NA ISTNIEJĄCYM, nie przepisujemy.
