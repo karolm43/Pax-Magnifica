@@ -46,7 +46,12 @@ from src.core.references import (
     find_unresolved_references,
 )
 from src.core.rules_links import RulesTopicIndex
-from src.core.sources import SOURCE_PRIORITY, known_source_ids, validate_enabled_sources
+from src.core.sources import (
+    AGENDA_VARIANT_SOURCES,
+    SOURCE_PRIORITY,
+    known_source_ids,
+    validate_enabled_sources,
+)
 
 
 class _HasId(Protocol):
@@ -218,7 +223,9 @@ class StaticDataRegistry:
         # Katalog_Komponentów: nowe kategorie przez czysty loader (filtr po source,
         # deterministyczny wybór przy kolizji id — D9). Specyfikacje czasowe budujemy
         # z kart akcji, zdolności frakcji i liderów (R8.2).
-        tables, self.load_report = load_components(self._enabled)
+        tables, self.load_report = load_components(
+            self._enabled, agenda_variant_sources=AGENDA_VARIANT_SOURCES
+        )
         timing_specs = build_timing_specs(
             tables, leaders=self.leaders, abilities=self.abilities
         )

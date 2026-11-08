@@ -19,6 +19,7 @@ import pytest
 from src.audit.diffs import load_expected_gaps
 from src.core.components import CATEGORY_SPECS, ComponentCategory
 from src.core.registry import StaticDataRegistry
+from src.core.sources import AGENDA_VARIANT_SOURCES
 
 
 @pytest.fixture(scope="module")
@@ -49,11 +50,19 @@ def test_wszystkie_source_naleza_do_aktywnych(registry: StaticDataRegistry) -> N
     _Requirements: 5.1_
     """
     enabled = set(registry.report().enabled_sources)
+    # Wyjątek: fanowskie talie agend (wybierane w setupie) - tylko agendy i talie agend.
+    variants = AGENDA_VARIANT_SOURCES
     offending: dict[str, set[str]] = {}
     for category in CATEGORY_SPECS:
         for component in registry.catalog.all(category).values():
-            if component.source not in enabled:
-                offending.setdefault(category.value, set()).add(component.source)
+            if component.source in enabled:
+                continue
+            if component.source in variants and category in (
+                ComponentCategory.AGENDA,
+                ComponentCategory.DECK,
+            ):
+                continue
+            offending.setdefault(category.value, set()).add(component.source)
     assert offending == {}, f"Komponenty ze źródeł nieaktywnych: {offending}"
 
 

@@ -33,6 +33,28 @@ from src.core.sources import source_rank
 RawEntry = dict[str, object]
 
 
+def _without_non_agenda_variant_decks(
+    entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]],
+    enabled: Collection[str],
+    variant_sources: Collection[str],
+) -> Iterator[tuple[EntryOrigin, Mapping[str, object]]]:
+    """Pomija talie źródeł fanowskich innego typu niż ``agenda`` (np. karty akcji Absol).
+
+    Talie źródeł z manifestu przechodzą bez zmian; źródła wariantowe (``variant_sources``),
+    których nie ma w manifeście, wnoszą WYŁĄCZNIE talie agend.
+    """
+    for origin, entry in entries:
+        source = entry.get("source")
+        if (
+            isinstance(source, str)
+            and source in variant_sources
+            and source not in enabled
+            and entry.get("type") != "agenda"
+        ):
+            continue
+        yield origin, entry
+
+
 @dataclass(frozen=True)
 class EntryOrigin:
     """Skąd pochodzi wpis: plik i numer wpisu w pliku (od 0)."""
@@ -186,12 +208,16 @@ def select_entries(
 def load_components(
     enabled: Collection[str],
     specs: Mapping[ComponentCategory, CategorySpec] | None = None,
+    *,
+    agenda_variant_sources: Collection[str] = (),
 ) -> tuple[dict[ComponentCategory, dict[str, ComponentBase]], LoadReport]:
     """Wczytuje komponenty wszystkich kategorii z ``CATEGORY_SPECS``.
 
     Args:
         enabled: Aktywne źródła (pole ``source`` wpisów).
         specs: Opcjonalna tabela kategorii (domyślnie ``CATEGORY_SPECS``).
+        agenda_variant_sources: Dodatkowe źródła (fanowskie talie agend), ładowane WYŁĄCZNIE
+            dla agend i talii agend; reszta ich danych pozostaje nieaktywna.
 
     Raises:
         DataValidationError: Gdy wybrany wpis nie przechodzi walidacji modelu.
@@ -200,11 +226,21 @@ def load_components(
     tables: dict[ComponentCategory, dict[str, ComponentBase]] = {}
     report = LoadReport()
     for category, spec in active_specs.items():
-        selection = select_entries(
-            iter_entries_with_origin(spec.directory) if spec.directory.is_dir() else (),
-            enabled,
-            spec.id_field,
+        category_enabled: Collection[str] = enabled
+        entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]] = (
+            iter_entries_with_origin(spec.directory) if spec.directory.is_dir() else ()
         )
+        if agenda_variant_sources and category in (
+            ComponentCategory.AGENDA,
+            ComponentCategory.DECK,
+        ):
+            # Fanowskie talie agend (Absol, Black Spectrum) - tylko agendy i talie agend.
+            category_enabled = {*enabled, *agenda_variant_sources}
+            if category is ComponentCategory.DECK:
+                entries = _without_non_agenda_variant_decks(
+                    entries, enabled, agenda_variant_sources
+                )
+        selection = select_entries(entries, category_enabled, spec.id_field)
         table: dict[str, ComponentBase] = {}
         per_source: dict[str, int] = {}
         for entry_id in sorted(selection.selected):

@@ -70,6 +70,8 @@ export type NewGameRequest = {
   players: NewGamePlayer[];
   map_string?: string;
   include_center?: boolean;
+  // Talia agend: "standard" (PoK/TE) albo fanowska ("absol", "black_spectrum").
+  agenda_deck?: string;
 };
 
 /*

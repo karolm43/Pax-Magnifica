@@ -1778,3 +1778,13 @@ type-check + lint + build czyste.
   obowiązkowej walki kosmicznej (422). Surowe `end_tactical_action` zostaje dla `next_step`/wewnętrznie.
 - Front: panel akcji = nagłówek + kroki + przewijana zawartość + STOPKA przypięta (Next/End nie skaczą);
   przyciski wyszarzone z powodem blokady; usunięte skróty jednostek (flota/transport) z kroku Movement.
+### Wybór talii agend w setupie: Standard / Absol / Black Spectrum (2026-11-08)
+- Fanowskie źródła `absol` i `black_spectrum` ładują się WYŁĄCZNIE dla agend i talii agend
+  (`sources.AGENDA_VARIANT_SOURCES`, `load_components(agenda_variant_sources=…)`); `enabled_sources.json`
+  bez zmian. `objectives.deck_card_ids` pomija te talie, wariant wybiera `objectives.agenda_deck_ids`.
+- `DecksState.agenda_variant` ustawiany przez `/game/new` (`agenda_deck`: standard | absol | black_spectrum,
+  nieznany → 422); `card_draw.ensure_agenda_deck` zasiewa wybraną talię. Absol = `agendas_absol` (60 kart),
+  Black Spectrum = `agendas_bsp` (50 kart).
+- Front: przełącznik „Agenda deck" w pierwszym kroku kreatora (`useSetupStore.agendaDeck`).
+- Efekty kart agend nadal NIE są kodowane (ewidencja praw); nietypowe cele (`manual`) wpisuje operator.
+- Baseline audytu odświeżony (`audit/baseline_counts.json`, +agendas/decks dla obu źródeł).

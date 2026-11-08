@@ -10,8 +10,6 @@ from src.core.dice import next_rng
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
-_AGENDA_DECK = "agenda"
-
 
 def draw_action_card(state: GameState, player_id: str) -> bool:
     """Dobiera kartę akcji do ręki gracza (mutuje ``state``); False, gdy talie puste."""
@@ -73,17 +71,19 @@ def rearrange_agenda_top(
 
 
 def ensure_agenda_deck(state: GameState, registry: StaticDataRegistry) -> None:
-    """Leniwie zasiewa talię agend (pełna talia aktywnych źródeł, potasowana).
+    """Leniwie zasiewa talię agend (talia wybranego wariantu, potasowana).
 
-    Talia powstaje raz: dopóki ``agenda_deck_seeded`` jest False. Potem pusta talia nie
-    jest już zasiewana (agendy zużyte w fazie agendy trafiają na stos odrzuconych).
+    Wariant (``decks.agenda_variant``): ``standard`` = pełna talia aktywnych źródeł, albo
+    fanowska talia wybrana w setupie. Talia powstaje raz: dopóki ``agenda_deck_seeded`` jest
+    False. Potem pusta talia nie jest już zasiewana (agendy zużyte w fazie agendy trafiają
+    na stos odrzuconych).
     """
-    from src.core.objectives import deck_card_ids  # lokalnie: objectives importuje card_draw
+    from src.core.objectives import agenda_deck_ids  # lokalnie: objectives importuje card_draw
 
     decks = state.decks
     if decks.agenda_deck_seeded:
         return
-    cards = deck_card_ids(registry, _AGENDA_DECK)
+    cards = agenda_deck_ids(registry, decks.agenda_variant)
     next_rng(state).shuffle(cards)
     decks.agenda_deck = cards
     decks.agenda_discard = []

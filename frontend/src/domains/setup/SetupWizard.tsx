@@ -16,10 +16,21 @@ import { useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "@/state/appStore";
-import { Button, Group, NumberInput, Paper, Stack, Text, TextInput } from "@/ds";
+import {
+  Button,
+  Group,
+  NumberInput,
+  Paper,
+  SegmentedControl,
+  Stack,
+  Text,
+  TextInput,
+} from "@/ds";
 import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
 import { SETUP_STEPS, type SetupStepId } from "./setupSteps";
 import {
+  AGENDA_DECKS,
+  type AgendaDeck,
   currentStep,
   MAX_PLAYERS,
   MIN_PLAYERS,
@@ -85,6 +96,8 @@ export default function SetupWizard() {
   const playerCount = useSetupStore((s) => s.playerCount);
   const setPlayerCount = useSetupStore((s) => s.setPlayerCount);
   const setMapString = useSetupStore((s) => s.setMapString);
+  const agendaDeck = useSetupStore((s) => s.agendaDeck);
+  const setAgendaDeck = useSetupStore((s) => s.setAgendaDeck);
   const currentStepIndex = useSetupStore((s) => s.currentStepIndex);
   const nextStep = useSetupStore((s) => s.nextStep);
   const prevStep = useSetupStore((s) => s.prevStep);
@@ -132,7 +145,7 @@ export default function SetupWizard() {
     setError(null);
     setSubmitting(true);
     try {
-      const request = toNewGameRequest(slots, mapString, factionById);
+      const request = toNewGameRequest(slots, mapString, factionById, agendaDeck);
       await createNewGame(request);
       // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
       await queryClient.invalidateQueries({ queryKey: ["playerData"] });
@@ -205,24 +218,38 @@ export default function SetupWizard() {
          * zanim zaczniesz wypełniać ich dane. Oba pola są w `useSetupStore`.
          */}
         {currentStepIndex === 0 && (
-          <Group grow align="flex-start">
-            <NumberInput
-              label="Number of players"
-              value={playerCount}
-              min={MIN_PLAYERS}
-              max={MAX_PLAYERS}
-              onChange={(v) => {
-                const n = typeof v === "number" ? v : Number(v);
-                if (Number.isFinite(n)) setPlayerCount(n);
-              }}
-            />
-            <TextInput
-              label="Map string (optional)"
-              placeholder="Empty = test map"
-              value={mapString}
-              onChange={(e) => setMapString(e.currentTarget.value)}
-            />
-          </Group>
+          <Stack gap="md">
+            <Group grow align="flex-start">
+              <NumberInput
+                label="Number of players"
+                value={playerCount}
+                min={MIN_PLAYERS}
+                max={MAX_PLAYERS}
+                onChange={(v) => {
+                  const n = typeof v === "number" ? v : Number(v);
+                  if (Number.isFinite(n)) setPlayerCount(n);
+                }}
+              />
+              <TextInput
+                label="Map string (optional)"
+                placeholder="Empty = test map"
+                value={mapString}
+                onChange={(e) => setMapString(e.currentTarget.value)}
+              />
+            </Group>
+            {/* Talia agend: standardowa (PoK/TE) albo fanowska zamiennik (Absol / Black Spectrum). */}
+            <Stack gap={4}>
+              <Text size="sm" fw={500}>
+                Agenda deck
+              </Text>
+              <SegmentedControl
+                fullWidth
+                value={agendaDeck}
+                onChange={(v) => setAgendaDeck(v as AgendaDeck)}
+                data={AGENDA_DECKS.map((d) => ({ value: d.value, label: d.label }))}
+              />
+            </Stack>
+          </Stack>
         )}
 
         {/* Bieżący krok (stub lub realny komponent z 12.x). */}

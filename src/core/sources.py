@@ -24,6 +24,19 @@ SOURCE_PRIORITY: tuple[str, ...] = (
 )
 
 
+# Fanowskie warianty TALII AGEND (wybierane w setupie gry, nie w manifeście źródeł).
+# Wariant -> alias talii w katalogu. ``standard`` (None) = talia aktywnych źródeł (PoK/TE).
+# Źródła fanowskie (``AGENDA_VARIANT_SOURCES``) ładują się WYŁĄCZNIE dla kart agend i talii
+# agend - reszta ich danych (jednostki, technologie, karty akcji…) pozostaje nieaktywna.
+AGENDA_STANDARD = "standard"
+AGENDA_VARIANT_DECKS: dict[str, str | None] = {
+    AGENDA_STANDARD: None,
+    "absol": "agendas_absol",
+    "black_spectrum": "agendas_bsp",
+}
+AGENDA_VARIANT_SOURCES: frozenset[str] = frozenset({"absol", "black_spectrum"})
+
+
 class UnknownSourcesError(ValueError):
     """Manifest aktywnych źródeł zawiera identyfikatory nieobecne w ``sources.json``."""
 

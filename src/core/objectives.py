@@ -23,7 +23,12 @@ from src.core.hex_grid import HexGrid
 from src.core.objective_payment import pay_for_objective
 from src.core.objective_progress import evaluate
 from src.core.registry import StaticDataRegistry
-from src.core.sources import source_rank
+from src.core.sources import (
+    AGENDA_STANDARD,
+    AGENDA_VARIANT_DECKS,
+    AGENDA_VARIANT_SOURCES,
+    source_rank,
+)
 
 # R_objective_cards: „Each game contains five stage I and five stage II public objective
 # cards"; mówca odkrywa dwa cele I etapu w setupie.
@@ -60,12 +65,31 @@ def deck_card_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
         deck = decks[deck_id]
         if not isinstance(deck, DeckDef) or deck.deck_type != deck_type:
             continue
+        if deck.source in AGENDA_VARIANT_SOURCES:
+            continue  # fanowskie talie agend wybiera się jawnie: ``agenda_deck_ids``
         if best is None or (-len(deck.card_ids), source_rank(deck.source)) < (
             -len(best.card_ids),
             source_rank(best.source),
         ):
             best = deck
     return list(best.card_ids) if best is not None else []
+
+
+def agenda_deck_ids(registry: StaticDataRegistry, variant: str = AGENDA_STANDARD) -> list[str]:
+    """Karty talii agend dla wariantu gry (``standard`` albo fanowski, np. ``absol``).
+
+    ``standard`` = talia aktywnych źródeł (PoK/TE). Warianty fanowskie biorą wskazaną talię
+    z katalogu (``AGENDA_VARIANT_DECKS``). Nieznany wariant albo brak talii → ``ValueError``.
+    """
+    if variant not in AGENDA_VARIANT_DECKS:
+        raise ValueError(f"Unknown agenda deck variant: {variant!r}.")
+    alias = AGENDA_VARIANT_DECKS[variant]
+    if alias is None:
+        return deck_card_ids(registry, "agenda")
+    deck = registry.catalog.get(ComponentCategory.DECK, alias)
+    if not isinstance(deck, DeckDef) or not deck.card_ids:
+        raise ValueError(f"The agenda deck {alias!r} is not available in the catalog.")
+    return list(deck.card_ids)
 
 
 def objective_def(

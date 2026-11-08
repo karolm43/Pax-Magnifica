@@ -38,6 +38,15 @@ export const AVAILABLE_COLORS = [
 
 export type PlayerColor = (typeof AVAILABLE_COLORS)[number];
 
+/** Talia agend wybierana w setupie (zgodna z `AGENDA_VARIANT_DECKS` backendu). */
+export const AGENDA_DECKS = [
+  { value: "standard", label: "Standard" },
+  { value: "absol", label: "Absol" },
+  { value: "black_spectrum", label: "Black Spectrum" },
+] as const;
+
+export type AgendaDeck = (typeof AGENDA_DECKS)[number]["value"];
+
 /** Zakres liczby graczy wspierany przez układ 6-osobowy (R11.3). */
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;
@@ -106,6 +115,8 @@ export interface SetupStore {
   slots: SetupSlot[];
   /** Opcjonalny map string (puste → mapa testowa po stronie backendu). */
   mapString: string;
+  /** Talia agend (standardowa albo fanowska). */
+  agendaDeck: AgendaDeck;
   /** Indeks bieżącego kroku w `SETUP_STEPS` (0-bazowy). */
   currentStepIndex: number;
 
@@ -124,6 +135,7 @@ export interface SetupStore {
    */
   setControlType: (index: number, controlType: ControlType) => void;
   setMapString: (value: string) => void;
+  setAgendaDeck: (value: AgendaDeck) => void;
   goToStep: (index: number) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -139,6 +151,7 @@ export const useSetupStore = create<SetupStore>((set) => ({
   playerCount: DEFAULT_PLAYERS,
   slots: initialSlots(),
   mapString: "",
+  agendaDeck: "standard",
   currentStepIndex: 0,
 
   setPlayerCount: (count) =>
@@ -177,6 +190,8 @@ export const useSetupStore = create<SetupStore>((set) => ({
 
   setMapString: (value) => set({ mapString: value }),
 
+  setAgendaDeck: (value) => set({ agendaDeck: value }),
+
   goToStep: (index) =>
     set(() => ({
       currentStepIndex: Math.max(0, Math.min(index, SETUP_STEPS.length - 1)),
@@ -197,6 +212,7 @@ export const useSetupStore = create<SetupStore>((set) => ({
       playerCount: DEFAULT_PLAYERS,
       slots: initialSlots(),
       mapString: "",
+      agendaDeck: "standard",
       currentStepIndex: 0,
     }),
 }));
@@ -360,7 +376,8 @@ export function toNewGameRequest(
   slots: SetupSlot[],
   mapString: string,
   factionById: Map<string, FactionInfo>,
-): { players: NewGamePlayer[]; map_string?: string } {
+  agendaDeck: AgendaDeck = "standard",
+): { players: NewGamePlayer[]; map_string?: string; agenda_deck: AgendaDeck } {
   const players: NewGamePlayer[] = slots.map((slot) => {
     const name = slot.name.trim();
     const isRandom = slot.factionId === RANDOM_FACTION;
@@ -387,6 +404,7 @@ export function toNewGameRequest(
   return {
     players,
     map_string: mapString.trim() || undefined,
+    agenda_deck: agendaDeck,
   };
 }
 

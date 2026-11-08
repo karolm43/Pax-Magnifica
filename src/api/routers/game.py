@@ -32,6 +32,7 @@ from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
 from src.core.models import FactionDef
+from src.core.objectives import agenda_deck_ids
 from src.core.registry import StaticDataRegistry
 from src.core.setup_service import (
     PlayerSetupInput,
@@ -495,9 +496,15 @@ async def post_new_game(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    try:
+        agenda_deck_ids(ctx.registry, request.agenda_deck)  # walidacja wariantu talii agend
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     _place_locked_mallice(grid, ctx.registry)
 
     new_state = GameState()
+    new_state.decks.agenda_variant = request.agenda_deck
     seating: list[str] = []  # kolejność graczy przy stole (RULES.md 24)
     taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
     taken_homes: set[str] = set()  # zajęte pozycje domowe (R14.4)
