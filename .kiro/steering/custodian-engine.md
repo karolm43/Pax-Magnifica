@@ -128,6 +128,11 @@ dlatego trzymamy ostry podział warstw, zależności tylko w dół:
   E7), NIE `if faction == ...` w regule bazowej.
 - Nowa mechanika: reguła → `RULES.md` ze źródłem → czysta funkcja w `core/` + test →
   cienki endpoint w `api/routers/<temat>.py`.
+- **Punkty centralne (RULES.md 43.1a):** operacje, na które mogą wpływać karty/zdolności (płatność, TG/commodities,
+  żetony, exhaust, kontrola planet, zniszczenie/postawienie jednostek, zdobycie technologii, VP) mają JEDNĄ
+  funkcję w `core/`; nie zmieniaj tych pól stanu poza nią. Do końca H2 wyjątki → jedno nazwane miejsce
+  z komentarzem `HOOK-CANDIDATE`, nie `if faction == ...`. Kolejność prac: `docs/PLAN_PELNA_ROZGRYWKA.md`
+  („OSTATECZNY PLAN KOLEJNOŚCI"). Nowe endpointy akcji mają `actor_id` (RULES.md 44.1).
 - **Rozmiar plików to miękka wskazówka, nie twardy limit.** Spójny moduł do ok. 500 linii
   jest w porządku. Dziel tematycznie, gdy plik zaczyna obejmować różne tematy albo nowa
   funkcja otwiera nowy temat (np. jedna karta strategii = osobny plik). Nie dziel spójnego

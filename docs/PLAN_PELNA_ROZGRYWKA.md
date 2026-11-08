@@ -192,15 +192,74 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
 
 Szczegółowy dziennik postępu: `PROGRESS.md`. Mapa dokumentacji: `README.md` (w `docs/`).
 
-## Kolejność prac (korekta, ustalona z użytkownikiem): karty strategii → hooki → STOP/karty akcji → sieć
+## OSTATECZNY PLAN KOLEJNOŚCI (nadrzędny wobec starszych kolejności w tym pliku)
 
-Powód: karty strategii to reguły BAZOWE (8 kart, każda partia), szkielet już jest, a odblokowują model
-wydawania zasobów/wpływu potrzebny wszystkiemu dalej. Hooki mają sens, gdy jest co modyfikować. Sieć
-budujemy po silniku bazowym, ale zasada `actor_id` (RULES.md 44.1) obowiązuje od teraz.
+Ustalone z użytkownikiem. Karty strategii i dodawanie technologii istnieją (bez pełnych efektów), więc
+następny krok to **porządkowanie punktów centralnych (C) i szkielet hooków (H)**.
 
-Kolejność: **S** (karty strategii) → **H0–H2** (hooki) → **H1b** (STOP) → **H3–H6** (karty akcji, frakcje, agendy) → **N** (sieć).
-`actor_id` w nowych endpointach: od teraz. Wszystkie bloki: RULES.md ze źródłem → kod w `core/` → test → cienki
-endpoint → QA (pytest/ruff/mypy) → commit. Wątpliwa reguła = ⚠ ZAŁOŻENIE i pytanie do użytkownika.
+| Faza | Zakres | Uwagi |
+|---|---|---|
+| **C** | Punkty centralne: jedna funkcja na każdą rozproszoną operację (płatności, żetony, wyczerpywanie, kontrola planet, zniszczenie/postawienie jednostek, zdobycie technologii, VP) | Czysty refaktor, ZERO zmiany zachowania; testy regresji. Patrz „Audyt miejsc rozproszonych" niżej |
+| **H0–H2** | Szkielet `core/rules_hooks.py` + punkty zaczepienia NA punktach centralnych z C | Pierwsze przypadki: Arborec (`production.py`), Antimass (`movement.py`), technologia „ruch przez systemy z obcymi statkami", Keleres (commodities jako TG) |
+| **T** | Dokończenie technologii: zdobywanie (karta Technology, skipy, prerekwizyty) + efekty technologii jako hooki | Efekty po H2; reguły z `R_technology`, `R_technology_sc`, `R_unit_upgrades` |
+| **S** | Dokończenie kart strategii (efekty primary/secondary, wyjątki frakcyjne jako hooki) | Wg stanu kodu `core/strategy_cards/*` |
+| **X** | Eksploracja: dokończenie (talie, attachmenty, relikwie) + efekty kart jako hooki | Wg stanu `core/exploration.py` |
+| **H1b** | STOP: punkty kontrolne + przerwanie (RULES.md 43.4) | Przed kartami akcji |
+| **E4–E7** | Karty akcji, frakcje (proste → złożone), agendy | Wg raportu pokrycia (H3) |
+| **N** | Sieć do 6 graczy (RULES.md 44) | `actor_id` w nowych endpointach OD TERAZ |
+
+Zasady przekrojowe:
+- Każdy blok: RULES.md ze źródłem → kod w `core/` → test → cienki endpoint → QA (pytest/ruff/mypy) → commit.
+  Wątpliwa reguła = ⚠ ZAŁOŻENIE i pytanie do użytkownika.
+- Do czasu ukończenia H2: żadnych nowych `if faction == ...`/sprawdzeń konkretnej karty w regułach bazowych.
+  Jeśli wyjątek jest konieczny, ląduje w JEDNYM nazwanym miejscu (stała/słownik) z komentarzem `HOOK-CANDIDATE`
+  (jak `_PRODUCTION_FORBIDS`), żeby migracja do hooków była mechaniczna.
+- Każda zmiana stanu opisana w „punktach centralnych" (niżej) idzie WYŁĄCZNIE przez jej funkcję centralną.
+
+## Audyt miejsc rozproszonych (punkty centralne) — wynik wyszukiwania w `src/core/`
+
+Hook przyczepia się w JEDNYM miejscu, więc operacja musi mieć jedną funkcję. Poniżej wynik wyszukiwania
+(grep po kodzie, stan z tej sesji). Liczby = liczba trafień we wzorcach, wstępne; DOKŁADNĄ listę wywołań
+ustala blok C0 (przegląd przed refaktorem).
+
+| # | Operacja | Gdzie rozproszone dziś | Funkcja centralna (propozycja) | Przykłady hooków |
+|---|---|---|---|---|
+| 1 | Trade goods / commodities (dodanie, wydanie, konwersja) | `payment.py`, `production.py` (osobna ścieżka), `objective_payment.py`, `exploration.py` (TG i commodities), `strategy_phase.py`, `transaction.py`, `strategy_cards/trade.py` | `core/economy.py`: `gain_tg`, `spend_tg`, `gain/spend_commodities`, `convert_commodities`, `payment_sources` | commodities liczone jak TG (Keleres), zmiana kosztu, zwrot |
+| 2 | Płatność zasobami/wpływem (planety + TG) | `payment.py` (karty), `production.py` (`Spend`, `auto_pay`), `objective_payment.py`, `exploration.py` | jedna `pay(...)` używana przez wszystkich; produkcja przepięta | modyfikatory kosztu, dodatkowe źródła zapłaty |
+| 3 | Żetony dowodzenia (taktyczne/flota/strategiczne) | `objective_payment.py`, `status_phase.py`, `strategic_action.py`, `tactical.py`, `strategy_cards/common.py` | `core/command_tokens.py`: `gain`, `spend`, `move_between_pools` | darmowa aktywacja, dodatkowe żetony |
+| 4 | Wyczerpywanie/odświeżanie planet i technologii | `exhausted_planets` w ~11 plikach (m.in. `invasion.py`, `production.py`, `payment.py`), `exhausted_technologies` (`status_phase`, `board_edit`) | `core/exhaust.py`: `exhaust_planet/ready_planet`, `exhaust_tech/ready_tech` | odświeżanie planet, zdolności „exhaust this card" |
+| 5 | Statystyki jednostek (ruch, pojemność, koszt, walka, produkcja) | `resolve_unit_variant` wołane w ~11 plikach (16 wywołań) — dobry punkt centralny już istnieje | zostaje; hook MODIFY na wyniku (`unit_stat(...)`) | bonusy do ruchu/walki, jednostki frakcyjne |
+| 6 | Wartość planet (resources/influence) | `planet_stats.py` (`resources_of`, `influence_of`; użycia: `production.py`, `tactical.py`, `payment.py`) | zostaje; hook MODIFY na wartości | attachmenty, cechy |
+| 7 | Zmiana kontroli planety | zapisy `planet_owners[...]=` w `invasion.py`, `tactical.py`, `faction_setup.py` (poza God-Mode `board_edit`) | `core/control.py`: `set_planet_control` (RULES.md 12, 23) | „po zdobyciu planety", wyczerpanie przy zdobyciu |
+| 8 | Zniszczenie/postawienie/usunięcie jednostek | `battle.py` (13), `invasion.py` (10), `space_cannon.py` (5), `movement.py`, `unit_catalog.py`; stawianie: `production.py`, `retreat.py`, `exploration.py` | `core/unit_ops.py`: `destroy`, `place`, `remove`, `move` (z limitem fleet pool/reinforcements) | „gdy jednostka zniszczona", odrodzenie, limity |
+| 9 | Zdobycie technologii | brak funkcji centralnej (listę zmienia setup/God-Mode; karta Technology brakuje) | `core/technology.py`: `gain_technology`, `can_research`, prerekwizyty, skipy | „gdy zbadasz technologię", skipy frakcyjne |
+| 10 | Punkty zwycięstwa | `objectives.award_points` (jest) + zapisy w `status_phase.py`, `imperial.py`, `game_end.py` | upewnić się, że wszystkie idą przez `award_points`/`remove_points` | „gdy zdobywasz/tracisz punkt" |
+| 11 | Karty (dobór/odrzucenie/ręka) | `card_draw.py`, `deck_piles.py`, `status_phase.py` | jedna `draw`/`discard` | limit ręki, dobór dodatkowy |
+| 12 | Modyfikatory walki (rzuty, trafienia, reroll, straty) | `battle.py`, `combat.py`, `components.py` | punkty zaczepienia w jednym pipeline rzutu | +1 do rzutu, reroll, ignorowanie sustain |
+| 13 | Dostępność/limit jednostek (fleet pool, reinforcements) | `fleet_pool.py`, `capacity.py`, `production.py`, `retreat.py`, `unit_catalog.py` | pozostaje w `unit_ops` (pkt 8) | zmiana limitów |
+| 14 | Okna czasowe | `open_window` w `battle`, `capacity`, `fleet_pool`, `space_cannon`, `status_phase`, `strategic_action`, `timing` — już jedno API | zostaje | wszystkie TRIGGER-y |
+| 15 | Wyjątki na sztywno (długi) | `production.py::_PRODUCTION_FORBIDS` (Arborec), `movement.py` (alias Antimass), `unit_catalog.py` (aliasy technologii) | migrować do hooków w H2 | — |
+
+Uwagi:
+- Pozycje 5, 6, 14 mają już dobry punkt centralny; wystarczy dodać punkt zaczepienia.
+- Najwięcej pracy: 1–4, 7, 8, 9 (rozproszone lub brak funkcji). To zakres fazy C.
+- Wyszukiwanie było wzorcowe (grep); mogą istnieć miejsca, których wzorce nie złapały (np. zmiany przez `setattr`,
+  przez serializację albo w warstwie `api/`). Blok C0 ma to doprecyzować, a testy architektury (niżej) pilnować na przyszłość.
+- Przykład z prośby użytkownika: „Keleres: może wyczerpać kartę, by każdy gracz wydawał commodities jak TG" —
+  po C to JEDEN wpis w `payment_sources`, bo wszystkie płatności idą przez `pay(...)`.
+
+### Faza C — bloki (czysty refaktor, bez zmiany zachowania)
+- **C0 — Przegląd:** dla każdego wiersza tabeli: pełna lista wywołań (grep + czytanie), decyzja nazwa/sygnatura, kolejność.
+- **C1 — Ekonomia (1–2):** `core/economy.py` + `pay(...)`; przepiąć `payment`, `production`, `objective_payment`, `exploration`,
+  `strategy_phase`, `transaction`, `strategy_cards/trade`. Test regresji: istniejące testy bez zmian.
+- **C2 — Żetony dowodzenia (3)** i **C3 — Exhaust/ready (4).**
+- **C4 — Kontrola planet (7)** i **C5 — Operacje na jednostkach (8, 13).**
+- **C6 — Technologia (9):** funkcja `gain_technology` (także pod kartę Technology i efekty „zdobądź technologię").
+- **C7 — VP (10), karty (11).**
+- **C8 — Test architektury:** test, który skanuje `src/core/` i pada, gdy ktoś zmienia pole stanu (np. `trade_goods`,
+  `exhausted_planets`, `planet_owners`) poza funkcją centralną (lista wyjątków: God-Mode `board_edit`). To strażnik,
+  żeby rozproszenie nie wróciło.
+- DoD fazy C: pytest + ruff + mypy zielone, zachowanie niezmienione, strażnik C8 działa.
 
 ## Plan kart strategii (S0–S9) — PLAN, jeszcze nie rozpoczęty
 

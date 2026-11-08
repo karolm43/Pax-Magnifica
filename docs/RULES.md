@@ -2495,6 +2495,19 @@ i agend wynika wyłącznie z assetów JSON, a reguły ich interakcji z tirules2.
     `hooks/action_cards.py`, `hooks/agendas.py`), rejestr w jednym miejscu. Rozmiar pliku jest miękką
     wskazówką (zwykle do ~500 linii spójnego modułu), a decyduje spójność tematyczna, nie sama liczba linii.
 
+### 43.1a. Punkty centralne: hook przyczepia się w jednym miejscu (ZASADA)
+
+- Operacja, na którą mogą wpływać karty/zdolności (płatność, zdobycie/utrata zasobu, żetony, wyczerpanie,
+  zmiana kontroli planety, zniszczenie/postawienie jednostki, zdobycie technologii, punkty, dobór karty),
+  ma w `core/` JEDNĄ funkcję. Zmiana odpowiedniego pola stanu poza tą funkcją jest niedozwolona
+  (wyjątek: God-Mode w `core/board_edit.py`).
+- Dlaczego: hook dopisujemy raz w funkcji centralnej, a nie w każdym miejscu użycia. Przykład: „wydawaj commodities
+  jak trade goods" = jeden wpis w źródłach płatności, jeśli wszystkie płatności idą przez `pay(...)`.
+- Strażnik: test architektury skanujący `src/core/` i wykrywający zapisy tych pól poza funkcją centralną
+  (plan: PLAN_PELNA_ROZGRYWKA.md, blok C8). Audyt miejsc rozproszonych i lista funkcji: tamże.
+- Tymczasowo (do końca H2): wyjątek konieczny przed hookami zapisujemy w jednym nazwanym miejscu z komentarzem
+  `HOOK-CANDIDATE` (jak `_PRODUCTION_FORBIDS`).
+
 ### 43.2. Kolejność wdrażania (uzasadnienie)
 
 1. **Najpierw mechanizm, potem treść.** Szkielet `rules_hooks` + punkty zaczepienia w istniejących regułach
