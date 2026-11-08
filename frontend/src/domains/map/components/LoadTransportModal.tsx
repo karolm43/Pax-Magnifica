@@ -184,7 +184,9 @@ export function LoadTransportModal() {
                       />
                     </div>
                     <Text size="sm">
-                      <b>{sel}</b>/{s.count} {s.asyncId.toUpperCase()}
+                      <b>{sel}</b>/{s.count}{" "}
+                      {lookupUnit(s.asyncId, target.faction, player)?.name ??
+                        s.asyncId.toUpperCase()}
                     </Text>
                     <Text size="xs" c="dimmed" title="Pickup zone">
                       from {s.label}

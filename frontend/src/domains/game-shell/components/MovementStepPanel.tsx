@@ -194,7 +194,32 @@ export function MovementStepPanel({
   const sourceTile = source ? gameData?.tiles?.[source] : undefined;
   const stacks = faction ? playerSpaceStacks(sourceTile, faction) : [];
   const ships = stacks.filter((s) => SHIP_ONLY_ASYNC.has(s.asyncId));
-  const cargo = stacks.filter((s) => CARGO_ASYNC.has(s.asyncId));
+  // Ładunek źródła: myśliwce/siły naziemne z przestrzeni ORAZ siły naziemne z planet.
+  const cargo: { asyncId: string; count: number; zone: string; zoneLabel: string; key: string }[] =
+    [];
+  for (const s of stacks) {
+    if (CARGO_ASYNC.has(s.asyncId)) {
+      cargo.push({ ...s, zone: "space", zoneLabel: "space", key: `${s.asyncId}@space` });
+    }
+  }
+  for (const [planetId, planet] of Object.entries(sourceTile?.planets ?? {})) {
+    for (const s of playerSpaceStacks(
+      { unitsByFaction: planet.unitsByFaction } as Tile,
+      faction ?? "",
+    )) {
+      if (CARGO_ASYNC.has(s.asyncId) && s.asyncId !== "ff") {
+        cargo.push({
+          ...s,
+          zone: planetId,
+          zoneLabel: planetId,
+          key: `${s.asyncId}@${planetId}`,
+        });
+      }
+    }
+  }
+  const unitName = (asyncId: string) =>
+    (faction ? lookupUnit(asyncId, faction, player)?.name : undefined) ??
+    asyncId.toUpperCase();
 
   const pick = (asyncId: string, max: number, delta: number) => {
     setPicked((prev) => {
@@ -216,18 +241,22 @@ export function MovementStepPanel({
 
   const submit = async () => {
     if (!source || !faction || totalPicked === 0) return;
-    const toOrders = (list: Stack[]) =>
-      list
+    await moveShips({
+      fromPosition: source,
+      faction,
+      ships: ships
         .filter((s) => (picked[s.asyncId] ?? 0) > 0)
         .map((s) => ({
           baseType: BASE_TYPE_BY_ASYNC[s.asyncId] ?? s.asyncId,
           count: picked[s.asyncId],
-        }));
-    await moveShips({
-      fromPosition: source,
-      faction,
-      ships: toOrders(ships),
-      cargo: toOrders(cargo),
+        })),
+      cargo: cargo
+        .filter((s) => (picked[s.key] ?? 0) > 0)
+        .map((s) => ({
+          baseType: BASE_TYPE_BY_ASYNC[s.asyncId] ?? s.asyncId,
+          count: picked[s.key],
+          fromZone: s.zone,
+        })),
     });
     setPicked({});
   };
@@ -397,6 +426,7 @@ export function MovementStepPanel({
                       <MoveUnitTile
                         key={s.asyncId}
                         asyncId={s.asyncId}
+                        name={unitName(s.asyncId)}
                         count={s.count}
                         picked={picked[s.asyncId] ?? 0}
                         colorAlias={colorAlias}
@@ -433,7 +463,7 @@ export function MovementStepPanel({
                           title="Open the load window to pack this ship with cargo"
                         >
                           <IconPackage size={12} aria-hidden="true" /> Load{" "}
-                          {s.asyncId.toUpperCase()} with cargo…
+                          {unitName(s.asyncId)} with cargo…
                         </button>
                       ))}
                 </>
@@ -446,15 +476,17 @@ export function MovementStepPanel({
                   <div className={styles.unitGrid}>
                     {cargo.map((s) => (
                       <MoveUnitTile
-                        key={s.asyncId}
+                        key={s.key}
                         asyncId={s.asyncId}
+                        name={unitName(s.asyncId)}
+                        zoneLabel={s.zoneLabel}
                         count={s.count}
-                        picked={picked[s.asyncId] ?? 0}
+                        picked={picked[s.key] ?? 0}
                         colorAlias={colorAlias}
                         faction={faction}
                         busy={busy}
-                        onAdd={() => pick(s.asyncId, s.count, +1)}
-                        onRemove={() => pick(s.asyncId, s.count, -1)}
+                        onAdd={() => pick(s.key, s.count, +1)}
+                        onRemove={() => pick(s.key, s.count, -1)}
                       />
                     ))}
                   </div>
@@ -485,6 +517,8 @@ export function MovementStepPanel({
 /** Kafelek jednej jednostki do ruszenia: ikona, „wybrane / dostępne", +/−. */
 function MoveUnitTile({
   asyncId,
+  name,
+  zoneLabel,
   count,
   picked,
   colorAlias,
@@ -494,6 +528,8 @@ function MoveUnitTile({
   onRemove,
 }: {
   asyncId: string;
+  name: string;
+  zoneLabel?: string;
   count: number;
   picked: number;
   colorAlias: string;
@@ -503,7 +539,10 @@ function MoveUnitTile({
   onRemove: () => void;
 }) {
   return (
-    <div className={styles.unitTile} title={asyncId.toUpperCase()}>
+    <div
+      className={styles.unitTile}
+      title={zoneLabel ? `${name} · from ${zoneLabel}` : name}
+    >
       <div className={styles.unitTileIcon}>
         <Unit
           unitType={asyncId}
@@ -512,7 +551,10 @@ function MoveUnitTile({
           scaleSprite
         />
       </div>
-      <span className={styles.unitTileName}>{asyncId.toUpperCase()}</span>
+      <span className={styles.unitTileName}>
+        {name}
+        {zoneLabel ? ` · ${zoneLabel}` : ""}
+      </span>
       <span className={styles.unitTileCost} title="Selected / available">
         {picked}/{count}
       </span>
