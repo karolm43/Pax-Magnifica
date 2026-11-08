@@ -5,6 +5,28 @@ patrz RULES.md 30.3). Źródła reguł: `docs/rules_tirules/R_strategic_action.m
 `R_strategy_card.md`, `R_leadership|diplomacy|politics|construction|trade|warfare|technology_sc|imperial.md`,
 `R_action_phase.md`. Teksty kart: `assets/data/strategy_cards/pok.json` (+ `te.json`).
 
+## 0. Zestaw kart strategii w grze (DECYZJA użytkownika, najnowsze errata)
+
+Obowiązuje zestaw `te` z `assets/data/strategy_card_sets/strategyCardSets.json`
+(rejestr wybiera go sam przy włączonym `thunders_edge`; test `test_registry.py` pilnuje
+kolejności). Wersja każdej karty = najnowsza errata:
+
+| # | Karta | ID w assetach | Źródło wersji |
+|---|-------|---------------|---------------|
+| 1 | Leadership | `pok1leadership` | base |
+| 2 | Diplomacy | `pok2diplomacy` | **codex1** (errata) |
+| 3 | Politics | `pok3politics` | base |
+| 4 | Construction | `te4construction` | **thunders_edge** |
+| 5 | Trade | `pok5trade` | base |
+| 6 | Warfare | `te6warfare` | **thunders_edge** |
+| 7 | Technology | `pok7technology` | base |
+| 8 | Imperial | `pok8imperial` | base |
+
+Wniosek: stary tekst Construction (PDS/dok) i Warfare (zdejmij żeton + redystrybucja) z
+`pok.json` NIE obowiązują — implementujemy teksty z `te.json`. Rulingi (tirules) dla
+`R_construction.md`/`R_warfare.md` opisują wersję PoK, więc przy TE wersji sprawdzić noty
+Thunder's Edge na tirules2.com przed kodowaniem (⚠️ do weryfikacji).
+
 ## 1. Dlaczego obecny szkielet nie wystarczy
 
 `core/strategic_action.py` robi dziś: efekt primary w JEDNYM wywołaniu → okno
@@ -59,7 +81,7 @@ StrategyResolution:
 - Idempotencja: każda odpowiedź niesie `step` i `window_id`/`version`; stara odpowiedź
   (opóźniona w sieci) jest odrzucana 422/409 zamiast zastosowana dwa razy.
 
-## 4. Analiza kart (PoK; TE ma inne Construction i Warfare — patrz uwagi)
+## 4. Analiza kart (zestaw `te`, patrz sekcja 0)
 
 Legenda UI: 0 = wystarczy przycisk/potwierdzenie, S = mały selektor, M = wybór na mapie,
 P = płatność (wpływ/zasoby z planet), H = duży dedykowany widok.
@@ -69,9 +91,9 @@ P = płatność (wpływ/zasoby z planet), H = duży dedykowany widok.
 | 1 | Leadership | +3 żetony (wybór puli) → opcjonalnie wydaj wpływ: 1 żeton / 3 wpływu | Wydaj wpływ → żetony; BEZ żetonu strategii | P + S (pula) |
 | 2 | Diplomacy | Wybierz system (nie Mecatol) z własną planetą → inni kładą żeton → odnów 2 planety | 1 żeton strategii → odnów do 2 planet | M + S (planety) |
 | 3 | Politics | Wybierz nowego mówcę (nie obecny) → +2 karty akcji → podgląd 2 kart agendy, góra/dół, kolejność | 1 żeton strategii → +2 karty akcji | S (gracz) + H-mały (agenda, prywatny) |
-| 4 | Construction | 1 PDS lub dok na planecie + 1 PDS (bez wymogu żetonu w systemie) | 1 żeton: połóż w dowolnym systemie (jeśli już jest — wraca do rezerwy) + 1 PDS lub dok na planecie w tym systemie | M + S (planeta/struktura) |
+| 4 | Construction (TE) | 1 struktura na własnej planecie ALBO PRODUCTION jednego doku → potem 1 struktura na własnej planecie | 1 żeton → 1 struktura na własnej planecie | S (planeta/struktura) + Production |
 | 5 | Trade | +3 TG, uzupełnij commodities, wskaż graczy, którzy robią secondary za darmo | 1 żeton → uzupełnij commodities (lub za darmo, gdy wskazany) | S (multi-select graczy), reszta 0 |
-| 6 | Warfare | Zdejmij 1 swój żeton z planszy → do wybranej puli → opcjonalnie redystrybucja | 1 żeton → PRODUCTION jednego doku w home system (żeton nie ląduje w systemie) | M + redystrybucja (jest w statusie) + Production |
+| 6 | Warfare (TE) | Akcja taktyczna w DOWOLNYM systemie bez kładzenia żetonu (system liczy się jako aktywowany); redystrybucja żetonów przed i po | 1 żeton → PRODUCTION jednostek w home system (żeton nie ląduje w systemie) | M + przepływ taktyczny + redystrybucja |
 | 7 | Technology | Zbadaj 1 technologię + opcjonalnie 2. za 6 zasobów | 1 żeton + 4 zasoby → 1 technologia | **H (drzewo technologii)** + P |
 | 8 | Imperial | Zdobądź 1 cel publiczny (jeśli spełniasz) → kontrola Mecatol: +1 VP, inaczej tajny cel | 1 żeton → dobierz tajny cel | S (wybór celu) + S (limit 3 tajnych → zwrot) |
 
@@ -88,11 +110,15 @@ primary też wymagają wyborów, więc primary musi być krokowe (sekcja 2), nie
   już ma żeton w systemie, nic nie kładzie. Token „Diplomacy" tylko kosmetyka (RULES notatka).
 - **Politics:** speaker zmienia się od razu (wpływa na `speaker_id` i kolejność); podgląd
   agendy jest prywatny. Ręka akcji >7 → odrzucanie (istniejący limit ręki).
-- **Construction:** limity (1 dok / planeta, 2 PDS / planeta, Demilitarized Zone), brak
-  jednostki w rezerwie → zdjęcie jednostki z systemu bez żetonu. **TE:** inny tekst
-  („1 struktura" lub PRODUCTION doku) — inny zestaw kroków.
-- **Warfare:** **TE** to w ogóle inna karta (akcja taktyczna bez żetonu) — wymaga wejścia
-  w przepływ taktyczny z flagą „bez żetonu"; wyraźnie osobna implementacja.
+- **Construction (TE):** struktura = PDS lub dok. Limity (1 dok / planeta, 2 PDS / planeta,
+  Demilitarized Zone), brak jednostki w rezerwie → zdjęcie jednostki z systemu bez żetonu
+  (⚠️ potwierdzić na tirules, czy TE zachowuje te noty). Primary ma gałąź „albo": struktura
+  ALBO PRODUCTION doku (reuse `core/production.py`), potem druga struktura. Secondary nie
+  wymaga już wyboru systemu ani kładzenia żetonu.
+- **Warfare (TE):** darmowa akcja taktyczna (bez żetonu, nawet gdy żeton już jest w systemie)
+  z redystrybucją żetonów przed i po. Wchodzi w istniejący przepływ taktyczny
+  (`core/tactical.py`) z flagą „bez żetonu"; secondary = PRODUCTION w home system bez
+  aktywacji. Cała sekwencja liczy się jako JEDNA akcja strategiczna.
 - **Technology:** wymagania kolorów (`requirements` w assetach: B/BB, itd.), kolory z
   umiejętności/skipów, technologie frakcyjne (`faction`), ulepszenia jednostek
   (`baseUpgrade`), wyczerpywanie (`exhausted_technologies`). Zniżka zasobów z efektów
@@ -103,12 +129,25 @@ primary też wymagają wyborów, więc primary musi być krokowe (sekcja 2), nie
 
 ## 5. Które karty potrzebują dedykowanego UI
 
-1. **Technology — TAK, osobny widok.** „Technology Research box": drzewo/siatka 4 kolorów
-   (typy i kolory brać z assetów `types`/`requirements`, nie z pamięci) + technologie
-   jednostkowe (szare) + frakcyjne. Stany kafla: posiadana / do zbadania (spełnione wymagania) /
-   zablokowana (brakuje prerekwizytów, pokaż czego) / wyczerpana. Panel boczny: tekst
-   technologii, koszt (primary: 0; druga: 6 zasobów; secondary: 4 zasoby + żeton), PaymentPicker.
-   Reużywalne poza kartą strategii (zdolności typu „research a technology", Codex). **Największy element.**
+1. **Technology — TAK, największy widok: `TechnologyOverlay`** (decyzja użytkownika: styl
+   okna produkcji `frontend/src/domains/production/ProductionOverlay`, dużo informacji).
+   Układ (do dopracowania w makiecie):
+   - **Drzewo technologii** z połączeniami prerekwizytów: kolumny wg typu z assetów
+     (`BIOTIC`, `CYBERNETIC`, `PROPULSION`, `WARFARE`) + pas `UNITUPGRADE`; wiersze wg liczby
+     wymaganych symboli z `requirements`; linie łączą technologię z jej prerekwizytami
+     (ulepszenia jednostek przez `baseUpgrade`). Technologie frakcyjne (`faction`) jako osobny
+     pas gracza, z podmianą `homebrewReplacesID`/zamienników.
+   - **Stany kafla:** posiadana / dostępna do zbadania / zablokowana (tooltip „brakuje: B, B") /
+     wyczerpana (`exhausted_technologies`). Podświetlenie ścieżki po najechaniu.
+   - **Płatność w stylu produkcji:** lista własnych planet jako karty z wyczerpywaniem
+     (resources), specjalności technologiczne planet (`techSpecialties`) jako ikony — dają
+     „skip" jednego symbolu prerekwizytu, więc kafel odblokowuje się po wyczerpaniu planety;
+     licznik kosztu: primary 0 / druga 6 zasobów / secondary 4 zasoby + żeton ze strategy pool.
+   - **Panel boczny:** tekst technologii, wymagania, co odblokowuje, przycisk „Research".
+   - Backend: czysta funkcja `core/technology.py` (`can_research`, `missing_prereqs`,
+     `research`), dane wyłącznie z assetów. Reużywalna poza kartą (zdolności „research a
+     technology", Codex). Zasady skipów i specjalności: sprawdzić w `R_technology.md` /
+     `C_technology.md`, nie z pamięci.
 2. **Politics — mały modal** (prywatny): wybór mówcy + podgląd 2 kart agendy z układem góra/dół.
 3. **Wspólny PaymentPicker** (wpływ lub zasoby, wyczerpywanie planet) — Leadership, Technology;
    reuse z Production/Objective payment.
@@ -118,9 +157,15 @@ primary też wymagają wyborów, więc primary musi być krokowe (sekcja 2), nie
    planet do odnowienia (Diplomacy), celu publicznego (Imperial), zwrotu tajnego celu.
 6. **Tylko potwierdzenie (0):** secondary Trade/Politics/Imperial (po kosztach żetonu).
 
-Wspólna powłoka: jeden komponent „Strategy Card Resolution" (dock/overlay) renderujący
-bieżący `step` — po stronie respondenta pokazuje się popup follow/don't follow (już jest
-`SecondaryDecisionModal`), a po „follow" ten sam overlay z krokami karty.
+Styl pozostałych kart (decyzja użytkownika): **proste, niewielkie okna jak panel akcji
+taktycznej (`TacticalActionPanel`/`MovementStepPanel`) albo kroki statusu** — dok z krokami
+bieżącej karty i krótkim opisem, a wybory na mapie klikane bezpośrednio. Tylko Technology
+dostaje duży overlay.
+
+Wspólna powłoka: jeden komponent „Strategy Card Step Panel" renderujący bieżący `step` —
+po stronie respondenta pokazuje się popup follow/don't follow (już jest
+`SecondaryDecisionModal`), a po „follow" ten sam panel z krokami karty. Dla Technology krok
+„research" otwiera `TechnologyOverlay`.
 
 ## 6. Proponowana kolejność wdrożenia
 
@@ -131,10 +176,9 @@ bieżący `step` — po stronie respondenta pokazuje się popup follow/don't fol
 4. PaymentPicker + Leadership, Diplomacy.
 5. Construction, Warfare (mapa + produkcja).
 6. Technology (drzewo) — osobny blok, bo największe UI i model badania.
-7. Warianty TE (Construction/Warfare) po decyzji, którego zestawu używamy.
+7. (Zestaw `te` już ustalony — sekcja 0; Construction/Warfare idą od razu w wersji TE.)
 
 ## 7. Pytania do decyzji
 
-- Który zestaw kart: PoK (obecnie kanoniczny w rejestrze) czy z TE (Construction/Warfare)?
 - Timeout/auto-pass w sieci: kiedy ustalamy politykę (teraz hot-seat)?
 - Czy Technology box ma być od razu uniwersalny (reuse dla innych źródeł badania)? Rekomendacja: tak.

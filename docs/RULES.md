@@ -1354,6 +1354,14 @@ po karcie (``core/strategic_action.py``), nie `if` w endpointcie. Każda kolejna
 gałąź dispatchu + wpis reguły tutaj ze źródłem. Model okna niesie kontekst (numer inicjatywy),
 więc respond potrafi rozstrzygnąć właściwy secondary bez zmiany kształtu okna.
 
+### 30.4. Obowiązujący zestaw kart strategii — DECYZJA użytkownika (najnowsze errata)
+
+Zestaw `te` (`strategyCardSets.json`): Leadership (base), Diplomacy (codex1), Politics (base),
+Construction (`te4construction`, Thunder's Edge), Trade (base), Warfare (`te6warfare`,
+Thunder's Edge), Technology (base), Imperial (base). Teksty z `assets/data/strategy_cards/`.
+Tabela i uwagi: `docs/PROJEKT_KARTY_STRATEGII.md` sekcja 0. ⚠️ Noty tirules dla Construction i
+Warfare opisują wersję PoK — wersję TE zweryfikować na tirules2.com przed kodowaniem.
+
 ### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
 
 📎 tirules: [Action Phase](rules_tirules/R_action_phase.md), [Strategic Action](rules_tirules/R_strategic_action.md)
