@@ -74,8 +74,9 @@ OWNERS: dict[str, frozenset[str]] = {
     "exploration_discard": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
     "purged": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
     "planet_attachments": frozenset({"core/exploration.py", _GOD_MODE}),
-    # Przełom frakcji: dziś tylko God-Mode; logika odblokowania/odłożenia TG dojdzie z hookami.
-    "breakthrough_unlocked": frozenset({_GOD_MODE}),
+    # Przełom frakcji: odblokowanie idzie przez core/breakthrough.py (ekspedycje, RULES.md 50);
+    # odłożenie TG dojdzie z hookami.
+    "breakthrough_unlocked": frozenset({"core/breakthrough.py", _GOD_MODE}),
     "breakthrough_tg": frozenset({_GOD_MODE}),
 }
 

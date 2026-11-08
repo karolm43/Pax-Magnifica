@@ -43,6 +43,7 @@ from src.api.routers import (
     status,
     strategy,
     tactical,
+    thunders_edge,
     transactions,
     window,
 )
@@ -114,6 +115,7 @@ def create_app(
     app.include_router(fleet_pool.router)
     app.include_router(invasion.router)
     app.include_router(exploration.router)
+    app.include_router(thunders_edge.router)
     app.include_router(decks.router)
     app.include_router(production.router)
     app.include_router(transactions.router)

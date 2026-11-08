@@ -14,6 +14,7 @@ from src.core.hex_grid import HexGrid
 from src.core.home_slots import HOME_SLOT_COLORS_6P, home_slot_color
 from src.core.map_string import HOME_SLOT_SYSTEM_ID
 from src.core.registry import StaticDataRegistry
+from src.core.system_planets import planets_of_system
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
 # Testowy map string (6-osobowa plansza) używany, gdy frontend nie poda własnego.
@@ -118,7 +119,7 @@ def build_map_view(
                 s=s,
                 wormholes=list(system.wormholes) if system else [],
                 anomalies=sorted(grid.anomalies_at(position)),
-                planets=list(system.planets) if system else [],
+                planets=planets_of_system(state, registry, position, grid) if system else [],
                 name=system.name if system else None,
                 image_url=image_url,
                 space_units=space_stacks,

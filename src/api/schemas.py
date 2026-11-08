@@ -69,13 +69,13 @@ class MapTile(BaseModel):
 
 
 class MapEdge(BaseModel):
-    """Krawędź grafu mapy (sąsiedztwo geometryczne lub wormhole)."""
+    """Krawędź grafu mapy (sąsiedztwo geometryczne, wormhole albo portal ingress–egress)."""
 
     model_config = ConfigDict(extra="forbid")
 
     a: str
     b: str
-    kind: Literal["adjacent", "wormhole"]
+    kind: Literal["adjacent", "wormhole", "portal"]
 
 
 class MapView(BaseModel):

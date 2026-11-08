@@ -1,0 +1,189 @@
+/* Moduł Thunder's Edge: okno ekspedycji, rzut na The Fracture, dok wyboru ingress /
+   Thunder's Edge. Tylko tokeny ds - spójne z oknami kart strategii. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: min(560px, 86vw);
+}
+
+.slices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.slice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid var(--ds-h14);
+  background: var(--ds-ground-2);
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+}
+
+.slice:hover:not(:disabled) {
+  border-color: var(--ds-h30, var(--ds-ink-lo));
+}
+
+/* Zaznaczenie statyczne (bez pulsowania - preferencja użytkownika). */
+.slice[data-selected] {
+  border-color: var(--ds-yellow-4);
+  background: color-mix(in srgb, var(--ds-yellow-4) 12%, var(--ds-ground-2));
+}
+
+.slice:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.sliceIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ds-ground-3, var(--ds-ground));
+  color: var(--ds-ink-hi);
+}
+
+.sliceText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.sliceText b {
+  font-size: 13px;
+}
+
+.sliceText small {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.claimed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cardPick {
+  flex: 1 1 180px;
+  padding: 8px 10px;
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid var(--ds-h14);
+  background: var(--ds-ground-2);
+  color: var(--ds-ink-hi);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cardPick[data-on] {
+  border-color: var(--ds-yellow-4);
+  background: color-mix(in srgb, var(--ds-yellow-4) 12%, var(--ds-ground-2));
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.rollBanner {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-app-modal, 400);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--ds-h14);
+  background: var(--ds-ground-2);
+  color: var(--ds-ink-hi);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 0.5);
+}
+
+.rollBanner[data-success] {
+  border-color: var(--ds-green-5);
+}
+
+.die {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ds-ink-hi);
+  background: var(--ds-ground);
+  border: 2px solid var(--ds-ink-lo);
+  animation: dieRoll 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.rollBanner[data-success] .die {
+  border-color: var(--ds-green-5);
+  color: var(--ds-green-4);
+}
+
+.rollText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 340px;
+}
+
+.rollText small {
+  color: var(--ds-ink-lo);
+}
+
+@keyframes dieRoll {
+  0% {
+    transform: rotate(-540deg) scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: rotate(18deg) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .die {
+    animation: none;
+  }
+}
+
+.dismiss {
+  margin-left: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ds-h14);
+  background: transparent;
+  color: var(--ds-ink-lo);
+  cursor: pointer;
+}

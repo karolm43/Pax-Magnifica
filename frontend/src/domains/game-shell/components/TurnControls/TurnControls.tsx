@@ -15,6 +15,7 @@ import {
   IconTarget,
   IconCrosshair,
   IconArrowsExchange,
+  IconCompass,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -45,6 +46,7 @@ import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useDeskPlayer } from "./useDeskPlayer";
 import { TransactionModal } from "./TransactionModal";
+import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import styles from "./TurnControls.module.css";
 
 /* Initiative → wariant koloru DetailsCard (tooltip treści) — jak w StrategyCardTable. */
@@ -137,6 +139,8 @@ export function TurnControls() {
   const [componentOpen, setComponentOpen] = useState(false);
   // Okno transakcji (RULES.md 47): wymiana z sąsiadem + żetony obietnic.
   const [transactionOpen, setTransactionOpen] = useState(false);
+  // Ekspedycja Thunder's Edge (RULES.md 50): zajęcie plastra na koniec tury.
+  const [expeditionOpen, setExpeditionOpen] = useState(false);
 
   // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
   // pierwszy). Zwraca null tylko, gdy nie ma żadnego posadzonego gracza.
@@ -233,6 +237,11 @@ export function TurnControls() {
   // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
   // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
   const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
+  // Ekspedycja: koniec tury (po akcji lub pasie), bez otwartego okna; wolny plaster żetonu.
+  const hasFreeExpedition = Object.values(webData?.expeditions ?? {}).some(
+    (slice) => slice.completedBy == null,
+  );
+  const canExpedition = isAction && (tookAction || hasPassed) && !windowOpen;
   // Akcja strategiczna to TEŻ jedna z akcji tury (RULES.md 30.3) — te same warunki.
   const canStrategicAction = canComponentAction;
   // Akcja TAKTYCZNA (RULES.md 31.7 / R_tactical_action) — aktywacja systemu. Dostępna
@@ -449,6 +458,27 @@ export function TurnControls() {
                 <IconArrowsExchange size={16} aria-hidden="true" />
                 <span>Transaction</span>
               </button>
+              {/* Ekspedycja Thunder's Edge (RULES.md 50) - NA KONIEC tury (po akcji lub pasie),
+                  jeden plaster na turę. Widoczna, dopóki któryś plaster żetonu jest wolny. */}
+              {hasFreeExpedition && (
+                <button
+                  type="button"
+                  className={`${styles.transaction} ${styles.tile}`}
+                  style={{ "--d": "165ms" } as CSSProperties}
+                  disabled={busy || !canExpedition}
+                  onClick={() => setExpeditionOpen(true)}
+                  title={
+                    windowOpen
+                      ? "Wait — every player must decide on the secondary first"
+                      : tookAction || hasPassed
+                        ? "Claim a slice of the expedition token (end of your turn, one per turn)"
+                        : "An expedition is done at the END of your turn — take an action or pass first"
+                  }
+                >
+                  <IconCompass size={16} aria-hidden="true" />
+                  <span>Expedition</span>
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.endTurn}
@@ -605,6 +635,15 @@ export function TurnControls() {
           </Group>
         </Stack>
       </AppModal>
+
+      {expeditionOpen && (
+        <ExpeditionModal
+          opened
+          onClose={() => setExpeditionOpen(false)}
+          gameId={gameId}
+          playerId={active.discordId ?? null}
+        />
+      )}
 
       {/* MODAL transakcji (RULES.md 47) — montowany tylko, gdy otwarty, by hooki ręki
           (usePlayerHand) nie odpytywały backendu przez cały czas. Gracz = ten, którego

@@ -28,6 +28,7 @@ from src.core.game_state import (
 from src.core.hex_grid import HexGrid
 from src.core.models import UnitDef
 from src.core.registry import StaticDataRegistry
+from src.core.system_planets import planets_of_system
 from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
@@ -116,12 +117,8 @@ def _ground_in_zone(system: SystemState, zone: str, player_id: str) -> dict[str,
 def system_planets(
     state: GameState, registry: StaticDataRegistry, position: str
 ) -> list[str]:
-    """Id planet systemu (z definicji kafelka)."""
-    system = state.systems.get(position)
-    if system is None:
-        return []
-    definition = registry.systems.get(system.system_id)
-    return list(definition.planets) if definition is not None else []
+    """Id planet systemu (z definicji kafelka + planety dołożone w grze, np. Thunder's Edge)."""
+    return planets_of_system(state, registry, position)
 
 
 def unit_variant(
@@ -743,7 +740,7 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
                     )
                 if structures:
                     destroyed[pid] = structures
-            control.set_planet_control(state, inv.position, planet, inv.attacker)
+            control.set_planet_control(state, inv.position, planet, inv.attacker, registry)
             if attacker is not None:
                 # Zdobyta planeta zostaje wyczerpana (zachowanie bez zmian, RULES.md 21/40).
                 exhaust.exhaust_planets(state, inv.attacker, [planet])

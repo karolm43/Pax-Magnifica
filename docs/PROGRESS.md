@@ -124,6 +124,34 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 
 ---
 
+## ✅ Thunder's Edge: ekspedycje + The Fracture + Thunder's Edge (2026-11-08) — RULES.md 50
+
+Cały układ i koszty modułu — BEZ kodowania zdolności przełomów / legendarnej zdolności Thunder's Edge.
+
+- **Ekspedycje** (`core/expeditions.py`): 6 plastrów żetonu (5 zasobów / 2 karty akcji / 5 wpływu /
+  1 tajny cel / planeta ze specjalnością / 3 TG), 1 plaster na turę, tylko na koniec tury (po akcji lub
+  pasie). Pierwsza ekspedycja = przełom (`core/breakthrough.py`, punkt centralny) + rzut d10 na Fracture.
+- **The Fracture** (`core/fracture.py`): 1 lub 10 wprowadza 7 kafli `frac1..7`, neutralni z odwrotu kafli,
+  ingress (3 na kolor synergii / po 1 na 4 kolory, auto gdy kandydatów mało, +1 na Mecatol albo Thunder's Edge),
+  egress z danych kafla; graf mapy: ingress<->egress (krawędź `portal`). Mapa synchronizowana ze stanu → Undo działa.
+- **Neutralni** (`core/neutral.py`): klucz `"neutral"` w jednostkach; walka kosmiczna i naziemna z nimi działa,
+  straty neutralnych przypisuje silnik (najtańsza jednostka, zawsze Sustain), nie kontrolują planet.
+- **Relikt** za pierwszą kontrolę planety w Fracture (`control.set_planet_control(..., registry)` →
+  `core/relics.py`); talia reliktów leniwie z aktywnych źródeł. Efekty reliktów nie kodowane.
+- **Thunder's Edge**: po 6. plastrze gracz kładzie planetę w pustym systemie; lider ekspedycji stawia piechotę
+  i przejmuje kontrolę (`SystemState.added_planets`, `core/system_planets.py`).
+- API: `GET /thunders-edge`, `POST /expeditions/perform`, `/fracture/ingress`, `/thunders-edge/place`,
+  `/god-mode/fracture`. web-data: `expeditions`, tokeny ingress/thundersedge/relictoken, `gameState.thundersEdge`.
+- Front: przycisk **Expedition** w `TurnControls`, `ExpeditionModal`, `ThundersEdgeOverlay` (baner kostki,
+  dok ingress i dok Thunder's Edge z wyborem na MAPIE), układ: **Fracture u góry, pod Mallice, nad planszą i
+  polami graczy** — plansza przesunięta o `FRACTURE_Y_BUMP` = 1050 (wolny pas ok. 200 px między nimi).
+- **⚠ Do potwierdzenia:** liczby neutralnych na kaflach (z AsyncTI4), odrzucony tajny cel wraca do talii,
+  statystyki neutralnych = bazowe jednostki, rzuty neutralnych robi silnik. Układ UI nieweryfikowany wizualnie.
+- **Poza zakresem (następny krok):** zdolności przełomów (w tym Cabal / Onyxxa / Vuil'raith wprowadzające
+  Fracture), legendarna zdolność Thunder's Edge, efekty reliktów, kafle `ef*` (rozszerzony Fracture), wpisy
+  feedu aktywności dla nowych etykiet (`expedition:*`, `fracture:ingress:*`, `thunders-edge:place:*`).
+- **QA:** `tests/test_thunders_edge.py` (29 testów); pełne: pytest, ruff, mypy; front: type-check, lint, build.
+
 ## ✅ Feed aktywności „kto co zrobił" (2026-11-08)
 
 Panel History/Events miał pustą zakładkę zdarzeń (`/events` zwraca `[]`) i surowe etykiety migawek.

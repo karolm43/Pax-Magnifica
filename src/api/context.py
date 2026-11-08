@@ -18,6 +18,7 @@ from fastapi import Request
 from src.api.connection_manager import ConnectionManager
 from src.api.serializers import build_map_view
 from src.api.state_service import StateService
+from src.core import fracture
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
@@ -44,6 +45,8 @@ class AppContext:
         self._grid.sync_token_wormholes(
             {pos: s.wormhole_tokens for pos, s in state.systems.items() if s.wormhole_tokens}
         )
+        # The Fracture (kafle frac1..7) i portale ingress/egress - też ze stanu (Undo/Redo).
+        fracture.sync_grid(self._grid, state, self.registry)
         return self._grid
 
     @current_grid.setter

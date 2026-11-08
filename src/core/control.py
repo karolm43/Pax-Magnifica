@@ -15,13 +15,19 @@ też wyczerpania zdobywanej planety: to decyzja wołającego (``core/exhaust.py`
 
 from __future__ import annotations
 
-from src.core import exhaust
+from src.core import exhaust, relics
 from src.core.game_state import GameState
+from src.core.neutral import NEUTRAL_PLAYER_ID
+from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 
 
 def set_planet_control(
-    state: GameState, position: str, planet: str, new_owner: str | None
+    state: GameState,
+    position: str,
+    planet: str,
+    new_owner: str | None,
+    registry: StaticDataRegistry | None = None,
 ) -> None:
     """Ustawia kontrolera planety ``planet`` w systemie ``position`` (``None`` = nikt).
 
@@ -31,6 +37,9 @@ def set_planet_control(
 
     Kontroler spoza ``state.players`` (np. w testach) jest dopuszczony: zmienia się tylko
     ``planet_owners``, lustro ``controlled_planets`` aktualizujemy dla znanych graczy.
+
+    Planeta The Fracture (pozycja ``frac*``), którą gracz zdobywa BEZ poprzedniego kontrolera,
+    daje mu relikt (R_fracture) - hook działa, gdy podano ``registry`` (potrzebny do talii).
 
     Raises:
         ValueError: Nieznany system.
@@ -53,6 +62,9 @@ def set_planet_control(
         new_player = state.players[new_owner]
         if planet not in new_player.controlled_planets:
             new_player.controlled_planets = [*new_player.controlled_planets, planet]
+        # HOOK-CANDIDATE (RULES.md 50): relikt za pierwszą kontrolę planety w The Fracture.
+        if previous is None and registry is not None and position.startswith("frac"):
+            relics.draw_relic(state, registry, new_owner)
 
 
 def recompute_from_units(state: GameState, position: str, planet: str) -> None:
@@ -68,7 +80,8 @@ def recompute_from_units(state: GameState, position: str, planet: str) -> None:
     present = {
         player_id
         for player_id, by_type in system.planet_units.get(planet, {}).items()
-        if any(count > 0 and not is_space_unit(base_type) for base_type, count in by_type.items())
+        if player_id != NEUTRAL_PLAYER_ID  # neutralni nigdy nie kontrolują planet (RULES.md 50)
+        and any(count > 0 and not is_space_unit(base_type) for base_type, count in by_type.items())
     }
     if len(present) == 1:
         set_planet_control(state, position, planet, next(iter(present)))

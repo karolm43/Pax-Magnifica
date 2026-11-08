@@ -1,4 +1,5 @@
 import {
+  FRACTURE_Y_BUMP,
   calculateSingleTilePosition,
   calculateTilePositions,
   isFractureInPlay,
@@ -45,8 +46,7 @@ import { getAllEntityPlacementsForTile } from "@/entities/positioning";
 import { startPerformanceSpan } from "@/utils/performanceMarks";
 import type { GameData, PrePlacementTile, Tile, TilePlanet } from "@/entities/game/types";
 
-/** Vertical shift applied to every tile when the Fracture is on the map. */
-const FRACTURE_Y_OFFSET = 400;
+
 
 function splitEntitiesByType(entities: EntityData[]) {
   return {
@@ -357,7 +357,7 @@ export function buildGameContext(
     ringCount: data.ringCount,
     fractureYOffset:
       data.tilePositions && isFractureInPlay(data.tilePositions)
-        ? FRACTURE_Y_OFFSET
+        ? FRACTURE_Y_BUMP
         : 0,
     playerData,
     exhaustedPlanets: allExhaustedPlanets,

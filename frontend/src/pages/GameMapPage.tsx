@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs } from "@/ds";
@@ -17,6 +17,7 @@ import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
+import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
 import { GameSetupOverlay } from "@/domains/setup/GameSetupOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
@@ -271,6 +272,8 @@ function GameMapContent() {
       <InvasionOverlay />
       {/* Okno EKSPLORACJI (RULES.md 46) - po Establish Control, nad oknem inwazji. */}
       <ExplorationOverlay />
+      {/* Thunder's Edge (RULES.md 50): rzut na The Fracture, żetony ingress, Thunder's Edge. */}
+      <ThundersEdgeOverlay />
       {/* Setup startowy (RULES.md 45): tajne cele, żeton Custodians, odkrycie celów —
           pełny ekran do domknięcia setupu, zanim ruszy faza strategii. */}
       <GameSetupOverlay />

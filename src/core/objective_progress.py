@@ -24,6 +24,7 @@ from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player
 from src.core.planet_stats import PlanetLookup, effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
+from src.core.system_planets import planets_of_system
 
 # Progi z AsyncTI4 (``getObjectiveThreshold``); zgodne z tekstami kart w katalogu.
 THRESHOLDS: dict[str, int] = {
@@ -114,9 +115,7 @@ class View:
         return set(self.homes.values())
 
     def planets_of_system(self, position: str) -> list[str]:
-        system = self.state.systems.get(position)
-        definition = self.registry.systems.get(system.system_id) if system else None
-        return list(definition.planets) if definition else []
+        return planets_of_system(self.state, self.registry, position)
 
     def mecatol(self) -> str | None:
         for position in self.state.systems:

@@ -499,6 +499,14 @@ export type GameState = {
   activeInvasion?: { system: string; phase: string } | null;
   /** Trwająca eksploracja planet po Establish Control (Custodian Engine, RULES.md 46). */
   activeExploration?: { system: string } | null;
+  /** Thunder's Edge (Custodian Engine, RULES.md 50): sygnał dla okien Fracture / Thunder's Edge. */
+  thundersEdge?: {
+    fractureInPlay: boolean;
+    pendingIngress: boolean;
+    pendingPlacement: boolean;
+    lastRoll: { playerId: string; result: number; success: boolean; seq: number } | null;
+    thundersEdgePosition: string | null;
+  };
   /** Jednorazowa produkcja z karty (Freelancers) - okno produkcji poza krokiem PRODUCTION. */
   productionGrant?: { system: string; source: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */

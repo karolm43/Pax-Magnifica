@@ -18,7 +18,17 @@ const EXTRA_Y = 300;
 const TILE_PADDING = 100;
 const RING_MAX_COUNT = 8;
 const RING_MIN_COUNT = 3;
-const FRACTURE_Y_BUMP = 400;
+/**
+ * O ile przesuwamy PLANSZĘ (kafle i pola graczy) w dół, gdy The Fracture jest w grze.
+ *
+ * Fracture leży u GÓRY, nad planszą i polami graczy, ale POD kaflem Mallice (róg `tl`, który
+ * się nie przesuwa). Najwyższa zawartość planszy (kafle stat-area graczy, pierścień R+1) ma
+ * y = 50 + bump, a dolna krawędź Fracture to ok. 899, więc bump 1050 zostawia między nimi
+ * wolny pas ok. 200 px (jeden pełny rząd kafli) - Fracture nie nachodzi na graczy.
+ */
+export const FRACTURE_Y_BUMP = 1050;
+/** Fracture jest uniesiony o tyle względem współrzędnych bazowych (niezależnie od bumpu). */
+const FRACTURE_TOP_LIFT = 50;
 
 /** SVG path tracing the hex outline in tile-local coordinates. */
 export const HEX_PATH = `${HEX_VERTICES.map(
@@ -109,7 +119,7 @@ function applyRingAdjustments(
     } else if (position.startsWith("frac")) {
       // Fracture positions: special handling matching Java implementation
       x -= lower * HORIZONTAL_TILE_SPACING;
-      y -= (fractureYbump - 300) / 2; // equals 50 when fractureYbump is 400
+      y -= FRACTURE_TOP_LIFT; // stała pozycja: nie zależy od przesunięcia planszy
     } else {
       // Regular tiles: center the map by reducing coordinates
       x -= lower * HORIZONTAL_TILE_SPACING;

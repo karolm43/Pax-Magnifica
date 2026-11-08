@@ -282,6 +282,13 @@ class SystemDef(_StaticModel):
     is_supernova: bool = Field(default=False, alias="isSupernova")
     is_gravity_rift: bool = Field(default=False, alias="isGravityRift")
 
+    # The Fracture (Thunder's Edge, RULES.md 50): kafel należy do The Fracture; ``hasEgress``
+    # — na kaflu jest wydrukowany egress (sąsiaduje z każdym żetonem ingress); ``hasIngress``
+    # — wydrukowany ingress (kafle rozszerzone ``ef*``, poza zakresem). Flagi z danych.
+    is_fracture: bool = Field(default=False, alias="isFracture")
+    has_egress: bool = Field(default=False, alias="hasEgress")
+    has_ingress: bool = Field(default=False, alias="hasIngress")
+
     @property
     def anomalies(self) -> set[str]:
         """Zbiór nazw anomalii obecnych w systemie."""

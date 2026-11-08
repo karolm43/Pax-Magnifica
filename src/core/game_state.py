@@ -13,6 +13,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.core.expedition_state import ExpeditionState, FractureState
+
 
 class Phase(StrEnum):
     """Fazy rundy Twilight Imperium."""
@@ -220,6 +222,11 @@ class DecksState(BaseModel):
     # Stos kart PURGE'OWANYCH (usuniętych z gry): karty eksploracji i inne — wspólny dla
     # wszystkich talii. Purge to nie odrzucenie: te karty nie wracają przy tasowaniu.
     purged: list[str] = Field(default_factory=list)
+    # Talia reliktów (Thunder's Edge: planety The Fracture, RULES.md 50) — od góry; tworzona
+    # LENIWIE (``core/relics.py``), ``relic_deck_seeded`` odróżnia „niezasiana" od „zużyta".
+    relic_deck: list[str] = Field(default_factory=list)
+    relic_discard: list[str] = Field(default_factory=list)
+    relic_deck_seeded: bool = False
 
 
 class PlayerPrivateState(BaseModel):
@@ -374,6 +381,9 @@ class PlayerState(BaseModel):
     # Fragmenty reliktów (karty eksploracji) leżące odkryte w strefie gracza — identyfikatory
     # kart (RULES.md 46). JAWNE: reguła każe położyć je „faceup in play area".
     relic_fragments: list[str] = Field(default_factory=list)
+    # Relikty gracza (karty z talii reliktów) leżące odkryte w jego strefie. JAWNE.
+    # Efekty reliktów nie są jeszcze kodowane — to tylko posiadanie karty (RULES.md 50).
+    relics: list[str] = Field(default_factory=list)
 
     # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
     # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).
@@ -414,6 +424,12 @@ class SystemState(BaseModel):
     # ("GAMMA"...). Dodają systemowi sąsiedztwo przez wormhole — mapa (HexGrid) jest z nich
     # synchronizowana przy każdym odczycie stanu (RULES.md 46).
     wormhole_tokens: list[str] = Field(default_factory=list)
+    # Żeton ingress (The Fracture, RULES.md 50): system z ingressem sąsiaduje z każdym systemem
+    # z egressem. Max jeden na system. Mapa jest z niego synchronizowana (jak wormhole_tokens).
+    ingress_token: bool = False
+    # Planety DOŁOŻONE do systemu w trakcie gry (Thunder's Edge kładziony na pusty system).
+    # Pełna lista planet systemu = ``SystemDef.planets`` + to pole (``core/system_planets.py``).
+    added_planets: list[str] = Field(default_factory=list)
 
 
 class CombatStep(StrEnum):
@@ -632,6 +648,9 @@ class GameState(BaseModel):
     invasion: InvasionState | None = None
     # Trwająca eksploracja planet (po Establish Control) — None, gdy żadna (RULES.md 46).
     exploration: ExplorationState | None = None
+    # The Fracture i ekspedycje Thunder's Edge (RULES.md 50).
+    fracture: FractureState = Field(default_factory=FractureState)
+    expeditions: ExpeditionState = Field(default_factory=ExpeditionState)
     # Jednorazowa produkcja z efektu karty (Freelancers) — None, gdy brak (RULES.md 46).
     production_grant: ProductionGrant | None = None
     # Karty eksploracji PRZYCZEPIONE do planet (attach): {planet_id: [card_id, ...]}. Zostają

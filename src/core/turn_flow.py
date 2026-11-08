@@ -211,6 +211,8 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
         new_state.active_player_id = new_state.speaker_id or new_state.active_player_id
     else:
         new_state.active_player_id = nxt
+    # Nowa tura: limit „jedna ekspedycja na turę" (RULES.md 50) zaczyna się od nowa.
+    new_state.expeditions.performed_by = None
     # Nowa tura dla następnego aktywnego gracza — zeruj jego znacznik „akcja w turze".
     nxt_id = new_state.active_player_id
     if nxt_id is not None and nxt_id in new_state.players:
@@ -363,6 +365,7 @@ def next_phase(state: GameState) -> GameState:
     for player in new_state.players.values():
         player.took_action_this_turn = False
         player.transacted_with = []
+    new_state.expeditions.performed_by = None
     # Faza statusu (RULES.md 41): wejście inicjuje kroki (punktowanie → ... → zwrot kart);
     # naprawa jednostek to krok 7 (``status_phase``), nie samo wejście w fazę. Poza statusem
     # stan kroków jest czyszczony.

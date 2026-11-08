@@ -34,6 +34,8 @@ from src.core import production, space_cannon, strategy_phase, turn_flow
 from src.core.army_strength import ArmyStrength, army_strength_by_player
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.components import ComponentCategory
+from src.core.expedition_state import EXPEDITION_SLICES
+from src.core.fracture import is_fracture_position
 from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, MECATOL_SYSTEM_ID
@@ -41,6 +43,7 @@ from src.core.neighbors import neighbors_by_player
 from src.core.planet_stats import planet_stats
 from src.core.positions import load_positions
 from src.core.registry import StaticDataRegistry
+from src.core.system_planets import planets_of_system
 from src.core.unit_catalog import (
     ASYNC_ID_BY_BASE_TYPE,
     UNIT_CAP_BY_ASYNC_ID,
@@ -307,6 +310,16 @@ def _build_game_state(
             if state.exploration is not None
             else None
         ),
+        # Thunder's Edge (RULES.md 50) - sygnał dla okien: czekają żetony ingress albo położenie
+        # Thunder's Edge; pełne dane idą endpointem `GET /thunders-edge`. Nasze rozszerzenie
+        # kontraktu. ``fractureInPlay`` steruje układem mapy, ``lastRoll`` animacją rzutu.
+        "thundersEdge": {
+            "fractureInPlay": state.fracture.in_play,
+            "pendingIngress": bool(state.fracture.pending),
+            "pendingPlacement": state.expeditions.pending_placement is not None,
+            "lastRoll": state.fracture.last_roll,
+            "thundersEdgePosition": state.expeditions.thunders_edge_position,
+        },
         # Jednorazowa produkcja z karty (Freelancers) — okno produkcji otwiera się poza krokiem
         # PRODUCTION (RULES.md 46). Nasze rozszerzenie kontraktu.
         "productionGrant": (
@@ -538,7 +551,7 @@ def _build_tile_unit_data(
         # Planety systemu bez jednostek też muszą istnieć w słowniku (frontend
         # kluczuje render po nazwie planety ze statycznych danych — pusty wpis OK).
         if system is not None:
-            for planet_id in system.planets:
+            for planet_id in planets_of_system(state, registry, position, grid):
                 planets.setdefault(
                     planet_id,
                     _empty_planet_entry(
@@ -551,6 +564,29 @@ def _build_tile_unit_data(
             space.setdefault("neutral", []).append(
                 {"entityId": "frontier", "entityType": "token", "count": 1}
             )
+
+        # Żeton ingress (The Fracture, RULES.md 50): neutralny token w przestrzeni systemu.
+        if sys_state is not None and sys_state.ingress_token:
+            space.setdefault("neutral", []).append(
+                {"entityId": "ingress", "entityType": "token", "count": 1}
+            )
+
+        # Thunder's Edge (RULES.md 50): token planety w przestrzeni systemu, w którym leży.
+        if position == state.expeditions.thunders_edge_position:
+            space.setdefault("neutral", []).append(
+                {"entityId": "thundersedge", "entityType": "token", "count": 1}
+            )
+
+        # Planety The Fracture bez kontrolera: żeton reliktu (kto je zdobędzie, dobiera relikt).
+        if is_fracture_position(position) and system is not None:
+            for planet_id in system.planets:
+                if sys_state is None or planet_id not in sys_state.planet_owners:
+                    planets.setdefault(
+                        planet_id,
+                        _empty_planet_entry(registry, planet_id, state, position, entity_keys),
+                    ).setdefault("entities", {}).setdefault("neutral", []).append(
+                        {"entityId": "relictoken", "entityType": "token", "count": 1}
+                    )
 
         # Żeton Custodians na Mecatol Rex: neutralny token planety (klucz "neutral" — nie jest
         # żadnym graczem), rysowany jak inne tokeny z `entityType: "token"`.
@@ -1418,16 +1454,24 @@ def _empty_card_pool() -> dict[str, Any]:
     }
 
 
-def _empty_expeditions() -> dict[str, Any]:
-    """Pusta struktura ``Expeditions`` (pola wymagane przez typ frontendu)."""
-    none = {"completedBy": None}
+def _build_expeditions(
+    state: GameState, entity_keys: dict[str, str]
+) -> dict[str, Any]:
+    """Struktura ``Expeditions`` frontendu: plaster -> ``completedBy`` (klucz tożsamości gracza).
+
+    Plaster wolny = ``None``. Frontend rysuje żeton ekspedycji, dopóki któryś plaster jest wolny
+    (``ExpeditionLayer``), a kontrolki zajętych plastrów w odpowiednich miejscach tarczy.
+    """
+    claims = state.expeditions.claims
     return {
-        "techSkip": dict(none),
-        "tradeGoods": dict(none),
-        "fiveRes": dict(none),
-        "fiveInf": dict(none),
-        "secret": dict(none),
-        "actionCards": dict(none),
+        slice_id: {
+            "completedBy": (
+                entity_keys.get(claims[slice_id], claims[slice_id])
+                if slice_id in claims
+                else None
+            )
+        }
+        for slice_id in EXPEDITION_SLICES
     }
 
 
@@ -1514,7 +1558,7 @@ def build_web_data(
             **_empty_card_pool(),
             **web_objectives.card_pool_counts(projected, registry),
         },
-        "expeditions": _empty_expeditions(),
+        "expeditions": _build_expeditions(projected, entity_keys),
     }
 
 

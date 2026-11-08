@@ -137,8 +137,24 @@ class HexGrid:
         # Wormhole z ŻETONÓW położonych w trakcie gry (np. Gamma Wormhole z eksploracji):
         # typ -> pozycje. Osobno od wbudowanych, żeby Undo/Redo dawało spójną mapę.
         self._token_wormholes: dict[str, set[str]] = {}
+        # Portale The Fracture (RULES.md 50): pozycje z żetonem ingress i z egressem.
+        # Każdy ingress sąsiaduje z każdym egressem (ingress–ingress i egress–egress NIE).
+        self._ingress: set[str] = set()
+        self._egress: set[str] = set()
 
     # --- Umieszczanie systemów -----------------------------------------
+
+    def remove_system(self, position: str) -> None:
+        """Usuwa system z pozycji (np. gdy Undo cofnęło wejście The Fracture do gry)."""
+        if position not in self._systems:
+            return
+        del self._systems[position]
+        if position in self._graph:
+            self._graph.remove_node(position)
+        for positions in self._wormholes.values():
+            positions.discard(position)
+        self._ingress.discard(position)
+        self._egress.discard(position)
 
     def place_system(
         self,
@@ -206,6 +222,20 @@ class HexGrid:
             for i, a in enumerate(pos_list):
                 for b in pos_list[i + 1 :]:
                     self._graph.add_edge(a, b, kind="wormhole")
+
+        # Portale The Fracture: każdy ingress <-> każdy egress (R_fracture). Istniejąca
+        # krawędź (np. geometryczna) zachowuje swój rodzaj.
+        for ingress in sorted(p for p in self._ingress if p in self._systems):
+            for egress in sorted(p for p in self._egress if p in self._systems):
+                if ingress != egress and not self._graph.has_edge(ingress, egress):
+                    self._graph.add_edge(ingress, egress, kind="portal")
+
+    def sync_portals(self, ingress: set[str], egress: set[str]) -> None:
+        """Ustawia pozycje ingress/egress i przebudowuje krawędzie, gdy się zmieniły."""
+        if ingress != self._ingress or egress != self._egress:
+            self._ingress = set(ingress)
+            self._egress = set(egress)
+            self.build_edges()
 
     def sync_token_wormholes(self, tokens: dict[str, list[str]]) -> None:
         """Ustawia wormhole z żetonów (pozycja → typy) i przebudowuje krawędzie, gdy się zmieniły.

@@ -62,6 +62,23 @@ def score(state: GameState, player_id: str, objective_id: str) -> None:
     player.scored_secrets = [*player.scored_secrets, objective_id]
 
 
+def discard_unscored(state: GameState, player_id: str, objective_id: str) -> None:
+    """Odrzuca NIEZDOBYTY tajny cel z ręki: wraca do talii, która jest tasowana (mutuje).
+
+    ⚠️ ZAŁOŻENIE: tajne cele nie mają stosu odrzuconych — jak przy zwrocie nadmiaru
+    (``draw``) odrzucony cel wraca do talii i talia jest tasowana (RULES.md 50).
+
+    Raises:
+        ValueError: Cel spoza ręki (zdobyte tajne cele odrzucić nie można).
+    """
+    private = state.players[player_id].private
+    if objective_id not in private.secret_objectives:
+        raise ValueError("You can only discard an UNSCORED secret objective from your hand.")
+    private.secret_objectives.remove(objective_id)
+    state.decks.secret_objective_deck.append(objective_id)
+    next_rng(state).shuffle(state.decks.secret_objective_deck)
+
+
 def secret_count(state: GameState, player_id: str) -> int:
     """Ile tajnych celów liczy się do limitu: ręka + zdobyte."""
     player = state.players[player_id]

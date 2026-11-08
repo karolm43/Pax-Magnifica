@@ -27,6 +27,7 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.movement import CargoPickup
+from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.registry import StaticDataRegistry
 from src.core.retreat import perform_retreat, retreat_destinations
 from src.core.unit_catalog import is_space_unit
@@ -211,9 +212,10 @@ def start_combat(
         if system is None or planet not in system.planet_units:
             raise ValueError(f"There are no ground forces on {planet}.")
 
+    # Neutralni nie są graczem (R_neutral_units), ale walczą jak inny gracz.
     participants = [
         pid
-        for pid in state.players
+        for pid in (*state.players, NEUTRAL_PLAYER_ID)
         if combat_units(
             state, grid, registry, kind=kind, position=active, planet=planet, player_id=pid
         )
@@ -354,6 +356,9 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
             "sustained": {},
         }
     )
+    for pid in (combat.defender, combat.attacker):
+        if pid == NEUTRAL_PLAYER_ID:
+            _auto_assign_neutral(new_state, grid, registry, pid)
     queue = [
         pid
         for pid in (combat.defender, combat.attacker)
@@ -371,6 +376,67 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
 
 
 # -------------------------------------------------------------------------- straty
+
+
+def neutral_loss_choice(
+    units: list[CombatUnit], costs: dict[str, float], hits: int
+) -> tuple[dict[str, int], dict[str, int], dict[str, int]]:
+    """Straty jednostek neutralnych (R_neutral_units): każde trafienie w NAJTAŃSZĄ jednostkę.
+
+    „When a hit is assigned against a group of neutral units, it is assigned to the unit that is
+    lowest on the neutral unit reference card; generally ... the lowest cost." Neutralni zawsze
+    używają każdej zdolności, więc Sustain Damage (jeśli jednostka go ma i jest nieuszkodzona)
+    pochłania trafienie zamiast zniszczenia. Zwraca ``(sustain, destroy, destroy_damaged)``.
+    """
+    state = {u.base_type: [u.count, u.damaged, u.sustain] for u in units}
+    sustain: dict[str, int] = {}
+    destroy: dict[str, int] = {}
+    destroy_damaged: dict[str, int] = {}
+    for _ in range(hits):
+        alive = [bt for bt, (count, _, _) in state.items() if count > 0]
+        if not alive:
+            break
+        base_type = min(alive, key=lambda bt: (costs.get(bt, 0.0), bt))
+        count, damaged, can_sustain = state[base_type]
+        if can_sustain and count - damaged > 0:
+            sustain[base_type] = sustain.get(base_type, 0) + 1
+            state[base_type][1] = damaged + 1
+        elif damaged > 0:
+            destroy_damaged[base_type] = destroy_damaged.get(base_type, 0) + 1
+            state[base_type][0] = count - 1
+            state[base_type][1] = damaged - 1
+        else:
+            destroy[base_type] = destroy.get(base_type, 0) + 1
+            state[base_type][0] = count - 1
+    return sustain, destroy, destroy_damaged
+
+
+def _auto_assign_neutral(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, player_id: str
+) -> None:
+    """Przypisuje straty neutralnych automatycznie (nikt ich nie wybiera) — MUTUJE ``state``."""
+    combat = _combat(state)
+    required = required_hits(state, grid, registry, player_id)
+    if required <= 0:
+        combat.pending_hits[player_id] = 0
+        return
+    units = side_units(state, grid, registry, player_id)
+    costs = {
+        u.base_type: (registry.units[u.unit_id].cost or 0.0)
+        for u in units
+        if u.unit_id in registry.units
+    }
+    sustain, destroy, destroy_damaged = neutral_loss_choice(units, costs, required)
+    by_type = {u.base_type: u for u in units}
+    plan = plan_losses(by_type, sustain, destroy, destroy_damaged, required)
+    apply_losses(
+        state, combat.position, _zone(combat.kind, combat.planet), player_id, by_type, plan
+    )
+    entry = combat.log[-1] if combat.log else None
+    if entry is not None:
+        entry["losses"][player_id] = losses_of(by_type, plan)
+        entry["sustained"][player_id] = sustained_of(plan, sustain)
+    combat.pending_hits[player_id] = 0
 
 
 def plan_losses(
@@ -547,7 +613,8 @@ def _begin_round(state: GameState, grid: HexGrid) -> GameState:
         [
             pid
             for pid in (combat.defender, combat.attacker)
-            if retreat_destinations(new_state, grid, combat.position, pid)
+            if pid != NEUTRAL_PLAYER_ID
+            and retreat_destinations(new_state, grid, combat.position, pid)
         ]
         if combat.kind == "space"
         else []

@@ -56,6 +56,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "promissory_notes_in_play",
         "scored_secrets",
         "relic_fragments",
+        "relics",
     }
 )
 

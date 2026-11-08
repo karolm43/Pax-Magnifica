@@ -109,6 +109,8 @@ def planet_position(
         if system is not None and planet_id in system.planets:
             return str(position)
     for position, sys_state in state.systems.items():
+        if planet_id in sys_state.added_planets:  # np. Thunder's Edge dołożony do systemu
+            return str(position)
         system = registry.systems.get(sys_state.system_id)
         if system is not None and planet_id in system.planets:
             return str(position)
