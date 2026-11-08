@@ -63,9 +63,11 @@ Szczegóły: [docs/specyfikacja_techniczna_i_architektura_systemu.md](docs/specy
 ### Plany: warianty fanowskie
 
 - **Black Spectrum Firmament Plots** — fanowska zmiana, która ma ZASTĘPOWAĆ standardowe
-  Firmament Plots. W Ustawieniach (Game variants) jest już przełącznik
-  (`settings.blackSpectrumFirmamentPlots`), ale **efekt nie jest jeszcze zakodowany** —
-  do zrobienia później. Dane kart: `assets/data/genericcards/black_spectrum_firmament_plots.json`.
+  Firmament Plots. W Ustawieniach (Game variants) jest przełącznik
+  (`settings.blackSpectrumFirmamentPlots`), który podmienia karty Plot w wyborze frakcji
+  (Firmament/Obsidian, `factionComponents.ts`) i w szczegółach plotów w grze (`Plot.tsx`).
+  To tylko **wyświetlanie** — **mechanika plotów nie jest jeszcze zakodowana w silniku**
+  (do zrobienia później). Dane kart: `assets/data/genericcards/black_spectrum_firmament_plots.json`.
   Wzorzec wdrożenia: jak talia agend Absol (ustawienie klienta → pole w `/game/new` →
   wybór talii w `DecksState`).
 

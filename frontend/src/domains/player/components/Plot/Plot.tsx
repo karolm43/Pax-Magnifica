@@ -7,6 +7,8 @@ import { Chip } from "@/shared/ui/primitives/Chip";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { PlotCard } from "@/entities/data/types";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { useSettingsStore } from "@/state/appStore";
+import { plotCardDescription } from "@/domains/setup/factionComponents";
 
 type Props = {
   plotCard: PlotCard;
@@ -26,6 +28,13 @@ export function Plot({ plotCard, faction, compact = false }: Props) {
     (faction === "obsidian" || faction?.startsWith("franken"));
   const displayName = plotCard.plotAlias
     ? plotCard.plotAlias.charAt(0).toUpperCase() + plotCard.plotAlias.slice(1)
+    : undefined;
+  // Tekst efektu ujawnionego plotu — zależny od wariantu (Ustawienia → Game variants).
+  const bspPlots = useSettingsStore(
+    (s) => s.settings.blackSpectrumFirmamentPlots,
+  );
+  const effectText = isRevealed
+    ? plotCardDescription(plotCard.plotAlias, bspPlots)
     : undefined;
 
   const renderFactionSlots = (): ReactElement[] =>
@@ -177,6 +186,11 @@ export function Plot({ plotCard, faction, compact = false }: Props) {
               <Text size="sm" c="dimmed">
                 This plot card has not been revealed yet. The plot name will be
                 shown when the Firmament player becomes the Obsidian.
+              </Text>
+            )}
+            {effectText && (
+              <Text size="sm" style={{ whiteSpace: "pre-line" }}>
+                {effectText}
               </Text>
             )}
             {plotCard.factions.length > 0 && (

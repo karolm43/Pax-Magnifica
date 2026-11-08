@@ -45,6 +45,7 @@ import {
   factionComponents,
 } from "./factionComponents";
 import { assetUrl } from "@/shared/assets/resolveAsset";
+import { useSettingsStore } from "@/state/appStore";
 import styles from "./FactionSummary.module.css";
 
 /** Kolejność slotów liderów — jak w panelu gracza (agent → commander → hero). */
@@ -454,7 +455,10 @@ function SummaryBody({
 
   // Specjalne żetony/karty frakcji (Sleepers, Plots, Breach, Void Tether...) — patrz
   // `factionComponents.ts`; puste dla frakcji bez własnych komponentów.
-  const components = factionComponents(faction.id);
+  const bspPlots = useSettingsStore(
+    (s) => s.settings.blackSpectrumFirmamentPlots,
+  );
+  const components = factionComponents(faction.id, bspPlots);
   const componentPlanets = factionComponentPlanets(faction.id);
 
   // Flota startowa z pełnymi nazwami; łączymy pozycje tego samego typu. Trzymamy jako

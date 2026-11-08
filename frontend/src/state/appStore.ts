@@ -521,8 +521,9 @@ export type Settings = {
   absolAgendas: boolean;
   /*
    * Black Spectrum Firmament Plots zamiast standardowych Firmament Plots (fanowska
-   * zmiana). NA RAZIE tylko przełącznik w Ustawieniach — efekt NIE jest jeszcze
-   * zakodowany (patrz README, „Plany").
+   * zmiana). Podmienia karty Plot w wyborze frakcji (FactionSummary) i w szczegółach
+   * ploty w grze (Plot). Tylko WYŚWIETLANIE — efekty plotów nie są egzekwowane przez
+   * silnik (patrz README, „Plany").
    */
   blackSpectrumFirmamentPlots: boolean;
   /*

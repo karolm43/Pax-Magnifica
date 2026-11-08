@@ -107,6 +107,69 @@ const PLOT_CARDS: FactionComponent[] = [
   },
 ];
 
+/** Pomocnik: karta Plot Black Spectrum (jak PLOT_CARDS, tylko inny tekst). */
+function bspPlot(id: string, name: string, description: string): FactionComponent {
+  return {
+    id: `plot-${id}`,
+    name,
+    count: 1,
+    kind: "Plot card",
+    hideCount: true,
+    description,
+    icon: { card: true },
+  };
+}
+
+/**
+ * Karty Plot wariantu Black Spectrum (fanowskie) — teksty 1:1 z
+ * ``assets/data/genericcards/black_spectrum_firmament_plots.json``. Zastępują
+ * ``PLOT_CARDS`` (te same nazwy: pole ``homebrewReplacesID``), gdy w Ustawieniach
+ * włączono „Black Spectrum Firmament Plots".
+ */
+const BSP_PLOT_CARDS: FactionComponent[] = [
+  bspPlot(
+    "enervate",
+    "Enervate",
+    "After this card is revealed, perform a strategic action using the puppeted player's readied strategy card; exhaust that strategy card. Then, each other player may resolve its secondary ability.\nWhen the puppeted player performs a strategic action, you can perform the secondary ability of their strategy card without spending a command token. For Leadership, you can perform the primary ability instead.",
+  ),
+  bspPlot(
+    "siphon",
+    "Siphon",
+    "When this card is revealed, take 1 of the puppeted player's relics.\nWhen the puppeted player gains commodities, you gain an equal number of trade goods.",
+  ),
+  bspPlot(
+    "seethe",
+    "Seethe",
+    "When this card is revealed, capture each unit on a non-home planet controlled by the puppeted player.\nOnce per combat in which you are the defender, after 1 of the puppeted player's non-structure units is destroyed, you may capture that unit.\nAt the start of the status phase, you may return 1 or more captured units of the puppeted player. Then, for each returned unit, place 1 unit of that type from your reinforcements in a system that contains your units and no other players' units.",
+  ),
+  bspPlot(
+    "assail",
+    "Assail",
+    "When this card is revealed, choose 1 non-fighter ship type that the puppeted player has on the game board. The puppeted player destroys half of their ships of that type, rounded up.\nApply +1 to the results of each of your combat and unit ability rolls against the puppeted player.\nAt the start of your turn, you may treat your flagship as if it had the text ability of 1 of the puppeted players' flagship until the end of that turn.",
+  ),
+  bspPlot(
+    "extract",
+    "Extract",
+    "When this card is revealed, choose 1 non-unit upgrade, non-faction technology owned by the puppeted player; that player returns that technology to their technology deck. Then, gain that technology, if able.\nWhen the puppeted player gains a non-faction technology, you may spend 4 resources to gain that technology.",
+  ),
+];
+
+/** Aktualny zestaw kart Plot (standardowy albo Black Spectrum). */
+export function plotCardSet(blackSpectrum: boolean): FactionComponent[] {
+  return blackSpectrum ? BSP_PLOT_CARDS : PLOT_CARDS;
+}
+
+/** Opis efektu karty Plot po nazwie/aliasie (np. „seethe"); undefined, gdy nieznana. */
+export function plotCardDescription(
+  alias: string | null | undefined,
+  blackSpectrum: boolean,
+): string | undefined {
+  if (!alias) return undefined;
+  const key = alias.toLowerCase();
+  return plotCardSet(blackSpectrum).find((c) => c.name.toLowerCase() === key)
+    ?.description;
+}
+
 /** Mapa: id frakcji → jej specjalne komponenty (tylko frakcje, które jakieś mają). */
 const FACTION_COMPONENTS: Record<string, FactionComponent[]> = {
   ghost: [
@@ -220,8 +283,13 @@ const FACTION_COMPONENTS: Record<string, FactionComponent[]> = {
 /** Specjalne komponenty frakcji o danym id (pusta lista, gdy frakcja nie ma żadnych). */
 export function factionComponents(
   factionId: string | null | undefined,
+  blackSpectrumPlots = false,
 ): FactionComponent[] {
   if (!factionId) return [];
+  // Firmament/Obsidian: ploty zależne od wariantu (Ustawienia → Game variants).
+  if (factionId === "firmament" || factionId === "obsidian") {
+    return plotCardSet(blackSpectrumPlots);
+  }
   return FACTION_COMPONENTS[factionId] ?? [];
 }
 
