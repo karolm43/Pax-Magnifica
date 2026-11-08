@@ -23,10 +23,10 @@ const RING_MIN_COUNT = 3;
  *
  * Fracture leży u GÓRY, nad planszą i polami graczy, ale POD kaflem Mallice (róg `tl`, który
  * się nie przesuwa). Najwyższa zawartość planszy (kafle stat-area graczy, pierścień R+1) ma
- * y = 50 + bump, a dolna krawędź Fracture to ok. 899, więc bump 950 zostawia między nimi
- * wąski pas ok. 100 px - Fracture jest blisko graczy, ale na nich nie nachodzi.
+ * y = 50 + bump, a dolna krawędź Fracture to ok. 899, więc bump 880 zostawia między nimi
+ * tylko wąski pas ok. 30 px - Fracture przylega do graczy, ale na nich nie nachodzi.
  */
-export const FRACTURE_Y_BUMP = 950;
+export const FRACTURE_Y_BUMP = 880;
 /** Fracture jest uniesiony o tyle względem współrzędnych bazowych (niezależnie od bumpu). */
 const FRACTURE_TOP_LIFT = 50;
 
