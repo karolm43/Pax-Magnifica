@@ -461,27 +461,6 @@ export function TurnControls() {
                 <IconArrowsExchange size={16} aria-hidden="true" />
                 <span>Transaction</span>
               </button>
-              {/* Ekspedycja Thunder's Edge (RULES.md 50) - NA KONIEC tury (po akcji lub pasie),
-                  jeden plaster na turę. Widoczna, dopóki któryś plaster żetonu jest wolny. */}
-              {hasFreeExpedition && (
-                <button
-                  type="button"
-                  className={`${styles.transaction} ${styles.tile}`}
-                  style={{ "--d": "165ms" } as CSSProperties}
-                  disabled={busy || !canExpedition}
-                  onClick={() => setExpeditionOpen(true)}
-                  title={
-                    windowOpen
-                      ? "Wait — every player must decide on the secondary first"
-                      : tookAction || hasPassed
-                        ? "Claim a slice of the expedition token (end of your turn, one per turn)"
-                        : "An expedition is done at the END of your turn — take an action or pass first"
-                  }
-                >
-                  <IconCompass size={16} aria-hidden="true" />
-                  <span>Expedition</span>
-                </button>
-              )}
               <button
                 type="button"
                 className={styles.endTurn}
@@ -502,6 +481,27 @@ export function TurnControls() {
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
                 <span>End turn</span>
               </button>
+              {/* Ekspedycja Thunder's Edge (RULES.md 50) - NA KONIEC tury (po akcji lub pasie),
+                  jeden plaster na turę. Pod End turn; widoczna, dopóki któryś plaster jest wolny. */}
+              {hasFreeExpedition && (
+                <button
+                  type="button"
+                  className={styles.expedition}
+                  style={{ "--d": "210ms" } as CSSProperties}
+                  disabled={busy || !canExpedition}
+                  onClick={() => setExpeditionOpen(true)}
+                  title={
+                    windowOpen
+                      ? "Wait — every player must decide on the secondary first"
+                      : tookAction || hasPassed
+                        ? "Claim a slice of the expedition token (end of your turn, one per turn)"
+                        : "An expedition is done at the END of your turn — take an action or pass first"
+                  }
+                >
+                  <IconCompass size={16} aria-hidden="true" />
+                  <span>Expedition</span>
+                </button>
+              )}
             </>
           )}
 

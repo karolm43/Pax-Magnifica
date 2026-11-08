@@ -130,7 +130,7 @@ function TokenWithInfo({
           role="button"
           tabIndex={0}
           aria-label={rule.name}
-          style={{ ...frameStyle, cursor: "help", pointerEvents: "auto" }}
+          style={{ ...frameStyle, pointerEvents: "auto" }}
           onMouseEnter={() => {
             window.clearTimeout(timer.current);
             timer.current = window.setTimeout(() => setOpened(true), HOVER_DELAY_MS);
@@ -139,9 +139,11 @@ function TokenWithInfo({
             window.clearTimeout(timer.current);
             setOpened(false);
           }}
-          // Klik nie może przelecieć na heks (otwarcie dossier) ani rozpocząć pan mapy.
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
+          // Lewy klik PRZECHODZI na heks (zaznaczenie / aktywacja systemu) - żeton
+          // (np. Custodians na Mecatol Rex) nie może blokować klikania w system.
+          // Opis reguły: najechanie z opóźnieniem albo PRAWY klik.
+          onContextMenu={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             window.clearTimeout(timer.current);
             setOpened((o) => !o);
