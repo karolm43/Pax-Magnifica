@@ -788,8 +788,8 @@ button.token {
 .returnPill {
   position: fixed;
   left: 50%;
-  /* Nad paskiem ręki (BottomHandDock: bottom 14px + 40px paska). */
-  bottom: 68px;
+  /* Nad paskiem ręki - wysokość doku mierzy BottomHandDock (--hand-dock-clear). */
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
   z-index: 2800;
   transform: translateX(-50%);
   display: inline-flex;

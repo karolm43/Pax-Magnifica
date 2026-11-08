@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import cx from "clsx";
 import {
@@ -181,11 +181,40 @@ export function BottomHandDock() {
     return hand.promissoryNotes;
   }, [hand, tab]);
 
+  // Mierzymy wysokość doku (zwinięty / rozwinięty) i wystawiamy ją jako zmienną CSS
+  // ``--hand-dock-clear`` na <html> - pastylki powrotu do okien (produkcja, technologie…)
+  // ustawiają się NAD dokiem, także gdy wachlarz kart jest otwarty.
+  const [dockNode, setDockNode] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!dockNode) {
+      root.style.removeProperty("--hand-dock-clear");
+      return;
+    }
+    const update = () => {
+      const top = dockNode.getBoundingClientRect().top;
+      root.style.setProperty(
+        "--hand-dock-clear",
+        `${Math.max(0, Math.round(window.innerHeight - top))}px`,
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(dockNode);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      root.style.removeProperty("--hand-dock-clear");
+    };
+  }, [dockNode]);
+
   // Dock pojawia się tylko, gdy jest aktywny gracz (jego rękę pokazujemy).
   if (!active) return null;
 
   return (
     <section
+      ref={setDockNode}
       className={styles.dock}
       data-open={open || undefined}
       aria-label="Your hand"

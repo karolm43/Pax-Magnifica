@@ -33,8 +33,8 @@
 .pill {
   position: fixed;
   left: 50%;
-  /* Nad paskiem ręki (BottomHandDock: bottom 14px + 40px paska), nie na nim. */
-  bottom: 68px;
+  /* Nad paskiem ręki - wysokość doku mierzy BottomHandDock (--hand-dock-clear). */
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
   transform: translateX(-50%);
   z-index: var(--z-app-modal, 3000);
   display: inline-flex;
