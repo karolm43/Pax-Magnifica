@@ -21,6 +21,7 @@ dist/
 htmlcov/
 .hypothesis/
 .kiro
+semantic-review/
 # ---- Node / Vite (frontend) ----
 node_modules/
 frontend/dist/
