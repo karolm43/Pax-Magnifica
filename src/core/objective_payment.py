@@ -8,7 +8,7 @@ gracz nie wskazuje planet/pul): najpierw wyczerpuje planety, brak dopłaca trade
 
 from __future__ import annotations
 
-from src.core import economy
+from src.core import command_tokens, economy
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.objective_progress import (
@@ -64,10 +64,12 @@ def pay_for_objective(
     if objective_id in _TRADE_GOODS:
         economy.spend_trade_goods(new_state, player_id, goal)
     elif objective_id in _TOKENS:
-        from_tactical = min(player.tactical_cc, goal)
-        player.tactical_cc -= from_tactical
-        player.strategic_cc -= goal - from_tactical
-        player.cc_reinf += goal
+        # Żetony schodzą najpierw z puli taktycznej, potem strategicznej; wracają do rezerwy.
+        from_tactical = min(command_tokens.pool_count(new_state, player_id, "tactical"), goal)
+        command_tokens.spend_to_reinforcements(new_state, player_id, "tactical", from_tactical)
+        command_tokens.spend_to_reinforcements(
+            new_state, player_id, "strategic", goal - from_tactical
+        )
     elif objective_id == "fsn":
         discarded = player.private.action_cards[:goal]
         player.private.action_cards = player.private.action_cards[goal:]

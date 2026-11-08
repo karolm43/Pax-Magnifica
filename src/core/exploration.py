@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import economy
+from src.core import command_tokens, economy, exhaust
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.dice import next_rng
@@ -302,20 +302,14 @@ def _hazard_apply(
 def _reward_command_token(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, param: str | None
 ) -> str:
-    player = state.players[ex.player_id]
-    attr = {"tactical": "tactical_cc", "fleet": "fleet_cc", "strategic": "strategic_cc"}[
-        param or ""
-    ]
-    player.cc_reinf -= 1
-    setattr(player, attr, getattr(player, attr) + 1)
+    command_tokens.gain_from_reinforcements(state, ex.player_id, {param or "": 1})
     return f"Gained 1 command token ({dict(_CC_POOLS)[param or '']} pool)."
 
 
 def _reward_ready(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, param: str | None
 ) -> str:
-    player = state.players[ex.player_id]
-    player.exhausted_planets = [p for p in player.exhausted_planets if p != cur.planet]
+    exhaust.ready_planets(state, ex.player_id, [cur.planet])
     return "The planet is ready."
 
 

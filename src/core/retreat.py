@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from src.core import command_tokens
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, move_damage, set_damaged
 from src.core.game_state import GameState, SystemState
@@ -42,9 +43,9 @@ _AUTO_CARGO_ORDER = ("mech", "infantry", "fighter")
 # Pule żetonów na arkuszu dowodzenia (gdy rezerwa pusta — O6). Kolejność = domyślna
 # (⚠️ ZAŁOŻENIE, RULES.md 39.5); gracz może wskazać pulę jawnie.
 TOKEN_POOLS: dict[str, str] = {
-    "tactic": "tactical_cc",
-    "fleet": "fleet_cc",
-    "strategy": "strategic_cc",
+    "tactic": "tactical",
+    "fleet": "fleet",
+    "strategy": "strategic",
 }
 
 
@@ -278,17 +279,21 @@ def perform_retreat(
     if result.moved and player_id not in dest.command_tokens:
         owner = new_state.players.get(player_id)
         if owner is not None:
-            if owner.cc_reinf > 0:
-                owner.cc_reinf -= 1
+            if command_tokens.reinforcements(new_state, player_id) > 0:
+                command_tokens.take_from_reinforcements(new_state, player_id)
                 result.token_from = "reinforcements"
             else:
                 pools = [token_pool] if token_pool is not None else list(TOKEN_POOLS)
-                if token_pool is not None and getattr(owner, TOKEN_POOLS[token_pool]) <= 0:
+                if (
+                    token_pool is not None
+                    and command_tokens.pool_count(new_state, player_id, TOKEN_POOLS[token_pool])
+                    <= 0
+                ):
                     raise ValueError(f"Your {token_pool} pool has no command token.")
                 for pool in pools:
-                    attr = TOKEN_POOLS[pool]
-                    if getattr(owner, attr) > 0:
-                        setattr(owner, attr, getattr(owner, attr) - 1)
+                    sheet_pool = TOKEN_POOLS[pool]
+                    if command_tokens.pool_count(new_state, player_id, sheet_pool) > 0:
+                        command_tokens.spend_from_pool(new_state, player_id, sheet_pool)
                         result.token_from = pool
                         break
             if result.token_from is not None:

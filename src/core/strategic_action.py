@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import timing
+from src.core import command_tokens, timing
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -265,8 +265,8 @@ def resolve_secondary(
                 raise ValueError(
                     "You need 1 command token in your strategy pool to follow this card."
                 )
-            responder.strategic_cc -= 1
-            responder.cc_reinf += 1  # wydany żeton wraca do rezerwy
+            # wydany żeton wraca do rezerwy
+            command_tokens.spend_to_reinforcements(new_state, player_id, "strategic")
         if spec.secondary is not None:
             spec.secondary(new_state, CardContext(registry, grid), player_id, payload or {})
     elif is_free:

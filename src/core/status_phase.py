@@ -22,7 +22,15 @@ Kroki LRR i ich realizacja:
 
 from __future__ import annotations
 
-from src.core import chronicle, objectives, strategy_phase, timing, turn_flow
+from src.core import (
+    chronicle,
+    command_tokens,
+    exhaust,
+    objectives,
+    strategy_phase,
+    timing,
+    turn_flow,
+)
 from src.core.damage import repair_all
 from src.core.dice import next_rng
 from src.core.game_state import (
@@ -193,7 +201,7 @@ def _after_scoring(state: GameState, registry: StaticDataRegistry) -> GameState:
     for player_id in order:
         player = state.players[player_id]
         gained = min(COMMAND_TOKENS_GAINED, player.cc_reinf)
-        player.cc_reinf -= gained
+        command_tokens.take_from_reinforcements(state, player_id, gained)
         status.unassigned_cc[player_id] = gained
     _log(status, 5, "gained_command_tokens", gained=dict(status.unassigned_cc))
 
@@ -237,7 +245,7 @@ def _remove_command_tokens(state: GameState) -> dict[str, int]:
     for system in state.systems.values():
         for owner in system.command_tokens:
             if owner in state.players:
-                state.players[owner].cc_reinf += 1
+                command_tokens.return_to_reinforcements(state, owner, 1)
                 returned[owner] = returned.get(owner, 0) + 1
         system.command_tokens = []
     return returned
@@ -306,8 +314,9 @@ def redistribute(
         )
     new_state = state.clone()
     assert new_state.status is not None
-    target = new_state.players[player_id]
-    target.tactical_cc, target.fleet_cc, target.strategic_cc = tactical, fleet, strategic
+    command_tokens.set_pools(
+        new_state, player_id, {"tactical": tactical, "fleet": fleet, "strategic": strategic}
+    )
     new_state.status.unassigned_cc[player_id] = 0
     new_state.status.done.append(player_id)
     _log(
@@ -364,9 +373,9 @@ def finalize_status(state: GameState, registry: StaticDataRegistry) -> GameState
     """Kroki 6 (Ready Cards) i 7 (Repair Units); potem czeka na mówcę (krok 8)."""
     del registry
     assert state.status is not None
-    for player in state.players.values():
-        player.exhausted_planets = []
-        player.exhausted_technologies = []
+    for player_id, player in state.players.items():
+        exhaust.ready_all_planets(state, player_id)
+        exhaust.ready_all_technologies(state, player_id)
         player.exhausted_strategy_cards = []
         player.breakthrough_exhausted = False
         player.leader_states = {
@@ -436,8 +445,10 @@ def complete_status(state: GameState, registry: StaticDataRegistry) -> GameState
     if work.status.step is StatusStep.SCORE_OBJECTIVES:
         work = _after_scoring(work, registry)
     if work.status is not None and work.status.step is StatusStep.REDISTRIBUTE:
-        for player_id, player in work.players.items():
-            player.tactical_cc += work.status.unassigned_cc.get(player_id, 0)
+        for player_id in work.players:
+            command_tokens.add_to_pool(
+                work, player_id, "tactical", work.status.unassigned_cc.get(player_id, 0)
+            )
             work.status.unassigned_cc[player_id] = 0
         work = finalize_status(work, registry)
     if work.winner_id is not None or work.status is None:

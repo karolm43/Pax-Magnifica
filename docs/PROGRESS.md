@@ -28,9 +28,20 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   (wydanie TG), `production.produce` i `objective_payment` (wydanie przez `apply_payment`), `exploration`, `transaction`,
   `strategy_phase` (TG z karty), `strategy_cards/trade`. Poza `economy.py` i God-Mode nikt nie zapisuje `trade_goods`/`commodities`.
   Jedyna zmiana zachowania: wydanie więcej TG niż gracz ma → `ValueError` (wcześniej licznik mógł zejść poniżej 0 w ścieżkach „nie do osiągnięcia").
-- **Strażnik C8 (częściowo):** `tests/test_central_points.py` (AST) pilnuje właściciela pól; kolejne pola dopisujemy do `OWNERS`.
-- Testy: `tests/test_economy.py`; pełny zestaw 832 testów, ruff, mypy zielone.
-- **Dalej:** C2 żetony dowodzenia, C3 exhaust/ready, C4 kontrola planet, C5 operacje na jednostkach, C6 `gain_technology`, C7 VP/karty.
+- **C2 ✅ Żetony dowodzenia:** nowy `core/command_tokens.py` (rezerwa `cc_reinf` + pule `tactical/fleet/strategic`; ruchy:
+  `spend_from_pool`, `spend_to_reinforcements`, `take_from_reinforcements`, `return_to_reinforcements`, `add_to_pool`,
+  `gain_from_reinforcements`, `set_pools`). Przepięto: `tactical` (aktywacja), `strategic_action` (koszt secondary), `status_phase`
+  (kroki 4–5, redistribute, tryb testowy), `objective_payment`, `retreat`, `exploration`, karty `diplomacy`/`warfare`/`common`/`leadership`.
+- **C3 ✅ Wyczerpywanie:** nowy `core/exhaust.py` (`exhaust_planets`, `ready_planets`, `ready_all_planets`, `exhaust_technology`,
+  `ready_all_technologies`). Przepięto: `payment`, `technology.apply_research`, `invasion` (utrata/zdobycie planety),
+  `status_phase.finalize_status`, `exploration`, `strategy_cards/common`.
+- **Strażnik C8 (częściowo):** `tests/test_central_points.py` (AST) pilnuje właściciela pól `trade_goods`, `commodities`, 4 pól żetonów
+  i 2 list exhausted; wykrywa przypisania (także krotkowe), mutacje list (`append`/`remove`…) i `setattr` poza listą dozwolonych modułów.
+  Kolejne pola dopisujemy do `OWNERS`.
+- Zmiany zachowania (tylko ścieżki „nie do osiągnięcia" po wcześniejszej walidacji): zdjęcie żetonu/TG ponad stan i zdobycie żetonu przy
+  pustej rezerwie → `ValueError` zamiast liczby ujemnej.
+- Testy: `tests/test_economy.py`, `tests/test_command_tokens_exhaust.py`; pełny zestaw 844 testów, ruff, mypy zielone.
+- **Dalej:** C4 kontrola planet, C5 operacje na jednostkach, C6 `gain_technology`, C7 VP/karty.
   Uwaga: `production.available_budget`/`auto_pay` i `objective_progress` nadal CZYTAJĄ `trade_goods` na własny sposób (odczyt, nie zapis);
   do ujednolicenia razem z hookiem źródeł płatności w H2.
 

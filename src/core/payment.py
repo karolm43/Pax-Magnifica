@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from src.core import economy
+from src.core import economy, exhaust
 from src.core.game_state import GameState
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
@@ -80,6 +80,5 @@ def validate_payment(
 
 def apply_payment(state: GameState, player_id: str, planets: list[str], trade_goods: int) -> None:
     """Wyczerpuje planety i zabiera TG (mutuje klon; zakłada wcześniejszą walidację)."""
-    player = state.players[player_id]
-    player.exhausted_planets = [*player.exhausted_planets, *planets]
+    exhaust.exhaust_planets(state, player_id, planets)
     economy.spend_trade_goods(state, player_id, trade_goods)

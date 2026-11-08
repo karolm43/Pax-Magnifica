@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import command_tokens, exhaust
+from src.core.command_tokens import POOLS
 from src.core.game_state import GameState
-
-POOLS = ("tactical", "fleet", "strategic")
 
 
 def str_list(payload: dict[str, Any], key: str) -> list[str]:
@@ -49,8 +49,7 @@ def ready_planets_by_choice(
     for planet_id in chosen:
         if planet_id not in allowed:
             raise ValueError(f"Planet {planet_id} is not yours or is not exhausted.")
-    player = state.players[player_id]
-    player.exhausted_planets = [p for p in player.exhausted_planets if p not in chosen]
+    exhaust.ready_planets(state, player_id, chosen)
 
 
 def parse_pools(payload: dict[str, Any]) -> dict[str, int]:
@@ -71,14 +70,7 @@ def gainable_tokens(state: GameState, player_id: str, wanted: int) -> int:
 
 def gain_tokens(state: GameState, player_id: str, pools: dict[str, int]) -> None:
     """Dodaje żetony do wybranych pul, zabierając je z rezerwy (mutuje klon)."""
-    player = state.players[player_id]
-    total = sum(pools.values())
-    if total > player.cc_reinf:
-        raise ValueError("Not enough command tokens in your reinforcements.")
-    player.tactical_cc += pools["tactical"]
-    player.fleet_cc += pools["fleet"]
-    player.strategic_cc += pools["strategic"]
-    player.cc_reinf -= total
+    command_tokens.gain_from_reinforcements(state, player_id, pools)
 
 
 def check_distribution(pools: dict[str, int], expected: int) -> None:

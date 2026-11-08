@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import command_tokens
 from src.core.game_state import GameState
 from src.core.map_string import MECATOL_SYSTEM_ID
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
@@ -42,10 +43,9 @@ def _take_token_from_sheet(state: GameState, player_id: str) -> bool:
     ⚠️ ZAŁOŻENIE: reguła daje wybór puli GRACZOWI; silnik wybiera automatycznie
     (taktyczna → floty → strategiczna), bo nie pytamy innych graczy w trakcie primary.
     """
-    player = state.players[player_id]
-    for attr in ("tactical_cc", "fleet_cc", "strategic_cc"):
-        if getattr(player, attr) > 0:
-            setattr(player, attr, getattr(player, attr) - 1)
+    for pool in command_tokens.POOLS:
+        if command_tokens.pool_count(state, player_id, pool) > 0:
+            command_tokens.spend_from_pool(state, player_id, pool)
             return True
     return False
 
@@ -90,9 +90,8 @@ def _primary(
         for pid in order[start + 1 :] + order[: start + 1]:
             if pid == owner_id or pid in system.command_tokens:
                 continue
-            other = state.players[pid]
-            if other.cc_reinf > 0:
-                other.cc_reinf -= 1
+            if command_tokens.reinforcements(state, pid) > 0:
+                command_tokens.take_from_reinforcements(state, pid)
             elif not _take_token_from_sheet(state, pid):
                 continue  # brak jakiegokolwiek żetonu - nic do położenia
             system.command_tokens.append(pid)

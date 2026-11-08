@@ -23,6 +23,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
+from src.core import exhaust
 from src.core.components import ComponentCategory, DeckDef
 from src.core.game_state import GameState
 from src.core.models import TechnologyDef
@@ -298,9 +299,9 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
     """Dodaje technologię i wyczerpuje planety/AIDA z planu (mutuje KLON stanu)."""
     player = state.players[player_id]
     player.technologies = [*player.technologies, plan.tech_id]
-    player.exhausted_planets = [*player.exhausted_planets, *plan.exhaust_planets]
+    exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
     if plan.exhaust_aida:
-        player.exhausted_technologies = [*player.exhausted_technologies, AIDA]
+        exhaust.exhaust_technology(state, player_id, AIDA)
 
 
 def research(

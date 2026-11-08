@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import battle, chronicle, exploration, space_cannon
+from src.core import battle, chronicle, exhaust, exploration, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.damage import move_damage
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
@@ -755,12 +755,12 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
             if owner is not None and owner in state.players:
                 prev = state.players[owner]
                 prev.controlled_planets = [p for p in prev.controlled_planets if p != planet]
-                prev.exhausted_planets = [p for p in prev.exhausted_planets if p != planet]
+                exhaust.ready_planets(state, owner, [planet])
             if attacker is not None:
                 if planet not in attacker.controlled_planets:
                     attacker.controlled_planets.append(planet)
-                if planet not in attacker.exhausted_planets:
-                    attacker.exhausted_planets.append(planet)
+                # Zdobyta planeta zostaje wyczerpana (zachowanie bez zmian, RULES.md 21/40).
+                exhaust.exhaust_planets(state, inv.attacker, [planet])
             result["outcome"] = "captured"
             if owner is not None and owner in state.players:
                 chronicle.record_conquest(state, inv.attacker, owner, planet)

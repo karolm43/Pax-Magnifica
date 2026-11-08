@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.core import command_tokens
 from src.core.battle import space_combat_required
 from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
@@ -122,7 +123,7 @@ def activate_system(
 
     # Zużycie z puli taktycznej (gwarantowane > 0 przez walidację).
     if not free:
-        new_state.players[active_id].tactical_cc -= 1
+        command_tokens.spend_from_pool(new_state, active_id, "tactical")
     # RULES.md 31.7: aktywacja systemu rozpoczyna AKCJĘ TAKTYCZNĄ — liczy się jako
     # akcja tury, więc gracz będzie mógł zakończyć turę (End turn).
     new_state.players[active_id].took_action_this_turn = True

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import production, tactical
+from src.core import command_tokens, production, tactical
 from src.core.game_state import GameState
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import parse_pools, start_standalone_production
@@ -30,8 +30,7 @@ STEP_AFTER = "redistribute_after"
 
 
 def _pool_total(state: GameState, player_id: str) -> int:
-    p = state.players[player_id]
-    return p.tactical_cc + p.fleet_cc + p.strategic_cc
+    return command_tokens.sheet_total(state, player_id)
 
 
 def redistribute(state: GameState, player_id: str, payload: dict[str, Any]) -> None:
@@ -47,10 +46,7 @@ def redistribute(state: GameState, player_id: str, payload: dict[str, Any]) -> N
             f"Distribute exactly {_pool_total(state, player_id)} command token(s) "
             "between your pools."
         )
-    player = state.players[player_id]
-    player.tactical_cc = pools["tactical"]
-    player.fleet_cc = pools["fleet"]
-    player.strategic_cc = pools["strategic"]
+    command_tokens.set_pools(state, player_id, pools)
 
 
 def _adopt(dst: GameState, src: GameState) -> None:
