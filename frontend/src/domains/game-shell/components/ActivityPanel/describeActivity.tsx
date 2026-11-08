@@ -35,6 +35,7 @@ import {
   resolveTechName,
 } from "../GameEventPanel/eventFormatting";
 import { getLeaderById } from "@/entities/lookup/leaders";
+import { Named } from "./Named";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 
 type Glyph = ComponentType<{ size?: number; stroke?: number }>;
@@ -42,6 +43,8 @@ type Glyph = ComponentType<{ size?: number; stroke?: number }>;
 export type ActivityContext = {
   players: Record<string, ActivityPlayer>;
   systemName: (position: string) => string;
+  /** Planets of a system with resources/influence, for the hover hint. */
+  systemHint: (position: string) => string;
   strategyCardIdMap?: Record<number, string>;
 };
 
@@ -120,6 +123,11 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
   const actor = name(ctx, a.actor_id);
   const target = name(ctx, a.target_id);
   const sys = a.subject ? ctx.systemName(a.subject) : "a system";
+  const sysNode = a.subject ? (
+    <Named kind="system" id={a.subject} name={sys} systemText={ctx.systemHint(a.subject)} />
+  ) : (
+    <i>{sys}</i>
+  );
   switch (a.action) {
     case "game.start":
       return "The game begins";
@@ -154,13 +162,13 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
     case "strategy.pick":
       return (
         <>
-          {actor} chose <i>{strategyCardName(ctx, a.subject)}</i>
+          {actor} chose <Named kind="strategy" id={a.subject ?? ""} idMap={ctx.strategyCardIdMap} name={strategyCardName(ctx, a.subject)} />
         </>
       );
     case "strategy.play":
       return (
         <>
-          {actor} played <i>{strategyCardName(ctx, a.subject)}</i>
+          {actor} played <Named kind="strategy" id={a.subject ?? ""} idMap={ctx.strategyCardIdMap} name={strategyCardName(ctx, a.subject)} />
         </>
       );
     case "strategy.secondary":
@@ -172,19 +180,19 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
     case "tactical.activate":
       return (
         <>
-          {actor} activated <i>{sys}</i>
+          {actor} activated {sysNode}
         </>
       );
     case "tactical.move":
       return (
         <>
-          {actor} moved ships out of <i>{sys}</i>
+          {actor} moved ships out of {sysNode}
         </>
       );
     case "tactical.produce":
       return (
         <>
-          {actor} produced units in <i>{sys}</i>
+          {actor} produced units in {sysNode}
         </>
       );
     case "tactical.end":
@@ -193,7 +201,7 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       return (
         <>
           {actor} took control of{" "}
-          <i>{a.detail ? resolvePlanetName(a.detail) : "a planet"}</i>
+          {a.detail ? <Named kind="planet" id={a.detail} name={resolvePlanetName(a.detail)} /> : <i>a planet</i>}
         </>
       );
     case "tactical.component":
@@ -210,14 +218,14 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
     case "tech.exhaust":
       return (
         <>
-          {actor} exhausted <i>{resolveTechName(a.subject ?? "")}</i>
+          {actor} exhausted <Named kind="tech" id={a.subject ?? ""} name={resolveTechName(a.subject ?? "")} />
         </>
       );
     case "leader.state":
       return (
         <>
           {actor} {a.detail ?? "updated"}{" "}
-          <i>{getLeaderById(a.subject ?? "")?.name ?? prettifyId(a.subject ?? "")}</i>
+          <Named kind="leader" id={a.subject ?? ""} name={getLeaderById(a.subject ?? "")?.name ?? prettifyId(a.subject ?? "")} />
         </>
       );
     case "combat.start":
@@ -225,7 +233,7 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
         <>
           {actor} attacks {a.target_id ? target : "an enemy"}
           {a.subject && a.subject !== "space" ? (
-            <> on <i>{resolvePlanetName(a.subject)}</i></>
+            <> on <Named kind="planet" id={a.subject} name={resolvePlanetName(a.subject)} /></>
           ) : (
             <> in space</>
           )}
@@ -244,13 +252,13 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       return (
         <>
           {actor} retreated
-          {a.subject && <> to <i>{ctx.systemName(a.subject)}</i></>}
+          {a.subject && <> to <Named kind="system" id={a.subject} name={ctx.systemName(a.subject)} systemText={ctx.systemHint(a.subject)} /></>}
         </>
       );
     case "invasion.begin":
       return (
         <>
-          {actor} began an invasion of <i>{sys}</i>
+          {actor} began an invasion of {sysNode}
         </>
       );
     case "invasion.commit":
@@ -279,7 +287,7 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       return (
         <>
           {actor} scored{" "}
-          <i>{resolveObjectiveName(a.subject ?? "")}</i>
+          <Named kind="objective" id={a.subject ?? ""} name={resolveObjectiveName(a.subject ?? "")} />
         </>
       );
     case "scoring.finish":
@@ -289,13 +297,13 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
     case "explore.draw":
       return (
         <>
-          {actor} explored <i>{resolvePlanetName(a.subject ?? "")}</i>
+          {actor} explored <Named kind="planet" id={a.subject ?? ""} name={resolvePlanetName(a.subject ?? "")} />
         </>
       );
     case "explore.resolve":
       return (
         <>
-          {actor} resolved <i>{exploreCardName(a.subject)}</i>
+          {actor} resolved <Named kind="explore" id={a.subject ?? ""} name={exploreCardName(a.subject)} />
         </>
       );
     case "godmode.edit":
@@ -352,7 +360,7 @@ function describeFact(
         tone: "info",
         text: (
           <>
-            {prefix}researched {resolveTechName(fact.value ?? "")}
+            {prefix}researched <Named kind="tech" id={fact.value ?? ""} name={resolveTechName(fact.value ?? "")} />
           </>
         ),
       };
@@ -363,7 +371,7 @@ function describeFact(
         tone: "good",
         text: (
           <>
-            {prefix}gained {resolvePlanetName(fact.value ?? "")}
+            {prefix}gained <Named kind="planet" id={fact.value ?? ""} name={resolvePlanetName(fact.value ?? "")} />
           </>
         ),
       };
@@ -373,12 +381,12 @@ function describeFact(
         tone: "bad",
         text: (
           <>
-            {prefix}lost {resolvePlanetName(fact.value ?? "")}
+            {prefix}lost <Named kind="planet" id={fact.value ?? ""} name={resolvePlanetName(fact.value ?? "")} />
           </>
         ),
       };
     case "action_card": {
-      const card = <i>{resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")}</i>;
+      const card = <Named kind="actionCard" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")} />;
       return {
         key,
         tone: "card",
@@ -395,7 +403,7 @@ function describeFact(
       return {
         key,
         tone: "card",
-        text: <>Agenda: {resolveAgendaName(fact.value ?? "")}</>,
+        text: <>Agenda: <Named kind="agenda" id={fact.value ?? ""} name={resolveAgendaName(fact.value ?? "")} /></>,
       };
     case "explore_card":
       return {
@@ -403,7 +411,7 @@ function describeFact(
         tone: "card",
         text: (
           <>
-            {prefix}revealed {exploreCardName(fact.value)}
+            {prefix}revealed <Named kind="explore" id={fact.value ?? ""} name={exploreCardName(fact.value)} />
             {fact.detail && <> ({prettifyId(fact.detail)})</>}
           </>
         ),
@@ -414,7 +422,7 @@ function describeFact(
         tone: "card",
         text: (
           <>
-            {prefix}kept fragment {exploreCardName(fact.value)}
+            {prefix}kept fragment <Named kind="explore" id={fact.value ?? ""} name={exploreCardName(fact.value)} />
           </>
         ),
       };
@@ -425,7 +433,7 @@ function describeFact(
         text: (
           <>
             {prefix}played note{" "}
-            {resolveCardName("CARD_PLAY_PROMISSORY_NOTE", fact.value ?? "")}
+            <Named kind="promissory" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_PROMISSORY_NOTE", fact.value ?? "")} />
           </>
         ),
       };
@@ -433,7 +441,7 @@ function describeFact(
       return {
         key,
         tone: "card",
-        text: <>Objective revealed: {resolveObjectiveName(fact.value ?? "")}</>,
+        text: <>Objective revealed: <Named kind="objective" id={fact.value ?? ""} name={resolveObjectiveName(fact.value ?? "")} /></>,
       };
     case "secret_scored":
       return {
@@ -441,7 +449,7 @@ function describeFact(
         tone: "good",
         text: (
           <>
-            {prefix}scored secret {resolveObjectiveName(fact.value ?? "")}
+            {prefix}scored secret <Named kind="objective" id={fact.value ?? ""} name={resolveObjectiveName(fact.value ?? "")} />
           </>
         ),
       };

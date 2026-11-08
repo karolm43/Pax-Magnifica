@@ -1,0 +1,27 @@
+.named {
+  cursor: help;
+}
+
+.hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.title {
+  font-weight: var(--weight-title);
+  color: var(--ds-ink-hi);
+}
+
+.meta {
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.line {
+  margin: 0;
+  font-size: var(--text-data);
+  line-height: 1.4;
+  white-space: pre-line;
+}

@@ -11,6 +11,7 @@ import {
   type ActivityPlayer,
 } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
+import { getPlanetsByTileId } from "@/entities/lookup/planets";
 import type { PlayerDataResponse } from "@/entities/data/types";
 import {
   formatAbsoluteTime,
@@ -188,6 +189,15 @@ export function ActivityPanel() {
     return {
       players: data?.players ?? {},
       systemName: (pos) => resolveSystemName(pos, positionToSystemId),
+      systemHint: (pos) => {
+        const systemId = positionToSystemId[pos];
+        if (!systemId) return "";
+        const planets = getPlanetsByTileId(systemId.replace(/^0+/, "") || systemId);
+        if (planets.length === 0) return "No planets";
+        return planets
+          .map((p) => `${p.name}: ${p.resources} resources / ${p.influence} influence`)
+          .join("\n");
+      },
       strategyCardIdMap: gameData?.strategyCardIdMap,
     };
   }, [tilePositions, data?.players, gameData?.strategyCardIdMap]);
