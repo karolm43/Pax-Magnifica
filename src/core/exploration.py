@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from src.core import economy
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.dice import next_rng
@@ -169,8 +170,7 @@ _SKIP = ExploreOption("skip", "Decline")
 
 def _gap(state: GameState, player_id: str) -> int:
     """Ile commodities brakuje graczowi do commodity value (nie można mieć więcej)."""
-    player = state.players[player_id]
-    return max(0, player.commodity_value - player.commodities)
+    return economy.commodity_gap(state, player_id)
 
 
 def _opts_mercenary(
@@ -322,7 +322,7 @@ def _reward_ready(
 def _reward_trade_good(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, param: str | None
 ) -> str:
-    state.players[ex.player_id].trade_goods += 1
+    economy.gain_trade_goods(state, ex.player_id, 1)
     return "Gained 1 trade good."
 
 
@@ -371,15 +371,12 @@ def _opts_warehouses(
 def _apply_warehouses(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
 ) -> str:
-    player = state.players[ex.player_id]
     if option == "gain":
-        gained = min(2, _gap(state, ex.player_id))
-        player.commodities += gained
+        gained = economy.gain_commodities(state, ex.player_id, 2)
         return f"Gained {gained} commodities."
     if option == "convert":
         amount = int(param or "0")
-        player.commodities -= amount
-        player.trade_goods += amount
+        economy.convert_commodities_to_trade_goods(state, ex.player_id, amount)
         return f"Converted {amount} commodities to trade goods."
     return "Declined."
 
@@ -445,18 +442,17 @@ def _apply_pay(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
 ) -> str:
     """Wspólne: gain / <akcja>_tg / <akcja>_commodity / skip dla Functioning Base i Fabricators."""
-    player = state.players[ex.player_id]
     if option == "skip":
         return "Declined."
     if option == "gain":
-        player.commodities += 1
+        economy.gain_commodities(state, ex.player_id, 1)
         return "Gained 1 commodity."
     action, _, currency = option.partition("_")
     if currency == "tg":
-        player.trade_goods -= 1
+        economy.spend_trade_goods(state, ex.player_id, 1)
         paid = "1 trade good"
     else:
-        player.commodities -= 1
+        economy.spend_commodities(state, ex.player_id, 1)
         paid = "1 commodity"
     if action == "draw":
         _draw_action_card(state, ex.player_id)

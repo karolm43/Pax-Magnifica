@@ -4,15 +4,18 @@ R_influence / R_resources / R_trade_goods: wartość planety wydaje się, WYCZER
 trade good może zastąpić 1 wpływ lub 1 zasób. Wydanie jest dobrowolnie nadpłacalne
 (nadwyżka przepada). Funkcje są CZYSTE; ``apply_payment`` mutuje przekazany KLON.
 
-Dla produkcji istnieje osobna ścieżka (``core/production.py``: ``Spend``, ``auto_pay``);
-ten moduł obsługuje karty strategii (Leadership — wpływ, Technology — zasoby), gdzie gracz
-JAWNIE wskazuje planety.
+Produkcja (``core/production.py``: ``Spend``, ``auto_pay``) dobiera płatność po swojemu, ale
+samo WYDANIE (wyczerpanie planet + zdjęcie TG) idzie tą samą funkcją ``apply_payment``, tak jak
+płatności za cele (``core/objective_payment.py``); ten moduł obsługuje też karty strategii
+(Leadership — wpływ, Technology — zasoby), gdzie gracz JAWNIE wskazuje planety. Trade goods
+zmienia wyłącznie ``core/economy.py`` (RULES.md 43.1a).
 """
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
+from src.core import economy
 from src.core.game_state import GameState
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
@@ -79,4 +82,4 @@ def apply_payment(state: GameState, player_id: str, planets: list[str], trade_go
     """Wyczerpuje planety i zabiera TG (mutuje klon; zakłada wcześniejszą walidację)."""
     player = state.players[player_id]
     player.exhausted_planets = [*player.exhausted_planets, *planets]
-    player.trade_goods -= trade_goods
+    economy.spend_trade_goods(state, player_id, trade_goods)

@@ -8,17 +8,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import economy
 from src.core.game_state import GameState
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 
 INITIATIVE = 5
 PRIMARY_TRADE_GOODS = 3  # krok 1: „gains 3 trade goods"
-
-
-def replenish_commodities(state: GameState, player_id: str) -> None:
-    """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej)."""
-    player = state.players[player_id]
-    player.commodities = max(player.commodities, player.commodity_value)
 
 
 def _on_step(
@@ -50,14 +45,14 @@ def _on_step(
 def _primary(
     state: GameState, _ctx: CardContext, owner_id: str, _draft: Draft
 ) -> None:
-    state.players[owner_id].trade_goods += PRIMARY_TRADE_GOODS
-    replenish_commodities(state, owner_id)
+    economy.gain_trade_goods(state, owner_id, PRIMARY_TRADE_GOODS)
+    economy.replenish_commodities(state, owner_id)
 
 
 def _secondary(
     state: GameState, _ctx: CardContext, player_id: str, _payload: dict[str, Any]
 ) -> None:
-    replenish_commodities(state, player_id)
+    economy.replenish_commodities(state, player_id)
 
 
 def _options(

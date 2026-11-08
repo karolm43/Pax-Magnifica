@@ -13,6 +13,7 @@ akumulacja +1 TG na niewybranych kartach na koniec fazy, oznaczenie karty jako z
 
 from __future__ import annotations
 
+from src.core import economy
 from src.core.game_state import GameState
 from src.core.models import StrategyCardDef
 from src.core.registry import StaticDataRegistry
@@ -215,7 +216,7 @@ def pick_strategy_card(
     # Transfer trade goods z karty do gracza, zerowanie licznika karty.
     tg_on_card = new_state.strategy_card_tg.get(initiative, 0)
     if tg_on_card:
-        player.trade_goods += tg_on_card
+        economy.gain_trade_goods(new_state, player_id, tg_on_card)
     new_state.strategy_card_tg[initiative] = 0
     # Lista kart utrzymywana rosnąco (R5.1) — ustala poprawną inicjatywę tur.
     player.strategy_cards = sorted([*player.strategy_cards, initiative])

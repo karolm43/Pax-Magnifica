@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
+from src.core.payment import apply_payment
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
@@ -660,9 +661,7 @@ def produce(
             new_state, grid, active, zone, player_id,
             ASYNC_ID_BY_BASE_TYPE[o.base_type], o.count,
         )
-    player = new_state.players[player_id]
-    player.exhausted_planets = [*player.exhausted_planets, *pay.planets]
-    player.trade_goods -= pay.trade_goods
+    apply_payment(new_state, player_id, list(pay.planets), pay.trade_goods)
     if active_grant(state, player_id) is not None:
         # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika.
         new_state.production_grant = None

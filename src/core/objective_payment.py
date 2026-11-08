@@ -8,6 +8,7 @@ gracz nie wskazuje planet/pul): najpierw wyczerpuje planety, brak dopłaca trade
 
 from __future__ import annotations
 
+from src.core import economy
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.objective_progress import (
@@ -16,6 +17,7 @@ from src.core.objective_progress import (
     mixed_spend_plan,
     threshold,
 )
+from src.core.payment import apply_payment
 from src.core.planet_stats import effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 
@@ -60,7 +62,7 @@ def pay_for_objective(
     player = new_state.players[player_id]
     goal = threshold(objective_id, new_state)
     if objective_id in _TRADE_GOODS:
-        player.trade_goods -= goal
+        economy.spend_trade_goods(new_state, player_id, goal)
     elif objective_id in _TOKENS:
         from_tactical = min(player.tactical_cc, goal)
         player.tactical_cc -= from_tactical
@@ -78,8 +80,7 @@ def pay_for_objective(
         if plan is None:
             raise ValueError("You cannot afford this objective.")
         res_planets, inf_planets, tg_spent = plan
-        player.exhausted_planets = [*player.exhausted_planets, *res_planets, *inf_planets]
-        player.trade_goods -= tg_spent
+        apply_payment(new_state, player_id, [*res_planets, *inf_planets], tg_spent)
     else:
         kind = "resources" if objective_id in _RESOURCES else "influence"
         ready = View(new_state, registry, grid, player_id).ready_planets()
@@ -91,6 +92,5 @@ def pay_for_objective(
         spent, rest = _pick_planets(values, goal)
         if rest > player.trade_goods:
             raise ValueError("You cannot afford this objective.")
-        player.exhausted_planets = [*player.exhausted_planets, *spent]
-        player.trade_goods -= rest
+        apply_payment(new_state, player_id, spent, rest)
     return new_state

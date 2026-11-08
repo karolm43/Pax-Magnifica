@@ -21,6 +21,21 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+### 🔧 Faza C — punkty centralne (refaktor bez zmiany zachowania) — w toku
+Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Audyt miejsc rozproszonych"); zasada: `RULES.md` 43.1a.
+- **C1 ✅ Ekonomia (trade goods / commodities):** nowy `core/economy.py` (`gain/spend_trade_goods`, `gain/spend_commodities`,
+  `replenish_commodities`, `convert_commodities_to_trade_goods`, `give_to_player`, `commodity_gap`). Przepięto: `payment.apply_payment`
+  (wydanie TG), `production.produce` i `objective_payment` (wydanie przez `apply_payment`), `exploration`, `transaction`,
+  `strategy_phase` (TG z karty), `strategy_cards/trade`. Poza `economy.py` i God-Mode nikt nie zapisuje `trade_goods`/`commodities`.
+  Jedyna zmiana zachowania: wydanie więcej TG niż gracz ma → `ValueError` (wcześniej licznik mógł zejść poniżej 0 w ścieżkach „nie do osiągnięcia").
+- **Strażnik C8 (częściowo):** `tests/test_central_points.py` (AST) pilnuje właściciela pól; kolejne pola dopisujemy do `OWNERS`.
+- Testy: `tests/test_economy.py`; pełny zestaw 832 testów, ruff, mypy zielone.
+- **Dalej:** C2 żetony dowodzenia, C3 exhaust/ready, C4 kontrola planet, C5 operacje na jednostkach, C6 `gain_technology`, C7 VP/karty.
+  Uwaga: `production.available_budget`/`auto_pay` i `objective_progress` nadal CZYTAJĄ `trade_goods` na własny sposób (odczyt, nie zapis);
+  do ujednolicenia razem z hookiem źródeł płatności w H2.
+
+---
+
 ### ✅ Faza statusu (8 kroków) + cele publiczne/tajne + punkty zwycięstwa (ukończone)
 
 - **Reguła (zweryfikowana):** `RULES.md` 41 ze źródłami `R_status_phase`, `R_objective_cards`,
