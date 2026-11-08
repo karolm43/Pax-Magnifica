@@ -114,6 +114,17 @@
 }
 
 /*
+ * Wariant z szeroko zmiękczoną krawędzią (ekran zwycięstwa): obrazek zanika już od ~68%
+ * szerokości do zera tuż przed prawą krawędzią i delikatnie od góry/dołu, więc brzeg
+ * kadru (ucięte ramię, tułów) nie jest widoczny nawet bez zasłaniającego go tekstu.
+ */
+.portraitSoft {
+  -webkit-mask-image: linear-gradient(to right, #000 68%, transparent 97%),
+    linear-gradient(to bottom, transparent 0%, #000 9%, #000 94%, transparent 99%);
+  mask-image: linear-gradient(to right, #000 68%, transparent 97%),
+    linear-gradient(to bottom, transparent 0%, #000 9%, #000 94%, transparent 99%);
+}
+/*
  * Wrapper „oddechu" postaci. Osobna warstwa, żeby animacja transformu NIE kolidowała z
  * inline `transform` obrazka (dosunięcie do krawędzi). Delikatne unoszenie + mikro-ruch,
  * pętla tam-i-z-powrotem; startuje dopiero PO wyłanianiu. Własna warstwa GPU od początku

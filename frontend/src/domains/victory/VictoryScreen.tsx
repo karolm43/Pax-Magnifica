@@ -35,7 +35,6 @@ import type {
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import {
   FactionPortraitLayer,
-  portraitCandidates,
   useFactionAccent,
 } from "@/domains/setup/FactionBackdrop";
 import { getEpilogue, DEFAULT_EPILOGUE_AUTHOR } from "./factionEpilogues";
@@ -261,7 +260,8 @@ function TriumphStage({
   } as CSSProperties;
   return (
     <section className={`${styles.stage} ${styles.triumph}`} style={sceneStyle}>
-      <FactionPortraitLayer faction={portraitFaction} onFigureCenter={setFigureCx} />      <div className={styles.triumphText}>
+      <FactionPortraitLayer faction={portraitFaction} onFigureCenter={setFigureCx} softEdge />
+      <div className={styles.triumphText}>
         <p className={styles.kicker}>Round {round}</p>
         <h1 className={styles.victory}>Victory</h1>
         <div className={styles.winnerLine}>

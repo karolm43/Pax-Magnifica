@@ -108,7 +108,13 @@ export function FactionPortraitLayer({
       key={candidates[index]}
       src={candidates[index]}
       alt=""
-      className={isIconFallback ? styles.portraitIcon : styles.portrait}
+      className={
+        isIconFallback
+          ? styles.portraitIcon
+          : softEdge
+            ? `${styles.portrait} ${styles.portraitSoft}`
+            : styles.portrait
+      }
       style={
         isIconFallback
           ? undefined
