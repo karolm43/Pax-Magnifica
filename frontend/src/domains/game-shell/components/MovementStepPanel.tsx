@@ -141,14 +141,45 @@ export function MovementStepPanel({
         const all = playerSpaceStacks(tile, faction);
         const ships = all.filter((s) => reach.has(s.asyncId) && SHIP_ONLY_ASYNC.has(s.asyncId));
         const cap = fleetCapacity(ships, faction, player);
-        const cargoUsed = all
-          .filter((s) => CARGO_ASYNC.has(s.asyncId))
-          .reduce((n, s) => n + (lookupUnit(s.asyncId, faction, player)?.capacityUsed ?? 1) * s.count, 0);
+        // Ładunek do zabrania: myśliwce/siły naziemne w przestrzeni ORAZ siły naziemne
+        // na planetach systemu (statki mogą je zabrać przy ruchu).
+        const cargoMap = new Map<string, { count: number; planet: number }>();
+        const addCargo = (asyncId: string, count: number, onPlanet: boolean) => {
+          const cur = cargoMap.get(asyncId) ?? { count: 0, planet: 0 };
+          cur.count += count;
+          if (onPlanet) cur.planet += count;
+          cargoMap.set(asyncId, cur);
+        };
+        for (const s of all) {
+          if (CARGO_ASYNC.has(s.asyncId)) addCargo(s.asyncId, s.count, false);
+        }
+        for (const planet of Object.values(tile?.planets ?? {})) {
+          for (const s of playerSpaceStacks(
+            { unitsByFaction: planet.unitsByFaction } as Tile,
+            faction,
+          )) {
+            if (CARGO_ASYNC.has(s.asyncId)) addCargo(s.asyncId, s.count, true);
+          }
+        }
+        let cargoUsed = 0;
+        const cargo = [...cargoMap.entries()].map(([asyncId, v]) => {
+          cargoUsed += (lookupUnit(asyncId, faction, player)?.capacityUsed ?? 1) * v.count;
+          return {
+            asyncId,
+            count: v.count,
+            planet: v.planet,
+            name: lookupUnit(asyncId, faction, player)?.name ?? asyncId.toUpperCase(),
+          };
+        });
         const name = tile ? getTileById(tile.systemId)?.name : undefined;
         return {
           position,
           label: name ? `${position} · ${name}` : position,
-          ships,
+          ships: ships.map((s) => ({
+            ...s,
+            name: lookupUnit(s.asyncId, faction, player)?.name ?? s.asyncId.toUpperCase(),
+          })),
+          cargo,
           capacity: cap.total,
           cargoUsed,
         };
@@ -252,13 +283,23 @@ export function MovementStepPanel({
               <span className={styles.rangeShips}>
                 {row.ships.map((s) => (
                   <span key={s.asyncId} className={styles.rangeShip}>
-                    {s.count}× {s.asyncId.toUpperCase()}
+                    {s.count}× {s.name}
+                  </span>
+                ))}
+                {row.cargo.map((c) => (
+                  <span
+                    key={`c-${c.asyncId}`}
+                    className={styles.rangeShip}
+                    data-cargo
+                  >
+                    {c.count}× {c.name}
+                    {c.planet > 0 ? ` (${c.planet} on planets)` : ""}
                   </span>
                 ))}
               </span>
               <span
                 className={styles.capBadge}
-                title="Cargo carried / capacity of the ships that can reach here"
+                title="Cargo available here (space + planets) / capacity of the ships that can reach"
               >
                 <IconPackage size={11} aria-hidden="true" />
                 {row.cargoUsed}/{row.capacity}

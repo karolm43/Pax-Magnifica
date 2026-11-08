@@ -27,10 +27,10 @@
   animation: dockRise 0.42s var(--ds-ease) both;
 }
 
-/* W trakcie przeciągania/skalowania bez animacji (panel ma podążać za kursorem). */
+/* UWAGA: nie ustawiamy tu `animation: none` — przełączenie none → dockRise po upuszczeniu
+   restartuje animację wejścia i panel „miga". Animacja jest jednorazowa (both). */
 .dock[data-dragging],
 .dock[data-resizing] {
-  animation: none;
   user-select: none;
 }
 

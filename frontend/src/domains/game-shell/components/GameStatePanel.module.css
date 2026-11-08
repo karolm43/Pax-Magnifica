@@ -1293,6 +1293,10 @@
   white-space: nowrap;
 }
 
+.rangeShip[data-cargo] {
+  color: var(--ds-ink-lo);
+}
+
 .unitGrid {
   display: grid;
   /* 128px: ikona (26) + odstępy + dwa przyciski +/− (2×20) muszą się zmieścić w

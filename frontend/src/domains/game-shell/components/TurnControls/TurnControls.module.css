@@ -79,8 +79,8 @@
   pointer-events: none;
 }
 .cardZone[data-dragging] .cards * {
+  /* Bez `animation: none` — po upuszczeniu restartowałoby cardDeal (miganie kart). */
   transition: none !important;
-  animation: none !important;
 }
 
 /* Wspólna wysokość slotu/karty. */
