@@ -548,6 +548,8 @@ export type EpilogueChoice = "honorable" | "dishonorable";
 export type EpilogueData = {
   /** player_id uprawnionych do głosu (wszyscy poza zwycięzcą), w kolejności przy stole. */
   voters: string[];
+  /** player_id z drugiego miejsca — jego głos rozstrzyga remis. */
+  runnerUp?: string | null;
   /** Oddane głosy: {player_id: wybór}. */
   votes: Record<string, EpilogueChoice>;
   /** Wynik, gdy zagłosowali wszyscy; null w trakcie. */

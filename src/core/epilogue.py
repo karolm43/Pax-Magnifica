@@ -5,7 +5,7 @@ nie reguła TI4 — patrz RULES.md (Epilog). Po zakończeniu gry (``winner_id``)
 gracze głosują, czy zwycięstwo było honorowe. Głos zwycięzcy się nie liczy (nie głosuje).
 
 ⚠️ ZAŁOŻENIA (do potwierdzenia przez użytkownika):
-- decyduje zwykła większość głosów; REMIS → zwycięstwo honorowe,
+- decyduje zwykła większość głosów; REMIS rozstrzyga głos gracza z DRUGIEGO MIEJSCA (najwięcej VP\n  wśród głosujących; przy równych VP wcześniejszy przy stole),
 - boty głosują automatycznie (na razie deterministyczny pseudolosowy wybór z lekkim
   przechyleniem ku „honorowe", dopóki nie ma warstwy AI).
 """
@@ -35,13 +35,26 @@ def _require_open(state: GameState) -> None:
         raise ValueError("The game has not ended yet.")
 
 
-def _resolve(epilogue: EpilogueState, eligible: list[str]) -> None:
-    """Ustala wynik, gdy zagłosowali wszyscy uprawnieni (większość; remis → honorowe)."""
+def runner_up(state: GameState) -> str | None:
+    """Gracz z drugiego miejsca: najwięcej VP poza zwycięzcą (remis → wcześniej przy stole)."""
+    eligible = voters(state)
+    if not eligible:
+        return None
+    best = max(state.players[p].victory_points for p in eligible)
+    return next(p for p in eligible if state.players[p].victory_points == best)
+
+
+def _resolve(state: GameState, epilogue: EpilogueState, eligible: list[str]) -> None:
+    """Wynik po komplecie głosów: większość, a remis rozstrzyga drugie miejsce."""
     if any(player_id not in epilogue.votes for player_id in eligible):
         return
     honorable = sum(1 for v in epilogue.votes.values() if v == HONORABLE)
     dishonorable = sum(1 for v in epilogue.votes.values() if v == DISHONORABLE)
-    epilogue.result = DISHONORABLE if dishonorable > honorable else HONORABLE
+    if honorable == dishonorable:
+        second = runner_up(state)
+        epilogue.result = epilogue.votes[second] if second else HONORABLE
+    else:
+        epilogue.result = DISHONORABLE if dishonorable > honorable else HONORABLE
 
 
 def open_vote(state: GameState) -> GameState:
@@ -62,7 +75,7 @@ def open_vote(state: GameState) -> GameState:
     if not eligible:
         epilogue.result = HONORABLE
     else:
-        _resolve(epilogue, eligible)
+        _resolve(new_state, epilogue, eligible)
     return new_state
 
 
@@ -87,5 +100,5 @@ def cast_vote(state: GameState, player_id: str, choice: str) -> GameState:
     if epilogue.result is not None or player_id in epilogue.votes:
         raise ValueError("This player has already voted.")
     epilogue.votes[player_id] = choice
-    _resolve(epilogue, voters(new_state))
+    _resolve(new_state, epilogue, voters(new_state))
     return new_state

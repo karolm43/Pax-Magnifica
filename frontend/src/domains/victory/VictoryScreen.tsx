@@ -347,6 +347,7 @@ function VoteStage({
   const currentId = voters.find((id) => !(id in votes) && !isBot(byId.get(id)));
   const current = currentId ? byId.get(currentId) : undefined;
   const winnerFaction = factionById.get(winner.faction)?.name ?? getPlayerFactionDisplayName(winner);
+  const runnerUp = epilogue?.runnerUp ? byId.get(epilogue.runnerUp) : undefined;
 
   const cast = (choice: EpilogueChoice) => {
     if (!currentId || busy) return;
@@ -366,7 +367,8 @@ function VoteStage({
         <h1 className={styles.voteTitle}>How was this victory won?</h1>
         <p className={styles.voteSub}>
           {winnerFaction} holds the throne. The other players decide whether the
-          victory was honorable. A tie is judged honorable.
+          victory was honorable. A tie is decided by the runner-up
+          {runnerUp ? ` (${getPlayerFactionDisplayName(runnerUp)})` : ""}.
         </p>
       </header>
 

@@ -153,7 +153,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
         crush = [
             (k, battles[k])
             for k in range(len(battles))
-            if battles[k]["winner"]
+            if battles[k]["winner"] == battles[k]["attacker"]
             and battles[k]["losses"][battles[k]["winner"]] == 0
             and total_lost[k] >= _MIN_CRUSHING
         ]
@@ -165,6 +165,79 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(c['winner'])} destroyed {total_lost[k]} units at {where(c)} "
                 f"without losing a single one.",
                 [c["winner"]],
+            )
+
+        walls = [
+            (k, battles[k])
+            for k in range(len(battles))
+            if battles[k]["winner"] == battles[k]["defender"]
+            and battles[k]["losses"][battles[k]["defender"]] == 0
+            and total_lost[k] >= _MIN_CRUSHING
+        ]
+        if walls:
+            k, w = max(walls, key=lambda t: total_lost[t[0]])
+            add(
+                "unbreakable_wall",
+                "The Unbreakable Wall",
+                f"{who(w['defender'])} held {where(w)} against {who(w['attacker'])}, "
+                f"destroying {total_lost[k]} attackers without a single loss.",
+                [w["defender"]],
+            )
+
+        pyrrhic = [
+            (k, battles[k])
+            for k in range(len(battles))
+            if battles[k]["winner"]
+            and battles[k]["losses"][battles[k]["winner"]] >= _MIN_CRUSHING
+            and battles[k]["losses"][battles[k]["winner"]]
+            > total_lost[k] - battles[k]["losses"][battles[k]["winner"]]
+        ]
+        if pyrrhic:
+            k, p = max(pyrrhic, key=lambda t: total_lost[t[0]])
+            add(
+                "pyrrhic_victory",
+                "A Pyrrhic Victory",
+                f"{who(p['winner'])} took {where(p)}, but lost "
+                f"{p['losses'][p['winner']]} units doing it, more than the enemy.",
+                [p["winner"]],
+            )
+
+        # Zwycięstwa wg rodzaju walki oraz bilans (niepokonani).
+        wins: dict[str, dict[str, int]] = {"space": {}, "ground": {}}
+        played: dict[str, int] = {}
+        won: dict[str, int] = {}
+        pair_fights: dict[frozenset[str], int] = {}
+        for b in battles:
+            for pid in (b["attacker"], b["defender"]):
+                played[pid] = played.get(pid, 0) + 1
+            if b["winner"]:
+                wins[b["kind"]][b["winner"]] = wins[b["kind"]].get(b["winner"], 0) + 1
+                won[b["winner"]] = won.get(b["winner"], 0) + 1
+            pair = frozenset((b["attacker"], b["defender"]))
+            pair_fights[pair] = pair_fights.get(pair, 0) + 1
+        for kind, key, title, text in (
+            ("space", "lord_of_the_void", "Lord of the Void", "space battles"),
+            ("ground", "ground_master", "Master of the Ground War", "ground battles"),
+        ):
+            top = _top(wins[kind])
+            if top and wins[kind][top[0]] >= 2:
+                add(key, title, f"{who(top[0])} won {wins[kind][top[0]]} {text}.", top)
+        unbeaten = [p for p, n in played.items() if n >= 3 and won.get(p, 0) == n]
+        if unbeaten:
+            add(
+                "undefeated",
+                "Undefeated",
+                f"{who(unbeaten[0])} won every one of their {played[unbeaten[0]]} battles.",
+                unbeaten[:1],
+            )
+        rivalry = max(pair_fights, key=lambda p: pair_fights[p])
+        if pair_fights[rivalry] >= 3:
+            a, b2 = sorted(rivalry)
+            add(
+                "rivalry",
+                "An Eternal Rivalry",
+                f"{who(a)} and {who(b2)} clashed {pair_fights[rivalry]} times.",
+                [a, b2],
             )
 
         mutual = [b for b in battles if b["winner"] is None]
@@ -244,6 +317,31 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
             deals[pid] = deals.get(pid, 0) + 1
     for pid in _top(deals):
         add("diplomat", "The Diplomat", f"{who(pid)} made {deals[pid]} deals at the table.", [pid])
+    if chron.deals:
+        loners = [pid for pid in state.players if pid not in deals]
+        if len(loners) == 1:
+            add(
+                "hermit",
+                "The Hermit",
+                f"{who(loners[0])} never made a single deal while everyone else traded.",
+                loners,
+            )
+
+    # Planeta, która najczęściej zmieniała właściciela.
+    per_planet: dict[str, list[str]] = {}
+    for c in chron.conquests:
+        per_planet.setdefault(c["planet"], []).append(c["by"])
+    if per_planet:
+        planet_id = max(per_planet, key=lambda p: len(per_planet[p]))
+        takers = per_planet[planet_id]
+        if len(takers) >= 2:
+            planet = registry.planets.get(planet_id)
+            add(
+                "torn_world",
+                "A World Torn Apart",
+                f"{planet.name if planet else planet_id} changed hands {len(takers)} times.",
+                list(dict.fromkeys(takers)),
+            )
 
     if battles and state.winner_id and not attacks.get(state.winner_id, 0):
         add(

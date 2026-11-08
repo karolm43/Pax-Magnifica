@@ -2734,7 +2734,7 @@ w dowolnej fazie i turze. Wierzyciel zwraca żetony wystawcy, gdy dług spłacon
   `end_reason = "round_limit"`). Faza agendy rundy granicznej jest pomijana. To reguła domowa.
 - ⚠ **Epilog**: po końcu gry wszyscy gracze OPRÓCZ zwycięzcy głosują, czy zwycięstwo było
   honorowe czy niehonorowe. Głosowanie tajne do kompletu głosów; większość decyduje,
-  **remis → honorowe**. Boty głosują automatycznie (deterministyczny placeholder do czasu AI).
+  **remis rozstrzyga głos gracza z drugiego miejsca** (najwięcej VP poza zwycięzcą). Boty głosują automatycznie (deterministyczny placeholder do czasu AI).
   Wynik wybiera kartę epilogu frakcji zwycięzcy (`frontend/src/domains/victory/factionEpilogues.ts`).
 - Kod: `core/epilogue.py`, `api/routers/epilogue.py` (`/epilogue/open`, `/epilogue/vote`),
   `core/status_phase.finish_status` (limit rund).

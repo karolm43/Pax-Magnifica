@@ -72,6 +72,8 @@ def _epilogue_payload(state: GameState) -> dict[str, object] | None:
     epilogue = state.epilogue
     return {
         "voters": epilogue_core.voters(state),
+        # Drugie miejsce: jego głos rozstrzyga remis w głosowaniu.
+        "runnerUp": epilogue_core.runner_up(state),
         "votes": dict(epilogue.votes) if epilogue is not None else {},
         "result": epilogue.result if epilogue is not None else None,
     }

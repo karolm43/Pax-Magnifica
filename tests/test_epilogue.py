@@ -65,8 +65,18 @@ def test_majority_decides_and_double_vote_rejected() -> None:
     assert state.epilogue is not None and state.epilogue.result == epilogue.DISHONORABLE
 
 
-def test_tie_resolves_to_honorable() -> None:
-    state = epilogue.cast_vote(_ended(), "p2", epilogue.DISHONORABLE)
+def test_tie_is_decided_by_the_runner_up() -> None:
+    base = _ended()
+    base.players["p2"].victory_points = 7  # drugie miejsce
+    base.players["p3"].victory_points = 4
+    assert epilogue.runner_up(base) == "p2"
+    state = epilogue.cast_vote(base, "p2", epilogue.DISHONORABLE)
+    state = epilogue.cast_vote(state, "p3", epilogue.HONORABLE)
+    assert state.epilogue is not None and state.epilogue.result == epilogue.DISHONORABLE
+    # Odwrotnie: drugie miejsce ma p3 i głosuje honorowo.
+    base.players["p2"].victory_points = 3
+    base.players["p3"].victory_points = 8
+    state = epilogue.cast_vote(base, "p2", epilogue.DISHONORABLE)
     state = epilogue.cast_vote(state, "p3", epilogue.HONORABLE)
     assert state.epilogue is not None and state.epilogue.result == epilogue.HONORABLE
 

@@ -96,6 +96,18 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
       detail: (n) => `${n} trade goods`,
     },
     {
+      key: "economy",
+      title: "Economic Titan",
+      value: (r) => r.resources + r.influence,
+      detail: (n) => `${n} resources and influence`,
+    },
+    {
+      key: "relics",
+      title: "Relic Hunter",
+      value: (r) => r.relics,
+      detail: (n) => `${n} relic${n === 1 ? "" : "s"}`,
+    },
+    {
       key: "secrets",
       title: "Keeper of Secrets",
       value: (r) => r.secretsScored,
@@ -116,6 +128,29 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
         player: best.player,
       });
     }
+  }
+  // Drugie miejsce (to ono rozstrzyga remis w głosowaniu) i ostatnie miejsce.
+  const [first, second] = rows;
+  if (first && second) {
+    const gap = first.vp - second.vp;
+    awards.push({
+      key: "runner_up",
+      title: "The Runner-up",
+      detail:
+        gap > 0
+          ? `${second.vp} VP, ${gap} short of the throne`
+          : `${second.vp} VP, level with the throne`,
+      player: second.player,
+    });
+  }
+  const last = rows[rows.length - 1];
+  if (rows.length >= 3 && last && second && last.vp < second.vp) {
+    awards.push({
+      key: "wooden_spoon",
+      title: "The Wooden Spoon",
+      detail: `${last.vp} VP, last at the table`,
+      player: last.player,
+    });
   }
   return awards;
 }

@@ -74,3 +74,24 @@ def test_trade_without_pact_is_not_a_betrayal() -> None:
     chronicle.record_battle(state, _combat("p3", "p2", "p3", {"p2": 1, "p3": 0}))
     assert state.chronicle.battles[0]["betrayal"] is False
     assert chronicle.pact_between(state, "p2", "p3") is None
+
+
+def test_extra_achievements(registry: StaticDataRegistry) -> None:
+    state = _state()
+    # Obrońca p2 trzyma pozycję bez strat (mur), p3 atakuje trzy razy z rzędu (rywalizacja).
+    for _ in range(3):
+        chronicle.record_battle(state, _combat("p3", "p2", "p2", {"p2": 0, "p3": 4}))
+    # Pyrrusowe zwycięstwo p1 (więcej strat niż wróg).
+    chronicle.record_battle(state, _combat("p1", "p3", "p1", {"p1": 5, "p3": 1}))
+    chronicle.record_deal(state, "p1", "p2")
+    chronicle.record_conquest(state, "p1", "p3", "mecatol_rex")
+    chronicle.record_conquest(state, "p2", "p1", "mecatol_rex")
+    keys = {h["key"] for h in chronicle.highlights(state, registry)}
+    assert {
+        "unbreakable_wall",
+        "pyrrhic_victory",
+        "rivalry",
+        "undefeated",
+        "torn_world",
+        "hermit",
+    } <= keys
