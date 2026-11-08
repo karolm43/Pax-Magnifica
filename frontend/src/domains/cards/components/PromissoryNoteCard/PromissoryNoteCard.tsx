@@ -5,6 +5,7 @@ import { useFactionColors } from "@/hooks/useFactionColors";
 import { useGameData } from "@/state/useGameContext";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
+import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { showLeader } from "@/entities/lookup/showLeader";
 import { resolvePromissoryNoteText } from "@/entities/game/playerUtils";
 import styles from "./PromissoryNoteCard.module.css";
@@ -76,7 +77,11 @@ export function PromissoryNoteCard({ promissoryNoteId }: Props) {
   return (
     <DetailsCard width={340} color="cyan">
       <DetailsCard.Title
-        title={displayName}
+        title={
+          <>
+            {displayName} <FanSourceBadge source={noteData.noteData.source} />
+          </>
+        }
         type="Promissory note"
         meta={[noteData.faction]}
         icon={<DetailsCard.Icon shape="pn" icon={tileGlyph} />}

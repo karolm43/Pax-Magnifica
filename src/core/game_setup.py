@@ -28,22 +28,39 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+from src.core.sources import AGENDA_STANDARD, AGENDA_VARIANT_SOURCES
 
 # Placeholder koloru w identyfikatorach wspólnych promissory notes (plik color.json).
 _COLOR_PLACEHOLDER = "<color>"
 
 
-def common_promissory_note_ids(registry: StaticDataRegistry, color: str) -> list[str]:
+def common_promissory_note_ids(
+    registry: StaticDataRegistry, color: str, variant: str = AGENDA_STANDARD
+) -> list[str]:
     """Identyfikatory wspólnych promissory notes dla danego koloru (np. ``red_cf``).
 
-    Szablony ``<color>_*`` z aktywnych źródeł katalogu; kolejność deterministyczna (alias).
+    Szablony ``<color>_*`` z aktywnych (oficjalnych) źródeł katalogu; kolejność
+    deterministyczna (alias). FAN-AGENDAS: w wariancie fanowskim (np. ``absol``) notki tego
+    źródła z ``homebrewReplacesID`` ZASTĘPUJĄ oficjalny szablon w tym samym miejscu ręki
+    (``<color>_ps`` → ``absol_<color>_ps``, Absol's Political Secret).
     """
+    notes = registry.catalog.all(ComponentCategory.PROMISSORY_NOTE)
     templates = sorted(
         note_id
-        for note_id in registry.catalog.all(ComponentCategory.PROMISSORY_NOTE)
+        for note_id, note in notes.items()
         if note_id.startswith(f"{_COLOR_PLACEHOLDER}_")
+        and note.source not in AGENDA_VARIANT_SOURCES
     )
-    return [note_id.replace(_COLOR_PLACEHOLDER, color, 1) for note_id in templates]
+    replacements: dict[str, str] = {}
+    if variant != AGENDA_STANDARD:
+        for note_id, note in notes.items():
+            replaced = note.raw.get("homebrewReplacesID")
+            if note.source == variant and isinstance(replaced, str):
+                replacements[replaced] = note_id
+    return [
+        replacements.get(note_id, note_id).replace(_COLOR_PLACEHOLDER, color, 1)
+        for note_id in templates
+    ]
 
 
 def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> GameState:
@@ -52,7 +69,11 @@ def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> Gam
     for player_id, player in new_state.players.items():
         hand: list[str] = []
         if player.color is not None:
-            hand.extend(common_promissory_note_ids(registry, player.color))
+            hand.extend(
+                common_promissory_note_ids(
+                    registry, player.color, new_state.decks.agenda_variant
+                )
+            )
         faction = registry.factions.get(player.faction) if player.faction else None
         if faction is not None:
             hand.extend(n for n in faction.promissory_notes if n not in hand)

@@ -1826,3 +1826,7 @@ type-check + lint + build czyste.
   (rewers talii agend + wyszukiwarka). `activeDecks.ts` ma `AGENDA_VARIANT_DECK_IDS` (generator
   `scripts/gen_active_decks.py`). Karty Absol mają plakietkę „ABS" (`shared/ui/FanSourceBadge`):
   pula kart, Rada Galaktyczna, prawa w grze, panel stanu agendy.
+- FAN-AGENDAS: w grze Absol każdy gracz dostaje „Absol's Political Secret" (`absol_<kolor>_ps`) ZAMIAST
+  `<kolor>_ps` (`game_setup.common_promissory_note_ids(..., variant)` wg `homebrewReplacesID`). Loader
+  wpuszcza ze źródła `absol` tylko notki-zamienniki; front rozpoznaje `absol_<kolor>_ps` w
+  `entities/lookup/promissoryNotes.ts`, karta notki ma plakietkę „ABS". Baseline audytu +1 (promissory/absol).

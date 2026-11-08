@@ -55,6 +55,28 @@ def _without_non_agenda_variant_decks(
         yield origin, entry
 
 
+def _only_replacement_variant_notes(
+    entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]],
+    enabled: Collection[str],
+    variant_sources: Collection[str],
+) -> Iterator[tuple[EntryOrigin, Mapping[str, object]]]:
+    """Z notek źródeł wariantowych przepuszcza tylko ZAMIENNIKI oficjalnych notek.
+
+    FAN-AGENDAS: zamiennik ma ``homebrewReplacesID`` (np. ``absol_<color>_ps`` →
+    ``<color>_ps``); podmiana przy rozdawaniu: ``game_setup.common_promissory_note_ids``.
+    """
+    for origin, entry in entries:
+        source = entry.get("source")
+        if (
+            isinstance(source, str)
+            and source in variant_sources
+            and source not in enabled
+            and not isinstance(entry.get("homebrewReplacesID"), str)
+        ):
+            continue
+        yield origin, entry
+
+
 @dataclass(frozen=True)
 class EntryOrigin:
     """Skąd pochodzi wpis: plik i numer wpisu w pliku (od 0)."""
@@ -217,7 +239,8 @@ def load_components(
         enabled: Aktywne źródła (pole ``source`` wpisów).
         specs: Opcjonalna tabela kategorii (domyślnie ``CATEGORY_SPECS``).
         agenda_variant_sources: Dodatkowe źródła (fanowskie talie agend), ładowane WYŁĄCZNIE
-            dla agend i talii agend; reszta ich danych pozostaje nieaktywna.
+            dla agend, talii agend i notek zastępujących oficjalne; reszta ich danych
+            pozostaje nieaktywna.
 
     Raises:
         DataValidationError: Gdy wybrany wpis nie przechodzi walidacji modelu.
@@ -233,11 +256,17 @@ def load_components(
         if agenda_variant_sources and category in (
             ComponentCategory.AGENDA,
             ComponentCategory.DECK,
+            ComponentCategory.PROMISSORY_NOTE,
         ):
-            # FAN-AGENDAS: fanowska talia agend (Absol) - ładujemy tylko agendy i talie agend.
+            # FAN-AGENDAS: wariant Absol - ładujemy tylko agendy, talie agend i notki
+            # ZASTĘPUJĄCE oficjalne (``homebrewReplacesID``, np. Absol's Political Secret).
             category_enabled = {*enabled, *agenda_variant_sources}
             if category is ComponentCategory.DECK:
                 entries = _without_non_agenda_variant_decks(
+                    entries, enabled, agenda_variant_sources
+                )
+            elif category is ComponentCategory.PROMISSORY_NOTE:
+                entries = _only_replacement_variant_notes(
                     entries, enabled, agenda_variant_sources
                 )
         selection = select_entries(entries, category_enabled, spec.id_field)

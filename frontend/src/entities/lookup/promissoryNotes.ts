@@ -8,8 +8,36 @@ const promissoryNotesMap = indexBy(
   (note) => note.alias
 );
 
+/*
+ * FAN-AGENDAS: zamienniki oficjalnych notek z wariantu Absol (np. `absol_<color>_ps`,
+ * Absol's Political Secret). Backend rozdaje je w grze Absol jako `absol_<kolor>_ps`.
+ * Tylko źródło `absol` - inne homebrew zamienniki (np. Black Spectrum) nie są w grze.
+ */
+const VARIANT_NOTE_SOURCES: ReadonlySet<string> = new Set(["absol"]);
+const variantNotesMap = indexBy(
+  promissoryNotes.filter(
+    (note) => !!note.homebrewReplacesID && VARIANT_NOTE_SOURCES.has(note.source),
+  ),
+  (note) => note.alias
+);
+
 function getPromissoryNoteByAlias(alias: string): PromissoryNote | undefined {
   return promissoryNotesMap.get(alias);
+}
+
+/**
+ * Notka wariantu w formie `<prefiks>_<kolor>_<typ>` (np. `absol_red_ps`) → dane szablonu
+ * `absol_<color>_ps` i kolor właściciela; `null`, gdy to nie notka wariantu.
+ */
+function resolveVariantColorNote(
+  promissoryNoteId: string,
+): { noteData: PromissoryNote; color: string } | null {
+  const parts = promissoryNoteId.split("_");
+  if (parts.length < 3) return null;
+  const color = parts[1];
+  const template = [parts[0], "<color>", ...parts.slice(2)].join("_");
+  const noteData = variantNotesMap.get(template);
+  return noteData ? { noteData, color } : null;
 }
 
 /**
@@ -40,6 +68,21 @@ export function getPromissoryNoteData(
       noteData,
       faction,
       displayName: noteData.name,
+    };
+  }
+
+  const variant = resolveVariantColorNote(promissoryNoteId);
+  if (variant) {
+    const faction = factionColorMap?.[variant.color]?.faction;
+    if (!faction) {
+      console.warn(`No faction found for color "${variant.color}"`);
+      return null;
+    }
+    return {
+      noteData: variant.noteData,
+      faction,
+      color: variant.color,
+      displayName: variant.noteData.name.replace(/<color>/g, variant.color),
     };
   }
 

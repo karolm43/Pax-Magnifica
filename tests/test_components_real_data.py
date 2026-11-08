@@ -60,6 +60,7 @@ def test_wszystkie_source_naleza_do_aktywnych(registry: StaticDataRegistry) -> N
             if component.source in variants and category in (
                 ComponentCategory.AGENDA,
                 ComponentCategory.DECK,
+                ComponentCategory.PROMISSORY_NOTE,
             ):
                 continue
             offending.setdefault(category.value, set()).add(component.source)

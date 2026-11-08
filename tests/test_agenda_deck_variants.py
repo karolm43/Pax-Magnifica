@@ -86,6 +86,9 @@ def test_absol_laws_reach_laws_in_play_and_player_area() -> None:
     ctx = app.state.ctx
     state = ctx.service.current_state().clone()
     assert state.decks.agenda_variant == "absol"
+    for player in state.players.values():
+        hand = player.private.promissory_notes
+        assert f"absol_{player.color}_ps" in hand and f"{player.color}_ps" not in hand
     state.phase = Phase.AGENDA
     state.agenda = AgendaPhaseState()
     state.custodians_removed = True
@@ -107,3 +110,20 @@ def test_absol_laws_reach_laws_in_play_and_player_area() -> None:
     assert [law["id"] for law in data["lawsInPlay"]] == ["absol_minscomm", "absol_regulations"]
     owners = {p["faction"]: p["lawsOwned"] for p in data["playerData"]}
     assert owners[state.players[elected].faction] == ["absol_minscomm"]
+
+
+def test_absol_variant_replaces_political_secret(registry: StaticDataRegistry) -> None:
+    """FAN-AGENDAS: w wariancie Absol ``red_ps`` zastępuje Absol's Political Secret."""
+    from src.core.game_setup import common_promissory_note_ids
+
+    standard = common_promissory_note_ids(registry, "red")
+    absol = common_promissory_note_ids(registry, "red", "absol")
+    assert "red_ps" in standard and "absol_red_ps" not in standard
+    assert "absol_red_ps" in absol and "red_ps" not in absol
+    assert len(absol) == len(standard)
+    assert [n for n in standard if n != "red_ps"] == [n for n in absol if n != "absol_red_ps"]
+    note = registry.catalog.get(ComponentCategory.PROMISSORY_NOTE, "absol_<color>_ps")
+    assert note is not None and note.name == "Absol's Political Secret"
+    # Tylko zamienniki - żadne inne notki Absol nie trafiają do katalogu.
+    notes = registry.catalog.all(ComponentCategory.PROMISSORY_NOTE)
+    assert [i for i, n in notes.items() if n.source == "absol"] == ["absol_<color>_ps"]
