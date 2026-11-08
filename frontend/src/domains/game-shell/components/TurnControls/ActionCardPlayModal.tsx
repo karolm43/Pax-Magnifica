@@ -117,7 +117,7 @@ export function ActionCardPlayModal({ onClose, onPlayed, cardId, cardName, playe
         {form.isLoading && <Text size="sm" c="dimmed">Loading card…</Text>}
         {form.isError && (
           <Text size="sm" c="red">
-            This card cannot be played right now (is it still in your hand?).
+            {form.error instanceof Error ? form.error.message : "Could not load this card."}
           </Text>
         )}
         {form.data && (

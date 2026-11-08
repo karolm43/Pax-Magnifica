@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { getBotApiUrl } from "@/api/auth";
-import { fetchJson } from "@/api/fetchJson";
 
 /*
  * Formularz zagrania karty akcji (RULES.md 53). Backend opisuje, jakich decyzji wymaga karta
  * i jakie są legalne opcje na bieżącym stanie gry — front nie zna kart, tylko renderuje opis.
  */
+
+/** Korzeń proxy do backendu silnika (jak w ``useBoardEditor``; NIE ``/bot/api``). */
+const BOT_ROOT = "/bot";
 
 /** Jedna opcja wyboru: ``id`` jest unikalne w obrębie wejścia, ``value`` trafia do parametrów. */
 export type ActionCardOption = { id: string; value: unknown; label: string };
@@ -45,15 +46,25 @@ export function useActionCardForm(cardId: string | null, playerId: string | null
     staleTime: 0,
     gcTime: 0,
     retry: false,
-    queryFn: () =>
-      fetchJson<ActionCardForm>(
-        getBotApiUrl(
-          `/action-card/${encodeURIComponent(cardId ?? "")}/inputs?player_id=${encodeURIComponent(
-            playerId ?? "",
-          )}`,
-        ),
-        "action card form",
-      ),
+    queryFn: async () => {
+      const url = `${BOT_ROOT}/action-card/${encodeURIComponent(cardId ?? "")}/inputs?player_id=${encodeURIComponent(
+        playerId ?? "",
+      )}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        // 422 niesie powód z silnika (np. karty nie ma w ręce); inne kody = błąd serwera/trasy.
+        const raw = await response.text().catch(() => "");
+        let detail = `Error ${response.status}`;
+        try {
+          const parsed = JSON.parse(raw) as { detail?: unknown };
+          if (typeof parsed.detail === "string") detail = parsed.detail;
+        } catch {
+          // nie-JSON - zostaje kod statusu
+        }
+        throw new Error(detail);
+      }
+      return (await response.json()) as ActionCardForm;
+    },
   });
 }
 
@@ -96,4 +107,34 @@ export function buildActionCardParams(
     }
   }
   return { params, ready };
+}
+
+/** Czy karta z ręki jest zagrywalna TERAZ jako akcja (decyzja silnika, nie UI). */
+export type ActionCardPlayability = {
+  card_id: string;
+  playable: boolean;
+  /** Powód, gdy nie - pokazywany w podpowiedzi karty. */
+  reason: string | null;
+  implemented: boolean;
+};
+
+/**
+ * Zagrywalność kart akcji z ręki gracza (po ``card_id``). Odświeżana co kilka sekund, bo zależy
+ * od tury, fazy, okien i celów na planszy; dok ręki pozwala podnieść tylko karty zagrywalne.
+ */
+export function useActionCardPlayability(playerId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["actionCardPlayable", playerId],
+    enabled: Boolean(playerId) && enabled,
+    staleTime: 0,
+    refetchInterval: 3000,
+    retry: false,
+    queryFn: async (): Promise<Record<string, ActionCardPlayability>> => {
+      const url = `${BOT_ROOT}/action-card/playable?player_id=${encodeURIComponent(playerId ?? "")}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+      const data = (await response.json()) as { cards: ActionCardPlayability[] };
+      return Object.fromEntries(data.cards.map((card) => [card.card_id, card]));
+    },
+  });
 }

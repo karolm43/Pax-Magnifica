@@ -426,3 +426,65 @@ def test_endpoint_formularza_zwraca_422_dla_karty_spoza_reki(registry: StaticDat
     player = next(iter(client.get("/state").json()["state"]["players"]))
     resp = client.get(f"/action-card/messiah/inputs?player_id={player}")
     assert resp.status_code == 422
+
+
+# ------------------------------------------------------- zagrywalność (drag z ręki)
+
+
+def _by_id(rows: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    return {str(row["card_id"]): row for row in rows}
+
+
+def test_zagrywalnosc_odroznia_karty_akcji_od_reakcji_i_cele(registry: StaticDataRegistry) -> None:
+    state = _rich_state(registry)
+    state.players["p1"].private.action_cards = ["messiah", "meltdown", "disgrace", "unexpected"]
+    rows = _by_id(action_cards.playability(state, registry, "p1"))
+    assert rows["messiah"]["playable"] and rows["messiah"]["implemented"]
+    assert rows["meltdown"]["playable"] and not rows["meltdown"]["implemented"]  # ręcznie
+    assert not rows["disgrace"]["playable"]
+    assert "response to a game event" in str(rows["disgrace"]["reason"])
+    assert rows["unexpected"]["playable"]  # jest żeton na planszy (rich_state)
+
+
+def test_zagrywalnosc_wymaga_legalnego_celu(registry: StaticDataRegistry) -> None:
+    state = _rich_state(registry)
+    state.systems["000"].command_tokens = []  # brak własnego żetonu na planszy
+    state.players["p1"].private.action_cards = ["unexpected"]
+    row = action_cards.playability(state, registry, "p1")[0]
+    assert not row["playable"]
+    assert "No legal target" in str(row["reason"])
+
+
+def test_zagrywalnosc_zalezy_od_tury_i_akcji(registry: StaticDataRegistry) -> None:
+    state = _rich_state(registry)
+    state.players["p1"].private.action_cards = ["messiah"]
+    state.players["p1"].took_action_this_turn = True
+    row = action_cards.playability(state, registry, "p1")[0]
+    assert not row["playable"] and "already took an action" in str(row["reason"])
+    state.players["p1"].took_action_this_turn = False
+    state.active_player_id = "p2"
+    row = action_cards.playability(state, registry, "p1")[0]
+    assert not row["playable"] and "not p1's turn" in str(row["reason"])
+
+
+def test_zagrywalnosc_nie_mutuje_stanu_i_pasuje_do_play(registry: StaticDataRegistry) -> None:
+    state = _rich_state(registry)
+    state.players["p1"].private.action_cards = ["messiah", "unexpected", "cripple"]
+    before = state.model_dump_json()
+    rows = action_cards.playability(state, registry, "p1")
+    assert state.model_dump_json() == before
+    for row in rows:  # zagrywalne wg playability = silnik rzeczywiście je zagra z formularza
+        if row["playable"]:
+            _, inputs = action_cards.card_inputs(state, registry, "p1", str(row["card_id"]))
+            action_cards.play_action_card(
+                state, registry, "p1", str(row["card_id"]), _params_like_ui(inputs)
+            )
+
+
+def test_endpoint_zagrywalnosci(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}, {"faction_id": "arborec"}]})
+    player = next(iter(client.get("/state").json()["state"]["players"]))
+    resp = client.get(f"/action-card/playable?player_id={player}")
+    assert resp.status_code == 200 and resp.json() == {"cards": []}
+    assert client.get("/action-card/playable?player_id=zzz").status_code == 422

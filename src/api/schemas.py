@@ -1316,3 +1316,18 @@ class ActionCardInputsResponse(BaseModel):
     text: str
     implemented: bool
     inputs: list[dict[str, Any]]
+
+
+class ActionCardPlayability(BaseModel):
+    """Czy karta z ręki jest zagrywalna teraz jako akcja (przeciąganie z ręki w UI)."""
+
+    card_id: str
+    playable: bool
+    reason: str | None = None
+    implemented: bool = False
+
+
+class ActionCardPlayabilityResponse(BaseModel):
+    """Zagrywalność wszystkich unikalnych kart akcji z ręki gracza."""
+
+    cards: list[ActionCardPlayability]

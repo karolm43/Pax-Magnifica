@@ -3041,6 +3041,12 @@ systemy z żetonem, cele...). Opisy rejestrują efekty przez `rules_hooks.regist
 (`core/hooks/action_card_inputs.py`); front (`ActionCardPlayModal`) nie zna kart, tylko renderuje opis.
 Test spójności: parametry zbudowane tak jak w UI przechodzą walidację efektu (`test_action_cards.py`).
 
+**Zagrywanie przeciągnięciem z ręki (UI):** `GET /action-card/playable?player_id=` zwraca dla każdej karty akcji w ręce
+`playable` / `reason` / `implemented` (`action_cards.playability`): okno ACTION, tura/faza/okno/jedna akcja (te same
+walidacje co zagranie) i - dla kart z automatyzacją - legalne cele dla każdego wyboru (R_action_cards: karty, której nie
+da się w pełni rozstrzygnąć, nie można zagrać). Dok ręki pozwala PODNIEŚĆ tylko karty zagrywalne; upuszczenie na strefę
+„Drop to play” otwiera formularz zagrania. Karty niezagrywalne są przyciemnione, a podpowiedź podaje powód.
+
 **Nowe punkty zaczepienia (RULES.md 43):** `agenda.vote_modifier` (MODIFY, podpięte w `agenda_phase.extra_votes`),
 `combat.extra_dice` (MODIFY), `combat.reroll_misses` (PERMIT, jedno przerzucenie chybień w `battle.roll_round`).
 Źródła hooków (`owned_sources`) obejmują teraz też prawa w grze (`decks.agenda_laws`, obowiązują każdego gracza)

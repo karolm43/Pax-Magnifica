@@ -51,6 +51,56 @@ def card_inputs(
     return True, (inputs_fn(state, registry, player_id) if inputs_fn is not None else [])
 
 
+def _has_legal_choices(inputs: list[dict[str, Any]]) -> bool:
+    """Czy każde wymagane wejście formularza ma dość opcji (inaczej: nie do rozstrzygnięcia)."""
+    for item in inputs:
+        options = item.get("options")
+        if not isinstance(options, list):
+            continue  # wejście liczbowe - zawsze do spełnienia
+        need = int(item["min"]) if item.get("kind") == "multi" else 1
+        if len(options) < need:
+            return False
+    return True
+
+
+def playability(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[dict[str, Any]]:
+    """Które karty z ręki gracza można zagrać TERAZ jako akcję (do przeciągania z ręki w UI).
+
+    Dla każdej unikalnej karty: ``card_id``, ``playable``, ``reason`` (gdy nie), ``implemented``.
+    Karta jest zagrywalna, gdy: ma okno ACTION, tura/faza/okno pozwalają na akcję komponentu
+    (te same walidacje co ``play_action_card``) i - gdy silnik ją automatyzuje - istnieją
+    legalne cele dla każdego wymaganego wyboru (R_action_cards: nie można zagrać karty,
+    której nie da się w pełni rozstrzygnąć). Nie mutuje stanu.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    result: list[dict[str, Any]] = []
+    for card_id in dict.fromkeys(player.private.action_cards):
+        entry: dict[str, Any] = {
+            "card_id": card_id, "playable": False, "reason": None, "implemented": False,
+        }
+        result.append(entry)
+        spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
+        if spec is None or spec.trigger is not TriggerKind.ACTION:
+            entry["reason"] = "Played in response to a game event, not as your action."
+            continue
+        try:
+            component_action.play_component_action(state, player_id, card_id)
+        except ValueError as exc:
+            entry["reason"] = str(exc)
+            continue
+        implemented, inputs = card_inputs(state, registry, player_id, card_id)
+        entry["implemented"] = implemented
+        if implemented and not _has_legal_choices(inputs):
+            entry["reason"] = "No legal target for this card right now."
+            continue
+        entry["playable"] = True
+    return result
+
+
 def play_action_card(
     state: GameState,
     registry: StaticDataRegistry,

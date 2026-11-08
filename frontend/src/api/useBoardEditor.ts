@@ -122,6 +122,7 @@ export function useBoardEditor() {
       "capacity",
       "fleetPool",
       "playerHand",
+      "actionCardPlayable",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }

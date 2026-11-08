@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     ActionCardInputsResponse,
+    ActionCardPlayability,
+    ActionCardPlayabilityResponse,
     PlayActionCardRequest,
     PlayActionCardResponse,
 )
@@ -14,6 +16,18 @@ from src.core import action_cards
 from src.core.components import ComponentCategory
 
 router = APIRouter()
+
+
+@router.get("/action-card/playable", response_model=ActionCardPlayabilityResponse)
+async def get_playable_action_cards(
+    player_id: str, ctx: AppContext = Depends(get_ctx)
+) -> ActionCardPlayabilityResponse:
+    """Które karty z ręki gracza można zagrać teraz (UI pozwala podnieść tylko te)."""
+    try:
+        rows = action_cards.playability(ctx.service.current_state(), ctx.registry, player_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return ActionCardPlayabilityResponse(cards=[ActionCardPlayability(**row) for row in rows])
 
 
 @router.get("/action-card/{card_id}/inputs", response_model=ActionCardInputsResponse)

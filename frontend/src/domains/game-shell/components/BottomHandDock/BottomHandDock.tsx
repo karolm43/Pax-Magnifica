@@ -5,6 +5,7 @@ import {
   IconCards,
   IconChevronDown,
   IconLayoutGrid,
+  IconPlayerPlayFilled,
   IconTarget,
   IconTicket,
 } from "@tabler/icons-react";
@@ -27,6 +28,8 @@ import {
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
+import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
+import { useActionCardPlayability, type ActionCardPlayability } from "@/api/useActionCard";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -37,8 +40,10 @@ import styles from "./BottomHandDock.module.css";
  * ``/game/{id}/hand`` (usePlayerHand z pominięciem bramki — tryb lokalny,
  * operator widzi wszystko), który zwraca rękę AKTYWNEGO gracza.
  *
- * To czysta nakładka informacyjno-podglądowa (nie wykonuje akcji): pokazuje, co
- * gracz trzyma w ręce, dokładnie jak przy fizycznym stole.
+ * Podgląd jak przy fizycznym stole + ZAGRYWANIE: kartę akcji można przeciągnąć z ręki na strefę
+ * „Drop to play" (otwiera formularz zagrania). Podnieść można tylko kartę, którą silnik pozwala
+ * zagrać teraz (`/action-card/playable`: tura, faza, okno ACTION, legalne cele); pozostałe są
+ * przyciemnione, a podpowiedź mówi dlaczego.
  */
 
 type HandTab = "actions" | "secrets" | "notes";
@@ -115,13 +120,47 @@ function CardDetails({ tab, id }: { tab: HandTab; id: string }) {
   return <PromissoryNoteCard promissoryNoteId={id} />;
 }
 
-/** Jeden kafelek karty w wachlarzu: rewers + nazwa + znacznik; klik = podgląd. */
-function HandCard({ tab, id }: { tab: HandTab; id: string }) {
+/** Jeden kafelek karty w wachlarzu: rewers + nazwa + znacznik; klik = podgląd, drag = zagranie. */
+function HandCard({
+  tab,
+  id,
+  play,
+  onDragChange,
+}: {
+  tab: HandTab;
+  id: string;
+  /** Decyzja silnika o zagrywalności (tylko karty akcji); brak = jeszcze nie wiadomo. */
+  play?: ActionCardPlayability;
+  onDragChange: (cardId: string | null) => void;
+}) {
   const [open, setOpen] = useState(false);
   const { name, tag, ownerRgb } = useCardLabel(tab, id);
+  const canDrag = tab === "actions" && play?.playable === true;
+  const locked = tab === "actions" && play !== undefined && !play.playable;
+  const hint = canDrag
+    ? `${name} - drag onto the play zone to play`
+    : locked
+      ? `${name} - can't be played now: ${play?.reason ?? "not available"}`
+      : name;
   const tone =
     ownerRgb ?? TABS.find((t) => t.key === tab)?.tone ?? "148, 163, 184";
   return (
+    // Wrapper (nie sam <button>) jest elementem przeciąganym: Firefox nie przeciąga przycisków.
+    <div
+      className={styles.cardWrap}
+      draggable={canDrag}
+      onDragStart={(e) => {
+        if (!canDrag) {
+          e.preventDefault();
+          return;
+        }
+        e.dataTransfer.setData("text/x-actioncard", id);
+        e.dataTransfer.effectAllowed = "move";
+        setOpen(false);
+        onDragChange(id);
+      }}
+      onDragEnd={() => onDragChange(null)}
+    >
     <SmoothPopover opened={open} onChange={setOpen} position="top">
       <SmoothPopover.Target>
         <button
@@ -130,8 +169,10 @@ function HandCard({ tab, id }: { tab: HandTab; id: string }) {
           style={{ "--hk": tone } as CSSProperties}
           data-open={open || undefined}
           data-tinted={ownerRgb ? true : undefined}
+          data-playable={canDrag || undefined}
+          data-locked={locked || undefined}
           onClick={() => setOpen((v) => !v)}
-          title={name}
+          title={hint}
         >
           <span
             className={styles.cardArt}
@@ -148,6 +189,7 @@ function HandCard({ tab, id }: { tab: HandTab; id: string }) {
         <CardDetails tab={tab} id={id} />
       </SmoothPopover.Dropdown>
     </SmoothPopover>
+    </div>
   );
 }
 
@@ -164,6 +206,14 @@ export function BottomHandDock() {
   });
   const [open, setOpen] = useDockOpen();
   const [tab, setTab] = useState<HandTab>("actions");
+  // Przeciąganie karty akcji na strefę zagrania; po upuszczeniu otwiera formularz (RULES.md 53).
+  const [dragCard, setDragCard] = useState<string | null>(null);
+  const [zoneOver, setZoneOver] = useState(false);
+  const [playingCard, setPlayingCard] = useState<string | null>(null);
+  const { data: playability } = useActionCardPlayability(
+    active?.discordId ?? null,
+    open && tab === "actions",
+  );
 
   const counts = useMemo(
     () => ({
@@ -213,6 +263,7 @@ export function BottomHandDock() {
   if (!active) return null;
 
   return (
+    <>
     <section
       ref={setDockNode}
       className={styles.dock}
@@ -276,12 +327,57 @@ export function BottomHandDock() {
             </p>
           ) : (
             ids.map((id, index) => (
-              <HandCard key={`${tab}-${id}-${index}`} tab={tab} id={id} />
+              <HandCard
+                key={`${tab}-${id}-${index}`}
+                tab={tab}
+                id={id}
+                play={tab === "actions" ? playability?.[id] : undefined}
+                onDragChange={(cardId) => {
+                  setDragCard(cardId);
+                  if (cardId === null) setZoneOver(false);
+                }}
+              />
             ))
           )}
         </div>
       )}
     </section>
+
+    {/* Strefa zagrania - poza <section>, bo transform doku zmieniłby pozycję `fixed`. */}
+    {dragCard && (
+      <div
+        className={styles.dropZone}
+        data-over={zoneOver || undefined}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          setZoneOver(true);
+        }}
+        onDragLeave={() => setZoneOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          const cardId = e.dataTransfer.getData("text/x-actioncard");
+          setZoneOver(false);
+          setDragCard(null);
+          if (cardId) setPlayingCard(cardId);
+        }}
+      >
+        <IconPlayerPlayFilled size={18} aria-hidden="true" />
+        <span>Drop to play {getActionCard(dragCard)?.name ?? dragCard}</span>
+      </div>
+    )}
+
+    {playingCard && active.discordId && (
+      <ActionCardPlayModal
+        key={playingCard}
+        cardId={playingCard}
+        cardName={getActionCard(playingCard)?.name ?? playingCard}
+        playerId={active.discordId}
+        onClose={() => setPlayingCard(null)}
+        onPlayed={() => setPlayingCard(null)}
+      />
+    )}
+    </>
   );
 }
 
