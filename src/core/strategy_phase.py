@@ -303,6 +303,18 @@ def accumulate_unpicked_tg(
     return new_state
 
 
+def set_speaker(state: GameState, player_id: str | None) -> None:
+    """Przekazuje żeton mówcy — JEDYNE miejsce zmiany ``GameState.speaker_id`` (RULES.md 43.1a).
+
+    Hook „gdy zmienia się mówca" (np. zdolności reagujące na przejęcie żetonu) dopisujemy tu.
+    Mutuje ``state`` (KLON roboczy wołającego); nie zmienia kolejności miejsc ani aktywnego
+    gracza — to robi wołający.
+    """
+    if player_id is not None and player_id not in state.players:
+        raise ValueError(f"Unknown player: {player_id}")
+    state.speaker_id = player_id
+
+
 def reset_strategy_cards(state: GameState) -> GameState:
     """Zwraca wszystkie karty strategii do puli (czyści wybory graczy).
 

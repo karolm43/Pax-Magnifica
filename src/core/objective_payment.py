@@ -8,7 +8,7 @@ gracz nie wskazuje planet/pul): najpierw wyczerpuje planety, brak dopłaca trade
 
 from __future__ import annotations
 
-from src.core import command_tokens, economy
+from src.core import card_draw, command_tokens, economy
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.objective_progress import (
@@ -71,9 +71,7 @@ def pay_for_objective(
             new_state, player_id, "strategic", goal - from_tactical
         )
     elif objective_id == "fsn":
-        discarded = player.private.action_cards[:goal]
-        player.private.action_cards = player.private.action_cards[goal:]
-        new_state.decks.action_card_discard.extend(discarded)
+        card_draw.discard_action_cards(new_state, player_id, goal)
     elif objective_id in _MIXED:
         ready = View(new_state, registry, grid, player_id).ready_planets()
         plan = mixed_spend_plan(

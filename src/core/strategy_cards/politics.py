@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import strategy_phase
 from src.core.card_draw import draw_action_card, ensure_agenda_deck
 from src.core.game_state import GameState
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
@@ -43,7 +44,7 @@ def _on_step(
             raise ValueError("The chosen player already has the speaker token.")
         # Efekty „od góry do dołu" (R_strategic_action): mówca, potem 2 karty akcji - od razu,
         # żeby gracz widział dobrane karty przed decyzją o agendach.
-        state.speaker_id = chosen
+        strategy_phase.set_speaker(state, chosen)
         drawn_before = len(state.players[owner_id].private.action_cards)
         for _ in range(ACTION_CARDS_DRAWN):
             draw_action_card(state, owner_id)

@@ -16,6 +16,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 
+from src.core import card_draw
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
 from src.core.game_state import GameState, ObjectivesState
 from src.core.hex_grid import HexGrid
@@ -141,8 +142,7 @@ def setup_objectives(
 
     actions = deck_card_ids(registry, _ACTION_DECK)
     chooser.shuffle(actions)
-    new_state.decks.action_card_deck = actions
-    new_state.decks.action_card_discard = []
+    card_draw.seed_action_deck(new_state, actions)
     return new_state
 
 

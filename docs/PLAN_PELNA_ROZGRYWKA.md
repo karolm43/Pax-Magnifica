@@ -258,10 +258,11 @@ Uwagi:
 | C2 | Żetony dowodzenia: rezerwa + 3 pule (wiersz 3) | ✅ | `core/command_tokens.py` |
 | C3 | Wyczerpywanie/odświeżanie: planety, technologie, karty strategii, liderzy, przełom (wiersz 4) | ✅ | `core/exhaust.py` |
 | C4 | Kontrola planet: `planet_owners` + lustro `controlled_planets` (wiersz 7) | ✅ | `core/control.py` (`set_planet_control`) |
-| C5 | Operacje na jednostkach: zniszczenie/postawienie/usunięcie/ruch + limity (wiersze 8, 13) | ⬜ następny, NAJWIĘKSZY (~30 miejsc w `battle`, `invasion`, `space_cannon`, `production`, `retreat`, `movement`, `exploration`) | planowany `core/unit_ops.py` |
-| C6 | Zdobycie technologii: `gain_technology` (wiersz 9; dziś `technology.apply_research`) | ⬜ | planowany `core/technology.py` |
-| C7 | Punkty zwycięstwa i karty (wiersze 10–11) | ⬜ | `objectives.award_points`, `card_draw.py` |
-| C8 | Strażnik architektury | ✅ częściowo: pilnuje 13 pól + `setattr`; kolejne pola dopisujemy do `OWNERS` | `tests/test_central_points.py` |
+| C5 | Operacje na jednostkach: postawienie/usunięcie/zniszczenie/ruch (wiersze 8, 13) | ✅ | `core/unit_ops.py` (`place/take/remove/transfer/replace`, `cause` = `UnitCause`); `damage.py` właścicielem uszkodzeń; `control.recompute_from_units` |
+| C6 | Zdobycie technologii (wiersz 9) | ✅ | `technology.grant_technology` (badanie i „gain" przez nią) |
+| C7 | Punkty zwycięstwa, karty akcji (ręka/talia/odrzucone), mówca (wiersze 10–11) | ✅ | `objectives.award_points`, `card_draw.py` (`draw/discard/seed`), `strategy_phase.set_speaker` |
+| C8 | Strażnik architektury | ✅ pilnuje 22 pól + `setattr`, z analizą aliasów (`units = system.space_units…; units[k] = …`) | `tests/test_central_points.py` |
+| C9 | Reszta zasobów i kart (patrz „Co zostało po fazie C") | ⬜ opcjonalnie przed H2 / w trakcie | secret objectives, promissory notes, fragmenty reliktów, talie/attachmenty eksploracji, przełom (`breakthrough_*`), logika w endpointach `api/` |
 
 Reguły wykonania: skan AST (a nie grep) znajduje też zapisy w krotkach, po kluczu słownika (`x.pole[k] = …`), `del` i mutacje list;
 refaktor nie zmienia zachowania (jedyny wyjątek: operacje ponad stan — np. wydanie żetonu/TG, którego nie ma — kończą się `ValueError`
@@ -412,3 +413,56 @@ i punktów zaczepienia w regułach; wyjątek Arborec jest dziś na sztywno w `pr
   i weryfikacja na tirules2; nierozstrzygnięte przypadki zostają ⚠ ZAŁOŻENIEM do decyzji użytkownika.
 - Thunder's Edge: część mechanik może odbiegać od LRR — źródłem są assety + potwierdzenie użytkownika.
 - Rozrost rejestru: pilnować podziału tematycznego plików (pkt 12) i raportu pokrycia (H3).
+
+## Katalog punktów zaczepienia hooków (wynik fazy C) — co trzeba podpiąć w H1–H2
+
+Zasada: hook przyczepia się w funkcji centralnej (RULES.md 43.1a). Poniżej: gdzie jest punkt, jakie ma wejścia i jakie typy hooków (RULES.md 43.1 pkt 4) tu pasują.
+Nazwy kart/zdolności to tylko ILUSTRACJE rodzaju efektu; treść zawsze z assetów JSON i tirules2 (nigdy z pamięci).
+
+### A. Punkty ZAPISU (zmiana stanu) — typ TRIGGER / MODIFY / REPLACE
+
+| Moduł | Funkcje | Co hook może zmienić lub na co zareagować |
+|---|---|---|
+| `core/economy.py` | `gain_trade_goods`, `spend_trade_goods`, `gain_commodities`, `replenish_commodities`, `spend_commodities`, `convert_commodities_to_trade_goods`, `give_to_player` | MODIFY ilości zdobywanej/wydawanej (np. +1 TG); TRIGGER „gdy zdobywasz/wydajesz TG"; REPLACE „commodity zamiast TG" |
+| `core/payment.py` | `validate_payment`, `apply_payment` | **PUNKT NA ŹRÓDŁA PŁATNOŚCI** (dziś planety + TG): hook dopisuje źródło (np. commodities liczone jak TG) i zmienia koszt (MODIFY) |
+| `core/command_tokens.py` | `spend_from_pool`, `spend_to_reinforcements`, `take_from_reinforcements`, `return_to_reinforcements`, `gain_from_reinforcements`, `set_pools`, `add_to_pool` | MODIFY ilości; PERMIT „aktywacja bez żetonu"; TRIGGER „gdy zdobywasz żeton" |
+| `core/exhaust.py` | `exhaust_planets`, `ready_planets`, `ready_all_planets`, `exhaust_technology`, `ready_all_technologies`, `exhaust_strategy_card`, `exhaust_leader`, `ready_all_leaders`, `exhaust_breakthrough`, `ready_breakthrough` | FORBID/PERMIT wyczerpania; REPLACE „odśwież zamiast wyczerpać"; TRIGGER „gdy odświeżasz" (status krok 6) |
+| `core/control.py` | `set_planet_control`, `recompute_from_units` | TRIGGER „gdy zdobywasz/tracisz kontrolę"; MODIFY „zdobyta planeta nie jest wyczerpana" (dziś wyczerpanie robi `invasion`) |
+| `core/unit_ops.py` | `place_units`, `take_units`, `remove_units`, `transfer_units`, `replace_zone_units` + `UnitCause` | TRIGGER wg `cause`: `DESTROYED` („gdy twoja jednostka zostanie zniszczona"), `PLACED` („po produkcji"), `MOVED`, `REMOVED`; REPLACE „zamiast zniszczenia"; PERMIT/FORBID miejsca postawienia |
+| `core/damage.py` | `set_damaged`, `move_damage`, `clear_zone_damage`, `repair_all` | MODIFY Sustain Damage; naprawa w statusie (hook „napraw dodatkowe jednostki") |
+| `core/technology.py` | `grant_technology`, `apply_research`, `gain_technology` | TRIGGER „gdy zdobywasz technologię"; MODIFY wymagań i specjalności (skip) w `plan_research` |
+| `core/objectives.py` | `award_points` | MODIFY/TRIGGER „gdy zdobywasz/tracisz punkt"; warunek wygranej |
+| `core/card_draw.py` | `draw_action_card`, `discard_action_cards`, `seed_action_deck` | MODIFY „dobierz dodatkową kartę"; TRIGGER „gdy dobierasz/odrzucasz" |
+| `core/strategy_phase.py` | `set_speaker` | TRIGGER „gdy zmienia się mówca" |
+| `core/timing.py` | `open_window`, `respond_current` | już JEDNO API okien — tędy idą WSZYSTKIE TRIGGER-y typu when/after/before/instead (RULES.md 34, 43.4) |
+
+### B. Punkty ODCZYTU (liczą wynik, nie zmieniają stanu) — typ MODIFY / PERMIT / FORBID
+
+| Gdzie | Co dziś | Hook |
+|---|---|---|
+| `combat.resolve_unit_variant` (używana w 11 modułach) | wybór wariantu jednostki wg technologii/frakcji | MODIFY statystyk: ruch, pojemność, koszt, wartość walki, produkcja (`unit_stat`) |
+| `planet_stats.resources_of`, `influence_of` | wartość planety z danych + attachmentów | MODIFY wartości planety (attachmenty, zdolności) |
+| `movement` (`_node_passable_intermediate`, `_target_passable`, `_has_antimass`, `can_move`) | blokada przejścia przez obce statki, anomalie; literał technologii Antimass | PERMIT/FORBID przejścia i wejścia (pierwszy przypadek: Antimass, technologia „ruch przez systemy z obcymi statkami") |
+| `production` (`_PRODUCTION_FORBIDS`, `remaining_production`, `producers`, `available_budget`, `auto_pay`, `_validate_spend`) | zakaz piechoty z doku Arborec; limit PRODUCTION; budżet | FORBID/MODIFY typów, limitu i kosztu; **budżet powinien pytać `payment` o źródła** (dziś liczy TG sam) |
+| `objective_progress` (odczyt `trade_goods` itd.) | postęp celów | MODIFY razem ze źródłami płatności |
+| `capacity`, `fleet_pool` | limit pojemności i floty | MODIFY limitów |
+| `battle`, `combat`, `space_cannon`, `invasion` (rzuty, trafienia, AFB, bombardowanie) | pipeline rzutów | MODIFY rzutu, dodatkowe kości, reroll, ignorowanie Sustain; przypisanie strat |
+| `retreat` (`retreat_destinations`) | cele odwrotu | PERMIT/FORBID celów |
+| `tactical.activate_system` | koszt aktywacji z puli taktycznej, flaga `free` | PERMIT „bez żetonu" (przez `command_tokens`) |
+
+### C. Czego jeszcze NIE ma (trzeba dobudować przy hookach, nie w fazie C)
+- `core/rules_hooks.py`: rejestr, kolejność rozstrzygania, 5 typów hooków (RULES.md 43.1).
+- Akcje „zagraj kartę akcji / użyj lidera / użyj zdolności" (dziś `component_action` tylko zapisuje „wykonano akcję", bez efektu) — to tu hooki dostaną pierwsze realne wywołania; muszą korzystać z funkcji centralnych A.
+- Stan efektów trwałych (PERSISTENT: prawa agend, karty zostające w grze, wygasanie) i rejestr wyczerpywalnych zdolności („exhaust this card").
+- STOP / punkty kontrolne (RULES.md 43.4) i `actor_id` w endpointach akcji (RULES.md 44.1).
+
+## Co zostało po fazie C (C9) — świadomie poza zakresem
+
+Mniejsze pola, mające już jedno-dwa miejsca zapisu; wchodzą pod hooki przy konkretnych kartach (dopisać do `OWNERS` przy refaktorze):
+- tajne cele: talia i ręka (`objectives.py`, `game_setup.py`, `strategy_cards/imperial.py`);
+- promissory notes: ręka (`transaction.py`, `game_setup.py`) i strefa gry (`promissory_notes_in_play`);
+- fragmenty reliktów (`exploration.py`, `transaction.py`), relikty;
+- talie eksploracji i attachmenty planet (`exploration.py`, `deck_piles.py` — narzędzie debug);
+- przełom frakcji: `breakthrough_unlocked`, `breakthrough_tg` (dziś tylko God-Mode);
+- logika gry w endpointach `api/` (np. `game.py`: seating/mówca przy setupie) — przenieść do `core/` przy etapie sieciowym;
+- `board_edit.recompute_planet_control` (God-Mode) duplikuje `control.recompute_from_units` — świadomie, bo God-Mode omija reguły.

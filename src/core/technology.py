@@ -295,10 +295,23 @@ def plan_research(
     return ResearchPlan(tech_id, tuple(used_planets), use_aida)
 
 
+def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
+    """Dodaje technologię graczowi — JEDYNE miejsce zmiany ``PlayerState.technologies``.
+
+    RULES.md 43.1a: badanie i „gain" przechodzą tędy, więc hook „gdy zdobywasz technologię"
+    (np. dodatkowa technologia, zwrot kosztu) dopisujemy tu raz. Idempotentne (nie dubluje).
+    Mutuje przekazany ``state`` (KLON roboczy wołającego); legalność sprawdza wołający.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if tech_id not in player.technologies:
+        player.technologies = [*player.technologies, tech_id]
+
+
 def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None:
     """Dodaje technologię i wyczerpuje planety/AIDA z planu (mutuje KLON stanu)."""
-    player = state.players[player_id]
-    player.technologies = [*player.technologies, plan.tech_id]
+    grant_technology(state, player_id, plan.tech_id)
     exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
     if plan.exhaust_aida:
         exhaust.exhaust_technology(state, player_id, AIDA)
@@ -326,7 +339,7 @@ def gain_technology(state: GameState, registry: StaticDataRegistry, player_id: s
     if tech_id in state.players[player_id].technologies:
         raise ValueError("You already own this technology.")
     new_state = state.clone()
-    apply_research(new_state, player_id, ResearchPlan(tech_id, (), False))
+    grant_technology(new_state, player_id, tech_id)
     return new_state
 
 

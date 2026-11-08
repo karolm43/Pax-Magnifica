@@ -188,7 +188,7 @@ async def post_set_speaker(
             status_code=422, detail=f"Unknown player: {request.player_id}"
         )
     new_state = state.clone()
-    new_state.speaker_id = request.player_id
+    strategy_phase.set_speaker(new_state, request.player_id)
     if request.player_id not in new_state.seating_order:
         new_state.seating_order = [*new_state.seating_order, request.player_id]
     # W fazie strategii zmiana mówcy przestawia, kto teraz wybiera (od nowego

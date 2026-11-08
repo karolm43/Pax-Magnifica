@@ -446,7 +446,7 @@ async def post_setup_player(
     if resolved.player_id not in new_state.seating_order:
         new_state.seating_order = [*new_state.seating_order, resolved.player_id]
     if new_state.speaker_id is None:
-        new_state.speaker_id = new_state.seating_order[0]
+        strategy_phase.set_speaker(new_state, new_state.seating_order[0])
     if new_state.phase is Phase.STRATEGY:
         new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
     ctx.service.replace_state(new_state, label=f"setup:{resolved.faction_id}")
@@ -527,7 +527,7 @@ async def post_new_game(
     # Kolejność miejsc + mówca (RULES.md 24): pierwszy gracz = mówca na start.
     # Nowa gra zaczyna fazą strategii, więc aktywny = pierwszy wybierający (mówca).
     new_state.seating_order = seating
-    new_state.speaker_id = seating[0] if seating else None
+    strategy_phase.set_speaker(new_state, seating[0] if seating else None)
     new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
     # Cele i talie (RULES.md 41.1): 5+5 celów publicznych, dwa cele I etapu odkryte,
     # po jednym tajnym celu na gracza, potasowana talia kart akcji.

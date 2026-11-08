@@ -23,6 +23,7 @@ Kroki LRR i ich realizacja:
 from __future__ import annotations
 
 from src.core import (
+    card_draw,
     chronicle,
     command_tokens,
     exhaust,
@@ -32,7 +33,6 @@ from src.core import (
     turn_flow,
 )
 from src.core.damage import repair_all
-from src.core.dice import next_rng
 from src.core.game_state import (
     GameState,
     Phase,
@@ -219,22 +219,14 @@ def _draw_action_cards(state: GameState, order: list[str]) -> dict[str, int]:
     pozostali. ⚠️ ZAŁOŻENIE: limit ręki (7 kart) i odrzucanie nadmiaru przed przetasowaniem
     nie są modelowane (RULES.md 41.5).
     """
-    decks = state.decks
     drawn: dict[str, int] = {}
     draw_order = list(order)
-    if len(decks.action_card_deck) < len(order):
+    if len(state.decks.action_card_deck) < len(order):
         draw_order = list(reversed(order))
     for player_id in draw_order:
-        if not decks.action_card_deck and decks.action_card_discard:
-            rng = next_rng(state)
-            reshuffled = list(decks.action_card_discard)
-            rng.shuffle(reshuffled)
-            decks.action_card_deck = reshuffled
-            decks.action_card_discard = []
-        if not decks.action_card_deck:
+        # draw_action_card tasuje stos odrzuconych, gdy talia jest pusta; False = brak kart.
+        if not card_draw.draw_action_card(state, player_id):
             break
-        card = decks.action_card_deck.pop(0)
-        state.players[player_id].private.action_cards.append(card)
         drawn[player_id] = drawn.get(player_id, 0) + 1
     return drawn
 

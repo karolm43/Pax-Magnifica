@@ -46,6 +46,14 @@ OWNERS: dict[str, frozenset[str]] = {
     "space_units": frozenset({"core/unit_ops.py", "core/faction_setup.py", _GOD_MODE}),
     "planet_units": frozenset({"core/unit_ops.py", "core/faction_setup.py", _GOD_MODE}),
     "damaged_units": frozenset({"core/damage.py", _GOD_MODE}),
+    # Technologie: ``registry.py`` ma KATALOG technologii (słownik definicji), nie listę gracza.
+    "technologies": frozenset({"core/technology.py", "core/registry.py", _GOD_MODE}),
+    "victory_points": frozenset({"core/objectives.py", _GOD_MODE}),
+    "speaker_id": frozenset({"core/strategy_phase.py", _GOD_MODE}),
+    # Karty akcji: ręka i talie. ``deck_piles.py`` to narzędzie DEBUG (God-Mode, RULES.md 46.4).
+    "action_cards": frozenset({"core/card_draw.py", _GOD_MODE}),
+    "action_card_deck": frozenset({"core/card_draw.py", "core/deck_piles.py", _GOD_MODE}),
+    "action_card_discard": frozenset({"core/card_draw.py", "core/deck_piles.py", _GOD_MODE}),
 }
 
 # ``setattr`` ogólnego przeznaczenia (nazwa pola zmienna): moduły dozwolone poza właścicielami pól.
