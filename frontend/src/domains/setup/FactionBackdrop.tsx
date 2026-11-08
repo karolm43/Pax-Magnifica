@@ -57,10 +57,13 @@ const PORTRAIT_NUDGE_X = 0;
 export function FactionPortraitLayer({
   faction,
   onFigureCenter,
+  softEdge = false,
 }: {
   faction: FactionInfo;
   /** Środek widocznej sylwetki w px od lewej krawędzi strefy (`null` = brak/nieznany). */
   onFigureCenter?: (centerPx: number | null) => void;
+  /** Szeroko zmiękczona prawa/górna krawędź obrazka (ukrywa ucięcie kadru). */
+  softEdge?: boolean;
 }) {
   const candidates = useMemo(() => portraitCandidates(faction), [faction]);
 
