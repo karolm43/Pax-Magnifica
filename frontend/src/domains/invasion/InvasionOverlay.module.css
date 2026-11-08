@@ -1009,190 +1009,173 @@ button.token {
   height: 100%;
 }
 
-/* BOMBARDOWANIE: ładunek wystrzelony z okrętu opada powoli i ciężko, a przy uderzeniu rośnie
-   wielka kula ognia, fala uderzeniowa i słup dymu. Wolne i potężne, nie laser. */
-.charge {
+/* BOMBARDOWANIE: deszcz pocisków z okrętów na orbicie - szybkie, jasne pociski spadają
+   na glob i wybuchają. Każdy rzut kością to seria kilku pocisków (--rd = opóźnienie w serii,
+   --rx = rozrzut). Pudło: pocisk wypala się w atmosferze, bez wybuchu. */
+.round {
   position: absolute;
-  left: -26px;
-  top: 52px;
-  width: 52px;
+  left: var(--rx, 0px);
+  top: 0;
+  width: 0;
+  height: 100%;
+}
+
+.shell {
+  position: absolute;
+  left: -2px;
+  top: 62px;
+  width: 4px;
+  height: 26px;
+  opacity: 0;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0), #fdba74 45%, #fff 100%);
+  box-shadow: 0 0 8px 2px rgba(251, 146, 60, 0.85);
+  animation: shellFall 0.7s cubic-bezier(0.4, 0, 0.9, 0.6) calc(var(--delay) + var(--rd)) both;
+}
+
+.strike:not([data-hit]) .shell {
+  animation-name: shellBurnOut;
+}
+
+.blast {
+  position: absolute;
+  left: -34px;
+  top: 172px;
+  width: 68px;
   height: 52px;
+  opacity: 0;
   border-radius: 50%;
-  opacity: 0;
-  background: radial-gradient(circle, #fff 0%, #fde68a 25%, rgba(251, 146, 60, 0.6) 55%, transparent 75%);
-  animation: chargeUp 1.2s ease-in var(--delay) both;
-}
-
-.bomb {
-  position: absolute;
-  left: -11px;
-  top: 74px;
-  width: 22px;
-  height: 52px;
-  opacity: 0;
-  border-radius: 50% 50% 50% 50% / 28% 28% 72% 72%;
-  background: linear-gradient(180deg, rgba(120, 53, 15, 0), rgba(251, 146, 60, 0.8) 40%, #fff7ed 85%);
-  box-shadow: 0 6px 18px 4px rgba(251, 146, 60, 0.8), 0 -30px 28px 6px rgba(234, 88, 12, 0.35);
-  animation: bombFall 3s cubic-bezier(0.5, 0, 0.9, 0.55) calc(var(--delay) + 1s) both;
-}
-
-/* Pudło: ładunek spala się w górnych warstwach atmosfery, nie dolatuje. */
-.strike:not([data-hit]) .bomb {
-  animation-name: bombBurnOut;
-  animation-duration: 2.2s;
-}
-
-.fireball {
-  position: absolute;
-  left: -90px;
-  top: 118px;
-  width: 180px;
-  height: 130px;
-  margin-left: var(--jx, 0px);
-  border-radius: 50%;
-  opacity: 0;
   mix-blend-mode: screen;
-  background: radial-gradient(ellipse, #fff 0%, #fde68a 18%, rgba(251, 146, 60, 0.85) 42%, rgba(185, 28, 28, 0.4) 64%, transparent 78%);
-  animation: fireballBloom 3.2s ease-out calc(var(--delay) + 3.9s) both;
+  background: radial-gradient(ellipse, #fff 0%, #fde68a 22%, rgba(251, 146, 60, 0.85) 50%, rgba(185, 28, 28, 0.35) 70%, transparent 80%);
+  animation: blastPop 0.9s ease-out calc(var(--delay) + var(--rd) + 0.62s) both;
 }
 
-.shock {
+.strike:not([data-hit]) .blast {
+  display: none;
+}
+
+/* WAR SUN: promień - jedna gruba, jasna wiązka z okrętu na planetę (krótko, bez przesady). */
+.sunBeam {
   position: absolute;
-  left: -80px;
+  left: -7px;
+  top: 58px;
+  width: 14px;
+  height: 148px;
+  opacity: 0;
+  border-radius: 7px;
+  transform-origin: 50% 0;
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.25), #fff 50%, rgba(251, 146, 60, 0.25));
+  box-shadow: 0 0 18px 5px rgba(253, 186, 116, 0.75);
+  animation: beamCast 1.2s ease-out var(--delay) both;
+}
+
+.strike[data-sun] .blast {
+  left: -62px;
   top: 160px;
-  width: 160px;
-  height: 56px;
-  margin-left: var(--jx, 0px);
-  border-radius: 50%;
-  opacity: 0;
-  border: 3px solid rgba(255, 237, 213, 0.85);
-  animation: shockSpread 3s ease-out calc(var(--delay) + 3.95s) both;
+  width: 124px;
+  height: 90px;
+  animation-duration: 1.3s;
+  animation-delay: calc(var(--delay) + 0.3s);
 }
 
-.smoke {
-  position: absolute;
-  left: -70px;
-  top: 100px;
-  width: 140px;
+.strike[data-sun]:not([data-hit]) .sunBeam {
   height: 110px;
-  margin-left: var(--jx, 0px);
-  border-radius: 50%;
   opacity: 0;
-  background: radial-gradient(ellipse, rgba(70, 60, 55, 0.85), rgba(40, 36, 36, 0.55) 55%, transparent 75%);
-  animation: smokeColumn 4.4s ease-out calc(var(--delay) + 4.1s) both;
+  animation-name: beamCastMiss;
 }
 
-.strike:not([data-hit]) .fireball,
-.strike:not([data-hit]) .shock,
-.strike:not([data-hit]) .smoke {
-  display: none;
-}
-
-.ion {
-  display: none;
-}
-/* SPACE CANNON DEFENSE: szybkie wyładowania jonowe z ziemi w górę (zygzak), inne niż lance. */
-.strikes[data-from="ground"] .charge,
-.strikes[data-from="ground"] .bomb,
-.strikes[data-from="ground"] .fireball,
-.strikes[data-from="ground"] .smoke {
-  display: none;
-}
-
-.strikes[data-from="ground"] .ion {
-  display: block;
+/* SPACE CANNON DEFENSE: smuga flaku z powierzchni w spadającą kapsułę, na trafieniu błysk. */
+.flak {
   position: absolute;
-  opacity: 0;
-  top: auto;
-  bottom: 172px;
-  left: -3px;
-  width: 6px;
+  left: var(--sx);
+  top: var(--sy);
+  width: 0;
   height: 0;
-  border-radius: 0;
-  clip-path: polygon(40% 100%, 100% 82%, 20% 64%, 90% 46%, 30% 28%, 80% 10%, 50% 0, 0 12%, 70% 30%, 10% 48%, 80% 66%, 20% 84%);
-  background: linear-gradient(0deg, #fff, #a5f3fc 50%, #38bdf8);
-  box-shadow: none;
-  filter: drop-shadow(0 0 7px rgba(56, 189, 248, 0.95));
-  animation: ionStrike 1.5s ease-out var(--delay) both;
+  transform: rotate(var(--ang));
 }
 
-.strikes[data-from="ground"] .strike:not([data-hit]) .ion {
-  animation-name: ionStrikeMiss;
-}
-
-.strikes[data-from="ground"] .shock {
-  top: 40px;
-  border-color: rgba(125, 211, 252, 0.9);
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
-  animation: ionBurst 1.6s ease-out calc(var(--delay) + 0.4s) both;
-}
-
-.strikes[data-from="ground"] .strike:not([data-hit]) .shock {
-  display: block;
+.flak > i {
+  position: absolute;
+  left: -1.5px;
+  top: 0;
+  width: 3px;
+  height: 24px;
   opacity: 0;
-  animation-name: ionBurstMiss;
+  border-radius: 2px;
+  background: linear-gradient(0deg, rgba(103, 232, 249, 0), #a5f3fc 40%, #fff);
+  box-shadow: 0 0 8px 2px rgba(56, 189, 248, 0.9);
+  animation: flakFly 0.5s linear calc(var(--delay) + 0.3s) both;
 }
 
-@keyframes chargeUp {
-  0% { opacity: 0; transform: scale(0.2); }
-  70% { opacity: 1; transform: scale(1.1); }
-  100% { opacity: 0; transform: scale(1.5); }
+.strike:not([data-hit]) .flak > i {
+  animation-name: flakFlyMiss;
 }
 
-@keyframes bombFall {
-  0% { opacity: 0; translate: 0 0; scale: 0.5; }
-  12% { opacity: 1; }
-  100% { opacity: 1; translate: 0 92px; scale: 1.5; }
+.flakBurst {
+  position: absolute;
+  left: calc(-18px + var(--bx, 0px));
+  top: calc(var(--by) - 18px);
+  width: 36px;
+  height: 36px;
+  opacity: 0;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle, #fff 0%, #a5f3fc 30%, rgba(56, 189, 248, 0.5) 58%, transparent 74%);
+  animation: flakBurst 0.5s ease-out calc(var(--delay) + 0.78s) both;
 }
 
-@keyframes bombBurnOut {
-  0% { opacity: 0; translate: 0 0; scale: 0.5; }
+.strike:not([data-hit]) .flakBurst {
+  display: none;
+}
+
+@keyframes shellFall {
+  0% { opacity: 0; translate: 0 0; }
   15% { opacity: 1; }
-  100% { opacity: 0; translate: 0 52px; scale: 0.3; }
+  100% { opacity: 1; translate: 0 100px; }
 }
 
-@keyframes smokeColumn {
-  0% { opacity: 0; transform: translateY(0) scale(0.3); }
-  25% { opacity: 0.9; }
-  100% { opacity: 0; transform: translateY(-70px) scale(2.1); }
-}
-@keyframes fireballBloom {
-  0% { opacity: 0; transform: scale(0.15); }
-  22% { opacity: 1; }
-  100% { opacity: 0; transform: scale(2); }
+@keyframes shellBurnOut {
+  0% { opacity: 0; translate: 0 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; translate: 0 60px; scale: 1 0.3; }
 }
 
-@keyframes shockSpread {
-  0% { opacity: 0; transform: scale(0.3); }
-  20% { opacity: 0.9; }
-  100% { opacity: 0; transform: scale(2.6); }
-}
-
-@keyframes ionStrike {
-  0% { opacity: 0; height: 0; }
-  10% { opacity: 1; height: 130px; }
-  30% { opacity: 0.3; }
-  45% { opacity: 1; }
-  60% { opacity: 0.4; }
-  100% { opacity: 0; height: 130px; }
-}
-
-@keyframes ionStrikeMiss {
-  0% { opacity: 0; height: 0; }
-  15% { opacity: 0.8; height: 70px; }
-  100% { opacity: 0; height: 70px; }
-}
-
-@keyframes ionBurst {
+@keyframes blastPop {
   0% { opacity: 0; transform: scale(0.2); }
   20% { opacity: 1; }
-  100% { opacity: 0; transform: scale(3.2); }
+  100% { opacity: 0; transform: scale(1.7, 1.3); }
 }
 
-@keyframes ionBurstMiss {
+@keyframes beamCast {
+  0% { opacity: 0; transform: scaleY(0) scaleX(1.8); }
+  18% { opacity: 1; transform: scaleY(1) scaleX(1.4); }
+  60% { opacity: 0.9; transform: scaleY(1) scaleX(1); }
+  100% { opacity: 0; transform: scaleY(1) scaleX(0.2); }
+}
+
+@keyframes beamCastMiss {
+  0% { opacity: 0; transform: scaleY(0); }
+  25% { opacity: 0.7; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1) scaleX(0.2); }
+}
+
+@keyframes flakFly {
+  0% { opacity: 0; translate: 0 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; translate: 0 calc(var(--len) * -1 + 12px); }
+}
+
+@keyframes flakFlyMiss {
+  0% { opacity: 0; translate: 0 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; translate: 0 calc(var(--len) * -1.6); }
+}
+
+@keyframes flakBurst {
   0% { opacity: 0; transform: scale(0.2); }
-  20% { opacity: 0.35; }
-  100% { opacity: 0; transform: scale(2.2); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.8); }
 }
 @media (prefers-reduced-motion: reduce) {
   .dome,
@@ -1201,53 +1184,6 @@ button.token {
   .globeSurface {
     animation: none;
   }
-}
-/* --- WAR SUN: gigantyczny ładunek - miniaturowe słońce, wolniejsze i większe --- */
-.strike[data-sun] .charge {
-  left: -52px;
-  top: 34px;
-  width: 104px;
-  height: 104px;
-  background: radial-gradient(circle, #fff 0%, #fef3c7 22%, rgba(251, 191, 36, 0.8) 45%, rgba(234, 88, 12, 0.4) 65%, transparent 78%);
-  animation-duration: 2s;
-}
-
-.strike[data-sun] .bomb {
-  left: -30px;
-  top: 70px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #fef3c7 25%, #fbbf24 50%, rgba(234, 88, 12, 0.9) 75%, transparent 82%);
-  box-shadow: 0 0 40px 16px rgba(251, 191, 36, 0.7), 0 -50px 50px 14px rgba(234, 88, 12, 0.35);
-  animation-duration: 4s;
-  animation-delay: calc(var(--delay) + 1.8s);
-}
-
-.strike[data-sun] .fireball {
-  left: -150px;
-  top: 90px;
-  width: 300px;
-  height: 210px;
-  animation-duration: 4s;
-  animation-delay: calc(var(--delay) + 5.9s);
-}
-
-.strike[data-sun] .shock {
-  left: -130px;
-  width: 260px;
-  height: 100px;
-  border-color: rgba(254, 240, 138, 0.9);
-  animation-duration: 3.8s;
-  animation-delay: calc(var(--delay) + 5.95s);
-}
-
-.strike[data-sun] .smoke {
-  left: -110px;
-  width: 220px;
-  height: 170px;
-  animation-duration: 5.4s;
-  animation-delay: calc(var(--delay) + 6.2s);
 }
 /* --- Kapsuły desantu (małe jednostki spadające na planetę) --- */
 .orbitShip[data-state] {

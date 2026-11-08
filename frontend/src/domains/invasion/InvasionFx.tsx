@@ -105,9 +105,62 @@ function spread(n: number, salt: number): number {
   return h - Math.floor(h);
 }
 
+/**
+ * Strzał Space Cannon Defense: smuga leci z powierzchni PROSTO W SPADAJĄCĄ KAPSUŁĘ (kąt i długość
+ * liczone od działa do kapsuły); trafienie kończy się błyskiem flaku na kapsule, pudło mija ją.
+ */
+function FlakShot({
+  n,
+  targetDx,
+  shooterDx,
+}: {
+  n: number;
+  targetDx: number;
+  shooterDx: number;
+}) {
+  const vx = targetDx - shooterDx;
+  const vy = IMPACT_Y - POD_Y;
+  const len = Math.hypot(vx, vy);
+  const angle = (Math.atan2(vx, vy) * 180) / Math.PI;
+  return (
+    <>
+      <i
+        className={styles.flak}
+        style={
+          {
+            "--sx": `${shooterDx - targetDx}px`,
+            "--sy": `${IMPACT_Y}px`,
+            "--ang": `${angle}deg`,
+            "--len": `${len}px`,
+          } as CSSProperties
+        }
+      >
+        <i />
+      </i>
+      <i
+        className={styles.flakBurst}
+        style={
+          {
+            "--by": `${POD_Y}px`,
+            "--bx": `${(spread(n, 11) - 0.5) * 8}px`,
+          } as CSSProperties
+        }
+      />
+    </>
+  );
+}
+
 /** Najdłuższa animacja salwy (ms) - po tym czasie warstwa jest zdejmowana z DOM. */
-const BOMBARD_MS = 9400;
-const DEFENSE_MS = 2600;
+const BOMBARD_MS = 3600;
+const DEFENSE_MS = 2800;
+/** Odstęp między kolejnymi strzałami salwy (ms): bombardowanie to gęsty deszcz, SCD rzadsze strzały. */
+const STAGGER_ORBIT = 170;
+const STAGGER_GROUND = 380;
+/** Wysokość (px od góry sceny), na której pociski uderzają w glob / stoją kapsuły w locie. */
+const IMPACT_Y = 205;
+const POD_Y = 105;
+/** Pociski w jednej "serii" ze statku (deszcz). */
+const ROUNDS = 3;
 
 /**
  * Pokazuje salwę tylko dla wpisu dziennika, który POJAWIŁ SIĘ po zamontowaniu karty
@@ -140,8 +193,9 @@ export function StrikeLayer({
         }));
       })
     : [];
+  const stagger = from === "orbit" ? STAGGER_ORBIT : STAGGER_GROUND;
   const total =
-    (from === "orbit" ? BOMBARD_MS : DEFENSE_MS) + bolts.length * 380;
+    (from === "orbit" ? BOMBARD_MS : DEFENSE_MS) + bolts.length * stagger;
   useEffect(() => {
     if (!fresh) return;
     const t = window.setTimeout(() => setFinished(entryId), total);
@@ -170,17 +224,43 @@ export function StrikeLayer({
             style={
               {
                 "--dx": `${dx}px`,
-                "--delay": `${n * 380}ms`,
-                "--jx": `${(spread(n, 2) - 0.5) * 70}px`,
+                "--delay": `${n * stagger}ms`,
               } as CSSProperties
             }
           >
-            <i className={styles.charge} />
-            <i className={styles.bomb} />
-            <i className={styles.ion} />
-            <i className={styles.fireball} />
-            <i className={styles.smoke} />
-            <i className={styles.shock} />
+            {from === "orbit" ? (
+              b.sun ? (
+                <>
+                  <i className={styles.sunBeam} />
+                  <i
+                    className={styles.blast}
+                    style={{ "--rd": "350ms", "--rx": "0px" } as CSSProperties}
+                  />
+                </>
+              ) : (
+                Array.from({ length: ROUNDS }, (_, r) => (
+                  <span
+                    key={r}
+                    className={styles.round}
+                    style={
+                      {
+                        "--rd": `${r * 130 + spread(n, 3 + r) * 90}ms`,
+                        "--rx": `${(spread(n, 5 + r) - 0.5) * 46}px`,
+                      } as CSSProperties
+                    }
+                  >
+                    <i className={styles.shell} />
+                    <i className={styles.blast} />
+                  </span>
+                ))
+              )
+            ) : (
+              <FlakShot
+                n={n}
+                targetDx={dx}
+                shooterDx={(spread(n, 9) - 0.5) * 150}
+              />
+            )}
           </span>
         );
       })}

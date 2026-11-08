@@ -189,6 +189,8 @@ function ShipToken({
     style,
     "data-side": side,
     "data-base": ship.asyncId,
+    // Jednostki naziemne giną inaczej niż okręty (osuwają się i zapadają w pył, bez kuli ognia).
+    "data-ground": ship.asyncId === "gf" || ship.asyncId === "mf" || undefined,
     "data-damaged": ship.damaged || undefined,
     "data-sustained": justSustained || undefined,
     "data-mark": mark,
