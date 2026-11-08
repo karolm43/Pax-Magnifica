@@ -929,3 +929,13 @@
   color: #ddd6fe;
   background: rgba(91, 33, 182, 0.5);
 }
+
+/* Podgląd karty technologii po najechaniu: TechCard ma własną ramkę - tooltip bez tła. */
+.techTooltip {
+  padding: 0;
+  max-width: 340px;
+  white-space: normal;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}

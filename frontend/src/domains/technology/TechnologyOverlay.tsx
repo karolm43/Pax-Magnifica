@@ -15,6 +15,8 @@ import {
 } from "@tabler/icons-react";
 import { getTechData } from "@/entities/lookup/tech";
 import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
+import { Tooltip } from "@/ds";
+import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import {
@@ -83,11 +85,18 @@ const COLOR_NAME: Record<TechColor, string> = {
 };
 
 function Pips({ colors, size = 14 }: { colors: TechColor[]; size?: number }) {
-  if (colors.length === 0) return <span className={styles.noPrereq}>no prerequisites</span>;
+  if (colors.length === 0)
+    return <span className={styles.noPrereq}>no prerequisites</span>;
   return (
     <span className={styles.pips}>
       {colors.map((c, i) => (
-        <img key={`${c}-${i}`} src={COLOR_ICON[c]} alt={COLOR_NAME[c]} width={size} height={size} />
+        <img
+          key={`${c}-${i}`}
+          src={COLOR_ICON[c]}
+          alt={COLOR_NAME[c]}
+          width={size}
+          height={size}
+        />
       ))}
     </span>
   );
@@ -108,40 +117,51 @@ function TechTile({
   const owned = row.status === "owned" || row.status === "exhausted";
   const missingCount = totalMissing(row.missing);
   return (
-    <button
-      type="button"
-      className={styles.tile}
-      style={{ "--tc": hue } as CSSProperties}
-      data-status={row.status}
-      data-selected={selected || undefined}
-      data-path={onPath || undefined}
-      onClick={onSelect}
-      title={`${row.name} - ${STATUS_LABEL[row.status]}`}
+    // Najechanie pokazuje tę samą kartę technologii co w panelach graczy (TechCard).
+    <Tooltip
+      label={<TechCard techId={row.id} />}
+      openDelay={350}
+      position="right"
+      offset={10}
+      multiline
+      className={styles.techTooltip}
+      events={{ hover: true, focus: true, touch: false }}
     >
-      <span className={styles.tileTop}>
-        {row.faction ? (
-          <span className={styles.tileFaction}>
-            <CircularFactionIcon faction={row.faction} size={16} />
+      <button
+        type="button"
+        className={styles.tile}
+        style={{ "--tc": hue } as CSSProperties}
+        data-status={row.status}
+        data-selected={selected || undefined}
+        data-path={onPath || undefined}
+        onClick={onSelect}
+        aria-label={`${row.name} - ${STATUS_LABEL[row.status]}`}
+      >
+        <span className={styles.tileTop}>
+          {row.faction ? (
+            <span className={styles.tileFaction}>
+              <CircularFactionIcon faction={row.faction} size={16} />
+            </span>
+          ) : null}
+          <span className={styles.tileName}>{row.name}</span>
+          <span className={styles.tileState}>
+            {owned ? (
+              <IconCheck size={14} aria-hidden="true" />
+            ) : row.status === "locked" ? (
+              <IconLock size={13} aria-hidden="true" />
+            ) : row.status === "skippable" ? (
+              <IconSparkles size={13} aria-hidden="true" />
+            ) : null}
           </span>
-        ) : null}
-        <span className={styles.tileName}>{row.name}</span>
-        <span className={styles.tileState}>
-          {owned ? (
-            <IconCheck size={14} aria-hidden="true" />
-          ) : row.status === "locked" ? (
-            <IconLock size={13} aria-hidden="true" />
-          ) : row.status === "skippable" ? (
-            <IconSparkles size={13} aria-hidden="true" />
+        </span>
+        <span className={styles.tileBottom}>
+          <Pips colors={row.prerequisites} size={13} />
+          {!owned && missingCount > 0 ? (
+            <span className={styles.tileMissing}>-{missingCount}</span>
           ) : null}
         </span>
-      </span>
-      <span className={styles.tileBottom}>
-        <Pips colors={row.prerequisites} size={13} />
-        {!owned && missingCount > 0 ? (
-          <span className={styles.tileMissing}>-{missingCount}</span>
-        ) : null}
-      </span>
-    </button>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -150,16 +170,18 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const [hidden, setHidden] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [skips, setSkips] = useState<string[]>([]);
-  const [payment, setPayment] = useState<{ planets: string[]; tradeGoods: number } | null>(
-    null,
-  );
+  const [payment, setPayment] = useState<{
+    planets: string[];
+    tradeGoods: number;
+  } | null>(null);
 
   const grid = useMemo(() => layoutColumns(options.tree), [options.tree]);
   const upgrades = useMemo(() => unitUpgrades(options.tree), [options.tree]);
   const others = useMemo(() => otherTechs(options.tree), [options.tree]);
   const selected = options.tree.find((r) => r.id === selectedId) ?? null;
   const researchable =
-    selected != null && (selected.status === "available" || selected.status === "skippable");
+    selected != null &&
+    (selected.status === "available" || selected.status === "skippable");
 
   const select = (row: TechRow) => {
     setSelectedId(row.id);
@@ -172,14 +194,19 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const left = selected ? remainingAfter(selected, skips, options) : {};
   const stillMissing = selected ? totalMissing(left) : 0;
   const pay =
-    payment ?? autoPay(options.planets, skips, options.tradeGoods, options.cost);
+    payment ??
+    autoPay(options.planets, skips, options.tradeGoods, options.cost);
   const paid =
-    pay.planets.reduce((s, id) => s + (options.planets[id] ?? 0), 0) + pay.tradeGoods;
+    pay.planets.reduce((s, id) => s + (options.planets[id] ?? 0), 0) +
+    pay.tradeGoods;
   const short = Math.max(0, options.cost - paid);
-  const canResearch = researchable && stillMissing === 0 && short === 0 && !busy;
+  const canResearch =
+    researchable && stillMissing === 0 && short === 0 && !busy;
 
   const togglePlanetSkip = (planet: string) =>
-    setSkips((cur) => (cur.includes(planet) ? cur.filter((p) => p !== planet) : [...cur, planet]));
+    setSkips((cur) =>
+      cur.includes(planet) ? cur.filter((p) => p !== planet) : [...cur, planet],
+    );
   const togglePay = (planet: string) => {
     const base = pay;
     setPayment({
@@ -192,7 +219,10 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const stepTg = (delta: number) =>
     setPayment({
       ...pay,
-      tradeGoods: Math.max(0, Math.min(options.tradeGoods, pay.tradeGoods + delta)),
+      tradeGoods: Math.max(
+        0,
+        Math.min(options.tradeGoods, pay.tradeGoods + delta),
+      ),
     });
 
   // Ścieżka: posiadane technologie, które spełniają prerekwizyty wybranej.
@@ -210,11 +240,19 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const specialtyPlanets = Object.keys(options.specialties);
   const payPlanets = Object.keys(options.planets)
     .filter((id) => !skips.includes(id))
-    .sort((a, b) => (options.planets[b] ?? 0) - (options.planets[a] ?? 0) || a.localeCompare(b));
+    .sort(
+      (a, b) =>
+        (options.planets[b] ?? 0) - (options.planets[a] ?? 0) ||
+        a.localeCompare(b),
+    );
 
   if (hidden) {
     return createPortal(
-      <button type="button" className={styles.returnPill} onClick={() => setHidden(false)}>
+      <button
+        type="button"
+        className={styles.returnPill}
+        onClick={() => setHidden(false)}
+      >
         <IconCpu size={16} aria-hidden="true" />
         Open technology research
       </button>,
@@ -247,8 +285,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               style={{ "--tc": c.hue } as CSSProperties}
               data-kind="color"
             >
-              <img src={c.icon} alt="" width={14} height={14} /> <b>{ownedCount(c.color)}</b>{" "}
-              {c.label}
+              <img src={c.icon} alt="" width={14} height={14} />{" "}
+              <b>{ownedCount(c.color)}</b> {c.label}
             </span>
           ))}
           {options.cost > 0 ? (
@@ -263,10 +301,16 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
         </div>
         <div className={styles.topActions}>
           <span className={styles.player}>
-            {props.faction ? <CircularFactionIcon faction={props.faction} size={22} /> : null}
+            {props.faction ? (
+              <CircularFactionIcon faction={props.faction} size={22} />
+            ) : null}
             {props.playerName}
           </span>
-          <button type="button" className={styles.ghostBtn} onClick={() => setHidden(true)}>
+          <button
+            type="button"
+            className={styles.ghostBtn}
+            onClick={() => setHidden(true)}
+          >
             <IconEye size={15} aria-hidden="true" /> Show board
           </button>
         </div>
@@ -275,7 +319,11 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
       {options.researched.length > 0 ? (
         <p className={styles.notice}>
           <IconCheck size={14} aria-hidden="true" /> Researched this action:{" "}
-          <b>{options.researched.map((id) => getTechData(id)?.name ?? id).join(", ")}</b>
+          <b>
+            {options.researched
+              .map((id) => getTechData(id)?.name ?? id)
+              .join(", ")}
+          </b>
         </p>
       ) : null}
 
@@ -313,13 +361,17 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                         className={styles.connector}
                         data-lit={ownedCount(c.color) >= level || undefined}
                         data-path={
-                          (selected?.color === c.color && tier(selected) >= level) || undefined
+                          (selected?.color === c.color &&
+                            tier(selected) >= level) ||
+                          undefined
                         }
                         aria-hidden="true"
                       />
                     ) : null}
                     <div className={styles.level}>
-                      <span className={styles.levelTag}>{level === 0 ? "base" : `${level}×`}</span>
+                      <span className={styles.levelTag}>
+                        {level === 0 ? "base" : `${level}×`}
+                      </span>
                       {cell.length === 0 ? (
                         <span className={styles.levelEmpty} />
                       ) : (
@@ -340,7 +392,9 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
             ))}
           </div>
 
-          {options.breakthrough ? <BreakthroughSlot info={options.breakthrough} /> : null}
+          {options.breakthrough ? (
+            <BreakthroughSlot info={options.breakthrough} />
+          ) : null}
 
           <h4>Unit upgrades</h4>
           <div className={styles.upgrades}>
@@ -384,13 +438,21 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               <IconCpu size={36} aria-hidden="true" />
               <p>Pick a technology in the tree.</p>
               <small>
-                Glowing tiles can be researched now; sparkling ones need a planet with a matching
-                technology specialty.
+                Glowing tiles can be researched now; sparkling ones need a
+                planet with a matching technology specialty.
               </small>
             </div>
           ) : (
             <>
-              <h3 style={{ "--tc": selected.color ? COLOR_HUE[selected.color] : "170 178 196" } as CSSProperties}>
+              <h3
+                style={
+                  {
+                    "--tc": selected.color
+                      ? COLOR_HUE[selected.color]
+                      : "170 178 196",
+                  } as CSSProperties
+                }
+              >
                 {selected.name}
               </h3>
               <p className={styles.detailMeta}>
@@ -399,36 +461,49 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                   : selected.color
                     ? COLOR_NAME[selected.color]
                     : "Technology"}
-                {selected.faction ? " · faction technology" : ""} · {STATUS_LABEL[selected.status]}
+                {selected.faction ? " · faction technology" : ""} ·{" "}
+                {STATUS_LABEL[selected.status]}
               </p>
-              {selectedText ? <p className={styles.detailText}>{selectedText}</p> : null}
+              {selectedText ? (
+                <p className={styles.detailText}>{selectedText}</p>
+              ) : null}
 
               <h4>Prerequisites</h4>
               <PrereqList row={selected} options={options} left={left} />
 
               {!researchable ? null : (
                 <>
-                  {specialtyPlanets.length > 0 || (selected.unitUpgrade && options.aida) ? (
+                  {specialtyPlanets.length > 0 ||
+                  (selected.unitUpgrade && options.aida) ? (
                     <>
                       <h4>Ignore prerequisites</h4>
                       <p className={styles.small}>
-                        Exhaust a ready planet with a technology specialty to ignore one matching
-                        symbol.
+                        Exhaust a ready planet with a technology specialty to
+                        ignore one matching symbol.
                       </p>
                       <div className={styles.planets}>
                         {specialtyPlanets.map((id) => {
                           const useful =
                             skips.includes(id) ||
-                            (options.specialties[id] ?? []).some((c) => (left[c] ?? 0) > 0);
+                            (options.specialties[id] ?? []).some(
+                              (c) => (left[c] ?? 0) > 0,
+                            );
                           return (
                             <div className={styles.planetSlot} key={id}>
                               <PlanetCard
                                 planetId={id}
                                 picked={skips.includes(id)}
-                                onPick={busy || !useful ? undefined : () => togglePlanetSkip(id)}
+                                onPick={
+                                  busy || !useful
+                                    ? undefined
+                                    : () => togglePlanetSkip(id)
+                                }
                               />
                               <small>
-                                <Pips colors={options.specialties[id] ?? []} size={12} />
+                                <Pips
+                                  colors={options.specialties[id] ?? []}
+                                  size={12}
+                                />
                               </small>
                             </div>
                           );
@@ -448,8 +523,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                             )
                           }
                         >
-                          <IconBolt size={14} aria-hidden="true" /> Exhaust AI Development
-                          Algorithm (ignore any 1)
+                          <IconBolt size={14} aria-hidden="true" /> Exhaust AI
+                          Development Algorithm (ignore any 1)
                         </button>
                       ) : null}
                     </>
@@ -470,7 +545,9 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                       </h4>
                       <div className={styles.planets}>
                         {payPlanets.length === 0 ? (
-                          <span className={styles.empty}>No ready planets.</span>
+                          <span className={styles.empty}>
+                            No ready planets.
+                          </span>
                         ) : (
                           payPlanets.map((id) => (
                             <div className={styles.planetSlot} key={id}>
@@ -486,7 +563,12 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                       </div>
                       <div className={styles.tgRow}>
                         <span className={styles.tgLabel}>
-                          <img className={styles.tgIcon} src="/tg.png" alt="" aria-hidden="true" />
+                          <img
+                            className={styles.tgIcon}
+                            src="/tg.png"
+                            alt=""
+                            aria-hidden="true"
+                          />
                           Trade goods
                         </span>
                         <button
@@ -502,7 +584,9 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                         <button
                           type="button"
                           className={styles.stepBtn}
-                          disabled={busy || pay.tradeGoods >= options.tradeGoods}
+                          disabled={
+                            busy || pay.tradeGoods >= options.tradeGoods
+                          }
                           onClick={() => stepTg(1)}
                           aria-label="Spend more trade goods"
                         >
@@ -510,9 +594,16 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                         </button>
                         <small>of {options.tradeGoods}</small>
                       </div>
-                      <p className={styles.payLine} data-bad={short > 0 || undefined}>
+                      <p
+                        className={styles.payLine}
+                        data-bad={short > 0 || undefined}
+                      >
                         Paying <b>{paid}</b> of <b>{options.cost}</b>
-                        {short > 0 ? ` - ${short} short` : paid > options.cost ? ` (+${paid - options.cost} wasted)` : ""}
+                        {short > 0
+                          ? ` - ${short} short`
+                          : paid > options.cost
+                            ? ` (+${paid - options.cost} wasted)`
+                            : ""}
                       </p>
                     </>
                   ) : null}
@@ -544,7 +635,12 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
         </div>
         <div className={styles.dockActions}>
           {props.onBack ? (
-            <button type="button" className={styles.ghostBtn} disabled={busy} onClick={props.onBack}>
+            <button
+              type="button"
+              className={styles.ghostBtn}
+              disabled={busy}
+              onClick={props.onBack}
+            >
               <IconArrowLeft size={14} aria-hidden="true" /> Back
             </button>
           ) : null}
@@ -614,7 +710,9 @@ function PrereqList({
             </span>
             <span className={styles.prereqState}>
               {have > 0 ? <em data-ok>{have} owned</em> : null}
-              {viaSynergy > 0 ? <em data-synergy>{viaSynergy} via synergy</em> : null}
+              {viaSynergy > 0 ? (
+                <em data-synergy>{viaSynergy} via synergy</em>
+              ) : null}
               {skipped > 0 ? <em data-skip>{skipped} via specialty</em> : null}
               {stillLeft > 0 ? <em data-bad>{stillLeft} missing</em> : null}
             </span>
@@ -657,11 +755,13 @@ function BreakthroughSlot({ info }: { info: BreakthroughInfo }) {
       {a && b ? (
         <div className={styles.btSynergy}>
           <span style={{ "--tc": COLOR_HUE[a] } as CSSProperties}>
-            <img src={COLOR_ICON[a]} alt="" width={18} height={18} /> {COLOR_NAME[a]}
+            <img src={COLOR_ICON[a]} alt="" width={18} height={18} />{" "}
+            {COLOR_NAME[a]}
           </span>
           <IconArrowsExchange size={18} aria-hidden="true" />
           <span style={{ "--tc": COLOR_HUE[b] } as CSSProperties}>
-            <img src={COLOR_ICON[b]} alt="" width={18} height={18} /> {COLOR_NAME[b]}
+            <img src={COLOR_ICON[b]} alt="" width={18} height={18} />{" "}
+            {COLOR_NAME[b]}
           </span>
           <small>
             {info.active
