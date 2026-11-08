@@ -32,8 +32,11 @@ from src.core.game_state import (
     WindowType,
 )
 from src.core.hex_grid import HexGrid
+from src.core.invasion import begin_invasion
 from src.core.planet_stats import resources_of
+from src.core.production import active_grant, producers
 from src.core.registry import StaticDataRegistry
+from src.core.space_cannon import open_offense
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
 
 # Kolejność kroków akcji taktycznej (okna czasowe fazy akcji — RULES.md 19).
@@ -222,6 +225,62 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
     new_state.invasion = None
     new_state.exploration = None
     return new_state
+
+
+def _step_is_empty(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, step: TacticalStep
+) -> bool:
+    """Czy w kroku nie ma nic do rozstrzygnięcia (wtedy ``advance_skipping_empty`` go pomija).
+
+    SPACE_CANNON / SPACE_COMBAT / INVASION / PRODUCTION: patrz komentarze niżej. Kroki
+    ACTIVATION i MOVEMENT nigdy nie są puste (ruch zawsze jest opcją gracza).
+    """
+    player_id = state.active_player_id
+    if step is TacticalStep.SPACE_COMBAT:
+        return not space_combat_required(state)
+    if step is TacticalStep.INVASION:
+        if state.active_system is None or player_id is None:
+            return True
+        probe = state.clone()
+        probe.tactical_step = TacticalStep.INVASION
+        # begin_invasion zwraca stan bez inwazji, gdy nie ma ani bombardowania, ani lądowania.
+        return begin_invasion(probe, grid, registry).invasion is None
+    if step is TacticalStep.PRODUCTION:
+        if player_id is None or state.active_system is None:
+            return True
+        return (
+            not producers(state, registry, player_id, state.active_system)
+            and active_grant(state, player_id) is None
+        )
+    return False
+
+
+def advance_skipping_empty(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """``next_step`` + automatyczne pominięcie kroków, w których nic się nie dzieje.
+
+    Wejście w SPACE_CANNON otwiera okno offense (jeśli ktoś strzela — zostajemy w kroku);
+    SPACE_COMBAT bez dwóch flot, INVASION bez lądowania/bombardowania i PRODUCTION bez
+    producentów są pomijane od razu. Gdy pominięty zostaje ostatni krok, akcja się kończy.
+    Zatrzymuje się, gdy krok się nie zmienił (okno CAPACITY / FLEET_POOL, blokada).
+    """
+    previous = state.tactical_step
+    current = next_step(state, registry)
+    while current.tactical_step is not None:
+        step = current.tactical_step
+        if step is previous:
+            # krok się nie zmienił (okno CAPACITY / FLEET_POOL) — nic nie pomijamy
+            return current
+        if step is TacticalStep.SPACE_CANNON:
+            current = open_offense(current, grid, registry)
+            if current.pending_window is not None:
+                return current
+        elif not _step_is_empty(current, grid, registry, step):
+            return current
+        previous = step
+        current = next_step(current, registry)
+    return current
 
 
 def set_step(state: GameState, step: TacticalStep) -> GameState:

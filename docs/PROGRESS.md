@@ -52,6 +52,15 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
 ---
 
+## ✅ Akcja taktyczna: bez potwierdzeń, pomijanie pustych kroków, zasięg ruchu (2026-11-08)
+
+- „Next step"/„End action" bez drugiego kliknięcia.
+- `tactical.advance_skipping_empty` (używane przez `/tactical/step/next`): pomija Space Cannon
+  (brak strzelców), Space Combat (brak dwóch flot), Inwazję (brak lądowania/bombardowania)
+  i Produkcję (brak producentów); gdy pominięty ostatni krok, akcja się kończy.
+- MovementStepPanel: lista „In range" (systemy źródłowe, statki, pojemność/ładunek); klik
+  otwiera kreator z wybranym źródłem.
+
 ## ✅ Eksploracja planet po Establish Control (2026-11-07) — RULES.md 46
 
 Przejęcie niczyjej planety z cechą (cultural/hazardous/industrial) otwiera okno eksploracji:

@@ -1245,6 +1245,54 @@
   border-color: rgb(var(--ph) / 0.5);
 }
 
+/* Lista zasięgu ruchu: system źródłowy + statki, które dolecą + pojemność. */
+.rangeList {
+  display: grid;
+  gap: 4px;
+}
+
+.rangeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--ds-ink);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ds-h14);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rangeRow:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rangeRow[data-active] {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ph) / 0.16);
+  border-color: rgb(var(--ph) / 0.5);
+}
+
+.rangePos {
+  flex: none;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.rangeShips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.rangeShip {
+  white-space: nowrap;
+}
+
 .unitGrid {
   display: grid;
   /* 128px: ikona (26) + odstępy + dwa przyciski +/− (2×20) muszą się zmieścić w

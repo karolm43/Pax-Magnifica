@@ -36,7 +36,6 @@ from src.core import (
     component_action,
     movement,
     production,
-    space_cannon,
     tactical,
 )
 from src.core.combat import PlayerCombat
@@ -189,12 +188,10 @@ async def post_next_step(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
         state = ctx.service.current_state()
         # registry → silnik sprawdza limit pojemności przed przejściem (RULES.md 39.6); gdy
         # jest nadwyżka, krok ZOSTAJE i otwiera się okno CAPACITY (wtedy bez Space Cannon).
-        new_state = tactical.next_step(state, ctx.registry)
-        entered = new_state.tactical_step != state.tactical_step
-        if entered and new_state.tactical_step == TacticalStep.SPACE_CANNON:
-            new_state = space_cannon.open_offense(
-                new_state, ctx.current_grid, ctx.registry
-            )
+        # Puste kroki (brak strzelców, walki, lądowania, producentów) są pomijane od razu.
+        new_state = tactical.advance_skipping_empty(
+            state, ctx.current_grid, ctx.registry
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(ctx, new_state, "tactical:step")

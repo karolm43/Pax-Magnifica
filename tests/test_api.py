@@ -592,10 +592,12 @@ def test_tactical_step_next_and_end(client: TestClient) -> None:
     # strategii nie wskazuje pickera; test dotyczy maszyny kroków, nie wyboru kart.
     client.post("/god-mode/patch", json={"phase": "ACTION", "active_player_id": "p1"})
     client.post("/tactical/activate", json={"position": "101"})
-    # MOVEMENT -> SPACE_CANNON
+    # Pusty system: Space Cannon, walka, inwazja i produkcja są pomijane od razu,
+    # więc „Next step" z ruchu kończy akcję. Żeton zostaje.
     state = client.post("/tactical/step/next").json()["state"]
-    assert state["tactical_step"] == "SPACE_CANNON"
-    # Zakończenie czyści aktywny system/krok, żeton zostaje.
+    assert state["active_system"] is None
+    assert state["tactical_step"] is None
+    # Zakończenie bez akcji jest idempotentne.
     state = client.post("/tactical/end").json()["state"]
     assert state["active_system"] is None
     assert state["tactical_step"] is None

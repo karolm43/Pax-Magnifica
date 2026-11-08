@@ -1056,12 +1056,6 @@ export function TacticalActionPanel({
   const inCombat = liveGameState?.activeCombat != null;
   const gameData = useGameData();
   const [busy, setBusy] = useState(false);
-  // Potwierdzenia nawigacji: przejście do następnego kroku i zakończenie akcji są
-  // „nieodwracalne po stronie przepływu" (kroków nie da się już swobodnie cofnąć),
-  // więc wymagają DRUGIEGO kliknięcia (inline confirm), żeby nie kończyć/przeskakiwać
-  // akcji przypadkiem. Reset po chwili bezczynności.
-  const [confirmNext, setConfirmNext] = useState(false);
-  const [confirmEnd, setConfirmEnd] = useState(false);
 
   const activeTile = activeSystem ? gameData?.tiles?.[activeSystem] : undefined;
 
@@ -1254,55 +1248,26 @@ export function TacticalActionPanel({
         <div className={styles.footBtns}>
           <button
             type="button"
-            className={cx(styles.endAction, confirmEnd && styles.confirmArmed)}
+            className={styles.endAction}
             disabled={busy || endBlock !== null}
-            onClick={() => {
-              if (confirmEnd) {
-                setConfirmEnd(false);
-                void run(endTactical);
-              } else {
-                setConfirmNext(false);
-                setConfirmEnd(true);
-              }
-            }}
-            onBlur={() => setConfirmEnd(false)}
-            title={
-              endBlock ??
-              (confirmEnd
-                ? "Click again to confirm ending the tactical action"
-                : "End the tactical action now (asks to confirm)")
-            }
+            onClick={() => void run(endTactical)}
+            title={endBlock ?? "End the tactical action now"}
           >
-            {confirmEnd ? "Sure?" : "End action"}
+            End action
           </button>
           <button
             type="button"
-            className={cx(styles.nextStep, confirmNext && styles.confirmArmed)}
+            className={styles.nextStep}
             disabled={busy || nextBlock !== null}
-            onClick={() => {
-              if (confirmNext) {
-                setConfirmNext(false);
-                void run(tacticalNextStep);
-              } else {
-                setConfirmEnd(false);
-                setConfirmNext(true);
-              }
-            }}
-            onBlur={() => setConfirmNext(false)}
+            onClick={() => void run(tacticalNextStep)}
             title={
               nextBlock ??
-              (confirmNext
-                ? "Click again to confirm"
-                : isLast
-                  ? "Finish the tactical action (asks to confirm)"
-                  : "Advance to the next step (asks to confirm - you cannot go back)")
+              (isLast
+                ? "Finish the tactical action"
+                : "Advance to the next step (empty steps are skipped)")
             }
           >
-            {confirmNext
-              ? "Confirm?"
-              : isLast
-                ? "Finish action"
-                : "Next step"}
+            {isLast ? "Finish action" : "Next step"}
             <IconArrowRight size={14} aria-hidden="true" />
           </button>
         </div>

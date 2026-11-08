@@ -128,6 +128,35 @@ export function MovementStepPanel({
       .sort((a, b) => a.position.localeCompare(b.position));
   }, [gameData?.tiles, faction, activeSystem]);
 
+  // Wiersze zasięgu: systemy z legalnym ruchem + statki, które tam dolecą, i ich pojemność.
+  const rangeRows = useMemo(() => {
+    if (!faction) return [];
+    const asyncByBase = Object.fromEntries(
+      Object.entries(BASE_TYPE_BY_ASYNC).map(([a, b]) => [b, a]),
+    );
+    return Object.entries(moveRange?.sources ?? {})
+      .map(([position, baseTypes]) => {
+        const tile = gameData?.tiles?.[position];
+        const reach = new Set(baseTypes.map((b) => asyncByBase[b] ?? b));
+        const all = playerSpaceStacks(tile, faction);
+        const ships = all.filter((s) => reach.has(s.asyncId) && SHIP_ONLY_ASYNC.has(s.asyncId));
+        const cap = fleetCapacity(ships, faction, player);
+        const cargoUsed = all
+          .filter((s) => CARGO_ASYNC.has(s.asyncId))
+          .reduce((n, s) => n + (lookupUnit(s.asyncId, faction, player)?.capacityUsed ?? 1) * s.count, 0);
+        const name = tile ? getTileById(tile.systemId)?.name : undefined;
+        return {
+          position,
+          label: name ? `${position} · ${name}` : position,
+          ships,
+          capacity: cap.total,
+          cargoUsed,
+        };
+      })
+      .filter((r) => r.ships.length > 0)
+      .sort((a, b) => a.position.localeCompare(b.position));
+  }, [moveRange, gameData?.tiles, faction, player]);
+
   const sourceTile = source ? gameData?.tiles?.[source] : undefined;
   const stacks = faction ? playerSpaceStacks(sourceTile, faction) : [];
   const ships = stacks.filter((s) => SHIP_ONLY_ASYNC.has(s.asyncId));
@@ -198,8 +227,48 @@ export function MovementStepPanel({
 
       {/* Fleet pool (RULES.md 42): ruch ponad pulę jest dozwolony, ale nadwyżka zostanie usunięta. */}
       <FleetPoolWarning />
+      {/* ZASIĘG: z których systemów statki dolecą do aktywnego + ich pojemność. */}
+      <span className={styles.prodZoneLabel}>
+        <IconShip size={11} aria-hidden="true" /> In range
+      </span>
+      {rangeRows.length === 0 ? (
+        <span className={styles.prodNote}>No ships can reach this system.</span>
+      ) : (
+        <div className={styles.rangeList}>
+          {rangeRows.map((row) => (
+            <button
+              key={row.position}
+              type="button"
+              className={styles.rangeRow}
+              data-active={row.position === source || undefined}
+              onClick={() => {
+                setSource(row.position);
+                setPicked({});
+                setShowPicker(true);
+              }}
+              title={`Pick units from ${row.label}`}
+            >
+              <span className={styles.rangePos}>{row.position}</span>
+              <span className={styles.rangeShips}>
+                {row.ships.map((s) => (
+                  <span key={s.asyncId} className={styles.rangeShip}>
+                    {s.count}× {s.asyncId.toUpperCase()}
+                  </span>
+                ))}
+              </span>
+              <span
+                className={styles.capBadge}
+                title="Cargo carried / capacity of the ships that can reach here"
+              >
+                <IconPackage size={11} aria-hidden="true" />
+                {row.cargoUsed}/{row.capacity}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       <span className={styles.prodNote}>
-        Drag ships onto the active system on the map, or use the mover below.
+        Drag ships onto the active system on the map, or pick a system above.
       </span>
 
       <button
