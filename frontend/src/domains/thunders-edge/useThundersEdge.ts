@@ -125,5 +125,17 @@ export function useThundersEdgeActions() {
     [refresh],
   );
 
-  return { perform, placeIngress, placeThundersEdge };
+  /** God-Mode (testy): wprowadza The Fracture do gry bez rzutu; gracz wybiera ingress. */
+  const forceFracture = useCallback(
+    async (actorId: string, breakthroughId?: string | null) => {
+      await post("/god-mode/fracture", {
+        actor_id: actorId,
+        breakthrough_id: breakthroughId ?? null,
+      });
+      refresh();
+    },
+    [refresh],
+  );
+
+  return { perform, placeIngress, placeThundersEdge, forceFracture };
 }

@@ -13,8 +13,12 @@ import {
   Text,
   TextInput,
 } from "@/ds";
+import { DEFAULT_GAME_ID } from "@/config";
+import { useGameState } from "@/api/useGameState";
+import { useThundersEdgeActions } from "@/domains/thunders-edge/useThundersEdge";
 import {
   IconCards,
+  IconCompass,
   IconCrown,
   IconMinus,
   IconPlanet,
@@ -139,6 +143,9 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
     setLeaderState,
     setPlayerHand,
   } = useBoardEditor();
+  const thundersEdge = useThundersEdgeActions();
+  const { data: liveGameState } = useGameState(DEFAULT_GAME_ID);
+  const fractureInPlay = liveGameState?.thundersEdge?.fractureInPlay === true;
   const { data: strategyCards } = useStrategyCards();
   const deskPlayer = useDeskPlayer();
   const players = gameData?.playerData ?? [];
@@ -366,6 +373,22 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           }
                         />
                       </Group>
+
+                      {/* God-Mode (testy): wymuś wejście The Fracture do gry (bez rzutu). */}
+                      <Button
+                        variant="default"
+                        size="xs"
+                        leftSection={<IconCompass size={14} />}
+                        disabled={busy || fractureInPlay}
+                        onClick={() =>
+                          void runBusy(() => thundersEdge.forceFracture(player.discordId))
+                        }
+                        title="God-Mode: put The Fracture into play now. This player then places the ingress tokens."
+                      >
+                        {fractureInPlay
+                          ? "The Fracture is in play"
+                          : "Force The Fracture into play"}
+                      </Button>
 
                       {/* Karty strategii (po numerze inicjatywy). */}
                       <Stack gap={6}>
