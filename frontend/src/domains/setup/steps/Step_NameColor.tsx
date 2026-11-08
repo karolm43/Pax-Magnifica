@@ -1,46 +1,34 @@
-// Krok setupu: nazwa wyświetlana + kolor per gracz (Step_NameColor).
+// Krok setupu: gracze, mapa, nazwy, kolory i sterowanie (Step_NameColor).
 //
-// Odpowiedzialności (zadanie 12.1, R7.1/R7.2/R7.4/R7.5/R7.6/R7.8):
-//  1. Renderuje — dla każdego slotu gracza — pole nazwy oraz wybór koloru ze zbioru
-//     `AVAILABLE_COLORS`.
-//  2. Zapisuje zmiany WYŁĄCZNIE do store'a (`updateSlot`), więc dane są zachowane przy
-//     przełączaniu kroków (store jest jednym źródłem prawdy konfiguracji).
-//  3. Pokazuje lokalne podpowiedzi walidacji per slot (długość nazwy, duplikat nazwy,
-//     duplikat koloru). Twarde blokowanie „Dalej" robi kontener przez `validateSetup`
-//     ze store'a — tu dajemy tylko czytelny sygnał przy konkretnym slocie.
+// Pełnoekranowa scena w tym samym języku wizualnym co wybór frakcji (Step_Faction):
+// to samo tło, pasek górny z „Wstecz" i dużym przyciskiem akcji, panele na szkle,
+// bursztynowy akcent TI4. Układ:
+//   - pasek górny: ← Main menu · tytuł kroku · podsumowanie (ludzie/boty) · „Choose factions →";
+//   - lewy panel „Game": liczba graczy (2–6), mapa (domyślna / własny map string),
+//     szybkie ustawienia (tasuj kolory, wszyscy ludzie, ja + boty);
+//   - siatka kart graczy: nazwa, kolor, człowiek/bot, trudność i osobowość bota.
 //
-// Komponent jest „cienki": nie trzyma własnego stanu konfiguracji ani nie duplikuje
-// reguł walidacji z `useSetupStore.ts` — czyta sloty i woła akcje store'a.
+// Odpowiedzialności zachowane z poprzedniej wersji (R7.1/R7.2/R7.4/R7.5/R7.6/R7.8):
+//  1. dane zapisujemy WYŁĄCZNIE do store'a (`useSetupStore`) — jedno źródło prawdy;
+//  2. lokalne podpowiedzi walidacji per slot (długość nazwy, duplikat nazwy). Twarde
+//     blokowanie „Dalej" robi kontener przez `validateStep`/`validateSetup`;
+//  3. kolory NIE mogą się zdublować: wybór koloru zajętego przez innego gracza
+//     ZAMIENIA kolory (`swapColor`), więc nie ma stanu błędnego do naprawiania.
 
-import {
-  Alert,
-  Group,
-  Loader,
-  Paper,
-  SegmentedControl,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-  UnstyledButton,
-} from "@/ds";
+import { useState, type CSSProperties } from "react";
 import { useEngineConfig } from "@/api/useNewGame";
 import type { SetupStepProps } from "../SetupWizard";
 import {
   AVAILABLE_COLORS,
   MAX_NAME_LENGTH,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
   type ControlType,
   type PlayerColor,
   type SetupSlot,
   useSetupStore,
 } from "../useSetupStore";
-
-/** Dozwolone wartości przełącznika sterowania (R10.1) — odwzorowują `ControlType`. */
-const CONTROL_OPTIONS: { label: string; value: ControlType }[] = [
-  { label: "Human", value: "HUMAN" },
-  { label: "Bot", value: "BOT" },
-];
+import styles from "./Step_NameColor.module.css";
 
 /** Mapa nazw kolorów (id ze zbioru) na kod CSS dla próbek — tylko prezentacja. */
 const COLOR_SWATCH: Record<PlayerColor, string> = {
@@ -52,12 +40,16 @@ const COLOR_SWATCH: Record<PlayerColor, string> = {
   yellow: "#e0c23a",
 };
 
-/**
- * Wyznacza lokalny komunikat walidacji dla pojedynczego slotu (albo `null`).
- *
- * Reguły odwzorowują `validateSetup` ze store'a, ale tu zwracamy je per slot, by umieścić
- * podpowiedź przy właściwym polu. Źródłem prawdy do blokady „Dalej" pozostaje store.
- */
+/** Wartości dozwolonej liczby graczy (przyciski 2..6). */
+const PLAYER_COUNTS = Array.from(
+  { length: MAX_PLAYERS - MIN_PLAYERS + 1 },
+  (_, i) => MIN_PLAYERS + i,
+);
+
+/** Wartość „losowo" w selektorach bota (pusty string = `null` w store'ie). */
+const RANDOM_OPTION = "";
+
+/** Lokalny komunikat walidacji nazwy slotu (albo `null`) — źródłem blokady jest store. */
 function slotNameError(slot: SetupSlot, index: number, slots: SetupSlot[]): string | null {
   const name = slot.name.trim();
   if (name.length > MAX_NAME_LENGTH) {
@@ -74,159 +66,355 @@ function slotNameError(slot: SetupSlot, index: number, slots: SetupSlot[]): stri
   return null;
 }
 
-/** Czy kolor slotu koliduje z kolorem WCZEŚNIEJSZEGO slotu (duplikat) — R7.8. */
-function isColorDuplicate(slot: SetupSlot, index: number, slots: SetupSlot[]): boolean {
-  for (let i = 0; i < index; i++) {
-    if (slots[i].color === slot.color) return true;
-  }
-  return false;
+/** Zakres opcji bota z `/engine/config` (zero hardkodowania konfiguracji silnika). */
+interface BotOptions {
+  difficulties: string[];
+  personalities: string[];
+  loading: boolean;
+  failed: boolean;
 }
 
-/** Pojedynczy wiersz slotu gracza: numer + pole nazwy + próbki kolorów. */
-function SlotRow({
+/** Karta jednego gracza: numer w kolorze, nazwa, kolor, człowiek/bot, opcje bota. */
+function PlayerCard({
   slot,
   index,
   slots,
+  bot,
 }: {
   slot: SetupSlot;
   index: number;
   slots: SetupSlot[];
+  bot: BotOptions;
 }) {
   const updateSlot = useSetupStore((s) => s.updateSlot);
   const setControlType = useSetupStore((s) => s.setControlType);
-  const nameError = slotNameError(slot, index, slots);
-  const colorDuplicate = isColorDuplicate(slot, index, slots);
+  const swapColor = useSetupStore((s) => s.swapColor);
 
-  // Dozwolony zbiór trudności botów pochodzi z backendu (`/engine/config`) — zero
-  // hardkodowania konfiguracji silnika na froncie.
-  const { data: engineConfig, isLoading, isError } = useEngineConfig();
-  const difficulties = engineConfig?.valid_difficulties ?? [];
-  const personalities = engineConfig?.valid_personalities ?? [];
+  const nameError = slotNameError(slot, index, slots);
   const isBot = slot.controlType === "BOT";
+  const cardStyle = { "--pc": COLOR_SWATCH[slot.color] } as CSSProperties;
 
   return (
-    <Paper radius="md" withBorder p="md">
-      <Stack gap="sm">
-        <Text fw={600} size="sm">
-          Player {index + 1}
-        </Text>
+    <article className={styles.card} style={cardStyle} aria-label={`Player ${index + 1}`}>
+      <header className={styles.cardHead}>
+        <span className={styles.badge} aria-hidden>
+          {index + 1}
+        </span>
+        <h2 className={styles.cardTitle}>Player {index + 1}</h2>
+        <div
+          className={styles.segment}
+          role="radiogroup"
+          aria-label={`Player ${index + 1} control type`}
+        >
+          {(["HUMAN", "BOT"] as ControlType[]).map((type) => (
+            <button
+              key={type}
+              type="button"
+              role="radio"
+              aria-checked={slot.controlType === type}
+              className={`${styles.segmentItem} ${
+                slot.controlType === type ? styles.segmentItemOn : ""
+              }`}
+              onClick={() => setControlType(index, type)}
+            >
+              {type === "HUMAN" ? "Human" : "Bot"}
+            </button>
+          ))}
+        </div>
+      </header>
 
-        {/* Nazwa wyświetlana — zapis wprost do store'a (dane zachowane między krokami). */}
-        <TextInput
-          label="Name"
+      <label className={styles.field}>
+        <span className={styles.fieldLabel}>Name</span>
+        <input
+          className={`${styles.input} ${nameError ? styles.inputError : ""}`}
+          type="text"
           placeholder="(empty → automatic name)"
           value={slot.name}
           maxLength={MAX_NAME_LENGTH}
           onChange={(e) => updateSlot(index, { name: e.currentTarget.value })}
-          error={nameError ?? undefined}
+          aria-invalid={nameError !== null}
         />
+        {nameError && <span className={styles.error}>{nameError}</span>}
+      </label>
 
-        {/* Wybór koloru ze zbioru AVAILABLE_COLORS — próbki jako przyciski radio. */}
-        <Stack gap={4}>
-          <Text size="sm" fw={500}>
-            Color
-          </Text>
-          <Group gap="xs" role="radiogroup" aria-label={`Player ${index + 1} color`}>
-            {AVAILABLE_COLORS.map((color) => {
-              const selected = slot.color === color;
-              return (
-                <UnstyledButton
-                  key={color}
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={color}
-                  onClick={() => updateSlot(index, { color })}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: COLOR_SWATCH[color],
-                    border: selected
-                      ? "3px solid var(--ds-color-text, #fff)"
-                      : "2px solid rgba(255,255,255,0.25)",
-                    boxShadow: selected ? "0 0 0 2px rgba(0,0,0,0.4)" : "none",
-                    cursor: "pointer",
-                  }}
-                />
-              );
-            })}
-          </Group>
-          {colorDuplicate ? (
-            <Text c="red" size="xs">
-              This color is already used by another player.
-            </Text>
-          ) : null}
-        </Stack>
+      <div className={styles.field}>
+        <span className={styles.fieldLabel}>Color</span>
+        <div
+          className={styles.swatches}
+          role="radiogroup"
+          aria-label={`Player ${index + 1} color`}
+        >
+          {AVAILABLE_COLORS.map((color) => {
+            const selected = slot.color === color;
+            // Kto jeszcze trzyma ten kolor — klik zamieni się z tym graczem.
+            const owner = slots.findIndex((s, i) => i !== index && s.color === color);
+            return (
+              <button
+                key={color}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={
+                  owner >= 0 ? `${color} (swap with Player ${owner + 1})` : color
+                }
+                title={owner >= 0 ? `Swap with Player ${owner + 1}` : color}
+                className={`${styles.swatch} ${selected ? styles.swatchOn : ""}`}
+                style={{ background: COLOR_SWATCH[color] }}
+                onClick={() => swapColor(index, color)}
+              >
+                {owner >= 0 && (
+                  <span className={styles.swatchOwner} aria-hidden>
+                    {owner + 1}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Sterowanie: człowiek / bot. Zmiana na HUMAN czyści trudność (R10.4). */}
-        <Stack gap={4}>
-          <Text size="sm" fw={500}>
-            Control
-          </Text>
-          <SegmentedControl
-            aria-label={`Player ${index + 1} control type`}
-            data={CONTROL_OPTIONS}
-            value={slot.controlType}
-            onChange={(value) => setControlType(index, value as ControlType)}
-          />
-        </Stack>
-
-        {/* Trudność i osobowość tylko dla bota; puste pole = losowo. */}
-        {isBot &&
-          (isLoading ? (
-            <Loader size="sm" />
-          ) : isError ? (
-            <Alert color="red" title="Failed to load bot options">
-              Try again — the bot options could not be loaded.
-            </Alert>
+      {isBot && (
+        <div className={styles.botBox}>
+          {bot.loading ? (
+            <span className={styles.hint}>Loading bot options…</span>
+          ) : bot.failed ? (
+            <span className={styles.error}>
+              Failed to load bot options. Try again later.
+            </span>
           ) : (
             <>
-              <Select
-                aria-label={`Player ${index + 1} bot difficulty level`}
-                label="Difficulty level"
-                placeholder="Random"
-                data={difficulties}
-                value={slot.difficulty}
-                onChange={(value) => updateSlot(index, { difficulty: value ?? null })}
-                clearable
-              />
-              <Select
-                aria-label={`Player ${index + 1} bot personality`}
-                label="Personality"
-                placeholder="Random"
-                data={personalities}
-                value={slot.personality}
-                onChange={(value) => updateSlot(index, { personality: value ?? null })}
-                clearable
-              />
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Difficulty</span>
+                <select
+                  className={styles.input}
+                  aria-label={`Player ${index + 1} bot difficulty level`}
+                  value={slot.difficulty ?? RANDOM_OPTION}
+                  onChange={(e) =>
+                    updateSlot(index, { difficulty: e.currentTarget.value || null })
+                  }
+                >
+                  <option value={RANDOM_OPTION}>Random</option>
+                  {bot.difficulties.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Personality</span>
+                <select
+                  className={styles.input}
+                  aria-label={`Player ${index + 1} bot personality`}
+                  value={slot.personality ?? RANDOM_OPTION}
+                  onChange={(e) =>
+                    updateSlot(index, { personality: e.currentTarget.value || null })
+                  }
+                >
+                  <option value={RANDOM_OPTION}>Random</option>
+                  {bot.personalities.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </>
-          ))}
-      </Stack>
-    </Paper>
+          )}
+        </div>
+      )}
+    </article>
   );
 }
 
 /**
- * Krok „Nazwa i kolor". Lista slotów graczy — każdy z polem nazwy i wyborem korloru.
- * Walidacja (długość, duplikaty) żyje w store'ie; tu renderujemy pola i lokalne
- * podpowiedzi, a kontener blokuje „Dalej" na podstawie `validateSetup`.
+ * Krok „Gracze i mapa": pasek górny + panel ustawień gry + karty graczy.
+ * Walidacja żyje w store'ie; kontener (`SetupWizard`) blokuje „Dalej" przez `stage.canSubmit`.
  */
-export default function Step_NameColor(_props: SetupStepProps) {
+export default function Step_NameColor({ stage }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
+  const playerCount = useSetupStore((s) => s.playerCount);
+  const mapString = useSetupStore((s) => s.mapString);
+  const setPlayerCount = useSetupStore((s) => s.setPlayerCount);
+  const setMapString = useSetupStore((s) => s.setMapString);
+  const shuffleColors = useSetupStore((s) => s.shuffleColors);
+  const applyControlPreset = useSetupStore((s) => s.applyControlPreset);
+
+  // Tryb mapy to wybór UI: „default" = mapa domyślna backendu (pusty map string),
+  // „custom" = własny map string. Start zgodny z tym, co już jest w store'ie.
+  const [mapMode, setMapMode] = useState<"default" | "custom">(
+    mapString.trim() ? "custom" : "default",
+  );
+
+  // Opcje bota pobieramy RAZ dla całego kroku (nie per karta).
+  const { data: engineConfig, isLoading, isError } = useEngineConfig();
+  const bot: BotOptions = {
+    difficulties: engineConfig?.valid_difficulties ?? [],
+    personalities: engineConfig?.valid_personalities ?? [],
+    loading: isLoading,
+    failed: isError,
+  };
+
+  const botCount = slots.filter((s) => s.controlType === "BOT").length;
+  const humanCount = slots.length - botCount;
+
+  const chooseMapMode = (mode: "default" | "custom") => {
+    setMapMode(mode);
+    // Powrót do mapy domyślnej czyści własny map string (backend użyje mapy testowej).
+    if (mode === "default") setMapString("");
+  };
 
   return (
-    <Stack gap="md">
-      <Text size="sm" c="dimmed">
-        Set a name and color for each player and choose whether they are controlled
-        by a human or a bot (for a bot, also difficulty and personality; left empty
-        they are picked at random). An empty name
-        field will be filled in automatically. Colors and names must be unique.
-      </Text>
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        {slots.map((slot, index) => (
-          <SlotRow key={index} slot={slot} index={index} slots={slots} />
-        ))}
-      </SimpleGrid>
-    </Stack>
+    <div className={styles.stage}>
+      {/* Pasek górny: Wstecz · tytuł · podsumowanie · przycisk akcji (jak w scenie frakcji). */}
+      <div className={styles.topBar}>
+        <button type="button" className={styles.backButton} onClick={stage?.onBack}>
+          ← Main menu
+        </button>
+
+        <div className={styles.titleBlock}>
+          <span className={styles.kicker}>New game · Step 1 of 2</span>
+          <h1 className={styles.title}>Players &amp; map</h1>
+        </div>
+
+        {stage?.message && <span className={styles.topMessage}>{stage.message}</span>}
+
+        <div className={styles.startZone}>
+          <span className={styles.readyLabel}>
+            {humanCount} {humanCount === 1 ? "human" : "humans"} · {botCount}{" "}
+            {botCount === 1 ? "bot" : "bots"}
+          </span>
+          <button
+            type="button"
+            className={`${styles.startButton} ${
+              stage?.canSubmit ? styles.startButtonReady : ""
+            }`}
+            disabled={!stage?.canSubmit || stage?.submitting}
+            onClick={stage?.isLastStep ? stage?.onSubmit : stage?.onNext}
+          >
+            Choose factions
+            <span className={styles.startArrow} aria-hidden>
+              →
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.content}>
+        {/* Lewy panel na szkle: ustawienia całej gry. */}
+        <aside className={styles.settings} aria-label="Game settings">
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Players</h2>
+            <div
+              className={styles.countRow}
+              role="radiogroup"
+              aria-label="Number of players"
+            >
+              {PLAYER_COUNTS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={playerCount === n}
+                  className={`${styles.countButton} ${
+                    playerCount === n ? styles.countButtonOn : ""
+                  }`}
+                  onClick={() => setPlayerCount(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className={styles.hint}>
+              Lowering the count keeps the first players&apos; settings.
+            </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Map</h2>
+            <div className={styles.optionList} role="radiogroup" aria-label="Map source">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={mapMode === "default"}
+                className={`${styles.option} ${
+                  mapMode === "default" ? styles.optionOn : ""
+                }`}
+                onClick={() => chooseMapMode("default")}
+              >
+                <span className={styles.optionTitle}>Default map</span>
+                <span className={styles.optionText}>
+                  The built-in 6-player test layout.
+                </span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={mapMode === "custom"}
+                className={`${styles.option} ${
+                  mapMode === "custom" ? styles.optionOn : ""
+                }`}
+                onClick={() => chooseMapMode("custom")}
+              >
+                <span className={styles.optionTitle}>Custom map string</span>
+                <span className={styles.optionText}>
+                  Paste an AsyncTI4 map string (tile numbers).
+                </span>
+              </button>
+            </div>
+            {mapMode === "custom" && (
+              <textarea
+                className={`${styles.input} ${styles.textarea}`}
+                aria-label="Map string"
+                placeholder="e.g. 23 49 77 66 71 39 …"
+                rows={4}
+                spellCheck={false}
+                value={mapString}
+                onChange={(e) => setMapString(e.currentTarget.value)}
+              />
+            )}
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Quick setup</h2>
+            <div className={styles.actionList}>
+              <button type="button" className={styles.action} onClick={shuffleColors}>
+                🎲 Shuffle colors
+              </button>
+              <button
+                type="button"
+                className={styles.action}
+                onClick={() => applyControlPreset("HUMAN")}
+              >
+                All humans
+              </button>
+              <button
+                type="button"
+                className={styles.action}
+                onClick={() => applyControlPreset("BOT")}
+              >
+                Me vs. bots
+              </button>
+            </div>
+            <p className={styles.hint}>
+              Names and colors must be unique. An empty name is filled in automatically.
+            </p>
+          </section>
+        </aside>
+
+        {/* Siatka kart graczy — własne przewijanie. */}
+        <section className={styles.grid} aria-label="Players">
+          {slots.map((slot, index) => (
+            <PlayerCard
+              key={index}
+              slot={slot}
+              index={index}
+              slots={slots}
+              bot={bot}
+            />
+          ))}
+        </section>
+      </div>
+    </div>
   );
 }

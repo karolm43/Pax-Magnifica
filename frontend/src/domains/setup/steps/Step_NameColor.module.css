@@ -1,0 +1,638 @@
+/*
+ * Scena „Gracze i mapa" — ten sam język wizualny co scena wyboru frakcji
+ * (Step_Faction.module.css): tło main_menu z przyciemnieniem, pasek górny na szkle,
+ * panele na szkle, bursztynowy gradient głównego przycisku. Tokeny DS (ds/tokens.css).
+ */
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(
+      ellipse 120% 80% at 50% -10%,
+      rgb(252 162 43 / 0.08),
+      transparent 60%
+    ),
+    linear-gradient(rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.72)),
+    url("/static/extra/main_menu.jpg") center / cover no-repeat,
+    var(--ds-page);
+  animation: stageIn 0.45s var(--ds-ease-standard) both;
+}
+
+@keyframes stageIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Pasek górny ──────────────────────────────────────────────────────── */
+
+.topBar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-md);
+  padding: var(--ds-space-sm) var(--ds-space-lg);
+  background: color-mix(in oklab, var(--ds-ground) 70%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.backButton {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-ink-lo);
+  font-size: var(--ds-fz-sm);
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.backButton:hover,
+.backButton:focus-visible {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h22);
+  outline: none;
+}
+
+.titleBlock {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kicker {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ds-ink-lo);
+}
+
+.title {
+  margin: 0;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-size: clamp(1.1rem, 1.6vw, 1.5rem);
+  letter-spacing: 0.06em;
+  color: var(--ds-ink-hi);
+}
+
+.topMessage {
+  flex-shrink: 0;
+  max-width: 340px;
+  font-size: var(--ds-fz-xs);
+  color: rgb(252 214 150);
+}
+
+.startZone {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-md);
+}
+
+.readyLabel {
+  font-size: var(--ds-fz-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--ds-ink-lo);
+}
+
+.startButton {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 26px;
+  border: 1px solid rgb(255 211 74 / 0.75);
+  border-radius: var(--ds-radius-md);
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 1.05vw, 1.15rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1a0f05;
+  background: linear-gradient(180deg, #ffd34a, #fca22b 55%, #f6792a);
+  box-shadow:
+    0 0 24px rgb(246 121 42 / 0.5),
+    0 4px 14px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.45);
+  cursor: pointer;
+  transition:
+    transform var(--ds-dur-fast) var(--ds-ease-standard),
+    box-shadow var(--ds-dur-fast) var(--ds-ease-standard),
+    filter var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.startButton:hover:not(:disabled),
+.startButton:focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  outline: none;
+  box-shadow:
+    0 0 36px rgb(246 121 42 / 0.75),
+    0 6px 18px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.55);
+}
+
+.startButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.startButton:disabled {
+  cursor: not-allowed;
+  color: var(--ds-ink-lo);
+  background: rgb(30 22 12 / 0.7);
+  border-color: rgb(252 162 43 / 0.35);
+  box-shadow: none;
+  filter: none;
+}
+
+.startArrow {
+  font-size: 1.1em;
+  line-height: 1;
+  transition: transform var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.startButton:hover:not(:disabled) .startArrow {
+  transform: translateX(3px);
+}
+
+.startButtonReady {
+  animation: startPulse 2s ease-in-out infinite;
+}
+
+@keyframes startPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 24px rgb(246 121 42 / 0.5),
+      0 4px 14px rgb(0 0 0 / 0.5),
+      inset 0 1px 0 rgb(255 255 255 / 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 44px rgb(246 121 42 / 0.85),
+      0 4px 14px rgb(0 0 0 / 0.5),
+      inset 0 1px 0 rgb(255 255 255 / 0.55);
+  }
+}
+
+/* ── Zawartość: panel ustawień (szkło) | siatka kart graczy ───────────── */
+
+.content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.settings {
+  flex: 0 0 clamp(280px, 22vw, 380px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-lg);
+  padding: var(--ds-space-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: color-mix(in oklab, var(--ds-ground) 60%, transparent);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid var(--ds-h10);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-sm);
+}
+
+.sectionTitle {
+  margin: 0;
+  padding-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ds-ink-lo);
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--ds-fz-xs);
+  line-height: 1.4;
+  color: var(--ds-ink-lo);
+}
+
+/* Liczba graczy — rząd dużych przycisków 2..6. */
+.countRow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.countButton {
+  padding: 10px 0;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.countButton:hover {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+}
+
+.countButtonOn,
+.countButtonOn:hover {
+  border-color: rgb(252 162 43);
+  background: rgb(252 162 43 / 0.14);
+  color: rgb(255 211 74);
+  box-shadow: inset 0 0 0 1px rgb(252 162 43 / 0.4);
+}
+
+.countButton:focus-visible,
+.option:focus-visible,
+.action:focus-visible,
+.swatch:focus-visible,
+.segmentItem:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+/* Mapa — dwie karty opcji (jak wiersze listy frakcji). */
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.option:hover {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+}
+
+.optionOn,
+.optionOn:hover {
+  border-color: rgb(252 162 43);
+  box-shadow: inset 0 0 0 1px rgb(252 162 43 / 0.4);
+}
+
+.optionTitle {
+  font-size: var(--ds-fz-sm);
+  color: var(--ds-ink-hi);
+}
+
+.optionText {
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink-lo);
+}
+
+/* Szybkie akcje. */
+.actionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.action {
+  padding: 6px 10px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-ink);
+  font-size: var(--ds-fz-xs);
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.action:hover {
+  color: var(--ds-ink-hi);
+  border-color: rgb(252 162 43 / 0.7);
+  background: rgb(252 162 43 / 0.08);
+}
+
+/* ── Siatka kart graczy ───────────────────────────────────────────────── */
+
+.grid {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  align-content: start;
+  gap: var(--ds-space-md);
+  padding: var(--ds-space-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.card {
+  /* --pc = kolor gracza (ustawiany inline z komponentu). */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-md);
+  padding: var(--ds-space-md) var(--ds-space-md) var(--ds-space-md)
+    calc(var(--ds-space-md) + 4px);
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: color-mix(in oklab, var(--ds-ground) 72%, transparent);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease-standard);
+  animation: cardIn 0.4s var(--ds-ease-standard) both;
+}
+
+.card:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.card:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.card:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.card:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.card:nth-child(6) {
+  animation-delay: 0.2s;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pionowy pasek w kolorze gracza po lewej krawędzi karty. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--pc);
+  box-shadow: 0 0 14px var(--pc);
+}
+
+.card:hover,
+.card:focus-within {
+  border-color: color-mix(in oklab, var(--pc) 60%, var(--ds-h22));
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-sm);
+}
+
+.badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--pc);
+  background: color-mix(in oklab, var(--pc) 22%, transparent);
+  color: var(--ds-ink-hi);
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+}
+
+.cardTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-size: var(--ds-fz-md);
+  letter-spacing: 0.05em;
+  color: var(--ds-ink-hi);
+}
+
+/* Przełącznik Human / Bot. */
+.segment {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-socket);
+}
+
+.segmentItem {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: calc(var(--ds-radius-sm) - 1px);
+  background: transparent;
+  color: var(--ds-ink-lo);
+  font-size: var(--ds-fz-xs);
+  cursor: pointer;
+  transition:
+    color var(--ds-dur-fast) var(--ds-ease-standard),
+    background var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.segmentItem:hover {
+  color: var(--ds-ink-hi);
+}
+
+.segmentItemOn,
+.segmentItemOn:hover {
+  background: rgb(252 162 43 / 0.2);
+  color: rgb(255 211 74);
+}
+
+/* Pola formularza. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ds-ink-lo);
+}
+
+.input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-socket);
+  color: var(--ds-ink-hi);
+  font: inherit;
+  font-size: var(--ds-fz-sm);
+  transition: border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.input::placeholder {
+  color: var(--ds-ink-lo);
+}
+
+.input:hover {
+  border-color: var(--ds-h22);
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+.inputError {
+  border-color: #d94a4a;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: var(--ds-font-mono, monospace);
+  font-size: var(--ds-fz-xs);
+}
+
+.error {
+  font-size: var(--ds-fz-xs);
+  color: #ff8a8a;
+}
+
+/* Próbki kolorów. */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid rgb(255 255 255 / 0.18);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    transform var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.swatch:hover {
+  transform: scale(1.12);
+  border-color: rgb(255 255 255 / 0.6);
+}
+
+.swatchOn,
+.swatchOn:hover {
+  transform: scale(1.05);
+  border-color: #fff;
+  box-shadow:
+    0 0 0 2px rgb(0 0 0 / 0.6),
+    0 0 12px rgb(255 255 255 / 0.35);
+}
+
+/* Numer gracza, który aktualnie trzyma kolor (klik = zamiana). */
+.swatchOwner {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: rgb(0 0 0 / 0.75);
+  color: var(--ds-ink-hi);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.botBox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-sm);
+  padding-top: var(--ds-space-sm);
+  border-top: 1px solid var(--ds-h10);
+}
+
+@media (max-width: 900px) {
+  .stage {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+  .content {
+    flex-direction: column;
+  }
+  .settings {
+    flex: 0 0 auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-h10);
+  }
+  .topBar {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .card {
+    animation: none;
+  }
+  .startButtonReady {
+    animation: none;
+  }
+}

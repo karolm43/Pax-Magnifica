@@ -123,6 +123,18 @@ export interface SetupStore {
    * zostawia je puste do czasu jawnego wyboru (walidacja kroku wymusi wartość — R10.2).
    */
   setControlType: (index: number, controlType: ControlType) => void;
+  /**
+   * Przypisuje kolor slotowi. Gdy kolor ma już INNY slot, kolory się ZAMIENIAJĄ
+   * (nigdy nie powstaje duplikat), więc wybór koloru zawsze jest legalny.
+   */
+  swapColor: (index: number, color: PlayerColor) => void;
+  /** Losowo tasuje kolory między istniejącymi slotami (zbiór kolorów bez zmian). */
+  shuffleColors: () => void;
+  /**
+   * Hurtowo ustawia sterowanie: `"HUMAN"` = wszyscy ludzie, `"BOT"` = pierwszy slot
+   * zostaje człowiekiem, reszta to boty (typowa gra solo z botami).
+   */
+  applyControlPreset: (preset: "HUMAN" | "BOT") => void;
   setMapString: (value: string) => void;
   goToStep: (index: number) => void;
   nextStep: () => void;
@@ -173,6 +185,44 @@ export const useSetupStore = create<SetupStore>((set) => ({
             }
           : slot,
       ),
+    })),
+
+  swapColor: (index, color) =>
+    set((state) => {
+      const previous = state.slots[index]?.color;
+      if (previous === undefined || previous === color) return state;
+      return {
+        slots: state.slots.map((slot, i) => {
+          if (i === index) return { ...slot, color };
+          // Slot, który miał żądany kolor, dostaje poprzedni kolor wybierającego.
+          if (slot.color === color) return { ...slot, color: previous };
+          return slot;
+        }),
+      };
+    }),
+
+  shuffleColors: () =>
+    set((state) => {
+      const colors = state.slots.map((slot) => slot.color);
+      // Fisher–Yates na kopii — wynik to permutacja dotychczasowych kolorów.
+      for (let i = colors.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [colors[i], colors[j]] = [colors[j], colors[i]];
+      }
+      return { slots: state.slots.map((slot, i) => ({ ...slot, color: colors[i] })) };
+    }),
+
+  applyControlPreset: (preset) =>
+    set((state) => ({
+      slots: state.slots.map((slot, i) => {
+        const bot = preset === "BOT" && i > 0;
+        return {
+          ...slot,
+          controlType: bot ? "BOT" : "HUMAN",
+          difficulty: bot ? slot.difficulty : null,
+          personality: bot ? slot.personality : null,
+        };
+      }),
     })),
 
   setMapString: (value) => set({ mapString: value }),
@@ -300,6 +350,20 @@ function validateControl(_slots: SetupSlot[]): string | null {
 }
 
 /**
+ * Map string: puste = mapa domyślna (backend); inaczej ciąg nieujemnych liczb całkowitych
+ * (ID kafelków, `0` = puste miejsce) rozdzielonych białymi znakami. To tylko szybki
+ * test kształtu — czy kafelki istnieją, rozstrzyga backend (`parse_map_string`).
+ */
+export function validateMapString(mapString: string): string | null {
+  const trimmed = mapString.trim();
+  if (trimmed.length === 0) return null;
+  const bad = trimmed.split(/\s+/).find((token) => !/^\d+$/.test(token));
+  return bad === undefined
+    ? null
+    : `Map string: "${bad}" is not a tile number (use numbers separated by spaces).`;
+}
+
+/**
  * Waliduje reguły TYLKO danego kroku kreatora. Używane do blokady „Dalej": nie można
  * wymagać technologii startowych, zanim gracz dojdzie do kroku technologii, więc każdy
  * krok sprawdza wyłącznie SWOJE reguły. Zwraca komunikat błędu albo `null`.
@@ -308,12 +372,16 @@ export function validateStep(
   stepId: SetupStepDef["id"],
   slots: SetupSlot[],
   factionById: Map<string, FactionInfo>,
+  mapString = "",
 ): string | null {
   switch (stepId) {
     case "name-color":
-      // Krok „Gracze": nazwa, kolor ORAZ sterowanie (człowiek/bot + trudność bota).
+      // Krok „Gracze": nazwa, kolor, sterowanie (człowiek/bot) oraz kształt map stringa.
       return (
-        validateNames(slots) ?? validateColors(slots) ?? validateControl(slots)
+        validateNames(slots) ??
+        validateColors(slots) ??
+        validateControl(slots) ??
+        validateMapString(mapString)
       );
     case "faction":
       // Wybór technologii startowych jest teraz wbudowany w krok frakcji (panel
@@ -338,8 +406,10 @@ export function validateStep(
 export function validateSetup(
   slots: SetupSlot[],
   factionById: Map<string, FactionInfo>,
+  mapString = "",
 ): string | null {
   return (
+    validateMapString(mapString) ??
     validateNames(slots) ??
     validateColors(slots) ??
     validateFactions(slots) ??

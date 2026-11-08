@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Stack } from "@/ds";
+import { Box, Button } from "@/ds";
 import { useFactions } from "@/api/useNewGame";
-import SetupWizard, { STAGE_STEP_IDS } from "@/domains/setup/SetupWizard";
+import SetupWizard from "@/domains/setup/SetupWizard";
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
-import { currentStep, useSetupStore } from "@/domains/setup/useSetupStore";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
 
@@ -116,10 +115,6 @@ export default function StartScreen() {
   // zmiana widoku PRZEWIJA deck w pionie (translateY) z animacją, więc klik „Graj"
   // wygląda jak zjechanie strony w dół do kreatora.
   const [view, setView] = useState<"menu" | "setup">("menu");
-  // Krok pełnoekranowy (scena wyboru frakcji): bez panelu, paddingu i przewijania.
-  const stageMode = useSetupStore((s) =>
-    STAGE_STEP_IDS.has(currentStep(s.currentStepIndex).id),
-  );
   // Okno szkieletowe — na razie placeholder, wypełnimy je później.
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -195,32 +190,16 @@ export default function StartScreen() {
 
         {/* ── Ekran konfiguracji nowej gry (Setup_Wizard) ───────────────── */}
         <div
-          className={`${styles.setupScreen} ${
-            stageMode ? styles.setupScreenStage : ""
-          }`}
+          className={`${styles.setupScreen} ${styles.setupScreenStage}`}
           aria-hidden={view === "menu"}
           inert={view === "menu"}
         >
           {/*
            * Cały kreator (kroki, walidacja, wysyłka /game/new i nawigacja do /game)
-           * żyje w `SetupWizard`. Renderujemy go dopiero w widoku „setup", po
-           * załadowaniu frakcji (gwarantowane przez BootScreen powyżej). Krok sceny
-           * (frakcja) zajmuje cały ekran, więc pomija panel i przycisk menu.
+           * żyje w `SetupWizard`. Każdy krok to pełnoekranowa scena z własnym paskiem
+           * górnym; „Wstecz" na pierwszym kroku wraca do menu głównego (`onExit`).
            */}
-          {stageMode ? (
-            <SetupWizard />
-          ) : (
-            <Stack gap="md" className={styles.panel}>
-              <button
-                type="button"
-                className={styles.backButton}
-                onClick={() => setView("menu")}
-              >
-                ← Main menu
-              </button>
-              <SetupWizard />
-            </Stack>
-          )}
+          <SetupWizard onExit={() => setView("menu")} />
         </div>
       </div>
 
