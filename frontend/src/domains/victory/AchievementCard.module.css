@@ -1,0 +1,152 @@
+/*
+ * Karta osiągnięcia: zawsze ta sama wysokość i siatka (rzędy `1fr`), kolor wg kategorii.
+ * Układ: nagłówek (znaczek · kategoria · stat) → tytuł → opis → stopka z uczestnikami.
+ */
+
+.card {
+  --tone: #fca22b;
+  --cut: 10px;
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 100%;
+  min-height: 12.5rem;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--tone) 13%, rgb(9 8 7 / 0.93)), rgb(9 8 7 / 0.95));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--tone) 45%, transparent),
+    0 6px 20px rgb(0 0 0 / 0.5);
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+
+/* Kolor kategorii (ciepłe i spokojne; niebieski zostaje zarezerwowany dla interakcji). */
+.card[data-tag="War"] {
+  --tone: #e0654a;
+}
+.card[data-tag="Treachery"] {
+  --tone: #c0392b;
+}
+.card[data-tag="Race"] {
+  --tone: #f0c24b;
+}
+.card[data-tag="Empire"] {
+  --tone: #b28ae6;
+}
+.card[data-tag="Table"] {
+  --tone: #5fbf8a;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--tone);
+  background: color-mix(in oklab, var(--tone) 16%, rgb(0 0 0 / 0.5));
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in oklab, var(--tone) 70%, transparent),
+    0 0 14px color-mix(in oklab, var(--tone) 35%, transparent);
+}
+
+.tag {
+  font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--tone) 80%, white);
+}
+
+.stat {
+  margin-left: auto;
+  padding-left: 8px;
+  text-align: right;
+  white-space: nowrap;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: clamp(1.05rem, 1.5vw, 1.4rem);
+  letter-spacing: 0.04em;
+  color: #fff3d6;
+  text-shadow: 0 0 14px color-mix(in oklab, var(--tone) 60%, transparent);
+}
+
+.title {
+  margin: 0;
+  font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
+  font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tone);
+}
+
+.detail {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(0.85rem, 0.95vw, 0.98rem);
+  line-height: 1.45;
+  color: rgb(246 234 208 / 0.88);
+}
+
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in oklab, var(--tone) 28%, transparent);
+}
+
+.player {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 7px;
+  border-left: 3px solid var(--player, color-mix(in oklab, var(--tone) 60%, transparent));
+}
+
+.crest {
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--tone) 70%, transparent));
+}
+
+.playerName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #f6ead0;
+  line-height: 1.2;
+}
+
+.playerName small {
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgb(246 234 208 / 0.6);
+  font-size: 0.72rem;
+}

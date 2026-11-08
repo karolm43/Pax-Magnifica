@@ -35,6 +35,7 @@ import type {
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { portraitCandidates, useFactionAccent } from "@/domains/setup/FactionBackdrop";
 import { getEpilogue, DEFAULT_EPILOGUE_AUTHOR } from "./factionEpilogues";
+import { AchievementCard, type AchievementData, type AchievementPlayer } from "./AchievementCard";
 import { buildAwards, summarize } from "./gameStats";
 import styles from "./VictoryScreen.module.css";
 
@@ -598,6 +599,41 @@ function SummaryStage({
   const navigate = useNavigate();
   const rows = useMemo(() => summarize(players, winner.discordId), [players, winner]);
   const awards = useMemo(() => buildAwards(rows), [rows]);
+  const toPlayer = useCallback(
+    (p: PlayerData): AchievementPlayer => ({
+      id: p.discordId,
+      faction: p.faction,
+      factionName: factionById.get(p.faction)?.name ?? getPlayerFactionDisplayName(p),
+      playerName: isBot(p) ? "Bot" : playerName(p),
+      swatch: COLOR_SWATCH[p.color],
+    }),
+    [factionById],
+  );
+  const highlightCards = useMemo<AchievementData[]>(
+    () =>
+      highlights.map((h) => ({
+        key: h.key,
+        title: h.title,
+        detail: h.detail,
+        stat: h.stat ?? "",
+        players: h.players
+          .map((id) => players.find((p) => p.discordId === id))
+          .filter((p): p is PlayerData => p !== undefined)
+          .map(toPlayer),
+      })),
+    [highlights, players, toPlayer],
+  );
+  const awardCards = useMemo<AchievementData[]>(
+    () =>
+      awards.map((a) => ({
+        key: a.key,
+        title: a.title,
+        detail: a.detail,
+        stat: a.stat,
+        players: [toPlayer(a.player)],
+      })),
+    [awards, toPlayer],
+  );
   const columns: { key: string; label: string; value: (i: number) => number }[] = [
     { key: "vp", label: "VP", value: (i) => rows[i].vp },
     { key: "planets", label: "Planets", value: (i) => rows[i].planets },
@@ -670,52 +706,26 @@ function SummaryStage({
         </table>
       </div>
 
-      {highlights.length > 0 && (
-        <div className={styles.highlightsWrap}>
+      {highlightCards.length > 0 && (
+        <section className={styles.cardsSection} aria-label="Chronicle of the war">
           <h2 className={styles.sectionTitle}>Chronicle of the war</h2>
-          <ul className={styles.highlights}>
-            {highlights.map((h) => {
-              const involved = h.players
-                .map((id) => players.find((p) => p.discordId === id))
-                .filter((p): p is PlayerData => p !== undefined);
-              return (
-                <li
-                  key={h.key}
-                  className={styles.highlight}
-                  data-kind={h.key === "betrayal" ? "betrayal" : undefined}
-                >
-                  <span className={styles.highlightCrests}>
-                    {involved.map((p) => (
-                      <Crest key={p.discordId} factionId={p.faction} size={30} />
-                    ))}
-                  </span>
-                  <span className={styles.awardText}>
-                    <small>{h.title}</small>
-                    <em>{h.detail}</em>
-                  </span>
-                </li>
-              );
-            })}
+          <ul className={styles.cards}>
+            {highlightCards.map((card) => (
+              <AchievementCard key={card.key} item={card} />
+            ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {awards.length > 0 && (
-        <ul className={styles.awards} aria-label="Distinctions">
-          {awards.map((award) => (
-            <li key={award.key} className={styles.award} style={swatchStyle(award.player)}>
-              <Crest factionId={award.player.faction} size={34} />
-              <span className={styles.awardText}>
-                <small>{award.title}</small>
-                <b>
-                  {factionById.get(award.player.faction)?.name ??
-                    getPlayerFactionDisplayName(award.player)}
-                </b>
-                <em>{award.detail}</em>
-              </span>
-            </li>
-          ))}
-        </ul>
+      {awardCards.length > 0 && (
+        <section className={styles.cardsSection} aria-label="Distinctions">
+          <h2 className={styles.sectionTitle}>Distinctions</h2>
+          <ul className={styles.cards}>
+            {awardCards.map((card) => (
+              <AchievementCard key={card.key} item={card} />
+            ))}
+          </ul>
+        </section>
       )}
 
       <div className={styles.footer}>

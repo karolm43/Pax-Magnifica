@@ -539,6 +539,8 @@ export type GameHighlight = {
   key: string;
   title: string;
   detail: string;
+  /** Krótka liczba/hasło do dużego napisu na karcie. */
+  stat?: string;
   /** player_id uczestników (do ikon frakcji). */
   players: string[];
 };

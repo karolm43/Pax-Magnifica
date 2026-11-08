@@ -23,8 +23,10 @@ export interface PlayerSummary {
 export interface Award {
   key: string;
   title: string;
-  /** Opis zasługi, np. „7 planets". */
+  /** Opis zasługi, np. „7 planets held". */
   detail: string;
+  /** Krótka liczba do dużego napisu na karcie (np. „7"). */
+  stat: string;
   player: PlayerData;
 }
 
@@ -125,6 +127,7 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
         key: def.key,
         title: def.title,
         detail: def.detail(def.value(best)),
+        stat: String(def.value(best)),
         player: best.player,
       });
     }
@@ -141,6 +144,7 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
           ? `${second.vp} VP, ${gap} short of the throne`
           : `${second.vp} VP, level with the throne`,
       player: second.player,
+      stat: `${second.vp} VP`,
     });
   }
   const last = rows[rows.length - 1];
@@ -150,6 +154,7 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
       title: "The Wooden Spoon",
       detail: `${last.vp} VP, last at the table`,
       player: last.player,
+      stat: `${last.vp} VP`,
     });
   }
   return awards;

@@ -52,9 +52,7 @@ def pact_between(state: GameState, a: str, b: str) -> str | None:
     return None
 
 
-def record_deal(
-    state: GameState, a: str, b: str, a_gave: int = 0, b_gave: int = 0
-) -> None:
+def record_deal(state: GameState, a: str, b: str, a_gave: int = 0, b_gave: int = 0) -> None:
     """Zapisuje transakcję: ``a_gave`` / ``b_gave`` = trade goods + commodities od strony."""
     state.chronicle.deals.append(
         {"round": state.round_number, "a": a, "b": b, "a_gave": a_gave, "b_gave": b_gave}
@@ -134,7 +132,7 @@ def _top(counts: dict[str, int]) -> list[str]:
     return leaders if best > 0 and len(leaders) == 1 else []
 
 
-_Adder = Callable[[str, str, str, list[str]], None]
+_Adder = Callable[..., None]
 _Namer = Callable[[str], str]
 
 
@@ -167,11 +165,15 @@ def _race_highlights(state: GameState, who: _Namer, add: _Adder) -> None:
                 f"{who(top[0])} climbed from {_ordinal(worst)} place to "
                 f"{_ordinal(ranks[-1][top[0]])}.",
                 top,
+                stat=f"{_ordinal(worst)} to {_ordinal(ranks[-1][top[0]])}",
             )
 
         led = {
-            pid: sum(1 for s in snaps[:-1] if s[pid] == max(s.values()) > 0
-                     and list(s.values()).count(s[pid]) == 1)
+            pid: sum(
+                1
+                for s in snaps[:-1]
+                if s[pid] == max(s.values()) > 0 and list(s.values()).count(s[pid]) == 1
+            )
             for pid in state.players
             if pid != winner
         }
@@ -183,6 +185,7 @@ def _race_highlights(state: GameState, who: _Namer, add: _Adder) -> None:
                 f"{who(fallen[0])} led the race in {led[fallen[0]]} round"
                 f"{'s' if led[fallen[0]] > 1 else ''} but never reached the throne.",
                 fallen,
+                stat=f"led {led[fallen[0]]} rounds",
             )
 
     gains: dict[str, tuple[int, int]] = {}
@@ -200,6 +203,7 @@ def _race_highlights(state: GameState, who: _Namer, add: _Adder) -> None:
             "A Round to Remember",
             f"{who(best[0])} scored {best[1][0]} victory points in round {best[1][1]}.",
             [best[0]],
+            stat=f"+{best[1][0]} VP",
         )
 
     if (
@@ -213,6 +217,7 @@ def _race_highlights(state: GameState, who: _Namer, add: _Adder) -> None:
             "Wire to Wire",
             f"{who(winner)} was never behind in the race for the throne.",
             [winner],
+            stat=f"{len(snaps)} rounds",
         )
 
     given: dict[str, int] = {}
@@ -227,6 +232,7 @@ def _race_highlights(state: GameState, who: _Namer, add: _Adder) -> None:
             f"{who(generous[0])} handed over {given[generous[0]]} trade goods and "
             f"commodities to other players.",
             generous,
+            stat=f"{given[generous[0]]} given",
         )
 
 
@@ -247,6 +253,7 @@ def _board_highlights(
             "Keeper of the Throne Room",
             f"{who(throne)} held Mecatol Rex when the game ended.",
             [throne],
+            stat="Mecatol Rex",
         )
 
     legends: dict[str, int] = {}
@@ -261,6 +268,7 @@ def _board_highlights(
             "Legend Collector",
             f"{who(top[0])} controlled {legends[top[0]]} legendary planets.",
             top,
+            stat=f"{legends[top[0]]} legends",
         )
 
     hunted: dict[str, int] = {}
@@ -282,6 +290,7 @@ def _board_highlights(
             f"{who(hunter[0])} held {hunted[hunter[0]]} homeworld"
             f"{'s' if hunted[hunter[0]] > 1 else ''} of other players.",
             hunter,
+            stat=f"{hunted[hunter[0]]} homeworlds",
         )
     if exiled:
         add(
@@ -289,6 +298,7 @@ def _board_highlights(
             "The Exile",
             f"{who(exiled[0])} ended the game without a single one of their own homeworlds.",
             exiled[:1],
+            stat="0 homeworlds",
         )
 
     structures: dict[str, int] = {}
@@ -309,6 +319,7 @@ def _board_highlights(
             "Master Builder",
             f"{who(builder[0])} raised {structures[builder[0]]} PDS and space docks.",
             builder,
+            stat=f"{structures[builder[0]]} structures",
         )
     spread = _top({pid: len(s) for pid, s in presence.items()})
     if spread and len(presence[spread[0]]) >= 5:
@@ -317,6 +328,7 @@ def _board_highlights(
             "Everywhere at Once",
             f"{who(spread[0])} had forces in {len(presence[spread[0]])} different systems.",
             spread,
+            stat=f"{len(presence[spread[0]])} systems",
         )
 
 
@@ -335,8 +347,8 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
 
     out: list[dict[str, Any]] = []
 
-    def add(key: str, title: str, detail: str, players: list[str]) -> None:
-        out.append({"key": key, "title": title, "detail": detail, "players": players})
+    def add(key: str, title: str, detail: str, players: list[str], stat: str = "") -> None:
+        out.append({"key": key, "title": title, "detail": detail, "players": players, "stat": stat})
 
     battles = chron.battles
     total_lost = [sum(b["losses"].values()) for b in battles]
@@ -352,6 +364,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(b['attacker'])} against {who(b['defender'])} at {where(b)}, round "
                 f"{b['round']}: {total_lost[i]} units lost in a single {kind}.",
                 [b["attacker"], b["defender"]],
+                stat=f"{total_lost[i]} units lost",
             )
 
         j = max(range(len(battles)), key=lambda k: battles[k]["rounds"])
@@ -363,6 +376,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(longest['attacker'])} and {who(longest['defender'])} fought "
                 f"{longest['rounds']} rounds of combat at {where(longest)}.",
                 [longest["attacker"], longest["defender"]],
+                stat=f"{longest['rounds']} rounds",
             )
 
         crush = [
@@ -380,6 +394,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(c['winner'])} destroyed {total_lost[k]} units at {where(c)} "
                 f"without losing a single one.",
                 [c["winner"]],
+                stat=f"{total_lost[k]} kills, 0 lost",
             )
 
         walls = [
@@ -397,6 +412,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(w['defender'])} held {where(w)} against {who(w['attacker'])}, "
                 f"destroying {total_lost[k]} attackers without a single loss.",
                 [w["defender"]],
+                stat=f"{total_lost[k]} kills, 0 lost",
             )
 
         pyrrhic = [
@@ -415,6 +431,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(p['winner'])} took {where(p)}, but lost "
                 f"{p['losses'][p['winner']]} units doing it, more than the enemy.",
                 [p["winner"]],
+                stat=f"{p['losses'][p['winner']]} units lost",
             )
 
         # Zwycięstwa wg rodzaju walki oraz bilans (niepokonani).
@@ -436,7 +453,13 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
         ):
             top = _top(wins[kind])
             if top and wins[kind][top[0]] >= 2:
-                add(key, title, f"{who(top[0])} won {wins[kind][top[0]]} {text}.", top)
+                add(
+                    key,
+                    title,
+                    f"{who(top[0])} won {wins[kind][top[0]]} {text}.",
+                    top,
+                    stat=f"{wins[kind][top[0]]} wins",
+                )
         unbeaten = [p for p, n in played.items() if n >= 3 and won.get(p, 0) == n]
         if unbeaten:
             add(
@@ -444,6 +467,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 "Undefeated",
                 f"{who(unbeaten[0])} won every one of their {played[unbeaten[0]]} battles.",
                 unbeaten[:1],
+                stat=f"{played[unbeaten[0]]} wins, 0 losses",
             )
         rivalry = max(pair_fights, key=lambda p: pair_fights[p])
         if pair_fights[rivalry] >= 3:
@@ -453,6 +477,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 "An Eternal Rivalry",
                 f"{who(a)} and {who(b2)} clashed {pair_fights[rivalry]} times.",
                 [a, b2],
+                stat=f"{pair_fights[rivalry]} clashes",
             )
 
         mutual = [b for b in battles if b["winner"] is None]
@@ -464,6 +489,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 f"{who(m['attacker'])} and {who(m['defender'])} destroyed each other "
                 f"completely at {where(m)}. Nobody held the field.",
                 [m["attacker"], m["defender"]],
+                stat=f"{sum(m['losses'].values())} units lost",
             )
 
     # Zdrady: ataki na byłych partnerów handlowych (walki + podboje).
@@ -495,6 +521,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
             f"{who(worst[0])} struck {who(victim)} while holding a {pact} promissory note"
             f" between them" + (f" ({n} treacherous attacks in total)." if n > 1 else "."),
             [worst[0], victim],
+            stat=str(pact),
         )
 
     attacks: dict[str, int] = {}
@@ -504,7 +531,13 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
         defended[b["defender"]] = defended.get(b["defender"], 0) + 1
     for pid in _top(attacks):
         if attacks[pid] >= 2:
-            add("warmonger", "The Warmonger", f"{who(pid)} started {attacks[pid]} battles.", [pid])
+            add(
+                "warmonger",
+                "The Warmonger",
+                f"{who(pid)} started {attacks[pid]} battles.",
+                [pid],
+                stat=f"{attacks[pid]} battles",
+            )
     for pid in _top(defended):
         if defended[pid] >= 2:
             add(
@@ -512,6 +545,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 "Under Siege",
                 f"{who(pid)} was attacked {defended[pid]} times.",
                 [pid],
+                stat=f"{defended[pid]} attacks",
             )
 
     conquered: dict[str, int] = {}
@@ -524,6 +558,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
             f"{who(pid)} took {conquered[pid]} planet{'s' if conquered[pid] > 1 else ''} "
             f"from other players.",
             [pid],
+            stat=f"{conquered[pid]} planets",
         )
 
     deals: dict[str, int] = {}
@@ -531,7 +566,13 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
         for pid in (d["a"], d["b"]):
             deals[pid] = deals.get(pid, 0) + 1
     for pid in _top(deals):
-        add("diplomat", "The Diplomat", f"{who(pid)} made {deals[pid]} deals at the table.", [pid])
+        add(
+            "diplomat",
+            "The Diplomat",
+            f"{who(pid)} made {deals[pid]} deals at the table.",
+            [pid],
+            stat=f"{deals[pid]} deals",
+        )
     if chron.deals:
         loners = [pid for pid in state.players if pid not in deals]
         if len(loners) == 1:
@@ -540,6 +581,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 "The Hermit",
                 f"{who(loners[0])} never made a single deal while everyone else traded.",
                 loners,
+                stat="0 deals",
             )
 
     # Planeta, która najczęściej zmieniała właściciela.
@@ -556,6 +598,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 "A World Torn Apart",
                 f"{planet.name if planet else planet_id} changed hands {len(takers)} times.",
                 list(dict.fromkeys(takers)),
+                stat=f"{len(takers)} captures",
             )
 
     _race_highlights(state, who, add)
@@ -567,6 +610,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
             "A Galaxy at Peace",
             "Not a single battle was fought. The throne was won by wits alone.",
             [state.winner_id],
+            stat="0 battles",
         )
     if battles and state.winner_id and not attacks.get(state.winner_id, 0):
         add(
@@ -574,5 +618,6 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
             "The Quiet Victory",
             f"{who(state.winner_id or '')} won the throne without starting a single battle.",
             [state.winner_id or ""],
+            stat="0 battles started",
         )
     return out
