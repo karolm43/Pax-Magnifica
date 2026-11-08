@@ -139,14 +139,25 @@ function TokenWithInfo({
             window.clearTimeout(timer.current);
             setOpened(false);
           }}
-          // Lewy klik PRZECHODZI na heks (zaznaczenie / aktywacja systemu) - żeton
-          // (np. Custodians na Mecatol Rex) nie może blokować klikania w system.
-          // Opis reguły: najechanie z opóźnieniem albo PRAWY klik.
-          onContextMenu={(e) => {
-            e.preventDefault();
+          // Żeton (np. Custodians na Mecatol Rex) nie może blokować klikania w system.
+          // Klik jest PRZEKAZYWANY elementowi pod żetonem (cel heksa: zaznaczenie /
+          // aktywacja systemu). Prawy klik bąbelkuje do menu kafelka („Activate
+          // system"). Opis reguły: najechanie z opóźnieniem.
+          onClick={(e) => {
             e.stopPropagation();
-            window.clearTimeout(timer.current);
-            setOpened((o) => !o);
+            const el = e.currentTarget;
+            const prev = el.style.pointerEvents;
+            el.style.pointerEvents = "none";
+            const under = document.elementFromPoint(e.clientX, e.clientY);
+            el.style.pointerEvents = prev;
+            under?.dispatchEvent(
+              new MouseEvent("click", {
+                bubbles: true,
+                cancelable: true,
+                clientX: e.clientX,
+                clientY: e.clientY,
+              }),
+            );
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {

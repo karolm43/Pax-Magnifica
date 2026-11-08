@@ -419,32 +419,6 @@
   height: 20px;
 }
 
-/* Kafelki w spokojnym, jednolitym stylu: neutralna powierzchnia, kolor niesie
-   tylko ikona (zamiast trzech krzykliwych wypełnień obok głównej akcji). */
-.actionBtns > .tile:not(:disabled) {
-  background: rgba(255, 255, 255, 0.045);
-  border-color: var(--ds-h14);
-  color: var(--ds-ink);
-}
-
-.actionBtns > .tile:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: var(--ds-h22);
-  color: var(--ds-ink-hi);
-}
-
-.actionBtns > .pass:not(:disabled) svg {
-  color: rgb(var(--ds-sig-warn));
-}
-
-.actionBtns > .component:not(:disabled) svg {
-  color: rgb(var(--ds-sig-ability));
-}
-
-.actionBtns > .transaction:not(:disabled) svg {
-  color: rgb(var(--ds-sig-tg));
-}
-
 /* Przejście fazy / Skip phase: drugorzędne — niższe niż End turn. */
 .actionBtns > .nextPhase {
   padding: 8px 14px;
