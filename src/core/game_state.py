@@ -559,6 +559,8 @@ class GameChronicle(BaseModel):
     battles: list[dict[str, Any]] = Field(default_factory=list)
     conquests: list[dict[str, Any]] = Field(default_factory=list)
     deals: list[dict[str, Any]] = Field(default_factory=list)
+    # Migawki VP po punktowaniu każdej rundy: ``{"round": n, "vp": {player_id: punkty}}``.
+    rounds: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class EpilogueState(BaseModel):

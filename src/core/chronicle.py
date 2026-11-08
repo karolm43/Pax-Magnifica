@@ -11,8 +11,10 @@ kierunku). Transakcje są liczone tylko do „Dyplomaty".
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
+from src.core import objectives
 from src.core.game_state import ActiveCombat, GameState
 from src.core.registry import StaticDataRegistry
 
@@ -50,9 +52,36 @@ def pact_between(state: GameState, a: str, b: str) -> str | None:
     return None
 
 
-def record_deal(state: GameState, a: str, b: str) -> None:
-    """Zapisuje transakcję między dwoma graczami (mutuje stan)."""
-    state.chronicle.deals.append({"round": state.round_number, "a": a, "b": b})
+def record_deal(
+    state: GameState, a: str, b: str, a_gave: int = 0, b_gave: int = 0
+) -> None:
+    """Zapisuje transakcję: ``a_gave`` / ``b_gave`` = trade goods + commodities od strony."""
+    state.chronicle.deals.append(
+        {"round": state.round_number, "a": a, "b": b, "a_gave": a_gave, "b_gave": b_gave}
+    )
+
+
+def snapshot_round(state: GameState) -> None:
+    """Zapisuje migawkę VP bieżącej rundy (nadpisuje, jeśli runda ma już wpis)."""
+    entry = {
+        "round": state.round_number,
+        "vp": {pid: p.victory_points for pid, p in state.players.items()},
+    }
+    rounds = state.chronicle.rounds
+    if rounds and rounds[-1]["round"] == state.round_number:
+        rounds[-1] = entry
+    else:
+        rounds.append(entry)
+
+
+def _ordinal(n: int) -> str:
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _ranks(vp: dict[str, int]) -> dict[str, int]:
+    """Miejsce każdego gracza (1 = najwięcej VP; remis dzieli miejsce)."""
+    return {pid: 1 + sum(1 for other in vp.values() if other > mine) for pid, mine in vp.items()}
 
 
 def record_battle(state: GameState, combat: ActiveCombat) -> None:
@@ -103,6 +132,192 @@ def _top(counts: dict[str, int]) -> list[str]:
     best = max(counts.values())
     leaders = [p for p, n in counts.items() if n == best]
     return leaders if best > 0 and len(leaders) == 1 else []
+
+
+_Adder = Callable[[str, str, str, list[str]], None]
+_Namer = Callable[[str], str]
+
+
+def _race_highlights(state: GameState, who: _Namer, add: _Adder) -> None:
+    """Wnioski z wyścigu o punkty (migawki rund) i z hojności przy stole (transakcje)."""
+    chron = state.chronicle
+    snaps = [dict(s["vp"]) for s in chron.rounds]
+    rounds_no = [int(s["round"]) for s in chron.rounds]
+    final = {pid: p.victory_points for pid, p in state.players.items()}
+    if rounds_no and rounds_no[-1] == state.round_number:
+        snaps[-1] = final
+    else:
+        snaps.append(final)
+        rounds_no.append(state.round_number)
+    winner = state.winner_id
+    ranks = [_ranks(s) for s in snaps]
+
+    if len(state.players) >= 3 and len(snaps) >= 2:
+        climbs = {
+            pid: max(r[pid] for r in ranks) - ranks[-1][pid]
+            for pid in state.players
+            if all(pid in r for r in ranks)
+        }
+        top = _top(climbs)
+        if top and climbs[top[0]] >= 2:
+            worst = max(r[top[0]] for r in ranks)
+            add(
+                "comeback",
+                "The Comeback",
+                f"{who(top[0])} climbed from {_ordinal(worst)} place to "
+                f"{_ordinal(ranks[-1][top[0]])}.",
+                top,
+            )
+
+        led = {
+            pid: sum(1 for s in snaps[:-1] if s[pid] == max(s.values()) > 0
+                     and list(s.values()).count(s[pid]) == 1)
+            for pid in state.players
+            if pid != winner
+        }
+        fallen = _top(led)
+        if fallen:
+            add(
+                "fallen_favorite",
+                "The Fallen Favorite",
+                f"{who(fallen[0])} led the race in {led[fallen[0]]} round"
+                f"{'s' if led[fallen[0]] > 1 else ''} but never reached the throne.",
+                fallen,
+            )
+
+    gains: dict[str, tuple[int, int]] = {}
+    previous = dict.fromkeys(state.players, 0)
+    for rnd, snap in zip(rounds_no, snaps, strict=True):
+        for pid, vp in snap.items():
+            gain = vp - previous.get(pid, 0)
+            if gain > gains.get(pid, (0, 0))[0]:
+                gains[pid] = (gain, rnd)
+        previous = snap
+    best = max(gains.items(), key=lambda kv: kv[1][0], default=None)
+    if best and best[1][0] >= 3:
+        add(
+            "round_to_remember",
+            "A Round to Remember",
+            f"{who(best[0])} scored {best[1][0]} victory points in round {best[1][1]}.",
+            [best[0]],
+        )
+
+    if (
+        winner
+        and len(snaps) >= 3
+        and all(s[winner] == max(s.values()) for s in snaps if winner in s)
+        and any(s[winner] > 0 for s in snaps)
+    ):
+        add(
+            "wire_to_wire",
+            "Wire to Wire",
+            f"{who(winner)} was never behind in the race for the throne.",
+            [winner],
+        )
+
+    given: dict[str, int] = {}
+    for d in chron.deals:
+        given[d["a"]] = given.get(d["a"], 0) + int(d.get("a_gave", 0))
+        given[d["b"]] = given.get(d["b"], 0) + int(d.get("b_gave", 0))
+    generous = _top(given)
+    if generous and given[generous[0]] >= 3:
+        add(
+            "benefactor",
+            "The Benefactor",
+            f"{who(generous[0])} handed over {given[generous[0]]} trade goods and "
+            f"commodities to other players.",
+            generous,
+        )
+
+
+_STRUCTURES = ("pds", "spacedock")
+_MECATOL_IDS = ("mr", "mrte")
+
+
+def _board_highlights(
+    state: GameState, registry: StaticDataRegistry, who: _Namer, add: _Adder
+) -> None:
+    """Wnioski z końcowego obrazu planszy: Mecatol, legendy, domy, struktury, obecność."""
+    owners = objectives.planet_owners(state)
+
+    throne = next((owners[p] for p in _MECATOL_IDS if p in owners), None)
+    if throne:
+        add(
+            "throne_room",
+            "Keeper of the Throne Room",
+            f"{who(throne)} held Mecatol Rex when the game ended.",
+            [throne],
+        )
+
+    legends: dict[str, int] = {}
+    for planet_id, owner in owners.items():
+        planet = registry.planets.get(planet_id)
+        if planet and planet.legendary_ability_name:
+            legends[owner] = legends.get(owner, 0) + 1
+    top = _top(legends)
+    if top and legends[top[0]] >= 2:
+        add(
+            "legend_collector",
+            "Legend Collector",
+            f"{who(top[0])} controlled {legends[top[0]]} legendary planets.",
+            top,
+        )
+
+    hunted: dict[str, int] = {}
+    exiled: list[str] = []
+    for pid, player in state.players.items():
+        faction = registry.factions.get(player.faction) if player.faction else None
+        homes = list(faction.home_planets) if faction else []
+        if homes and all(owners.get(h) not in (None, pid) for h in homes):
+            exiled.append(pid)
+        for planet_id in homes:
+            holder = owners.get(planet_id)
+            if holder and holder != pid:
+                hunted[holder] = hunted.get(holder, 0) + 1
+    hunter = _top(hunted)
+    if hunter:
+        add(
+            "homeworld_hunter",
+            "Homeworld Hunter",
+            f"{who(hunter[0])} held {hunted[hunter[0]]} homeworld"
+            f"{'s' if hunted[hunter[0]] > 1 else ''} of other players.",
+            hunter,
+        )
+    if exiled:
+        add(
+            "exile",
+            "The Exile",
+            f"{who(exiled[0])} ended the game without a single one of their own homeworlds.",
+            exiled[:1],
+        )
+
+    structures: dict[str, int] = {}
+    presence: dict[str, set[str]] = {}
+    for position, system in state.systems.items():
+        for pid in system.space_units:
+            presence.setdefault(pid, set()).add(position)
+        for per_player in system.planet_units.values():
+            for pid, units in per_player.items():
+                presence.setdefault(pid, set()).add(position)
+                structures[pid] = structures.get(pid, 0) + sum(
+                    n for bt, n in units.items() if bt in _STRUCTURES
+                )
+    builder = _top(structures)
+    if builder and structures[builder[0]] >= 3:
+        add(
+            "master_builder",
+            "Master Builder",
+            f"{who(builder[0])} raised {structures[builder[0]]} PDS and space docks.",
+            builder,
+        )
+    spread = _top({pid: len(s) for pid, s in presence.items()})
+    if spread and len(presence[spread[0]]) >= 5:
+        add(
+            "everywhere",
+            "Everywhere at Once",
+            f"{who(spread[0])} had forces in {len(presence[spread[0]])} different systems.",
+            spread,
+        )
 
 
 def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str, Any]]:
@@ -343,6 +558,16 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 list(dict.fromkeys(takers)),
             )
 
+    _race_highlights(state, who, add)
+    _board_highlights(state, registry, who, add)
+
+    if not battles and state.winner_id:
+        add(
+            "peaceful_galaxy",
+            "A Galaxy at Peace",
+            "Not a single battle was fought. The throne was won by wits alone.",
+            [state.winner_id],
+        )
     if battles and state.winner_id and not attacks.get(state.winner_id, 0):
         add(
             "quiet_victory",

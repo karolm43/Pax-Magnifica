@@ -147,5 +147,11 @@ def resolve_transaction(
     _apply_side(new_state, active_id, partner_id, give)
     _apply_side(new_state, partner_id, active_id, receive)
     new_state.players[active_id].transacted_with.append(partner_id)
-    chronicle.record_deal(new_state, active_id, partner_id)
+    chronicle.record_deal(
+        new_state,
+        active_id,
+        partner_id,
+        give.trade_goods + give.commodities,
+        receive.trade_goods + receive.commodities,
+    )
     return new_state

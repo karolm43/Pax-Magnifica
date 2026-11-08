@@ -22,7 +22,7 @@ Kroki LRR i ich realizacja:
 
 from __future__ import annotations
 
-from src.core import objectives, strategy_phase, timing, turn_flow
+from src.core import chronicle, objectives, strategy_phase, timing, turn_flow
 from src.core.damage import repair_all
 from src.core.dice import next_rng
 from src.core.game_state import (
@@ -154,6 +154,7 @@ def _after_scoring(state: GameState, registry: StaticDataRegistry) -> GameState:
     """Kroki 2, 3, 4 i część 5: odkrycie celu, karty akcji, zebranie żetonów, +2 żetony."""
     del registry
     order = _initiative(state)
+    chronicle.snapshot_round(state)
 
     # Limit rund: punktowanie ostatniej rundy jest ostatnim ruchem gry — kończymy od razu
     # po nim (bez odkrywania celu, dobierania kart itd.). Wygrywa lider VP.
