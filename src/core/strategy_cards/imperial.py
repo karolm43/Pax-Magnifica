@@ -15,14 +15,13 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import objective_progress, objectives
-from src.core.dice import next_rng
 from src.core.game_state import GameState
 from src.core.map_string import MECATOL_SYSTEM_ID
+from src.core.secret_objectives import draw as draw_secret
+from src.core.secret_objectives import over_limit_after_draw
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 
 INITIATIVE = 8
-SECRET_LIMIT = 3  # „more than three secret objective cards"
-DRAWN = "drawn"  # wartość ``return``: oddaj świeżo dobraną kartę
 
 
 def controls_mecatol(state: GameState, player_id: str) -> bool:
@@ -31,45 +30,6 @@ def controls_mecatol(state: GameState, player_id: str) -> bool:
         if system.system_id == MECATOL_SYSTEM_ID:
             return player_id in system.planet_owners.values()
     return False
-
-
-def _secret_count(state: GameState, player_id: str) -> int:
-    player = state.players[player_id]
-    return len(player.private.secret_objectives) + len(player.scored_secrets)
-
-
-def over_limit_after_draw(state: GameState, player_id: str) -> bool:
-    """Czy po dobraniu 1 tajnego celu gracz przekroczy limit (i jest co dobrać)."""
-    has_cards = bool(state.decks.secret_objective_deck)
-    return has_cards and _secret_count(state, player_id) >= SECRET_LIMIT
-
-
-def draw_secret(state: GameState, player_id: str, give_back: str | None) -> None:
-    """Dobiera tajny cel (mutuje klon); przy nadmiarze zwraca wskazany i tasuje talię.
-
-    Raises:
-        ValueError: Nadmiar bez wskazania zwrotu, zwrot celu spoza ręki albo zdobytego.
-    """
-    decks = state.decks
-    private = state.players[player_id].private
-    if not decks.secret_objective_deck:
-        return  # brak kart do dobrania - nic się nie dzieje
-    must_return = over_limit_after_draw(state, player_id)
-    if must_return and give_back is None:
-        raise ValueError(
-            "You would hold more than 3 secret objectives - choose an unscored one to return."
-        )
-    if give_back is not None and not must_return:
-        raise ValueError("You are not over the secret objective limit - nothing to return.")
-    if give_back is not None and give_back != DRAWN and give_back not in private.secret_objectives:
-        raise ValueError("You can only return an UNSCORED secret objective from your hand.")
-    drawn = decks.secret_objective_deck.pop(0)
-    private.secret_objectives.append(drawn)
-    if give_back is not None:
-        target = drawn if give_back == DRAWN else give_back
-        private.secret_objectives.remove(target)
-        decks.secret_objective_deck.append(target)
-        next_rng(state).shuffle(decks.secret_objective_deck)
 
 
 def _give_back(payload: dict[str, Any]) -> str | None:

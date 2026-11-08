@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, economy, exhaust, unit_ops
+from src.core import command_tokens, economy, exhaust, relic_fragments, unit_ops
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.damage import clear_zone_damage
@@ -516,6 +516,7 @@ def options_for(
         return []
     card = _card_def(registry, cur.card_id)
     kind = (card.resolution or "").lower()
+
     if kind == "attach":
         return [ExploreOption("attach", "Attach to the planet")]
     if kind == "fragment":
@@ -637,13 +638,12 @@ def resolve(
     assert new_cur is not None
     card = _card_def(registry, new_cur.card_id)
     kind = (card.resolution or "").lower()
-    player = new_state.players[new_ex.player_id]
 
     if kind == "attach":
         summary = _apply_attach(new_state, new_ex, new_cur, card)
         fate = "attached"
     elif kind == "fragment":
-        player.relic_fragments.append(new_cur.card_id)
+        relic_fragments.gain(new_state, new_ex.player_id, new_cur.card_id)
         summary = "Placed face-up in the play area."
         fate = "kept"
     elif kind == "token":

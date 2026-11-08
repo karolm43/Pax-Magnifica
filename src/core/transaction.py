@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from src.core import chronicle, economy
+from src.core import chronicle, economy, promissory_notes, relic_fragments
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_of
@@ -75,19 +75,15 @@ def _validate_side(state: GameState, giver_id: str, side: TransactionSide, who: 
 
 def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: TransactionSide) -> None:
     """Przenosi komponenty ``side`` od ``giver_id`` do ``receiver_id`` (mutuje ``state``)."""
-    giver = state.players[giver_id]
-    receiver = state.players[receiver_id]
     # R_commodities: commodity oddana innemu graczowi staje się u odbiorcy trade good.
     economy.give_to_player(
         state, giver_id, receiver_id,
         trade_goods=side.trade_goods, commodities=side.commodities,
     )
     if side.promissory_note is not None:
-        giver.private.promissory_notes.remove(side.promissory_note)
-        receiver.private.promissory_notes.append(side.promissory_note)
+        promissory_notes.transfer(state, giver_id, receiver_id, side.promissory_note)
     for fragment in side.relic_fragments:
-        giver.relic_fragments.remove(fragment)
-        receiver.relic_fragments.append(fragment)
+        relic_fragments.transfer(state, giver_id, receiver_id, fragment)
 
 
 def can_transact_with(

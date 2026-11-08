@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import random
 
-from src.core import objectives, strategy_phase
+from src.core import objectives, promissory_notes, secret_objectives, strategy_phase
 from src.core.components import ComponentCategory
 from src.core.game_state import (
     ControlType,
@@ -49,14 +49,14 @@ def common_promissory_note_ids(registry: StaticDataRegistry, color: str) -> list
 def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> GameState:
     """Rozdaje każdemu graczowi wspólne notki jego koloru + notkę frakcyjną (do ręki)."""
     new_state = state.clone()
-    for player in new_state.players.values():
+    for player_id, player in new_state.players.items():
         hand: list[str] = []
         if player.color is not None:
             hand.extend(common_promissory_note_ids(registry, player.color))
         faction = registry.factions.get(player.faction) if player.faction else None
         if faction is not None:
             hand.extend(n for n in faction.promissory_notes if n not in hand)
-        player.private.promissory_notes = hand
+        promissory_notes.set_hand(new_state, player_id, hand)
     return new_state
 
 
@@ -217,13 +217,7 @@ def _apply_secret_choice(
 ) -> None:
     """Mutuje stan: wybrany cel do ręki, odrzucone do talii (tasowanie), gracz odhaczony."""
     assert state.setup is not None
-    private = state.players[player_id].private
-    returned = [c for c in private.secret_candidates if c != objective_id]
-    private.secret_objectives = [*private.secret_objectives, objective_id]
-    private.secret_candidates = []
-    deck = [*state.decks.secret_objective_deck, *returned]
-    rng.shuffle(deck)
-    state.decks.secret_objective_deck = deck
+    secret_objectives.choose_candidate(state, player_id, objective_id, rng)
     state.setup.secrets_chosen = [*state.setup.secrets_chosen, player_id]
 
 

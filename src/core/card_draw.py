@@ -46,6 +46,15 @@ def seed_action_deck(state: GameState, cards: list[str]) -> None:
     state.decks.action_card_discard = []
 
 
+def rearrange_agenda_top(
+    state: GameState, peeked: int, top: list[str], bottom: list[str]
+) -> None:
+    """Uk?ada ``peeked`` wierzchnich agend: ``top`` na g?r?, ``bottom`` na sp?d (Politics)."""
+    decks = state.decks
+    rest = decks.agenda_deck[peeked:]
+    decks.agenda_deck = [*top, *rest, *bottom]
+
+
 def ensure_agenda_deck(state: GameState, registry: StaticDataRegistry) -> None:
     """Leniwie zasiewa talię agend (pełna talia aktywnych źródeł, potasowana).
 

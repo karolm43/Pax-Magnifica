@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 
-from src.core import card_draw
+from src.core import card_draw, secret_objectives
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
 from src.core.game_state import GameState, ObjectivesState
 from src.core.hex_grid import HexGrid
@@ -128,17 +128,14 @@ def setup_objectives(
 
     secrets_deck = deck_card_ids(registry, _SECRET_DECK)
     chooser.shuffle(secrets_deck)
+    secret_objectives.seed_deck(new_state, secrets_deck)
     for player_id in new_state.players:
-        if not secrets_deck:
+        if not new_state.decks.secret_objective_deck:
             break
-        private = new_state.players[player_id].private
         if interactive:
-            private.secret_candidates = [
-                secrets_deck.pop(0) for _ in range(min(SECRET_CANDIDATES, len(secrets_deck)))
-            ]
+            secret_objectives.deal_candidates(new_state, player_id, SECRET_CANDIDATES)
         else:
-            private.secret_objectives = [secrets_deck.pop(0)]
-    new_state.decks.secret_objective_deck = secrets_deck
+            secret_objectives.deal_one_to_hand(new_state, player_id)
 
     actions = deck_card_ids(registry, _ACTION_DECK)
     chooser.shuffle(actions)
@@ -346,11 +343,7 @@ def score_secret(
         raise ValueError("This secret objective is not scored in the status phase.")
     _ensure_requirements(state, registry, grid, player_id, objective_id)
     new_state = pay_for_objective(state, registry, grid, player_id, objective_id)
-    target = new_state.players[player_id]
-    target.private.secret_objectives = [
-        o for o in target.private.secret_objectives if o != objective_id
-    ]
-    target.scored_secrets = [*target.scored_secrets, objective_id]
+    secret_objectives.score(new_state, player_id, objective_id)
     award_points(new_state, player_id, definition.points or 1)
     return new_state
 

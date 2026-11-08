@@ -262,7 +262,7 @@ Uwagi:
 | C6 | Zdobycie technologii (wiersz 9) | ✅ | `technology.grant_technology` (badanie i „gain" przez nią) |
 | C7 | Punkty zwycięstwa, karty akcji (ręka/talia/odrzucone), mówca (wiersze 10–11) | ✅ | `objectives.award_points`, `card_draw.py` (`draw/discard/seed`), `strategy_phase.set_speaker` |
 | C8 | Strażnik architektury | ✅ pilnuje 22 pól + `setattr`, z analizą aliasów (`units = system.space_units…; units[k] = …`) | `tests/test_central_points.py` |
-| C9 | Reszta zasobów i kart (patrz „Co zostało po fazie C") | ⬜ opcjonalnie przed H2 / w trakcie | secret objectives, promissory notes, fragmenty reliktów, talie/attachmenty eksploracji, przełom (`breakthrough_*`), logika w endpointach `api/` |
+| C9 | Reszta zasobów i kart | ✅ (poza logiką w `api/`, patrz niżej) | `core/secret_objectives.py`, `core/promissory_notes.py`, `core/relic_fragments.py`, `card_draw.rearrange_agenda_top`; strażnik rozszerzony o talie agend/eksploracji, `purged`, `planet_attachments`, `breakthrough_*` |
 
 Reguły wykonania: skan AST (a nie grep) znajduje też zapisy w krotkach, po kluczu słownika (`x.pole[k] = …`), `del` i mutacje list;
 refaktor nie zmienia zachowania (jedyny wyjątek: operacje ponad stan — np. wydanie żetonu/TG, którego nie ma — kończą się `ValueError`
@@ -456,13 +456,16 @@ Nazwy kart/zdolności to tylko ILUSTRACJE rodzaju efektu; treść zawsze z asset
 - Stan efektów trwałych (PERSISTENT: prawa agend, karty zostające w grze, wygasanie) i rejestr wyczerpywalnych zdolności („exhaust this card").
 - STOP / punkty kontrolne (RULES.md 43.4) i `actor_id` w endpointach akcji (RULES.md 44.1).
 
-## Co zostało po fazie C (C9) — świadomie poza zakresem
+## C9 — domknięte; co zostało po fazie C
 
-Mniejsze pola, mające już jedno-dwa miejsca zapisu; wchodzą pod hooki przy konkretnych kartach (dopisać do `OWNERS` przy refaktorze):
-- tajne cele: talia i ręka (`objectives.py`, `game_setup.py`, `strategy_cards/imperial.py`);
-- promissory notes: ręka (`transaction.py`, `game_setup.py`) i strefa gry (`promissory_notes_in_play`);
-- fragmenty reliktów (`exploration.py`, `transaction.py`), relikty;
-- talie eksploracji i attachmenty planet (`exploration.py`, `deck_piles.py` — narzędzie debug);
-- przełom frakcji: `breakthrough_unlocked`, `breakthrough_tg` (dziś tylko God-Mode);
+Zrobione w C9 (strażnik `tests/test_central_points.py` pilnuje wszystkich pól):
+- tajne cele (talia, ręka, kandydaci, zdobyte) → `core/secret_objectives.py` (limit 3 i zwrot nadmiaru tu);
+- promissory notes (ręka, strefa gry) → `core/promissory_notes.py`;
+- fragmenty reliktów → `core/relic_fragments.py`;
+- talie agend (zasiew, układanie wierzchu Politics) → `card_draw.py`;
+- talie/odrzucone/purge eksploracji i `planet_attachments` → `exploration.py` (+ `deck_piles.py` jako debug);
+- `breakthrough_unlocked`, `breakthrough_tg` — chronione, dziś tylko God-Mode (logika dojdzie z hookami).
+
+Nadal otwarte:
 - logika gry w endpointach `api/` (np. `game.py`: seating/mówca przy setupie) — przenieść do `core/` przy etapie sieciowym;
 - `board_edit.recompute_planet_control` (God-Mode) duplikuje `control.recompute_from_units` — świadomie, bo God-Mode omija reguły.

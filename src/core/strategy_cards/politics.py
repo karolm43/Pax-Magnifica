@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import strategy_phase
-from src.core.card_draw import draw_action_card, ensure_agenda_deck
+from src.core.card_draw import draw_action_card, ensure_agenda_deck, rearrange_agenda_top
 from src.core.game_state import GameState
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import str_list
@@ -72,10 +72,9 @@ def _primary(
 ) -> None:
     # Mówca i karty akcji rozstrzygnięte już w kroku ``choose_speaker``; tu tylko agendy.
     ensure_agenda_deck(state, ctx.registry)
-    decks = state.decks
-    peeked = _peek(state)
-    rest = decks.agenda_deck[len(peeked) :]
-    decks.agenda_deck = [*draft.get("top", []), *rest, *draft.get("bottom", [])]
+    rearrange_agenda_top(
+        state, len(_peek(state)), draft.get("top", []), draft.get("bottom", [])
+    )
 
 
 def _secondary(

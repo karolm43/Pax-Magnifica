@@ -54,6 +54,29 @@ OWNERS: dict[str, frozenset[str]] = {
     "action_cards": frozenset({"core/card_draw.py", _GOD_MODE}),
     "action_card_deck": frozenset({"core/card_draw.py", "core/deck_piles.py", _GOD_MODE}),
     "action_card_discard": frozenset({"core/card_draw.py", "core/deck_piles.py", _GOD_MODE}),
+    # --- C9: reszta kart i zasobów ---
+    # Talia agend: zasiew i układanie wierzchu (Politics) w ``card_draw``.
+    "agenda_deck": frozenset({"core/card_draw.py", _GOD_MODE}),
+    "agenda_discard": frozenset({"core/card_draw.py", _GOD_MODE}),
+    # Tajne cele: talia, ręka, kandydaci z setupu i zdobyte.
+    "secret_objective_deck": frozenset({"core/secret_objectives.py", _GOD_MODE}),
+    "secret_objectives": frozenset({"core/secret_objectives.py", _GOD_MODE}),
+    "secret_candidates": frozenset({"core/secret_objectives.py", _GOD_MODE}),
+    "scored_secrets": frozenset({"core/secret_objectives.py", _GOD_MODE}),
+    # Promissory notes: ręka i strefa gry.
+    "promissory_notes": frozenset({"core/promissory_notes.py", _GOD_MODE}),
+    "promissory_notes_in_play": frozenset({"core/promissory_notes.py", _GOD_MODE}),
+    # Fragmenty reliktów w strefie gracza.
+    "relic_fragments": frozenset({"core/relic_fragments.py", _GOD_MODE}),
+    # Eksploracja: talie, odrzucone, purge i attachmenty planet należą do ``exploration``;
+    # ``deck_piles.py`` to narzędzie DEBUG (God-Mode, RULES.md 46.4).
+    "exploration_deck": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
+    "exploration_discard": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
+    "purged": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
+    "planet_attachments": frozenset({"core/exploration.py", _GOD_MODE}),
+    # Przełom frakcji: dziś tylko God-Mode; logika odblokowania/odłożenia TG dojdzie z hookami.
+    "breakthrough_unlocked": frozenset({_GOD_MODE}),
+    "breakthrough_tg": frozenset({_GOD_MODE}),
 }
 
 # ``setattr`` ogólnego przeznaczenia (nazwa pola zmienna): moduły dozwolone poza właścicielami pól.
