@@ -168,6 +168,14 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
                 handlers.updateSettings({ absolAgendas: checked })
               }
             />
+            <SwitchRow
+              label="Black Spectrum Firmament Plots"
+              description="Replace the standard Firmament Plots with the Black Spectrum ones. Setting only for now: the effect is not implemented yet."
+              checked={settings.blackSpectrumFirmamentPlots}
+              onToggle={(checked) =>
+                handlers.updateSettings({ blackSpectrumFirmamentPlots: checked })
+              }
+            />
           </SettingGroup>
 
           <SettingGroup label="Map display">

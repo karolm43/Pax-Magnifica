@@ -60,6 +60,15 @@ Szczegóły: [docs/specyfikacja_techniczna_i_architektura_systemu.md](docs/specy
 - [ ] **M5 — Dyplomacja i kontrola lidera:** ocena zagrożeń, wycena ofert handlowych, głosowanie w fazie agendy.
 - [ ] **M6 — Asymetria frakcyjna + integracja głosowa:** reguły frakcyjne w `rules_hooks`, parser komend głosowych (voice-to-state).
 
+### Plany: warianty fanowskie
+
+- **Black Spectrum Firmament Plots** — fanowska zmiana, która ma ZASTĘPOWAĆ standardowe
+  Firmament Plots. W Ustawieniach (Game variants) jest już przełącznik
+  (`settings.blackSpectrumFirmamentPlots`), ale **efekt nie jest jeszcze zakodowany** —
+  do zrobienia później. Dane kart: `assets/data/genericcards/black_spectrum_firmament_plots.json`.
+  Wzorzec wdrożenia: jak talia agend Absol (ustawienie klienta → pole w `/game/new` →
+  wybór talii w `DecksState`).
+
 ## Struktura repozytorium
 
 ```

@@ -71,6 +71,7 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaNeighborship: true,
   adminFastMode: false,
   absolAgendas: false,
+  blackSpectrumFirmamentPlots: false,
   freeUnitDrag: false,
   skipPhases: false,
 };
@@ -518,6 +519,12 @@ export type Settings = {
    * (`createNewGame` wysyła `agenda_deck`); zmiana nie wpływa na grę w toku.
    */
   absolAgendas: boolean;
+  /*
+   * Black Spectrum Firmament Plots zamiast standardowych Firmament Plots (fanowska
+   * zmiana). NA RAZIE tylko przełącznik w Ustawieniach — efekt NIE jest jeszcze
+   * zakodowany (patrz README, „Plany").
+   */
+  blackSpectrumFirmamentPlots: boolean;
   /*
    * Swobodne przeciąganie jednostek (God-Mode). Wyłączone (domyślnie): drag na mapie
    * przenosi jednostki WYŁĄCZNIE do aktywnego systemu (walidowany ruch taktyczny).
