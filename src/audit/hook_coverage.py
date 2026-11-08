@@ -10,10 +10,10 @@ Dane:
   notes, eksploracja, wydarzenia, technologie, zdolności frakcji, liderzy, przełomy);
 * ``timing_spec`` — rodzaj wyzwalacza (when/after/instead/action…) komponentów z oknem.
 
-UWAGA: przypisanie komponentu do OBSZARU reguł (ruch, walka, ekonomia…) to HEURYSTYKA po słowach
-kluczowych w angielskim tekście komponentu. Służy do priorytetyzacji (który punkt zaczepienia
-obsłuży najwięcej komponentów), nie do decyzji o implementacji — treść zawsze czytamy z assetów
-i tirules2.
+UWAGA: przypisanie komponentu do OBSZARU reguł (ruch, walka, ekonomia…) i szacowany TYP hooka
+(FORBID/PERMIT/MODIFY/REPLACE/TRIGGER) to HEURYSTYKI po słowach kluczowych w angielskim tekście
+komponentu. Służą do priorytetyzacji (który punkt zaczepienia obsłuży najwięcej komponentów) i do
+przeglądu, nie do decyzji o implementacji — treść zawsze czytamy z assetów i tirules2.
 """
 
 from __future__ import annotations
@@ -27,10 +27,12 @@ from pathlib import Path
 
 from src.core import rules_hooks
 from src.core.components import ComponentCategory, ComponentRef
+from src.core.models import FactionDef
 from src.core.registry import StaticDataRegistry
 from src.core.timing_spec import TriggerKind, classify_trigger
 
 DOC_PATH = Path(__file__).resolve().parent.parent.parent / "docs" / "POKRYCIE_HOOKOW.md"
+SNIPPET = 140  # długość fragmentu tekstu w tabelach szczegółowych
 
 # Obszar reguł -> wzorzec słów kluczowych (heurystyka, patrz docstring modułu).
 AREAS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -73,6 +75,17 @@ AREAS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("karty strategii i inicjatywa", re.compile(r"strategy card|initiative", re.I)),
 )
 
+# Szacowany TYP hooka (RULES.md 43.1 pkt 4) wg słów kluczowych; pierwszy pasujący wygrywa.
+KINDS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("REPLACE (instead of)", re.compile(r"\binstead\b", re.I)),
+    ("FORBID (zakaz)", re.compile(r"cannot|can't|may not|must not|is not able|unable", re.I)),
+    (
+        "MODIFY (liczba/rzut)",
+        re.compile(r"[+-]\s?\d|\badditional\b|\bextra\b|\breroll|\bre-roll|\bmore\b|\bfewer", re.I),
+    ),
+    ("PERMIT (pozwolenie)", re.compile(r"\bmay\b|\bcan\b|\bable\b", re.I)),
+)
+
 _CATALOG_CATEGORIES = (
     ComponentCategory.ACTION_CARD,
     ComponentCategory.AGENDA,
@@ -89,9 +102,16 @@ class Row:
 
     category: ComponentCategory
     component_id: str
-    text: str
+    name: str
+    source: str
+    body: str
+    faction: str | None
     trigger: TriggerKind | None
     covered: bool
+
+    @property
+    def text(self) -> str:
+        return f"{self.name} {self.body}"
 
     @property
     def key(self) -> str:
@@ -103,32 +123,46 @@ def collect_rows(registry: StaticDataRegistry) -> list[Row]:
     covered = rules_hooks.covered_components()
     rows: list[Row] = []
 
-    def add(category: ComponentCategory, cid: str, text: str, window: str | None) -> None:
-        trigger = classify_trigger(window) if window else None
+    def add(
+        category: ComponentCategory,
+        cid: str,
+        name: str | None,
+        source: str,
+        body: str,
+        faction: str | None,
+        trigger: TriggerKind | None,
+    ) -> None:
         key = f"{category.value}:{cid}"
-        rows.append(Row(category, cid, text, trigger, key in covered))
+        rows.append(
+            Row(category, cid, name or cid, source, " ".join(body.split()), faction, trigger,
+                key in covered)
+        )
 
     for category in _CATALOG_CATEGORIES:
         for cid, component in registry.catalog.all(category).items():
-            text = " ".join([component.name or "", *component.texts.values()])
             spec = registry.catalog.timing_spec(ComponentRef(category, cid))
-            trigger = spec.trigger if spec is not None else None
-            rows.append(
-                Row(category, cid, text, trigger, f"{category.value}:{cid}" in covered)
+            add(
+                category, cid, component.name, component.source,
+                " ".join(component.texts.values()),
+                getattr(component, "faction", None),
+                spec.trigger if spec is not None else None,
             )
     for tid, tech in registry.technologies.items():
-        add(ComponentCategory.TECHNOLOGY, tid, f"{tech.name} {tech.text or ''}", None)
+        add(ComponentCategory.TECHNOLOGY, tid, tech.name, tech.source, tech.text or "",
+            tech.faction, None)
     for aid, ability in registry.abilities.items():
-        text = f"{ability.name} {ability.permanent_effect or ''} {ability.window_effect or ''}"
-        add(ComponentCategory.ABILITY, aid, text, ability.window)
+        body = f"{ability.permanent_effect or ''} {ability.window_effect or ''}"
+        window = ability.window
+        add(ComponentCategory.ABILITY, aid, ability.name, ability.source, body, ability.faction,
+            classify_trigger(window) if window else None)
     for lid, leader in registry.leaders.items():
-        add(
-            ComponentCategory.LEADER, lid,
-            f"{leader.name} {leader.ability_text or ''}", leader.ability_window,
-        )
+        window = leader.ability_window
+        add(ComponentCategory.LEADER, lid, leader.name, leader.source,
+            f"[{leader.type}] {leader.ability_text or ''}", leader.faction,
+            classify_trigger(window) if window else None)
     for bid, breakthrough in registry.breakthroughs.items():
-        text = f"{breakthrough.name} {breakthrough.text or ''}"
-        add(ComponentCategory.BREAKTHROUGH, bid, text, None)
+        add(ComponentCategory.BREAKTHROUGH, bid, breakthrough.name, breakthrough.source,
+            breakthrough.text or "", breakthrough.faction, None)
     return rows
 
 
@@ -137,49 +171,87 @@ def areas_of(text: str) -> list[str]:
     return [name for name, pattern in AREAS if pattern.search(text)]
 
 
-def render_markdown(registry: StaticDataRegistry) -> str:
-    """Składa raport w Markdown (deterministyczny dla tych samych danych i hooków)."""
-    rows = collect_rows(registry)
+def kind_of(row: Row) -> str:
+    """Szacowany typ hooka: wyzwalacz z okna (when/after/…) albo słowa kluczowe w tekście."""
+    if row.trigger in (TriggerKind.WHEN, TriggerKind.AFTER, TriggerKind.BEFORE):
+        return "TRIGGER (okno reakcji)"
+    if row.trigger is TriggerKind.INSTEAD:
+        return "REPLACE (instead of)"
+    for name, pattern in KINDS:
+        if pattern.search(row.body):
+            return name
+    return "—"
+
+
+def _cell(text: str) -> str:
+    return text.replace("|", "/").replace("\n", " ")
+
+
+def _snippet(text: str) -> str:
+    text = " ".join(text.split())
+    return _cell(text if len(text) <= SNIPPET else text[: SNIPPET - 1] + "…")
+
+
+def _hook_description(fn_doc: str | None) -> str:
+    if not fn_doc:
+        return "—"
+    return _cell(fn_doc.strip().splitlines()[0])
+
+
+def _faction_families(registry: StaticDataRegistry) -> dict[str, list[FactionDef]]:
+    families: dict[str, list[FactionDef]] = {}
+    for faction in registry.factions.values():
+        if faction.is_playable:
+            families.setdefault(registry.faction_family(faction), []).append(faction)
+    return families
+
+
+def _section_hooks() -> list[str]:
     hooks = rules_hooks.all_hooks()
-    lines: list[str] = [
-        "# Pokrycie hooków (generowany — nie edytuj ręcznie)",
-        "",
-        "Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.",
-        "Przypisanie do obszarów to HEURYSTYKA po słowach kluczowych "
-        "(priorytetyzacja, nie decyzja).",
-        "",
-        "## 1. Zarejestrowane hooki",
-        "",
-        f"Razem: **{len(hooks)}**.",
-        "",
-        "| Punkt zaczepienia | Rodzaj | Źródło | Komponent |",
-        "|---|---|---|---|",
+    lines = [
+        "## 1. Zarejestrowane hooki", "",
+        f"Razem: **{len(hooks)}**. Opis = pierwsza linia docstringu funkcji hooka.", "",
+        "| Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |",
+        "|---|---|---|---|---|",
     ]
     for hook in sorted(hooks, key=lambda h: (h.point, h.kind.value, h.source.component_id)):
         lines.append(
-            f"| `{hook.point}` | {hook.kind.name} | "
-            f"{hook.source.kind}:{hook.source.component_id} | {hook.covers or '—'} |"
+            f"| `{hook.point}` | {hook.kind.name} | {hook.source.kind}:{hook.source.component_id} "
+            f"| {hook.covers or '—'} | {_hook_description(hook.fn.__doc__)} |"
         )
+    lines += ["", "Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):", ""]
+    for name, value in sorted(vars(rules_hooks).items()):
+        if name.startswith("POINT_"):
+            lines.append(f"- `{value}`")
+    return lines + [""]
 
-    lines += ["", "## 2. Pokrycie per kategoria", "",
-              "| Kategoria | Komponentów | Z hookiem | % |", "|---|---:|---:|---:|"]
+
+def _section_categories(rows: list[Row]) -> list[str]:
+    lines = ["## 2. Pokrycie per kategoria", "",
+             "| Kategoria | Komponentów | Z hookiem | % |", "|---|---:|---:|---:|"]
     by_category: dict[ComponentCategory, list[Row]] = {}
     for row in rows:
         by_category.setdefault(row.category, []).append(row)
     for category in ComponentCategory:
         group = by_category.get(category)
-        if not group:
-            continue
-        done = sum(1 for r in group if r.covered)
-        percent = 100 * done / len(group)
-        lines.append(f"| {category.value} | {len(group)} | {done} | {percent:.1f} |")
+        if group:
+            done = sum(1 for r in group if r.covered)
+            lines.append(
+                f"| {category.value} | {len(group)} | {done} | {100 * done / len(group):.1f} |"
+            )
+    return lines + [""]
 
-    lines += ["", "## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)", "",
-              "| Wyzwalacz | Komponentów |", "|---|---:|"]
+
+def _section_triggers(rows: list[Row]) -> list[str]:
+    lines = ["## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)", "",
+             "| Wyzwalacz | Komponentów |", "|---|---:|"]
     triggers = Counter(r.trigger.value for r in rows if r.trigger is not None)
     for name, count in sorted(triggers.items(), key=lambda kv: (-kv[1], kv[0])):
         lines.append(f"| {name} | {count} |")
+    return lines + [""]
 
+
+def _section_areas(rows: list[Row]) -> list[str]:
     need: Counter[str] = Counter()
     need_open: Counter[str] = Counter()
     for row in rows:
@@ -187,18 +259,101 @@ def render_markdown(registry: StaticDataRegistry) -> str:
             need[area] += 1
             if not row.covered:
                 need_open[area] += 1
-    lines += ["", "## 4. Zapotrzebowanie na obszary reguł (priorytety)", "",
-              "Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego punkty "
-              "zaczepienia.", "",
-              "| Obszar | Komponentów | Bez hooka |", "|---|---:|---:|"]
+    lines = ["## 4. Zapotrzebowanie na obszary reguł i typy hooków (priorytety)", "",
+             "Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego punkty "
+             "zaczepienia.", "",
+             "| Obszar | Komponentów | Bez hooka |", "|---|---:|---:|"]
     for area, count in sorted(need.items(), key=lambda kv: (-kv[1], kv[0])):
         lines.append(f"| {area} | {count} | {need_open[area]} |")
-    unassigned = sum(1 for r in rows if not areas_of(r.text))
-    lines += [
-        "",
-        f"Bez dopasowania do obszaru: {unassigned} komponentów (do ręcznego przeglądu).",
-        "",
+    kinds = Counter(kind_of(r) for r in rows)
+    lines += ["", "Szacowany typ hooka (RULES.md 43.1 pkt 4):", "",
+              "| Typ | Komponentów |", "|---|---:|"]
+    for name, count in sorted(kinds.items(), key=lambda kv: (-kv[1], kv[0])):
+        lines.append(f"| {name} | {count} |")
+    return lines + [""]
+
+
+def _section_unmatched(rows: list[Row]) -> list[str]:
+    unmatched = [r for r in rows if not areas_of(r.text)]
+    lines = [f"## 5. Przypadki szczególne: bez dopasowania do obszaru ({len(unmatched)})", "",
+             "Te komponenty nie trafiły w żadne słowo kluczowe — wymagają ręcznego przeglądu "
+             "(często to unikalne mechaniki albo teksty zbyt ogólne).", "",
+             "| Kategoria | Id | Nazwa | Źródło | Wyzwalacz | Tekst |", "|---|---|---|---|---|---|"]
+    for r in sorted(unmatched, key=lambda x: (x.category.value, x.component_id)):
+        trigger = r.trigger.value if r.trigger else "—"
+        lines.append(
+            f"| {r.category.value} | `{r.component_id}` | {_cell(r.name)} | {r.source} | "
+            f"{trigger} | {_snippet(r.body)} |"
+        )
+    return lines + [""]
+
+
+def _section_factions(registry: StaticDataRegistry, rows: list[Row]) -> list[str]:
+    lines = ["## 6. Frakcje (komponenty frakcyjne i pokrycie)", "",
+             "Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisane "
+             "do frakcji. Keleres (3 warianty) liczony jako jedna rodzina.", "",
+             "| Frakcja | Zdolności | Tech. | Liderzy | Przełom | PN | Z hookiem / razem | "
+             "Obszary reguł |",
+             "|---|---:|---:|---:|---:|---:|---:|---|"]
+    for family, variants in sorted(_faction_families(registry).items()):
+        ids = {f.id for f in variants} | {family}
+        mine = [r for r in rows if r.faction is not None and r.faction.lower() in ids]
+        by = Counter(r.category for r in mine)
+        areas = sorted({a.split(" (")[0] for r in mine for a in areas_of(r.text)})
+        done = sum(1 for r in mine if r.covered)
+        name = variants[0].name
+        lines.append(
+            f"| {_cell(name)} (`{family}`) | {by[ComponentCategory.ABILITY]} | "
+            f"{by[ComponentCategory.TECHNOLOGY]} | {by[ComponentCategory.LEADER]} | "
+            f"{by[ComponentCategory.BREAKTHROUGH]} | {by[ComponentCategory.PROMISSORY_NOTE]} | "
+            f"{done} / {len(mine)} | {', '.join(areas) or '—'} |"
+        )
+    return lines + [""]
+
+
+def _section_details(rows: list[Row]) -> list[str]:
+    lines = ["## 7. Lista szczegółowa komponentów", "",
+             "Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.", ""]
+    by_category: dict[ComponentCategory, list[Row]] = {}
+    for row in rows:
+        by_category.setdefault(row.category, []).append(row)
+    for category in ComponentCategory:
+        group = by_category.get(category)
+        if not group:
+            continue
+        lines += [f"<details><summary>{category.value} ({len(group)})</summary>", "",
+                  "| Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |",
+                  "|---|---|---|---|---|---|:---:|---|"]
+        for r in sorted(group, key=lambda x: x.component_id):
+            areas = ", ".join(a.split(" (")[0] for a in areas_of(r.text)) or "—"
+            lines.append(
+                f"| `{r.component_id}` | {_cell(r.name)} | {r.faction or '—'} | "
+                f"{r.trigger.value if r.trigger else '—'} | {kind_of(r)} | {areas} | "
+                f"{'✔' if r.covered else '—'} | {_snippet(r.body)} |"
+            )
+        lines += ["", "</details>", ""]
+    return lines
+
+
+def render_markdown(registry: StaticDataRegistry) -> str:
+    """Składa raport w Markdown (deterministyczny dla tych samych danych i hooków)."""
+    rows = collect_rows(registry)
+    lines: list[str] = [
+        "# Pokrycie hooków (generowany — nie edytuj ręcznie)", "",
+        "Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.",
+        "Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych "
+        "(priorytetyzacja, nie decyzja).", "",
     ]
+    for section in (
+        _section_hooks(),
+        _section_categories(rows),
+        _section_triggers(rows),
+        _section_areas(rows),
+        _section_unmatched(rows),
+        _section_factions(registry, rows),
+        _section_details(rows),
+    ):
+        lines += section
     return "\n".join(lines)
 
 
