@@ -503,6 +503,18 @@ def skip_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
 _PLAYER_KINDS = ("player", "player_techs", "player_or_against")
 
 
+def repeal_law(state: GameState, law_id: str) -> None:
+    """Zdejmuje prawo z gry i kładzie jego kartę na stosie odrzuconych agend (Repeal Law).
+
+    Raises:
+        ValueError: Gdy takiego prawa nie ma w grze.
+    """
+    if law_id not in state.decks.agenda_laws:
+        raise ValueError(f"{law_id} is not a law in play.")
+    del state.decks.agenda_laws[law_id]
+    card_draw.discard_agenda(state, law_id)
+
+
 def law_owner(state: GameState, registry: StaticDataRegistry, agenda_id: str) -> str | None:
     """Gracz, który POSIADA prawo w grze (wygrał wybory „Elect Player"), albo ``None``.
 

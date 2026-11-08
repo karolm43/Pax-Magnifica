@@ -24,7 +24,7 @@ Funkcje operują na przekazanym ``state`` (KLON roboczy wołającego) i same go 
 
 from __future__ import annotations
 
-from src.core.game_state import GameState, PlayerState
+from src.core.game_state import GameState, PlayerState, SystemState
 
 POOLS: tuple[str, ...] = ("tactical", "fleet", "strategic")
 
@@ -103,6 +103,18 @@ def return_to_reinforcements(state: GameState, player_id: str, amount: int = 1) 
     if amount < 0:
         raise ValueError("The number of command tokens cannot be negative.")
     _player(state, player_id).cc_reinf += amount
+
+
+def remove_from_board(state: GameState, system: SystemState, player_id: str) -> None:
+    """Zdejmuje żeton gracza z systemu na planszy i oddaje go do rezerwy.
+
+    Raises:
+        ValueError: Gdy gracz nie ma w tym systemie swojego żetonu.
+    """
+    if player_id not in system.command_tokens:
+        raise ValueError(f"You have no command token in system {system.position}.")
+    system.command_tokens.remove(player_id)
+    return_to_reinforcements(state, player_id, 1)
 
 
 def add_to_pool(state: GameState, player_id: str, pool: str, amount: int = 1) -> None:

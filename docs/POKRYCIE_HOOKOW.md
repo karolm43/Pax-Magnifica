@@ -30,7 +30,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
 | Kategoria | Komponentów | Z hookiem | % |
 |---|---:|---:|---:|
-| action_cards | 143 | 5 | 3.5 |
+| action_cards | 143 | 16 | 11.2 |
 | agendas | 123 | 0 | 0.0 |
 | explores | 80 | 0 | 0.0 |
 | relics | 24 | 0 | 0.0 |
@@ -60,18 +60,18 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 246 | 241 |
-| walka (combat.*, space_cannon, bombardment) | 196 | 195 |
-| produkcja (production.*) | 177 | 175 |
-| ekonomia i płatności (economy, payment) | 168 | 166 |
-| karty (card_draw, promissory) | 145 | 145 |
+| planety i eksploracja (control, exploration) | 246 | 238 |
+| walka (combat.*, space_cannon, bombardment) | 196 | 192 |
+| produkcja (production.*) | 177 | 171 |
+| ekonomia i płatności (economy, payment) | 168 | 164 |
+| karty (card_draw, promissory) | 145 | 142 |
 | status i odświeżanie (status_phase) | 143 | 142 |
 | ruch (movement.*) | 125 | 124 |
-| żetony dowodzenia (command_tokens) | 109 | 109 |
+| żetony dowodzenia (command_tokens) | 109 | 108 |
 | agenda i głosowanie (agenda_phase) | 97 | 97 |
 | technologie (technology) | 78 | 78 |
 | karty strategii i inicjatywa | 46 | 43 |
-| cele i punkty (objectives) | 45 | 45 |
+| cele i punkty (objectives) | 45 | 44 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
@@ -176,7 +176,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `coup` | Coup d'Etat | — | when | TRIGGER (okno reakcji) | status i odświeżanie, karty strategii i inicjatywa | — | End that player's turn, the strategic action is not resolved and the strategy card is not exhausted. |
 | `courageous` | Courageous to the End | — | after | TRIGGER (okno reakcji) | walka | — | Roll 2 dice. For each result equal to or greater than that ship's combat value, your opponent must choose and destroy 1 of their ships. |
 | `crashlanding` | Crash Landing | — | when | TRIGGER (okno reakcji) | planety i eksploracja | — | Place 1 of your ground forces from the space area of the active system onto a planet in that system other than Mecatol Rex; if the planet c… |
-| `cripple` | Cripple Defenses | — | action | — | walka, planety i eksploracja | — | Choose 1 planet. Destroy each PDS on that planet. |
+| `cripple` | Cripple Defenses | — | action | — | walka, planety i eksploracja | ✔ | Choose 1 planet. Destroy each PDS on that planet. |
 | `crisis` | Crisis | — | at_end | — | — | — | Skip the next player's turn. |
 | `deadly_plot` | Deadly Plot | — | during | REPLACE (instead of) | karty, planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | If you voted for or predicted another outcome, discard the agenda instead. The agenda is resolved with no effect and it is not replaced. Th… |
 | `decoy` | Decoy Operation | — | after | TRIGGER (okno reakcji) | planety i eksploracja | — | Remove up to 2 of your ground forces from the game board and place them on a planet you control in the active system. |
@@ -213,18 +213,18 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `hack` | Hack Election | — | after | TRIGGER (okno reakcji) | agenda i głosowanie | — | During this agenda, you vote last. |
 | `harness` | Harness Energy | — | after | TRIGGER (okno reakcji) | ekonomia i płatności | — | Replenish your commodities. |
 | `imp_rider` | Imperial Rider | — | after | TRIGGER (okno reakcji) | agenda i głosowanie, cele i punkty | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, gain 1 victory point. |
-| `impersonation` | Impersonation | — | action | — | ekonomia i płatności, karty, cele i punkty | — | Spend 3 influence to draw 1 secret objective. |
+| `impersonation` | Impersonation | — | action | — | ekonomia i płatności, karty, cele i punkty | ✔ | Spend 3 influence to draw 1 secret objective. |
 | `industrial_initiative` | Industrial Initiative | — | action | — | ekonomia i płatności, planety i eksploracja, karty strategii i inicjatywa | ✔ | Gain 1 trade good for each industrial planet you control. |
 | `infiltrate` | Infiltrate | — | when | TRIGGER (okno reakcji) | produkcja, planety i eksploracja | — | Replace each PDS and space dock that is on that planet with a matching unit from your reinforcements. |
 | `insider` | Insider Information | — | after | TRIGGER (okno reakcji) | agenda i głosowanie | — | Look at the top 3 cards of the agenda deck. |
-| `insub` | Insubordination | — | action | — | produkcja | — | Remove 1 token from another player's tactic pool and return it to their reinforcements. |
+| `insub` | Insubordination | — | action | — | produkcja | ✔ | Remove 1 token from another player's tactic pool and return it to their reinforcements. |
 | `intercept` | Intercept | — | after | TRIGGER (okno reakcji) | walka | — | Your opponent cannot retreat during this round of space combat. |
 | `investments` | Manipulate Investments | — | at_start | — | ekonomia i płatności, karty strategii i inicjatywa | — | Place a total of 5 trade goods from the supply on strategy cards of your choice. You must place these tokens on at least 3 different cards. |
 | `jamming` | Signal Jamming | — | action | — | ruch, produkcja, żetony dowodzenia | — | Choose 1 non-home system that contains or is adjacent to 1 of your ships. Place a command token from another player's reinforcements in tha… |
 | `lead_rider` | Leadership Rider | — | after | TRIGGER (okno reakcji) | żetony dowodzenia, agenda i głosowanie | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, gain 3 command tokens. |
 | `lieinwait` | Lie in Wait | — | after | TRIGGER (okno reakcji) | karty | — | Look at each of those players' hands of action cards, then choose and take 1 action card from each. |
 | `lost_star` | Lost Star Chart | — | after | TRIGGER (okno reakcji) | ruch | — | During this tactical action, systems that contain alpha and beta wormholes are adjacent to each other. |
-| `lucky` | Lucky Shot | — | action | — | walka, planety i eksploracja | — | Destroy 1 dreadnought, cruiser, or destroyer in a system that contains a planet you control. |
+| `lucky` | Lucky Shot | — | action | — | walka, planety i eksploracja | ✔ | Destroy 1 dreadnought, cruiser, or destroyer in a system that contains a planet you control. |
 | `master_plan` | Master Plan | — | after | TRIGGER (okno reakcji) | — | — | Perform an additional action. |
 | `mb1` | Morale Boost | — | at_start | MODIFY (liczba/rzut) | walka | — | Apply +1 to the result of each of your unit's combat rolls during this combat round. |
 | `mb2` | Morale Boost | — | at_start | MODIFY (liczba/rzut) | walka | — | Apply +1 to the result of each of your unit's combat rolls during this combat round. |
@@ -247,15 +247,15 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `piratecontract4` | Pirate Contract | — | action | — | walka | — | Place 1 neutral destroyer in a non-home system that contains no non-neutral ships. |
 | `piratefleet` | Pirate Fleet | — | action | — | walka, ekonomia i płatności | — | Spend 3 resources to place 1 neutral carrier, 1 neutral cruiser, 1 neutral destroyer, and 2 neutral fighters in a non-home system that cont… |
 | `plagiarize` | Plagiarize | — | action | — | ekonomia i płatności, technologie | — | Spend 5 influence and choose a non-faction technology owned by 1 of your neighbors. Gain that technology. |
-| `plague` | Plague | — | action | — | walka, planety i eksploracja | — | Choose 1 planet that is controlled by another player. Roll 1 die for each infantry on that planet. For each result of 6 or greater, destroy… |
+| `plague` | Plague | — | action | — | walka, planety i eksploracja | ✔ | Choose 1 planet that is controlled by another player. Roll 1 die for each infantry on that planet. For each result of 6 or greater, destroy… |
 | `politic_rider` | Politics Rider | — | after | TRIGGER (okno reakcji) | karty, agenda i głosowanie | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, draw 3 action cards and gain the sp… |
 | `probe` | Exploration Probe | — | action | MODIFY (liczba/rzut) | ruch, planety i eksploracja | — | Explore a frontier token that is in or adjacent to a system that contains 1 or more of your ships. |
 | `puppetsonastring` | Puppets on a String | — | at_end | — | — | — | Perform 1 action. |
 | `rally` | Rally | — | after | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | — | Place 2 command tokens from your reinforcements in your fleet pool. |
-| `refit` | Refit Troops | — | action | — | — | — | Choose 1 or 2 of your infantry on the game board. Replace each of those infantry with mechs. |
+| `refit` | Refit Troops | — | action | — | — | ✔ | Choose 1 or 2 of your infantry on the game board. Replace each of those infantry with mechs. |
 | `reflective` | Reflective Shielding | — | when | TRIGGER (okno reakcji) | walka, produkcja | — | Produce 2 hits against your opponent's ships in the active system. |
 | `reparations` | Reparations | — | after | TRIGGER (okno reakcji) | planety i eksploracja, status i odświeżanie | — | Exhaust 1 planet that player controls and ready 1 planet you control. |
-| `repeal` | Repeal Law | — | action | — | karty | — | Discard 1 law from play. |
+| `repeal` | Repeal Law | — | action | — | karty | ✔ | Discard 1 law from play. |
 | `rescue` | Rescue | — | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | You may move 1 of your ships into the active system from any system that does not contain one of your command tokens. |
 | `reveal_prototype` | Reveal Prototype | — | at_start | — | walka, ekonomia i płatności, technologie | — | Spend 4 resources to research a unit upgrade technology of the same type as 1 of your units that is participating in this combat. |
 | `reverse_engineer` | Reverse Engineer | — | after | TRIGGER (okno reakcji) | karty | — | Take that action card from the discard pile. |
@@ -271,7 +271,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `salvage` | Salvage | — | after | TRIGGER (okno reakcji) | ekonomia i płatności | — | Your opponent gives you all of their commodities. |
 | `sanction` | Sanction | — | after | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia, agenda i głosowanie | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, each player that voted for that out… |
 | `scramble` | Scramble Frequency | — | after | TRIGGER (okno reakcji) | — | — | That player rerolls all of their dice. |
-| `scuttle` | Scuttle | — | action | — | produkcja, ekonomia i płatności | — | Choose 1 or 2 of your non-fighter ships on the game board and return them to your reinforcements. Gain trade goods equal to the combined co… |
+| `scuttle` | Scuttle | — | action | — | produkcja, ekonomia i płatności | ✔ | Choose 1 or 2 of your non-fighter ships on the game board and return them to your reinforcements. Gain trade goods equal to the combined co… |
 | `seize` | Seize Artifact | — | action | MODIFY (liczba/rzut) | planety i eksploracja | — | Choose 1 of your neighbors that has 1 or more relic fragments. That player must give you 1 relic fragment of your choice. |
 | `sh1` | Shields Holding | — | before | TRIGGER (okno reakcji) | walka | — | Cancel up to 2 hits. |
 | `sh2` | Shields Holding | — | before | TRIGGER (okno reakcji) | walka | — | Cancel up to 2 hits. |
@@ -279,7 +279,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `sh4` | Shields Holding | — | before | TRIGGER (okno reakcji) | walka | — | Cancel up to 2 hits. |
 | `silence_space` | In The Silence Of Space | — | after | TRIGGER (okno reakcji) | ruch | — | Choose 1 system. During this tactical action, your ships in the chosen system can move through systems that contain other players' ships. |
 | `solar_flare` | Solar Flare | — | after | TRIGGER (okno reakcji) | ruch, walka | — | During the "Movement" step of this tactical action, other players cannot use SPACE CANNON against your ships. |
-| `spy` | Spy | — | action | — | karty | — | Choose 1 player. That player gives you 1 random action card from their hand. |
+| `spy` | Spy | — | action | — | karty | ✔ | Choose 1 player. That player gives you 1 random action card from their hand. |
 | `stability` | Political Stability | — | when | TRIGGER (okno reakcji) | karty strategii i inicjatywa | — | Do not return your strategy card(s). You do not choose strategy cards during the next strategy phase. |
 | `strategize1` | Strategize | — | action | — | karty strategii i inicjatywa | — | Perform the secondary ability of any readied or unchosen strategy card. |
 | `strategize2` | Strategize | — | action | — | karty strategii i inicjatywa | — | Perform the secondary ability of any readied or unchosen strategy card. |
@@ -289,14 +289,14 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `tactical` | Tactical Bombardment | — | action | MODIFY (liczba/rzut) | walka, planety i eksploracja, status i odświeżanie | — | Choose 1 system that contains 1 or more of your units that have BOMBARDMENT. Exhaust each planet controlled by other players in that system. |
 | `tech_rider` | Technology Rider | — | after | TRIGGER (okno reakcji) | technologie, agenda i głosowanie | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, research 1 technology. |
 | `trade_rider` | Trade Rider | — | after | TRIGGER (okno reakcji) | ekonomia i płatności, agenda i głosowanie | — | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, gain 5 trade goods. |
-| `unexpected` | Unexpected Action | — | action | — | produkcja, żetony dowodzenia | — | Remove 1 of your command tokens from the game board and return it to your reinforcements. |
+| `unexpected` | Unexpected Action | — | action | — | produkcja, żetony dowodzenia | ✔ | Remove 1 of your command tokens from the game board and return it to your reinforcements. |
 | `unstable` | Unstable Planet | — | action | — | walka, planety i eksploracja, status i odświeżanie | — | Choose 1 hazardous planet. Exhaust that planet and destroy up to 3 infantry on it. |
 | `upgrade` | Upgrade | — | after | TRIGGER (okno reakcji) | produkcja | — | Replace 1 of your cruisers in that system with 1 dreadnought from your reinforcements. |
 | `uprising` | Uprising | — | action | — | ekonomia i płatności, planety i eksploracja, status i odświeżanie | — | Exhaust 1 non-home planet controlled by another player. Then gain trade goods equal to its resource value. |
 | `veto` | Veto | — | when | TRIGGER (okno reakcji) | karty, agenda i głosowanie | — | Discard that agenda and reveal 1 agenda from the top of the deck. Players vote on this agenda instead. |
 | `veto3` | Veto | — | when | TRIGGER (okno reakcji) | karty, agenda i głosowanie | — | Discard that agenda and reveal 1 agenda from the top of the deck. Players vote on this agenda instead. |
 | `veto4` | Veto | — | when | TRIGGER (okno reakcji) | karty, agenda i głosowanie | — | Discard that agenda and reveal 1 agenda from the top of the deck. Players vote on this agenda instead. |
-| `war_effort` | War Effort | — | action | MODIFY (liczba/rzut) | produkcja | — | Place 1 cruiser from your reinforcements in a system that contains 1 or more of your ships. |
+| `war_effort` | War Effort | — | action | MODIFY (liczba/rzut) | produkcja | ✔ | Place 1 cruiser from your reinforcements in a system that contains 1 or more of your ships. |
 | `war_machine1` | War Machine | — | when | TRIGGER (okno reakcji) | produkcja | — | Apply +4 to the total PRODUCTION value of your units and reduce the combined cost of the produced units by 1. |
 | `war_machine2` | War Machine | — | when | TRIGGER (okno reakcji) | produkcja | — | Apply +4 to the total PRODUCTION value of your units and reduce the combined cost of the produced units by 1. |
 | `war_machine3` | War Machine | — | when | TRIGGER (okno reakcji) | produkcja | — | Apply +4 to the total PRODUCTION value of your units and reduce the combined cost of the produced units by 1. |

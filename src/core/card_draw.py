@@ -55,6 +55,22 @@ def discard_specific_action_cards(
     state.decks.action_card_discard.extend(card_ids)
 
 
+def take_random_action_card(state: GameState, from_id: str, to_id: str) -> str:
+    """Przenosi LOSOWĄ kartę akcji z ręki ``from_id`` do ręki ``to_id`` (np. Spy).
+
+    Losowanie przez seedowalny RNG silnika (Undo/Redo bezpieczne). Mutuje ``state``.
+
+    Raises:
+        ValueError: Gdy ``from_id`` nie ma kart akcji.
+    """
+    hand = state.players[from_id].private.action_cards
+    if not hand:
+        raise ValueError(f"{from_id} has no action cards.")
+    card = hand.pop(next_rng(state).randrange(len(hand)))
+    state.players[to_id].private.action_cards.append(card)
+    return card
+
+
 def seed_action_deck(state: GameState, cards: list[str]) -> None:
     """Ustawia talię kart akcji (po potasowaniu przez wołającego) i czyści odrzucone (setup)."""
     state.decks.action_card_deck = cards

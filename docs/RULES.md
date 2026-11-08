@@ -3008,6 +3008,9 @@ Kod: `core/action_cards.py` (`play_action_card`), efekty w `core/hooks/action_ca
   nieobsługiwanej karty) czeka na decyzję użytkownika.
 - ⚠ NIE obsługiwane: karty reakcji (when/after/before/instead) - wymagają STOP i predykatów zagrywalności
   (43.4); anulowanie kart (Sabotage); limit 7 kart i inne karty bez okna ACTION.
+- ⚠ ZAŁOŻENIE: Refit Troops obejmuje tylko piechotę na planetach (nie ładunek w przestrzeni); Plague: kość k10
+  (próg 6+ z tekstu karty); Scuttle: TG = pole `cost` wariantu jednostki gracza, ułamki obcinane; Lucky Shot /
+  Insubordination / Spy / Plague nie mogą celować w siebie (R_action_cards, notatki).
 - ⚠ ZAŁOŻENIE: cechy planet (`industrial`/`cultural`/`hazardous`) z danych planety (`exploration.planet_traits`),
   bez cech nadawanych przez attachmenty.
 
@@ -3020,6 +3023,17 @@ Kod: `core/action_cards.py` (`play_action_card`), efekty w `core/hooks/action_ca
 | Mining Initiative | `mining_initiative` | TG = zasoby wskazanej własnej planety (`params.planet`) |
 | Frontline Deployment | `f_deployment` | 3 piechoty z rezerwy na wskazaną własną planetę (`unit_ops`) |
 | Rise of a Messiah | `messiah` | 1 piechota z rezerwy na każdej własnej planecie (`unit_ops`) |
+| Unexpected Action | `unexpected` | zdejmuje własny żeton z systemu do rezerwy (`command_tokens.remove_from_board`) |
+| Insubordination | `insub` | −1 żeton z puli taktycznej INNEGO gracza do jego rezerwy (`command_tokens`) |
+| Spy | `spy` | losowa karta akcji z ręki wskazanego gracza (seedowalny RNG, `card_draw`) |
+| Repeal Law | `repeal` | zdejmuje prawo z gry na stos odrzuconych agend (`agenda_phase.repeal_law`) |
+| Impersonation | `impersonation` | wydaje ≥3 wpływu (`payment`) i dobiera tajny cel (`secret_objectives`) |
+| War Effort | `war_effort` | 1 krążownik z rezerwy do systemu z własnymi statkami (`unit_ops`) |
+| Lucky Shot | `lucky` | niszczy dreadnought/cruiser/destroyer INNEGO gracza w systemie z własną planetą |
+| Cripple Defenses | `cripple` | niszczy każdy PDS na wskazanej planecie (wszyscy gracze) |
+| Plague | `plague` | k10 na każdą piechotę na CUDZEJ planecie; wynik ≥6 niszczy jednostkę (RNG silnika) |
+| Refit Troops | `refit` | 1–2 własne piechoty na planetach -> mechy z rezerwy (limit rezerwy mechów) |
+| Scuttle | `scuttle` | 1–2 własne statki nie-myśliwce do rezerwy; TG = suma kosztów (`fleet_pool.unit_cost`) |
 
 **Nowe punkty zaczepienia (RULES.md 43):** `agenda.vote_modifier` (MODIFY, podpięte w `agenda_phase.extra_votes`),
 `combat.extra_dice` (MODIFY), `combat.reroll_misses` (PERMIT, jedno przerzucenie chybień w `battle.roll_round`).
