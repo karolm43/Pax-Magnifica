@@ -138,53 +138,46 @@
 /* ── 1. Triumph ────────────────────────────────────────────────────────── */
 
 .triumph {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  /* Pas portretu jak na scenie wyboru frakcji: postać przy lewej i dolnej krawędzi ekranu. */
+  --portrait-w: clamp(360px, 64vw, 1100px);
+  --quote-h: 0px;
+  /* Początek tekstu: prawa krawędź sylwetki (2 × środek) z lekkim nachodzeniem (~14%). */
+  --text-left: clamp(34vw, calc(var(--figure-cx, 40vw) * 2 * 0.86), 64vw);
 }
 
 /*
- * Portret zwycięzcy = `FactionPortraitLayer` ze sceny wyboru frakcji (ten sam układ:
- * sylwetka dosunięta do lewego dolnego rogu ekranu z pomiaru alfy, miękkie krawędzie,
- * wyłanianie z mgły). Tu tylko strefa: pełna wysokość (bez paska cytatu) i szeroki pas.
+ * Tekst leży na ciemnym, miękkim gradiencie, który zaczyna się jeszcze NA postaci i
+ * stopniowo ją przykrywa — dzięki temu prawy, ewentualnie ucięty brzeg portretu znika w tle.
  */
-.triumphArt {
-  --portrait-w: clamp(360px, 60%, 1100px);
-  --quote-h: 0px;
-  --t-portrait-delay: 0.2s;
-  --t-portrait-fade: 4.5s;
-  --t-portrait-unblur: 2s;
-  --t-portrait-glow: 6s;
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* Fallback (brak danych frakcji): sama ikona frakcji jako przygaszony symbol. */
-.triumphPortrait,
-.triumphIcon {
-  position: absolute;
-  left: 6vw;
-  bottom: 18vh;
-  width: min(34vw, 56vh);
-  opacity: 0.4;
-  filter: drop-shadow(0 0 30px var(--accent, #fca22b));
-}
-
-/* Tekst po prawej, wyśrodkowany w pionie; delikatna ciemna poświata scala go z portretem. */
 .triumphText {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: calc(var(--text-left) - clamp(70px, 9vw, 160px));
   z-index: 1;
   box-sizing: border-box;
-  width: min(56%, 52rem);
+  padding: 0 clamp(20px, 5vw, 90px) 0 clamp(70px, 9vw, 160px);
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: flex-start;
   gap: clamp(8px, 1.6vh, 18px);
-  padding: clamp(24px, 5vh, 60px) clamp(20px, 5vw, 90px) clamp(24px, 5vh, 60px) clamp(24px, 4vw, 70px);
-  background: radial-gradient(ellipse at 40% 50%, rgb(0 0 0 / 0.45), transparent 70%);
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgb(5 4 3 / 0.78) clamp(70px, 9vw, 160px),
+    rgb(5 4 3 / 0.82) 100%
+  );
+}
+
+@keyframes portraitIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .triumphText > * {
   animation: riseIn 1.2s ease-out both;
@@ -766,14 +759,17 @@
 }
 
 @media (max-width: 900px) {
-  .triumphArt {
-    opacity: 0.55;
+  /* Wąski ekran: portret za całością, tekst na dole na ciemnym gradiencie. */
+  .triumph {
+    --portrait-w: 100%;
   }
   .triumphText {
-    width: 100%;
+    left: 0;
+    justify-content: flex-end;
     align-items: center;
     text-align: center;
-    padding: 0 16px;
+    padding: 0 16px 24px;
+    background: linear-gradient(to top, rgb(5 4 3 / 0.92) 55%, transparent);
   }
   .choices {
     grid-template-columns: 1fr;
@@ -782,7 +778,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stage,
-  .triumphPortrait,
   .triumphText > *,
   .verdict {
     animation: fadeIn 1.6s ease-out both;

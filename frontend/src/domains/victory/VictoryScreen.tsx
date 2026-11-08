@@ -97,37 +97,6 @@ function reasonText(
   }
 }
 
-/** Portret frakcji z łańcuchem zapasowym (portret → bohater → ikona), jak w intrze. */
-function FactionArt({
-  factionId,
-  faction,
-  className,
-  iconClassName,
-}: {
-  factionId: string;
-  faction: FactionInfo | undefined;
-  className: string;
-  iconClassName: string;
-}) {
-  const sources = useMemo(
-    () =>
-      faction ? portraitCandidates(faction) : [`/static/factions/${factionId}.png`],
-    [faction, factionId],
-  );
-  const [index, setIndex] = useState(0);
-  if (index >= sources.length) return null;
-  const isIcon = index === sources.length - 1;
-  return (
-    <img
-      key={sources[index]}
-      src={sources[index]}
-      alt=""
-      className={isIcon ? iconClassName : className}
-      onError={() => setIndex((i) => i + 1)}
-    />
-  );
-}
-
 function Crest({ factionId, size }: { factionId: string; size: number }) {
   return (
     <img
@@ -280,23 +249,19 @@ function TriumphStage({
   vpsToWin: number;
   onContinue: () => void;
 }) {
+  // Środek widocznej sylwetki (px od lewej krawędzi ekranu) — po pomiarze obrazka. Tekst
+  // zaczyna się tuż przy prawej krawędzi sylwetki i lekko na nią nachodzi, żeby ukryć
+  // ucięty brzeg portretów, które nie mają pełnego kadru (jak lore na scenie wyboru frakcji).
+  const [figureCx, setFigureCx] = useState<number | null>(null);
+  const portraitFaction =
+    faction ?? ({ id: winner.faction, leaders: [] } as unknown as FactionInfo);
+  const sceneStyle = {
+    ...swatchStyle(winner),
+    ...(figureCx !== null ? { "--figure-cx": `${figureCx}px` } : {}),
+  } as CSSProperties;
   return (
-    <section className={`${styles.stage} ${styles.triumph}`} style={swatchStyle(winner)}>
-      {/* Ta sama warstwa portretu co w scenie wyboru frakcji (dosunięcie do lewego
-          dolnego rogu z pomiaru alfy, miękkie krawędzie, wyłanianie z mgły). */}
-      <div className={styles.triumphArt}>
-        {faction ? (
-          <FactionPortraitLayer faction={faction} />
-        ) : (
-          <FactionArt
-            factionId={winner.faction}
-            faction={faction}
-            className={styles.triumphPortrait}
-            iconClassName={styles.triumphIcon}
-          />
-        )}
-      </div>
-      <div className={styles.triumphText}>
+    <section className={`${styles.stage} ${styles.triumph}`} style={sceneStyle}>
+      <FactionPortraitLayer faction={portraitFaction} onFigureCenter={setFigureCx} />      <div className={styles.triumphText}>
         <p className={styles.kicker}>Round {round}</p>
         <h1 className={styles.victory}>Victory</h1>
         <div className={styles.winnerLine}>
