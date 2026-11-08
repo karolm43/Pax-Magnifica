@@ -1,4 +1,4 @@
-import type { GameData } from "@/entities/game/types";
+﻿import type { GameData } from "@/entities/game/types";
 import type { PlayerData } from "@/entities/data/types";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getTechData } from "@/entities/lookup/tech";
@@ -8,7 +8,26 @@ import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getTileById } from "@/entities/lookup/systems";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
-import { searchKey, type SearchKey, type SearchKind } from "./searchKeys";
+import {
+  cardSearchKey,
+  searchKey,
+  type SearchKey,
+  type SearchKind,
+} from "./searchKeys";
+import {
+  actionCardPool,
+  agendaPool,
+  explorationPool,
+  publicObjectivePool,
+  relicPool,
+  secretObjectivePool,
+  type PoolGroup,
+} from "@/domains/cards/model/cardPoolBrowser";
+import {
+  deckSpecs,
+  entriesFromIds,
+  type PileTab,
+} from "@/domains/cards/model/deckPiles";
 import { buildCategoryEntries } from "./searchCategories";
 import { normalizeSearchText, toTerms } from "./searchText";
 
@@ -37,6 +56,8 @@ export type SearchEntry = {
   targets: SearchKey[];
   /** Only the board's copies of the targets count, e.g. units: a planet card says nothing about them. */
   boardOnly?: boolean;
+  /** Wynik to karta z talii: wybór otwiera tę talię (na zakładce) w zakładce General. */
+  deck?: { id: string | null; tab?: PileTab };
 };
 
 export const SEARCH_KIND_LABELS: Record<EntryKind, string> = {
@@ -59,6 +80,7 @@ export const SEARCH_KIND_LABELS: Record<EntryKind, string> = {
   objective: "Objective",
   secret: "Secret",
   law: "Law",
+  card: "Card",
 };
 
 /** Breaks ties between equally good matches: the board before the cards. */
@@ -82,11 +104,12 @@ const KIND_PRIORITY: EntryKind[] = [
   "objective",
   "secret",
   "law",
+  "card",
 ];
 
 const MAX_RESULTS = 8;
 
-type ItemEntry = Pick<SearchEntry, "kind" | "label" | "detail"> & {
+type ItemEntry = Pick<SearchEntry, "kind" | "label" | "detail" | "deck"> & {
   key: SearchKey;
   /** Where the result points, when that isn't the item itself. */
   targets?: SearchKey[];
@@ -136,9 +159,12 @@ export function buildSearchIndex(gameData: GameData): SearchEntry[] {
 
   addPlanets(builder, gameData, players, factionNames);
   addSystems(builder, gameData);
+  /* Przed zasobami graczy: wpis techu z katalogu ma pierwszeństwo (otwiera General). */
+  addGeneralTechs(builder, gameData);
   players.forEach((player) => addPlayerHoldings(builder, gameData, player));
   addPublicCards(builder, gameData);
   addStrategyCards(builder, gameData, factionNames);
+  addDeckCards(builder, gameData);
 
   return [...builder.entries(), ...buildCategoryEntries(gameData, players, factionNames)];
 }
@@ -315,6 +341,77 @@ function addStrategyCards(
         targets: holder ? [searchKey("faction", holder)] : undefined,
       },
       [card.name, card.id, String(card.initiative), `sc ${card.initiative}`],
+    );
+  });
+}
+
+/**
+ * Karty ze wszystkich talii (pełne pule z danych statycznych). Karta w talii
+ * eksploracji / akcji trafia na zakładkę, na której faktycznie leży (talia,
+ * odrzucone, purge) - reszta talii nie ma stosów, więc pokazuje całą pulę.
+ */
+function addDeckCards(builder: IndexBuilder, gameData: GameData) {
+  const specs = new Map(
+    (gameData.cardPool ? deckSpecs(gameData.cardPool) : []).map((s) => [s.key, s]),
+  );
+  const tabOf = (deckId: string, name: string): PileTab | undefined => {
+    const spec = specs.get(deckId);
+    if (!spec) return undefined;
+    const tabs: PileTab[] = ["deck", "discard", "purged"];
+    return tabs.find((tab) =>
+      entriesFromIds(spec.kind, spec[tab]).some((entry) => entry.name === name),
+    );
+  };
+
+  const decks: { id: string; label: string; groups: PoolGroup[] }[] = [
+    { id: "action", label: "Action deck", groups: actionCardPool() },
+    { id: "agenda", label: "Agenda deck", groups: agendaPool() },
+    { id: "relic", label: "Relic deck", groups: relicPool() },
+    { id: "secret", label: "Secret objectives deck", groups: secretObjectivePool() },
+    { id: "stage1", label: "Stage I objectives", groups: publicObjectivePool(1) },
+    { id: "stage2", label: "Stage II objectives", groups: publicObjectivePool(2) },
+    ...(["Cultural", "Industrial", "Hazardous", "Frontier"] as const).map((type) => ({
+      id: type.toLowerCase(),
+      label: `${type} exploration deck`,
+      groups: explorationPool(type),
+    })),
+  ];
+
+  decks.forEach((deck) =>
+    deck.groups
+      .flatMap((group) => group.entries)
+      .forEach((card) =>
+        builder.add(
+          {
+            key: cardSearchKey(deck.id, card.name),
+            kind: "card",
+            label: card.name,
+            detail: deck.label,
+            deck: { id: deck.id, tab: tabOf(deck.id, card.name) },
+          },
+          [card.name],
+        ),
+      ),
+  );
+}
+
+/**
+ * Technologie ogólne z katalogu w zakładce General (także te, których nikt jeszcze
+ * nie ma). Wybór pokazuje zakładkę General, gdzie leży katalog.
+ */
+function addGeneralTechs(builder: IndexBuilder, gameData: GameData) {
+  (gameData.cardPool?.technologyDeck ?? []).forEach((techId) => {
+    const tech = getTechData(techId);
+    if (!tech || tech.faction) return;
+    builder.add(
+      {
+        key: searchKey("tech", techId),
+        kind: "tech",
+        label: tech.name,
+        detail: "",
+        deck: { id: null },
+      },
+      [tech.name, tech.shortName, techId],
     );
   });
 }

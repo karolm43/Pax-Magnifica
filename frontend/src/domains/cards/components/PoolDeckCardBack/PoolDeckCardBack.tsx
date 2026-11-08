@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { CardbackModal } from "@/shared/ui/CardbackModal";
 import { CardPoolBrowser } from "@/domains/cards/components/CardPoolBrowser/CardPoolBrowser";
@@ -38,10 +38,11 @@ export function AgendaDeckCardBack({ count }: BackProps) {
       imageSrc={assetUrl("/player_area/cardback_agenda.png")}
       alt="agenda cards"
       title="Agendas"
+      deckId="agenda"
       count={count || totalCount(groups)}
       modalSize={880}
     >
-      <CardPoolBrowser groups={groups} />
+      <CardPoolBrowser groups={groups} deckId="agenda" />
     </CardbackModal>
   );
 }
@@ -54,10 +55,11 @@ export function ActionCardDeckCardBack({ count }: BackProps) {
       imageSrc={assetUrl("/player_area/cardback_action.jpg")}
       alt="action cards"
       title="Action cards"
+      deckId="action"
       count={count || totalCount(groups)}
       modalSize={880}
     >
-      <CardPoolBrowser groups={groups} />
+      <CardPoolBrowser groups={groups} deckId="action" />
     </CardbackModal>
   );
 }
@@ -77,10 +79,11 @@ export function PublicObjectiveDeckCardBack({ stage, count }: ObjectiveBackProps
       imageSrc={assetUrl(`/player_area/${image}`)}
       alt={`public stage ${stage} objectives`}
       title={title}
+      deckId={`stage${stage}`}
       count={count || totalCount(groups)}
       modalSize={880}
     >
-      <CardPoolBrowser groups={groups} />
+      <CardPoolBrowser groups={groups} deckId={`stage${stage}`} />
     </CardbackModal>
   );
 }
@@ -93,10 +96,11 @@ export function SecretObjectiveDeckCardBack({ count }: BackProps) {
       imageSrc={assetUrl("/player_area/cardback_secret.jpg")}
       alt="secret objectives"
       title="Secret objectives"
+      deckId="secret"
       count={count || totalCount(groups)}
       modalSize={880}
     >
-      <CardPoolBrowser groups={groups} />
+      <CardPoolBrowser groups={groups} deckId="secret" />
     </CardbackModal>
   );
 }
@@ -109,10 +113,11 @@ export function RelicDeckCardBack({ count }: BackProps) {
       imageSrc={assetUrl("/player_area/cardback_relic.jpg")}
       alt="relics"
       title="Relics"
+      deckId="relic"
       count={count || totalCount(groups)}
       modalSize={880}
     >
-      <CardPoolBrowser groups={groups} />
+      <CardPoolBrowser groups={groups} deckId="relic" />
     </CardbackModal>
   );
 }
@@ -131,10 +136,11 @@ export function ExplorationDeckCardBack({ type, count }: ExploreBackProps) {
       imageSrc={assetUrl(`/player_area/cardback_${type.toLowerCase()}.jpg`)}
       alt={`${type} explore`}
       title={`${type} exploration`}
+      deckId={type.toLowerCase()}
       count={count || totalCount(groups)}
       modalSize={880}
     >
-      <CardPoolBrowser groups={groups} />
+      <CardPoolBrowser groups={groups} deckId={type.toLowerCase()} />
     </CardbackModal>
   );
 }

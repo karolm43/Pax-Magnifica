@@ -4,6 +4,7 @@ import {
   DeckGroup,
   DeckList,
 } from "@/domains/cards/components/CardDetailsModal/CardDetailsModal";
+import { cardSearchKey, searchTarget } from "@/domains/search/searchKeys";
 import styles from "./CardPoolBrowser.module.css";
 
 const NOTE = /(\[Note:[^\]]*\])/i;
@@ -28,6 +29,8 @@ type Props = {
   groups: PoolGroup[];
   /** Dodatkowe przyciski pod kartą (np. ruchy debug między stosami). */
   renderActions?: (entry: PoolEntry) => ReactNode;
+  /** Id talii - karty dostają znacznik wyszukiwarki planszy (podświetlenie). */
+  deckId?: string;
 };
 
 /**
@@ -36,7 +39,7 @@ type Props = {
  * kolorowy pasek nagłówka (nazwa + liczba kopii), okno/metadane, treść reguł i
  * oddzielony stopką tekst klimatyczny (flavor) kursywą.
  */
-export function CardPoolBrowser({ groups, renderActions }: Props) {
+export function CardPoolBrowser({ groups, renderActions, deckId }: Props) {
   const visible = groups.filter((group) => group.entries.length > 0);
 
   return (
@@ -54,7 +57,12 @@ export function CardPoolBrowser({ groups, renderActions }: Props) {
           >
             <div className={styles.grid}>
               {group.entries.map((entry) => (
-                <article key={entry.alias} className={styles.card} style={style}>
+                <article
+                  key={entry.alias}
+                  className={styles.card}
+                  style={style}
+                  {...(deckId ? searchTarget(cardSearchKey(deckId, entry.name)) : {})}
+                >
                   <header className={styles.header}>
                     <span className={styles.name}>{entry.name}</span>
                     {entry.copies && entry.copies > 1 && (

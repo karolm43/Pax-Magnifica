@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+﻿import { useEffect, useState, type ReactNode } from "react";
+import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs } from "@/ds";
 import { SiteHeader } from "@/layout/SiteHeader";
@@ -46,6 +47,7 @@ import { APP_HEADER_HEIGHT } from "@/shared/ui/AppHeader";
 import { TabActiveContext } from "@/hooks/useIsTabActive";
 import { HeaderGameControls } from "@/shared/ui/HeaderGameControls";
 import { DEFAULT_GAME_ID } from "@/config";
+import { VictoryScreen } from "@/domains/victory/VictoryScreen";
 import { MobileHandSheet } from "@/domains/game-shell/components/SecretHand";
 import { MobileEventsSheet } from "@/domains/game-shell/components/GameEventPanel";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
@@ -109,6 +111,12 @@ function GameMapContent() {
       prev.has(value) ? prev : new Set(prev).add(value),
     );
   };
+
+  /* Wyszukiwarka planszy otworzyła talię: okna talii żyją w zakładce General. */
+  const deckRequest = useDeckSearchStore((state) => state.request);
+  useEffect(() => {
+    if (deckRequest) changeActiveTab("general");
+  }, [deckRequest]);
 
   const activePlayerName = data?.playerData?.find((p) => p.active)?.userName;
   useDocumentTitle(
@@ -275,6 +283,10 @@ function GameMapContent() {
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}
       <SecondaryDecisionModal />
+
+      {/* Koniec gry: zwycięzca → głosowanie (honor) → Kronika epilogu → podsumowanie.
+          Pojawia się natychmiast, gdy backend ustawi `winnerId` (próg VP / koniec rund). */}
+      <VictoryScreen />
 
       <KeyboardShortcutsModal
         opened={settings.keyboardShortcutsModalOpened}

@@ -1,4 +1,4 @@
-import cx from "clsx";
+﻿import cx from "clsx";
 import { Box, Image } from "@/ds";
 import {
   getTechData,
@@ -13,6 +13,7 @@ import type { PlayerData, Tech } from "@/entities/data/types";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { RailLabel } from "@/domains/objectives/components/RailLabel";
 import { getSeatOrder } from "@/domains/objectives/hooks/useOrderedFactions";
+import { searchKey, searchTarget } from "@/domains/search/searchKeys";
 import styles from "./GeneralTechCatalog.module.css";
 
 type GeneralTechCatalogProps = {
@@ -199,7 +200,11 @@ function TechItem({
   const unitImageSrc = getUnitUpgradeImageSrc(tech);
 
   return (
-    <Box className={styles.tech} data-k={color}>
+    <Box
+      className={styles.tech}
+      data-k={color}
+      {...searchTarget(searchKey("tech", tech.alias))}
+    >
       <Box className={styles.head}>
         {unitImageSrc && <Image src={unitImageSrc} alt="" className={styles.unit} />}
         <span className={styles.name}>{tech.name}</span>

@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useId,
   useMemo,
@@ -27,15 +27,21 @@ import {
   useSearchHighlight,
 } from "./searchHits";
 import type { SearchKey } from "./searchKeys";
+import { useDeckSearchStore } from "./deckSearchStore";
 import classes from "./BoardSearch.module.css";
 
 /** Which hit of the committed result is in view; `nonce` re-focuses the same hit. */
 type Cursor = {
   targets: SearchKey[];
   boardOnly: boolean;
+  /** Wynik w oknie talii: okno otwiera się chwilę po wyborze, więc trafień szukamy z ponowieniami. */
+  awaitHits?: boolean;
   index: number;
   nonce: number;
 };
+
+/** Ile klatek czekamy, aż otworzy się okno talii z szukaną kartą (~1,5 s). */
+const MAX_HIT_WAIT_FRAMES = 90;
 
 function isTypingTarget(target: EventTarget | null) {
   return (
@@ -62,6 +68,7 @@ export function BoardSearch() {
   const [highlighted, setHighlighted] = useState(0);
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [hitCount, setHitCount] = useState<number | null>(null);
+  const openDeck = useDeckSearchStore((state) => state.open);
 
   const index = useMemo(
     () => (gameData ? buildSearchIndex(gameData) : []),
@@ -83,10 +90,20 @@ export function BoardSearch() {
 
   useEffect(() => {
     if (!cursor) return;
-    const hits = findSearchHits(cursor.targets, cursor.boardOnly);
-    setHitCount(hits.length);
-    if (hits.length === 0) return;
-    focusSearchHit(hits[Math.min(cursor.index, hits.length - 1)]);
+    let frame = 0;
+    let attempts = 0;
+    const focusHits = () => {
+      const hits = findSearchHits(cursor.targets, cursor.boardOnly);
+      if (hits.length === 0 && cursor.awaitHits && attempts++ < MAX_HIT_WAIT_FRAMES) {
+        frame = requestAnimationFrame(focusHits);
+        return;
+      }
+      setHitCount(hits.length);
+      if (hits.length === 0) return;
+      focusSearchHit(hits[Math.min(cursor.index, hits.length - 1)]);
+    };
+    focusHits();
+    return () => cancelAnimationFrame(frame);
   }, [cursor]);
 
   useEffect(() => {
@@ -120,9 +137,11 @@ export function BoardSearch() {
     setQuery(entry.label);
     setListOpen(false);
     setHitCount(null);
+    if (entry.deck) openDeck(entry.deck.id, entry.deck.tab);
     setCursor((current) => ({
       targets: entry.targets,
       boardOnly: entry.boardOnly ?? false,
+      awaitHits: !!entry.deck,
       index: 0,
       nonce: (current?.nonce ?? 0) + 1,
     }));

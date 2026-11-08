@@ -1,3 +1,5 @@
+import { normalizeSearchText } from "./searchText";
+
 /**
  * The kinds of thing board search can find. Each one renders somewhere on the
  * board or in a player area, tagged with a `data-search-key` built here.
@@ -13,12 +15,19 @@ export type SearchKind =
   | "secret"
   | "objective"
   | "law"
-  | "strategy";
+  | "strategy"
+  /** Karta z talii (agenda, akcji, relikwia, eksploracja...) w oknie talii. */
+  | "card";
 
 export type SearchKey = `${SearchKind}:${string}`;
 
 export function searchKey(kind: SearchKind, id: string): SearchKey {
   return `${kind}:${id}`;
+}
+
+/** Klucz karty w talii: talia + nazwa (identyczne kopie to jedna pozycja listy). */
+export function cardSearchKey(deckId: string, name: string): SearchKey {
+  return searchKey("card", `${deckId}:${normalizeSearchText(name)}`);
 }
 
 /**

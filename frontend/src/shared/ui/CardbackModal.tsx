@@ -1,5 +1,6 @@
 import { Stack } from "@/ds";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { Cardback } from "@/shared/ui/Cardback";
 import { AppModal } from "@/shared/ui/AppModal";
 import styles from "./CardbackModal.module.css";
@@ -12,6 +13,8 @@ type CardbackModalProps = {
   children: ReactNode;
   modalSize?: string | number;
   cardKey?: string | number;
+  /** Talia otwierana z wyszukiwarki planszy (zob. deckSearchStore). */
+  deckId?: string;
 };
 
 /** A deck's card back; clicking it opens the deck list on the system modal frame. */
@@ -23,8 +26,13 @@ export function CardbackModal({
   children,
   modalSize = 620,
   cardKey,
+  deckId,
 }: CardbackModalProps) {
   const [opened, setOpened] = useState(false);
+  const request = useDeckSearchStore((state) => state.request);
+  useEffect(() => {
+    if (deckId && request?.deckId === deckId) setOpened(true);
+  }, [deckId, request]);
   const countLine =
     typeof count === "number" || typeof count === "string" ? `${count} in deck` : null;
 

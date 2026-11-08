@@ -1,10 +1,10 @@
-import type { GameData, Tile } from "@/entities/game/types";
+﻿import type { GameData, Tile } from "@/entities/game/types";
 import type { PlayerData } from "@/entities/data/types";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getTileById } from "@/entities/lookup/systems";
 import { getTokenData } from "@/entities/lookup/tokens";
 import { getAttachmentData } from "@/entities/lookup/attachments";
-import { getGenericUnitDataByAsyncId } from "@/entities/lookup/units";
+import { getGenericUnitDataByAsyncId, lookupUnit } from "@/entities/lookup/units";
 import { mergePlanetTraits } from "@/entities/game/planetTraits";
 import { searchKey, type SearchKey } from "./searchKeys";
 import type { CategoryKind, SearchEntry } from "./searchIndex";
@@ -194,6 +194,7 @@ function addUnitCategories(
   categories: Categories,
   tile: Tile,
   factionNames: Map<string, string>,
+  players: PlayerData[],
 ) {
   const add = (
     input: Omit<CategoryInput, "noun" | "kind">,
@@ -235,6 +236,22 @@ function addUnitCategories(
           },
           target,
         );
+        /* Jednostka frakcyjna ma własną nazwę (np. flagowiec): szukamy też po niej. */
+        const own = lookupUnit(
+          entityId,
+          faction,
+          players.find((player) => player.faction === faction),
+        );
+        if (own?.faction && own.name && own.name !== name) {
+          add(
+            {
+              id: `unit-name:${own.id}`,
+              label: own.name,
+              terms: [`${own.name} ${factionName}`, `${factionName} ${own.name}`],
+            },
+            target,
+          );
+        }
         add(
           {
             id: `faction-units:${faction}:${entityId}`,
@@ -367,7 +384,7 @@ export function buildCategoryEntries(
 
   Object.values(gameData.tiles).forEach((tile) => {
     addSystemCategories(categories, tile);
-    addUnitCategories(categories, tile, factionNames);
+    addUnitCategories(categories, tile, factionNames, players);
     Object.keys(tile.planets).forEach((planetId) => planetIds.add(planetId));
   });
   planetIds.forEach((planetId) =>

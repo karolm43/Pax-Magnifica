@@ -1,4 +1,5 @@
-import { useMemo, useState, type CSSProperties } from "react";
+﻿import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { IconBug, IconFlame, IconStack2 } from "@tabler/icons-react";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { AppModal } from "@/shared/ui/AppModal";
@@ -141,7 +142,7 @@ export function DeckInspector({ spec, opened, onClose, initialTab = "deck" }: In
         </p>
       )}
       {groups.length > 0 ? (
-        <CardPoolBrowser groups={groups} renderActions={renderActions} />
+        <CardPoolBrowser groups={groups} renderActions={renderActions} deckId={spec.key} />
       ) : (
         <p className={styles.empty}>No cards here.</p>
       )}
@@ -154,6 +155,12 @@ type BackProps = { spec: DeckSpec };
 /** Rewers talii z liczbą kart, które w niej ZOSTAŁY; klik → zawartość talii. */
 export function DeckBack({ spec }: BackProps) {
   const [opened, setOpened] = useState(false);
+  const request = useDeckSearchStore((state) => state.request);
+  const searchTab = request?.deckId === spec.key ? request.tab : undefined;
+  /* Prośba z wyszukiwarki planszy otwiera tę talię na zakładce z szukaną kartą. */
+  useEffect(() => {
+    if (request?.deckId === spec.key) setOpened(true);
+  }, [request, spec.key]);
   return (
     <>
       <button
@@ -168,7 +175,15 @@ export function DeckBack({ spec }: BackProps) {
           count={pileCount(spec, "deck")}
         />
       </button>
-      {opened && <DeckInspector spec={spec} opened onClose={() => setOpened(false)} />}
+      {opened && (
+        <DeckInspector
+          key={request?.nonce}
+          spec={spec}
+          opened
+          initialTab={searchTab}
+          onClose={() => setOpened(false)}
+        />
+      )}
     </>
   );
 }
