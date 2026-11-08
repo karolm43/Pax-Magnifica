@@ -45,11 +45,20 @@ def _pending(client: TestClient) -> dict[str, Any] | None:
     return pw
 
 
+def _lead(client: TestClient, pid: str = "p1") -> None:
+    """Pełne primary Leadership przez API: zagranie, brak wydatku, 3 żetony do taktycznej."""
+    played = client.post("/strategy/play", json={"player_id": pid, "initiative": 1})
+    assert played.status_code == 200
+    step = "/strategy/primary-step"
+    assert client.post(step, json={"player_id": pid, "payload": {}}).status_code == 200
+    ok = client.post(step, json={"player_id": pid, "payload": {"tactical": 3}})
+    assert ok.status_code == 200
+
+
 def test_play_resolves_primary_and_opens_window(client: TestClient) -> None:
-    resp = client.post("/strategy/play", json={"player_id": "p1", "initiative": 1})
-    assert resp.status_code == 200
+    _lead(client)
     # Primary Leadership: +3 żetony taktyczne (start 3 → 6).
-    state = resp.json()["state"]
+    state = client.get("/state").json()["state"]
     assert state["players"]["p1"]["tactical_cc"] == 6
     # Okno secondary otwarte, kolejka p2,p3 jako kolory.
     pw = _pending(client)
@@ -60,7 +69,7 @@ def test_play_resolves_primary_and_opens_window(client: TestClient) -> None:
 
 
 def test_secondary_flow_through_queue(client: TestClient) -> None:
-    client.post("/strategy/play", json={"player_id": "p1", "initiative": 1})
+    _lead(client)
     r1 = client.post(
         "/strategy/secondary", json={"player_id": "p2", "execute": True}
     )
@@ -77,7 +86,7 @@ def test_secondary_flow_through_queue(client: TestClient) -> None:
 
 
 def test_secondary_out_of_order_rejected(client: TestClient) -> None:
-    client.post("/strategy/play", json={"player_id": "p1", "initiative": 1})
+    _lead(client)
     resp = client.post(
         "/strategy/secondary", json={"player_id": "p3", "execute": True}
     )
@@ -116,10 +125,7 @@ def test_playing_card_counts_as_action_enables_end_turn() -> None:
     client = TestClient(app)
 
     # Zagranie karty = akcja strategiczna; otwiera okno secondary.
-    assert (
-        client.post("/strategy/play", json={"player_id": "p1", "initiative": 1}).status_code
-        == 200
-    )
+    _lead(client)
     data = client.get(
         "/api/public/game/g/web-data", params={"viewing_player": "p1"}
     ).json()

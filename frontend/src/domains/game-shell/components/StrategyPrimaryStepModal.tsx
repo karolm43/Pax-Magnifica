@@ -1,29 +1,27 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { Button, Group, Stack, Switch, Text } from "@/ds";
-import { IconCheck } from "@tabler/icons-react";
+import { Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor } from "@/api/useBoardEditor";
-import { SC_NAMES } from "@/entities/data/strategyCardColors";
-import { getPlayerDisplayName, type GameStatePlayer } from "./gameStatePlayers";
-
-type SeatPlayer = GameStatePlayer & { discordId: string };
+import { SC_HUES, SC_NAMES } from "@/entities/data/strategyCardColors";
+import { getStrategyCardById } from "@/entities/lookup/strategyCards";
+import { PRIMARY_VIEWS } from "@/domains/strategy/cards";
+import type { CardShell } from "@/domains/strategy/cards/types";
+import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 
 /**
- * Szkielet kroku WIELOETAPOWEGO primary karty strategii (RULES.md 30.5).
+ * Okno kroku WIELOETAPOWEGO primary karty strategii (RULES.md 30.5).
  *
- * Gdy karta wymaga wyboru aktywnego gracza, silnik ustawia ``pendingStrategy`` (krok +
- * szkic) i blokuje End turn. Ten modal renderuje bieżący ``step`` i wysyła wybór
- * (``/strategy/primary-step``). Obsługiwany krok: ``choose_free_players`` (Trade — kogo
- * wskazać do DARMOWEGO, obowiązkowego secondary). Kolejne karty dołożą własne kroki
- * w ``renderStep`` (docelowo: panele w stylu akcji taktycznej / statusu).
- *
- * Modal jest NIEODRZUCALNY — zniknie, gdy backend zastosuje primary i otworzy okno
- * secondary. Odpowiedzi waliduje serwer (tylko właściciel karty), więc w sieci inni
- * gracze zobaczą ten sam stan, ale nie mogą go rozstrzygnąć.
+ * Gdy karta wymaga wyborów aktywnego gracza, silnik ustawia ``pendingStrategy`` (krok +
+ * szkic) i blokuje End turn. Ten modal pobiera z backendu opcje bieżącego kroku
+ * (``GET /strategy/options``) i renderuje widok karty z ``domains/strategy/cards``;
+ * wybór leci do ``/strategy/primary-step``. Modal jest NIEODRZUCALNY - znika, gdy
+ * backend zastosuje primary i otworzy okno secondary. Walidacja jest po stronie serwera
+ * (tylko właściciel karty), więc w sieci inni gracze widzą ten sam stan, ale go nie
+ * rozstrzygną.
  */
 export function StrategyPrimaryStepModal() {
   const params = useParams<{ mapid: string }>();
@@ -31,71 +29,37 @@ export function StrategyPrimaryStepModal() {
   const { data: gameState } = useGameState(gameId);
   const gameData = useGameData();
   const { strategyPrimaryStep } = useBoardEditor();
-  const [chosen, setChosen] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   const pending = gameState?.pendingStrategy ?? null;
-  const players = (gameData?.playerData ?? []) as SeatPlayer[];
+  const players = (gameData?.playerData ?? []) as PromptPlayer[];
   const owner = players.find((p) => p.discordId === pending?.ownerId);
-  const ownerName = owner
-    ? getPlayerDisplayName(owner, owner.color)
-    : (pending?.ownerId ?? "");
-  const cardName = pending
-    ? (gameData?.strategyCards?.find((c) => c.initiative === pending.initiative)
-        ?.name ?? SC_NAMES[pending.initiative] ?? `Strategy Card ${pending.initiative}`)
-    : "";
+  const version = pending ? `${pending.initiative}:${pending.step}` : "none";
+  const { data: prompt } = useStrategyPrompt(pending?.ownerId ?? null, version);
+
+  const card = pending
+    ? gameData?.strategyCards?.find((c) => c.initiative === pending.initiative)
+    : undefined;
+  const shell: CardShell | null = pending
+    ? {
+        hue:
+          (card ? getStrategyCardById(card.id)?.colourHexCode : undefined) ||
+          SC_HUES[pending.initiative] ||
+          "#8a8f98",
+        initiative: pending.initiative,
+        title:
+          card?.name ?? SC_NAMES[pending.initiative] ?? `Strategy Card ${pending.initiative}`,
+      }
+    : null;
 
   const submit = (payload: Record<string, unknown>) => {
     if (!pending || busy) return;
     setBusy(true);
-    void strategyPrimaryStep(pending.ownerId, payload).finally(() => {
-      setBusy(false);
-      setChosen([]);
-    });
+    void strategyPrimaryStep(pending.ownerId, payload).finally(() => setBusy(false));
   };
 
-  const toggle = (id: string, on: boolean) =>
-    setChosen((cur) => (on ? [...cur, id] : cur.filter((x) => x !== id)));
-
-  const renderStep = () => {
-    if (!pending) return null;
-    if (pending.step === "choose_free_players") {
-      const others = players.filter((p) => p.discordId !== pending.ownerId);
-      return (
-        <Stack gap="sm">
-          <Text size="sm">
-            Choose the players who will resolve the <b>secondary</b> ability{" "}
-            <b>for free</b>. They <b>must</b> resolve it and spend no command token.
-          </Text>
-          <Stack gap={6}>
-            {others.map((p) => (
-              <Switch
-                key={p.discordId}
-                label={getPlayerDisplayName(p, p.color)}
-                checked={chosen.includes(p.discordId)}
-                onChange={(e) => toggle(p.discordId, e.currentTarget.checked)}
-                disabled={busy}
-              />
-            ))}
-          </Stack>
-          <Group justify="flex-end">
-            <Button
-              disabled={busy}
-              leftSection={<IconCheck size={16} />}
-              onClick={() => submit({ players: chosen })}
-            >
-              {chosen.length === 0 ? "Choose nobody" : "Confirm"}
-            </Button>
-          </Group>
-        </Stack>
-      );
-    }
-    return (
-      <Text size="sm" c="dimmed">
-        Unsupported step: {pending.step}
-      </Text>
-    );
-  };
+  const View = pending ? PRIMARY_VIEWS[pending.initiative] : undefined;
+  const ready = prompt != null && prompt.kind === "primary" && prompt.step === pending?.step;
 
   return (
     <AppModal
@@ -104,15 +68,24 @@ export function StrategyPrimaryStepModal() {
       withCloseButton={false}
       closeOnClickOutside={false}
       closeOnEscape={false}
-      title={`${cardName} — primary ability`}
-      size={440}
+      title="Strategic action"
+      size={560}
     >
-      <Stack gap="md">
-        <Text size="xs" c="dimmed">
-          {ownerName} is resolving the primary ability.
+      {View && shell && ready ? (
+        <View
+          key={`${pending?.initiative}:${pending?.step}`}
+          prompt={prompt}
+          shell={shell}
+          owner={owner}
+          players={players}
+          busy={busy}
+          submit={submit}
+        />
+      ) : (
+        <Text size="sm" c="dimmed">
+          {pending && !View ? `Unsupported card: ${pending.initiative}` : "Loading..."}
         </Text>
-        {renderStep()}
-      </Stack>
+      )}
     </AppModal>
   );
 }

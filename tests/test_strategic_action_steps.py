@@ -131,7 +131,8 @@ def test_leadership_secondary_costs_nothing(registry: StaticDataRegistry) -> Non
     state = _state()
     state.players["p1"].strategy_cards = [1]
     state = strategic_action.play_strategy_card(state, registry, "p1", 1)
-    assert state.pending_strategy is None  # Leadership: bez kroków
+    state = strategic_action.submit_primary_step(state, registry, "p1", {})
+    state = strategic_action.submit_primary_step(state, registry, "p1", {"tactical": 3})
     pool = state.players["p2"].strategic_cc
     state = strategic_action.resolve_secondary(state, registry, "p2", execute=True)
     assert state.players["p2"].strategic_cc == pool

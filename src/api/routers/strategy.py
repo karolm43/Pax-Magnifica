@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
@@ -55,6 +57,22 @@ def get_strategy_cards(ctx: AppContext = Depends(get_ctx)) -> list[StrategyCardI
             )
         )
     return cards
+
+
+@router.get("/strategy/options")
+def get_strategy_options(
+    player_id: str, ctx: AppContext = Depends(get_ctx)
+) -> dict[str, Any] | None:
+    """Dozwolone wybory dla gracza, który teraz odpowiada na kartę strategii (lub null).
+
+    Monit primary (właściciel karty) albo secondary (bieżący respondent okna), razem z
+    opcjami z modułu karty (planety do wydania, cele, gracze...). Dane prywatne dostaje
+    tylko ``player_id`` będący adresatem monitu (pod grę sieciową).
+    """
+    state = ctx.service.current_state()
+    if player_id not in state.players:
+        raise HTTPException(status_code=404, detail=f"Unknown player: {player_id}")
+    return strategic_action.step_options(state, ctx.registry, player_id)
 
 
 async def _commit(ctx: AppContext, new_state, label: str) -> StateEnvelope:  # type: ignore[no-untyped-def]
@@ -143,6 +161,7 @@ async def post_strategy_secondary(
             ctx.registry,
             request.player_id,
             execute=request.execute,
+            payload=request.payload,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

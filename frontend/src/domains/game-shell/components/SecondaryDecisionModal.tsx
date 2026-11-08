@@ -18,6 +18,9 @@ import {
   type GameStatePlayer,
 } from "./gameStatePlayers";
 import { StrategyPrimaryStepModal } from "./StrategyPrimaryStepModal";
+import { SECONDARY_VIEWS } from "@/domains/strategy/cards";
+import type { CardShell } from "@/domains/strategy/cards/types";
+import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 
 /**
  * Popup decyzji SECONDARY karty strategii (RULES.md 29.2, 31.6).
@@ -50,6 +53,8 @@ export function SecondaryDecisionModal() {
   const gameData = useGameData();
   const { strategySecondary } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  // Kursor okna, dla którego respondent wybiera dane do „follow" (null = decyzja).
+  const [composingCursor, setComposingCursor] = useState<number | null>(null);
 
   const window = gameState?.pendingWindow ?? null;
   // Pokazujemy TYLKO dla okna secondary z czekającym respondentem. Pozostałe typy
@@ -101,11 +106,27 @@ export function SecondaryDecisionModal() {
     (initiative != null ? SC_HUES[initiative] : undefined) ||
     "#8a8f98";
 
-  const decide = (execute: boolean) => {
+  const decide = (execute: boolean, payload: Record<string, unknown> = {}) => {
     const id = window?.currentResponderId;
     if (!id || busy) return;
     setBusy(true);
-    void strategySecondary(id, execute).finally(() => setBusy(false));
+    void strategySecondary(id, execute, payload).finally(() => setBusy(false));
+  };
+
+  // Karty, których „follow" wymaga wyborów (np. Leadership: planety + rozkład żetonów),
+  // pokazują własny widok po kliknięciu Follow; backend sygnalizuje to ``needs_input``.
+  const { data: prompt } = useStrategyPrompt(
+    isSecondary ? (window?.currentResponderId ?? null) : null,
+    `${initiative ?? 0}:${window?.cursor ?? 0}`,
+  );
+  const InputView = initiative != null ? SECONDARY_VIEWS[initiative] : undefined;
+  const needsInput =
+    prompt?.kind === "secondary" && prompt.options.needs_input === true && !!InputView;
+  const composing = needsInput && composingCursor === (window?.cursor ?? -1);
+  const shell: CardShell = {
+    hue,
+    initiative: initiative ?? 0,
+    title: cardName,
   };
 
   // Koszt follow: żeton ze strategy pool (window.context.cost = 1), chyba że respondent
@@ -129,8 +150,20 @@ export function SecondaryDecisionModal() {
       closeOnClickOutside={false}
       closeOnEscape={false}
       title="Strategy Card — secondary ability"
-      size={460}
+      size={composing ? 560 : 460}
     >
+      {composing && InputView && prompt ? (
+        <InputView
+          key={window?.cursor}
+          prompt={prompt}
+          shell={shell}
+          responder={(responder as PromptPlayer | undefined) ?? undefined}
+          players={playerData as unknown as PromptPlayer[]}
+          busy={busy}
+          submit={(payload) => decide(true, payload)}
+          back={() => setComposingCursor(null)}
+        />
+      ) : (
       <Stack gap="md">
         {/* Kto teraz decyduje. */}
         <Group gap="sm" wrap="nowrap">
@@ -216,13 +249,16 @@ export function SecondaryDecisionModal() {
           <Button
             disabled={busy || cannotAfford}
             leftSection={<IconBolt size={16} />}
-            onClick={() => decide(true)}
+            onClick={() =>
+              needsInput ? setComposingCursor(window?.cursor ?? 0) : decide(true)
+            }
             title={cannotAfford ? "No command token in your strategy pool" : undefined}
           >
             Follow
           </Button>
         </Group>
       </Stack>
+      )}
     </AppModal>
     </>
   );

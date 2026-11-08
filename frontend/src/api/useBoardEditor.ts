@@ -660,10 +660,11 @@ export function useBoardEditor() {
   );
 
   const strategySecondary = useCallback(
-    async (playerId: string, execute: boolean) => {
+    async (playerId: string, execute: boolean, payload: Record<string, unknown> = {}) => {
       await post("/strategy/secondary", {
         player_id: playerId,
         execute,
+        payload,
       });
       await refresh();
     },

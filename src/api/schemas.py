@@ -477,6 +477,9 @@ class StrategySecondaryRequest(BaseModel):
 
     player_id: str
     execute: bool = False
+    # Wybory respondenta dla „follow" (kształt zależy od karty, np. Leadership:
+    # planety do wydania + rozkład żetonów). Walidowane po stronie ``core/``.
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 class TurnActionRequest(BaseModel):
     """Zakończenie/pas tury (E8-T4). ``player_id`` opcjonalny — gdy podany, backend

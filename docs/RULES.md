@@ -1389,6 +1389,19 @@ uzupełnij commodities (koszt: 1 żeton ze strategy pool, o ile nie wskazany). K
 fakt, że umowy obejmujące późniejsze kroki są niewiążące — notka R_trade, poza zakresem silnika.
 Efekty „when replenishes commodities" (np. Trade Agreement) dojdą hookami (E7).
 
+### 30.7. Leadership — wydawanie wpływu — ✅ ZWERYFIKOWANE (R_leadership, R_influence, R_trade_goods)
+
+📎 tirules: [Leadership](rules_tirules/R_leadership.md), [Influence](rules_tirules/R_influence.md), [Trade Goods](rules_tirules/R_trade_goods.md)
+
+- Primary: 3 żetony + opcjonalnie wydatek wpływu (1 żeton / 3 wpływu). Kroki `spend_influence` →
+  `distribute` (rozkład po pulach wybiera gracz). Secondary: wydatek wpływu → żetony, BEZ żetonu
+  strategicznego; follow niesie `payload` (planety, TG, rozkład).
+- Wpływ wydaje się wyczerpując kartę planety (`core/payment.py`); 1 TG = 1 wpływ. Nadwyżka (1–2)
+  przepada. Żetony pochodzą z REZERWY — zdobywa się najwyżej tyle, ile w niej leży (⚠️ ZAŁOŻENIE:
+  tirules nie opisuje pustej rezerwy, stosujemy ogólną regułę „tokens come from reinforcements").
+- Kształt UI: `GET /strategy/options?player_id=` zwraca opcje kroku; `needs_input` w secondary mówi,
+  czy „follow" wymaga widoku wyboru.
+
 ### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
 
 📎 tirules: [Action Phase](rules_tirules/R_action_phase.md), [Strategic Action](rules_tirules/R_strategic_action.md)

@@ -28,6 +28,13 @@ def _state_three() -> GameState:
     )
 
 
+def _lead(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Pełne primary Leadership: zagranie + bez wydawania wpływu + 3 żetony do taktycznej."""
+    state = strategic_action.play_strategy_card(state, registry, "p1", 1)
+    state = strategic_action.submit_primary_step(state, registry, "p1", {})
+    return strategic_action.submit_primary_step(state, registry, "p1", {"tactical": 3})
+
+
 def test_leadership_initiative_matches_registry(registry: StaticDataRegistry) -> None:
     """Stała inicjatywy Leadership zgadza się z danymi (nie z pamięci)."""
     cards = {c.name: c.initiative for c in registry.strategy_card_set()}
@@ -39,8 +46,9 @@ def test_play_leadership_primary_grants_three_tokens(
 ) -> None:
     state = _state_three()
     before = state.players["p1"].tactical_cc
-    new = strategic_action.play_strategy_card(state, registry, "p1", 1)
+    new = _lead(state, registry)
     assert new.players["p1"].tactical_cc == before + 3
+    assert new.players["p1"].cc_reinf == state.players["p1"].cc_reinf - 3
     # Karta oznaczona jako zagrana.
     assert 1 in new.players["p1"].exhausted_strategy_cards
 
@@ -48,7 +56,7 @@ def test_play_leadership_primary_grants_three_tokens(
 def test_play_opens_secondary_window_for_others(
     registry: StaticDataRegistry,
 ) -> None:
-    new = strategic_action.play_strategy_card(_state_three(), registry, "p1", 1)
+    new = _lead(_state_three(), registry)
     assert new.pending_window is not None
     assert new.pending_window.window_type is WindowType.STRATEGY_SECONDARY
     # Kolejka od gracza po aktywnym (p1), zegarowo: p2, p3. Inicjator pominięty.
@@ -94,7 +102,7 @@ def test_play_rejects_when_window_already_open(registry: StaticDataRegistry) -> 
 
 
 def test_secondary_advances_and_closes(registry: StaticDataRegistry) -> None:
-    state = strategic_action.play_strategy_card(_state_three(), registry, "p1", 1)
+    state = _lead(_state_three(), registry)
     # p2 wykonuje secondary (szkielet — brak efektu liczbowego w T3).
     state = strategic_action.resolve_secondary(state, registry, "p2", execute=True)
     assert state.pending_window is not None
@@ -105,7 +113,7 @@ def test_secondary_advances_and_closes(registry: StaticDataRegistry) -> None:
 
 
 def test_secondary_out_of_order_rejected(registry: StaticDataRegistry) -> None:
-    state = strategic_action.play_strategy_card(_state_three(), registry, "p1", 1)
+    state = _lead(_state_three(), registry)
     with pytest.raises(ValueError, match="out-of-order"):
         strategic_action.resolve_secondary(state, registry, "p3", execute=True)
 

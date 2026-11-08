@@ -2,9 +2,9 @@
 
 Rozstrzyga PRIMARY karty aktywnego gracza i otwiera OKNO CZASOWE ``STRATEGY_SECONDARY``
 dla pozostałych graczy (kolejka od gracza po aktywnym, zgodnie z zegarem — RULES.md 30.1).
-Każdy respondent okna wykonuje secondary („follow") albo pasuje; po zamknięciu okna karta
-jest wyczerpana (uproszczenie: wyczerpujemy przy zagraniu, bo w trakcie okna i tak nikt nie
-może jej użyć ponownie — patrz RULES.md 30.5).
+Każdy respondent okna wykonuje secondary („follow", z ewentualnym ``payload`` wyborów) albo
+pasuje; po zamknięciu okna karta jest wyczerpana (uproszczenie: wyczerpujemy przy zagraniu,
+bo w trakcie okna i tak nikt nie może jej użyć ponownie — patrz RULES.md 30.5).
 
 Model (RULES.md 30.5, ``docs/PROJEKT_KARTY_STRATEGII.md``):
 
@@ -19,161 +19,36 @@ Model (RULES.md 30.5, ``docs/PROJEKT_KARTY_STRATEGII.md``):
 * Serwer jest autorytetem: primary tylko od ``owner_id``, secondary tylko od bieżącego
   respondenta okna. Funkcje są CZYSTE (``state -> state``, operują na klonie).
 
-Dokładanie karty = wpis ``CardSpec`` w ``_CARDS`` + reguła w ``docs/RULES.md`` ze źródłem.
-Karty bez wpisu mają domyślne zachowanie „brak efektu / bez kosztu" (szkielet okna działa).
-Aktualnie zaimplementowane: Leadership (szkielet), Trade (pełne, jako wzór karty krokowej).
+Definicje kart: pakiet ``core/strategy_cards`` (jedna karta = jeden moduł z ``SPEC``).
+Karty bez wpisu mają domyślne zachowanie „brak efektu / bez kosztu".
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
 from src.core import timing
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
 from src.core.registry import StaticDataRegistry
+from src.core.strategy_cards import CARDS, CardSpec, leadership, trade
+from src.core.strategy_cards.base import Draft
 
-# Numery inicjatywy (z danych, nie z pamięci: assets/.../strategy_cards → zestaw ``te``).
-# Stałe lokalne dla czytelności dispatchu; zgodność z rejestrem pilnują testy.
-_LEADERSHIP_INITIATIVE = 1
-_TRADE_INITIATIVE = 5
-
-# Ile żetonów dowodzenia daje primary Leadership (RULES.md 30.2; LRR R_leadership).
-_LEADERSHIP_PRIMARY_TOKENS = 3
-# Ile dóbr handlowych daje primary Trade (RULES.md 30.6; LRR R_trade, krok 1).
-_TRADE_PRIMARY_TRADE_GOODS = 3
+# Numery inicjatywy (z danych: zestaw ``te``); zgodność z rejestrem pilnują testy.
+_LEADERSHIP_INITIATIVE = leadership.INITIATIVE
+_TRADE_INITIATIVE = trade.INITIATIVE
 
 # Klucz kontekstu okna: player_id graczy z DARMOWYM, obowiązkowym secondary (CSV).
 _FREE_KEY = "free"
 
-# Szkic wyborów primary: dowolne wartości JSON (listy id, napisy, liczby).
-Draft = dict[str, Any]
-# Efekt primary: (klon_stanu, registry, owner_id, szkic) -> None (mutuje klon w miejscu).
-PrimaryFn = Callable[[GameState, StaticDataRegistry, str, Draft], None]
-# Efekt secondary: (klon_stanu, registry, respondent_id) -> None.
-SecondaryFn = Callable[[GameState, StaticDataRegistry, str], None]
-# Obsługa kroku primary: (klon, registry, owner_id, krok, szkic, payload) -> None; waliduje
-# payload (ValueError przy błędzie) i dopisuje wybór do szkicu.
-StepFn = Callable[[GameState, StaticDataRegistry, str, str, Draft, dict[str, Any]], None]
-
-
-@dataclass(frozen=True)
-class CardSpec:
-    """Definicja zachowania karty strategii (po numerze inicjatywy).
-
-    Attributes:
-        primary_steps: Kolejne kroki wymagające wyboru aktywnego gracza (puste = primary
-            stosowane od razu).
-        on_step: Walidacja i zapis wyboru dla kroku (wymagane, gdy są kroki).
-        primary: Efekt primary stosowany po ostatnim kroku.
-        secondary: Efekt secondary respondenta, który „follow".
-        secondary_costs_token: Czy follow wydaje 1 żeton ze strategy pool.
-    """
-
-    primary_steps: tuple[str, ...] = ()
-    on_step: StepFn | None = None
-    primary: PrimaryFn | None = None
-    secondary: SecondaryFn | None = None
-    secondary_costs_token: bool = False
-
-
-# --- Leadership (szkielet; model wpływu dojdzie później — RULES.md 30.2) --------------------
-
-
-def _leadership_primary(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, _draft: Draft
-) -> None:
-    """Primary Leadership: +3 żetony dowodzenia (RULES.md 30.2).
-
-    ⚠️ ZAŁOŻENIE (do rozbudowy): żetony trafiają do puli TAKTYCZNEJ. Docelowo gracz
-    wybiera pulę (krok primary). TODO: kupno żetonów za wpływ — wymaga modelu wpływu.
-    """
-    player = state.players.get(player_id)
-    if player is None:
-        return
-    player.tactical_cc += _LEADERSHIP_PRIMARY_TOKENS
-
-
-# --- Trade (RULES.md 30.6) ------------------------------------------------------------------
-
-
-def _replenish_commodities(state: GameState, player_id: str) -> None:
-    """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej)."""
-    player = state.players[player_id]
-    player.commodities = max(player.commodities, player.commodity_value)
-
-
-def _trade_step(
-    state: GameState,
-    _registry: StaticDataRegistry,
-    owner_id: str,
-    step: str,
-    draft: Draft,
-    payload: dict[str, Any],
-) -> None:
-    """Krok Trade „choose_free_players": aktywny wskazuje graczy z darmowym secondary."""
-    if step != "choose_free_players":
-        raise ValueError(f"Unknown Trade step: {step}")
-    raw = payload.get("players", [])
-    if not isinstance(raw, list) or not all(isinstance(p, str) for p in raw):
-        raise ValueError("'players' must be a list of player ids.")
-    chosen: list[str] = []
-    for pid in raw:
-        if pid not in state.players:
-            raise ValueError(f"Unknown player: {pid}")
-        if pid == owner_id:
-            raise ValueError("You cannot choose yourself - choose OTHER players.")
-        if pid in chosen:
-            raise ValueError(f"Player chosen twice: {pid}")
-        chosen.append(pid)
-    draft["free_players"] = chosen
-
-
-def _trade_primary(
-    state: GameState, _registry: StaticDataRegistry, owner_id: str, _draft: Draft
-) -> None:
-    """Primary Trade: +3 TG, uzupełnij commodities (kroki 1-2; wybór graczy = krok 3)."""
-    state.players[owner_id].trade_goods += _TRADE_PRIMARY_TRADE_GOODS
-    _replenish_commodities(state, owner_id)
-
-
-def _trade_secondary(
-    state: GameState, _registry: StaticDataRegistry, player_id: str
-) -> None:
-    """Secondary Trade: uzupełnij commodities."""
-    _replenish_commodities(state, player_id)
-
-
-# Dispatch po inicjatywie. Brak wpisu = domyślny ``CardSpec()`` (brak efektu, bez kosztu).
-_CARDS: dict[int, CardSpec] = {
-    _LEADERSHIP_INITIATIVE: CardSpec(primary=_leadership_primary),
-    _TRADE_INITIATIVE: CardSpec(
-        primary_steps=("choose_free_players",),
-        on_step=_trade_step,
-        primary=_trade_primary,
-        secondary=_trade_secondary,
-        secondary_costs_token=True,
-    ),
-}
-
 
 def _spec(initiative: int) -> CardSpec:
-    return _CARDS.get(initiative, CardSpec())
+    return CARDS.get(initiative, CardSpec())
 
 
 def _free_players(context: dict[str, str | int]) -> set[str]:
     """Gracze z darmowym, obowiązkowym secondary (z kontekstu okna)."""
     raw = str(context.get(_FREE_KEY, ""))
     return {p for p in raw.split(",") if p}
-
-
-def _card_initiative_of_player(state: GameState, player_id: str) -> int | None:
-    """Najniższy numer karty strategii gracza (jego karta do zagrania), lub None."""
-    player = state.players.get(player_id)
-    if player is None or not player.strategy_cards:
-        return None
-    return min(player.strategy_cards)
 
 
 def _finish_primary(
@@ -281,7 +156,8 @@ def submit_primary_step(
     """Przesyła wybór dla bieżącego kroku primary (tylko właściciel karty).
 
     Waliduje payload (dispatch karty), dopisuje go do szkicu i przechodzi do kolejnego
-    kroku; po ostatnim kroku stosuje primary i otwiera okno secondary.
+    kroku (liniowo wg ``primary_steps`` albo wg ``next_step`` karty); po ostatnim kroku
+    stosuje primary i otwiera okno secondary.
 
     Raises:
         ValueError: Brak rozstrzygania primary, to nie właściciel, albo zły payload.
@@ -302,9 +178,13 @@ def submit_primary_step(
     current = new_state.pending_strategy
     spec.on_step(new_state, registry, player_id, current.step, current.draft, payload)
 
-    index = spec.primary_steps.index(current.step)
-    if index + 1 < len(spec.primary_steps):
-        current.step = spec.primary_steps[index + 1]
+    if spec.next_step is not None:
+        following = spec.next_step(current.step, current.draft)
+    else:
+        index = spec.primary_steps.index(current.step)
+        following = spec.primary_steps[index + 1] if index + 1 < len(spec.primary_steps) else None
+    if following is not None:
+        current.step = following
         return new_state
     return _finish_primary(new_state, registry, player_id, current.initiative, current.draft)
 
@@ -315,17 +195,19 @@ def resolve_secondary(
     player_id: str,
     *,
     execute: bool,
+    payload: dict[str, Any] | None = None,
 ) -> GameState:
     """Rozstrzyga odpowiedź bieżącego respondenta w oknie secondary (RULES.md 30.1, 30.5).
 
     ``execute=True`` („follow") → opłata żetonem ze strategy pool (jeśli karta tego wymaga
-    i gracz nie jest „free"), potem efekt secondary. ``execute=False`` → PAS. Gracz „free"
-    NIE może spasować (secondary Trade jest dla niego obowiązkowe). W obu przypadkach
-    kolejka okna przesuwa się o jeden; po dopełnieniu okno zamyka się automatycznie.
+    i gracz nie jest „free"), potem efekt secondary z wyborami z ``payload`` (planety do
+    wydania, rozkład żetonów...). ``execute=False`` → PAS. Gracz „free" NIE może spasować
+    (secondary Trade jest dla niego obowiązkowe). Kolejka okna przesuwa się o jeden; po
+    dopełnieniu okno zamyka się automatycznie.
 
     Raises:
-        ValueError: Brak okna secondary, zły respondent, brak żetonu w strategy pool albo
-            próba pasu przez gracza z obowiązkowym secondary. Przy błędzie stan bez zmian.
+        ValueError: Brak okna secondary, zły respondent, brak żetonu w strategy pool, zły
+            payload albo próba pasu przez gracza z obowiązkowym secondary. Stan bez zmian.
     """
     window = state.pending_window
     if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
@@ -351,7 +233,7 @@ def resolve_secondary(
             responder.strategic_cc -= 1
             responder.cc_reinf += 1  # wydany żeton wraca do rezerwy
         if spec.secondary is not None:
-            spec.secondary(new_state, registry, player_id)
+            spec.secondary(new_state, registry, player_id, payload or {})
     elif is_free:
         raise ValueError(
             "The active player chose you - you must resolve this secondary ability."
@@ -362,3 +244,51 @@ def resolve_secondary(
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
     return new_state
+
+
+def step_options(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> dict[str, Any] | None:
+    """Dozwolone wybory dla UI gracza, który TERAZ musi odpowiedzieć (lub None).
+
+    Zwraca opis bieżącego monitu: ``kind`` = ``primary`` (właściciel karty, krok z
+    ``pending_strategy``) albo ``secondary`` (bieżący respondent okna), ``initiative``,
+    ``step`` oraz ``options`` z modułu karty. Dane prywatne (np. podgląd agendy) karta
+    zwraca wyłącznie dla ``player_id`` właściciela monitu — nigdy dla innych graczy.
+    """
+    pending = state.pending_strategy
+    if pending is not None and pending.owner_id == player_id:
+        spec = _spec(pending.initiative)
+        options = (
+            spec.options(state, registry, player_id, pending.step, pending.draft)
+            if spec.options is not None
+            else {}
+        )
+        return {
+            "kind": "primary",
+            "initiative": pending.initiative,
+            "step": pending.step,
+            "draft": dict(pending.draft),
+            "options": options,
+        }
+    window = state.pending_window
+    if (
+        window is not None
+        and window.window_type is WindowType.STRATEGY_SECONDARY
+        and window.current_responder == player_id
+    ):
+        initiative = int(window.context.get("initiative", 0))
+        spec = _spec(initiative)
+        options = (
+            spec.options(state, registry, player_id, None, {})
+            if spec.options is not None
+            else {}
+        )
+        return {
+            "kind": "secondary",
+            "initiative": initiative,
+            "step": None,
+            "draft": {},
+            "options": options,
+        }
+    return None
