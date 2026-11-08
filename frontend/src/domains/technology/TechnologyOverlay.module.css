@@ -769,7 +769,8 @@
 .returnPill {
   position: fixed;
   left: 50%;
-  bottom: 18px;
+  /* Nad paskiem ręki (BottomHandDock: bottom 14px + 40px paska). */
+  bottom: 68px;
   z-index: 2700;
   display: inline-flex;
   align-items: center;
