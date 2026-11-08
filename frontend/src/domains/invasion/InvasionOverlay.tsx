@@ -19,6 +19,7 @@ import { getTileById } from "@/entities/lookup/systems";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { CustodiansClaim } from "./CustodiansClaim";
 import { InvasionPlanetCard } from "./InvasionPlanetCard";
 import { usePlayerLook } from "./invasionUi";
 import {
@@ -151,7 +152,11 @@ function InvasionWindow({ view }: { view: InvasionView }) {
           label: view.planets.some((p) => Object.keys(p.committed).length > 0)
             ? "Continue to Space Cannon Defense"
             : "No landing - skip",
-          disabled: staged > 0,
+          // Po zdjęciu żetonu Custodians trzeba zlądować na Mecatol Rex (jedyna planeta systemu).
+          disabled:
+            staged > 0 ||
+            (view.custodians?.claimed === true &&
+              !view.planets.some((p) => Object.keys(p.committed).length > 0)),
         };
       case "SPACE_CANNON_DEFENSE":
         return { label: "Continue to ground combat", disabled: !allDefenseDone };
@@ -243,6 +248,20 @@ function InvasionWindow({ view }: { view: InvasionView }) {
       )}
 
       <p className={styles.hint}>{HINT[phase]}</p>
+
+      {view.custodians &&
+        (phase === "BOMBARDMENT" || phase === "COMMIT") &&
+        (view.custodians.onBoard || view.custodians.claimed) && (
+          <div className={styles.custodians}>
+            <CustodiansClaim
+              view={view.custodians}
+              busy={busy}
+              onClaim={(planets, tradeGoods) =>
+                actions.claimCustodians(planets, tradeGoods)
+              }
+            />
+          </div>
+        )}
 
       <div className={styles.planets}>
         {view.planets.map((info) => (

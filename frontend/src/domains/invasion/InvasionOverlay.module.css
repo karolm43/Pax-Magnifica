@@ -232,6 +232,13 @@
   color: var(--ds-ink-lo);
 }
 
+/* Żeton Custodians (Mecatol Rex): baner nad kartami planet. */
+.custodians {
+  position: relative;
+  width: min(680px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
 /* --- Karty planet --- */
 .planets {
   flex: 1;

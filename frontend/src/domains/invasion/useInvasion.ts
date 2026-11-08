@@ -107,7 +107,24 @@ export type InvasionResult = {
   explore: boolean;
 };
 
+/** Żeton Custodians w inwazji na Mecatol Rex (R_custodians_token). */
+export type CustodiansView = {
+  onBoard: boolean;
+  /** Atakujący zdjął żeton w tej inwazji - musi zlądować na Mecatol Rex. */
+  claimed: boolean;
+  canClaim: boolean;
+  /** Powód, dla którego teraz nie można zdjąć żetonu. */
+  reason: string | null;
+  cost: number;
+  /** Gotowe planety atakującego -> wpływ. */
+  influence: Record<string, number>;
+  tradeGoods: number;
+  /** Planety zablokowane dla lądowania, dopóki żeton leży. */
+  blockedPlanets: string[];
+};
+
 export type InvasionView = {
+  custodians: CustodiansView | null;
   active: boolean;
   /** Prosta inwazja (brak obrońców/bombardowania) - lądowanie w panelu pomocy. */
   simple: boolean;
@@ -257,6 +274,14 @@ export function useInvasionActions() {
     [refresh],
   );
 
+  const claimCustodians = useCallback(
+    async (planets: string[], tradeGoods: number) => {
+      await post("/tactical/invasion/custodians", { planets, tradeGoods });
+      refresh();
+    },
+    [refresh],
+  );
+
   const begin = useCallback(async () => {
     await post("/tactical/invasion/begin", {});
     refresh();
@@ -272,6 +297,7 @@ export function useInvasionActions() {
     bombard,
     assignBombard,
     commit,
+    claimCustodians,
     defenseFire,
     defensePass,
     assignDefense,

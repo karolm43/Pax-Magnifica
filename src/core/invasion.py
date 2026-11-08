@@ -15,7 +15,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import battle, chronicle, control, exhaust, exploration, space_cannon, unit_ops
+from src.core import (
+    battle,
+    chronicle,
+    control,
+    custodians,
+    exhaust,
+    exploration,
+    space_cannon,
+    unit_ops,
+)
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
 from src.core.game_state import (
@@ -481,6 +490,7 @@ def commit_ground_forces(
     """
     inv = _phase(state, InvasionPhase.COMMIT, "Commit Ground Forces")
     planets = set(system_planets(state, registry, inv.position))
+    sealed = custodians.landing_blocked(state, registry, inv.position)
     system = _system(state)
     available = _ground_in_zone(system, "space", inv.attacker)
     wanted: dict[str, int] = {}
@@ -490,6 +500,11 @@ def commit_ground_forces(
                 continue
             if planet not in planets:
                 raise ValueError(f"{planet} is not a planet of the active system.")
+            if planet in sealed:
+                raise ValueError(
+                    "The Custodians token blocks landing on Mecatol Rex - "
+                    "remove it first (spend 6 influence)."
+                )
             if base_type not in GROUND_FORCES:
                 raise ValueError(f"{base_type} is not a ground force.")
             wanted[base_type] = wanted.get(base_type, 0) + count
@@ -515,6 +530,50 @@ def commit_ground_forces(
             )
             landed = new_inv.committed.setdefault(planet, {})
             landed[base_type] = landed.get(base_type, 0) + count
+    return new_state
+
+
+# ------------------------------------------------------------------- żeton Custodians
+
+
+def custodians_block_reason(state: GameState, registry: StaticDataRegistry) -> str | None:
+    """Dlaczego aktywny gracz NIE może teraz zdjąć żetonu Custodians (``None`` = może).
+
+    Żeton wolno zdjąć przed Commit Ground Forces (Bombardment albo początek Commit, zanim
+    cokolwiek wylądowało), gdy leży na Mecatol Rex i gracz ma siły naziemne do zlądowania.
+    """
+    inv = _inv(state)
+    if not custodians.mecatol_planets(state, registry, inv.position):
+        return "This is not the Mecatol Rex system."
+    if not custodians.on_board(state):
+        return "The Custodians token has already been removed."
+    if inv.phase not in (InvasionPhase.BOMBARDMENT, InvasionPhase.COMMIT) or inv.committed:
+        return "The token can be removed only before the Commit Ground Forces step."
+    if not _ground_in_zone(_system(state), "space", inv.attacker):
+        return "You need ground forces in orbit to land on Mecatol Rex."
+    return None
+
+
+def claim_custodians(
+    state: GameState,
+    registry: StaticDataRegistry,
+    planets: list[str],
+    trade_goods: int,
+) -> GameState:
+    """Aktywny gracz zdejmuje żeton Custodians za 6 wpływu (+1 VP, faza agendy w grze).
+
+    Od tej chwili musi zlądować co najmniej jedną siłę naziemną na Mecatol Rex
+    (``advance`` nie wypuści z Commit bez tego).
+
+    Raises:
+        ValueError: Zły moment, brak sił naziemnych, żeton już zdjęty, zła płatność.
+    """
+    inv = _inv(state)
+    reason = custodians_block_reason(state, registry)
+    if reason is not None:
+        raise ValueError(reason)
+    new_state = custodians.remove_token(state, registry, inv.attacker, planets, trade_goods)
+    _inv(new_state).custodians_claimed = True
     return new_state
 
 
@@ -777,6 +836,13 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
             raise ValueError("Assign the bombardment hits first.")
         return _enter(state, grid, registry, InvasionPhase.COMMIT)
     if inv.phase is InvasionPhase.COMMIT:
+        if inv.custodians_claimed and not any(
+            p in inv.committed for p in custodians.mecatol_planets(state, registry, inv.position)
+        ):
+            raise ValueError(
+                "You removed the Custodians token - commit at least one ground force "
+                "to Mecatol Rex."
+            )
         if not inv.committed:
             # Brak lądowania: od razu do Establish Control (nic do rozstrzygania) — I2.
             return _enter(state, grid, registry, InvasionPhase.ESTABLISH)

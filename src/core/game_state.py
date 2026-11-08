@@ -571,6 +571,9 @@ class InvasionState(BaseModel):
     combat_results: dict[str, dict[str, Any]] = Field(default_factory=dict)
     results: list[dict[str, Any]] = Field(default_factory=list)
     log: list[dict[str, Any]] = Field(default_factory=list)
+    # Aktywny gracz zdjął w tej inwazji żeton Custodians => MUSI zlądować na Mecatol Rex
+    # (R_custodians_token); bez tego nie przejdzie z kroku Commit Ground Forces.
+    custodians_claimed: bool = False
 
 
 class ProductionGrant(BaseModel):

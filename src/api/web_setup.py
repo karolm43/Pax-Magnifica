@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import game_setup
+from src.core import custodians, game_setup
 from src.core.game_state import ControlType, GameState
 
 
@@ -20,9 +20,7 @@ def custodian_on_board(state: GameState) -> bool:
     Leży od położenia w setupie aż do zdjęcia (``custodians_removed``). Stany bez setupu
     (testy, God-Mode, starsze migawki) traktujemy jak gotowe — żeton jest na planszy.
     """
-    if state.custodians_removed:
-        return False
-    return state.setup is None or state.setup.custodians_placed
+    return custodians.on_board(state)
 
 
 def build_setup_payload(state: GameState) -> dict[str, Any] | None:

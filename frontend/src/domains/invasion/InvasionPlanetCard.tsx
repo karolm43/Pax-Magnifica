@@ -1,6 +1,7 @@
 import { type CSSProperties, type DragEvent } from "react";
 import {
   IconCrosshair,
+  IconLock,
   IconMinus,
   IconPlus,
   IconShield,
@@ -180,12 +181,14 @@ export function InvasionPlanetCard({
   const orbitItems = phase === "BOMBARDMENT" ? shipItems : podItems;
   const staged = actions.stage[info.planet] ?? {};
   const stagedCount = Object.values(staged).reduce((a, b) => a + b, 0);
+  // Żeton Custodians blokuje lądowanie na Mecatol Rex, dopóki nie zostanie zdjęty.
+  const sealed = view.custodians?.blockedPlanets.includes(info.planet) ?? false;
 
   const onDragOver = (e: DragEvent<HTMLElement>) => {
-    if (phase === "COMMIT") e.preventDefault();
+    if (phase === "COMMIT" && !sealed) e.preventDefault();
   };
   const onDrop = (e: DragEvent<HTMLElement>) => {
-    if (phase !== "COMMIT") return;
+    if (phase !== "COMMIT" || sealed) return;
     const baseType = e.dataTransfer.getData("text/x-basetype");
     if (!baseType) return;
     e.preventDefault();
@@ -198,7 +201,7 @@ export function InvasionPlanetCard({
       className={styles.planet}
       data-contested={info.contested || undefined}
       data-shielded={info.shielded || undefined}
-      data-droppable={phase === "COMMIT" || undefined}
+      data-droppable={(phase === "COMMIT" && !sealed) || undefined}
       onDragOver={onDragOver}
       onDrop={onDrop}
       aria-label={`Planet ${data?.name ?? info.planet}`}
@@ -377,6 +380,10 @@ export function InvasionPlanetCard({
                     .map(([bt, n]) => `${n}× ${bt}`)
                     .join(", ")}`
                 : "No ground forces left in orbit."}
+            </span>
+          ) : sealed ? (
+            <span className={styles.note}>
+              <IconLock size={13} /> Sealed by the Custodians token - remove it to land here.
             </span>
           ) : (
             <>

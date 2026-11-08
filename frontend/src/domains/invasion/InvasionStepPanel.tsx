@@ -6,6 +6,7 @@ import { fetchJson } from "@/api/fetchJson";
 import { useGameState } from "@/api/useGameState";
 import { useAppStore } from "@/state/appStore";
 import { getPlanetData } from "@/entities/lookup/planets";
+import { CustodiansClaim } from "./CustodiansClaim";
 import {
   bumpStage,
   landAll,
@@ -134,14 +135,36 @@ export function InvasionStepPanel() {
   }
 
   const total = stageTotal(stage);
+  const custodians = view.custodians;
+  // Po zdjęciu żetonu Custodians trzeba zlądować na Mecatol Rex (jedyna planeta systemu).
+  const mustLand = custodians?.claimed === true && total === 0;
   return (
     <div className={styles.box}>
+      {custodians && (custodians.onBoard || custodians.claimed) && (
+        <CustodiansClaim
+          view={custodians}
+          busy={busy}
+          onClaim={(planets, tradeGoods) =>
+            actions.claimCustodians(planets, tradeGoods)
+          }
+        />
+      )}
       {view.cargo.length === 0 && (
         <span className={styles.note}>No ground forces in orbit.</span>
       )}
       {view.planets.map((p) => {
         const name = getPlanetData(p.planet)?.name ?? p.planet;
         const staged = stage[p.planet] ?? {};
+        if (custodians?.blockedPlanets.includes(p.planet)) {
+          return (
+            <div className={styles.planet} key={p.planet}>
+              <div className={styles.head}>
+                <b>{name}</b>
+                <small>sealed by the Custodians token</small>
+              </div>
+            </div>
+          );
+        }
         return (
           <div className={styles.planet} key={p.planet}>
             <div className={styles.head}>
@@ -198,7 +221,8 @@ export function InvasionStepPanel() {
       <button
         type="button"
         className={styles.primary}
-        disabled={busy}
+        disabled={busy || mustLand}
+        title={mustLand ? "Land at least one ground force on Mecatol Rex." : undefined}
         onClick={() => void run(landing)}
       >
         <IconFlag size={14} aria-hidden="true" />{" "}

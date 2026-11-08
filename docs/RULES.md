@@ -2961,3 +2961,22 @@ wynik jest tylko zapisywany (prawa w `decks.agenda_laws`, reszta na `agenda_disc
    „nie może głosować" (`blocked`), stacje kosmiczne/The Triad/Oceany (ruling Dane) — działają tylko, jeśli są
    kontrolowanymi planetami z wpływem.
 5. Planety zostają wyczerpane między agendami tej samej fazy (nie odświeżają się przed krokiem 3).
+
+---
+
+## 52. Żeton Custodians: zdjęcie w inwazji na Mecatol Rex — ✅ ZWERYFIKOWANE (tirules)
+
+📎 tirules: [Custodians Token](rules_tirules/R_custodians_token.md) · [Mecatol Rex](rules_tirules/R_mecatol_rex.md) · [Invasion](rules_tirules/R_invasion.md) · [Influence](rules_tirules/R_influence.md) · [Victory Points](rules_tirules/R_victory_points.md) · [Agenda Phase](rules_tirules/R_agenda_phase.md)
+
+Kod: `core/custodians.py`, `core/invasion.py` (`claim_custodians`, `custodians_block_reason`), `api/routers/invasion.py` (`POST /tactical/invasion/custodians`), UI `frontend/src/domains/invasion/CustodiansClaim.tsx`.
+
+- (C1) Żeton leży na Mecatol Rex od setupu (45). Jednostki mogą wejść do systemu normalnie, ale **dopóki żeton leży, nie wolno lądować siłami naziemnymi na Mecatol Rex** (`commit_ground_forces` → 422).
+- (C2) **Przed krokiem Commit Ground Forces** aktywny gracz może zdjąć żeton, **wydając 6 wpływu** (planety — wyczerpanie, + trade goods 1:1; nadpłata przepada). Silnik: dozwolone w podkrokach Bombardment i Commit, zanim cokolwiek wylądowało.
+- (C3) Po zdjęciu gracz **musi zlądować co najmniej jedną siłę naziemną na Mecatol Rex** (`advance` z Commit blokuje bez tego). Bez sił naziemnych w orbicie żetonu zdjąć nie można.
+- (C4) Zdjęcie: gracz bierze żeton do swojego obszaru i **zdobywa 1 VP** (`objectives.award_points`, wpis `scored["custodians"]`).
+- (C5) Po zdjęciu **faza agendy jest dodana do wszystkich następnych rund, także bieżącej** — flaga `GameState.custodians_removed` (czytana przez `status_phase`, RULES.md 41/51).
+- (C6) Żeton nie jest attachmentem.
+
+**⚠️ ZAŁOŻENIA:**
+1. Płatność wybiera gracz (planety + TG) jak przy Leadership; po zdjęciu cofnięcie możliwe tylko przez Undo (silnik nie zwraca wpływu, gdy gracz nie wyląduje).
+2. Wymóg lądowania sprawdzamy przy wyjściu z Commit (nie przy samym zdjęciu).

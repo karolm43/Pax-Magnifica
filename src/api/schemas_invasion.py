@@ -123,6 +123,34 @@ class InvasionResponse(BaseModel):
     combat_results: dict[str, dict[str, Any]] = Field(
         default_factory=dict, serialization_alias="combatResults"
     )
+    custodians: CustodiansView | None = None
+
+
+class CustodiansView(BaseModel):
+    """Żeton Custodians w oknie inwazji na Mecatol Rex (R_custodians_token)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    on_board: bool = Field(serialization_alias="onBoard")
+    # Aktywny gracz zdjął żeton w tej inwazji (musi zlądować na Mecatol Rex).
+    claimed: bool = False
+    can_claim: bool = Field(default=False, serialization_alias="canClaim")
+    reason: str | None = None
+    cost: int
+    # Gotowe planety atakującego → wpływ oraz trade goods do wydania.
+    influence: dict[str, int] = Field(default_factory=dict)
+    trade_goods: int = Field(default=0, serialization_alias="tradeGoods")
+    # Planety, na które nie wolno lądować, dopóki żeton leży.
+    blocked_planets: list[str] = Field(default_factory=list, serialization_alias="blockedPlanets")
+
+
+class InvasionCustodiansRequest(BaseModel):
+    """Zdjęcie żetonu Custodians: planety do wyczerpania i trade goods."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    planets: list[str] = Field(default_factory=list)
+    trade_goods: int = Field(default=0, alias="tradeGoods")
 
 
 class InvasionBombardItem(BaseModel):

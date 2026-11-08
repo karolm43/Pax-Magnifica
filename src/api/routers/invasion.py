@@ -16,18 +16,20 @@ from src.api.schemas_invasion import (
     BombardGroupView,
     BombardPendingView,
     BombardView,
+    CustodiansView,
     DefensePlanetView,
     DefenseShooterView,
     InvasionAssignRequest,
     InvasionBombardRequest,
     InvasionCommitRequest,
+    InvasionCustodiansRequest,
     InvasionPlanetRequest,
     InvasionPlanetView,
     InvasionResponse,
     InvasionUnitView,
 )
 from src.api.web_data import entity_key_map
-from src.core import board_edit, invasion
+from src.core import board_edit, custodians, economy, invasion
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -88,6 +90,27 @@ def _log_entry(raw: dict[str, Any], key: Any) -> dict[str, Any]:
         {**r, "owner": key(r["owner"])} if r.get("owner") else r for r in entry.get("rolls", [])
     ]
     return entry
+
+
+def _custodians_view(ctx: AppContext, state: GameState) -> CustodiansView | None:
+    """Żeton Custodians — tylko w inwazji na system Mecatol Rex (inaczej ``None``)."""
+    inv = state.invasion
+    if inv is None:
+        return None
+    registry = ctx.registry
+    if not custodians.mecatol_planets(state, registry, inv.position):
+        return None
+    reason = invasion.custodians_block_reason(state, registry)
+    return CustodiansView(
+        on_board=custodians.on_board(state),
+        claimed=inv.custodians_claimed,
+        can_claim=reason is None,
+        reason=reason,
+        cost=custodians.INFLUENCE_COST,
+        influence=custodians.influence_options(state, registry, inv.attacker),
+        trade_goods=economy.spendable_trade_goods(state, inv.attacker),
+        blocked_planets=sorted(custodians.landing_blocked(state, registry, inv.position)),
+    )
 
 
 def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
@@ -205,6 +228,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
         and not invasion.defense_planets(state, registry)
     )
     return InvasionResponse(
+        custodians=_custodians_view(ctx, state),
         active=True,
         simple=simple,
         phase=inv.phase.value,
@@ -319,6 +343,20 @@ async def post_commit(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, "invasion:commit")
+
+
+@router.post("/tactical/invasion/custodians", response_model=StateEnvelope)
+async def post_custodians(
+    request: InvasionCustodiansRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Zdejmuje żeton Custodians z Mecatol Rex za 6 wpływu (+1 VP, faza agendy)."""
+    try:
+        new_state = invasion.claim_custodians(
+            ctx.service.current_state(), ctx.registry, request.planets, request.trade_goods
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, "invasion:custodians")
 
 
 @router.post("/tactical/invasion/defense/fire", response_model=StateEnvelope)
