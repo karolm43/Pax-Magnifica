@@ -116,7 +116,40 @@ Te komponenty nie trafiły w żadne słowo kluczowe — wymagają ręcznego prze
 | technologies | `fl` | Fleet Logistics | base | — | During each of your turns of the action phase, you may perform 2 actions instead of 1. |
 | technologies | `planesplitter-firm` | Planesplitter (Firmament) | thunders_edge | — | When you gain this card, put The Fracture into play. Flip this card if the Obsidian faction is in play. |
 
-## 6. Frakcje (komponenty frakcyjne i pokrycie)
+## 6. Kolejka kart ACTION do zrobienia (26)
+
+Karty zagrywane jako akcja komponentu, które silnik zagrywa tylko ręcznie (odrzucenie bez efektu). Po dodaniu efektu karta znika z tej listy.
+
+| Id | Nazwa | Źródło | Typ (szac.) | Obszary | Tekst |
+|---|---|---|---|---|---|
+| `arch_expedition` | Archaeological Expedition | pok | — | karty, planety i eksploracja | Reveal the top 3 cards of an exploration deck that matches a planet you control; gain any relic fragments that you reveal and discard the r… |
+| `brilliance` | Brilliance | thunders_edge | — | technologie, planety i eksploracja, status i odświeżanie | Ready 1 of your planets that has a technology specialty or choose 1 player to gain their breakthrough. |
+| `divert_funding` | Divert Funding | pok | — | technologie | Return a non-unit upgrade, non-faction technology that you own to your technology deck. Then, research another technology. |
+| `exchangeprogram` | Exchange Program | thunders_edge | PERMIT (pozwolenie) | produkcja, żetony dowodzenia, karty, planety i eksploracja | Choose another player. You and that player may agree to place 1 infantry from each of your reinforcements into coexistence on a planet the … |
+| `f_conscription` | Fighter Conscription | codex1 | FORBID (zakaz) | produkcja | Place 1 fighter from your reinforcements in each system that contains 1 or more of your space docks or units that have capacity. They canno… |
+| `f_researched` | Focused Research | base | — | ekonomia i płatności, technologie | Spend 4 trade goods to research 1 technology |
+| `ghost_ship` | Ghost Ship | base | — | ruch, walka, produkcja | Place 1 destroyer from your reinforcements in a non-home system that contains a wormhole and does not contain other players' ships. |
+| `jamming` | Signal Jamming | base | — | ruch, produkcja, żetony dowodzenia | Choose 1 non-home system that contains or is adjacent to 1 of your ships. Place a command token from another player's reinforcements in tha… |
+| `meltdown` | Reactor Meltdown | base | — | walka, produkcja | Destroy 1 space dock in a non-home system. |
+| `mercenarycontract` | Mercenary Contract | thunders_edge | — | ekonomia i płatności, planety i eksploracja | Spend 2 trade goods to place 2 neutral infantry on any non-home planet that contains no units; if that planet was owned by another player, … |
+| `overrule` | Overrule | thunders_edge | — | karty strategii i inicjatywa | Perform the primary ability of a readied or unchosen strategy card. |
+| `piratecontract1` | Pirate Contract | thunders_edge | — | walka | Place 1 neutral destroyer in a non-home system that contains no non-neutral ships. |
+| `piratecontract2` | Pirate Contract | thunders_edge | — | walka | Place 1 neutral destroyer in a non-home system that contains no non-neutral ships. |
+| `piratecontract3` | Pirate Contract | thunders_edge | — | walka | Place 1 neutral destroyer in a non-home system that contains no non-neutral ships. |
+| `piratecontract4` | Pirate Contract | thunders_edge | — | walka | Place 1 neutral destroyer in a non-home system that contains no non-neutral ships. |
+| `piratefleet` | Pirate Fleet | thunders_edge | — | walka, ekonomia i płatności | Spend 3 resources to place 1 neutral carrier, 1 neutral cruiser, 1 neutral destroyer, and 2 neutral fighters in a non-home system that cont… |
+| `plagiarize` | Plagiarize | codex1 | — | ekonomia i płatności, technologie | Spend 5 influence and choose a non-faction technology owned by 1 of your neighbors. Gain that technology. |
+| `probe` | Exploration Probe | pok | MODIFY (liczba/rzut) | ruch, planety i eksploracja | Explore a frontier token that is in or adjacent to a system that contains 1 or more of your ships. |
+| `seize` | Seize Artifact | pok | MODIFY (liczba/rzut) | planety i eksploracja | Choose 1 of your neighbors that has 1 or more relic fragments. That player must give you 1 relic fragment of your choice. |
+| `strategize1` | Strategize | thunders_edge | — | karty strategii i inicjatywa | Perform the secondary ability of any readied or unchosen strategy card. |
+| `strategize2` | Strategize | thunders_edge | — | karty strategii i inicjatywa | Perform the secondary ability of any readied or unchosen strategy card. |
+| `strategize3` | Strategize | thunders_edge | — | karty strategii i inicjatywa | Perform the secondary ability of any readied or unchosen strategy card. |
+| `strategize4` | Strategize | thunders_edge | — | karty strategii i inicjatywa | Perform the secondary ability of any readied or unchosen strategy card. |
+| `tactical` | Tactical Bombardment | base | MODIFY (liczba/rzut) | walka, planety i eksploracja, status i odświeżanie | Choose 1 system that contains 1 or more of your units that have BOMBARDMENT. Exhaust each planet controlled by other players in that system. |
+| `unstable` | Unstable Planet | base | — | walka, planety i eksploracja, status i odświeżanie | Choose 1 hazardous planet. Exhaust that planet and destroy up to 3 infantry on it. |
+| `uprising` | Uprising | base | — | ekonomia i płatności, planety i eksploracja, status i odświeżanie | Exhaust 1 non-home planet controlled by another player. Then gain trade goods equal to its resource value. |
+
+## 7. Frakcje (komponenty frakcyjne i pokrycie)
 
 Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisane do frakcji. Keleres (3 warianty) liczony jako jedna rodzina.
 
@@ -153,7 +186,7 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 | The Yin Brotherhood (`yin`) | 2 | 2 | 3 | 1 | 1 | 0 / 9 | cele i punkty, ekonomia i płatności, planety i eksploracja, produkcja, status i odświeżanie, technologie, walka |
 | The Yssaril Tribes (`yssaril`) | 3 | 2 | 3 | 1 | 1 | 0 / 10 | cele i punkty, karty, status i odświeżanie |
 
-## 7. Lista szczegółowa komponentów
+## 8. Lista szczegółowa komponentów
 
 Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 

@@ -100,6 +100,28 @@ reguł, `core/` stałby się nieczytelny po 10 frakcjach. Dlatego:
 
 ---
 
+## 3a. Karta od A do Z (obowiązujący przepis; cel: WSZYSTKIE karty gotowe)
+
+Każda karta przechodzi ten sam potok, więc dodanie kolejnej to jeden wpis w każdej warstwie, bez ruszania reguł bazowych:
+
+| Warstwa | Plik | Co robi |
+|---|---|---|
+| Dane | `assets/data/...` | tekst i okno karty (nigdy z pamięci); `timing_spec` klasyfikuje wyzwalacz |
+| Reguła | `docs/RULES.md` (+ `rules_tirules/`) | wpis ze źródłem, ⚠ przy założeniach |
+| Efekt | `core/hooks/action_cards*.py` → `@register_effect("action_cards:<id>")` | zmienia stan tylko przez punkty centralne |
+| Wybory | `core/hooks/action_card_inputs.py` → `@register_effect_inputs(...)` | opis formularza: `choice` / `multi` / `number`, opcje liczy silnik |
+| Zagrywalność | `core/action_cards.playability` | tura, faza, okno, jedna akcja, legalne cele |
+| API | `api/routers/action_cards.py` | `GET /action-card/playable`, `GET /action-card/{id}/inputs`, `POST /action-card/play` |
+| UI | `BottomHandDock` (przeciąganie), `ActionCardPlayModal` (formularz) | front nie zna kart, renderuje opis z silnika |
+| Testy | `tests/test_action_cards.py` | para bez/z efektem, round-trip formularza, błędy |
+| Raport | `docs/POKRYCIE_HOOKOW.md` | `uv run python -m src.audit.hook_coverage --write` |
+
+**Zasada UX:** kartę zagrywa się przeciągając ją z ręki, a podnieść można tylko kartę, którą silnik pozwala zagrać
+(`playability`). Inne rodzaje kart (reakcje, promissory notes) dostają ten sam standard — patrz „CEL PRODUKTOWY”
+w `PLAN_PELNA_ROZGRYWKA.md`.
+
+---
+
 ## 4. Struktura warstwy API (po refaktorze przed E3) — ✅ spłacone
 
 `app.py` jest teraz CIENKĄ fabryką (montaż routerów + WebSocket + static, ~100 linii).
@@ -182,6 +204,7 @@ tej samej zasady co reszta: logika to czyste funkcje, I/O cienkie, zero reguł z
 - [ ] Endpoint w `api/` tylko woła `core/` + commit/broadcast + mapuje błędy.
 - [ ] Wyjątek domenowy (`ValueError`/własny) w `core/`, mapowany na HTTP w `api/`.
 - [ ] Modyfikator frakcji/tech/karty = hook, nie `if` w regule bazowej.
+- [ ] Nowa karta = pełny potok z sekcji 3a (efekt + formularz + zagrywalność + test + raport pokrycia).
 - [ ] Test: jednostkowy dla `core/`, integracyjny (TestClient) dla endpointu.
 - [ ] Plik obejmuje już różne tematy (zwykle > ~500 linii)? → rozważ podział na podmoduł tematyczny. Spójnego modułu nie dziel tylko dla liczby linii.
 - [ ] QA zielone (pytest/ruff/mypy + frontend build) → commit po polsku.

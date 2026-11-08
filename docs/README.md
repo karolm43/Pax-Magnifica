@@ -1,4 +1,4 @@
-﻿# Dokumentacja Custodian Engine — indeks
+# Dokumentacja Custodian Engine — indeks
 
 Ten plik to **brama do dokumentacji**: po co ten projekt, gdzie co leży, który dokument
 do czego służy i w jakiej kolejności czytać. Zaczynaj tutaj.
@@ -36,7 +36,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`PROGRESS_ARCHIWUM.md`** | Pełna historia ukończonych bloków (Faza 1 → E4·UI²). Sięgaj po szczegół. | 🟤 archiwalny |
 | **`RULES.md`** | **Źródło prawdy dla mechanik TI4.** Każda reguła ma źródło (LRR / bot). | 🟢 żywy |
 | **`rules_tirules/`** | **Offline zrzut reguł z tirules2.com** (149 tematów MD + `tirules.json`). Sprawdzaj reguły tutaj najpierw. Start: `rules_tirules/INDEX.md`. | 🟢 żywy |
-| **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E7) + lista frakcji i gimmicków. | 🟢 żywy |
+| **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E8, fazy C/H/N), lista frakcji i gimmicków oraz **CEL PRODUKTOWY: wszystkie karty gotowe + zagrywanie przeciąganiem z ręki**. | 🟢 żywy |
 | **`ARCHITEKTURA_KODU.md`** | **Warstwy (core/api/ai), konwencje rozwoju, wzorzec hooków, dług techniczny.** Czytaj przed dodaniem nowej mechaniki. | 🟢 żywy |
 | **`POKRYCIE_HOOKOW.md`** | **GENEROWANY raport pokrycia hooków** (zarejestrowane hooki, % komponentów z hookiem, obszary reguł do domknięcia). Nie edytuj; odśwież: `uv run python -m src.audit.hook_coverage --write`. | 🟢 generowany |
 | **`UI_WYBOR_FRAKCJI.md`** | **Scena wyboru frakcji + krok „Gracze" kreatora**: układ, pliki, format treści (portrety/cytaty/lore), animacje, Obsidian (pismo + groza), gotchas. Czytaj przed zmianą UI setupu. | 🟢 żywy |
@@ -80,7 +80,13 @@ Pax Magnifica/
 │   │   ├── turn_flow.py          #     E1: fazy + kolejność tur (czyste funkcje)
 │   │   ├── strategy_phase.py     #     E2: faza strategii (wybór kart, trade goods)
 │   │   ├── timing.py             #     okna czasowe (kolejka respondentów) — RULES.md 29.2
-│   │   └── event_store.py        #     EventStore (SQLite) — Undo/Redo/God-Mode
+│   │   ├── event_store.py        #     EventStore (SQLite) — Undo/Redo/God-Mode
+│   │   ├── economy.py, command_tokens.py, exhaust.py, control.py, unit_ops.py  # punkty centralne (RULES.md 43.1a)
+│   │   ├── secret_objectives.py, promissory_notes.py, relic_fragments.py, card_draw.py  # karty/zasoby (C9)
+│   │   ├── rules_hooks.py        #     rejestr hooków, efektów kart i opisów wyborów (RULES.md 43)
+│   │   ├── hooks/                #     wyjątki tematycznie: frakcje, technologie, efekty kart akcji + formularze
+│   │   ├── action_cards.py       #     zagrywanie kart akcji: formularz, zagrywalność, efekt (RULES.md 53)
+│   │   └── agenda_phase.py       #     faza agendy: głosowanie, remis, prawa (RULES.md 51)
 │   ├── audit/                    #   AUDYTOR_DANYCH (CLI: `uv run python -m src.audit`)
 │   │   ├── locality.py           #     Strażnik_Lokalności: ścieżki referencyjne, odczyty spoza repo, URL-e
 │   │   ├── assets_manifest.py    #     manifest grafik/fontów (path+size+sha256), diff z dyskiem

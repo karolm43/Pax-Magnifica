@@ -1,4 +1,4 @@
-﻿# Custodian Engine — zasady projektu (steering)
+# Custodian Engine — zasady projektu (steering)
 
 Ten plik jest wczytywany automatycznie w każdej sesji. Definiuje trwałe zasady,
 których trzymam się niezależnie od tego, czy pamiętam poprzednią rozmowę.
@@ -144,6 +144,15 @@ dlatego trzymamy ostry podział warstw, zależności tylko w dół:
   `api/routers/*`; logika God-Mode w `core/board_edit.py`; współdzielone zależności w
   `AppContext` (`api/context.py`, zależność `get_ctx`). Wzorzec routera: ARCHITEKTURA_KODU.md §4.
   Przy E3 dodaj `core/tactical.py` + `api/routers/tactical.py`.
+
+## Cel: wszystkie karty gotowe + zagrywanie przeciąganiem (decyzja 2026-11-08)
+
+- Chcemy KOMPLET kart (karty akcji, agendy, eksploracja, relikty, promissory notes, liderzy, zdolności, technologie),
+  nie wybrane. Postęp: `docs/POKRYCIE_HOOKOW.md` (generowany: `uv run python -m src.audit.hook_coverage --write`).
+- Nowa karta = pełny potok z `docs/ARCHITEKTURA_KODU.md` §3a: RULES -> `register_effect` -> `register_effect_inputs`
+  -> zagrywalność -> test -> raport. Tekst karty zawsze z assetów, nigdy z pamięci.
+- Standard UX: kartę zagrywa się PRZECIĄGAJĄC ją z paska ręki na strefę zagrania; podnieść można tylko kartę, którą
+  silnik pozwala zagrać (`action_cards.playability`). Dotyczy też kolejnych rodzajów kart.
 
 ## Workflow i jakość kodu
 

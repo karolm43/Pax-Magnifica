@@ -190,6 +190,16 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
 - **Frakcje (E7):** lista 30 frakcji + gimmicki spisane (sekcja „Frakcje"). Kodujemy je
   dopiero PO silniku bazowym (E3–E6), frakcja po frakcji, jako hooki w oknach silnika.
 
+**Stan na 2026-11-08 (aktualizacja):**
+- **Faza C (punkty centralne C1–C9):** ✅ — strażnik `tests/test_central_points.py` pilnuje ~40 pól stanu.
+- **Hooki:** H1 szkielet (`core/rules_hooks.py`, pakiet `core/hooks/`) ✅, H2 punkty MODIFY/PERMIT/FORBID ✅ (ruch,
+  walka, produkcja, płatność, agenda), H3 raport pokrycia ✅ (`POKRYCIE_HOOKOW.md`). **H1b (STOP) ⬜** — model
+  uzgodniony w RULES.md 43.4, implementacja czeka.
+- **E6 faza agendy:** `core/agenda_phase.py` ✅ (ujawnienie, głosowanie, remis, prawa w grze); **efekty agend ⬜**.
+- **Karty akcji (H4):** zagrywanie ACTION ✅ (`core/action_cards.py`, formularz wyborów, zagrywalność, UI z
+  przeciąganiem z ręki); **16 z 143 kart ma efekt**. Cel: komplet (patrz „CEL PRODUKTOWY” niżej).
+- **Frakcje (H5):** hooków frakcyjnych jest 1 (Arborec); reszta ⬜. **Sieć (N) ⬜** (brak `actor_id` w większości endpointów).
+
 Szczegółowy dziennik postępu: `PROGRESS.md`. Mapa dokumentacji: `README.md` (w `docs/`).
 
 ## OSTATECZNY PLAN KOLEJNOŚCI (nadrzędny wobec starszych kolejności w tym pliku)
@@ -215,6 +225,44 @@ Zasady przekrojowe:
   Jeśli wyjątek jest konieczny, ląduje w JEDNYM nazwanym miejscu (stała/słownik) z komentarzem `HOOK-CANDIDATE`
   (jak `_PRODUCTION_FORBIDS`), żeby migracja do hooków była mechaniczna.
 - Każda zmiana stanu opisana w „punktach centralnych" (niżej) idzie WYŁĄCZNIE przez jej funkcję centralną.
+
+## CEL PRODUKTOWY: wszystkie karty gotowe + zagrywanie przeciąganiem z ręki (decyzja użytkownika 2026-11-08)
+
+**Chcemy mieć WSZYSTKIE karty gotowe**, a nie tylko wybrane: żaden komponent z aktywnych talii nie zostaje „martwy”.
+Docelowo 100% komponentów ma status `IMPLEMENTED`, a wyjątki są jawnie `MANUAL` z uzasadnieniem w RULES.md
+(RULES.md 43.1 pkt 7). Zakres (liczby z generowanego `POKRYCIE_HOOKOW.md`): karty akcji 143, agendy 63, karty
+eksploracji 80, relikty 24, promissory notes 40, wydarzenia galaktyczne 20, liderzy 103, zdolności frakcji 73,
+technologie 102, przełomy 31. Dziś: 16 kart akcji i 1 technologia mają efekt.
+
+**Definicja „karta gotowa” (DoD pojedynczej karty):**
+1. wpis w RULES.md (komponent, tekst z assetów, źródło w `docs/rules_tirules/`, ⚠ przy założeniach);
+2. efekt: `register_effect("<kategoria>:<id>")` albo hook (`core/hooks/*`) — zmiana stanu WYŁĄCZNIE przez punkty
+   centralne (RULES.md 43.1a);
+3. formularz wyborów: `register_effect_inputs` — legalne opcje liczy silnik (front nie zna kart);
+4. zagrywalność: karta jest zagrywalna, tylko gdy silnik może ją w pełni rozstrzygnąć
+   (`action_cards.playability`: okno, tura, legalne cele);
+5. testy: para „bez / z efektem”, round-trip formularza (parametry zbudowane jak w UI przechodzą walidację) i błędy;
+6. przegenerowany raport pokrycia (`uv run python -m src.audit.hook_coverage --write`).
+
+**Standard UX — zagrywanie przeciąganiem z ręki:**
+- Kartę zagrywa się **przeciągając ją z paska ręki** na strefę „Drop to play”; po upuszczeniu otwiera się formularz
+  wyborów (cele, płatność), a silnik waliduje i stosuje efekt. Klik w kartę dalej pokazuje podgląd.
+- **Kartę można podnieść tylko wtedy, gdy da się ją zagrać** (decyzja silnika, nie UI). Pozostałe są przyciemnione,
+  a podpowiedź podaje powód (nie Twoja tura, brak celu, karta reakcji…).
+- Stan dziś: ✅ karty akcji z oknem ACTION (`BottomHandDock`, `GET /action-card/playable`).
+- Do zrobienia w tym samym standardzie: karty reakcji (when/after/instead) — przeciągnięcie w oknie reakcji / po STOP
+  (RULES.md 43.4); promissory notes (zagranie do strefy gracza, ⚠ założenie do potwierdzenia); relikty i inne
+  komponenty z akcją. Tajne cele NIE są zagrywane (punktacja w fazie statusu).
+
+**Kolejność prac (wg raportu pokrycia; sekcja „Kolejka kart ACTION” w `POKRYCIE_HOOKOW.md` jest generowana):**
+1. Pozostałe karty ACTION (lista w raporcie) — wymagają m.in. pomocnika „system domowy”, cech i wormholi, badania
+   technologii i wykonania zdolności kart strategii.
+2. Efekty agend (prawa jako trwałe hooki, dyrektywy jednorazowo) — mechanizm `SOURCE_AGENDA` już jest.
+3. Komponenty z oknem at_start / at_end / during (hook na początek/koniec fazy lub tury).
+4. STOP + pauza + predykaty zagrywalności → karty reakcji (około 157 komponentów when/after/before).
+5. Relikty, promissory notes, karty eksploracji, wydarzenia galaktyczne.
+6. Frakcje (zdolności, liderzy, technologie frakcyjne, przełomy, jednostki specjalne): od prostych do strukturalnych.
+7. `actor_id` w endpointach akcji równolegle z każdym blokiem, potem etap sieciowy (N).
 
 ## Audyt miejsc rozproszonych (punkty centralne) — wynik wyszukiwania w `src/core/`
 
@@ -332,7 +380,7 @@ Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika
 - DoD: partia 6 graczy (z botami) w sieci; żaden klient nie widzi cudzej ręki; restart serwera nie kasuje gry.
 - Ryzyko największe: wyciek informacji (autoryzacja + projekcja) — testy bezpieczeństwa przed udostępnieniem innym.
 
-## Plan hooków i wyjątków (E7 + E4 + E6) — PLAN, jeszcze nie rozpoczęty (po blokach S)
+## Plan hooków i wyjątków (E7 + E4 + E6) — W TOKU (H1–H3 ✅, H4 częściowo, H1b/H5/H6 ⬜)
 
 Zasady architektury: **RULES.md 43** (hooki, kolejność, MANUAL vs IMPLEMENTED). Cel: dodawanie wyjątków
 (frakcje, karty akcji, agendy) bez ruszania reguł bazowych, kodowane po jednym, z wpisem w RULES + testem.
@@ -340,8 +388,9 @@ Zasady architektury: **RULES.md 43** (hooki, kolejność, MANUAL vs IMPLEMENTED)
 Baza, która już jest (nie budujemy od zera): `core/effects_registry.py` (status efektu per komponent:
 `NOT_IMPLEMENTED/IMPLEMENTED/MANUAL`), `core/timing_spec.py` (wyzwalacz → typ okna, RULES.md 34),
 `core/timing.py` (okna), `core/component_action.py` (szkielet akcji komponentu — bez efektów),
-`core/components.py` + `component_loader.py` (katalog komponentów z assetów). Brakuje: `core/rules_hooks.py`
-i punktów zaczepienia w regułach; wyjątek Arborec jest dziś na sztywno w `production.py` (`_PRODUCTION_FORBIDS`).
+`core/components.py` + `component_loader.py` (katalog komponentów z assetów). **Powstało (2026-11-08):**
+`core/rules_hooks.py` (rejestr hooków, efektów i opisów wyborów), pakiet `core/hooks/`, `core/action_cards.py`,
+raport `src/audit/hook_coverage.py`. Wyjątek Arborec przeniesiony do hooka.
 
 ### H0 — Przygotowanie (bez kodu gry)
 - Przejrzeć miejsca w `core/` z twardymi wyjątkami (grep po `faction`/`_FORBIDS`/id kart) — lista „długu".
@@ -387,7 +436,8 @@ i punktów zaczepienia w regułach; wyjątek Arborec jest dziś na sztywno w `pr
   hook → test; status w `effects_registry` na `IMPLEMENTED`. Karty bez hooka zostają `MANUAL`.
 - Kolejność: najpierw karty o prostym, jednofazowym efekcie (modyfikatory, +/- zasoby), potem z oknami reakcji,
   na końcu „instead of"/zmiana kolejności.
-- DoD (iteracyjnie): % pokrycia kart akcji rośnie, brak regresji.
+- DoD (iteracyjnie): % pokrycia kart akcji rośnie, brak regresji. **Stan:** zagrywanie ACTION + formularz +
+  zagrywalność + UI z przeciąganiem ✅, 16/143 kart; cel końcowy = komplet (sekcja „CEL PRODUKTOWY”).
 
 ### H5 — Frakcje (E7)
 - Wg tabel w sekcji „Frakcje": najpierw modyfikatory liczb/legalności (np. Sardakk, Jol-Nar, Sol, Letnev,
@@ -402,6 +452,8 @@ i punktów zaczepienia w regułach; wyjątek Arborec jest dziś na sztywno w `pr
   „when/after agenda revealed", remisy po stronie mówcy wg reguł) — NAJPIERW z tirules2 (`R_agenda_phase`).
 - Prawa jako hooki `PERSISTENT` (wygasanie przy odrzuceniu/zamianie), dyrektywy jako jednorazowe efekty.
 - DoD: pełna faza agendy działa bez agend-wyjątków; potem agendy po jednej wg tej samej procedury.
+- **Stan:** `core/agenda_phase.py` ✅ (głosowanie, remis, prawa zapisywane w `decks.agenda_laws`, punkt
+  `agenda.vote_modifier`); prawa są już źródłem hooków (`SOURCE_AGENDA`), ale ŻADNA agenda nie ma jeszcze efektu ⬜.
 
 ### H7 — Dokumentacja i porządek
 - Po każdym bloku: RULES.md (43 + wpis komponentu), PROGRESS.md, `effects_registry`, QA

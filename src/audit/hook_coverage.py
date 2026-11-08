@@ -288,8 +288,32 @@ def _section_unmatched(rows: list[Row]) -> list[str]:
     return lines + [""]
 
 
+def _section_action_queue(rows: list[Row]) -> list[str]:
+    """Kolejka: karty akcji z oknem ACTION, które nie mają jeszcze efektu (cel: komplet)."""
+    queue = [
+        r for r in rows
+        if r.category is ComponentCategory.ACTION_CARD
+        and r.trigger is TriggerKind.ACTION
+        and not r.covered
+    ]
+    lines = [
+        f"## 6. Kolejka kart ACTION do zrobienia ({len(queue)})", "",
+        "Karty zagrywane jako akcja komponentu, które silnik zagrywa tylko ręcznie "
+        "(odrzucenie bez efektu). "
+        "Po dodaniu efektu karta znika z tej listy.", "",
+        "| Id | Nazwa | Źródło | Typ (szac.) | Obszary | Tekst |", "|---|---|---|---|---|---|",
+    ]
+    for r in sorted(queue, key=lambda x: x.component_id):
+        areas = ", ".join(a.split(" (")[0] for a in areas_of(r.text)) or "—"
+        lines.append(
+            f"| `{r.component_id}` | {_cell(r.name)} | {r.source} | {kind_of(r)} | {areas} | "
+            f"{_snippet(r.body)} |"
+        )
+    return lines + [""]
+
+
 def _section_factions(registry: StaticDataRegistry, rows: list[Row]) -> list[str]:
-    lines = ["## 6. Frakcje (komponenty frakcyjne i pokrycie)", "",
+    lines = ["## 7. Frakcje (komponenty frakcyjne i pokrycie)", "",
              "Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisane "
              "do frakcji. Keleres (3 warianty) liczony jako jedna rodzina.", "",
              "| Frakcja | Zdolności | Tech. | Liderzy | Przełom | PN | Z hookiem / razem | "
@@ -312,7 +336,7 @@ def _section_factions(registry: StaticDataRegistry, rows: list[Row]) -> list[str
 
 
 def _section_details(rows: list[Row]) -> list[str]:
-    lines = ["## 7. Lista szczegółowa komponentów", "",
+    lines = ["## 8. Lista szczegółowa komponentów", "",
              "Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.", ""]
     by_category: dict[ComponentCategory, list[Row]] = {}
     for row in rows:
@@ -350,6 +374,7 @@ def render_markdown(registry: StaticDataRegistry) -> str:
         _section_triggers(rows),
         _section_areas(rows),
         _section_unmatched(rows),
+        _section_action_queue(rows),
         _section_factions(registry, rows),
         _section_details(rows),
     ):

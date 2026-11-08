@@ -3,8 +3,9 @@
 Plik śledzi stan prac między sesjami. Aktualizowany na koniec każdego bloku.
 Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
-> **Aktualny etap:** E8 — przejście na silnik-SĘDZIA (egzekucja reguł) + okna czasowe.
-> Plan zadań: `PLAN_PELNA_ROZGRYWKA.md` („E8"); reguły: `RULES.md` 29.
+> **Aktualny etap:** E8 (silnik-SĘDZIA) + fazy C/H: punkty centralne ✅, szkielet hooków ✅, karty akcji w toku.
+> **Cel bieżący:** WSZYSTKIE karty gotowe i zagrywane przeciąganiem z ręki (`PLAN_PELNA_ROZGRYWKA.md`, sekcja
+> „CEL PRODUKTOWY”); stan pokrycia: `POKRYCIE_HOOKOW.md` (generowany). Reguły: `RULES.md` 29, 43, 53.
 
 ## Status etapów silnika
 
@@ -16,6 +17,15 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 | E3 | Akcja taktyczna (aktywacja, ruch, walka, inwazja, produkcja) | ✅ fundament |
 | E4 | Kontrola komponentów (exhaust/refresh) + menu RMB | ✅ ukończone |
 | E8 | Silnik-SĘDZIA: walidacja reguł + okna czasowe (T1–T7 + faza akcji 31.7/31.8) | 🔧 w toku |
+| C | Punkty centralne C1–C9 (strażnik architektury) | ✅ ukończone |
+| H1–H3 | Hooki: rejestr, punkty MODIFY/PERMIT/FORBID, raport pokrycia | ✅ ukończone |
+| H4 | Karty akcji: zagrywanie ACTION + formularz + zagrywalność + UI z przeciąganiem (16/143 kart) | 🔧 w toku — cel: komplet |
+| E6 | Faza agendy (głosowanie, remis, prawa); efekty agend | ✅ głosowanie / ⬜ efekty |
+| H1b | STOP + pauza + predykaty zagrywalności (karty reakcji) | ⬜ model w RULES.md 43.4 |
+| H5 / N | Frakcje (zdolności) / sieć (`actor_id`, tokeny, push per gracz) | ⬜ |
+
+**Następne kroki (kolejność):** pozostałe karty ACTION (kolejka w `POKRYCIE_HOOKOW.md`) → efekty agend → hooki
+at_start/at_end/during → STOP i karty reakcji → relikty / promissory notes / eksploracja → frakcje → sieć.
 
 > Pełna historia ukończonych bloków ze szczegółami: `PROGRESS_ARCHIWUM.md`.
 
