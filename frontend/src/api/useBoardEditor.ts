@@ -81,6 +81,10 @@ export type PlayerEdit = {
   technologies?: string[];
   exhausted_technologies?: string[];
   leader_states?: Record<string, string>;
+  /** Przełom frakcji (Thunder's Edge). */
+  breakthrough_unlocked?: boolean;
+  breakthrough_exhausted?: boolean;
+  breakthrough_tg?: number;
   /** Promissory notes w strefie gracza (play area) — jawne, odrębne od ręki. */
   promissory_notes_in_play?: string[];
 };

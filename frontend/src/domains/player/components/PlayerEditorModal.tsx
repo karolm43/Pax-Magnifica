@@ -572,6 +572,79 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                         No leaders for this faction.
                       </Text>
                     )}
+
+                    {/* Przełom (breakthrough) — tylko frakcje, które go mają. */}
+                    {player.breakthrough && (
+                      <Stack gap={6} mt="md">
+                        <Text size="sm" fw={600}>
+                          Breakthrough
+                        </Text>
+                        <Group gap={6} wrap="wrap">
+                          <Button
+                            size="xs"
+                            variant={player.breakthrough.unlocked ? "filled" : "default"}
+                            disabled={busy}
+                            onClick={() =>
+                              void apply({
+                                breakthrough_unlocked: !player.breakthrough?.unlocked,
+                              })
+                            }
+                            title="Toggle unlocked / locked"
+                          >
+                            {player.breakthrough.unlocked ? "✓ Unlocked" : "🔒 Locked"}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant={player.breakthrough.exhausted ? "light" : "default"}
+                            disabled={busy || !player.breakthrough.unlocked}
+                            onClick={() =>
+                              void apply({
+                                breakthrough_exhausted: !player.breakthrough?.exhausted,
+                              })
+                            }
+                            title="Toggle exhausted / ready"
+                          >
+                            {player.breakthrough.exhausted ? "⟲ Exhausted" : "Ready"}
+                          </Button>
+                        </Group>
+                        <div className={styles.numRow}>
+                          <Text size="sm" className={styles.numLabel}>
+                            Trade goods on breakthrough
+                          </Text>
+                          <div className={styles.numCtl}>
+                            <ActionIcon
+                              size="sm"
+                              variant="subtle"
+                              disabled={busy || player.breakthrough.tradeGoodsStored <= 0}
+                              onClick={() =>
+                                void apply({
+                                  breakthrough_tg:
+                                    (player.breakthrough?.tradeGoodsStored ?? 0) - 1,
+                                })
+                              }
+                              aria-label="−1 breakthrough trade goods"
+                            >
+                              <IconMinus size={12} />
+                            </ActionIcon>
+                            <Text size="sm">{player.breakthrough.tradeGoodsStored}</Text>
+                            <ActionIcon
+                              size="sm"
+                              variant="subtle"
+                              disabled={busy}
+                              onClick={() =>
+                                void apply({
+                                  breakthrough_tg:
+                                    (player.breakthrough?.tradeGoodsStored ?? 0) + 1,
+                                })
+                              }
+                              aria-label="+1 breakthrough trade goods"
+                            >
+                              <IconPlus size={12} />
+                            </ActionIcon>
+                          </div>
+                        </div>
+                      </Stack>
+                    )}
                   </Tabs.Panel>
 
                   {/* === HAND === */}

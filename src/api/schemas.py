@@ -394,6 +394,10 @@ class PlayerEditRequest(BaseModel):
     exhausted_technologies: list[str] | None = None
     # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}.
     leader_states: dict[str, str] | None = None
+    # Przełom frakcji (Thunder's Edge): odblokowany / wyczerpany / odłożone TG.
+    breakthrough_unlocked: bool | None = None
+    breakthrough_exhausted: bool | None = None
+    breakthrough_tg: int | None = None
     # Promissory notes w strefie gracza (play area) — jawne, odrębne od ręki
     # (RULES.md 2d). God-Mode zasila je ręcznie do czasu logiki zagrywania notek.
     promissory_notes_in_play: list[str] | None = None
