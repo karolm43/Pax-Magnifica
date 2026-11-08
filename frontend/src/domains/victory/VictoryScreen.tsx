@@ -33,9 +33,13 @@ import type {
   PlayerData,
 } from "@/entities/data/types";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
-import { portraitCandidates, useFactionAccent } from "@/domains/setup/FactionBackdrop";
+import {
+  FactionPortraitLayer,
+  portraitCandidates,
+  useFactionAccent,
+} from "@/domains/setup/FactionBackdrop";
 import { getEpilogue, DEFAULT_EPILOGUE_AUTHOR } from "./factionEpilogues";
-import { AchievementCard, type AchievementData, type AchievementPlayer } from "./AchievementCard";
+import { AchievementRow, type AchievementData, type AchievementPlayer } from "./AchievementCard";
 import { buildAwards, summarize } from "./gameStats";
 import styles from "./VictoryScreen.module.css";
 
@@ -278,13 +282,19 @@ function TriumphStage({
 }) {
   return (
     <section className={`${styles.stage} ${styles.triumph}`} style={swatchStyle(winner)}>
-      <div className={styles.triumphArt} aria-hidden>
-        <FactionArt
-          factionId={winner.faction}
-          faction={faction}
-          className={styles.triumphPortrait}
-          iconClassName={styles.triumphIcon}
-        />
+      {/* Ta sama warstwa portretu co w scenie wyboru frakcji (dosunięcie do lewego
+          dolnego rogu z pomiaru alfy, miękkie krawędzie, wyłanianie z mgły). */}
+      <div className={styles.triumphArt}>
+        {faction ? (
+          <FactionPortraitLayer faction={faction} />
+        ) : (
+          <FactionArt
+            factionId={winner.faction}
+            faction={faction}
+            className={styles.triumphPortrait}
+            iconClassName={styles.triumphIcon}
+          />
+        )}
       </div>
       <div className={styles.triumphText}>
         <p className={styles.kicker}>Round {round}</p>
@@ -706,27 +716,8 @@ function SummaryStage({
         </table>
       </div>
 
-      {highlightCards.length > 0 && (
-        <section className={styles.cardsSection} aria-label="Chronicle of the war">
-          <h2 className={styles.sectionTitle}>Chronicle of the war</h2>
-          <ul className={styles.cards}>
-            {highlightCards.map((card) => (
-              <AchievementCard key={card.key} item={card} />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {awardCards.length > 0 && (
-        <section className={styles.cardsSection} aria-label="Distinctions">
-          <h2 className={styles.sectionTitle}>Distinctions</h2>
-          <ul className={styles.cards}>
-            {awardCards.map((card) => (
-              <AchievementCard key={card.key} item={card} />
-            ))}
-          </ul>
-        </section>
-      )}
+      <AchievementRow title="Chronicle of the war" items={highlightCards} />
+      <AchievementRow title="Distinctions" items={awardCards} />
 
       <div className={styles.footer}>
         <button type="button" className={styles.secondary} onClick={onReview}>

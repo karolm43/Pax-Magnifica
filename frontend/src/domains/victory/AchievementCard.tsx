@@ -3,12 +3,14 @@
 // tytuł, opis oraz stopka z uczestnikami (herb frakcji, nazwa, gracz). Kolor zależy od
 // kategorii, nie od gracza, więc rząd kart czyta się jak legenda.
 
-import type { CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   IconAward,
   IconBolt,
   IconBuilding,
   IconBuildingCastle,
+  IconChevronLeft,
+  IconChevronRight,
   IconCoins,
   IconCompass,
   IconCrown,
@@ -40,7 +42,7 @@ import {
 import type { Icon } from "@tabler/icons-react";
 import styles from "./AchievementCard.module.css";
 
-export type AchievementTag = "War" | "Treachery" | "Race" | "Empire" | "Table";
+export type AchievementTag = "War" | "Treachery" | "Peace" | "Race" | "Empire" | "Table";
 
 export interface AchievementPlayer {
   id: string;
@@ -77,8 +79,8 @@ const META: Record<string, { icon: Icon; tag: AchievementTag }> = {
   conqueror: { icon: IconFlag, tag: "War" },
   torn_world: { icon: IconPlanet, tag: "War" },
   betrayal: { icon: IconSkull, tag: "Treachery" },
-  quiet_victory: { icon: IconPeace, tag: "Treachery" },
-  peaceful_galaxy: { icon: IconPeace, tag: "Treachery" },
+  quiet_victory: { icon: IconPeace, tag: "Peace" },
+  peaceful_galaxy: { icon: IconPeace, tag: "Peace" },
   diplomat: { icon: IconHeartHandshake, tag: "Table" },
   hermit: { icon: IconMoodSad, tag: "Table" },
   benefactor: { icon: IconGift, tag: "Table" },
@@ -97,10 +99,10 @@ const META: Record<string, { icon: Icon; tag: AchievementTag }> = {
   fleet: { icon: IconRocket, tag: "War" },
   ground: { icon: IconTarget, tag: "War" },
   techs: { icon: IconBolt, tag: "Empire" },
-  tg: { icon: IconCoins, tag: "Table" },
+  tg: { icon: IconCoins, tag: "Empire" },
   economy: { icon: IconCoins, tag: "Empire" },
   relics: { icon: IconDiamond, tag: "Empire" },
-  secrets: { icon: IconUsers, tag: "Table" },
+  secrets: { icon: IconUsers, tag: "Race" },
   runner_up: { icon: IconTrophy, tag: "Race" },
   wooden_spoon: { icon: IconMoodSad, tag: "Race" },
 };
@@ -146,5 +148,82 @@ export function AchievementCard({ item }: { item: AchievementData }) {
         ))}
       </footer>
     </li>
+  );
+}
+
+
+/**
+ * Sekcja z poziomo przewijanym rzędem kart (swipe/kółko/strzałki). Karty mają stałą
+ * szerokość i zatrzymują się na początku karty (scroll-snap); strzałki pokazują się tylko,
+ * gdy jest dokąd przewijać.
+ */
+export function AchievementRow({
+  title,
+  items,
+}: {
+  title: string;
+  items: AchievementData[];
+}) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const [edge, setEdge] = useState({ left: false, right: false });
+
+  const update = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    setEdge({
+      left: el.scrollLeft > 4,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+    });
+  }, []);
+
+  useEffect(() => {
+    update();
+    const el = listRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [update, items.length]);
+
+  const page = (direction: -1 | 1) => {
+    const el = listRef.current;
+    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.85, behavior: "smooth" });
+  };
+
+  if (items.length === 0) return null;
+  return (
+    <section className={styles.row} aria-label={title}>
+      <h2 className={styles.rowTitle}>
+        {title}
+        <span className={styles.count}>{items.length}</span>
+      </h2>
+      <div className={styles.scroller}>
+        {edge.left && (
+          <button
+            type="button"
+            className={`${styles.arrow} ${styles.arrowLeft}`}
+            onClick={() => page(-1)}
+            aria-label={`${title}: previous`}
+          >
+            <IconChevronLeft size={22} />
+          </button>
+        )}
+        <ul ref={listRef} className={styles.track} onScroll={update}>
+          {items.map((item) => (
+            <AchievementCard key={item.key} item={item} />
+          ))}
+        </ul>
+        {edge.right && (
+          <button
+            type="button"
+            className={`${styles.arrow} ${styles.arrowRight}`}
+            onClick={() => page(1)}
+            aria-label={`${title}: next`}
+          >
+            <IconChevronRight size={22} />
+          </button>
+        )}
+      </div>
+    </section>
   );
 }

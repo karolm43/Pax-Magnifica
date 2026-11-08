@@ -138,61 +138,54 @@
 /* ── 1. Triumph ────────────────────────────────────────────────────────── */
 
 .triumph {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  align-items: end;
-}
-
-.triumphArt {
   position: relative;
-  height: 100%;
-  min-width: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/*
+ * Portret zwycięzcy = `FactionPortraitLayer` ze sceny wyboru frakcji (ten sam układ:
+ * sylwetka dosunięta do lewego dolnego rogu ekranu z pomiaru alfy, miękkie krawędzie,
+ * wyłanianie z mgły). Tu tylko strefa: pełna wysokość (bez paska cytatu) i szeroki pas.
+ */
+.triumphArt {
+  --portrait-w: clamp(360px, 60%, 1100px);
+  --quote-h: 0px;
+  --t-portrait-delay: 0.2s;
+  --t-portrait-fade: 4.5s;
+  --t-portrait-unblur: 2s;
+  --t-portrait-glow: 6s;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  /* Prawa krawędź zanika, postać wtapia się w tło. */
-  mask-image: linear-gradient(to right, #000 62%, transparent 100%);
+  pointer-events: none;
 }
 
-.triumphPortrait {
-  height: 96%;
-  max-width: 100%;
-  object-fit: contain;
-  object-position: 50% 100%;
-  filter: drop-shadow(0 10px 30px rgb(0 0 0 / 0.7));
-  animation: portraitIn 2.6s cubic-bezier(0.22, 0.61, 0.36, 1) 0.2s both;
-}
-
+/* Fallback (brak danych frakcji): sama ikona frakcji jako przygaszony symbol. */
+.triumphPortrait,
 .triumphIcon {
-  width: 38%;
-  margin-bottom: 30vh;
-  opacity: 0.45;
+  position: absolute;
+  left: 6vw;
+  bottom: 18vh;
+  width: min(34vw, 56vh);
+  opacity: 0.4;
   filter: drop-shadow(0 0 30px var(--accent, #fca22b));
 }
 
-@keyframes portraitIn {
-  from {
-    opacity: 0;
-    transform: translateX(-28px) scale(1.02);
-    filter: blur(14px) brightness(0.3);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    filter: blur(0) brightness(1);
-  }
-}
-
+/* Tekst po prawej, wyśrodkowany w pionie; delikatna ciemna poświata scala go z portretem. */
 .triumphText {
-  align-self: center;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: min(56%, 52rem);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: clamp(8px, 1.6vh, 18px);
-  padding: 0 clamp(20px, 5vw, 90px) 0 0;
+  padding: clamp(24px, 5vh, 60px) clamp(20px, 5vw, 90px) clamp(24px, 5vh, 60px) clamp(24px, 4vw, 70px);
+  background: radial-gradient(ellipse at 40% 50%, rgb(0 0 0 / 0.45), transparent 70%);
 }
-
 .triumphText > * {
   animation: riseIn 1.2s ease-out both;
 }
@@ -773,14 +766,14 @@
 }
 
 @media (max-width: 900px) {
-  .triumph {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 0.8fr) auto;
+  .triumphArt {
+    opacity: 0.55;
   }
   .triumphText {
+    width: 100%;
     align-items: center;
     text-align: center;
-    padding: 0 16px 24px;
+    padding: 0 16px;
   }
   .choices {
     grid-template-columns: 1fr;
@@ -797,44 +790,6 @@
   }
 }
 
-
-/* Sekcje kart osiągnięć: identyczne komórki siatki (wysokość rzędu = najwyższa karta). */
-.cardsSection {
-  width: min(100%, 78rem);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sectionTitle {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
-  font-size: clamp(0.8rem, 1.1vw, 1rem);
-  font-weight: 400;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: rgb(246 234 208 / 0.78);
-}
-
-.sectionTitle::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgb(252 162 43 / 0.5), transparent);
-}
-
-.cards {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  grid-auto-rows: 1fr;
-  gap: 12px;
-}
 
 /* Cytat epilogu: pod tekstem, kursywą; autor (.author) leży tuż pod nim. */
 .epilogueQuote {
