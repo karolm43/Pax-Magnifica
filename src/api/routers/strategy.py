@@ -10,6 +10,7 @@ from src.api.schemas import (
     StrategyCardInfo,
     StrategyPickRequest,
     StrategyPlayRequest,
+    StrategyPrimaryStepRequest,
     StrategySecondaryRequest,
 )
 from src.core import strategic_action, strategy_phase
@@ -104,6 +105,27 @@ async def post_strategy_play(
     return await _commit(
         ctx, new_state, f"strategy:play:{request.player_id}:{request.initiative}"
     )
+
+
+@router.post("/strategy/primary-step", response_model=StateEnvelope)
+async def post_strategy_primary_step(
+    request: StrategyPrimaryStepRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Wybór aktywnego gracza dla bieżącego kroku wieloetapowego primary (RULES.md 30.5).
+
+    Tylko właściciel karty; po ostatnim kroku silnik stosuje primary i otwiera okno
+    secondary. Zły payload / nie ten gracz → 422.
+    """
+    try:
+        new_state = strategic_action.submit_primary_step(
+            ctx.service.current_state(),
+            ctx.registry,
+            request.player_id,
+            request.payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"strategy:primary-step:{request.player_id}")
 
 
 @router.post("/strategy/secondary", response_model=StateEnvelope)

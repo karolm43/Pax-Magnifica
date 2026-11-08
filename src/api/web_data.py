@@ -160,6 +160,25 @@ def _pending_window(state: GameState) -> dict[str, Any] | None:
         "isComplete": window.is_complete,
     }
 
+def _pending_strategy(state: GameState) -> dict[str, Any] | None:
+    """Reprezentacja trwającego wieloetapowego primary karty strategii (lub None).
+
+    ``ownerId`` (player_id) adresuje odpowiedź, ``ownerColor`` dopasowuje gracza w UI.
+    Szkic wyborów (``draft``) jest publiczny dla właściciela; pola prywatne kart
+    (np. podgląd agendy) dojdą osobnym kanałem widoczności, nie tędy.
+    """
+    pending = state.pending_strategy
+    if pending is None:
+        return None
+    return {
+        "initiative": pending.initiative,
+        "ownerId": pending.owner_id,
+        "ownerColor": _color_of(state, pending.owner_id),
+        "step": pending.step,
+        "draft": dict(pending.draft),
+    }
+
+
 def _active_combat(state: GameState) -> dict[str, Any] | None:
     """Kontrakt ``GameStateCombat`` AsyncTI4 dla trwającej walki (lub None).
 
@@ -271,6 +290,8 @@ def _build_game_state(
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),
+        # Wieloetapowe PRIMARY karty strategii (wybory aktywnego gracza) — None, gdy brak.
+        "pendingStrategy": _pending_strategy(state),
         # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None po zakończeniu.
         # Nasze rozszerzenie kontraktu; okno setupu na froncie. RULES.md 43.
         "setup": web_setup.build_setup_payload(state),

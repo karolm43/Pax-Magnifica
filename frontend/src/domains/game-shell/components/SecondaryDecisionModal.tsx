@@ -17,6 +17,7 @@ import {
   getPlayerDisplayName,
   type GameStatePlayer,
 } from "./gameStatePlayers";
+import { StrategyPrimaryStepModal } from "./StrategyPrimaryStepModal";
 
 /**
  * Popup decyzji SECONDARY karty strategii (RULES.md 29.2, 31.6).
@@ -107,7 +108,18 @@ export function SecondaryDecisionModal() {
     void strategySecondary(id, execute).finally(() => setBusy(false));
   };
 
+  // Koszt follow: żeton ze strategy pool (window.context.cost = 1), chyba że respondent
+  // został wskazany jako „free" (wtedy secondary jest DARMOWE i OBOWIĄZKOWE).
+  const isFree = (String(window?.context?.free ?? "").split(",") as string[]).includes(
+    window?.currentResponderId ?? "\0",
+  );
+  const needsToken = Number(window?.context?.cost ?? 0) > 0 && !isFree;
+  const poolTokens = (responder as { strategicCC?: number } | undefined)?.strategicCC;
+  const cannotAfford = needsToken && (poolTokens ?? 1) < 1;
+
   return (
+    <>
+    <StrategyPrimaryStepModal />
     <AppModal
       opened={isSecondary}
       // Modal wymuszony: nie zamykamy go samodzielnie — zniknie, gdy backend domknie
@@ -180,30 +192,39 @@ export function SecondaryDecisionModal() {
         </div>
 
         <Text size="xs" c="dimmed">
-          Following is optional. Players respond in turn order — the player to
-          the left of the active player first, then clockwise.
+          {isFree
+            ? "The active player chose you: you must resolve this ability and it costs no command token. "
+            : needsToken
+              ? `Following costs 1 command token from your strategy pool${
+                  poolTokens != null ? ` (you have ${poolTokens})` : ""
+                }. `
+              : "Following is optional. "}
+          Players respond in turn order — the player to the left of the active
+          player first, then clockwise.
           {window ? ` Remaining after you: ${Math.max(window.remaining - 1, 0)}.` : ""}
         </Text>
 
         <Group justify="flex-end" gap="sm">
           <Button
             variant="default"
-            disabled={busy}
+            disabled={busy || isFree}
             leftSection={<IconHandStop size={16} />}
             onClick={() => decide(false)}
           >
             Don't follow
           </Button>
           <Button
-            disabled={busy}
+            disabled={busy || cannotAfford}
             leftSection={<IconBolt size={16} />}
             onClick={() => decide(true)}
+            title={cannotAfford ? "No command token in your strategy pool" : undefined}
           >
             Follow
           </Button>
         </Group>
       </Stack>
     </AppModal>
+    </>
   );
 }
 

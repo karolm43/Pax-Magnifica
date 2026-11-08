@@ -647,6 +647,18 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Wybór aktywnego gracza dla bieżącego kroku wieloetapowego primary (RULES.md 30.5).
+  const strategyPrimaryStep = useCallback(
+    async (playerId: string, payload: Record<string, unknown>) => {
+      await post("/strategy/primary-step", {
+        player_id: playerId,
+        payload,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const strategySecondary = useCallback(
     async (playerId: string, execute: boolean) => {
       await post("/strategy/secondary", {
@@ -747,6 +759,7 @@ export function useBoardEditor() {
     setPlayerHand,
     respondWindow,
     strategySecondary,
+    strategyPrimaryStep,
     setupSecret,
     setupCustodians,
     setupRevealObjectives,

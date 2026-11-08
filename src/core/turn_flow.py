@@ -182,6 +182,10 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
             gracz nie wykonał w tej turze żadnej akcji ani nie spasował.
     """
     _require_action_turn(state, player_id)
+    if state.pending_strategy is not None:
+        raise ValueError(
+            "Cannot end the turn - finish resolving the strategy card's primary ability."
+        )
     if state.pending_window is not None:
         raise ValueError(
             "Cannot end the turn while a timing window is open - every player must "

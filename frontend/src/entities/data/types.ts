@@ -503,6 +503,8 @@ export type GameState = {
   productionGrant?: { system: string; source: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
   pendingWindow?: PendingWindow | null;
+  /** Wieloetapowe primary karty strategii (wybory aktywnego gracza) — null, gdy brak. */
+  pendingStrategy?: PendingStrategy | null;
   /** Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — null po zakończeniu. */
   setup?: GameSetup | null;
   /**
@@ -577,6 +579,19 @@ export type PendingWindow = {
   responded: string[];
   context: Record<string, string | number>;
   isComplete: boolean;
+};
+
+/**
+ * Trwające WIELOETAPOWE primary karty strategii (RULES.md 30.5) — wybory aktywnego
+ * gracza krok po kroku. ``ownerId`` (player_id) adresuje odpowiedź, ``ownerColor``
+ * dopasowuje gracza w UI; ``step`` mówi, jaki wybór jest teraz wymagany.
+ */
+export type PendingStrategy = {
+  initiative: number;
+  ownerId: string;
+  ownerColor: string | null;
+  step: string;
+  draft: Record<string, unknown>;
 };
 
 export type GameStateMessage = {

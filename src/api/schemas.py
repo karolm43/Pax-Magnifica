@@ -453,6 +453,19 @@ class StrategyPlayRequest(BaseModel):
     initiative: int
 
 
+class StrategyPrimaryStepRequest(BaseModel):
+    """Wybór aktywnego gracza dla bieżącego kroku wieloetapowego primary (E8-T5).
+
+    ``player_id`` musi być właścicielem karty; ``payload`` ma kształt zależny od kroku
+    karty (np. Trade: ``{"players": ["p2"]}``) i jest walidowany po stronie ``core/``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
 class StrategySecondaryRequest(BaseModel):
     """Odpowiedź w oknie secondary karty strategii (E8-T3).
 

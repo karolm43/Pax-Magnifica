@@ -78,6 +78,25 @@ class WindowType(StrEnum):
     FLEET_POOL = "FLEET_POOL"
 
 
+class StrategyResolution(BaseModel):
+    """Trwające, WIELOETAPOWE rozstrzyganie PRIMARY karty strategii (RULES.md 30.5).
+
+    Większość kart wymaga wyborów aktywnego gracza (kogo wskazać, który system, jaką
+    technologię...). Zamiast jednego strzału, primary idzie krok po kroku: ``step`` to
+    bieżący krok, ``draft`` zbiera dotychczasowe wybory (walidowane, ale jeszcze NIE
+    zastosowane). Efekt stosuje się atomowo po ostatnim kroku. Tylko ``owner_id`` może
+    odpowiadać (serwer sprawdza tożsamość — pod grę sieciową). Po primary otwiera się
+    okno ``STRATEGY_SECONDARY`` (``pending_window``), a ten obiekt znika.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    initiative: int
+    owner_id: str
+    step: str
+    draft: dict[str, Any] = Field(default_factory=dict)
+
+
 class TimingWindow(BaseModel):
     """Otwarte okno czasowe — kolejka graczy pytanych PO KOLEI (RULES.md 29.2).
 
@@ -550,6 +569,9 @@ class GameState(BaseModel):
     # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między
     # graczami (RULES.md 29.2). Mechanika: ``core/timing.py``.
     pending_window: TimingWindow | None = None
+    # Trwające wieloetapowe PRIMARY karty strategii (wybory aktywnego gracza) — None, gdy
+    # brak. Blokuje End turn i inne akcje do czasu rozstrzygnięcia (RULES.md 30.5).
+    pending_strategy: StrategyResolution | None = None
     # Generator losowy silnika (rzuty kośćmi — ``core/dice.py``). ``rng_seed`` = 0 oznacza
     # „jeszcze nie zasiane": pierwszy rzut losuje ziarno i zapisuje je w stanie. Ziarno +
     # licznik są częścią stanu, więc Undo/Redo i powtórka migawki dają TE SAME wyniki.

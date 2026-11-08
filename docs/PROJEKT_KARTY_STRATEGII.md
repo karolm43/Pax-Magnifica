@@ -171,9 +171,11 @@ po stronie respondenta pokazuje się popup follow/don't follow (już jest
 ## 6. Proponowana kolejność wdrożenia
 
 1. (GOTOWE) Walidacja jednej akcji na turę + UI wyszarza kartę po akcji/pasie.
-2. Szkielet wieloetapowy (`pending_strategy`, kontrakt `decision`+`payload`, pobranie
-   żetonu strategy pool, spasowani mogą follow, wyczerpanie po oknie) + testy.
-3. Karty „czyste": Trade, Imperial, Politics (bez wpływu/płatności planet).
+2. (GOTOWE, RULES.md 30.5) Szkielet wieloetapowy: `pending_strategy` + `/strategy/primary-step`,
+   koszt follow (żeton strategy pool, wyjątki Leadership i „free"), spasowani mogą follow,
+   `CardSpec` w `core/strategic_action.py`, generyczny modal kroków. Wzorcowa karta: Trade.
+   Zostaje na później: kontrakt `window_id/version` (idempotencja sieciowa), wyczerpanie po oknie.
+3. Karty „czyste": Imperial, Politics (bez wpływu/płatności planet). Trade już jest.
 4. PaymentPicker + Leadership, Diplomacy.
 5. Construction, Warfare (mapa + produkcja).
 6. Technology (drzewo) — osobny blok, bo największe UI i model badania.

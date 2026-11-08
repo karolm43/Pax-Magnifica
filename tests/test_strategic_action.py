@@ -53,7 +53,7 @@ def test_play_opens_secondary_window_for_others(
     assert new.pending_window.window_type is WindowType.STRATEGY_SECONDARY
     # Kolejka od gracza po aktywnym (p1), zegarowo: p2, p3. Inicjator pominięty.
     assert new.pending_window.queue == ["p2", "p3"]
-    assert new.pending_window.context == {"initiative": 1}
+    assert new.pending_window.context == {"initiative": 1, "free": "", "cost": 0}
     assert new.pending_window.current_responder == "p2"
 
 

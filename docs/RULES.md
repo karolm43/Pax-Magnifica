@@ -1364,6 +1364,31 @@ Warfare na tirules2.com opisują wersję PoK, więc `rules_tirules/R_constructio
 przepisano LOKALNIE pod TE (SOURCE.md, „Lokalne adaptacje"). Zawierają ⚠️ ZAŁOŻENIA czekające
 na potwierdzenie użytkownika.
 
+### 30.5. Szkielet wieloetapowego primary i kosztu secondary (E8-T5) — ✅ wdrożone
+
+📎 tirules: [Strategic Action](rules_tirules/R_strategic_action.md), [Strategy Card](rules_tirules/R_strategy_card.md), [Action Phase](rules_tirules/R_action_phase.md)
+
+- Reguła: „A player can only resolve the primary of their own cards / secondary of cards chosen by
+  other players". Serwer wymusza: primary tylko `owner_id`, secondary tylko bieżący respondent okna.
+- Primary może wymagać wyborów → `GameState.pending_strategy` (krok + szkic), endpoint
+  `POST /strategy/primary-step`; efekt stosowany atomowo po ostatnim kroku, potem okno secondary.
+  Do czasu rozstrzygnięcia `End turn` jest zablokowany.
+- Secondary „follow" wydaje 1 żeton ze strategy pool (wraca do rezerwy), z wyjątkiem Leadership
+  (nota LRR) i graczy wskazanych przez aktywnego (Trade — secondary darmowe i OBOWIĄZKOWE).
+  Brak żetonu → follow odrzucony (pas dozwolony). Spasowani gracze mogą follow (R_action_phase).
+- Karty bez wpisu `CardSpec` mają domyślnie brak efektu i brak kosztu (jak dotąd) — nie pobieramy
+  żetonu za pusty efekt. Karta dostaje koszt razem z implementacją efektu.
+- ⚠️ UPROSZCZENIE: karta jest wyczerpywana przy zagraniu, nie po zamknięciu okna (w trakcie okna
+  nikt nie może jej użyć ponownie; skutek dla gracza jest ten sam).
+
+### 30.6. Trade — ✅ ZWERYFIKOWANE (R_trade)
+
+Primary: +3 trade goods → uzupełnij commodities do wartości z arkusza frakcji → wskaż dowolnych
+innych graczy do darmowego, obowiązkowego secondary (krok `choose_free_players`). Secondary:
+uzupełnij commodities (koszt: 1 żeton ze strategy pool, o ile nie wskazany). Kolejność kroków i
+fakt, że umowy obejmujące późniejsze kroki są niewiążące — notka R_trade, poza zakresem silnika.
+Efekty „when replenishes commodities" (np. Trade Agreement) dojdą hookami (E7).
+
 ### 30.3. Akcja strategiczna to JEDNA z akcji tury — ✅ ZWERYFIKOWANE (R_action_phase)
 
 📎 tirules: [Action Phase](rules_tirules/R_action_phase.md), [Strategic Action](rules_tirules/R_strategic_action.md)
