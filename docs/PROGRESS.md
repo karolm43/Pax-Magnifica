@@ -1864,3 +1864,10 @@ type-check + lint + build czyste.
 - Punkty: `combat.hit_multiplier`; `COMBAT_ROUND` END niesie `phase`/`sustained`/strony; `battle.start_combat` kończy walkę, gdy hooki startu zniszczą stronę.
 - Testy: `tests/test_technologies_combat.py` (21).
 - Założenia (55.7): wybory ofiary/właściciela rozstrzygane deterministycznie do czasu okna wyboru w UI.
+
+## 2026-11-09 (5) — Technologie ogólne, blok 3: pasywne (RULES.md 55.8)
+
+- Gotowe: Infantry II (`inf2`, rzut na stole + powrót w domu), `sd2`, `dn2` (dane); częściowo (bez `covers`): Dark Energy Tap (odwrót), Psychoarchaeology (specjalności), Self-Assembly (TG za mecha).
+- Nowe punkty: `retreat.anywhere`, `technology.specialty_without_exhaust`; `PlayerState.infantry_ii_on_card`.
+- Testy: `tests/test_technologies_passive.py` (13).
+- Zostały technologie wymagające interakcji (okno ofert „may” + akcje technologii): `aida` (produkcja), `bs`, `dxa`, `gls`, `ie`, `pi`, `sar` (mech), `sdn`, `sr`, `td`, `pa` (TG), `det` (frontier), `ff2` (flota). Mechanizm ofert (`triggers.accept_offer`) jest w core, ale bez endpointu i UI.

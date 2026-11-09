@@ -408,6 +408,9 @@ class PlayerState(BaseModel):
     # Ustawiana przy setupie frakcji; kotwiczy heks stat-area niezależnie od tego,
     # które planety gracz aktualnie kontroluje (po podbojach — patrz RULES.md 4).
     home_position: str | None = None
+    # Jednostki piechoty „leżące na karcie" Infantry II (odrodzone rzutem 6+); na początku
+    # następnej tury wracają na planetę w systemie domowym (RULES.md 55.8).
+    infantry_ii_on_card: int = 0
 
     victory_points: int = 0
     trade_goods: int = 0

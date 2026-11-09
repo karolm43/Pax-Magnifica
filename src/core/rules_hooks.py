@@ -48,9 +48,15 @@ POINT_SPACE_CANNON_ROLL_MODIFIER = "space_cannon.roll_modifier"
 # Space Cannon: dodatkowe kości dla JEDNEJ jednostki strzelca przy jednym użyciu (Plasma Scoring).
 POINT_SPACE_CANNON_EXTRA_DICE = "space_cannon.extra_dice"
 # Bombardment: dodatkowe kości dla JEDNEJ jednostki przy jednym użyciu (Plasma Scoring).
+POINT_BOMBARDMENT_EXTRA_DICE = "bombardment.extra_dice"
 # Mnożnik trafień z rzutów (bazowo 1; X-89 ΩΩ: ×2). ctx: kind = ground | space | bombardment.
 POINT_COMBAT_HIT_MULTIPLIER = "combat.hit_multiplier"
-POINT_BOMBARDMENT_EXTRA_DICE = "bombardment.extra_dice"
+# Odwrót do sąsiedniego systemu bez cudzych jednostek, także bez własnej obecności
+# (Dark Energy Tap).
+POINT_RETREAT_ANYWHERE = "retreat.anywhere"  # PERMIT -> bool
+# Specjalności technologii planet działają bez wyczerpywania, także na wyczerpanych planetach
+# (Psychoarchaeology).
+POINT_TECHNOLOGY_SPECIALTY_FREE = "technology.specialty_without_exhaust"  # PERMIT -> bool
 # Liczba akcji gracza w jego turze fazy akcji (bazowo 1; Fleet Logistics: +1).
 POINT_TURN_ACTIONS = "turn.actions"
 # Faza statusu: liczba kart akcji dobieranych przez gracza (bazowo 1; Neural Motivator: +1).

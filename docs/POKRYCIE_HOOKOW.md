@@ -5,7 +5,7 @@ Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja
 
 ## 1. Zarejestrowane hooki
 
-Razem: **17**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **23**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -14,17 +14,23 @@ Razem: **17**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
+| `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | To samo dla pierwszej tury fazy akcji (tam nie odpala się zdarzenie TURN START). |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
+| `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II: na początku Twojej tury piechota z karty trafia do systemu domowego. |
 | `event:unit.ability_used:after` | TRIGGER | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana. |
+| `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II: po zniszczeniu piechoty rzuć kością; przy 6+ jednostka trafia na kartę. |
+| `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
 | `production.forbids` | FORBID | faction:arborec | — | Arborec: wartość PRODUCTION doków nie służy do produkcji piechoty (R_production). |
+| `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
 | `space_cannon.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających SPACE CANNON rzuca 1 dodatkową kością. |
 | `space_cannon.roll_modifier` | MODIFY | technology:amd | technologies:amd | Antimass Deflectors: -1 do wyniku kości Space Cannon rzucanych przeciw jego jednostkom. |
 | `status.action_cards` | MODIFY | technology:nm | technologies:nm | Neural Motivator: w fazie statusu gracz dobiera 2 karty akcji zamiast 1. |
 | `status.command_tokens` | MODIFY | technology:hm | technologies:hm | Hyper Metabolism: w fazie statusu gracz zdobywa 3 żetony dowodzenia zamiast 2. |
+| `technology.specialty_without_exhaust` | PERMIT | technology:pa | — | Psychoarchaeology: specjalności technologii działają bez wyczerpywania planet, także |
 | `turn.actions` | MODIFY | technology:fl | technologies:fl | Fleet Logistics: w swojej turze fazy akcji gracz wykonuje 2 akcje zamiast 1. |
 
 Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
@@ -42,10 +48,12 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.cost`
 - `production.forbids`
 - `production.value`
+- `retreat.anywhere`
 - `space_cannon.extra_dice`
 - `space_cannon.roll_modifier`
 - `status.action_cards`
 - `status.command_tokens`
+- `technology.specialty_without_exhaust`
 - `turn.actions`
 
 ## 2. Pokrycie per kategoria
@@ -60,7 +68,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | galactic_events | 20 | 0 | 0.0 |
 | leaders | 103 | 0 | 0.0 |
 | abilities | 73 | 0 | 0.0 |
-| technologies | 102 | 22 | 21.6 |
+| technologies | 102 | 24 | 23.5 |
 | breakthroughs | 31 | 0 | 0.0 |
 
 ## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)
@@ -82,10 +90,10 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 247 | 233 |
-| walka (combat.*, space_cannon, bombardment) | 196 | 177 |
-| produkcja (production.*) | 177 | 167 |
-| ekonomia i płatności (economy, payment) | 168 | 164 |
+| planety i eksploracja (control, exploration) | 247 | 231 |
+| walka (combat.*, space_cannon, bombardment) | 196 | 176 |
+| produkcja (production.*) | 177 | 166 |
+| ekonomia i płatności (economy, payment) | 168 | 163 |
 | karty (card_draw, promissory) | 145 | 140 |
 | status i odświeżanie (status_phase) | 144 | 138 |
 | ruch (movement.*) | 125 | 116 |
@@ -918,7 +926,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `ic` | Impulse Core | yin | — | PERMIT (pozwolenie) | walka, produkcja | — | At the start of a space combat, you may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit against your opponen… |
 | `ie` | Integrated Economy | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności, planety i eksploracja | — | After you gain control of a planet, you may produce any number of units on that planet that have a combined cost equal to or less than that… |
 | `iihq` | I.I.H.Q. Modernization | keleres | — | FORBID (zakaz) | ruch, planety i eksploracja | — | You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system. Gain the Custodia Vigilia p… |
-| `inf2` | Infantry II | — | — | — | walka, planety i eksploracja | — | Cost 1(x2), Combat 7 After this unit is destroyed, roll 1 die. If the result is 6 or greater, place the unit on this card. At the start of … |
+| `inf2` | Infantry II | — | — | — | walka, planety i eksploracja | ✔ | Cost 1(x2), Combat 7 After this unit is destroyed, roll 1 die. If the result is 6 or greater, place the unit on this card. At the start of … |
 | `is` | Inheritance Systems | l1z1x | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie, status i odświeżanie | — | You may exhaust this card and spend 2 resources when you research a technology; ignore all of that technology's prerequisites. |
 | `it` | Instinct Training | xxcha | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia, karty, status i odświeżanie | — | You may exhaust this card and spend 1 token from your strategy pool when another player plays an action card; cancel that action card. |
 | `l4` | L4 Disruptors | letnev | — | FORBID (zakaz) | walka | — | During an invasion, units cannot use SPACE CANNON against your units. |
@@ -957,7 +965,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `sar` | Self-Assembly Routines | — | — | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, planety i eksploracja, status i odświeżanie | — | After 1 or more of your units use PRODUCTION, you may exhaust this card to place 1 mech from your reinforcements on a planet you control in… |
 | `sc` | Supercharge | naaz | — | MODIFY (liczba/rzut) | walka, status i odświeżanie | — | At the start of a combat round, you may exhaust this card to apply +1 to the result of each of your unit's combat rolls during this combat … |
 | `scc` | Spatial Conduit Cylinder | jolnar | — | MODIFY (liczba/rzut) | ruch, status i odświeżanie | — | You may exhaust this card after you activate a system that contains 1 or more of your units; that system is adjacent to all other systems t… |
-| `sd2` | Space Dock II | — | — | MODIFY (liczba/rzut) | produkcja, ekonomia i płatności, planety i eksploracja | — | PRODUCTION X This unit's PRODUCTION value is equal to 4 more than the resource value of this planet. Up to 3 fighters in this system do not… |
+| `sd2` | Space Dock II | — | — | MODIFY (liczba/rzut) | produkcja, ekonomia i płatności, planety i eksploracja | ✔ | PRODUCTION X This unit's PRODUCTION value is equal to 4 more than the resource value of this planet. Up to 3 fighters in this system do not… |
 | `sdn` | Scanlink Drone Network | — | — | MODIFY (liczba/rzut) | planety i eksploracja | — | When you activate a system, you may explore 1 planet in that system which contains 1 or more of your units. |
 | `sdn2` | Super Dreadnought II | l1z1x | — | FORBID (zakaz) | ruch, walka, karty | — | Cost 4, Combat 4, Move 2, Capacity 2 SUSTAIN DAMAGE, BOMBARDMENT 4 This unit cannot be destroyed by "Direct Hit" action cards. |
 | `se2` | Saturn Engine II | titans | — | — | ruch, walka | — | Cost 2, Combat 6, Move 3, Capacity 2 SUSTAIN DAMAGE |

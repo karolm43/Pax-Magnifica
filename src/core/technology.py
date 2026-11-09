@@ -182,7 +182,12 @@ def specialty_planets(
     (R_synergy: „each technology speciality … as any color of that synergy").
     """
     player = state.players[player_id]
-    exhausted = set(player.exhausted_planets)
+    # Hook PERMIT (Psychoarchaeology): specjalności działają także na wyczerpanych planetach.
+    exhausted = (
+        set()
+        if rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SPECIALTY_FREE, state, player_id)
+        else set(player.exhausted_planets)
+    )
     pair = synergy(state, registry, player_id)
     result: dict[str, list[str]] = {}
     for system in state.systems.values():
@@ -347,7 +352,9 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         ctx=research_ctx,
     )
     grant_technology(state, player_id, plan.tech_id)
-    exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
+    # Psychoarchaeology: użycie specjalności nie wyczerpuje planet (hook PERMIT).
+    if not rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SPECIALTY_FREE, state, player_id):
+        exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
     if plan.exhaust_aida:
         exhaust.exhaust_technology(state, player_id, AIDA)
     triggers.fire(

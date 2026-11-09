@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, unit_ops
+from src.core import command_tokens, rules_hooks, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -69,6 +69,24 @@ def _other_ships(system: SystemState, player_id: str) -> bool:
     )
 
 
+def _foreign_units(system: SystemState, player_id: str) -> bool:
+    """Czy w systemie stoją jakiekolwiek jednostki innego gracza (statki, naziemne, struktury)."""
+    if any(
+        count > 0
+        for pid, by_type in system.space_units.items()
+        if pid != player_id
+        for count in by_type.values()
+    ):
+        return True
+    return any(
+        count > 0
+        for by_player in system.planet_units.values()
+        for pid, by_type in by_player.items()
+        if pid != player_id
+        for count in by_type.values()
+    )
+
+
 def _has_presence(system: SystemState, player_id: str) -> bool:
     """Jednostki gracza (przestrzeń lub planeta) albo kontrolowana planeta (O4)."""
     if any(c > 0 for c in system.space_units.get(player_id, {}).values()):
@@ -85,8 +103,14 @@ def _has_presence(system: SystemState, player_id: str) -> bool:
 def retreat_destinations(
     state: GameState, grid: HexGrid, position: str, player_id: str
 ) -> list[str]:
-    """Systemy, do których gracz może się wycofać z walki w ``position`` (O4), posortowane."""
+    """Systemy, do których gracz może się wycofać z walki w ``position`` (O4), posortowane.
+
+    Hook PERMIT ``retreat.anywhere`` (Dark Energy Tap) znosi wymóg własnej obecności: wolno
+    wycofać się do sąsiedniego systemu, w którym nie ma jednostek żadnego innego gracza
+    (statków, sił naziemnych ani struktur).
+    """
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
+    anywhere = rules_hooks.permits(rules_hooks.POINT_RETREAT_ANYWHERE, state, player_id)
     result: list[str] = []
     for neighbor in sorted(grid.neighbors(position)):
         if neighbor == position:
@@ -97,9 +121,15 @@ def retreat_destinations(
         if _ASTEROID in anomalies and not can_enter_asteroids:
             continue
         system = state.systems.get(neighbor)
-        if system is None or _other_ships(system, player_id):
+        if system is None:
+            if anywhere:  # pusty system (Dark Energy Tap): brak cudzych jednostek
+                result.append(neighbor)
             continue
-        if _has_presence(system, player_id):
+        if _other_ships(system, player_id):
+            continue
+        if _has_presence(system, player_id) or (
+            anywhere and not _foreign_units(system, player_id)
+        ):
             result.append(neighbor)
     return result
 
@@ -220,7 +250,11 @@ def perform_retreat(
 
     new_state = state.clone()
     src = new_state.systems[position]
-    dest = new_state.systems[destination]
+    dest = new_state.systems.get(destination)
+    if dest is None:  # pusty system (Dark Energy Tap) - jeszcze bez wpisu w stanie
+        system_id = grid.system_id_at(destination) if destination in grid.positions else ""
+        dest = SystemState(position=destination, system_id=system_id)
+        new_state.systems[destination] = dest
     result = RetreatResult()
     # Uszkodzenia jadą razem z jednostkami do PRZESTRZENI systemu docelowego.
     for base_type, count in movers.items():
