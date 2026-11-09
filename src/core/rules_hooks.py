@@ -42,6 +42,19 @@ POINT_PRODUCTION_VALUE = "production.value"  # MODIFY -> delta PRODUCTION jednos
 # ctx: base_type, zone
 POINT_PRODUCTION_COST = "production.cost"  # MODIFY -> delta łącznego kosztu zamówienia
 POINT_PAYMENT_COMMODITIES_AS_TG = "payment.commodities_as_trade_goods"  # PERMIT -> bool
+# Space Cannon: modyfikator wyniku rzutów PRZECIWKO właścicielowi hooka (pytamy właściciela CELU;
+# ctx: shooter) - np. Antimass Deflectors: -1 do wyniku każdej kości.
+POINT_SPACE_CANNON_ROLL_MODIFIER = "space_cannon.roll_modifier"
+# Space Cannon: dodatkowe kości dla JEDNEJ jednostki strzelca przy jednym użyciu (Plasma Scoring).
+POINT_SPACE_CANNON_EXTRA_DICE = "space_cannon.extra_dice"
+# Bombardment: dodatkowe kości dla JEDNEJ jednostki przy jednym użyciu (Plasma Scoring).
+POINT_BOMBARDMENT_EXTRA_DICE = "bombardment.extra_dice"
+# Liczba akcji gracza w jego turze fazy akcji (bazowo 1; Fleet Logistics: +1).
+POINT_TURN_ACTIONS = "turn.actions"
+# Faza statusu: liczba kart akcji dobieranych przez gracza (bazowo 1; Neural Motivator: +1).
+POINT_STATUS_ACTION_CARDS = "status.action_cards"
+# Faza statusu: liczba żetonów dowodzenia zdobywanych przez gracza (bazowo 2; Hyper Metabolism: +1).
+POINT_STATUS_COMMAND_TOKENS = "status.command_tokens"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
@@ -105,6 +118,7 @@ InputsFn = Callable[[GameState, Any, str], list[dict[str, Any]]]
 _REGISTRY: list[Hook] = []
 _EFFECTS: dict[str, EffectFn] = {}
 _INPUTS: dict[str, InputsFn] = {}
+_DATA_DRIVEN: set[str] = set()
 _loaded = False
 
 
@@ -222,11 +236,21 @@ def hook_by_seq(seq: int) -> Hook | None:
     return next((h for h in _REGISTRY if h.seq == seq), None)
 
 
+def declare_data_driven(*component_keys: str) -> None:
+    """Oznacza komponenty, których efekt w całości wynika z DANYCH (statystyki z assetów).
+
+    Np. ulepszenia jednostek: liczby (koszt, walka, ruch, pojemność, Space Cannon...) czyta silnik
+    z wariantu jednostki (``combat.resolve_unit_variant``), więc nie potrzeba hooka. Komponent
+    liczy się jako pokryty (IMPLEMENTED) w raporcie, ale NIE ma funkcji hooka.
+    """
+    _DATA_DRIVEN.update(component_keys)
+
+
 def covered_components() -> frozenset[str]:
     """Klucze ``"<kategoria>:<id>"`` komponentów, które mają zarejestrowany hook."""
     _ensure_loaded()
     covered = {h.covers for h in _REGISTRY if h.covers is not None}
-    return frozenset(covered | set(_EFFECTS))
+    return frozenset(covered | set(_EFFECTS) | _DATA_DRIVEN)
 
 
 _BOUND_REGISTRY: Any = None

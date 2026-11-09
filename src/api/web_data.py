@@ -28,7 +28,14 @@ from __future__ import annotations
 from typing import Any
 
 from src.api import web_agenda, web_objectives, web_setup
-from src.core import agenda_phase, production, space_cannon, strategy_phase, turn_flow
+from src.core import (
+    action_budget,
+    agenda_phase,
+    production,
+    space_cannon,
+    strategy_phase,
+    turn_flow,
+)
 from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
 from src.core.army_strength import ArmyStrength, army_strength_by_player
@@ -1273,6 +1280,9 @@ def _build_player_data(
                 # Czy gracz wykonał już akcję w BIEŻĄCEJ turze fazy akcji (RULES.md
                 # 31.7). UI blokuje „End turn", dopóki to False i gracz nie spasował.
                 "tookActionThisTurn": player.took_action_this_turn,
+                # Ile akcji zostało w tej turze (bazowo 1; Fleet Logistics 2 - RULES.md 55.1).
+                # UI odblokowuje przyciski akcji, dopóki > 0; End turn nadal wg tookActionThisTurn.
+                "actionsLeft": action_budget.actions_left(state, player_id),
                 "eliminated": False,
                 "active": active_id == player_id,
                 # Zasoby / liczniki (viewer czyta je w panelach gracza).

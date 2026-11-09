@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import command_tokens, exhaust, timing, triggers
+from src.core import action_budget, command_tokens, exhaust, timing, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
 from src.core.hex_grid import HexGrid
@@ -148,10 +148,7 @@ def play_strategy_card(
         raise ValueError(f"It is not {player_id}'s turn (active: {state.active_player_id}).")
     if player.passed:
         raise ValueError("You have passed - you cannot perform a strategic action.")
-    if player.took_action_this_turn:
-        raise ValueError(
-            "You already took an action this turn - end your turn before acting again."
-        )
+    action_budget.require_free_action(state, player_id)
     if initiative in player.exhausted_strategy_cards:
         raise ValueError(f"Strategy card {initiative} was already played this round.")
     if state.pending_window is not None or state.pending_strategy is not None:
@@ -160,11 +157,10 @@ def play_strategy_card(
         )
 
     new_state = state.clone()
-    target = new_state.players[player_id]
     # Oznacz kartę jako zagraną (idempotentnie) + akcja strategiczna = akcja tury
     # (RULES.md 31.7: End turn przestaje być zablokowany „brakiem akcji").
     exhaust.exhaust_strategy_card(new_state, player_id, initiative)
-    target.took_action_this_turn = True
+    action_budget.register_action(new_state, player_id)
 
     spec = _spec(initiative)
     if spec.primary_steps:

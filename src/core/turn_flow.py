@@ -10,7 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
-from src.core import triggers
+from src.core import action_budget, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
@@ -229,7 +229,7 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     # Nowa tura dla następnego aktywnego gracza — zeruj jego znacznik „akcja w turze".
     nxt_id = new_state.active_player_id
     if nxt_id is not None and nxt_id in new_state.players:
-        new_state.players[nxt_id].took_action_this_turn = False
+        action_budget.reset_turn(new_state, nxt_id)
         new_state.players[nxt_id].transacted_with = []
         if nxt is not None:
             triggers.fire(
@@ -407,8 +407,8 @@ def next_phase(state: GameState) -> GameState:
         player.passed = False
     # Wejście w nową fazę = świeże tury: zeruj znacznik „akcja w turze" wszystkim
     # (dotyczy fazy akcji; w innych fazach pole i tak nieużywane, ale trzymamy czysto).
-    for player in new_state.players.values():
-        player.took_action_this_turn = False
+    for player_id, player in new_state.players.items():
+        action_budget.reset_turn(new_state, player_id)
         player.transacted_with = []
     new_state.expeditions.performed_by = None
     # Faza statusu (RULES.md 41): wejście inicjuje kroki (punktowanie → ... → zwrot kart);

@@ -243,7 +243,10 @@ export function TurnControls() {
   // ``ok`` = zielony wariant („zrób następny krok"), inaczej ostrzegawczy.
   // Akcja komponentu (RULES.md 31.8) — dostępna jak każda akcja tury: w fazie akcji,
   // gdy gracz jeszcze nie działał ani nie spasował, i nie trwa okno czasowe.
-  const canComponentAction = isAction && !tookAction && !hasPassed && !windowOpen;
+  // Dopóki zostały akcje (Fleet Logistics = 2 na turę), przyciski akcji są aktywne mimo
+  // tookActionThisTurn (to ono odblokowuje End turn). Brak pola = jedna akcja (stare migawki).
+  const hasActionLeft = active.actionsLeft != null ? active.actionsLeft > 0 : !tookAction;
+  const canComponentAction = isAction && hasActionLeft && !hasPassed && !windowOpen;
   // Ekspedycja: koniec tury (po akcji lub pasie), bez otwartego okna; wolny plaster żetonu.
   const hasFreeExpedition = Object.values(webData?.expeditions ?? {}).some(
     (slice) => slice.completedBy == null,
@@ -278,7 +281,7 @@ export function TurnControls() {
     }
   }
   const canActivate =
-    isAction && !tookAction && !hasPassed && !windowOpen && !inTacticalAction;
+    isAction && hasActionLeft && !hasPassed && !windowOpen && !inTacticalAction;
   // Wszystkie KOMPONENTY Z AKCJĄ („Action") dostępne aktywnemu graczowi: karty akcji
   // z ręki + zdolności frakcji + liderzy + techy + relikty, które posiada. Dane z
   // web-data (``playerData``) + ręki — zero hardkodowania (patrz componentActions.ts).
@@ -397,7 +400,7 @@ export function TurnControls() {
                       ? "Wait — every player must decide on the secondary first"
                       : hasPassed
                         ? "You already passed this action phase"
-                        : tookAction
+                        : !hasActionLeft
                           ? "You already acted this turn — End turn instead"
                           : activateMode
                             ? "Now click a system on the map to activate it"
@@ -443,7 +446,7 @@ export function TurnControls() {
                     ? "Wait — every player must decide on the secondary first"
                     : hasPassed
                       ? "You already passed this action phase"
-                      : tookAction
+                      : !hasActionLeft
                         ? "You already acted this turn — End turn instead"
                         : "Play a component ability (action card, relic, tech…)"
                 }

@@ -22,6 +22,7 @@ from src.core import (
     custodians,
     exhaust,
     exploration,
+    rules_hooks,
     space_cannon,
     triggers,
     unit_ops,
@@ -357,11 +358,26 @@ def bombard(
 
     rolled = state
     by_planet: dict[str, dict[str, Any]] = {}
+    # Hook MODIFY: dodatkowe kości dla JEDNEJ jednostki przy tym użyciu Bombardment (Plasma
+    # Scoring) - przydzielamy grupie z najlepszym progiem trafienia.
+    extra_dice = max(
+        0,
+        rules_hooks.modify(
+            rules_hooks.POINT_BOMBARDMENT_EXTRA_DICE, state, _inv(state).attacker, 0,
+            {"position": _inv(state).position},
+        ),
+    )
+    best_item = min(
+        (i for i in assignments if i.count > 0),
+        key=lambda i: groups[i.base_type].hits_on,
+        default=None,
+    )
     for item in assignments:
         if item.count <= 0:
             continue
         group = groups[item.base_type]
-        rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit)
+        bonus = extra_dice if item is best_item else 0
+        rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit + bonus)
         hits = count_hits(dice, group.hits_on)
         entry = by_planet.setdefault(item.planet, {"rolls": [], "hits": 0})
         entry["rolls"].append(
@@ -657,24 +673,19 @@ def defense_fire(
     if planet not in _defense_open(inv, state, registry):
         raise ValueError(f"Space Cannon Defense on {planet} is not available.")
     shooters = defense_shooters(state, registry, planet)
-    rolled = state
-    rolls: list[dict[str, Any]] = []
-    total = 0
-    for shooter in shooters:
-        rolled, dice = roll_dice(rolled, shooter.total_dice)
-        hits = count_hits(dice, shooter.hits_on)
-        total += hits
-        rolls.append(
-            {
-                "baseType": shooter.base_type,
-                "name": shooter.name,
-                "owner": shooter.player_id,
-                "count": shooter.count,
-                "hitsOn": shooter.hits_on,
-                "dice": dice,
-                "hits": hits,
-            }
-        )
+    rolled, cannon_rolls, total = space_cannon.roll_cannon(state, shooters, inv.attacker)
+    rolls: list[dict[str, Any]] = [
+        {
+            "baseType": r.shooter.base_type,
+            "name": r.shooter.name,
+            "owner": r.shooter.player_id,
+            "count": r.shooter.count,
+            "hitsOn": r.shooter.hits_on,
+            "dice": r.dice,
+            "hits": r.hits,
+        }
+        for r in cannon_rolls
+    ]
     new_state = rolled.clone()
     new_inv = _inv(new_state)
     triggers.fire(

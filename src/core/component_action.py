@@ -19,7 +19,7 @@ jeszcze żadnym efektem liczbowym i jest opcjonalny.
 
 from __future__ import annotations
 
-from src.core import triggers
+from src.core import action_budget, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 
@@ -70,15 +70,12 @@ def play_component_action(
         raise ValueError(
             "You have passed - you cannot perform a component action this action phase."
         )
-    if player.took_action_this_turn:
-        raise ValueError(
-            "You already took an action this turn - end your turn before acting again."
-        )
+    action_budget.require_free_action(state, active_id)
 
     new_state = state.clone()
     # RULES.md 31.7: akcja komponentu liczy się jako AKCJA tury (jak strategiczna/taktyczna).
     # Efekt konkretnego komponentu dojdzie dispatchem po component_id (szkielet — patrz moduł).
-    new_state.players[active_id].took_action_this_turn = True
+    action_budget.register_action(new_state, active_id)
     if fire_after:
         triggers.fire(
             new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=active_id,

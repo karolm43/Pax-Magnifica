@@ -45,7 +45,9 @@ def test_kazdy_covers_wskazuje_istniejacy_komponent(registry: StaticDataRegistry
 def test_komponent_z_hookiem_ma_status_implemented(registry: StaticDataRegistry) -> None:
     ref = ComponentRef(ComponentCategory.TECHNOLOGY, "amd")
     assert registry.effect_registry.status_of(ref) is EffectStatus.IMPLEMENTED
-    other = ComponentRef(ComponentCategory.TECHNOLOGY, "ws")
+    covered = rules_hooks.covered_components()
+    uncovered = next(t for t in sorted(registry.technologies) if f"technologies:{t}" not in covered)
+    other = ComponentRef(ComponentCategory.TECHNOLOGY, uncovered)
     assert registry.effect_registry.status_of(other) is EffectStatus.NOT_IMPLEMENTED
 
 

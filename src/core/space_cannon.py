@@ -21,7 +21,7 @@ import json
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
-from src.core import timing, triggers, unit_ops
+from src.core import rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
 from src.core.game_events import GameEvent, Moment
@@ -190,6 +190,55 @@ def coverage(
             expected = round(sum(s.expected_hits for s in covering), 2)
             result.setdefault(position, {})[player_id] = (count, expected)
     return result
+
+
+@dataclass(frozen=True)
+class CannonRoll:
+    """Wynik rzutu jednej grupy strzelców: kości, trafienia i dodatkowa kość (Plasma Scoring)."""
+
+    shooter: SpaceCannonShooter
+    dice: list[int]
+    hits: int
+    extra_dice: int = 0
+
+
+def roll_cannon(
+    state: GameState, shooters: list[SpaceCannonShooter], target_id: str
+) -> tuple[GameState, list[CannonRoll], int]:
+    """Rzuca Space Cannon grupy strzelców w ``target_id`` (Offense i Defense) — jeden punkt rzutu.
+
+    Hooki (RULES.md 55): ``space_cannon.extra_dice`` (Plasma Scoring: +1 kość dla JEDNEJ jednostki
+    właściciela, wybieramy grupę z najlepszym progiem) oraz ``space_cannon.roll_modifier`` pytany
+    o właściciela CELU (Antimass Deflectors: -1 do wyniku każdej kości). Zwraca (stan, rzuty,
+    suma trafień). Rzut każdej grupy to osobne ``roll_dice`` (kolejność jak w grze bez hooków).
+    """
+    best_by_owner: dict[str, int] = {}
+    for index, shooter in enumerate(shooters):
+        current = best_by_owner.get(shooter.player_id)
+        if current is None or shooter.hits_on < shooters[current].hits_on:
+            best_by_owner[shooter.player_id] = index
+    rolled = state
+    results: list[CannonRoll] = []
+    total_hits = 0
+    for index, shooter in enumerate(shooters):
+        extra = 0
+        if best_by_owner[shooter.player_id] == index:
+            extra = max(
+                0,
+                rules_hooks.modify(
+                    rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE, state, shooter.player_id, 0,
+                    {"base_type": shooter.base_type, "zone": shooter.zone},
+                ),
+            )
+        modifier = rules_hooks.modify(
+            rules_hooks.POINT_SPACE_CANNON_ROLL_MODIFIER, state, target_id, 0,
+            {"shooter": shooter.player_id, "base_type": shooter.base_type},
+        )
+        rolled, dice = roll_dice(rolled, shooter.total_dice + extra)
+        hits = count_hits([d + modifier for d in dice], shooter.hits_on)
+        total_hits += hits
+        results.append(CannonRoll(shooter, dice, hits, extra))
+    return rolled, results, total_hits
 
 
 # ----------------------------------------------------------------------- cele i kolejka
@@ -387,24 +436,19 @@ def fire_offense(
     elif target_id not in targets:
         raise ValueError(f"Illegal Space Cannon target: {target_id}.")
 
-    rolled = state
-    rolls: list[dict[str, Any]] = []
-    total_hits = 0
-    for shooter in shooters:
-        rolled, results = roll_dice(rolled, shooter.total_dice)
-        hits = count_hits(results, shooter.hits_on)
-        total_hits += hits
-        rolls.append(
-            {
-                "baseType": shooter.base_type,
-                "name": shooter.name,
-                "hitsOn": shooter.hits_on,
-                "position": shooter.position,
-                "zone": shooter.zone,
-                "dice": results,
-                "hits": hits,
-            }
-        )
+    rolled, cannon_rolls, total_hits = roll_cannon(state, shooters, target_id)
+    rolls: list[dict[str, Any]] = [
+        {
+            "baseType": r.shooter.base_type,
+            "name": r.shooter.name,
+            "hitsOn": r.shooter.hits_on,
+            "position": r.shooter.position,
+            "zone": r.shooter.zone,
+            "dice": r.dice,
+            "hits": r.hits,
+        }
+        for r in cannon_rolls
+    ]
 
     entry: dict[str, Any] = {
         "roller": player_id,

@@ -5,16 +5,25 @@ Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja
 
 ## 1. Zarejestrowane hooki
 
-Razem: **2**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **10**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
+| `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
+| `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
+| `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
 | `production.forbids` | FORBID | faction:arborec | — | Arborec: wartość PRODUCTION doków nie służy do produkcji piechoty (R_production). |
+| `space_cannon.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających SPACE CANNON rzuca 1 dodatkową kością. |
+| `space_cannon.roll_modifier` | MODIFY | technology:amd | technologies:amd | Antimass Deflectors: -1 do wyniku kości Space Cannon rzucanych przeciw jego jednostkom. |
+| `status.action_cards` | MODIFY | technology:nm | technologies:nm | Neural Motivator: w fazie statusu gracz dobiera 2 karty akcji zamiast 1. |
+| `status.command_tokens` | MODIFY | technology:hm | technologies:hm | Hyper Metabolism: w fazie statusu gracz zdobywa 3 żetony dowodzenia zamiast 2. |
+| `turn.actions` | MODIFY | technology:fl | technologies:fl | Fleet Logistics: w swojej turze fazy akcji gracz wykonuje 2 akcje zamiast 1. |
 
 Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
 - `agenda.vote_modifier`
+- `bombardment.extra_dice`
 - `combat.extra_dice`
 - `combat.reroll_misses`
 - `combat.roll_modifier`
@@ -25,6 +34,11 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.cost`
 - `production.forbids`
 - `production.value`
+- `space_cannon.extra_dice`
+- `space_cannon.roll_modifier`
+- `status.action_cards`
+- `status.command_tokens`
+- `turn.actions`
 
 ## 2. Pokrycie per kategoria
 
@@ -38,7 +52,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | galactic_events | 20 | 0 | 0.0 |
 | leaders | 103 | 0 | 0.0 |
 | abilities | 73 | 0 | 0.0 |
-| technologies | 102 | 1 | 1.0 |
+| technologies | 102 | 13 | 12.7 |
 | breakthroughs | 31 | 0 | 0.0 |
 
 ## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)
@@ -61,13 +75,13 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
 | planety i eksploracja (control, exploration) | 247 | 239 |
-| walka (combat.*, space_cannon, bombardment) | 196 | 192 |
-| produkcja (production.*) | 177 | 171 |
+| walka (combat.*, space_cannon, bombardment) | 196 | 185 |
+| produkcja (production.*) | 177 | 170 |
 | ekonomia i płatności (economy, payment) | 168 | 164 |
-| karty (card_draw, promissory) | 145 | 142 |
-| status i odświeżanie (status_phase) | 144 | 143 |
-| ruch (movement.*) | 125 | 124 |
-| żetony dowodzenia (command_tokens) | 109 | 108 |
+| karty (card_draw, promissory) | 145 | 140 |
+| status i odświeżanie (status_phase) | 144 | 141 |
+| ruch (movement.*) | 125 | 117 |
+| żetony dowodzenia (command_tokens) | 109 | 107 |
 | agenda i głosowanie (agenda_phase) | 98 | 98 |
 | technologie (technology) | 78 | 78 |
 | karty strategii i inicjatywa | 46 | 43 |
@@ -868,12 +882,12 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `bs` | Bio-Stims | — | — | PERMIT (pozwolenie) | technologie, planety i eksploracja, status i odświeżanie | — | You may exhaust this card at the end of your turn to ready 1 of your planets that has a technology specialty or 1 of your other technologie… |
 | `cl2` | Crimson Legionnaire II | mahact | — | — | walka, ekonomia i płatności, planety i eksploracja | — | Cost 1(x2), Combat 7 After this unit is destroyed, gain 1 commodity or convert 1 of your commodities to a trade good. Then, place the unit … |
 | `cm` | Chaos Mapping | saar | — | FORBID (zakaz) | produkcja | — | Other players cannot activate asteroid fields that contain 1 or more of your ships. At the start of your turn during the action phase, you … |
-| `cr2` | Cruiser II | — | — | — | ruch, walka | — | Cost 2, Combat 6, Move 3, Capacity 1 |
-| `cv2` | Carrier II | — | — | — | ruch, walka | — | Cost 3, Combat 9, Move 2, Capacity 6 |
+| `cr2` | Cruiser II | — | — | — | ruch, walka | ✔ | Cost 2, Combat 6, Move 3, Capacity 1 |
+| `cv2` | Carrier II | — | — | — | ruch, walka | ✔ | Cost 3, Combat 9, Move 2, Capacity 6 |
 | `da` | Duranium Armor | — | — | — | walka | — | During each combat round, after you assign hits to your units, repair 1 of your damaged units that did not use SUSTAIN DAMAGE during this c… |
-| `dd2` | Destroyer II | — | — | — | ruch, walka | — | Cost 1, Combat 8, Move 2 ANTI-FIGHTER BARRAGE 6(x3) |
+| `dd2` | Destroyer II | — | — | — | ruch, walka | ✔ | Cost 1, Combat 8, Move 2 ANTI-FIGHTER BARRAGE 6(x3) |
 | `det` | Dark Energy Tap | — | — | MODIFY (liczba/rzut) | ruch, walka, planety i eksploracja | — | After you perform a tactical action in a system that contains a frontier token, if you have 1 or more ships in that system, explore that to… |
-| `dn2` | Dreadnought II | — | — | FORBID (zakaz) | ruch, walka, karty | — | Cost 4, Combat 5, Move 2, Capacity 1 SUSTAIN DAMAGE, BOMBARDMENT 5 This unit cannot be destroyed by "Direct Hit" action cards. |
+| `dn2` | Dreadnought II | — | — | FORBID (zakaz) | ruch, walka, karty | ✔ | Cost 4, Combat 5, Move 2, Capacity 1 SUSTAIN DAMAGE, BOMBARDMENT 5 This unit cannot be destroyed by "Direct Hit" action cards. |
 | `ds` | Dimensional Splicer | ghost | — | MODIFY (liczba/rzut) | ruch, walka, produkcja | — | At the start of space combat in a system that contains a wormhole and 1 or more of your ships, you may produce 1 hit and assign it to 1 of … |
 | `dt2` | Dimensional Tear II | cabal | — | — | ruch, walka, produkcja | — | PRODUCTION 7 This system is a gravity rift; your ships do not roll for this gravity rift. Place a dimensional tear token beneath this unit … |
 | `dxa` | Dacxive Animators | — | — | PERMIT (pozwolenie) | walka, produkcja, planety i eksploracja | — | After you win a ground combat, you may place 1 infantry from your reinforcements on that planet. |
@@ -883,13 +897,13 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `exo2` | Exotrireme II | sardakk | — | FORBID (zakaz) | ruch, walka, karty | — | Cost 4, Combat 5, Move 2, Capacity 1 SUSTAIN DAMAGE, BOMBARDMENT 4(x2) This unit cannot be destroyed by "Direct Hit" action cards. After a … |
 | `ff2` | Fighter II | — | — | PERMIT (pozwolenie) | ruch, walka, żetony dowodzenia | — | Cost 1(x2), Combat 8, Move 2 This unit may move without being transported. Fighters in excess of your ships' capacity count against your fl… |
 | `ffac2` | Floating Factory II | saar | — | REPLACE (instead of) | ruch, walka, produkcja, planety i eksploracja | — | Move 2, Capacity 5 PRODUCTION 7. This unit is placed in the space area instead of on a planet. This unit can move and retreat as if it were… |
-| `fl` | Fleet Logistics | — | — | REPLACE (instead of) | — | — | During each of your turns of the action phase, you may perform 2 actions instead of 1. |
+| `fl` | Fleet Logistics | — | — | REPLACE (instead of) | — | ✔ | During each of your turns of the action phase, you may perform 2 actions instead of 1. |
 | `gd` | Gravity Drive | — | — | MODIFY (liczba/rzut) | ruch | — | After you activate a system, apply +1 to the move value of 1 of your ships during this tactical action. |
 | `gls` | Graviton Laser System | — | — | MODIFY (liczba/rzut) | walka, produkcja, status i odświeżanie | — | You may exhaust this card before 1 or more of your units uses SPACE CANNON; hits produced by those units must be assigned to non-fighter sh… |
 | `gr` | Genetic Recombination | mahact | — | PERMIT (pozwolenie) | produkcja, żetony dowodzenia, agenda i głosowanie, status i odświeżanie | — | You may exhaust this card before a player casts votes; that player must cast at least 1 vote for an outcome of your choice or remove 1 toke… |
 | `hcf2` | Hybrid Crystal Fighter II | naalu | — | PERMIT (pozwolenie) | ruch, walka, żetony dowodzenia | — | Cost 1(x2), Combat 7, Move 2 This unit may move without being transported. Fighters in excess of your ships' capacity count as 1/2 of a shi… |
 | `helios2` | 4X41C "Helios" V2 | bastion | — | MODIFY (liczba/rzut) | produkcja, ekonomia i płatności, planety i eksploracja | — | This unit's PRODUCTION value is equal to 4 more than the resource value of this planet. The resource value of this planet is increased by 2… |
-| `hm` | Hyper Metabolism | — | — | REPLACE (instead of) | żetony dowodzenia, status i odświeżanie | — | During the status phase, gain 3 command tokens instead of 2. |
+| `hm` | Hyper Metabolism | — | — | REPLACE (instead of) | żetony dowodzenia, status i odświeżanie | ✔ | During the status phase, gain 3 command tokens instead of 2. |
 | `ht2` | Hel-Titan II | titans | — | FORBID (zakaz) | ruch, walka, produkcja | — | Combat 6 PLANETARY SHIELD, SPACE CANNON 5, SUSTAIN DAMAGE, PRODUCTION 1 This unit is treated as both a structure and a ground force. It can… |
 | `htp` | Hegemonic Trade Policy | winnu | — | MODIFY (liczba/rzut) | produkcja, ekonomia i płatności, planety i eksploracja, status i odświeżanie | — | Exhaust this card when 1 or more of your units use PRODUCTION; swap the resource and influence values of 1 planet you control during that u… |
 | `hydrothermal` | Hydrothermal Mining | deepwrought | — | — | ekonomia i płatności, status i odświeżanie | — | At the start of the status phase, gain 1 trade good for each ocean card in play. |
@@ -903,7 +917,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `lgf` | Lazax Gate Folding | winnu | — | — | ruch, produkcja, planety i eksploracja, status i odświeżanie | — | During your tactical actions, if you do not control Mecatol Rex, treat its system as if it has both an α and β wormhole. ACTION: If you con… |
 | `linkship2` | Linkship II | ralnel | — | PERMIT (pozwolenie) | ruch, walka | — | Cost 1, Combat 8, Move 4, ANTI-FIGHTER BARRAGE 6 (x3). This unit can use the SPACE CANNON ability of one of your structures in its space ar… |
 | `lw2` | Letani Warrior II | arborec | — | — | walka, produkcja, planety i eksploracja | — | Cost 1(x2), Combat 7 PRODUCTION 2 After this unit is destroyed, roll 1 die. If the result is 6 or greater, place the unit on this card. At … |
-| `lwd` | Light/Wave Deflector | — | — | PERMIT (pozwolenie) | ruch | — | Your ships can move through systems that contain other players' ships. |
+| `lwd` | Light/Wave Deflector | — | — | PERMIT (pozwolenie) | ruch | ✔ | Your ships can move through systems that contain other players' ships. |
 | `m2` | Memoria II | nomad | — | MODIFY (liczba/rzut) | ruch, walka | — | Cost 8, Combat 5(x2), Move 2, Capacity 6 SUSTAIN DAMAGE, ANTI-FIGHTER BARRAGE 5(x3) You may treat this unit as if it were adjacent to syste… |
 | `mc` | Mirror Computing | mentak | — | REPLACE (instead of) | ekonomia i płatności | — | When you spend trade goods, each trade good is worth 2 resources or influence instead of 1. |
 | `md` | Magen Defense Grid ΩΩ | — | — | MODIFY (liczba/rzut) | walka, produkcja, planety i eksploracja | — | When any player activates a system that contains 1 or more of your structures, place 1 infantry from your reinforcements with each of those… |
@@ -917,18 +931,18 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `nes` | Non-Euclidean Shielding | letnev | — | REPLACE (instead of) | walka | — | When 1 of your units uses SUSTAIN DAMAGE, cancel 2 hits instead of 1. |
 | `nf` | Nullification Field | xxcha | — | MODIFY (liczba/rzut) | ekonomia i płatności, żetony dowodzenia, status i odświeżanie | — | After another player activates a system that contains 1 or more of your ships, you may exhaust this card and spend 1 token from your strate… |
 | `ng` | Neuroglaive | naalu | — | MODIFY (liczba/rzut) | produkcja, żetony dowodzenia | — | After another player activates a system that contains 1 or more of your ships, that player removes 1 token from their fleet pool and return… |
-| `nm` | Neural Motivator | — | — | REPLACE (instead of) | karty, status i odświeżanie | — | During the status phase, draw 2 action cards instead of 1. |
+| `nm` | Neural Motivator | — | — | REPLACE (instead of) | karty, status i odświeżanie | ✔ | During the status phase, draw 2 action cards instead of 1. |
 | `pa` | Psychoarchaeology | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie, planety i eksploracja, status i odświeżanie | — | You can use technology specialties on planets you control without exhausting them, even if those planets are exhausted. During the action p… |
 | `parasite-firm` | Neural Parasite (Firmament) | firmament | — | PERMIT (pozwolenie) | produkcja, planety i eksploracja, status i odświeżanie | — | At the start of the status phase, you may place 1 infantry from your reinforcements on a planet you control in your home system. Flip this … |
 | `parasite-obs` | Neural Parasite (Obsidian) | obsidian | — | FORBID (zakaz) | ruch, walka, technologie | — | At the start of your turn, destroy 1 of another player's infantry in or adjacent to a system that contains your infantry. This technology c… |
-| `pds2` | PDS II | — | — | PERMIT (pozwolenie) | ruch, walka | — | PLANETARY SHIELD, SPACE CANNON 5 You may use this unit's SPACE CANNON against ships that are adjacent to this unit's system. |
+| `pds2` | PDS II | — | — | PERMIT (pozwolenie) | ruch, walka | ✔ | PLANETARY SHIELD, SPACE CANNON 5 You may use this unit's SPACE CANNON against ships that are adjacent to this unit's system. |
 | `pfa` | Pre-Fab Arcologies | naaz | — | — | planety i eksploracja, status i odświeżanie | — | After you explore a planet, ready that planet. |
 | `pi` | Predictive Intelligence | — | — | MODIFY (liczba/rzut) | żetony dowodzenia, agenda i głosowanie, status i odświeżanie | — | At the end of your turn, you may exhaust this card to redistribute your command tokens. When you cast votes during the agenda phase, you ma… |
 | `planesplitter-firm` | Planesplitter (Firmament) | firmament | — | — | — | — | When you gain this card, put The Fracture into play. Flip this card if the Obsidian faction is in play. |
 | `planesplitter-obs` | Planesplitter (Obsidian) | obsidian | — | FORBID (zakaz) | ruch, technologie | — | When you perform a strategic action, you may move an ingress token into a system that contains or is adjacent to your units. This technolog… |
 | `pm` | Production Biomes | hacan | — | — | produkcja, ekonomia i płatności, żetony dowodzenia, status i odświeżanie | — | ACTION: Exhaust this card and spend 1 token from your strategy pool to gain 4 trade goods and choose 1 other player; that player gains 2 tr… |
 | `proxima` | Proxima Targeting VI | bastion | — | PERMIT (pozwolenie) | walka, produkcja | — | Cancel 1 hit produced by BOMBARDMENT rolls made against your ground forces for each of your galvanized units present. At the start of a rou… |
-| `ps` | Plasma Scoring | — | — | MODIFY (liczba/rzut) | walka | — | When 1 or more of your units use BOMBARDMENT or SPACE CANNON, 1 of those units may roll 1 additional die. |
+| `ps` | Plasma Scoring | — | — | MODIFY (liczba/rzut) | walka | ✔ | When 1 or more of your units use BOMBARDMENT or SPACE CANNON, 1 of those units may roll 1 additional die. |
 | `pws2` | Prototype War Sun II | muaat | — | — | ruch, walka | — | Cost 10, Combat 3(x3), Move 3, Capacity 6 SUSTAIN DAMAGE, BOMBARDMENT 3(x3) Other players' units in this system lose PLANETARY SHIELD. |
 | `qdn` | Quantum Datahub Node | hacan | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | — | At the end of the strategy phase, you may spend 1 token from your strategy pool and give another player 3 of your trade goods. If you do, g… |
 | `radical` | Radical Advancement | deepwrought | — | MODIFY (liczba/rzut) | technologie, status i odświeżanie | — | At the start of the status phase, you may replace one of your non-unit upgrade technologies with a technology of the same color that has ex… |
@@ -942,7 +956,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `so` | Salvage Operations | mentak | — | PERMIT (pozwolenie) | walka, produkcja, ekonomia i płatności | — | After you win or lose a space combat, gain 1 trade good; if you won the combat, you may also produce 1 ship in that system of any ship type… |
 | `so2` | Spec Ops II | sol | — | — | walka, planety i eksploracja | — | Cost 1(x2), Combat 6 After this unit is destroyed, roll 1 die. If the result is 5 or greater, place the unit on this card. At the start of … |
 | `sr` | Sling Relay | — | — | — | produkcja, status i odświeżanie | — | ACTION: Exhaust this card to produce 1 ship in any system that contains one of your space docks. |
-| `st` | Sarween Tools | — | — | MODIFY (liczba/rzut) | produkcja | — | When 1 or more of your units use PRODUCTION, reduce the combined cost of the produced units by 1. |
+| `st` | Sarween Tools | — | — | MODIFY (liczba/rzut) | produkcja | ✔ | When 1 or more of your units use PRODUCTION, reduce the combined cost of the produced units by 1. |
 | `subatomic` | Subatomic Splicer | crimson | — | PERMIT (pozwolenie) | walka, produkcja | — | When one of your ships is destroyed, you may produce a ship of the same type at a space dock in your home system. |
 | `swa2` | Strike Wing Alpha II | argent | — | — | ruch, walka | — | Cost 1, Combat 7, Move 2, Capacity 1 ANTI-FIGHTER BARRAGE 6(x3) When this unit uses ANTI-FIGHTER BARRAGE, each result of 9 or 10 also destr… |
 | `tcs` | Temporal Command Suite | nomad | — | PERMIT (pozwolenie) | status i odświeżanie | — | After any player's agent becomes exhausted, you may exhaust this card to ready that agent; if you ready another player's agent, you may per… |
@@ -954,7 +968,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `vtx` | Vortex | cabal | — | MODIFY (liczba/rzut) | ruch, produkcja, status i odświeżanie | — | ACTION: Exhaust this card to choose another player's non-structure unit in a system that is adjacent to 1 or more of your space docks. Capt… |
 | `vw` | Voidwatch | empyrean | — | MODIFY (liczba/rzut) | ruch, karty | — | After a player moves ships into a system that contains 1 or more of your units, they must give you 1 promissory note from their hand, if ab… |
 | `wg` | Wormhole Generator | ghost | — | — | ruch, planety i eksploracja, status i odświeżanie | — | ACTION: Exhaust this card to place or move a Creuss wormhole token into either a system that contains a planet you control or a non-home sy… |
-| `ws` | War Sun | — | — | — | ruch, walka | — | Cost 12, Combat 3(x3), Move 2, Capacity 6 SUSTAIN DAMAGE, BOMBARDMENT 3(x3) Other players' units in this system lose PLANETARY SHIELD. |
+| `ws` | War Sun | — | — | — | ruch, walka | ✔ | Cost 12, Combat 3(x3), Move 2, Capacity 6 SUSTAIN DAMAGE, BOMBARDMENT 3(x3) Other players' units in this system lose PLANETARY SHIELD. |
 | `x89` | X-89 Bacterial Weapon Ω | — | — | MODIFY (liczba/rzut) | walka, planety i eksploracja | — | After 1 or more of your units use BOMBARDMENT against a planet, if at least 1 of your opponent's infantry was destroyed, you may destroy al… |
 | `x89_base` | X-89 Bacterial Weapon | — | — | MODIFY (liczba/rzut) | walka, planety i eksploracja, status i odświeżanie | — | ACTION: Exhaust this card and choose 1 planet in a system that contains 1 or more of your ships that have BOMBARDMENT; destroy all infantry… |
 | `x89c4` | X-89 Bacterial Weapon ΩΩ | — | — | — | walka, produkcja, planety i eksploracja, status i odświeżanie | — | Double the hits produced by your units' BOMBARDMENT and ground combat rolls. Exhaust each planet you use BOMBARDMENT against. |

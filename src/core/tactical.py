@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import command_tokens, control, triggers
+from src.core import action_budget, command_tokens, control, triggers
 from src.core.battle import space_combat_required
 from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
@@ -110,10 +110,8 @@ def activate_system(
         raise ValueError("No token in the tactical pool - cannot activate a system.")
     # Jedna akcja na turę (R_action_phase, RULES.md 30.3): aktywacja = akcja taktyczna, więc nie
     # po innej akcji (strategicznej / komponentu). Warfare TE aktywuje w ramach SWOJEJ akcji.
-    if not free and player0.took_action_this_turn:
-        raise ValueError(
-            "You already took an action this turn - end your turn before acting again."
-        )
+    if not free:
+        action_budget.require_free_action(state, active_id)
 
     new_state = state.clone()
     triggers.fire(
@@ -131,7 +129,10 @@ def activate_system(
         command_tokens.spend_from_pool(new_state, active_id, "tactical")
     # RULES.md 31.7: aktywacja systemu rozpoczyna AKCJĘ TAKTYCZNĄ — liczy się jako
     # akcja tury, więc gracz będzie mógł zakończyć turę (End turn).
-    new_state.players[active_id].took_action_this_turn = True
+    if free:
+        new_state.players[active_id].took_action_this_turn = True
+    else:
+        action_budget.register_action(new_state, active_id)
 
     new_state.active_system = position
     new_state.tactical_step = TacticalStep.MOVEMENT

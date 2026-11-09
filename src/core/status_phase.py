@@ -23,11 +23,13 @@ Kroki LRR i ich realizacja:
 from __future__ import annotations
 
 from src.core import (
+    action_budget,
     card_draw,
     chronicle,
     command_tokens,
     exhaust,
     objectives,
+    rules_hooks,
     strategy_phase,
     timing,
     triggers,
@@ -203,7 +205,14 @@ def _after_scoring(state: GameState, registry: StaticDataRegistry) -> GameState:
     # Krok 5 (część automatyczna) — zdobycie dwóch żetonów z rezerwy.
     for player_id in order:
         player = state.players[player_id]
-        gained = min(COMMAND_TOKENS_GAINED, player.cc_reinf)
+        # Punkt zaczepienia: technologie/zdolności zmieniają liczbę żetonów (Hyper Metabolism: 3).
+        entitled = max(
+            0,
+            rules_hooks.modify(
+                rules_hooks.POINT_STATUS_COMMAND_TOKENS, state, player_id, COMMAND_TOKENS_GAINED
+            ),
+        )
+        gained = min(entitled, player.cc_reinf)
         command_tokens.take_from_reinforcements(state, player_id, gained)
         status.unassigned_cc[player_id] = gained
     _log(status, 5, "gained_command_tokens", gained=dict(status.unassigned_cc))
@@ -227,10 +236,15 @@ def _draw_action_cards(state: GameState, order: list[str]) -> dict[str, int]:
     if len(state.decks.action_card_deck) < len(order):
         draw_order = list(reversed(order))
     for player_id in draw_order:
-        # draw_action_card tasuje stos odrzuconych, gdy talia jest pusta; False = brak kart.
-        if not card_draw.draw_action_card(state, player_id):
-            break
-        drawn[player_id] = drawn.get(player_id, 0) + 1
+        # Punkt zaczepienia: liczba dobieranych kart (Neural Motivator: 2 zamiast 1).
+        wanted = max(
+            1, rules_hooks.modify(rules_hooks.POINT_STATUS_ACTION_CARDS, state, player_id, 1)
+        )
+        for _ in range(wanted):
+            # draw_action_card tasuje stos odrzuconych, gdy talia jest pusta; False = brak kart.
+            if not card_draw.draw_action_card(state, player_id):
+                return drawn
+            drawn[player_id] = drawn.get(player_id, 0) + 1
     return drawn
 
 
@@ -414,9 +428,9 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
     triggers.fire(new_state, GameEvent.PHASE, Moment.END, ctx={"phase": "status"})
     new_state.phase = Phase.AGENDA
     new_state.agenda = AgendaPhaseState()  # RULES.md 51: mówca ujawnia pierwszą agendę
-    for player in new_state.players.values():
+    for player_id, player in new_state.players.items():
         player.passed = False
-        player.took_action_this_turn = False
+        action_budget.reset_turn(new_state, player_id)
         player.transacted_with = []
     # Bez kart strategii porządek wyznacza mówca (R_victory_points: „nearest the speaker").
     new_state.active_player_id = new_state.speaker_id

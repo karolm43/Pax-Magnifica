@@ -780,6 +780,11 @@ export type PlayerData = {
    * zgodności ze starymi migawkami (brak = traktuj jak false).
    */
   tookActionThisTurn?: boolean;
+  /**
+   * Ile akcji zostało graczowi w bieżącej turze (bazowo 1; Fleet Logistics 2 — RULES.md 55.1).
+   * Przyciski akcji są aktywne, dopóki > 0. Brak pola (stare migawki) = wg tookActionThisTurn.
+   */
+  actionsLeft?: number;
   eliminated: boolean;
   active: boolean;
   tacticalCC: number;

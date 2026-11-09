@@ -437,6 +437,9 @@ class PlayerState(BaseModel):
     # (``end_turn``) i przy wejściu w fazę akcji, bo dotyczy POJEDYNCZEJ tury, nie całej
     # fazy. End turn jest zablokowany, dopóki gracz nie wykona akcji LUB nie spasuje.
     took_action_this_turn: bool = False
+    # Ile akcji gracz wykonał w BIEŻĄCEJ turze (limit: ``core/action_budget``; bazowo 1, Fleet
+    # Logistics 2). ``took_action_this_turn`` zostaje flagą „co najmniej jedna" (End turn).
+    actions_this_turn: int = 0
     # Z kim (``player_id`` partnera) aktywny gracz JUŻ rozstrzygnął transakcję w tej turze
     # (RULES.md 47, R_transactions: „up to one transaction with each of their neighbors").
     # Resetowane razem z ``took_action_this_turn`` (nowa tura). Utrata i ponowne uzyskanie

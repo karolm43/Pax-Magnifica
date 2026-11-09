@@ -1848,3 +1848,12 @@ type-check + lint + build czyste.
 ## 2026-11-09 (2) — Kości d10 w 3D i pula po przytrzymaniu Roll
 - `battle/dieGeometry.ts` (+ test): prawdziwy d10 (pięciokątny trapezościan, 10 ścianek-latawców, przeciwległe sumują się do 11), `DieMesh.tsx` renderuje bryłę, `DiceTray.tsx` animuje pętlą rAF (oświetlenie liczone w każdej klatce). Kostki większe (42-84 px) i wolniejsze (`DIE_MS` 2300 ms).
 - `DicePool.tsx`: przytrzymanie Roll/Fire barrage (>240 ms) zbiera kości obu stron w puli z licznikiem; puszczenie nad przyciskiem rzuca z puli, puszczenie poza nim anuluje. Zwykłe kliknięcie rzuca od razu.
+
+## 2026-11-09 (3) — Technologie ogólne jako hooki, blok 1 (RULES.md 55)
+
+- Nowe punkty zaczepienia: `turn.actions`, `status.action_cards`, `status.command_tokens`, `space_cannon.roll_modifier`, `space_cannon.extra_dice`, `bombardment.extra_dice`; `rules_hooks.declare_data_driven` (pokrycie z danych).
+- `core/action_budget.py`: jedyne miejsce bramki i rejestracji akcji tury (limit z hooka); `PlayerState.actions_this_turn`; web-data `actionsLeft`, UI odblokowuje przyciski akcji dopóki zostały akcje.
+- `space_cannon.roll_cannon`: jeden punkt rzutów Space Cannon (Offense + Defense).
+- Gotowe: Fleet Logistics (`fl`), Neural Motivator (`nm`), Hyper Metabolism (`hm`), Antimass (`amd`, także −1 do Space Cannon), Light/Wave (`lwd`), Plasma Scoring (`ps`), Sarween Tools (`st`), ulepszenia `ws/cr2/dd2/cv2/pds2/dn2` (dane).
+- Testy: `tests/test_technologies_general.py`. Zostało: technologie z wyborem gracza / oknami (patrz kolejne wpisy).
+- Luka sieciowa: `actor_id` mają tylko 4 endpointy akcji (karty akcji, Thunder's Edge) — osobny blok (RULES.md 44.1).
