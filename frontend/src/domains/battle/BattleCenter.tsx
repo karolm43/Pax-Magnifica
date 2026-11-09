@@ -87,14 +87,21 @@ function LastVolley({
   attacker,
   defender,
   nameOf,
+  rolling,
 }: {
   entry: BattleLogEntry;
   attacker: string;
   defender: string;
   nameOf: (key: string) => string;
+  /** Kości jeszcze toczą się po stole — wynik w panelu czeka na odsłonięcie. */
+  rolling: boolean;
 }) {
   return (
-    <section className={styles.volley} aria-label="Last volley">
+    <section
+      className={styles.volley}
+      aria-label="Last volley"
+      data-rolling={rolling || undefined}
+    >
       <header className={styles.volleyHead}>
         <IconDice5 size={14} aria-hidden="true" />
         {entry.phase === "AFB"
@@ -138,10 +145,13 @@ export function BattleCenter({
   onAnnounce,
   onRetreat,
   systemLabel,
+  rolling,
 }: {
   view: BattleView;
   nameOf: (key: string) => string;
   busy: boolean;
+  /** Trwa rzut kośćmi na stole (panel strat czeka, wynik w tacy ukryty). */
+  rolling: boolean;
   absorbed: number;
   onAfb: () => void;
   onRoll: () => void;
@@ -173,7 +183,7 @@ export function BattleCenter({
   const ready = assigning !== null && absorbed === required;
 
   return (
-    <div className={styles.center}>
+    <div className={styles.center} data-rolling={rolling || undefined}>
       <div className={styles.roundBadge}>
         <small>
           {view.kind === "ground" ? "Ground combat" : "Space combat"}
@@ -387,6 +397,7 @@ export function BattleCenter({
           attacker={attacker}
           defender={defender}
           nameOf={nameOf}
+          rolling={rolling}
         />
       )}
     </div>

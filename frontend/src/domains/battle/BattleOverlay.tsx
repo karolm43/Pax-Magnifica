@@ -39,6 +39,8 @@ import {
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet } from "./BattleFleet";
 import { BattleCenter } from "./BattleCenter";
+import { DiceTray } from "./DiceTray";
+import { READ_MS } from "./diceRoll";
 import {
   isBattleMuted,
   playBattleSound,
@@ -341,7 +343,7 @@ function VolleyLayer({
             {
               left: b.x,
               top: b.y,
-              "--delay": `ms`,
+              "--delay": `${b.delayMs}ms`,
               "--power": b.power,
             } as CSSProperties
           }
@@ -468,6 +470,20 @@ function Battlefield({ view }: { view: BattleView }) {
     defender.hp,
   );
   const volley = useVolley(view);
+  // Kości toczą się po stole od początku salwy do chwili, gdy wszystkie leżą.
+  const [rollingId, setRollingId] = useState<number | null>(null);
+  const volleyId = volley?.id ?? null;
+  const diceMs = volley?.diceMs ?? 0;
+  useEffect(() => {
+    if (volleyId === null || diceMs <= 0) return;
+    setRollingId(volleyId);
+    const t = window.setTimeout(() => setRollingId(null), diceMs);
+    return () => window.clearTimeout(t);
+  }, [volleyId, diceMs]);
+  const rolling = volleyId !== null && rollingId === volleyId;
+  // Walka dopiero się zaczyna (flota jeszcze wlatuje), a gracz już rzucił: pomiń wlot, żeby
+  // statki zostały na polu, zamiast przemontować się i wlecieć drugi raz.
+  const skipEntry = view.log.length > 0 || view.step === "ASSIGN";
 
   // Znaczniki strat są ważne tylko dla bieżącego przypisania (runda + gracz + salwa).
   const assignKey = `${view.round}:${view.assigning ?? ""}:${view.log.length}`;
@@ -617,6 +633,11 @@ function Battlefield({ view }: { view: BattleView }) {
         ref={fieldRef}
         data-volley={volley ? volley.id : undefined}
         data-hits={volley?.bolts.some((b) => b.hit) || undefined}
+        style={
+          {
+            "--dice-ms": `${volley ? volley.diceMs + READ_MS : 0}ms`,
+          } as CSSProperties
+        }
       >
         <BattleFleet
           side={attacker}
@@ -626,6 +647,7 @@ function Battlefield({ view }: { view: BattleView }) {
           colorAlias={a.colorAlias}
           maxHp={attackerMax}
           isWinner={view.winner === attacker.faction}
+          skipEntry={skipEntry}
           retreat={retreatOf(attacker.faction)}
           assigning={
             view.step === "ASSIGN" && view.assigning === attacker.faction
@@ -637,6 +659,7 @@ function Battlefield({ view }: { view: BattleView }) {
           view={view}
           nameOf={nameOf}
           busy={busy}
+          rolling={rolling}
           absorbed={covered}
           onAfb={() => void run(battleAfb)}
           onRoll={() => void run(battleRoll)}
@@ -670,6 +693,7 @@ function Battlefield({ view }: { view: BattleView }) {
           colorAlias={d.colorAlias}
           maxHp={defenderMax}
           isWinner={view.winner === defender.faction}
+          skipEntry={skipEntry}
           retreat={retreatOf(defender.faction)}
           assigning={
             view.step === "ASSIGN" && view.assigning === defender.faction
@@ -682,6 +706,9 @@ function Battlefield({ view }: { view: BattleView }) {
           fieldRef={fieldRef}
           ground={view.kind === "ground"}
         />
+        {volley && volley.diceMs > 0 && (
+          <DiceTray key={volley.id} volley={volley} />
+        )}
       </div>
     </div>
   );

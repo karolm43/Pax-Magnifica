@@ -1028,67 +1028,118 @@ button.token {
   height: 100%;
 }
 
+/* Pocisk: mała świetlista kropla z krótkim warkoczem, lecąca PROSTO do punktu na globie
+   (--tx/--ty = przesunięcie, --ang = obrót wzdłuż toru). Animacje używają wypełnienia
+   `backwards`, a ich ostatnia klatka ma opacity 0 - po salwie nic nie zostaje na scenie. */
 .shell {
   position: absolute;
-  left: -2px;
-  top: 62px;
-  width: 4px;
-  height: 26px;
+  left: -1.5px;
+  top: 52px;
+  width: 3px;
+  height: 20px;
   opacity: 0;
   border-radius: 2px;
-  background: linear-gradient(180deg, rgba(251, 146, 60, 0), #fdba74 45%, #fff 100%);
-  box-shadow: 0 0 8px 2px rgba(251, 146, 60, 0.85);
-  animation: shellFall 0.7s cubic-bezier(0.4, 0, 0.9, 0.6) calc(var(--delay) + var(--rd)) both;
+  rotate: var(--ang, 0deg);
+  transform-origin: 50% 100%;
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0), #fdba74 55%, #fff 100%);
+  box-shadow: 0 0 6px 1px rgba(251, 146, 60, 0.8);
+  animation: shellFall 0.5s cubic-bezier(0.5, 0, 0.9, 0.7) calc(var(--delay) + var(--rd)) backwards;
 }
 
 .strike:not([data-hit]) .shell {
   animation-name: shellBurnOut;
+  animation-duration: 0.42s;
 }
 
-.blast {
+/* Błysk wylotu na okręcie w chwili wystrzału. */
+.muzzleFx {
   position: absolute;
-  left: -34px;
-  top: 172px;
-  width: 68px;
-  height: 52px;
+  left: -9px;
+  top: 47px;
+  width: 18px;
+  height: 18px;
   opacity: 0;
   border-radius: 50%;
   mix-blend-mode: screen;
-  background: radial-gradient(ellipse, #fff 0%, #fde68a 22%, rgba(251, 146, 60, 0.85) 50%, rgba(185, 28, 28, 0.35) 70%, transparent 80%);
-  animation: blastPop 0.9s ease-out calc(var(--delay) + var(--rd) + 0.62s) both;
+  background: radial-gradient(circle, #fff 0%, #fdba74 40%, rgba(251, 146, 60, 0) 72%);
+  animation: muzzlePop 0.22s ease-out calc(var(--delay) + var(--rd)) backwards;
+}
+
+/* Trafienie: jasny błysk, pierścień fali i garść iskier (punkt uderzenia --tx/--iy). */
+.blast {
+  position: absolute;
+  left: var(--tx, 0px);
+  top: var(--iy, 205px);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.blast::before,
+.blast::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.blast::after {
+  left: -20px;
+  top: -20px;
+  width: 40px;
+  height: 40px;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle, #fff 0%, #fde68a 28%, rgba(251, 146, 60, 0.7) 56%, transparent 74%);
+  animation: blastFlash 0.42s ease-out calc(var(--delay) + var(--rd) + 0.5s) backwards;
+}
+
+.blast::before {
+  left: -14px;
+  top: -14px;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid rgba(253, 186, 116, 0.85);
+  animation: blastRing 0.55s ease-out calc(var(--delay) + var(--rd) + 0.5s) backwards;
+}
+
+.spark {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 2px;
+  height: 7px;
+  opacity: 0;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #fff, rgba(251, 146, 60, 0));
+  animation: sparkOut 0.42s ease-out calc(var(--delay) + var(--rd) + 0.5s) backwards;
 }
 
 .strike:not([data-hit]) .blast {
   display: none;
 }
 
-/* WAR SUN: promień - jedna gruba, jasna wiązka z okrętu na planetę (krótko, bez przesady). */
+/* WAR SUN: promień - jedna jasna wiązka z okrętu na planetę (krótko, bez przesady). */
 .sunBeam {
   position: absolute;
-  left: -7px;
+  left: -5px;
   top: 58px;
-  width: 14px;
-  height: 148px;
+  width: 10px;
+  height: var(--len, 140px);
   opacity: 0;
-  border-radius: 7px;
+  border-radius: 5px;
+  rotate: var(--ang, 0deg);
   transform-origin: 50% 0;
   background: linear-gradient(90deg, rgba(251, 146, 60, 0.25), #fff 50%, rgba(251, 146, 60, 0.25));
-  box-shadow: 0 0 18px 5px rgba(253, 186, 116, 0.75);
-  animation: beamCast 1.2s ease-out var(--delay) both;
+  box-shadow: 0 0 14px 4px rgba(253, 186, 116, 0.7);
+  animation: beamCast 0.9s ease-out var(--delay) backwards;
 }
 
 .strike[data-sun] .blast {
-  left: -62px;
-  top: 160px;
-  width: 124px;
-  height: 90px;
-  animation-duration: 1.3s;
-  animation-delay: calc(var(--delay) + 0.3s);
+  scale: 2.2;
 }
 
 .strike[data-sun]:not([data-hit]) .sunBeam {
-  height: 110px;
-  opacity: 0;
+  height: calc(var(--len, 140px) * 0.75);
   animation-name: beamCastMiss;
 }
 
@@ -1138,26 +1189,47 @@ button.token {
 
 @keyframes shellFall {
   0% { opacity: 0; translate: 0 0; }
-  15% { opacity: 1; }
-  100% { opacity: 1; translate: 0 100px; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; translate: var(--tx, 0px) var(--ty, 120px); }
 }
 
 @keyframes shellBurnOut {
-  0% { opacity: 0; translate: 0 0; }
-  20% { opacity: 1; }
-  100% { opacity: 0; translate: 0 60px; scale: 1 0.3; }
+  0% { opacity: 0; translate: 0 0; scale: 1 1; }
+  15% { opacity: 1; }
+  100% {
+    opacity: 0;
+    translate: calc(var(--tx, 0px) * 0.55) calc(var(--ty, 120px) * 0.55);
+    scale: 0.6 0.3;
+  }
 }
 
-@keyframes blastPop {
+@keyframes muzzlePop {
+  0% { opacity: 0; transform: scale(0.3); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes blastFlash {
   0% { opacity: 0; transform: scale(0.2); }
-  20% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.7, 1.3); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes blastRing {
+  0% { opacity: 0.9; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+
+@keyframes sparkOut {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(2px) scaleY(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(22px) scaleY(0.4); }
 }
 
 @keyframes beamCast {
   0% { opacity: 0; transform: scaleY(0) scaleX(1.8); }
-  18% { opacity: 1; transform: scaleY(1) scaleX(1.4); }
-  60% { opacity: 0.9; transform: scaleY(1) scaleX(1); }
+  18% { opacity: 1; transform: scaleY(1) scaleX(1.3); }
+  55% { opacity: 0.9; transform: scaleY(1) scaleX(1); }
   100% { opacity: 0; transform: scaleY(1) scaleX(0.2); }
 }
 

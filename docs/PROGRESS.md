@@ -1836,3 +1836,8 @@ type-check + lint + build czyste.
   `<kolor>_ps` (`game_setup.common_promissory_note_ids(..., variant)` wg `homebrewReplacesID`). Loader
   wpuszcza ze źródła `absol` tylko notki-zamienniki; front rozpoznaje `absol_<kolor>_ps` w
   `entities/lookup/promissoryNotes.ts`, karta notki ma plakietkę „ABS". Baseline audytu +1 (promissory/absol).
+
+## 2026-11-09 — Bombardowanie bez artefaktów, fizyczne kości, wlot floty raz
+- Bombardowanie (`invasion/InvasionFx.tsx`, CSS): pocisk leci prosto w punkt na globie (`shellPath`), znika na trafieniu (ostatnia klatka opacity 0, fill `backwards`), trafienie = błysk + pierścień + iskry, błysk wylotu na okręcie. Koniec "paska" po strzale.
+- Walka: `battle/DiceTray.tsx` + `diceRoll.ts` — fizyczny rzut d10 (wlot z krawędzi, 3 odbicia, obrót 3D, cień, stuknięcia w WebAudio `diceThrow`/`diceClack`); strzały ruszają po wylądowaniu kości (`Volley.diceMs`), wynik w tacy ukryty do tego czasu.
+- Bug: szybkie Roll/Auto powodowało ponowny wlot floty (przemontowanie okrętów przed końcem wlotu) — `BattleFleet.skipEntry` kończy wlot od pierwszej salwy/przypisania.

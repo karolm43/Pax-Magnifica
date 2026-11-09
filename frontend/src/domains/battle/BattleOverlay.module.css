@@ -201,7 +201,7 @@
 }
 
 .field[data-hits] {
-  animation: screenShake 0.5s ease-in-out 0.7s both;
+  animation: screenShake 0.5s ease-in-out calc(var(--dice-ms, 0ms) + 0.7s) both;
 }
 
 /* --- Flota --- */
@@ -2478,5 +2478,123 @@
   .overlay[data-kind="ground"] .formation .ship,
   .overlay[data-kind="ground"] .field::before {
     animation: none;
+  }
+}
+
+/* --- Fizyczny rzut kośćmi (stół nad polem bitwy; patrz DiceTray.tsx) --- */
+.diceTray {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  perspective: 800px;
+  animation: trayFade 0.5s ease-in var(--fade, 3s) forwards;
+}
+
+.dieWrap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--ds);
+  height: var(--ds);
+  margin: calc(var(--ds) / -2) 0 0 calc(var(--ds) / -2);
+  --c: var(--left-rgb);
+  will-change: transform;
+}
+
+.dieWrap[data-side="right"] {
+  --c: var(--right-rgb);
+}
+
+.dieShadow {
+  position: absolute;
+  inset: 12% 8% 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  filter: blur(4px);
+}
+
+.dieLift,
+.dieCube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+/* Perspektywa przy samej kostce: filtr na .dieLift spłaszcza 3D rodzica, więc obrót ma własną. */
+.dieLift {
+  perspective: 240px;
+}
+
+/* Kostka d10 z góry: sylwetka latawca (deltoid) z dwoma jasnymi/ciemnymi ściankami. */
+.dieFace {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-top: 16%;
+  clip-path: polygon(50% 0, 100% 36%, 50% 100%, 0 36%);
+  background:
+    linear-gradient(115deg, rgb(var(--c) / 0.95) 0 50%, rgb(var(--c) / 0.62) 50% 100%),
+    #1b2233;
+  background-blend-mode: normal;
+}
+
+.dieFace::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent 46%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.35), transparent 40%);
+  pointer-events: none;
+}
+
+.dieFace > b {
+  position: relative;
+  font-family: var(--font-data);
+  font-size: calc(var(--ds) * 0.4);
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+/* Po zatrzymaniu: trafienie rozjaśnia się na złoto, pudło przygasa. */
+.dieWrap[data-settled][data-hit] .dieLift {
+  filter: drop-shadow(0 0 7px rgba(251, 191, 36, 0.95));
+  animation: dieHitPulse 0.5s ease-out;
+}
+
+.dieWrap[data-settled]:not([data-hit]) .dieLift {
+  opacity: 0.6;
+  filter: saturate(0.45);
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+@keyframes dieHitPulse {
+  0% { scale: 1; }
+  40% { scale: 1.22; }
+  100% { scale: 1; }
+}
+
+@keyframes trayFade {
+  to { opacity: 0; }
+}
+
+/* Wynik rzutu w panelu nie zdradza się, dopóki kości toczą się po stole. */
+.volley[data-rolling] .diceGroup,
+.volley[data-rolling] .hitPill {
+  visibility: hidden;
+}
+
+.center[data-rolling] [data-assign] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diceTray {
+    animation-duration: 0.01s;
   }
 }

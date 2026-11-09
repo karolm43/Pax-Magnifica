@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { BattleLogEntry, BattleView } from "@/api/useBoardEditor";
+import type {
+  BattleLogEntry,
+  BattleRoll,
+  BattleView,
+} from "@/api/useBoardEditor";
 import type { ShipEntity } from "./battleAssign";
+import { countDice, diceLandMs, volleyStartMs } from "./diceRoll";
 
 /**
  * Efekty wizualne pola bitwy (czysta prezentacja — wynik zawsze pochodzi z silnika).
@@ -127,6 +132,10 @@ export type Volley = {
   id: number;
   phase: BattleLogEntry["phase"];
   bolts: Bolt[];
+  /** Rzuty obu stron (do fizycznej animacji kostek na stole). */
+  rolls: { left: BattleRoll[]; right: BattleRoll[] };
+  /** Kiedy kości leżą już na stole (ms od początku salwy) — wtedy dopiero ruszają strzały. */
+  diceMs: number;
 };
 
 function boltsFor(
@@ -134,6 +143,7 @@ function boltsFor(
   player: string,
   from: "left" | "right",
   volleyId: number,
+  startMs: number,
 ): Bolt[] {
   const rolls = entry.rolls[player] ?? [];
   const dice = rolls.flatMap((roll) =>
@@ -155,7 +165,9 @@ function boltsFor(
     baseType: die.baseType,
     shot: die.shot,
     // Atakujący strzela pierwszy, obrońca odpowiada (RULES.md 39 W5).
-    delayMs: (from === "left" ? 0 : 1500) + i * 190 + Math.random() * 120,
+    // Strzały ruszają dopiero, gdy kości leżą na stole.
+    delayMs:
+      startMs + (from === "left" ? 0 : 1500) + i * 190 + Math.random() * 120,
   }));
 }
 
@@ -183,17 +195,23 @@ export function useVolley(view: BattleView | undefined): Volley | null {
     seen.current = length;
     const entry = view.log[length - 1];
     const id = Date.now();
+    const left = entry.rolls[view.attacker.faction] ?? [];
+    const right = entry.rolls[view.defender.faction] ?? [];
+    const diceMs = diceLandMs(countDice(left), countDice(right));
+    const startMs = volleyStartMs(countDice(left), countDice(right));
     setVolley({
       id,
       phase: entry.phase,
+      rolls: { left, right },
+      diceMs,
       bolts: [
-        ...boltsFor(entry, view.attacker.faction, "left", id),
-        ...boltsFor(entry, view.defender.faction, "right", id),
+        ...boltsFor(entry, view.attacker.faction, "left", id, startMs),
+        ...boltsFor(entry, view.defender.faction, "right", id, startMs),
       ],
     });
     window.setTimeout(
       () => setVolley((v) => (v?.id === id ? null : v)),
-      VOLLEY_MS,
+      VOLLEY_MS + startMs,
     );
   }, [length]);
 

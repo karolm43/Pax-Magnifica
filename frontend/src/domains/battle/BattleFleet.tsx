@@ -369,6 +369,7 @@ export function BattleFleet({
   colorAlias,
   maxHp,
   isWinner,
+  skipEntry,
   retreat,
   assigning,
   marks,
@@ -381,6 +382,8 @@ export function BattleFleet({
   colorAlias: string;
   maxHp: number;
   isWinner: boolean;
+  /** Walka już ruszyła (rzut / straty) — wlot floty jest zakończony, okręty zostają na polu. */
+  skipEntry: boolean;
   /** Odwrót strony (RULES.md 39.5): ogłoszony w tej rundzie, wykonywany teraz albo wykonany. */
   retreat: {
     state: "announced" | "withdrawing" | "withdrew";
@@ -508,7 +511,7 @@ export function BattleFleet({
       <div
         className={styles.formation}
         data-formation={align}
-        data-entered={entered || undefined}
+        data-entered={entered || skipEntry || undefined}
       >
         {views.length === 0 && (
           <span className={styles.wiped}>

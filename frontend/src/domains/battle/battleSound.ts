@@ -21,7 +21,9 @@ export type SoundName =
   | "warSunEnter" // war sun wyłania się z wormhole (miejsce na własny plik)
   | "sunfire" // strzał war suna
   | "retreatHorn" // ogłoszenie odwrotu
-  | "retreat"; // flota odlatuje z pola bitwy
+  | "retreat" // flota odlatuje z pola bitwy
+  | "diceThrow" // garść kości wpada na stół (grzechot)
+  | "diceClack"; // jedno stuknięcie kostki o stół
 
 export type SoundOpts = {
   /** Panorama stereo −1 (lewo) … 1 (prawo). */
@@ -59,6 +61,8 @@ const ALL: SoundName[] = [
   "sunfire",
   "retreatHorn",
   "retreat",
+  "diceThrow",
+  "diceClack",
 ];
 
 export function isBattleMuted(): boolean {
@@ -268,6 +272,25 @@ function synth(name: SoundName, o: Out, heavy: boolean): void {
       tone(o, "sine", 60, 420, 0.25, 1.5, 0.5);
       tone({ ...o, t: o.t + 1.7 }, "sine", 80, 24, 1, 0.01, 1.8);
       burst({ ...o, t: o.t + 1.7 }, "lowpass", 1800, 40, 0.6, 0.01, 1.6);
+      break;
+    case "diceThrow":
+      // grzechot kilku kostek w garści i wpadnięcie na stół
+      for (let i = 0; i < 5; i++) {
+        burst(
+          { ...o, t: o.t + i * 0.06 },
+          "bandpass",
+          2200 - i * 150,
+          1400,
+          0.1,
+          0.003,
+          0.05,
+        );
+      }
+      break;
+    case "diceClack":
+      // krótkie, twarde stuknięcie plastiku o drewno
+      burst(o, "highpass", 3000, 1800, 0.34, 0.001, 0.03);
+      tone(o, "triangle", 950, 430, 0.14, 0.001, 0.045);
       break;
     case "sustain":
       tone(o, "sine", 620, 1500, 0.22, 0.02, 0.5);

@@ -150,8 +150,66 @@ function FlakShot({
   );
 }
 
+/** Geometria globu na scenie (px od góry sceny): środek i promień. */
+const GLOBE_CY = 248;
+const GLOBE_R = 84;
+/** Dolny koniec pocisku w chwili wystrzału (tuż pod okrętem). */
+const SHELL_TIP_Y = 74;
+
+/**
+ * Tor pocisku bombardowania: z okrętu (przesunięcie `x` od środka sceny) PROSTO w punkt na
+ * górnej połowie globu. Okręty poza obrysem globu celują w jego skraj, więc pocisk nigdy nie
+ * przelatuje obok planety. Zwraca przesunięcie (`tx`,`ty`), obrót (`ang`) i wysokość trafienia.
+ */
+export function shellPath(x: number): {
+  tx: number;
+  ty: number;
+  ang: number;
+  iy: number;
+  len: number;
+} {
+  const aim = Math.max(-GLOBE_R + 18, Math.min(GLOBE_R - 18, x));
+  const iy = GLOBE_CY - Math.sqrt(GLOBE_R ** 2 - aim ** 2) + 8;
+  const tx = aim - x;
+  const ty = iy - SHELL_TIP_Y;
+  return {
+    tx,
+    ty,
+    iy,
+    ang: -(Math.atan2(tx, ty) * 180) / Math.PI,
+    len: Math.hypot(tx, ty),
+  };
+}
+
+/** Iskry trafienia: kąty (stopnie) rozchodzenia się wokół punktu uderzenia. */
+const SPARK_ANGLES = [-70, -30, 20, 60, 110, 160];
+
+/** Błysk trafienia z iskrami w punkcie (`tx`,`iy`) względem okrętu. */
+function Impact({ tx, iy, rd }: { tx: number; iy: number; rd: number }) {
+  return (
+    <i
+      className={styles.blast}
+      style={
+        {
+          "--tx": `${tx}px`,
+          "--iy": `${iy}px`,
+          "--rd": `${rd}ms`,
+        } as CSSProperties
+      }
+    >
+      {SPARK_ANGLES.map((a, k) => (
+        <i
+          key={a}
+          className={styles.spark}
+          style={{ "--a": `${a + k * 3}deg` } as CSSProperties}
+        />
+      ))}
+    </i>
+  );
+}
+
 /** Najdłuższa animacja salwy (ms) - po tym czasie warstwa jest zdejmowana z DOM. */
-const BOMBARD_MS = 3600;
+const BOMBARD_MS = 2400;
 const DEFENSE_MS = 2800;
 /** Odstęp między kolejnymi strzałami salwy (ms): bombardowanie to gęsty deszcz, SCD rzadsze strzały. */
 const STAGGER_ORBIT = 170;
@@ -230,29 +288,48 @@ export function StrikeLayer({
           >
             {from === "orbit" ? (
               b.sun ? (
-                <>
-                  <i className={styles.sunBeam} />
-                  <i
-                    className={styles.blast}
-                    style={{ "--rd": "350ms", "--rx": "0px" } as CSSProperties}
-                  />
-                </>
+                (() => {
+                  const p = shellPath(dx);
+                  return (
+                    <>
+                      <i
+                        className={styles.sunBeam}
+                        style={
+                          {
+                            "--ang": `${p.ang}deg`,
+                            "--len": `${p.len + 16}px`,
+                          } as CSSProperties
+                        }
+                      />
+                      <Impact tx={p.tx} iy={p.iy} rd={0} />
+                    </>
+                  );
+                })()
               ) : (
-                Array.from({ length: ROUNDS }, (_, r) => (
-                  <span
-                    key={r}
-                    className={styles.round}
-                    style={
-                      {
-                        "--rd": `${r * 130 + spread(n, 3 + r) * 90}ms`,
-                        "--rx": `${(spread(n, 5 + r) - 0.5) * 46}px`,
-                      } as CSSProperties
-                    }
-                  >
-                    <i className={styles.shell} />
-                    <i className={styles.blast} />
-                  </span>
-                ))
+                Array.from({ length: ROUNDS }, (_, r) => {
+                  const rx = (spread(n, 5 + r) - 0.5) * 40;
+                  const rd = r * 120 + spread(n, 3 + r) * 80;
+                  const p = shellPath(dx + rx);
+                  return (
+                    <span
+                      key={r}
+                      className={styles.round}
+                      style={
+                        {
+                          "--rd": `${rd}ms`,
+                          "--rx": `${rx}px`,
+                          "--tx": `${p.tx}px`,
+                          "--ty": `${p.ty}px`,
+                          "--ang": `${p.ang}deg`,
+                        } as CSSProperties
+                      }
+                    >
+                      <i className={styles.muzzleFx} />
+                      <i className={styles.shell} />
+                      <Impact tx={p.tx} iy={p.iy} rd={rd} />
+                    </span>
+                  );
+                })
               )
             ) : (
               <FlakShot
