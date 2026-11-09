@@ -244,6 +244,10 @@ def start_combat(
         ctx={"kind": kind, "position": active, "planet": planet or "",
              "attacker": attacker, "defender": defender},
     )
+    # Hooki startu walki (Assault Cannon, Magen Defense Grid) mogą zniszczyć ostatnie jednostki
+    # strony - wtedy walka kończy się od razu (C_technology: strona przegrywa natychmiast).
+    if any(not side_units(new_state, grid, registry, pid) for pid in (attacker, defender)):
+        return _after_losses(new_state, grid, registry)
     has_afb = kind == "space" and any(
         u.afb_hits_on is not None
         for pid in (attacker, defender)
@@ -368,6 +372,11 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
             ):
                 new_state, dice = _reroll_misses(new_state, unit, dice)
             hits = count_hits([d + unit.modifier for d in dice], unit.base_hits_on)
+            # Hook MODIFY: mnożnik trafień (X-89 ΩΩ: ×2 w walce naziemnej, nie w kosmicznej).
+            hits *= rules_hooks.modify(
+                rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, pid, 1,
+                {"kind": combat.kind, "base_type": unit.base_type},
+            )
             total += hits
             entries.append(_roll_entry(unit, dice, unit.base_hits_on, hits))
         rolls[pid] = entries
@@ -621,9 +630,19 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         for pid in (combat.attacker, combat.defender)
         if side_units(new_state, grid, registry, pid)
     ]
+    last = combat.log[-1] if combat.log else {}
+    is_roll_round = combat.step is not CombatStep.AFB
     triggers.fire(
         new_state, GameEvent.COMBAT_ROUND, Moment.END,
-        ctx={"kind": combat.kind, "round": combat.round, "position": combat.position},
+        ctx={
+            "kind": combat.kind, "round": combat.round, "position": combat.position,
+            "planet": combat.planet or "", "attacker": combat.attacker,
+            "defender": combat.defender,
+            # „phase": runda rzutów (po przypisaniu strat) vs krok AFB; „sustained": kto ile razy
+            # użył Sustain Damage w TEJ rundzie (Duranium Armor nie naprawia takich jednostek).
+            "phase": "combat" if is_roll_round else "afb",
+            "sustained": last.get("sustained", {}) if is_roll_round else {},
+        },
     )
     if len(alive) <= 1:
         # Także O3: ogłoszony odwrót nie następuje, gdy przeciwnikowi nie zostały statki.
@@ -633,7 +652,11 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         combat.pending_hits = {}
         combat.retreating = []
         chronicle.record_battle(new_state, combat)
-        end_ctx = {"kind": combat.kind, "position": combat.position, "winner": combat.winner or ""}
+        end_ctx = {
+            "kind": combat.kind, "position": combat.position, "winner": combat.winner or "",
+            "planet": combat.planet or "", "attacker": combat.attacker,
+            "defender": combat.defender,
+        }
         if combat.winner is not None:
             triggers.fire(
                 new_state,

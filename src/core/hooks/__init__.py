@@ -11,6 +11,7 @@ from src.core.hooks import (
     action_cards_units,
     factions_base,
     technologies,
+    technologies_combat,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "action_cards_units",
     "factions_base",
     "technologies",
+    "technologies_combat",
 ]

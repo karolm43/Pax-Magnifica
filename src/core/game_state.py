@@ -731,6 +731,9 @@ class GameState(BaseModel):
     # wspólny dla całego kroku, nie per zamówienie — RULES.md 33.3). Zerowane przy
     # aktywacji i zakończeniu akcji.
     production_used: int = 0
+    # Czy w tej akcji taktycznej zużyto już „+1 do ruchu dla jednego statku" (Gravity Drive,
+    # RULES.md 55.6). Zerowane przy aktywacji i zakończeniu akcji.
+    gravity_drive_used: bool = False
     # Co wyprodukowano w tej akcji i gdzie: strefa ("space"/id planety) → typ → sztuki.
     # Potrzebne, bo (1) osobne zdolności PRODUCTION mają ograniczenia typów (Arborec: dok nie
     # produkuje piechoty), (2) świeżo wyprodukowane jednostki NIE dokładają PRODUCTION w tym

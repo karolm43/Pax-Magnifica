@@ -1857,3 +1857,10 @@ type-check + lint + build czyste.
 - Gotowe: Fleet Logistics (`fl`), Neural Motivator (`nm`), Hyper Metabolism (`hm`), Antimass (`amd`, także −1 do Space Cannon), Light/Wave (`lwd`), Plasma Scoring (`ps`), Sarween Tools (`st`), ulepszenia `ws/cr2/dd2/cv2/pds2/dn2` (dane).
 - Testy: `tests/test_technologies_general.py`. Zostało: technologie z wyborem gracza / oknami (patrz kolejne wpisy).
 - Luka sieciowa: `actor_id` mają tylko 4 endpointy akcji (karty akcji, Thunder's Edge) — osobny blok (RULES.md 44.1).
+
+## 2026-11-09 (4) — Technologie ogólne, blok 2: walka i ruch (RULES.md 55.6-55.7)
+
+- Gotowe: Gravity Drive (`gd`), Duranium Armor (`da`), Assault Cannon (`asc`), Magen Defense Grid ΩΩ (`md`), X-89 ΩΩ (`x89c4`); starsze wersje Magen/X-89 oznaczone `declare_superseded`.
+- Punkty: `combat.hit_multiplier`; `COMBAT_ROUND` END niesie `phase`/`sustained`/strony; `battle.start_combat` kończy walkę, gdy hooki startu zniszczą stronę.
+- Testy: `tests/test_technologies_combat.py` (21).
+- Założenia (55.7): wybory ofiary/właściciela rozstrzygane deterministycznie do czasu okna wyboru w UI.

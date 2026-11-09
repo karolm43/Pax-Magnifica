@@ -48,6 +48,8 @@ POINT_SPACE_CANNON_ROLL_MODIFIER = "space_cannon.roll_modifier"
 # Space Cannon: dodatkowe kości dla JEDNEJ jednostki strzelca przy jednym użyciu (Plasma Scoring).
 POINT_SPACE_CANNON_EXTRA_DICE = "space_cannon.extra_dice"
 # Bombardment: dodatkowe kości dla JEDNEJ jednostki przy jednym użyciu (Plasma Scoring).
+# Mnożnik trafień z rzutów (bazowo 1; X-89 ΩΩ: ×2). ctx: kind = ground | space | bombardment.
+POINT_COMBAT_HIT_MULTIPLIER = "combat.hit_multiplier"
 POINT_BOMBARDMENT_EXTRA_DICE = "bombardment.extra_dice"
 # Liczba akcji gracza w jego turze fazy akcji (bazowo 1; Fleet Logistics: +1).
 POINT_TURN_ACTIONS = "turn.actions"
@@ -234,6 +236,15 @@ def hook_by_seq(seq: int) -> Hook | None:
     """Hook o danym numerze rejestracji (do rozstrzygania ofert) albo ``None``."""
     _ensure_loaded()
     return next((h for h in _REGISTRY if h.seq == seq), None)
+
+
+def declare_superseded(*component_keys: str) -> None:
+    """Oznacza wersje kart zastąpione errata (np. Magen Defense Grid bez Ω).
+
+    Talia gry zawiera tylko najnowszą wersję (``technology.generic_pool``), więc starsze nie
+    wchodzą do rozgrywki i nie potrzebują hooka; liczą się jako pokryte w raporcie.
+    """
+    _DATA_DRIVEN.update(component_keys)
 
 
 def declare_data_driven(*component_keys: str) -> None:

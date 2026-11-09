@@ -378,7 +378,11 @@ def bombard(
         group = groups[item.base_type]
         bonus = extra_dice if item is best_item else 0
         rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit + bonus)
-        hits = count_hits(dice, group.hits_on)
+        # Hook MODIFY: mnożnik trafień bombardowania (X-89 ΩΩ: podwójne trafienia).
+        hits = count_hits(dice, group.hits_on) * rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, _inv(state).attacker, 1,
+            {"kind": "bombardment", "base_type": item.base_type},
+        )
         entry = by_planet.setdefault(item.planet, {"rolls": [], "hits": 0})
         entry["rolls"].append(
             {
@@ -397,7 +401,8 @@ def bombard(
     inv.bombarded = True
     triggers.fire(
         new_state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=inv.attacker,
-        ctx={"ability": "bombardment", "player": inv.attacker, "position": inv.position},
+        ctx={"ability": "bombardment", "player": inv.attacker, "position": inv.position,
+             "planets": sorted(by_planet)},
     )
     for planet, entry in by_planet.items():
         defenders = _defenders(new_state, planet, inv.position, inv.attacker)

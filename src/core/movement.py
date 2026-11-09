@@ -159,11 +159,14 @@ def can_move(
     from_pos: str,
     base_type: str,
     player_id: str,
+    *,
+    boost: bool = False,
 ) -> tuple[bool, str]:
     """Sprawdza, czy ruch stosu ``base_type`` ze ``from_pos`` do aktywnego jest legalny.
 
     Zwraca ``(True, "")`` gdy legalny, albo ``(False, powód)``. Egzekwuje R1–R6
-    (RULES.md 32.1). Nie mutuje stanu.
+    (RULES.md 32.1). Nie mutuje stanu. ``boost=True`` pozwala hookom dać premię jednorazową
+    dla JEDNEGO statku (Gravity Drive); wołający sam pilnuje, że dotyczy to jednego statku.
     """
     active = state.active_system
     if active is None:
@@ -190,7 +193,7 @@ def can_move(
     # które w ogóle się poruszają (kontrola wyżej).
     move_value = rules_hooks.modify(
         rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
-        {"base_type": base_type},
+        {"base_type": base_type, "boost": boost},
     )
 
     # R3: start nie z własnym CC (wyjątek: aktywny system).
@@ -331,7 +334,11 @@ def legal_move_sources(
         for base_type, count in sorted(by_type.items()):
             if count <= 0 or not is_space_unit(base_type):
                 continue
-            ok, _ = can_move(state, grid, registry, position, base_type, player_id)
+            # Premia jednorazowa (Gravity Drive) liczy się do podglądu, dopóki niezużyta.
+            ok, _ = can_move(
+                state, grid, registry, position, base_type, player_id,
+                boost=not state.gravity_drive_used,
+            )
             if ok:
                 movable.append(base_type)
         if movable:
@@ -401,11 +408,23 @@ def move_fleet(
     technologies = player.technologies if player is not None else []
     source = state.systems.get(from_pos)
 
-    # Statki: walidacja legalności + dostępności (R1–R6, policzone per typ).
+    # Statki: walidacja legalności + dostępności (R1–R6, policzone per typ). Premia jednorazowa
+    # dla JEDNEGO statku w akcji (Gravity Drive, RULES.md 55.6) włącza się automatycznie tylko
+    # tam, gdzie bez niej ruch jest nielegalny, i nie dla grupy większej niż 1.
+    boost_spent = state.gravity_drive_used
     for base_type, count in ships.items():
         ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
         if not ok:
-            raise ValueError(reason)
+            boosted_ok, _ = can_move(
+                state, grid, registry, from_pos, base_type, player_id, boost=not boost_spent
+            )
+            if not boosted_ok:
+                raise ValueError(reason)
+            if count != 1:
+                raise ValueError(
+                    f"{reason} Gravity Drive extends the move of only 1 ship per action."
+                )
+            boost_spent = True
         available = _available_in_zone(source, player_id, base_type, "space")
         if available < count:
             raise ValueError(
@@ -467,6 +486,7 @@ def move_fleet(
             )
 
     new_state = state.clone()
+    new_state.gravity_drive_used = boost_spent
     src = new_state.systems.get(from_pos)
     assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
 
