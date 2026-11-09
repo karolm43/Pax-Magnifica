@@ -7,7 +7,9 @@ Talia powstaje leniwie z największej talii typu ``relic`` aktywnych źródeł (
 
 from __future__ import annotations
 
+from src.core import triggers
 from src.core.dice import next_rng
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
@@ -50,4 +52,9 @@ def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -
         return None
     relic = decks.relic_deck.pop(0)
     player.relics = [*player.relics, relic]
+    # „When you gain this card”: karta jest już źródłem hooka, więc może zareagować na siebie.
+    triggers.fire(
+        state, GameEvent.COMPONENT_GAINED, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "component": f"relics:{relic}"},
+    )
     return relic

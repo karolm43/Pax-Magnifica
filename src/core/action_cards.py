@@ -15,8 +15,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_draw, component_action, rules_hooks
+from src.core import card_draw, component_action, rules_hooks, triggers
 from src.core.components import ActionCardDef, ComponentCategory, ComponentRef
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 from src.core.timing_spec import TriggerKind
@@ -88,7 +89,9 @@ def playability(
             entry["reason"] = "Played in response to a game event, not as your action."
             continue
         try:
-            component_action.play_component_action(state, player_id, card_id)
+            component_action.play_component_action(
+                state, player_id, card_id, fire_after=False
+            )
         except ValueError as exc:
             entry["reason"] = str(exc)
             continue
@@ -140,9 +143,19 @@ def play_action_card(
             "action (reactions need the STOP flow, RULES.md 43.4)."
         )
 
-    new_state = component_action.play_component_action(state, player_id, card_id)
+    new_state = component_action.play_component_action(
+        state, player_id, card_id, fire_after=False
+    )
+    triggers.fire(
+        new_state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "card": card_id},
+    )
     effect = rules_hooks.effect_for(effect_key(card_id))
     if effect is not None:
         effect(new_state, registry, player_id, params or {})
     card_draw.discard_specific_action_cards(new_state, player_id, [card_id])
+    triggers.fire(
+        new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "component": card_id},
+    )
     return new_state, effect is not None

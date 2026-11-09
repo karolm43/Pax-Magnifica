@@ -78,6 +78,10 @@ OWNERS: dict[str, frozenset[str]] = {
     # odłożenie TG dojdzie z hookami.
     "breakthrough_unlocked": frozenset({"core/breakthrough.py", _GOD_MODE}),
     "breakthrough_tg": frozenset({_GOD_MODE}),
+    # Efekty trwałe i oferty reakcji (RULES.md 54): magazyn efektów i licznik id.
+    "active_effects": frozenset({"core/active_effects.py", _GOD_MODE}),
+    "effect_seq": frozenset({"core/active_effects.py", _GOD_MODE}),
+    "pending_offers": frozenset({"core/triggers.py", _GOD_MODE}),
 }
 
 # ``setattr`` ogólnego przeznaczenia (nazwa pola zmienna): moduły dozwolone poza właścicielami pól.

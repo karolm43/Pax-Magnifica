@@ -9,9 +9,10 @@ patrz ``owned_sources``. Kolejność wielu hooków na jednym punkcie jest determ
 (RULES.md 43.1 pkt 5): REPLACE, FORBID, PERMIT, MODIFY, TRIGGER, PERSISTENT, a w obrębie rodzaju
 kolejność rejestracji.
 
-Zaimplementowane API (rodzaje używane dziś): ``forbidden`` (FORBID), ``permits`` (PERMIT),
-``modify`` (MODIFY). REPLACE/TRIGGER/PERSISTENT są zarezerwowane w ``HookKind`` — dochodzą
-razem z pierwszym użyciem (TRIGGER przez ``core/timing.py``, RULES.md 43.1 pkt 6).
+API: ``forbidden`` (FORBID), ``permits`` (PERMIT), ``modify`` (MODIFY) — pytania „w miejscu”;
+``on_event`` rejestruje hooki zdarzeń (TRIGGER/REPLACE), które uruchamia ``core/triggers.fire``
+(RULES.md 54). PERSISTENT = efekt trwały w ``GameState.active_effects`` (``core/active_effects``),
+będący źródłem hooków (``SOURCE_EFFECT``) do czasu wygaśnięcia.
 
 God-Mode omija hooki tak jak resztę reguł (RULES.md 43.1 pkt 11).
 """
@@ -24,6 +25,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, cast
 
+from src.core.game_events import GameEvent, Moment, event_point
 from src.core.game_state import GameState
 
 # Punkty zaczepienia (nazwy). Dopisuj tu, gdy reguła bazowa dostaje nowy punkt.
@@ -46,6 +48,10 @@ SOURCE_FACTION = "faction"
 SOURCE_TECHNOLOGY = "technology"
 SOURCE_AGENDA = "agenda"  # prawo w grze (decks.agenda_laws) - obowiązuje KAŻDEGO gracza
 SOURCE_PROMISSORY = "promissory"  # notka leżąca w strefie gracza (promissory_notes_in_play)
+SOURCE_RELIC = "relic"  # relikt przed graczem (PlayerState.relics)
+SOURCE_LEADER = "leader"  # lider odblokowany lub gotowy (stan domyślny z danych frakcji)
+SOURCE_BREAKTHROUGH = "breakthrough"  # odblokowany przełom frakcji
+SOURCE_EFFECT = "effect"  # efekt trwały z magazynu (GameState.active_effects)
 
 
 class HookKind(Enum):
@@ -68,6 +74,8 @@ class HookSource:
 
 
 HookFn = Callable[[GameState, str, Mapping[str, Any]], Any]
+# Warunek hooka zdarzenia sprawdzany w chwili wyzwolenia: (stan, gracz, kontekst) -> bool.
+ConditionFn = Callable[[GameState, str, Mapping[str, Any]], bool]
 # Efekt jednorazowy komponentu (np. karty akcji): (stan-klon, rejestr, gracz, parametry) -> None.
 # Mutuje przekazany klon; błąd walidacji = ValueError (wołający pracuje na klonie).
 # ``registry`` typowany jako Any, by uniknąć cyklu importów (registry importuje ten moduł).
@@ -84,6 +92,11 @@ class Hook:
     fn: HookFn
     seq: int  # kolejność rejestracji (rozstrzyga remis w obrębie rodzaju)
     covers: str | None = None  # "<kategoria>:<id>" komponentu, który hook implementuje
+    # --- tylko hooki zdarzeń (``on_event``) ---
+    optional: bool = False  # „you may ...” -> oferta zamiast automatycznego uruchomienia
+    where: tuple[tuple[str, str], ...] = ()  # filtr kontekstu zdarzenia (np. phase=strategy)
+    condition: ConditionFn | None = None  # warunek sprawdzany przy wyzwoleniu
+    label: str = ""  # opis dla UI/oferty
 
 
 # Opis wyborów gracza dla efektu (formularz UI): (stan, rejestr, gracz) -> lista wejść.
@@ -107,6 +120,44 @@ def register(
 
     def decorate(fn: HookFn) -> HookFn:
         _REGISTRY.append(Hook(point, source, kind, fn, len(_REGISTRY), covers))
+        return fn
+
+    return decorate
+
+
+def on_event(
+    event: GameEvent,
+    moment: Moment,
+    source: HookSource,
+    *,
+    kind: HookKind = HookKind.TRIGGER,
+    optional: bool = False,
+    where: Mapping[str, str] | None = None,
+    condition: ConditionFn | None = None,
+    covers: str | None = None,
+    label: str = "",
+) -> Callable[[HookFn], HookFn]:
+    """Rejestruje hook ZDARZENIA: ``fn(state, player_id, ctx)`` odpalane przez ``triggers.fire``.
+
+    * ``kind=TRIGGER`` (domyślnie): reakcja. ``optional=False`` = obowiązkowa (komponent w grze),
+      ``optional=True`` = „you may” -> oferta w oknie REACTION dla posiadacza publicznego źródła.
+    * ``kind=REPLACE``: „instead of” — ``fn`` zwraca prawdę, gdy zastąpiła zdarzenie (wołający
+      pomija wtedy swój krok); opcjonalny REPLACE też staje się ofertą.
+    * ``where``: filtr kontekstu (np. ``{"phase": "strategy"}``); ``condition``: warunek
+      sprawdzany przy wyzwoleniu.
+    * ``covers``: komponent, który hook realizuje (status IMPLEMENTED w rejestrze efektów).
+    """
+    if kind not in (HookKind.TRIGGER, HookKind.REPLACE):
+        raise ValueError("Event hooks must be TRIGGER or REPLACE.")
+    where_items = tuple(sorted((k, str(v)) for k, v in (where or {}).items()))
+
+    def decorate(fn: HookFn) -> HookFn:
+        _REGISTRY.append(
+            Hook(
+                event_point(event, moment), source, kind, fn, len(_REGISTRY), covers,
+                optional, where_items, condition, label,
+            )
+        )
         return fn
 
     return decorate
@@ -165,6 +216,12 @@ def all_hooks() -> list[Hook]:
     return list(_REGISTRY)
 
 
+def hook_by_seq(seq: int) -> Hook | None:
+    """Hook o danym numerze rejestracji (do rozstrzygania ofert) albo ``None``."""
+    _ensure_loaded()
+    return next((h for h in _REGISTRY if h.seq == seq), None)
+
+
 def covered_components() -> frozenset[str]:
     """Klucze ``"<kategoria>:<id>"`` komponentów, które mają zarejestrowany hook."""
     _ensure_loaded()
@@ -172,22 +229,74 @@ def covered_components() -> frozenset[str]:
     return frozenset(covered | set(_EFFECTS))
 
 
-def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
-    """Źródła wyjątków gracza: frakcja, technologie, notki w jego strefie i prawa w grze.
+_BOUND_REGISTRY: Any = None
 
-    Prawa (``decks.agenda_laws``) obowiązują KAŻDEGO gracza; hook prawa sam sprawdza w kontekście,
-    kogo dotyczy (np. wynik wyborów w ``state.decks.agenda_laws[id]``).
-    NIE ujęte (świadomie): liderzy (stan domyślny wymaga rejestru), relikty (brak modelu własności),
-    przełom (id zależy od frakcji) - dochodzą z pierwszym hookiem tego typu.
+
+def bind_registry(registry: Any) -> None:
+    """Wiąże rejestr danych statycznych (ustawia go ``StaticDataRegistry``).
+
+    Dane statyczne (frakcje, liderzy, przełomy) są niezmienne i identyczne dla każdej instancji,
+    więc dopuszczamy jeden globalny dostęp — bez niego ``owned_sources`` nie znałoby domyślnych
+    stanów liderów ani przełomu frakcji, a każdy punkt zaczepienia musiałby dostać ``registry``.
+    Stanu GRY tu nie ma.
+    """
+    global _BOUND_REGISTRY
+    _BOUND_REGISTRY = registry
+
+
+def bound_registry() -> Any:
+    """Powiązany rejestr danych statycznych (``None`` przed pierwszą inicjalizacją)."""
+    return _BOUND_REGISTRY
+
+
+def _registry_sources(player: Any) -> set[HookSource]:
+    """Źródła wymagające danych statycznych: rodzina frakcji, liderzy, przełom."""
+    registry = _BOUND_REGISTRY
+    sources: set[HookSource] = set()
+    if registry is None or player.faction is None:
+        return sources
+    faction = registry.factions.get(player.faction)
+    if faction is not None:
+        sources.add(HookSource(SOURCE_FACTION, registry.faction_family(faction)))
+        for leader_id in faction.leaders:
+            leader = registry.leaders.get(leader_id)
+            default = "unlocked" if leader is not None and leader.type == "agent" else "locked"
+            if player.leader_states.get(leader_id, default) != "locked":
+                sources.add(HookSource(SOURCE_LEADER, leader_id))
+    if player.breakthrough_unlocked:
+        breakthrough = registry.breakthrough_for_faction(player.faction)
+        if breakthrough is not None:
+            sources.add(HookSource(SOURCE_BREAKTHROUGH, breakthrough.id))
+    return sources
+
+
+def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
+    """Źródła wyjątków gracza (RULES.md 54).
+
+    Publiczne i zawsze widoczne dla wszystkich: frakcja (i jej rodzina), technologie, relikty przed
+    graczem, notki w jego strefie, odblokowani liderzy, odblokowany przełom, prawa w grze
+    (``decks.agenda_laws`` - obowiązują KAŻDEGO gracza; hook prawa sprawdza w kontekście, kogo
+    dotyczy) oraz efekty trwałe z magazynu (własne i globalne).
+
+    Karty NA RĘCE (karty akcji, ukryte notki) NIE są źródłami — gra się nimi przez STOP
+    (RULES.md 43.4), żeby pytanie nie zdradzało ręki. Liderzy i przełom wymagają
+    ``bind_registry`` (dane statyczne); bez niego są pomijani.
     """
     player = state.players.get(player_id)
     if player is None:
         return frozenset()
     sources: set[HookSource] = {HookSource(SOURCE_TECHNOLOGY, t) for t in player.technologies}
     sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
+    sources.update(HookSource(SOURCE_RELIC, r) for r in player.relics)
     sources.update(HookSource(SOURCE_AGENDA, law) for law in state.decks.agenda_laws)
+    sources.update(
+        HookSource(SOURCE_EFFECT, e.key)
+        for e in state.active_effects
+        if e.owner is None or e.owner == player_id
+    )
     if player.faction is not None:
         sources.add(HookSource(SOURCE_FACTION, player.faction))
+    sources.update(_registry_sources(player))
     return frozenset(sources)
 
 

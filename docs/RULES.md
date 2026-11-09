@@ -3051,3 +3051,23 @@ da się w pełni rozstrzygnąć, nie można zagrać). Dok ręki pozwala PODNIEŚ
 `combat.extra_dice` (MODIFY), `combat.reroll_misses` (PERMIT, jedno przerzucenie chybień w `battle.roll_round`).
 Źródła hooków (`owned_sources`) obejmują teraz też prawa w grze (`decks.agenda_laws`, obowiązują każdego gracza)
 i promissory notes w strefie gracza. ⚠ Nadal brak: liderzy, relikty, przełom (patrz docstring `owned_sources`).
+
+
+## 54. Baza zdarzeń i okien czasowych (silnik zdarzeń) — ✅ ZWERYFIKOWANE (tirules R_abilities) / ⚠ ZAŁOŻENIA
+
+Cel: karty, frakcje, agendy, relikty i technologie dodajemy jako HOOKI NA ZDARZENIACH, bez ruszania reguł bazowych.
+Pełny katalog okien wszystkich komponentów: `docs/OKNA_CZASOWE.md` (GENEROWANY: `uv run python -m src.audit.timing_catalog --write`).
+
+**54.1 Model.** Okno = para (zdarzenie `GameEvent`, moment `Moment`) + filtry kontekstu. Zdarzenia i klasyfikator tekstów okien: `core/game_events.py` (~66 zdarzeń; `EVENT_INFO.emitted_by` mówi, która funkcja silnika je emituje, test pilnuje zgodności z kodem). Emisja: `triggers.fire(state, event, moment, subject=..., ctx=...)`. Rejestracja hooka: `@rules_hooks.on_event(event, moment, source, kind=..., optional=..., where=...)`.
+
+**54.2 Kolejność i obowiązkowość (R_abilities).** Wszystkie „when” przed „after”; faza akcji = kolejność inicjatywy od gracza aktywnego; strategia/agenda = od mówcy zgodnie z zegarem. Zdolność jest obowiązkowa, chyba że ma „may” — wtedy powstaje `PendingOffer` i okno `REACTION` (gracze po kolei). REPLACE („instead”, „would”) ma pierwszeństwo i kończy rozstrzyganie zdarzenia. Limit zagnieżdżenia emisji: 12.
+
+**54.3 Efekty trwałe.** `ActiveEffect` (`GameState.active_effects`), zmieniane WYŁĄCZNIE przez `core/active_effects.py`. Zakres (`Duration`): turn, tactical_action, combat, combat_round, invasion, agenda, phase, round, game. Wygasają na zdarzeniach końca zakresu (`triggers.EXPIRY`). Efekt z czasem trwania zostaje, gdy komponent zniknie. Źródło hooka: `HookSource(effect, key)`.
+
+**54.4 Źródła hooków.** Frakcja (zdolności, lider zależnie od stanu, przełom po odblokowaniu), technologia, relikt, prawo (agenda), efekt trwały. Karty z ręki (karty akcji, ukryte notki) NIE są źródłami i nie tworzą ofert (STOP, 43.4). Rejestr danych statycznych jest wiązany globalnie (`rules_hooks.bind_registry`).
+
+**54.5 Wynik analizy** (740 komponentów, 123 agendy: absol×60, base×50, pok×13): wzorce okien, czasy trwania i przypadki szczególne są w `OKNA_CZASOWE.md`, sekcje 2–9. Okna mają pola `window` dla kart akcji, reliktów, notek, eksploracji, wydarzeń, zdolności i liderów; agendy, technologie i przełomy mają okna tylko w tekście (klasyfikator heurystyczny). Pozostają przypadki szczególne (np. hack, titansbt, yssarilbt) — ręcznie przy implementacji.
+
+**54.6 Podpięte emisje** (fala 1–2): tura/pas/faza/runda, status→agenda, aktywacja/ruch/akcja taktyczna, produkcja, kontrola planet, badanie technologii i zdobycie, dobieranie kart, komponent/akcja kart, agenda (ujawnienie, głosy, wynik, prawo), walka (start/koniec, runda, rzut, trafienia, sustain, AFB, wygrana), zniszczenie/postawienie jednostek, space cannon, inwazja (bombardowanie, obrona, zaangażowanie), akcja strategiczna i żeton strategii, setup, zdobycie reliktu/przełomu/notki, TG/commodities, wybór karty strategii (z REPLACE), mówca, transakcje. Zdarzenia zdefiniowane, ale jeszcze nie emitowane, mają `emitted_by=None` (lista w `OKNA_CZASOWE.md` §2).
+
+**54.7 ⚠ Założenia/uproszczenia (do potwierdzenia).** (a) Okno REACTION obsługuje graczy po kolei, bez przeplatania inicjatywy z R_abilities. (b) Jedno okno naraz; pozostałe oferty czekają w `pending_offers`. (c) Wygasanie efektów wg `triggers.EXPIRY` (nie każdy tekst „until” ma własne zdarzenie). (d) Klasyfikacja tekstów jest heurystyczna — to wskazówka, nie źródło prawdy; przy implementacji karty weryfikuj okno w tirules.

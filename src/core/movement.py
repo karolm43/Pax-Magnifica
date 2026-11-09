@@ -1,4 +1,4 @@
-﻿"""Ruch statków w akcji taktycznej: walidacja legalności + wykonanie (Etap E8-T5).
+"""Ruch statków w akcji taktycznej: walidacja legalności + wykonanie (Etap E8-T5).
 
 Pierwsza twarda egzekucja mechaniki taktycznej (RULES.md 29.1): ruch przestaje być
 tylko God-Mode. Reguły R1–R6 spisane w RULES.md 32 (źródło: LRR R_movement /
@@ -15,8 +15,9 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
-from src.core import rules_hooks, unit_ops
+from src.core import rules_hooks, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -259,8 +260,11 @@ def move_ships(
         system_id = grid.system_id_at(active) if active in grid.positions else ""
         dest = SystemState(position=active, system_id=system_id)
         new_state.systems[active] = dest
+    moved_ctx = {"player": player_id, "position": active, "from": from_pos, "base_type": base_type}
+    triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.WHEN, subject=player_id, ctx=moved_ctx)
     unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
+    triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx)
     return new_state
 
 

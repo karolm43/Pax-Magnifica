@@ -8,6 +8,8 @@ tu tylko sama zmiana stanu (punkt zaczepienia hooków: zagranie, przekazanie, zw
 
 from __future__ import annotations
 
+from src.core import triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 
 
@@ -27,3 +29,7 @@ def transfer(state: GameState, giver_id: str, receiver_id: str, note_id: str) ->
         raise ValueError(f"Player {giver_id} does not hold the promissory note '{note_id}'.")
     giver_hand.remove(note_id)
     state.players[receiver_id].private.promissory_notes.append(note_id)
+    triggers.fire(
+        state, GameEvent.COMPONENT_GAINED, Moment.WHEN, subject=receiver_id,
+        ctx={"player": receiver_id, "component": f"promissory_notes:{note_id}"},
+    )

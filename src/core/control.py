@@ -15,7 +15,8 @@ też wyczerpania zdobywanej planety: to decyzja wołającego (``core/exhaust.py`
 
 from __future__ import annotations
 
-from src.core import exhaust, relics
+from src.core import exhaust, relics, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.registry import StaticDataRegistry
@@ -50,6 +51,23 @@ def set_planet_control(
     previous = system.planet_owners.get(planet)
     if previous == new_owner:
         return
+    control_ctx = {"planet": planet, "position": position, "previous": previous}
+    if previous is not None and previous in state.players:
+        triggers.fire(
+            state,
+            GameEvent.PLANET_CONTROL_LOST,
+            Moment.WHEN,
+            subject=previous,
+            ctx={**control_ctx, "player": previous},
+        )
+    if new_owner is not None and new_owner in state.players:
+        triggers.fire(
+            state,
+            GameEvent.PLANET_CONTROL_GAINED,
+            Moment.WHEN,
+            subject=new_owner,
+            ctx={**control_ctx, "player": new_owner},
+        )
     if new_owner is None:
         del system.planet_owners[planet]
     else:
@@ -65,6 +83,22 @@ def set_planet_control(
         # HOOK-CANDIDATE (RULES.md 50): relikt za pierwszą kontrolę planety w The Fracture.
         if previous is None and registry is not None and position.startswith("frac"):
             relics.draw_relic(state, registry, new_owner)
+    if previous is not None and previous in state.players:
+        triggers.fire(
+            state,
+            GameEvent.PLANET_CONTROL_LOST,
+            Moment.AFTER,
+            subject=previous,
+            ctx={**control_ctx, "player": previous},
+        )
+    if new_owner is not None and new_owner in state.players:
+        triggers.fire(
+            state,
+            GameEvent.PLANET_CONTROL_GAINED,
+            Moment.AFTER,
+            subject=new_owner,
+            ctx={**control_ctx, "player": new_owner},
+        )
 
 
 def recompute_from_units(state: GameState, position: str, planet: str) -> None:

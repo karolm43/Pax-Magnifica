@@ -122,6 +122,14 @@ w `PLAN_PELNA_ROZGRYWKA.md`.
 
 ---
 
+## 3b. Hook zdarzeniowy (okna czasowe) — RULES.md 54
+
+1. Znajdź okno komponentu w `docs/OKNA_CZASOWE.md` (zdarzenie + moment).
+2. Zarejestruj: `@rules_hooks.on_event(GameEvent.X, Moment.WHEN, HookSource(...), kind=HookKind.TRIGGER|REPLACE, optional=True/False)` w `core/hooks/<temat>.py`.
+3. Jeśli zdarzenie nie jest emitowane (`EVENT_INFO.emitted_by is None`) — dodaj `triggers.fire(...)` w odpowiedniej funkcji `core/` i uzupełnij `emitted_by` (test `test_emitted_by_zgadza_sie_z_kodem` pilnuje zgodności).
+4. Efekt z czasem trwania: `active_effects.add_effect(state, key, scope, owner)`; wygasanie przez `triggers.EXPIRY`.
+5. Karty z ręki nie są źródłami hooków (STOP, 43.4) — grane przez okno ACTION.
+
 ## 4. Struktura warstwy API (po refaktorze przed E3) — ✅ spłacone
 
 `app.py` jest teraz CIENKĄ fabryką (montaż routerów + WebSocket + static, ~100 linii).

@@ -23,10 +23,12 @@ from src.core import (
     exhaust,
     exploration,
     space_cannon,
+    triggers,
     unit_ops,
 )
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     GameState,
     InvasionPhase,
@@ -255,7 +257,15 @@ def begin_invasion(
         if not landable:
             new_state.invasion = None
             return new_state
+        triggers.fire(
+            new_state, GameEvent.INVASION, Moment.START, subject=attacker,
+            ctx={"position": active, "player": attacker},
+        )
         return _enter(new_state, grid, registry, InvasionPhase.COMMIT)
+    triggers.fire(
+        new_state, GameEvent.INVASION, Moment.START, subject=attacker,
+        ctx={"position": active, "player": attacker},
+    )
     return new_state
 
 
@@ -369,6 +379,10 @@ def bombard(
     new_state = rolled.clone()
     inv = _inv(new_state)
     inv.bombarded = True
+    triggers.fire(
+        new_state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=inv.attacker,
+        ctx={"ability": "bombardment", "player": inv.attacker, "position": inv.position},
+    )
     for planet, entry in by_planet.items():
         defenders = _defenders(new_state, planet, inv.position, inv.attacker)
         defender = defenders[0] if defenders else None
@@ -519,6 +533,11 @@ def commit_ground_forces(
     new_state = state.clone()
     new_inv = _inv(new_state)
     new_system = _system(new_state)
+    commit_ctx = {"player": new_inv.attacker, "position": new_inv.position, "units": dict(wanted)}
+    triggers.fire(
+        new_state, GameEvent.UNITS_COMMITTED, Moment.WHEN, subject=new_inv.attacker,
+        ctx=commit_ctx,
+    )
     for planet, by_type in commits.items():
         for base_type, count in by_type.items():
             if count <= 0:
@@ -530,6 +549,10 @@ def commit_ground_forces(
             )
             landed = new_inv.committed.setdefault(planet, {})
             landed[base_type] = landed.get(base_type, 0) + count
+    triggers.fire(
+        new_state, GameEvent.UNITS_COMMITTED, Moment.AFTER, subject=new_inv.attacker,
+        ctx=commit_ctx,
+    )
     return new_state
 
 
@@ -654,6 +677,10 @@ def defense_fire(
         )
     new_state = rolled.clone()
     new_inv = _inv(new_state)
+    triggers.fire(
+        new_state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=shooters[0].player_id,
+        ctx={"ability": "space_cannon", "player": shooters[0].player_id, "planet": planet},
+    )
     new_inv.log.append(
         {
             "phase": "DEFENSE",

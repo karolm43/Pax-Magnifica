@@ -13,10 +13,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import capacity, chronicle, rules_hooks, timing, unit_ops
+from src.core import capacity, chronicle, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ActiveCombat,
     CombatStep,
@@ -238,6 +239,11 @@ def start_combat(
         kind=kind, position=active, planet=planet, attacker=attacker, defender=defender
     )
     new_state.active_combat = combat
+    triggers.fire(
+        new_state, GameEvent.COMBAT, Moment.START, subject=attacker,
+        ctx={"kind": kind, "position": active, "planet": planet or "",
+             "attacker": attacker, "defender": defender},
+    )
     has_afb = kind == "space" and any(
         u.afb_hits_on is not None
         for pid in (attacker, defender)
@@ -304,6 +310,12 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
 
     new_state = new_state.clone()
     combat = _combat(new_state)
+    for pid, entries in afb.items():
+        if entries:
+            triggers.fire(
+                new_state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=pid,
+                ctx={"ability": "afb", "player": pid, "hits": hits_by[pid]},
+            )
     losses: dict[str, dict[str, int]] = {}
     zone = _zone(combat.kind, combat.planet)
     for pid, opponent in (
@@ -363,6 +375,11 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
 
     new_state = new_state.clone()
     combat = _combat(new_state)
+    for pid in rolls:
+        triggers.fire(
+            new_state, GameEvent.COMBAT_ROLL, Moment.AFTER, subject=pid,
+            ctx={"kind": "combat", "player": pid, "hits": hits_by[pid]},
+        )
     combat.rolls = rolls
     combat.pending_hits = {
         combat.defender: hits_by[combat.attacker],
@@ -570,7 +587,17 @@ def assign_combat_hits(
     new_state = state.clone()
     combat = _combat(new_state)
     zone = _zone(combat.kind, combat.planet)
+    triggers.fire(
+        new_state, GameEvent.HITS_ASSIGNED, Moment.BEFORE, subject=player_id,
+        ctx={"player": player_id, "kind": combat.kind, "hits": required},
+    )
     apply_losses(new_state, combat.position, zone, player_id, units, plan)
+    for base_type, used in sustained_of(plan, sustain).items():
+        if used > 0:
+            triggers.fire(
+                new_state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
+                ctx={"player": player_id, "base_type": base_type, "count": used},
+            )
 
     entry = combat.log[-1] if combat.log else None
     if entry is not None:
@@ -594,6 +621,10 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         for pid in (combat.attacker, combat.defender)
         if side_units(new_state, grid, registry, pid)
     ]
+    triggers.fire(
+        new_state, GameEvent.COMBAT_ROUND, Moment.END,
+        ctx={"kind": combat.kind, "round": combat.round, "position": combat.position},
+    )
     if len(alive) <= 1:
         # Także O3: ogłoszony odwrót nie następuje, gdy przeciwnikowi nie zostały statki.
         combat.step = CombatStep.DONE
@@ -602,6 +633,16 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         combat.pending_hits = {}
         combat.retreating = []
         chronicle.record_battle(new_state, combat)
+        end_ctx = {"kind": combat.kind, "position": combat.position, "winner": combat.winner or ""}
+        if combat.winner is not None:
+            triggers.fire(
+                new_state,
+                GameEvent.COMBAT_WON,
+                Moment.AFTER,
+                subject=combat.winner,
+                ctx=end_ctx,
+            )
+        triggers.fire(new_state, GameEvent.COMBAT, Moment.END, ctx=end_ctx)
         # 39.6 C3: limit pojemności sprawdzany po wyłonieniu zwycięzcy walki kosmicznej.
         if combat.kind == "space":
             return capacity.open_capacity_check(new_state, registry, combat.position)
@@ -631,6 +672,10 @@ def _begin_round(state: GameState, grid: HexGrid) -> GameState:
     new_state = state.clone()
     combat = _combat(new_state)
     combat.retreating = []
+    triggers.fire(
+        new_state, GameEvent.COMBAT_ROUND, Moment.START,
+        ctx={"kind": combat.kind, "round": combat.round, "position": combat.position},
+    )
     queue = (
         [
             pid

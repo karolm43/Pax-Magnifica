@@ -141,6 +141,44 @@ class TimingWindow(BaseModel):
             return None
         return self.queue[self.cursor]
 
+class ActiveEffect(BaseModel):
+    """Efekt trwały z czasem trwania (RULES.md 54): wygasa na końcu swojego zakresu.
+
+    ``scope`` to wartość ``game_events.Duration`` (turn / tactical_action / combat / combat_round /
+    invasion / agenda / phase / round / game). Efekt zostaje, nawet gdy komponent, który go
+    wywołał, zniknął z gry (R_abilities). ``key`` wskazuje źródło hooka
+    (``HookSource(effect, key)``).
+    Zmienia go WYŁĄCZNIE ``core/active_effects.py``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    key: str
+    scope: str
+    owner: str | None = None  # None = dotyczy wszystkich graczy
+    created_round: int = 1
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+class PendingOffer(BaseModel):
+    """Opcjonalna reakcja („you may ...”) czekająca na decyzję gracza (RULES.md 54).
+
+    Powstaje z hooka TRIGGER/REPLACE oznaczonego ``optional``, gdy źródło jest PUBLICZNE (frakcja,
+    technologia, relikt w grze, lider...). Karty z ręki nie tworzą ofert (nie zdradzamy ręki).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    player_id: str
+    event: str
+    moment: str
+    hook_seq: int
+    label: str = ""
+    ctx: dict[str, Any] = Field(default_factory=dict)
+
+
 class StatusStep(StrEnum):
     """Krok fazy statusu, na którym aktualnie stoi gra (R_status_phase).
 
@@ -700,6 +738,10 @@ class GameState(BaseModel):
     # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między
     # graczami (RULES.md 29.2). Mechanika: ``core/timing.py``.
     pending_window: TimingWindow | None = None
+    # Efekty trwałe z czasem trwania i opcjonalne reakcje czekające na decyzję (RULES.md 54).
+    active_effects: list[ActiveEffect] = Field(default_factory=list)
+    pending_offers: list[PendingOffer] = Field(default_factory=list)
+    effect_seq: int = 0
     # Trwające wieloetapowe PRIMARY karty strategii (wybory aktywnego gracza) — None, gdy
     # brak. Blokuje End turn i inne akcje do czasu rozstrzygnięcia (RULES.md 30.5).
     pending_strategy: StrategyResolution | None = None
@@ -708,6 +750,11 @@ class GameState(BaseModel):
     # licznik są częścią stanu, więc Undo/Redo i powtórka migawki dają TE SAME wyniki.
     rng_seed: int = 0
     rng_counter: int = 0
+    # Ostatni rzut „na stół" poza walką (The Fracture, karty akcji…) — dla animacji kości w UI
+    # (``dice.record_table_roll``). ``table_roll_seq`` rośnie z każdym rzutem, więc UI odróżnia
+    # NOWY rzut od starego; sam wynik jest już rozstrzygnięty przez silnik.
+    table_roll_seq: int = 0
+    table_roll: dict[str, Any] | None = None
     # Dziennik ostatniego rozstrzygnięcia Space Cannon Offense (JSON listy wpisów). Okno
     # czasowe znika po ostatnim graczu, a panel musi nadal pokazać, co się stało (rzuty,
     # trafienia, straty) — do końca akcji taktycznej (RULES.md 38.3).

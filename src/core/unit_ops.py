@@ -20,7 +20,9 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from src.core import triggers
 from src.core.damage import damaged_count, move_damage, set_damaged
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 
 
@@ -69,7 +71,6 @@ def place_units(
     cause: UnitCause = UnitCause.PLACED,
 ) -> None:
     """Dokłada ``count`` jednostek gracza do strefy (tworzy wpisy, gdy ich brak)."""
-    del state, cause  # miejsce na hooki (RULES.md 43)
     if count < 0:
         raise ValueError("The number of units cannot be negative.")
     if zone == "space":
@@ -77,6 +78,12 @@ def place_units(
     else:
         bucket = system.planet_units.setdefault(zone, {}).setdefault(player_id, {})
     bucket[base_type] = bucket.get(base_type, 0) + count
+    if cause is UnitCause.PLACED and count > 0:
+        triggers.fire(
+            state, GameEvent.UNIT_PLACED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "base_type": base_type, "zone": zone,
+                 "position": system.position, "count": count},
+        )
 
 
 def replace_zone_units(
@@ -145,6 +152,12 @@ def remove_units(
     before = take_units(state, system, zone, player_id, base_type, count, cause)
     remaining = damaged_count(system, zone, player_id, base_type)
     set_damaged(system, zone, player_id, base_type, remaining)
+    if cause is UnitCause.DESTROYED and min(count, before) > 0:
+        triggers.fire(
+            state, GameEvent.UNIT_DESTROYED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "base_type": base_type, "zone": zone,
+                 "position": system.position, "count": min(count, before)},
+        )
     return before
 
 

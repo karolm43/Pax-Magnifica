@@ -23,8 +23,9 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import exhaust
+from src.core import exhaust, rules_hooks, triggers
 from src.core.components import ComponentCategory, DeckDef
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.models import TechnologyDef
 from src.core.planet_stats import planet_stats
@@ -306,15 +307,56 @@ def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
     if tech_id not in player.technologies:
+        tech_ctx = {"player": player_id, "technology": tech_id}
+        triggers.fire(
+            state,
+            GameEvent.TECHNOLOGY_GAINED,
+            Moment.WHEN,
+            subject=player_id,
+            ctx=tech_ctx,
+        )
         player.technologies = [*player.technologies, tech_id]
+        triggers.fire(
+            state,
+            GameEvent.TECHNOLOGY_GAINED,
+            Moment.AFTER,
+            subject=player_id,
+            ctx=tech_ctx,
+        )
+
+
+def _unit_upgrade_flag(tech_id: str) -> str:
+    """``"true"`` dla ulepszenia jednostki (technologia bez koloru) - filtr ``where`` hooków."""
+    registry = rules_hooks.bound_registry()
+    tech = registry.technologies.get(tech_id) if registry is not None else None
+    return "true" if tech is not None and not tech.types else "false"
 
 
 def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None:
     """Dodaje technologię i wyczerpuje planety/AIDA z planu (mutuje KLON stanu)."""
+    research_ctx = {
+        "player": player_id,
+        "technology": plan.tech_id,
+        "unit_upgrade": _unit_upgrade_flag(plan.tech_id),
+    }
+    triggers.fire(
+        state,
+        GameEvent.TECHNOLOGY_RESEARCH,
+        Moment.WHEN,
+        subject=player_id,
+        ctx=research_ctx,
+    )
     grant_technology(state, player_id, plan.tech_id)
     exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
     if plan.exhaust_aida:
         exhaust.exhaust_technology(state, player_id, AIDA)
+    triggers.fire(
+        state,
+        GameEvent.TECHNOLOGY_RESEARCH,
+        Moment.AFTER,
+        subject=player_id,
+        ctx=research_ctx,
+    )
 
 
 def research(

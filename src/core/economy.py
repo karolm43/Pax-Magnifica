@@ -16,7 +16,8 @@ KLON roboczy — tak samo jak ``payment.apply_payment``); nie klonują go same.
 
 from __future__ import annotations
 
-from src.core import rules_hooks
+from src.core import rules_hooks, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, PlayerState
 
 
@@ -32,6 +33,11 @@ def gain_trade_goods(state: GameState, player_id: str, amount: int) -> None:
     if amount < 0:
         raise ValueError("The amount of trade goods to gain cannot be negative.")
     _player(state, player_id).trade_goods += amount
+    if amount > 0:
+        triggers.fire(
+            state, GameEvent.TRADE_GOODS_GAINED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "amount": amount},
+        )
 
 
 def spend_trade_goods(state: GameState, player_id: str, amount: int) -> None:
@@ -96,6 +102,10 @@ def replenish_commodities(state: GameState, player_id: str) -> None:
     """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej)."""
     player = _player(state, player_id)
     player.commodities = max(player.commodities, player.commodity_value)
+    triggers.fire(
+        state, GameEvent.COMMODITIES_REPLENISHED, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id},
+    )
 
 
 def spend_commodities(state: GameState, player_id: str, amount: int) -> None:

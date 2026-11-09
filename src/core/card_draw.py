@@ -6,7 +6,9 @@ tasuje się z własnego stosu odrzuconych (seedowalny RNG stanu — ``core/dice.
 
 from __future__ import annotations
 
+from src.core import triggers
 from src.core.dice import next_rng
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
@@ -21,7 +23,21 @@ def draw_action_card(state: GameState, player_id: str) -> bool:
         decks.action_card_discard = []
     if not decks.action_card_deck:
         return False
+    triggers.fire(
+        state,
+        GameEvent.ACTION_CARDS_DRAWN,
+        Moment.WHEN,
+        subject=player_id,
+        ctx={"player": player_id, "amount": 1},
+    )
     state.players[player_id].private.action_cards.append(decks.action_card_deck.pop(0))
+    triggers.fire(
+        state,
+        GameEvent.ACTION_CARDS_DRAWN,
+        Moment.AFTER,
+        subject=player_id,
+        ctx={"player": player_id, "amount": 1},
+    )
     return True
 
 

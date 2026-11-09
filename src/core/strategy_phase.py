@@ -13,7 +13,8 @@ akumulacja +1 TG na niewybranych kartach na koniec fazy, oznaczenie karty jako z
 
 from __future__ import annotations
 
-from src.core import economy, exhaust
+from src.core import economy, exhaust, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.models import StrategyCardDef
 from src.core.registry import StaticDataRegistry
@@ -212,6 +213,12 @@ def pick_strategy_card(
         raise ValueError(f"Allowed number of cards exceeded ({allowed}).")
 
     new_state = state.clone()
+    fired = triggers.fire(
+        new_state, GameEvent.STRATEGY_CARD_CHOSEN, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "initiative": initiative},
+    )
+    if fired.replaced:  # „instead of”: wybór nie następuje, gracz wybiera ponownie
+        return new_state
     player = new_state.players[player_id]
     # Transfer trade goods z karty do gracza, zerowanie licznika karty.
     tg_on_card = new_state.strategy_card_tg.get(initiative, 0)
@@ -226,6 +233,10 @@ def pick_strategy_card(
     # (RULES.md 24, 31.4; zasada "zawsze czyjaś tura").
     new_state.active_player_id = (
         next_strategy_picker(new_state) or new_state.speaker_id
+    )
+    triggers.fire(
+        new_state, GameEvent.STRATEGY_CARD_CHOSEN, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "initiative": initiative},
     )
     return new_state
 
@@ -313,6 +324,14 @@ def set_speaker(state: GameState, player_id: str | None) -> None:
     if player_id is not None and player_id not in state.players:
         raise ValueError(f"Unknown player: {player_id}")
     state.speaker_id = player_id
+    if player_id is not None:
+        triggers.fire(
+            state,
+            GameEvent.SPEAKER_CHANGED,
+            Moment.AFTER,
+            subject=player_id,
+            ctx={"player": player_id},
+        )
 
 
 def reset_strategy_cards(state: GameState) -> GameState:

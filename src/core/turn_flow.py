@@ -1,4 +1,4 @@
-﻿"""Przepływ tur i faz (czyste funkcje nad ``GameState``).
+"""Przepływ tur i faz (czyste funkcje nad ``GameState``).
 
 Implementuje szkielet maszyny faz TI4 i kolejności tur fazy akcji — Etap E1 planu
 pełnej rozgrywki (``docs/PLAN_PELNA_ROZGRYWKA.md``). Reguły spisane w ``docs/RULES.md`` 9
@@ -10,6 +10,8 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
+from src.core import triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
     AgendaStep,
@@ -214,6 +216,7 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
             "before ending your turn."
         )
     new_state = state.clone()
+    triggers.fire(new_state, GameEvent.TURN, Moment.END, subject=current, ctx={"player": current})
     nxt = next_unpassed_player(new_state, new_state.active_player_id)
     if nxt is None:
         # Wszyscy spasowali: faza akcji "wyczerpana", ale wciąż ACTION. Aktywny =
@@ -228,6 +231,11 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     if nxt_id is not None and nxt_id in new_state.players:
         new_state.players[nxt_id].took_action_this_turn = False
         new_state.players[nxt_id].transacted_with = []
+        if nxt is not None:
+            triggers.fire(
+                new_state, GameEvent.TURN, Moment.START, subject=nxt_id,
+                ctx={"player": nxt_id},
+            )
     return new_state
 
 
@@ -278,7 +286,26 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
             "You already took an action this turn - end your turn instead of passing."
         )
     new_state = state.clone()
+    triggers.fire(
+        new_state,
+        GameEvent.PLAYER_PASSED,
+        Moment.WHEN,
+        subject=current,
+        ctx={"player": current},
+    )
     new_state.players[current].passed = True
+    triggers.fire(
+        new_state,
+        GameEvent.PLAYER_PASSED,
+        Moment.AFTER,
+        subject=current,
+        ctx={"player": current},
+    )
+    if all_passed(new_state):
+        triggers.fire(
+            new_state, GameEvent.LAST_PLAYER_PASSED, Moment.AFTER, subject=current,
+            ctx={"player": current},
+        )
     # Pas NIE przekazuje tury — gracz nadal aktywny, odda turę przez end_turn.
     return new_state
 
@@ -366,6 +393,10 @@ def next_phase(state: GameState) -> GameState:
     if state.phase is Phase.STRATEGY:
         ensure_strategy_complete(state)
     new_state = state.clone()
+    triggers.fire(
+        new_state, GameEvent.PHASE, Moment.END,
+        ctx={"phase": new_state.phase.name.lower()},
+    )
     idx = _PHASE_SEQUENCE.index(new_state.phase)
     new_state.phase = _PHASE_SEQUENCE[(idx + 1) % len(_PHASE_SEQUENCE)]
     # Jedna flaga ``passed`` niesie „gracz skończył swoją część TEJ fazy" (pas w akcji,
@@ -409,12 +440,21 @@ def next_phase(state: GameState) -> GameState:
         # stan przejściowy), fallback na mówcę.
         order = turn_order(new_state)
         new_state.active_player_id = order[0] if order else new_state.speaker_id
+    triggers.fire(
+        new_state, GameEvent.PHASE, Moment.START,
+        ctx={"phase": new_state.phase.name.lower()},
+    )
     return new_state
 
 
 def next_round(state: GameState) -> GameState:
     """Rozpoczyna nową rundę: runda +1, faza = strategia, reset pasów i aktywnego."""
     new_state = state.clone()
+    triggers.fire(
+        new_state, GameEvent.PHASE, Moment.END,
+        ctx={"phase": new_state.phase.name.lower()},
+    )
+    triggers.fire(new_state, GameEvent.ROUND, Moment.END, ctx={"round": new_state.round_number})
     new_state.round_number += 1
     new_state.phase = Phase.STRATEGY
     new_state.status = None
@@ -428,4 +468,6 @@ def next_round(state: GameState) -> GameState:
     new_state.active_player_id = (
         next_strategy_picker(new_state) or new_state.speaker_id
     )
+    triggers.fire(new_state, GameEvent.ROUND, Moment.START, ctx={"round": new_state.round_number})
+    triggers.fire(new_state, GameEvent.PHASE, Moment.START, ctx={"phase": "strategy"})
     return new_state

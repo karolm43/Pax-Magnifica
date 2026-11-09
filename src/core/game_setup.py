@@ -17,8 +17,9 @@ from __future__ import annotations
 
 import random
 
-from src.core import objectives, promissory_notes, secret_objectives, strategy_phase
+from src.core import objectives, promissory_notes, secret_objectives, strategy_phase, triggers
 from src.core.components import ComponentCategory
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ControlType,
     GameState,
@@ -191,6 +192,9 @@ def reveal_objectives(state: GameState, player_id: str) -> GameState:
     new_state.active_player_id = (
         strategy_phase.next_strategy_picker(new_state) or new_state.speaker_id
     )
+    # Koniec przygotowania gry: moment „during setup" / „when you create the game board".
+    triggers.fire(new_state, GameEvent.SETUP, Moment.DURING)
+    triggers.fire(new_state, GameEvent.SETUP, Moment.WHEN)
     return new_state
 
 

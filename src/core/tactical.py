@@ -19,11 +19,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import command_tokens, control
+from src.core import command_tokens, control, triggers
 from src.core.battle import space_combat_required
 from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
 from src.core.fleet_pool import open_fleet_pool_check
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     CombatStep,
     GameState,
@@ -115,6 +116,10 @@ def activate_system(
         )
 
     new_state = state.clone()
+    triggers.fire(
+        new_state, GameEvent.SYSTEM_ACTIVATED, Moment.WHEN, subject=active_id,
+        ctx={"player": active_id, "position": position},
+    )
     system = _ensure_system(new_state, position, grid)
 
     # Żeton dowodzenia aktywnego gracza w przestrzeni (bez duplikatu — już sprawdzone wyżej).
@@ -132,6 +137,10 @@ def activate_system(
     new_state.tactical_step = TacticalStep.MOVEMENT
     new_state.production_used = 0
     new_state.production_placed = {}
+    triggers.fire(
+        new_state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject=active_id,
+        ctx={"player": active_id, "position": position},
+    )
     return new_state
 
 
@@ -320,6 +329,11 @@ def end_tactical_action(state: GameState) -> GameState:
     Tura gracza idzie dalej przez ``turn_flow.end_turn`` (osobna akcja).
     """
     new_state = state.clone()
+    if state.active_system is not None:
+        triggers.fire(
+            new_state, GameEvent.TACTICAL_ACTION, Moment.END, subject=state.active_player_id,
+            ctx={"position": state.active_system, "player": state.active_player_id},
+        )
     new_state.active_system = None
     new_state.tactical_step = None
     new_state.production_used = 0

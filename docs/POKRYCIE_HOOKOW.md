@@ -34,7 +34,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | agendas | 123 | 0 | 0.0 |
 | explores | 80 | 0 | 0.0 |
 | relics | 24 | 0 | 0.0 |
-| promissory_notes | 40 | 0 | 0.0 |
+| promissory_notes | 41 | 0 | 0.0 |
 | galactic_events | 20 | 0 | 0.0 |
 | leaders | 103 | 0 | 0.0 |
 | abilities | 73 | 0 | 0.0 |
@@ -60,15 +60,15 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 246 | 238 |
+| planety i eksploracja (control, exploration) | 247 | 239 |
 | walka (combat.*, space_cannon, bombardment) | 196 | 192 |
 | produkcja (production.*) | 177 | 171 |
 | ekonomia i płatności (economy, payment) | 168 | 164 |
 | karty (card_draw, promissory) | 145 | 142 |
-| status i odświeżanie (status_phase) | 143 | 142 |
+| status i odświeżanie (status_phase) | 144 | 143 |
 | ruch (movement.*) | 125 | 124 |
 | żetony dowodzenia (command_tokens) | 109 | 108 |
-| agenda i głosowanie (agenda_phase) | 97 | 97 |
+| agenda i głosowanie (agenda_phase) | 98 | 98 |
 | technologie (technology) | 78 | 78 |
 | karty strategii i inicjatywa | 46 | 43 |
 | cele i punkty (objectives) | 45 | 44 |
@@ -79,7 +79,7 @@ Szacowany typ hooka (RULES.md 43.1 pkt 4):
 |---|---:|
 | — | 228 |
 | TRIGGER (okno reakcji) | 157 |
-| PERMIT (pozwolenie) | 153 |
+| PERMIT (pozwolenie) | 154 |
 | MODIFY (liczba/rzut) | 108 |
 | FORBID (zakaz) | 51 |
 | REPLACE (instead of) | 42 |
@@ -588,7 +588,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 
 </details>
 
-<details><summary>promissory_notes (40)</summary>
+<details><summary>promissory_notes (41)</summary>
 
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
@@ -597,6 +597,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `<color>_ps` | Political Secret | — | — | FORBID (zakaz) | karty, agenda i głosowanie | — | When an agenda is revealed: The <color> player cannot vote, play action cards, or use faction abilities until after that agenda has been re… |
 | `<color>_sftt` | Support for the Throne | — | — | MODIFY (liczba/rzut) | cele i punkty | — | When you receive this card, if you are not the <color> player, you must place it faceup in your play area and gain 1 victory point. When yo… |
 | `<color>_ta` | Trade Agreement | — | — | — | ekonomia i płatności | — | When the <color> player replenishes commodities: The <color> player gives you all of their commodities. Then, return this card to the <colo… |
+| `absol_<color>_ps` | Absol's Political Secret | — | — | PERMIT (pozwolenie) | planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | When you cast votes: You may exhaust up to 3 of the <color> player's planets and cast votes as if you controlled the exhausted planets. The… |
 | `acq` | Acquiescence | winnu | — | — | ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | — | When the Winnu player resolves a strategic action: You do not have to spend or place a command token to resolve the secondary ability of th… |
 | `ambuscade` | Strike Wing Ambuscade | argent | — | MODIFY (liczba/rzut) | walka | — | When 1 or more of your units make a roll for a unit ability: Choose 1 of those units to roll 1 additional die. Then, return this card to th… |
 | `antivirus` | Antivirus | nekro | — | FORBID (zakaz) | walka, technologie | — | At the start of a combat: Place this card faceup in your play area. While this card is in your play area, the Nekro player cannot use their… |

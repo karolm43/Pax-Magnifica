@@ -39,6 +39,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E8, fazy C/H/N), lista frakcji i gimmicków oraz **CEL PRODUKTOWY: wszystkie karty gotowe + zagrywanie przeciąganiem z ręki**. | 🟢 żywy |
 | **`ARCHITEKTURA_KODU.md`** | **Warstwy (core/api/ai), konwencje rozwoju, wzorzec hooków, dług techniczny.** Czytaj przed dodaniem nowej mechaniki. | 🟢 żywy |
 | **`POKRYCIE_HOOKOW.md`** | **GENEROWANY raport pokrycia hooków** (zarejestrowane hooki, % komponentów z hookiem, obszary reguł do domknięcia). Nie edytuj; odśwież: `uv run python -m src.audit.hook_coverage --write`. | 🟢 generowany |
+| **`OKNA_CZASOWE.md`** | **GENEROWANY katalog okien czasowych** wszystkich komponentów (zdarzenia, agendy, frakcje, efekty trwałe, przypadki szczególne). Nie edytuj; odśwież: `uv run python -m src.audit.timing_catalog --write`. Kontrakt: RULES.md 54. | 🟢 generowany |
 | **`UI_WYBOR_FRAKCJI.md`** | **Scena wyboru frakcji + krok „Gracze" kreatora**: układ, pliki, format treści (portrety/cytaty/lore), animacje, Obsidian (pismo + groza), gotchas. Czytaj przed zmianą UI setupu. | 🟢 żywy |
 | **`ARCHITEKTURA_PO_MIGRACJI.md`** | Mapa kodu: backend/frontend, kontrakt `web-data`, endpointy. | 🟡 referencyjny |
 | **`specyfikacja_techniczna_i_architektura_systemu.md`** | Wizja docelowa + architektura warstw AI. | 🟡 referencyjny |

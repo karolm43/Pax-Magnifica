@@ -27,7 +27,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import command_tokens, exhaust, timing
+from src.core import command_tokens, exhaust, timing, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -69,8 +70,11 @@ def _finish_primary(
     blokowało End turn na stałe.
     """
     spec = _spec(initiative)
+    action_ctx = {"player": owner_id, "initiative": initiative, "ability": "primary"}
+    triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.WHEN, subject=owner_id, ctx=action_ctx)
     if spec.primary is not None:
         spec.primary(state, ctx, owner_id, draft)
+    triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.AFTER, subject=owner_id, ctx=action_ctx)
     state.pending_strategy = None
 
     queue = timing.build_response_queue(state, owner_id)
@@ -141,9 +145,7 @@ def play_strategy_card(
     if state.phase is not Phase.ACTION:
         raise ValueError("A strategic action can only be performed during the action phase.")
     if state.active_player_id != player_id:
-        raise ValueError(
-            f"It is not {player_id}'s turn (active: {state.active_player_id})."
-        )
+        raise ValueError(f"It is not {player_id}'s turn (active: {state.active_player_id}).")
     if player.passed:
         raise ValueError("You have passed - you cannot perform a strategic action.")
     if player.took_action_this_turn:
@@ -266,12 +268,28 @@ def resolve_secondary(
                 )
             # wydany żeton wraca do rezerwy
             command_tokens.spend_to_reinforcements(new_state, player_id, "strategic")
+            triggers.fire(
+                new_state,
+                GameEvent.STRATEGY_TOKEN_SPENT,
+                Moment.AFTER,
+                subject=player_id,
+                ctx={"player": player_id, "initiative": initiative},
+            )
+        secondary_ctx = {"player": player_id, "initiative": initiative, "ability": "secondary"}
+        triggers.fire(
+            new_state, GameEvent.STRATEGIC_ACTION, Moment.WHEN, subject=player_id, ctx=secondary_ctx
+        )
         if spec.secondary is not None:
             spec.secondary(new_state, CardContext(registry, grid), player_id, payload or {})
-    elif is_free:
-        raise ValueError(
-            "The active player chose you - you must resolve this secondary ability."
+        triggers.fire(
+            new_state,
+            GameEvent.STRATEGIC_ACTION,
+            Moment.AFTER,
+            subject=player_id,
+            ctx=secondary_ctx,
         )
+    elif is_free:
+        raise ValueError("The active player chose you - you must resolve this secondary ability.")
 
     grant = new_state.production_grant
     if execute and grant is not None and grant.standalone and grant.player_id == player_id:
@@ -365,11 +383,7 @@ def step_options(
     ):
         initiative = int(window.context.get("initiative", 0))
         spec = _spec(initiative)
-        options = (
-            spec.options(state, ctx, player_id, None, {})
-            if spec.options is not None
-            else {}
-        )
+        options = spec.options(state, ctx, player_id, None, {}) if spec.options is not None else {}
         return {
             "kind": "secondary",
             "initiative": initiative,

@@ -10,7 +10,8 @@ Zdolności przełomów NIE są kodowane — tylko stan (odblokowany / gotowy).
 
 from __future__ import annotations
 
-from src.core import exhaust
+from src.core import exhaust, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.models import BreakthroughDef
 from src.core.registry import StaticDataRegistry
@@ -36,4 +37,8 @@ def unlock_breakthrough(
         return None
     player.breakthrough_unlocked = True
     exhaust.ready_breakthrough(state, player_id)
+    triggers.fire(
+        state, GameEvent.COMPONENT_GAINED, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "component": f"breakthroughs:{breakthrough.id}"},
+    )
     return breakthrough

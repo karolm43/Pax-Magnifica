@@ -268,6 +268,9 @@ class StaticDataRegistry:
         self.planet_index = {pid: i for i, pid in enumerate(sorted(self.planets))}
         self.system_index = {sid: i for i, sid in enumerate(sorted(self.systems))}
 
+        # Dane statyczne dla hooków (liderzy, przełom, rodzina frakcji): rules_hooks.bind_registry.
+        rules_hooks.bind_registry(self)
+
     # --- Rodzina frakcji i przełomy (Thunder's Edge) --------------------
 
     @staticmethod

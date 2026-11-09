@@ -22,8 +22,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import card_draw, exhaust, objectives, rules_hooks, strategy_phase, turn_flow
+from src.core import (
+    card_draw,
+    exhaust,
+    objectives,
+    rules_hooks,
+    strategy_phase,
+    triggers,
+    turn_flow,
+)
 from src.core.components import AgendaDef, ComponentCategory
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
     AgendaStep,
@@ -307,11 +316,19 @@ def cast_vote(
     chosen = _normalise_outcome(agenda, outcome)
     work = state.clone()
     assert work.agenda is not None
+    vote_ctx = {
+        "player": player_id,
+        "outcome": chosen,
+        "votes": votes,
+        "agenda": agenda.agenda_id or "",
+    }
+    triggers.fire(work, GameEvent.AGENDA_VOTES_CAST, Moment.WHEN, subject=player_id, ctx=vote_ctx)
     if chosen not in work.agenda.outcomes:
         work.agenda.outcomes = [*work.agenda.outcomes, chosen]
     work.agenda.votes[player_id] = AgendaVote(outcome=chosen, votes=votes, planets=list(planets))
     exhaust.exhaust_planets(work, player_id, planets)  # R_agenda_phase: wyczerpanie = głos
     work.players[player_id].passed = True
+    triggers.fire(work, GameEvent.AGENDA_VOTES_CAST, Moment.AFTER, subject=player_id, ctx=vote_ctx)
     return _after_vote(work, registry)
 
 
@@ -341,6 +358,8 @@ def _resolve(
     agenda = state.agenda
     card = agenda.agenda_id
     assert card is not None
+    resolve_ctx = {"agenda": card, "outcome": outcome}
+    triggers.fire(state, GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.WHEN, ctx=resolve_ctx)
     definition = agenda_def(registry, card)
     is_law = definition is not None and (definition.type or "").strip().lower() == "law"
     stays = is_law and outcome != "against"
@@ -367,6 +386,7 @@ def _resolve(
         }
     )
     state.active_player_id = state.speaker_id or state.active_player_id
+    triggers.fire(state, GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.AFTER, ctx=resolve_ctx)
     return state
 
 
@@ -432,6 +452,9 @@ def reveal_agenda(state: GameState, registry: StaticDataRegistry, player_id: str
     agenda.unresolvable = agenda.kind != "manual" and not agenda.outcomes
     agenda.vote_order = vote_order(work)
     agenda.step = AgendaStep.VOTE
+    reveal_ctx = {"agenda": card}
+    triggers.fire(work, GameEvent.AGENDA_REVEALED, Moment.WHEN, subject=player_id, ctx=reveal_ctx)
+    triggers.fire(work, GameEvent.AGENDA_REVEALED, Moment.AFTER, subject=player_id, ctx=reveal_ctx)
     if not agenda.unresolvable and current_voter(work) is None:
         return _after_vote(work, registry)
     _point_to_voter(work)
@@ -513,6 +536,7 @@ def repeal_law(state: GameState, law_id: str) -> None:
         raise ValueError(f"{law_id} is not a law in play.")
     del state.decks.agenda_laws[law_id]
     card_draw.discard_agenda(state, law_id)
+    triggers.fire(state, GameEvent.LAW_DISCARDED, Moment.AFTER, ctx={"law": law_id})
 
 
 def law_owner(state: GameState, registry: StaticDataRegistry, agenda_id: str) -> str | None:

@@ -23,7 +23,8 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from src.core import chronicle, economy, promissory_notes, relic_fragments
+from src.core import chronicle, economy, promissory_notes, relic_fragments, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_of
@@ -150,5 +151,9 @@ def resolve_transaction(
         partner_id,
         give.trade_goods + give.commodities,
         receive.trade_goods + receive.commodities,
+    )
+    triggers.fire(
+        new_state, GameEvent.TRANSACTION, Moment.AFTER, subject=active_id,
+        ctx={"player": active_id, "partner": partner_id},
     )
     return new_state

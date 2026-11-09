@@ -14,8 +14,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import control, economy, rules_hooks, unit_ops
+from src.core import control, economy, rules_hooks, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
 from src.core.payment import apply_payment
@@ -674,6 +675,21 @@ def produce(
     _validate_spend(state, registry, player_id, pay, cost)
 
     new_state = state.clone()
+    produced_ctx = {"player": player_id, "position": active, "units": dict(wanted)}
+    triggers.fire(
+        new_state,
+        GameEvent.PRODUCTION_USED,
+        Moment.WHEN,
+        subject=player_id,
+        ctx=produced_ctx,
+    )
+    triggers.fire(
+        new_state,
+        GameEvent.UNITS_PRODUCED,
+        Moment.WHEN,
+        subject=player_id,
+        ctx=produced_ctx,
+    )
     system = new_state.systems[active]
     for o, zone in placed:
         unit_ops.place_units(
@@ -693,6 +709,20 @@ def produce(
         by_type = placed_now.setdefault(zone, {})
         by_type[o.base_type] = by_type.get(o.base_type, 0) + o.count
     new_state.production_placed = placed_now
+    triggers.fire(
+        new_state,
+        GameEvent.UNITS_PRODUCED,
+        Moment.AFTER,
+        subject=player_id,
+        ctx=produced_ctx,
+    )
+    triggers.fire(
+        new_state,
+        GameEvent.PRODUCTION_USED,
+        Moment.AFTER,
+        subject=player_id,
+        ctx=produced_ctx,
+    )
     return new_state
 
 

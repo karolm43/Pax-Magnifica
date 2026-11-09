@@ -30,9 +30,11 @@ from src.core import (
     objectives,
     strategy_phase,
     timing,
+    triggers,
     turn_flow,
 )
 from src.core.damage import repair_all
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
     GameState,
@@ -409,6 +411,7 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
     new_state.status = None
     if not new_state.custodians_removed:
         return turn_flow.next_round(new_state)
+    triggers.fire(new_state, GameEvent.PHASE, Moment.END, ctx={"phase": "status"})
     new_state.phase = Phase.AGENDA
     new_state.agenda = AgendaPhaseState()  # RULES.md 51: mówca ujawnia pierwszą agendę
     for player in new_state.players.values():
@@ -417,6 +420,7 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
         player.transacted_with = []
     # Bez kart strategii porządek wyznacza mówca (R_victory_points: „nearest the speaker").
     new_state.active_player_id = new_state.speaker_id
+    triggers.fire(new_state, GameEvent.PHASE, Moment.START, ctx={"phase": "agenda"})
     return new_state
 
 

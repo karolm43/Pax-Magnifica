@@ -21,9 +21,10 @@ import json
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
-from src.core import timing, unit_ops
+from src.core import timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, TimingWindow, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -414,6 +415,11 @@ def fire_offense(
         "passed": False,
     }
     rolled = _append_log(rolled, entry)
+    triggers.fire(
+        rolled, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=player_id,
+        ctx={"ability": "space_cannon", "player": player_id, "hits": total_hits,
+             "target": target_id},
+    )
     if total_hits == 0 or not target_ships(rolled, target_id):
         return _advance(rolled)
     return _set_context(

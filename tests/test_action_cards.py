@@ -296,8 +296,17 @@ def test_plague_jest_deterministyczny_i_celuje_tylko_w_cudze_planety(
     state.systems["000"].planet_units = {planet: {"p2": {"infantry": 12}}}
     rng = next_rng(state.clone())
     hits = sum(1 for _ in range(12) if rng.randint(1, DIE_SIDES) >= 6)
+    expected_dice = [next_rng(state.clone()).randint(1, DIE_SIDES) for _ in range(1)]
     new = _play(state, registry, "plague", {"planet": planet})
     assert new.systems["000"].planet_units[planet]["p2"].get("infantry", 0) == 12 - hits
+    # Rzut trafia do UI jako "rzut na stół" (animacja kości): 12 kości, próg 6+.
+    assert new.table_roll is not None
+    assert new.table_roll["kind"] == "plague"
+    assert len(new.table_roll["dice"]) == 12
+    assert new.table_roll["dice"][0] == expected_dice[0]
+    assert new.table_roll["hitsOn"] == 6
+    assert sum(1 for d in new.table_roll["dice"] if d >= 6) == hits
+    assert new.table_roll_seq == 1
     state.systems["000"].planet_owners = {planet: "p1"}
     with pytest.raises(ValueError, match="another player"):
         _play(state, registry, "plague", {"planet": planet})

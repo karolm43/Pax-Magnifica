@@ -19,6 +19,8 @@ jeszcze żadnym efektem liczbowym i jest opcjonalny.
 
 from __future__ import annotations
 
+from src.core import triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 
 
@@ -26,6 +28,8 @@ def play_component_action(
     state: GameState,
     player_id: str | None = None,
     component_id: str | None = None,
+    *,
+    fire_after: bool = True,
 ) -> GameState:
     """Wykonuje akcję komponentu aktywnego gracza — RULES.md 31.8 (R_component_action).
 
@@ -75,4 +79,9 @@ def play_component_action(
     # RULES.md 31.7: akcja komponentu liczy się jako AKCJA tury (jak strategiczna/taktyczna).
     # Efekt konkretnego komponentu dojdzie dispatchem po component_id (szkielet — patrz moduł).
     new_state.players[active_id].took_action_this_turn = True
+    if fire_after:
+        triggers.fire(
+            new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=active_id,
+            ctx={"player": active_id, "component": component_id or ""},
+        )
     return new_state
