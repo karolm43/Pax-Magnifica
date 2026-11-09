@@ -44,9 +44,6 @@ import styles from "./AgendaOverlay.module.css";
 
 const BACKDROP = 'url("/static/extra/agenda2.jpg"), url("/static/extra/starfield.png")';
 
-/** Ile żetonów głosów rysujemy przy delegacie (reszta jako „+n"). */
-const MAX_COINS = 14;
-
 type Look = { name: string; rgb: string; faction: string | null };
 
 function rgbOf(player: PlayerData | undefined): string {
@@ -98,7 +95,72 @@ function usePlayers() {
   return { byId, lookOf, round: webData?.gameRound };
 }
 
-/** Półkole miejsc Senatu: gracze wg kolejności głosowania, mówca na podium pośrodku. */
+const OUTCOME_PALETTE = [
+  "#60a5fa",
+  "#f59e0b",
+  "#c084fc",
+  "#2dd4bf",
+  "#f472b6",
+  "#a3e635",
+  "#fb923c",
+  "#94a3b8",
+];
+
+/** Kolor wyniku (For zielony, Against czerwony, reszta z palety wg kolejności). */
+function outcomeColor(agenda: AgendaPhaseData, outcome: string): string {
+  if (outcome === "for") return "#4ade80";
+  if (outcome === "against") return "#f87171";
+  const rest = agenda.outcomes.filter((o) => o !== "for" && o !== "against");
+  const idx = Math.max(0, rest.indexOf(outcome));
+  return OUTCOME_PALETTE[idx % OUTCOME_PALETTE.length] ?? "#94a3b8";
+}
+
+const HEMI = { w: 600, h: 310, cx: 300, cy: 300, rIn: 105, rOut: 285 };
+const MAX_SEATS_PER_PLAYER = 40;
+
+/** Miejsca półkola (jak wykres parlamentu): rzędy łuków, posortowane od lewej do prawej. */
+function hemicycleSeats(total: number): { x: number; y: number; r: number }[] {
+  if (total <= 0) return [];
+  const rows = Math.max(1, Math.min(8, total, Math.round(Math.sqrt(total / 2.2))));
+  const radii = Array.from({ length: rows }, (_, i) =>
+    rows === 1 ? (HEMI.rIn + HEMI.rOut) / 2 : HEMI.rIn + (i * (HEMI.rOut - HEMI.rIn)) / (rows - 1),
+  );
+  const sumR = radii.reduce((a, b) => a + b, 0);
+  const counts = radii.map((r) => Math.max(1, Math.round((total * r) / sumR)));
+  let diff = total - counts.reduce((a, b) => a + b, 0);
+  while (diff !== 0) {
+    const step = diff > 0 ? 1 : -1;
+    let best = -1;
+    counts.forEach((c, i) => {
+      if (step < 0 && c <= 1) return;
+      if (best < 0 || (counts[best] ?? 0) < c) best = i;
+    });
+    if (best < 0) break;
+    counts[best] = (counts[best] ?? 0) + step;
+    diff -= step;
+  }
+  const rowGap = rows > 1 ? (HEMI.rOut - HEMI.rIn) / (rows - 1) : 40;
+  const arcGap = Math.min(...radii.map((r, i) => (Math.PI * r) / (counts[i] ?? 1)));
+  const dot = Math.min(14, Math.min(rowGap, arcGap) * 0.42);
+  const seats: { x: number; y: number; r: number; a: number; rad: number }[] = [];
+  radii.forEach((rad, i) => {
+    const n = counts[i] ?? 1;
+    for (let j = 0; j < n; j += 1) {
+      const a = n === 1 ? Math.PI / 2 : Math.PI - (Math.PI * j) / (n - 1);
+      seats.push({
+        x: HEMI.cx + rad * Math.cos(a),
+        y: HEMI.cy - rad * Math.sin(a),
+        r: dot,
+        a,
+        rad,
+      });
+    }
+  });
+  seats.sort((p, q) => q.a - p.a || p.rad - q.rad);
+  return seats.map(({ x, y, r }) => ({ x, y, r }));
+}
+
+/** SENAT: wykres parlamentu. Jedno miejsce = jeden głos, bloki w kolorach graczy. */
 function Senate({
   agenda,
   lookOf,
@@ -106,118 +168,156 @@ function Senate({
   agenda: AgendaPhaseData;
   lookOf: (id: string) => Look;
 }) {
-  const order = agenda.voteOrder.filter((id) => id !== agenda.speakerId);
-  const seats = order;
-  const count = seats.length;
+  const speaker = agenda.speakerId;
+  const order = [...agenda.voteOrder.filter((id) => id !== speaker), ...(speaker ? [speaker] : [])];
   const stateOf = (id: string) => {
-    const vote = agenda.votes[id];
-    if (vote) return "voted";
+    if (agenda.votes[id]) return "voted";
     if (agenda.abstained.includes(id)) return "abstained";
     if (agenda.blocked.includes(id)) return "blocked";
     if (agenda.step === "VOTE" && agenda.currentVoter === id) return "now";
     return "waiting";
   };
-  /** Delegat: postać za pulpitem, plakietka, stos żetonów głosów i wybrany wynik. */
-  const seatBody = (id: string, isSpeaker = false) => {
-    const look = lookOf(id);
-    const st = stateOf(id);
+  const seatsOf = (id: string): number => {
     const vote = agenda.votes[id];
     const voter: AgendaVoter | undefined = agenda.voters[id];
-    // Żetony: po jednym na głos. Oddane = pełne, w rezerwie = puste (ile jeszcze ma do wydania).
-    const cast = vote?.votes ?? 0;
-    const reserve = st === "voted" || st === "abstained" ? 0 : (voter?.available ?? 0);
-    const shownCast = Math.min(cast, MAX_COINS);
-    const shownReserve = Math.min(reserve, Math.max(0, MAX_COINS - shownCast));
-    const hidden = cast + reserve - shownCast - shownReserve;
-    return (
-      <div
-        className={styles.delegate}
-        data-state={st}
-        data-speaker={isSpeaker || undefined}
-        style={{ "--seat-rgb": look.rgb } as CSSProperties}
-        title={`${look.name}: ${cast > 0 ? `${cast} votes` : `${voter?.available ?? 0} influence ready`}`}
-      >
-        {st === "voted" && vote ? (
-          <span className={styles.cloud}>
-            <b>{vote.votes}</b>
-            <span>{outcomeLabel(agenda, vote.outcome, lookOf)}</span>
-          </span>
-        ) : st === "abstained" ? (
-          <span className={styles.cloud} data-muted>
-            Abstains
-          </span>
-        ) : st === "now" ? (
-          <span className={styles.cloud} data-live>
-            Speaking
-          </span>
-        ) : null}
-        <div className={styles.figure} aria-hidden="true">
-          <span className={styles.head} />
-          <span className={styles.shoulders}>
-            {look.faction ? <CircularFactionIcon faction={look.faction} size={26} /> : null}
-          </span>
-        </div>
-        <div className={styles.desk}>
-          <b className={styles.seatName}>{look.name}</b>
-          <span className={styles.coins}>
-            {Array.from({ length: shownCast }, (_, i) => (
-              <i key={`c${i}`} className={styles.coin} data-cast />
-            ))}
-            {Array.from({ length: shownReserve }, (_, i) => (
-              <i key={`r${i}`} className={styles.coin} />
-            ))}
-            {hidden > 0 ? <small>+{hidden}</small> : null}
-          </span>
-          <span className={styles.seatInfo}>
-            {st === "voted"
-              ? `${cast} cast`
-              : st === "abstained"
-                ? "no votes"
-                : st === "blocked"
-                  ? "cannot vote"
-                  : `${voter?.available ?? 0} to spend`}
-          </span>
-        </div>
-      </div>
-    );
+    const n = vote ? vote.votes : (voter?.available ?? 0) + (voter?.extra ?? 0);
+    return Math.min(MAX_SEATS_PER_PLAYER, Math.max(0, n));
   };
-  const speaker = agenda.speakerId;
+  const counts = order.map(seatsOf);
+  const total = counts.reduce((a, b) => a + b, 0);
+  const seats = hemicycleSeats(total);
+  // Przydział miejsc po kolei: pierwszy głosujący po lewej, mówca na końcu po prawej.
+  const owner: string[] = [];
+  order.forEach((id, i) => {
+    for (let k = 0; k < (counts[i] ?? 0); k += 1) owner.push(id);
+  });
+  const totalCast = Object.values(agenda.totals).reduce((a, b) => a + b, 0);
+  const showOutcomes = agenda.card != null && !agenda.unresolvable;
+
   return (
     <section className={styles.panel} aria-label="Senate">
       <h3>
         <IconScale size={15} aria-hidden="true" /> Senate
       </h3>
-      <div className={styles.hemicycle} style={{ "--n": count } as CSSProperties}>
-        {seats.map((id, i) => {
-          // Rozmieszczenie na łuku 180° -> 0° (lewa strona stołu = pierwszy głosujący).
-          const t = count === 1 ? 0.5 : i / (count - 1);
-          const angle = Math.PI * (1 - t);
-          const x = 50 + 40 * Math.cos(angle);
-          const y = 80 - 52 * Math.sin(angle);
+      <div className={styles.chamber}>
+        <svg
+          className={styles.hemi}
+          viewBox={`0 0 ${HEMI.w} ${HEMI.h}`}
+          role="img"
+          aria-label="Senate seating: one seat per vote"
+        >
+          {[HEMI.rIn - 22, HEMI.rOut + 22].map((r) => (
+            <path
+              key={r}
+              className={styles.hemiRim}
+              d={`M ${HEMI.cx - r} ${HEMI.cy} A ${r} ${r} 0 0 1 ${HEMI.cx + r} ${HEMI.cy}`}
+            />
+          ))}
+          {seats.map((s, i) => {
+            const id = owner[i] ?? "";
+            const look = lookOf(id);
+            const st = stateOf(id);
+            const vote = agenda.votes[id];
+            const cast = st === "voted" && vote != null;
+            const ring = cast ? outcomeColor(agenda, vote.outcome) : undefined;
+            return (
+              <circle
+                key={i}
+                cx={s.x}
+                cy={s.y}
+                r={s.r}
+                className={styles.seat}
+                data-state={st}
+                style={
+                  {
+                    "--seat-rgb": look.rgb,
+                    ...(ring ? { "--ring": ring } : null),
+                    animationDelay: `${Math.min(i, 120) * 8}ms`,
+                  } as CSSProperties
+                }
+              >
+                <title>
+                  {look.name}
+                  {cast
+                    ? `: ${vote.votes} for ${outcomeLabel(agenda, vote.outcome, lookOf)}`
+                    : st === "abstained"
+                      ? ": abstains"
+                      : st === "blocked"
+                        ? ": cannot vote"
+                        : ": votes not cast yet"}
+                </title>
+              </circle>
+            );
+          })}
+        </svg>
+        <div className={styles.chamberCore}>
+          <b>{totalCast}</b>
+          <span>votes cast</span>
+          {total > 0 ? <small>{total - totalCast > 0 ? `${total - totalCast} still to spend` : "all spent"}</small> : null}
+        </div>
+      </div>
+
+      {showOutcomes ? (
+        <ul className={styles.legend} aria-label="Outcome colours">
+          {agenda.outcomes.map((o) => (
+            <li key={o} style={{ "--ring": outcomeColor(agenda, o) } as CSSProperties}>
+              <i aria-hidden="true" />
+              <span>{outcomeLabel(agenda, o, lookOf)}</span>
+              <b>{agenda.totals[o] ?? 0}</b>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <ol className={styles.roster} aria-label="Voting order">
+        {order.map((id, i) => {
+          const look = lookOf(id);
+          const st = stateOf(id);
+          const vote = agenda.votes[id];
+          const voter: AgendaVoter | undefined = agenda.voters[id];
+          const isSpeaker = id === speaker;
           return (
-            <div
+            <li
               key={id}
-              className={styles.seatPos}
-              style={{ left: `${x}%`, top: `${y}%`, "--i": i } as CSSProperties}
+              className={styles.rosterRow}
+              data-state={st}
+              style={{ "--seat-rgb": look.rgb } as CSSProperties}
             >
-              <span className={styles.seatOrder}>{i + 1}</span>
-              {seatBody(id)}
-            </div>
+              <span className={styles.rosterNo}>
+                {isSpeaker ? <IconCrown size={13} aria-label="Speaker" /> : i + 1}
+              </span>
+              {look.faction ? <CircularFactionIcon faction={look.faction} size={26} /> : <span />}
+              <span className={styles.rosterName}>
+                <b>{look.name}</b>
+                <small>
+                  {isSpeaker ? "Speaker · votes last" : `Seat ${i + 1}`}
+                  {st === "now" ? " · voting now" : ""}
+                </small>
+              </span>
+              <span className={styles.rosterVotes}>
+                {st === "voted" && vote ? (
+                  <span
+                    className={styles.pick}
+                    style={{ "--ring": outcomeColor(agenda, vote.outcome) } as CSSProperties}
+                  >
+                    <i aria-hidden="true" />
+                    {outcomeLabel(agenda, vote.outcome, lookOf)}
+                    <b>{vote.votes}</b>
+                  </span>
+                ) : st === "abstained" ? (
+                  <em>abstains</em>
+                ) : st === "blocked" ? (
+                  <em>cannot vote</em>
+                ) : (
+                  <em>
+                    <b>{(voter?.available ?? 0) + (voter?.extra ?? 0)}</b> to spend
+                  </em>
+                )}
+              </span>
+            </li>
           );
         })}
-        {speaker ? (
-          <div className={styles.podium}>
-            <span className={styles.podiumTag}>
-              <IconCrown size={13} aria-hidden="true" /> Speaker · votes last
-            </span>
-            {seatBody(speaker, true)}
-          </div>
-        ) : null}
-      </div>
-      <p className={styles.hint}>
-        Voting starts with the player to the left of the speaker and goes clockwise. The speaker
-        votes last.
-      </p>
+      </ol>
     </section>
   );
 }
@@ -308,6 +408,11 @@ function Podium({
                   aria-pressed={selected === outcome}
                 >
                   <span className={styles.outcomeName}>
+                    <span
+                      className={styles.swatch}
+                      style={{ "--ring": outcomeColor(agenda, outcome) } as CSSProperties}
+                      aria-hidden="true"
+                    />
                     {agenda.kind === "player" || agenda.kind === "player_or_against" ? (
                       (() => {
                         const l = lookOf(outcome);
