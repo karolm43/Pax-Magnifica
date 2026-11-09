@@ -1,0 +1,63 @@
+/* Wynik rzutu spoza walki (Fracture, karty akcji) - pokazuje się PO wylądowaniu kości. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 3150;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 520px);
+  padding: 12px 16px;
+  color: #e5e7eb;
+  border: 1px solid rgb(214 178 94 / 0.55);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgb(16 20 33 / 0.96), rgb(8 11 19 / 0.96));
+  box-shadow: 0 10px 34px rgb(0 0 0 / 0.55);
+  transform: translateX(-50%);
+  animation: toastIn 0.35s ease-out both;
+}
+
+.toast[data-success] {
+  border-color: rgb(251 191 36 / 0.85);
+  box-shadow: 0 10px 34px rgb(0 0 0 / 0.55), 0 0 22px rgb(251 191 36 / 0.3);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  color: #fbbf24;
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.text small {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.dismiss {
+  min-height: 36px;
+  padding: 6px 14px;
+  font-weight: 700;
+  color: #e5e7eb;
+  cursor: pointer;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; translate: 0 14px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

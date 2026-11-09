@@ -56,6 +56,39 @@ def next_rng(state: GameState) -> random.Random:
     return rng
 
 
+def record_table_roll(
+    state: GameState,
+    player_id: str,
+    kind: str,
+    label: str,
+    results: list[int],
+    *,
+    hits_on: int | None = None,
+    hit_values: list[int] | None = None,
+    summary: str = "",
+) -> None:
+    """Zapisuje rzut „na stół" poza walką (MUTUJE ``state`` — klon wołającego).
+
+    UI animuje go fizycznymi kośćmi (``frontend/src/domains/dice``): wynik jest już rozstrzygnięty
+    tutaj, a ``table_roll_seq`` pozwala klientowi odróżnić NOWY rzut od starego. KAŻDY nowy rzut
+    kośćmi spoza walki/Space Cannon/inwazji (karta akcji, relikt, przełom…) wołaj tę funkcję.
+
+    ``hits_on`` = próg trafienia (wynik ≥ próg), ``hit_values`` = dokładne „trafiające" wyniki
+    (np. Fracture: 1 i 10); brak obu = rzut bez trafień (sam wynik).
+    """
+    state.table_roll_seq += 1
+    state.table_roll = {
+        "seq": state.table_roll_seq,
+        "kind": kind,
+        "playerId": player_id,
+        "label": label,
+        "dice": list(results),
+        "hitsOn": hits_on,
+        "hitValues": hit_values,
+        "summary": summary,
+    }
+
+
 def count_hits(results: list[int], hits_on: int) -> int:
     """Liczba trafień: wyniki równe lub większe od ``hits_on`` (RULES.md 38, S4)."""
     return sum(1 for value in results if value >= hits_on)

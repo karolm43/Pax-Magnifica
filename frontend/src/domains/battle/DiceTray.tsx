@@ -6,10 +6,17 @@ import {
   type CSSProperties,
 } from "react";
 import { playBattleSound } from "./battleSound";
-import { CONTACTS, DIE_MS, READ_MS, dieState, planDice, type Die } from "./diceRoll";
+import {
+  CONTACTS,
+  DIE_MS,
+  READ_MS,
+  dieState,
+  planDice,
+  type Die,
+  type DiceGroup,
+} from "./diceRoll";
 import { faceOf } from "./dieGeometry";
 import { DieMesh, findMesh, poseMesh, type MeshParts } from "./DieMesh";
-import type { Volley } from "./useBattleFx";
 import styles from "./BattleOverlay.module.css";
 
 /**
@@ -25,13 +32,23 @@ const reducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+/** Rzut do pokazania na stole: kości obu stron i moment, w którym wszystkie już leżą. */
+export type DiceRollSpec = {
+  id: number;
+  rolls: { left: DiceGroup[]; right: DiceGroup[] };
+  diceMs: number;
+};
+
 /** Stół z kośćmi dla jednej salwy (znika sam po odczytaniu rzutu). */
 export function DiceTray({
   volley,
   fromPool,
   pool,
+  solo = false,
 }: {
-  volley: Volley;
+  volley: DiceRollSpec;
+  /** Rzuca jedna strona: kostki lądują pośrodku. */
+  solo?: boolean;
   /** Rzut po przytrzymaniu „Roll": kostki startują z puli, nie z krawędzi ekranu. */
   fromPool: boolean;
   /** Liczba kostek w puli każdej strony (układ startowy). */
@@ -54,6 +71,7 @@ export function DiceTray({
         seed: volley.id,
         fromPool,
         pool,
+        solo,
       }),
     );
     // Plan liczymy raz na salwę.

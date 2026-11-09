@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { IconDice5, IconTarget } from "@tabler/icons-react";
+import { IconTarget } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -24,35 +23,6 @@ const COLOR_LABEL: Record<string, string> = {
 };
 
 const HUE = "#a78bfa";
-
-/** Wynik rzutu na The Fracture: kostka d10 z animacją (rzut jest silnikowy - UI tylko pokazuje). */
-function RollBanner({ view, onDismiss }: { view: ThundersEdgeView; onDismiss: () => void }) {
-  const look = usePlayerLook();
-  const roll = view.lastRoll;
-  if (!roll) return null;
-  const who = view.players[roll.playerId] ?? roll.playerId;
-  return createPortal(
-    <div className={styles.rollBanner} data-success={roll.success || undefined} role="status">
-      <span className={styles.die} key={roll.seq} aria-hidden="true">
-        {roll.result}
-      </span>
-      <span className={styles.rollText}>
-        <b>
-          <IconDice5 size={16} aria-hidden="true" /> {look(who).name} rolled {roll.result}
-        </b>
-        {roll.success ? (
-          <small>The Fracture enters play!</small>
-        ) : (
-          <small>The Fracture needs a 1 or a 10. Better luck next time.</small>
-        )}
-      </span>
-      <button type="button" className={styles.dismiss} onClick={onDismiss}>
-        OK
-      </button>
-    </div>,
-    document.body,
-  );
-}
 
 /** Dok wyboru systemów na żetony ingress (klik w podświetlony system na mapie). */
 function IngressDock({ view }: { view: ThundersEdgeView }) {
@@ -172,7 +142,7 @@ function PlacementDock({ view }: { view: ThundersEdgeView }) {
 
 /**
  * Okna modułu Thunder's Edge (RULES.md 50), montowane stale na stronie gry:
- *  - baner z wynikiem rzutu na The Fracture (kostka d10, tylko dla NOWEGO rzutu),
+ *  - (rzut na The Fracture pokazuje wspólna scena kości: `domains/dice/TableRollWatcher`),
  *  - dok żetonów ingress (po wejściu The Fracture do gry),
  *  - dok położenia Thunder's Edge (po szóstym plastrze ekspedycji).
  * Wybór systemów odbywa się klikiem w mapę (`mapPick`), okna można zminimalizować.
@@ -184,27 +154,8 @@ export function ThundersEdgeOverlay() {
   const active = Boolean(signal && (signal.pendingIngress || signal.pendingPlacement));
   const { data: view } = useThundersEdge(active);
 
-  // Baner rzutu pokazujemy tylko dla rzutu, który pojawił się PO załadowaniu strony.
-  const seenSeq = useRef<number | null | undefined>(undefined);
-  const [bannerSeq, setBannerSeq] = useState<number | null>(null);
-  const lastSeq = signal?.lastRoll?.seq ?? null;
-  useEffect(() => {
-    if (signal === undefined) return;
-    if (seenSeq.current === undefined) {
-      seenSeq.current = lastSeq; // pierwszy odczyt: stary rzut nie jest nowością
-      return;
-    }
-    if (lastSeq !== null && lastSeq !== seenSeq.current) setBannerSeq(lastSeq);
-    seenSeq.current = lastSeq;
-  }, [signal, lastSeq]);
-
-  const { data: rollView } = useThundersEdge(bannerSeq !== null);
-
   return (
     <>
-      {bannerSeq !== null && rollView?.lastRoll && (
-        <RollBanner view={rollView} onDismiss={() => setBannerSeq(null)} />
-      )}
       {active && view && view.pendingIngress.length > 0 && <IngressDock view={view} />}
       {active && view && view.placementPlayer !== null && <PlacementDock view={view} />}
     </>

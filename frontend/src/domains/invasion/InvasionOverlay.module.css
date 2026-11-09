@@ -1327,3 +1327,19 @@ button.token {
   80% { opacity: 1; translate: 0 175px; scale: 0.8; }
   100% { opacity: 0; translate: 0 190px; scale: 0.6; }
 }
+
+/* Wynik świeżego rzutu (kości, trafienia, panel strat) odsłania się po wylądowaniu kości
+   na wspólnej scenie (--wait = czas rzutu). Starsze wpisy nie dostają atrybutu data-wait. */
+.waitReveal {
+  display: block;
+}
+
+.rolls[data-wait],
+.waitReveal[data-wait] {
+  animation: waitReveal 0.3s ease var(--wait, 0ms) backwards;
+}
+
+@keyframes waitReveal {
+  from { opacity: 0; visibility: hidden; }
+  to { opacity: 1; visibility: visible; }
+}

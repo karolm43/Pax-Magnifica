@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { HoldRollButton } from "@/domains/dice/HoldRollButton";
+import { soloHold, useDiceStage } from "@/domains/dice/diceStage";
+import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import { IconBolt, IconEye, IconEyeOff, IconHandStop } from "@tabler/icons-react";
 import {
   useBoardEditor,
@@ -36,7 +39,8 @@ function TurnCard({
   onFire: (target: string) => void;
   onPass: () => void;
 }) {
-  const me = lookup(side.faction);
+  const lookRgb = usePlayerLook();
+  const me = { ...lookup(side.faction), rgb: lookRgb(side.faction).rgb };
   const [target, setTarget] = useState<string | null>(
     side.targets.length === 1 ? side.targets[0] : null,
   );
@@ -107,15 +111,20 @@ function TurnCard({
       )}
 
       <div className={styles.actions}>
-        <button
-          type="button"
+        <HoldRollButton
           className={styles.fire}
           disabled={busy || target === null}
-          onClick={() => target !== null && onFire(target)}
-          title={target === null ? "Pick a target first" : "Roll Space Cannon dice"}
+          onFire={() => target !== null && onFire(target)}
+          onHold={soloHold(side.totalDice, me.rgb)}
+          hint={false}
+          title={
+            target === null
+              ? "Pick a target first"
+              : "Roll Space Cannon dice (hold to shake the dice, release to throw)"
+          }
         >
           <IconBolt size={15} aria-hidden="true" /> Fire
-        </button>
+        </HoldRollButton>
         <button type="button" className={styles.pass} disabled={busy} onClick={onPass}>
           <IconHandStop size={15} aria-hidden="true" /> Don't fire
         </button>
@@ -138,6 +147,40 @@ export function SpaceCannonStepPanel() {
   const showRange = useSettingsStore((s) => s.settings.showPDSLayer);
   const toggleRange = useSettingsStore((s) => s.handlers.togglePdsMode);
   const [busy, setBusy] = useState(false);
+  const look = usePlayerLook();
+  const throwDice = useDiceStage((s) => s.throwDice);
+
+  // Nowy rzut: fizyczne kości na wspólnej scenie, a wynik w panelu odsłania się, gdy leżą.
+  const pendingNow = panel?.pending ?? null;
+  const rollKey = pendingNow
+    ? `${pendingNow.roller}>${pendingNow.target}:${pendingNow.hits}:${panel?.log.length ?? 0}`
+    : "";
+  const seenKey = useRef<string | undefined>(undefined);
+  const [revealed, setRevealed] = useState("");
+  const revealTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!panel) return;
+    if (seenKey.current === undefined) {
+      seenKey.current = rollKey; // rzut sprzed otwarcia panelu nie jest nowością
+      setRevealed(rollKey);
+      return;
+    }
+    if (rollKey === seenKey.current) return;
+    seenKey.current = rollKey;
+    if (!pendingNow) return;
+    const { pauseMs } = throwDice({
+      left: pendingNow.rolls.map((r) => ({
+        dice: r.dice,
+        modifier: 0,
+        hitsOn: r.hitsOn,
+      })),
+      leftRgb: look(pendingNow.roller).rgb,
+    });
+    window.clearTimeout(revealTimer.current);
+    revealTimer.current = window.setTimeout(() => setRevealed(rollKey), pauseMs);
+  }, [panel, rollKey, pendingNow, look, throwDice]);
+  useEffect(() => () => window.clearTimeout(revealTimer.current), []);
+  const rolling = rollKey !== "" && revealed !== rollKey;
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -208,7 +251,7 @@ export function SpaceCannonStepPanel() {
       )}
 
       {pending ? (
-        <>
+        <div style={{ visibility: rolling ? "hidden" : "visible" }}>
           <header className={styles.shotHead}>
             <span>
               <b>{nameOf(pending.roller)}</b> fires on <b>{nameOf(pending.target)}</b>
@@ -231,7 +274,7 @@ export function SpaceCannonStepPanel() {
               void run(() => spaceCannonAssign(pending.target, losses))
             }
           />
-        </>
+        </div>
       ) : (
         current && (
           <TurnCard

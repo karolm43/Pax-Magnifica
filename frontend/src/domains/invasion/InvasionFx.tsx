@@ -229,10 +229,13 @@ export function StrikeLayer({
   entryId,
   from,
   shipCount,
+  startMs,
 }: {
   entry: InvasionLogEntry | undefined;
   /** Numer wpisu w dzienniku (rośnie z każdym rozstrzygnięciem). */
   entryId: number;
+  /** Salwa rusza dopiero po tylu ms (czas na wylądowanie rzuconych kości). */
+  startMs: number;
   from: "orbit" | "ground";
   /** Ile statków stoi na orbicie (źródła lanc); 0 = pociski z losowych punktów. */
   shipCount: number;
@@ -240,6 +243,13 @@ export function StrikeLayer({
   const initial = useRef(entryId);
   const [finished, setFinished] = useState(-1);
   const fresh = !!entry && !entry.passed && entryId !== initial.current;
+  // Opóźnienie salwy zamrażamy przy pierwszym renderze świeżego wpisu: późniejsze zmiany
+  // propsa nie mogą przestawić trwających animacji.
+  const frozen = useRef<{ id: number; ms: number } | null>(null);
+  if (fresh && frozen.current?.id !== entryId) {
+    frozen.current = { id: entryId, ms: startMs };
+  }
+  const lead = fresh && frozen.current ? frozen.current.ms : 0;
   const bolts = fresh
     ? entry.rolls.flatMap((r, ri) => {
         const offset = entry.rolls.slice(0, ri).reduce((n, x) => n + x.count, 0);
@@ -253,7 +263,7 @@ export function StrikeLayer({
     : [];
   const stagger = from === "orbit" ? STAGGER_ORBIT : STAGGER_GROUND;
   const total =
-    (from === "orbit" ? BOMBARD_MS : DEFENSE_MS) + bolts.length * stagger;
+    (from === "orbit" ? BOMBARD_MS : DEFENSE_MS) + bolts.length * stagger + lead;
   useEffect(() => {
     if (!fresh) return;
     const t = window.setTimeout(() => setFinished(entryId), total);
@@ -282,7 +292,7 @@ export function StrikeLayer({
             style={
               {
                 "--dx": `${dx}px`,
-                "--delay": `${n * stagger}ms`,
+                "--delay": `${lead + n * stagger}ms`,
               } as CSSProperties
             }
           >

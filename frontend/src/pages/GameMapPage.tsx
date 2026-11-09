@@ -15,6 +15,8 @@ import { LoadTransportModal } from "@/domains/map/components/LoadTransportModal"
 import { CapacityModal } from "@/domains/map/components/CapacityModal";
 import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
+import { DiceStageHost } from "@/domains/dice/DiceStageHost";
+import { TableRollWatcher } from "@/domains/dice/TableRollWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
 import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
@@ -281,6 +283,10 @@ function GameMapContent() {
           pełny ekran do domknięcia setupu, zanim ruszy faza strategii. */}
       <GameSetupOverlay />
       <BattleOverlay />
+      {/* Wspólna scena kości (RULES.md / docs: dice) - Space Cannon, bombardowanie, Fracture,
+          karty akcji. Pole bitwy ma własny stół. */}
+      <DiceStageHost />
+      <TableRollWatcher />
       {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje
           przy oknie CAPACITY (myśliwce, piechota, mechy w przestrzeni ponad capacity). */}
       <CapacityModal />

@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.board_edit import planet_position
-from src.core.dice import DIE_SIDES, next_rng
+from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.expedition_state import IngressChoice
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import Hex, HexGrid
@@ -294,6 +294,19 @@ def roll_for_fracture(
         return
     result = next_rng(state).randint(1, DIE_SIDES)
     success = result in FRACTURE_ROLL_SUCCESS
+    record_table_roll(
+        state,
+        player_id,
+        "fracture",
+        "The Fracture",
+        [result],
+        hit_values=sorted(FRACTURE_ROLL_SUCCESS),
+        summary=(
+            "The Fracture enters play!"
+            if success
+            else "The Fracture needs a 1 or a 10. Better luck next time."
+        ),
+    )
     state.fracture.last_roll = {
         "playerId": player_id,
         "result": result,

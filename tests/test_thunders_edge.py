@@ -214,6 +214,11 @@ def test_roll_is_seeded_and_success_enters_play(registry: StaticDataRegistry) ->
         assert rolled.fracture.in_play is success
         assert rolled.fracture.last_roll is not None
         assert rolled.fracture.last_roll["success"] is success
+        # Ten sam rzut idzie do sceny kości (jedna kość, trafiają 1 i 10).
+        assert rolled.table_roll is not None
+        assert rolled.table_roll["kind"] == "fracture"
+        assert rolled.table_roll["dice"] == [rolled.fracture.last_roll["result"]]
+        assert rolled.table_roll["hitValues"] == [1, 10]
     # Fracture już w grze -> brak rzutu.
     in_play = enter_play(base, registry, grid, "p1")
     again = breakthrough_roll(in_play, registry, grid, "p2", None)

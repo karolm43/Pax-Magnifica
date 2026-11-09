@@ -2672,3 +2672,39 @@
   text-align: center;
   color: var(--ds-ink-lo, #94a3b8);
 }
+
+/* --- Wspólna scena kości dla pozostałych okien (DiceStageHost) --- */
+.stageHost {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  pointer-events: none;
+}
+
+/* Przyciemnienie tła na czas rzutu (żeby kości były czytelne na jasnej mapie/oknach). */
+.stageDim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgb(5 8 16 / 0.5), rgb(5 8 16 / 0.72) 85%);
+  animation: dimLife var(--life, 4s) ease forwards;
+}
+
+.stageDim[data-steady] {
+  animation: dimIn 0.25s ease forwards;
+}
+
+@keyframes dimLife {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes dimIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.poolCount[data-side="solo"] {
+  left: 50%;
+}

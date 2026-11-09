@@ -1,4 +1,6 @@
 import { type CSSProperties, type DragEvent } from "react";
+import { HoldRollButton } from "@/domains/dice/HoldRollButton";
+import { soloHold } from "@/domains/dice/diceStage";
 import {
   IconCrosshair,
   IconLock,
@@ -50,6 +52,11 @@ export type PlanetActions = {
     faction: string,
     plan: BattleAssignPlan,
   ) => void;
+  /**
+   * Ostatni rzut kośćmi na scenie: wpisy dziennika od indeksu ``from`` są świeże, a ich wynik
+   * (i salwa efektów) czeka ``ms`` na wylądowanie kości. ``ms`` = 0 - bez czekania.
+   */
+  rollBatch: { from: number; ms: number };
 };
 
 /**
@@ -84,6 +91,14 @@ export function InvasionPlanetCard({
         e.phase === kind && e.planet === info.planet ? i : found,
       -1,
     );
+  // Wynik świeżego rzutu (kości, trafienia, panel strat) pojawia się dopiero po wylądowaniu kości.
+  const waitFor = (kind: "BOMBARDMENT" | "DEFENSE") => {
+    const fresh =
+      actions.rollBatch.ms > 0 && idOf(kind) >= actions.rollBatch.from;
+    return fresh
+      ? ({ "--wait": `${actions.rollBatch.ms}ms` } as CSSProperties)
+      : undefined;
+  };
   const pendingBombard = view.bombard.pending.find(
     (p) => p.planet === info.planet,
   );
@@ -216,6 +231,11 @@ export function InvasionPlanetCard({
             <StrikeLayer
               entry={bombardLog}
               entryId={idOf("BOMBARDMENT")}
+              startMs={
+                idOf("BOMBARDMENT") >= actions.rollBatch.from
+                  ? actions.rollBatch.ms
+                  : 0
+              }
               from="orbit"
               shipCount={bombardShips.length}
             />
@@ -223,6 +243,11 @@ export function InvasionPlanetCard({
             <StrikeLayer
               entry={defenseLog}
               entryId={idOf("DEFENSE")}
+              startMs={
+                idOf("DEFENSE") >= actions.rollBatch.from
+                  ? actions.rollBatch.ms
+                  : 0
+              }
               from="ground"
               shipCount={podItems.length}
             />
@@ -337,7 +362,11 @@ export function InvasionPlanetCard({
             </span>
           )}
           {bombardLog && (
-            <div className={styles.rolls}>
+            <div
+              className={styles.rolls}
+              data-wait={waitFor("BOMBARDMENT") ? "" : undefined}
+              style={waitFor("BOMBARDMENT")}
+            >
               {bombardLog.rolls.map((r, i) => (
                 <DiceRow key={i} roll={r} />
               ))}
@@ -352,6 +381,11 @@ export function InvasionPlanetCard({
             </div>
           )}
           {pendingBombard && (
+            <div
+              data-wait={waitFor("BOMBARDMENT") ? "" : undefined}
+              style={waitFor("BOMBARDMENT")}
+              className={styles.waitReveal}
+            >
             <AssignPanel
               title="Bombardment"
               ships={expandForces(
@@ -367,6 +401,7 @@ export function InvasionPlanetCard({
                 actions.onAssignBombard(info.planet, pendingBombard.defender, plan)
               }
             />
+            </div>
           )}
         </div>
       )}
@@ -460,14 +495,22 @@ export function InvasionPlanetCard({
           </span>
           {defense.status === "open" && (
             <div className={styles.row}>
-              <button
-                type="button"
+              <HoldRollButton
                 className={styles.primaryBtn}
                 disabled={actions.busy}
-                onClick={() => actions.onDefenseFire(info.planet)}
+                onFire={() => actions.onDefenseFire(info.planet)}
+                onHold={soloHold(
+                  defense.shooters.reduce(
+                    (n, s) => n + s.count * s.dicePerUnit,
+                    0,
+                  ),
+                  look(defense.shooters[0]?.owner ?? info.owner ?? "").rgb,
+                )}
+                hint={false}
+                title="Fire (hold to shake the dice, release to throw)"
               >
                 Fire
-              </button>
+              </HoldRollButton>
               <button
                 type="button"
                 className={styles.ghostBtn}
@@ -479,13 +522,22 @@ export function InvasionPlanetCard({
             </div>
           )}
           {defenseLog && !defenseLog.passed && (
-            <div className={styles.rolls}>
+            <div
+              className={styles.rolls}
+              data-wait={waitFor("DEFENSE") ? "" : undefined}
+              style={waitFor("DEFENSE")}
+            >
               {defenseLog.rolls.map((r, i) => (
                 <DiceRow key={i} roll={r} />
               ))}
             </div>
           )}
           {defense.status === "pending" && (
+            <div
+              data-wait={waitFor("DEFENSE") ? "" : undefined}
+              style={waitFor("DEFENSE")}
+              className={styles.waitReveal}
+            >
             <AssignPanel
               title="Space Cannon"
               ships={expandForces(attacker, info.forces[attacker] ?? [])}
@@ -498,6 +550,7 @@ export function InvasionPlanetCard({
                 actions.onAssignDefense(info.planet, attacker, plan)
               }
             />
+            </div>
           )}
           {defense.status === "resolved" && (
             <span className={styles.note} data-done>

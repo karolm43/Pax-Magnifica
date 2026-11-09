@@ -39,7 +39,8 @@ import {
 } from "./battleAssign";
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet } from "./BattleFleet";
-import { BattleCenter, type HoldState } from "./BattleCenter";
+import { BattleCenter } from "./BattleCenter";
+import type { HoldState } from "@/domains/dice/HoldRollButton";
 import { DiceTray } from "./DiceTray";
 import { DicePool } from "./DicePool";
 import { READ_MS } from "./diceRoll";

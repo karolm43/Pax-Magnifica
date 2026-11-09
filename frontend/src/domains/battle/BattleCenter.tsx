@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import type { CSSProperties } from "react";
 import {
   IconBolt,
   IconCheck,
@@ -22,6 +16,7 @@ import type {
   BattleRoll,
   BattleView,
 } from "@/api/useBoardEditor";
+import { HoldRollButton, type HoldState } from "@/domains/dice/HoldRollButton";
 import styles from "./BattleOverlay.module.css";
 
 type Step = NonNullable<BattleView["step"]>;
@@ -50,102 +45,6 @@ function hasAfbHistoryOrStep(view: BattleView): boolean {
   return (
     view.step === "AFB" ||
     view.log.some((e) => e.phase === "AFB" && e.round === 1)
-  );
-}
-
-/** Po tylu ms przytrzymania „Roll" zaczyna się pula (krótsze kliknięcie = zwykły rzut). */
-const HOLD_MS = 240;
-
-export type HoldState = "start" | "fire" | "cancel";
-
-/**
- * Przycisk rzutu kośćmi. Kliknięcie rzuca od razu; PRZYTRZYMANIE zbiera kości obu stron w
- * puli (widać, ile ich jest) i dopiero puszczenie przycisku nad nim rzuca. Puszczenie poza
- * przyciskiem anuluje pulę bez rzutu.
- */
-function HoldRollButton({
-  disabled,
-  onFire,
-  onHold,
-  children,
-}: {
-  disabled: boolean;
-  onFire: () => void;
-  onHold: (state: HoldState) => void;
-  children: ReactNode;
-}) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const [holding, setHolding] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-  const active = useRef(false);
-  const suppressClick = useRef(false);
-  const stop = useRef<(() => void) | null>(null);
-
-  // Odpięcie nasłuchu i pula przy odmontowaniu / zablokowaniu przycisku w trakcie przytrzymania.
-  useEffect(
-    () => () => {
-      window.clearTimeout(timer.current);
-      stop.current?.();
-      if (active.current) onHold("cancel");
-    },
-    [],
-  );
-
-  const press = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (disabled || e.button !== 0) return;
-    suppressClick.current = false;
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      active.current = true;
-      setHolding(true);
-      onHold("start");
-    }, HOLD_MS);
-    const release = (ev: PointerEvent) => {
-      window.removeEventListener("pointerup", release);
-      window.removeEventListener("pointercancel", release);
-      stop.current = null;
-      window.clearTimeout(timer.current);
-      if (!active.current) return; // krótkie kliknięcie obsłuży onClick
-      active.current = false;
-      setHolding(false);
-      const inside =
-        ev.type === "pointerup" &&
-        ref.current?.contains(ev.target as Node) === true;
-      suppressClick.current = inside;
-      onHold(inside ? "fire" : "cancel");
-      if (inside) onFire();
-    };
-    stop.current = () => {
-      window.removeEventListener("pointerup", release);
-      window.removeEventListener("pointercancel", release);
-    };
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
-  };
-
-  return (
-    <>
-      <button
-        ref={ref}
-        type="button"
-        className={`${styles.primary} ${styles.holdBtn}`}
-        data-holding={holding || undefined}
-        disabled={disabled}
-        onPointerDown={press}
-        onClick={() => {
-          if (suppressClick.current) {
-            suppressClick.current = false;
-            return;
-          }
-          onFire();
-        }}
-      >
-        {children}
-      </button>
-      <small className={styles.holdHint}>
-        Tap to roll · hold to shake the dice, release to throw
-      </small>
-    </>
   );
 }
 
@@ -318,7 +217,7 @@ export function BattleCenter({
             at enemy fighters. Both sides roll at once; Sustain Damage cannot
             cancel these hits.
           </p>
-          <HoldRollButton disabled={busy} onFire={onAfb} onHold={onHold}>
+          <HoldRollButton disabled={busy} onFire={onAfb} onHold={onHold} className={styles.primary}>
             <IconTargetArrow size={17} aria-hidden="true" /> Fire barrage
           </HoldRollButton>
         </div>
@@ -394,7 +293,7 @@ export function BattleCenter({
             {nameOf(attacker)} rolls first, then {nameOf(defender)}. Each die at
             or above the unit's combat value is a hit.
           </p>
-          <HoldRollButton disabled={busy} onFire={onRoll} onHold={onHold}>
+          <HoldRollButton disabled={busy} onFire={onRoll} onHold={onHold} className={styles.primary}>
             <IconBolt size={17} aria-hidden="true" /> Roll combat dice
           </HoldRollButton>
         </div>

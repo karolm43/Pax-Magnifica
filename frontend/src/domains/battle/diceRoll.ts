@@ -1,4 +1,18 @@
-import type { BattleRoll } from "@/api/useBoardEditor";
+/** Jedna grupa kości jednego rzutu (np. jednostki tego samego typu) — wspólna dla wszystkich okien. */
+export type DiceGroup = {
+  dice: number[];
+  modifier: number;
+  hitsOn: number;
+  /** Dokładne „trafiające" wyniki (np. Fracture: 1 i 10) - ma pierwszeństwo przed ``hitsOn``. */
+  hitValues?: number[] | null;
+};
+
+/** Czy wynik ``value`` jest trafieniem w grupie ``group``. */
+export function isHit(group: DiceGroup, value: number): boolean {
+  return group.hitValues
+    ? group.hitValues.includes(value)
+    : value + group.modifier >= group.hitsOn;
+}
 
 /**
  * Plan fizycznego rzutu kośćmi (czysta prezentacja — wartości kości zawsze pochodzą z silnika).
@@ -64,7 +78,7 @@ export function volleyStartMs(left: number, right: number): number {
 }
 
 /** Liczba kostek w rzutach jednej strony. */
-export function countDice(rolls: BattleRoll[]): number {
+export function countDice(rolls: DiceGroup[]): number {
   return rolls.reduce((n, r) => n + r.dice.length, 0);
 }
 
@@ -87,7 +101,9 @@ function lerp(a: Point, b: Point, f: number): Point {
 type Area = { x: number; y: number; w: number; h: number };
 
 /** Stół każdej strony: lewa połowa dla atakującego, prawa dla obrońcy. */
-function tableArea(side: DieSide, W: number, H: number): Area {
+function tableArea(side: DieSide, W: number, H: number, solo = false): Area {
+  // Rzut jednej strony (karta akcji, Fracture, Space Cannon): kostki leżą pośrodku stołu.
+  if (solo) return { x: W * 0.28, y: H * 0.16, w: W * 0.44, h: H * 0.66 };
   return side === "left"
     ? { x: W * 0.18, y: H * 0.14, w: W * 0.31, h: H * 0.7 }
     : { x: W * 0.51, y: H * 0.14, w: W * 0.31, h: H * 0.7 };
@@ -128,8 +144,9 @@ export function poolLayout(
   n: number,
   W: number,
   H: number,
+  solo = false,
 ): { points: Point[]; size: number } {
-  const t = tableArea(side, W, H);
+  const t = tableArea(side, W, H, solo);
   // Pula jest ciaśniejsza niż stół: kostki „w garści" leżą blisko siebie.
   const area: Area = {
     x: t.x + t.w * 0.12,
@@ -145,18 +162,20 @@ export function poolLayout(
  * ``width``/``height`` wymiary pola, ``pool`` liczba kostek w puli (gdy rzut z puli).
  */
 export function planDice(args: {
-  left: BattleRoll[];
-  right: BattleRoll[];
+  left: DiceGroup[];
+  right: DiceGroup[];
   width: number;
   height: number;
   seed: number;
   fromPool: boolean;
   pool: { left: number; right: number };
+  /** Rzuca jedna strona (lewa) — kostki lądują pośrodku, nie w lewej połowie stołu. */
+  solo?: boolean;
 }): Die[] {
   const { width: W, height: H } = args;
   const rand = rng(args.seed);
   const dice: Die[] = [];
-  const sides: [DieSide, BattleRoll[]][] = [
+  const sides: [DieSide, DiceGroup[]][] = [
     ["left", args.left],
     ["right", args.right],
   ];
@@ -165,14 +184,14 @@ export function planDice(args: {
       .flatMap((roll) =>
         roll.dice.map((value) => ({
           value,
-          hit: value + roll.modifier >= roll.hitsOn,
+          hit: isHit(roll, value),
         })),
       )
       .slice(0, MAX_DICE_PER_SIDE);
     if (flat.length === 0) continue;
-    const { points, size } = slots(flat.length, tableArea(side, W, H), rand);
+    const { points, size } = slots(flat.length, tableArea(side, W, H, args.solo), rand);
     const pool = args.fromPool
-      ? poolLayout(side, args.pool[side], W, H)
+      ? poolLayout(side, args.pool[side], W, H, args.solo)
       : null;
     flat.forEach((die, i) => {
       const rest = points[i];

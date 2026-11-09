@@ -509,6 +509,18 @@ export type GameState = {
     lastRoll: { playerId: string; result: number; success: boolean; seq: number } | null;
     thundersEdgePosition: string | null;
   };
+  /** Ostatni rzut kośćmi poza walką (Fracture, karty akcji) - animowany sceną kości. */
+  tableRoll?: {
+    seq: number;
+    kind: string;
+    /** `player_id` (`discordId`) rzucającego. */
+    playerId: string;
+    label: string;
+    dice: number[];
+    hitsOn: number | null;
+    hitValues: number[] | null;
+    summary: string;
+  } | null;
   /** Jednorazowa produkcja z karty (Freelancers) - okno produkcji poza krokiem PRODUCTION. */
   productionGrant?: { system: string; source: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */

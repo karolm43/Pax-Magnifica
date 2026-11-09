@@ -115,10 +115,27 @@ Każda karta przechodzi ten sam potok, więc dodanie kolejnej to jeden wpis w ka
 | UI | `BottomHandDock` (przeciąganie), `ActionCardPlayModal` (formularz) | front nie zna kart, renderuje opis z silnika |
 | Testy | `tests/test_action_cards.py` | para bez/z efektem, round-trip formularza, błędy |
 | Raport | `docs/POKRYCIE_HOOKOW.md` | `uv run python -m src.audit.hook_coverage --write` |
+| Kości | `dice.record_table_roll(...)` w efekcie | **KAŻDY rzut kością** (karta, relikt, przełom…) zapisuje się tym wywołaniem, a UI odtwarza go fizycznymi kośćmi (patrz 3a.1) |
 
 **Zasada UX:** kartę zagrywa się przeciągając ją z ręki, a podnieść można tylko kartę, którą silnik pozwala zagrać
 (`playability`). Inne rodzaje kart (reakcje, promissory notes) dostają ten sam standard — patrz „CEL PRODUKTOWY”
 w `PLAN_PELNA_ROZGRYWKA.md`.
+
+### 3a.1. Rzuty kośćmi: JEDNA fizyczna scena kości (obowiązuje wszędzie)
+
+Kości w grze są fizyczne (d10, bryła 3D, odbicia, dźwięk), a wynik zawsze liczy silnik (`core/dice.py`, seedowalny
+RNG); UI tylko odtwarza. **Nowy rzut kością NIE dostaje własnej animacji ani własnego „bannera z kostką"** — używa
+wspólnej sceny:
+
+| Sytuacja | Backend | Frontend |
+|---|---|---|
+| Rzut poza walką (karta akcji, relikt, przełom, Fracture) | po losowaniu `dice.record_table_roll(state, player_id, kind, label, wyniki, hits_on=… lub hit_values=…, summary=…)` | nic: `TableRollWatcher` (montowany w `GameMapPage`) sam rzuca kośćmi, a po wylądowaniu pokazuje `summary` |
+| Okno z przyciskiem rzutu (Space Cannon, bombardowanie, SCD) | rzut w `core/` jak dotąd, wynik w dzienniku/`pending` | przycisk = `HoldRollButton` + `onHold={soloHold(liczba_kości, rgb)}` (pula po przytrzymaniu); nowy wynik → `useDiceStage.getState().throwDice({...})`, a zwrócone `pauseMs` = czas, do którego **nie zdradzamy wyniku** w UI |
+| Walka (AFB / rzut rundy) | jak dotąd | wbudowany stół w `BattleOverlay` (`DiceTray`, `DicePool`) — nie używa sceny wspólnej |
+
+Pliki: `frontend/src/domains/dice/` (`diceStage.ts`, `DiceStageHost.tsx`, `HoldRollButton.tsx`, `TableRollWatcher.tsx`),
+`frontend/src/domains/battle/` (`diceRoll.ts` plan i fizyka, `dieGeometry.ts` bryła d10, `DieMesh.tsx`, `DiceTray.tsx`,
+`DicePool.tsx`). Wszystko, co zależy od wyniku (trafienia, panel strat, salwy efektów), startuje po `pauseMs`.
 
 ---
 

@@ -29,9 +29,12 @@ type Wobble = {
 export function DicePool({
   left,
   right,
+  solo = false,
 }: {
   left: number;
   right: number;
+  /** Rzuca jedna strona (lewa): pula pośrodku, jeden licznik. */
+  solo?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -44,8 +47,8 @@ export function DicePool({
     if (box.w === 0) return [];
     const rand = rng(7);
     return (["left", "right"] as const).flatMap((side) => {
-      const n = Math.min(side === "left" ? left : right, 30);
-      const { points, size } = poolLayout(side, n, box.w, box.h);
+      const n = Math.min(side === "left" ? left : solo ? 0 : right, 30);
+      const { points, size } = poolLayout(side, n, box.w, box.h, solo);
       return points.map((base, i) => ({
         side,
         key: `${side}-${i}`,
@@ -61,7 +64,7 @@ export function DicePool({
         enter: (side === "left" ? 0 : 120) + i * 55,
       }));
     });
-  }, [box, left, right]);
+  }, [box, left, right, solo]);
 
   useLayoutEffect(() => {
     const root = ref.current;
@@ -125,12 +128,14 @@ export function DicePool({
           size={d.size}
         />
       ))}
-      <span className={styles.poolCount} data-side="left">
-        <b>{left}</b> dice
+      <span className={styles.poolCount} data-side={solo ? "solo" : "left"}>
+        <b>{left}</b> {left === 1 ? "die" : "dice"}
       </span>
-      <span className={styles.poolCount} data-side="right">
-        <b>{right}</b> dice
-      </span>
+      {!solo && (
+        <span className={styles.poolCount} data-side="right">
+          <b>{right}</b> {right === 1 ? "die" : "dice"}
+        </span>
+      )}
     </div>
   );
 }

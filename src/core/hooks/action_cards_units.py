@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import economy, unit_ops
-from src.core.dice import DIE_SIDES, next_rng
+from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.fleet_pool import unit_cost
 from src.core.game_state import GameState
 from src.core.hooks.card_helpers import (
@@ -98,7 +98,18 @@ def plague(
         raise ValueError("Choose 1 planet controlled by another player ('planet').")
     infantry = unit_ops.count_in_zone(system, planet, owner, "infantry")
     rng = next_rng(state)
-    hits = sum(1 for _ in range(infantry) if rng.randint(1, DIE_SIDES) >= _PLAGUE_HITS_ON)
+    results = [rng.randint(1, DIE_SIDES) for _ in range(infantry)]
+    hits = sum(1 for value in results if value >= _PLAGUE_HITS_ON)
+    if results:
+        record_table_roll(
+            state,
+            player_id,
+            "plague",
+            "Plague",
+            results,
+            hits_on=_PLAGUE_HITS_ON,
+            summary=f"{hits} of {infantry} infantry destroyed.",
+        )
     if hits:
         unit_ops.remove_units(state, system, planet, owner, "infantry", hits, UnitCause.DESTROYED)
 

@@ -145,6 +145,16 @@ dlatego trzymamy ostry podział warstw, zależności tylko w dół:
   `AppContext` (`api/context.py`, zależność `get_ctx`). Wzorzec routera: ARCHITEKTURA_KODU.md §4.
   Przy E3 dodaj `core/tactical.py` + `api/routers/tactical.py`.
 
+## Rzuty kośćmi = fizyczna scena kości (decyzja 2026-11-09)
+
+- To planszówka: KAŻDY rzut kością w UI to fizyczny rzut d10 (bryła 3D, odbicia, dźwięk), a przycisk rzutu
+  można PRZYTRZYMAĆ, żeby zebrać kości w puli (widać ile ich) i puścić = rzut. Wynik zawsze liczy silnik.
+- Nowy rzut poza walką (karta akcji, relikt, przełom…): w `core/` po losowaniu wołaj
+  `dice.record_table_roll(...)` — `TableRollWatcher` sam pokaże kości i wynik. Okno z własnym przyciskiem rzutu:
+  `HoldRollButton` + `soloHold` + `useDiceStage().throwDice` (`frontend/src/domains/dice/`); wynik zależny od
+  rzutu odsłaniamy dopiero po `pauseMs`. NIE twórz własnych animacji kostki ani bannerów z cyframi.
+  Pełny przepis: `docs/ARCHITEKTURA_KODU.md` §3a.1. Pole bitwy ma wbudowany stół (`BattleOverlay`).
+
 ## Cel: wszystkie karty gotowe + zagrywanie przeciąganiem (decyzja 2026-11-08)
 
 - Chcemy KOMPLET kart (karty akcji, agendy, eksploracja, relikty, promissory notes, liderzy, zdolności, technologie),

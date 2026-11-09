@@ -19,6 +19,13 @@ import { getTileById } from "@/entities/lookup/systems";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { HoldRollButton } from "@/domains/dice/HoldRollButton";
+import {
+  soloHold,
+  useDiceStage,
+  type DiceThrowInput,
+} from "@/domains/dice/diceStage";
+import { countDice, volleyStartMs } from "@/domains/battle/diceRoll";
 import { CustodiansClaim } from "./CustodiansClaim";
 import { InvasionPlanetCard } from "./InvasionPlanetCard";
 import { usePlayerLook } from "./invasionUi";
@@ -95,6 +102,58 @@ function InvasionWindow({ view }: { view: InvasionView }) {
     : view.position;
   const planetName = (id: string) => getPlanetData(id)?.name ?? id;
 
+  // Nowe wpisy dziennika = świeży rzut: kości na wspólnej scenie (fizyczny rzut), a wynik i
+  // salwy efektów czekają, aż kości wylądują. Stan pochodny liczony w renderze (bez migotania).
+  const throwDice = useDiceStage((s) => s.throwDice);
+  const [seenLen, setSeenLen] = useState(view.log.length);
+  const [rollBatch, setRollBatch] = useState({ from: view.log.length, ms: 0 });
+  const [queuedThrow, setQueuedThrow] = useState<DiceThrowInput | null>(null);
+  if (view.log.length !== seenLen) {
+    setSeenLen(view.log.length);
+    if (view.log.length < seenLen) {
+      setRollBatch({ from: view.log.length, ms: 0 }); // cofnięcie (Undo)
+    } else {
+      const fresh = view.log.slice(seenLen).filter((e) => !e.passed);
+      const groupsOf = (kind: "BOMBARDMENT" | "DEFENSE") =>
+        fresh
+          .filter((e) => e.phase === kind)
+          .flatMap((e) =>
+            e.rolls.map((r) => ({ dice: r.dice, modifier: 0, hitsOn: r.hitsOn })),
+          );
+      const bombRolls = groupsOf("BOMBARDMENT");
+      const defRolls = groupsOf("DEFENSE");
+      const defKey = fresh.find((e) => e.phase === "DEFENSE")?.defender ?? "";
+      const attRgb = attacker?.rgb ?? "148 163 184";
+      const defRgb = look(defKey).rgb;
+      let input: DiceThrowInput | null = null;
+      if (bombRolls.length > 0 && defRolls.length > 0) {
+        input = {
+          left: bombRolls,
+          right: defRolls,
+          leftRgb: attRgb,
+          rightRgb: defRgb,
+          solo: false,
+        };
+      } else if (bombRolls.length > 0) {
+        input = { left: bombRolls, leftRgb: attRgb };
+      } else if (defRolls.length > 0) {
+        input = { left: defRolls, leftRgb: defRgb };
+      }
+      setRollBatch({
+        from: seenLen,
+        ms: input
+          ? volleyStartMs(countDice(input.left), countDice(input.right ?? []))
+          : 0,
+      });
+      setQueuedThrow(input);
+    }
+  }
+  useEffect(() => {
+    if (!queuedThrow) return;
+    throwDice(queuedThrow);
+    setQueuedThrow(null);
+  }, [queuedThrow, throwDice]);
+
   const bombard = view.bombard;
   const plan = userPlan ?? defaultBombardPlan(bombard.groups, bombard.targets);
   const canBombard = bombard.groups.length > 0 && !bombard.done;
@@ -114,6 +173,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
   const cardActions = {
     busy,
     stage,
+    rollBatch,
     bombardPlan: canBombard ? plan : {},
     onBump: (planet: string, baseType: string, delta: number) =>
       setStage((s) => bumpStage(s, view.cargo, planet, baseType, delta)),
@@ -385,16 +445,30 @@ function InvasionWindow({ view }: { view: InvasionView }) {
 
         <div className={styles.dockActions}>
           {phase === "BOMBARDMENT" && canBombard && (
-            <button
-              type="button"
+            <HoldRollButton
               className={styles.primaryBtn}
               disabled={busy}
-              onClick={() =>
+              onFire={() =>
                 void run(() => actions.bombard(bombardList(plan)))
               }
+              onHold={soloHold(
+                bombard.groups.reduce(
+                  (n, g) =>
+                    n +
+                    Object.values(plan[g.baseType] ?? {}).reduce(
+                      (a, b) => a + b,
+                      0,
+                    ) *
+                      g.dicePerUnit,
+                  0,
+                ),
+                attacker?.rgb ?? "148 163 184",
+              )}
+              hint={false}
+              title="Roll bombardment (hold to shake the dice, release to throw)"
             >
               <IconRocket size={14} /> Roll bombardment
-            </button>
+            </HoldRollButton>
           )}
           {phase === "COMMIT" && staged > 0 && (
             <button

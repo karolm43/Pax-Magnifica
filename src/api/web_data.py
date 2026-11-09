@@ -323,6 +323,9 @@ def _build_game_state(
             "lastRoll": state.fracture.last_roll,
             "thundersEdgePosition": state.expeditions.thunders_edge_position,
         },
+        # Ostatni rzut kośćmi poza walką (Fracture, karty akcji) - UI animuje go kośćmi
+        # (`core.dice.record_table_roll`). Nasze rozszerzenie kontraktu.
+        "tableRoll": state.table_roll,
         # Jednorazowa produkcja z karty (Freelancers) — okno produkcji otwiera się poza krokiem
         # PRODUCTION (RULES.md 46). Nasze rozszerzenie kontraktu.
         "productionGrant": (
