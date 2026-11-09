@@ -1,4 +1,4 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import {
   loadStoredChoice,
@@ -195,6 +195,13 @@ type AppStore = {
    */
   moveRangeSources: Set<string>;
   setMoveRangeSources: (positions: Set<string>) => void;
+  /**
+   * Gracz ŚWIADOMIE używa Gravity Drive (+1 do ruchu jednego statku w tej akcji). Dołączane do
+   * każdego walidowanego ruchu (`/tactical/move`) i do podglądu zasięgu; silnik nigdy nie włącza
+   * tej premii sam (RULES.md 56).
+   */
+  gravityDrive: boolean;
+  setGravityDrive: (on: boolean) => void;
 
   /*
    * Okno ZAŁADUNKU transportu (krok MOVEMENT, RULES.md 32.3). Gdy ustawione, otwarte
@@ -390,6 +397,8 @@ export const useAppStore = create<AppStore>((set) => {
     moveRangeSources: new Set<string>(),
     setMoveRangeSources: (positions: Set<string>) =>
       set({ moveRangeSources: positions }),
+    gravityDrive: false,
+    setGravityDrive: (on: boolean) => set({ gravityDrive: on }),
 
     loadTransport: null,
     openLoadTransport: (target) => set({ loadTransport: target }),

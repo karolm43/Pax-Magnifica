@@ -255,22 +255,33 @@ def _far_state(count: int, techs: list[str]) -> GameState:
     )
 
 
-def test_gravity_drive_pozwala_jednemu_statkowi_przekroczyc_zasieg_o_jeden(
+def test_gravity_drive_dziala_tylko_gdy_gracz_o_to_poprosi(
     registry: StaticDataRegistry,
 ) -> None:
     grid = _far_grid()
     assert not grid.are_adjacent("201", "000")
-    plain = _far_state(2, [])
-    with pytest.raises(ValueError, match="Range too short"):
-        movement.move_fleet(plain, grid, registry, "201", {"carrier": 1}, {}, "p1")
-
     boosted = _far_state(2, ["gd"])
-    moved = movement.move_fleet(boosted, grid, registry, "201", {"carrier": 1}, {}, "p1")
+    # Bez zgody gracza silnik NIE włącza premii, mimo że technologia jest w grze.
+    with pytest.raises(ValueError, match="Range too short"):
+        movement.move_fleet(boosted, grid, registry, "201", {"carrier": 1}, {}, "p1")
+    moved = movement.move_fleet(
+        boosted, grid, registry, "201", {"carrier": 1}, {}, "p1", gravity_drive=True
+    )
     assert moved.systems["000"].space_units["p1"] == {"carrier": 1}
     assert moved.gravity_drive_used
     # Premia jest jednorazowa w akcji: drugi statek z tego samego miejsca już nie dojedzie.
     with pytest.raises(ValueError, match="Range too short"):
-        movement.move_fleet(moved, grid, registry, "201", {"carrier": 1}, {}, "p1")
+        movement.move_fleet(
+            moved, grid, registry, "201", {"carrier": 1}, {}, "p1", gravity_drive=True
+        )
+
+
+def test_gravity_drive_bez_technologii_nic_nie_daje(registry: StaticDataRegistry) -> None:
+    with pytest.raises(ValueError, match="Range too short"):
+        movement.move_fleet(
+            _far_state(2, []), _far_grid(), registry, "201", {"carrier": 1}, {}, "p1",
+            gravity_drive=True,
+        )
 
 
 def test_gravity_drive_nie_obejmuje_grupy_wiekszej_niz_jeden_statek(
@@ -278,7 +289,8 @@ def test_gravity_drive_nie_obejmuje_grupy_wiekszej_niz_jeden_statek(
 ) -> None:
     with pytest.raises(ValueError, match="only 1 ship"):
         movement.move_fleet(
-            _far_state(2, ["gd"]), _far_grid(), registry, "201", {"carrier": 2}, {}, "p1"
+            _far_state(2, ["gd"]), _far_grid(), registry, "201", {"carrier": 2}, {}, "p1",
+            gravity_drive=True,
         )
 
 
@@ -297,13 +309,18 @@ def test_gravity_drive_nie_jest_zuzywany_gdy_ruch_i_tak_jest_legalny(
             )
         },
     )
-    moved = movement.move_fleet(state, grid, registry, "101", {"carrier": 2}, {}, "p1")
+    moved = movement.move_fleet(
+        state, grid, registry, "101", {"carrier": 2}, {}, "p1", gravity_drive=True
+    )
     assert not moved.gravity_drive_used
 
 
-def test_gravity_drive_pokazuje_zrodlo_w_podgladzie_zasiegu(
+def test_gravity_drive_podglad_zasiegu_uwzglednia_wybor_gracza(
     registry: StaticDataRegistry,
 ) -> None:
     grid = _far_grid()
-    assert "201" not in movement.legal_move_sources(_far_state(1, []), grid, registry, "p1")
-    assert "201" in movement.legal_move_sources(_far_state(1, ["gd"]), grid, registry, "p1")
+    state = _far_state(1, ["gd"])
+    assert "201" not in movement.legal_move_sources(state, grid, registry, "p1")
+    assert "201" in movement.legal_move_sources(
+        state, grid, registry, "p1", gravity_drive=True
+    )

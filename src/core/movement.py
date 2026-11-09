@@ -311,8 +311,13 @@ def legal_move_sources(
     grid: HexGrid,
     registry: StaticDataRegistry,
     player_id: str,
+    *,
+    gravity_drive: bool = False,
 ) -> dict[str, list[str]]:
     """Mapa {pozycja źródłowa -> lista base_type statków, które mogą ruszyć stamtąd}.
+
+    ``gravity_drive=True`` = gracz zamierza użyć Gravity Drive (premia dla jednego statku), o ile
+    jeszcze jej w tej akcji nie zużył.
 
     Dla każdego systemu (poza aktywnym), w którym gracz ma statki, sprawdza które
     typy statków mają legalną trasę do aktywnego systemu (``can_move``, R1–R6). System
@@ -334,10 +339,9 @@ def legal_move_sources(
         for base_type, count in sorted(by_type.items()):
             if count <= 0 or not is_space_unit(base_type):
                 continue
-            # Premia jednorazowa (Gravity Drive) liczy się do podglądu, dopóki niezużyta.
             ok, _ = can_move(
                 state, grid, registry, position, base_type, player_id,
-                boost=not state.gravity_drive_used,
+                boost=gravity_drive and not state.gravity_drive_used,
             )
             if ok:
                 movable.append(base_type)
@@ -365,6 +369,8 @@ def move_fleet(
     ships: dict[str, int],
     cargo: list[CargoPickup] | dict[str, int],
     player_id: str,
+    *,
+    gravity_drive: bool = False,
 ) -> GameState:
     """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
 
@@ -409,14 +415,16 @@ def move_fleet(
     source = state.systems.get(from_pos)
 
     # Statki: walidacja legalności + dostępności (R1–R6, policzone per typ). Premia jednorazowa
-    # dla JEDNEGO statku w akcji (Gravity Drive, RULES.md 55.6) włącza się automatycznie tylko
-    # tam, gdzie bez niej ruch jest nielegalny, i nie dla grupy większej niż 1.
+    # dla JEDNEGO statku w akcji (Gravity Drive, RULES.md 55.6) działa WYŁĄCZNIE na życzenie
+    # gracza (``gravity_drive=True``), tylko tam, gdzie bez niej ruch jest nielegalny, i nie
+    # dla grupy większej niż 1.
     boost_spent = state.gravity_drive_used
     for base_type, count in ships.items():
         ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
         if not ok:
             boosted_ok, _ = can_move(
-                state, grid, registry, from_pos, base_type, player_id, boost=not boost_spent
+                state, grid, registry, from_pos, base_type, player_id,
+                boost=gravity_drive and not boost_spent,
             )
             if not boosted_ok:
                 raise ValueError(reason)

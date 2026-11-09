@@ -1,4 +1,4 @@
-﻿"""Router akcji taktycznej (Etap E3): aktywacja systemu + maszyna kroków.
+"""Router akcji taktycznej (Etap E3): aktywacja systemu + maszyna kroków.
 
 Cienka warstwa HTTP: woła czyste funkcje z ``core.tactical`` (przepływ kroków) oraz
 ``core.board_edit`` (God-Mode żetony dowodzenia), commituje i rozsyła stan + mapę.
@@ -98,6 +98,7 @@ async def post_tactical_move(
             ships,
             cargo,
             player_id,
+            gravity_drive=request.gravity_drive,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -321,7 +322,7 @@ async def post_capture_planet(
     response_model_by_alias=True,
 )
 async def get_move_range(
-    faction: str, ctx: AppContext = Depends(get_ctx)
+    faction: str, gravity_drive: bool = False, ctx: AppContext = Depends(get_ctx)
 ) -> MoveRangeResponse:
     """Podgląd zasięgu ruchu: legalne systemy źródłowe do aktywnego (RULES.md 32).
 
@@ -332,7 +333,7 @@ async def get_move_range(
     state = ctx.service.current_state()
     player_id = board_edit.resolve_player_id(faction, state)
     sources = movement.legal_move_sources(
-        state, ctx.current_grid, ctx.registry, player_id
+        state, ctx.current_grid, ctx.registry, player_id, gravity_drive=gravity_drive
     )
     return MoveRangeResponse(active=state.active_system, sources=sources)
 

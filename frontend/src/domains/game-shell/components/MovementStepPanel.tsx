@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   IconArrowBackUp,
   IconArrowRight,
@@ -7,6 +8,9 @@ import {
   IconPlus,
   IconShip,
 } from "@tabler/icons-react";
+import { Switch } from "@/ds";
+import { DEFAULT_GAME_ID } from "@/config";
+import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor, useMoveRange } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
@@ -86,6 +90,10 @@ export function MovementStepPanel({
   const gameData = useGameData();
   const { moveShips, undo } = useBoardEditor();
   const setMoveRangeSources = useAppStore((s) => s.setMoveRangeSources);
+  const gravityDrive = useAppStore((s) => s.gravityDrive);
+  const setGravityDrive = useAppStore((s) => s.setGravityDrive);
+  const routeParams = useParams<{ mapid: string }>();
+  const { data: gameState } = useGameState(routeParams.mapid ?? DEFAULT_GAME_ID);
   const openLoadTransport = useAppStore((s) => s.openLoadTransport);
   const [source, setSource] = useState<string | null>(null);
   const [picked, setPicked] = useState<Record<string, number>>({});
@@ -97,7 +105,15 @@ export function MovementStepPanel({
   const colorAlias = getColorAlias(player?.color);
 
   // Podgląd zasięgu ruchu (legalne systemy źródłowe) — podświetla heksy na mapie.
-  const { data: moveRange } = useMoveRange(faction, Boolean(activeSystem));
+  // Gravity Drive (RULES.md 55.6): przełącznik tylko dla właściciela technologii, dopóki w tej
+  // akcji nie zużyto premii - to GRACZ decyduje, silnik nie włącza jej sam.
+  const gravityDriveReady =
+    (player?.techs ?? []).includes("gd") && gameState?.gravityDriveUsed !== true;
+  const useGd = gravityDrive && gravityDriveReady;
+  useEffect(() => {
+    if (!gravityDriveReady && gravityDrive) setGravityDrive(false);
+  }, [gravityDriveReady, gravityDrive, setGravityDrive]);
+  const { data: moveRange } = useMoveRange(faction, Boolean(activeSystem), useGd);
   useEffect(() => {
     setMoveRangeSources(new Set(Object.keys(moveRange?.sources ?? {})));
     return () => setMoveRangeSources(new Set());
@@ -287,6 +303,15 @@ export function MovementStepPanel({
           {over ? " · over!" : ""}
         </span>
       </div>
+
+      {gravityDriveReady && (
+        <Switch
+          label="Use Gravity Drive"
+          description="+1 move for ONE ship this action (the ship that needs it)."
+          checked={gravityDrive}
+          onChange={(event) => setGravityDrive(event.currentTarget.checked)}
+        />
+      )}
 
       {/* Fleet pool (RULES.md 42): ruch ponad pulę jest dozwolony, ale nadwyżka zostanie usunięta. */}
       <FleetPoolWarning />

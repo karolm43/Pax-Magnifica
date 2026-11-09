@@ -496,6 +496,7 @@ export function useBoardEditor() {
     }) => {
       await post("/tactical/move", {
         fromPosition: args.fromPosition,
+        gravityDrive: useAppStore.getState().gravityDrive,
         baseType: args.baseType ?? null,
         count: args.baseType ? (args.count ?? 1) : 0,
         faction: args.faction,
@@ -1207,13 +1208,17 @@ export type MoveRange = {
  * legalnie ruszyć do aktywnego systemu. Do podświetlenia zasięgu/ścieżki na mapie.
  * Pusta mapa ``sources`` = brak legalnego ruchu (albo brak aktywnego systemu).
  */
-export function useMoveRange(faction: string | null, enabled: boolean) {
+export function useMoveRange(
+  faction: string | null,
+  enabled: boolean,
+  gravityDrive = false,
+) {
   return useQuery<MoveRange>({
-    queryKey: ["moveRange", faction],
+    queryKey: ["moveRange", faction, gravityDrive],
     enabled: enabled && faction !== null,
     queryFn: async () =>
       fetchJson<MoveRange>(
-        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}`,
+        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}&gravity_drive=${gravityDrive}`,
         "moveRange",
       ),
     staleTime: 0,
