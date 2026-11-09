@@ -233,38 +233,46 @@
 }
 
 .seat {
-  fill: rgb(var(--seat-rgb) / 0.95);
-  stroke: rgba(8, 10, 18, 0.7);
-  stroke-width: 1;
   animation: seatIn 0.4s ease-out both;
 }
 
-/* Nieoddany głos: pusty okrąg w kolorze gracza. */
-.seat[data-state="waiting"],
-.seat[data-state="now"] {
-  fill: rgb(var(--seat-rgb) / 0.12);
-  stroke: rgb(var(--seat-rgb) / 0.85);
-  stroke-width: 1.6;
+.seatDisc {
+  fill: rgb(var(--seat-rgb) / 0.35);
 }
 
-.seat[data-state="now"] {
-  fill: rgb(var(--seat-rgb) / 0.3);
-  stroke: #fcd34d;
-  stroke-width: 2.2;
+.seatIcon {
+  pointer-events: none;
 }
 
-/* Oddany głos: wypełnienie w kolorze gracza, obwódka w kolorze wybranego wyniku. */
-.seat[data-state="voted"] {
+/* Obwódka: przerywana = głos jeszcze nie oddany; pełna w kolorze wyniku = oddany. */
+.seatRing {
+  fill: none;
+  stroke: rgb(var(--seat-rgb) / 0.9);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 2.5;
+}
+
+.seatRing[data-cast] {
   stroke: var(--ring, #fcd34d);
-  stroke-width: 2.6;
-  paint-order: stroke;
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.seat[data-state="waiting"] .seatIcon,
+.seat[data-state="waiting"] .seatDisc {
+  opacity: 0.45;
+}
+
+.seat[data-state="now"] .seatRing {
+  stroke: #fcd34d;
+  stroke-width: 2.4;
+  stroke-dasharray: none;
 }
 
 .seat[data-state="abstained"],
 .seat[data-state="blocked"] {
-  fill: rgba(148, 163, 184, 0.18);
-  stroke: rgba(148, 163, 184, 0.45);
-  stroke-width: 1;
+  opacity: 0.35;
+  filter: grayscale(1);
 }
 
 .chamberCore {
@@ -318,6 +326,11 @@
 }
 
 .legend i,
+.pick svg {
+  flex: none;
+  color: var(--ring);
+}
+
 .pick i {
   width: 11px;
   height: 11px;

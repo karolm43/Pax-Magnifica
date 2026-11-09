@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import {
+  IconArrowRight,
+  IconThumbDown,
+  IconThumbUp,
   IconCheck,
   IconChevronsRight,
   IconCrown,
@@ -26,6 +29,7 @@ import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { useFactionImageUrl } from "@/hooks/useFactionImages";
 import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import {
@@ -141,7 +145,7 @@ function hemicycleSeats(total: number): { x: number; y: number; r: number }[] {
   }
   const rowGap = rows > 1 ? (HEMI.rOut - HEMI.rIn) / (rows - 1) : 40;
   const arcGap = Math.min(...radii.map((r, i) => (Math.PI * r) / (counts[i] ?? 1)));
-  const dot = Math.min(14, Math.min(rowGap, arcGap) * 0.42);
+  const dot = Math.min(17, Math.min(rowGap, arcGap) * 0.42);
   const seats: { x: number; y: number; r: number; a: number; rad: number }[] = [];
   radii.forEach((rad, i) => {
     const n = counts[i] ?? 1;
@@ -158,6 +162,61 @@ function hemicycleSeats(total: number): { x: number; y: number; r: number }[] {
   });
   seats.sort((p, q) => q.a - p.a || p.rad - q.rad);
   return seats.map(({ x, y, r }) => ({ x, y, r }));
+}
+
+/** Jedno miejsce = jeden głos: ikona frakcji w kółku; obwódka w kolorze wybranego wyniku. */
+function FactionSeat({
+  x,
+  y,
+  r,
+  faction,
+  state,
+  rgb,
+  ring,
+  delay,
+  label,
+}: {
+  x: number;
+  y: number;
+  r: number;
+  faction: string | null;
+  state: string;
+  rgb: string;
+  ring?: string;
+  delay: number;
+  label: string;
+}) {
+  const url = useFactionImageUrl(faction ?? "", null, null);
+  const cast = state === "voted";
+  return (
+    <g
+      className={styles.seat}
+      data-state={state}
+      style={
+        {
+          "--seat-rgb": rgb,
+          ...(ring ? { "--ring": ring } : null),
+          animationDelay: `${delay}ms`,
+        } as CSSProperties
+      }
+    >
+      <title>{label}</title>
+      <circle cx={x} cy={y} r={r} className={styles.seatDisc} />
+      {faction ? (
+        <image
+          href={url}
+          x={x - r * 0.86}
+          y={y - r * 0.86}
+          width={r * 1.72}
+          height={r * 1.72}
+          clipPath="url(#seatClip)"
+          className={styles.seatIcon}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      ) : null}
+      <circle cx={x} cy={y} r={r} className={styles.seatRing} data-cast={cast || undefined} />
+    </g>
+  );
 }
 
 /** SENAT: wykres parlamentu. Jedno miejsce = jeden głos, bloki w kolorach graczy. */
@@ -206,6 +265,11 @@ function Senate({
           role="img"
           aria-label="Senate seating: one seat per vote"
         >
+          <defs>
+            <clipPath id="seatClip" clipPathUnits="objectBoundingBox">
+              <circle cx="0.5" cy="0.5" r="0.5" />
+            </clipPath>
+          </defs>
           {[HEMI.rIn - 22, HEMI.rOut + 22].map((r) => (
             <path
               key={r}
@@ -221,32 +285,26 @@ function Senate({
             const cast = st === "voted" && vote != null;
             const ring = cast ? outcomeColor(agenda, vote.outcome) : undefined;
             return (
-              <circle
+              <FactionSeat
                 key={i}
-                cx={s.x}
-                cy={s.y}
+                x={s.x}
+                y={s.y}
                 r={s.r}
-                className={styles.seat}
-                data-state={st}
-                style={
-                  {
-                    "--seat-rgb": look.rgb,
-                    ...(ring ? { "--ring": ring } : null),
-                    animationDelay: `${Math.min(i, 120) * 8}ms`,
-                  } as CSSProperties
-                }
-              >
-                <title>
-                  {look.name}
-                  {cast
+                faction={look.faction}
+                state={st}
+                rgb={look.rgb}
+                ring={ring}
+                delay={Math.min(i, 120) * 8}
+                label={`${look.name}${
+                  cast
                     ? `: ${vote.votes} for ${outcomeLabel(agenda, vote.outcome, lookOf)}`
                     : st === "abstained"
                       ? ": abstains"
                       : st === "blocked"
                         ? ": cannot vote"
-                        : ": votes not cast yet"}
-                </title>
-              </circle>
+                        : ": votes not cast yet"
+                }`}
+              />
             );
           })}
         </svg>
@@ -300,7 +358,13 @@ function Senate({
                     className={styles.pick}
                     style={{ "--ring": outcomeColor(agenda, vote.outcome) } as CSSProperties}
                   >
-                    <i aria-hidden="true" />
+                    {vote.outcome === "for" ? (
+                      <IconThumbUp size={16} aria-hidden="true" />
+                    ) : vote.outcome === "against" ? (
+                      <IconThumbDown size={16} aria-hidden="true" />
+                    ) : (
+                      <IconArrowRight size={16} aria-hidden="true" />
+                    )}
                     {outcomeLabel(agenda, vote.outcome, lookOf)}
                     <b>{vote.votes}</b>
                   </span>
