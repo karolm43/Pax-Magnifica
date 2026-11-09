@@ -20,6 +20,7 @@ import {
 import styles from "./ExplorationOverlay.module.css";
 
 const DECK_LABEL: Record<string, string> = {
+  frontier: "Frontier",
   cultural: "Cultural",
   hazardous: "Hazardous",
   industrial: "Industrial",

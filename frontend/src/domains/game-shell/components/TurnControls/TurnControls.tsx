@@ -48,6 +48,8 @@ import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useDeskPlayer } from "./useDeskPlayer";
 import { TransactionModal } from "./TransactionModal";
 import { ActionCardPlayModal } from "./ActionCardPlayModal";
+import { TechnologyUseModal } from "./TechnologyUseModal";
+import { useTechnologyAbilities } from "@/api/useTechnology";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import styles from "./TurnControls.module.css";
 
@@ -141,6 +143,8 @@ export function TurnControls() {
   const [componentOpen, setComponentOpen] = useState(false);
   // Karta akcji wybrana na liście akcji komponentu - otwiera formularz zagrania (RULES.md 53).
   const [playingCard, setPlayingCard] = useState<ComponentActionChoice | null>(null);
+  // Technologia wybrana do użycia (akcja „ACTION:" albo zdolność poza akcją) - RULES.md 57.
+  const [usingTech, setUsingTech] = useState<{ id: string; name: string } | null>(null);
   // Okno transakcji (RULES.md 47): wymiana z sąsiadem + żetony obietnic.
   const [transactionOpen, setTransactionOpen] = useState(false);
   // Ekspedycja Thunder's Edge (RULES.md 50): zajęcie plastra na koniec tury.
@@ -287,6 +291,10 @@ export function TurnControls() {
   // web-data (``playerData``) + ręki — zero hardkodowania (patrz componentActions.ts).
   const activePlayerData = webData?.playerData?.find(
     (p) => p.color === active.color,
+  );
+  const { data: freeAbilities } = useTechnologyAbilities(
+    active.discordId ?? null,
+    componentOpen,
   );
   const componentChoices = collectComponentActions(
     activePlayerData,
@@ -654,6 +662,17 @@ export function TurnControls() {
         </Stack>
       </AppModal>
 
+      {usingTech && active.discordId && (
+        <TechnologyUseModal
+          key={usingTech.id}
+          techId={usingTech.id}
+          techName={usingTech.name}
+          playerId={active.discordId}
+          onClose={() => setUsingTech(null)}
+          onDone={() => setUsingTech(null)}
+        />
+      )}
+
       {playingCard && active.discordId && (
         <ActionCardPlayModal
           key={playingCard.id}
@@ -702,9 +721,9 @@ export function TurnControls() {
       >
         <Stack gap="md">
           <Text size="sm" c="dimmed">
-            Pick what you're playing. Action cards open a form and the engine applies
-            their effect; other components are only recorded as your action for now
-            (apply their effect by hand).
+            Pick what you're playing. Action cards and technologies open a form where you
+            make the choices and the engine applies the effect; other components are only
+            recorded as your action for now (apply their effect by hand).
           </Text>
 
           <div className={styles.compList} role="list">
@@ -722,6 +741,12 @@ export function TurnControls() {
                     if (choice.kind === "action-card") {
                       setComponentOpen(false);
                       setPlayingCard(choice);
+                      return;
+                    }
+                    // Technologia: gracz wybiera cele w formularzu, silnik stosuje efekt.
+                    if (choice.kind === "technology") {
+                      setComponentOpen(false);
+                      setUsingTech({ id: choice.id, name: choice.name });
                       return;
                     }
                     run(() =>
@@ -764,6 +789,37 @@ export function TurnControls() {
               <small className={styles.compItemTag}>Any component</small>
             </button>
           </div>
+
+          {/* Zdolności technologii BEZ akcji (np. Psychoarchaeology) - nie zużywają akcji tury. */}
+          {(freeAbilities ?? []).length > 0 && (
+            <>
+              <Text size="xs" c="dimmed">
+                Technology abilities (not an action)
+              </Text>
+              <div className={styles.compList} role="list">
+                {(freeAbilities ?? []).map((ability) => (
+                  <button
+                    key={ability.tech_id}
+                    type="button"
+                    role="listitem"
+                    className={styles.compItem}
+                    disabled={busy || !ability.usable}
+                    title={ability.reason || undefined}
+                    onClick={() => {
+                      setComponentOpen(false);
+                      setUsingTech({ id: ability.tech_id, name: ability.name });
+                    }}
+                  >
+                    <IconSparkles size={17} aria-hidden="true" />
+                    <span className={styles.compItemName}>{ability.name}</span>
+                    <small className={styles.compItemTag}>
+                      {ability.usable ? "Free" : ability.reason}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <Group justify="flex-end" gap="sm">
             <Button

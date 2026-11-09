@@ -1878,3 +1878,10 @@ type-check + lint + build czyste.
 - Walka: krok `TRIGGERS` + `battle.resume_after_triggers`. Przerobione: Assault Cannon (decyduje ofiara), Magen ΩΩ, Duranium Armor, Infantry II; nowe oferty: Dacxive Animators, Bio-Stims.
 - Testy: `tests/test_offers.py` (14). Front: build + lint zielone.
 - Dalej (bloki B-D): Gravity Drive/GLS/AIDA jako przełączniki w istniejących oknach; Scanlink i Dark Energy Tap przez eksplorację (frontier); Self-Assembly (mech), Integrated Economy, Transit Diodes, Predictive Intelligence; akcje Sling Relay i Psychoarchaeology (dispatch w `component_action`).
+
+## 2026-11-09 (7) — Technologie ogólne: akcje, zdolności, frontier, oferty (RULES.md 57)
+
+- Pokrycie ogólnych technologii: 31 z 33 (brak: Fighter II, Predictive Intelligence - druga zdolność).
+- Nowe: dispatch efektów „ACTION:” w `component_action` (+ `TechnologyUseModal`), zdolności poza akcją (`/technology/*`, Psychoarchaeology), produkcja `free` (Sling Relay, Integrated Economy), eksploracja frontier w istniejącym oknie (Dark Energy Tap), oferty Scanlink/Self-Assembly/Transit Diodes/Predictive Intelligence, przełączniki GLS (Space Cannon) i AIDA (produkcja; UI liczy też zniżki hooków).
+- Poprawka: `gravityDriveUsed` w web-data/typach (wcześniej brak, przełącznik Gravity Drive nie chował się po użyciu).
+- Testy: `tests/test_technologies_actions.py` (25). Front: build + lint zielone.

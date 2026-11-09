@@ -11,6 +11,7 @@ from src.core import (
     component_action,
     exploration,
     production,
+    space_cannon,
     tactical,
     technology_abilities,
     triggers,
@@ -410,3 +411,95 @@ def test_pokrycie_technologii_po_tym_bloku() -> None:
     covered = rules_hooks.covered_components()
     for tech in ("sr", "pa", "det", "sdn", "sar", "ie", "td"):
         assert f"technologies:{tech}" in covered, tech
+
+# --- Graviton Laser System: świadomy wybór gracza ------------------------------------------------
+
+
+def _gls_fire(seed: int, *, gls: bool, tech: bool = True) -> GameState:
+    from tests.test_space_cannon import _grid, _state
+
+    techs = {"p2": ["gls"]} if tech else {}
+    state = _state(
+        pds={"p2": 3}, ships={"p1": {"destroyer": 2, "fighter": 2}}, techs=techs, seed=seed
+    )
+    opened = space_cannon.open_offense(state, _grid(), StaticDataRegistry())
+    return space_cannon.fire_offense(
+        opened, _grid(), StaticDataRegistry(), "p2", "p1", exhaust_gls=gls
+    )
+
+
+def _seed_with_one_hit(gls: bool) -> GameState:
+    for seed in range(1, 200):
+        fired = _gls_fire(seed, gls=gls)
+        pending = space_cannon.pending_hits(fired)
+        if pending is not None and pending.hits == 1:
+            return fired
+    raise AssertionError("no seed with exactly one hit")
+
+
+def test_gls_wyczerpany_na_zyczenie_gracza_kieruje_trafienia_w_statki_niemyslihwskie() -> None:
+    fired = _seed_with_one_hit(gls=True)
+    assert "gls" in fired.players["p2"].exhausted_technologies
+    with pytest.raises(ValueError, match="non-fighter"):
+        space_cannon.assign_hits(fired, "p1", {"fighter": 1})
+    done = space_cannon.assign_hits(fired, "p1", {"destroyer": 1})
+    assert done.systems["000"].space_units["p1"] == {"destroyer": 1, "fighter": 2}
+
+
+def test_gls_bez_wyczerpania_ofiara_wybiera_dowolny_statek() -> None:
+    fired = _seed_with_one_hit(gls=False)
+    assert "gls" not in fired.players["p2"].exhausted_technologies
+    done = space_cannon.assign_hits(fired, "p1", {"fighter": 1})
+    assert done.systems["000"].space_units["p1"] == {"destroyer": 2, "fighter": 1}
+
+
+def test_gls_nie_da_sie_wyczerpac_bez_technologii_ani_dwa_razy() -> None:
+    with pytest.raises(ValueError, match="not ready"):
+        _gls_fire(1, gls=True, tech=False)
+
+
+# --- AI Development Algorithm: zniżka kosztu na życzenie gracza ----------------------------------
+
+
+def test_aida_obniza_koszt_o_liczbe_ulepszen_tylko_gdy_gracz_ja_wyczerpie(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state(["aida", "cr2", "dd2"])
+    state.active_system = "101"
+    state.systems["101"] = SystemState(position="101", system_id="20")
+    orders = [production.ProductionOrder("dreadnought", 1)]
+    base = production.order_cost(state, registry, "p1", orders)
+    assert production.order_cost(state, registry, "p1", orders, exhaust_aida=True) == base - 2
+    assert production.aida_discount(state, registry, "p1") == 2
+    state.players["p1"].exhausted_technologies = ["aida"]
+    with pytest.raises(ValueError, match="not ready"):
+        production.order_cost(state, registry, "p1", orders, exhaust_aida=True)
+
+
+def test_aida_wyczerpuje_sie_przy_produkcji_na_zadanie() -> None:
+    registry = StaticDataRegistry()
+    state = _dock_state(["aida", "cr2"])
+    done = component_action.play_component_action(
+        _dock_state(["sr", "aida", "cr2"]), "p1", "sr", params={"system": "101"}
+    )
+    del state
+    cost = production.order_cost(
+        done, registry, "p1", [production.ProductionOrder("cruiser", 1)], exhaust_aida=True
+    )
+    produced = production.produce(
+        done, HexGrid(), registry, "p1", [production.ProductionOrder("cruiser", 1)],
+        exhaust_aida=True,
+    )
+    assert "aida" in produced.players["p1"].exhausted_technologies
+    assert produced.players["p1"].trade_goods == 6 - cost
+    plain = production.produce(
+        done, HexGrid(), registry, "p1", [production.ProductionOrder("cruiser", 1)]
+    )
+    assert "aida" not in plain.players["p1"].exhausted_technologies
+
+
+def test_sarween_tools_zniżka_widoczna_dla_ui() -> None:
+    state = _state(["st"])
+    state.active_system = "101"
+    assert production.cost_reduction(state, "p1") == 1
+    assert production.cost_reduction(_state([]), "p1") == 0

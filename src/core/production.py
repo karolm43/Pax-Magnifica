@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import control, economy, rules_hooks, triggers, unit_ops
+from src.core import control, economy, exhaust, rules_hooks, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
@@ -484,6 +484,8 @@ def validate_production(
     registry: StaticDataRegistry,
     player_id: str,
     orders: list[ProductionOrder],
+    *,
+    exhaust_aida: bool = False,
 ) -> None:
     """Twardo waliduje zamówienie produkcji (RULES.md 33.2) — nie mutuje stanu.
 
@@ -507,7 +509,7 @@ def validate_production(
         if free_grant.ships_only and any(not is_space_unit(o.base_type) for o in orders):
             raise ValueError(f"{free_grant.source or "This ability"} produces ships only.")
         if free_grant.max_cost is not None:
-            cost = order_cost(state, registry, player_id, orders)
+            cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
             if cost > free_grant.max_cost:
                 raise ValueError(
                     f"The combined cost {cost:g} exceeds the limit of {free_grant.max_cost:g}."
@@ -551,7 +553,7 @@ def validate_production(
                 )
 
     # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania).
-    total_cost = order_cost(state, registry, player_id, orders)
+    total_cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
     budget = available_budget(state, registry, player_id)
     if total_cost > budget:
         raise ValueError(
@@ -560,14 +562,57 @@ def validate_production(
         )
 
 
+AIDA = "aida"
+
+
+def aida_discount(state: GameState, registry: StaticDataRegistry, player_id: str) -> int:
+    """Ile kosztu zdejmie AI Development Algorithm: liczba posiadanych ulepszeń jednostek."""
+    player = state.players.get(player_id)
+    if player is None:
+        return 0
+    return sum(
+        1
+        for tech_id in player.technologies
+        if (tech := registry.technologies.get(tech_id)) is not None and "UNITUPGRADE" in tech.types
+    )
+
+
+def aida_ready(state: GameState, player_id: str) -> bool:
+    """Czy gracz może wyczerpać AI Development Algorithm (posiada i nie jest wyczerpana)."""
+    player = state.players.get(player_id)
+    return (
+        player is not None
+        and AIDA in player.technologies
+        and AIDA not in player.exhausted_technologies
+    )
+
+
+def cost_reduction(state: GameState, player_id: str) -> float:
+    """Zniżka łącznego kosztu z hooków (np. Sarween Tools) - do podglądu kosztu w UI."""
+    return -float(rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, state, player_id, 0.0))
+
+
 def order_cost(
-    state: GameState, registry: StaticDataRegistry, player_id: str, orders: list[ProductionOrder]
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    orders: list[ProductionOrder],
+    *,
+    exhaust_aida: bool = False,
 ) -> float:
-    """Łączny koszt zamówienia (para fighter/infantry = jeden koszt)."""
+    """Łączny koszt zamówienia (para fighter/infantry = jeden koszt).
+
+    ``exhaust_aida=True`` - gracz ŚWIADOMIE wyczerpuje AI Development Algorithm: łączny koszt
+    spada o liczbę jego ulepszeń jednostek (RULES.md 57).
+    """
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
     base_cost = _total_cost(registry, faction_id, technologies, orders)
+    if exhaust_aida:
+        if not aida_ready(state, player_id):
+            raise ValueError("AI Development Algorithm is not ready.")
+        base_cost = max(0.0, base_cost - aida_discount(state, registry, player_id))
     return max(
         0.0,
         rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, state, player_id, base_cost),
@@ -645,6 +690,8 @@ def produce(
     player_id: str,
     orders: list[ProductionOrder],
     spend: Spend | None = None,
+    *,
+    exhaust_aida: bool = False,
 ) -> GameState:
     """Wykonuje produkcję w aktywnym systemie: walidacja → płatność → postawienie jednostek.
 
@@ -659,7 +706,7 @@ def produce(
     """
     active = production_system(state)
     orders = [o for o in orders if o.count > 0]
-    validate_production(state, grid, registry, player_id, orders)
+    validate_production(state, grid, registry, player_id, orders, exhaust_aida=exhaust_aida)
     if active is None or not orders:
         return state.clone()
 
@@ -691,7 +738,7 @@ def produce(
                 f"Not enough {base_type} in reinforcements: {count} > {left} left."
             )
 
-    cost = order_cost(state, registry, player_id, orders)
+    cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
     pay = spend if spend is not None else auto_pay(state, registry, player_id, cost)
     _validate_spend(state, registry, player_id, pay, cost)
 
@@ -720,6 +767,8 @@ def produce(
         if zone != "space":
             control.recompute_from_units(new_state, active, zone)
     apply_payment(new_state, player_id, list(pay.planets), pay.trade_goods)
+    if exhaust_aida:
+        exhaust.exhaust_technology(new_state, player_id, AIDA)
     if active_grant(state, player_id) is not None:
         # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika.
         new_state.production_grant = None

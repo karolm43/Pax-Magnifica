@@ -47,6 +47,9 @@ INTEGRATED_ECONOMY = "ie"
 TRANSIT_DIODES = "td"
 PREDICTIVE_INTELLIGENCE = "pi"
 
+# Efekty realizowane jako jawny wybór gracza w regule bazowej (parametr przy strzale/produkcji).
+rules_hooks.declare_player_option("technologies:gls", "technologies:aida")
+
 # Opcja „nic" w slotach (id niepuste, bo puste id nie daje się wybrać w polu formularza).
 NONE = oi.option("", "- none -", option_id="none")
 _GROUND = ("infantry", "mech")

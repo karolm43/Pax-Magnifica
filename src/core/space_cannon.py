@@ -21,7 +21,7 @@ import json
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
-from src.core import rules_hooks, timing, triggers, unit_ops
+from src.core import exhaust, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, roll_dice
 from src.core.game_events import GameEvent, Moment
@@ -32,7 +32,10 @@ from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
 # Klucze kontekstu okna dotyczące trwającego przypisywania strat.
-_PENDING_KEYS = ("roller", "target", "hits", "rolls")
+_PENDING_KEYS = ("roller", "target", "hits", "rolls", "gls")
+# Graviton Laser System (RULES.md 57): trafienia strzelca, który go wyczerpał, idą w statki
+# niemyśliwskie, o ile są.
+GLS = "gls"
 
 
 @dataclass(frozen=True)
@@ -413,8 +416,13 @@ def fire_offense(
     registry: StaticDataRegistry,
     player_id: str,
     target_id: str | None = None,
+    *,
+    exhaust_gls: bool = False,
 ) -> GameState:
     """Bieżący gracz strzela WSZYSTKIM swoim Space Cannon (S4/S5) w wybranego gracza (S3).
+
+    ``exhaust_gls=True`` = gracz ŚWIADOMIE wyczerpuje Graviton Laser System przed strzałem:
+    trafienia trzeba wtedy przypisać do statków niemyśliwskich, o ile są (decyzja gracza).
 
     Rzuca kośćmi dla każdej grupy strzelców. Gdy są trafienia i cel ma statki, okno czeka na
     przypisanie strat (``assign_hits``); inaczej tura od razu przechodzi dalej.
@@ -436,7 +444,14 @@ def fire_offense(
     elif target_id not in targets:
         raise ValueError(f"Illegal Space Cannon target: {target_id}.")
 
+    if exhaust_gls:
+        owner = state.players[player_id]
+        if GLS not in owner.technologies or GLS in owner.exhausted_technologies:
+            raise ValueError("Graviton Laser System is not ready.")
     rolled, cannon_rolls, total_hits = roll_cannon(state, shooters, target_id)
+    if exhaust_gls:
+        rolled = rolled.clone()
+        exhaust.exhaust_technology(rolled, player_id, GLS)
     rolls: list[dict[str, Any]] = [
         {
             "baseType": r.shooter.base_type,
@@ -472,6 +487,7 @@ def fire_offense(
         target=target_id,
         hits=total_hits,
         rolls=json.dumps(rolls),
+        gls=1 if exhaust_gls else 0,
     )
 
 
@@ -518,6 +534,13 @@ def assign_hits(
             )
     if sum(cleaned.values()) != required:
         raise ValueError(f"Destroy exactly {required} ship(s) for these hits.")
+    if state.pending_window is not None and int(state.pending_window.context.get("gls", 0)):
+        non_fighters = sum(n for bt, n in ships.items() if bt != "fighter")
+        chosen = sum(n for bt, n in cleaned.items() if bt != "fighter")
+        if chosen < min(required, non_fighters):
+            raise ValueError(
+                "Graviton Laser System: hits must be assigned to non-fighter ships if able."
+            )
 
     new_state = state.clone()
     assert new_state.active_system is not None

@@ -133,7 +133,8 @@ async def post_tactical_produce(
     )
     try:
         new_state = production.produce(
-            state, ctx.current_grid, ctx.registry, player_id, orders, spend
+            state, ctx.current_grid, ctx.registry, player_id, orders, spend,
+            exhaust_aida=request.exhaust_aida,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

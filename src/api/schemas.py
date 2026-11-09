@@ -793,6 +793,8 @@ class ProduceRequest(BaseModel):
     orders: list[ProduceOrderItem] = Field(default_factory=list)
     # Czym płacimy; pominięte = płatność automatyczna (najmniejsza nadwyżka).
     spend: ProduceSpend | None = None
+    # Gracz ŚWIADOMIE wyczerpuje AI Development Algorithm (zniżka = liczba ulepszeń jednostek).
+    exhaust_aida: bool = False
 
 class CapturePlanetRequest(BaseModel):
     """Przejęcie kontroli planety po inwazji (E3): planeta + gracz."""
@@ -1079,6 +1081,8 @@ class SpaceCannonFireRequest(BaseModel):
 
     faction: str
     target: str | None = None
+    # Gracz ŚWIADOMIE wyczerpuje Graviton Laser System przed strzałem (RULES.md 57).
+    exhaust_gls: bool = False
 
 
 class SpaceCannonPassRequest(BaseModel):

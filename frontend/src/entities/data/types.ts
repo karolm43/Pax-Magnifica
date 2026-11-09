@@ -529,6 +529,8 @@ export type GameState = {
    * Decyzje graczy (oferty technologii i zdolności, RULES.md 56) - null/puste, gdy brak.
    * Opcje wyborów pobiera okno decyzji z `GET /offers`; gracz zawsze decyduje sam.
    */
+  /** Zużyto już premię Gravity Drive w tej akcji taktycznej (RULES.md 55.6). */
+  gravityDriveUsed?: boolean;
   pendingOffers?: { id: string; playerId: string; mandatory: boolean; label: string }[];
   /** Wieloetapowe primary karty strategii (wybory aktywnego gracza) — null, gdy brak. */
   pendingStrategy?: PendingStrategy | null;

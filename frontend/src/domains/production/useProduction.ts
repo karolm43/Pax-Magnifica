@@ -63,6 +63,10 @@ export type ProductionBody = {
   position: string;
   /** Produkcja z karty strategii (Construction / Warfare), poza akcją taktyczną. */
   standalone?: boolean;
+  /** Zniżka łącznego kosztu z hooków (np. Sarween Tools) - działa od razu. */
+  costReduction?: number;
+  /** AI Development Algorithm: gotowy i ile kosztu zdejmie (tylko gdy gracz go wyczerpie). */
+  aida?: { ready: boolean; discount: number };
   playerId: string;
   faction: string | null;
   limit: number;

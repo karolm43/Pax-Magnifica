@@ -396,10 +396,11 @@ export function useBoardEditor() {
   // bez mechaniki konkretnego komponentu. ``componentId`` to adnotacja „co zagrano"
   // (karta akcji / relikt / tech / zdolność), opcjonalna.
   const playComponentAction = useCallback(
-    async (playerId?: string, componentId?: string) => {
+    async (playerId?: string, componentId?: string, params?: Record<string, unknown>) => {
       await post("/tactical/component-action", {
         player_id: playerId ?? null,
         component_id: componentId ?? null,
+        params: params ?? {},
       });
       await refresh();
     },
@@ -523,8 +524,14 @@ export function useBoardEditor() {
       faction: string,
       orders: { baseType: string; count: number; zone?: string }[],
       spend?: { planets: string[]; tradeGoods: number },
+      exhaustAida = false,
     ) => {
-      await post("/tactical/produce", { faction, orders, spend });
+      await post("/tactical/produce", {
+        faction,
+        orders,
+        spend,
+        exhaust_aida: exhaustAida,
+      });
       await refresh();
     },
     [refresh],
@@ -533,10 +540,11 @@ export function useBoardEditor() {
   // Space Cannon Offense (RULES.md 38) — strzał (rzut kośćmi po stronie silnika), pas
   // i przypisanie strat przez gracza-cel. 422 z powodem trafia do panelu komunikatów.
   const spaceCannonFire = useCallback(
-    async (faction: string, target?: string) => {
+    async (faction: string, target?: string, exhaustGls = false) => {
       await post("/tactical/space-cannon/fire", {
         faction,
         target: target ?? null,
+        exhaust_gls: exhaustGls,
       });
       await refresh();
     },

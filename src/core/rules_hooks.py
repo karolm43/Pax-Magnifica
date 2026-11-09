@@ -309,6 +309,16 @@ def declare_superseded(*component_keys: str) -> None:
     _DATA_DRIVEN.update(component_keys)
 
 
+def declare_player_option(*component_keys: str) -> None:
+    """Oznacza komponenty zrealizowane jako JAWNY wybór gracza w regule bazowej (parametr akcji).
+
+    Np. Graviton Laser System (``exhaust_gls`` przy strzale Space Cannon) i AI Development
+    Algorithm (``exhaust_aida`` przy produkcji): gracz świadomie włącza efekt, więc nie ma
+    hooka, a komponent liczy się jako pokryty w raporcie.
+    """
+    _DATA_DRIVEN.update(component_keys)
+
+
 def declare_data_driven(*component_keys: str) -> None:
     """Oznacza komponenty, których efekt w całości wynika z DANYCH (statystyki z assetów).
 

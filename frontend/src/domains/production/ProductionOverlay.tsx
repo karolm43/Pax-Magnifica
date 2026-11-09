@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
+import { Switch } from "@/ds";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { getTileById } from "@/entities/lookup/systems";
@@ -83,7 +84,18 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
 
   const queued = cartCount(cart);
   const free = Math.max(0, view.remaining - queued);
-  const cost = cartCost(view.units, cart);
+  // Zniżki (RULES.md 57): hooki (Sarween Tools) działają od razu, AI Development Algorithm
+  // tylko gdy gracz świadomie go wyczerpie przełącznikiem.
+  const [useAida, setUseAida] = useState(false);
+  const aidaOn = useAida && view.aida?.ready === true && queued > 0;
+  const rawCost = cartCost(view.units, cart);
+  const cost =
+    queued > 0
+      ? Math.max(
+          0,
+          rawCost - (view.costReduction ?? 0) - (aidaOn ? (view.aida?.discount ?? 0) : 0),
+        )
+      : rawCost;
   const funds = fundsTotal(view);
   const payment = useMemo<Payment>(
     () => manual ?? autoPay(view.planets, view.tradeGoods, cost),
@@ -141,9 +153,11 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
         view.faction,
         cart.map((l) => ({ baseType: l.baseType, count: l.count, zone: l.zone })),
         { planets: payment.planets, tradeGoods: payment.tradeGoods },
+        aidaOn,
       );
       setCart([]);
       setManual(null);
+      setUseAida(false);
     });
 
   const sorted = [...view.planets].sort(
@@ -535,6 +549,15 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           >
             <IconTrash size={14} aria-hidden="true" /> Clear
           </button>
+          {view.aida?.ready && !grant && (
+            <Switch
+              size="xs"
+              label={`Exhaust AI Development Algorithm (-${view.aida.discount} cost)`}
+              checked={useAida}
+              onChange={(event) => setUseAida(event.currentTarget.checked)}
+              disabled={busy}
+            />
+          )}
           <button
             type="button"
             className={styles.primaryBtn}

@@ -2,13 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { HoldRollButton } from "@/domains/dice/HoldRollButton";
 import { soloHold, useDiceStage } from "@/domains/dice/diceStage";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
-import { IconBolt, IconEye, IconEyeOff, IconHandStop } from "@tabler/icons-react";
+import {
+  IconBolt,
+  IconEye,
+  IconEyeOff,
+  IconHandStop,
+} from "@tabler/icons-react";
 import {
   useBoardEditor,
   useSpaceCannon,
   type SpaceCannonSide,
 } from "@/api/useBoardEditor";
 import { useSettingsStore } from "@/state/appStore";
+import { useGameData } from "@/state/useGameContext";
+import { Switch } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { Unit } from "@/shared/ui/Unit";
 import {
@@ -60,7 +67,10 @@ function TurnCard({
 
       <div className={styles.shooters}>
         {side.shooters.map((s) => (
-          <div key={`${s.baseType}-${s.position}-${s.zone}`} className={styles.shooterRow}>
+          <div
+            key={`${s.baseType}-${s.position}-${s.zone}`}
+            className={styles.shooterRow}
+          >
             <div className={styles.icon}>
               <Unit
                 unitType={s.asyncId}
@@ -72,11 +82,17 @@ function TurnCard({
             <span className={styles.shooterName}>
               <b>{s.count}×</b> {s.name}
             </span>
-            <span className={styles.shooterStat} title="Hits on X+ · dice per unit">
+            <span
+              className={styles.shooterStat}
+              title="Hits on X+ · dice per unit"
+            >
               {s.hitsOn}+ ×{s.dicePerUnit}
             </span>
             {s.remote && (
-              <span className={styles.badge} title="Deep Space Cannon — fires from an adjacent system">
+              <span
+                className={styles.badge}
+                title="Deep Space Cannon — fires from an adjacent system"
+              >
                 from {s.position}
               </span>
             )}
@@ -85,7 +101,11 @@ function TurnCard({
       </div>
 
       {side.targets.length > 1 && (
-        <div className={styles.targets} role="radiogroup" aria-label="Choose target">
+        <div
+          className={styles.targets}
+          role="radiogroup"
+          aria-label="Choose target"
+        >
           <small>Target</small>
           {side.targets.map((key) => (
             <button
@@ -105,8 +125,7 @@ function TurnCard({
       )}
       {side.targets.length === 1 && (
         <p className={styles.note}>
-          Target: <b>{lookup(side.targets[0]).name}</b>
-          {" "}(the active player)
+          Target: <b>{lookup(side.targets[0]).name}</b> (the active player)
         </p>
       )}
 
@@ -125,7 +144,12 @@ function TurnCard({
         >
           <IconBolt size={15} aria-hidden="true" /> Fire
         </HoldRollButton>
-        <button type="button" className={styles.pass} disabled={busy} onClick={onPass}>
+        <button
+          type="button"
+          className={styles.pass}
+          disabled={busy}
+          onClick={onPass}
+        >
           <IconHandStop size={15} aria-hidden="true" /> Don't fire
         </button>
       </div>
@@ -142,7 +166,11 @@ function TurnCard({
  */
 export function SpaceCannonStepPanel() {
   const { data: panel } = useSpaceCannon(true);
-  const { spaceCannonFire, spaceCannonPass, spaceCannonAssign } = useBoardEditor();
+  const gameData = useGameData();
+  // Graviton Laser System (RULES.md 57): gracz ŚWIADOMIE wyczerpuje go przed strzałem.
+  const [useGls, setUseGls] = useState(false);
+  const { spaceCannonFire, spaceCannonPass, spaceCannonAssign } =
+    useBoardEditor();
   const lookup = usePlayerLookup();
   const showRange = useSettingsStore((s) => s.settings.showPDSLayer);
   const toggleRange = useSettingsStore((s) => s.handlers.togglePdsMode);
@@ -177,7 +205,10 @@ export function SpaceCannonStepPanel() {
       leftRgb: look(pendingNow.roller).rgb,
     });
     window.clearTimeout(revealTimer.current);
-    revealTimer.current = window.setTimeout(() => setRevealed(rollKey), pauseMs);
+    revealTimer.current = window.setTimeout(
+      () => setRevealed(rollKey),
+      pauseMs,
+    );
   }, [panel, rollKey, pendingNow, look, throwDice]);
   useEffect(() => () => window.clearTimeout(revealTimer.current), []);
   const rolling = rollKey !== "" && revealed !== rollKey;
@@ -198,6 +229,12 @@ export function SpaceCannonStepPanel() {
 
   const nameOf = (key: string) => lookup(key).name;
   const current = panel.sides.find((s) => s.faction === panel.current);
+  const shooter = gameData?.playerData?.find(
+    (p) => p.faction === current?.faction,
+  );
+  const glsReady =
+    (shooter?.techs ?? []).includes("gls") &&
+    !(shooter?.exhaustedTechs ?? []).includes("gls");
   const pending = panel.pending;
   const pendingKey = pending
     ? `${pending.roller}>${pending.target}:${pending.hits}:${panel.log.length}`
@@ -223,13 +260,15 @@ export function SpaceCannonStepPanel() {
 
       {!panel.isOpen && !panel.resolved && (
         <p className={styles.note}>
-          Nothing can fire here: no Space Cannon units in range, or no one to hit.
-          Space Cannon needs units in this system, or PDS II (Deep Space Cannon)
-          in an adjacent one.
+          Nothing can fire here: no Space Cannon units in range, or no one to
+          hit. Space Cannon needs units in this system, or PDS II (Deep Space
+          Cannon) in an adjacent one.
         </p>
       )}
       {!panel.isOpen && panel.resolved && (
-        <p className={styles.done}>Space Cannon resolved — continue with Next step.</p>
+        <p className={styles.done}>
+          Space Cannon resolved — continue with Next step.
+        </p>
       )}
 
       {panel.isOpen && (
@@ -254,13 +293,20 @@ export function SpaceCannonStepPanel() {
         <div style={{ visibility: rolling ? "hidden" : "visible" }}>
           <header className={styles.shotHead}>
             <span>
-              <b>{nameOf(pending.roller)}</b> fires on <b>{nameOf(pending.target)}</b>
+              <b>{nameOf(pending.roller)}</b> fires on{" "}
+              <b>{nameOf(pending.target)}</b>
             </span>
-            <span className={styles.hitCount} data-hits={pending.hits > 0 || undefined}>
+            <span
+              className={styles.hitCount}
+              data-hits={pending.hits > 0 || undefined}
+            >
               {pending.hits} hit{pending.hits === 1 ? "" : "s"}
             </span>
           </header>
-          <span className={styles.beam} data-hits={pending.hits > 0 || undefined} />
+          <span
+            className={styles.beam}
+            data-hits={pending.hits > 0 || undefined}
+          />
           <DiceRolls rolls={pending.rolls} />
           <AssignHits
             key={pendingKey}
@@ -277,14 +323,34 @@ export function SpaceCannonStepPanel() {
         </div>
       ) : (
         current && (
-          <TurnCard
-            key={current.faction}
-            side={current}
-            lookup={lookup}
-            busy={busy}
-            onFire={(target) => void run(() => spaceCannonFire(current.faction, target))}
-            onPass={() => void run(() => spaceCannonPass(current.faction))}
-          />
+          <>
+            {glsReady && (
+              <Switch
+                size="xs"
+                label="Exhaust Graviton Laser System (hits must go to non-fighter ships)"
+                checked={useGls}
+                onChange={(event) => setUseGls(event.currentTarget.checked)}
+                disabled={busy}
+              />
+            )}
+            <TurnCard
+              key={current.faction}
+              side={current}
+              lookup={lookup}
+              busy={busy}
+              onFire={(target) =>
+                void run(async () => {
+                  await spaceCannonFire(
+                    current.faction,
+                    target,
+                    glsReady && useGls,
+                  );
+                  setUseGls(false);
+                })
+              }
+              onPass={() => void run(() => spaceCannonPass(current.faction))}
+            />
+          </>
         )
       )}
 

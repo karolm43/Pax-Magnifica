@@ -194,7 +194,8 @@ async def post_space_cannon_fire(
             else None
         )
         new_state = space_cannon.fire_offense(
-            state, ctx.current_grid, ctx.registry, player_id, target_id
+            state, ctx.current_grid, ctx.registry, player_id, target_id,
+            exhaust_gls=request.exhaust_gls,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
