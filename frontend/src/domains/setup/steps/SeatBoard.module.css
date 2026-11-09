@@ -1,0 +1,74 @@
+/* Mini-plansza miejsc: heksy płaskie (clip-path), pozycjonowane absolutnie. */
+
+.board {
+  position: relative;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+
+.cell,
+.seat,
+.activeRing {
+  position: absolute;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.cell {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.activeRing {
+  background: rgb(255 211 74);
+  animation: ringPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes ringPulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(255 255 255 / 0.14);
+  cursor: pointer;
+  transition: filter var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.seat:hover {
+  filter: brightness(1.15);
+}
+
+.seat:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -4px;
+}
+
+.seatNumber {
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.seatName {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activeRing {
+    animation: none;
+  }
+}

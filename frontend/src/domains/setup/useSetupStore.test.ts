@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   assignPreferredColors,
+  resolveRandomFactions,
   toNewGameRequest,
   useSetupStore,
   validateSetup,
@@ -123,5 +124,39 @@ describe("kolory i miejsca", () => {
     const request = toNewGameRequest([a], "", NO_FACTION_DATA, ["301", "304", "307"]);
     expect(request.players[0].home_position).toBe("307");
     expect(request.players[0].color).toBe("red");
+  });
+});
+
+describe("resolveRandomFactions", () => {
+  const f = (id: string, extra: Partial<FactionInfo> = {}) =>
+    ({ id, starting_tech_amount: 0, starting_tech_options: [], ...extra }) as FactionInfo;
+  const pool = [
+    f("sol"),
+    f("hacan"),
+    f("winnu", { starting_tech_amount: 1, starting_tech_options: ["a", "b", "c"] }),
+    f("keleresm"),
+    f("keleresx"),
+  ];
+
+  it("losuje unikalne frakcje bez ruszania jawnych wyborów", () => {
+    const slots = [slot("sol", "red"), slot(RANDOM_FACTION, "blu"), slot(RANDOM_FACTION, "grn")];
+    const out = resolveRandomFactions(slots, pool, () => 0);
+    expect(out[0].factionId).toBe("sol");
+    const ids = out.map((s) => s.factionId);
+    expect(ids).not.toContain(RANDOM_FACTION);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("losuje technologie startowe frakcji z wyborem", () => {
+    const out = resolveRandomFactions([slot(RANDOM_FACTION, "red")], [pool[2]], () => 0);
+    expect(out[0].factionId).toBe("winnu");
+    expect(out[0].startingTech).toEqual(["a"]);
+  });
+
+  it("nie bierze dwóch wariantów Keleres", () => {
+    const slots = [slot(RANDOM_FACTION, "red"), slot(RANDOM_FACTION, "blu")];
+    const out = resolveRandomFactions(slots, [pool[3], pool[4]], () => 0);
+    expect(out[0].factionId).toBe("keleresm");
+    expect(out[1].factionId).toBe(RANDOM_FACTION);
   });
 });

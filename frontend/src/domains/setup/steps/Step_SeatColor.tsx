@@ -11,13 +11,13 @@
 // ZAMIENIA oba (`swapColor` / `swapSeat`). Gracz z losową frakcją nie ma jeszcze
 // preferencji (frakcję dobiera backend przy starcie gry).
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
-import { useEngineConfig } from "@/api/useNewGame";
+import { SpriteUnitImage } from "@/shared/ui/Unit/components/SpriteUnitImage";
+import { getUnitSprite } from "@/shared/ui/Unit/unitSprites";
 import type { SetupStepProps } from "../SetupWizard";
 import {
   RANDOM_FACTION,
-  SEAT_COUNT,
   useSetupStore,
   type SetupSlot,
 } from "../useSetupStore";
@@ -30,10 +30,26 @@ import {
   colorSwatchBackground,
   preferredColorsOf,
 } from "../playerColors";
+import { SeatBoard } from "./SeatBoard";
 import base from "./Step_Players.module.css";
 import styles from "./Step_SeatColor.module.css";
 
-const SEAT_INDEXES = Array.from({ length: SEAT_COUNT }, (_, i) => i);
+/** Jednostki w podglądzie koloru (flota + naziemne + struktury). */
+const PREVIEW_UNITS = ["dn", "ca", "dd", "ff", "gf", "sd", "pd"] as const;
+
+/** Podgląd koloru na jednostkach (te same sprite'y co na mapie). */
+function UnitPreview({ alias }: { alias: string }) {
+  return (
+    <div className={styles.unitRow} aria-label="Unit preview">
+      {PREVIEW_UNITS.map((unit) => {
+        const sprite = getUnitSprite(alias, unit);
+        return sprite ? (
+          <SpriteUnitImage key={unit} sprite={sprite} alt={`${colorLabel(alias)} ${unit}`} />
+        ) : null;
+      })}
+    </div>
+  );
+}
 
 /** Nazwa frakcji slotu albo „Random faction". */
 function factionName(slot: SetupSlot, factionById: SetupStepProps["factionById"]): string {
@@ -86,13 +102,18 @@ function Swatch({
   );
 }
 
-export default function Step_SeatColor({ factionById, stage }: SetupStepProps) {
+export default function Step_SeatColor({ factions, factionById, stage }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
   const swapColor = useSetupStore((s) => s.swapColor);
   const swapSeat = useSetupStore((s) => s.swapSeat);
   const shuffleColors = useSetupStore((s) => s.shuffleColors);
   const applyPreferredColors = useSetupStore((s) => s.applyPreferredColors);
-  const { data: engineConfig } = useEngineConfig();
+  const rollRandomFactions = useSetupStore((s) => s.rollRandomFactions);
+
+  // Gracze z „Random" dostają frakcję już tutaj, więc znamy ich preferowane kolory.
+  useEffect(() => {
+    if (factions.length > 0) rollRandomFactions(factions);
+  }, [factions, rollRandomFactions]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const active = slots[Math.min(activeIndex, slots.length - 1)];
@@ -100,10 +121,6 @@ export default function Step_SeatColor({ factionById, stage }: SetupStepProps) {
 
   const colorOwner = (alias: string): number | null => {
     const i = slots.findIndex((s, idx) => idx !== activeSlotIndex && s.color === alias);
-    return i >= 0 ? i : null;
-  };
-  const seatOwner = (seat: number): number | null => {
-    const i = slots.findIndex((s) => s.seat === seat);
     return i >= 0 ? i : null;
   };
 
@@ -123,8 +140,6 @@ export default function Step_SeatColor({ factionById, stage }: SetupStepProps) {
       })).filter((section) => section.options.length > 0),
     [],
   );
-
-  const seatPositions = engineConfig?.seats ?? [];
 
   return (
     <div className={base.stage}>
@@ -227,30 +242,11 @@ export default function Step_SeatColor({ factionById, stage }: SetupStepProps) {
 
           <div className={styles.block}>
             <h3 className={base.sectionTitle}>Seat at the table</h3>
-            <div className={styles.seatRow} role="radiogroup" aria-label="Seat">
-              {SEAT_INDEXES.map((seat) => {
-                const owner = seatOwner(seat);
-                const mine = owner === activeSlotIndex;
-                return (
-                  <button
-                    key={seat}
-                    type="button"
-                    role="radio"
-                    aria-checked={mine}
-                    className={`${styles.seat} ${mine ? styles.seatOn : ""}`}
-                    onClick={() => swapSeat(activeSlotIndex, seat)}
-                  >
-                    <span className={styles.seatNumber}>{seat + 1}</span>
-                    <span className={styles.seatMeta}>
-                      {seatPositions[seat] ? `tile ${seatPositions[seat]}` : "seat"}
-                    </span>
-                    <span className={styles.seatOwner}>
-                      {owner === null || mine ? "\u00a0" : `Player ${owner + 1}`}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <SeatBoard
+              slots={slots}
+              activeIndex={activeSlotIndex}
+              onPickSeat={(seat) => swapSeat(activeSlotIndex, seat)}
+            />
           </div>
 
           <div className={styles.block}>
@@ -273,7 +269,7 @@ export default function Step_SeatColor({ factionById, stage }: SetupStepProps) {
             ) : (
               <p className={base.hint}>
                 {active.factionId === RANDOM_FACTION
-                  ? "The faction is random, so there is no preference yet. Pick any color."
+                  ? "This faction has no preferred colors."
                   : "This faction has no preferred colors."}
               </p>
             )}
@@ -290,6 +286,7 @@ export default function Step_SeatColor({ factionById, stage }: SetupStepProps) {
                 Color: <strong>{colorLabel(active.color)}</strong>
               </span>
             </div>
+            <UnitPreview alias={active.color} />
             {sections.map(({ kind, options }) => (
               <div key={kind} className={styles.paletteSection}>
                 <h3 className={base.sectionTitle}>{COLOR_KIND_LABEL[kind]}</h3>

@@ -154,6 +154,47 @@ export function assignPreferredColors(
   });
 }
 
+/**
+ * Losuje frakcje graczom, którzy wybrali „Random" — jeszcze w kroku miejsca i koloru,
+ * żeby od razu znać ich preferowane kolory.
+ *
+ * Pula = frakcje nie zajęte jawnie przez innych (rodzina wariantów, np. Keleres, liczy
+ * się jako jedna frakcja — losujemy z niej jeden wariant). Wylosowanej frakcji z wyborem
+ * technologii startowych losujemy też technologie (frakcje z odroczonym wyborem
+ * pomijamy), żeby slot był od razu kompletny i przechodził walidację. Gdy pula jest
+ * pusta, slot zostaje losowy. Czysta funkcja — `rng` wstrzykiwany dla testów.
+ */
+export function resolveRandomFactions(
+  slots: readonly SetupSlot[],
+  factions: readonly FactionInfo[],
+  rng: () => number = Math.random,
+): SetupSlot[] {
+  const keyOf = (id: string) => familyOfVariant(id) ?? id;
+  const taken = new Set(
+    slots.filter((s) => s.factionId !== RANDOM_FACTION).map((s) => keyOf(s.factionId)),
+  );
+  const pool = factions.filter((f) => !taken.has(keyOf(f.id)));
+  const pickIndex = (length: number) => Math.min(length - 1, Math.floor(rng() * length));
+
+  return slots.map((slot) => {
+    if (slot.factionId !== RANDOM_FACTION || pool.length === 0) return slot;
+    const [faction] = pool.splice(pickIndex(pool.length), 1);
+    // Reszta wariantów tej samej rodziny wypada z puli (jedna frakcja na grę).
+    const key = keyOf(faction.id);
+    for (let i = pool.length - 1; i >= 0; i--) {
+      if (keyOf(pool[i].id) === key) pool.splice(i, 1);
+    }
+    const startingTech: string[] = [];
+    if (!hasDeferredStartingTech(faction.id) && faction.starting_tech_amount > 0) {
+      const options = [...faction.starting_tech_options];
+      while (startingTech.length < faction.starting_tech_amount && options.length > 0) {
+        startingTech.push(...options.splice(pickIndex(options.length), 1));
+      }
+    }
+    return { ...slot, factionId: faction.id, startingTech };
+  });
+}
+
 export interface SetupStore {
   /** Liczba graczy (slotów); zmiana przeskalowuje `slots`, zachowując dane. */
   playerCount: number;
@@ -190,6 +231,8 @@ export interface SetupStore {
   swapSeat: (index: number, seat: number) => void;
   /** Dobiera kolory wg preferencji frakcji (patrz `assignPreferredColors`). */
   applyPreferredColors: (factionById: Map<string, FactionInfo>) => void;
+  /** Losuje frakcje graczom z „Random" (patrz `resolveRandomFactions`). */
+  rollRandomFactions: (factions: readonly FactionInfo[]) => void;
   /** Losowo tasuje kolory między istniejącymi slotami (zbiór kolorów bez zmian). */
   shuffleColors: () => void;
   /**
@@ -279,6 +322,13 @@ export const useSetupStore = create<SetupStore>((set) => ({
 
   applyPreferredColors: (factionById) =>
     set((state) => ({ slots: assignPreferredColors(state.slots, factionById) })),
+
+  rollRandomFactions: (factions) =>
+    set((state) => {
+      const next = resolveRandomFactions(state.slots, factions);
+      const changed = next.some((slot, i) => slot !== state.slots[i]);
+      return changed ? { slots: next } : state;
+    }),
 
   shuffleColors: () =>
     set((state) => {
