@@ -123,7 +123,9 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
         "outcomes": list(agenda.outcomes),
         "unresolvable": agenda.unresolvable,
         "speakerId": state.speaker_id,
-        "voteOrder": list(agenda.vote_order),
+        # Przed ujawnieniem agendy kolejność jeszcze nie jest zapisana - pokaż podgląd, żeby
+        # Senat od początku miał wszystkich (a nie samego mówcę).
+        "voteOrder": list(agenda.vote_order) or agenda_phase.vote_order(state),
         "currentVoter": agenda_phase.current_voter(state),
         "votes": {
             pid: {"outcome": v.outcome, "votes": v.votes, "planets": list(v.planets)}
