@@ -37,6 +37,7 @@ from src.api.routers import (
     game,
     history,
     invasion,
+    offers,
     players,
     production,
     rules,
@@ -126,6 +127,7 @@ def create_app(
     app.include_router(rules.router)
     app.include_router(components.router)
     app.include_router(action_cards.router)
+    app.include_router(offers.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:

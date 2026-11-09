@@ -118,10 +118,21 @@ class Hook:
     where: tuple[tuple[str, str], ...] = ()  # filtr kontekstu zdarzenia (np. phase=strategy)
     condition: ConditionFn | None = None  # warunek sprawdzany przy wyzwoleniu
     label: str = ""  # opis dla UI/oferty
+    # Wybór gracza (RULES.md 56): opis wejść formularza (liczy legalne opcje silnik). Z ``optional``
+    # = oferta „may" (można odmówić); z ``decide`` = decyzja OBOWIĄZKOWA: gdy wybór jest realny,
+    # silnik pyta gracza (nigdy nie wybiera za niego), a gdy opcja jest jedna - stosuje ją od razu.
+    inputs: OfferInputsFn | None = None
+    decide: bool = False
+    # Kto podejmuje decyzję, jeśli to NIE właściciel źródła (np. ofiara Assault Cannon).
+    decider: DeciderFn | None = None
 
 
 # Opis wyborów gracza dla efektu (formularz UI): (stan, rejestr, gracz) -> lista wejść.
 InputsFn = Callable[[GameState, Any, str], list[dict[str, Any]]]
+# Opis wyborów dla oferty/decyzji hooka zdarzenia: (stan, rejestr, decydent, kontekst) -> wejścia.
+OfferInputsFn = Callable[[GameState, Any, str, Mapping[str, Any]], list[dict[str, Any]]]
+# Wskazanie decydenta: (stan, właściciel źródła, kontekst) -> id gracza.
+DeciderFn = Callable[[GameState, str, Mapping[str, Any]], str]
 
 _REGISTRY: list[Hook] = []
 _EFFECTS: dict[str, EffectFn] = {}
@@ -158,6 +169,9 @@ def on_event(
     condition: ConditionFn | None = None,
     covers: str | None = None,
     label: str = "",
+    inputs: OfferInputsFn | None = None,
+    decide: bool = False,
+    decider: DeciderFn | None = None,
 ) -> Callable[[HookFn], HookFn]:
     """Rejestruje hook ZDARZENIA: ``fn(state, player_id, ctx)`` odpalane przez ``triggers.fire``.
 
@@ -168,6 +182,9 @@ def on_event(
     * ``where``: filtr kontekstu (np. ``{"phase": "strategy"}``); ``condition``: warunek
       sprawdzany przy wyzwoleniu.
     * ``covers``: komponent, który hook realizuje (status IMPLEMENTED w rejestrze efektów).
+    * ``inputs`` / ``decide`` / ``decider``: decyzje gracza (RULES.md 56) - patrz ``Hook``. Hook z
+      ``decide`` czyta wybór z ``ctx["params"]`` (gdy wyboru nie ma, ``params`` zawiera jedyną
+      legalną odpowiedź), a ``ctx["decider"]`` to gracz podejmujący decyzję.
     """
     if kind not in (HookKind.TRIGGER, HookKind.REPLACE):
         raise ValueError("Event hooks must be TRIGGER or REPLACE.")
@@ -177,7 +194,7 @@ def on_event(
         _REGISTRY.append(
             Hook(
                 event_point(event, moment), source, kind, fn, len(_REGISTRY), covers,
-                optional, where_items, condition, label,
+                optional, where_items, condition, label, inputs, decide, decider,
             )
         )
         return fn

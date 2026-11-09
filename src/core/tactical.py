@@ -170,6 +170,9 @@ def _check_can_leave(
         raise ValueError(f"Some ships exceed the fleet pool - remove the excess before {what}.")
     if window is not None and window.window_type is WindowType.SPACE_CANNON:
         raise ValueError(f"Space Cannon is still being resolved - finish it before {what}.")
+    # Decyzje graczy (oferty technologii i zdolności - RULES.md 56) trzeba rozstrzygnąć wcześniej.
+    if window is not None and window.window_type is WindowType.REACTION:
+        raise ValueError(f"Players still have decisions to make - resolve them before {what}.")
     # Walka (RULES.md 39): trwającej nie wolno porzucić; walka kosmiczna jest obowiązkowa,
     # gdy dwóch graczy ma statki w aktywnym systemie (W2).
     combat = state.active_combat

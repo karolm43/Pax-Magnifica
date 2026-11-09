@@ -343,6 +343,12 @@ def _build_game_state(
         # Okno czasowe (timing window) — None, gdy żadne nie trwa. Nasze rozszerzenie
         # kontraktu (frontend AsyncTI4 je ignoruje, nasz panel okna odczyta). RULES.md 29.2.
         "pendingWindow": _pending_window(state),
+        # Decyzje graczy (oferty technologii/zdolności, RULES.md 56): UI otwiera okno wyboru dla
+        # każdego, kto ma coś do rozstrzygnięcia. Szczegóły (opcje) z GET /offers.
+        "pendingOffers": [
+            {"id": o.id, "playerId": o.player_id, "mandatory": o.mandatory, "label": o.label}
+            for o in state.pending_offers
+        ],
         # Wieloetapowe PRIMARY karty strategii (wybory aktywnego gracza) — None, gdy brak.
         "pendingStrategy": _pending_strategy(state),
         # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None po zakończeniu.

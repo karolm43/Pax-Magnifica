@@ -4,11 +4,9 @@ Wersje kart z errata wybiera ``technology.generic_pool`` (codex4 > codex1 > base
 rejestrujemy dla wersji WYGRYWAJĄCEJ; starsze wersje są zastąpione (``declare_superseded``).
 Technologie z wyborem gracza („may”) są w ``technologies_choices.py``.
 
-⚠ ZAŁOŻENIE (RULES.md 55.7): wybory, które w grze należą do gracza, a których UI jeszcze nie
-potrafi zapytać (okno wyboru), rozstrzygamy deterministycznie NA KORZYŚĆ DECYDUJĄCEGO:
-Assault Cannon - ofiara traci swój najtańszy statek niemyśliwski; Magen Defense Grid - właściciel
-trafia najcenniejszą siłę naziemną, która nie może anulować trafienia Sustain Damage;
-Duranium Armor - naprawiana jest najdroższa uszkodzona jednostka.
+Wybory gracza (ofiara Assault Cannon, cel Magen, naprawa Duranium Armor) NIGDY nie są
+automatyczne (RULES.md 56): hook ``decide`` pyta właściwego gracza ofertą, a stosuje wynik od
+razu tylko wtedy, gdy jest dokładnie jedna legalna odpowiedź.
 """
 
 from __future__ import annotations
@@ -17,8 +15,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import exhaust, rules_hooks, unit_ops
+from src.core import offer_inputs as oi
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
+from src.core.fleet_pool import unit_name
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.rules_hooks import (
@@ -115,6 +115,50 @@ def gravity_drive_move_value(
 # --- Warfare: naprawa ----------------------------------------------------------------------
 
 
+def _unit_label(state: GameState, player_id: str, base_type: str) -> str:
+    registry = rules_hooks.bound_registry()
+    return unit_name(state, registry, player_id, base_type) if registry is not None else base_type
+
+
+def _combat_zone(ctx: Mapping[str, Any]) -> str:
+    return "space" if ctx["kind"] == "space" else str(ctx["planet"])
+
+
+def _repairable(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> list[str]:
+    """Typy uszkodzonych jednostek gracza w walce, które w tej rundzie nie użyły Sustain Damage."""
+    system = state.systems.get(str(ctx["position"]))
+    if system is None:
+        return []
+    zone = _combat_zone(ctx)
+    units = (
+        system.space_units.get(player_id, {})
+        if zone == "space"
+        else system.planet_units.get(zone, {}).get(player_id, {})
+    )
+    used = ctx.get("sustained", {}).get(player_id, {})
+    return sorted(
+        base_type
+        for base_type in units
+        if damaged_count(system, zone, player_id, base_type) - used.get(base_type, 0) > 0
+    )
+
+
+def duranium_armor_inputs(
+    state: GameState, _registry: Any, player_id: str, ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Wybór gracza: którą uszkodzoną jednostkę naprawić (liczy silnik)."""
+    return [
+        oi.choice(
+            "unit",
+            "Damaged unit to repair",
+            [
+                oi.option(bt, _unit_label(state, player_id, bt))
+                for bt in _repairable(state, player_id, ctx)
+            ],
+        )
+    ]
+
+
 @on_event(
     GameEvent.COMBAT_ROUND,
     Moment.END,
@@ -123,33 +167,21 @@ def gravity_drive_move_value(
     condition=_participant,
     covers=f"technologies:{DURANIUM_ARMOR_ALIAS}",
     label="Duranium Armor",
+    inputs=duranium_armor_inputs,
+    decide=True,
 )
 def duranium_armor(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę.
 
-    Obowiązkowe (C_technology), także gdy przeciwnik nie zadał trafień. Naprawić można tylko
-    jednostkę biorącą udział w walce, która w TEJ rundzie nie użyła Sustain Damage: od uszkodzonych
-    danego typu odejmujemy te, które właśnie użyły zdolności.
+    Obowiązkowe (C_technology), także gdy przeciwnik nie zadał trafień. Naprawiana jednostka
+    NIE użyła w tej rundzie Sustain Damage. Wybór należy do gracza (pytamy tylko przy ≥2 typach).
     """
     system = state.systems.get(str(ctx["position"]))
-    if system is None:
+    unit = ctx.get("params", {}).get("unit")
+    if system is None or unit is None:
         return
-    zone = "space" if ctx["kind"] == "space" else str(ctx["planet"])
-    units = (
-        system.space_units.get(player_id, {})
-        if zone == "space"
-        else system.planet_units.get(zone, {}).get(player_id, {})
-    )
-    used = ctx.get("sustained", {}).get(player_id, {})
-    candidates = [
-        base_type
-        for base_type in units
-        if damaged_count(system, zone, player_id, base_type) - used.get(base_type, 0) > 0
-    ]
-    if not candidates:
-        return
-    target = max(candidates, key=lambda bt: (_unit_cost(state, player_id, bt), bt))
-    set_damaged(system, zone, player_id, target, damaged_count(system, zone, player_id, target) - 1)
+    zone = _combat_zone(ctx)
+    set_damaged(system, zone, player_id, unit, damaged_count(system, zone, player_id, unit) - 1)
 
 
 # --- Warfare: start walki ------------------------------------------------------------------
@@ -157,12 +189,38 @@ def duranium_armor(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
 
 def _assault_cannon_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     """Warunek Assault Cannon: strona walki kosmicznej ma ≥3 statki niemyśliwskie (sprawdzane
-    w chwili rozstrzygania, więc straty z wcześniejszego hooka przeciwnika mogą go odebrać)."""
+    w chwili rozstrzygania, więc straty z wcześniejszego hooka mogą go odebrać)."""
     if ctx.get("kind") != "space" or not _participant(state, player_id, ctx):
         return False
     system = state.systems.get(str(ctx["position"]))
     ships = system.space_units.get(player_id, {}) if system is not None else {}
     return sum(n for bt, n in ships.items() if bt != _FIGHTER and is_space_unit(bt)) >= 3
+
+
+def _assault_cannon_victim(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> str:
+    """Decyduje OFIARA: to ona wybiera, który jej statek niemyśliwski zostaje zniszczony."""
+    return _opponent(player_id, ctx)
+
+
+def assault_cannon_inputs(
+    state: GameState, _registry: Any, decider: str, ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Statki niemyśliwskie ofiary w systemie (neutralni - wg reguły: najtańszy)."""
+    system = state.systems.get(str(ctx["position"]))
+    ships = [
+        bt
+        for bt, n in sorted((system.space_units.get(decider, {}) if system else {}).items())
+        if n > 0 and bt != _FIGHTER and is_space_unit(bt)
+    ]
+    if decider not in state.players and ships:  # jednostki neutralne nie podejmują decyzji
+        ships = [min(ships, key=lambda bt: (_unit_cost(state, decider, bt), bt))]
+    return [
+        oi.choice(
+            "ship",
+            "Non-fighter ship to destroy",
+            [oi.option(bt, _unit_label(state, decider, bt)) for bt in ships],
+        )
+    ]
 
 
 @on_event(
@@ -172,26 +230,22 @@ def _assault_cannon_ready(state: GameState, player_id: str, ctx: Mapping[str, An
     condition=_assault_cannon_ready,
     covers=f"technologies:{ASSAULT_CANNON_ALIAS}",
     label="Assault Cannon",
+    inputs=assault_cannon_inputs,
+    decide=True,
+    decider=_assault_cannon_victim,
 )
 def assault_cannon(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski.
 
-    Obowiązkowe. Wybór statku należy do przeciwnika - ⚠ ZAŁOŻENIE: traci najtańszy (RULES.md 55.7).
+    Obowiązkowe. Statek wybiera OFIARA (oferta obowiązkowa, gdy ma realny wybór).
     Sustain Damage nie chroni przed tym zniszczeniem (C_technology).
     """
-    opponent = _opponent(player_id, ctx)
+    victim = str(ctx["decider"])
+    ship = ctx.get("params", {}).get("ship")
     system = state.systems.get(str(ctx["position"]))
-    if system is None:
+    if system is None or ship is None:
         return
-    ships = {
-        bt: n
-        for bt, n in system.space_units.get(opponent, {}).items()
-        if n > 0 and bt != _FIGHTER and is_space_unit(bt)
-    }
-    if not ships:
-        return
-    victim = min(ships, key=lambda bt: (_unit_cost(state, opponent, bt), bt))
-    unit_ops.remove_units(state, system, "space", opponent, victim, 1, UnitCause.DESTROYED)
+    unit_ops.remove_units(state, system, "space", victim, ship, 1, UnitCause.DESTROYED)
 
 
 # --- Warfare: Magen Defense Grid ΩΩ ---------------------------------------------------------
@@ -231,6 +285,32 @@ def _magen_ground_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]
     return system is not None and _structures_on(system, str(ctx["planet"]), player_id) > 0
 
 
+def _magen_targets(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> list[str]:
+    opponent = _opponent(player_id, ctx)
+    system = state.systems.get(str(ctx["position"]))
+    if system is None:
+        return []
+    forces = system.planet_units.get(str(ctx["planet"]), {}).get(opponent, {})
+    return sorted(bt for bt, n in forces.items() if n > 0 and bt in _GROUND)
+
+
+def magen_inputs(
+    state: GameState, _registry: Any, player_id: str, ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Wybór właściciela: w którą siłę naziemną przeciwnika trafia hit."""
+    opponent = _opponent(player_id, ctx)
+    return [
+        oi.choice(
+            "target",
+            "Opponent's ground force to hit",
+            [
+                oi.option(bt, _unit_label(state, opponent, bt))
+                for bt in _magen_targets(state, player_id, ctx)
+            ],
+        )
+    ]
+
+
 @on_event(
     GameEvent.COMBAT,
     Moment.START,
@@ -238,35 +318,27 @@ def _magen_ground_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]
     condition=_magen_ground_ready,
     covers=f"technologies:{MAGEN_ALIAS}",
     label="Magen Defense Grid: hit",
+    inputs=magen_inputs,
+    decide=True,
 )
 def magen_hit(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą
     zadaj 1 trafienie siłom naziemnym przeciwnika.
 
-    Wybór celu należy do właściciela technologii. ⚠ ZAŁOŻENIE (RULES.md 55.7): trafiamy
-    najcenniejszą siłę, która NIE może anulować trafienia przez Sustain Damage; gdy wszystkie mogą,
-    trafiona jednostka używa Sustain Damage (zostaje uszkodzona).
+    Cel wybiera właściciel technologii. Trafiona jednostka z nieużytym Sustain Damage
+    anuluje trafienie (zostaje uszkodzona), reszta ginie (C_technology).
     """
     opponent = _opponent(player_id, ctx)
     system = state.systems.get(str(ctx["position"]))
     planet = str(ctx["planet"])
-    if system is None:
+    target = ctx.get("params", {}).get("target")
+    if system is None or target is None:
         return
-    forces = {
-        bt: n
-        for bt, n in system.planet_units.get(planet, {}).get(opponent, {}).items()
-        if n > 0 and bt in _GROUND
-    }
-    if not forces:
-        return
-
-    def can_absorb(base_type: str) -> bool:
-        undamaged = forces[base_type] - damaged_count(system, planet, opponent, base_type)
-        return _has_sustain(state, opponent, base_type) and undamaged > 0
-
-    pool = [bt for bt in forces if not can_absorb(bt)] or list(forces)
-    target = max(pool, key=lambda bt: (_unit_cost(state, opponent, bt), bt))
-    if can_absorb(target):
+    undamaged = (
+        system.planet_units.get(planet, {}).get(opponent, {}).get(target, 0)
+        - damaged_count(system, planet, opponent, target)
+    )
+    if _has_sustain(state, opponent, target) and undamaged > 0:
         set_damaged(
             system, planet, opponent, target, damaged_count(system, planet, opponent, target) + 1
         )

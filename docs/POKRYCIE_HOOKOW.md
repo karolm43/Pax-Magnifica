@@ -5,18 +5,22 @@ Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja
 
 ## 1. Zarejestrowane hooki
 
-Razem: **23**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **27**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
+| `event:combat.won:after` | TRIGGER | technology:dxa | technologies:dxa | Dacxive Animators: po wygranej walce naziemnej możesz postawić 1 piechotę na tej planecie. |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
-| `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | To samo dla pierwszej tury fazy akcji (tam nie odpala się zdarzenie TURN START). |
+| `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
-| `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II: na początku Twojej tury piechota z karty trafia do systemu domowego. |
+| `event:turn:end` | TRIGGER | technology:bs | technologies:bs | Bio-Stims: na końcu tury możesz wyczerpać kartę, by odświeżyć planetę ze specjalnością |
+| `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:unit.ability_used:after` | TRIGGER | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana. |
 | `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II: po zniszczeniu piechoty rzuć kością; przy 6+ jednostka trafia na kartę. |
 | `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
@@ -68,7 +72,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | galactic_events | 20 | 0 | 0.0 |
 | leaders | 103 | 0 | 0.0 |
 | abilities | 73 | 0 | 0.0 |
-| technologies | 102 | 24 | 23.5 |
+| technologies | 102 | 26 | 25.5 |
 | breakthroughs | 31 | 0 | 0.0 |
 
 ## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)
@@ -90,16 +94,16 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 247 | 231 |
-| walka (combat.*, space_cannon, bombardment) | 196 | 176 |
-| produkcja (production.*) | 177 | 166 |
+| planety i eksploracja (control, exploration) | 247 | 229 |
+| walka (combat.*, space_cannon, bombardment) | 196 | 175 |
+| produkcja (production.*) | 177 | 165 |
 | ekonomia i płatności (economy, payment) | 168 | 163 |
 | karty (card_draw, promissory) | 145 | 140 |
-| status i odświeżanie (status_phase) | 144 | 138 |
+| status i odświeżanie (status_phase) | 144 | 137 |
 | ruch (movement.*) | 125 | 116 |
 | żetony dowodzenia (command_tokens) | 109 | 107 |
 | agenda i głosowanie (agenda_phase) | 98 | 98 |
-| technologie (technology) | 78 | 78 |
+| technologie (technology) | 78 | 77 |
 | karty strategii i inicjatywa | 46 | 43 |
 | cele i punkty (objectives) | 45 | 44 |
 
@@ -895,7 +899,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `asc` | Assault Cannon | — | — | MODIFY (liczba/rzut) | walka | ✔ | At the start of a space combat in a system that contains 3 or more of your non-fighter ships, your opponent must destroy 1 of their non-fig… |
 | `asn` | Agency Supply Network | keleres | — | PERMIT (pozwolenie) | produkcja | — | Once per action, when you resolve a unit's PRODUCTION ability, you may resolve another of your unit's PRODUCTION abilities in any system. |
 | `bio` | Bioplasmosis | arborec | — | MODIFY (liczba/rzut) | ruch, planety i eksploracja, status i odświeżanie | — | At the end of the status phase, you may remove any number of infantry from planets you control and place them on 1 or more planets you cont… |
-| `bs` | Bio-Stims | — | — | PERMIT (pozwolenie) | technologie, planety i eksploracja, status i odświeżanie | — | You may exhaust this card at the end of your turn to ready 1 of your planets that has a technology specialty or 1 of your other technologie… |
+| `bs` | Bio-Stims | — | — | PERMIT (pozwolenie) | technologie, planety i eksploracja, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to ready 1 of your planets that has a technology specialty or 1 of your other technologie… |
 | `cl2` | Crimson Legionnaire II | mahact | — | — | walka, ekonomia i płatności, planety i eksploracja | — | Cost 1(x2), Combat 7 After this unit is destroyed, gain 1 commodity or convert 1 of your commodities to a trade good. Then, place the unit … |
 | `cm` | Chaos Mapping | saar | — | FORBID (zakaz) | produkcja | — | Other players cannot activate asteroid fields that contain 1 or more of your ships. At the start of your turn during the action phase, you … |
 | `cr2` | Cruiser II | — | — | — | ruch, walka | ✔ | Cost 2, Combat 6, Move 3, Capacity 1 |
@@ -906,7 +910,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `dn2` | Dreadnought II | — | — | FORBID (zakaz) | ruch, walka, karty | ✔ | Cost 4, Combat 5, Move 2, Capacity 1 SUSTAIN DAMAGE, BOMBARDMENT 5 This unit cannot be destroyed by "Direct Hit" action cards. |
 | `ds` | Dimensional Splicer | ghost | — | MODIFY (liczba/rzut) | ruch, walka, produkcja | — | At the start of space combat in a system that contains a wormhole and 1 or more of your ships, you may produce 1 hit and assign it to 1 of … |
 | `dt2` | Dimensional Tear II | cabal | — | — | ruch, walka, produkcja | — | PRODUCTION 7 This system is a gravity rift; your ships do not roll for this gravity rift. Place a dimensional tear token beneath this unit … |
-| `dxa` | Dacxive Animators | — | — | PERMIT (pozwolenie) | walka, produkcja, planety i eksploracja | — | After you win a ground combat, you may place 1 infantry from your reinforcements on that planet. |
+| `dxa` | Dacxive Animators | — | — | PERMIT (pozwolenie) | walka, produkcja, planety i eksploracja | ✔ | After you win a ground combat, you may place 1 infantry from your reinforcements on that planet. |
 | `ers` | E-Res Siphons | jolnar | — | MODIFY (liczba/rzut) | ekonomia i płatności | — | After another player activates a system that contains 1 or more of your ships, gain 4 trade goods. |
 | `executiveorder` | Executive Order | keleres | — | PERMIT (pozwolenie) | ekonomia i płatności, karty, agenda i głosowanie, status i odświeżanie | — | ACTION: Exhaust this card and draw the top or bottom card of the Agenda deck. Players immediately vote on this agenda as if you were the sp… |
 | `exile2` | Exile II | crimson | — | PERMIT (pozwolenie) | ruch, walka | — | Cost 1, Combat 7, Move 2, ANTI-FIGHTER BARRAGE 6 (x3). At the end of any players' combat in this unit's system or up to 2 systems away, you… |

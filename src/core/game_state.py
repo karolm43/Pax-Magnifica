@@ -171,12 +171,17 @@ class PendingOffer(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    player_id: str
+    player_id: str  # decydent (odpowiada na ofertę)
     event: str
     moment: str
     hook_seq: int
     label: str = ""
     ctx: dict[str, Any] = Field(default_factory=dict)
+    # Właściciel źródła hooka, gdy to NIE decydent (np. Assault Cannon: ofiara decyduje, kogo
+    # statek ginie); None = właściciel == ``player_id``.
+    owner_id: str | None = None
+    # Decyzja obowiązkowa (bez prawa odmowy), np. wybór celu efektu, który i tak następuje.
+    mandatory: bool = False
 
 
 class StatusStep(StrEnum):
@@ -551,6 +556,7 @@ class CombatStep(StrEnum):
     ROLL = "ROLL"  # rzuty combat obu stron
     ASSIGN = "ASSIGN"  # przypisanie strat (okno COMBAT_ASSIGN_HITS)
     RETREAT = "RETREAT"  # wykonanie ogłoszonego odwrotu (wybór systemu) — RULES.md 39.5
+    TRIGGERS = "TRIGGERS"  # walka czeka na decyzje graczy w ofertach (zdolności startu/końca rundy)
     DONE = "DONE"  # walka zakończona (zwycięzca/remis), czeka na zamknięcie okna
 
 
@@ -583,6 +589,9 @@ class ActiveCombat(BaseModel):
     # kroku RETREAT) oraz wykonane odwroty {player_id: pozycja systemu docelowego}.
     retreating: list[str] = Field(default_factory=list)
     retreated: dict[str, str] = Field(default_factory=dict)
+    # Od czego wznowić walkę po rozstrzygnięciu decyzji graczy w kroku TRIGGERS (RULES.md 56):
+    # "start" (po hookach startu walki) albo "round_end:<KROK>" (po hookach końca rundy).
+    resume: str = ""
 
 
 class InvasionPhase(StrEnum):

@@ -244,19 +244,56 @@ def start_combat(
         ctx={"kind": kind, "position": active, "planet": planet or "",
              "attacker": attacker, "defender": defender},
     )
-    # Hooki startu walki (Assault Cannon, Magen Defense Grid) mogą zniszczyć ostatnie jednostki
-    # strony - wtedy walka kończy się od razu (C_technology: strona przegrywa natychmiast).
-    if any(not side_units(new_state, grid, registry, pid) for pid in (attacker, defender)):
-        return _after_losses(new_state, grid, registry)
-    has_afb = kind == "space" and any(
+    # Decyzje graczy z hooków startu walki (np. Assault Cannon, Magen Defense Grid): walka czeka
+    # w kroku TRIGGERS, aż wszyscy zdecydują (RULES.md 56); potem ``resume_after_triggers``.
+    if new_state.pending_offers:
+        combat.step = CombatStep.TRIGGERS
+        combat.resume = "start"
+        return new_state
+    return _after_start(new_state, grid, registry)
+
+
+def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
+    """Dalszy ciąg startu walki po hookach: koniec, gdy strona straciła jednostki, AFB, runda."""
+    combat = _combat(state)
+    attacker, defender = combat.attacker, combat.defender
+    # Hooki startu walki mogą zniszczyć ostatnie jednostki strony - walka kończy się od razu
+    # (C_technology: strona przegrywa natychmiast).
+    if any(not side_units(state, grid, registry, pid) for pid in (attacker, defender)):
+        return _after_losses(state, grid, registry)
+    has_afb = combat.kind == "space" and any(
         u.afb_hits_on is not None
         for pid in (attacker, defender)
-        for u in side_units(new_state, grid, registry, pid)
+        for u in side_units(state, grid, registry, pid)
     )
     if has_afb:
         combat.step = CombatStep.AFB
-        return new_state
-    return _begin_round(new_state, grid)
+        return state
+    return _begin_round(state, grid)
+
+
+def resume_after_triggers(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Wznawia walkę zaparkowaną w kroku TRIGGERS, gdy nikt już nie musi decydować.
+
+    Wołane po każdej odpowiedzi na ofertę. Gdy zostały oferty albo trwa okno czasowe - stan bez
+    zmian. Zwraca stan z przywróconym krokiem i dalszym przebiegiem (RULES.md 56).
+    """
+    combat = state.active_combat
+    if combat is None or combat.step is not CombatStep.TRIGGERS:
+        return state
+    if state.pending_offers or state.pending_window is not None:
+        return state
+    new_state = state.clone()
+    combat = _combat(new_state)
+    resume = combat.resume
+    combat.resume = ""
+    if resume.startswith("round_end:"):
+        combat.step = CombatStep(resume.split(":", 1)[1])
+        return _finish_round(new_state, grid, registry)
+    combat.step = CombatStep.ROLL
+    return _after_start(new_state, grid, registry)
 
 
 # ---------------------------------------------------------------------------- rzuty
@@ -625,11 +662,6 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
     """Koniec rundy (W9): zwycięzca/remis albo kolejna runda (bez AFB)."""
     new_state = state.clone()
     combat = _combat(new_state)
-    alive = [
-        pid
-        for pid in (combat.attacker, combat.defender)
-        if side_units(new_state, grid, registry, pid)
-    ]
     last = combat.log[-1] if combat.log else {}
     is_roll_round = combat.step is not CombatStep.AFB
     triggers.fire(
@@ -644,6 +676,23 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
             "sustained": last.get("sustained", {}) if is_roll_round else {},
         },
     )
+    # Decyzje graczy z hooków końca rundy (np. Duranium Armor): walka czeka w kroku TRIGGERS.
+    if new_state.pending_offers:
+        combat.resume = f"round_end:{combat.step.value}"
+        combat.step = CombatStep.TRIGGERS
+        return new_state
+    return _finish_round(new_state, grid, registry)
+
+
+def _finish_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
+    """Koniec rundy (W9) po hookach: zwycięzca/remis albo kolejna runda."""
+    new_state = state
+    combat = _combat(new_state)
+    alive = [
+        pid
+        for pid in (combat.attacker, combat.defender)
+        if side_units(new_state, grid, registry, pid)
+    ]
     if len(alive) <= 1:
         # Także O3: ogłoszony odwrót nie następuje, gdy przeciwnikowi nie zostały statki.
         combat.step = CombatStep.DONE

@@ -26,7 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.core import active_effects, rules_hooks
+from src.core import active_effects, offer_inputs, rules_hooks
 from src.core.game_events import Duration, GameEvent, Moment, event_point
 from src.core.game_state import (
     GameState,
@@ -140,6 +140,9 @@ def fire(
                         continue
                     if hook.condition is not None and not hook.condition(state, pid, context):
                         continue
+                    if hook.decide:
+                        _decide(state, pid, hook, event, moment, context, result)
+                        continue
                     if hook.optional:
                         result.offers.append(_new_offer(state, pid, hook, event, moment, context))
                         continue
@@ -159,17 +162,59 @@ def fire(
 
 
 def _new_offer(
-    state: GameState, pid: str, hook: Hook, event: GameEvent, moment: Moment, ctx: dict[str, Any]
+    state: GameState,
+    pid: str,
+    hook: Hook,
+    event: GameEvent,
+    moment: Moment,
+    ctx: dict[str, Any],
+    *,
+    decider: str | None = None,
+    mandatory: bool = False,
 ) -> PendingOffer:
+    """Nowa oferta: ``pid`` = właściciel źródła, ``decider`` = kto odpowiada (domyślnie on)."""
+    who = decider or pid
     return PendingOffer(
         id=active_effects.next_id(state, "of"),
-        player_id=pid,
+        player_id=who,
         event=event.value,
         moment=moment.value,
         hook_seq=hook.seq,
         label=_label(hook),
-        ctx=_jsonable(ctx),
+        ctx=_jsonable({**ctx, "decider": who}),
+        owner_id=None if who == pid else pid,
+        mandatory=mandatory,
     )
+
+
+def _decide(
+    state: GameState,
+    pid: str,
+    hook: Hook,
+    event: GameEvent,
+    moment: Moment,
+    context: dict[str, Any],
+    result: FireResult,
+) -> None:
+    """Decyzja obowiązkowa hooka (``decide``): silnik NIE wybiera za gracza.
+
+    Realny wybór (więcej niż jedna legalna odpowiedź) -> oferta obowiązkowa dla decydenta.
+    Dokładnie jedna legalna odpowiedź -> stosujemy ją od razu (nie ma czego decydować);
+    brak legalnej odpowiedzi -> efekt się nie odbywa.
+    """
+    decider = hook.decider(state, pid, context) if hook.decider is not None else pid
+    registry = rules_hooks.bound_registry()
+    inputs = hook.inputs(state, registry, decider, context) if hook.inputs is not None else []
+    if offer_inputs.needs_player(inputs):
+        result.offers.append(
+            _new_offer(state, pid, hook, event, moment, context, decider=decider, mandatory=True)
+        )
+        return
+    if not offer_inputs.has_legal_answer(inputs):
+        return
+    params = offer_inputs.single_params(inputs)
+    hook.fn(state, pid, {**context, "decider": decider, "params": params, "accepted": True})
+    result.ran.append(_label(hook))
 
 
 def _publish_offers(
@@ -240,18 +285,29 @@ def accept_offer(
     """
     work = state.clone()
     offer = _take_offer(work, player_id, offer_id)
+    owner = offer.owner_id or offer.player_id
     hook = rules_hooks.hook_by_seq(offer.hook_seq)
-    if hook is None or hook.source not in rules_hooks.owned_sources(work, player_id):
+    if hook is None or hook.source not in rules_hooks.owned_sources(work, owner):
         raise ValueError("The source of this ability is no longer in play.")
-    context = {**offer.ctx, "params": dict(params or {}), "accepted": True}
-    hook.fn(work, player_id, context)
+    # Odpowiedź gracza sprawdzamy względem legalnych opcji liczonych TERAZ przez silnik.
+    inputs = (
+        hook.inputs(work, rules_hooks.bound_registry(), player_id, offer.ctx)
+        if hook.inputs is not None
+        else []
+    )
+    cleaned = offer_inputs.validate_params(inputs, dict(params or {}))
+    context = {**offer.ctx, "decider": player_id, "params": cleaned, "accepted": True}
+    hook.fn(work, owner, context)
     _advance_window(work, player_id)
     return work
 
 
 def decline_offer(state: GameState, player_id: str, offer_id: str) -> GameState:
-    """Gracz odrzuca ofertę (zdolność z „may” można pominąć)."""
+    """Gracz odrzuca ofertę (zdolność z „may” można pominąć; decyzji obowiązkowej nie)."""
     work = state.clone()
+    pending = next((o for o in work.pending_offers if o.id == offer_id), None)
+    if pending is not None and pending.mandatory:
+        raise ValueError("This decision is mandatory - choose one of the options.")
     _take_offer(work, player_id, offer_id)
     _advance_window(work, player_id)
     return work

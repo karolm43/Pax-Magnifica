@@ -1871,3 +1871,10 @@ type-check + lint + build czyste.
 - Nowe punkty: `retreat.anywhere`, `technology.specialty_without_exhaust`; `PlayerState.infantry_ii_on_card`.
 - Testy: `tests/test_technologies_passive.py` (13).
 - Zostały technologie wymagające interakcji (okno ofert „may” + akcje technologii): `aida` (produkcja), `bs`, `dxa`, `gls`, `ie`, `pi`, `sar` (mech), `sdn`, `sr`, `td`, `pa` (TG), `det` (frontier), `ff2` (flota). Mechanizm ofert (`triggers.accept_offer`) jest w core, ale bez endpointu i UI.
+
+## 2026-11-09 (6) — Decyzje graczy zamiast automatów, blok A (RULES.md 56)
+
+- Decyzja użytkownika: technologie nigdy automatycznie; gracz decyduje przyciskiem/oknem. Infrastruktura: `core/offer_inputs.py`, `on_event(optional/decide/inputs/decider)`, `PendingOffer.owner_id/mandatory`, `core/offers.py`, router `/offers`, `pendingOffers` w web-data, `OffersModal` (front, wspólne pole formularza z kartami akcji).
+- Walka: krok `TRIGGERS` + `battle.resume_after_triggers`. Przerobione: Assault Cannon (decyduje ofiara), Magen ΩΩ, Duranium Armor, Infantry II; nowe oferty: Dacxive Animators, Bio-Stims.
+- Testy: `tests/test_offers.py` (14). Front: build + lint zielone.
+- Dalej (bloki B-D): Gravity Drive/GLS/AIDA jako przełączniki w istniejących oknach; Scanlink i Dark Energy Tap przez eksplorację (frontier); Self-Assembly (mech), Integrated Economy, Transit Diodes, Predictive Intelligence; akcje Sling Relay i Psychoarchaeology (dispatch w `component_action`).

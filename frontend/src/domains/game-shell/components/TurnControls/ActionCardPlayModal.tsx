@@ -19,8 +19,8 @@ type Props = {
   playerId: string;
 };
 
-/** Jedno pole formularza wg rodzaju wejścia opisanego przez backend. */
-function InputField({
+/** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (też dla ofert technologii). */
+export function InputField({
   input,
   value,
   disabled,

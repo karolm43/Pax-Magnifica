@@ -92,6 +92,12 @@ def exhaust_technology(state: GameState, player_id: str, tech_id: str) -> None:
         player.exhausted_technologies = [*player.exhausted_technologies, tech_id]
 
 
+def ready_technology(state: GameState, player_id: str, tech_id: str) -> None:
+    """Odświeża jedną technologię gracza (np. Bio-Stims)."""
+    player = _player(state, player_id)
+    player.exhausted_technologies = [t for t in player.exhausted_technologies if t != tech_id]
+
+
 def ready_all_technologies(state: GameState, player_id: str) -> None:
     """Odświeża wszystkie technologie gracza (faza statusu, krok 6)."""
     _player(state, player_id).exhausted_technologies = []

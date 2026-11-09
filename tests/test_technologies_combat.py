@@ -72,18 +72,6 @@ def test_duranium_armor_nie_naprawia_jednostki_ktora_uzyla_sustain_damage_w_tej_
     assert damage.damaged_count(system, "space", "p1", "dreadnought") == 1
 
 
-def test_duranium_armor_wybiera_najdrozsza_uszkodzona_jednostke() -> None:
-    state = _with_tech(
-        battle_state({"p1": {"dreadnought": 1, "cruiser": 1}, "p2": {"cruiser": 1}}), "p1", "da"
-    )
-    system = state.systems["000"]
-    damage.set_damaged(system, "space", "p1", "dreadnought", 1)
-    damage.set_damaged(system, "space", "p1", "cruiser", 1)
-    _round_end(state)
-    assert damage.damaged_count(system, "space", "p1", "dreadnought") == 0
-    assert damage.damaged_count(system, "space", "p1", "cruiser") == 1
-
-
 def test_duranium_armor_nie_dziala_poza_walka_i_bez_technologii() -> None:
     state = battle_state({"p1": {"dreadnought": 1}, "p2": {"cruiser": 1}})
     damage.set_damaged(state.systems["000"], "space", "p1", "dreadnought", 1)
@@ -99,20 +87,6 @@ def test_duranium_armor_nie_dziala_poza_walka_i_bez_technologii() -> None:
 
 
 # --- Assault Cannon ----------------------------------------------------------------------
-
-
-def test_assault_cannon_przeciwnik_traci_najtanszy_statek_niemyslihwski(
-    registry: StaticDataRegistry,
-) -> None:
-    state = _with_tech(
-        battle_state(
-            {"p1": {"cruiser": 3}, "p2": {"cruiser": 1, "destroyer": 1, "fighter": 2}}
-        ),
-        "p1",
-        "asc",
-    )
-    started = battle.start_combat(state, battle_grid(), registry)
-    assert started.systems["000"].space_units["p2"] == {"cruiser": 1, "fighter": 2}
 
 
 def test_assault_cannon_wymaga_trzech_statkow_niemyslihwskich(

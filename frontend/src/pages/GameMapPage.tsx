@@ -19,6 +19,7 @@ import { DiceStageHost } from "@/domains/dice/DiceStageHost";
 import { TableRollWatcher } from "@/domains/dice/TableRollWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
+import { OffersModal } from "@/domains/offers/OffersModal";
 import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
 import { AgendaOverlay } from "@/domains/agenda/AgendaOverlay";
@@ -295,6 +296,9 @@ function GameMapContent() {
       {/* Popup decyzji „follow / don't follow" secondary karty strategii — pyta
           bieżącego respondenta okna STRATEGY_SECONDARY (RULES.md 29.2, 31.6). */}
       <SecondaryDecisionModal />
+      {/* Decyzje graczy (RULES.md 56): technologie/zdolności z „may" i wybory celu - gracz zawsze
+          decyduje sam, silnik nigdy nie wybiera za niego. */}
+      <OffersModal />
 
       {/* Koniec gry: zwycięzca → głosowanie (honor) → Kronika epilogu → podsumowanie.
           Pojawia się natychmiast, gdy backend ustawi `winnerId` (próg VP / koniec rund). */}

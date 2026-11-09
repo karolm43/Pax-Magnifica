@@ -525,6 +525,11 @@ export type GameState = {
   productionGrant?: { system: string; source: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
   pendingWindow?: PendingWindow | null;
+  /**
+   * Decyzje graczy (oferty technologii i zdolności, RULES.md 56) - null/puste, gdy brak.
+   * Opcje wyborów pobiera okno decyzji z `GET /offers`; gracz zawsze decyduje sam.
+   */
+  pendingOffers?: { id: string; playerId: string; mandatory: boolean; label: string }[];
   /** Wieloetapowe primary karty strategii (wybory aktywnego gracza) — null, gdy brak. */
   pendingStrategy?: PendingStrategy | null;
   /** Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — null po zakończeniu. */

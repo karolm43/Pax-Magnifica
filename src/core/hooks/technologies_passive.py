@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import dice, economy, rules_hooks, unit_ops
+from src.core import offer_inputs as oi
 from src.core.dice import DIE_SIDES, count_hits
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
@@ -18,6 +19,7 @@ from src.core.rules_hooks import (
     POINT_RETREAT_ANYWHERE,
     POINT_TECHNOLOGY_SPECIALTY_FREE,
     SOURCE_TECHNOLOGY,
+    ConditionFn,
     HookKind,
     HookSource,
     on_event,
@@ -121,52 +123,93 @@ def infantry_ii_revive_roll(state: GameState, player_id: str, ctx: Mapping[str, 
     )
 
 
-def _place_revived_infantry(state: GameState, player_id: str) -> None:
-    """Początek tury: piechota z karty wraca na planetę gracza w systemie domowym.
-
-    Gdy gracz nie kontroluje żadnej planety w systemie domowym, jednostki wracają do rezerwy
-    (C_units: Infantry). ⚠ ZAŁOŻENIE (RULES.md 55.8): planeta wybierana automatycznie
-    (pierwsza alfabetycznie), do czasu okna wyboru w UI.
-    """
+def _home_planets(state: GameState, player_id: str) -> list[str]:
+    """Planety kontrolowane przez gracza w jego systemie domowym."""
     player = state.players[player_id]
-    waiting = player.infantry_ii_on_card
-    if waiting <= 0:
-        return
-    player.infantry_ii_on_card = 0
     home = state.systems.get(player.home_position or "")
     if home is None:
+        return []
+    return sorted(p for p, owner in home.planet_owners.items() if owner == player_id)
+
+
+def _returns_now(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> bool:
+    return state.players[player_id].infantry_ii_on_card > 0 and bool(
+        _home_planets(state, player_id)
+    )
+
+
+def _no_home_planet(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> bool:
+    return state.players[player_id].infantry_ii_on_card > 0 and not _home_planets(
+        state, player_id
+    )
+
+
+def infantry_ii_inputs(
+    state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Wybór gracza: na której planecie w systemie domowym stawia piechotę z karty."""
+    return [
+        oi.choice(
+            "planet",
+            "Home-system planet for the infantry on your Infantry II card",
+            [
+                oi.option(p, registry.planets[p].name if p in registry.planets else p)
+                for p in _home_planets(state, player_id)
+            ],
+        )
+    ]
+
+
+def infantry_ii_place(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym."""
+    player = state.players[player_id]
+    planet = ctx.get("params", {}).get("planet")
+    home = state.systems.get(player.home_position or "")
+    if planet is None or home is None or player.infantry_ii_on_card <= 0:
         return
-    planets = sorted(p for p, owner in home.planet_owners.items() if owner == player_id)
-    if planets:
-        unit_ops.place_units(state, home, planets[0], player_id, "infantry", waiting)
+    waiting = player.infantry_ii_on_card
+    player.infantry_ii_on_card = 0
+    unit_ops.place_units(state, home, planet, player_id, "infantry", waiting)
 
 
-@on_event(
-    GameEvent.TURN,
-    Moment.START,
-    _source(INFANTRY_II_ALIAS),
-    condition=_own_event,
-    covers=f"technologies:{INFANTRY_II_ALIAS}",
-    label="Infantry II: return",
-)
-def infantry_ii_return_on_turn(
-    state: GameState, player_id: str, _ctx: Mapping[str, Any]
-) -> None:
-    """Infantry II: na początku Twojej tury piechota z karty trafia do systemu domowego."""
-    _place_revived_infantry(state, player_id)
+def infantry_ii_to_reserve(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
+    """Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy
+    (C_units: Infantry)."""
+    state.players[player_id].infantry_ii_on_card = 0
 
 
-@on_event(
-    GameEvent.PHASE,
-    Moment.START,
-    _source(INFANTRY_II_ALIAS),
-    where={"phase": "action"},
-    condition=lambda state, pid, _ctx: state.active_player_id == pid,
-    covers=f"technologies:{INFANTRY_II_ALIAS}",
-    label="Infantry II: return (first turn)",
-)
-def infantry_ii_return_on_first_turn(
-    state: GameState, player_id: str, _ctx: Mapping[str, Any]
-) -> None:
-    """To samo dla pierwszej tury fazy akcji (tam nie odpala się zdarzenie TURN START)."""
-    _place_revived_infantry(state, player_id)
+def _first_action_turn(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> bool:
+    return state.active_player_id == player_id
+
+
+def _both(first: ConditionFn, second: ConditionFn) -> ConditionFn:
+    """Warunek hooka: oba warunki naraz."""
+
+    def condition(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+        return first(state, player_id, ctx) and second(state, player_id, ctx)
+
+    return condition
+
+
+# Początek Twojej tury (TURN START) oraz początek pierwszej tury fazy akcji (PHASE START - tam
+# nie odpala się TURN START). Obie ścieżki: wybór planety przez gracza / zwrot do rezerwy.
+for _event, _moment, _where, _owns_turn in (
+    (GameEvent.TURN, Moment.START, None, _own_event),
+    (
+        GameEvent.PHASE,
+        Moment.START,
+        {"phase": "action"},
+        _first_action_turn,
+    ),
+):
+    on_event(
+        _event, _moment, _source(INFANTRY_II_ALIAS), where=_where,
+        condition=_both(_owns_turn, _returns_now),
+        covers=f"technologies:{INFANTRY_II_ALIAS}", label="Infantry II: return",
+        inputs=infantry_ii_inputs, decide=True,
+    )(infantry_ii_place)
+    on_event(
+        _event, _moment, _source(INFANTRY_II_ALIAS), where=_where,
+        condition=_both(_owns_turn, _no_home_planet),
+        covers=f"technologies:{INFANTRY_II_ALIAS}", label="Infantry II: reserve",
+    )(infantry_ii_to_reserve)
