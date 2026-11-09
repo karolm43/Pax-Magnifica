@@ -19,6 +19,7 @@ import { useGameState } from "@/api/useGameState";
 import {
   useBattle,
   useBoardEditor,
+  type BattleSide,
   type BattleView,
 } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
@@ -38,8 +39,9 @@ import {
 } from "./battleAssign";
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet } from "./BattleFleet";
-import { BattleCenter } from "./BattleCenter";
+import { BattleCenter, type HoldState } from "./BattleCenter";
 import { DiceTray } from "./DiceTray";
+import { DicePool } from "./DicePool";
 import { READ_MS } from "./diceRoll";
 import {
   isBattleMuted,
@@ -481,6 +483,50 @@ function Battlefield({ view }: { view: BattleView }) {
     return () => window.clearTimeout(t);
   }, [volleyId, diceMs]);
   const rolling = volleyId !== null && rollingId === volleyId;
+  // Pula kości: przytrzymanie „Roll" (hold) → puszczenie (await: czekamy na wynik z silnika,
+  // kości lecą potem z puli) → zniknięcie, gdy kości są już na stole.
+  const [pool, setPool] = useState<{
+    phase: "off" | "hold" | "await";
+    at: number;
+    left: number;
+    right: number;
+  }>({ phase: "off", at: 0, left: 0, right: 0 });
+  const diceOf = (s: BattleSide) =>
+    view.step === "AFB"
+      ? s.units.reduce(
+          (n, u) => n + (u.afbHitsOn !== null ? u.count * u.afbDice : 0),
+          0,
+        )
+      : s.totalDice;
+  const onHold = (state: HoldState) => {
+    if (state === "start") {
+      setPool({
+        phase: "hold",
+        at: 0,
+        left: diceOf(attacker),
+        right: diceOf(defender),
+      });
+    } else if (state === "fire") {
+      setPool((p) => ({ ...p, phase: "await", at: Date.now() }));
+    } else {
+      setPool((p) => ({ ...p, phase: "off" }));
+    }
+  };
+  useEffect(() => {
+    if (pool.phase !== "await") return;
+    const t = window.setTimeout(
+      () => setPool((p) => (p.phase === "await" ? { ...p, phase: "off" } : p)),
+      3000,
+    );
+    return () => window.clearTimeout(t);
+  }, [pool.phase]);
+  const volleyFromPool =
+    volley !== null &&
+    pool.at > 0 &&
+    volley.id >= pool.at &&
+    volley.id - pool.at < 4000;
+  const showPool =
+    pool.phase === "hold" || (pool.phase === "await" && !volleyFromPool);
   // Walka dopiero się zaczyna (flota jeszcze wlatuje), a gracz już rzucił: pomiń wlot, żeby
   // statki zostały na polu, zamiast przemontować się i wlecieć drugi raz.
   const skipEntry = view.log.length > 0 || view.step === "ASSIGN";
@@ -660,6 +706,7 @@ function Battlefield({ view }: { view: BattleView }) {
           nameOf={nameOf}
           busy={busy}
           rolling={rolling}
+          onHold={onHold}
           absorbed={covered}
           onAfb={() => void run(battleAfb)}
           onRoll={() => void run(battleRoll)}
@@ -706,8 +753,14 @@ function Battlefield({ view }: { view: BattleView }) {
           fieldRef={fieldRef}
           ground={view.kind === "ground"}
         />
+        {showPool && <DicePool left={pool.left} right={pool.right} />}
         {volley && volley.diceMs > 0 && (
-          <DiceTray key={volley.id} volley={volley} />
+          <DiceTray
+            key={volley.id}
+            volley={volley}
+            fromPool={volleyFromPool}
+            pool={{ left: pool.left, right: pool.right }}
+          />
         )}
       </div>
     </div>

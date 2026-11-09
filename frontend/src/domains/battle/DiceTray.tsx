@@ -6,170 +6,41 @@ import {
   type CSSProperties,
 } from "react";
 import { playBattleSound } from "./battleSound";
-import {
-  CONTACTS,
-  DIE_MS,
-  READ_MS,
-  planDice,
-  type Die,
-  type Point,
-} from "./diceRoll";
+import { CONTACTS, DIE_MS, READ_MS, dieState, planDice, type Die } from "./diceRoll";
+import { faceOf } from "./dieGeometry";
+import { DieMesh, findMesh, poseMesh, type MeshParts } from "./DieMesh";
 import type { Volley } from "./useBattleFx";
 import styles from "./BattleOverlay.module.css";
 
 /**
- * Fizyczny rzut kośćmi na stół pola bitwy (czysta prezentacja — wartości z silnika).
+ * Fizyczny rzut kośćmi d10 na stół pola bitwy (czysta prezentacja — wartości z silnika).
  *
- * Kostki d10 wpadają z krawędzi ekranu (atakujący z lewej, obrońca z prawej), obracają się w
- * 3D, odbijają trzykrotnie od stołu (coraz niżej i krócej, z cieniem rosnącym przy zderzeniu),
- * stukają i układają się płasko. W locie ścianka „migocze" losowymi liczbami; wynik pojawia
- * się, gdy kostka traci pęd. Po odczytaniu rzutu stół znika, a salwa rusza dopiero po
- * wylądowaniu ostatniej kostki (``Volley.diceMs``).
+ * Każda kostka to prawdziwa bryła 3D (10 ścianek, oświetlenie liczone w każdej klatce). Wpada
+ * na stół z krawędzi ekranu albo z puli (gdy gracz przytrzymał „Roll"), obraca się, odbija
+ * trzy razy od blatu (coraz niżej, z cieniem) i układa ścianką z wynikiem do góry. Salwa
+ * rusza dopiero po wylądowaniu ostatniej kostki (``Volley.diceMs``).
  */
-
-/** Wysokość kostki nad stołem w kolejnych klatkach (px) — odbicia słabną. */
-const LIFT_AT = [0, 0.34, 0.47, 0.6, 0.7, 0.8, 0.9, 1] as const;
-const LIFT_Z = [100, 0, 38, 0, 14, 0, 4, 0] as const;
-/** Chwile klatek pozycji i obrotu (ułamek lotu) oraz ułamek obrotu, który jeszcze został. */
-const MOVE_AT = [0, CONTACTS[0], CONTACTS[1], CONTACTS[2], 1] as const;
-const SPIN_LEFT = [1, 0.45, 0.15, 0.04, 0] as const;
-/** Po tej części lotu ścianka przestaje migotać i pokazuje wynik. */
-const REVEAL_AT = 0.74;
-
-const FALL = "cubic-bezier(0.55, 0, 0.9, 0.55)";
-const RISE = "cubic-bezier(0.1, 0.45, 0.45, 1)";
 
 const reducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-function DieBody({ die }: { die: Die }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const at = (p: Point) => `translate3d(${p.x}px, ${p.y}px, 0)`;
-
-  useLayoutEffect(() => {
-    const wrap = ref.current;
-    if (!wrap) return;
-    const part = (name: string) =>
-      wrap.querySelector<HTMLElement>(`[data-part="${name}"]`);
-    const lift = part("lift");
-    const shadow = part("shadow");
-    const cube = part("cube");
-    const face = part("face");
-    if (!lift || !shadow || !cube || !face) return;
-    if (reducedMotion()) {
-      wrap.style.transform = at(die.rest);
-      wrap.dataset.settled = "1";
-      return;
-    }
-    const timing = {
-      duration: DIE_MS,
-      delay: die.delayMs,
-      fill: "both" as const,
-    };
-    const points = [die.start, ...die.hops, die.rest];
-    const run = [
-      wrap.animate(
-        MOVE_AT.map((offset, i) => ({
-          offset,
-          transform: at(points[i]),
-          easing: "linear",
-        })),
-        timing,
-      ),
-      lift.animate(
-        LIFT_AT.map((offset, i) => {
-          const z = LIFT_Z[i];
-          const next = LIFT_Z[Math.min(i + 1, LIFT_Z.length - 1)];
-          return {
-            offset,
-            transform: `translateY(${-z}px) scale(${1 + z / 260})`,
-            easing: next < z ? FALL : RISE,
-          };
-        }),
-        timing,
-      ),
-      shadow.animate(
-        LIFT_AT.map((offset, i) => {
-          const z = LIFT_Z[i];
-          const next = LIFT_Z[Math.min(i + 1, LIFT_Z.length - 1)];
-          return {
-            offset,
-            transform: `translate(${z * 0.25}px, ${z * 0.45}px) scale(${1 - z / 400})`,
-            opacity: Math.max(0.12, 0.6 - z / 260),
-            easing: next < z ? FALL : RISE,
-          };
-        }),
-        timing,
-      ),
-      cube.animate(
-        MOVE_AT.map((offset, i) => {
-          const f = SPIN_LEFT[i];
-          return {
-            offset,
-            transform: `rotateX(${die.rx * f}deg) rotateY(${die.ry * f}deg) rotateZ(${die.rz * f + die.restRz * (1 - f)}deg)`,
-            easing: "linear",
-          };
-        }),
-        timing,
-      ),
-    ];
-    // Ścianka w locie: losowe liczby, po utracie pędu — prawdziwy wynik z silnika.
-    const label = face.querySelector("b");
-    const t0 = performance.now() + die.delayMs;
-    const flicker = window.setInterval(() => {
-      if (!label) return;
-      const elapsed = performance.now() - t0;
-      if (elapsed >= DIE_MS * REVEAL_AT) {
-        label.textContent = String(die.value);
-        window.clearInterval(flicker);
-      } else if (elapsed >= 0) {
-        label.textContent = String(1 + Math.floor(Math.random() * 10));
-      }
-    }, 70);
-    void run[0].finished
-      .then(() => {
-        wrap.dataset.settled = "1";
-      })
-      .catch(() => undefined);
-    return () => {
-      window.clearInterval(flicker);
-      run.forEach((a) => a.cancel());
-    };
-    // Plan kostki jest stały dla danej salwy — animacja startuje raz, przy montowaniu.
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={styles.dieWrap}
-      data-side={die.side}
-      data-hit={die.hit || undefined}
-      style={
-        {
-          "--ds": `${die.size}px`,
-          transform: at(die.start),
-        } as CSSProperties
-      }
-    >
-      <i className={styles.dieShadow} data-part="shadow" />
-      <div className={styles.dieLift} data-part="lift">
-        <div className={styles.dieCube} data-part="cube">
-          <span className={styles.dieFace} data-part="face">
-            <b>{die.value}</b>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Stół z kośćmi dla jednej salwy (znika sam po odczytaniu rzutu). */
-export function DiceTray({ volley }: { volley: Volley }) {
+export function DiceTray({
+  volley,
+  fromPool,
+  pool,
+}: {
+  volley: Volley;
+  /** Rzut po przytrzymaniu „Roll": kostki startują z puli, nie z krawędzi ekranu. */
+  fromPool: boolean;
+  /** Liczba kostek w puli każdej strony (układ startowy). */
+  pool: { left: number; right: number };
+}) {
   const trayRef = useRef<HTMLDivElement>(null);
   const [dice, setDice] = useState<Die[]>([]);
   const [gone, setGone] = useState(false);
-  const holdMs = volley.diceMs + READ_MS + 1100;
+  const holdMs = volley.diceMs + READ_MS + 1500;
 
   useLayoutEffect(() => {
     const tray = trayRef.current;
@@ -181,9 +52,48 @@ export function DiceTray({ volley }: { volley: Volley }) {
         width: tray.clientWidth,
         height: tray.clientHeight,
         seed: volley.id,
+        fromPool,
+        pool,
       }),
     );
-  }, [volley]);
+    // Plan liczymy raz na salwę.
+  }, [volley.id]);
+
+  // Pętla animacji: pozycja, obrót i oświetlenie każdej kostki w każdej klatce.
+  useLayoutEffect(() => {
+    const tray = trayRef.current;
+    if (!tray || dice.length === 0) return;
+    const meshes: (MeshParts | null)[] = dice.map((d) => findMesh(tray, d.id));
+    const faces = dice.map((d) => faceOf(d.value));
+    const settled = dice.map(() => false);
+    const pose = (i: number, t: number) => {
+      const mesh = meshes[i];
+      if (!mesh || settled[i]) return true;
+      const st = dieState(dice[i], t - dice[i].delayMs);
+      poseMesh(mesh, st, dice[i].size, faces[i]);
+      if (st.settled) {
+        settled[i] = true;
+        mesh.wrap.dataset.settled = "1";
+      }
+      return st.settled;
+    };
+    if (reducedMotion()) {
+      dice.forEach((_, i) => pose(i, DIE_MS + 5000));
+      return;
+    }
+    const t0 = performance.now();
+    dice.forEach((_, i) => pose(i, 0));
+    let raf = 0;
+    const frame = (now: number) => {
+      let alive = false;
+      for (let i = 0; i < dice.length; i++) {
+        if (!pose(i, now - t0)) alive = true;
+      }
+      if (alive) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [dice]);
 
   // Dźwięk: grzechot przy rzucie każdej strony i stuknięcia przy kolejnych odbiciach.
   useEffect(() => {
@@ -233,7 +143,13 @@ export function DiceTray({ volley }: { volley: Volley }) {
       aria-hidden="true"
     >
       {dice.map((die) => (
-        <DieBody key={die.id} die={die} />
+        <DieMesh
+          key={die.id}
+          meshKey={die.id}
+          side={die.side}
+          hit={die.hit}
+          size={die.size}
+        />
       ))}
     </div>
   );
