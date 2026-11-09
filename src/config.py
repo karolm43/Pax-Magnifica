@@ -26,6 +26,9 @@ PLANETS_DIR: Path = ASSETS_DIR / "planets"
 UNITS_DATA_DIR: Path = DATA_DIR / "units"
 TECHNOLOGIES_DATA_DIR: Path = DATA_DIR / "technologies"
 FACTIONS_DATA_DIR: Path = DATA_DIR / "factions"
+
+# Kolory graczy AsyncTI4 (solid / split / gradient) — pliki ``*Colors.json``.
+PLAYER_COLORS_DIR: Path = DATA_DIR / "colors"
 # Karty strategii (definicje kart + zestawy kart gry).
 STRATEGY_CARDS_DIR: Path = DATA_DIR / "strategy_cards"
 STRATEGY_CARD_SETS_PATH: Path = DATA_DIR / "strategy_card_sets" / "strategyCardSets.json"

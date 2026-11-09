@@ -234,9 +234,9 @@ def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
     # Mapa testowa się załadowała (Mecatol + pierścienie).
     assert "000:18" in data["tilePositions"]
     assert len(data["tilePositions"]) > 10
-    # Gracze z auto-przydziałem kolorów wg kolejności (red, green).
+    # Gracze z auto-przydziałem kolorów wg kolejności (red, grn - aliasy kanoniczne).
     players = {p["faction"]: p["color"] for p in data["playerData"]}
-    assert players == {"sol": "red", "hacan": "green"}
+    assert players == {"sol": "red", "hacan": "grn"}
     # Sol na 301, Hacan na 304 — statki w przestrzeni.
     assert data["tileUnitData"]["301"]["space"].get("sol")
     assert data["tileUnitData"]["304"]["space"].get("hacan")

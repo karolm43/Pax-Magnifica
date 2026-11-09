@@ -328,9 +328,13 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
             type="button"
             className={`${styles.startButton} ${ready ? styles.startButtonReady : ""}`}
             disabled={!stage?.canSubmit || stage?.submitting}
-            onClick={stage?.onSubmit}
+            onClick={stage?.isLastStep ? stage?.onSubmit : stage?.onNext}
           >
-            {stage?.submitting ? "Starting…" : "Start game"}
+            {stage?.isLastStep
+              ? stage?.submitting
+                ? "Starting…"
+                : "Start game"
+              : "Seat & color"}
             <span className={styles.startArrow} aria-hidden>
               →
             </span>

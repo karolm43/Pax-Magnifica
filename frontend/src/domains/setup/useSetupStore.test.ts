@@ -10,6 +10,9 @@
 import { describe, it, expect } from "vitest";
 
 import {
+  assignPreferredColors,
+  toNewGameRequest,
+  useSetupStore,
   validateSetup,
   type SetupSlot,
   type PlayerColor,
@@ -23,6 +26,7 @@ function slot(factionId: string, color: PlayerColor): SetupSlot {
   return {
     name: "",
     color,
+    seat: AVAILABLE_COLORS.indexOf(color),
     factionId,
     startingTech: [],
     controlType: "HUMAN",
@@ -75,5 +79,49 @@ describe("validateSetup — dobór frakcji (rodzina Keleres)", () => {
       slot("sol", AVAILABLE_COLORS[1]),
     ];
     expect(validateSetup(slots, NO_FACTION_DATA)).toMatch(/duplicated/i);
+  });
+});
+
+describe("kolory i miejsca", () => {
+  const factions = new Map<string, FactionInfo>([
+    ["sol", { id: "sol", preferred_colours: ["blu", "azr"] } as FactionInfo],
+    ["hacan", { id: "hacan", preferred_colours: ["blu", "org"] } as FactionInfo],
+  ]);
+
+  it("paleta zawiera kolory specjalne i split", () => {
+    expect(AVAILABLE_COLORS).toEqual(expect.arrayContaining(["rbw", "splitred", "nea"]));
+    expect(new Set(AVAILABLE_COLORS).size).toBe(AVAILABLE_COLORS.length);
+  });
+
+  it("assignPreferredColors daje pierwszy wolny kolor preferowany i bez duplikatów", () => {
+    const slots = [slot("sol", "red"), slot("hacan", "grn"), slot(RANDOM_FACTION, "blu")];
+    const result = assignPreferredColors(slots, factions);
+    expect(result.map((s) => s.color)).toEqual(["blu", "org", expect.any(String)]);
+    expect(new Set(result.map((s) => s.color)).size).toBe(3);
+    // Gracz z losową frakcją traci zajęty kolor, ale dostaje wolny.
+    expect(result[2].color).not.toBe("blu");
+    expect(result[2].color).not.toBe("org");
+  });
+
+  it("swapSeat zamienia miejsca zamiast tworzyć duplikat", () => {
+    useSetupStore.getState().reset();
+    useSetupStore.getState().swapSeat(0, 3);
+    const seats = useSetupStore.getState().slots.map((s) => s.seat);
+    expect(seats[0]).toBe(3);
+    expect(seats[3]).toBe(0);
+    expect(new Set(seats).size).toBe(seats.length);
+  });
+
+  it("odrzuca zduplikowane miejsca", () => {
+    const a = slot("sol", "red");
+    const b = { ...slot("hacan", "blu"), seat: a.seat };
+    expect(validateSetup([a, b], NO_FACTION_DATA)).toMatch(/seat/i);
+  });
+
+  it("toNewGameRequest wysyła home_position wybranego miejsca", () => {
+    const a = { ...slot("sol", "red"), seat: 2 };
+    const request = toNewGameRequest([a], "", NO_FACTION_DATA, ["301", "304", "307"]);
+    expect(request.players[0].home_position).toBe("307");
+    expect(request.players[0].color).toBe("red");
   });
 });

@@ -2,8 +2,9 @@
 //
 // Odpowiedzialności (zadanie 11.3):
 //  1. Renderuje BIEŻĄCY krok wg uporządkowanej sekwencji `SETUP_STEPS` (R14.1). Mapowanie
-//     „id kroku → komponent" trzyma lekki rejestr `STEP_COMPONENTS` (Step_NameColor —
-//     gracze/mapa/kolory/sterowanie, Step_Faction — wybór frakcji). OBA kroki są
+//     „id kroku → komponent" trzyma lekki rejestr `STEP_COMPONENTS` (Step_Players —
+//     gracze/mapa/sterowanie, Step_Faction — wybór frakcji, Step_SeatColor — miejsce
+//     i kolor z podpowiedzią kolorów frakcji). Wszystkie kroki są
 //     pełnoekranowymi scenami (bez ramki kreatora) i same rysują pasek górny z akcjami
 //     nawigacji (`StageActions`). Wybór technologii startowych jest wbudowany w panel
 //     podglądu frakcji (`FactionSummary`).
@@ -18,7 +19,12 @@ import { useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "@/state/appStore";
-import { useFactions, createNewGame, type FactionInfo } from "@/api/useNewGame";
+import {
+  useFactions,
+  useEngineConfig,
+  createNewGame,
+  type FactionInfo,
+} from "@/api/useNewGame";
 import { SETUP_STEPS, type SetupStepId } from "./setupSteps";
 import {
   currentStep,
@@ -27,8 +33,9 @@ import {
   validateSetup,
   validateStep,
 } from "./useSetupStore";
-import Step_NameColor from "./steps/Step_NameColor";
+import Step_Players from "./steps/Step_Players";
 import Step_Faction from "./steps/Step_Faction";
+import Step_SeatColor from "./steps/Step_SeatColor";
 import GameIntro from "./GameIntro";
 import { loadIntroPlayers, type IntroPlayer } from "./introPlayers";
 
@@ -65,8 +72,9 @@ export interface StageActions {
 
 /** Kroki rysowane na całym ekranie, poza ramką kreatora (sceny) — dziś wszystkie. */
 export const STAGE_STEP_IDS: ReadonlySet<SetupStepId> = new Set([
-  "name-color",
+  "players",
   "faction",
+  "seat-color",
 ]);
 
 /**
@@ -74,8 +82,9 @@ export const STAGE_STEP_IDS: ReadonlySet<SetupStepId> = new Set([
  * nowego kroku (np. przyszły draft slice) = nowy wpis bez zmian w samym kontenerze.
  */
 const STEP_COMPONENTS: Record<SetupStepId, ComponentType<SetupStepProps>> = {
-  "name-color": Step_NameColor,
+  players: Step_Players,
   faction: Step_Faction,
+  "seat-color": Step_SeatColor,
 };
 
 /**
@@ -88,6 +97,8 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: factions } = useFactions();
+  const { data: engineConfig } = useEngineConfig();
+  const seatPositions = engineConfig?.seats;
 
   const slots = useSetupStore((s) => s.slots);
   const mapString = useSetupStore((s) => s.mapString);
@@ -137,7 +148,7 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
     setError(null);
     setSubmitting(true);
     try {
-      const request = toNewGameRequest(slots, mapString, factionById);
+      const request = toNewGameRequest(slots, mapString, factionById, seatPositions);
       await createNewGame(request);
       // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
       await queryClient.invalidateQueries({ queryKey: ["playerData"] });

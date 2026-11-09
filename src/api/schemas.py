@@ -291,6 +291,9 @@ class EngineConfigInfo(BaseModel):
     valid_difficulties: list[str] = Field(default_factory=list)
     # Posortowana lista dozwolonych osobowości bota (⚠️ ZAŁOŻENIE).
     valid_personalities: list[str] = Field(default_factory=list)
+    # Pozycje miejsc (slotów domowych) w kolejności stołu — front pozwala wybrać
+    # miejsce gracza i wysyła je jako ``home_position`` (docs/RULES.md 24).
+    seats: list[str] = Field(default_factory=list)
 
 
 class SetupPlayerRequest(BaseModel):

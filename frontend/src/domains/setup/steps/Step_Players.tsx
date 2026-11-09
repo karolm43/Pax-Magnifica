@@ -1,44 +1,35 @@
-// Krok setupu: gracze, mapa, nazwy, kolory i sterowanie (Step_NameColor).
+// Krok setupu: gracze i mapa (Step_Players) — pierwszy krok po „Play".
 //
 // Pełnoekranowa scena w tym samym języku wizualnym co wybór frakcji (Step_Faction):
 // to samo tło, pasek górny z „Wstecz" i dużym przyciskiem akcji, panele na szkle,
 // bursztynowy akcent TI4. Układ:
 //   - pasek górny: ← Main menu · tytuł kroku · podsumowanie (ludzie/boty) · „Choose factions →";
 //   - lewy panel „Game": liczba graczy (2–6), mapa (domyślna / własny map string),
-//     szybkie ustawienia (tasuj kolory, wszyscy ludzie, ja + boty);
-//   - siatka kart graczy: nazwa, kolor, człowiek/bot, trudność i osobowość bota.
+//     szybkie ustawienia (wszyscy ludzie, ja + boty);
+//   - siatka kart graczy: nazwa, człowiek/bot, trudność i osobowość bota.
 //
-// Odpowiedzialności zachowane z poprzedniej wersji (R7.1/R7.2/R7.4/R7.5/R7.6/R7.8):
+// Kolor i miejsce przy stole NIE są tu wybierane — zależą od frakcji (preferowane
+// kolory), więc mają osobny, ostatni krok (`Step_SeatColor`). Docelowo między tym
+// krokiem a wyborem frakcji pojawi się lobby / moduł sieciowy.
+//
+// Odpowiedzialności (R7.1/R7.2/R7.4/R7.5):
 //  1. dane zapisujemy WYŁĄCZNIE do store'a (`useSetupStore`) — jedno źródło prawdy;
 //  2. lokalne podpowiedzi walidacji per slot (długość nazwy, duplikat nazwy). Twarde
-//     blokowanie „Dalej" robi kontener przez `validateStep`/`validateSetup`;
-//  3. kolory NIE mogą się zdublować: wybór koloru zajętego przez innego gracza
-//     ZAMIENIA kolory (`swapColor`), więc nie ma stanu błędnego do naprawiania.
+//     blokowanie „Dalej" robi kontener przez `validateStep`/`validateSetup`.
 
 import { useState, type CSSProperties } from "react";
 import { useEngineConfig } from "@/api/useNewGame";
 import type { SetupStepProps } from "../SetupWizard";
 import {
-  AVAILABLE_COLORS,
   MAX_NAME_LENGTH,
   MAX_PLAYERS,
   MIN_PLAYERS,
   type ControlType,
-  type PlayerColor,
   type SetupSlot,
   useSetupStore,
 } from "../useSetupStore";
-import styles from "./Step_NameColor.module.css";
-
-/** Mapa nazw kolorów (id ze zbioru) na kod CSS dla próbek — tylko prezentacja. */
-const COLOR_SWATCH: Record<PlayerColor, string> = {
-  red: "#d94a4a",
-  green: "#49a14a",
-  white: "#e8e8e8",
-  blue: "#4a7fd9",
-  purple: "#9a4ad9",
-  yellow: "#e0c23a",
-};
+import { colorAccent } from "../playerColors";
+import styles from "./Step_Players.module.css";
 
 /** Wartości dozwolonej liczby graczy (przyciski 2..6). */
 const PLAYER_COUNTS = Array.from(
@@ -88,11 +79,10 @@ function PlayerCard({
 }) {
   const updateSlot = useSetupStore((s) => s.updateSlot);
   const setControlType = useSetupStore((s) => s.setControlType);
-  const swapColor = useSetupStore((s) => s.swapColor);
 
   const nameError = slotNameError(slot, index, slots);
   const isBot = slot.controlType === "BOT";
-  const cardStyle = { "--pc": COLOR_SWATCH[slot.color] } as CSSProperties;
+  const cardStyle = { "--pc": colorAccent(slot.color) } as CSSProperties;
 
   return (
     <article className={styles.card} style={cardStyle} aria-label={`Player ${index + 1}`}>
@@ -136,42 +126,6 @@ function PlayerCard({
         />
         {nameError && <span className={styles.error}>{nameError}</span>}
       </label>
-
-      <div className={styles.field}>
-        <span className={styles.fieldLabel}>Color</span>
-        <div
-          className={styles.swatches}
-          role="radiogroup"
-          aria-label={`Player ${index + 1} color`}
-        >
-          {AVAILABLE_COLORS.map((color) => {
-            const selected = slot.color === color;
-            // Kto jeszcze trzyma ten kolor — klik zamieni się z tym graczem.
-            const owner = slots.findIndex((s, i) => i !== index && s.color === color);
-            return (
-              <button
-                key={color}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                aria-label={
-                  owner >= 0 ? `${color} (swap with Player ${owner + 1})` : color
-                }
-                title={owner >= 0 ? `Swap with Player ${owner + 1}` : color}
-                className={`${styles.swatch} ${selected ? styles.swatchOn : ""}`}
-                style={{ background: COLOR_SWATCH[color] }}
-                onClick={() => swapColor(index, color)}
-              >
-                {owner >= 0 && (
-                  <span className={styles.swatchOwner} aria-hidden>
-                    {owner + 1}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {isBot && (
         <div className={styles.botBox}>
@@ -231,13 +185,13 @@ function PlayerCard({
  * Krok „Gracze i mapa": pasek górny + panel ustawień gry + karty graczy.
  * Walidacja żyje w store'ie; kontener (`SetupWizard`) blokuje „Dalej" przez `stage.canSubmit`.
  */
-export default function Step_NameColor({ stage }: SetupStepProps) {
+export default function Step_Players({ stage }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
   const playerCount = useSetupStore((s) => s.playerCount);
   const mapString = useSetupStore((s) => s.mapString);
   const setPlayerCount = useSetupStore((s) => s.setPlayerCount);
   const setMapString = useSetupStore((s) => s.setMapString);
-  const shuffleColors = useSetupStore((s) => s.shuffleColors);
+
   const applyControlPreset = useSetupStore((s) => s.applyControlPreset);
 
   // Tryb mapy to wybór UI: „default" = mapa domyślna backendu (pusty map string),
@@ -273,7 +227,7 @@ export default function Step_NameColor({ stage }: SetupStepProps) {
         </button>
 
         <div className={styles.titleBlock}>
-          <span className={styles.kicker}>New game · Step 1 of 2</span>
+          <span className={styles.kicker}>New game · Step 1 of 3</span>
           <h1 className={styles.title}>Players &amp; map</h1>
         </div>
 
@@ -378,9 +332,6 @@ export default function Step_NameColor({ stage }: SetupStepProps) {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Quick setup</h2>
             <div className={styles.actionList}>
-              <button type="button" className={styles.action} onClick={shuffleColors}>
-                🎲 Shuffle colors
-              </button>
               <button
                 type="button"
                 className={styles.action}
@@ -397,7 +348,7 @@ export default function Step_NameColor({ stage }: SetupStepProps) {
               </button>
             </div>
             <p className={styles.hint}>
-              Names and colors must be unique. An empty name is filled in automatically.
+              Names must be unique. An empty name is filled in automatically.
             </p>
           </section>
         </aside>

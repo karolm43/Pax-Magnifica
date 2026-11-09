@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +13,7 @@ from src.api.schemas import (
     FactionInfo,
     MapStringRequest,
     MapView,
+    NewGamePlayer,
     NewGameRequest,
     PlayerHandResponse,
     SetupPlayerRequest,
@@ -33,6 +35,7 @@ from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
 from src.core.models import FactionDef
 from src.core.objectives import agenda_deck_ids
+from src.core.player_colors import all_color_aliases, canonical_color
 from src.core.registry import StaticDataRegistry
 from src.core.setup_service import (
     PlayerSetupInput,
@@ -218,6 +221,7 @@ def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
     return EngineConfigInfo(
         valid_difficulties=sorted(ctx.registry.valid_difficulties()),
         valid_personalities=sorted(ctx.registry.valid_personalities()),
+        seats=[position for position, _color in AUTO_SLOT_ORDER],
     )
 
 
@@ -311,12 +315,28 @@ def _setup_home_tiles(
 
 
 def _available_colors() -> list[str]:
-    """Zbiór dozwolonych kolorów graczy ze slotów domowych (R7.7).
+    """Zbiór dozwolonych kolorów graczy (R7.7) — wszystkie kolory AsyncTI4.
 
-    Źródłem jest ``AUTO_SLOT_ORDER`` (kolory rogów domowych układu 6-osobowego),
-    wstrzykiwany do ``resolve_players`` zamiast hardkodowania listy w ``core``.
+    Na początku stoją kolory rogów domowych (``AUTO_SLOT_ORDER``), żeby auto-przydział
+    dawał te same kolory co dotąd; dalej reszta palety (solid / split / gradient)
+    z ``assets/data/colors``. Wszystko w postaci aliasów kanonicznych, bo tak
+    nazywają się grafiki jednostek (``units/lgy_gf.png``). Wstrzykiwane do
+    ``resolve_players`` zamiast hardkodowania listy w ``core``.
     """
-    return [color for _position, color in AUTO_SLOT_ORDER]
+    ordered = [canonical_color(color) for _position, color in AUTO_SLOT_ORDER]
+    ordered.extend(alias for alias in all_color_aliases() if alias not in ordered)
+    return ordered
+
+
+def _canonicalize_colors(players: Sequence[NewGamePlayer]) -> None:
+    """Zamienia jawnie podane kolory na aliasy kanoniczne (``white`` → ``lgy``).
+
+    Dzięki temu ``white`` i ``lgy`` to ten sam kolor w wykrywaniu duplikatów.
+    Nieznany kolor zostaje bez zmian i zostanie odrzucony walidacją.
+    """
+    for player in players:
+        if player.color is not None:
+            player.color = canonical_color(player.color)
 
 
 def _validate_home_position(
@@ -395,7 +415,10 @@ async def post_setup_player(
     current = ctx.service.current_state()
     # Kolory już zajęte przez rozstawionych graczy — wykluczamy je z puli, żeby
     # auto-dobór w ``resolve_players`` nie powielił koloru istniejącego gracza.
-    used_colors = {p.color for p in current.players.values() if p.color is not None}
+    used_colors = {
+        canonical_color(p.color) for p in current.players.values() if p.color is not None
+    }
+    request.color = canonical_color(request.color)
     available = [c for c in _available_colors() if c not in used_colors]
     try:
         # SetupPlayerRequest spełnia PlayerSetupInput strukturalnie; jego pola
@@ -484,6 +507,7 @@ async def post_new_game(
 
     # Delegacja całej walidacji/normalizacji graczy do core (R11.1–R11.6, R8.5).
     # Zakres liczby graczy, losowy dobór frakcji i auto-kolory obsługuje resolve_players.
+    _canonicalize_colors(request.players)
     try:
         resolved_players = resolve_players(
             request.players,

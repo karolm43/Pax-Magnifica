@@ -165,6 +165,12 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 
 ---
 
+## ✅ Setup: 3 kroki + pełna paleta kolorów AsyncTI4 (2026-11-09)
+- Kroki: **Players & map** (nazwa, człowiek/bot, mapa) → **Faction** → **Seat & color** (miejsce przy stole + kolor + podpowiedź kolorów preferowanych przez frakcję). Między graczami a frakcją docelowo lobby/moduł sieciowy.
+- Kolory: wszystkie 80 kolorów AsyncTI4 (standard / split / specjalne). Backend: core/player_colors.py (czyta pliki kolorów, normalizuje nazwę → alias kanoniczny, np. white→lgy), _available_colors() w game.py. Front: domains/setup/playerColors.ts; do entities/data/colors.ts dopisano brakujące gradienty (nea, psy, cam, blt).
+- Miejsce = home_position (pozycje z /engine/config.seats); kolor/miejsce zajęte przez innego gracza = zamiana (brak duplikatów). Gracz z losową frakcją nie ma jeszcze preferencji kolorów.
+- ⚠️ Kolejność przy stole/mówca nadal wynika z kolejności graczy w kroku 1, nie z wybranego miejsca (do ustalenia).
+
 ## ✅ Faza agendy: Rada Galaktyczna (2026-11-08) — RULES.md 51
 
 `core/agenda_phase.py` (ujawnienie → głosowanie od lewej mówcy, mówca ostatni → wynik / remis rozstrzyga mówca →

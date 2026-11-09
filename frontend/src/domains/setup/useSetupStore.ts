@@ -15,6 +15,11 @@ import { SETUP_STEPS, type SetupStepDef, type SlotConfig } from "./setupSteps";
 import { hasDeferredStartingTech } from "./deferredTech";
 import { familyOfVariant } from "./factionVariants";
 import type { FactionInfo, NewGamePlayer } from "@/api/useNewGame";
+import {
+  DEFAULT_PLAYER_COLORS,
+  PLAYER_COLOR_OPTIONS,
+  preferredColorsOf,
+} from "./playerColors";
 
 /** Typ sterowania graczem — odwzorowuje `ControlType` z backendu (R10.1). */
 export type ControlType = "HUMAN" | "BOT";
@@ -23,25 +28,22 @@ export type ControlType = "HUMAN" | "BOT";
 export const RANDOM_FACTION = "__random__";
 
 /**
- * Zbiór dostępnych kolorów graczy. Kolejność i wartości zgodne z backendem
- * (`HOME_SLOT_COLORS_6P` w `src/core/home_slots.py`); liczność (6) >= maksymalnej liczby
- * graczy, co spełnia R7.7. To JEDYNE źródło kolorów na froncie — kroki czytają stąd.
+ * Zbiór dostępnych kolorów graczy — WSZYSTKIE kolory AsyncTI4 (zwykłe, split,
+ * specjalne; patrz `playerColors.ts`), jako aliasy kanoniczne. Backend akceptuje ten
+ * sam zbiór (`src/core/player_colors.py`); liczność >> maksymalnej liczby graczy (R7.7).
  */
-export const AVAILABLE_COLORS = [
-  "red",
-  "green",
-  "white",
-  "blue",
-  "purple",
-  "yellow",
-] as const;
+export const AVAILABLE_COLORS: readonly string[] = PLAYER_COLOR_OPTIONS.map((o) => o.alias);
 
-export type PlayerColor = (typeof AVAILABLE_COLORS)[number];
+/** Kolor gracza = alias z `AVAILABLE_COLORS`. */
+export type PlayerColor = string;
 
 /** Zakres liczby graczy wspierany przez układ 6-osobowy (R11.3). */
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 6;
 export const DEFAULT_PLAYERS = 6;
+
+/** Liczba miejsc przy stole (sloty domowe układu 6-osobowego). */
+export const SEAT_COUNT = 6;
 
 /** Maksymalna długość nazwy wyświetlanej po strip (R7.2/R1.4). */
 export const MAX_NAME_LENGTH = 50;
@@ -51,6 +53,8 @@ export const MAX_NAME_LENGTH = 50;
  *
  * - `name` — nazwa wyświetlana (pusta → backend nada automatyczną, R7.3).
  * - `color` — kolor ze zbioru `AVAILABLE_COLORS`.
+ * - `seat` — miejsce przy stole (0..SEAT_COUNT-1); backend dostaje je jako
+ *   `home_position` (pozycje miejsc pochodzą z `/engine/config`).
  * - `factionId` — `RANDOM_FACTION` oznacza „losowa"; inaczej id grywalnej frakcji.
  * - `startingTech` — wybrane technologie startowe (tylko dla frakcji z wyborem).
  * - `controlType` — HUMAN/BOT (R10.1).
@@ -60,6 +64,7 @@ export const MAX_NAME_LENGTH = 50;
 export interface SetupSlot {
   name: string;
   color: PlayerColor;
+  seat: number;
   factionId: string;
   startingTech: string[];
   controlType: ControlType;
@@ -77,11 +82,24 @@ export function toSlotConfig(
   return { startingTechAmount: faction?.starting_tech_amount ?? 0 };
 }
 
-/** Domyślny slot dla gracza o indeksie `index` (kolor przydzielany po kolejności). */
-function makeDefaultSlot(index: number): SetupSlot {
+/**
+ * Domyślny slot dla gracza o indeksie `index`: kolor i miejsce to pierwsze WOLNE
+ * (domyślne kolory miejsc, potem reszta palety), więc po zmianie liczby graczy
+ * nowy slot nie dubluje kolorów ani miejsc istniejących.
+ */
+function makeDefaultSlot(index: number, existing: readonly SetupSlot[] = []): SetupSlot {
+  const usedColors = new Set(existing.map((s) => s.color));
+  const usedSeats = new Set(existing.map((s) => s.seat));
+  const color =
+    [...DEFAULT_PLAYER_COLORS, ...AVAILABLE_COLORS].find((c) => !usedColors.has(c)) ??
+    DEFAULT_PLAYER_COLORS[index % DEFAULT_PLAYER_COLORS.length];
+  const seat = Array.from({ length: SEAT_COUNT }, (_, i) => i).find(
+    (i) => !usedSeats.has(i),
+  );
   return {
     name: "",
-    color: AVAILABLE_COLORS[index % AVAILABLE_COLORS.length],
+    color,
+    seat: seat ?? index % SEAT_COUNT,
     factionId: RANDOM_FACTION,
     startingTech: [],
     controlType: "HUMAN",
@@ -94,9 +112,46 @@ function makeDefaultSlot(index: number): SetupSlot {
 function resizeSlots(prev: SetupSlot[], count: number): SetupSlot[] {
   const next: SetupSlot[] = [];
   for (let i = 0; i < count; i++) {
-    next.push(prev[i] ?? makeDefaultSlot(i));
+    next.push(prev[i] ?? makeDefaultSlot(i, next));
   }
   return next;
+}
+
+/**
+ * Dobiera kolory wg preferencji wybranych frakcji (`preferred_colours`).
+ *
+ * Gracze po kolei dostają pierwszy WOLNY preferowany kolor swojej frakcji; gracze bez
+ * jawnej frakcji (losowa) albo bez wolnego preferowanego koloru zachowują obecny kolor,
+ * a jeśli został zajęty — pierwszy wolny z palety. Wynik nigdy nie dubluje kolorów.
+ * Czysta funkcja (testowalna bez Reacta).
+ */
+export function assignPreferredColors(
+  slots: readonly SetupSlot[],
+  factionById: Map<string, FactionInfo>,
+): SetupSlot[] {
+  const taken = new Set<string>();
+  const chosen: (string | null)[] = slots.map(() => null);
+
+  slots.forEach((slot, i) => {
+    const faction =
+      slot.factionId !== RANDOM_FACTION ? factionById.get(slot.factionId) : undefined;
+    const pick = preferredColorsOf(faction?.preferred_colours).find((c) => !taken.has(c));
+    if (pick) {
+      chosen[i] = pick;
+      taken.add(pick);
+    }
+  });
+
+  return slots.map((slot, i) => {
+    let color = chosen[i];
+    if (color === null) {
+      color = taken.has(slot.color)
+        ? (AVAILABLE_COLORS.find((c) => !taken.has(c)) ?? slot.color)
+        : slot.color;
+      taken.add(color);
+    }
+    return { ...slot, color };
+  });
 }
 
 export interface SetupStore {
@@ -128,6 +183,13 @@ export interface SetupStore {
    * (nigdy nie powstaje duplikat), więc wybór koloru zawsze jest legalny.
    */
   swapColor: (index: number, color: PlayerColor) => void;
+  /**
+   * Przypisuje miejsce przy stole. Gdy zajmuje je inny gracz, miejsca się ZAMIENIAJĄ
+   * (jak kolory), więc duplikat nigdy nie powstaje.
+   */
+  swapSeat: (index: number, seat: number) => void;
+  /** Dobiera kolory wg preferencji frakcji (patrz `assignPreferredColors`). */
+  applyPreferredColors: (factionById: Map<string, FactionInfo>) => void;
   /** Losowo tasuje kolory między istniejącymi slotami (zbiór kolorów bez zmian). */
   shuffleColors: () => void;
   /**
@@ -200,6 +262,23 @@ export const useSetupStore = create<SetupStore>((set) => ({
         }),
       };
     }),
+
+  swapSeat: (index, seat) =>
+    set((state) => {
+      const previous = state.slots[index]?.seat;
+      if (previous === undefined || previous === seat) return state;
+      if (seat < 0 || seat >= SEAT_COUNT) return state;
+      return {
+        slots: state.slots.map((slot, i) => {
+          if (i === index) return { ...slot, seat };
+          if (slot.seat === seat) return { ...slot, seat: previous };
+          return slot;
+        }),
+      };
+    }),
+
+  applyPreferredColors: (factionById) =>
+    set((state) => ({ slots: assignPreferredColors(state.slots, factionById) })),
 
   shuffleColors: () =>
     set((state) => {
@@ -298,6 +377,22 @@ function validateColors(slots: SetupSlot[]): string | null {
   return null;
 }
 
+/** Miejsca przy stole: w zakresie i bez duplikatów. */
+function validateSeats(slots: SetupSlot[]): string | null {
+  const seen = new Set<number>();
+  for (let i = 0; i < slots.length; i++) {
+    const seat = slots[i].seat;
+    if (!Number.isInteger(seat) || seat < 0 || seat >= SEAT_COUNT) {
+      return `Player ${i + 1}: the seat is not valid.`;
+    }
+    if (seen.has(seat)) {
+      return `Player ${i + 1}: the seat ${seat + 1} is duplicated.`;
+    }
+    seen.add(seat);
+  }
+  return null;
+}
+
 /**
  * Frakcje: bez duplikatów jawnych wyborów — R8.8 (losowe pomijamy, dobiera backend).
  *
@@ -375,14 +470,14 @@ export function validateStep(
   mapString = "",
 ): string | null {
   switch (stepId) {
-    case "name-color":
-      // Krok „Gracze": nazwa, kolor, sterowanie (człowiek/bot) oraz kształt map stringa.
+    case "players":
+      // Krok „Gracze": nazwa, sterowanie (człowiek/bot) oraz kształt map stringa.
       return (
-        validateNames(slots) ??
-        validateColors(slots) ??
-        validateControl(slots) ??
-        validateMapString(mapString)
+        validateNames(slots) ?? validateControl(slots) ?? validateMapString(mapString)
       );
+    case "seat-color":
+      // Ostatni krok: miejsca przy stole i kolory (z uwzględnieniem frakcji).
+      return validateSeats(slots) ?? validateColors(slots);
     case "faction":
       // Wybór technologii startowych jest teraz wbudowany w krok frakcji (panel
       // podglądu), więc tu walidujemy i frakcje, i komplet technologii startowych.
@@ -411,6 +506,7 @@ export function validateSetup(
   return (
     validateMapString(mapString) ??
     validateNames(slots) ??
+    validateSeats(slots) ??
     validateColors(slots) ??
     validateFactions(slots) ??
     validateStartingTech(slots, factionById) ??
@@ -430,6 +526,7 @@ export function toNewGameRequest(
   slots: SetupSlot[],
   mapString: string,
   factionById: Map<string, FactionInfo>,
+  seatPositions?: readonly string[],
 ): { players: NewGamePlayer[]; map_string?: string } {
   const players: NewGamePlayer[] = slots.map((slot) => {
     const name = slot.name.trim();
@@ -444,6 +541,9 @@ export function toNewGameRequest(
       faction_id: isRandom ? undefined : slot.factionId,
       name: name.length > 0 ? name : undefined,
       color: slot.color,
+      // Pozycja miejsca (slot domowy) z konfiguracji silnika; brak → backend dobierze
+      // miejsce wg kolejności gracza.
+      home_position: seatPositions?.[slot.seat],
       control_type: slot.controlType,
       difficulty: slot.controlType === "BOT" ? slot.difficulty ?? undefined : undefined,
       personality: slot.controlType === "BOT" ? slot.personality ?? undefined : undefined,

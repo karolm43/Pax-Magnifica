@@ -122,6 +122,8 @@ export type EngineConfigInfo = {
   valid_difficulties: string[];
   // Dozwolone osobowości (style gry) bota — też z `engine_config.json`.
   valid_personalities: string[];
+  // Pozycje miejsc przy stole (sloty domowe) w kolejności; indeks = `SetupSlot.seat`.
+  seats: string[];
 };
 
 /** Pobiera konfigurację silnika (dozwolony zbiór trudności bota). */
