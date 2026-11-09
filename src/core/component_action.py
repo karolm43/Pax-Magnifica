@@ -19,7 +19,10 @@ jeszcze żadnym efektem liczbowym i jest opcjonalny.
 
 from __future__ import annotations
 
-from src.core import action_budget, triggers
+from collections.abc import Mapping
+from typing import Any
+
+from src.core import action_budget, rules_hooks, technology_abilities, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 
@@ -30,6 +33,7 @@ def play_component_action(
     component_id: str | None = None,
     *,
     fire_after: bool = True,
+    params: Mapping[str, Any] | None = None,
 ) -> GameState:
     """Wykonuje akcję komponentu aktywnego gracza — RULES.md 31.8 (R_component_action).
 
@@ -76,6 +80,13 @@ def play_component_action(
     # RULES.md 31.7: akcja komponentu liczy się jako AKCJA tury (jak strategiczna/taktyczna).
     # Efekt konkretnego komponentu dojdzie dispatchem po component_id (szkielet — patrz moduł).
     action_budget.register_action(new_state, active_id)
+    # Efekt technologii z „ACTION:" (np. Sling Relay): gracz podał wybory, silnik je sprawdza i
+    # stosuje. Błąd cofa całą akcję (klon), więc nic się nie zużywa.
+    registry = rules_hooks.bound_registry()
+    if component_id and registry is not None:
+        technology_abilities.run_action_effect(
+            new_state, registry, active_id, component_id, dict(params or {})
+        )
     if fire_after:
         triggers.fire(
             new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=active_id,

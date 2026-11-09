@@ -138,6 +138,9 @@ _REGISTRY: list[Hook] = []
 _EFFECTS: dict[str, EffectFn] = {}
 _INPUTS: dict[str, InputsFn] = {}
 _DATA_DRIVEN: set[str] = set()
+# Zdolności technologii używane NIE jako akcja (np. Psychoarchaeology) - RULES.md 57.
+_ABILITIES: dict[str, EffectFn] = {}
+_ABILITY_INPUTS: dict[str, InputsFn] = {}
 _loaded = False
 
 
@@ -227,6 +230,42 @@ def register_effect_inputs(component_key: str) -> Callable[[InputsFn], InputsFn]
         return fn
 
     return decorate
+
+
+def register_ability(tech_id: str) -> Callable[[EffectFn], EffectFn]:
+    """Rejestruje zdolność technologii używaną poza akcją (``technologies:<id>`` = pokryta)."""
+
+    def decorate(fn: EffectFn) -> EffectFn:
+        if tech_id in _ABILITIES:
+            raise ValueError(f"Ability already registered for {tech_id}.")
+        _ABILITIES[tech_id] = fn
+        _DATA_DRIVEN.add(f"technologies:{tech_id}")
+        return fn
+
+    return decorate
+
+
+def register_ability_inputs(tech_id: str) -> Callable[[InputsFn], InputsFn]:
+    """Rejestruje opis wyborów zdolności technologii (formularz w UI)."""
+
+    def decorate(fn: InputsFn) -> InputsFn:
+        _ABILITY_INPUTS[tech_id] = fn
+        return fn
+
+    return decorate
+
+
+def ability_for(tech_id: str) -> tuple[EffectFn, InputsFn | None] | None:
+    """Zdolność technologii używana poza akcją albo ``None``."""
+    _ensure_loaded()
+    fn = _ABILITIES.get(tech_id)
+    return None if fn is None else (fn, _ABILITY_INPUTS.get(tech_id))
+
+
+def all_abilities() -> list[str]:
+    """Id technologii z zarejestrowaną zdolnością poza akcją."""
+    _ensure_loaded()
+    return sorted(_ABILITIES)
 
 
 def inputs_for(component_key: str) -> InputsFn | None:

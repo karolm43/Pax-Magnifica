@@ -170,7 +170,8 @@ async def post_component_action(
     """
     try:
         new_state = component_action.play_component_action(
-            ctx.service.current_state(), request.player_id, request.component_id
+            ctx.service.current_state(), request.player_id, request.component_id,
+            params=request.params,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -46,6 +46,7 @@ from src.api.routers import (
     status,
     strategy,
     tactical,
+    technology,
     thunders_edge,
     transactions,
     window,
@@ -128,6 +129,7 @@ def create_app(
     app.include_router(components.router)
     app.include_router(action_cards.router)
     app.include_router(offers.router)
+    app.include_router(technology.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:

@@ -701,6 +701,8 @@ class ComponentActionRequest(BaseModel):
 
     player_id: str | None = None
     component_id: str | None = None
+    # Wybory gracza dla efektu technologii z „ACTION:" (formularz z GET /technology/{id}/form).
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 class TacticalStepRequest(BaseModel):

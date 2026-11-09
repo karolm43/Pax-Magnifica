@@ -154,6 +154,21 @@ def _draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str
     return decks.exploration_deck[deck].pop(0)
 
 
+def draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str:
+    """Dobiera wierzchnią kartę talii eksploracji (publiczne wejście dla frontier)."""
+    return _draw_card(state, registry, deck)
+
+
+def bound_registry() -> StaticDataRegistry:
+    """Rejestr danych statycznych związany z silnikiem (dla efektów kart bez ``registry``)."""
+    from src.core import rules_hooks
+
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        raise ValueError("The static data registry is not available.")
+    return registry  # type: ignore[no-any-return]
+
+
 def _draw_action_card(state: GameState, player_id: str) -> bool:
     """Dobiera kartę akcji (pusta talia → tasuje odrzucone); False, gdy nie ma żadnej."""
     return draw_action_card(state, player_id)
@@ -161,8 +176,10 @@ def _draw_action_card(state: GameState, player_id: str) -> bool:
 
 # ------------------------------------------------------------------------- opcje kart (Instant)
 
-_Options = Callable[[GameState, ExplorationState, ExploreCurrent], list[ExploreOption]]
-_Apply = Callable[[GameState, ExplorationState, ExploreCurrent, str, str | None], str]
+Options = Callable[[GameState, ExplorationState, ExploreCurrent], list[ExploreOption]]
+Apply = Callable[[GameState, ExplorationState, ExploreCurrent, str, str | None], str]
+_Options = Options
+_Apply = Apply
 
 _SKIP = ExploreOption("skip", "Decline")
 
@@ -476,6 +493,12 @@ _INSTANT_APPLY: dict[str, _Apply] = {
 }
 
 
+def register_instant(name: str, options: Options, apply: Apply) -> None:
+    """Rejestruje obsługę karty natychmiastowej (po nazwie, małymi literami) - np. frontier."""
+    _INSTANT_OPTIONS[name.lower()] = options
+    _INSTANT_APPLY[name.lower()] = apply
+
+
 # --------------------------------------------------------------------------- skutki per rodzaj
 
 
@@ -687,3 +710,7 @@ def finish(state: GameState) -> GameState:
     new_state = state.clone()
     new_state.exploration = None
     return new_state
+
+
+# Obsługa żetonu frontier rejestruje swoje karty natychmiastowe (import na końcu - bez cyklu).
+from src.core import exploration_frontier  # noqa: E402,F401

@@ -656,6 +656,13 @@ class ProductionGrant(BaseModel):
     # Opcjonalne zawężenie do jednego producenta (Construction: JEDEN dok) - id planety,
     # na której stoi dok. ``None`` = wszyscy producenci w systemie (Warfare, TE).
     zone: str | None = None
+    # ``free`` = produkcja BEZ użycia PRODUCTION jednostek, poza akcją taktyczną i w dowolnym
+    # systemie (Sling Relay, Integrated Economy): limit to ``units``, bez wymogu doków, strefy
+    # ograniczone do ``zone`` (planeta) i przestrzeni. ``max_cost`` = górny limit łącznego
+    # kosztu (Integrated Economy: zasoby planety), ``ships_only`` = tylko statki (Sling Relay).
+    free: bool = False
+    max_cost: float | None = None
+    ships_only: bool = False
 
 
 class ExploreCurrent(BaseModel):

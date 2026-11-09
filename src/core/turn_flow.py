@@ -198,6 +198,8 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
         raise ValueError(
             "Cannot end the turn - finish resolving the strategy card's primary ability."
         )
+    if state.exploration is not None:
+        raise ValueError("Cannot end the turn - finish the exploration first.")
     if state.pending_window is not None:
         raise ValueError(
             "Cannot end the turn while a timing window is open - every player must "

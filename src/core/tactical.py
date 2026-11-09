@@ -334,11 +334,6 @@ def end_tactical_action(state: GameState) -> GameState:
     Tura gracza idzie dalej przez ``turn_flow.end_turn`` (osobna akcja).
     """
     new_state = state.clone()
-    if state.active_system is not None:
-        triggers.fire(
-            new_state, GameEvent.TACTICAL_ACTION, Moment.END, subject=state.active_player_id,
-            ctx={"position": state.active_system, "player": state.active_player_id},
-        )
     new_state.active_system = None
     new_state.tactical_step = None
     new_state.production_used = 0
@@ -349,7 +344,8 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.invasion = None
     new_state.exploration = None
     # Produkcja z karty strategii (standalone) jest niezależna od akcji taktycznej - zostaje.
-    if new_state.production_grant is not None and not new_state.production_grant.standalone:
+    grant_now = new_state.production_grant
+    if grant_now is not None and not (grant_now.standalone or grant_now.free):
         new_state.production_grant = None
     # Akcja taktyczna wywołana kartą strategii (Warfare TE) dobiegła końca - wznów primary.
     pending = new_state.pending_strategy
@@ -366,6 +362,13 @@ def end_tactical_action(state: GameState) -> GameState:
         WindowType.FLEET_POOL,
     ):
         new_state.pending_window = None
+    # Reakcje „po akcji taktycznej” (np. Dark Energy Tap: eksploracja żetonu frontier) idą na
+    # końcu, żeby stan, który otwierają (eksploracja, oferty), nie został wyczyszczony powyżej.
+    if state.active_system is not None:
+        triggers.fire(
+            new_state, GameEvent.TACTICAL_ACTION, Moment.END, subject=state.active_player_id,
+            ctx={"position": state.active_system, "player": state.active_player_id},
+        )
     return new_state
 
 

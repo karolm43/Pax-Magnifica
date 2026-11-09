@@ -345,6 +345,8 @@ def _build_game_state(
         "pendingWindow": _pending_window(state),
         # Decyzje graczy (oferty technologii/zdolności, RULES.md 56): UI otwiera okno wyboru dla
         # każdego, kto ma coś do rozstrzygnięcia. Szczegóły (opcje) z GET /offers.
+        # Czy w tej akcji taktycznej zużyto już premię Gravity Drive (UI chowa przełącznik).
+        "gravityDriveUsed": state.gravity_drive_used,
         "pendingOffers": [
             {"id": o.id, "playerId": o.player_id, "mandatory": o.mandatory, "label": o.label}
             for o in state.pending_offers

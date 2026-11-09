@@ -120,7 +120,7 @@ def active_grant(state: GameState, player_id: str) -> ProductionGrant | None:
         grant is not None
         and not grant.standalone
         and grant.player_id == player_id
-        and grant.position == state.active_system
+        and (grant.free or grant.position == state.active_system)
     ):
         return grant
     return None
@@ -132,15 +132,21 @@ def standalone_grant(state: GameState) -> ProductionGrant | None:
     return grant if grant is not None and grant.standalone else None
 
 
+def _detached_grant(state: GameState) -> ProductionGrant | None:
+    """Grant działający poza aktywnym systemem: ``standalone`` (karty strategii) albo ``free``."""
+    grant = state.production_grant
+    return grant if grant is not None and (grant.standalone or grant.free) else None
+
+
 def production_system(state: GameState) -> str | None:
-    """System, w którym toczy się produkcja: pozycja granta ``standalone`` albo aktywny."""
-    grant = standalone_grant(state)
+    """System, w którym toczy się produkcja: pozycja granta poza akcją albo aktywny."""
+    grant = _detached_grant(state)
     return grant.position if grant is not None else state.active_system
 
 
 def production_player(state: GameState) -> str | None:
-    """Gracz, który teraz produkuje: właściciel granta ``standalone`` albo aktywny gracz."""
-    grant = standalone_grant(state)
+    """Gracz, który teraz produkuje: właściciel granta poza akcją albo aktywny gracz."""
+    grant = _detached_grant(state)
     return grant.player_id if grant is not None else state.active_player_id
 
 
@@ -356,6 +362,9 @@ def allowed_ground_zones(
             if system is not None
             else []
         )
+        grant = state.production_grant
+        if grant is not None and grant.free and grant.zone is not None:
+            owned = [p for p in owned if p == grant.zone]  # Integrated Economy: ta planeta
         return [*owned, "space"]
     prods = producers(state, registry, player_id, position)
     zones: list[str] = []
@@ -491,6 +500,18 @@ def validate_production(
     orders = [o for o in orders if o.count > 0]
     if not orders:
         return
+
+    # Granty „wolne” (Sling Relay, Integrated Economy) mają własne ograniczenia typu i kosztu.
+    free_grant = active_grant(state, player_id)
+    if free_grant is not None and free_grant.free:
+        if free_grant.ships_only and any(not is_space_unit(o.base_type) for o in orders):
+            raise ValueError(f"{free_grant.source or "This ability"} produces ships only.")
+        if free_grant.max_cost is not None:
+            cost = order_cost(state, registry, player_id, orders)
+            if cost > free_grant.max_cost:
+                raise ValueError(
+                    f"The combined cost {cost:g} exceeds the limit of {free_grant.max_cost:g}."
+                )
 
     # LIMIT: łączna liczba sztuk ≤ suma PRODUCTION w aktywnym systemie.
     total_units = sum(o.count for o in orders)
