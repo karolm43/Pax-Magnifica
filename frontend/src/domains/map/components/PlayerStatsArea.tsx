@@ -183,8 +183,10 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
               {factionDisplayName}
             </div>
 
-            {playerData.userName && (
-              <div className={styles.playerName}>{playerData.userName}</div>
+            {(playerData.playerName || playerData.userName) && (
+              <div className={styles.playerName}>
+                {playerData.playerName || playerData.userName}
+              </div>
             )}
 
             <Group gap={1} justify="center" style={{ position: "relative" }}>

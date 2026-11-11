@@ -92,6 +92,8 @@ export type PlayerEdit = {
   breakthrough_tg?: number;
   /** Promissory notes w strefie gracza (play area) — jawne, odrębne od ręki. */
   promissory_notes_in_play?: string[];
+  /** Relikty przed graczem (God-Mode, nadpisuje listę). */
+  relics?: string[];
 };
 
 /**

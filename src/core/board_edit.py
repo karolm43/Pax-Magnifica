@@ -354,6 +354,9 @@ def edit_player(
             merged = dict(player.leader_states)
             merged.update(value)
             player.leader_states = merged
+        elif field == "relics" and isinstance(value, list):
+            new_state.players[player_id] = player
+            _set_player_relics(new_state, player_id, [str(r) for r in value])
         else:
             setattr(player, field, value)
     new_state.players[player_id] = player
@@ -361,6 +364,31 @@ def edit_player(
     if controlled is not None and isinstance(controlled, list):
         sync_controlled_planets(new_state, grid, registry, player_id, controlled)
     return new_state
+
+
+def _set_player_relics(state: GameState, player_id: str, relics: list[str]) -> None:
+    """God-Mode: ustawia relikty przed graczem (bez reguł i bez hooków „when you gain/lose").
+
+    Dodany relikt znika z talii/stosu odrzuconych i od innych graczy (karta jest unikalna).
+    Zdjęty relikt wraca na spód talii (o ile jest już zasiana), żeby dało się go znów dobrać.
+    Stan wyczerpania zostaje tylko dla reliktów, które gracz nadal ma.
+    """
+    player = state.players[player_id]
+    wanted = list(dict.fromkeys(relics))  # bez duplikatów, kolejność zachowana
+    decks = state.decks
+    for relic in player.relics:
+        if relic not in wanted and decks.relic_deck_seeded:
+            if relic not in decks.relic_deck and relic not in decks.relic_discard:
+                decks.relic_deck = [*decks.relic_deck, relic]
+    for relic in wanted:
+        decks.relic_deck = [r for r in decks.relic_deck if r != relic]
+        decks.relic_discard = [r for r in decks.relic_discard if r != relic]
+        for other_id, other in state.players.items():
+            if other_id != player_id and relic in other.relics:
+                other.relics = [r for r in other.relics if r != relic]
+                other.exhausted_relics = [r for r in other.exhausted_relics if r != relic]
+    player.relics = wanted
+    player.exhausted_relics = [r for r in player.exhausted_relics if r in wanted]
 
 
 def _toggle_in_list(items: list[str], value: str) -> list[str]:

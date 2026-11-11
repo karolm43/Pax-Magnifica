@@ -369,6 +369,18 @@ def test_edit_units_add_and_remove(client: TestClient) -> None:
     assert _space_count(resp.json(), "101", "cruiser") == 0
 
 
+def test_god_mode_edytuje_relikty_gracza(client: TestClient) -> None:
+    """God-Mode: relikty nadpisują listę gracza, znikają z talii i wracają po zdjęciu."""
+    client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
+    first = "thalnos"
+    resp = client.post("/player/p1/edit", json={"relics": [first, first]})
+    assert resp.status_code == 200
+    assert _web_data(client, "local")["playerData"][0]["relics"] == [first]
+    resp = client.post("/player/p1/edit", json={"relics": []})
+    assert resp.status_code == 200
+    assert _web_data(client, "local")["playerData"][0]["relics"] == []
+
+
 def test_edit_player_fields(client: TestClient) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
     resp = client.post(

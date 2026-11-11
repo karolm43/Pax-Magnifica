@@ -508,6 +508,13 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   w oknie secondary; skip `relic:<id>` w drzewie badań; Prophet's Tears w `autoSkips`.
 - Testy: `tests/test_relics.py` (rozszerzone). Do dopisania później: purge kafla przez Silver Flame (decyzja użytkownika).
 
+## God-Mode: relikty gracza
+
+- `PlayerEditRequest.relics` + `board_edit._set_player_relics`: lista NADPISUJE relikty gracza, bez hooków „when you gain/lose".
+  Dodany relikt znika z talii/stosu odrzuconych i od innych graczy; zdjęty wraca na spód talii (gdy zasiana).
+- UI: edytor gracza (zakładka kart) ma sekcję „Relics" z wyborem pojedynczym oraz „Add all relics" / „Remove all relics".
+- Test: `tests/test_api.py::test_god_mode_edytuje_relikty_gracza`.
+
 ## 2026-11-11 (12) — Lobby = graficzny kreator na żywo + tryb testowy hosta (RULES.md 44.5a)
 - „Play" → kreator jako lobby: „Players & map" z panelem *Invite friends* (link do skopiowania), dołączający goście
   zajmują wolne miejsca (karty graczy pokazują kto); potem wszyscy razem: każdy sam wybiera frakcję, kolor i miejsce,

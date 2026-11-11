@@ -41,10 +41,12 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
+import { getRelicData } from "@/entities/lookup/relics";
 import type { PlayerData } from "@/entities/data/types";
 import {
   actionCardOptions,
   promissoryNoteOptions,
+  relicOptions,
   secretObjectiveOptions,
 } from "./cardOptions";
 import { CardListEditor } from "./CardListEditor";
@@ -201,6 +203,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
   const acOptions = useMemo(() => actionCardOptions(), []);
   const soOptions = useMemo(() => secretObjectiveOptions(), []);
   const pnOptions = useMemo(() => promissoryNoteOptions(), []);
+  const relicOpts = useMemo(() => relicOptions(), []);
 
   const apply = async (edit: PlayerEdit) => {
     if (!player || busy) return;
@@ -247,6 +250,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
   // --- Nazwy kart do chipów ---
   const acName = (id: string) => getActionCard(id)?.name ?? id;
   const soName = (id: string) => getSecretObjectiveData(id)?.name ?? id;
+  const relicName = (id: string) => getRelicData(id)?.name ?? id;
   const pnName = (id: string) =>
     getPromissoryNoteData(id, factionColorMap)?.displayName ?? id;
 
@@ -847,6 +851,52 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                               promissory_notes_in_play: (
                                 player.promissoryNotesInPlayArea ?? []
                               ).filter((x) => x !== id),
+                            })
+                          }
+                        />
+                      </Stack>
+
+                      <Stack gap={4}>
+                        <Text size="sm" fw={600}>
+                          Relics
+                        </Text>
+                        <Group gap={6}>
+                          <Button
+                            size="xs"
+                            variant="default"
+                            disabled={busy}
+                            onClick={() =>
+                              void apply({
+                                relics: relicOpts.map((o) => o.value),
+                              })
+                            }
+                          >
+                            Add all relics
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="default"
+                            disabled={busy || (player.relics ?? []).length === 0}
+                            onClick={() => void apply({ relics: [] })}
+                          >
+                            Remove all relics
+                          </Button>
+                        </Group>
+                        <CardListEditor
+                          ids={player.relics ?? []}
+                          options={relicOpts}
+                          labelFor={relicName}
+                          placeholder="Add relic…"
+                          emptyLabel="No relics."
+                          disabled={busy}
+                          onAdd={(id) =>
+                            void apply({
+                              relics: [...(player.relics ?? []), id],
+                            })
+                          }
+                          onRemove={(id) =>
+                            void apply({
+                              relics: (player.relics ?? []).filter((x) => x !== id),
                             })
                           }
                         />

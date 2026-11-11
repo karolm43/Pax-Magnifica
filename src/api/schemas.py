@@ -471,6 +471,8 @@ class PlayerEditRequest(BaseModel):
     # Promissory notes w strefie gracza (play area) — jawne, odrębne od ręki
     # (RULES.md 2d). God-Mode zasila je ręcznie do czasu logiki zagrywania notek.
     promissory_notes_in_play: list[str] | None = None
+    # Relikty przed graczem (jawne). Lista NADPISUJE; relikt znika z talii i od innych graczy.
+    relics: list[str] | None = None
 
 
 class PlayerComponentToggleRequest(BaseModel):
