@@ -18,6 +18,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -64,6 +65,7 @@ from src.api.routers import network as network_routes
 from src.api.saves import SaveManager
 from src.api.seats import SEAT_TOKEN_HEADER, TOKEN_QUERY, Identity, SeatRegistry, current_identity
 from src.api.state_service import StateService
+from src.core import error_text
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
@@ -155,6 +157,45 @@ def create_app(
     @app.exception_handler(ActorError)
     async def _actor_error_as_403(_request: Request, exc: ActorError) -> JSONResponse:
         return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+    # Błędy walidacji żądania (Pydantic) to lista obiektów - gracz dostaje jedno czytelne zdanie.
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error_as_422(
+        _request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": error_text.flatten_validation_errors(exc.errors())},
+        )
+
+    # Czytelne błędy: w każdej odpowiedzi 4xx z tekstowym ``detail`` id graczy (p1, p2) zamieniamy
+    # na „Frakcja (kolor)". Jedno miejsce, kontrakt kontrakt ``detail: string`` bez zmian.
+    @app.middleware("http")
+    async def _humanize_error_detail(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response = await call_next(request)
+        if response.status_code not in (403, 422) or not response.headers.get(
+            "content-type", ""
+        ).startswith("application/json"):
+            return response
+        body = b"".join([chunk async for chunk in response.body_iterator])  # type: ignore[attr-defined]
+        headers = {k: v for k, v in response.headers.items() if k.lower() != "content-length"}
+        try:
+            payload = json.loads(body)
+            detail = payload.get("detail") if isinstance(payload, dict) else None
+            if isinstance(detail, str):
+                ctx = request.app.state.ctx
+                payload["detail"] = error_text.humanize(
+                    detail, ctx.service.current_state(), ctx.registry
+                )
+                body = json.dumps(payload).encode()
+        except (ValueError, AttributeError):
+            pass  # nie-JSON albo brak kontekstu gry - oddajemy oryginał
+        return Response(
+            content=body, status_code=response.status_code, headers=headers,
+            media_type="application/json",
+        )
 
     # Bez tokenu w trybie sieciowym wolno pobrać tylko dane statyczne (assety, reguły, frakcje,
     # komponenty) i ``/network/me`` (front sprawdza, czy to gra sieciowa) — nic ze stanu gry.

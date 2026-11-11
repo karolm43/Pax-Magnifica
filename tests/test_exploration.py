@@ -512,3 +512,25 @@ def test_attachment_objectives_count_only_attached_planets(registry: StaticDataR
     # Attachment na planecie, której gracz nie kontroluje, się nie liczy.
     system.planet_owners[_IND] = "p2"
     assert progress() == 1
+
+
+def test_resolving_a_planet_card_fires_planet_explored(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Po rozstrzygnięciu karty eksploracji planety emitowane jest PLANET_EXPLORED (hooki)."""
+    from src.core import triggers
+    from src.core.game_events import GameEvent
+
+    fired: list[dict[str, object]] = []
+    real_fire = triggers.fire
+
+    def spy(state, event, moment, **kwargs):  # type: ignore[no-untyped-def]
+        if event is GameEvent.PLANET_EXPLORED:
+            fired.append(dict(kwargs.get("ctx") or {}))
+        return real_fire(state, event, moment, **kwargs)
+
+    monkeypatch.setattr(triggers, "fire", spy)
+    state = _with_card(_state(), registry, "Dyson Sphere")
+    exploration.resolve(state, registry, "attach")
+    assert len(fired) == 1
+    assert fired[0]["planet"] == _CULT and fired[0]["player"] == "p1"

@@ -1,3 +1,5 @@
+import { parseErrorDetail } from "@/api/apiError";
+
 type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 /** Fetches JSON, throwing `Failed to fetch <label>: <status>` on a non-2xx response. */
@@ -21,5 +23,5 @@ export async function throwResponseError(
   fallback: string,
 ): Promise<never> {
   const body = await response.text().catch(() => "");
-  throw new Error(body || fallback);
+  throw new Error(body ? parseErrorDetail(body, response.status) : fallback);
 }

@@ -266,7 +266,11 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     GameEvent.PLANET_CONTROL_LOST: EventInfo(
         "Gracz stracił kontrolę nad planetą.", ("player", "planet"), "control.set_planet_control"
     ),
-    GameEvent.PLANET_EXPLORED: EventInfo("Planeta zbadana.", ("player", "planet")),
+    GameEvent.PLANET_EXPLORED: EventInfo(
+        "Planeta zbadana (karta eksploracji rozstrzygnięta; frontier nie emituje).",
+        ("player", "planet", "deck", "card"),
+        "exploration.resolve",
+    ),
     GameEvent.PLANETS_EXHAUSTED: EventInfo("Planety wyczerpane (płatność).", ("player",)),
     GameEvent.TRADE_GOODS_GAINED: EventInfo(
         "Gracz zdobył trade goods.", ("player", "amount"), "economy.gain_trade_goods"

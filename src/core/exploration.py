@@ -16,11 +16,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, economy, exhaust, relic_fragments, unit_ops
+from src.core import command_tokens, economy, exhaust, relic_fragments, triggers, unit_ops
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.damage import clear_zone_damage
 from src.core.dice import next_rng
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ExplorationState,
     ExploreCurrent,
@@ -63,7 +64,7 @@ class ExploreOption:
 
 def _exp(state: GameState) -> ExplorationState:
     if state.exploration is None:
-        raise ValueError("No exploration is in progress.")
+        raise ValueError("There is no exploration to resolve right now.")
     return state.exploration
 
 
@@ -101,7 +102,9 @@ def explorable(registry: StaticDataRegistry, planet_id: str) -> bool:
 def _system(state: GameState, ex: ExplorationState) -> SystemState:
     system = state.systems.get(ex.position)
     if system is None:
-        raise ValueError("The explored system has no units.")
+        raise ValueError(
+            "The explored system is missing from the board - ask the host to check the map."
+        )
     return system
 
 
@@ -147,7 +150,9 @@ def _draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str
     if not decks.exploration_deck[deck]:
         discard = list(decks.exploration_discard.get(deck, []))
         if not discard:
-            raise ValueError(f"The {deck} exploration deck is empty.")
+            raise ValueError(
+                f"The {deck} exploration deck and its discard pile are both empty."
+            )
         next_rng(state).shuffle(discard)
         decks.exploration_deck[deck] = discard
         decks.exploration_discard[deck] = []
@@ -646,7 +651,7 @@ def start_exploration(
     if state.exploration is None:
         state.exploration = ExplorationState(player_id=player_id, position=position)
     elif state.exploration.player_id != player_id:
-        raise ValueError("Another player's exploration is still in progress.")
+        raise ValueError("Another player's exploration must be finished first.")
     ex = state.exploration
     ex.queue = [*ex.queue, *(p for p in targets if p not in ex.queue)]
     _auto(state, registry)
@@ -659,16 +664,21 @@ def draw(
     ex = _exp(state)
     _require_no_grant(state)
     if ex.current is not None:
-        raise ValueError("Resolve the revealed exploration card first.")
+        raise ValueError("Resolve the revealed exploration card first, then draw the next one.")
     if planet not in ex.queue:
-        raise ValueError("This planet is not waiting to be explored.")
+        raise ValueError(
+            "This planet is not waiting to be explored "
+            "(it was already explored or is not part of this exploration)."
+        )
     traits = planet_traits(registry, planet)
     if deck is None:
         if len(traits) != 1:
             raise ValueError("Choose which exploration deck to draw from.")
         deck = traits[0]
     if deck not in traits:
-        raise ValueError(f"The planet has no {deck} trait.")
+        raise ValueError(
+            f"This planet has no {deck} trait, so you cannot draw from the {deck} exploration deck."
+        )
     new_state = state.clone()
     _draw_for(new_state, registry, planet, deck)
     return new_state
@@ -684,11 +694,15 @@ def resolve(
         raise ValueError("No exploration card has been revealed.")
     chosen = next((o for o in options_for(state, registry) if o.id == option_id), None)
     if chosen is None:
-        raise ValueError(f"Unknown option: {option_id}.")
+        raise ValueError(
+            "That choice is not available for this card - pick one of the listed options."
+        )
     if not chosen.enabled:
         raise ValueError(chosen.reason or "This option is not available.")
     if chosen.params and param not in {pid for pid, _ in chosen.params}:
-        raise ValueError("Choose a value for this option.")
+        raise ValueError(
+            "Choose a value for this option (for example the command token pool), then confirm."
+        )
 
     new_state = state.clone()
     new_ex = _exp(new_state)
@@ -732,6 +746,13 @@ def resolve(
         }
     )
     new_ex.current = None
+    if new_cur.planet:
+        # „Po zbadaniu planety” (hooki frakcji/kart); frontier nie ma planety, więc nie emituje.
+        triggers.fire(
+            new_state, GameEvent.PLANET_EXPLORED, Moment.AFTER, subject=new_ex.player_id,
+            ctx={"player": new_ex.player_id, "planet": new_cur.planet, "deck": new_cur.deck,
+                 "card": new_cur.card_id},
+        )
     _auto(new_state, registry)
     return new_state
 

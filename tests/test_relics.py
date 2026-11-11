@@ -668,3 +668,31 @@ def test_titan_prototype_gives_trade_good_or_structure(registry: StaticDataRegis
     assert new_state.players["p1"].exhausted_relics == ["titanprototype"]
     row = relic_cards.playability(new_state, registry, "p1")[0]
     assert row["playable"] is False  # agent wyczerpany
+
+
+def test_maw_of_worlds_purges_exhausts_planets_and_grants_any_technology(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.hooks import relics_passive
+
+    state = _state(registry, ["mawofworlds"])
+    pool = technology.tech_pool(state, registry, "p1")
+    tech_id = next(iter(pool))
+    relics_passive.maw_of_worlds(state, "p1", {"params": {"technology": tech_id}})
+    player = state.players["p1"]
+    assert tech_id in player.technologies
+    assert "mawofworlds" not in player.relics and "mawofworlds" in state.decks.purged
+    assert set(player.controlled_planets) <= set(player.exhausted_planets)
+    with pytest.raises(ValueError, match="technology you do not own"):
+        relics_passive.maw_of_worlds(
+            _state(registry, ["mawofworlds"]), "p1", {"params": {"technology": "no_such_tech"}}
+        )
+
+
+def test_relic_error_names_the_relic_not_its_id(registry: StaticDataRegistry) -> None:
+    from src.core import rules_hooks
+
+    rules_hooks.bind_registry(registry)
+    state = _state(registry, [])
+    with pytest.raises(ValueError, match="The Codex"):
+        relics.purge_relic(state, "p1", "codex")

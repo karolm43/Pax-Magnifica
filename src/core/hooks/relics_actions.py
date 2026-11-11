@@ -115,12 +115,15 @@ def codex(
     """The Codex: ACTION: Purge this card to take up to 3 action cards of your choice from the
     action card discard pile.
     """
-    del registry
     wanted = list(params.get("cards", []))
     available = Counter(state.decks.action_card_discard)
     for card_id, count in Counter(wanted).items():
         if count > available[card_id]:
-            raise ValueError("That action card is not in the discard pile.")
+            card = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
+            raise ValueError(
+                f"{(card.name if card is not None else None) or card_id} is not in the action "
+                f"card discard pile (or you selected more copies than the pile holds)."
+            )
     if len(wanted) > _CODEX_MAX:
         raise ValueError(f"Take at most {_CODEX_MAX} action cards.")
     for card_id in wanted:

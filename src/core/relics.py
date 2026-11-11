@@ -85,11 +85,22 @@ def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -
     return relic
 
 
+def relic_label(relic_id: str) -> str:
+    """Nazwa reliktu z katalogu do komunikatów dla gracza (id, gdy katalog niedostępny)."""
+    from src.core import rules_hooks  # lokalnie: unika cyklu importów
+    from src.core.components import ComponentCategory
+
+    registry = rules_hooks.bound_registry()
+    card = registry.catalog.get(ComponentCategory.RELIC, relic_id) if registry else None
+    name = getattr(card, "name", None)
+    return str(name) if name else relic_id
+
+
 def _remove(state: GameState, player_id: str, relic_id: str) -> None:
     """Zdejmuje relikt ze strefy gracza (także ze stanu wyczerpania) i odpala efekt utraty."""
     player = state.players[player_id]
     if relic_id not in player.relics:
-        raise ValueError(f"{player_id} does not have the relic {relic_id}.")
+        raise ValueError(f"{player_id} does not have the relic {relic_label(relic_id)}.")
     player.relics = [r for r in player.relics if r != relic_id]
     player.exhausted_relics = [r for r in player.exhausted_relics if r != relic_id]
     lost = _ON_LOST.get(relic_id)
@@ -108,7 +119,7 @@ def transfer(state: GameState, giver_id: str, receiver_id: str, relic_id: str) -
     """
     giver = state.players[giver_id]
     if relic_id not in giver.relics:
-        raise ValueError(f"{giver_id} does not have the relic {relic_id}.")
+        raise ValueError(f"{giver_id} does not have the relic {relic_label(relic_id)}.")
     _remove(state, giver_id, relic_id)
     receiver = state.players[receiver_id]
     receiver.relics = [*receiver.relics, relic_id]

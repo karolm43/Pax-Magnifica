@@ -162,3 +162,52 @@ def test_fleet_pool_view_reports_dock_fighter_slots(registry: StaticDataRegistry
     cap = client.get("/tactical/fleet-pool").json()["capacity"]
     assert cap["fighterOnly"] == 3 and cap["general"] == 4
     assert cap["fighters"] == 6 and cap["otherLoad"] == 0 and cap["excess"] == 0
+
+
+# --- Stały nadzór limitów poza aktywacją (core/limits.py) ---------------------------------
+
+
+def _outside_activation(ships: dict[str, int]) -> GameState:
+    """Nadwyżka statków w systemie, ale BEZ trwającej akcji taktycznej (efekt karty/reliktu)."""
+    state = _state(ships, pool=3)
+    state.tactical_step = None
+    state.active_system = None
+    return state
+
+
+def test_enforce_limits_opens_window_outside_activation(registry: StaticDataRegistry) -> None:
+    from src.core import limits
+
+    state = limits.enforce_limits(_outside_activation({"cruiser": 3, "destroyer": 2}), registry)
+    window = state.pending_window
+    assert window is not None and window.window_type is WindowType.FLEET_POOL
+    assert window.context["position"] == "000" and window.queue == ["p1"]
+
+
+def test_enforce_limits_noop_within_pool_and_in_active_system(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import limits
+
+    ok = limits.enforce_limits(_outside_activation({"cruiser": 3}), registry)
+    assert ok.pending_window is None
+    # Aktywny system trwającej akcji ma własną bramkę kroków - nadzór go pomija.
+    active = _state({"cruiser": 3, "destroyer": 2}, pool=3)
+    assert limits.enforce_limits(active, registry).pending_window is None
+
+
+def test_service_commit_enforces_limits_but_god_mode_is_exempt(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.api.connection_manager import ConnectionManager
+    from src.api.state_service import StateService
+    from src.core import rules_hooks
+
+    rules_hooks.bind_registry(registry)
+    service = StateService(EventStore(":memory:"), ConnectionManager())
+    over = _outside_activation({"cruiser": 3, "destroyer": 2})
+    service.replace_state(over, label="god-mode-patch")
+    assert service.current_state().pending_window is None
+    service.replace_state(over, label="action-card:x")
+    window = service.current_state().pending_window
+    assert window is not None and window.window_type is WindowType.FLEET_POOL

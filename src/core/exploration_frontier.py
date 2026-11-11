@@ -48,7 +48,9 @@ def start_frontier(
         raise ValueError("There is no frontier token in this system.")
     ex = state.exploration
     if ex is not None and (ex.player_id != player_id or ex.current is not None):
-        raise ValueError("Another exploration is still in progress.")
+        raise ValueError(
+            "Finish the exploration in progress before starting a frontier exploration."
+        )
     card_id = exploration.draw_card(state, registry, FRONTIER_DECK)
     system.frontier_token = False
     if ex is None:

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { parseErrorDetail } from "@/api/apiError";
 import { fetchJson } from "@/api/fetchJson";
 import { useAppStore } from "@/state/appStore";
 
@@ -11,17 +12,6 @@ import { useAppStore } from "@/state/appStore";
  */
 const BOT_ROOT = "/bot";
 
-/** Wyłuskuje czytelny komunikat z odpowiedzi błędu (FastAPI: {"detail": "..."}). */
-function parseDetail(raw: string, status: number): string {
-  try {
-    const parsed = JSON.parse(raw) as { detail?: unknown };
-    if (typeof parsed.detail === "string") return parsed.detail;
-  } catch {
-    // nie-JSON — użyj surowego tekstu niżej
-  }
-  return raw || `Error ${status}`;
-}
-
 async function postRaw(path: string, body: unknown): Promise<Response> {
   const response = await fetch(`${BOT_ROOT}${path}`, {
     method: "POST",
@@ -30,7 +20,7 @@ async function postRaw(path: string, body: unknown): Promise<Response> {
   });
   if (!response.ok) {
     const raw = await response.text().catch(() => "");
-    const message = parseDetail(raw, response.status);
+    const message = parseErrorDetail(raw, response.status);
     // Pokaż graczowi powód (np. „system już aktywowany", „za mało zasobów").
     useAppStore.getState().setNotice(message, "error");
     throw new Error(message);
