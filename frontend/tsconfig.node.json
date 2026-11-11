@@ -22,10 +22,9 @@
     "noUncheckedSideEffectImports": true,
 
     // aliases
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-    },
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["vite.config.ts", "playwright.config.ts", "e2e"]
 }
