@@ -16,7 +16,7 @@ import pytest
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute
 
-from src.api.actor import get_actor, require_host
+from src.api.actor import get_actor, public_join, require_host
 from src.api.app import create_app
 
 _MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
@@ -54,6 +54,9 @@ _ROUTES = _mutating_routes()
 @pytest.mark.parametrize("route", _ROUTES, ids=[_route_id(r) for r in _ROUTES])
 def test_route_has_exactly_one_actor_class(route: APIRoute) -> None:
     calls = list(_calls(route.dependant))
+    if public_join in calls:  # jedyna trasa publiczna: dołączenie do lobby (RULES.md 44.6)
+        assert route.path == "/lobby/join", route.path
+        return
     kinds = [c for c in calls if c in (get_actor, require_host)]
     assert len(kinds) == 1, f"{route.path}: wymagane jedno z ActorId/HostOnly: {kinds}"
 

@@ -17,6 +17,7 @@ from src.core.visibility import HIDDEN_CARD, project_strict
 P2_SECRET = "zz_p2_private_card"
 DECK_CARD = "zz_top_of_deck"
 HOST = "host-token-for-tests"
+REMOTE = {"X-Forwarded-For": "10.147.17.5"}  # gracz z innego komputera (np. ZeroTier) przez proxy
 
 
 def _state() -> GameState:
@@ -94,18 +95,22 @@ def test_local_mode_is_unchanged(registry: StaticDataRegistry) -> None:
 
 
 def test_no_token_is_401_but_public_data_works(client: TestClient) -> None:
-    assert client.get("/state").status_code == 401
-    assert client.post("/turn/pass").status_code == 401
-    assert client.get("/network/me").json() == {
-        "network": True, "authenticated": False, "player_id": None, "host": False,
-    }
-    assert client.get("/state", headers=_as("forged")).status_code == 401
+    assert client.get("/state", headers=REMOTE).status_code == 401
+    assert client.post("/turn/pass", headers=REMOTE).status_code == 401
+    me = client.get("/network/me", headers=REMOTE).json()
+    assert me["network"] is True and me["authenticated"] is False and me["host"] is False
+    assert client.get("/state", headers={**_as("forged"), **REMOTE}).status_code == 401
+
+
+def test_host_computer_needs_no_token(client: TestClient) -> None:
+    me = client.get("/network/me").json()  # klient testów = ten komputer
+    assert me["host"] is True and me["authenticated"] is True
 
 
 def test_me_reports_seat(client: TestClient) -> None:
     token = _tokens(client)["p2"]
     me = client.get("/network/me", headers=_as(token)).json()
-    assert me == {"network": True, "authenticated": True, "player_id": "p2", "host": False}
+    assert (me["authenticated"], me["player_id"], me["host"]) == (True, "p2", False)
 
 
 @pytest.mark.parametrize(
@@ -178,12 +183,12 @@ def test_host_operator_sees_all_until_seated(client: TestClient) -> None:
 def test_rotate_invalidates_old_link(client: TestClient) -> None:
     old = _tokens(client)["p2"]
     client.post("/network/seats/p2/rotate", headers=_as(HOST))
-    assert client.get("/state", headers=_as(old)).status_code == 401
+    assert client.get("/state", headers={**_as(old), **REMOTE}).status_code == 401
     assert client.get("/state", headers=_as(_tokens(client)["p2"])).status_code == 200
 
 
 def test_websocket_requires_token_and_sends_own_projection(client: TestClient) -> None:
-    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/ws") as ws:
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/ws", headers=REMOTE) as ws:
         ws.receive_json()
     token = _tokens(client)["p1"]
     with client.websocket_connect(f"/ws?token={token}") as ws:
@@ -221,3 +226,60 @@ def test_full_game_web_data_builds_for_every_seat(registry: StaticDataRegistry) 
         deck = state["decks"]["action_card_deck"]
         assert deck and set(deck) == {HIDDEN_CARD}
         assert len(deck) == len(full["decks"]["action_card_deck"])
+
+
+# --- Lobby (RULES.md 44.6) ------------------------------------------------------------------
+
+
+def test_closed_lobby_blocks_other_computers(registry: StaticDataRegistry) -> None:
+    local = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    assert local.get("/state", headers=REMOTE).status_code == 403
+    assert local.post("/lobby/join", json={"name": "Ania"}, headers=REMOTE).status_code == 403
+    assert local.get("/factions", headers=REMOTE).status_code == 200  # dane statyczne jawne
+    assert local.get("/state").status_code == 200  # ten komputer jak dotąd
+
+
+def test_lobby_join_assign_and_play(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    assert client.post("/lobby/open").json()["open"] is True
+    joined = client.post("/lobby/join", json={"name": "  Ania  "}, headers=REMOTE).json()
+    assert joined["name"] == "Ania"
+    ania = {SEAT_TOKEN_HEADER: joined["token"], **REMOTE}
+    lobby = client.get("/lobby", headers=ania).json()
+    assert [m["name"] for m in lobby["members"]] == ["Ania"]
+    assert lobby["addresses"] == []  # adresy hosta widzi tylko host
+    assert client.get("/state", headers=ania).status_code == 200  # członek lobby, bez miejsca
+    assert client.post("/turn/pass", headers=ania).status_code == 403  # nie siedzi przy stole
+
+    players = [{"faction_id": "sol"}, {"faction_id": "arborec"}]
+    assert client.post("/game/new", json={"players": players}).status_code == 200
+    res = client.post(
+        "/lobby/assign", json={"assignments": {"p1": "host", "p2": joined["member_id"]}}
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["members"][0]["player_id"] == "p2"
+    me = client.get("/network/me", headers=ania).json()
+    assert me["player_id"] == "p2" and me["name"] == "Ania"
+    host_me = client.get("/network/me").json()
+    assert host_me["player_id"] == "p1" and host_me["host"] is True
+    # Host siedzi jako p1 — widzi tylko swoją rękę; Ania nie może God-Mode.
+    assert client.post("/undo", headers=ania).status_code == 403
+
+
+def test_kicked_member_loses_access(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/lobby/open")
+    joined = client.post("/lobby/join", json={"name": "Bartek"}, headers=REMOTE).json()
+    client.post(f"/lobby/kick/{joined['member_id']}")
+    res = client.get("/state", headers={SEAT_TOKEN_HEADER: joined["token"], **REMOTE})
+    assert res.status_code == 401
+
+
+def test_only_host_manages_lobby(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/lobby/open")
+    joined = client.post("/lobby/join", json={"name": "Ola"}, headers=REMOTE).json()
+    ola = {SEAT_TOKEN_HEADER: joined["token"], **REMOTE}
+    assert client.post("/lobby/close", headers=ola).status_code == 403
+    assert client.get("/saves", headers=ola).status_code == 403
+    assert client.post("/lobby/join", json={"name": " "}, headers=REMOTE).status_code == 422

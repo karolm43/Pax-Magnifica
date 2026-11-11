@@ -38,6 +38,10 @@ export default defineConfig({
   },
   assetsInclude: ["**/*.woff", "**/*.woff2", "**/*.ttf", "**/*.otf"],
   server: {
+    // Gra sieciowa (RULES.md 44.6): nasłuch na wszystkich interfejsach, żeby znajomi z ZeroTier/LAN
+    // weszli na http://<IP-hosta>:5173. Bezpieczne: dopóki host nie otworzy lobby, backend
+    // obsługuje WYŁĄCZNIE ten komputer (rozpoznaje go po X-Forwarded-For dopisanym przez proxy).
+    host: true,
     proxy: {
       // Custodian Engine backend (FastAPI). "/bot/api/..." -> "/api/..." na :8000.
       "/bot": {
@@ -45,12 +49,15 @@ export default defineConfig({
         changeOrigin: true,
         // WebSocket /bot/ws -> /ws (push stanu w grze sieciowej, RULES.md 44.3).
         ws: true,
+        // X-Forwarded-For z adresem klienta — backend odróżnia hosta od gości (RULES.md 44.6).
+        xfwd: true,
         rewrite: (path) => path.replace(/^\/bot/, ""),
       },
       // Statyczne assety (grafiki kafelków/jednostek) serwowane przez backend.
       "/static": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        xfwd: true,
       },
     },
   },

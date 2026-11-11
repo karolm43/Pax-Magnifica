@@ -33,12 +33,13 @@ import uvicorn
 from fastapi import FastAPI
 
 from src.api.app import create_app
+from src.api.saves import SaveManager
 from src.core import game_clock
 from src.core.event_store import EventStore
 
 HOST = "127.0.0.1"
 PORT = 8000
-DEFAULT_SAVE = Path("saves") / "game.db"
+SAVES_DIR = Path("saves")
 
 
 
@@ -142,32 +143,27 @@ def _pause_clock_after_restart(server_app: FastAPI) -> None:
 def main() -> None:
     """Startuje serwer deweloperski Uvicorn (po zwolnieniu portu); ``--network`` = gra sieciowa."""
     parser = argparse.ArgumentParser(prog="python -m src.api")
-    parser.add_argument("--network", action="store_true", help="gra sieciowa: tokeny miejsc")
+    parser.add_argument("--network", action="store_true", help="od razu otwórz lobby sieciowe")
     parser.add_argument(
-        "--front-url",
-        default="http://localhost:5173",
-        help="adres frontu do wydrukowania linku hosta",
+        "--save", type=Path, default=None, help="konkretny plik partii (domyślnie ostatni w saves/)"
     )
-    parser.add_argument(
-        "--save", type=Path, default=DEFAULT_SAVE, help="plik zapisu partii (SQLite)"
-    )
-    parser.add_argument("--fresh", action="store_true", help="odłóż stary zapis, zacznij od zera")
+    parser.add_argument("--fresh", action="store_true", help="zacznij w nowym pliku zapisu")
     args = parser.parse_args()
-    store = _open_store(args.save, args.fresh)
+    saves = SaveManager(SAVES_DIR)
+    path = args.save or (None if args.fresh else saves.latest()) or saves.new_path()
+    store = _open_store(path, fresh=bool(args.save and args.fresh))
     resumed = store.current() is not None
     server_app = create_app(
         store=store,
         network=args.network,
-        host_token=os.environ.get("CUSTODIAN_HOST_TOKEN") if args.network else None,
+        host_token=os.environ.get("CUSTODIAN_HOST_TOKEN"),
+        saves_dir=SAVES_DIR,
     )
-    print(f"[save] {'Resumed game from' if resumed else 'New save file'} {args.save}")
+    server_app.state.ctx.save_name = path.name
+    print(f"[save] {'Resumed game from' if resumed else 'New save file'} {path}")
     if resumed:
         _pause_clock_after_restart(server_app)
-    if args.network:
-        token = server_app.state.ctx.seats.host_token
-        print("[network] Network game mode - every request needs a seat token.")
-        print(f"[network] Host link: {args.front_url.rstrip('/')}/?token={token}")
-        print("[network] Invite links for players: open the Network panel in the game.")
+    print("[network] Open http://localhost:5173 - host or join a network game from the menu.")
     _ensure_port_free(HOST, PORT)
     uvicorn.run(server_app, host=HOST, port=PORT)
 

@@ -1,18 +1,27 @@
-"""Gra sieciowa (RULES.md 44.2): kim jestem, zaproszenia (tokeny miejsc), miejsce hosta.
+"""Gra sieciowa: kim jestem, lobby, zaproszenia, zapisy partii (RULES.md 44.2, 44.4, 44.6).
 
-Tokeny żyją w ``AppContext.seats`` (pamięć procesu), nigdy w ``GameState``. Linki zaproszeń
-buduje front z własnego adresu (``?token=``) — backend nie zna publicznego adresu serwera.
+- Host (komputer z serwerem) otwiera lobby (``/lobby/open``) — od tej chwili inni mogą wejść
+  na adres hosta (np. ZeroTier) i dołączyć imieniem (``/lobby/join`` → token członka).
+- Przy starcie gry host przypisuje członków do miejsc (``/lobby/assign``).
+- Zapisy: lista plików (``/saves``) i wczytanie (``/saves/load``) — tylko host.
+
+Tokeny żyją w ``AppContext.seats`` i w metadanych pliku partii, nigdy w ``GameState``.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
+import socket
 
-from src.api.actor import HostOnly, identity_of
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.api.actor import HostOnly, PublicJoin, identity_of
 from src.api.context import AppContext, get_ctx
 
-router = APIRouter(prefix="/network", tags=["network"])
+router = APIRouter(tags=["network"])
+
+
+# --- Kim jestem ---------------------------------------------------------------------------
 
 
 class NetworkMe(BaseModel):
@@ -22,6 +31,153 @@ class NetworkMe(BaseModel):
     authenticated: bool
     player_id: str | None = None
     host: bool = False
+    member_id: str | None = None
+    name: str | None = None
+
+
+@router.get("/network/me", response_model=NetworkMe)
+def get_me(request: Request, ctx: AppContext = Depends(get_ctx)) -> NetworkMe:
+    """Kim jest ten klient (publiczne: anonim w sieci → ``authenticated=False``)."""
+    identity = identity_of(request)
+    if not identity.network:
+        return NetworkMe(network=False, authenticated=True, host=True)
+    member = next(
+        (m for m in ctx.seats.members() if m.member_id == identity.member_id), None
+    )
+    authenticated = identity.host or identity.player_id is not None or member is not None
+    return NetworkMe(
+        network=ctx.seats.network,
+        authenticated=authenticated,
+        player_id=identity.player_id,
+        host=identity.host,
+        member_id=identity.member_id,
+        name=member.name if member else None,
+    )
+
+
+# --- Lobby --------------------------------------------------------------------------------
+
+
+class LobbyMember(BaseModel):
+    member_id: str
+    name: str
+    player_id: str | None = None
+
+
+class LobbyView(BaseModel):
+    """Stan lobby: czy otwarte, kto dołączył, czy gra już ma graczy (adresy — tylko host)."""
+
+    open: bool
+    members: list[LobbyMember]
+    game_started: bool
+    addresses: list[str] = Field(default_factory=list)
+    save_name: str | None = None
+
+
+def _local_addresses() -> list[str]:
+    """Adresy IPv4 tego komputera (LAN, ZeroTier, Tailscale…) do linku „dołącz"."""
+    found: set[str] = set()
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            found.add(str(info[4][0]))
+    except OSError:
+        pass
+    return sorted(a for a in found if not a.startswith("127."))
+
+
+def _lobby(request: Request, ctx: AppContext) -> LobbyView:
+    identity = identity_of(request)
+    seats = ctx.seats
+    return LobbyView(
+        open=seats.network,
+        members=[
+            LobbyMember(
+                member_id=m.member_id, name=m.name, player_id=seats.member_seat(m.member_id)
+            )
+            for m in seats.members()
+        ],
+        game_started=bool(ctx.service.current_state().players),
+        addresses=_local_addresses() if identity.host or not identity.network else [],
+        save_name=ctx.save_name,
+    )
+
+
+@router.get("/lobby", response_model=LobbyView)
+def get_lobby(request: Request, ctx: AppContext = Depends(get_ctx)) -> LobbyView:
+    """Lobby (publiczne, gdy otwarte: dołączający widzi, kto już jest)."""
+    return _lobby(request, ctx)
+
+
+@router.post("/lobby/open", dependencies=[HostOnly], response_model=LobbyView)
+async def post_lobby_open(request: Request, ctx: AppContext = Depends(get_ctx)) -> LobbyView:
+    """Host otwiera grę sieciową: inni mogą dołączyć z adresu tego komputera."""
+    ctx.seats.set_network(True)
+    return _lobby(request, ctx)
+
+
+@router.post("/lobby/close", dependencies=[HostOnly], response_model=LobbyView)
+async def post_lobby_close(request: Request, ctx: AppContext = Depends(get_ctx)) -> LobbyView:
+    """Host zamyka grę sieciową: znów tylko ten komputer (dołączeni zachowują tokeny)."""
+    ctx.seats.set_network(False)
+    return _lobby(request, ctx)
+
+
+class JoinRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+
+
+class JoinResponse(BaseModel):
+    member_id: str
+    name: str
+    token: str
+
+
+@router.post("/lobby/join", dependencies=[PublicJoin], response_model=JoinResponse)
+async def post_lobby_join(request: JoinRequest, ctx: AppContext = Depends(get_ctx)) -> JoinResponse:
+    """Dołączenie do lobby imieniem → token członka (front zapamiętuje go w karcie)."""
+    try:
+        member = ctx.seats.join(request.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return JoinResponse(member_id=member.member_id, name=member.name, token=member.token)
+
+
+@router.post("/lobby/kick/{member_id}", dependencies=[HostOnly], response_model=LobbyView)
+async def post_lobby_kick(
+    member_id: str, request: Request, ctx: AppContext = Depends(get_ctx)
+) -> LobbyView:
+    """Usuwa gracza z lobby (jego link/token przestaje działać)."""
+    ctx.seats.kick(member_id)
+    return _lobby(request, ctx)
+
+
+class AssignRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    assignments: dict[str, str]
+    """``{player_id: member_id | "host"}`` — kto siedzi na którym miejscu nowej gry."""
+
+
+@router.post("/lobby/assign", dependencies=[HostOnly], response_model=LobbyView)
+async def post_lobby_assign(
+    body: AssignRequest, request: Request, ctx: AppContext = Depends(get_ctx)
+) -> LobbyView:
+    """Start gry z lobby: przypisuje członków do miejsc (każdy gra pod swoim tokenem)."""
+    players = ctx.service.current_state().players
+    unknown = [pid for pid in body.assignments if pid not in players]
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown players: {', '.join(unknown)}")
+    try:
+        ctx.seats.bind(body.assignments)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    await ctx.service.broadcast()
+    return _lobby(request, ctx)
+
+
+# --- Zaproszenia (linki miejsc) -----------------------------------------------------------
 
 
 class SeatInvite(BaseModel):
@@ -47,21 +203,6 @@ class HostSeatRequest(BaseModel):
     player_id: str | None = None
 
 
-@router.get("/me", response_model=NetworkMe)
-def get_me(request: Request, ctx: AppContext = Depends(get_ctx)) -> NetworkMe:
-    """Kim jest ten klient (publiczne: bez tokenu w sieci → ``authenticated=False``)."""
-    identity = identity_of(request)
-    if not ctx.seats.network:
-        return NetworkMe(network=False, authenticated=True, host=True)
-    authenticated = identity.host or identity.player_id is not None
-    return NetworkMe(
-        network=True,
-        authenticated=authenticated,
-        player_id=identity.player_id,
-        host=identity.host,
-    )
-
-
 def _seats(ctx: AppContext) -> SeatsResponse:
     state = ctx.service.current_state()
     tokens = ctx.seats.seat_tokens(list(state.players)) if ctx.seats.network else {}
@@ -79,13 +220,15 @@ def _seats(ctx: AppContext) -> SeatsResponse:
     return SeatsResponse(network=ctx.seats.network, host_seat=ctx.seats.host_seat, seats=seats)
 
 
-@router.get("/seats", dependencies=[HostOnly], response_model=SeatsResponse)
+@router.get("/network/seats", dependencies=[HostOnly], response_model=SeatsResponse)
 def get_seats(ctx: AppContext = Depends(get_ctx)) -> SeatsResponse:
     """Zaproszenia: token każdego miejsca (brakujące tworzone przy pierwszym odczycie)."""
     return _seats(ctx)
 
 
-@router.post("/seats/{player_id}/rotate", dependencies=[HostOnly], response_model=SeatsResponse)
+@router.post(
+    "/network/seats/{player_id}/rotate", dependencies=[HostOnly], response_model=SeatsResponse
+)
 def post_rotate(player_id: str, ctx: AppContext = Depends(get_ctx)) -> SeatsResponse:
     """Nowy token miejsca — stary link przestaje działać (np. trafił do złej osoby)."""
     if player_id not in ctx.service.current_state().players:
@@ -94,7 +237,7 @@ def post_rotate(player_id: str, ctx: AppContext = Depends(get_ctx)) -> SeatsResp
     return _seats(ctx)
 
 
-@router.post("/host-seat", dependencies=[HostOnly], response_model=SeatsResponse)
+@router.post("/network/host-seat", dependencies=[HostOnly], response_model=SeatsResponse)
 def post_host_seat(request: HostSeatRequest, ctx: AppContext = Depends(get_ctx)) -> SeatsResponse:
     """Host siada jako gracz (widzi wtedy tylko swoje) albo wraca do roli operatora (``None``)."""
     players = ctx.service.current_state().players
@@ -102,3 +245,55 @@ def post_host_seat(request: HostSeatRequest, ctx: AppContext = Depends(get_ctx))
         raise HTTPException(status_code=422, detail=f"Unknown player: {request.player_id}")
     ctx.seats.set_host_seat(request.player_id)
     return _seats(ctx)
+
+
+# --- Zapisy partii ------------------------------------------------------------------------
+
+
+class SaveEntry(BaseModel):
+    name: str
+    modified: float
+    round_number: int | None = None
+    phase: str | None = None
+    players: list[str] = Field(default_factory=list)
+    broken: bool = False
+    current: bool = False
+
+
+class SavesResponse(BaseModel):
+    enabled: bool
+    saves: list[SaveEntry]
+
+
+class LoadSaveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+
+
+@router.get("/saves", dependencies=[HostOnly], response_model=SavesResponse)
+def get_saves(ctx: AppContext = Depends(get_ctx)) -> SavesResponse:
+    """Zapisane partie (od najnowszej) do menu „Load game"."""
+    if ctx.saves is None:
+        return SavesResponse(enabled=False, saves=[])
+    return SavesResponse(
+        enabled=True,
+        saves=[
+            SaveEntry(**vars(info), current=info.name == ctx.save_name)
+            for info in ctx.saves.list()
+        ],
+    )
+
+
+@router.post("/saves/load", dependencies=[HostOnly], response_model=SavesResponse)
+async def post_load_save(
+    body: LoadSaveRequest, ctx: AppContext = Depends(get_ctx)
+) -> SavesResponse:
+    """Wczytuje partię z pliku: stan, historia Undo, mapa i miejsca graczy (ich linki działają)."""
+    try:
+        ctx.load_save(body.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    await ctx.service.broadcast()
+    await ctx.broadcast_map()
+    return get_saves(ctx)

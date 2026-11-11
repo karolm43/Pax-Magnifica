@@ -51,6 +51,19 @@ export function readSeatToken(search: string = window.location.search): string |
   }
 }
 
+/**
+ * Zapamiętuje token otrzymany w trakcie (dołączenie do lobby) i od razu go używa — bez
+ * przeładowania strony (opakowanie `fetch` czyta bieżący token przy każdym żądaniu).
+ */
+export function storeSeatToken(token: string): void {
+  try {
+    sessionStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // brak storage (tryb prywatny) — token żyje do zamknięcia karty
+  }
+  seatToken = token;
+}
+
 /** Usuwa `token` z paska adresu (bez przeładowania). */
 function stripTokenFromUrl(): void {
   const url = new URL(window.location.href);
@@ -97,12 +110,11 @@ export function withActorHeader(
   return { ...init, headers };
 }
 
-/** Instaluje opakowanie `fetch` (raz, przy starcie aplikacji). */
+/** Instaluje opakowanie `fetch` (raz, przy starcie aplikacji; zawsze — token może dojść później). */
 export function installActorIdentity(): void {
   actingSeat = readActingSeat();
   seatToken = readSeatToken();
   stripTokenFromUrl();
-  if (!actingSeat && !seatToken) return;
   const original = window.fetch.bind(window);
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const response = await original(input, withActorHeader(input, init, actingSeat, seatToken));

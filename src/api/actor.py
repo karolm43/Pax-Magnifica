@@ -38,7 +38,11 @@ def get_actor(
     """Zwraca ``player_id`` wykonawcy albo ``None`` (tryb zaufany)."""
     identity = identity_of(request)
     if identity.network:
-        return identity.player_id
+        if identity.player_id is not None:
+            return identity.player_id
+        if identity.host:
+            return None  # host-operator bez miejsca: tryb zaufany
+        raise ActorError("You do not have a seat in this game.")
     actor = (x_actor_id or "").strip()
     return actor or None
 
@@ -72,3 +76,15 @@ ActorId = Annotated[str | None, Depends(get_actor)]
 
 HostOnly = Depends(require_host)
 """Zależność trasy (``dependencies=[HostOnly]``): akcja operatora/hosta."""
+
+
+def public_join() -> None:
+    """Znacznik trasy publicznej, zmieniającej tylko lobby (dołączenie imieniem, RULES.md 44.6).
+
+    Nie dotyka ``GameState``; dozwolona bez tokenu wyłącznie przy otwartym lobby (middleware).
+    Strażnik ``tests/test_actor_guard.py`` przepuszcza ten znacznik tylko dla ``/lobby/join``.
+    """
+
+
+PublicJoin = Depends(public_join)
+"""Zależność trasy: publiczne dołączenie do lobby (bez aktora i bez roli host)."""

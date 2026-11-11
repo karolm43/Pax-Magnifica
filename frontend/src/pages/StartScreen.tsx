@@ -6,6 +6,9 @@ import SetupWizard from "@/domains/setup/SetupWizard";
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
+import { JoinScreen, LobbyHostPanel, LoadGameModal } from "@/domains/network/LobbyScreens";
+import { useLobby, useLobbyActions } from "@/domains/network/useLobby";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
 
 /**
  * Pełnoekranowy ekran rozruchu — pokazywany, dopóki ładujemy dane gry (frakcje)
@@ -117,6 +120,23 @@ export default function StartScreen() {
   const [view, setView] = useState<"menu" | "setup">("menu");
   // Okno szkieletowe — na razie placeholder, wypełnimy je później.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Gra sieciowa (RULES.md 44.6): host = ten komputer; gość (inny komputer) widzi tylko
+  // dołączenie do lobby. „Load game" — lista zapisanych partii (tylko host).
+  const { data: me } = useNetworkMe();
+  const isGuest = me != null && !me.host;
+  const { data: lobby } = useLobby(me?.host === true);
+  const lobbyActions = useLobbyActions();
+  const [loadOpen, setLoadOpen] = useState(false);
+  const [lobbyError, setLobbyError] = useState<string | null>(null);
+  const hostOnline = async () => {
+    setLobbyError(null);
+    try {
+      await lobbyActions.open();
+      setView("setup");
+    } catch (e) {
+      setLobbyError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   // Dopóki ładujemy frakcje (lub gdy się nie powiodło) — pełnoekranowy rozruch,
   // zamiast migać pustym menu bez danych. Boot utrzymujemy też przez minimalne
@@ -158,6 +178,9 @@ export default function StartScreen() {
             <p className={styles.menuTagline}>Twilight Imperium 4 — web game</p>
           </div>
 
+          {isGuest ? (
+            <JoinScreen />
+          ) : (
           <nav className={styles.menuButtons} aria-label="Main menu">
             <Button
               size="xl"
@@ -166,6 +189,24 @@ export default function StartScreen() {
               onClick={() => setView("setup")}
             >
               Play
+            </Button>
+            <Button
+              size="xl"
+              fullWidth
+              variant="default"
+              className={styles.menuButton}
+              onClick={() => void hostOnline()}
+            >
+              {lobby?.open ? "Online lobby (open)" : "Host online game"}
+            </Button>
+            <Button
+              size="xl"
+              fullWidth
+              variant="default"
+              className={styles.menuButton}
+              onClick={() => setLoadOpen(true)}
+            >
+              Load game
             </Button>
             <Button
               size="xl"
@@ -185,7 +226,9 @@ export default function StartScreen() {
             >
               Rules
             </Button>
+            {lobbyError && <p role="alert">{lobbyError}</p>}
           </nav>
+          )}
         </div>
 
         {/* ── Ekran konfiguracji nowej gry (Setup_Wizard) ───────────────── */}
@@ -200,12 +243,15 @@ export default function StartScreen() {
            * górnym; „Wstecz" na pierwszym kroku wraca do menu głównego (`onExit`).
            */}
           <SetupWizard onExit={() => setView("menu")} />
+          {/* Lobby online: adres dla znajomych, dołączeni, kto siedzi na którym miejscu. */}
+          {view === "setup" && <LobbyHostPanel />}
         </div>
       </div>
 
       {/* Ustawienia — ten sam panel co w grze (`SettingsModal`), żeby np. tryb
           administratora (szybkie testy) dało się włączyć JESZCZE przed startem gry,
           zanim pojawi się intro. Stan jest współdzielony przez `useSettingsStore`. */}
+      <LoadGameModal opened={loadOpen} onClose={() => setLoadOpen(false)} />
       <SettingsModal
         opened={settingsOpen}
         onClose={() => setSettingsOpen(false)}

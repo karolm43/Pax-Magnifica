@@ -15,6 +15,7 @@ import re
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +26,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src import config
 from src.api.connection_manager import ConnectionManager
-from src.api.context import MAP_META_KEY, AppContext
+from src.api.context import MAP_META_KEY, SEATS_META_KEY, AppContext
 from src.api.demo_map import build_demo_grid
 from src.api.routers import (
     action_cards,
@@ -59,6 +60,7 @@ from src.api.routers import (
     window,
 )
 from src.api.routers import network as network_routes
+from src.api.saves import SaveManager
 from src.api.seats import SEAT_TOKEN_HEADER, TOKEN_QUERY, Identity, SeatRegistry, current_identity
 from src.api.state_service import StateService
 from src.core.actor import ActorError
@@ -67,8 +69,21 @@ from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
-SEATS_META_KEY = "seats"
-"""Klucz metadanej partii: tokeny miejsc i hosta (``SeatRegistry.to_json``)."""
+_LOOPBACK = {"127.0.0.1", "::1", "localhost", "::ffff:127.0.0.1", "testclient"}
+
+
+def _is_local(forwarded_for: str | None, client: object) -> bool:
+    """Czy żądanie pochodzi z komputera hosta (RULES.md 44.6).
+
+    Przez proxy Vite (``xfwd``) liczy się OSTATNI wpis ``X-Forwarded-For`` — dopisany przez
+    proxy adres rzeczywistego klienta (wcześniejsze wpisy klient mógłby podrobić). Bez
+    nagłówka: adres połączenia. ``testclient`` = klient testów FastAPI (zawsze lokalny).
+    """
+    if forwarded_for:
+        peer = forwarded_for.split(",")[-1].strip()
+    else:
+        peer = str(getattr(client, "host", "") or "")
+    return peer in _LOOPBACK or peer.startswith("127.")
 
 
 def _restore_grid(store: EventStore) -> HexGrid | None:
@@ -91,6 +106,7 @@ def create_app(
     now: Callable[[], float] | None = None,
     network: bool = False,
     host_token: str | None = None,
+    saves_dir: Path | None = None,
 ) -> FastAPI:
     """Fabryka aplikacji FastAPI (wstrzykiwalna dla testów).
 
@@ -101,26 +117,28 @@ def create_app(
         now: Źródło czasu (s UNIX) dla zegara szachowego (domyślnie ``time.time``).
         network: Tryb gry sieciowej (RULES.md 44.2): każde żądanie wymaga tokenu miejsca.
         host_token: Stały token hosta (domyślnie losowy; ``seats.host_token`` po starcie).
+        saves_dir: Katalog zapisów (nowa gra = nowy plik, „Load game"); ``None`` = wyłączone.
     """
     reg = registry if registry is not None else StaticDataRegistry()
     event_store = store if store is not None else EventStore()
-    # Miejsca przy stole — wznowione z pliku partii, jeśli to zapis (RULES.md 44.4).
+    manager = ConnectionManager()
+    service = StateService(
+        event_store, manager, initial_state=initial_state, now=now or time.time
+    )
+    # Miejsca przy stole / lobby — wznowione z pliku partii (RULES.md 44.4). Zapis idzie przez
+    # serwis, bo bieżący plik partii zmienia się w trakcie (nowa gra, „Load game").
     seats = SeatRegistry(
         network=network,
         host_token=host_token,
         saved=event_store.get_meta(SEATS_META_KEY),
-        persist=lambda raw: event_store.set_meta(SEATS_META_KEY, raw),
-    )
-    manager = ConnectionManager()
-    service = StateService(
-        event_store, manager, initial_state=initial_state, now=now or time.time
+        persist=lambda raw: service.set_meta(SEATS_META_KEY, raw),
     )
     demo_grid = _restore_grid(event_store) or build_demo_grid(reg)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
-        event_store.close()
+        service.close()
 
     app = FastAPI(title="Custodian Engine API", version="0.1.0", lifespan=lifespan)
 
@@ -139,6 +157,8 @@ def create_app(
 
     # Bez tokenu w trybie sieciowym wolno pobrać tylko dane statyczne (assety, reguły, frakcje,
     # komponenty) i ``/network/me`` (front sprawdza, czy to gra sieciowa) — nic ze stanu gry.
+    # Lobby otwarte: anonim może zobaczyć lobby i do niego dołączyć (dostaje token członka).
+    _lobby_paths = re.compile(r"^/lobby(/join)?$")
     _public_paths = re.compile(
         r"^/(static|components|rules|factions|engine/config|timing-specs|network/me"
         r"|docs|redoc|openapi\.json)(/|$)"
@@ -174,14 +194,22 @@ def create_app(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         token = request.headers.get(SEAT_TOKEN_HEADER) or request.query_params.get(TOKEN_QUERY)
-        identity = seats.resolve(token)
+        local = _is_local(request.headers.get("x-forwarded-for"), request.client)
+        identity = seats.resolve(token, local=local)
         if identity is None:
-            if request.method == "OPTIONS" or _public_paths.search(request.url.path):
-                identity = Identity(network=True)
-            else:
+            path = request.url.path
+            lobby_public = seats.network and _lobby_paths.search(path)
+            if request.method == "OPTIONS" or _public_paths.search(path) or lobby_public:
+                identity = Identity(network=True)  # anonim: tylko dane jawne / dołączenie
+            elif seats.network:
                 return JSONResponse(
                     status_code=401,
-                    content={"detail": "This is a network game - open it from your invite link."},
+                    content={"detail": "Join the game from the lobby first."},
+                )
+            else:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "This server is not hosting a network game right now."},
                 )
         request.state.identity = identity
         reset = current_identity.set(identity)
@@ -200,7 +228,13 @@ def create_app(
 
     # Współdzielony kontekst dla routerów (current_grid podmieniany przy load/new game).
     ctx = AppContext(
-        service=service, manager=manager, registry=reg, current_grid=demo_grid, seats=seats
+        service=service,
+        manager=manager,
+        registry=reg,
+        current_grid=demo_grid,
+        seats=seats,
+        saves=SaveManager(saves_dir) if saves_dir is not None else None,
+        restore_grid=lambda s: _restore_grid(s) or build_demo_grid(reg),
     )
     app.state.ctx = ctx
     # Zgodność ze starszymi testami/diagnostyką odwołującymi się do app.state.*.
@@ -244,7 +278,8 @@ def create_app(
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:
         # Gra sieciowa: token w ``?token=`` (przeglądarka nie ustawi nagłówka WebSocketu).
-        identity = seats.resolve(websocket.query_params.get(TOKEN_QUERY))
+        local = _is_local(websocket.headers.get("x-forwarded-for"), websocket.client)
+        identity = seats.resolve(websocket.query_params.get(TOKEN_QUERY), local=local)
         if identity is None:
             await websocket.close(code=4401)
             return

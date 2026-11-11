@@ -9,6 +9,9 @@ export type NetworkMe = {
   authenticated: boolean;
   player_id: string | null;
   host: boolean;
+  /** Członek lobby (dołączył imieniem), także zanim dostał miejsce. */
+  member_id?: string | null;
+  name?: string | null;
 };
 
 export const NETWORK_ME_KEY = ["network", "me"] as const;

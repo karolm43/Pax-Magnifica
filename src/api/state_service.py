@@ -100,6 +100,17 @@ class StateService:
         )
         return self.envelope()
 
+    def swap_store(self, store: EventStore) -> EventStore:
+        """Przełącza bieżący plik partii (nowa gra / „Load game"); zwraca poprzedni magazyn."""
+        previous, self._store = self._store, store
+        if self._store.current() is None:
+            self._store.commit(GameState(), label="initial")
+        return previous
+
+    def close(self) -> None:
+        """Zamyka bieżący plik partii (koniec procesu)."""
+        self._store.close()
+
     def get_meta(self, key: str) -> str | None:
         """Metadana partii z pliku zapisu (mapa, miejsca) — patrz ``EventStore.get_meta``."""
         return self._store.get_meta(key)

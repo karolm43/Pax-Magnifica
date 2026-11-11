@@ -90,3 +90,25 @@ def test_fresh_and_broken_saves_are_set_aside(tmp_path: Path) -> None:
     assert store.current() is None
     store.close()
     assert any(p.name.startswith("game.broken-") for p in tmp_path.iterdir())
+
+
+def test_new_game_starts_new_file_and_load_switches_back(
+    registry: StaticDataRegistry, tmp_path: Path
+) -> None:
+    saves = tmp_path / "saves"
+    app = create_app(registry=registry, store=EventStore(":memory:"), saves_dir=saves)
+    client = TestClient(app)
+    first = [{"faction_id": "sol"}, {"faction_id": "arborec"}]
+    second = [{"faction_id": "hacan"}, {"faction_id": "sol"}, {"faction_id": "arborec"}]
+    assert client.post("/game/new", json={"players": first}).status_code == 200
+    assert client.post("/game/new", json={"players": second}).status_code == 200
+    listing = client.get("/saves").json()
+    assert listing["enabled"] is True
+    names = [s["name"] for s in listing["saves"]]
+    assert len(names) == 2
+    current = next(s for s in listing["saves"] if s["current"])
+    assert len(current["players"]) == 3
+    older = next(s for s in listing["saves"] if not s["current"])
+    assert client.post("/saves/load", json={"name": older["name"]}).status_code == 200
+    assert len(client.get("/state").json()["state"]["players"]) == 2
+    assert client.post("/saves/load", json={"name": "../evil.db"}).status_code == 422

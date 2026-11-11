@@ -603,6 +603,7 @@ async def post_new_game(
             initial_ms=request.chess_clock.total_minutes * 60_000,
             increment_ms=request.chess_clock.increment_seconds * 1000,
         )
+    ctx.start_new_save()  # nowa gra = nowy plik zapisu; poprzednia partia zostaje (RULES.md 44.4)
     ctx.set_map(grid)
     ctx.service.replace_state(new_state, label="game:new")
     await ctx.service.broadcast()

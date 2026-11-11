@@ -261,9 +261,12 @@ export function NetworkPanel() {
               This is a network game
             </Text>
             <Text size="sm">
-              Open the game from the invite link the host sent you. The link is personal - it
-              decides which seat you play and which cards you can see.
+              Join from the start page (enter your name in the lobby), or open the personal
+              invite link the host sent you.
             </Text>
+            <Button component="a" href="/">
+              Go to the lobby
+            </Button>
           </Stack>
         </Paper>
       </div>
@@ -275,20 +278,14 @@ export function NetworkPanel() {
     <>
       <WaitingBanner me={seat} />
       <ForbiddenToast />
-      <div style={{ position: "fixed", left: 12, bottom: 12, zIndex: 900 }}>
-        <Paper p="xs" shadow="md" withBorder>
-          <Group gap="xs" wrap="nowrap">
-            <Text size="sm" fw={600}>
-              {seat ? `You: ${seat}` : "Host (operator)"}
-            </Text>
-            {me.data.host && (
-              <Button size="compact-sm" onClick={() => setOpen(true)}>
-                Invites
-              </Button>
-            )}
-          </Group>
-        </Paper>
-      </div>
+      {/* „Kim gram" jest w nagłówku (WhoAmIBadge); tu tylko zaproszenia hosta. */}
+      {me.data.host && (
+        <div style={{ position: "fixed", left: 12, bottom: 12, zIndex: 900 }}>
+          <Button size="compact-sm" onClick={() => setOpen(true)}>
+            Invites
+          </Button>
+        </div>
+      )}
       {me.data.host && <InvitesModal opened={open} onClose={() => setOpen(false)} />}
     </>
   );

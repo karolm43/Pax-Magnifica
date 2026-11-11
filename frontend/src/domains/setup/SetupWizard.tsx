@@ -15,6 +15,7 @@
 // Kontener jest celowo „cienki": cała walidacja i mapowanie żyją w `useSetupStore.ts`
 // (testowalne bez Reacta), tu zostaje tylko spięcie stanu z UI i obsługa wysyłki.
 
+import { assignLobbySeats, useLobbyAssignments } from "@/domains/network/useLobby";
 import { useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -150,6 +151,9 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
     try {
       const request = toNewGameRequest(slots, mapString, factionById, seatPositions);
       await createNewGame(request);
+      // Lobby online (RULES.md 44.6): dołączeni gracze dostają swoje miejsca (slot i → p{i+1}).
+      await assignLobbySeats(useLobbyAssignments.getState().bySlot);
+      useLobbyAssignments.getState().clear();
       // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
       await queryClient.invalidateQueries({ queryKey: ["playerData"] });
     } catch (e) {

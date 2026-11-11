@@ -464,3 +464,16 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   komunikat przy 403; `useDeskPlayer` w sieci = własne miejsce (ręka i kontrolki tury tylko swoje); skip phase tylko host.
 - Nie testowane w przeglądarce. Dalej (N5 część 2): zgoda drugiej strony w transakcjach, timeouty/przejęcie przez bota
   (⚠ do decyzji użytkownika), wiele gier naraz.
+
+## 2026-11-11 (10) — Lobby w menu, wczytywanie gry, plakietka „kim gram" (RULES.md 44.5a)
+- **Jak grać przez ZeroTier:** `start.cmd` jak zwykle → menu **Host online game** → w kreatorze panel *Online lobby*
+  pokazuje adres (np. `http://10.147.x.x:5173`) — znajomi wchodzą, wpisują imię, host wybiera „kto siedzi na którym
+  miejscu" i startuje grę; goście same przechodzą do gry. Windows może zapytać o zgodę zapory dla Node (port 5173).
+- **Backend:** `seats.py` (lobby: `join/kick/bind`, host = loopback, `member_id`), middleware (`_is_local`, 403 dla
+  obcych przy zamkniętym lobby, 401 bez tokenu przy otwartym), router `network.py` (`/lobby*`, `/saves*`),
+  `saves.py` (`SaveManager`), `AppContext.start_new_save/load_save`, `StateService.swap_store`; start bez flag =
+  ostatnia partia z `saves/`, `--fresh` = nowy plik. Strażnik: `PublicJoin` dozwolony tylko dla `/lobby/join`.
+- **Front:** `LobbyScreens.tsx` (`JoinScreen`, `LobbyHostPanel`, `LoadGameModal`), `useLobby.ts`, menu (Host online
+  game, Load game), `WhoAmIBadge` w nagłówku, `storeSeatToken` (token z lobby bez przeładowania), Vite `host: true` + `xfwd`.
+- Testy: lobby (dołączenie, przypisanie, wyrzucenie, tylko host, zamknięte lobby) w `test_network_game.py`,
+  nowa gra = nowy plik + wczytanie w `test_save_resume.py`. Nie testowane w przeglądarce.
