@@ -26,3 +26,22 @@ def transfer(state: GameState, giver_id: str, receiver_id: str, card_id: str) ->
         raise ValueError(f"Player {giver_id} does not have the relic fragment '{card_id}'.")
     giver_zone.remove(card_id)
     state.players[receiver_id].relic_fragments.append(card_id)
+
+
+def purge(state: GameState, player_id: str, count: int) -> list[str]:
+    """Purge ``count`` fragmentów gracza (dowolnego typu): znikają z gry, nie wracają do talii.
+
+    Zdejmuje najstarsze fragmenty w strefie (cel Destroy Heretical Works nie rozróżnia typów).
+
+    Raises:
+        ValueError: Gracz ma mniej fragmentów, niż trzeba.
+    """
+    zone = state.players[player_id].relic_fragments
+    if len(zone) < count:
+        raise ValueError(f"You need {count} relic fragments but have only {len(zone)}.")
+    purged = zone[:count]
+    state.players[player_id].relic_fragments = zone[count:]
+    from src.core import exploration  # lokalnie: exploration importuje ten moduł
+
+    exploration.purge_cards(state, purged)
+    return purged

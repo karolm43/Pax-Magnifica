@@ -38,15 +38,20 @@ export type RelicForm = {
  * Relikty gracza z zagrywalnością (po ``relic_id``). Odświeżane co kilka sekund, bo zależy od
  * tury, fazy, okien i celów na planszy.
  */
-export function useRelicPlayability(playerId: string | null, enabled: boolean) {
+export function useRelicPlayability(
+  playerId: string | null,
+  enabled: boolean,
+  /** ``relic`` albo ``frontier-card`` (karty frontier mają ten sam kształt odpowiedzi). */
+  root: "relic" | "frontier-card" = "relic",
+) {
   return useQuery({
-    queryKey: ["relicPlayable", playerId],
+    queryKey: ["relicPlayable", root, playerId],
     enabled: Boolean(playerId) && enabled,
     staleTime: 0,
     refetchInterval: 3000,
     retry: false,
     queryFn: async (): Promise<Record<string, RelicPlayability>> => {
-      const url = `${BOT_ROOT}/relic/playable?player_id=${encodeURIComponent(playerId ?? "")}`;
+      const url = `${BOT_ROOT}/${root}/playable?player_id=${encodeURIComponent(playerId ?? "")}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Error ${response.status}`);
       const data = (await response.json()) as { relics: RelicPlayability[] };
@@ -56,9 +61,13 @@ export function useRelicPlayability(playerId: string | null, enabled: boolean) {
 }
 
 /** Formularz ACTION reliktu dla gracza (relikt musi leżeć przed nim, inaczej 422). */
-export function useRelicForm(relicId: string | null, playerId: string | null) {
+export function useRelicForm(
+  relicId: string | null,
+  playerId: string | null,
+  root: "relic" | "frontier-card" = "relic",
+) {
   return useQuery({
-    queryKey: ["relicForm", relicId, playerId],
+    queryKey: ["relicForm", root, relicId, playerId],
     enabled: Boolean(relicId && playerId),
     // Opcje zależą od bieżącego stanu gry - nie cache'ujemy między otwarciami.
     staleTime: 0,
@@ -67,7 +76,7 @@ export function useRelicForm(relicId: string | null, playerId: string | null) {
     queryFn: async (): Promise<RelicForm> => {
       const id = encodeURIComponent(relicId ?? "");
       const player = encodeURIComponent(playerId ?? "");
-      const response = await fetch(`${BOT_ROOT}/relic/${id}/inputs?player_id=${player}`);
+      const response = await fetch(`${BOT_ROOT}/${root}/${id}/inputs?player_id=${player}`);
       if (!response.ok) {
         const raw = await response.text().catch(() => "");
         let detail = `Error ${response.status}`;

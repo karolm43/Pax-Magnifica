@@ -654,6 +654,16 @@ def _build_tile_unit_data(
                     {"entityId": wormhole.lower(), "entityType": "token", "count": 1}
                 )
 
+        # Ion Storm (karta frontier): żeton ze stroną aktywną (id katalogu: ionalpha / ionbeta).
+        if sys_state is not None and sys_state.ion_storm:
+            space.setdefault("neutral", []).append(
+                {"entityId": f"ion{sys_state.ion_storm.lower()}", "entityType": "token", "count": 1}
+            )
+        # Mirage (karta frontier): żeton planety leży w przestrzeni systemu, jak Thunder's Edge.
+        if sys_state is not None and "mirage" in sys_state.added_planets:
+            space.setdefault("neutral", []).append(
+                {"entityId": "mirage", "entityType": "token", "count": 1}
+            )
         # Attachmenty z eksploracji (RULES.md 46): żeton przy planecie, rysowany przez front
         # jak inne wpisy `entityType: "attachment"` (id = `attachmentId` karty, np. "dysonsphere").
         for planet_id, entry in planets.items():
@@ -1365,6 +1375,7 @@ def _build_player_data(
                 ],
                 "exhaustedPlanetAbilities": [],
                 "relics": list(player.relics),
+                "frontierCards": list(player.frontier_cards),
                 "exhaustedRelics": [r for r in player.exhausted_relics if r in player.relics],
                 # Fragmenty reliktów z eksploracji (id kart: crf*/hrf*/irf*/urf*) — front liczy je
                 # po prefiksie i rysuje w player area.

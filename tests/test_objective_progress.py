@@ -112,11 +112,39 @@ def test_fleet_and_edge_progress(registry: StaticDataRegistry) -> None:
     assert _progress(state, registry, "ctr", grid) == 2
 
 
-def test_unmodelled_objectives_are_manual(registry: StaticDataRegistry) -> None:
+def test_every_catalog_objective_is_checked_automatically(registry: StaticDataRegistry) -> None:
+    """Żaden cel (publiczny/tajny, każda faza) nie wymaga ręcznego potwierdzenia."""
+    from src.core.objective_events import EVENT_OBJECTIVES
+
+    unchecked: list[str] = []
+    for category in (ComponentCategory.PUBLIC_OBJECTIVE, ComponentCategory.SECRET_OBJECTIVE):
+        for objective_id in registry.catalog.all(category):
+            if objective_id not in objective_progress._PROGRESS and (
+                objective_id not in EVENT_OBJECTIVES
+            ):
+                unchecked.append(objective_id)
+    assert unchecked == []
+    assert objective_progress.MANUAL_OBJECTIVES == frozenset()
+
+
+def test_destroy_heretical_works_and_dictate_policy_are_computed(
+    registry: StaticDataRegistry,
+) -> None:
     state = _state()
-    assert _progress(state, registry, "dp") is None
+    assert _progress(state, registry, "dhw") == 0 and _progress(state, registry, "dp") == 0
+    state.players["p1"].relic_fragments = ["crf1", "hrf1"]
+    state.decks.agenda_laws = {"a": "for", "b": "for", "c": "for"}
     value, goal, ok = objective_progress.evaluate(state, registry, HexGrid(), "p1", "dhw")
-    assert (value, goal, ok) == (None, 2, True)
+    assert (value, goal, ok) == (2, 2, True)
+    assert objective_progress.evaluate(state, registry, HexGrid(), "p1", "dp")[2]
+
+
+def test_destroy_heretical_works_purges_two_fragments(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.players["p1"].relic_fragments = ["crf1", "hrf1", "irf1"]
+    paid = objective_payment.pay_for_objective(state, registry, HexGrid(), "p1", "dhw")
+    assert paid.players["p1"].relic_fragments == ["irf1"]
+    assert paid.decks.purged[-2:] == ["crf1", "hrf1"]
 
 
 def test_evaluate_blocks_unmet_requirement(registry: StaticDataRegistry) -> None:

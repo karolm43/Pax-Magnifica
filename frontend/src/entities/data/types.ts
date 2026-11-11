@@ -916,6 +916,8 @@ export type PlayerData = {
   exhaustedPlanetAbilities: string[];
   fragments: string[];
   relics: string[];
+  /** Karty frontier leżące u gracza (Enigmatic Device) - w ręce, zakładka Action cards. */
+  frontierCards?: string[];
   exhaustedRelics: string[];
   leaders: Leader[];
   leaderIDs: string[];

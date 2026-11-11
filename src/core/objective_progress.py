@@ -55,7 +55,7 @@ _TRAITS = ("CULTURAL", "HAZARDOUS", "INDUSTRIAL")
 # Cele, w których wydaje się żetony/zasoby (patrz ``objective_payment``).
 SPEND_OBJECTIVES = frozenset({
     "trade_routes", "centralize_trade", "lead", "galvanize", "monument", "golden_age",
-    "sway_council", "manipulate_law", "amass_wealth", "vast_reserves", "fsn",
+    "sway_council", "manipulate_law", "amass_wealth", "vast_reserves", "fsn", "dhw",
 })
 
 
@@ -130,7 +130,7 @@ class View:
         definition = self.registry.systems.get(system.system_id) if system else None
         found = {w.upper() for w in definition.wormholes} if definition else set()
         # Żetony wormhole z kart (np. Gamma Wormhole z eksploracji) liczą się jak wbudowane.
-        return found | {w.upper() for w in system.wormhole_tokens} if system else found
+        return found | {w.upper() for w in system.token_wormholes()} if system else found
 
     def is_anomaly(self, position: str) -> bool:
         return bool(self.grid.anomalies_at(position))
@@ -619,6 +619,16 @@ def _p_blockade_dock(v: View) -> int:
     return count
 
 
+def _p_relic_fragments(v: View) -> int:
+    """Destroy Heretical Works: fragmenty reliktów w strefie gracza (każdego typu)."""
+    return len(v.player.relic_fragments)
+
+
+def _p_laws_in_play(v: View) -> int:
+    """Dictate Policy: prawa (laws) aktualnie w grze."""
+    return len(v.state.decks.agenda_laws)
+
+
 def _p_neighbours(v: View) -> int:
     return len(neighbors_by_player(v.state, v.grid).get(v.pid, set()))
 
@@ -653,10 +663,12 @@ _PROGRESS: dict[str, Callable[[View], int]] = {
     "fwm": _p_space_docks, "fsn": _p_action_cards, "gamf": _p_dreadnoughts,
     "ans": _p_faction_techs, "btgk": _p_both_wormholes, "ctr": _p_ship_systems,
     "csl": _p_blockade_dock, "eap": _p_pds, "faa": _p_cultural, "fc": _p_neighbours,
+    "dhw": _p_relic_fragments, "dp": _p_laws_in_play,
 }
 
-# Cele, których warunku stan gry nie modeluje (fragmenty, prawa w grze).
-MANUAL_OBJECTIVES = frozenset({"dhw", "dp"})
+# Cele, których warunku stan gry nie modeluje. Pusty zbiór: wszystkie cele katalogu są liczone
+# automatycznie (fazy Action/Agenda przez ``core/objective_events``).
+MANUAL_OBJECTIVES: frozenset[str] = frozenset()
 
 
 def progress(

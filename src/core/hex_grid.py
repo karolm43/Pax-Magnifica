@@ -277,6 +277,13 @@ class HexGrid:
         """Czy dwa systemy sąsiadują (geometrycznie lub przez wormhole)."""
         return bool(self._graph.has_edge(pos_a, pos_b))
 
+    def link_kind(self, pos_a: str, pos_b: str) -> str | None:
+        """Rodzaj krawędzi między systemami: ``adjacent`` / ``wormhole`` / ``portal`` / ``None``."""
+        if not self._graph.has_edge(pos_a, pos_b):
+            return None
+        kind = self._graph.edges[pos_a, pos_b].get("kind")
+        return str(kind) if kind is not None else None
+
     def neighbors(self, position: str) -> set[str]:
         """Zwraca pozycje sąsiadujące z danym systemem."""
         if position not in self._graph:

@@ -8,7 +8,7 @@ gracz nie wskazuje planet/pul): najpierw wyczerpuje planety, brak dopłaca trade
 
 from __future__ import annotations
 
-from src.core import card_draw, command_tokens, economy
+from src.core import card_draw, command_tokens, economy, relic_fragments
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.objective_progress import (
@@ -70,6 +70,8 @@ def pay_for_objective(
         command_tokens.spend_to_reinforcements(
             new_state, player_id, "strategic", goal - from_tactical
         )
+    elif objective_id == "dhw":
+        relic_fragments.purge(new_state, player_id, goal)
     elif objective_id == "fsn":
         card_draw.discard_action_cards(new_state, player_id, goal)
     elif objective_id in _MIXED:

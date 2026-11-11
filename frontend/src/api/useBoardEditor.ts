@@ -449,8 +449,9 @@ export function useBoardEditor() {
       playerId: string,
       relicId: string,
       params: Record<string, unknown>,
+      root: "/relic/play" | "/frontier-card/play" = "/relic/play",
     ): Promise<{ implemented: boolean }> => {
-      const response = await postRaw("/relic/play", {
+      const response = await postRaw(root, {
         player_id: playerId,
         actor_id: playerId,
         relic_id: relicId,

@@ -96,6 +96,9 @@ def set_planet_control(
             subject=previous,
             ctx={**control_ctx, "player": previous},
         )
+        from src.core import objective_events  # lokalnie: unika cyklu importów
+
+        objective_events.on_planet_lost(state, previous, position)
     if new_owner is not None and new_owner in state.players:
         triggers.fire(
             state,

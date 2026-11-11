@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
-from src.core import rules_hooks, triggers, unit_ops
+from src.core import ion_storm, rules_hooks, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
@@ -334,6 +334,7 @@ def move_ships(
     unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
     new_state.tactical_moved = True
+    ion_storm.note_move(new_state, grid, registry, from_pos, active)
     triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx)
     return new_state
 
@@ -587,6 +588,7 @@ def move_fleet(
     # Pierwszy ruch w akcji zamyka okno „po aktywacji systemu" kart reakcji i otwiera okno
     # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``.
     new_state.tactical_moved = True
+    ion_storm.note_move(new_state, grid, registry, from_pos, active)
     if ships:
         moved_ctx = {
             "player": player_id, "position": active, "from": from_pos,

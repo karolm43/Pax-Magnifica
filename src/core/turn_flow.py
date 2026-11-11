@@ -10,7 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
-from src.core import action_budget, triggers
+from src.core import action_budget, objective_events, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
@@ -398,6 +398,7 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
             new_state, GameEvent.LAST_PLAYER_PASSED, Moment.AFTER, subject=current,
             ctx={"player": current},
         )
+        objective_events.on_last_pass(new_state, current)  # tajny cel Prove Endurance
     # Pas NIE przekazuje tury — gracz nadal aktywny, odda turę przez end_turn.
     return new_state
 

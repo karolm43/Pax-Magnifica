@@ -13,7 +13,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import capacity, chronicle, exhaust, rules_hooks, timing, triggers, unit_ops
+from src.core import (
+    capacity,
+    chronicle,
+    exhaust,
+    objective_events,
+    rules_hooks,
+    timing,
+    triggers,
+    unit_ops,
+)
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
 from src.core.dice import DIE_SIDES, count_hits, record_table_roll, roll_dice
@@ -815,6 +824,7 @@ def _finish_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
                 ctx=end_ctx,
             )
         triggers.fire(new_state, GameEvent.COMBAT, Moment.END, ctx=end_ctx)
+        objective_events.on_combat_end(new_state, grid, combat, combat.winner)
         # 39.6 C3: limit pojemności sprawdzany po wyłonieniu zwycięzcy walki kosmicznej.
         if combat.kind == "space":
             return capacity.open_capacity_check(new_state, registry, combat.position)
@@ -868,6 +878,7 @@ def end_combat_as_draw(state: GameState) -> None:
             "defender": combat.defender,
         },
     )
+    objective_events.on_combat_end(state, None, combat, None)
 
 
 def begin_round_in_place(state: GameState, grid: HexGrid) -> None:

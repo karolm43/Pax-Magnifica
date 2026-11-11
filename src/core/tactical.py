@@ -19,7 +19,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import action_budget, command_tokens, control, triggers
+from src.core import (
+    action_budget,
+    command_tokens,
+    control,
+    ion_storm,
+    objective_events,
+    triggers,
+)
 from src.core.battle import space_combat_required
 from src.core.capacity import open_capacity_check
 from src.core.combat import resolve_unit_variant
@@ -158,6 +165,8 @@ def activate_system(
     new_state.production_used = 0
     new_state.gravity_drive_used = False
     new_state.tactical_moved = False
+    new_state.ion_storm_used = []
+    objective_events.snapshot_tactical_start(new_state)
     new_state.control_changes = []
     new_state.production_placed = {}
     triggers.fire(
@@ -273,6 +282,8 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)
     new_state = state.clone()
+    if state.tactical_step is TacticalStep.MOVEMENT:
+        ion_storm.flip_used(new_state)  # koniec kroku Move Ships
     new_state.tactical_step = _STEP_SEQUENCE[idx + 1]
     new_state.active_combat = None  # zakończona walka zostaje za nami
     new_state.invasion = None
@@ -342,6 +353,8 @@ def set_step(state: GameState, step: TacticalStep) -> GameState:
     Przydatne, gdy operator chce wrócić/przeskoczyć (np. pominąć walkę). Zero reguł.
     """
     new_state = state.clone()
+    if state.tactical_step is TacticalStep.MOVEMENT and step is not TacticalStep.MOVEMENT:
+        ion_storm.flip_used(new_state)
     new_state.tactical_step = step
     new_state.invasion = None
     new_state.exploration = None
@@ -356,10 +369,14 @@ def end_tactical_action(state: GameState) -> GameState:
     """
     new_state = state.clone()
     new_state.active_system = None
+    if state.tactical_step is TacticalStep.MOVEMENT:
+        ion_storm.flip_used(new_state)
     new_state.tactical_step = None
     new_state.production_used = 0
     new_state.gravity_drive_used = False
     new_state.tactical_moved = False
+    new_state.ion_storm_used = []
+    new_state.tactical_pn_owners = []
     new_state.control_changes = []
     new_state.production_placed = {}
     new_state.space_cannon_log = "[]"

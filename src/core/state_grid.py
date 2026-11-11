@@ -39,7 +39,7 @@ def grid_from_state(state: GameState, registry: StaticDataRegistry) -> HexGrid:
         )
     grid.build_edges()
     grid.sync_token_wormholes(
-        {pos: s.wormhole_tokens for pos, s in state.systems.items() if s.wormhole_tokens}
+        {pos: s.token_wormholes() for pos, s in state.systems.items() if s.token_wormholes()}
     )
     fracture.sync_grid(grid, state, registry)
     nexus.sync_grid(grid, state, registry)

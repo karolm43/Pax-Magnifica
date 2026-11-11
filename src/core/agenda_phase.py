@@ -26,6 +26,7 @@ from src.core import (
     active_effects,
     card_draw,
     exhaust,
+    objective_events,
     objectives,
     relic_planets,
     rules_hooks,
@@ -443,11 +444,13 @@ def _resolve(
     assert card is not None
     resolve_ctx = {"agenda": card, "outcome": outcome}
     triggers.fire(state, GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.WHEN, ctx=resolve_ctx)
+    objective_events.on_agenda_resolving(state, agenda.kind, outcome)  # Drive the Debate
     definition = agenda_def(registry, card)
     is_law = definition is not None and (definition.type or "").strip().lower() == "law"
     stays = is_law and outcome != "against"
     if stays:
         state.decks.agenda_laws[card] = outcome
+        objective_events.on_laws_changed(state)  # Dictate Policy (3 prawa w grze)
     else:
         card_draw.discard_agenda(state, card)
     agenda.resolved_outcome = outcome
@@ -559,6 +562,7 @@ def _open_top_agenda(work: GameState, registry: StaticDataRegistry, player_id: s
     Raises:
         ValueError: Gdy talia agend jest pusta.
     """
+    objective_events.on_laws_changed(work)  # 3 prawa już w grze na starcie agendy: dp
     card = card_draw.draw_agenda(work, registry)
     if card is None:
         raise ValueError("The agenda deck is empty.")

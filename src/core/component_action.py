@@ -95,12 +95,17 @@ def play_component_action(
     # Efekt „ACTION:” reliktu (Codex, Dynamis Core…) - relikt zostaje u gracza (RULES.md 59).
     # ``run_effect=False`` = próba suchą (zagrywalność w UI): tylko walidacje akcji.
     if component_id and registry is not None and run_effect:
+        from src.core import frontier_cards  # lokalnie: frontier_cards importuje ten moduł
+
         if not technology_abilities.run_action_effect(
             new_state, registry, active_id, component_id, dict(params or {})
         ):
-            relic_actions.run_action_effect(
+            if not relic_actions.run_action_effect(
                 new_state, registry, active_id, component_id, dict(params or {})
-            )
+            ):
+                frontier_cards.run_action_effect(
+                    new_state, registry, active_id, component_id, dict(params or {})
+                )
     if fire_after:
         triggers.fire(
             new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=active_id,

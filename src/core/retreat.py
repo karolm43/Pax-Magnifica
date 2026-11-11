@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, rules_hooks, unit_ops
+from src.core import command_tokens, ion_storm, rules_hooks, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -169,6 +169,9 @@ def perform_retreat(
     result = retreat_in_place(
         new_state, grid, registry, position, player_id, destination, cargo, token_pool
     )
+    # Koniec kroku Retreat: odwrót przez wormhole Ion Storm obraca żeton (Skilled Retreat: nie).
+    ion_storm.note_move(new_state, grid, registry, position, destination)
+    ion_storm.flip_used(new_state)
     return new_state, result
 
 

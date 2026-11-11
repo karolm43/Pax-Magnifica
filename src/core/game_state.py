@@ -350,6 +350,8 @@ class DecksState(BaseModel):
     # Stos kart PURGE'OWANYCH (usuniętych z gry): karty eksploracji i inne — wspólny dla
     # wszystkich talii. Purge to nie odrzucenie: te karty nie wracają przy tasowaniu.
     purged: list[str] = Field(default_factory=list)
+    # Karty leżące we WSPÓLNEJ strefie gry (Ion Storm: żeton w systemie, karta obok planszy).
+    common_play_area: list[str] = Field(default_factory=list)
     # Talia reliktów (Thunder's Edge: planety The Fracture, RULES.md 50) — od góry; tworzona
     # LENIWIE (``core/relics.py``), ``relic_deck_seeded`` odróżnia „niezasiana" od „zużyta".
     relic_deck: list[str] = Field(default_factory=list)
@@ -524,6 +526,9 @@ class PlayerState(BaseModel):
     # Relikty gracza (karty z talii reliktów) leżące odkryte w jego strefie. JAWNE.
     # Efekty: ``core/relic_cards.py`` + ``core/hooks/relics_*.py`` (RULES.md 59).
     relics: list[str] = Field(default_factory=list)
+    # Karty frontier leżące odkryte u gracza (Enigmatic Device). JAWNE; w UI w zakładce Action
+    # cards, zagrywane jak akcja komponentu (``core/frontier_cards.py``).
+    frontier_cards: list[str] = Field(default_factory=list)
     # Relikty WYCZERPANE (exhaust) - gotowy = posiadany, którego tu nie ma. Odświeżane w statusie.
     exhausted_relics: list[str] = Field(default_factory=list)
 
@@ -566,6 +571,9 @@ class SystemState(BaseModel):
     # ("GAMMA"...). Dodają systemowi sąsiedztwo przez wormhole — mapa (HexGrid) jest z nich
     # synchronizowana przy każdym odczycie stanu (RULES.md 46).
     wormhole_tokens: list[str] = Field(default_factory=list)
+    # Żeton Ion Storm (karta frontier): aktywna strona = typ wormhole ("ALPHA"/"BETA"), None =
+    # brak żetonu. Obraca go ``core/ion_storm.py`` na końcu kroku ruchu / odwrotu.
+    ion_storm: str | None = None
     # Żeton ingress (The Fracture, RULES.md 50): system z ingressem sąsiaduje z każdym systemem
     # z egressem. Max jeden na system. Mapa jest z niego synchronizowana (jak wormhole_tokens).
     ingress_token: bool = False
@@ -575,6 +583,13 @@ class SystemState(BaseModel):
     # Planety ZNISZCZONE w trakcie gry (Stellar Converter): leży na nich „destroyed planet token”,
     # system liczy się tak, jakby ich nie miał (``core/system_planets.py``).
     destroyed_planets: list[str] = Field(default_factory=list)
+
+    def token_wormholes(self) -> list[str]:
+        """Typy wormhole z żetonów w systemie: Gamma itd. + aktywna strona Ion Storm."""
+        found = list(self.wormhole_tokens)
+        if self.ion_storm and self.ion_storm not in found:
+            found.append(self.ion_storm)
+        return found
 
 
 class CombatStep(StrEnum):
@@ -892,6 +907,17 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
     # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
     tactical_moved: bool = False
+
+    # Systemy z Ion Storm, przez których wormhole przeszły statki w tej akcji (flip na końcu
+    # kroku ruchu / odwrotu, R: C_exploration_cards). Zerowane przy aktywacji i końcu akcji.
+    ion_storm_used: list[str] = Field(default_factory=list)
+
+    # Właściciele notek, które aktywny gracz miał w strefie gry na starcie akcji taktycznej
+    # (tajny cel Betray a Friend, ``core/objective_events.py``). Zerowane z akcją taktyczną.
+    tactical_pn_owners: list[str] = Field(default_factory=list)
+
+    # Tajne cele zdobyte AUTOMATYCZNIE zdarzeniem (faza Action/Agenda): gracz, cel, runda.
+    auto_scored: list[dict[str, Any]] = Field(default_factory=list)
     # Trwałe ślady dla okien kart reakcji (RULES.md 53.5.e): pauza po końcu tury, strony ostatniej
     # transakcji, ostatnio odrzucona karta akcji i dodatkowa tura spasowanego gracza. Zerowane
     # przy kolejnej akcji dowolnego gracza (``action_budget.register_action``) i nowej turze.

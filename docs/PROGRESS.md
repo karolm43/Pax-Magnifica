@@ -550,3 +550,10 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - `uv run pytest -q -n auto` — pełny zestaw równolegle: ~70 s → ~22 s (1862 passed, bez zmian w testach).
 - `uv run pytest -q --testmon` — tylko testy, których kod się zmienił (bez zmian: <1 s). Działa też z `-n auto`.
   Baza `.testmondata` lokalna (gitignore); przed commitem i tak pełny zestaw.
+
+## 2026-11-11 (10) — Karty frontier (Enigmatic Device, Ion Storm, Mirage) i wszystkie cele sprawdzane automatycznie (RULES.md 46 X13, 41.x)
+- **Enigmatic Device:** `PlayerState.frontier_cards`; karta z eksploracji frontier wchodzi do ręki (zakładka Action cards, przeciąganie), ACTION = 6 zasobów + purge + badanie technologii (`core/frontier_cards.py`, `hooks/frontier_cards.py`, `/frontier-card/{playable,{id}/inputs,play}`, dispatch w `component_action`). Front: `BottomHandDock` miesza karty frontier z kartami akcji, `ActionCardPlayModal kind="frontier"`.
+- **Ion Storm:** `SystemState.ion_storm` (+ `token_wormholes()` jako jedno źródło tokenów dla grafu), wybór strony, flip na końcu kroku ruchu / odwrotu (`core/ion_storm.py`, `HexGrid.link_kind`), token `ionalpha/ionbeta` w web-data. **Mirage:** planeta dołączana do systemu i zdobywana gotowa.
+- **Cele:** 80/80 sprawdzanych automatycznie; 13 tajnych celów faz Action/Agenda zdobywanych zdarzeniami (`core/objective_events.py`: walka, zniszczenia, pas, utrata planety, agenda), `dhw` (purge 2 fragmentów) i `dp` (3 prawa) liczone w `objective_progress`; `MANUAL_OBJECTIVES` puste. Wcześniej tajne cele Action/Agenda nie miały żadnej ścieżki zdobycia.
+- Testy: `tests/test_frontier_cards.py`, `tests/test_objective_events.py` (16), rozszerzone `test_objective_progress.py`.
+- ⚠ Do przejrzenia: automatyczne zdobywanie tajnych celów zakłada, że gracz zawsze chce punktować (bez decyzji); limit „jeden tajny cel na walkę" i Ω-warianty celów (Fight with Precision Ω, TFtD Ω, MEoTW Ω) nie są rozróżniane.

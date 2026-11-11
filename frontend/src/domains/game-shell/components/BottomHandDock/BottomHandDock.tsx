@@ -21,6 +21,7 @@ import { getAgenda } from "@/entities/lookup/agendas";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { getRelicData } from "@/entities/lookup/relics";
+import { getExploration } from "@/entities/lookup/explorations";
 import { RelicCard } from "@/domains/player/components/Relic/RelicCard";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
@@ -98,6 +99,9 @@ const DRAG_TYPE: Partial<Record<HandTab, string>> = {
   relics: "text/x-relic",
 };
 
+/** Typ przeciąganej karty frontier (Enigmatic Device) w `dataTransfer`. */
+const FRONTIER_DRAG_TYPE = "text/x-frontier";
+
 const DOCK_OPEN_KEY = "ti4_bottom_hand_dock_open";
 
 function useDockOpen(): [boolean, (next: boolean) => void] {
@@ -118,8 +122,13 @@ function useCardLabel(
   id: string,
   /** Tylko relikty: znacznik z decyzji silnika (rodzaj + wyczerpanie). */
   relicTag?: string,
+  /** Karta frontier (Enigmatic Device) leżąca w zakładce Action cards. */
+  frontier?: boolean,
 ): { name: string; tag?: string; ownerRgb?: string } {
   const factionColorMap = useFactionColors();
+  if (tab === "actions" && frontier) {
+    return { name: getExploration(id)?.name ?? id, tag: "Frontier · Action" };
+  }
   if (tab === "actions") {
     const card = getActionCard(id);
     return { name: card?.name ?? id, tag: card?.window };
@@ -146,7 +155,24 @@ function useCardLabel(
 }
 
 /** Pełna karta (treść + grafika) do odsłonięcia w popoverze po kliknięciu. */
-function CardDetails({ tab, id }: { tab: HandTab; id: string }) {
+function CardDetails({
+  tab,
+  id,
+  frontier,
+}: {
+  tab: HandTab;
+  id: string;
+  frontier?: boolean;
+}) {
+  if (tab === "actions" && frontier) {
+    const card = getExploration(id);
+    return (
+      <div style={{ maxWidth: 320, padding: 14, whiteSpace: "pre-line" }}>
+        <b>{card?.name ?? id}</b>
+        <p style={{ margin: "8px 0 0" }}>{card?.text ?? ""}</p>
+      </div>
+    );
+  }
   if (tab === "actions") return <ActionCardDetailsCard actionCardId={id} />;
   if (tab === "secrets") return <SecretObjectiveCard secretId={id} />;
   if (tab === "relics") return <RelicCard relicId={id} />;
@@ -160,10 +186,13 @@ function HandCard({
   play,
   relicTag,
   passive,
+  frontier,
   onDragChange,
 }: {
   tab: HandTab;
   id: string;
+  /** Karta frontier w zakładce Action cards (przeciągana jak karta akcji). */
+  frontier?: boolean;
   /** Decyzja silnika o zagrywalności (karty akcji i relikty z ACTION); brak = jeszcze nie wiadomo. */
   play?: PlayInfo;
   /** Relikt: znacznik rodzaju/wyczerpania pod nazwą. */
@@ -173,7 +202,7 @@ function HandCard({
   onDragChange: (cardId: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { name, tag, ownerRgb } = useCardLabel(tab, id, relicTag);
+  const { name, tag, ownerRgb } = useCardLabel(tab, id, relicTag, frontier);
   const playableTab = PLAYABLE_TABS.has(tab);
   const canDrag = playableTab && play?.playable === true;
   const locked = playableTab && !passive && play !== undefined && !play.playable;
@@ -196,7 +225,10 @@ function HandCard({
           e.preventDefault();
           return;
         }
-        e.dataTransfer.setData(DRAG_TYPE[tab] ?? "text/x-actioncard", id);
+        e.dataTransfer.setData(
+          frontier ? FRONTIER_DRAG_TYPE : (DRAG_TYPE[tab] ?? "text/x-actioncard"),
+          id,
+        );
         e.dataTransfer.effectAllowed = "move";
         setOpen(false);
         onDragChange(id);
@@ -228,7 +260,7 @@ function HandCard({
         </button>
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown p={0}>
-        <CardDetails tab={tab} id={id} />
+        <CardDetails tab={tab} id={id} frontier={frontier} />
       </SmoothPopover.Dropdown>
     </SmoothPopover>
     </div>
@@ -263,9 +295,17 @@ export function BottomHandDock() {
   const [open, setOpen] = useDockOpen();
   const [tab, setTab] = useState<HandTab>("actions");
   // Przeciąganie karty akcji na strefę zagrania; po upuszczeniu otwiera formularz (RULES.md 53).
-  const [dragCard, setDragCard] = useState<{ id: string; tab: HandTab } | null>(null);
+  const [dragCard, setDragCard] = useState<{
+    id: string;
+    tab: HandTab;
+    frontier?: boolean;
+  } | null>(null);
   const [zoneOver, setZoneOver] = useState(false);
-  const [playingCard, setPlayingCard] = useState<{ id: string; tab: HandTab } | null>(null);
+  const [playingCard, setPlayingCard] = useState<{
+    id: string;
+    tab: HandTab;
+    frontier?: boolean;
+  } | null>(null);
   const { data: playability } = useActionCardPlayability(
     active?.discordId ?? null,
     open && tab === "actions",
@@ -273,6 +313,13 @@ export function BottomHandDock() {
   const { data: relicPlayability } = useRelicPlayability(
     active?.discordId ?? null,
     open && tab === "relics",
+  );
+  // Karty frontier (Enigmatic Device) są jawne i wchodzą do zakładki Action cards.
+  const frontierIds = useMemo(() => active?.frontierCards ?? [], [active?.frontierCards]);
+  const { data: frontierPlayability } = useRelicPlayability(
+    active?.discordId ?? null,
+    open && tab === "actions" && frontierIds.length > 0,
+    "frontier-card",
   );
   // Relikty są jawne (leżą przed graczem), więc lista idzie z danych gracza, nie z endpointu ręki.
   const relicIds = useMemo(() => active?.relics ?? [], [active?.relics]);
@@ -283,21 +330,21 @@ export function BottomHandDock() {
 
   const counts = useMemo(
     () => ({
-      actions: hand?.actionCards.length ?? 0,
+      actions: (hand?.actionCards.length ?? 0) + frontierIds.length,
       secrets: hand?.secretObjectives.length ?? 0,
       notes: hand?.promissoryNotes.length ?? 0,
       relics: relicIds.length,
     }),
-    [hand, relicIds],
+    [hand, relicIds, frontierIds],
   );
 
   const ids = useMemo(() => {
     if (tab === "relics") return relicIds;
     if (!hand) return [] as string[];
-    if (tab === "actions") return hand.actionCards;
+    if (tab === "actions") return [...hand.actionCards, ...frontierIds];
     if (tab === "secrets") return hand.secretObjectives;
     return hand.promissoryNotes;
-  }, [hand, tab, relicIds]);
+  }, [hand, tab, relicIds, frontierIds]);
 
   // Prywatne podglądy z kart reakcji: Insider Information (top agend) i Extreme Duress (tajne cele).
   const peekLines = useMemo(() => {
@@ -451,16 +498,28 @@ export function BottomHandDock() {
                       .filter(Boolean)
                       .join(" · ") || undefined
                   : undefined;
+              const frontier = tab === "actions" && frontierIds.includes(id);
               return (
                 <HandCard
                   key={`${tab}-${id}-${index}`}
                   tab={tab}
                   id={id}
-                  play={tab === "actions" ? playability?.[id] : relic}
+                  frontier={frontier}
+                  play={
+                    frontier
+                      ? frontierPlayability?.[id]
+                      : tab === "actions"
+                        ? playability?.[id]
+                        : relic
+                  }
                   relicTag={relicTag}
                   passive={passive}
                   onDragChange={(cardId) => {
-                    setDragCard(cardId === null ? null : { id: cardId, tab });
+                    setDragCard(
+                      cardId === null
+                        ? null
+                        : { id: cardId, tab, frontier },
+                    );
                     if (cardId === null) setZoneOver(false);
                   }}
                 />
@@ -496,9 +555,17 @@ export function BottomHandDock() {
           setZoneOver(false);
           setDragCard(null);
           if (!dragged) return;
-          const type = DRAG_TYPE[dragged.tab] ?? "text/x-actioncard";
+          const type = dragged.frontier
+            ? FRONTIER_DRAG_TYPE
+            : (DRAG_TYPE[dragged.tab] ?? "text/x-actioncard");
           const cardId = e.dataTransfer.getData(type);
-          if (cardId) setPlayingCard({ id: cardId, tab: dragged.tab });
+          if (cardId) {
+            setPlayingCard({
+              id: cardId,
+              tab: dragged.tab,
+              frontier: dragged.frontier,
+            });
+          }
         }}
       >
         <IconPlayerPlayFilled size={18} aria-hidden="true" />
@@ -506,7 +573,9 @@ export function BottomHandDock() {
           Drop to {dragCard.tab === "relics" ? "use" : "play"}{" "}
           {dragCard.tab === "relics"
             ? (getRelicData(dragCard.id)?.name ?? dragCard.id)
-            : (getActionCard(dragCard.id)?.name ?? dragCard.id)}
+            : dragCard.frontier
+              ? (getExploration(dragCard.id)?.name ?? dragCard.id)
+              : (getActionCard(dragCard.id)?.name ?? dragCard.id)}
         </span>
       </div>
     )}
@@ -514,12 +583,20 @@ export function BottomHandDock() {
     {playingCard && active.discordId && (
       <ActionCardPlayModal
         key={`${playingCard.tab}-${playingCard.id}`}
-        kind={playingCard.tab === "relics" ? "relic" : "card"}
+        kind={
+          playingCard.frontier
+            ? "frontier"
+            : playingCard.tab === "relics"
+              ? "relic"
+              : "card"
+        }
         cardId={playingCard.id}
         cardName={
           playingCard.tab === "relics"
             ? (getRelicData(playingCard.id)?.name ?? playingCard.id)
-            : (getActionCard(playingCard.id)?.name ?? playingCard.id)
+            : playingCard.frontier
+              ? (getExploration(playingCard.id)?.name ?? playingCard.id)
+              : (getActionCard(playingCard.id)?.name ?? playingCard.id)
         }
         playerId={active.discordId}
         onClose={() => setPlayingCard(null)}

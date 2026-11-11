@@ -284,6 +284,26 @@ def _apply_freelancers(
     return "Production opened: 1 unit in this system, influence counts as resources."
 
 
+def _opts_enigmatic(
+    state: GameState, ex: ExplorationState, cur: ExploreCurrent
+) -> list[ExploreOption]:
+    return [
+        ExploreOption(
+            "keep",
+            "Keep in your play area (Action cards tab; ACTION: spend 6 resources, purge, "
+            "research 1 technology)",
+        )
+    ]
+
+
+def _apply_enigmatic(
+    state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
+) -> str:
+    player = state.players[ex.player_id]
+    player.frontier_cards = [*player.frontier_cards, cur.card_id]
+    return "Enigmatic Device placed face-up in your play area (Action cards tab)."
+
+
 def _apply_manual(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
 ) -> str:
@@ -520,6 +540,7 @@ _INSTANT_OPTIONS: dict[str, _Options] = {
     "abandoned warehouses": _opts_warehouses,
     "functioning base": _opts_functioning_base,
     "local fabricators": _opts_fabricators,
+    "enigmatic device": _opts_enigmatic,
 }
 _INSTANT_APPLY: dict[str, _Apply] = {
     "mercenary outfit": _apply_mercenary,
@@ -530,6 +551,7 @@ _INSTANT_APPLY: dict[str, _Apply] = {
     "abandoned warehouses": _apply_warehouses,
     "functioning base": _apply_pay,
     "local fabricators": _apply_pay,
+    "enigmatic device": _apply_enigmatic,
 }
 
 
@@ -569,6 +591,51 @@ def _apply_attach(
     return "Attached. Structures returned to reinforcements, ground forces moved to orbit."
 
 
+_ION_STORM_ATTACHMENTS = frozenset({"ionalpha", "ionbeta"})
+
+
+def _apply_token(
+    state: GameState,
+    registry: StaticDataRegistry,
+    ex: ExplorationState,
+    cur: ExploreCurrent,
+    card: ExplorationDef,
+    param: str | None,
+) -> tuple[str, str]:
+    """Karty z żetonem (Gamma Relay, Ion Storm, Mirage) - zwraca ``(opis, los karty)``.
+
+    Gamma i Mirage: karta idzie do purge (≠ odrzucenie, RULES.md 46 X3). Ion Storm: karta leży we
+    wspólnej strefie gry (``DecksState.common_play_area``), żeton w systemie.
+    """
+    system = _system(state, ex)
+    if card.attachment_id == "gamma":
+        state.decks.purged.append(cur.card_id)
+        if "GAMMA" not in system.wormhole_tokens:
+            system.wormhole_tokens.append("GAMMA")
+        return "Gamma wormhole token placed in the system; the card is purged.", "purged"
+    if card.attachment_id == "mirage":
+        from src.core import control  # lokalnie: control importuje triggers/hooki
+
+        state.decks.purged.append(cur.card_id)
+        if "mirage" in system.added_planets:
+            raise ValueError("The Mirage planet is already in play.")
+        system.added_planets = [*system.added_planets, "mirage"]
+        control.set_planet_control(state, ex.position, "mirage", ex.player_id, registry)
+        return "Mirage placed in the system; you gained it, ready. The card is purged.", "purged"
+    if card.attachment_id in _ION_STORM_ATTACHMENTS:
+        if any(s.ion_storm for s in state.systems.values()):
+            raise ValueError("The Ion Storm token is already on the board.")
+        system.ion_storm = param
+        state.decks.common_play_area.append(cur.card_id)
+        return (
+            f"Ion Storm placed in the system, {param} side up; the card stays in the common "
+            "play area.",
+            "common",
+        )
+    state.decks.purged.append(cur.card_id)
+    return "Place the token by hand; the card is purged.", "purged"
+
+
 def options_for(
     state: GameState, registry: StaticDataRegistry
 ) -> list[ExploreOption]:
@@ -587,6 +654,20 @@ def options_for(
     if kind == "token":
         if card.attachment_id == "gamma":
             return [ExploreOption("place", "Place a gamma wormhole token in this system")]
+        if card.attachment_id == "mirage":
+            return [
+                ExploreOption(
+                    "place", "Place the Mirage planet in this system and gain it (ready)"
+                )
+            ]
+        if card.attachment_id in _ION_STORM_ATTACHMENTS:
+            return [
+                ExploreOption(
+                    "place",
+                    "Place the Ion Storm token in this system (choose the face-up side)",
+                    params=(("ALPHA", "Alpha wormhole side"), ("BETA", "Beta wormhole side")),
+                )
+            ]
         return [
             ExploreOption("manual", "Place the token by hand (God-Mode); the card is purged")
         ]
@@ -719,20 +800,17 @@ def resolve(
         summary = "Placed face-up in the play area."
         fate = "kept"
     elif kind == "token":
-        new_state.decks.purged.append(new_cur.card_id)  # purge ≠ odrzucenie (RULES.md 46 X3)
-        if card.attachment_id == "gamma":
-            tokens = _system(new_state, new_ex).wormhole_tokens
-            if "GAMMA" not in tokens:
-                tokens.append("GAMMA")
-            summary = "Gamma wormhole token placed in the system; the card is purged."
-        else:
-            summary = "Place the token by hand; the card is purged."
-        fate = "purged"
+        summary, fate = _apply_token(new_state, registry, new_ex, new_cur, card, param)
     else:
         handler = _INSTANT_APPLY.get((card.name or "").lower(), _apply_manual)
         summary = handler(new_state, new_ex, new_cur, option_id, param)
-        new_state.decks.exploration_discard.setdefault(new_cur.deck, []).append(new_cur.card_id)
-        fate = "discarded"
+        if new_cur.card_id in new_state.players[new_ex.player_id].frontier_cards:
+            fate = "kept"  # Enigmatic Device: leży u gracza, nie na stosie odrzuconych
+        else:
+            new_state.decks.exploration_discard.setdefault(new_cur.deck, []).append(
+                new_cur.card_id
+            )
+            fate = "discarded"
 
     new_ex.log.append(
         {
@@ -775,6 +853,11 @@ def attach_to_planet(state: GameState, planet: str, card_id: str) -> None:
     ``planet_stats`` z attachmentu o tym samym id.
     """
     state.planet_attachments.setdefault(planet, []).append(card_id)
+
+
+def purge_cards(state: GameState, card_ids: list[str]) -> None:
+    """Purge kart na wspólny stos (nie wracają do talii) - jedyne miejsce dopisu poza relikami."""
+    state.decks.purged = [*state.decks.purged, *card_ids]
 
 
 def purge_attachment(state: GameState, planet: str, card_id: str) -> None:

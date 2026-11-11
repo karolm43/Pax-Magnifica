@@ -158,6 +158,9 @@ def remove_units(
             ctx={"player": player_id, "base_type": base_type, "zone": zone,
                  "position": system.position, "count": min(count, before)},
         )
+        from src.core import objective_events  # lokalnie: unika cyklu importów
+
+        objective_events.on_unit_destroyed(state, system.position, zone, player_id, base_type)
     return before
 
 

@@ -25,8 +25,9 @@ type Props = {
   /**
    * ``relic`` = zagranie „ACTION:" reliktu (RULES.md 59): ten sam formularz, ale relikt zostaje
    * przed graczem (``cardId`` to id reliktu), a zagranie idzie przez ``/relic/play``.
+   * ``frontier`` = karta frontier z ręki (Enigmatic Device): ten sam formularz, ``/frontier-card/play``.
    */
-  kind?: "card" | "relic";
+  kind?: "card" | "relic" | "frontier";
 };
 
 /** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (też dla ofert technologii). */
@@ -97,9 +98,14 @@ export function ActionCardPlayModal({
   rewindNote,
   kind = "card",
 }: Props) {
-  const isRelic = kind === "relic";
+  const isFrontier = kind === "frontier";
+  const isRelic = kind === "relic" || isFrontier;
   const cardForm = useActionCardForm(isRelic ? null : cardId, playerId, seq);
-  const relicForm = useRelicForm(isRelic ? cardId : null, playerId);
+  const relicForm = useRelicForm(
+    isRelic ? cardId : null,
+    playerId,
+    isFrontier ? "frontier-card" : "relic",
+  );
   const form = isRelic ? relicForm : cardForm;
   const { playActionCard, playRelic } = useBoardEditor();
   const setNotice = useAppStore((state) => state.setNotice);
@@ -119,7 +125,12 @@ export function ActionCardPlayModal({
     setBusy(true);
     try {
       if (isRelic) {
-        const result = await playRelic(playerId, cardId, params);
+        const result = await playRelic(
+          playerId,
+          cardId,
+          params,
+          isFrontier ? "/frontier-card/play" : "/relic/play",
+        );
         if (!result.implemented) {
           setNotice(
             `${cardName} is not automated yet - it counts as your action. Resolve its effect by hand.`,

@@ -131,5 +131,5 @@ def wormholes_at(state: GameState, registry: StaticDataRegistry, position: str) 
     found = {wh.upper() for wh in (definition.wormholes if definition else [])}
     system = state.systems.get(position)
     if system is not None:
-        found |= {wh.upper() for wh in system.wormhole_tokens}
+        found |= {wh.upper() for wh in system.token_wormholes()}
     return found

@@ -4,7 +4,8 @@
 z talii ``frontier`` i rozstrzyga ją w TYM SAMYM oknie eksploracji co planety
 (``core/exploration``, bez planety: ``ExploreCurrent.planet == ""``). Karty natychmiastowe mają
 tu opcje i skutki; fragmenty i żeton wormhole obsługuje wspólny kod eksploracji, a Mirage,
-Ion Storm i Enigmatic Device rozstrzyga się ręcznie (``manual``).
+Ion Storm i Enigmatic Device obsługuje ``core/exploration`` (token/instant); bez handlera zostaje
+tryb ręczny (``manual``).
 
 Funkcje MUTUJĄ przekazany ``state`` (KLON roboczy wołającego).
 """

@@ -42,6 +42,7 @@ from src.api.routers import (
     exploration,
     fleet_pool,
     flow,
+    frontier_cards,
     game,
     history,
     hold,
@@ -313,6 +314,7 @@ def create_app(
     app.include_router(components.router)
     app.include_router(action_cards.router)
     app.include_router(relics.router)
+    app.include_router(frontier_cards.router)
     app.include_router(hold.router)
     app.include_router(offers.router)
     app.include_router(technology.router)

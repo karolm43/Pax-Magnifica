@@ -154,7 +154,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 |---|---:|---:|---:|
 | action_cards | 143 | 143 | 100.0 |
 | agendas | 123 | 0 | 0.0 |
-| explores | 80 | 0 | 0.0 |
+| explores | 80 | 2 | 2.5 |
 | relics | 24 | 23 | 95.8 |
 | promissory_notes | 41 | 0 | 0.0 |
 | galactic_events | 20 | 0 | 0.0 |
@@ -185,13 +185,13 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 | planety i eksploracja (control, exploration) | 247 | 193 |
 | walka (combat.*, space_cannon, bombardment) | 196 | 122 |
 | produkcja (production.*) | 177 | 132 |
-| ekonomia i płatności (economy, payment) | 168 | 142 |
+| ekonomia i płatności (economy, payment) | 168 | 140 |
 | karty (card_draw, promissory) | 145 | 113 |
 | status i odświeżanie (status_phase) | 144 | 115 |
 | ruch (movement.*) | 125 | 93 |
 | żetony dowodzenia (command_tokens) | 109 | 91 |
 | agenda i głosowanie (agenda_phase) | 98 | 77 |
-| technologie (technology) | 78 | 65 |
+| technologie (technology) | 78 | 63 |
 | karty strategii i inicjatywa | 46 | 34 |
 | cele i punkty (objectives) | 45 | 35 |
 
@@ -593,8 +593,8 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `dv1` | Derelict Vessel | — | — | — | karty, planety i eksploracja, cele i punkty | — | Draw 1 secret objective. |
 | `dv2` | Derelict Vessel | — | — | — | karty, planety i eksploracja, cele i punkty | — | Draw 1 secret objective. |
 | `dw` | Dead World | — | — | — | karty, planety i eksploracja | — | Draw 1 relic. |
-| `ed1` | Enigmatic Device | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie | — | Place this card faceup in your play area. ACTION: You may spend 6 resource and purge this card to research 1 technology. |
-| `ed2` | Enigmatic Device | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie | — | Place this card faceup in your play area. ACTION: You may spend 6 resource and purge this card to research 1 technology. |
+| `ed1` | Enigmatic Device | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie | ✔ | Place this card faceup in your play area. ACTION: You may spend 6 resource and purge this card to research 1 technology. |
+| `ed2` | Enigmatic Device | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie | ✔ | Place this card faceup in your play area. ACTION: You may spend 6 resource and purge this card to research 1 technology. |
 | `ent` | Entropic Field | — | — | — | ekonomia i płatności, żetony dowodzenia | — | Gain 1 command token and 2 trade goods. |
 | `exp1` | Expedition | — | — | — | planety i eksploracja, status i odświeżanie | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, ready this planet. |
 | `exp2` | Expedition | — | — | — | planety i eksploracja, status i odświeżanie | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, ready this planet. |
