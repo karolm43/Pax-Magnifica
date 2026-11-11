@@ -14,11 +14,12 @@
  */
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { FORBIDDEN_EVENT } from "@/api/actorIdentity";
 import { useSetupStore, type SetupSlot } from "@/domains/setup/useSetupStore";
 import { useLobby, type LobbyView } from "./useLobby";
-import { useNetworkMe } from "./useNetworkMe";
+import { NETWORK_ME_KEY } from "./useNetworkMe";
 
 export type LobbyDraft = {
   slots: SetupSlot[];
@@ -99,7 +100,7 @@ async function send(method: "PUT" | "PATCH", body: unknown): Promise<LobbyView> 
  */
 export function useSetupSync(enabled: boolean, onGuestStarted?: () => void): void {
   const navigate = useNavigate();
-  const { data: me } = useNetworkMe();
+  const queryClient = useQueryClient();
   const { data: lobby, refetch } = useLobby(enabled);
   const synced = useRef<Snapshot | null>(null);
   const version = useRef(0);
@@ -181,12 +182,20 @@ export function useSetupSync(enabled: boolean, onGuestStarted?: () => void): voi
   }, [enabled, lobby, draft, isHost]);
 
   // Gość: host wystartował grę i posadził mnie przy stole → intro / do gry (jeden raz).
+  // Miejsce bierzemy z listy lobby (odpytywanej co sekundę), NIE z `/network/me` (staleTime
+  // 60 s — gość czekał minutę na ekranie kolorów). Miejsce gościa istnieje dopiero po
+  // `/lobby/seat` hosta (świeże lobby je czyści), więc to pewny sygnał startu.
+  const mySeat = isHost
+    ? null
+    : (lobby?.members.find((m) => m.member_id === lobby.you)?.player_id ?? null);
   useEffect(() => {
-    if (!enabled || isHost || !me?.player_id || !lobby?.game_started || started.current) return;
+    if (!enabled || isHost || !mySeat || started.current) return;
     started.current = true;
+    // Gra (biurko, plakietka „kim gram") czyta miejsce z `/network/me` — odśwież od razu.
+    void queryClient.invalidateQueries({ queryKey: NETWORK_ME_KEY });
     if (onStarted.current) onStarted.current();
     else navigate("/game");
-  }, [enabled, isHost, me?.player_id, lobby?.game_started, navigate]);
+  }, [enabled, isHost, mySeat, navigate, queryClient]);
 
   // Lokalne zmiany → łatki do serwera.
   useEffect(() => {
