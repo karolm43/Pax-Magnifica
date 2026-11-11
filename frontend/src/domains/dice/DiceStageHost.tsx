@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { DicePool } from "@/domains/battle/DicePool";
 import { DiceTray } from "@/domains/battle/DiceTray";
@@ -14,6 +14,9 @@ import { useDiceStage } from "./diceStage";
 export function DiceStageHost() {
   const roll = useDiceStage((s) => s.roll);
   const pool = useDiceStage((s) => s.pool);
+  const reset = useDiceStage((s) => s.reset);
+  // Wyjście ze strony gry (menu, nowa gra): scena startuje pusta, bez starego rzutu.
+  useEffect(() => reset, [reset]);
   // Pula widoczna przy przytrzymaniu i do chwili, gdy nadejdzie rzut wykonany z niej.
   const showPool = pool.phase !== "off";
   if (!roll && !showPool) return null;

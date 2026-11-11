@@ -391,6 +391,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // God-Mode: wymusza, czyja jest teraz kolejka (omija reguły kolejności tur).
+  const setActivePlayer = useCallback(
+    async (playerId: string) => {
+      await post("/god-mode/patch", { active_player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // --- Akcja taktyczna (E3) ---
 
   const activateSystem = useCallback(
@@ -871,6 +880,7 @@ export function useBoardEditor() {
     pickStrategyCard,
     playStrategyCard,
     setSpeaker,
+    setActivePlayer,
     playComponentAction,
     playActionCard,
     resolveTransaction,

@@ -9,7 +9,13 @@ import { useQuery } from "@tanstack/react-query";
 const BOT_ROOT = "/bot";
 
 /** Jedna opcja wyboru: ``id`` jest unikalne w obrębie wejścia, ``value`` trafia do parametrów. */
-export type ActionCardOption = { id: string; value: unknown; label: string };
+export type ActionCardOption = {
+  id: string;
+  value: unknown;
+  label: string;
+  /** Dane strukturalne dla graficznych formularzy (np. Transit Diodes). */
+  meta?: Record<string, unknown>;
+};
 
 type InputBase = { key: string; label: string; hint: string };
 

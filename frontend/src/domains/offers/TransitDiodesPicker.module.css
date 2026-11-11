@@ -1,0 +1,207 @@
+/* Graficzny wybór Transit Diodes: najpierw co podnieść, potem gdzie położyć. */
+.root {
+  display: grid;
+  gap: 10px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--ds-ink-hi);
+}
+
+.step b {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  border-radius: 50%;
+  background: var(--ds-edge-accent);
+  color: #fff;
+}
+
+.step small {
+  margin-left: auto;
+  color: var(--ds-ink-lo);
+}
+
+.stacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stack {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  color: var(--ds-ink-hi);
+  border-radius: 9px;
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-ground-2);
+  cursor: pointer;
+}
+
+.stack:hover:not(:disabled) {
+  border-color: var(--ds-edge-accent);
+}
+
+.stack[data-picked] {
+  border-color: var(--ds-edge-accent);
+  background: color-mix(in srgb, var(--ds-edge-accent) 18%, var(--ds-ground-2));
+}
+
+.stack:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.stackText {
+  display: grid;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.stackText small {
+  font-size: 10px;
+  color: var(--ds-ink-lo);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  background: var(--ds-edge-accent);
+}
+
+.sprite {
+  display: grid;
+  place-items: center;
+}
+
+.sprite :global(.unit-sprite),
+.sprite img {
+  height: 30px;
+  width: auto;
+}
+
+.queue {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--ds-h14);
+}
+
+.row[data-focus] {
+  border-color: var(--ds-edge-accent);
+  box-shadow: 0 0 0 1px var(--ds-edge-accent);
+}
+
+.row[data-done] {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.rowMain {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 12px;
+  color: var(--ds-ink-hi);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.rowMain small {
+  color: var(--ds-ink-lo);
+}
+
+.rowMain b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  color: var(--ds-ink-lo);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.remove:hover {
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.planets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.planet {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  border-radius: 999px;
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-ground-2);
+  cursor: pointer;
+}
+
+.planet small {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ds-ink-lo);
+}
+
+.planet:hover:not(:disabled),
+.planet[data-chosen] {
+  border-color: var(--ds-edge-accent);
+}
+
+.hint,
+.empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}

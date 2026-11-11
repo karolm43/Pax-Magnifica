@@ -138,6 +138,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
   const {
     editPlayer,
     setSpeaker,
+    setActivePlayer,
     toggleTechExhaust,
     togglePlanetExhaust,
     setLeaderState,
@@ -380,6 +381,19 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           }
                         />
                       </Group>
+
+                      {/* God-Mode (testy): oddaj kolejkę dowolnemu graczowi. */}
+                      <Button
+                        variant="default"
+                        size="xs"
+                        disabled={busy || liveGameState?.activeTurnPlayer === player.color}
+                        onClick={() =>
+                          void runBusy(() => setActivePlayer(player.discordId))
+                        }
+                        title="God-Mode: make this player the active player (ignores turn order)."
+                      >
+                        Set as active player (turn)
+                      </Button>
 
                       {/* God-Mode (testy): wymuś wejście The Fracture do gry (bez rzutu). */}
                       <Button
@@ -706,9 +720,29 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           </Text>
                         )}
                       <Stack gap={4}>
-                        <Text size="sm" fw={600}>
-                          Action cards
-                        </Text>
+                        <Group justify="space-between">
+                          <Text size="sm" fw={600}>
+                            Action cards
+                          </Text>
+                          <Button
+                            variant="default"
+                            size="xs"
+                            disabled={busy || !hand}
+                            onClick={() =>
+                              updateHand({
+                                actionCards: [
+                                  ...new Set([
+                                    ...(hand?.actionCards ?? []),
+                                    ...acOptions.map((o) => o.value),
+                                  ]),
+                                ],
+                              })
+                            }
+                            title="God-Mode: add every action card to this hand."
+                          >
+                            Add all action cards
+                          </Button>
+                        </Group>
                         <CardListEditor
                           ids={hand?.actionCards ?? []}
                           options={acOptions}

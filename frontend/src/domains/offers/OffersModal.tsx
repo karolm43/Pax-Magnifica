@@ -15,6 +15,7 @@ import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
 import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
 import { InputField } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
+import { TransitDiodesPicker } from "./TransitDiodesPicker";
 import styles from "./OffersDock.module.css";
 
 /** Czy zdarzenie klawiatury trafia w pole, które samo obsługuje Enter/Esc (formularz, przycisk). */
@@ -38,6 +39,10 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(false);
   const [wide, setWide] = useState(false);
+  // Transit Diodes ma własny, graficzny wybór (podnieś → połóż); pozostałe oferty to formularz.
+  const graphical = offer.inputs.some((input) => input.key === "unit1") &&
+    offer.inputs.some((input) => input.key === "to1");
+  const [graphicalReady, setGraphicalReady] = useState(false);
   // Panel da się przesuwać za nagłówek (pozycja zapamiętana) i rozszerzać.
   const drag = useDraggablePanel("offersDock.pos.v1");
 
@@ -46,6 +51,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
     setValues({});
     setCollapsed(false);
     setShowText(false);
+    setGraphicalReady(false);
   }, [offer.id]);
 
   const { params, ready } = useMemo(
@@ -57,7 +63,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       input.kind !== "number" &&
       input.options.length < (input.kind === "multi" ? input.min : 1),
   );
-  const canUse = !busy && ready && !noOptions;
+  const canUse = !busy && ready && !noOptions && (!graphical || graphicalReady);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -172,7 +178,17 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
         </div>
       )}
 
-      {offer.inputs.length > 0 && (
+      {graphical && (
+        <TransitDiodesPicker
+          offer={offer}
+          disabled={busy}
+          onChange={(next, complete) => {
+            setValues((prev) => ({ ...prev, ...next }));
+            setGraphicalReady(complete);
+          }}
+        />
+      )}
+      {!graphical && offer.inputs.length > 0 && (
         <div className={styles.inputs}>
           {offer.inputs.map((input) => (
             <InputField

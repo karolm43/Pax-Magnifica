@@ -44,7 +44,9 @@ export function TableRollWatcher() {
       return;
     }
     if (!roll || seq <= seen.current) {
-      seen.current = Math.max(seen.current, seq);
+      // Licznik spadł (nowa gra, Undo): zapamiętaj nowy punkt odniesienia, inaczej pierwsze
+      // rzuty nowej gry (seq 1, 2…) byłyby uznane za stare i pominięte.
+      seen.current = seq;
       return;
     }
     seen.current = seq;

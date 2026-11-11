@@ -3,6 +3,7 @@ import type { HoldState } from "./HoldRollButton";
 import {
   countDice,
   diceLandMs,
+  READ_MS,
   volleyStartMs,
   type DiceGroup,
 } from "@/domains/battle/diceRoll";
@@ -59,6 +60,8 @@ type Stage = {
   holdFire: () => void;
   holdCancel: () => void;
   throwDice: (input: DiceThrowInput) => { id: number; pauseMs: number };
+  /** Czyści scenę (rzut i pulę) - przy odmontowaniu strony gry, żeby nowa gra nie odtworzyła starego rzutu. */
+  reset: () => void;
 };
 
 const IDLE_POOL: PoolState = {
@@ -140,6 +143,13 @@ export const useDiceStage = create<Stage>((set, get) => ({
         pool: { left: pool.left, right: pool.right },
       },
     });
+    // Rzut żyje tylko do zniknięcia stołu: potem czyścimy go ze sceny, inaczej każde ponowne
+    // zamontowanie DiceStageHost (np. menu -> nowa gra) odtwarzałoby ostatni rzut od nowa.
+    const lifeMs = diceLandMs(left, rightN) + READ_MS + 1500 + 600;
+    window.setTimeout(() => {
+      if (get().roll?.id === id) set({ roll: null });
+    }, lifeMs);
     return { id, pauseMs: volleyStartMs(left, rightN) };
   },
+  reset: () => set({ roll: null, pool: IDLE_POOL }),
 }));

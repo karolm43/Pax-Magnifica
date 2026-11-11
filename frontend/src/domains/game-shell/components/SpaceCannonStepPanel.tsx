@@ -30,6 +30,31 @@ import styles from "./SpaceCannonStepPanel.module.css";
 
 type Lookup = ReturnType<typeof usePlayerLookup>;
 
+/** Sekcja karty tury z podpisem (Shooters / Modifiers / Target). */
+function Block({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={styles.block}>
+      <h4 className={styles.blockTitle}>{title}</h4>
+      {children}
+    </div>
+  );
+}
+
+/** Czy gracz ma technologie istotne dla Space Cannon (żeby nie rysować pustej sekcji). */
+function hasTechs(
+  gameData: ReturnType<typeof useGameData>,
+  faction: string,
+): boolean {
+  const p = gameData?.playerData?.find((x) => x.faction === faction);
+  return (p?.techEffects ?? []).some((t) => t.contexts.includes("spaceCannon"));
+}
+
 /**
  * Karta tury bieżącego strzelca: jego jednostki z Space Cannon (próg, kości, zasięg),
  * wybór celu (aktywny gracz wybiera; nieaktywny celuje w aktywnego) oraz Fire / Pass.
@@ -48,6 +73,7 @@ function TurnCard({
   onFire: (target: string, plasmaUnit: string | null) => void;
   onPass: () => void;
 }) {
+  const gameData = useGameData();
   const lookRgb = usePlayerLook();
   const me = { ...lookup(side.faction), rgb: lookRgb(side.faction).rgb };
   const [target, setTarget] = useState<string | null>(
@@ -62,120 +88,160 @@ function TurnCard({
     ? (plasmaGroups.find((s) => s.key === plasma)?.plasmaDice ?? 0)
     : 0;
 
+  const shooterTechs = hasTechs(gameData, side.faction);
+  const totalRolled = side.totalDice + plasmaDice;
+
   return (
     <section className={styles.turn} aria-label={`${me.name} may fire`}>
       <header className={styles.turnHead}>
-        <CircularFactionIcon faction={side.faction} size={22} />
+        <CircularFactionIcon faction={side.faction} size={26} />
         <span className={styles.turnWho}>
           <small>Now firing</small>
           <b>{me.name}</b>
         </span>
-        <span className={styles.expected} title="Dice · expected hits">
-          {side.totalDice} dice · ~{side.expectedHits} hits
-        </span>
       </header>
 
-      <div className={styles.shooters}>
-        {side.shooters.map((s) => (
-          <div
-            key={`${s.baseType}-${s.position}-${s.zone}`}
-            className={styles.shooterRow}
-          >
-            <div className={styles.icon}>
-              <Unit
-                unitType={s.asyncId}
-                colorAlias={me.colorAlias}
-                faction={side.faction}
-                scaleSprite
-              />
-            </div>
-            <span className={styles.shooterName}>
-              <b>{s.count}×</b> {s.name}
-            </span>
-            <span
-              className={styles.shooterStat}
-              title="Hits on X+ · dice per unit"
-            >
-              {s.hitsOn}+ ×{s.dicePerUnit}
-            </span>
-            {s.remote && (
-              <span
-                className={styles.badge}
-                title="Deep Space Cannon — fires from an adjacent system"
-              >
-                from {s.position}
-              </span>
-            )}
-          </div>
-        ))}
+      <div className={styles.stats}>
+        <div className={styles.stat}>
+          <b>{totalRolled}</b>
+          <small>dice</small>
+        </div>
+        <div className={styles.stat}>
+          <b>~{side.expectedHits}</b>
+          <small>expected hits</small>
+        </div>
+        <div className={styles.stat}>
+          <b>{side.targets.length}</b>
+          <small>{side.targets.length === 1 ? "target" : "targets"}</small>
+        </div>
       </div>
 
-      {/* Technologie strzelającego (Plasma Scoring, Graviton Laser, PDS II) i celu (Antimass -1). */}
-      <ActiveTechs context="spaceCannon" faction={side.faction} />
-      {side.targets.map((key) => (
-        <ActiveTechs
-          key={`target-${key}`}
-          context="spaceCannon"
-          faction={key}
-          label={`Target ${lookup(key).name}`}
-        />
-      ))}
-
-      {plasmaGroups.length > 0 && (
-        <div className={styles.plasma} role="radiogroup" aria-label="Plasma Scoring">
-          <small>Plasma Scoring: 1 unit may roll 1 additional die</small>
-          {plasmaGroups.map((s) => (
-            <label className={styles.plasmaOption} key={s.key}>
-              <input
-                type="radio"
-                name={`plasma-${side.faction}`}
-                checked={plasma === s.key}
-                onChange={() => setPlasma(s.key)}
-              />
-              {s.name} ({s.hitsOn}+)
-              <small>{s.remote ? ` from ${s.position}` : zoneLabel(s)}</small>
-            </label>
+      <Block title="Shooters">
+        <div className={styles.shooters}>
+          <div className={styles.shooterHead} aria-hidden="true">
+            <span>Unit</span>
+            <span>Hits on</span>
+            <span>Dice</span>
+          </div>
+          {side.shooters.map((s) => (
+            <div
+              key={`${s.baseType}-${s.position}-${s.zone}`}
+              className={styles.shooterRow}
+            >
+              <div className={styles.icon}>
+                <Unit
+                  unitType={s.asyncId}
+                  colorAlias={me.colorAlias}
+                  faction={side.faction}
+                  scaleSprite
+                />
+              </div>
+              <span className={styles.shooterName}>
+                <b>{s.count}×</b> {s.name}
+                {s.remote && (
+                  <span
+                    className={styles.badge}
+                    title="Deep Space Cannon: fires from an adjacent system"
+                  >
+                    from {s.position}
+                  </span>
+                )}
+              </span>
+              <span className={styles.chip} title="Each die hits on this result or higher">
+                {s.hitsOn}+
+              </span>
+              <span className={styles.chip} title="Total dice rolled by this group">
+                {s.count * s.dicePerUnit}
+              </span>
+            </div>
           ))}
-          <label className={styles.plasmaOption}>
-            <input
-              type="radio"
-              name={`plasma-${side.faction}`}
-              checked={plasma === null}
-              onChange={() => setPlasma(null)}
-            />
-            No extra die
-          </label>
         </div>
+      </Block>
+
+      {(shooterTechs || plasmaGroups.length > 0) && (
+        <Block title="Your modifiers">
+          {shooterTechs && (
+            <ActiveTechs context="spaceCannon" faction={side.faction} />
+          )}
+          {plasmaGroups.length > 0 && (
+            <div
+              className={styles.plasma}
+              role="radiogroup"
+              aria-label="Plasma Scoring"
+            >
+              <small>
+                Plasma Scoring: one unit may roll 1 extra die. Pick which one.
+              </small>
+              {plasmaGroups.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={plasma === s.key}
+                  className={styles.plasmaOption}
+                  data-active={plasma === s.key || undefined}
+                  onClick={() => setPlasma(s.key)}
+                >
+                  <span>
+                    {s.name} <small>({s.hitsOn}+)</small>
+                  </span>
+                  <small>
+                    {s.remote ? `from ${s.position}` : zoneLabel(s)} · +1 die
+                  </small>
+                </button>
+              ))}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={plasma === null}
+                className={styles.plasmaOption}
+                data-active={plasma === null || undefined}
+                onClick={() => setPlasma(null)}
+              >
+                <span>No extra die</span>
+              </button>
+            </div>
+          )}
+        </Block>
       )}
 
-      {side.targets.length > 1 && (
+      <Block title={side.targets.length > 1 ? "Choose target" : "Target"}>
         <div
           className={styles.targets}
-          role="radiogroup"
+          role={side.targets.length > 1 ? "radiogroup" : undefined}
           aria-label="Choose target"
         >
-          <small>Target</small>
           {side.targets.map((key) => (
-            <button
+            <div
               key={key}
-              type="button"
-              role="radio"
-              aria-checked={target === key}
+              role={side.targets.length > 1 ? "radio" : undefined}
+              aria-checked={side.targets.length > 1 ? target === key : undefined}
+              tabIndex={side.targets.length > 1 ? 0 : undefined}
               className={styles.target}
               data-active={target === key || undefined}
+              data-single={side.targets.length === 1 || undefined}
               onClick={() => setTarget(key)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setTarget(key);
+                }
+              }}
             >
-              <CircularFactionIcon faction={key} size={16} />
-              {lookup(key).name}
-            </button>
+              <span className={styles.targetHead}>
+                <CircularFactionIcon faction={key} size={18} />
+                <b>{lookup(key).name}</b>
+                {side.targets.length === 1 && <small>active player</small>}
+              </span>
+              <ActiveTechs
+                context="spaceCannon"
+                faction={key}
+                className={styles.targetTechs}
+              />
+            </div>
           ))}
         </div>
-      )}
-      {side.targets.length === 1 && (
-        <p className={styles.note}>
-          Target: <b>{lookup(side.targets[0]).name}</b> (the active player)
-        </p>
-      )}
+      </Block>
 
       <div className={styles.actions}>
         <HoldRollButton
