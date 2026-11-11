@@ -17,7 +17,7 @@
 
 import { seatLobbyPlayers, useLobbyRole, useSetupSync } from "@/domains/network/setupSync";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
-import { useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "@/state/appStore";
@@ -118,7 +118,9 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   // gość wybiera tylko swoją frakcję/kolor/miejsce.
   const { data: me } = useNetworkMe();
   const networkLobby = me?.network === true;
-  useSetupSync(networkLobby);
+  // Gość: host wystartował grę → ta sama plansza otwierająca co u hosta, potem gra.
+  const [guestStarted, setGuestStarted] = useState(false);
+  useSetupSync(networkLobby, () => setGuestStarted(true));
   const isGuest = useLobbyRole((r) => r.active && r.isGuest);
 
   // Mapa frakcji po id — do walidacji (liczba wymaganych tech) i mapowania żądania.
@@ -183,6 +185,28 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
     }
     navigate("/game");
   };
+
+  useEffect(() => {
+    if (!guestStarted) return;
+    if (adminFastMode) {
+      navigate("/game");
+      return;
+    }
+    let cancelled = false;
+    loadIntroPlayers(factionById)
+      .then((players) => {
+        if (cancelled) return;
+        if (players.length > 0) setIntroPlayers(players);
+        else navigate("/game");
+      })
+      .catch(() => {
+        if (!cancelled) navigate("/game"); // intro to tylko oprawa
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Jednorazowo po starcie gry (frakcje są już wczytane — gość właśnie je wybierał).
+  }, [guestStarted]);
 
   // Plansza otwierająca nakłada się na kreator (portal) aż do wejścia w grę.
   const intro = introPlayers && (

@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import overload
 
+from src.core import game_setup
 from src.core.game_state import GameState
 
 
@@ -188,7 +189,8 @@ def awaiting(state: GameState) -> list[tuple[str, str]]:
     z trafieniami do pokrycia; inwazja / eksploracja / karta strategii → ich prowadzący;
     w przeciwnym razie gracz z turą (faza akcji/strategii) albo mówca (status/agenda).
     Powody to stałe kody dla UI: ``respond``, ``decide``, ``assign_hits``, ``combat``,
-    ``invasion``, ``explore``, ``strategy``, ``turn``, ``speaker``.
+    ``invasion``, ``explore``, ``strategy``, ``turn``, ``speaker``, a w setupie startowym
+    ``secret`` (wybór tajnego celu) i ``setup`` (mówca: Custodians / odkrycie celów).
     """
     found: list[tuple[str, str]] = []
 
@@ -196,6 +198,14 @@ def awaiting(state: GameState) -> list[tuple[str, str]]:
         if player_id and player_id in state.players and all(p != player_id for p, _ in found):
             found.append((player_id, reason))
 
+    setup = state.setup
+    if setup is not None:
+        # Setup startowy (RULES.md 45): tajne cele wybierają wszyscy naraz, potem mówca.
+        for player_id in game_setup.pending_choosers(state):
+            add(player_id, "secret")
+        if not found:
+            add(state.speaker_id, "setup")
+        return found
     window = state.pending_window
     if window is not None:
         add(window.current_responder, "respond")

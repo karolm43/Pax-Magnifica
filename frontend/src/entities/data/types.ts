@@ -1021,10 +1021,16 @@ export type GameSetupPlayer = {
 export type GameSetup = {
   stage: GameSetupStage;
   speakerId: string | null;
-  /** Gracz wybierający teraz tajny cel (etap SECRETS). */
+  /** Gracz wybierający teraz tajny cel (etap SECRETS; kolejka jednego ekranu). */
   chooserId: string | null;
+  /** Kto jeszcze nie zatrzymał tajnego celu (jawne; w sieci wybierają naraz). */
+  pending: string[];
+  /** Gra sieciowa: wybór równoczesny, każdy widzi tylko swoich kandydatów (RULES.md 45.3). */
+  simultaneous: boolean;
+  /** Do kogo należą `candidates` (null = do nikogo / ukryte). */
+  candidatesFor: string | null;
   players: GameSetupPlayer[];
-  /** Dwa dobrane tajne cele wybierającego (puste dla pozostałych etapów). */
+  /** Dwa dobrane tajne cele gracza `candidatesFor` (puste dla pozostałych etapów). */
   candidates: string[];
   custodiansPlaced: boolean;
   /** Zakryte cele publiczne w taliach I i II etapu. */

@@ -387,9 +387,8 @@ def _build_game_state(
         # Zagrana karta akcji czekająca na ewentualne Sabotage (hold-play, RULES.md 53.6) —
         # JAWNA (leży na stole). None, gdy brak okna.
         "heldPlay": _held_play(state, registry),
-        # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None po zakończeniu.
-        # Nasze rozszerzenie kontraktu; okno setupu na froncie. RULES.md 43.
-        "setup": web_setup.build_setup_payload(state),
+        # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) dopisuje
+        # ``build_web_data`` z PEŁNEGO stanu (``web_setup.build_setup_payload``). RULES.md 45.
         # Czy MÓWCA może już ogłosić przejście fazy — steruje widocznością „Next phase"
         # w panelu tury (akcja/status: dopiero po komplecie pasów/kroków; strategia:
         # po pełnym wyborze kart; agenda: zawsze). DECYZJA PROJEKTOWA 2026-11.
@@ -1647,7 +1646,13 @@ def build_web_data(
         "tileUnitData": tile_unit_data,
         "playerData": _build_player_data(projected, registry, grid, entity_keys),
         "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
-        "gameState": _build_game_state(projected, registry, grid),
+        "gameState": {
+            **_build_game_state(projected, registry, grid),
+            # Setup startowy — None po zakończeniu; kandydaci tylko dla jednego gracza.
+            "setup": web_setup.build_setup_payload(state, viewing_player, own_only=strict)
+            if strict
+            else web_setup.build_setup_payload(state),
+        },
         "lawsInPlay": web_agenda.build_laws_in_play(projected, registry, entity_keys),
         "strategyCards": _build_strategy_cards(projected, registry, entity_keys),
         "objectives": web_objectives.build_objectives(

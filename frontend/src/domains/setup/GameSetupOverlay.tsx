@@ -1,16 +1,19 @@
 // Okno setupu startowego gry (RULES.md 45): pojawia się po „Start gry" / odświeżeniu strony,
 // dopóki backend trzyma `gameState.setup`. Trzy etapy:
 //
-//  1. SECRETS    — każdy gracz po kolei dobiera 2 tajne cele i zatrzymuje 1 (drugi wraca do
-//                  talii). Karty widzi TYLKO wybierający (bramka „przekaż ekran" dla hot-seat;
-//                  docelowo w grze sieciowej backend wyśle kandydatów tylko właścicielowi);
+//  1. SECRETS    — każdy gracz dobiera 2 tajne cele i zatrzymuje 1 (drugi wraca do talii).
+//                  Jeden ekran / tryb testowy hosta: po kolei, za bramką „przekaż ekran".
+//                  Gra sieciowa (RULES.md 45.3): wszyscy naraz, backend wysyła każdemu tylko
+//                  jego kandydatów (`candidatesFor`), reszta widzi, na kogo czekamy;
 //  2. CUSTODIANS — mówca kładzie żeton Custodians na Mecatol Rex;
 //  3. OBJECTIVES — 5+5 zakrytych celów publicznych; mówca klika i odsłania dwa cele I etapu.
 //
 // Okno jest NIEODRZUCALNE (setup trzeba domknąć, zanim ruszy faza strategii). Po odkryciu
 // celów zostaje jeszcze na chwilę, by pokazać odwrócone karty, i zamyka się przyciskiem.
+// W sieci etapy mówcy (Custodians, odkrycie) klika tylko mówca; pozostali czekają, a „Skip
+// setup" ma tylko host (trasa `HostOnly`).
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -22,6 +25,7 @@ import { getPublicObjective } from "@/entities/lookup/publicObjectives";
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { GameSetup, GameSetupPlayer } from "@/entities/data/types";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import styles from "./GameSetupOverlay.module.css";
 
 /** Ile celów I etapu odkrywa mówca (zgodne z backendem: `REVEALED_AT_SETUP`). */
@@ -61,8 +65,19 @@ export function GameSetupOverlay() {
   const [readyFor, setReadyFor] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   // Po kliknięciu „odkryj" setup znika z backendu, a okno zostaje na pokaz odwróconych kart.
+  // (Także u innych graczy w sieci: kto widział etap odkrycia, zobaczy też odwrócone karty.)
   const [revealedByUs, setRevealedByUs] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const setupStage = gameState?.setup?.stage ?? null;
+  useEffect(() => {
+    if (setupStage === "OBJECTIVES") setRevealedByUs(true);
+  }, [setupStage]);
+
+  // Gra sieciowa: moje miejsce (null = jeden ekran albo host w trybie testowym — wtedy
+  // klikam za każdego jak dotąd).
+  const { data: me } = useNetworkMe();
+  const mySeat = me?.network ? (me.player_id ?? null) : null;
+  const canSkip = !me?.network || me.host;
 
   // Po zako?czeniu setupu okno ?yje jeszcze tylko jako pokaz odkrytych cel?w (`finished`).
   const finished = !setup && revealedByUs;
@@ -100,6 +115,42 @@ export function GameSetupOverlay() {
         />
       );
     }
+    if (setup.stage === "SECRETS" && setup.simultaneous) {
+      // Sieć: wybieram tylko swój cel, od razu (bez bramki — ekran jest mój).
+      const mine = players.find((p) => p.id === setup.candidatesFor);
+      if (!mine || setup.candidates.length === 0) {
+        const waiting = players
+          .filter((p) => setup.pending.includes(p.id))
+          .map((p) => p.name)
+          .join(", ");
+        return (
+          <p className={styles.lead}>
+            {mySeat && !setup.pending.includes(mySeat)
+              ? "You kept your secret objective. "
+              : ""}
+            Waiting for {waiting || "the other players"}…
+          </p>
+        );
+      }
+      return (
+        <SecretsStage
+          setup={setup}
+          chooser={mine}
+          ready
+          picked={picked}
+          busy={busy}
+          onReady={() => undefined}
+          onPick={setPicked}
+          onConfirm={() => {
+            if (!picked) return;
+            run(
+              () => setupSecret(mine.id, picked),
+              () => setPicked(null),
+            );
+          }}
+        />
+      );
+    }
     if (setup.stage === "SECRETS") {
       const chooser = players.find((p) => p.id === setup.chooserId);
       return (
@@ -128,6 +179,7 @@ export function GameSetupOverlay() {
       return (
         <CustodiansStage
           speakerName={speaker?.name ?? "The speaker"}
+          canAct={!mySeat || mySeat === speaker?.id}
           busy={busy}
           onPlace={() => speaker && run(() => setupCustodians(speaker.id))}
         />
@@ -140,6 +192,7 @@ export function GameSetupOverlay() {
         revealedKeys={[]}
         speakerName={speaker?.name ?? "The speaker"}
         done={false}
+        canAct={!mySeat || mySeat === speaker?.id}
         busy={busy}
         onReveal={() =>
           speaker &&
@@ -177,14 +230,24 @@ export function GameSetupOverlay() {
               <li
                 key={p.id}
                 className={`${styles.rosterItem} ${
-                  p.id === setup.chooserId ? styles.rosterActive : ""
+                  (setup.simultaneous ? setup.pending.includes(p.id) : p.id === setup.chooserId)
+                    ? styles.rosterActive
+                    : ""
                 }`}
                 style={playerSwatch(p)}
               >
                 {p.faction ? <CircularFactionIcon faction={p.faction} size={26} /> : null}
                 <span>{p.name}</span>
                 <span className={styles.rosterState}>
-                  {p.chosen ? "✓ chosen" : p.id === setup.chooserId ? "choosing…" : "waiting"}
+                  {p.chosen
+                    ? "✓ chosen"
+                    : setup.simultaneous
+                      ? p.id === mySeat
+                        ? "your pick"
+                        : "choosing…"
+                      : p.id === setup.chooserId
+                        ? "choosing…"
+                        : "waiting"}
                 </span>
               </li>
             ))}
@@ -193,7 +256,7 @@ export function GameSetupOverlay() {
 
         <div className={styles.body}>{content}</div>
 
-        {setup && (
+        {setup && canSkip && (
           <footer className={styles.footer}>
             <button
               type="button"
@@ -336,10 +399,13 @@ function SecretsStage({
 
 function CustodiansStage({
   speakerName,
+  canAct,
   busy,
   onPlace,
 }: {
   speakerName: string;
+  /** Czy ten ekran może kliknąć (w sieci tylko mówca). */
+  canAct: boolean;
   busy: boolean;
   onPlace: () => void;
 }) {
@@ -356,9 +422,13 @@ function CustodiansStage({
       <p className={styles.hint}>
         Landing ground forces on Mecatol Rex requires spending 6 influence and removes the token.
       </p>
-      <button type="button" className={styles.primary} disabled={busy} onClick={onPlace}>
-        Place on Mecatol Rex
-      </button>
+      {canAct ? (
+        <button type="button" className={styles.primary} disabled={busy} onClick={onPlace}>
+          Place on Mecatol Rex
+        </button>
+      ) : (
+        <p className={styles.hint}>Waiting for {speakerName}…</p>
+      )}
     </div>
   );
 }
@@ -372,6 +442,8 @@ type ObjectivesStageProps = {
   revealedKeys: string[];
   speakerName: string;
   done: boolean;
+  /** Czy ten ekran może odkryć cele (w sieci tylko mówca); domyślnie tak. */
+  canAct?: boolean;
   busy: boolean;
   onReveal: () => void;
 };
@@ -382,6 +454,7 @@ function ObjectivesStage({
   revealedKeys,
   speakerName,
   done,
+  canAct = true,
   busy,
   onReveal,
 }: ObjectivesStageProps) {
@@ -408,6 +481,10 @@ function ObjectivesStage({
         <p className={styles.lead}>
           The first two Stage I objectives are open. The remaining eight stay hidden until the
           Status Phase.
+        </p>
+      ) : !canAct ? (
+        <p className={styles.lead}>
+          Waiting for <b>{speakerName}</b> (speaker) to reveal two Stage I objectives…
         </p>
       ) : (
         <button

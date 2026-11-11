@@ -519,3 +519,13 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   w krokach (Players: podgląd; Faction/Seat & color: tylko własny slot), usunięty osobny ekran lobby.
 - Tryb testowy: przełącznik w plakietce „kim gram" — host gra za wszystkich (operator) i wraca na swoje miejsce.
 - Testy: szkic na żywo i nowe lobby w `test_network_game.py`, `setupSync.test.ts`. Nie testowane w przeglądarce.
+
+## 2026-11-11 (13) — Start gry sieciowej: intro u gości + tajne cele równocześnie (RULES.md 45.3)
+- Goście po starcie gry widzą tę samą planszę otwierającą (intro) co host, potem wchodzą do planszy
+  (`useSetupSync(..., onGuestStarted)` → `SetupWizard`; tryb administratora pomija intro).
+- Tajne cele: wybór równoczesny (`game_setup.pending_choosers`, `choose_secret` bez kolejki). web-data `setup` liczony
+  z pełnego stanu: `pending`, `simultaneous`, `candidatesFor` (w sieci kandydaci tylko patrzącego). Wcześniej
+  projekcja czyściła cudze ręce, więc każdy gość widział inny „wybierający".
+- Okno setupu w sieci: każdy od razu swoje 2 karty, potem „Waiting for …"; Custodians/odkrycie klika tylko mówca,
+  inni czekają i widzą odwracane karty; „Skip setup" tylko host. `awaiting`: `secret` / `setup`.
+- Testy: `test_network_game.py::test_network_setup_secrets_are_simultaneous_and_private`, `test_game_setup.py`. Nie testowane w przeglądarce.

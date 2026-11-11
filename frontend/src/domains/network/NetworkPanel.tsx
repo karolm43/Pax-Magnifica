@@ -53,6 +53,8 @@ const REASON: Record<string, string> = {
   strategy: "resolve a strategy card",
   turn: "take a turn",
   speaker: "advance the phase (speaker)",
+  secret: "choose a secret objective",
+  setup: "finish the game setup (speaker)",
 };
 
 export function describeAwaiting(list: Awaiting[], me: string | null): {

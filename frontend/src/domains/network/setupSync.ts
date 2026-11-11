@@ -94,8 +94,10 @@ async function send(method: "PUT" | "PATCH", body: unknown): Promise<LobbyView> 
 /**
  * Spina kreator z lobby. `enabled` = lobby otwarte (gra sieciowa). Host przy wejściu wysyła
  * pełny szkic (świeże lobby po „Play"), gość od razu przyjmuje szkic hosta.
+ * `onGuestStarted` — gość: host wystartował grę i posadził mnie przy stole (raz); domyślnie
+ * od razu przejście do gry (kreator pokazuje wtedy najpierw intro).
  */
-export function useSetupSync(enabled: boolean): void {
+export function useSetupSync(enabled: boolean, onGuestStarted?: () => void): void {
   const navigate = useNavigate();
   const { data: me } = useNetworkMe();
   const { data: lobby, refetch } = useLobby(enabled);
@@ -106,6 +108,9 @@ export function useSetupSync(enabled: boolean): void {
   const inFlight = useRef(false);
   const putting = useRef(false);
   const hasDraft = useRef(false);
+  const started = useRef(false);
+  const onStarted = useRef(onGuestStarted);
+  onStarted.current = onGuestStarted;
 
   const isHost = lobby?.you === "host";
   const draft = (lobby?.draft ?? null) as LobbyDraft | null;
@@ -175,9 +180,12 @@ export function useSetupSync(enabled: boolean): void {
     // Reagujemy tylko na szkic z serwera (apply/refetch są stabilne w czasie życia hooka).
   }, [enabled, lobby, draft, isHost]);
 
-  // Gość: host wystartował grę i posadził mnie przy stole → do gry.
+  // Gość: host wystartował grę i posadził mnie przy stole → intro / do gry (jeden raz).
   useEffect(() => {
-    if (enabled && !isHost && me?.player_id && lobby?.game_started) navigate("/game");
+    if (!enabled || isHost || !me?.player_id || !lobby?.game_started || started.current) return;
+    started.current = true;
+    if (onStarted.current) onStarted.current();
+    else navigate("/game");
   }, [enabled, isHost, me?.player_id, lobby?.game_started, navigate]);
 
   // Lokalne zmiany → łatki do serwera.

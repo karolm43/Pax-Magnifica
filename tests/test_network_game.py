@@ -337,3 +337,41 @@ def test_new_lobby_forgets_old_guests(registry: StaticDataRegistry) -> None:
     res = client.get("/lobby", headers={SEAT_TOKEN_HEADER: joined["token"], **REMOTE})
     assert res.status_code == 200  # /lobby jest publiczne przy otwartym lobby…
     assert res.json()["members"] == []  # …ale Oli już w nim nie ma
+
+
+# --- Setup startowy w sieci (RULES.md 45.3): tajne cele równocześnie, każdy widzi swoje -------
+
+
+def test_network_setup_secrets_are_simultaneous_and_private(registry: StaticDataRegistry) -> None:
+    app = create_app(
+        registry=registry, store=EventStore(":memory:"), network=True, host_token=HOST
+    )
+    client = TestClient(app)
+    players = {"players": [{"faction_id": "sol"}, {"faction_id": "arborec"}]}
+    assert client.post("/game/new", json=players).status_code == 200
+    full = client.get("/state").json()["state"]
+    cards = {pid: full["players"][pid]["private"]["secret_candidates"] for pid in ("p1", "p2")}
+    tokens = _tokens(client)
+    url = "/api/public/game/x/web-data"
+
+    p2 = {**_as(tokens["p2"]), **REMOTE}
+    doc = client.get(url, headers=p2).json()
+    setup = doc["gameState"]["setup"]
+    assert setup["simultaneous"] is True
+    assert setup["candidatesFor"] == "p2"
+    assert setup["candidates"] == cards["p2"]
+    assert setup["pending"] == ["p1", "p2"]
+    assert all(card not in str(doc) for card in cards["p1"])
+    assert {a["playerId"]: a["reason"] for a in doc["awaiting"]} == {
+        "p1": "secret",
+        "p2": "secret",
+    }
+
+    # p2 wybiera przed p1; cudzego wyboru zrobić nie może.
+    pick = {"player_id": "p2", "objective_id": cards["p2"][0]}
+    assert client.post("/setup/secret", json=pick, headers=p2).status_code == 200
+    foreign = {"player_id": "p1", "objective_id": cards["p1"][0]}
+    assert client.post("/setup/secret", json=foreign, headers=p2).status_code == 403
+    setup = client.get(url, headers=p2).json()["gameState"]["setup"]
+    assert setup["candidates"] == [] and setup["candidatesFor"] is None
+    assert setup["pending"] == ["p1"]

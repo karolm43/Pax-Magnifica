@@ -2,8 +2,9 @@
 
 Czyste funkcje ``state -> state``. Kolejność etapów (``SetupStage``):
 
-1. ``SECRETS`` — gracze po kolei (kolejność zasiadania) dobierają 2 tajne cele, zatrzymują 1,
-   drugi wraca do talii i talia jest tasowana. Boty wybierają automatycznie.
+1. ``SECRETS`` — każdy gracz dobiera 2 tajne cele i zatrzymuje 1 (wybór równoczesny; jeden ekran
+   pokazuje ich po kolei zasiadania), drugi wraca do talii i talia jest tasowana. Boty wybierają
+   automatycznie.
 2. ``CUSTODIANS`` — mówca kładzie żeton Custodians na Mecatol Rex.
 3. ``OBJECTIVES`` — mówca odkrywa dwa cele publiczne I etapu (pozostałe 8 leży zakryte).
 
@@ -124,6 +125,19 @@ def current_chooser(state: GameState) -> str | None:
     return None
 
 
+def pending_choosers(state: GameState) -> list[str]:
+    """Gracze, którzy jeszcze nie zatrzymali tajnego celu (kolejność zasiadania); jawne."""
+    if state.setup is None or state.setup.stage is not SetupStage.SECRETS:
+        return []
+    return [
+        player_id
+        for player_id in state.seating_order
+        if (player := state.players.get(player_id)) is not None
+        and player_id not in state.setup.secrets_chosen
+        and player.private.secret_candidates
+    ]
+
+
 def begin_setup(
     state: GameState, registry: StaticDataRegistry, rng: random.Random | None = None
 ) -> GameState:
@@ -155,14 +169,17 @@ def choose_secret(
     """Gracz zatrzymuje jeden z dwóch dobranych tajnych celów; drugi wraca do talii.
 
     Raises:
-        ValueError: setup nie jest na etapie wyboru, to nie kolej gracza albo cel nie jest
-            jednym z jego kandydatów.
+        ValueError: setup nie jest na etapie wyboru, gracz już wybrał (albo nie ma kandydatów)
+            lub cel nie jest jednym z jego kandydatów.
+
+    Wybór jest RÓWNOCZESNY (RULES.md 45.3): każdy gracz z kandydatami może wybrać w dowolnej
+    chwili — w grze sieciowej wszyscy wybierają naraz. Kolejność zasiadania
+    (``current_chooser``) służy tylko widokowi jednego ekranu (bramka „przekaż ekran").
     """
     if state.setup is None or state.setup.stage is not SetupStage.SECRETS:
         raise ValueError("Secret objectives are not being chosen right now.")
-    expected = current_chooser(state)
-    if player_id != expected:
-        raise ValueError(f"It is not {player_id}'s turn to choose (now: {expected}).")
+    if player_id not in pending_choosers(state):
+        raise ValueError(f"{player_id} has no secret objective left to choose.")
     if objective_id not in state.players[player_id].private.secret_candidates:
         raise ValueError(f"{objective_id} is not one of the dealt secret objectives.")
     new_state = state.clone()

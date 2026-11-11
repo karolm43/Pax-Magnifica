@@ -75,17 +75,24 @@ def test_secret_choice_returns_other_to_deck_and_advances(client: TestClient) ->
     assert after["active_player_id"] == "p2"
 
 
-def test_secret_choice_rejects_wrong_player_and_foreign_card(client: TestClient) -> None:
+def test_secret_choice_is_simultaneous_but_once_and_own_cards(client: TestClient) -> None:
     client.post("/game/new", json=PLAYERS)
     state = _state(client)
     p2_card = state["players"]["p2"]["private"]["secret_candidates"][0]
-    # Nie jego kolej.
-    assert client.post(
-        "/setup/secret", json={"player_id": "p2", "objective_id": p2_card}
-    ).status_code == 422
     # Karta spoza jego dwóch kandydatów.
     assert client.post(
         "/setup/secret", json={"player_id": "p1", "objective_id": p2_card}
+    ).status_code == 422
+    # Wybór równoczesny (RULES.md 45.3): p2 może wybrać przed p1 ...
+    assert client.post(
+        "/setup/secret", json={"player_id": "p2", "objective_id": p2_card}
+    ).status_code == 200
+    setup = _web(client)["gameState"]["setup"]
+    assert setup["pending"] == ["p1"]
+    assert setup["chooserId"] == "p1"
+    # ... ale tylko raz.
+    assert client.post(
+        "/setup/secret", json={"player_id": "p2", "objective_id": p2_card}
     ).status_code == 422
 
 
