@@ -454,6 +454,7 @@ raport `src/audit/hook_coverage.py`. Wyjątek Arborec przeniesiony do hooka.
   zagrywalność + UI z przeciąganiem ✅, **143/143 kart ✅** (2026-11-11).
 
 ### H5 — Frakcje (E7)
+- **Szczegółowy plan w blokach na sesje: `PLAN_FRAKCJE.md`** (ma pierwszeństwo przed kolejnością niżej).
 - Wg tabel w sekcji „Frakcje": najpierw modyfikatory liczb/legalności (np. Sardakk, Jol-Nar, Sol, Letnev,
   Winnu, Hacan), potem zdolności z oknami (Mentak, Xxcha, Saar), na końcu strukturalne
   (Nekro, Creuss, Mahact, Naalu, Yssaril, Titans, Cabal, Obsidian, Firmament, Crimson, Deepwrought, Ral Nel,

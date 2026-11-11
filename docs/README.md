@@ -37,6 +37,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`RULES.md`** + **`rules/R<NN>.md`** | **Źródło prawdy dla mechanik TI4.** `RULES.md` to mały INDEKS; treść sekcji N leży w `rules/R<NN>.md` (np. 43.1a = `rules/R43.md`). Czytaj tylko potrzebny plik. | 🟢 żywy |
 | **`rules_tirules/`** | **Offline zrzut reguł z tirules2.com** (149 tematów MD + `tirules.json`). Sprawdzaj reguły tutaj najpierw. Start: `rules_tirules/INDEX.md`. | 🟢 żywy |
 | **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E8, fazy C/H/N), lista frakcji i gimmicków oraz **CEL PRODUKTOWY: wszystkie karty gotowe + zagrywanie przeciąganiem z ręki**. | 🟢 żywy |
+| **`PLAN_FRAKCJE.md`** | **Plan frakcji (H5/E7) w blokach na sesje**: fundamenty (liderzy, notki, zdolności), wspólne mechaniki (capture, żetony, sąsiedztwo, coexist), kolejność frakcji, szablon DoD. | 🟢 żywy |
 | **`ARCHITEKTURA_KODU.md`** | **Warstwy (core/api/ai), konwencje rozwoju, wzorzec hooków, dług techniczny.** Czytaj przed dodaniem nowej mechaniki. | 🟢 żywy |
 | **`POKRYCIE_HOOKOW.md`** | **GENEROWANY raport pokrycia hooków** (zarejestrowane hooki, % komponentów z hookiem, obszary reguł do domknięcia). Nie edytuj; odśwież: `uv run python -m src.audit.hook_coverage --write`. | 🟢 generowany |
 | **`OKNA_CZASOWE.md`** | **GENEROWANY katalog okien czasowych** wszystkich komponentów (zdarzenia, agendy, frakcje, efekty trwałe, przypadki szczególne). Nie edytuj; odśwież: `uv run python -m src.audit.timing_catalog --write`. Kontrakt: RULES.md 54. | 🟢 generowany |
