@@ -34,7 +34,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`README.md`** (ten plik) | Indeks: cel, struktura, konwencje, kolejność czytania. | 🟢 żywy |
 | **`PROGRESS.md`** | Stan prac: status etapów + ostatnie bloki (odchudzony). Czytaj na start sesji. | 🟢 żywy |
 | **`PROGRESS_ARCHIWUM.md`** | Pełna historia ukończonych bloków (Faza 1 → E4·UI²). Sięgaj po szczegół. | 🟤 archiwalny |
-| **`RULES.md`** | **Źródło prawdy dla mechanik TI4.** Każda reguła ma źródło (LRR / bot). | 🟢 żywy |
+| **`RULES.md`** + **`rules/R<NN>.md`** | **Źródło prawdy dla mechanik TI4.** `RULES.md` to mały INDEKS; treść sekcji N leży w `rules/R<NN>.md` (np. 43.1a = `rules/R43.md`). Czytaj tylko potrzebny plik. | 🟢 żywy |
 | **`rules_tirules/`** | **Offline zrzut reguł z tirules2.com** (149 tematów MD + `tirules.json`). Sprawdzaj reguły tutaj najpierw. Start: `rules_tirules/INDEX.md`. | 🟢 żywy |
 | **`PLAN_PELNA_ROZGRYWKA.md`** | **Główny plan silnika** (etapy E1–E8, fazy C/H/N), lista frakcji i gimmicków oraz **CEL PRODUKTOWY: wszystkie karty gotowe + zagrywanie przeciąganiem z ręki**. | 🟢 żywy |
 | **`ARCHITEKTURA_KODU.md`** | **Warstwy (core/api/ai), konwencje rozwoju, wzorzec hooków, dług techniczny.** Czytaj przed dodaniem nowej mechaniki. | 🟢 żywy |

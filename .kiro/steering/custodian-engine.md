@@ -1,180 +1,81 @@
 # Custodian Engine — zasady projektu (steering)
 
-Ten plik jest wczytywany automatycznie w każdej sesji. Definiuje trwałe zasady,
-których trzymam się niezależnie od tego, czy pamiętam poprzednią rozmowę.
+Wczytywany w każdej sesji, więc trzymany krótko. Szczegóły: `docs/README.md`,
+`docs/ARCHITEKTURA_KODU.md`, `docs/PLAN_PELNA_ROZGRYWKA.md`.
 
-## Czym jest projekt
+## Projekt
 
-Lokalny silnik do **Twilight Imperium: 4th Edition** w trybie solo, którego CELEM
-KOŃCOWYM jest **autonomiczny bot-przeciwnik** grający własnymi frakcjami (strategia,
-ruch, walka, agenda, punktacja). Dojrzałość w trzech etapach:
-1. cyfrowa plansza + God-Mode (gotowe) — odwzorowanie i edycja stanu, Undo;
-2. silnik rozgrywki (w toku) — realne fazy/tury/akcje/walka, EGZEKWOWANE przez kod
-   (silnik-sędzia + okna czasowe; reguły świata dla bota). God-Mode = wentyl. Patrz RULES.md 29;
-3. bot AI (cel) — warstwa decyzyjna grająca frakcją samodzielnie.
-Mapa dokumentacji i cel szczegółowo: `docs/README.md`. Wizja/architektura:
-`docs/specyfikacja_techniczna_i_architektura_systemu.md`.
+Lokalny silnik **Twilight Imperium 4** z celem: autonomiczny bot-przeciwnik. Etapy: (1) plansza + God-Mode
+(gotowe), (2) silnik rozgrywki egzekwujący reguły (w toku), (3) bot AI. Tryb: gra sieciowa (ludzie + boty);
+solo z botami to szczególny przypadek; hot-seat NIE jest wspierany.
 
-## Jak czytać stan projektu na starcie sesji (OSZCZĘDZAJ KONTEKST)
+## OSZCZĘDZANIE KONTEKSTU (najważniejsze)
 
-WAŻNE dla kosztu: `docs/PROGRESS.md`, `docs/RULES.md` i `docs/PROGRESS_ARCHIWUM.md`
-są bardzo duże (po ~100+ KB każdy). NIE wczytuj ich w całości „na wszelki wypadek" —
-to główne źródło zużycia kredytów. Czytaj tylko to, czego dotyczy bieżące zadanie,
-i tylko potrzebne fragmenty (grep/offset), a nie całe pliki.
+NIGDY nie czytaj w całości: `docs/PROGRESS_ARCHIWUM.md`, `docs/POKRYCIE_HOOKOW.md`, `docs/OKNA_CZASOWE.md`
+(generowane, po 100–190 KB), `docs/rules_tirules/tirules.json`, `docs/RULES.md` jako całości. Zawsze grep/offset.
+- Start: tylko `docs/README.md`. Dalej punktowo:
+  - `docs/PROGRESS.md` (~35 KB): szukaj sekcji po temacie.
+  - `docs/RULES.md` to INDEKS; treść sekcji N jest w `docs/rules/R<NN>.md` (np. „RULES.md 43.1a” = `rules/R43.md`).
+  - `docs/rules_tirules/` — małe pliki tematyczne (`R_*.md`, `F_*`, `C_*`), indeks `INDEX.md`.
+- Kod w `src/` i testy w `tests/` są nadrzędnym źródłem prawdy o stanie. Zadanie frontendowe: nie ruszaj dokumentów reguł.
+- Nie uruchamiaj całego `pytest`/`ruff`/`mypy` bez potrzeby w trakcie pracy; pełny zestaw na końcu kroku.
 
-Minimalny start sesji:
-1. `docs/README.md` — indeks dokumentacji (mały): cel, struktura repo, gdzie co leży.
-   To wystarcza, żeby wiedzieć, dokąd sięgnąć dalej.
-2. Dopiero GDY zadanie tego wymaga, doczytaj PUNKTOWO:
-   - `docs/PROGRESS.md` — stan/następne kroki. Szukaj konkretnej sekcji (grep po temacie),
-     nie czytaj całości.
-   - `docs/PLAN_PELNA_ROZGRYWKA.md` (mały) — który etap silnika (E1–E8) + frakcje.
-   - `docs/RULES.md` — reguła, której dotyczy zadanie. Znajdź wpis po numerze/temacie
-     (grep), zamiast ładować cały plik. Dla samej treści reguły preferuj `docs/rules_tirules/`
-     (osobne małe pliki tematyczne) — to taniej niż duży `RULES.md`.
-   - `docs/PROGRESS_ARCHIWUM.md` — tylko gdy potrzebny historyczny szczegół; nigdy na start.
-3. Realny kod w `src/` i testy w `tests/` — nadrzędne źródło prawdy o stanie,
-   ważniejsze niż pamięć czy opisy. Przy zadaniu frontendowym NIE ruszaj dokumentów reguł.
+## Reguły TI4 (KLUCZOWE)
 
-## Zasady reguł Twilight Imperium (KLUCZOWE)
+- **Nie koduj reguł ani statystyk TI4 z pamięci.** Dane liczbowe i teksty kart tylko z assetów AsyncTI4
+  (`StaticDataRegistry`, `assets/`), zero hardkodowania.
+- **Źródło reguł: `docs/rules_tirules/`** (offline zrzut tirules2.com: LRR 2.0 PoK + Codexy + Thunder's Edge + rulingi Dane).
+  To zasady i doprecyzowania, NIE opisy zdolności frakcji/kart (te są w assetach JSON). Gdy zrzut nie wystarcza: tirules2.com,
+  potem LRR PDF / TI Wiki.
+- Reguła mechaniczna musi mieć wpis w `docs/rules/R<NN>.md` (indeks w `RULES.md`) ze źródłem, ZANIM trafi do kodu.
+- Brak potwierdzonego źródła => oznacz ⚠️ ZAŁOŻENIE i poproś użytkownika o potwierdzenie. Jego decyzja jest ostateczna.
+- Adjacency (sąsiedztwo) ≠ traversability (przejezdność): graf mapy trzyma czyste sąsiedztwo, blokady to osobna warstwa.
 
-- **Nigdy nie koduj reguł TI4 ani statystyk z pamięci.** To zakaz ze specyfikacji
-  (sekcja 5.1) i świadoma decyzja — moja pamięć reguł TI4 jest zawodna.
-- **Dane liczbowe** (jednostki, planety, technologie, koszty) czytaj WYŁĄCZNIE
-  z assetów AsyncTI4 przez `StaticDataRegistry`. Zero hardkodowania.
-- **GŁÓWNE ŹRÓDŁO REGUŁ: folder docs/rules_tirules* — to podstawowe, nadrzędne
-  źródło prawdy dla WSZYSTKICH reguł TI4 w projekcie. Zawiera pełny Living Rules
-  Reference 2.0 (PoK) + noty do Codexów (do IV) i wstępne noty do Thunder's Edge,
-  plus rulingi Dane Beltramiego i konsensus społeczności. KAŻDA sesja/czat weryfikuje
-  reguły najpierw tutaj. Living Rules Reference (PDF) i TI Wiki = źródła pomocnicze/backup.
-- **LOKALNY ZRZUT OFFLINE: `docs/rules_tirules/`** — kompletny zrzut tirules2.com
-  (149 tematów w Markdown + `tirules.json`, indeks w `INDEX.md`). SPRAWDZAJ REGUŁY
-  NAJPIERW TUTAJ (bez requestów online) — np. `R_anomalies.md`, `R_movement.md`,
-  `R_space_combat.md`, `F_*.md`, `C_*.md`. Dopiero gdy zrzut nie wystarcza, idź na żywą
-  stronę. Atrybucja/licencja i sposób odświeżenia: `docs/rules_tirules/SOURCE.md`
-  (parser: `scripts/scrape_tirules.py`).
-- **CZYM JEST ten zrzut (ważne rozróżnienie):** to ZASADY TI4 i ich DOPRECYZOWANIA
-  (edge-case'y, interakcje reguł, rulingi Dane) — warstwa „jak rozstrzygać brzegowe
-  przypadki". To NIE są opisy działania umiejętności frakcji ani kart — te są w assetach
-  JSON AsyncTI4 (`assets/data/...`). Pliki `F_*`/`C_*` zawierają tylko noty-doprecyzowania
-  do komponentów (stąd bywają puste nagłówki), nie ich pełny opis. Reguła + doprecyzowanie
-  → tirules; treść/parametry karty czy zdolności → assety JSON; dane liczbowe → assety JSON.
-- **Reguły mechaniczne** (ruch, walka, anomalie, timing) muszą mieć wpis w
-  `docs/RULES.md` z odniesieniem do źródła — w pierwszej kolejności do
-  **tirules2.com** (temat reguły), ZANIM trafią do kodu.
-- **Oznaczaj założenia.** Jeśli implementuję mechanikę bez potwierdzonego źródła,
-  jawnie oznacz ją jako ⚠️ ZAŁOŻENIE w RULES.md i poproś użytkownika o potwierdzenie.
-  Użytkownik zna grę w szczegółach — jego decyzja jest ostateczna.
-- Gdy reguła jest niejasna, **zweryfikuj ją online — najpierw na tirules2.com**,
-  potem w LRR, zamiast zgadywać.
-- Rozróżniaj **sąsiedztwo (adjacency)** od **przejezdności (traversability)** — to
-  różne pojęcia (patrz RULES.md 1). Graf mapy trzyma czyste sąsiedztwo; blokady
-  ruchu/anomalie to osobna warstwa logiki zależna od gracza i stanu gry.
+## Silnik: SĘDZIA (RULES 29)
 
-## Kierunek silnika: SĘDZIA, nie asystent (decyzja 2026-10 — RULES.md 29)
+- Zwykłe akcje walidują legalność przez kod: nielegalne => `ValueError` => HTTP 422.
+- **God-Mode** (`/god-mode/patch`, `core/board_edit.*`) to wentyl, CELOWO omija walidację.
+- **Okna czasowe** (`GameState` + `core/timing.py`): kolejka graczy pytanych po kolei (od gracza po aktywnym, zgodnie z zegarem).
+  Reakcje when/after/instead: STOP z cofaniem + jednolita pauza (RULES 43.4).
+- Walka pełna, interaktywna, seedowalny RNG. E1–E3 to fundament: dobudowuj, nie przepisuj.
+- `src/engine/` (puste katalogi) = przyszła warstwa AI, można przebudować.
 
-ŚWIADOMA zmiana filozofii (ustalona z użytkownikiem). Zastępuje wcześniejsze „asystent
-stołu, nie sędzia".
+## Assety
 
-- **Silnik EGZEKWUJE reguły TI4 przez kod** (jest sędzią). Zwykłe akcje (ruch, aktywacja,
-  wybór karty, produkcja, walka) walidują legalność — nielegalne → `ValueError` → HTTP 422.
-  Powód: bot AI i tak musi znać reguły, a egzekucja jest wygodniejsza dla gracza.
-- **God-Mode ZOSTAJE jako wentyl** — osobny kanał (`/god-mode/patch`, `core/board_edit.*`),
-  który CELOWO omija walidację reguł. To „ręka operatora" na zapomniane/brzegowe przypadki.
-- **Okna czasowe (timing windows)** — jednolity model w `GameState` + `core/timing.py`:
-  kolejka graczy pytanych po kolei (od gracza po aktywnym, zgodnie z zegarem; inicjator
-  pomijany). Jedno pojęcie obsługuje secondary kart strategii, reakcje „when/after",
-  przypisanie strat w walce, space cannon. Reguła modelu: RULES.md 29.2.
-- **Tryb gry (decyzja 2026-11-08):** gra SIECIOWA (ludzie przez sieć) + boty; solo z botami to
-  przypadek szczególny tego samego modelu. Hot-seat NIE jest wspierany. Okna pytają graczy po
-  kolei, nie zakładają jednego operatora. Reakcje (when/after/instead): STOP z cofaniem +
-  jednolita pauza, widoczne zachowanie silnika nie zależy od ręki (RULES.md 43.4).
-- **Walka:** pełna, interaktywna (rzuty kośćmi). Rdzeń: rzuty (seedowalny RNG) + liczenie
-  trafień + okno „przypisz straty", wielorundowo; AFB/space cannon jako kolejne okna.
-- **E1–E3 to FUNDAMENT** — dobudowujemy walidację i okna NA ISTNIEJĄCYM, nie przepisujemy.
-  Etap przebudowy = E8 w `PLAN_PELNA_ROZGRYWKA.md`.
-- `src/engine/` (puste katalogi strategic/operational/tactical/diplomacy) = przyszła warstwa
-  AI — można przebudować dowolnie.
-## Zarządzanie assetami
+Lokalnie w `assets/`. Filtrowanie źródeł po polu `source` w JSON (nie po nazwie pliku). Aktywne: `assets/enabled_sources.json`
+(`base, pok, codex1-4, thunders_edge`; Codexy MUSZĄ być włączone). Dane JSON są w repo, grafiki/fonty poza repo (CDN AsyncTI4).
 
-- Assety (AsyncTI4) leżą lokalnie w `assets/`; podział na dysku zostaje nienaruszony.
-- Filtrowanie źródeł: po POLU `source` wewnątrz wpisu JSON, nie po nazwie pliku.
-- Aktywne źródła: `assets/enabled_sources.json` — obecnie `base, pok, codex1-4,
-  thunders_edge`. Codexy MUSZĄ być włączone (oficjalne erraty Ω/ΩΩ, patrz RULES.md 14).
-  Pozostały homebrew zostaje na dysku, ale nie jest ładowany.
-- **Dane JSON/properties są W REPO** (`assets/data`, `systems`, `planets`, `alias` +
-  `enabled_sources.json`, ~5 MB) — `git clone` wystarcza do uruchomienia. Grafiki/fonty
-  są poza repo (`.gitignore`); frontend bierze je z CDN AsyncTI4.
+## Stack
 
-## Stack i narzędzia
+Python >=3.12 + `uv`, Pydantic v2, NumPy, networkx. Frontend: React 19 + Vite + TypeScript + Zustand + react-query,
+design system `frontend/src/ds/`. QA: pytest + hypothesis, ruff, mypy --strict.
 
-- Backend: Python >=3.12 (lokalnie 3.14), zarządzany przez `uv`.
-- Dane: Pydantic v2. Obliczenia: NumPy (+ Numba w fazie taktycznej — uwaga na
-  wsparcie Pythona 3.14). Graf: networkx.
-- Frontend: viewer oparty na AsyncTI4 `ti4_web` — React 19 + Vite + TypeScript +
-  Zustand + react-query + własny design system (`frontend/src/ds/`). Tauri opcjonalnie
-  na końcu (owija ten sam kod web).
-- QA: pytest + hypothesis, ruff, mypy --strict.
+## Architektura (zależności tylko w dół)
 
-## Architektura kodu (chroń czytelność — pełny opis: docs/ARCHITEKTURA_KODU.md)
+- `core/` — czyste funkcje `state -> state`, zero HTTP. Jedyne źródło reguł (woła je `api/` i przyszłe `ai/`).
+- `api/routers/<temat>.py` — cienkie endpointy (stan -> `core/` -> commit/broadcast -> mapowanie błędów). Zależności: `AppContext`/`get_ctx`.
+  Nowe endpointy akcji mają `actor_id` (RULES 44.1).
+- Asymetria frakcji/tech/kart = hooki (`core/rules_hooks.py`, `core/hooks/`), NIE `if faction == ...` w regule bazowej.
+- Punkty centralne (RULES 43.1a): płatność, TG, żetony, exhaust, kontrola planet, jednostki, technologie, VP mają JEDNĄ funkcję w `core/`;
+  wyjątki tylko z komentarzem `HOOK-CANDIDATE`.
+- Nowa mechanika: reguła w `rules/` => funkcja w `core/` + test => endpoint w `api/routers/`.
+- Rozmiar pliku to miękka wskazówka (~500 linii); dziel tematycznie, nie na siłę.
 
-Twilight jest złożony (frakcje/tech/karty łamią reguły bazowe) i dojdzie silnik AI —
-dlatego trzymamy ostry podział warstw, zależności tylko w dół:
-- **`core/`** — reguły gry jako CZYSTE funkcje nad `GameState` (`state -> state`). Zero
-  importów FastAPI/HTTP. Testowalne bez sieci. To jedyne źródło reguł — woła je i `api/`,
-  i przyszłe `ai/`.
-- **`api/`** — CIENKIE endpointy: odczyt stanu → wywołanie `core/` → commit/broadcast →
-  mapowanie błędów domenowych na HTTP. Żadnej logiki gry w endpointcie.
-- **`ai/`** (przyszłość) — decyzje bota; woła wyłącznie `core/`.
-- **Asymetria (frakcje/tech/karty)** = hooki w oknach silnika (`core/rules_hooks.py` przy
-  E7), NIE `if faction == ...` w regule bazowej.
-- Nowa mechanika: reguła → `RULES.md` ze źródłem → czysta funkcja w `core/` + test →
-  cienki endpoint w `api/routers/<temat>.py`.
-- **Punkty centralne (RULES.md 43.1a):** operacje, na które mogą wpływać karty/zdolności (płatność, TG/commodities,
-  żetony, exhaust, kontrola planet, zniszczenie/postawienie jednostek, zdobycie technologii, VP) mają JEDNĄ
-  funkcję w `core/`; nie zmieniaj tych pól stanu poza nią. Do końca H2 wyjątki → jedno nazwane miejsce
-  z komentarzem `HOOK-CANDIDATE`, nie `if faction == ...`. Kolejność prac: `docs/PLAN_PELNA_ROZGRYWKA.md`
-  („OSTATECZNY PLAN KOLEJNOŚCI"). Nowe endpointy akcji mają `actor_id` (RULES.md 44.1).
-- **Rozmiar plików to miękka wskazówka, nie twardy limit.** Spójny moduł do ok. 500 linii
-  jest w porządku. Dziel tematycznie, gdy plik zaczyna obejmować różne tematy albo nowa
-  funkcja otwiera nowy temat (np. jedna karta strategii = osobny plik). Nie dziel spójnego
-  modułu tylko po to, by zejść poniżej liczby. Istniejących dużych plików nie przerabiaj
-  na zapas; dziel je przy okazji większej zmiany w nim.
-- **Struktura API (po refaktorze):** `app.py` to cienka fabryka; endpointy w
-  `api/routers/*`; logika God-Mode w `core/board_edit.py`; współdzielone zależności w
-  `AppContext` (`api/context.py`, zależność `get_ctx`). Wzorzec routera: ARCHITEKTURA_KODU.md §4.
-  Przy E3 dodaj `core/tactical.py` + `api/routers/tactical.py`.
+## Kości
 
-## Rzuty kośćmi = fizyczna scena kości (decyzja 2026-11-09)
+Każdy rzut w UI to fizyczny d10 (scena 3D). Wynik liczy silnik. Rzut poza walką: w `core/` wołaj `dice.record_table_roll(...)`;
+własne okno: `HoldRollButton` + `soloHold` + `useDiceStage().throwDice`. Bez własnych animacji kostek. Przepis: `ARCHITEKTURA_KODU.md` §3a.1.
 
-- To planszówka: KAŻDY rzut kością w UI to fizyczny rzut d10 (bryła 3D, odbicia, dźwięk), a przycisk rzutu
-  można PRZYTRZYMAĆ, żeby zebrać kości w puli (widać ile ich) i puścić = rzut. Wynik zawsze liczy silnik.
-- Nowy rzut poza walką (karta akcji, relikt, przełom…): w `core/` po losowaniu wołaj
-  `dice.record_table_roll(...)` — `TableRollWatcher` sam pokaże kości i wynik. Okno z własnym przyciskiem rzutu:
-  `HoldRollButton` + `soloHold` + `useDiceStage().throwDice` (`frontend/src/domains/dice/`); wynik zależny od
-  rzutu odsłaniamy dopiero po `pauseMs`. NIE twórz własnych animacji kostki ani bannerów z cyframi.
-  Pełny przepis: `docs/ARCHITEKTURA_KODU.md` §3a.1. Pole bitwy ma wbudowany stół (`BattleOverlay`).
+## Karty
 
-## Cel: wszystkie karty gotowe + zagrywanie przeciąganiem (decyzja 2026-11-08)
+Cel: KOMPLET kart (akcji, agend, eksploracji, reliktów, notek, liderów, zdolności, technologii). Pipeline: `ARCHITEKTURA_KODU.md` §3a
+(RULES => `register_effect` => `register_effect_inputs` => zagrywalność => test => raport). Tekst karty z assetów. Karta zagrywana
+PRZECIĄGNIĘCIEM z ręki; podnieść można tylko kartę legalną (`action_cards.playability`). Postęp: `POKRYCIE_HOOKOW.md` (nie czytaj w całości).
 
-- Chcemy KOMPLET kart (karty akcji, agendy, eksploracja, relikty, promissory notes, liderzy, zdolności, technologie),
-  nie wybrane. Postęp: `docs/POKRYCIE_HOOKOW.md` (generowany: `uv run python -m src.audit.hook_coverage --write`).
-- Nowa karta = pełny potok z `docs/ARCHITEKTURA_KODU.md` §3a: RULES -> `register_effect` -> `register_effect_inputs`
-  -> zagrywalność -> test -> raport. Tekst karty zawsze z assetów, nigdy z pamięci.
-- Standard UX: kartę zagrywa się PRZECIĄGAJĄC ją z paska ręki na strefę zagrania; podnieść można tylko kartę, którą
-  silnik pozwala zagrać (`action_cards.playability`). Dotyczy też kolejnych rodzajów kart.
+## Workflow
 
-## Workflow i jakość kodu
-
-- Pracujemy blokami (jeden blok ≈ jedna sesja), granice tam gdzie coś jest
-  samodzielnie testowalne. Każdy blok kończy się: działającym kodem + testami +
-  aktualizacją `docs/PROGRESS.md` + commitem.
-- Po KAŻDEJ zmianie kodu uruchom pełny zestaw:
-  `uv run pytest -q` ; `uv run ruff check src tests` ; `uv run mypy src tests`.
-  Wszystko musi być zielone przed zakończeniem.
-- Komentarze, docstringi i dokumentację pisz po polsku (zgodnie z resztą projektu).
-- Git: **commituj zawsze**, gdy zadanie/krok jest ukończony i cały zestaw QA jest
-  zielony (pytest + ruff + mypy, a przy zmianach frontu także build). Nie czekaj na
-  osobną prośbę o commit. Jeden commit = jeden spójny, testowalny krok; wiadomość po
-  polsku, opisowa. Staguj konkretne pliki (nie `git add .`).
-- Nie wypychaj na zdalne repo (`git push`) bez wyraźnej zgody użytkownika.
+- Blok pracy = działający kod + testy + aktualizacja `docs/PROGRESS.md` (krótko, nowa sekcja na końcu) + commit.
+- Po zmianie kodu: `uv run pytest -q` ; `uv run ruff check src tests` ; `uv run mypy src tests` (+ build przy froncie). Wszystko zielone.
+- Komentarze, docstringi i dokumentacja po polsku.
+- Commituj po ukończonym kroku przy zielonym QA, wiadomość po polsku, staguj konkretne pliki (nie `git add .`).
+- Bez `git push` bez wyraźnej zgody.
