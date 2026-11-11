@@ -115,7 +115,17 @@ export function MovementStepPanel({
   useEffect(() => {
     if (!gravityDriveReady && gravityDrive) setGravityDrive(false);
   }, [gravityDriveReady, gravityDrive, setGravityDrive]);
-  const { data: moveRange } = useMoveRange(faction, Boolean(activeSystem), useGd);
+  // Ionian Fuel Refinery (Tempesta, RULES.md 60): osobny przełącznik, dostępny po wyczerpaniu
+  // karty po aktywacji systemu (`extraMoveBoostActive`), dopóki premia nie została zużyta.
+  const tempesta = useAppStore((s) => s.tempesta);
+  const setTempesta = useAppStore((s) => s.setTempesta);
+  const tempestaReady =
+    gameState?.extraMoveBoostActive === true && gameState?.tempestaUsed !== true;
+  const useTempesta = tempesta && tempestaReady;
+  useEffect(() => {
+    if (!tempestaReady && tempesta) setTempesta(false);
+  }, [tempestaReady, tempesta, setTempesta]);
+  const { data: moveRange } = useMoveRange(faction, Boolean(activeSystem), useGd, useTempesta);
   useEffect(() => {
     setMoveRangeSources(new Set(Object.keys(moveRange?.sources ?? {})));
     return () => setMoveRangeSources(new Set());
@@ -319,6 +329,17 @@ export function MovementStepPanel({
           checked={gravityDrive}
           onChange={(event) => setGravityDrive(event.currentTarget.checked)}
         />
+      )}
+      {tempestaReady && (
+        <Switch
+          label="Use Ionian Fuel Refinery"
+          description="+1 move for ONE ship this action (the ship that needs it)."
+          checked={tempesta}
+          onChange={(event) => setTempesta(event.currentTarget.checked)}
+        />
+      )}
+      {gameState?.extraMoveBoostActive === true && gameState?.tempestaUsed === true && (
+        <span className={styles.prodZoneLabel}>Ionian Fuel Refinery used this action</span>
       )}
       {(player?.techs ?? []).includes("gd") && gameState?.gravityDriveUsed === true && (
         <span className={styles.prodZoneLabel}>Gravity Drive used this action</span>

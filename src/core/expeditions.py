@@ -2,8 +2,8 @@
 
 Reguły: ``docs/rules_tirules/R_expedition.md``, ``R_breakthroughs.md``, ``R_fracture.md``
 (RULES.md 50). Zakres: KOSZTY i skutki układowe (zajęcie plastra, zdobycie przełomu, rzut na
-Fracture, położenie Thunder's Edge). Zdolności przełomów i legendarna zdolność Thunder's Edge
-NIE są kodowane — to osobny etap.
+Fracture, położenie Thunder's Edge). Zdolności przełomów NIE są kodowane — to osobny etap;
+legendarna zdolność Thunder's Edge (Jupiter Brain) jest w ``core/hooks/planets_legendary.py``.
 
 Funkcje zwracają NOWY ``GameState`` (klon) albo rzucają ``ValueError`` (HTTP 422).
 """

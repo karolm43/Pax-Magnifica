@@ -534,6 +534,7 @@ export function useBoardEditor() {
       await post("/tactical/move", {
         fromPosition: args.fromPosition,
         gravityDrive: useAppStore.getState().gravityDrive,
+        tempesta: useAppStore.getState().tempesta,
         baseType: args.baseType ?? null,
         count: args.baseType ? (args.count ?? 1) : 0,
         faction: args.faction,
@@ -1307,13 +1308,14 @@ export function useMoveRange(
   faction: string | null,
   enabled: boolean,
   gravityDrive = false,
+  tempesta = false,
 ) {
   return useQuery<MoveRange>({
-    queryKey: ["moveRange", faction, gravityDrive],
+    queryKey: ["moveRange", faction, gravityDrive, tempesta],
     enabled: enabled && faction !== null,
     queryFn: async () =>
       fetchJson<MoveRange>(
-        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}&gravity_drive=${gravityDrive}`,
+        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}&gravity_drive=${gravityDrive}&tempesta=${tempesta}`,
         "moveRange",
       ),
     staleTime: 0,

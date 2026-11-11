@@ -51,6 +51,7 @@ import { useDeskPlayer } from "./useDeskPlayer";
 import { TransactionModal } from "./TransactionModal";
 import { ActionCardPlayModal } from "./ActionCardPlayModal";
 import { TechnologyUseModal } from "./TechnologyUseModal";
+import { LegendaryUseModal } from "./LegendaryUseModal";
 import { useTechnologyAbilities } from "@/api/useTechnology";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import styles from "./TurnControls.module.css";
@@ -77,6 +78,7 @@ const COMPONENT_KIND_ICON: Record<
   leader: IconUserStar,
   technology: IconFlask,
   relic: IconDiamond,
+  legendary: IconDiamond,
 };
 
 /* Initiative → barwa karty (fallback glow, gdy brak colourHexCode w danych). */
@@ -150,6 +152,8 @@ export function TurnControls() {
   const [playingCard, setPlayingCard] = useState<ComponentActionChoice | null>(null);
   // Technologia wybrana do użycia (akcja „ACTION:" albo zdolność poza akcją) - RULES.md 57.
   const [usingTech, setUsingTech] = useState<{ id: string; name: string } | null>(null);
+  // Karta zdolności legendarnej planety z „ACTION:" wybrana do użycia (RULES.md 60.3).
+  const [usingLegendary, setUsingLegendary] = useState<{ id: string; name: string } | null>(null);
   // Okno transakcji (RULES.md 47): wymiana z sąsiadem + żetony obietnic.
   const [transactionOpen, setTransactionOpen] = useState(false);
   // Ekspedycja Thunder's Edge (RULES.md 50): zajęcie plastra na koniec tury.
@@ -690,6 +694,17 @@ export function TurnControls() {
         />
       )}
 
+      {usingLegendary && active.discordId && (
+        <LegendaryUseModal
+          key={usingLegendary.id}
+          planetId={usingLegendary.id}
+          abilityName={usingLegendary.name}
+          playerId={active.discordId}
+          onClose={() => setUsingLegendary(null)}
+          onDone={() => setUsingLegendary(null)}
+        />
+      )}
+
       {playingCard && active.discordId && (
         <ActionCardPlayModal
           key={`${playingCard.kind}:${playingCard.id}`}
@@ -760,6 +775,12 @@ export function TurnControls() {
                     if (choice.kind === "action-card" || choice.kind === "relic") {
                       setComponentOpen(false);
                       setPlayingCard(choice);
+                      return;
+                    }
+                    // Legendarna planeta (np. The Nucleus): formularz wyborów, silnik stosuje efekt.
+                    if (choice.kind === "legendary") {
+                      setComponentOpen(false);
+                      setUsingLegendary({ id: choice.id, name: choice.name });
                       return;
                     }
                     // Technologia: gracz wybiera cele w formularzu, silnik stosuje efekt.

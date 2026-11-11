@@ -58,6 +58,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "relic_fragments",
         "relics",
         "exhausted_relics",
+        "exhausted_legendaries",
     }
 )
 

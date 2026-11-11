@@ -22,7 +22,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
-from src.core import exhaust, rules_hooks, timing, triggers, unit_ops
+from src.core import exhaust, legendary_planets, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll, roll_dice
 from src.core.game_events import GameEvent, Moment
@@ -175,6 +175,26 @@ def _system_shooters(
                     deep=deep,
                 )
             )
+    # Custodian's Favour (Custodia Vigilia): kontrolowany Mecatol Rex sam dostaje SPACE CANNON.
+    # To nie jednostka, więc strzelec to „grupa" z id planety w roli typu i strefy.
+    mecatol = legendary_planets.mecatol_grants_planet(state, player_id, position)
+    cannon = legendary_planets.favour_space_cannon(registry)
+    if mecatol is not None and cannon is not None:
+        favour = registry.planets[legendary_planets.CUSTODIAN_FAVOUR_PLANET]
+        shooters.append(
+            SpaceCannonShooter(
+                player_id=player_id,
+                base_type=mecatol,
+                unit_id=favour.id,
+                name=favour.legendary_ability_name or favour.name,
+                count=1,
+                hits_on=cannon[0],
+                dice_per_unit=cannon[1],
+                position=position,
+                zone=mecatol,
+                deep=False,
+            )
+        )
     return shooters
 
 

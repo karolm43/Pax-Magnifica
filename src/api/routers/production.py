@@ -44,12 +44,19 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
     producers = []
     for p in production.producers(state, registry, player_id, position):
         variant = invasion.unit_variant(state, registry, player_id, p.base_type)
+        # Producent może być planetą z darem legendarnym (Mecatol Rex po Custodian's Favour).
+        planet = registry.planets.get(p.base_type)
+        fallback = (
+            (planet.legendary_ability_name if planet is not None else None)
+            or (planet.name if planet is not None else None)
+            or p.base_type
+        )
         producers.append(
             {
                 "zone": p.zone,
                 "baseType": p.base_type,
                 "asyncId": ASYNC_ID_BY_BASE_TYPE.get(p.base_type, p.base_type),
-                "name": variant.name if variant is not None else p.base_type,
+                "name": variant.name if variant is not None else fallback,
                 "count": p.count,
                 "value": p.value,
                 "perUnit": p.per_unit,

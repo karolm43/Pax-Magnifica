@@ -105,6 +105,7 @@ async def post_tactical_move(
             cargo,
             player_id,
             gravity_drive=request.gravity_drive,
+            tempesta=request.tempesta,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -356,7 +357,10 @@ async def post_capture_planet(
     response_model_by_alias=True,
 )
 async def get_move_range(
-    faction: str, gravity_drive: bool = False, ctx: AppContext = Depends(get_ctx)
+    faction: str,
+    gravity_drive: bool = False,
+    tempesta: bool = False,
+    ctx: AppContext = Depends(get_ctx),
 ) -> MoveRangeResponse:
     """Podgląd zasięgu ruchu: legalne systemy źródłowe do aktywnego (RULES.md 32).
 
@@ -367,7 +371,8 @@ async def get_move_range(
     state = ctx.service.current_state()
     player_id = board_edit.resolve_player_id(faction, state)
     sources = movement.legal_move_sources(
-        state, ctx.current_grid, ctx.registry, player_id, gravity_drive=gravity_drive
+        state, ctx.current_grid, ctx.registry, player_id,
+        gravity_drive=gravity_drive, tempesta=tempesta,
     )
     return MoveRangeResponse(active=state.active_system, sources=sources)
 

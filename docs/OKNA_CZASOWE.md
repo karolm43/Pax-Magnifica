@@ -32,6 +32,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `strategy.cards_returned` | Karty strategii wracają na stół (status). | 1 | when×1 | action_cards×1 | — |
 | `strategy.action` | Akcja strategiczna / jej ability primary-secondary. | 5 | when×4, after×1 | action_cards×1, promissory_notes×1, abilities×1, technologies×1, breakthroughs×1 | `strategic_action` |
 | `strategy.token_spent` | Żeton z puli strategicznej wydany na secondary. | 4 | when×3, after×1 | leaders×2, relics×1, abilities×1 | `strategic_action.resolve_secondary` |
+| `strategy.imperial_victory_point` | Punkt zwycięstwa z drugiej klauzuli Imperial (kontrola Mecatol Rex). | 0 | — | — | `strategy_cards.imperial` |
 | `tactical.action` | Akcja taktyczna (początek/koniec). | 8 | after×3, end×3, during×2 | abilities×3, leaders×2, relics×1, promissory_notes×1, technologies×1 | `tactical.end_tactical_action` |
 | `tactical.system_activated` | System aktywowany. | 36 | after×30, when×6 | action_cards×14, technologies×7, leaders×5, abilities×4, promissory_notes×3, breakthroughs×3 | `tactical.activate_system` |
 | `tactical.ships_moved` | Statki weszły do aktywnego systemu. | 14 | after×11, before×1, end×1, when×1 | leaders×6, action_cards×2, relics×1, promissory_notes×1, explores×1, galactic_events×1, abilities×1, technologies×1 | `movement.move_ships` |
@@ -85,7 +86,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.repeal_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **66**, emitowanych przez silnik: **45**. Potrzebne komponentom, a jeszcze nie emitowane: **16**.
+Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **46**. Potrzebne komponentom, a jeszcze nie emitowane: **16**.
 
 Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `component.exhausted`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 

@@ -49,6 +49,7 @@ from src.api.routers import (
     hold,
     invasion,
     offers,
+    planet_ability,
     players,
     production,
     relics,
@@ -318,6 +319,7 @@ def create_app(
     app.include_router(components.router)
     app.include_router(action_cards.router)
     app.include_router(relics.router)
+    app.include_router(planet_ability.router)
     app.include_router(frontier_cards.router)
     app.include_router(hold.router)
     app.include_router(offers.router)

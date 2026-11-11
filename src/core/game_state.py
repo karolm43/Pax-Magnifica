@@ -531,6 +531,9 @@ class PlayerState(BaseModel):
     frontier_cards: list[str] = Field(default_factory=list)
     # Relikty WYCZERPANE (exhaust) - gotowy = posiadany, którego tu nie ma. Odświeżane w statusie.
     exhausted_relics: list[str] = Field(default_factory=list)
+    # Karty zdolności legendarnych planet WYCZERPANE (id planety). Wyczerpują się i odświeżają
+    # NIEZALEŻNIE od karty planety (R_legendary_planets); odświeżane w statusie, krok 6.
+    exhausted_legendaries: list[str] = Field(default_factory=list)
 
     # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
     # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).
@@ -875,6 +878,9 @@ class BonusTurn(BaseModel):
     player: str
     resume_player: str | None = None
     resume_window: TurnEndWindow | None = None
+    # Czy po bonusowej akcji gracz wraca do stanu „spasował" (Puppets on a String) - dla gracza,
+    # który NIE spasował (Jupiter Brain), flaga ``passed`` zostaje fałszywa.
+    restore_passed: bool = True
 
 
 class GameState(BaseModel):
@@ -907,6 +913,9 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej zużyto już „+1 do ruchu dla jednego statku" (Gravity Drive,
     # RULES.md 55.6). Zerowane przy aktywacji i zakończeniu akcji.
     gravity_drive_used: bool = False
+    # Czy w tej akcji taktycznej zużyto już „+1 do ruchu dla jednego statku" z Ionian Fuel
+    # Refinery (Tempesta, RULES.md 60). Osobne od Gravity Drive; zerowane jak ono.
+    tempesta_used: bool = False
     # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
     # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
     tactical_moved: bool = False
@@ -984,6 +993,10 @@ class GameState(BaseModel):
     # Karty eksploracji PRZYCZEPIONE do planet (attach): {planet_id: [card_id, ...]}. Zostają
     # przy planecie niezależnie od zmiany kontroli (R_attach).
     planet_attachments: dict[str, list[str]] = Field(default_factory=dict)
+
+    # Karty akcji leżące jawnie NA karcie zdolności legendarnej planety: {planet_id: [card_id]}
+    # (Dok 'N Pic's Salvage Yard na Garbozii). Zostają przy karcie, gdy zmienia ona kontrolera.
+    legendary_cards: dict[str, list[str]] = Field(default_factory=dict)
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

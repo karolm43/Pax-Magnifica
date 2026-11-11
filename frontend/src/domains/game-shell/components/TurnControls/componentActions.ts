@@ -28,7 +28,8 @@ export type ComponentActionKind =
   | "ability"
   | "leader"
   | "technology"
-  | "relic";
+  | "relic"
+  | "legendary";
 
 export type ComponentActionChoice = {
   id: string;
@@ -43,6 +44,7 @@ export const KIND_LABEL: Record<ComponentActionKind, string> = {
   leader: "Leader",
   technology: "Technology",
   relic: "Relic",
+  legendary: "Legendary planet",
 };
 
 /** Nagłówek „Action" w dowolnym polu tekstowym komponentu (start linii lub „ACTION:"). */
@@ -108,6 +110,10 @@ export function collectComponentActions(
       if (relic && textHasAction(relic.text)) {
         push("relic", id, relic.name ?? id);
       }
+    }
+    // Karty zdolności legendarnych planet z „ACTION:" (id = id planety; RULES.md 60).
+    for (const ability of player.legendaryAbilities ?? []) {
+      if (ability.kind === "action") push("legendary", ability.planet, ability.name);
     }
   }
 

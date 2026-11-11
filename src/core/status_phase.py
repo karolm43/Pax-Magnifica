@@ -379,6 +379,7 @@ def finalize_status(state: GameState, registry: StaticDataRegistry) -> GameState
         exhaust.ready_all_planets(state, player_id)
         exhaust.ready_all_technologies(state, player_id)
         exhaust.ready_all_relics(state, player_id)
+        exhaust.ready_all_legendaries(state, player_id)
         exhaust.ready_all_strategy_cards(state, player_id)
         exhaust.ready_breakthrough(state, player_id)
         exhaust.ready_all_leaders(state, player_id)

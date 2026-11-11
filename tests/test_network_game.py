@@ -361,7 +361,8 @@ def test_network_setup_secrets_are_simultaneous_and_private(registry: StaticData
     assert setup["candidatesFor"] == "p2"
     assert setup["candidates"] == cards["p2"]
     assert setup["pending"] == ["p1", "p2"]
-    assert all(card not in str(doc) for card in cards["p1"])
+    # Id kart bywają krótkie ("te", "pe"), więc szukamy całego tokenu w cudzysłowie, nie podciągu.
+    assert all(f"'{card}'" not in str(doc) for card in cards["p1"])
     assert {a["playerId"]: a["reason"] for a in doc["awaiting"]} == {
         "p1": "secret",
         "p2": "secret",

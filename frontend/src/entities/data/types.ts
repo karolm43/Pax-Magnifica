@@ -556,6 +556,10 @@ export type GameState = {
    */
   /** Zużyto już premię Gravity Drive w tej akcji taktycznej (RULES.md 55.6). */
   gravityDriveUsed?: boolean;
+  /** Aktywny gracz ma w tej akcji premię „+1 do ruchu jednego statku" z karty (Ionian Fuel Refinery). */
+  extraMoveBoostActive?: boolean;
+  /** Zużyto już premię Ionian Fuel Refinery w tej akcji taktycznej. */
+  tempestaUsed?: boolean;
   pendingOffers?: { id: string; playerId: string; mandatory: boolean; label: string }[];
   /** Wieloetapowe primary karty strategii (wybory aktywnego gracza) — null, gdy brak. */
   pendingStrategy?: PendingStrategy | null;
@@ -835,6 +839,16 @@ export type PlotCard = {
   factions: string[];
 };
 
+/** Karta zdolności legendarnej planety w strefie gracza (RULES.md 60). */
+export type LegendaryAbility = {
+  planet: string;
+  name: string;
+  text: string;
+  /** `action` = „ACTION:" (akcja komponentu); `passive` = oferty w oknie decyzji. */
+  kind: "action" | "passive";
+  exhausted: boolean;
+};
+
 export type PlayerData = {
   breakthrough?: BreakthroughData;
   plotCards?: PlotCard[];
@@ -919,6 +933,8 @@ export type PlayerData = {
   /** Karty frontier leżące u gracza (Enigmatic Device) - w ręce, zakładka Action cards. */
   frontierCards?: string[];
   exhaustedRelics: string[];
+  /** Karty zdolności legendarnych planet gracza (RULES.md 60). */
+  legendaryAbilities?: LegendaryAbility[];
   leaders: Leader[];
   leaderIDs: string[];
   secretsScored: Record<string, number>;

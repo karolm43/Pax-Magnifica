@@ -96,6 +96,23 @@ def take_from_discard(state: GameState, player_id: str, card_id: str) -> None:
     state.players[player_id].private.action_cards.append(card_id)
 
 
+def place_on_legendary_card(state: GameState, planet_id: str, card_id: str) -> None:
+    """Przenosi kartę akcji ze stosu odrzuconych NA kartę zdolności legendarnej (jawnie; mutuje).
+
+    Dok 'N Pic's Salvage Yard (Garbozia): karta leży na karcie zdolności, nie liczy się do limitu
+    ręki i zostaje przy niej, gdy karta zmienia kontrolera (``GameState.legendary_cards``).
+
+    Raises:
+        ValueError: Karty nie ma na stosie odrzuconych.
+    """
+    discard = state.decks.action_card_discard
+    if card_id not in discard:
+        raise ValueError(f"The action card {card_id} is not in the discard pile.")
+    index = len(discard) - 1 - discard[::-1].index(card_id)
+    discard.pop(index)
+    state.legendary_cards[planet_id] = [*state.legendary_cards.get(planet_id, []), card_id]
+
+
 def transfer_action_card(state: GameState, from_id: str, to_id: str, card_id: str) -> None:
     """Przenosi WSKAZANĄ kartę akcji z ręki ``from_id`` do ręki ``to_id`` (mutuje).
 

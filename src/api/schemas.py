@@ -685,6 +685,8 @@ class MoveShipsRequest(BaseModel):
     cargo: list[MoveCargoItem] = Field(default_factory=list)
     # Gracz ŚWIADOMIE używa Gravity Drive (+1 do ruchu jednego statku w tej akcji).
     gravity_drive: bool = Field(default=False, alias="gravityDrive")
+    # Gracz ŚWIADOMIE używa Ionian Fuel Refinery (+1 do ruchu jednego statku w tej akcji).
+    tempesta: bool = False
 
 class MoveRangeResponse(BaseModel):
     """Podgląd zasięgu ruchu (RULES.md 32): legalne systemy źródłowe do aktywnego.

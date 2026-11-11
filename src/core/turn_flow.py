@@ -15,6 +15,7 @@ from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
     AgendaStep,
+    BonusTurn,
     GameState,
     Phase,
     StatusPhaseState,
@@ -283,6 +284,33 @@ def end_turn(
     return new_state
 
 
+def begin_bonus_action(state: GameState, player_id: str) -> None:
+    """Zaczyna dodatkową akcję gracza tuż po końcu tury (Puppets on a String, Jupiter Brain).
+
+    MUTUJE ``state`` (klon). Gracz zostaje aktywny, wykonuje JEDNĄ akcję, a ``end_turn`` oddaje
+    turę temu, kto miał ją zacząć (pauza ``turn_end_window`` wraca sprzed bonusu). Na czas akcji
+    ``passed=False`` (silnik blokuje akcje spasowanych); po niej flaga wraca do stanu sprzed
+    bonusu (``BonusTurn.restore_passed``).
+
+    Raises:
+        ValueError: Brak pauzy po końcu tury albo trwa już dodatkowa akcja.
+    """
+    window = state.turn_end_window
+    if window is None or state.bonus_turn is not None:
+        raise ValueError("You can only perform the extra action right after a turn.")
+    player = state.players[player_id]
+    state.bonus_turn = BonusTurn(
+        player=player_id,
+        resume_player=window.next_player,
+        resume_window=window.model_copy(),
+        restore_passed=player.passed,
+    )
+    player.passed = False
+    action_budget.reset_turn(state, player_id)  # zeruje też ślad pauzy (zapisany w bonus_turn)
+    player.transacted_with = []
+    state.active_player_id = player_id
+
+
 def _finish_bonus_turn(state: GameState, player_id: str) -> GameState:
     """Kończy dodatkową akcję spasowanego gracza (Puppets on a String) i wraca do kolejki.
 
@@ -293,7 +321,7 @@ def _finish_bonus_turn(state: GameState, player_id: str) -> GameState:
     bonus = state.bonus_turn
     assert bonus is not None
     state.bonus_turn = None
-    state.players[player_id].passed = True
+    state.players[player_id].passed = bonus.restore_passed
     resume = bonus.resume_player
     if resume is None or resume not in state.players or state.players[resume].passed:
         resume = next_unpassed_player(state, player_id)

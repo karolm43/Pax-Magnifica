@@ -25,6 +25,7 @@ from typing import Any
 from src.core import (
     action_budget,
     card_hold,
+    planet_abilities,
     relic_actions,
     rules_hooks,
     technology_abilities,
@@ -97,15 +98,17 @@ def play_component_action(
     if component_id and registry is not None and run_effect:
         from src.core import frontier_cards  # lokalnie: frontier_cards importuje ten moduł
 
-        if not technology_abilities.run_action_effect(
-            new_state, registry, active_id, component_id, dict(params or {})
+        action_params = dict(params or {})
+        if not planet_abilities.run_action_effect(
+            new_state, registry, active_id, component_id, action_params
+        ) and not technology_abilities.run_action_effect(
+            new_state, registry, active_id, component_id, action_params
+        ) and not relic_actions.run_action_effect(
+            new_state, registry, active_id, component_id, action_params
         ):
-            if not relic_actions.run_action_effect(
-                new_state, registry, active_id, component_id, dict(params or {})
-            ):
-                frontier_cards.run_action_effect(
-                    new_state, registry, active_id, component_id, dict(params or {})
-                )
+            frontier_cards.run_action_effect(
+                new_state, registry, active_id, component_id, action_params
+            )
     if fire_after:
         triggers.fire(
             new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=active_id,

@@ -75,6 +75,8 @@ class GameEvent(StrEnum):
     STRATEGY_CARDS_RETURNED = "strategy.cards_returned"
     STRATEGIC_ACTION = "strategy.action"  # ctx: ability = primary | secondary, card
     STRATEGY_TOKEN_SPENT = "strategy.token_spent"
+    # Gracz zdobył punkt zwycięstwa drugą klauzulą Imperial (kontrola Mecatol Rex) - ctx: player.
+    IMPERIAL_VICTORY_POINT = "strategy.imperial_victory_point"
     # --- akcja taktyczna / ruch ---
     TACTICAL_ACTION = "tactical.action"
     SYSTEM_ACTIVATED = "tactical.system_activated"
@@ -185,6 +187,11 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "Gracz wybiera kartę strategii (faza strategii).",
         ("player", "initiative"),
         "strategy_phase.pick_strategy_card",
+    ),
+    GameEvent.IMPERIAL_VICTORY_POINT: EventInfo(
+        "Punkt zwycięstwa z drugiej klauzuli Imperial (kontrola Mecatol Rex).",
+        ("player",),
+        "strategy_cards.imperial",
     ),
     GameEvent.STRATEGY_CARDS_RETURNED: EventInfo(
         "Karty strategii wracają na stół (status).", ("player",)

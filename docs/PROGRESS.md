@@ -588,6 +588,19 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   `PROJEKT_KARTY_STRATEGII.md` (zrealizowany), `docs/README.md` (QA frontu przez `tsc -p tsconfig.app.json`,
   brakujące moduły w mapie), `ARCHITEKTURA_KODU.md` §4 (32 routery), `ARCHITEKTURA_PO_MIGRACJI.md` (baner daty).
 - **Raporty generowane odświeżone:** `OKNA_CZASOWE.md` (emitowane zdarzenia 41 → 45); `POKRYCIE_HOOKOW.md` bez zmian.
+## 2026-11-11 (13) — Zdolności legendarnych planet + relikt za planetę w The Fracture (RULES.md 60)
+- **Karty zdolności legendarnych** (`SOURCE_PLANET`, `ComponentCategory.PLANET`): wyczerpanie niezależne od karty planety
+  (`PlayerState.exhausted_legendaries`, status krok 6, karta jedzie z planetą w `control.set_planet_control`).
+  Hooki w `core/hooks/planets_legendary.py`: Mallice, Flight Academy x3, Hope's End, Primor, Emelpar, Mecatol (Galactic
+  Council), Faunus, Garbozia (tylko kładzenie karty), Industrex, Ordinian x2, Styx, Tempesta, Thunder's Edge (przełom + dodatkowa
+  akcja przez `turn_flow.begin_bonus_action`), Avernus (ACTION, `core/planet_abilities.py`), Custodia Vigilia (Mecatol ma
+  SPACE CANNON/PRODUCTION: `space_cannon`, `production.producers`; 2 żetony przy VP z Imperial: zdarzenie `IMPERIAL_VICTORY_POINT`).
+- **Fracture:** relikt za pierwszą kontrolę planety `frac*` działał tylko z jawnym `registry`; teraz `control` bierze rejestr
+  z `rules_hooks.bound_registry` (lądowanie, produkcja, ręczne przejęcie).
+- **UI:** `LegendaryUseModal` (ACTION w „Play a component action"), przełącznik „+1 do ruchu" także dla Tempesta,
+  `web-data` `legendaryAbilities` i `extraMoveBoostActive`; `GET /planet-ability/{id}/form`.
+- ⚠ Luki: granie kart akcji z Garbozii, zwykły STAR FORGE Muaat, karty legendarne nie są jeszcze widoczne w panelu gracza
+  (oferty i lista akcji działają). Testy: `tests/test_legendary_planets.py` (30).
 ## 2026-11-11 (14) — Zoom mapy kółkiem, karty strategii na małych ekranach, „Report bug”
 - **Zoom:** Ctrl + kółko (i pinch touchpada) zoomuje MAPĘ wokół kursora (`useWheelZoom`), `0` = dopasuj planszę,
   `_` jako zoom out (PL klawiatura); `+`/`=`/`-` bez zmian. Wpisy w oknie skrótów.

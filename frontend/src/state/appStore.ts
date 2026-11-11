@@ -205,6 +205,9 @@ type AppStore = {
    */
   gravityDrive: boolean;
   setGravityDrive: (on: boolean) => void;
+  /** Gracz świadomie używa Ionian Fuel Refinery (+1 do ruchu jednego statku, RULES.md 60). */
+  tempesta: boolean;
+  setTempesta: (on: boolean) => void;
 
   /*
    * Okno ZAŁADUNKU transportu (krok MOVEMENT, RULES.md 32.3). Gdy ustawione, otwarte
@@ -402,6 +405,8 @@ export const useAppStore = create<AppStore>((set) => {
       set({ moveRangeSources: positions }),
     gravityDrive: false,
     setGravityDrive: (on: boolean) => set({ gravityDrive: on }),
+    tempesta: false,
+    setTempesta: (on: boolean) => set({ tempesta: on }),
 
     loadTransport: null,
     openLoadTransport: (target) => set({ loadTransport: target }),

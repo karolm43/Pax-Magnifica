@@ -61,6 +61,7 @@ class ComponentCategory(StrEnum):
     DECK = "decks"
     # Kategorie już obecne w StaticDataRegistry (tylko do adresowania).
     FACTION = "factions"
+    PLANET = "planets"  # tylko legendarne zdolności planet (RULES.md 60)
     LEADER = "leaders"
     ABILITY = "abilities"
     TECHNOLOGY = "technologies"

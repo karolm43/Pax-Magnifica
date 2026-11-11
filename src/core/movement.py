@@ -213,6 +213,7 @@ def can_move(
     player_id: str,
     *,
     boost: bool = False,
+    tempesta: bool = False,
 ) -> tuple[bool, str]:
     """Sprawdza, czy ruch stosu ``base_type`` ze ``from_pos`` do aktywnego jest legalny.
 
@@ -252,7 +253,7 @@ def can_move(
     # które w ogóle się poruszają (kontrola wyżej).
     move_value = rules_hooks.modify(
         rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
-        {"base_type": base_type, "boost": boost},
+        {"base_type": base_type, "boost": boost, "tempesta": tempesta},
     )
 
     # R3: start nie z własnym CC (wyjątek: aktywny system).
@@ -381,6 +382,7 @@ def legal_move_sources(
     player_id: str,
     *,
     gravity_drive: bool = False,
+    tempesta: bool = False,
 ) -> dict[str, list[str]]:
     """Mapa {pozycja źródłowa -> lista base_type statków, które mogą ruszyć stamtąd}.
 
@@ -410,6 +412,7 @@ def legal_move_sources(
             ok, _ = can_move(
                 state, grid, registry, position, base_type, player_id,
                 boost=gravity_drive and not state.gravity_drive_used,
+                tempesta=tempesta and not state.tempesta_used,
             )
             if ok:
                 movable.append(base_type)
@@ -439,6 +442,7 @@ def move_fleet(
     player_id: str,
     *,
     gravity_drive: bool = False,
+    tempesta: bool = False,
 ) -> GameState:
     """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
 
@@ -487,20 +491,35 @@ def move_fleet(
     # gracza (``gravity_drive=True``), tylko tam, gdzie bez niej ruch jest nielegalny, i nie
     # dla grupy większej niż 1.
     boost_spent = state.gravity_drive_used
+    tempesta_spent = state.tempesta_used
     for base_type, count in ships.items():
         ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
         if not ok:
-            boosted_ok, _ = can_move(
-                state, grid, registry, from_pos, base_type, player_id,
-                boost=gravity_drive and not boost_spent,
+            # Premie to osobne zdolności (Gravity Drive, Ionian Fuel Refinery): próbujemy
+            # pojedynczą, potem obie naraz; zużywa się tylko to, co było potrzebne.
+            can_gd = gravity_drive and not boost_spent
+            can_tp = tempesta and not tempesta_spent
+            chosen = next(
+                (
+                    (gd, tp)
+                    for gd, tp in ((True, False), (False, True), (True, True))
+                    if (can_gd or not gd)
+                    and (can_tp or not tp)
+                    and can_move(
+                        state, grid, registry, from_pos, base_type, player_id,
+                        boost=gd, tempesta=tp,
+                    )[0]
+                ),
+                None,
             )
-            if not boosted_ok:
+            if chosen is None:
                 raise ValueError(reason)
             if count != 1:
                 raise ValueError(
-                    f"{reason} Gravity Drive extends the move of only 1 ship per action."
+                    f"{reason} A +1 move bonus extends the move of only 1 ship per action."
                 )
-            boost_spent = True
+            boost_spent = boost_spent or chosen[0]
+            tempesta_spent = tempesta_spent or chosen[1]
         available = _available_in_zone(source, player_id, base_type, "space")
         if available < count:
             raise ValueError(
@@ -564,6 +583,7 @@ def move_fleet(
 
     new_state = state.clone()
     new_state.gravity_drive_used = boost_spent
+    new_state.tempesta_used = tempesta_spent
     src = new_state.systems.get(from_pos)
     assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
 

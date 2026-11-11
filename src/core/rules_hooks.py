@@ -135,6 +135,8 @@ SOURCE_RELIC = "relic"  # relikt przed graczem (PlayerState.relics)
 SOURCE_LEADER = "leader"  # lider odblokowany lub gotowy (stan domyślny z danych frakcji)
 SOURCE_BREAKTHROUGH = "breakthrough"  # odblokowany przełom frakcji
 SOURCE_EFFECT = "effect"  # efekt trwały z magazynu (GameState.active_effects)
+# Legendarna planeta kontrolowana przez gracza (karta zdolności legendarnej, RULES.md 60).
+SOURCE_PLANET = "planet"
 
 
 class HookKind(Enum):
@@ -474,6 +476,19 @@ def _registry_sources(player: Any) -> set[HookSource]:
     return sources
 
 
+def _legendary_sources(player: Any) -> set[HookSource]:
+    """Karty zdolności legendarnych planet, które gracz ma (kontroluje ich planety)."""
+    registry = _BOUND_REGISTRY
+    if registry is None:
+        return set()
+    sources: set[HookSource] = set()
+    for planet_id in player.controlled_planets:
+        planet = registry.planets.get(planet_id)
+        if planet is not None and planet.legendary_ability_name:
+            sources.add(HookSource(SOURCE_PLANET, planet_id))
+    return sources
+
+
 def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     """Źródła wyjątków gracza (RULES.md 54).
 
@@ -492,6 +507,7 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     sources: set[HookSource] = {HookSource(SOURCE_TECHNOLOGY, t) for t in player.technologies}
     sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
     sources.update(HookSource(SOURCE_RELIC, r) for r in player.relics)
+    sources.update(_legendary_sources(player))
     sources.update(HookSource(SOURCE_AGENDA, law) for law in state.decks.agenda_laws)
     sources.update(
         HookSource(SOURCE_EFFECT, e.key)

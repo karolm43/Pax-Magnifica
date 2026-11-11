@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import objective_progress, objectives
+from src.core import objective_progress, objectives, triggers
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.map_string import MECATOL_SYSTEM_ID
 from src.core.secret_objectives import draw as draw_secret
@@ -70,6 +71,10 @@ def _on_step(
     if controls_mecatol(state, owner_id):
         objectives.award_points(state, owner_id, 1)
         draft["gained"] = "victory_point"
+        triggers.fire(
+            state, GameEvent.IMPERIAL_VICTORY_POINT, Moment.AFTER, subject=owner_id,
+            ctx={"player": owner_id},
+        )
     else:
         draw_secret(state, owner_id, give_back)
         draft["gained"] = "secret_objective"

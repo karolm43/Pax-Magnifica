@@ -29,6 +29,7 @@ def _exists(registry: StaticDataRegistry, key: str) -> bool:
         ComponentCategory.BREAKTHROUGH: registry.breakthroughs,
         ComponentCategory.FACTION: registry.factions,
         ComponentCategory.UNIT: registry.units,
+        ComponentCategory.PLANET: registry.planets,
     }
     pool = pools.get(category)
     if pool is not None:

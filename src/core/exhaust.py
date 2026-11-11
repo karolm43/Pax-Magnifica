@@ -75,6 +75,13 @@ def exhaust_leader(state: GameState, player_id: str, leader_id: str) -> None:
     player.leader_states = {**player.leader_states, leader_id: "exhausted"}
 
 
+def ready_leader(state: GameState, player_id: str, leader_id: str) -> None:
+    """Odświeża jednego wyczerpanego lidera (``exhausted`` -> ``unlocked``); inny stan bez zmian."""
+    player = _player(state, player_id)
+    if player.leader_states.get(leader_id) == "exhausted":
+        player.leader_states = {**player.leader_states, leader_id: "unlocked"}
+
+
 def ready_all_leaders(state: GameState, player_id: str) -> None:
     """Odświeża wyczerpanych liderów (``exhausted`` -> ``unlocked``); pozostałe bez zmian."""
     player = _player(state, player_id)
@@ -110,6 +117,24 @@ def ready_technology(state: GameState, player_id: str, tech_id: str) -> None:
 def ready_all_technologies(state: GameState, player_id: str) -> None:
     """Odświeża wszystkie technologie gracza (faza statusu, krok 6)."""
     _player(state, player_id).exhausted_technologies = []
+
+
+def exhaust_legendary(state: GameState, player_id: str, planet_id: str) -> None:
+    """Wyczerpuje kartę zdolności legendarnej planety (niezależnie od karty planety)."""
+    player = _player(state, player_id)
+    if planet_id not in player.exhausted_legendaries:
+        player.exhausted_legendaries = [*player.exhausted_legendaries, planet_id]
+
+
+def ready_legendary(state: GameState, player_id: str, planet_id: str) -> None:
+    """Odświeża jedną kartę zdolności legendarnej (efekty „odśwież planetę" jej NIE ruszają)."""
+    player = _player(state, player_id)
+    player.exhausted_legendaries = [p for p in player.exhausted_legendaries if p != planet_id]
+
+
+def ready_all_legendaries(state: GameState, player_id: str) -> None:
+    """Odświeża wszystkie karty zdolności legendarnych gracza (faza statusu, krok 6)."""
+    _player(state, player_id).exhausted_legendaries = []
 
 
 def exhaust_relic(state: GameState, player_id: str, relic_id: str) -> None:

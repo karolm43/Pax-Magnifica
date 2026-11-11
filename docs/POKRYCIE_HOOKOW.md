@@ -5,7 +5,7 @@ Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja
 
 ## 1. Zarejestrowane hooki
 
-Razem: **93**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **114**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -53,16 +53,36 @@ Razem: **93**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:phase:start` | TRIGGER | technology:td | technologies:td | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
 | `event:planet.control_gained:after` | TRIGGER | technology:ie | technologies:ie | Integrated Economy: po zdobyciu planety możesz wyprodukować dowolną liczbę jednostek |
 | `event:planet.control_gained:after` | TRIGGER | relic:shard | relics:shard | Shard of the Throne: When a player gains control of a legendary planet you control or a |
+| `event:planet.control_gained:after` | TRIGGER | planet:styx | planets:styx | A Song Like Marrow: When you gain this card, gain 1 victory point. |
+| `event:planet.control_gained:after` | TRIGGER | planet:thundersedge | planets:thundersedge | Jupiter Brain: Gain your breakthrough when you gain this card if you do not already have |
+| `event:planet.control_lost:when` | TRIGGER | planet:styx | planets:styx | A Song Like Marrow: When you lose this card, lose 1 victory point. |
+| `event:player.passed:when` | TRIGGER | planet:faunus | planets:faunus | Maxis Central Control: You may exhaust this card when you pass to gain control of a non-home, non-legendary planet that contains no units and has no attachments. |
+| `event:player.passed:when` | TRIGGER | planet:garbozia | planets:garbozia | Dok 'N Pic's Salvage Yard: You may exhaust this card when you pass to place 1 action card from the discard pile faceup on this card. |
+| `event:player.passed:when` | TRIGGER | planet:industrex | planets:industrex | Aeurex Mechanica: You may exhaust this card when you pass to place 1 ship that matches a unit upgrade technology you own from your reinforcements into a system that contains your ships. |
+| `event:player.passed:when` | TRIGGER | planet:ordinian | planets:ordinian | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
+| `event:player.passed:when` | TRIGGER | planet:ordinianc4 | planets:ordinianc4 | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
+| `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
 | `event:tactical.action:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: After you perform a tactical action, you may exhaust this card to |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
+| `event:tactical.system_activated:after` | TRIGGER | planet:tempesta | planets:tempesta | Ionian Fuel Refinery: You may exhaust this card after you activate a system to apply +1 to the move value of 1 of your ships during this tactical action. |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
 | `event:technology.research:when` | TRIGGER | relic:prophetstears | relics:prophetstears | The Prophet's Tears: When you research a technology, you may exhaust this card to ignore 1 |
 | `event:transaction:after` | TRIGGER | effect:action_cards:blackmarketdealing | — | Karta dotyczy jednej transakcji: po jej rozstrzygnięciu efekt znika. |
 | `event:turn:end` | TRIGGER | technology:bs | technologies:bs | Bio-Stims: na końcu tury możesz wyczerpać kartę, by odświeżyć planetę ze specjalnością |
+| `event:turn:end` | TRIGGER | planet:emelpar | planets:emelpar | The Acropolis: You may exhaust this card at the end of your turn to ready another component that isn't a strategy card. |
+| `event:turn:end` | TRIGGER | planet:hopesend | planets:hopesend | Imperial Arms Vault: You may exhaust this card at the end of your turn to place 1 mech from your reinforcements on any planet you control or draw 1 action card. |
+| `event:turn:end` | TRIGGER | planet:illusion | planets:illusion | Flight Academy: You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more of your ships. |
+| `event:turn:end` | TRIGGER | planet:lockedmallice | planets:lockedmallice | Exterrix Headquarters: You may exhaust this card at the end of your turn to gain 2 trade goods or convert all of your commodities to trade goods. |
+| `event:turn:end` | TRIGGER | planet:mallice | planets:mallice | Exterrix Headquarters: You may exhaust this card at the end of your turn to gain 2 trade goods or convert all of your commodities to trade goods. |
+| `event:turn:end` | TRIGGER | planet:mirage | planets:mirage | Flight Academy: You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more of your ships. |
+| `event:turn:end` | TRIGGER | planet:mrte | planets:mrte | The Galactic Council: You may exhaust this card at the end of your turn and discard 1 secret objective to draw 1 secret objective. |
+| `event:turn:end` | TRIGGER | planet:phantasm | planets:phantasm | Flight Academy: You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more of your ships. |
 | `event:turn:end` | TRIGGER | technology:pi | technologies:pi | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
+| `event:turn:end` | TRIGGER | planet:primor | planets:primor | The Atrament: You may exhaust this card at the end of your turn to place up to 2 infantry from your reinforcements on any planet you control. |
+| `event:turn:end` | TRIGGER | planet:thundersedge | planets:thundersedge | Jupiter Brain: You may exhaust this card at the end of your turn to perform another action. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:td | — | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
@@ -80,6 +100,7 @@ Razem: **93**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | effect:action_cards:fs3 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs4 | — | — |
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
+| `movement.move_value` | MODIFY | effect:planets:tempesta | planets:tempesta | Ionian Fuel Refinery: +1 do wartości ruchu JEDNEGO statku w tej akcji taktycznej. |
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
@@ -158,6 +179,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | relics | 24 | 23 | 95.8 |
 | promissory_notes | 41 | 0 | 0.0 |
 | galactic_events | 20 | 0 | 0.0 |
+| planets | 19 | 19 | 100.0 |
 | leaders | 103 | 0 | 0.0 |
 | abilities | 73 | 0 | 0.0 |
 | technologies | 102 | 36 | 35.3 |
@@ -182,27 +204,27 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 247 | 193 |
-| walka (combat.*, space_cannon, bombardment) | 196 | 122 |
-| produkcja (production.*) | 177 | 132 |
-| ekonomia i płatności (economy, payment) | 168 | 140 |
-| karty (card_draw, promissory) | 145 | 113 |
-| status i odświeżanie (status_phase) | 144 | 115 |
-| ruch (movement.*) | 125 | 93 |
-| żetony dowodzenia (command_tokens) | 109 | 91 |
+| planety i eksploracja (control, exploration) | 251 | 193 |
+| walka (combat.*, space_cannon, bombardment) | 197 | 122 |
+| produkcja (production.*) | 184 | 132 |
+| ekonomia i płatności (economy, payment) | 171 | 140 |
+| status i odświeżanie (status_phase) | 161 | 115 |
+| karty (card_draw, promissory) | 150 | 113 |
+| ruch (movement.*) | 126 | 93 |
+| żetony dowodzenia (command_tokens) | 113 | 91 |
 | agenda i głosowanie (agenda_phase) | 98 | 77 |
-| technologie (technology) | 78 | 63 |
-| karty strategii i inicjatywa | 46 | 34 |
-| cele i punkty (objectives) | 45 | 35 |
+| technologie (technology) | 79 | 63 |
+| cele i punkty (objectives) | 48 | 35 |
+| karty strategii i inicjatywa | 48 | 34 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
 | Typ | Komponentów |
 |---|---:|
-| — | 228 |
+| — | 231 |
+| PERMIT (pozwolenie) | 166 |
 | TRIGGER (okno reakcji) | 157 |
-| PERMIT (pozwolenie) | 154 |
-| MODIFY (liczba/rzut) | 108 |
+| MODIFY (liczba/rzut) | 112 |
 | FORBID (zakaz) | 51 |
 | REPLACE (instead of) | 42 |
 
@@ -756,6 +778,32 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `weird_wormholes` | Weird Wormholes | — | — | MODIFY (liczba/rzut) | ruch, walka, produkcja, technologie | — | - After a ship moves using at least 1 alpha, beta, or gamma wormhole, roll 1 die and consult the following list: > - [ Fighter -> Destroyer… |
 | `wild_wild_galaxy` | Wild, Wild Galaxy | — | — | REPLACE (instead of) | ruch, walka, żetony dowodzenia, karty, planety i eksploracja | — | Action cards are adjusted as follows: > - Direct hit: Can be used against mechs. > - Flank Speed: Applies +2 move instead of +1. > - Maneuv… |
 | `zealous_orthodoxy` | Zealous Orthodoxy | — | — | — | karty, cele i punkty | — | - The first player to score 2 secret objectives gains 1 victory point. - Then, place that faction's alliance card on this card; all players… |
+
+</details>
+
+<details><summary>planets (19)</summary>
+
+| Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
+|---|---|---|---|---|---|:---:|---|
+| `avernus` | The Nucleus | — | — | — | ekonomia i płatności, żetony dowodzenia, status i odświeżanie | ✔ | ACTION: Exhaust this card to use the Embers of Muaat's **STAR FORGE** faction ability without spending a command token. |
+| `custodiavigilia` | Custodian's Favour | — | — | — | walka, produkcja, żetony dowodzenia, planety i eksploracja, cele i punkty, karty strategii i inicjatywa | ✔ | While you control Mecatol Rex, it gains SPACE CANNON 5 and PRODUCTION 3. Gain 2 command tokens when another player scores a victory point w… |
+| `emelpar` | The Acropolis | — | — | PERMIT (pozwolenie) | status i odświeżanie, karty strategii i inicjatywa | ✔ | You may exhaust this card at the end of your turn to ready another component that isn't a strategy card. |
+| `faunus` | Maxis Central Control | — | — | PERMIT (pozwolenie) | planety i eksploracja, status i odświeżanie | ✔ | You may exhaust this card when you pass to gain control of a non-home, non-legendary planet that contains no units and has no attachments. |
+| `garbozia` | Dok 'N Pic's Salvage Yard | — | — | PERMIT (pozwolenie) | karty, status i odświeżanie | ✔ | You may exhaust this card when you pass to place 1 action card from the discard pile faceup on this card; you can purge cards on this card … |
+| `hopesend` | Imperial Arms Vault | — | — | PERMIT (pozwolenie) | produkcja, karty, planety i eksploracja, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to place 1 mech from your reinforcements on any planet you control or draw 1 action card |
+| `illusion` | Illusion Flight Academy | — | — | MODIFY (liczba/rzut) | produkcja, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more … |
+| `industrex` | Aeurex Mechanica | — | — | PERMIT (pozwolenie) | produkcja, technologie, status i odświeżanie | ✔ | You may exhaust this card when you pass to place 1 ship that matches a unit upgrade technology you own from your reinforcements into a syst… |
+| `lockedmallice` | Exterrix Headquarters | — | — | PERMIT (pozwolenie) | ekonomia i płatności, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to gain 2 trade goods or convert all of your commodities to trade goods. |
+| `mallice` | Exterrix Headquarters | — | — | PERMIT (pozwolenie) | ekonomia i płatności, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to gain 2 trade goods or convert all of your commodities to trade goods. |
+| `mirage` | Mirage Flight Academy | — | — | MODIFY (liczba/rzut) | produkcja, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more … |
+| `mrte` | The Galactic Council | — | — | PERMIT (pozwolenie) | karty, cele i punkty, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn and discard 1 secret objective to draw 1 secret objective. |
+| `ordinian` | 4X41D "Hyperion" VI | — | — | PERMIT (pozwolenie) | żetony dowodzenia, karty, status i odświeżanie | ✔ | You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
+| `ordinianc4` | Barren Husk | — | — | PERMIT (pozwolenie) | żetony dowodzenia, karty, status i odświeżanie | ✔ | You may exhaust this card when you pass to draw 1 action card and gain 1 command token |
+| `phantasm` | Phantasm Flight Academy | — | — | MODIFY (liczba/rzut) | produkcja, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more … |
+| `primor` | The Atrament | — | — | PERMIT (pozwolenie) | produkcja, planety i eksploracja, status i odświeżanie | ✔ | You may exhaust this card at the end of your turn to place up to 2 infantry from your reinforcements on any planet you control |
+| `styx` | A Song Like Marrow | — | — | — | cele i punkty | ✔ | When you gain this card, gain 1 victory point. When you lose this card, lose 1 victory point. |
+| `tempesta` | Ionian Fuel Refinery | — | — | MODIFY (liczba/rzut) | ruch, status i odświeżanie | ✔ | You may exhaust this card after you activate a system to apply +1 to the move value of 1 of your ships during this tactical action. |
+| `thundersedge` | Jupiter Brain | — | — | PERMIT (pozwolenie) | status i odświeżanie | ✔ | Gain your breakthrough when you gain this card if you do not already have it. You may exhaust this card at the end of your turn to perform … |
 
 </details>
 

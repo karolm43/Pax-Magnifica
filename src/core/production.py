@@ -14,7 +14,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core import control, economy, exhaust, rules_hooks, triggers, unit_ops
+from src.core import (
+    control,
+    economy,
+    exhaust,
+    legendary_planets,
+    rules_hooks,
+    triggers,
+    unit_ops,
+)
 from src.core.combat import resolve_unit_variant
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
@@ -303,6 +311,16 @@ def producers(
                         forbidden_types(state, player_id, base_type),
                     )
                 )
+    # Custodian's Favour (Custodia Vigilia): kontrolowany Mecatol Rex sam ma PRODUCTION - osobna
+    # zdolność (planeta, nie jednostka), więc jest oddzielnym producentem z własną wartością.
+    mecatol = legendary_planets.mecatol_grants_planet(state, player_id, position)
+    favour = legendary_planets.favour_production(registry)
+    if mecatol is not None and favour > 0:
+        result.append(
+            Producer(
+                mecatol, mecatol, 1, favour, favour, forbidden_types(state, player_id, mecatol)
+            )
+        )
     grant = standalone_grant(state)
     if (
         grant is not None

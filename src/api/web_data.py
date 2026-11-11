@@ -35,6 +35,8 @@ from src.core import (
     card_hold,
     economy,
     game_clock,
+    legendary_planets,
+    planet_abilities,
     production,
     space_cannon,
     strategy_phase,
@@ -378,6 +380,13 @@ def _build_game_state(
         # każdego, kto ma coś do rozstrzygnięcia. Szczegóły (opcje) z GET /offers.
         # Czy w tej akcji taktycznej zużyto już premię Gravity Drive (UI chowa przełącznik).
         "gravityDriveUsed": state.gravity_drive_used,
+        # Czy aktywny gracz ma w tej akcji taktycznej premię „+1 do ruchu jednego statku" z karty
+        # (Ionian Fuel Refinery) - UI pokazuje wtedy ten sam przełącznik co dla Gravity Drive.
+        "extraMoveBoostActive": any(
+            e.key == "planets:tempesta" and e.owner == state.active_player_id
+            for e in state.active_effects
+        ),
+        "tempestaUsed": state.tempesta_used,
         "pendingOffers": [
             {"id": o.id, "playerId": o.player_id, "mandatory": o.mandatory, "label": o.label}
             for o in state.pending_offers
@@ -1377,6 +1386,24 @@ def _build_player_data(
                 "relics": list(player.relics),
                 "frontierCards": list(player.frontier_cards),
                 "exhaustedRelics": [r for r in player.exhausted_relics if r in player.relics],
+                # Karty zdolności legendarnych planet gracza (RULES.md 60): tekst z assetów, rodzaj
+                # (ACTION = przycisk w akcji komponentu, reszta = oferty w oknie decyzji).
+                "legendaryAbilities": [
+                    {
+                        "planet": planet_id,
+                        "name": registry.planets[planet_id].legendary_ability_name,
+                        "text": registry.planets[planet_id].legendary_ability_text or "",
+                        "kind": (
+                            "action"
+                            if planet_abilities.is_action_planet(registry, planet_id)
+                            else "passive"
+                        ),
+                        "exhausted": planet_id in player.exhausted_legendaries,
+                    }
+                    for planet_id in legendary_planets.legendary_planets_of(
+                        state, registry, player_id
+                    )
+                ],
                 # Fragmenty reliktów z eksploracji (id kart: crf*/hrf*/irf*/urf*) — front liczy je
                 # po prefiksie i rysuje w player area.
                 "fragments": list(player.relic_fragments),

@@ -163,6 +163,10 @@ def collect_rows(registry: StaticDataRegistry) -> list[Row]:
     for bid, breakthrough in registry.breakthroughs.items():
         add(ComponentCategory.BREAKTHROUGH, bid, breakthrough.name, breakthrough.source,
             breakthrough.text or "", breakthrough.faction, None)
+    for pid, planet in registry.planets.items():
+        if planet.legendary_ability_name:
+            add(ComponentCategory.PLANET, pid, planet.legendary_ability_name, planet.source,
+                planet.legendary_ability_text or "", None, None)
     return rows
 
 

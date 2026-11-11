@@ -88,6 +88,9 @@ class PlanetDef(_StaticModel):
     legendary_ability_text: str | None = Field(
         default=None, alias="legendaryAbilityText"
     )
+    # Space Cannon planety (Custodia Vigilia: przekazywany Mecatol Rex przez zdolność legendarną).
+    space_cannon_hits_on: int | None = Field(default=None, alias="spaceCannonHitsOn")
+    space_cannon_die_count: int | None = Field(default=None, alias="spaceCannonDieCount")
 
     aliases: list[str] = Field(default_factory=list)
 
