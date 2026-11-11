@@ -58,6 +58,7 @@ from src.api.routers import (
     window,
 )
 from src.api.state_service import StateService
+from src.core.actor import ActorError
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
@@ -99,6 +100,12 @@ def create_app(
     @app.exception_handler(ValueError)
     async def _value_error_as_422(_request: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+    # Autoryzacja aktora (RULES.md 44.1a): ``core/actor.ActorError`` to nie błąd reguł, tylko
+    # „nie ty decydujesz" → 403. Jest ``PermissionError``, więc ``except ValueError`` go nie łapią.
+    @app.exception_handler(ActorError)
+    async def _actor_error_as_403(_request: Request, exc: ActorError) -> JSONResponse:
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
 
     # Okno hold-play (RULES.md 53.6): gdy zagrana karta czeka na Sabotage, reszta gry stoi - akcje
     # graczy (POST) poza zagraniem karty / pasem / zwolnieniem, God-Mode i Undo/Redo dają 422.

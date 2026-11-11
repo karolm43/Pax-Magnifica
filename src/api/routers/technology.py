@@ -12,8 +12,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
+from src.core import actor as actor_rules
 from src.core import technology_abilities
 
 router = APIRouter()
@@ -74,9 +76,12 @@ async def get_form(
 
 @router.post("/technology/ability", response_model=StateEnvelope)
 async def post_use_ability(
+    actor: ActorId,
     request: TechnologyUseRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz używa zdolności technologii poza akcją (nie zużywa akcji tury)."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     try:
         new_state = technology_abilities.use_free_ability(
             ctx.service.current_state(), ctx.registry, request.actor_id, request.tech_id,

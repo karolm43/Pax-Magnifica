@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     BattleAnnounceRetreatRequest,
@@ -26,6 +27,7 @@ from src.api.schemas import (
     StateEnvelope,
 )
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import battle, board_edit
 from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.movement import CargoPickup
@@ -200,9 +202,13 @@ async def get_battle(ctx: AppContext = Depends(get_ctx)) -> BattleResponse:
 
 @router.post("/tactical/battle/start", response_model=StateEnvelope)
 async def post_battle_start(
+    actor: ActorId,
     request: BattleStartRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Rozpoczyna walkę w aktywnym systemie (kosmiczną albo naziemną na ``planet``)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.turn_player, "Start combat"
+    )
     try:
         new_state = battle.start_combat(
             ctx.service.current_state(), ctx.current_grid, ctx.registry, request.planet
@@ -213,8 +219,11 @@ async def post_battle_start(
 
 
 @router.post("/tactical/battle/afb", response_model=StateEnvelope)
-async def post_battle_afb(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_battle_afb(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Anti-Fighter Barrage obu stron (rzuty po stronie silnika)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.combat_sides, "Anti-Fighter Barrage"
+    )
     try:
         new_state = battle.resolve_afb(
             ctx.service.current_state(), ctx.current_grid, ctx.registry
@@ -225,8 +234,11 @@ async def post_battle_afb(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
 
 
 @router.post("/tactical/battle/roll", response_model=StateEnvelope)
-async def post_battle_roll(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_battle_roll(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Rzuty combat obu stron w bieżącej rundzie."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.combat_sides, "Combat roll"
+    )
     try:
         new_state = battle.roll_round(
             ctx.service.current_state(), ctx.current_grid, ctx.registry
@@ -238,9 +250,13 @@ async def post_battle_roll(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
 
 @router.post("/tactical/battle/assign", response_model=StateEnvelope)
 async def post_battle_assign(
+    actor: ActorId,
     request: BattleAssignRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz pokrywa trafienia (Sustain Damage + niszczone jednostki)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Assign hits"
+    )
     state = ctx.service.current_state()
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
@@ -259,8 +275,11 @@ async def post_battle_assign(
 
 
 @router.post("/tactical/battle/close", response_model=StateEnvelope)
-async def post_battle_close(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_battle_close(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Zamyka zakończoną walkę (okno pola bitwy znika)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.combat_sides, "Close combat"
+    )
     try:
         new_state = battle.close_combat(ctx.service.current_state())
     except ValueError as exc:
@@ -270,9 +289,13 @@ async def post_battle_close(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope
 
 @router.post("/tactical/battle/announce-retreat", response_model=StateEnvelope)
 async def post_battle_announce_retreat(
+    actor: ActorId,
     request: BattleAnnounceRetreatRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Ogłoszenie odwrotu albo walka dalej (okno COMBAT_RETREAT — RULES.md 39.5 O2)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Announce retreat"
+    )
     state = ctx.service.current_state()
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
@@ -287,9 +310,13 @@ async def post_battle_announce_retreat(
 
 @router.post("/tactical/battle/retreat", response_model=StateEnvelope)
 async def post_battle_retreat(
+    actor: ActorId,
     request: BattleRetreatRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Wykonanie ogłoszonego odwrotu do sąsiedniego systemu (RULES.md 39.5 O3–O6)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Retreat"
+    )
     state = ctx.service.current_state()
     cargo = (
         [

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     AgendaOutcomeRequest,
@@ -16,6 +17,7 @@ from src.api.schemas import (
     StateEnvelope,
     TurnActionRequest,
 )
+from src.core import actor as actor_rules
 from src.core import agenda_phase
 from src.core.game_state import GameState
 
@@ -38,9 +40,17 @@ def _speaker_of(request: TurnActionRequest | None, state: GameState) -> str:
 
 @router.post("/reveal", response_model=StateEnvelope)
 async def post_reveal(
+    actor: ActorId,
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Mówca ujawnia wierzchnią agendę i otwiera głosowanie."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id if request else None,
+        actor_rules.speaker,
+        "Reveal agenda",
+    )
     state = ctx.service.current_state()
     try:
         new_state = agenda_phase.reveal_agenda(state, ctx.registry, _speaker_of(request, state))
@@ -51,9 +61,13 @@ async def post_reveal(
 
 @router.post("/vote", response_model=StateEnvelope)
 async def post_vote(
+    actor: ActorId,
     request: AgendaVoteRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz, którego kolej, wyczerpuje planety i oddaje głosy na jeden wynik."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Vote"
+    )
     try:
         new_state = agenda_phase.cast_vote(
             ctx.service.current_state(),
@@ -70,9 +84,13 @@ async def post_vote(
 
 @router.post("/abstain", response_model=StateEnvelope)
 async def post_abstain(
+    actor: ActorId,
     request: TurnActionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz, którego kolej, wstrzymuje się od głosu."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Abstain"
+    )
     state = ctx.service.current_state()
     player_id = request.player_id or state.active_player_id or ""
     try:
@@ -84,9 +102,13 @@ async def post_abstain(
 
 @router.post("/decide", response_model=StateEnvelope)
 async def post_decide(
+    actor: ActorId,
     request: AgendaOutcomeRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Mówca wybiera wynik przy remisie / braku głosów (to nie jest głos)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Decide outcome"
+    )
     try:
         new_state = agenda_phase.decide_tie(
             ctx.service.current_state(), ctx.registry, request.player_id, request.outcome
@@ -98,9 +120,17 @@ async def post_decide(
 
 @router.post("/confirm", response_model=StateEnvelope)
 async def post_confirm(
+    actor: ActorId,
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Mówca rozstrzyga wynik czekający w kroku COUNTED (po oknie na karty reakcji)."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id if request else None,
+        actor_rules.speaker,
+        "Confirm outcome",
+    )
     state = ctx.service.current_state()
     try:
         new_state = agenda_phase.confirm_outcome(state, ctx.registry, _speaker_of(request, state))
@@ -111,9 +141,17 @@ async def post_confirm(
 
 @router.post("/discard", response_model=StateEnvelope)
 async def post_discard(
+    actor: ActorId,
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Mówca odrzuca agendę bez możliwych wyników i ujawnia następną."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id if request else None,
+        actor_rules.speaker,
+        "Discard agenda",
+    )
     state = ctx.service.current_state()
     try:
         new_state = agenda_phase.discard_unresolvable(
@@ -126,9 +164,17 @@ async def post_discard(
 
 @router.post("/continue", response_model=StateEnvelope)
 async def post_continue(
+    actor: ActorId,
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Po wyniku: druga agenda albo (po drugiej) odświeżenie planet i koniec głosowań."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id if request else None,
+        actor_rules.speaker,
+        "Continue agenda",
+    )
     state = ctx.service.current_state()
     try:
         new_state = agenda_phase.continue_agenda(

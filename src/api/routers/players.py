@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     LeaderStateRequest,
@@ -17,7 +18,7 @@ from src.core import board_edit
 router = APIRouter()
 
 
-@router.post("/player/{player_id}/edit", response_model=StateEnvelope)
+@router.post("/player/{player_id}/edit", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_edit_player(
     player_id: str, request: PlayerEditRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -48,7 +49,7 @@ async def _commit(ctx: AppContext, new_state: object, label: str) -> StateEnvelo
     return ctx.service.envelope()
 
 
-@router.post("/player/planet/toggle-exhaust", response_model=StateEnvelope)
+@router.post("/player/planet/toggle-exhaust", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_toggle_planet_exhaust(
     request: PlayerComponentToggleRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -59,7 +60,7 @@ async def post_toggle_planet_exhaust(
     return await _commit(ctx, new_state, f"planet-exhaust:{request.component_id}")
 
 
-@router.post("/player/tech/toggle-exhaust", response_model=StateEnvelope)
+@router.post("/player/tech/toggle-exhaust", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_toggle_tech_exhaust(
     request: PlayerComponentToggleRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -70,7 +71,7 @@ async def post_toggle_tech_exhaust(
     return await _commit(ctx, new_state, f"tech-exhaust:{request.component_id}")
 
 
-@router.post("/player/leader/set-state", response_model=StateEnvelope)
+@router.post("/player/leader/set-state", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_set_leader_state(
     request: LeaderStateRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -87,7 +88,7 @@ async def post_set_leader_state(
     return await _commit(ctx, new_state, f"leader:{request.leader_id}:{request.state}")
 
 
-@router.post("/player/hand/set", response_model=StateEnvelope)
+@router.post("/player/hand/set", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_set_player_hand(
     request: SetPlayerHandRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:

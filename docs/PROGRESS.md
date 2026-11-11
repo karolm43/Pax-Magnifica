@@ -344,7 +344,7 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - `space_cannon.roll_cannon`: jeden punkt rzutów Space Cannon (Offense + Defense).
 - Gotowe: Fleet Logistics (`fl`), Neural Motivator (`nm`), Hyper Metabolism (`hm`), Antimass (`amd`, także −1 do Space Cannon), Light/Wave (`lwd`), Plasma Scoring (`ps`), Sarween Tools (`st`), ulepszenia `ws/cr2/dd2/cv2/pds2/dn2` (dane).
 - Testy: `tests/test_technologies_general.py`. Zostało: technologie z wyborem gracza / oknami (patrz kolejne wpisy).
-- Luka sieciowa: `actor_id` mają tylko 4 endpointy akcji (karty akcji, Thunder's Edge) — osobny blok (RULES.md 44.1).
+- ~~Luka sieciowa: `actor_id` tylko w 4 endpointach~~ — domknięte 2026-11-11 (6), RULES.md 44.1a.
 
 ## 2026-11-09 (4) — Technologie ogólne, blok 2: walka i ruch (RULES.md 55.6-55.7)
 
@@ -426,3 +426,16 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - **Czytelność kart:** `card_labels.py` (planeta = nazwa + zasoby/wpływ + cechy + system, system, gracz, technologia), `hint` każdego wejścia, `summary` i podglądy skutku (`register_effect_preview`) w `GET /action-card/{id}/inputs`; modal pokazuje "dotyczy: …".
 - **Front:** `HoldControls` (przycisk i panel kroków w doku), `HeldPlayBanner` (odliczanie, Pass, auto-otwarcie ręki do Sabotage), modal z `seq` i podsumowaniem. Nie testowane w przeglądarce.
 - Wynik: wszystkie 143 karty akcji mają efekt w silniku.
+
+## 2026-11-11 (6) — Etap sieciowy N0: `actor_id` we wszystkich endpointach (RULES.md 44.1a)
+- **Mechanizm:** aktor w nagłówku `X-Actor-Id`, odczyt WYŁĄCZNIE w `api/actor.py::get_actor` (N1 podmieni go na token miejsca).
+  Brak nagłówka = tryb zaufany (lokalne jedno okno, zachowanie bez zmian). Stare pola `actor_id` w treści łączy `merge_claimed`.
+- **`core/actor.py`:** `check/subject/require/require_seated/merge_claimed` + listy uprawnionych (`turn_player`, `speaker`,
+  `window_respondent`, `combat_sides`, `invasion_attacker/parties`, `exploring_player`, `strategy_owner`, `production_grantee`).
+  `ActorError` (`PermissionError`) → HTTP 403; błędy reguł nadal 422.
+- **Klasyfikacja 102 tras:** 75 akcji gracza/stołu (`actor: ActorId`), 27 operatora (`dependencies=[HostOnly]`: God-Mode,
+  edycja planszy/graczy/talii, undo/redo/historia, nowa gra/mapa, ręczne okna/kroki, mówca, skip). Strażnik
+  `tests/test_actor_guard.py` wymaga klasy dla każdej trasy i użycia parametru `actor`; zachowanie `tests/test_actor_rules.py`.
+- **Front:** `api/actorIdentity.ts` — `?seat=<player_id>` (pamiętane w karcie) dokłada nagłówek do żądań `/bot…`. Dwie karty
+  z różnymi `?seat=` = test „kilku graczy” (backend odrzuca cudze akcje 403). UI nadal pokazuje wszystko (widok per gracz = N2).
+- Luki (N5): zgoda drugiej strony transakcji, równoległe decyzje, timeouty. Dalej: N1 (tokeny/role), N2 (projekcja per połączenie).

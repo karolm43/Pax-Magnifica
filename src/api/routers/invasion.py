@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import BattleLossItem, StateEnvelope
 from src.api.schemas_invasion import (
@@ -29,6 +30,7 @@ from src.api.schemas_invasion import (
     InvasionUnitView,
 )
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import board_edit, custodians, economy, invasion, space_cannon
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
@@ -273,8 +275,11 @@ async def get_invasion(ctx: AppContext = Depends(get_ctx)) -> InvasionResponse:
 
 
 @router.post("/tactical/invasion/begin", response_model=StateEnvelope)
-async def post_invasion_begin(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_invasion_begin(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Rozpoczyna inwazję (przycisk w panelu pomocy); 422, gdy nie ma co robić."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.invasion_attacker, "Begin invasion"
+    )
     try:
         new_state = invasion.begin_invasion(
             ctx.service.current_state(), ctx.current_grid, ctx.registry
@@ -288,9 +293,13 @@ async def post_invasion_begin(ctx: AppContext = Depends(get_ctx)) -> StateEnvelo
 
 @router.post("/tactical/invasion/bombard", response_model=StateEnvelope)
 async def post_bombard(
+    actor: ActorId,
     request: InvasionBombardRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Bombardowanie: każda jednostka z Bombardment dostaje planetę (wszystkie albo żadna)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.invasion_attacker, "Bombardment"
+    )
     try:
         new_state = invasion.bombard(
             ctx.service.current_state(),
@@ -309,9 +318,13 @@ async def post_bombard(
 
 @router.post("/tactical/invasion/bombard/assign", response_model=StateEnvelope)
 async def post_bombard_assign(
+    actor: ActorId,
     request: InvasionAssignRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Obrońca planety pokrywa trafienia bombardowania."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Assign bombardment hits"
+    )
     state = ctx.service.current_state()
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
@@ -332,9 +345,17 @@ async def post_bombard_assign(
 
 @router.post("/tactical/invasion/commit", response_model=StateEnvelope)
 async def post_commit(
+    actor: ActorId,
     request: InvasionCommitRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Commit Ground Forces: ląduje siły naziemne z przestrzeni na planety."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        None,
+        actor_rules.invasion_attacker,
+        "Commit ground forces",
+    )
     commits: dict[str, dict[str, int]] = {}
     for item in request.commits:
         if item.count > 0:
@@ -351,9 +372,13 @@ async def post_commit(
 
 @router.post("/tactical/invasion/custodians", response_model=StateEnvelope)
 async def post_custodians(
+    actor: ActorId,
     request: InvasionCustodiansRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Zdejmuje żeton Custodians z Mecatol Rex za 6 wpływu (+1 VP, faza agendy)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.invasion_attacker, "Remove Custodians"
+    )
     try:
         new_state = invasion.claim_custodians(
             ctx.service.current_state(), ctx.registry, request.planets, request.trade_goods
@@ -365,9 +390,17 @@ async def post_custodians(
 
 @router.post("/tactical/invasion/defense/fire", response_model=StateEnvelope)
 async def post_defense_fire(
+    actor: ActorId,
     request: InvasionPlanetRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Space Cannon Defense: strzelcy na planecie rzucają w zlądowane siły."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        None,
+        actor_rules.invasion_parties,
+        "Space Cannon Defense",
+    )
     try:
         new_state = invasion.defense_fire(
             ctx.service.current_state(),
@@ -383,9 +416,17 @@ async def post_defense_fire(
 
 @router.post("/tactical/invasion/defense/pass", response_model=StateEnvelope)
 async def post_defense_pass(
+    actor: ActorId,
     request: InvasionPlanetRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Rezygnacja ze Space Cannon Defense na planecie."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        None,
+        actor_rules.invasion_parties,
+        "Space Cannon Defense",
+    )
     try:
         new_state = invasion.defense_pass(
             ctx.service.current_state(), ctx.registry, request.planet
@@ -397,9 +438,13 @@ async def post_defense_pass(
 
 @router.post("/tactical/invasion/defense/assign", response_model=StateEnvelope)
 async def post_defense_assign(
+    actor: ActorId,
     request: InvasionAssignRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Atakujący pokrywa trafienia Space Cannon Defense na zlądowanych siłach."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Assign defense hits"
+    )
     try:
         new_state = invasion.assign_defense_hits(
             ctx.service.current_state(),
@@ -416,8 +461,15 @@ async def post_defense_assign(
 
 
 @router.post("/tactical/invasion/next", response_model=StateEnvelope)
-async def post_invasion_next(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_invasion_next(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Przechodzi do następnego podkroku inwazji (z Establish Control — zamyka inwazję)."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        None,
+        actor_rules.invasion_attacker,
+        "Next invasion step",
+    )
     try:
         new_state = invasion.advance(
             ctx.service.current_state(), ctx.current_grid, ctx.registry

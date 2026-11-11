@@ -54,7 +54,8 @@ design system `frontend/src/ds/`. QA: pytest + hypothesis, ruff, mypy --strict.
 
 - `core/` — czyste funkcje `state -> state`, zero HTTP. Jedyne źródło reguł (woła je `api/` i przyszłe `ai/`).
 - `api/routers/<temat>.py` — cienkie endpointy (stan -> `core/` -> commit/broadcast -> mapowanie błędów). Zależności: `AppContext`/`get_ctx`.
-  Nowe endpointy akcji mają `actor_id` (RULES 44.1).
+  Każdy endpoint zmieniający stan: `actor: ActorId` + kontrola `core/actor.py` ALBO `dependencies=[HostOnly]` (RULES 44.1a;
+  pilnuje `tests/test_actor_guard.py`).
 - Asymetria frakcji/tech/kart = hooki (`core/rules_hooks.py`, `core/hooks/`), NIE `if faction == ...` w regule bazowej.
 - Punkty centralne (RULES 43.1a): płatność, TG, żetony, exhaust, kontrola planet, jednostki, technologie, VP mają JEDNĄ funkcję w `core/`;
   wyjątki tylko z komentarzem `HOOK-CANDIDATE`.

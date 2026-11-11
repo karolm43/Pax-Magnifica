@@ -11,9 +11,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import BattleLossItem, StateEnvelope
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import board_edit, capacity, fleet_pool
 from src.core.game_state import WindowType
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -142,9 +144,13 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
 
 @router.post("/tactical/fleet-pool/resolve", response_model=StateEnvelope)
 async def post_fleet_pool_resolve(
+    actor: ActorId,
     request: FleetPoolResolveRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz zwraca nadwyżkę statków do rezerwy (RULES.md 42)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Resolve fleet pool"
+    )
     state = ctx.service.current_state()
     remove: dict[str, int] = {}
     for item in request.remove:

@@ -10,8 +10,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
+from src.core import actor as actor_rules
 from src.core import invasion, production, strategic_action, tactical
 from src.core.planet_stats import influence_of, resources_of
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -138,8 +140,11 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
 
 
 @router.post("/tactical/production/skip-grant", response_model=StateEnvelope)
-async def post_skip_grant(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_skip_grant(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Rezygnacja z jednorazowej produkcji z karty (np. Freelancers)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.production_grantee, "Skip production"
+    )
     try:
         new_state = production.skip_grant(ctx.service.current_state())
         # Koniec produkcji z karty strategii (Construction / Warfare) wznawia jej przepływ.

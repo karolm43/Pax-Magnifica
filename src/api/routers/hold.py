@@ -11,8 +11,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import ActionCardInputsResponse, PlayActionCardResponse
+from src.core import actor as actor_rules
 from src.core import hold_rewind
 from src.core.components import ComponentCategory
 
@@ -95,9 +97,12 @@ async def get_hold_inputs(
 
 @router.post("/hold/play", response_model=PlayActionCardResponse)
 async def post_hold_play(
+    actor: ActorId,
     request: HoldPlayRequest, ctx: AppContext = Depends(get_ctx)
 ) -> PlayActionCardResponse:
     """Cofa historię do migawki ``seq`` i zagrywa tam kartę (jeden commit rozgałęziający)."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     chain = _chain(ctx)
     try:
         new_state, implemented = hold_rewind.play_at(

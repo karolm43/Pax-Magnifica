@@ -12,8 +12,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope, WindowOpenRequest, WindowRespondRequest
+from src.core import actor as actor_rules
 from src.core import timing
 from src.core.game_state import GameState, WindowType
 
@@ -28,7 +30,7 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
     return ctx.service.envelope()
 
 
-@router.post("/window/open", response_model=StateEnvelope)
+@router.post("/window/open", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_window_open(
     request: WindowOpenRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -66,6 +68,7 @@ async def post_window_open(
 
 @router.post("/window/respond", response_model=StateEnvelope)
 async def post_window_respond(
+    actor: ActorId,
     request: WindowRespondRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Rejestruje odpowiedź bieżącego respondenta i przesuwa kolejkę okna.
@@ -74,6 +77,9 @@ async def post_window_respond(
     (secondary zużywa żeton, assign-hits usuwa jednostki) dojdą od T3. Odpowiedź
     poza kolejnością / brak okna → 422.
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Respond in window"
+    )
     try:
         new_state = timing.respond_current(
             ctx.service.current_state(), request.player_id
@@ -86,7 +92,7 @@ async def post_window_respond(
     )
 
 
-@router.post("/window/close", response_model=StateEnvelope)
+@router.post("/window/close", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_window_close(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Zamyka bieżące okno czasowe (wentyl operatora / po zastosowaniu efektów)."""
     return await _commit(

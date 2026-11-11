@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     MapView,
@@ -30,7 +31,7 @@ async def _commit_map(ctx: AppContext, new_state, label: str) -> MapView:  # typ
     return build_map_view(ctx.current_grid, ctx.registry, ctx.service.current_state())
 
 
-@router.post("/system/{position}/space", response_model=MapView)
+@router.post("/system/{position}/space", dependencies=[HostOnly], response_model=MapView)
 async def post_space_units(
     position: str, request: SpaceUnitsRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
@@ -44,7 +45,7 @@ async def post_space_units(
     return await _commit_map(ctx, new_state, f"space:{position}")
 
 
-@router.post("/system/{position}/planet/{planet}", response_model=MapView)
+@router.post("/system/{position}/planet/{planet}", dependencies=[HostOnly], response_model=MapView)
 async def post_planet_units(
     position: str,
     planet: str,
@@ -66,7 +67,7 @@ async def post_planet_units(
     return await _commit_map(ctx, new_state, f"planet:{position}:{planet}")
 
 
-@router.post("/system/{position}/edit-units", response_model=MapView)
+@router.post("/system/{position}/edit-units", dependencies=[HostOnly], response_model=MapView)
 async def post_edit_units(
     position: str, request: UnitEditRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
@@ -86,7 +87,7 @@ async def post_edit_units(
     return await _commit_map(ctx, new_state, f"edit:{position}:{request.zone}")
 
 
-@router.post("/units/move", response_model=MapView)
+@router.post("/units/move", dependencies=[HostOnly], response_model=MapView)
 async def post_move_units(
     request: UnitMoveRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:

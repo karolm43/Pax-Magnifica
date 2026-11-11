@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import SetupActorRequest, SetupSecretRequest, StateEnvelope
+from src.core import actor as actor_rules
 from src.core import game_setup
 from src.core.game_state import GameState
 
@@ -26,9 +28,13 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
 
 @router.post("/secret", response_model=StateEnvelope)
 async def post_secret(
+    actor: ActorId,
     request: SetupSecretRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz zatrzymuje jeden z dwóch dobranych tajnych celów (drugi wraca do talii)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Choose secret objective"
+    )
     try:
         new_state = game_setup.choose_secret(
             ctx.service.current_state(), request.player_id, request.objective_id
@@ -40,9 +46,13 @@ async def post_secret(
 
 @router.post("/custodians", response_model=StateEnvelope)
 async def post_custodians(
+    actor: ActorId,
     request: SetupActorRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Mówca kładzie żeton Custodians na Mecatol Rex."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Place Custodians"
+    )
     try:
         new_state = game_setup.place_custodians(
             ctx.service.current_state(), request.player_id
@@ -52,7 +62,7 @@ async def post_custodians(
     return await _commit(ctx, new_state, "setup:custodians")
 
 
-@router.post("/skip", response_model=StateEnvelope)
+@router.post("/skip", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_skip(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Pomija setup: losowe tajne cele, żeton Custodians, odkrycie celów publicznych."""
     try:
@@ -64,9 +74,13 @@ async def post_skip(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
 
 @router.post("/reveal-objectives", response_model=StateEnvelope)
 async def post_reveal_objectives(
+    actor: ActorId,
     request: SetupActorRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Mówca odkrywa dwa cele publiczne I etapu — kończy setup, zaczyna się faza strategii."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Reveal objectives"
+    )
     try:
         new_state = game_setup.reveal_objectives(
             ctx.service.current_state(), request.player_id

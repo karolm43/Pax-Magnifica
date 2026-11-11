@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.api.schemas_exploration import (
@@ -22,6 +23,7 @@ from src.api.schemas_exploration import (
     ExploreQueueItem,
 )
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import exploration
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
@@ -103,9 +105,13 @@ async def get_exploration(ctx: AppContext = Depends(get_ctx)) -> ExplorationResp
 
 @router.post("/exploration/draw", response_model=StateEnvelope)
 async def post_exploration_draw(
+    actor: ActorId,
     request: ExplorationDrawRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Wybiera następną planetę (i talię) i ujawnia kartę eksploracji."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.exploring_player, "Explore"
+    )
     try:
         new_state = exploration.draw(
             ctx.service.current_state(), ctx.registry, request.planet, request.deck
@@ -117,9 +123,17 @@ async def post_exploration_draw(
 
 @router.post("/exploration/resolve", response_model=StateEnvelope)
 async def post_exploration_resolve(
+    actor: ActorId,
     request: ExplorationResolveRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Rozstrzyga ujawnioną kartę wybraną opcją."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        None,
+        actor_rules.exploring_player,
+        "Resolve exploration",
+    )
     try:
         new_state = exploration.resolve(
             ctx.service.current_state(), ctx.registry, request.option, request.param
@@ -130,8 +144,13 @@ async def post_exploration_resolve(
 
 
 @router.post("/exploration/finish", response_model=StateEnvelope)
-async def post_exploration_finish(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_exploration_finish(
+    actor: ActorId, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
     """Zamyka okno eksploracji po rozstrzygnięciu wszystkich planet."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.exploring_player, "Finish exploration"
+    )
     try:
         new_state = exploration.finish(ctx.service.current_state())
     except ValueError as exc:

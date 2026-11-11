@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     SpaceCannonAssignRequest,
@@ -26,6 +27,7 @@ from src.api.schemas import (
     StateEnvelope,
 )
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import board_edit, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState
@@ -186,9 +188,13 @@ async def get_space_cannon(ctx: AppContext = Depends(get_ctx)) -> SpaceCannonPan
 
 @router.post("/tactical/space-cannon/fire", response_model=StateEnvelope)
 async def post_space_cannon_fire(
+    actor: ActorId,
     request: SpaceCannonFireRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Bieżący gracz strzela Space Cannon (rzut kośćmi po stronie silnika)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Space Cannon fire"
+    )
     state = ctx.service.current_state()
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
@@ -209,9 +215,13 @@ async def post_space_cannon_fire(
 
 @router.post("/tactical/space-cannon/pass", response_model=StateEnvelope)
 async def post_space_cannon_pass(
+    actor: ActorId,
     request: SpaceCannonPassRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Bieżący gracz rezygnuje ze strzału."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Space Cannon pass"
+    )
     state = ctx.service.current_state()
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
@@ -223,9 +233,13 @@ async def post_space_cannon_pass(
 
 @router.post("/tactical/space-cannon/assign", response_model=StateEnvelope)
 async def post_space_cannon_assign(
+    actor: ActorId,
     request: SpaceCannonAssignRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz-cel niszczy własne statki za trafienia Space Cannon."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Assign Space Cannon hits"
+    )
     state = ctx.service.current_state()
     losses: dict[str, int] = {}
     for item in request.losses:

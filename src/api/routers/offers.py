@@ -11,8 +11,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
+from src.core import actor as actor_rules
 from src.core import offers
 from src.core.game_state import GameState
 
@@ -67,9 +69,12 @@ async def get_offers(
 
 @router.post("/offers/accept", response_model=StateEnvelope)
 async def post_offer_accept(
+    actor: ActorId,
     request: OfferAcceptRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz przyjmuje ofertę / podejmuje decyzję z wybranymi opcjami."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     try:
         new_state = offers.accept(
             ctx.service.current_state(), ctx.current_grid, ctx.registry,
@@ -82,9 +87,12 @@ async def post_offer_accept(
 
 @router.post("/offers/decline", response_model=StateEnvelope)
 async def post_offer_decline(
+    actor: ActorId,
     request: OfferDeclineRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz odmawia („may”); decyzji obowiązkowej nie można odrzucić."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     try:
         new_state = offers.decline(
             ctx.service.current_state(), ctx.current_grid, ctx.registry,

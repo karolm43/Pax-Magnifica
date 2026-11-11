@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.api.actor import HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.core import deck_piles
@@ -26,7 +27,7 @@ class MoveCardRequest(BaseModel):
     to: str
 
 
-@router.post("/decks/move", response_model=StateEnvelope)
+@router.post("/decks/move", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_move_card(
     request: MoveCardRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:

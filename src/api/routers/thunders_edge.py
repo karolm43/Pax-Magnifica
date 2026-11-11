@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.api.schemas_thunders_edge import (
@@ -21,6 +22,7 @@ from src.api.schemas_thunders_edge import (
     ThundersEdgeView,
 )
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import economy, expeditions, fracture, payment
 from src.core import technology as tech
 from src.core.expedition_state import EXPEDITION_SLICES
@@ -101,9 +103,12 @@ async def get_thunders_edge(ctx: AppContext = Depends(get_ctx)) -> ThundersEdgeV
 
 @router.post("/expeditions/perform", response_model=StateEnvelope)
 async def post_perform_expedition(
+    actor: ActorId,
     request: ExpeditionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Aktywny gracz wykonuje ekspedycję (plaster + płatność) na koniec swojej tury."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     state = ctx.service.current_state()
     actor = _actor(state, request.actor_id)
     pay = expeditions.ExpeditionPayment(
@@ -124,9 +129,12 @@ async def post_perform_expedition(
 
 @router.post("/fracture/ingress", response_model=StateEnvelope)
 async def post_fracture_ingress(
+    actor: ActorId,
     request: IngressRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz, który wprowadził The Fracture, kładzie żeton ingress w wybranym systemie."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     state = ctx.service.current_state()
     actor = request.actor_id or state.fracture.entered_by
     if actor is None:
@@ -142,9 +150,12 @@ async def post_fracture_ingress(
 
 @router.post("/thunders-edge/place", response_model=StateEnvelope)
 async def post_place_thunders_edge(
+    actor: ActorId,
     request: ThundersEdgeRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz z 6. plastrem kładzie Thunder's Edge; piechotę stawia lider ekspedycji."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     state = ctx.service.current_state()
     pending = state.expeditions.pending_placement
     actor = request.actor_id or (pending.player_id if pending else None)
@@ -164,7 +175,7 @@ async def post_place_thunders_edge(
     return await _commit(ctx, new_state, f"thunders-edge:place:{request.position}")
 
 
-@router.post("/god-mode/fracture", response_model=StateEnvelope)
+@router.post("/god-mode/fracture", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_god_mode_fracture(
     request: FractureEnterRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:

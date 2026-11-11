@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     DebtTokensRequest,
@@ -15,6 +16,7 @@ from src.api.schemas import (
     TransactionRequest,
     TransactionSideRequest,
 )
+from src.core import actor as actor_rules
 from src.core import debt, transaction
 from src.core.game_state import GameState
 
@@ -40,9 +42,17 @@ def _side(req: TransactionSideRequest) -> transaction.TransactionSide:
 
 @router.post("/transactions/resolve", response_model=StateEnvelope)
 async def post_resolve_transaction(
+    actor: ActorId,
     request: TransactionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Rozstrzyga transakcję aktywnego gracza z sąsiadem (RULES.md 47). Błąd reguły → 422."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id,
+        actor_rules.turn_player,
+        "Transaction",
+    )
     try:
         new_state = transaction.resolve_transaction(
             ctx.service.current_state(),
@@ -59,9 +69,13 @@ async def post_resolve_transaction(
 
 @router.post("/debt/give", response_model=StateEnvelope)
 async def post_give_debt_tokens(
+    actor: ActorId,
     request: DebtTokensRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Wystawca oddaje posiadaczowi żetony długu (zasada stołu, RULES.md 47.3)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.issuer_id, None, "Give debt tokens"
+    )
     try:
         new_state = debt.give_debt_tokens(
             ctx.service.current_state(), request.issuer_id, request.holder_id, request.count
@@ -75,9 +89,13 @@ async def post_give_debt_tokens(
 
 @router.post("/debt/return", response_model=StateEnvelope)
 async def post_return_debt_tokens(
+    actor: ActorId,
     request: DebtTokensRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Posiadacz zwraca wystawcy jego żetony długu (debt) (dług spłacony/odpuszczony)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.holder_id, None, "Return debt tokens"
+    )
     try:
         new_state = debt.return_debt_tokens(
             ctx.service.current_state(), request.holder_id, request.issuer_id, request.count

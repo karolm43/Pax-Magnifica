@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     StateEnvelope,
@@ -16,6 +17,7 @@ from src.api.schemas import (
     StatusScoreRequest,
     TurnActionRequest,
 )
+from src.core import actor as actor_rules
 from src.core import status_phase
 from src.core.game_state import GameState
 
@@ -31,9 +33,13 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
 
 @router.post("/score", response_model=StateEnvelope)
 async def post_score(
+    actor: ActorId,
     request: StatusScoreRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Aktywny gracz zdobywa cel publiczny/tajny (krok 1). Limity i wymagania → 422."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Score objective"
+    )
     try:
         new_state = status_phase.score_objective(
             ctx.service.current_state(),
@@ -50,9 +56,17 @@ async def post_score(
 
 @router.post("/finish-scoring", response_model=StateEnvelope)
 async def post_finish_scoring(
+    actor: ActorId,
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz kończy krok 1; ostatni uruchamia kroki 2–4 i przechodzi do kroku 5."""
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id if request else None,
+        actor_rules.turn_player,
+        "Finish scoring",
+    )
     player_id = request.player_id if request is not None else None
     try:
         new_state = status_phase.finish_scoring(
@@ -65,9 +79,13 @@ async def post_finish_scoring(
 
 @router.post("/redistribute", response_model=StateEnvelope)
 async def post_redistribute(
+    actor: ActorId,
     request: StatusRedistributeRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz zatwierdza rozdział żetonów (krok 5); ostatni uruchamia kroki 6–7."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Redistribute tokens"
+    )
     try:
         new_state = status_phase.redistribute(
             ctx.service.current_state(),

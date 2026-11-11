@@ -37,6 +37,10 @@ import StartScreen from "./pages/StartScreen";
 import GameMapPage from "./pages/GameMapPage";
 import { isMobileDevice } from "./utils/isTouchDevice";
 import { getPortalRoot } from "./ds";
+import { installActorIdentity } from "./api/actorIdentity";
+
+// Tożsamość aktora (RULES.md 44.1a): `?seat=<player_id>` → nagłówek X-Actor-Id do backendu.
+installActorIdentity();
 
 const queryClient = new QueryClient();
 

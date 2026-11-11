@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     ActivateSystemRequest,
@@ -30,6 +31,7 @@ from src.api.schemas import (
 )
 from src.api.serializers import build_map_view
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import (
     board_edit,
     combat,
@@ -65,6 +67,7 @@ async def _commit_map(ctx: AppContext, new_state: GameState, label: str) -> MapV
 
 @router.post("/tactical/move", response_model=StateEnvelope)
 async def post_tactical_move(
+    actor: ActorId,
     request: MoveShipsRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Ruch statków do aktywnego systemu z WALIDACJĄ reguł (RULES.md 32).
@@ -73,6 +76,9 @@ async def post_tactical_move(
     (zasięg z UnitDef, przejezdność anomalii, brak przejścia przez obce statki,
     start nie z własnym CC). Nielegalny ruch → 422.
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Move ships"
+    )
     player_id = board_edit.resolve_player_id(request.faction, ctx.service.current_state())
     # Statki (pojedynczy stos ``base_type``/``count`` dla zgodności wstecznej ORAZ
     # lista ``ships`` dla pełnej floty z UI) + ładunek → słowniki {base_type: count}.
@@ -109,6 +115,7 @@ async def post_tactical_move(
 
 @router.post("/tactical/produce", response_model=StateEnvelope)
 async def post_tactical_produce(
+    actor: ActorId,
     request: ProduceRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Produkcja w aktywnym systemie (RULES.md 33.2-33.3): walidacja + płatność + postawienie.
@@ -117,6 +124,9 @@ async def post_tactical_produce(
     i koszt. Płatność: ``spend`` (planety do wyczerpania + TG) albo, gdy pominięte,
     automatyczna. W odróżnieniu od God-Mode edit-units egzekwuje reguły.
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Produce"
+    )
     state = ctx.service.current_state()
     player_id = board_edit.resolve_player_id(request.faction, state)
     orders = [
@@ -145,9 +155,13 @@ async def post_tactical_produce(
 
 @router.post("/tactical/activate", response_model=StateEnvelope)
 async def post_activate_system(
+    actor: ActorId,
     request: ActivateSystemRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Aktywuje system przez aktywnego gracza (kładzie CC, ustawia aktywny system)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.turn_player, "Activate system"
+    )
     try:
         new_state = tactical.activate_system(
             ctx.service.current_state(), ctx.current_grid, request.position
@@ -159,6 +173,7 @@ async def post_activate_system(
 
 @router.post("/tactical/component-action", response_model=StateEnvelope)
 async def post_component_action(
+    actor: ActorId,
     request: ComponentActionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Akcja komponentu — trzeci typ akcji fazy akcji (RULES.md 31.8).
@@ -169,6 +184,13 @@ async def post_component_action(
     ``component_id`` jest tylko adnotacją „co zagrano". Walidacja (faza/tura/okno/jedna
     akcja) siedzi w ``core.component_action`` — ``ValueError`` → HTTP 422.
     """
+    actor_rules.check(
+        ctx.service.current_state(),
+        actor,
+        request.player_id,
+        actor_rules.turn_player,
+        "Component action",
+    )
     try:
         new_state = component_action.play_component_action(
             ctx.service.current_state(), request.player_id, request.component_id,
@@ -181,12 +203,15 @@ async def post_component_action(
 
 
 @router.post("/tactical/step/next", response_model=StateEnvelope)
-async def post_next_step(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_next_step(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Przechodzi do następnego kroku akcji taktycznej (po produkcji — kończy akcję).
 
     Wejście w krok SPACE_CANNON otwiera okno Space Cannon Offense (RULES.md 38) dla graczy
     mających strzelców i cel; opuszczenie kroku przy otwartym oknie → 422.
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.turn_player, "Next tactical step"
+    )
     try:
         state = ctx.service.current_state()
         # registry → silnik sprawdza limit pojemności przed przejściem (RULES.md 39.6); gdy
@@ -200,7 +225,7 @@ async def post_next_step(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     return await _commit_flow(ctx, new_state, "tactical:step")
 
 
-@router.post("/tactical/step/set", response_model=StateEnvelope)
+@router.post("/tactical/step/set", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_set_step(
     request: TacticalStepRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -215,8 +240,11 @@ async def post_set_step(
 
 
 @router.post("/tactical/end", response_model=StateEnvelope)
-async def post_end_tactical(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_end_tactical(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Kończy bieżącą akcję taktyczną (walidowane: nie podczas walki / okien / inwazji)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.turn_player, "End tactical action"
+    )
     return await _commit_flow(
         ctx,
         tactical.end_action(ctx.service.current_state(), ctx.registry),
@@ -224,7 +252,7 @@ async def post_end_tactical(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope
     )
 
 
-@router.post("/system/{position}/command-token", response_model=MapView)
+@router.post("/system/{position}/command-token", dependencies=[HostOnly], response_model=MapView)
 async def post_place_command_token(
     position: str, request: CommandTokenRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
@@ -235,7 +263,7 @@ async def post_place_command_token(
     return await _commit_map(ctx, new_state, f"cc:add:{position}")
 
 
-@router.delete("/system/{position}/command-token", response_model=MapView)
+@router.delete("/system/{position}/command-token", dependencies=[HostOnly], response_model=MapView)
 async def delete_command_token(
     position: str, request: CommandTokenRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
@@ -305,9 +333,13 @@ async def get_combat_help(
 
 @router.post("/tactical/system/{position}/capture", response_model=MapView)
 async def post_capture_planet(
+    actor: ActorId,
     position: str, request: CapturePlanetRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
     """Przejęcie kontroli planety po inwazji (nadpisuje poprzedniego właściciela)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Capture planet"
+    )
     new_state = tactical.capture_planet(
         ctx.service.current_state(),
         ctx.current_grid,

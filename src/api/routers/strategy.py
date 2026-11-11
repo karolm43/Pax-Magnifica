@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     StateEnvelope,
@@ -15,6 +16,7 @@ from src.api.schemas import (
     StrategyPrimaryStepRequest,
     StrategySecondaryRequest,
 )
+from src.core import actor as actor_rules
 from src.core import strategic_action, strategy_phase
 
 router = APIRouter()
@@ -84,9 +86,13 @@ async def _commit(ctx: AppContext, new_state, label: str) -> StateEnvelope:  # t
 
 @router.post("/strategy/pick", response_model=StateEnvelope)
 async def post_strategy_pick(
+    actor: ActorId,
     request: StrategyPickRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz wybiera kartę strategii (transfer TG z karty, ustala inicjatywę)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Pick strategy card"
+    )
     try:
         new_state = strategy_phase.pick_strategy_card(
             ctx.service.current_state(),
@@ -103,6 +109,7 @@ async def post_strategy_pick(
 
 @router.post("/strategy/play", response_model=StateEnvelope)
 async def post_strategy_play(
+    actor: ActorId,
     request: StrategyPlayRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Akcja strategiczna: rozstrzyga PRIMARY i otwiera okno SECONDARY (RULES.md 30).
@@ -111,6 +118,9 @@ async def post_strategy_play(
     (dispatch po karcie — w T3 realnie Leadership) i otwiera okno secondary dla
     pozostałych graczy (kolejka od gracza po aktywnym, zgodnie z zegarem).
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Play strategy card"
+    )
     try:
         new_state = strategic_action.play_strategy_card(
             ctx.service.current_state(),
@@ -128,6 +138,7 @@ async def post_strategy_play(
 
 @router.post("/strategy/primary-step", response_model=StateEnvelope)
 async def post_strategy_primary_step(
+    actor: ActorId,
     request: StrategyPrimaryStepRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Wybór aktywnego gracza dla bieżącego kroku wieloetapowego primary (RULES.md 30.5).
@@ -135,6 +146,9 @@ async def post_strategy_primary_step(
     Tylko właściciel karty; po ostatnim kroku silnik stosuje primary i otwiera okno
     secondary. Zły payload / nie ten gracz → 422.
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Primary ability"
+    )
     try:
         new_state = strategic_action.submit_primary_step(
             ctx.service.current_state(),
@@ -150,6 +164,7 @@ async def post_strategy_primary_step(
 
 @router.post("/strategy/secondary", response_model=StateEnvelope)
 async def post_strategy_secondary(
+    actor: ActorId,
     request: StrategySecondaryRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Odpowiedź bieżącego respondenta w oknie secondary (wykonaj/pas) — RULES.md 30.1.
@@ -157,6 +172,9 @@ async def post_strategy_secondary(
     Przesuwa kolejkę okna; po dopełnieniu okno zamyka się samo. ``execute=True`` wykonuje
     efekt secondary (w T3 Leadership = szkielet bez kupna żetonów za wpływ).
     """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Secondary ability"
+    )
     try:
         new_state = strategic_action.resolve_secondary(
             ctx.service.current_state(),

@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import EpilogueVoteRequest, StateEnvelope
+from src.core import actor as actor_rules
 from src.core import epilogue
 from src.core.game_state import GameState
 
@@ -23,8 +25,9 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
 
 
 @router.post("/open", response_model=StateEnvelope)
-async def post_open(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_open(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Otwiera głosowanie (idempotentnie) i oddaje głosy botów."""
+    actor_rules.require_seated(ctx.service.current_state(), actor)  # akcja stołu (44.1a)
     try:
         new_state = epilogue.open_vote(ctx.service.current_state())
     except ValueError as exc:
@@ -34,9 +37,13 @@ async def post_open(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
 
 @router.post("/vote", response_model=StateEnvelope)
 async def post_vote(
+    actor: ActorId,
     request: EpilogueVoteRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz (nie zwycięzca) głosuje: honorowe albo niehonorowe zwycięstwo."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Epilogue vote"
+    )
     try:
         new_state = epilogue.cast_vote(
             ctx.service.current_state(), request.player_id, request.choice

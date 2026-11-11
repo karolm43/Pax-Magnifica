@@ -7,6 +7,7 @@ from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     EngineConfigInfo,
@@ -228,7 +229,7 @@ def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
     )
 
 
-@router.post("/map/load", response_model=MapView)
+@router.post("/map/load", dependencies=[HostOnly], response_model=MapView)
 async def post_load_map(
     request: MapStringRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
@@ -403,7 +404,7 @@ def _apply_resolved_player(
     return new_state
 
 
-@router.post("/setup/player", response_model=MapView)
+@router.post("/setup/player", dependencies=[HostOnly], response_model=MapView)
 async def post_setup_player(
     request: SetupPlayerRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:
@@ -483,7 +484,7 @@ async def post_setup_player(
     return build_map_view(ctx.current_grid, ctx.registry, ctx.service.current_state())
 
 
-@router.post("/game/new", response_model=MapView)
+@router.post("/game/new", dependencies=[HostOnly], response_model=MapView)
 async def post_new_game(
     request: NewGameRequest, ctx: AppContext = Depends(get_ctx)
 ) -> MapView:

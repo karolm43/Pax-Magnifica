@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import SetSpeakerRequest, StateEnvelope, TurnActionRequest
+from src.core import actor as actor_rules
 from src.core import agenda_phase, skip_flow, status_phase, strategy_phase, turn_flow
 from src.core.game_state import GameState, Phase
 
@@ -24,14 +26,18 @@ async def _commit_flow(
 
 @router.post("/turn/end", response_model=StateEnvelope)
 async def post_end_turn(
-    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+    actor: ActorId,
+    request: TurnActionRequest | None = None,
+    ctx: AppContext = Depends(get_ctx),
 ) -> StateEnvelope:
     """Kończy turę aktywnego gracza (waliduje fazę/tura — RULES.md 31.2).
 
     Trwająca akcja taktyczna jest zamykana z walidacją (RULES.md 31.9); wykryta nadwyżka
     pojemności / puli floty otwiera okno i zostawia turę graczowi.
     """
-    player_id = request.player_id if request is not None else None
+    state = ctx.service.current_state()
+    actor_rules.require(state, actor, actor_rules.turn_player(state), "Turn")
+    player_id = actor_rules.subject(state, actor, request.player_id if request else None)
     try:
         new_state = turn_flow.end_turn(
             ctx.service.current_state(), player_id, registry=ctx.registry
@@ -44,10 +50,14 @@ async def post_end_turn(
 
 @router.post("/turn/pass", response_model=StateEnvelope)
 async def post_pass_turn(
-    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+    actor: ActorId,
+    request: TurnActionRequest | None = None,
+    ctx: AppContext = Depends(get_ctx),
 ) -> StateEnvelope:
     """Aktywny gracz pasuje (waliduje fazę/tura + akcję strategiczną — RULES.md 31.2)."""
-    player_id = request.player_id if request is not None else None
+    state = ctx.service.current_state()
+    actor_rules.require(state, actor, actor_rules.turn_player(state), "Turn")
+    player_id = actor_rules.subject(state, actor, request.player_id if request else None)
     try:
         new_state = turn_flow.pass_turn(ctx.service.current_state(), player_id)
     except ValueError as exc:
@@ -57,7 +67,9 @@ async def post_pass_turn(
 
 @router.post("/turn/next-player", response_model=StateEnvelope)
 async def post_next_player(
-    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+    actor: ActorId,
+    request: TurnActionRequest | None = None,
+    ctx: AppContext = Depends(get_ctx),
 ) -> StateEnvelope:
     """Przekazuje aktywność następnemu graczowi (initiative order) w STATUS/AGENDA.
 
@@ -65,7 +77,9 @@ async def post_next_player(
     Służy do przeklikiwania kolejnych graczy w AGENDZIE (operator przewija graczy,
     nikogo nie kończąc). Faza spoza STATUS/AGENDA → 422.
     """
-    player_id = request.player_id if request is not None else None
+    state = ctx.service.current_state()
+    actor_rules.require(state, actor, actor_rules.turn_player(state), "Turn")
+    player_id = actor_rules.subject(state, actor, request.player_id if request else None)
     try:
         new_state = turn_flow.advance_active_player(
             ctx.service.current_state(), player_id
@@ -77,7 +91,9 @@ async def post_next_player(
 
 @router.post("/turn/phase-step", response_model=StateEnvelope)
 async def post_phase_step(
-    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+    actor: ActorId,
+    request: TurnActionRequest | None = None,
+    ctx: AppContext = Depends(get_ctx),
 ) -> StateEnvelope:
     """Bieżący gracz KOŃCZY swoją część fazy STATUS/AGENDA i przekazuje dalej.
 
@@ -87,7 +103,9 @@ async def post_phase_step(
     ``all_passed`` wykrywa komplet i mówca dostaje „Next phase". Faza spoza
     STATUS/AGENDA → 422.
     """
-    player_id = request.player_id if request is not None else None
+    state = ctx.service.current_state()
+    actor_rules.require(state, actor, actor_rules.turn_player(state), "Turn")
+    player_id = actor_rules.subject(state, actor, request.player_id if request else None)
     try:
         new_state = turn_flow.advance_active_player(
             ctx.service.current_state(), player_id, mark_passed=True
@@ -99,7 +117,9 @@ async def post_phase_step(
 
 @router.post("/phase/next", response_model=StateEnvelope)
 async def post_next_phase(
-    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+    actor: ActorId,
+    request: TurnActionRequest | None = None,
+    ctx: AppContext = Depends(get_ctx),
 ) -> StateEnvelope:
     """Przechodzi do następnej fazy rundy (Strategia→Akcja→Status→Agenda).
 
@@ -109,7 +129,9 @@ async def post_next_phase(
     własnym kanałem (``/god-mode/patch``) i tej walidacji nie przechodzi.
     """
     state = ctx.service.current_state()
-    player_id = request.player_id if request is not None else None
+    # Przejście fazy ogłasza mówca (RULES.md 31.4) — obcy aktor: 403, nie 422.
+    actor_rules.require(state, actor, actor_rules.speaker(state), "Next phase")
+    player_id = actor_rules.subject(state, actor, request.player_id if request else None)
     if player_id is not None and player_id != state.speaker_id:
         raise HTTPException(
             status_code=422,
@@ -159,7 +181,7 @@ async def post_next_phase(
     return await _commit_flow(ctx, new_state, "phase:next")
 
 
-@router.post("/phase/skip", response_model=StateEnvelope)
+@router.post("/phase/skip", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_skip_phase(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Tryb testowy (God-Mode): przeskakuje fazę z pominięciem bram i okien.
 
@@ -173,7 +195,7 @@ async def post_skip_phase(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
 
 
 @router.post("/round/next", response_model=StateEnvelope)
-async def post_next_round(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+async def post_next_round(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Rozpoczyna nową rundę: runda +1, faza = strategia, reset pasów.
 
     Na przełomie rundy karty strategii wracają do puli, a na każdej NIEWYBRANEJ
@@ -181,6 +203,8 @@ async def post_next_round(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     → next_round.
     """
     state = ctx.service.current_state()
+    # Nową rundę ogłasza mówca (RULES.md 31.4).
+    actor_rules.require(state, actor, actor_rules.speaker(state), "New round")
     try:
         state = strategy_phase.close_round_cards(state, ctx.registry)
         state = turn_flow.next_round(state)
@@ -189,7 +213,7 @@ async def post_next_round(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     return await _commit_flow(ctx, state, "round:next")
 
 
-@router.post("/speaker/set", response_model=StateEnvelope)
+@router.post("/speaker/set", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_set_speaker(
     request: SetSpeakerRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:

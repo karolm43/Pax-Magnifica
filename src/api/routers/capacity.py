@@ -9,9 +9,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import BattleLossItem, StateEnvelope
 from src.api.web_data import entity_key_map
+from src.core import actor as actor_rules
 from src.core import board_edit, capacity
 from src.core.game_state import WindowType
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -102,9 +104,13 @@ async def get_capacity(ctx: AppContext = Depends(get_ctx)) -> CapacityView:
 
 @router.post("/tactical/capacity/resolve", response_model=StateEnvelope)
 async def post_capacity_resolve(
+    actor: ActorId,
     request: CapacityResolveRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
     """Gracz usuwa nadwyżkę ponad pojemność (dokładnie tyle, ile trzeba — RULES.md 39.6 C2)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Resolve capacity"
+    )
     state = ctx.service.current_state()
     remove: dict[str, int] = {}
     for item in request.remove:

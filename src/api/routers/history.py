@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 
+from src.api.actor import HostOnly
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     ActivityEntry,
@@ -20,7 +21,7 @@ from src.core.game_state import ControlType, GameState
 router = APIRouter()
 
 
-@router.put("/state", response_model=StateEnvelope)
+@router.put("/state", dependencies=[HostOnly], response_model=StateEnvelope)
 async def put_state(
     state: GameState, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -29,7 +30,7 @@ async def put_state(
     return envelope
 
 
-@router.post("/god-mode/patch", response_model=StateEnvelope)
+@router.post("/god-mode/patch", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_patch(
     patch: GodModePatch, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -77,7 +78,7 @@ def get_activity(ctx: AppContext = Depends(get_ctx)) -> ActivityFeed:
     )
 
 
-@router.post("/history/goto/{seq}", response_model=StateEnvelope)
+@router.post("/history/goto/{seq}", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_history_goto(
     seq: int, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
@@ -88,7 +89,7 @@ async def post_history_goto(
     return envelope
 
 
-@router.post("/undo", response_model=StateEnvelope)
+@router.post("/undo", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_undo(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     envelope = ctx.service.undo()
     await ctx.service.broadcast()
@@ -96,7 +97,7 @@ async def post_undo(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     return envelope
 
 
-@router.post("/redo", response_model=StateEnvelope)
+@router.post("/redo", dependencies=[HostOnly], response_model=StateEnvelope)
 async def post_redo(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     envelope = ctx.service.redo()
     await ctx.service.broadcast()
