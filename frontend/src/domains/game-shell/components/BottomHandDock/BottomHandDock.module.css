@@ -11,7 +11,9 @@
   position: fixed;
   left: 50%;
   bottom: 14px;
-  z-index: 200;
+  /* Nad nakładkami walki / produkcji / inwazji / agendy (2700-2900), pod modalami (3500):
+     karty reakcji wolno zagrywać w trakcie tych okien (RULES.md 53.5). */
+  z-index: 3050;
   transform: translateX(-50%);
   width: min(960px, calc(100% - 48px));
   max-width: calc(100% - 48px);
@@ -50,6 +52,47 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* Prywatne podglądy z kart (Insider Information, Extreme Duress). */
+.peek {
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  list-style: none;
+  border: 1px solid rgba(214, 178, 94, 0.4);
+  border-radius: 8px;
+  background: rgba(214, 178, 94, 0.08);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Przełącznik ręki (reakcje grają też gracze, których nie jest tura). */
+.seats {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.seat {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.seat:hover,
+.seat:focus-visible {
+  opacity: 0.9;
+}
+
+.seat[data-current] {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.55);
 }
 
 /* Segmenty kategorii z licznikami. */
@@ -281,7 +324,7 @@
   position: fixed;
   left: 50%;
   bottom: calc(var(--hand-dock-clear, 200px) + 18px);
-  z-index: 210;
+  z-index: 3060;
   transform: translateX(-50%);
   display: flex;
   align-items: center;

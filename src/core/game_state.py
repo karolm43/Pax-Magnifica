@@ -97,6 +97,9 @@ class StrategyResolution(BaseModel):
     owner_id: str
     step: str
     draft: dict[str, Any] = Field(default_factory=dict)
+    # Primary wykonane z karty akcji Overrule: po nim NIE otwiera się okno secondary
+    # (wykonujemy wyłącznie primary; RULES.md 53).
+    no_secondary: bool = False
 
 
 class TimingWindow(BaseModel):
@@ -228,6 +231,10 @@ class AgendaStep(StrEnum):
     - ``REVEAL`` — mówca ma ujawnić kolejną agendę (krok 1/2: „Reveal Agenda");
     - ``VOTE`` — gracze głosują po kolei od lewej mówcy (mówca ostatni);
     - ``TIEBREAK`` — remis albo brak głosów: mówca (nie głosem) wybiera wynik;
+    - ``COUNTED`` — głosy policzone, wynik (``pending_outcome``) jeszcze NIE rozstrzygnięty:
+      pauza na reakcje (Bribery, Distinguished Councilor, Confounding/Confusing Legal Text,
+      Deadly Plot - RULES.md 53.5.a); mówca potwierdza (``confirm_outcome``). Pauza powstaje
+      tylko wtedy, gdy któryś gracz trzyma kartę reakcji na ten moment (⚠ ZAŁOŻENIE);
     - ``RESOLVED`` — wynik ustalony i widoczny, czeka na „dalej" mówcy;
     - ``COMPLETE`` — obie agendy rozstrzygnięte, planety odświeżone (krok 3);
       czeka na „Next phase" mówcy.
@@ -236,6 +243,7 @@ class AgendaStep(StrEnum):
     REVEAL = "REVEAL"
     VOTE = "VOTE"
     TIEBREAK = "TIEBREAK"
+    COUNTED = "COUNTED"
     RESOLVED = "RESOLVED"
     COMPLETE = "COMPLETE"
 
@@ -280,6 +288,13 @@ class AgendaPhaseState(BaseModel):
     tied: list[str] = Field(default_factory=list)
     resolved_outcome: str | None = None
     decided_by_speaker: bool = False
+    # Gracz, który OSTATNI oddał głosy (okno „po tym, jak oddasz głosy"); czyści go następna
+    # decyzja (wstrzymanie się innego gracza) albo rozstrzygnięcie. Karty: Distinguished Councilor.
+    last_vote_by: str | None = None
+    # Wynik czekający na rozstrzygnięcie w kroku ``COUNTED`` (po podmianie wybranego gracza
+    # przez Confounding/Confusing Legal Text zawiera już nowego wybranego).
+    pending_outcome: str | None = None
+    pending_by_speaker: bool = False
     history: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -363,6 +378,12 @@ class PlayerPrivateState(BaseModel):
     # Dwa tajne cele dobrane w setupie, z których gracz zatrzymuje JEDEN (drugi wraca do
     # talii). Pusta lista poza etapem wyboru (RULES.md 45).
     secret_candidates: list[str] = Field(default_factory=list)
+    # Tajne cele INNYCH graczy pokazane tej osobie przez efekt karty (Extreme Duress):
+    # {właściciel: [cele]}. Migawka z chwili pokazania; pole prywatne, więc projekcja ukrywa je.
+    revealed_secrets: dict[str, list[str]] = Field(default_factory=dict)
+    # Podgląd wierzchnich agend (Insider Information) - TAJNY, tylko dla właściciela; zmienia go
+    # wyłącznie ``card_draw.peek_agenda_top``, czyści ``card_draw.clear_agenda_peek``.
+    agenda_peek: list[str] = Field(default_factory=list)
 
 
 class SetupStage(StrEnum):
@@ -595,6 +616,13 @@ class ActiveCombat(BaseModel):
     # Od czego wznowić walkę po rozstrzygnięciu decyzji graczy w kroku TRIGGERS (RULES.md 56):
     # "start" (po hookach startu walki) albo "round_end:<KROK>" (po hookach końca rundy).
     resume: str = ""
+    # Ślady dla kart reakcji w walce (RULES.md 53.5.c): statki zniszczone / użycia Sustain Damage
+    # od ostatnich rzutów (czyszczone na początku kolejnej rundy rzutów). Wpis zniszczenia:
+    # ``{"player", "base_type", "hits_on"}``; wpis sustain: ``{"player", "base_type", "count"}``.
+    destroyed_ships: list[dict[str, Any]] = Field(default_factory=list)
+    sustained_ships: list[dict[str, Any]] = Field(default_factory=list)
+    # Przypisanie strat po AFB z Waylay: krok ASSIGN traktowany jak koniec kroku AFB.
+    afb_assign: bool = False
 
 
 class InvasionPhase(StrEnum):
@@ -634,6 +662,13 @@ class InvasionState(BaseModel):
     # Aktywny gracz zdjął w tej inwazji żeton Custodians => MUSI zlądować na Mecatol Rex
     # (R_custodians_token); bez tego nie przejdzie z kroku Commit Ground Forces.
     custodians_claimed: bool = False
+    # Ostatnie zaangażowanie sił naziemnych ``{planeta: {base_type: n}}`` w kroku COMMIT - okno
+    # kart reakcji „po zaangażowaniu jednostek” (Ghost Squad, Parley). Zerowane przy wejściu w
+    # inny podkrok inwazji.
+    last_commit: dict[str, dict[str, int]] = Field(default_factory=dict)
+    # Siły naziemne zwrócone do przestrzeni przez Parley: w tej akcji nie wolno ich zaangażować
+    # na inną planetę (R_parley, Notes) - ``{base_type: n}`` odejmowane od puli do lądowania.
+    parley_locked: dict[str, int] = Field(default_factory=dict)
 
 
 class ProductionGrant(BaseModel):
@@ -755,6 +790,44 @@ class GameClock(BaseModel):
     turn_owner_id: str | None = None
 
 
+class TurnEndWindow(BaseModel):
+    """Pauza „tura właśnie się skończyła, następny gracz jeszcze nic nie zrobił” (karty reakcji).
+
+    Ustawiana w ``turn_flow.end_turn``; zerowana przy pierwszej akcji/pasie następnego gracza,
+    przy nowej turze i przy zmianie fazy. Na niej opierają się okna „at the end of a player's
+    turn” i „at the start of another player's turn” (RULES.md 53.5).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    ended_player: str
+    ended_passed: bool = False
+    next_player: str | None = None
+
+
+class ActionDiscardTrace(BaseModel):
+    """Ślad ostatnio odrzuconej karty akcji (okno „after a player discards an action card”)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player: str
+    card: str
+
+
+class BonusTurn(BaseModel):
+    """Dodatkowa akcja gracza, który już spasował (Puppets on a String), poza kolejką tur.
+
+    Po jej zakończeniu ``end_turn`` przywraca spasowanie i oddaje turę ``resume_player``
+    (ten, który miał zacząć turę), z oknem pauzy sprzed bonusu (``resume_window``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player: str
+    resume_player: str | None = None
+    resume_window: TurnEndWindow | None = None
+
+
 class GameState(BaseModel):
     """Pełny, serializowalny stan gry."""
 
@@ -785,6 +858,20 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej zużyto już „+1 do ruchu dla jednego statku" (Gravity Drive,
     # RULES.md 55.6). Zerowane przy aktywacji i zakończeniu akcji.
     gravity_drive_used: bool = False
+    # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
+    # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
+    tactical_moved: bool = False
+    # Trwałe ślady dla okien kart reakcji (RULES.md 53.5.e): pauza po końcu tury, strony ostatniej
+    # transakcji, ostatnio odrzucona karta akcji i dodatkowa tura spasowanego gracza. Zerowane
+    # przy kolejnej akcji dowolnego gracza (``action_budget.register_action``) i nowej turze.
+    turn_end_window: TurnEndWindow | None = None
+    last_transaction: list[str] = Field(default_factory=list)
+    last_action_discard: ActionDiscardTrace | None = None
+    bonus_turn: BonusTurn | None = None
+    # Ślad zmian kontroli planet w TEJ akcji taktycznej (karty reakcji Infiltrate / Reparations):
+    # wpisy ``{"planet", "position", "player" (nowy kontroler), "previous" (poprzedni | None)}``.
+    # Dopisuje ``control.set_planet_control``; zerowane przy aktywacji i zakończeniu akcji.
+    control_changes: list[dict[str, str | None]] = Field(default_factory=list)
     # Co wyprodukowano w tej akcji i gdzie: strefa ("space"/id planety) → typ → sztuki.
     # Potrzebne, bo (1) osobne zdolności PRODUCTION mają ograniczenia typów (Arborec: dok nie
     # produkuje piechoty), (2) świeżo wyprodukowane jednostki NIE dokładają PRODUCTION w tym

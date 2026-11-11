@@ -221,6 +221,57 @@ def breakthrough_view(
     }
 
 
+def _remaining_after_skips(
+    state: GameState,
+    player_id: str,
+    tech: TechnologyDef,
+    missing: Counter[str],
+    planets: dict[str, list[str]],
+) -> int:
+    """Ile symboli prerekwizytów zostanie po zachłannym użyciu skipów (planety + AIDA)."""
+    left = Counter(missing)
+    for colors in planets.values():
+        color = next((c for c in colors if left[c] > 0), None)
+        if color is not None:
+            left[color] -= 1
+    remaining = sum(n for n in left.values() if n > 0)
+    if UNIT_UPGRADE in tech.types and aida_ready(state, player_id):
+        remaining -= 1
+    return remaining
+
+
+def researchable_techs(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    *,
+    without: str | None = None,
+) -> list[TechnologyDef]:
+    """Technologie z talii gracza, które może zbadać TERAZ (bezpośrednio albo po skipach).
+
+    To samo kryterium co statusy ``available`` / ``skippable`` w :func:`tree_view`. Z ``without``
+    liczy tak, jakby gracz NIE posiadał technologii ``without`` (Divert Funding: zwrócona
+    technologia nie spełnia prerekwizytów, C_action_cards). Nie mutuje ``state``.
+    """
+    sim = state
+    if without is not None:
+        player = state.players[player_id]
+        trimmed = player.model_copy(
+            update={"technologies": [t for t in player.technologies if t != without]}
+        )
+        sim = state.model_copy(update={"players": {**state.players, player_id: trimmed}})
+    owned = set(sim.players[player_id].technologies)
+    planets = specialty_planets(sim, registry, player_id)
+    result: list[TechnologyDef] = []
+    for tech in tech_pool(sim, registry, player_id).values():
+        if tech.id in owned:
+            continue
+        missing = missing_prerequisites(sim, registry, player_id, tech)
+        if not missing or _remaining_after_skips(sim, player_id, tech, missing, planets) <= 0:
+            result.append(tech)
+    return result
+
+
 def aida_ready(state: GameState, player_id: str) -> bool:
     """Czy gracz może wyczerpać AI Development Algorithm (posiada i nie jest wyczerpana)."""
     player = state.players[player_id]
@@ -330,6 +381,24 @@ def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
         )
 
 
+def return_technology(state: GameState, player_id: str, tech_id: str) -> None:
+    """Zwraca technologię do talii gracza (Divert Funding) - JEDYNE miejsce jej utraty.
+
+    Karta wraca do talii, więc zniknie też z wyczerpanych: ponowne zdobycie daje ją gotową
+    (C_action_cards, Divert Funding: „gain it readied"). Mutuje KLON roboczy wołającego.
+
+    Raises:
+        ValueError: Nieznany gracz albo gracz nie posiada tej technologii.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if tech_id not in player.technologies:
+        raise ValueError(f"You do not own the technology {tech_id}.")
+    player.technologies = [t for t in player.technologies if t != tech_id]
+    exhaust.ready_technology(state, player_id, tech_id)
+
+
 def _unit_upgrade_flag(tech_id: str) -> str:
     """``"true"`` dla ulepszenia jednostki (technologia bez koloru) - filtr ``where`` hooków."""
     registry = rules_hooks.bound_registry()
@@ -412,14 +481,7 @@ def tree_view(
             status = "available"
         else:
             # Każda planeta pokrywa najwyżej 1 symbol (zachłannie po kolorach planety).
-            left = Counter(missing)
-            for colors in planets.values():
-                color = next((c for c in colors if left[c] > 0), None)
-                if color is not None:
-                    left[color] -= 1
-            remaining = sum(n for n in left.values() if n > 0)
-            if UNIT_UPGRADE in tech.types and aida_ready(state, player_id):
-                remaining -= 1
+            remaining = _remaining_after_skips(state, player_id, tech, missing, planets)
             status = "skippable" if remaining <= 0 else "locked"
         rows.append(
             {

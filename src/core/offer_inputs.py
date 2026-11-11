@@ -16,9 +16,23 @@ from typing import Any
 Input = dict[str, Any]
 
 
-def option(value: Any, label: str, option_id: str | None = None) -> dict[str, Any]:
-    """Opcja wejścia: ``id`` unikalne w obrębie wejścia, ``value`` trafia do parametrów hooka."""
-    return {"id": str(value) if option_id is None else option_id, "value": value, "label": label}
+def option(
+    value: Any,
+    label: str,
+    option_id: str | None = None,
+    meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Opcja wejścia: ``id`` unikalne w obrębie wejścia, ``value`` trafia do parametrów hooka.
+
+    ``meta`` = dane strukturalne dla graficznych formularzy (np. Transit Diodes: system, strefa,
+    typ i liczba jednostek); silnik ich nie waliduje, UI może je pokazać zamiast etykiety.
+    """
+    result: dict[str, Any] = {
+        "id": str(value) if option_id is None else option_id, "value": value, "label": label
+    }
+    if meta is not None:
+        result["meta"] = meta
+    return result
 
 
 def choice(

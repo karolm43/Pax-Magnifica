@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_draw, component_action, rules_hooks, triggers
+from src.core import card_draw, component_action, reaction_cards, rules_hooks, triggers
 from src.core.components import ActionCardDef, ComponentCategory, ComponentRef
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
@@ -86,7 +86,16 @@ def playability(
         result.append(entry)
         spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
         if spec is None or spec.trigger is not TriggerKind.ACTION:
-            entry["reason"] = "Played in response to a game event, not as your action."
+            # Karta reakcji: zagrywalna, gdy silnik ma TERAZ otwarte pasujące okno (RULES.md 53.5).
+            ok, reason, _window = reaction_cards.available(state, registry, player_id, card_id)
+            implemented, inputs = card_inputs(state, registry, player_id, card_id)
+            entry["implemented"] = implemented
+            if not ok:
+                entry["reason"] = reason
+            elif implemented and not _has_legal_choices(inputs):
+                entry["reason"] = "No legal target for this card right now."
+            else:
+                entry["playable"] = True
             continue
         try:
             component_action.play_component_action(
@@ -102,6 +111,35 @@ def playability(
             continue
         entry["playable"] = True
     return result
+
+
+def _play_reaction_card(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    card_id: str,
+    params: Mapping[str, Any],
+) -> tuple[GameState, bool]:
+    """Zagranie karty REAKCJI (when/after/before/at start/at end) w otwartym oknie.
+
+    To NIE jest akcja tury: nie zużywa akcji i może ją zagrać każdy gracz, któremu pasuje okno
+    (``reaction_cards.available``). Efekt dostaje okno w ``params["__window"]``. Praca na klonie:
+    błąd = zero zmian.
+    """
+    ok, reason, window = reaction_cards.available(state, registry, player_id, card_id)
+    if not ok or window is None:
+        raise ValueError(reason or "There is no open window for this card right now.")
+    new_state = state.clone()
+    triggers.fire(
+        new_state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "card": card_id},
+    )
+    effect = rules_hooks.effect_for(effect_key(card_id))
+    if effect is not None:
+        with_window = {**params, reaction_cards.WINDOW_KEY: window.as_dict()}
+        effect(new_state, registry, player_id, with_window)
+    card_draw.discard_specific_action_cards(new_state, player_id, [card_id])
+    return new_state, effect is not None
 
 
 def play_action_card(
@@ -138,10 +176,7 @@ def play_action_card(
         raise ValueError(f"Unknown action card: {card_id}")
     spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
     if spec is None or spec.trigger is not TriggerKind.ACTION:
-        raise ValueError(
-            f"{card.name or card_id} is a timing/reaction card - it cannot be played as an "
-            "action (reactions need the STOP flow, RULES.md 43.4)."
-        )
+        return _play_reaction_card(state, registry, player_id, card_id, params or {})
 
     new_state = component_action.play_component_action(
         state, player_id, card_id, fire_after=False

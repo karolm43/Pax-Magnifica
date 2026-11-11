@@ -62,12 +62,15 @@ def _finish_primary(
     owner_id: str,
     initiative: int,
     draft: Draft,
+    *,
+    open_secondary: bool = True,
 ) -> GameState:
     """Stosuje efekt primary (na klonie ``state``) i otwiera okno secondary.
 
     ``state`` MUSI być już klonem (mutowany w miejscu). Gdy NIE MA kogo pytać (gra solo /
     pozostali poza stołem), okna nie otwieramy — puste okno zostawałoby ustawione i
-    blokowało End turn na stałe.
+    blokowało End turn na stałe. ``open_secondary=False`` (Overrule): wykonujemy samo primary,
+    bez okna secondary dla pozostałych graczy.
     """
     spec = _spec(initiative)
     action_ctx = {"player": owner_id, "initiative": initiative, "ability": "primary"}
@@ -76,6 +79,8 @@ def _finish_primary(
         spec.primary(state, ctx, owner_id, draft)
     triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.AFTER, subject=owner_id, ctx=action_ctx)
     state.pending_strategy = None
+    if not open_secondary:
+        return state
 
     queue = timing.build_response_queue(state, owner_id)
     if not queue:
@@ -160,7 +165,7 @@ def play_strategy_card(
     # Oznacz kartę jako zagraną (idempotentnie) + akcja strategiczna = akcja tury
     # (RULES.md 31.7: End turn przestaje być zablokowany „brakiem akcji").
     exhaust.exhaust_strategy_card(new_state, player_id, initiative)
-    action_budget.register_action(new_state, player_id)
+    action_budget.register_action(new_state, player_id, strategic=True)
 
     spec = _spec(initiative)
     if spec.primary_steps:
@@ -215,7 +220,64 @@ def submit_primary_step(
     if following is not None:
         current.step = following
         return new_state
-    return _finish_primary(new_state, ctx, player_id, current.initiative, current.draft)
+    return _finish_primary(
+        new_state,
+        ctx,
+        player_id,
+        current.initiative,
+        current.draft,
+        open_secondary=not current.no_secondary,
+    )
+
+
+def begin_overrule_primary(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    initiative: int,
+    *,
+    grid: HexGrid | None = None,
+) -> None:
+    """Overrule: gracz wykonuje PRIMARY karty ``initiative`` jako część akcji z karty akcji.
+
+    Mutuje ``state`` (klon roboczy wołającego). NIE wyczerpuje karty strategii, NIE liczy
+    akcji tury (akcją jest zagranie karty akcji) i NIE otwiera okna secondary. Karta z krokami
+    ustawia ``pending_strategy`` z ``no_secondary`` (gracz dalej używa ``submit_primary_step``);
+    karta bez kroków stosuje primary od razu.
+    """
+    spec = _spec(initiative)
+    if spec.primary_steps:
+        state.pending_strategy = StrategyResolution(
+            initiative=initiative,
+            owner_id=player_id,
+            step=spec.primary_steps[0],
+            no_secondary=True,
+        )
+        return
+    _finish_primary(
+        state, CardContext(registry, grid), player_id, initiative, {}, open_secondary=False
+    )
+
+
+def begin_strategize_secondary(state: GameState, player_id: str, initiative: int) -> None:
+    """Strategize: gracz wykonuje SECONDARY karty ``initiative`` (jego własna odpowiedź).
+
+    Mutuje ``state`` (klon roboczy). Otwiera okno ``STRATEGY_SECONDARY`` z kolejką z jednym
+    respondentem - zagrywającym; dalej idzie zwykły ``resolve_secondary`` (koszt żetonu
+    ze strategy pool poza Leadership, payload wyborów, produkcja Warfare).
+    """
+    spec = _spec(initiative)
+    opened = timing.open_window(
+        state,
+        WindowType.STRATEGY_SECONDARY,
+        [player_id],
+        context={
+            "initiative": initiative,
+            _FREE_KEY: "",
+            "cost": 1 if spec.secondary_costs_token else 0,
+        },
+    )
+    state.pending_window = opened.pending_window
 
 
 def resolve_secondary(

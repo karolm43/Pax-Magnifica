@@ -79,7 +79,7 @@ def play_component_action(
     new_state = state.clone()
     # RULES.md 31.7: akcja komponentu liczy się jako AKCJA tury (jak strategiczna/taktyczna).
     # Efekt konkretnego komponentu dojdzie dispatchem po component_id (szkielet — patrz moduł).
-    action_budget.register_action(new_state, active_id)
+    action_budget.register_action(new_state, active_id, component=component_id)
     # Efekt technologii z „ACTION:" (np. Sling Relay): gracz podał wybory, silnik je sprawdza i
     # stosuje. Błąd cofa całą akcję (klon), więc nic się nie zużywa.
     registry = rules_hooks.bound_registry()

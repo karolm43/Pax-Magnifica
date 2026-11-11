@@ -9,7 +9,7 @@ from __future__ import annotations
 from src.core import triggers
 from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import GameState
+from src.core.game_state import ActionDiscardTrace, GameState
 from src.core.registry import StaticDataRegistry
 
 
@@ -51,7 +51,49 @@ def discard_action_cards(state: GameState, player_id: str, count: int) -> list[s
     discarded = hand[:count]
     state.players[player_id].private.action_cards = hand[count:]
     state.decks.action_card_discard.extend(discarded)
+    _record_discards(state, player_id, discarded)
     return discarded
+
+
+def _record_discards(state: GameState, player_id: str, cards: list[str]) -> None:
+    """Zapisuje ślad odrzucenia (okno „po odrzuceniu karty akcji”) i emituje zdarzenie (mutuje)."""
+    for card in cards:
+        state.last_action_discard = ActionDiscardTrace(player=player_id, card=card)
+        triggers.fire(
+            state,
+            GameEvent.ACTION_CARD_DISCARDED,
+            Moment.AFTER,
+            subject=player_id,
+            ctx={"player": player_id, "card": card},
+        )
+
+
+def take_from_discard(state: GameState, player_id: str, card_id: str) -> None:
+    """Przenosi kartę akcji ze stosu odrzuconych do ręki gracza (Reverse Engineer; mutuje).
+
+    Raises:
+        ValueError: Karty nie ma na stosie odrzuconych.
+    """
+    discard = state.decks.action_card_discard
+    if card_id not in discard:
+        raise ValueError(f"The action card {card_id} is not in the discard pile.")
+    # Bierzemy ostatnie wystąpienie (wierzch stosu) - kopie tej samej karty są nierozróżnialne.
+    index = len(discard) - 1 - discard[::-1].index(card_id)
+    discard.pop(index)
+    state.players[player_id].private.action_cards.append(card_id)
+
+
+def transfer_action_card(state: GameState, from_id: str, to_id: str, card_id: str) -> None:
+    """Przenosi WSKAZANĄ kartę akcji z ręki ``from_id`` do ręki ``to_id`` (mutuje).
+
+    Raises:
+        ValueError: Gracz ``from_id`` nie ma tej karty.
+    """
+    hand = state.players[from_id].private.action_cards
+    if card_id not in hand:
+        raise ValueError(f"{from_id} does not have the action card {card_id}.")
+    hand.remove(card_id)
+    state.players[to_id].private.action_cards.append(card_id)
 
 
 def discard_specific_action_cards(
@@ -69,6 +111,7 @@ def discard_specific_action_cards(
         hand.remove(card_id)
     state.players[player_id].private.action_cards = hand
     state.decks.action_card_discard.extend(card_ids)
+    _record_discards(state, player_id, list(card_ids))
 
 
 def take_random_action_card(state: GameState, from_id: str, to_id: str) -> str:
@@ -100,6 +143,23 @@ def rearrange_agenda_top(
     decks = state.decks
     rest = decks.agenda_deck[peeked:]
     decks.agenda_deck = [*top, *rest, *bottom]
+
+
+def peek_agenda_top(state: GameState, player_id: str, count: int) -> list[str]:
+    """Zapisuje graczowi PRYWATNY podgląd ``count`` wierzchnich agend (Insider Information).
+
+    Wynik trafia do ``private.agenda_peek`` (projekcja widoczności czyści go innym graczom).
+    Talia się nie zmienia. Mutuje ``state``.
+    """
+    top = list(state.decks.agenda_deck[:count])
+    state.players[player_id].private.agenda_peek = top
+    return top
+
+
+def clear_agenda_peek(state: GameState) -> None:
+    """Czyści podglądy agend wszystkich graczy (koniec fazy agendy). Mutuje ``state``."""
+    for player in state.players.values():
+        player.private.agenda_peek = []
 
 
 def ensure_agenda_deck(state: GameState, registry: StaticDataRegistry) -> None:

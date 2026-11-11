@@ -161,17 +161,73 @@ def perform_retreat(
     cargo: list[CargoPickup] | None = None,
     token_pool: str | None = None,
 ) -> tuple[GameState, RetreatResult]:
-    """Wycofuje jednostki gracza z ``position`` do ``destination`` (O5/O6).
+    """Wycofuje jednostki gracza z ``position`` do ``destination`` (O5/O6) - na KLONIE stanu.
+
+    Opakowanie ``retreat_in_place`` (zwraca nowy stan); parametry i błędy jak tam.
+    """
+    new_state = state.clone()
+    result = retreat_in_place(
+        new_state, grid, registry, position, player_id, destination, cargo, token_pool
+    )
+    return new_state, result
+
+
+def ships_move_destinations(
+    state: GameState, grid: HexGrid, position: str, player_id: str
+) -> list[str]:
+    """Sąsiednie systemy, do których wolno PRZENIEŚĆ statki kartą (Skilled Retreat), posortowane.
+
+    To NIE odwrót (O4 bez wymogu własnej obecności): wystarczy, że w celu nie ma statków
+    innego gracza; nadal odpadają supernowa, mgławica i pole asteroid bez Antimass Deflectors.
+    """
+    can_enter_asteroids = _can_enter_asteroids(state, player_id)
+    result: list[str] = []
+    for neighbor in sorted(grid.neighbors(position)):
+        if neighbor == position:
+            continue
+        anomalies = grid.anomalies_at(neighbor)
+        if _SUPERNOVA in anomalies or _NEBULA in anomalies:
+            continue
+        if _ASTEROID in anomalies and not can_enter_asteroids:
+            continue
+        system = state.systems.get(neighbor)
+        if system is not None and _other_ships(system, player_id):
+            continue
+        result.append(neighbor)
+    return result
+
+
+def retreat_in_place(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    position: str,
+    player_id: str,
+    destination: str,
+    cargo: list[CargoPickup] | None = None,
+    token_pool: str | None = None,
+    *,
+    destinations: list[str] | None = None,
+    token_pools: bool = True,
+) -> RetreatResult:
+    """Wycofuje jednostki gracza z ``position`` do ``destination`` (O5/O6) - MUTUJE ``state``.
 
     ``cargo`` = jawny ładunek (strefa ``"space"`` albo planeta kontrolowana w aktywnym
     systemie); ``None`` = ładunek domyślny (``_auto_cargo``). ``token_pool`` = pula na arkuszu,
     z której idzie żeton, gdy rezerwa jest pusta (``TOKEN_POOLS``; ``None`` = kolejność domyślna).
+    ``destinations`` nadpisuje listę dozwolonych celów (Skilled Retreat);
+    ``token_pools=False`` = żeton tylko z rezerwy (bez sięgania do puli arkusza).
 
     Raises:
         ValueError: Niedozwolony cel, zły ładunek (przekroczona pojemność, porzucanie ładunku
             przy wolnej pojemności, planeta nie gracza), zła pula żetonów.
     """
-    if destination not in retreat_destinations(state, grid, position, player_id):
+    allowed = (
+        destinations
+        if destinations is not None
+        else retreat_destinations(state, grid, position, player_id)
+    )
+    if destination not in allowed:
         raise ValueError(f"Your ships cannot retreat to system {destination}.")
     if token_pool is not None and token_pool not in TOKEN_POOLS:
         raise ValueError(f"Unknown command token pool: {token_pool}.")
@@ -248,7 +304,7 @@ def perform_retreat(
             "retreating ships still have free capacity."
         )
 
-    new_state = state.clone()
+    new_state = state  # mutacja w miejscu: walidacja powyżej poprzedza każdą zmianę
     src = new_state.systems[position]
     dest = new_state.systems.get(destination)
     if dest is None:  # pusty system (Dark Energy Tap) - jeszcze bez wpisu w stanie
@@ -279,7 +335,7 @@ def perform_retreat(
             if command_tokens.reinforcements(new_state, player_id) > 0:
                 command_tokens.take_from_reinforcements(new_state, player_id)
                 result.token_from = "reinforcements"
-            else:
+            elif token_pools:
                 pools = [token_pool] if token_pool is not None else list(TOKEN_POOLS)
                 if (
                     token_pool is not None
@@ -296,4 +352,4 @@ def perform_retreat(
             if result.token_from is not None:
                 dest.command_tokens.append(player_id)
                 result.token_placed = True
-    return new_state, result
+    return result

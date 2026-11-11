@@ -17,6 +17,7 @@ _WEB_PHASE_BY_STEP: dict[AgendaStep, str] = {
     AgendaStep.REVEAL: "agenda.readyToFlip",
     AgendaStep.VOTE: "agenda.voting",
     AgendaStep.TIEBREAK: "agenda.resolving",
+    AgendaStep.COUNTED: "agenda.resolving",
     AgendaStep.RESOLVED: "agenda.resolving",
     AgendaStep.COMPLETE: "agenda.resolving",
 }
@@ -148,6 +149,9 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
         "totals": agenda_phase.totals(agenda),
         "resolvedOutcome": agenda.resolved_outcome,
         "decidedBySpeaker": agenda.decided_by_speaker,
+        # Krok COUNTED: wynik policzony, czeka na reakcje i potwierdzenie mówcy (/agenda/confirm).
+        "pendingOutcome": agenda.pending_outcome,
+        "lastVoteBy": agenda.last_vote_by,
         "voters": voters,
         "history": list(agenda.history),
         "lawsInPlay": dict(state.decks.agenda_laws),

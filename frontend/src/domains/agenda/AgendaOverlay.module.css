@@ -269,6 +269,21 @@
   stroke-dasharray: none;
 }
 
+/* Głos możliwy (Predictive Intelligence: +3, jeszcze nie wybrany) - pusty, „duch" miejsca. */
+.seat[data-state="possible"] .seatDisc {
+  fill: rgb(var(--seat-rgb) / 0.08);
+}
+
+.seat[data-state="possible"] .seatIcon {
+  opacity: 0.2;
+  filter: grayscale(1);
+}
+
+.seat[data-state="possible"] .seatRing {
+  stroke: rgb(var(--seat-rgb) / 0.55);
+  stroke-dasharray: 1.5 2.5;
+}
+
 .seat[data-state="abstained"],
 .seat[data-state="blocked"] {
   opacity: 0.35;

@@ -72,6 +72,11 @@ def set_planet_control(
         del system.planet_owners[planet]
     else:
         system.planet_owners[planet] = new_owner
+        if state.active_system is not None:
+            # Ślad dla kart reakcji (Infiltrate / Reparations): kto przejął planetę w tej akcji.
+            state.control_changes.append(
+                {"planet": planet, "position": position, "player": new_owner, "previous": previous}
+            )
     if previous is not None and previous in state.players:
         prev_player = state.players[previous]
         prev_player.controlled_planets = [p for p in prev_player.controlled_planets if p != planet]

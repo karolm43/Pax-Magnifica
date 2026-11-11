@@ -190,6 +190,8 @@ def _planet_shielded(
         for bt, count in by_type.items():
             if count <= 0:
                 continue
+            if bt == "pds" and space_cannon.pds_disabled(state, pid):
+                continue  # Disable: PDS przeciwnika traci Planetary Shield na czas inwazji
             unit = unit_variant(state, registry, pid, bt)
             if unit is not None and unit.planetary_shield:
                 return True
@@ -232,6 +234,7 @@ def _enter(
     new_state = state.clone()
     inv = _inv(new_state)
     inv.phase = phase
+    inv.last_commit = {}  # okno „po zaangażowaniu” (Ghost Squad, Parley) żyje tylko w COMMIT
     if phase is InvasionPhase.SPACE_CANNON_DEFENSE and not defense_planets(new_state, registry):
         return _enter(new_state, grid, registry, InvasionPhase.GROUND_COMBAT)
     if phase is InvasionPhase.GROUND_COMBAT and not combat_planets(new_state, registry):
@@ -276,8 +279,16 @@ def begin_invasion(
 
 
 def clear_invasion(state: GameState) -> GameState:
-    """Zamyka inwazję (wyjście z kroku, koniec akcji) — nie rusza jednostek."""
+    """Zamyka inwazję (wyjście z kroku, koniec akcji) — nie rusza jednostek.
+
+    Emituje ``INVASION`` / ``END``: wygasają efekty „do końca inwazji” (Blitz, Bunker, Disable).
+    """
     new_state = state.clone()
+    if new_state.invasion is not None:
+        triggers.fire(
+            new_state, GameEvent.INVASION, Moment.END, subject=new_state.invasion.attacker,
+            ctx={"position": new_state.invasion.position, "player": new_state.invasion.attacker},
+        )
     new_state.invasion = None
     return new_state
 
@@ -302,6 +313,27 @@ def bombard_targets(state: GameState, registry: StaticDataRegistry) -> list[str]
     ]
 
 
+def granted_bombard_hits_on(state: GameState) -> int | None:
+    """Próg trafień Bombardment nadanego statkom bez niego (Blitz) albo ``None`` (brak efektu)."""
+    values = rules_hooks.forbidden(
+        rules_hooks.POINT_BOMBARDMENT_GRANTED, state, _inv(state).attacker
+    )
+    numbers = [int(v) for v in values if str(v).isdigit()]
+    return min(numbers) if numbers else None
+
+
+def _bombard_modifier(state: GameState, planet: str) -> int:
+    """Modyfikator wyniku kości bombardowania przeciw planecie (Bunker kontrolującego: -4)."""
+    inv = _inv(state)
+    owner = _system(state).planet_owners.get(planet)
+    if owner is None or owner == inv.attacker:
+        return 0
+    return rules_hooks.modify(
+        rules_hooks.POINT_BOMBARDMENT_ROLL_MODIFIER, state, owner, 0,
+        {"planet": planet, "attacker": inv.attacker},
+    )
+
+
 def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[BombardGroup]:
     """Statki atakującego z Bombardment w aktywnym systemie (puste, gdy brak celu)."""
     invasion = _inv(state)
@@ -309,11 +341,22 @@ def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[Bomba
     if not bombard_targets(state, registry):
         return []
     groups: list[BombardGroup] = []
+    granted = granted_bombard_hits_on(state)
     for bt, count in sorted(system.space_units.get(invasion.attacker, {}).items()):
         if count <= 0 or not is_space_unit(bt):
             continue
         unit = unit_variant(state, registry, invasion.attacker, bt)
-        if unit is None or not unit.bombard_hits_on or unit.bombard_hits_on <= 0:
+        if unit is None:
+            continue
+        if not unit.bombard_hits_on or unit.bombard_hits_on <= 0:
+            # Blitz: statki niefighterowe bez Bombardment zyskują je (1 kość) do końca inwazji.
+            if granted is not None and bt != "fighter":
+                groups.append(
+                    BombardGroup(
+                        base_type=bt, unit_id=unit.id, name=unit.name, count=count,
+                        hits_on=granted, dice_per_unit=1,
+                    )
+                )
             continue
         groups.append(
             BombardGroup(
@@ -411,8 +454,9 @@ def bombard(
         group = groups[item.base_type]
         bonus = extra_dice if plasma_unit and item.key == plasma_unit else 0
         rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit + bonus)
+        modifier = _bombard_modifier(state, item.planet)
         # Hook MODIFY: mnożnik trafień bombardowania (X-89 ΩΩ: podwójne trafienia).
-        hits = count_hits(dice, group.hits_on) * rules_hooks.modify(
+        hits = count_hits([d + modifier for d in dice], group.hits_on) * rules_hooks.modify(
             rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, _inv(state).attacker, 1,
             {"kind": "bombardment", "base_type": item.base_type},
         )
@@ -425,6 +469,7 @@ def bombard(
                 "hitsOn": group.hits_on,
                 "dice": dice,
                 "hits": hits,
+                "modifier": modifier,
             }
         )
         entry["hits"] += hits
@@ -560,7 +605,11 @@ def commit_ground_forces(
     planets = set(system_planets(state, registry, inv.position))
     sealed = custodians.landing_blocked(state, registry, inv.position)
     system = _system(state)
-    available = _ground_in_zone(system, "space", inv.attacker)
+    # Parley: siły zwrócone do przestrzeni nie mogą w tej akcji lądować na inną planetę.
+    available = {
+        bt: n - inv.parley_locked.get(bt, 0)
+        for bt, n in _ground_in_zone(system, "space", inv.attacker).items()
+    }
     wanted: dict[str, int] = {}
     for planet, by_type in commits.items():
         for base_type, count in by_type.items():
@@ -588,6 +637,7 @@ def commit_ground_forces(
     new_inv = _inv(new_state)
     new_system = _system(new_state)
     commit_ctx = {"player": new_inv.attacker, "position": new_inv.position, "units": dict(wanted)}
+    new_inv.last_commit = {}  # okno „po zaangażowaniu” dotyczy TEGO zaangażowania
     triggers.fire(
         new_state, GameEvent.UNITS_COMMITTED, Moment.WHEN, subject=new_inv.attacker,
         ctx=commit_ctx,
@@ -603,6 +653,8 @@ def commit_ground_forces(
             )
             landed = new_inv.committed.setdefault(planet, {})
             landed[base_type] = landed.get(base_type, 0) + count
+            latest = new_inv.last_commit.setdefault(planet, {})
+            latest[base_type] = latest.get(base_type, 0) + count
     triggers.fire(
         new_state, GameEvent.UNITS_COMMITTED, Moment.AFTER, subject=new_inv.attacker,
         ctx=commit_ctx,
@@ -945,3 +997,164 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
     if state.exploration is not None:
         raise ValueError("Finish exploring the captured planets first.")
     return clear_invasion(state)
+
+
+# ------------------------------------------------- reakcje kart (RULES.md 53.5.d, MUTUJĄ stan)
+# Efekty kart akcji grane W REAKCJI na okno inwazji pracują na klonie wołającego (jak
+# ``register_effect``), więc poniższe funkcje zmieniają przekazany ``state`` w miejscu.
+
+
+def parley_return(state: GameState, planet: str) -> dict[str, int]:
+    """Parley: zwraca siły zaangażowane OSTATNIO na ``planet`` do przestrzeni aktywnego systemu.
+
+    Źródło: C_action_cards (Parley) - dotyczy sił tylko JEDNEJ planety, a zwrócone jednostki
+    nie mogą w tej akcji lądować na inną planetę (``parley_locked``). ⚠ ZAŁOŻENIE: „zaangażowane
+    jednostki” = ostatnie zaangażowanie na tę planetę (``last_commit``), bez tych, które
+    zdążyły zniknąć. Zwraca ``{base_type: liczba}`` faktycznie zwróconych.
+
+    Raises:
+        ValueError: Zły podkrok albo brak świeżo zaangażowanych sił na planecie.
+    """
+    inv = _phase(state, InvasionPhase.COMMIT, "Commit Ground Forces")
+    latest = inv.last_commit.get(planet)
+    if not latest:
+        raise ValueError(f"No units were just committed to {planet}.")
+    system = _system(state)
+    returned: dict[str, int] = {}
+    for base_type, count in sorted(latest.items()):
+        here = _ground_in_zone(system, planet, inv.attacker).get(base_type, 0)
+        move = min(count, here)
+        if move <= 0:
+            continue
+        unit_ops.transfer_units(
+            state, system, planet, system, "space", inv.attacker, base_type, move
+        )
+        returned[base_type] = move
+        landed = inv.committed.get(planet, {})
+        landed[base_type] = landed.get(base_type, 0) - move
+        if landed[base_type] <= 0:
+            del landed[base_type]
+        inv.parley_locked[base_type] = inv.parley_locked.get(base_type, 0) + move
+    if not returned:
+        raise ValueError(f"The committed units are no longer on {planet}.")
+    if not inv.committed.get(planet):
+        inv.committed.pop(planet, None)
+    del inv.last_commit[planet]
+    return returned
+
+
+def _bombard_log_entry(inv: InvasionState, planet: str) -> dict[str, Any]:
+    for entry in reversed(inv.log):
+        if entry.get("phase") == "BOMBARDMENT" and entry.get("planet") == planet:
+            found: dict[str, Any] = entry
+            return found
+    raise ValueError(f"No bombardment roll was made against {planet}.")
+
+
+def _defense_log_entry(inv: InvasionState, planet: str) -> dict[str, Any]:
+    for entry in reversed(inv.log):
+        if entry.get("phase") == "DEFENSE" and entry.get("planet") == planet:
+            found: dict[str, Any] = entry
+            return found
+    raise ValueError(f"No Space Cannon Defense roll was made on {planet}.")
+
+
+def defense_roller(state: GameState, planet: str) -> str:
+    """Gracz, który rzucił Space Cannon Defense na ``planet`` (z dziennika inwazji)."""
+    return str(_defense_log_entry(_inv(state), planet)["defender"])
+
+
+def cancel_defense_hits(state: GameState, planet: str, count: int = 1) -> int:
+    """Anuluje do ``count`` trafień Space Cannon Defense czekających na ``planet``.
+
+    Bez trafień planeta jest rozstrzygnięta (jak po rzucie bez trafień). Zwraca anulowane.
+
+    Raises:
+        ValueError: Brak trafień do przypisania na planecie.
+    """
+    inv = _inv(state)
+    pending = inv.defense_pending.get(planet, 0)
+    if pending <= 0:
+        raise ValueError(f"There are no Space Cannon hits to cancel on {planet}.")
+    cancelled = min(max(0, count), pending)
+    entry = _defense_log_entry(inv, planet)
+    entry["hits"] = pending - cancelled
+    entry["cancelled"] = int(entry.get("cancelled", 0)) + cancelled
+    if pending - cancelled > 0:
+        inv.defense_pending[planet] = pending - cancelled
+    else:
+        del inv.defense_pending[planet]
+        inv.defense_resolved.append(planet)
+    return cancelled
+
+
+def reroll_pending_defense(state: GameState) -> int:
+    """Scramble Frequency na Space Cannon Defense: przerzuca kości rzutów czekających na straty.
+
+    ⚠ ZAŁOŻENIE: gdy trafienia czekają na kilku planetach, przerzucane są wszystkie rzuty.
+    Planeta bez trafień po przerzucie jest rozstrzygnięta. Zwraca sumę trafień po przerzucie.
+
+    Raises:
+        ValueError: Brak rzutu Space Cannon Defense czekającego na przypisanie strat.
+    """
+    inv = _inv(state)
+    planets = sorted(inv.defense_pending)
+    if not planets:
+        raise ValueError("There is no Space Cannon Defense roll to reroll.")
+    entries = [_defense_log_entry(inv, p) for p in planets]
+    flat = [dict(roll) for entry in entries for roll in entry["rolls"]]
+    roller = str(entries[0]["defender"])
+    fresh, total = space_cannon.reroll_entries(state, flat, roller=roller)
+    cursor = 0
+    for planet, entry in zip(planets, entries, strict=True):
+        size = len(entry["rolls"])
+        mine = fresh[cursor : cursor + size]
+        cursor += size
+        hits = sum(int(r["hits"]) for r in mine)
+        entry.update({"rolls": mine, "hits": hits, "rerolled": True})
+        if hits > 0:
+            inv.defense_pending[planet] = hits
+        else:
+            del inv.defense_pending[planet]
+            inv.defense_resolved.append(planet)
+    return total
+
+
+def reroll_pending_bombardment(state: GameState) -> int:
+    """Scramble Frequency na Bombardment: przerzuca kości rzutów czekających na straty.
+
+    ⚠ ZAŁOŻENIE: przerzucane są rzuty wszystkich planet, na których trafienia wciąż czekają na
+    przypisanie (to jedno użycie Bombardment). Planeta bez trafień po przerzucie jest wolna.
+    Zwraca sumę trafień po przerzucie.
+
+    Raises:
+        ValueError: Brak rzutu Bombardment czekającego na przypisanie strat.
+    """
+    inv = _inv(state)
+    planets = sorted(inv.bombard_pending)
+    if not planets:
+        raise ValueError("There is no Bombardment roll to reroll.")
+    entries = [_bombard_log_entry(inv, p) for p in planets]
+    flat = [dict(roll) for entry in entries for roll in entry["rolls"]]
+
+    def multiplier(roll: dict[str, Any]) -> int:
+        return rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, inv.attacker, 1,
+            {"kind": "bombardment", "base_type": roll.get("baseType")},
+        )
+
+    fresh, total = space_cannon.reroll_entries(
+        state, flat, roller=inv.attacker, multiplier=multiplier
+    )
+    cursor = 0
+    for planet, entry in zip(planets, entries, strict=True):
+        size = len(entry["rolls"])
+        mine = fresh[cursor : cursor + size]
+        cursor += size
+        hits = sum(int(r["hits"]) for r in mine)
+        entry.update({"rolls": mine, "hits": hits, "rerolled": True})
+        if hits > 0:
+            inv.bombard_pending[planet] = hits
+        else:
+            del inv.bombard_pending[planet]
+    return total

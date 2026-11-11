@@ -96,6 +96,6 @@ def test_kolejka_kart_action_zawiera_tylko_karty_bez_efektu(registry: StaticData
     text = hook_coverage.render_markdown(registry)
     assert "## 6. Kolejka kart ACTION do zrobienia" in text
     queue = text.split("## 6. Kolejka kart ACTION do zrobienia", 1)[1].split("## 7.", 1)[0]
-    assert "`meltdown`" in queue  # okno ACTION, jeszcze bez efektu
+    assert "`meltdown`" not in queue  # Reactor Meltdown ma efekt (action_cards_economy)
     assert "`messiah`" not in queue  # ma efekt - zniknęła z kolejki
     assert "`disgrace`" not in queue  # karta reakcji, nie ACTION

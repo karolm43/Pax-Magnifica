@@ -96,6 +96,19 @@ async def post_decide(
     return await _commit(ctx, new_state, f"agenda:decide:{request.player_id}")
 
 
+@router.post("/confirm", response_model=StateEnvelope)
+async def post_confirm(
+    request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Mówca rozstrzyga wynik czekający w kroku COUNTED (po oknie na karty reakcji)."""
+    state = ctx.service.current_state()
+    try:
+        new_state = agenda_phase.confirm_outcome(state, ctx.registry, _speaker_of(request, state))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, "agenda:confirm")
+
+
 @router.post("/discard", response_model=StateEnvelope)
 async def post_discard(
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)

@@ -103,36 +103,55 @@ def test_messiah_po_jednej_piechocie_na_planete(registry: StaticDataRegistry) ->
         assert new.systems["000"].planet_units[planet]["p1"]["infantry"] == 1
 
 
+def _manual_card(registry: StaticDataRegistry) -> str:
+    """Karta z oknem ACTION BEZ efektu w silniku (zmienia się w miarę dopisywania efektów)."""
+    from src.core.components import ComponentRef
+    from src.core.timing_spec import TriggerKind
+
+    rules_hooks.all_hooks()  # wymusza załadowanie pakietu hooków
+    for card_id in sorted(registry.catalog.all(ComponentCategory.ACTION_CARD)):
+        spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
+        if (
+            spec is not None
+            and spec.trigger is TriggerKind.ACTION
+            and rules_hooks.effect_for(action_cards.effect_key(card_id)) is None
+        ):
+            return card_id
+    pytest.skip("Wszystkie karty z oknem ACTION mają już efekt.")
+
+
 def test_karta_bez_efektu_jest_zagrana_i_oznaczona_jako_reczna(
     registry: StaticDataRegistry,
 ) -> None:
-    # Reactor Meltdown: okno ACTION, brak efektu w silniku.
-    state = _state(registry, ["meltdown"], [])
-    new, implemented = action_cards.play_action_card(state, registry, "p1", "meltdown")
+    manual = _manual_card(registry)
+    state = _state(registry, [manual], [])
+    new, implemented = action_cards.play_action_card(state, registry, "p1", manual)
     assert not implemented
-    assert new.decks.action_card_discard == ["meltdown"]
+    assert new.decks.action_card_discard == [manual]
     assert new.players["p1"].took_action_this_turn
 
 
-def test_karta_reakcji_nie_jest_zagrywalna_jako_akcja(registry: StaticDataRegistry) -> None:
+def test_karta_reakcji_bez_okna_nie_jest_zagrywalna(registry: StaticDataRegistry) -> None:
+    # Public Disgrace (STOP, poza zakresem okien) nie ma otwartego okna -> brak zagrania.
     state = _state(registry, ["disgrace"], [])
-    with pytest.raises(ValueError, match="reaction"):
+    with pytest.raises(ValueError, match="no open window"):
         action_cards.play_action_card(state, registry, "p1", "disgrace")
 
 
 def test_walidacje_reki_tury_i_actor_id(registry: StaticDataRegistry) -> None:
-    state = _state(registry, ["meltdown"], [])
+    manual = _manual_card(registry)
+    state = _state(registry, [manual], [])
     with pytest.raises(ValueError, match="do not have"):
         action_cards.play_action_card(state, registry, "p1", "messiah")
     with pytest.raises(ValueError, match="cannot play a card for"):
-        action_cards.play_action_card(state, registry, "p1", "meltdown", actor_id="p2")
-    state.players["p2"].private.action_cards = ["meltdown"]
+        action_cards.play_action_card(state, registry, "p1", manual, actor_id="p2")
+    state.players["p2"].private.action_cards = [manual]
     with pytest.raises(ValueError, match="not p2's turn"):
-        action_cards.play_action_card(state, registry, "p2", "meltdown")
-    done, _ = action_cards.play_action_card(state, registry, "p1", "meltdown")
-    done.players["p1"].private.action_cards = ["meltdown"]
+        action_cards.play_action_card(state, registry, "p2", manual)
+    done, _ = action_cards.play_action_card(state, registry, "p1", manual)
+    done.players["p1"].private.action_cards = [manual]
     with pytest.raises(ValueError, match="already took an action"):
-        action_cards.play_action_card(done, registry, "p1", "meltdown")
+        action_cards.play_action_card(done, registry, "p1", manual)
 
 
 def test_blad_efektu_nie_zmienia_stanu_wejsciowego(registry: StaticDataRegistry) -> None:
@@ -410,9 +429,10 @@ def test_formularz_karty_daje_parametry_przyjmowane_przez_efekt(
 
 def test_karty_bez_wyborow_maja_pusty_formularz(registry: StaticDataRegistry) -> None:
     state = _rich_state(registry)
-    state.players["p1"].private.action_cards = ["messiah", "meltdown"]
+    manual = _manual_card(registry)
+    state.players["p1"].private.action_cards = ["messiah", manual]
     assert action_cards.card_inputs(state, registry, "p1", "messiah") == (True, [])
-    assert action_cards.card_inputs(state, registry, "p1", "meltdown") == (False, [])
+    assert action_cards.card_inputs(state, registry, "p1", manual) == (False, [])
 
 
 def test_formularz_wymaga_karty_w_rece(registry: StaticDataRegistry) -> None:
@@ -446,10 +466,11 @@ def _by_id(rows: list[dict[str, object]]) -> dict[str, dict[str, object]]:
 
 def test_zagrywalnosc_odroznia_karty_akcji_od_reakcji_i_cele(registry: StaticDataRegistry) -> None:
     state = _rich_state(registry)
-    state.players["p1"].private.action_cards = ["messiah", "meltdown", "disgrace", "unexpected"]
+    manual = _manual_card(registry)
+    state.players["p1"].private.action_cards = ["messiah", manual, "disgrace", "unexpected"]
     rows = _by_id(action_cards.playability(state, registry, "p1"))
     assert rows["messiah"]["playable"] and rows["messiah"]["implemented"]
-    assert rows["meltdown"]["playable"] and not rows["meltdown"]["implemented"]  # ręcznie
+    assert rows[manual]["playable"] and not rows[manual]["implemented"]  # ręcznie
     assert not rows["disgrace"]["playable"]
     assert "response to a game event" in str(rows["disgrace"]["reason"])
     assert rows["unexpected"]["playable"]  # jest żeton na planszy (rich_state)

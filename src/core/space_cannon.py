@@ -18,12 +18,13 @@ Stan okna w ``TimingWindow.context`` (tylko str/int):
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
 from src.core import exhaust, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
-from src.core.dice import DIE_SIDES, count_hits, roll_dice
+from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll, roll_dice
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, TimingWindow, WindowType
 from src.core.hex_grid import HexGrid
@@ -83,6 +84,18 @@ class PendingHits:
 # --------------------------------------------------------------------------- strzelcy
 
 
+def pds_disabled(state: GameState, owner_id: str) -> bool:
+    """Czy PDS gracza ``owner_id`` są wyłączone (Disable: tracą PLANETARY SHIELD i SPACE CANNON).
+
+    Efekt jest własnością gracza, który go zagrał, więc pytamy KAŻDEGO gracza przy stole, czy
+    wyłącza PDS ``owner_id`` (hook PERMIT ``POINT_PDS_DISABLED``, ctx ``victim``).
+    """
+    return any(
+        rules_hooks.permits(rules_hooks.POINT_PDS_DISABLED, state, pid, {"victim": owner_id})
+        for pid in state.players
+    )
+
+
 def _system_shooters(
     state: GameState,
     registry: StaticDataRegistry,
@@ -101,11 +114,17 @@ def _system_shooters(
         groups.append((planet_id, system.planet_units[planet_id].get(player_id, {})))
 
     shooters: list[SpaceCannonShooter] = []
+    pds_off: bool | None = None  # liczone leniwie: tylko gdy gracz w ogóle ma PDS
     for zone, by_type in groups:
         for base_type in sorted(by_type):
             count = by_type[base_type]
             if count <= 0:
                 continue
+            if base_type == "pds":
+                if pds_off is None:
+                    pds_off = pds_disabled(state, player_id)
+                if pds_off:
+                    continue
             unit = resolve_unit_variant(
                 registry,
                 player.faction,
@@ -294,6 +313,12 @@ def offense_targets(state: GameState, player_id: str) -> list[str]:
             for pid in _table_order(state)
             if pid != active_id and target_ships(state, pid)
         ]
+    # Solar Flare: inni gracze nie mogą używać Space Cannon Offense przeciw statkom właściciela
+    # hooka (aktywnego gracza). Space Cannon Defense (inwazja) tego nie dotyczy.
+    if rules_hooks.permits(
+        rules_hooks.POINT_SPACE_CANNON_OFFENSE_IMMUNE, state, active_id, {"shooter": player_id}
+    ):
+        return []
     return [active_id] if target_ships(state, active_id) else []
 
 
@@ -385,6 +410,13 @@ def _advance(state: GameState) -> GameState:
         # Okno znika, wynik zostaje w stanie (panel pokazuje rozstrzygnięcie).
         new_state.space_cannon_log = log_json
     return new_state
+
+
+def _advance_in_place(state: GameState) -> None:
+    """To samo co ``_advance``, ale MUTUJE ``state`` (dla efektów kart pracujących na klonie)."""
+    advanced = _advance(state)
+    state.pending_window = advanced.pending_window
+    state.space_cannon_log = advanced.space_cannon_log
 
 
 def open_offense(
@@ -585,3 +617,165 @@ def assign_hits(
     context["log"] = json.dumps(log)
     new_state.pending_window.context = context
     return _advance(new_state)
+
+
+# ------------------------------------------------- reakcje kart (RULES.md 53.5.d, MUTUJĄ stan)
+# Poniższe funkcje wołają efekty kart akcji grane W REAKCJI: pracują na klonie wołającego
+# (jak ``register_effect``), więc zmieniają przekazany ``state`` w miejscu.
+
+
+def cancel_pending_hits(state: GameState, count: int = 1) -> int:
+    """Anuluje do ``count`` trafień czekających na przypisanie (Maneuvering Jets).
+
+    Gdy zostaje 0 trafień, nie ma czego przypisywać: tura strzelającego przechodzi dalej tak,
+    jak po rzucie bez trafień. Zwraca liczbę faktycznie anulowanych trafień.
+
+    Raises:
+        ValueError: Brak trafień Space Cannon do przypisania.
+    """
+    pending = pending_hits(state)
+    if pending is None:
+        raise ValueError("There are no Space Cannon hits to cancel.")
+    cancelled = min(max(0, count), pending.hits)
+    left = pending.hits - cancelled
+    log = read_log(state)
+    if log:
+        log[-1]["hits"] = left
+        log[-1]["cancelled"] = int(log[-1].get("cancelled", 0)) + cancelled
+    window = _window(state)
+    context = dict(window.context)
+    context["log"] = json.dumps(log)
+    if left > 0:
+        context["hits"] = left
+        window.context = context
+        return cancelled
+    window.context = {k: v for k, v in context.items() if k not in _PENDING_KEYS}
+    _advance_in_place(state)
+    return cancelled
+
+
+def reroll_entries(
+    state: GameState,
+    entries: list[dict[str, Any]],
+    *,
+    roller: str,
+    multiplier: Callable[[dict[str, Any]], int] | None = None,
+) -> tuple[list[dict[str, Any]], int]:
+    """Przerzuca WSZYSTKIE kości zapisanych rzutów (Scramble Frequency) - MUTUJE licznik RNG.
+
+    ``entries`` = wpisy rzutów jak w dzienniku (``dice``, ``hitsOn``, ``modifier``). Liczba kości
+    zostaje ta sama (łącznie z dodatkową kością Plasma Scoring), trafienia liczone od nowa
+    (``multiplier(wpis)`` = mnożnik trafień, np. X-89 ΩΩ; domyślnie 1). Rzut idzie na stół
+    (``record_table_roll``). Zwraca (nowe wpisy, suma trafień).
+    """
+    rng = next_rng(state)
+    fresh: list[dict[str, Any]] = []
+    total = 0
+    all_dice: list[int] = []
+    for entry in entries:
+        old = [int(d) for d in entry.get("dice", [])]
+        dice_now = [rng.randint(1, DIE_SIDES) for _ in old]
+        modifier = int(entry.get("modifier", 0))
+        factor = multiplier(entry) if multiplier is not None else 1
+        hits = count_hits([d + modifier for d in dice_now], int(entry["hitsOn"])) * factor
+        fresh.append({**entry, "dice": dice_now, "hits": hits})
+        total += hits
+        all_dice.extend(dice_now)
+    thresholds = {int(e["hitsOn"]) for e in entries}
+    record_table_roll(
+        state, roller, "scramble_frequency", "Scramble Frequency", all_dice,
+        hits_on=thresholds.pop() if len(thresholds) == 1 else None,
+        summary=f"{total} hit(s) after the reroll",
+    )
+    return fresh, total
+
+
+def reroll_pending(state: GameState) -> int:
+    """Scramble Frequency na Space Cannon Offense: przerzuca kości rzutu czekającego na straty.
+
+    Zwraca nową liczbę trafień. Po przerzucie bez trafień (albo bez celów do trafienia) tura
+    strzelającego przechodzi dalej.
+
+    Raises:
+        ValueError: Brak rzutu Space Cannon czekającego na przypisanie strat.
+    """
+    pending = pending_hits(state)
+    if pending is None:
+        raise ValueError("There is no Space Cannon roll to reroll.")
+    fresh, total = reroll_entries(state, pending.rolls, roller=pending.roller)
+    log = read_log(state)
+    if log:
+        log[-1].update({"hits": total, "rolls": fresh, "rerolled": True})
+    window = _window(state)
+    context = dict(window.context)
+    context["log"] = json.dumps(log)
+    if total == 0 or not target_ships(state, pending.target):
+        window.context = {k: v for k, v in context.items() if k not in _PENDING_KEYS}
+        _advance_in_place(state)
+        return total
+    context["hits"] = total
+    context["rolls"] = json.dumps(fresh)
+    window.context = context
+    return total
+
+
+def open_remote_shot(
+    state: GameState, shooter: SpaceCannonShooter, target_id: str
+) -> int:
+    """Pojedynczy strzał Space Cannon POZA kolejką Offense (Experimental Battlestation).
+
+    Rzuca ``shooter`` w statki ``target_id`` w aktywnym systemie. Trafienia czekają w oknie
+    ``SPACE_CANNON`` na przypisanie strat przez gracza-cel (``assign_hits``); bez trafień okno
+    się nie otwiera (wynik trafia do dziennika). Zwraca liczbę trafień.
+
+    Raises:
+        ValueError: Brak aktywnego systemu albo trwa inne okno czasowe.
+    """
+    if state.active_system is None:
+        raise ValueError("There is no active system.")
+    if state.pending_window is not None:
+        raise ValueError("Another timing window is still open - resolve it first.")
+    rolled, cannon_rolls, total = roll_cannon(state, [shooter], target_id)
+    state.rng_seed = rolled.rng_seed
+    state.rng_counter = rolled.rng_counter
+    rolls: list[dict[str, Any]] = [
+        {
+            "baseType": r.shooter.base_type,
+            "name": r.shooter.name,
+            "hitsOn": r.shooter.hits_on,
+            "position": r.shooter.position,
+            "zone": r.shooter.zone,
+            "dice": r.dice,
+            "hits": r.hits,
+            "modifier": r.modifier,
+            "extraDice": r.extra_dice,
+        }
+        for r in cannon_rolls
+    ]
+    owner = shooter.player_id
+    entry: dict[str, Any] = {
+        "roller": owner, "target": target_id, "hits": total, "rolls": rolls,
+        "destroyed": {}, "passed": False,
+    }
+    triggers.fire(
+        state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=owner,
+        ctx={"ability": "space_cannon", "player": owner, "hits": total, "target": target_id},
+    )
+    log_json = json.dumps([entry])
+    if total == 0 or not target_ships(state, target_id):
+        state.space_cannon_log = log_json
+        return total
+    state.pending_window = TimingWindow(
+        window_type=WindowType.SPACE_CANNON,
+        queue=[owner],
+        context={
+            "position": state.active_system,
+            "log": log_json,
+            "roller": owner,
+            "target": target_id,
+            "hits": total,
+            "rolls": json.dumps(rolls),
+            "gls": 0,
+        },
+    )
+    return total

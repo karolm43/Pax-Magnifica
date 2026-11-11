@@ -210,7 +210,13 @@ def production_limit(
     active = production_system(state)
     if active is None:
         return 0
-    return system_production_value(state, grid, registry, player_id, active)
+    total = system_production_value(state, grid, registry, player_id, active)
+    if total <= 0:
+        return total  # brak producentów: premia do SUMY nie tworzy produkcji z niczego
+    # Hook MODIFY na sumie PRODUCTION (War Machine: „+4 to the total PRODUCTION value").
+    return max(
+        0, rules_hooks.modify(rules_hooks.POINT_PRODUCTION_TOTAL_VALUE, state, player_id, total)
+    )
 
 
 def system_production_value(

@@ -316,6 +316,12 @@ class HexGrid:
         """
         return _IMPASSABLE_ANOMALY in self.anomalies_at(position)
 
+    def wormhole_positions(self, wormhole_type: str) -> set[str]:
+        """Pozycje systemów z wormholem danego typu (wbudowane i z żetonów), np. ``"ALPHA"``."""
+        found = set(self._wormholes.get(wormhole_type, set()))
+        found |= self._token_wormholes.get(wormhole_type, set())
+        return {p for p in found if p in self._systems}
+
     @property
     def positions(self) -> set[str]:
         """Zbiór wszystkich zajętych pozycji."""

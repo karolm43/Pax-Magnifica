@@ -58,3 +58,17 @@ def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -
         ctx={"player": player_id, "component": f"relics:{relic}"},
     )
     return relic
+
+
+def transfer(state: GameState, giver_id: str, receiver_id: str, relic_id: str) -> None:
+    """Przenosi relikt ze strefy ``giver_id`` do strefy ``receiver_id`` (transakcja, mutuje).
+
+    Raises:
+        ValueError: Gracz nie ma tego reliktu.
+    """
+    giver = state.players[giver_id]
+    if relic_id not in giver.relics:
+        raise ValueError(f"{giver_id} does not have the relic {relic_id}.")
+    giver.relics = [r for r in giver.relics if r != relic_id]
+    receiver = state.players[receiver_id]
+    receiver.relics = [*receiver.relics, relic_id]

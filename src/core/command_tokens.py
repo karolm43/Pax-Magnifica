@@ -117,6 +117,39 @@ def remove_from_board(state: GameState, system: SystemState, player_id: str) -> 
     return_to_reinforcements(state, player_id, 1)
 
 
+def return_board_token_to_pool(
+    state: GameState, system: SystemState, player_id: str, pool: str = "tactical"
+) -> None:
+    """Zdejmuje żeton gracza z systemu i kładzie go w puli arkusza (np. Counterstroke).
+
+    W odróżnieniu od ``remove_from_board`` żeton NIE trafia do rezerwy, tylko do ``pool``.
+
+    Raises:
+        ValueError: Gdy gracz nie ma w tym systemie swojego żetonu albo nieznana pula.
+    """
+    _attr(pool)
+    if player_id not in system.command_tokens:
+        raise ValueError(f"You have no command token in system {system.position}.")
+    system.command_tokens.remove(player_id)
+    add_to_pool(state, player_id, pool, 1)
+
+
+def place_on_board_from_reinforcements(
+    state: GameState, system: SystemState, player_id: str
+) -> None:
+    """Kładzie w systemie żeton gracza zabrany Z JEGO REZERWY (np. Signal Jamming).
+
+    Gracz ma w systemie najwyżej jeden swój żeton (R_command_tokens).
+
+    Raises:
+        ValueError: Gdy gracz ma już żeton w tym systemie albo pustą rezerwę (stan bez zmian).
+    """
+    if player_id in system.command_tokens:
+        raise ValueError(f"{player_id} already has a command token in system {system.position}.")
+    take_from_reinforcements(state, player_id, 1)
+    system.command_tokens.append(player_id)
+
+
 def add_to_pool(state: GameState, player_id: str, pool: str, amount: int = 1) -> None:
     """Dodaje ``amount`` żetonów do puli arkusza (źródło żetonu obsługuje wołający)."""
     if amount < 0:

@@ -397,6 +397,25 @@ def test_transit_diodes_gracz_wybiera_ktore_sily_i_dokad() -> None:
     assert "td" in done.players["p1"].exhausted_technologies
 
 
+def test_transit_diodes_opcje_niosa_dane_dla_graficznego_wyboru(
+    registry: StaticDataRegistry,
+) -> None:
+    """Graficzny panel (podnieś → połóż) czyta strukturę opcji, a nie etykiety."""
+    from src.core import offers
+
+    state = _td_state()
+    offer = _td_offer(state)
+    view = offers.offer_view(state, registry, offer)
+    by_key = {i["key"]: i for i in view["inputs"]}
+    stack = next(o for o in by_key["unit1"]["options"] if o["id"] == "101|a|infantry")
+    assert stack["meta"]["count"] == 2 and stack["meta"]["asyncId"] == "gf"
+    assert stack["meta"]["position"] == "101" and stack["meta"]["zone"] == "a"
+    target = next(o for o in by_key["to1"]["options"] if o["id"] == "102|b")
+    assert target["meta"]["planet"] == "b" and target["meta"]["position"] == "102"
+    # Opcja „nic" nie ma meta - pusty slot.
+    assert "meta" not in next(o for o in by_key["unit1"]["options"] if o["id"] == "none")
+
+
 def test_transit_diodes_waliduje_wybor() -> None:
     state = _td_state()
     offer = _td_offer(state)

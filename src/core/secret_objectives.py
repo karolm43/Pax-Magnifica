@@ -117,3 +117,27 @@ def draw(state: GameState, player_id: str, give_back: str | None) -> None:
         private.secret_objectives.remove(target)
         decks.secret_objective_deck.append(target)
         next_rng(state).shuffle(decks.secret_objective_deck)
+
+
+def transfer(state: GameState, giver_id: str, receiver_id: str, objective_id: str) -> None:
+    """Przenosi NIEZDOBYTY tajny cel z ręki ``giver_id`` do ręki ``receiver_id`` (mutuje).
+
+    Raises:
+        ValueError: Gracz nie ma tego celu w ręce (zdobyte, jawne cele nie podlegają wymianie).
+    """
+    hand = state.players[giver_id].private.secret_objectives
+    if objective_id not in hand:
+        raise ValueError(f"{giver_id} does not have the unscored secret objective {objective_id}.")
+    hand.remove(objective_id)
+    state.players[receiver_id].private.secret_objectives.append(objective_id)
+
+
+def reveal_hand(state: GameState, viewer_id: str, owner_id: str) -> list[str]:
+    """Pokazuje ``viewer_id`` wszystkie tajne cele z ręki ``owner_id`` (migawka, mutuje).
+
+    Zapis ląduje w prywatnym polu oglądającego (``private.revealed_secrets``), więc projekcja
+    widoczności ukrywa go przed pozostałymi graczami.
+    """
+    shown = list(state.players[owner_id].private.secret_objectives)
+    state.players[viewer_id].private.revealed_secrets[owner_id] = shown
+    return shown

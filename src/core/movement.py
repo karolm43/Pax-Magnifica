@@ -69,14 +69,18 @@ def _node_passable_intermediate(
     player_id: str,
     *,
     can_enter_asteroids: bool,
+    from_pos: str | None = None,
+    ignore_anomalies: bool = False,
 ) -> bool:
     """Czy węzeł POŚREDNI trasy jest przejezdny dla gracza (R4 + R6).
 
     Węzeł pośredni (nie start, nie cel): bez statków obcego gracza, bez supernowej,
     asteroid tylko z Antimass, nebula nieprzejezdna jako węzeł pośredni (wejście do
     nebuli tylko gdy jest systemem aktywnym = celem — RULES.md 1.2).
+    ``ignore_anomalies`` (Nav Suite) pomija blokady anomalii; ``from_pos`` trafia do hooka
+    „przelot przez obce statki" (In The Silence Of Space: dotyczy statków z wybranego systemu).
     """
-    anomalies = grid.anomalies_at(position)
+    anomalies = set() if ignore_anomalies else grid.anomalies_at(position)
     if _SUPERNOVA in anomalies:
         return False
     if _ASTEROID in anomalies and not can_enter_asteroids:
@@ -86,27 +90,61 @@ def _node_passable_intermediate(
     if _ships_of_other_players(
         state.systems.get(position), player_id
     ) and not rules_hooks.permits(
-        rules_hooks.POINT_MOVEMENT_PASS_FOREIGN_SHIPS, state, player_id, {"position": position}
+        rules_hooks.POINT_MOVEMENT_PASS_FOREIGN_SHIPS,
+        state,
+        player_id,
+        {"position": position, "from": from_pos},
     ):
         return False
     return True
 
 
 def _target_passable(
-    grid: HexGrid, position: str, *, can_enter_asteroids: bool
+    grid: HexGrid,
+    position: str,
+    *,
+    can_enter_asteroids: bool,
+    ignore_anomalies: bool = False,
 ) -> bool:
     """Czy CEL (aktywny system) jest przejezdny anomalicznie (R6).
 
     Cel może mieć obce statki (tam dojdzie do walki). Ale supernova zawsze blokuje,
     a asteroid wymaga Antimass. Nebula jako cel jest dozwolona (wejście tylko do
-    aktywnego — a cel nim jest).
+    aktywnego — a cel nim jest). ``ignore_anomalies`` (Nav Suite) pomija te blokady.
     """
+    if ignore_anomalies:
+        return True
     anomalies = grid.anomalies_at(position)
     if _SUPERNOVA in anomalies:
         return False
     if _ASTEROID in anomalies and not can_enter_asteroids:
         return False
     return True
+
+
+def _neighbors_for_move(
+    grid: HexGrid, state: GameState, position: str, player_id: str
+) -> set[str]:
+    """Sąsiedzi systemu na potrzeby RUCHU gracza: graf mapy + efekty tej akcji.
+
+    Lost Star Chart (hook PERMIT): systemy z wormholem alpha i beta sąsiadują ze sobą w tej
+    akcji. Graf mapy (czyste sąsiedztwo) zostaje nietknięty - to osobna warstwa (RULES.md 1/3).
+    """
+    result = set(grid.neighbors(position))
+    if rules_hooks.permits(rules_hooks.POINT_MOVEMENT_ALPHA_BETA_ADJACENT, state, player_id):
+        alpha = grid.wormhole_positions("ALPHA")
+        beta = grid.wormhole_positions("BETA")
+        if position in alpha:
+            result |= beta
+        if position in beta:
+            result |= alpha
+        result.discard(position)
+    return result
+
+
+def _ignores_anomalies(state: GameState, player_id: str) -> bool:
+    """Czy gracz ignoruje efekty anomalii w RUCHU (Nav Suite: tylko w kroku Movement)."""
+    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES, state, player_id)
 
 
 def _shortest_legal_distance(
@@ -117,6 +155,7 @@ def _shortest_legal_distance(
     player_id: str,
     *,
     can_enter_asteroids: bool,
+    ignore_anomalies: bool = False,
 ) -> int | None:
     """Długość najkrótszej LEGALNEJ trasy (liczba wejść) albo None, gdy brak.
 
@@ -126,7 +165,9 @@ def _shortest_legal_distance(
     """
     if from_pos == to_pos:
         return 0
-    if not _target_passable(grid, to_pos, can_enter_asteroids=can_enter_asteroids):
+    if not _target_passable(
+        grid, to_pos, can_enter_asteroids=can_enter_asteroids, ignore_anomalies=ignore_anomalies
+    ):
         return None
     # BFS: kolejka (pozycja, dystans). Odwiedzamy sąsiadów; do celu wchodzimy wprost,
     # przez węzeł pośredni tylko gdy przejezdny.
@@ -134,13 +175,19 @@ def _shortest_legal_distance(
     queue: deque[tuple[str, int]] = deque([(from_pos, 0)])
     while queue:
         pos, dist = queue.popleft()
-        for neighbor in sorted(grid.neighbors(pos)):
+        for neighbor in sorted(_neighbors_for_move(grid, state, pos, player_id)):
             if neighbor in visited:
                 continue
             if neighbor == to_pos:
                 return dist + 1
             if _node_passable_intermediate(
-                grid, state, neighbor, player_id, can_enter_asteroids=can_enter_asteroids
+                grid,
+                state,
+                neighbor,
+                player_id,
+                can_enter_asteroids=can_enter_asteroids,
+                from_pos=from_pos,
+                ignore_anomalies=ignore_anomalies,
             ):
                 visited.add(neighbor)
                 queue.append((neighbor, dist + 1))
@@ -191,7 +238,9 @@ def can_move(
 
     # R7 (R_nebula, RULES.md 32.1): statek ZACZYNAJĄCY krok ruchu w mgławicy traktuje swoją
     # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
-    if _NEBULA in grid.anomalies_at(from_pos):
+    # Nav Suite: efekty anomalii ignorowane (także ta - statki z mgławicy mają zwykły ruch).
+    ignore_anomalies = _ignores_anomalies(state, player_id)
+    if _NEBULA in grid.anomalies_at(from_pos) and not ignore_anomalies:
         move_value = 1
 
     # Hook MODIFY: bonusy/kary do wartości ruchu (technologie, zdolności) - tylko dla statków,
@@ -212,7 +261,13 @@ def can_move(
 
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     dist = _shortest_legal_distance(
-        grid, state, from_pos, active, player_id, can_enter_asteroids=can_enter_asteroids
+        grid,
+        state,
+        from_pos,
+        active,
+        player_id,
+        can_enter_asteroids=can_enter_asteroids,
+        ignore_anomalies=ignore_anomalies,
     )
     if dist is None:
         return False, "No legal route to the active system (R4/R6)."
@@ -272,6 +327,7 @@ def move_ships(
     triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.WHEN, subject=player_id, ctx=moved_ctx)
     unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
+    new_state.tactical_moved = True
     triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx)
     return new_state
 
@@ -520,5 +576,16 @@ def move_fleet(
     for item in cargo_items:
         unit_ops.transfer_units(
             new_state, src, item.from_zone, dest, "space", player_id, item.base_type, item.count
+        )
+    # Pierwszy ruch w akcji zamyka okno „po aktywacji systemu" kart reakcji i otwiera okno
+    # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``.
+    new_state.tactical_moved = True
+    if ships:
+        moved_ctx = {
+            "player": player_id, "position": active, "from": from_pos,
+            "base_type": next(iter(ships)),
+        }
+        triggers.fire(
+            new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx
         )
     return new_state

@@ -37,9 +37,16 @@ POINT_COMBAT_ROLL_MODIFIER = "combat.roll_modifier"  # MODIFY -> +N do wyniku rz
 # ctx: kind, position, planet, defender, base_type
 POINT_COMBAT_EXTRA_DICE = "combat.extra_dice"  # MODIFY -> delta kości na jednostkę (ctx jak wyżej)
 POINT_COMBAT_REROLL_MISSES = "combat.reroll_misses"  # PERMIT -> przerzut chybień (ctx: base_type)
+# PERMIT -> trafienia z rzutu AFB właściciela hooka są wyprodukowane przeciw WSZYSTKIM statkom
+# przeciwnika, nie tylko myśliwcom (Waylay; przypisuje je przeciwnik w kroku ASSIGN).
+POINT_COMBAT_AFB_ALL_SHIPS = "combat.afb_all_ships"
 POINT_AGENDA_VOTE_MODIFIER = "agenda.vote_modifier"  # MODIFY -> delta głosów (ctx: agenda_id)
 POINT_PRODUCTION_VALUE = "production.value"  # MODIFY -> delta PRODUCTION jednostki
 # ctx: base_type, zone
+POINT_PRODUCTION_TOTAL_VALUE = "production.total_value"  # MODIFY -> delta SUMY PRODUCTION gracza
+POINT_MOVEMENT_ALPHA_BETA_ADJACENT = "movement.alpha_beta_adjacent"  # PERMIT (Lost Star Chart)
+POINT_MOVEMENT_IGNORE_ANOMALIES = "movement.ignore_anomalies"  # PERMIT (Nav Suite)
+POINT_SPACE_CANNON_OFFENSE_IMMUNE = "space_cannon.offense_immune"  # PERMIT (Solar Flare)
 POINT_PRODUCTION_COST = "production.cost"  # MODIFY -> delta łącznego kosztu zamówienia
 POINT_PAYMENT_COMMODITIES_AS_TG = "payment.commodities_as_trade_goods"  # PERMIT -> bool
 # Space Cannon: modyfikator wyniku rzutów PRZECIWKO właścicielowi hooka (pytamy właściciela CELU;
@@ -49,6 +56,19 @@ POINT_SPACE_CANNON_ROLL_MODIFIER = "space_cannon.roll_modifier"
 POINT_SPACE_CANNON_EXTRA_DICE = "space_cannon.extra_dice"
 # Bombardment: dodatkowe kości dla JEDNEJ jednostki przy jednym użyciu (Plasma Scoring).
 POINT_BOMBARDMENT_EXTRA_DICE = "bombardment.extra_dice"
+
+# Bombardment: statki niefighterowe BEZ własnego Bombardment zyskują go (Blitz: BOMBARDMENT 6).
+# Hook FORBID użyty jako „zbiór wartości": zwraca napisy z progiem trafienia (np. {"6"}); silnik
+# bierze najniższy próg (pytamy atakującego).
+POINT_BOMBARDMENT_GRANTED = "bombardment.granted_hits_on"
+
+# Bombardment: modyfikator wyniku każdej kości rzutu PRZECIW planecie właściciela hooka
+# (pytamy kontrolującego planetę; Bunker: -4). ctx: planet, attacker.
+POINT_BOMBARDMENT_ROLL_MODIFIER = "bombardment.roll_modifier"
+
+# PDS gracza ``ctx["victim"]`` traci PLANETARY SHIELD i SPACE CANNON (Disable). PERMIT pytany
+# o KAŻDEGO gracza przy stole (właściciel efektu odpowiada, czyje PDS wyłącza).
+POINT_PDS_DISABLED = "space_cannon.pds_disabled"
 # Mnożnik trafień z rzutów (bazowo 1; X-89 ΩΩ: ×2). ctx: kind = ground | space | bombardment.
 POINT_COMBAT_HIT_MULTIPLIER = "combat.hit_multiplier"
 # Bombardment wolno rzucać także przeciw planecie cudzej BEZ sił naziemnych (X-89 ΩΩ).
@@ -61,6 +81,12 @@ POINT_RETREAT_ANYWHERE = "retreat.anywhere"  # PERMIT -> bool
 POINT_TECHNOLOGY_SPECIALTY_FREE = "technology.specialty_without_exhaust"  # PERMIT -> bool
 # Liczba akcji gracza w jego turze fazy akcji (bazowo 1; Fleet Logistics: +1).
 POINT_TURN_ACTIONS = "turn.actions"
+# Gracz właśnie rozpoczął akcję (``action_budget.register_action``); hooki PERSISTENT uruchamiane
+# przez ``run_persistent`` (ctx: strategic = czy to akcja strategiczna). Np. Extreme Duress.
+POINT_ACTION_STARTED = "turn.action_started"
+# Transakcja może obejmować relikty, karty akcji i nieodsłonięte tajne cele (Black Market Dealings);
+# PERMIT -> bool (pytamy obu uczestników transakcji; ctx: partner).
+POINT_TRANSACTION_EXTRA_ITEMS = "transaction.extra_items"
 # Faza statusu: liczba kart akcji dobieranych przez gracza (bazowo 1; Neural Motivator: +1).
 POINT_STATUS_ACTION_CARDS = "status.action_cards"
 # Faza statusu: liczba żetonów dowodzenia zdobywanych przez gracza (bazowo 2; Hyper Metabolism: +1).
@@ -439,6 +465,22 @@ def permits(
         for hook in hooks_at(point, state, player_id)
         if hook.kind is HookKind.PERMIT
     )
+
+
+def run_persistent(
+    point: str, state: GameState, player_id: str, ctx: Mapping[str, Any] | None = None
+) -> int:
+    """Uruchamia hooki PERSISTENT punktu (efekt trwały reaguje na zdarzenie silnika).
+
+    Zwraca liczbę uruchomionych hooków. Hook MUTUJE ``state`` (klon wołającego).
+    """
+    context = ctx or {}
+    count = 0
+    for hook in hooks_at(point, state, player_id):
+        if hook.kind is HookKind.PERSISTENT:
+            hook.fn(state, player_id, context)
+            count += 1
+    return count
 
 
 def modify[N: (int, float)](

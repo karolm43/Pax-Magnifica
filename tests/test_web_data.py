@@ -976,6 +976,8 @@ def test_player_hand_empty_when_no_player(client: TestClient) -> None:
         "actionCards": [],
         "secretObjectives": [],
         "promissoryNotes": [],
+        "agendaPeek": [],
+        "revealedSecrets": {},
     }
 
 

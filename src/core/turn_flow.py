@@ -19,6 +19,7 @@ from src.core.game_state import (
     Phase,
     StatusPhaseState,
     StatusStep,
+    TurnEndWindow,
 )
 from src.core.registry import StaticDataRegistry
 from src.core.strategy_phase import ensure_strategy_complete, next_strategy_picker
@@ -243,6 +244,9 @@ def end_turn(
             "before ending your turn."
         )
     new_state = state.clone()
+    bonus = new_state.bonus_turn
+    if bonus is not None and bonus.player == current:
+        return _finish_bonus_turn(new_state, current)
     triggers.fire(new_state, GameEvent.TURN, Moment.END, subject=current, ctx={"player": current})
     nxt = next_unpassed_player(new_state, new_state.active_player_id)
     if nxt is None:
@@ -263,7 +267,61 @@ def end_turn(
                 new_state, GameEvent.TURN, Moment.START, subject=nxt_id,
                 ctx={"player": nxt_id},
             )
+    # Stabilna pauza „tura się skończyła, następny jeszcze nic nie zrobił” - na niej opierają się
+    # okna kart reakcji „at the end of a turn” / „at the start of another player's turn”.
+    new_state.turn_end_window = TurnEndWindow(
+        ended_player=current,
+        ended_passed=new_state.players[current].passed if current in new_state.players else False,
+        next_player=nxt,
+    )
     return new_state
+
+
+def _finish_bonus_turn(state: GameState, player_id: str) -> GameState:
+    """Kończy dodatkową akcję spasowanego gracza (Puppets on a String) i wraca do kolejki.
+
+    To NIE jest tura: nie ma zdarzeń końca tury (efekty z czasem trwania ``TURN`` zostają), gracz
+    z powrotem jest spasowany, a tura wraca do gracza, który miał ją zacząć, z oknem pauzy sprzed
+    bonusu (jego tura jeszcze się nie zaczęła).
+    """
+    bonus = state.bonus_turn
+    assert bonus is not None
+    state.bonus_turn = None
+    state.players[player_id].passed = True
+    resume = bonus.resume_player
+    if resume is None or resume not in state.players or state.players[resume].passed:
+        resume = next_unpassed_player(state, player_id)
+    state.active_player_id = resume or state.speaker_id or player_id
+    state.turn_end_window = bonus.resume_window
+    return state
+
+
+def skip_next_turn(state: GameState) -> None:
+    """Pomija turę gracza, który ma ją właśnie zacząć (Crisis); MUTUJE ``state`` (klon).
+
+    Działa w pauzie po końcu tury (``turn_end_window``): pomijany gracz nie wykonuje akcji, a tura
+    przechodzi na kolejnego niespasowanego. Pauza zostaje otwarta dla nowego „następnego”.
+
+    ⚠ ZAŁOŻENIE: zdarzenie „początek tury” pomijanego gracza zdążyło się już wykonać w
+    ``end_turn`` (silnik nie ma pauzy przed nim), a pominięta tura nie emituje „końca tury”.
+
+    Raises:
+        ValueError: Brak pauzy po końcu tury, albo brak następnego niespasowanego gracza.
+    """
+    window = state.turn_end_window
+    if window is None or window.next_player is None:
+        raise ValueError("There is no next player's turn to skip right now.")
+    skipped = window.next_player
+    nxt = next_unpassed_player(state, skipped)
+    if nxt is None or nxt == skipped:
+        raise ValueError("There is no other player who could take the turn after the skipped one.")
+    state.active_player_id = nxt
+    action_budget.reset_turn(state, nxt)
+    state.players[nxt].transacted_with = []
+    triggers.fire(state, GameEvent.TURN, Moment.START, subject=nxt, ctx={"player": nxt})
+    state.turn_end_window = TurnEndWindow(
+        ended_player=window.ended_player, ended_passed=window.ended_passed, next_player=nxt
+    )
 
 
 def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
@@ -313,6 +371,7 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
             "You already took an action this turn - end your turn instead of passing."
         )
     new_state = state.clone()
+    new_state.turn_end_window = None  # pas zamyka pauzę po poprzedniej turze
     triggers.fire(
         new_state,
         GameEvent.PLAYER_PASSED,
@@ -438,6 +497,7 @@ def next_phase(state: GameState) -> GameState:
         action_budget.reset_turn(new_state, player_id)
         player.transacted_with = []
     new_state.expeditions.performed_by = None
+    new_state.bonus_turn = None
     # Faza statusu (RULES.md 41): wejście inicjuje kroki (punktowanie → ... → zwrot kart);
     # naprawa jednostek to krok 7 (``status_phase``), nie samo wejście w fazę. Poza statusem
     # stan kroków jest czyszczony.

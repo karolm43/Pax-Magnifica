@@ -115,6 +115,7 @@ Każda karta przechodzi ten sam potok, więc dodanie kolejnej to jeden wpis w ka
 | UI | `BottomHandDock` (przeciąganie), `ActionCardPlayModal` (formularz) | front nie zna kart, renderuje opis z silnika |
 | Testy | `tests/test_action_cards.py` | para bez/z efektem, round-trip formularza, błędy |
 | Raport | `docs/POKRYCIE_HOOKOW.md` | `uv run python -m src.audit.hook_coverage --write` |
+| Reakcja (when/after/before/start/end) | `core/reaction_cards.py` + `core/hooks/reactions_*.py` | okno WYLICZANE ze stanu (`@window_provider`), adres z tekstu okna (`declare_reaction` nadpisuje), warunek karty; efekt jak wyżej, okno w `params["__window"]`; efekt trwały = `active_effects` + hook `card_effect_source`; karta reakcji nie zużywa akcji (RULES.md 53.5) |
 | Kości | `dice.record_table_roll(...)` w efekcie | **KAŻDY rzut kością** (karta, relikt, przełom…) zapisuje się tym wywołaniem, a UI odtwarza go fizycznymi kośćmi (patrz 3a.1) |
 
 **Zasada UX:** kartę zagrywa się przeciągając ją z ręki, a podnieść można tylko kartę, którą silnik pozwala zagrać

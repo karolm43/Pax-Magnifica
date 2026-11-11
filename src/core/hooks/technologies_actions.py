@@ -36,6 +36,7 @@ from src.core.rules_hooks import (
     register_effect_inputs,
 )
 from src.core.system_planets import planets_of_system
+from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 from src.core.unit_ops import UnitCause
 
 SLING_RELAY = "sr"
@@ -421,10 +422,25 @@ def transit_diodes_inputs(
     for pos, zone, base_type, count in _td_stacks(state, registry, player_id):
         place = "in space" if zone == "space" else f"on {_planet_name(registry, zone)}"
         stacks.append(
-            oi.option(f"{pos}|{zone}|{base_type}", f"{base_type.title()} {place} ({pos}) x{count}")
+            oi.option(
+                f"{pos}|{zone}|{base_type}",
+                f"{base_type.title()} {place} ({pos}) x{count}",
+                meta={
+                    "position": pos,
+                    "zone": zone,
+                    "baseType": base_type,
+                    "asyncId": ASYNC_ID_BY_BASE_TYPE.get(base_type, base_type),
+                    "count": count,
+                    "placeName": "space" if zone == "space" else _planet_name(registry, zone),
+                },
+            )
         )
     targets = [
-        oi.option(f"{pos}|{planet}", f"{_planet_name(registry, planet)} ({pos})")
+        oi.option(
+            f"{pos}|{planet}",
+            f"{_planet_name(registry, planet)} ({pos})",
+            meta={"position": pos, "planet": planet, "name": _planet_name(registry, planet)},
+        )
         for pos, planet in _td_targets(state, player_id)
     ]
     inputs: list[dict[str, Any]] = []

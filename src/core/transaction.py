@@ -23,7 +23,17 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from src.core import chronicle, economy, promissory_notes, relic_fragments, triggers
+from src.core import (
+    card_draw,
+    chronicle,
+    economy,
+    promissory_notes,
+    relic_fragments,
+    relics,
+    rules_hooks,
+    secret_objectives,
+    triggers,
+)
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import HexGrid
@@ -38,6 +48,15 @@ class TransactionSide:
     commodities: int = 0
     promissory_note: str | None = None
     relic_fragments: tuple[str, ...] = field(default_factory=tuple)
+    # Rozszerzenie Black Market Dealings (karta akcji): relikty, karty akcji i NIEZDOBYTE tajne
+    # cele. Bez tej karty w grze każde z tych pól musi być puste (``_validate_extras``).
+    relics: tuple[str, ...] = field(default_factory=tuple)
+    action_cards: tuple[str, ...] = field(default_factory=tuple)
+    secret_objectives: tuple[str, ...] = field(default_factory=tuple)
+
+    def has_extras(self) -> bool:
+        """Czy strona oddaje coś spoza standardowej listy (relikty / karty akcji / tajne cele)."""
+        return bool(self.relics or self.action_cards or self.secret_objectives)
 
     def is_empty(self) -> bool:
         """Czy strona nic nie oddaje."""
@@ -46,7 +65,33 @@ class TransactionSide:
             and self.commodities == 0
             and self.promissory_note is None
             and not self.relic_fragments
+            and not self.has_extras()
         )
+
+
+def _validate_extras(
+    state: GameState, giver_id: str, side: TransactionSide, who: str, *, allowed: bool
+) -> None:
+    """Sprawdza relikty / karty akcji / tajne cele strony (wymagają Black Market Dealings)."""
+    if not side.has_extras():
+        return
+    if not allowed:
+        raise ValueError(
+            "Relics, action cards and secret objectives can only be traded with "
+            "Black Market Dealings."
+        )
+    giver = state.players[giver_id]
+    for relic, count in Counter(side.relics).items():
+        if count > Counter(giver.relics)[relic]:
+            raise ValueError(f"{who} does not have the relic '{relic}'.")
+    for card, count in Counter(side.action_cards).items():
+        if count > Counter(giver.private.action_cards)[card]:
+            raise ValueError(f"{who} does not have the action card '{card}'.")
+    for objective, count in Counter(side.secret_objectives).items():
+        if count > Counter(giver.private.secret_objectives)[objective]:
+            raise ValueError(
+                f"{who} does not hold the unscored secret objective '{objective}'."
+            )
 
 
 def _validate_side(state: GameState, giver_id: str, side: TransactionSide, who: str) -> None:
@@ -85,6 +130,12 @@ def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: Transac
         promissory_notes.transfer(state, giver_id, receiver_id, side.promissory_note)
     for fragment in side.relic_fragments:
         relic_fragments.transfer(state, giver_id, receiver_id, fragment)
+    for relic in side.relics:
+        relics.transfer(state, giver_id, receiver_id, relic)
+    for card in side.action_cards:
+        card_draw.transfer_action_card(state, giver_id, receiver_id, card)
+    for objective in side.secret_objectives:
+        secret_objectives.transfer(state, giver_id, receiver_id, objective)
 
 
 def can_transact_with(
@@ -140,11 +191,21 @@ def resolve_transaction(
         raise ValueError("An empty transaction - add something to exchange.")
     _validate_side(state, active_id, give, "You")
     _validate_side(state, partner_id, receive, "The partner")
+    # Black Market Dealings: ktokolwiek z dwóch stron ma efekt, obie mogą włączyć dodatkowe rzeczy.
+    extras_ok = any(
+        rules_hooks.permits(
+            rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, state, who, {"partner": partner_id}
+        )
+        for who in (active_id, partner_id)
+    )
+    _validate_extras(state, active_id, give, "You", allowed=extras_ok)
+    _validate_extras(state, partner_id, receive, "The partner", allowed=extras_ok)
 
     new_state = state.clone()
     _apply_side(new_state, active_id, partner_id, give)
     _apply_side(new_state, partner_id, active_id, receive)
     new_state.players[active_id].transacted_with.append(partner_id)
+    new_state.last_transaction = [active_id, partner_id]
     chronicle.record_deal(
         new_state,
         active_id,

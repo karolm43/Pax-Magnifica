@@ -653,6 +653,7 @@ export type AgendaStepName =
   | "REVEAL"
   | "VOTE"
   | "TIEBREAK"
+  | "COUNTED"
   | "RESOLVED"
   | "COMPLETE";
 
@@ -752,6 +753,10 @@ export type AgendaPhaseData = {
   tied: string[];
   totals: Record<string, number>;
   resolvedOutcome: string | null;
+  /** Wynik policzony, czeka w kroku COUNTED na reakcje i potwierdzenie mówcy. */
+  pendingOutcome?: string | null;
+  /** Ostatni gracz, który oddał głosy (okno Distinguished Councilor). */
+  lastVoteBy?: string | null;
   decidedBySpeaker: boolean;
   voters: Record<string, AgendaVoter>;
   history: AgendaHistoryEntry[];

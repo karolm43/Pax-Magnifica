@@ -319,6 +319,18 @@ def _remove_units(
     )
 
 
+def note_destroyed(
+    combat: ActiveCombat, player_id: str, base_type: str, count: int, hits_on: int
+) -> None:
+    """Zapisuje w walce ślad zniszczonych statków (karta Courageous to the End, RULES.md 53.5.c)."""
+    if combat.kind != "space" or not is_space_unit(base_type):
+        return
+    combat.destroyed_ships = [
+        *combat.destroyed_ships,
+        *({"player": player_id, "base_type": base_type, "hits_on": hits_on},) * count,
+    ]
+
+
 def remove_units_in_zone(
     state: GameState, position: str, zone: str, player_id: str, base_type: str, count: int
 ) -> None:
@@ -358,22 +370,63 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
                 ctx={"ability": "afb", "player": pid, "hits": hits_by[pid]},
             )
     losses: dict[str, dict[str, int]] = {}
+    waylay_hits: dict[str, int] = {}  # trafienia przeciw WSZYSTKIM statkom (karta Waylay)
     zone = _zone(combat.kind, combat.planet)
     for pid, opponent in (
         (combat.attacker, combat.defender),
         (combat.defender, combat.attacker),
     ):
+        if hits_by[pid] > 0 and rules_hooks.permits(
+            rules_hooks.POINT_COMBAT_AFB_ALL_SHIPS, new_state, pid
+        ):
+            waylay_hits[opponent] = hits_by[pid]
+            continue
         fighters = _units_map(new_state.systems.get(combat.position), zone, opponent).get(
             _FIGHTER, 0
         )
         destroyed = min(hits_by[pid], fighters)  # nadwyżka przepada (W4)
         if destroyed:
+            hits_on = next(
+                (
+                    u.base_hits_on
+                    for u in side_units(new_state, grid, registry, opponent)
+                    if u.base_type == _FIGHTER
+                ),
+                0,
+            )
             _remove_units(new_state, combat, opponent, _FIGHTER, destroyed)
             losses[opponent] = {_FIGHTER: destroyed}
+            note_destroyed(combat, opponent, _FIGHTER, destroyed, hits_on)
     combat.afb = afb
     combat.log.append(
-        {"round": combat.round, "phase": "AFB", "rolls": afb, "hits": hits_by, "losses": losses}
+        {
+            "round": combat.round, "phase": "AFB", "rolls": afb, "hits": hits_by,
+            "losses": losses, "sustained": {},
+        }
     )
+    if waylay_hits:
+        # Waylay: przeciwnik sam przypisuje trafienia (Sustain Damage, wybór statków) w kroku
+        # ASSIGN; po nim ``_after_losses`` kończy krok AFB (``afb_assign``).
+        combat.afb_assign = True
+        combat.pending_hits = dict(waylay_hits)
+        for pid in waylay_hits:
+            if pid == NEUTRAL_PLAYER_ID:
+                _auto_assign_neutral(new_state, grid, registry, pid)
+        queue = [
+            pid
+            for pid in (combat.defender, combat.attacker)
+            if required_hits(new_state, grid, registry, pid) > 0
+        ]
+        if queue:
+            combat.step = CombatStep.ASSIGN
+            return timing.open_window(
+                new_state,
+                WindowType.COMBAT_ASSIGN_HITS,
+                queue,
+                context={"position": combat.position},
+            )
+        combat.afb_assign = False
+        combat.pending_hits = {}
     return _after_losses(new_state, grid, registry)
 
 
@@ -421,6 +474,8 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
 
     new_state = new_state.clone()
     combat = _combat(new_state)
+    combat.destroyed_ships = []  # ślady kart reakcji dotyczą ostatnich strat
+    combat.sustained_ships = []
     for pid in rolls:
         triggers.fire(
             new_state, GameEvent.COMBAT_ROLL, Moment.AFTER, subject=pid,
@@ -638,7 +693,14 @@ def assign_combat_hits(
         ctx={"player": player_id, "kind": combat.kind, "hits": required},
     )
     apply_losses(new_state, combat.position, zone, player_id, units, plan)
+    for base_type, lost in losses_of(units, plan).items():
+        note_destroyed(combat, player_id, base_type, lost, units[base_type].base_hits_on)
     for base_type, used in sustained_of(plan, sustain).items():
+        if used > 0 and combat.kind == "space" and is_space_unit(base_type):
+            combat.sustained_ships = [
+                *combat.sustained_ships,
+                {"player": player_id, "base_type": base_type, "count": used},
+            ]
         if used > 0:
             triggers.fire(
                 new_state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
@@ -663,7 +725,7 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
     new_state = state.clone()
     combat = _combat(new_state)
     last = combat.log[-1] if combat.log else {}
-    is_roll_round = combat.step is not CombatStep.AFB
+    is_roll_round = combat.step is not CombatStep.AFB and not combat.afb_assign
     triggers.fire(
         new_state, GameEvent.COMBAT_ROUND, Moment.END,
         ctx={
@@ -696,6 +758,7 @@ def _finish_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
     if len(alive) <= 1:
         # Także O3: ogłoszony odwrót nie następuje, gdy przeciwnikowi nie zostały statki.
         combat.step = CombatStep.DONE
+        combat.afb_assign = False
         combat.winner = alive[0] if alive else None
         combat.outcome = "winner" if alive else "draw"
         combat.pending_hits = {}
@@ -720,7 +783,7 @@ def _finish_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
             return capacity.open_capacity_check(new_state, registry, combat.position)
         return new_state
     combat.pending_hits = {}
-    if combat.step is CombatStep.AFB:
+    if combat.step is CombatStep.AFB or combat.afb_assign:
         # AFB nie zmienia numeru rundy (to 1. runda) — dalej Announce Retreats (39.5).
         return _begin_round(new_state, grid)
     # O3: krok Retreat — ogłoszony odwrót MUSI się odbyć, o ile wciąż jest dozwolony cel.
@@ -742,10 +805,41 @@ def _begin_round(state: GameState, grid: HexGrid) -> GameState:
     celem odwrotu. Pusta kolejka (albo walka naziemna, O1) = krok pomijany.
     """
     new_state = state.clone()
-    combat = _combat(new_state)
+    begin_round_in_place(new_state, grid)
+    return new_state
+
+
+def end_combat_as_draw(state: GameState) -> None:
+    """Kończy trwającą walkę REMISEM (Skilled Retreat) - MUTUJE stan (klon wołającego).
+
+    Jak koniec walki w ``_finish_round``, ale bez zwycięzcy (nie ma zdarzenia „wygrał walkę").
+    Sprawdzenie pojemności (39.6 C3) robi wołający, jeśli statki zmieniły system.
+    """
+    combat = _combat(state)
+    combat.step = CombatStep.DONE
+    combat.winner = None
+    combat.outcome = "draw"
+    combat.pending_hits = {}
     combat.retreating = []
+    combat.afb_assign = False
+    chronicle.record_battle(state, combat)
     triggers.fire(
-        new_state, GameEvent.COMBAT_ROUND, Moment.START,
+        state, GameEvent.COMBAT, Moment.END,
+        ctx={
+            "kind": combat.kind, "position": combat.position, "winner": "",
+            "planet": combat.planet or "", "attacker": combat.attacker,
+            "defender": combat.defender,
+        },
+    )
+
+
+def begin_round_in_place(state: GameState, grid: HexGrid) -> None:
+    """Jak ``_begin_round``, ale MUTUJE przekazany stan (klon wołającego) - dla efektów kart."""
+    combat = _combat(state)
+    combat.retreating = []
+    combat.afb_assign = False
+    triggers.fire(
+        state, GameEvent.COMBAT_ROUND, Moment.START,
         ctx={"kind": combat.kind, "round": combat.round, "position": combat.position},
     )
     queue = (
@@ -753,21 +847,22 @@ def _begin_round(state: GameState, grid: HexGrid) -> GameState:
             pid
             for pid in (combat.defender, combat.attacker)
             if pid != NEUTRAL_PLAYER_ID
-            and retreat_destinations(new_state, grid, combat.position, pid)
+            and retreat_destinations(state, grid, combat.position, pid)
         ]
         if combat.kind == "space"
         else []
     )
     if not queue:
         combat.step = CombatStep.ROLL
-        return new_state
+        return
     combat.step = CombatStep.ANNOUNCE
-    return timing.open_window(
-        new_state,
+    opened = timing.open_window(
+        state,
         WindowType.COMBAT_RETREAT,
         queue,
         context={"position": combat.position, "round": combat.round},
     )
+    state.pending_window = opened.pending_window
 
 
 def announce_retreat(
@@ -798,6 +893,10 @@ def announce_retreat(
         if not retreat_destinations(new_state, grid, combat.position, player_id):
             raise ValueError("There is no eligible system to retreat to.")
         combat.retreating = [*combat.retreating, player_id]
+        triggers.fire(
+            new_state, GameEvent.RETREAT_DECLARED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "position": combat.position},
+        )
     new_state = timing.respond_current(new_state, player_id)
     defender_retreats = announce and player_id == _combat(new_state).defender
     if defender_retreats or timing.is_window_complete(new_state):

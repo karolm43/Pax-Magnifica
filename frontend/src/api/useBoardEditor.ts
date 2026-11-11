@@ -337,6 +337,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Mówca potwierdza wynik czekający w kroku COUNTED (po oknie na karty reakcji).
+  const agendaConfirm = useCallback(
+    async (playerId: string) => {
+      await post("/agenda/confirm", { player_id: playerId });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const skipPhase = useCallback(async () => {
     await post("/phase/skip", {});
     await refresh();
@@ -852,6 +861,7 @@ export function useBoardEditor() {
     agendaDecide,
     agendaDiscard,
     agendaContinue,
+    agendaConfirm,
     epilogueOpen,
     epilogueVote,
     statusRedistribute,

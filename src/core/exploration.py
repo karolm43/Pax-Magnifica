@@ -159,6 +159,41 @@ def draw_card(state: GameState, registry: StaticDataRegistry, deck: str) -> str:
     return _draw_card(state, registry, deck)
 
 
+def reveal_fragments(
+    state: GameState, registry: StaticDataRegistry, player_id: str, deck: str, count: int
+) -> list[str]:
+    """Ujawnia ``count`` wierzchnich kart talii, NIE rozstrzygając ich (Archaeological Expedition).
+
+    Fragmenty reliktów trafiają do strefy gracza (``relic_fragments.gain``), pozostałe karty na
+    stos odrzuconych talii dopiero PO ujawnieniu wszystkich (nie tasują się z powrotem w trakcie).
+    Pusta talia (wraz ze stosem odrzuconych) kończy ujawnianie wcześniej. MUTUJE ``state``.
+
+    Returns:
+        Identyfikatory ujawnionych kart w kolejności ujawniania.
+
+    Raises:
+        ValueError: Nieznany gracz albo talia, której nie ma wśród talii planetarnych.
+    """
+    if player_id not in state.players:
+        raise ValueError(f"Unknown player: {player_id}")
+    if deck not in PLANET_DECKS:
+        raise ValueError(f"Unknown exploration deck: {deck}.")
+    revealed: list[str] = []
+    rest: list[str] = []
+    for _ in range(count):
+        try:
+            card_id = _draw_card(state, registry, deck)
+        except ValueError:
+            break  # talia i jej stos odrzuconych są puste
+        revealed.append(card_id)
+        if (_card_def(registry, card_id).resolution or "").lower() == "fragment":
+            relic_fragments.gain(state, player_id, card_id)
+        else:
+            rest.append(card_id)
+    state.decks.exploration_discard.setdefault(deck, []).extend(rest)
+    return revealed
+
+
 def bound_registry() -> StaticDataRegistry:
     """Rejestr danych statycznych związany z silnikiem (dla efektów kart bez ``registry``)."""
     from src.core import rules_hooks

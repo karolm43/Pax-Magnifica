@@ -18,7 +18,7 @@ from fastapi import Request
 from src.api.connection_manager import ConnectionManager
 from src.api.serializers import build_map_view
 from src.api.state_service import StateService
-from src.core import fracture, nexus
+from src.core import board_graph, fracture, nexus
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
@@ -37,6 +37,8 @@ class AppContext:
         self.manager = manager
         self.registry = registry
         self._grid = current_grid
+        # Efekty kart akcji (core) patrzą na całą planszę, ale nie dostają siatki w parametrach.
+        board_graph.bind_grid_provider(lambda: self.current_grid)
 
     @property
     def current_grid(self) -> HexGrid:

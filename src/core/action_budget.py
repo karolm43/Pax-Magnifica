@@ -54,12 +54,38 @@ def require_free_action(state: GameState, player_id: str) -> None:
         raise ValueError("Finish your current action before starting another one.")
 
 
-def register_action(state: GameState, player_id: str) -> None:
-    """Zapisuje wykonaną akcję gracza (MUTUJE ``state`` - klon wołającego)."""
+def clear_reaction_traces(state: GameState) -> None:
+    """Zeruje ślady okien kart reakcji: pauza końca tury, ostatnia transakcja, ostatnie odrzucenie.
+
+    Wołane przy każdej nowej akcji (dowolnego gracza) i przy nowej turze - okno „po transakcji”,
+    „po odrzuceniu karty” i „na końcu tury” trwa tylko do następnej akcji w grze.
+    """
+    state.turn_end_window = None
+    state.last_transaction = []
+    state.last_action_discard = None
+
+
+def register_action(
+    state: GameState, player_id: str, *, strategic: bool = False, component: str | None = None
+) -> None:
+    """Zapisuje wykonaną akcję gracza (MUTUJE ``state`` - klon wołającego).
+
+    ``strategic`` = to akcja strategiczna (potrzebne efektom „jeśli kolejna akcja nie jest
+    strategiczna”, np. Extreme Duress); ``component`` = id komponentu akcji komponentu (np. grana
+    karta akcji, która nie może zniknąć z ręki, zanim zostanie zagrana). Efekty trwałe reagujące
+    na początek akcji uruchamia punkt ``POINT_ACTION_STARTED``.
+    """
     player = state.players[player_id]
     previous = max(1, player.actions_this_turn) if player.took_action_this_turn else 0
     player.actions_this_turn = previous + 1
     player.took_action_this_turn = True
+    clear_reaction_traces(state)
+    rules_hooks.run_persistent(
+        rules_hooks.POINT_ACTION_STARTED,
+        state,
+        player_id,
+        {"strategic": strategic, "component": component or ""},
+    )
 
 
 def reset_turn(state: GameState, player_id: str) -> None:
@@ -67,3 +93,4 @@ def reset_turn(state: GameState, player_id: str) -> None:
     player = state.players[player_id]
     player.took_action_this_turn = False
     player.actions_this_turn = 0
+    clear_reaction_traces(state)

@@ -238,7 +238,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     GameEvent.COMBAT_WON: EventInfo(
         "Gracz wygrał walkę.", ("player", "kind"), "battle._after_losses"
     ),
-    GameEvent.RETREAT_DECLARED: EventInfo("Odwrót ogłoszony.", ("player",)),
+    GameEvent.RETREAT_DECLARED: EventInfo(
+        "Odwrót ogłoszony.", ("player",), "battle.announce_retreat"
+    ),
     GameEvent.INVASION: EventInfo("Początek inwazji.", ("position",), "invasion"),
     GameEvent.UNIT_ABILITY_USED: EventInfo(
         "Jednostka użyła zdolności (AFB, bombardment, space cannon).",
@@ -302,7 +304,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     GameEvent.ACTION_CARDS_DRAWN: EventInfo(
         "Dobranie kart akcji.", ("player", "amount"), "card_draw.draw_action_card"
     ),
-    GameEvent.ACTION_CARD_DISCARDED: EventInfo("Odrzucenie karty akcji.", ("player", "card")),
+    GameEvent.ACTION_CARD_DISCARDED: EventInfo(
+        "Odrzucenie karty akcji.", ("player", "card"), "card_draw._record_discards"
+    ),
     GameEvent.COMPONENT_GAINED: EventInfo(
         "Gracz zdobył komponent (relikt, notka, technologia).",
         ("player", "component"),

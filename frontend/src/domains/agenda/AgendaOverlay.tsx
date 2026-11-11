@@ -238,19 +238,33 @@ function Senate({
     if (agenda.step === "VOTE" && agenda.currentVoter === id) return "now";
     return "waiting";
   };
-  const seatsOf = (id: string): number => {
+  // Głosy „możliwe": Predictive Intelligence (+3, decyzja gracza) dopóki gracz nie zagłosował.
+  // Pokazujemy je od razu jako przygaszone miejsca, żeby nie „wyskakiwały" dopiero po głosie.
+  const possibleOf = (id: string): number => {
+    if (agenda.votes[id] || agenda.abstained.includes(id) || agenda.blocked.includes(id)) return 0;
+    const predictive = agenda.voters[id]?.predictive;
+    return predictive?.ready ? predictive.votes : 0;
+  };
+  const seatsOf = (id: string): { real: number; possible: number } => {
     const vote = agenda.votes[id];
     const voter: AgendaVoter | undefined = agenda.voters[id];
     const n = vote ? vote.votes : (voter?.available ?? 0) + (voter?.extra ?? 0);
-    return Math.min(MAX_SEATS_PER_PLAYER, Math.max(0, n));
+    const real = Math.min(MAX_SEATS_PER_PLAYER, Math.max(0, n));
+    const possible = Math.min(MAX_SEATS_PER_PLAYER - real, possibleOf(id));
+    return { real, possible };
   };
   const counts = order.map(seatsOf);
-  const total = counts.reduce((a, b) => a + b, 0);
+  const total = counts.reduce((a, c) => a + c.real + c.possible, 0);
+  const totalReal = counts.reduce((a, c) => a + c.real, 0);
+  const totalPossible = total - totalReal;
   const seats = hemicycleSeats(total);
-  // Przydział miejsc po kolei: pierwszy głosujący po lewej, mówca na końcu po prawej.
-  const owner: string[] = [];
+  // Przydział miejsc po kolei: pierwszy głosujący po lewej, mówca na końcu po prawej;
+  // miejsca możliwe (PI) na końcu bloku gracza.
+  const owner: { id: string; possible: boolean }[] = [];
   order.forEach((id, i) => {
-    for (let k = 0; k < (counts[i] ?? 0); k += 1) owner.push(id);
+    const c = counts[i] ?? { real: 0, possible: 0 };
+    for (let k = 0; k < c.real; k += 1) owner.push({ id, possible: false });
+    for (let k = 0; k < c.possible; k += 1) owner.push({ id, possible: true });
   });
   const totalCast = Object.values(agenda.totals).reduce((a, b) => a + b, 0);
   const showOutcomes = agenda.card != null && !agenda.unresolvable;
@@ -280,9 +294,10 @@ function Senate({
             />
           ))}
           {seats.map((s, i) => {
-            const id = owner[i] ?? "";
+            const id = owner[i]?.id ?? "";
+            const possible = owner[i]?.possible ?? false;
             const look = lookOf(id);
-            const st = stateOf(id);
+            const st = possible ? "possible" : stateOf(id);
             const vote = agenda.votes[id];
             const cast = st === "voted" && vote != null;
             const ring = cast ? outcomeColor(agenda, vote.outcome) : undefined;
@@ -300,7 +315,9 @@ function Senate({
                 label={`${look.name}${
                   cast
                     ? `: ${vote.votes} for ${outcomeLabel(agenda, vote.outcome, lookOf)}`
-                    : st === "abstained"
+                    : st === "possible"
+                      ? ": possible vote (Predictive Intelligence, not counted yet)"
+                      : st === "abstained"
                       ? ": abstains"
                       : st === "blocked"
                         ? ": cannot vote"
@@ -313,7 +330,12 @@ function Senate({
         <div className={styles.chamberCore}>
           <b>{totalCast}</b>
           <span>votes cast</span>
-          {total > 0 ? <small>{total - totalCast > 0 ? `${total - totalCast} still to spend` : "all spent"}</small> : null}
+          {totalReal > 0 ? (
+            <small>
+              {totalReal - totalCast > 0 ? `${totalReal - totalCast} still to spend` : "all spent"}
+            </small>
+          ) : null}
+          {totalPossible > 0 ? <small>+{totalPossible} possible</small> : null}
         </div>
       </div>
 
@@ -377,6 +399,7 @@ function Senate({
                 ) : (
                   <em>
                     <b>{(voter?.available ?? 0) + (voter?.extra ?? 0)}</b> to spend
+                    {possibleOf(id) > 0 ? ` (+${possibleOf(id)} possible)` : ""}
                   </em>
                 )}
               </span>
@@ -793,6 +816,30 @@ function Ballot({
             </button>
           </>
         ) : null}
+      </>
+    );
+  }
+
+  if (agenda.step === "COUNTED") {
+    return (
+      <>
+        {head}
+        <div className={styles.result}>
+          <span>Votes counted</span>
+          <b>{outcomeLabel(agenda, agenda.pendingOutcome ?? "", lookOf)}</b>
+        </div>
+        <p className={styles.note}>
+          Players may still play action cards that react to this moment: drag them from your hand.
+          When everyone is done, the speaker confirms and the outcome is resolved.
+        </p>
+        <button
+          type="button"
+          className={styles.primaryBtn}
+          disabled={busy}
+          onClick={() => run(() => api.agendaConfirm(speaker))}
+        >
+          Resolve the outcome <IconChevronsRight size={16} aria-hidden="true" />
+        </button>
       </>
     );
   }

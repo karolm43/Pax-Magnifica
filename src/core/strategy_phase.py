@@ -314,6 +314,21 @@ def accumulate_unpicked_tg(
     return new_state
 
 
+def add_trade_goods_to_card(state: GameState, initiative: int, amount: int) -> None:
+    """Kładzie ``amount`` trade goods z zasobów ogólnych na karcie strategii (mutuje ``state``).
+
+    Punkt centralny dla efektów „place trade goods on a strategy card” (Manipulate Investments):
+    TG nie pochodzą z puli gracza. Wybierający kartę dostanie je jak każde TG z karty
+    (``pick_strategy_card``).
+
+    Raises:
+        ValueError: Ujemna ilość.
+    """
+    if amount < 0:
+        raise ValueError("The number of trade goods cannot be negative.")
+    state.strategy_card_tg[initiative] = state.strategy_card_tg.get(initiative, 0) + amount
+
+
 def set_speaker(state: GameState, player_id: str | None) -> None:
     """Przekazuje żeton mówcy — JEDYNE miejsce zmiany ``GameState.speaker_id`` (RULES.md 43.1a).
 

@@ -16,6 +16,7 @@ import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getActionCard } from "@/entities/lookup/actionCards";
+import { getAgenda } from "@/entities/lookup/agendas";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
@@ -28,6 +29,7 @@ import {
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
+import { useGameData } from "@/state/useGameContext";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import { useActionCardPlayability, type ActionCardPlayability } from "@/api/useActionCard";
 import styles from "./BottomHandDock.module.css";
@@ -198,7 +200,21 @@ export function BottomHandDock() {
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   // „Gracz pulpitu" — aktywny → mówca → pierwszy posadzony. Dzięki temu dok ręki
   // jest widoczny CAŁY CZAS (także w status/agenda, gdy brak aktywnego gracza).
-  const active = useDeskPlayer();
+  const deskPlayer = useDeskPlayer();
+  // Karty reakcji gra też gracz, którego nie jest tura (np. obrońca w walce) - operator może
+  // przełączyć rękę na dowolnego posadzonego gracza (tryb lokalny: widzi wszystko).
+  const gameData = useGameData();
+  const seated = useMemo(
+    () =>
+      (gameData?.playerData ?? []).filter(
+        (p) => p.faction && p.faction !== "neutral" && p.discordId,
+      ),
+    [gameData?.playerData],
+  );
+  const [viewColor, setViewColor] = useState<string | null>(null);
+  const active =
+    (viewColor ? seated.find((p) => p.color === viewColor) : undefined) ??
+    deskPlayer;
 
   const { data: hand } = usePlayerHand(gameId, {
     ignoreAuthGate: true,
@@ -230,6 +246,20 @@ export function BottomHandDock() {
     if (tab === "secrets") return hand.secretObjectives;
     return hand.promissoryNotes;
   }, [hand, tab]);
+
+  // Prywatne podglądy z kart reakcji: Insider Information (top agend) i Extreme Duress (tajne cele).
+  const peekLines = useMemo(() => {
+    const lines: string[] = [];
+    if (hand?.agendaPeek?.length) {
+      const names = hand.agendaPeek.map((id) => getAgenda(id)?.name ?? id);
+      lines.push(`Top of the agenda deck: ${names.join(" · ")}`);
+    }
+    for (const [owner, ids] of Object.entries(hand?.revealedSecrets ?? {})) {
+      const names = ids.map((id) => getSecretObjectiveData(id)?.name ?? id);
+      lines.push(`Secret objectives of ${owner}: ${names.join(" · ") || "none"}`);
+    }
+    return lines;
+  }, [hand?.agendaPeek, hand?.revealedSecrets]);
 
   // Mierzymy wysokość doku (zwinięty / rozwinięty) i wystawiamy ją jako zmienną CSS
   // ``--hand-dock-clear`` na <html> - pastylki powrotu do okien (produkcja, technologie…)
@@ -280,6 +310,27 @@ export function BottomHandDock() {
           </span>
         </span>
 
+        {/* Przełącznik ręki: reakcje (when/after) zagrywa także gracz nieaktywny. */}
+        {seated.length > 1 && (
+          <div className={styles.seats} role="group" aria-label="Whose hand">
+            {seated.map((p) => (
+              <button
+                key={p.color}
+                type="button"
+                className={styles.seat}
+                data-current={p.color === active.color || undefined}
+                title={`Show the hand of ${p.flexibleDisplayName || p.faction}`}
+                aria-pressed={p.color === active.color}
+                onClick={() =>
+                  setViewColor(p.color === deskPlayer?.color ? null : p.color)
+                }
+              >
+                <CircularFactionIcon faction={p.faction} size={18} />
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Segmenty kategorii z licznikami (jak zakładki ręki). */}
         <div className={styles.tabs} role="tablist" aria-label="Hand category">
           {TABS.map((t) => {
@@ -317,6 +368,14 @@ export function BottomHandDock() {
           />
         </UnstyledButton>
       </div>
+
+      {open && peekLines.length > 0 && (
+        <ul className={styles.peek} aria-label="Cards you were shown">
+          {peekLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
 
       {open && (
         <div className={styles.fan} role="tabpanel">

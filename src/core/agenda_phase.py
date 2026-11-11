@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import (
+    active_effects,
     card_draw,
     exhaust,
     objectives,
@@ -32,7 +33,7 @@ from src.core import (
     turn_flow,
 )
 from src.core.components import AgendaDef, ComponentCategory
-from src.core.game_events import GameEvent, Moment
+from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
     AgendaStep,
@@ -67,6 +68,12 @@ _TARGET_KINDS: tuple[tuple[str, str, bool], ...] = (
     ("elect technology group", "tech_group", False),
     ("elect command token pool", "command_pool", False),
 )
+
+# Pauza przed rozstrzygnięciem wyniku (krok ``COUNTED``) - miejsce na karty reakcji grane PO
+# głosach, a PRZED wynikiem (RULES.md 53.5.a, 43.4). Pauza powstaje, gdy ktokolwiek ma w ręce
+# jakąkolwiek kartę akcji (liczba kart jest jawna), więc nie zdradza posiadacza konkretnej karty.
+# ``True`` = pauza zawsze (np. do testów jednolitego rytmu).
+PAUSE_BEFORE_RESOLUTION_ALWAYS = False
 
 # Wartości wyborów bez własnych danych w assetach (grupy technologii i pule żetonów to
 # nazwy z reguł, nie liczby). Cechy planet: R_planets.
@@ -284,17 +291,53 @@ def _after_vote(state: GameState, registry: StaticDataRegistry) -> GameState:
     if current_voter(state) is not None:
         _point_to_voter(state)
         return state
+    return _close_count(state, registry)
+
+
+def _count_reaction_held(state: GameState, registry: StaticDataRegistry) -> bool:
+    """Filtr jawny (RULES.md 43.4 pkt 5): pauza, gdy KTOKOLWIEK ma jakąkolwiek kartę akcji.
+
+    Liczba kart akcji w ręce jest informacją publiczną, więc brak pauzy przy pustych rękach nie
+    zdradza niczego. Treść ręki NIGDY nie wpływa na decyzję (gdyby wpływała, pauza ujawniałaby
+    posiadacza np. Deadly Plot) - dlatego ``registry`` nie jest tu używany.
+    """
+    del registry
+    if PAUSE_BEFORE_RESOLUTION_ALWAYS:
+        return True
+    return any(player.private.action_cards for player in state.players.values())
+
+
+def _close_count(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Głosowanie skończone: zliczenie -> wynik (``_conclude``) albo remis (``TIEBREAK``)."""
+    assert state.agenda is not None
     agenda = state.agenda
     sums = totals(agenda)
     best = max(sums.values(), default=0)
     leaders = [o for o, n in sums.items() if n == best]
     if best > 0 and len(leaders) == 1:
-        return _resolve(state, registry, leaders[0], by_speaker=False)
+        return _conclude(state, registry, leaders[0], by_speaker=False)
     # Remis albo brak głosów: wybiera mówca spośród remisujących (przy 0 głosów - wszystkich).
     agenda.tied = leaders if best > 0 else list(agenda.outcomes)
+    agenda.pending_outcome = None
     agenda.step = AgendaStep.TIEBREAK
     _point_to_voter(state)
     return state
+
+
+def _conclude(
+    state: GameState, registry: StaticDataRegistry, outcome: str, *, by_speaker: bool
+) -> GameState:
+    """Wynik ustalony: pauza na reakcje (``COUNTED``), gdy ktoś może zareagować, inaczej od razu."""
+    assert state.agenda is not None
+    agenda = state.agenda
+    if agenda.step is AgendaStep.COUNTED or _count_reaction_held(state, registry):
+        agenda.tied = []
+        agenda.pending_outcome = outcome
+        agenda.pending_by_speaker = by_speaker
+        agenda.step = AgendaStep.COUNTED
+        state.active_player_id = state.speaker_id or state.active_player_id
+        return state
+    return _resolve(state, registry, outcome, by_speaker=by_speaker)
 
 
 def cast_vote(
@@ -354,6 +397,7 @@ def cast_vote(
         planets=list(planets),
         techs=[PREDICTIVE_INTELLIGENCE] if use_predictive else [],
     )
+    work.agenda.last_vote_by = player_id
     exhaust.exhaust_planets(work, player_id, planets)  # R_agenda_phase: wyczerpanie = głos
     work.players[player_id].passed = True
     triggers.fire(work, GameEvent.AGENDA_VOTES_CAST, Moment.AFTER, subject=player_id, ctx=vote_ctx)
@@ -367,6 +411,7 @@ def abstain(state: GameState, registry: StaticDataRegistry, player_id: str) -> G
     work = state.clone()
     assert work.agenda is not None
     work.agenda.abstained.append(player_id)
+    work.agenda.last_vote_by = None  # okno „po głosach poprzednika" zamknięte
     work.players[player_id].passed = True
     return _after_vote(work, registry)
 
@@ -397,6 +442,9 @@ def _resolve(
         card_draw.discard_agenda(state, card)
     agenda.resolved_outcome = outcome
     agenda.decided_by_speaker = by_speaker
+    agenda.pending_outcome = None
+    agenda.pending_by_speaker = False
+    agenda.last_vote_by = None
     # Predictive Intelligence: głos z +3, którego wynik nie przeszedł, wyczerpuje kartę.
     for voter_id, vote in agenda.votes.items():
         if PREDICTIVE_INTELLIGENCE in vote.techs and vote.outcome != outcome:
@@ -435,7 +483,24 @@ def decide_tie(
     assert work.agenda is not None
     if chosen not in work.agenda.outcomes:
         work.agenda.outcomes = [*work.agenda.outcomes, chosen]
-    return _resolve(work, registry, chosen, by_speaker=True)
+    return _conclude(work, registry, chosen, by_speaker=True)
+
+
+def confirm_outcome(state: GameState, registry: StaticDataRegistry, player_id: str) -> GameState:
+    """Mówca potwierdza wynik czekający w kroku ``COUNTED`` (po oknie na reakcje) i go rozstrzyga.
+
+    Raises:
+        ValueError: Zły krok albo ``player_id`` nie jest mówcą.
+    """
+    agenda = _require_agenda(state, AgendaStep.COUNTED)
+    _require_speaker(state, player_id)
+    if agenda.pending_outcome is None:
+        raise ValueError("There is no outcome waiting to be resolved.")
+    work = state.clone()
+    assert work.agenda is not None and work.agenda.pending_outcome is not None
+    return _resolve(
+        work, registry, work.agenda.pending_outcome, by_speaker=work.agenda.pending_by_speaker
+    )
 
 
 # --- Przebieg fazy -------------------------------------------------------------------------
@@ -456,6 +521,9 @@ def _clear_round_of_voting(work: GameState) -> None:
     agenda.tied = []
     agenda.resolved_outcome = None
     agenda.decided_by_speaker = False
+    agenda.last_vote_by = None
+    agenda.pending_outcome = None
+    agenda.pending_by_speaker = False
     for player in work.players.values():
         player.passed = False
         # Każda para graczy może zawrzeć jedną transakcję w trakcie każdej agendy.
@@ -470,7 +538,17 @@ def reveal_agenda(state: GameState, registry: StaticDataRegistry, player_id: str
     """
     _require_agenda(state, AgendaStep.REVEAL)
     _require_speaker(state, player_id)
-    work = state.clone()
+    return _open_top_agenda(state.clone(), registry, player_id)
+
+
+def _open_top_agenda(work: GameState, registry: StaticDataRegistry, player_id: str) -> GameState:
+    """Ujawnia wierzchnią agendę z talii na KLONIE ``work`` i otwiera głosowanie (mutuje ``work``).
+
+    Wspólne dla ``reveal_agenda`` i Veto (ponowne ujawnienie po odrzuceniu agendy).
+
+    Raises:
+        ValueError: Gdy talia agend jest pusta.
+    """
     card = card_draw.draw_agenda(work, registry)
     if card is None:
         raise ValueError("The agenda deck is empty.")
@@ -544,7 +622,9 @@ def finish_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
     """Mówca ogłasza koniec fazy agendy: nowa runda od fazy strategii."""
     del registry
     _require_agenda(state, AgendaStep.COMPLETE)
-    return turn_flow.next_round(state)
+    work = state.clone()
+    card_draw.clear_agenda_peek(work)  # podgląd Insider Information nie żyje do następnej rundy
+    return turn_flow.next_round(work)
 
 
 def skip_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
@@ -552,6 +632,7 @@ def skip_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
     del registry
     work = state.clone()
     _ready_all_planets(work)
+    card_draw.clear_agenda_peek(work)
     return turn_flow.next_round(work)
 
 
@@ -594,3 +675,160 @@ def owned_laws(state: GameState, registry: StaticDataRegistry, player_id: str) -
 def is_agenda_phase(state: GameState) -> bool:
     """Czy trwa zainicjowana faza agendy (steruje bramą ``Next phase`` i oknem UI)."""
     return state.phase is Phase.AGENDA and state.agenda is not None
+
+
+# --- Efekty kart grywanych w trakcie agendy (RULES.md 53.5.a) ------------------------------
+# Funkcje MUTUJĄ przekazany stan (KLON roboczy wołającego, jak efekty kart akcji) i zwracają go.
+# Karty (``core/hooks/reactions_agenda.py``) zmieniają stan agendy WYŁĄCZNIE tędy.
+
+_ELECTION_KINDS = ("player", "player_techs", "player_or_against")
+
+
+def is_player_election(state: GameState) -> bool:
+    """Czy bieżąca agenda wybiera GRACZA (Elect Player i pokrewne)."""
+    return state.agenda is not None and state.agenda.kind in _ELECTION_KINDS
+
+
+def elected_player(state: GameState) -> str | None:
+    """Gracz, który zostanie wybrany wynikiem czekającym w kroku ``COUNTED`` (albo ``None``)."""
+    agenda = state.agenda
+    if (
+        agenda is None
+        or agenda.step is not AgendaStep.COUNTED
+        or not is_player_election(state)
+        or agenda.pending_outcome not in state.players
+    ):
+        return None
+    return agenda.pending_outcome
+
+
+def block_voter(state: GameState, registry: StaticDataRegistry, player_id: str) -> GameState:
+    """Gracz NIE może głosować w tej agendzie (riders, Assassinate Representative).
+
+    Raises:
+        ValueError: Poza krokiem głosowania albo nieznany gracz.
+    """
+    agenda = _require_agenda(state, AgendaStep.VOTE)
+    if player_id not in state.players:
+        raise ValueError(f"Unknown player: {player_id}")
+    if player_id not in agenda.blocked:
+        agenda.blocked = [*agenda.blocked, player_id]
+    if player_id in agenda.votes or player_id in agenda.abstained:
+        return state  # już zagłosował - zakaz dotyczy kolejnych głosowań (nic do zmiany)
+    return _after_vote(state, registry)
+
+
+def vote_last(state: GameState, player_id: str) -> GameState:
+    """Hack Election: ``player_id`` głosuje w tej agendzie jako OSTATNI (przesuwa go na koniec).
+
+    Raises:
+        ValueError: Poza krokiem głosowania, nieznany gracz albo gracz już zagłosował.
+    """
+    agenda = _require_agenda(state, AgendaStep.VOTE)
+    if player_id not in agenda.vote_order:
+        raise ValueError(f"{player_id} is not in the voting order.")
+    if player_id in agenda.votes or player_id in agenda.abstained:
+        raise ValueError("That player has already voted on this agenda.")
+    agenda.vote_order = [*(p for p in agenda.vote_order if p != player_id), player_id]
+    _point_to_voter(state)
+    return state
+
+
+def veto_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Veto: odrzuca ujawnioną agendę i ujawnia kolejną z wierzchu talii (gracze głosują nad nią).
+
+    Predykcje i zakazy głosowania z odrzuconej agendy znikają razem z nią. Numer agendy
+    (pierwsza/druga) się nie zmienia.
+
+    Raises:
+        ValueError: Poza krokiem głosowania albo talia agend jest pusta.
+    """
+    agenda = _require_agenda(state, AgendaStep.VOTE)
+    if not state.decks.agenda_deck:
+        raise ValueError("The agenda deck is empty.")
+    vetoed = agenda.agenda_id
+    assert vetoed is not None
+    card_draw.discard_agenda(state, vetoed)
+    agenda.history.append({"number": agenda.agenda_number, "agenda": vetoed, "vetoed": True})
+    active_effects.expire(state, Duration.AGENDA)
+    return _open_top_agenda(state, registry, state.speaker_id or "")
+
+
+def add_votes(
+    state: GameState, registry: StaticDataRegistry, player_id: str, amount: int
+) -> GameState:
+    """Dodatkowe głosy na wynik, na który gracz już głosował (Bribery, Distinguished Councilor).
+
+    Po zmianie sum wynik jest liczony od nowa (remis może powstać albo zniknąć); wybór mówcy
+    przy remisie unieważnia dodanie głosów po nim.
+
+    Raises:
+        ValueError: Ujemna liczba, krok inny niż głosowanie/remis/pauza albo brak oddanych głosów.
+    """
+    agenda = _require_agenda(
+        state, AgendaStep.VOTE, AgendaStep.TIEBREAK, AgendaStep.COUNTED
+    )
+    if amount < 0:
+        raise ValueError("The number of additional votes cannot be negative.")
+    vote = agenda.votes.get(player_id)
+    if vote is None:
+        raise ValueError("You must have cast votes on this agenda to cast additional votes.")
+    agenda.votes[player_id] = vote.model_copy(update={"votes": vote.votes + amount})
+    if agenda.step is not AgendaStep.VOTE and amount > 0:
+        agenda.pending_outcome = None
+        return _close_count(state, registry)
+    return state
+
+
+def replace_elected(state: GameState, player_id: str) -> GameState:
+    """Confounding/Confusing Legal Text: wybranym graczem zostaje ``player_id`` (w kroku COUNTED).
+
+    Predykcje rozstrzygają się wg NOWO wybranego gracza (C_action_cards).
+
+    Raises:
+        ValueError: Gdy nie ma wybranego gracza do podmiany albo ``player_id`` jest nieznany.
+    """
+    agenda = _require_agenda(state, AgendaStep.COUNTED)
+    if elected_player(state) is None:
+        raise ValueError("No player is being elected by this agenda.")
+    if player_id not in state.players:
+        raise ValueError(f"Unknown player: {player_id}")
+    if player_id not in agenda.outcomes:
+        agenda.outcomes = [*agenda.outcomes, player_id]
+    agenda.pending_outcome = player_id
+    return state
+
+
+def void_agenda(state: GameState) -> GameState:
+    """Deadly Plot: agenda zostaje odrzucona BEZ efektu i bez zastąpienia; predykcje nie działają.
+
+    Raises:
+        ValueError: Poza krokiem ``COUNTED`` (wynik miałby być właśnie rozstrzygnięty).
+    """
+    agenda = _require_agenda(state, AgendaStep.COUNTED)
+    card = agenda.agenda_id
+    assert card is not None
+    card_draw.discard_agenda(state, card)
+    agenda.history.append(
+        {
+            "number": agenda.agenda_number,
+            "agenda": card,
+            "kind": agenda.kind,
+            "outcome": None,
+            "voided": True,
+            "totals": totals(agenda),
+            "votes": {
+                pid: {"outcome": v.outcome, "votes": v.votes} for pid, v in agenda.votes.items()
+            },
+        }
+    )
+    active_effects.expire(state, Duration.AGENDA)  # predykcje i zakazy tej agendy znikają
+    agenda.resolved_outcome = None
+    agenda.decided_by_speaker = False
+    agenda.pending_outcome = None
+    agenda.pending_by_speaker = False
+    agenda.last_vote_by = None
+    agenda.tied = []
+    agenda.step = AgendaStep.RESOLVED
+    state.active_player_id = state.speaker_id or state.active_player_id
+    return state
