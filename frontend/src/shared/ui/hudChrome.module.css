@@ -25,6 +25,22 @@
     border-color var(--ds-dur-fast) var(--ds-ease);
 }
 
+/*
+ * Etykieta przycisku HUD w nagłówku gry. Poniżej 1440 px pasek (Undo…Rules + Bug) nie
+ * mieścił się obok „You play" i wyszukiwarki — chowamy napisy, zostają ikony z tooltipem
+ * (``title``) i nazwą dla czytników (``aria-label``/tekst w DOM).
+ */
+@media (max-width: 1440px) {
+  .hudLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
 /* The guards keep a button that cannot be pressed from lighting up. */
 .hudButton:hover:not([data-loading]):not(:disabled) {
   color: var(--ds-ink-hi);

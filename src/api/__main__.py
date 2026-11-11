@@ -40,6 +40,8 @@ from src.core.event_store import EventStore
 HOST = "127.0.0.1"
 PORT = 8000
 SAVES_DIR = Path("saves")
+BUG_REPORTS_DIR = Path("bug_reports")
+"""Zgłoszenia „Report bug" od wszystkich graczy (także z sieci) lądują na dysku hosta."""
 
 
 
@@ -158,6 +160,7 @@ def main() -> None:
         network=args.network,
         host_token=os.environ.get("CUSTODIAN_HOST_TOKEN"),
         saves_dir=SAVES_DIR,
+        bug_reports_dir=BUG_REPORTS_DIR,
     )
     server_app.state.ctx.save_name = path.name
     print(f"[save] {'Resumed game from' if resumed else 'New save file'} {path}")

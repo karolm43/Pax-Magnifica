@@ -30,7 +30,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8100)
     args = parser.parse_args()
     saves_dir = Path(tempfile.mkdtemp(prefix="custodian-e2e-"))
-    app = create_app(saves_dir=saves_dir)
+    app = create_app(saves_dir=saves_dir, bug_reports_dir=saves_dir / "bug_reports")
     print(f"[e2e] Fresh backend on 127.0.0.1:{args.port} (saves: {saves_dir})")
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
 

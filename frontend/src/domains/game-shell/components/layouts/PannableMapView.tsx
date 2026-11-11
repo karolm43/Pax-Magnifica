@@ -18,6 +18,7 @@ import { PhaseTransitionBanner } from "@/domains/game-shell/components/PhaseTran
 import { useMapTooltips } from "@/domains/map/components/hooks/useMapTooltips";
 import { getMapLayoutConfig } from "@/domains/map/components/mapLayout";
 import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKeyboardShortcuts";
+import { useWheelZoom } from "@/domains/map/components/hooks/useWheelZoom";
 import { useTryDecalsToggle } from "@/domains/map/components/hooks/useTryDecalsToggle";
 import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
@@ -150,8 +151,19 @@ export function PannableMapView({ gameId }: { gameId: string }) {
     settings,
     handleZoomIn,
     handleZoomOut,
+    handleZoomFit: handleFitBoard,
     handleAreaSelect,
     selectedArea,
+  });
+
+  // Ctrl + kółko / pinch touchpada = zoom mapy wokół kursora (nie zoom strony).
+  useWheelZoom({
+    containerRef: mapContainerRef,
+    zoom,
+    onZoomIn: handleZoomIn,
+    onZoomOut: handleZoomOut,
+    clearance: BOARD_CLEARANCE,
+    enabled: !hideZoomControls,
   });
 
   const { tryDecalsOpened, setTryDecalsOpened } = useTryDecalsToggle();

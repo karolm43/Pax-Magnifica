@@ -588,3 +588,13 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   `PROJEKT_KARTY_STRATEGII.md` (zrealizowany), `docs/README.md` (QA frontu przez `tsc -p tsconfig.app.json`,
   brakujące moduły w mapie), `ARCHITEKTURA_KODU.md` §4 (32 routery), `ARCHITEKTURA_PO_MIGRACJI.md` (baner daty).
 - **Raporty generowane odświeżone:** `OKNA_CZASOWE.md` (emitowane zdarzenia 41 → 45); `POKRYCIE_HOOKOW.md` bez zmian.
+## 2026-11-11 (14) — Zoom mapy kółkiem, karty strategii na małych ekranach, „Report bug”
+- **Zoom:** Ctrl + kółko (i pinch touchpada) zoomuje MAPĘ wokół kursora (`useWheelZoom`), `0` = dopasuj planszę,
+  `_` jako zoom out (PL klawiatura); `+`/`=`/`-` bez zmian. Wpisy w oknie skrótów.
+- **Wachlarz kart strategii:** karta `clamp(96px, min(10.4vw, 24vh), 230px)` zamiast `12.5vw` — wcześniej 8 kart = 100vw
+  i karty 1/8 były obcięte nawet na 1920 px. Sprawdzone zrzutami 1920/1536/1366/1280/1024.
+- **Nagłówek gry:** poniżej 1440 px przyciski HUD tylko z ikoną (`.hudLabel`), bo pasek się nie mieścił.
+- **Report bug** (przycisk „Bug” w nagłówku): zrzut widoku w przeglądarce (`html-to-image`) + opis → `POST /bug-report`
+  → `bug_reports/<data>_<gracz>/` na dysku HOSTA (`report.md`, `screenshot.png`, `client.json` z ostatnimi błędami
+  konsoli, `state.json` = pełny `GameState`). Działa dla gości z sieci (token miejsca). `create_app(bug_reports_dir=…)`,
+  `None` = 503. Testy: `tests/test_bug_report.py`, E2E `frontend/e2e/tools.e2e.ts`.

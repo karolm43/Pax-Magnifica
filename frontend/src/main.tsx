@@ -38,9 +38,12 @@ import GameMapPage from "./pages/GameMapPage";
 import { isMobileDevice } from "./utils/isTouchDevice";
 import { getPortalRoot } from "./ds";
 import { installActorIdentity } from "./api/actorIdentity";
+import { installConsoleCapture } from "./domains/bug-report/consoleCapture";
 
 // Tożsamość aktora (RULES.md 44.1a): `?seat=<player_id>` → nagłówek X-Actor-Id do backendu.
 installActorIdentity();
+// Bufor ostatnich błędów konsoli do zgłoszeń „Report bug".
+installConsoleCapture();
 
 const queryClient = new QueryClient();
 

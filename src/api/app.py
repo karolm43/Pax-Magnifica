@@ -34,6 +34,7 @@ from src.api.routers import (
     agenda,
     battle,
     board,
+    bug_report,
     capacity,
     clock,
     components,
@@ -111,6 +112,7 @@ def create_app(
     network: bool = False,
     host_token: str | None = None,
     saves_dir: Path | None = None,
+    bug_reports_dir: Path | None = None,
 ) -> FastAPI:
     """Fabryka aplikacji FastAPI (wstrzykiwalna dla testów).
 
@@ -122,6 +124,7 @@ def create_app(
         network: Tryb gry sieciowej (RULES.md 44.2): każde żądanie wymaga tokenu miejsca.
         host_token: Stały token hosta (domyślnie losowy; ``seats.host_token`` po starcie).
         saves_dir: Katalog zapisów (nowa gra = nowy plik, „Load game"); ``None`` = wyłączone.
+        bug_reports_dir: Katalog zgłoszeń „Report bug" (na dysku hosta); ``None`` = wyłączone.
     """
     reg = registry if registry is not None else StaticDataRegistry()
     event_store = store if store is not None else EventStore()
@@ -278,6 +281,7 @@ def create_app(
         seats=seats,
         saves=SaveManager(saves_dir) if saves_dir is not None else None,
         restore_grid=lambda s: _restore_grid(s) or build_demo_grid(reg),
+        bug_reports_dir=bug_reports_dir,
     )
     app.state.ctx = ctx
     # Zgodność ze starszymi testami/diagnostyką odwołującymi się do app.state.*.
@@ -319,6 +323,7 @@ def create_app(
     app.include_router(offers.router)
     app.include_router(technology.router)
     app.include_router(network_routes.router)
+    app.include_router(bug_report.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:

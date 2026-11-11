@@ -13,6 +13,7 @@ import { useGameDataState } from "@/state/useGameContext";
 import { useAppStore } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { PlayerEditorModal } from "@/domains/player/components/PlayerEditorModal";
+import { BugReportButton } from "@/domains/bug-report/BugReportButton";
 import hud from "./hudChrome.module.css";
 
 /**
@@ -57,7 +58,7 @@ export function HeaderGameControls() {
         onClick={() => void run("undo")}
         title="Undo"
       >
-        Undo
+        <span className={hud.hudLabel}>Undo</span>
       </Button>
       <Button
         variant="default"
@@ -68,7 +69,7 @@ export function HeaderGameControls() {
         onClick={() => void run("redo")}
         title="Redo"
       >
-        Redo
+        <span className={hud.hudLabel}>Redo</span>
       </Button>
       <Button
         variant={moveMode ? "filled" : "default"}
@@ -78,11 +79,9 @@ export function HeaderGameControls() {
         onClick={toggleMoveMode}
         title="Move mode: click the source system, then the destination"
       >
-        {moveMode
-          ? moveFrom
-            ? "Pick destination…"
-            : "Pick source…"
-          : "Move"}
+        <span className={moveMode ? undefined : hud.hudLabel}>
+          {moveMode ? (moveFrom ? "Pick destination…" : "Pick source…") : "Move"}
+        </span>
       </Button>
       <Button
         variant="default"
@@ -92,7 +91,7 @@ export function HeaderGameControls() {
         onClick={() => setPlayerEditorOpen(true)}
         title="God-Mode: edit player data"
       >
-        Players
+        <span className={hud.hudLabel}>Players</span>
       </Button>
       <Button
         variant="default"
@@ -105,7 +104,7 @@ export function HeaderGameControls() {
         onClick={() => dataState?.refetch?.()}
         title="Refresh the board"
       >
-        Refresh
+        <span className={hud.hudLabel}>Refresh</span>
       </Button>
       {/* Przeglądarka Zasad TI4; `from=game` daje w niej powrót „Wróć do gry". */}
       <Button
@@ -116,8 +115,10 @@ export function HeaderGameControls() {
         onClick={() => navigate("/rules?from=game")}
         title="Open the Rules browser"
       >
-        Rules
+        <span className={hud.hudLabel}>Rules</span>
       </Button>
+      {/* Zgłoszenie błędu: zrzut widoku + opis → bug_reports/ na dysku hosta. */}
+      <BugReportButton />
     </Group>
   );
 }

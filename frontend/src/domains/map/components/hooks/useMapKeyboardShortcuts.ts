@@ -24,6 +24,7 @@ type UseMapKeyboardShortcutsParams = {
   settings: ShortcutSettings;
   handleZoomIn: KeyboardShortcutsProps["handleZoomIn"];
   handleZoomOut: KeyboardShortcutsProps["handleZoomOut"];
+  handleZoomFit?: KeyboardShortcutsProps["handleZoomFit"];
   handleAreaSelect: KeyboardShortcutsProps["onAreaSelect"];
   selectedArea: KeyboardShortcutsProps["selectedArea"];
 };
@@ -33,6 +34,7 @@ export function useMapKeyboardShortcuts({
   settings,
   handleZoomIn,
   handleZoomOut,
+  handleZoomFit,
   handleAreaSelect,
   selectedArea,
 }: UseMapKeyboardShortcutsParams) {
@@ -49,6 +51,7 @@ export function useMapKeyboardShortcuts({
     updateSettings: handlers.updateSettings,
     handleZoomIn,
     handleZoomOut,
+    handleZoomFit,
     onAreaSelect: handleAreaSelect,
     selectedArea,
   });

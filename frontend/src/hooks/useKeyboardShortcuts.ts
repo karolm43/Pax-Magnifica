@@ -17,6 +17,8 @@ export type KeyboardShortcutsProps = {
   updateSettings: (updates: Partial<Settings>) => void;
   handleZoomIn: () => void;
   handleZoomOut: () => void;
+  /** Dopasowanie planszy do okna (klawisz „0"). */
+  handleZoomFit?: () => void;
   onAreaSelect: (area: AreaType) => void;
   selectedArea: AreaType;
 };
@@ -43,6 +45,7 @@ export function useKeyboardShortcuts({
   updateSettings,
   handleZoomIn,
   handleZoomOut,
+  handleZoomFit,
   onAreaSelect,
   selectedArea,
 }: KeyboardShortcutsProps) {
@@ -100,6 +103,9 @@ export function useKeyboardShortcuts({
       "+": handleZoomIn,
       "=": handleZoomIn,
       "-": handleZoomOut,
+      // Polska klawiatura: „_" to Shift + „-", numpad daje „+"/„-" jak wyżej.
+      _: handleZoomOut,
+      ...(handleZoomFit ? { "0": handleZoomFit } : {}),
       t: toggleTechSkipsMode,
       a: toggleAttachmentsMode,
       y: togglePlanetTypesMode,
@@ -124,6 +130,7 @@ export function useKeyboardShortcuts({
     updateSettings,
     handleZoomIn,
     handleZoomOut,
+    handleZoomFit,
     onAreaSelect,
     selectedArea,
   ]);

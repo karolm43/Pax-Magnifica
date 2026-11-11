@@ -19,6 +19,8 @@ const NAVIGATION: Shortcut[] = [
   { description: "Toggle both sidebars", keys: ["h"] },
   { description: "Left / right sidebar", keys: ["l", "r"] },
   { description: "Zoom in / out", keys: ["+", "=", "-"] },
+  { description: "Zoom map at cursor", keys: ["Ctrl Wheel"] },
+  { description: "Fit board to window", keys: ["0"] },
   { description: "Tech skip rendering", keys: ["t"] },
   { description: "Attachments mode", keys: ["a"] },
   { description: "Overlays", keys: ["o"] },

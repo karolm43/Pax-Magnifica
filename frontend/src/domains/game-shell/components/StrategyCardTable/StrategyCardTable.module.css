@@ -326,7 +326,12 @@
      brak wychodzenia poza ekran > wielkość kart). Powiększone (iteracja: karty
      „trochę większe") — wyższy dolny i górny próg clamp. */
   flex: 0 0 auto;
-  width: clamp(120px, 12.5vw, 230px);
+  /* Budżet szerokości łuku: 8 kart + rozchylenie i powiększenie skrajnych (obrót ~9°
+     od dołu wysuwa górny róg o ~0,2 szerokości) ≈ 8,5 karty + 7 odstępów (~4vw) w
+     panelu 98vw z paddingiem 2×2vw → karta ≤ ~10,5vw. Dawne 12,5vw dawało 100vw
+     samych kart i obcinało karty 1 i 8 nawet na 1920 px. ``24vh`` pilnuje niskich,
+     szerokich ekranów (łuk nie wchodzi pod dok ręki). */
+  width: clamp(96px, min(10.4vw, 24vh), 230px);
   /* STAŁA proporcja karty (źródłowy format kart strategii ~400x499). Dzięki temu
      KAŻDA karta ma identyczny rozmiar niezależnie od wymiarów pliku PNG (część
      assetów ma lekko inne wymiary, np. pok_2 390x461, pok_4 449x556) — obraz

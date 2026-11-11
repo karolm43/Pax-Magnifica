@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from pathlib import Path
 
 from fastapi import Request
 
@@ -47,12 +48,15 @@ class AppContext:
         seats: SeatRegistry | None = None,
         saves: SaveManager | None = None,
         restore_grid: Callable[[EventStore], HexGrid] | None = None,
+        bug_reports_dir: Path | None = None,
     ) -> None:
         self.service = service
         # Miejsca przy stole / tokeny (RULES.md 44.2); tryb lokalny = rejestr bez tokenów.
         self.seats = seats if seats is not None else SeatRegistry()
         # Pliki zapisów (RULES.md 44.4); ``None`` = bez katalogu (testy, pamięć).
         self.saves = saves
+        # Katalog zgłoszeń „Report bug" na dysku hosta; ``None`` = wyłączone (testy, pamięć).
+        self.bug_reports_dir = bug_reports_dir
         self._restore_grid = restore_grid
         self.save_name: str | None = None
         self.manager = manager
