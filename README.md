@@ -1,242 +1,190 @@
-# Custodian Engine
+<div align="center">
 
-> Lokalny silnik sztucznej inteligencji pełniący rolę autonomicznego przeciwnika przy stole do fizycznych rozgrywek **Twilight Imperium: 4th Edition** — z myślą o grze solo.
+# ⚜️ Custodian Engine
 
-Custodian Engine zastępuje gracza ludzkiego pełnoprawnym agentem podejmującym decyzje strategiczne, operacyjne, taktyczne i dyplomatyczne. Fizyczna plansza pozostaje nadrzędnym źródłem prawdy (model *human-in-the-loop*), a silnik wylicza i komunikuje ruchy bota.
+**Silnik rozgrywki Twilight Imperium 4 — sędzia reguł, gra sieciowa i (docelowo) bot-przeciwnik**
 
-## Status projektu
+*Projekt Pax Magnifica*
 
-🚧 **Faza 1 (fundament danych + mapa + God-Mode) — niemal ukończona.** Działa rdzeń
-stanu (rejestr danych, `HexGrid`, `GameState`, Event Sourcing/Undo), API FastAPI oraz
-frontend-viewer renderujący planszę i panele graczy. Największa otwarta luka: brak UI
-do edycji stanu (na razie przez API). Pełny, aktualny opis architektury i stanu prac:
-**[docs/ARCHITEKTURA_PO_MIGRACJI.md](docs/ARCHITEKTURA_PO_MIGRACJI.md)** oraz historia
-w [docs/PROGRESS.md](docs/PROGRESS.md).
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%2B%20WebSocket-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-Vite-3178C6?logo=typescript&logoColor=white)
+![Testy](https://img.shields.io/badge/testy-2000%2B%20pytest%20%2B%20E2E-brightgreen)
+![mypy](https://img.shields.io/badge/mypy-strict-blue)
+![Status](https://img.shields.io/badge/status-silnik%20w%20toku-orange)
 
-> Frontend: po migracji używamy viewera planszy opartego na AsyncTI4 `ti4_web`
-> (React 19 + Vite + TS, własny design system) zamiast własnego SVG. Backend tłumaczy
-> `GameState` na dokument `web-data`, z którego front renderuje całą planszę.
+[Funkcje](#-co-już-działa) · [Status](#-status) · [Architektura](#-architektura) · [Uruchomienie](#-uruchomienie) · [Gra sieciowa](#-gra-sieciowa) · [Dokumentacja](#-dokumentacja)
 
-## Stos technologiczny
+</div>
 
-| Warstwa | Technologie |
-| --- | --- |
-| Język / środowisko | Python 3.12+, `uv`, `mypy --strict` |
-| Dane / walidacja | Pydantic v2 |
-| Obliczenia / symulacje | NumPy + Numba (`@njit`) |
-| Graf mapy | rustworkx / NetworkX |
-| Solvery | Branch & Bound (NumPy), opcjonalnie OR-Tools (CP-SAT) |
-| API | FastAPI + Uvicorn (REST + WebSocket) |
-| Trwałość | SQLite 3 (Snapshot Stack / Memento) |
-| Frontend | React 19 + TypeScript + Vite, Zustand, react-query (viewer `ti4_web`, własny design system) |
-| QA | pytest + pytest-cov + hypothesis, Ruff |
+---
 
-## Architektura
+Custodian Engine to lokalna aplikacja do rozgrywania pełnych partii **Twilight Imperium: 4th Edition**
+(z Prophecy of Kings, Codexami I–IV i Thunder's Edge). Silnik **pilnuje reguł** — nielegalny ruch zostaje
+odrzucony, a przebieg rundy prowadzą **okna czasowe**, w których każdy gracz po kolei może zareagować.
+Grać można przez sieć (do 6 graczy, ludzie + boty); gra solo z botami to szczególny przypadek.
 
-System jest warstwowy, z wyraźnym rozdziałem między walidowanym stanem gry (`GameState`, Pydantic) a numerycznym stanem symulacyjnym (`FastState`, NumPy).
+Cel końcowy: **autonomiczny bot**, który sam prowadzi frakcję — wybiera strategie, rusza flotami, walczy,
+głosuje na agendzie i punktuje cele. Silnik reguł jest jego „prawami fizyki”.
+
+## ✨ Co już działa
+
+| Obszar | Zakres |
+|---|---|
+| 🗺️ **Plansza** | Mapa heksowa z map stringa AsyncTI4, tunele czasoprzestrzenne, anomalie, The Fracture. God-Mode z Undo/Redo. |
+| 🔁 **Pełna runda** | Faza strategii → akcji → statusu → agendy; ścisła kolejność inicjatywy, pas, limit rund i ekran zwycięstwa z epilogiem. |
+| 🃏 **Karty strategii** | Wszystkie 8 kart (primary + secondary), z wyborami na mapie i oknem secondary dla wszystkich graczy. |
+| ⚔️ **Akcja taktyczna** | Aktywacja, ruch (zasięg, mgławice, Ion Storm), Space Cannon, walka kosmiczna i naziemna, AFB, Sustain Damage, odwrót, bombardowanie, inwazja, produkcja. |
+| 🎲 **Kości** | Każdy rzut to fizyczny d10 na scenie 3D; wynik liczy silnik z seedowalnego RNG. |
+| 🎴 **Karty akcji** | **143/143** z efektem — zagrywane przeciąganiem z ręki, karty reakcji w oknach czasowych, Sabotage (hold-play) i HOLD (cofnięcie do kroku historii). |
+| 💎 **Relikty** | 23/23 aktywnych z efektem (akcje, pasywy, walka). |
+| 🔬 **Technologie** | Wszystkie 33 technologie ogólne jako hooki; wskaźniki „ta technologia działa tutaj” w UI. |
+| 🎯 **Cele** | 80/80 celów sprawdzanych automatycznie (publiczne i tajne, także te zdobywane zdarzeniami). |
+| 🏛️ **Agenda** | Rada Galaktyczna: ujawnienie, głosowanie, remis, prawa w grze. |
+| 🌌 **Eksploracja i więcej** | Karty eksploracji i frontier, fragmenty reliktów, transakcje i żetony długu, ekspedycje Thunder's Edge, żeton Custodians. |
+| 🌐 **Gra sieciowa** | Lobby z graficznym kreatorem, tokeny miejsc, widok każdego gracza tylko jego kart, zapis partii w pliku, zegar szachowy. |
+
+## 📊 Status
+
+| Etap | Zakres | Stan |
+|---|---|---|
+| 1 | Cyfrowa plansza + God-Mode | ✅ gotowe |
+| 2 | Silnik rozgrywki egzekwujący reguły | 🔧 w toku — szczegóły niżej |
+| 3 | Bot AI (strategiczny → operacyjny → taktyczny) | ⬜ po silniku |
+
+Pokrycie komponentów hookami (z generowanego raportu [`docs/POKRYCIE_HOOKOW.md`](docs/POKRYCIE_HOOKOW.md)):
+
+| Komponenty | Z efektem | |
+|---|---:|---|
+| Karty akcji | 143 / 143 | ✅ |
+| Relikty | 23 / 24 | ✅ |
+| Technologie | 36 / 102 | 🔧 wszystkie ogólne; frakcyjne w toku |
+| Agendy | 0 / 123 | ⬜ głosowanie działa, efekty praw w kolejce |
+| Liderzy, zdolności frakcji, notki, przełomy | 0 | ⬜ etap frakcji |
+
+**Następne kroki:** efekty agend → zdolności frakcji, liderzy i promissory notes → reszta okien czasowych → bot.
+Bieżący dziennik prac: [`docs/PROGRESS.md`](docs/PROGRESS.md).
+
+## 🏗️ Architektura
 
 ```mermaid
 flowchart TD
-    UI["Warstwa prezentacji (Web UI)<br/>HexGrid SVG + Wizards + God-Mode"]
-    Core["Warstwa zarzadzania stanem<br/>FastAPI + GameState + Timing FSM + SQLite"]
-    Engine["Silnik decyzyjny AI"]
-    S["1. Strategiczna<br/>cele, alokacja planet"]
-    O["2. Operacyjna<br/>mapy wplywow, makro-akcje"]
-    T["3. Taktyczna<br/>symulacja walki, produkcja, logistyka"]
+    UI["Frontend · React 19 + Vite + TS<br/>plansza, ręka kart, okna walki, lobby"]
+    API["api/ · FastAPI<br/>cienkie routery + WebSocket push<br/>tożsamość graczy (actor_id), projekcja widoczności"]
+    CORE["core/ · czyste funkcje state → state<br/>reguły, okna czasowe, hooki, punkty centralne"]
+    DATA["assets/ · dane AsyncTI4 (JSON)<br/>StaticDataRegistry + Katalog komponentów"]
+    AI["engine/ · przyszły bot AI"]
 
-    UI <-->|REST / WebSocket| Core
-    Core -->|FastState .clone < 0.5 ms| Engine
-    Engine --> S --> O --> T
+    UI <-->|REST / WebSocket| API
+    API --> CORE
+    AI -.->|te same reguły| CORE
+    CORE --> DATA
 ```
 
-Szczegóły: [docs/specyfikacja_techniczna_i_architektura_systemu.md](docs/specyfikacja_techniczna_i_architektura_systemu.md)
+Zasady, które trzymają projekt w ryzach:
 
-## Roadmapa
+- **Silnik = sędzia.** Zwykła akcja waliduje legalność (`ValueError` → HTTP 422). God-Mode celowo omija walidację jako wentyl korekty.
+- **Zero reguł z pamięci.** Statystyki i teksty kart tylko z assetów; każda mechanika ma wpis ze źródłem w [`docs/rules/`](docs/RULES.md) zanim trafi do kodu.
+- **Asymetria = hooki.** Frakcje, technologie i karty modyfikują reguły przez rejestr hooków, nie przez `if faction == ...`.
+- **Punkty centralne.** Płatność, trade goods, żetony, kontrola planet, jednostki, VP — każde ma jedną funkcję w `core/`, pilnowaną testem.
+- **Zależności tylko w dół:** `api/` → `core/` → dane. Przyszłe `engine/` woła te same funkcje co UI.
 
-- [ ] **M1 — Rdzeń stanu, topologia i assety:** `StaticDataRegistry`, modele Pydantic, `HexGrid` (współrzędne kubiczne, tunele, anomalie), `GameState` → `FastState`, `EventStore` (Undo/Redo/God-Mode).
-- [ ] **M2 — Warstwa taktyczna + podstawowy UI:** wektoryzowany symulator walk (NumPy/Numba), solver produkcji, logistyka floty, endpointy FastAPI, mapa SVG.
-- [ ] **M3 — Warstwa strategiczna:** ewaluator celów, solver alokacji planet, wybór kart strategii.
-- [ ] **M4 — Warstwa operacyjna:** mapy wpływów i zagrożeń, generator makro-akcji, planista kolejności (1-step lookahead + urgency).
-- [ ] **M5 — Dyplomacja i kontrola lidera:** ocena zagrożeń, wycena ofert handlowych, głosowanie w fazie agendy.
-- [ ] **M6 — Asymetria frakcyjna + integracja głosowa:** reguły frakcyjne w `rules_hooks`, parser komend głosowych (voice-to-state).
+Więcej: [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md).
 
-### Plany: warianty fanowskie
+## 🚀 Uruchomienie
 
-- **Black Spectrum Firmament Plots** — fanowska zmiana, która ma ZASTĘPOWAĆ standardowe
-  Firmament Plots. W Ustawieniach (Game variants) jest przełącznik
-  (`settings.blackSpectrumFirmamentPlots`), który podmienia karty Plot w wyborze frakcji
-  (Firmament/Obsidian, `factionComponents.ts`) i w szczegółach plotów w grze (`Plot.tsx`).
-  To tylko **wyświetlanie** — **mechanika plotów nie jest jeszcze zakodowana w silniku**
-  (do zrobienia później). Dane kart: `assets/data/genericcards/black_spectrum_firmament_plots.json`.
-  Wzorzec wdrożenia: jak talia agend Absol (ustawienie klienta → pole w `/game/new` →
-  wybór talii w `DecksState`).
+### Wymagania
 
-## Struktura repozytorium
+| Narzędzie | Do czego |
+|---|---|
+| [Python ≥ 3.12](https://www.python.org/downloads/) + [uv](https://docs.astral.sh/uv/getting-started/installation/) | backend |
+| [Node.js ≥ 20](https://nodejs.org/) | frontend |
 
-```
-custodian-engine/
-├── README.md
-├── .gitignore
-├── docs/
-│   └── specyfikacja_techniczna_i_architektura_systemu.md
-├── src/
-│   ├── core/            # stan, rejestr danych, topologia, event store
-│   └── engine/
-│       ├── strategic/   # cele, alokacja makroekonomiczna
-│       ├── operational/ # mapy wplywow, makro-akcje, planista
-│       ├── tactical/    # walka, produkcja, logistyka
-│       └── diplomacy/   # ocena zagrozen, handel, agenda
-├── tests/
-└── assets/              # lokalne (poza repo) - patrz nizej
-```
-
-## Dane i assety
-
-Dane gry (statystyki jednostek, planety, kafelki, technologie, cele) pochodzą z projektu społecznościowego **[AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot)** i leżą lokalnie w katalogu `assets/`. Zgodnie ze specyfikacją (sekcja 5.1):
-
-- **Zakaz hardkodowania** — żadne statystyki ani parametry nie są zaszyte w kodzie; wszystko ładowane z zewnętrznych plików JSON, a ścieżki zdefiniowane w `src/config.py`.
-- **Źródło prawdy o źródłach** — plik `assets/data/sources/sources.json` opisuje każde źródło danych polem `canal` (`official` / `community`), co pozwala deterministycznie filtrować zawartość oficjalną od fanowskiej (homebrew).
-- **Zakres na start** — silnik używa wyłącznie **oficjalnych** źródeł: `base`, `pok`, `codex1`–`codex4`, `keleres`. Dodatki fanowskie (Discordant Stars, Milty Mod, Sigma, Absol itd.) pozostają w assetach, ale nie są ładowane.
-- **Grafiki poza repo** — obrazy i fonty (setki MB) są wykluczone z repozytorium przez `.gitignore`. Repo wersjonuje docelowo tylko dane JSON potrzebne silnikowi.
-
-## Instalacja i uruchomienie (od zera, na nowym komputerze)
-
-Aplikacja ma dwie części: **backend** (Python/FastAPI, port 8000) i **frontend**
-(React/Vite, port 5173). Poniżej pełna procedura — jeśli coś nie działało na innym
-komputerze, to niemal na pewno brak **assetów** albo **zależności** (patrz niżej).
-
-### Wymagania wstępne
-
-Zainstaluj (jednorazowo):
-
-| Narzędzie | Do czego | Instalacja |
-| --- | --- | --- |
-| **Python ≥ 3.12** | backend | [python.org](https://www.python.org/downloads/) |
-| **uv** | menedżer zależności Pythona | [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) (np. `pip install uv`) |
-| **Node.js ≥ 20** | frontend (Vite) | [nodejs.org](https://nodejs.org/) (zawiera `npm`) |
-| **Git** | klonowanie repo | [git-scm.com](https://git-scm.com/) |
-
-### Krok 1 — sklonuj repozytorium
+### Instalacja
 
 ```bash
-git clone <adres-repo> "Pax Magnifica"
+git clone https://github.com/karolm43/Pax-Magnifica.git "Pax Magnifica"
 cd "Pax Magnifica"
-```
-
-### Krok 2 — assety (NAJCZĘSTSZA przyczyna „nie działa") ⚠️
-
-Backend czyta dane gry (statystyki jednostek, planety, kafelki, karty strategii, alias
-pozycji) z katalogu **`assets/`** w korzeniu repo. Te ścieżki są zdefiniowane w
-`src/config.py` i **nie można ich hardkodować gdzie indziej**.
-
-> **Dlaczego to częsty błąd:** domyślnie `.gitignore` wyklucza `assets/*` z repozytorium,
-> więc świeży `git clone` NIE zawiera danych i backend się nie uruchomi (albo rejestr
-> załaduje 0 jednostek). Grafiki/fonty i tak nie są w repo — frontend bierze je z CDN
-> AsyncTI4 (`images.asyncti4.com`).
-
-Masz dwie drogi. **Zalecana: wersjonowanie danych JSON** (patrz sekcja „Wersjonowanie
-danych w repo" niżej) — wtedy `git clone` wystarcza i ten krok odpada. Jeśli trzymasz
-assety poza repo, skopiuj je ręcznie tak, aby powstała dokładnie taka struktura:
-
-```
-Pax Magnifica/
-└── assets/
-    ├── enabled_sources.json        # jest w repo (konfiguracja aktywnych źródeł)
-    ├── data/                        # units, planets, factions, technologies,
-    │                                # strategy_cards, strategy_card_sets, sources
-    ├── systems/                     # definicje systemów (kafelków)
-    ├── planets/                     # definicje planet
-    └── alias/                       # position_alias.properties (pozycje mapy)
-```
-
-Źródło danych: projekt [AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot)
-(katalog `src/main/resources/data` oraz `.../resources/positions`). Kopiujemy TYLKO
-pliki JSON/properties potrzebne silnikowi — grafik i fontów NIE trzeba (lecą z CDN).
-
-**Jak sprawdzić, że assety są na miejscu** (powinno pokazać setki jednostek/planet, nie zera):
-
-```bash
-uv run python -m src.core.registry
-```
-
-### Krok 3 — zależności backendu
-
-```bash
 uv sync --extra dev
+cd frontend && npm install && cd ..
 ```
 
-(`uv` utworzy `.venv/` i zainstaluje wszystko z `pyproject.toml`.)
-
-### Krok 4 — zależności frontendu
+Dane gry (JSON, ~5 MB) są w repo, więc klon jest od razu grywalny. **Grafiki i fonty są poza repo** — bez nich
+w miejscu obrazków pojawią się zaślepki. Jeśli masz lokalną kopię grafik AsyncTI4, skopiuj brakujące pliki
+według manifestu:
 
 ```bash
-cd frontend
-npm install
-cd ..
+uv run python -m src.audit sync_assets --from <katalog-z-grafikami>
 ```
 
-### Krok 5 — uruchom
+### Start
 
-**Windows (najprościej):** dwuklik w `start.cmd` albo w katalogu repo:
+**Windows:** dwuklik w `start.cmd` (albo `./start.ps1`) — wstaje backend (:8000), frontend (:5173) i otwiera się przeglądarka.
 
-```powershell
-./start.ps1
-```
-
-Skrypt zwalnia port 8000, startuje backend i frontend w osobnych oknach i otwiera
-przeglądarkę na `http://localhost:5173/`.
-
-**Ręcznie (dowolny system), dwa terminale:**
+**Ręcznie, dwa terminale:**
 
 ```bash
-# terminal 1 — backend
-uv run python -m src.api
+uv run python -m src.api          # backend  → http://127.0.0.1:8000
+cd frontend && npm run dev        # frontend → http://localhost:5173
+```
 
-# terminal 2 — frontend
+Partia zapisuje się w `saves/` i wznawia po restarcie serwera. `--save PLIK` wybiera inny plik, `--fresh` zaczyna od zera.
+
+<details>
+<summary><b>Typowe problemy</b></summary>
+
+- **Biała strona / „Update Needed”** — backend nie działa albo nie oddał `web-data`; sprawdź jego okno.
+- **Rejestr ładuje 0 jednostek** — brak `assets/data/`; sprawdź: `uv run python -m src.core.registry`.
+- **Brak obrazków** — grafiki są poza repo, patrz `sync_assets` wyżej.
+- **Spójność danych** — `uv run python -m src.audit` (liczby wpisów, referencje, brakujące pliki).
+
+</details>
+
+## 🌐 Gra sieciowa
+
+1. Host uruchamia grę normalnie (`start.cmd`) i wybiera w menu **Play** → otwiera się lobby.
+2. Pozostali gracze (LAN albo ZeroTier) wchodzą z linku z lobby i wybierają frakcję w kreatorze na żywo.
+3. Każdy widzi tylko swoje karty; akcje cudzego gracza backend odrzuca (403), a pasek pokazuje, na kogo czekamy.
+
+Ręcznie: `uv run python -m src.api --network` + `npm run dev -- --host`. Model tożsamości i widoczności: [`docs/rules/R44.md`](docs/rules/R44.md).
+
+## 🧪 Jakość
+
+```bash
+uv run pytest -q -n auto          # ~2000 testów, równolegle
+uv run ruff check src tests
+uv run mypy src tests             # --strict
+
 cd frontend
-npm run dev
+npx tsc --noEmit -p tsconfig.app.json
+npm run lint && npm run build && npx vitest --run
+npm run e2e                        # Playwright: gra solo + gra sieciowa host + gość
 ```
 
-Potem otwórz `http://localhost:5173/`. Frontend woła backend przez proxy Vite
-(`/bot/...` → `http://127.0.0.1:8000`), więc oba muszą działać równocześnie.
+E2E stawia własny backend (:8100) i front (:5273), więc nie dotyka trwającej partii.
 
-### Wersjonowanie danych w repo (zalecane — klon „działa od ręki")
+## 📚 Dokumentacja
 
-Aby `git clone` wystarczał do uruchomienia (bez ręcznego kopiowania assetów), włącz
-wersjonowanie samych **danych JSON** (grafiki/fonty zostają poza repo). W `.gitignore`
-zamień blok `assets/*` na wyjątki dla katalogów danych:
+| Dokument | Po co |
+|---|---|
+| [`docs/README.md`](docs/README.md) | Indeks dokumentacji i mapa kodu — zacznij tutaj |
+| [`docs/PROGRESS.md`](docs/PROGRESS.md) | Stan prac i ostatnie bloki |
+| [`docs/PLAN_PELNA_ROZGRYWKA.md`](docs/PLAN_PELNA_ROZGRYWKA.md) | Plan silnika, frakcje i ich gimmicki |
+| [`docs/RULES.md`](docs/RULES.md) | Indeks reguł mechanicznych ze źródłami (`docs/rules/R<NN>.md`) |
+| [`docs/rules_tirules/`](docs/rules_tirules/INDEX.md) | Offline zrzut reguł (LRR 2.0, Codexy, Thunder's Edge) |
+| [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md) | Warstwy, hooki, przepis „karta od A do Z” |
 
-```gitignore
-# Dane gry wchodzą do repo; grafiki/fonty zostają ignorowane.
-assets/*
-!assets/enabled_sources.json
-!assets/data/
-!assets/systems/
-!assets/planets/
-!assets/alias/
-# Grafiki i fonty NIE wchodzą (setki MB) — frontend bierze je z CDN AsyncTI4:
-assets/**/*.png
-assets/**/*.webp
-assets/**/*.jpg
-assets/**/*.jpeg
-assets/**/*.gif
-assets/**/*.ttf
-assets/**/*.otf
-assets/**/*.woff
-assets/**/*.woff2
-```
+## Stos technologiczny
 
-Następnie `git add assets/` i commit — od tej pory każdy klon ma komplet danych.
-Dane JSON to kilka–kilkanaście MB, nie setki.
+**Backend:** Python 3.12, FastAPI + Uvicorn, Pydantic v2, NumPy, NetworkX, SQLite (zapis partii i historia Undo) ·
+**Frontend:** React 19, TypeScript, Vite, Zustand, react-query, własny design system ·
+**QA:** pytest (+ hypothesis, xdist, testmon), ruff, mypy --strict, Vitest, Playwright.
 
-### Typowe problemy
+## Podziękowania i licencja
 
-- **Biała strona / „Update Needed":** backend nie działa albo nie oddał `web-data`.
-  Sprawdź okno backendu i czy `uv run python -m src.core.registry` pokazuje dane.
-- **Rejestr ładuje 0 jednostek:** brak `assets/data/...` (patrz Krok 2).
-- **Frontend nie łączy się z backendem:** backend musi stać na `:8000` zanim otworzysz stronę.
-- **`uv`/`npm` nieznane:** nie zainstalowane lub nie w PATH (patrz Wymagania wstępne).
+Dane gry pochodzą z projektu społecznościowego **[AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot)**,
+a frontend planszy wyrósł z jego viewera `ti4_web`. Reguły: [tirules2.com](https://tirules2.com) i Living Rules Reference.
 
-## Licencja
-
-Do ustalenia. Dane i grafiki z AsyncTI4 podlegają warunkom tamtego projektu i licencji Fantasy Flight Games / Twilight Imperium.
+Licencja kodu: do ustalenia. *Twilight Imperium* jest znakiem towarowym Fantasy Flight Games; to nieoficjalny projekt
+fanowski. Dane i grafiki AsyncTI4 podlegają warunkom tamtego projektu.

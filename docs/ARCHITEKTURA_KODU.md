@@ -167,6 +167,12 @@ Endpointy pogrupowane tematycznie w `api/routers/`, logika God-Mode w `core/boar
 | `api/routers/components.py` | — | **tylko-odczyt** Katalog_Komponentów: `/components`, `/components/{kat}`, `/components/{kat}/{id}` (komponent + `TimingSpec` + status efektu + tematy reguł), `/components/factions/{id}/bundle`, `/timing-specs?trigger=&phase=`. Bez `broadcast`; 404 z kategorią i id. |
 | `api/routers/history.py` | ~76 | patch God-Mode, PUT state, historia, undo/redo. |
 
+> **Stan 2026-11-11:** tabela wyżej to stan z refaktoru; dziś routerów jest 32 — po jednym na temat:
+> `tactical`, `battle`, `invasion`, `space_cannon`, `production`, `capacity`, `fleet_pool`, `status`, `agenda`,
+> `action_cards`, `hold`, `window`, `offers`, `relics`, `exploration`, `frontier_cards`, `technology`, `decks`,
+> `transactions`, `thunders_edge`, `epilogue`, `clock`, `network`, `setup`, `rules` (+ wymienione wyżej).
+> Wzorzec routera bez zmian; dochodzi `actor: ActorId` albo `dependencies=[HostOnly]` (RULES.md 44.1a).
+
 **Wzorzec routera (trzymaj się go przy E3):**
 ```python
 @router.post("/sciezka", response_model=...)

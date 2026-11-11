@@ -3,6 +3,10 @@
 > 🟡 **REFERENCYJNY (mapa kodu).** Opisuje backend/frontend i kontrakt `web-data` — gdzie
 > co leży i jak to działa. Aktualny stan prac: [`PROGRESS.md`](PROGRESS.md); plan:
 > [`PLAN_PELNA_ROZGRYWKA.md`](PLAN_PELNA_ROZGRYWKA.md). Przy wątpliwości — kod wygrywa.
+>
+> ⚠️ **Stan opisu: 2026-11-04.** Od tego czasu doszły m.in. God-Mode UI, karty strategii, karty akcji,
+> relikty, gra sieciowa (lobby, tokeny, zapis w `saves/`) i ~25 nowych routerów. Aktualna mapa
+> plików: [`README.md`](README.md) §3 i [`ARCHITEKTURA_KODU.md`](ARCHITEKTURA_KODU.md) §4.
 
 Ten dokument opisuje stan projektu po przejściu z własnego frontendu SVG na dojrzały
 viewer AsyncTI4 (`ti4_web`). Jest mapą orientacyjną: gdzie co leży i jak to działa.
@@ -61,12 +65,12 @@ więc żeby zobaczyć prawdziwą planszę, trzeba wczytać mapę i zrobić setup
 
 QA backendu po każdej zmianie:
 ```powershell
-uv run pytest -q ; uv run ruff check src tests ; uv run mypy src tests
+uv run pytest -q -n auto ; uv run ruff check src tests ; uv run mypy src tests
 ```
 QA frontendu:
 ```powershell
 # w katalogu frontend/
-npm run type-check ; npm run lint ; npm run build
+npx tsc --noEmit -p tsconfig.app.json ; npm run lint ; npm run build ; npx vitest --run
 ```
 
 ---

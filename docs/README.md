@@ -41,6 +41,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`POKRYCIE_HOOKOW.md`** | **GENEROWANY raport pokrycia hooków** (zarejestrowane hooki, % komponentów z hookiem, obszary reguł do domknięcia). Nie edytuj; odśwież: `uv run python -m src.audit.hook_coverage --write`. | 🟢 generowany |
 | **`OKNA_CZASOWE.md`** | **GENEROWANY katalog okien czasowych** wszystkich komponentów (zdarzenia, agendy, frakcje, efekty trwałe, przypadki szczególne). Nie edytuj; odśwież: `uv run python -m src.audit.timing_catalog --write`. Kontrakt: RULES.md 54. | 🟢 generowany |
 | **`UI_WYBOR_FRAKCJI.md`** | **Scena wyboru frakcji + krok „Gracze" kreatora**: układ, pliki, format treści (portrety/cytaty/lore), animacje, Obsidian (pismo + groza), gotchas. Czytaj przed zmianą UI setupu. | 🟢 żywy |
+| **`PROJEKT_KARTY_STRATEGII.md`** | Projekt kart strategii 1–8 (zestaw `te`, errata, primary/secondary) — zrealizowany w `core/strategy_cards/`. | 🟡 referencyjny |
 | **`ARCHITEKTURA_PO_MIGRACJI.md`** | Mapa kodu: backend/frontend, kontrakt `web-data`, endpointy. | 🟡 referencyjny |
 | **`specyfikacja_techniczna_i_architektura_systemu.md`** | Wizja docelowa + architektura warstw AI. | 🟡 referencyjny |
 | **`PORT_ASYNCTI4_PLAN.md`** | Werdykt: jak przenosimy funkcje AsyncTI4 (warstwa A/B). | 🟤 archiwalny¹ |
@@ -87,6 +88,13 @@ Pax Magnifica/
 │   │   ├── rules_hooks.py        #     rejestr hooków, efektów kart i opisów wyborów (RULES.md 43)
 │   │   ├── hooks/                #     wyjątki tematycznie: frakcje, technologie, efekty kart akcji + formularze
 │   │   ├── action_cards.py       #     zagrywanie kart akcji: formularz, zagrywalność, efekt (RULES.md 53)
+│   │   ├── reaction_cards.py, card_hold.py, hold_rewind.py  # reakcje w oknach, Sabotage, HOLD (53.5–53.7)
+│   │   ├── strategy_cards/       #     karty strategii 1–8: moduł per karta (CardSpec)
+│   │   ├── tactical.py, movement.py, combat.py, battle.py, invasion.py, production.py  # akcja taktyczna
+│   │   ├── relics.py, relic_*.py, exploration*.py, frontier_cards.py, objectives*.py  # relikty, eksploracja, cele
+│   │   ├── game_events.py, triggers.py, active_effects.py  # zdarzenia i okna czasowe (RULES.md 54)
+│   │   ├── actor.py              #     kto może wykonać akcję (actor_id, RULES.md 44.1a)
+│   │   ├── game_clock.py         #     zegar szachowy (RULES.md 58)
 │   │   └── agenda_phase.py       #     faza agendy: głosowanie, remis, prawa (RULES.md 51)
 │   ├── audit/                    #   AUDYTOR_DANYCH (CLI: `uv run python -m src.audit`)
 │   │   ├── locality.py           #     Strażnik_Lokalności: ścieżki referencyjne, odczyty spoza repo, URL-e
@@ -101,6 +109,8 @@ Pax Magnifica/
 │       │   └── components.py     #       /components, /components/{kat}/{id}, /timing-specs, bundle frakcji
 │       ├── web_data.py           #     build_web_data: GameState -> dokument dla frontu (KONTRAKT UI)
 │       ├── schemas.py            #     DTO żądań/odpowiedzi (Pydantic)
+│       ├── seats.py, actor.py    #     gra sieciowa: lobby, tokeny miejsc, tożsamość (RULES.md 44)
+│       ├── saves.py              #     zapis partii w pliku (saves/*.db), wznowienie po restarcie
 │       └── state_service.py      #     jedyne miejsce mutujące stan (commit + broadcast)
 ├── frontend/                     # FRONTEND (React/Vite) — viewer planszy (bazuje na ti4_web)
 │   └── src/
@@ -110,6 +120,8 @@ Pax Magnifica/
 │       ├── shared/assets/        #   Resolver_Zasobów (assetUrl/sheetUrl) + assetManifest.json (lokalne URL)
 │       ├── state/                #   store (Zustand) + kontekst gry
 │       └── ds/                   #   design system (komponenty bazowe)
+│   └── e2e/                      #   testy E2E Playwright (*.e2e.ts)
+├── scripts/                      # narzędzia (e2e_server.py, kiro_memories.py, ...)
 ├── tests/                        # TESTY backendu (pytest) — jeden plik per moduł core/api/audit
 ├── audit/                        # KONFIG AUDYTORA (w repo — D1/D12): manifest grafik, baseline liczb,
 │   │                             #   wyjątki luk, allowlist URL, nieużywane katalogi assets/
@@ -134,7 +146,8 @@ Pax Magnifica/
   - backend: `uv run pytest -q -n auto` ; `uv run ruff check src tests` ; `uv run mypy src tests`
   - w trakcie pracy: `uv run pytest -q --testmon` (tylko testy dotknięte zmianą; baza `.testmondata`,
     gitignore). `-n auto` = równolegle na wszystkich rdzeniach (pełny zestaw ~20 s zamiast ~70 s).
-  - frontend: `npm run type-check` ; `npm run lint` ; `npm run build` (w `frontend/`)
+  - frontend (w `frontend/`): `npx tsc --noEmit -p tsconfig.app.json` (UWAGA: `npm run type-check` NIE
+    sprawdza `src/`) ; `npm run lint` ; `npm run build` ; `npx vitest --run`
   - E2E (Playwright, w `frontend/`): `npm run e2e` (headless) / `npm run e2e:ui` (podgląd kroków).
     Playwright sam stawia osobny backend :8100 (`scripts/e2e_server.py`, zapis w pamięci) i front :5273,
     więc gra na :8000/:5173 i `saves/` są nietknięte. Scenariusze: `frontend/e2e/*.e2e.ts`

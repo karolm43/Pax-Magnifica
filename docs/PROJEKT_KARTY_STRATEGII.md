@@ -1,7 +1,7 @@
 # Projekt: zagranie kart strategii (primary + secondary, sieć-ready)
 
-Status: PROJEKT do akceptacji (nie zaimplementowany poza walidacją „jedna akcja na turę",
-patrz RULES.md 30.3). Źródła reguł: `docs/rules_tirules/R_strategic_action.md`,
+Status: ✅ ZREALIZOWANY (2026-11) — wszystkie 8 kart w `core/strategy_cards/` (moduł per karta,
+widoki UI). Dokument zostaje jako zapis decyzji projektowych; przy rozbieżności wygrywa kod. Źródła reguł: `docs/rules_tirules/R_strategic_action.md`,
 `R_strategy_card.md`, `R_leadership|diplomacy|politics|construction|trade|warfare|technology_sc|imperial.md`,
 `R_action_phase.md`. Teksty kart: `assets/data/strategy_cards/pok.json` (+ `te.json`).
 

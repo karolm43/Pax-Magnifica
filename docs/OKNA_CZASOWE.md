@@ -45,7 +45,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `unit.sustain_damage` | Jednostka użyła Sustain Damage. | 7 | after×5, when×2 | action_cards×5, leaders×1, technologies×1 | `battle.assign_combat_hits` |
 | `unit.destroyed` | Jednostka zniszczona. | 10 | when×7, after×3 | leaders×5, action_cards×2, technologies×2, abilities×1 | `unit_ops.remove_units` |
 | `combat.won` | Gracz wygrał walkę. | 6 | after×5, when×1 | technologies×2, action_cards×1, abilities×1, leaders×1, breakthroughs×1 | `battle._after_losses` |
-| `combat.retreat` | Odwrót ogłoszony. | 2 | after×1, when×1 | action_cards×1, leaders×1 | — |
+| `combat.retreat` | Odwrót ogłoszony. | 2 | after×1, when×1 | action_cards×1, leaders×1 | `battle.announce_retreat` |
 | `invasion` | Początek inwazji. | 4 | start×3, during×1 | action_cards×3, technologies×1 | `invasion` |
 | `unit.ability_used` | Jednostka użyła zdolności (AFB, bombardment, space cannon). | 8 | when×5, after×3 | technologies×3, leaders×2, action_cards×1, promissory_notes×1, abilities×1 | `battle / invasion / space_cannon` |
 | `faction.ability_used` | Zdolność frakcji użyta (np. Pillage przeciw graczowi). | 1 | after×1 | leaders×1 | — |
@@ -59,7 +59,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `production.units_produced` | Jednostki wyprodukowane. | 12 | when×11, after×1 | leaders×6, breakthroughs×3, technologies×2, abilities×1 | `production.produce` |
 | `planet.control_gained` | Gracz zdobył kontrolę nad planetą. | 8 | when×4, after×4 | abilities×3, action_cards×2, leaders×1, technologies×1, breakthroughs×1 | `control.set_planet_control` |
 | `planet.control_lost` | Gracz stracił kontrolę nad planetą. | 0 | — | — | `control.set_planet_control` |
-| `planet.explored` | Planeta zbadana. | 3 | after×2, when×1 | abilities×2, technologies×1 | — |
+| `planet.explored` | Planeta zbadana (karta eksploracji rozstrzygnięta; frontier nie emituje). | 3 | after×2, when×1 | abilities×2, technologies×1 | `exploration.resolve` |
 | `planet.exhausted` | Planety wyczerpane (płatność). | 1 | when×1 | leaders×1 | — |
 | `economy.trade_goods_gained` | Gracz zdobył trade goods. | 2 | after×1, when×1 | abilities×1, leaders×1 | `economy.gain_trade_goods` |
 | `economy.resources_spent` | Gracz wydał zasoby/wpływy. | 3 | when×3 | leaders×2, technologies×1 | — |
@@ -73,9 +73,9 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `technology.shared` | Technologia udostępniona innemu graczowi. | 0 | — | — | — |
 | `cards.action_played` | Zagranie karty akcji. | 4 | when×4 | action_cards×4 | `action_cards.play_action_card` |
 | `cards.action_drawn` | Dobranie kart akcji. | 1 | when×1 | abilities×1 | `card_draw.draw_action_card` |
-| `cards.action_discarded` | Odrzucenie karty akcji. | 1 | after×1 | action_cards×1 | — |
+| `cards.action_discarded` | Odrzucenie karty akcji. | 1 | after×1 | action_cards×1 | `card_draw._record_discards` |
 | `component.gained` | Gracz zdobył komponent (relikt, notka, technologia). | 11 | when×10, after×1 | relics×4, promissory_notes×3, breakthroughs×3, technologies×1 | `relics / breakthrough / promissory_notes` |
-| `objective.revealed` | Cel publiczny ujawniony. | 1 | when×1 | relics×1 | — |
+| `objective.revealed` | Cel publiczny ujawniony. | 1 | when×1 | relics×1 | `objectives.reveal_next_public` |
 | `objective.scored` | Cel zdobyty. | 2 | when×2 | abilities×1, breakthroughs×1 | — |
 | `objective.secret_discarded` | Tajny cel odrzucony. | 0 | — | — | — |
 | `agenda.revealed` | Agenda ujawniona. | 28 | after×18, when×10 | action_cards×19, promissory_notes×6, abilities×2, leaders×1 | `agenda_phase.reveal_agenda` |
@@ -85,9 +85,9 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.repeal_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **66**, emitowanych przez silnik: **41**. Potrzebne komponentom, a jeszcze nie emitowane: **20**.
+Zdarzeń zdefiniowanych: **66**, emitowanych przez silnik: **45**. Potrzebne komponentom, a jeszcze nie emitowane: **16**.
 
-Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `cards.action_discarded`, `combat.hits_produced`, `combat.retreat`, `combat.step`, `component.exhausted`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.revealed`, `objective.scored`, `planet.exhausted`, `planet.explored`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
+Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `component.exhausted`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 
 ## 3. Rodzaje komponentów wg kategorii
 

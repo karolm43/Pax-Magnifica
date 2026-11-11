@@ -3,9 +3,9 @@
 Plik śledzi stan prac między sesjami. Aktualizowany na koniec każdego bloku.
 Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 
-> **Aktualny etap:** E8 (silnik-SĘDZIA) + fazy C/H: punkty centralne ✅, szkielet hooków ✅, karty akcji w toku.
-> **Cel bieżący:** WSZYSTKIE karty gotowe i zagrywane przeciąganiem z ręki (`PLAN_PELNA_ROZGRYWKA.md`, sekcja
-> „CEL PRODUKTOWY”); stan pokrycia: `POKRYCIE_HOOKOW.md` (generowany). Reguły: `RULES.md` 29, 43, 53.
+> **Aktualny etap:** E8 (silnik-SĘDZIA) + hooki: karty akcji 143/143 ✅, relikty ✅, technologie ogólne ✅, cele ✅,
+> karty strategii ✅, sieć N0–N3 ✅. **Cel bieżący:** efekty agend, potem frakcje (zdolności, liderzy, notki).
+> Stan pokrycia: `POKRYCIE_HOOKOW.md` (generowany). Reguły: `RULES.md` 29, 43, 53.
 
 ## Status etapów silnika
 
@@ -16,16 +16,20 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 | E1–E2 | Fazy + kolejność tur + faza strategii | ✅ ukończone |
 | E3 | Akcja taktyczna (aktywacja, ruch, walka, inwazja, produkcja) | ✅ fundament |
 | E4 | Kontrola komponentów (exhaust/refresh) + menu RMB | ✅ ukończone |
-| E8 | Silnik-SĘDZIA: walidacja reguł + okna czasowe (T1–T7 + faza akcji 31.7/31.8) | 🔧 w toku |
+| S | Karty strategii 1–8: primary + secondary (`core/strategy_cards/`) | ✅ ukończone |
+| E8 | Silnik-SĘDZIA: walidacja reguł + okna czasowe (T1–T7 + faza akcji 31.7/31.8, audyt 31.9) | 🔧 w toku |
 | C | Punkty centralne C1–C9 (strażnik architektury) | ✅ ukończone |
 | H1–H3 | Hooki: rejestr, punkty MODIFY/PERMIT/FORBID, raport pokrycia | ✅ ukończone |
-| H4 | Karty akcji: zagrywanie ACTION + formularz + zagrywalność + UI z przeciąganiem (135/143 kart; reakcje w oknach) | 🔧 w toku — zostało 8 kart z cofaniem kroku (STOP) |
-| E6 | Faza agendy (głosowanie, remis, prawa); efekty agend | ✅ głosowanie / ⬜ efekty |
-| H1b | STOP + pauza + predykaty zagrywalności (karty reakcji) | ⬜ model w RULES.md 43.4 |
-| H5 / N | Frakcje (zdolności) / sieć (`actor_id`, tokeny, push per gracz) | ⬜ |
+| H1b | Reakcje z cofnięciem: hold-play (Sabotage) + hold-rewind (HOLD) | ✅ (RULES.md 53.6, 53.7) |
+| H4 | Karty akcji: ACTION + reakcje w oknach + przeciąganie z ręki | ✅ 143/143 |
+| — | Relikty (23/23 aktywnych), technologie ogólne (33/33), cele (80/80 automatycznie) | ✅ |
+| E6 | Faza agendy (głosowanie, remis, prawa); efekty agend | ✅ głosowanie / ⬜ efekty (0/123) |
+| H5 | Frakcje: zdolności, liderzy, notki, przełomy, technologie frakcyjne | ⬜ (technologie 36/102) |
+| N | Sieć: N0 `actor_id` ✅, N1 tokeny ✅, N2 projekcja ✅, N3 zapis ✅, N5 część 1 ✅; N4 współbieżność ⬜ | 🔧 |
+| QA | pytest-xdist/testmon, E2E Playwright (solo + host/gość) | ✅ |
 
-**Następne kroki (kolejność):** pozostałe karty ACTION (kolejka w `POKRYCIE_HOOKOW.md`) → efekty agend → hooki
-at_start/at_end/during → STOP i karty reakcji → relikty / promissory notes / eksploracja → frakcje → sieć.
+**Następne kroki (kolejność):** efekty agend → hooki at_start/at_end/during (16 zdarzeń jeszcze nieemitowanych,
+`OKNA_CZASOWE.md`) → frakcje (zdolności, liderzy, promissory notes) → N4/N5 część 2 → bot.
 
 > Pełna historia ukończonych bloków ze szczegółami: `PROGRESS_ARCHIWUM.md`.
 
@@ -575,3 +579,12 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - **Mirage:** po zdobyciu planeta trafia do kolejki eksploracji (cultural) w tym samym oknie. **Unveil Flagship:** `ActiveCombat.flagships_destroyed` (zniszczony w walce flagowiec przekreśla cel mimo odtworzenia); `GameState.destroyed_by` – własne straty (Thalnos) nie dają przeciwnikowi Destroy Their Greatest Ship.
 - ⚠ Luka: zdolności legendarne planet (np. Mirage Flight Academy) – brak infrastruktury.
 
+
+## 2026-11-11 (12) — README na GitHubie + przegląd aktualności dokumentacji
+- **`README.md` (strona repo) przepisany:** był ze stanu „Faza 1” (SQLite/Numba, roadmapa M1–M6, assety poza repo, CDN).
+  Teraz: co działa, status i pokrycie hooków, architektura (mermaid), instalacja, gra sieciowa, QA, mapa dokumentów.
+- **Rozjazdy z kodem poprawione:** tabela statusu w `PROGRESS.md` (H4 143/143, H1b, karty strategii, sieć N0–N3),
+  „Status” i plan kart strategii w `PLAN_PELNA_ROZGRYWKA.md` (było „16/143”, „nie rozpoczęty”, „sieć ⬜”),
+  `PROJEKT_KARTY_STRATEGII.md` (zrealizowany), `docs/README.md` (QA frontu przez `tsc -p tsconfig.app.json`,
+  brakujące moduły w mapie), `ARCHITEKTURA_KODU.md` §4 (32 routery), `ARCHITEKTURA_PO_MIGRACJI.md` (baner daty).
+- **Raporty generowane odświeżone:** `OKNA_CZASOWE.md` (emitowane zdarzenia 41 → 45); `POKRYCIE_HOOKOW.md` bez zmian.

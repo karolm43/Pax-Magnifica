@@ -200,6 +200,14 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
   przeciąganiem z ręki); **16 z 143 kart ma efekt**. Cel: komplet (patrz „CEL PRODUKTOWY” niżej).
 - **Frakcje (H5):** hooków frakcyjnych jest 1 (Arborec); reszta ⬜. **Sieć (N) ⬜** (brak `actor_id` w większości endpointów).
 
+**Stan na 2026-11-11 (nadrzędny wobec punktów wyżej):**
+- **Karty strategii:** wszystkie 8 (primary + secondary) ✅ w `core/strategy_cards/` (moduły `CardSpec`).
+- **Karty akcji (H4):** 143/143 z efektem ✅; reakcje w oknach + **H1b ✅** jako hold-play (Sabotage) i
+  hold-rewind (przycisk HOLD) — RULES.md 53.6, 53.7.
+- **Relikty** 23/23 ✅, **technologie ogólne** 33/33 ✅ (frakcyjne w H5), **cele** 80/80 sprawdzane automatycznie ✅.
+- **Agendy:** głosowanie ✅, efekty praw/dyrektyw ⬜ (0/123) — następny blok.
+- **Frakcje (H5):** ⬜. **Sieć (N):** N0–N3 ✅, N5 część 1 ✅, N4 ⬜ (sekcja „Etap sieciowy” niżej).
+
 Szczegółowy dziennik postępu: `PROGRESS.md`. Mapa dokumentacji: `README.md` (w `docs/`).
 
 ## OSTATECZNY PLAN KOLEJNOŚCI (nadrzędny wobec starszych kolejności w tym pliku)
@@ -329,9 +337,12 @@ Opis zamierzonych bloków (historyczny):
   żeby rozproszenie nie wróciło.
 - DoD fazy C: pytest + ruff + mypy zielone, zachowanie niezmienione, strażnik C8 działa.
 
-## Plan kart strategii (S0–S9) — PLAN, jeszcze nie rozpoczęty
+## Plan kart strategii (S0–S9) — ✅ ZREALIZOWANY (2026-11)
 
-Stan: `core/strategic_action.py` ma okno secondary (`STRATEGY_SECONDARY`) i tablice dispatchu
+> Wszystkie 8 kart działa (primary + secondary) w `core/strategy_cards/` (moduł per karta, wspólne `base.py`/`common.py`).
+> Poniższy plan zostaje jako zapis decyzji; opis „Stan” niżej jest historyczny.
+
+Stan (historyczny, sprzed realizacji): `core/strategic_action.py` ma okno secondary (`STRATEGY_SECONDARY`) i tablice dispatchu
 `_PRIMARY_EFFECTS`/`_SECONDARY_EFFECTS` po numerze inicjatywy. Realnie działa tylko primary Leadership
 (+3 żetony); secondary Leadership jest NO-OP (TODO: kupno żetonów za wpływ, wymaga modelu wydawania).
 Treść kart WYŁĄCZNIE z `assets/data/strategy_cards/*.json`; reguły z `docs/rules_tirules/` (`R_<karta>.md`,
@@ -361,7 +372,7 @@ Treść kart WYŁĄCZNIE z `assets/data/strategy_cards/*.json`; reguły z `docs/
 - Wyjątki frakcji dotyczące kart strategii (modyfikujące primary/secondary) NIE wchodzą do S2–S9; dochodzą po H2
   jako hooki (RULES.md 43), żeby nie wplatać `if faction == ...` w reguły kart.
 
-## Etap sieciowy (N) — PLAN, po silniku bazowym (RULES.md 44)
+## Etap sieciowy (N) — W TOKU: N0–N3 ✅, N5 część 1 ✅, N4 ⬜ (RULES.md 44)
 
 Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika w `core/`/`api/`, WebSocket
 (`ConnectionManager`), projekcja widoczności (`core/visibility.py`), okna czasowe z kolejką, `EventStore`.
@@ -381,7 +392,7 @@ Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika
 - DoD: partia 6 graczy (z botami) w sieci; żaden klient nie widzi cudzej ręki; restart serwera nie kasuje gry.
 - Ryzyko największe: wyciek informacji (autoryzacja + projekcja) — testy bezpieczeństwa przed udostępnieniem innym.
 
-## Plan hooków i wyjątków (E7 + E4 + E6) — W TOKU (H1–H3 ✅, H4 częściowo, H1b/H5/H6 ⬜)
+## Plan hooków i wyjątków (E7 + E4 + E6) — W TOKU (H1–H4 ✅, H1b ✅, H5/H6 ⬜)
 
 Zasady architektury: **RULES.md 43** (hooki, kolejność, MANUAL vs IMPLEMENTED). Cel: dodawanie wyjątków
 (frakcje, karty akcji, agendy) bez ruszania reguł bazowych, kodowane po jednym, z wpisem w RULES + testem.
@@ -406,7 +417,9 @@ raport `src/audit/hook_coverage.py`. Wyjątek Arborec przeniesiony do hooka.
 - Test regresji: pusty rejestr ⇒ wszystkie obecne testy bez zmian.
 - DoD: szkielet + testy jednostkowe kolejności/konfliktów; pytest + ruff + mypy zielone.
 
-### H1b — Model reakcji: punkty kontrolne + STOP (RULES.md 43.4)
+### H1b — Model reakcji: punkty kontrolne + STOP (RULES.md 43.4) ✅
+> Zrealizowane jako hold-play (`core/card_hold.py`, Sabotage) + hold-rewind (`core/hold_rewind.py`, przycisk HOLD) —
+> RULES.md 53.6, 53.7. Lista niżej to pierwotny plan.
 - Oznaczanie migawek `EventStore` jako punkt kontrolny / nieodwracalny (rzut, ujawnienie karty, dobór);
   `goto(seq)` już istnieje, dochodzi tylko metadane i blokada cofania poza punktem kontrolnym.
 - Filtr po informacji jawnej (liczba kart akcji itp.) wyznaczający, kogo w ogóle można pytać.
@@ -427,7 +440,7 @@ raport `src/audit/hook_coverage.py`. Wyjątek Arborec przeniesiony do hooka.
 - **Pierwszy przypadek:** przenieść wyjątek Arborec z `production.py` do hooka (zachowanie bez zmian, testy zielone).
 - DoD: żadna reguła bazowa nie zawiera `if faction == ...`; Arborec działa przez rejestr.
 
-### H3 — Raport pokrycia (priorytetyzacja) ✅ (H0-H2 szkielet + punkty MODIFY/PERMIT/FORBID także ✅; H1b ⬜)
+### H3 — Raport pokrycia (priorytetyzacja) ✅ (H0-H2 szkielet + punkty MODIFY/PERMIT/FORBID także ✅)
 - Rozszerzyć audyt (`src/audit/`, `effects_registry`) o: komponent → wymagany punkt zaczepienia
   (z `timing_spec` + typ efektu). Wynik: ile kart/zdolności obsłuży każdy punkt.
 - DoD: raport w `docs/` (generowany, nie ręczny) + kolejka kolejnych kroków wg liczby obsłużonych komponentów.
@@ -438,7 +451,7 @@ raport `src/audit/hook_coverage.py`. Wyjątek Arborec przeniesiony do hooka.
 - Kolejność: najpierw karty o prostym, jednofazowym efekcie (modyfikatory, +/- zasoby), potem z oknami reakcji,
   na końcu „instead of"/zmiana kolejności.
 - DoD (iteracyjnie): % pokrycia kart akcji rośnie, brak regresji. **Stan:** zagrywanie ACTION + formularz +
-  zagrywalność + UI z przeciąganiem ✅, 16/143 kart; cel końcowy = komplet (sekcja „CEL PRODUKTOWY”).
+  zagrywalność + UI z przeciąganiem ✅, **143/143 kart ✅** (2026-11-11).
 
 ### H5 — Frakcje (E7)
 - Wg tabel w sekcji „Frakcje": najpierw modyfikatory liczb/legalności (np. Sardakk, Jol-Nar, Sol, Letnev,
