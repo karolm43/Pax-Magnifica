@@ -164,3 +164,56 @@ def _assert_no_leak(projected: GameState, viewing_player_id: str) -> None:
                     "Visibility violation: private list "
                     f"'{field}' of player '{player_id}' was not redacted."
                 )
+
+
+# --- Projekcja ścisła (gra sieciowa, RULES.md 44.3) ----------------------------------------
+
+HIDDEN_CARD = "hidden"
+"""Zaślepka karty w zakrytej talii: długość talii jawna, kolejność i skład — nie."""
+
+
+_HIDDEN_DECKS = ("action_card_deck", "secret_objective_deck", "agenda_deck", "relic_deck")
+_HIDDEN_OBJECTIVE_DECKS = ("stage1_deck", "stage2_deck")
+_HIDDEN_DECK_PILES = ("exploration_deck",)
+
+
+def _hide(cards: list[str]) -> list[str]:
+    return [HIDDEN_CARD] * len(cards)
+
+
+def project_strict(state: GameState, viewing_player_id: str | None) -> GameState:
+    """Projekcja dla klienta sieciowego: TYLKO to, co ten gracz może wiedzieć (RULES.md 44.3).
+
+    Ponad ``project_for_viewer`` (cudze ręce → liczniki) ukrywa też:
+
+    * kolejność i skład zakrytych talii (karty akcji, agendy, tajne cele, cele etapu I/II,
+      relikty, eksploracja) — zostaje sama długość (zaślepki ``HIDDEN_CARD``);
+    * ziarno RNG (``rng_seed``) — znając je, dałoby się przewidzieć kości;
+    * cudze decyzje (``pending_offers``) — zostaje kto/czy obowiązkowa, bez etykiety i kontekstu;
+    * roboczy szkic karty strategii (``pending_strategy.draft``) dla nie-właściciela.
+
+    ``viewing_player_id=None`` = obserwator (żadnej ręki). Czysta funkcja (kopia stanu).
+    """
+    if viewing_player_id is None or viewing_player_id not in state.players:
+        projected = project_all_redacted(state)
+    else:
+        projected = project_for_viewer(state, viewing_player_id)
+    # Projekcja kopii (nie zmiana stanu gry): ogólne ``setattr`` po nazwach, jak redakcja rąk.
+    for holder, names in (
+        (projected.decks, _HIDDEN_DECKS),
+        (projected.objectives, _HIDDEN_OBJECTIVE_DECKS),
+    ):
+        for name in names:
+            setattr(holder, name, _hide(getattr(holder, name)))
+    for name in _HIDDEN_DECK_PILES:  # talie per rodzaj (eksploracja: {typ: [karty]})
+        piles = getattr(projected.decks, name)
+        setattr(projected.decks, name, {kind: _hide(cards) for kind, cards in piles.items()})
+    projected.rng_seed = 0
+    for offer in projected.pending_offers:
+        if offer.player_id != viewing_player_id:
+            offer.label = ""
+            offer.ctx = {}
+    pending = projected.pending_strategy
+    if pending is not None and pending.owner_id != viewing_player_id:
+        pending.draft = {}
+    return projected

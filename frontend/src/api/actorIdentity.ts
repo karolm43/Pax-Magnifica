@@ -7,11 +7,16 @@
  * - Test „kilku graczy": otwórz grę z `?seat=p2` — okno działa jako gracz p2, a backend
  *   odrzuca (403) akcje, do których p2 nie jest uprawniony. Wybór pamiętany w sessionStorage
  *   (osobno dla każdej karty), `?seat=` (puste) go czyści.
- * - Etap N1 (RULES.md 44.2): w tym samym miejscu zamiast `seat` pójdzie token miejsca.
+ * - Gra sieciowa (RULES.md 44.2): link zaproszenia `?token=…` — token miejsca trafia do nagłówka
+ *   `X-Seat-Token` (i do adresu WebSocketu). Tożsamość ustala wtedy backend z tokenu, a `seat`
+ *   jest ignorowany. Token pamiętany w sessionStorage i usuwany z paska adresu (nie wycieknie
+ *   przy udostępnianiu ekranu / zrzucie).
  */
 
 export const ACTOR_HEADER = "X-Actor-Id";
+export const SEAT_TOKEN_HEADER = "X-Seat-Token";
 const STORAGE_KEY = "custodian.seat";
+const TOKEN_KEY = "custodian.token";
 const BACKEND_PREFIX = "/bot";
 
 /** Odczytuje miejsce z `?seat=` (i zapamiętuje) albo z sessionStorage. */
@@ -30,7 +35,37 @@ export function readActingSeat(search: string = window.location.search): string 
   }
 }
 
+/** Token miejsca z `?token=` (zapamiętany w karcie); `?token=` puste go czyści. */
+export function readSeatToken(search: string = window.location.search): string | null {
+  const fromUrl = new URLSearchParams(search).get("token");
+  try {
+    if (fromUrl !== null) {
+      const token = fromUrl.trim();
+      if (token) sessionStorage.setItem(TOKEN_KEY, token);
+      else sessionStorage.removeItem(TOKEN_KEY);
+      return token || null;
+    }
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return fromUrl?.trim() || null;
+  }
+}
+
+/** Usuwa `token` z paska adresu (bez przeładowania). */
+function stripTokenFromUrl(): void {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("token")) return;
+  url.searchParams.delete("token");
+  window.history.replaceState(window.history.state, "", url.toString());
+}
+
 let actingSeat: string | null = null;
+let seatToken: string | null = null;
+
+/** Token miejsca tej karty (`null` = brak, np. tryb lokalny). */
+export function getSeatToken(): string | null {
+  return seatToken;
+}
 
 /** Gracz, jako który działa to okno (`null` = tryb lokalny, bez kontroli tożsamości). */
 export function getActingSeat(): string | null {
@@ -53,18 +88,29 @@ export function withActorHeader(
   input: RequestInfo | URL,
   init: RequestInit | undefined,
   seat: string | null,
+  token: string | null = null,
 ): RequestInit | undefined {
-  if (!seat || !isBackendUrl(input)) return init;
+  if ((!seat && !token) || !isBackendUrl(input)) return init;
   const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-  headers.set(ACTOR_HEADER, seat);
+  if (seat) headers.set(ACTOR_HEADER, seat);
+  if (token) headers.set(SEAT_TOKEN_HEADER, token);
   return { ...init, headers };
 }
 
 /** Instaluje opakowanie `fetch` (raz, przy starcie aplikacji). */
 export function installActorIdentity(): void {
   actingSeat = readActingSeat();
-  if (!actingSeat) return;
+  seatToken = readSeatToken();
+  stripTokenFromUrl();
+  if (!actingSeat && !seatToken) return;
   const original = window.fetch.bind(window);
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
-    original(input, withActorHeader(input, init, actingSeat));
+    original(input, withActorHeader(input, init, actingSeat, seatToken));
+}
+
+/** Adres WebSocketu backendu (przez proxy `/bot`), z tokenem miejsca w sieci. */
+export function backendSocketUrl(): string {
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const query = seatToken ? `?token=${encodeURIComponent(seatToken)}` : "";
+  return `${proto}//${window.location.host}${BACKEND_PREFIX}/ws${query}`;
 }

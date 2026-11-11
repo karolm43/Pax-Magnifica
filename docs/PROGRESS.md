@@ -439,3 +439,17 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - **Front:** `api/actorIdentity.ts` — `?seat=<player_id>` (pamiętane w karcie) dokłada nagłówek do żądań `/bot…`. Dwie karty
   z różnymi `?seat=` = test „kilku graczy” (backend odrzuca cudze akcje 403). UI nadal pokazuje wszystko (widok per gracz = N2).
 - Luki (N5): zgoda drugiej strony transakcji, równoległe decyzje, timeouty. Dalej: N1 (tokeny/role), N2 (projekcja per połączenie).
+
+## 2026-11-11 (7) — Etap sieciowy N1 + N2: tokeny miejsc, role, projekcja per gracz (RULES.md 44.2a, 44.3)
+- **Jak zagrać przez sieć:** `uv run python -m src.api --network` (drukuje link hosta) + `npm run dev -- --host`
+  w `frontend/` (gracze łączą się z frontem hosta, np. `http://<IP-hosta>:5173`, w LAN/Tailscale). Host otwiera
+  link hosta, tworzy grę, w panelu **Invites** (lewy dolny róg) kopiuje link każdego miejsca. Backend zostaje na 127.0.0.1.
+- **N1:** `api/seats.py` (`SeatRegistry`, `Identity`), middleware tożsamości (401 bez tokenu), `get_actor` z tokenu,
+  `require_host` z roli, router `network.py` (`/network/me`, `/network/seats`, rotacja, miejsce hosta).
+- **N2:** `visibility.project_strict` (ręce, zakryte talie, ziarno RNG, cudze oferty, szkic karty strategii);
+  `StateService.envelope()` rzutuje wg tożsamości żądania (każda odpowiedź akcji), WebSocket per klient
+  (`broadcast_each`, token w `?token=`), web-data z perspektywy tokenu, `require_view`/`viewer_player` w GET-ach z `player_id`.
+- **Front:** token z `?token=` (sessionStorage, usuwany z adresu) → `X-Seat-Token`; `useBackendPush` (WebSocket → odświeżenie
+  zapytań, tylko w sieci); `NetworkPanel` + proxy Vite `ws: true`. Tryb lokalny bez zmian. Nie testowane w przeglądarce.
+- Testy: `tests/test_network_game.py` (26: brak wycieków w 12 GET-ach, odpowiedziach akcji i WebSocket; role; rotacja; pełna gra).
+- Dalej: N3 (zapis gry + tokenów, restart), N5 (UI „czekamy na X", blokada cudzych kontrolek, zgoda w transakcjach, timeouty).

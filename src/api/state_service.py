@@ -13,9 +13,11 @@ from collections.abc import Callable
 
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
+from src.api.seats import Identity, current_identity
 from src.core import activity, game_clock, game_end, nexus
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
+from src.core.visibility import project_strict
 
 
 class StateService:
@@ -54,9 +56,18 @@ class StateService:
             history_size=self._store.history_size(),
         )
 
-    def envelope(self) -> StateEnvelope:
-        """Koperta rozsyłana klientom: bieżący stan + metadane historii."""
-        return StateEnvelope(state=self.current_state(), history=self.history_info())
+    def envelope(self, identity: Identity | None = None) -> StateEnvelope:
+        """Koperta dla klienta: stan W JEGO PROJEKCJI + metadane historii (RULES.md 44.3).
+
+        ``identity`` pominięte → tożsamość bieżącego żądania (``current_identity``). Tryb lokalny
+        i host-operator dostają pełny stan; gracz sieciowy — ``project_strict`` ze swojego miejsca.
+        Dzięki temu KAŻDA odpowiedź akcji (wszystkie zwracają kopertę) jest bezpieczna.
+        """
+        who = identity if identity is not None else current_identity.get()
+        state = self.current_state()
+        if not who.sees_everything:
+            state = project_strict(state, who.player_id)
+        return StateEnvelope(state=state, history=self.history_info())
 
     # --- Mutacje --------------------------------------------------------
 
@@ -146,5 +157,7 @@ class StateService:
     # --- Rozsyłanie -----------------------------------------------------
 
     async def broadcast(self) -> None:
-        """Rozsyła bieżącą kopertę stanu do wszystkich klientów WebSocket."""
-        await self._manager.broadcast_json(self.envelope().model_dump(mode="json"))
+        """Rozsyła kopertę stanu — każdemu klientowi WebSocket jego własną projekcję."""
+        await self._manager.broadcast_each(
+            lambda identity: self.envelope(identity).model_dump(mode="json")
+        )

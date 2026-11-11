@@ -2,7 +2,7 @@
  * Testy tożsamości aktora (RULES.md 44.1a): nagłówek tylko do backendu, `?seat=` pamiętane w karcie.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { ACTOR_HEADER, readActingSeat, withActorHeader } from "./actorIdentity";
+import { ACTOR_HEADER, readActingSeat, readSeatToken, withActorHeader } from "./actorIdentity";
 
 function headerOf(init: RequestInit | undefined): string | null {
   return new Headers(init?.headers).get(ACTOR_HEADER);
@@ -37,5 +37,21 @@ describe("actorIdentity", () => {
     expect(readActingSeat("")).toBe("p3");
     expect(readActingSeat("?seat=")).toBeNull();
     expect(readActingSeat("")).toBeNull();
+  });
+});
+
+describe("token miejsca (gra sieciowa, RULES.md 44.2)", () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it("?token= trafia do nagłówka X-Seat-Token (bez X-Actor-Id)", () => {
+    const init = withActorHeader("/bot/state", undefined, null, "tok123");
+    expect(new Headers(init?.headers).get("X-Seat-Token")).toBe("tok123");
+    expect(headerOf(init)).toBeNull();
+  });
+
+  it("token pamiętany w karcie, puste ?token= czyści", () => {
+    expect(readSeatToken("?token=abc")).toBe("abc");
+    expect(readSeatToken("")).toBe("abc");
+    expect(readSeatToken("?token=")).toBeNull();
   });
 });

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.actor import ActorId
+from src.api.actor import ActorId, require_view
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     ActionCardInputsResponse,
@@ -25,9 +25,11 @@ router = APIRouter()
 
 @router.get("/action-card/playable", response_model=ActionCardPlayabilityResponse)
 async def get_playable_action_cards(
+    request: Request,
     player_id: str, ctx: AppContext = Depends(get_ctx)
 ) -> ActionCardPlayabilityResponse:
     """Które karty z ręki gracza można zagrać teraz (UI pozwala podnieść tylko te)."""
+    require_view(request, player_id)  # RULES.md 44.3
     try:
         rows = action_cards.playability(ctx.service.current_state(), ctx.registry, player_id)
     except ValueError as exc:
@@ -37,9 +39,11 @@ async def get_playable_action_cards(
 
 @router.get("/action-card/{card_id}/inputs", response_model=ActionCardInputsResponse)
 async def get_action_card_inputs(
+    request: Request,
     card_id: str, player_id: str, ctx: AppContext = Depends(get_ctx)
 ) -> ActionCardInputsResponse:
     """Formularz zagrania karty: tekst, czy silnik ją automatyzuje i legalne wybory gracza."""
+    require_view(request, player_id)  # RULES.md 44.3
     try:
         implemented, inputs = action_cards.card_inputs(
             ctx.service.current_state(), ctx.registry, player_id, card_id

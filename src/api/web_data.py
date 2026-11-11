@@ -60,7 +60,7 @@ from src.core.unit_catalog import (
     UNIT_CAP_BY_ASYNC_ID,
     is_space_unit,
 )
-from src.core.visibility import project_all_redacted, project_for_viewer
+from src.core.visibility import project_all_redacted, project_for_viewer, project_strict
 
 # Wersja schematu dokumentu web-data wymagana przez frontend ti4_web
 # (``REQUIRED_VERSION_SCHEMA`` w ``GameMapPage.tsx``). Dokument ze starszą/brakującą
@@ -1582,6 +1582,7 @@ def build_web_data(
     vps_to_win: int | None = None,
     viewing_player: str | None = None,
     now: float | None = None,
+    strict: bool = False,
 ) -> dict[str, Any]:
     """Serializuje stan gry do dokumentu ``PlayerDataResponse`` dla frontendu ti4_web.
 
@@ -1598,6 +1599,8 @@ def build_web_data(
         viewing_player: Gracz, z którego perspektywy rzutujemy dokument (R6.6).
             ``None`` → używamy aktywnego gracza (``state.active_player_id``).
         now: Chwila (s UNIX) odczytu zegara szachowego; ``None`` → czas systemowy.
+        strict: Gra sieciowa (RULES.md 44.3): ``project_strict`` z perspektywy ``viewing_player``
+            (bez domyślnego „aktywnego gracza"; ``None`` = obserwator), ukryte talie i RNG.
 
     Returns:
         Słownik gotowy do serializacji JSON zgodny z ``PlayerDataResponse``.
@@ -1615,11 +1618,14 @@ def build_web_data(
     """
     # R6.6: brak jawnego viewera → aktywny gracz jako perspektywa domyślna.
     viewer = viewing_player or state.active_player_id
+    if strict:
+        projected = project_strict(state, viewing_player)
+    # RULES.md 44.3: w sieci tylko projekcja ścisła (powyżej); poniżej tryb lokalny.
     # R6.1: projekcja PRZED serializacją. Gdy znamy viewera → jego perspektywa.
     # Gdy viewera brak (jawnego i aktywnego), a stan niepusty → redagujemy ręce
     # wszystkich (perspektywa „nikt nie patrzy"), zamiast rzucać — ``None`` to
     # poprawny stan gry. Pusty stan serializujemy wprost (brak rąk do redakcji).
-    if viewer is not None:
+    elif viewer is not None:
         projected = project_for_viewer(state, viewer)
     elif state.players:
         projected = project_all_redacted(state)

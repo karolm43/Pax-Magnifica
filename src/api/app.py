@@ -57,6 +57,8 @@ from src.api.routers import (
     transactions,
     window,
 )
+from src.api.routers import network as network_routes
+from src.api.seats import SEAT_TOKEN_HEADER, TOKEN_QUERY, Identity, SeatRegistry, current_identity
 from src.api.state_service import StateService
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
@@ -70,6 +72,8 @@ def create_app(
     store: EventStore | None = None,
     initial_state: GameState | None = None,
     now: Callable[[], float] | None = None,
+    network: bool = False,
+    host_token: str | None = None,
 ) -> FastAPI:
     """Fabryka aplikacji FastAPI (wstrzykiwalna dla testów).
 
@@ -78,9 +82,12 @@ def create_app(
         store: Magazyn historii (domyślnie SQLite w pamięci).
         initial_state: Stan początkowy (domyślnie pusty ``GameState``).
         now: Źródło czasu (s UNIX) dla zegara szachowego (domyślnie ``time.time``).
+        network: Tryb gry sieciowej (RULES.md 44.2): każde żądanie wymaga tokenu miejsca.
+        host_token: Stały token hosta (domyślnie losowy; ``seats.host_token`` po starcie).
     """
     reg = registry if registry is not None else StaticDataRegistry()
     event_store = store if store is not None else EventStore()
+    seats = SeatRegistry(network=network, host_token=host_token)
     manager = ConnectionManager()
     service = StateService(
         event_store, manager, initial_state=initial_state, now=now or time.time
@@ -107,6 +114,13 @@ def create_app(
     async def _actor_error_as_403(_request: Request, exc: ActorError) -> JSONResponse:
         return JSONResponse(status_code=403, content={"detail": str(exc)})
 
+    # Bez tokenu w trybie sieciowym wolno pobrać tylko dane statyczne (assety, reguły, frakcje,
+    # komponenty) i ``/network/me`` (front sprawdza, czy to gra sieciowa) — nic ze stanu gry.
+    _public_paths = re.compile(
+        r"^/(static|components|rules|factions|engine/config|timing-specs|network/me"
+        r"|docs|redoc|openapi\.json)(/|$)"
+    )
+
     # Okno hold-play (RULES.md 53.6): gdy zagrana karta czeka na Sabotage, reszta gry stoi - akcje
     # graczy (POST) poza zagraniem karty / pasem / zwolnieniem, God-Mode i Undo/Redo dają 422.
     _held_allowed = re.compile(
@@ -129,6 +143,30 @@ def create_app(
                 )
         return await call_next(request)
 
+    # Tożsamość (RULES.md 44.2): token miejsca → ``request.state.identity`` + ``current_identity``
+    # (z niej ``StateService.envelope`` rzutuje stan). Middleware dodany PO hold-play, więc działa
+    # PRZED nim (Starlette: ostatni dodany = zewnętrzny). Tryb lokalny: zawsze ``LOCAL``.
+    @app.middleware("http")
+    async def _seat_identity(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        token = request.headers.get(SEAT_TOKEN_HEADER) or request.query_params.get(TOKEN_QUERY)
+        identity = seats.resolve(token)
+        if identity is None:
+            if request.method == "OPTIONS" or _public_paths.search(request.url.path):
+                identity = Identity(network=True)
+            else:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "This is a network game - open it from your invite link."},
+                )
+        request.state.identity = identity
+        reset = current_identity.set(identity)
+        try:
+            return await call_next(request)
+        finally:
+            current_identity.reset(reset)
+
     # CORS: dev-serwer Vite (5173) łączy się z backendem (8000).
     app.add_middleware(
         CORSMiddleware,
@@ -139,7 +177,7 @@ def create_app(
 
     # Współdzielony kontekst dla routerów (current_grid podmieniany przy load/new game).
     ctx = AppContext(
-        service=service, manager=manager, registry=reg, current_grid=demo_grid
+        service=service, manager=manager, registry=reg, current_grid=demo_grid, seats=seats
     )
     app.state.ctx = ctx
     # Zgodność ze starszymi testami/diagnostyką odwołującymi się do app.state.*.
@@ -178,12 +216,18 @@ def create_app(
     app.include_router(hold.router)
     app.include_router(offers.router)
     app.include_router(technology.router)
+    app.include_router(network_routes.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:
-        await manager.connect(websocket)
+        # Gra sieciowa: token w ``?token=`` (przeglądarka nie ustawi nagłówka WebSocketu).
+        identity = seats.resolve(websocket.query_params.get(TOKEN_QUERY))
+        if identity is None:
+            await websocket.close(code=4401)
+            return
+        await manager.connect(websocket, identity)
         try:
-            await websocket.send_json(service.envelope().model_dump(mode="json"))
+            await websocket.send_json(service.envelope(identity).model_dump(mode="json"))
             while True:
                 # Klient nie wysyła komend w tym bloku; utrzymujemy połączenie.
                 await websocket.receive_text()

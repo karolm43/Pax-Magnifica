@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from src.api.actor import ActorId
+from src.api.actor import ActorId, viewer_player
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.core import actor as actor_rules
@@ -58,9 +58,11 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
 
 @router.get("/offers", response_model=OffersResponse)
 async def get_offers(
+    request: Request,
     player_id: str | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> OffersResponse:
     """Decyzje czekające na gracza (bez ``player_id`` - wszystkie), z legalnymi opcjami."""
+    player_id = viewer_player(request, player_id)  # RULES.md 44.3
     state = ctx.service.current_state()
     return OffersResponse(
         offers=[OfferView(**v) for v in offers.offers_view(state, ctx.registry, player_id)]

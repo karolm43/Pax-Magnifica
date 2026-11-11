@@ -7,10 +7,17 @@ jest odpalane automatycznie przez agenta.
 Przed startem zwalnia port (health-check): osierocony proces z poprzedniej sesji
 często trzymał port 8000 (``Errno 10048``) i serwował STARY kod. Zabijamy go, by
 nowy serwer na pewno wystartował ze świeżym kodem.
+
+Gra sieciowa (RULES.md 44.2): ``uv run python -m src.api --network`` — każde żądanie wymaga
+tokenu miejsca; przy starcie drukowany jest link hosta. Token hosta można przypiąć zmienną
+``CUSTODIAN_HOST_TOKEN`` (ten sam link po restarcie). Graczom zdalnym udostępnia się FRONT
+(``npm run dev -- --host``), który przez proxy woła backend na 127.0.0.1 — backend zostaje lokalny.
 """
 
 from __future__ import annotations
 
+import argparse
+import os
 import socket
 import subprocess
 import sys
@@ -86,9 +93,24 @@ def _ensure_port_free(host: str, port: int) -> None:
 
 
 def main() -> None:
-    """Startuje serwer deweloperski Uvicorn (po zwolnieniu portu)."""
+    """Startuje serwer deweloperski Uvicorn (po zwolnieniu portu); ``--network`` = gra sieciowa."""
+    parser = argparse.ArgumentParser(prog="python -m src.api")
+    parser.add_argument("--network", action="store_true", help="gra sieciowa: tokeny miejsc")
+    parser.add_argument(
+        "--front-url",
+        default="http://localhost:5173",
+        help="adres frontu do wydrukowania linku hosta",
+    )
+    args = parser.parse_args()
+    server_app = app
+    if args.network:
+        server_app = create_app(network=True, host_token=os.environ.get("CUSTODIAN_HOST_TOKEN"))
+        token = server_app.state.ctx.seats.host_token
+        print("[network] Network game mode - every request needs a seat token.")
+        print(f"[network] Host link: {args.front_url.rstrip('/')}/?token={token}")
+        print("[network] Invite links for players: open the Network panel in the game.")
     _ensure_port_free(HOST, PORT)
-    uvicorn.run(app, host=HOST, port=PORT)
+    uvicorn.run(server_app, host=HOST, port=PORT)
 
 
 if __name__ == "__main__":

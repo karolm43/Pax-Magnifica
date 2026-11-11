@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { NetworkPanel } from "@/domains/network/NetworkPanel";
 import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs } from "@/ds";
@@ -349,6 +350,8 @@ function GameMapPage() {
     <GameContextProvider gameId={gameId}>
       <div className={themeClassName}>
         <GameMapContent />
+        {/* Gra sieciowa (RULES.md 44.2): plakietka „kim jestem", zaproszenia hosta, push stanu. */}
+        <NetworkPanel />
       </div>
     </GameContextProvider>
   );

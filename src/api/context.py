@@ -16,6 +16,7 @@ from __future__ import annotations
 from fastapi import Request
 
 from src.api.connection_manager import ConnectionManager
+from src.api.seats import SeatRegistry
 from src.api.serializers import build_map_view
 from src.api.state_service import StateService
 from src.core import board_graph, fracture, nexus
@@ -32,8 +33,11 @@ class AppContext:
         manager: ConnectionManager,
         registry: StaticDataRegistry,
         current_grid: HexGrid,
+        seats: SeatRegistry | None = None,
     ) -> None:
         self.service = service
+        # Miejsca przy stole / tokeny (RULES.md 44.2); tryb lokalny = rejestr bez tokenów.
+        self.seats = seats if seats is not None else SeatRegistry()
         self.manager = manager
         self.registry = registry
         self._grid = current_grid

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.actor import ActorId
+from src.api.actor import ActorId, require_view
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     StateEnvelope,
@@ -63,6 +63,7 @@ def get_strategy_cards(ctx: AppContext = Depends(get_ctx)) -> list[StrategyCardI
 
 @router.get("/strategy/options")
 def get_strategy_options(
+    request: Request,
     player_id: str, ctx: AppContext = Depends(get_ctx)
 ) -> dict[str, Any] | None:
     """Dozwolone wybory dla gracza, który teraz odpowiada na kartę strategii (lub null).
@@ -71,6 +72,7 @@ def get_strategy_options(
     opcjami z modułu karty (planety do wydania, cele, gracze...). Dane prywatne dostaje
     tylko ``player_id`` będący adresatem monitu (pod grę sieciową).
     """
+    require_view(request, player_id)  # RULES.md 44.3
     state = ctx.service.current_state()
     if player_id not in state.players:
         raise HTTPException(status_code=404, detail=f"Unknown player: {player_id}")

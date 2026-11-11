@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.actor import HostOnly
+from src.api.actor import HostOnly, identity_of, viewer_player
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     EngineConfigInfo,
@@ -75,6 +75,7 @@ def get_game_events(game_id: str) -> list[dict[str, object]]:
 
 @router.get("/api/public/game/{game_id}/web-data")
 def get_web_data(
+    request: Request,
     game_id: str,
     viewing_player: str | None = None,
     ctx: AppContext = Depends(get_ctx),
@@ -84,7 +85,12 @@ def get_web_data(
     Opcjonalny query param ``viewing_player`` wyznacza perspektywę dokumentu (R6.6);
     brak → aktywny gracz. Nieudane ustalenie viewera lub nieznany viewer →
     ``ValueError`` z warstwy ``core``/serializacji, mapowany na HTTP 422.
+
+    Gra sieciowa (RULES.md 44.2/44.3): parametr jest ignorowany — perspektywa to miejsce z tokenu,
+    a dokument buduje się z projekcji ścisłej (``project_strict``).
     """
+    strict = not identity_of(request).sees_everything
+    viewing_player = viewer_player(request, viewing_player)
     try:
         return build_web_data(
             ctx.current_grid,
@@ -93,6 +99,7 @@ def get_web_data(
             game_name=game_id,
             viewing_player=viewing_player,
             now=ctx.service.now(),
+            strict=strict,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -100,6 +107,7 @@ def get_web_data(
 
 @router.get("/api/game/{game_id}/hand", response_model=PlayerHandResponse)
 def get_player_hand(
+    request: Request,
     game_id: str,
     player: str | None = None,
     ctx: AppContext = Depends(get_ctx),
@@ -115,6 +123,7 @@ def get_player_hand(
     Zwraca puste listy, gdy nie da się ustalić gracza (np. przed startem gry) —
     panel ręki pokazuje wtedy po prostu pustą rękę zamiast błędu.
     """
+    player = viewer_player(request, player)  # RULES.md 44.3
     state = ctx.service.current_state()
     player_id = player or state.active_player_id
     target = state.players.get(player_id) if player_id else None

@@ -369,9 +369,9 @@ Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika
 
 - **N0 — Audyt + `actor_id` ✅ (2026-11-11):** wszystkie 102 endpointy zmieniające stan sklasyfikowane (akcja gracza /
   stołu / host, RULES.md 44.1a), nagłówek `X-Actor-Id`, `core/actor.py`, strażnik `tests/test_actor_guard.py`.
-- **N1 — Tożsamość i autoryzacja:** token na miejsce przy stole (link zaproszenia), role host/observer,
+- ✅ (2026-11-11) **N1 — Tożsamość i autoryzacja:** token na miejsce przy stole (link zaproszenia), role host/observer,
   `actor_id` ustalane z tokenu, `viewing_player` z tokenu w trybie sieciowym (44.2).
-- **N2 — Push per gracz:** WebSocket z własną projekcją dla każdego połączenia; wiadomości jawne/prywatne;
+- ✅ (2026-11-11) **N2 — Push per gracz:** WebSocket z własną projekcją dla każdego połączenia; wiadomości jawne/prywatne;
   testy „nic nie wycieka" (44.3).
 - **N3 — Wiele gier i trwałość:** `game_id`, lobby/pokoje, zapis `EventStore` na dysk, wznowienie po restarcie
   i ponownym połączeniu (44.4).

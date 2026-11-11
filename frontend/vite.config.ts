@@ -43,6 +43,8 @@ export default defineConfig({
       "/bot": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        // WebSocket /bot/ws -> /ws (push stanu w grze sieciowej, RULES.md 44.3).
+        ws: true,
         rewrite: (path) => path.replace(/^\/bot/, ""),
       },
       // Statyczne assety (grafiki kafelków/jednostek) serwowane przez backend.

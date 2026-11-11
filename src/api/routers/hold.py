@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.api.actor import ActorId
+from src.api.actor import ActorId, require_view
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import ActionCardInputsResponse, PlayActionCardResponse
 from src.core import actor as actor_rules
@@ -63,9 +63,11 @@ def _chain(ctx: AppContext) -> list[hold_rewind.Snapshot]:
 
 @router.get("/hold/candidates", response_model=HoldCandidatesResponse)
 async def get_hold_candidates(
+    request: Request,
     player_id: str, ctx: AppContext = Depends(get_ctx)
 ) -> HoldCandidatesResponse:
     """Kroki, do których gracz może się cofnąć z kartą hold-rewind (od najnowszego)."""
+    require_view(request, player_id)  # RULES.md 44.3
     try:
         steps, limit = hold_rewind.candidates(_chain(ctx), ctx.registry, player_id)
     except ValueError as exc:
@@ -75,9 +77,11 @@ async def get_hold_candidates(
 
 @router.get("/hold/{card_id}/inputs", response_model=ActionCardInputsResponse)
 async def get_hold_inputs(
+    request: Request,
     card_id: str, player_id: str, seq: int, ctx: AppContext = Depends(get_ctx)
 ) -> ActionCardInputsResponse:
     """Formularz karty liczony na migawce ``seq`` (opcje ze stanu z tamtej chwili)."""
+    require_view(request, player_id)  # RULES.md 44.3
     try:
         implemented, inputs = hold_rewind.inputs_at(
             _chain(ctx), ctx.registry, player_id, card_id, seq

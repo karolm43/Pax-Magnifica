@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from src.api.actor import ActorId
+from src.api.actor import ActorId, require_view
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.core import actor as actor_rules
@@ -48,9 +48,11 @@ class TechnologyUseRequest(BaseModel):
 
 @router.get("/technology/abilities", response_model=TechnologyAbilitiesResponse)
 async def get_abilities(
+    request: Request,
     player_id: str, ctx: AppContext = Depends(get_ctx)
 ) -> TechnologyAbilitiesResponse:
     """Zdolności technologii gracza używane poza akcją (np. Psychoarchaeology)."""
+    require_view(request, player_id)  # RULES.md 44.3
     state = ctx.service.current_state()
     return TechnologyAbilitiesResponse(
         abilities=[
@@ -62,9 +64,11 @@ async def get_abilities(
 
 @router.get("/technology/{tech_id}/form", response_model=TechnologyFormResponse)
 async def get_form(
+    request: Request,
     tech_id: str, player_id: str, ctx: AppContext = Depends(get_ctx)
 ) -> TechnologyFormResponse:
     """Formularz użycia technologii: tekst, czy silnik ją automatyzuje i legalne wybory."""
+    require_view(request, player_id)  # RULES.md 44.3
     try:
         data = technology_abilities.form(
             ctx.service.current_state(), ctx.registry, player_id, tech_id
