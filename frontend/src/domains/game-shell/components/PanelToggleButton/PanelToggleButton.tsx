@@ -22,7 +22,6 @@ export function PanelToggleButton({
   const pointsRight = (position === "left") === isCollapsed;
   const ToggleIcon = pointsRight ? IconChevronRight : IconChevronLeft;
   const rail = position === "left" ? "table rail" : "seat dossier";
-  const shortcut = position === "left" ? "L" : "R";
 
   return (
     <UnstyledButton
@@ -32,7 +31,7 @@ export function PanelToggleButton({
       style={style}
       aria-label={`${isCollapsed ? "Show" : "Hide"} ${rail}`}
       aria-expanded={!isCollapsed}
-      title={`${isCollapsed ? "Show" : "Hide"} ${rail} (${shortcut})`}
+      title={`${isCollapsed ? "Show" : "Hide"} ${rail}`}
     >
       <ToggleIcon size={14} stroke={2} />
     </UnstyledButton>

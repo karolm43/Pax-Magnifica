@@ -99,11 +99,10 @@ export function MapView({
 
   useMapKeyboardShortcuts({
     handlers,
-    settings,
     handleZoomIn,
     handleZoomOut,
-    handleAreaSelect,
-    selectedArea,
+    scrollToBoard: () =>
+      mapContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" }),
   });
 
   const showLeftPanelToggle =

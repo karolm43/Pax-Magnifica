@@ -65,3 +65,14 @@
   font-size: var(--text-data);
   color: var(--ds-ink-lo);
 }
+
+/* Trzecia kolumna („Tools") pod dwiema pierwszymi, na całą szerokość. */
+.column:last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 36em) {
+  .column:last-child {
+    grid-column: auto;
+  }
+}

@@ -9,6 +9,7 @@ import { PlayerDeck } from "@/domains/player/components/deck/PlayerDeck";
 import { ScaledContent } from "@/shared/ui/ScaledContent";
 import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
 import { computePanelsZoom } from "@/utils/zoom";
+import { JUMP_OBJECTIVES_ATTR } from "@/hooks/useKeyboardShortcuts";
 
 type GameData = NonNullable<ReturnType<typeof useGameData>>;
 
@@ -81,7 +82,7 @@ export function BoardHud({
       <Box className={classes.bottomHudBody}>
         {gameData && (
           <HudSection isMobile={isMobile} innerStyle={areaStyles}>
-            <Stack gap="md">
+            <Stack gap="md" {...{ [JUMP_OBJECTIVES_ATTR]: "" }}>
               <HudTitle gameData={gameData} />
               <Box className={classes.hudFitScreen}>
                 <ScoreTracker

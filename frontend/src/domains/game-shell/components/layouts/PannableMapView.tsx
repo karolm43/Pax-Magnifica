@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react";
+import { useCallback, useRef, type RefObject } from "react";
 import { Box } from "@/ds";
 import classes from "@/shared/ui/map/MapUI.module.css";
 import { InteractiveMapRenderer } from "@/domains/map/components/renderer/InteractiveMapRenderer";
@@ -85,9 +85,7 @@ export function PannableMapView({ gameId }: { gameId: string }) {
   useDragScroll();
 
   const {
-    selectedArea,
     tooltipUnit,
-    handleAreaSelect,
     handleMouseEnter,
     handleMouseLeave,
     handleMouseDown,
@@ -146,14 +144,17 @@ export function PannableMapView({ gameId }: { gameId: string }) {
     });
   };
 
+  /* „B" / „Home" / ponowna cyfra: z pól graczy z powrotem na planszę. */
+  const scrollToBoard = useCallback(() => {
+    mapContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   useMapKeyboardShortcuts({
     handlers,
-    settings,
     handleZoomIn,
     handleZoomOut,
     handleZoomFit: handleFitBoard,
-    handleAreaSelect,
-    selectedArea,
+    scrollToBoard,
   });
 
   // Ctrl + kółko / pinch touchpada = zoom mapy wokół kursora (nie zoom strony).

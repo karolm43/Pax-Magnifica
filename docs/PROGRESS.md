@@ -611,3 +611,11 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   → `bug_reports/<data>_<gracz>/` na dysku HOSTA (`report.md`, `screenshot.png`, `client.json` z ostatnimi błędami
   konsoli, `state.json` = pełny `GameState`). Działa dla gości z sieci (token miejsca). `create_app(bug_reports_dir=…)`,
   `None` = 503. Testy: `tests/test_bug_report.py`, E2E `frontend/e2e/tools.e2e.ts`.
+## 2026-11-11 (15) — Porządek w skrótach klawiszowych, skoki do pól graczy
+- Gra renderuje tylko `PannableMapView`; boczne panele (`LeftSidebar` = cele/prawa, `RightSidebar` = „Seat dossier”)
+  żyją wyłącznie w nieużywanym układzie „Panels” (`layouts/MapView.tsx`). Usunięte martwe skróty `h`/`l`/`r`
+  i przełączniki „Collapse left/right panel” w Ustawieniach; z okna skrótów zniknęły nieistniejące `T`/`H`/`S`.
+- Nowe skróty (`hooks/useKeyboardShortcuts.ts`, opis w `KeyboardShortcutsModal`): `1–8` = pole gracza pod planszą
+  (ta sama cyfra = powrót), `Shift+1–8` = gracz na planszy, `[`/`]` = poprzedni/następny, `g` = cele i punkty,
+  `b`/`Home` = plansza, `?` = lista skrótów. Skok przewija i podświetla cel stylem trafienia wyszukiwarki.
+  Skróty milkną przy pisaniu i pod otwartym oknem modalnym. E2E: `frontend/e2e/tools.e2e.ts`.

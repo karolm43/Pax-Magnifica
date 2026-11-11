@@ -15,24 +15,32 @@ type Shortcut = {
   range?: boolean;
 };
 
-const NAVIGATION: Shortcut[] = [
-  { description: "Toggle both sidebars", keys: ["h"] },
-  { description: "Left / right sidebar", keys: ["l", "r"] },
-  { description: "Zoom in / out", keys: ["+", "=", "-"] },
-  { description: "Zoom map at cursor", keys: ["Ctrl Wheel"] },
-  { description: "Fit board to window", keys: ["0"] },
-  { description: "Tech skip rendering", keys: ["t"] },
-  { description: "Attachments mode", keys: ["a"] },
-  { description: "Overlays", keys: ["o"] },
-  { description: "Search the board", keys: ["/", "Ctrl F"] },
-  { description: "Next / previous match", keys: ["Enter", "Shift Enter"] },
+/* Jedyny opis skrótów dla gracza — trzymaj w zgodzie z `hooks/useKeyboardShortcuts.ts`. */
+const PLAYERS: Shortcut[] = [
+  { description: "Player area by seat", keys: ["1", "2", "3", "8"], range: true },
+  { description: "Same key again: back to board", keys: ["1–8"] },
+  { description: "Player on the board", keys: ["Shift 1–8"] },
+  { description: "Previous / next player", keys: ["[", "]"] },
+  { description: "Objectives & points", keys: ["g"] },
+  { description: "Back to the board", keys: ["b", "Home"] },
 ];
 
-const RIGHT_SIDEBAR: Shortcut[] = [
-  { description: "Faction by seat", keys: ["1", "2", "3", "8"], range: true },
-  { description: "Tech tab", keys: ["T"] },
-  { description: "Hand tab", keys: ["H"] },
-  { description: "Strength tab", keys: ["S"] },
+const MAP: Shortcut[] = [
+  { description: "Zoom in / out", keys: ["+", "-"] },
+  { description: "Zoom at cursor", keys: ["Ctrl Wheel"] },
+  { description: "Fit board to window", keys: ["0"] },
+  { description: "Planet traits", keys: ["y"] },
+  { description: "Tech skips", keys: ["t"] },
+  { description: "Attachments", keys: ["a"] },
+  { description: "Space Cannon range", keys: ["p"] },
+  { description: "Control overlays", keys: ["o"] },
+];
+
+const TOOLS: Shortcut[] = [
+  { description: "Search the board", keys: ["/", "Ctrl F"] },
+  { description: "Next / previous match", keys: ["Enter", "Shift Enter"] },
+  { description: "Close panel / selection", keys: ["Esc"] },
+  { description: "This list", keys: ["?"] },
 ];
 
 function Keycap({ children }: { children: ReactNode }) {
@@ -87,18 +95,19 @@ export function KeyboardShortcutsModal({
       opened={opened}
       onClose={onClose}
       title="Keyboard shortcuts"
-      size={620}
+      size={680}
       padding={0}
     >
       <div className="overlay-modal-content">
         <div className={classes.keys}>
-          <ShortcutColumn label="Navigation & display" shortcuts={NAVIGATION} />
-          <ShortcutColumn label="Right sidebar" shortcuts={RIGHT_SIDEBAR} />
+          <ShortcutColumn label="Players & areas" shortcuts={PLAYERS} />
+          <ShortcutColumn label="Map & lenses" shortcuts={MAP} />
+          <ShortcutColumn label="Tools" shortcuts={TOOLS} />
         </div>
       </div>
       <footer className="overlay-modal-footer" data-align="start">
         <p className="overlay-modal-note">
-          Press a key again to deselect. Shortcuts pause while you type.
+          Shortcuts pause while you type or while a window is open.
         </p>
       </footer>
     </AppModal>

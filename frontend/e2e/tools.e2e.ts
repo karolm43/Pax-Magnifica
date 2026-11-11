@@ -1,5 +1,5 @@
 /*
- * Narzędzia stołu: zoom mapy (Ctrl + kółko, klawisze) oraz zgłoszenie błędu („Report bug")
+ * Narzędzia stołu: zoom mapy (Ctrl + kółko, klawisze), skróty nawigacji po polach graczy oraz zgłoszenie błędu („Report bug")
  * ze zrzutem ekranu, zapisywane przez backend w katalogu raportów hosta.
  */
 import { expect, startSoloGame, test } from "./fixtures";
@@ -31,6 +31,37 @@ test("Ctrl + kółko i klawisze +/-/0 zmieniają zoom mapy", async ({ page }) =>
   await expect(label).toHaveText(`${before}%`);
   await page.keyboard.press("0"); // dopasuj planszę — zoom ze szczebla drabinki
   await expect(label).toHaveText(/^\d+%$/);
+});
+
+test("Skróty: 1–8 skacze do pola gracza, ta sama cyfra wraca na planszę, ? pokazuje listę", async ({ page }) => {
+  const areas = page.getByRole("region", { name: "Player areas" });
+  const boardScroll = () =>
+    page.evaluate(() => document.querySelector(".dragscroll")?.scrollTop ?? 0);
+
+  await page.mouse.move(1300, 400);
+  expect(await boardScroll()).toBe(0);
+
+  await page.keyboard.press("1");
+  await expect(areas).toBeInViewport();
+  await expect.poll(boardScroll).toBeGreaterThan(0);
+
+  await page.keyboard.press("1"); // ta sama cyfra = powrót na planszę
+  await expect.poll(boardScroll).toBe(0);
+
+  await page.keyboard.press("]"); // następny gracz
+  await expect(areas).toBeInViewport();
+  await page.keyboard.press("b");
+  await expect.poll(boardScroll).toBe(0);
+
+  await page.keyboard.press("?");
+  const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+  await expect(help).toBeVisible();
+  await expect(help.getByText("Player area by seat")).toBeVisible();
+  // Pod otwartym oknem skróty mapy milczą.
+  await page.keyboard.press("2");
+  expect(await boardScroll()).toBe(0);
+  await page.keyboard.press("Escape");
+  await expect(help).toBeHidden();
 });
 
 test("Report bug: zrzut + opis trafia do hosta", async ({ page }) => {

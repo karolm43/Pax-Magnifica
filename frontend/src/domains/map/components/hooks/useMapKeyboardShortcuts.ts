@@ -1,7 +1,8 @@
+import { useCallback } from "react";
 import { useKeyboardShortcuts, type KeyboardShortcutsProps } from "@/hooks/useKeyboardShortcuts";
 import type { SettingsStore } from "@/state/appStore";
 
-// Centralizes the shared keyboard shortcut wiring used by both map layouts.
+// Wspólne podpięcie skrótów klawiszowych dla układów mapy.
 type ShortcutHandlers = Pick<
   SettingsStore["handlers"],
   | "toggleOverlays"
@@ -9,50 +10,39 @@ type ShortcutHandlers = Pick<
   | "toggleAttachmentsMode"
   | "togglePlanetTypesMode"
   | "togglePdsMode"
-  | "toggleLeftPanelCollapsed"
-  | "toggleRightPanelCollapsed"
-  | "updateSettings"
->;
-
-type ShortcutSettings = Pick<
-  SettingsStore["settings"],
-  "leftPanelCollapsed" | "rightPanelCollapsed"
+  | "setKeyboardShortcutsModalOpened"
 >;
 
 type UseMapKeyboardShortcutsParams = {
   handlers: ShortcutHandlers;
-  settings: ShortcutSettings;
   handleZoomIn: KeyboardShortcutsProps["handleZoomIn"];
   handleZoomOut: KeyboardShortcutsProps["handleZoomOut"];
   handleZoomFit?: KeyboardShortcutsProps["handleZoomFit"];
-  handleAreaSelect: KeyboardShortcutsProps["onAreaSelect"];
-  selectedArea: KeyboardShortcutsProps["selectedArea"];
+  scrollToBoard: KeyboardShortcutsProps["scrollToBoard"];
 };
 
 export function useMapKeyboardShortcuts({
   handlers,
-  settings,
   handleZoomIn,
   handleZoomOut,
   handleZoomFit,
-  handleAreaSelect,
-  selectedArea,
+  scrollToBoard,
 }: UseMapKeyboardShortcutsParams) {
+  const { setKeyboardShortcutsModalOpened } = handlers;
+  const openShortcutsHelp = useCallback(
+    () => setKeyboardShortcutsModalOpened(true),
+    [setKeyboardShortcutsModalOpened],
+  );
   useKeyboardShortcuts({
     toggleOverlays: handlers.toggleOverlays,
     toggleTechSkipsMode: handlers.toggleTechSkipsMode,
     toggleAttachmentsMode: handlers.toggleAttachmentsMode,
     togglePlanetTypesMode: handlers.togglePlanetTypesMode,
     togglePdsMode: handlers.togglePdsMode,
-    toggleLeftPanelCollapsed: handlers.toggleLeftPanelCollapsed,
-    toggleRightPanelCollapsed: handlers.toggleRightPanelCollapsed,
-    isLeftPanelCollapsed: settings.leftPanelCollapsed,
-    isRightPanelCollapsed: settings.rightPanelCollapsed,
-    updateSettings: handlers.updateSettings,
+    openShortcutsHelp,
     handleZoomIn,
     handleZoomOut,
     handleZoomFit,
-    onAreaSelect: handleAreaSelect,
-    selectedArea,
+    scrollToBoard,
   });
 }

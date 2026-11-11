@@ -309,20 +309,6 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             </SettingGroup>
           )}
 
-          <SettingGroup label="Interface">
-            <SwitchRow
-              label="Collapse left panel"
-              description="Hide the objectives and laws panel on the left of the map."
-              checked={settings.leftPanelCollapsed}
-              onToggle={() => handlers.toggleLeftPanelCollapsed()}
-            />
-            <SwitchRow
-              label="Collapse right panel"
-              description="Hide the player cards panel on the right of the map."
-              checked={settings.rightPanelCollapsed}
-              onToggle={() => handlers.toggleRightPanelCollapsed()}
-            />
-          </SettingGroup>
         </Tabs.Panel>
 
         <Tabs.Panel value="player-areas" className={styles.panel}>
