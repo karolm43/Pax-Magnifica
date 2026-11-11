@@ -10,14 +10,16 @@ Struktura warstw i konwencje: docs/ARCHITEKTURA_KODU.md.
 
 from __future__ import annotations
 
+import re
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src import config
@@ -39,6 +41,7 @@ from src.api.routers import (
     flow,
     game,
     history,
+    hold,
     invasion,
     offers,
     players,
@@ -97,6 +100,28 @@ def create_app(
     async def _value_error_as_422(_request: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"detail": str(exc)})
 
+    # Okno hold-play (RULES.md 53.6): gdy zagrana karta czeka na Sabotage, reszta gry stoi - akcje
+    # graczy (POST) poza zagraniem karty / pasem / zwolnieniem, God-Mode i Undo/Redo dają 422.
+    _held_allowed = re.compile(
+        r"(^|/)(action-card|god-mode|undo|redo|history|game/new|map/load|state|pause|resume)(/|$)"
+    )
+
+    @app.middleware("http")
+    async def _block_during_held_play(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        if request.method == "POST" and not _held_allowed.search(request.url.path):
+            held = request.app.state.ctx.service.current_state().held_play
+            if held is not None:
+                return JSONResponse(
+                    status_code=422,
+                    content={
+                        "detail": "A played card is waiting for a possible Sabotage - "
+                        "wait until the window closes."
+                    },
+                )
+        return await call_next(request)
+
     # CORS: dev-serwer Vite (5173) łączy się z backendem (8000).
     app.add_middleware(
         CORSMiddleware,
@@ -143,6 +168,7 @@ def create_app(
     app.include_router(rules.router)
     app.include_router(components.router)
     app.include_router(action_cards.router)
+    app.include_router(hold.router)
     app.include_router(offers.router)
     app.include_router(technology.router)
 

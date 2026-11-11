@@ -104,7 +104,7 @@ def activate_system(
             raise ValueError(
                 "A tactical action can only be performed during the action phase."
             )
-        if state.pending_window is not None:
+        if state.pending_window is not None or state.held_play is not None:
             raise ValueError(
                 "Cannot activate a system while a timing window is open - resolve it first."
             )

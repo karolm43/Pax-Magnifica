@@ -68,6 +68,19 @@ def _record_discards(state: GameState, player_id: str, cards: list[str]) -> None
         )
 
 
+def take_from_hand_to_table(state: GameState, player_id: str, card_id: str) -> None:
+    """Zdejmuje kartę akcji z ręki na stół (``held_play``; mutuje); ``ValueError`` bez karty."""
+    hand = state.players[player_id].private.action_cards
+    if card_id not in hand:
+        raise ValueError(f"You do not have the action card {card_id}.")
+    hand.remove(card_id)
+
+
+def return_table_card_to_hand(state: GameState, player_id: str, card_id: str) -> None:
+    """Odkłada kartę ze stołu (``held_play``) do ręki, by przeszła zwykłą ścieżką (mutuje)."""
+    state.players[player_id].private.action_cards.append(card_id)
+
+
 def take_from_discard(state: GameState, player_id: str, card_id: str) -> None:
     """Przenosi kartę akcji ze stosu odrzuconych do ręki gracza (Reverse Engineer; mutuje).
 

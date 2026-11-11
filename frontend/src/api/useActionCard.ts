@@ -38,24 +38,34 @@ export type ActionCardForm = {
   card_id: string;
   name: string;
   text: string;
+  /** Czego dotyczy karta teraz i co da (podgląd z silnika) — null, gdy brak. */
+  summary?: string | null;
   /** False = silnik nie automatyzuje karty: zagranie ją odrzuca, skutek rozstrzyga operator. */
   implemented: boolean;
   inputs: ActionCardInput[];
 };
 
 /** Pobiera formularz karty dla gracza (karta musi być w jego ręce, inaczej 422). */
-export function useActionCardForm(cardId: string | null, playerId: string | null) {
+export function useActionCardForm(
+  cardId: string | null,
+  playerId: string | null,
+  /** Migawka historii (hold-rewind): formularz liczony na stanie z tamtej chwili. */
+  seq?: number,
+) {
   return useQuery({
-    queryKey: ["actionCardForm", cardId, playerId],
+    queryKey: ["actionCardForm", cardId, playerId, seq ?? null],
     enabled: Boolean(cardId && playerId),
     // Opcje zależą od bieżącego stanu gry — nie cache'ujemy między otwarciami.
     staleTime: 0,
     gcTime: 0,
     retry: false,
     queryFn: async () => {
-      const url = `${BOT_ROOT}/action-card/${encodeURIComponent(cardId ?? "")}/inputs?player_id=${encodeURIComponent(
-        playerId ?? "",
-      )}`;
+      const id = encodeURIComponent(cardId ?? "");
+      const player = encodeURIComponent(playerId ?? "");
+      const url =
+        seq === undefined
+          ? `${BOT_ROOT}/action-card/${id}/inputs?player_id=${player}`
+          : `${BOT_ROOT}/hold/${id}/inputs?player_id=${player}&seq=${seq}`;
       const response = await fetch(url);
       if (!response.ok) {
         // 422 niesie powód z silnika (np. karty nie ma w ręce); inne kody = błąd serwera/trasy.
@@ -143,4 +153,45 @@ export function useActionCardPlayability(playerId: string | null, enabled: boole
       return Object.fromEntries(data.cards.map((card) => [card.card_id, card]));
     },
   });
+}
+
+/** Krok historii, do którego można się cofnąć kartą (HOLD, RULES.md 53.7). */
+export type HoldStep = {
+  seq: number;
+  label: string;
+  nextLabel?: string | null;
+  round: number;
+  phase: string;
+  stepsBack: number;
+  cards: { card_id: string; name: string; window: string }[];
+};
+
+export type HoldCandidates = { steps: HoldStep[]; limitReason: string | null };
+
+/** Kroki, do których gracz może się cofnąć z kartą (od najnowszego); odświeżane przy otwartym panelu. */
+export function useHoldCandidates(playerId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["holdCandidates", playerId],
+    enabled: Boolean(playerId) && enabled,
+    staleTime: 0,
+    refetchInterval: 3000,
+    retry: false,
+    queryFn: async (): Promise<HoldCandidates> => {
+      const response = await fetch(
+        `${BOT_ROOT}/hold/candidates?player_id=${encodeURIComponent(playerId ?? "")}`,
+      );
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+      const data = (await response.json()) as Partial<HoldCandidates>;
+      return { steps: data.steps ?? [], limitReason: data.limitReason ?? null };
+    },
+  });
+}
+
+/** Pas / zwolnienie okna Sabotage (``held_play``). Błędy (np. za wcześnie) są ignorowane. */
+export async function postHeld(action: "pass" | "release", actorId: string): Promise<void> {
+  await fetch(`${BOT_ROOT}/action-card/held/${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor_id: actorId }),
+  }).catch(() => undefined);
 }

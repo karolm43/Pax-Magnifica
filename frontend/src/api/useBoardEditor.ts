@@ -433,16 +433,19 @@ export function useBoardEditor() {
       playerId: string,
       cardId: string,
       params: Record<string, unknown>,
-    ): Promise<{ implemented: boolean }> => {
-      const response = await postRaw("/action-card/play", {
+      /** Migawka historii: karta zagrana przez HOLD (cofnięcie do tego kroku). */
+      seq?: number,
+    ): Promise<{ implemented: boolean; held: boolean }> => {
+      const response = await postRaw(seq === undefined ? "/action-card/play" : "/hold/play", {
         player_id: playerId,
         actor_id: playerId,
         card_id: cardId,
         params,
+        ...(seq === undefined ? {} : { seq }),
       });
-      const data = (await response.json()) as { implemented: boolean };
+      const data = (await response.json()) as { implemented: boolean; held?: boolean };
       await refresh();
-      return { implemented: data.implemented };
+      return { implemented: data.implemented, held: data.held === true };
     },
     [refresh],
   );

@@ -33,7 +33,7 @@ from src.core.hooks.action_card_inputs import (
     _multi,
     _option,
     _others,
-    _planet_name,
+    _planet_label,
     _player_label,
     _system_label,
 )
@@ -570,12 +570,14 @@ def decoy_inputs(
 ) -> list[dict[str, Any]]:
     window = reaction_cards.window_for(state, rules_hooks.bound_registry(), player_id, "decoy")
     active = state.systems.get(_active_position(window)) if window is not None else None
-    planets = [_option(p, _planet_name(registry, p)) for p in _owned_planets_in(active, player_id)]
+    planets = [
+        _option(p, _planet_label(state, registry, p)) for p in _owned_planets_in(active, player_id)
+    ]
     units = [
         _option(
             {"planet": planet, "base_type": base_type},
             f"{fleet_pool.unit_name(state, registry, player_id, base_type)} "
-            f"on {_planet_name(registry, planet)} ({index + 1})",
+            f"on {_planet_label(state, registry, planet)} ({index + 1})",
             option_id=f"{planet}:{base_type}:{index}",
         )
         for _position, planet, base_type, count in _ground_force_options(state, player_id)
@@ -756,9 +758,17 @@ def infiltrate_inputs(
         state, rules_hooks.bound_registry(), player_id, "infiltrate"
     )
     options = [
-        _option(w.ctx["planet"], _planet_name(registry, str(w.ctx["planet"]))) for w in matching
+        _option(w.ctx["planet"], _planet_label(state, registry, str(w.ctx["planet"])))
+        for w in matching
     ]
-    return [_choice("planet", "Planet you just gained control of", options)]
+    return [
+        _choice(
+            "planet",
+            "Planet you just gained control of",
+            options,
+            hint="Pick the planet you just took control of that the card applies to.",
+        )
+    ]
 
 
 @register_effect("action_cards:reparations")
@@ -818,7 +828,8 @@ def reparations_inputs(
         state, rules_hooks.bound_registry(), player_id, "reparations"
     )
     changed = [
-        _option(w.ctx["planet"], _planet_name(registry, str(w.ctx["planet"]))) for w in matching
+        _option(w.ctx["planet"], _planet_label(state, registry, str(w.ctx["planet"])))
+        for w in matching
     ]
     takers = {str(w.ctx["player"]) for w in matching}
     theirs = [p for taker in sorted(takers) for p in _ready_planets(state, taker)]
@@ -829,11 +840,11 @@ def reparations_inputs(
         _choice(
             "exhaust_planet",
             "Planet to exhaust (the taker's)",
-            [_option(p, _planet_name(registry, p)) for p in theirs] or [none],
+            [_option(p, _planet_label(state, registry, p)) for p in theirs] or [none],
         ),
         _choice(
             "ready_planet",
             "Planet of yours to ready",
-            [_option(p, _planet_name(registry, p)) for p in mine] or [none],
+            [_option(p, _planet_label(state, registry, p)) for p in mine] or [none],
         ),
     ]

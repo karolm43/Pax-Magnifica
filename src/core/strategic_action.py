@@ -156,7 +156,11 @@ def play_strategy_card(
     action_budget.require_free_action(state, player_id)
     if initiative in player.exhausted_strategy_cards:
         raise ValueError(f"Strategy card {initiative} was already played this round.")
-    if state.pending_window is not None or state.pending_strategy is not None:
+    if (
+        state.pending_window is not None
+        or state.pending_strategy is not None
+        or state.held_play is not None
+    ):
         raise ValueError(
             "Another timing window is already open - resolve it before the strategic action."
         )

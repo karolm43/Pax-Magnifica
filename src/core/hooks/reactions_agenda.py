@@ -48,7 +48,7 @@ from src.core.hooks.action_card_inputs import (
     _choice,
     _number,
     _option,
-    _planet_name,
+    _planet_label,
     _player_label,
     _system_label,
 )
@@ -157,7 +157,7 @@ def _outcome_label(state: GameState, registry: StaticDataRegistry, outcome: str)
         return _player_label(state, registry, outcome)
     planet = registry.planets.get(outcome)
     if planet is not None:
-        return planet.name
+        return _planet_label(state, registry, outcome)
     return outcome.replace("_", " ").title()
 
 
@@ -166,7 +166,13 @@ def _outcome_input(state: GameState, registry: StaticDataRegistry) -> Input:
     agenda = state.agenda
     outcomes = list(agenda.outcomes) if agenda is not None else []
     options = [_option(o, _outcome_label(state, registry, o)) for o in outcomes]
-    return _choice("outcome", "Predicted outcome", options)
+    return _choice(
+        "outcome",
+        "Predicted outcome",
+        options,
+        hint="Pick the outcome of the current agenda you predict; the rider pays off "
+        "if it wins.",
+    )
 
 
 def _player_options(
@@ -241,7 +247,7 @@ def _no_validation(
 
 # Construction Rider - place 1 space dock from your reinforcements on a planet you control.
 def _const_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
-    options = [_option(p, _planet_name(registry, p)) for p in controlled(state, player_id)]
+    options = [_option(p, _planet_label(state, registry, p)) for p in controlled(state, player_id)]
     return [_choice("planet", "Planet you control (for the space dock)", options)]
 
 

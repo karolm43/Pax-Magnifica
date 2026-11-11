@@ -1,0 +1,190 @@
+"""Hold-play: zagrana karta akcji czeka ~10 s na ewentualne Sabotage (RULES.md 53.6).
+
+Gdy ktoś zagrywa kartę akcji (ACTION albo reakcję), a inny gracz MÓGŁBY odpowiedzieć Sabotage, efekt
+karty nie wykonuje się od razu: karta wychodzi z ręki na stół (``GameState.held_play``), reszta gry
+stoi, a uprawnieni mogą zagrać Sabotage (przeciągnięciem) albo spasować. Efekt wykonuje się przy
+zwolnieniu (pasy wszystkich uprawnionych / upływ czasu), albo karta jest anulowana.
+
+**Filtr jawny (43.4 pkt 5).** O tym, czy okno w ogóle się otworzy, decydują WYŁĄCZNIE informacje
+jawne: czy w grze jest talia kart akcji, czy nie wszystkie Sabotage leżą na stosie odrzuconych i
+czy ktoś inny ma w ręce choć jedną kartę akcji (liczba kart w ręce jest jawna). Treść ręki NIGDY nie
+steruje zachowaniem - gracz bez Sabotage dostaje okno tak samo jak z Sabotage (i pasuje).
+
+Moduł jest CZYSTY: czas (``now``, s epoch) podaje wołający (router z zegara serwera); funkcje
+operują na klonie stanu, błąd = ``ValueError`` i zero zmian.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
+
+from src.core import card_draw
+from src.core.game_state import GameState, HeldPlay
+from src.core.registry import StaticDataRegistry
+
+HOLD_SECONDS = 10  # jak długo karta czeka na reakcję
+SABOTAGE_IDS: tuple[str, ...] = ("sabo1", "sabo2", "sabo3", "sabo4")
+
+
+def is_sabotage(card_id: str) -> bool:
+    """Czy to karta Sabotage (nie wywołuje okna hold i nie może być anulowana)."""
+    return card_id in SABOTAGE_IDS
+
+
+def require_no_hold(state: GameState) -> None:
+    """Brama: gdy karta czeka w ``held_play``, żadna inna akcja gracza nie jest legalna.
+
+    Raises:
+        ValueError: Trwa okno hold-play.
+    """
+    if state.held_play is not None:
+        raise ValueError(
+            "A played card is waiting for a possible Sabotage - wait until the window closes."
+        )
+
+
+def sabotage_possible(state: GameState) -> bool:
+    """Filtr jawny: czy Sabotage może jeszcze paść (jest talia i nie wszystkie odrzucone)."""
+    decks = state.decks
+    if not decks.action_card_deck and not decks.action_card_discard:
+        return False  # brak talii kart akcji (np. stan złożony ręcznie) - nic do czekania
+    discarded = sum(1 for card in decks.action_card_discard if is_sabotage(card))
+    return discarded < len(SABOTAGE_IDS)
+
+
+def eligible_players(state: GameState, player_id: str, card_id: str) -> list[str]:
+    """Inni gracze z >=1 kartą akcji w ręce (kolejność przy stole), gdy okno hold ma sens.
+
+    Pusta lista = karta wykonuje się natychmiast (zagrywana karta Sabotage, brak talii, wszystkie
+    Sabotage odrzucone, albo nikt inny nie ma kart akcji).
+    """
+    if is_sabotage(card_id) or not sabotage_possible(state):
+        return []
+    order = [pid for pid in state.seating_order if pid in state.players]
+    order += [pid for pid in sorted(state.players) if pid not in order]
+    return [
+        pid
+        for pid in order
+        if pid != player_id and state.players[pid].private.action_cards
+    ]
+
+
+def begin(
+    state: GameState,
+    player_id: str,
+    card_id: str,
+    params: Mapping[str, Any],
+    eligible: list[str],
+    *,
+    now: float,
+    is_action: bool,
+    window: Mapping[str, Any] | None = None,
+) -> GameState:
+    """Kładzie kartę na stole: wyjmuje ją z ręki i otwiera ``held_play`` (nowy stan).
+
+    Legalność zagrania i walidację parametrów robi wołający (``action_cards``); tu tylko mechanika.
+
+    Raises:
+        ValueError: Okno już trwa albo karty nie ma w ręce.
+    """
+    require_no_hold(state)
+    if not eligible:
+        raise ValueError("Nobody can respond - the card should resolve immediately.")
+    new_state = state.clone()
+    card_draw.take_from_hand_to_table(new_state, player_id, card_id)
+    new_state.held_play = HeldPlay(
+        player_id=player_id,
+        card_id=card_id,
+        params=dict(params),
+        opened_at=float(now),
+        eligible=list(eligible),
+        is_action=is_action,
+        window=dict(window) if window is not None else None,
+    )
+    return new_state
+
+
+def _held(state: GameState) -> HeldPlay:
+    if state.held_play is None:
+        raise ValueError("There is no card waiting for a response.")
+    return state.held_play
+
+
+def all_passed(held: HeldPlay) -> bool:
+    """Czy wszyscy uprawnieni spasowali."""
+    return all(pid in held.passed for pid in held.eligible)
+
+
+def expired(held: HeldPlay, now: float) -> bool:
+    """Czy minął czas okna (``HOLD_SECONDS`` od ``opened_at``)."""
+    return now - held.opened_at >= HOLD_SECONDS
+
+
+def can_respond(held: HeldPlay, player_id: str) -> bool:
+    """Czy gracz może jeszcze zagrać Sabotage (uprawniony i nie spasował)."""
+    return player_id in held.eligible and player_id not in held.passed
+
+
+def pass_hold(state: GameState, registry: StaticDataRegistry, actor_id: str) -> GameState:
+    """Pas uprawnionego gracza; po ostatnim pasie efekt karty wykonuje się od razu.
+
+    Raises:
+        ValueError: Brak okna, gracz nieuprawniony (np. zagrywający) albo już spasował.
+    """
+    held = _held(state)
+    if actor_id == held.player_id:
+        raise ValueError("You cannot pass for the other players.")
+    if actor_id not in held.eligible:
+        raise ValueError(f"{actor_id} cannot respond to this card.")
+    if actor_id in held.passed:
+        raise ValueError(f"{actor_id} has already passed.")
+    new_state = state.clone()
+    assert new_state.held_play is not None
+    new_state.held_play.passed = [*held.passed, actor_id]
+    if all_passed(new_state.held_play):
+        return resolve(new_state, registry)
+    return new_state
+
+
+def release(
+    state: GameState, registry: StaticDataRegistry, actor_id: str, *, now: float
+) -> GameState:
+    """Zwolnienie okna: wykonuje efekt karty, gdy wszyscy spasowali albo minął czas.
+
+    Raises:
+        ValueError: Brak okna, nieznany gracz albo okno jeszcze trwa.
+    """
+    held = _held(state)
+    if actor_id not in state.players:
+        raise ValueError(f"Unknown player: {actor_id}")
+    if not (all_passed(held) or expired(held, now)):
+        raise ValueError("The response window is still open.")
+    return resolve(state, registry)
+
+
+def resolve(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Wykonuje zapisany efekt karty (z zapisanymi ``params``) i odrzuca ją. Nowy stan."""
+    from src.core import action_cards  # lokalnie: action_cards importuje ten moduł
+
+    held = _held(state)
+    new_state = state.clone()
+    new_state.held_play = None
+    # Karta wraca na chwilę do ręki: efekt i odrzucenie przebiegają jak przy zagraniu natychmiast.
+    card_draw.return_table_card_to_hand(new_state, held.player_id, held.card_id)
+    action_cards.execute_played(new_state, registry, held)
+    return new_state
+
+
+def cancel_in_place(state: GameState) -> None:
+    """Anuluje czekającą kartę (Sabotage): idzie na odrzucone, efekt się nie wykonuje (mutuje).
+
+    Akcja tury zagrywającego pozostaje zużyta (zużył ją w chwili zagrania).
+
+    Raises:
+        ValueError: Brak okna.
+    """
+    held = _held(state)
+    state.held_play = None
+    card_draw.return_table_card_to_hand(state, held.player_id, held.card_id)
+    card_draw.discard_specific_action_cards(state, held.player_id, [held.card_id])

@@ -49,7 +49,7 @@ from src.core.hooks.action_card_inputs import (
     _multi,
     _number,
     _option,
-    _planet_name,
+    _planet_label,
     _system_label,
 )
 from src.core.models import TechnologyDef
@@ -526,13 +526,13 @@ def reveal_prototype_inputs(
     ready = payment.ready_planet_values(state, registry, player_id, "resources")
     spendable = economy.spendable_trade_goods(state, player_id)
     skips = [
-        _option(planet, f"{_planet_name(registry, planet)} (technology specialty)")
+        _option(planet, _planet_label(state, registry, planet, "skips 1 prerequisite"))
         for planet in technology.specialty_planets(state, registry, player_id)
     ]
     if technology.aida_ready(state, player_id):
         skips.append(_option(technology.AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
     pay_planets = [
-        _option(p, f"{_planet_name(registry, p)} ({value} resources)", p)
+        _option(p, _planet_label(state, registry, p, f"spend {value} resources"), p)
         for p, value in ready.items()
         if value > 0
     ]

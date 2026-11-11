@@ -116,7 +116,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
 | Kategoria | Komponentów | Z hookiem | % |
 |---|---:|---:|---:|
-| action_cards | 143 | 135 | 94.4 |
+| action_cards | 143 | 143 | 100.0 |
 | agendas | 123 | 0 | 0.0 |
 | explores | 80 | 0 | 0.0 |
 | relics | 24 | 0 | 0.0 |
@@ -146,17 +146,17 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 247 | 204 |
+| planety i eksploracja (control, exploration) | 247 | 203 |
 | walka (combat.*, space_cannon, bombardment) | 196 | 130 |
 | produkcja (production.*) | 177 | 136 |
 | ekonomia i płatności (economy, payment) | 168 | 147 |
-| karty (card_draw, promissory) | 145 | 121 |
-| status i odświeżanie (status_phase) | 144 | 123 |
+| karty (card_draw, promissory) | 145 | 117 |
+| status i odświeżanie (status_phase) | 144 | 122 |
 | ruch (movement.*) | 125 | 97 |
 | żetony dowodzenia (command_tokens) | 109 | 93 |
 | agenda i głosowanie (agenda_phase) | 98 | 79 |
 | technologie (technology) | 78 | 69 |
-| karty strategii i inicjatywa | 46 | 37 |
+| karty strategii i inicjatywa | 46 | 34 |
 | cele i punkty (objectives) | 45 | 41 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
@@ -266,9 +266,9 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `confusing` | Confusing Legal Text | — | when | TRIGGER (okno reakcji) | — | ✔ | Choose 1 player. That player is the elected player instead. |
 | `const_rider` | Construction Rider | — | after | TRIGGER (okno reakcji) | produkcja, planety i eksploracja, agenda i głosowanie | ✔ | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, place 1 space dock from your reinfo… |
 | `counterstroke` | Counterstroke | — | after | TRIGGER (okno reakcji) | żetony dowodzenia | ✔ | Return that command token to your tactic pool. |
-| `coup` | Coup d'Etat | — | when | TRIGGER (okno reakcji) | status i odświeżanie, karty strategii i inicjatywa | — | End that player's turn, the strategic action is not resolved and the strategy card is not exhausted. |
+| `coup` | Coup d'Etat | — | when | TRIGGER (okno reakcji) | status i odświeżanie, karty strategii i inicjatywa | ✔ | End that player's turn, the strategic action is not resolved and the strategy card is not exhausted. |
 | `courageous` | Courageous to the End | — | after | TRIGGER (okno reakcji) | walka | ✔ | Roll 2 dice. For each result equal to or greater than that ship's combat value, your opponent must choose and destroy 1 of their ships. |
-| `crashlanding` | Crash Landing | — | when | TRIGGER (okno reakcji) | planety i eksploracja | — | Place 1 of your ground forces from the space area of the active system onto a planet in that system other than Mecatol Rex; if the planet c… |
+| `crashlanding` | Crash Landing | — | when | TRIGGER (okno reakcji) | planety i eksploracja | ✔ | Place 1 of your ground forces from the space area of the active system onto a planet in that system other than Mecatol Rex; if the planet c… |
 | `cripple` | Cripple Defenses | — | action | — | walka, planety i eksploracja | ✔ | Choose 1 planet. Destroy each PDS on that planet. |
 | `crisis` | Crisis | — | at_end | — | — | ✔ | Skip the next player's turn. |
 | `deadly_plot` | Deadly Plot | — | during | REPLACE (instead of) | karty, planety i eksploracja, agenda i głosowanie, status i odświeżanie | ✔ | If you voted for or predicted another outcome, discard the agenda instead. The agenda is resolved with no effect and it is not replaced. Th… |
@@ -279,7 +279,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `dh4` | Direct Hit | — | after | TRIGGER (okno reakcji) | walka | ✔ | Destroy that ship. |
 | `diplo_rider` | Diplomacy Rider | — | after | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia, planety i eksploracja, agenda i głosowanie | ✔ | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, choose 1 system that contains a pla… |
 | `disable` | Disable | — | at_start | — | walka | ✔ | Your opponents' PDS units lose PLANETARY SHIELD and SPACE CANNON during this invasion. |
-| `disgrace` | Public Disgrace | — | when | TRIGGER (okno reakcji) | karty strategii i inicjatywa | — | That player must choose a different strategy card instead, if able. |
+| `disgrace` | Public Disgrace | — | when | TRIGGER (okno reakcji) | karty strategii i inicjatywa | ✔ | That player must choose a different strategy card instead, if able. |
 | `distinguished` | Distinguished Councilor | — | after | TRIGGER (okno reakcji) | agenda i głosowanie | ✔ | Cast 5 additional votes for that outcome. |
 | `divert_funding` | Divert Funding | — | action | — | technologie | ✔ | Return a non-unit upgrade, non-faction technology that you own to your technology deck. Then, research another technology. |
 | `dp1` | Diplomatic Pressure | — | when | TRIGGER (okno reakcji) | karty | ✔ | Choose another player. That player must give you 1 promissory note from their hand. |
@@ -357,10 +357,10 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `s_retreat2` | Skilled Retreat | — | at_start | — | ruch, walka, produkcja, żetony dowodzenia, karty | ✔ | Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends i… |
 | `s_retreat3` | Skilled Retreat | — | at_start | — | ruch, walka, produkcja, żetony dowodzenia, karty | ✔ | Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends i… |
 | `s_retreat4` | Skilled Retreat | — | at_start | — | ruch, walka, produkcja, żetony dowodzenia, karty | ✔ | Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends i… |
-| `sabo1` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | — | Cancel that action card. |
-| `sabo2` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | — | Cancel that action card. |
-| `sabo3` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | — | Cancel that action card. |
-| `sabo4` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | — | Cancel that action card. |
+| `sabo1` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | ✔ | Cancel that action card. |
+| `sabo2` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | ✔ | Cancel that action card. |
+| `sabo3` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | ✔ | Cancel that action card. |
+| `sabo4` | Sabotage | — | when | TRIGGER (okno reakcji) | karty | ✔ | Cancel that action card. |
 | `salvage` | Salvage | — | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | Your opponent gives you all of their commodities. |
 | `sanction` | Sanction | — | after | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia, agenda i głosowanie | ✔ | You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your prediction is correct, each player that voted for that out… |
 | `scramble` | Scramble Frequency | — | after | TRIGGER (okno reakcji) | — | ✔ | That player rerolls all of their dice. |
@@ -373,7 +373,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `silence_space` | In The Silence Of Space | — | after | TRIGGER (okno reakcji) | ruch | ✔ | Choose 1 system. During this tactical action, your ships in the chosen system can move through systems that contain other players' ships. |
 | `solar_flare` | Solar Flare | — | after | TRIGGER (okno reakcji) | ruch, walka | ✔ | During the "Movement" step of this tactical action, other players cannot use SPACE CANNON against your ships. |
 | `spy` | Spy | — | action | — | karty | ✔ | Choose 1 player. That player gives you 1 random action card from their hand. |
-| `stability` | Political Stability | — | when | TRIGGER (okno reakcji) | karty strategii i inicjatywa | — | Do not return your strategy card(s). You do not choose strategy cards during the next strategy phase. |
+| `stability` | Political Stability | — | when | TRIGGER (okno reakcji) | karty strategii i inicjatywa | ✔ | Do not return your strategy card(s). You do not choose strategy cards during the next strategy phase. |
 | `strategize1` | Strategize | — | action | — | karty strategii i inicjatywa | ✔ | Perform the secondary ability of any readied or unchosen strategy card. |
 | `strategize2` | Strategize | — | action | — | karty strategii i inicjatywa | ✔ | Perform the secondary ability of any readied or unchosen strategy card. |
 | `strategize3` | Strategize | — | action | — | karty strategii i inicjatywa | ✔ | Perform the secondary ability of any readied or unchosen strategy card. |

@@ -16,10 +16,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import economy, payment, secret_objectives
+from src.core import economy, payment, planet_stats, secret_objectives
 from src.core.components import ComponentCategory
 from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState, SystemState
+from src.core.hooks import card_labels
 from src.core.hooks.card_helpers import controlled
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
@@ -78,38 +79,51 @@ def _planet_name(registry: StaticDataRegistry, planet_id: str) -> str:
     return planet.name if planet is not None else planet_id
 
 
+def _planet_label(
+    state: GameState, registry: StaticDataRegistry, planet_id: str, effect: str = ""
+) -> str:
+    """Planeta z zasobami/wpływem/cechami/systemem (+ ``effect`` = „→ skutek”)."""
+    return card_labels.describe_planet(state, registry, planet_id, effect=effect)
+
+
 def _system_label(registry: StaticDataRegistry, system: SystemState) -> str:
-    definition = registry.systems.get(system.system_id)
-    names = [_planet_name(registry, p) for p in (definition.planets if definition else [])]
-    return f"{', '.join(names)} ({system.position})" if names else f"Tile {system.position}"
+    """System: pozycja + planety ze statystykami (bazowymi)."""
+    return card_labels.describe_system_state(registry, system)
 
 
 def _player_label(state: GameState, registry: StaticDataRegistry, player_id: str) -> str:
-    player = state.players[player_id]
-    faction = registry.factions.get(player.faction) if player.faction else None
-    name = faction.name if faction is not None else player_id
-    return f"{name} ({player.color})" if player.color else name
+    return card_labels.describe_player(state, registry, player_id)
 
 
 def _others(state: GameState, player_id: str) -> list[str]:
     return [pid for pid in state.players if pid != player_id]
 
 
-def _own_planets(state: GameState, registry: StaticDataRegistry, player_id: str) -> Input:
-    options = [_option(p, _planet_name(registry, p)) for p in controlled(state, player_id)]
-    return _choice("planet", "Planet you control", options)
+def _mining_effect(state: GameState, registry: StaticDataRegistry, planet: str) -> str:
+    """Skutek Mining Initiative dla planety (zasoby = tyle trade goods)."""
+    value = planet_stats.resources_of(state, registry, planet)
+    return f"+{value} trade good{'' if value == 1 else 's'}"
 
 
 @register_effect_inputs("action_cards:mining_initiative")
 def mining_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
-    return [_own_planets(state, registry, player_id)]
+    options = [
+        _option(p, _planet_label(state, registry, p, _mining_effect(state, registry, p)))
+        for p in controlled(state, player_id)
+    ]
+    hint = (
+        "Pick the planet whose resource value you gain as trade goods "
+        "(the number after the arrow)."
+    )
+    return [_choice("planet", "Planet you control", options, hint=hint)]
 
 
 @register_effect_inputs("action_cards:f_deployment")
 def deployment_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[Input]:
-    return [_own_planets(state, registry, player_id)]
+    options = [_option(p, _planet_label(state, registry, p)) for p in controlled(state, player_id)]
+    return [_choice("planet", "Planet you control", options)]
 
 
 @register_effect_inputs("action_cards:unexpected")
@@ -139,21 +153,43 @@ def insubordination_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[Input]:
     options = [
-        _option(pid, _player_label(state, registry, pid))
+        _option(
+            pid,
+            f"{_player_label(state, registry, pid)} · "
+            f"{state.players[pid].tactical_cc} token(s) in the tactic pool",
+        )
         for pid in _others(state, player_id)
         if state.players[pid].tactical_cc > 0
     ]
-    return [_choice("player", "Player (needs a token in the tactic pool)", options)]
+    return [
+        _choice(
+            "player",
+            "Player (needs a token in the tactic pool)",
+            options,
+            hint="Pick the player whose tactic-pool command token the card affects.",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:spy")
 def spy_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
     options = [
-        _option(pid, _player_label(state, registry, pid))
+        _option(
+            pid,
+            f"{_player_label(state, registry, pid)} · "
+            f"{len(state.players[pid].private.action_cards)} action card(s) in hand",
+        )
         for pid in _others(state, player_id)
         if state.players[pid].private.action_cards
     ]
-    return [_choice("player", "Player who has action cards", options)]
+    return [
+        _choice(
+            "player",
+            "Player who has action cards",
+            options,
+            hint="Pick the player whose action cards the card targets.",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:repeal")
@@ -162,7 +198,14 @@ def repeal_inputs(state: GameState, registry: StaticDataRegistry, _player_id: st
     for law in sorted(state.decks.agenda_laws):
         card = registry.catalog.get(ComponentCategory.AGENDA, law)
         options.append(_option(law, card.name if card is not None and card.name else law))
-    return [_choice("law", "Law in play", options)]
+    return [
+        _choice(
+            "law",
+            "Law in play",
+            options,
+            hint="Pick the law currently in play that the card affects (see the card text).",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:impersonation")
@@ -171,19 +214,25 @@ def impersonation_inputs(
 ) -> list[Input]:
     ready = payment.ready_planet_values(state, registry, player_id, "influence")
     planets = [
-        _option(p, f"{_planet_name(registry, p)} ({value} influence)", p)
+        _option(p, _planet_label(state, registry, p, f"spend {value} influence"), p)
         for p, value in ready.items()
         if value > 0
     ]
     inputs = [
         _multi(
-            "planets", "Planets to exhaust", planets, 0, len(planets), "Spend at least 3 influence."
+            "planets",
+            "Planets to exhaust",
+            planets,
+            0,
+            len(planets),
+            "Exhaust ready planets (and/or trade goods) to pay at least 3 influence.",
         ),
         _number(
             "trade_goods",
             "Trade goods to spend",
             0,
             economy.spendable_trade_goods(state, player_id),
+            "Trade goods you spend towards the 3 influence payment.",
         ),
     ]
     if secret_objectives.over_limit_after_draw(state, player_id):
@@ -204,8 +253,15 @@ def cripple_inputs(state: GameState, registry: StaticDataRegistry, _player_id: s
         for planet, by_player in system.planet_units.items()
         if any(units.get("pds", 0) > 0 for units in by_player.values())
     }
-    options = [_option(p, _planet_name(registry, p)) for p in sorted(planets)]
-    return [_choice("planet", "Planet with a PDS", options)]
+    options = [_option(p, _planet_label(state, registry, p)) for p in sorted(planets)]
+    return [
+        _choice(
+            "planet",
+            "Planet with a PDS",
+            options,
+            hint="Pick the planet with a PDS that the card targets (see the card text).",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:plague")
@@ -214,11 +270,21 @@ def plague_inputs(state: GameState, registry: StaticDataRegistry, player_id: str
     for system in state.systems.values():
         for planet, owner in system.planet_owners.items():
             if owner != player_id and count_in_zone(system, planet, owner, "infantry") > 0:
+                have = count_in_zone(system, planet, owner, "infantry")
                 label = (
-                    f"{_planet_name(registry, planet)} ({_player_label(state, registry, owner)})"
+                    f"{_planet_label(state, registry, planet)} · "
+                    f"{_player_label(state, registry, owner)} · {have} infantry"
                 )
                 options.append(_option(planet, label))
-    return [_choice("planet", "Planet controlled by another player", options)]
+    return [
+        _choice(
+            "planet",
+            "Planet controlled by another player",
+            options,
+            hint="Pick the planet controlled by another player that the card targets "
+            "(owner and infantry count are shown).",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:lucky")
@@ -247,9 +313,21 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
         for system in state.systems.values():
             have = count_in_zone(system, planet, player_id, "infantry")
             for index in range(have):
-                label = f"{_planet_name(registry, planet)}: infantry {index + 1}"
+                label = (
+                    f"{unit_name(state, registry, player_id, 'infantry')} {index + 1} of {have} "
+                    f"on {_planet_label(state, registry, planet)}"
+                )
                 options.append(_option(planet, label, f"{planet}#{index}"))
-    return [_multi("planets", "Infantry to replace with mechs", options, 1, _MAX_PICKS)]
+    return [
+        _multi(
+            "planets",
+            "Infantry to replace with mechs",
+            options,
+            1,
+            _MAX_PICKS,
+            "Pick 1 or 2 of your infantry; each is replaced with a mech on the same planet.",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:scuttle")

@@ -153,6 +153,8 @@ def _require_action_turn(state: GameState, player_id: str | None) -> None:
     """
     if state.phase is not Phase.ACTION:
         raise ValueError("A turn can only be ended/passed during the action phase.")
+    if state.held_play is not None:  # okno hold-play (core/card_hold.py, RULES.md 53.6)
+        raise ValueError("A played card is waiting for a possible Sabotage - wait for it.")
     if state.active_player_id is None:
         raise ValueError("No active player in the action phase.")
     if player_id is not None and player_id != state.active_player_id:
@@ -166,8 +168,11 @@ def end_turn(
     player_id: str | None = None,
     *,
     registry: StaticDataRegistry | None = None,
+    forced: bool = False,
 ) -> GameState:
     """Kończy turę aktywnego gracza i przekazuje ją następnemu niespasowanemu.
+
+    ``forced=True`` (Coup d'Etat, RULES.md 53.7): tura kończy się BEZ wymogu wykonania akcji.
 
     JEDYNE miejsce oddające turę w fazie akcji (RULES.md 31.2). Działa tak samo po
     zwykłej akcji, jak i po pasie: spasowany gracz (``passed=True``) również kończy
@@ -235,7 +240,8 @@ def end_turn(
     assert current is not None  # zagwarantowane przez _require_action_turn
     current_player = state.players.get(current)
     if (
-        current_player is not None
+        not forced
+        and current_player is not None
         and not current_player.took_action_this_turn
         and not current_player.passed
     ):
@@ -475,6 +481,8 @@ def next_phase(state: GameState) -> GameState:
         ValueError: Przy STRATEGY→ACTION, gdy wybór kart strategii nie jest
             ukończony (propaguje z ``ensure_strategy_complete``).
     """
+    if state.held_play is not None:  # okno hold-play (core/card_hold.py, RULES.md 53.6)
+        raise ValueError("A played card is waiting for a possible Sabotage - wait for it.")
     # Walidacja PRZED zmianą fazy: przy ValueError faza zostaje bez zmian (R9.2–R9.4).
     if state.phase is Phase.STRATEGY:
         ensure_strategy_complete(state)

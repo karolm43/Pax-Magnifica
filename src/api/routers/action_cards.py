@@ -9,11 +9,14 @@ from src.api.schemas import (
     ActionCardInputsResponse,
     ActionCardPlayability,
     ActionCardPlayabilityResponse,
+    HeldActionRequest,
     PlayActionCardRequest,
     PlayActionCardResponse,
+    StateEnvelope,
 )
-from src.core import action_cards
+from src.core import action_cards, card_hold
 from src.core.components import ComponentCategory
+from src.core.game_state import GameState
 
 router = APIRouter()
 
@@ -49,6 +52,9 @@ async def get_action_card_inputs(
         text=" ".join(card.texts.values()),
         implemented=implemented,
         inputs=inputs,
+        summary=action_cards.card_summary(
+            ctx.service.current_state(), ctx.registry, player_id, card_id
+        ),
     )
 
 
@@ -69,10 +75,51 @@ async def post_play_action_card(
             request.card_id,
             request.params,
             actor_id=request.actor_id,
+            now=ctx.service.now(),  # czas serwera włącza okno hold-play (RULES.md 53.6)
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    ctx.service.replace_state(new_state, label=f"action-card:{request.card_id}")
+    held = new_state.held_play is not None
+    label = f"action-card:{request.card_id}" + (":held" if held else "")
+    ctx.service.replace_state(new_state, label=label)
     await ctx.service.broadcast()
     await ctx.broadcast_map()
-    return PlayActionCardResponse(envelope=ctx.service.envelope(), implemented=implemented)
+    return PlayActionCardResponse(
+        envelope=ctx.service.envelope(), implemented=implemented, held=held
+    )
+
+
+async def _commit_held(ctx: AppContext, new_state: GameState, label: str) -> StateEnvelope:
+    ctx.service.replace_state(new_state, label=label)
+    await ctx.service.broadcast()
+    await ctx.broadcast_map()
+    return ctx.service.envelope()
+
+
+@router.post("/action-card/held/pass", response_model=StateEnvelope)
+async def post_held_pass(
+    request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Pas uprawnionego gracza w oknie hold-play; ostatni pas wykonuje efekt karty."""
+    try:
+        new_state = card_hold.pass_hold(
+            ctx.service.current_state(), ctx.registry, request.actor_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    label = "action-card:held-release" if new_state.held_play is None else "action-card:held-pass"
+    return await _commit_held(ctx, new_state, label)
+
+
+@router.post("/action-card/held/release", response_model=StateEnvelope)
+async def post_held_release(
+    request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Zwalnia okno hold-play (wszyscy spasowali albo minął czas wg zegara serwera)."""
+    try:
+        new_state = card_hold.release(
+            ctx.service.current_state(), ctx.registry, request.actor_id, now=ctx.service.now()
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_held(ctx, new_state, "action-card:held-release")

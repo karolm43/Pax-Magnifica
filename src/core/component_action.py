@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import action_budget, rules_hooks, technology_abilities, triggers
+from src.core import action_budget, card_hold, rules_hooks, technology_abilities, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 
@@ -60,6 +60,7 @@ def play_component_action(
         raise ValueError(
             f"It is not {player_id}'s turn (active: {state.active_player_id})."
         )
+    card_hold.require_no_hold(state)
     if state.pending_window is not None:
         raise ValueError(
             "Cannot perform a component action while a timing window is open - "

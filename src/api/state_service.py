@@ -60,10 +60,22 @@ class StateService:
 
     # --- Mutacje --------------------------------------------------------
 
-    def replace_state(self, state: GameState, label: str = "replace") -> StateEnvelope:
-        """Nadpisuje cały stan (God-Mode) i commituje nową migawkę."""
+    def recent_chain(self, limit: int) -> list[tuple[int, str, GameState]]:
+        """Ostatnie ``limit`` migawek do bieżącej włącznie (hold-rewind): ``(seq, label, stan)``."""
+        return self._store.recent_chain(limit)
+
+    def replace_state(
+        self, state: GameState, label: str = "replace", *, branch_from: int | None = None
+    ) -> StateEnvelope:
+        """Nadpisuje cały stan (God-Mode) i commituje nową migawkę.
+
+        ``branch_from`` (hold-rewind, RULES.md 53.7): migawka, od której historia się rozgałęzia
+        (późniejsze kroki są odrzucane jednym atomowym zapisem, jak przy Undo + nowa akcja).
+        """
         # Koniec gry po progu VP z DOWOLNEGO źródła (nie tylko punktowania celów).
-        before = self._store.current()
+        before = (
+            self._store.load(branch_from) if branch_from is not None else self._store.current()
+        )
         # Wormhole Nexus odwraca się na stronę aktywną, gdy pojawi się w nim jednostka/kontrola.
         after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
         # Zegar szachowy: rozlicz czas holdera i przełącz go wg nowego stanu (RULES.md 58).
@@ -73,6 +85,7 @@ class StateService:
             after,
             label=label,
             activity_json=entry.model_dump_json() if entry else None,
+            branch_from=branch_from,
         )
         return self.envelope()
 

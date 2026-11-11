@@ -25,7 +25,9 @@ hookiem o źródle ``SOURCE_EFFECT`` (``card_effect_source``) - wygasa przez ``t
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -114,6 +116,59 @@ def declare_reaction(
         )
 
 
+HindsightFn = Callable[[GameState, GameState, OpenWindow], dict[str, Any]]
+_HINDSIGHT: dict[str, HindsightFn] = {}
+_FUTURE: ContextVar[GameState | None] = ContextVar("reaction_future_state", default=None)
+
+
+def register_hindsight(card_id: str, fn: HindsightFn) -> None:
+    """Rejestruje „wiedzę z przyszłości" karty zagrywanej przez hold-rewind (RULES.md 53.7).
+
+    ``fn(state_at_window, future_state, window) -> dict`` zwraca dodatkowe klucze doklejane do
+    ``window.ctx`` (np. którą kartę strategii gracz wybrał w cofniętym kroku). Działa TYLKO
+    wewnątrz :func:`hindsight_scope` (cofnięcie do migawki); w zwykłej ścieżce okno otwarte
+    TERAZ nie ma przyszłości i dane nie są doklejane (warunek karty to wie: :func:`in_hindsight`).
+    """
+    _HINDSIGHT[card_id] = fn
+
+
+@contextmanager
+def hindsight_scope(future_state: GameState) -> Iterator[None]:
+    """Włącza doklejanie danych z przyszłości (stan PO cofanym kroku) do okien kart."""
+    token = _FUTURE.set(future_state)
+    try:
+        yield
+    finally:
+        _FUTURE.reset(token)
+
+
+def in_hindsight() -> bool:
+    """Czy trwa ocena okien na migawce z przeszłości (hold-rewind)."""
+    return _FUTURE.get() is not None
+
+
+def _with_hindsight(state: GameState, card_id: str, window: OpenWindow) -> OpenWindow:
+    future = _FUTURE.get()
+    fn = _HINDSIGHT.get(card_id)
+    if future is None or fn is None:
+        return window
+    return OpenWindow(window.event, window.moment, {**window.ctx, **fn(state, future, window)})
+
+
+_REWINDABLE: set[str] = set()
+
+
+def declare_rewindable(*card_ids: str) -> None:
+    """Oznacza karty, które można zagrać przez hold-rewind (cofnięcie do okna, które minęło)."""
+    _REWINDABLE.update(card_ids)
+
+
+def is_rewindable(card_id: str) -> bool:
+    """Czy kartę wolno zagrać przez hold-rewind (``core/hold_rewind.py``, RULES.md 53.7)."""
+    _ensure_loaded()
+    return card_id in _REWINDABLE
+
+
 def card_effect_source(card_id: str) -> HookSource:
     """Źródło hooków efektu trwałego karty (``active_effects.add_effect(key=...)``)."""
     return HookSource(SOURCE_EFFECT, f"action_cards:{card_id}")
@@ -189,6 +244,7 @@ def matching_windows(
     for window in open_windows(state):
         if (window.event, window.moment) not in spec.points:
             continue
+        window = _with_hindsight(state, card_id, window)
         if not _subject_ok(spec, player_id, window):
             continue
         if spec.condition is not None and not spec.condition(state, registry, player_id, window):

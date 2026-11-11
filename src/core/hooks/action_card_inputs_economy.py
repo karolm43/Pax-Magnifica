@@ -13,6 +13,7 @@ from src.core import economy, payment, technology
 from src.core.components import ComponentCategory
 from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState
+from src.core.hooks import card_labels
 from src.core.hooks import card_targets_economy as targets
 from src.core.hooks.action_card_inputs import (
     Input,
@@ -20,7 +21,7 @@ from src.core.hooks.action_card_inputs import (
     _multi,
     _number,
     _option,
-    _planet_name,
+    _planet_label,
     _player_label,
     _system_label,
 )
@@ -36,13 +37,13 @@ _DECK_LABELS = {"cultural": "Cultural", "hazardous": "Hazardous", "industrial": 
 
 
 def _tech_options(techs: list[TechnologyDef]) -> list[dict[str, Any]]:
-    return [_option(t.id, t.name or t.id) for t in techs]
+    return [_option(t.id, card_labels.describe_technology(t)) for t in techs]
 
 
 def _skip_input(state: GameState, registry: StaticDataRegistry, player_id: str) -> Input:
     """Planety ze specjalnością (i AIDA), którymi można pokryć brakujące prerekwizyty."""
     options = [
-        _option(planet, f"{_planet_name(registry, planet)} (technology specialty)")
+        _option(planet, _planet_label(state, registry, planet, "skips 1 prerequisite"))
         for planet in technology.specialty_planets(state, registry, player_id)
     ]
     if technology.aida_ready(state, player_id):
@@ -75,7 +76,7 @@ def brilliance_inputs(
     options = [
         _option(
             {"mode": "ready_planet", "planet": planet},
-            f"Ready {_planet_name(registry, planet)}",
+            f"Ready {_planet_label(state, registry, planet)}",
             f"ready:{planet}",
         )
         for planet in targets.specialty_planets_owned(state, registry, player_id)
@@ -141,7 +142,7 @@ def plagiarize_inputs(
             who = ", ".join(_player_label(state, registry, pid) for pid in owners)
             options.append(_option(tech_id, f"{tech.name or tech_id} ({who})"))
     planets = [
-        _option(p, f"{_planet_name(registry, p)} ({value} influence)", p)
+        _option(p, _planet_label(state, registry, p, f"spend {value} influence"), p)
         for p, value in ready.items()
         if value > 0
     ]
@@ -175,10 +176,21 @@ def seize_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
 @register_effect_inputs("action_cards:uprising")
 def uprising_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
     options = [
-        _option(planet, f"{_planet_name(registry, planet)} ({_player_label(state, registry, o)})")
+        _option(
+            planet,
+            f"{_planet_label(state, registry, planet)} · {_player_label(state, registry, o)}",
+        )
         for planet, o in targets.uprising_targets(state, registry, player_id)
     ]
-    return [_choice("planet", "Non-home planet controlled by another player", options)]
+    return [
+        _choice(
+            "planet",
+            "Non-home planet controlled by another player",
+            options,
+            hint="Pick the non-home planet of another player that the card targets "
+            "(owner shown after the planet).",
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:probe")
@@ -202,8 +214,8 @@ def unstable_inputs(
                 have = count_in_zone(system, planet, owner, "infantry")
                 most = max(most, have)
                 label = (
-                    f"{_planet_name(registry, planet)} ({_player_label(state, registry, owner)}, "
-                    f"{have} infantry)"
+                    f"{_planet_label(state, registry, planet)} · "
+                    f"{_player_label(state, registry, owner)} · {have} infantry"
                 )
                 options.append(_option(planet, label))
     return [
@@ -227,7 +239,7 @@ def meltdown_inputs(state: GameState, registry: StaticDataRegistry, player_id: s
         _option(
             {"planet": planet, "owner": owner},
             f"{unit_name(state, registry, owner, targets.SPACE_DOCK)} on "
-            f"{_planet_name(registry, planet)} ({_player_label(state, registry, owner)})",
+            f"{_planet_label(state, registry, planet)} · {_player_label(state, registry, owner)}",
             f"{planet}:{owner}",
         )
         for planet, owner in targets.meltdown_targets(state, registry, player_id)

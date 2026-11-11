@@ -364,6 +364,41 @@ def covered_components() -> frozenset[str]:
     return frozenset(covered | set(_EFFECTS) | _DATA_DRIVEN)
 
 
+# Podgląd skutku efektu (UI: „dotyczy: …"): (stan, rejestr, gracz) -> krótki tekst.
+PreviewFn = Callable[[GameState, Any, str], str]
+_PREVIEWS: dict[str, PreviewFn] = {}
+
+
+def register_effect_preview(component_key: str) -> Callable[[PreviewFn], PreviewFn]:
+    """Rejestruje podgląd skutku efektu liczony z bieżącego stanu (pole ``summary`` formularza)."""
+
+    def decorate(fn: PreviewFn) -> PreviewFn:
+        if component_key in _PREVIEWS:
+            raise ValueError(f"Preview already registered for {component_key}.")
+        _PREVIEWS[component_key] = fn
+        return fn
+
+    return decorate
+
+
+def preview_for(component_key: str) -> PreviewFn | None:
+    """Podgląd skutku komponentu albo ``None``."""
+    _ensure_loaded()
+    return _PREVIEWS.get(component_key)
+
+
+def all_previews() -> list[str]:
+    """Klucze komponentów z zarejestrowanym podglądem."""
+    _ensure_loaded()
+    return sorted(_PREVIEWS)
+
+
+def all_input_keys() -> list[str]:
+    """Klucze komponentów z zarejestrowanym formularzem wyborów."""
+    _ensure_loaded()
+    return sorted(_INPUTS)
+
+
 _BOUND_REGISTRY: Any = None
 
 

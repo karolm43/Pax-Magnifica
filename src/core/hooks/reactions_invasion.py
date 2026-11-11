@@ -47,7 +47,7 @@ from src.core.hooks.action_card_inputs import (
     _choice,
     _multi,
     _option,
-    _planet_name,
+    _planet_label,
 )
 from src.core.reaction_cards import (
     OTHER,
@@ -464,14 +464,16 @@ def ghost_squad_inputs(
     window = _window_or_none(state, registry, player_id, "ghost_squad")
     system = state.systems.get(str(window.ctx.get("position"))) if window else None
     mine = _controlled_in(system, player_id)
-    destinations = [_option(p, _planet_name(registry, p)) for p in mine] if len(mine) >= 2 else []
+    destinations = (
+        [_option(p, _planet_label(state, registry, p)) for p in mine] if len(mine) >= 2 else []
+    )
     units: list[dict[str, Any]] = []
     if system is not None and len(mine) >= 2:
         for planet in mine:
             for base_type, count in sorted(_ground(system, planet, player_id).items()):
                 for index in range(count):
                     label = (
-                        f"{_planet_name(registry, planet)}: "
+                        f"{_planet_label(state, registry, planet)}: "
                         f"{unit_name(state, registry, player_id, base_type)} {index + 1}"
                     )
                     value = {"planet": planet, "base_type": base_type}
@@ -540,7 +542,7 @@ def parley_inputs(state: GameState, registry: StaticDataRegistry, player_id: str
         system = state.systems.get(str(window.ctx.get("position")))
         mine = set(_controlled_in(system, player_id))
         options = [
-            _option(p, _planet_name(registry, p))
+            _option(p, _planet_label(state, registry, p))
             for p in window.ctx.get("planets", [])
             if p in mine
         ]
@@ -628,7 +630,7 @@ def experimental_inputs(
     """Doki gracza w aktywnym systemie albo w sąsiednim (źródło ostrzału)."""
     options: list[dict[str, Any]] = []
     for position, zone in docks_for_experimental(state, registry, player_id):
-        where = "in orbit" if zone == "space" else f"on {_planet_name(registry, zone)}"
+        where = "in orbit" if zone == "space" else f"on {_planet_label(state, registry, zone)}"
         label = f"Space dock {where} (system {position})"
         options.append(_option({"position": position, "zone": zone}, label, f"{position}:{zone}"))
     return [_choice("dock", "Space dock that fires", options)]

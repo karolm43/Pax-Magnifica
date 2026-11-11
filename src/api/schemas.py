@@ -1342,6 +1342,14 @@ class PlayActionCardResponse(BaseModel):
 
     envelope: StateEnvelope
     implemented: bool
+    # True = efekt czeka w ``held_play`` na ewentualne Sabotage (RULES.md 53.6).
+    held: bool = False
+
+
+class HeldActionRequest(BaseModel):
+    """Pas / zwolnienie okna hold-play (``/action-card/held/pass`` i ``.../release``)."""
+
+    actor_id: str
 
 
 class ActionCardInputsResponse(BaseModel):
@@ -1352,6 +1360,8 @@ class ActionCardInputsResponse(BaseModel):
     text: str
     implemented: bool
     inputs: list[dict[str, Any]]
+    # Krótki opis „dotyczy: …" z bieżącego stanu gracza (None = brak podglądu dla karty).
+    summary: str | None = None
 
 
 class ActionCardPlayability(BaseModel):

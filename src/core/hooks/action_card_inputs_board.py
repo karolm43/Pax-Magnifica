@@ -15,7 +15,7 @@ from src.core.hooks.action_card_inputs import (
     _multi,
     _number,
     _option,
-    _planet_name,
+    _planet_label,
     _player_label,
     _system_label,
 )
@@ -46,10 +46,14 @@ def _label(state: GameState, registry: StaticDataRegistry, position: str) -> str
 
 
 def _position_choice(
-    state: GameState, registry: StaticDataRegistry, positions: list[str], label: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    positions: list[str],
+    label: str,
+    hint: str = "",
 ) -> Input:
     options = [_option(p, _label(state, registry, p)) for p in positions]
-    return _choice("position", label, options)
+    return _choice("position", label, options, hint=hint)
 
 
 @register_effect_inputs("action_cards:f_conscription")
@@ -71,7 +75,8 @@ def ghost_ship_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[Input]:
     targets = ghost_ship_targets(state, registry, player_id)
-    return [_position_choice(state, registry, targets, "Non-home system with a wormhole")]
+    hint = "Pick the non-home system with a wormhole that receives the card's effect."
+    return [_position_choice(state, registry, targets, "Non-home system with a wormhole", hint)]
 
 
 @register_effect_inputs("action_cards:jamming")
@@ -84,7 +89,10 @@ def jamming_inputs(state: GameState, registry: StaticDataRegistry, player_id: st
         )
         value = {"position": position, "player": other}
         options.append(_option(value, label, f"{position}:{other}"))
-    return [_choice("target", "System and player whose token is placed", options, merge=True)]
+    hint = "Pick the system and the player whose command token there is affected by the card."
+    return [
+        _choice("target", "System and player whose token is placed", options, merge=True, hint=hint)
+    ]
 
 
 @register_effect_inputs("action_cards:mercenarycontract")
@@ -95,15 +103,22 @@ def mercenary_inputs(
     for position, planet in mercenary_targets(state, registry, player_id):
         system = state.systems.get(position)
         owner = system.planet_owners.get(planet) if system is not None else None
-        suffix = f" (controlled by {_player_label(state, registry, owner)})" if owner else ""
+        suffix = f" · controlled by {_player_label(state, registry, owner)}" if owner else ""
         value = {"position": position, "planet": planet}
-        options.append(_option(value, f"{_planet_name(registry, planet)}{suffix}", planet))
-    return [_choice("target", "Planet without units (costs 2 trade goods)", options, merge=True)]
+        label = f"{_planet_label(state, registry, planet)}{suffix}"
+        options.append(_option(value, label, planet))
+    hint = "Pick the planet without units that the card targets; it costs 2 trade goods."
+    return [
+        _choice(
+            "target", "Planet without units (costs 2 trade goods)", options, merge=True, hint=hint
+        )
+    ]
 
 
 def _pirate_inputs(state: GameState, registry: StaticDataRegistry) -> Input:
     targets = pirate_targets(state, registry)
-    return _position_choice(state, registry, targets, "System without non-neutral ships")
+    hint = "Pick the system without non-neutral ships that the card targets (see the card text)."
+    return _position_choice(state, registry, targets, "System without non-neutral ships", hint)
 
 
 @register_effect_inputs("action_cards:piratecontract1")
@@ -123,7 +138,7 @@ def pirate_fleet_inputs(
 ) -> list[Input]:
     ready = payment.ready_planet_values(state, registry, player_id, "resources")
     planets = [
-        _option(p, f"{_planet_name(registry, p)} ({value} resources)", p)
+        _option(p, _planet_label(state, registry, p, f"spend {value} resources"), p)
         for p, value in ready.items()
         if value > 0
     ]
@@ -140,7 +155,13 @@ def pirate_fleet_inputs(
             len(planets),
             f"Spend at least {_PIRATE_FLEET_COST} resources.",
         ),
-        _number("trade_goods", "Trade goods to spend", 0, spendable),
+        _number(
+            "trade_goods",
+            "Trade goods to spend",
+            0,
+            spendable,
+            f"Trade goods you spend towards the {_PIRATE_FLEET_COST} resources.",
+        ),
     ]
 
 
@@ -162,11 +183,14 @@ def exchange_inputs(state: GameState, registry: StaticDataRegistry, player_id: s
                     "my_planet": my_planet,
                 }
                 label = (
-                    f"{who}: agreed, your infantry to {_planet_name(registry, theirs)}, "
-                    f"theirs to {_planet_name(registry, my_planet)}"
+                    f"{who}: agreed, your infantry to {_planet_label(state, registry, theirs)}, "
+                    f"theirs to {_planet_label(state, registry, my_planet)}"
                 )
                 options.append(_option(value, label, f"{partner}:{theirs}:{my_planet}"))
-    return [_choice("target", "Player and result of the negotiation", options, merge=True)]
+    hint = "Pick the other player and the outcome of your negotiation (swap planets or no deal)."
+    return [
+        _choice("target", "Player and result of the negotiation", options, merge=True, hint=hint)
+    ]
 
 
 def _strategy_card_options(
@@ -182,7 +206,8 @@ def _strategy_card_options(
 
 def _initiative_input(state: GameState, registry: StaticDataRegistry) -> Input:
     options = _strategy_card_options(state, registry)
-    return _choice("initiative", "Readied or unchosen strategy card", options)
+    hint = "Pick the strategy card (initiative number and name) the action card applies to."
+    return _choice("initiative", "Readied or unchosen strategy card", options, hint=hint)
 
 
 @register_effect_inputs("action_cards:overrule")

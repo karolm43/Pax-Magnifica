@@ -70,6 +70,7 @@ class EventStore:
         state: GameState,
         label: str = "commit",
         activity_json: str | None = None,
+        branch_from: int | None = None,
     ) -> int:
         """Zapisuje migawkę stanu jako nową pozycję bieżącą.
 
@@ -79,11 +80,22 @@ class EventStore:
         ``activity_json`` to opcjonalny wpis feedu aktywności (``core.activity``),
         zapisany razem z migawką, by feed przeżył restart i szedł za Undo/Redo.
 
+        ``branch_from`` (hold-rewind, RULES.md 53.7): zamiast bieżącej pozycji historia jest
+        obcinana PO wskazanej migawce, a nowa migawka staje się jej następnikiem - jeden
+        atomowy zapis rozgałęziający historię (bez pośredniego ``goto``).
+
         Returns:
             Numer sekwencyjny (``seq``) zapisanej migawki.
+
+        Raises:
+            KeyError: ``branch_from`` nie istnieje.
         """
         with self._lock:
             current = self._current_seq()
+            if branch_from is not None:
+                if not self._exists(branch_from):
+                    raise KeyError(f"No snapshot with seq={branch_from}")
+                current = branch_from
             if current is not None:
                 self._conn.execute("DELETE FROM snapshots WHERE seq > ?", (current,))
 
@@ -214,9 +226,42 @@ class EventStore:
             self._conn.commit()
             return self._load(seq)
 
+    def load(self, seq: int) -> GameState | None:
+        """Odczyt stanu migawki ``seq`` BEZ zmiany wskaźnika (None, gdy nie istnieje)."""
+        with self._lock:
+            if not self._exists(seq):
+                return None
+            return self._load(seq)
+
+    def recent_chain(self, limit: int) -> list[tuple[int, str, GameState]]:
+        """Ostatnie ``limit`` migawek aż do bieżącej włącznie: ``(seq, label, stan)`` rosnąco.
+
+        To liniowa droga od przeszłości do teraźniejszości (migawki za wskaźnikiem - gałąź
+        "redo" - nie wchodzą). Odczyt bez zmiany wskaźnika.
+        """
+        with self._lock:
+            current = self._current_seq()
+            if current is None:
+                return []
+            rows = self._conn.execute(
+                "SELECT seq, label, state_json FROM snapshots WHERE seq <= ?"
+                " ORDER BY seq DESC LIMIT ?",
+                (current, max(1, limit)),
+            ).fetchall()
+            return [
+                (int(r["seq"]), str(r["label"]), GameState.model_validate_json(r["state_json"]))
+                for r in reversed(rows)
+            ]
+
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+    def _exists(self, seq: int) -> bool:
+        return (
+            self._conn.execute("SELECT 1 FROM snapshots WHERE seq = ?", (seq,)).fetchone()
+            is not None
+        )
 
     # --- Wewnętrzne -----------------------------------------------------
 

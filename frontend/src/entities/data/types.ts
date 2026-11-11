@@ -559,6 +559,8 @@ export type GameState = {
   pendingOffers?: { id: string; playerId: string; mandatory: boolean; label: string }[];
   /** Wieloetapowe primary karty strategii (wybory aktywnego gracza) — null, gdy brak. */
   pendingStrategy?: PendingStrategy | null;
+  /** Zagrana karta akcji czekająca ~10 s na Sabotage (RULES.md 53.6) — null, gdy brak. */
+  heldPlay?: HeldPlayData | null;
   /** Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — null po zakończeniu. */
   setup?: GameSetup | null;
   /**
@@ -790,6 +792,19 @@ export type PendingWindow = {
  * gracza krok po kroku. ``ownerId`` (player_id) adresuje odpowiedź, ``ownerColor``
  * dopasowuje gracza w UI; ``step`` mówi, jaki wybór jest teraz wymagany.
  */
+export type HeldPlayData = {
+  /** Id graczy (jak ``actor_id``), nie kolory. */
+  playerId: string;
+  playerColor?: string;
+  cardId: string;
+  cardName: string;
+  text: string;
+  openedAt: number;
+  holdSeconds: number;
+  eligible: string[];
+  passed: string[];
+};
+
 export type PendingStrategy = {
   initiative: number;
   ownerId: string;

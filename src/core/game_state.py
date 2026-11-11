@@ -814,6 +814,29 @@ class ActionDiscardTrace(BaseModel):
     card: str
 
 
+class HeldPlay(BaseModel):
+    """Zagrana karta akcji CZEKAJĄCA na ewentualną reakcję Sabotage (RULES.md 53.6).
+
+    Karta leży jawnie na stole (wyszła z ręki), a jej efekt jeszcze się NIE wykonał. Okno kończy się
+    pasami wszystkich uprawnionych, upływem czasu albo anulowaniem. ``opened_at`` to czas serwera
+    (s epoch) podany przez router - silnik sam zegara nie czyta (``core/card_hold.py``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    card_id: str
+    params: dict[str, Any] = Field(default_factory=dict)
+    opened_at: float
+    # Inni gracze z >=1 kartą akcji w ręce w chwili zagrania (kto może zagrać Sabotage / spasować).
+    eligible: list[str] = Field(default_factory=list)
+    passed: list[str] = Field(default_factory=list)
+    # Czy to karta okna ACTION (akcja komponentu, po efekcie odpala się "po akcji") czy reakcja.
+    is_action: bool = True
+    # Okno, na które reaguje karta reakcji (``OpenWindow.as_dict()``); None dla kart ACTION.
+    window: dict[str, Any] | None = None
+
+
 class BonusTurn(BaseModel):
     """Dodatkowa akcja gracza, który już spasował (Puppets on a String), poza kolejką tur.
 
@@ -889,6 +912,8 @@ class GameState(BaseModel):
     # Trwające wieloetapowe PRIMARY karty strategii (wybory aktywnego gracza) — None, gdy
     # brak. Blokuje End turn i inne akcje do czasu rozstrzygnięcia (RULES.md 30.5).
     pending_strategy: StrategyResolution | None = None
+    # Zagrana karta akcji czekająca na ewentualne Sabotage (``core/card_hold.py``, RULES.md 53.6).
+    held_play: HeldPlay | None = None
     # Generator losowy silnika (rzuty kośćmi — ``core/dice.py``). ``rng_seed`` = 0 oznacza
     # „jeszcze nie zasiane": pierwszy rzut losuje ziarno i zapisuje je w stanie. Ziarno +
     # licznik są częścią stanu, więc Undo/Redo i powtórka migawki dają TE SAME wyniki.

@@ -17,6 +17,10 @@ type Props = {
   cardName: string;
   /** Gracz zagrywający kartę (aktywny w fazie akcji). */
   playerId: string;
+  /** Migawka historii (HOLD): karta zostanie zagrana po cofnięciu gry do tego kroku. */
+  seq?: number;
+  /** Co zostanie cofnięte (etykieta kroku), pokazywane przy HOLD. */
+  rewindNote?: string;
 };
 
 /** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (też dla ofert technologii). */
@@ -77,8 +81,16 @@ export function InputField({
  * wyborów z backendu (``/action-card/{id}/inputs``) — front nie zna kart. Silnik waliduje
  * wszystko ponownie; przy błędzie powód pojawia się w komunikacie, a okno zostaje otwarte.
  */
-export function ActionCardPlayModal({ onClose, onPlayed, cardId, cardName, playerId }: Props) {
-  const form = useActionCardForm(cardId, playerId);
+export function ActionCardPlayModal({
+  onClose,
+  onPlayed,
+  cardId,
+  cardName,
+  playerId,
+  seq,
+  rewindNote,
+}: Props) {
+  const form = useActionCardForm(cardId, playerId, seq);
   const { playActionCard } = useBoardEditor();
   const setNotice = useAppStore((state) => state.setNotice);
   const [values, setValues] = useState<Record<string, FormValue>>({});
@@ -96,7 +108,10 @@ export function ActionCardPlayModal({ onClose, onPlayed, cardId, cardName, playe
   const play = async () => {
     setBusy(true);
     try {
-      const result = await playActionCard(playerId, cardId, params);
+      const result = await playActionCard(playerId, cardId, params, seq);
+      if (result.held) {
+        setNotice(`${cardName} is on the table - other players may answer with Sabotage.`, "info");
+      }
       if (!result.implemented) {
         setNotice(
           `${cardName} is not automated yet - it was played and discarded. Resolve its effect by hand.`,
@@ -122,7 +137,14 @@ export function ActionCardPlayModal({ onClose, onPlayed, cardId, cardName, playe
         )}
         {form.data && (
           <>
+            {seq !== undefined && (
+              <Text size="sm" c="orange">
+                HOLD: the game goes back to this step{rewindNote ? ` (${rewindNote})` : ""} and
+                everything after it is undone.
+              </Text>
+            )}
             <Text size="sm" c="dimmed">{form.data.text}</Text>
+            {form.data.summary && <Text size="sm" fw={600}>{form.data.summary}</Text>}
             {!form.data.implemented && (
               <Text size="sm">
                 The engine does not automate this card yet. Playing it counts as your action and

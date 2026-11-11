@@ -30,6 +30,8 @@ import {
 } from "@/utils/localStorageSettings";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import { useGameData } from "@/state/useGameContext";
+import { HoldControls } from "./HoldControls";
+import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import { useActionCardPlayability, type ActionCardPlayability } from "@/api/useActionCard";
 import styles from "./BottomHandDock.module.css";
@@ -354,6 +356,8 @@ export function BottomHandDock() {
           })}
         </div>
 
+        {active.discordId && <HoldControls playerId={active.discordId} />}
+
         <UnstyledButton
           className={styles.collapse}
           aria-expanded={open}
@@ -401,6 +405,14 @@ export function BottomHandDock() {
         </div>
       )}
     </section>
+
+    <HeldPlayBanner
+      viewerId={active.discordId ?? null}
+      onNeedHand={() => {
+        setOpen(true);
+        setTab("actions");
+      }}
+    />
 
     {/* Strefa zagrania - poza <section>, bo transform doku zmieniłby pozycję `fixed`. */}
     {dragCard && (

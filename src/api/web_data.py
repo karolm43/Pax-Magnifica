@@ -32,6 +32,7 @@ from src.api import web_agenda, web_objectives, web_setup
 from src.core import (
     action_budget,
     agenda_phase,
+    card_hold,
     game_clock,
     production,
     space_cannon,
@@ -43,7 +44,7 @@ from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
 from src.core.army_strength import ArmyStrength, army_strength_by_player
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
-from src.core.components import ComponentCategory
+from src.core.components import ActionCardDef, ComponentCategory
 from src.core.expedition_state import EXPEDITION_SLICES
 from src.core.fracture import is_fracture_position
 from src.core.game_state import GameState, PlayerState
@@ -210,6 +211,32 @@ def _pending_strategy(state: GameState) -> dict[str, Any] | None:
     }
 
 
+def _held_play(state: GameState, registry: StaticDataRegistry) -> dict[str, Any] | None:
+    """Kontrakt ``heldPlay``: karta czekająca na Sabotage (lub None).
+
+    Identyfikatory graczy to ``player_id`` (adresują ``actor_id`` w ``/action-card/held/*``);
+    addytywnie dochodzą kolory (``playerColor`` / ``eligibleColors`` / ``passedColors``).
+    ``openedAt`` = czas serwera (s epoch). Karta jest jawna, więc tekst i nazwa z katalogu.
+    """
+    held = state.held_play
+    if held is None:
+        return None
+    card = registry.catalog.get(ComponentCategory.ACTION_CARD, held.card_id)
+    return {
+        "playerId": held.player_id,
+        "playerColor": _color_of(state, held.player_id),
+        "cardId": held.card_id,
+        "cardName": (card.name if card is not None and card.name else held.card_id),
+        "text": " ".join(card.texts.values()) if isinstance(card, ActionCardDef) else "",
+        "openedAt": held.opened_at,
+        "holdSeconds": card_hold.HOLD_SECONDS,
+        "eligible": list(held.eligible),
+        "passed": list(held.passed),
+        "eligibleColors": [c for pid in held.eligible if (c := _color_of(state, pid))],
+        "passedColors": [c for pid in held.passed if (c := _color_of(state, pid))],
+    }
+
+
 def _active_combat(state: GameState) -> dict[str, Any] | None:
     """Kontrakt ``GameStateCombat`` AsyncTI4 dla trwającej walki (lub None).
 
@@ -356,6 +383,9 @@ def _build_game_state(
         ],
         # Wieloetapowe PRIMARY karty strategii (wybory aktywnego gracza) — None, gdy brak.
         "pendingStrategy": _pending_strategy(state),
+        # Zagrana karta akcji czekająca na ewentualne Sabotage (hold-play, RULES.md 53.6) —
+        # JAWNA (leży na stole). None, gdy brak okna.
+        "heldPlay": _held_play(state, registry),
         # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — None po zakończeniu.
         # Nasze rozszerzenie kontraktu; okno setupu na froncie. RULES.md 43.
         "setup": web_setup.build_setup_payload(state),

@@ -13,11 +13,28 @@ akumulacja +1 TG na niewybranych kartach na koniec fazy, oznaczenie karty jako z
 
 from __future__ import annotations
 
-from src.core import economy, exhaust, triggers
+from src.core import active_effects, economy, exhaust, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.models import StrategyCardDef
 from src.core.registry import StaticDataRegistry
+
+# Klucze efektów kart reakcji wpływających na wybór/zwrot kart strategii (RULES.md 53.7).
+DISGRACE_KEY = "action_cards:disgrace"  # Public Disgrace: data["forbidden"] = zakazane inicjatywy
+STABILITY_KEY = "action_cards:stability"  # Political Stability: karty strategii nie wracają
+
+
+def retains_strategy_cards(state: GameState, player_id: str) -> bool:
+    """Czy Political Stability sprawia, że karty strategii gracza NIE wracają do puli."""
+    return active_effects.has_effect(state, player_id, STABILITY_KEY)
+
+
+def forbidden_picks(state: GameState, player_id: str) -> set[int]:
+    """Inicjatywy, których gracz nie może teraz wybrać (Public Disgrace)."""
+    forbidden: set[int] = set()
+    for effect in active_effects.effects_for(state, player_id, DISGRACE_KEY):
+        forbidden.update(int(i) for i in effect.data.get("forbidden", []))
+    return forbidden
 
 
 def available_initiatives(
@@ -212,6 +229,18 @@ def pick_strategy_card(
     if len(state.players[player_id].strategy_cards) >= allowed:
         raise ValueError(f"Allowed number of cards exceeded ({allowed}).")
 
+    # Public Disgrace (RULES.md 53.7): gracz musi wybrać INNĄ kartę, o ile jest dostępna.
+    forbidden = forbidden_picks(state, player_id)
+    if initiative in forbidden:
+        taken = picked_initiatives(state)
+        if any(
+            i not in taken and i not in forbidden
+            for i in available_initiatives(registry, set_alias)
+        ):
+            raise ValueError(
+                f"Public Disgrace: you must choose a different strategy card than {initiative}."
+            )
+
     new_state = state.clone()
     fired = triggers.fire(
         new_state, GameEvent.STRATEGY_CARD_CHOSEN, Moment.WHEN, subject=player_id,
@@ -227,6 +256,7 @@ def pick_strategy_card(
     new_state.strategy_card_tg[initiative] = 0
     # Lista kart utrzymywana rosnąco (R5.1) — ustala poprawną inicjatywę tur.
     player.strategy_cards = sorted([*player.strategy_cards, initiative])
+    active_effects.remove_by_key(new_state, DISGRACE_KEY, owner=player_id)  # zakaz spełniony
     # Przekaż turę wyboru następnemu graczowi w speaker order. Gdy wszyscy już
     # wybrali (picker = None), faza jest gotowa do przejścia w akcję, ale aktywny
     # NIE staje się None — wskazuje MÓWCĘ, który ogłosi tranzycję przez /phase/next
@@ -358,7 +388,10 @@ def reset_strategy_cards(state: GameState) -> GameState:
     """
     new_state = state.clone()
     for player_id, player in new_state.players.items():
-        player.strategy_cards = []
+        # Political Stability (RULES.md 53.7): karty zostają u gracza (jest "gotowy"), a w
+        # następnej fazie strategii nie wybiera - ``next_strategy_picker`` pomija go samo.
+        if not retains_strategy_cards(new_state, player_id):
+            player.strategy_cards = []
         exhaust.ready_all_strategy_cards(new_state, player_id)
     # Nowa faza strategii zaczyna wybierać mówca (speaker) — RULES.md 24.
     # Fallback na mówcę przy niepełnym secie (picker = None), by nie zostawić
@@ -375,7 +408,10 @@ def close_round_cards(state: GameState, registry: StaticDataRegistry) -> GameSta
     Gdy nikt już nie trzyma kart (zwrócono je w kroku 8 fazy statusu — RULES.md 41), nic
     nie robi: akumulacja TG i reset już się odbyły. Inaczej: ``accumulate`` → ``reset``.
     """
-    if not any(player.strategy_cards for player in state.players.values()):
+    if not any(
+        player.strategy_cards and not retains_strategy_cards(state, player_id)
+        for player_id, player in state.players.items()
+    ):
         return state.clone()
     return reset_strategy_cards(accumulate_unpicked_tg(state, registry))
 

@@ -15,10 +15,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_draw, component_action, reaction_cards, rules_hooks, triggers
+from src.core import card_draw, card_hold, component_action, reaction_cards, rules_hooks, triggers
 from src.core.components import ActionCardDef, ComponentCategory, ComponentRef
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import GameState
+from src.core.game_state import GameState, HeldPlay
 from src.core.registry import StaticDataRegistry
 from src.core.timing_spec import TriggerKind
 
@@ -49,7 +49,22 @@ def card_inputs(
     if rules_hooks.effect_for(key) is None:
         return False, []
     inputs_fn = rules_hooks.inputs_for(key)
-    return True, (inputs_fn(state, registry, player_id) if inputs_fn is not None else [])
+    inputs = inputs_fn(state, registry, player_id) if inputs_fn is not None else []
+    card = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
+    assert isinstance(card, ActionCardDef)
+    from src.core.hooks import card_labels  # lokalnie: pakiet hooks importuje ten moduł
+
+    return True, card_labels.with_default_hints(
+        inputs, card.name or card_id, " ".join(card.texts.values())
+    )
+
+
+def card_summary(
+    state: GameState, registry: StaticDataRegistry, player_id: str, card_id: str
+) -> str | None:
+    """Krótki opis „dotyczy: …" z bieżącego stanu gracza (``None`` = brak podglądu dla karty)."""
+    preview = rules_hooks.preview_for(effect_key(card_id))
+    return preview(state, registry, player_id) if preview is not None else None
 
 
 def _has_legal_choices(inputs: list[dict[str, Any]]) -> bool:
@@ -90,7 +105,13 @@ def playability(
             ok, reason, _window = reaction_cards.available(state, registry, player_id, card_id)
             implemented, inputs = card_inputs(state, registry, player_id, card_id)
             entry["implemented"] = implemented
-            if not ok:
+            if state.held_play is not None and not card_hold.is_sabotage(card_id):
+                entry["reason"] = "A played card is waiting for a possible Sabotage."
+            elif state.held_play is not None and not card_hold.can_respond(
+                state.held_play, player_id
+            ):
+                entry["reason"] = "You can no longer respond to this card."
+            elif not ok:
                 entry["reason"] = reason
             elif implemented and not _has_legal_choices(inputs):
                 entry["reason"] = "No legal target for this card right now."
@@ -119,6 +140,7 @@ def _play_reaction_card(
     player_id: str,
     card_id: str,
     params: Mapping[str, Any],
+    now: float | None = None,
 ) -> tuple[GameState, bool]:
     """Zagranie karty REAKCJI (when/after/before/at start/at end) w otwartym oknie.
 
@@ -130,16 +152,76 @@ def _play_reaction_card(
     if not ok or window is None:
         raise ValueError(reason or "There is no open window for this card right now.")
     new_state = state.clone()
+    window_dict = window.as_dict()
+    eligible = card_hold.eligible_players(new_state, player_id, card_id) if now is not None else []
+    if now is not None and eligible:
+        # Walidacja parametrów na kopii (błąd = zero zmian); efekt dopiero przy zwolnieniu.
+        probe = new_state.clone()
+        _run_reaction(probe, registry, player_id, card_id, params, window_dict)
+        held = card_hold.begin(
+            new_state, player_id, card_id, params, eligible, now=now, is_action=False,
+            window=window_dict,
+        )
+        return held, rules_hooks.effect_for(effect_key(card_id)) is not None
+    implemented = _run_reaction(new_state, registry, player_id, card_id, params, window_dict)
+    return new_state, implemented
+
+
+def _run_reaction(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    card_id: str,
+    params: Mapping[str, Any],
+    window: Mapping[str, Any],
+) -> bool:
+    """Wykonuje zagranie karty reakcji (mutuje ``state``): zdarzenie, efekt, odrzucenie."""
     triggers.fire(
-        new_state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
+        state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
         ctx={"player": player_id, "card": card_id},
     )
     effect = rules_hooks.effect_for(effect_key(card_id))
     if effect is not None:
-        with_window = {**params, reaction_cards.WINDOW_KEY: window.as_dict()}
-        effect(new_state, registry, player_id, with_window)
-    card_draw.discard_specific_action_cards(new_state, player_id, [card_id])
-    return new_state, effect is not None
+        with_window = {**params, reaction_cards.WINDOW_KEY: dict(window)}
+        effect(state, registry, player_id, with_window)
+    card_draw.discard_specific_action_cards(state, player_id, [card_id])
+    return effect is not None
+
+
+def _run_action(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    card_id: str,
+    params: Mapping[str, Any],
+) -> bool:
+    """Wykonuje efekt karty ACTION (mutuje ``state``; akcję tury zużył wołający)."""
+    triggers.fire(
+        state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "card": card_id},
+    )
+    effect = rules_hooks.effect_for(effect_key(card_id))
+    if effect is not None:
+        effect(state, registry, player_id, params)
+    card_draw.discard_specific_action_cards(state, player_id, [card_id])
+    triggers.fire(
+        state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "component": card_id},
+    )
+    return effect is not None
+
+
+def execute_played(state: GameState, registry: StaticDataRegistry, held: HeldPlay) -> bool:
+    """Wykonuje efekt karty z ``held_play`` (wołane przez ``card_hold.resolve``; mutuje ``state``).
+
+    Karta musi być już z powrotem w ręce zagrywającego. Dla karty ACTION akcja tury była zużyta
+    przy zagraniu, więc tu nie jest zużywana ponownie.
+    """
+    if held.is_action:
+        return _run_action(state, registry, held.player_id, held.card_id, held.params)
+    return _run_reaction(
+        state, registry, held.player_id, held.card_id, held.params, held.window or {}
+    )
 
 
 def play_action_card(
@@ -150,6 +232,7 @@ def play_action_card(
     params: Mapping[str, Any] | None = None,
     *,
     actor_id: str | None = None,
+    now: float | None = None,
 ) -> tuple[GameState, bool]:
     """Aktywny gracz zagrywa kartę akcji z oknem ``ACTION`` (jego akcja w turze).
 
@@ -163,9 +246,15 @@ def play_action_card(
 
     Raises:
         ValueError: Karta nieznana / spoza ręki / nie ma okna ACTION, nie ta tura, złe parametry.
+
+    ``now`` (s epoch z zegara serwera) włącza okno hold-play (``core/card_hold.py``): gdy ktoś inny
+    mógłby odpowiedzieć Sabotage, efekt czeka w ``state.held_play`` (wynik: stan z ``held_play``).
+    Bez ``now`` karta wykonuje się natychmiast, jak dotąd.
     """
     if actor_id is not None and actor_id != player_id:
         raise ValueError(f"{actor_id} cannot play a card for {player_id}.")
+    if state.held_play is not None and not card_hold.is_sabotage(card_id):
+        card_hold.require_no_hold(state)  # w trakcie okna wolno tylko Sabotage
     player = state.players.get(player_id)
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
@@ -176,21 +265,19 @@ def play_action_card(
         raise ValueError(f"Unknown action card: {card_id}")
     spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
     if spec is None or spec.trigger is not TriggerKind.ACTION:
-        return _play_reaction_card(state, registry, player_id, card_id, params or {})
+        return _play_reaction_card(state, registry, player_id, card_id, params or {}, now)
 
     new_state = component_action.play_component_action(
         state, player_id, card_id, fire_after=False
     )
-    triggers.fire(
-        new_state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
-        ctx={"player": player_id, "card": card_id},
-    )
-    effect = rules_hooks.effect_for(effect_key(card_id))
-    if effect is not None:
-        effect(new_state, registry, player_id, params or {})
-    card_draw.discard_specific_action_cards(new_state, player_id, [card_id])
-    triggers.fire(
-        new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=player_id,
-        ctx={"player": player_id, "component": card_id},
-    )
-    return new_state, effect is not None
+    eligible = card_hold.eligible_players(new_state, player_id, card_id) if now is not None else []
+    if now is not None and eligible:
+        # Walidacja parametrów na kopii (błąd = zero zmian); efekt dopiero przy zwolnieniu.
+        probe = new_state.clone()
+        _run_action(probe, registry, player_id, card_id, params or {})
+        held = card_hold.begin(
+            new_state, player_id, card_id, params or {}, eligible, now=now, is_action=True
+        )
+        return held, rules_hooks.effect_for(effect_key(card_id)) is not None
+    implemented = _run_action(new_state, registry, player_id, card_id, params or {})
+    return new_state, implemented

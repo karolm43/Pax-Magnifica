@@ -1,0 +1,108 @@
+import { useState } from "react";
+import { IconPlayerPause, IconX } from "@tabler/icons-react";
+import { useHoldCandidates, type HoldStep } from "@/api/useActionCard";
+import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
+import styles from "./HoldControls.module.css";
+
+type Pick = { step: HoldStep; cardId: string; cardName: string };
+
+/**
+ * Przycisk HOLD (RULES.md 53.7): "chciałem zagrać kartę, ale gra poszła dalej". Pokazuje kroki
+ * historii, do których wolno się cofnąć (silnik wyklucza kości, dobrania, zmianę fazy i limit
+ * kroków), a przy każdym - karty z ręki zagrywalne w tamtym oknie. Wybór karty otwiera zwykły
+ * formularz, liczony na stanie z tamtej chwili; potwierdzenie cofa grę i zagrywa kartę.
+ */
+export function HoldControls({ playerId }: { playerId: string }) {
+  const [open, setOpen] = useState(false);
+  const [pick, setPick] = useState<Pick | null>(null);
+  const { data, isLoading } = useHoldCandidates(playerId, open);
+  const steps = data?.steps ?? [];
+
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.holdBtn}
+        data-open={open || undefined}
+        aria-expanded={open}
+        title="Hold: go back to a step where you wanted to play a card"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <IconPlayerPause size={14} aria-hidden="true" />
+        <span>Hold</span>
+      </button>
+
+      {open && (
+        <aside className={styles.panel} aria-label="Hold - play a card in an earlier step">
+          <header className={styles.head}>
+            <b>Play a card in an earlier step</b>
+            <button
+              type="button"
+              className={styles.close}
+              aria-label="Close"
+              onClick={() => setOpen(false)}
+            >
+              <IconX size={14} aria-hidden="true" />
+            </button>
+          </header>
+          <p className={styles.note}>
+            The game returns to the step you pick and everything after it is undone. It is not
+            possible after dice were rolled, cards were drawn or revealed, or the phase changed.
+          </p>
+          {isLoading && <p className={styles.empty}>Looking through the history…</p>}
+          {!isLoading && steps.length === 0 && (
+            <p className={styles.empty}>
+              {data?.limitReason
+                ? `Nothing to go back to: ${data.limitReason}`
+                : "None of your cards can be played in an earlier step."}
+            </p>
+          )}
+          <ol className={styles.steps}>
+            {steps.map((step) => (
+              <li key={step.seq} className={styles.step}>
+                <div className={styles.stepHead}>
+                  <b>{step.stepsBack === 0 ? "Right now" : `${step.stepsBack} step(s) back`}</b>
+                  <span>{step.nextLabel ? `undoes: ${step.nextLabel}` : step.label}</span>
+                </div>
+                <div className={styles.cards}>
+                  {step.cards.map((card) => (
+                    <button
+                      key={card.card_id}
+                      type="button"
+                      className={styles.cardBtn}
+                      title={card.window}
+                      onClick={() =>
+                        setPick({ step, cardId: card.card_id, cardName: card.name })
+                      }
+                    >
+                      {card.name}
+                    </button>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ol>
+          {steps.length > 0 && data?.limitReason && (
+            <p className={styles.note}>Further back is blocked: {data.limitReason}</p>
+          )}
+        </aside>
+      )}
+
+      {pick && (
+        <ActionCardPlayModal
+          key={`${pick.cardId}-${pick.step.seq}`}
+          cardId={pick.cardId}
+          cardName={pick.cardName}
+          playerId={playerId}
+          seq={pick.step.seq}
+          rewindNote={pick.step.nextLabel ?? pick.step.label}
+          onClose={() => setPick(null)}
+          onPlayed={() => {
+            setPick(null);
+            setOpen(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
