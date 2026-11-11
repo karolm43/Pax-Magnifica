@@ -153,6 +153,7 @@ def on_combat_end(
         combat.kind == "space"
         and system is not None
         and system.space_units.get(winner, {}).get("flagship", 0) > 0
+        and winner not in combat.flagships_destroyed
     ):
         score_secret_if_held(state, winner, "uf")
 
@@ -162,6 +163,8 @@ def on_combat_end(
 
 def _killer(state: GameState, owner: str) -> str | None:
     """Kto zniszczył jednostki gracza ``owner`` (kontekst: walka, Space Cannon, bombardowanie)."""
+    if state.destroyed_by is not None:
+        return state.destroyed_by  # efekt niszczący własne jednostki (np. Crown of Thalnos)
     combat = state.active_combat
     if combat is not None and combat.step is not CombatStep.DONE:
         if owner == combat.attacker:
@@ -182,7 +185,13 @@ def _killer(state: GameState, owner: str) -> str | None:
 def on_unit_destroyed(
     state: GameState, position: str, zone: str, owner: str, base_type: str
 ) -> None:
-    """Po zniszczeniu jednostek (``unit_ops.remove_units``): dtgs, fwp, ttfd, mew."""
+    """Po zniszczeniu jednostek (``unit_ops.remove_units``): dtgs, fwp, ttfd, mew (+ ślad uf)."""
+    combat = state.active_combat
+    if base_type == "flagship" and combat is not None and combat.step is not CombatStep.DONE:
+        # Unveil Flagship: zniszczony w walce flagowiec przekreśla cel do końca TEJ walki,
+        # nawet jeśli efekt później postawi go z powrotem (C_objectives).
+        if owner not in combat.flagships_destroyed:
+            combat.flagships_destroyed = [*combat.flagships_destroyed, owner]
     killer = _killer(state, owner)
     if killer is None or killer == owner or owner == NEUTRAL_PLAYER_ID:
         return
@@ -191,7 +200,6 @@ def on_unit_destroyed(
         return
     if base_type in _BIG_SHIPS:
         score_secret_if_held(state, killer, "dtgs")
-    combat = state.active_combat
     in_afb = combat is not None and (combat.step is CombatStep.AFB or combat.afb_assign)
     left_ships = system.space_units.get(owner, {})
     if base_type == _FIGHTER and in_afb and left_ships.get(_FIGHTER, 0) == 0:

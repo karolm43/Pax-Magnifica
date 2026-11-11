@@ -621,7 +621,14 @@ def _apply_token(
             raise ValueError("The Mirage planet is already in play.")
         system.added_planets = [*system.added_planets, "mirage"]
         control.set_planet_control(state, ex.position, "mirage", ex.player_id, registry)
-        return "Mirage placed in the system; you gained it, ready. The card is purged.", "purged"
+        # R_exploration: gracz, który przejmuje niczyją planetę, ją eksploruje (Mirage: cultural).
+        if "mirage" not in ex.queue and explorable(registry, "mirage"):
+            ex.queue = [*ex.queue, "mirage"]
+        return (
+            "Mirage placed in the system; you gained it, ready, and now explore it. "
+            "The card is purged.",
+            "purged",
+        )
     if card.attachment_id in _ION_STORM_ATTACHMENTS:
         if any(s.ion_storm for s in state.systems.values()):
             raise ValueError("The Ion Storm token is already on the board.")

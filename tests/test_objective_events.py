@@ -237,3 +237,27 @@ def test_secret_not_in_hand_is_never_scored() -> None:
     grid.place_system("000", "18", anomalies={"NEBULA"})
     objective_events.on_combat_end(state, grid, _combat("000"), "p1")
     assert _scored(state) == [] and state.players["p1"].victory_points == 0
+
+
+def test_unveil_flagship_is_lost_when_flagship_dies_in_the_combat_even_if_replaced() -> None:
+    state = _state("uf")
+    state.active_combat = _combat()
+    system = state.systems["000"]
+    system.space_units["p1"] = {"flagship": 1}
+    unit_ops.remove_units(state, system, "space", "p1", "flagship", 1, UnitCause.DESTROYED)
+    assert state.active_combat.flagships_destroyed == ["p1"]
+    system.space_units["p1"] = {"flagship": 1}  # późniejszy efekt stawia go z powrotem
+    objective_events.on_combat_end(state, HexGrid(), state.active_combat, "p1")
+    assert _scored(state) == []
+
+
+def test_own_destruction_by_an_effect_does_not_credit_the_opponent() -> None:
+    """Crown of Thalnos niszczy własne jednostki: przeciwnik nie zdobywa dtgs."""
+    state = _state("dtgs", holder="p2")
+    state.active_combat = _combat()
+    system = state.systems["000"]
+    system.space_units["p1"] = {"warsun": 1}
+    state.destroyed_by = "p1"
+    unit_ops.remove_units(state, system, "space", "p1", "warsun", 1, UnitCause.DESTROYED)
+    state.destroyed_by = None
+    assert _scored(state, "p2") == []

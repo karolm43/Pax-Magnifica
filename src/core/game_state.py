@@ -640,6 +640,9 @@ class ActiveCombat(BaseModel):
     # od ostatnich rzutów (czyszczone na początku kolejnej rundy rzutów). Wpis zniszczenia:
     # ``{"player", "base_type", "hits_on"}``; wpis sustain: ``{"player", "base_type", "count"}``.
     destroyed_ships: list[dict[str, Any]] = Field(default_factory=list)
+    # Gracze, których okręt flagowy został zniszczony W TEJ walce (przez kogokolwiek, także
+    # przez siebie). Cały czas walki - nie czyszczone co rundę. Cel Unveil Flagship (uf).
+    flagships_destroyed: list[str] = Field(default_factory=list)
     sustained_ships: list[dict[str, Any]] = Field(default_factory=list)
     # Przypisanie strat po AFB z Waylay: krok ASSIGN traktowany jak koniec kroku AFB.
     afb_assign: bool = False
@@ -911,6 +914,11 @@ class GameState(BaseModel):
     # Systemy z Ion Storm, przez których wormhole przeszły statki w tej akcji (flip na końcu
     # kroku ruchu / odwrotu, R: C_exploration_cards). Zerowane przy aktywacji i końcu akcji.
     ion_storm_used: list[str] = Field(default_factory=list)
+
+    # Przejściowy znacznik „kto niszczy jednostki": ustawiany tylko na czas efektu, który niszczy
+    # WŁASNE jednostki (Crown of Thalnos), żeby cele typu Destroy Their Greatest Ship nie
+    # przypisały zasługi przeciwnikowi. Poza takim efektem ``None``.
+    destroyed_by: str | None = None
 
     # Właściciele notek, które aktywny gracz miał w strefie gry na starcie akcji taktycznej
     # (tajny cel Betray a Friend, ``core/objective_events.py``). Zerowane z akcją taktyczną.

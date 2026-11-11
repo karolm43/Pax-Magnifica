@@ -569,3 +569,9 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - Znalezisko: martwy socket STOMP (`useGameSocket`, `config.api.websocketUrl` = `ws://127.0.0.1:8000/ws-stomp`)
   po AsyncTI4 próbuje się łączyć i loguje błąd w konsoli; w fixture'ach zignorowany — do usunięcia.
 - 4/4 zielone (~1,3 min).
+
+## 2026-11-11 (11) — Zasada Ω dla celów, Mirage eksplorowana, Unveil Flagship (RULES.md 41.x, 46 X13)
+- **Ω:** audyt katalogu: wersje zastępcze mają tylko technologie (X-89, Magen: `generic_pool` + `declare_superseded`) i fanowskie agendy Absol; cele nie mają kart Ω w assetach, więc rulingi Ω (FwP, MEoTW, TFtD) są jedynym zachowaniem celów zdarzeniowych.
+- **Mirage:** po zdobyciu planeta trafia do kolejki eksploracji (cultural) w tym samym oknie. **Unveil Flagship:** `ActiveCombat.flagships_destroyed` (zniszczony w walce flagowiec przekreśla cel mimo odtworzenia); `GameState.destroyed_by` – własne straty (Thalnos) nie dają przeciwnikowi Destroy Their Greatest Ship.
+- ⚠ Luka: zdolności legendarne planet (np. Mirage Flight Academy) – brak infrastruktury.
+

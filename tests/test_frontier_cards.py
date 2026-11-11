@@ -184,3 +184,7 @@ def test_mirage_is_placed_gained_and_ready(registry: StaticDataRegistry) -> None
     assert "mirage" in done.decks.purged
     stats = planet_stats.planet_stats(done, registry, "mirage")
     assert stats is not None and stats.resources == 1 and stats.influence == 2
+    # R_exploration: gracz, który przejmuje niczyją planetę, ją eksploruje (Mirage = cultural).
+    assert done.exploration is not None
+    current = done.exploration.current
+    assert current is not None and current.planet == "mirage" and current.deck == "cultural"

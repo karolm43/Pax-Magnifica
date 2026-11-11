@@ -1198,9 +1198,11 @@ def reroll_with_relic(
         new_state, player_id, "relic", "The Crown of Thalnos", fresh,
         summary="Rerolled with +1; units without a hit are destroyed",
     )
+    new_state.destroyed_by = player_id  # własne straty: przeciwnik nie zdobywa celów za zniszczenie
     for base_type, count in destroyed.items():
         _remove_units(new_state, combat, player_id, base_type, count)
         note_destroyed(combat, player_id, base_type, count, units[base_type].base_hits_on)
+    new_state.destroyed_by = None
     return _refresh_after_dice_change(new_state, grid, registry)
 
 

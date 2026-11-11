@@ -235,6 +235,13 @@ def test_kazda_karta_frontier_da_sie_rozstrzygnac_w_oknie_eksploracji(
         )
         param = option.params[0][0] if option.params else None
         done = exploration.resolve(started, registry, option.id, param)
+        if card_id == "mirage":
+            # Mirage: zdobyta planeta jest od razu eksplorowana (talia cultural) - dokończ ją.
+            assert done.exploration is not None and done.exploration.current is not None
+            options = exploration.options_for(done, registry)
+            pick = next((o for o in options if o.enabled and o.id != "skip"), options[-1])
+            param = pick.params[0][0] if pick.params else None
+            done = exploration.resolve(done, registry, pick.id, param)
         assert done.exploration is not None and done.exploration.current is None, card_id
         closed = exploration.finish(done)
         assert closed.exploration is None, card_id
