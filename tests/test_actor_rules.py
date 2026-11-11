@@ -124,3 +124,33 @@ def test_body_actor_id_mismatch_is_403(client: TestClient) -> None:
 def test_host_endpoints_unaffected_by_header(client: TestClient) -> None:
     """God-Mode nie patrzy na aktora (tryb lokalny: operator = host; N1 — rola z tokenu)."""
     assert client.post("/undo", headers={ACTOR_HEADER: "p2"}).status_code == 200
+
+
+# --- awaiting: na kogo czeka gra (RULES.md 44.5) --------------------------------------------
+
+
+def test_awaiting_turn_player_by_default() -> None:
+    assert actor_rules.awaiting(_state()) == [("p1", "turn")]
+
+
+def test_awaiting_window_and_offer_come_first() -> None:
+    from src.core.game_state import PendingOffer, TimingWindow, WindowType
+
+    state = _state()
+    state.pending_window = TimingWindow(window_type=next(iter(WindowType)), queue=["p2", "p1"])
+    state.pending_offers = [
+        PendingOffer(id="o1", player_id="p1", event="e", moment="m", hook_seq=0)
+    ]
+    assert actor_rules.awaiting(state) == [("p2", "respond"), ("p1", "decide")]
+
+
+def test_awaiting_speaker_when_nobody_has_turn() -> None:
+    state = _state()
+    state.active_player_id = None
+    assert actor_rules.awaiting(state) == [("p2", "speaker")]
+
+
+def test_web_data_lists_awaiting(client: TestClient) -> None:
+    doc = client.get("/api/public/game/local/web-data").json()
+    assert doc["awaiting"][0]["playerId"] == "p1"
+    assert doc["awaiting"][0]["reason"] == "turn"

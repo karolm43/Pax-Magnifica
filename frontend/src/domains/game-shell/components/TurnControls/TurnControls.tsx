@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { useParams } from "react-router-dom";
 import {
   IconBolt,
@@ -124,7 +125,10 @@ export function TurnControls() {
     activateSystem,
   } = useBoardEditor();
   // God-Mode (Settings → Admin / testing): pokaż przycisk przeskoku fazy.
-  const skipPhasesEnabled = useSettingsStore((s) => s.settings.skipPhases);
+  // Gra sieciowa: God-Mode tylko dla hosta (backend i tak odrzuca innych — RULES.md 44.2).
+  const { data: networkMe } = useNetworkMe();
+  const skipPhasesEnabled =
+    useSettingsStore((s) => s.settings.skipPhases) && (!networkMe?.network || networkMe.host);
   const [busy, setBusy] = useState(false);
   // Oba boxy (karta strategii i panel przycisków) są PRZESUWALNE; pozycje zapisują
   // się w localStorage, dwuklik na uchwycie resetuje do domyślnej.

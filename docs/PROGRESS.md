@@ -453,3 +453,14 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   zapytań, tylko w sieci); `NetworkPanel` + proxy Vite `ws: true`. Tryb lokalny bez zmian. Nie testowane w przeglądarce.
 - Testy: `tests/test_network_game.py` (26: brak wycieków w 12 GET-ach, odpowiedziach akcji i WebSocket; role; rotacja; pełna gra).
 - Dalej: N3 (zapis gry + tokenów, restart), N5 (UI „czekamy na X", blokada cudzych kontrolek, zgoda w transakcjach, timeouty).
+
+## 2026-11-11 (9) — N3 zapis partii w pliku + N5 część 1: interfejs gry sieciowej (RULES.md 44.4, 44.5)
+- **Zapis:** `uv run python -m src.api [--network] [--save saves/partia.db] [--fresh]` — stan, historia Undo, mapa i tokeny
+  miejsc zapisywane na bieżąco (SQLite, domyślnie `saves/game.db`); restart wznawia partię i linki zaproszeń. `EventStore`
+  dostał tabelę `meta` (`get_meta/set_meta`), `HexGrid.to_placements/from_placements`, `AppContext.set_map/save_map`
+  (też po dołożeniu gracza), `SeatRegistry` z `saved/persist`. Uszkodzony zapis → `*.broken-*`, `--fresh` → `*.old-*`.
+  Zegar szachowy pauzowany po restarcie. Testy: `tests/test_save_resume.py`.
+- **Interfejs:** `core/actor.awaiting` → `web-data.awaiting`; `NetworkPanel`: pasek „Your move / Waiting for X (co)",
+  komunikat przy 403; `useDeskPlayer` w sieci = własne miejsce (ręka i kontrolki tury tylko swoje); skip phase tylko host.
+- Nie testowane w przeglądarce. Dalej (N5 część 2): zgoda drugiej strony w transakcjach, timeouty/przejęcie przez bota
+  (⚠ do decyzji użytkownika), wiele gier naraz.

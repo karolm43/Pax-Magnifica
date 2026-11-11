@@ -322,6 +322,43 @@ class HexGrid:
         found |= self._token_wormholes.get(wormhole_type, set())
         return {p for p in found if p in self._systems}
 
+    # --- Zapis / odtworzenie (plik partii, RULES.md 44.4) ---------------------------------
+
+    def to_placements(self) -> list[dict[str, object]]:
+        """Rozstawione kafelki jako dane JSON: system, heks, anomalie, wormhole KAFELKA.
+
+        Pomija warstwy synchronizowane ze stanu gry (żetony wormhole, ingress/egress) —
+        odtworzy je ``AppContext.current_grid`` przy pierwszym odczycie.
+        """
+        return [
+            {
+                "position": position,
+                "system_id": placed.system_id,
+                "hex": [placed.hex.q, placed.hex.r, placed.hex.s],
+                "anomalies": sorted(placed.anomalies),
+                "wormholes": sorted(
+                    wh for wh, where in self._wormholes.items() if position in where
+                ),
+            }
+            for position, placed in sorted(self._systems.items())
+        ]
+
+    @classmethod
+    def from_placements(cls, placements: list[dict[str, object]]) -> HexGrid:
+        """Odbudowuje siatkę z ``to_placements`` (z krawędziami). Raises: ``ValueError``."""
+        grid = cls()
+        for item in placements:
+            q, r, s = (int(v) for v in item["hex"])  # type: ignore[attr-defined]
+            grid.place_system(
+                position=str(item["position"]),
+                system_id=str(item["system_id"]),
+                wormholes=[str(w) for w in item["wormholes"]],  # type: ignore[attr-defined]
+                anomalies={str(a) for a in item["anomalies"]},  # type: ignore[attr-defined]
+                hex_override=Hex(q, r, s),
+            )
+        grid.build_edges()
+        return grid
+
     @property
     def positions(self) -> set[str]:
         """Zbiór wszystkich zajętych pozycji."""

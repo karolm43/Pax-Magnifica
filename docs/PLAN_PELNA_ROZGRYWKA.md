@@ -373,10 +373,10 @@ Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika
   `actor_id` ustalane z tokenu, `viewing_player` z tokenu w trybie sieciowym (44.2).
 - ✅ (2026-11-11) **N2 — Push per gracz:** WebSocket z własną projekcją dla każdego połączenia; wiadomości jawne/prywatne;
   testy „nic nie wycieka" (44.3).
-- **N3 — Wiele gier i trwałość:** `game_id`, lobby/pokoje, zapis `EventStore` na dysk, wznowienie po restarcie
+- ✅ trwałość (2026-11-11; wiele gier naraz — dalej) **N3 — Wiele gier i trwałość:** `game_id`, lobby/pokoje, zapis `EventStore` na dysk, wznowienie po restarcie
   i ponownym połączeniu (44.4).
 - **N4 — Współbieżność:** blokada na grę, idempotencja żądań, odtwarzanie stanu po reconnect (44.4).
-- **N5 — UI wielu graczy:** „czekamy na gracza X", równoległe odpowiedzi tam, gdzie reguły pozwalają,
+- 🟡 część 1 (2026-11-11: pasek oczekiwania, własne biurko, 403) **N5 — UI wielu graczy:** „czekamy na gracza X", równoległe odpowiedzi tam, gdzie reguły pozwalają,
   timeouty i przejęcie przez bota/pas (44.5); STOP z jednolitym timerem (43.4).
 - DoD: partia 6 graczy (z botami) w sieci; żaden klient nie widzi cudzej ręki; restart serwera nie kasuje gry.
 - Ryzyko największe: wyciek informacji (autoryzacja + projekcja) — testy bezpieczeństwa przed udostępnieniem innym.

@@ -94,3 +94,6 @@ TI4_map_generator_bot.rar
 # !audit/*.json
 # !frontend/src/shared/assets/assetManifest.json
 Pax Magnifica.rar
+
+# Zapisy partii (SQLite, RULES.md 44.4) — lokalne, z tokenami zaproszeń
+saves/

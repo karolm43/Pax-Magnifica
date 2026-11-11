@@ -175,3 +175,48 @@ def production_grantee(state: GameState) -> list[str | None]:
     """Właściciel jednorazowej produkcji z karty (np. Freelancers); gdy brak — gracz aktywny."""
     grant = state.production_grant
     return [grant.player_id] if grant is not None else turn_player(state)
+
+
+# --- Na kogo czeka gra (UI „czekamy na gracza X", RULES.md 44.5) ---------------------------
+
+
+def awaiting(state: GameState) -> list[tuple[str, str]]:
+    """Gracze, od których decyzji gra teraz zależy: ``[(player_id, powód)]``, pilne pierwsze.
+
+    Jawna informacja stołu (kto ma ruch), wyliczana z tych samych pól co uprawnienia aktora:
+    okno czasowe → jego respondent; oferty → ich decydenci; walka (przypisanie trafień) → strony
+    z trafieniami do pokrycia; inwazja / eksploracja / karta strategii → ich prowadzący;
+    w przeciwnym razie gracz z turą (faza akcji/strategii) albo mówca (status/agenda).
+    Powody to stałe kody dla UI: ``respond``, ``decide``, ``assign_hits``, ``combat``,
+    ``invasion``, ``explore``, ``strategy``, ``turn``, ``speaker``.
+    """
+    found: list[tuple[str, str]] = []
+
+    def add(player_id: str | None, reason: str) -> None:
+        if player_id and player_id in state.players and all(p != player_id for p, _ in found):
+            found.append((player_id, reason))
+
+    window = state.pending_window
+    if window is not None:
+        add(window.current_responder, "respond")
+    for offer in state.pending_offers:
+        add(offer.player_id, "decide")
+    combat = state.active_combat
+    if combat is not None:
+        pending = [pid for pid, hits in combat.pending_hits.items() if hits > 0]
+        for pid in pending:
+            add(pid, "assign_hits")
+        if not pending:
+            add(combat.attacker, "combat")
+            add(combat.defender, "combat")
+    if state.invasion is not None:
+        add(state.invasion.attacker, "invasion")
+    if state.exploration is not None:
+        add(state.exploration.player_id, "explore")
+    if state.pending_strategy is not None:
+        add(state.pending_strategy.owner_id, "strategy")
+    if not found:
+        add(state.active_player_id, "turn")
+    if not found:
+        add(state.speaker_id, "speaker")
+    return found

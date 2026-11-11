@@ -23,6 +23,7 @@ from src.api.schemas import (
 )
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
+from src.core import actor as actor_rules
 from src.core import game_clock, strategy_phase
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
@@ -91,11 +92,12 @@ def get_web_data(
     """
     strict = not identity_of(request).sees_everything
     viewing_player = viewer_player(request, viewing_player)
+    state = ctx.service.current_state()
     try:
-        return build_web_data(
+        doc = build_web_data(
             ctx.current_grid,
             ctx.registry,
-            ctx.service.current_state(),
+            state,
             game_name=game_id,
             viewing_player=viewing_player,
             now=ctx.service.now(),
@@ -103,6 +105,18 @@ def get_web_data(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # Na kogo czeka gra (jawne; pasek „Your move / Waiting for X" w sieci, RULES.md 44.5).
+    doc["awaiting"] = [
+        {
+            "playerId": pid,
+            "name": state.players[pid].display_name or state.players[pid].faction or pid,
+            "faction": state.players[pid].faction,
+            "color": state.players[pid].color,
+            "reason": reason,
+        }
+        for pid, reason in actor_rules.awaiting(state)
+    ]
+    return doc
 
 
 @router.get("/api/game/{game_id}/hand", response_model=PlayerHandResponse)
@@ -253,7 +267,7 @@ async def post_load_map(
             status_code=422,
             detail="The map string produced no known system (check IDs and sources).",
         )
-    ctx.current_grid = grid
+    ctx.set_map(grid)
     await ctx.broadcast_map()
     return build_map_view(grid, ctx.registry, ctx.service.current_state())
 
@@ -468,6 +482,7 @@ async def post_setup_player(
         grid, faction, request.home_position, ctx.registry, taken_corners
     )
     grid.build_edges()
+    ctx.save_map()  # kafelek domowy zmienił siatkę w miejscu — zapis partii (RULES.md 44.4)
     new_state = _apply_resolved_player(
         current,
         resolved,
@@ -588,7 +603,7 @@ async def post_new_game(
             initial_ms=request.chess_clock.total_minutes * 60_000,
             increment_ms=request.chess_clock.increment_seconds * 1000,
         )
-    ctx.current_grid = grid
+    ctx.set_map(grid)
     ctx.service.replace_state(new_state, label="game:new")
     await ctx.service.broadcast()
     await ctx.broadcast_map()

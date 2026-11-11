@@ -5,11 +5,19 @@
  * - Brak/nieważny token: zasłona „otwórz grę ze swojego linku" (backend i tak odpowie 401).
  * - Gracz: plakietka „You: <miejsce>". Host: przycisk „Invites" — linki miejsc (kopiuj,
  *   unieważnij) i wybór, czy host sam siedzi przy stole (wtedy widzi tylko swoje).
+ * - Pasek u góry (RULES.md 44.5): „Your move" albo „Waiting for X — <co>", z listy `awaiting`
+ *   w web-data (backend: `core/actor.awaiting`).
+ * - Odmowa serwera (403 — nie twój ruch / nie host) pokazuje się jako krótki komunikat
+ *   zamiast surowego błędu (zdarzenie `FORBIDDEN_EVENT` z `actorIdentity`).
  * Push stanu (WebSocket) włącza się tu, bo tylko gra sieciowa go potrzebuje.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Group, Modal, Paper, Select, Stack, Text } from "@/ds";
+import { FORBIDDEN_EVENT } from "@/api/actorIdentity";
+import { usePlayerData } from "@/api/usePlayerData";
+import { DEFAULT_GAME_ID } from "@/config";
 import { useBackendPush } from "./useBackendPush";
 import { NETWORK_ME_KEY, useNetworkMe } from "./useNetworkMe";
 
@@ -25,6 +33,100 @@ type SeatInvite = {
 type SeatsResponse = { network: boolean; host_seat: string | null; seats: SeatInvite[] };
 
 const SEATS_KEY = ["network", "seats"] as const;
+
+type Awaiting = {
+  playerId: string;
+  name: string;
+  faction: string | null;
+  color: string | null;
+  reason: string;
+};
+
+/** Co gracz ma teraz zrobić (kody z `core/actor.awaiting`). */
+const REASON: Record<string, string> = {
+  respond: "respond in the timing window",
+  decide: "make a decision",
+  assign_hits: "assign hits",
+  combat: "resolve combat",
+  invasion: "resolve the invasion",
+  explore: "explore",
+  strategy: "resolve a strategy card",
+  turn: "take a turn",
+  speaker: "advance the phase (speaker)",
+};
+
+export function describeAwaiting(list: Awaiting[], me: string | null): {
+  mine: boolean;
+  text: string;
+} {
+  const own = list.find((a) => a.playerId === me);
+  if (own) return { mine: true, text: `Your move - ${REASON[own.reason] ?? own.reason}` };
+  if (list.length === 0) return { mine: false, text: "" };
+  const who = list.map((a) => `${a.name} (${REASON[a.reason] ?? a.reason})`).join(", ");
+  return { mine: false, text: `Waiting for ${who}` };
+}
+
+function WaitingBanner({ me }: { me: string | null }) {
+  const params = useParams<{ mapid: string }>();
+  const { data: awaiting } = usePlayerData(params.mapid ?? DEFAULT_GAME_ID, {
+    select: (doc) => ((doc as { awaiting?: Awaiting[] }).awaiting ?? []),
+  });
+  const { mine, text } = describeAwaiting(awaiting ?? [], me);
+  if (!text) return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: "fixed",
+        top: 8,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 900,
+        maxWidth: "min(92vw, 640px)",
+        pointerEvents: "none",
+      }}
+    >
+      <Paper
+        px="md"
+        py={6}
+        shadow="md"
+        withBorder
+        style={mine ? { outline: "2px solid var(--ds-accent)" } : undefined}
+      >
+        <Text size="sm" fw={mine ? 700 : 500} ta="center">
+          {text}
+        </Text>
+      </Paper>
+    </div>
+  );
+}
+
+/** Krótki komunikat po odmowie serwera (403). */
+function ForbiddenToast() {
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onForbidden = (event: Event) => {
+      setMessage(String((event as CustomEvent<string>).detail));
+      clearTimeout(timer);
+      timer = setTimeout(() => setMessage(null), 4000);
+    };
+    window.addEventListener(FORBIDDEN_EVENT, onForbidden);
+    return () => {
+      window.removeEventListener(FORBIDDEN_EVENT, onForbidden);
+      clearTimeout(timer);
+    };
+  }, []);
+  if (!message) return null;
+  return (
+    <div role="alert" style={{ position: "fixed", top: 52, left: "50%", transform: "translateX(-50%)", zIndex: 10001 }}>
+      <Paper px="md" py={6} shadow="md" withBorder>
+        <Text size="sm">Not your move: {message}</Text>
+      </Paper>
+    </div>
+  );
+}
 const OPERATOR = "__operator__";
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -171,6 +273,8 @@ export function NetworkPanel() {
   const seat = me.data.player_id;
   return (
     <>
+      <WaitingBanner me={seat} />
+      <ForbiddenToast />
       <div style={{ position: "fixed", left: 12, bottom: 12, zIndex: 900 }}>
         <Paper p="xs" shadow="md" withBorder>
           <Group gap="xs" wrap="nowrap">

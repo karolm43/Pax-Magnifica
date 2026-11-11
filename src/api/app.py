@@ -10,6 +10,7 @@ Struktura warstw i konwencje: docs/ARCHITEKTURA_KODU.md.
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -24,7 +25,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src import config
 from src.api.connection_manager import ConnectionManager
-from src.api.context import AppContext
+from src.api.context import MAP_META_KEY, AppContext
 from src.api.demo_map import build_demo_grid
 from src.api.routers import (
     action_cards,
@@ -63,7 +64,23 @@ from src.api.state_service import StateService
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
+from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+
+SEATS_META_KEY = "seats"
+"""Klucz metadanej partii: tokeny miejsc i hosta (``SeatRegistry.to_json``)."""
+
+
+def _restore_grid(store: EventStore) -> HexGrid | None:
+    """Mapa zapisanej partii (``AppContext.set_map``); ``None`` = brak zapisu albo błędny zapis."""
+    raw = store.get_meta(MAP_META_KEY)
+    if not raw:
+        return None
+    try:
+        grid = HexGrid.from_placements(json.loads(raw))
+    except (ValueError, KeyError, TypeError):
+        return None
+    return grid if grid.positions else None
 
 
 def create_app(
@@ -87,12 +104,18 @@ def create_app(
     """
     reg = registry if registry is not None else StaticDataRegistry()
     event_store = store if store is not None else EventStore()
-    seats = SeatRegistry(network=network, host_token=host_token)
+    # Miejsca przy stole — wznowione z pliku partii, jeśli to zapis (RULES.md 44.4).
+    seats = SeatRegistry(
+        network=network,
+        host_token=host_token,
+        saved=event_store.get_meta(SEATS_META_KEY),
+        persist=lambda raw: event_store.set_meta(SEATS_META_KEY, raw),
+    )
     manager = ConnectionManager()
     service = StateService(
         event_store, manager, initial_state=initial_state, now=now or time.time
     )
-    demo_grid = build_demo_grid(reg)
+    demo_grid = _restore_grid(event_store) or build_demo_grid(reg)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:

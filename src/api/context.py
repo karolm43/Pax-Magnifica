@@ -13,6 +13,8 @@ jest zawsze spójna ze stanem, także po Undo/Redo.
 
 from __future__ import annotations
 
+import json
+
 from fastapi import Request
 
 from src.api.connection_manager import ConnectionManager
@@ -22,6 +24,9 @@ from src.api.state_service import StateService
 from src.core import board_graph, fracture, nexus
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+
+MAP_META_KEY = "map"
+"""Klucz metadanej partii: rozstawione kafelki (``HexGrid.to_placements``)."""
 
 
 class AppContext:
@@ -60,6 +65,20 @@ class AppContext:
     @current_grid.setter
     def current_grid(self, grid: HexGrid) -> None:
         self._grid = grid
+
+    def set_map(self, grid: HexGrid) -> None:
+        """Podmienia mapę i zapisuje ją w pliku partii (wznowienie po restarcie)."""
+        self._grid = grid
+        self.save_map()
+
+    def save_map(self) -> None:
+        """Zapisuje bieżące rozstawienie kafelków w pliku partii (RULES.md 44.4).
+
+        Siatka heksów nie jest częścią ``GameState`` — bez tego zapisu restart serwera
+        przywróciłby stan gry na mapie demonstracyjnej. Wołać po każdej zmianie siatki
+        w miejscu (np. kafelek domowy dokładanego gracza).
+        """
+        self.service.set_meta(MAP_META_KEY, json.dumps(self._grid.to_placements()))
 
     async def broadcast_map(self) -> None:
         """Rozsyła świeży widok mapy (z jednostkami) do klientów WebSocket."""

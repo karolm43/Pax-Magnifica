@@ -12,6 +12,11 @@ Gra sieciowa (RULES.md 44.2): ``uv run python -m src.api --network`` — każde 
 tokenu miejsca; przy starcie drukowany jest link hosta. Token hosta można przypiąć zmienną
 ``CUSTODIAN_HOST_TOKEN`` (ten sam link po restarcie). Graczom zdalnym udostępnia się FRONT
 (``npm run dev -- --host``), który przez proxy woła backend na 127.0.0.1 — backend zostaje lokalny.
+
+Zapis partii (RULES.md 44.4): stan, historia (Undo), mapa i tokeny miejsc są zapisywane na bieżąco
+do pliku SQLite (domyślnie ``saves/game.db``) — restart serwera wznawia partię. ``--save PLIK``
+wybiera inny plik (np. osobny na każdą partię), ``--fresh`` odkłada stary zapis i zaczyna od zera.
+Zapis, którego nie da się wczytać (np. po zmianie schematu), jest odkładany jako ``*.broken-*``.
 """
 
 from __future__ import annotations
@@ -22,15 +27,19 @@ import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import uvicorn
+from fastapi import FastAPI
 
 from src.api.app import create_app
+from src.core import game_clock
+from src.core.event_store import EventStore
 
 HOST = "127.0.0.1"
 PORT = 8000
+DEFAULT_SAVE = Path("saves") / "game.db"
 
-app = create_app()
 
 
 def _port_in_use(host: str, port: int) -> bool:
@@ -92,6 +101,44 @@ def _ensure_port_free(host: str, port: int) -> None:
     print(f"[health-check] WARNING: port {port} is still busy - startup may fail.")
 
 
+def _set_aside(path: Path, reason: str) -> None:
+    """Odkłada plik zapisu obok (nic nie kasujemy) — ``game.db`` → ``game.<reason>-<czas>.db``."""
+    target = path.with_name(f"{path.stem}.{reason}-{time.strftime('%Y%m%d-%H%M%S')}{path.suffix}")
+    path.rename(target)
+    print(f"[save] Previous save moved to {target}")
+
+
+def _open_store(path: Path, fresh: bool) -> EventStore:
+    """Plik partii: wznowienie albo nowy; nieczytelny zapis jest odkładany, nie kasowany."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if fresh and path.exists():
+        _set_aside(path, "old")
+    store: EventStore | None = None
+    try:
+        store = EventStore(path)
+        store.current()
+    except Exception as exc:  # noqa: BLE001 — każdy błąd odczytu = nie wznawiamy tej partii
+        if store is not None:
+            store.close()
+        print(f"[save] Cannot load {path}: {exc}")
+        _set_aside(path, "broken")
+        store = EventStore(path)
+    return store
+
+
+def _pause_clock_after_restart(server_app: FastAPI) -> None:
+    """Zegar szachowy staje na chwili ostatniej akcji — przestój serwera nie zjada czasu graczy."""
+    service = server_app.state.ctx.service
+    state = service.current_state()
+    if not state.clock.enabled or state.clock.paused:
+        return
+    feed = service.activity_feed()
+    last = next((created for _, _, current, created, _ in feed if current and created), None)
+    paused = game_clock.pause(state, last if last is not None else service.now())
+    service.replace_state(paused, label="clock:pause-restart")
+    print("[save] Chess clock paused after restart - resume it in the game.")
+
+
 def main() -> None:
     """Startuje serwer deweloperski Uvicorn (po zwolnieniu portu); ``--network`` = gra sieciowa."""
     parser = argparse.ArgumentParser(prog="python -m src.api")
@@ -101,10 +148,22 @@ def main() -> None:
         default="http://localhost:5173",
         help="adres frontu do wydrukowania linku hosta",
     )
+    parser.add_argument(
+        "--save", type=Path, default=DEFAULT_SAVE, help="plik zapisu partii (SQLite)"
+    )
+    parser.add_argument("--fresh", action="store_true", help="odłóż stary zapis, zacznij od zera")
     args = parser.parse_args()
-    server_app = app
+    store = _open_store(args.save, args.fresh)
+    resumed = store.current() is not None
+    server_app = create_app(
+        store=store,
+        network=args.network,
+        host_token=os.environ.get("CUSTODIAN_HOST_TOKEN") if args.network else None,
+    )
+    print(f"[save] {'Resumed game from' if resumed else 'New save file'} {args.save}")
+    if resumed:
+        _pause_clock_after_restart(server_app)
     if args.network:
-        server_app = create_app(network=True, host_token=os.environ.get("CUSTODIAN_HOST_TOKEN"))
         token = server_app.state.ctx.seats.host_token
         print("[network] Network game mode - every request needs a seat token.")
         print(f"[network] Host link: {args.front_url.rstrip('/')}/?token={token}")

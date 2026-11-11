@@ -32,7 +32,11 @@ class EventStore:
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.RLock()
-        self._init_schema()
+        try:
+            self._init_schema()
+        except sqlite3.DatabaseError:
+            self._conn.close()  # plik nie jest bazą — nie trzymaj go otwartego (Windows: blokada)
+            raise
 
     def _init_schema(self) -> None:
         self._conn.executescript(
@@ -47,6 +51,10 @@ class EventStore:
                 current INTEGER
             );
             INSERT OR IGNORE INTO pointer (id, current) VALUES (0, NULL);
+            CREATE TABLE IF NOT EXISTS meta (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
             """
         )
         self._migrate_snapshots()
@@ -252,6 +260,28 @@ class EventStore:
                 (int(r["seq"]), str(r["label"]), GameState.model_validate_json(r["state_json"]))
                 for r in reversed(rows)
             ]
+
+    # --- Metadane partii (poza historią stanu, RULES.md 44.4) -----------
+
+    def get_meta(self, key: str) -> str | None:
+        """Wartość metadanej partii (np. mapa, miejsca przy stole) albo ``None``.
+
+        Metadane NIE są migawkami: nie cofa ich Undo i nie trafiają do klientów — to dane
+        procesu potrzebne do wznowienia partii z pliku po restarcie serwera.
+        """
+        with self._lock:
+            row = self._conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+            return None if row is None else str(row["value"])
+
+    def set_meta(self, key: str, value: str) -> None:
+        """Zapisuje (nadpisuje) metadaną partii — trwale, od razu."""
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO meta (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, value),
+            )
+            self._conn.commit()
 
     def close(self) -> None:
         with self._lock:

@@ -3,8 +3,9 @@
 Tryb lokalny (domyślny): brak tokenów, jedno okno, operator widzi i robi wszystko; aktor
 z nagłówka ``X-Actor-Id`` (RULES.md 44.1a). Tryb sieciowy (``create_app(network=True)``):
 każde żądanie musi nieść token miejsca (nagłówek ``X-Seat-Token`` albo ``?token=`` dla
-WebSocketu). Token → ``Identity`` (gracz i/lub host). Tokeny żyją w pamięci procesu (jak stan
-gry — trwałość to N3); NIE trafiają do ``GameState``, więc nigdy nie są rozsyłane.
+WebSocketu). Token → ``Identity`` (gracz i/lub host). Tokeny NIE trafiają do ``GameState``
+(nigdy nie są rozsyłane); trwałość (N3, RULES.md 44.4): zapis JSON w metadanych pliku partii
+przez wywołanie ``persist`` po każdej zmianie — linki zaproszeń działają po restarcie.
 
 Role: host (God-Mode, zaproszenia, opcjonalnie też miejsce przy stole) i gracz (jedno miejsce).
 Host bez miejsca jest operatorem: widzi pełny stan i działa w trybie zaufanym.
@@ -13,7 +14,9 @@ Host bez miejsca jest operatorem: widzi pełny stan i działa w trybie zaufanym.
 from __future__ import annotations
 
 import hmac
+import json
 import secrets
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
 
@@ -53,11 +56,38 @@ def _new_token() -> str:
 class SeatRegistry:
     """Tokeny miejsc i hosta. W trybie lokalnym ``resolve`` zawsze zwraca ``LOCAL``."""
 
-    def __init__(self, *, network: bool = False, host_token: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        network: bool = False,
+        host_token: str | None = None,
+        saved: str | None = None,
+        persist: Callable[[str], None] | None = None,
+    ) -> None:
+        """``saved`` = JSON z ``to_json`` (wznowienie); jawny ``host_token`` ma pierwszeństwo."""
+        data: dict[str, object] = json.loads(saved) if saved else {}
         self.network = network
-        self.host_token = (host_token or _new_token()) if network else ""
-        self._seat_tokens: dict[str, str] = {}  # player_id -> token
-        self.host_seat: str | None = None
+        stored_host = str(data.get("host_token") or "")
+        self.host_token = (host_token or stored_host or _new_token()) if network else ""
+        seats = data.get("seats")
+        self._seat_tokens: dict[str, str] = (
+            {str(k): str(v) for k, v in seats.items()} if isinstance(seats, dict) else {}
+        )
+        host_seat = data.get("host_seat")
+        self.host_seat: str | None = host_seat if isinstance(host_seat, str) else None
+        self._persist = persist
+        if network and self.host_token != stored_host:
+            self._save()
+
+    def to_json(self) -> str:
+        """Stan rejestru do zapisu w pliku partii."""
+        return json.dumps(
+            {"host_token": self.host_token, "seats": self._seat_tokens, "host_seat": self.host_seat}
+        )
+
+    def _save(self) -> None:
+        if self._persist is not None and self.network:
+            self._persist(self.to_json())
 
     # --- Odczyt tożsamości -------------------------------------------------------------
 
@@ -80,16 +110,21 @@ class SeatRegistry:
 
     def seat_tokens(self, player_ids: list[str]) -> dict[str, str]:
         """Tokeny dla podanych graczy (brakujące są tworzone; usunięci gracze tracą token)."""
+        before = dict(self._seat_tokens)
         self._seat_tokens = {
             pid: self._seat_tokens.get(pid) or _new_token() for pid in player_ids
         }
+        if self._seat_tokens != before:
+            self._save()
         return dict(self._seat_tokens)
 
     def rotate(self, player_id: str) -> str:
         """Nowy token miejsca (stary link przestaje działać — np. wyciekł)."""
         self._seat_tokens[player_id] = _new_token()
+        self._save()
         return self._seat_tokens[player_id]
 
     def set_host_seat(self, player_id: str | None) -> None:
         """Host siada przy stole jako ``player_id`` (``None`` = operator bez miejsca)."""
         self.host_seat = player_id
+        self._save()

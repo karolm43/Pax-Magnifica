@@ -100,6 +100,14 @@ class StateService:
         )
         return self.envelope()
 
+    def get_meta(self, key: str) -> str | None:
+        """Metadana partii z pliku zapisu (mapa, miejsca) — patrz ``EventStore.get_meta``."""
+        return self._store.get_meta(key)
+
+    def set_meta(self, key: str, value: str) -> None:
+        """Trwały zapis metadanej partii (przeżywa restart serwera, RULES.md 44.4)."""
+        self._store.set_meta(key, value)
+
     def now(self) -> float:
         """Bieżący czas (s UNIX) ze źródła serwisu — dla zegara szachowego."""
         return self._now()

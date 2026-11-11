@@ -4,6 +4,7 @@ import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { getPlayerDisplayName } from "@/domains/game-shell/components/gameStatePlayers";
 import type { PlayerData } from "@/entities/data/types";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
 
 /** Czy gracz jest „posadzony" (ma frakcję, nie jest talią/neutralny). */
 function isSeated(player: PlayerData): boolean {
@@ -36,6 +37,14 @@ export function useDeskPlayer(): PlayerData | undefined {
   const { data: gameState } = useGameState(gameId);
   const gameData = useGameData();
   const players = gameData?.playerData ?? [];
+  const { data: me } = useNetworkMe();
+
+  // Gra sieciowa (RULES.md 44.2): biurko to ZAWSZE moje miejsce (z tokenu), nie gracz z turą —
+  // moja ręka i moje przyciski; poza moją turą kontrolki tury same się wyłączają.
+  if (me?.network && me.player_id) {
+    const mine = players.find((p) => p.discordId === me.player_id);
+    if (mine) return mine;
+  }
 
   const turnColor = gameState?.activeTurnPlayer;
   const turnPlayer = turnColor

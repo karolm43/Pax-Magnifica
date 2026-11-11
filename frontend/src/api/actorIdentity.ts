@@ -104,8 +104,25 @@ export function installActorIdentity(): void {
   stripTokenFromUrl();
   if (!actingSeat && !seatToken) return;
   const original = window.fetch.bind(window);
-  window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
-    original(input, withActorHeader(input, init, actingSeat, seatToken));
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = await original(input, withActorHeader(input, init, actingSeat, seatToken));
+    if (response.status === 403 && isBackendUrl(input)) notifyForbidden(response);
+    return response;
+  };
+}
+
+/** Zdarzenie okna: backend odmówił (403 — „nie twój ruch" / nie host). Słucha `NetworkPanel`. */
+export const FORBIDDEN_EVENT = "custodian:forbidden";
+
+function notifyForbidden(response: Response): void {
+  void response
+    .clone()
+    .json()
+    .then((body: { detail?: unknown }) =>
+      typeof body.detail === "string" ? body.detail : "Not allowed.",
+    )
+    .catch(() => "Not allowed.")
+    .then((detail) => window.dispatchEvent(new CustomEvent(FORBIDDEN_EVENT, { detail })));
 }
 
 /** Adres WebSocketu backendu (przez proxy `/bot`), z tokenem miejsca w sieci. */
