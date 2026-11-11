@@ -6,7 +6,7 @@
  * - Lobby hosta to krok „Players & map" kreatora (wspólny na żywo — `setupSync.ts`).
  * - `LoadGameModal` — lista zapisanych partii i wczytanie.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Group, Modal, Paper, Stack, Text, TextInput } from "@/ds";
 import { useLobby, useLobbyActions, useSaves } from "./useLobby";
@@ -25,10 +25,9 @@ export function JoinScreen() {
   const [busy, setBusy] = useState(false);
   const seated = me?.player_id != null;
 
-  // Host przypisał mi miejsce → do gry.
-  useEffect(() => {
-    if (seated && lobby?.game_started) navigate("/game");
-  }, [seated, lobby?.game_started, navigate]);
+  // Bez automatycznego przejścia do gry: dołączony gość siedzi w kreatorze, a start gry
+  // (intro, potem plansza) obsługuje `useSetupSync` — inaczej ten ukryty pod kreatorem ekran
+  // przeskakiwał intro. Zostaje przycisk „Enter the game" poniżej.
 
   if (!me) return null;
 
