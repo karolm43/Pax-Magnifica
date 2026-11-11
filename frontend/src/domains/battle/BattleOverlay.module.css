@@ -2708,3 +2708,13 @@
 .poolCount[data-side="solo"] {
   left: 50%;
 }
+
+.techBar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding: 4px 18px;
+}

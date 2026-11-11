@@ -680,6 +680,27 @@ export type AgendaVotePlanet = {
   exhausted: boolean;
 };
 
+/** Okno UI, w którym technologia jest istotna (zgodne z core/tech_effects.py). */
+export type TechEffectContext =
+  | "production"
+  | "movement"
+  | "combat"
+  | "spaceCannon"
+  | "invasion"
+  | "agenda"
+  | "fleet"
+  | "status"
+  | "turn"
+  | "technology";
+
+export type TechEffect = {
+  alias: string;
+  name: string;
+  contexts: TechEffectContext[];
+  /** active = działa stale, ready = gotowa do wyczerpania, exhausted = wyczerpana. */
+  state: "active" | "ready" | "exhausted";
+};
+
 export type AgendaVoter = {
   planets: AgendaVotePlanet[];
   /** Wpływ gotowych planet (głosy do wydania). */
@@ -687,6 +708,8 @@ export type AgendaVoter = {
   total: number;
   /** Dodatkowe głosy z efektów gry (dziś 0). */
   extra: number;
+  /** Predictive Intelligence: opcjonalne +3 głosy (decyzja gracza). */
+  predictive: { owned: boolean; ready: boolean; votes: number };
 };
 
 export type AgendaHistoryEntry = {
@@ -864,6 +887,8 @@ export type PlayerData = {
   customPromissoryNotes?: string[];
   techs: string[];
   exhaustedTechs: string[];
+  /** Technologie istotne dla okien UI (silnik: core/tech_effects.py). */
+  techEffects?: TechEffect[];
   factionTechs: string[];
   notResearchedFactionTechs: string[];
   planets: string[];

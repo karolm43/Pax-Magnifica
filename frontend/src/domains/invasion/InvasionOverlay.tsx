@@ -19,6 +19,7 @@ import { getTileById } from "@/entities/lookup/systems";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { HoldRollButton } from "@/domains/dice/HoldRollButton";
 import {
   soloHold,
@@ -308,6 +309,15 @@ function InvasionWindow({ view }: { view: InvasionView }) {
       )}
 
       <p className={styles.hint}>{HINT[phase]}</p>
+      {/* Technologie atakującego i obrońców działające w inwazji (Plasma Scoring, X-89, Magen...). */}
+      <div className={styles.techRow}>
+        <ActiveTechs context="invasion" faction={view.attacker} label="Attacker" />
+        {[...new Set(view.planets.map((p) => p.owner))]
+          .filter((owner): owner is string => owner != null && owner !== view.attacker)
+          .map((owner) => (
+            <ActiveTechs key={owner} context="invasion" faction={owner} label="Defender" />
+          ))}
+      </div>
 
       {view.custodians &&
         (phase === "BOMBARDMENT" || phase === "COMMIT") &&

@@ -25,6 +25,7 @@ import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { FleetPoolStatusMeter } from "@/domains/map/components/FleetPoolWarning";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import styles from "./StatusPhasePanel.module.css";
 
@@ -232,6 +233,8 @@ export function StatusPhasePanel() {
                           {left === 0 ? "ready" : `${left} to place`}
                         </span>
                       </div>
+                      {/* Hyper Metabolism, Neural Motivator... - dodatkowe żetony/karty w tej fazie. */}
+                      <ActiveTechs context="status" faction={player.faction} />
                       <div className={styles.pools}>
                         {pool("t", "Tactic")}
                         {pool("f", "Fleet")}

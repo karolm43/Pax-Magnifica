@@ -113,6 +113,12 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
             "available": ready,
             "total": sum(int(p["influence"]) for p in planets),
             "extra": agenda_phase.extra_votes(state, registry, pid),
+            # Predictive Intelligence: posiadana / gotowa (opcjonalne +3 głosy, decyzja gracza).
+            "predictive": {
+                "owned": agenda_phase.PREDICTIVE_INTELLIGENCE in state.players[pid].technologies,
+                "ready": agenda_phase.predictive_ready(state, pid),
+                "votes": agenda_phase.PREDICTIVE_VOTES,
+            },
         }
     return {
         "step": agenda.step.value,
@@ -128,7 +134,12 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
         "voteOrder": list(agenda.vote_order) or agenda_phase.vote_order(state),
         "currentVoter": agenda_phase.current_voter(state),
         "votes": {
-            pid: {"outcome": v.outcome, "votes": v.votes, "planets": list(v.planets)}
+            pid: {
+                "outcome": v.outcome,
+                "votes": v.votes,
+                "planets": list(v.planets),
+                "techs": list(v.techs),
+            }
             for pid, v in agenda.votes.items()
         },
         "abstained": list(agenda.abstained),

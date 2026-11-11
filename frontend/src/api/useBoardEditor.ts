@@ -289,11 +289,12 @@ export function useBoardEditor() {
 
   // Gracz, którego kolej, wyczerpuje planety i oddaje głosy na jeden wynik.
   const agendaVote = useCallback(
-    async (playerId: string, outcome: string, planets: string[]) => {
+    async (playerId: string, outcome: string, planets: string[], usePredictive = false) => {
       await post("/agenda/vote", {
         player_id: playerId,
         outcome,
         planets,
+        use_predictive: usePredictive,
       });
       await refresh();
     },

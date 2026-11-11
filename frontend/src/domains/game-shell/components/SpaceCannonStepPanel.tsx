@@ -17,6 +17,7 @@ import { useSettingsStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { Switch } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { Unit } from "@/shared/ui/Unit";
 import {
   AssignHits,
@@ -99,6 +100,17 @@ function TurnCard({
           </div>
         ))}
       </div>
+
+      {/* Technologie strzelającego (Plasma Scoring, Graviton Laser, PDS II) i celu (Antimass -1). */}
+      <ActiveTechs context="spaceCannon" faction={side.faction} />
+      {side.targets.map((key) => (
+        <ActiveTechs
+          key={`target-${key}`}
+          context="spaceCannon"
+          faction={key}
+          label={`Target ${lookup(key).name}`}
+        />
+      ))}
 
       {side.targets.length > 1 && (
         <div

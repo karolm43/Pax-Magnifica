@@ -99,7 +99,7 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
         remaining = 0
     if pid is None or position is None or pid not in state.players:
         return FleetPoolView(active=False)
-    report = fleet_pool.fleet_report(state, position, pid)
+    report = fleet_pool.fleet_report(state, position, pid, ctx.registry)
     cap = capacity.capacity_report(state, ctx.registry, position, pid)
     fighters = cap.cargo.get("fighter", 0)
     fighter_cost = cap.cost.get("fighter", 1)

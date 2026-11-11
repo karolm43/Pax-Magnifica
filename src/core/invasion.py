@@ -281,8 +281,20 @@ def clear_invasion(state: GameState) -> GameState:
 
 
 def bombard_targets(state: GameState, registry: StaticDataRegistry) -> list[str]:
-    """Planety, które wolno bombardować: są na nich cudze siły naziemne i brak tarczy (I3/I4)."""
-    return [i.planet for i in planet_infos(state, registry) if i.defenders and not i.shielded]
+    """Planety, które wolno bombardować: cudze siły naziemne i brak tarczy (I3/I4).
+
+    X-89 ΩΩ (hook PERMIT) dodaje planety kontrolowane przez INNEGO gracza, ale bez sił
+    naziemnych (C_technology: "may roll for bombardment against a planet that contains no
+    ground forces"). ⚠ ZAŁOŻENIE: planeta niczyja i własna atakującego nie są celem.
+    """
+    attacker = _inv(state).attacker
+    empty_ok = rules_hooks.permits(rules_hooks.POINT_BOMBARD_EMPTY_PLANETS, state, attacker)
+    return [
+        i.planet
+        for i in planet_infos(state, registry)
+        if not i.shielded
+        and (i.defenders or (empty_ok and i.owner is not None and i.owner != attacker))
+    ]
 
 
 def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[BombardGroup]:

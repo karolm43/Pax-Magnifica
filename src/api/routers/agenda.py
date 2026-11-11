@@ -61,6 +61,7 @@ async def post_vote(
             request.player_id,
             request.outcome,
             request.planets,
+            use_predictive=request.use_predictive,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

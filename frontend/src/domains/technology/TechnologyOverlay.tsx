@@ -19,6 +19,7 @@ import { Tooltip } from "@/ds";
 import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import {
   AIDA_SKIP,
   COLOR_HUE,
@@ -299,6 +300,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
             </span>
           )}
         </div>
+        {/* Psychoarchaeology, AI Development Algorithm - wpływają na badanie. */}
+        <ActiveTechs context="technology" faction={props.faction} />
         <div className={styles.topActions}>
           <span className={styles.player}>
             {props.faction ? (

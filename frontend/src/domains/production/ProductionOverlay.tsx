@@ -17,6 +17,7 @@ import {
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { Switch } from "@/ds";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { getTileById } from "@/entities/lookup/systems";
@@ -302,6 +303,14 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             }Ground forces go on a planet you control here, or to space. This is optional.`
           : "Pay with resources of ready planets and trade goods; overpaying is lost. Total units are capped by the PRODUCTION of your units in this system. Ground forces go only on planets with a producing unit."}
       </p>
+
+      {/* Technologie działające w produkcji (Sarween Tools, AI Development Algorithm...). */}
+      <ActiveTechs context="production" faction={view.faction} className={styles.techRow} />
+      {(view.costReduction ?? 0) > 0 && (
+        <p className={styles.hint}>
+          Technology discount applied: <b>-{view.costReduction}</b> to the order cost.
+        </p>
+      )}
 
       <div className={styles.grid}>
         {/* --- Pojemność produkcji --- */}

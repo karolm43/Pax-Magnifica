@@ -248,6 +248,9 @@ class AgendaVote(BaseModel):
     outcome: str
     votes: int
     planets: list[str] = Field(default_factory=list)
+    # Technologie użyte do tego głosu (Predictive Intelligence: +3 głosy). Wyczerpanie karty
+    # zapada dopiero po rozstrzygnięciu agendy (gdy wynik głosu przegrał).
+    techs: list[str] = Field(default_factory=list)
 
 
 class AgendaPhaseState(BaseModel):

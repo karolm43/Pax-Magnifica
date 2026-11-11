@@ -922,3 +922,7 @@
 .stat[data-kind="cost"][data-bad] b {
   color: #fca5a5;
 }
+
+.techRow {
+  padding: 0 16px;
+}

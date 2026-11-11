@@ -38,6 +38,7 @@ import {
 } from "@/entities/lookup/strategyCards";
 import { SC_NAMES } from "@/entities/data/strategyCardColors";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { DetailsCard, type DetailsCardColor } from "@/shared/ui/DetailsCard";
 import { Button, Group, Stack, Text } from "@/ds";
@@ -326,6 +327,8 @@ export function TurnControls() {
         >
           <span aria-hidden="true" />
         </div>
+        {/* Technologie tury (Fleet Logistics, Transit Diodes, Bio-Stims, Predictive Intelligence...). */}
+        <ActiveTechs context="turn" color={active.color} className={styles.techRow} />
         <div className={styles.cards}>
           {hasCard ? (
             myCards.map((card, i) => (

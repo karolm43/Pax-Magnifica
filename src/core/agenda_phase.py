@@ -217,6 +217,20 @@ def extra_votes(state: GameState, registry: StaticDataRegistry, player_id: str) 
     )
 
 
+PREDICTIVE_INTELLIGENCE = "pi"  # alias z technologies/pok.json
+PREDICTIVE_VOTES = 3  # „you may cast 3 additional votes" (tekst karty)
+
+
+def predictive_ready(state: GameState, player_id: str) -> bool:
+    """Predictive Intelligence w posiadaniu i niewyczerpane (obie zdolności wymagają gotowej)."""
+    player = state.players.get(player_id)
+    return (
+        player is not None
+        and PREDICTIVE_INTELLIGENCE in player.technologies
+        and PREDICTIVE_INTELLIGENCE not in player.exhausted_technologies
+    )
+
+
 def voting_planets(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
@@ -289,8 +303,13 @@ def cast_vote(
     player_id: str,
     outcome: str,
     planets: list[str],
+    *,
+    use_predictive: bool = False,
 ) -> GameState:
     """Gracz, którego kolej, wyczerpuje ``planets`` i oddaje głosy na ``outcome``.
+
+    ``use_predictive`` - Predictive Intelligence: +3 głosy (decyzja gracza, "may"). Karta
+    wyczerpuje się dopiero, gdy wybrany wynik NIE zostanie rozstrzygnięty (``_resolve``).
 
     Raises:
         ValueError: Zły krok/kolejność, wynik spoza agendy, planeta nie gracza / wyczerpana /
@@ -298,6 +317,8 @@ def cast_vote(
     """
     agenda = _require_agenda(state, AgendaStep.VOTE)
     _require_votable(state, player_id)
+    if use_predictive and not predictive_ready(state, player_id):
+        raise ValueError("Predictive Intelligence is not ready (not owned or exhausted).")
     if len(set(planets)) != len(planets):
         raise ValueError("The same planet was selected twice.")
     usable = {
@@ -311,6 +332,8 @@ def cast_vote(
                 f"Planet {planet} cannot give votes (not yours, exhausted or 0 influence)."
             )
     votes = sum(usable[p] for p in planets) + extra_votes(state, registry, player_id)
+    if use_predictive:
+        votes += PREDICTIVE_VOTES
     if votes <= 0:
         raise ValueError("Casting zero votes is the same as abstaining - abstain instead.")
     chosen = _normalise_outcome(agenda, outcome)
@@ -325,7 +348,12 @@ def cast_vote(
     triggers.fire(work, GameEvent.AGENDA_VOTES_CAST, Moment.WHEN, subject=player_id, ctx=vote_ctx)
     if chosen not in work.agenda.outcomes:
         work.agenda.outcomes = [*work.agenda.outcomes, chosen]
-    work.agenda.votes[player_id] = AgendaVote(outcome=chosen, votes=votes, planets=list(planets))
+    work.agenda.votes[player_id] = AgendaVote(
+        outcome=chosen,
+        votes=votes,
+        planets=list(planets),
+        techs=[PREDICTIVE_INTELLIGENCE] if use_predictive else [],
+    )
     exhaust.exhaust_planets(work, player_id, planets)  # R_agenda_phase: wyczerpanie = głos
     work.players[player_id].passed = True
     triggers.fire(work, GameEvent.AGENDA_VOTES_CAST, Moment.AFTER, subject=player_id, ctx=vote_ctx)
@@ -369,6 +397,10 @@ def _resolve(
         card_draw.discard_agenda(state, card)
     agenda.resolved_outcome = outcome
     agenda.decided_by_speaker = by_speaker
+    # Predictive Intelligence: głos z +3, którego wynik nie przeszedł, wyczerpuje kartę.
+    for voter_id, vote in agenda.votes.items():
+        if PREDICTIVE_INTELLIGENCE in vote.techs and vote.outcome != outcome:
+            exhaust.exhaust_technology(state, voter_id, PREDICTIVE_INTELLIGENCE)
     agenda.tied = []
     agenda.step = AgendaStep.RESOLVED
     agenda.history.append(

@@ -36,6 +36,7 @@ from src.core import (
     production,
     space_cannon,
     strategy_phase,
+    tech_effects,
     turn_flow,
 )
 from src.core import chronicle as chronicle_core
@@ -1315,6 +1316,9 @@ def _build_player_data(
                 # skoro gracz ma tylko bazowe, panel nie pokazuje ich jako ulepszone.
                 "unitsOwned": units_owned,
                 "techs": list(player.technologies),
+                # Technologie istotne dla okien UI (produkcja, ruch, walka...) - wskaźniki
+                # „ta karta działa tutaj", także gdy nie ma w niej wyboru „may".
+                "techEffects": tech_effects.active_techs(state, registry, player_id),
                 # Wyczerpane technologie — tylko te, które gracz faktycznie posiada.
                 "exhaustedTechs": [
                     t

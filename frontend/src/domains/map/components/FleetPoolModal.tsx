@@ -19,6 +19,7 @@ import { Unit } from "@/shared/ui/Unit";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import styles from "./CapacityModal.module.css";
 
 /**
@@ -117,9 +118,12 @@ export function FleetPoolModal() {
           Your fleet pool allows <b>{view.pool}</b> non-fighter ship
           {view.pool === 1 ? "" : "s"} in a system, but you have{" "}
           <b>{view.total}</b> here. Choose <b>{view.excess}</b> to return to
-          your reinforcements. Fighters, ground forces and units on planets
-          don't count.
+          your reinforcements.{" "}
+          {player?.techs?.includes("ff2")
+            ? "With Fighter II, fighters in excess of your capacity count against the pool; other fighters, ground forces and units on planets don't."
+            : "Fighters, ground forces and units on planets don't count."}
         </Text>
+        <ActiveTechs context="fleet" faction={player?.faction} />
 
         <Stack gap={8}>
           {view.ships.map((c) => {

@@ -51,6 +51,8 @@ POINT_SPACE_CANNON_EXTRA_DICE = "space_cannon.extra_dice"
 POINT_BOMBARDMENT_EXTRA_DICE = "bombardment.extra_dice"
 # Mnożnik trafień z rzutów (bazowo 1; X-89 ΩΩ: ×2). ctx: kind = ground | space | bombardment.
 POINT_COMBAT_HIT_MULTIPLIER = "combat.hit_multiplier"
+# Bombardment wolno rzucać także przeciw planecie cudzej BEZ sił naziemnych (X-89 ΩΩ).
+POINT_BOMBARD_EMPTY_PLANETS = "bombardment.empty_planets"  # PERMIT -> bool
 # Odwrót do sąsiedniego systemu bez cudzych jednostek, także bez własnej obecności
 # (Dark Energy Tap).
 POINT_RETREAT_ANYWHERE = "retreat.anywhere"  # PERMIT -> bool

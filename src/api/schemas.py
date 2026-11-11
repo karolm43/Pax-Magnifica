@@ -571,6 +571,8 @@ class AgendaVoteRequest(BaseModel):
     player_id: str
     outcome: str
     planets: list[str] = Field(default_factory=list)
+    # Predictive Intelligence: +3 głosy (decyzja gracza).
+    use_predictive: bool = False
 
 
 class AgendaOutcomeRequest(BaseModel):

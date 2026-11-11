@@ -19,6 +19,8 @@ import { useGameState } from "@/api/useGameState";
 import { usePlayerData } from "@/api/usePlayerData";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
+import { Switch } from "@/ds";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import type {
   AgendaPhaseData,
   AgendaVoter,
@@ -577,17 +579,22 @@ function Ballot({
 }) {
   const api = useBoardEditor();
   const [picked, setPicked] = useState<string[]>([]);
+  const [usePredictive, setUsePredictive] = useState(false);
   const speaker = agenda.speakerId ?? "";
   const voterId = agenda.currentVoter;
   const voter = voterId ? agenda.voters[voterId] : undefined;
   const planets = voter?.planets ?? [];
+  const predictive = voter?.predictive;
+  const predictiveVotes = usePredictive && predictive?.ready ? predictive.votes : 0;
   const votes =
     planets.filter((p) => picked.includes(p.planet)).reduce((n, p) => n + p.influence, 0) +
-    (voter?.extra ?? 0);
+    (voter?.extra ?? 0) +
+    predictiveVotes;
 
   // Nowy głosujący = czysta urna.
   useEffect(() => {
     setPicked([]);
+    setUsePredictive(false);
   }, [voterId, agenda.agendaNumber, agenda.step]);
 
   const speakerLook = lookOf(speaker);
@@ -652,7 +659,8 @@ function Ballot({
         <div className={styles.votesBig}>
           <b>{votes}</b>
           <span>
-            votes of {voter.available + voter.extra} available
+            votes of {voter.available + voter.extra + (predictive?.ready ? predictive.votes : 0)}{" "}
+            available
             {selected ? (
               <>
                 {" "}
@@ -703,13 +711,27 @@ function Ballot({
             Clear
           </button>
         </div>
+        <ActiveTechs context="agenda" faction={look.faction} />
+        {predictive?.owned ? (
+          <Switch
+            size="xs"
+            label={
+              predictive.ready
+                ? `Predictive Intelligence: +${predictive.votes} votes (exhausts if the outcome loses)`
+                : "Predictive Intelligence is exhausted"
+            }
+            checked={usePredictive && predictive.ready}
+            onChange={(event) => setUsePredictive(event.currentTarget.checked)}
+            disabled={busy || !predictive.ready}
+          />
+        ) : null}
         <button
           type="button"
           className={styles.primaryBtn}
           disabled={!canCast}
           onClick={() =>
             run(async () => {
-              await api.agendaVote(voterId, selected ?? "", picked);
+              await api.agendaVote(voterId, selected ?? "", picked, predictiveVotes > 0);
               onSelect(null);
             })
           }

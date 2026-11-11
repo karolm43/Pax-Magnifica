@@ -5,10 +5,11 @@ Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja
 
 ## 1. Zarejestrowane hooki
 
-Razem: **34**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **35**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
+| `bombardment.empty_planets` | PERMIT | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology). |
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
@@ -24,7 +25,7 @@ Razem: **34**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
 | `event:turn:end` | TRIGGER | technology:bs | technologies:bs | Bio-Stims: na końcu tury możesz wyczerpać kartę, by odświeżyć planetę ze specjalnością |
-| `event:turn:end` | TRIGGER | technology:pi | — | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
+| `event:turn:end` | TRIGGER | technology:pi | technologies:pi | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:td | — | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
@@ -48,6 +49,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
 - `agenda.vote_modifier`
 - `bombardment.extra_dice`
+- `bombardment.empty_planets`
 - `combat.extra_dice`
 - `combat.hit_multiplier`
 - `combat.reroll_misses`
@@ -79,7 +81,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | galactic_events | 20 | 0 | 0.0 |
 | leaders | 103 | 0 | 0.0 |
 | abilities | 73 | 0 | 0.0 |
-| technologies | 102 | 35 | 34.3 |
+| technologies | 102 | 36 | 35.3 |
 | breakthroughs | 31 | 0 | 0.0 |
 
 ## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)
@@ -106,10 +108,10 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 | produkcja (production.*) | 177 | 160 |
 | ekonomia i płatności (economy, payment) | 168 | 160 |
 | karty (card_draw, promissory) | 145 | 140 |
-| status i odświeżanie (status_phase) | 144 | 131 |
+| status i odświeżanie (status_phase) | 144 | 130 |
 | ruch (movement.*) | 125 | 115 |
-| żetony dowodzenia (command_tokens) | 109 | 107 |
-| agenda i głosowanie (agenda_phase) | 98 | 98 |
+| żetony dowodzenia (command_tokens) | 109 | 106 |
+| agenda i głosowanie (agenda_phase) | 98 | 97 |
 | technologie (technology) | 78 | 75 |
 | karty strategii i inicjatywa | 46 | 43 |
 | cele i punkty (objectives) | 45 | 44 |
@@ -964,7 +966,7 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 | `parasite-obs` | Neural Parasite (Obsidian) | obsidian | — | FORBID (zakaz) | ruch, walka, technologie | — | At the start of your turn, destroy 1 of another player's infantry in or adjacent to a system that contains your infantry. This technology c… |
 | `pds2` | PDS II | — | — | PERMIT (pozwolenie) | ruch, walka | ✔ | PLANETARY SHIELD, SPACE CANNON 5 You may use this unit's SPACE CANNON against ships that are adjacent to this unit's system. |
 | `pfa` | Pre-Fab Arcologies | naaz | — | — | planety i eksploracja, status i odświeżanie | — | After you explore a planet, ready that planet. |
-| `pi` | Predictive Intelligence | — | — | MODIFY (liczba/rzut) | żetony dowodzenia, agenda i głosowanie, status i odświeżanie | — | At the end of your turn, you may exhaust this card to redistribute your command tokens. When you cast votes during the agenda phase, you ma… |
+| `pi` | Predictive Intelligence | — | — | MODIFY (liczba/rzut) | żetony dowodzenia, agenda i głosowanie, status i odświeżanie | ✔ | At the end of your turn, you may exhaust this card to redistribute your command tokens. When you cast votes during the agenda phase, you ma… |
 | `planesplitter-firm` | Planesplitter (Firmament) | firmament | — | — | — | — | When you gain this card, put The Fracture into play. Flip this card if the Obsidian faction is in play. |
 | `planesplitter-obs` | Planesplitter (Obsidian) | obsidian | — | FORBID (zakaz) | ruch, technologie | — | When you perform a strategic action, you may move an ingress token into a system that contains or is adjacent to your units. This technolog… |
 | `pm` | Production Biomes | hacan | — | — | produkcja, ekonomia i płatności, żetony dowodzenia, status i odświeżanie | — | ACTION: Exhaust this card and spend 1 token from your strategy pool to gain 4 trade goods and choose 1 other player; that player gains 2 tr… |

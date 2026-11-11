@@ -14,6 +14,7 @@ import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor, useMoveRange } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { lookupUnit } from "@/entities/lookup/units";
@@ -304,6 +305,9 @@ export function MovementStepPanel({
         </span>
       </div>
 
+      {/* Technologie wpływające na ruch (Antimass, Light/Wave, Gravity Drive...) - także stałe. */}
+      <ActiveTechs context="movement" color={activePlayerColor} />
+
       {gravityDriveReady && (
         <Switch
           label="Use Gravity Drive"
@@ -311,6 +315,9 @@ export function MovementStepPanel({
           checked={gravityDrive}
           onChange={(event) => setGravityDrive(event.currentTarget.checked)}
         />
+      )}
+      {(player?.techs ?? []).includes("gd") && gameState?.gravityDriveUsed === true && (
+        <span className={styles.prodZoneLabel}>Gravity Drive used this action</span>
       )}
 
       {/* Fleet pool (RULES.md 42): ruch ponad pulę jest dozwolony, ale nadwyżka zostanie usunięta. */}

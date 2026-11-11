@@ -265,14 +265,48 @@ def _mech_planets(
     return [p for p, owner in sorted(system.planet_owners.items()) if owner == player_id]
 
 
+def _movable_mechs(state: GameState, player_id: str) -> list[tuple[str, str]]:
+    """(system, strefa) z mechem gracza w systemie BEZ jego żetonu dowodzenia (C_technology)."""
+    result: list[tuple[str, str]] = []
+    for pos, system in sorted(state.systems.items()):
+        if player_id in system.command_tokens:
+            continue
+        if system.space_units.get(player_id, {}).get("mech", 0) > 0:
+            result.append((pos, "space"))
+        for zone in sorted(system.planet_units):
+            if system.planet_units[zone].get(player_id, {}).get("mech", 0) > 0:
+                result.append((pos, zone))
+    return result
+
+
+def _mech_source_id(pos: str, zone: str) -> str:
+    return f"{pos}|{zone}"
+
+
 def self_assembly_inputs(
     state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     planets = _mech_planets(state, registry, player_id, str(ctx["position"]))
-    return [
+    inputs = [
         oi.choice("planet", "Planet to place the mech on",
                   [oi.option(p, _planet_name(registry, p)) for p in planets])
     ]
+    if production.reinforcements_left(state, player_id, "mech") == 0:
+        # Rezerwa pusta: mecha trzeba zdjąć z planszy (system bez Twojego żetonu dowodzenia).
+        inputs.append(
+            oi.choice(
+                "from",
+                "No mech in reinforcements - take one from",
+                [
+                    oi.option(
+                        _mech_source_id(pos, zone),
+                        f"{pos} - {'space' if zone == 'space' else _planet_name(registry, zone)}",
+                    )
+                    for pos, zone in _movable_mechs(state, player_id)
+                ],
+            )
+        )
+    return inputs
 
 
 def _self_assembly_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
@@ -283,7 +317,7 @@ def _self_assembly_ready(state: GameState, player_id: str, ctx: Mapping[str, Any
         and _ready(state, player_id, SELF_ASSEMBLY)
         and registry is not None
         and bool(_mech_planets(state, registry, player_id, str(ctx["position"])))
-        and (left is None or left > 0)
+        and (left is None or left > 0 or bool(_movable_mechs(state, player_id)))
     )
 
 
@@ -299,10 +333,18 @@ def _self_assembly_ready(state: GameState, player_id: str, ctx: Mapping[str, Any
 )
 def self_assembly_mech(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy
-    na planecie, którą kontrolujesz w tym systemie. ⚠ Wariant „zdejmij mecha z planszy, gdy
-    rezerwa pusta” nie jest modelowany - wtedy oferta się nie pojawia."""
+    na planecie, którą kontrolujesz w tym systemie. Gdy rezerwa jest pusta, mecha zdejmujesz
+    z dowolnego systemu bez Twojego żetonu dowodzenia (C_technology); stawiany nieuszkodzony."""
     exhaust.exhaust_technology(state, player_id, SELF_ASSEMBLY)
     system = state.systems[str(ctx["position"])]
+    if production.reinforcements_left(state, player_id, "mech") == 0:
+        source = str(ctx["params"].get("from", ""))
+        pos, _, zone = source.partition("|")
+        if (pos, zone) not in _movable_mechs(state, player_id):
+            raise ValueError("Choose a mech in a system without your command token.")
+        unit_ops.remove_units(
+            state, state.systems[pos], zone, player_id, "mech", 1, UnitCause.REMOVED
+        )
     unit_ops.place_units(
         state, system, str(ctx["params"]["planet"]), player_id, "mech", 1, UnitCause.PLACED
     )
@@ -488,12 +530,14 @@ def predictive_intelligence_inputs(
     condition=lambda s, p, c: c.get("player") == p and _ready(s, p, PREDICTIVE_INTELLIGENCE),
     label="Predictive Intelligence: redistribute command tokens",
     inputs=predictive_intelligence_inputs,
+    covers=f"technologies:{PREDICTIVE_INTELLIGENCE}",
 )
 def predictive_intelligence(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia.
 
-    ⚠ Druga zdolność (+3 głosy w agendzie) nie jest zamodelowana, więc karta nie jest oznaczona
-    jako pokryta. Zmniejszenie puli floty może wymagać zwrotu statków (okno fleet pool).
+    Druga zdolność (+3 głosy w agendzie, opcjonalna) jest w ``agenda_phase.cast_vote``
+    (parametr ``use_predictive``), bo to decyzja gracza przy oddawaniu głosu. Zmniejszenie puli
+    floty może wymagać zwrotu statków (okno fleet pool).
     """
     params = ctx["params"]
     pools = {name: int(params[name]) for name in ("tactical", "fleet", "strategic")}

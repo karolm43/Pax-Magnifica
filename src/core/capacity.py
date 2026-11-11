@@ -22,6 +22,7 @@ from src.core.unit_ops import UnitCause
 # Ładunek zajmujący pojemność (R_capacity: „fighters and ground forces"). Kolejność = wyświetlanie.
 CARGO_TYPES: tuple[str, ...] = ("fighter", "infantry", "mech")
 _FIGHTER = "fighter"
+FIGHTER_II_ALIAS = "ff2"  # alias z technologies/pok.json
 _SPACEDOCK = "spacedock"
 
 
@@ -35,17 +36,44 @@ class CapacityReport:
     cost: dict[str, int] = field(default_factory=dict)  # capacityUsed na sztukę
     unit_cost: dict[str, float] = field(default_factory=dict)  # koszt produkcji (podpowiedź)
     names: dict[str, str] = field(default_factory=dict)
+    # Fighter II: „fighters in excess of your ships' capacity count against your fleet pool"
+    # (C_units, Fighter) - nadmiar myśliwców NIE jest wtedy usuwany z capacity, tylko liczy się
+    # do fleet pool.
+    fighters_overflow_to_fleet: bool = False
 
     @property
     def used(self) -> int:
         return sum(self.cost.get(bt, 1) * n for bt, n in self.cargo.items())
 
+    def _ground_cost(self, cargo: dict[str, int]) -> int:
+        return sum(self.cost.get(bt, 1) * n for bt, n in cargo.items() if bt != _FIGHTER)
+
     def excess_for(self, cargo: dict[str, int]) -> int:
-        """Nadwyżka (w jednostkach pojemności) dla podanego ładunku."""
+        """Nadwyżka (w jednostkach pojemności) dla podanego ładunku.
+
+        Z Fighter II nadmiar myśliwców nie jest nadwyżką capacity (idzie do fleet pool), więc
+        liczy się tylko to, czego siły naziemne nie mieszczą w pojemności ogólnej.
+        """
+        if self.fighters_overflow_to_fleet:
+            return max(0, self._ground_cost(cargo) - self.general)
         fighters = self.cost.get(_FIGHTER, 1) * cargo.get(_FIGHTER, 0)
         total = sum(self.cost.get(bt, 1) * n for bt, n in cargo.items())
         need = total - min(fighters, self.fighter_only)
         return max(0, need - self.general)
+
+    @property
+    def fleet_fighters(self) -> int:
+        """Sztuki myśliwców ponad capacity, liczone do fleet pool (tylko z Fighter II).
+
+        Siły naziemne mają pierwszeństwo do pojemności ogólnej; myśliwce wypełniają najpierw
+        miejsca „tylko dla myśliwców" (doki), potem resztę pojemności ogólnej.
+        """
+        if not self.fighters_overflow_to_fleet:
+            return 0
+        each = max(self.cost.get(_FIGHTER, 1), 1)
+        count = self.cargo.get(_FIGHTER, 0)
+        room = self.fighter_only + max(0, self.general - self._ground_cost(self.cargo))
+        return max(0, count - room // each)
 
     @property
     def excess(self) -> int:
@@ -74,6 +102,7 @@ def capacity_report(
     player = state.players.get(player_id)
     faction = player.faction if player is not None else None
     techs = player.technologies if player is not None else []
+    report.fighters_overflow_to_fleet = FIGHTER_II_ALIAS in techs
 
     for base_type, count in system.space_units.get(player_id, {}).items():
         if count <= 0:

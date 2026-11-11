@@ -12,6 +12,7 @@ przekroczenia (statki trzeba usunąć zaraz po). Dlatego silnik nie blokuje akcj
   ile trzeba).
 
 Myśliwce i siły naziemne NIE liczą się do fleet pool (liczą się do capacity — RULES.md 39.6).
+WYJĄTEK - Fighter II: myśliwce ponad capacity liczą się do fleet pool (zamiast być usuwane).
 Statki przewożone w ruchu i jednostki na planetach też nie. Funkcje CZYSTE (``state -> state``).
 """
 
@@ -19,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import timing, unit_ops
+from src.core import capacity, timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, WindowType
 from src.core.neutral import NEUTRAL_PLAYER_ID
@@ -51,8 +52,38 @@ class FleetReport:
         return max(0, self.total - self.pool)
 
 
-def fleet_report(state: GameState, position: str, player_id: str) -> FleetReport:
-    """Pula floty i statki gracza w przestrzeni systemu ``position``."""
+def _registry_or_bound(registry: StaticDataRegistry | None) -> StaticDataRegistry | None:
+    if registry is not None:
+        return registry
+    from src.core import rules_hooks  # lokalnie: unika cyklu importów
+
+    bound: StaticDataRegistry | None = rules_hooks.bound_registry()
+    return bound
+
+
+def _overflow_fighters(
+    state: GameState, registry: StaticDataRegistry | None, position: str, player_id: str
+) -> int:
+    """Fighter II: myśliwce ponad capacity liczą się do fleet pool (C_units, Fighter)."""
+    player = state.players.get(player_id)
+    if player is None or capacity.FIGHTER_II_ALIAS not in player.technologies:
+        return 0
+    reg = _registry_or_bound(registry)
+    if reg is None:
+        return 0
+    return capacity.capacity_report(state, reg, position, player_id).fleet_fighters
+
+
+def fleet_report(
+    state: GameState,
+    position: str,
+    player_id: str,
+    registry: StaticDataRegistry | None = None,
+) -> FleetReport:
+    """Pula floty i statki gracza w przestrzeni systemu ``position``.
+
+    Z Fighter II do ``ships`` wchodzą też myśliwce ponad capacity (klucz ``fighter``).
+    """
     player = state.players.get(player_id)
     report = FleetReport(pool=player.fleet_cc if player is not None else 0)
     system = state.systems.get(position)
@@ -61,6 +92,9 @@ def fleet_report(state: GameState, position: str, player_id: str) -> FleetReport
     for base_type, count in system.space_units.get(player_id, {}).items():
         if count > 0 and counts_toward_pool(base_type):
             report.ships[base_type] = count
+    overflow = _overflow_fighters(state, registry, position, player_id)
+    if overflow > 0:
+        report.ships[_FIGHTER] = overflow
     return report
 
 
@@ -98,7 +132,7 @@ def ships_by_system(state: GameState, player_id: str) -> dict[str, int]:
             c
             for bt, c in system.space_units.get(player_id, {}).items()
             if c > 0 and counts_toward_pool(bt)
-        )
+        ) + _overflow_fighters(state, None, position, player_id)
         if n > 0:
             result[position] = n
     return result
@@ -165,7 +199,7 @@ def check_removal(report: FleetReport, remove: dict[str, int]) -> None:
     for base_type, count in remove.items():
         if count <= 0:
             continue
-        if not counts_toward_pool(base_type):
+        if base_type not in report.ships and not counts_toward_pool(base_type):
             raise ValueError(
                 f"Only non-fighter ships count against the fleet pool ({base_type})."
             )
@@ -200,7 +234,7 @@ def resolve_fleet_pool(
             f"not {player_id}."
         )
     position = str(window.context.get("position", ""))
-    report = fleet_report(state, position, player_id)
+    report = fleet_report(state, position, player_id, registry)
     check_removal(report, remove)
     new_state = state.clone()
     system = new_state.systems[position]

@@ -363,6 +363,19 @@ def x89_double_hits(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) 
     return 1 if ctx.get("kind") in ("ground", "bombardment") else 0
 
 
+@register(
+    rules_hooks.POINT_BOMBARD_EMPTY_PLANETS,
+    _source(X89_ALIAS),
+    HookKind.PERMIT,
+    covers=f"technologies:{X89_ALIAS}",
+)
+def x89_bombard_empty_planets(
+    _state: GameState, _player_id: str, _ctx: Mapping[str, Any]
+) -> bool:
+    """X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology)."""
+    return True
+
+
 @on_event(
     GameEvent.UNIT_ABILITY_USED,
     Moment.AFTER,
@@ -375,7 +388,7 @@ def x89_double_hits(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) 
 def x89_exhaust_planets(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> None:
     """X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana.
 
-    ⚠ Bombardowanie planety bez sił naziemnych (dozwolone przez tę kartę) nie jest modelowane.
+    Dotyczy też planet bez sił naziemnych (``x89_bombard_empty_planets``).
     """
     for planet in ctx.get("planets", []):
         for pid, player in state.players.items():

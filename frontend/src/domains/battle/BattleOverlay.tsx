@@ -27,6 +27,7 @@ import { useAppStore } from "@/state/appStore";
 import { getColorAlias, resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
+import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import {
   absorbed,
   autoMarks,
@@ -674,6 +675,12 @@ function Battlefield({ view }: { view: BattleView }) {
           </button>
         </div>
       )}
+
+      {/* Technologie obu stron działające w walce (Assault Cannon, Duranium Armor, Magen...). */}
+      <div className={styles.techBar}>
+        <ActiveTechs context="combat" faction={attacker.faction} label={a.name} />
+        <ActiveTechs context="combat" faction={defender.faction} label={d.name} />
+      </div>
 
       <div
         className={styles.field}
