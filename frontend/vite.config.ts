@@ -12,6 +12,12 @@ const ReactCompilerConfig = {
  * production bundle (89% of the build), only to keep nearly all of it. Including React whole
  * cuts the build to ~1 minute with byte-identical output.
  */
+/*
+ * Adres backendu dla proxy. Domyślnie gra użytkownika (:8000); testy E2E (Playwright) podają
+ * CUSTODIAN_BACKEND=http://127.0.0.1:8100 i dostają osobny, świeży backend (scripts/e2e_server.py).
+ */
+const backend = process.env.CUSTODIAN_BACKEND ?? "http://127.0.0.1:8000";
+
 const includeReactWhole: Plugin = {
   name: "include-react-whole",
   enforce: "post",
@@ -45,7 +51,7 @@ export default defineConfig({
     proxy: {
       // Custodian Engine backend (FastAPI). "/bot/api/..." -> "/api/..." na :8000.
       "/bot": {
-        target: "http://127.0.0.1:8000",
+        target: backend,
         changeOrigin: true,
         // WebSocket /bot/ws -> /ws (push stanu w grze sieciowej, RULES.md 44.3).
         ws: true,
@@ -55,7 +61,7 @@ export default defineConfig({
       },
       // Statyczne assety (grafiki kafelków/jednostek) serwowane przez backend.
       "/static": {
-        target: "http://127.0.0.1:8000",
+        target: backend,
         changeOrigin: true,
         xfwd: true,
       },

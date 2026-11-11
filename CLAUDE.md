@@ -16,6 +16,9 @@ Zasady projektu są w pliku steering (wspólnym z Kiro) i obowiązują w całoś
   = tylko testy dotknięte zmianą) ; `uv run ruff check src tests` ; `uv run mypy src tests`.
   QA frontu (w `frontend/`): `npx tsc --noEmit -p tsconfig.app.json` (UWAGA: `npm run type-check`
   NIE sprawdza `src/`) ; `npm run lint` ; `npm run build` ; `npx vitest --run`.
+  E2E: `npm run e2e` (Playwright; własne serwery :8100/:5273, gry użytkownika nie dotyka — wolno odpalać).
+  Lokatory po rolach ARIA (`getByRole`), nie po klasach CSS. Python w Git Bash zapisuje cp1252 — przy
+  edycji plików skryptem podawaj `encoding="utf-8"`.
 - Stan gry żyje tylko w pamięci backendu — restart kasuje grę użytkownika. Nowe trasy/pola wymagają
   restartu, więc uprzedź użytkownika zamiast restartować samemu.
 - W repo może równolegle pracować inna sesja (Kiro / inny agent): przed commitem sprawdź `git status`

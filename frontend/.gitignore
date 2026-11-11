@@ -35,3 +35,9 @@ public/tiles
 .idea/
 # Git worktrees
 .worktrees/
+
+# Playwright (E2E): raporty, nagrania i zrzuty z przebiegów
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache

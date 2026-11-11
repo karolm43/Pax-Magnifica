@@ -76,7 +76,10 @@ PRZECIĄGNIĘCIEM z ręki; podnieść można tylko kartę legalną (`action_card
 ## Workflow
 
 - Blok pracy = działający kod + testy + aktualizacja `docs/PROGRESS.md` (krótko, nowa sekcja na końcu) + commit.
-- Po zmianie kodu: `uv run pytest -q` ; `uv run ruff check src tests` ; `uv run mypy src tests` (+ build przy froncie). Wszystko zielone.
+- Po zmianie kodu: `uv run pytest -q -n auto` ; `uv run ruff check src tests` ; `uv run mypy src tests` (+ build przy froncie). Wszystko zielone.
+  W trakcie pracy: `uv run pytest -q --testmon` (tylko testy dotknięte zmianą).
+- E2E (prawdziwa przeglądarka, w `frontend/`): `npm run e2e` (~1,5 min; własny backend :8100 i front :5273,
+  gra na :8000 nietknięta). Po zmianie kreatora/lobby/setupu albo przepływu gry — uruchom; testy w `frontend/e2e/*.e2e.ts`.
 - Komentarze, docstringi i dokumentacja po polsku.
 - Commituj po ukończonym kroku przy zielonym QA, wiadomość po polsku, staguj konkretne pliki (nie `git add .`).
 - Bez `git push` bez wyraźnej zgody.

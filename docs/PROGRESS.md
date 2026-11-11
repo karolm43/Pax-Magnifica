@@ -557,3 +557,15 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - **Cele:** 80/80 sprawdzanych automatycznie; 13 tajnych celów faz Action/Agenda zdobywanych zdarzeniami (`core/objective_events.py`: walka, zniszczenia, pas, utrata planety, agenda), `dhw` (purge 2 fragmentów) i `dp` (3 prawa) liczone w `objective_progress`; `MANUAL_OBJECTIVES` puste. Wcześniej tajne cele Action/Agenda nie miały żadnej ścieżki zdobycia.
 - Testy: `tests/test_frontier_cards.py`, `tests/test_objective_events.py` (16), rozszerzone `test_objective_progress.py`.
 - ⚠ Do przejrzenia: automatyczne zdobywanie tajnych celów zakłada, że gracz zawsze chce punktować (bez decyzji); limit „jeden tajny cel na walkę" i Ω-warianty celów (Fight with Precision Ω, TFtD Ω, MEoTW Ω) nie są rozróżniane.
+
+## 2026-11-11 (11) — Testy E2E w przeglądarce (Playwright)
+- `frontend/playwright.config.ts` + `npm run e2e` / `npm run e2e:ui`. Playwright stawia własny backend :8100
+  (`scripts/e2e_server.py`: pusty stan, EventStore w pamięci, saves w katalogu tymczasowym, NIE zabija portów)
+  i Vite :5273 z proxy na :8100 (`vite.config.ts`: zmienna `CUSTODIAN_BACKEND`, domyślnie :8000).
+- Scenariusze (`frontend/e2e/*.e2e.ts`, rozszerzenie inne niż `*.test.ts`, żeby Vitest ich nie zbierał):
+  menu startowe; gra solo z setupem przeklikanym ręcznie (tajny cel → Custodians → cele I etapu → faza strategii);
+  „Skip setup"; gra sieciowa host + gość w dwóch przeglądarkach (dołączenie linkiem LAN, frakcje na żywo,
+  wspólny start, równoczesne tajne cele). Każdy test pada przy błędzie JS/konsoli (`e2e/fixtures.ts`).
+- Znalezisko: martwy socket STOMP (`useGameSocket`, `config.api.websocketUrl` = `ws://127.0.0.1:8000/ws-stomp`)
+  po AsyncTI4 próbuje się łączyć i loguje błąd w konsoli; w fixture'ach zignorowany — do usunięcia.
+- 4/4 zielone (~1,3 min).

@@ -135,6 +135,11 @@ Pax Magnifica/
   - w trakcie pracy: `uv run pytest -q --testmon` (tylko testy dotknięte zmianą; baza `.testmondata`,
     gitignore). `-n auto` = równolegle na wszystkich rdzeniach (pełny zestaw ~20 s zamiast ~70 s).
   - frontend: `npm run type-check` ; `npm run lint` ; `npm run build` (w `frontend/`)
+  - E2E (Playwright, w `frontend/`): `npm run e2e` (headless) / `npm run e2e:ui` (podgląd kroków).
+    Playwright sam stawia osobny backend :8100 (`scripts/e2e_server.py`, zapis w pamięci) i front :5273,
+    więc gra na :8000/:5173 i `saves/` są nietknięte. Scenariusze: `frontend/e2e/*.e2e.ts`
+    (gra solo z setupem; gra sieciowa host + gość w dwóch przeglądarkach). Po porażce:
+    `npx playwright show-report` (zrzut, wideo, trace). Nowy test: `npx playwright codegen localhost:5273`.
 - **Dokumentacja i komentarze po polsku.** Staguj konkretne pliki (nie `git add .`).
   Nie pushuj (`git push`) bez zgody.
 - **Wszystko lokalne (offline).** Frontend ładuje grafiki i fonty wyłącznie lokalnie
