@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import { Switch, SegmentedControl, Tabs } from "@/ds";
+import { NumberInput, Switch, SegmentedControl, Tabs } from "@/ds";
 import { useSettingsStore } from "@/state/appStore";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { AppModal } from "@/shared/ui/AppModal";
@@ -52,6 +52,13 @@ const PLAYER_AREA_TOGGLES: { key: PlayerAreaToggleKey; label: string; descriptio
     description: "Show neighbor faction icons.",
   },
 ];
+
+/** Liczba całkowita z pola liczbowego w zakresie; puste/niepoprawne → `fallback`. */
+function clampInt(value: number | string, min: number, max: number, fallback: number) {
+  const n = typeof value === "number" ? value : Number.parseInt(value, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
 
 type SettingsModalProps = {
   opened: boolean;
@@ -176,6 +183,54 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
                 handlers.updateSettings({ blackSpectrumFirmamentPlots: checked })
               }
             />
+          </SettingGroup>
+
+          <SettingGroup label="Chess clock">
+            <SwitchRow
+              label="Player clocks"
+              description="Each player gets a time bank; only the player who is deciding right now (turn, vote, window response) uses it. Applies to the next new game."
+              checked={settings.chessClockEnabled}
+              onToggle={(checked) =>
+                handlers.updateSettings({ chessClockEnabled: checked })
+              }
+            />
+            <SettingRow
+              label="Time per player (minutes)"
+              description="Total time bank for the whole game."
+            >
+              <NumberInput
+                aria-label="Time per player in minutes"
+                w={120}
+                min={1}
+                max={1440}
+                disabled={!settings.chessClockEnabled}
+                value={settings.chessClockMinutes}
+                onChange={(value) =>
+                  handlers.updateSettings({
+                    chessClockMinutes: clampInt(value, 1, 1440, 120),
+                  })
+                }
+              />
+            </SettingRow>
+            <SettingRow
+              label="Bonus per turn (seconds)"
+              description="Added to a player's bank each time their turn ends (like a chess increment). 0 = none."
+            >
+              <NumberInput
+                aria-label="Bonus per turn in seconds"
+                w={120}
+                min={0}
+                max={3600}
+                step={5}
+                disabled={!settings.chessClockEnabled}
+                value={settings.chessClockIncrementSeconds}
+                onChange={(value) =>
+                  handlers.updateSettings({
+                    chessClockIncrementSeconds: clampInt(value, 0, 3600, 0),
+                  })
+                }
+              />
+            </SettingRow>
           </SettingGroup>
 
           <SettingGroup label="Map display">

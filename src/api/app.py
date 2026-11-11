@@ -10,7 +10,8 @@ Struktura warstw i konwencje: docs/ARCHITEKTURA_KODU.md.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+import time
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -28,6 +29,7 @@ from src.api.routers import (
     battle,
     board,
     capacity,
+    clock,
     components,
     decks,
     epilogue,
@@ -62,6 +64,7 @@ def create_app(
     registry: StaticDataRegistry | None = None,
     store: EventStore | None = None,
     initial_state: GameState | None = None,
+    now: Callable[[], float] | None = None,
 ) -> FastAPI:
     """Fabryka aplikacji FastAPI (wstrzykiwalna dla testów).
 
@@ -69,11 +72,14 @@ def create_app(
         registry: Rejestr statycznych danych (domyślnie ładowany z assetów).
         store: Magazyn historii (domyślnie SQLite w pamięci).
         initial_state: Stan początkowy (domyślnie pusty ``GameState``).
+        now: Źródło czasu (s UNIX) dla zegara szachowego (domyślnie ``time.time``).
     """
     reg = registry if registry is not None else StaticDataRegistry()
     event_store = store if store is not None else EventStore()
     manager = ConnectionManager()
-    service = StateService(event_store, manager, initial_state=initial_state)
+    service = StateService(
+        event_store, manager, initial_state=initial_state, now=now or time.time
+    )
     demo_grid = build_demo_grid(reg)
 
     @asynccontextmanager
@@ -111,6 +117,7 @@ def create_app(
     app.include_router(status.router)
     app.include_router(agenda.router)
     app.include_router(epilogue.router)
+    app.include_router(clock.router)
     app.include_router(strategy.router)
     app.include_router(history.router)
     app.include_router(tactical.router)

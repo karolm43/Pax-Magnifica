@@ -139,13 +139,23 @@ export function useEngineConfig() {
 /** Tworzy nową grę jednym żądaniem (POST /game/new). Rzuca przy błędzie HTTP. */
 export async function createNewGame(request: NewGameRequest): Promise<void> {
   // Talia agend pochodzi z Ustawień (Game variants), nie z kreatora setupu.
-  const agendaDeck = useSettingsStore.getState().settings.absolAgendas
-    ? "absol"
-    : "standard";
+  const settings = useSettingsStore.getState().settings;
+  const agendaDeck = settings.absolAgendas ? "absol" : "standard";
+  // Zegar szachowy (RULES.md 58) też pochodzi z Ustawień; null = gra bez zegara.
+  const chessClock = settings.chessClockEnabled
+    ? {
+        total_minutes: settings.chessClockMinutes,
+        increment_seconds: settings.chessClockIncrementSeconds,
+      }
+    : null;
   const response = await fetch(`${BOT_ROOT}/game/new`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ agenda_deck: agendaDeck, ...request }),
+    body: JSON.stringify({
+      agenda_deck: agendaDeck,
+      chess_clock: chessClock,
+      ...request,
+    }),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

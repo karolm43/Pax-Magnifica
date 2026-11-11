@@ -74,6 +74,9 @@ const DEFAULT_SETTINGS: Settings = {
   blackSpectrumFirmamentPlots: false,
   freeUnitDrag: false,
   skipPhases: false,
+  chessClockEnabled: false,
+  chessClockMinutes: 120,
+  chessClockIncrementSeconds: 30,
 };
 
 /** Legacy settings stored a boolean `showControlTokens` instead of the mode. */
@@ -547,6 +550,14 @@ export type Settings = {
    * Wyłączone (domyślnie): zwykły, walidowany przepływ.
    */
   skipPhases: boolean;
+  /*
+   * Zegar szachowy (RULES.md 58): pula minut na gracza + dodatek (s) za zakończoną turę.
+   * Czytany przy tworzeniu NOWEJ gry (`createNewGame` wysyła `chess_clock`); gra w toku
+   * zachowuje swój zegar.
+   */
+  chessClockEnabled: boolean;
+  chessClockMinutes: number;
+  chessClockIncrementSeconds: number;
 };
 
 type BooleanSettingKey = {

@@ -22,7 +22,7 @@ from src.api.schemas import (
 )
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
-from src.core import strategy_phase
+from src.core import game_clock, strategy_phase
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
@@ -91,6 +91,7 @@ def get_web_data(
             ctx.service.current_state(),
             game_name=game_id,
             viewing_player=viewing_player,
+            now=ctx.service.now(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -568,6 +569,13 @@ async def post_new_game(
     new_state = begin_setup(new_state, ctx.registry)
     # Żetony frontier na systemach bez planet (w tym bramy Creuss Gate / The Sorrow).
     new_state = place_frontier_tokens(new_state, grid, ctx.registry)
+    if request.chess_clock is not None:
+        # Zegar szachowy (RULES.md 58): rusza przy commicie, gdy pojawi się holder.
+        new_state = game_clock.configure(
+            new_state,
+            initial_ms=request.chess_clock.total_minutes * 60_000,
+            increment_ms=request.chess_clock.increment_seconds * 1000,
+        )
     ctx.current_grid = grid
     ctx.service.replace_state(new_state, label="game:new")
     await ctx.service.broadcast()

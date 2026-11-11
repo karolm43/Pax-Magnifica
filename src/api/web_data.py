@@ -25,12 +25,14 @@ emitujemy je puste/domyślne, by viewer działał bez pełnej logiki rundy.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from src.api import web_agenda, web_objectives, web_setup
 from src.core import (
     action_budget,
     agenda_phase,
+    game_clock,
     production,
     space_cannon,
     strategy_phase,
@@ -1502,6 +1504,40 @@ def _build_expeditions(
     }
 
 
+def _build_chess_clock(
+    state: GameState, entity_keys: dict[str, str], now: float
+) -> dict[str, Any] | None:
+    """Zegar szachowy (RULES.md 58) na chwilę budowy dokumentu — None, gdy wyłączony.
+
+    Wartości są aktualne na ``now``; UI dolicza upływ od chwili ODBIORU dokumentu tylko
+    holderowi z ``running=True`` (bez porównywania zegarów serwera i przeglądarki).
+    """
+    clock = state.clock
+    if not clock.enabled:
+        return None
+    players = []
+    for entry in game_clock.snapshot(state, now):
+        player = state.players[entry.player_id]
+        players.append(
+            {
+                "playerId": entry.player_id,
+                "faction": entity_keys.get(entry.player_id, entry.player_id),
+                "color": player.color,
+                "name": player.display_name or player.faction or entry.player_id,
+                "remainingMs": entry.remaining_ms,
+                "turnMs": entry.turn_ms,
+                "running": entry.running,
+            }
+        )
+    return {
+        "paused": clock.paused,
+        "holderId": clock.holder_id,
+        "initialMs": clock.initial_ms,
+        "incrementMs": clock.increment_ms,
+        "players": players,
+    }
+
+
 def build_web_data(
     grid: HexGrid,
     registry: StaticDataRegistry,
@@ -1510,6 +1546,7 @@ def build_web_data(
     game_name: str,
     vps_to_win: int | None = None,
     viewing_player: str | None = None,
+    now: float | None = None,
 ) -> dict[str, Any]:
     """Serializuje stan gry do dokumentu ``PlayerDataResponse`` dla frontendu ti4_web.
 
@@ -1525,6 +1562,7 @@ def build_web_data(
         vps_to_win: Próg punktów zwycięstwa.
         viewing_player: Gracz, z którego perspektywy rzutujemy dokument (R6.6).
             ``None`` → używamy aktywnego gracza (``state.active_player_id``).
+        now: Chwila (s UNIX) odczytu zegara szachowego; ``None`` → czas systemowy.
 
     Returns:
         Słownik gotowy do serializacji JSON zgodny z ``PlayerDataResponse``.
@@ -1586,6 +1624,10 @@ def build_web_data(
             **web_objectives.card_pool_counts(projected, registry),
         },
         "expeditions": _build_expeditions(projected, entity_keys),
+        # Zegar szachowy graczy (RULES.md 58) — None, gdy gra jest bez zegara.
+        "chessClock": _build_chess_clock(
+            projected, entity_keys, time.time() if now is None else now
+        ),
     }
 
 

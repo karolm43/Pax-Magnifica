@@ -3135,3 +3135,34 @@ Zasada ta sama co 56: gdzie jest decyzja gracza, gracz dostaje UI (przycisk/form
 **57.6 Wybory gracza jako parametry reguły bazowej.** *Graviton Laser System* (`gls`): `exhaust_gls` przy strzale Space Cannon Offense (przełącznik w panelu); trafienia muszą iść w statki niemyśliwskie, o ile są. *AI Development Algorithm* (`aida`, część produkcyjna): `exhaust_aida` przy produkcji, zniżka = liczba ulepszeń jednostek; UI pokazuje też zniżki hooków (Sarween Tools). Oznaczone `declare_player_option`.
 
 **57.7 Niezrobione.** *Fighter II* (`ff2`): „myśliwce ponad pojemność liczą się do puli floty” wymaga zmiany `fleet_pool.fleet_report`. *Predictive Intelligence*: głosy w agendzie.
+
+## 58. Zegar szachowy graczy — ⚠ ZAŁOŻENIE (funkcja projektowa, NIE reguła TI4) — decyzja użytkownika 2026-11-11
+
+Źródło: prośba użytkownika (2026-11-11): „timer każdego gracza — ile łącznie ma czasu i ile upłynęło w aktualnej
+turze, jak w szachach; ustawiany w Ustawieniach na stronie głównej”. TI4 nie ma reguły zegara.
+
+**58.1 Konfiguracja.** Ustawienia → „Chess clock” (front: `appStore.chessClock*`): włącznik, pula minut na gracza
+(1–1440), dodatek w sekundach za turę (0–3600). Wysyłane w `POST /game/new` jako `chess_clock`
+(`{total_minutes, increment_seconds}`; brak = gra bez zegara). Dotyczy NOWEJ gry; gra w toku zachowuje swój zegar.
+
+**58.2 Czyj zegar tyka (`core/game_clock.clock_holder`).** ⚠ ZAŁOŻENIE: tego, kto TERAZ decyduje:
+bieżący respondent otwartego okna czasowego (secondary, straty, space cannon, reakcje); w przeciwnym razie
+`active_player_id` (wybór karty strategii, tura w fazie akcji, punktowanie w statusie, głosowanie w agendzie).
+W trakcie setupu startowego (wybory równoległe) i po końcu gry zegar stoi.
+
+**58.3 Tura i dodatek.** „Czas tury” = nieprzerwany ciąg decyzji jednego holdera (zmiana holdera zeruje licznik).
+⚠ ZAŁOŻENIE: dodatek (Fischer) dostaje gracz, gdy `active_player_id` przechodzi od niego do kogoś innego
+(koniec jego tury) — odpowiedź w oknie (np. secondary) dodatku nie daje.
+
+**58.4 Przekroczenie czasu.** ⚠ ZAŁOŻENIE: silnik NIE karze za przekroczenie (brak przegranej / auto-pasu) —
+czas schodzi poniżej zera i UI pokazuje go na czerwono. Kara do decyzji użytkownika.
+
+**58.5 Pauza.** `POST /clock/pause` / `POST /clock/resume` (bez `actor_id` — to sprawa stołu, nie akcja gry;
+może każdy gracz). Przycisk w pasku zegara.
+
+**58.6 Mechanika i ograniczenia.** Stan: `GameState.clock` (`GameClock`), zmienia go tylko `core/game_clock.py`.
+Czas rozliczany przy każdym commicie (`StateService.replace_state` → `game_clock.settle(now)`), źródło czasu
+wstrzykiwane (`create_app(now=...)`, testy deterministyczne). Web-data: `chessClock` (wartości na chwilę budowy
+dokumentu); UI (`domains/clock/ChessClockPanel`) dolicza upływ od chwili ODBIORU, więc różnica zegarów komputerów
+nie ma znaczenia. ⚠ Undo/Redo przywraca migawkę razem z zegarem (czas „cofa się” do tamtej chwili, a odcinek od
+niej obciąża ówczesnego holdera) — akceptowalne dla wentyla God-Mode.

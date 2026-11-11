@@ -723,6 +723,35 @@ class EpilogueState(BaseModel):
     result: str | None = None
 
 
+class GameClock(BaseModel):
+    """Zegar szachowy graczy — funkcja PROJEKTOWA, nie reguła TI4 (RULES.md 58).
+
+    Każdy gracz ma pulę czasu (``remaining_ms``); tyka zegar tylko tego gracza, który
+    TERAZ podejmuje decyzję (``holder_id`` — patrz ``core.game_clock.clock_holder``).
+    Czas jest rozliczany przy każdym commicie stanu (``core.game_clock.settle``), a
+    pomiędzy commitami UI dolicza go sam od ``running_since``. Zmienia go WYŁĄCZNIE
+    ``core/game_clock.py``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    # Startowa pula czasu na gracza i dodatek (Fischer) za każdą zakończoną turę.
+    initial_ms: int = 0
+    increment_ms: int = 0
+    # Pozostały czas gracza (rozliczony do ``running_since``). Może zejść poniżej zera —
+    # silnik nie karze za przekroczenie, tylko je pokazuje (⚠ ZAŁOŻENIE, RULES.md 58).
+    remaining_ms: dict[str, int] = Field(default_factory=dict)
+    # Gracz, którego zegar tyka, i rozliczony czas jego bieżącej „tury" (ciągu decyzji).
+    holder_id: str | None = None
+    holder_turn_ms: int = 0
+    # Czas UNIX (s) początku nierozliczonego odcinka; None = zegar stoi (pauza/brak holdera).
+    running_since: float | None = None
+    paused: bool = False
+    # ``active_player_id`` z ostatniego rozliczenia — jego zmiana = koniec tury (dodatek).
+    turn_owner_id: str | None = None
+
+
 class GameState(BaseModel):
     """Pełny, serializowalny stan gry."""
 
@@ -835,6 +864,8 @@ class GameState(BaseModel):
     epilogue: EpilogueState | None = None
     # Dziennik bitew/podbojów/transakcji dla podsumowania końcowego.
     chronicle: GameChronicle = Field(default_factory=GameChronicle)
+    # Zegar szachowy graczy (opcja nowej gry, RULES.md 58) — wyłączony domyślnie.
+    clock: GameClock = Field(default_factory=GameClock)
 
     players: dict[str, PlayerState] = Field(default_factory=dict)
     systems: dict[str, SystemState] = Field(default_factory=dict)

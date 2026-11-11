@@ -8,9 +8,12 @@ prawdy, a frontend tylko odzwierciedla rozesłany stan.
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
+
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
-from src.core import activity, game_end, nexus
+from src.core import activity, game_clock, game_end, nexus
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 
@@ -23,9 +26,12 @@ class StateService:
         store: EventStore,
         manager: ConnectionManager,
         initial_state: GameState | None = None,
+        now: Callable[[], float] = time.time,
     ) -> None:
         self._store = store
         self._manager = manager
+        # Źródło czasu rzeczywistego dla zegara szachowego (RULES.md 58); testy podmieniają.
+        self._now = now
         # Zapewnij, że historia ma co najmniej jedną migawkę (stan bazowy).
         if self._store.current() is None:
             self._store.commit(initial_state or GameState(), label="initial")
@@ -60,6 +66,8 @@ class StateService:
         before = self._store.current()
         # Wormhole Nexus odwraca się na stronę aktywną, gdy pojawi się w nim jednostka/kontrola.
         after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
+        # Zegar szachowy: rozlicz czas holdera i przełącz go wg nowego stanu (RULES.md 58).
+        after = game_clock.settle(after, self._now())
         entry = activity.derive_activity(label, before, after)
         self._store.commit(
             after,
@@ -67,6 +75,10 @@ class StateService:
             activity_json=entry.model_dump_json() if entry else None,
         )
         return self.envelope()
+
+    def now(self) -> float:
+        """Bieżący czas (s UNIX) ze źródła serwisu — dla zegara szachowego."""
+        return self._now()
 
     def current_seq(self) -> int | None:
         """Numer bieżącej migawki historii."""

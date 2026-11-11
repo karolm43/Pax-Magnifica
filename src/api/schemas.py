@@ -349,6 +349,15 @@ class NewGamePlayer(BaseModel):
     starting_tech: list[str] | None = None
 
 
+class ChessClockConfig(BaseModel):
+    """Zegar szachowy nowej gry (RULES.md 58): pula minut na gracza + dodatek za turę."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_minutes: int = Field(ge=1, le=1440)
+    increment_seconds: int = Field(default=0, ge=0, le=3600)
+
+
 class NewGameRequest(BaseModel):
     """Żądanie utworzenia nowej gry: mapa + gracze w jednym kroku.
 
@@ -364,6 +373,8 @@ class NewGameRequest(BaseModel):
     include_center: bool = True
     # FAN-AGENDAS: talia agend - "standard" (PoK/TE) albo fanowska "absol".
     agenda_deck: str = "standard"
+    # Zegar szachowy (RULES.md 58) — None = gra bez zegara.
+    chess_clock: ChessClockConfig | None = None
 
 
 class UnitChange(BaseModel):

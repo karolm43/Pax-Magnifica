@@ -361,6 +361,31 @@ export type PlayerDataResponse = {
   gameState?: GameState;
   /** Increments whenever new game events are available; used to invalidate the events query without polling. */
   eventSequence?: number;
+  /** Zegar szachowy graczy (RULES.md 58); null, gdy gra jest bez zegara. */
+  chessClock?: ChessClockView | null;
+};
+
+/** Zegar jednego gracza — wartości aktualne na chwilę zbudowania dokumentu. */
+export type ChessClockPlayer = {
+  playerId: string;
+  /** Klucz tożsamości (jak `playerData[].faction`). */
+  faction: string;
+  color: string | null;
+  name: string;
+  /** Pozostały czas; może być ujemny (przekroczenie nie jest karane). */
+  remainingMs: number;
+  /** Czas bieżącej tury (tylko holder, inaczej 0). */
+  turnMs: number;
+  /** Czy zegar tego gracza teraz tyka (UI dolicza upływ od odbioru dokumentu). */
+  running: boolean;
+};
+
+export type ChessClockView = {
+  paused: boolean;
+  holderId: string | null;
+  initialMs: number;
+  incrementMs: number;
+  players: ChessClockPlayer[];
 };
 
 type GameEventArchetype =
