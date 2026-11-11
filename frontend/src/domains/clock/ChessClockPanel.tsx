@@ -1,15 +1,17 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import cx from "clsx";
-import { IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
+import {
+  IconGripVertical,
+  IconPlayerPauseFilled,
+  IconPlayerPlayFilled,
+} from "@tabler/icons-react";
 import { ActionIcon, Tooltip } from "@/ds";
-import { DEFAULT_GAME_ID } from "@/config";
 import { usePlayerData } from "@/api/usePlayerData";
+import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
-import { useAppStore } from "@/state/appStore";
 import type { ChessClockView, PlayerDataResponse } from "@/entities/data/types";
 import { formatClock, formatElapsed, isLow, isTicking, livePlayer } from "./clockMath";
+import { useClockActions } from "./useClockActions";
 import styles from "./ChessClockPanel.module.css";
 
 // Chwila ODBIORU każdego dokumentu zegara (obiekt z react-query zmienia się przy każdym
@@ -25,35 +27,24 @@ function receiptTime(view: ChessClockView): number {
   return at;
 }
 
-async function postClock(action: "pause" | "resume"): Promise<void> {
-  const response = await fetch(`/bot/clock/${action}`, { method: "POST" });
-  if (!response.ok) {
-    const raw = await response.text().catch(() => "");
-    let message = raw || `Error ${response.status}`;
-    try {
-      const parsed = JSON.parse(raw) as { detail?: unknown };
-      if (typeof parsed.detail === "string") message = parsed.detail;
-    } catch {
-      // nie-JSON - zostaje surowy tekst
-    }
-    useAppStore.getState().setNotice(message, "error");
-  }
+/** Zegar gry z web-data (`chessClock`) — null, gdy gra jest bez zegara. */
+export function useChessClockView(gameId: string) {
+  return usePlayerData(gameId, {
+    select: (data: PlayerDataResponse) => data.chessClock ?? null,
+  }).data;
 }
 
 /**
- * Zegar szachowy graczy (RULES.md 58): pasek nad mapą z pozostałym czasem każdego gracza
- * i czasem bieżącej tury tego, kto teraz decyduje. Liczy silnik; UI tylko dolicza upływ
- * między odświeżeniami. Nie renderuje się, gdy gra jest bez zegara. Montowany raz na stronie gry.
+ * Zegar szachowy graczy (RULES.md 58): pasek w widoku mapy z pozostałym czasem każdego
+ * gracza i czasem bieżącej tury tego, kto teraz decyduje. Liczy silnik; UI tylko dolicza
+ * upływ między odświeżeniami. Nie renderuje się, gdy gra jest bez zegara (włączenie:
+ * Ustawienia → Chess clock). Przesuwalny za uchwyt (dwuklik = powrót na miejsce).
  */
-export function ChessClockPanel() {
-  const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid ?? DEFAULT_GAME_ID;
-  const { data: view } = usePlayerData(gameId, {
-    select: (data: PlayerDataResponse) => data.chessClock ?? null,
-  });
-  const queryClient = useQueryClient();
+export function ChessClockPanel({ gameId }: { gameId: string }) {
+  const view = useChessClockView(gameId);
+  const actions = useClockActions(gameId);
+  const drag = useDraggablePanel("chessClock.pos");
   const [now, setNow] = useState(() => Date.now());
-  const [busy, setBusy] = useState(false);
   const ticking = isTicking(view);
 
   useEffect(() => {
@@ -64,19 +55,29 @@ export function ChessClockPanel() {
 
   if (!view) return null;
   const delta = ticking ? Math.max(0, now - receiptTime(view)) : 0;
-
-  const togglePause = async () => {
-    setBusy(true);
-    try {
-      await postClock(view.paused ? "resume" : "pause");
-      await queryClient.invalidateQueries({ queryKey: ["playerData", gameId] });
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Po przeciągnięciu hook ustawia left/top — wyłączamy wtedy centrowanie transformem.
+  const style: CSSProperties =
+    "left" in drag.style ? { ...drag.style, transform: "none" } : drag.style;
 
   return (
-    <div className={styles.bar} data-testid="chess-clock" role="group" aria-label="Player clocks">
+    <div
+      className={styles.bar}
+      style={style}
+      data-draggable-panel
+      data-dragging={drag.isDragging || undefined}
+      data-testid="chess-clock"
+      role="group"
+      aria-label="Player clocks"
+    >
+      <span
+        className={styles.grip}
+        onPointerDown={drag.onHandlePointerDown}
+        onDoubleClick={drag.reset}
+        title="Drag to move (double-click to reset)"
+        aria-hidden
+      >
+        <IconGripVertical size={14} />
+      </span>
       {view.players.map((raw) => {
         const player = livePlayer(raw, delta);
         const holder = player.playerId === view.holderId;
@@ -114,9 +115,10 @@ export function ChessClockPanel() {
         <ActionIcon
           variant="subtle"
           size="sm"
+          data-no-drag
           aria-label={view.paused ? "Resume clocks" : "Pause clocks"}
-          disabled={busy}
-          onClick={() => void togglePause()}
+          disabled={actions.busy}
+          onClick={() => void (view.paused ? actions.resume() : actions.pause())}
         >
           {view.paused ? <IconPlayerPlayFilled size={14} /> : <IconPlayerPauseFilled size={14} />}
         </ActionIcon>

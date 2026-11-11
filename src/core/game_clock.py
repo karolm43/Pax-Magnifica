@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.core.game_state import GameState
+from src.core.game_state import GameClock, GameState
 
 # Granice konfiguracji (ochrona przed literówką typu 6000 minut).
 MAX_INITIAL_MS = 24 * 60 * 60 * 1000
@@ -52,10 +52,11 @@ def clock_holder(state: GameState) -> str | None:
 
 
 def configure(state: GameState, *, initial_ms: int, increment_ms: int = 0) -> GameState:
-    """Włącza zegar z pulą ``initial_ms`` dla każdego gracza (nowa gra). Zwraca nowy stan.
+    """Włącza zegar z pulą ``initial_ms`` dla każdego gracza. Zwraca nowy stan.
 
-    Zegar rusza przy najbliższym ``settle`` (commit). Raises: ``ValueError`` przy
-    wartościach spoza zakresu.
+    Używane przy nowej grze i do (ponownego) startu zegara w trwającej grze — wtedy
+    wszyscy dostają pełną pulę od nowa. Zegar rusza przy najbliższym ``settle`` (commit).
+    Raises: ``ValueError`` przy wartościach spoza zakresu.
     """
     if not 0 < initial_ms <= MAX_INITIAL_MS:
         raise ValueError(f"Clock time must be between 1 ms and 24 h (got {initial_ms} ms).")
@@ -72,6 +73,13 @@ def configure(state: GameState, *, initial_ms: int, increment_ms: int = 0) -> Ga
     clock.running_since = None
     clock.paused = False
     clock.turn_owner_id = None
+    return new_state
+
+
+def disable(state: GameState) -> GameState:
+    """Wyłącza zegar w trwającej grze (stan zegara zerowany). Zwraca nowy stan."""
+    new_state = state.clone()
+    new_state.clock = GameClock()
     return new_state
 
 

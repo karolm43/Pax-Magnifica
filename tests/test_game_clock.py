@@ -192,6 +192,22 @@ def test_clock_runs_through_api(registry: StaticDataRegistry) -> None:
     assert client.post("/clock/resume").status_code == 422
 
 
+def test_clock_can_be_started_and_stopped_mid_game(registry: StaticDataRegistry) -> None:
+    fake = _FakeTime()
+    client = _client(registry, fake)
+    _new_game(client, None)
+    finish_setup(client)
+    resp = client.post("/clock/configure", json={"total_minutes": 5, "increment_seconds": 0})
+    assert resp.status_code == 200
+    fake.value += 7
+    view = _web_clock(client)
+    row = next(p for p in view["players"] if p["playerId"] == view["holderId"])
+    assert row["running"] and row["remainingMs"] == 5 * MIN - 7_000
+    assert client.post("/clock/configure", json={"total_minutes": 0}).status_code == 422
+    assert client.post("/clock/disable").status_code == 200
+    assert _web_clock(client) is None
+
+
 def test_new_game_rejects_bad_clock_config(registry: StaticDataRegistry) -> None:
     client = _client(registry, _FakeTime())
     resp = client.post(

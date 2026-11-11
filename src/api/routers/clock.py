@@ -10,10 +10,37 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import StateEnvelope
+from src.api.schemas import ChessClockConfig, StateEnvelope
 from src.core import game_clock
 
 router = APIRouter(prefix="/clock", tags=["clock"])
+
+
+@router.post("/configure", response_model=StateEnvelope)
+async def post_configure(
+    request: ChessClockConfig, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """(Re)startuje zegar w trwającej grze: każdy gracz dostaje pełną pulę od teraz."""
+    try:
+        new_state = game_clock.configure(
+            ctx.service.current_state(),
+            initial_ms=request.total_minutes * 60_000,
+            increment_ms=request.increment_seconds * 1000,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    ctx.service.replace_state(new_state, label="clock:configure")
+    await ctx.service.broadcast()
+    return ctx.service.envelope()
+
+
+@router.post("/disable", response_model=StateEnvelope)
+async def post_disable(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+    """Wyłącza zegar w trwającej grze."""
+    new_state = game_clock.disable(ctx.service.current_state())
+    ctx.service.replace_state(new_state, label="clock:disable")
+    await ctx.service.broadcast()
+    return ctx.service.envelope()
 
 
 @router.post("/pause", response_model=StateEnvelope)

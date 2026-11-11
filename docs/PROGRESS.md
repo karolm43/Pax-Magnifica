@@ -36,6 +36,8 @@ at_start/at_end/during → STOP i karty reakcji → relikty / promissory notes /
   `StateService.replace_state`, `POST /clock/pause|resume`, `chess_clock` w `/game/new`, `chessClock` w web-data.
 - Front: Ustawienia → „Chess clock” (pula minut + dodatek s), pasek `domains/clock/ChessClockPanel` nad mapą
   (pozostały czas każdego gracza, czas tury holdera, pauza). Testy: `tests/test_game_clock.py`, `clockMath.test.ts`.
+- Poprawka po uwadze użytkownika: pasek w widoku mapy (przesuwalny), start/wyłączenie zegara w TRWAJĄCEJ grze
+  (Ustawienia → Current game, `/clock/configure|disable`) — wcześniej działał tylko od nowej gry, więc go nie było widać.
 - Do decyzji użytkownika: kara za przekroczenie czasu (58.4), zasady dodatku (58.3).
 
 ### ✅ Baza zdarzeń i okien czasowych (2026-11-08) — RULES.md 54

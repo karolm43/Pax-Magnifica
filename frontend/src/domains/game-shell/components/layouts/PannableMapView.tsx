@@ -27,6 +27,7 @@ import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePan
 import { TacticalActionDock } from "@/domains/game-shell/components/TacticalActionDock";
 import { PhaseNoticePanel } from "@/domains/game-shell/components/PhaseNoticePanel";
 import { BoardHud } from "./BoardHud";
+import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
 const BOARD_CLEARANCE = 20;
@@ -163,6 +164,9 @@ export function PannableMapView({ gameId }: { gameId: string }) {
       {/* Panel komunikatów — przypięty u góry, prowadzi gracza przez fazę i pokazuje
           odrzucone akcje (standaryzowany „głos stołu", DECYZJA 2026-11). */}
       <PhaseNoticePanel />
+      {/* Zegar szachowy graczy (RULES.md 58) — u góry widoku mapy, przesuwalny; sam zwraca
+          null, gdy gra jest bez zegara (Ustawienia → Chess clock). */}
+      <ChessClockPanel gameId={gameId} />
       <Box className={classes.gameStateOverlay}>
         <GameStatePanel />
         {/* Card_Table_View — nakładka „na stole" obok panelu; sama pilnuje

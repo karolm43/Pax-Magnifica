@@ -4,6 +4,7 @@ import { useSettingsStore } from "@/state/appStore";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
+import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
 import styles from "./SettingsModal.module.css";
 
 type PlayerAreaToggleKey =
@@ -63,6 +64,8 @@ function clampInt(value: number | string, min: number, max: number, fallback: nu
 type SettingsModalProps = {
   opened: boolean;
   onClose: () => void;
+  /** Bieżąca gra (w grze) — odblokowuje sterowanie zegarem trwającej partii. */
+  gameId?: string;
 };
 
 function SettingGroup({ label, children }: { label: string; children: ReactNode }) {
@@ -122,7 +125,7 @@ function SwitchRow({
   );
 }
 
-export function SettingsModal({ opened, onClose }: SettingsModalProps) {
+export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
   const settings = useSettingsStore((state) => state.settings);
   const handlers = useSettingsStore((state) => state.handlers);
 
@@ -188,7 +191,7 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
           <SettingGroup label="Chess clock">
             <SwitchRow
               label="Player clocks"
-              description="Each player gets a time bank; only the player who is deciding right now (turn, vote, window response) uses it. Applies to the next new game."
+              description="Each player gets a time bank; only the player who is deciding right now (turn, vote, window response) uses it. Applies to new games; use Current game below to start it in a game in progress."
               checked={settings.chessClockEnabled}
               onToggle={(checked) =>
                 handlers.updateSettings({ chessClockEnabled: checked })
@@ -231,6 +234,18 @@ export function SettingsModal({ opened, onClose }: SettingsModalProps) {
                 }
               />
             </SettingRow>
+            {gameId && (
+              <SettingRow
+                label="Current game"
+                description="Start (or restart) the clock in this game with the values above. Every player gets a full bank from now."
+              >
+                <CurrentGameClockControls
+                  gameId={gameId}
+                  minutes={settings.chessClockMinutes}
+                  incrementSeconds={settings.chessClockIncrementSeconds}
+                />
+              </SettingRow>
+            )}
           </SettingGroup>
 
           <SettingGroup label="Map display">

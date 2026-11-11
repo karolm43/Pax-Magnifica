@@ -23,6 +23,20 @@
   font-family: var(--ds-font-data);
 }
 
+.grip {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding: 0 2px;
+  color: var(--ds-ink-lo);
+  cursor: grab;
+  touch-action: none;
+}
+
+.bar[data-dragging] .grip {
+  cursor: grabbing;
+}
+
 .player {
   --clock-rgb: 148 163 184;
   display: grid;
