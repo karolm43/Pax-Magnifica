@@ -226,6 +226,13 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
     if (!player || player.techs.includes(techId)) return;
     void apply({ technologies: [...player.techs, techId] });
   };
+  /** Dodaje graczowi wszystkie dostępne technologie (ogólne + jego frakcji). */
+  const addAllTechs = () => {
+    if (!player) return;
+    const merged = new Set(player.techs);
+    for (const opt of techOptions) merged.add(opt.value);
+    void apply({ technologies: [...merged] });
+  };
   const removeTech = (techId: string) =>
     player && void apply({ technologies: player.techs.filter((t) => t !== techId) });
 
@@ -451,6 +458,14 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                         clearable
                         disabled={busy}
                       />
+                      <Button
+                        size="xs"
+                        variant="default"
+                        disabled={busy}
+                        onClick={addAllTechs}
+                      >
+                        Add all technologies
+                      </Button>
                       <Group gap={6} wrap="wrap">
                         {player.techs.map((techId) => {
                           const t = getTechData(techId);
