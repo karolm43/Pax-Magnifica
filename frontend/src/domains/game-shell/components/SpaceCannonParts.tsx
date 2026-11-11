@@ -41,19 +41,49 @@ export function DiceRolls({ rolls }: { rolls: SpaceCannonRoll[] }) {
           <span className={styles.rollLabel}>
             {roll.name} · {roll.hitsOn}+
             <small> {zoneLabel(roll)}</small>
+            {(roll.modifier ?? 0) !== 0 && (
+              <b
+                className={styles.rollTag}
+                data-tone="debuff"
+                title="Technology of the targeted player changes each die result"
+              >
+                {roll.modifier > 0 ? "+" : "\u2212"}
+                {Math.abs(roll.modifier)} to each die (Antimass Deflectors)
+              </b>
+            )}
+            {(roll.extraDice ?? 0) > 0 && (
+              <b
+                className={styles.rollTag}
+                data-tone="buff"
+                title="Plasma Scoring: this unit rolled additional dice"
+              >
+                +{roll.extraDice} die (Plasma Scoring)
+              </b>
+            )}
           </span>
           <span className={styles.diceRow}>
-            {roll.dice.map((value, di) => (
-              <span
-                key={di}
-                className={styles.die}
-                data-hit={value >= roll.hitsOn || undefined}
-                style={{ "--i": ri * 6 + di } as CSSProperties}
-                title={value >= roll.hitsOn ? "Hit" : "Miss"}
-              >
-                {value}
-              </span>
-            ))}
+            {roll.dice.map((value, di) => {
+              const modifier = roll.modifier ?? 0;
+              const result = value + modifier;
+              return (
+                <span
+                  key={di}
+                  className={styles.die}
+                  data-hit={result >= roll.hitsOn || undefined}
+                  style={{ "--i": ri * 6 + di } as CSSProperties}
+                  title={
+                    modifier !== 0
+                      ? `Rolled ${value}, ${modifier > 0 ? "+" : "\u2212"}${Math.abs(modifier)} = ${result}: ${result >= roll.hitsOn ? "Hit" : "Miss"}`
+                      : value >= roll.hitsOn
+                        ? "Hit"
+                        : "Miss"
+                  }
+                >
+                  {value}
+                  {modifier !== 0 && <small className={styles.dieMod}>{"\u2192"}{result}</small>}
+                </span>
+              );
+            })}
           </span>
         </div>
       ))}

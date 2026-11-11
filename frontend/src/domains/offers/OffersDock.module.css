@@ -1,0 +1,212 @@
+/* Panel decyzji gracza (technologie "may"): niemodalny, bez przyciemnienia - plansza zostaje klikalna. */
+.dock {
+  position: fixed;
+  right: 16px;
+  /* Nad paskiem ręki - wysokość doku mierzy BottomHandDock (--hand-dock-clear). */
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  z-index: var(--z-app-modal, 3000);
+  display: grid;
+  gap: 8px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(70vh, 560px);
+  min-width: 280px;
+  overflow: auto;
+  /* Natywny uchwyt w rogu pozwala dowolnie rozszerzyć panel. */
+  resize: both;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--ds-edge-accent);
+  background: var(--ds-deck);
+  color: var(--ds-ink-hi);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 0.55);
+  animation: dockIn 180ms ease-out;
+}
+
+.dock[data-wide] {
+  width: min(620px, calc(100vw - 32px));
+  max-height: 85vh;
+}
+
+.dock[data-dragging] {
+  user-select: none;
+}
+
+.head {
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag {
+  flex: none;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.iconBtn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-ground-2);
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  border-color: var(--ds-edge-accent);
+}
+
+.textBlock {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+
+.text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ds-ink-lo);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.text[data-open] {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.more:hover {
+  color: var(--ds-ink-hi);
+}
+
+.inputs {
+  display: grid;
+  gap: 8px;
+}
+
+.warn {
+  margin: 0;
+  font-size: 12px;
+  color: #fca5a5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.skip,
+.use {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--ds-h22);
+  cursor: pointer;
+}
+
+.skip {
+  color: var(--ds-ink-hi);
+  background: var(--ds-ground-2);
+}
+
+.use {
+  color: #fff;
+  border-color: var(--ds-edge-accent);
+  background: var(--ds-accent, #2563eb);
+}
+
+.skip:disabled,
+.use:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.skip kbd,
+.use kbd {
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  opacity: 0.8;
+}
+
+.pill {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  z-index: var(--z-app-modal, 3000);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid var(--ds-edge-accent);
+  background: var(--ds-deck);
+  color: var(--ds-ink-hi);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.55);
+  cursor: pointer;
+}
+
+.pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes dockIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock {
+    animation: none;
+  }
+}

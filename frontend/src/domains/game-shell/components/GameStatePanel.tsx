@@ -29,7 +29,7 @@ import {
   useStrategyCards,
   type StrategyCardState,
 } from "@/api/useBoardEditor";
-import { useAppStore } from "@/state/appStore";
+import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { MovementStepPanel } from "./MovementStepPanel";
 import { SpaceCannonStepPanel } from "./SpaceCannonStepPanel";
@@ -675,6 +675,21 @@ const WINDOW_LABELS: Record<string, string> = {
   REACTION: "Reaction window",
 };
 
+/*
+ * Okna rozstrzygane WŁASNYM oknem/panelem (walka, Space Cannon, pojemność, pula floty,
+ * oferty): generyczne „Execute/Pass" (`/window/respond`) tylko przesuwa kolejkę i omija
+ * obowiązkowe decyzje (np. usunięcie nadwyżki, przypisanie strat) — to wentyl God-Mode,
+ * nie przycisk gracza. Panel pokazuje wtedy, GDZIE rozstrzygnąć okno.
+ */
+const WINDOW_RESOLVED_ELSEWHERE: Record<string, string> = {
+  COMBAT_ASSIGN_HITS: "Assign the hits in the battle window.",
+  COMBAT_RETREAT: "Announce the retreat in the battle window.",
+  CAPACITY: "Remove the excess units in the capacity window.",
+  FLEET_POOL: "Return the excess ships in the fleet pool window.",
+  SPACE_CANNON: "Fire or pass in the Space Cannon step panel.",
+  REACTION: "Decide on the pending offers in the offers window.",
+};
+
 /**
  * Panel otwartego OKNA CZASOWEGO (timing window, Etap E8). Pokazuje wyraźnie, czyja
  * teraz reakcja (kolejka graczy pytanych po kolei — RULES.md 29.2) i daje przyciski
@@ -695,9 +710,14 @@ function WindowSection({
 }) {
   const { respondWindow, strategySecondary, closeWindow } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  // God-Mode (Settings → Admin / testing): odsłania wentyle „Close window" / generyczne
+  // Execute-Pass dla okien, które mają własny panel rozstrzygania.
+  const godMode = useSettingsStore((s) => s.settings.skipPhases);
 
   const isInfo = variant === "info";
   const label = WINDOW_LABELS[window.windowType] ?? window.windowType;
+  const elsewhere = WINDOW_RESOLVED_ELSEWHERE[window.windowType] ?? null;
+  const showGenericControls = !isInfo && (elsewhere == null || godMode);
   // Secondary karty strategii mówi językiem planszówki: „Follow"/„Don't follow"
   // (RULES.md 31.6). Pozostałe okna zostają przy ogólnym „Execute"/„Pass".
   const isSecondary = window.windowType === "STRATEGY_SECONDARY";
@@ -742,8 +762,9 @@ function WindowSection({
               ? "Everyone has responded"
               : "Everyone has responded — close the window"}
           </span>
-          {/* Zamknięcie okna = klikalna akcja → tylko w trybie pełnym. */}
-          {!isInfo && (
+          {/* Zamknięcie okna = klikalna akcja → tylko w trybie pełnym. Okna z własnym
+              panelem zamykają się same po rozstrzygnięciu; ręczny wentyl tylko w God-Mode. */}
+          {showGenericControls && (
             <div className={styles.controls}>
               <button
                 type="button"
@@ -774,8 +795,13 @@ function WindowSection({
           <span className={styles.label}>
             Remaining in queue: {window.remaining}
           </span>
-          {/* Odpowiedź w oknie = klikalne akcje → tylko w trybie pełnym. */}
-          {!isInfo && (
+          {/* Okno z własnym panelem: tu tylko wskazówka, gdzie je rozstrzygnąć. */}
+          {elsewhere && !godMode && (
+            <span className={styles.label}>{elsewhere}</span>
+          )}
+          {/* Odpowiedź w oknie = klikalne akcje → tylko w trybie pełnym (i tylko dla okien
+              bez własnego panelu, chyba że God-Mode). */}
+          {showGenericControls && (
             <div className={styles.controls}>
               <button
                 type="button"
@@ -1623,11 +1649,13 @@ function PhaseControls({
             title={
               windowOpen
                 ? "Wait — every player must decide on the secondary first"
-                : hasPassed
-                  ? "You passed — end your turn to hand over"
-                  : tookAction
-                    ? "End your turn to hand over"
-                    : "Take an action or pass before ending your turn"
+                : gameState.activeSystem != null
+                  ? "End the tactical action and hand over (blocked while a combat or invasion is unresolved)"
+                  : hasPassed
+                    ? "You passed — end your turn to hand over"
+                    : tookAction
+                      ? "End your turn to hand over"
+                      : "Take an action or pass before ending your turn"
             }
           >
             End turn

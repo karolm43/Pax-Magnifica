@@ -4,6 +4,7 @@ import {
   bumpStage,
   defaultBombardPlan,
   landAll,
+  moveBombard,
   remainingOf,
   shiftBombard,
   stageList,
@@ -98,5 +99,15 @@ describe("bombardowanie", () => {
   it("nie zabiera z celu bez przydziału", () => {
     const plan = { dreadnought: { a: 3 } };
     expect(shiftBombard(plan, dread, targets, "a", 1)).toBe(plan);
+  });
+
+  it("przeciągnięcie przenosi jeden statek albo cały stos (Shift)", () => {
+    const plan = { dreadnought: { a: 3 } };
+    const one = moveBombard(plan, "dreadnought", targets, "b", null, false);
+    expect(one.dreadnought).toEqual({ a: 2, b: 1 });
+    const all = moveBombard(one, "dreadnought", targets, "b", "a", true);
+    expect(all.dreadnought).toEqual({ a: 0, b: 3 });
+    // Z konkretnej planety bez statków nic się nie dzieje.
+    expect(moveBombard(all, "dreadnought", targets, "a", "a", false)).toBe(all);
   });
 });

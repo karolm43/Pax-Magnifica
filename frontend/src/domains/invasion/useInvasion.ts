@@ -68,6 +68,10 @@ export type DefenseShooter = {
   count: number;
   hitsOn: number;
   dicePerUnit: number;
+  /** Klucz grupy - wybór jednostki z dodatkową kością (Plasma Scoring). */
+  key: string;
+  /** Ile kości dodałby Plasma Scoring jednej jednostce (0 = brak technologii). */
+  plasmaDice: number;
 };
 
 export type DefensePlanet = {
@@ -86,6 +90,10 @@ export type InvasionRoll = {
   hitsOn: number;
   dice: number[];
   hits: number;
+  /** Modyfikator wyniku kości celu (Antimass Deflectors: -1). */
+  modifier?: number;
+  /** Kości dodane przez Plasma Scoring. */
+  extraDice?: number;
 };
 
 export type InvasionLogEntry = {
@@ -134,6 +142,8 @@ export type InvasionView = {
   cargo: InvasionUnit[];
   planets: InvasionPlanet[];
   bombard: {
+    /** Ile kości dodałby Plasma Scoring jednej bombardującej jednostce (0 = brak). */
+    plasmaDice: number;
     groups: BombardGroup[];
     targets: string[];
     done: boolean;
@@ -211,9 +221,11 @@ export function useInvasionActions() {
   const bombard = useCallback(
     async (
       assignments: { baseType: string; planet: string; count: number }[],
+      plasmaUnit: string | null = null,
     ) => {
       await post("/tactical/invasion/bombard", {
         assignments: assignments.filter((a) => a.count > 0),
+        plasmaUnit,
       });
       refresh();
     },
@@ -245,8 +257,8 @@ export function useInvasionActions() {
   );
 
   const defenseFire = useCallback(
-    async (planet: string) => {
-      await post("/tactical/invasion/defense/fire", { planet });
+    async (planet: string, plasmaUnit: string | null = null) => {
+      await post("/tactical/invasion/defense/fire", { planet, plasmaUnit });
       refresh();
     },
     [refresh],

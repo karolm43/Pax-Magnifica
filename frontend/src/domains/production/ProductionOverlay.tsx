@@ -85,6 +85,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
 
   const queued = cartCount(cart);
   const free = Math.max(0, view.remaining - queued);
+  // Integrated Economy: zamiast slotów jest limit łącznego kosztu (zasoby planety).
+  const costCap = grant?.maxCost ?? null;
   // Zniżki (RULES.md 57): hooki (Sarween Tools) działają od razu, AI Development Algorithm
   // tylko gdy gracz świadomie go wyczerpie przełącznikiem.
   const [useAida, setUseAida] = useState(false);
@@ -255,9 +257,15 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           </small>
         </span>
         <span className={styles.topStats}>
-          <span className={styles.stat}>
-            <b>{view.remaining}</b> slots left
-          </span>
+          {costCap == null ? (
+            <span className={styles.stat}>
+              <b>{view.remaining}</b> slots left
+            </span>
+          ) : (
+            <span className={styles.stat} data-bad={cost > costCap || undefined}>
+              Cost limit <b>{fmt(cost)}</b> / <b>{fmt(costCap)}</b>
+            </span>
+          )}
           <span className={styles.stat} title="Ready resources + trade goods">
             <b>{readyRes}</b> res +{" "}
             <img className={styles.tgIcon} src="/tg.png" alt="Trade goods" />{" "}
@@ -295,8 +303,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
       )}
 
       <p className={styles.hint}>
-        {grant
-          ? `${grant.source}: produce ${grant.units} unit in this system. ${
+        {grant && costCap != null
+          ? `${grant.source}: produce any number of units; their combined cost may not exceed ${fmt(costCap)} (the planet's resource value). You still pay the normal cost. Ground forces go on that planet, ships to space. This is optional.`
+          : grant
+          ? `${grant.source}: produce ${grant.units} ${grant.shipsOnly ? "ship" : "unit"} in this system. ${
               grant.influenceAsResources
                 ? "A planet's influence counts as resources (a planet pays with one or the other). "
                 : ""
@@ -316,26 +326,42 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
         {/* --- Pojemność produkcji --- */}
         <section className={styles.panel} aria-label="Production capacity">
           <h3>Capacity</h3>
-          <div className={styles.slotsHead}>
-            <b>{free}</b>
-            <span>more units can be produced</span>
-          </div>
-          <div className={styles.slots} role="img" aria-label={`${view.used} used, ${queued} queued, ${free} free of ${view.limit}`}>
-            {Array.from({ length: view.limit }, (_, i) => {
-              const state =
-                i < view.used ? "used" : i < view.used + queued ? "queued" : "free";
-              return (
-                <span className={styles.slot} data-state={state} key={i}>
-                  {state === "used" && <IconCheck size={14} aria-hidden="true" />}
-                </span>
-              );
-            })}
-          </div>
-          <div className={styles.legend}>
-            <span data-state="used">built {view.used}</span>
-            <span data-state="queued">queued {queued}</span>
-            <span data-state="free">free {free}</span>
-          </div>
+          {costCap != null ? (
+            <>
+              <div className={styles.slotsHead}>
+                <b>{fmt(Math.max(0, costCap - rawCost))}</b>
+                <span>of {fmt(costCap)} cost left (no limit on the number of units)</span>
+              </div>
+              <progress
+                value={Math.min(rawCost, costCap)}
+                max={Math.max(costCap, 1)}
+                aria-label={`Order cost ${fmt(rawCost)} of ${fmt(costCap)}`}
+              />
+            </>
+          ) : (
+            <>
+              <div className={styles.slotsHead}>
+                <b>{free}</b>
+                <span>more units can be produced</span>
+              </div>
+              <div className={styles.slots} role="img" aria-label={`${view.used} used, ${queued} queued, ${free} free of ${view.limit}`}>
+                {Array.from({ length: view.limit }, (_, i) => {
+                  const state =
+                    i < view.used ? "used" : i < view.used + queued ? "queued" : "free";
+                  return (
+                    <span className={styles.slot} data-state={state} key={i}>
+                      {state === "used" && <IconCheck size={14} aria-hidden="true" />}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className={styles.legend}>
+                <span data-state="used">built {view.used}</span>
+                <span data-state="queued">queued {queued}</span>
+                <span data-state="free">free {free}</span>
+              </div>
+            </>
+          )}
 
           <FleetPoolWarning extra={queuedShips} extraFighters={queuedFighters} />
 

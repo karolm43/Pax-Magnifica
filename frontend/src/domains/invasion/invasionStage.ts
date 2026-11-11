@@ -135,6 +135,38 @@ export function shiftBombard(
   return { ...plan, [group.baseType]: row };
 }
 
+/**
+ * Przeciągnięcie statków typu ``baseType`` na planetę ``to``: z planety ``from`` albo (gdy
+ * ``from`` = null) z planet o największym przydziale. Domyślnie 1 statek, ``all`` = cały stos.
+ * Suma przydziałów zostaje równa liczbie statków („użyj każdej jednostki z Bombardment").
+ */
+export function moveBombard(
+  plan: BombardPlan,
+  baseType: string,
+  targets: string[],
+  to: string,
+  from: string | null,
+  all: boolean,
+): BombardPlan {
+  if (!targets.includes(to)) return plan;
+  const row = { ...(plan[baseType] ?? {}) };
+  const sources = (from ? [from] : targets)
+    .filter((t) => t !== to && (row[t] ?? 0) > 0)
+    .sort((a, b) => (row[b] ?? 0) - (row[a] ?? 0));
+  let budget = all ? Number.POSITIVE_INFINITY : 1;
+  let moved = 0;
+  for (const source of sources) {
+    if (budget <= 0) break;
+    const take = Math.min(row[source] ?? 0, budget);
+    row[source] = (row[source] ?? 0) - take;
+    budget -= take;
+    moved += take;
+  }
+  if (moved === 0) return plan;
+  row[to] = (row[to] ?? 0) + moved;
+  return { ...plan, [baseType]: row };
+}
+
 /** Płaska lista przydziałów do żądania `POST /tactical/invasion/bombard`. */
 export function bombardList(
   plan: BombardPlan,

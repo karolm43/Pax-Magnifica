@@ -80,10 +80,13 @@ export function CapacityModal() {
   const costOf = (bt: string) =>
     view.cargo.find((c) => c.baseType === bt)?.cost ?? 1;
   const fighterLoad = costOf("fighter") * (left.fighter ?? 0);
-  const dockUsed = Math.min(fighterLoad, view.fighterOnly);
+  // Fighter II: myśliwce ponad capacity idą do fleet pool, więc nie zapełniają ładowni.
+  const toFleet = view.fightersToFleet === true;
+  const dockUsed = toFleet ? 0 : Math.min(fighterLoad, view.fighterOnly);
   const shipLoad =
-    Object.entries(left).reduce((s, [bt, n]) => s + costOf(bt) * n, 0) -
-    dockUsed;
+    Object.entries(left)
+      .filter(([bt]) => !(toFleet && bt === "fighter"))
+      .reduce((s, [bt, n]) => s + costOf(bt) * n, 0) - dockUsed;
   const shipUsed = Math.min(shipLoad, view.general);
   const overflow = Math.max(0, shipLoad - view.general);
   const cells = [
@@ -145,6 +148,9 @@ export function CapacityModal() {
           Your ships can't carry all fighters and ground forces in this system's
           space. Choose which units return to your reinforcements. Ground forces
           on planets don't count.
+          {toFleet
+            ? " With Fighter II, fighters beyond your capacity are not removed here - they count against your fleet pool."
+            : ""}
         </Text>
 
         {/* Ładownia: dok (myśliwce) + statki, przepełnienie na czerwono. */}

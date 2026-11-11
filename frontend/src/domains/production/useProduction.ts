@@ -55,6 +55,10 @@ export type ProductionGrant = {
   source: string;
   units: number;
   influenceAsResources: boolean;
+  /** Integrated Economy: limit ŁĄCZNEGO kosztu (zamiast limitu liczby sztuk); null = brak. */
+  maxCost?: number | null;
+  /** Sling Relay: tylko statki. */
+  shipsOnly?: boolean;
 };
 
 export type ProductionBody = {

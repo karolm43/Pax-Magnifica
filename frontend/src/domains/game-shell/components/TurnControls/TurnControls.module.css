@@ -16,7 +16,8 @@
  */
 .cardZone {
   position: fixed;
-  right: 258px;
+  /* 22 (margines) + 268 (panel akcji) + 16 (odstęp) - karta nie nachodzi na panel. */
+  right: 306px;
   bottom: 20px;
   z-index: 200;
   display: flex;
@@ -336,6 +337,7 @@
   /* STAŁA szerokość — panel NIE zmienia rozmiaru od długości podpowiedzi (hinty
      zawijają się w tej szerokości, nie rozpychają boxa). */
   width: 268px;
+  max-width: calc(100vw - 16px);
   box-sizing: border-box;
   padding: 12px;
   background: color-mix(in oklab, var(--ds-ground) 90%, transparent);
@@ -536,6 +538,14 @@
   background: color-mix(in oklab, var(--ds-accent) 16%, transparent);
   border: 1px solid color-mix(in oklab, var(--ds-accent) 45%, transparent);
   animation: btnIn 0.36s var(--ds-ease) both;
+  /* Ta sama wysokość co przycisk „Activate system" - podmiana nie przesuwa układu. */
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.activate {
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .tacticalLive svg {
@@ -633,6 +643,11 @@
  * tle. Tekst ZAWIJA się w szerokości panelu (word-wrap), więc nie rozpycha boxa.
  * Dwa warianty koloru: ostrzeżenie (warn) i OK/akcja (bio) przez zmienną --chip.
  */
+/* Stała rezerwa miejsca na podpowiedź (do 2 linii) - panel nie zmienia wysokości. */
+.hintSlot {
+  min-height: 48px;
+}
+
 .hint,
 .hintPassed {
   --chip: var(--ds-sig-warn);

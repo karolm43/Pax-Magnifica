@@ -21,6 +21,13 @@ export function remainingCargo(view: CapacityView, remove: Pick): Pick {
 export function excessFor(view: CapacityView, cargo: Pick): number {
   const cost = (bt: string) =>
     view.cargo.find((c) => c.baseType === bt)?.cost ?? 1;
+  if (view.fightersToFleet) {
+    // Fighter II: myśliwce nie są nadwyżką capacity (idą do fleet pool) - liczą się tylko siły naziemne.
+    const ground = Object.entries(cargo)
+      .filter(([bt]) => bt !== "fighter")
+      .reduce((sum, [bt, n]) => sum + cost(bt) * n, 0);
+    return Math.max(0, ground - view.general);
+  }
   const fighters = cost("fighter") * (cargo.fighter ?? 0);
   const total = Object.entries(cargo).reduce(
     (sum, [bt, n]) => sum + cost(bt) * n,

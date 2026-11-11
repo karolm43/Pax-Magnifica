@@ -24,6 +24,7 @@ import {
   DiceRolls,
   SpaceCannonLog,
   usePlayerLookup,
+  zoneLabel,
 } from "./SpaceCannonParts";
 import styles from "./SpaceCannonStepPanel.module.css";
 
@@ -44,7 +45,7 @@ function TurnCard({
   side: SpaceCannonSide;
   lookup: Lookup;
   busy: boolean;
-  onFire: (target: string) => void;
+  onFire: (target: string, plasmaUnit: string | null) => void;
   onPass: () => void;
 }) {
   const lookRgb = usePlayerLook();
@@ -52,6 +53,14 @@ function TurnCard({
   const [target, setTarget] = useState<string | null>(
     side.targets.length === 1 ? side.targets[0] : null,
   );
+  // Plasma Scoring ("may"): wybór jednostki z dodatkową kością. Domyślnie najcelniejsza grupa,
+  // ale gracz może wskazać inną albo zrezygnować.
+  const plasmaGroups = side.shooters.filter((s) => s.plasmaDice > 0);
+  const bestPlasma = [...plasmaGroups].sort((a, b) => a.hitsOn - b.hitsOn)[0];
+  const [plasma, setPlasma] = useState<string | null>(bestPlasma?.key ?? null);
+  const plasmaDice = plasma
+    ? (plasmaGroups.find((s) => s.key === plasma)?.plasmaDice ?? 0)
+    : 0;
 
   return (
     <section className={styles.turn} aria-label={`${me.name} may fire`}>
@@ -112,6 +121,33 @@ function TurnCard({
         />
       ))}
 
+      {plasmaGroups.length > 0 && (
+        <div className={styles.plasma} role="radiogroup" aria-label="Plasma Scoring">
+          <small>Plasma Scoring: 1 unit may roll 1 additional die</small>
+          {plasmaGroups.map((s) => (
+            <label className={styles.plasmaOption} key={s.key}>
+              <input
+                type="radio"
+                name={`plasma-${side.faction}`}
+                checked={plasma === s.key}
+                onChange={() => setPlasma(s.key)}
+              />
+              {s.name} ({s.hitsOn}+)
+              <small>{s.remote ? ` from ${s.position}` : zoneLabel(s)}</small>
+            </label>
+          ))}
+          <label className={styles.plasmaOption}>
+            <input
+              type="radio"
+              name={`plasma-${side.faction}`}
+              checked={plasma === null}
+              onChange={() => setPlasma(null)}
+            />
+            No extra die
+          </label>
+        </div>
+      )}
+
       {side.targets.length > 1 && (
         <div
           className={styles.targets}
@@ -145,8 +181,8 @@ function TurnCard({
         <HoldRollButton
           className={styles.fire}
           disabled={busy || target === null}
-          onFire={() => target !== null && onFire(target)}
-          onHold={soloHold(side.totalDice, me.rgb)}
+          onFire={() => target !== null && onFire(target, plasma)}
+          onHold={soloHold(side.totalDice + plasmaDice, me.rgb)}
           hint={false}
           title={
             target === null
@@ -211,7 +247,8 @@ export function SpaceCannonStepPanel() {
     const { pauseMs } = throwDice({
       left: pendingNow.rolls.map((r) => ({
         dice: r.dice,
-        modifier: 0,
+        // Antimass Deflectors celu (-1 do wyniku) widać też na scenie kości.
+        modifier: r.modifier ?? 0,
         hitsOn: r.hitsOn,
       })),
       leftRgb: look(pendingNow.roller).rgb,
@@ -350,12 +387,13 @@ export function SpaceCannonStepPanel() {
               side={current}
               lookup={lookup}
               busy={busy}
-              onFire={(target) =>
+              onFire={(target, plasmaUnit) =>
                 void run(async () => {
                   await spaceCannonFire(
                     current.faction,
                     target,
                     glsReady && useGls,
+                    plasmaUnit,
                   );
                   setUseGls(false);
                 })

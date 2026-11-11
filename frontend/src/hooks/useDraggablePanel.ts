@@ -16,6 +16,8 @@ type DraggablePanel = {
   isDragging: boolean;
   /** Reset pozycji do domyślnej (np. dwuklik na uchwycie). */
   reset: () => void;
+  /** Ref na element panelu - włącza dopasowanie pozycji do okna przy zmianie rozmiaru. */
+  ref: (el: HTMLElement | null) => void;
 };
 
 function readPosition(storageKey: string): Position {
@@ -53,6 +55,9 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
     readPosition(storageKey),
   );
   const [isDragging, setIsDragging] = useState(false);
+  // Element panelu trzymany w state: panel może się zamontować później niż hook
+  // (np. TurnControls renderuje się warunkowo), a efekt ma się wtedy przepiąć.
+  const [panelEl, setPanelEl] = useState<HTMLElement | null>(null);
 
   // Offset kursora względem rogu panelu + rozmiar panelu (do trzymania w oknie).
   const dragRef = useRef<{
@@ -148,6 +153,37 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
     persist(null);
   }, [persist]);
 
+  // Dopasowanie do okna: gdy okno się zmniejszy albo panel urośnie/zmaleje (np. inna
+  // liczba przycisków), zapisana pozycja mogłaby wypchnąć panel poza ekran. Wtedy
+  // przycinamy POZYCJĘ BIEŻĄCĄ (bez zapisu - po powiększeniu okna wraca zapisane
+  // miejsce po przeładowaniu, a następny drag i tak zapisze nową).
+  const hasPosition = position !== null;
+  useEffect(() => {
+    if (!hasPosition || !panelEl) return;
+    const fit = () => {
+      if (dragRef.current) return;
+      const rect = panelEl.getBoundingClientRect();
+      setPosition((current) => {
+        if (!current) return current;
+        const margin = 4;
+        const maxX = Math.max(margin, window.innerWidth - rect.width - margin);
+        const maxY = Math.max(margin, window.innerHeight - rect.height - margin);
+        const x = Math.min(Math.max(margin, current.x), maxX);
+        const y = Math.min(Math.max(margin, current.y), maxY);
+        return x === current.x && y === current.y ? current : { x, y };
+      });
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(fit) : null;
+    observer?.observe(panelEl);
+    return () => {
+      window.removeEventListener("resize", fit);
+      observer?.disconnect();
+    };
+  }, [hasPosition, panelEl]);
+
   const style: CSSProperties = position
     ? {
         position: "fixed",
@@ -162,5 +198,5 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
       }
     : {};
 
-  return { style, onHandlePointerDown, isDragging, reset };
+  return { style, onHandlePointerDown, isDragging, reset, ref: setPanelEl };
 }

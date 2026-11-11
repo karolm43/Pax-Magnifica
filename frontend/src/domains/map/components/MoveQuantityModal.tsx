@@ -7,7 +7,7 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import { getTileById } from "@/entities/lookup/systems";
 import { Unit } from "@/shared/ui/Unit";
 import { useBoardEditor } from "@/api/useBoardEditor";
-import { baseTypeOf, isCargoUnit } from "./UnitStack/cargo";
+import { baseTypeOf, movesAsCargo } from "./UnitStack/cargo";
 import styles from "./MoveUnitsModal.module.css";
 
 /**
@@ -55,7 +55,7 @@ export function MoveQuantityModal() {
         await moveShips({
           fromPosition: drop.fromPosition,
           faction: drop.faction,
-          ...(isCargoUnit(drop.asyncId)
+          ...(movesAsCargo(drop.asyncId, drop.faction, player)
             ? { cargo: [{ baseType, count: n }] }
             : { baseType, count: n }),
         });

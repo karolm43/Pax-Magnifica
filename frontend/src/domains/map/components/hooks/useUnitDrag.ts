@@ -7,7 +7,7 @@ import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { lookupUnit } from "@/entities/lookup/units";
 import { isShipUnit } from "../UnitStack/unitType";
-import { baseTypeOf, isCargoUnit, isStructureUnit } from "../UnitStack/cargo";
+import { baseTypeOf, isCargoUnit, isStructureUnit, movesAsCargo } from "../UnitStack/cargo";
 import {
   summarizeSelection,
   type MultiSelection,
@@ -301,7 +301,13 @@ export function useUnitDrag(data: UnitDragData | null) {
         const ships: { baseType: string; count: number }[] = [];
         const cargo: { baseType: string; count: number; fromZone: string }[] = [];
         for (const it of Object.values(group.items)) {
-          if (isCargoUnit(it.asyncId)) {
+          if (
+            movesAsCargo(
+              it.asyncId,
+              group.faction,
+              playersRef.current?.find((p) => p.faction === group.faction),
+            )
+          ) {
             cargo.push({
               baseType: baseTypeOf(it.asyncId),
               count: it.count,
@@ -354,7 +360,12 @@ export function useUnitDrag(data: UnitDragData | null) {
       if (info.count <= 1) {
         if (toActive) {
           const baseType = baseTypeOf(info.asyncId);
-          const asCargo = isCargoUnit(info.asyncId);
+          // Myśliwiec z Fighter II ma własny ruch - rusza sam, bez nosiciela.
+          const asCargo = movesAsCargo(
+            info.asyncId,
+            info.faction,
+            playersRef.current?.find((p) => p.faction === info.faction),
+          );
           void moveShips({
             fromPosition: info.fromPosition,
             faction: info.faction,

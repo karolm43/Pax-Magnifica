@@ -25,6 +25,7 @@ import type { Tile } from "@/entities/game/types";
 import {
   BASE_TYPE_BY_ASYNC,
   CARGO_ASYNC,
+  isSelfMoving,
   isStructureUnit,
   SHIP_ONLY_ASYNC,
 } from "@/domains/map/components/UnitStack/cargo";
@@ -156,7 +157,9 @@ export function MovementStepPanel({
         const tile = gameData?.tiles?.[position];
         const reach = new Set(baseTypes.map((b) => asyncByBase[b] ?? b));
         const all = playerSpaceStacks(tile, faction);
-        const ships = all.filter((s) => reach.has(s.asyncId) && SHIP_ONLY_ASYNC.has(s.asyncId));
+        const ships = all.filter(
+          (s) => reach.has(s.asyncId) && isSelfMoving(s.asyncId, faction, player),
+        );
         const cap = fleetCapacity(ships, faction, player);
         // Ładunek do zabrania: myśliwce/siły naziemne w przestrzeni ORAZ siły naziemne
         // na planetach systemu (statki mogą je zabrać przy ruchu).
@@ -210,7 +213,8 @@ export function MovementStepPanel({
 
   const sourceTile = source ? gameData?.tiles?.[source] : undefined;
   const stacks = faction ? playerSpaceStacks(sourceTile, faction) : [];
-  const ships = stacks.filter((s) => SHIP_ONLY_ASYNC.has(s.asyncId));
+  // Statki o własnym ruchu; z Fighter II także myśliwce (poruszają się bez transportu).
+  const ships = stacks.filter((s) => isSelfMoving(s.asyncId, faction ?? "", player));
   // Ładunek źródła: myśliwce/siły naziemne z przestrzeni ORAZ siły naziemne z planet.
   const cargo: { asyncId: string; count: number; zone: string; zoneLabel: string; key: string }[] =
     [];

@@ -21,13 +21,21 @@ export function FleetPoolWarning({
 }) {
   const { data } = useFleetPool(true);
   if (!data?.known) return null;
-  const total = data.total + extra;
-  const over = Math.max(0, total - data.pool);
-  const cells = Math.max(data.pool, total);
   const cap = data.capacity;
   const fighters = cap.fighters + extraFighters;
   const fighterLoad = fighters * cap.fighterCost;
-  const capNeed = fighterLoad + cap.otherLoad - Math.min(fighterLoad, cap.fighterOnly);
+  // Fighter II: myśliwce ponad capacity nie są usuwane z capacity, tylko liczą się do puli floty.
+  const toFleet = cap.fightersToFleet === true;
+  const room = cap.fighterOnly + Math.max(0, cap.general - cap.otherLoad);
+  const fleetFighters = toFleet
+    ? Math.max(0, fighters - Math.floor(room / Math.max(cap.fighterCost, 1)))
+    : 0;
+  const total = data.total + extra + (fleetFighters - (cap.fleetFighters ?? 0));
+  const over = Math.max(0, total - data.pool);
+  const cells = Math.max(data.pool, total);
+  const capNeed = toFleet
+    ? cap.otherLoad
+    : fighterLoad + cap.otherLoad - Math.min(fighterLoad, cap.fighterOnly);
   const capOver = Math.max(0, capNeed - cap.general);
   const showCap = cap.general + cap.fighterOnly > 0 || fighters + cap.otherLoad > 0;
   return (
@@ -64,7 +72,9 @@ export function FleetPoolWarning({
         </p>
       ) : (
         <small className={styles.ok}>
-          Non-fighter ships in this system. Fighters and ground forces don't count.
+          {toFleet
+            ? `Non-fighter ships${fleetFighters > 0 ? ` + ${fleetFighters} fighter${fleetFighters === 1 ? "" : "s"} beyond capacity (Fighter II)` : ""}. Other fighters and ground forces don't count.`
+            : "Non-fighter ships in this system. Fighters and ground forces don't count."}
         </small>
       )}
       {showCap && (

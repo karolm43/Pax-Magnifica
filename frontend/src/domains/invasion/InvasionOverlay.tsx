@@ -35,6 +35,7 @@ import {
   bumpStage,
   defaultBombardPlan,
   landAll,
+  moveBombard,
   remainingOf,
   shiftBombard,
   stageList,
@@ -58,16 +59,10 @@ const PHASES: { key: InvasionPhase; label: string }[] = [
   { key: "ESTABLISH", label: "Establish control" },
 ];
 
-/* Grafiki tła (podmienne, w `assets/extra/`, serwowane pod `/static`); brak pliku = ciemne tło. */
-const BOMBARD_BG = "/static/extra/invasion_bombard.jpg";
-const COMMIT_BG = "/static/extra/invasion_commit.jpg";
-const BACKDROP: Record<InvasionPhase, string> = {
-  BOMBARDMENT: BOMBARD_BG,
-  COMMIT: COMMIT_BG,
-  SPACE_CANNON_DEFENSE: BOMBARD_BG,
-  GROUND_COMBAT: COMMIT_BG,
-  ESTABLISH: COMMIT_BG,
-};
+/* Tło okna inwazji: jedna grafika na WSZYSTKIE podkroki naziemne (bombardowanie, lądowanie,
+   Space Cannon Defense, walka, ustanowienie kontroli); sama bitwa ma własne okno. Plik
+   podmienny w `assets/extra/`, serwowany pod `/static`; brak pliku = ciemne tło. */
+const INVASION_BG = "/static/extra/invasion_bombard.jpg";
 
 const HINT: Record<InvasionPhase, string> = {
   BOMBARDMENT:
@@ -94,6 +89,10 @@ function InvasionWindow({ view }: { view: InvasionView }) {
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<Stage>({});
   const [userPlan, setUserPlan] = useState<BombardPlan | null>(null);
+  // Trwa przeciąganie jednostek/statków: karty planet podświetlają się jako cele.
+  const [dragging, setDragging] = useState(false);
+  // Plasma Scoring ("may"): wybrany przydział (typ|planeta); undefined = domyślnie najcelniejszy.
+  const [plasmaPick, setPlasmaPick] = useState<string | null | undefined>(undefined);
 
   const phase = view.phase ?? "BOMBARDMENT";
   const attacker = view.attacker ? look(view.attacker) : null;
@@ -119,7 +118,11 @@ function InvasionWindow({ view }: { view: InvasionView }) {
         fresh
           .filter((e) => e.phase === kind)
           .flatMap((e) =>
-            e.rolls.map((r) => ({ dice: r.dice, modifier: 0, hitsOn: r.hitsOn })),
+            e.rolls.map((r) => ({
+              dice: r.dice,
+              modifier: r.modifier ?? 0,
+              hitsOn: r.hitsOn,
+            })),
           );
       const bombRolls = groupsOf("BOMBARDMENT");
       const defRolls = groupsOf("DEFENSE");
@@ -158,6 +161,17 @@ function InvasionWindow({ view }: { view: InvasionView }) {
   const bombard = view.bombard;
   const plan = userPlan ?? defaultBombardPlan(bombard.groups, bombard.targets);
   const canBombard = bombard.groups.length > 0 && !bombard.done;
+  // Przydziały z co najmniej jednym statkiem - kandydaci na jednostkę z dodatkową kością.
+  const plasmaOptions = bombard.groups.flatMap((g) =>
+    Object.entries(plan[g.baseType] ?? {})
+      .filter(([, n]) => n > 0)
+      .map(([planet]) => ({ key: `${g.baseType}|${planet}`, group: g, planet })),
+  );
+  const bestPlasma = [...plasmaOptions].sort((a, b) => a.group.hitsOn - b.group.hitsOn)[0];
+  const plasmaUnit =
+    bombard.plasmaDice > 0 && plasmaPick !== null
+      ? (plasmaOptions.find((o) => o.key === plasmaPick)?.key ?? bestPlasma?.key ?? null)
+      : null;
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -176,6 +190,16 @@ function InvasionWindow({ view }: { view: InvasionView }) {
     stage,
     rollBatch,
     bombardPlan: canBombard ? plan : {},
+    dragging,
+    onDrag: setDragging,
+    bombardEditable: canBombard && bombard.targets.length > 1,
+    onBombardMove: (
+      planet: string,
+      baseType: string,
+      from: string | null,
+      all: boolean,
+    ) =>
+      setUserPlan(moveBombard(plan, baseType, bombard.targets, planet, from, all)),
     onBump: (planet: string, baseType: string, delta: number) =>
       setStage((s) => bumpStage(s, view.cargo, planet, baseType, delta)),
     onLandAll: (planet: string) =>
@@ -185,7 +209,8 @@ function InvasionWindow({ view }: { view: InvasionView }) {
         setBattleHidden(false);
         await battleStart(planet);
       }),
-    onDefenseFire: (planet: string) => void run(() => actions.defenseFire(planet)),
+    onDefenseFire: (planet: string, plasmaKey: string | null) =>
+      void run(() => actions.defenseFire(planet, plasmaKey)),
     onDefensePass: (planet: string) => void run(() => actions.defensePass(planet)),
     onAssignBombard: (
       planet: string,
@@ -256,7 +281,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
     >
       <div
         className={styles.backdrop}
-        style={{ backgroundImage: `url("${BACKDROP[phase]}")` }}
+        style={{ backgroundImage: `url("${INVASION_BG}")` }}
         aria-hidden="true"
       />
       <header className={styles.topBar}>
@@ -351,7 +376,24 @@ function InvasionWindow({ view }: { view: InvasionView }) {
             <div className={styles.bombardList}>
               {bombard.groups.map((g) => (
                 <div className={styles.bombardRow} key={g.baseType}>
-                  <span className={styles.bombardName}>
+                  <span
+                    className={styles.bombardName}
+                    draggable={bombard.targets.length > 1 || undefined}
+                    title={
+                      bombard.targets.length > 1
+                        ? "Drag onto a planet to move a ship there (Shift = all)"
+                        : undefined
+                    }
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData(
+                        "text/x-bombard",
+                        JSON.stringify({ baseType: g.baseType, from: null }),
+                      );
+                      setDragging(true);
+                    }}
+                    onDragEnd={() => setDragging(false)}
+                  >
                     <b>{g.count}×</b> {g.name}
                     <small>
                       Bombardment {g.hitsOn}+
@@ -398,6 +440,31 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                   </span>
                 </div>
               ))}
+              {bombard.plasmaDice > 0 && plasmaOptions.length > 0 && (
+                <div className={styles.plasma} role="radiogroup" aria-label="Plasma Scoring">
+                  <small>Plasma Scoring: 1 unit may roll 1 additional die</small>
+                  {plasmaOptions.map((o) => (
+                    <label className={styles.plasmaOption} key={o.key}>
+                      <input
+                        type="radio"
+                        name="plasma-bombard"
+                        checked={plasmaUnit === o.key}
+                        onChange={() => setPlasmaPick(o.key)}
+                      />
+                      {o.group.name} ({o.group.hitsOn}+) at {planetName(o.planet)}
+                    </label>
+                  ))}
+                  <label className={styles.plasmaOption}>
+                    <input
+                      type="radio"
+                      name="plasma-bombard"
+                      checked={plasmaUnit === null}
+                      onChange={() => setPlasmaPick(null)}
+                    />
+                    No extra die
+                  </label>
+                </div>
+              )}
             </div>
           )}
           {phase === "BOMBARDMENT" && !canBombard && (
@@ -422,9 +489,12 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                     key={u.baseType}
                     draggable={left > 0}
                     data-empty={left === 0 || undefined}
-                    onDragStart={(e) =>
-                      e.dataTransfer.setData("text/x-basetype", u.baseType)
-                    }
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/x-basetype", u.baseType);
+                      setDragging(true);
+                    }}
+                    onDragEnd={() => setDragging(false)}
                     title={`${u.name}: drag onto a planet (Shift = all)`}
                   >
                     <span className={styles.cargoSprite}>
@@ -459,7 +529,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
               className={styles.primaryBtn}
               disabled={busy}
               onFire={() =>
-                void run(() => actions.bombard(bombardList(plan)))
+                void run(() => actions.bombard(bombardList(plan), plasmaUnit))
               }
               onHold={soloHold(
                 bombard.groups.reduce(
@@ -471,7 +541,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                     ) *
                       g.dicePerUnit,
                   0,
-                ),
+                ) + (plasmaUnit ? bombard.plasmaDice : 0),
                 attacker?.rgb ?? "148 163 184",
               )}
               hint={false}

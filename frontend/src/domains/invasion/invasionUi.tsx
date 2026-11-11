@@ -130,25 +130,50 @@ export function GroundToken({
   );
 }
 
-/** Kostki d10 z podświetleniem trafień (wynik ≥ próg). */
+/**
+ * Kostki d10 z podświetleniem trafień (wynik ≥ próg). Modyfikator celu (Antimass Deflectors: -1)
+ * pokazuje surowy rzut i wynik po modyfikatorze; kość z Plasma Scoring ma osobny znacznik.
+ */
 export function DiceRow({ roll }: { roll: InvasionRoll }) {
+  const modifier = roll.modifier ?? 0;
+  const sign = modifier > 0 ? "+" : "\u2212";
   return (
     <div className={styles.rollRow}>
       <span className={styles.rollLabel}>
         {roll.count > 0 ? `${roll.count}× ` : ""}
         {roll.name} <small>{roll.hitsOn}+</small>
+        {modifier !== 0 && (
+          <b className={styles.rollTag} data-tone="debuff">
+            {sign}
+            {Math.abs(modifier)} to each die (Antimass Deflectors)
+          </b>
+        )}
+        {(roll.extraDice ?? 0) > 0 && (
+          <b className={styles.rollTag} data-tone="buff">
+            +{roll.extraDice} die (Plasma Scoring)
+          </b>
+        )}
       </span>
       <span className={styles.dice}>
-        {roll.dice.map((d, i) => (
-          <i
-            key={i}
-            className={styles.die}
-            data-hit={d >= roll.hitsOn || undefined}
-            style={{ "--i": i } as CSSProperties}
-          >
-            {d}
-          </i>
-        ))}
+        {roll.dice.map((d, i) => {
+          const result = d + modifier;
+          return (
+            <i
+              key={i}
+              className={styles.die}
+              data-hit={result >= roll.hitsOn || undefined}
+              style={{ "--i": i } as CSSProperties}
+              title={
+                modifier !== 0
+                  ? `Rolled ${d}, ${sign}${Math.abs(modifier)} = ${result}`
+                  : undefined
+              }
+            >
+              {d}
+              {modifier !== 0 && <small className={styles.dieMod}>{"\u2192"}{result}</small>}
+            </i>
+          );
+        })}
       </span>
       <b className={styles.rollHits} data-zero={roll.hits === 0 || undefined}>
         {roll.hits} hit{roll.hits === 1 ? "" : "s"}

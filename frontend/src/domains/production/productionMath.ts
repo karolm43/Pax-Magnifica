@@ -135,7 +135,11 @@ export function whyNotAdd(
   unit: ProductionUnit,
   zone: string | null,
 ): string | null {
-  if (view.remaining - cartCount(cart) <= 0) return "No production slots left";
+  const grant = view.grant;
+  // Integrated Economy: brak limitu sztuk, liczy się tylko łączny koszt (poniżej).
+  const costCapped = grant?.maxCost != null;
+  if (!costCapped && view.remaining - cartCount(cart) <= 0) return "No production slots left";
+  if (grant?.shipsOnly && unit.placement === "planet") return `${grant.source} produces ships only`;
   if (unit.placement === "space" && view.blockaded)
     return "Blockaded: enemy ships in the system";
   if (
@@ -147,12 +151,16 @@ export function whyNotAdd(
     return "No place for ground forces (needs a dock on a planet)";
   const target = unit.placement === "space" ? SPACE : (zone ?? "");
   const next = bumpCart(cart, unit.baseType, target, 1);
-  if (!fitsProducers(view.producers, demandWithCart(view, next))) {
+  // Produkcja z karty nie korzysta z PRODUCTION jednostek, więc producentów nie sprawdzamy.
+  if (!grant && !fitsProducers(view.producers, demandWithCart(view, next))) {
     return view.producers.some((p) => p.forbids.includes(unit.baseType))
       ? "The rest of your PRODUCTION can't make this unit"
       : "No production slots left";
   }
-  if (cartCost(view.units, next) > fundsTotal(view)) return "Not enough resources";
+  const nextCost = cartCost(view.units, next);
+  if (grant?.maxCost != null && nextCost > grant.maxCost)
+    return `Over the planet's resource value (${grant.maxCost})`;
+  if (nextCost > fundsTotal(view)) return "Not enough resources";
   return null;
 }
 

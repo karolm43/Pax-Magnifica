@@ -270,9 +270,24 @@
   border-color: rgba(248, 113, 113, 0.55);
 }
 
-.planet[data-droppable]:hover {
+.planet[data-droppable]:hover,
+.planet[data-over] {
   border-color: rgb(var(--att-rgb) / 0.9);
   box-shadow: 0 0 18px rgb(var(--att-rgb) / 0.3);
+}
+
+/* Trwa przeciąganie: podczas drag przeglądarka nie odpala :hover, więc cele wskazujemy sami. */
+.planet[data-droppable][data-dragging] {
+  border-color: rgb(var(--att-rgb) / 0.6);
+  border-style: dashed;
+  box-shadow: 0 0 12px rgb(var(--att-rgb) / 0.18);
+}
+
+.planet[data-droppable][data-dragging][data-over] {
+  border-style: solid;
+  border-color: rgb(var(--att-rgb) / 1);
+  background-color: rgb(var(--att-rgb) / 0.1);
+  box-shadow: 0 0 26px rgb(var(--att-rgb) / 0.55);
 }
 
 .planetHead {
@@ -618,8 +633,11 @@ button.token {
 
 .die {
   display: inline-grid;
+  grid-auto-flow: column;
+  gap: 2px;
   place-items: center;
-  width: 22px;
+  min-width: 22px;
+  padding: 0 3px;
   height: 22px;
   font-size: 11px;
   font-style: normal;
@@ -1349,4 +1367,67 @@ button.token {
   flex-wrap: wrap;
   gap: 6px 24px;
   padding: 0 16px;
+}
+
+/* Znaczniki przy rzucie: modyfikator wyniku (Antimass) i dodatkowa kość (Plasma Scoring). */
+.rollTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rollTag[data-tone="debuff"] {
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.3);
+}
+
+.rollTag[data-tone="buff"] {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.28);
+}
+
+.dieMod {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Wybór jednostki Plasma Scoring (bombardowanie, Space Cannon Defense). */
+.plasma {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.plasma small {
+  color: var(--ds-ink-lo);
+}
+
+.plasmaOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* Statki na orbicie i grupy bombardujące da się przeciągać na inną planetę. */
+.shipSprite[draggable="true"] {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.bombardName[draggable="true"] {
+  cursor: grab;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px dashed rgb(var(--att-rgb) / 0.55);
+  background: rgb(var(--att-rgb) / 0.1);
 }

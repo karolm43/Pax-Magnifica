@@ -541,11 +541,17 @@ export function useBoardEditor() {
   // Space Cannon Offense (RULES.md 38) — strzał (rzut kośćmi po stronie silnika), pas
   // i przypisanie strat przez gracza-cel. 422 z powodem trafia do panelu komunikatów.
   const spaceCannonFire = useCallback(
-    async (faction: string, target?: string, exhaustGls = false) => {
+    async (
+      faction: string,
+      target?: string,
+      exhaustGls = false,
+      plasmaUnit: string | null = null,
+    ) => {
       await post("/tactical/space-cannon/fire", {
         faction,
         target: target ?? null,
         exhaust_gls: exhaustGls,
+        plasma_unit: plasmaUnit,
       });
       await refresh();
     },
@@ -1045,6 +1051,8 @@ export type CapacityView = {
   general: number;
   /** Przydział doków na planetach — tylko dla myśliwców. */
   fighterOnly: number;
+  /** Fighter II: myśliwce ponad capacity liczą się do fleet pool, nie są nadwyżką capacity. */
+  fightersToFleet?: boolean;
   used: number;
   excess: number;
   cargo: CapacityCargo[];
@@ -1098,6 +1106,10 @@ export type FleetPoolView = {
     fighterCost: number;
     /** Zajęta pojemność przez resztę ładunku (piechota, mechy w przestrzeni). */
     otherLoad: number;
+    /** Fighter II: myśliwce ponad capacity liczą się do fleet pool. */
+    fightersToFleet?: boolean;
+    /** Myśliwce ponad capacity już teraz liczone do fleet pool (Fighter II). */
+    fleetFighters?: number;
     excess: number;
   };
 };
@@ -1133,6 +1145,10 @@ export type SpaceCannonShooter = {
   deep: boolean;
   /** Strzela z systemu SĄSIEDNIEGO do aktywnego. */
   remote: boolean;
+  /** Klucz grupy - wybór jednostki z dodatkową kością (Plasma Scoring). */
+  key: string;
+  /** Ile kości dodałby Plasma Scoring jednej jednostce tej grupy (0 = brak technologii). */
+  plasmaDice: number;
 };
 
 export type SpaceCannonSide = {
@@ -1154,6 +1170,10 @@ export type SpaceCannonRoll = {
   zone: string;
   dice: number[];
   hits: number;
+  /** Modyfikator wyniku każdej kości (Antimass Deflectors celu: -1). */
+  modifier: number;
+  /** Kości dodane przez Plasma Scoring. */
+  extraDice: number;
 };
 
 export type SpaceCannonPending = {

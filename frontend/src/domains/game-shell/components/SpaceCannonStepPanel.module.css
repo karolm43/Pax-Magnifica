@@ -383,6 +383,55 @@
   gap: 4px;
 }
 
+/* Znacznik przy rzucie: modyfikator wyniku (Antimass) albo dodatkowa kość (Plasma Scoring). */
+.rollTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rollTag[data-tone="debuff"] {
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.3);
+}
+
+.rollTag[data-tone="buff"] {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.28);
+}
+
+/* Wynik po modyfikatorze obok surowego rzutu ("6→5"). */
+.dieMod {
+  margin-left: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.die {
+  grid-auto-flow: column;
+  align-items: baseline;
+}
+
+/* Wybór jednostki Plasma Scoring (Space Cannon). */
+.plasma {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.plasmaOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 .die {
   display: grid;
   place-items: center;

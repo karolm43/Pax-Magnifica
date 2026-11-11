@@ -1,6 +1,6 @@
 import { lookupUnit } from "@/entities/lookup/units";
 import type { PlayerData } from "@/entities/data/types";
-import { isCargoUnit, isStructureUnit } from "./cargo";
+import { isStructureUnit, movesAsCargo } from "./cargo";
 
 /** Zaznaczenie wielu jednostek (Ctrl+klik) — kształt jak ``AppStore["multiSelect"]``. */
 export type MultiSelection = {
@@ -30,7 +30,7 @@ export function summarizeSelection(
   let used = 0;
   for (const item of Object.values(sel.items)) {
     total += item.count;
-    if (isCargoUnit(item.asyncId)) {
+    if (movesAsCargo(item.asyncId, sel.faction, player)) {
       used += item.count;
       continue;
     }

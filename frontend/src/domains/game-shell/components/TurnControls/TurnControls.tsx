@@ -315,6 +315,7 @@ export function TurnControls() {
       <div
         className={styles.cardZone}
         aria-label="Your Strategy Card"
+        ref={cardDrag.ref}
         style={cardDrag.style}
         data-draggable-panel
         data-dragging={cardDrag.isDragging || undefined}
@@ -361,6 +362,7 @@ export function TurnControls() {
       <div
         className={styles.actionZone}
         aria-label="Turn actions"
+        ref={actionDrag.ref}
         style={actionDrag.style}
         data-draggable-panel
         data-dragging={actionDrag.isDragging || undefined}
@@ -489,11 +491,13 @@ export function TurnControls() {
                 title={
                   windowOpen
                     ? "Wait — every player must decide on the secondary first"
-                    : hasPassed
-                      ? "You passed — end your turn to hand over"
-                      : tookAction
-                        ? "End your turn to hand over"
-                        : "Take an action or pass before ending your turn"
+                    : inTacticalAction
+                      ? "End the tactical action and hand over (blocked while a combat or invasion is unresolved)"
+                      : hasPassed
+                        ? "You passed — end your turn to hand over"
+                        : tookAction
+                          ? "End your turn to hand over"
+                          : "Take an action or pass before ending your turn"
                 }
               >
                 <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
@@ -622,11 +626,17 @@ export function TurnControls() {
           )}
         </div>
 
-        {turnHint && (
-          <p className={turnHint.ok ? styles.hintPassed : styles.hint}>
-            <IconInfoCircle size={13} aria-hidden="true" />
-            <span>{turnHint.text}</span>
-          </p>
+        {/* Slot podpowiedzi ma STAŁĄ wysokość w fazie akcji - pojawienie się/zniknięcie
+            tekstu nie zmienia rozmiaru panelu (koniec z „skakaniem"). */}
+        {isAction && (
+          <div className={styles.hintSlot}>
+            {turnHint && (
+              <p className={turnHint.ok ? styles.hintPassed : styles.hint}>
+                <IconInfoCircle size={13} aria-hidden="true" />
+                <span>{turnHint.text}</span>
+              </p>
+            )}
+          </div>
         )}
       </div>
 
