@@ -71,9 +71,9 @@ Czytaj WYŁĄCZNIE plik potrzebnej sekcji. Nową regułę dopisuj do pliku jej s
 | 28 | [Grywalne frakcje vs placeholdery systemowe (Neutral/Lazax)](rules/R28.md) | 50 |
 | 29 | [ZMIANA KIERUNKU: silnik-SĘDZIA + okna czasowe (zastępuje "asystent, nie sędzia")](rules/R29.md) | 85 |
 | 30 | [Akcja strategiczna: primary + okno secondary](rules/R30.md) | 184 |
-| 31 | [Walidacja przepływu fazy akcji + aktywny gracz (twarda egzekucja)](rules/R31.md) | 267 |
-| 32 | [Ruch statków: egzekucja legalności (akcja taktyczna)](rules/R32.md) | 96 |
-| 33 | [Walidacja aktywacji i produkcji (twarda egzekucja)](rules/R33.md) | 97 |
+| 31 | [Walidacja przepływu fazy akcji + aktywny gracz (twarda egzekucja)](rules/R31.md) | 287 |
+| 32 | [Ruch statków: egzekucja legalności (akcja taktyczna)](rules/R32.md) | 99 |
+| 33 | [Walidacja aktywacji i produkcji (twarda egzekucja)](rules/R33.md) | 103 |
 | 34 | [Specyfikacja czasowa komponentów: wyzwalacz → typ okna](rules/R34.md) | 21 |
 | 35 | [Spójność referencji: placeholder `<color>` promissory notes jako SZABLON](rules/R35.md) | 31 |
 | 36 | [Limity rąk i zbiór poziomów trudności bota](rules/R36.md) | 48 |

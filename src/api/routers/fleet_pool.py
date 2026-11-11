@@ -47,6 +47,10 @@ class CapacityInfo(BaseModel):
     fighter_cost: int = Field(default=1, serialization_alias="fighterCost")
     other_load: int = Field(default=0, serialization_alias="otherLoad")  # reszta ładunku
     excess: int = 0
+    # Fighter II: myśliwce ponad capacity liczą się do fleet pool (a nie są usuwane z capacity);
+    # ``fleet_fighters`` = ile ich już teraz leży w puli.
+    fighters_to_fleet: bool = Field(default=False, serialization_alias="fightersToFleet")
+    fleet_fighters: int = Field(default=0, serialization_alias="fleetFighters")
 
 
 class FleetPoolView(BaseModel):
@@ -130,6 +134,8 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
             fighter_cost=fighter_cost,
             other_load=cap.used - fighters * fighter_cost,
             excess=cap.excess,
+            fighters_to_fleet=cap.fighters_overflow_to_fleet,
+            fleet_fighters=cap.fleet_fighters,
         ),
     )
 

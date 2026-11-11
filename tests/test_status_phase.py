@@ -388,3 +388,19 @@ def test_complete_status_fast_forwards_default_decisions(registry: StaticDataReg
     assert out.phase is Phase.STRATEGY and out.round_number == 2
     # Nowe żetony trafiły do puli taktycznej (3 + 2).
     assert out.players["p1"].tactical_cc == 5
+
+
+def test_fleet_excess_counts_fighter_ii_overflow(registry: StaticDataRegistry) -> None:
+    """Fighter II: myśliwce ponad pojemność liczą się do fleet pool także w fazie statusu."""
+    state = _finish_all_scoring(_enter_status(_state(registry)), registry)
+    state.systems["101"].space_units = {"p1": {"carrier": 1, "fighter": 7}}
+    # Bez Fighter II: nadmiar myśliwców to sprawa pojemności, nie puli floty.
+    assert status_phase.fleet_excess(state, "p1", registry) == {}
+    state.players["p1"].technologies = ["ff2"]
+    report = fleet_pool.fleet_report(state, "101", "p1", registry)
+    assert report.total > 1
+    state = status_phase.redistribute(state, registry, "p1", 8, 1, 1)
+    assert state.status is not None
+    assert state.status.fleet_excess == {"p1": {"101": report.total - 1}}
+    assert state.pending_window is not None
+    assert state.pending_window.window_type is WindowType.FLEET_POOL

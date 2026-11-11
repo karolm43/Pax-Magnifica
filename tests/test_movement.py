@@ -378,3 +378,30 @@ def test_fighter_cannot_be_picked_from_planet(registry: StaticDataRegistry) -> N
             [movement.CargoPickup(base_type="fighter", count=1, from_zone="planet_a")],
             "p1",
         )
+
+
+def test_ship_starting_in_nebula_moves_only_one(registry: StaticDataRegistry) -> None:
+    """R_nebula: statek zaczynający ruch w mgławicy ma wartość ruchu 1 (RULES.md 32.1 R7)."""
+    clear = _line_grid([("000", "18", set()), ("101", "20", set()), ("201", "21", set())])
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        active_system="000",
+        players={"p1": PlayerState(player_id="p1")},
+        systems={
+            "201": SystemState(
+                position="201", system_id="21", space_units={"p1": {"cruiser": 1}}
+            )
+        },
+    )
+    ok, _ = movement.can_move(state, clear, registry, "201", "cruiser", "p1")
+    assert ok  # krążownik (ruch 2) dociera przez 101 do centrum
+    nebula = _line_grid(
+        [("000", "18", set()), ("101", "20", set()), ("201", "21", {"NEBULA"})]
+    )
+    ok, reason = movement.can_move(state, nebula, registry, "201", "cruiser", "p1")
+    assert not ok and "moveValue 1" in reason
+    # Z mgławicy do systemu sąsiedniego (1 wejście) nadal wolno.
+    state.active_system = "101"
+    ok, _ = movement.can_move(state, nebula, registry, "201", "cruiser", "p1")
+    assert ok

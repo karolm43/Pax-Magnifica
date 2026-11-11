@@ -125,7 +125,13 @@ def test_production_view_in_grant_mode(registry: StaticDataRegistry) -> None:
     )
     client = _client(registry, state)
     view = client.get("/tactical/production/view").json()
-    assert view["grant"] == {"source": "Freelancers", "units": 1, "influenceAsResources": True}
+    assert view["grant"] == {
+        "source": "Freelancers",
+        "units": 1,
+        "influenceAsResources": True,
+        "maxCost": None,
+        "shipsOnly": False,
+    }
     assert view["remaining"] == 1 and view["limit"] == 1
     planet = next(p for p in view["planets"] if p["planet"] == _CULT)
     assert planet["payValue"] == max(planet["resources"], planet["influence"])

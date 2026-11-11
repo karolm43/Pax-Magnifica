@@ -14,8 +14,9 @@ import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -88,6 +89,13 @@ def create_app(
         event_store.close()
 
     app = FastAPI(title="Custodian Engine API", version="0.1.0", lifespan=lifespan)
+
+    # SĘDZIA (RULES.md 29): każda nielegalna akcja w ``core`` to ``ValueError``. Routery mapują
+    # go na 422 lokalnie; ta siatka bezpieczeństwa robi to samo dla endpointów, które pominęły
+    # własny ``try`` (np. God-Mode) — gracz dostaje czytelny powód zamiast HTTP 500.
+    @app.exception_handler(ValueError)
+    async def _value_error_as_422(_request: Request, exc: ValueError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
 
     # CORS: dev-serwer Vite (5173) łączy się z backendem (8000).
     app.add_middleware(

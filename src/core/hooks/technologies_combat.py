@@ -307,6 +307,9 @@ def magen_inputs(
                 oi.option(bt, _unit_label(state, opponent, bt))
                 for bt in _magen_targets(state, player_id, ctx)
             ],
+            "Produce 1 hit and assign it to 1 of your opponent's ground forces.",
+            # Druga klauzula jest obowiązkowa: gracz ma ją ZOBACZYĆ, nawet gdy cel jest jeden.
+            always=True,
         )
     ]
 

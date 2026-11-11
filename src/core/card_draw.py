@@ -96,7 +96,7 @@ def seed_action_deck(state: GameState, cards: list[str]) -> None:
 def rearrange_agenda_top(
     state: GameState, peeked: int, top: list[str], bottom: list[str]
 ) -> None:
-    """Uk?ada ``peeked`` wierzchnich agend: ``top`` na g?r?, ``bottom`` na sp?d (Politics)."""
+    """Układa ``peeked`` wierzchnich agend: ``top`` na górę, ``bottom`` na spód (Politics)."""
     decks = state.decks
     rest = decks.agenda_deck[peeked:]
     decks.agenda_deck = [*top, *rest, *bottom]

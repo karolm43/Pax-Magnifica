@@ -839,8 +839,9 @@ def _units_owned_for_faction(
         return unit.faction is not None and unit.faction == faction_id
 
     # Dla każdego asyncId zbieramy kandydatów w 4 kubełkach wg (frakcja?, ulepszenie?).
-    # Wybór: frakcyjny-ulepszony > frakcyjny-bazowy > generyczny-ulepszony >
-    # generyczny-bazowy. Ulepszenie liczy się tylko, gdy gracz ma wymaganą technologię.
+    # Wybór: frakcyjny-ulepszony > generyczny-ulepszony > frakcyjny-bazowy >
+    # generyczny-bazowy. Ulepszenie liczy się tylko, gdy gracz ma wymaganą technologię
+    # (God-Mode może dać generyczne ulepszenie także frakcji z własnym wariantem bazowym).
     faction_upgraded: dict[str, str] = {}
     faction_base: dict[str, str] = {}
     generic_upgraded: dict[str, str] = {}
@@ -872,8 +873,8 @@ def _units_owned_for_faction(
     for async_id in standard_async:
         chosen = (
             faction_upgraded.get(async_id)
-            or faction_base.get(async_id)
             or generic_upgraded.get(async_id)
+            or faction_base.get(async_id)
             or generic_base.get(async_id)
         )
         if chosen is not None:

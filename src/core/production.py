@@ -744,13 +744,18 @@ def produce(
 
     new_state = state.clone()
     produced_ctx = {"player": player_id, "position": active, "units": dict(wanted)}
-    triggers.fire(
-        new_state,
-        GameEvent.PRODUCTION_USED,
-        Moment.WHEN,
-        subject=player_id,
-        ctx=produced_ctx,
-    )
+    # Granty z kart (Sling Relay, Integrated Economy, Freelancers) mówią „produce", a nie „use
+    # PRODUCTION": nie odpalają zdarzenia PRODUCTION_USED (Self-Assembly, Sarween itd.).
+    free_grant = active_grant(state, player_id)
+    uses_production = free_grant is None
+    if uses_production:
+        triggers.fire(
+            new_state,
+            GameEvent.PRODUCTION_USED,
+            Moment.WHEN,
+            subject=player_id,
+            ctx=produced_ctx,
+        )
     triggers.fire(
         new_state,
         GameEvent.UNITS_PRODUCED,
@@ -786,13 +791,22 @@ def produce(
         subject=player_id,
         ctx=produced_ctx,
     )
-    triggers.fire(
-        new_state,
-        GameEvent.PRODUCTION_USED,
-        Moment.AFTER,
-        subject=player_id,
-        ctx=produced_ctx,
-    )
+    if uses_production:
+        triggers.fire(
+            new_state,
+            GameEvent.PRODUCTION_USED,
+            Moment.AFTER,
+            subject=player_id,
+            ctx=produced_ctx,
+        )
+    if free_grant is not None and free_grant.free:
+        # Sling Relay / Integrated Economy działają poza krokiem PRODUCTION akcji taktycznej, więc
+        # nikt nie sprawdzi limitów „przy wyjściu z kroku": capacity i fleet pool liczymy od razu
+        # (okno usuwania nadwyżki otwiera się natychmiast po produkcji).
+        from src.core import capacity, fleet_pool
+
+        new_state = capacity.open_capacity_check(new_state, registry, active)
+        new_state = fleet_pool.open_fleet_pool_check(new_state, active)
     return new_state
 
 

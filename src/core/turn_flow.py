@@ -20,6 +20,7 @@ from src.core.game_state import (
     StatusPhaseState,
     StatusStep,
 )
+from src.core.registry import StaticDataRegistry
 from src.core.strategy_phase import ensure_strategy_complete, next_strategy_picker
 
 # Kolejność faz rundy TI4.
@@ -159,7 +160,12 @@ def _require_action_turn(state: GameState, player_id: str | None) -> None:
         )
 
 
-def end_turn(state: GameState, player_id: str | None = None) -> GameState:
+def end_turn(
+    state: GameState,
+    player_id: str | None = None,
+    *,
+    registry: StaticDataRegistry | None = None,
+) -> GameState:
     """Kończy turę aktywnego gracza i przekazuje ją następnemu niespasowanemu.
 
     JEDYNE miejsce oddające turę w fazie akcji (RULES.md 31.2). Działa tak samo po
@@ -188,10 +194,19 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
     (``passed``), zanim odda turę. Nie wolno oddać tury „bez niczego". Po przekazaniu
     tury flaga akcji NASTĘPNEGO gracza jest resetowana (to jego świeża tura).
 
+    SĘDZIA akcji taktycznej (RULES.md 31.9, R_tactical_action): koniec tury kończy też
+    TRWAJĄCĄ akcję taktyczną — z tą samą walidacją co „End action" (``tactical.end_action``):
+    trwająca walka, niedokończona inwazja, otwarte okno Space Cannon i obowiązkowa walka
+    kosmiczna blokują (``ValueError``). Gdy zamknięcie akcji wykryje nadwyżkę pojemności /
+    puli floty (albo otworzy reakcje „po akcji taktycznej"), zwracany jest stan z OTWARTYM
+    oknem, a tura ZOSTAJE przy graczu — najpierw rozstrzyga okno, potem kończy turę ponownie.
+    ``registry`` włącza sprawdzenie pojemności (RULES.md 39.6); bez niego tylko pula floty.
+
     Raises:
         ValueError: Gdy nie wolno zakończyć tury (patrz ``_require_action_turn``),
-            gdy trwa otwarte okno czasowe (najpierw je rozstrzygnij), lub gdy aktywny
-            gracz nie wykonał w tej turze żadnej akcji ani nie spasował.
+            gdy trwa otwarte okno czasowe (najpierw je rozstrzygnij), gdy akcji taktycznej
+            nie da się zamknąć (walka / inwazja w toku), lub gdy aktywny gracz nie wykonał
+            w tej turze żadnej akcji ani nie spasował.
     """
     _require_action_turn(state, player_id)
     if state.pending_strategy is not None:
@@ -205,6 +220,16 @@ def end_turn(state: GameState, player_id: str | None = None) -> GameState:
             "Cannot end the turn while a timing window is open - every player must "
             "decide on the secondary first."
         )
+    if state.tactical_step is not None:
+        # Import lokalny: ``tactical`` → ``triggers`` → ``turn_flow`` (cykl na poziomie modułu).
+        from src.core import tactical
+
+        closed = tactical.end_action(state, registry)
+        if closed.pending_window is not None:
+            # Nadwyżka (capacity / fleet pool) albo reakcje po akcji: gracz najpierw je
+            # rozstrzyga; tura nie została oddana.
+            return closed
+        state = closed
     current = state.active_player_id
     assert current is not None  # zagwarantowane przez _require_action_turn
     current_player = state.players.get(current)

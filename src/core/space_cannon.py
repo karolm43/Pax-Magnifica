@@ -55,6 +55,11 @@ class SpaceCannonShooter:
     remote: bool = False  # strzela z systemu SĄSIEDNIEGO do aktywnego
 
     @property
+    def key(self) -> str:
+        """Identyfikator grupy (właściciel|system|strefa|typ) - wybór jednostki Plasma Scoring."""
+        return f"{self.player_id}|{self.position}|{self.zone}|{self.base_type}"
+
+    @property
     def total_dice(self) -> int:
         return self.count * self.dice_per_unit
 
@@ -203,36 +208,48 @@ class CannonRoll:
     dice: list[int]
     hits: int
     extra_dice: int = 0
+    modifier: int = 0  # modyfikator wyniku kości (Antimass Deflectors celu: -1)
+
+
+def plasma_extra_dice(state: GameState, shooter: SpaceCannonShooter) -> int:
+    """Ile dodatkowych kości dałby Plasma Scoring tej grupie (0 = właściciel nie ma technologii)."""
+    return max(
+        0,
+        rules_hooks.modify(
+            rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE, state, shooter.player_id, 0,
+            {"base_type": shooter.base_type, "zone": shooter.zone},
+        ),
+    )
 
 
 def roll_cannon(
-    state: GameState, shooters: list[SpaceCannonShooter], target_id: str
+    state: GameState,
+    shooters: list[SpaceCannonShooter],
+    target_id: str,
+    plasma_unit: str | None = None,
 ) -> tuple[GameState, list[CannonRoll], int]:
     """Rzuca Space Cannon grupy strzelców w ``target_id`` (Offense i Defense) — jeden punkt rzutu.
 
-    Hooki (RULES.md 55): ``space_cannon.extra_dice`` (Plasma Scoring: +1 kość dla JEDNEJ jednostki
-    właściciela, wybieramy grupę z najlepszym progiem) oraz ``space_cannon.roll_modifier`` pytany
-    o właściciela CELU (Antimass Deflectors: -1 do wyniku każdej kości). Zwraca (stan, rzuty,
-    suma trafień). Rzut każdej grupy to osobne ``roll_dice`` (kolejność jak w grze bez hooków).
+    Hooki (RULES.md 55): ``space_cannon.extra_dice`` (Plasma Scoring: „1 z tych jednostek MOŻE
+    rzucić 1 dodatkową kością" - gracz wskazuje grupę kluczem ``plasma_unit``, bez wyboru nie ma
+    dodatkowej kości) oraz ``space_cannon.roll_modifier`` pytany o właściciela CELU (Antimass
+    Deflectors: -1 do wyniku każdej kości). Zwraca (stan, rzuty, suma trafień). Rzut każdej
+    grupy to osobne ``roll_dice`` (kolejność jak w grze bez hooków).
+
+    Raises:
+        ValueError: ``plasma_unit`` nie wskazuje strzelającej grupy albo brak Plasma Scoring.
     """
-    best_by_owner: dict[str, int] = {}
-    for index, shooter in enumerate(shooters):
-        current = best_by_owner.get(shooter.player_id)
-        if current is None or shooter.hits_on < shooters[current].hits_on:
-            best_by_owner[shooter.player_id] = index
+    if plasma_unit:
+        chosen = next((s for s in shooters if s.key == plasma_unit), None)
+        if chosen is None:
+            raise ValueError("Plasma Scoring: choose one of the units that fire.")
+        if plasma_extra_dice(state, chosen) <= 0:
+            raise ValueError("Plasma Scoring is not available.")
     rolled = state
     results: list[CannonRoll] = []
     total_hits = 0
-    for index, shooter in enumerate(shooters):
-        extra = 0
-        if best_by_owner[shooter.player_id] == index:
-            extra = max(
-                0,
-                rules_hooks.modify(
-                    rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE, state, shooter.player_id, 0,
-                    {"base_type": shooter.base_type, "zone": shooter.zone},
-                ),
-            )
+    for shooter in shooters:
+        extra = plasma_extra_dice(state, shooter) if shooter.key == plasma_unit else 0
         modifier = rules_hooks.modify(
             rules_hooks.POINT_SPACE_CANNON_ROLL_MODIFIER, state, target_id, 0,
             {"shooter": shooter.player_id, "base_type": shooter.base_type},
@@ -240,7 +257,7 @@ def roll_cannon(
         rolled, dice = roll_dice(rolled, shooter.total_dice + extra)
         hits = count_hits([d + modifier for d in dice], shooter.hits_on)
         total_hits += hits
-        results.append(CannonRoll(shooter, dice, hits, extra))
+        results.append(CannonRoll(shooter, dice, hits, extra, modifier))
     return rolled, results, total_hits
 
 
@@ -418,8 +435,12 @@ def fire_offense(
     target_id: str | None = None,
     *,
     exhaust_gls: bool = False,
+    plasma_unit: str | None = None,
 ) -> GameState:
     """Bieżący gracz strzela WSZYSTKIM swoim Space Cannon (S4/S5) w wybranego gracza (S3).
+
+    ``plasma_unit`` = klucz grupy (``SpaceCannonShooter.key``), której jednostka rzuca 1 kością
+    więcej dzięki Plasma Scoring (decyzja gracza; ``None`` = bez dodatkowej kości).
 
     ``exhaust_gls=True`` = gracz ŚWIADOMIE wyczerpuje Graviton Laser System przed strzałem:
     trafienia trzeba wtedy przypisać do statków niemyśliwskich, o ile są (decyzja gracza).
@@ -448,7 +469,9 @@ def fire_offense(
         owner = state.players[player_id]
         if GLS not in owner.technologies or GLS in owner.exhausted_technologies:
             raise ValueError("Graviton Laser System is not ready.")
-    rolled, cannon_rolls, total_hits = roll_cannon(state, shooters, target_id)
+    rolled, cannon_rolls, total_hits = roll_cannon(
+        state, shooters, target_id, plasma_unit
+    )
     if exhaust_gls:
         rolled = rolled.clone()
         exhaust.exhaust_technology(rolled, player_id, GLS)
@@ -461,6 +484,8 @@ def fire_offense(
             "zone": r.shooter.zone,
             "dice": r.dice,
             "hits": r.hits,
+            "modifier": r.modifier,
+            "extraDice": r.extra_dice,
         }
         for r in cannon_rolls
     ]

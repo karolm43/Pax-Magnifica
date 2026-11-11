@@ -104,6 +104,9 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
                 "source": grant.source,
                 "units": grant.units,
                 "influenceAsResources": grant.influence_as_resources,
+                # Integrated Economy: brak limitu liczby sztuk, jest limit łącznego kosztu.
+                "maxCost": grant.max_cost,
+                "shipsOnly": grant.ships_only,
             }
             if grant is not None
             else None

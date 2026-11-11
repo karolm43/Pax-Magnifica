@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import battle, damage, movement, rules_hooks, triggers
+from src.core import battle, damage, movement, offers, rules_hooks, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import CombatStep, GameState, Phase, PlayerState, SystemState, TacticalStep
 from src.core.hex_grid import HexGrid
@@ -131,6 +131,16 @@ def test_assault_cannon_obu_stron_pierwszy_w_inicjatywie_moze_odebrac_warunek(
 
 # --- Magen Defense Grid ΩΩ ----------------------------------------------------------------
 
+def _start_magen(
+    state: GameState, registry: StaticDataRegistry, target: str
+) -> GameState:
+    """Start walki z Magen ΩΩ: trafienie jest ZAWSZE decyzją właściciela (nawet przy 1 celu)."""
+    started = battle.start_combat(state, battle_grid(), registry, "pl")
+    assert started.pending_offers, "Magen Defense Grid musi zapytać gracza"
+    offer = started.pending_offers[0]
+    assert offer.player_id == "p2"
+    return offers.accept(started, battle_grid(), registry, "p2", offer.id, {"target": target})
+
 
 def test_magen_stawia_piechote_przy_kazdej_strukturze_gdy_ktokolwiek_aktywuje_system() -> None:
     state = _with_tech(battle_state({"p1": {"cruiser": 1}}), "p2", "md")
@@ -150,7 +160,7 @@ def test_magen_trafia_siły_naziemne_przeciwnika_na_starcie_walki(
     )
     state.tactical_step = TacticalStep.INVASION
     _with_tech(state, "p2", "md")
-    started = battle.start_combat(state, battle_grid(), registry, "pl")
+    started = _start_magen(state, registry, "infantry")
     assert started.systems["000"].planet_units["pl"]["p1"] == {"infantry": 1}
 
 
@@ -160,7 +170,7 @@ def test_magen_moze_wygrac_walke_zabijajac_ostatnia_jednostke(
     state = battle_state(planet={"p1": {"infantry": 1}, "p2": {"infantry": 1, "pds": 1}})
     state.tactical_step = TacticalStep.INVASION
     _with_tech(state, "p2", "md")
-    started = battle.start_combat(state, battle_grid(), registry, "pl")
+    started = _start_magen(state, registry, "infantry")
     combat = started.active_combat
     assert combat is not None and combat.step is CombatStep.DONE and combat.winner == "p2"
 
@@ -171,7 +181,7 @@ def test_magen_mech_z_sustain_damage_zostaje_uszkodzony_zamiast_zginac(
     state = battle_state(planet={"p1": {"mech": 1}, "p2": {"infantry": 2, "pds": 1}})
     state.tactical_step = TacticalStep.INVASION
     _with_tech(state, "p2", "md")
-    started = battle.start_combat(state, battle_grid(), registry, "pl")
+    started = _start_magen(state, registry, "mech")
     system = started.systems["000"]
     assert system.planet_units["pl"]["p1"] == {"mech": 1}
     assert damage.damaged_count(system, "pl", "p1", "mech") == 1

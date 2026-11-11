@@ -1007,6 +1007,9 @@ class SpaceCannonShooterHelp(BaseModel):
     zone: str
     deep: bool
     remote: bool
+    # Klucz grupy (wybór jednostki Plasma Scoring) i ile kości dodałby Plasma Scoring (0 = brak).
+    key: str = ""
+    plasma_dice: int = Field(default=0, serialization_alias="plasmaDice")
 
 
 class SpaceCannonSideHelp(BaseModel):
@@ -1035,6 +1038,9 @@ class SpaceCannonRollHelp(BaseModel):
     zone: str
     dice: list[int]
     hits: int
+    # Modyfikator wyniku kości celu (Antimass Deflectors: -1) i kość dodana przez Plasma Scoring.
+    modifier: int = 0
+    extra_dice: int = Field(default=0, serialization_alias="extraDice")
 
 
 class SpaceCannonPendingHelp(BaseModel):
@@ -1096,6 +1102,8 @@ class SpaceCannonFireRequest(BaseModel):
     target: str | None = None
     # Gracz ŚWIADOMIE wyczerpuje Graviton Laser System przed strzałem (RULES.md 57).
     exhaust_gls: bool = False
+    # Klucz grupy strzelców, której jednostka rzuca 1 kością więcej (Plasma Scoring, "may").
+    plasma_unit: str | None = None
 
 
 class SpaceCannonPassRequest(BaseModel):

@@ -799,3 +799,28 @@ def test_phase_step_without_player_id_uses_active(client: TestClient) -> None:
     assert seen == ["p2", "p3", "p1"]
     state = client.get("/state").json()["state"]
     assert all(p["passed"] for p in state["players"].values())
+
+
+# --- Siatka bezpieczeństwa: ValueError z core -> HTTP 422 (nie 500) --------------------
+
+
+def test_value_error_from_core_maps_to_422(registry: StaticDataRegistry) -> None:
+    from src.core.game_state import ActiveCombat, CombatStep, Phase, SystemState, TacticalStep
+
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        active_system="101",
+        tactical_step=TacticalStep.SPACE_COMBAT,
+        players={"p1": PlayerState(player_id="p1"), "p2": PlayerState(player_id="p2")},
+        systems={"101": SystemState(position="101", system_id="20")},
+        active_combat=ActiveCombat(
+            kind="space", position="101", attacker="p1", defender="p2", step=CombatStep.ROLL
+        ),
+    )
+    app = create_app(registry=registry, store=EventStore(":memory:"), initial_state=state)
+    client = TestClient(app)
+    # /tactical/end nie ma własnego try/except - globalny handler oddaje 422 z powodem.
+    resp = client.post("/tactical/end")
+    assert resp.status_code == 422
+    assert "combat" in resp.json()["detail"].lower()

@@ -42,6 +42,8 @@ class CapacityView(BaseModel):
     player_id: str | None = Field(default=None, serialization_alias="playerId")
     general: int = 0
     fighter_only: int = Field(default=0, serialization_alias="fighterOnly")
+    # Fighter II: myśliwce ponad capacity NIE są nadwyżką capacity - liczą się do fleet pool.
+    fighters_to_fleet: bool = Field(default=False, serialization_alias="fightersToFleet")
     used: int = 0
     excess: int = 0
     cargo: list[CapacityCargoView] = Field(default_factory=list)
@@ -79,6 +81,7 @@ async def get_capacity(ctx: AppContext = Depends(get_ctx)) -> CapacityView:
         player_id=pid,
         general=report.general,
         fighter_only=report.fighter_only,
+        fighters_to_fleet=report.fighters_overflow_to_fleet,
         used=report.used,
         excess=report.excess,
         cargo=[

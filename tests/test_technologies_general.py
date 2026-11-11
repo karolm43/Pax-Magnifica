@@ -145,19 +145,43 @@ def test_hyper_metabolism_nie_przekracza_rezerwy(registry: StaticDataRegistry) -
 # --- Space Cannon: Plasma Scoring / Antimass ---------------------------------------------
 
 
-def _fire(state: GameState, registry: StaticDataRegistry, shooter: str = "p2") -> GameState:
+def _fire(
+    state: GameState,
+    registry: StaticDataRegistry,
+    shooter: str = "p2",
+    plasma: bool = False,
+) -> GameState:
     opened = space_cannon.open_offense(state, sc_grid(), registry)
-    return space_cannon.fire_offense(opened, sc_grid(), registry, shooter, "p1")
+    plasma_unit = None
+    if plasma:  # gracz wskazuje jednostkę z dodatkową kością (pierwsza grupa strzelców)
+        plasma_unit = space_cannon.offense_shooters(opened, sc_grid(), registry, shooter)[0].key
+    return space_cannon.fire_offense(
+        opened, sc_grid(), registry, shooter, "p1", plasma_unit=plasma_unit
+    )
 
 
-def test_plasma_scoring_dodaje_jedna_kosc_space_cannon(registry: StaticDataRegistry) -> None:
+def test_plasma_scoring_dodaje_jedna_kosc_space_cannon_tylko_na_wybor(
+    registry: StaticDataRegistry,
+) -> None:
     ships = {"p1": {"destroyer": 1}}
     plain = _fire(sc_state(pds={"p2": 2}, ships=ships), registry)
-    boosted = _fire(sc_state(pds={"p2": 2}, ships=ships, techs={"p2": ["ps"]}), registry)
-    plain_dice = space_cannon.read_log(plain)[0]["rolls"][0]["dice"]
-    boosted_dice = space_cannon.read_log(boosted)[0]["rolls"][0]["dice"]
-    assert len(plain_dice) == 2
-    assert len(boosted_dice) == 3  # +1 kość dla jednej jednostki
+    # Bez wskazania jednostki Plasma Scoring nie dodaje kości (decyzja gracza, "may").
+    declined = _fire(sc_state(pds={"p2": 2}, ships=ships, techs={"p2": ["ps"]}), registry)
+    boosted = _fire(
+        sc_state(pds={"p2": 2}, ships=ships, techs={"p2": ["ps"]}), registry, plasma=True
+    )
+    plain_roll = space_cannon.read_log(plain)[0]["rolls"][0]
+    boosted_roll = space_cannon.read_log(boosted)[0]["rolls"][0]
+    assert len(plain_roll["dice"]) == 2
+    assert len(space_cannon.read_log(declined)[0]["rolls"][0]["dice"]) == 2
+    assert len(boosted_roll["dice"]) == 3  # +1 kość dla jednej jednostki
+    assert boosted_roll["extraDice"] == 1
+
+
+def test_plasma_scoring_bez_technologii_odrzuca_wybor(registry: StaticDataRegistry) -> None:
+    ships = {"p1": {"destroyer": 1}}
+    with pytest.raises(ValueError, match="Plasma Scoring"):
+        _fire(sc_state(pds={"p2": 2}, ships=ships), registry, plasma=True)
 
 
 def test_antimass_odejmuje_jeden_od_wyniku_kosci_space_cannon(
@@ -173,6 +197,8 @@ def test_antimass_odejmuje_jeden_od_wyniku_kosci_space_cannon(
         plain_roll = space_cannon.read_log(plain)[0]["rolls"][0]
         shielded_roll = space_cannon.read_log(shielded)[0]["rolls"][0]
         assert plain_roll["dice"] == shielded_roll["dice"]  # to samo ziarno = te same kości
+        # Modyfikator trafia do dziennika, żeby UI mogło go pokazać.
+        assert plain_roll["modifier"] == 0 and shielded_roll["modifier"] == -1
         hits_on = plain_roll["hitsOn"]
         assert plain_roll["hits"] == dice.count_hits(plain_roll["dice"], hits_on)
         # -1 do wyniku kości = próg o 1 wyższy

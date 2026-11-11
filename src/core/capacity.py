@@ -168,8 +168,12 @@ def auto_removal(report: CapacityReport) -> dict[str, int]:
     removal: dict[str, int] = {}
     order = sorted(remaining, key=lambda bt: (report.unit_cost.get(bt, 0.0), bt))
     for base_type in order:
-        while remaining.get(base_type, 0) > 0 and report.excess_for(remaining) > 0:
+        while remaining.get(base_type, 0) > 0 and (before := report.excess_for(remaining)) > 0:
             remaining[base_type] -= 1
+            if report.excess_for(remaining) >= before:
+                # Ta jednostka nie zmniejsza nadwyżki (Fighter II: myśliwce idą do fleet pool).
+                remaining[base_type] += 1
+                break
             removal[base_type] = removal.get(base_type, 0) + 1
     return removal
 
@@ -232,4 +236,9 @@ def resolve_capacity(
     new_state = timing.respond_current(new_state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
+        # Po capacity od razu sprawdzamy pulę floty w tym samym systemie (ograniczenia mają być
+        # egzekwowane natychmiast, np. po produkcji Sling Relay poza krokiem akcji).
+        from src.core import fleet_pool  # lokalnie: fleet_pool importuje capacity
+
+        new_state = fleet_pool.open_fleet_pool_check(new_state, position)
     return new_state

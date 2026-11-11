@@ -92,6 +92,11 @@ class BombardAssignment:
     planet: str
     count: int
 
+    @property
+    def key(self) -> str:
+        """Identyfikator przydziału (typ|planeta) - wybór jednostki Plasma Scoring."""
+        return f"{self.base_type}|{self.planet}"
+
 
 # --------------------------------------------------------------------------- pomocnicze
 
@@ -323,13 +328,29 @@ def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[Bomba
     return groups
 
 
+def plasma_bombard_dice(state: GameState) -> int:
+    """Ile kości dodałby Plasma Scoring jednej jednostce bombardującej (0 = brak technologii)."""
+    inv = _inv(state)
+    return max(
+        0,
+        rules_hooks.modify(
+            rules_hooks.POINT_BOMBARDMENT_EXTRA_DICE, state, inv.attacker, 0,
+            {"position": inv.position},
+        ),
+    )
+
+
 def bombard(
     state: GameState,
     grid: HexGrid,
     registry: StaticDataRegistry,
     assignments: list[BombardAssignment],
+    plasma_unit: str | None = None,
 ) -> GameState:
     """Bombardowanie: rzut dla każdego przydziału; trafienia czekają na przypisanie strat (I3).
+
+    ``plasma_unit`` = ``BombardAssignment.key`` przydziału, którego jednostka rzuca 1 kością
+    więcej dzięki Plasma Scoring (decyzja gracza; ``None`` = bez dodatkowej kości).
 
     Reguła „wszystko albo nic": jeśli gracz bombarduje, MUSI użyć każdej jednostki z
     Bombardment w systemie (R_bombardment, Notes) — suma przydziałów per typ = liczba statków.
@@ -371,7 +392,7 @@ def bombard(
     rolled = state
     by_planet: dict[str, dict[str, Any]] = {}
     # Hook MODIFY: dodatkowe kości dla JEDNEJ jednostki przy tym użyciu Bombardment (Plasma
-    # Scoring) - przydzielamy grupie z najlepszym progiem trafienia.
+    # Scoring: „may") - dostaje je tylko przydział wskazany przez gracza.
     extra_dice = max(
         0,
         rules_hooks.modify(
@@ -379,16 +400,16 @@ def bombard(
             {"position": _inv(state).position},
         ),
     )
-    best_item = min(
-        (i for i in assignments if i.count > 0),
-        key=lambda i: groups[i.base_type].hits_on,
-        default=None,
-    )
+    if plasma_unit:
+        if extra_dice <= 0:
+            raise ValueError("Plasma Scoring is not available.")
+        if not any(i.count > 0 and i.key == plasma_unit for i in assignments):
+            raise ValueError("Plasma Scoring: choose one of the bombarding units.")
     for item in assignments:
         if item.count <= 0:
             continue
         group = groups[item.base_type]
-        bonus = extra_dice if item is best_item else 0
+        bonus = extra_dice if plasma_unit and item.key == plasma_unit else 0
         rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit + bonus)
         # Hook MODIFY: mnożnik trafień bombardowania (X-89 ΩΩ: podwójne trafienia).
         hits = count_hits(dice, group.hits_on) * rules_hooks.modify(
@@ -680,8 +701,11 @@ def defense_fire(
     grid: HexGrid,
     registry: StaticDataRegistry,
     planet: str,
+    plasma_unit: str | None = None,
 ) -> GameState:
     """Space Cannon Defense: strzelcy na ``planet`` rzucają w zlądowane siły atakującego (I3).
+
+    ``plasma_unit`` = ``SpaceCannonShooter.key`` grupy z dodatkową kością (Plasma Scoring).
 
     Raises:
         ValueError: Zły podkrok, planeta bez strzelców albo już rozstrzygnięta.
@@ -690,7 +714,9 @@ def defense_fire(
     if planet not in _defense_open(inv, state, registry):
         raise ValueError(f"Space Cannon Defense on {planet} is not available.")
     shooters = defense_shooters(state, registry, planet)
-    rolled, cannon_rolls, total = space_cannon.roll_cannon(state, shooters, inv.attacker)
+    rolled, cannon_rolls, total = space_cannon.roll_cannon(
+        state, shooters, inv.attacker, plasma_unit
+    )
     rolls: list[dict[str, Any]] = [
         {
             "baseType": r.shooter.base_type,
@@ -700,6 +726,8 @@ def defense_fire(
             "hitsOn": r.shooter.hits_on,
             "dice": r.dice,
             "hits": r.hits,
+            "modifier": r.modifier,
+            "extraDice": r.extra_dice,
         }
         for r in cannon_rolls
     ]

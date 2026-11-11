@@ -29,6 +29,7 @@ from src.core.game_state import (
     CombatStep,
     GameState,
     InvasionPhase,
+    Phase,
     SystemState,
     TacticalStep,
     WindowType,
@@ -84,18 +85,34 @@ def activate_system(
 
     WALIDACJA (twarda, RULES.md 33.1): musi być aktywny gracz; gracz NIE może aktywować
     systemu z własnym żetonem dowodzenia; gracz musi mieć ≥1 żeton w puli taktycznej.
+    SĘDZIA tury (RULES.md 31.7, 33.1a — jak akcja strategiczna i komponentu): tylko w fazie
+    AKCJI, nie po pasie, nie w trakcie otwartego okna czasowego ani wieloetapowego primary.
     ``free=True`` (Warfare, Thunder's Edge): system jest aktywowany BEZ kładzenia żetonu i bez
     zużycia puli taktycznej - także gdy leży w nim już własny żeton; system i tak „liczy się
-    jako aktywowany" (RULES.md 30.11).
+    jako aktywowany" (RULES.md 30.11); kontrole tury robi wtedy karta strategii.
     God-Mode (``board_edit.place_command_token``) omija tę ścieżkę (korekta bez zużycia puli).
 
     Raises:
-        ValueError: Gdy brak aktywnego gracza, system ma już własny żeton gracza, albo
-            pula taktyczna jest pusta.
+        ValueError: Gdy brak aktywnego gracza, zła faza, gracz spasował, trwa okno czasowe
+            / primary, system ma już własny żeton gracza, albo pula taktyczna jest pusta.
     """
     active_id = state.active_player_id
     if active_id is None:
         raise ValueError("No active player - cannot activate a system.")
+    if not free:
+        if state.phase is not Phase.ACTION:
+            raise ValueError(
+                "A tactical action can only be performed during the action phase."
+            )
+        if state.pending_window is not None:
+            raise ValueError(
+                "Cannot activate a system while a timing window is open - resolve it first."
+            )
+        if state.pending_strategy is not None:
+            raise ValueError(
+                "Finish resolving the strategy card's primary ability before activating "
+                "a system."
+            )
 
     # R: nie można aktywować systemu z własnym żetonem dowodzenia.
     existing = state.systems.get(position)
@@ -108,6 +125,8 @@ def activate_system(
     player0 = state.players.get(active_id)
     if player0 is None or (not free and player0.tactical_cc <= 0):
         raise ValueError("No token in the tactical pool - cannot activate a system.")
+    if not free and player0.passed:
+        raise ValueError("You have passed - you cannot perform a tactical action.")
     # Jedna akcja na turę (R_action_phase, RULES.md 30.3): aktywacja = akcja taktyczna, więc nie
     # po innej akcji (strategicznej / komponentu). Warfare TE aktywuje w ramach SWOJEJ akcji.
     if not free:

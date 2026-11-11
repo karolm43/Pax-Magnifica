@@ -69,6 +69,10 @@ class BombardPendingView(BaseModel):
 class BombardView(BaseModel):
     """Stan podkroku Bombardment."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
+    # Ile kości dodałby Plasma Scoring jednej jednostce (0 = atakujący nie ma tej technologii).
+    plasma_dice: int = Field(default=0, serialization_alias="plasmaDice")
     groups: list[BombardGroupView] = Field(default_factory=list)
     targets: list[str] = Field(default_factory=list)
     done: bool = False
@@ -87,6 +91,9 @@ class DefenseShooterView(BaseModel):
     count: int
     hits_on: int = Field(serialization_alias="hitsOn")
     dice_per_unit: int = Field(serialization_alias="dicePerUnit")
+    # Klucz grupy (wybór jednostki Plasma Scoring) i ile kości dodałby Plasma Scoring.
+    key: str = ""
+    plasma_dice: int = Field(default=0, serialization_alias="plasmaDice")
 
 
 class DefensePlanetView(BaseModel):
@@ -169,6 +176,8 @@ class InvasionBombardRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     assignments: list[InvasionBombardItem]
+    # Przydział (typ|planeta), którego jednostka rzuca 1 kością więcej (Plasma Scoring, "may").
+    plasma_unit: str | None = Field(default=None, alias="plasmaUnit")
 
 
 class InvasionCommitItem(BaseModel):
@@ -192,9 +201,11 @@ class InvasionCommitRequest(BaseModel):
 class InvasionPlanetRequest(BaseModel):
     """Wskazanie planety (Space Cannon Defense: strzał / rezygnacja)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     planet: str
+    # Space Cannon Defense: klucz grupy strzelców z dodatkową kością (Plasma Scoring, "may").
+    plasma_unit: str | None = Field(default=None, alias="plasmaUnit")
 
 
 class InvasionAssignRequest(BaseModel):

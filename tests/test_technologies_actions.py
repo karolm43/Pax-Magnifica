@@ -103,6 +103,43 @@ def test_sling_relay_produkuje_tylko_statki_i_tylko_jedna_jednostke(
         )
 
 
+def test_produce_z_karty_nie_jest_uzyciem_production(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sling Relay mówi "produce", nie "use PRODUCTION": techy na "use PRODUCTION" nie działają."""
+    from src.core import triggers
+    from src.core.game_events import GameEvent
+
+    done = component_action.play_component_action(
+        _dock_state(["sr"]), "p1", "sr", params={"system": "101"}
+    )
+    fired: list[GameEvent] = []
+    real_fire = triggers.fire
+
+    def spy(state: GameState, event: GameEvent, *args: object, **kwargs: object) -> object:
+        fired.append(event)
+        return real_fire(state, event, *args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(triggers, "fire", spy)
+    production.produce(done, HexGrid(), registry, "p1", [production.ProductionOrder("cruiser", 1)])
+    assert GameEvent.UNITS_PRODUCED in fired
+    assert GameEvent.PRODUCTION_USED not in fired
+
+
+def test_sling_relay_natychmiast_egzekwuje_pule_floty(registry: StaticDataRegistry) -> None:
+    from src.core.game_state import WindowType
+
+    state = _dock_state(["sr"])
+    state.players["p1"].fleet_cc = 0
+    done = component_action.play_component_action(state, "p1", "sr", params={"system": "101"})
+    produced = production.produce(
+        done, HexGrid(), registry, "p1", [production.ProductionOrder("cruiser", 1)]
+    )
+    window = produced.pending_window
+    assert window is not None and window.window_type is WindowType.FLEET_POOL
+    assert window.context["position"] == "101"
+
+
 def test_sling_relay_wyczerpana_karta_nie_dziala() -> None:
     state = _dock_state(["sr"])
     state.players["p1"].exhausted_technologies = ["sr"]

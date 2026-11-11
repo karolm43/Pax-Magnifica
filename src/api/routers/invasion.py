@@ -29,7 +29,7 @@ from src.api.schemas_invasion import (
     InvasionUnitView,
 )
 from src.api.web_data import entity_key_map
-from src.core import board_edit, custodians, economy, invasion
+from src.core import board_edit, custodians, economy, invasion, space_cannon
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -157,6 +157,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
 
     groups = invasion.bombard_groups(state, registry)
     bombard = BombardView(
+        plasma_dice=invasion.plasma_bombard_dice(state),
         groups=[
             BombardGroupView(
                 base_type=g.base_type,
@@ -202,6 +203,8 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
                         count=s.count,
                         hits_on=s.hits_on,
                         dice_per_unit=s.dice_per_unit,
+                        key=s.key,
+                        plasma_dice=space_cannon.plasma_extra_dice(state, s),
                     )
                     for s in invasion.defense_shooters(state, registry, planet)
                 ],
@@ -297,6 +300,7 @@ async def post_bombard(
                 invasion.BombardAssignment(a.base_type, a.planet, a.count)
                 for a in request.assignments
             ],
+            request.plasma_unit,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -366,7 +370,11 @@ async def post_defense_fire(
     """Space Cannon Defense: strzelcy na planecie rzucają w zlądowane siły."""
     try:
         new_state = invasion.defense_fire(
-            ctx.service.current_state(), ctx.current_grid, ctx.registry, request.planet
+            ctx.service.current_state(),
+            ctx.current_grid,
+            ctx.registry,
+            request.planet,
+            request.plasma_unit,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

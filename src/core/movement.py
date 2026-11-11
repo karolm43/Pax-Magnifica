@@ -189,6 +189,11 @@ def can_move(
             "(porusza się transportem — capacity, TODO)."
         )
 
+    # R7 (R_nebula, RULES.md 32.1): statek ZACZYNAJĄCY krok ruchu w mgławicy traktuje swoją
+    # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
+    if _NEBULA in grid.anomalies_at(from_pos):
+        move_value = 1
+
     # Hook MODIFY: bonusy/kary do wartości ruchu (technologie, zdolności) - tylko dla statków,
     # które w ogóle się poruszają (kontrola wyżej).
     move_value = rules_hooks.modify(

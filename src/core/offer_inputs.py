@@ -21,11 +21,22 @@ def option(value: Any, label: str, option_id: str | None = None) -> dict[str, An
     return {"id": str(value) if option_id is None else option_id, "value": value, "label": label}
 
 
-def choice(key: str, label: str, options: list[dict[str, Any]], hint: str = "") -> Input:
-    """Wejście „wybierz jedną opcję”."""
+def choice(
+    key: str,
+    label: str,
+    options: list[dict[str, Any]],
+    hint: str = "",
+    *,
+    always: bool = False,
+) -> Input:
+    """Wejście „wybierz jedną opcję”.
+
+    ``always=True`` - gracz widzi decyzję NAWET przy jednej legalnej opcji (efekt obowiązkowy,
+    o którym ma wiedzieć, np. trafienie Magen Defense Grid), zamiast cichego zastosowania.
+    """
     return {
         "key": key, "kind": "choice", "label": label, "options": options,
-        "merge": False, "hint": hint,
+        "merge": False, "hint": hint, "always": always,
     }
 
 
@@ -50,7 +61,7 @@ def needs_player(inputs: list[Input]) -> bool:
     for item in inputs:
         kind = item.get("kind")
         options = item.get("options", [])
-        if kind == "choice" and len(options) > 1:
+        if kind == "choice" and (len(options) > 1 or (item.get("always") and options)):
             return True
         if kind == "multi" and len(options) > int(item.get("min", 0)):
             return True

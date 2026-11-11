@@ -10,7 +10,15 @@ from __future__ import annotations
 import pytest
 
 from src.core import board_edit, tactical
-from src.core.game_state import GameState, Phase, PlayerState, TacticalStep
+from src.core.game_state import (
+    GameState,
+    Phase,
+    PlayerState,
+    StrategyResolution,
+    TacticalStep,
+    TimingWindow,
+    WindowType,
+)
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
@@ -340,3 +348,41 @@ def test_move_ground_units_grants_control_at_destination(
         count=1,
     )
     assert result.systems["101"].planet_owners.get("mr") == "p1"
+
+
+# --- Sędzia tury przy aktywacji (RULES.md 31.7 / 33.1a) ---------------------------------
+
+
+def test_activate_rejects_outside_action_phase(registry: StaticDataRegistry) -> None:
+    grid = _grid(registry)
+    state = _state()
+    state.phase = Phase.STRATEGY
+    with pytest.raises(ValueError, match="action phase"):
+        tactical.activate_system(state, grid, "101")
+
+
+def test_activate_rejects_while_timing_window_open(registry: StaticDataRegistry) -> None:
+    grid = _grid(registry)
+    state = _state()
+    state.pending_window = TimingWindow(
+        window_type=WindowType.STRATEGY_SECONDARY, queue=["p2"]
+    )
+    with pytest.raises(ValueError, match="timing window"):
+        tactical.activate_system(state, grid, "101")
+
+
+def test_activate_rejects_after_pass(registry: StaticDataRegistry) -> None:
+    grid = _grid(registry)
+    state = _state()
+    state.players["p1"].passed = True
+    with pytest.raises(ValueError, match="passed"):
+        tactical.activate_system(state, grid, "101")
+
+
+def test_activate_free_skips_turn_checks(registry: StaticDataRegistry) -> None:
+    # Warfare TE aktywuje w ramach swojej akcji strategicznej (okno/pending to sprawa karty).
+    grid = _grid(registry)
+    state = _state()
+    state.pending_strategy = StrategyResolution(initiative=6, owner_id="p1", step="x")
+    out = tactical.activate_system(state, grid, "101", free=True)
+    assert out.active_system == "101"

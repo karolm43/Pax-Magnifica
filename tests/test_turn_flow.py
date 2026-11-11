@@ -5,7 +5,17 @@ from __future__ import annotations
 import pytest
 
 from src.core import turn_flow
-from src.core.game_state import GameState, Phase, PlayerState
+from src.core.game_state import (
+    ActiveCombat,
+    CombatStep,
+    GameState,
+    Phase,
+    PlayerState,
+    SystemState,
+    TacticalStep,
+    WindowType,
+)
+from src.core.registry import StaticDataRegistry
 
 
 def _state_with_players() -> GameState:
@@ -460,3 +470,58 @@ def test_can_advance_phase_agenda_always_true() -> None:
     for p in state.players.values():
         p.passed = False
     assert turn_flow.can_advance_phase(state) is True
+
+
+# --- End turn a trwająca akcja taktyczna (RULES.md 31.9) -------------------------------
+
+
+@pytest.fixture(scope="module")
+def registry() -> StaticDataRegistry:
+    return StaticDataRegistry()
+
+
+def _in_tactical(step: TacticalStep = TacticalStep.MOVEMENT) -> GameState:
+    """p1 po aktywacji systemu 101 (akcja w toku) — może zakończyć turę."""
+    state = _acted(_state_with_players())
+    state.active_system = "101"
+    state.tactical_step = step
+    state.systems["101"] = SystemState(position="101", system_id="20", command_tokens=["p1"])
+    return state
+
+
+def test_end_turn_closes_finished_tactical_action() -> None:
+    state = _in_tactical()
+    nxt = turn_flow.end_turn(state)
+    assert nxt.active_player_id == "p2"
+    assert nxt.active_system is None and nxt.tactical_step is None
+    # Żeton aktywacji zostaje na planszy (jak na stole).
+    assert nxt.systems["101"].command_tokens == ["p1"]
+
+
+def test_end_turn_blocked_while_combat_in_progress() -> None:
+    state = _in_tactical(TacticalStep.SPACE_COMBAT)
+    state.active_combat = ActiveCombat(
+        kind="space", position="101", attacker="p1", defender="p2", step=CombatStep.ROLL
+    )
+    with pytest.raises(ValueError, match="combat is in progress"):
+        turn_flow.end_turn(state)
+    assert state.active_player_id == "p1"
+
+
+def test_end_turn_blocked_by_mandatory_space_combat() -> None:
+    state = _in_tactical(TacticalStep.MOVEMENT)
+    state.systems["101"].space_units = {"p1": {"cruiser": 1}, "p2": {"destroyer": 1}}
+    with pytest.raises(ValueError, match="space combat"):
+        turn_flow.end_turn(state)
+
+
+def test_end_turn_opens_capacity_window_and_keeps_turn(registry: StaticDataRegistry) -> None:
+    # Myśliwce bez nosiciela w aktywnym systemie: nadwyżka pojemności (RULES.md 39.6) musi
+    # zostać usunięta, zanim tura przejdzie dalej — okno CAPACITY, aktywny gracz bez zmian.
+    state = _in_tactical(TacticalStep.PRODUCTION)
+    state.systems["101"].space_units = {"p1": {"fighter": 2}}
+    out = turn_flow.end_turn(state, registry=registry)
+    assert out.pending_window is not None
+    assert out.pending_window.window_type is WindowType.CAPACITY
+    assert out.active_player_id == "p1"
+    assert out.tactical_step is TacticalStep.PRODUCTION

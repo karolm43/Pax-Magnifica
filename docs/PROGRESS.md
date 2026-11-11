@@ -381,3 +381,30 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - Zweryfikowane względem C_technology bez zmian: Fleet Logistics, Dark Energy Tap, Sarween Tools, Integrated Economy, Magen, Duranium Armor, Assault Cannon.
 - Niezamodelowane: „statek nie może przechodzić przez system z Fighter II innego gracza".
 - Testy: `tests/test_technologies_review.py` (8).
+
+## 2026-11-11 (2) — Audyt silnika: sędzia tury domknięty (RULES.md 31.9, 32.1 R7, 33.1a, 42)
+
+- **Bugi reguł naprawione (core):**
+  - `turn_flow.end_turn` kończył turę W TRAKCIE akcji taktycznej (walka/inwazja w toku zostawały następnemu graczowi). Teraz End turn zamyka akcję jak „End action" (`tactical.end_action`): walka/inwazja/okno/obowiązkowa walka kosmiczna → 422; nadwyżka capacity/fleet pool albo reakcje po akcji otwierają okno i ZOSTAWIAJĄ turę graczowi (`/turn/end` przekazuje `registry`).
+  - `tactical.activate_system` nie sprawdzał fazy, okna czasowego, pending primary ani pasa — system dało się aktywować w fazie strategii/statusu/agendy i w trakcie secondary (Fleet Logistics). Teraz sędzia jak przy akcji strategicznej/komponentu (`free=True` dla Warfare bez zmian).
+  - Ruch: statek zaczynający krok ruchu w mgławicy ma wartość ruchu 1 (R_nebula) — brakowało (`movement.can_move`, R7).
+  - Faza statusu liczyła nadwyżkę puli floty własną kopią reguły (bez Fighter II); `status_phase.fleet_excess` używa `fleet_pool.fleet_report`.
+- **API:** globalny handler `ValueError → 422` w `create_app` (endpointy bez własnego `try`, np. `/tactical/end`, dawały 500 bez komunikatu).
+- **UI:** panel okna czasowego nie pokazuje już generycznych Execute/Pass/Close dla okien z własnym panelem (walka, Space Cannon, pojemność, pula floty, oferty) — tylko wskazówkę, gdzie rozstrzygnąć; wentyle widoczne w God-Mode (ustawienie „Skip phases"). Tooltip End turn w trakcie akcji taktycznej.
+- **Porządki:** `tests/test_docs_numbering.py` dostosowany do podziału RULES.md na `docs/rules/` (był czerwony po b98fa85); mojibake w docstringu `card_draw.rearrange_agenda_top`; nota R42 (3) o Fighter II zgodna z kodem.
+- Testy: +10 (turn_flow, tactical, movement, status_phase, api).
+- **Luki wypisane, NIE zmienione (do decyzji):** Sustain Damage w Space Cannon Offense (`space_cannon.assign_hits` niszczy bez sustain); `/window/respond` i `/window/close` to wentyle bez sędziego (omijają obowiązkowe decyzje — UI je chowa, backend przepuszcza); `turn_flow.next_phase` AGENDA→STRATEGY bez `round_number+1` i bez zwrotu kart (tylko ścieżka God-Mode bez `agenda`); limit ręki kart akcji (7) niemodelowany; pickup ładunku z systemów mijanych; gravity rift.
+
+## 2026-11-11 (3) — Poprawki technologii: Antimass, Sling Relay, Plasma Scoring, Integrated Economy, okno decyzji (RULES.md 55.3, 57.3)
+- **Sling Relay / produkcja z kart:** granty (`ProductionGrant`: Sling Relay, Integrated Economy, Freelancers) to „produce”, nie „use PRODUCTION” - `production.produce` nie odpala `PRODUCTION_USED` (Self-Assembly, Sarween nie aplikują się); `UNITS_PRODUCED` nadal tak. Granty `standalone` (Construction/Warfare) bez zmian.
+- **Integrated Economy:** okno produkcji nie ma 99 slotów; pokazuje pasek kosztu (limit = zasoby planety), UI nie sprawdza już producentów PRODUCTION dla grantów (powód, dla którego jednostki nie dawały się dodać). `/tactical/production/view` zwraca `grant.maxCost` i `grant.shipsOnly`.
+- **Plasma Scoring:** wybiera gracz (`plasma_unit`: klucz grupy strzelców w Space Cannon Offense/Defense, `typ|planeta` w bombardowaniu); bez wskazania brak dodatkowej kości. UI: radio „Plasma Scoring” w panelu Space Cannon, oknie bombardowania i na kartach Space Cannon Defense.
+- **Antimass Deflectors:** dziennik rzutów niesie `modifier`/`extraDice`; panele pokazują „−1 to each die” i „6→5” na kościach, a scena kości używa tego modyfikatora.
+- **Inwazja UI:** podświetlenie celu przy przeciąganiu wróciło (`dragenter` zamiast `:hover`), statki bombardujące (na orbicie i w doku) przeciąga się na inną planetę (Shift = cały stos), przygotowane do lądowania jednostki widać na orbicie planety jak statki bombardujące.
+- **Decyzje „may”:** `OffersModal` to teraz niemodalny panel przy dolnej krawędzi (bez przyciemnienia, plansza klikalna), Enter = użyj, Esc = pomiń, minimalizacja do pastylki; usunięty komentarz „You may use this now…”.
+- Testy: +3 (plasma wybór/odrzucenie, produce z karty bez PRODUCTION_USED), vitest `moveBombard`.
+- **Sling Relay / Integrated Economy a limity:** `production.produce` dla grantów `free` od razu otwiera okno CAPACITY, a po jego rozstrzygnięciu (`capacity.resolve_capacity`) okno FLEET_POOL w systemie produkcji - limity egzekwowane natychmiast, nie dopiero przy wyjściu z kroku akcji. Test: `test_sling_relay_natychmiast_egzekwuje_pule_floty`.
+- **Panel decyzji „may”:** przesuwalny za nagłówek (`useDraggablePanel`, pozycja zapamiętana, dwuklik = reset), przycisk powiększenia i natywne rozszerzanie za róg.
+- **Fighter II (ujednolicenie):** UI miało listę statków „o własnym ruchu" bez myśliwca (`SHIP_ONLY_ASYNC`), więc Fighter II nie ruszał sam. Teraz `cargo.isSelfMoving` / `movesAsCargo` czytają `moveValue` z wariantu gracza (drag&drop, grupa Ctrl, MoveQuantityModal, kreator ruchu, podsumowanie capacity); nadal wolno go załadować na nosiciela. Capacity/fleet pool: API wystawia `fightersToFleet` (+`fleetFighters`), `capacityMath`, `CapacityModal` i `FleetPoolWarning` liczą myśliwce ponad capacity jako fleet pool (nie nadwyżkę capacity); `capacity.auto_removal` nie podpowiada już usuwania myśliwców, które nadwyżki nie zmniejszają.
+- **Magen Defense Grid ΩΩ:** druga klauzula (trafienie na starcie walki naziemnej) zawsze jest decyzją właściciela (`offer_inputs.choice(always=True)`), także gdy cel jest jeden.
+- **Inwazja UI:** jedno tło (`invasion_bombard.jpg`) dla wszystkich podkroków okna inwazji.

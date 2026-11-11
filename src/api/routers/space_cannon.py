@@ -53,6 +53,8 @@ def _roll_help(raw: dict[str, Any]) -> SpaceCannonRollHelp:
         zone=str(raw.get("zone", "space")),
         dice=[int(d) for d in raw.get("dice", [])],
         hits=int(raw.get("hits", 0)),
+        modifier=int(raw.get("modifier", 0)),
+        extra_dice=int(raw.get("extraDice", 0)),
     )
 
 
@@ -115,6 +117,8 @@ def _build_panel(ctx: AppContext, state: GameState) -> SpaceCannonPanelResponse:
                         zone=s.zone,
                         deep=s.deep,
                         remote=s.remote,
+                        key=s.key,
+                        plasma_dice=space_cannon.plasma_extra_dice(state, s),
                     )
                     for s in shooters
                 ],
@@ -196,6 +200,7 @@ async def post_space_cannon_fire(
         new_state = space_cannon.fire_offense(
             state, ctx.current_grid, ctx.registry, player_id, target_id,
             exhaust_gls=request.exhaust_gls,
+            plasma_unit=request.plasma_unit,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

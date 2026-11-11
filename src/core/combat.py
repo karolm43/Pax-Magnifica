@@ -64,7 +64,7 @@ def resolve_unit_variant(
     — nie są częścią startowej floty/zestawu frakcji.
 
     Priorytet (jak w ``web_data._units_owned_for_faction``): frakcyjny-ulepszony >
-    frakcyjny-bazowy > generyczny-ulepszony > generyczny-bazowy. Ulepszenie liczy się
+    generyczny-ulepszony > frakcyjny-bazowy > generyczny-bazowy. Ulepszenie liczy się
     tylko, gdy gracz ma wymaganą technologię (``required_tech_id``). Zwraca ``None``,
     gdy brak jednostki tego ``base_type`` w rejestrze.
     """
@@ -97,9 +97,11 @@ def resolve_unit_variant(
             continue  # cudzy wariant frakcyjny
         is_upgrade = unit.upgrades_from_unit_id is not None
         mine = belongs(unit)
-        # Ranking: frakcyjny-ulepszony(3) > frakcyjny-bazowy(2) >
-        # generyczny-ulepszony(1) > generyczny-bazowy(0).
-        rank = 2 * ((2 if mine else 0) + (1 if is_upgrade else 0))
+        # Ranking: frakcyjny-ulepszony(3) > generyczny-ulepszony(2) >
+        # frakcyjny-bazowy(1) > generyczny-bazowy(0).
+        rank = 2 * (
+            3 if mine and is_upgrade else 2 if is_upgrade else 1 if mine else 0
+        )
         # Jednostka odblokowana technologią (np. War Sun, ``ws``) wygrywa z
         # placeholderem bez statystyk (``nowarsun``) o tym samym ranku.
         if unit.required_tech_id is not None:

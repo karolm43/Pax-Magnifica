@@ -28,6 +28,7 @@ from src.core import (
     chronicle,
     command_tokens,
     exhaust,
+    fleet_pool,
     objectives,
     rules_hooks,
     strategy_phase,
@@ -47,12 +48,9 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import PLACEMENT_BY_BASE_TYPE, Placement
 
 # R_status_phase, krok 5: „Each player gains two command tokens".
 COMMAND_TOKENS_GAINED = 2
-# Typ jednostki niepodlegający fleet pool (R_fleet_pool: „non-fighter ships").
-_FIGHTER = "fighter"
 
 
 # --- Dostęp / walidacja -------------------------------------------------------------------
@@ -264,24 +262,19 @@ def _remove_command_tokens(state: GameState) -> dict[str, int]:
 
 
 def fleet_excess(
-    state: GameState, player_id: str
+    state: GameState, player_id: str, registry: StaticDataRegistry | None = None
 ) -> dict[str, int]:
-    """Nadwyżka statków (nie-myśliwców) ponad fleet pool gracza: ``{pozycja: ile}``.
+    """Nadwyżka statków ponad fleet pool gracza w każdym systemie: ``{pozycja: ile}``.
 
-    R_fleet_pool: liczba żetonów w puli floty = maks. liczba statków nie-myśliwskich w
-    jednym systemie. Transportowane jednostki i ładunek nie liczą się.
+    JEDNA reguła liczenia (RULES.md 42, ``fleet_pool.fleet_report``): statki nie-myśliwskie
+    w przestrzeni, a z Fighter II także myśliwce ponad pojemność. Ładunek i jednostki na
+    planetach nie liczą się. ``registry`` jest potrzebny do pojemności przy Fighter II.
     """
-    player = state.players[player_id]
     excess: dict[str, int] = {}
-    for position, system in state.systems.items():
-        ships = sum(
-            count
-            for base_type, count in system.space_units.get(player_id, {}).items()
-            if base_type != _FIGHTER
-            and PLACEMENT_BY_BASE_TYPE.get(base_type) is Placement.SPACE
-        )
-        if ships > player.fleet_cc:
-            excess[position] = ships - player.fleet_cc
+    for position in state.systems:
+        report = fleet_pool.fleet_report(state, position, player_id, registry)
+        if report.excess > 0:
+            excess[position] = report.excess
     return excess
 
 
@@ -340,11 +333,11 @@ def redistribute(
     return advance_fleet_check(new_state, registry)
 
 
-def _refresh_fleet_excess(state: GameState) -> None:
+def _refresh_fleet_excess(state: GameState, registry: StaticDataRegistry) -> None:
     """Przelicza ``status.fleet_excess`` dla graczy, którzy już zatwierdzili pule."""
     assert state.status is not None
     for pid in state.status.done:
-        excess = fleet_excess(state, pid)
+        excess = fleet_excess(state, pid, registry)
         if excess:
             state.status.fleet_excess[pid] = excess
         else:
@@ -360,7 +353,7 @@ def advance_fleet_check(state: GameState, registry: StaticDataRegistry) -> GameS
     """
     if state.status is None or state.status.step is not StatusStep.REDISTRIBUTE:
         return state
-    _refresh_fleet_excess(state)
+    _refresh_fleet_excess(state, registry)
     if state.pending_window is not None:
         return state
     for pid in state.status.done:

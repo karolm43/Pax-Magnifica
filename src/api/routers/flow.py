@@ -26,13 +26,20 @@ async def _commit_flow(
 async def post_end_turn(
     request: TurnActionRequest | None = None, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Kończy turę aktywnego gracza (waliduje fazę/tura — RULES.md 31.2)."""
+    """Kończy turę aktywnego gracza (waliduje fazę/tura — RULES.md 31.2).
+
+    Trwająca akcja taktyczna jest zamykana z walidacją (RULES.md 31.9); wykryta nadwyżka
+    pojemności / puli floty otwiera okno i zostawia turę graczowi.
+    """
     player_id = request.player_id if request is not None else None
     try:
-        new_state = turn_flow.end_turn(ctx.service.current_state(), player_id)
+        new_state = turn_flow.end_turn(
+            ctx.service.current_state(), player_id, registry=ctx.registry
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return await _commit_flow(ctx, new_state, "turn:end")
+    label = "turn:end" if new_state.pending_window is None else "turn:end-blocked"
+    return await _commit_flow(ctx, new_state, label)
 
 
 @router.post("/turn/pass", response_model=StateEnvelope)
