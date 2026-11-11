@@ -48,6 +48,7 @@ from src.api.routers import (
     offers,
     players,
     production,
+    relics,
     rules,
     setup,
     space_cannon,
@@ -270,6 +271,7 @@ def create_app(
     app.include_router(rules.router)
     app.include_router(components.router)
     app.include_router(action_cards.router)
+    app.include_router(relics.router)
     app.include_router(hold.router)
     app.include_router(offers.router)
     app.include_router(technology.router)

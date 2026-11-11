@@ -17,6 +17,9 @@ from src.api.schemas import (
     BattleAssignRequest,
     BattleLogView,
     BattleLossItem,
+    BattleRelicAdjustRequest,
+    BattleRelicRerollRequest,
+    BattleRelicToolView,
     BattleResponse,
     BattleRetreatRequest,
     BattleRollView,
@@ -81,7 +84,7 @@ def _side(
                 dice_per_unit=u.dice_per_unit,
                 total_dice=u.total_dice,
                 expected_hits=u.expected_hits,
-                sustain=u.sustain,
+                sustain=u.sustain or u.granted > 0,
                 sustainable=u.sustainable,
                 afb_hits_on=u.afb_hits_on,
                 afb_dice=u.afb_dice,
@@ -183,6 +186,10 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         retreating=[key(pid) for pid in combat.retreating],
         retreated={key(pid): pos for pid, pos in combat.retreated.items()},
         retreat_options=retreat_options,
+        relic_tools=[
+            BattleRelicToolView(faction=key(t["player"]), tool=t["tool"])
+            for t in battle.dice_relic_tools(state)
+        ],
     )
 
 
@@ -272,6 +279,50 @@ async def post_battle_assign(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"battle:assign:{player_id}")
+
+
+@router.post("/tactical/battle/relic-reroll", response_model=StateEnvelope)
+async def post_battle_relic_reroll(
+    actor: ActorId,
+    request: BattleRelicRerollRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Przerzut kości z +1 do wyniku (Crown of Thalnos) - po rzucie, przed przypisaniem strat."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Relic reroll"
+    )
+    state = ctx.service.current_state()
+    try:
+        player_id = board_edit.resolve_player_id(request.faction, state)
+        new_state = battle.reroll_with_relic(
+            state, ctx.current_grid, ctx.registry, player_id,
+            {pick.entry: pick.dice for pick in request.picks},
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"battle:relic-reroll:{player_id}")
+
+
+@router.post("/tactical/battle/relic-adjust", response_model=StateEnvelope)
+async def post_battle_relic_adjust(
+    actor: ActorId,
+    request: BattleRelicAdjustRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Zmiana wyniku jednej kości o ±1 (Heart of Ixth) w rzucie dowolnej strony."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Relic die change"
+    )
+    state = ctx.service.current_state()
+    try:
+        player_id = board_edit.resolve_player_id(request.faction, state)
+        target_id = board_edit.resolve_player_id(request.target, state)
+        new_state = battle.adjust_die_with_relic(
+            state, ctx.current_grid, ctx.registry, player_id,
+            target=target_id, entry_index=request.entry, die_index=request.die,
+            delta=request.delta,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"battle:relic-adjust:{player_id}")
 
 
 @router.post("/tactical/battle/close", response_model=StateEnvelope)

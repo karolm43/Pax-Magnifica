@@ -27,6 +27,7 @@ from src.core import (
     card_draw,
     exhaust,
     objectives,
+    relic_planets,
     rules_hooks,
     strategy_phase,
     triggers,
@@ -258,6 +259,15 @@ def voting_planets(
         if value > 0:
             result.append(
                 {"planet": planet, "influence": value, "exhausted": planet in exhausted}
+            )
+    for pseudo, value in relic_planets.values(state, registry, player_id).items():
+        if value > 0:  # relikt działający jak planeta (The Triad) daje głosy
+            result.append(
+                {
+                    "planet": pseudo,
+                    "influence": value,
+                    "exhausted": relic_planets.relic_of(pseudo) in player.exhausted_relics,
+                }
             )
     return sorted(result, key=lambda r: (-int(r["influence"]), str(r["planet"])))
 

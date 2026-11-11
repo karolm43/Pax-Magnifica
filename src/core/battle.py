@@ -13,10 +13,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.core import capacity, chronicle, rules_hooks, timing, triggers, unit_ops
+from src.core import capacity, chronicle, exhaust, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
-from src.core.dice import DIE_SIDES, count_hits, roll_dice
+from src.core.dice import DIE_SIDES, count_hits, record_table_roll, roll_dice
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ActiveCombat,
@@ -55,6 +55,9 @@ class CombatUnit:
     sustain: bool
     afb_hits_on: int | None
     afb_dice: int
+    # Sustain Damage NADANY przez komponent jednostce bez własnego (Metali Void Shielding): ile
+    # egzemplarzy może go teraz użyć. Łącznie wolno użyć najwyżej 1 takiego (zob. ``plan_losses``).
+    granted: int = 0
 
     @property
     def total_dice(self) -> int:
@@ -62,8 +65,8 @@ class CombatUnit:
 
     @property
     def sustainable(self) -> int:
-        """Ile egzemplarzy może jeszcze użyć Sustain Damage (nieuszkodzone, ze zdolnością)."""
-        return self.count - self.damaged if self.sustain else 0
+        """Ile egzemplarzy może jeszcze użyć Sustain Damage (własnego albo nadanego)."""
+        return self.count - self.damaged if self.sustain else self.granted
 
     @property
     def expected_hits(self) -> float:
@@ -145,6 +148,16 @@ def combat_units(
                 sustain=unit.sustain_damage,
                 afb_hits_on=unit.afb_hits_on if kind == "space" else None,
                 afb_dice=unit.afb_die_count or 1,
+                granted=(
+                    min(1, count - damaged_count(system, zone, player_id, base_type))
+                    if kind == "space"
+                    and base_type != _FIGHTER
+                    and not unit.sustain_damage
+                    and rules_hooks.permits(
+                        rules_hooks.POINT_COMBAT_GRANTED_SUSTAIN, state, player_id, hook_ctx
+                    )
+                    else 0
+                ),
             )
         )
     return units
@@ -174,7 +187,10 @@ def required_hits(
     combat = _combat(state)
     pending = combat.pending_hits.get(player_id, 0)
     units = side_units(state, grid, registry, player_id)
-    absorbable = sum(u.count + u.sustainable for u in units)
+    # Nadany Sustain Damage (Void Shielding) pochłania najwyżej 1 dodatkowe trafienie naraz.
+    absorbable = sum(u.count + (u.sustainable if u.sustain else 0) for u in units) + (
+        1 if any(u.granted > 0 for u in units) else 0
+    )
     return min(pending, absorbable)
 
 
@@ -261,10 +277,13 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
     # (C_technology: strona przegrywa natychmiast).
     if any(not side_units(state, grid, registry, pid) for pid in (attacker, defender)):
         return _after_losses(state, grid, registry)
-    has_afb = combat.kind == "space" and any(
-        u.afb_hits_on is not None
-        for pid in (attacker, defender)
-        for u in side_units(state, grid, registry, pid)
+    has_afb = combat.kind == "space" and (
+        bool(combat.afb_extra)
+        or any(
+            u.afb_hits_on is not None
+            for pid in (attacker, defender)
+            for u in side_units(state, grid, registry, pid)
+        )
     )
     if has_afb:
         combat.step = CombatStep.AFB
@@ -358,6 +377,19 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
             hits = count_hits(dice, unit.afb_hits_on)
             total += hits
             entries.append(_roll_entry(unit, dice, unit.afb_hits_on, hits))
+        if pid in combat.afb_extra:
+            # AFB nadany komponentem (Metali Void Armaments): gracz zgodził się go użyć w ofercie
+            # na starcie walki; hook podaje próg i liczbę kości.
+            grants = rules_hooks.forbidden(rules_hooks.POINT_COMBAT_AFB_GRANTED, state, pid)
+            for grant in sorted(grants):
+                grant_hits_on, grant_dice = (int(x) for x in grant.split(":"))
+                new_state, dice = roll_dice(new_state, grant_dice)
+                hits = count_hits(dice, grant_hits_on)
+                total += hits
+                entries.append(
+                    {"baseType": "relic", "name": "Anti-Fighter Barrage (relic)",
+                     "hitsOn": grant_hits_on, "modifier": 0, "dice": dice, "hits": hits}
+                )
         afb[pid] = entries
         hits_by[pid] = total
 
@@ -596,6 +628,7 @@ def plan_losses(
     """
     plan: dict[str, tuple[int, int]] = {}
     total = 0
+    granted_used = 0  # Sustain Damage nadany komponentem: łącznie najwyżej 1 na przypisanie
     for base_type in set(sustain) | set(destroy) | set(destroy_damaged):
         s = max(0, sustain.get(base_type, 0))
         d = max(0, destroy.get(base_type, 0))
@@ -609,12 +642,16 @@ def plan_losses(
             raise ValueError(
                 f"Only {unit.sustainable} {unit.name} can use Sustain Damage."
             )
+        if not unit.sustain:
+            granted_used += s
         damaged_after = unit.damaged + s
         undamaged_after = unit.count - damaged_after
         if d > undamaged_after or dd > damaged_after:
             raise ValueError(f"Not enough {unit.name} for these losses.")
         plan[base_type] = (unit.count - d - dd, damaged_after - dd)
         total += s + d + dd
+    if granted_used > 1:
+        raise ValueError("Only 1 of your ships can use Sustain Damage granted by a relic.")
     if total != required:
         raise ValueError(f"Cover exactly {required} hit(s).")
     return plan
@@ -994,3 +1031,203 @@ def space_combat_required(state: GameState) -> bool:
         if any(c > 0 and is_space_unit(bt) for bt, c in by_type.items())
     ]
     return len(owners) >= 2
+
+
+# ----------------------------------------------------------------- relikty: kości po rzucie
+
+
+def _entry_hits(
+    state: GameState, player_id: str, combat: ActiveCombat, entry: dict[str, Any]
+) -> int:
+    """Trafienia wpisu rzutu z uwzględnieniem poprawek pojedynczych kości (``bonus``)."""
+    dice = [int(d) for d in entry.get("dice", [])]
+    bonus = list(entry.get("bonus") or [0] * len(dice))
+    modifier = int(entry.get("modifier", 0))
+    hits = sum(1 for d, b in zip(dice, bonus, strict=False) if d + modifier + b >= entry["hitsOn"])
+    return hits * rules_hooks.modify(
+        rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, player_id, 1,
+        {"kind": combat.kind, "base_type": entry.get("baseType", "")},
+    )
+
+
+def _require_dice_window(state: GameState) -> ActiveCombat:
+    """Rzuty rundy leżą na stole, a nikt jeszcze nie przypisał strat (okno ASSIGN)."""
+    combat = _combat(state)
+    window = state.pending_window
+    if (
+        combat.step is not CombatStep.ASSIGN
+        or window is None
+        or window.window_type is not WindowType.COMBAT_ASSIGN_HITS
+        or combat.afb_assign
+        or not combat.log
+        or combat.log[-1].get("phase") != "COMBAT"
+    ):
+        raise ValueError(
+            "Combat dice can be changed only after the roll, before hits are assigned."
+        )
+    if combat.log[-1].get("losses") or window.cursor > 0:
+        raise ValueError("Hits have already been assigned this round.")
+    return combat
+
+
+def _refresh_after_dice_change(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Przelicza trafienia z rzutów po zmianie kości i odbudowuje okno przypisania strat."""
+    combat = _combat(state)
+    hits_by = {
+        pid: sum(_entry_hits(state, pid, combat, e) for e in combat.rolls.get(pid, []))
+        for pid in (combat.attacker, combat.defender)
+    }
+    for pid, entries in combat.rolls.items():
+        for entry in entries:
+            entry["hits"] = _entry_hits(state, pid, combat, entry)
+    combat.pending_hits = {
+        combat.defender: hits_by[combat.attacker],
+        combat.attacker: hits_by[combat.defender],
+    }
+    combat.log[-1]["hits"] = hits_by
+    combat.log[-1]["rolls"] = combat.rolls
+    for pid in (combat.defender, combat.attacker):
+        if pid == NEUTRAL_PLAYER_ID:
+            _auto_assign_neutral(state, grid, registry, pid)
+    queue = [
+        pid
+        for pid in (combat.defender, combat.attacker)
+        if required_hits(state, grid, registry, pid) > 0
+    ]
+    window = state.pending_window
+    assert window is not None
+    if queue:
+        window.queue = queue
+        window.cursor = 0
+        window.responded = []
+        return state
+    state.pending_window = None
+    return _after_losses(state, grid, registry)
+
+
+def dice_relic_tools(state: GameState) -> list[dict[str, str]]:
+    """Narzędzia reliktów dostępne TERAZ nad rzutami rundy: ``[{player, tool}]``.
+
+    ``reroll`` (Crown of Thalnos) i ``adjust`` (Heart of Ixth). Pusta lista poza oknem przypisania
+    strat albo po pierwszym przypisaniu.
+    """
+    try:
+        _require_dice_window(state)
+    except ValueError:
+        return []
+    tools: list[dict[str, str]] = []
+    for pid in state.players:
+        if rules_hooks.permits(rules_hooks.POINT_COMBAT_REROLL_PLUS_ONE, state, pid):
+            tools.append({"player": pid, "tool": "reroll"})
+        if rules_hooks.forbidden(rules_hooks.POINT_DIE_ADJUST, state, pid):
+            tools.append({"player": pid, "tool": "adjust"})
+    return tools
+
+
+def reroll_with_relic(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+    picks: dict[int, list[int]],
+) -> GameState:
+    """Przerzut kości z +1 do wyniku (hook ``combat.reroll_plus_one``, Crown of Thalnos).
+
+    ``picks`` = ``{indeks wpisu rzutu gracza: [indeksy kości]}``. Przerzucone kości dostają +1 do
+    wyniku, a jednostka, która przerzucała kości i NIE ma po nich trafienia, ginie (bez Sustain
+    Damage) - na końcu kroku rzutów, przed przypisaniem strat.
+
+    Raises:
+        ValueError: Brak relikt/okna, zły wybór kości albo straty już przypisano.
+    """
+    _require_dice_window(state)
+    if not rules_hooks.permits(rules_hooks.POINT_COMBAT_REROLL_PLUS_ONE, state, player_id):
+        raise ValueError("You cannot reroll combat dice.")
+    entries_in = state.active_combat.rolls.get(player_id, []) if state.active_combat else []
+    chosen = {i: sorted(set(d)) for i, d in picks.items() if d}
+    if not chosen:
+        raise ValueError("Choose at least one die to reroll.")
+    for index, dice_idx in chosen.items():
+        if not 0 <= index < len(entries_in) or any(
+            not 0 <= d < len(entries_in[index]["dice"]) for d in dice_idx
+        ):
+            raise ValueError("Choose dice from your own combat rolls.")
+    total = sum(len(d) for d in chosen.values())
+    rolled, fresh = roll_dice(state, total)
+    new_state = rolled.clone()
+    combat = _combat(new_state)
+    entries = combat.rolls[player_id]
+    units = {u.base_type: u for u in side_units(new_state, grid, registry, player_id)}
+    cursor = 0
+    destroyed: dict[str, int] = {}
+    for index, dice_idx in chosen.items():
+        entry = entries[index]
+        bonus = list(entry.get("bonus") or [0] * len(entry["dice"]))
+        per = units[entry["baseType"]].dice_per_unit if entry["baseType"] in units else 1
+        touched: set[int] = set()
+        for die in dice_idx:
+            entry["dice"][die] = fresh[cursor]
+            bonus[die] += 1
+            cursor += 1
+            touched.add(die // per)
+        entry["bonus"] = bonus
+        entry["rerolled"] = sorted({*entry.get("rerolled", []), *dice_idx})
+        modifier = int(entry.get("modifier", 0))
+        for unit_index in touched:
+            span = range(unit_index * per, (unit_index + 1) * per)
+            if not any(
+                entry["dice"][d] + modifier + bonus[d] >= entry["hitsOn"]
+                for d in span
+                if d < len(entry["dice"])
+            ):
+                destroyed[entry["baseType"]] = destroyed.get(entry["baseType"], 0) + 1
+    record_table_roll(
+        new_state, player_id, "relic", "The Crown of Thalnos", fresh,
+        summary="Rerolled with +1; units without a hit are destroyed",
+    )
+    for base_type, count in destroyed.items():
+        _remove_units(new_state, combat, player_id, base_type, count)
+        note_destroyed(combat, player_id, base_type, count, units[base_type].base_hits_on)
+    return _refresh_after_dice_change(new_state, grid, registry)
+
+
+def adjust_die_with_relic(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+    *,
+    target: str,
+    entry_index: int,
+    die_index: int,
+    delta: int,
+) -> GameState:
+    """Zmiana wyniku JEDNEJ kości o ±1 (hook ``dice.adjust_result``, Heart of Ixth).
+
+    Dotyczy dowolnego rzutu rundy (własnego lub przeciwnika). Wskazany relikt się wyczerpuje;
+    wynik zostaje w zakresie kości (1-10).
+
+    Raises:
+        ValueError: Brak gotowego relikt/okna, zła kość albo straty już przypisano.
+    """
+    _require_dice_window(state)
+    if delta not in (-1, 1):
+        raise ValueError("A die can change by 1 up or down.")
+    ready = sorted(rules_hooks.forbidden(rules_hooks.POINT_DIE_ADJUST, state, player_id))
+    if not ready:
+        raise ValueError("You have no ready relic that changes die results.")
+    combat = _combat(state)
+    entries = combat.rolls.get(target, [])
+    if not 0 <= entry_index < len(entries) or not 0 <= die_index < len(
+        entries[entry_index]["dice"]
+    ):
+        raise ValueError("Choose one of the dice rolled this round.")
+    new_value = entries[entry_index]["dice"][die_index] + delta
+    if not 1 <= new_value <= DIE_SIDES:
+        raise ValueError(f"A die result must stay between 1 and {DIE_SIDES}.")
+    new_state = state.clone()
+    exhaust.exhaust_relic(new_state, player_id, ready[0])
+    _combat(new_state).rolls[target][entry_index]["dice"][die_index] = new_value
+    return _refresh_after_dice_change(new_state, grid, registry)

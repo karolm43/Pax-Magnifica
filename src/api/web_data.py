@@ -33,6 +33,7 @@ from src.core import (
     action_budget,
     agenda_phase,
     card_hold,
+    economy,
     game_clock,
     production,
     space_cannon,
@@ -51,7 +52,7 @@ from src.core.game_state import GameState, PlayerState
 from src.core.hex_grid import HexGrid
 from src.core.map_string import HOME_SLOT_SYSTEM_ID, MECATOL_SYSTEM_ID
 from src.core.neighbors import neighbors_by_player
-from src.core.planet_stats import planet_stats
+from src.core.planet_stats import attachment_defs, planet_stats
 from src.core.positions import load_positions
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
@@ -432,13 +433,8 @@ def _planet_attachment_ids(
     state: GameState, registry: StaticDataRegistry, planet_id: str
 ) -> list[str]:
     """Id attachmentów (z kart eksploracji) przyczepionych do planety — do żetonów na mapie."""
-    result: list[str] = []
-    for card_id in state.planet_attachments.get(planet_id, []):
-        card = registry.catalog.get(ComponentCategory.EXPLORATION, card_id)
-        attachment_id = getattr(card, "attachment_id", None)
-        if isinstance(attachment_id, str) and attachment_id:
-            result.append(attachment_id)
-    return result
+    # Karty eksploracji i relikty przyczepione do planety (Nano-Forge) - jedno źródło prawdy.
+    return [attachment.id for attachment in attachment_defs(state, registry, planet_id)]
 
 
 def _entities_from_counts(
@@ -1334,7 +1330,7 @@ def _build_player_data(
                 # pokazywał „pełne" (np. 3/3) niezależnie od stanu — błąd. Teraz
                 # pokazuje realne „bieżące / maks" (start: 0 / commodity_value).
                 "commodities": player.commodities,
-                "commoditiesTotal": player.commodity_value,
+                "commoditiesTotal": economy.commodity_value(state, player_id),
                 # Żetony dowodzenia (CC) — panele gracza + heks stat-area.
                 "tacticalCC": player.tactical_cc,
                 "fleetCC": player.fleet_cc,
@@ -1369,8 +1365,8 @@ def _build_player_data(
                     p for p in player.exhausted_planets if p in controlled
                 ],
                 "exhaustedPlanetAbilities": [],
-                "relics": [],
-                "exhaustedRelics": [],
+                "relics": list(player.relics),
+                "exhaustedRelics": [r for r in player.exhausted_relics if r in player.relics],
                 # Fragmenty reliktów z eksploracji (id kart: crf*/hrf*/irf*/urf*) — front liczy je
                 # po prefiksie i rysuje w player area.
                 "fragments": list(player.relic_fragments),

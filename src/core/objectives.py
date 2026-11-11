@@ -16,8 +16,10 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 
-from src.core import card_draw, secret_objectives
+from src.core import card_draw, secret_objectives, triggers
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
+from src.core.dice import next_rng
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ObjectivesState
 from src.core.hex_grid import HexGrid
 from src.core.objective_payment import pay_for_objective
@@ -182,7 +184,43 @@ def reveal_next_public(state: GameState) -> tuple[GameState, str | None]:
     else:
         return new_state, None
     objectives.revealed.append(revealed_id)
+    # „When a public objective is revealed" (Neuraloop): hooki reagują na jawny cel.
+    triggers.fire(
+        new_state, GameEvent.OBJECTIVE_REVEALED, Moment.AFTER,
+        ctx={"objective": revealed_id},
+    )
     return new_state, revealed_id
+
+
+def replace_revealed(state: GameState, registry: StaticDataRegistry, old_id: str) -> str | None:
+    """Odrzuca odkryty cel publiczny i zastępuje go LOSOWYM celem z dowolnej talii celów.
+
+    Neuraloop: nowy cel (nawet tajny) staje się jawnym celem publicznym na miejscu starego;
+    odrzucony wraca do swojej talii DOPIERO po odkryciu zastępnika, a talia jest tasowana
+    (C_relics). Zwraca id nowego celu albo ``None`` (brak kart do losowania). MUTUJE ``state``.
+    """
+    objectives = state.objectives
+    decks = state.decks
+    pool = [*objectives.stage1_deck, *objectives.stage2_deck, *decks.secret_objective_deck]
+    if old_id not in objectives.revealed or not pool:
+        return None
+    rng = next_rng(state)
+    new_id = rng.choice(pool)
+    for deck in (objectives.stage1_deck, objectives.stage2_deck):
+        if new_id in deck:
+            deck.remove(new_id)
+            break
+    else:
+        secret_objectives.remove_from_deck(state, new_id)
+    objectives.revealed[objectives.revealed.index(old_id)] = new_id
+    stage = objective_stage(registry, old_id)
+    if stage is None:
+        secret_objectives.return_to_deck(state, old_id)
+    else:
+        back = objectives.stage1_deck if stage == 1 else objectives.stage2_deck
+        back.append(old_id)
+        rng.shuffle(back)
+    return new_id
 
 
 def planet_owners(state: GameState) -> dict[str, str]:

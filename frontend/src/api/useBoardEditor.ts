@@ -123,6 +123,7 @@ export function useBoardEditor() {
       "fleetPool",
       "playerHand",
       "actionCardPlayable",
+      "relicPlayable",
     ]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }
@@ -449,6 +450,26 @@ export function useBoardEditor() {
     },
     [refresh],
   );
+  // Zagranie „ACTION:" reliktu jako akcji komponentu (RULES.md 59). Relikt zostaje przed graczem
+  // (wyczerpany albo purge przez efekt); ``implemented=false`` = skutek rozstrzyga operator.
+  const playRelic = useCallback(
+    async (
+      playerId: string,
+      relicId: string,
+      params: Record<string, unknown>,
+    ): Promise<{ implemented: boolean }> => {
+      const response = await postRaw("/relic/play", {
+        player_id: playerId,
+        actor_id: playerId,
+        relic_id: relicId,
+        params,
+      });
+      const data = (await response.json()) as { implemented: boolean };
+      await refresh();
+      return { implemented: data.implemented };
+    },
+    [refresh],
+  );
   // Transakcja z sąsiadem (RULES.md 47). ``give`` = co oddaje aktywny gracz, ``receive`` =
   // co dostaje od partnera. Backend egzekwuje reguły (sąsiad, 1/turę, stan posiadania) i
   // przy błędzie zwraca 422 → ``post`` pokazuje powód w komunikacie.
@@ -619,6 +640,30 @@ export function useBoardEditor() {
     await post("/tactical/battle/roll", {});
     await refresh();
   }, [refresh]);
+
+  // Relikty nad rzutami rundy (RULES.md 59): przerzut z +1 (Crown of Thalnos) i ±1 do kości
+  // (Heart of Ixth). Po rzucie, przed przypisaniem strat; silnik przelicza trafienia.
+  const battleRelicReroll = useCallback(
+    async (faction: string, picks: { entry: number; dice: number[] }[]) => {
+      await post("/tactical/battle/relic-reroll", { faction, picks });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const battleRelicAdjust = useCallback(
+    async (args: {
+      faction: string;
+      target: string;
+      entry: number;
+      die: number;
+      delta: 1 | -1;
+    }) => {
+      await post("/tactical/battle/relic-adjust", args);
+      await refresh();
+    },
+    [refresh],
+  );
 
   const battleAssign = useCallback(
     async (faction: string, plan: BattleAssignPlan) => {
@@ -886,6 +931,7 @@ export function useBoardEditor() {
     setActivePlayer,
     playComponentAction,
     playActionCard,
+    playRelic,
     resolveTransaction,
     giveDebtTokens,
     returnDebtTokens,
@@ -899,6 +945,8 @@ export function useBoardEditor() {
     battleAfb,
     battleRoll,
     battleAssign,
+    battleRelicReroll,
+    battleRelicAdjust,
     battleClose,
     battleAnnounceRetreat,
     battleRetreat,
@@ -1033,6 +1081,8 @@ export type BattleView = {
   retreated: Record<string, string>;
   /** Dozwolone cele odwrotu per strona (pusta lista = nie może się wycofać). */
   retreatOptions: Record<string, RetreatOption[]>;
+  /** Relikty zmieniające kości po rzucie, przed przypisaniem strat (RULES.md 59). */
+  relicTools?: { faction: string; tool: "reroll" | "adjust" }[];
 };
 
 /** Plan pokrycia trafień: Sustain Damage + niszczone nieuszkodzone/uszkodzone (baseType → liczba). */

@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import action_budget, command_tokens, exhaust, timing, triggers
+from src.core import action_budget, command_tokens, exhaust, rules_hooks, timing, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
 from src.core.hex_grid import HexGrid
@@ -324,12 +324,32 @@ def resolve_secondary(
     if execute:
         if spec.secondary_costs_token and not is_free:
             responder = new_state.players[player_id]
-            if responder.strategic_cc < 1:
+            # Hook (Scepter of Emelpar): gracz MOŻE wyczerpać relikt i wydać żeton z rezerwy.
+            scepter = bool((payload or {}).get("scepter"))
+            if scepter:
+                relic = next(
+                    iter(
+                        sorted(
+                            rules_hooks.forbidden(
+                                rules_hooks.POINT_STRATEGY_TOKEN_FROM_REINFORCEMENTS,
+                                new_state,
+                                player_id,
+                            )
+                        )
+                    ),
+                    None,
+                )
+                if relic is None:
+                    raise ValueError("You have no ready relic that lets you spend a reserve token.")
+                command_tokens.spend_strategy_token(new_state, player_id, via_reinforcements=True)
+                exhaust.exhaust_relic(new_state, player_id, relic)
+            elif responder.strategic_cc < 1:
                 raise ValueError(
                     "You need 1 command token in your strategy pool to follow this card."
                 )
-            # wydany żeton wraca do rezerwy
-            command_tokens.spend_to_reinforcements(new_state, player_id, "strategic")
+            else:
+                # wydany żeton wraca do rezerwy
+                command_tokens.spend_strategy_token(new_state, player_id)
             triggers.fire(
                 new_state,
                 GameEvent.STRATEGY_TOKEN_SPENT,

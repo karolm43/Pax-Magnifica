@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import random
 
+from src.core import rules_hooks
 from src.core.dice import next_rng
 from src.core.game_state import GameState
 
@@ -85,10 +86,17 @@ def secret_count(state: GameState, player_id: str) -> int:
     return len(player.private.secret_objectives) + len(player.scored_secrets)
 
 
+def secret_limit(state: GameState, player_id: str) -> int:
+    """Limit tajnych celów gracza: 3 + modyfikatory (The Obsidian: +1) - punkt ``secret.limit``."""
+    return rules_hooks.modify(
+        rules_hooks.POINT_SECRET_OBJECTIVE_LIMIT, state, player_id, SECRET_LIMIT
+    )
+
+
 def over_limit_after_draw(state: GameState, player_id: str) -> bool:
     """Czy po dobraniu 1 tajnego celu gracz przekroczy limit (i jest co dobrać)."""
     has_cards = bool(state.decks.secret_objective_deck)
-    return has_cards and secret_count(state, player_id) >= SECRET_LIMIT
+    return has_cards and secret_count(state, player_id) >= secret_limit(state, player_id)
 
 
 def draw(state: GameState, player_id: str, give_back: str | None) -> None:
@@ -141,3 +149,15 @@ def reveal_hand(state: GameState, viewer_id: str, owner_id: str) -> list[str]:
     shown = list(state.players[owner_id].private.secret_objectives)
     state.players[viewer_id].private.revealed_secrets[owner_id] = shown
     return shown
+
+
+def remove_from_deck(state: GameState, objective_id: str) -> None:
+    """Zdejmuje konkretny cel z talii tajnych celów (np. Neuraloop ujawnia go jako publiczny)."""
+    if objective_id in state.decks.secret_objective_deck:
+        state.decks.secret_objective_deck.remove(objective_id)
+
+
+def return_to_deck(state: GameState, objective_id: str) -> None:
+    """Wkłada cel do talii tajnych celów i tasuje ją (seedowalnie; mutuje)."""
+    state.decks.secret_objective_deck.append(objective_id)
+    next_rng(state).shuffle(state.decks.secret_objective_deck)

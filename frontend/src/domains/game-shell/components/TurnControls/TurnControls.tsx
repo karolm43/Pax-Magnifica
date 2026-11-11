@@ -692,7 +692,8 @@ export function TurnControls() {
 
       {playingCard && active.discordId && (
         <ActionCardPlayModal
-          key={playingCard.id}
+          key={`${playingCard.kind}:${playingCard.id}`}
+          kind={playingCard.kind === "relic" ? "relic" : "card"}
           cardId={playingCard.id}
           cardName={playingCard.name}
           playerId={active.discordId}
@@ -755,7 +756,8 @@ export function TurnControls() {
                   disabled={busy}
                   onClick={() => {
                     // Karta akcji: formularz wyborów, efekt stosuje silnik (RULES.md 53).
-                    if (choice.kind === "action-card") {
+                    // Relikt z „ACTION:" (RULES.md 59): ten sam formularz, relikt zostaje u gracza.
+                    if (choice.kind === "action-card" || choice.kind === "relic") {
                       setComponentOpen(false);
                       setPlayingCard(choice);
                       return;

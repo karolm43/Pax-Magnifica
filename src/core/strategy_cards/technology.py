@@ -89,6 +89,8 @@ def research_options(
         "breakthrough": technology.breakthrough_view(state, ctx.registry, player_id),
         "specialties": technology.specialty_planets(state, ctx.registry, player_id),
         "aida": technology.aida_ready(state, player_id),
+        # Gotowe relikty ignorujące 1 prerekwizyt (Prophet's Tears) - skip ``relic:<id>``.
+        "relic_skips": technology.ignore_prerequisite_relics(state, player_id),
         "planets": ready_planet_values(state, ctx.registry, player_id, "resources"),
         "trade_goods": player.trade_goods,
         "cost": cost,

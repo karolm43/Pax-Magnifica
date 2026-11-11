@@ -26,6 +26,8 @@ export type ResearchOptions = {
   /** Gotowe planety ze specjalnością → kolory. */
   specialties: Record<string, TechColor[]>;
   aida: boolean;
+  /** Gotowe relikty ignorujące 1 prerekwizyt (Prophet's Tears); skip = `relic:<id>`. */
+  relicSkips: string[];
   /** Gotowe planety → zasoby (płatność). */
   planets: Record<string, number>;
   tradeGoods: number;
@@ -71,6 +73,7 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     ownedColors: (raw.owned_colors ?? {}) as ResearchOptions["ownedColors"],
     specialties: (raw.specialties ?? {}) as ResearchOptions["specialties"],
     aida: raw.aida === true,
+    relicSkips: Array.isArray(raw.relic_skips) ? (raw.relic_skips as string[]) : [],
     planets: (raw.planets ?? {}) as Record<string, number>,
     tradeGoods: typeof raw.trade_goods === "number" ? raw.trade_goods : 0,
     cost: typeof raw.cost === "number" ? raw.cost : 0,
@@ -147,6 +150,13 @@ export function autoSkips(
       skips.push(AIDA_SKIP);
     }
   }
+  // Relikt „ignore 1 prerequisite" (Prophet's Tears): pokrywa jeden brakujący symbol.
+  for (const relic of options.relicSkips) {
+    const color = (Object.keys(left) as TechColor[]).find((c) => (left[c] ?? 0) > 0);
+    if (!color) break;
+    left[color] = (left[color] ?? 0) - 1;
+    skips.push(`relic:${relic}`);
+  }
   return { skips, left };
 }
 
@@ -158,7 +168,7 @@ export function remainingAfter(
 ): Partial<Record<TechColor, number>> {
   const left: Partial<Record<TechColor, number>> = { ...row.missing };
   for (const skip of skips) {
-    if (skip === AIDA_SKIP) {
+    if (skip === AIDA_SKIP || skip.startsWith("relic:")) {
       const color = (Object.keys(left) as TechColor[]).find((c) => (left[c] ?? 0) > 0);
       if (color) left[color] = (left[color] ?? 0) - 1;
       continue;

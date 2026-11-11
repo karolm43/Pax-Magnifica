@@ -454,6 +454,20 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - Testy: `tests/test_network_game.py` (26: brak wycieków w 12 GET-ach, odpowiedziach akcji i WebSocket; role; rotacja; pełna gra).
 - Dalej: N3 (zapis gry + tokenów, restart), N5 (UI „czekamy na X", blokada cudzych kontrolek, zgoda w transakcjach, timeouty).
 
+## 2026-11-11 (8) — Relikty: zakładka Relics, akcje ACTION i efekty pasywne (RULES.md 59)
+- **Stan/silnik:** `PlayerState.exhausted_relics` (+ `exhaust.*_relic`, odświeżanie w statusie), `relics.py` (transfer / detach /
+  purge / `on_lost`), `relic_actions.py` (formularz + dispatch ACTION w `component_action`, `blocker`), `relic_cards.py`
+  (zagrywalność + `play_relic`), hooki `hooks/relics_actions.py` i `hooks/relics_passive.py`. Nowe punkty: `economy.commodity_value`
+  (Dynamis Core), `objectives.secret_limit` (Obsidian); `planet_stats.is_legendary` + relikt jako attachment (Nano-Forge);
+  `SystemState.destroyed_planets` (Stellar Converter); `fracture.put_into_play`.
+- **API:** `GET /relic/playable`, `GET /relic/{id}/inputs`, `POST /relic/play` (z `actor_id`). `web-data` zwraca realne `relics` i
+  `exhaustedRelics` (wcześniej na sztywno puste), `commoditiesTotal` z `economy.commodity_value`.
+- **Front:** zakładka **Relics** w `BottomHandDock` (ACTION przeciągane na strefę „Drop to use”, pasywne tylko do podglądu),
+  `ActionCardPlayModal kind="relic"`, relikt z ACTION wybrany w „Play a component action” otwiera ten sam formularz.
+- **Zrealizowane (11 z 23):** Codex, Dynamis Core, Book of Latvinia, Circlet of the Void, Nano-Forge, Stellar Converter, Silver Flame,
+  Shard of the Throne, The Obsidian, Maw of Worlds, Quantumcore (bez synergii). Niezrobione: lista w `rules/R59.md` 59.6.
+- Testy: `tests/test_relics.py` (20). `test_central_points`: `core/relics.py` właścicielem `purged`.
+
 ## 2026-11-11 (9) — N3 zapis partii w pliku + N5 część 1: interfejs gry sieciowej (RULES.md 44.4, 44.5)
 - **Zapis:** `uv run python -m src.api [--network] [--save saves/partia.db] [--fresh]` — stan, historia Undo, mapa i tokeny
   miejsc zapisywane na bieżąco (SQLite, domyślnie `saves/game.db`); restart wznawia partię i linki zaproszeń. `EventStore`
@@ -482,3 +496,14 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - Menu: Play / Load game / Settings / Rules (bez „Host online game"). „Play" otwiera lobby: link do skopiowania, imię
   hosta, lista dołączających na żywo, „Add bot", „Start" → kreator od razu na kroku frakcji, miejsca przypisane
   automatycznie (host 1., dołączeni kolejno, boty na końcu). `LobbyScreen` zastąpił panel przypisań w kreatorze.
+
+## 2026-11-11 (9) — Relikty: reszta (23/23), walka, kości, płatności (RULES.md 59)
+- **Dopisane relikty:** JR-XS455-O, Scepter of Emelpar, Crown of Emphidia, Dominus Orb, Prophet's Tears, Neuraloop, Heart of Ixth,
+  Crown of Thalnos, Lightrail Ordnance, Metali Void Armaments/Shielding, The Triad; Quantumcore ma już SYNERGY dla 4 kolorów.
+- **Nowe punkty zaczepienia (`rules_hooks`):** `space_cannon.granted`, `combat.granted_sustain`, `combat.afb_granted`,
+  `combat.reroll_plus_one`, `dice.adjust_result`, `command_tokens.strategy_from_reinforcements`, `technology.ignore_prerequisite`,
+  `technology.synergy_all`, `movement.ignore_own_command_token`. `relic_planets.py` (relikt jak planeta), `objectives.replace_revealed`,
+  `OBJECTIVE_REVEALED` emitowane.
+- **API/UI:** `POST /tactical/battle/relic-reroll|relic-adjust` + `BattleResponse.relicTools` + `BattleRelicTools`; przełącznik Scepter
+  w oknie secondary; skip `relic:<id>` w drzewie badań; Prophet's Tears w `autoSkips`.
+- Testy: `tests/test_relics.py` (rozszerzone). Do dopisania później: purge kafla przez Silver Flame (decyzja użytkownika).

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from src.core import economy, exhaust
+from src.core import economy, exhaust, relic_planets
 from src.core.game_state import GameState
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
@@ -37,6 +37,10 @@ def ready_planet_values(
         for planet_id, owner in system.planet_owners.items():
             if owner == player_id and planet_id not in exhausted:
                 values[planet_id] = value_of(state, registry, planet_id)
+    # Relikty działające jak karta planety (The Triad): zasoby i wpływ równe, gdy gotowe.
+    for pseudo, value in relic_planets.values(state, registry, player_id).items():
+        if relic_planets.relic_of(pseudo) not in player.exhausted_relics:
+            values[pseudo] = value
     return values
 
 

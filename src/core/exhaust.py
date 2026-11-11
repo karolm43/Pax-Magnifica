@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from src.core import relic_planets
 from src.core.game_state import GameState, PlayerState
 
 
@@ -31,7 +32,9 @@ def exhaust_planets(state: GameState, player_id: str, planets: Iterable[str]) ->
     player = _player(state, player_id)
     current = list(player.exhausted_planets)
     for planet in planets:
-        if planet not in current:
+        if relic_planets.is_pseudo(planet):  # relikt działający jak planeta (The Triad)
+            exhaust_relic(state, player_id, relic_planets.relic_of(planet))
+        elif planet not in current:
             current.append(planet)
     player.exhausted_planets = current
 
@@ -40,12 +43,18 @@ def ready_planets(state: GameState, player_id: str, planets: Iterable[str]) -> N
     """Odświeża wskazane planety (zdejmuje je z listy wyczerpanych)."""
     player = _player(state, player_id)
     to_ready = set(planets)
+    for planet in to_ready:
+        if relic_planets.is_pseudo(planet):
+            ready_relic(state, player_id, relic_planets.relic_of(planet))
     player.exhausted_planets = [p for p in player.exhausted_planets if p not in to_ready]
 
 
 def ready_all_planets(state: GameState, player_id: str) -> None:
     """Odświeża wszystkie planety gracza (faza statusu, krok 6)."""
-    _player(state, player_id).exhausted_planets = []
+    player = _player(state, player_id)
+    player.exhausted_planets = []
+    for relic in relic_planets.registered():  # relikty jak planety odświeżają się z planetami
+        ready_relic(state, player_id, relic)
 
 
 def exhaust_strategy_card(state: GameState, player_id: str, initiative: int) -> None:
@@ -101,3 +110,21 @@ def ready_technology(state: GameState, player_id: str, tech_id: str) -> None:
 def ready_all_technologies(state: GameState, player_id: str) -> None:
     """Odświeża wszystkie technologie gracza (faza statusu, krok 6)."""
     _player(state, player_id).exhausted_technologies = []
+
+
+def exhaust_relic(state: GameState, player_id: str, relic_id: str) -> None:
+    """Wyczerpuje relikt gracza (już wyczerpany nie dubluje się). Legalność sprawdza wołający."""
+    player = _player(state, player_id)
+    if relic_id not in player.exhausted_relics:
+        player.exhausted_relics = [*player.exhausted_relics, relic_id]
+
+
+def ready_relic(state: GameState, player_id: str, relic_id: str) -> None:
+    """Odświeża jeden relikt gracza."""
+    player = _player(state, player_id)
+    player.exhausted_relics = [r for r in player.exhausted_relics if r != relic_id]
+
+
+def ready_all_relics(state: GameState, player_id: str) -> None:
+    """Odświeża wszystkie relikty gracza (faza statusu, krok 6)."""
+    _player(state, player_id).exhausted_relics = []

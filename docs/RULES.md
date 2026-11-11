@@ -99,3 +99,4 @@ Czytaj WYŁĄCZNIE plik potrzebnej sekcji. Nową regułę dopisuj do pliku jej s
 | 56 | [Decyzje graczy i oferty technologii (nigdy automatycznie) — decyzja użytkownika 2026-11-09](rules/R56.md) | 12 |
 | 57 | [Technologie z akcją, zdolności poza akcją, frontier i produkcja „wolna” — decyzja użytkownika 2026-11-09](rules/R57.md) | 28 |
 | 58 | [Zegar szachowy graczy](rules/R58.md) | 31 |
+| 59 | [Relikty — posiadanie, akcje „ACTION:”, efekty pasywne i zdarzeniowe](rules/R59.md) | 24 |

@@ -312,7 +312,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         ("player", "component"),
         "relics / breakthrough / promissory_notes",
     ),
-    GameEvent.OBJECTIVE_REVEALED: EventInfo("Cel publiczny ujawniony.", ("objective",)),
+    GameEvent.OBJECTIVE_REVEALED: EventInfo(
+        "Cel publiczny ujawniony.", ("objective",), "objectives.reveal_next_public"
+    ),
     GameEvent.OBJECTIVE_SCORED: EventInfo(
         "Cel zdobyty.",
         ("player", "objective", "secret"),

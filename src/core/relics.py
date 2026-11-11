@@ -1,11 +1,16 @@
-"""Talia reliktów i dobieranie reliktu (RULES.md 50: planety The Fracture).
+"""Talia reliktów, posiadanie, wyczerpywanie i purge reliktu (RULES.md 50, 59).
 
-Zakres: TYLKO posiadanie karty (``PlayerState.relics``). Efekty reliktów nie są kodowane.
+Efekty konkretnych reliktów: ``core/relic_cards.py`` (ACTION) i ``core/hooks/relics_*.py``
+(pasywne i zdarzeniowe). Tu tylko wspólne operacje na karcie: dobranie z talii, przekazanie
+(transakcja / Shard of the Throne), purge i wyjście z gry z haczykami „gdy tracisz tę kartę".
+
 Talia powstaje leniwie z największej talii typu ``relic`` aktywnych źródeł (jak talia agend,
 ``card_draw.ensure_agenda_deck``); pusta talia tasuje się ze stosu odrzuconych.
 """
 
 from __future__ import annotations
+
+from collections.abc import Callable
 
 from src.core import triggers
 from src.core.dice import next_rng
@@ -14,6 +19,22 @@ from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
 _RELIC_DECK = "relic"
+
+# Efekt „gdy tracisz tę kartę” (Shard of the Throne: -1 VP): (stan, gracz tracący) -> None.
+LostFn = Callable[[GameState, str], None]
+_ON_LOST: dict[str, LostFn] = {}
+
+
+def on_lost(relic_id: str) -> Callable[[LostFn], LostFn]:
+    """Rejestruje efekt utraty reliktu (przekazanie lub purge). Jeden efekt na relikt."""
+
+    def decorate(fn: LostFn) -> LostFn:
+        if relic_id in _ON_LOST:
+            raise ValueError(f"Loss effect already registered for {relic_id}.")
+        _ON_LOST[relic_id] = fn
+        return fn
+
+    return decorate
 
 
 def ensure_relic_deck(state: GameState, registry: StaticDataRegistry) -> None:
@@ -30,6 +51,14 @@ def ensure_relic_deck(state: GameState, registry: StaticDataRegistry) -> None:
     decks.relic_deck = cards
     decks.relic_discard = []
     decks.relic_deck_seeded = True
+
+
+def _fire_gained(state: GameState, player_id: str, relic: str) -> None:
+    """„When you gain this card”: karta jest już źródłem hooka, więc może zareagować na siebie."""
+    triggers.fire(
+        state, GameEvent.COMPONENT_GAINED, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "component": f"relics:{relic}"},
+    )
 
 
 def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -> str | None:
@@ -52,16 +81,27 @@ def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -
         return None
     relic = decks.relic_deck.pop(0)
     player.relics = [*player.relics, relic]
-    # „When you gain this card”: karta jest już źródłem hooka, więc może zareagować na siebie.
-    triggers.fire(
-        state, GameEvent.COMPONENT_GAINED, Moment.WHEN, subject=player_id,
-        ctx={"player": player_id, "component": f"relics:{relic}"},
-    )
+    _fire_gained(state, player_id, relic)
     return relic
 
 
+def _remove(state: GameState, player_id: str, relic_id: str) -> None:
+    """Zdejmuje relikt ze strefy gracza (także ze stanu wyczerpania) i odpala efekt utraty."""
+    player = state.players[player_id]
+    if relic_id not in player.relics:
+        raise ValueError(f"{player_id} does not have the relic {relic_id}.")
+    player.relics = [r for r in player.relics if r != relic_id]
+    player.exhausted_relics = [r for r in player.exhausted_relics if r != relic_id]
+    lost = _ON_LOST.get(relic_id)
+    if lost is not None:
+        lost(state, player_id)
+
+
 def transfer(state: GameState, giver_id: str, receiver_id: str, relic_id: str) -> None:
-    """Przenosi relikt ze strefy ``giver_id`` do strefy ``receiver_id`` (transakcja, mutuje).
+    """Przenosi relikt ze strefy ``giver_id`` do strefy ``receiver_id`` (mutuje).
+
+    Dawca traci kartę (efekt utraty), odbiorca ją zdobywa (hook „when you gain”). Karta trafia
+    do odbiorcy GOTOWA.
 
     Raises:
         ValueError: Gracz nie ma tego reliktu.
@@ -69,6 +109,36 @@ def transfer(state: GameState, giver_id: str, receiver_id: str, relic_id: str) -
     giver = state.players[giver_id]
     if relic_id not in giver.relics:
         raise ValueError(f"{giver_id} does not have the relic {relic_id}.")
-    giver.relics = [r for r in giver.relics if r != relic_id]
+    _remove(state, giver_id, relic_id)
     receiver = state.players[receiver_id]
     receiver.relics = [*receiver.relics, relic_id]
+    _fire_gained(state, receiver_id, relic_id)
+
+
+def purge_relic(state: GameState, player_id: str, relic_id: str) -> None:
+    """Purge reliktu gracza: karta wychodzi z gry na stałe (nie wraca do talii ani stosu).
+
+    Mutuje ``state``. Raises:
+        ValueError: Gracz nie ma tego reliktu.
+    """
+    _remove(state, player_id, relic_id)
+    state.decks.purged = [*state.decks.purged, relic_id]
+
+
+def detach(state: GameState, player_id: str, relic_id: str) -> None:
+    """Zdejmuje relikt ze strefy gracza BEZ purge (np. Nano-Forge przyczepiony do planety).
+
+    Karta nie wraca do talii ani nie trafia do purge - wołający kładzie ją gdzie indziej.
+    Efekt utraty ("gdy tracisz tę kartę") odpala się jak przy każdym zejściu ze strefy.
+    """
+    _remove(state, player_id, relic_id)
+
+
+def is_ready(state: GameState, player_id: str, relic_id: str) -> bool:
+    """Czy gracz ma relikt i nie jest on wyczerpany."""
+    player = state.players.get(player_id)
+    return (
+        player is not None
+        and relic_id in player.relics
+        and relic_id not in player.exhausted_relics
+    )

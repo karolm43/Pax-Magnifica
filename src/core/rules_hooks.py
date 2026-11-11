@@ -92,6 +92,40 @@ POINT_STATUS_ACTION_CARDS = "status.action_cards"
 # Faza statusu: liczba żetonów dowodzenia zdobywanych przez gracza (bazowo 2; Hyper Metabolism: +1).
 POINT_STATUS_COMMAND_TOKENS = "status.command_tokens"
 
+# Commodity value gracza (bazowo z arkusza frakcji; Dynamis Core: +2). MODIFY -> delta.
+POINT_COMMODITY_VALUE = "economy.commodity_value"
+
+# Space Cannon nadany jednostce BEZ własnego (Lightrail Ordnance: stocznia). Hook FORBID jako zbiór
+# napisów "<base_type>:<próg trafienia>:<kości na jednostkę>"; strzela też na sąsiednie systemy.
+POINT_SPACE_CANNON_GRANTED = "space_cannon.granted"
+
+# Sustain Damage nadany statkom niemyśliwskim bez własnego (Metali Void Shielding). PERMIT -> bool.
+POINT_COMBAT_GRANTED_SUSTAIN = "combat.granted_sustain"
+# AFB nadany właścicielowi hooka (Metali Void Armaments): FORBID jako zbiór "<próg>:<kości>".
+POINT_COMBAT_AFB_GRANTED = "combat.afb_granted"
+# Właściciel może w KAŻDEJ rundzie walki przerzucić kości z +1 do wyniku (Thalnos). PERMIT.
+POINT_COMBAT_REROLL_PLUS_ONE = "combat.reroll_plus_one"
+# Zmiana wyniku DOWOLNEJ kości o ±1 po rzucie (Heart of Ixth). Hook FORBID jako zbiór id GOTOWYCH
+# reliktów, którymi wolno to zrobić (silnik wyczerpuje wskazany relikt).
+POINT_DIE_ADJUST = "dice.adjust_result"
+
+# Zamiast wydać żeton z puli strategicznej gracz może wydać żeton z rezerwy (Scepter of Emelpar).
+# Hook FORBID jako zbiór id GOTOWYCH reliktów, którymi wolno (silnik wyczerpuje wskazany).
+POINT_STRATEGY_TOKEN_FROM_REINFORCEMENTS = "command_tokens.strategy_from_reinforcements"
+
+# Ruch i transport z systemów zawierających WŁASNY żeton dowodzenia (Dominus Orb). PERMIT -> bool.
+POINT_MOVEMENT_IGNORE_OWN_CC = "movement.ignore_own_command_token"
+
+# Ignorowanie 1 prerekwizytu przy badaniu przez wyczerpanie reliktu (Prophet's Tears).
+# Hook FORBID jako zbiór id GOTOWYCH reliktów; skip w planie badania: ``relic:<id>``.
+POINT_TECHNOLOGY_IGNORE_PREREQUISITE = "technology.ignore_prerequisite"
+
+# Synergia dla WSZYSTKICH czterech typów technologii (The Quantumcore). PERMIT -> bool.
+POINT_TECHNOLOGY_SYNERGY_ALL = "technology.synergy_all"
+
+# Limit tajnych celów gracza (bazowo 3; The Obsidian: +1). MODIFY -> delta.
+POINT_SECRET_OBJECTIVE_LIMIT = "objectives.secret_limit"
+
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
 SOURCE_TECHNOLOGY = "technology"

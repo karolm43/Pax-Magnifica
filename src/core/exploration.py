@@ -747,5 +747,39 @@ def finish(state: GameState) -> GameState:
     return new_state
 
 
+def attach_to_planet(state: GameState, planet: str, card_id: str) -> None:
+    """Przyczepia kartę (eksploracji albo relikt Nano-Forge) do planety - mutuje ``state``.
+
+    Karta zostaje przy planecie niezależnie od zmiany kontroli (R_attach); wartości liczy
+    ``planet_stats`` z attachmentu o tym samym id.
+    """
+    state.planet_attachments.setdefault(planet, []).append(card_id)
+
+
+def purge_attachment(state: GameState, planet: str, card_id: str) -> None:
+    """Purge JEDNEGO attachmentu planety (np. Nano-Forge przez Neuraloop) - mutuje ``state``.
+
+    Raises:
+        ValueError: Planeta nie ma tego attachmentu.
+    """
+    cards = state.planet_attachments.get(planet, [])
+    if card_id not in cards:
+        raise ValueError(f"{planet} has no attachment {card_id}.")
+    cards.remove(card_id)
+    if not cards:
+        state.planet_attachments.pop(planet, None)
+    state.decks.purged.append(card_id)
+
+
+def purge_planet_attachments(state: GameState, planet: str) -> list[str]:
+    """Purge wszystkich attachmentów planety (Stellar Converter) - mutuje ``state``.
+
+    Returns:
+        Id purge'owanych kart (idą na wspólny ``DecksState.purged``, nie wracają do talii).
+    """
+    cards = state.planet_attachments.pop(planet, [])
+    state.decks.purged.extend(cards)
+    return cards
+
 # Obsługa żetonu frontier rejestruje swoje karty natychmiastowe (import na końcu - bez cyklu).
 from src.core import exploration_frontier  # noqa: E402,F401

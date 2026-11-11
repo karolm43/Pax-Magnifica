@@ -4,6 +4,7 @@ import cx from "clsx";
 import {
   IconCards,
   IconChevronDown,
+  IconDiamond,
   IconLayoutGrid,
   IconPlayerPlayFilled,
   IconTarget,
@@ -19,6 +20,8 @@ import { getActionCard } from "@/entities/lookup/actionCards";
 import { getAgenda } from "@/entities/lookup/agendas";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
+import { getRelicData } from "@/entities/lookup/relics";
+import { RelicCard } from "@/domains/player/components/Relic/RelicCard";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
 import { PromissoryNoteCard } from "@/domains/cards/components/PromissoryNoteCard";
@@ -33,7 +36,8 @@ import { useGameData } from "@/state/useGameContext";
 import { HoldControls } from "./HoldControls";
 import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
-import { useActionCardPlayability, type ActionCardPlayability } from "@/api/useActionCard";
+import { useActionCardPlayability } from "@/api/useActionCard";
+import { useRelicPlayability } from "@/api/useRelics";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -48,9 +52,16 @@ import styles from "./BottomHandDock.module.css";
  * „Drop to play" (otwiera formularz zagrania). Podnieść można tylko kartę, którą silnik pozwala
  * zagrać teraz (`/action-card/playable`: tura, faza, okno ACTION, legalne cele); pozostałe są
  * przyciemnione, a podpowiedź mówi dlaczego.
+ *
+ * Zakładka „Relics" pokazuje relikty gracza (leżą przed nim, nie w ręce). Te z „ACTION:" działają
+ * jak karty akcji (`/relic/playable`, ta sama strefa zagrania; relikt zostaje po zagraniu),
+ * pasywne są tylko do obejrzenia - działają same i są też w panelu gracza.
  */
 
-type HandTab = "actions" | "secrets" | "notes";
+type HandTab = "actions" | "secrets" | "notes" | "relics";
+
+/** Minimalny kształt decyzji silnika o zagrywalności (karta akcji albo relikt). */
+type PlayInfo = { playable: boolean; reason: string | null };
 
 const TABS: {
   key: HandTab;
@@ -61,18 +72,30 @@ const TABS: {
   { key: "actions", label: "Action cards", tone: "239, 68, 68", icon: IconCards },
   { key: "secrets", label: "Secrets", tone: "239, 68, 68", icon: IconTarget },
   { key: "notes", label: "Notes", tone: "6, 182, 212", icon: IconTicket },
+  { key: "relics", label: "Relics", tone: "234, 179, 8", icon: IconDiamond },
 ];
 
 const BACKS: Record<HandTab, string> = {
   actions: assetUrl("/player_area/cardback_action.jpg"),
   secrets: assetUrl("/player_area/cardback_secret.jpg"),
   notes: assetUrl("/player_area/pa_cardbacks_pn.png"),
+  relics: assetUrl("/player_area/cardback_relic.jpg"),
 };
 
 const EMPTY_COPY: Record<HandTab, string> = {
   actions: "No action cards in hand",
   secrets: "No secret objectives in hand",
   notes: "No promissory notes in hand",
+  relics: "No relics in play",
+};
+
+/** Karty, które można przeciągnąć na strefę zagrania (karta akcji albo relikt z ACTION). */
+const PLAYABLE_TABS: ReadonlySet<HandTab> = new Set(["actions", "relics"]);
+
+/** Typ przeciąganego elementu w `dataTransfer` (strefa zagrania rozróżnia kartę i relikt). */
+const DRAG_TYPE: Partial<Record<HandTab, string>> = {
+  actions: "text/x-actioncard",
+  relics: "text/x-relic",
 };
 
 const DOCK_OPEN_KEY = "ti4_bottom_hand_dock_open";
@@ -93,11 +116,16 @@ function useDockOpen(): [boolean, (next: boolean) => void] {
 function useCardLabel(
   tab: HandTab,
   id: string,
+  /** Tylko relikty: znacznik z decyzji silnika (rodzaj + wyczerpanie). */
+  relicTag?: string,
 ): { name: string; tag?: string; ownerRgb?: string } {
   const factionColorMap = useFactionColors();
   if (tab === "actions") {
     const card = getActionCard(id);
     return { name: card?.name ?? id, tag: card?.window };
+  }
+  if (tab === "relics") {
+    return { name: getRelicData(id)?.name ?? id, tag: relicTag };
   }
   if (tab === "secrets") {
     const secret = getSecretObjectiveData(id);
@@ -121,6 +149,7 @@ function useCardLabel(
 function CardDetails({ tab, id }: { tab: HandTab; id: string }) {
   if (tab === "actions") return <ActionCardDetailsCard actionCardId={id} />;
   if (tab === "secrets") return <SecretObjectiveCard secretId={id} />;
+  if (tab === "relics") return <RelicCard relicId={id} />;
   return <PromissoryNoteCard promissoryNoteId={id} />;
 }
 
@@ -129,23 +158,32 @@ function HandCard({
   tab,
   id,
   play,
+  relicTag,
+  passive,
   onDragChange,
 }: {
   tab: HandTab;
   id: string;
-  /** Decyzja silnika o zagrywalności (tylko karty akcji); brak = jeszcze nie wiadomo. */
-  play?: ActionCardPlayability;
+  /** Decyzja silnika o zagrywalności (karty akcji i relikty z ACTION); brak = jeszcze nie wiadomo. */
+  play?: PlayInfo;
+  /** Relikt: znacznik rodzaju/wyczerpania pod nazwą. */
+  relicTag?: string;
+  /** Relikt pasywny: działa sam, nie ma co zagrywać (nie przyciemniamy go jak zablokowanej karty). */
+  passive?: boolean;
   onDragChange: (cardId: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { name, tag, ownerRgb } = useCardLabel(tab, id);
-  const canDrag = tab === "actions" && play?.playable === true;
-  const locked = tab === "actions" && play !== undefined && !play.playable;
+  const { name, tag, ownerRgb } = useCardLabel(tab, id, relicTag);
+  const playableTab = PLAYABLE_TABS.has(tab);
+  const canDrag = playableTab && play?.playable === true;
+  const locked = playableTab && !passive && play !== undefined && !play.playable;
   const hint = canDrag
     ? `${name} - drag onto the play zone to play`
     : locked
       ? `${name} - can't be played now: ${play?.reason ?? "not available"}`
-      : name;
+      : passive
+        ? `${name} - passive, works on its own`
+        : name;
   const tone =
     ownerRgb ?? TABS.find((t) => t.key === tab)?.tone ?? "148, 163, 184";
   return (
@@ -158,7 +196,7 @@ function HandCard({
           e.preventDefault();
           return;
         }
-        e.dataTransfer.setData("text/x-actioncard", id);
+        e.dataTransfer.setData(DRAG_TYPE[tab] ?? "text/x-actioncard", id);
         e.dataTransfer.effectAllowed = "move";
         setOpen(false);
         onDragChange(id);
@@ -225,12 +263,22 @@ export function BottomHandDock() {
   const [open, setOpen] = useDockOpen();
   const [tab, setTab] = useState<HandTab>("actions");
   // Przeciąganie karty akcji na strefę zagrania; po upuszczeniu otwiera formularz (RULES.md 53).
-  const [dragCard, setDragCard] = useState<string | null>(null);
+  const [dragCard, setDragCard] = useState<{ id: string; tab: HandTab } | null>(null);
   const [zoneOver, setZoneOver] = useState(false);
-  const [playingCard, setPlayingCard] = useState<string | null>(null);
+  const [playingCard, setPlayingCard] = useState<{ id: string; tab: HandTab } | null>(null);
   const { data: playability } = useActionCardPlayability(
     active?.discordId ?? null,
     open && tab === "actions",
+  );
+  const { data: relicPlayability } = useRelicPlayability(
+    active?.discordId ?? null,
+    open && tab === "relics",
+  );
+  // Relikty są jawne (leżą przed graczem), więc lista idzie z danych gracza, nie z endpointu ręki.
+  const relicIds = useMemo(() => active?.relics ?? [], [active?.relics]);
+  const exhaustedRelics = useMemo(
+    () => new Set(active?.exhaustedRelics ?? []),
+    [active?.exhaustedRelics],
   );
 
   const counts = useMemo(
@@ -238,16 +286,18 @@ export function BottomHandDock() {
       actions: hand?.actionCards.length ?? 0,
       secrets: hand?.secretObjectives.length ?? 0,
       notes: hand?.promissoryNotes.length ?? 0,
+      relics: relicIds.length,
     }),
-    [hand],
+    [hand, relicIds],
   );
 
   const ids = useMemo(() => {
+    if (tab === "relics") return relicIds;
     if (!hand) return [] as string[];
     if (tab === "actions") return hand.actionCards;
     if (tab === "secrets") return hand.secretObjectives;
     return hand.promissoryNotes;
-  }, [hand, tab]);
+  }, [hand, tab, relicIds]);
 
   // Prywatne podglądy z kart reakcji: Insider Information (top agend) i Extreme Duress (tajne cele).
   const peekLines = useMemo(() => {
@@ -389,18 +439,33 @@ export function BottomHandDock() {
               {EMPTY_COPY[tab]}
             </p>
           ) : (
-            ids.map((id, index) => (
-              <HandCard
-                key={`${tab}-${id}-${index}`}
-                tab={tab}
-                id={id}
-                play={tab === "actions" ? playability?.[id] : undefined}
-                onDragChange={(cardId) => {
-                  setDragCard(cardId);
-                  if (cardId === null) setZoneOver(false);
-                }}
-              />
-            ))
+            ids.map((id, index) => {
+              const relic = tab === "relics" ? relicPlayability?.[id] : undefined;
+              const passive = relic?.kind === "passive";
+              const relicTag =
+                tab === "relics"
+                  ? [
+                      relic ? (passive ? "Passive" : "Action") : undefined,
+                      exhaustedRelics.has(id) ? "Exhausted" : undefined,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  : undefined;
+              return (
+                <HandCard
+                  key={`${tab}-${id}-${index}`}
+                  tab={tab}
+                  id={id}
+                  play={tab === "actions" ? playability?.[id] : relic}
+                  relicTag={relicTag}
+                  passive={passive}
+                  onDragChange={(cardId) => {
+                    setDragCard(cardId === null ? null : { id: cardId, tab });
+                    if (cardId === null) setZoneOver(false);
+                  }}
+                />
+              );
+            })
           )}
         </div>
       )}
@@ -427,22 +492,35 @@ export function BottomHandDock() {
         onDragLeave={() => setZoneOver(false)}
         onDrop={(e) => {
           e.preventDefault();
-          const cardId = e.dataTransfer.getData("text/x-actioncard");
+          const dragged = dragCard;
           setZoneOver(false);
           setDragCard(null);
-          if (cardId) setPlayingCard(cardId);
+          if (!dragged) return;
+          const type = DRAG_TYPE[dragged.tab] ?? "text/x-actioncard";
+          const cardId = e.dataTransfer.getData(type);
+          if (cardId) setPlayingCard({ id: cardId, tab: dragged.tab });
         }}
       >
         <IconPlayerPlayFilled size={18} aria-hidden="true" />
-        <span>Drop to play {getActionCard(dragCard)?.name ?? dragCard}</span>
+        <span>
+          Drop to {dragCard.tab === "relics" ? "use" : "play"}{" "}
+          {dragCard.tab === "relics"
+            ? (getRelicData(dragCard.id)?.name ?? dragCard.id)
+            : (getActionCard(dragCard.id)?.name ?? dragCard.id)}
+        </span>
       </div>
     )}
 
     {playingCard && active.discordId && (
       <ActionCardPlayModal
-        key={playingCard}
-        cardId={playingCard}
-        cardName={getActionCard(playingCard)?.name ?? playingCard}
+        key={`${playingCard.tab}-${playingCard.id}`}
+        kind={playingCard.tab === "relics" ? "relic" : "card"}
+        cardId={playingCard.id}
+        cardName={
+          playingCard.tab === "relics"
+            ? (getRelicData(playingCard.id)?.name ?? playingCard.id)
+            : (getActionCard(playingCard.id)?.name ?? playingCard.id)
+        }
         playerId={active.discordId}
         onClose={() => setPlayingCard(null)}
         onPlayed={() => setPlayingCard(null)}

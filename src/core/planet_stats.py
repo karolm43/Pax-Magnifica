@@ -52,6 +52,12 @@ def attachment_defs(
     for card_id in state.planet_attachments.get(planet_id, []):
         card = registry.catalog.get(ComponentCategory.EXPLORATION, card_id)
         attachment_id = card.attachment_id if isinstance(card, ExplorationDef) else None
+        if (
+            attachment_id is None
+            and registry.catalog.get(ComponentCategory.RELIC, card_id) is not None
+        ):
+            # Relikt przyczepiony do planety (Nano-Forge): id relktu = id attachmentu z danych.
+            attachment_id = card_id
         if not attachment_id:
             continue
         attachment = registry.catalog.get(ComponentCategory.ATTACHMENT, attachment_id)
@@ -80,6 +86,14 @@ def planet_stats(
             else:
                 specialties.append(specialty.lower())
     return PlanetStats(resources, influence, tuple(specialties))
+
+
+def is_legendary(state: GameState, registry: StaticDataRegistry, planet_id: str) -> bool:
+    """Czy planeta jest legendarna: własna legenda z danych albo attachment (Nano-Forge)."""
+    planet = registry.planets.get(planet_id)
+    if planet is not None and planet.legendary_ability_name:
+        return True
+    return any(a.is_legendary for a in attachment_defs(state, registry, planet_id))
 
 
 def resources_of(state: GameState, registry: StaticDataRegistry, planet_id: str) -> int:

@@ -8,6 +8,7 @@ import {
   type ActionCardInput,
   type FormValue,
 } from "@/api/useActionCard";
+import { useRelicForm } from "@/api/useRelics";
 import { useAppStore } from "@/state/appStore";
 
 type Props = {
@@ -21,6 +22,11 @@ type Props = {
   seq?: number;
   /** Co zostanie cofnięte (etykieta kroku), pokazywane przy HOLD. */
   rewindNote?: string;
+  /**
+   * ``relic`` = zagranie „ACTION:" reliktu (RULES.md 59): ten sam formularz, ale relikt zostaje
+   * przed graczem (``cardId`` to id reliktu), a zagranie idzie przez ``/relic/play``.
+   */
+  kind?: "card" | "relic";
 };
 
 /** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (też dla ofert technologii). */
@@ -89,9 +95,13 @@ export function ActionCardPlayModal({
   playerId,
   seq,
   rewindNote,
+  kind = "card",
 }: Props) {
-  const form = useActionCardForm(cardId, playerId, seq);
-  const { playActionCard } = useBoardEditor();
+  const isRelic = kind === "relic";
+  const cardForm = useActionCardForm(isRelic ? null : cardId, playerId, seq);
+  const relicForm = useRelicForm(isRelic ? cardId : null, playerId);
+  const form = isRelic ? relicForm : cardForm;
+  const { playActionCard, playRelic } = useBoardEditor();
   const setNotice = useAppStore((state) => state.setNotice);
   const [values, setValues] = useState<Record<string, FormValue>>({});
   const [busy, setBusy] = useState(false);
@@ -108,6 +118,17 @@ export function ActionCardPlayModal({
   const play = async () => {
     setBusy(true);
     try {
+      if (isRelic) {
+        const result = await playRelic(playerId, cardId, params);
+        if (!result.implemented) {
+          setNotice(
+            `${cardName} is not automated yet - it counts as your action. Resolve its effect by hand.`,
+            "info",
+          );
+        }
+        onPlayed();
+        return;
+      }
       const result = await playActionCard(playerId, cardId, params, seq);
       if (result.held) {
         setNotice(`${cardName} is on the table - other players may answer with Sabotage.`, "info");
@@ -147,8 +168,9 @@ export function ActionCardPlayModal({
             {form.data.summary && <Text size="sm" fw={600}>{form.data.summary}</Text>}
             {!form.data.implemented && (
               <Text size="sm">
-                The engine does not automate this card yet. Playing it counts as your action and
-                discards it - resolve the effect by hand.
+                {isRelic
+                  ? "The engine does not automate this relic yet. Using it counts as your action - resolve the effect by hand."
+                  : "The engine does not automate this card yet. Playing it counts as your action and discards it - resolve the effect by hand."}
               </Text>
             )}
             {inputs.map((input) => (
@@ -172,7 +194,7 @@ export function ActionCardPlayModal({
             Cancel
           </Button>
           <Button disabled={busy || !form.data || !ready || noTargets} onClick={() => void play()}>
-            Play card
+            {isRelic ? "Use relic" : "Play card"}
           </Button>
         </Group>
       </Stack>

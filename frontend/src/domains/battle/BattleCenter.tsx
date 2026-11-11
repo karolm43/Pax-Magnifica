@@ -17,6 +17,7 @@ import type {
   BattleView,
 } from "@/api/useBoardEditor";
 import { HoldRollButton, type HoldState } from "@/domains/dice/HoldRollButton";
+import { BattleRelicTools } from "./BattleRelicTools";
 import styles from "./BattleOverlay.module.css";
 
 type Step = NonNullable<BattleView["step"]>;
@@ -209,6 +210,8 @@ export function BattleCenter({
           Nebula: the defender adds +1 to each combat roll.
         </p>
       )}
+
+      <BattleRelicTools view={view} nameOf={nameOf} busy={busy} />
 
       {step === "AFB" && (
         <div className={styles.actionCard}>

@@ -257,6 +257,22 @@ def _enter(
     _settle_pending(state, registry, grid)
 
 
+def put_into_play(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    player_id: str,
+    breakthrough_id: str | None = None,
+) -> None:
+    """Wprowadza The Fracture do gry efektem karty (np. Silver Flame) - MUTUJE ``state``.
+
+    Wersja mutująca :func:`enter_play` dla efektów, które pracują na klonie wołającego.
+    Nic nie robi, gdy Fracture już jest w grze ("if it is not already").
+    """
+    if not state.fracture.in_play:
+        _enter(state, registry, grid, player_id, breakthrough_id)
+
+
 def enter_play(
     state: GameState,
     registry: StaticDataRegistry,

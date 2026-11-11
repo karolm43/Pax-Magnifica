@@ -28,6 +28,7 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   ownedColors: {},
   specialties: {},
   aida: false,
+  relicSkips: [],
   planets: {},
   tradeGoods: 0,
   cost: 0,

@@ -72,7 +72,9 @@ OWNERS: dict[str, frozenset[str]] = {
     # ``deck_piles.py`` to narzędzie DEBUG (God-Mode, RULES.md 46.4).
     "exploration_deck": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
     "exploration_discard": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
-    "purged": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
+    "purged": frozenset(
+        {"core/exploration.py", "core/deck_piles.py", "core/relics.py", _GOD_MODE}
+    ),
     "planet_attachments": frozenset({"core/exploration.py", _GOD_MODE}),
     # Przełom frakcji: odblokowanie idzie przez core/breakthrough.py (ekspedycje, RULES.md 50);
     # odłożenie TG dojdzie z hookami.

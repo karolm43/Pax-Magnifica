@@ -22,7 +22,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import action_budget, card_hold, rules_hooks, technology_abilities, triggers
+from src.core import (
+    action_budget,
+    card_hold,
+    relic_actions,
+    rules_hooks,
+    technology_abilities,
+    triggers,
+)
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase
 
@@ -34,6 +41,7 @@ def play_component_action(
     *,
     fire_after: bool = True,
     params: Mapping[str, Any] | None = None,
+    run_effect: bool = True,
 ) -> GameState:
     """Wykonuje akcję komponentu aktywnego gracza — RULES.md 31.8 (R_component_action).
 
@@ -84,10 +92,15 @@ def play_component_action(
     # Efekt technologii z „ACTION:" (np. Sling Relay): gracz podał wybory, silnik je sprawdza i
     # stosuje. Błąd cofa całą akcję (klon), więc nic się nie zużywa.
     registry = rules_hooks.bound_registry()
-    if component_id and registry is not None:
-        technology_abilities.run_action_effect(
+    # Efekt „ACTION:” reliktu (Codex, Dynamis Core…) - relikt zostaje u gracza (RULES.md 59).
+    # ``run_effect=False`` = próba suchą (zagrywalność w UI): tylko walidacje akcji.
+    if component_id and registry is not None and run_effect:
+        if not technology_abilities.run_action_effect(
             new_state, registry, active_id, component_id, dict(params or {})
-        )
+        ):
+            relic_actions.run_action_effect(
+                new_state, registry, active_id, component_id, dict(params or {})
+            )
     if fire_after:
         triggers.fire(
             new_state, GameEvent.COMPONENT_ACTION, Moment.AFTER, subject=active_id,

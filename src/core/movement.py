@@ -142,6 +142,11 @@ def _neighbors_for_move(
     return result
 
 
+def _ignores_own_command_token(state: GameState, player_id: str) -> bool:
+    """Czy gracz może ruszać i transportować jednostki z systemów ze SWOIM żetonem (Dominus Orb)."""
+    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_OWN_CC, state, player_id)
+
+
 def _ignores_anomalies(state: GameState, player_id: str) -> bool:
     """Czy gracz ignoruje efekty anomalii w RUCHU (Nav Suite: tylko w kroku Movement)."""
     return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES, state, player_id)
@@ -256,6 +261,7 @@ def can_move(
         from_pos != active
         and source is not None
         and player_id in source.command_tokens
+        and not _ignores_own_command_token(state, player_id)
     ):
         return False, "A ship cannot move out of a system containing its own command token (R3)."
 
@@ -512,6 +518,7 @@ def move_fleet(
             from_pos != active
             and source is not None
             and player_id in source.command_tokens
+            and not _ignores_own_command_token(state, player_id)
         ):
             raise ValueError(
                 "Cannot pick up units from a system containing your own command token (T4)."

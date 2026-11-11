@@ -522,8 +522,10 @@ class PlayerState(BaseModel):
     # kart (RULES.md 46). JAWNE: reguła każe położyć je „faceup in play area".
     relic_fragments: list[str] = Field(default_factory=list)
     # Relikty gracza (karty z talii reliktów) leżące odkryte w jego strefie. JAWNE.
-    # Efekty reliktów nie są jeszcze kodowane — to tylko posiadanie karty (RULES.md 50).
+    # Efekty: ``core/relic_cards.py`` + ``core/hooks/relics_*.py`` (RULES.md 59).
     relics: list[str] = Field(default_factory=list)
+    # Relikty WYCZERPANE (exhaust) - gotowy = posiadany, którego tu nie ma. Odświeżane w statusie.
+    exhausted_relics: list[str] = Field(default_factory=list)
 
     # Prywatne ręce gracza (karty akcji, tajne obiektywy, promissory notes) —
     # TAJNE (Private_Info), widoczne tylko właścicielowi (R1.1–R1.3, R2.3).
@@ -570,6 +572,9 @@ class SystemState(BaseModel):
     # Planety DOŁOŻONE do systemu w trakcie gry (Thunder's Edge kładziony na pusty system).
     # Pełna lista planet systemu = ``SystemDef.planets`` + to pole (``core/system_planets.py``).
     added_planets: list[str] = Field(default_factory=list)
+    # Planety ZNISZCZONE w trakcie gry (Stellar Converter): leży na nich „destroyed planet token”,
+    # system liczy się tak, jakby ich nie miał (``core/system_planets.py``).
+    destroyed_planets: list[str] = Field(default_factory=list)
 
 
 class CombatStep(StrEnum):
@@ -623,6 +628,9 @@ class ActiveCombat(BaseModel):
     sustained_ships: list[dict[str, Any]] = Field(default_factory=list)
     # Przypisanie strat po AFB z Waylay: krok ASSIGN traktowany jak koniec kroku AFB.
     afb_assign: bool = False
+    # Gracze, którzy w tej walce użyją nadanego AFB (Metali Void Armaments: „you may resolve AFB
+    # 6 (x3)"): zgoda z oferty na starcie walki; rzut dopisuje ``battle.resolve_afb``.
+    afb_extra: list[str] = Field(default_factory=list)
 
 
 class InvasionPhase(StrEnum):

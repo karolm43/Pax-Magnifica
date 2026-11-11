@@ -96,6 +96,22 @@ def pds_disabled(state: GameState, owner_id: str) -> bool:
     )
 
 
+def granted_space_cannon(
+    state: GameState, player_id: str, base_type: str
+) -> tuple[int, int] | None:
+    """Space Cannon nadany jednostce przez komponent: ``(próg trafienia, kości)`` albo ``None``.
+
+    Hook FORBID punktu ``space_cannon.granted`` jako zbiór napisów ``"<typ>:<próg>:<kości>"``
+    (jak ``bombardment.granted_hits_on``); przy wielu bierzemy najniższy próg.
+    """
+    best: tuple[int, int] | None = None
+    for item in rules_hooks.forbidden(rules_hooks.POINT_SPACE_CANNON_GRANTED, state, player_id):
+        unit_type, hits_on, dice = item.split(":")
+        if unit_type == base_type and (best is None or int(hits_on) < best[0]):
+            best = (int(hits_on), int(dice))
+    return best
+
+
 def _system_shooters(
     state: GameState,
     registry: StaticDataRegistry,
@@ -132,8 +148,19 @@ def _system_shooters(
                 base_type,
                 player.breakthrough_unlocked,
             )
-            if unit is None or unit.space_cannon_hits_on is None:
+            if unit is None:
                 continue
+            hits_on = unit.space_cannon_hits_on
+            dice_per_unit = unit.space_cannon_die_count or 1
+            deep = unit.deep_space_cannon
+            if hits_on is None:
+                # Hook: jednostka bez własnego Space Cannon dostaje go z komponentu (Lightrail
+                # Ordnance: stocznia ma SPACE CANNON 5 (x2) także na sąsiednie systemy).
+                granted = granted_space_cannon(state, player_id, base_type)
+                if granted is None:
+                    continue
+                hits_on, dice_per_unit = granted
+                deep = True
             shooters.append(
                 SpaceCannonShooter(
                     player_id=player_id,
@@ -141,11 +168,11 @@ def _system_shooters(
                     unit_id=unit.id,
                     name=unit.name,
                     count=count,
-                    hits_on=unit.space_cannon_hits_on,
-                    dice_per_unit=unit.space_cannon_die_count or 1,
+                    hits_on=hits_on,
+                    dice_per_unit=dice_per_unit,
                     position=position,
                     zone=zone,
-                    deep=unit.deep_space_cannon,
+                    deep=deep,
                 )
             )
     return shooters

@@ -122,13 +122,18 @@ def owned_colors(state: GameState, registry: StaticDataRegistry, player_id: str)
 
 def synergy(
     state: GameState, registry: StaticDataRegistry, player_id: str
-) -> tuple[str, str] | None:
-    """Para kolorów synergii z ODBLOKOWANEGO przełomu frakcji (R_synergy) albo None.
+) -> tuple[str, ...] | None:
+    """Kolory synergii (R_synergy): para z ODBLOKOWANEGO przełomu frakcji albo wszystkie cztery.
+
+    Hook PERMIT ``technology.synergy_all`` (The Quantumcore: „SYNERGY for all technology types")
+    daje synergię dla wszystkich czterech kolorów, niezależnie od przełomu.
 
     Przełom zablokowany (``breakthrough_unlocked`` = False) nie daje synergii. Przełom bez
     pary kolorów (np. Nekro: ``NONE``) też nie. Synergia działa także, gdy przełom jest
     wyczerpany (nota R_breakthroughs: „the synergy ability always remains in effect").
     """
+    if rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SYNERGY_ALL, state, player_id):
+        return tuple(COLORS)
     player = state.players[player_id]
     if not player.breakthrough_unlocked:
         return None
@@ -141,7 +146,7 @@ def synergy(
     return colors[0], colors[1]
 
 
-def _with_synergy(colors: list[str], pair: tuple[str, str] | None) -> list[str]:
+def _with_synergy(colors: list[str], pair: tuple[str, ...] | None) -> list[str]:
     """Kolory, jakie może „udawać" technologia / specjalność przy synergii (R_synergy)."""
     if pair is None or not any(c in pair for c in colors):
         return colors
@@ -162,13 +167,15 @@ def missing_prerequisites(
     missing = Counter({c: n - have[c] for c, n in need.items() if n > have[c]})
     pair = synergy(state, registry, player_id)
     if pair is not None:
-        a, b = pair
-        spare_a = max(0, have[a] - need[a])
-        spare_b = max(0, have[b] - need[b])
-        moved = min(spare_a, missing[b])
-        missing[b] -= moved
-        moved = min(spare_b, missing[a])
-        missing[a] -= moved
+        # Nadwyżka każdego koloru synergii pokrywa niedobory pozostałych kolorów synergii.
+        spare = {c: max(0, have[c] - need[c]) for c in pair}
+        for short in pair:
+            for donor in pair:
+                if donor == short or missing[short] <= 0:
+                    continue
+                moved = min(spare[donor], missing[short])
+                missing[short] -= moved
+                spare[donor] -= moved
         missing = Counter({c: n for c, n in missing.items() if n > 0})
     return missing
 
@@ -237,6 +244,8 @@ def _remaining_after_skips(
     remaining = sum(n for n in left.values() if n > 0)
     if UNIT_UPGRADE in tech.types and aida_ready(state, player_id):
         remaining -= 1
+    # Reliktowe „ignore 1 prerequisite" (Prophet's Tears): każdy gotowy relikt pokrywa 1 symbol.
+    remaining -= len(ignore_prerequisite_relics(state, player_id))
     return remaining
 
 
@@ -278,6 +287,19 @@ def aida_ready(state: GameState, player_id: str) -> bool:
     return AIDA in player.technologies and AIDA not in player.exhausted_technologies
 
 
+RELIC_SKIP_PREFIX = "relic:"  # skip z reliktu: ``relic:<id>`` (np. ``relic:prophetstears``)
+
+
+def ignore_prerequisite_relics(state: GameState, player_id: str) -> list[str]:
+    """Gotowe relikty gracza, które pozwalają zignorować 1 prerekwizyt przy badaniu.
+
+    Hook FORBID punktu ``technology.ignore_prerequisite`` (zbiór id reliktów).
+    """
+    return sorted(
+        rules_hooks.forbidden(rules_hooks.POINT_TECHNOLOGY_IGNORE_PREREQUISITE, state, player_id)
+    )
+
+
 @dataclass(frozen=True)
 class ResearchPlan:
     """Zweryfikowane badanie: co gracz dostaje i co wyczerpuje."""
@@ -285,6 +307,7 @@ class ResearchPlan:
     tech_id: str
     exhaust_planets: tuple[str, ...]
     exhaust_aida: bool
+    exhaust_relics: tuple[str, ...] = ()
 
 
 def plan_research(
@@ -321,8 +344,19 @@ def plan_research(
     missing = missing_prerequisites(state, registry, player_id, tech)
     planets = specialty_planets(state, registry, player_id)
     used_planets: list[str] = []
+    used_relics: list[str] = []
     use_aida = False
     for skip in skips:
+        if skip.startswith(RELIC_SKIP_PREFIX):
+            relic_id = skip[len(RELIC_SKIP_PREFIX):]
+            if relic_id not in ignore_prerequisite_relics(state, player_id):
+                raise ValueError("That relic cannot ignore a prerequisite right now.")
+            color = max(missing, key=lambda c: missing[c], default=None)
+            if color is None or missing[color] <= 0:
+                raise ValueError("The relic would ignore nothing.")
+            missing[color] -= 1
+            used_relics.append(relic_id)
+            continue
         if skip == AIDA_SKIP:
             if UNIT_UPGRADE not in tech.types:
                 raise ValueError("AI Development Algorithm only helps with unit upgrades.")
@@ -349,7 +383,7 @@ def plan_research(
     if left:
         text = ", ".join(f"{n}× {c.lower()}" for c, n in left.items())
         raise ValueError(f"Prerequisites not met for {tech.name}: missing {text}.")
-    return ResearchPlan(tech_id, tuple(used_planets), use_aida)
+    return ResearchPlan(tech_id, tuple(used_planets), use_aida, tuple(used_relics))
 
 
 def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
@@ -426,6 +460,8 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
     if plan.exhaust_aida:
         exhaust.exhaust_technology(state, player_id, AIDA)
+    for relic_id in plan.exhaust_relics:
+        exhaust.exhaust_relic(state, player_id, relic_id)
     triggers.fire(
         state,
         GameEvent.TECHNOLOGY_RESEARCH,

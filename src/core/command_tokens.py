@@ -185,3 +185,26 @@ def set_pools(state: GameState, player_id: str, pools: dict[str, int]) -> None:
     player = _player(state, player_id)
     for pool, amount in pools.items():
         setattr(player, _attr(pool), amount)
+
+
+def spend_strategy_token(
+    state: GameState, player_id: str, *, via_reinforcements: bool = False
+) -> None:
+    """Wydaje 1 żeton z puli strategicznej (secondary, cele) - JEDYNY punkt takiego wydania.
+
+    ``via_reinforcements`` (Scepter of Emelpar: „spend a token from your reinforcements instead"):
+    żeton schodzi z REZERWY zamiast z puli, a wydany wraca do rezerwy - pula strategiczna się nie
+    zmienia. Gdy rezerwa jest pusta, gracz musi wydać żeton z arkusza (C_relics), czyli odmowa.
+    Uprawnienie (gotowy relikt, wyczerpanie) sprawdza i wykonuje wołający.
+
+    Raises:
+        ValueError: Za mało żetonów w puli strategicznej albo w rezerwie.
+    """
+    if via_reinforcements:
+        if _player(state, player_id).cc_reinf < 1:
+            raise ValueError(
+                "You have no command token in your reinforcements - spend one from your "
+                "command sheet instead."
+            )
+        return  # żeton z rezerwy zostaje wydany i wraca do rezerwy: bez zmiany liczników
+    spend_to_reinforcements(state, player_id, "strategic")

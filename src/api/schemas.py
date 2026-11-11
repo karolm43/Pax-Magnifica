@@ -1213,6 +1213,13 @@ class RetreatOptionView(BaseModel):
     system_id: str = Field(serialization_alias="systemId")
 
 
+class BattleRelicToolView(BaseModel):
+    """Narzędzie reliktu nad rzutami rundy: ``reroll`` (Thalnos) albo ``adjust`` (Heart)."""
+
+    faction: str
+    tool: str
+
+
 class BattleResponse(BaseModel):
     """Pełny stan okna pola bitwy (jeden odczyt na całe okno)."""
 
@@ -1242,6 +1249,10 @@ class BattleResponse(BaseModel):
     retreated: dict[str, str] = Field(default_factory=dict)
     retreat_options: dict[str, list[RetreatOptionView]] = Field(
         default_factory=dict, serialization_alias="retreatOptions"
+    )
+    # Relikty zmieniające kości po rzucie, przed przypisaniem strat (RULES.md 59).
+    relic_tools: list[BattleRelicToolView] = Field(
+        default_factory=list, serialization_alias="relicTools"
     )
 
 
@@ -1303,6 +1314,36 @@ class BattleAssignRequest(BaseModel):
     destroy_damaged: list[BattleLossItem] = Field(
         default_factory=list, alias="destroyDamaged"
     )
+
+
+class BattleRelicPick(BaseModel):
+    """Kości jednego wpisu rzutu wybrane do przerzutu."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entry: int
+    dice: list[int]
+
+
+class BattleRelicRerollRequest(BaseModel):
+    """Przerzut kości z +1 (Crown of Thalnos): wybrane kości własnych rzutów rundy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    picks: list[BattleRelicPick]
+
+
+class BattleRelicAdjustRequest(BaseModel):
+    """Zmiana wyniku jednej kości o ±1 (Heart of Ixth) w rzucie strony ``target``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    target: str
+    entry: int
+    die: int
+    delta: int
 
 
 class TransactionSideRequest(BaseModel):
@@ -1377,3 +1418,55 @@ class ActionCardPlayabilityResponse(BaseModel):
     """Zagrywalność wszystkich unikalnych kart akcji z ręki gracza."""
 
     cards: list[ActionCardPlayability]
+
+
+class PlayRelicRequest(BaseModel):
+    """Zagranie „ACTION:” reliktu jako akcji komponentu (RULES.md 59).
+
+    `actor_id` (RULES.md 44.1) - kto wykonuje akcję; gdy podany, musi być równy `player_id`.
+    `params` - wybory gracza zależne od reliktu (np. `{"planet": "jord"}`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    relic_id: str
+    actor_id: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class PlayRelicResponse(BaseModel):
+    """Wynik zagrania reliktu: stan + czy silnik zastosował efekt (false = rozstrzyga operator)."""
+
+    envelope: StateEnvelope
+    implemented: bool
+
+
+class RelicInputsResponse(BaseModel):
+    """Opis reliktu i formularza jego ACTION: tekst karty, rodzaj i wybory gracza."""
+
+    relic_id: str
+    name: str
+    text: str
+    kind: str  # "action" | "passive"
+    implemented: bool
+    exhausted: bool = False
+    inputs: list[dict[str, Any]]
+    summary: str | None = None
+
+
+class RelicPlayability(BaseModel):
+    """Relikt gracza i czy jego ACTION jest zagrywalna teraz (zakładka Relics na ręce)."""
+
+    relic_id: str
+    kind: str  # "action" | "passive"
+    playable: bool
+    reason: str | None = None
+    implemented: bool = False
+    exhausted: bool = False
+
+
+class RelicPlayabilityResponse(BaseModel):
+    """Wszystkie relikty gracza z zagrywalnością."""
+
+    relics: list[RelicPlayability]

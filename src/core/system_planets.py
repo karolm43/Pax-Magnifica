@@ -35,4 +35,7 @@ def planets_of_system(
         for planet in system_state.added_planets:
             if planet not in planets:
                 planets.append(planet)
+        # Zniszczona planeta (Stellar Converter) znika z systemu - system bez innych planet
+        # liczy się jako system bez planet (C_relics).
+        planets = [p for p in planets if p not in system_state.destroyed_planets]
     return planets

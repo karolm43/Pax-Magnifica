@@ -5,7 +5,7 @@ Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja
 
 ## 1. Zarejestrowane hooki
 
-Razem: **68**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **93**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -14,12 +14,18 @@ Razem: **68**. Opis = pierwsza linia docstringu funkcji hooka.
 | `bombardment.granted_hits_on` | FORBID | effect:action_cards:blitz | — | — |
 | `bombardment.roll_modifier` | MODIFY | effect:action_cards:bunker | — | — |
 | `combat.afb_all_ships` | PERMIT | effect:action_cards:waylay | — | — |
+| `combat.afb_granted` | FORBID | relic:metalivoidarmaments | relics:metalivoidarmaments | — |
+| `combat.granted_sustain` | PERMIT | relic:metalivoidshielding | relics:metalivoidshielding | Metali Void Shielding: Each time hits are produced against 1 or more of your non-fighter |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
+| `combat.reroll_plus_one` | PERMIT | relic:thalnos | relics:thalnos | The Crown of Thalnos: During each combat round, this card's owner may reroll any number of |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:f_prototype | — | — |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb1 | — | — |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb2 | — | — |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb3 | — | — |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb4 | — | — |
+| `command_tokens.strategy_from_reinforcements` | FORBID | relic:emelpar | relics:emelpar | — |
+| `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
+| `economy.commodity_value` | MODIFY | relic:dynamiscore | relics:dynamiscore | Dynamis Core: While this card is in your play area, your commodity value is +2. |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:const_rider | — | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:diplo_rider | — | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:imp_rider | — | — |
@@ -34,14 +40,26 @@ Razem: **68**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.won:after` | TRIGGER | technology:dxa | technologies:dxa | Dacxive Animators: po wygranej walce naziemnej możesz postawić 1 piechotę na tej planecie. |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
+| `event:combat:start` | TRIGGER | relic:metalivoidarmaments | — | Metali Void Armaments: During the "Anti-Fighter Barrage" step of space combat, you may |
+| `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
+| `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
+| `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
+| `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
+| `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
+| `event:phase:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: At the end of the status phase, if you control the "Tomb of |
 | `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
+| `event:phase:start` | TRIGGER | relic:mawofworlds | relics:mawofworlds | Maw of Worlds: At the start of the agenda phase, you may purge this card and exhaust all of |
 | `event:phase:start` | TRIGGER | technology:td | technologies:td | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
 | `event:planet.control_gained:after` | TRIGGER | technology:ie | technologies:ie | Integrated Economy: po zdobyciu planety możesz wyprodukować dowolną liczbę jednostek |
+| `event:planet.control_gained:after` | TRIGGER | relic:shard | relics:shard | Shard of the Throne: When a player gains control of a legendary planet you control or a |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
+| `event:tactical.action:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: After you perform a tactical action, you may exhaust this card to |
+| `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
+| `event:technology.research:when` | TRIGGER | relic:prophetstears | relics:prophetstears | The Prophet's Tears: When you research a technology, you may exhaust this card to ignore 1 |
 | `event:transaction:after` | TRIGGER | effect:action_cards:blackmarketdealing | — | Karta dotyczy jednej transakcji: po jej rozstrzygnięciu efekt znika. |
 | `event:turn:end` | TRIGGER | technology:bs | technologies:bs | Bio-Stims: na końcu tury możesz wyczerpać kartę, by odświeżyć planetę ze specjalnością |
 | `event:turn:end` | TRIGGER | technology:pi | technologies:pi | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
@@ -53,7 +71,10 @@ Razem: **68**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
 | `movement.alpha_beta_adjacent` | PERMIT | effect:action_cards:lost_star | — | — |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
+| `movement.enter_asteroids` | PERMIT | relic:circletofthevoid | — | Circlet of the Void: ruch przez/do pól asteroid (ignorowanie efektów anomalii). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
+| `movement.ignore_anomalies` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: you ignore the effects of all other anomalies on movement. |
+| `movement.ignore_own_command_token` | PERMIT | effect:relics:dominusorb | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs1 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs2 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs3 | — | — |
@@ -61,18 +82,22 @@ Razem: **68**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
+| `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
 | `production.forbids` | FORBID | faction:arborec | — | Arborec: wartość PRODUCTION doków nie służy do produkcji piechoty (R_production). |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
 | `space_cannon.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających SPACE CANNON rzuca 1 dodatkową kością. |
+| `space_cannon.granted` | FORBID | relic:lightrailordnance | relics:lightrailordnance | Lightrail Ordnance: Your space docks gain SPACE CANNON 5 (x2). You may use your space |
 | `space_cannon.offense_immune` | PERMIT | effect:action_cards:solar_flare | — | — |
 | `space_cannon.pds_disabled` | PERMIT | effect:action_cards:disable | — | — |
 | `space_cannon.roll_modifier` | MODIFY | technology:amd | technologies:amd | Antimass Deflectors: -1 do wyniku kości Space Cannon rzucanych przeciw jego jednostkom. |
 | `status.action_cards` | MODIFY | technology:nm | technologies:nm | Neural Motivator: w fazie statusu gracz dobiera 2 karty akcji zamiast 1. |
 | `status.command_tokens` | MODIFY | technology:hm | technologies:hm | Hyper Metabolism: w fazie statusu gracz zdobywa 3 żetony dowodzenia zamiast 2. |
+| `technology.ignore_prerequisite` | FORBID | relic:prophetstears | relics:prophetstears | — |
 | `technology.specialty_without_exhaust` | PERMIT | technology:pa | — | Psychoarchaeology: specjalności technologii działają bez wyczerpywania planet, także |
+| `technology.synergy_all` | PERMIT | relic:quantumcore | — | The Quantumcore: You have SYNERGY for all technology types. |
 | `transaction.extra_items` | PERMIT | effect:action_cards:blackmarketdealing | — | — |
 | `turn.action_started` | PERSISTENT | effect:action_cards:extremeduress | — | Pierwsza akcja celu: strategiczna = bez kary; inna = karty, TG i tajne cele dla gracza. |
 | `turn.actions` | MODIFY | effect:action_cards:master_plan | — | — |
@@ -87,13 +112,19 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `bombardment.roll_modifier`
 - `bombardment.empty_planets`
 - `combat.afb_all_ships`
+- `combat.afb_granted`
 - `combat.extra_dice`
+- `combat.granted_sustain`
 - `combat.hit_multiplier`
 - `combat.reroll_misses`
+- `combat.reroll_plus_one`
 - `combat.roll_modifier`
+- `economy.commodity_value`
+- `dice.adjust_result`
 - `movement.alpha_beta_adjacent`
 - `movement.enter_asteroids`
 - `movement.ignore_anomalies`
+- `movement.ignore_own_command_token`
 - `movement.move_value`
 - `movement.pass_foreign_ships`
 - `payment.commodities_as_trade_goods`
@@ -103,12 +134,17 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.total_value`
 - `production.value`
 - `retreat.anywhere`
+- `objectives.secret_limit`
 - `space_cannon.extra_dice`
+- `space_cannon.granted`
 - `space_cannon.offense_immune`
 - `space_cannon.roll_modifier`
 - `status.action_cards`
 - `status.command_tokens`
+- `command_tokens.strategy_from_reinforcements`
+- `technology.ignore_prerequisite`
 - `technology.specialty_without_exhaust`
+- `technology.synergy_all`
 - `transaction.extra_items`
 - `turn.actions`
 
@@ -119,7 +155,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 | action_cards | 143 | 143 | 100.0 |
 | agendas | 123 | 0 | 0.0 |
 | explores | 80 | 0 | 0.0 |
-| relics | 24 | 0 | 0.0 |
+| relics | 24 | 23 | 95.8 |
 | promissory_notes | 41 | 0 | 0.0 |
 | galactic_events | 20 | 0 | 0.0 |
 | leaders | 103 | 0 | 0.0 |
@@ -146,18 +182,18 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 247 | 203 |
-| walka (combat.*, space_cannon, bombardment) | 196 | 130 |
-| produkcja (production.*) | 177 | 136 |
-| ekonomia i płatności (economy, payment) | 168 | 147 |
-| karty (card_draw, promissory) | 145 | 117 |
-| status i odświeżanie (status_phase) | 144 | 122 |
-| ruch (movement.*) | 125 | 97 |
-| żetony dowodzenia (command_tokens) | 109 | 93 |
-| agenda i głosowanie (agenda_phase) | 98 | 79 |
-| technologie (technology) | 78 | 69 |
+| planety i eksploracja (control, exploration) | 247 | 193 |
+| walka (combat.*, space_cannon, bombardment) | 196 | 122 |
+| produkcja (production.*) | 177 | 132 |
+| ekonomia i płatności (economy, payment) | 168 | 142 |
+| karty (card_draw, promissory) | 145 | 113 |
+| status i odświeżanie (status_phase) | 144 | 115 |
+| ruch (movement.*) | 125 | 93 |
+| żetony dowodzenia (command_tokens) | 109 | 91 |
+| agenda i głosowanie (agenda_phase) | 98 | 77 |
+| technologie (technology) | 78 | 65 |
 | karty strategii i inicjatywa | 46 | 34 |
-| cele i punkty (objectives) | 45 | 41 |
+| cele i punkty (objectives) | 45 | 35 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
@@ -621,30 +657,30 @@ Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.
 
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
-| `bookoflatvinia` | Book of Latvinia | — | — | — | technologie, planety i eksploracja, agenda i głosowanie, cele i punkty | — | When you gain this card, research up to 2 technologies that have no prerequisites. > ACTION: Purge this card; if you control planets that h… |
-| `circletofthevoid` | Circlet of the Void | — | — | — | ruch, walka, planety i eksploracja, status i odświeżanie | — | Your units do not roll for gravity rifts, and you ignore the effects of all other anomalies on movement. ACTION: Exhaust this card to explo… |
-| `codex` | The Codex | — | — | — | karty | — | ACTION: Purge this card to take up to 3 action cards of your choice from the action card discard pile. |
-| `dominusorb` | Dominus Orb | — | — | PERMIT (pozwolenie) | ruch, żetony dowodzenia | — | Before you move units during a tactical action, you may purge this card to move and transport units that are in systems that contain 1 of y… |
-| `dynamiscore` | Dynamis Core | — | — | — | ekonomia i płatności | — | While this card is in your play area, your commodity value is increased by 2. ACTION: Gain trade goods equal to your commodity value, then … |
-| `emelpar` | Scepter of Emelpar | — | — | REPLACE (instead of) | produkcja, ekonomia i płatności, żetony dowodzenia, status i odświeżanie | — | When you would spend a token from your strategy pool, you may exhaust this card to spend a token from your reinforcements instead. |
-| `emphidia` | The Crown of Emphidia | — | — | PERMIT (pozwolenie) | planety i eksploracja, cele i punkty, status i odświeżanie | — | After you perform a tactical action, you may exhaust this card to explore 1 planet you control. At the end of the status phase, if you cont… |
+| `bookoflatvinia` | Book of Latvinia | — | — | — | technologie, planety i eksploracja, agenda i głosowanie, cele i punkty | ✔ | When you gain this card, research up to 2 technologies that have no prerequisites. > ACTION: Purge this card; if you control planets that h… |
+| `circletofthevoid` | Circlet of the Void | — | — | — | ruch, walka, planety i eksploracja, status i odświeżanie | ✔ | Your units do not roll for gravity rifts, and you ignore the effects of all other anomalies on movement. ACTION: Exhaust this card to explo… |
+| `codex` | The Codex | — | — | — | karty | ✔ | ACTION: Purge this card to take up to 3 action cards of your choice from the action card discard pile. |
+| `dominusorb` | Dominus Orb | — | — | PERMIT (pozwolenie) | ruch, żetony dowodzenia | ✔ | Before you move units during a tactical action, you may purge this card to move and transport units that are in systems that contain 1 of y… |
+| `dynamiscore` | Dynamis Core | — | — | — | ekonomia i płatności | ✔ | While this card is in your play area, your commodity value is increased by 2. ACTION: Gain trade goods equal to your commodity value, then … |
+| `emelpar` | Scepter of Emelpar | — | — | REPLACE (instead of) | produkcja, ekonomia i płatności, żetony dowodzenia, status i odświeżanie | ✔ | When you would spend a token from your strategy pool, you may exhaust this card to spend a token from your reinforcements instead. |
+| `emphidia` | The Crown of Emphidia | — | — | PERMIT (pozwolenie) | planety i eksploracja, cele i punkty, status i odświeżanie | ✔ | After you perform a tactical action, you may exhaust this card to explore 1 planet you control. At the end of the status phase, if you cont… |
 | `enigmaticdevice` | Enigmatic Device | — | — | PERMIT (pozwolenie) | ekonomia i płatności, technologie | — | Place this card faceup in your play area. ACTION: You may spend 6 resources and purge this card to research 1 technology. |
-| `heartofixth` | Heart of Ixth | — | — | PERMIT (pozwolenie) | walka, status i odświeżanie | — | After any die is rolled, you may exhaust this card to add or subtract 1 from its result. |
-| `lightrailordnance` | Lightrail Ordnance | — | — | PERMIT (pozwolenie) | ruch, walka, produkcja | — | Your space docks gain SPACE CANNON 5 (x2). You may use your space dock's SPACE CANNON against ships that are adjacent to their systems. |
-| `mawofworlds` | Maw of Worlds | — | — | PERMIT (pozwolenie) | technologie, planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | At the start of the agenda phase, you may purge this card and exhaust all of your planets to gain any 1 technology. |
-| `metalivoidarmaments` | Metali Void Armaments | — | — | PERMIT (pozwolenie) | walka | — | During the "Anti-Fighter Barrage" step of space combat, you may resolve ANTI-FIGHTER BARRAGE 6 (x3) against your opponent's units. |
-| `metalivoidshielding` | Metali Void Shielding | — | — | MODIFY (liczba/rzut) | walka, produkcja | — | Each time hits are produced against 1 or more of your non-fighter ships, 1 of those ships may use SUSTAIN DAMAGE as if it had that ability. |
-| `nanoforge` | Nano-Forge | — | — | FORBID (zakaz) | ekonomia i płatności, planety i eksploracja | — | ACTION: Attach this card to a non-legendary, non-home planet you control, its resource and influence values are increased by 2 and it is a … |
-| `neuraloop` | Neuraloop | — | — | PERMIT (pozwolenie) | karty, planety i eksploracja, cele i punkty | — | When a public objective is revealed, you may purge one of your relics to discard that objective and replace it with a random objective from… |
-| `obsidian` | The Obsidian | — | — | MODIFY (liczba/rzut) | karty, cele i punkty | — | When you gain this card, draw 1 secret objective. You can have 1 additional scored or unscored secret objective. |
-| `prophetstears` | The Prophet's Tears | — | — | PERMIT (pozwolenie) | technologie, karty, status i odświeżanie | — | When you research a technology, you may exhaust this card to ignore 1 prerequisite or draw 1 action card. |
-| `quantumcore` | The Quantumcore | — | — | — | technologie | — | When you gain this card, gain your breakthrough. You have SYNERGY for all technology types. |
-| `shard` | Shard of the Throne | — | — | — | planety i eksploracja, cele i punkty | — | When you gain this card, gain 1 victory point, when you lose this card, lose 1 victory point. When a player gains control of a legendary pl… |
-| `stellarconverter` | Stellar Converter | — | — | MODIFY (liczba/rzut) | ruch, walka, planety i eksploracja | — | ACTION: Choose 1 non-home, non-legendary planet other than Mecatol Rex in a system that is adjacent to 1 or more of your units that have BO… |
-| `thalnos` | The Crown of Thalnos | — | — | MODIFY (liczba/rzut) | walka, produkcja | — | During each combat round, this card's owner may reroll any number of their dice, applying +1 to the results, any units that reroll dice but… |
-| `thesilverflame` | The Silver Flame | — | — | FORBID (zakaz) | walka, cele i punkty | — | The Silver Flame may be exchanged as part of a transaction. > ACTION: Roll 1 die and purge this card; if the result is a 10, gain 1 victory… |
-| `thetriad` | The Triad | — | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | — | This card can be readied and spent as if it were a planet card. Its resource and influence values are equal to 3 plus the number of differe… |
-| `titanprototype` | JR-XS455-O | — | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja, status i odświeżanie | — | ACTION: Exhaust this agent and choose a player, that player may spend 3 resources to place a structure on a planet they control. If they do… |
+| `heartofixth` | Heart of Ixth | — | — | PERMIT (pozwolenie) | walka, status i odświeżanie | ✔ | After any die is rolled, you may exhaust this card to add or subtract 1 from its result. |
+| `lightrailordnance` | Lightrail Ordnance | — | — | PERMIT (pozwolenie) | ruch, walka, produkcja | ✔ | Your space docks gain SPACE CANNON 5 (x2). You may use your space dock's SPACE CANNON against ships that are adjacent to their systems. |
+| `mawofworlds` | Maw of Worlds | — | — | PERMIT (pozwolenie) | technologie, planety i eksploracja, agenda i głosowanie, status i odświeżanie | ✔ | At the start of the agenda phase, you may purge this card and exhaust all of your planets to gain any 1 technology. |
+| `metalivoidarmaments` | Metali Void Armaments | — | — | PERMIT (pozwolenie) | walka | ✔ | During the "Anti-Fighter Barrage" step of space combat, you may resolve ANTI-FIGHTER BARRAGE 6 (x3) against your opponent's units. |
+| `metalivoidshielding` | Metali Void Shielding | — | — | MODIFY (liczba/rzut) | walka, produkcja | ✔ | Each time hits are produced against 1 or more of your non-fighter ships, 1 of those ships may use SUSTAIN DAMAGE as if it had that ability. |
+| `nanoforge` | Nano-Forge | — | — | FORBID (zakaz) | ekonomia i płatności, planety i eksploracja | ✔ | ACTION: Attach this card to a non-legendary, non-home planet you control, its resource and influence values are increased by 2 and it is a … |
+| `neuraloop` | Neuraloop | — | — | PERMIT (pozwolenie) | karty, planety i eksploracja, cele i punkty | ✔ | When a public objective is revealed, you may purge one of your relics to discard that objective and replace it with a random objective from… |
+| `obsidian` | The Obsidian | — | — | MODIFY (liczba/rzut) | karty, cele i punkty | ✔ | When you gain this card, draw 1 secret objective. You can have 1 additional scored or unscored secret objective. |
+| `prophetstears` | The Prophet's Tears | — | — | PERMIT (pozwolenie) | technologie, karty, status i odświeżanie | ✔ | When you research a technology, you may exhaust this card to ignore 1 prerequisite or draw 1 action card. |
+| `quantumcore` | The Quantumcore | — | — | — | technologie | ✔ | When you gain this card, gain your breakthrough. You have SYNERGY for all technology types. |
+| `shard` | Shard of the Throne | — | — | — | planety i eksploracja, cele i punkty | ✔ | When you gain this card, gain 1 victory point, when you lose this card, lose 1 victory point. When a player gains control of a legendary pl… |
+| `stellarconverter` | Stellar Converter | — | — | MODIFY (liczba/rzut) | ruch, walka, planety i eksploracja | ✔ | ACTION: Choose 1 non-home, non-legendary planet other than Mecatol Rex in a system that is adjacent to 1 or more of your units that have BO… |
+| `thalnos` | The Crown of Thalnos | — | — | MODIFY (liczba/rzut) | walka, produkcja | ✔ | During each combat round, this card's owner may reroll any number of their dice, applying +1 to the results, any units that reroll dice but… |
+| `thesilverflame` | The Silver Flame | — | — | FORBID (zakaz) | walka, cele i punkty | ✔ | The Silver Flame may be exchanged as part of a transaction. > ACTION: Roll 1 die and purge this card; if the result is a 10, gain 1 victory… |
+| `thetriad` | The Triad | — | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | ✔ | This card can be readied and spent as if it were a planet card. Its resource and influence values are equal to 3 plus the number of differe… |
+| `titanprototype` | JR-XS455-O | — | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja, status i odświeżanie | ✔ | ACTION: Exhaust this agent and choose a player, that player may spend 3 resources to place a structure on a planet they control. If they do… |
 
 </details>
 

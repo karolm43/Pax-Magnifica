@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
-import { Button, Group, Stack, Text } from "@/ds";
+import { Button, Group, Stack, Switch, Text } from "@/ds";
 import { IconBolt, IconHandStop } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -77,6 +77,8 @@ export function SecondaryDecisionModal() {
   const [composingCursor, setComposingCursor] = useState<number | null>(null);
   // Karty akcji dobrane przez „follow" (Politics) - pokazywane respondentowi po decyzji.
   const [drawn, setDrawn] = useState<{ name: string; cards: string[] } | null>(null);
+  // Scepter of Emelpar: wydaj żeton z rezerwy zamiast z puli strategicznej (decyzja gracza).
+  const [useScepter, setUseScepter] = useState(false);
 
   const window = gameState?.pendingWindow ?? null;
   // Pokazujemy TYLKO dla okna secondary z czekającym respondentem. Pozostałe typy
@@ -133,6 +135,7 @@ export function SecondaryDecisionModal() {
   const decide = (execute: boolean, payload: Record<string, unknown> = {}) => {
     const id = window?.currentResponderId;
     if (!id || busy) return;
+    if (execute && useScepter && needsToken) payload = { ...payload, scepter: true };
     setBusy(true);
     // Karty dobierające karty akcji (Politics): pokaż respondentowi, co dobrał - różnica
     // ręki przed/po (ręka jest prywatna, więc pytamy tylko o jego własną).
@@ -183,7 +186,14 @@ export function SecondaryDecisionModal() {
   );
   const needsToken = Number(window?.context?.cost ?? 0) > 0 && !isFree;
   const poolTokens = (responder as { strategicCC?: number } | undefined)?.strategicCC;
-  const cannotAfford = needsToken && (poolTokens ?? 1) < 1;
+  // Scepter of Emelpar: gotowy relikt pozwala wydać żeton z rezerwy zamiast z puli.
+  const scepterReady =
+    needsToken &&
+    ((responder as { relics?: string[] } | undefined)?.relics ?? []).includes("emelpar") &&
+    !((responder as { exhaustedRelics?: string[] } | undefined)?.exhaustedRelics ?? []).includes(
+      "emelpar",
+    );
+  const cannotAfford = needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter);
 
   // Wybór na mapie (Construction): widok wyborów w nieblokującym doku zamiast modala.
   const secondaryMode = initiative != null ? SECONDARY_MODE[initiative] : undefined;
@@ -314,6 +324,14 @@ export function SecondaryDecisionModal() {
           player first, then clockwise.
           {window ? ` Remaining after you: ${Math.max(window.remaining - 1, 0)}.` : ""}
         </Text>
+
+        {scepterReady && (
+          <Switch
+            checked={useScepter}
+            onChange={(e) => setUseScepter(e.currentTarget.checked)}
+            label="Exhaust Scepter of Emelpar to spend a token from your reinforcements instead"
+          />
+        )}
 
         <Group justify="flex-end" gap="sm">
           <Button

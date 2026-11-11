@@ -79,10 +79,26 @@ def spend_as_trade_goods(state: GameState, player_id: str, amount: int) -> None:
     spend_commodities(state, player_id, amount - from_trade_goods)
 
 
+def commodity_value(state: GameState, player_id: str) -> int:
+    """Commodity value gracza = wartość z arkusza frakcji + modyfikatory (Dynamis Core: +2).
+
+    JEDYNE miejsce odczytu commodity value w regułach (RULES.md 43.1a); modyfikatory to hooki
+    MODIFY punktu ``economy.commodity_value``.
+    """
+    base = _player(state, player_id).commodity_value
+    return max(0, rules_hooks.modify(rules_hooks.POINT_COMMODITY_VALUE, state, player_id, base))
+
+
+def cap_commodities(state: GameState, player_id: str) -> None:
+    """Zwraca do puli commodities ponad commodity value (po utracie modyfikatora; mutuje)."""
+    player = _player(state, player_id)
+    player.commodities = min(player.commodities, commodity_value(state, player_id))
+
+
 def commodity_gap(state: GameState, player_id: str) -> int:
     """Ile commodities brakuje graczowi do commodity value (nie można mieć więcej)."""
     player = _player(state, player_id)
-    return max(0, player.commodity_value - player.commodities)
+    return max(0, commodity_value(state, player_id) - player.commodities)
 
 
 def gain_commodities(state: GameState, player_id: str, amount: int) -> int:
@@ -101,7 +117,7 @@ def gain_commodities(state: GameState, player_id: str, amount: int) -> int:
 def replenish_commodities(state: GameState, player_id: str) -> None:
     """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej)."""
     player = _player(state, player_id)
-    player.commodities = max(player.commodities, player.commodity_value)
+    player.commodities = max(player.commodities, commodity_value(state, player_id))
     triggers.fire(
         state, GameEvent.COMMODITIES_REPLENISHED, Moment.AFTER, subject=player_id,
         ctx={"player": player_id},

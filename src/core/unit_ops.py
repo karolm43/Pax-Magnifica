@@ -176,3 +176,12 @@ def transfer_units(
     before = take_units(state, src, src_zone, player_id, base_type, count, cause)
     place_units(state, dest, dest_zone, player_id, base_type, count, cause)
     move_damage(src, src_zone, dest, dest_zone, player_id, base_type, count, before)
+
+
+def clear_planet(system: SystemState, planet: str) -> None:
+    """Usuwa z planety WSZYSTKIE wpisy jednostek (po zniszczeniu/purge planety; bez zdarzeń).
+
+    Wołaj po ``remove_units`` dla każdej jednostki (zdarzenia i uszkodzenia), by zostały puste
+    słowniki posprzątać.
+    """
+    system.planet_units.pop(planet, None)
