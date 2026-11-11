@@ -11,6 +11,7 @@
 // ZAMIENIA oba (`swapColor` / `swapSeat`). Gracz z losową frakcją nie ma jeszcze
 // preferencji (frakcję dobiera backend przy starcie gry).
 
+import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import { SpriteUnitImage } from "@/shared/ui/Unit/components/SpriteUnitImage";
@@ -110,12 +111,21 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
   const applyPreferredColors = useSetupStore((s) => s.applyPreferredColors);
   const rollRandomFactions = useSetupStore((s) => s.rollRandomFactions);
 
+  // Lobby sieciowe (RULES.md 44.5a): gość ustawia tylko swój kolor i miejsce; losowanie
+  // frakcji „Random" robi host (jedno źródło — inaczej każdy klient losowałby co innego).
+  const role = useLobbyRole();
+  const guestSlot = role.active && role.isGuest ? role.mySlot : null;
+  const isGuest = role.active && role.isGuest;
+
   // Gracze z „Random" dostają frakcję już tutaj, więc znamy ich preferowane kolory.
   useEffect(() => {
-    if (factions.length > 0) rollRandomFactions(factions);
-  }, [factions, rollRandomFactions]);
+    if (factions.length > 0 && !isGuest) rollRandomFactions(factions);
+  }, [factions, rollRandomFactions, isGuest]);
 
   const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => {
+    if (guestSlot !== null) setActiveIndex(guestSlot);
+  }, [guestSlot]);
   const active = slots[Math.min(activeIndex, slots.length - 1)];
   const activeSlotIndex = slots.indexOf(active);
 
@@ -186,7 +196,10 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
                     index === activeSlotIndex ? styles.playerRowOn : ""
                   }`}
                   style={{ "--pc": colorAccent(slot.color) } as CSSProperties}
-                  onClick={() => setActiveIndex(index)}
+                  onClick={() => {
+                    if (canEditSlot(role, index)) setActiveIndex(index);
+                  }}
+                  aria-disabled={!canEditSlot(role, index)}
                 >
                   <span
                     className={styles.playerChip}
@@ -197,6 +210,7 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
                     <span className={styles.playerName}>
                       {slot.name.trim() || `Player ${index + 1}`}
                       {slot.controlType === "BOT" ? " · bot" : ""}
+                      {role.active && role.mySlot === index ? " (you)" : ""}
                     </span>
                     <span className={styles.playerMeta}>
                       {slot.factionId !== RANDOM_FACTION && (
@@ -211,6 +225,7 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
             </div>
           </section>
 
+          {!isGuest && (
           <section className={base.section}>
             <h2 className={base.sectionTitle}>Quick setup</h2>
             <div className={base.actionList}>
@@ -229,6 +244,15 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
               Picking a color or seat held by another player swaps the two.
             </p>
           </section>
+          )}
+          {isGuest && (
+            <section className={base.section}>
+              <p className={base.hint}>
+                Pick a free seat and color. Everyone sees the choices live; the host starts
+                the game.
+              </p>
+            </section>
+          )}
         </aside>
 
         {/* Prawy panel: miejsce + kolory aktywnego gracza. */}

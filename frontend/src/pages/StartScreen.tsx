@@ -6,7 +6,8 @@ import SetupWizard from "@/domains/setup/SetupWizard";
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
-import { JoinScreen, LobbyScreen, LoadGameModal } from "@/domains/network/LobbyScreens";
+import { JoinScreen, LoadGameModal } from "@/domains/network/LobbyScreens";
+import { useSetupStore } from "@/domains/setup/useSetupStore";
 import { useLobbyActions } from "@/domains/network/useLobby";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 
@@ -127,18 +128,23 @@ export default function StartScreen() {
   const lobbyActions = useLobbyActions();
   const [loadOpen, setLoadOpen] = useState(false);
   const [lobbyError, setLobbyError] = useState<string | null>(null);
-  // Po „Play" najpierw lobby (link dla znajomych, kto dołączył), potem kreator od frakcji.
-  const [stage, setStage] = useState<"lobby" | "wizard">("lobby");
+  // „Play" = świeże lobby: kreator od zera (krok „Players & map" jest lobby — link dla znajomych,
+  // dołączający pojawiają się w slotach na żywo), potem frakcje, kolory i gra.
   const play = async () => {
     setLobbyError(null);
     try {
-      await lobbyActions.open();
-      setStage("lobby");
+      useSetupStore.getState().reset();
+      await lobbyActions.open(true);
       setView("setup");
     } catch (e) {
       setLobbyError(e instanceof Error ? e.message : String(e));
     }
   };
+  // Gość po dołączeniu od razu widzi wspólny kreator (host prowadzi kroki).
+  const guestJoined = isGuest && me?.authenticated === true;
+  useEffect(() => {
+    if (guestJoined) setView("setup");
+  }, [guestJoined]);
   const leaveLobby = () => {
     setView("menu");
     void lobbyActions.close().catch(() => undefined);
@@ -239,11 +245,7 @@ export default function StartScreen() {
            * żyje w `SetupWizard`. Każdy krok to pełnoekranowa scena z własnym paskiem
            * górnym; „Wstecz" na pierwszym kroku wraca do menu głównego (`onExit`).
            */}
-          {stage === "lobby" ? (
-            <LobbyScreen onStart={() => setStage("wizard")} onBack={leaveLobby} />
-          ) : (
-            <SetupWizard onExit={() => setStage("lobby")} />
-          )}
+          <SetupWizard onExit={isGuest ? () => setView("menu") : leaveLobby} />
         </div>
       </div>
 

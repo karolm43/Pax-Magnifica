@@ -15,7 +15,8 @@
 // Kontener jest celowo „cienki": cała walidacja i mapowanie żyją w `useSetupStore.ts`
 // (testowalne bez Reacta), tu zostaje tylko spięcie stanu z UI i obsługa wysyłki.
 
-import { assignLobbySeats, useLobbyAssignments } from "@/domains/network/useLobby";
+import { seatLobbyPlayers, useLobbyRole, useSetupSync } from "@/domains/network/setupSync";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -113,6 +114,12 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   const [introPlayers, setIntroPlayers] = useState<IntroPlayer[] | null>(null);
   // Tryb administratora (szybkie testy) pomija planszę otwierającą i wchodzi prosto do gry.
   const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
+  // Lobby sieciowe (RULES.md 44.5a): ten sam kreator, wspólny na żywo. Host prowadzi kroki,
+  // gość wybiera tylko swoją frakcję/kolor/miejsce.
+  const { data: me } = useNetworkMe();
+  const networkLobby = me?.network === true;
+  useSetupSync(networkLobby);
+  const isGuest = useLobbyRole((r) => r.active && r.isGuest);
 
   // Mapa frakcji po id — do walidacji (liczba wymaganych tech) i mapowania żądania.
   const factionById = useMemo(() => {
@@ -151,9 +158,8 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
     try {
       const request = toNewGameRequest(slots, mapString, factionById, seatPositions);
       await createNewGame(request);
-      // Lobby online (RULES.md 44.6): dołączeni gracze dostają swoje miejsca (slot i → p{i+1}).
-      await assignLobbySeats(useLobbyAssignments.getState().bySlot);
-      useLobbyAssignments.getState().clear();
+      // Lobby: właściciele slotów (host, goście) siadają jako p{i+1}; goście same wchodzą do gry.
+      if (networkLobby) await seatLobbyPlayers();
       // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
       await queryClient.invalidateQueries({ queryKey: ["playerData"] });
     } catch (e) {
@@ -188,16 +194,29 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
       <StepComponent
         factions={factions ?? []}
         factionById={factionById}
-        stage={{
-          // Pierwszy krok nie ma „poprzedniego" — wraca do menu głównego.
-          onBack: currentStepIndex === 0 ? (onExit ?? (() => undefined)) : prevStep,
-          onNext: nextStep,
-          onSubmit: () => void handleSubmit(),
-          submitting,
-          isLastStep,
-          canSubmit: validationError === null && !!factions,
-          message: error ?? validationError,
-        }}
+        stage={
+          isGuest
+            ? {
+                // Gość: kroki prowadzi host; „Wstecz" = wyjście z lobby.
+                onBack: onExit ?? (() => undefined),
+                onNext: () => undefined,
+                onSubmit: () => undefined,
+                submitting: false,
+                isLastStep,
+                canSubmit: false,
+                message: "The host moves everyone to the next step.",
+              }
+            : {
+                // Pierwszy krok nie ma „poprzedniego" — wraca do menu głównego.
+                onBack: currentStepIndex === 0 ? (onExit ?? (() => undefined)) : prevStep,
+                onNext: nextStep,
+                onSubmit: () => void handleSubmit(),
+                submitting,
+                isLastStep,
+                canSubmit: validationError === null && !!factions,
+                message: error ?? validationError,
+              }
+        }
       />
       {intro}
     </>

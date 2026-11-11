@@ -11,12 +11,15 @@ Tokeny żyją w ``AppContext.seats`` i w metadanych pliku partii, nigdy w ``Game
 from __future__ import annotations
 
 import socket
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.api.actor import HostOnly, PublicJoin, identity_of
+from src.api.actor import HostOnly, LobbyParty, PublicJoin, identity_of
 from src.api.context import AppContext, get_ctx
+from src.api.lobby_draft import DraftPermissionError
+from src.core.actor import ActorError
 
 router = APIRouter(tags=["network"])
 
@@ -72,6 +75,10 @@ class LobbyView(BaseModel):
     game_started: bool
     addresses: list[str] = Field(default_factory=list)
     save_name: str | None = None
+    draft: dict[str, Any] | None = None
+    """Wspólny szkic kreatora (``lobby_draft``) — sloty, właściciele, mapa, krok."""
+    you: str | None = None
+    """Kim jest pytający w szkicu: ``"host"`` albo ``member_id`` (gość)."""
 
 
 def _local_addresses() -> list[str]:
@@ -99,6 +106,8 @@ def _lobby(request: Request, ctx: AppContext) -> LobbyView:
         game_started=bool(ctx.service.current_state().players),
         addresses=_local_addresses() if identity.host or not identity.network else [],
         save_name=ctx.save_name,
+        draft=seats.draft_view(),
+        you="host" if identity.host or not identity.network else identity.member_id,
     )
 
 
@@ -108,10 +117,61 @@ def get_lobby(request: Request, ctx: AppContext = Depends(get_ctx)) -> LobbyView
     return _lobby(request, ctx)
 
 
+class OpenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reset: bool = False
+    """``True`` = nowe lobby („Play"): bez starych gości, miejsc i szkicu."""
+
+
 @router.post("/lobby/open", dependencies=[HostOnly], response_model=LobbyView)
-async def post_lobby_open(request: Request, ctx: AppContext = Depends(get_ctx)) -> LobbyView:
+async def post_lobby_open(
+    request: Request, body: OpenRequest | None = None, ctx: AppContext = Depends(get_ctx)
+) -> LobbyView:
     """Host otwiera grę sieciową: inni mogą dołączyć z adresu tego komputera."""
+    if body is not None and body.reset:
+        ctx.seats.reset_lobby()
     ctx.seats.set_network(True)
+    return _lobby(request, ctx)
+
+
+class DraftRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    draft: dict[str, Any]
+
+
+@router.put("/lobby/draft", dependencies=[HostOnly], response_model=LobbyView)
+async def put_lobby_draft(
+    body: DraftRequest, request: Request, ctx: AppContext = Depends(get_ctx)
+) -> LobbyView:
+    """Host wysyła pełny szkic kreatora (start lobby, zmiana liczby graczy)."""
+    try:
+        ctx.seats.set_draft(body.draft)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _lobby(request, ctx)
+
+
+@router.patch("/lobby/draft", dependencies=[LobbyParty], response_model=LobbyView)
+async def patch_lobby_draft(
+    patch: dict[str, Any], request: Request, ctx: AppContext = Depends(get_ctx)
+) -> LobbyView:
+    """Zmiana szkicu na żywo: host — wszystko, gość — swoja frakcja, kolor, miejsce."""
+    try:
+        ctx.seats.patch_draft(identity_of(request), patch)
+    except DraftPermissionError as exc:
+        raise ActorError(str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _lobby(request, ctx)
+
+
+@router.post("/lobby/seat", dependencies=[HostOnly], response_model=LobbyView)
+async def post_lobby_seat(request: Request, ctx: AppContext = Depends(get_ctx)) -> LobbyView:
+    """Po utworzeniu gry: właściciele slotów szkicu siadają na swoich miejscach (``p{i+1}``)."""
+    ctx.seats.bind_from_draft()
+    await ctx.service.broadcast()
     return _lobby(request, ctx)
 
 
@@ -194,6 +254,8 @@ class SeatInvite(BaseModel):
 class SeatsResponse(BaseModel):
     network: bool
     host_seat: str | None = None
+    host_home: str | None = None
+    """Miejsce hosta z lobby — powrót z trybu testowego „gram za wszystkich"."""
     seats: list[SeatInvite]
 
 
@@ -217,7 +279,12 @@ def _seats(ctx: AppContext) -> SeatsResponse:
         )
         for pid, p in state.players.items()
     ]
-    return SeatsResponse(network=ctx.seats.network, host_seat=ctx.seats.host_seat, seats=seats)
+    return SeatsResponse(
+        network=ctx.seats.network,
+        host_seat=ctx.seats.host_seat,
+        host_home=ctx.seats.host_home,
+        seats=seats,
+    )
 
 
 @router.get("/network/seats", dependencies=[HostOnly], response_model=SeatsResponse)

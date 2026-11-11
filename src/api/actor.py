@@ -88,3 +88,18 @@ def public_join() -> None:
 
 PublicJoin = Depends(public_join)
 """Zależność trasy: publiczne dołączenie do lobby (bez aktora i bez roli host)."""
+
+
+def require_lobby_party(request: Request) -> None:
+    """Uczestnik lobby: host albo gość, który dołączył (wspólny szkic kreatora, RULES.md 44.5a).
+
+    Nie dotyka ``GameState``. Co dokładnie wolno, sprawdza ``lobby_draft.apply_patch``.
+    Strażnik ``tests/test_actor_guard.py`` przepuszcza ten znacznik tylko dla ``/lobby/draft``.
+    """
+    identity = identity_of(request)
+    if identity.network and not identity.host and identity.member_id is None:
+        raise ActorError("Join the lobby first.")
+
+
+LobbyParty = Depends(require_lobby_party)
+"""Zależność trasy: host lub gość lobby (szkic kreatora na żywo)."""

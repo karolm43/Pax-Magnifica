@@ -636,3 +636,62 @@
     animation: none;
   }
 }
+
+/* ── Lobby sieciowe (RULES.md 44.5a) ─────────────────────────────────────── */
+
+/* Zestaw pól blokowany dla gościa — bez własnej ramki i odstępów (wygląd jak dotąd). */
+.lockSet {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: contents;
+}
+
+.lockSet:disabled * {
+  cursor: not-allowed;
+}
+
+/* Kto siedzi na miejscu: gracz z lobby albo wolne miejsce. */
+.ownerChip {
+  align-self: flex-start;
+  margin: 2px 0 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.ownerChipTaken {
+  color: var(--ds-accent-ink, inherit);
+  background: color-mix(in oklab, var(--pc, var(--ds-accent)) 30%, transparent);
+  border: 1px solid color-mix(in oklab, var(--pc, var(--ds-accent)) 70%, transparent);
+}
+
+.ownerChipOpen {
+  opacity: 0.75;
+  border: 1px dashed currentColor;
+  animation: ownerPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes ownerPulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.inviteRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.inviteLink {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+  font-size: 13px;
+}
+

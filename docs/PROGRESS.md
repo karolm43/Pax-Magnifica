@@ -507,3 +507,15 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - **API/UI:** `POST /tactical/battle/relic-reroll|relic-adjust` + `BattleResponse.relicTools` + `BattleRelicTools`; przełącznik Scepter
   w oknie secondary; skip `relic:<id>` w drzewie badań; Prophet's Tears w `autoSkips`.
 - Testy: `tests/test_relics.py` (rozszerzone). Do dopisania później: purge kafla przez Silver Flame (decyzja użytkownika).
+
+## 2026-11-11 (12) — Lobby = graficzny kreator na żywo + tryb testowy hosta (RULES.md 44.5a)
+- „Play" → kreator jako lobby: „Players & map" z panelem *Invite friends* (link do skopiowania), dołączający goście
+  zajmują wolne miejsca (karty graczy pokazują kto); potem wszyscy razem: każdy sam wybiera frakcję, kolor i miejsce,
+  cudze wybory widać na żywo; host prowadzi kroki i startuje grę, goście same wchodzą do planszy.
+- Backend: `api/lobby_draft.py` (szkic: właściciele slotów, uprawnienia gościa, unikalność), `seats.py`
+  (`reset_lobby/set_draft/patch_draft/draft_view/bind_from_draft`, `host_home`), `PUT|PATCH /lobby/draft`,
+  `POST /lobby/seat`, `/lobby/open {reset}`; strażnik: `LobbyParty` tylko dla `/lobby/draft`.
+- Front: `setupSync.ts` (synchronizacja `useSetupStore` ⇄ serwer, `useLobbyRole`, `canEditSlot`), blokady gościa
+  w krokach (Players: podgląd; Faction/Seat & color: tylko własny slot), usunięty osobny ekran lobby.
+- Tryb testowy: przełącznik w plakietce „kim gram" — host gra za wszystkich (operator) i wraca na swoje miejsce.
+- Testy: szkic na żywo i nowe lobby w `test_network_game.py`, `setupSync.test.ts`. Nie testowane w przeglądarce.

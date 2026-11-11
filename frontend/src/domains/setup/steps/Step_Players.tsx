@@ -17,6 +17,7 @@
 //  2. lokalne podpowiedzi walidacji per slot (długość nazwy, duplikat nazwy). Twarde
 //     blokowanie „Dalej" robi kontener przez `validateStep`/`validateSetup`.
 
+import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
 import { useState, type CSSProperties } from "react";
 import { useEngineConfig } from "@/api/useNewGame";
 import type { SetupStepProps } from "../SetupWizard";
@@ -79,6 +80,21 @@ function PlayerCard({
 }) {
   const updateSlot = useSetupStore((s) => s.updateSlot);
   const setControlType = useSetupStore((s) => s.setControlType);
+  // Lobby sieciowe (RULES.md 44.5a): kto siedzi na tym miejscu; gość edytuje tylko swój slot.
+  const role = useLobbyRole();
+  const editable = canEditSlot(role, index);
+  const owner = role.active ? role.owners[index] : undefined;
+  const ownerLabel = !role.active
+    ? null
+    : owner === "host"
+      ? role.isGuest
+        ? "Host"
+        : "You (host)"
+      : owner
+        ? `${role.ownerNames[index] ?? "Player"}${role.mySlot === index ? " (you)" : ""} · joined`
+        : slot.controlType === "HUMAN"
+          ? "Open seat - waiting for a player…"
+          : null;
 
   const nameError = slotNameError(slot, index, slots);
   const isBot = slot.controlType === "BOT";
@@ -91,6 +107,10 @@ function PlayerCard({
           {index + 1}
         </span>
         <h2 className={styles.cardTitle}>Player {index + 1}</h2>
+        <fieldset
+          disabled={role.active && role.isGuest}
+          className={styles.lockSet}
+        >
         <div
           className={styles.segment}
           role="radiogroup"
@@ -111,8 +131,18 @@ function PlayerCard({
             </button>
           ))}
         </div>
+        </fieldset>
       </header>
 
+      {ownerLabel && (
+        <span
+          className={`${styles.ownerChip} ${owner ? styles.ownerChipTaken : styles.ownerChipOpen}`}
+        >
+          {ownerLabel}
+        </span>
+      )}
+
+      <fieldset disabled={!editable} className={styles.lockSet}>
       <label className={styles.field}>
         <span className={styles.fieldLabel}>Name</span>
         <input
@@ -177,6 +207,7 @@ function PlayerCard({
           )}
         </div>
       )}
+      </fieldset>
     </article>
   );
 }
@@ -193,6 +224,16 @@ export default function Step_Players({ stage }: SetupStepProps) {
   const setMapString = useSetupStore((s) => s.setMapString);
 
   const applyControlPreset = useSetupStore((s) => s.applyControlPreset);
+  const role = useLobbyRole();
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(link);
+    } catch {
+      window.prompt("Copy this link:", link);
+    }
+  };
 
   // Tryb mapy to wybór UI: „default" = mapa domyślna backendu (pusty map string),
   // „custom" = własny map string. Start zgodny z tym, co już jest w store'ie.
@@ -223,7 +264,7 @@ export default function Step_Players({ stage }: SetupStepProps) {
       {/* Pasek górny: Wstecz · tytuł · podsumowanie · przycisk akcji (jak w scenie frakcji). */}
       <div className={styles.topBar}>
         <button type="button" className={styles.backButton} onClick={stage?.onBack}>
-          ← Main menu
+          {role.active && role.isGuest ? "← Leave lobby" : "← Main menu"}
         </button>
 
         <div className={styles.titleBlock}>
@@ -257,6 +298,34 @@ export default function Step_Players({ stage }: SetupStepProps) {
       <div className={styles.content}>
         {/* Lewy panel na szkle: ustawienia całej gry. */}
         <aside className={styles.settings} aria-label="Game settings">
+          {role.active && !role.isGuest && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}>Invite friends</h2>
+              <p className={styles.hint}>
+                Friends open this link (ZeroTier / LAN), enter their name and take an open seat.
+              </p>
+              {role.links.length === 0 && (
+                <p className={styles.error}>No network address found - is ZeroTier connected?</p>
+              )}
+              {role.links.map((link) => (
+                <div key={link} className={styles.inviteRow}>
+                  <code className={styles.inviteLink}>{link}</code>
+                  <button type="button" className={styles.action} onClick={() => void copy(link)}>
+                    {copied === link ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              ))}
+            </section>
+          )}
+          {role.active && role.isGuest && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}>Lobby</h2>
+              <p className={styles.hint}>
+                The host sets up the map and the players. Next you pick your faction and color.
+              </p>
+            </section>
+          )}
+          <fieldset disabled={role.active && role.isGuest} className={styles.lockSet}>
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Players</h2>
             <div
@@ -351,6 +420,7 @@ export default function Step_Players({ stage }: SetupStepProps) {
               Names must be unique. An empty name is filled in automatically.
             </p>
           </section>
+          </fieldset>
         </aside>
 
         {/* Siatka kart graczy — własne przewijanie. */}

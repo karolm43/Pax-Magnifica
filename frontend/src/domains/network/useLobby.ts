@@ -2,12 +2,10 @@
  * Lobby gry sieciowej i zapisy partii (RULES.md 44.4, 44.6) — zapytania i akcje.
  *
  * Host (ten komputer) otwiera lobby, gracze z innych komputerów (np. ZeroTier) dołączają
- * imieniem i dostają token członka (zapamiętany w karcie, `storeSeatToken`). Przy starcie
- * gry host przypisuje członków do miejsc (`assignLobbySeats`): slot i → gracz `p{i+1}`
- * (tak backend numeruje graczy w `/game/new`).
+ * imieniem i dostają token członka (zapamiętany w karcie, `storeSeatToken`). Kreator gry
+ * jest wspólny na żywo — synchronizację robi `setupSync.ts`.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { create } from "zustand";
 import { storeSeatToken } from "@/api/actorIdentity";
 import { NETWORK_ME_KEY } from "./useNetworkMe";
 
@@ -19,6 +17,10 @@ export type LobbyView = {
   game_started: boolean;
   addresses: string[];
   save_name: string | null;
+  /** Wspólny szkic kreatora (patrz `setupSync.ts`). */
+  draft?: unknown;
+  /** Kim jestem w szkicu: "host" albo mój member_id. */
+  you?: string | null;
 };
 
 export type SaveEntry = {
@@ -60,7 +62,7 @@ export function useLobby(enabled = true) {
     queryKey: LOBBY_KEY,
     queryFn: () => call<LobbyView>("/lobby"),
     enabled,
-    refetchInterval: (query) => (query.state.data?.open ? 2000 : false),
+    refetchInterval: (query) => (query.state.data?.open ? 1000 : false),
   });
 }
 
@@ -81,7 +83,8 @@ export function useLobbyActions() {
     await queryClient.invalidateQueries({ queryKey: LOBBY_KEY });
   };
   return {
-    open: async () => refresh(await call<LobbyView>("/lobby/open", {})),
+    /** `reset` = nowe lobby („Play"): bez starych gości, miejsc i szkicu. */
+    open: async (reset = false) => refresh(await call<LobbyView>("/lobby/open", { reset })),
     close: async () => refresh(await call<LobbyView>("/lobby/close", {})),
     kick: async (memberId: string) =>
       refresh(await call<LobbyView>(`/lobby/kick/${encodeURIComponent(memberId)}`, {})),
@@ -100,34 +103,4 @@ export function useLobbyActions() {
       await queryClient.invalidateQueries();
     },
   };
-}
-
-/** Kto siedzi na którym slocie kreatora: `"host"` albo `member_id` (puste = nikt / bot). */
-type AssignmentStore = {
-  bySlot: Record<number, string>;
-  setSlot: (slot: number, who: string | null) => void;
-  clear: () => void;
-};
-
-export const useLobbyAssignments = create<AssignmentStore>((set) => ({
-  bySlot: {},
-  setSlot: (slot, who) =>
-    set((s) => {
-      const next = { ...s.bySlot };
-      // Jeden człowiek = jedno miejsce: zdejmij go z innego slotu.
-      for (const [k, v] of Object.entries(next)) if (v === who) delete next[Number(k)];
-      if (who) next[slot] = who;
-      else delete next[slot];
-      return { bySlot: next };
-    }),
-  clear: () => set({ bySlot: {} }),
-}));
-
-/** Po `/game/new`: przypisuje członków lobby do graczy `p{slot+1}`. */
-export async function assignLobbySeats(bySlot: Record<number, string>): Promise<void> {
-  const assignments = Object.fromEntries(
-    Object.entries(bySlot).map(([slot, who]) => [`p${Number(slot) + 1}`, who]),
-  );
-  if (Object.keys(assignments).length === 0) return;
-  await call("/lobby/assign", { assignments });
 }

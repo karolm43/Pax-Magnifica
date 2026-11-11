@@ -19,6 +19,9 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
 
+from src.api import lobby_draft
+from src.api.lobby_draft import Draft
+
 SEAT_TOKEN_HEADER = "X-Seat-Token"
 TOKEN_QUERY = "token"
 MAX_MEMBERS = 8
@@ -93,6 +96,10 @@ class SeatRegistry:
         )
         host_seat = data.get("host_seat")
         self.host_seat: str | None = host_seat if isinstance(host_seat, str) else None
+        host_home = data.get("host_home")
+        self.host_home: str | None = host_home if isinstance(host_home, str) else None
+        draft = data.get("draft")
+        self._draft: Draft | None = draft if isinstance(draft, dict) else None
         members = data.get("members")
         self._members: dict[str, Member] = {}
         if isinstance(members, list):
@@ -112,6 +119,8 @@ class SeatRegistry:
                 "seats": self._seat_tokens,
                 "host_seat": self.host_seat,
                 "members": [vars(m) for m in self._members.values()],
+                "host_home": self.host_home,
+                "draft": self._draft,
             }
         )
 
@@ -182,6 +191,7 @@ class SeatRegistry:
             raise ValueError("The lobby is full.")
         member = Member(member_id=f"m{secrets.token_hex(4)}", name=clean, token=_new_token())
         self._members[member.member_id] = member
+        self._reseat_draft()
         self._save()
         return member
 
@@ -192,7 +202,61 @@ class SeatRegistry:
             self._seat_tokens = {
                 pid: tok for pid, tok in self._seat_tokens.items() if tok != member.token
             }
+            self._reseat_draft()
             self._save()
+
+    # --- Wspólny szkic kreatora (lobby na żywo, ``lobby_draft``) ------------------------
+
+    def reset_lobby(self) -> None:
+        """Nowe lobby („Play"): bez gości, miejsc i szkicu — stare tokeny gości wygasają."""
+        self._members = {}
+        self._seat_tokens = {}
+        self.host_seat = None
+        self.host_home = None
+        self._draft = None
+        self._save()
+
+    def set_draft(self, raw: Draft) -> None:
+        """Host wysyła pełny szkic (start lobby, zmiana liczby graczy). Raises: ``ValueError``."""
+        version = int(self._draft.get("version", 0)) if self._draft else 0
+        draft = lobby_draft.new_draft(raw, version)
+        lobby_draft.normalize_owners(draft, self._member_names())
+        self._draft = draft
+        self._save()
+
+    def patch_draft(self, identity: Identity, patch: Draft) -> None:
+        """Zmiana szkicu: host — wszystko, gość — swój slot. Raises: ``ValueError``,
+        ``DraftPermissionError``."""
+        if self._draft is None:
+            raise ValueError("The host has not set up the game yet.")
+        who = "host" if identity.host else (identity.member_id or "")
+        draft = lobby_draft.apply_patch(self._draft, who, identity.host, patch)
+        lobby_draft.normalize_owners(draft, self._member_names())
+        self._draft = draft
+        self._save()
+
+    def draft_view(self) -> Draft | None:
+        """Szkic dla klientów, z imionami właścicieli slotów (``ownerNames``)."""
+        if self._draft is None:
+            return None
+        names = self._member_names()
+        owners: list[str | None] = self._draft["owners"]
+        return {**self._draft, "ownerNames": [names.get(o) if o else None for o in owners]}
+
+    def bind_from_draft(self) -> None:
+        """Start gry z lobby: właściciel slotu ``i`` siada jako gracz ``p{i+1}``."""
+        if self._draft is None:
+            return
+        owners: list[str | None] = self._draft["owners"]
+        self.bind({f"p{i + 1}": who for i, who in enumerate(owners) if who})
+
+    def _member_names(self) -> dict[str, str]:
+        return {m.member_id: m.name for m in self._members.values()}
+
+    def _reseat_draft(self) -> None:
+        if self._draft is not None:
+            lobby_draft.normalize_owners(self._draft, self._member_names())
+            self._draft["version"] = int(self._draft.get("version", 0)) + 1
 
     def bind(self, assignments: dict[str, str]) -> None:
         """Przypisuje miejsca: ``{player_id: member_id | "host"}`` (start gry z lobby).
@@ -203,6 +267,7 @@ class SeatRegistry:
         for player_id, who in assignments.items():
             if who == "host":
                 self.host_seat = player_id
+                self.host_home = player_id  # „moje miejsce" — powrót z trybu testowego
                 continue
             member = self._members.get(who)
             if member is None:

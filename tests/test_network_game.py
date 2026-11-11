@@ -283,3 +283,57 @@ def test_only_host_manages_lobby(registry: StaticDataRegistry) -> None:
     assert client.post("/lobby/close", headers=ola).status_code == 403
     assert client.get("/saves", headers=ola).status_code == 403
     assert client.post("/lobby/join", json={"name": " "}, headers=REMOTE).status_code == 422
+
+
+# --- Wspólny szkic kreatora (lobby na żywo, RULES.md 44.5a) -------------------------------
+
+
+def _slot(name: str, control: str = "HUMAN", **extra: object) -> dict[str, object]:
+    base: dict[str, object] = {"name": name, "controlType": control, "factionId": ""}
+    return {**base, "color": "", "seat": None, **extra}
+
+
+def test_live_draft_guests_edit_only_own_slot(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/lobby/open", json={"reset": True})
+    draft = {"slots": [_slot("Host"), _slot(""), _slot("", "BOT")], "mapString": "", "step": 0}
+    res = client.put("/lobby/draft", json={"draft": draft})
+    assert res.status_code == 200, res.text
+    assert res.json()["draft"]["owners"] == ["host", None, None]
+
+    joined = client.post("/lobby/join", json={"name": "Ania"}, headers=REMOTE).json()
+    ania = {SEAT_TOKEN_HEADER: joined["token"], **REMOTE}
+    view = client.get("/lobby", headers=ania).json()
+    assert view["you"] == joined["member_id"]
+    assert view["draft"]["owners"][1] == joined["member_id"]  # wolny slot człowieka
+    assert view["draft"]["slots"][1]["name"] == "Ania"
+    assert view["draft"]["ownerNames"][1] == "Ania"
+
+    ok = client.patch("/lobby/draft", json={"slots": {"1": {"factionId": "sol"}}}, headers=ania)
+    assert ok.status_code == 200, ok.text
+    hacan = {"slots": {"0": {"factionId": "hacan"}}}
+    other = client.patch("/lobby/draft", json=hacan, headers=ania)
+    assert other.status_code == 403
+    step = client.patch("/lobby/draft", json={"step": 2}, headers=ania)
+    assert step.status_code == 403
+    taken = client.patch("/lobby/draft", json={"slots": {"0": {"factionId": "sol"}}})
+    assert taken.status_code == 422  # frakcja zajęta przez Anię
+    host = client.patch("/lobby/draft", json={"step": 1, "slots": {"0": {"factionId": "hacan"}}})
+    assert host.status_code == 200 and host.json()["draft"]["step"] == 1
+
+    players = [{"faction_id": "hacan"}, {"faction_id": "sol"}, {"faction_id": "arborec"}]
+    assert client.post("/game/new", json={"players": players}).status_code == 200
+    assert client.post("/lobby/seat").status_code == 200
+    assert client.get("/network/me", headers=ania).json()["player_id"] == "p2"
+    assert client.get("/network/me").json()["player_id"] == "p1"
+    assert client.get("/network/seats").json()["host_home"] == "p1"
+
+
+def test_new_lobby_forgets_old_guests(registry: StaticDataRegistry) -> None:
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/lobby/open")
+    joined = client.post("/lobby/join", json={"name": "Ola"}, headers=REMOTE).json()
+    client.post("/lobby/open", json={"reset": True})
+    res = client.get("/lobby", headers={SEAT_TOKEN_HEADER: joined["token"], **REMOTE})
+    assert res.status_code == 200  # /lobby jest publiczne przy otwartym lobby…
+    assert res.json()["members"] == []  # …ale Oli już w nim nie ma

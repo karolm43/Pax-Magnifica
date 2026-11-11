@@ -18,6 +18,7 @@
 // `setFaction` czyści technologie startowe slotu (R9.4). Podgląd/przełącznik gracza to
 // stan lokalny kroku — nie wpływa na model.
 
+import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { TextInput } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
@@ -58,6 +59,12 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
 
   // Który gracz jest właśnie konfigurowany (indeks slotu).
   const [activeSlot, setActiveSlot] = useState(0);
+  // Lobby sieciowe (RULES.md 44.5a): gość konfiguruje TYLKO swój slot, cudze widzi na żywo.
+  const role = useLobbyRole();
+  const guestSlot = role.active && role.isGuest ? role.mySlot : null;
+  useEffect(() => {
+    if (guestSlot !== null) setActiveSlot(guestSlot);
+  }, [guestSlot]);
   // Którą frakcję oglądamy w summary (id) — podgląd, zanim przypiszemy do slotu.
   const [previewId, setPreviewId] = useState<string | null>(null);
   // Aktywny wariant w każdej rodzinie wariantów (np. keleres → keleresm/x/a). Rodzina
@@ -144,6 +151,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
   }, [slots]);
 
   const assign = (factionId: string) => {
+    if (!canEditSlot(role, activeSlot)) return;
     setFaction(activeSlot, factionId);
   };
 
@@ -284,9 +292,15 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
                 className={`${styles.playerTab} ${
                   index === activeSlot ? styles.playerTabActive : ""
                 }`}
-                onClick={() => setActiveSlot(index)}
+                onClick={() => {
+                  if (canEditSlot(role, index)) setActiveSlot(index);
+                }}
+                aria-disabled={!canEditSlot(role, index)}
               >
-                <span className={styles.playerTabHead}>Player {index + 1}</span>
+                <span className={styles.playerTabHead}>
+                  {role.active && slot.name.trim() ? slot.name : `Player ${index + 1}`}
+                  {role.active && role.mySlot === index ? " (you)" : ""}
+                </span>
                 <span className={styles.playerTabFaction}>
                   {!isRandom ? (
                     <CircularFactionIcon faction={slot.factionId} size={16} />
