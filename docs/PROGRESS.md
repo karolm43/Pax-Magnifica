@@ -477,3 +477,8 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   game, Load game), `WhoAmIBadge` w nagłówku, `storeSeatToken` (token z lobby bez przeładowania), Vite `host: true` + `xfwd`.
 - Testy: lobby (dołączenie, przypisanie, wyrzucenie, tylko host, zamknięte lobby) w `test_network_game.py`,
   nowa gra = nowy plik + wczytanie w `test_save_resume.py`. Nie testowane w przeglądarce.
+
+## 2026-11-11 (11) — Lobby uproszczone: „Play" = lobby (decyzja użytkownika)
+- Menu: Play / Load game / Settings / Rules (bez „Host online game"). „Play" otwiera lobby: link do skopiowania, imię
+  hosta, lista dołączających na żywo, „Add bot", „Start" → kreator od razu na kroku frakcji, miejsca przypisane
+  automatycznie (host 1., dołączeni kolejno, boty na końcu). `LobbyScreen` zastąpił panel przypisań w kreatorze.

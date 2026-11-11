@@ -6,8 +6,8 @@ import SetupWizard from "@/domains/setup/SetupWizard";
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
-import { JoinScreen, LobbyHostPanel, LoadGameModal } from "@/domains/network/LobbyScreens";
-import { useLobby, useLobbyActions } from "@/domains/network/useLobby";
+import { JoinScreen, LobbyScreen, LoadGameModal } from "@/domains/network/LobbyScreens";
+import { useLobbyActions } from "@/domains/network/useLobby";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 
 /**
@@ -124,18 +124,24 @@ export default function StartScreen() {
   // dołączenie do lobby. „Load game" — lista zapisanych partii (tylko host).
   const { data: me } = useNetworkMe();
   const isGuest = me != null && !me.host;
-  const { data: lobby } = useLobby(me?.host === true);
   const lobbyActions = useLobbyActions();
   const [loadOpen, setLoadOpen] = useState(false);
   const [lobbyError, setLobbyError] = useState<string | null>(null);
-  const hostOnline = async () => {
+  // Po „Play" najpierw lobby (link dla znajomych, kto dołączył), potem kreator od frakcji.
+  const [stage, setStage] = useState<"lobby" | "wizard">("lobby");
+  const play = async () => {
     setLobbyError(null);
     try {
       await lobbyActions.open();
+      setStage("lobby");
       setView("setup");
     } catch (e) {
       setLobbyError(e instanceof Error ? e.message : String(e));
     }
+  };
+  const leaveLobby = () => {
+    setView("menu");
+    void lobbyActions.close().catch(() => undefined);
   };
 
   // Dopóki ładujemy frakcje (lub gdy się nie powiodło) — pełnoekranowy rozruch,
@@ -186,18 +192,9 @@ export default function StartScreen() {
               size="xl"
               fullWidth
               className={styles.menuButton}
-              onClick={() => setView("setup")}
+              onClick={() => void play()}
             >
               Play
-            </Button>
-            <Button
-              size="xl"
-              fullWidth
-              variant="default"
-              className={styles.menuButton}
-              onClick={() => void hostOnline()}
-            >
-              {lobby?.open ? "Online lobby (open)" : "Host online game"}
             </Button>
             <Button
               size="xl"
@@ -242,9 +239,11 @@ export default function StartScreen() {
            * żyje w `SetupWizard`. Każdy krok to pełnoekranowa scena z własnym paskiem
            * górnym; „Wstecz" na pierwszym kroku wraca do menu głównego (`onExit`).
            */}
-          <SetupWizard onExit={() => setView("menu")} />
-          {/* Lobby online: adres dla znajomych, dołączeni, kto siedzi na którym miejscu. */}
-          {view === "setup" && <LobbyHostPanel />}
+          {stage === "lobby" ? (
+            <LobbyScreen onStart={() => setStage("wizard")} onBack={leaveLobby} />
+          ) : (
+            <SetupWizard onExit={() => setStage("lobby")} />
+          )}
         </div>
       </div>
 

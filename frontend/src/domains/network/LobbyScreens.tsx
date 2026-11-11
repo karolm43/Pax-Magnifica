@@ -3,14 +3,14 @@
  *
  * - `JoinScreen` — gość z innego komputera: wpisuje imię i czeka, aż host wystartuje grę
  *   (dostaje miejsce → wejście do gry). Gdy nikt nie hostuje — informacja.
- * - `LobbyHostPanel` — host w kreatorze: adres do podania znajomym (np. ZeroTier), kto
- *   dołączył, kto siedzi na którym miejscu (przypisanie trafia do backendu po starcie gry).
+ * - `LobbyScreen` — host po „Play": link dla znajomych (np. ZeroTier), kto dołączył, boty,
+ *   „Start" → wybór frakcji (miejsca przypisane automatycznie: host 1., dołączeni kolejno).
  * - `LoadGameModal` — lista zapisanych partii i wczytanie.
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Group, Modal, Paper, Select, Stack, Text, TextInput } from "@/ds";
-import { useSetupStore } from "@/domains/setup/useSetupStore";
+import { Button, Group, Modal, Paper, Stack, Text, TextInput } from "@/ds";
+import { MAX_PLAYERS, MIN_PLAYERS, useSetupStore } from "@/domains/setup/useSetupStore";
 import { useLobby, useLobbyActions, useLobbyAssignments, useSaves } from "./useLobby";
 import { useNetworkMe } from "./useNetworkMe";
 
@@ -40,8 +40,8 @@ export function JoinScreen() {
         <Stack gap="sm">
           <Text fw={700} size="lg">No network game right now</Text>
           <Text size="sm">
-            The host has not opened a lobby on this computer yet. Ask them to choose
-            &quot;Host online game&quot; and refresh this page.
+            The host has not opened the lobby yet. Ask them to click &quot;Play&quot; and
+            refresh this page.
           </Text>
         </Stack>
       </Paper>
@@ -111,73 +111,140 @@ export function JoinScreen() {
   );
 }
 
-/** Host w kreatorze: adres, dołączeni, przypisanie miejsc. */
-export function LobbyHostPanel() {
+/**
+ * Lobby hosta — pierwszy ekran po „Play". Pusta lista + link do skopiowania; kto wejdzie pod
+ * link i wpisze imię, pojawia się tu na żywo. Host może dołożyć boty. „Start" ustawia graczy
+ * w kreatorze (host = miejsce 1, dołączeni kolejno, potem boty) i przechodzi do wyboru frakcji.
+ */
+export function LobbyScreen({ onStart, onBack }: { onStart: () => void; onBack: () => void }) {
   const { data: lobby } = useLobby();
   const actions = useLobbyActions();
-  const slots = useSetupStore((s) => s.slots);
-  const updateSlot = useSetupStore((s) => s.updateSlot);
-  const { bySlot, setSlot } = useLobbyAssignments();
-  if (!lobby?.open) return null;
-
+  const [hostName, setHostName] = useState(() => readHostName());
+  const [bots, setBots] = useState(0);
+  const [copied, setCopied] = useState<string | null>(null);
+  const members = lobby?.members ?? [];
+  const total = 1 + members.length + bots;
   const port = window.location.port ? `:${window.location.port}` : "";
-  const memberName = (id: string) => lobby.members.find((m) => m.member_id === id)?.name;
-  const options = [
-    { value: "", label: "Nobody (local / bot)" },
-    { value: "host", label: "Me (host)" },
-    ...lobby.members.map((m) => ({ value: m.member_id, label: m.name })),
-  ];
+  const links = (lobby?.addresses ?? []).map((ip) => `http://${ip}${port}`);
+
+  const copy = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(link);
+    } catch {
+      window.prompt("Copy this link:", link);
+    }
+  };
+
+  const start = () => {
+    saveHostName(hostName);
+    const players = [
+      { name: hostName.trim(), bot: false, who: "host" },
+      ...members.map((m) => ({ name: m.name, bot: false, who: m.member_id })),
+      ...Array.from({ length: bots }, () => ({ name: "", bot: true, who: "" })),
+    ].slice(0, MAX_PLAYERS);
+    const setup = useSetupStore.getState();
+    setup.reset();
+    setup.setPlayerCount(players.length);
+    const bySlot: Record<number, string> = {};
+    players.forEach((p, i) => {
+      setup.setControlType(i, p.bot ? "BOT" : "HUMAN");
+      setup.updateSlot(i, { name: p.name });
+      if (p.who) bySlot[i] = p.who;
+    });
+    useLobbyAssignments.setState({ bySlot });
+    setup.goToStep(1); // wybór frakcji (mapę można zmienić krokiem „Back")
+    onStart();
+  };
 
   return (
-    <div style={{ position: "fixed", right: 16, top: 72, zIndex: 950, width: 320 }}>
-      <Paper p="md" shadow="lg" withBorder>
-        <Stack gap="sm">
-          <Group justify="space-between" wrap="nowrap">
-            <Text fw={700}>Online lobby</Text>
-            <Button size="compact-sm" variant="subtle" onClick={() => void actions.close()}>
-              Close lobby
-            </Button>
-          </Group>
-          <Text size="xs">Friends open this address (ZeroTier / LAN) and enter their name:</Text>
-          {lobby.addresses.length === 0 && (
-            <Text size="xs">No network address found - check ZeroTier is connected.</Text>
-          )}
-          {lobby.addresses.map((ip) => (
-            <Text key={ip} size="sm" fw={600} style={{ userSelect: "all" }}>
-              http://{ip}
-              {port}
-            </Text>
-          ))}
-          <Text size="sm" fw={600}>Joined ({lobby.members.length}):</Text>
-          {lobby.members.length === 0 && <Text size="xs">Nobody yet…</Text>}
-          {lobby.members.map((m) => (
-            <Group key={m.member_id} justify="space-between" wrap="nowrap">
-              <Text size="sm">{m.name}</Text>
-              <Button size="compact-xs" variant="subtle" onClick={() => void actions.kick(m.member_id)}>
-                Remove
+    <div style={{ minHeight: "100%", display: "grid", placeItems: "center", padding: 16 }}>
+      <Paper p="xl" shadow="lg" withBorder style={{ maxWidth: 520, width: "100%" }}>
+        <Stack gap="md">
+          <Text fw={700} size="xl">Lobby</Text>
+          <Stack gap={6}>
+            <Text size="sm">Send this link to friends (ZeroTier / LAN) - they enter their name and appear below:</Text>
+            {links.length === 0 && (
+              <Text size="sm" c="dimmed">No network address found - is ZeroTier connected?</Text>
+            )}
+            {links.map((link) => (
+              <Group key={link} gap="xs" wrap="nowrap">
+                <Text size="sm" fw={600} style={{ userSelect: "all", flex: 1 }}>{link}</Text>
+                <Button size="compact-sm" variant="default" onClick={() => void copy(link)}>
+                  {copied === link ? "Copied" : "Copy"}
+                </Button>
+              </Group>
+            ))}
+          </Stack>
+          <Stack gap={6}>
+            <Text size="sm" fw={600}>Players ({Math.min(total, MAX_PLAYERS)}/{MAX_PLAYERS})</Text>
+            <TextInput
+              label="You (host)"
+              placeholder="Your name"
+              value={hostName}
+              maxLength={40}
+              onChange={(e) => setHostName(e.currentTarget.value)}
+            />
+            {members.map((m) => (
+              <Group key={m.member_id} justify="space-between" wrap="nowrap">
+                <Text size="sm">{m.name}</Text>
+                <Button size="compact-xs" variant="subtle" onClick={() => void actions.kick(m.member_id)}>
+                  Remove
+                </Button>
+              </Group>
+            ))}
+            {Array.from({ length: bots }, (_, i) => (
+              <Group key={`bot-${i}`} justify="space-between" wrap="nowrap">
+                <Text size="sm" c="dimmed">Bot {i + 1}</Text>
+                <Button size="compact-xs" variant="subtle" onClick={() => setBots((b) => b - 1)}>
+                  Remove
+                </Button>
+              </Group>
+            ))}
+            {members.length === 0 && bots === 0 && (
+              <Text size="sm" c="dimmed">Waiting for players to join…</Text>
+            )}
+          </Stack>
+          <Group justify="space-between">
+            <Button variant="subtle" onClick={onBack}>Back</Button>
+            <Group gap="xs">
+              <Button
+                variant="default"
+                disabled={total >= MAX_PLAYERS}
+                onClick={() => setBots((b) => b + 1)}
+              >
+                Add bot
+              </Button>
+              <Button disabled={total < MIN_PLAYERS} onClick={start}>
+                Start
               </Button>
             </Group>
-          ))}
-          <Text size="sm" fw={600}>Who plays which seat:</Text>
-          {slots.map((slot, i) =>
-            slot.controlType === "HUMAN" ? (
-              <Select
-                key={i}
-                label={`Seat ${i + 1}${slot.name ? ` - ${slot.name}` : ""}`}
-                data={options}
-                value={bySlot[i] ?? ""}
-                onChange={(v) => {
-                  setSlot(i, v || null);
-                  const n = v && v !== "host" ? memberName(v) : undefined;
-                  if (n) updateSlot(i, { name: n });
-                }}
-              />
-            ) : null,
+          </Group>
+          {total < MIN_PLAYERS && (
+            <Text size="xs" c="dimmed">At least {MIN_PLAYERS} players - wait for friends or add a bot.</Text>
           )}
         </Stack>
       </Paper>
     </div>
   );
+}
+
+const HOST_NAME_KEY = "custodian.hostName";
+
+function readHostName(): string {
+  try {
+    return localStorage.getItem(HOST_NAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function saveHostName(name: string): void {
+  try {
+    localStorage.setItem(HOST_NAME_KEY, name.trim());
+  } catch {
+    // brak storage — imię nie zostanie zapamiętane
+  }
 }
 
 /** Lista zapisów + wczytanie. */
