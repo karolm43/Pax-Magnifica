@@ -12,7 +12,8 @@ Zasady projektu są w pliku steering (wspólnym z Kiro) i obowiązują w całoś
   `~/.kiro/memories/memories.db`. Przed zadaniem przeszukaj je pod kątem tematu:
   `uv run python scripts/kiro_memories.py search <słowo> [...]`, potem `... show <tytuł>`.
   Tylko odczyt — nie kopiuj ich do własnej pamięci (źródłem prawdy zostaje baza Kiro).
-- QA backendu: `uv run pytest -q` ; `uv run ruff check src tests` ; `uv run mypy src tests`.
+- QA backendu: `uv run pytest -q -n auto` (równolegle; w trakcie pracy `uv run pytest -q --testmon`
+  = tylko testy dotknięte zmianą) ; `uv run ruff check src tests` ; `uv run mypy src tests`.
   QA frontu (w `frontend/`): `npx tsc --noEmit -p tsconfig.app.json` (UWAGA: `npm run type-check`
   NIE sprawdza `src/`) ; `npm run lint` ; `npm run build` ; `npx vitest --run`.
 - Stan gry żyje tylko w pamięci backendu — restart kasuje grę użytkownika. Nowe trasy/pola wymagają

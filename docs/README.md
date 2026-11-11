@@ -131,7 +131,9 @@ Pax Magnifica/
   Reguły mechaniczne najpierw do `RULES.md` ze źródłem (LRR / bot AsyncTI4), potem kod.
 - **Praca blokami.** Jeden blok = jeden spójny, testowalny krok = commit po polsku.
 - **QA po każdej zmianie — wszystko zielone przed commitem:**
-  - backend: `uv run pytest -q` ; `uv run ruff check src tests` ; `uv run mypy src tests`
+  - backend: `uv run pytest -q -n auto` ; `uv run ruff check src tests` ; `uv run mypy src tests`
+  - w trakcie pracy: `uv run pytest -q --testmon` (tylko testy dotknięte zmianą; baza `.testmondata`,
+    gitignore). `-n auto` = równolegle na wszystkich rdzeniach (pełny zestaw ~20 s zamiast ~70 s).
   - frontend: `npm run type-check` ; `npm run lint` ; `npm run build` (w `frontend/`)
 - **Dokumentacja i komentarze po polsku.** Staguj konkretne pliki (nie `git add .`).
   Nie pushuj (`git push`) bez zgody.

@@ -544,3 +544,9 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - **Eksploracja i hooki:** `PLANET_EXPLORED` jest teraz emitowane (`exploration.resolve`); skutki kart idą przez punkty centralne, więc ich hooki działają. Luki wypisane w R46 X12 (Enigmatic Device, Ion Storm, Mirage, Distant Suns, Fabrication).
 - **Relikty:** wszystkie 23 aktywne mają efekt/hook; dodany brakujący test Maw of Worlds. Bez testu zostały gałęzie: `obsidian_gained`, `quantumcore_gained`, `book_gained`, pasywy Circlet (anomalie/asteroidy), Prophet's Tears (dobranie karty), Emphidia (eksploracja po akcji).
 - **Technologie:** 36 ze 102 ma hook (wszystkie 33 ogólne + część frakcyjnych); 66 bez hooka to w większości technologie FRAKCYJNE (m.in. ulepszenia jednostek z danych, np. `ac2`, `sdn2`) — ich działanie zależy od `resolve_unit_variant`/danych, a zdolności tekstowe nie są kodowane. Bez testu po id: `dxa`, `bs`, `ws`, `pds2`, `cv2`. Raport `POKRYCIE_HOOKOW.md` odświeżony.
+
+## 2026-11-11 (10) — Szybsze QA: pytest-xdist + pytest-testmon
+- Dev-zależności: `pytest-xdist`, `pytest-testmon` (`pyproject.toml`, extra `dev`).
+- `uv run pytest -q -n auto` — pełny zestaw równolegle: ~70 s → ~22 s (1862 passed, bez zmian w testach).
+- `uv run pytest -q --testmon` — tylko testy, których kod się zmienił (bez zmian: <1 s). Działa też z `-n auto`.
+  Baza `.testmondata` lokalna (gitignore); przed commitem i tak pełny zestaw.

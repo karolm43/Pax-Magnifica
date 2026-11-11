@@ -97,3 +97,6 @@ Pax Magnifica.rar
 
 # Zapisy partii (SQLite, RULES.md 44.4) — lokalne, z tokenami zaproszeń
 saves/
+
+# Baza zależności pytest-testmon (lokalna, odtwarzalna)
+.testmondata*
