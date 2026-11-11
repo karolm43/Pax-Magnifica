@@ -35,8 +35,9 @@ test("Ctrl + kółko i klawisze +/-/0 zmieniają zoom mapy", async ({ page }) =>
 
 test("Skróty: 1–8 skacze do pola gracza, ta sama cyfra wraca na planszę, ? pokazuje listę", async ({ page }) => {
   const areas = page.getByRole("region", { name: "Player areas" });
-  const boardScroll = () =>
-    page.evaluate(() => document.querySelector(".dragscroll")?.scrollTop ?? 0);
+  // Przewijany kontener planszy (bez roli ARIA — to zwykły scroller).
+  const boardScroll = (): Promise<number> =>
+    page.locator(".dragscroll").first().evaluate((el: { scrollTop: number }) => el.scrollTop);
 
   await page.mouse.move(1300, 400);
   expect(await boardScroll()).toBe(0);

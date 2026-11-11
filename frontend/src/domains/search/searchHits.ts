@@ -72,6 +72,23 @@ export function focusSearchHit(hit: HTMLElement) {
   });
 }
 
+/** Jak długo zostaje podświetlenie celu skoku (skróty, klik w kartę planety). */
+const JUMP_FLASH_MS = 1600;
+let jumpFlashTimer = 0;
+
+/**
+ * Skok poza wyszukiwarką: przewija do elementu i na chwilę podświetla go stylem
+ * bieżącego trafienia, potem znacznik sam znika.
+ */
+export function jumpToSearchHit(hit: HTMLElement) {
+  focusSearchHit(hit);
+  window.clearTimeout(jumpFlashTimer);
+  jumpFlashTimer = window.setTimeout(
+    () => hit.removeAttribute(CURRENT_ATTR),
+    JUMP_FLASH_MS,
+  );
+}
+
 /**
  * Marks every element matching the active result's targets. The marks are attributes set
  * outside React so the hundreds of tagged cards never subscribe to search state;

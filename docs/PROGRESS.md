@@ -619,3 +619,11 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   (ta sama cyfra = powrót), `Shift+1–8` = gracz na planszy, `[`/`]` = poprzedni/następny, `g` = cele i punkty,
   `b`/`Home` = plansza, `?` = lista skrótów. Skok przewija i podświetla cel stylem trafienia wyszukiwarki.
   Skróty milkną przy pisaniu i pod otwartym oknem modalnym. E2E: `frontend/e2e/tools.e2e.ts`.
+## 2026-11-11 (16) — Usunięty układ „Panels”, naprawiony skok do planety
+- Usunięta opcja „Map view: Pannable / Panels” (Ustawienia) i cały martwy układ „Panels”: `layouts/MapView.tsx`,
+  `LeftSidebar`, `RightSidebar`, `PlayerCardDisplay`, `PanelToggleButton`, `mapPlayerPanels/`, `MapViewSelectionModal/`,
+  `chrome/DragHandle`, `useSidebarDragHandle`, `useMapScrollPosition`, `utils/mapViewPreference.ts` oraz pola
+  `leftPanelCollapsed`/`rightPanelCollapsed`/`mapViewPreference` w `appStore`.
+- Klik w kartę planety w polu gracza znów przewija mapę do tej planety i ją podświetla: `useScrollToPlanet` był podpięty
+  tylko w martwym `MapView`; przepisany na znacznik wyszukiwarki (`jumpToSearchHit` w `search/searchHits.ts`,
+  wspólny ze skrótami 1–8) i podpięty w `PannableMapView`.

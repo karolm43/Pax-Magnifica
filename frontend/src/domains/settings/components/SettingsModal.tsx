@@ -1,7 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { NumberInput, Switch, SegmentedControl, Tabs } from "@/ds";
 import { useSettingsStore } from "@/state/appStore";
-import { isMobileDevice } from "@/utils/isTouchDevice";
 import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
@@ -288,26 +287,6 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             />
           </SettingGroup>
 
-          {!isMobileDevice() && (
-            <SettingGroup label="Layout">
-              <SettingRow
-                label="Map view"
-                description="Pannable is denser; panels give each area more room."
-              >
-                <SegmentedControl
-                  aria-label="Map view"
-                  value={settings.mapViewPreference || "pannable"}
-                  onChange={(value) =>
-                    handlers.setMapViewPreference(value as "panels" | "pannable")
-                  }
-                  data={[
-                    { label: "Pannable", value: "pannable" },
-                    { label: "Panels", value: "panels" },
-                  ]}
-                />
-              </SettingRow>
-            </SettingGroup>
-          )}
 
         </Tabs.Panel>
 

@@ -7,11 +7,6 @@ import {
   saveJsonSettings,
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
-import {
-  getMapViewPreference,
-  setMapViewPreference,
-  type MapViewPreference,
-} from "@/utils/mapViewPreference";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 
 const STORAGE_KEY = "ti4_settings";
@@ -48,8 +43,6 @@ const DEFAULT_SETTINGS: Settings = {
   isFirefox: false,
   settingsModalOpened: false,
   keyboardShortcutsModalOpened: false,
-  leftPanelCollapsed: false,
-  rightPanelCollapsed: false,
   overlaysEnabled: false,
   planetTypesMode: false,
   techSkipsMode: false,
@@ -61,7 +54,6 @@ const DEFAULT_SETTINGS: Settings = {
   animateEventPreviews: true,
   themeName: DEFAULT_THEME,
   accessibleColors: false,
-  mapViewPreference: null,
   showPlayerAreaCommandTokens: true,
   showPlayerAreaArmyStrength: true,
   showPlayerAreaUnitUpgrades: true,
@@ -503,8 +495,6 @@ export type Settings = {
   isFirefox: boolean;
   settingsModalOpened: boolean;
   keyboardShortcutsModalOpened: boolean;
-  leftPanelCollapsed: boolean;
-  rightPanelCollapsed: boolean;
   overlaysEnabled: boolean;
   planetTypesMode: boolean;
   techSkipsMode: boolean;
@@ -516,7 +506,6 @@ export type Settings = {
   animateEventPreviews: boolean;
   themeName: ThemeName;
   accessibleColors: boolean;
-  mapViewPreference: MapViewPreference | null;
   showPlayerAreaCommandTokens: boolean;
   showPlayerAreaArmyStrength: boolean;
   showPlayerAreaUnitUpgrades: boolean;
@@ -573,8 +562,6 @@ type SettingsHandlers = {
   updateSettings: (updates: Partial<Settings>) => void;
   setSettingsModalOpened: (opened: boolean) => void;
   setKeyboardShortcutsModalOpened: (opened: boolean) => void;
-  toggleLeftPanelCollapsed: () => void;
-  toggleRightPanelCollapsed: () => void;
   toggleOverlays: () => void;
   togglePlanetTypesMode: () => void;
   toggleTechSkipsMode: () => void;
@@ -584,7 +571,6 @@ type SettingsHandlers = {
   toggleShowExhaustedPlanets: () => void;
   setThemeName: (name: Settings["themeName"]) => void;
   toggleAccessibleColors: () => void;
-  setMapViewPreference: (preference: MapViewPreference) => void;
 };
 
 export type SettingsStore = {
@@ -613,7 +599,6 @@ export const useSettingsStore = create<SettingsStore>((set) => {
         typeof navigator !== "undefined" &&
         navigator.userAgent.toLowerCase().indexOf("firefox") > -1,
       themeName: loadThemeFromStorage(),
-      mapViewPreference: getMapViewPreference(),
     },
 
     handlers: {
@@ -622,8 +607,6 @@ export const useSettingsStore = create<SettingsStore>((set) => {
         updateSettings({ settingsModalOpened: opened }),
       setKeyboardShortcutsModalOpened: (opened) =>
         updateSettings({ keyboardShortcutsModalOpened: opened }),
-      toggleLeftPanelCollapsed: toggle("leftPanelCollapsed"),
-      toggleRightPanelCollapsed: toggle("rightPanelCollapsed"),
       toggleOverlays: toggle("overlaysEnabled"),
       togglePlanetTypesMode: toggle("planetTypesMode"),
       toggleTechSkipsMode: toggle("techSkipsMode"),
@@ -636,10 +619,6 @@ export const useSettingsStore = create<SettingsStore>((set) => {
         set((state) => ({ settings: { ...state.settings, themeName: name } }));
       },
       toggleAccessibleColors: toggle("accessibleColors"),
-      setMapViewPreference: (preference) => {
-        setMapViewPreference(preference);
-        updateSettings({ mapViewPreference: preference });
-      },
     },
 
     updateSettings,

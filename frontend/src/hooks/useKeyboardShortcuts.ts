@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useGameData } from "@/state/useGameContext";
 import { useIsTabActive } from "@/hooks/useIsTabActive";
 import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
-import { findSearchHits, focusSearchHit } from "@/domains/search/searchHits";
+import { findSearchHits, jumpToSearchHit } from "@/domains/search/searchHits";
 import { searchKey } from "@/domains/search/searchKeys";
 
 export type KeyboardShortcutsProps = {
@@ -22,9 +22,6 @@ export type KeyboardShortcutsProps = {
 
 /** Atrybut sekcji celów/punktów pod planszą — cel skrótu „G". */
 export const JUMP_OBJECTIVES_ATTR = "data-jump-objectives";
-
-/** Jak długo zostaje podświetlenie celu skoku. */
-const JUMP_FLASH_MS = 1600;
 
 function isTypingTarget(target: EventTarget | null) {
   return (
@@ -49,18 +46,6 @@ function isModalOpen() {
 function seatDigit(event: KeyboardEvent): number | null {
   const match = /^(?:Digit|Numpad)([1-8])$/.exec(event.code);
   return match ? Number(match[1]) - 1 : null;
-}
-
-let flashTimer = 0;
-
-/** Przewija do elementu i na chwilę podświetla go stylem bieżącego trafienia wyszukiwarki. */
-function jumpTo(hit: HTMLElement) {
-  focusSearchHit(hit);
-  window.clearTimeout(flashTimer);
-  flashTimer = window.setTimeout(
-    () => hit.removeAttribute("data-search-current"),
-    JUMP_FLASH_MS,
-  );
 }
 
 /**
@@ -107,7 +92,7 @@ export function useKeyboardShortcuts({
       const hit = factionHit(index, onBoard);
       if (!hit) return;
       lastSeatRef.current = onBoard ? null : index;
-      jumpTo(hit);
+      jumpToSearchHit(hit);
     }
 
     function stepSeat(delta: number) {
@@ -117,7 +102,7 @@ export function useKeyboardShortcuts({
       const hit = factionHit(next, false);
       if (!hit) return;
       lastSeatRef.current = next;
-      jumpTo(hit);
+      jumpToSearchHit(hit);
     }
 
     function jumpToObjectives() {

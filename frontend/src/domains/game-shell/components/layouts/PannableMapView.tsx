@@ -21,6 +21,7 @@ import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKe
 import { useWheelZoom } from "@/domains/map/components/hooks/useWheelZoom";
 import { useTryDecalsToggle } from "@/domains/map/components/hooks/useTryDecalsToggle";
 import { useScrollToReplayHighlight } from "@/hooks/useScrollToReplayHighlight";
+import { useScrollToPlanet } from "@/hooks/useScrollToPlanet";
 import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSidebar";
 import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { TurnControls } from "@/domains/game-shell/components/TurnControls";
@@ -148,6 +149,9 @@ export function PannableMapView({ gameId }: { gameId: string }) {
   const scrollToBoard = useCallback(() => {
     mapContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  // Klik w kartę planety w polu gracza = skok do tej planety na planszy.
+  useScrollToPlanet();
 
   useMapKeyboardShortcuts({
     handlers,
