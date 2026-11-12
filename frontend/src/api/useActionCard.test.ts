@@ -90,3 +90,29 @@ describe("buildActionCardParams", () => {
     expect(buildActionCardParams([], {})).toEqual({ params: {}, ready: true });
   });
 });
+
+describe("buildActionCardParams - płatność", () => {
+  const inputs: ActionCardInput[] = [
+    {
+      key: "planets",
+      kind: "multi",
+      label: "Planets to exhaust",
+      hint: "",
+      min: 0,
+      max: 1,
+      options: [{ id: "mr", value: "mr", label: "Mecatol Rex (1)", meta: { planet: "mr", value: 1 } }],
+      payment: { cost: 2, valueKind: "resources", tradeGoods: "trade_goods" },
+    },
+    { key: "trade_goods", kind: "number", label: "Trade goods", hint: "", min: 0, max: 2 },
+  ];
+
+  it("nie jest gotowa, dopóki planety + TG nie pokryją kosztu", () => {
+    expect(buildActionCardParams(inputs, {}).ready).toBe(false);
+    expect(buildActionCardParams(inputs, { planets: ["mr"] }).ready).toBe(false);
+    expect(buildActionCardParams(inputs, { planets: ["mr"], trade_goods: 1 }).ready).toBe(true);
+    expect(buildActionCardParams(inputs, { trade_goods: 2 })).toEqual({
+      params: { planets: [], trade_goods: 2 },
+      ready: true,
+    });
+  });
+});

@@ -31,6 +31,8 @@ export type ActionCardInput =
       min: number;
       max: number;
       options: ActionCardOption[];
+      /** Wejście jest płatnością: koszt, czym się płaci i które pole liczbowe to TG. */
+      payment?: { cost: number; valueKind: string; tradeGoods: string };
     })
   | (InputBase & { kind: "number"; min: number; max: number });
 
@@ -121,6 +123,17 @@ export function buildActionCardParams(
       if (amount < input.min || amount > input.max) ready = false;
       params[input.key] = amount;
     }
+  }
+  // Płatność (planety + TG oznaczone przez backend jako ``payment``): gotowe dopiero, gdy
+  // wybrane planety i trade goods pokrywają koszt - inaczej silnik i tak odrzuci odpowiedź.
+  for (const input of inputs) {
+    if (input.kind !== "multi" || !input.payment) continue;
+    const ids = Array.isArray(values[input.key]) ? (values[input.key] as string[]) : [];
+    const fromPlanets = input.options
+      .filter((o) => ids.includes(o.id))
+      .reduce((sum, o) => sum + (typeof o.meta?.value === "number" ? o.meta.value : 0), 0);
+    const tg = params[input.payment.tradeGoods];
+    if (fromPlanets + (typeof tg === "number" ? tg : 0) < input.payment.cost) ready = false;
   }
   return { params, ready };
 }

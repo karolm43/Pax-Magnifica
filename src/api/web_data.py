@@ -45,6 +45,7 @@ from src.core import (
 )
 from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
+from src.core import invasion as invasion_core
 from src.core.army_strength import ArmyStrength, army_strength_by_player
 from src.core.combat import BREAKTHROUGH_UNIT_IDS
 from src.core.components import ActionCardDef, ComponentCategory
@@ -603,6 +604,10 @@ def _build_tile_unit_data(
                     _planet_is_exhausted(planet_id, owner_id, state),
                     sys_state.damaged_units.get(planet_id),
                 )
+                # Planetary Shield: jednostka z tarczą, której nikt nie odebrał (Arc Secundus).
+                planets[planet_id]["planetaryShield"] = invasion_core.planet_shield(
+                    state, registry, position, planet_id
+                )[1]
             # Żetony dowodzenia w przestrzeni (aktywacja) — klucz tożsamości gracza,
             # spójny z grupowaniem jednostek (frontend porównuje ccs z faction).
             ccs = [

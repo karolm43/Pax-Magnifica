@@ -82,7 +82,9 @@ class PlanetInfo:
     defenders: list[str]  # gracze (≠ atakujący) z siłami naziemnymi na planecie
     shielded: bool  # Planetary Shield (blokuje Bombardment, chyba że war sun)
     has_space_cannon: bool  # ktoś ≠ atakujący ma tu Space Cannon (Defense)
-    has_shield: bool = False  # na planecie stoi jednostka z tarczą (nawet gdy war sun ją łamie)
+    # Na planecie stoi jednostka z tarczą, nawet gdy ją łamie war sun / odbiera Arc Secundus
+    # (UI pokazuje wtedy zapadającą się kopułę).
+    has_shield: bool = False
 
 
 @dataclass(frozen=True)
@@ -179,43 +181,57 @@ def _attacker_ignores_shield(state: GameState, registry: StaticDataRegistry) -> 
     return False
 
 
-def _shield_stripped(state: GameState, owner: str) -> bool:
-    """Czy INNY gracz w aktywnym systemie odbiera jednostkom ``owner`` PLANETARY SHIELD."""
-    invasion = _inv(state)
-    system = _system(state)
+def _shield_stripped(state: GameState, position: str, owner: str) -> bool:
+    """Czy INNY gracz w systemie ``position`` odbiera jednostkom ``owner`` PLANETARY SHIELD."""
+    system = state.systems.get(position)
+    if system is None:
+        return False
     others = set(system.space_units) | {
         pid for by_player in system.planet_units.values() for pid in by_player
     }
     return any(
         rules_hooks.permits(
-            rules_hooks.POINT_STRIPS_PLANETARY_SHIELD, state, other,
-            {"position": invasion.position},
+            rules_hooks.POINT_STRIPS_PLANETARY_SHIELD, state, other, {"position": position},
         )
         for other in sorted(others)
         if other != owner and other in state.players
     )
 
 
-def _planet_shielded(
-    state: GameState, registry: StaticDataRegistry, planet: str
-) -> bool:
-    """Czy na planecie stoi jednostka innego gracza z Planetary Shield (I4)."""
-    invasion = _inv(state)
-    system = _system(state)
+def planet_shield(
+    state: GameState,
+    registry: StaticDataRegistry,
+    position: str,
+    planet: str,
+    exclude: str | None = None,
+) -> tuple[bool, bool]:
+    """``(jest, działa)``: czy na planecie stoi jednostka z Planetary Shield i czy tarcza działa.
+
+    „Jest” = jednostka z PLANETARY SHIELD (poza graczem ``exclude``, np. atakującym). „Działa” =
+    tarczy nie odebrał Disable (PDS na czas inwazji) ani efekt innego gracza w systemie
+    (Arc Secundus). War sun atakującego to osobna sprawa (``_attacker_ignores_shield``).
+    Funkcja nie wymaga trwającej inwazji (mapa pokazuje tarcze stale).
+    """
+    system = state.systems.get(position)
+    present = active = False
+    if system is None:
+        return present, active
     for pid, by_type in system.planet_units.get(planet, {}).items():
-        if pid == invasion.attacker:
+        if pid == exclude:
             continue
         for bt, count in by_type.items():
             if count <= 0:
                 continue
+            unit = unit_variant(state, registry, pid, bt)
+            if unit is None or not unit.planetary_shield:
+                continue
+            present = True
             if bt == "pds" and space_cannon.pds_disabled(state, pid):
                 continue  # Disable: PDS przeciwnika traci Planetary Shield na czas inwazji
-            if _shield_stripped(state, pid):
+            if _shield_stripped(state, position, pid):
                 continue  # Arc Secundus: jednostki innych graczy w systemie tracą tarczę
-            unit = unit_variant(state, registry, pid, bt)
-            if unit is not None and unit.planetary_shield:
-                return True
-    return False
+            active = True
+    return present, active
 
 
 def planet_infos(state: GameState, registry: StaticDataRegistry) -> list[PlanetInfo]:
@@ -225,7 +241,9 @@ def planet_infos(state: GameState, registry: StaticDataRegistry) -> list[PlanetI
     ignores = _attacker_ignores_shield(state, registry)
     infos: list[PlanetInfo] = []
     for planet in system_planets(state, registry, invasion.position):
-        has_shield = _planet_shielded(state, registry, planet)
+        has_shield, shield_up = planet_shield(
+            state, registry, invasion.position, planet, exclude=invasion.attacker
+        )
         has_cannon = any(
             space_cannon.zone_shooters(state, registry, pid, invasion.position, planet)
             for pid in system.planet_units.get(planet, {})
@@ -236,7 +254,7 @@ def planet_infos(state: GameState, registry: StaticDataRegistry) -> list[PlanetI
                 planet=planet,
                 owner=system.planet_owners.get(planet),
                 defenders=_defenders(state, planet, invasion.position, invasion.attacker),
-                shielded=(not ignores) and has_shield,
+                shielded=(not ignores) and shield_up,
                 has_space_cannon=has_cannon,
                 has_shield=has_shield,
             )

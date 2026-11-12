@@ -3,4 +3,39 @@
   pointer-events: none;
 }
 
+/* Utrata tarczy (np. Arc Secundus): migotanie, rozbłysk i zgaśnięcie z lekkim rozszerzeniem. */
+.icon[data-state="break"] {
+  animation: shieldBreak 1.6s ease-in forwards;
+}
 
+@keyframes shieldBreak {
+  0% {
+    opacity: 1;
+    filter: none;
+  }
+  12% {
+    opacity: 0.25;
+  }
+  24% {
+    opacity: 1;
+    filter: brightness(2.2) drop-shadow(0 0 10px rgb(147 197 253));
+  }
+  36% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.85;
+    filter: brightness(1.8) hue-rotate(160deg) drop-shadow(0 0 8px rgb(248 113 113));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(calc(var(--shield-scale, 1) * 1.5));
+    filter: blur(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon[data-state="break"] {
+    animation-duration: 0.4s;
+  }
+}

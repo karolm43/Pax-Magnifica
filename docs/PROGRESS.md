@@ -761,3 +761,9 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   wpisy sprzed otwarcia strony. Tryb lokalny (bez „mnie”): tylko akcje botów. Backend bez zmian.
 - `useActivityContext.ts` wydzielony z panelu; poprawka: na trasie `/game` brał `mapid=""` (404, nierozwiązane nazwy
   systemów) — teraz `DEFAULT_GAME_ID`. Testy: `activityToasts.test.ts`.
+- Poprawki po drugim teście: (1) Planetary Shield — `web_data` wysyłało zawsze `planetaryShield: False` (ikona tarczy
+  na mapie nigdy się nie pokazywała); teraz `invasion.planet_shield(state, registry, position, planet)` = (jest, działa),
+  mapa pokazuje działającą tarczę, a jej utratę (Arc Secundus) animuje `PlanetaryShieldOverlayLayer` (`shieldBreak`).
+  W oknie inwazji `has_shield` = „stoi jednostka z tarczą”, więc kopuła zapada się z animacją też przy Arc Secundus
+  i Disable (wcześniej znikała bez śladu). (2) Płatność: `buildActionCardParams` nie przepuszcza odpowiedzi, dopóki
+  planety + TG nie pokryją `payment.cost` (przycisk był aktywny przy „Paid 0 / 2” i silnik odrzucał).

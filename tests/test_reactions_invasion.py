@@ -315,7 +315,8 @@ def test_disable_zdejmuje_tarcze_i_space_cannon_pds(
     assert not _row(state, registry, "p2", "disable")["playable"]  # „your opponents' PDS”
     played = _play(state, registry, "p1", "disable")
     info = next(i for i in invasion.planet_infos(played, registry) if i.planet == _PL1)
-    assert not info.shielded and not info.has_shield and not info.has_space_cannon
+    # PDS stoi (kopuła się zapada w UI), ale tarcza i Space Cannon są wyłączone.
+    assert not info.shielded and info.has_shield and not info.has_space_cannon
     assert not space_cannon.zone_shooters(played, registry, "p2", "000", _PL1)
     # Bez tarczy można bombardować, więc silnik wraca do kroku Bombardment.
     assert played.invasion is not None and played.invasion.phase is InvasionPhase.BOMBARDMENT

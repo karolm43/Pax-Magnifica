@@ -26,8 +26,7 @@ function metaOf(option: ActionCardOption): Meta {
 }
 
 function paymentOf(input: ActionCardInput): Payment | null {
-  const raw = (input as { payment?: Payment }).payment;
-  return raw && typeof raw.cost === "number" ? raw : null;
+  return input.kind === "multi" && input.payment ? input.payment : null;
 }
 
 /** „Nazwa - dopisek” z backendu → tytuł kafelka i mniejszy podpis. */

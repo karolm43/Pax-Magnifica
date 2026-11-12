@@ -251,9 +251,28 @@ def test_arc_secundus_zdejmuje_tarcze(registry: StaticDataRegistry) -> None:
     state = _state()
     state.invasion = InvasionState(position="102", attacker="p1")
     state.systems["102"].planet_units["industrex"] = {"p2": {"pds": 1}}
-    assert invasion._planet_shielded(state, registry, "industrex") is True
+    assert invasion.planet_shield(state, registry, "102", "industrex", "p1") == (True, True)
     state.systems["102"].space_units["p1"] = {"flagship": 1}
-    assert invasion._planet_shielded(state, registry, "industrex") is False
+    # Tarcza nadal „jest” (UI pokazuje zapadającą się kopułę), ale nie działa.
+    assert invasion.planet_shield(state, registry, "102", "industrex", "p1") == (True, False)
+    info = next(i for i in invasion.planet_infos(state, registry) if i.planet == "industrex")
+    assert info.has_shield is True and info.shielded is False
+
+
+def test_mapa_pokazuje_tarcze_i_jej_utrate(registry: StaticDataRegistry) -> None:
+    from src.api.web_data import build_web_data
+
+    state = _state()
+    state.systems["102"].planet_units["industrex"] = {"p2": {"pds": 1}}
+    grid = build_demo_grid(registry)
+
+    def shield(s: GameState) -> bool:
+        tiles = build_web_data(grid, registry, s, game_name="t")["tileUnitData"]
+        return bool(tiles["102"]["planets"]["industrex"]["planetaryShield"])
+
+    assert shield(state) is True
+    state.systems["102"].space_units["p1"] = {"flagship": 1}
+    assert shield(state) is False  # Arc Secundus odbiera tarczę
 
 
 # --------------------------------------------------------------------- mech Dunlain Reaper

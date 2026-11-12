@@ -62,7 +62,7 @@ describe("DecisionFields", () => {
               { id: "b", value: "b", label: "Wren Terra (2)", meta: { planet: "b", value: 2, valueKind: "resources" } },
             ],
             payment: { cost: 2, valueKind: "resources", tradeGoods: "trade_goods" },
-          } as ActionCardInput,
+          },
           { key: "trade_goods", kind: "number", label: "Trade goods to spend", hint: "", min: 0, max: 2 },
         ]}
       />,
