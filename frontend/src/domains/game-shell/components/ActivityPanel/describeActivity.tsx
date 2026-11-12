@@ -28,8 +28,10 @@ import type {
 } from "@/api/useBoardEditor";
 import { getExploration } from "@/entities/lookup/explorations";
 import {
+  describeEffectScope,
   prettifyId,
   resolveAgendaName,
+  resolveEffectName,
   resolveCardName,
   resolveObjectiveName,
   resolvePlanetName,
@@ -676,8 +678,8 @@ function describeFact(
         tone: "info",
         text: (
           <>
-            {prefix}effect active: {prettifyId(fact.value ?? "")}
-            {fact.detail && <> (until end of {prettifyId(fact.detail).toLowerCase()})</>}
+            {prefix}used <b>{resolveEffectName(fact.value ?? "")}</b>
+            {fact.detail && <> (active for {describeEffectScope(fact.detail)})</>}
           </>
         ),
       };

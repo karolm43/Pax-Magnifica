@@ -482,3 +482,23 @@ def test_gravleash_z_gravity_drive_cala_flota_leci_3(registry: StaticDataRegistr
         assert moved.gravity_drive_used is True
     finally:
         board_graph.bind_grid_provider(previous)
+
+
+def test_panel_efektow_stalych_ma_nazwy_zamiast_id(registry: StaticDataRegistry) -> None:
+    from src.api.web_data import build_web_data
+    from src.core import active_effects
+    from src.core.game_events import Duration
+
+    state = _state()
+    active_effects.add_effect(state, letnev.HERO_EFFECT, Duration.ROUND, owner="p1")
+    active_effects.add_effect(
+        state, letnev.AGENT_DIE, Duration.COMBAT_ROUND, owner="p1", data={"base_type": "cruiser"}
+    )
+    grid = build_demo_grid(registry)
+    rows = build_web_data(grid, registry, state, game_name="t")["gameState"]["activeEffects"]
+    hero, agent = rows
+    assert hero["name"] == "Darktalon Treilla" and hero["kind"] == "Hero"
+    assert hero["until"] == "this game round" and "fleet pool" in hero["text"]
+    assert agent["name"] == "Viscount Unlenn" and agent["kind"] == "Agent"
+    assert agent["detail"].startswith("Cruiser") and agent["until"] == "this combat round"
+    assert hero["owner"] == agent["owner"] != "p1"  # klucz tożsamości gracza, nie surowe id

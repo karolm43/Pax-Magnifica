@@ -68,6 +68,43 @@ for (const unit of units) {
   }
 }
 
+// Klucz efektu trwałego ``<kategoria>:<id>[:dopisek]`` (np. ``leaders:letnevhero``,
+// ``leaders:letnevagent:die``) -> nazwa komponentu z danych zamiast surowego id.
+const EFFECT_LOOKUPS: Record<string, (id: string) => Named | undefined> = {
+  leaders: getLeaderById,
+  abilities: getAbility,
+  breakthroughs: getBreakthroughData,
+  technologies: getTechData,
+  relics: getRelicData,
+  action_cards: getActionCard,
+  promissory_notes: (id) => promissoryById.get(id),
+  agendas: (id) => agendasById.get(id),
+};
+
+export function resolveEffectName(key: string): string {
+  const [category = "", id = key] = key.split(":");
+  if (category === "planets") return resolvePlanetName(id);
+  return EFFECT_LOOKUPS[category]?.(id)?.name ?? prettifyId(id);
+}
+
+/** Zakres trwania efektu (``Duration``) -> „do kiedy”. */
+const EFFECT_SCOPES: Record<string, string> = {
+  turn: "this turn",
+  tactical_action: "this tactical action",
+  invasion: "this invasion",
+  agenda: "this agenda",
+  combat: "this combat",
+  combat_round: "this combat round",
+  phase: "this phase",
+  round: "this game round",
+  game: "the rest of the game",
+  while_in_play: "while in play",
+};
+
+export function describeEffectScope(scope: string): string {
+  return EFFECT_SCOPES[scope] ?? prettifyId(scope).toLowerCase();
+}
+
 export function resolveTechName(id: string): string {
   return getTechData(id)?.name ?? prettifyId(id);
 }

@@ -33,6 +33,7 @@ from src.core import (
     action_budget,
     agenda_phase,
     card_hold,
+    component_text,
     economy,
     game_clock,
     legendary_planets,
@@ -391,6 +392,9 @@ def _build_game_state(
             for e in state.active_effects
         ),
         "tempestaUsed": state.tempesta_used,
+        # Efekty trwałe w grze (bohater „near the game board”, kości agenta, prawa rundy...):
+        # panel „Active effects” przy planszy. ``owner`` = klucz tożsamości gracza (jak faction).
+        "activeEffects": _active_effects(state, registry),
         "pendingOffers": [
             {"id": o.id, "playerId": o.player_id, "mandatory": o.mandatory, "label": o.label}
             for o in state.pending_offers
@@ -410,6 +414,15 @@ def _build_game_state(
         # pokazuje na tej podstawie kontekstowy komunikat „Wszyscy spasowali…".
         "allPassed": turn_flow.all_passed(state),
     }
+
+
+def _active_effects(state: GameState, registry: StaticDataRegistry) -> list[dict[str, Any]]:
+    """Efekty trwałe do panelu przy planszy; ``owner`` jako klucz tożsamości gracza."""
+    keys = _entity_key_map(state)
+    return [
+        {**row, "owner": keys.get(row["owner"], row["owner"]) if row["owner"] else None}
+        for row in component_text.active_effects_view(state, registry)
+    ]
 
 
 def _entity_key_map(state: GameState) -> dict[str, str]:

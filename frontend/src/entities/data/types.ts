@@ -568,6 +568,8 @@ export type GameState = {
   /** Zużyto już premię Ionian Fuel Refinery w tej akcji taktycznej. */
   tempestaUsed?: boolean;
   pendingOffers?: { id: string; playerId: string; mandatory: boolean; label: string }[];
+  /** Efekty trwałe w grze (bohater „near the game board”, kość agenta...) — panel przy planszy. */
+  activeEffects?: ActiveEffectData[];
   /** Wieloetapowe primary karty strategii (wybory aktywnego gracza) — null, gdy brak. */
   pendingStrategy?: PendingStrategy | null;
   /** Zagrana karta akcji czekająca ~10 s na Sabotage (RULES.md 53.6) — null, gdy brak. */
@@ -1259,4 +1261,23 @@ export type RelicReveal = {
   planet?: string;
   /** Karta eksploracji (źródło `explore`). */
   card?: string;
+};
+
+/** Efekt trwały w grze (``gameState.activeEffects``), opisany przez silnik z assetów. */
+export type ActiveEffectData = {
+  id: string;
+  /** Klucz źródła (``leaders:letnevhero``) — do powiązania z wpisami historii. */
+  key: string;
+  name: string;
+  /** Rodzaj komponentu: „Hero”, „Agent”, „Technology”... (pusty, gdy nieznany). */
+  kind: string;
+  text: string;
+  /** Klucz tożsamości gracza (jak ``PlayerData.faction``); null = dotyczy wszystkich. */
+  owner: string | null;
+  scope: string;
+  /** Do kiedy działa, np. „this game round”. */
+  until: string;
+  /** Czego dotyczy (np. statek, system); pusty, gdy nic. */
+  detail: string;
+  round: number;
 };

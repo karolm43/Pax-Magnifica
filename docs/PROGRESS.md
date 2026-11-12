@@ -778,3 +778,8 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (stał do góry nogami); rozmiar 180 → 136 (grafika 56×65 px była rozciągana ~2,2× = pikseloza, teraz ~1,6×).
 - ActivityToasts: powiadomienie zwinięte = jedna linia „kto co zrobił” (max 2 wiersze); klik/strzałka rozwija skutki
   + nazwę, typ i tekst karty/technologii i wstrzymuje zamknięcie (zamyka X albo zwinięcie). Test `ActivityToastCard.test.tsx`.
+- Efekty trwałe: panel „Active effects” przy planszy (`domains/effects/ActiveEffectsPanel`, lewa strona mapy, zwijany,
+  klik = tekst karty) z `gameState.activeEffects` (`core/component_text.active_effects_view`: nazwa, rodzaj, tekst,
+  „do kiedy”, czego dotyczy). `describe_component` przeniesione z `offers.py` do `core/component_text.py` (wspólne).
+  Historia/powiadomienia: „used Darktalon Treilla (active for this game round)” zamiast „effect active:
+  Leaders:letnevhero” (`resolveEffectName`, `describeEffectScope`).
