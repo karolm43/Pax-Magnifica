@@ -853,3 +853,7 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   → trafienie na powierzchni (warstwa przycięta do globu: rozświetlenie, kula ognia, płaska fala, stygnący żar) + błysk,
   odłamki i dym wzdłuż normalnej powierzchni; pudło gaśnie w atmosferze chłodnym rozbłyskiem. War sun: kula ładowania
   i gruba lanca. Wszystko wygasa do zera (bez pozostałości). SCD bez zmian.
+- Rozmiar planety: glob ma promień zależny od wielkości planety na kafelku (`globeRadiusOf`, skala pierwiastkowa:
+  zwykła ~76 px, Primor/legendarne ~100, Mecatol ~107). Promienie dużych planet zmierzone z grafik kafelków skryptem
+  `scripts/measure_planet_radius.py` (krawędź tarczy, tylko aktywne źródła) => `entities/data/planetArtRadius.json`;
+  reszta = standard 60 px. Wcześniej Primor (r~100) był kadrowany jak zwykła planeta (50) i ucięty.

@@ -922,13 +922,14 @@ button.token {
   }
 }
 
+/* Rozmiar globu zależy od wielkości planety: --globe-r ustawia PlanetStage (globeRadiusOf). */
 .globe {
   position: absolute;
   left: 50%;
   bottom: 18px;
-  width: 168px;
-  height: 168px;
-  margin-left: -84px;
+  width: calc(2 * var(--globe-r, 84px));
+  height: calc(2 * var(--globe-r, 84px));
+  margin-left: calc(-1 * var(--globe-r, 84px));
   border-radius: 50%;
   box-shadow: 0 0 40px 6px rgba(120, 170, 255, 0.18), 0 0 90px 20px rgba(120, 170, 255, 0.08);
 }
@@ -1193,10 +1194,10 @@ button.token {
 .surfaceFx {
   position: absolute;
   left: 50%;
-  top: 164px;
-  width: 168px;
-  height: 168px;
-  margin-left: -84px;
+  top: var(--globe-top, 164px);
+  width: calc(2 * var(--globe-r, 84px));
+  height: calc(2 * var(--globe-r, 84px));
+  margin-left: calc(-1 * var(--globe-r, 84px));
   border-radius: 50%;
   overflow: hidden;
 }
@@ -1542,8 +1543,8 @@ button.token {
 @keyframes podFall {
   0% { opacity: 0; translate: 0 -30px; scale: 1.3; }
   15% { opacity: 1; }
-  85% { opacity: 1; translate: 0 175px; scale: 0.8; }
-  100% { opacity: 0; translate: 0 190px; scale: 0.6; }
+  85% { opacity: 1; translate: 0 var(--land-y, 175px); scale: 0.8; }
+  100% { opacity: 0; translate: 0 calc(var(--land-y, 175px) + 15px); scale: 0.6; }
 }
 
 @keyframes podHold {
@@ -1560,8 +1561,8 @@ button.token {
 
 @keyframes podLand {
   0% { opacity: 1; translate: 0 70px; scale: 1; }
-  80% { opacity: 1; translate: 0 175px; scale: 0.8; }
-  100% { opacity: 0; translate: 0 190px; scale: 0.6; }
+  80% { opacity: 1; translate: 0 var(--land-y, 175px); scale: 0.8; }
+  100% { opacity: 0; translate: 0 calc(var(--land-y, 175px) + 15px); scale: 0.6; }
 }
 
 /* Wynik świeżego rzutu (kości, trafienia, panel strat) odsłania się po wylądowaniu kości

@@ -18,6 +18,7 @@ import { AssignPanel } from "./AssignPanel";
 import {
   PlanetStage,
   StrikeLayer,
+  globeRadiusOf,
   surfaceOf,
   type OrbitItem,
 } from "./InvasionFx";
@@ -91,6 +92,8 @@ export function InvasionPlanetCard({
   // Plasma Scoring w Space Cannon Defense ("may"): undefined = domyślnie najcelniejsza grupa.
   const [plasmaPick, setPlasmaPick] = useState<string | null | undefined>(undefined);
   const data = getPlanetData(info.planet);
+  const art = data ? getPlanetTileArt(data) : null;
+  const globeR = globeRadiusOf(art);
   const attacker = view.attacker ?? "";
   const phase = view.phase;
   const defenders = Object.keys(info.forces).filter((k) => k !== attacker);
@@ -317,7 +320,8 @@ export function InvasionPlanetCard({
     >
       <PlanetStage
         surface={surfaceOf(data?.planetType)}
-        art={data ? getPlanetTileArt(data) : null}
+        art={art}
+        globeR={globeR}
         shielded={info.shielded}
         collapsed={info.hasShield && !info.shielded}
         ships={orbitItems}
@@ -333,6 +337,7 @@ export function InvasionPlanetCard({
               }
               from="orbit"
               shipCount={bombardShips.length}
+              globeR={globeR}
             />
           ) : phase === "SPACE_CANNON_DEFENSE" ? (
             <StrikeLayer
@@ -345,6 +350,7 @@ export function InvasionPlanetCard({
               }
               from="ground"
               shipCount={podItems.length}
+              globeR={globeR}
             />
           ) : null
         }

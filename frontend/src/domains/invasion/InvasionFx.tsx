@@ -5,7 +5,10 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { TILE_ART_WIDTH } from "@/entities/lookup/planetTileArt";
+import {
+  DEFAULT_PLANET_RADIUS,
+  TILE_ART_WIDTH,
+} from "@/entities/lookup/planetTileArt";
 import type { InvasionLogEntry } from "./useInvasion";
 import styles from "./InvasionOverlay.module.css";
 
@@ -60,13 +63,40 @@ export type PlanetArt = {
  */
 const ART_FILL = 0.9;
 
-export function artStyle(art: PlanetArt): CSSProperties {
-  const k = GLOBE_R / (art.radius * ART_FILL);
+export function artStyle(art: PlanetArt, globeR: number): CSSProperties {
+  const k = globeR / (art.radius * ART_FILL);
   return {
     width: `${TILE_ART_WIDTH * k}px`,
-    left: `${GLOBE_R - art.center.x * k}px`,
-    top: `${GLOBE_R - art.center.y * k}px`,
+    left: `${globeR - art.center.x * k}px`,
+    top: `${globeR - art.center.y * k}px`,
   };
+}
+
+/** Dolna krawędź globu (px od góry sceny): glob stoi na dole sceny, rośnie w górę. */
+const GLOBE_FLOOR = 332;
+/** Promień globu zwykłej planety i granice dla najmniejszych / największych (px). */
+const GLOBE_R_STANDARD = 76;
+const GLOBE_R_MIN = 52;
+const GLOBE_R_MAX = 108;
+
+/**
+ * Promień globu na scenie z promienia planety na kafelku: planety różnej wielkości mają
+ * różne globy (Mecatol, legendarne > zwykłe > małe). Skala pierwiastkowa - różnica jest
+ * wyraźna, ale ogromne planety nie wypychają orbity ze sceny.
+ */
+export function globeRadiusOf(art: PlanetArt | null | undefined): number {
+  const r = art?.radius ?? DEFAULT_PLANET_RADIUS;
+  const g = Math.round(GLOBE_R_STANDARD * Math.sqrt(r / DEFAULT_PLANET_RADIUS));
+  return Math.max(GLOBE_R_MIN, Math.min(GLOBE_R_MAX, g));
+}
+
+/** Zmienne CSS geometrii globu (rozmiar, góra, wysokość lądowania kapsuł). */
+function globeVars(globeR: number): CSSProperties {
+  return {
+    "--globe-r": `${globeR}px`,
+    "--globe-top": `${GLOBE_FLOOR - 2 * globeR}px`,
+    "--land-y": `${GLOBE_FLOOR - 2 * globeR + 11}px`,
+  } as CSSProperties;
 }
 
 /**
@@ -77,6 +107,7 @@ export function artStyle(art: PlanetArt): CSSProperties {
 export function PlanetStage({
   surface,
   art,
+  globeR,
   shielded,
   collapsed,
   ships,
@@ -85,6 +116,8 @@ export function PlanetStage({
 }: {
   surface: string;
   art?: PlanetArt | null;
+  /** Promień globu (``globeRadiusOf``) - ten sam musi dostać ``StrikeLayer``. */
+  globeR: number;
   shielded: boolean;
   collapsed: boolean;
   ships: OrbitItem[];
@@ -92,7 +125,7 @@ export function PlanetStage({
   strike: ReactNode;
 }) {
   return (
-    <div className={styles.stage}>
+    <div className={styles.stage} style={globeVars(globeR)}>
       <div className={styles.orbitRow} aria-label="Ships in orbit">
         {ships.map((ship, n) => (
           <span
@@ -118,7 +151,7 @@ export function PlanetStage({
               src={art.src}
               alt=""
               draggable={false}
-              style={artStyle(art)}
+              style={artStyle(art, globeR)}
             />
           )}
         </div>
@@ -151,13 +184,16 @@ function FlakShot({
   n,
   targetDx,
   shooterDx,
+  groundY,
 }: {
   n: number;
   targetDx: number;
   shooterDx: number;
+  /** Wysokość (px od góry sceny), z której strzela działo na powierzchni. */
+  groundY: number;
 }) {
   const vx = targetDx - shooterDx;
-  const vy = IMPACT_Y - POD_Y;
+  const vy = groundY - POD_Y;
   const len = Math.hypot(vx, vy);
   const angle = (Math.atan2(vx, vy) * 180) / Math.PI;
   return (
@@ -167,7 +203,7 @@ function FlakShot({
         style={
           {
             "--sx": `${shooterDx - targetDx}px`,
-            "--sy": `${IMPACT_Y}px`,
+            "--sy": `${groundY}px`,
             "--ang": `${angle}deg`,
             "--len": `${len}px`,
           } as CSSProperties
@@ -188,11 +224,6 @@ function FlakShot({
   );
 }
 
-/** Geometria globu na scenie (px od góry sceny): środek i promień. */
-const GLOBE_CY = 248;
-const GLOBE_R = 84;
-/** Górna krawędź globu (px od góry sceny) - początek układu warstwy przyciętej do planety. */
-const GLOBE_TOP = GLOBE_CY - GLOBE_R;
 /** Wylot działa: dolny koniec pocisku w chwili wystrzału (tuż pod okrętem). */
 const SHELL_TIP_Y = 74;
 /** Wysokość atmosfery nad powierzchnią (px) - tu spala się pocisk, który spudłował. */
@@ -206,6 +237,7 @@ const ATMOSPHERE = 14;
  */
 export function shellPath(
   x: number,
+  globeR: number,
   lift = 0,
 ): {
   tx: number;
@@ -215,9 +247,10 @@ export function shellPath(
   iy: number;
   len: number;
 } {
-  const ax = Math.max(-GLOBE_R + 18, Math.min(GLOBE_R - 18, x));
-  const r = GLOBE_R + lift;
-  const iy = GLOBE_CY - Math.sqrt(r ** 2 - ax ** 2) + (lift > 0 ? 0 : 6);
+  const cy = GLOBE_FLOOR - globeR;
+  const ax = Math.max(-globeR + 18, Math.min(globeR - 18, x));
+  const r = globeR + lift;
+  const iy = cy - Math.sqrt(r ** 2 - ax ** 2) + (lift > 0 ? 0 : 6);
   const tx = ax - x;
   const ty = iy - SHELL_TIP_Y;
   return {
@@ -246,8 +279,7 @@ const DEFENSE_MS = 2800;
 /** Odstęp między kolejnymi strzałami salwy (ms): bombardowanie to seria, SCD rzadsze strzały. */
 const STAGGER_ORBIT = 220;
 const STAGGER_GROUND = 380;
-/** Wysokość (px od góry sceny), na której pociski uderzają w glob / stoją kapsuły w locie. */
-const IMPACT_Y = 205;
+/** Wysokość (px od góry sceny), na której stoją kapsuły w locie (Space Cannon Defense). */
 const POD_Y = 105;
 /** Pociski w jednej serii ze statku: pierwszy pełny, drugi mniejszy (dobicie). */
 const ROUNDS = 2;
@@ -257,6 +289,8 @@ type Round = {
   key: string;
   hit: boolean;
   sun: boolean;
+  /** Promień globu, w który leci pocisk (px). */
+  globeR: number;
   /** Okręt-źródło (px od środka sceny). */
   dx: number;
   /** Rozrzut wylotu względem okrętu (px). */
@@ -331,8 +365,8 @@ function SurfaceHit({ r }: { r: Round }) {
       className={styles.surfaceHit}
       data-sun={r.sun || undefined}
       style={vars({
-        "--x": `${GLOBE_R + r.path.ax}px`,
-        "--y": `${r.path.iy - GLOBE_TOP}px`,
+        "--x": `${r.globeR + r.path.ax}px`,
+        "--y": `${r.path.iy - (GLOBE_FLOOR - 2 * r.globeR)}px`,
         "--hit": `${arrival(r)}ms`,
         "--k": r.size,
       })}
@@ -358,7 +392,7 @@ function AirFx({ r, n }: { r: Round; n: number }) {
         "--hit": `${arrival(r)}ms`,
         "--k": r.size,
         // Odłamki i dym odchylają się od pionu tak jak normalna powierzchni w punkcie trafienia.
-        "--tilt": `${(Math.asin(r.path.ax / GLOBE_R) * 180) / Math.PI}deg`,
+        "--tilt": `${(Math.asin(r.path.ax / r.globeR) * 180) / Math.PI}deg`,
       })}
     >
       <i className={styles.flash} />
@@ -391,6 +425,7 @@ export function StrikeLayer({
   from,
   shipCount,
   startMs,
+  globeR,
 }: {
   entry: InvasionLogEntry | undefined;
   /** Numer wpisu w dzienniku (rośnie z każdym rozstrzygnięciem). */
@@ -400,6 +435,8 @@ export function StrikeLayer({
   from: "orbit" | "ground";
   /** Ile statków stoi na orbicie (źródła ostrzału); 0 = pociski z losowych punktów. */
   shipCount: number;
+  /** Promień globu na scenie (``globeRadiusOf``), ten sam co w ``PlanetStage``. */
+  globeR: number;
 }) {
   const initial = useRef(entryId);
   const [finished, setFinished] = useState(-1);
@@ -443,7 +480,7 @@ export function StrikeLayer({
       const lift = b.hit ? 0 : ATMOSPHERE;
       if (b.sun) {
         return [
-          { key: b.id, hit: b.hit, sun: true, dx, rx: 0, t: t0, size: 1, path: shellPath(dx, lift) },
+          { key: b.id, hit: b.hit, sun: true, globeR, dx, rx: 0, t: t0, size: 1, path: shellPath(dx, globeR, lift) },
         ];
       }
       return Array.from({ length: ROUNDS }, (_, r) => {
@@ -452,11 +489,12 @@ export function StrikeLayer({
           key: `${b.id}-${r}`,
           hit: b.hit,
           sun: false,
+          globeR,
           dx,
           rx,
           t: t0 + r * 150 + spread(n, 3 + r) * 60,
           size: r === 0 ? 1 : 0.6,
-          path: shellPath(dx + rx * 1.8, lift),
+          path: shellPath(dx + rx * 1.8, globeR, lift),
         };
       });
     });
@@ -507,6 +545,7 @@ export function StrikeLayer({
               n={n}
               targetDx={dx}
               shooterDx={(spread(n, 9) - 0.5) * 150}
+              groundY={GLOBE_FLOOR - globeR * 1.5}
             />
           </span>
         );
