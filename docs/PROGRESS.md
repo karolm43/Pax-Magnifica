@@ -844,3 +844,12 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Siatka bezpieczeństwa: `tests/factions/test_flows_api.py` — scenariusze przez prawdziwe API (nowa gra, setup, tura),
   sprawdzające to, co widzi gracz (oferta / „Available now”), a nie efekt na ręcznie zbudowanym stanie.
 
+## 2026-11-12 (7) — Inwazja: planety z kafelków i nowe bombardowanie (front)
+
+- Glob w oknie inwazji pokazuje grafikę planety wyciętą z jej kafelka (`entities/lookup/planetTileArt.ts`:
+  środek z `centerPosition`/`positionInTile`, promień `planetRadius` lub 50 px; kadr lekko przepełniony, by
+  etykiety z kafelka zostały poza kołem). Bez kafelka/pozycji zostaje dawny gradient. `PlanetCard` korzysta z tej samej funkcji.
+- Bombardowanie od nowa (`InvasionFx`): ładowanie działa → plazmowy pocisk z warkoczem (przyspiesza jak przy spadaniu)
+  → trafienie na powierzchni (warstwa przycięta do globu: rozświetlenie, kula ognia, płaska fala, stygnący żar) + błysk,
+  odłamki i dym wzdłuż normalnej powierzchni; pudło gaśnie w atmosferze chłodnym rozbłyskiem. War sun: kula ładowania
+  i gruba lanca. Wszystko wygasa do zera (bez pozostałości). SCD bez zmian.

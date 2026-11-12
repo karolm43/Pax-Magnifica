@@ -11,6 +11,7 @@ import {
   IconTargetArrow,
 } from "@tabler/icons-react";
 import { getPlanetData } from "@/entities/lookup/planets";
+import { getPlanetTileArt } from "@/entities/lookup/planetTileArt";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { BattleAssignPlan } from "@/api/useBoardEditor";
 import { AssignPanel } from "./AssignPanel";
@@ -316,6 +317,7 @@ export function InvasionPlanetCard({
     >
       <PlanetStage
         surface={surfaceOf(data?.planetType)}
+        art={data ? getPlanetTileArt(data) : null}
         shielded={info.shielded}
         collapsed={info.hasShield && !info.shielded}
         ships={orbitItems}

@@ -1005,6 +1005,28 @@ button.token {
   }
 }
 
+/* Grafika planety wycięta z kafelka (kadr i skala liczone w InvasionFx.artStyle). */
+.globeSurface[data-art] {
+  overflow: hidden;
+  background: #0b1020;
+  animation: none;
+}
+
+.globeArt {
+  position: absolute;
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Grafika ma własne oświetlenie - cień globu tylko ją lekko domyka. */
+.globeSurface[data-art] + .globeShade {
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.1), transparent 40%),
+    radial-gradient(circle at 74% 76%, rgba(0, 0, 8, 0.45), transparent 60%);
+}
+
 /* Kopuła Planetary Shield: okrąg wokół GLOBU (wycentrowany na planecie). */
 .dome {
   position: absolute;
@@ -1040,7 +1062,9 @@ button.token {
   100% { opacity: 0; transform: scale(1.15); }
 }
 
-/* --- Salwy (warstwa znika z DOM po zakończeniu - bez pozostałości) --- */
+/* --- Salwy (warstwa znika z DOM po zakończeniu - bez pozostałości) ---
+   Każdy element ma bazowe opacity 0, a animacje używają wypełnienia `backwards`
+   z ostatnią klatką opacity 0: przed i po swoim momencie nic nie widać. */
 .strikes {
   position: absolute;
   inset: 0;
@@ -1056,130 +1080,266 @@ button.token {
   height: 100%;
 }
 
-/* BOMBARDOWANIE: deszcz pocisków z okrętów na orbicie - szybkie, jasne pociski spadają
-   na glob i wybuchają. Każdy rzut kością to seria kilku pocisków (--rd = opóźnienie w serii,
-   --rx = rozrzut). Pudło: pocisk wypala się w atmosferze, bez wybuchu. */
+/* BOMBARDOWANIE. Punkt zaczepienia pocisku = wylot działa pod okrętem (--dx). */
 .round {
   position: absolute;
-  left: var(--rx, 0px);
+  left: calc(50% + var(--dx, 0px));
   top: 0;
   width: 0;
-  height: 100%;
+  height: 0;
 }
 
-/* Pocisk: mała świetlista kropla z krótkim warkoczem, lecąca PROSTO do punktu na globie
-   (--tx/--ty = przesunięcie, --ang = obrót wzdłuż toru). Animacje używają wypełnienia
-   `backwards`, a ich ostatnia klatka ma opacity 0 - po salwie nic nie zostaje na scenie. */
-.shell {
+/* Ładowanie działa: żar zbiera się pod okrętem i pęka błyskiem wylotu w chwili strzału. */
+.charge {
   position: absolute;
-  left: -1.5px;
-  top: 52px;
-  width: 3px;
+  left: -10px;
+  top: 58px;
+  width: 20px;
   height: 20px;
   opacity: 0;
-  border-radius: 2px;
-  rotate: var(--ang, 0deg);
-  transform-origin: 50% 100%;
-  background: linear-gradient(180deg, rgba(251, 146, 60, 0), #fdba74 55%, #fff 100%);
-  box-shadow: 0 0 6px 1px rgba(251, 146, 60, 0.8);
-  animation: shellFall 0.5s cubic-bezier(0.5, 0, 0.9, 0.7) calc(var(--delay) + var(--rd)) backwards;
-}
-
-.strike:not([data-hit]) .shell {
-  animation-name: shellBurnOut;
-  animation-duration: 0.42s;
-}
-
-/* Błysk wylotu na okręcie w chwili wystrzału. */
-.muzzleFx {
-  position: absolute;
-  left: -9px;
-  top: 47px;
-  width: 18px;
-  height: 18px;
-  opacity: 0;
   border-radius: 50%;
-  mix-blend-mode: screen;
-  background: radial-gradient(circle, #fff 0%, #fdba74 40%, rgba(251, 146, 60, 0) 72%);
-  animation: muzzlePop 0.22s ease-out calc(var(--delay) + var(--rd)) backwards;
+  scale: var(--k, 1);
+  background: radial-gradient(circle, #fff 0%, #fde68a 30%, rgba(251, 146, 60, 0.55) 55%, transparent 72%);
+  animation: chargeUp 0.36s ease-in var(--t) backwards;
 }
 
-/* Trafienie: jasny błysk, pierścień fali i garść iskier (punkt uderzenia --tx/--iy). */
-.blast {
+/* Plazmowy ładunek: jasna główka + zwężający się warkocz, obrócony wzdłuż toru
+   (--ang) i przesuwany prosto do celu (--tx/--ty) z przyspieszeniem jak przy spadaniu. */
+.shell {
   position: absolute;
-  left: var(--tx, 0px);
-  top: var(--iy, 205px);
+  left: 0;
+  top: 74px;
   width: 0;
   height: 0;
-  pointer-events: none;
+  opacity: 0;
+  rotate: var(--ang, 0deg);
+  scale: var(--k, 1);
+  animation: shellFly 0.52s cubic-bezier(0.42, 0, 0.9, 0.55) calc(var(--t) + 0.24s) backwards;
 }
 
-.blast::before,
-.blast::after {
+.shell::before {
   content: "";
   position: absolute;
-  border-radius: 50%;
-  opacity: 0;
+  left: -3.5px;
+  top: -46px;
+  width: 7px;
+  height: 46px;
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0), rgba(251, 146, 60, 0.45) 45%, #fdba74 80%, #fff7ed);
 }
 
-.blast::after {
-  left: -20px;
-  top: -20px;
-  width: 40px;
-  height: 40px;
-  mix-blend-mode: screen;
-  background: radial-gradient(circle, #fff 0%, #fde68a 28%, rgba(251, 146, 60, 0.7) 56%, transparent 74%);
-  animation: blastFlash 0.42s ease-out calc(var(--delay) + var(--rd) + 0.5s) backwards;
-}
-
-.blast::before {
-  left: -14px;
-  top: -14px;
-  width: 28px;
-  height: 28px;
-  border: 1.5px solid rgba(253, 186, 116, 0.85);
-  animation: blastRing 0.55s ease-out calc(var(--delay) + var(--rd) + 0.5s) backwards;
-}
-
-.spark {
-  position: absolute;
-  left: -1px;
-  top: -1px;
-  width: 2px;
-  height: 7px;
-  opacity: 0;
-  border-radius: 1px;
-  background: linear-gradient(180deg, #fff, rgba(251, 146, 60, 0));
-  animation: sparkOut 0.42s ease-out calc(var(--delay) + var(--rd) + 0.5s) backwards;
-}
-
-.strike:not([data-hit]) .blast {
-  display: none;
-}
-
-/* WAR SUN: promień - jedna jasna wiązka z okrętu na planetę (krótko, bez przesady). */
-.sunBeam {
+.shell::after {
+  content: "";
   position: absolute;
   left: -5px;
-  top: 58px;
+  top: -5px;
   width: 10px;
-  height: var(--len, 140px);
-  opacity: 0;
-  border-radius: 5px;
-  rotate: var(--ang, 0deg);
-  transform-origin: 50% 0;
-  background: linear-gradient(90deg, rgba(251, 146, 60, 0.25), #fff 50%, rgba(251, 146, 60, 0.25));
-  box-shadow: 0 0 14px 4px rgba(253, 186, 116, 0.7);
-  animation: beamCast 0.9s ease-out var(--delay) backwards;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #fff7ed 35%, #fdba74 70%);
+  box-shadow: 0 0 10px 3px rgba(251, 146, 60, 0.85), 0 0 22px 6px rgba(234, 88, 12, 0.35);
 }
 
-.strike[data-sun] .blast {
+/* Pudło: ładunek wytraca się w atmosferze (krótszy tor, gaśnie i maleje). */
+.round:not([data-hit]) .shell {
+  animation-name: shellFizzle;
+  animation-duration: 0.44s;
+}
+
+/* WAR SUN: kula ładowania i gruba lanca (rdzeń + poświata) od okrętu do planety. */
+.sunCharge {
+  position: absolute;
+  left: -18px;
+  top: 52px;
+  width: 36px;
+  height: 36px;
+  opacity: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #fef3c7 25%, rgba(251, 146, 60, 0.7) 52%, transparent 72%);
+  box-shadow: 0 0 26px 8px rgba(251, 146, 60, 0.35);
+  animation: sunCharge 1.2s ease-in-out var(--t) backwards;
+}
+
+.sunBeam {
+  position: absolute;
+  left: -10px;
+  top: 70px;
+  width: 20px;
+  height: var(--len, 140px);
+  opacity: 0;
+  border-radius: 10px;
+  rotate: var(--ang, 0deg);
+  transform-origin: 50% 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(251, 146, 60, 0.5) 22%,
+    #fef3c7 42%,
+    #fff 50%,
+    #fef3c7 58%,
+    rgba(251, 146, 60, 0.5) 78%,
+    transparent
+  );
+  box-shadow: 0 0 20px 6px rgba(253, 186, 116, 0.5);
+  animation: lanceCast 1s ease-out calc(var(--t) + 0.3s) backwards;
+}
+
+.round[data-sun]:not([data-hit]) .sunBeam {
+  animation-name: lanceMiss;
+}
+
+/* Trafienia NA planecie: warstwa o geometrii globu, przycięta do koła - ogień i żar leżą
+   na powierzchni i nie wychodzą poza jej obrys. */
+.surfaceFx {
+  position: absolute;
+  left: 50%;
+  top: 164px;
+  width: 168px;
+  height: 168px;
+  margin-left: -84px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.surfaceHit {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 0;
+  height: 0;
+}
+
+.surfaceHit > i {
+  position: absolute;
+  opacity: 0;
+  border-radius: 50%;
+  scale: var(--k, 1);
+}
+
+.surfaceHit[data-sun] > i {
+  scale: 2.1;
+}
+
+/* Rozświetlenie: wybuch na moment oświetla całą okolicę na planecie. */
+.lightUp {
+  left: -130px;
+  top: -130px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(255, 220, 150, 0.55), rgba(251, 146, 60, 0.22) 32%, transparent 62%);
+  animation: lightUp 0.75s ease-out var(--hit) backwards;
+}
+
+/* Kula ognia: biały rdzeń -> żółty -> pomarańcz -> czerwony brzeg, puchnie i gaśnie. */
+.fireball {
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #fef08a 22%,
+    #fb923c 46%,
+    rgba(220, 38, 38, 0.65) 64%,
+    transparent 74%
+  );
+  animation: fireball 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) var(--hit) backwards;
+}
+
+/* Fala uderzeniowa: płaski pierścień (spłaszczony, bo leży na powierzchni kuli). */
+.shock {
+  left: -16px;
+  top: -16px;
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(255, 237, 213, 0.9);
+  box-shadow: 0 0 8px rgba(251, 146, 60, 0.6);
+  animation: shockwave 0.8s ease-out var(--hit) backwards;
+}
+
+/* Żar: przypalony krater z tlącym się brzegiem, stygnie i znika do końca salwy. */
+.scorch {
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(
+    circle,
+    rgba(20, 8, 4, 0.7) 0 22%,
+    rgba(194, 65, 12, 0.45) 36%,
+    rgba(60, 22, 8, 0.28) 52%,
+    transparent 70%
+  );
+  animation: scorch 2.1s ease-out calc(var(--hit) + 0.1s) backwards;
+}
+
+/* Skutki NAD planetą, obrócone wzdłuż normalnej powierzchni w punkcie trafienia (--tilt). */
+.airFx {
+  position: absolute;
+  left: calc(50% + var(--x));
+  top: var(--y);
+  width: 0;
+  height: 0;
+  rotate: var(--tilt, 0deg);
+}
+
+.airFx > i {
+  position: absolute;
+  opacity: 0;
+}
+
+.flash {
+  left: -24px;
+  top: -24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  scale: var(--k, 1);
+  background: radial-gradient(circle, #fff 0%, rgba(254, 240, 138, 0.8) 25%, rgba(251, 146, 60, 0.35) 50%, transparent 70%);
+  animation: flash 0.6s ease-out var(--hit) backwards;
+}
+
+/* Pudło: ładunek spala się w atmosferze - chłodny, płaski rozbłysk wzdłuż jej łuku. */
+.airFx:not([data-hit]) .flash {
+  scale: calc(var(--k, 1) * 0.9) calc(var(--k, 1) * 0.35);
+  background: radial-gradient(circle, #fff 0%, rgba(186, 230, 253, 0.8) 30%, rgba(56, 189, 248, 0.3) 55%, transparent 72%);
+}
+
+.airFx[data-sun] .flash {
   scale: 2.2;
 }
 
-.strike[data-sun]:not([data-hit]) .sunBeam {
-  height: calc(var(--len, 140px) * 0.75);
-  animation-name: beamCastMiss;
+.airFx[data-sun]:not([data-hit]) .flash {
+  scale: 1.6 0.5;
+}
+
+/* Odłamki: rozżarzone smugi wylatujące z krateru w górę (--a kąt, --d zasięg). */
+.debris {
+  left: -1px;
+  top: -9px;
+  width: 2px;
+  height: 9px;
+  border-radius: 1px;
+  transform-origin: 50% 100%;
+  background: linear-gradient(0deg, rgba(251, 146, 60, 0), #fdba74 60%, #fff);
+  animation: debris 0.65s cubic-bezier(0.15, 0.6, 0.4, 1) var(--hit) backwards;
+}
+
+/* Dym: ciemny kłąb unoszący się znad krateru. */
+.smoke {
+  left: -16px;
+  top: -24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  scale: var(--k, 1);
+  background: radial-gradient(circle, rgba(87, 83, 78, 0.7), rgba(68, 64, 60, 0.35) 45%, transparent 70%);
+  animation: smoke 1.7s ease-out calc(var(--hit) + 0.15s) backwards;
+}
+
+.airFx[data-sun] .smoke {
+  scale: 2;
 }
 
 /* SPACE CANNON DEFENSE: smuga flaku z powierzchni w spadającą kapsułę, na trafieniu błysk. */
@@ -1226,56 +1386,90 @@ button.token {
   display: none;
 }
 
-@keyframes shellFall {
+@keyframes chargeUp {
+  0% { opacity: 0; transform: scale(0.15); }
+  60% { opacity: 0.9; transform: scale(0.75); }
+  72% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+@keyframes shellFly {
   0% { opacity: 0; translate: 0 0; }
-  12% { opacity: 1; }
-  88% { opacity: 1; }
+  6% { opacity: 1; }
+  97% { opacity: 1; }
   100% { opacity: 0; translate: var(--tx, 0px) var(--ty, 120px); }
 }
 
-@keyframes shellBurnOut {
-  0% { opacity: 0; translate: 0 0; scale: 1 1; }
-  15% { opacity: 1; }
-  100% {
-    opacity: 0;
-    translate: calc(var(--tx, 0px) * 0.55) calc(var(--ty, 120px) * 0.55);
-    scale: 0.6 0.3;
-  }
+@keyframes shellFizzle {
+  0% { opacity: 0; translate: 0 0; scale: var(--k, 1); }
+  6% { opacity: 1; }
+  80% { opacity: 1; scale: var(--k, 1); }
+  100% { opacity: 0; translate: var(--tx, 0px) var(--ty, 120px); scale: 0.3; }
 }
 
-@keyframes muzzlePop {
+@keyframes sunCharge {
+  0% { opacity: 0; transform: scale(0.1); }
+  30% { opacity: 1; transform: scale(1); }
+  45% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(0.5); }
+}
+
+@keyframes lanceCast {
+  0% { opacity: 1; transform: scaleY(0) scaleX(1.6); }
+  12% { opacity: 1; transform: scaleY(1) scaleX(1.3); }
+  50% { opacity: 0.95; transform: scaleY(1) scaleX(1); }
+  80% { opacity: 0; transform: scaleY(1) scaleX(0.25); }
+  100% { opacity: 0; transform: scaleY(1) scaleX(0.1); }
+}
+
+@keyframes lanceMiss {
+  0% { opacity: 0.8; transform: scaleY(0); }
+  14% { opacity: 0.8; transform: scaleY(1) scaleX(0.8); }
+  100% { opacity: 0; transform: scaleY(1) scaleX(0.1); }
+}
+
+@keyframes lightUp {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes fireball {
+  0% { opacity: 0; transform: scale(0.1); }
+  10% { opacity: 1; transform: scale(0.8); }
+  45% { opacity: 0.95; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+
+@keyframes shockwave {
+  0% { opacity: 0; transform: scale(0.2, 0.12); }
+  6% { opacity: 0.95; }
+  100% { opacity: 0; transform: scale(3.4, 1.9); }
+}
+
+@keyframes scorch {
+  0% { opacity: 0; transform: scale(0.5); }
+  12% { opacity: 1; transform: scale(1); }
+  55% { opacity: 0.85; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+@keyframes flash {
   0% { opacity: 0; transform: scale(0.3); }
-  30% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.5); }
+  20% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.6); }
 }
 
-@keyframes blastFlash {
-  0% { opacity: 0; transform: scale(0.2); }
-  25% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.5); }
+@keyframes debris {
+  0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scaleY(1.3); }
+  8% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(var(--d) * -1)) scaleY(0.4); }
 }
 
-@keyframes blastRing {
-  0% { opacity: 0.9; transform: scale(0.3); }
-  100% { opacity: 0; transform: scale(2.4); }
-}
-
-@keyframes sparkOut {
-  0% { opacity: 1; transform: rotate(var(--a)) translateY(2px) scaleY(1); }
-  100% { opacity: 0; transform: rotate(var(--a)) translateY(22px) scaleY(0.4); }
-}
-
-@keyframes beamCast {
-  0% { opacity: 0; transform: scaleY(0) scaleX(1.8); }
-  18% { opacity: 1; transform: scaleY(1) scaleX(1.3); }
-  55% { opacity: 0.9; transform: scaleY(1) scaleX(1); }
-  100% { opacity: 0; transform: scaleY(1) scaleX(0.2); }
-}
-
-@keyframes beamCastMiss {
-  0% { opacity: 0; transform: scaleY(0); }
-  25% { opacity: 0.7; transform: scaleY(1); }
-  100% { opacity: 0; transform: scaleY(1) scaleX(0.2); }
+@keyframes smoke {
+  0% { opacity: 0; transform: translateY(0) scale(0.3); }
+  25% { opacity: 0.85; }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.8); }
 }
 
 @keyframes flakFly {
@@ -1298,10 +1492,13 @@ button.token {
 }
 @media (prefers-reduced-motion: reduce) {
   .dome,
-  .strikes,
   .orbitShip,
   .globeSurface {
     animation: none;
+  }
+
+  .strikes[data-from="orbit"] {
+    display: none;
   }
 }
 /* --- Kapsuły desantu (małe jednostki spadające na planetę) --- */

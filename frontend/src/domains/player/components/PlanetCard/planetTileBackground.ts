@@ -1,20 +1,17 @@
 import type { CSSProperties } from "react";
-import { getTileById } from "@/entities/lookup/systems";
-import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { Planet } from "@/entities/data/types";
-import { getPlanetLocalPosition } from "@/entities/lookup/planets";
+import {
+  getPlanetTileArt,
+  TILE_ART_HEIGHT,
+  TILE_ART_WIDTH,
+} from "@/entities/lookup/planetTileArt";
 
-const TILE_ART_WIDTH = 345;
-const TILE_ART_HEIGHT = 299;
 const FOCAL_Y_PERCENT = 26;
 
 export function getPlanetTileBackground(planetData: Planet) {
-  if (!planetData.tileId) return null;
-
-  const tile = getTileById(planetData.tileId);
-  const center = getPlanetLocalPosition(planetData);
-
-  if (!tile || !center) return null;
+  const art = getPlanetTileArt(planetData);
+  if (!art) return null;
+  const { center } = art;
 
   const planetRadius = planetData.planetLayout?.planetRadius ?? 0;
   const focusRadius = Math.max(
@@ -26,7 +23,7 @@ export function getPlanetTileBackground(planetData: Planet) {
   const focusOuter = focusRadius + focusFade;
 
   return {
-    src: assetUrl(`/tiles/${tile.imagePath}`),
+    src: art.src,
     imageStyle: {
       width: TILE_ART_WIDTH,
       height: TILE_ART_HEIGHT,
