@@ -774,3 +774,5 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Gravleash + Gravity Drive: `move_fleet` zużywał premię na pierwszym typie statku, więc reszta floty dostawała
   „Range too short”, choć podgląd trasy pokazywał dolot. Premia zużyta w TYM ruchu działa teraz na kolejne typy
   (niemyśliwskie) przy Gravleash; test `test_gravleash_z_gravity_drive_cala_flota_leci_3`.
+- Pole bitwy, war sun (też Prototype War Sun Muaat — ta sama grafika `ws`): prawa flota nie odwraca go już o 180°
+  (stał do góry nogami); rozmiar 180 → 136 (grafika 56×65 px była rozciągana ~2,2× = pikseloza, teraz ~1,6×).

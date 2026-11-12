@@ -21,7 +21,10 @@ import styles from "./BattleOverlay.module.css";
 /* Rozmiar okrętu na polu bitwy wg typu (asyncId): okręty liniowe wyraźnie większe od
    eskorty, myśliwce i piechota małe — skala oddaje „wagę" jednostki. */
 const SHIP_SIZE: Record<string, number> = {
-  ws: 180, // war sun — największa jednostka pola bitwy
+  // War sun — największa jednostka pola bitwy. Grafika ma tylko 56×65 px: przy 180 była
+  // rozciągana ~2,2× i wyglądała na rozpikselowaną; 136 (sprite ~106 px, ~1,6×) to kompromis
+  // ostrość/rozmiar — wciąż większy od flagowca (128).
+  ws: 136,
   fs: 128,
   dn: 108,
   cv: 96,

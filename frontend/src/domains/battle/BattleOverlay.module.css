@@ -478,13 +478,15 @@
   transform: rotate(var(--heading-right, -45deg));
 }
 
-/* War sun ma grafikę zwróconą dziobem W GÓRĘ (nie w lewy-górny róg jak reszta). */
+/* War sun ma grafikę zwróconą kolcami W GÓRĘ (forteca, nie okręt z dziobem) — po OBU stronach
+   stoi prosto. Wcześniej prawa flota obracała go o 180° (do góry nogami). Dotyczy też
+   Prototype War Sun (Muaat), który używa tej samej grafiki (`ws`). */
 .overlay[data-kind="space"] .ship[data-side="left"][data-base="ws"] .shipSprite {
   transform: rotate(var(--ws-heading-left, 0deg));
 }
 
 .overlay[data-kind="space"] .ship[data-side="right"][data-base="ws"] .shipSprite {
-  transform: rotate(var(--ws-heading-right, 180deg));
+  transform: rotate(var(--ws-heading-right, 0deg));
 }
 
 .emerge {
