@@ -98,6 +98,52 @@ function ranks(views: ShipView[]): ShipView[][] {
     .map(([, list]) => list);
 }
 
+/**
+ * SKALA SZYKU: okręty mają stałe rozmiary „wagi" (SHIP_SIZE), więc duża flota (war sun +
+ * dreadnoughty + eskorta) wychodziła poza panel i była ucinana na krawędziach. Mierzymy
+ * szeregi (offsetWidth/Height — bez transformacji animacji wejścia) i liczymy skalę, przy
+ * której szyk mieści się w panelu z zapasem. Proporcje między typami zostają.
+ */
+function useFormationFit(views: ShipView[]) {
+  const formationRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(1);
+  const signature = views.map((v) => v.ship.id).join(",");
+  useLayoutEffect(() => {
+    const el = formationRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rankEls = Array.from(el.children).filter((c) =>
+        c.classList.contains(styles.rank),
+      ) as HTMLElement[];
+      if (rankEls.length === 0) return;
+      const cs = getComputedStyle(el);
+      const gaps = (parseFloat(cs.columnGap) || 0) * (rankEls.length - 1);
+      const availW =
+        el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const availH =
+        el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      if (availW <= 0 || availH <= 0) return;
+      const usedW = rankEls.reduce((sum, r) => sum + r.offsetWidth, 0);
+      const usedH = Math.max(...rankEls.map((r) => r.offsetHeight));
+      setFit((prev) => {
+        // Rozmiar „naturalny" (przy skali 1); odstępy między szeregami się nie skalują.
+        const naturalW = usedW / prev;
+        const naturalH = usedH / prev;
+        const next = Math.max(
+          0.4,
+          Math.min(1, ((availW - gaps) * 0.92) / naturalW, (availH * 0.94) / naturalH),
+        );
+        return Math.abs(next - prev) < 0.02 ? prev : Math.round(next * 100) / 100;
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [signature, fit]);
+  return { formationRef, fit };
+}
+
 function ShipToken({
   view,
   rank,
@@ -111,8 +157,11 @@ function ShipToken({
   selectable,
   onToggle,
   onHover,
+  fit,
 }: {
   view: ShipView;
+  /** Skala szyku (0,4–1) — flota mieści się w panelu niezależnie od liczby okrętów. */
+  fit: number;
   /** Podpis jednostki wyjątkowej (flagowiec) lub frakcyjnej; brak = zwykła jednostka. */
   tag: UnitTag | null;
   /** Najechanie / zjechanie kursorem — karta opisu jednostki jak na planszy. */
@@ -129,12 +178,12 @@ function ShipToken({
   onToggle: (ship: ShipEntity) => void;
 }) {
   const { ship, dying, leaving, justSustained } = view;
-  const size = shipSize(ship.asyncId);
+  const size = Math.round(shipSize(ship.asyncId) * fit);
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
   // Szyk-klin: okręty skrajne szeregu cofnięte względem środkowych (łuk ku wrogowi).
   const spread = Math.abs(index - (count - 1) / 2);
-  const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22);
+  const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22 * fit);
   const heavy = HEAVY.has(ship.asyncId);
   const engines = ENGINES[ship.asyncId];
   // Oś kadłuba MIERZONA z wyrenderowanego sprite'a (grafiki mają różne marginesy): środek
@@ -179,8 +228,8 @@ function ShipToken({
     "--rank": rank,
     "--i": index,
     "--dir": side === "left" ? -1 : 1,
-    "--jx": `${jitter(ship.id, 1, 8) + arcX}px`,
-    "--jy": `${jitter(ship.id, 2, 12)}px`,
+    "--jx": `${Math.round(jitter(ship.id, 1, 8) * fit) + arcX}px`,
+    "--jy": `${Math.round(jitter(ship.id, 2, 12) * fit)}px`,
     "--slot": `${size}px`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
@@ -192,6 +241,7 @@ function ShipToken({
     // Jednostki naziemne giną inaczej niż okręty (osuwają się i zapadają w pył, bez kuli ognia).
     "data-ground": ship.asyncId === "gf" || ship.asyncId === "mf" || undefined,
     "data-damaged": ship.damaged || undefined,
+    "data-heavy": heavy || undefined,
     "data-sustained": justSustained || undefined,
     "data-mark": mark,
     // Cel pocisków salwy — warstwa animacji mierzy położenia po tych atrybutach. Także
@@ -311,6 +361,25 @@ function ShipToken({
         </span>
       )}
       {dying && <span className={styles.explosion} aria-hidden="true" />}
+      {/* Ciężkie okręty: łańcuch wtórnych detonacji wzdłuż kadłuba (w trakcie konania,
+          przed wybuchem reaktora) i rozbłysk, który oświetla cały panel floty. */}
+      {dying &&
+        heavy &&
+        [0, 1, 2].map((i) => (
+          <span
+            key={`c${i}`}
+            className={styles.chain}
+            aria-hidden="true"
+            style={
+              {
+                "--x": `${50 + jitter(ship.id, 400 + i, 28)}%`,
+                "--y": `${50 + jitter(ship.id, 430 + i, 20)}%`,
+                "--d": `${1.25 + i * 0.32}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      {dying && heavy && <span className={styles.lightFlash} aria-hidden="true" />}
       {dying &&
         Array.from({ length: heavy ? 14 : 7 }, (_, i) => (
           <span
@@ -395,6 +464,7 @@ export function BattleFleet({
 }) {
   // Wejście armady gra tylko raz — późniejsze przemontowania okrętów (zmiana kroku) nie powtarzają go.
   const [entered, setEntered] = useState(false);
+  const { formationRef, fit } = useFormationFit(views);
   useEffect(() => {
     const withWarSun = views.some((v) => v.ship.asyncId === "ws");
     const t = window.setTimeout(
@@ -509,7 +579,9 @@ export function BattleFleet({
       </div>
 
       <div
+        ref={formationRef}
         className={styles.formation}
+        style={{ "--fit": fit } as CSSProperties}
         data-formation={align}
         data-entered={entered || skipEntry || undefined}
       >
@@ -541,6 +613,7 @@ export function BattleFleet({
                 mark={marks[view.ship.id]}
                 selectable={assigning}
                 onToggle={onToggle}
+                fit={fit}
               />
             ))}
           </div>

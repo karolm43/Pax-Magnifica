@@ -58,3 +58,13 @@
   font-size: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
+
+/*
+ * Okna pełnoekranowe (walka, inwazja, agenda, produkcja, technologie, eksploracja):
+ * dok ręki leży nad nimi (z-index 3050) — zwinięty pasek zajmuje ~54 px u dołu, więc okno
+ * zostawia tam miejsce, żeby nie zasłaniał tabel jednostek ani przycisków.
+ * Podwójny atrybut = wyższa specyficzność niż `.overlay` z modułów.
+ */
+[data-fullscreen-overlay][data-fullscreen-overlay] {
+  padding-bottom: 66px;
+}

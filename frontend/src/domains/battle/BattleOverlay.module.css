@@ -213,8 +213,17 @@
   min-width: 0;
   min-height: 0;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: var(--ds-radius-xs);
   border: 1px solid rgba(255, 255, 255, 0.09);
+  /* Płyta TI: ścięte rogi jak w pozostałych oknach (styles/tiChrome.css). */
+  clip-path: polygon(
+    var(--ti-cut, 12px) 0,
+    100% 0,
+    100% calc(100% - var(--ti-cut, 12px)),
+    calc(100% - var(--ti-cut, 12px)) 100%,
+    0 100%,
+    0 var(--ti-cut, 12px)
+  );
   background:
     radial-gradient(ellipse 90% 60% at var(--glow-x, 50%) 50%, rgb(var(--side-rgb) / 0.05), transparent 72%),
     rgba(8, 11, 19, 0.62);
@@ -388,15 +397,16 @@
   animation: emergeRight 10s cubic-bezier(0.3, 0.1, 0.2, 1) both;
 }
 
+/* Szereg = jedna kolumna (bez zawijania): gdy flota jest duża, cały szyk skaluje się
+   (useFormationFit w BattleFleet), zamiast wychodzić poza panel. */
 .rank {
   display: flex;
   flex-direction: column;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: none;
   align-items: center;
   justify-content: center;
-  align-content: center;
-  gap: 6px;
-  max-height: 100%;
+  gap: calc(6px * var(--fit, 1));
 }
 
 .wiped {
@@ -652,8 +662,11 @@
 
 /* Podpis jednostek wyjątkowych (flagowiec) i frakcyjnych. */
 .unitTag {
+  position: relative;
+  z-index: 2;
   max-width: calc(var(--slot) + 60px);
   overflow: hidden;
+  padding: 1px 7px 2px;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.25;
@@ -661,7 +674,11 @@
   text-align: center;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: rgb(var(--side-rgb) / 0.75);
+  /* Płytka pod napisem: podpis czyta się na tle kadłuba i planety. */
+  color: color-mix(in oklab, rgb(var(--side-rgb)) 55%, #ffffff);
+  background: rgb(4 6 12 / 0.62);
+  border-top: 1px solid rgb(var(--side-rgb) / 0.35);
+  border-radius: 2px;
 }
 
 .unitTag b {
@@ -673,27 +690,65 @@
   color: #d6b25e;
 }
 
+/*
+ * PRZYPISYWANIE TRAFIEŃ: zamiast prostokątnych pudełek (nachodziły na siebie przy gęstym
+ * szyku) każdy okręt dostaje CELOWNIK — cztery narożniki. Spoczynek: przygaszone; hover:
+ * zaciskają się na kadłubie; Sustain = niebieskie, zniszczenie = czerwone z pulsem namiaru.
+ */
 .ship[data-selectable] {
   cursor: pointer;
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+}
+
+.ship[data-selectable]::before,
+.ship[data-mark]::before {
+  --c: rgb(var(--side-rgb) / 0.45);
+  --l: clamp(8px, calc(var(--slot) * 0.16), 16px);
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--l) 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / 1.5px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--l) 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 1.5px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--l) 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / 1.5px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--l) 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / 1.5px var(--l) no-repeat;
+  transition: inset 0.16s ease, opacity 0.16s ease;
 }
 
 .ship[data-selectable]:hover {
   translate: 0 -2px; /* osobna właściwość — animacja wejścia trzyma `transform` */
-  border-color: rgb(var(--side-rgb) / 0.7);
-  background: rgb(var(--side-rgb) / 0.08);
 }
 
-.ship[data-mark="sustain"] {
-  border-color: rgba(96, 165, 250, 0.85);
-  background: rgba(59, 130, 246, 0.1);
+.ship[data-selectable]:hover::before {
+  --c: rgb(var(--side-rgb) / 0.95);
+  inset: 10px;
 }
 
-.ship[data-mark="destroy"],
-.ship[data-mark="both"] {
-  border-color: rgba(248, 113, 113, 0.85);
-  background: rgba(220, 38, 38, 0.1);
+.ship[data-mark="sustain"]::before {
+  --c: rgba(147, 197, 253, 0.95);
+  inset: 8px;
+}
+
+.ship[data-mark="destroy"]::before,
+.ship[data-mark="both"]::before {
+  --c: rgba(248, 113, 113, 0.95);
+  inset: 8px;
+  animation: targetLock 1.2s ease-in-out infinite;
+}
+
+@keyframes targetLock {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .ship[data-mark="destroy"] .shipSprite,
@@ -743,17 +798,29 @@
 .pips {
   display: flex;
   gap: 2px;
+  padding: 2px;
+  border-radius: 2px;
+  background: rgb(0 0 0 / 0.5);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 
 .pip {
-  width: 10px;
+  width: 11px;
   height: 3px;
   border-radius: 1px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.4s ease;
 }
 
 .pip[data-full] {
-  background: rgb(var(--side-rgb) / 0.55);
+  background: color-mix(in oklab, rgb(var(--side-rgb)) 75%, #ffffff);
+  box-shadow: 0 0 4px rgb(var(--side-rgb) / 0.45);
+}
+
+/* Uszkodzony (Sustain zużyty): ostatni segment w bursztynie — stan „na granicy". */
+.ship[data-damaged] .pip[data-full] {
+  background: #f59e0b;
+  box-shadow: 0 0 4px rgb(245 158 11 / 0.55);
 }
 
 .markBadge {
@@ -785,6 +852,122 @@
   background: radial-gradient(circle, rgba(255, 245, 220, 0.95) 0%, rgba(251, 191, 36, 0.8) 22%, rgba(234, 88, 12, 0.55) 45%, transparent 70%);
   animation: explode 2.2s ease-out 1.1s both;
   pointer-events: none;
+}
+
+/* Błysk rdzenia: krótki biały „flash frame" na początku wybuchu. */
+.explosion::before {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255, 250, 235, 0.9) 35%, transparent 70%);
+  opacity: 0;
+  animation: coreFlash 0.45s ease-out 1.1s both;
+}
+
+/* Fala uderzeniowa: cienki pierścień uciekający daleko poza kadłub. */
+.explosion::after {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 237, 213, 0.85);
+  box-shadow:
+    0 0 14px rgba(251, 146, 60, 0.7),
+    inset 0 0 10px rgba(251, 146, 60, 0.45);
+  opacity: 0;
+  animation: shockwave 1.4s cubic-bezier(0.1, 0.7, 0.3, 1) 1.15s both;
+}
+
+/* Ciężkie okręty: wtórne detonacje wzdłuż kadłuba, zanim pęknie reaktor. */
+.chain {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  z-index: 3;
+  width: calc(var(--slot) * 0.42);
+  height: calc(var(--slot) * 0.42);
+  margin: calc(var(--slot) * -0.21) 0 0 calc(var(--slot) * -0.21);
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, #fffbeb 0%, rgba(253, 186, 116, 0.9) 30%, rgba(234, 88, 12, 0.5) 55%, transparent 72%);
+  animation: chainPop 0.7s ease-out var(--d) both;
+}
+
+/* Światło wybuchu ciężkiego okrętu rozlewa się na cały panel floty. */
+.lightFlash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: 900px;
+  height: 900px;
+  margin: -450px 0 0 -450px;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 196, 120, 0.32), rgba(251, 146, 60, 0.1) 35%, transparent 65%);
+  animation: lightFlash 1.6s ease-out 1.15s both;
+}
+
+@keyframes coreFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes shockwave {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  12% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4.2);
+    border-width: 0.5px;
+  }
+}
+
+@keyframes chainPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes lightFlash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Okruchy kadłuba rozlatujące się przy zniszczeniu. */
@@ -2273,7 +2456,12 @@
   .sustainFx,
   .impact,
   .die,
-  .result {
+  .result,
+  .chain,
+  .lightFlash,
+  .explosion::before,
+  .explosion::after,
+  .ship[data-mark]::before {
     animation: none;
   }
 
@@ -2717,4 +2905,121 @@
   justify-content: space-between;
   gap: 8px 24px;
   padding: 4px 18px;
+}
+
+/* ── PLANSZA NOWEJ RUNDY (RoundStamp) ───────────────────────────────────────
+   Pas przez całe pole na wysokości szyku: tytuł krojem TI zwęża rozstrzelenie liter,
+   złote linie rysują się od środka, całość gaśnie po ~2 s. */
+.roundStamp {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 30%;
+  z-index: 6;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 14px 0 16px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgb(4 6 12 / 0.78) 25%, rgb(4 6 12 / 0.78) 75%, transparent);
+  animation: stampBand 2.2s ease-in-out both;
+}
+
+.roundStamp::before,
+.roundStamp::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--ti-gold-rgb, 252 162 43) / 0.75), transparent);
+  animation: stampRule 2.2s ease-in-out both;
+}
+
+.roundStamp::before {
+  top: 0;
+}
+
+.roundStamp::after {
+  bottom: 0;
+}
+
+.roundStamp small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.roundStamp b {
+  font-family: var(--ti-font-title, var(--font-display));
+  font-size: clamp(28px, 3.4vw, 46px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ti-gold-hi, #ffd34a) 22%, #ffffff);
+  text-shadow: 0 0 22px rgb(var(--ti-gold-rgb, 252 162 43) / 0.45), 0 2px 6px rgb(0 0 0 / 0.8);
+  animation: stampTitle 2.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes stampBand {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes stampRule {
+  0% {
+    transform: scaleX(0);
+  }
+  30%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes stampTitle {
+  0% {
+    opacity: 0;
+    letter-spacing: 0.6em;
+  }
+  35% {
+    opacity: 1;
+    letter-spacing: 0.16em;
+  }
+  80% {
+    opacity: 1;
+    letter-spacing: 0.14em;
+  }
+  100% {
+    opacity: 0;
+    letter-spacing: 0.12em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roundStamp,
+  .roundStamp b,
+  .roundStamp::before,
+  .roundStamp::after {
+    animation-name: stampFade;
+  }
+
+  @keyframes stampFade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    20%,
+    80% {
+      opacity: 1;
+    }
+  }
 }

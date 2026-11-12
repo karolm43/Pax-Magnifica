@@ -117,6 +117,24 @@ function useDockOpen(): [boolean, (next: boolean) => void] {
   return [open, set];
 }
 
+/**
+ * Czy jest otwarte okno pełnoekranowe (walka, inwazja, agenda, produkcja, technologie,
+ * eksploracja — atrybut `data-fullscreen-overlay` na ich korzeniu). Dok leży NAD nimi
+ * (karty reakcji, RULES.md 53.5), więc rozwinięty zasłaniał dół okna (np. tabele jednostek).
+ */
+function useFullscreenOverlay(): boolean {
+  const [present, setPresent] = useState(false);
+  useEffect(() => {
+    const check = () =>
+      setPresent(document.querySelector("[data-fullscreen-overlay]") !== null);
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+  return present;
+}
+
 /** Nazwa/etykieta karty wg kategorii (z wbudowanych danych AsyncTI4). */
 function useCardLabel(
   tab: HandTab,
@@ -293,7 +311,16 @@ export function BottomHandDock() {
     ignoreAuthGate: true,
     player: active?.discordId ?? null,
   });
-  const [open, setOpen] = useDockOpen();
+  const [storedOpen, setStoredOpen] = useDockOpen();
+  // Przy oknie pełnoekranowym dok startuje ZWINIĘTY; rozwinięcie w tym czasie jest chwilowe
+  // (`peek`) i nie nadpisuje zapamiętanego wyboru gracza.
+  const overlayOpen = useFullscreenOverlay();
+  const [peek, setPeek] = useState(false);
+  useEffect(() => {
+    if (!overlayOpen) setPeek(false);
+  }, [overlayOpen]);
+  const open = overlayOpen ? peek : storedOpen;
+  const setOpen = (next: boolean) => (overlayOpen ? setPeek(next) : setStoredOpen(next));
   const [tab, setTab] = useState<HandTab>("actions");
   // Przeciąganie karty akcji na strefę zagrania; po upuszczeniu otwiera formularz (RULES.md 53).
   const [dragCard, setDragCard] = useState<{

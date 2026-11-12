@@ -597,6 +597,8 @@ function Battlefield({ view }: { view: BattleView }) {
   return (
     <div
       className={styles.overlay}
+      // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
+      data-fullscreen-overlay=""
       data-kind={view.kind ?? undefined}
       data-nebula={view.nebula || undefined}
       role="dialog"
@@ -697,6 +699,7 @@ function Battlefield({ view }: { view: BattleView }) {
           } as CSSProperties
         }
       >
+        <RoundStamp round={view.round} kind={view.kind} />
         <BattleFleet
           side={attacker}
           views={attackerViews}
@@ -843,3 +846,19 @@ export function BattleOverlay() {
 }
 
 export default BattleOverlay;
+
+/**
+ * Plansza nowej rundy: „ROUND 2" przecina pole bitwy na ~2 s, gdy silnik przechodzi do
+ * kolejnej rundy (RULES.md 39 — walka toczy się rundami do wyniku). Runda 1 nie ma planszy:
+ * jej wstępem jest wejście flot. Czysta prezentacja, bez wpływu na klik (pointer-events: none).
+ */
+function RoundStamp({ round, kind }: { round: number; kind: string | null | undefined }) {
+  const first = useRef(round);
+  if (round <= 1 || round === first.current) return null;
+  return (
+    <div key={round} className={styles.roundStamp} aria-hidden="true">
+      <small>{kind === "ground" ? "Ground combat" : "Space combat"}</small>
+      <b>Round {round}</b>
+    </div>
+  );
+}

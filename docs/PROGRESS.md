@@ -660,3 +660,18 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (pulsująca kropka przy moim ruchu). Dok ręki przy 1280 px zasłaniał „Next phase/End turn” — szerokość zostawia miejsce na panel tury,
   wąski dok chowa podpisy segmentów. Okno setupu przy 720 px ucinało tytuł (centrowanie grid) — flex + `margin: auto`, karty skalowane też `vh`.
 - Scena wyboru frakcji nietknięta (zamknięta decyzją użytkownika).
+
+## Walka: profesjonalniejsze pole bitwy i efekty
+
+- Szyk floty skaluje się do panelu (`useFormationFit` w `BattleFleet.tsx`): duża flota (war sun, dreadnoughty, eskorta)
+  nie wychodzi już poza krawędzie; proporcje „wagi” okrętów zostają. Szeregi bez zawijania.
+- Przypisywanie trafień: celownik z czterech narożników zamiast nachodzących na siebie prostokątów
+  (hover zaciska, Sustain = niebieski, zniszczenie = czerwony z pulsem namiaru).
+- Zniszczenie okrętu: błysk rdzenia → kula ognia → fala uderzeniowa; ciężkie okręty (ws/fs/dn) mają łańcuch
+  wtórnych detonacji i rozbłysk oświetlający panel floty. Podpisy jednostek na płytce, paski życia na listwie
+  (uszkodzony = bursztynowy segment). Panele flot jako płyty TI.
+- Nowa animacja: plansza „ROUND N” przecinająca pole przy przejściu do kolejnej rundy (od rundy 2).
+- Okna pełnoekranowe (walka, inwazja, agenda, produkcja, technologie, eksploracja) mają `data-fullscreen-overlay`:
+  dok ręki zwija się wtedy do paska (rozwinięcie chwilowe, bez nadpisania zapamiętanego wyboru), a okno rezerwuje
+  pod nim miejsce — dok nie zasłania tabel jednostek. Inwazja: karta planety i dok orbity jako płyty TI.
+- Animacje bombardowania / lądowania / walki naziemnej (ustalone wcześniej z użytkownikiem) bez zmian.

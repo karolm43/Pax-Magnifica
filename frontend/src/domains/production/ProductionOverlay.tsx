@@ -242,6 +242,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   return createPortal(
     <div
       className={styles.overlay}
+      // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
+      data-fullscreen-overlay=""
       role="dialog"
       aria-modal="true"
       aria-label={`Production in ${systemName}`}

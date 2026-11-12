@@ -919,6 +919,8 @@ function CouncilWindow({ agenda, canAdvance }: { agenda: AgendaPhaseData; canAdv
   return createPortal(
     <div
       className={styles.overlay}
+      // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
+      data-fullscreen-overlay=""
       style={{ "--att-rgb": voterLook?.rgb ?? "214 178 94" } as CSSProperties}
       role="dialog"
       aria-label="Galactic Council - agenda phase"

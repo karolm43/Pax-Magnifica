@@ -266,6 +266,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   return createPortal(
     <div
       className={styles.overlay}
+      // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
+      data-fullscreen-overlay=""
       style={{ "--att-rgb": props.playerRgb } as CSSProperties}
       role="dialog"
       aria-label="Technology research"
