@@ -751,3 +751,13 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   Fleet, Impersonation, Plagiarize, Reveal Prototype, Enigmatic Device).
 - Agent Viscount Unlenn: opcje z nazwą frakcji zamiast `(p1)`, własne statki pierwsze. `validate_params`: pominięty
   opcjonalny multi (min 0) = pusta lista.
+
+## Powiadomienia „kto co zrobił” (ActivityToasts)
+
+- `ActivityPanel/ActivityToasts.tsx`: każdy nowy wpis feedu Activity od INNEGO gracza (tech, karta akcji, lider, ruch,
+  walka, pas…) wyskakuje w prawym górnym rogu na 8 s (najechanie wstrzymuje, X zamyka, max 3 naraz). Treść = ten sam
+  `describeActivity` co panel + tekst użytej karty/technologii (`activitySubject.ts` → `Named.hintFor`), czyli to, co
+  w panelu jest w podpowiedzi. Pomijane: God-Mode, zdarzenia bez sprawcy, `turn.next/turn.end`, wpisy cofnięte Undo,
+  wpisy sprzed otwarcia strony. Tryb lokalny (bez „mnie”): tylko akcje botów. Backend bez zmian.
+- `useActivityContext.ts` wydzielony z panelu; poprawka: na trasie `/game` brał `mapid=""` (404, nierozwiązane nazwy
+  systemów) — teraz `DEFAULT_GAME_ID`. Testy: `activityToasts.test.ts`.

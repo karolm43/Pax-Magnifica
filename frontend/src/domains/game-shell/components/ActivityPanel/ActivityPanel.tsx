@@ -1,28 +1,21 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Loader, Text, Tooltip } from "@/ds";
 import cx from "clsx";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
-import { usePlayerData } from "@/api/usePlayerData";
 import {
   useActivityFeed,
   type ActivityEntry,
   type ActivityKind,
   type ActivityPlayer,
 } from "@/api/useBoardEditor";
-import { useGameData } from "@/state/useGameContext";
-import { getPlanetsByTileId } from "@/entities/lookup/planets";
-import type { PlayerDataResponse } from "@/entities/data/types";
 import {
   formatAbsoluteTime,
   formatRelativeTime,
   prettifyId,
-  resolveSystemName,
 } from "../GameEventPanel/eventFormatting";
 import { describeActivity, type ActivityContext } from "./describeActivity";
+import { useActivityContext } from "./useActivityContext";
 import classes from "./ActivityPanel.module.css";
-
-const selectTilePositions = (data: PlayerDataResponse) => data.tilePositions;
 
 type FilterKey =
   | "all"
@@ -164,12 +157,6 @@ function phaseName(phase: string): string {
  * filtr po graczu. Dane liczy backend z różnicy migawek (core/activity.py).
  */
 export function ActivityPanel() {
-  const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid ?? "";
-  const { data: tilePositions } = usePlayerData(gameId, {
-    select: selectTilePositions,
-  });
-  const gameData = useGameData();
   const { data, isLoading, isError } = useActivityFeed();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [playerFilter, setPlayerFilter] = useState<string | null>(null);
@@ -180,27 +167,7 @@ export function ActivityPanel() {
     return () => clearInterval(id);
   }, []);
 
-  const ctx: ActivityContext = useMemo(() => {
-    const positionToSystemId: Record<string, string> = {};
-    for (const entry of tilePositions ?? []) {
-      const [pos, systemId] = entry.split(":");
-      if (pos && systemId) positionToSystemId[pos] = systemId;
-    }
-    return {
-      players: data?.players ?? {},
-      systemName: (pos) => resolveSystemName(pos, positionToSystemId),
-      systemHint: (pos) => {
-        const systemId = positionToSystemId[pos];
-        if (!systemId) return "";
-        const planets = getPlanetsByTileId(systemId.replace(/^0+/, "") || systemId);
-        if (planets.length === 0) return "No planets";
-        return planets
-          .map((p) => `${p.name}: ${p.resources} resources / ${p.influence} influence`)
-          .join("\n");
-      },
-      strategyCardIdMap: gameData?.strategyCardIdMap,
-    };
-  }, [tilePositions, data?.players, gameData?.strategyCardIdMap]);
+  const ctx = useActivityContext(data?.players);
 
   if (isLoading) {
     return (

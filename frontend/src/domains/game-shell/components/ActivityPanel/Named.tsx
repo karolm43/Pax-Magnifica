@@ -25,7 +25,7 @@ export type NamedKind =
   | "promissory"
   | "system";
 
-type Hint = { name: string; meta?: string; lines: string[] };
+export type Hint = { name: string; meta?: string; lines: string[] };
 
 const agendaByAlias = new Map(agendas.map((a) => [a.alias, a]));
 const promissoryByAlias = new Map(promissoryNotes.map((n) => [n.alias, n]));
@@ -34,7 +34,7 @@ function clean(lines: (string | undefined | null)[]): string[] {
   return lines.map((l) => l?.trim() ?? "").filter((l) => l.length > 0);
 }
 
-function hintFor(
+export function hintFor(
   kind: NamedKind,
   id: string,
   extra?: { idMap?: Record<number, string>; systemText?: string },
@@ -144,7 +144,7 @@ function hintFor(
   }
 }
 
-function HintBody({ hint }: { hint: Hint }) {
+export function HintBody({ hint }: { hint: Hint }) {
   return (
     <div className={classes.hint}>
       {hint.name && <b className={classes.title}>{hint.name}</b>}
