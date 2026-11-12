@@ -11,8 +11,10 @@ solo z botami to szczególny przypadek; hot-seat NIE jest wspierany.
 
 ## OSZCZĘDZANIE KONTEKSTU (najważniejsze)
 
-NIGDY nie czytaj w całości: `docs/PROGRESS_ARCHIWUM.md`, `docs/POKRYCIE_HOOKOW.md`, `docs/OKNA_CZASOWE.md`
+NIGDY nie czytaj w całości: `docs/PROGRESS_ARCHIWUM.md`, `docs/OKNA_CZASOWE.md`
 (generowane, po 100–190 KB), `docs/rules_tirules/tirules.json`, `docs/RULES.md` jako całości. Zawsze grep/offset.
+`docs/POKRYCIE_HOOKOW.md` to już krótkie podsumowanie (~10 KB, można czytać); szczegóły per kategoria/hooki
+są w `docs/pokrycie_hookow/*.md` (czytaj punktowo, największe ~34 KB).
 - Start: tylko `docs/README.md`. Dalej punktowo:
   - `docs/PROGRESS.md` (~35 KB): szukaj sekcji po temacie.
   - `docs/RULES.md` to INDEKS; treść sekcji N jest w `docs/rules/R<NN>.md` (np. „RULES.md 43.1a” = `rules/R43.md`).
@@ -73,7 +75,7 @@ własne okno: `HoldRollButton` + `soloHold` + `useDiceStage().throwDice`. Bez w�
 
 Cel: KOMPLET kart (akcji, agend, eksploracji, reliktów, notek, liderów, zdolności, technologii). Pipeline: `ARCHITEKTURA_KODU.md` §3a
 (RULES => `register_effect` => `register_effect_inputs` => zagrywalność => test => raport). Tekst karty z assetów. Karta zagrywana
-PRZECIĄGNIĘCIEM z ręki; podnieść można tylko kartę legalną (`action_cards.playability`). Postęp: `POKRYCIE_HOOKOW.md` (nie czytaj w całości).
+PRZECIĄGNIĘCIEM z ręki; podnieść można tylko kartę legalną (`action_cards.playability`). Postęp: `POKRYCIE_HOOKOW.md` (podsumowanie; szczegóły w `docs/pokrycie_hookow/`).
 
 ## Workflow
 

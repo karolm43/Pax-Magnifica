@@ -100,3 +100,19 @@ def test_kolejka_kart_action_zawiera_tylko_karty_bez_efektu(registry: StaticData
     assert "`meltdown`" not in queue  # Reactor Meltdown ma efekt (action_cards_economy)
     assert "`messiah`" not in queue  # ma efekt - zniknęła z kolejki
     assert "`disgrace`" not in queue  # karta reakcji, nie ACTION
+
+
+def test_raport_podzielony_na_male_pliki(registry: StaticDataRegistry) -> None:
+    """Podsumowanie jest krótkie, a szczegóły leżą w osobnych plikach (oszczędność kontekstu)."""
+    files = hook_coverage.render_files(registry)
+    summary = files["POKRYCIE_HOOKOW.md"]
+    assert "## 2. Pokrycie per kategoria" in summary
+    assert "## 6. Kolejka kart ACTION do zrobienia" in summary
+    assert "## 7. Frakcje" in summary
+    assert "pokrycie_hookow/hooki.md" in summary
+    assert "<details>" not in summary
+    assert len(summary) < 30_000
+    assert "pokrycie_hookow/hooki.md" in files
+    assert "pokrycie_hookow/przypadki_szczegolne.md" in files
+    assert "pokrycie_hookow/szczegoly_technologies.md" in files
+    assert "| `amd` |" in files["pokrycie_hookow/szczegoly_technologies.md"]

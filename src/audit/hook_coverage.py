@@ -1,7 +1,7 @@
 """Raport pokrycia hooków (H3, RULES.md 43.2 pkt 2): co zrobiono, a co czeka i w jakiej kolejności.
 
-Generuje ``docs/POKRYCIE_HOOKOW.md``
-(uruchom: ``uv run python -m src.audit.hook_coverage --write``).
+Generuje ``docs/POKRYCIE_HOOKOW.md`` (krótkie podsumowanie) oraz szczegóły w
+``docs/pokrycie_hookow/*.md`` (uruchom: ``uv run python -m src.audit.hook_coverage --write``).
 Raport jest GENEROWANY, nie ręczny — nie edytuj pliku wynikowego.
 
 Dane:
@@ -343,39 +343,52 @@ def _section_factions(registry: StaticDataRegistry, rows: list[Row]) -> list[str
     return lines + [""]
 
 
-def _section_details(rows: list[Row]) -> list[str]:
-    lines = ["## 8. Lista szczegółowa komponentów", "",
-             "Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.", ""]
+def _category_table(group: list[Row]) -> list[str]:
+    """Tabela szczegółowa jednej kategorii komponentów."""
+    lines = ["| Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |",
+             "|---|---|---|---|---|---|:---:|---|"]
+    for r in sorted(group, key=lambda x: x.component_id):
+        areas = ", ".join(a.split(" (")[0] for a in areas_of(r.text)) or "—"
+        lines.append(
+            f"| `{r.component_id}` | {_cell(r.name)} | {r.faction or '—'} | "
+            f"{r.trigger.value if r.trigger else '—'} | {kind_of(r)} | {areas} | "
+            f"{'✔' if r.covered else '—'} | {_snippet(r.body)} |"
+        )
+    return lines
+
+
+def _rows_by_category(rows: list[Row]) -> dict[ComponentCategory, list[Row]]:
     by_category: dict[ComponentCategory, list[Row]] = {}
     for row in rows:
         by_category.setdefault(row.category, []).append(row)
+    return by_category
+
+
+def _section_details(rows: list[Row]) -> list[str]:
+    lines = ["## 8. Lista szczegółowa komponentów", "",
+             "Każda kategoria zwinięta; kolumna „Typ” to oszacowanie heurystyczne.", ""]
+    by_category = _rows_by_category(rows)
     for category in ComponentCategory:
         group = by_category.get(category)
         if not group:
             continue
         lines += [f"<details><summary>{category.value} ({len(group)})</summary>", "",
-                  "| Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |",
-                  "|---|---|---|---|---|---|:---:|---|"]
-        for r in sorted(group, key=lambda x: x.component_id):
-            areas = ", ".join(a.split(" (")[0] for a in areas_of(r.text)) or "—"
-            lines.append(
-                f"| `{r.component_id}` | {_cell(r.name)} | {r.faction or '—'} | "
-                f"{r.trigger.value if r.trigger else '—'} | {kind_of(r)} | {areas} | "
-                f"{'✔' if r.covered else '—'} | {_snippet(r.body)} |"
-            )
-        lines += ["", "</details>", ""]
+                  *_category_table(group), "", "</details>", ""]
     return lines
 
 
+_HEADER = [
+    "# Pokrycie hooków (generowany — nie edytuj ręcznie)", "",
+    "Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.",
+    "Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych "
+    "(priorytetyzacja, nie decyzja).", "",
+]
+
+
 def render_markdown(registry: StaticDataRegistry) -> str:
-    """Składa raport w Markdown (deterministyczny dla tych samych danych i hooków)."""
+    """Składa PEŁNY raport w jednym Markdownie (``--print``; deterministyczny)."""
     rows = collect_rows(registry)
-    lines: list[str] = [
-        "# Pokrycie hooków (generowany — nie edytuj ręcznie)", "",
-        "Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.",
-        "Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych "
-        "(priorytetyzacja, nie decyzja).", "",
-    ]
+    lines: list[str] = list(_HEADER)
     for section in (
         _section_hooks(),
         _section_categories(rows),
@@ -390,17 +403,96 @@ def render_markdown(registry: StaticDataRegistry) -> str:
     return "\n".join(lines)
 
 
+def render_files(registry: StaticDataRegistry) -> dict[str, str]:
+    """Raport podzielony na pliki (oszczędność kontekstu): nazwa względem ``docs/`` -> treść.
+
+    ``POKRYCIE_HOOKOW.md`` to krótkie podsumowanie (sekcje 2, 3, 4, 6, 7 + spis);
+    ciężkie sekcje (lista hooków, przypadki szczególne, tabele per kategoria) trafiają do
+    ``docs/pokrycie_hookow/``.
+    """
+    rows = collect_rows(registry)
+    by_category = _rows_by_category(rows)
+    files: dict[str, str] = {}
+    toc = [
+        "## Spis plików szczegółowych (czytaj punktowo, tylko gdy potrzebne)", "",
+        "- [`pokrycie_hookow/hooki.md`](pokrycie_hookow/hooki.md) — sekcja 1: zarejestrowane "
+        "hooki i punkty zaczepienia.",
+        "- [`pokrycie_hookow/przypadki_szczegolne.md`](pokrycie_hookow/przypadki_szczegolne.md)"
+        " — sekcja 5: komponenty bez dopasowania do obszaru.",
+    ]
+    for category in ComponentCategory:
+        group = by_category.get(category)
+        if not group:
+            continue
+        name = f"pokrycie_hookow/szczegoly_{category.value}.md"
+        done = sum(1 for r in group if r.covered)
+        toc.append(
+            f"- [`{name}`]({name}) — sekcja 8: {category.value} ({done} / {len(group)} z hookiem)."
+        )
+        files[name] = "\n".join([
+            f"# Pokrycie hooków: {category.value} ({len(group)})", "",
+            "Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`]"
+            "(../POKRYCIE_HOOKOW.md). Kolumna „Typ” to oszacowanie heurystyczne.", "",
+            *_category_table(group), "",
+        ])
+    files["pokrycie_hookow/hooki.md"] = "\n".join([
+        "# Pokrycie hooków: zarejestrowane hooki", "",
+        "Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_HOOKOW.md).",
+        "", *_section_hooks(),
+    ])
+    files["pokrycie_hookow/przypadki_szczegolne.md"] = "\n".join([
+        "# Pokrycie hooków: przypadki szczególne", "",
+        "Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_HOOKOW.md).",
+        "", *_section_unmatched(rows),
+    ])
+    hooks_total = len(rules_hooks.all_hooks())
+    summary = list(_HEADER)
+    summary += [
+        f"Zarejestrowanych hooków: **{hooks_total}** (lista: `pokrycie_hookow/hooki.md`).", "",
+    ]
+    for section in (
+        _section_categories(rows),
+        _section_triggers(rows),
+        _section_areas(rows),
+        _section_action_queue(rows),
+        _section_factions(registry, rows),
+        toc + [""],
+    ):
+        summary += section
+    files["POKRYCIE_HOOKOW.md"] = "\n".join(summary)
+    return files
+
+
+def write_files(files: dict[str, str]) -> list[Path]:
+    """Zapisuje pliki raportu w ``docs/``; usuwa nieaktualne ``pokrycie_hookow/*.md``."""
+    docs = DOC_PATH.parent
+    parts_dir = docs / "pokrycie_hookow"
+    parts_dir.mkdir(parents=True, exist_ok=True)
+    for old in parts_dir.glob("*.md"):
+        if f"pokrycie_hookow/{old.name}" not in files:
+            old.unlink()
+    written: list[Path] = []
+    for name, text in sorted(files.items()):
+        path = docs / name
+        path.write_text(text, encoding="utf-8", newline="\n")
+        written.append(path)
+    return written
+
+
 def main(argv: list[str] | None = None) -> int:
-    """CLI: wypisuje raport albo zapisuje go do ``docs/POKRYCIE_HOOKOW.md`` (``--write``)."""
+    """CLI: wypisuje pełny raport albo zapisuje go podzielony na pliki (``--write``)."""
     parser = argparse.ArgumentParser(description="Raport pokrycia hooków (H3).")
-    parser.add_argument("--write", action="store_true", help="zapisz do docs/POKRYCIE_HOOKOW.md")
+    parser.add_argument(
+        "--write", action="store_true",
+        help="zapisz do docs/POKRYCIE_HOOKOW.md + docs/pokrycie_hookow/*.md",
+    )
     args = parser.parse_args(argv)
-    report = render_markdown(StaticDataRegistry())
+    registry = StaticDataRegistry()
     if args.write:
-        DOC_PATH.write_text(report, encoding="utf-8", newline="\n")
-        print(f"Zapisano {DOC_PATH}")
+        for path in write_files(render_files(registry)):
+            print(f"Zapisano {path}")
     else:
-        print(report)
+        print(render_markdown(registry))
     return 0
 
 
