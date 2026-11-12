@@ -87,7 +87,7 @@ def route_report(
             continue
         move_value = movement._effective_move_value(
             state, grid, registry, from_pos, base_type, player_id,
-            boost=boost, tempesta=tempesta_on,
+            boost=boost, tempesta=tempesta_on, companions=list(by_type),
         )
         if move_value:
             reach = max(reach, move_value)
@@ -129,6 +129,8 @@ def _ships(
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
     result: list[RouteShip] = []
+    # Statki startujące razem z tego systemu (Gravleash Maneuvers wyrównuje ich ruch).
+    together = [bt for bt, n in own.space_units.get(player_id, {}).items() if n > 0]
     for base_type, count in sorted(own.space_units.get(player_id, {}).items()):
         if count <= 0 or not is_space_unit(base_type):
             continue
@@ -145,13 +147,14 @@ def _ships(
             )
             continue
         plain, reason = movement.can_move(
-            state, grid, registry, from_pos, base_type, player_id, route=route
+            state, grid, registry, from_pos, base_type, player_id, route=route,
+            companions=together,
         )
         boosted = False
         if not plain and (boost or tempesta):
             boosted = movement.can_move(
                 state, grid, registry, from_pos, base_type, player_id,
-                boost=boost, tempesta=tempesta, route=route,
+                boost=boost, tempesta=tempesta, route=route, companions=together,
             )[0]
         result.append(
             RouteShip(

@@ -730,5 +730,5 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   w walce, bombardowaniu i SC Defense), `fleet_pool.capacity` / `fleet_pool.unlimited`, `invasion.strips_planetary_shield`,
   `space_cannon.defense_immune`, `UNIT_SUSTAIN_DAMAGE` także w bombardowaniu i SC Defense, okno „po rzutach” w walce
   kosmicznej, `promissory_play.any_subject`.
-- ⚠️ Otwarte: druga klauzula Gravleash (wyrównanie wartości ruchu) — czeka na przebudowę ruchu (trasy) prowadzoną
-  równolegle w `core/movement.py`; „limited by laws” u Darktalon (brak praw limitujących statki w silniku).
+- Druga klauzula Gravleash (wyrównanie ruchu) dokończona po przebudowie tras: PERMIT `movement.match_highest`.
+- ⚠️ Otwarte: „limited by laws” u Darktalon (brak praw limitujących statki); premia Gravity Drive nie propaguje się.

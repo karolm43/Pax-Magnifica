@@ -137,6 +137,9 @@ POINT_STRATEGY_TOKEN_FROM_REINFORCEMENTS = "command_tokens.strategy_from_reinfor
 
 # Ruch i transport z systemów zawierających WŁASNY żeton dowodzenia (Dominus Orb). PERMIT -> bool.
 POINT_MOVEMENT_IGNORE_OWN_CC = "movement.ignore_own_command_token"
+# PERMIT -> statki niemyśliwskie mają wartość ruchu równą najwyższej spośród statków ruszających
+# z tego samego systemu (Gravleash Maneuvers, RULES.md 62.2).
+POINT_MOVEMENT_MATCH_HIGHEST = "movement.match_highest"
 
 # Ignorowanie 1 prerekwizytu przy badaniu przez wyczerpanie reliktu (Prophet's Tears).
 # Hook FORBID jako zbiór id GOTOWYCH reliktów; skip w planie badania: ``relic:<id>``.

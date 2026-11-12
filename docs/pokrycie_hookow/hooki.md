@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **142**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -14,6 +14,8 @@ Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
 | `bombardment.roll_modifier` | MODIFY | effect:action_cards:bunker | — | — |
 | `combat.afb_all_ships` | PERMIT | effect:action_cards:waylay | — | — |
 | `combat.afb_granted` | FORBID | relic:metalivoidarmaments | relics:metalivoidarmaments | — |
+| `combat.bonus_dice` | MODIFY | effect:leaders:letnevagent:die | — | — |
+| `combat.extra_hits` | MODIFY | technology:vpw | technologies:vpw | Valkyrie Particle Weave: After making combat rolls during a round of ground combat, if your |
 | `combat.granted_sustain` | PERMIT | relic:metalivoidshielding | relics:metalivoidshielding | Metali Void Shielding: Each time hits are produced against 1 or more of your non-fighter |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
 | `combat.reroll_plus_one` | PERMIT | relic:thalnos | relics:thalnos | The Crown of Thalnos: During each combat round, this card's owner may reroll any number of |
@@ -22,6 +24,12 @@ Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb2 | — | — |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb3 | — | — |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb4 | — | — |
+| `combat.roll_modifier` | MODIFY | effect:promissory_notes:tekklar | — | — |
+| `combat.roll_modifier` | MODIFY | effect:promissory_notes:tekklar:penalty | — | — |
+| `combat.roll_modifier` | MODIFY | faction:sardakk | abilities:unrelenting | Unrelenting: Apply +1 to the result of each of your unit's combat rolls. |
+| `combat.roll_modifier` | MODIFY | unit:sardakk_flagship | units:sardakk_flagship | C'morran N'orr: Apply +1 to the result of each of your other ship's combat rolls in this |
+| `combat.single_unit_bonus` | MODIFY | effect:breakthroughs:letnevbt:ship | — | — |
+| `combat.sustain_cancels` | MODIFY | technology:nes | technologies:nes | Non-Euclidean Shielding: When 1 of your units uses SUSTAIN DAMAGE, cancel 2 hits instead |
 | `command_tokens.strategy_from_reinforcements` | FORBID | relic:emelpar | relics:emelpar | — |
 | `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
 | `economy.commodity_value` | MODIFY | relic:dynamiscore | relics:dynamiscore | Dynamis Core: While this card is in your play area, your commodity value is +2. |
@@ -36,10 +44,18 @@ Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:war_rider | — | — |
 | `event:cards.action_played:after` | TRIGGER | effect:action_cards:dp_give | — | — |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
+| `event:combat.round:end` | TRIGGER | technology:exo2 | technologies:exo2 | Exotrireme II: After a round of space combat, you may destroy this unit to destroy up to 2 |
+| `event:combat.round:start` | TRIGGER | faction:letnev | abilities:munitions | Munitions Reserves: At the start of each round of space combat: You may spend 2 trade goods |
+| `event:combat.round:start` | TRIGGER | unit:letnev_flagship | — | Arc Secundus: At the start of each space combat round, repair this ship. |
+| `event:combat.round:start` | TRIGGER | unit:letnev_mech | units:letnev_mech | Dunlain Reaper — DEPLOY: At the start of a round of ground combat, you may spend 2 |
+| `event:combat.round:start` | TRIGGER | leader:letnevagent | leaders:letnevagent | Viscount Unlenn: At the start of a space combat round: You may exhaust this card to choose 1 |
+| `event:combat.round:start` | TRIGGER | breakthrough:letnevbt | breakthroughs:letnevbt | Gravleash Maneuvers: Before you roll dice during space combat, apply +X to the results of 1 |
 | `event:combat.won:after` | TRIGGER | technology:dxa | technologies:dxa | Dacxive Animators: po wygranej walce naziemnej możesz postawić 1 piechotę na tej planecie. |
+| `event:combat.won:after` | TRIGGER | breakthrough:sardakkbt | breakthroughs:sardakkbt | N'orr Supremacy: After you win a combat, either gain 1 command token or research a unit |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
 | `event:combat:start` | TRIGGER | relic:metalivoidarmaments | — | Metali Void Armaments: During the "Anti-Fighter Barrage" step of space combat, you may |
+| `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
@@ -64,12 +80,14 @@ Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
 | `event:tactical.action:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: After you perform a tactical action, you may exhaust this card to |
+| `event:tactical.action:end` | TRIGGER | leader:sardakkagent | leaders:sardakkagent | T'ro: At the end of a player's tactical action: You may exhaust this card: if you do, that |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_an | promissory_notes:<color>_an | — |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_sftt | promissory_notes:<color>_sftt | — |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
 | `event:tactical.system_activated:after` | TRIGGER | planet:tempesta | planets:tempesta | Ionian Fuel Refinery: You may exhaust this card after you activate a system to apply +1 to the move value of 1 of your ships during this tactical action. |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
+| `event:tactical.units_committed:after` | TRIGGER | effect:leaders:sardakkhero | — | — |
 | `event:technology.research:when` | TRIGGER | relic:prophetstears | relics:prophetstears | The Prophet's Tears: When you research a technology, you may exhaust this card to ignore 1 |
 | `event:transaction:after` | TRIGGER | effect:action_cards:blackmarketdealing | — | Karta dotyczy jednej transakcji: po jej rozstrzygnięciu efekt znika. |
 | `event:turn:end` | TRIGGER | technology:bs | technologies:bs | Bio-Stims: na końcu tury możesz wyczerpać kartę, by odświeżyć planetę ze specjalnością |
@@ -90,12 +108,19 @@ Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.ability_used:after` | TRIGGER | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana. |
 | `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II: po zniszczeniu piechoty rzuć kością; przy 6+ jednostka trafia na kartę. |
 | `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
+| `event:unit.sustain_damage:after` | TRIGGER | leader:letnevcommander | leaders:letnevcommander | Rear Admiral Farran: After 1 of your units uses SUSTAIN DAMAGE: You may gain 1 trade good |
+| `event:unit.sustain_damage:after` | TRIGGER | unit:sardakk_mech | units:sardakk_mech | Valkyrie Exoskeleton: After this unit uses its SUSTAIN DAMAGE ability during ground combat, |
+| `fleet_pool.capacity` | MODIFY | faction:letnev | abilities:armada | Armada: The maximum number of non-fighter ships you can have in each system is equal to 2 |
+| `fleet_pool.unlimited` | PERMIT | effect:leaders:letnevhero | — | — |
+| `invasion.skip_bombardment` | PERMIT | effect:leaders:sardakkhero | — | — |
+| `invasion.strips_planetary_shield` | PERMIT | unit:letnev_flagship | units:letnev_flagship | Arc Secundus: Other player's units in this system lose PLANETARY SHIELD. |
 | `movement.alpha_beta_adjacent` | PERMIT | effect:action_cards:lost_star | — | — |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
 | `movement.enter_asteroids` | PERMIT | relic:circletofthevoid | — | Circlet of the Void: ruch przez/do pól asteroid (ignorowanie efektów anomalii). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
 | `movement.ignore_anomalies` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: you ignore the effects of all other anomalies on movement. |
 | `movement.ignore_own_command_token` | PERMIT | effect:relics:dominusorb | — | — |
+| `movement.match_highest` | PERMIT | breakthrough:letnevbt | — | Gravleash Maneuvers: During movement, your non-fighter ships' move values are equal to the |
 | `movement.move_value` | MODIFY | effect:action_cards:fs1 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs2 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs3 | — | — |
@@ -110,6 +135,7 @@ Razem: **116**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.forbids` | FORBID | faction:arborec | — | Arborec: wartość PRODUCTION doków nie służy do produkcji piechoty (R_production). |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
+| `space_cannon.defense_immune` | PERMIT | technology:l4 | technologies:l4 | L4 Disruptors: During an invasion, units cannot use SPACE CANNON against your units. |
 | `space_cannon.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających SPACE CANNON rzuca 1 dodatkową kością. |
 | `space_cannon.granted` | FORBID | relic:lightrailordnance | relics:lightrailordnance | Lightrail Ordnance: Your space docks gain SPACE CANNON 5 (x2). You may use your space |
 | `space_cannon.offense_immune` | PERMIT | effect:action_cards:solar_flare | — | — |
@@ -135,18 +161,26 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `bombardment.empty_planets`
 - `combat.afb_all_ships`
 - `combat.afb_granted`
+- `combat.bonus_dice`
 - `combat.extra_dice`
+- `combat.extra_hits`
 - `combat.granted_sustain`
 - `combat.hit_multiplier`
 - `combat.reroll_misses`
 - `combat.reroll_plus_one`
 - `combat.roll_modifier`
+- `combat.single_unit_bonus`
+- `combat.sustain_cancels`
 - `economy.commodity_value`
 - `dice.adjust_result`
+- `fleet_pool.capacity`
+- `fleet_pool.unlimited`
+- `invasion.skip_bombardment`
 - `movement.alpha_beta_adjacent`
 - `movement.enter_asteroids`
 - `movement.ignore_anomalies`
 - `movement.ignore_own_command_token`
+- `movement.match_highest`
 - `movement.move_value`
 - `movement.pass_foreign_ships`
 - `payment.commodities_as_trade_goods`
@@ -157,6 +191,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.value`
 - `retreat.anywhere`
 - `objectives.secret_limit`
+- `space_cannon.defense_immune`
 - `space_cannon.extra_dice`
 - `space_cannon.granted`
 - `space_cannon.offense_immune`
@@ -164,6 +199,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `status.action_cards`
 - `status.command_tokens`
 - `command_tokens.strategy_from_reinforcements`
+- `invasion.strips_planetary_shield`
 - `technology.ignore_prerequisite`
 - `technology.specialty_without_exhaust`
 - `technology.synergy_all`

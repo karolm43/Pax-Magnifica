@@ -335,3 +335,27 @@ def test_gravleash_premia_dla_jednego_statku(registry: StaticDataRegistry) -> No
     assert units["cruiser"].single_bonus == 2  # 2 typy statków w walce
     assert units["destroyer"].single_bonus == 0
     assert letnev.GRAVLEASH  # klucz efektu udokumentowany w module
+
+
+def test_gravleash_wyrownuje_ruch_do_najszybszego(registry: StaticDataRegistry) -> None:
+    from src.core import movement
+
+    grid = build_demo_grid(registry)
+    state = _state()
+    together = ["dreadnought", "cruiser"]
+
+    def value(s: GameState, companions: list[str] | None) -> int | None:
+        return movement._effective_move_value(
+            s, grid, registry, "000", "dreadnought", "p1",
+            boost=False, tempesta=False, companions=companions,
+        )
+
+    assert value(state, together) == 1  # bez przełomu: dreadnought ma ruch 1
+    state.players["p1"].breakthrough_unlocked = True
+    assert value(state, together) == 2  # = krążownik ruszający z tego samego systemu
+    assert value(state, None) == 1  # sam: bez zmian
+    fighter = movement._effective_move_value(
+        state, grid, registry, "000", "fighter", "p1",
+        boost=False, tempesta=False, companions=together,
+    )
+    assert fighter is None  # myśliwce nie dostają wyrównania

@@ -9,7 +9,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `ambush` | Ambush | mentak | at_start | PERMIT (pozwolenie) | walka, produkcja | — | You may roll 1 die for each of up to 2 of your cruisers or destroyers in the system. For each result equal to or greater than that ship's c… |
 | `analytical` | Analytical | jolnar | when | TRIGGER (okno reakcji) | technologie | — | You may ignore 1 prerequisite. |
 | `arbiters` | Arbiters | hacan | — | PERMIT (pozwolenie) | karty | — | When you are negotiating a transaction, action cards can be exchanged as part of that transaction. |
-| `armada` | Armada | letnev | — | MODIFY (liczba/rzut) | żetony dowodzenia | — | The maximum number of non-fighter ships you can have in each system is equal to 2 more than the number of tokens in your fleet pool |
+| `armada` | Armada | letnev | — | MODIFY (liczba/rzut) | żetony dowodzenia | ✔ | The maximum number of non-fighter ships you can have in each system is equal to 2 more than the number of tokens in your fleet pool |
 | `assimilate` | Assimilate | l1z1x | when | TRIGGER (okno reakcji) | produkcja, planety i eksploracja | — | Replace each PDS and space dock that is on that planet with a matching unit from your reinforcements. |
 | `awaken` | Awaken | titans | after | TRIGGER (okno reakcji) | produkcja | — | You may replace each of those tokens with 1 PDS from your reinforcements. |
 | `bladesorchestra` | The Blade's Orchestra | obsidian | when | TRIGGER (okno reakcji) | planety i eksploracja, status i odświeżanie | — | flip your home system, double-sided faction components, and all of your in-play plot cards. Then, ready Cronos Hollow and Tallin Hollow if … |
@@ -43,7 +43,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `master_of_trade` | Masters of Trade | hacan | — | — | ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | — | You do not have to spend a command token to resolve the secondary ability of the "Trade" strategy card. |
 | `miniaturization` | Miniaturization | ralnel | at_end | FORBID (zakaz) | planety i eksploracja | — | Your structures can be transported by any ship; this does not require or count against capacity. While your structures are in the space are… |
 | `mitosis` | Mitosis | arborec | at_start | FORBID (zakaz) | produkcja, planety i eksploracja | — | Your space docks cannot produce infantry Place 1 infantry from your reinforcements on any planet you control. |
-| `munitions` | Munitions Reserves | letnev | at_start | MODIFY (liczba/rzut) | walka, ekonomia i płatności | — | You may spend 2 trade goods to re-roll any number of your dice during that combat round. |
+| `munitions` | Munitions Reserves | letnev | at_start | MODIFY (liczba/rzut) | walka, ekonomia i płatności | ✔ | You may spend 2 trade goods to re-roll any number of your dice during that combat round. |
 | `nocturne` | Nocturne | obsidian | — | FORBID (zakaz) | — | — | This faction cannot be chosen during setup. |
 | `nomadic` | Nomadic | saar | — | PERMIT (pozwolenie) | planety i eksploracja, cele i punkty | — | You can score objectives even if you do not control the planets in your home system. |
 | `oceanbound` | Oceanbound | deepwrought | when | TRIGGER (okno reakcji) | karty, planety i eksploracja, status i odświeżanie | — | Any time you have more ocean cards than there are planets that contain your coexisting units, discard ocean cards until you do not. gain an… |
@@ -73,7 +73,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `terragenesis` | Terragenesis | titans | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | — | You may place or move 1 sleeper token onto that planet. |
 | `the_company` | The Company | nomad | — | MODIFY (liczba/rzut) | — | — | During setup, take the 2 additional Nomad faction agents and place them next to your faction sheet; you have 3 agents |
 | `the_tribuni` | The Tribuni | keleres | — | — | żetony dowodzenia, planety i eksploracja | — | During setup, choose an unplayed faction from among the Mentak, the Xxcha and The Argent Flight; take that faction's home system, command t… |
-| `unrelenting` | Unrelenting | sardakk | — | MODIFY (liczba/rzut) | walka | — | Apply +1 to the result of each of your unit's combat rolls. |
+| `unrelenting` | Unrelenting | sardakk | — | MODIFY (liczba/rzut) | walka | ✔ | Apply +1 to the result of each of your unit's combat rolls. |
 | `versatile` | Versatile | sol | when | TRIGGER (okno reakcji) | żetony dowodzenia | — | Gain 1 additional command token. |
 | `voidborn` | Voidborn | empyrean | — | — | ruch | — | Nebulae do not affect your ships' movement |
 | `zeal` | Zeal | argent | when | TRIGGER (okno reakcji) | agenda i głosowanie | — | You always vote first during the agenda phase cast 1 additional vote for each player in the game including you. |

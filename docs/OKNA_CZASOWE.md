@@ -52,7 +52,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `faction.ability_used` | Zdolność frakcji użyta (np. Pillage przeciw graczowi). | 1 | after×1 | leaders×1 | — |
 | `unit.placed` | Struktura/jednostka postawiona. | 0 | — | — | `unit_ops.place_units` |
 | `component.readied` | Komponent odświeżony. | 0 | — | — | — |
-| `component.exhausted` | Komponent (np. agent) wyczerpany. | 1 | after×1 | technologies×1 | — |
+| `component.exhausted` | Komponent (np. agent) wyczerpany. | 1 | after×1 | technologies×1 | `faction_components.pay_cost` |
 | `combat.hits_produced` | Trafienia wyprodukowane przeciw graczowi. | 1 | when×1 | relics×1 | — |
 | `unit.galvanized` | Jednostka galvanize. | 1 | when×1 | abilities×1 | — |
 | `unit.coexist` | Jednostki zaczynają współistnieć na planecie. | 1 | when×1 | abilities×1 | — |
@@ -86,9 +86,9 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.repeal_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **46**. Potrzebne komponentom, a jeszcze nie emitowane: **16**.
+Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **47**. Potrzebne komponentom, a jeszcze nie emitowane: **15**.
 
-Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `component.exhausted`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
+Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 
 ## 3. Rodzaje komponentów wg kategorii
 

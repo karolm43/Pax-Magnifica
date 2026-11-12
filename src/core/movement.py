@@ -13,6 +13,7 @@ istnienia legalnej trasy o długości ≤ moveValue (węzły pośrednie respektu
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from src.core import ion_storm, rules_hooks, triggers, unit_ops
@@ -29,6 +30,7 @@ from src.core.unit_ops import UnitCause
 # R_capacity/R_transport — „fighters and ground forces". Trzymane jawnie, bo to
 # reguła klasy jednostek, nie dane liczbowe (te czytamy z UnitDef).
 _CARGO_BASE_TYPES = frozenset({"fighter", "infantry", "mech"})
+_FIGHTER = "fighter"  # Gravleash: „non-fighter ships”
 
 
 @dataclass(frozen=True)
@@ -451,8 +453,12 @@ def _effective_move_value(
     *,
     boost: bool,
     tempesta: bool,
+    companions: Iterable[str] | None = None,
 ) -> int | None:
     """Wartość ruchu statku ``base_type`` startującego z ``from_pos`` (None = nie rusza się sam).
+
+    ``companions`` = typy statków ruszających RAZEM z tego samego systemu: z PERMIT
+    ``movement.match_highest`` statek niemyśliwski dostaje najwyższą z ich wartości (Gravleash).
 
     R2: wartość z WARIANTU jednostki gracza (ulepszenia wg technologii; np. Fighter II ma
     moveValue=2, bazowy myśliwiec jedzie tylko transportem). R7: start w mgławicy daje 1
@@ -469,11 +475,25 @@ def _effective_move_value(
     # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
     if _NEBULA in grid.anomalies_at(from_pos) and not _ignores_anomalies(state, player_id):
         move_value = 1
-    result = rules_hooks.modify(
-        rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
-        {"base_type": base_type, "boost": boost, "tempesta": tempesta},
+    result = int(
+        rules_hooks.modify(
+            rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
+            {"base_type": base_type, "boost": boost, "tempesta": tempesta},
+        )
     )
-    return int(result)
+    others = [bt for bt in companions or () if bt != base_type]
+    if (
+        others
+        and base_type != _FIGHTER
+        and rules_hooks.permits(rules_hooks.POINT_MOVEMENT_MATCH_HIGHEST, state, player_id)
+    ):
+        for other in others:
+            value = _effective_move_value(
+                state, grid, registry, from_pos, other, player_id, boost=False, tempesta=False
+            )
+            if value is not None:
+                result = max(result, value)
+    return result
 
 
 def can_move(
@@ -487,6 +507,7 @@ def can_move(
     boost: bool = False,
     tempesta: bool = False,
     route: list[str] | None = None,
+    companions: Iterable[str] | None = None,
 ) -> tuple[bool, str]:
     """Sprawdza, czy ruch stosu ``base_type`` ze ``from_pos`` do aktywnego jest legalny.
 
@@ -508,7 +529,7 @@ def can_move(
 
     move_value = _effective_move_value(
         state, grid, registry, from_pos, base_type, player_id,
-        boost=boost, tempesta=tempesta,
+        boost=boost, tempesta=tempesta, companions=companions,
     )
     if move_value is None:
         return False, (
@@ -682,6 +703,7 @@ def legal_move_sources(
                 state, grid, registry, position, base_type, player_id,
                 boost=gravity_drive and not state.gravity_drive_used,
                 tempesta=tempesta and not state.tempesta_used,
+                companions=[bt for bt, n in by_type.items() if n > 0],
             )
             if ok:
                 movable.append(base_type)
@@ -774,7 +796,8 @@ def move_fleet(
     tempesta_spent = state.tempesta_used
     for base_type, count in ships.items():
         ok, reason = can_move(
-            state, grid, registry, from_pos, base_type, player_id, route=route
+            state, grid, registry, from_pos, base_type, player_id, route=route,
+            companions=list(ships),
         )
         if not ok:
             # Premie to osobne zdolności (Gravity Drive, Ionian Fuel Refinery): próbujemy
@@ -789,7 +812,7 @@ def move_fleet(
                     and (can_tp or not tp)
                     and can_move(
                         state, grid, registry, from_pos, base_type, player_id,
-                        boost=gd, tempesta=tp, route=route,
+                        boost=gd, tempesta=tp, route=route, companions=list(ships),
                     )[0]
                 ),
                 None,

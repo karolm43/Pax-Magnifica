@@ -35,6 +35,7 @@ from src.core.rules_hooks import (
     POINT_COMBAT_SUSTAIN_CANCELS,
     POINT_FLEET_POOL_CAPACITY,
     POINT_FLEET_POOL_UNLIMITED,
+    POINT_MOVEMENT_MATCH_HIGHEST,
     POINT_SPACE_CANNON_DEFENSE_IMMUNE,
     POINT_STRIPS_PLANETARY_SHIELD,
     SOURCE_BREAKTHROUGH,
@@ -490,7 +491,7 @@ def gravleash(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Gravleash Maneuvers: Before you roll dice during space combat, apply +X to the results of 1
     of your ship's rolls, where X is the number of ship types you have in the combat.
 
-    Druga klauzula (wartości ruchu) — ⚠️ RULES.md 62.2: czeka na przebudowę ruchu.
+    Druga klauzula (ruch): PERMIT ``movement.match_highest`` niżej.
     """
     base_type = str(ctx.get("params", {}).get("ship") or "")
     active_effects.add_effect(
@@ -508,3 +509,11 @@ def gravleash_bonus(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
             return len(_ship_types(state, player_id, str(ctx.get("position"))))
     return 0
 
+
+@register(
+    POINT_MOVEMENT_MATCH_HIGHEST, HookSource(SOURCE_BREAKTHROUGH, BREAKTHROUGH), HookKind.PERMIT
+)
+def gravleash_movement(_state: GameState, _player_id: str, _ctx: Mapping[str, Any]) -> bool:
+    """Gravleash Maneuvers: During movement, your non-fighter ships' move values are equal to the
+    highest move value amongst moving ships in the system they started in."""
+    return True
