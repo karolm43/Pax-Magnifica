@@ -43,6 +43,9 @@ class CargoPickup:
     base_type: str
     count: int
     from_zone: str = "space"
+    # System, z którego zabieramy ładunek: None = system startu ruchu. Inny system musi
+    # leżeć NA TRASIE (R_transport: „each system it moves through").
+    from_position: str | None = None
 
 # Anomalie znaczące dla przejezdności węzłów POŚREDNICH trasy (RULES.md 32.1 R6).
 _SUPERNOVA = "SUPERNOVA"
@@ -152,6 +155,73 @@ def _ignores_anomalies(state: GameState, player_id: str) -> bool:
     return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES, state, player_id)
 
 
+def shortest_legal_path(
+    grid: HexGrid,
+    state: GameState,
+    from_pos: str,
+    to_pos: str,
+    player_id: str,
+    *,
+    can_enter_asteroids: bool,
+    ignore_anomalies: bool = False,
+    goal_is_target: bool = True,
+) -> list[str] | None:
+    """Najkrótsza LEGALNA trasa jako lista systemów (od ``from_pos`` do ``to_pos``) albo None.
+
+    BFS po krawędziach sąsiedztwa grafu. Węzły POŚREDNIE muszą być przejezdne
+    (``_node_passable_intermediate``). Koniec trasy sprawdzany osobno: dla celu ruchu
+    (aktywny system, ``goal_is_target=True``) przez ``_target_passable``, dla punktu
+    pośredniego wybranego przez gracza (waypoint) jak dla węzła pośredniego.
+    """
+    if from_pos == to_pos:
+        return [from_pos]
+    if goal_is_target:
+        if not _target_passable(
+            grid,
+            to_pos,
+            can_enter_asteroids=can_enter_asteroids,
+            ignore_anomalies=ignore_anomalies,
+        ):
+            return None
+    elif not _node_passable_intermediate(
+        grid,
+        state,
+        to_pos,
+        player_id,
+        can_enter_asteroids=can_enter_asteroids,
+        from_pos=from_pos,
+        ignore_anomalies=ignore_anomalies,
+    ):
+        return None
+    # BFS z rodzicami. Do celu wchodzimy wprost, przez węzeł pośredni tylko gdy przejezdny.
+    parent: dict[str, str] = {}
+    visited = {from_pos}
+    queue: deque[str] = deque([from_pos])
+    while queue:
+        pos = queue.popleft()
+        for neighbor in sorted(_neighbors_for_move(grid, state, pos, player_id)):
+            if neighbor in visited:
+                continue
+            if neighbor == to_pos:
+                path = [to_pos, pos]
+                while path[-1] != from_pos:
+                    path.append(parent[path[-1]])
+                return path[::-1]
+            if _node_passable_intermediate(
+                grid,
+                state,
+                neighbor,
+                player_id,
+                can_enter_asteroids=can_enter_asteroids,
+                from_pos=from_pos,
+                ignore_anomalies=ignore_anomalies,
+            ):
+                visited.add(neighbor)
+                parent[neighbor] = pos
+                queue.append(neighbor)
+    return None
+
+
 def _shortest_legal_distance(
     grid: HexGrid,
     state: GameState,
@@ -164,44 +234,246 @@ def _shortest_legal_distance(
 ) -> int | None:
     """Długość najkrótszej LEGALNEJ trasy (liczba wejść) albo None, gdy brak.
 
-    BFS po krawędziach sąsiedztwa grafu. Węzły POŚREDNIE muszą być przejezdne
-    (``_node_passable_intermediate``); cel sprawdzany osobno (``_target_passable``).
     Długość = liczba systemów, w które statek WCHODZI (R2: ≤ moveValue).
     """
-    if from_pos == to_pos:
-        return 0
-    if not _target_passable(
-        grid, to_pos, can_enter_asteroids=can_enter_asteroids, ignore_anomalies=ignore_anomalies
-    ):
+    path = shortest_legal_path(
+        grid,
+        state,
+        from_pos,
+        to_pos,
+        player_id,
+        can_enter_asteroids=can_enter_asteroids,
+        ignore_anomalies=ignore_anomalies,
+    )
+    return None if path is None else len(path) - 1
+
+
+def route_through(
+    state: GameState,
+    grid: HexGrid,
+    from_pos: str,
+    via: list[str],
+    player_id: str,
+) -> list[str] | None:
+    """Najkrótsza legalna trasa ``from_pos`` → ``via[0]`` → … → aktywny system.
+
+    Punkty ``via`` to waypointy wybrane przez gracza (jak w nawigacji): trasa przechodzi
+    przez nie w podanej kolejności, a odcinki między nimi są najkrótsze. Zwraca None, gdy
+    którykolwiek odcinek jest nielegalny albo trasa wracałaby do tego samego systemu.
+    """
+    active = state.active_system
+    if active is None:
         return None
-    # BFS: kolejka (pozycja, dystans). Odwiedzamy sąsiadów; do celu wchodzimy wprost,
-    # przez węzeł pośredni tylko gdy przejezdny.
-    visited = {from_pos}
-    queue: deque[tuple[str, int]] = deque([(from_pos, 0)])
-    while queue:
-        pos, dist = queue.popleft()
-        for neighbor in sorted(_neighbors_for_move(grid, state, pos, player_id)):
-            if neighbor in visited:
+    ast = _can_enter_asteroids(state, player_id)
+    ignore = _ignores_anomalies(state, player_id)
+    stops = [from_pos, *[v for v in dict.fromkeys(via) if v not in (from_pos, active)], active]
+    path = [from_pos]
+    for start, end in zip(stops, stops[1:], strict=False):
+        segment = shortest_legal_path(
+            grid,
+            state,
+            start,
+            end,
+            player_id,
+            can_enter_asteroids=ast,
+            ignore_anomalies=ignore,
+            goal_is_target=end == active,
+        )
+        if segment is None:
+            return None
+        path.extend(segment[1:])
+    if len(set(path)) != len(path):
+        return None
+    return path
+
+
+def route_error(
+    state: GameState, grid: HexGrid, route: list[str], player_id: str
+) -> str | None:
+    """Powód nielegalności gotowej trasy (lista systemów od źródła do aktywnego) albo None."""
+    active = state.active_system
+    if active is None:
+        return "No active system - movement is only allowed during a tactical action (R1)."
+    if len(route) < 2 or route[-1] != active:
+        return "The route must end at the active system."
+    if len(set(route)) != len(route):
+        return "The route cannot visit the same system twice."
+    ast = _can_enter_asteroids(state, player_id)
+    ignore = _ignores_anomalies(state, player_id)
+    for start, end in zip(route, route[1:], strict=False):
+        if end not in _neighbors_for_move(grid, state, start, player_id):
+            return f"Systems {start} and {end} are not adjacent (R4)."
+    for node in route[1:-1]:
+        if not _node_passable_intermediate(
+            grid,
+            state,
+            node,
+            player_id,
+            can_enter_asteroids=ast,
+            from_pos=route[0],
+            ignore_anomalies=ignore,
+        ):
+            return f"The route passes through system {node}, which blocks movement (R4/R6)."
+    if not _target_passable(
+        grid, active, can_enter_asteroids=ast, ignore_anomalies=ignore
+    ):
+        return "The active system cannot be entered (R6)."
+    return None
+
+
+def legal_routes(
+    state: GameState,
+    grid: HexGrid,
+    from_pos: str,
+    player_id: str,
+    *,
+    max_len: int,
+    cap: int = 300,
+) -> list[list[str]]:
+    """Wszystkie proste legalne trasy ``from_pos`` → aktywny system o długości ≤ ``max_len``.
+
+    Posortowane rosnąco po długości, potem leksykograficznie. ``cap`` ogranicza liczbę
+    zebranych tras (podgląd dla UI, nie wyczerpujące przeszukiwanie).
+    """
+    active = state.active_system
+    if active is None or from_pos == active or max_len < 1:
+        return []
+    ast = _can_enter_asteroids(state, player_id)
+    ignore = _ignores_anomalies(state, player_id)
+    target_ok = _target_passable(
+        grid, active, can_enter_asteroids=ast, ignore_anomalies=ignore
+    )
+    if not target_ok:
+        return []
+    found: list[list[str]] = []
+
+    def walk(path: list[str]) -> None:
+        if len(found) >= cap:
+            return
+        for neighbor in sorted(_neighbors_for_move(grid, state, path[-1], player_id)):
+            if neighbor in path:
                 continue
-            if neighbor == to_pos:
-                return dist + 1
+            if neighbor == active:
+                found.append([*path, neighbor])
+                continue
+            # Wejście do węzła pośredniego zostawia jeszcze jeden skok do celu.
+            if len(path) + 1 > max_len:
+                continue
             if _node_passable_intermediate(
                 grid,
                 state,
                 neighbor,
                 player_id,
-                can_enter_asteroids=can_enter_asteroids,
+                can_enter_asteroids=ast,
                 from_pos=from_pos,
-                ignore_anomalies=ignore_anomalies,
+                ignore_anomalies=ignore,
             ):
-                visited.add(neighbor)
-                queue.append((neighbor, dist + 1))
-    return None
+                walk([*path, neighbor])
+
+    walk([from_pos])
+    found.sort(key=lambda p: (len(p), p))
+    return found
+
+
+@dataclass(frozen=True)
+class RouteCargo:
+    """Ładunek do zabrania w systemie na trasie (UI rysuje go na trasie)."""
+
+    position: str
+    zone: str
+    base_type: str
+    count: int
+    capacity_used: int
+
+
+def route_cargo(
+    state: GameState,
+    registry: StaticDataRegistry,
+    route: list[str],
+    player_id: str,
+) -> list[RouteCargo]:
+    """Myśliwce i siły naziemne gracza do zabrania w systemach trasy (bez celu).
+
+    Źródło: R_transport — statek zabiera ładunek z systemu startu i z każdego systemu,
+    przez który przechodzi (RULES.md 32.3 T3). Systemy z WŁASNYM żetonem dowodzenia są
+    pominięte (T4), chyba że efekt to znosi (Dominus Orb). Myśliwce tylko z przestrzeni.
+    """
+    player = state.players.get(player_id)
+    faction_id = player.faction if player is not None else None
+    technologies = player.technologies if player is not None else []
+    ignore_cc = _ignores_own_command_token(state, player_id)
+    result: list[RouteCargo] = []
+    for position in route[:-1]:
+        system = state.systems.get(position)
+        if system is None:
+            continue
+        if player_id in system.command_tokens and not ignore_cc and position != route[0]:
+            continue
+        zones: list[tuple[str, dict[str, int]]] = [
+            ("space", system.space_units.get(player_id, {}))
+        ]
+        zones += [
+            (planet, by_player.get(player_id, {}))
+            for planet, by_player in sorted(system.planet_units.items())
+        ]
+        for zone, units in zones:
+            for base_type, count in sorted(units.items()):
+                if count <= 0 or base_type not in _CARGO_BASE_TYPES:
+                    continue
+                if base_type == "fighter" and zone != "space":
+                    continue
+                result.append(
+                    RouteCargo(
+                        position=position,
+                        zone=zone,
+                        base_type=base_type,
+                        count=count,
+                        capacity_used=_capacity_used(
+                            registry, faction_id, technologies, base_type
+                        ),
+                    )
+                )
+    return result
 
 
 def _can_enter_asteroids(state: GameState, player_id: str) -> bool:
     """Czy gracz może wchodzić w pola asteroid (hook PERMIT, np. Antimass Deflectors)."""
     return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_ENTER_ASTEROIDS, state, player_id)
+
+
+def _effective_move_value(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    from_pos: str,
+    base_type: str,
+    player_id: str,
+    *,
+    boost: bool,
+    tempesta: bool,
+) -> int | None:
+    """Wartość ruchu statku ``base_type`` startującego z ``from_pos`` (None = nie rusza się sam).
+
+    R2: wartość z WARIANTU jednostki gracza (ulepszenia wg technologii; np. Fighter II ma
+    moveValue=2, bazowy myśliwiec jedzie tylko transportem). R7: start w mgławicy daje 1
+    (Nav Suite to znosi). Potem hook MODIFY (technologie, zdolności, premie ``boost``).
+    """
+    player = state.players.get(player_id)
+    faction_id = player.faction if player is not None else None
+    technologies = player.technologies if player is not None else []
+    unit = resolve_unit_variant(registry, faction_id, technologies, base_type)
+    move_value = unit.move_value if unit is not None else None
+    if not move_value or move_value <= 0:
+        return None
+    # R7 (R_nebula, RULES.md 32.1): statek ZACZYNAJĄCY krok ruchu w mgławicy traktuje swoją
+    # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
+    if _NEBULA in grid.anomalies_at(from_pos) and not _ignores_anomalies(state, player_id):
+        move_value = 1
+    result = rules_hooks.modify(
+        rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
+        {"base_type": base_type, "boost": boost, "tempesta": tempesta},
+    )
+    return int(result)
 
 
 def can_move(
@@ -214,12 +486,15 @@ def can_move(
     *,
     boost: bool = False,
     tempesta: bool = False,
+    route: list[str] | None = None,
 ) -> tuple[bool, str]:
     """Sprawdza, czy ruch stosu ``base_type`` ze ``from_pos`` do aktywnego jest legalny.
 
     Zwraca ``(True, "")`` gdy legalny, albo ``(False, powód)``. Egzekwuje R1–R6
     (RULES.md 32.1). Nie mutuje stanu. ``boost=True`` pozwala hookom dać premię jednorazową
     dla JEDNEGO statku (Gravity Drive); wołający sam pilnuje, że dotyczy to jednego statku.
+    ``route`` = trasa wybrana przez gracza (lista systemów od źródła do aktywnego):
+    gdy podana, jest walidowana i jej długość zastępuje najkrótszą trasę z BFS.
     """
     active = state.active_system
     if active is None:
@@ -231,34 +506,16 @@ def can_move(
     if promissory_play.ceasefire_blocks(state, player_id):
         return False, "Ceasefire: you cannot move units into the active system."
 
-    # R2: wartość ruchu z WARIANTU jednostki gracza (nie bazowego) — uwzględnia
-    # ulepszenia wg posiadanych technologii. Np. Fighter II (tech ff2) ma moveValue=2,
-    # podczas gdy bazowy fighter porusza się tylko transportem (moveValue=None).
-    # Spójne z doborem wariantu w walce/produkcji (RULES.md 10/20).
-    player = state.players.get(player_id)
-    faction_id = player.faction if player is not None else None
-    technologies = player.technologies if player is not None else []
-    unit = resolve_unit_variant(registry, faction_id, technologies, base_type)
-    move_value = unit.move_value if unit is not None else None
-    if not move_value or move_value <= 0:
+    move_value = _effective_move_value(
+        state, grid, registry, from_pos, base_type, player_id,
+        boost=boost, tempesta=tempesta,
+    )
+    if move_value is None:
         return False, (
             f"Unit {base_type} has no move value "
             "(porusza się transportem — capacity, TODO)."
         )
-
-    # R7 (R_nebula, RULES.md 32.1): statek ZACZYNAJĄCY krok ruchu w mgławicy traktuje swoją
-    # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
-    # Nav Suite: efekty anomalii ignorowane (także ta - statki z mgławicy mają zwykły ruch).
     ignore_anomalies = _ignores_anomalies(state, player_id)
-    if _NEBULA in grid.anomalies_at(from_pos) and not ignore_anomalies:
-        move_value = 1
-
-    # Hook MODIFY: bonusy/kary do wartości ruchu (technologie, zdolności) - tylko dla statków,
-    # które w ogóle się poruszają (kontrola wyżej).
-    move_value = rules_hooks.modify(
-        rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
-        {"base_type": base_type, "boost": boost, "tempesta": tempesta},
-    )
 
     # R3: start nie z własnym CC (wyjątek: aktywny system).
     source = state.systems.get(from_pos)
@@ -270,16 +527,24 @@ def can_move(
     ):
         return False, "A ship cannot move out of a system containing its own command token (R3)."
 
-    can_enter_asteroids = _can_enter_asteroids(state, player_id)
-    dist = _shortest_legal_distance(
-        grid,
-        state,
-        from_pos,
-        active,
-        player_id,
-        can_enter_asteroids=can_enter_asteroids,
-        ignore_anomalies=ignore_anomalies,
-    )
+    dist: int | None
+    if route is not None:
+        if route[0] != from_pos:
+            return False, "The route must start at the system the ships move from."
+        error = route_error(state, grid, route, player_id)
+        if error is not None:
+            return False, error
+        dist = len(route) - 1
+    else:
+        dist = _shortest_legal_distance(
+            grid,
+            state,
+            from_pos,
+            active,
+            player_id,
+            can_enter_asteroids=_can_enter_asteroids(state, player_id),
+            ignore_anomalies=ignore_anomalies,
+        )
     if dist is None:
         return False, "No legal route to the active system (R4/R6)."
     if dist > move_value:
@@ -447,8 +712,13 @@ def move_fleet(
     *,
     gravity_drive: bool = False,
     tempesta: bool = False,
+    route: list[str] | None = None,
 ) -> GameState:
     """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
+
+    ``route`` = trasa wybrana przez gracza (systemy od źródła do aktywnego). Bez niej statki
+    jadą najkrótszą legalną trasą, a ładunek wolno zabrać tylko ze źródła. Z trasą ładunek
+    można zabrać także z systemów, przez które statki przelatują (``CargoPickup.from_position``).
 
     ``ships`` = statki RUSZAJĄCE (``{base_type: count}``), każdy walidowany jak w
     ``can_move`` (R1–R6). ``cargo`` = myśliwce/siły naziemne przewożone razem — lista
@@ -489,6 +759,12 @@ def move_fleet(
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
     source = state.systems.get(from_pos)
+    if route is not None:
+        if not route or route[0] != from_pos:
+            raise ValueError("The route must start at the system the ships move from.")
+        route_problem = route_error(state, grid, route, player_id)
+        if route_problem is not None:
+            raise ValueError(route_problem)
 
     # Statki: walidacja legalności + dostępności (R1–R6, policzone per typ). Premia jednorazowa
     # dla JEDNEGO statku w akcji (Gravity Drive, RULES.md 55.6) działa WYŁĄCZNIE na życzenie
@@ -497,7 +773,9 @@ def move_fleet(
     boost_spent = state.gravity_drive_used
     tempesta_spent = state.tempesta_used
     for base_type, count in ships.items():
-        ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)
+        ok, reason = can_move(
+            state, grid, registry, from_pos, base_type, player_id, route=route
+        )
         if not ok:
             # Premie to osobne zdolności (Gravity Drive, Ionian Fuel Refinery): próbujemy
             # pojedynczą, potem obie naraz; zużywa się tylko to, co było potrzebne.
@@ -511,7 +789,7 @@ def move_fleet(
                     and (can_tp or not tp)
                     and can_move(
                         state, grid, registry, from_pos, base_type, player_id,
-                        boost=gd, tempesta=tp,
+                        boost=gd, tempesta=tp, route=route,
                     )[0]
                 ),
                 None,
@@ -537,18 +815,8 @@ def move_fleet(
             raise ValueError(
                 "Cargo (fighters / ground forces) needs a transporting ship moving with it."
             )
-        # T4: pickup z systemu z własnym CC zabroniony (wyjątek: aktywny system).
-        if (
-            from_pos != active
-            and source is not None
-            and player_id in source.command_tokens
-            and not _ignores_own_command_token(state, player_id)
-        ):
-            raise ValueError(
-                "Cannot pick up units from a system containing your own command token (T4)."
-            )
-        # Zsumuj żądania po (typ, strefa) — i waliduj dostępność w tej strefie.
-        needed_by_key: dict[tuple[str, str], int] = {}
+        # Zsumuj żądania po (system, typ, strefa) — i waliduj dostępność w tej strefie.
+        needed_by_key: dict[tuple[str, str, str], int] = {}
         for item in cargo_items:
             if item.base_type not in _CARGO_BASE_TYPES:
                 raise ValueError(
@@ -558,15 +826,34 @@ def move_fleet(
             # Myśliwiec stoi w przestrzeni — nie zbiera się go z planety.
             if item.base_type == "fighter" and item.from_zone != "space":
                 raise ValueError("Fighters can only be picked up from space.")
-            needed_by_key[(item.base_type, item.from_zone)] = (
-                needed_by_key.get((item.base_type, item.from_zone), 0) + item.count
+            pickup_pos = item.from_position or from_pos
+            # Pickup po drodze: system musi leżeć na wybranej trasie (R_transport), poza celem.
+            if pickup_pos != from_pos and (route is None or pickup_pos not in route[:-1]):
+                raise ValueError(
+                    f"System {pickup_pos} is not on the route - ships cannot pick up units there."
+                )
+            key = (pickup_pos, item.base_type, item.from_zone)
+            needed_by_key[key] = needed_by_key.get(key, 0) + item.count
+        # T4: pickup z systemu z własnym CC zabroniony (wyjątek: aktywny system).
+        for pickup_pos in {k[0] for k in needed_by_key}:
+            pickup_system = state.systems.get(pickup_pos)
+            if (
+                pickup_pos != active
+                and pickup_system is not None
+                and player_id in pickup_system.command_tokens
+                and not _ignores_own_command_token(state, player_id)
+            ):
+                raise ValueError(
+                    "Cannot pick up units from a system containing your own command token (T4)."
+                )
+        for (pickup_pos, base_type, zone), count in needed_by_key.items():
+            available = _available_in_zone(
+                state.systems.get(pickup_pos), player_id, base_type, zone
             )
-        for (base_type, zone), count in needed_by_key.items():
-            available = _available_in_zone(source, player_id, base_type, zone)
             if available < count:
                 where = "space" if zone == "space" else f"planet {zone}"
                 raise ValueError(
-                    f"Not enough {base_type} to transport from {where} in {from_pos}: "
+                    f"Not enough {base_type} to transport from {where} in {pickup_pos}: "
                     f"have {available}, requested {count}."
                 )
 
@@ -606,8 +893,16 @@ def move_fleet(
         )
     # Ładunek z jego strefy źródłowej (przestrzeń lub planeta) trafia do przestrzeni celu.
     for item in cargo_items:
+        pickup_src = new_state.systems[item.from_position or from_pos]
         unit_ops.transfer_units(
-            new_state, src, item.from_zone, dest, "space", player_id, item.base_type, item.count
+            new_state,
+            pickup_src,
+            item.from_zone,
+            dest,
+            "space",
+            player_id,
+            item.base_type,
+            item.count,
         )
     # Pierwszy ruch w akcji zamyka okno „po aktywacji systemu" kart reakcji i otwiera okno
     # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``.

@@ -8,6 +8,7 @@ import type { GameData, Tile } from "@/entities/game/types";
 import classes from "@/shared/ui/map/MapUI.module.css";
 import type { MapLayout } from "../mapLayout";
 import { MapUnitTransitionLayer } from "../layers/MapUnitTransitionLayer";
+import { MoveRouteLayer } from "../layers/MoveRouteLayer";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 
 type Props = {
@@ -59,6 +60,7 @@ export function MapRenderLayer({
           onPlanetMouseEnter={onPlanetMouseEnter}
           onPlanetMouseLeave={onPlanetMouseLeave}
         />
+        <MoveRouteLayer tiles={tilesList} contentSize={contentSize} />
         {replayAnimationsEnabled && <MapUnitTransitionLayer />}
         <ExpeditionLayer contentSize={contentSize} />
       </Box>

@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { MoveRouteData } from "@/domains/movement/routeTypes";
 import { useCallback } from "react";
 import { parseErrorDetail } from "@/api/apiError";
 import { fetchJson } from "@/api/fetchJson";
@@ -112,6 +113,7 @@ export function useBoardEditor() {
       "combat",
       "production",
       "moveRange",
+      "moveRoute",
       "spaceCannon",
       "battle",
       "capacity",
@@ -554,7 +556,10 @@ export function useBoardEditor() {
       // Ładunek: myśliwce / siły naziemne przewożone razem (RULES.md 32.3).
       // ``fromZone`` = "space" albo id planety (pickup z planety systemu źródłowego).
       // Limit capacity egzekwuje backend (422 z powodem, gdy przekroczony).
-      cargo?: { baseType: string; count: number; fromZone?: string }[];
+      // ``fromPosition`` = system na trasie, z którego zabieramy ładunek (domyślnie źródło).
+      cargo?: { baseType: string; count: number; fromZone?: string; fromPosition?: string }[];
+      // Trasa wybrana przez gracza (systemy od źródła do aktywnego); brak = najkrótsza legalna.
+      route?: string[];
     }) => {
       await post("/tactical/move", {
         fromPosition: args.fromPosition,
@@ -572,7 +577,9 @@ export function useBoardEditor() {
             baseType: c.baseType,
             count: c.count,
             fromZone: c.fromZone ?? "space",
+            fromPosition: c.fromPosition ?? null,
           })),
+        route: args.route ?? null,
       });
       await refresh();
     },
@@ -1400,6 +1407,30 @@ export function useMoveRange(
         `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}&gravity_drive=${gravityDrive}&tempesta=${tempesta}`,
         "moveRange",
       ),
+    staleTime: 0,
+  });
+}
+
+/**
+ * Podgląd trasy ruchu (RULES.md 32.1, 32.3): trasa przez waypointy ``via``, alternatywy,
+ * statki ze źródła (czy dolecą) i ładunek leżący po drodze. Zero mutacji stanu gry.
+ */
+export function useMoveRoute(
+  faction: string | null,
+  from: string | null,
+  via: string[],
+  gravityDrive: boolean,
+  tempesta: boolean,
+) {
+  return useQuery<MoveRouteData>({
+    queryKey: ["moveRoute", faction, from, via, gravityDrive, tempesta],
+    enabled: faction !== null && from !== null,
+    queryFn: async () =>
+      fetchJson<MoveRouteData>(
+        `/bot/tactical/move-route?faction=${encodeURIComponent(faction ?? "")}&from_position=${encodeURIComponent(from ?? "")}&via=${encodeURIComponent(via.join(","))}&gravity_drive=${gravityDrive}&tempesta=${tempesta}`,
+        "moveRoute",
+      ),
+    placeholderData: keepPreviousData,
     staleTime: 0,
   });
 }

@@ -552,5 +552,33 @@ export function useUnitDrag(data: UnitDragData | null) {
     [ctrlPickUnit, setNotice],
   );
 
-  return { ghost, dragRef, onClickCapture };
+  // Prawy przycisk: zdejmuje 1 sztukę stosu z zaznaczenia Ctrl (odwrotność Ctrl+klik).
+  // Działa na stosie już zaznaczonym albo z wciśniętym Ctrl; poza tym zostaje menu kafelka.
+  const ctrlUnpickUnit = useAppStore((s) => s.ctrlUnpickUnit);
+  const onContextMenuCapture = useCallback(
+    (event: React.MouseEvent) => {
+      const info = dataRef.current;
+      if (!info) return;
+      const sel = useAppStore.getState().multiSelect;
+      const picked =
+        sel !== null &&
+        sel.fromPosition === info.fromPosition &&
+        sel.faction === info.faction &&
+        Boolean(sel.items[`${info.asyncId}|${info.fromZone}`]);
+      if (!picked && !(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (picked) {
+        ctrlUnpickUnit({
+          fromPosition: info.fromPosition,
+          faction: info.faction,
+          asyncId: info.asyncId,
+          fromZone: info.fromZone,
+        });
+      }
+    },
+    [ctrlUnpickUnit],
+  );
+
+  return { ghost, dragRef, onClickCapture, onContextMenuCapture };
 }

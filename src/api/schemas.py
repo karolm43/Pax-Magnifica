@@ -665,6 +665,9 @@ class MoveCargoItem(BaseModel):
     base_type: str = Field(alias="baseType")
     count: int = 1
     from_zone: str = Field(default="space", alias="fromZone")
+    # System, z którego statki zabierają ładunek (pickup po drodze, RULES.md 32.3 T3).
+    # Brak = system startu ruchu; inny musi leżeć na ``route`` żądania.
+    from_position: str | None = Field(default=None, alias="fromPosition")
 
 
 class MoveShipsRequest(BaseModel):
@@ -693,6 +696,48 @@ class MoveShipsRequest(BaseModel):
     gravity_drive: bool = Field(default=False, alias="gravityDrive")
     # Gracz ŚWIADOMIE używa Ionian Fuel Refinery (+1 do ruchu jednego statku w tej akcji).
     tempesta: bool = False
+    # Trasa wybrana przez gracza: systemy od źródła do aktywnego (None = najkrótsza legalna).
+    route: list[str] | None = None
+
+
+class MoveRouteShip(BaseModel):
+    """Statek ze źródła ruchu w podglądzie trasy."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    base_type: str = Field(alias="baseType")
+    count: int
+    capacity: int
+    reachable: bool
+    boosted: bool
+    reason: str
+
+
+class MoveRouteCargo(BaseModel):
+    """Ładunek (myśliwce / siły naziemne) do zabrania w systemie na trasie."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    position: str
+    zone: str
+    base_type: str = Field(alias="baseType")
+    count: int
+    capacity_used: int = Field(alias="capacityUsed")
+
+
+class MoveRouteResponse(BaseModel):
+    """Podgląd trasy ruchu (RULES.md 32.1, 32.3): trasa, alternatywy, waypointy, statki, ładunek."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    active: str | None
+    route: list[str] | None
+    reason: str
+    alternatives: list[list[str]] = Field(default_factory=list)
+    waypoints: list[str] = Field(default_factory=list)
+    ships: list[MoveRouteShip] = Field(default_factory=list)
+    cargo: list[MoveRouteCargo] = Field(default_factory=list)
+
 
 class MoveRangeResponse(BaseModel):
     """Podgląd zasięgu ruchu (RULES.md 32): legalne systemy źródłowe do aktywnego.

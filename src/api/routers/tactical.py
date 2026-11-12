@@ -22,6 +22,9 @@ from src.api.schemas import (
     ComponentActionRequest,
     MapView,
     MoveRangeResponse,
+    MoveRouteCargo,
+    MoveRouteResponse,
+    MoveRouteShip,
     MoveShipsRequest,
     ProduceRequest,
     ProducibleUnitHelp,
@@ -37,6 +40,7 @@ from src.core import (
     combat,
     component_action,
     movement,
+    movement_route,
     production,
     tactical,
 )
@@ -90,7 +94,10 @@ async def post_tactical_move(
             ships[item.base_type] = ships.get(item.base_type, 0) + item.count
     cargo = [
         movement.CargoPickup(
-            base_type=item.base_type, count=item.count, from_zone=item.from_zone
+            base_type=item.base_type,
+            count=item.count,
+            from_zone=item.from_zone,
+            from_position=item.from_position,
         )
         for item in request.cargo
         if item.count > 0
@@ -106,6 +113,7 @@ async def post_tactical_move(
             player_id,
             gravity_drive=request.gravity_drive,
             tempesta=request.tempesta,
+            route=request.route,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -375,6 +383,68 @@ async def get_move_range(
         gravity_drive=gravity_drive, tempesta=tempesta,
     )
     return MoveRangeResponse(active=state.active_system, sources=sources)
+
+
+@router.get(
+    "/tactical/move-route",
+    response_model=MoveRouteResponse,
+    response_model_by_alias=True,
+)
+async def get_move_route(
+    faction: str,
+    from_position: str,
+    via: str = "",
+    gravity_drive: bool = False,
+    tempesta: bool = False,
+    ctx: AppContext = Depends(get_ctx),
+) -> MoveRouteResponse:
+    """Podgląd trasy ruchu ze ``from_position`` do aktywnego systemu (RULES.md 32.1, 32.3).
+
+    ``via`` = waypointy rozdzielone przecinkami (trasa przechodzi przez nie po kolei, jak w
+    nawigacji). Zwraca trasę, alternatywy, możliwe waypointy, statki ze źródła (czy dolecą i
+    ile uniosą) oraz ładunek leżący po drodze. Zero mutacji stanu.
+    """
+    state = ctx.service.current_state()
+    player_id = board_edit.resolve_player_id(faction, state)
+    waypoints = [v for v in via.split(",") if v]
+    report = movement_route.route_report(
+        state,
+        ctx.current_grid,
+        ctx.registry,
+        from_position,
+        waypoints,
+        player_id,
+        gravity_drive=gravity_drive,
+        tempesta=tempesta,
+    )
+    return MoveRouteResponse(
+        active=report.active,
+        route=report.route,
+        reason=report.reason,
+        alternatives=report.alternatives,
+        waypoints=report.waypoints,
+        ships=[
+            MoveRouteShip(
+                baseType=s.base_type,
+                count=s.count,
+                capacity=s.capacity,
+                reachable=s.reachable,
+                boosted=s.boosted,
+                reason=s.reason,
+            )
+            for s in report.ships
+        ],
+        cargo=[
+            MoveRouteCargo(
+                position=c.position,
+                zone=c.zone,
+                baseType=c.base_type,
+                count=c.count,
+                capacityUsed=c.capacity_used,
+            )
+            for c in report.cargo
+        ],
+    )
 
 
 @router.get(

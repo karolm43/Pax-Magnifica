@@ -6,7 +6,9 @@ import { fetchJson } from "@/api/fetchJson";
 import { useGameState } from "@/api/useGameState";
 import { useAppStore } from "@/state/appStore";
 import { getPlanetData } from "@/entities/lookup/planets";
+import { useMapPick } from "@/domains/strategy/mapPick";
 import { CustodiansClaim } from "./CustodiansClaim";
+import { usePlayerLook } from "./invasionUi";
 import {
   bumpStage,
   landAll,
@@ -44,6 +46,8 @@ export function InvasionStepPanel() {
   const actions = useInvasionActions();
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<Stage>({});
+  const [armedType, setArmedType] = useState<string | null>(null);
+  const look = usePlayerLook();
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -56,6 +60,36 @@ export function InvasionStepPanel() {
       setBusy(false);
     }
   };
+
+  // Lądowanie kliknięciem w podświetloną planetę na mapie: każdy klik dokłada 1 sztukę
+  // aktualnie wybranego typu jednostki. Lista poniżej zostaje (precyzyjne +/−, „All here").
+  const cargo = view?.cargo ?? [];
+  const armed =
+    cargo.find(
+      (u) => u.baseType === armedType && remainingOf(cargo, stage, u.baseType) > 0,
+    ) ?? cargo.find((u) => remainingOf(cargo, stage, u.baseType) > 0);
+  const landingOpen =
+    active &&
+    view?.active === true &&
+    view.simple &&
+    view.phase !== "ESTABLISH" &&
+    !gameState?.activeCombat;
+  const pickTargets = landingOpen
+    ? (view?.planets ?? [])
+        .map((p) => p.planet)
+        .filter((id) => !view?.custodians?.blockedPlanets.includes(id))
+    : [];
+  useMapPick(
+    "planet",
+    pickTargets,
+    (planet) => {
+      if (armed) setStage((s) => bumpStage(s, cargo, planet, armed.baseType, 1));
+    },
+    {
+      hue: `rgb(${look(view?.attacker ?? "").rgb})`,
+      enabled: landingOpen && armed != null && !busy,
+    },
+  );
 
   if (gameState?.activeCombat) {
     return <span className={styles.note}>Ground combat in progress.</span>;
@@ -151,6 +185,30 @@ export function InvasionStepPanel() {
       )}
       {view.cargo.length === 0 && (
         <span className={styles.note}>No ground forces in orbit.</span>
+      )}
+      {view.cargo.length > 0 && (
+        <>
+          <span className={styles.note}>
+            Click a highlighted planet on the map to land one unit.
+          </span>
+          <div className={styles.armedRow} role="group" aria-label="Unit to land">
+            {view.cargo.map((u) => {
+              const left = remainingOf(view.cargo, stage, u.baseType);
+              return (
+                <button
+                  type="button"
+                  key={u.baseType}
+                  className={styles.armed}
+                  aria-pressed={armed?.baseType === u.baseType}
+                  disabled={left === 0}
+                  onClick={() => setArmedType(u.baseType)}
+                >
+                  {u.name} ({left} left)
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
       {view.planets.map((p) => {
         const name = getPlanetData(p.planet)?.name ?? p.planet;

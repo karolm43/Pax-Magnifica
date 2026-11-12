@@ -113,3 +113,38 @@
   outline: 2px solid #fcd34d;
   outline-offset: 2px;
 }
+
+/* Wybór typu jednostki lądowanej kliknięciem w planetę na mapie. */
+.armedRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.armed {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ds-ink, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.armed[aria-pressed="true"] {
+  color: var(--ds-ink-hi, #fff);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.18);
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.6);
+}
+
+.armed:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.armed:focus-visible {
+  outline: 2px solid #fcd34d;
+  outline-offset: 2px;
+}

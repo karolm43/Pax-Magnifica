@@ -1,0 +1,93 @@
+/* Warstwa trasy ruchu: nad kafelkami, sama nieklikalna - tylko znaczniki ładunku łapią klik. */
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 9000;
+  pointer-events: none;
+}
+
+.svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+
+.shadow {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.7);
+  stroke-width: 26;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.main {
+  fill: none;
+  stroke: rgb(var(--route-rgb, 252, 211, 77));
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 38 26;
+  filter: drop-shadow(0 0 12px rgb(var(--route-rgb, 252, 211, 77)));
+  animation: routeFlow 1.2s linear infinite;
+}
+
+.alt {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 14 22;
+}
+
+.arrow {
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+.node {
+  fill: rgba(10, 14, 24, 0.92);
+  stroke: rgb(var(--route-rgb, 252, 211, 77));
+  stroke-width: 8;
+}
+
+.node[data-kind="start"] {
+  fill: rgb(var(--route-rgb, 252, 211, 77));
+  stroke: #fff;
+}
+
+.node[data-kind="end"] {
+  stroke: #fff;
+  stroke-width: 10;
+}
+
+.node[data-kind="via"] {
+  fill: #fcd34d;
+  stroke: #fff;
+}
+
+.cargo {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+@keyframes routeFlow {
+  to {
+    stroke-dashoffset: -64;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main {
+    animation: none;
+  }
+}

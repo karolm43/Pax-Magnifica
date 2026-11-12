@@ -102,6 +102,12 @@ export const MapTile = React.memo<Props>(
       state.mapPick?.kind === "system" ? state.mapPick : null,
     );
     const planetPickActive = useAppStore((state) => state.mapPick?.kind === "planet");
+    // Wybór źródła/waypointu trasy ruchu (krok MOVEMENT); nie blokuje dossier pozostałych kafelków.
+    const routePick = useAppStore((state) => state.routePick);
+    const isRoutePickTarget =
+      !embedded && (routePick?.targets.includes(mapTile.position) ?? false);
+    const isRoutePickSelected =
+      isRoutePickTarget && (routePick?.selected.includes(mapTile.position) ?? false);
     const isSystemPickTarget =
       !embedded && (systemPick?.targets.includes(mapTile.position) ?? false);
 
@@ -115,6 +121,7 @@ export const MapTile = React.memo<Props>(
       // Wybór celu na mapie (okno karty strategii) ma pierwszeństwo przed resztą trybów.
       if (isSystemPickTarget && systemPick) return systemPick.onPick(mapTile.position);
       if (systemPick || planetPickActive) return; // tryb wyboru: klik obok celu nic nie robi
+      if (isRoutePickTarget && routePick) return routePick.onPick(mapTile.position);
       if (moveMode) return pickMoveTile(mapTile.position);
       if (activateMode) return pickActivateTile(mapTile.position);
       return openSystemDossier(mapTile.position, mapTile.systemId);
@@ -193,7 +200,7 @@ export const MapTile = React.memo<Props>(
           top: embedded ? 0 : `${position.y}px`,
           position: embedded ? "relative" : undefined,
           opacity: getTileOpacity(),
-          cursor: isSystemPickTarget
+          cursor: isSystemPickTarget || isRoutePickTarget
             ? "pointer"
             : moveMode || activateMode
               ? "crosshair"
@@ -249,6 +256,21 @@ export const MapTile = React.memo<Props>(
               style={
                 systemPick?.hue
                   ? ({ "--pick-hue": systemPick.hue } as CSSProperties)
+                  : undefined
+              }
+              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              aria-hidden="true"
+            >
+              <path d={HEX_PATH} />
+            </svg>
+          )}
+          {isRoutePickTarget && (!isMoveRangeSource || isRoutePickSelected) && (
+            <svg
+              className={classes.mapPickHex}
+              data-selected={isRoutePickSelected || undefined}
+              style={
+                routePick?.hue
+                  ? ({ "--pick-hue": routePick.hue } as CSSProperties)
                   : undefined
               }
               viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}

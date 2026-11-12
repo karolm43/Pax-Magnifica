@@ -92,7 +92,10 @@ export function UnitStack({
     if (dndEnabled) unitDrag.dragRef(node);
   };
   const dragProps = dndEnabled
-    ? { onClickCapture: unitDrag.onClickCapture }
+    ? {
+        onClickCapture: unitDrag.onClickCapture,
+        onContextMenuCapture: unitDrag.onContextMenuCapture,
+      }
     : {};
   /* Oznaczenie stosu STATKU w DOM — pozwala drop-detekcji (``elementFromPoint``)
      rozpoznać „upuszczono ładunek NA ten statek" i otworzyć okno załadunku. Niesie

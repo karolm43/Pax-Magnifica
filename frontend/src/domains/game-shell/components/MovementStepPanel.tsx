@@ -20,6 +20,8 @@ import { getTileById } from "@/entities/lookup/systems";
 import { lookupUnit } from "@/entities/lookup/units";
 import { Unit } from "@/shared/ui/Unit";
 import { FleetPoolWarning } from "@/domains/map/components/FleetPoolWarning";
+import { MoveRouteBox } from "@/domains/movement/MoveRouteBox";
+import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import type { PlayerData } from "@/entities/data/types";
 import type { Tile } from "@/entities/game/types";
 import {
@@ -90,6 +92,7 @@ export function MovementStepPanel({
   activePlayerColor: string | null;
 }) {
   const gameData = useGameData();
+  const look = usePlayerLook();
   const { moveShips, undo } = useBoardEditor();
   const setMoveRangeSources = useAppStore((s) => s.setMoveRangeSources);
   const gravityDrive = useAppStore((s) => s.gravityDrive);
@@ -347,6 +350,18 @@ export function MovementStepPanel({
 
       {/* Fleet pool (RULES.md 42): ruch ponad pulę jest dozwolony, ale nadwyżka zostanie usunięta. */}
       <FleetPoolWarning />
+      {/* Ruch z trasą: klik w świecący system na mapie otwiera box, trasa rysuje się na mapie. */}
+      <MoveRouteBox
+        faction={faction}
+        player={player}
+        sources={Object.keys(moveRange?.sources ?? {})}
+        hue={`rgb(${look(faction).rgb})`}
+        gravityDrive={useGd}
+        tempesta={useTempesta}
+      />
+      <span className={styles.prodNote}>
+        Click a glowing system on the map to pick units and plan the route.
+      </span>
       {/* ZASIĘG: z których systemów statki dolecą do aktywnego + ich pojemność. */}
       <span className={styles.prodZoneLabel}>
         <IconShip size={11} aria-hidden="true" /> In range

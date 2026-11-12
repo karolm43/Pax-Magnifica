@@ -1,0 +1,102 @@
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 8px;
+  color: var(--ds-ink-hi, #fff);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 8px;
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--ds-edge-accent, #fcd34d);
+}
+
+.chip[data-picked] {
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.18);
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.65);
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chip:focus-visible {
+  outline: 2px solid #fcd34d;
+  outline-offset: 2px;
+}
+
+.sprite {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+}
+
+.sprite :global(.unit-sprite),
+.sprite img {
+  height: 28px;
+  width: auto;
+  max-width: 30px;
+}
+
+.label {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.label b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label small {
+  color: var(--ds-ink, #cbd5e1);
+  font-size: 10px;
+}
+
+.count {
+  flex: none;
+  font-family: var(--font-data, monospace);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Znacznik na trasie w mapie: współrzędne mapy są skalowane, więc rozmiary są duże. */
+.chip[data-variant="badge"] {
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  background: rgba(10, 14, 24, 0.9);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+}
+
+.chip[data-variant="badge"][data-picked] {
+  background: rgba(16, 60, 44, 0.95);
+}
+
+.chip[data-variant="badge"] .sprite {
+  width: 64px;
+  height: 64px;
+}
+
+.chip[data-variant="badge"] .sprite :global(.unit-sprite),
+.chip[data-variant="badge"] .sprite img {
+  height: 60px;
+  max-width: 64px;
+}
+
+.chip[data-variant="badge"] .count {
+  font-size: 34px;
+}

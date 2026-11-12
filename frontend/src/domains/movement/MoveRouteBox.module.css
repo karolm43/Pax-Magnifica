@@ -1,0 +1,254 @@
+/* Mały, niemodalny box ruchu z trasą: plansza zostaje klikalna, panel da się przeciągnąć. */
+.box {
+  position: fixed;
+  right: 16px;
+  top: 96px;
+  z-index: var(--z-app-modal, 3000);
+  display: grid;
+  gap: 10px;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  resize: both;
+  padding: 10px 12px 12px;
+  color: var(--ds-ink-hi, #fff);
+  border-radius: 14px;
+  border: 1px solid var(--ds-edge-accent, rgba(252, 211, 77, 0.5));
+  background: var(--ds-deck, #0f1420);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 0.55);
+}
+
+.box[data-dragging] {
+  user-select: none;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+}
+
+.title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.title b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconBtn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--ds-ink-hi, #fff);
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid var(--ds-h22, rgba(255, 255, 255, 0.22));
+  background: var(--ds-ground-2, #1a2132);
+}
+
+.iconBtn:hover {
+  border-color: var(--ds-edge-accent, #fcd34d);
+}
+
+.cap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.capBar {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.capBar i {
+  display: block;
+  height: 100%;
+  background: #86efac;
+  transition: width 120ms ease-out;
+}
+
+.cap[data-over] {
+  color: #fca5a5;
+}
+
+.cap[data-over] .capBar i {
+  background: #f87171;
+}
+
+.section {
+  display: grid;
+  gap: 6px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink, #cbd5e1);
+}
+
+.link {
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fcd34d;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-data, monospace);
+  font-size: 12px;
+}
+
+.path li {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.path li + li::before {
+  content: "→ ";
+  color: var(--ds-ink, #cbd5e1);
+}
+
+.path li[data-via] {
+  background: rgba(252, 211, 77, 0.22);
+}
+
+.alts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.alt {
+  display: grid;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ds-ink-hi, #fff);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.alt small {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ds-ink, #cbd5e1);
+}
+
+.alt[aria-pressed="true"] {
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.65);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.18);
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ds-ink, #cbd5e1);
+}
+
+.warn {
+  margin: 0;
+  font-size: 12px;
+  color: #fca5a5;
+}
+
+.list {
+  display: grid;
+  gap: 4px;
+}
+
+.node {
+  display: grid;
+  gap: 4px;
+}
+
+.nodeHead {
+  font-size: 11px;
+  color: #fcd34d;
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ghost,
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-ink, #e2e8f0);
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.primary {
+  flex: 1;
+  color: var(--ds-ink-hi, #fff);
+  background: rgb(var(--ds-sig-bio, 110 231 183) / 0.18);
+  border-color: rgb(var(--ds-sig-bio, 110 231 183) / 0.5);
+}
+
+.ghost:disabled,
+.primary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ghost:focus-visible,
+.primary:focus-visible,
+.alt:focus-visible,
+.link:focus-visible,
+.iconBtn:focus-visible {
+  outline: 2px solid #fcd34d;
+  outline-offset: 2px;
+}

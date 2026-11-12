@@ -8,6 +8,13 @@ import {
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
+import {
+  pickKey,
+  prunePicks,
+  type MoveDraft,
+  type MoveRouteData,
+  type PickTarget,
+} from "@/domains/movement/routeTypes";
 
 const STORAGE_KEY = "ti4_settings";
 const THEME_STORAGE_KEY = "ti4_theme";
@@ -296,6 +303,25 @@ type AppStore = {
   }) => void;
   clearMultiSelect: () => void;
 
+  /** Ctrl+PPM: zdejmuje 1 sztukę stosu z zaznaczenia (odwrotność ``ctrlPickUnit``). */
+  ctrlUnpickUnit: (pick: { fromPosition: string; faction: string; asyncId: string; fromZone: string }) => void;
+
+  /*
+   * Ruch z trasą (krok MOVEMENT): klik w system źródłowy otwiera box z jednostkami, a trasa
+   * jest rysowana na mapie. ``moveDraft`` to roboczy wybór (źródło, waypointy, zaznaczone
+   * statki i ładunek z systemów na trasie); ``routePick`` to klikalne cele na mapie
+   * (źródła, potem waypointy) - w odróżnieniu od ``mapPick`` nie blokuje dossier.
+   */
+  moveDraft: MoveDraft | null;
+  openMoveDraft: (from: string, faction: string) => void;
+  closeMoveDraft: () => void;
+  setMoveDraftVia: (via: string[]) => void;
+  setMoveDraftRoute: (route: MoveRouteData | null) => void;
+  bumpDraftPick: (target: PickTarget, delta: number) => void;
+  clearDraftPicks: () => void;
+  routePick: { targets: string[]; selected: string[]; hue?: string; onPick: (position: string) => void } | null;
+  setRoutePick: (pick: AppStore["routePick"]) => void;
+
   /** Czy trwa przeciąganie jednostki (chowa tooltip na czas gestu). */
   isDraggingUnit: boolean;
   setDraggingUnit: (dragging: boolean) => void;
@@ -445,6 +471,56 @@ export const useAppStore = create<AppStore>((set) => {
         };
       }),
     clearMultiSelect: () => set({ multiSelect: null }),
+    ctrlUnpickUnit: ({ fromPosition, faction, asyncId, fromZone }) =>
+      set((state) => {
+        const cur = state.multiSelect;
+        if (!cur || cur.fromPosition !== fromPosition || cur.faction !== faction) return {};
+        const key = `${asyncId}|${fromZone}`;
+        const have = cur.items[key]?.count ?? 0;
+        if (have === 0) return {};
+        const next = { ...cur.items };
+        if (have <= 1) delete next[key];
+        else next[key] = { asyncId, fromZone, count: have - 1 };
+        return {
+          multiSelect: Object.keys(next).length > 0 ? { ...cur, items: next } : null,
+        };
+      }),
+
+    moveDraft: null,
+    openMoveDraft: (from, faction) =>
+      set({ moveDraft: { from, faction, via: [], picks: {}, route: null } }),
+    closeMoveDraft: () => set({ moveDraft: null }),
+    setMoveDraftVia: (via) =>
+      set((s) => (s.moveDraft ? { moveDraft: { ...s.moveDraft, via } } : {})),
+    setMoveDraftRoute: (route) =>
+      set((s) =>
+        s.moveDraft
+          ? {
+              moveDraft: {
+                ...s.moveDraft,
+                route,
+                picks: prunePicks(s.moveDraft.picks, route),
+              },
+            }
+          : {},
+      ),
+    bumpDraftPick: (target, delta) =>
+      set((s) => {
+        const draft = s.moveDraft;
+        if (!draft) return {};
+        const key = pickKey(target);
+        const have = draft.picks[key]?.count ?? 0;
+        const count = Math.min(Math.max(have + delta, 0), target.max);
+        if (count === have) return {};
+        const picks = { ...draft.picks };
+        if (count > 0) picks[key] = { ...target, count };
+        else delete picks[key];
+        return { moveDraft: { ...draft, picks } };
+      }),
+    clearDraftPicks: () =>
+      set((s) => (s.moveDraft ? { moveDraft: { ...s.moveDraft, picks: {} } } : {})),
+    routePick: null,
+    setRoutePick: (pick) => set({ routePick: pick }),
 
     notice: null,
     setNotice: (text, kind = "error") => set({ notice: { text, kind } }),
