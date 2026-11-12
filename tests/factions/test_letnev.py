@@ -442,3 +442,43 @@ def test_munitions_widoczne_w_oknie_walki_po_rzucie(registry: StaticDataRegistry
     uses = faction_components.combat_dice_uses(paid, registry)
     assert [(u["player"], u["component"]) for u in uses] == [("p1", "munitions")]
     assert uses[0]["min"] == 1 and uses[0]["max"] == 2
+
+
+def test_gravleash_z_gravity_drive_cala_flota_leci_3(registry: StaticDataRegistry) -> None:
+    """Gravity Drive (+1 dla 1 statku) + Gravleash: cała flota z ruchem 2 leci 3 skoki."""
+    from src.core import movement
+    from src.core.game_state import TacticalStep
+    from src.core.hex_grid import HexGrid
+
+    grid = HexGrid()
+    for pos, sid in [("000", "18"), ("101", "20"), ("102", "22"), ("103", "23"), ("104", "24"),
+                     ("105", "25"), ("106", "26"), ("201", "21"), ("301", "28")]:
+        grid.place_system(pos, sid, anomalies=set())
+    grid.build_edges()
+    state = _state()
+    state.active_system = "000"
+    state.tactical_step = TacticalStep.MOVEMENT
+    state.players["p1"].technologies = ["gd"]
+    state.systems = {
+        "301": SystemState(
+            position="301", system_id="28", space_units={"p1": {"cruiser": 2, "carrier": 1}}
+        )
+    }
+    previous = board_graph._PROVIDER
+    board_graph.bind_grid_provider(lambda: grid)
+    try:
+        route = movement.route_through(state, grid, "301", [], "p1")
+        assert route is not None and len(route) == 4  # 3 skoki
+        fleet = {"cruiser": 2, "carrier": 1}
+        with pytest.raises(ValueError):  # bez przełomu premia działa na 1 statek
+            movement.move_fleet(
+                state, grid, registry, "301", fleet, {}, "p1", gravity_drive=True, route=route
+            )
+        state.players["p1"].breakthrough_unlocked = True
+        moved = movement.move_fleet(
+            state, grid, registry, "301", fleet, {}, "p1", gravity_drive=True, route=route
+        )
+        assert moved.systems["000"].space_units["p1"] == fleet
+        assert moved.gravity_drive_used is True
+    finally:
+        board_graph.bind_grid_provider(previous)

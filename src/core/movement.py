@@ -996,6 +996,13 @@ def move_fleet(
     # dla grupy większej niż 1.
     boost_spent = state.gravity_drive_used
     tempesta_spent = state.tempesta_used
+    # Gravleash Maneuvers: premia trafia na 1 statek, a reszta grupy (niemyśliwska) wyrównuje do
+    # jego wartości (F_letnev) — premia zużyta w TYM ruchu działa więc na kolejne typy statków.
+    group_matches = rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_MATCH_HIGHEST, state, player_id
+    )
+    gd_this_move = False
+    tp_this_move = False
     for base_type, count in ships.items():
         ok, reason = can_move(
             state, grid, registry, from_pos, base_type, player_id, route=plan_route,
@@ -1004,8 +1011,9 @@ def move_fleet(
         if not ok:
             # Premie to osobne zdolności (Gravity Drive, Ionian Fuel Refinery): próbujemy
             # pojedynczą, potem obie naraz; zużywa się tylko to, co było potrzebne.
-            can_gd = gravity_drive and not boost_spent
-            can_tp = tempesta and not tempesta_spent
+            shared = group_matches and base_type != _FIGHTER
+            can_gd = gravity_drive and (not boost_spent or (shared and gd_this_move))
+            can_tp = tempesta and (not tempesta_spent or (shared and tp_this_move))
             chosen = next(
                 (
                     (gd, tp)
@@ -1023,13 +1031,12 @@ def move_fleet(
                 raise ValueError(reason)
             # Gravleash Maneuvers: premię dostaje 1 statek, reszta (niemyśliwska) wyrównuje do
             # jego wartości (F_letnev) — limit „1 statek” nie blokuje grupy.
-            matched = base_type != _FIGHTER and rules_hooks.permits(
-                rules_hooks.POINT_MOVEMENT_MATCH_HIGHEST, state, player_id
-            )
-            if count != 1 and not matched:
+            if count != 1 and not shared:
                 raise ValueError(
                     f"{reason} A +1 move bonus extends the move of only 1 ship per action."
                 )
+            gd_this_move = gd_this_move or chosen[0]
+            tp_this_move = tp_this_move or chosen[1]
             boost_spent = boost_spent or chosen[0]
             tempesta_spent = tempesta_spent or chosen[1]
         available = _available_in_zone(source, player_id, base_type, "space")

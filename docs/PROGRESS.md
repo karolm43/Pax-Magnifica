@@ -771,3 +771,6 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   był tylko wrapper `Unit`, nie sam sprite). Teraz `--unit-fit` (`shared/ui/Unit/unitSprites.css`, `--unit-sprite-ratio`
   z `SpriteUnitImage`) mieści sprite z proporcjami; `DecisionFields.module.css` ustawia `--unit-fit: 34px`.
 - Steering/Workflow: QA dobierane do zakresu zmiany (build/E2E tylko gdy potrzebne).
+- Gravleash + Gravity Drive: `move_fleet` zużywał premię na pierwszym typie statku, więc reszta floty dostawała
+  „Range too short”, choć podgląd trasy pokazywał dolot. Premia zużyta w TYM ruchu działa teraz na kolejne typy
+  (niemyśliwskie) przy Gravleash; test `test_gravleash_z_gravity_drive_cala_flota_leci_3`.
