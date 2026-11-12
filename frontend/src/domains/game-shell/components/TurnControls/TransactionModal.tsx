@@ -12,12 +12,17 @@ import {
 import { Button, Group, Stack, Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
-import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import type { PlayerData } from "@/entities/data/types";
-import { useBoardEditor, type TransactionSide } from "@/api/useBoardEditor";
+import {
+  useBoardEditor,
+  useTransactionState,
+  type TransactionSide,
+} from "@/api/useBoardEditor";
+import { useGameState } from "@/api/useGameState";
+import { TradeCard, TradeSummary, isEmptySide } from "./transactionItems";
 import styles from "./TransactionModal.module.css";
 
 type Tab = "trade" | "promises";
@@ -27,6 +32,7 @@ const EMPTY_SIDE: TransactionSide = {
   commodities: 0,
   promissoryNote: null,
   relicFragments: [],
+  actionCards: [],
 };
 
 type Props = {
@@ -139,11 +145,12 @@ function PlayerPick({
  * Transakcje między graczami (RULES.md 47) + nieformalne żetony długu (debt).
  *
  * Dwie zakładki:
- *  - „Transaction": do jednej transakcji z każdym SĄSIADEM w turze — oddaję TG/commodities,
- *    jedną promissory note i fragmenty reliktów, w zamian dostaję to samo od partnera.
- *    Reguły egzekwuje backend (422 z powodem), tu tylko ograniczamy wybór do tego, co
- *    gracze faktycznie mają. Zgoda partnera nie jest modelowana (hot-seat: obie strony
- *    umowy składa jeden operator).
+ *  - „Transaction": do jednej transakcji z każdym SĄSIADEM w turze (Guild Ships / Trade Convoys:
+ *    także z nie-sąsiadem) — oddaję TG/commodities, jedną promissory note, fragmenty reliktów
+ *    i (Arbiters / Black Market Dealings) karty akcji, w zamian dostaję to samo od partnera.
+ *    Notki i karty pokazują pełny tekst. To PROPOZYCJA: wymiana następuje, gdy partner ją
+ *    przyjmie (RULES.md 47.1a, okno ``TransactionOfferPrompt``); do tego czasu można ją wycofać.
+ *    Reguły egzekwuje backend (422 z powodem).
  *  - „Debt tokens": zwyczajowe żetony kontroli jako niewiążące długi — bez sąsiedztwa.
  */
 export function TransactionModal({
@@ -154,8 +161,13 @@ export function TransactionModal({
   players,
   canTrade,
 }: Props) {
-  const { resolveTransaction, giveDebtTokens, returnDebtTokens } =
-    useBoardEditor();
+  const {
+    proposeTransaction,
+    cancelTransaction,
+    giveDebtTokens,
+    returnDebtTokens,
+  } = useBoardEditor();
+  const { data: gameState } = useGameState(gameId);
   const [tab, setTab] = useState<Tab>("trade");
   const [busy, setBusy] = useState(false);
   const [partnerId, setPartnerId] = useState<string | null>(null);
@@ -165,9 +177,30 @@ export function TransactionModal({
   const [promiseCount, setPromiseCount] = useState(1);
 
   const others = players.filter((p) => p.discordId !== me.discordId);
-  const neighbors = others.filter((p) => me.neighbors.includes(p.color));
+  // Partnerzy z silnika (sąsiedzi + Guild Ships / Trade Convoys, flaga kart akcji). Odświeżenie
+  // wymusza publiczny skrót propozycji i sąsiedztwo z web-data.
+  const offerStamp = JSON.stringify([
+    gameState?.transactionOffer ?? null,
+    me.neighbors,
+    me.transactedWith ?? [],
+  ]);
+  const { data: tradeState } = useTransactionState(offerStamp);
+  const partnerViews = tradeState?.partners;
+  const neighbors = partnerViews
+    ? others.filter((p) => partnerViews.some((v) => v.playerId === p.discordId))
+    : others.filter((p) => me.neighbors.includes(p.color));
+  const viewOf = (id: string | null) =>
+    partnerViews?.find((v) => v.playerId === id) ?? null;
   const done = new Set(me.transactedWith ?? []);
   const partner = neighbors.find((p) => p.discordId === partnerId) ?? null;
+  const cardsAllowed = viewOf(partnerId)?.actionCards ?? false;
+  const myOffer =
+    tradeState?.offer && tradeState.offer.proposer === me.discordId
+      ? tradeState.offer
+      : null;
+  const offerPartner = myOffer
+    ? (players.find((p) => p.discordId === myOffer.partner) ?? null)
+    : null;
   const promisePartner =
     others.find((p) => p.discordId === promisePartnerId) ?? null;
 
@@ -182,16 +215,17 @@ export function TransactionModal({
   });
   const myNotes = myHand?.promissoryNotes ?? [];
   const partnerNotes = partner ? (partnerHand?.promissoryNotes ?? []) : [];
+  const myCards = cardsAllowed ? (myHand?.actionCards ?? []) : [];
+  const partnerCards =
+    cardsAllowed && partner ? (partnerHand?.actionCards ?? []) : [];
   const myFragments = me.relicFragmentCards ?? [];
   const partnerFragments = partner?.relicFragmentCards ?? [];
 
-  const isEmpty = (s: TransactionSide) =>
-    s.tradeGoods === 0 &&
-    s.commodities === 0 &&
-    s.promissoryNote === null &&
-    s.relicFragments.length === 0;
   const canConfirm =
-    canTrade && partner != null && !(isEmpty(give) && isEmpty(receive));
+    canTrade &&
+    partner != null &&
+    myOffer == null &&
+    !(isEmptySide(give) && isEmptySide(receive));
 
   const reset = () => {
     setGive(EMPTY_SIDE);
@@ -222,6 +256,28 @@ export function TransactionModal({
         : [...side.relicFragments, id],
     });
 
+  const toggleCard = (
+    side: TransactionSide,
+    set: (s: TransactionSide) => void,
+    index: number,
+    id: string,
+  ) => {
+    // Karty mogą się powtarzać (kopie) — zaznaczamy po indeksie w ręce, wysyłamy identyfikatory.
+    const key = `${index}:${id}`;
+    const picked = side.actionCards ?? [];
+    set({
+      ...side,
+      actionCards: picked.includes(key)
+        ? picked.filter((c) => c !== key)
+        : [...picked, key],
+    });
+  };
+  // ``actionCards`` w formularzu trzyma klucze ``indeks:id``; do silnika idą same identyfikatory.
+  const forEngine = (side: TransactionSide): TransactionSide => ({
+    ...side,
+    actionCards: (side.actionCards ?? []).map((k) => k.slice(k.indexOf(":") + 1)),
+  });
+
   const renderSide = (
     title: string,
     owner: PlayerData,
@@ -229,6 +285,7 @@ export function TransactionModal({
     set: (s: TransactionSide) => void,
     notes: string[],
     fragments: { id: string; name: string }[],
+    cards: string[],
   ) => (
     <section className={styles.side} aria-label={title}>
       <h4 className={styles.sideTitle}>
@@ -256,24 +313,20 @@ export function TransactionModal({
         {notes.length === 0 ? (
           <span className={styles.none}>No notes in hand</span>
         ) : (
-          <div className={styles.chips}>
+          <div className={styles.cardList}>
             {notes.map((id) => (
-              <div
+              <TradeCard
                 key={id}
-                className={styles.noteChip}
-                data-selected={side.promissoryNote === id || undefined}
-              >
-                <PromissoryNote
-                  promissoryNoteId={id}
-                  showDetails={false}
-                  onClick={() =>
-                    set({
-                      ...side,
-                      promissoryNote: side.promissoryNote === id ? null : id,
-                    })
-                  }
-                />
-              </div>
+                kind="note"
+                id={id}
+                selected={side.promissoryNote === id}
+                onToggle={() =>
+                  set({
+                    ...side,
+                    promissoryNote: side.promissoryNote === id ? null : id,
+                  })
+                }
+              />
             ))}
           </div>
         )}
@@ -299,6 +352,28 @@ export function TransactionModal({
           </div>
         )}
       </div>
+      {cardsAllowed && (
+        <div className={styles.group}>
+          <span className={styles.groupLabel}>
+            Action cards <small>(Arbiters)</small>
+          </span>
+          {cards.length === 0 ? (
+            <span className={styles.none}>No action cards to show</span>
+          ) : (
+            <div className={styles.cardList}>
+              {cards.map((id, i) => (
+                <TradeCard
+                  key={`${i}:${id}`}
+                  kind="action"
+                  id={id}
+                  selected={(side.actionCards ?? []).includes(`${i}:${id}`)}
+                  onToggle={() => toggleCard(side, set, i, id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 
@@ -353,8 +428,10 @@ export function TransactionModal({
           <>
             <Text size="sm" c="dimmed">
               One transaction per neighbor each turn, any time during your turn
-              (even in combat). Commodities you hand over become trade goods for
-              the receiver. It does not have to be even — and it can't be undone.
+              (even in combat). You make an offer — nothing changes hands until
+              the other player accepts it. Commodities you hand over become trade
+              goods for the receiver. It does not have to be even — and once
+              accepted it can't be undone.
             </Text>
 
             {!canTrade && (
@@ -378,16 +455,60 @@ export function TransactionModal({
                     player={p}
                     selected={p.discordId === partnerId}
                     disabled={done.has(p.color)}
-                    note={done.has(p.color) ? "done this turn" : undefined}
+                    note={
+                      done.has(p.color)
+                        ? "done this turn"
+                        : viewOf(p.discordId)?.neighbor === false
+                          ? "not a neighbor"
+                          : undefined
+                    }
                     onPick={() => pickPartner(p.discordId)}
                   />
                 ))
               )}
             </div>
 
-            {partner && (
+            {myOffer && (
+              <div className={styles.waiting} role="status">
+                <span className={styles.waitingHead}>
+                  <IconArrowsExchange size={16} aria-hidden="true" />
+                  Waiting for{" "}
+                  <b>
+                    {offerPartner
+                      ? getPlayerFactionDisplayName(offerPartner)
+                      : myOffer.partner}
+                  </b>{" "}
+                  to accept your offer.
+                </span>
+                {myOffer.give && myOffer.receive && (
+                  <div className={styles.summaryPair}>
+                    <TradeSummary title="You give" side={myOffer.give} />
+                    <TradeSummary title="You receive" side={myOffer.receive} />
+                  </div>
+                )}
+                <Group justify="flex-end">
+                  <Button
+                    variant="default"
+                    disabled={busy}
+                    onClick={() => run(() => cancelTransaction(me.discordId))}
+                  >
+                    Withdraw offer
+                  </Button>
+                </Group>
+              </div>
+            )}
+
+            {partner && !myOffer && (
               <div className={styles.sides}>
-                {renderSide("You give", me, give, setGive, myNotes, myFragments)}
+                {renderSide(
+                  "You give",
+                  me,
+                  give,
+                  setGive,
+                  myNotes,
+                  myFragments,
+                  myCards,
+                )}
                 <IconArrowsExchange
                   className={styles.swap}
                   size={26}
@@ -400,6 +521,7 @@ export function TransactionModal({
                   setReceive,
                   partnerNotes,
                   partnerFragments,
+                  partnerCards,
                 )}
               </div>
             )}
@@ -415,20 +537,19 @@ export function TransactionModal({
                   partner &&
                   run(
                     () =>
-                      resolveTransaction({
+                      proposeTransaction({
                         partnerId: partner.discordId,
-                        give,
-                        receive,
+                        give: forEngine(give),
+                        receive: forEngine(receive),
                       }),
                     () => {
                       reset();
                       setPartnerId(null);
-                      onClose();
                     },
                   )
                 }
               >
-                Seal the deal
+                Offer the deal
               </Button>
             </Group>
           </>

@@ -238,6 +238,12 @@ def _parse_economy_scoring(parts: list[str], active: str | None) -> _Parsed | No
     head = parts[0]
     if head == "transaction" and len(parts) > 1:
         return "economy", "transaction", active, parts[1], None, None
+    if head == "transaction-offer" and len(parts) > 2:
+        # Zgoda partnera (RULES.md 47.1a): propozycja / wycofanie (aktor = aktywny) albo
+        # odrzucenie (aktor = partner, cel = aktywny).
+        if parts[1] == "declined":
+            return "economy", "transaction.declined", parts[2], active, None, None
+        return "economy", f"transaction.{parts[1]}", active, parts[2], None, None
     if head == "debt" and len(parts) > 2 and "->" in parts[2]:
         left, right = parts[2].split("->", 1)
         action = "debt.give" if parts[1] == "give" else "debt.return"

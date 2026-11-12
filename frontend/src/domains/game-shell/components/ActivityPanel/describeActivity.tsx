@@ -305,6 +305,24 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           {actor} made a deal with {target}
         </>
       );
+    case "transaction.proposed":
+      return (
+        <>
+          {actor} offered a deal to {target}
+        </>
+      );
+    case "transaction.declined":
+      return (
+        <>
+          {actor} declined the deal from {target}
+        </>
+      );
+    case "transaction.cancelled":
+      return (
+        <>
+          {actor} withdrew the deal offered to {target}
+        </>
+      );
     case "debt.give":
       return (
         <>

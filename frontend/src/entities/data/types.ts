@@ -574,6 +574,13 @@ export type GameState = {
   pendingStrategy?: PendingStrategy | null;
   /** Zagrana karta akcji czekająca ~10 s na Sabotage (RULES.md 53.6) — null, gdy brak. */
   heldPlay?: HeldPlayData | null;
+  /** Propozycja transakcji czekająca na zgodę partnera (RULES.md 47.1a) — tylko strony. */
+  transactionOffer?: {
+    proposer: string;
+    partner: string;
+    proposerColor: string | null;
+    partnerColor: string | null;
+  } | null;
   /** Setup startowy (tajne cele, żeton Custodians, odkrycie celów) — null po zakończeniu. */
   setup?: GameSetup | null;
   /**

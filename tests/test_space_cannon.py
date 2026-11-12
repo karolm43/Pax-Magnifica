@@ -381,3 +381,31 @@ def test_web_data_exposes_space_cannon_range(registry: StaticDataRegistry) -> No
     assert tiles["101"]["pds"]["p2"]["count"] == 1  # własny kafelek PDS
     assert tiles["000"]["pds"]["p2"]["count"] == 1  # deep: sięga sąsiedniego systemu
     assert tiles["000"]["pds"]["p2"]["expected"] == 0.6  # 5+ na d10 → 6/10
+
+
+def test_sustain_damage_cancels_space_cannon_hit(registry: StaticDataRegistry) -> None:
+    """R_sustain_damage: dreadnought może anulować trafienie Space Cannon (zamiast ginąć)."""
+    state = _state(pds={"p2": 12}, ships={"p1": {"dreadnought": 1}})
+    fired = _fire_until_hit(_open(state, registry), registry, "p2", None)
+    pending = space_cannon.pending_hits(fired)
+    assert pending is not None
+    # 1 dreadnought = 1 sztuka + 1 użycie Sustain Damage.
+    assert space_cannon.required_hits(fired, "p1", registry) == min(pending.hits, 2)
+    if pending.hits == 1:
+        after = space_cannon.assign_hits(fired, "p1", sustain={"dreadnought": 1})
+        units = after.systems["000"].space_units["p1"]
+        assert units == {"dreadnought": 1}
+        assert after.systems["000"].damaged_units["space"]["p1"]["dreadnought"] == 1
+        assert space_cannon.read_log(after)[-1]["sustained"] == {"dreadnought": 1}
+    else:
+        after = space_cannon.assign_hits(
+            fired, "p1", sustain={"dreadnought": 1}, destroy_damaged={"dreadnought": 1}
+        )
+        assert after.systems["000"].space_units.get("p1", {}).get("dreadnought", 0) == 0
+
+
+def test_sustain_damage_not_for_ships_without_it(registry: StaticDataRegistry) -> None:
+    state = _state(pds={"p2": 12}, ships={"p1": {"destroyer": 2}})
+    fired = _fire_until_hit(_open(state, registry), registry, "p2", None)
+    with pytest.raises(ValueError, match="Sustain"):
+        space_cannon.assign_hits(fired, "p1", sustain={"destroyer": 1})

@@ -12,6 +12,7 @@ import { FactionComponentUseModal } from "@/domains/game-shell/components/TurnCo
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { HandReactionRows, type HandPlay } from "./HandReactionPrompts";
+import { TransactionOfferPrompt } from "./TransactionOfferPrompt";
 import { humanHandOwners } from "./handReactions";
 import styles from "./AbilityPrompts.module.css";
 
@@ -95,6 +96,11 @@ export function AbilityPrompts() {
       {!using && !playing &&
         createPortal(
           <div className={styles.stack} aria-label="Abilities and cards available now">
+            <TransactionOfferPrompt
+              gameState={gameState}
+              handOwners={handOwners}
+              nameOf={playerName}
+            />
             {handOwners.map((id) => (
               <HandReactionRows
                 key={id}

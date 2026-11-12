@@ -91,10 +91,88 @@ export function DiceRolls({ rolls }: { rolls: SpaceCannonRoll[] }) {
   );
 }
 
+export type SpaceCannonAssignPlan = {
+  sustain: { baseType: string; count: number }[];
+  destroy: { baseType: string; count: number }[];
+  destroyDamaged: { baseType: string; count: number }[];
+};
+
 /**
- * Przypisanie strat: gracz-cel niszczy dokładnie ``required`` statków. Licznik ``x/N``,
- * +/− per typ (do liczby posiadanych), potwierdzenie dopiero przy komplecie. Stan
- * wyboru jest lokalny — rodzic montuje komponent z ``key`` nowego przypisania.
+ * Plan dla silnika z wyboru gracza: ``sustain`` użyć Sustain Damage i ``destroyed`` zniszczeń
+ * na typ. Niszczymy najpierw statki uszkodzone (także te właśnie uszkodzone), potem całe.
+ */
+export function spaceCannonPlan(
+  ships: SpaceCannonShip[],
+  sustain: Record<string, number>,
+  destroyed: Record<string, number>,
+): SpaceCannonAssignPlan {
+  const plan: SpaceCannonAssignPlan = {
+    sustain: [],
+    destroy: [],
+    destroyDamaged: [],
+  };
+  for (const ship of ships) {
+    const s = sustain[ship.baseType] ?? 0;
+    const d = destroyed[ship.baseType] ?? 0;
+    const dd = Math.min(d, (ship.damaged ?? 0) + s);
+    if (s > 0) plan.sustain.push({ baseType: ship.baseType, count: s });
+    if (dd > 0)
+      plan.destroyDamaged.push({ baseType: ship.baseType, count: dd });
+    if (d - dd > 0)
+      plan.destroy.push({ baseType: ship.baseType, count: d - dd });
+  }
+  return plan;
+}
+
+/** Stepper −/+ jednej decyzji (Sustain Damage albo zniszczenie) dla typu statku. */
+function StepPair({
+  verb,
+  name,
+  value,
+  canLess,
+  canMore,
+  danger,
+  onChange,
+}: {
+  verb: string;
+  name: string;
+  value: number;
+  canLess: boolean;
+  canMore: boolean;
+  danger?: boolean;
+  onChange: (delta: number) => void;
+}) {
+  return (
+    <span className={styles.shipBtns} role="group" aria-label={`${verb} ${name}`}>
+      <button
+        type="button"
+        className={styles.step}
+        disabled={!canLess}
+        onClick={() => onChange(-1)}
+        aria-label={`Less: ${verb} ${name}`}
+      >
+        <IconMinus size={12} />
+      </button>
+      <small className={styles.shipCount}>
+        {verb} {value}
+      </small>
+      <button
+        type="button"
+        className={styles.step}
+        data-danger={danger || undefined}
+        disabled={!canMore}
+        onClick={() => onChange(+1)}
+        aria-label={`${verb} ${name}`}
+      >
+        <IconPlus size={12} />
+      </button>
+    </span>
+  );
+}
+
+/**
+ * Gracz-cel pokrywa trafienia Space Cannon: Sustain Damage (statek staje się uszkodzony,
+ * R_sustain_damage) albo zniszczenie. Silnik waliduje plan (422 z powodem).
  */
 export function AssignHits({
   pending,
@@ -111,17 +189,28 @@ export function AssignHits({
   colorAlias: string;
   faction: string;
   busy: boolean;
-  onConfirm: (losses: { baseType: string; count: number }[]) => void;
+  onConfirm: (plan: SpaceCannonAssignPlan) => void;
 }) {
-  const [losses, setLosses] = useState<Record<string, number>>({});
-  const chosen = Object.values(losses).reduce((a, b) => a + b, 0);
+  const [sustain, setSustain] = useState<Record<string, number>>({});
+  const [destroyed, setDestroyed] = useState<Record<string, number>>({});
+  const sum = (r: Record<string, number>) =>
+    Object.values(r).reduce((a, b) => a + b, 0);
+  const chosen = sum(sustain) + sum(destroyed);
   const ready = chosen === pending.required;
+  const full = chosen >= pending.required;
+  const anySustain = ships.some((s) => s.sustain);
+  const left = pending.required - chosen;
 
-  const change = (baseType: string, max: number, delta: number) =>
-    setLosses((prev) => {
+  const bump = (
+    set: typeof setSustain,
+    baseType: string,
+    max: number,
+    delta: number,
+  ) =>
+    set((prev) => {
       const next = (prev[baseType] ?? 0) + delta;
       if (next < 0 || next > max) return prev;
-      if (delta > 0 && chosen >= pending.required) return prev;
+      if (delta > 0 && full) return prev;
       return { ...prev, [baseType]: next };
     });
 
@@ -130,8 +219,9 @@ export function AssignHits({
       <header className={styles.assignHead}>
         <IconSkull size={14} aria-hidden="true" />
         <span>
-          <b>{targetName}</b> must destroy <b>{pending.required}</b> ship
+          <b>{targetName}</b> must cover <b>{pending.required}</b> hit
           {pending.required === 1 ? "" : "s"}
+          {anySustain && <small> — Sustain Damage cancels a hit</small>}
         </span>
         <span className={styles.counter} data-ready={ready || undefined}>
           {chosen}/{pending.required}
@@ -139,7 +229,10 @@ export function AssignHits({
       </header>
       <div className={styles.ships}>
         {ships.map((ship) => {
-          const picked = losses[ship.baseType] ?? 0;
+          const s = sustain[ship.baseType] ?? 0;
+          const d = destroyed[ship.baseType] ?? 0;
+          const damaged = ship.damaged ?? 0;
+          const maxSustain = ship.sustain ? ship.count - damaged : 0;
           return (
             <div key={ship.baseType} className={styles.shipTile}>
               <div className={styles.icon}>
@@ -150,31 +243,37 @@ export function AssignHits({
                   scaleSprite
                 />
               </div>
-              <span className={styles.shipName}>{ship.name}</span>
-              <span className={styles.shipCount}>
-                {picked}/{ship.count}
+              <span className={styles.shipName}>
+                {ship.name}
+                <small>
+                  {" "}
+                  ×{ship.count}
+                  {damaged > 0 && `, ${damaged} damaged`}
+                </small>
               </span>
-              <span className={styles.shipBtns}>
-                <button
-                  type="button"
-                  className={styles.step}
-                  disabled={busy || picked <= 0}
-                  onClick={() => change(ship.baseType, ship.count, -1)}
-                  aria-label={`Keep ${ship.name}`}
-                >
-                  <IconMinus size={12} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.step}
-                  data-danger
-                  disabled={busy || picked >= ship.count || chosen >= pending.required}
-                  onClick={() => change(ship.baseType, ship.count, +1)}
-                  aria-label={`Destroy ${ship.name}`}
-                >
-                  <IconPlus size={12} />
-                </button>
-              </span>
+              {maxSustain > 0 && (
+                <StepPair
+                  verb="Sustain"
+                  name={ship.name}
+                  value={s}
+                  canLess={!busy && s > 0}
+                  canMore={!busy && s < maxSustain && !full}
+                  onChange={(delta) =>
+                    bump(setSustain, ship.baseType, maxSustain, delta)
+                  }
+                />
+              )}
+              <StepPair
+                verb="Destroy"
+                name={ship.name}
+                value={d}
+                danger
+                canLess={!busy && d > 0}
+                canMore={!busy && d < ship.count && !full}
+                onChange={(delta) =>
+                  bump(setDestroyed, ship.baseType, ship.count, delta)
+                }
+              />
             </div>
           );
         })}
@@ -183,13 +282,11 @@ export function AssignHits({
         type="button"
         className={styles.confirm}
         disabled={busy || !ready}
-        onClick={() =>
-          onConfirm(
-            Object.entries(losses).map(([baseType, count]) => ({ baseType, count })),
-          )
-        }
+        onClick={() => onConfirm(spaceCannonPlan(ships, sustain, destroyed))}
       >
-        {ready ? "Destroy selected ships" : `Select ${pending.required - chosen} more`}
+        {ready
+          ? "Confirm losses"
+          : `Assign ${left} more hit${left === 1 ? "" : "s"}`}
       </button>
     </section>
   );

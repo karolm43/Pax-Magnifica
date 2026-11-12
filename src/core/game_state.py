@@ -849,6 +849,22 @@ class ActionDiscardTrace(BaseModel):
     card: str
 
 
+class TransactionOffer(BaseModel):
+    """Propozycja transakcji czekająca na zgodę partnera (RULES.md 47.1a).
+
+    ``give`` / ``receive`` to strony z punktu widzenia PROPONUJĄCEGO (pola
+    ``core.transaction.TransactionSide``). Zawartość (notki, karty akcji) znają tylko strony
+    transakcji — publiczny dokument pokazuje wyłącznie, kto z kim negocjuje.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    proposer: str
+    partner: str
+    give: dict[str, Any] = Field(default_factory=dict)
+    receive: dict[str, Any] = Field(default_factory=dict)
+
+
 class HeldPlay(BaseModel):
     """Zagrana karta akcji CZEKAJĄCA na ewentualną reakcję Sabotage (RULES.md 53.6).
 
@@ -946,6 +962,8 @@ class GameState(BaseModel):
     # przy kolejnej akcji dowolnego gracza (``action_budget.register_action``) i nowej turze.
     turn_end_window: TurnEndWindow | None = None
     last_transaction: list[str] = Field(default_factory=list)
+    # Propozycja transakcji czekająca na odpowiedź partnera (RULES.md 47.1a) — None, gdy brak.
+    transaction_offer: TransactionOffer | None = None
     last_action_discard: ActionDiscardTrace | None = None
     # Kto uzupełnił commodities od ostatniej akcji (okno Trade Agreement, RULES.md 61.2).
     last_replenished: list[str] = Field(default_factory=list)

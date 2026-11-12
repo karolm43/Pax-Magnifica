@@ -902,3 +902,21 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   przycisk z okiem prześwietla okna (`body[data-map-peek]`) i kliknięciem centruje mapę na celu.
 - Konsola: dźwięki walki pytały o 16 opcjonalnych plików mp3 (każdy brak = czerwony 404). Nowy
   `GET /battle/sounds` zwraca listę istniejących próbek; front pobiera tylko je. Nowa trasa — restart backendu.
+
+## 2026-11-12 (9) — Zgoda na transakcje, Sustain Damage przeciw Space Cannon, Ctrl+drag w ruchu
+
+- **Transakcje ze zgodą partnera** (RULES.md 47.1a, zgłoszenie użytkownika): aktywny gracz składa propozycję
+  (`/transactions/propose`), wymiana dzieje się dopiero po „Accept” partnera (`/transactions/respond`); można ją
+  wycofać (`/transactions/cancel`). Odrzucenie nie zużywa limitu. Propozycja ginie z nową turą. Zawartość widzą
+  tylko strony (`GET /transactions/state`), web-data niesie jawny skrót `transactionOffer`. Bot odpowiada od razu
+  (⚠️ ZAŁOŻENIE `bot_accepts`). Feed: `transaction.proposed/declined/cancelled`. Stary `/transactions/resolve` usunięty.
+- Okno transakcji: notki z PEŁNYM tekstem, karty akcji (gdy para może je wymieniać — Arbiters / Black Market
+  Dealings) też z tekstem, panel „Waiting for … / Withdraw offer”. Partner dostaje samo wyskakujące okno
+  `TransactionOfferPrompt` (stos „Available now”) z treścią i Accept / Decline.
+- Nowe punkty `transaction.any_player` (transakcja bez sąsiedztwa) i `transaction.action_cards` — pod Hacan (B4).
+- **Space Cannon Offense + Sustain Damage** (R_sustain_damage, RULES.md 38.4): cel pokrywa trafienia jak w walce
+  (`space_cannon.required_hits`, `battle.plan_losses`, sustain / destroy / destroyDamaged), panel ma przyciski
+  „Sustain” obok „Destroy”. Wcześniej trafienie zawsze niszczyło statek.
+- **Ctrl+drag w ruchu**: ponowne przeciągnięcie grupy z tego samego systemu zerowało trasę w boxie, a zapytanie
+  zwracało te same dane z cache, więc box nie pokazywał nowego wyboru. Efekt w `MoveRouteBox` reaguje teraz na brak trasy.
+- Nowe pola stanu i trasy (`transaction_offer`, `/transactions/*`) — restart backendu.

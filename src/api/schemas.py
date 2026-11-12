@@ -1133,6 +1133,9 @@ class SpaceCannonShipHelp(BaseModel):
     async_id: str = Field(serialization_alias="asyncId")
     name: str
     count: int
+    # Ile już uszkodzonych i czy typ może użyć Sustain Damage (R_sustain_damage).
+    damaged: int = 0
+    sustain: bool = False
 
 
 class SpaceCannonLogEntry(BaseModel):
@@ -1200,7 +1203,13 @@ class SpaceCannonAssignRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     faction: str
-    losses: list[SpaceCannonLossItem]
+    # Niszczone NIEUSZKODZONE statki (dawne pole — zgodność wstecz).
+    losses: list[SpaceCannonLossItem] = Field(default_factory=list)
+    # Sustain Damage (R_sustain_damage: działa też przeciw Space Cannon) i niszczone uszkodzone.
+    sustain: list[SpaceCannonLossItem] = Field(default_factory=list)
+    destroy_damaged: list[SpaceCannonLossItem] = Field(
+        default_factory=list, alias="destroyDamaged"
+    )
 
 
 # --- Walka: okno pola bitwy (RULES.md 39) ---
@@ -1440,6 +1449,74 @@ class TransactionSideRequest(BaseModel):
     commodities: int = 0
     promissory_note: str | None = None
     relic_fragments: list[str] = Field(default_factory=list)
+    # Karty akcji (Arbiters / Black Market Dealings) — silnik odrzuci je bez takiego efektu.
+    action_cards: list[str] = Field(default_factory=list)
+
+
+class TransactionRespondRequest(BaseModel):
+    """Odpowiedź partnera na propozycję transakcji (RULES.md 47.1a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str | None = None
+    accept: bool
+
+
+class TransactionCancelRequest(BaseModel):
+    """Proponujący wycofuje propozycję transakcji (RULES.md 47.1a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str | None = None
+
+
+class TransactionSideView(BaseModel):
+    """Strona propozycji: co dany gracz ODDAJE (widoczne tylko dla stron transakcji)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    trade_goods: int = Field(0, serialization_alias="tradeGoods")
+    commodities: int = 0
+    promissory_note: str | None = Field(None, serialization_alias="promissoryNote")
+    relic_fragments: list[str] = Field(default_factory=list, serialization_alias="relicFragments")
+    action_cards: list[str] = Field(default_factory=list, serialization_alias="actionCards")
+
+
+class TransactionOfferView(BaseModel):
+    """Propozycja czekająca na odpowiedź; ``give``/``receive`` z perspektywy proponującego."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    proposer: str
+    partner: str
+    proposer_color: str | None = Field(None, serialization_alias="proposerColor")
+    partner_color: str | None = Field(None, serialization_alias="partnerColor")
+    # None, gdy oglądający nie jest stroną transakcji (zawartość prywatna).
+    give: TransactionSideView | None = None
+    receive: TransactionSideView | None = None
+
+
+class TransactionPartnerView(BaseModel):
+    """Gracz, z którym aktywny gracz może teraz negocjować."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    player_id: str = Field(serialization_alias="playerId")
+    color: str | None = None
+    # Sąsiad czy efekt bez sąsiedztwa (Guild Ships / Trade Convoys).
+    neighbor: bool = True
+    # Czy w tej parze wolno wymieniać karty akcji (Arbiters / Black Market Dealings).
+    action_cards: bool = Field(False, serialization_alias="actionCards")
+    done: bool = False
+
+
+class TransactionStateResponse(BaseModel):
+    """Stan transakcji: propozycja w toku + możliwi partnerzy aktywnego gracza."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    offer: TransactionOfferView | None = None
+    partners: list[TransactionPartnerView] = Field(default_factory=list)
 
 
 class TransactionRequest(BaseModel):

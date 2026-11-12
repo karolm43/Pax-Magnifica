@@ -109,6 +109,11 @@ POINT_ACTION_STARTED = "turn.action_started"
 # Transakcja może obejmować relikty, karty akcji i nieodsłonięte tajne cele (Black Market Dealings);
 # PERMIT -> bool (pytamy obu uczestników transakcji; ctx: partner).
 POINT_TRANSACTION_EXTRA_ITEMS = "transaction.extra_items"
+# Transakcja z graczem, który NIE jest sąsiadem (Guild Ships, Trade Convoys); PERMIT -> bool
+# (pytamy obu stron; ctx: partner). Nie czyni graczy sąsiadami (F_hacan).
+POINT_TRANSACTION_ANY_PLAYER = "transaction.any_player"
+# W transakcji można wymieniać karty akcji (Arbiters); PERMIT -> bool (obie strony; ctx: partner).
+POINT_TRANSACTION_ACTION_CARDS = "transaction.action_cards"
 # Faza statusu: liczba kart akcji dobieranych przez gracza (bazowo 1; Neural Motivator: +1).
 POINT_STATUS_ACTION_CARDS = "status.action_cards"
 # Faza statusu: liczba żetonów dowodzenia zdobywanych przez gracza (bazowo 2; Hyper Metabolism: +1).

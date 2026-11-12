@@ -121,9 +121,12 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
     gravityDrive,
     tempesta,
   );
+  // ``routeMissing``: nowy wybór (np. Ctrl+drag z TEGO SAMEGO źródła) zeruje trasę w store, a
+  // zapytanie zwraca te same dane z cache — bez tej zależności box zostawał bez trasy i wyboru.
+  const routeMissing = draft !== null && draft.route === null;
   useEffect(() => {
     if (draft && routeData && !isPlaceholderData) setMoveDraftRoute(routeData);
-  }, [draft?.from, routeData, isPlaceholderData, setMoveDraftRoute]);
+  },[draft?.from, routeMissing, routeData, isPlaceholderData, setMoveDraftRoute]);
 
   // Klikalne cele na mapie: źródła (otwierają/zamykają box), a przy otwartym boxie także
   // systemy, przez które da się poprowadzić trasę (waypointy).

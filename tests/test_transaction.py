@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
-from src.core import debt, transaction, turn_flow
+from src.core import action_budget, debt, transaction, turn_flow
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.transaction import TransactionSide
@@ -188,24 +188,87 @@ def client() -> TestClient:
     return TestClient(app)
 
 
-def test_endpoint_transaction_and_web_data(client: TestClient) -> None:
+def test_endpoint_transaction_needs_partner_consent(client: TestClient) -> None:
+    """RULES.md 47.1a: propozycja niczego nie przenosi; wymiana dopiero po zgodzie partnera."""
     resp = client.post(
-        "/transactions/resolve",
+        "/transactions/propose",
         json={"partner_id": "p2", "give": {"trade_goods": 2}, "receive": {"commodities": 1}},
     )
     assert resp.status_code == 200
+    data = client.get("/api/public/game/g/web-data").json()
+    p1 = next(p for p in data["playerData"] if p["color"] == "red")
+    assert p1["tg"] == 3  # nic się nie wydarzyło przed zgodą
+    view = client.get("/transactions/state").json()
+    assert view["offer"]["proposer"] == "p1"
+    assert view["offer"]["give"]["tradeGoods"] == 2
+    # Druga propozycja, póki pierwsza czeka — 422.
+    again = client.post(
+        "/transactions/propose", json={"partner_id": "p2", "give": {"trade_goods": 1}}
+    )
+    assert again.status_code == 422
+    # Odpowiada tylko partner.
+    wrong = client.post(
+        "/transactions/respond", json={"accept": True}, headers={"X-Actor-Id": "p1"},
+    )
+    assert wrong.status_code == 403
+    ok = client.post("/transactions/respond", json={"player_id": "p2", "accept": True})
+    assert ok.status_code == 200
     data = client.get("/api/public/game/g/web-data").json()
     p1 = next(p for p in data["playerData"] if p["color"] == "red")
     p2 = next(p for p in data["playerData"] if p["color"] == "blue")
     # p1: 3 - 2 + 1 (commodity od p2 -> TG); p2: 1 + 2 = 3.
     assert (p1["tg"], p2["tg"]) == (2, 3)
     assert p1["transactedWith"] == ["blue"]
+    assert client.get("/transactions/state").json()["offer"] is None
     # Druga transakcja z tym samym partnerem w turze — 422 z powodem.
     again = client.post(
-        "/transactions/resolve", json={"partner_id": "p2", "give": {"trade_goods": 1}}
+        "/transactions/propose", json={"partner_id": "p2", "give": {"trade_goods": 1}}
     )
     assert again.status_code == 422
     assert "already made a transaction" in again.json()["detail"]
+
+
+def test_endpoint_declined_and_cancelled_offer_change_nothing(client: TestClient) -> None:
+    body = {"partner_id": "p2", "give": {"trade_goods": 1}}
+    assert client.post("/transactions/propose", json=body).status_code == 200
+    assert client.post(
+        "/transactions/respond", json={"player_id": "p2", "accept": False}
+    ).status_code == 200
+    assert client.get("/transactions/state").json()["offer"] is None
+    # Odrzucenie nie zużywa limitu: można zaproponować ponownie, a potem wycofać.
+    assert client.post("/transactions/propose", json=body).status_code == 200
+    assert client.post("/transactions/cancel", json={"player_id": "p1"}).status_code == 200
+    data = client.get("/api/public/game/g/web-data").json()
+    p1 = next(p for p in data["playerData"] if p["color"] == "red")
+    assert p1["tg"] == 3 and p1["transactedWith"] == []
+
+
+def test_offer_content_hidden_from_other_players() -> None:
+    state = transaction.propose_transaction(
+        _state(), _grid(), "p2", TransactionSide(promissory_note="red_ceasefire"), TransactionSide()
+    )
+    assert state.transaction_offer is not None
+    assert state.transaction_offer.give["promissory_note"] == "red_ceasefire"
+    # Propozycja znika z nową turą (żyje tylko w turze autora).
+    action_budget.reset_turn(state, "p2")
+    assert state.transaction_offer is None
+
+
+def test_bot_partner_answers_at_once() -> None:
+    from src.core.game_state import ControlType
+
+    state = _state()
+    state.players["p2"].control_type = ControlType.BOT
+    gift = transaction.propose_transaction(
+        state, _grid(), "p2", TransactionSide(trade_goods=1), TransactionSide()
+    )
+    assert gift.transaction_offer is None
+    assert gift.players["p2"].trade_goods == 2  # prezent przyjęty
+    greedy = transaction.propose_transaction(
+        state, _grid(), "p2", TransactionSide(), TransactionSide(trade_goods=1)
+    )
+    assert greedy.transaction_offer is None
+    assert greedy.players["p1"].trade_goods == 3  # bot odmówił oddania za darmo
 
 
 def test_endpoint_debt_tokens_roundtrip(client: TestClient) -> None:

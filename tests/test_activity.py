@@ -210,3 +210,17 @@ def test_zagrana_notka_w_feedzie() -> None:
     assert entry is not None
     assert entry.action == "promissory.play"
     assert entry.actor_id == "p2" and entry.subject == "green_cf"
+
+
+def test_propozycja_i_odrzucenie_transakcji_w_feedzie() -> None:
+    """RULES.md 47.1a: propozycja (aktor = aktywny) i odrzucenie (aktor = partner)."""
+    proposed = derive_activity("transaction-offer:proposed:p2", _state(), _state())
+    assert proposed is not None
+    assert (proposed.action, proposed.actor_id, proposed.target_id) == (
+        "transaction.proposed", "p1", "p2"
+    )
+    declined = derive_activity("transaction-offer:declined:p2", _state(), _state())
+    assert declined is not None
+    assert (declined.action, declined.actor_id, declined.target_id) == (
+        "transaction.declined", "p2", "p1"
+    )

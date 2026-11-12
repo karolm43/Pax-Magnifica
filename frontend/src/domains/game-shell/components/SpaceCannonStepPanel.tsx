@@ -431,8 +431,8 @@ export function SpaceCannonStepPanel() {
             colorAlias={lookup(pending.target).colorAlias}
             faction={pending.target}
             busy={busy}
-            onConfirm={(losses) =>
-              void run(() => spaceCannonAssign(pending.target, losses))
+            onConfirm={(plan) =>
+              void run(() => spaceCannonAssign(pending.target, plan))
             }
           />
         </div>

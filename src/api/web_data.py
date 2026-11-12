@@ -404,6 +404,18 @@ def _build_game_state(
         # Zagrana karta akcji czekająca na ewentualne Sabotage (hold-play, RULES.md 53.6) —
         # JAWNA (leży na stole). None, gdy brak okna.
         "heldPlay": _held_play(state, registry),
+        # Propozycja transakcji czekająca na zgodę (RULES.md 47.1a): JAWNE tylko strony;
+        # zawartość daje ``GET /transactions/state`` samym stronom. None, gdy brak.
+        "transactionOffer": (
+            {
+                "proposer": state.transaction_offer.proposer,
+                "partner": state.transaction_offer.partner,
+                "proposerColor": _color_of(state, state.transaction_offer.proposer),
+                "partnerColor": _color_of(state, state.transaction_offer.partner),
+            }
+            if state.transaction_offer is not None
+            else None
+        ),
         # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) dopisuje
         # ``build_web_data`` z PEŁNEGO stanu (``web_setup.build_setup_payload``). RULES.md 45.
         # Czy MÓWCA może już ogłosić przejście fazy — steruje widocznością „Next phase"

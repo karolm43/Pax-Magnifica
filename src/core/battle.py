@@ -101,7 +101,7 @@ def _units_map(system: SystemState | None, zone: str, player_id: str) -> dict[st
 
 def combat_units(
     state: GameState,
-    grid: HexGrid,
+    grid: HexGrid | None,
     registry: StaticDataRegistry,
     *,
     kind: str,
@@ -120,7 +120,10 @@ def combat_units(
     player = state.players.get(player_id)
     zone = _zone(kind, planet)
     terrain_modifier = (
-        1 if defender and kind == "space" and _NEBULA in grid.anomalies_at(position) else 0
+        1
+        if defender and kind == "space" and grid is not None
+        and _NEBULA in grid.anomalies_at(position)
+        else 0
     )
     units: list[CombatUnit] = []
     for base_type, count in sorted(_units_map(system, zone, player_id).items()):

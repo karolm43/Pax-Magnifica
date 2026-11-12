@@ -358,3 +358,111 @@
     justify-self: center;
   }
 }
+
+/* ===== Karty w transakcji (notka / karta akcji) z pełnym tekstem — RULES.md 47.1a ===== */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tradeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 7px 9px;
+  text-align: left;
+  font: inherit;
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ds-h14);
+  border-radius: 9px;
+  transition: border-color var(--ds-dur-fast) var(--ds-ease),
+    background var(--ds-dur-fast) var(--ds-ease);
+}
+
+button.tradeCard {
+  cursor: pointer;
+}
+
+button.tradeCard:hover {
+  border-color: rgb(var(--ds-sig-tg) / 0.45);
+}
+
+.tradeCard[data-selected] {
+  border-color: rgb(var(--ds-sig-tg) / 0.8);
+  background: rgb(var(--ds-sig-tg) / 0.14);
+}
+
+.tradeCardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small, 12px);
+}
+
+.tradeCardHead small {
+  margin-left: auto;
+  color: var(--ds-ink-lo);
+  text-transform: capitalize;
+}
+
+.tradeCard[data-kind="action"] .tradeCardHead svg {
+  color: rgb(var(--ds-sig-ability));
+}
+
+.tradeCardText {
+  font-size: var(--text-micro, 11px);
+  line-height: 1.4;
+  color: var(--ds-ink-lo);
+}
+
+/* ===== Podsumowanie propozycji (okno zgody / oczekiwanie) ===== */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.summaryTitle {
+  margin: 0;
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  font-weight: 700;
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.summaryGoods {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-small, 12px);
+  color: var(--ds-ink-hi);
+}
+
+.waiting {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed rgb(var(--ds-sig-tg) / 0.5);
+  border-radius: 12px;
+}
+
+.waitingHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-small, 12px);
+  color: var(--ds-ink-hi);
+}
+
+.summaryPair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}

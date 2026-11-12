@@ -40,6 +40,34 @@ export type TransactionSide = {
   commodities: number;
   promissoryNote: string | null;
   relicFragments: string[];
+  /** Karty akcji (Arbiters / Black Market Dealings) — inaczej silnik odrzuci (422). */
+  actionCards?: string[];
+};
+
+/** Propozycja transakcji czekająca na zgodę partnera (RULES.md 47.1a). */
+export type TransactionOfferView = {
+  proposer: string;
+  partner: string;
+  proposerColor: string | null;
+  partnerColor: string | null;
+  /** null, gdy oglądający nie jest stroną transakcji (zawartość prywatna). */
+  give: TransactionSide | null;
+  receive: TransactionSide | null;
+};
+
+export type TransactionPartnerView = {
+  playerId: string;
+  color: string | null;
+  /** Sąsiad czy efekt bez sąsiedztwa (Guild Ships / Trade Convoys). */
+  neighbor: boolean;
+  /** Czy w tej parze wolno wymieniać karty akcji (Arbiters / Black Market Dealings). */
+  actionCards: boolean;
+  done: boolean;
+};
+
+export type TransactionStateView = {
+  offer: TransactionOfferView | null;
+  partners: TransactionPartnerView[];
 };
 
 export type EditUnitArgs = {
@@ -115,6 +143,7 @@ export function useBoardEditor() {
       "moveRange",
       "moveRoute",
       "spaceCannon",
+      "transactionState",
       "battle",
       "capacity",
       "fleetPool",
@@ -493,7 +522,8 @@ export function useBoardEditor() {
   // Transakcja z sąsiadem (RULES.md 47). ``give`` = co oddaje aktywny gracz, ``receive`` =
   // co dostaje od partnera. Backend egzekwuje reguły (sąsiad, 1/turę, stan posiadania) i
   // przy błędzie zwraca 422 → ``post`` pokazuje powód w komunikacie.
-  const resolveTransaction = useCallback(
+  // Transakcja ze zgodą partnera (RULES.md 47.1a): propozycja → przyjęcie/odrzucenie/wycofanie.
+  const proposeTransaction = useCallback(
     async (args: {
       partnerId: string;
       give: TransactionSide;
@@ -504,12 +534,29 @@ export function useBoardEditor() {
         commodities: s.commodities,
         promissory_note: s.promissoryNote,
         relic_fragments: s.relicFragments,
+        action_cards: s.actionCards ?? [],
       });
-      await post("/transactions/resolve", {
+      await post("/transactions/propose", {
         partner_id: args.partnerId,
         give: side(args.give),
         receive: side(args.receive),
       });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const respondTransaction = useCallback(
+    async (playerId: string, accept: boolean) => {
+      await post("/transactions/respond", { player_id: playerId, accept });
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const cancelTransaction = useCallback(
+    async (playerId: string) => {
+      await post("/transactions/cancel", { player_id: playerId });
       await refresh();
     },
     [refresh],
@@ -635,12 +682,21 @@ export function useBoardEditor() {
   );
 
   const spaceCannonAssign = useCallback(
-    async (faction: string, losses: { baseType: string; count: number }[]) => {
+    async (
+      faction: string,
+      plan: {
+        sustain: { baseType: string; count: number }[];
+        destroy: { baseType: string; count: number }[];
+        destroyDamaged: { baseType: string; count: number }[];
+      },
+    ) => {
+      const clean = (items: { baseType: string; count: number }[]) =>
+        items.filter((l) => l.count > 0);
       await post("/tactical/space-cannon/assign", {
         faction,
-        losses: losses
-          .filter((l) => l.count > 0)
-          .map((l) => ({ baseType: l.baseType, count: l.count })),
+        losses: clean(plan.destroy),
+        sustain: clean(plan.sustain),
+        destroyDamaged: clean(plan.destroyDamaged),
       });
       await refresh();
     },
@@ -1015,7 +1071,9 @@ export function useBoardEditor() {
     claimLeaderUnlock,
     playPromissory,
     forgeRelic,
-    resolveTransaction,
+    proposeTransaction,
+    respondTransaction,
+    cancelTransaction,
     giveDebtTokens,
     returnDebtTokens,
     activateSystem,
@@ -1355,7 +1413,7 @@ export type SpaceCannonPending = {
   roller: string;
   target: string;
   hits: number;
-  /** Ile statków trzeba zniszczyć: min(trafienia, statki celu). */
+  /** Ile trafień pokryć: min(trafienia, statki celu + Sustain Damage). */
   required: number;
   rolls: SpaceCannonRoll[];
 };
@@ -1365,6 +1423,10 @@ export type SpaceCannonShip = {
   asyncId: string;
   name: string;
   count: number;
+  /** Ile już uszkodzonych. */
+  damaged?: number;
+  /** Czy typ może jeszcze użyć Sustain Damage. */
+  sustain?: boolean;
 };
 
 export type SpaceCannonLogEntry = {
@@ -1389,6 +1451,22 @@ export type SpaceCannonPanel = {
   targetShips: SpaceCannonShip[];
   log: SpaceCannonLogEntry[];
 };
+
+/**
+ * Stan transakcji (RULES.md 47.1a): propozycja w toku i partnerzy aktywnego gracza. ``stamp``
+ * (np. publiczny skrót propozycji z web-data) wymusza odświeżenie, gdy ktoś inny coś zmieni.
+ */
+export function useTransactionState(stamp: string, player: string | null = null) {
+  return useQuery<TransactionStateView>({
+    queryKey: ["transactionState", stamp, player],
+    staleTime: 0,
+    queryFn: () =>
+      fetchJson<TransactionStateView>(
+        `/bot/transactions/state${player ? `?player=${encodeURIComponent(player)}` : ""}`,
+        "transactionState",
+      ),
+  });
+}
 
 /** Stan panelu Space Cannon Offense (kolejka, strzelcy, straty do przypisania, dziennik). */
 export function useSpaceCannon(enabled: boolean) {

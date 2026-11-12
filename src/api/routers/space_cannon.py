@@ -17,6 +17,7 @@ from src.api.schemas import (
     SpaceCannonAssignRequest,
     SpaceCannonFireRequest,
     SpaceCannonLogEntry,
+    SpaceCannonLossItem,
     SpaceCannonPanelResponse,
     SpaceCannonPassRequest,
     SpaceCannonPendingHelp,
@@ -65,8 +66,10 @@ def _ship_names(
 ) -> list[SpaceCannonShipHelp]:
     """Statki gracza z nazwą WARIANTU (np. „Carrier II") — do listy przypisania strat."""
     player = state.players.get(player_id)
+    combat = space_cannon.combat_view(state, player_id, ctx.registry)
     result: list[SpaceCannonShipHelp] = []
     for base_type, count in ships.items():
+        unit_view = combat.get(base_type)
         unit = resolve_unit_variant(
             ctx.registry,
             player.faction if player is not None else None,
@@ -80,6 +83,8 @@ def _ship_names(
                 async_id=ASYNC_ID_BY_BASE_TYPE.get(base_type, base_type),
                 name=unit.name if unit is not None else base_type,
                 count=count,
+                damaged=unit_view.damaged if unit_view is not None else 0,
+                sustain=unit_view is not None and unit_view.sustainable > 0,
             )
         )
     return result
@@ -141,7 +146,7 @@ def _build_panel(ctx: AppContext, state: GameState) -> SpaceCannonPanelResponse:
             roller=key(pending_core.roller),
             target=key(pending_core.target),
             hits=pending_core.hits,
-            required=min(pending_core.hits, sum(target_ships.values())),
+            required=space_cannon.required_hits(state, pending_core.target, ctx.registry),
             rolls=[_roll_help(r) for r in pending_core.rolls],
         )
         ships = _ship_names(ctx, state, pending_core.target, target_ships)
@@ -241,12 +246,22 @@ async def post_space_cannon_assign(
         ctx.service.current_state(), actor, request.faction, None, "Assign Space Cannon hits"
     )
     state = ctx.service.current_state()
-    losses: dict[str, int] = {}
-    for item in request.losses:
-        losses[item.base_type] = losses.get(item.base_type, 0) + item.count
+    def items(raw: list[SpaceCannonLossItem]) -> dict[str, int]:
+        result: dict[str, int] = {}
+        for item in raw:
+            result[item.base_type] = result.get(item.base_type, 0) + item.count
+        return result
+
     try:
         target_id = board_edit.resolve_player_id(request.faction, state)
-        new_state = space_cannon.assign_hits(state, target_id, losses)
+        new_state = space_cannon.assign_hits(
+            state,
+            target_id,
+            items(request.losses),
+            sustain=items(request.sustain),
+            destroy_damaged=items(request.destroy_damaged),
+            registry=ctx.registry,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"space-cannon:assign:{target_id}")

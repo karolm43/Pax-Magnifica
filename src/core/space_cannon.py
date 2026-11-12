@@ -22,7 +22,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
-from src.core import exhaust, legendary_planets, rules_hooks, timing, triggers, unit_ops
+from src.core import (
+    battle,
+    exhaust,
+    legendary_planets,
+    rules_hooks,
+    timing,
+    triggers,
+)
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll, roll_dice
 from src.core.game_events import GameEvent, Moment
@@ -30,7 +37,6 @@ from src.core.game_state import GameState, TimingWindow, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
-from src.core.unit_ops import UnitCause
 
 # Klucze kontekstu okna dotyczące trwającego przypisywania strat.
 _PENDING_KEYS = ("roller", "target", "hits", "rolls", "gls")
@@ -612,13 +618,55 @@ def pass_offense(state: GameState, player_id: str) -> GameState:
     return _advance(logged)
 
 
-def assign_hits(
-    state: GameState, target_id: str, losses: dict[str, int]
-) -> GameState:
-    """Gracz-cel niszczy własne statki za trafienia (S7) i okno przechodzi dalej.
+def combat_view(
+    state: GameState, target_id: str, registry: StaticDataRegistry | None
+) -> dict[str, battle.CombatUnit]:
+    """Statki celu jako jednostki walki (Sustain Damage, uszkodzenia) — do przypisania strat."""
+    reg = registry if registry is not None else rules_hooks.bound_registry()
+    active = state.active_system
+    if reg is None or active is None:
+        return {}
+    units = battle.combat_units(
+        state, None, reg, kind="space", position=active, planet=None, player_id=target_id
+    )
+    return {u.base_type: u for u in units}
 
-    ``losses`` = ``{base_type: liczba}``. Suma musi być równa min(trafienia, jego statki w
-    aktywnym systemie); nie wolno niszczyć więcej niż ma dany typ.
+
+def required_hits(
+    state: GameState, target_id: str, registry: StaticDataRegistry | None = None
+) -> int:
+    """Ile trafień cel musi pokryć: min(trafienia, statki + użycia Sustain Damage) — S7.
+
+    ``R_sustain_damage``: Sustain Damage działa przeciw KAŻDEMU trafieniu, także z Space Cannon.
+    """
+    pending = pending_hits(state)
+    if pending is None:
+        return 0
+    units = combat_view(state, target_id, registry)
+    if not units:
+        return min(pending.hits, sum(target_ships(state, target_id).values()))
+    cancels = battle.sustain_cancels(state, target_id)
+    absorbable = sum(
+        u.count + (cancels * u.sustainable if u.sustain else 0) for u in units.values()
+    ) + (cancels if any(u.granted > 0 for u in units.values()) else 0)
+    return min(pending.hits, absorbable)
+
+
+def assign_hits(
+    state: GameState,
+    target_id: str,
+    losses: dict[str, int] | None = None,
+    *,
+    sustain: dict[str, int] | None = None,
+    destroy_damaged: dict[str, int] | None = None,
+    registry: StaticDataRegistry | None = None,
+) -> GameState:
+    """Gracz-cel pokrywa trafienia (S7): Sustain Damage albo zniszczenie, okno idzie dalej.
+
+    ``losses`` = niszczone NIEUSZKODZONE statki ``{base_type: liczba}``, ``sustain`` = użycia
+    Sustain Damage (statek staje się uszkodzony), ``destroy_damaged`` = niszczone uszkodzone.
+    Walidacja planu wspólna z walką i Space Cannon Defense (``battle.plan_losses``); suma musi
+    pokryć ``required_hits``.
 
     Raises:
         ValueError: Brak trafień do przypisania, zły gracz, zła liczba/typ strat.
@@ -629,18 +677,25 @@ def assign_hits(
     if target_id != pending.target:
         raise ValueError("Only the targeted player assigns the hits.")
     ships = target_ships(state, target_id)
-    required = min(pending.hits, sum(ships.values()))
-    cleaned = {bt: c for bt, c in losses.items() if c > 0}
-    for base_type, count in cleaned.items():
-        if count > ships.get(base_type, 0):
-            raise ValueError(
-                f"Cannot destroy {count} {base_type}: only {ships.get(base_type, 0)} in the system."
-            )
-    if sum(cleaned.values()) != required:
-        raise ValueError(f"Destroy exactly {required} ship(s) for these hits.")
+    destroy = {bt: c for bt, c in (losses or {}).items() if c > 0}
+    sustained = {bt: c for bt, c in (sustain or {}).items() if c > 0}
+    destroyed_damaged = {bt: c for bt, c in (destroy_damaged or {}).items() if c > 0}
+    for base_type in set(destroy) | set(sustained) | set(destroyed_damaged):
+        if base_type not in ships:
+            raise ValueError(f"Cannot assign hits to {base_type}: only 0 in the system.")
+    units = combat_view(state, target_id, registry)
+    required = required_hits(state, target_id, registry)
+    plan = battle.plan_losses(
+        units, sustained, destroy, destroyed_damaged, required,
+        battle.sustain_cancels(state, target_id),
+    )
     if state.pending_window is not None and int(state.pending_window.context.get("gls", 0)):
         non_fighters = sum(n for bt, n in ships.items() if bt != "fighter")
-        chosen = sum(n for bt, n in cleaned.items() if bt != "fighter")
+        chosen = sum(
+            sustained.get(bt, 0) + destroy.get(bt, 0) + destroyed_damaged.get(bt, 0)
+            for bt in ships
+            if bt != "fighter"
+        )
         if chosen < min(required, non_fighters):
             raise ValueError(
                 "Graviton Laser System: hits must be assigned to non-fighter ships if able."
@@ -648,15 +703,18 @@ def assign_hits(
 
     new_state = state.clone()
     assert new_state.active_system is not None
-    system = new_state.systems[new_state.active_system]
-    for base_type, count in cleaned.items():
-        unit_ops.remove_units(
-            new_state, system, "space", target_id, base_type, count, UnitCause.DESTROYED
+    battle.apply_losses(new_state, new_state.active_system, "space", target_id, units, plan)
+    used = battle.sustained_of(plan, sustained)
+    for base_type, count in used.items():
+        triggers.fire(
+            new_state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=target_id,
+            ctx={"player": target_id, "base_type": base_type, "count": count},
         )
 
     log = read_log(new_state)
     if log:
-        log[-1]["destroyed"] = cleaned
+        log[-1]["destroyed"] = battle.losses_of(units, plan)
+        log[-1]["sustained"] = used
     assert new_state.pending_window is not None
     context = {
         k: v for k, v in new_state.pending_window.context.items() if k not in _PENDING_KEYS
