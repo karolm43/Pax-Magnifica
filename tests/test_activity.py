@@ -164,3 +164,24 @@ def test_resource_unit_and_table_facts_from_diff() -> None:
     assert ("system_token", "p1", "101", None) in got
     assert ("relic", "p1", "the_crown_of_emphidia", None) in got
     assert ("law_enacted", None, "minister_of_policy", None) in got
+
+
+def test_uzycie_lidera_i_purge_w_feedzie() -> None:
+    """RULES.md 61.3: użycie komponentu frakcji + zmiana stanu lidera (purge) jako fakt."""
+    before = _state()
+    after = _state()
+    after.players["p1"].leader_states = {"arborechero": "purged"}
+    entry = derive_activity("component-use:leader:arborechero", before, after)
+    assert entry is not None
+    assert entry.action == "component.use"
+    assert entry.subject == "arborechero" and entry.detail == "leader"
+    facts = [(f.type, f.value, f.detail) for f in entry.facts]
+    assert ("leader", "arborechero", "purged") in facts
+
+
+def test_zagrana_notka_w_feedzie() -> None:
+    """RULES.md 61.2: zagrana notka jest jawna (aktor = grający, nie aktywny gracz)."""
+    entry = derive_activity("promissory:p2:green_cf", _state(), _state())
+    assert entry is not None
+    assert entry.action == "promissory.play"
+    assert entry.actor_id == "p2" and entry.subject == "green_cf"

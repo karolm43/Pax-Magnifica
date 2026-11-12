@@ -1,4 +1,4 @@
-"""Hooki frakcji z podstawki (base). Teksty zdolności: ``assets/data/abilities`` (nie z pamięci)."""
+"""Arborec — hooki frakcji. Teksty zdolności: ``assets/data/abilities`` (nie z pamięci)."""
 
 from __future__ import annotations
 

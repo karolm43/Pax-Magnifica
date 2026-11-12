@@ -1027,6 +1027,8 @@ def _player_leaders(
                 "tgCount": 0,
                 "exhausted": state == "exhausted",
                 "locked": state == "locked",
+                # Bohater po użyciu (RULES.md 61.1) — usunięty z gry.
+                "purged": state == "purged",
                 "active": False,
             }
         )

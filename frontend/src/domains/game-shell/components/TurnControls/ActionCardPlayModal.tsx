@@ -9,6 +9,7 @@ import {
   type FormValue,
 } from "@/api/useActionCard";
 import { useRelicForm } from "@/api/useRelics";
+import { usePromissoryForm } from "@/api/useFactionComponents";
 import { useAppStore } from "@/state/appStore";
 
 type Props = {
@@ -27,7 +28,7 @@ type Props = {
    * przed graczem (``cardId`` to id reliktu), a zagranie idzie przez ``/relic/play``.
    * ``frontier`` = karta frontier z ręki (Enigmatic Device): ten sam formularz, ``/frontier-card/play``.
    */
-  kind?: "card" | "relic" | "frontier";
+  kind?: "card" | "relic" | "frontier" | "note";
 };
 
 /** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (też dla ofert technologii). */
@@ -99,15 +100,18 @@ export function ActionCardPlayModal({
   kind = "card",
 }: Props) {
   const isFrontier = kind === "frontier";
+  const isNote = kind === "note";
   const isRelic = kind === "relic" || isFrontier;
-  const cardForm = useActionCardForm(isRelic ? null : cardId, playerId, seq);
+  const cardForm = useActionCardForm(isRelic || isNote ? null : cardId, playerId, seq);
+  // Promissory note z ręki (RULES.md 61.2): ten sam formularz, zagranie przez /promissory/play.
+  const noteForm = usePromissoryForm(isNote ? cardId : null, playerId);
   const relicForm = useRelicForm(
     isRelic ? cardId : null,
     playerId,
     isFrontier ? "frontier-card" : "relic",
   );
-  const form = isRelic ? relicForm : cardForm;
-  const { playActionCard, playRelic } = useBoardEditor();
+  const form = isNote ? noteForm : isRelic ? relicForm : cardForm;
+  const { playActionCard, playRelic, playPromissory } = useBoardEditor();
   const setNotice = useAppStore((state) => state.setNotice);
   const [values, setValues] = useState<Record<string, FormValue>>({});
   const [busy, setBusy] = useState(false);
@@ -124,6 +128,17 @@ export function ActionCardPlayModal({
   const play = async () => {
     setBusy(true);
     try {
+      if (isNote) {
+        const result = await playPromissory(playerId, cardId, params);
+        if (!result.implemented) {
+          setNotice(
+            `${cardName} is not automated yet - it was played. Resolve its effect by hand.`,
+            "info",
+          );
+        }
+        onPlayed();
+        return;
+      }
       if (isRelic) {
         const result = await playRelic(
           playerId,
@@ -176,7 +191,9 @@ export function ActionCardPlayModal({
               </Text>
             )}
             <Text size="sm" c="dimmed">{form.data.text}</Text>
-            {form.data.summary && <Text size="sm" fw={600}>{form.data.summary}</Text>}
+            {"summary" in form.data && form.data.summary && (
+              <Text size="sm" fw={600}>{form.data.summary}</Text>
+            )}
             {!form.data.implemented && (
               <Text size="sm">
                 {isRelic
@@ -205,7 +222,7 @@ export function ActionCardPlayModal({
             Cancel
           </Button>
           <Button disabled={busy || !form.data || !ready || noTargets} onClick={() => void play()}>
-            {isRelic ? "Use relic" : "Play card"}
+            {isRelic ? "Use relic" : isNote ? "Play note" : "Play card"}
           </Button>
         </Group>
       </Stack>

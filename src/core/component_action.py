@@ -25,6 +25,7 @@ from typing import Any
 from src.core import (
     action_budget,
     card_hold,
+    faction_components,
     planet_abilities,
     relic_actions,
     rules_hooks,
@@ -104,6 +105,8 @@ def play_component_action(
         ) and not technology_abilities.run_action_effect(
             new_state, registry, active_id, component_id, action_params
         ) and not relic_actions.run_action_effect(
+            new_state, registry, active_id, component_id, action_params
+        ) and not faction_components.run_action_effect(
             new_state, registry, active_id, component_id, action_params
         ):
             frontier_cards.run_action_effect(

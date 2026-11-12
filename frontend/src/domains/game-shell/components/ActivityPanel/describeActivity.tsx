@@ -227,6 +227,26 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           )}
         </>
       );
+    case "component.use":
+      // Lider / zdolność frakcji / przełom jako akcja komponentu (RULES.md 61.3).
+      return (
+        <>
+          {actor} used{" "}
+          {a.detail === "leader" ? (
+            <Named kind="leader" id={a.subject ?? ""} name={getLeaderById(a.subject ?? "")?.name ?? prettifyId(a.subject ?? "")} />
+          ) : (
+            <i>{prettifyId(a.subject ?? "")}</i>
+          )}
+        </>
+      );
+    case "promissory.play":
+      // Zagrana notka (jawna od chwili zagrania) — RULES.md 61.2.
+      return (
+        <>
+          {actor} played note{" "}
+          <Named kind="promissory" id={a.subject ?? ""} name={resolveCardName("CARD_PLAY_PROMISSORY_NOTE", a.subject ?? "")} />
+        </>
+      );
     case "tech.exhaust":
       return (
         <>

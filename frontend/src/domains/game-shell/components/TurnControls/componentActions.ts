@@ -21,6 +21,7 @@ import { getAbility, getAbilityKind } from "@/entities/lookup/abilities";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { getTechData } from "@/entities/lookup/tech";
 import { getRelicData } from "@/entities/lookup/relics";
+import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
 
 /** Rodzaj źródła akcji komponentu — steruje etykietą i ikoną w modalu. */
 export type ComponentActionKind =
@@ -29,7 +30,8 @@ export type ComponentActionKind =
   | "leader"
   | "technology"
   | "relic"
-  | "legendary";
+  | "legendary"
+  | "breakthrough";
 
 export type ComponentActionChoice = {
   id: string;
@@ -45,6 +47,7 @@ export const KIND_LABEL: Record<ComponentActionKind, string> = {
   technology: "Technology",
   relic: "Relic",
   legendary: "Legendary planet",
+  breakthrough: "Breakthrough",
 };
 
 /** Nagłówek „Action" w dowolnym polu tekstowym komponentu (start linii lub „ACTION:"). */
@@ -110,6 +113,12 @@ export function collectComponentActions(
       if (relic && textHasAction(relic.text)) {
         push("relic", id, relic.name ?? id);
       }
+    }
+    // Przełom frakcji (Thunder's Edge) z „ACTION:" - tylko zdobyty (RULES.md 61.3).
+    const bt = player.breakthrough;
+    if (bt?.unlocked) {
+      const data = getBreakthroughData(bt.breakthroughId);
+      if (data && textHasAction(data.text)) push("breakthrough", bt.breakthroughId, data.name ?? bt.breakthroughId);
     }
     // Karty zdolności legendarnych planet z „ACTION:" (id = id planety; RULES.md 60).
     for (const ability of player.legendaryAbilities ?? []) {

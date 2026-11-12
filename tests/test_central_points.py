@@ -37,7 +37,8 @@ OWNERS: dict[str, frozenset[str]] = {
     "exhausted_planets": frozenset({"core/exhaust.py", "core/nexus.py", _GOD_MODE}),
     "exhausted_technologies": frozenset({"core/exhaust.py", _GOD_MODE}),
     "exhausted_strategy_cards": frozenset({"core/exhaust.py", _GOD_MODE}),
-    "leader_states": frozenset({"core/exhaust.py", _GOD_MODE}),
+    # Cykl życia liderów (RULES.md 61.1): odblokowanie / purge w core/leaders.py.
+    "leader_states": frozenset({"core/exhaust.py", "core/leaders.py", _GOD_MODE}),
     "breakthrough_exhausted": frozenset({"core/exhaust.py", _GOD_MODE}),
     "planet_owners": frozenset({"core/control.py", _GOD_MODE}),
     "controlled_planets": frozenset({"core/control.py", "core/nexus.py", _GOD_MODE}),

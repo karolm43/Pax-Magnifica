@@ -226,6 +226,10 @@ def can_move(
         return False, "No active system - movement is only allowed during a tactical action (R1)."
     if not is_space_unit(base_type):
         return False, f"Unit {base_type} is not a ship - it cannot move."
+    from src.core import promissory_play  # lokalnie: unikamy cyklu importów
+
+    if promissory_play.ceasefire_blocks(state, player_id):
+        return False, "Ceasefire: you cannot move units into the active system."
 
     # R2: wartość ruchu z WARIANTU jednostki gracza (nie bazowego) — uwzględnia
     # ulepszenia wg posiadanych technologii. Np. Fighter II (tech ff2) ma moveValue=2,

@@ -118,6 +118,8 @@ def replenish_commodities(state: GameState, player_id: str) -> None:
     """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej)."""
     player = _player(state, player_id)
     player.commodities = max(player.commodities, commodity_value(state, player_id))
+    if player_id not in state.last_replenished:
+        state.last_replenished = [*state.last_replenished, player_id]
     triggers.fire(
         state, GameEvent.COMMODITIES_REPLENISHED, Moment.AFTER, subject=player_id,
         ctx={"player": player_id},

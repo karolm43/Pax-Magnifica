@@ -318,6 +318,7 @@ def test_karty_z_reki_nie_sa_zrodlami() -> None:
         rules_hooks.SOURCE_FACTION,
         rules_hooks.SOURCE_AGENDA,
         rules_hooks.SOURCE_LEADER,
+        rules_hooks.SOURCE_UNIT,  # jednostki frakcji są jawne (RULES.md 61.3)
     }
 
 

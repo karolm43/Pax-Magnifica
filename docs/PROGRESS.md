@@ -675,3 +675,23 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   dok ręki zwija się wtedy do paska (rozwinięcie chwilowe, bez nadpisania zapamiętanego wyboru), a okno rezerwuje
   pod nim miejsce — dok nie zasłania tabel jednostek. Inwazja: karta planety i dok orbity jako płyty TI.
 - Animacje bombardowania / lądowania / walki naziemnej (ustalone wcześniej z użytkownikiem) bez zmian.
+
+## 2026-11-12 — Frakcje Fala 0: liderzy (F1), promissory notes (F2), akcje komponentów frakcji (F3a) — RULES.md 61
+
+- **F1 liderzy** (`core/leaders.py`): stany `locked/unlocked/exhausted/purged`, odblokowanie z warunku „Unlock” z danych
+  (`register_unlock` po id, `register_unlock_condition` po tekście — wszyscy bohaterowie „3 scored objectives” działają od razu),
+  sprawdzanie po każdym commicie w `StateService` (nie w trakcie ofert), koszt użycia z tekstu (wyczerpanie agenta, purge
+  bohatera; wyjątki ⚠️ 61.1). Lider bez zakodowanego warunku: przycisk „Unlock” (`POST /leader/claim-unlock`, MANUAL).
+- **F3a** (`core/faction_components.py`): `ACTION:` liderów / zdolności frakcji / przełomu przez akcję komponentu
+  (`leader:` / `ability:` / `breakthrough:`), efekt `register_effect("leaders|abilities|breakthroughs:<id>")`, koszt płaci
+  warstwa wspólna. API `/faction-component/*`. UI: `FactionComponentUseModal` z listy „Play a component action” (+ przełom)
+  i z menu lidera w panelu gracza („Leader ability…”); bohater po użyciu „purged”.
+- **F2 promissory notes** (`core/promissory_play.py`, `core/hooks/promissory_generic.py`): kopia z kolorem → szablon +
+  właściciel, zakaz własnej notki, reakcje w modelu okien kart akcji, zwrot/strefa/purge po efekcie, „play immediately” przy
+  otrzymaniu. Komplet 5 notek ogólnych: Ceasefire (zakaz ruchu w `movement.can_move`), Political Secret (głos + karty akcji +
+  zdolności), Support for the Throne (±1 VP, zwrot), Trade Agreement (ślad `last_replenished`), Alliance (commander właściciela
+  jako źródło hooków posiadacza). UI: zakładka Notes w doku ręki — przeciąganie legalnej notki (`ActionCardPlayModal kind="note"`).
+- Feed Activity: `component.use`, `promissory.play` (+ fakt `leader` „purged”). Testy: `test_leaders.py`, `test_promissory_play.py`.
+- **F3b**: `UnitDef.ability` + źródło hooków `SOURCE_UNIT` (wariant jednostki gracza), `core/faction_units.py`, pakiet
+  `core/hooks/factions/` (Arborec przeniesiony), test kompletności `tests/factions/completeness.py`, kolumna „Jedn.” w raporcie pokrycia.
+- Dalej: B1 (Sardakk N'orr + Barony of Letnev, komplet z liderami, przełomem, notką, flagowcem i mechem).

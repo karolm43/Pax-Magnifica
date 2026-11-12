@@ -52,6 +52,7 @@ import { TransactionModal } from "./TransactionModal";
 import { ActionCardPlayModal } from "./ActionCardPlayModal";
 import { TechnologyUseModal } from "./TechnologyUseModal";
 import { LegendaryUseModal } from "./LegendaryUseModal";
+import { FactionComponentUseModal } from "./FactionComponentUseModal";
 import { useTechnologyAbilities } from "@/api/useTechnology";
 import { useForgeOptions } from "@/api/useRelics";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
@@ -80,6 +81,7 @@ const COMPONENT_KIND_ICON: Record<
   technology: IconFlask,
   relic: IconDiamond,
   legendary: IconDiamond,
+  breakthrough: IconSparkles,
 };
 
 /* Initiative → barwa karty (fallback glow, gdy brak colourHexCode w danych). */
@@ -156,6 +158,12 @@ export function TurnControls() {
   const [usingTech, setUsingTech] = useState<{ id: string; name: string } | null>(null);
   // Karta zdolności legendarnej planety z „ACTION:" wybrana do użycia (RULES.md 60.3).
   const [usingLegendary, setUsingLegendary] = useState<{ id: string; name: string } | null>(null);
+  // Lider / zdolność frakcji / przełom (RULES.md 61.3): formularz silnika + koszt użycia.
+  const [usingFaction, setUsingFaction] = useState<{
+    kind: "leader" | "ability" | "breakthrough";
+    id: string;
+    name: string;
+  } | null>(null);
   // Okno transakcji (RULES.md 47): wymiana z sąsiadem + żetony obietnic.
   const [transactionOpen, setTransactionOpen] = useState(false);
   // Ekspedycja Thunder's Edge (RULES.md 50): zajęcie plastra na koniec tury.
@@ -702,6 +710,17 @@ export function TurnControls() {
         />
       )}
 
+      {usingFaction && active.discordId && (
+        <FactionComponentUseModal
+          key={`${usingFaction.kind}:${usingFaction.id}`}
+          kind={usingFaction.kind}
+          componentId={usingFaction.id}
+          name={usingFaction.name}
+          playerId={active.discordId}
+          onClose={() => setUsingFaction(null)}
+          onDone={() => setUsingFaction(null)}
+        />
+      )}
       {usingLegendary && active.discordId && (
         <LegendaryUseModal
           key={usingLegendary.id}
@@ -789,6 +808,16 @@ export function TurnControls() {
                     if (choice.kind === "legendary") {
                       setComponentOpen(false);
                       setUsingLegendary({ id: choice.id, name: choice.name });
+                      return;
+                    }
+                    // Lider / zdolność frakcji / przełom: formularz, koszt płaci silnik.
+                    if (
+                      choice.kind === "leader" ||
+                      choice.kind === "ability" ||
+                      choice.kind === "breakthrough"
+                    ) {
+                      setComponentOpen(false);
+                      setUsingFaction({ kind: choice.kind, id: choice.id, name: choice.name });
                       return;
                     }
                     // Technologia: gracz wybiera cele w formularzu, silnik stosuje efekt.

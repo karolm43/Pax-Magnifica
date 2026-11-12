@@ -83,7 +83,7 @@ reguł, `core/` stałby się nieczytelny po 10 frakcjach. Dlatego:
   zdefiniowanych **punktach zaczepienia** (ruch, walka, produkcja, płatność…).
 - **Gdzie co leży:** rejestr i API (`forbidden` / `permits` / `modify`, kolejność REPLACE>FORBID>
   PERMIT>MODIFY>TRIGGER>PERSISTENT) w `core/rules_hooks.py`; same wyjątki tematycznie w pakiecie
-  `core/hooks/` (`factions_base.py`, `technologies.py`; kolejne dopisz i zaimportuj w
+  `core/hooks/` (`factions/<frakcja>.py`, `technologies.py`; kolejne dopisz i zaimportuj w
   `hooks/__init__.py`). Nazwy punktów to stałe `POINT_*` w `rules_hooks.py`. Hook działa tylko dla
   gracza, który posiada jego źródło (frakcja/technologia). `covers="<kategoria>:<id>"` oznacza
   komponent jako IMPLEMENTED w rejestrze efektów; raport: `docs/POKRYCIE_HOOKOW.md` (generowany:

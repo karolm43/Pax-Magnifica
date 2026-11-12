@@ -475,7 +475,7 @@ def toggle_tech_exhaust(state: GameState, player_id: str, tech_id: str) -> GameS
 
 
 # Dozwolone stany lidera (RULES.md — Leaders): zablokowany / gotowy / wyczerpany.
-_LEADER_STATES: set[str] = {"locked", "unlocked", "exhausted"}
+_LEADER_STATES: set[str] = {"locked", "unlocked", "exhausted", "purged"}
 
 
 def set_leader_state(

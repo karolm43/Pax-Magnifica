@@ -41,6 +41,7 @@ from src.api.routers import (
     decks,
     epilogue,
     exploration,
+    faction_components,
     fleet_pool,
     flow,
     frontier_cards,
@@ -52,6 +53,7 @@ from src.api.routers import (
     planet_ability,
     players,
     production,
+    promissory,
     relics,
     rules,
     setup,
@@ -320,6 +322,8 @@ def create_app(
     app.include_router(action_cards.router)
     app.include_router(relics.router)
     app.include_router(planet_ability.router)
+    app.include_router(faction_components.router)
+    app.include_router(promissory.router)
     app.include_router(frontier_cards.router)
     app.include_router(hold.router)
     app.include_router(offers.router)

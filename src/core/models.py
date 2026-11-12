@@ -59,6 +59,9 @@ class UnitDef(_StaticModel):
 
     is_ship: bool = Field(default=False, alias="isShip")
     is_structure: bool = Field(default=False, alias="isStructure")
+    # Tekst zdolności jednostki frakcyjnej (flagowiec, mech, ulepszenia frakcyjne) — RULES.md 61.3.
+    # Hooki: źródło ``SOURCE_UNIT`` (id wariantu), klucz pokrycia ``units:<id>``.
+    ability: str | None = None
 
     upgrades_to_unit_id: str | None = Field(default=None, alias="upgradesToUnitId")
     upgrades_from_unit_id: str | None = Field(default=None, alias="upgradesFromUnitId")

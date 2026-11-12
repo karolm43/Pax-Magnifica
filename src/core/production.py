@@ -84,7 +84,7 @@ STRUCTURES = {"pds", "spacedock"}
 def forbidden_types(state: GameState, player_id: str, producer_type: str) -> tuple[str, ...]:
     """Typy jednostek, których producent danego typu nie może produkować (hooki FORBID).
 
-    Np. Arborec: wartość PRODUCTION doków nie służy do piechoty (``core/hooks/factions_base``).
+    Np. Arborec: wartość PRODUCTION doków nie służy do piechoty (``core/hooks/factions/arborec``).
     """
     banned = rules_hooks.forbidden(
         rules_hooks.POINT_PRODUCTION_FORBIDS,

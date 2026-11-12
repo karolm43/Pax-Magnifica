@@ -39,6 +39,7 @@ import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import { useActionCardPlayability } from "@/api/useActionCard";
 import { useRelicPlayability } from "@/api/useRelics";
+import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
 import styles from "./BottomHandDock.module.css";
 
@@ -92,12 +93,13 @@ const EMPTY_COPY: Record<HandTab, string> = {
 };
 
 /** Karty, które można przeciągnąć na strefę zagrania (karta akcji albo relikt z ACTION). */
-const PLAYABLE_TABS: ReadonlySet<HandTab> = new Set(["actions", "relics"]);
+const PLAYABLE_TABS: ReadonlySet<HandTab> = new Set(["actions", "relics", "notes"]);
 
 /** Typ przeciąganego elementu w `dataTransfer` (strefa zagrania rozróżnia kartę i relikt). */
 const DRAG_TYPE: Partial<Record<HandTab, string>> = {
   actions: "text/x-actioncard",
   relics: "text/x-relic",
+  notes: "text/x-promissory",
 };
 
 /** Typ przeciąganej karty frontier (Enigmatic Device) w `dataTransfer`. */
@@ -342,6 +344,12 @@ export function BottomHandDock() {
     active?.discordId ?? null,
     open && tab === "relics",
   );
+  const noteColors = useFactionColors();
+  // Promissory notes (RULES.md 61.2): zagrywalne w otwartym oknie, nigdy własne.
+  const { data: notePlayability } = usePromissoryPlayability(
+    active?.discordId ?? null,
+    open && tab === "notes",
+  );
   // Karty frontier (Enigmatic Device) są jawne i wchodzą do zakładki Action cards.
   const frontierIds = useMemo(() => active?.frontierCards ?? [], [active?.frontierCards]);
   const { data: frontierPlayability } = useRelicPlayability(
@@ -543,7 +551,9 @@ export function BottomHandDock() {
                       ? frontierPlayability?.[id]
                       : tab === "actions"
                         ? playability?.[id]
-                        : relic
+                        : tab === "notes"
+                          ? notePlayability?.[id]
+                          : relic
                   }
                   relicTag={relicTag}
                   passive={passive}
@@ -606,6 +616,8 @@ export function BottomHandDock() {
           Drop to {dragCard.tab === "relics" ? "use" : "play"}{" "}
           {dragCard.tab === "relics"
             ? (getRelicData(dragCard.id)?.name ?? dragCard.id)
+            : dragCard.tab === "notes"
+              ? (getPromissoryNoteData(dragCard.id, noteColors)?.displayName || dragCard.id)
             : dragCard.frontier
               ? (getExploration(dragCard.id)?.name ?? dragCard.id)
               : (getActionCard(dragCard.id)?.name ?? dragCard.id)}
@@ -621,12 +633,16 @@ export function BottomHandDock() {
             ? "frontier"
             : playingCard.tab === "relics"
               ? "relic"
-              : "card"
+              : playingCard.tab === "notes"
+                ? "note"
+                : "card"
         }
         cardId={playingCard.id}
         cardName={
           playingCard.tab === "relics"
             ? (getRelicData(playingCard.id)?.name ?? playingCard.id)
+            : playingCard.tab === "notes"
+              ? (getPromissoryNoteData(playingCard.id, noteColors)?.displayName || playingCard.id)
             : playingCard.frontier
               ? (getExploration(playingCard.id)?.name ?? playingCard.id)
               : (getActionCard(playingCard.id)?.name ?? playingCard.id)

@@ -104,6 +104,7 @@ function RegularLeaders({ leaders, faction, playerId }: Props) {
               type={slot}
               exhausted={leader.exhausted ?? false}
               locked={leader.locked ?? false}
+              purged={leader.purged ?? false}
               active={leader.active ?? false}
               playerId={playerId}
             />
@@ -138,6 +139,7 @@ function RegularLeaders({ leaders, faction, playerId }: Props) {
             type={leader.type as LeaderSlot}
             exhausted={leader.exhausted ?? false}
             locked={leader.locked ?? false}
+            purged={leader.purged ?? false}
             active={leader.active ?? false}
             playerId={playerId}
           />

@@ -163,6 +163,10 @@ def collect_rows(registry: StaticDataRegistry) -> list[Row]:
     for bid, breakthrough in registry.breakthroughs.items():
         add(ComponentCategory.BREAKTHROUGH, bid, breakthrough.name, breakthrough.source,
             breakthrough.text or "", breakthrough.faction, None)
+    for uid, unit in registry.units.items():
+        if unit.faction and unit.ability:
+            add(ComponentCategory.UNIT, uid, unit.name, unit.source, unit.ability,
+                unit.faction, None)
     for pid, planet in registry.planets.items():
         if planet.legendary_ability_name:
             add(ComponentCategory.PLANET, pid, planet.legendary_ability_name, planet.source,
@@ -320,9 +324,9 @@ def _section_factions(registry: StaticDataRegistry, rows: list[Row]) -> list[str
     lines = ["## 7. Frakcje (komponenty frakcyjne i pokrycie)", "",
              "Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisane "
              "do frakcji. Keleres (3 warianty) liczony jako jedna rodzina.", "",
-             "| Frakcja | Zdolności | Tech. | Liderzy | Przełom | PN | Z hookiem / razem | "
+             "| Frakcja | Zdolności | Tech. | Liderzy | Przełom | PN | Jedn. | Z hookiem / razem | "
              "Obszary reguł |",
-             "|---|---:|---:|---:|---:|---:|---:|---|"]
+             "|---|---:|---:|---:|---:|---:|---:|---:|---|"]
     for family, variants in sorted(_faction_families(registry).items()):
         ids = {f.id for f in variants} | {family}
         mine = [r for r in rows if r.faction is not None and r.faction.lower() in ids]
@@ -334,7 +338,7 @@ def _section_factions(registry: StaticDataRegistry, rows: list[Row]) -> list[str
             f"| {_cell(name)} (`{family}`) | {by[ComponentCategory.ABILITY]} | "
             f"{by[ComponentCategory.TECHNOLOGY]} | {by[ComponentCategory.LEADER]} | "
             f"{by[ComponentCategory.BREAKTHROUGH]} | {by[ComponentCategory.PROMISSORY_NOTE]} | "
-            f"{done} / {len(mine)} | {', '.join(areas) or '—'} |"
+            f"{by[ComponentCategory.UNIT]} | {done} / {len(mine)} | {', '.join(areas) or '—'} |"
         )
     return lines + [""]
 

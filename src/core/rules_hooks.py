@@ -19,6 +19,7 @@ God-Mode omija hooki tak jak resztę reguł (RULES.md 43.1 pkt 11).
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -137,6 +138,9 @@ SOURCE_BREAKTHROUGH = "breakthrough"  # odblokowany przełom frakcji
 SOURCE_EFFECT = "effect"  # efekt trwały z magazynu (GameState.active_effects)
 # Legendarna planeta kontrolowana przez gracza (karta zdolności legendarnej, RULES.md 60).
 SOURCE_PLANET = "planet"
+# Jednostka frakcyjna z polem ``ability`` (flagowiec, mech, ulepszenie frakcyjne) — id WARIANTU,
+# którego gracz używa (RULES.md 61.3). Hook sam sprawdza, czy jednostka jest w danym systemie.
+SOURCE_UNIT = "unit"
 
 
 class HookKind(Enum):
@@ -448,6 +452,7 @@ def bind_registry(registry: Any) -> None:
     """
     global _BOUND_REGISTRY
     _BOUND_REGISTRY = registry
+    _unit_sources_cached.cache_clear()
 
 
 def bound_registry() -> Any:
@@ -467,12 +472,65 @@ def _registry_sources(player: Any) -> set[HookSource]:
         for leader_id in faction.leaders:
             leader = registry.leaders.get(leader_id)
             default = "unlocked" if leader is not None and leader.type == "agent" else "locked"
-            if player.leader_states.get(leader_id, default) != "locked":
+            # Zablokowany i purge'owany lider nie jest źródłem (RULES.md 61.1).
+            if player.leader_states.get(leader_id, default) not in ("locked", "purged"):
                 sources.add(HookSource(SOURCE_LEADER, leader_id))
     if player.breakthrough_unlocked:
         breakthrough = registry.breakthrough_for_faction(player.faction)
         if breakthrough is not None:
             sources.add(HookSource(SOURCE_BREAKTHROUGH, breakthrough.id))
+    return sources
+
+
+def _unit_sources(player: Any) -> frozenset[HookSource]:
+    """Warianty jednostek frakcyjnych ze zdolnością, których gracz używa (RULES.md 61.3)."""
+    if _BOUND_REGISTRY is None or player.faction is None:
+        return frozenset()
+    return _unit_sources_cached(
+        player.faction, tuple(sorted(player.technologies)), bool(player.breakthrough_unlocked)
+    )
+
+
+@functools.lru_cache(maxsize=512)
+def _unit_sources_cached(
+    faction_id: str, technologies: tuple[str, ...], breakthrough: bool
+) -> frozenset[HookSource]:
+    from src.core.combat import resolve_unit_variant  # lokalnie: combat importuje rules_hooks
+
+    registry = _BOUND_REGISTRY
+    if registry is None:
+        return frozenset()
+    base_types = {unit.base_type for unit in registry.units.values()}
+    found: set[HookSource] = set()
+    for base_type in base_types:
+        unit = resolve_unit_variant(
+            registry, faction_id, list(technologies), base_type, breakthrough
+        )
+        if unit is not None and unit.faction and unit.ability:
+            found.add(HookSource(SOURCE_UNIT, unit.id))
+    return frozenset(found)
+
+
+def _promissory_sources(state: GameState, player_id: str) -> set[HookSource]:
+    """Szablony notek w strefie (``<color>_sftt``) + commanderzy z Alliance (RULES.md 61.2)."""
+    registry = _BOUND_REGISTRY
+    player = state.players[player_id]
+    if registry is None or not player.promissory_notes_in_play:
+        return set()
+    from src.core import promissory_play  # lokalnie: promissory_play importuje ten moduł
+    from src.core.hooks import promissory_generic
+
+    sources: set[HookSource] = set()
+    for note_id in player.promissory_notes_in_play:
+        try:
+            template, _owner = promissory_play.resolve(state, registry, note_id)
+        except ValueError:
+            continue
+        sources.add(HookSource(SOURCE_PROMISSORY, template))
+    sources.update(
+        HookSource(SOURCE_LEADER, leader_id)
+        for leader_id in promissory_generic.alliance_commanders(state, player_id)
+    )
     return sources
 
 
@@ -506,6 +564,8 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
         return frozenset()
     sources: set[HookSource] = {HookSource(SOURCE_TECHNOLOGY, t) for t in player.technologies}
     sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
+    sources.update(_promissory_sources(state, player_id))
+    sources.update(_unit_sources(player))
     sources.update(HookSource(SOURCE_RELIC, r) for r in player.relics)
     sources.update(_legendary_sources(player))
     sources.update(HookSource(SOURCE_AGENDA, law) for law in state.decks.agenda_laws)

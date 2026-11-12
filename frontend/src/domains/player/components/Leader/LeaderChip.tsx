@@ -15,6 +15,9 @@ import {
 } from "@/shared/ui/ContextMenu/ContextMenu";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { leaderContextMenuItems } from "./leaderMenu";
+import { IconBolt } from "@tabler/icons-react";
+import { useState } from "react";
+import { FactionComponentUseModal } from "@/domains/game-shell/components/TurnControls/FactionComponentUseModal";
 
 type Props = {
   id: string;
@@ -24,9 +27,12 @@ type Props = {
   active: boolean;
   /** Właściciel (``discordId``) — włącza menu kontekstowe stanu lidera. */
   playerId?: string;
+  /** Bohater zużyty (RULES.md 61.1). */
+  purged?: boolean;
 };
 
-function getLeaderState(exhausted: boolean, locked: boolean) {
+function getLeaderState(exhausted: boolean, locked: boolean, purged = false) {
+  if (purged) return "exhausted";
   if (locked) return "locked";
   if (exhausted) return "exhausted";
   return undefined;
@@ -45,16 +51,26 @@ export function LeaderChip({
   locked,
   active,
   playerId,
+  purged = false,
 }: Props) {
+  const [using, setUsing] = useState(false);
   const { opened, setOpened, toggle } = useDisclosure(false);
   const { setLeaderState } = useBoardEditor();
   const ctx = useContextMenu();
   const leaderData = getLeaderById(id);
   if (!leaderData) return null;
 
-  const state = getLeaderState(exhausted, locked);
+  const state = getLeaderState(exhausted, locked, purged);
+  // Pierwsza pozycja: karta lidera z silnika (użycie ACTION, ręczne odblokowanie) — RULES.md 61.
   const menuItems = playerId
-    ? leaderContextMenuItems(playerId, id, exhausted, locked, setLeaderState)
+    ? [
+        {
+          label: "Leader ability…",
+          icon: <IconBolt size={14} />,
+          onSelect: () => setUsing(true),
+        },
+        ...leaderContextMenuItems(playerId, id, exhausted, locked, setLeaderState),
+      ]
     : [];
   const showPortrait = !locked && showLeader(leaderData.source);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -99,6 +115,8 @@ export function LeaderChip({
                   stroke={2}
                   aria-label="locked"
                 />
+              ) : purged ? (
+                " · purged"
               ) : (
                 exhausted && " · exhausted"
               )}
@@ -113,6 +131,16 @@ export function LeaderChip({
       <SmoothPopover.Dropdown p={0}>
         <LeaderDetailsCard leaderId={id} />
       </SmoothPopover.Dropdown>
+      {using && playerId && (
+        <FactionComponentUseModal
+          kind="leader"
+          componentId={id}
+          name={leaderData.name}
+          playerId={playerId}
+          onClose={() => setUsing(false)}
+          onDone={() => setUsing(false)}
+        />
+      )}
       {menuItems.length > 0 && (
         <ContextMenu
           position={ctx.position}

@@ -173,6 +173,8 @@ export type Leader = {
   tgCount: number;
   exhausted: boolean;
   locked: boolean;
+  /** Bohater zużyty (RULES.md 61.1) — usunięty z gry. */
+  purged?: boolean;
   active: boolean;
 };
 

@@ -808,6 +808,59 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Komponenty frakcji (RULES.md 61.3): ACTION lidera / zdolności / przełomu jako akcja tury.
+  const playFactionComponent = useCallback(
+    async (
+      playerId: string,
+      kind: string,
+      componentId: string,
+      params: Record<string, unknown>,
+    ): Promise<{ implemented: boolean }> => {
+      const response = await postRaw("/faction-component/play", {
+        player_id: playerId,
+        actor_id: playerId,
+        kind,
+        component_id: componentId,
+        params,
+      });
+      const data = (await response.json()) as { implemented: boolean };
+      await refresh();
+      return { implemented: data.implemented };
+    },
+    [refresh],
+  );
+  // Lider, którego warunku silnik jeszcze nie sprawdza — gracz odblokowuje sam (RULES.md 61.1).
+  const claimLeaderUnlock = useCallback(
+    async (playerId: string, leaderId: string) => {
+      await post("/leader/claim-unlock", {
+        player_id: playerId,
+        actor_id: playerId,
+        leader_id: leaderId,
+      });
+      await refresh();
+    },
+    [refresh],
+  );
+  // Promissory note z ręki (RULES.md 61.2): reakcja w otwartym oknie albo ACTION.
+  const playPromissory = useCallback(
+    async (
+      playerId: string,
+      noteId: string,
+      params: Record<string, unknown>,
+    ): Promise<{ implemented: boolean }> => {
+      const response = await postRaw("/promissory/play", {
+        player_id: playerId,
+        actor_id: playerId,
+        note_id: noteId,
+        params,
+      });
+      const data = (await response.json()) as { implemented: boolean };
+      await refresh();
+      return { implemented: data.implemented };
+    },
+    [refresh],
+  );
+
   const setLeaderState = useCallback(
     async (playerId: string, leaderId: string, state: string) => {
       await post("/player/leader/set-state", {
@@ -951,6 +1004,9 @@ export function useBoardEditor() {
     playComponentAction,
     playActionCard,
     playRelic,
+    playFactionComponent,
+    claimLeaderUnlock,
+    playPromissory,
     forgeRelic,
     resolveTransaction,
     giveDebtTokens,

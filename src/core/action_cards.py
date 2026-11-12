@@ -15,7 +15,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_draw, card_hold, component_action, reaction_cards, rules_hooks, triggers
+from src.core import (
+    card_draw,
+    card_hold,
+    component_action,
+    promissory_play,
+    reaction_cards,
+    rules_hooks,
+    triggers,
+)
 from src.core.components import ActionCardDef, ComponentCategory, ComponentRef
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, HeldPlay
@@ -99,6 +107,9 @@ def playability(
             "card_id": card_id, "playable": False, "reason": None, "implemented": False,
         }
         result.append(entry)
+        if promissory_play.silenced(state, player_id):
+            entry["reason"] = "Political Secret: you cannot play action cards during this agenda."
+            continue
         spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
         if spec is None or spec.trigger is not TriggerKind.ACTION:
             # Karta reakcji: zagrywalna, gdy silnik ma TERAZ otwarte pasujące okno (RULES.md 53.5).
@@ -260,6 +271,8 @@ def play_action_card(
         raise ValueError(f"Unknown player: {player_id}")
     if card_id not in player.private.action_cards:
         raise ValueError(f"You do not have the action card {card_id}.")
+    if promissory_play.silenced(state, player_id):
+        raise ValueError("Political Secret: you cannot play action cards during this agenda.")
     card = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
     if not isinstance(card, ActionCardDef):
         raise ValueError(f"Unknown action card: {card_id}")
