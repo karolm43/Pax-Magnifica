@@ -463,6 +463,21 @@ export function useBoardEditor() {
     },
     [refresh],
   );
+  // Fragmenty -> relikt (RULES.md 59.7): purge zestawu fragmentów, akcja komponentu gracza.
+  // Scenę odsłonięcia gra ``RelicRevealWatcher`` u wszystkich (stan ``relicReveal``).
+  const forgeRelic = useCallback(
+    async (playerId: string, fragments: string[]): Promise<string | null> => {
+      const response = await postRaw("/relic/forge", {
+        player_id: playerId,
+        actor_id: playerId,
+        fragments,
+      });
+      const data = (await response.json()) as { relic_id: string | null };
+      await refresh();
+      return data.relic_id;
+    },
+    [refresh],
+  );
   // Transakcja z sąsiadem (RULES.md 47). ``give`` = co oddaje aktywny gracz, ``receive`` =
   // co dostaje od partnera. Backend egzekwuje reguły (sąsiad, 1/turę, stan posiadania) i
   // przy błędzie zwraca 422 → ``post`` pokazuje powód w komunikacie.
@@ -926,6 +941,7 @@ export function useBoardEditor() {
     playComponentAction,
     playActionCard,
     playRelic,
+    forgeRelic,
     resolveTransaction,
     giveDebtTokens,
     returnDebtTokens,

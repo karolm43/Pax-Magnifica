@@ -10,7 +10,8 @@ Talia powstaje leniwie z największej talii typu ``relic`` aktywnych źródeł (
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from src.core import triggers
 from src.core.dice import next_rng
@@ -61,8 +62,41 @@ def _fire_gained(state: GameState, player_id: str, relic: str) -> None:
     )
 
 
-def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -> str | None:
+def record_reveal(
+    state: GameState,
+    player_id: str,
+    relic: str | None,
+    source: str,
+    detail: Mapping[str, Any] | None = None,
+) -> None:
+    """Zapisuje jawne odsłonięcie reliktu dla widowiska u wszystkich graczy (RULES.md 59.8).
+
+    ``source``: ``fragments`` (detail: ``fragments``, ``kind``), ``fracture`` (detail:
+    ``planet``), ``explore`` (detail: ``card``) albo ``deck``. ``relic=None`` = talia była pusta.
+    Mutuje ``state``.
+    """
+    state.relic_reveal_seq += 1
+    state.relic_reveal = {
+        "seq": state.relic_reveal_seq,
+        "playerId": player_id,
+        "relicId": relic,
+        "source": source,
+        **dict(detail or {}),
+    }
+
+
+def draw_relic(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    *,
+    source: str = "deck",
+    detail: Mapping[str, Any] | None = None,
+) -> str | None:
     """Gracz dobiera wierzchni relikt i kładzie go przed sobą. Mutuje ``state`` (klon).
+
+    Każde dobranie (także nieudane przy pustej talii) jest odsłonięciem dla wszystkich
+    (``record_reveal``); ``source``/``detail`` opisują, skąd przyszedł relikt.
 
     Returns:
         Id dobranego reliktu albo ``None``, gdy talia (i stos odrzuconych) jest pusta.
@@ -78,9 +112,11 @@ def draw_relic(state: GameState, registry: StaticDataRegistry, player_id: str) -
         decks.relic_deck = reshuffled
         decks.relic_discard = []
     if not decks.relic_deck:
+        record_reveal(state, player_id, None, source, detail)
         return None
     relic = decks.relic_deck.pop(0)
     player.relics = [*player.relics, relic]
+    record_reveal(state, player_id, relic, source, detail)
     _fire_gained(state, player_id, relic)
     return relic
 

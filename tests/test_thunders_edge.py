@@ -250,6 +250,10 @@ def test_relic_for_first_control_of_fracture_planet(registry: StaticDataRegistry
     new_state = state.clone()
     control.set_planet_control(new_state, "frac1", "cocytus", "p1", registry)
     assert len(new_state.players["p1"].relics) == 1
+    # Odsłonięcie dla wszystkich (RULES.md 59.8): źródło Fracture i planeta.
+    reveal = new_state.relic_reveal
+    assert reveal is not None and reveal["source"] == "fracture" and reveal["planet"] == "cocytus"
+    assert reveal["relicId"] == new_state.players["p1"].relics[0]
     # Ta sama planeta zdobyta przez drugiego gracza (miała kontrolera) - bez reliktu.
     control.set_planet_control(new_state, "frac1", "cocytus", "p2", registry)
     assert new_state.players["p2"].relics == []

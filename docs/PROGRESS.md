@@ -627,3 +627,10 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
 - Klik w kartę planety w polu gracza znów przewija mapę do tej planety i ją podświetla: `useScrollToPlanet` był podpięty
   tylko w martwym `MapView`; przepisany na znacznik wyszukiwarki (`jumpToSearchHit` w `search/searchHits.ts`,
   wspólny ze skrótami 1–8) i podpięty w `PannableMapView`.
+
+## Relikt z fragmentów + scena odsłonięcia reliktu (RULES.md 59.7–59.8)
+
+- Nowa akcja komponentu: purge 3 fragmentów -> relikt (`core/relic_forge.py`). Typ, liczba i nagroda z tekstu kart fragmentów (assety); Unknown = dżoker, min. 1 nie-Unknown; pusta talia = purge bez reliktu. API: `GET /relic/forge/options`, `POST /relic/forge`. UI: przycisk „Forge relic” w zakładce Relics doku ręki (`domains/relics/RelicForgePanel`).
+- Każde dobranie z talii reliktów zapisuje jawne `GameState.relic_reveal` (+`seq`, jak `table_roll`; źródło `fragments`/`fracture`/`explore`). Web-data: `gameState.relicReveal`.
+- `domains/relics/RelicRevealWatcher` gra scenę u wszystkich: fragmenty krążą i zlewają się w błysku w kartę; przy planecie The Fracture pęknięcie w przestrzeni wypuszcza kartę; karta obraca się awersem + nazwa i tekst reliktu. Awers = placeholder (rewers + nazwa) — grafikę kart podpiąć w `relicFaceImage` (`domains/relics/relicReveal.ts`).
+- Testy: `tests/test_relic_forge.py`, `test_thunders_edge.py` (źródło Fracture), `relicReveal.test.ts`.

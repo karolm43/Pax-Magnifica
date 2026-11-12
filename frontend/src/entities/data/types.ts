@@ -546,6 +546,11 @@ export type GameState = {
     hitValues: number[] | null;
     summary: string;
   } | null;
+  /**
+   * Ostatnie odsłonięcie reliktu z talii (fragmenty, The Fracture, eksploracja) - scena
+   * odsłonięcia u WSZYSTKICH graczy (`core.relics.record_reveal`, RULES.md 59.8).
+   */
+  relicReveal?: RelicReveal | null;
   /** Jednorazowa produkcja z karty (Freelancers) - okno produkcji poza krokiem PRODUCTION. */
   productionGrant?: { system: string; source: string } | null;
   /** Otwarte okno czasowe (timing window, Custodian Engine E8) — null, gdy brak. */
@@ -1209,4 +1214,20 @@ export type StrategyCardDefinition = {
   colourHexCode?: string;
   source: string;
   imageURL: string;
+};
+
+/** Jawne odsłonięcie reliktu (RULES.md 59.8); `relicId` null = talia była pusta. */
+export type RelicReveal = {
+  seq: number;
+  /** `player_id` (`discordId`) zdobywającego. */
+  playerId: string;
+  relicId: string | null;
+  source: "fragments" | "fracture" | "explore" | "deck";
+  /** Purge'owane fragmenty (źródło `fragments`). */
+  fragments?: string[];
+  kind?: string;
+  /** Planeta The Fracture (źródło `fracture`). */
+  planet?: string;
+  /** Karta eksploracji (źródło `explore`). */
+  card?: string;
 };

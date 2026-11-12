@@ -138,7 +138,9 @@ def _dead_world_apply(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
 ) -> str:
     registry = exploration.bound_registry()
-    relic = draw_relic(state, registry, ex.player_id)
+    relic = draw_relic(
+        state, registry, ex.player_id, source="explore", detail={"card": cur.card_id}
+    )
     return f"Drew the relic {relic}." if relic else "The relic deck is empty."
 
 

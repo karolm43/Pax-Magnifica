@@ -975,6 +975,11 @@ class GameState(BaseModel):
     # NOWY rzut od starego; sam wynik jest już rozstrzygnięty przez silnik.
     table_roll_seq: int = 0
     table_roll: dict[str, Any] | None = None
+    # Ostatnie odsłonięcie reliktu z talii (fragmenty, The Fracture, eksploracja) — widowisko
+    # dla WSZYSTKICH graczy (``relics.record_reveal``, RULES.md 59.8). ``relic_reveal_seq``
+    # rośnie z każdym dobraniem, więc UI odróżnia nowe odsłonięcie od starego.
+    relic_reveal_seq: int = 0
+    relic_reveal: dict[str, Any] | None = None
     # Dziennik ostatniego rozstrzygnięcia Space Cannon Offense (JSON listy wpisów). Okno
     # czasowe znika po ostatnim graczu, a panel musi nadal pokazać, co się stało (rzuty,
     # trafienia, straty) — do końca akcji taktycznej (RULES.md 38.3).

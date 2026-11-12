@@ -39,6 +39,7 @@ import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import { useActionCardPlayability } from "@/api/useActionCard";
 import { useRelicPlayability } from "@/api/useRelics";
+import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -476,6 +477,11 @@ export function BottomHandDock() {
             <li key={line}>{line}</li>
           ))}
         </ul>
+      )}
+
+      {/* Fragmenty -> relikt (RULES.md 59.7): przycisk „Forge relic" nad reliktami. */}
+      {open && tab === "relics" && active.discordId && (
+        <RelicForgePanel playerId={active.discordId} enabled />
       )}
 
       {open && (

@@ -106,7 +106,10 @@ def set_planet_control(
         if previous is None and position.startswith("frac"):
             deck_registry = registry if registry is not None else _bound_registry()
             if deck_registry is not None:
-                relics.draw_relic(state, deck_registry, new_owner)
+                relics.draw_relic(
+                    state, deck_registry, new_owner,
+                    source="fracture", detail={"planet": planet},
+                )
     if previous is not None and previous in state.players:
         triggers.fire(
             state,

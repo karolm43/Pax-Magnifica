@@ -1,0 +1,73 @@
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgb(148 163 184 / 0.3);
+  background: rgb(15 23 42 / 0.55);
+  font-size: 12px;
+}
+
+.row[data-ready] {
+  border-color: rgb(234 179 8 / 0.8);
+  box-shadow: 0 0 12px rgb(234 179 8 / 0.35);
+}
+
+.pips {
+  display: flex;
+}
+
+.pips img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  margin-left: -4px;
+}
+
+.pips img:first-child {
+  margin-left: 0;
+}
+
+.pips img[data-missing] {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.label {
+  text-transform: capitalize;
+}
+
+.label small {
+  opacity: 0.7;
+  text-transform: none;
+}
+
+.forge {
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgb(234 179 8 / 0.8);
+  background: rgb(234 179 8 / 0.18);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.forge:hover:not(:disabled) {
+  background: rgb(234 179 8 / 0.35);
+}
+
+.forge:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

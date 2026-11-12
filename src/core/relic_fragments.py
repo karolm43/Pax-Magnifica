@@ -45,3 +45,20 @@ def purge(state: GameState, player_id: str, count: int) -> list[str]:
 
     exploration.purge_cards(state, purged)
     return purged
+
+
+def purge_chosen(state: GameState, player_id: str, card_ids: list[str]) -> None:
+    """Purge WSKAZANYCH fragmentów gracza (cel Destroy Heretical Works); mutuje ``state``.
+
+    Raises:
+        ValueError: Gracz nie ma któregoś ze wskazanych fragmentów.
+    """
+    zone = list(state.players[player_id].relic_fragments)
+    for card_id in card_ids:
+        if card_id not in zone:
+            raise ValueError(f"You do not have the relic fragment '{card_id}'.")
+        zone.remove(card_id)
+    state.players[player_id].relic_fragments = zone
+    from src.core import exploration  # lokalnie: exploration importuje ten moduł
+
+    exploration.purge_cards(state, list(card_ids))

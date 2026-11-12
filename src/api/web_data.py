@@ -366,6 +366,9 @@ def _build_game_state(
         # Ostatni rzut kośćmi poza walką (Fracture, karty akcji) - UI animuje go kośćmi
         # (`core.dice.record_table_roll`). Nasze rozszerzenie kontraktu.
         "tableRoll": state.table_roll,
+        # Ostatnie odsłonięcie reliktu z talii (fragmenty, The Fracture, eksploracja) - UI gra
+        # widowisko u wszystkich (`core.relics.record_reveal`, RULES.md 59.8).
+        "relicReveal": state.relic_reveal,
         # Jednorazowa produkcja z karty (Freelancers) — okno produkcji otwiera się poza krokiem
         # PRODUCTION (RULES.md 46). Nasze rozszerzenie kontraktu.
         "productionGrant": (

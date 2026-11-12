@@ -92,3 +92,36 @@ export function useRelicForm(
     },
   });
 }
+
+/** Typ fragmentów z ACTION gracza i czy zestaw da się TERAZ połączyć w relikt (RULES.md 59.7). */
+export type ForgeOption = {
+  kind: string;
+  needed: number;
+  /** Fragmenty tego typu (bez dżokerów Unknown). */
+  owned: number;
+  /** Fragmenty Unknown (liczą się jako dowolny typ). */
+  wildcards: number;
+  /** Zestaw dobrany przez silnik (pusty, gdy niekompletny). */
+  fragments: string[];
+  /** Powód blokady (nie twoja tura, za mało fragmentów…) albo null. */
+  reason: string | null;
+  /** Pusta talia reliktów: purge bez reliktu. */
+  deckEmpty: boolean;
+};
+
+/** Opcje łączenia fragmentów gracza - przycisk „Forge relic" w zakładce Relics. */
+export function useForgeOptions(playerId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["relicForge", playerId],
+    enabled: Boolean(playerId) && enabled,
+    staleTime: 0,
+    refetchInterval: 3000,
+    retry: false,
+    queryFn: async (): Promise<ForgeOption[]> => {
+      const url = `${BOT_ROOT}/relic/forge/options?player_id=${encodeURIComponent(playerId ?? "")}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+      return ((await response.json()) as { options: ForgeOption[] }).options;
+    },
+  });
+}

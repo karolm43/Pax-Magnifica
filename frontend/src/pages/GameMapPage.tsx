@@ -18,6 +18,7 @@ import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { DiceStageHost } from "@/domains/dice/DiceStageHost";
 import { TableRollWatcher } from "@/domains/dice/TableRollWatcher";
+import { RelicRevealWatcher } from "@/domains/relics/RelicRevealWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
 import { OffersModal } from "@/domains/offers/OffersModal";
@@ -290,6 +291,8 @@ function GameMapContent() {
           karty akcji. Pole bitwy ma własny stół. */}
       <DiceStageHost />
       <TableRollWatcher />
+      {/* Odsłonięcie reliktu (fragmenty, The Fracture) - scena u wszystkich (RULES.md 59.8). */}
+      <RelicRevealWatcher />
       {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje
           przy oknie CAPACITY (myśliwce, piechota, mechy w przestrzeni ponad capacity). */}
       <CapacityModal />
