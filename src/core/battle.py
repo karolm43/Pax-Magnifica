@@ -343,6 +343,9 @@ def resume_after_triggers(
     if resume == "round_start":
         _open_round(new_state, grid)
         return new_state
+    if resume == _RESUME_AFB:
+        combat.step = CombatStep.AFB
+        return _apply_afb(new_state, grid, registry)
     combat.step = CombatStep.ROLL
     return _after_start(new_state, grid, registry)
 
@@ -446,12 +449,33 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
 
     new_state = new_state.clone()
     combat = _combat(new_state)
+    combat.afb = afb
     for pid, entries in afb.items():
         if entries:
             triggers.fire(
                 new_state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=pid,
                 ctx={"ability": "afb", "player": pid, "hits": hits_by[pid]},
             )
+    if new_state.pending_offers:
+        # Decyzje „po rzucie AFB" (Agnlan Oln: przerzut, RULES.md 62.3): skutki po odpowiedziach.
+        combat.step = CombatStep.TRIGGERS
+        combat.resume = _RESUME_AFB
+        return new_state
+    return _apply_afb(new_state, grid, registry)
+
+
+_RESUME_AFB = "afb_apply"
+
+
+def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
+    """Skutki rzutów AFB zapisanych w ``combat.afb`` (MUTUJE ``state`` - klon wołającego)."""
+    new_state = state
+    combat = _combat(new_state)
+    afb = combat.afb
+    hits_by = {
+        pid: sum(int(e.get("hits", 0)) for e in afb.get(pid, []))
+        for pid in (combat.attacker, combat.defender)
+    }
     losses: dict[str, dict[str, int]] = {}
     waylay_hits: dict[str, int] = {}  # trafienia przeciw WSZYSTKIM statkom (karta Waylay)
     zone = _zone(combat.kind, combat.planet)
@@ -480,7 +504,6 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
             _remove_units(new_state, combat, opponent, _FIGHTER, destroyed)
             losses[opponent] = {_FIGHTER: destroyed}
             note_destroyed(combat, opponent, _FIGHTER, destroyed, hits_on)
-    combat.afb = afb
     combat.log.append(
         {
             "round": combat.round, "phase": "AFB", "rolls": afb, "hits": hits_by,

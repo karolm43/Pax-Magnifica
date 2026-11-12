@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import exhaust, rules_hooks, technology
+from src.core import ability_notes, exhaust, rules_hooks, technology
 from src.core.game_state import GameState
-from src.core.payment import apply_payment, parse_payment, ready_planet_values, validate_payment
+from src.core.payment import parse_payment, ready_planet_values
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import str_list
 
@@ -40,21 +40,12 @@ def _research_with_cost(
         exhaust.exhaust_planets(state, player_id, (compound,))
         cost = 0
     elif cost > 0:
-        # Doctor Sucaban: zdjęta piechota obniża koszt tego badania (RULES.md 62.3).
-        cost = max(0, cost - technology.research_discount(state, player_id))
-        technology.consume_research_discount(state, player_id)
-    if cost > 0:
+        # Centralna zapłata (zniżka Doctor Sucaban, ślad dla okien po zapłacie - RULES.md 62.3).
         planets, trade_goods = parse_payment(payload)
-        overlap = set(planets) & set(plan.exhaust_planets)
-        if overlap:
-            raise ValueError(
-                "A planet exhausted for its technology specialty cannot also pay resources: "
-                + ", ".join(sorted(overlap))
-            )
-        paid = validate_payment(state, ctx.registry, player_id, "resources", planets, trade_goods)
-        if paid < cost:
-            raise ValueError(f"Spend at least {cost} resources (you chose {paid}).")
-        apply_payment(state, player_id, planets, trade_goods)
+        technology.pay_research(
+            state, ctx.registry, player_id, cost, planets, trade_goods,
+            skip_planets=plan.exhaust_planets,
+        )
     technology.apply_research(state, player_id, plan)
     return tech_id
 
@@ -94,6 +85,10 @@ def _secondary(
 ) -> None:
     if as_primary(state, player_id):
         # Primary zamiast secondary: 1 technologia za darmo, potem opcjonalnie druga za 6.
+        ability_notes.note_point(
+            state, player_id, rules_hooks.POINT_STRATEGY_SECONDARY_AS_PRIMARY,
+            "resolved the Technology primary ability instead of the secondary",
+        )
         if payload.get("tech") is not None:
             _research_with_cost(state, ctx, player_id, payload, 0)
         second = payload.get("second")

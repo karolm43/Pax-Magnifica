@@ -849,8 +849,9 @@ def produce(
     if exhaust_aida:
         exhaust.exhaust_technology(new_state, player_id, AIDA)
     if active_grant(state, player_id) is not None:
-        # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika.
-        new_state.production_grant = None
+        # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika
+        # (albo przechodzi do kolejnego systemu z kolejki).
+        new_state.production_grant = next_grant(state.production_grant)
     else:
         new_state.production_used = (
             state.production_used
@@ -893,5 +894,12 @@ def skip_grant(state: GameState) -> GameState:
     if state.production_grant is None:
         raise ValueError("There is no card-granted production to skip.")
     new_state = state.clone()
-    new_state.production_grant = None
+    new_state.production_grant = next_grant(state.production_grant)
     return new_state
+
+
+def next_grant(grant: ProductionGrant | None) -> ProductionGrant | None:
+    """Grant dla następnego systemu z ``queue`` (``None``, gdy kolejka pusta)."""
+    if grant is None or not grant.queue:
+        return None
+    return grant.model_copy(update={"position": grant.queue[0], "queue": list(grant.queue[1:])})

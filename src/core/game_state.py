@@ -730,6 +730,9 @@ class ProductionGrant(BaseModel):
     free: bool = False
     max_cost: float | None = None
     ships_only: bool = False
+    # Kolejne systemy tej samej produkcji (bohater Arborec: „in any number of systems") - po
+    # produkcji/rezygnacji grant przechodzi do następnej pozycji (``production.next_grant``).
+    queue: list[str] = Field(default_factory=list)
 
 
 class ExploreCurrent(BaseModel):
@@ -945,6 +948,12 @@ class GameState(BaseModel):
     last_replenished: list[str] = Field(default_factory=list)
     # Badania od ostatniej akcji: ``{player, technology}`` (okno Research Agreement, RULES.md 62.3).
     last_research: list[dict[str, str]] = Field(default_factory=list)
+    # Ostatnia zapłata zasobami za badanie (``technology.pay_research``): gracz, koszt, planety, TG,
+    # ``reduced`` - okno Doctor Sucaban / commandera Deepwrought po zapłacie (RULES.md 62.3).
+    last_research_payment: dict[str, Any] | None = None
+    # Notatki o zdolnościach stosowanych automatycznie (feed + powiadomienia, ``ability_notes``).
+    ability_notes: list[dict[str, str]] = Field(default_factory=list)
+    ability_note_seq: int = 0
     bonus_turn: BonusTurn | None = None
     # Ślad zmian kontroli planet w TEJ akcji taktycznej (karty reakcji Infiltrate / Reparations):
     # wpisy ``{"planet", "position", "player" (nowy kontroler), "previous" (poprzedni | None)}``.

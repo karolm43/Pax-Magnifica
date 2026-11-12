@@ -813,3 +813,21 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   Military Support nie działa w pierwszej turze fazy akcji (brak pauzy początku tury); Bellum Gloriosum liczy jedno
   zamówienie.
 - Nowe pole stanu (`last_research`) i pola widoku produkcji (`freeCargo`, `capacity`) wymagają restartu backendu.
+
+## 2026-11-12 (5) — Decyzje do Jol-Nar + B3 Arborec — komplet (RULES.md 62.3, 62.5)
+
+- Decyzje użytkownika: Analytical i Brilliant działają same, a gracz dostaje informację — `core/ability_notes`
+  → fakt feedu `ability_used` (opis w `describeActivity`), powiadomienie także dla właściciela (`shouldToast`).
+- Płatne badania przez JEDNĄ funkcję `technology.pay_research` (karta Technology, Reveal Prototype, Enigmatic Device):
+  zniżka + ślad `GameState.last_research_payment`. Doctor Sucaban przed zapłatą = zniżka, po zapłacie (karty
+  rozstrzygane jednym ruchem) = zwrot planet/TG (`economy.refund_trade_goods`, bez zdarzenia „zdobycia”). Ślad
+  posłuży też commanderowi Deepwrought.
+- Agnlan Oln obejmuje AFB: `battle.resolve_afb` rozdzielony na rzut i `_apply_afb`; gdy po rzucie powstały oferty,
+  walka czeka w TRIGGERS (`resume=afb_apply`). Oferta przerzutu wybranych kości AFB.
+- **Arborec** (`core/hooks/factions/arborec.py`, 11 komponentów, 0 braków, 20 testów): Mitosis (+ mech Letani
+  Behemoth jako opcja), Bioplasmosis (ruch jednoczesny), Letani Warrior II (mechanizm Infantry II), Letani Ospha
+  (decyzja właściciela statku), Dirzuga Rophal (+ warunek 12 sił), Duha Menaimon (grant 5 jednostek), Ultrasonic
+  Emitter (grant z kolejką systemów `ProductionGrant.queue`), Stymie, Psychospore.
+- ⚠️ Otwarte: produkcja Dirzuga Rophal nie blokuje ruchu aktywnego gracza; Stymie/Ospha bez rulingów „z arkusza /
+  z planszy, gdy brak w rezerwie”.
+- Nowe pola stanu (`last_research_payment`, `ability_notes`, `ProductionGrant.queue`) — restart backendu.

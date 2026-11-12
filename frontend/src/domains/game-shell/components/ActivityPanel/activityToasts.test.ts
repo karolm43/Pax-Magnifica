@@ -37,6 +37,13 @@ describe("shouldToast", () => {
     expect(shouldToast(entry({ kind: "turn", action: "turn.pass" }), "p1", noBots, true)).toBe(true);
   });
 
+  it("zdolność zastosowaną automatycznie pokazuje też jej właścicielowi", () => {
+    const facts = [{ type: "ability_used", player_id: "p1", value: "abilities:analytical" }];
+    const own = entry({ actor_id: "p1", facts } as Partial<Activity>);
+    expect(shouldToast(own, "p1", noBots, true)).toBe(true);
+    expect(shouldToast(own, null, noBots, false)).toBe(true);
+  });
+
   it("w trybie lokalnym pokazuje tylko akcje botów", () => {
     const bots = (id: string) => id === "bot1";
     expect(shouldToast(entry({ actor_id: "bot1" }), null, bots, false)).toBe(true);

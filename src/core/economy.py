@@ -50,6 +50,16 @@ def spend_trade_goods(state: GameState, player_id: str, amount: int) -> None:
     player.trade_goods -= amount
 
 
+def refund_trade_goods(state: GameState, player_id: str, amount: int) -> None:
+    """Zwrot WYDANYCH trade goods (cofnięcie części zapłaty, np. Doctor Sucaban po zapłacie).
+
+    To nie jest „zdobycie" TG (R_trade_goods) - bez zdarzenia ``TRADE_GOODS_GAINED``.
+    """
+    if amount < 0:
+        raise ValueError("The amount of trade goods to refund cannot be negative.")
+    _player(state, player_id).trade_goods += amount
+
+
 def spendable_trade_goods(state: GameState, player_id: str) -> int:
     """Ile TG-ekwiwalentów gracz może wydać: trade goods (+ commodities, gdy hook zezwala).
 

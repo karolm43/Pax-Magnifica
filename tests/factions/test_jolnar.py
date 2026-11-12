@@ -146,6 +146,16 @@ def test_analytical_ignoruje_jeden_prerekwizyt(registry: StaticDataRegistry) -> 
         technology.plan_research(state, registry, "p2", "gls", [])
 
 
+def test_analytical_notatka_w_feedzie(registry: StaticDataRegistry) -> None:
+    state = _state()
+    plan = technology.plan_research(state, registry, "p1", "gls", [])
+    assert plan.free_ignores == 1
+    technology.apply_research(state, "p1", plan)
+    assert [n["component"] for n in state.ability_notes] == ["abilities:analytical"]
+    plain = technology.plan_research(state, registry, "p1", "nm", [])
+    assert plain.free_ignores == 0
+
+
 def test_analytical_nie_dla_ulepszen_jednostek(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["amd"]  # 1× niebieski; Carrier II wymaga BB
@@ -160,6 +170,7 @@ def test_brilliant_secondary_jak_primary(registry: StaticDataRegistry) -> None:
     assert options["cost"] == 0 and options["as_primary"] is True
     technology_card._secondary(state, ctx, "p1", {"tech": "nm", "second": {"tech": None}})
     assert "nm" in state.players["p1"].technologies
+    assert [n["component"] for n in state.ability_notes] == ["abilities:brilliant"]
     # Sol (bez Brilliant) płaci 4 zasoby: bez płatności - błąd.
     with pytest.raises(ValueError):
         technology_card._secondary(state, ctx, "p2", {"tech": "nm"})
@@ -358,3 +369,70 @@ def test_research_discount_zuzywany_przy_zaplacie(registry: StaticDataRegistry) 
     )
     _paid_research(state, registry, {"tech": "nm"})
     assert technology.research_discount(state, "p1") == 0
+
+
+# ------------------------------------------------- Sucaban po zapłacie, Agnlan Oln na AFB
+
+
+def test_sucaban_zwrot_po_zaplacie_karta(registry: StaticDataRegistry) -> None:
+    """Reveal Prototype / Enigmatic Device płacą jednym ruchem - Sucaban zwraca zapłatę."""
+    state = _state()
+    state.systems["102"].planet_units = {"industrex": {"p2": {"infantry": 2}}}
+    technology.pay_research(state, registry, "p2", 6, [], 6)  # 6 TG
+    assert state.players["p2"].trade_goods == 2
+    rows = {r["component_id"]: r for r in faction_components.playability(state, registry, "p1")}
+    assert rows["jolnaragent"]["playable"] is True, rows["jolnaragent"]["reason"]
+    used, _ = faction_components.play(state, registry, "p1", "leader", "jolnaragent")
+    with pytest.raises(ValueError):  # zwrot większy niż zdjęta piechota
+        _accept(used, "p2", "Sucaban", {"inf:102:industrex": 1, "refund_trade_goods": 2})
+    after = _accept(used, "p2", "Sucaban", {"inf:102:industrex": 2, "refund_trade_goods": 2})
+    assert after.players["p2"].trade_goods == 4
+    rows = {r["component_id"]: r for r in faction_components.playability(after, registry, "p1")}
+    assert rows["jolnaragent"]["playable"] is False  # jeden zwrot na zapłatę (agent wyczerpany)
+
+
+def test_pay_research_zniżka_i_slad(registry: StaticDataRegistry) -> None:
+    from src.core.game_events import Duration
+
+    state = _state()
+    active_effects.add_effect(
+        state, technology.RESEARCH_DISCOUNT, Duration.TURN, owner="p2", data={"amount": 2}
+    )
+    assert technology.pay_research(state, registry, "p2", 4, [], 2) == 2
+    assert state.last_research_payment is not None
+    assert state.last_research_payment["cost"] == 2
+
+
+def test_agnlan_oln_przerzut_afb(registry: StaticDataRegistry, grid: HexGrid) -> None:
+    from src.core.game_state import ActiveCombat, CombatStep
+
+    state = _state()
+    state.players["p1"].leader_states = {"jolnarcommander": "unlocked"}
+    state.systems["102"].space_units = {"p1": {"destroyer": 2}, "p2": {"fighter": 3}}
+    state.active_combat = ActiveCombat(
+        kind="space", position="102", attacker="p1", defender="p2", step=CombatStep.AFB
+    )
+    paused = battle.resolve_afb(state, grid, registry)
+    assert paused.active_combat is not None
+    assert paused.active_combat.step is CombatStep.TRIGGERS
+    assert any("Agnlan" in label for label in _labels(paused, "p1"))
+    before = [list(e["dice"]) for e in paused.active_combat.afb["p1"]]
+    accepted = _accept(paused, "p1", "Agnlan", {"dice": ["0:0"]})
+    after = battle.resume_after_triggers(accepted, grid, registry)  # jak ``core/offers``
+    assert after.active_combat is not None
+    assert after.active_combat.step is not CombatStep.TRIGGERS  # walka poszła dalej
+    assert after.active_combat.afb["p1"][0]["dice"][1:] == before[0][1:]
+    assert any(entry["phase"] == "AFB" for entry in after.active_combat.log)
+
+
+def test_afb_bez_commandera_bez_pauzy(registry: StaticDataRegistry, grid: HexGrid) -> None:
+    from src.core.game_state import ActiveCombat, CombatStep
+
+    state = _state()
+    state.systems["102"].space_units = {"p1": {"destroyer": 2}, "p2": {"fighter": 3}}
+    state.active_combat = ActiveCombat(
+        kind="space", position="102", attacker="p1", defender="p2", step=CombatStep.AFB
+    )
+    after = battle.resolve_afb(state, grid, registry)
+    assert after.active_combat is not None
+    assert after.active_combat.step is not CombatStep.TRIGGERS

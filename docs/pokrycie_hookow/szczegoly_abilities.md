@@ -42,7 +42,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `marionettes` | Marionettes | obsidian | — | — | planety i eksploracja | — | The player or players whose control tokens are on each plot card are the puppeted players for that plot. |
 | `master_of_trade` | Masters of Trade | hacan | — | — | ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | — | You do not have to spend a command token to resolve the secondary ability of the "Trade" strategy card. |
 | `miniaturization` | Miniaturization | ralnel | at_end | FORBID (zakaz) | planety i eksploracja | — | Your structures can be transported by any ship; this does not require or count against capacity. While your structures are in the space are… |
-| `mitosis` | Mitosis | arborec | at_start | FORBID (zakaz) | produkcja, planety i eksploracja | — | Your space docks cannot produce infantry Place 1 infantry from your reinforcements on any planet you control. |
+| `mitosis` | Mitosis | arborec | at_start | FORBID (zakaz) | produkcja, planety i eksploracja | ✔ | Your space docks cannot produce infantry Place 1 infantry from your reinforcements on any planet you control. |
 | `munitions` | Munitions Reserves | letnev | at_start | MODIFY (liczba/rzut) | walka, ekonomia i płatności | ✔ | You may spend 2 trade goods to re-roll any number of your dice during that combat round. |
 | `nocturne` | Nocturne | obsidian | — | FORBID (zakaz) | — | — | This faction cannot be chosen during setup. |
 | `nomadic` | Nomadic | saar | — | PERMIT (pozwolenie) | planety i eksploracja, cele i punkty | — | You can score objectives even if you do not control the planets in your home system. |

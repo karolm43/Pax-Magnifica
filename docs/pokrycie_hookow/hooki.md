@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **164**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **175**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -66,13 +66,18 @@ Razem: **164**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
+| `event:faction.ability_used:after` | TRIGGER | leader:arborecagent | leaders:arborecagent | Zamieniany statek nie jest niszczony, nowy nie jest produkowany (F_arborec). |
 | `event:faction.ability_used:after` | TRIGGER | leader:jolnaragent | leaders:jolnaragent | — |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
+| `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
 | `event:phase:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: At the end of the status phase, if you control the "Tomb of |
 | `event:phase:end` | TRIGGER | unit:sol_flagship | units:sol_flagship | Genesis: At the end of the status phase, place 1 infantry from your reinforcements in this |
+| `event:phase:start` | TRIGGER | faction:arborec | abilities:mitosis | Mitosis: At the start of the status phase: Place 1 infantry from your reinforcements on any |
 | `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
+| `event:phase:start` | TRIGGER | technology:lw2 | technologies:lw2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:phase:start` | TRIGGER | technology:lw2 | technologies:lw2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:phase:start` | TRIGGER | relic:mawofworlds | relics:mawofworlds | Maw of Worlds: At the start of the agenda phase, you may purge this card and exhaust all of |
 | `event:phase:start` | TRIGGER | technology:so2 | technologies:so2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:phase:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
@@ -94,6 +99,8 @@ Razem: **164**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.action:end` | TRIGGER | leader:sardakkagent | leaders:sardakkagent | T'ro: At the end of a player's tactical action: You may exhaust this card: if you do, that |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_an | promissory_notes:<color>_an | — |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_sftt | promissory_notes:<color>_sftt | — |
+| `event:tactical.system_activated:after` | TRIGGER | unit:arborec_flagship | units:arborec_flagship | Duha Menaimon: After you activate this system, you may produce up to 5 units in this |
+| `event:tactical.system_activated:after` | TRIGGER | leader:arboreccommander | leaders:arboreccommander | Dirzuga Rophal: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | technology:scc | technologies:scc | Spatial Conduit Cylinder: You may exhaust this card after you activate a system that |
@@ -117,11 +124,15 @@ Razem: **164**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:turn:end` | TRIGGER | planet:thundersedge | planets:thundersedge | Jupiter Brain: You may exhaust this card at the end of your turn to perform another action. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
+| `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:td | — | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
+| `event:unit.ability_used:after` | TRIGGER | leader:jolnarcommander | — | Agnlan Oln (AFB): walka czeka po rzucie AFB na tę ofertę (``battle.resolve_afb``). |
 | `event:unit.ability_used:after` | TRIGGER | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana. |
 | `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
+| `event:unit.destroyed:after` | TRIGGER | technology:lw2 | technologies:lw2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
 | `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
 | `event:unit.destroyed:after` | TRIGGER | technology:so2 | technologies:so2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
 | `event:unit.sustain_damage:after` | TRIGGER | leader:letnevcommander | leaders:letnevcommander | Rear Admiral Farran: After 1 of your units uses SUSTAIN DAMAGE: You may gain 1 trade good |
@@ -149,7 +160,7 @@ Razem: **164**. Opis = pierwsza linia docstringu funkcji hooka.
 | `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
-| `production.forbids` | FORBID | faction:arborec | — | Arborec: wartość PRODUCTION doków nie służy do produkcji piechoty (R_production). |
+| `production.forbids` | FORBID | faction:arborec | — | Mitosis: Your space docks cannot produce infantry (R_production). |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |

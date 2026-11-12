@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
-| `arborecbt` | Psychospore | arborec | — | MODIFY (liczba/rzut) | produkcja, żetony dowodzenia, status i odświeżanie | — | ACTION: Exhaust this card to remove a command token from a system that contains 1 or more of your infantry and return it to your reinforcem… |
+| `arborecbt` | Psychospore | arborec | — | MODIFY (liczba/rzut) | produkcja, żetony dowodzenia, status i odświeżanie | ✔ | ACTION: Exhaust this card to remove a command token from a system that contains 1 or more of your infantry and return it to your reinforcem… |
 | `argentbt` | Wing Transfer | argent | — | PERMIT (pozwolenie) | ruch, produkcja, żetony dowodzenia | — | When you activate a system that contains only your units, you may place command tokens from your reinforcements into any systems adjacent t… |
 | `bastionbt` | The Icon | bastion | — | PERMIT (pozwolenie) | produkcja, żetony dowodzenia, status i odświeżanie | — | When you produce ships, you may exhaust this card to place those ships in a system that contains 1 of your command tokens, at least 1 of yo… |
 | `cabalbt` | Al'Raith Ix Ianovar | cabal | — | MODIFY (liczba/rzut) | ruch, walka | — | This breakthrough causes The Fracture to enter play without a roll, if it is not already in play. After this card enters play, move up to 2… |

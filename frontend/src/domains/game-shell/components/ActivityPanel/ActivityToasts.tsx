@@ -22,7 +22,7 @@ const SILENT_ACTIONS = new Set(["turn.next", "turn.end", "update"]);
 
 /**
  * Czy wpis zasługuje na powiadomienie u tego widza: cudze akcje graczy (nie God-Mode,
- * nie zdarzenia bez sprawcy). Tryb lokalny nie zna „mnie" — pokazujemy tam akcje botów.
+ * nie zdarzenia bez sprawcy) oraz każda zdolność zastosowana automatycznie (także własna). Tryb lokalny nie zna „mnie" — pokazujemy tam akcje botów.
  */
 export function shouldToast(
   entry: ActivityEntry,
@@ -31,7 +31,10 @@ export function shouldToast(
   network: boolean,
 ): boolean {
   const a = entry.activity;
-  if (a.kind === "godmode" || !a.actor_id || SILENT_ACTIONS.has(a.action)) return false;
+  if (a.kind === "godmode") return false;
+  // Zdolność zastosowana automatycznie (Analytical, Brilliant): informujemy też jej właściciela.
+  if (a.facts.some((f) => f.type === "ability_used")) return true;
+  if (!a.actor_id || SILENT_ACTIONS.has(a.action)) return false;
   if (network) return a.actor_id !== me;
   return isBot(a.actor_id);
 }

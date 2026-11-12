@@ -71,6 +71,19 @@ def test_tech_lost_fact_when_technology_returned() -> None:
     assert ("tech_lost", "neural_motivator") in facts
 
 
+def test_ability_note_becomes_fact() -> None:
+    from src.core import ability_notes
+
+    before = _state()
+    after = _state()
+    ability_notes.note(after, "p1", "abilities:analytical", "ignored 1 prerequisite(s) of X")
+    entry = derive_activity("strategy:secondary:p1", before, after)
+    assert entry is not None
+    assert ("ability_used", "p1", "abilities:analytical") in {
+        (f.type, f.player_id, f.value) for f in entry.facts
+    }
+
+
 def test_vp_and_planet_facts_from_diff() -> None:
     before = _state()
     after = _state()

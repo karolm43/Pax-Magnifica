@@ -47,7 +47,8 @@ class ActivityFact(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    # "vp" | "tech" | "tech_lost" | "planet_gained" | "planet_lost" | "tg" oraz JAWNE karty/cele:
+    # "vp" | "tech" | "tech_lost" | "ability_used" | "planet_gained" | "planet_lost" | "tg"
+    # oraz JAWNE karty/cele:
     # "action_card" (zagrana/odrzucona), "agenda" (zużyta), "explore_card" (ujawniona),
     # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
     # Zasoby/komponenty: "commodities", "cc" (value = pula), "hand" (value = ręka, tylko liczba),
@@ -452,6 +453,14 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
             facts.append(
                 ActivityFact(
                     type="effect", player_id=effect.owner, value=effect.key, detail=effect.scope
+                )
+            )
+    for entry in after.ability_notes:  # zdolności zastosowane automatycznie (ability_notes)
+        if int(entry.get("seq", 0)) > before.ability_note_seq:
+            facts.append(
+                ActivityFact(
+                    type="ability_used", player_id=entry.get("player"),
+                    value=entry.get("component"), detail=entry.get("detail") or None,
                 )
             )
     if after.speaker_id != before.speaker_id and after.speaker_id:

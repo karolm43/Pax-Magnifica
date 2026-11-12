@@ -5,9 +5,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
 | `absol_naaz_mech_space` | Z-Grav Eidolon | naaz | — | — | — | — | If this unit is in the space area of the active system, it is also a ship. At the end of a space battle in the active system, flip this car… |
-| `arborec_flagship` | Duha Menaimon | arborec | — | PERMIT (pozwolenie) | produkcja | — | After you activate this system, you may produce up to 5 units in this system. |
+| `arborec_flagship` | Duha Menaimon | arborec | — | PERMIT (pozwolenie) | produkcja | ✔ | After you activate this system, you may produce up to 5 units in this system. |
 | `arborec_infantry2` | Letani Warrior II | arborec | — | — | walka, planety i eksploracja | — | After this unit is destroyed, roll 1 die. If the result is 6 or greater, place the unit on this card. At the start of your next turn, place… |
-| `arborec_mech` | Letani Behemoth | arborec | — | REPLACE (instead of) | produkcja | — | DEPLOY: When you would use your Mitosis faction ability you may replace 1 of your infantry with 1 mech from your reinforcements instead. |
+| `arborec_mech` | Letani Behemoth | arborec | — | REPLACE (instead of) | produkcja | ✔ | DEPLOY: When you would use your Mitosis faction ability you may replace 1 of your infantry with 1 mech from your reinforcements instead. |
 | `argent_destroyer2` | Strike Wing Alpha II | argent | — | — | walka | — | When this unit uses ANTI-FIGHTER BARRAGE, each result of 9 or 10 also destroys 1 of your opponent's infantry in the space area of the activ… |
 | `argent_flagship` | Quetzecoatl | argent | — | FORBID (zakaz) | walka | — | Other players cannot use space cannon against your ships in this system. |
 | `argent_mech` | Aerie Sentinel | argent | — | MODIFY (liczba/rzut) | — | — | This unit does not count against capacity if it is being transported or if it is in a space area with 1 or more of your ships that have cap… |

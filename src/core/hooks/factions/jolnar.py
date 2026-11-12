@@ -28,6 +28,7 @@ from src.core import (
 from src.core import offer_inputs as oi
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, WindowType
+from src.core.planet_stats import resources_of
 from src.core.reaction_cards import OpenWindow, window_provider
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
@@ -358,12 +359,31 @@ def _infantry_spots(state: GameState, player_id: str) -> list[tuple[str, str, in
     return spots
 
 
+def refund_payer(state: GameState) -> str | None:
+    """Gracz, który WŁAŚNIE zapłacił zasobami za badanie rozstrzygnięte jednym ruchem (Reveal
+    Prototype, Enigmatic Device, karta Technology) - Sucaban działa wtedy jako zwrot (62.3)."""
+    trace = state.last_research_payment
+    if trace is None or trace.get("reduced") or int(trace.get("cost", 0)) <= 0:
+        return None
+    player = trace.get("player")
+    return player if isinstance(player, str) and player in state.players else None
+
+
+def _sucaban_target(state: GameState) -> tuple[str, str] | None:
+    """``(gracz, tryb)``: ``before`` = przed zapłatą (zniżka), ``after`` = po zapłacie (zwrot)."""
+    payer = research_payer(state)
+    if payer is not None:
+        return payer, "before"
+    payer = refund_payer(state)
+    return (payer, "after") if payer is not None else None
+
+
 @faction_components.window_use("leader", AGENT)
 def _agent_window(state: GameState, _registry: StaticDataRegistry, _player_id: str) -> str | None:
-    payer = research_payer(state)
-    if payer is None:
+    target = _sucaban_target(state)
+    if target is None:
         return "Use Doctor Sucaban when a player spends resources to research a technology."
-    if not _infantry_spots(state, payer):
+    if not _infantry_spots(state, target[0]):
         return "That player has no infantry on the game board."
     return None
 
@@ -375,12 +395,15 @@ def doctor_sucaban(
     """Doctor Sucaban: When a player spends resources to research: You may exhaust this card to
     allow that player to remove any number of their infantry from the game board. For each unit
     removed, reduce the resources spent by 1. (Decyzję o piechocie podejmuje badający.)"""
-    payer = research_payer(state)
-    if payer is None:
+    target = _sucaban_target(state)
+    if target is None:
         raise ValueError("Nobody is spending resources to research right now.")
+    payer, mode = target
+    if mode == "after" and state.last_research_payment is not None:
+        state.last_research_payment["reduced"] = True  # jeden zwrot na zapłatę
     triggers.fire(
         state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=player_id,
-        ctx={"player": player_id, "ability": f"leaders:{AGENT}", "target": payer},
+        ctx={"player": player_id, "ability": f"leaders:{AGENT}", "target": payer, "mode": mode},
     )
 
 
@@ -389,16 +412,54 @@ def _agent_target(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) ->
 
 
 def sucaban_inputs(
-    state: GameState, registry: Any, decider: str, _ctx: Mapping[str, Any]
+    state: GameState, registry: Any, decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Ile piechoty zdjąć z każdego miejsca (każda = −1 do kosztu badania)."""
+    """Ile piechoty zdjąć z każdego miejsca (każda = −1 do kosztu badania); po zapłacie także
+    co odzyskać (planety do odświeżenia, TG)."""
     inputs: list[dict[str, Any]] = []
     for position, zone, count in _infantry_spots(state, decider):
         where = "space" if zone == "space" else _planet_name(registry, zone)
         inputs.append(
             oi.number(f"inf:{position}:{zone}", f"Infantry to remove ({where})", 0, count)
         )
+    trace = state.last_research_payment if ctx.get("mode") == "after" else None
+    if trace is not None:
+        paid = [str(p) for p in trace.get("planets", [])]
+        options = [
+            oi.option(p, f"{_planet_name(registry, p)} ({resources_of(state, registry, p)})")
+            for p in paid
+        ]
+        if options:
+            inputs.append(oi.multi("refund_planets", "Planets to ready (refund)", options, 0,
+                                   len(options)))
+        spent_tg = int(trace.get("trade_goods", 0))
+        if spent_tg:
+            inputs.append(oi.number("refund_trade_goods", "Trade goods back", 0, spent_tg))
     return inputs
+
+
+def _refund(state: GameState, registry: Any, target: str, removed: int,
+            params: Mapping[str, Any]) -> None:
+    """Zwrot po zapłacie: zostaje wydane co najmniej ``koszt - zdjęta piechota``."""
+    trace = state.last_research_payment
+    if trace is None:
+        return
+    paid_planets = [str(p) for p in trace.get("planets", [])]
+    planets = [str(p) for p in params.get("refund_planets") or [] if str(p) in paid_planets]
+    trade_goods = min(int(params.get("refund_trade_goods") or 0), int(trace.get("trade_goods", 0)))
+    back = sum(resources_of(state, registry, p) for p in planets) + trade_goods
+    if not back:
+        return
+    spent = sum(resources_of(state, registry, p) for p in paid_planets) + int(
+        trace.get("trade_goods", 0)
+    )
+    need = max(0, int(trace.get("cost", 0)) - removed)
+    if spent - back < need:
+        raise ValueError(
+            f"You must still spend at least {need} resources - refund less."
+        )
+    exhaust.ready_planets(state, target, planets)
+    economy.refund_trade_goods(state, target, trade_goods)
 
 
 @on_event(
@@ -420,6 +481,9 @@ def sucaban_remove(state: GameState, _player_id: str, ctx: Mapping[str, Any]) ->
         if count > 0:
             unit_ops.remove_units(state, system, zone, target, "infantry", count, UnitCause.REMOVED)
             removed += count
+    if ctx.get("mode") == "after":
+        _refund(state, _registry(), target, removed, ctx.get("params", {}))
+        return
     if removed:
         active_effects.add_effect(
             state, technology.RESEARCH_DISCOUNT, Duration.TURN, owner=target,
@@ -514,6 +578,53 @@ def agnlan_oln(
     active_effects.add_effect(
         state, COMMANDER_USED, Duration.TACTICAL_ACTION, owner=player_id, data={"kind": kind}
     )
+
+
+def _afb_rolled(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    combat = state.active_combat
+    return (
+        ctx.get("player") == player_id
+        and combat is not None
+        and bool(combat.afb.get(player_id))
+    )
+
+
+def afb_inputs(
+    state: GameState, _registry: Any, player_id: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Kości AFB gracza do przerzutu (każda osobno)."""
+    combat = state.active_combat
+    entries = combat.afb.get(player_id, []) if combat is not None else []
+    options = [
+        oi.option(
+            f"{e_index}:{d_index}", f"{entry.get('name', entry.get('baseType', ''))}: {value}",
+            meta=oi.die_meta(int(value), int(entry["hitsOn"]), str(entry.get("baseType", ""))),
+        )
+        for e_index, entry in enumerate(entries)
+        for d_index, value in enumerate(entry.get("dice", []))
+    ]
+    return [oi.multi("dice", "Anti-Fighter Barrage dice to reroll", options, 1, len(options))]
+
+
+@on_event(
+    GameEvent.UNIT_ABILITY_USED, Moment.AFTER, HookSource(SOURCE_LEADER, COMMANDER),
+    where={"ability": "afb"}, optional=True, condition=_afb_rolled, inputs=afb_inputs,
+    label="Agnlan Oln: reroll Anti-Fighter Barrage dice",
+)
+def agnlan_oln_afb(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """Agnlan Oln (AFB): walka czeka po rzucie AFB na tę ofertę (``battle.resolve_afb``)."""
+    combat = state.active_combat
+    if combat is None:
+        return
+    picks: set[tuple[int, int]] = set()
+    for value in ctx.get("params", {}).get("dice") or []:
+        e_index, _, d_index = str(value).partition(":")
+        picks.add((int(e_index), int(d_index)))
+    fresh, _ = space_cannon.reroll_entries(
+        state, combat.afb.get(player_id, []), roller=player_id, picks=picks,
+        source=("agnlan_oln", "Agnlan Oln"),
+    )
+    combat.afb = {**combat.afb, player_id: fresh}
 
 
 # ------------------------------------------------------------- Rin — Genetic Memory (hero)

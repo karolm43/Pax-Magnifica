@@ -51,6 +51,22 @@ def _new_game_in_status(client: TestClient) -> None:
     # Wejście w STATUS ścieżką silnika (inicjuje kroki) z pominięciem pasów fazy akcji.
     assert client.post("/phase/skip").status_code == 200
     assert client.get("/state").json()["state"]["phase"] == "STATUS"
+    _resolve_offers(client)
+
+
+def _resolve_offers(client: TestClient) -> None:
+    """Decyzje ze startu statusu (p3 = Arborec: Mitosis, RULES.md 62.5) - pierwsza opcja."""
+    for pid in ("p1", "p2", "p3"):
+        for offer in client.get("/offers", params={"player_id": pid}).json()["offers"]:
+            params = {
+                item["key"]: item["options"][0]["value"]
+                for item in offer.get("inputs", [])
+                if item.get("kind") == "choice" and item.get("options")
+            }
+            resp = client.post(
+                "/offers/accept", json={"actor_id": pid, "offer_id": offer["id"], "params": params}
+            )
+            assert resp.status_code == 200, resp.text
 
 
 def test_new_game_exposes_objectives_in_web_data(client: TestClient) -> None:

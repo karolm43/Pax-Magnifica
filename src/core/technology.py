@@ -355,6 +355,8 @@ class ResearchPlan:
     exhaust_planets: tuple[str, ...]
     exhaust_aida: bool
     exhaust_relics: tuple[str, ...] = ()
+    # Ile symboli zignorowano bez kosztu (Analytical) - notatka w feedzie przy badaniu.
+    free_ignores: int = 0
 
 
 def plan_research(
@@ -427,17 +429,21 @@ def plan_research(
         missing[color] -= 1
         used_planets.append(skip)
     left = {c: n for c, n in missing.items() if n > 0}
+    ignored = 0
     for _ in range(free_prerequisite_ignores(state, player_id, tech)):
         color = max(left, key=lambda c: left[c], default=None)
         if color is None:
             break
         left[color] -= 1
+        ignored += 1
         if left[color] <= 0:
             del left[color]
     if left:
         text = ", ".join(f"{n}× {c.lower()}" for c, n in left.items())
         raise ValueError(f"Prerequisites not met for {tech.name}: missing {text}.")
-    return ResearchPlan(tech_id, tuple(used_planets), use_aida, tuple(used_relics))
+    return ResearchPlan(
+        tech_id, tuple(used_planets), use_aida, tuple(used_relics), free_ignores=ignored
+    )
 
 
 def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
@@ -509,6 +515,15 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         ctx=research_ctx,
     )
     grant_technology(state, player_id, plan.tech_id)
+    if plan.free_ignores:
+        from src.core import ability_notes  # lokalnie: unika cyklu importów
+
+        tech = rules_hooks.bound_registry().technologies.get(plan.tech_id)
+        name = tech.name if tech is not None else plan.tech_id
+        ability_notes.note_point(
+            state, player_id, rules_hooks.POINT_TECHNOLOGY_FREE_IGNORES,
+            f"ignored {plan.free_ignores} prerequisite(s) of {name}",
+        )
     # Psychoarchaeology: użycie specjalności nie wyczerpuje planet (hook PERMIT).
     if not rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SPECIALTY_FREE, state, player_id):
         exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
@@ -663,3 +678,46 @@ def validate_specialty_payment(
         raise ValueError("The planet's technology specialty must match the technology's color.")
     if planet_id in plan.exhaust_planets:
         raise ValueError("The same planet cannot both ignore a prerequisite and pay.")
+
+
+def pay_research(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    cost: int,
+    planets: list[str],
+    trade_goods: int,
+    *,
+    skip_planets: tuple[str, ...] = (),
+) -> int:
+    """JEDYNE miejsce zapłaty zasobami za badanie (RULES.md 43.1a; karta Technology, Reveal
+    Prototype, Enigmatic Device). MUTUJE klon. Zwraca koszt po zniżkach.
+
+    Odejmuje zniżkę (Doctor Sucaban przed zapłatą), płaci i zostawia ślad
+    ``GameState.last_research_payment`` - okno „when a player spends resources to research” dla
+    zdolności użytych zaraz po zapłacie (zwrot, RULES.md 62.3).
+
+    Raises:
+        ValueError: Planeta skipu płaci jednocześnie albo za mało zasobów.
+    """
+    from src.core import payment  # lokalnie: payment -> relic_planets -> ... (bez cyklu)
+
+    cost = max(0, cost - research_discount(state, player_id))
+    consume_research_discount(state, player_id)
+    if cost <= 0:
+        return 0
+    overlap = set(planets) & set(skip_planets)
+    if overlap:
+        raise ValueError(
+            "A planet exhausted for its technology specialty cannot also pay resources: "
+            + ", ".join(sorted(overlap))
+        )
+    paid = payment.validate_payment(state, registry, player_id, "resources", planets, trade_goods)
+    if paid < cost:
+        raise ValueError(f"Spend at least {cost} resources (you chose {paid}).")
+    payment.apply_payment(state, player_id, planets, trade_goods)
+    state.last_research_payment = {
+        "player": player_id, "cost": cost, "planets": list(planets),
+        "trade_goods": trade_goods, "reduced": False,
+    }
+    return cost

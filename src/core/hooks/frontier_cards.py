@@ -81,16 +81,10 @@ def _action(
     if not isinstance(skips, list) or not all(isinstance(s, str) for s in skips):
         raise ValueError("'skips' must be a list of ids.")
     planets, trade_goods = payment.parse_payment(dict(params))
-    if set(planets) & set(skips):
-        raise ValueError("A planet cannot both pay for the card and be used as a skip.")
-    paid = payment.validate_payment(state, registry, player_id, "resources", planets, trade_goods)
-    if paid < _COST:
-        raise ValueError(
-            f"Enigmatic Device costs {_COST} resources - you chose {paid}. "
-            "Exhaust more planets or spend trade goods."
-        )
     plan = technology.plan_research(state, registry, player_id, tech_id, list(skips))
-    payment.apply_payment(state, player_id, planets, trade_goods)
+    technology.pay_research(
+        state, registry, player_id, _COST, planets, trade_goods, skip_planets=tuple(skips)
+    )
     frontier_cards.purge_card(state, player_id, card_id)
     technology.apply_research(state, player_id, plan)
 

@@ -32,7 +32,8 @@ PSYCHOARCHAEOLOGY_ALIAS = "pa"
 SELF_ASSEMBLY_ALIAS = "sar"
 INFANTRY_II_ALIAS = "inf2"
 SPEC_OPS_II_ALIAS = "so2"  # piechota Sol - ten sam mechanizm, inny próg (RULES.md 62.4)
-REVIVE_ALIASES = (INFANTRY_II_ALIAS, SPEC_OPS_II_ALIAS)
+LETANI_WARRIOR_II_ALIAS = "lw2"  # piechota Arborec (RULES.md 62.5)
+REVIVE_ALIASES = (INFANTRY_II_ALIAS, SPEC_OPS_II_ALIAS, LETANI_WARRIOR_II_ALIAS)
 
 # Próg odrodzenia: „If the result is 6 or greater" (tekst karty w assetach); zapas bez danych.
 _INFANTRY_II_REVIVE_ON = 6

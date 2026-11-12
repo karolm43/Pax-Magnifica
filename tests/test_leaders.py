@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from src.api.app import create_app
 from src.core import component_action, faction_components, leaders, rules_hooks
 from src.core.components import ComponentCategory
-from src.core.game_state import GameState, PendingOffer, Phase, PlayerState
+from src.core.game_state import GameState, PendingOffer, Phase, PlayerState, SystemState
 from src.core.registry import StaticDataRegistry
 
 
@@ -29,6 +29,15 @@ def _state() -> GameState:
             "p2": PlayerState(player_id="p2", color="blue", faction="sol"),
         },
     )
+
+
+def _with_units(state: GameState) -> GameState:
+    """System 102: niszczyciel p2 (cel agenta Arborec) i piechota p1 (bohater Arborec)."""
+    system = SystemState(position="102", system_id="115")
+    system.space_units = {"p2": {"destroyer": 1}}
+    system.planet_units = {"industrex": {"p1": {"infantry": 1}}}
+    state.systems["102"] = system
+    return state
 
 
 def _score_public(state: GameState, registry: StaticDataRegistry, count: int) -> None:
@@ -117,34 +126,41 @@ def test_agent_z_akcja_wyczerpuje_sie(registry: StaticDataRegistry) -> None:
             def _fx(state: Any, registry: Any, player_id: str, params: Mapping[str, Any]) -> None:
                 calls.append(dict(params))
 
-        state = _state()
+        state = _with_units(_state())
         rows = {r["component_id"]: r for r in faction_components.playability(state, registry, "p1")}
         assert rows["arborecagent"]["playable"] is True
         assert rows["arborechero"]["playable"] is False  # zablokowany
         assert rows["mitosis"]["mode"] == "passive"
         new_state, implemented = faction_components.play(
-            state, registry, "p1", "leader", "arborecagent"
+            state, registry, "p1", "leader", "arborecagent", {"ship": "p2|102|destroyer"}
         )
         assert implemented is True
         assert leaders.state_of(new_state, registry, "p1", "arborecagent") == leaders.EXHAUSTED
         assert new_state.players["p1"].took_action_this_turn is True
         # Bez nowej tury drugi raz się nie da (akcja zużyta, agent wyczerpany).
         with pytest.raises(ValueError):
-            faction_components.play(new_state, registry, "p1", "leader", "arborecagent")
+            faction_components.play(
+                new_state, registry, "p1", "leader", "arborecagent", {"ship": "p2|102|destroyer"}
+            )
 
 
 def test_bohater_po_uzyciu_purge_i_przestaje_byc_zrodlem(registry: StaticDataRegistry) -> None:
-    state = _state()
+    state = _with_units(_state())
     state.players["p1"].leader_states = {"arborechero": leaders.UNLOCKED}
     source = rules_hooks.HookSource(rules_hooks.SOURCE_LEADER, "arborechero")
     assert source in rules_hooks.owned_sources(state, "p1")
-    new_state, _ = faction_components.play(state, registry, "p1", "leader", "arborechero")
+    new_state, _ = faction_components.play(
+        state, registry, "p1", "leader", "arborechero", {"systems": ["102"]}
+    )
+    new_state.production_grant = None  # produkcja bohatera nieistotna dla tego testu
     assert leaders.state_of(new_state, registry, "p1", "arborechero") == leaders.PURGED
     assert source not in rules_hooks.owned_sources(new_state, "p1")
     new_state.players["p1"].took_action_this_turn = False
     new_state.players["p1"].actions_this_turn = 0
     with pytest.raises(ValueError, match="purged"):
-        faction_components.play(new_state, registry, "p1", "leader", "arborechero")
+        faction_components.play(
+            new_state, registry, "p1", "leader", "arborechero", {"systems": ["102"]}
+        )
 
 
 def test_akcja_nieswojego_lub_pasywnego_komponentu_odrzucona(registry: StaticDataRegistry) -> None:

@@ -427,6 +427,17 @@ function describeFact(
           </>
         ),
       };
+    case "ability_used":
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}used <b>{resolveEffectName(fact.value ?? "")}</b>
+            {fact.detail && <>: {fact.detail}</>}
+          </>
+        ),
+      };
     case "tech_lost":
       return {
         key,
