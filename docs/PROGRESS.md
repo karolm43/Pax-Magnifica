@@ -828,6 +828,8 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   Behemoth jako opcja), Bioplasmosis (ruch jednoczesny), Letani Warrior II (mechanizm Infantry II), Letani Ospha
   (decyzja właściciela statku), Dirzuga Rophal (+ warunek 12 sił), Duha Menaimon (grant 5 jednostek), Ultrasonic
   Emitter (grant z kolejką systemów `ProductionGrant.queue`), Stymie, Psychospore.
-- ⚠️ Otwarte: produkcja Dirzuga Rophal nie blokuje ruchu aktywnego gracza; Stymie/Ospha bez rulingów „z arkusza /
-  z planszy, gdy brak w rezerwie”.
+- Domknięte (decyzje użytkownika): Focused Research (TG = zasoby) idzie przez `pay_research(trade_goods_only=True)`
+  i Sucabana; cudza produkcja z grantu (Dirzuga Rophal) wstrzymuje ruch i zmianę kroku aktywnego gracza
+  (`production.foreign_grant_reason`); Stymie Ω — żeton z arkusza przy pustej rezerwie (decyzja ruszającego);
+  Letani Ospha — zamiennik z planszy (system bez żetonu właściciela), gdy rezerwa pusta.
 - Nowe pola stanu (`last_research_payment`, `ability_notes`, `ProductionGrant.queue`) — restart backendu.

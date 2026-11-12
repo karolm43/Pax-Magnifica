@@ -584,6 +584,11 @@ def can_move(
 
     if promissory_play.ceasefire_blocks(state, player_id):
         return False, "Ceasefire: you cannot move units into the active system."
+    from src.core import production  # lokalnie: unikamy cyklu importów
+
+    waiting = production.foreign_grant_reason(state, player_id)
+    if waiting is not None:
+        return False, waiting
 
     move_value = _effective_move_value(
         state, grid, registry, from_pos, base_type, player_id,

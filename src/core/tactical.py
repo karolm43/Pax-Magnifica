@@ -25,6 +25,7 @@ from src.core import (
     control,
     ion_storm,
     objective_events,
+    production,
     triggers,
 )
 from src.core.battle import space_combat_required
@@ -191,6 +192,11 @@ def _check_can_leave(
     gdy wykryto nadwyżkę (krok zostaje, gracz najpierw ją usuwa), a ``None``, gdy
     droga wolna. ``what`` — fraza do komunikatu („the next step" / „ending the action").
     """
+    # Produkcja innego gracza z grantu (Dirzuga Rophal) - najpierw ona (RULES.md 62.5).
+    if state.active_player_id is not None:
+        waiting = production.foreign_grant_reason(state, state.active_player_id)
+        if waiting is not None:
+            raise ValueError(waiting)
     # Nie wolno opuścić kroku, dopóki trwa okno Space Cannon (gracze jeszcze strzelają /
     # przypisują straty — RULES.md 38): inaczej kroki „uciekałyby" sprzed rozstrzygnięcia.
     window = state.pending_window

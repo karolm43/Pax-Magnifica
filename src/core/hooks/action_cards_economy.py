@@ -121,7 +121,7 @@ def focused_research(
     """Focused Research: Spend 4 trade goods to research 1 technology"""
     tech_id = _text(params, "technology", "Choose a technology to research.")
     plan = technology.plan_research(state, registry, player_id, tech_id, _str_list(params, "skips"))
-    economy.spend_as_trade_goods(state, player_id, _FOCUSED_COST)
+    technology.pay_research(state, registry, player_id, _FOCUSED_COST, [], 0, trade_goods_only=True)
     technology.apply_research(state, player_id, plan)
 
 

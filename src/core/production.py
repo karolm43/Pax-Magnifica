@@ -898,6 +898,16 @@ def skip_grant(state: GameState) -> GameState:
     return new_state
 
 
+def foreign_grant_reason(state: GameState, player_id: str) -> str | None:
+    """Powód wstrzymania gracza, gdy INNY gracz produkuje z grantu w tej akcji (np. Dirzuga
+    Rophal: „The unit is produced before ships move” - F_arborec). ``None`` = można działać."""
+    grant = state.production_grant
+    if grant is None or grant.player_id == player_id or grant.standalone:
+        return None
+    who = grant.source or "Another player's production"
+    return f"{who}: wait until {grant.player_id} finishes producing."
+
+
 def next_grant(grant: ProductionGrant | None) -> ProductionGrant | None:
     """Grant dla następnego systemu z ``queue`` (``None``, gdy kolejka pusta)."""
     if grant is None or not grant.queue:

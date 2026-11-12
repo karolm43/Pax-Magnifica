@@ -436,3 +436,18 @@ def test_afb_bez_commandera_bez_pauzy(registry: StaticDataRegistry, grid: HexGri
     after = battle.resolve_afb(state, grid, registry)
     assert after.active_combat is not None
     assert after.active_combat.step is not CombatStep.TRIGGERS
+
+
+
+def test_focused_research_tg_to_zasoby_dla_sucabana(registry: StaticDataRegistry) -> None:
+    """TG wydane jak zasoby to wydawanie zasobów (decyzja użytkownika): zniżka i ślad."""
+    from src.core.game_events import Duration
+
+    state = _state()
+    active_effects.add_effect(
+        state, technology.RESEARCH_DISCOUNT, Duration.TURN, owner="p2", data={"amount": 1}
+    )
+    technology.pay_research(state, registry, "p2", 4, [], 0, trade_goods_only=True)
+    assert state.players["p2"].trade_goods == 5  # 8 - (4 - 1)
+    assert state.last_research_payment is not None
+    assert state.last_research_payment["trade_goods"] == 3

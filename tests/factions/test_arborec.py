@@ -312,3 +312,56 @@ def test_psychospore_bez_zetonu(registry: StaticDataRegistry) -> None:
     state.systems["102"].planet_units = {"industrex": {"p1": {"infantry": 1}}}
     rows = {r["component_id"]: r for r in faction_components.playability(state, registry, "p1")}
     assert rows["arborecbt"]["playable"] is False
+
+
+# ------------------------------------------------- rulingi: żeton z arkusza, statek z planszy
+
+
+def test_stymie_pusta_rezerwa_zeton_z_arkusza(registry: StaticDataRegistry) -> None:
+    state = _state()
+    _moved_into(state)
+    state.systems["102"].planet_units = {"industrex": {"p1": {"infantry": 1}}}
+    state.players["p1"].faction = "letnev"
+    state.players["p3"] = PlayerState(player_id="p3", color="red", faction="arborec")
+    state.players["p1"].private.promissory_notes = ["stymie"]
+    state.players["p2"].cc_reinf = 0
+    fleet = state.players["p2"].fleet_cc
+    after, _ = promissory_play.play(state, registry, "p1", "stymie", {"system": "103"})
+    offer = next(o for o in after.pending_offers if o.player_id == "p2")
+    placed = triggers.accept_offer(after, "p2", offer.id, {"pool": "fleet"})
+    assert "p2" in placed.systems["103"].command_tokens
+    assert placed.players["p2"].fleet_cc == fleet - 1
+
+
+def test_letani_ospha_statek_z_planszy_gdy_rezerwa_pusta(registry: StaticDataRegistry) -> None:
+    state = _state()
+    cap = production.reinforcements_left(state, "p2", "cruiser")
+    assert cap is not None and cap > 0
+    state.systems["102"].space_units = {"p2": {"destroyer": 1}}
+    state.systems["103"].space_units = {"p2": {"cruiser": cap}}  # cała rezerwa na planszy
+    used, _ = faction_components.play(
+        state, registry, "p1", "leader", "arborecagent", {"ship": "p2|102|destroyer"}
+    )
+    after = _accept(used, "p2", "Letani Ospha", {"replacement": "cruiser@103"})
+    assert after.systems["102"].space_units["p2"] == {"cruiser": 1}
+    assert after.systems["103"].space_units["p2"]["cruiser"] == cap - 1
+
+
+def test_dirzuga_rophal_wstrzymuje_ruch_aktywnego(registry: StaticDataRegistry) -> None:
+    from src.core import movement, tactical
+    from src.core.game_state import ProductionGrant
+
+    grid = build_demo_grid(registry)
+    state = _state()
+    state.active_player_id = "p2"
+    state.tactical_step = TacticalStep.MOVEMENT
+    state.systems["103"].space_units = {"p2": {"cruiser": 1}}
+    state.production_grant = ProductionGrant(
+        player_id="p1", position="102", units=1, free=True, source="Dirzuga Rophal"
+    )
+    ok, reason = movement.can_move(state, grid, registry, "103", "cruiser", "p2")
+    assert ok is False and "Dirzuga Rophal" in reason
+    with pytest.raises(ValueError, match="Dirzuga"):
+        tactical.next_step(state, registry)
+    state.production_grant = None
+    assert "Dirzuga" not in movement.can_move(state, grid, registry, "103", "cruiser", "p2")[1]

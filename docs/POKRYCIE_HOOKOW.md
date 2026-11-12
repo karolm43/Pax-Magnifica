@@ -3,7 +3,7 @@
 Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.
 Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja, nie decyzja).
 
-Zarejestrowanych hooków: **175** (lista: `pokrycie_hookow/hooki.md`).
+Zarejestrowanych hooków: **176** (lista: `pokrycie_hookow/hooki.md`).
 
 ## 2. Pokrycie per kategoria
 

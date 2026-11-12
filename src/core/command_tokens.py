@@ -117,6 +117,20 @@ def remove_from_board(state: GameState, system: SystemState, player_id: str) -> 
     return_to_reinforcements(state, player_id, 1)
 
 
+def place_on_board_from_pool(
+    state: GameState, system: SystemState, player_id: str, pool: str
+) -> None:
+    """Kładzie w systemie żeton gracza zabrany z PULI ARKUSZA (Stymie Ω przy pustej rezerwie).
+
+    Raises:
+        ValueError: Gracz ma już żeton w systemie albo pusta pula (stan bez zmian).
+    """
+    if player_id in system.command_tokens:
+        raise ValueError(f"{player_id} already has a command token in system {system.position}.")
+    spend_from_pool(state, player_id, pool)
+    system.command_tokens.append(player_id)
+
+
 def return_board_token_to_pool(
     state: GameState, system: SystemState, player_id: str, pool: str = "tactical"
 ) -> None:

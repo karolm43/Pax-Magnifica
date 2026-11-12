@@ -689,9 +689,14 @@ def pay_research(
     trade_goods: int,
     *,
     skip_planets: tuple[str, ...] = (),
+    trade_goods_only: bool = False,
 ) -> int:
     """JEDYNE miejsce zapłaty zasobami za badanie (RULES.md 43.1a; karta Technology, Reveal
-    Prototype, Enigmatic Device). MUTUJE klon. Zwraca koszt po zniżkach.
+    Prototype, Enigmatic Device, Focused Research). MUTUJE klon. Zwraca koszt po zniżkach.
+
+    ``trade_goods_only`` (Focused Research: „Spend 4 trade goods”): płaci się wyłącznie TG, w
+    kwocie kosztu po zniżce. TG wydane jak zasoby to wydawanie zasobów (R_trade_goods: „spend a
+    trade good as if it were one resource”) - decyzja użytkownika 2026-11-12.
 
     Odejmuje zniżkę (Doctor Sucaban przed zapłatą), płaci i zostawia ślad
     ``GameState.last_research_payment`` - okno „when a player spends resources to research” dla
@@ -706,6 +711,8 @@ def pay_research(
     consume_research_discount(state, player_id)
     if cost <= 0:
         return 0
+    if trade_goods_only:
+        planets, trade_goods = [], cost
     overlap = set(planets) & set(skip_planets)
     if overlap:
         raise ValueError(

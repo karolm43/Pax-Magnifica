@@ -297,22 +297,36 @@ def _agent_target(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) ->
     return str(ctx["target"])
 
 
+_SHIP_TYPES = ("fighter", "destroyer", "cruiser", "carrier", "dreadnought", "flagship", "warsun")
+
+
 def _replacements(
-    state: GameState, registry: Any, owner: str, base_type: str
+    state: GameState, registry: Any, owner: str, base_type: str, position: str
 ) -> list[str]:
-    """Typy statków z rezerwy właściciela kosztujące najwyżej o 2 więcej (myśliwiec też — F)."""
+    """Zamienniki: ``typ`` (z rezerwy) albo ``typ@pozycja`` (z planszy, gdy rezerwa pusta).
+
+    Typy statków właściciela kosztujące najwyżej o 2 więcej (myśliwiec też). F_arborec: gdy
+    danego typu nie ma w rezerwie, wolno zdjąć taki statek z systemu bez żetonu tego gracza.
+    """
     limit = _ship_cost(state, registry, owner, base_type)
     if limit is None:
         return []
     found: list[str] = []
-    for candidate in ("fighter", "destroyer", "cruiser", "carrier", "dreadnought", "flagship",
-                      "warsun"):
+    for candidate in _SHIP_TYPES:
         if candidate == base_type:
             continue
         cost = _ship_cost(state, registry, owner, candidate)
+        if cost is None or cost > limit + _AGENT_EXTRA_COST:
+            continue
         left = reinforcements_left(state, owner, candidate)
-        if cost is not None and cost <= limit + _AGENT_EXTRA_COST and (left is None or left > 0):
+        if left is None or left > 0:
             found.append(candidate)
+            continue
+        for source, system in sorted(state.systems.items()):
+            if source == position or owner in system.command_tokens:
+                continue
+            if system.space_units.get(owner, {}).get(candidate, 0) > 0:
+                found.append(f"{candidate}@{source}")
     return found
 
 
@@ -320,10 +334,11 @@ def ospha_inputs(
     state: GameState, registry: Any, decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     base_type = str(ctx["base_type"])
-    options = [oi.option(_KEEP, "Keep the ship")] + [
-        oi.option(c, unit_name(state, registry, decider, c))
-        for c in _replacements(state, registry, decider, base_type)
-    ]
+    options = [oi.option(_KEEP, "Keep the ship")]
+    for value in _replacements(state, registry, decider, base_type, str(ctx["position"])):
+        unit, _, source = value.partition("@")
+        name = unit_name(state, registry, decider, unit)
+        options.append(oi.option(value, f"{name} (from system {source})" if source else name))
     return [oi.choice("replacement", "Replace the ship with", options)]
 
 
@@ -339,11 +354,17 @@ def ospha_replace(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> 
         return
     owner = str(ctx["decider"])
     base_type = str(ctx["base_type"])
-    if choice not in _replacements(state, _registry(), owner, base_type):
-        raise ValueError("That ship costs too much or is not in your reinforcements.")
-    system = state.systems[str(ctx["position"])]
+    position = str(ctx["position"])
+    if choice not in _replacements(state, _registry(), owner, base_type, position):
+        raise ValueError("That ship costs too much or is not available.")
+    unit, _, source = choice.partition("@")
+    if source:  # z planszy: zdjęty stamtąd, postawiony nieuszkodzony (F_arborec)
+        unit_ops.remove_units(
+            state, state.systems[source], "space", owner, unit, 1, UnitCause.REMOVED
+        )
+    system = state.systems[position]
     unit_ops.remove_units(state, system, "space", owner, base_type, 1, UnitCause.REMOVED)
-    unit_ops.place_units(state, system, "space", owner, choice, 1, UnitCause.PLACED)
+    unit_ops.place_units(state, system, "space", owner, unit, 1, UnitCause.PLACED)
 
 
 # ------------------------------------------------------------------- Dirzuga Rophal
@@ -481,9 +502,18 @@ def _stymie_condition(
     )
     if not has_units:
         return "The active system does not contain your units."
-    if command_tokens.reinforcements(state, str(mover)) <= 0:
-        return "That player has no command token in their reinforcements."
+    if command_tokens.reinforcements(state, str(mover)) <= 0 and not _sheet_pools(
+        state, str(mover)
+    ):
+        return "That player has no command token to place."
     return None
+
+
+_POOLS = ("tactical", "fleet", "strategic")
+
+
+def _sheet_pools(state: GameState, player_id: str) -> list[str]:
+    return [p for p in _POOLS if command_tokens.pool_count(state, player_id, p) > 0]
 
 
 promissory_play.any_subject(STYMIE)
@@ -516,7 +546,39 @@ def stymie(
     system = state.systems.get(choice)
     if system is None or choice not in board_graph.non_home_systems(state, registry):
         raise ValueError("Choose a non-home system.")
-    command_tokens.place_on_board_from_reinforcements(state, system, mover)
+    if mover in system.command_tokens:
+        raise ValueError("That player already has a command token in that system.")
+    if command_tokens.reinforcements(state, mover) > 0:
+        command_tokens.place_on_board_from_reinforcements(state, system, mover)
+        return
+    # Stymie Ω (F_arborec): pusta rezerwa -> ten gracz sam wybiera żeton z arkusza.
+    from src.core import triggers
+
+    triggers.fire(
+        state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=mover,
+        ctx={"player": mover, "ability": f"promissory_notes:{STYMIE}", "target": mover,
+             "position": choice},
+    )
+
+
+def stymie_pool_inputs(
+    state: GameState, _registry: Any, decider: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    options = [oi.option(p, f"From your {p} pool") for p in _sheet_pools(state, decider)]
+    return [oi.choice("pool", "Stymie: command token from your command sheet", options)]
+
+
+@on_event(
+    GameEvent.FACTION_ABILITY_USED, Moment.AFTER, HookSource(SOURCE_FACTION, FACTION),
+    where={"ability": f"promissory_notes:{STYMIE}"}, decide=True, decider=_agent_target,
+    inputs=stymie_pool_inputs, label="Stymie: token from your command sheet",
+)
+def stymie_from_sheet(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> None:
+    mover = str(ctx["decider"])
+    pool = str(ctx.get("params", {}).get("pool") or "")
+    if pool not in _sheet_pools(state, mover):
+        raise ValueError("Choose a pool that has a command token.")
+    command_tokens.place_on_board_from_pool(state, state.systems[str(ctx["position"])], mover, pool)
 
 
 # ------------------------------------------------------------------ Psychospore (BT)

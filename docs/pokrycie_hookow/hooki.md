@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **175**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -66,6 +66,7 @@ Razem: **175**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
+| `event:faction.ability_used:after` | TRIGGER | faction:arborec | — | — |
 | `event:faction.ability_used:after` | TRIGGER | leader:arborecagent | leaders:arborecagent | Zamieniany statek nie jest niszczony, nowy nie jest produkowany (F_arborec). |
 | `event:faction.ability_used:after` | TRIGGER | leader:jolnaragent | leaders:jolnaragent | — |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
