@@ -776,3 +776,5 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (niemyśliwskie) przy Gravleash; test `test_gravleash_z_gravity_drive_cala_flota_leci_3`.
 - Pole bitwy, war sun (też Prototype War Sun Muaat — ta sama grafika `ws`): prawa flota nie odwraca go już o 180°
   (stał do góry nogami); rozmiar 180 → 136 (grafika 56×65 px była rozciągana ~2,2× = pikseloza, teraz ~1,6×).
+- ActivityToasts: powiadomienie zwinięte = jedna linia „kto co zrobił” (max 2 wiersze); klik/strzałka rozwija skutki
+  + nazwę, typ i tekst karty/technologii i wstrzymuje zamknięcie (zamyka X albo zwinięcie). Test `ActivityToastCard.test.tsx`.

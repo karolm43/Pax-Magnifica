@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconX } from "@tabler/icons-react";
 import { useActivityFeed, type ActivityEntry } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -36,7 +36,7 @@ export function shouldToast(
   return isBot(a.actor_id);
 }
 
-function ToastCard({
+export function ToastCard({
   entry,
   ctx,
   onClose,
@@ -53,6 +53,9 @@ function ToastCard({
   const hint = subject
     ? hintFor(subject.kind, subject.id, { idMap: ctx.strategyCardIdMap })
     : null;
+  const hasDetails = view.facts.length > 0 || (hint !== null && hint.lines.length > 0);
+  // Zwinięte = jedna linia „kto co zrobił”; po kliknięciu skutki + tekst karty/techu.
+  const [open, setOpen] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   // Najświeższe ``onClose`` (nowa funkcja co render rodzica) bez restartu odliczania.
   const close = useRef(onClose);
@@ -68,13 +71,26 @@ function ToastCard({
     return () => window.clearTimeout(timer.current);
   }, []);
 
+  const toggle = () => {
+    if (!hasDetails) return;
+    // Rozwinięte czeka na gracza (czyta) — zamyka X albo ponowne zwinięcie.
+    if (open) arm(LINGER_MS);
+    else window.clearTimeout(timer.current);
+    setOpen(!open);
+  };
+
   return (
     <div
       className={classes.toast}
       role="status"
+      data-open={open || undefined}
+      data-clickable={hasDetails || undefined}
       style={{ "--ek": view.tone } as CSSProperties}
+      onClick={toggle}
       onMouseEnter={() => window.clearTimeout(timer.current)}
-      onMouseLeave={() => arm(LINGER_MS)}
+      onMouseLeave={() => {
+        if (!open) arm(LINGER_MS);
+      }}
     >
       <span className={classes.mark}>
         {actor?.faction ? (
@@ -88,7 +104,7 @@ function ToastCard({
       </span>
       <div className={classes.body}>
         <div className={classes.headline}>{view.headline}</div>
-        {view.facts.length > 0 && (
+        {open && view.facts.length > 0 && (
           <div className={classes.facts}>
             {view.facts.map((fact) => (
               <span key={fact.key} className={classes.fact} data-tone={fact.tone}>
@@ -97,8 +113,9 @@ function ToastCard({
             ))}
           </div>
         )}
-        {hint && hint.lines.length > 0 && (
+        {open && hint && hint.lines.length > 0 && (
           <div className={classes.hint}>
+            {hint.name && <b>{hint.name}</b>}
             {hint.meta && <small>{hint.meta}</small>}
             {hint.lines.map((line, index) => (
               <p key={index}>{line}</p>
@@ -106,11 +123,28 @@ function ToastCard({
           </div>
         )}
       </div>
+      {hasDetails && (
+        <button
+          type="button"
+          className={classes.toggle}
+          aria-expanded={open}
+          aria-label={open ? "Hide details" : "Show details"}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggle();
+          }}
+        >
+          <IconChevronDown size={14} />
+        </button>
+      )}
       <button
         type="button"
         className={classes.close}
         aria-label="Dismiss notification"
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
       >
         <IconX size={14} />
       </button>
@@ -120,8 +154,9 @@ function ToastCard({
 
 /**
  * Wyskakujące powiadomienia „kto co zrobił": każdy nowy wpis feedu Activity od INNEGO gracza
- * (użyta technologia, zagrana karta, ruch, walka…) pojawia się na chwilę w rogu ekranu razem
- * z tekstem użytej karty/technologii i sam znika. Pełna historia zostaje w panelu Activity.
+ * (użyta technologia, zagrana karta, ruch, walka…) pojawia się na chwilę w rogu ekranu jako
+ * JEDNA linia „kto co zrobił” i sam znika. Kliknięcie rozwija skutki i tekst karty/technologii
+ * (to samo, co podpowiedź w panelu) i wstrzymuje zamknięcie. Pełna historia zostaje w panelu Activity.
  * Wpisy obecne przy otwarciu strony nie są nowością. Montowany raz na stronie gry.
  */
 export function ActivityToasts() {
