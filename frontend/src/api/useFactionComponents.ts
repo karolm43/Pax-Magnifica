@@ -16,8 +16,11 @@ export type FactionComponentForm = {
   component_id: string;
   name: string;
   text: string;
-  /** `action` = „ACTION:" (akcja komponentu), `passive` = działa sam / przez oferty. */
-  mode: "action" | "passive";
+  /**
+   * `action` = „ACTION:" (akcja komponentu), `window` = „During X: you may…" — gracz używa w danym
+   * kroku bez zużycia akcji (RULES.md 62.0), `passive` = działa sam / przez oferty.
+   */
+  mode: "action" | "window" | "passive";
   implemented: boolean;
   inputs: ActionCardInput[];
   /** Lider: locked | unlocked | exhausted | purged; przełom: unlocked | exhausted. */

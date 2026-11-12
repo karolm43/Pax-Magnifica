@@ -102,3 +102,4 @@ Czytaj WYŁĄCZNIE plik potrzebnej sekcji. Nową regułę dopisuj do pliku jej s
 | 59 | [Relikty — posiadanie, akcje „ACTION:”, efekty pasywne i zdarzeniowe](rules/R59.md) | 24 |
 | 60 | [Legendarne planety — karty zdolności, gotowość i zdolności](rules/R60.md) | 25 |
 | 61 | [Fundamenty frakcji — liderzy, promissory notes, zdolności, przełomy](rules/R61.md) | 33 |
+| 62 | [Frakcje — komponenty frakcyjne (B1: Sardakk N'orr, …)](rules/R62.md) | 15 |

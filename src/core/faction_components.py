@@ -19,8 +19,9 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from src.core import exhaust, leaders, offer_inputs, rules_hooks
+from src.core import exhaust, leaders, offer_inputs, rules_hooks, triggers
 from src.core.components import ComponentCategory
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
@@ -39,6 +40,9 @@ _EXHAUST_SELF = re.compile(r"\bexhaust this card\b", re.IGNORECASE)
 
 BlockerFn = Callable[[GameState, StaticDataRegistry, str], str | None]
 _BLOCKERS: dict[str, BlockerFn] = {}
+# „During/After X: you may…" — komponent używany z inicjatywy gracza poza akcją tury (RULES.md
+# 62.0): warunek okna zwraca powód odmowy albo None (= wolno teraz).
+_WINDOW_USES: dict[str, BlockerFn] = {}
 
 
 def effect_key(kind: str, component: str) -> str:
@@ -72,6 +76,30 @@ def blocker(kind: str, component: str) -> Callable[[BlockerFn], BlockerFn]:
         return fn
 
     return decorate
+
+
+def window_use(kind: str, component: str) -> Callable[[BlockerFn], BlockerFn]:
+    """Rejestruje komponent bez ``ACTION:`` używany przez gracza w danym kroku (RULES.md 62.0).
+
+    ``fn(state, registry, player_id)`` = powód, dla którego TERAZ nie wolno, albo ``None``. Efekt
+    to zwykłe ``register_effect`` komponentu; użycie NIE zużywa akcji tury.
+    """
+    key = effect_key(kind, component)
+
+    def decorate(fn: BlockerFn) -> BlockerFn:
+        if key in _WINDOW_USES:
+            raise ValueError(f"Window use already registered for {key}.")
+        _WINDOW_USES[key] = fn
+        return fn
+
+    return decorate
+
+
+def _mode(kind: str, component: str, text: str) -> str:
+    if _ACTION.search(text):
+        return "action"
+    rules_hooks.effect_for(effect_key(kind, component))  # ładuje pakiet hooków
+    return "window" if effect_key(kind, component) in _WINDOW_USES else "passive"
 
 
 # --- Dane ---------------------------------------------------------------------------------------
@@ -181,7 +209,8 @@ def form(
     if not _owns(state, registry, player_id, kind, component):
         raise ValueError(f"You do not have {name}.")
     key = effect_key(kind, component)
-    action = bool(_ACTION.search(text))
+    mode = _mode(kind, component, text)
+    action = mode != "passive"
     inputs: list[dict[str, Any]] = []
     if action and rules_hooks.effect_for(key) is not None:
         inputs_fn = rules_hooks.inputs_for(key)
@@ -202,7 +231,7 @@ def form(
         "component_id": component,
         "name": name,
         "text": text,
-        "mode": "action" if action else "passive",
+        "mode": mode,
         "implemented": implemented,
         "inputs": inputs,
         "status": status,
@@ -237,8 +266,19 @@ def playability(
             "reason": None,
         }
         rows.append(row)
-        if info["mode"] != "action":
+        if info["mode"] == "passive":
             row["reason"] = "Passive - it works on its own (offers appear at the right moment)."
+            continue
+        if info["mode"] == "window":
+            reason = block_reason(state, registry, player_id, kind, component)
+            if reason is None:
+                reason = _WINDOW_USES[effect_key(kind, component)](state, registry, player_id)
+            if reason is None and info["implemented"] and not offer_inputs.has_legal_answer(
+                info["inputs"]
+            ):
+                reason = "No legal target for this ability right now."
+            row["reason"] = reason
+            row["playable"] = reason is None
             continue
         try:
             component_action.play_component_action(
@@ -261,18 +301,34 @@ def playability(
 
 
 def pay_cost(
-    state: GameState, registry: StaticDataRegistry, player_id: str, kind: str, component: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    kind: str,
+    component: str,
+    ctx: Mapping[str, Any] | None = None,
 ) -> None:
     """Koszt użycia komponentu (MUTUJE ``state``): lider wg tekstu, przełom — wyczerpanie.
 
-    Wołają go też hooki zdarzeń frakcji (oferty „you may exhaust this card").
+    Wołają go też hooki zdarzeń frakcji (oferty „you may exhaust this card"). Wyczerpanie emituje
+    ``COMPONENT_EXHAUSTED/AFTER`` z ``component="<kategoria>:<id>"`` i ``ctx`` wołającego (np.
+    gracz, któremu agent coś daje — decyzja tego gracza to osobny hook, RULES.md 62.1).
     """
+    exhausted = False
     if kind == LEADER:
+        exhausted = leaders.usage_cost(registry, component) == "exhaust"
         leaders.pay_usage(state, registry, player_id, component)
     elif kind == BREAKTHROUGH and _exhausts_self(registry, kind, component):
         if state.players[player_id].breakthrough_exhausted:
             raise ValueError("Your breakthrough is exhausted.")
         exhaust.exhaust_breakthrough(state, player_id)
+        exhausted = True
+    if exhausted:
+        triggers.fire(
+            state, GameEvent.COMPONENT_EXHAUSTED, Moment.AFTER, subject=player_id,
+            ctx={**dict(ctx or {}), "player": player_id,
+                 "component": effect_key(kind, component)},
+        )
 
 
 def run_action_effect(
@@ -311,6 +367,30 @@ def run_action_effect(
     return True
 
 
+def _use_in_window(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    kind: str,
+    component: str,
+    params: Mapping[str, Any] | None,
+    info: Mapping[str, Any],
+) -> tuple[GameState, bool]:
+    """Użycie „During X: you may…" (RULES.md 62.0): bez akcji tury, efekt + koszt na klonie."""
+    key = effect_key(kind, component)
+    reason = _WINDOW_USES[key](state, registry, player_id)
+    if reason is not None:
+        raise ValueError(reason)
+    new_state = state.clone()
+    effect = rules_hooks.effect_for(key)
+    if effect is not None:
+        inputs_fn = rules_hooks.inputs_for(key)
+        inputs = inputs_fn(state, registry, player_id) if inputs_fn is not None else []
+        effect(new_state, registry, player_id, offer_inputs.validate_params(inputs, params or {}))
+    pay_cost(new_state, registry, player_id, kind, component)
+    return new_state, bool(info["implemented"])
+
+
 def play(
     state: GameState,
     registry: StaticDataRegistry,
@@ -333,11 +413,13 @@ def play(
     if actor_id is not None and actor_id != player_id:
         raise ValueError(f"{actor_id} cannot use a component for {player_id}.")
     info = form(state, registry, player_id, kind, component)
-    if info["mode"] != "action":
+    if info["mode"] == "passive":
         raise ValueError(f"{info['name']} has no ACTION - it works on its own.")
     reason = block_reason(state, registry, player_id, kind, component)
     if reason is not None:
         raise ValueError(reason)
+    if info["mode"] == "window":
+        return _use_in_window(state, registry, player_id, kind, component, params, info)
     new_state = component_action.play_component_action(
         state, player_id, component_id(kind, component), params=params
     )

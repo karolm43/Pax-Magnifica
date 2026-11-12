@@ -37,6 +37,9 @@ POINT_MOVEMENT_PASS_FOREIGN_SHIPS = "movement.pass_foreign_ships"  # PERMIT (ctx
 POINT_COMBAT_ROLL_MODIFIER = "combat.roll_modifier"  # MODIFY -> +N do wyniku rzutu
 # ctx: kind, position, planet, defender, base_type
 POINT_COMBAT_EXTRA_DICE = "combat.extra_dice"  # MODIFY -> delta kości na jednostkę (ctx jak wyżej)
+# MODIFY -> dodatkowe trafienia strony po rzutach obu stron (ctx: kind, opponent_hits, own_hits);
+# Valkyrie Particle Weave (RULES.md 62.1).
+POINT_COMBAT_EXTRA_HITS = "combat.extra_hits"
 POINT_COMBAT_REROLL_MISSES = "combat.reroll_misses"  # PERMIT -> przerzut chybień (ctx: base_type)
 # PERMIT -> trafienia z rzutu AFB właściciela hooka są wyprodukowane przeciw WSZYSTKIM statkom
 # przeciwnika, nie tylko myśliwcom (Waylay; przypisuje je przeciwnik w kroku ASSIGN).
@@ -72,6 +75,8 @@ POINT_BOMBARDMENT_ROLL_MODIFIER = "bombardment.roll_modifier"
 POINT_PDS_DISABLED = "space_cannon.pds_disabled"
 # Mnożnik trafień z rzutów (bazowo 1; X-89 ΩΩ: ×2). ctx: kind = ground | space | bombardment.
 POINT_COMBAT_HIT_MULTIPLIER = "combat.hit_multiplier"
+# PERMIT -> inwazja zaczyna się od Commit Ground Forces (bez Bombardment): Tekklar Conditioning.
+POINT_INVASION_SKIP_BOMBARDMENT = "invasion.skip_bombardment"
 # Bombardment wolno rzucać także przeciw planecie cudzej BEZ sił naziemnych (X-89 ΩΩ).
 POINT_BOMBARD_EMPTY_PLANETS = "bombardment.empty_planets"  # PERMIT -> bool
 # Odwrót do sąsiedniego systemu bez cudzych jednostek, także bez własnej obecności

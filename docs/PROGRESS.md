@@ -695,3 +695,15 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - **F3b**: `UnitDef.ability` + źródło hooków `SOURCE_UNIT` (wariant jednostki gracza), `core/faction_units.py`, pakiet
   `core/hooks/factions/` (Arborec przeniesiony), test kompletności `tests/factions/completeness.py`, kolumna „Jedn.” w raporcie pokrycia.
 - Dalej: B1 (Sardakk N'orr + Barony of Letnev, komplet z liderami, przełomem, notką, flagowcem i mechem).
+
+## 2026-11-12 (2) — B1a: Sardakk N'orr — komplet (RULES.md 62.0–62.1)
+
+- Wszystkie 11 komponentów frakcji (`core/hooks/factions/sardakk.py`, test kompletności = 0 braków, 19 testów):
+  Unrelenting, flagowiec C'morran N'orr, mech Valkyrie Exoskeleton, Valkyrie Particle Weave, Exotrireme II,
+  Tekklar Legion, agent T'ro (decyzja aktywnego gracza), commander G'hom Sek'kus (+ warunek odblokowania),
+  bohater Tekklar Conditioning, przełom N'orr Supremacy.
+- Nowe fundamenty wspólne: tryb „window” komponentów frakcji (`faction_components.window_use`, RULES.md 62.0 —
+  „During X: you may…” bez zużycia akcji), punkt `combat.extra_hits`, `battle.add_combat_hits` (trafienia po
+  rzutach + powrót do kolejki przypisywania), PERMIT `invasion.skip_bombardment`, `invasion.commit_from_planets`,
+  emisja `COMPONENT_EXHAUSTED` w `faction_components.pay_cost`, odporność na Direct Hit z tekstu jednostki.
+- UI: `FactionComponentUseModal` obsługuje tryb „window” (wejście: menu lidera „Leader ability…”).

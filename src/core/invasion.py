@@ -263,7 +263,11 @@ def begin_invasion(
     new_state.invasion = InvasionState(position=active, attacker=attacker)
     system = new_state.systems.get(active)
     landable = system is not None and bool(_ground_in_zone(system, "space", attacker))
-    if not bombard_groups(new_state, registry):
+    # Tekklar Conditioning (RULES.md 62.1): prosto do Commit Ground Forces, bez Bombardment.
+    skip_bombard = rules_hooks.permits(
+        rules_hooks.POINT_INVASION_SKIP_BOMBARDMENT, new_state, attacker
+    )
+    if skip_bombard or not bombard_groups(new_state, registry):
         if not landable:
             new_state.invasion = None
             return new_state
@@ -688,6 +692,80 @@ def commit_ground_forces(
         ctx=commit_ctx,
     )
     return new_state
+
+
+def commit_from_planets(
+    state: GameState,
+    registry: StaticDataRegistry,
+    moves: list[tuple[str, str, str, str]],
+) -> GameState:
+    """Lądowanie sił naziemnych PROSTO z planet (nie z przestrzeni) — RULES.md 62.1.
+
+    ``moves`` = ``[(pozycja źródła, planeta źródła, base_type, planeta celu)]``; po 1 jednostce na
+    wpis. Legalność źródeł (np. „up to 1 from each planet”, sąsiedztwo, żetony) sprawdza efekt
+    komponentu, który to umożliwia (G'hom Sek'kus); tu: krok COMMIT, cel w aktywnym systemie,
+    Custodians, typ siły naziemnej i dostępność jednostki. Emituje ``UNITS_COMMITTED`` jak zwykłe
+    lądowanie.
+
+    Raises:
+        ValueError: Zły podkrok, cel spoza aktywnego systemu, brak jednostki na planecie źródła.
+    """
+    new_state = state.clone()
+    apply_commit_from_planets(new_state, registry, moves)
+    return new_state
+
+
+def apply_commit_from_planets(
+    new_state: GameState,
+    registry: StaticDataRegistry,
+    moves: list[tuple[str, str, str, str]],
+) -> None:
+    """Jak :func:`commit_from_planets`, ale MUTUJE ``new_state`` (efekty komponentów na klonie)."""
+    inv = _phase(new_state, InvasionPhase.COMMIT, "Commit Ground Forces")
+    planets = set(system_planets(new_state, registry, inv.position))
+    sealed = custodians.landing_blocked(new_state, registry, inv.position)
+    if not moves:
+        raise ValueError("Choose ground forces to commit.")
+    new_inv = _inv(new_state)
+    target_system = _system(new_state)
+    wanted: dict[str, int] = {}
+    for _pos, _src, base_type, _dest in moves:
+        wanted[base_type] = wanted.get(base_type, 0) + 1
+    commit_ctx = {"player": new_inv.attacker, "position": new_inv.position, "units": wanted}
+    new_inv.last_commit = {}
+    triggers.fire(
+        new_state, GameEvent.UNITS_COMMITTED, Moment.WHEN, subject=new_inv.attacker,
+        ctx=commit_ctx,
+    )
+    for position, source_planet, base_type, dest in moves:
+        if dest not in planets:
+            raise ValueError(f"{dest} is not a planet of the active system.")
+        if dest in sealed:
+            raise ValueError(
+                "The Custodians token blocks landing on Mecatol Rex - remove it first."
+            )
+        if base_type not in GROUND_FORCES:
+            raise ValueError(f"{base_type} is not a ground force.")
+        source = new_state.systems.get(position)
+        have = (
+            source.planet_units.get(source_planet, {}).get(new_inv.attacker, {}).get(base_type, 0)
+            if source is not None
+            else 0
+        )
+        if source is None or have <= 0:
+            raise ValueError(f"No {base_type} of yours on {source_planet}.")
+        unit_ops.transfer_units(
+            new_state, source, source_planet, target_system, dest, new_inv.attacker,
+            base_type, 1,
+        )
+        landed = new_inv.committed.setdefault(dest, {})
+        landed[base_type] = landed.get(base_type, 0) + 1
+        latest = new_inv.last_commit.setdefault(dest, {})
+        latest[base_type] = latest.get(base_type, 0) + 1
+    triggers.fire(
+        new_state, GameEvent.UNITS_COMMITTED, Moment.AFTER, subject=new_inv.attacker,
+        ctx=commit_ctx,
+    )
 
 
 # ------------------------------------------------------------------- żeton Custodians

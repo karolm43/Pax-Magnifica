@@ -512,6 +512,21 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
             entries.append(_roll_entry(unit, dice, unit.base_hits_on, hits))
         rolls[pid] = entries
         hits_by[pid] = total
+    # Hook MODIFY: dodatkowe trafienia po rzutach OBU stron (Valkyrie Particle Weave, RULES 62.1).
+    opponent_of = {combat.attacker: combat.defender, combat.defender: combat.attacker}
+    extra_by = {
+        pid: rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_EXTRA_HITS, state, pid, 0,
+            {
+                "kind": combat.kind,
+                "own_hits": hits_by[pid],
+                "opponent_hits": hits_by[opponent_of[pid]],
+            },
+        )
+        for pid in hits_by
+    }
+    for pid, extra in extra_by.items():
+        hits_by[pid] += extra
 
     new_state = new_state.clone()
     combat = _combat(new_state)
@@ -764,6 +779,24 @@ def assign_combat_hits(
         new_state = timing.close_window(new_state)
         return _after_losses(new_state, grid, registry)
     return new_state
+
+
+def add_combat_hits(state: GameState, against: str, amount: int) -> None:
+    """Dodatkowe trafienia przeciw ``against`` w bieżącym kroku przypisywania (MUTUJE ``state``).
+
+    Punkt centralny dla efektów „produces 1 hit” po rzutach (mech Sardakk, RULES.md 62.1): trafienia
+    dołączają do bieżącego kroku Roll Dice; gdy ``against`` już przypisał straty, wraca na koniec
+    kolejki okna przypisywania.
+    """
+    combat = _combat(state)
+    if amount <= 0 or combat.step is not CombatStep.ASSIGN:
+        return
+    combat.pending_hits[against] = combat.pending_hits.get(against, 0) + amount
+    window = state.pending_window
+    if window is None or window.window_type is not WindowType.COMBAT_ASSIGN_HITS:
+        return
+    if against not in window.queue[window.cursor:]:
+        window.queue = [*window.queue, against]
 
 
 def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:

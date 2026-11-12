@@ -164,7 +164,8 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "Struktura/jednostka postawiona.", ("player", "base_type", "planet"), "unit_ops.place_units"
     ),
     GameEvent.COMPONENT_EXHAUSTED: EventInfo(
-        "Komponent (np. agent) wyczerpany.", ("player", "component")
+        "Komponent (np. agent) wyczerpany.", ("player", "component"),
+        "faction_components.pay_cost",
     ),
     GameEvent.COMBAT_HITS_PRODUCED: EventInfo(
         "Trafienia wyprodukowane przeciw graczowi.", ("player", "amount")

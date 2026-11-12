@@ -56,7 +56,9 @@ export function FactionComponentUseModal({
   );
   const status = form.data?.status ?? "";
   const notReady = kind !== "ability" && status !== "" && status !== "unlocked";
-  const isAction = form.data?.mode === "action";
+  // ACTION (akcja tury) albo „During X: you may…" (bez akcji tury) — oba z formularzem silnika.
+  const isAction = form.data?.mode === "action" || form.data?.mode === "window";
+  const isWindow = form.data?.mode === "window";
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -75,7 +77,9 @@ export function FactionComponentUseModal({
       const result = await playFactionComponent(playerId, kind, componentId, params);
       if (!result.implemented) {
         setNotice(
-          `${name} is not automated yet - it counts as your action. Resolve its effect by hand.`,
+          isWindow
+            ? `${name} is not automated yet - resolve its effect by hand.`
+            : `${name} is not automated yet - it counts as your action. Resolve its effect by hand.`,
           "info",
         );
       }
@@ -113,10 +117,14 @@ export function FactionComponentUseModal({
                   : " It unlocks automatically when you meet it."}
               </Text>
             )}
+            {isWindow && (
+              <Text size="sm">
+                Use it at the moment the card describes - it does not take your action.
+              </Text>
+            )}
             {isAction && !form.data.implemented && (
               <Text size="sm">
-                The engine does not automate this ability yet. Using it counts as your action -
-                resolve the effect by hand.
+                The engine does not automate this ability yet. Resolve the effect by hand.
               </Text>
             )}
             {!isAction && (

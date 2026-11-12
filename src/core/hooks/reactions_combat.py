@@ -38,6 +38,7 @@ from src.core import (
     triggers,
     unit_ops,
 )
+from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll
 from src.core.fleet_pool import unit_cost, unit_name
 from src.core.game_events import Duration, GameEvent, Moment
@@ -768,14 +769,33 @@ declare_reaction("courageous", condition=_courageous_condition)
 # ------------------------------------------------------------------ Direct Hit (dh1-dh4)
 
 
+_DIRECT_HIT_IMMUNE = 'cannot be destroyed by "direct hit"'
+
+
+def _direct_hit_immune(state: GameState, player_id: str, base_type: str) -> bool:
+    """Wariant jednostki gracza ma w tekście „cannot be destroyed by "Direct Hit"” (dane)."""
+    registry = rules_hooks.bound_registry()
+    player = state.players.get(player_id)
+    if registry is None or player is None:
+        return False
+    unit = resolve_unit_variant(
+        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+    )
+    return unit is not None and _DIRECT_HIT_IMMUNE in (unit.ability or "").lower()
+
+
 def _sustained_of(combat: ActiveCombat, state: GameState, player_id: str) -> list[str]:
-    """Typy statków gracza, które użyły Sustain Damage i wciąż są uszkodzone w systemie."""
+    """Typy statków gracza, które użyły Sustain Damage i wciąż są uszkodzone w systemie.
+
+    Bez jednostek odpornych na Direct Hit (Exotrireme II i in. — tekst z danych, RULES.md 62.1).
+    """
     system = state.systems.get(combat.position)
     return [
         str(entry["base_type"])
         for entry in combat.sustained_ships
         if entry["player"] == player_id
         and damage.damaged_count(system, "space", player_id, str(entry["base_type"])) > 0
+        and not _direct_hit_immune(state, player_id, str(entry["base_type"]))
     ]
 
 
