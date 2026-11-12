@@ -102,13 +102,15 @@ def turn_boundary(state: GameState) -> list[OpenWindow]:
     window = state.turn_end_window
     if window is None or state.phase is not Phase.ACTION or state.bonus_turn is not None:
         return []
-    found = [
-        OpenWindow(
-            GameEvent.TURN,
-            Moment.END,
-            {"player": window.ended_player, "next_player": window.next_player or ""},
+    found: list[OpenWindow] = []
+    if window.ended_player is not None:  # None = pierwsza tura fazy: nikt nie skończył tury
+        found.append(
+            OpenWindow(
+                GameEvent.TURN,
+                Moment.END,
+                {"player": window.ended_player, "next_player": window.next_player or ""},
+            )
         )
-    ]
     if window.next_player is not None and window.next_player in state.players:
         found.append(OpenWindow(GameEvent.TURN, Moment.START, {"player": window.next_player}))
     return found

@@ -108,6 +108,27 @@ def all_passed(state: GameState) -> bool:
     return all(player.passed for player in state.players.values())
 
 
+def open_decisions_reason(state: GameState) -> str | None:
+    """Powód, dla którego faza nie może się teraz skończyć: trwa okno albo czekają decyzje.
+
+    Oferty („you may…”, decyzje obowiązkowe) i okna czasowe należą do chwili, w której powstały
+    (np. „at the end of your turn” ostatniej tury). Przejście fazy nad nimi przesuwałoby je do
+    innej fazy albo gubiło z oczu graczy (RULES.md 54.8).
+    """
+    if state.pending_window is not None:
+        return "Players are still responding in an open timing window - wait for their decisions."
+    if state.pending_offers:
+        return "Players still have decisions to make (abilities on offer) - resolve them first."
+    return None
+
+
+def require_no_open_decisions(state: GameState) -> None:
+    """Brama przejścia fazy/rundy: ``ValueError``, gdy trwa okno albo czekają decyzje graczy."""
+    reason = open_decisions_reason(state)
+    if reason is not None:
+        raise ValueError(reason)
+
+
 def can_advance_phase(state: GameState) -> bool:
     """Czy MÓWCA może już ogłosić przejście fazy (przycisk „Next phase" widoczny).
 
@@ -117,7 +138,10 @@ def can_advance_phase(state: GameState) -> bool:
     (``ensure_strategy_complete``). W AGENDZIE przejście (koniec agendy → nowa runda)
     jest zawsze dostępne dla mówcy — kolejne głosowania są modelowane oknami, nie tą
     bramą. To projekcja do UI; twarda walidacja i tak siedzi w ``next_phase``.
+    Żadna faza nie kończy się, gdy trwa okno czasowe albo gracze mają decyzje (oferty).
     """
+    if open_decisions_reason(state) is not None:
+        return False
     if state.phase is Phase.STRATEGY:
         try:
             ensure_strategy_complete(state)
@@ -514,6 +538,7 @@ def next_phase(state: GameState) -> GameState:
     """
     if state.held_play is not None:  # okno hold-play (core/card_hold.py, RULES.md 53.6)
         raise ValueError("A played card is waiting for a possible Sabotage - wait for it.")
+    require_no_open_decisions(state)
     # Walidacja PRZED zmianą fazy: przy ValueError faza zostaje bez zmian (R9.2–R9.4).
     if state.phase is Phase.STRATEGY:
         ensure_strategy_complete(state)
@@ -570,6 +595,13 @@ def next_phase(state: GameState) -> GameState:
         new_state, GameEvent.PHASE, Moment.START,
         ctx={"phase": new_state.phase.name.lower()},
     )
+    first = new_state.active_player_id
+    if new_state.phase is Phase.ACTION and first is not None and first in new_state.players:
+        # Pierwsza tura fazy akcji też ma „początek tury” (RULES.md 54.8): hooki „at the start of
+        # your turn” i okno kart reakcji „at the start of a player's turn” - wcześniej dostawały
+        # je tylko tury po ``end_turn``.
+        triggers.fire(new_state, GameEvent.TURN, Moment.START, subject=first, ctx={"player": first})
+        new_state.turn_end_window = TurnEndWindow(ended_player=None, next_player=first)
     return new_state
 
 

@@ -147,6 +147,60 @@
   white-space: nowrap;
 }
 
+/* Okno reakcji otwarte TERAZ dla karty z tej zakładki (RULES.md 54.8) - mija z następnym krokiem. */
+.tab[data-reaction] {
+  color: var(--ds-ink-hi);
+  border-color: rgba(250, 204, 21, 0.75);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.35), 0 0 12px rgba(250, 204, 21, 0.35);
+  animation: reactionPulse 1.6s ease-in-out infinite;
+}
+
+.reactionCall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  max-width: 260px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: var(--text-small, 12px);
+  font-weight: 600;
+  color: #1a1405;
+  background: rgb(250, 204, 21);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  animation: reactionPulse 1.6s ease-in-out infinite;
+}
+
+.reactionCall span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reactionCall b {
+  font-family: var(--font-data);
+  font-size: var(--text-micro, 10px);
+}
+
+@keyframes reactionPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(250, 204, 21, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab[data-reaction],
+  .reactionCall {
+    animation: none;
+  }
+}
+
 .tabCount {
   min-width: 18px;
   padding: 0 5px;

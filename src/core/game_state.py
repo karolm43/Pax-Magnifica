@@ -828,11 +828,14 @@ class TurnEndWindow(BaseModel):
     Ustawiana w ``turn_flow.end_turn``; zerowana przy pierwszej akcji/pasie następnego gracza,
     przy nowej turze i przy zmianie fazy. Na niej opierają się okna „at the end of a player's
     turn” i „at the start of another player's turn” (RULES.md 53.5).
+
+    ``ended_player = None`` = pierwsza tura fazy akcji (``turn_flow.next_phase``): nikt nie
+    skończył tury, jest tylko okno „początek tury” pierwszego gracza (RULES.md 54.8).
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    ended_player: str
+    ended_player: str | None = None
     ended_passed: bool = False
     next_player: str | None = None
 

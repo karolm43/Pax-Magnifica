@@ -857,3 +857,19 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   zwykła ~76 px, Primor/legendarne ~100, Mecatol ~107). Promienie dużych planet zmierzone z grafik kafelków skryptem
   `scripts/measure_planet_radius.py` (krawędź tarczy, tylko aktywne źródła) => `entities/data/planetArtRadius.json`;
   reszta = standard 60 px. Wcześniej Primor (r~100) był kadrowany jak zwykła planeta (50) i ucięty.
+
+## 2026-11-12 (7) — Audyt okien czasowych: komponenty wyskakują w swojej chwili (RULES.md 54.8)
+
+- Narzędzie `src/audit/timing_reach.py` (+ sekcja §2a w `OKNA_CZASOWE.md`, strażnik `tests/test_timing_reach.py`):
+  dla każdego komponentu z oknem ustala kanał do gracza (auto / oferta / ręka / Available now / przycisk / modyfikator
+  / reguła) i wykrywa hooki na nieemitowanych momentach, karty z ręki bez dostawcy okna i efekty bez kanału. Wynik
+  okablowania: 0 luk. Zostaje 163 komponentów z oknem bez efektu — prawie wyłącznie frakcje jeszcze nieobrobione
+  (w bieżącej partii: Creuss) i 4 wydarzenia galaktyczne TE.
+- Naprawy: (1) pierwsza tura fazy akcji nie miała „początku tury” (`TURN/START` i okno kart z ręki tylko po
+  `end_turn`) — `next_phase` emituje je teraz dla pierwszego gracza (`TurnEndWindow.ended_player=None`);
+  (2) `Next phase` przechodził nad otwartym oknem / ofertami (np. „at the end of your turn” ostatniej tury) —
+  brama `turn_flow.open_decisions_reason`; (3) zdolności obowiązkowe działały po cichu — `triggers._run_visible`
+  dopisuje `ability_notes` (feed + powiadomienie), gdy hook komponentu zmienił stan; (4) zagrywalność kart z ręki
+  front pobierał tylko przy otwartym doku i aktywnej zakładce — teraz stale, z polem `reaction` w
+  `/action-card/playable` i `/promissory/playable`; dok pulsuje zakładką i przyciskiem „Play now: <karta>”.
+- Ion Storm i Demilitarized Zone (reguła bazowa) zadeklarowane jako pokryte. Nowe pola odpowiedzi — restart backendu.

@@ -90,6 +90,135 @@ Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **47**. Potrzebne kom
 
 Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 
+## 2a. Osiągalność: czy komponent wyskakuje graczowi
+
+Kanały: `auto` (działa sam + wpis w feedzie), `offer` (panel decyzji), `hand` (karta/notka z ręki zagrywalna w oknie, sygnał także przy zwiniętej ręce), `now` (karta „Available now”), `button` (zdolność technologii poza akcją), `mod` (modyfikator wewnątrz reguły), `rule` (dane / jawny wybór w akcji / wersja zastąpiona erratą). Strażnik: `tests/test_timing_reach.py`, kod: `src/audit/timing_reach.py`.
+
+* Hooki na nieemitowanych (zdarzenie, moment): **0**
+* Karty/notki z ręki z efektem, których okna nie otwiera żaden dostawca: **0**
+* Efekty z oknem bez żadnego kanału: **0**
+
+Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza, ⛔ = brak efektu w silniku (w grze nic się nie stanie — to one „uciekają”).
+
+| Okno | ✅ | ⛔ | Brakujące (⛔) |
+|---|---:|---:|---|
+| `tactical.system_activated` · after | 20 | 10 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Imperator, Neuroglaive, Nullification Field, So Ata, Survival Instinct |
+| `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
+| `combat.round` · start | 13 | 3 | Kuuasi Aun Jalatai, Proxima Targeting VI, Supercharge |
+| `combat` · start | 8 | 5 | Ambush, Dimensional Splicer, Impulse Core, Indoctrination, Ipswitch, Loose Cannon |
+| `turn` · start | 7 | 5 | Chaos Mapping, Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
+| `tactical.ships_moved` · after | 4 | 7 | Acamar, Adjudicator Ba'al, Call of the Void, Foresight, Sai Seravus, Voidwatch, Xuange |
+| `agenda.revealed` · when | 9 | 1 | Quash |
+| `component.gained` · when | 7 | 3 | I.I.H.Q. Modernization, Planesplitter (Firmament), Stellar Genesis |
+| `production.units_produced` · when | 1 | 9 | "A Tall Stranger", Amalgamation, Auto-Factories, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon, Trilossa Aun Mirik |
+| `production.used` · when | 6 | 3 | Berekar Berekon, Harrugh Gefhara, Tungstantus |
+| `any_time` · any | 0 | 8 | 2RAM, Aroz Hollow, Brother Omar, Captain Aroz, M'aban, Nip and Tuck, Ssruu, Xander Alexin Victori III |
+| `combat.hits_assigned` · before | 8 | 0 |  |
+| `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
+| `tactical.system_activated` · when | 2 | 4 | Captain Mendosa, Incursion, Void Tether, Wing Transfer |
+| `combat.won` · after | 3 | 2 | S'ula Mentarion, Salvage Operations |
+| `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
+| `phase` · during [phase=action] | 1 | 4 | Carth of Golden Sands, Data Skimmer, Deepgloom Executable, Nekro Malleon |
+| `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
+| `turn` · end | 3 | 2 | Field Marshal Mercer, Garv and Gunn |
+| `unit.sustain_damage` · after | 5 | 0 |  |
+| `agenda.votes_cast` · when | 1 | 3 | Elder Qanoj, Gila the Silvertongue, Zeal |
+| `cards.action_played` · when | 4 | 0 |  |
+| `game.setup` · during | 0 | 4 | Dark Whispers, Hubris, The Company, The Tribuni |
+| `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
+| `planet.control_gained` · after | 2 | 2 | Dart and Tai, Scavenge |
+| `planet.control_gained` · when | 1 | 3 | Assimilate, Fealty Uplink, Liberate |
+| `unit.ability_used` · when [ability=roll] | 3 | 1 | Trrakan Aun Zulok |
+| `combat.roll` · after | 3 | 0 |  |
+| `combat.round` · after | 2 | 1 | Devotion |
+| `economy.resources_spent` · when | 1 | 2 | Aello, Mirror Computing |
+| `invasion` · start | 3 | 0 |  |
+| `phase` · during [phase=status] | 2 | 1 | Slumberstate Computing |
+| `phase` · end [phase=strategy] | 1 | 2 | Quantum Datahub Node, Telepathic |
+| `tactical.action` · after | 2 | 1 | Reclamation |
+| `tactical.action` · end | 2 | 1 | Miniaturization |
+| `tactical.units_committed` · after | 3 | 0 |  |
+| `technology.gained` · when [would] | 0 | 3 | Valefar Assimilator X, Valefar Assimilator Y, Valefar Assimilator Z |
+| `technology.research` · when | 2 | 1 | Doctor Carrina |
+| `technology.research` · when [unit_upgrade=true] | 2 | 1 | Riftmeld |
+| `agenda.elected` · when | 2 | 0 |  |
+| `agenda.votes_cast` · after | 2 | 0 |  |
+| `combat.roll` · before | 2 | 0 |  |
+| `component.action` · after | 1 | 1 | Suffi An |
+| `economy.commodities_replenished` · when | 1 | 1 | Age of Commerce |
+| `game.setup` · when | 0 | 2 | Creuss Gate, Sorrow |
+| `objective.scored` · when | 0 | 2 | Plots Within Plots, Yin Ascendant |
+| `phase` · end [phase=status] | 1 | 1 | The Oracle |
+| `phase` · start [phase=agenda] | 2 | 0 |  |
+| `planet.explored` · after | 0 | 2 | Pre-Fab Arcologies, Terragenesis |
+| `status.step` · when [step=gain_command_tokens] | 2 | 0 |  |
+| `strategy.action` · when | 1 | 1 | Planesplitter (Obsidian) |
+| `strategy.action` · when [would] | 1 | 1 | Mindsieve |
+| `strategy.token_spent` · when [would] | 1 | 1 | Jae Mir Kan |
+| `tactical.action` · during | 0 | 2 | Il Na Viroset, Slipstream |
+| `transaction` · when | 1 | 1 | Arbiters |
+| `turn` · during | 1 | 1 | Transparasteel Plating |
+| `unit.ability_used` · after [ability=roll] | 2 | 0 |  |
+| `unit.destroyed` · after | 1 | 1 | Brother Milor |
+| `unit.sustain_damage` · when | 2 | 0 |  |
+| `agenda.outcome_resolved` · after | 0 | 1 | Future Sight |
+| `agenda.outcome_resolved` · during [would] | 1 | 0 |  |
+| `agenda.revealed` · after [1/agenda phase] | 0 | 1 | Galactic Threat |
+| `agenda.votes_cast` · after [scope=all] | 0 | 1 | Hidden Agenda |
+| `cards.action_discarded` · after | 1 | 0 |  |
+| `cards.action_drawn` · when | 0 | 1 | Scheming |
+| `combat.hits_assigned` · after | 1 | 0 |  |
+| `combat.hits_assigned` · before [would] | 0 | 1 | Tellurian |
+| `combat.hits_produced` · when | 1 | 0 |  |
+| `combat.retreat` · after | 1 | 0 |  |
+| `combat.retreat` · when | 0 | 1 | Watchful Ojz |
+| `combat.round` · during | 1 | 0 |  |
+| `combat.round` · end | 0 | 1 | Harrow |
+| `combat.step` · after [step=roll_dice] | 0 | 1 | The Thundarian |
+| `combat.step` · during [step=anti_fighter_barrage] | 1 | 0 |  |
+| `combat.step` · start [step=announce_retreats] | 1 | 0 |  |
+| `combat.won` · when | 0 | 1 | Edict |
+| `combat` · during | 0 | 1 | Rickar Rickani |
+| `component.exhausted` · after | 0 | 1 | Temporal Command Suite |
+| `component.gained` · after | 0 | 1 | Al'Raith Ix Ianovar |
+| `economy.commodities_replenished` · after | 0 | 1 | The Stillness of Stars |
+| `economy.trade_goods_gained` · after | 0 | 1 | Pillage |
+| `economy.trade_goods_gained` · when | 0 | 1 | Artuno the Betrayer |
+| `faction.ability_used` · after | 0 | 1 | Suffi An |
+| `game.faction_in_play` · when | 0 | 1 | The Blade's Orchestra |
+| `game.setup` · before | 0 | 1 | Minor Factions |
+| `invasion` · during | 1 | 0 |  |
+| `objective.revealed` · when | 1 | 0 |  |
+| `phase` · during [phase=agenda] | 1 | 0 |  |
+| `phase` · when [phase=status] | 0 | 1 | The Sowing |
+| `planet.exhausted` · when | 0 | 1 | Xxekir Grom |
+| `planet.explored` · when | 0 | 1 | Distant Suns |
+| `player.last_passed` · after | 0 | 1 | Director Nel |
+| `production.units_produced` · after | 0 | 1 | Yin Spinner Omega |
+| `production.units_produced` · when [1/action] | 0 | 1 | Agency Supply Network |
+| `production.used` · after | 1 | 0 |  |
+| `state.condition` · when | 0 | 1 | Absolute Synergy |
+| `strategy.action` · after | 0 | 1 | Peace Accords |
+| `strategy.card_chosen` · when | 1 | 0 |  |
+| `strategy.cards_returned` · when [would] | 1 | 0 |  |
+| `strategy.token_spent` · after | 0 | 1 | Magmus |
+| `strategy.token_spent` · when | 1 | 0 |  |
+| `tactical.ships_moved` · before | 1 | 0 |  |
+| `tactical.ships_moved` · end | 1 | 0 |  |
+| `tactical.ships_moved` · when | 0 | 1 | Myru Vos |
+| `tactical.units_committed` · during | 1 | 0 |  |
+| `tactical.units_committed` · when | 0 | 1 | Research Team |
+| `technology.gained` · after | 0 | 1 | Nekro Acidos |
+| `technology.research` · after | 1 | 0 |  |
+| `technology.research` · when [would] | 0 | 1 | Propagation |
+| `tokens.placed` · after | 0 | 1 | Z'eu |
+| `transaction` · after | 1 | 0 |  |
+| `unit.ability_used` · after [ability=afb] | 1 | 0 |  |
+| `unit.ability_used` · when [ability=afb] | 0 | 1 | Raid Formation |
+| `unit.coexist` · when | 0 | 1 | Oceanbound |
+| `unit.destroyed` · after [1/combat] | 0 | 1 | Technological Singularity |
+| `unit.galvanized` · when | 0 | 1 | Galvanize |
+
 ## 3. Rodzaje komponentów wg kategorii
 
 | Kategoria | akcja komponentu | reakcja w oknie | przy zdobyciu | efekt trwały | efekt ciągły | wynik agendy | razem |

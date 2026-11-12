@@ -24,7 +24,12 @@ from src.core.hooks.action_card_inputs import (
 )
 from src.core.offer_inputs import as_payment
 from src.core.registry import StaticDataRegistry
-from src.core.rules_hooks import register_effect, register_effect_inputs
+from src.core.rules_hooks import declare_data_driven, register_effect, register_effect_inputs
+
+# Karty działające w regule bazowej, bez hooka (RULES.md 54.8): Ion Storm - żeton wormhole
+# obracany po ruchu (``core/ion_storm.py``); Demilitarized Zone - czyszczenie planety przy
+# dołączeniu (``exploration._apply_attach``) i zakaz stawiania jednostek (karty strategii/akcji).
+declare_data_driven("explores:ion", "explores:dmz")
 
 ENIGMATIC_DEVICE_IDS = ("ed1", "ed2")
 _COST = 6  # „spend 6 resources"

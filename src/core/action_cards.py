@@ -92,7 +92,8 @@ def playability(
 ) -> list[dict[str, Any]]:
     """Które karty z ręki gracza można zagrać TERAZ jako akcję (do przeciągania z ręki w UI).
 
-    Dla każdej unikalnej karty: ``card_id``, ``playable``, ``reason`` (gdy nie), ``implemented``.
+    Dla każdej unikalnej karty: ``card_id``, ``playable``, ``reason`` (gdy nie), ``implemented``,
+    ``reaction`` (karta reakcji, nie ACTION).
     Karta jest zagrywalna, gdy: ma okno ACTION, tura/faza/okno pozwalają na akcję komponentu
     (te same walidacje co ``play_action_card``) i - gdy silnik ją automatyzuje - istnieją
     legalne cele dla każdego wymaganego wyboru (R_action_cards: nie można zagrać karty,
@@ -103,14 +104,17 @@ def playability(
         raise ValueError(f"Unknown player: {player_id}")
     result: list[dict[str, Any]] = []
     for card_id in dict.fromkeys(player.private.action_cards):
+        spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
+        # ``reaction`` = karta grana w odpowiedzi na okno (nie ACTION): UI sygnalizuje ją także
+        # przy zwiniętej ręce, bo okno reakcji mija z następnym krokiem gry (RULES.md 54.8).
         entry: dict[str, Any] = {
             "card_id": card_id, "playable": False, "reason": None, "implemented": False,
+            "reaction": spec is None or spec.trigger is not TriggerKind.ACTION,
         }
         result.append(entry)
         if promissory_play.silenced(state, player_id):
             entry["reason"] = "Political Secret: you cannot play action cards during this agenda."
             continue
-        spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
         if spec is None or spec.trigger is not TriggerKind.ACTION:
             # Karta reakcji: zagrywalna, gdy silnik ma TERAZ otwarte pasujące okno (RULES.md 53.5).
             ok, reason, _window = reaction_cards.available(state, registry, player_id, card_id)

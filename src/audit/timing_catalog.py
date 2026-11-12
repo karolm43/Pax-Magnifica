@@ -443,12 +443,53 @@ def _section_special(entries: list[Entry]) -> list[str]:
     return lines + [""]
 
 
+def _section_reach(registry: StaticDataRegistry, entries: list[Entry]) -> list[str]:
+    """Osiągalność: kanał, którym komponent z oknem trafia do gracza, i luki (RULES.md 54.8)."""
+    from src.audit import timing_reach  # lokalnie: moduł ładuje cały pakiet hooków
+
+    timed = [e for e in entries if e.kind in ("timed", "gain")]
+    reach = timing_reach.analyse(registry, {e.key for e in timed})
+    lines = [
+        "## 2a. Osiągalność: czy komponent wyskakuje graczowi",
+        "",
+        "Kanały: `auto` (działa sam + wpis w feedzie), `offer` (panel decyzji), `hand` (karta/notka z ręki"
+        " zagrywalna w oknie, sygnał także przy zwiniętej ręce), `now` (karta „Available now”), `button`"
+        " (zdolność technologii poza akcją), `mod` (modyfikator wewnątrz reguły), `rule` (dane / jawny wybór w akcji / wersja"
+        " zastąpiona erratą). Strażnik:"
+        " `tests/test_timing_reach.py`, kod: `src/audit/timing_reach.py`.",
+        "",
+        f"* Hooki na nieemitowanych (zdarzenie, moment): **{len(reach.dead_hooks)}**"
+        + (": " + ", ".join(f"`{x}`" for x in reach.dead_hooks) if reach.dead_hooks else ""),
+        f"* Karty/notki z ręki z efektem, których okna nie otwiera żaden dostawca: **{len(reach.dead_hand)}**"
+        + (": " + ", ".join(f"`{x}`" for x in reach.dead_hand) if reach.dead_hand else ""),
+        f"* Efekty z oknem bez żadnego kanału: **{len(reach.dead_effects)}**"
+        + (": " + ", ".join(f"`{x}`" for x in reach.dead_effects) if reach.dead_effects else ""),
+        "",
+        "Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza, ⛔ = brak efektu w"
+        " silniku (w grze nic się nie stanie — to one „uciekają”).",
+        "",
+        "| Okno | ✅ | ⛔ | Brakujące (⛔) |",
+        "|---|---:|---:|---|",
+    ]
+    by_window: dict[str, list[Entry]] = defaultdict(list)
+    for entry in timed:
+        by_window[_fmt(entry.window)].append(entry)
+    for window, group in sorted(by_window.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        ok = [e for e in group if reach.channels.get(e.key)]
+        missing = [e for e in group if not reach.channels.get(e.key)]
+        names = ", ".join(sorted(_cell(e.name) for e in missing))
+        lines.append(f"| {window} | {len(ok)} | {len(missing)} | {names} |")
+    lines.append("")
+    return lines
+
+
 def render_markdown(registry: StaticDataRegistry) -> str:
     """Składa raport (deterministyczny dla tych samych danych)."""
     entries = collect(registry)
     lines: list[str] = []
     lines += _static_contract()
     lines += _section_events(entries)
+    lines += _section_reach(registry, entries)
     lines += _section_kinds(entries)
     lines += _section_durations(entries)
     lines += _section_agendas(entries)

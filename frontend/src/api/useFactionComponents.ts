@@ -58,6 +58,8 @@ export type PromissoryPlayability = {
   playable: boolean;
   reason: string | null;
   implemented: boolean;
+  /** Notka grana w odpowiedzi na okno (nie ACTION) - sygnał przy zwiniętej ręce. */
+  reaction?: boolean;
 };
 
 export type PromissoryForm = {

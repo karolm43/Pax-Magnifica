@@ -26,7 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.core import active_effects, offer_inputs, rules_hooks
+from src.core import ability_notes, active_effects, offer_inputs, rules_hooks
 from src.core.game_events import Duration, GameEvent, Moment, event_point
 from src.core.game_state import (
     GameState,
@@ -146,7 +146,7 @@ def fire(
                     if hook.optional:
                         result.offers.append(_new_offer(state, pid, hook, event, moment, context))
                         continue
-                    outcome = hook.fn(state, pid, context)
+                    outcome = _run_visible(state, pid, hook, context)
                     result.ran.append(_label(hook))
                     if kind is HookKind.REPLACE and outcome:
                         result.replaced = True
@@ -159,6 +159,23 @@ def fire(
     if scope is not None:
         active_effects.expire(state, scope)
     return result
+
+
+def _run_visible(state: GameState, pid: str, hook: Hook, context: dict[str, Any]) -> Any:
+    """Uruchamia hook bez pytania gracza i zostawia ślad w feedzie, gdy coś zmienił (RULES.md 54.8).
+
+    Zdolność obowiązkowa działa sama, ale gracz ma ją ZOBACZYĆ: notatka ``ability_notes`` daje fakt
+    ``ability_used`` w Activity i powiadomienie. Hook, którego warunek wewnętrzny nic nie zrobił
+    (stan bez zmian), notatki nie zostawia. Tylko hooki komponentów (``covers``) - efekty trwałe
+    zagranych kart widać już przy ich zagraniu.
+    """
+    if hook.covers is None:
+        return hook.fn(state, pid, context)
+    before = state.model_dump_json()
+    outcome = hook.fn(state, pid, context)
+    if state.model_dump_json() != before:
+        ability_notes.note(state, pid, hook.covers)
+    return outcome
 
 
 def _new_offer(
@@ -213,7 +230,9 @@ def _decide(
     if not offer_inputs.has_legal_answer(inputs):
         return
     params = offer_inputs.single_params(inputs)
-    hook.fn(state, pid, {**context, "decider": decider, "params": params, "accepted": True})
+    _run_visible(
+        state, pid, hook, {**context, "decider": decider, "params": params, "accepted": True}
+    )
     result.ran.append(_label(hook))
 
 
@@ -238,6 +257,11 @@ def _publish_offers(
         queue=queue,
         context={"event": event.value, "moment": moment.value},
     )
+
+
+def drop_all_offers(state: GameState) -> None:
+    """Porzuca wszystkie oczekujące oferty (tylko przeskok fazy w God-Mode, ``skip_flow``)."""
+    state.pending_offers = []
 
 
 def offers_for(state: GameState, player_id: str) -> list[PendingOffer]:

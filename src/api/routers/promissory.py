@@ -27,6 +27,7 @@ class PromissoryRow(BaseModel):
     playable: bool
     reason: str | None = None
     implemented: bool
+    reaction: bool = False  # notka grana w odpowiedzi na okno (nie ACTION) - RULES.md 54.8
 
 
 class PromissoryPlayableResponse(BaseModel):

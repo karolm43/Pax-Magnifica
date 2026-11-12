@@ -239,6 +239,8 @@ def playability(
             "playable": False,
             "reason": None,
             "implemented": implemented,
+            # Notka grana w odpowiedzi na okno (nie ACTION) - UI sygnalizuje ją przy zwiniętej ręce.
+            "reaction": not is_action(registry, template),
         }
         rows.append(row)
         row["reason"] = _block_reason(state, registry, player_id, note_id, template, owner)

@@ -145,6 +145,8 @@ export type ActionCardPlayability = {
   /** Powód, gdy nie - pokazywany w podpowiedzi karty. */
   reason: string | null;
   implemented: boolean;
+  /** Karta reakcji (okno inne niż ACTION): dok sygnalizuje ją także zwinięty (RULES.md 54.8). */
+  reaction?: boolean;
 };
 
 /**

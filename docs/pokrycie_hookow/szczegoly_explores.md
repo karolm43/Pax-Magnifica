@@ -22,7 +22,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `crf8` | Cultural Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your cultural relic fragments to gain 1 relic. |
 | `crf9` | Cultural Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your cultural relic fragments to gain 1 relic. |
 | `cybernetic` | Cybernetic Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a yellow technology specialty. If this planet already has a technology specialty, this planet's resource and influence valu… |
-| `dmz` | Demilitarized Zone | — | — | FORBID (zakaz) | produkcja, planety i eksploracja, agenda i głosowanie | — | Return all structures on this planet to your reinforcements. Then, return all ground forces on this planet to the space area. Attach: Units… |
+| `dmz` | Demilitarized Zone | — | — | FORBID (zakaz) | produkcja, planety i eksploracja, agenda i głosowanie | ✔ | Return all structures on this planet to your reinforcements. Then, return all ground forces on this planet to the space area. Attach: Units… |
 | `ds` | Dyson Sphere | — | — | — | ekonomia i płatności, planety i eksploracja | — | This planet's resource value is increased by 2 and its influence value is increased by 1. |
 | `dv1` | Derelict Vessel | — | — | — | karty, planety i eksploracja, cele i punkty | — | Draw 1 secret objective. |
 | `dv2` | Derelict Vessel | — | — | — | karty, planety i eksploracja, cele i punkty | — | Draw 1 secret objective. |
@@ -49,7 +49,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `hrf5` | Hazardous Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your hazardous relic fragments to gain 1 relic. |
 | `hrf6` | Hazardous Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your hazardous relic fragments to gain 1 relic. |
 | `hrf7` | Hazardous Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your hazardous relic fragments to gain 1 relic. |
-| `ion` | Ion Storm | — | — | MODIFY (liczba/rzut) | ruch, walka | — | Place the ion storm token in this system with either side faceup. Then, place this card in the common play area. At the end of the "Move Sh… |
+| `ion` | Ion Storm | — | — | MODIFY (liczba/rzut) | ruch, walka | ✔ | Place the ion storm token in this system with either side faceup. Then, place this card in the common play area. At the end of the "Move Sh… |
 | `irf1` | Industrial Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your industrial relic fragments to gain 1 relic. |
 | `irf2` | Industrial Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your industrial relic fragments to gain 1 relic. |
 | `irf3` | Industrial Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your industrial relic fragments to gain 1 relic. |

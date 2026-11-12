@@ -964,6 +964,8 @@ class GodModePatch(BaseModel):
     objectives: dict[str, object] | None = None
     players: dict[str, dict[str, object]] | None = None
     systems: dict[str, dict[str, object]] | None = None
+    # Ziarno kości (testy scenariuszy: powtarzalne rzuty; licznik rzutów bez zmian).
+    rng_seed: int | None = None
 
 
 # --- DTO przeglądarki Zasad (Rules_Browser) ----------------------------
@@ -1495,6 +1497,7 @@ class ActionCardPlayability(BaseModel):
     playable: bool
     reason: str | None = None
     implemented: bool = False
+    reaction: bool = False  # karta reakcji (okno inne niż ACTION) - RULES.md 54.8
 
 
 class ActionCardPlayabilityResponse(BaseModel):

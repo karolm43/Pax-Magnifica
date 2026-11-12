@@ -9,7 +9,7 @@ zawsze. Nowa funkcja nie zmienia semantyki żadnej istniejącej reguły ani test
 
 from __future__ import annotations
 
-from src.core import agenda_phase, status_phase, strategy_phase, turn_flow
+from src.core import agenda_phase, status_phase, strategy_phase, triggers, turn_flow
 from src.core.game_state import GameState, Phase
 from src.core.registry import StaticDataRegistry
 
@@ -17,6 +17,7 @@ from src.core.registry import StaticDataRegistry
 def _clear_blockers(state: GameState) -> None:
     """Zamyka wszystko, co blokuje przejście fazy (mutuje przekazany klon)."""
     state.pending_window = None
+    triggers.drop_all_offers(state)  # decyzje graczy też blokują przejście fazy (RULES.md 54.8)
     state.pending_strategy = None
     state.active_combat = None
     state.invasion = None

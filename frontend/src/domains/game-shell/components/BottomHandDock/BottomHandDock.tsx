@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import cx from "clsx";
 import {
+  IconBolt,
   IconCards,
   IconChevronDown,
   IconDiamond,
@@ -41,6 +42,7 @@ import { useActionCardPlayability } from "@/api/useActionCard";
 import { useRelicPlayability } from "@/api/useRelics";
 import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
+import { readyReactions, type ReadyReaction } from "./reactionReady";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -336,9 +338,11 @@ export function BottomHandDock() {
     tab: HandTab;
     frontier?: boolean;
   } | null>(null);
+  // Karty akcji i notki sprawdzamy ZAWSZE (nie tylko przy otwartej zakładce): okno reakcji mija
+  // z następnym krokiem gry, więc dok musi je zasygnalizować także zwinięty (RULES.md 54.8).
   const { data: playability } = useActionCardPlayability(
     active?.discordId ?? null,
-    open && tab === "actions",
+    (hand?.actionCards.length ?? 0) > 0,
   );
   const { data: relicPlayability } = useRelicPlayability(
     active?.discordId ?? null,
@@ -348,8 +352,24 @@ export function BottomHandDock() {
   // Promissory notes (RULES.md 61.2): zagrywalne w otwartym oknie, nigdy własne.
   const { data: notePlayability } = usePromissoryPlayability(
     active?.discordId ?? null,
-    open && tab === "notes",
+    (hand?.promissoryNotes.length ?? 0) > 0,
   );
+  const reactions = useMemo(
+    () => readyReactions(playability, notePlayability),
+    [playability, notePlayability],
+  );
+  const reactionTabs = useMemo(
+    () => new Set<HandTab>(reactions.map((r) => r.tab)),
+    [reactions],
+  );
+  const firstReaction = reactions[0];
+  const reactionName = (r: ReadyReaction): string =>
+    r.tab === "notes"
+      ? getPromissoryNoteData(r.id, noteColors)?.displayName || r.id
+      : (getActionCard(r.id)?.name ?? r.id);
+  // Przycisk „Reaction” w pasku, gdy karty reakcji nie widać (dok zwinięty / inna zakładka).
+  const reactionHidden =
+    firstReaction !== undefined && (!open || !reactionTabs.has(tab));
   // Karty frontier (Enigmatic Device) są jawne i wchodzą do zakładki Action cards.
   const frontierIds = useMemo(() => active?.frontierCards ?? [], [active?.frontierCards]);
   const { data: frontierPlayability } = useRelicPlayability(
@@ -479,6 +499,12 @@ export function BottomHandDock() {
                 className={styles.tab}
                 style={{ "--hk": t.tone } as CSSProperties}
                 data-active={tab === t.key || undefined}
+                data-reaction={reactionTabs.has(t.key) || undefined}
+                title={
+                  reactionTabs.has(t.key)
+                    ? "A reaction card here can be played right now"
+                    : undefined
+                }
                 onClick={() => setTab(t.key)}
               >
                 <Icon size={14} aria-hidden="true" />
@@ -488,6 +514,22 @@ export function BottomHandDock() {
             );
           })}
         </div>
+
+        {reactionHidden && firstReaction && (
+          <button
+            type="button"
+            className={styles.reactionCall}
+            title="This card's timing window is open now - it closes with the next step of the game"
+            onClick={() => {
+              setTab(firstReaction.tab);
+              setOpen(true);
+            }}
+          >
+            <IconBolt size={14} aria-hidden="true" />
+            <span>Play now: {reactionName(firstReaction)}</span>
+            {reactions.length > 1 && <b>+{reactions.length - 1}</b>}
+          </button>
+        )}
 
         {active.discordId && <HoldControls playerId={active.discordId} />}
 

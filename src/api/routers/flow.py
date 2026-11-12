@@ -143,7 +143,9 @@ async def post_next_phase(
     # Brama „wszyscy skończyli" (akcja: pasy; status: kroki) — czytelny komunikat
     # zamiast surowego błędu z głębi silnika (DECYZJA PROJEKTOWA 2026-11).
     if not turn_flow.can_advance_phase(state):
-        if state.phase is Phase.ACTION:
+        if turn_flow.open_decisions_reason(state) is not None:
+            detail = turn_flow.open_decisions_reason(state) or ""
+        elif state.phase is Phase.ACTION:
             detail = "Every player must pass before the speaker can end the Action Phase."
         elif state.phase is Phase.STATUS and state.winner_id is not None:
             detail = "The game has ended."
