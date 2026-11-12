@@ -1263,6 +1263,8 @@ export type FleetPoolView = {
   playerId: string | null;
   /** Żetony w puli floty = maks. liczba statków nie-myśliwskich w systemie. */
   pool: number;
+  /** Limit puli nie obowiązuje (np. Darktalon Treilla do końca rundy). */
+  unlimited?: boolean;
   total: number;
   excess: number;
   ships: FleetShip[];

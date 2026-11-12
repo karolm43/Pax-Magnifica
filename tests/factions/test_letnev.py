@@ -132,7 +132,10 @@ def test_hero_bez_limitu_floty_do_konca_rundy(registry: StaticDataRegistry) -> N
     assert implemented is True
     assert leaders.state_of(after, registry, "p1", "letnevhero") == leaders.PURGED
     after.systems["102"].space_units["p1"] = {"dreadnought": 12}
-    assert fleet_pool.fleet_report(after, "102", "p1", registry).excess == 0
+    report = fleet_pool.fleet_report(after, "102", "p1", registry)
+    assert report.excess == 0 and report.unlimited is True
+    # Pula zostaje prawdziwą liczbą żetonów (UI rysuje po kratce na żeton - bez 10**6).
+    assert report.pool == after.players["p1"].fleet_cc + 2  # + Armada
 
 
 # ----------------------------------------------------------------- Munitions + War Funding

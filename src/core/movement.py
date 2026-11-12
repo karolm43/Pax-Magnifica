@@ -31,6 +31,7 @@ from src.core.unit_ops import UnitCause
 # R_capacity/R_transport — „fighters and ground forces". Trzymane jawnie, bo to
 # reguła klasy jednostek, nie dane liczbowe (te czytamy z UnitDef).
 _CARGO_BASE_TYPES = frozenset({"fighter", "infantry", "mech"})
+CARGO_BASE_TYPES = _CARGO_BASE_TYPES  # publiczny alias (podgląd trasy)
 _FIGHTER = "fighter"  # Gravleash: „non-fighter ships”
 
 
@@ -1093,6 +1094,10 @@ def move_fleet(
             available = _available_in_zone(
                 state.systems.get(pickup_pos), player_id, base_type, zone
             )
+            # Te same jednostki nie mogą lecieć jednocześnie same i jako ładunek (Fighter II ze
+            # startu wybrany jako statek I jako ładunek tworzyłby myśliwce z niczego).
+            if pickup_pos == from_pos and zone == "space":
+                available -= ships.get(base_type, 0)
             if available < count:
                 where = "space" if zone == "space" else f"planet {zone}"
                 raise ValueError(

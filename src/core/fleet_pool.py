@@ -36,15 +36,16 @@ def counts_toward_pool(base_type: str) -> bool:
     return base_type != _FIGHTER and PLACEMENT_BY_BASE_TYPE.get(base_type) is Placement.SPACE
 
 
-_UNLIMITED = 10**6  # „not limited by the number of command tokens in your fleet pool”
-
-
 @dataclass
 class FleetReport:
     """Stan fleet pool gracza w jednym systemie."""
 
     pool: int = 0  # żetony w puli floty = maks. liczba statków
     ships: dict[str, int] = field(default_factory=dict)  # statki liczone do puli, wg typu
+    # „not limited by the number of command tokens in your fleet pool” (Darktalon Treilla):
+    # limit nie obowiązuje. ``pool`` zostaje prawdziwą liczbą żetonów (do wyświetlenia) —
+    # NIE podmieniamy jej na sztuczną wielką liczbę.
+    unlimited: bool = False
 
     @property
     def total(self) -> int:
@@ -52,6 +53,8 @@ class FleetReport:
 
     @property
     def excess(self) -> int:
+        if self.unlimited:
+            return 0
         return max(0, self.total - self.pool)
 
 
@@ -97,7 +100,7 @@ def fleet_report(
             rules_hooks.POINT_FLEET_POOL_CAPACITY, state, player_id, 0, {"position": position}
         )
         if rules_hooks.permits(rules_hooks.POINT_FLEET_POOL_UNLIMITED, state, player_id):
-            report.pool = _UNLIMITED
+            report.unlimited = True
     system = state.systems.get(position)
     if system is None:
         return report

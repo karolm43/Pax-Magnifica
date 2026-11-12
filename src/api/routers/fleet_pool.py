@@ -66,6 +66,8 @@ class FleetPoolView(BaseModel):
     player: str | None = None  # klucz encji (kolor/frakcja)
     player_id: str | None = Field(default=None, serialization_alias="playerId")
     pool: int = 0
+    # Limit puli nie obowiązuje (np. bohater Letnev do końca rundy) — UI nie rysuje kratek.
+    unlimited: bool = False
     total: int = 0
     excess: int = 0
     ships: list[FleetShipView] = Field(default_factory=list)
@@ -116,6 +118,7 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
         player=entity_key_map(state).get(pid, pid),
         player_id=pid,
         pool=report.pool,
+        unlimited=report.unlimited,
         total=report.total,
         excess=report.excess,
         ships=[

@@ -130,6 +130,15 @@ def route_report(
 
     ships = _ships(state, grid, registry, from_pos, route, player_id, bonuses)
     cargo = movement.route_cargo(state, registry, route, player_id) if route else []
+    # Jednostka w JEDNYM miejscu okna: myśliwce ze startu, które dolatują same (Fighter II), są
+    # na liście statków, a nie ładunku (ładunkiem tylko zajęłyby capacity); te, które same nie
+    # dolecą, są tylko ładunkiem.
+    flying = {s.base_type for s in ships if s.reachable and (s.alone or s.with_ships)}
+    ships = [s for s in ships if s.reachable or s.base_type not in movement.CARGO_BASE_TYPES]
+    cargo = [
+        c for c in cargo
+        if not (c.position == from_pos and c.zone == "space" and c.base_type in flying)
+    ]
     rifts = movement.rift_nodes(state, grid, route, player_id) if route else []
     return RouteReport(
         active, route, reason, alternatives, waypoints, ships, bonuses, cargo, rifts

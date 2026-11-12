@@ -783,3 +783,9 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   „do kiedy”, czego dotyczy). `describe_component` przeniesione z `offers.py` do `core/component_text.py` (wspólne).
   Historia/powiadomienia: „used Darktalon Treilla (active for this game round)” zamiast „effect active:
   Leaders:letnevhero” (`resolveEffectName`, `describeEffectScope`).
+- Darktalon Treilla: `FleetReport.unlimited` zamiast sztucznej puli 10**6 (`FleetPoolWarning` rysował milion kratek —
+  zacinanie strony). Pula zostaje prawdziwą liczbą żetonów; UI: „no limit this round”, kratki maks. 24.
+- Fighter II w ruchu: (1) `move_fleet` liczył dostępność statków i ładunku osobno — 6 myśliwców jako statki + 4 jako
+  ładunek z tego samego systemu dawało 10 w celu; teraz ładunek ze startu odejmuje to, co leci samo. (2) Okno trasy
+  pokazuje jednostkę w JEDNYM miejscu: dolatujące same = statki, niedolatujące = ładunek; zaznaczenie grupy z mapy
+  zamienia „statek” na ładunek, gdy sam nie doleci (`routeTypes.prunePicks`).

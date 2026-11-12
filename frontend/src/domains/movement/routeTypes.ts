@@ -122,6 +122,14 @@ function maxFor(route: MoveRouteData, p: DraftPick): number {
   return cargo?.count ?? 0;
 }
 
+function asCargoIfNeeded(route: MoveRouteData, p: DraftPick): DraftPick {
+  if (p.kind !== "ship" || route.ships.some((s) => s.baseType === p.baseType)) return p;
+  const cargo = route.cargo.find(
+    (c) => c.position === p.position && c.zone === "space" && c.baseType === p.baseType,
+  );
+  return cargo ? { ...p, kind: "cargo", zone: "space" } : p;
+}
+
 /** Przycina zaznaczenie do tego, co nadal istnieje na (nowej) trasie. */
 export function prunePicks(
   picks: Record<string, DraftPick>,
@@ -130,9 +138,12 @@ export function prunePicks(
   if (!route?.route) return picks; // trasa chwilowo nielegalna: zachowaj wybór gracza
   const next: Record<string, DraftPick> = {};
   for (const [key, p] of Object.entries(picks)) {
-    const max = maxFor(route, p);
-    const count = Math.min(p.count, max);
-    if (count > 0) next[key] = { ...p, count, max };
+    // Myśliwiec/piechota wybrane jako „statek”, który sam nie doleci (np. Fighter II poza
+    // zasięgiem) - jedzie jako ładunek ze startu, zamiast znikać z wyboru.
+    const pick = asCargoIfNeeded(route, p);
+    const max = maxFor(route, pick);
+    const count = Math.min(pick.count, max);
+    if (count > 0) next[pick === p ? key : pickKey(pick)] = { ...pick, count, max };
   }
   return next;
 }

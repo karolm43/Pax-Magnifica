@@ -2,6 +2,9 @@ import { IconAlertTriangle, IconShip } from "@tabler/icons-react";
 import { useFleetPool } from "@/api/useBoardEditor";
 import styles from "./FleetPoolWarning.module.css";
 
+/** Górny limit kratek paska puli (zabezpieczenie widoku; realna pula to kilka-kilkanaście). */
+const MAX_CELLS = 24;
+
 /**
  * Wskaźnik FLEET POOL (RULES.md 42) aktywnego gracza w aktywnym systemie: ile statków
  * nie-myśliwskich stoi względem puli floty. `extra` = statki, które gracz dopiero dodaje
@@ -31,8 +34,11 @@ export function FleetPoolWarning({
     ? Math.max(0, fighters - Math.floor(room / Math.max(cap.fighterCost, 1)))
     : 0;
   const total = data.total + extra + (fleetFighters - (cap.fleetFighters ?? 0));
-  const over = Math.max(0, total - data.pool);
-  const cells = Math.max(data.pool, total);
+  // Bez limitu (np. bohater Letnev do końca rundy): nic nie jest „ponad pulę”, kratki tylko
+  // dla obecnych statków.
+  const unlimited = data.unlimited === true;
+  const over = unlimited ? 0 : Math.max(0, total - data.pool);
+  const cells = Math.min(MAX_CELLS, unlimited ? total : Math.max(data.pool, total));
   const capNeed = toFleet
     ? cap.otherLoad
     : fighterLoad + cap.otherLoad - Math.min(fighterLoad, cap.fighterOnly);
@@ -50,7 +56,7 @@ export function FleetPoolWarning({
         </span>
         <b className={styles.count}>
           {total}
-          <small> / {data.pool} ships</small>
+          <small>{unlimited ? " ships · no limit this round" : ` / ${data.pool} ships`}</small>
         </b>
       </div>
       <div className={styles.cells} aria-hidden="true">
@@ -58,7 +64,9 @@ export function FleetPoolWarning({
           <span
             key={i}
             className={styles.cell}
-            data-kind={i >= data.pool ? "over" : i < data.total ? "have" : "new"}
+            data-kind={
+              !unlimited && i >= data.pool ? "over" : i < data.total ? "have" : "new"
+            }
           />
         ))}
       </div>
@@ -128,7 +136,7 @@ export function FleetPoolStatusMeter({
   const where = entries[0]?.[0];
   const overList = entries.filter(([, n]) => n > pool);
   const overTotal = overList.reduce((sum, [, n]) => sum + (n - pool), 0);
-  const cells = Math.max(pool, largest);
+  const cells = Math.min(MAX_CELLS, Math.max(pool, largest));
   const label = (pos: string) => systemName?.(pos) ?? pos;
   return (
     <div className={styles.box} data-over={overTotal > 0 || undefined} role="status">

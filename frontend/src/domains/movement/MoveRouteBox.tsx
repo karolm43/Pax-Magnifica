@@ -202,6 +202,9 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
     bonus === "gravity_drive" ? "Gravity Drive" : bonus === "tempesta" ? "Ionian Fuel Refinery" : bonus;
   const shipCaption = (s: MoveRouteShip): string | undefined => {
     if (!s.reachable) return s.reason || "out of range";
+    // Fighter II leci sam (nie zajmuje miejsca w transporcie), ale w celu potrzebuje capacity;
+    // nadwyżka liczy się wtedy do fleet pool.
+    if (s.alone && s.baseType === "fighter") return "flies on its own · needs capacity there";
     if (s.alone) return s.capacity > 0 ? `capacity ${s.capacity}` : undefined;
     if (s.withShips.length > 0) {
       const mates = s.withShips.map((bt) => unitName(asyncOfBase(bt))).join(" / ");
