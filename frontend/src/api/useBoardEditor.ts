@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { parseErrorDetail } from "@/api/apiError";
 import { fetchJson } from "@/api/fetchJson";
+import type { ObjectivePaymentBody } from "@/entities/data/types";
 import { useAppStore } from "@/state/appStore";
 
 /*
@@ -84,6 +85,8 @@ export type PlayerEdit = {
   promissory_notes_in_play?: string[];
   /** Relikty przed graczem (God-Mode, nadpisuje listę). */
   relics?: string[];
+  /** Fragmenty reliktów w strefie gracza - id kart eksploracji (God-Mode, nadpisuje listę). */
+  relic_fragments?: string[];
 };
 
 /**
@@ -220,11 +223,18 @@ export function useBoardEditor() {
 
   // Krok 1: gracz, którego kolej, zdobywa cel publiczny albo tajny.
   const statusScore = useCallback(
-    async (playerId: string, kind: "public" | "secret", objectiveId: string) => {
+    async (
+      playerId: string,
+      kind: "public" | "secret",
+      objectiveId: string,
+      payment?: ObjectivePaymentBody,
+    ) => {
       await post("/status/score", {
         player_id: playerId,
         kind,
         objective_id: objectiveId,
+        // Bez `payment` silnik dobiera płatność sam (cele bez kosztu go nie potrzebują).
+        ...(payment ? { payment } : {}),
       });
       await refresh();
     },
@@ -1424,7 +1434,10 @@ export function useCombatHelp(position: string | null, planet: string | null) {
 export type ActivityFact = {
   /** vp, tech, planet_gained/lost, tg + jawne karty: action_card, agenda,
    *  explore_card, relic_fragment, promissory_in_play, objective_revealed,
-   *  secret_scored. */
+   *  secret_scored + zasoby/plansza: commodities, cc, hand, units, system_token,
+   *  relic, frontier_card, leader, breakthrough_unlocked, strategy_card_gained,
+   *  law_enacted, law_repealed, attached, objective_scored, effect, speaker,
+   *  custodians_removed, winner. Pełna lista: `core/activity.py`. */
   type: string;
   /** Null dla zdarzeń talii/stołu bez jednego właściciela. */
   player_id: string | null;

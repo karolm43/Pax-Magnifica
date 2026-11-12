@@ -15,6 +15,7 @@ import { useGameState } from "@/api/useGameState";
 import { usePlayerData } from "@/api/usePlayerData";
 import type {
   Objective,
+  ObjectivePaymentBody,
   PlayerData,
   StatusObjectiveOption,
   StatusPhaseData,
@@ -27,6 +28,7 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { FleetPoolStatusMeter } from "@/domains/map/components/FleetPoolWarning";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { ObjectiveSpendForm } from "./ObjectiveSpendForm";
 import styles from "./StatusPhasePanel.module.css";
 
 /** Osiem kroków fazy statusu (R_status_phase): krótka etykieta + czy robi to silnik. */
@@ -178,7 +180,9 @@ export function StatusPhasePanel() {
             status={status}
             objectivesByKey={objectivesByKey}
             busy={busy}
-            onScore={(kind, id) => run(() => statusScore(scorer.discordId, kind, id))}
+            onScore={(kind, id, pay) =>
+              run(() => statusScore(scorer.discordId, kind, id, pay))
+            }
             onFinish={() => run(() => statusFinishScoring(scorer.discordId))}
           />
         )}
@@ -450,8 +454,10 @@ export function ObjectiveRow({
   stage: "orange" | "blue" | "red";
   scored: boolean;
   busy: boolean;
-  onScore: () => void;
+  onScore: (payment?: ObjectivePaymentBody) => void;
 }) {
+  // Cele „Spend…": zamiast zdobywać od razu, otwieramy okno wyboru płatności.
+  const [paying, setPaying] = useState(false);
   const hasMeter = option.progress != null && option.threshold > 0;
   const fill = hasMeter ? Math.min(1, (option.progress ?? 0) / option.threshold) : 0;
   const can = option.ready && !scored;
@@ -480,7 +486,7 @@ export function ObjectiveRow({
         type="button"
         className={styles.score}
         disabled={busy || !can}
-        onClick={onScore}
+        onClick={() => (option.spend ? setPaying((open) => !open) : onScore())}
         title={
           can
             ? "Requirements met — score it"
@@ -489,8 +495,11 @@ export function ObjectiveRow({
               : "Requirements not met yet"
         }
       >
-        {can ? `Score +${points}` : "Not yet"}
+        {can ? (option.spend ? `Pay & score +${points}` : `Score +${points}`) : "Not yet"}
       </button>
+      {can && paying && option.spend && (
+        <ObjectiveSpendForm spend={option.spend} busy={busy} onConfirm={(pay) => onScore(pay)} />
+      )}
     </div>
   );
 }
@@ -507,7 +516,11 @@ function ScoreStep({
   status: StatusPhaseData;
   objectivesByKey: Map<string, Objective>;
   busy: boolean;
-  onScore: (kind: "public" | "secret", objectiveId: string) => void;
+  onScore: (
+    kind: "public" | "secret",
+    objectiveId: string,
+    payment?: ObjectivePaymentBody,
+  ) => void;
   onFinish: () => void;
 }) {
   const id = scorer.discordId;
@@ -552,7 +565,7 @@ function ScoreStep({
               stage={points >= 2 ? "blue" : "orange"}
               scored={scoredPublic}
               busy={busy}
-              onScore={() => onScore("public", option.key)}
+              onScore={(pay) => onScore("public", option.key, pay)}
             />
           );
         })}
@@ -576,7 +589,7 @@ function ScoreStep({
               stage="red"
               scored={scoredSecret}
               busy={busy}
-              onScore={() => onScore("secret", option.key)}
+              onScore={(pay) => onScore("secret", option.key, pay)}
             />
           );
         })}

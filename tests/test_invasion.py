@@ -189,6 +189,33 @@ def test_bombard_requires_all_units_and_assigns_hits(registry: StaticDataRegistr
         invasion.bombard(after, grid, registry, [BombardAssignment("dreadnought", _PL1, 2)])
 
 
+def test_bombard_neutralnych_przypisuje_straty_automatycznie(
+    registry: StaticDataRegistry,
+) -> None:
+    """Neutralni nie są graczem: trafienia bombardowania silnik przypisuje sam (R_neutral_units)."""
+    grid = _grid()
+    base = invasion.begin_invasion(
+        _state(
+            {"p1": {"dreadnought": 2}},
+            {_PL1: {"neutral": {"infantry": 3}}},
+            {_PL1: "neutral"},
+        ),
+        grid,
+        registry,
+    )
+    rolled = _seek(
+        base,
+        lambda s: invasion.bombard(s, grid, registry, [BombardAssignment("dreadnought", _PL1, 2)]),
+        lambda s: s.invasion is not None and s.invasion.log[-1]["hits"] > 0,
+    )
+    assert rolled.invasion is not None
+    hits = rolled.invasion.log[-1]["hits"]
+    assert not rolled.invasion.bombard_pending  # nikt nie czeka na przypisanie
+    left = rolled.systems["000"].planet_units.get(_PL1, {}).get("neutral", {}).get("infantry", 0)
+    assert left == max(0, 3 - hits)
+    assert rolled.invasion.log[-1]["losses"] == ({"infantry": 3 - left} if left < 3 else {})
+
+
 # -------------------------------------------------------------------------------- commit
 
 

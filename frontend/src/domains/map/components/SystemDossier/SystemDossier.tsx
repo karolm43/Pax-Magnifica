@@ -299,7 +299,10 @@ function SystemFacts({
   const totals = Object.entries(tile.planets).reduce(
     (sum, [planetId, planetTile]) => {
       const planet = getPlanetData(planetId);
-      const bonus = getAttachmentModifiers(planetTile.attachments ?? []);
+      const bonus = getAttachmentModifiers(
+        planetTile.attachments ?? [],
+        planet?.techSpecialties ?? [],
+      );
       return {
         resources: sum.resources + (planet?.resources ?? 0),
         influence: sum.influence + (planet?.influence ?? 0),

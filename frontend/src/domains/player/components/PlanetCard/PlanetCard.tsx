@@ -132,7 +132,10 @@ export function PlanetCard({
       ]
     : [];
   const attachments = planetTile?.attachments ?? [];
-  const attachmentModifiers = getAttachmentModifiers(attachments);
+  const attachmentModifiers = getAttachmentModifiers(
+    attachments,
+    planetData.techSpecialties ?? [],
+  );
   const finalTraits = mergePlanetTraits(
     planetData.planetTypes ||
       (planetData.planetType ? [planetData.planetType] : []),

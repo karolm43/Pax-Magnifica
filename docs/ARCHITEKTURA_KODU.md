@@ -237,6 +237,10 @@ tej samej zasady co reszta: logika to czyste funkcje, I/O cienkie, zero reguł z
 - [ ] Wyjątek domenowy (`ValueError`/własny) w `core/`, mapowany na HTTP w `api/`.
 - [ ] Modyfikator frakcji/tech/karty = hook, nie `if` w regule bazowej.
 - [ ] Nowa karta = pełny potok z sekcji 3a (efekt + formularz + zagrywalność + test + raport pokrycia).
+- [ ] Nowy WIDOCZNY skutek (nowy zasób/komponent/stan gracza lub stołu)? → dopisz go do feedu
+      „Activity" (panel historii): fakt w `core/activity.py` (`_facts` i podfunkcje, różnica stanów
+      przed/po; ręce tylko jako LICZBY) + opis w `ActivityPanel/describeActivity.tsx` (`describeFact`)
+      + test w `tests/test_activity.py`. Nowa akcja z własną etykietą commitu => też `_parse_*`.
 - [ ] Test: jednostkowy dla `core/`, integracyjny (TestClient) dla endpointu.
 - [ ] Plik obejmuje już różne tematy (zwykle > ~500 linii)? → rozważ podział na podmoduł tematyczny. Spójnego modułu nie dziel tylko dla liczby linii.
 - [ ] QA zielone (pytest/ruff/mypy + frontend build) → commit po polsku.

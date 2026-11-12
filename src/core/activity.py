@@ -50,6 +50,11 @@ class ActivityFact(BaseModel):
     # "vp" | "tech" | "planet_gained" | "planet_lost" | "tg" oraz JAWNE karty/cele:
     # "action_card" (zagrana/odrzucona), "agenda" (zużyta), "explore_card" (ujawniona),
     # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
+    # Zasoby/komponenty: "commodities", "cc" (value = pula), "hand" (value = ręka, tylko liczba),
+    # "relic", "frontier_card", "leader", "breakthrough_unlocked", "strategy_card_gained".
+    # Plansza: "units" (value = typ, delta = zmiana liczby), "system_token", "law_enacted",
+    # "law_repealed", "attached", "objective_scored", "effect", "speaker", "custodians_removed",
+    # "winner". NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
     player_id: str | None = None
@@ -244,9 +249,7 @@ def _parse_economy_scoring(parts: list[str], active: str | None) -> _Parsed | No
     return None
 
 
-def _parse_agenda(
-    parts: list[str], before: GameState | None, after: GameState
-) -> _Parsed | None:
+def _parse_agenda(parts: list[str], before: GameState | None, after: GameState) -> _Parsed | None:
     """Faza agendy (RULES.md 51): ujawnienie, głos, wstrzymanie, wynik mówcy, kolejny krok."""
     if parts[0] != "agenda" or len(parts) < 2:
         return None
@@ -277,9 +280,7 @@ def label_is(parts: list[str], head: str, verb: str) -> bool:
     return len(parts) > 1 and parts[0] == head and parts[1] == verb
 
 
-def _parse(
-    label: str, before: GameState | None, after: GameState
-) -> _Parsed | None:
+def _parse(label: str, before: GameState | None, after: GameState) -> _Parsed | None:
     parts = label.split(":")
     active = _active(before, after)
     for parsed in (
@@ -326,6 +327,130 @@ def _facts(before: GameState | None, after: GameState) -> list[ActivityFact]:
             if planet not in new.controlled_planets:
                 facts.append(ActivityFact(type="planet_lost", player_id=pid, value=planet))
     facts.extend(_public_card_facts(before, after))
+    facts.extend(_resource_facts(before, after))
+    facts.extend(_unit_facts(before, after))
+    facts.extend(_table_facts(before, after))
+    return facts
+
+
+def _resource_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Zasoby i komponenty graczy: commodities, żetony dowodzenia, ręce (tylko LICZBY), liderzy.
+
+    Ręce są prywatne, więc ujawniamy wyłącznie zmianę liczby kart (kto dobrał/oddał), nigdy
+    ich zawartość. Spadek liczby kart akcji pomijamy, gdy ten gracz właśnie zagrał kartę
+    (to pokazuje już fakt ``action_card``).
+    """
+    facts: list[ActivityFact] = []
+    played = {f.player_id for f in _public_card_facts(before, after) if f.type == "action_card"}
+    for pid, new in after.players.items():
+        old = before.players.get(pid)
+        if old is None:
+            continue
+        if new.commodities != old.commodities:
+            facts.append(
+                ActivityFact(
+                    type="commodities", player_id=pid, delta=new.commodities - old.commodities
+                )
+            )
+        for pool in ("tactical_cc", "fleet_cc", "strategic_cc"):
+            diff = getattr(new, pool) - getattr(old, pool)
+            if diff:
+                facts.append(ActivityFact(type="cc", player_id=pid, value=pool, delta=diff))
+        for hand in ("action_cards", "promissory_notes", "secret_objectives"):
+            diff = len(getattr(new.private, hand)) - len(getattr(old.private, hand))
+            if diff == 0 or (diff < 0 and hand == "action_cards" and pid in played):
+                continue
+            facts.append(ActivityFact(type="hand", player_id=pid, value=hand, delta=diff))
+        for relic in new.relics:
+            if relic not in old.relics:
+                facts.append(
+                    ActivityFact(type="relic", player_id=pid, value=relic, detail="gained")
+                )
+        for relic in old.relics:
+            if relic not in new.relics:
+                facts.append(ActivityFact(type="relic", player_id=pid, value=relic, detail="lost"))
+        for card in new.frontier_cards:
+            if card not in old.frontier_cards:
+                facts.append(ActivityFact(type="frontier_card", player_id=pid, value=card))
+        for leader, state in new.leader_states.items():
+            if old.leader_states.get(leader) != state:
+                facts.append(ActivityFact(type="leader", player_id=pid, value=leader, detail=state))
+        if new.breakthrough_unlocked and not old.breakthrough_unlocked:
+            facts.append(ActivityFact(type="breakthrough_unlocked", player_id=pid))
+        for number in new.strategy_cards:
+            if number not in old.strategy_cards:
+                facts.append(
+                    ActivityFact(type="strategy_card_gained", player_id=pid, value=str(number))
+                )
+    return facts
+
+
+def _totals(state: GameState, pid: str) -> dict[str, int]:
+    """Suma jednostek gracza na całej planszy wg typu bazowego (kosmos + planety)."""
+    totals: dict[str, int] = {}
+    for system in state.systems.values():
+        for unit, count in system.space_units.get(pid, {}).items():
+            totals[unit] = totals.get(unit, 0) + count
+        for owners in system.planet_units.values():
+            for unit, count in owners.get(pid, {}).items():
+                totals[unit] = totals.get(unit, 0) + count
+    return totals
+
+
+def _unit_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Zmiana liczby jednostek gracza na planszy (produkcja, straty). Ruch sam się znosi."""
+    facts: list[ActivityFact] = []
+    for pid in after.players:
+        if pid not in before.players:
+            continue
+        old, new = _totals(before, pid), _totals(after, pid)
+        for unit in sorted(set(old) | set(new)):
+            diff = new.get(unit, 0) - old.get(unit, 0)
+            if diff:
+                facts.append(ActivityFact(type="units", player_id=pid, value=unit, delta=diff))
+    return facts
+
+
+def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Skutki wspólne dla stołu: prawa, przyczepione karty, cele publiczne, żetony, mówca."""
+    facts: list[ActivityFact] = []
+    for law, outcome in after.decks.agenda_laws.items():
+        if before.decks.agenda_laws.get(law) != outcome:
+            facts.append(ActivityFact(type="law_enacted", value=law, detail=outcome))
+    for law in before.decks.agenda_laws:
+        if law not in after.decks.agenda_laws:
+            facts.append(ActivityFact(type="law_repealed", value=law))
+    for planet, cards in after.planet_attachments.items():
+        old_cards = before.planet_attachments.get(planet, [])
+        for card in cards:
+            if card not in old_cards:
+                facts.append(ActivityFact(type="attached", value=card, detail=planet))
+    for objective, scorers in after.objectives.scored.items():
+        old_scorers = before.objectives.scored.get(objective, [])
+        for pid in set(scorers):
+            gained = scorers.count(pid) - old_scorers.count(pid)
+            if gained > 0:
+                facts.append(ActivityFact(type="objective_scored", player_id=pid, value=objective))
+    for position, system in after.systems.items():
+        old_system = before.systems.get(position)
+        old_tokens = old_system.command_tokens if old_system else []
+        for pid in system.command_tokens:
+            if system.command_tokens.count(pid) > old_tokens.count(pid):
+                facts.append(ActivityFact(type="system_token", player_id=pid, value=position))
+    known = {effect.id for effect in before.active_effects}
+    for effect in after.active_effects:
+        if effect.id not in known:
+            facts.append(
+                ActivityFact(
+                    type="effect", player_id=effect.owner, value=effect.key, detail=effect.scope
+                )
+            )
+    if after.speaker_id != before.speaker_id and after.speaker_id:
+        facts.append(ActivityFact(type="speaker", player_id=after.speaker_id))
+    if after.custodians_removed and not before.custodians_removed:
+        facts.append(ActivityFact(type="custodians_removed"))
+    if after.winner_id and not before.winner_id:
+        facts.append(ActivityFact(type="winner", player_id=after.winner_id))
     return facts
 
 
@@ -393,9 +518,7 @@ def _public_card_facts(before: GameState, after: GameState) -> list[ActivityFact
     return facts
 
 
-def derive_activity(
-    label: str, before: GameState | None, after: GameState
-) -> Activity | None:
+def derive_activity(label: str, before: GameState | None, after: GameState) -> Activity | None:
     """Tłumaczy commit (etykieta + stany przed/po) na wpis feedu albo ``None``.
 
     ``None`` = zmiana czysto techniczna bez widocznego skutku (nie trafia do feedu).
@@ -413,7 +536,11 @@ def derive_activity(
         if not facts:
             return None
         return Activity(
-            kind="misc", action="update", actor_id=_active(before, after), facts=facts, **base  # type: ignore[arg-type]
+            kind="misc",
+            action="update",
+            actor_id=_active(before, after),
+            facts=facts,
+            **base,  # type: ignore[arg-type]
         )
 
     parsed = _parse(label, before, after)
@@ -421,7 +548,11 @@ def derive_activity(
         if not facts:
             return None
         return Activity(
-            kind="misc", action="update", actor_id=_active(before, after), facts=facts, **base  # type: ignore[arg-type]
+            kind="misc",
+            action="update",
+            actor_id=_active(before, after),
+            facts=facts,
+            **base,  # type: ignore[arg-type]
         )
     kind, action, actor, target, subject, detail = parsed
     if action == "explore.resolve" and after.exploration and after.exploration.log:

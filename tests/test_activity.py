@@ -137,3 +137,30 @@ def test_explore_resolve_names_card_and_summary() -> None:
     entry = derive_activity("exploration:resolve:x", before, after)
     assert entry is not None
     assert (entry.subject, entry.detail, entry.actor_id) == ("c1", "Gained 1 TG.", "p1")
+
+
+def test_resource_unit_and_table_facts_from_diff() -> None:
+    from src.core.game_state import SystemState
+
+    before = _state()
+    after = _state()
+    before.systems["101"] = SystemState(position="101", system_id="27")
+    after.systems["101"] = SystemState(
+        position="101", system_id="27", space_units={"p1": {"cruiser": 2}}, command_tokens=["p1"]
+    )
+    after.players["p1"].commodities = 2
+    after.players["p1"].tactical_cc = 2
+    after.players["p1"].relics = ["the_crown_of_emphidia"]
+    after.players["p1"].private.action_cards = ["a", "b"]
+    after.decks.agenda_laws["minister_of_policy"] = "p2"
+
+    entry = derive_activity("tactical:produce:101", before, after)
+    assert entry is not None
+    got = {(f.type, f.player_id, f.value, f.delta) for f in entry.facts}
+    assert ("units", "p1", "cruiser", 2) in got
+    assert ("commodities", "p1", None, 2) in got
+    assert ("cc", "p1", "tactical_cc", -1) in got
+    assert ("hand", "p1", "action_cards", 2) in got
+    assert ("system_token", "p1", "101", None) in got
+    assert ("relic", "p1", "the_crown_of_emphidia", None) in got
+    assert ("law_enacted", None, "minister_of_policy", None) in got

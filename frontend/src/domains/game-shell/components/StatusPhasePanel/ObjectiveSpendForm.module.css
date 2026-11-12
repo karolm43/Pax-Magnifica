@@ -1,0 +1,81 @@
+/* Okno płatności za cel „Spend…" - rozwija się pod wierszem celu. */
+.form {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--ds-h10);
+}
+.summary {
+  margin: 0;
+  font-size: var(--text-meta, 12px);
+  color: var(--ds-ink-lo);
+}
+.summary[data-ok] {
+  color: var(--ds-ink-hi);
+}
+.chips,
+.toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 4px 9px;
+  font: inherit;
+  font-size: var(--text-data, 12px);
+  color: var(--ds-ink);
+  background: var(--ds-field);
+  border: 1px solid var(--ds-h22);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.chip[data-on] {
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 22%, var(--ds-field));
+  border-color: var(--ds-accent);
+}
+.chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.pools,
+.planetRows {
+  display: grid;
+  gap: 6px;
+}
+.poolRow,
+.planetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--text-body, 13px);
+  color: var(--ds-ink-hi);
+}
+.poolRow small {
+  margin-left: 6px;
+  color: var(--ds-ink-lo);
+}
+.empty {
+  font-size: var(--text-meta, 12px);
+  color: var(--ds-ink-lo);
+}
+.confirm {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 30%, var(--ds-field));
+  border: 1px solid var(--ds-accent);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.confirm:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

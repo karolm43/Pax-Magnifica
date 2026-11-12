@@ -46,8 +46,10 @@ import type { PlayerData } from "@/entities/data/types";
 import {
   actionCardOptions,
   promissoryNoteOptions,
+  relicFragmentKinds,
   relicOptions,
   secretObjectiveOptions,
+  type FragmentKind,
 } from "./cardOptions";
 import { CardListEditor } from "./CardListEditor";
 import { usePlayerHandById } from "./usePlayerHandById";
@@ -204,6 +206,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
   const soOptions = useMemo(() => secretObjectiveOptions(), []);
   const pnOptions = useMemo(() => promissoryNoteOptions(), []);
   const relicOpts = useMemo(() => relicOptions(), []);
+  const fragmentKinds = useMemo(() => relicFragmentKinds(), []);
 
   const apply = async (edit: PlayerEdit) => {
     if (!player || busy) return;
@@ -246,6 +249,20 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
     secretObjectives?: string[];
     promissoryNotes?: string[];
   }) => playerId && void runBusy(() => setPlayerHand(playerId, patch));
+
+  // --- Fragmenty reliktów (strefa gracza, jawne) ---
+  const ownFragments = player?.fragments ?? [];
+  /** Dokłada pierwszy wolny fragment typu (karty nie ma żaden gracz); backend zdejmuje go z talii. */
+  const addFragment = (kind: FragmentKind) => {
+    const held = new Set(players.flatMap((p) => p.fragments ?? []));
+    const free = kind.ids.find((id) => !held.has(id));
+    if (free) void apply({ relic_fragments: [...ownFragments, free] });
+  };
+  /** Zdejmuje ostatnio dodany fragment typu; backend odkłada go na spód talii. */
+  const removeFragment = (kind: FragmentKind) => {
+    const last = [...ownFragments].reverse().find((id) => kind.ids.includes(id));
+    if (last) void apply({ relic_fragments: ownFragments.filter((id) => id !== last) });
+  };
 
   // --- Nazwy kart do chipów ---
   const acName = (id: string) => getActionCard(id)?.name ?? id;
@@ -900,6 +917,57 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                             })
                           }
                         />
+                      </Stack>
+
+                      <Stack gap={4}>
+                        <Text size="sm" fw={600}>
+                          Relic fragments
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          Each fragment is a real exploration card: adding one takes it
+                          out of its exploration deck, removing one puts it back at the
+                          bottom.
+                        </Text>
+                        {fragmentKinds.map((kind) => {
+                          const count = ownFragments.filter((id) =>
+                            kind.ids.includes(id),
+                          ).length;
+                          const held = new Set(players.flatMap((p) => p.fragments ?? []));
+                          const anyFree = kind.ids.some((id) => !held.has(id));
+                          return (
+                            <div key={kind.type} className={styles.numRow}>
+                              <Text size="sm" className={styles.numLabel}>
+                                {kind.label}
+                              </Text>
+                              <div className={styles.numCtl}>
+                                <ActionIcon
+                                  size="sm"
+                                  variant="subtle"
+                                  disabled={busy || count === 0}
+                                  onClick={() => removeFragment(kind)}
+                                  aria-label={`Remove 1 ${kind.label}`}
+                                >
+                                  <IconMinus size={12} />
+                                </ActionIcon>
+                                <Text size="sm">{count}</Text>
+                                <ActionIcon
+                                  size="sm"
+                                  variant="subtle"
+                                  disabled={busy || !anyFree}
+                                  onClick={() => addFragment(kind)}
+                                  aria-label={`Add 1 ${kind.label}`}
+                                  title={
+                                    anyFree
+                                      ? undefined
+                                      : "Every copy of this fragment is already in a play area."
+                                  }
+                                >
+                                  <IconPlus size={12} />
+                                </ActionIcon>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </Stack>
                     </Stack>
                   </Tabs.Panel>

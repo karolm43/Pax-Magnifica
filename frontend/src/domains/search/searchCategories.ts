@@ -309,8 +309,9 @@ function addPlanetCategories(
   const specialties = new Set(
     [
       ...(planet.techSpecialties ?? []),
+      // Kafel ma już specjalności z attachmentami policzone wg reguły Research Facility
+      // (getTechSpecialties) — surowe techSpeciality attachmentu dodałoby kolor „zamiast”.
       ...(gameData.planetIdToPlanetTile[planetId]?.techSpecialties ?? []),
-      ...attachmentData.flatMap(({ data }) => data?.techSpeciality ?? []),
     ]
       .map((specialty) => specialty.toLowerCase())
       .filter((specialty) => TECH_SPECIALTIES.includes(specialty)),

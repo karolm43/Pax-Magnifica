@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.core.activity import Activity
 from src.core.game_state import GameState
+from src.core.objective_payment import ObjectivePayment
 from src.core.rules_content import (
     TopicContent,
     TopicGroup,
@@ -473,6 +474,9 @@ class PlayerEditRequest(BaseModel):
     promissory_notes_in_play: list[str] | None = None
     # Relikty przed graczem (jawne). Lista NADPISUJE; relikt znika z talii i od innych graczy.
     relics: list[str] | None = None
+    # Fragmenty reliktów w strefie gracza (id kart eksploracji: crf*/hrf*/irf*/urf*). NADPISUJE;
+    # dodany fragment znika z talii eksploracji, purge i od innych graczy.
+    relic_fragments: list[str] | None = None
 
 
 class PlayerComponentToggleRequest(BaseModel):
@@ -607,6 +611,8 @@ class StatusScoreRequest(BaseModel):
     player_id: str
     kind: str
     objective_id: str
+    # Jawna płatność za cel „Spend…" (brak => silnik dobiera sam).
+    payment: ObjectivePayment | None = None
 
 
 class StatusRedistributeRequest(BaseModel):

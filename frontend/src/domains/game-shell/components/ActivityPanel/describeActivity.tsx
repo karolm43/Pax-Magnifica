@@ -34,6 +34,7 @@ import {
   resolveObjectiveName,
   resolvePlanetName,
   resolveTechName,
+  resolveUnitName,
 } from "../GameEventPanel/eventFormatting";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { Named } from "./Named";
@@ -493,10 +494,196 @@ function describeFact(
           </>
         ),
       };
+    case "commodities":
+      return {
+        key,
+        tone: delta > 0 ? "good" : "bad",
+        text: (
+          <>
+            {prefix}
+            {delta > 0 ? "+" : ""}
+            {delta} commodities
+          </>
+        ),
+      };
+    case "cc": {
+      const pool = CC_POOL[fact.value ?? ""] ?? "command";
+      return {
+        key,
+        tone: delta > 0 ? "good" : "info",
+        text: (
+          <>
+            {prefix}
+            {delta > 0 ? "+" : ""}
+            {delta} {pool} command token{Math.abs(delta) === 1 ? "" : "s"}
+          </>
+        ),
+      };
+    }
+    case "hand": {
+      const what = HAND_NAME[fact.value ?? ""] ?? "cards";
+      return {
+        key,
+        tone: delta > 0 ? "good" : "info",
+        text: (
+          <>
+            {prefix}
+            {delta > 0 ? "drew" : "lost"} {Math.abs(delta)} {what}
+          </>
+        ),
+      };
+    }
+    case "units": {
+      const unit = resolveUnitName(fact.value ?? "");
+      return {
+        key,
+        tone: delta > 0 ? "good" : "bad",
+        text: (
+          <>
+            {prefix}
+            {delta > 0 ? "+" : ""}
+            {delta} {unit}
+          </>
+        ),
+      };
+    }
+    case "system_token":
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}placed a command token in{" "}
+            <Named kind="system" id={fact.value ?? ""} name={ctx.systemName(fact.value ?? "")} systemText={ctx.systemHint(fact.value ?? "")} />
+          </>
+        ),
+      };
+    case "relic":
+      return {
+        key,
+        tone: fact.detail === "lost" ? "bad" : "card",
+        text: (
+          <>
+            {prefix}
+            {fact.detail === "lost" ? "lost relic " : "gained relic "}
+            <b>{resolveCardName("CARD_PLAY_RELIC", fact.value ?? "")}</b>
+          </>
+        ),
+      };
+    case "frontier_card":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}kept <Named kind="explore" id={fact.value ?? ""} name={exploreCardName(fact.value)} />
+          </>
+        ),
+      };
+    case "leader": {
+      if (a.action === "leader.state" && fact.value === a.subject) return null;
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}
+            <Named kind="leader" id={fact.value ?? ""} name={getLeaderById(fact.value ?? "")?.name ?? prettifyId(fact.value ?? "")} />{" "}
+            is now {fact.detail ?? "updated"}
+          </>
+        ),
+      };
+    }
+    case "breakthrough_unlocked":
+      return { key, tone: "good", text: <>{prefix}unlocked their breakthrough</> };
+    case "strategy_card_gained":
+      if (a.action === "strategy.pick") return null;
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}took <Named kind="strategy" id={fact.value ?? ""} idMap={ctx.strategyCardIdMap} name={strategyCardName(ctx, fact.value)} />
+          </>
+        ),
+      };
+    case "law_enacted":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            Law in play: <Named kind="agenda" id={fact.value ?? ""} name={resolveAgendaName(fact.value ?? "")} />
+            {fact.detail && <> ({agendaOutcomeName(ctx, fact.detail)})</>}
+          </>
+        ),
+      };
+    case "law_repealed":
+      return {
+        key,
+        tone: "bad",
+        text: (
+          <>
+            Law repealed: <Named kind="agenda" id={fact.value ?? ""} name={resolveAgendaName(fact.value ?? "")} />
+          </>
+        ),
+      };
+    case "attached":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            <Named kind="explore" id={fact.value ?? ""} name={exploreCardName(fact.value)} /> attached to{" "}
+            <Named kind="planet" id={fact.detail ?? ""} name={resolvePlanetName(fact.detail ?? "")} />
+          </>
+        ),
+      };
+    case "objective_scored":
+      if (a.action === "objective.score" && fact.value === a.subject) return null;
+      return {
+        key,
+        tone: "good",
+        text: (
+          <>
+            {prefix}scored <Named kind="objective" id={fact.value ?? ""} name={resolveObjectiveName(fact.value ?? "")} />
+          </>
+        ),
+      };
+    case "effect":
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}effect active: {prettifyId(fact.value ?? "")}
+            {fact.detail && <> (until end of {prettifyId(fact.detail).toLowerCase()})</>}
+          </>
+        ),
+      };
+    case "speaker":
+      if (a.action === "speaker.set") return null;
+      return { key, tone: "info", text: <>{who ?? <b>{playerName(ctx, fact.player_id)}</b>} became Speaker</> };
+    case "custodians_removed":
+      return { key, tone: "good", text: <>The Custodians token was removed from Mecatol Rex</> };
+    case "winner":
+      return { key, tone: "good", text: <>{<b>{playerName(ctx, fact.player_id)}</b>} won the game</> };
     default:
       return null;
   }
 }
+
+const CC_POOL: Record<string, string> = {
+  tactical_cc: "tactical",
+  fleet_cc: "fleet",
+  strategic_cc: "strategy",
+};
+
+const HAND_NAME: Record<string, string> = {
+  action_cards: "action cards",
+  promissory_notes: "promissory notes",
+  secret_objectives: "secret objectives",
+};
 
 export function describeActivity(
   a: Activity,

@@ -280,4 +280,4 @@ def test_imperial_options_carry_progress_rows(registry: StaticDataRegistry) -> N
     assert prompt is not None
     rows = prompt["options"]["public_options"]
     assert [r["key"] for r in rows] == ["corner"]
-    assert set(rows[0]) == {"key", "progress", "threshold", "ready", "manual"}
+    assert set(rows[0]) == {"key", "progress", "threshold", "ready", "manual", "spend"}

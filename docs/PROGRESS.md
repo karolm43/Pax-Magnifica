@@ -628,6 +628,17 @@ Przeniesione do `PROGRESS_ARCHIWUM.md` (sekcja „Przeniesione z PROGRESS.md”)
   tylko w martwym `MapView`; przepisany na znacznik wyszukiwarki (`jumpToSearchHit` w `search/searchHits.ts`,
   wspólny ze skrótami 1–8) i podpięty w `PannableMapView`.
 
+## Feed Activity: komplet skutków
+
+Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.py liczy teraz też: commodities, żetony dowodzenia (pule), zmianę liczby kart w rękach (tylko liczby), jednostki (produkcja/straty), żetony w systemach, relikty, karty frontier, stany liderów, breakthrough, karty strategii, prawa (wejście/uchylenie), karty przyczepione do planet, zdobyte cele publiczne, efekty trwałe, mówcę, Custodians i zwycięzcę. Opisy: describeActivity.tsx. Reguła na przyszłość: ARCHITEKTURA_KODU.md §5 (lista kontrolna).
+
+## Płatność za cele „Spend…" wybiera gracz (cele publiczne, tajne, Imperial)
+
+- `core/objective_payment.py`: `ObjectivePayment` (planety, TG, pule żetonów, karty akcji, fragmenty), `auto_payment` (domyślna/podpowiedź), walidacja jawnej płatności, `spend_spec` (opis kosztu dla UI). `POST /status/score` i krok Imperial przyjmują opcjonalne `payment`.
+- Web-data: `publicOptions/secretOptions[].spend` (kind, goal, dostępne planety/pule/karty/fragmenty, `suggested`).
+- Frontend: `ObjectiveSpendForm` rozwija się pod wierszem celu („Pay & score"), startuje od podpowiedzi silnika.
+- Testy: `tests/test_objective_progress.py` (jawna płatność, za niska płatność, pule żetonów, fragmenty).
+
 ## Relikt z fragmentów + scena odsłonięcia reliktu (RULES.md 59.7–59.8)
 
 - Nowa akcja komponentu: purge 3 fragmentów -> relikt (`core/relic_forge.py`). Typ, liczba i nagroda z tekstu kart fragmentów (assety); Unknown = dżoker, min. 1 nie-Unknown; pusta talia = purge bez reliktu. API: `GET /relic/forge/options`, `POST /relic/forge`. UI: przycisk „Forge relic” w zakładce Relics doku ręki (`domains/relics/RelicForgePanel`).

@@ -12,6 +12,7 @@ Reguły tożsamości/kontroli planet (opcja A, jedno źródło prawdy) opisano w
 
 from __future__ import annotations
 
+from src.core.components import ComponentCategory, ExplorationDef
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -357,6 +358,9 @@ def edit_player(
         elif field == "relics" and isinstance(value, list):
             new_state.players[player_id] = player
             _set_player_relics(new_state, player_id, [str(r) for r in value])
+        elif field == "relic_fragments" and isinstance(value, list):
+            new_state.players[player_id] = player
+            _set_player_fragments(new_state, registry, player_id, [str(f) for f in value])
         else:
             setattr(player, field, value)
     new_state.players[player_id] = player
@@ -389,6 +393,51 @@ def _set_player_relics(state: GameState, player_id: str, relics: list[str]) -> N
                 other.exhausted_relics = [r for r in other.exhausted_relics if r != relic]
     player.relics = wanted
     player.exhausted_relics = [r for r in player.exhausted_relics if r in wanted]
+
+
+def _fragment_deck(registry: StaticDataRegistry, card_id: str) -> str | None:
+    """Talia eksploracji (typ karty, małymi literami), z której pochodzi fragment."""
+    card = registry.catalog.get(ComponentCategory.EXPLORATION, card_id)
+    if not isinstance(card, ExplorationDef) or not card.type:
+        return None
+    return card.type.lower()
+
+
+def _set_player_fragments(
+    state: GameState, registry: StaticDataRegistry, player_id: str, fragments: list[str]
+) -> None:
+    """God-Mode: ustawia fragmenty reliktów w strefie gracza (RULES.md 46, bez reguł).
+
+    Fragment to konkretna karta eksploracji (``crf1``, ``hrf3``…), więc dodany fragment znika z
+    talii (zasiewanej tu leniwie, żeby późniejsze zasianie go nie zdublowało), stosu odrzuconych,
+    purge i od innych graczy. Zdjęty wraca na spód swojej talii, żeby dało się go znów odkryć.
+    """
+    from src.core import exploration  # lokalnie: unikamy cyklu importów przez fracture
+
+    player = state.players[player_id]
+    wanted = list(dict.fromkeys(fragments))  # bez duplikatów, kolejność zachowana
+    decks = state.decks
+    for card_id in player.relic_fragments:
+        deck = _fragment_deck(registry, card_id)
+        if card_id in wanted or deck is None or deck not in decks.exploration_deck:
+            continue
+        if card_id not in decks.exploration_deck[deck]:
+            decks.exploration_deck[deck] = [*decks.exploration_deck[deck], card_id]
+    for card_id in wanted:
+        deck = _fragment_deck(registry, card_id)
+        if deck is not None:
+            exploration.seed_deck(state, registry, deck)
+            decks.exploration_deck[deck] = [
+                c for c in decks.exploration_deck[deck] if c != card_id
+            ]
+            decks.exploration_discard[deck] = [
+                c for c in decks.exploration_discard.get(deck, []) if c != card_id
+            ]
+        decks.purged = [c for c in decks.purged if c != card_id]
+        for other_id, other in state.players.items():
+            if other_id != player_id and card_id in other.relic_fragments:
+                other.relic_fragments = [c for c in other.relic_fragments if c != card_id]
+    player.relic_fragments = wanted
 
 
 def _toggle_in_list(items: list[str], value: str) -> list[str]:

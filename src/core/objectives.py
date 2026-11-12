@@ -22,7 +22,7 @@ from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ObjectivesState
 from src.core.hex_grid import HexGrid
-from src.core.objective_payment import pay_for_objective
+from src.core.objective_payment import ObjectivePayment, pay_for_objective
 from src.core.objective_progress import evaluate
 from src.core.registry import StaticDataRegistry
 from src.core.sources import (
@@ -349,10 +349,12 @@ def score_public(
     objective_id: str,
     *,
     ignore_phase: bool = False,
+    payment: ObjectivePayment | None = None,
 ) -> GameState:
     """Gracz zdobywa odkryty cel publiczny (bez limitu na fazę — to sprawdza wołający).
 
     ``ignore_phase=True`` (primary Imperial) pozwala zdobyć cel poza fazą statusu.
+    ``payment`` = jawna płatność za cele „Spend…" (``None`` => dobiera silnik).
 
     Raises:
         ValueError: Gdy gracz/cel nieznany, cel nieodkryty, już zdobyty przez gracza,
@@ -375,7 +377,7 @@ def score_public(
             "in your home system."
         )
     _ensure_requirements(state, registry, grid, player_id, objective_id)
-    new_state = pay_for_objective(state, registry, grid, player_id, objective_id)
+    new_state = pay_for_objective(state, registry, grid, player_id, objective_id, payment)
     record_public_score(new_state, player_id, objective_id)
     award_points(new_state, player_id, definition.points or 1)
     return new_state
@@ -387,6 +389,7 @@ def score_secret(
     grid: HexGrid,
     player_id: str,
     objective_id: str,
+    payment: ObjectivePayment | None = None,
 ) -> GameState:
     """Gracz ujawnia i zdobywa tajny cel z ręki (cel fazy statusu).
 
@@ -404,7 +407,7 @@ def score_secret(
     if definition.phase != STATUS_PHASE_LABEL:
         raise ValueError("This secret objective is not scored in the status phase.")
     _ensure_requirements(state, registry, grid, player_id, objective_id)
-    new_state = pay_for_objective(state, registry, grid, player_id, objective_id)
+    new_state = pay_for_objective(state, registry, grid, player_id, objective_id, payment)
     secret_objectives.score(new_state, player_id, objective_id)
     award_points(new_state, player_id, definition.points or 1)
     return new_state

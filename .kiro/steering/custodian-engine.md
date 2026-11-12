@@ -60,6 +60,8 @@ design system `frontend/src/ds/`. QA: pytest + hypothesis, ruff, mypy --strict.
 - Punkty centralne (RULES 43.1a): płatność, TG, żetony, exhaust, kontrola planet, jednostki, technologie, VP mają JEDNĄ funkcję w `core/`;
   wyjątki tylko z komentarzem `HOOK-CANDIDATE`.
 - Nowa mechanika: reguła w `rules/` => funkcja w `core/` + test => endpoint w `api/routers/`.
+- Każdy nowy widoczny skutek (zasób, komponent, stan) musi trafić do feedu Activity (panel historii):
+  fakt w `core/activity.py` + opis w `ActivityPanel/describeActivity.tsx` + test w `tests/test_activity.py`.
 - Rozmiar pliku to miękka wskazówka (~500 linii); dziel tematycznie, nie na siłę.
 
 ## Kości

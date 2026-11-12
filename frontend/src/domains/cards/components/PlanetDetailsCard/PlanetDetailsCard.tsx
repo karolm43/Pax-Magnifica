@@ -99,7 +99,10 @@ export function PlanetDetailsCard({ planetId, planetTile }: Props) {
   if (!planetData) return null;
 
   const attachments = planetTile?.attachments ?? [];
-  const modifiers = getAttachmentModifiers(attachments);
+  const modifiers = getAttachmentModifiers(
+    attachments,
+    planetData.techSpecialties ?? [],
+  );
   const techSpecialties = [
     ...(planetData.techSpecialties || []),
     ...modifiers.techSpecialties,

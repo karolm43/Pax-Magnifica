@@ -4,6 +4,7 @@ import {
 } from "@/domains/cards/model/cardPoolBrowser";
 import { promissoryNotes as ALL_PROMISSORY_NOTES } from "@/entities/data/promissoryNotes";
 import { relics as ALL_RELICS } from "@/entities/data/relics";
+import { explorations as ALL_EXPLORATIONS } from "@/entities/data/explorations";
 import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
 
 /** Opcja listy wyboru (Select): wartość = id karty/komponentu, etykieta = nazwa. */
@@ -58,6 +59,25 @@ export function promissoryNoteOptions(): CardOption[] {
     out.push({ value: note.alias, label: note.name });
   }
   return out.sort(byLabel);
+}
+
+/** Typ fragmentu reliktu = talia eksploracji, z której pochodzi karta. */
+export type FragmentKind = { type: string; label: string; ids: string[] };
+
+/**
+ * Fragmenty reliktów pogrupowane wg typu (oficjalne źródła). Każdy fragment to osobna karta
+ * eksploracji (crf1, hrf3…), więc God-Mode dodaje konkretne id - pierwsze wolne danego typu.
+ */
+export function relicFragmentKinds(): FragmentKind[] {
+  const byType = new Map<string, FragmentKind>();
+  for (const card of ALL_EXPLORATIONS) {
+    if (card.resolution !== "Fragment" || !isOfficialSource(card.source)) continue;
+    const type = card.type ?? card.name;
+    const kind = byType.get(type) ?? { type, label: card.name, ids: [] };
+    if (!kind.ids.includes(card.id)) kind.ids.push(card.id);
+    byType.set(type, kind);
+  }
+  return [...byType.values()].sort((a, b) => naturalCollator.compare(a.label, b.label));
 }
 
 /** Opcje relikwii (oficjalne źródła), nazwa → alias. */

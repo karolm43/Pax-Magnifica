@@ -3,7 +3,7 @@ import { IconAlertTriangle, IconArrowLeft, IconCheck } from "@tabler/icons-react
 import { Button } from "@/ds";
 import { publicObjectives } from "@/entities/data/publicObjectives";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
-import type { StatusObjectiveOption } from "@/entities/data/types";
+import type { ObjectivePaymentBody, StatusObjectiveOption } from "@/entities/data/types";
 import { ObjectiveRow } from "@/domains/game-shell/components/StatusPhasePanel/StatusPhasePanel";
 import statusStyles from "@/domains/game-shell/components/StatusPhasePanel/StatusPhasePanel.module.css";
 import { ConfirmButton, Hint, PromptShell, Section } from "../PromptParts";
@@ -74,7 +74,8 @@ export function ImperialPrimary({ prompt, shell, busy, submit }: PrimaryViewProp
   const [giveBack, setGiveBack] = useState<string | null>(null);
   const blocked = overLimit && giveBack == null;
   const rows = [...optionsOf(prompt)].sort((a, b) => Number(b.ready) - Number(a.ready));
-  const send = (objective: string | null) => submit({ objective, return: giveBack });
+  const send = (objective: string | null, payment?: ObjectivePaymentBody) =>
+    submit({ objective, return: giveBack, ...(payment ? { payment } : {}) });
   return (
     <PromptShell
       hue={shell.hue}
@@ -139,7 +140,7 @@ export function ImperialPrimary({ prompt, shell, busy, submit }: PrimaryViewProp
               stage={points >= 2 ? "blue" : "orange"}
               scored={false}
               busy={busy || blocked}
-              onScore={() => send(option.key)}
+              onScore={(pay) => send(option.key, pay)}
             />
           );
         })}

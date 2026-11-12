@@ -48,6 +48,7 @@ async def post_score(
             request.player_id,
             request.kind,
             request.objective_id,
+            request.payment,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

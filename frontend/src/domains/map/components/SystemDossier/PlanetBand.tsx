@@ -151,7 +151,10 @@ export function PlanetBand({
         attacker,
       )
     : null;
-  const bonus = getAttachmentModifiers(planetTile.attachments ?? []);
+  const bonus = getAttachmentModifiers(
+    planetTile.attachments ?? [],
+    planet.techSpecialties ?? [],
+  );
   const traits = planetTraits(planet);
 
   return (

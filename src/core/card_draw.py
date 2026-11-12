@@ -55,6 +55,22 @@ def discard_action_cards(state: GameState, player_id: str, count: int) -> list[s
     return discarded
 
 
+def discard_chosen_action_cards(state: GameState, player_id: str, card_ids: list[str]) -> None:
+    """Odrzuca WSKAZANE karty akcji z ręki gracza (mutuje; koszt celów typu „odrzuć karty”).
+
+    Raises:
+        ValueError: Karty nie ma w ręce gracza (albo wskazano ją dwa razy).
+    """
+    hand = list(state.players[player_id].private.action_cards)
+    for card_id in card_ids:
+        if card_id not in hand:
+            raise ValueError(f"You do not have the action card '{card_id}' in hand.")
+        hand.remove(card_id)
+    state.players[player_id].private.action_cards = hand
+    state.decks.action_card_discard.extend(card_ids)
+    _record_discards(state, player_id, list(card_ids))
+
+
 def _record_discards(state: GameState, player_id: str, cards: list[str]) -> None:
     """Zapisuje ślad odrzucenia (okno „po odrzuceniu karty akcji”) i emituje zdarzenie (mutuje)."""
     for card in cards:

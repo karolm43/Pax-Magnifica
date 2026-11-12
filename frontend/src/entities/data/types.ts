@@ -625,12 +625,39 @@ export type EpilogueData = {
   result: EpilogueChoice | null;
 };
 
+/** Płatność za cel „Spend…" wysyłana do backendu (snake_case jak w API). */
+export type ObjectivePaymentBody = {
+  planets?: string[];
+  trade_goods?: number;
+  resource_planets?: string[];
+  influence_planets?: string[];
+  tokens?: Record<string, number>;
+  cards?: string[];
+  fragments?: string[];
+};
+
+/** Koszt celu „Spend…": co gracz może wydać + podpowiedź silnika (`suggested`). */
+export type ObjectiveSpend = {
+  kind: "trade_goods" | "tokens" | "resources" | "influence" | "mixed" | "cards" | "fragments";
+  goal: number;
+  tradeGoods: number;
+  planets?: Record<string, number>;
+  resourcePlanets?: Record<string, number>;
+  influencePlanets?: Record<string, number>;
+  pools?: Record<string, number>;
+  cards?: string[];
+  fragments?: string[];
+  suggested: ObjectivePaymentBody | null;
+};
+
 export type StatusObjectiveOption = {
   key: string;
   progress: number | null;
   threshold: number;
   ready: boolean;
   manual: boolean;
+  /** Tylko cele z kosztem (Spend…): dane do okna wyboru płatności. */
+  spend?: ObjectiveSpend | null;
 };
 
 export type StatusStepName = "SCORE_OBJECTIVES" | "REDISTRIBUTE" | "COMPLETE";

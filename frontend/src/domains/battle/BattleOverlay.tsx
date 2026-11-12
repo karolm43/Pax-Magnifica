@@ -44,7 +44,11 @@ import { BattleCenter } from "./BattleCenter";
 import type { HoldState } from "@/domains/dice/HoldRollButton";
 import { DiceTray } from "./DiceTray";
 import { DicePool } from "./DicePool";
-import { READ_MS } from "./diceRoll";
+import { READ_MS, countDice, volleyStartMs } from "./diceRoll";
+import { useDiceHold } from "@/domains/dice/useDiceHold";
+
+/** Po starcie strzałów: odpowiedź obrońcy (1,5 s) + lot pocisków, zanim pokażemy straty. */
+const HOLD_TAIL_MS = 3200;
 import {
   isBattleMuted,
   playBattleSound,
@@ -781,6 +785,28 @@ function Battlefield({ view }: { view: BattleView }) {
  * widać życie stron, wartości bojowe, salwy z animacją pocisków i wynik. Rzuty i straty
  * rozstrzyga silnik; okno tylko prowadzi i animuje. „Hide" chowa je na chwilę.
  */
+/** Jak długo trzymać stan sprzed rzutu: kości na stole + salwa strzałów obu stron. */
+function battleHoldMs(view: BattleView): number {
+  const entry = view.log[view.log.length - 1];
+  if (!entry || entry.phase === "RETREAT" || !view.attacker || !view.defender)
+    return 0;
+  const left = countDice(entry.rolls[view.attacker.faction] ?? []);
+  const right = countDice(entry.rolls[view.defender.faction] ?? []);
+  if (left + right === 0) return 0;
+  return volleyStartMs(left, right) + HOLD_TAIL_MS;
+}
+
+/** Widok z jednostkami i wynikiem sprzed rzutu; dziennik zostaje żywy (rusza animacja kości). */
+function freezeBattleSides(live: BattleView, before: BattleView): BattleView {
+  return {
+    ...live,
+    attacker: before.attacker,
+    defender: before.defender,
+    winner: before.winner,
+    outcome: before.outcome,
+  };
+}
+
 export function BattleOverlay() {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
@@ -788,9 +814,16 @@ export function BattleOverlay() {
   const hidden = useAppStore((s) => s.battleHidden);
   const setHidden = useAppStore((s) => s.setBattleHidden);
   const inCombat = gameState?.activeCombat != null;
-  const { data: view } = useBattle(inCombat);
+  const { data: live } = useBattle(inCombat);
+  // Straty z rzutu (np. auto-przypisane neutralnym albo AFB) pokazujemy dopiero po kościach i strzałach.
+  const { view, holding } = useDiceHold(live, battleHoldMs, freezeBattleSides);
 
-  if (!inCombat || !view?.active || !view.attacker || !view.defender)
+  if (
+    (!inCombat && !holding) ||
+    !view?.active ||
+    !view.attacker ||
+    !view.defender
+  )
     return null;
 
   if (hidden) {

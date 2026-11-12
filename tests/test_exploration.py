@@ -16,7 +16,12 @@ from src.core.game_state import (
     TacticalStep,
 )
 from src.core.hex_grid import HexGrid
-from src.core.planet_stats import PlanetStats, effective_planets, planet_stats
+from src.core.planet_stats import (
+    PlanetStats,
+    attachment_defs,
+    effective_planets,
+    planet_stats,
+)
 from src.core.registry import StaticDataRegistry
 
 # Kafelek 107: tiamat (cultural) i hercalor (industrial). Planeta dwucechowa: lazulrex.
@@ -284,6 +289,24 @@ def test_research_facility_gives_specialty_then_bonus_instead(
     second = planet_stats(state, registry, _PLAIN)
     assert second is not None and second.tech_specialties == ("biotic",)
     assert (second.resources, second.influence) == (base.resources + 1, base.influence + 1)
+    # Żeton na mapie: druga fabryka to wariant „stat” z assetów (grafika +1/+1), jak w AsyncTI4.
+    assert [a.id for a in attachment_defs(state, registry, _PLAIN)] == [
+        "biotic",
+        "cyberneticstat",
+    ]
+
+
+def test_research_facility_on_planet_with_specialty_uses_stat_token(
+    registry: StaticDataRegistry,
+) -> None:
+    """Archon Vail (propulsion) + Warfare Research Facility: +1/+1 i żeton ``warfarestat``."""
+    base = registry.planets["archonvail"]
+    state = _state()
+    state.planet_attachments = {"archonvail": [_card_id(registry, "Warfare Research Facility")]}
+    stats = planet_stats(state, registry, "archonvail")
+    assert stats is not None and stats.tech_specialties == ("propulsion",)
+    assert (stats.resources, stats.influence) == (base.resources + 1, base.influence + 1)
+    assert [a.id for a in attachment_defs(state, registry, "archonvail")] == ["warfarestat"]
 
 
 def test_attachments_feed_production_budget(registry: StaticDataRegistry) -> None:

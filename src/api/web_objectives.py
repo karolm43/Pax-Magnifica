@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import deck_piles, fleet_pool, objective_progress
+from src.core import deck_piles, fleet_pool, objective_payment, objective_progress
 from src.core import objectives as obj
 from src.core.game_state import GameState, PlayerState, StatusStep
 from src.core.hex_grid import HexGrid
@@ -267,6 +267,8 @@ def build_status_payload(
                 or obj.controls_home_planets(state, registry, pid)
             ),
             "manual": value is None,
+            # Koszt celów „Spend…" (co można wydać + podpowiedź silnika) dla okna płatności.
+            "spend": objective_payment.spend_spec(state, registry, grid, pid, oid),
         }
 
     def public_options(pid: str) -> list[dict[str, Any]]:

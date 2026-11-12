@@ -39,6 +39,7 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.models import UnitDef
+from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
 from src.core.unit_catalog import is_space_unit
@@ -500,7 +501,34 @@ def bombard(
             units = _ground_units(new_state, grid, registry, planet, defender)
             if sum(u.count + u.sustainable for u in units.values()) > 0:
                 inv.bombard_pending[planet] = entry["hits"]
+                if defender == NEUTRAL_PLAYER_ID:
+                    _auto_assign_neutral_bombard(new_state, grid, registry, planet)
     return new_state
+
+
+def _auto_assign_neutral_bombard(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, planet: str
+) -> None:
+    """Straty neutralnych po bombardowaniu przypisuje silnik (R_neutral_units); MUTUJE state."""
+    inv = _inv(state)
+    units = _ground_units(state, grid, registry, planet, NEUTRAL_PLAYER_ID)
+    required = required_bombard_hits(state, grid, registry, planet)
+    costs = {
+        bt: (registry.units[u.unit_id].cost or 0.0)
+        for bt, u in units.items()
+        if u.unit_id in registry.units
+    }
+    sustain, destroy, destroy_damaged = battle.neutral_loss_choice(
+        list(units.values()), costs, required
+    )
+    plan = battle.plan_losses(units, sustain, destroy, destroy_damaged, required)
+    battle.apply_losses(state, inv.position, planet, NEUTRAL_PLAYER_ID, units, plan)
+    for entry in reversed(inv.log):
+        if entry.get("phase") == "BOMBARDMENT" and entry.get("planet") == planet:
+            entry["losses"] = battle.losses_of(units, plan)
+            entry["sustained"] = battle.sustained_of(plan, sustain)
+            break
+    del inv.bombard_pending[planet]
 
 
 def _ground_units(

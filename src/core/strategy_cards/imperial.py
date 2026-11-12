@@ -18,6 +18,7 @@ from src.core import objective_progress, objectives, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.map_string import MECATOL_SYSTEM_ID
+from src.core.objective_payment import ObjectivePayment, spend_spec
 from src.core.secret_objectives import draw as draw_secret
 from src.core.secret_objectives import over_limit_after_draw
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
@@ -63,8 +64,12 @@ def _on_step(
         raise ValueError("You control Mecatol Rex - you gain a victory point, nothing to return.")
 
     if objective is not None:
+        raw_payment = payload.get("payment")
         scored = objectives.score_public(
-            state, ctx.registry, ctx.require_grid(), owner_id, objective, ignore_phase=True
+            state, ctx.registry, ctx.require_grid(), owner_id, objective, ignore_phase=True,
+            payment=(
+                ObjectivePayment.model_validate(raw_payment) if raw_payment is not None else None
+            ),
         )
         _adopt(state, scored)
         draft["scored"] = objective
@@ -145,6 +150,9 @@ def _public_options(state: GameState, ctx: CardContext, player_id: str) -> list[
                 "threshold": goal,
                 "ready": ok and home,
                 "manual": value is None,
+                "spend": spend_spec(
+                    state, ctx.registry, ctx.require_grid(), player_id, objective_id
+                ),
             }
         )
     return options

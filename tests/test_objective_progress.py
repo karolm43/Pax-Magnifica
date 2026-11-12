@@ -181,3 +181,62 @@ def test_pay_for_resource_objective_exhausts_planets(registry: StaticDataRegistr
     exhausted = paid.players["p1"].exhausted_planets
     spent = sum(registry.planets[p].resources for p in exhausted)
     assert exhausted and spent + (8 - paid.players["p1"].trade_goods) >= 8
+
+
+# ------------------------------------------------------------------ jawna płatność gracza
+
+
+def test_explicit_payment_uses_chosen_planets(registry: StaticDataRegistry) -> None:
+    big = [pid for pid, p in registry.planets.items() if p.resources >= 2][:3]
+    state = _state(a=SystemState(position="a", system_id="x",
+                                 planet_owners=dict.fromkeys(big, "p1")))
+    state.players["p1"].trade_goods = 8
+    chosen = big[-1]
+    need = objective_progress.threshold("monument", state)
+    pay = objective_payment.ObjectivePayment(
+        planets=[chosen], trade_goods=max(0, need - registry.planets[chosen].resources)
+    )
+    paid = objective_payment.pay_for_objective(
+        state, registry, HexGrid(), "p1", "monument", pay
+    )
+    assert paid.players["p1"].exhausted_planets == [chosen]
+    assert paid.players["p1"].trade_goods == 8 - pay.trade_goods
+
+
+def test_explicit_payment_too_low_is_rejected(registry: StaticDataRegistry) -> None:
+    big = next(pid for pid, p in registry.planets.items() if p.resources >= 2)
+    state = _state(a=SystemState(position="a", system_id="x", planet_owners={big: "p1"}))
+    state.players["p1"].trade_goods = 8
+    with pytest.raises(ValueError, match="too low"):
+        objective_payment.pay_for_objective(
+            state, registry, HexGrid(), "p1", "monument",
+            objective_payment.ObjectivePayment(planets=[big]),
+        )
+
+
+def test_explicit_token_payment_picks_pools(registry: StaticDataRegistry) -> None:
+    state = _state()
+    player = state.players["p1"]
+    player.tactical_cc, player.fleet_cc, player.strategic_cc = 3, 3, 3
+    goal = objective_progress.threshold("lead", state)
+    pay = objective_payment.ObjectivePayment(tokens={"fleet": goal})
+    paid = objective_payment.pay_for_objective(state, registry, HexGrid(), "p1", "lead", pay)
+    assert paid.players["p1"].fleet_cc == 3 - goal
+    assert paid.players["p1"].tactical_cc == 3
+    with pytest.raises(ValueError, match="exactly"):
+        objective_payment.pay_for_objective(
+            state, registry, HexGrid(), "p1", "lead",
+            objective_payment.ObjectivePayment(tokens={"fleet": goal - 1}),
+        )
+
+
+def test_explicit_fragment_choice_and_spend_spec(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.players["p1"].relic_fragments = ["crf1", "hrf1", "irf1"]
+    pay = objective_payment.ObjectivePayment(fragments=["hrf1", "irf1"])
+    paid = objective_payment.pay_for_objective(state, registry, HexGrid(), "p1", "dhw", pay)
+    assert paid.players["p1"].relic_fragments == ["crf1"]
+    spec = objective_payment.spend_spec(state, registry, HexGrid(), "p1", "dhw")
+    assert spec is not None
+    assert spec["kind"] == "fragments" and spec["fragments"] == ["crf1", "hrf1", "irf1"]
+    assert objective_payment.spend_spec(state, registry, HexGrid(), "p1", "ds") is None

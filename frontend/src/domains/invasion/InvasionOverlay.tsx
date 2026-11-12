@@ -27,6 +27,7 @@ import {
   type DiceThrowInput,
 } from "@/domains/dice/diceStage";
 import { countDice, volleyStartMs } from "@/domains/battle/diceRoll";
+import { useDiceHold } from "@/domains/dice/useDiceHold";
 import { CustodiansClaim } from "./CustodiansClaim";
 import { InvasionPlanetCard } from "./InvasionPlanetCard";
 import { usePlayerLook } from "./invasionUi";
@@ -584,6 +585,33 @@ function InvasionWindow({ view }: { view: InvasionView }) {
   );
 }
 
+/** Czas trzymania sił sprzed rzutu: kości na stole + salwa efektów (jak `rollBatch`). */
+function invasionHoldMs(view: InvasionView, fromLen: number): number {
+  const fresh = view.log.slice(fromLen).filter((e) => !e.passed);
+  const dice = (kind: "BOMBARDMENT" | "DEFENSE") =>
+    fresh
+      .filter((e) => e.phase === kind)
+      .flatMap((e) => e.rolls)
+      .reduce((n, r) => n + r.dice.length, 0);
+  const bomb = dice("BOMBARDMENT");
+  const def = dice("DEFENSE");
+  return bomb + def > 0 ? volleyStartMs(bomb, def) + 1800 : 0;
+}
+
+/** Widok z siłami naziemnymi sprzed rzutu; reszta (dziennik, panele) żywa. */
+function freezeInvasionForces(
+  live: InvasionView,
+  before: InvasionView,
+): InvasionView {
+  return {
+    ...live,
+    planets: live.planets.map((p) => {
+      const old = before.planets.find((o) => o.planet === p.planet);
+      return old ? { ...p, forces: old.forces } : p;
+    }),
+  };
+}
+
 /**
  * Okno INWAZJI (RULES.md 40) — pełnoekranowe, pojawia się samo, gdy trwa inwazja
  * (``gameState.activeInvasion``). Pięć podkroków: Bombardment → Commit → Space Cannon Defense →
@@ -595,7 +623,9 @@ export function InvasionOverlay() {
   const { data: gameState } = useGameState(gameId);
   const queryClient = useQueryClient();
   const active = gameState?.activeInvasion != null;
-  const { data: view } = useInvasion(active);
+  const { data: live } = useInvasion(active);
+  // Straty od bombardowania/Space Cannon pokazujemy dopiero po kościach i salwie efektów.
+  const { view } = useDiceHold(live, invasionHoldMs, freezeInvasionForces);
 
   // Każda zmiana stanu gry (walka zamknięta, ruch innego gracza…) odświeża widok inwazji.
   useEffect(() => {

@@ -44,10 +44,39 @@ class EffectivePlanets:
     planets: Mapping[str, PlanetDef]
 
 
+_STAT_SUFFIX = "stat"
+
+
 def attachment_defs(
     state: GameState, registry: StaticDataRegistry, planet_id: str
 ) -> list[AttachmentDef]:
-    """Definicje attachmentów przyczepionych do planety (kolejność przyczepienia)."""
+    """Definicje attachmentów przyczepionych do planety (kolejność przyczepienia).
+
+    Reguła Research Facility jak w AsyncTI4: attachment ze specjalnością na planecie, która JUŻ
+    ma specjalność (z danych albo z wcześniejszego attachmentu), staje się wariantem ``<id>stat``
+    z assetów (grafika i modyfikatory +1/+1), np. ``warfare`` -> ``warfarestat``. Brak wariantu
+    w danych: zostaje oryginał, a +1/+1 dolicza ``planet_stats``.
+    """
+    planet = registry.planets.get(planet_id)
+    has_specialty = bool(planet is not None and planet.tech_specialties)
+    result: list[AttachmentDef] = []
+    for attachment in _raw_attachment_defs(state, registry, planet_id):
+        if attachment.tech_speciality:
+            if has_specialty:
+                stat = registry.catalog.get(
+                    ComponentCategory.ATTACHMENT, attachment.id + _STAT_SUFFIX
+                )
+                if isinstance(stat, AttachmentDef):
+                    attachment = stat
+            has_specialty = True
+        result.append(attachment)
+    return result
+
+
+def _raw_attachment_defs(
+    state: GameState, registry: StaticDataRegistry, planet_id: str
+) -> list[AttachmentDef]:
+    """Definicje attachmentów wprost z kart (bez podmiany na wariant ``stat``)."""
     result: list[AttachmentDef] = []
     for card_id in state.planet_attachments.get(planet_id, []):
         card = registry.catalog.get(ComponentCategory.EXPLORATION, card_id)
@@ -79,12 +108,16 @@ def planet_stats(
     for attachment in attachment_defs(state, registry, planet_id):
         resources += attachment.resources_modifier
         influence += attachment.influence_modifier
-        for specialty in attachment.tech_speciality:
-            if specialties:
-                resources += 1
-                influence += 1
-            else:
-                specialties.append(specialty.lower())
+        if not attachment.tech_speciality:
+            continue  # w tym wariant ``stat`` - jego +1/+1 są już w modyfikatorach wyżej
+        # Jedna karta daje JEDNĄ specjalność (karty wielokolorowe: „dowolnego koloru”), więc
+        # warunek „już ma specjalność” sprawdzamy raz na attachment, nie na każdy kolor.
+        # Tu trafia tylko attachment BEZ wariantu ``stat`` w danych - +1/+1 liczymy ręcznie.
+        if specialties:
+            resources += 1
+            influence += 1
+        else:
+            specialties.extend(s.lower() for s in attachment.tech_speciality)
     return PlanetStats(resources, influence, tuple(specialties))
 
 

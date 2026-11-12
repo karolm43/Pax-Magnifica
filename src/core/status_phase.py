@@ -47,6 +47,7 @@ from src.core.game_state import (
     WindowType,
 )
 from src.core.hex_grid import HexGrid
+from src.core.objective_payment import ObjectivePayment
 from src.core.registry import StaticDataRegistry
 
 # R_status_phase, krok 5: „Each player gains two command tokens".
@@ -90,6 +91,7 @@ def score_objective(
     player_id: str,
     kind: str,
     objective_id: str,
+    payment: ObjectivePayment | None = None,
 ) -> GameState:
     """Aktywny gracz zdobywa cel w kroku 1: ``kind`` = ``"public"`` albo ``"secret"``.
 
@@ -110,13 +112,17 @@ def score_objective(
     if kind == "public":
         if player_id in status.scored_public:
             raise ValueError("You have already scored a public objective this phase.")
-        new_state = objectives.score_public(state, registry, grid, player_id, objective_id)
+        new_state = objectives.score_public(
+            state, registry, grid, player_id, objective_id, payment=payment
+        )
         assert new_state.status is not None
         new_state.status.scored_public.append(player_id)
     elif kind == "secret":
         if player_id in status.scored_secret:
             raise ValueError("You have already scored a secret objective this phase.")
-        new_state = objectives.score_secret(state, registry, grid, player_id, objective_id)
+        new_state = objectives.score_secret(
+            state, registry, grid, player_id, objective_id, payment
+        )
         assert new_state.status is not None
         new_state.status.scored_secret.append(player_id)
     else:

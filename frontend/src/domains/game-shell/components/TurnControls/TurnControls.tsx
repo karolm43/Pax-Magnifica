@@ -53,6 +53,7 @@ import { ActionCardPlayModal } from "./ActionCardPlayModal";
 import { TechnologyUseModal } from "./TechnologyUseModal";
 import { LegendaryUseModal } from "./LegendaryUseModal";
 import { useTechnologyAbilities } from "@/api/useTechnology";
+import { useForgeOptions } from "@/api/useRelics";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import styles from "./TurnControls.module.css";
 
@@ -119,6 +120,7 @@ export function TurnControls() {
     passTurn,
     endTurn,
     playComponentAction,
+    forgeRelic,
     nextPlayer,
     phaseStep,
     nextPhase,
@@ -302,6 +304,12 @@ export function TurnControls() {
     (p) => p.color === active.color,
   );
   const { data: freeAbilities } = useTechnologyAbilities(
+    active.discordId ?? null,
+    componentOpen,
+  );
+  // Fragmenty reliktów (RULES.md 59.7): „Purge 3 fragments -> relic" to akcja komponentu.
+  // Silnik liczy legalne zestawy (typ, dżokery Unknown, tura); pokazujemy typy, które gracz ma.
+  const { data: forgeOptions } = useForgeOptions(
     active.discordId ?? null,
     componentOpen,
   );
@@ -804,6 +812,49 @@ export function TurnControls() {
                 </button>
               );
             })}
+
+            {/* Fragmenty reliktów -> relikt (RULES.md 59.7). Nieaktywne z powodem w podpowiedzi,
+                gdy zestaw nie jest legalny (za mało fragmentów itd.). */}
+            {(forgeOptions ?? [])
+              .filter((opt) => opt.owned + opt.wildcards > 0)
+              .map((opt) => {
+                const ready = opt.reason === null && opt.fragments.length > 0;
+                return (
+                  <button
+                    key={`fragments:${opt.kind}`}
+                    type="button"
+                    role="listitem"
+                    className={styles.compItem}
+                    disabled={busy || !ready}
+                    title={
+                      opt.reason ??
+                      (opt.deckEmpty
+                        ? "The relic deck is empty - you purge the fragments without gaining a relic."
+                        : undefined)
+                    }
+                    onClick={() =>
+                      run(async () => {
+                        try {
+                          await forgeRelic(active.discordId ?? "", opt.fragments);
+                        } catch {
+                          // powód 422 pokazuje baner (postRaw)
+                        } finally {
+                          setComponentOpen(false);
+                        }
+                      })
+                    }
+                  >
+                    <IconDiamond size={17} aria-hidden="true" />
+                    <span className={styles.compItemName}>
+                      Purge {opt.needed} {opt.kind} fragments to gain a relic
+                    </span>
+                    <small className={styles.compItemTag}>
+                      {opt.owned}
+                      {opt.wildcards > 0 ? ` + ${opt.wildcards} unknown` : ""} / {opt.needed}
+                    </small>
+                  </button>
+                );
+              })}
 
             {/* Zawsze dostępna opcja awaryjna — źródło akcji spoza listy (np. karta
                 eksploracji / promissory note, albo komponent, którego jeszcze nie
