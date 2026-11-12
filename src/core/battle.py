@@ -25,7 +25,7 @@ from src.core import (
 )
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
-from src.core.dice import DIE_SIDES, count_hits, record_table_roll, roll_dice
+from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll, roll_dice
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ActiveCombat,
@@ -67,10 +67,14 @@ class CombatUnit:
     # Sustain Damage NADANY przez komponent jednostce bez własnego (Metali Void Shielding): ile
     # egzemplarzy może go teraz użyć. Łącznie wolno użyć najwyżej 1 takiego (zob. ``plan_losses``).
     granted: int = 0
+    # Dodatkowe kości dla całej grupy (nie na egzemplarz) — agent Letnev (RULES.md 62.2).
+    bonus_dice: int = 0
+    # +X do wyników kości JEDNEGO egzemplarza (pierwszego w grupie) — Gravleash Maneuvers.
+    single_bonus: int = 0
 
     @property
     def total_dice(self) -> int:
-        return self.count * self.dice_per_unit
+        return self.count * self.dice_per_unit + self.bonus_dice
 
     @property
     def sustainable(self) -> int:
@@ -143,6 +147,12 @@ def combat_units(
         extra_dice = rules_hooks.modify(
             rules_hooks.POINT_COMBAT_EXTRA_DICE, state, player_id, 0, hook_ctx
         )
+        bonus_dice = rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_BONUS_DICE, state, player_id, 0, hook_ctx
+        )
+        single_bonus = rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_SINGLE_UNIT_BONUS, state, player_id, 0, hook_ctx
+        )
         units.append(
             CombatUnit(
                 base_type=base_type,
@@ -167,6 +177,8 @@ def combat_units(
                     )
                     else 0
                 ),
+                bonus_dice=max(0, bonus_dice),
+                single_bonus=single_bonus,
             )
         )
     return units
@@ -196,11 +208,19 @@ def required_hits(
     combat = _combat(state)
     pending = combat.pending_hits.get(player_id, 0)
     units = side_units(state, grid, registry, player_id)
+    cancels = sustain_cancels(state, player_id)
     # Nadany Sustain Damage (Void Shielding) pochłania najwyżej 1 dodatkowe trafienie naraz.
-    absorbable = sum(u.count + (u.sustainable if u.sustain else 0) for u in units) + (
-        1 if any(u.granted > 0 for u in units) else 0
-    )
+    absorbable = sum(
+        u.count + (cancels * u.sustainable if u.sustain else 0) for u in units
+    ) + (cancels if any(u.granted > 0 for u in units) else 0)
     return min(pending, absorbable)
+
+
+def sustain_cancels(state: GameState, player_id: str) -> int:
+    """Ile trafień anuluje jedno użycie Sustain Damage gracza (1; Non-Euclidean Shielding: 2)."""
+    return 1 + max(
+        0, rules_hooks.modify(rules_hooks.POINT_COMBAT_SUSTAIN_CANCELS, state, player_id, 0, {})
+    )
 
 
 def _combat(state: GameState) -> ActiveCombat:
@@ -320,6 +340,9 @@ def resume_after_triggers(
     if resume.startswith("round_end:"):
         combat.step = CombatStep(resume.split(":", 1)[1])
         return _finish_round(new_state, grid, registry)
+    if resume == "round_start":
+        _open_round(new_state, grid)
+        return new_state
     combat.step = CombatStep.ROLL
     return _after_start(new_state, grid, registry)
 
@@ -502,14 +525,24 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
                 rules_hooks.POINT_COMBAT_REROLL_MISSES, state, pid, {"base_type": unit.base_type}
             ):
                 new_state, dice = _reroll_misses(new_state, unit, dice)
-            hits = count_hits([d + unit.modifier for d in dice], unit.base_hits_on)
+            # Gravleash: +X tylko do kości pierwszego egzemplarza (RULES.md 62.2).
+            bonus = [
+                unit.single_bonus if i < unit.dice_per_unit else 0 for i in range(len(dice))
+            ]
+            hits = sum(
+                1 for d, b in zip(dice, bonus, strict=False)
+                if d + unit.modifier + b >= unit.base_hits_on
+            )
             # Hook MODIFY: mnożnik trafień (X-89 ΩΩ: ×2 w walce naziemnej, nie w kosmicznej).
             hits *= rules_hooks.modify(
                 rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, pid, 1,
                 {"kind": combat.kind, "base_type": unit.base_type},
             )
             total += hits
-            entries.append(_roll_entry(unit, dice, unit.base_hits_on, hits))
+            entry = _roll_entry(unit, dice, unit.base_hits_on, hits)
+            if unit.single_bonus:
+                entry["bonus"] = bonus
+            entries.append(entry)
         rolls[pid] = entries
         hits_by[pid] = total
     # Hook MODIFY: dodatkowe trafienia po rzutach OBU stron (Valkyrie Particle Weave, RULES 62.1).
@@ -624,7 +657,9 @@ def _auto_assign_neutral(
     }
     sustain, destroy, destroy_damaged = neutral_loss_choice(units, costs, required)
     by_type = {u.base_type: u for u in units}
-    plan = plan_losses(by_type, sustain, destroy, destroy_damaged, required)
+    plan = plan_losses(
+        by_type, sustain, destroy, destroy_damaged, required, sustain_cancels(state, player_id)
+    )
     apply_losses(
         state, combat.position, _zone(combat.kind, combat.planet), player_id, by_type, plan
     )
@@ -641,8 +676,12 @@ def plan_losses(
     destroy: dict[str, int],
     destroy_damaged: dict[str, int],
     required: int,
+    cancels: int = 1,
 ) -> dict[str, tuple[int, int]]:
     """Waliduje pokrycie trafień (W7/W8) i zwraca plan ``{base_type: (nowa liczba, uszkodzone)}``.
+
+    ``cancels`` = ile trafień anuluje jedno użycie Sustain Damage (``sustain_cancels``). Przy
+    ``cancels > 1`` ostatnie użycie może anulować mniej, gdy zostało mniej trafień (F_letnev).
 
     Współdzielone przez walkę, bombardowanie i Space Cannon Defense (RULES.md 40): w każdym
     przypadku właściciel jednostek sam wybiera straty, a Sustain Damage anuluje trafienie.
@@ -652,6 +691,7 @@ def plan_losses(
     """
     plan: dict[str, tuple[int, int]] = {}
     total = 0
+    sustains_total = 0
     granted_used = 0  # Sustain Damage nadany komponentem: łącznie najwyżej 1 na przypisanie
     for base_type in set(sustain) | set(destroy) | set(destroy_damaged):
         s = max(0, sustain.get(base_type, 0))
@@ -673,10 +713,13 @@ def plan_losses(
         if d > undamaged_after or dd > damaged_after:
             raise ValueError(f"Not enough {unit.name} for these losses.")
         plan[base_type] = (unit.count - d - dd, damaged_after - dd)
-        total += s + d + dd
+        total += s * cancels + d + dd
+        sustains_total = sustains_total + s
     if granted_used > 1:
         raise ValueError("Only 1 of your ships can use Sustain Damage granted by a relic.")
-    if total != required:
+    if total != required and not (
+        cancels > 1 and sustains_total > 0 and required < total < required + cancels
+    ):
         raise ValueError(f"Cover exactly {required} hit(s).")
     return plan
 
@@ -744,7 +787,9 @@ def assign_combat_hits(
 
     units = {u.base_type: u for u in side_units(state, grid, registry, player_id)}
     required = required_hits(state, grid, registry, player_id)
-    plan = plan_losses(units, sustain, destroy, destroy_damaged, required)
+    plan = plan_losses(
+        units, sustain, destroy, destroy_damaged, required, sustain_cancels(state, player_id)
+    )
 
     new_state = state.clone()
     combat = _combat(new_state)
@@ -921,8 +966,24 @@ def begin_round_in_place(state: GameState, grid: HexGrid) -> None:
     combat.afb_assign = False
     triggers.fire(
         state, GameEvent.COMBAT_ROUND, Moment.START,
-        ctx={"kind": combat.kind, "round": combat.round, "position": combat.position},
+        ctx={
+            "kind": combat.kind, "round": combat.round, "position": combat.position,
+            "planet": combat.planet or "", "attacker": combat.attacker,
+            "defender": combat.defender,
+        },
     )
+    # Decyzje z hooków początku rundy (np. agent Letnev, Munitions Reserves): walka czeka w kroku
+    # TRIGGERS, potem ``resume_after_triggers`` otwiera rundę (RULES.md 56, 62.2).
+    if state.pending_offers:
+        combat.resume = "round_start"
+        combat.step = CombatStep.TRIGGERS
+        return
+    _open_round(state, grid)
+
+
+def _open_round(state: GameState, grid: HexGrid) -> None:
+    """Announce Retreats (walka kosmiczna, gdy ktoś ma dokąd) albo od razu rzuty (MUTUJE)."""
+    combat = _combat(state)
     queue = (
         [
             pid
@@ -1149,6 +1210,46 @@ def _refresh_after_dice_change(
         return state
     state.pending_window = None
     return _after_losses(state, grid, registry)
+
+
+def reroll_combat_dice(
+    state: GameState, owner: str, chosen: set[tuple[int, int]], source: str, name: str,
+    *, roller: str | None = None,
+) -> int:
+    """Przerzuca wybrane kości rzutu ``owner`` (MUTUJE ``state``); zwraca jego nowe trafienia.
+
+    ``chosen`` = ``{(indeks wpisu, indeks kości)}``. Modyfikatory pierwotnego rzutu obowiązują
+    (C_action_cards). Trafienia przeciw przeciwnikowi liczone od nowa; gdy nie był w kolejce
+    przypisania, a ma teraz trafienia, dołącza do niej. ``roller`` = kto przerzuca (do dziennika).
+    """
+    combat = _combat(state)
+    rolls = combat.rolls.get(owner, [])
+    for index, die in chosen:
+        if not (0 <= index < len(rolls)) or not (0 <= die < len(rolls[index]["dice"])):
+            raise ValueError(f"Unknown die: {index}:{die}")
+    rng = next_rng(state)
+    results: list[int] = []
+    for index, die in sorted(chosen):
+        value = rng.randint(1, DIE_SIDES)
+        rolls[index]["dice"][die] = value
+        results.append(value)
+    total = 0
+    for entry in rolls:
+        entry["hits"] = _entry_hits(state, owner, combat, entry)
+        total += int(entry["hits"])
+    opponent = combat.defender if owner == combat.attacker else combat.attacker
+    combat.pending_hits[opponent] = total
+    if combat.log:
+        last = combat.log[-1]
+        last.setdefault("rolls", {})[owner] = rolls
+        last.setdefault("hits", {})[owner] = total
+    window = state.pending_window
+    if total > 0 and window is not None and opponent not in window.queue:
+        window.queue = [*window.queue, opponent]
+    record_table_roll(
+        state, roller or owner, source, name, results, summary=f"{total} hit(s) after the reroll."
+    )
+    return total
 
 
 def dice_relic_tools(state: GameState) -> list[dict[str, str]]:

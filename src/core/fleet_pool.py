@@ -36,6 +36,9 @@ def counts_toward_pool(base_type: str) -> bool:
     return base_type != _FIGHTER and PLACEMENT_BY_BASE_TYPE.get(base_type) is Placement.SPACE
 
 
+_UNLIMITED = 10**6  # „not limited by the number of command tokens in your fleet pool”
+
+
 @dataclass
 class FleetReport:
     """Stan fleet pool gracza w jednym systemie."""
@@ -86,6 +89,15 @@ def fleet_report(
     """
     player = state.players.get(player_id)
     report = FleetReport(pool=player.fleet_cc if player is not None else 0)
+    # Hooki: Armada (+2 w każdym systemie), Darktalon Treilla (bez limitu) — RULES.md 62.2.
+    from src.core import rules_hooks  # lokalnie: unika cyklu importów
+
+    if player is not None:
+        report.pool += rules_hooks.modify(
+            rules_hooks.POINT_FLEET_POOL_CAPACITY, state, player_id, 0, {"position": position}
+        )
+        if rules_hooks.permits(rules_hooks.POINT_FLEET_POOL_UNLIMITED, state, player_id):
+            report.pool = _UNLIMITED
     system = state.systems.get(position)
     if system is None:
         return report

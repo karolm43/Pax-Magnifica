@@ -40,6 +40,22 @@ POINT_COMBAT_EXTRA_DICE = "combat.extra_dice"  # MODIFY -> delta kości na jedno
 # MODIFY -> dodatkowe trafienia strony po rzutach obu stron (ctx: kind, opponent_hits, own_hits);
 # Valkyrie Particle Weave (RULES.md 62.1).
 POINT_COMBAT_EXTRA_HITS = "combat.extra_hits"
+# MODIFY -> dodatkowe kości dla GRUPY jednostek łącznie (nie na egzemplarz), ctx: kind, base_type;
+# agent Letnev „that ship rolls 1 additional die" (RULES.md 62.2).
+POINT_COMBAT_BONUS_DICE = "combat.bonus_dice"
+# MODIFY -> +X do wyników kości JEDNEJ jednostki danego typu (ctx: kind, base_type); Gravleash.
+POINT_COMBAT_SINGLE_UNIT_BONUS = "combat.single_unit_bonus"
+# MODIFY -> o ile więcej trafień anuluje jedno użycie Sustain Damage (Non-Euclidean Shielding).
+POINT_COMBAT_SUSTAIN_CANCELS = "combat.sustain_cancels"
+# MODIFY -> +N do pojemności puli floty w każdym systemie (Armada).
+POINT_FLEET_POOL_CAPACITY = "fleet_pool.capacity"
+# PERMIT -> statki niemyśliwskie gracza nie są ograniczone pulą floty (Darktalon Treilla).
+POINT_FLEET_POOL_UNLIMITED = "fleet_pool.unlimited"
+# PERMIT -> jednostki INNYCH graczy w systemie (ctx: position) tracą PLANETARY SHIELD (Arc
+# Secundus).
+POINT_STRIPS_PLANETARY_SHIELD = "invasion.strips_planetary_shield"
+# PERMIT -> w inwazji Space Cannon nie strzela w jednostki gracza (L4 Disruptors).
+POINT_SPACE_CANNON_DEFENSE_IMMUNE = "space_cannon.defense_immune"
 POINT_COMBAT_REROLL_MISSES = "combat.reroll_misses"  # PERMIT -> przerzut chybień (ctx: base_type)
 # PERMIT -> trafienia z rzutu AFB właściciela hooka są wyprodukowane przeciw WSZYSTKIM statkom
 # przeciwnika, nie tylko myśliwcom (Waylay; przypisuje je przeciwnik w kroku ASSIGN).

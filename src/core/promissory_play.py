@@ -44,6 +44,16 @@ _ACTION = re.compile(r"^\s*ACTION\s*:")
 _PURGE_SELF = re.compile(r"\bpurge this card\b", re.IGNORECASE)
 
 # Warunek dodatkowy zagrania reakcji: (stan, rejestr, gracz, okno) -> powód odmowy albo None.
+# Notki, których okno nie ma relacji „you"/„the <color> player" do podmiotu (np. „After you and
+# your opponent roll dice" — dotyczy obu stron walki); warunek notki sprawdza resztę.
+_ANY_SUBJECT: set[str] = set()
+
+
+def any_subject(template: str) -> None:
+    """Okno notki pasuje niezależnie od podmiotu zdarzenia (warunek notki pilnuje reszty)."""
+    _ANY_SUBJECT.add(template)
+
+
 NoteCondition = Callable[
     [GameState, StaticDataRegistry, str, reaction_cards.OpenWindow], str | None
 ]
@@ -190,7 +200,9 @@ def _reaction_window(
     for window in reaction_cards.open_windows(state):
         if (window.event, window.moment) not in points:
             continue
-        if not _subject_ok(window_text, owner, player_id, window):
+        if template not in _ANY_SUBJECT and not _subject_ok(
+            window_text, owner, player_id, window
+        ):
             continue
         fn = _CONDITIONS.get(template)
         refusal = fn(state, registry, player_id, window) if fn is not None else None

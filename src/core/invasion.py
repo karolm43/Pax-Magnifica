@@ -179,6 +179,23 @@ def _attacker_ignores_shield(state: GameState, registry: StaticDataRegistry) -> 
     return False
 
 
+def _shield_stripped(state: GameState, owner: str) -> bool:
+    """Czy INNY gracz w aktywnym systemie odbiera jednostkom ``owner`` PLANETARY SHIELD."""
+    invasion = _inv(state)
+    system = _system(state)
+    others = set(system.space_units) | {
+        pid for by_player in system.planet_units.values() for pid in by_player
+    }
+    return any(
+        rules_hooks.permits(
+            rules_hooks.POINT_STRIPS_PLANETARY_SHIELD, state, other,
+            {"position": invasion.position},
+        )
+        for other in sorted(others)
+        if other != owner and other in state.players
+    )
+
+
 def _planet_shielded(
     state: GameState, registry: StaticDataRegistry, planet: str
 ) -> bool:
@@ -193,6 +210,8 @@ def _planet_shielded(
                 continue
             if bt == "pds" and space_cannon.pds_disabled(state, pid):
                 continue  # Disable: PDS przeciwnika traci Planetary Shield na czas inwazji
+            if _shield_stripped(state, pid):
+                continue  # Arc Secundus: jednostki innych graczy w systemie tracą tarczę
             unit = unit_variant(state, registry, pid, bt)
             if unit is not None and unit.planetary_shield:
                 return True
@@ -568,7 +587,8 @@ def required_bombard_hits(
         return 0
     defender = bombard_defender(inv, planet)
     units = _ground_units(state, grid, registry, planet, defender)
-    return min(pending, sum(u.count + u.sustainable for u in units.values()))
+    cancels = battle.sustain_cancels(state, defender)
+    return min(pending, sum(u.count + cancels * u.sustainable for u in units.values()))
 
 
 def bombard_defender(inv: InvasionState, planet: str) -> str:
@@ -602,7 +622,10 @@ def assign_bombard_hits(
         raise ValueError("Only the player controlling the planet assigns the hits.")
     units = _ground_units(state, grid, registry, planet, defender)
     required = required_bombard_hits(state, grid, registry, planet)
-    plan = battle.plan_losses(units, sustain, destroy, destroy_damaged, required)
+    plan = battle.plan_losses(
+        units, sustain, destroy, destroy_damaged, required,
+        battle.sustain_cancels(state, defender),
+    )
 
     new_state = state.clone()
     new_inv = _inv(new_state)
@@ -612,6 +635,7 @@ def assign_bombard_hits(
             entry["losses"] = battle.losses_of(units, plan)
             entry["sustained"] = battle.sustained_of(plan, sustain)
             break
+    _sustain_events(new_state, defender, battle.sustained_of(plan, sustain))
     del new_inv.bombard_pending[planet]
     return new_state
 
@@ -820,6 +844,9 @@ def defense_planets(state: GameState, registry: StaticDataRegistry) -> list[str]
     inv = _inv(state)
     system = _system(state)
     result: list[str] = []
+    # L4 Disruptors: w inwazji Space Cannon nie strzela w jednostki atakującego (RULES.md 62.2).
+    if rules_hooks.permits(rules_hooks.POINT_SPACE_CANNON_DEFENSE_IMMUNE, state, inv.attacker):
+        return result
     for planet in sorted(inv.committed):
         if not _ground_in_zone(system, planet, inv.attacker):
             continue
@@ -939,6 +966,16 @@ def defense_pass(state: GameState, registry: StaticDataRegistry, planet: str) ->
     return new_state
 
 
+def _sustain_events(state: GameState, player_id: str, used: dict[str, int]) -> None:
+    """``UNIT_SUSTAIN_DAMAGE/AFTER`` dla każdego typu, który użył Sustain Damage (MUTUJE)."""
+    for base_type, count in used.items():
+        if count > 0:
+            triggers.fire(
+                state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
+                ctx={"player": player_id, "base_type": base_type, "count": count},
+            )
+
+
 def required_defense_hits(
     state: GameState, grid: HexGrid, registry: StaticDataRegistry, planet: str
 ) -> int:
@@ -948,7 +985,8 @@ def required_defense_hits(
     if pending <= 0:
         return 0
     units = _ground_units(state, grid, registry, planet, inv.attacker)
-    return min(pending, sum(u.count + u.sustainable for u in units.values()))
+    cancels = battle.sustain_cancels(state, inv.attacker)
+    return min(pending, sum(u.count + cancels * u.sustainable for u in units.values()))
 
 
 def assign_defense_hits(
@@ -967,7 +1005,10 @@ def assign_defense_hits(
         raise ValueError(f"There are no Space Cannon hits to assign on {planet}.")
     units = _ground_units(state, grid, registry, planet, inv.attacker)
     required = required_defense_hits(state, grid, registry, planet)
-    plan = battle.plan_losses(units, sustain, destroy, destroy_damaged, required)
+    plan = battle.plan_losses(
+        units, sustain, destroy, destroy_damaged, required,
+        battle.sustain_cancels(state, inv.attacker),
+    )
 
     new_state = state.clone()
     new_inv = _inv(new_state)
@@ -977,6 +1018,7 @@ def assign_defense_hits(
             entry["losses"] = battle.losses_of(units, plan)
             entry["sustained"] = battle.sustained_of(plan, sustain)
             break
+    _sustain_events(new_state, new_inv.attacker, battle.sustained_of(plan, sustain))
     del new_inv.defense_pending[planet]
     new_inv.defense_resolved.append(planet)
     return new_state

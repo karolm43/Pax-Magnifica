@@ -707,3 +707,28 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   rzutach + powrót do kolejki przypisywania), PERMIT `invasion.skip_bombardment`, `invasion.commit_from_planets`,
   emisja `COMPONENT_EXHAUSTED` w `faction_components.pay_cost`, odporność na Direct Hit z tekstu jednostki.
 - UI: `FactionComponentUseModal` obsługuje tryb „window” (wejście: menu lidera „Leader ability…”).
+## 2026-11-12 (3) — Ruch z trasą i pickup po drodze (RULES.md 32.1/32.3 T3)
+- Silnik (`core/movement.py`): BFS zwraca ścieżkę (`shortest_legal_path`), `route_through` (waypointy), `route_error`
+  (walidacja trasy gracza), `legal_routes` (alternatywy), `route_cargo` (ładunek w systemach trasy). `can_move`/`move_fleet`
+  przyjmują `route`; `CargoPickup.from_position` pozwala zabrać myśliwce/siły naziemne z systemu NA trasie (T4 per system).
+- `core/movement_route.py` + `GET /tactical/move-route` (trasa, alternatywy, waypointy, statki z oceną zasięgu/boostu, ładunek);
+  `POST /tactical/move` dostaje opcjonalne `route` i `cargo[].fromPosition`. Testy: `tests/test_movement_route.py`.
+- UI (krok MOVEMENT): klik w świecący system na mapie otwiera przeciągalny box (`domains/movement/MoveRouteBox`): statki i
+  ładunek z systemów na trasie (LPM +1, PPM −1, Shift = wszystkie), pasek capacity, alternatywy tras. Trasa rysowana na mapie
+  (`MoveRouteLayer`: linia, strzałki, przerywane alternatywy, ładunek po drodze jako klikalne znaczniki). Klik w kolejny
+  system przerzuca trasę przez niego (waypoint). Ctrl+zaznaczenie: PPM zdejmuje 1 sztukę (`ctrlUnpickUnit`).
+- Poza zakresem: pickup z planet AKTYWNEGO systemu, trasa dla Ctrl-grupy, gravity rift na trasie.
+
+## 2026-11-12 (3) — B1b: Barony of Letnev — komplet (RULES.md 62.2)
+
+- Wszystkie 12 komponentów (`core/hooks/factions/letnev.py`, kompletność = 0 braków, 18 testów): Armada, Munitions
+  Reserves (płatność na starcie rundy + przerzut po rzucie), Non-Euclidean Shielding, L4 Disruptors, flagowiec Arc
+  Secundus (tarcze + naprawa), mech Dunlain Reaper (DEPLOY z płatnością), War Funding, agent Viscount Unlenn, commander
+  Rear Admiral Farran (+ warunek), bohater Darktalon Treilla, przełom Gravleash Maneuvers (część bojowa).
+- Fundamenty: pauza walki na decyzje z początku rundy (`resume="round_start"`), `battle.reroll_combat_dice` (centralny
+  przerzut), punkty `combat.bonus_dice` / `combat.single_unit_bonus` / `combat.sustain_cancels` (`plan_losses(cancels=)`
+  w walce, bombardowaniu i SC Defense), `fleet_pool.capacity` / `fleet_pool.unlimited`, `invasion.strips_planetary_shield`,
+  `space_cannon.defense_immune`, `UNIT_SUSTAIN_DAMAGE` także w bombardowaniu i SC Defense, okno „po rzutach” w walce
+  kosmicznej, `promissory_play.any_subject`.
+- ⚠️ Otwarte: druga klauzula Gravleash (wyrównanie wartości ruchu) — czeka na przebudowę ruchu (trasy) prowadzoną
+  równolegle w `core/movement.py`; „limited by laws” u Darktalon (brak praw limitujących statki w silniku).

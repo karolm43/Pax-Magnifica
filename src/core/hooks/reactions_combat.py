@@ -253,7 +253,9 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
                 out.append(
                     OpenWindow(GameEvent.COMBAT_ROLL, Moment.BEFORE, _ctx(combat, pid, kind="afb"))
                 )
-    if step is CombatStep.ASSIGN and combat.kind == "ground":
+    # „Po rzutach” w obu rodzajach walki (Fire Team sam wymaga walki naziemnej; War Funding —
+    # kosmicznej, RULES.md 62.2).
+    if step is CombatStep.ASSIGN and not combat.afb_assign:
         for pid in _players(combat):
             if any(entry.get("dice") for entry in combat.rolls.get(pid, [])):
                 out.append(OpenWindow(GameEvent.COMBAT_ROLL, Moment.AFTER, _ctx(combat, pid)))
