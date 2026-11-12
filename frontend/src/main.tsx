@@ -26,6 +26,7 @@ import "./styles/fonts.css";
 import "./styles/gradients.css";
 import "./styles/theme.css";
 import "./styles/overlays.css";
+import "./styles/tiChrome.css";
 import "./styles/mobile.css";
 import "./styles/zIndexVariables.css";
 

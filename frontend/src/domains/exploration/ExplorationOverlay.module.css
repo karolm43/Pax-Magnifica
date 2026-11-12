@@ -40,7 +40,17 @@
   padding: 16px 18px 18px;
   overflow-y: auto;
   border: 1px solid rgba(214, 178, 94, 0.32);
-  border-radius: 12px;
+  /* Płyta TI: ścięte rogi + bursztynowa górna krawędź (styles/tiChrome.css). */
+  border-radius: var(--ds-radius-xs);
+  border-top-color: rgb(var(--ti-gold-rgb) / 0.34);
+  clip-path: polygon(
+    var(--ti-cut) 0,
+    100% 0,
+    100% calc(100% - var(--ti-cut)),
+    calc(100% - var(--ti-cut)) 100%,
+    0 100%,
+    0 var(--ti-cut)
+  );
   background: linear-gradient(180deg, rgba(18, 22, 36, 0.96), rgba(9, 12, 20, 0.96));
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
 }
@@ -56,12 +66,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-display);
+  font-family: var(--ti-font-title);
   font-size: 16px;
   font-weight: var(--weight-title);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ds-ink-hi);
+  color: color-mix(in oklab, var(--ti-gold-hi) 14%, var(--ds-ink-hi));
 }
 
 .title small {

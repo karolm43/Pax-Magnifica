@@ -7,8 +7,14 @@
   position: fixed;
   inset: 0;
   z-index: 4500;
-  display: grid;
-  place-items: center;
+  /*
+   * Flex + `margin: auto` na panelu (zamiast `place-items: center`): gdy treść jest wyższa
+   * niż ekran (np. 1280×720, cele publiczne), centrowanie siatką wypychało górę panelu
+   * POZA obszar przewijania — tytuł był ucięty i nieosiągalny. Auto-marginesy centrują,
+   * a przy nadmiarze przyklejają panel do góry i pozwalają przewinąć resztę.
+   */
+  display: flex;
+  flex-direction: column;
   overflow: auto;
   padding: clamp(12px, 3vh, 32px) clamp(12px, 3vw, 40px);
   color: #f6ead0;
@@ -30,6 +36,7 @@
 }
 
 .panel {
+  margin: auto;
   width: min(1100px, 100%);
   display: flex;
   flex-direction: column;
@@ -287,7 +294,8 @@
 
 .card {
   position: relative;
-  width: clamp(110px, 15vw, 170px);
+  /* Szerokość ograniczona też wysokością ekranu — dwa rzędy kart mieszczą się przy 720 px. */
+  width: clamp(84px, min(15vw, 17vh), 170px);
   aspect-ratio: 5 / 7;
   border-radius: 8px;
 }

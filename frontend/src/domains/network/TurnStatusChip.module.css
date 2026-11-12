@@ -1,0 +1,88 @@
+/* Status tury w nagłówku — tokeny DS + oprawa TI (styles/tiChrome.css). */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: clamp(160px, 24vw, 380px);
+  height: 28px;
+  padding: 0 12px 0 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ds-ink);
+  white-space: nowrap;
+  border: 1px solid var(--ds-h22);
+  background: rgb(0 0 0 / 0.25);
+  /* Ścięte rogi jak płyta frakcji, w małej skali. */
+  clip-path: polygon(
+    var(--ti-cut-sm) 0,
+    100% 0,
+    100% calc(100% - var(--ti-cut-sm)),
+    calc(100% - var(--ti-cut-sm)) 100%,
+    0 100%,
+    0 var(--ti-cut-sm)
+  );
+  animation: chipIn var(--ti-dur-in) var(--ti-ease-in) both;
+}
+
+.chip[data-mine] {
+  color: var(--ti-parchment);
+  font-weight: 700;
+  border-color: rgb(var(--ti-gold-rgb) / 0.7);
+  background: linear-gradient(
+    100deg,
+    rgb(var(--ti-gold-rgb) / 0.2),
+    rgb(var(--ti-gold-rgb) / 0.06) 70%
+  );
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Kropka sygnału: szara = czekamy na kogoś, bursztynowa i pulsująca = mój ruch. */
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ds-ink-lo);
+}
+
+.chip[data-mine] .dot {
+  background: var(--ti-gold-hi);
+  animation: beacon 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip[data-mine] .dot {
+    animation: none;
+  }
+}
+
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes beacon {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgb(var(--ti-gold-rgb) / 0.6);
+  }
+  50% {
+    opacity: 0.75;
+    box-shadow: 0 0 0 4px rgb(var(--ti-gold-rgb) / 0);
+  }
+}

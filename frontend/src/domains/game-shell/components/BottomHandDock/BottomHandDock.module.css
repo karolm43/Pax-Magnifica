@@ -15,12 +15,23 @@
      karty reakcji wolno zagrywać w trakcie tych okien (RULES.md 53.5). */
   z-index: 3050;
   transform: translateX(-50%);
-  width: min(960px, calc(100% - 48px));
-  max-width: calc(100% - 48px);
+  /*
+   * Szerokość zostawia miejsce na prawy panel tury (TurnControls: 22px + 268px + odstęp)
+   * — symetrycznie, bo dok jest wyśrodkowany. Przy 1280 px dok o stałych 960 px zasłaniał
+   * przycisk „Next phase" / „End turn". Poniżej ~1190 px wygrywa podłoga 560 px.
+   */
+  --dock-side: 312px;
+  width: min(960px, max(560px, calc(100% - 2 * var(--dock-side))));
+  max-width: calc(100% - 24px);
+  /* Wąski dok (zapytanie kontenerowe niżej) chowa podpisy segmentów — zostają ikony i liczniki. */
+  container-type: inline-size;
+  container-name: hand-dock;
   color: var(--ds-ink);
   background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
   backdrop-filter: blur(10px);
   border: 1px solid var(--ds-h14);
+  /* Ciepła górna krawędź — wspólny akcent płyt HUD (styles/tiChrome.css). */
+  border-top-color: rgb(var(--ti-gold-rgb) / 0.3);
   border-radius: var(--ds-radius-md);
   box-shadow: var(--ds-shadow-lg, 0 12px 40px rgba(0, 0, 0, 0.5));
   pointer-events: auto;
@@ -349,4 +360,28 @@
   border-color: rgb(239, 68, 68);
   background: color-mix(in oklab, var(--ds-ground) 70%, rgb(239 68 68) 30%);
   box-shadow: 0 0 24px rgba(239, 68, 68, 0.45);
+}
+
+/* ── Wąski dok: podpisy segmentów tylko dla czytników ekranu, krótsza nazwa gracza ── */
+@container hand-dock (max-width: 760px) {
+  .tabLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .tab {
+    padding: 5px 8px;
+  }
+
+  .whoName {
+    max-width: 110px;
+  }
+
+  .bar {
+    gap: 6px;
+  }
 }

@@ -343,6 +343,8 @@
   background: color-mix(in oklab, var(--ds-ground) 90%, transparent);
   backdrop-filter: blur(12px);
   border: 1px solid var(--ds-h14);
+  /* Ciepła górna krawędź — wspólny akcent płyt HUD (styles/tiChrome.css). */
+  border-top-color: rgb(var(--ti-gold-rgb) / 0.3);
   border-radius: var(--ds-radius-lg, 14px);
   box-shadow: var(--ds-shadow-lg, 0 14px 44px rgba(0, 0, 0, 0.55));
   animation: zoneRise 0.42s var(--ds-ease) both;

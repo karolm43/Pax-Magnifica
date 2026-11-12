@@ -102,11 +102,21 @@ export function RulesBrowserPage() {
         justify="space-between"
         style={{
           padding: "var(--ds-space-sm) var(--ds-space-md)",
-          borderBottom: "1px solid var(--ds-h28)",
+          // Ciepła linia oprawy TI (styles/tiChrome.css), jak w nagłówkach okien gry.
+          borderBottom: "1px solid rgb(var(--ti-gold-rgb) / 0.32)",
         }}
       >
         <ReturnControl />
-        <Title order={1} size="h3">
+        <Title
+          order={1}
+          size="h3"
+          style={{
+            fontFamily: "var(--ti-font-title)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "color-mix(in oklab, var(--ti-gold-hi) 18%, var(--ds-ink-hi))",
+          }}
+        >
           Rules
         </Title>
       </Group>

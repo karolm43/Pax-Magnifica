@@ -645,3 +645,18 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Każde dobranie z talii reliktów zapisuje jawne `GameState.relic_reveal` (+`seq`, jak `table_roll`; źródło `fragments`/`fracture`/`explore`). Web-data: `gameState.relicReveal`.
 - `domains/relics/RelicRevealWatcher` gra scenę u wszystkich: fragmenty krążą i zlewają się w błysku w kartę; przy planecie The Fracture pęknięcie w przestrzeni wypuszcza kartę; karta obraca się awersem + nazwa i tekst reliktu. Awers = placeholder (rewers + nazwa) — grafikę kart podpiąć w `relicFaceImage` (`domains/relics/relicReveal.ts`).
 - Testy: `tests/test_relic_forge.py`, `test_thunders_edge.py` (źródło Fracture), `relicReveal.test.ts`.
+
+## Przegląd UI: spójna oprawa TI + poprawki układu
+
+- Nowa warstwa `frontend/src/styles/tiChrome.css` — tokeny oprawy wzięte ze sceny wyboru frakcji (bursztyn/złoto, gradient CTA,
+  krój tytułów Handel Gothic, ścięte rogi `--ti-cut`). Bursztyn = rama i główne wezwanie, niebieski DS dalej = zaznaczenie/fokus.
+  Klatek animacji tam nie ma (Vite lokalizuje `@keyframes` w modułach) — każdy moduł ma własne.
+- Rama każdego okna (`ds` Modal/Drawer → wszystkie `AppModal`): płyta ze ściętymi rogami, obrys bursztynowy wygasający w prawo,
+  tytuł krojem TI, linia pod nagłówkiem rysowana przy otwarciu; przyciski DS z krótkim „wciśnięciem” i ciepłym hoverem.
+- Pełnoekranowe okna (agenda, produkcja, technologie, eksploracja, walka, inwazja): tytuły krojem TI, panele jako płyty ze ściętymi rogami.
+  Baner fazy strategii: oprawa w bursztynie, „Next phase” jako złote CTA (przycisk zwijania został niebieski — prośba użytkownika).
+  Płyty HUD (panel stanu, strefa tury, dok ręki): ciepła górna krawędź. Nagłówek przeglądarki zasad w tym samym stylu.
+- Błędy układu: status tury gry sieciowej („Your move / Waiting for…”) nachodził na „You play” — teraz `TurnStatusChip` w nagłówku
+  (pulsująca kropka przy moim ruchu). Dok ręki przy 1280 px zasłaniał „Next phase/End turn” — szerokość zostawia miejsce na panel tury,
+  wąski dok chowa podpisy segmentów. Okno setupu przy 720 px ucinało tytuł (centrowanie grid) — flex + `margin: auto`, karty skalowane też `vh`.
+- Scena wyboru frakcji nietknięta (zamknięta decyzją użytkownika).

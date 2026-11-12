@@ -59,12 +59,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-display);
+  font-family: var(--ti-font-title);
   font-size: 16px;
   font-weight: var(--weight-title);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ds-ink-hi);
+  color: color-mix(in oklab, var(--ti-gold-hi) 14%, var(--ds-ink-hi));
 }
 
 .title small {
@@ -208,7 +208,17 @@
   overflow-y: auto;
   padding: 12px 14px 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  /* Płyta TI: ścięte rogi + bursztynowa górna krawędź (styles/tiChrome.css). */
+  border-radius: var(--ds-radius-xs);
+  border-top-color: rgb(var(--ti-gold-rgb) / 0.34);
+  clip-path: polygon(
+    var(--ti-cut) 0,
+    100% 0,
+    100% calc(100% - var(--ti-cut)),
+    calc(100% - var(--ti-cut)) 100%,
+    0 100%,
+    0 var(--ti-cut)
+  );
   background: linear-gradient(180deg, rgba(14, 18, 30, 0.84), rgba(8, 10, 18, 0.8));
   backdrop-filter: blur(3px);
 }

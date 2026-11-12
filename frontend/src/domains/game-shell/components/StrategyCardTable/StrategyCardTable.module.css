@@ -155,11 +155,11 @@
      żeby nie nachodził na tytuł/meta. */
   padding: clamp(8px, 1.4vh, 16px) clamp(44px, 4vw, 70px)
     clamp(8px, 1.4vh, 16px) clamp(22px, 3vw, 54px);
-  /* Ciemna płyta banera + delikatny akcent interakcji w tle. */
+  /* Ciemna płyta banera + ciepła poświata oprawy TI (bursztyn = rama, niebieski = interakcja). */
   background:
     linear-gradient(
       180deg,
-      rgb(var(--ds-accent-rgb) / 0.12),
+      rgb(var(--ti-gold-rgb) / 0.1),
       transparent 60%
     ),
     linear-gradient(180deg, rgb(10 11 14 / 0.94), rgb(10 11 14 / 0.86));
@@ -213,8 +213,8 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(var(--ds-accent-rgb) / 0.75) 25%,
-    rgb(var(--ds-accent-rgb) / 0.75) 75%,
+    rgb(var(--ti-gold-rgb) / 0.6) 25%,
+    rgb(var(--ti-gold-rgb) / 0.6) 75%,
     transparent
   );
 }
@@ -237,15 +237,15 @@
  */
 .heading {
   margin: 0;
-  font-family: var(--ds-font-display);
+  font-family: var(--ti-font-title);
   font-size: clamp(var(--ds-h5), 2vw, var(--ds-h2));
   line-height: var(--ds-lh-sm);
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ds-ink-hi);
+  color: color-mix(in oklab, var(--ti-gold-hi) 18%, var(--ds-ink-hi));
   text-shadow:
     0 1px 3px rgb(0 0 0 / 0.8),
-    0 0 20px rgb(var(--ds-accent-rgb) / 0.4);
+    0 0 18px rgb(var(--ti-gold-rgb) / 0.35);
 }
 
 /*
@@ -630,32 +630,29 @@
  * zaokrąglony, z hoverem. Widoczny tylko gdy ``allPicked``.
  */
 /*
- * Przycisk „Następna faza" — MOCNY akcent (prośba: był mało widoczny). Wypełniony,
- * jasny napis na pełnym niebieskim akcencie interakcji, z poświatą i delikatnym
+ * Przycisk „Następna faza" — MOCNY akcent (prośba: był mało widoczny). Wypełniony
+ * bursztynowy gradient CTA (jak na scenie wyboru frakcji), z poświatą i delikatnym
  * pulsem, który zwraca uwagę po skompletowaniu wyboru. Wyraźny hover (podbicie
  * jasności + unoszenie), spójny z językiem interakcji strony.
  */
 .nextPhaseBtn {
   margin-left: var(--ds-space-sm);
   padding: clamp(6px, 0.9vw, 11px) clamp(16px, 2vw, 28px);
-  font-family: var(--ds-font-display);
+  font-family: var(--ti-font-serif);
   font-size: clamp(var(--ds-fz-sm), 1.2vw, var(--ds-fz-lg));
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ds-ink-hi);
-  /* Wypełniony akcent zamiast ledwie widocznej przezroczystości. */
-  background: linear-gradient(
-    180deg,
-    rgb(var(--ds-accent-rgb) / 0.95),
-    rgb(var(--ds-accent-rgb) / 0.75)
-  );
-  border: 1px solid rgb(var(--ds-accent-rgb) / 1);
+  /* Główne wezwanie do akcji = bursztynowo-złoty gradient jak „Choose for player" na
+     scenie wyboru frakcji (styles/tiChrome.css) — nadal mocny, ale w języku TI. */
+  color: var(--ti-cta-ink);
+  background: var(--ti-cta);
+  border: 1px solid rgb(255 211 74 / 0.75);
   border-radius: var(--ds-radius-md);
   cursor: pointer;
   box-shadow:
-    0 2px 10px rgb(var(--ds-accent-rgb) / 0.45),
-    inset 0 1px 0 rgb(255 255 255 / 0.2);
+    0 2px 12px rgb(246 121 42 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.45);
   transition:
     filter var(--ds-dur-fast) var(--ds-ease),
     transform var(--ds-dur-fast) var(--ds-ease),
@@ -667,8 +664,8 @@
   filter: brightness(1.15);
   transform: translateY(-1px);
   box-shadow:
-    0 4px 16px rgb(var(--ds-accent-rgb) / 0.6),
-    inset 0 1px 0 rgb(255 255 255 / 0.25);
+    0 4px 20px rgb(246 121 42 / 0.65),
+    inset 0 1px 0 rgb(255 255 255 / 0.55);
 }
 
 .nextPhaseBtn:focus-visible {
@@ -688,13 +685,13 @@
   0%,
   100% {
     box-shadow:
-      0 2px 10px rgb(var(--ds-accent-rgb) / 0.4),
-      inset 0 1px 0 rgb(255 255 255 / 0.2);
+      0 2px 10px rgb(246 121 42 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.45);
   }
   50% {
     box-shadow:
-      0 2px 16px rgb(var(--ds-accent-rgb) / 0.75),
-      inset 0 1px 0 rgb(255 255 255 / 0.25);
+      0 2px 20px rgb(246 121 42 / 0.75),
+      inset 0 1px 0 rgb(255 255 255 / 0.5);
   }
 }
 

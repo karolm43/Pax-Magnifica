@@ -1,0 +1,64 @@
+/*
+ * Chrome TI4 — wspólny język wizualny okien gry, wzięty ze sceny wyboru frakcji
+ * (Step_Faction / FactionBackdrop): ciemna płyta ze ŚCIĘTYMI rogami, cienki obrys
+ * w ciepłym bursztynie, który wygasa w prawo, tytuły krojem Handel Gothic,
+ * bursztynowo-złoty gradient tylko dla głównego wezwania do akcji.
+ *
+ * Zasady (żeby nie zrobiło się „cukierkowo"):
+ *   - bursztyn to OPRAWA (krawędzie, tytuły, CTA), niebieski DS dalej znaczy
+ *     „zaznaczone / fokus" — jak na liście frakcji,
+ *   - poświata tylko na stanie (mój ruch, gotowe), nigdy na spoczynku,
+ *   - ruch krótki (0.15–0.35 s) i jednorazowy; pętle tylko dla sygnałów stanu.
+ *
+ * Tokeny są niezależne od motywu (midnight*), bo to tożsamość gry, nie skórka HUD-u.
+ * Motywy dalej sterują powierzchniami (`--ds-ground`, `--panel-*`).
+ */
+
+:root {
+  /* ── Barwy oprawy ─────────────────────────────────────────────────── */
+  --ti-gold-rgb: 252 162 43;
+  --ti-gold: rgb(var(--ti-gold-rgb));
+  --ti-gold-hi: #ffd34a;
+  --ti-ember: #f6792a;
+  --ti-parchment: #f6ead0;
+  /* Obrys płyty: pełny bursztyn z lewej, wygasa w prawo (jak nagłówek frakcji). */
+  --ti-edge-gradient: linear-gradient(
+    100deg,
+    rgb(var(--ti-gold-rgb) / 0.55),
+    rgb(var(--ti-gold-rgb) / 0.22) 45%,
+    rgb(var(--ti-gold-rgb) / 0.08)
+  );
+  /* Cienka linia akcentu pod tytułem / nad płytą. */
+  --ti-rule: linear-gradient(
+    90deg,
+    rgb(var(--ti-gold-rgb) / 0.7),
+    rgb(var(--ti-gold-rgb) / 0.18) 55%,
+    transparent
+  );
+  /* Główne wezwanie do akcji (przycisk startu na scenie frakcji). */
+  --ti-cta: linear-gradient(180deg, var(--ti-gold-hi), var(--ti-gold) 55%, var(--ti-ember));
+  --ti-cta-ink: #1a0f05;
+
+  /* ── Krój ─────────────────────────────────────────────────────────── */
+  --ti-font-title: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
+  --ti-font-serif: "Ambroise Firmin", var(--ds-font-display), serif;
+
+  /* ── Kształt: ścięte rogi (lewy górny + prawy dolny) ─────────────── */
+  --ti-cut: 12px;
+  --ti-cut-sm: 7px;
+
+  /* ── Ruch ─────────────────────────────────────────────────────────── */
+  --ti-dur-in: 0.26s;
+  --ti-ease-in: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/*
+ * Klatki animacji NIE są tu definiowane: Vite lokalizuje nazwy `@keyframes` w modułach CSS,
+ * więc każdy moduł deklaruje własne (krótkie) klatki, a stąd bierze tylko tokeny czasu.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ti-dur-in: 0.01s;
+  }
+}

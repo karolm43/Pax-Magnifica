@@ -72,12 +72,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-display);
+  font-family: var(--ti-font-title);
   font-size: 16px;
   font-weight: var(--weight-title);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ds-ink-hi);
+  color: color-mix(in oklab, var(--ti-gold-hi) 14%, var(--ds-ink-hi));
 }
 
 .title small {

@@ -5,19 +5,16 @@
  * - Brak/nieważny token: zasłona „otwórz grę ze swojego linku" (backend i tak odpowie 401).
  * - Gracz: plakietka „You: <miejsce>". Host: przycisk „Invites" — linki miejsc (kopiuj,
  *   unieważnij) i wybór, czy host sam siedzi przy stole (wtedy widzi tylko swoje).
- * - Pasek u góry (RULES.md 44.5): „Your move" albo „Waiting for X — <co>", z listy `awaiting`
- *   w web-data (backend: `core/actor.awaiting`).
+ * - Status tury (RULES.md 44.5) — `describeAwaiting` stąd, wyświetla go `TurnStatusChip`
+ *   w nagłówku (obok „You play").
  * - Odmowa serwera (403 — nie twój ruch / nie host) pokazuje się jako krótki komunikat
  *   zamiast surowego błędu (zdarzenie `FORBIDDEN_EVENT` z `actorIdentity`).
  * Push stanu (WebSocket) włącza się tu, bo tylko gra sieciowa go potrzebuje.
  */
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Group, Modal, Paper, Select, Stack, Text } from "@/ds";
 import { FORBIDDEN_EVENT } from "@/api/actorIdentity";
-import { usePlayerData } from "@/api/usePlayerData";
-import { DEFAULT_GAME_ID } from "@/config";
 import { useBackendPush } from "./useBackendPush";
 import { NETWORK_ME_KEY, useNetworkMe } from "./useNetworkMe";
 
@@ -34,7 +31,7 @@ type SeatsResponse = { network: boolean; host_seat: string | null; seats: SeatIn
 
 const SEATS_KEY = ["network", "seats"] as const;
 
-type Awaiting = {
+export type Awaiting = {
   playerId: string;
   name: string;
   faction: string | null;
@@ -66,42 +63,6 @@ export function describeAwaiting(list: Awaiting[], me: string | null): {
   if (list.length === 0) return { mine: false, text: "" };
   const who = list.map((a) => `${a.name} (${REASON[a.reason] ?? a.reason})`).join(", ");
   return { mine: false, text: `Waiting for ${who}` };
-}
-
-function WaitingBanner({ me }: { me: string | null }) {
-  const params = useParams<{ mapid: string }>();
-  const { data: awaiting } = usePlayerData(params.mapid ?? DEFAULT_GAME_ID, {
-    select: (doc) => ((doc as { awaiting?: Awaiting[] }).awaiting ?? []),
-  });
-  const { mine, text } = describeAwaiting(awaiting ?? [], me);
-  if (!text) return null;
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      style={{
-        position: "fixed",
-        top: 8,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 900,
-        maxWidth: "min(92vw, 640px)",
-        pointerEvents: "none",
-      }}
-    >
-      <Paper
-        px="md"
-        py={6}
-        shadow="md"
-        withBorder
-        style={mine ? { outline: "2px solid var(--ds-accent)" } : undefined}
-      >
-        <Text size="sm" fw={mine ? 700 : 500} ta="center">
-          {text}
-        </Text>
-      </Paper>
-    </div>
-  );
 }
 
 /** Krótki komunikat po odmowie serwera (403). */
@@ -275,10 +236,8 @@ export function NetworkPanel() {
     );
   }
 
-  const seat = me.data.player_id;
   return (
     <>
-      <WaitingBanner me={seat} />
       <ForbiddenToast />
       {/* „Kim gram" jest w nagłówku (WhoAmIBadge); tu tylko zaproszenia hosta. */}
       {me.data.host && (
