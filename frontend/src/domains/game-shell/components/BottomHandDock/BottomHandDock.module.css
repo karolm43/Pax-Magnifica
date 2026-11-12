@@ -279,6 +279,31 @@
 
 /* Nota w kolorze właściciela: cały kafelek wyraźnie zabarwiony (sama grafika
    rewersu zostaje bez zmian). */
+/* Karta, której okno reakcji jest otwarte TERAZ (RULES.md 54.8): miga, dopóki okno trwa. */
+.card[data-reaction] {
+  border-color: rgb(250, 204, 21);
+  animation: cardReaction 1.1s ease-in-out infinite;
+}
+
+@keyframes cardReaction {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6), 0 0 6px rgba(250, 204, 21, 0.35);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgb(250, 204, 21), 0 0 22px rgba(250, 204, 21, 0.85);
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-reaction] {
+    animation: none;
+    box-shadow: 0 0 0 3px rgb(250, 204, 21);
+  }
+}
+
 .card[data-tinted] {
   background:
     linear-gradient(180deg, rgba(var(--hk), 0.45), rgba(var(--hk), 0.2) 70%),

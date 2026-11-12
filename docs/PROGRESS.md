@@ -887,3 +887,18 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   front pobierał tylko przy otwartym doku i aktywnej zakładce — teraz stale, z polem `reaction` w
   `/action-card/playable` i `/promissory/playable`; dok pulsuje zakładką i przyciskiem „Play now: <karta>”.
 - Ion Storm i Demilitarized Zone (reguła bazowa) zadeklarowane jako pokryte. Nowe pola odpowiedzi — restart backendu.
+
+
+## 2026-11-12 (8) — Okna reakcji kart z ręki widoczne, wskazywanie planet/systemów, mniej błędów konsoli
+
+- **„Window open now”** (`offers/HandReactionPrompts.tsx`, w stosie `AbilityPrompts`): karta akcji / notka
+  zagrywalna TERAZ w oknie reakcji (np. Tekklar Legion „At the start of an invasion combat”) wyskakuje sama w lewym
+  dolnym rogu, NAD oknem walki/inwazji (dok ręki jest tam zwinięty). Fraza okna pogrubiona, bursztynowa pulsująca
+  ramka, „Not now” wycisza do końca okna, „Play” otwiera ten sam formularz co upuszczenie karty. Kopie tej samej
+  karty = jedno okno z licznikiem. Ręce: gra sieciowa tylko moja, lokalnie wszyscy ludzie (bez botów).
+- Karta w doku ręki, której okno jest otwarte, miga (`data-reaction`).
+- **Gdzie to jest?** (`search/mapPeek.ts`): opcja formularza decyzji wskazująca planetę/system (wartość albo
+  `meta.planet/system/position`, sprawdzane po znacznikach wyszukiwarki na mapie) podświetla cel po najechaniu;
+  przycisk z okiem prześwietla okna (`body[data-map-peek]`) i kliknięciem centruje mapę na celu.
+- Konsola: dźwięki walki pytały o 16 opcjonalnych plików mp3 (każdy brak = czerwony 404). Nowy
+  `GET /battle/sounds` zwraca listę istniejących próbek; front pobiera tylko je. Nowa trasa — restart backendu.

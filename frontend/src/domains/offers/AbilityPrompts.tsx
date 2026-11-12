@@ -9,6 +9,10 @@ import { useGameState } from "@/api/useGameState";
 import type { FactionComponentKind } from "@/api/useFactionComponents";
 import { DEFAULT_GAME_ID } from "@/config";
 import { FactionComponentUseModal } from "@/domains/game-shell/components/TurnControls/FactionComponentUseModal";
+import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
+import { HandReactionRows, type HandPlay } from "./HandReactionPrompts";
+import { humanHandOwners } from "./handReactions";
 import styles from "./AbilityPrompts.module.css";
 
 /*
@@ -61,6 +65,9 @@ export function AbilityPrompts() {
   });
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [using, setUsing] = useState<AvailableNow | null>(null);
+  const [playing, setPlaying] = useState<HandPlay | null>(null);
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
+  const { data: me } = useNetworkMe();
 
   // Każda zmiana stanu gry może otworzyć albo zamknąć okno zdolności.
   useEffect(() => {
@@ -78,12 +85,25 @@ export function AbilityPrompts() {
   const severalHumans = new Set(available.map((r) => r.player_id)).size > 1 ||
     Object.values(feed?.players ?? {}).filter((p) => !p.is_bot).length > 1;
   const playerName = (id: string) => feed?.players[id]?.display_name ?? id;
+  // Okna reakcji kart z ręki: ręce ludzi przy tym ekranie (sieć: tylko moja).
+  const handOwners = humanHandOwners(me, feed?.players);
+  const severalHands = handOwners.length > 1;
 
   return (
     <>
-      {visible.length > 0 &&
+      {/* Stos chowa się na czas formularza, który z niego otwarto (nie zasłania wyborów). */}
+      {!using && !playing &&
         createPortal(
-          <div className={styles.stack} aria-label="Abilities available now">
+          <div className={styles.stack} aria-label="Abilities and cards available now">
+            {handOwners.map((id) => (
+              <HandReactionRows
+                key={id}
+                gameId={gameId}
+                playerId={id}
+                playerLabel={severalHands ? playerName(id) : null}
+                onPlay={setPlaying}
+              />
+            ))}
             {visible.map((row) => (
               <section key={promptKey(row)} className={styles.card} aria-label={`Available now: ${row.name}`}>
                 <header className={styles.head}>
@@ -122,6 +142,17 @@ export function AbilityPrompts() {
           </div>,
           document.body,
         )}
+      {playing && (
+        <ActionCardPlayModal
+          key={`${playing.tab}-${playing.id}`}
+          kind={playing.tab === "notes" ? "note" : "card"}
+          cardId={playing.id}
+          cardName={playing.name}
+          playerId={playing.playerId}
+          onClose={() => setPlaying(null)}
+          onPlayed={() => setPlaying(null)}
+        />
+      )}
       {using && (
         <FactionComponentUseModal
           kind={using.kind}

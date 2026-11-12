@@ -1,9 +1,12 @@
-import { IconCheck, IconCoins, IconMinus, IconPlus } from "@tabler/icons-react";
+import { useEffect, useMemo } from "react";
+import { IconCheck, IconCoins, IconEye, IconMinus, IconPlus } from "@tabler/icons-react";
 import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { Unit } from "@/shared/ui/Unit";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
+import { clearMapMarks, mapHits, mapRefKeys, showOnMap } from "@/domains/search/mapPeek";
+import type { SearchKey } from "@/domains/search/searchKeys";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -115,7 +118,8 @@ function Tile({
 }) {
   const meta = metaOf(option);
   const shape = typeof meta.die === "number" ? "die" : undefined;
-  return (
+  const mapRef = useMapRef(option);
+  const tile = (
     <button
       type="button"
       className={styles.tile}
@@ -124,6 +128,8 @@ function Tile({
       disabled={disabled}
       title={option.label}
       onClick={onClick}
+      onMouseEnter={mapRef ? () => showOnMap(mapRef) : undefined}
+      onMouseLeave={mapRef ? clearMapMarks : undefined}
     >
       <OptionBody option={option} />
       {multi && (
@@ -133,6 +139,44 @@ function Tile({
       )}
     </button>
   );
+  if (!mapRef) return tile;
+  const name = splitLabel(option.label).title;
+  return (
+    <span className={styles.tileWrap}>
+      {tile}
+      {/* Najechanie: okno prześwituje i widać cel na mapie; klik: mapa przewija się do celu. */}
+      <button
+        type="button"
+        className={styles.locate}
+        aria-label={`Show ${name} on the map`}
+        title="Hover to see it on the map, click to centre the map on it"
+        onMouseEnter={() => showOnMap(mapRef, { peek: true })}
+        onMouseLeave={clearMapMarks}
+        onFocus={() => showOnMap(mapRef, { peek: true })}
+        onBlur={clearMapMarks}
+        onClick={() => showOnMap(mapRef, { peek: true, jump: true })}
+      >
+        <IconEye size={13} aria-hidden="true" />
+      </button>
+    </span>
+  );
+}
+
+/**
+ * Klucze mapy opcji, gdy wskazuje planetę albo system leżący na planszy (inaczej ``null``).
+ * Sprawdzamy DOM mapy (znaczniki wyszukiwarki), więc nie trzeba znać formatu każdego wejścia.
+ */
+function useMapRef(option: ActionCardOption) {
+  // Podpis kluczy (string) jako zależność: nowa, ale równa lista nie liczy DOM od nowa.
+  const signature = mapRefKeys(option.value, option.meta).join("|");
+  const keys = useMemo(() => {
+    if (!signature) return null;
+    const list = signature.split("|") as SearchKey[];
+    return mapHits(list).length > 0 ? list : null;
+  }, [signature]);
+  // Okno zamknięte w trakcie najechania nie zostawia podświetlenia ani prześwitu.
+  useEffect(() => (keys ? clearMapMarks : undefined), [keys]);
+  return keys;
 }
 
 function FieldHead({ label, hint, note }: { label: string; hint?: string; note?: string }) {

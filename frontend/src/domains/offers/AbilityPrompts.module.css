@@ -11,6 +11,11 @@
   overflow: auto;
 }
 
+/* Pusty stos (nic do zagrania) nie zasłania planszy. */
+.stack:empty {
+  display: none;
+}
+
 .card {
   display: grid;
   gap: 8px;
@@ -104,6 +109,42 @@
   background: var(--ds-accent, #60a5fa);
 }
 
+/* Okno reakcji karty z ręki (RULES.md 54.8): mija z następnym krokiem gry, więc karta woła
+   wyraźniej niż „Available now” - bursztynowa ramka pulsuje, dopóki okno jest otwarte. */
+.card[data-tone="window"] {
+  border-color: rgb(250, 204, 21);
+  animation:
+    promptIn 180ms ease-out,
+    windowPulse 1.6s ease-in-out 180ms infinite;
+}
+
+.card[data-tone="window"] .icon,
+.card[data-tone="window"] .kind {
+  color: rgb(250, 204, 21);
+}
+
+.card[data-tone="window"] .primary {
+  background: rgb(250, 204, 21);
+  color: #1a1405;
+}
+
+.when {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+}
+
+@keyframes windowPulse {
+  0%,
+  100% {
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.55), 0 0 0 0 rgba(250, 204, 21, 0.55);
+  }
+  50% {
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.55), 0 0 0 7px rgba(250, 204, 21, 0);
+  }
+}
+
 @keyframes promptIn {
   from {
     opacity: 0;
@@ -112,7 +153,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card {
+  .card,
+  .card[data-tone="window"] {
     animation: none;
   }
 }

@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from src import config
 from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
@@ -208,6 +209,18 @@ def _items(items: list[BattleLossItem]) -> dict[str, int]:
         if item.count > 0:
             result[item.base_type] = result.get(item.base_type, 0) + item.count
     return result
+
+
+@router.get("/battle/sounds")
+def get_battle_sounds() -> dict[str, list[str]]:
+    """Nazwy opcjonalnych próbek dźwięku walki leżących w ``assets/extra/sfx/*.mp3``.
+
+    Front pyta o listę RAZ, zamiast próbować każdy plik (każdy brak = czerwony 404 w konsoli
+    przeglądarki); nazwy spoza listy grają syntezą.
+    """
+    folder = config.ASSETS_DIR / "extra" / "sfx"
+    names = sorted(path.stem for path in folder.glob("*.mp3")) if folder.is_dir() else []
+    return {"sounds": names}
 
 
 @router.get("/tactical/battle", response_model=BattleResponse, response_model_by_alias=True)

@@ -210,6 +210,7 @@ function HandCard({
   relicTag,
   passive,
   frontier,
+  reaction,
   onDragChange,
 }: {
   tab: HandTab;
@@ -222,6 +223,8 @@ function HandCard({
   relicTag?: string;
   /** Relikt pasywny: działa sam, nie ma co zagrywać (nie przyciemniamy go jak zablokowanej karty). */
   passive?: boolean;
+  /** Okno reakcji tej karty jest otwarte TERAZ (RULES.md 54.8) - karta miga. */
+  reaction?: boolean;
   onDragChange: (cardId: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -230,7 +233,9 @@ function HandCard({
   const canDrag = playableTab && play?.playable === true;
   const locked = playableTab && !passive && play !== undefined && !play.playable;
   const hint = canDrag
-    ? `${name} - drag onto the play zone to play`
+    ? reaction
+      ? `${name} - its window is open now: drag onto the play zone to play`
+      : `${name} - drag onto the play zone to play`
     : locked
       ? `${name} - can't be played now: ${play?.reason ?? "not available"}`
       : passive
@@ -267,6 +272,7 @@ function HandCard({
           data-open={open || undefined}
           data-tinted={ownerRgb ? true : undefined}
           data-playable={canDrag || undefined}
+          data-reaction={(canDrag && reaction) || undefined}
           data-locked={locked || undefined}
           onClick={() => setOpen((v) => !v)}
           title={hint}
@@ -360,6 +366,10 @@ export function BottomHandDock() {
   );
   const reactionTabs = useMemo(
     () => new Set<HandTab>(reactions.map((r) => r.tab)),
+    [reactions],
+  );
+  const reactionIds = useMemo(
+    () => new Set(reactions.map((r) => `${r.tab}:${r.id}`)),
     [reactions],
   );
   const firstReaction = reactions[0];
@@ -588,6 +598,7 @@ export function BottomHandDock() {
                   tab={tab}
                   id={id}
                   frontier={frontier}
+                  reaction={!frontier && reactionIds.has(`${tab}:${id}`)}
                   play={
                     frontier
                       ? frontierPlayability?.[id]

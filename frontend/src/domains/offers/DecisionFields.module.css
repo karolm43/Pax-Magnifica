@@ -81,6 +81,47 @@
   cursor: not-allowed;
 }
 
+/* Opcja wskazująca planetę/system: kafelek + przycisk „pokaż na mapie” w rogu. */
+.tileWrap {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.tileWrap > .tile {
+  padding-right: 28px;
+}
+
+.locate {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--ds-h22);
+  border-radius: 6px;
+  color: var(--ds-ink);
+  background: var(--ds-ground);
+  cursor: pointer;
+}
+
+.locate:hover,
+.locate:focus-visible {
+  color: #1a1405;
+  border-color: rgb(250, 204, 21);
+  background: rgb(250, 204, 21);
+}
+
+/* Podgląd mapy (mapPeek.ts): okna i ich tło prawie znikają, żeby cel było widać spod nich. */
+:global(body[data-map-peek] [role="dialog"]),
+:global(body[data-map-peek] .ds-modal-backdrop) {
+  opacity: 0.08;
+  transition: opacity 120ms ease;
+}
+
 .tile:focus-visible {
   outline: 2px solid var(--ds-accent, #2563eb);
   outline-offset: 2px;

@@ -101,12 +101,34 @@ function noise(c: AudioContext): AudioBuffer {
   return noiseBuffer;
 }
 
+/**
+ * Nazwy próbek, które NAPRAWDĘ leżą w `assets/extra/sfx/` (`GET /battle/sounds`), pytane raz.
+ * Bez tej listy front próbował każdy plik i każdy brak był czerwonym 404 w konsoli przeglądarki.
+ */
+let available: Promise<Set<string>> | null = null;
+
+function availableSamples(): Promise<Set<string>> {
+  available ??= fetch("/bot/battle/sounds")
+    .then((res) => (res.ok ? (res.json() as Promise<{ sounds?: string[] }>) : { sounds: [] }))
+    .then((data) => new Set(data.sounds ?? []))
+    .catch(() => new Set<string>());
+  return available;
+}
+
 /** Próbuje wczytać opcjonalne pliki z `assets/extra/sfx/` (brak pliku = synteza). */
 export function preloadBattleSounds(): void {
   const c = audio();
   if (!c) return;
+  void availableSamples().then((present) => loadSamples(c, present));
+}
+
+function loadSamples(c: AudioContext, present: Set<string>): void {
   for (const name of ALL) {
     if (samples.has(name) || loading.has(name)) continue;
+    if (!present.has(name)) {
+      samples.set(name, null);
+      continue;
+    }
     loading.add(name);
     void fetch(`${SFX_BASE}/${name}.mp3`)
       .then((res) => {

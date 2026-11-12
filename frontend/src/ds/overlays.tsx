@@ -135,7 +135,8 @@ export function Modal({
     >
       <Dialog.Portal container={getPortalRoot()} keepMounted={keepMounted}>
         <Dialog.Backdrop
-          className={cx(classes.backdrop, classNames.overlay, hiddenFrom && `ds-hidden-from-${hiddenFrom}`)}
+          // ``ds-modal-backdrop``: stała nazwa dla podglądu mapy spod okna (search/mapPeek.ts).
+          className={cx("ds-modal-backdrop", classes.backdrop, classNames.overlay, hiddenFrom && `ds-hidden-from-${hiddenFrom}`)}
           style={{ zIndex, ...styles.overlay }}
         />
         <div
