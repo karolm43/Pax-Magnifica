@@ -733,3 +733,21 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Druga klauzula Gravleash (wyrównanie ruchu) dokończona po przebudowie tras: PERMIT `movement.match_highest`.
 - Premia Gravity Drive / Ionian Fuel Refinery propaguje się przy Gravleash (decyzja użytkownika).
 - ⚠️ Otwarte (na później, decyzja użytkownika): „limited by laws” u Darktalon — po efektach agend.
+
+## Letnev z testu użytkownika + okna decyzji (2026-11-12)
+
+- Naprawa: `/tactical/move-route` padał (500) po niedokończonej przebudowie tras — router/schemat podawały stare
+  `boosted`/`gravity_drive`. Teraz `alone`, `withShips` (Gravleash: dolatuje razem z innym typem), `bonusOptions`,
+  `bonusMax`, `bonuses`; front (`routeTypes.shipMax/draftProblems`) pokazuje „with Cruiser (Gravleash)” i blokuje ruch
+  statku bez wymaganego towarzysza.
+- Munitions Reserves: przerzut prosto w oknie walki — `faction_components.combat_dice_uses` → `BattleResponse.abilityTools`
+  → `BattleRelicTools` (zaznacz kości / „Select misses” / Reroll). Wcześniej tylko z menu akcji komponentu.
+- Oferty: nazwa + tekst + rodzaj (`kind`: Agent, Faction ability, Breakthrough, Unit ability…) dla wszystkich kategorii
+  komponentów (wcześniej tylko technologie); przycisk nazwany akcją z etykiety hooka.
+- Wspólne pola decyzji `domains/offers/DecisionFields` (oferty, karty akcji, zdolności, technologie, legendarne planety):
+  kafelki zamiast list rozwijanych (lista z wyszukiwaniem dopiero > 18 opcji), stepper zamiast pola liczbowego,
+  `meta` opcji = sprite jednostki w kolorze gracza / planeta z wartością / kość z trafieniem. Płatność planety+TG
+  (`offer_inputs.payment_planets` / `as_payment`) = jeden widżet z paskiem „Paid X / Y” (mech Dunlain Reaper, Pirate
+  Fleet, Impersonation, Plagiarize, Reveal Prototype, Enigmatic Device).
+- Agent Viscount Unlenn: opcje z nazwą frakcji zamiast `(p1)`, własne statki pierwsze. `validate_params`: pominięty
+  opcjonalny multi (min 0) = pusta lista.

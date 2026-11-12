@@ -22,6 +22,7 @@ from src.core.hooks.action_card_inputs import (
     _option,
     _planet_label,
 )
+from src.core.offer_inputs import as_payment
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect, register_effect_inputs
 
@@ -58,9 +59,12 @@ def _inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> l
             hint=f"Costs {_COST} resources.",
         ),
         _multi("skips", "Skips: exhaust to ignore a prerequisite", skips, 0, len(skips)),
-        _multi(
-            "planets", "Planets to exhaust", pay_planets, 0, len(pay_planets),
-            f"Spend at least {_COST} resources.",
+        as_payment(
+            _multi(
+                "planets", "Planets to exhaust", pay_planets, 0, len(pay_planets),
+                f"Spend at least {_COST} resources.",
+            ),
+            ready, "resources", _COST,
         ),
         _number("trade_goods", "Trade goods to spend", 0, spendable),
     ]

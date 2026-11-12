@@ -55,6 +55,7 @@ from src.core.hooks.action_card_inputs import (
 )
 from src.core.models import TechnologyDef
 from src.core.neutral import NEUTRAL_PLAYER_ID
+from src.core.offer_inputs import as_payment
 from src.core.reaction_cards import (
     OpenWindow,
     card_effect_source,
@@ -546,9 +547,12 @@ def reveal_prototype_inputs(
             hint=f"Costs {_REVEAL_COST} resources.",
         ),
         _multi("skips", "Skips: exhaust to ignore a prerequisite", skips, 0, len(skips)),
-        _multi(
-            "planets", "Planets to exhaust", pay_planets, 0, len(pay_planets),
-            f"Spend at least {_REVEAL_COST} resources.",
+        as_payment(
+            _multi(
+                "planets", "Planets to exhaust", pay_planets, 0, len(pay_planets),
+                f"Spend at least {_REVEAL_COST} resources.",
+            ),
+            ready, "resources", _REVEAL_COST,
         ),
         _number("trade_goods", "Trade goods to spend", 0, spendable),
     ]

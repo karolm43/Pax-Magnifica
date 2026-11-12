@@ -155,14 +155,15 @@ def available_bonuses(
         if n > 0 and is_space_unit(bt)
     ]
 
-    def lifts(**flags: bool) -> bool:
+    def lifts(*, boost: bool, tempesta: bool) -> bool:
         for base_type in types:
             plain = movement._effective_move_value(
                 state, grid, registry, from_pos, base_type, player_id,
                 boost=False, tempesta=False,
             )
             boosted = movement._effective_move_value(
-                state, grid, registry, from_pos, base_type, player_id, **flags
+                state, grid, registry, from_pos, base_type, player_id,
+                boost=boost, tempesta=tempesta,
             )
             if plain is not None and boosted is not None and boosted > plain:
                 return True
@@ -212,7 +213,9 @@ def _ships(
                 )
             )
             continue
-        def ok(companions: list[str], combo: tuple[str, ...] = ()) -> tuple[bool, str]:
+        def ok(
+            companions: list[str], combo: tuple[str, ...] = (), base_type: str = base_type
+        ) -> tuple[bool, str]:
             return movement.can_move(
                 state, grid, registry, from_pos, base_type, player_id,
                 boost=BONUS_GRAVITY_DRIVE in combo, tempesta=BONUS_TEMPESTA in combo,

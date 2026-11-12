@@ -1166,6 +1166,23 @@ export type BattleView = {
   retreatOptions: Record<string, RetreatOption[]>;
   /** Relikty zmieniające kości po rzucie, przed przypisaniem strat (RULES.md 59). */
   relicTools?: { faction: string; tool: "reroll" | "adjust" }[];
+  /**
+   * Zdolności frakcji zmieniające kości rundy, dostępne TERAZ (np. Munitions Reserves po
+   * opłaceniu 2 TG): wybór kości ``min..max`` i użycie przez ``/faction-component/play``.
+   */
+  abilityTools?: BattleAbilityTool[];
+};
+
+export type BattleAbilityTool = {
+  faction: string;
+  /** Silnikowe id gracza (``player_id`` dla ``/faction-component/play``). */
+  playerId: string;
+  kind: "leader" | "ability" | "breakthrough";
+  componentId: string;
+  name: string;
+  text: string;
+  min: number;
+  max: number;
 };
 
 /** Plan pokrycia trafień: Sustain Damage + niszczone nieuszkodzone/uszkodzone (baseType → liczba). */
@@ -1427,7 +1444,7 @@ export function useMoveRoute(
     enabled: faction !== null && from !== null,
     queryFn: async () =>
       fetchJson<MoveRouteData>(
-        `/bot/tactical/move-route?faction=${encodeURIComponent(faction ?? "")}&from_position=${encodeURIComponent(from ?? "")}&via=${encodeURIComponent(via.join(","))}&gravity_drive=${gravityDrive}&tempesta=${tempesta}`,
+        `/bot/tactical/move-route?faction=${encodeURIComponent(faction ?? "")}&from_position=${encodeURIComponent(from ?? "")}&via=${encodeURIComponent(via.join(","))}`,
         "moveRoute",
       ),
     placeholderData: keepPreviousData,

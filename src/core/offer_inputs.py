@@ -117,6 +117,8 @@ def validate_params(inputs: list[Input], params: Mapping[str, Any]) -> dict[str,
             cleaned[key] = params[key]
         elif kind == "multi":
             raw = params.get(key)
+            if raw is None and int(item.get("min", 0)) == 0:
+                raw = []  # wybór opcjonalny pominięty = pusta lista
             if not isinstance(raw, list):
                 raise ValueError(f"Choose the options for: {label}.")
             allowed = [o["value"] for o in item.get("options", [])]
@@ -145,3 +147,77 @@ def has_legal_answer(inputs: list[Input]) -> bool:
         if len(options) < need:
             return False
     return True
+
+
+# --- Metadane opcji dla graficznych formularzy ------------------------------------------------
+#
+# Silnik ich nie waliduje; UI rysuje z nich kafelki (sprite jednostki w kolorze gracza, planeta
+# z wartością, kość z wynikiem) zamiast samej etykiety tekstowej.
+
+
+def unit_meta(
+    base_type: str, player_id: str, faction: str | None, color: str | None, count: int = 0
+) -> dict[str, Any]:
+    """Opcja = jednostka gracza (``base_type``), opcjonalnie z liczbą sztuk."""
+    meta: dict[str, Any] = {
+        "unit": base_type, "player": player_id, "faction": faction or "", "color": color or "",
+    }
+    if count:
+        meta["count"] = count
+    return meta
+
+
+def planet_meta(planet_id: str, value: int, value_kind: str) -> dict[str, Any]:
+    """Opcja = planeta do wyczerpania; ``value`` w ``value_kind`` (resources / influence)."""
+    return {"planet": planet_id, "value": value, "valueKind": value_kind}
+
+
+def die_meta(value: int, hits_on: int, base_type: str) -> dict[str, Any]:
+    """Opcja = kość rzutu walki: wynik, próg trafienia i rzucająca jednostka."""
+    return {"die": value, "hitsOn": hits_on, "unit": base_type}
+
+
+def payment_planets(
+    planets: list[tuple[str, str, int]],
+    value_kind: str,
+    cost: int,
+    *,
+    trade_goods_key: str = "trade_goods",
+    minimum: int = 0,
+    hint: str = "",
+) -> Input:
+    """Wejście „planety do wyczerpania” jako część płatności ``cost`` (planety + TG).
+
+    ``planets`` = ``[(id, nazwa, wartość)]``. Pole ``payment`` mówi UI, że to płatność: ile
+    trzeba zapłacić, czym (resources / influence) i które pole liczbowe to trade goods — UI
+    pokazuje wtedy kafelki planet z wartościami, licznik TG i pasek „zapłacono X / Y”.
+    """
+    options = [
+        option(pid, f"{name} ({value})", meta=planet_meta(pid, value, value_kind))
+        for pid, name, value in planets
+        if value > 0
+    ]
+    item = multi(
+        "planets", "Planets to exhaust", options, minimum, len(options),
+        hint or f"Pay {cost} {value_kind} with planets and/or trade goods.",
+    )
+    item["payment"] = {"cost": cost, "valueKind": value_kind, "tradeGoods": trade_goods_key}
+    return item
+
+
+def as_payment(
+    item: Input, ready: Mapping[str, int], value_kind: str, cost: int,
+    trade_goods_key: str = "trade_goods",
+) -> Input:
+    """Oznacza istniejące wejście „planety do wyczerpania” jako płatność (jak ``payment_planets``).
+
+    ``ready`` = wartości gotowych planet (``payment.ready_planet_values``); opcje dostają
+    ``planet_meta``, a wejście pole ``payment`` — UI pokazuje widżet płatności z paskiem.
+    """
+    for opt in item.get("options", []):
+        value = ready.get(str(opt.get("value")))
+        if value is not None:
+            meta = planet_meta(str(opt["value"]), value, value_kind)
+            opt["meta"] = {**opt.get("meta", {}), **meta}
+    item["payment"] = {"cost": cost, "valueKind": value_kind, "tradeGoods": trade_goods_key}
+    return item

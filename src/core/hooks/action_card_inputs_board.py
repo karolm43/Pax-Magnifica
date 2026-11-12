@@ -29,6 +29,7 @@ from src.core.hooks.action_cards_board import (
     pirate_targets,
     strategy_cards_in_reach,
 )
+from src.core.offer_inputs import as_payment
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
 
@@ -147,13 +148,16 @@ def pirate_fleet_inputs(
     return [
         _pirate_inputs(state, registry),
         # Za mało zasobów = wymagany wybór bez opcji, co blokuje kartę.
-        _multi(
-            "planets",
-            "Planets to exhaust",
-            planets if can_pay else [],
-            0 if can_pay else 1,
-            len(planets),
-            f"Spend at least {_PIRATE_FLEET_COST} resources.",
+        as_payment(
+            _multi(
+                "planets",
+                "Planets to exhaust",
+                planets if can_pay else [],
+                0 if can_pay else 1,
+                len(planets),
+                f"Spend at least {_PIRATE_FLEET_COST} resources.",
+            ),
+            ready, "resources", _PIRATE_FLEET_COST,
         ),
         _number(
             "trade_goods",

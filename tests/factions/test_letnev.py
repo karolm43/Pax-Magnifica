@@ -378,3 +378,48 @@ def test_gravleash_przenosi_premie_gravity_drive(registry: StaticDataRegistry) -
         boost=True, tempesta=False, companions=together,
     )
     assert plain == 2 and boosted == 3  # wyrównanie do krążownika z premią Gravity Drive
+
+
+# ------------------------------------------------------------------ okna decyzji (UI ofert)
+
+
+def test_oferta_agenta_ma_tekst_rodzaj_i_kafelki_jednostek(registry: StaticDataRegistry) -> None:
+    from src.core import offers
+
+    state = _state()
+    state.systems["102"].space_units["p1"] = {"cruiser": 2}
+    state.systems["102"].space_units["p2"] = {"destroyer": 1}
+    state.active_combat = ActiveCombat(kind="space", position="102", attacker="p1", defender="p2")
+    _round_start(state)
+    view = next(v for v in offers.offers_view(state, registry, "p1") if "Unlenn" in v["label"])
+    assert view["kind"] == "Agent"
+    assert "additional die" in view["text"]
+    options = view["inputs"][0]["options"]
+    assert options[0]["meta"]["player"] == "p1"  # własne statki pierwsze
+    assert {o["meta"]["unit"] for o in options} == {"cruiser", "destroyer"}
+    assert all("(p1)" not in o["label"] for o in options)  # bez surowych id graczy
+
+
+def test_dunlain_reaper_platnosc_jednym_widzetem(registry: StaticDataRegistry) -> None:
+    from src.core import offers
+
+    state = _state()
+    state.systems["102"].planet_units["industrex"] = {"p1": {"infantry": 2}, "p2": {"mech": 1}}
+    _round_start(state, "ground")
+    view = next(v for v in offers.offers_view(state, registry, "p1") if "Dunlain" in v["label"])
+    planets = next(i for i in view["inputs"] if i["key"] == "planets")
+    assert planets["payment"] == {"cost": 2, "valueKind": "resources", "tradeGoods": "trade_goods"}
+    assert view["kind"] == "Unit ability"
+
+
+def test_munitions_widoczne_w_oknie_walki_po_rzucie(registry: StaticDataRegistry) -> None:
+    state = _state()
+    assert faction_components.combat_dice_uses(state, registry) == []
+    _round_start(state)
+    paid = _accept(state, "p1", "Munitions")
+    paid.pending_offers = []
+    paid.pending_window = None
+    _rolled(paid)
+    uses = faction_components.combat_dice_uses(paid, registry)
+    assert [(u["player"], u["component"]) for u in uses] == [("p1", "munitions")]
+    assert uses[0]["min"] == 1 and uses[0]["max"] == 2

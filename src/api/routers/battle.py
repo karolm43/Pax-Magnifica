@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
+    BattleAbilityToolView,
     BattleAnnounceRetreatRequest,
     BattleAssignRequest,
     BattleLogView,
@@ -31,7 +32,7 @@ from src.api.schemas import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import battle, board_edit
+from src.core import battle, board_edit, faction_components
 from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.movement import CargoPickup
 from src.core.retreat import retreat_destinations
@@ -189,6 +190,14 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         relic_tools=[
             BattleRelicToolView(faction=key(t["player"]), tool=t["tool"])
             for t in battle.dice_relic_tools(state)
+        ],
+        ability_tools=[
+            BattleAbilityToolView(
+                faction=key(t["player"]), player_id=t["player"], kind=t["kind"],
+                component_id=t["component"], name=t["name"], text=t["text"],
+                min=t["min"], max=t["max"],
+            )
+            for t in faction_components.combat_dice_uses(state, ctx.registry)
         ],
     )
 

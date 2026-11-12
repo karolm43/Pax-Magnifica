@@ -14,9 +14,12 @@ import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
 import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
-import { InputField } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
+import { DecisionFields } from "./DecisionFields";
 import { TransitDiodesPicker } from "./TransitDiodesPicker";
 import styles from "./OffersDock.module.css";
+
+/** Opisy krótsze niż tyle znaków pokazujemy w całości (bez „more”). */
+const LONG_TEXT = 260;
 
 /** Czy zdarzenie klawiatury trafia w pole, które samo obsługuje Enter/Esc (formularz, przycisk). */
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -25,6 +28,14 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
     target.isContentEditable ||
     ["INPUT", "SELECT", "TEXTAREA", "BUTTON", "A"].includes(target.tagName)
   );
+}
+
+/** Przycisk „Use”, a gdy etykieta hooka mówi, co się stanie („…: spend 2 TG …”) — ta treść. */
+function acceptLabel(offer: OfferView): string {
+  const at = offer.label.indexOf(": ");
+  const action = at >= 0 ? offer.label.slice(at + 2).trim() : "";
+  if (!action || action.length > 42) return "Use";
+  return action.charAt(0).toUpperCase() + action.slice(1);
 }
 
 /**
@@ -127,8 +138,11 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
         onDoubleClick={drag.reset}
         title="Drag to move (double-click resets)"
       >
-        <b className={styles.title}>{offer.name}</b>
-        {offer.mandatory && <span className={styles.tag}>Required</span>}
+        <span className={styles.titleBox}>
+          {offer.kind && <small className={styles.kind}>{offer.kind}</small>}
+          <b className={styles.title}>{offer.name}</b>
+        </span>
+        {offer.mandatory && <span className={styles.tag} data-tone="required">Required</span>}
         {queued > 0 && <span className={styles.tag}>+{queued} more</span>}
         <button
           type="button"
@@ -158,10 +172,13 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
 
       {offer.text && (
         <div className={styles.textBlock}>
-          <p className={styles.text} data-open={showText || undefined}>
+          <p
+            className={styles.text}
+            data-open={showText || offer.text.length <= LONG_TEXT || undefined}
+          >
             {offer.text}
           </p>
-          {offer.text.length > 110 && (
+          {offer.text.length > LONG_TEXT && (
             <button
               type="button"
               className={styles.more}
@@ -189,17 +206,12 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
         />
       )}
       {!graphical && offer.inputs.length > 0 && (
-        <div className={styles.inputs}>
-          {offer.inputs.map((input) => (
-            <InputField
-              key={input.key}
-              input={input}
-              value={values[input.key]}
-              disabled={busy}
-              onChange={(next) => setValues((prev) => ({ ...prev, [input.key]: next }))}
-            />
-          ))}
-        </div>
+        <DecisionFields
+          inputs={offer.inputs}
+          values={values}
+          disabled={busy}
+          onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
+        />
       )}
       {noOptions && <p className={styles.warn}>There is no legal option for this right now.</p>}
 
@@ -210,7 +222,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
           </button>
         )}
         <button type="button" className={styles.use} disabled={!canUse} onClick={use}>
-          {offer.mandatory ? "Confirm" : "Use"} <kbd>Enter</kbd>
+          {offer.mandatory ? "Confirm" : acceptLabel(offer)} <kbd>Enter</kbd>
         </button>
       </footer>
     </section>,

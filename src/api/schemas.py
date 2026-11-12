@@ -709,7 +709,14 @@ class MoveRouteShip(BaseModel):
     count: int
     capacity: int
     reachable: bool
-    boosted: bool
+    # Dolatuje sam, bez premii i bez towarzyszy.
+    alone: bool
+    # Typy statków, z którymi dolatuje bez premii, gdy lecą razem (Gravleash Maneuvers).
+    with_ships: list[str] = Field(default_factory=list, alias="withShips")
+    # Zestawy premii (gravity_drive / tempesta), z którymi dolatuje.
+    bonus_options: list[list[str]] = Field(default_factory=list, alias="bonusOptions")
+    # Ile sztuk wolno ruszyć z premią (1, a z Gravleash cała grupa).
+    bonus_max: int = Field(alias="bonusMax")
     reason: str
 
 
@@ -738,6 +745,8 @@ class MoveRouteResponse(BaseModel):
     ships: list[MoveRouteShip] = Field(default_factory=list)
     cargo: list[MoveRouteCargo] = Field(default_factory=list)
     rift_nodes: list[str] = Field(default_factory=list, alias="riftNodes")
+    # Premie +1 do ruchu, które gracz może teraz włączyć (gravity_drive / tempesta).
+    bonuses: list[str] = Field(default_factory=list)
 
 
 class MoveRangeResponse(BaseModel):
@@ -1276,6 +1285,21 @@ class BattleRelicToolView(BaseModel):
     tool: str
 
 
+class BattleAbilityToolView(BaseModel):
+    """Zdolność frakcji zmieniająca kości rundy (np. Munitions Reserves): wybór kości + użycie."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    faction: str
+    player_id: str = Field(serialization_alias="playerId")
+    kind: str
+    component_id: str = Field(serialization_alias="componentId")
+    name: str
+    text: str
+    min: int
+    max: int
+
+
 class BattleResponse(BaseModel):
     """Pełny stan okna pola bitwy (jeden odczyt na całe okno)."""
 
@@ -1309,6 +1333,9 @@ class BattleResponse(BaseModel):
     # Relikty zmieniające kości po rzucie, przed przypisaniem strat (RULES.md 59).
     relic_tools: list[BattleRelicToolView] = Field(
         default_factory=list, serialization_alias="relicTools"
+    )
+    ability_tools: list[BattleAbilityToolView] = Field(
+        default_factory=list, serialization_alias="abilityTools"
     )
 
 

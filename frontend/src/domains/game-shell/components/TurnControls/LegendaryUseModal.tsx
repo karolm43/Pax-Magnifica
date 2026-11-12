@@ -4,7 +4,7 @@ import { AppModal } from "@/shared/ui/AppModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
 import { planetComponentId, usePlanetAbilityForm } from "@/api/usePlanetAbility";
-import { InputField } from "./ActionCardPlayModal";
+import { DecisionFields } from "@/domains/offers/DecisionFields";
 
 type Props = {
   planetId: string;
@@ -76,15 +76,14 @@ export function LegendaryUseModal({ planetId, abilityName, playerId, onClose, on
                 This legendary planet ability card is exhausted.
               </Text>
             )}
-            {inputs.map((input) => (
-              <InputField
-                key={input.key}
-                input={input}
-                value={values[input.key]}
+            {(
+              <DecisionFields
+                inputs={inputs}
+                values={values}
                 disabled={busy}
-                onChange={(next) => setValues((prev) => ({ ...prev, [input.key]: next }))}
+                onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
               />
-            ))}
+            )}
             {noOptions && (
               <Text size="sm" c="red">
                 There is nothing to use it on right now.

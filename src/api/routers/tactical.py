@@ -394,8 +394,6 @@ async def get_move_route(
     faction: str,
     from_position: str,
     via: str = "",
-    gravity_drive: bool = False,
-    tempesta: bool = False,
     ctx: AppContext = Depends(get_ctx),
 ) -> MoveRouteResponse:
     """Podgląd trasy ruchu ze ``from_position`` do aktywnego systemu (RULES.md 32.1, 32.3).
@@ -414,8 +412,6 @@ async def get_move_route(
         from_position,
         waypoints,
         player_id,
-        gravity_drive=gravity_drive,
-        tempesta=tempesta,
     )
     return MoveRouteResponse(
         active=report.active,
@@ -429,12 +425,16 @@ async def get_move_route(
                 count=s.count,
                 capacity=s.capacity,
                 reachable=s.reachable,
-                boosted=s.boosted,
+                alone=s.alone,
+                withShips=s.with_ships,
+                bonusOptions=s.bonus_options,
+                bonusMax=s.bonus_max,
                 reason=s.reason,
             )
             for s in report.ships
         ],
         riftNodes=report.rift_nodes,
+        bonuses=report.bonuses,
         cargo=[
             MoveRouteCargo(
                 position=c.position,

@@ -30,6 +30,8 @@ class OfferView(BaseModel):
     name: str
     label: str
     text: str
+    # Rodzaj komponentu do nagłówka (np. „Agent”, „Technology”); pusto, gdy nieznany.
+    kind: str = ""
     mandatory: bool
     inputs: list[dict[str, Any]]
 

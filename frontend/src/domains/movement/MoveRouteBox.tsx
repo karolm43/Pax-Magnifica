@@ -21,7 +21,10 @@ import { RouteUnitChip } from "./RouteUnitChip";
 import {
   asyncOfBase,
   draftCapacity,
+  draftProblems,
   pickKey,
+  shipMax,
+  type MoveRouteShip,
   type PickTarget,
 } from "./routeTypes";
 import styles from "./MoveRouteBox.module.css";
@@ -195,6 +198,24 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
   const zoneLabel = (zone: string) =>
     zone === "space" ? "Space" : (getPlanetData(zone)?.name ?? zone);
 
+  const bonusName = (bonus: string) =>
+    bonus === "gravity_drive" ? "Gravity Drive" : bonus === "tempesta" ? "Ionian Fuel Refinery" : bonus;
+  const shipCaption = (s: MoveRouteShip): string | undefined => {
+    if (!s.reachable) return s.reason || "out of range";
+    if (s.alone) return s.capacity > 0 ? `capacity ${s.capacity}` : undefined;
+    if (s.withShips.length > 0) {
+      const mates = s.withShips.map((bt) => unitName(asyncOfBase(bt))).join(" / ");
+      return `with ${mates} (Gravleash)`;
+    }
+    const combo = s.bonusOptions[0] ?? [];
+    const via = combo.map(bonusName).join(" + ") || "+1 move";
+    return s.bonusMax > 1 ? `needs ${via}` : `needs ${via}, 1 ship`;
+  };
+  const problems = draftProblems(
+    draft,
+    (bt) => unitName(asyncOfBase(bt)),
+    gravityDrive || tempesta,
+  );
   const cap = draftCapacity(draft);
   const over = cap.used > cap.total;
   const picks = Object.values(draft.picks);
@@ -352,7 +373,7 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
                       position: draft.from,
                       zone: "space",
                       baseType: s.baseType,
-                      max: s.boosted ? 1 : s.count,
+                      max: shipMax(s),
                     },
                     Number.POSITIVE_INFINITY,
                   );
@@ -374,7 +395,7 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
               position: draft.from,
               zone: "space",
               baseType: s.baseType,
-              max: s.boosted ? 1 : s.count,
+              max: shipMax(s),
             };
             const asyncId = asyncOfBase(s.baseType);
             return (
@@ -385,15 +406,7 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
                 colorAlias={colorAlias}
                 faction={faction}
                 name={unitName(asyncId)}
-                caption={
-                  !s.reachable
-                    ? s.reason || "out of range"
-                    : s.boosted
-                      ? "+1 move bonus, 1 ship"
-                      : s.capacity > 0
-                        ? `capacity ${s.capacity}`
-                        : undefined
-                }
+                caption={shipCaption(s)}
                 picked={draft.picks[pickKey(target)]?.count ?? 0}
                 max={target.max}
                 disabled={!s.reachable}
@@ -453,6 +466,12 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
         ))}
       </div>
 
+      {problems.map((problem) => (
+        <p key={problem} className={styles.warn} role="alert">
+          {problem}
+        </p>
+      ))}
+
       <footer className={styles.foot}>
         <button
           type="button"
@@ -465,7 +484,9 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
         <button
           type="button"
           className={styles.primary}
-          disabled={busy || shipCount + cargoCount === 0 || route?.route == null}
+          disabled={
+            busy || shipCount + cargoCount === 0 || route?.route == null || problems.length > 0
+          }
           onClick={() => void submit()}
         >
           <IconSend size={14} aria-hidden="true" />

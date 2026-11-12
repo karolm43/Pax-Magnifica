@@ -11,18 +11,70 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import battle, rules_hooks, triggers
+from src.core.components import ComponentCategory
 from src.core.game_state import GameState, PendingOffer
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 
+# Rodzaj komponentu (prefiks ``covers``) -> etykieta w nagłówku decyzji.
+_KIND_LABELS = {
+    "technologies": "Technology",
+    "abilities": "Faction ability",
+    "breakthroughs": "Breakthrough",
+    "units": "Unit ability",
+    "relics": "Relic",
+    "promissory_notes": "Promissory note",
+    "planets": "Legendary planet",
+    "action_cards": "Action card",
+    "agendas": "Law",
+}
 
-def _component(registry: StaticDataRegistry, covers: str | None) -> tuple[str, str]:
-    """(nazwa, tekst) komponentu hooka z assetów (technologie); pusto, gdy brak."""
-    if covers and covers.startswith("technologies:"):
-        tech = registry.technologies.get(covers.split(":", 1)[1])
-        if tech is not None:
-            return tech.name, tech.text or ""
-    return "", ""
+
+def _component(registry: StaticDataRegistry, covers: str | None) -> tuple[str, str, str]:
+    """``(nazwa, tekst, rodzaj)`` komponentu hooka z assetów; pusto, gdy brak danych.
+
+    Rodzaj to krótka etykieta do nagłówka okna decyzji (np. „Agent”, „Faction ability”).
+    """
+    from src.core import faction_components  # lokalnie: faction_components -> ... -> offers
+
+    if not covers or ":" not in covers:
+        return "", "", ""
+    category, component = covers.split(":", 1)
+    kind = _KIND_LABELS.get(category, "")
+    if category == "technologies":
+        tech = registry.technologies.get(component)
+        return (tech.name, tech.text or "", kind) if tech is not None else ("", "", kind)
+    if category in ("abilities", "leaders", "breakthroughs"):
+        singular = {"abilities": "ability", "leaders": "leader", "breakthroughs": "breakthrough"}
+        try:
+            name, text = faction_components.describe(registry, singular[category], component)
+        except ValueError:
+            return "", "", kind
+        if category == "leaders":
+            leader = registry.leaders.get(component)
+            kind = (leader.type.capitalize() if leader is not None else "") or "Leader"
+        return name, text, kind
+    if category == "units":
+        unit = registry.units.get(component)
+        if unit is None:
+            return "", "", kind
+        return unit.name, unit.ability or "", kind
+    if category == "planets":
+        planet = registry.planets.get(component)
+        if planet is None:
+            return "", "", kind
+        return (
+            planet.legendary_ability_name or planet.name,
+            planet.legendary_ability_text or "",
+            kind,
+        )
+    for entry_category in ComponentCategory:
+        if entry_category.value == category:
+            entry = registry.catalog.get(entry_category, component)
+            if entry is not None:
+                text = " ".join(t for t in entry.texts.values() if t)
+                return entry.name or "", text, kind
+    return "", "", kind
 
 
 def offer_view(
@@ -31,9 +83,9 @@ def offer_view(
     """Opis oferty do UI: nazwa i tekst karty, czy obowiązkowa oraz wejścia formularza."""
     hook = rules_hooks.hook_by_seq(offer.hook_seq)
     inputs: list[dict[str, Any]] = []
-    name, text = ("", "")
+    name, text, kind = ("", "", "")
     if hook is not None:
-        name, text = _component(registry, hook.covers)
+        name, text, kind = _component(registry, hook.covers)
         if hook.inputs is not None:
             inputs = hook.inputs(state, registry, offer.player_id, offer.ctx)
     return {
@@ -43,6 +95,7 @@ def offer_view(
         "name": name or offer.label,
         "label": offer.label,
         "text": text,
+        "kind": kind,
         "mandatory": offer.mandatory,
         "inputs": inputs,
     }

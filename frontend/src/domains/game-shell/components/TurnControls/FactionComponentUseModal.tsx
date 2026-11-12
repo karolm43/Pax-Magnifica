@@ -8,7 +8,7 @@ import {
   useFactionComponentForm,
   type FactionComponentKind,
 } from "@/api/useFactionComponents";
-import { InputField } from "./ActionCardPlayModal";
+import { DecisionFields } from "@/domains/offers/DecisionFields";
 
 type Props = {
   kind: FactionComponentKind;
@@ -136,15 +136,14 @@ export function FactionComponentUseModal({
             )}
             {isAction &&
               !notReady &&
-              inputs.map((input) => (
-                <InputField
-                  key={input.key}
-                  input={input}
-                  value={values[input.key]}
-                  disabled={busy}
-                  onChange={(next) => setValues((prev) => ({ ...prev, [input.key]: next }))}
-                />
-              ))}
+              (
+              <DecisionFields
+                inputs={inputs}
+                values={values}
+                disabled={busy}
+                onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
+              />
+            )}
             {isAction && !notReady && noOptions && (
               <Text size="sm" c="red">
                 There is nothing to use it on right now.

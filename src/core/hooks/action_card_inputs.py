@@ -22,6 +22,7 @@ from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
 from src.core.hooks.card_helpers import controlled
+from src.core.offer_inputs import as_payment
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
 from src.core.unit_ops import count_in_zone
@@ -219,13 +220,16 @@ def impersonation_inputs(
         if value > 0
     ]
     inputs = [
-        _multi(
-            "planets",
-            "Planets to exhaust",
-            planets,
-            0,
-            len(planets),
-            "Exhaust ready planets (and/or trade goods) to pay at least 3 influence.",
+        as_payment(
+            _multi(
+                "planets",
+                "Planets to exhaust",
+                planets,
+                0,
+                len(planets),
+                "Exhaust ready planets (and/or trade goods) to pay at least 3 influence.",
+            ),
+            ready, "influence", 3,
         ),
         _number(
             "trade_goods",

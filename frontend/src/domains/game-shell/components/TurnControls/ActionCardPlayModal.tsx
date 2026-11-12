@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button, Group, MultiSelect, NumberInput, Select, Stack, Text } from "@/ds";
+import { Button, Group, Stack, Text } from "@/ds";
+import { DecisionField, DecisionFields } from "@/domains/offers/DecisionFields";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import {
@@ -31,57 +32,14 @@ type Props = {
   kind?: "card" | "relic" | "frontier" | "note";
 };
 
-/** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (też dla ofert technologii). */
-export function InputField({
-  input,
-  value,
-  disabled,
-  onChange,
-}: {
+/** Jedno pole formularza wg rodzaju wejścia opisanego przez backend (kafelki / stepper). */
+export function InputField(props: {
   input: ActionCardInput;
   value: FormValue | undefined;
   disabled: boolean;
   onChange: (value: FormValue) => void;
 }) {
-  if (input.kind === "number") {
-    return (
-      <NumberInput
-        label={input.label}
-        description={input.hint || undefined}
-        min={input.min}
-        max={input.max}
-        value={typeof value === "number" ? value : input.min}
-        disabled={disabled}
-        onChange={(next) => onChange(typeof next === "number" ? next : input.min)}
-      />
-    );
-  }
-  const data = input.options.map((o) => ({ value: o.id, label: o.label }));
-  if (input.kind === "multi") {
-    const range = input.min === input.max ? `${input.min}` : `${input.min}-${input.max}`;
-    return (
-      <MultiSelect
-        label={input.label}
-        description={[input.hint, `Pick ${range}.`].filter(Boolean).join(" ")}
-        data={data}
-        value={Array.isArray(value) ? value : []}
-        disabled={disabled}
-        placeholder={data.length ? "Choose…" : "Nothing to choose"}
-        onChange={(next) => onChange(next.slice(0, input.max))}
-      />
-    );
-  }
-  return (
-    <Select
-      label={input.label}
-      description={input.hint || undefined}
-      data={data}
-      value={typeof value === "string" ? value : null}
-      disabled={disabled}
-      placeholder={data.length ? "Choose…" : "Nothing to choose"}
-      onChange={onChange}
-    />
-  );
+  return <DecisionField {...props} />;
 }
 
 /**
@@ -201,15 +159,14 @@ export function ActionCardPlayModal({
                   : "The engine does not automate this card yet. Playing it counts as your action and discards it - resolve the effect by hand."}
               </Text>
             )}
-            {inputs.map((input) => (
-              <InputField
-                key={input.key}
-                input={input}
-                value={values[input.key]}
+            {(
+              <DecisionFields
+                inputs={inputs}
+                values={values}
                 disabled={busy}
-                onChange={(next) => setValues((prev) => ({ ...prev, [input.key]: next }))}
+                onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
               />
-            ))}
+            )}
             {noTargets && (
               <Text size="sm" c="red">
                 There is no legal target for this card right now.

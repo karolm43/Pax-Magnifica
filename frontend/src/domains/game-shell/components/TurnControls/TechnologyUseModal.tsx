@@ -4,7 +4,7 @@ import { AppModal } from "@/shared/ui/AppModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
 import { useTechnologyAbilityUse, useTechnologyForm } from "@/api/useTechnology";
-import { InputField } from "./ActionCardPlayModal";
+import { DecisionFields } from "@/domains/offers/DecisionFields";
 
 type Props = {
   techId: string;
@@ -81,15 +81,14 @@ export function TechnologyUseModal({ techId, techName, playerId, onClose, onDone
                 This technology is exhausted.
               </Text>
             )}
-            {inputs.map((input) => (
-              <InputField
-                key={input.key}
-                input={input}
-                value={values[input.key]}
+            {(
+              <DecisionFields
+                inputs={inputs}
+                values={values}
                 disabled={busy}
-                onChange={(next) => setValues((prev) => ({ ...prev, [input.key]: next }))}
+                onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
               />
-            ))}
+            )}
             {noOptions && (
               <Text size="sm" c="red">
                 There is nothing to use it on right now.

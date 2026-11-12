@@ -116,7 +116,8 @@ def _dice_options(state: GameState, owner: str) -> list[dict[str, Any]]:
     options: list[dict[str, Any]] = []
     for index, entry in enumerate(rolls):
         for die, value in enumerate(entry["dice"]):
-            options.append(oi.option(f"{index}:{die}", f"{entry['name']}: {value}"))
+            meta = oi.die_meta(value, int(entry.get("hitsOn", 0)), str(entry.get("baseType", "")))
+            options.append(oi.option(f"{index}:{die}", f"{entry['name']}: {value}", meta=meta))
     return options
 
 
@@ -265,21 +266,24 @@ def _deploy_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
 
 
 def deploy_inputs(
-    state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
+    state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Płatność 2 zasobów: planety do wyczerpania + TG."""
+    """Płatność 2 zasobów: planety do wyczerpania + TG (jeden widżet płatności w UI)."""
     ready = payment.ready_planet_values(state, registry, player_id, "resources")
     planets = [
-        oi.option(p, f"{registry.planets[p].name if p in registry.planets else p} ({v})")
+        (p, registry.planets[p].name if p in registry.planets else p, v)
         for p, v in sorted(ready.items())
-        if v > 0
     ]
     spendable = economy.spendable_trade_goods(state, player_id)
-    inputs: list[dict[str, Any]] = []
-    if planets:
-        inputs.append(oi.multi("planets", "Planets to exhaust", planets, 0, len(planets)))
-    inputs.append(oi.number("trade_goods", "Trade goods to spend", 0, min(spendable, _DEPLOY_COST)))
-    return inputs
+    planet = str(ctx.get("planet") or "")
+    where = registry.planets[planet].name if planet in registry.planets else planet
+    return [
+        oi.payment_planets(
+            planets, "resources", _DEPLOY_COST,
+            hint=f"Replace 1 infantry on {where} with 1 mech: pay {_DEPLOY_COST} resources.",
+        ),
+        oi.number("trade_goods", "Trade goods to spend", 0, min(spendable, _DEPLOY_COST)),
+    ]
 
 
 @on_event(
@@ -368,15 +372,26 @@ def _agent_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
 
 
 def agent_inputs(
-    state: GameState, registry: Any, _player_id: str, ctx: Mapping[str, Any]
+    state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     system = state.systems.get(str(ctx.get("position")))
     options: list[dict[str, Any]] = []
-    for owner, units in sorted((system.space_units if system is not None else {}).items()):
+    # Najpierw własne statki (najczęstszy wybór), potem przeciwnika.
+    owners = sorted(
+        (system.space_units if system is not None else {}).items(),
+        key=lambda item: (item[0] != player_id, item[0]),
+    )
+    for owner, units in owners:
+        player = state.players.get(owner)
+        if player is None:
+            continue
+        faction = registry.factions.get(player.faction or "")
+        who = faction.name if faction is not None else owner
         for base_type, count in sorted(units.items()):
-            if count > 0 and is_space_unit(base_type) and owner in state.players:
-                label = f"{unit_name(state, registry, owner, base_type)} ({owner})"
-                options.append(oi.option(f"{owner}|{base_type}", label))
+            if count > 0 and is_space_unit(base_type):
+                label = f"{unit_name(state, registry, owner, base_type)} - {who}"
+                meta = oi.unit_meta(base_type, owner, player.faction, player.color, count)
+                options.append(oi.option(f"{owner}|{base_type}", label, meta=meta))
     return [oi.choice("ship", "Ship that rolls 1 additional die", options, always=True)]
 
 
@@ -477,9 +492,23 @@ def _gravleash_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
 def gravleash_inputs(
     state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    types = _ship_types(state, player_id, str(ctx.get("position")))
-    options = [oi.option(bt, unit_name(state, registry, player_id, bt)) for bt in types]
-    return [oi.choice("ship", f"Ship that gets +{len(types)} to its roll", options)]
+    position = str(ctx.get("position"))
+    types = _ship_types(state, player_id, position)
+    player = state.players[player_id]
+    ships = state.systems[position].space_units.get(player_id, {})
+    options = [
+        oi.option(
+            bt, unit_name(state, registry, player_id, bt),
+            meta=oi.unit_meta(bt, player_id, player.faction, player.color, ships.get(bt, 0)),
+        )
+        for bt in types
+    ]
+    return [
+        oi.choice(
+            "ship", f"Ship that gets +{len(types)} to its roll", options,
+            hint=f"+{len(types)} = number of your ship types in this combat.",
+        )
+    ]
 
 
 @on_event(

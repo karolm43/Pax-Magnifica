@@ -10,10 +10,50 @@ export type MoveRouteShip = {
   count: number;
   capacity: number;
   reachable: boolean;
-  /** Dolatuje tylko z premią +1 do ruchu (Gravity Drive / Ionian Fuel Refinery): 1 sztuka. */
-  boosted: boolean;
+  /** Dolatuje sam, bez premii i bez towarzyszy. */
+  alone: boolean;
+  /** Typy statków, z którymi dolatuje bez premii, gdy lecą razem (Gravleash Maneuvers). */
+  withShips: string[];
+  /** Zestawy premii (``gravity_drive`` / ``tempesta``), z którymi dolatuje. */
+  bonusOptions: string[][];
+  /** Ile sztuk wolno ruszyć z premią (1; z Gravleash cała grupa). */
+  bonusMax: number;
   reason: string;
 };
+
+/** Ile sztuk statku wolno zaznaczyć: bez premii wszystkie, tylko z premią - ``bonusMax``. */
+export function shipMax(ship: MoveRouteShip): number {
+  if (!ship.reachable) return 0;
+  return ship.alone || ship.withShips.length > 0 ? ship.count : ship.bonusMax;
+}
+
+/**
+ * Problemy zaznaczenia, których backend i tak nie przepuści - pokazujemy je od razu:
+ * statek dolatujący tylko razem z innym typem (Gravleash) bez tego towarzysza i bez premii.
+ */
+export function draftProblems(
+  draft: MoveDraft,
+  nameOf: (baseType: string) => string,
+  bonusesOn: boolean,
+): string[] {
+  const route = draft.route;
+  if (!route) return [];
+  const picked = new Set(
+    Object.values(draft.picks)
+      .filter((p) => p.kind === "ship" && p.count > 0)
+      .map((p) => p.baseType),
+  );
+  const problems: string[] = [];
+  for (const ship of route.ships) {
+    if (!picked.has(ship.baseType) || ship.alone || ship.withShips.length === 0) continue;
+    if (ship.withShips.some((bt) => picked.has(bt))) continue;
+    if (bonusesOn && ship.bonusOptions.length > 0) continue;
+    problems.push(
+      `${nameOf(ship.baseType)} reaches only together with ${ship.withShips.map(nameOf).join(" or ")}.`,
+    );
+  }
+  return problems;
+}
 
 export type MoveRouteCargo = {
   position: string;
@@ -33,6 +73,8 @@ export type MoveRouteData = {
   cargo: MoveRouteCargo[];
   /** Systemy trasy będące gravity rift (+1 do ruchu, d10: 1–3 usuwa statek). */
   riftNodes: string[];
+  /** Premie +1 do ruchu, które gracz może teraz włączyć. */
+  bonuses: string[];
 };
 
 /** Zaznaczona porcja: statek ze źródła albo ładunek z systemu na trasie. */
@@ -72,8 +114,7 @@ export function asyncOfBase(baseType: string): string {
 function maxFor(route: MoveRouteData, p: DraftPick): number {
   if (p.kind === "ship") {
     const ship = route.ships.find((s) => s.baseType === p.baseType);
-    if (!ship || !ship.reachable) return 0;
-    return ship.boosted ? 1 : ship.count;
+    return ship ? shipMax(ship) : 0;
   }
   const cargo = route.cargo.find(
     (c) => c.position === p.position && c.zone === p.zone && c.baseType === p.baseType,

@@ -297,6 +297,42 @@ def playability(
     return rows
 
 
+def combat_dice_uses(state: GameState, registry: StaticDataRegistry) -> list[dict[str, Any]]:
+    """Komponenty „During X: you may…” zmieniające kości rundy walki, dostępne TERAZ.
+
+    Dla uczestników trwającej walki: zdolność/lider/przełom z oknem użycia (``window_use``),
+    którego warunek jest spełniony i którego formularz to wybór kości (``dice``). Okno walki
+    pokazuje je obok reliktów (np. Munitions Reserves po rzucie, przed przypisaniem strat).
+    Zwraca ``[{player, kind, component, name, text, min, max}]``.
+    """
+    combat = state.active_combat
+    if combat is None:
+        return []
+    uses: list[dict[str, Any]] = []
+    for pid in (combat.attacker, combat.defender):
+        if pid not in state.players:
+            continue
+        for kind, component in owned(state, registry, pid):
+            key = effect_key(kind, component)
+            rules_hooks.effect_for(key)  # ładuje pakiet hooków
+            check = _WINDOW_USES.get(key)
+            if check is None or check(state, registry, pid) is not None:
+                continue
+            if block_reason(state, registry, pid, kind, component) is not None:
+                continue
+            inputs_fn = rules_hooks.inputs_for(key)
+            inputs = inputs_fn(state, registry, pid) if inputs_fn is not None else []
+            dice = next((i for i in inputs if i.get("key") == "dice"), None)
+            if dice is None or dice.get("kind") != "multi" or not dice.get("options"):
+                continue
+            name, text = describe(registry, kind, component)
+            uses.append({
+                "player": pid, "kind": kind, "component": component, "name": name,
+                "text": text, "min": int(dice.get("min", 0)), "max": int(dice.get("max", 0)),
+            })
+    return uses
+
+
 # --- Wykonanie ----------------------------------------------------------------------------------
 
 

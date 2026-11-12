@@ -7,8 +7,8 @@
   z-index: var(--z-app-modal, 3000);
   display: grid;
   gap: 8px;
-  width: min(380px, calc(100vw - 32px));
-  max-height: min(70vh, 560px);
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(75vh, 620px);
   min-width: 280px;
   overflow: auto;
   /* Natywny uchwyt w rogu pozwala dowolnie rozszerzyć panel. */
@@ -38,13 +38,32 @@
   gap: 8px;
 }
 
-.title {
+.titleBox {
+  display: grid;
   flex: 1;
   min-width: 0;
+  line-height: 1.15;
+}
+
+.kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-accent, #60a5fa);
+}
+
+.title {
+  min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tag[data-tone="required"] {
+  color: #1a1306;
+  background: var(--ds-sig-warn, #f59f00);
 }
 
 .tag {

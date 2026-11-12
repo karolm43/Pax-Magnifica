@@ -26,6 +26,7 @@ from src.core.hooks.action_card_inputs import (
     _system_label,
 )
 from src.core.models import TechnologyDef
+from src.core.offer_inputs import as_payment
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
 from src.core.unit_ops import count_in_zone
@@ -148,9 +149,12 @@ def plagiarize_inputs(
     ]
     return [
         _choice("technology", "Technology owned by a neighbor", options),
-        _multi(
-            "planets", "Planets to exhaust", planets, 0, len(planets),
-            f"Spend at least {_PLAGIARIZE_COST} influence.",
+        as_payment(
+            _multi(
+                "planets", "Planets to exhaust", planets, 0, len(planets),
+                f"Spend at least {_PLAGIARIZE_COST} influence.",
+            ),
+            ready, "influence", _PLAGIARIZE_COST,
         ),
         _number("trade_goods", "Trade goods to spend", 0, spendable),
     ]

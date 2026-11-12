@@ -1,0 +1,171 @@
+/* Narzędzia kości po rzucie rundy (zdolności frakcji + relikty), w stylu okna bitwy. */
+
+.wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.lead {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+.tool {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ds-accent-rgb, 37, 99, 235), 0.5);
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.1);
+}
+
+.tool[data-tone="relic"] {
+  border-color: rgba(234, 179, 8, 0.45);
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.toolHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.owner {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--ds-ink);
+}
+
+.rows {
+  display: grid;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.unit {
+  display: grid;
+  min-width: 96px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.unit small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ds-ink-lo);
+}
+
+.dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.die {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-family: var(--ds-font-data, inherit);
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 7px;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-dark-5, #333);
+  cursor: pointer;
+}
+
+.die[data-hit] {
+  color: #052e16;
+  background: var(--ds-green-5, #40c057);
+}
+
+/* Zaznaczona do przerzutu: stała obwódka (bez pulsowania). */
+.die[aria-pressed="true"] {
+  outline: 2px solid var(--ds-sig-warn, #f59f00);
+  outline-offset: 1px;
+}
+
+.die:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.adjust {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.adjust button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 5px;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-ground-2);
+  cursor: pointer;
+}
+
+.adjust button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.adjust .die {
+  cursor: default;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.primary,
+.ghost {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.primary {
+  color: #fff;
+  border: 1px solid var(--ds-edge-accent);
+  background: var(--ds-accent, #2563eb);
+}
+
+.ghost {
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-ground-2);
+}
+
+.primary:disabled,
+.ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

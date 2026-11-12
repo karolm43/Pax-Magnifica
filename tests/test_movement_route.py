@@ -230,6 +230,9 @@ def test_move_route_endpoint_and_move_with_route(registry: StaticDataRegistry) -
     body = view.json()
     assert body["route"] == ["101", "000"] and body["reason"] == ""
     assert [s["baseType"] for s in body["ships"]] == ["carrier"]
+    carrier = body["ships"][0]
+    assert carrier["alone"] is True and carrier["withShips"] == [] and carrier["bonusMax"] == 1
+    assert body["bonuses"] == []
     assert [(c["position"], c["baseType"], c["count"]) for c in body["cargo"]] == [
         ("101", "fighter", 2)
     ]
