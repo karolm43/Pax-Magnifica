@@ -46,6 +46,11 @@ Każdy blok frakcyjny przechodzi ten sam pipeline (wzór: `ARCHITEKTURA_KODU.md`
    centralnej (RULES 43.1a), nie w regule bazowej.
 4. **Testy** — `tests/factions/test_<id>.py`, konwencja par (bez wyjątku / z wyjątkiem) + test
    kompletności frakcji (każdy komponent `IMPLEMENTED` albo jawnie `MANUAL` w `effects_status.json`).
+   **+ scenariusze przez prawdziwe API** (decyzja użytkownika 2026-11-12): `tests/factions/test_flows_<id>.py`
+   na harnessie `tests/factions/flow_harness.py` (nowa gra, God-Mode patch sytuacji, prawdziwe endpointy),
+   `@covers(...)` dla KAŻDEGO interaktywnego komponentu (oferta, użycie w oknie 62.0, ACTION, notka).
+   Sprawdzają to, co widzi gracz: oferta w `/offers`, „Available now”, zagrywalność. Strażnik
+   `tests/factions/test_flow_coverage.py` nie przepuści frakcji (moduł w `core/hooks/factions`) bez nich.
 5. **UI** — tylko to, czego nie pokrywają wspólne okna (oferty, formularz akcji komponentu, menu
    lidera). Nowe okno frakcyjne = wyjątek, uzasadniony w PROGRESS.
 6. **QA + domknięcie** — pełne QA backend (+ front, gdy ruszany), odświeżenie

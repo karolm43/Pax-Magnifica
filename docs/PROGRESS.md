@@ -858,6 +858,20 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   `scripts/measure_planet_radius.py` (krawędź tarczy, tylko aktywne źródła) => `entities/data/planetArtRadius.json`;
   reszta = standard 60 px. Wcześniej Primor (r~100) był kadrowany jak zwykła planeta (50) i ucięty.
 
+## 2026-11-12 (7) — Scenariusze frakcji przez prawdziwe API + strażnik pokrycia
+
+- `tests/factions/flow_harness.py`: nowa gra przez `/game/new` + setup, sytuacja przez God-Mode patch (także
+  `rng_seed` - nowe pole `GodModePatch`, powtarzalne kości), przebieg przez endpointy gry: aktywacja, ruch, kroki
+  taktyczne, walka z autopilotem strat, inwazja, karta Technology, pas/koniec tury, kroki fazy statusu.
+- 33 scenariusze dla 5 frakcji (`test_flows_<frakcja>.py`), `@covers` na każdym interaktywnym komponencie.
+  Strażnik `test_flow_coverage.py` wylicza interaktywne komponenty każdej frakcji z modułem hooków (oferta, okno
+  62.0, ACTION, notka) i wymaga scenariusza; pilnuje też literówek w `@covers`. DoD bloku frakcji rozszerzone
+  (`PLAN_FRAKCJE.md` §2, steering).
+- Błąd znaleziony scenariuszem: gdy na starcie walki ktoś ma decyzję (krok TRIGGERS), okna „At the start of
+  combat / combat round” nie były zgłaszane — Tekklar Legion i karty startu walki były martwe do czasu odpowiedzi
+  na ofertę. Naprawa w `reactions_combat.combat_windows`.
+
+
 ## 2026-11-12 (7) — Audyt okien czasowych: komponenty wyskakują w swojej chwili (RULES.md 54.8)
 
 - Narzędzie `src/audit/timing_reach.py` (+ sekcja §2a w `OKNA_CZASOWE.md`, strażnik `tests/test_timing_reach.py`):
