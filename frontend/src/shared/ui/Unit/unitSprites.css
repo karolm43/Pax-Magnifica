@@ -1,9 +1,19 @@
 /* Size comes from custom properties so module rules on .unit-sprite can override it. */
+/*
+ * Dopasowanie do pudełka: kontener ustawia ``--unit-fit: 34px`` (dziedziczone) i sprite
+ * mieści się w kwadracie 34×34 z zachowaniem proporcji — duże statki (dreadnought, war sun)
+ * się zmniejszają, małe zostają w naturalnym rozmiarze. Bez ``--unit-fit`` = rozmiar naturalny.
+ * Działa dla ``scaleSprite``; nieskalowane sprite'y mają rozmiar w stylu inline.
+ */
 .unit-sprite {
   display: inline-block;
   flex: 0 0 auto;
-  width: var(--unit-sprite-width);
-  height: var(--unit-sprite-height);
+  width: min(
+    var(--unit-sprite-width),
+    var(--unit-fit, 100000px),
+    var(--unit-fit, 100000px) * var(--unit-sprite-ratio, 1)
+  );
+  height: auto;
   aspect-ratio: var(--unit-sprite-aspect);
   background-repeat: no-repeat;
 }

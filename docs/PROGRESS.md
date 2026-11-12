@@ -767,3 +767,7 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   W oknie inwazji `has_shield` = „stoi jednostka z tarczą”, więc kopuła zapada się z animacją też przy Arc Secundus
   i Disable (wcześniej znikała bez śladu). (2) Płatność: `buildActionCardParams` nie przepuszcza odpowiedzi, dopóki
   planety + TG nie pokryją `payment.cost` (przycisk był aktywny przy „Paid 0 / 2” i silnik odrzucał).
+- Ikony jednostek w kafelkach decyzji (Viscount Unlenn i inne): duże statki wylewały się z pudełka 34×34 (ograniczany
+  był tylko wrapper `Unit`, nie sam sprite). Teraz `--unit-fit` (`shared/ui/Unit/unitSprites.css`, `--unit-sprite-ratio`
+  z `SpriteUnitImage`) mieści sprite z proporcjami; `DecisionFields.module.css` ustawia `--unit-fit: 34px`.
+- Steering/Workflow: QA dobierane do zakresu zmiany (build/E2E tylko gdy potrzebne).

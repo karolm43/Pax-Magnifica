@@ -20,6 +20,8 @@ export function SpriteUnitImage(
     "--unit-sprite-width": `${width}px`,
     "--unit-sprite-height": `${height}px`,
     "--unit-sprite-aspect": `${width} / ${height}`,
+    // Liczba (szer./wys.) do dopasowania w pudełko ``--unit-fit`` (unitSprites.css).
+    "--unit-sprite-ratio": height === 0 ? 1 : width / height,
     backgroundImage: sprite.image && `url("${sprite.image}")`,
     // Scaled sprites stretch to whatever box the caller gives them, so the
     // sheet is sized and offset in percentages of the frame.

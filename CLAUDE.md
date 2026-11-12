@@ -17,6 +17,7 @@ Zasady projektu są w pliku steering (wspólnym z Kiro) i obowiązują w całoś
   QA frontu (w `frontend/`): `npx tsc --noEmit -p tsconfig.app.json` (UWAGA: `npm run type-check`
   NIE sprawdza `src/`) ; `npm run lint` ; `npm run build` ; `npx vitest --run`.
   E2E: `npm run e2e` (Playwright; własne serwery :8100/:5273, gry użytkownika nie dotyka — wolno odpalać).
+  Co kiedy uruchamiać (build/E2E nie zawsze): steering, sekcja Workflow.
   Lokatory po rolach ARIA (`getByRole`), nie po klasach CSS. Python w Git Bash zapisuje cp1252 — przy
   edycji plików skryptem podawaj `encoding="utf-8"`.
 - Stan gry żyje tylko w pamięci backendu — restart kasuje grę użytkownika. Nowe trasy/pola wymagają

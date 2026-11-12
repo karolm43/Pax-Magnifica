@@ -80,10 +80,20 @@ PRZECIĄGNIĘCIEM z ręki; podnieść można tylko kartę legalną (`action_card
 ## Workflow
 
 - Blok pracy = działający kod + testy + aktualizacja `docs/PROGRESS.md` (krótko, nowa sekcja na końcu) + commit.
-- Po zmianie kodu: `uv run pytest -q -n auto` ; `uv run ruff check src tests` ; `uv run mypy src tests` (+ build przy froncie). Wszystko zielone.
-  W trakcie pracy: `uv run pytest -q --testmon` (tylko testy dotknięte zmianą).
-- E2E (prawdziwa przeglądarka, w `frontend/`): `npm run e2e` (~1,5 min; własny backend :8100 i front :5273,
-  gra na :8000 nietknięta). Po zmianie kreatora/lobby/setupu albo przepływu gry — uruchom; testy w `frontend/e2e/*.e2e.ts`.
+- QA dobieraj do zakresu zmiany (pełny zestaw kosztuje ~5 min — nie odpalaj go „na wszelki wypadek”):
+  - **Backend** (`src/`, `tests/`): `uv run pytest -q -n auto` ; `uv run ruff check src tests` ; `uv run mypy src tests`.
+    W trakcie pracy: `uv run pytest -q --testmon`. Zmiana tylko we froncie => backendowego QA NIE uruchamiaj.
+  - **Front — zawsze** (szybkie, sekundy): `npx tsc --noEmit -p tsconfig.app.json` ; `npx eslint <zmienione pliki/foldery>` ;
+    `npx vitest --run <folder zmiany>`.
+  - **Front — `npm run build`** (~2 min, powtarza `tsc`): tylko raz przed commitem, gdy zmieniły się importy/zależności,
+    konfiguracja Vite, assety albo nowe pliki/moduły. Sama zmiana CSS / treści komponentu => pomiń.
+  - **E2E** `npm run e2e` (~2,5–3 min; własny backend :8100 i front :5273, gra na :8000 nietknięta; testy w `frontend/e2e/*.e2e.ts`):
+    TYLKO po zmianie kreatora/lobby/setupu, przepływu gry (fazy, tury) albo komponentu montowanego zawsze na stronie gry
+    (`GameMapPage`, nagłówek, globalne overlaye — łapie np. błędy 404/konsoli). Zmiana panelu/okna otwieranego ręcznie,
+    CSS, tekstów => pomiń.
+  - Pomijany krok wymień w raporcie dla użytkownika („build/E2E pominięte — zmiana tylko CSS”).
+- Ikony jednostek w małym pudełku: kontener ustawia `--unit-fit: <rozmiar>` (sprite `scaleSprite` mieści się z proporcjami,
+  duże statki się zmniejszają — `shared/ui/Unit/unitSprites.css`), zamiast stałych `width/height` na `.unit-sprite`.
 - Komentarze, docstringi i dokumentacja po polsku.
 - Commituj po ukończonym kroku przy zielonym QA, wiadomość po polsku, staguj konkretne pliki (nie `git add .`).
 - Bez `git push` bez wyraźnej zgody.
