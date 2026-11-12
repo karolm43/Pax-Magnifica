@@ -731,4 +731,5 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   `space_cannon.defense_immune`, `UNIT_SUSTAIN_DAMAGE` także w bombardowaniu i SC Defense, okno „po rzutach” w walce
   kosmicznej, `promissory_play.any_subject`.
 - Druga klauzula Gravleash (wyrównanie ruchu) dokończona po przebudowie tras: PERMIT `movement.match_highest`.
-- ⚠️ Otwarte: „limited by laws” u Darktalon (brak praw limitujących statki); premia Gravity Drive nie propaguje się.
+- Premia Gravity Drive / Ionian Fuel Refinery propaguje się przy Gravleash (decyzja użytkownika).
+- ⚠️ Otwarte (na później, decyzja użytkownika): „limited by laws” u Darktalon — po efektach agend.

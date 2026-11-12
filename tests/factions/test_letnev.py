@@ -359,3 +359,22 @@ def test_gravleash_wyrownuje_ruch_do_najszybszego(registry: StaticDataRegistry) 
         boost=False, tempesta=False, companions=together,
     )
     assert fighter is None  # myśliwce nie dostają wyrównania
+
+
+def test_gravleash_przenosi_premie_gravity_drive(registry: StaticDataRegistry) -> None:
+    from src.core import movement
+
+    grid = build_demo_grid(registry)
+    state = _state()
+    state.players["p1"].technologies = ["gd"]
+    state.players["p1"].breakthrough_unlocked = True
+    together = ["dreadnought", "cruiser"]
+    plain = movement._effective_move_value(
+        state, grid, registry, "000", "dreadnought", "p1",
+        boost=False, tempesta=False, companions=together,
+    )
+    boosted = movement._effective_move_value(
+        state, grid, registry, "000", "dreadnought", "p1",
+        boost=True, tempesta=False, companions=together,
+    )
+    assert plain == 2 and boosted == 3  # wyrównanie do krążownika z premią Gravity Drive

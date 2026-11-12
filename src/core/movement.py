@@ -487,9 +487,12 @@ def _effective_move_value(
         and base_type != _FIGHTER
         and rules_hooks.permits(rules_hooks.POINT_MOVEMENT_MATCH_HIGHEST, state, player_id)
     ):
+        # F_letnev: premia jednego statku (Gravity Drive, Ionian Fuel Refinery) podnosi też
+        # wartość, do której wyrównują pozostałe — towarzysz liczony z tą samą premią.
         for other in others:
             value = _effective_move_value(
-                state, grid, registry, from_pos, other, player_id, boost=False, tempesta=False
+                state, grid, registry, from_pos, other, player_id,
+                boost=boost, tempesta=tempesta,
             )
             if value is not None:
                 result = max(result, value)
@@ -819,7 +822,12 @@ def move_fleet(
             )
             if chosen is None:
                 raise ValueError(reason)
-            if count != 1:
+            # Gravleash Maneuvers: premię dostaje 1 statek, reszta (niemyśliwska) wyrównuje do
+            # jego wartości (F_letnev) — limit „1 statek” nie blokuje grupy.
+            matched = base_type != _FIGHTER and rules_hooks.permits(
+                rules_hooks.POINT_MOVEMENT_MATCH_HIGHEST, state, player_id
+            )
+            if count != 1 and not matched:
                 raise ValueError(
                     f"{reason} A +1 move bonus extends the move of only 1 ship per action."
                 )
