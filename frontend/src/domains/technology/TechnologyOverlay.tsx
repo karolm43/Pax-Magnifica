@@ -26,6 +26,7 @@ import {
   COLOR_ICON,
   COLUMNS,
   autoPay,
+  compoundChoices,
   autoSkips,
   layoutColumns,
   otherTechs,
@@ -62,12 +63,16 @@ export type TechnologyOverlayProps = {
   declineLabel?: string;
   onDecline?: () => void;
   onBack?: () => void;
-  onResearch: (payload: {
-    tech: string;
-    skips: string[];
-    planets: string[];
-    trade_goods: number;
-  }) => void;
+  onResearch: (payload: ResearchPayload) => void;
+};
+
+export type ResearchPayload = {
+  tech: string;
+  skips: string[];
+  planets: string[];
+  trade_goods: number;
+  /** Specialist Compounds: planeta ze specjalnością płaci zamiast zasobów. */
+  compound_planet?: string;
 };
 
 const STATUS_LABEL: Record<TechRow["status"], string> = {
@@ -175,6 +180,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
     planets: string[];
     tradeGoods: number;
   } | null>(null);
+  const [compound, setCompound] = useState<string | null>(null);
 
   const grid = useMemo(() => layoutColumns(options.tree), [options.tree]);
   const upgrades = useMemo(() => unitUpgrades(options.tree), [options.tree]);
@@ -190,6 +196,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
     const nextSkips = row.status === "skippable" ? auto.skips : [];
     setSkips(nextSkips);
     setPayment(null); // płatność liczona automatycznie, dopóki gracz nie zmieni ręcznie
+    setCompound(null);
   };
 
   const left = selected ? remainingAfter(selected, skips, options) : {};
@@ -200,7 +207,9 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const paid =
     pay.planets.reduce((s, id) => s + (options.planets[id] ?? 0), 0) +
     pay.tradeGoods;
-  const short = Math.max(0, options.cost - paid);
+  const compoundOptions = compoundChoices(selected, options, skips);
+  const compoundUsed = compound != null && compoundOptions.includes(compound);
+  const short = compoundUsed ? 0 : Math.max(0, options.cost - paid);
   const canResearch =
     researchable && stillMissing === 0 && short === 0 && !busy;
 
@@ -535,8 +544,35 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                     </>
                   ) : null}
 
-                  {options.cost > 0 ? (
+                  {compoundOptions.length > 0 ? (
                     <>
+                      <h4>Specialist Compounds · pay with a specialty planet</h4>
+                      <div className={styles.planets}>
+                        {compoundOptions.map((id) => (
+                          <div className={styles.planetSlot} key={id}>
+                            <PlanetCard
+                              planetId={id}
+                              picked={compound === id}
+                              onPick={
+                                busy
+                                  ? undefined
+                                  : () => setCompound((cur) => (cur === id ? null : id))
+                              }
+                            />
+                            <small>instead of resources</small>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+
+                  {options.cost > 0 && !compoundUsed ? (
+                    <>
+                      {options.discount > 0 ? (
+                        <p className={styles.payLine}>
+                          Doctor Sucaban: cost reduced by <b>{options.discount}</b>
+                        </p>
+                      ) : null}
                       <h4>
                         Pay {options.cost} resources
                         <button
@@ -668,8 +704,9 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               props.onResearch({
                 tech: selected.id,
                 skips,
-                planets: options.cost > 0 ? pay.planets : [],
-                trade_goods: options.cost > 0 ? pay.tradeGoods : 0,
+                planets: options.cost > 0 && !compoundUsed ? pay.planets : [],
+                trade_goods: options.cost > 0 && !compoundUsed ? pay.tradeGoods : 0,
+                ...(compoundUsed && compound ? { compound_planet: compound } : {}),
               })
             }
           >

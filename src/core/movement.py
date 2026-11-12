@@ -154,6 +154,12 @@ def _neighbors_for_move(
         if position in beta:
             result |= alpha
         result.discard(position)
+    # Hook FORBID: systemy dodatkowo sąsiadujące w tej aktywacji (Spatial Conduit Cylinder).
+    extra = rules_hooks.forbidden(
+        rules_hooks.POINT_MOVEMENT_EXTRA_ADJACENT, state, player_id, {"position": position}
+    )
+    if extra:
+        result |= set(extra) - {position}
     return result
 
 

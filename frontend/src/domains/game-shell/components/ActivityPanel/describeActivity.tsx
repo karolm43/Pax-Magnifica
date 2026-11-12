@@ -427,6 +427,16 @@ function describeFact(
           </>
         ),
       };
+    case "tech_lost":
+      return {
+        key,
+        tone: "bad",
+        text: (
+          <>
+            {prefix}returned <Named kind="tech" id={fact.value ?? ""} name={resolveTechName(fact.value ?? "")} /> to the deck
+          </>
+        ),
+      };
     case "planet_gained":
       if (a.action === "tactical.capture" && fact.value === a.detail) return null;
       return {

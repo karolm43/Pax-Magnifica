@@ -23,6 +23,31 @@ export const countOf = (cart: CartLine[], baseType: string): number =>
     .filter((l) => l.baseType === baseType)
     .reduce((n, l) => n + l.count, 0);
 
+const CARGO_TYPES = ["fighter", "infantry", "mech"];
+
+/**
+ * Bellum Gloriosum (RULES.md 62.4): ile sztuk koszyka NIE liczy się do limitu PRODUCTION -
+ * min(łączna capacity statków w koszyku, liczba myśliwców i sił naziemnych w koszyku).
+ */
+export function freeCargo(view: ProductionBody, cart: CartLine[]): number {
+  if (!view.freeCargo) return 0;
+  let capacity = 0;
+  let cargo = 0;
+  for (const line of cart) {
+    if (CARGO_TYPES.includes(line.baseType)) {
+      cargo += line.count;
+      continue;
+    }
+    const unit = view.units.find((u) => u.baseType === line.baseType);
+    if (unit?.placement === "space") capacity += (unit.capacity ?? 0) * line.count;
+  }
+  return Math.min(capacity, cargo);
+}
+
+/** Sloty PRODUCTION zajęte przez koszyk (bez ładunku poza limitem). */
+export const slotsUsed = (view: ProductionBody, cart: CartLine[]): number =>
+  cartCount(cart) - freeCargo(view, cart);
+
 /** Zmienia liczbę sztuk w linii (typ + strefa); linia o zerowej liczbie znika. */
 export function bumpCart(
   cart: CartLine[],
@@ -125,6 +150,15 @@ function demandWithCart(
   for (const line of cart) {
     total[line.baseType] = (total[line.baseType] ?? 0) + line.count;
   }
+  // Ładunek Bellum Gloriosum nie zajmuje PRODUCTION producentów (lustro backendu).
+  let free = freeCargo(view, cart);
+  for (const type of CARGO_TYPES) {
+    const take = Math.min(free, total[type] ?? 0);
+    if (take > 0) {
+      total[type] -= take;
+      free -= take;
+    }
+  }
   return total;
 }
 
@@ -138,7 +172,9 @@ export function whyNotAdd(
   const grant = view.grant;
   // Integrated Economy: brak limitu sztuk, liczy się tylko łączny koszt (poniżej).
   const costCapped = grant?.maxCost != null;
-  if (!costCapped && view.remaining - cartCount(cart) <= 0) return "No production slots left";
+  const placed = unit.placement === "space" ? SPACE : (zone ?? "");
+  if (!costCapped && slotsUsed(view, bumpCart(cart, unit.baseType, placed, 1)) > view.remaining)
+    return "No production slots left";
   if (grant?.shipsOnly && unit.placement === "planet") return `${grant.source} produces ships only`;
   if (unit.placement === "space" && view.blockaded)
     return "Blockaded: enemy ships in the system";

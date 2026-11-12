@@ -32,7 +32,7 @@ import {
   autoPay,
   bumpCart,
   cartCost,
-  cartCount,
+  slotsUsed,
   countOf,
   fundsTotal,
   maxMore,
@@ -83,7 +83,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
     zone && view.groundZones.includes(zone) ? zone : (view.groundZones[0] ?? null);
   const zoneChoices = view.groundZones;
 
-  const queued = cartCount(cart);
+  const queued = slotsUsed(view, cart);
   const free = Math.max(0, view.remaining - queued);
   // Integrated Economy: zamiast slotów jest limit łącznego kosztu (zasoby planety).
   const costCap = grant?.maxCost ?? null;

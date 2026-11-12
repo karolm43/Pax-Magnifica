@@ -707,6 +707,8 @@ def reroll_entries(
     *,
     roller: str,
     multiplier: Callable[[dict[str, Any]], int] | None = None,
+    picks: set[tuple[int, int]] | None = None,
+    source: tuple[str, str] = ("scramble_frequency", "Scramble Frequency"),
 ) -> tuple[list[dict[str, Any]], int]:
     """Przerzuca WSZYSTKIE kości zapisanych rzutów (Scramble Frequency) - MUTUJE licznik RNG.
 
@@ -714,30 +716,43 @@ def reroll_entries(
     zostaje ta sama (łącznie z dodatkową kością Plasma Scoring), trafienia liczone od nowa
     (``multiplier(wpis)`` = mnożnik trafień, np. X-89 ΩΩ; domyślnie 1). Rzut idzie na stół
     (``record_table_roll``). Zwraca (nowe wpisy, suma trafień).
+
+    ``picks`` = przerzuć TYLKO te kości ``(indeks wpisu, indeks kości)`` (Agnlan Oln: „reroll any
+    of those dice"); ``source`` = (id, nazwa) źródła przerzutu na stole kości.
     """
     rng = next_rng(state)
     fresh: list[dict[str, Any]] = []
     total = 0
     all_dice: list[int] = []
-    for entry in entries:
+    for e_index, entry in enumerate(entries):
         old = [int(d) for d in entry.get("dice", [])]
-        dice_now = [rng.randint(1, DIE_SIDES) for _ in old]
+        dice_now = [
+            rng.randint(1, DIE_SIDES) if picks is None or (e_index, d_index) in picks else d
+            for d_index, d in enumerate(old)
+        ]
         modifier = int(entry.get("modifier", 0))
         factor = multiplier(entry) if multiplier is not None else 1
         hits = count_hits([d + modifier for d in dice_now], int(entry["hitsOn"])) * factor
         fresh.append({**entry, "dice": dice_now, "hits": hits})
         total += hits
-        all_dice.extend(dice_now)
+        all_dice.extend(
+            d for d_index, d in enumerate(dice_now)
+            if picks is None or (e_index, d_index) in picks
+        )
     thresholds = {int(e["hitsOn"]) for e in entries}
     record_table_roll(
-        state, roller, "scramble_frequency", "Scramble Frequency", all_dice,
+        state, roller, source[0], source[1], all_dice,
         hits_on=thresholds.pop() if len(thresholds) == 1 else None,
         summary=f"{total} hit(s) after the reroll",
     )
     return fresh, total
 
 
-def reroll_pending(state: GameState) -> int:
+def reroll_pending(
+    state: GameState,
+    picks: set[tuple[int, int]] | None = None,
+    source: tuple[str, str] = ("scramble_frequency", "Scramble Frequency"),
+) -> int:
     """Scramble Frequency na Space Cannon Offense: przerzuca kości rzutu czekającego na straty.
 
     Zwraca nową liczbę trafień. Po przerzucie bez trafień (albo bez celów do trafienia) tura
@@ -749,7 +764,9 @@ def reroll_pending(state: GameState) -> int:
     pending = pending_hits(state)
     if pending is None:
         raise ValueError("There is no Space Cannon roll to reroll.")
-    fresh, total = reroll_entries(state, pending.rolls, roller=pending.roller)
+    fresh, total = reroll_entries(
+        state, pending.rolls, roller=pending.roller, picks=picks, source=source
+    )
     log = read_log(state)
     if log:
         log[-1].update({"hits": total, "rolls": fresh, "rerolled": True})

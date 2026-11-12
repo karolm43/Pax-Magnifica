@@ -151,6 +151,25 @@ POINT_TECHNOLOGY_SYNERGY_ALL = "technology.synergy_all"
 # Limit tajnych celów gracza (bazowo 3; The Obsidian: +1). MODIFY -> delta.
 POINT_SECRET_OBJECTIVE_LIMIT = "objectives.secret_limit"
 
+# MODIFY -> dodatkowe trafienia z JEDNEJ kości rzutu combat wg wyniku przed modyfikatorami
+# (ctx: kind, base_type, natural); flagowiec Jol-Nar (RULES.md 62.3).
+POINT_COMBAT_NATURAL_EXTRA_HITS = "combat.natural_extra_hits"
+# MODIFY -> ile brakujących symboli prerekwizytów badanie ignoruje bez kosztu (ctx: unit_upgrade
+# = "true" | "false"); Analytical (RULES.md 62.3).
+POINT_TECHNOLOGY_FREE_IGNORES = "technology.free_prerequisite_ignores"
+# PERMIT -> po wydaniu żetonu na secondary karty strategii gracz rozstrzyga primary (ctx:
+# initiative); Brilliant (RULES.md 62.3).
+POINT_STRATEGY_SECONDARY_AS_PRIMARY = "strategy.secondary_as_primary"
+# FORBID -> pozycje dodatkowo sąsiadujące z ``ctx["position"]`` w RUCHU gracza (warstwa ruchu,
+# graf mapy bez zmian); Spatial Conduit Cylinder (RULES.md 62.3).
+POINT_MOVEMENT_EXTRA_ADJACENT = "movement.extra_adjacent"
+# PERMIT -> myśliwce i siły naziemne do łącznej capacity produkowanych statków nie liczą się do
+# limitu PRODUCTION; Bellum Gloriosum (RULES.md 62.4).
+POINT_PRODUCTION_FREE_CARGO = "production.free_cargo"
+# PERMIT -> w płatnym badaniu z karty Technology wolno wyczerpać planetę ze specjalnością
+# zamiast płacić (kolor musi pasować); Specialist Compounds (RULES.md 62.3).
+POINT_TECHNOLOGY_SPECIALTY_PAYS = "technology.specialty_pays"
+
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
 SOURCE_TECHNOLOGY = "technology"

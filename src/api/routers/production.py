@@ -98,6 +98,7 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
                 "name": u.name,
                 "cost": u.cost,
                 "unitsPerCost": u.units_per_cost,
+                "capacity": u.capacity,
                 "placement": u.placement,
                 "reinforcements": production.reinforcements_left(
                     state, player_id, u.base_type
@@ -135,6 +136,8 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
         "used": 0 if grant is not None else state.production_used,
         "usedByType": production.used_by_type(state),
         "remaining": remaining,
+        # Bellum Gloriosum: ładunek do capacity produkowanych statków poza limitem (RULES.md 62.4).
+        "freeCargo": production.has_free_cargo(state, player_id) and grant is None,
         "blockaded": production.is_blockaded(state, player_id, position),
         "producers": producers,
         "groundZones": production.allowed_ground_zones(

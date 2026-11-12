@@ -34,8 +34,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `ghost_mech` | Icarus Drive | ghost | — | PERMIT (pozwolenie) | ruch | — | After any player activates a system, you may remove this unit from the game board to place or move a Creuss wormhole token into this system. |
 | `hacan_flagship` | Wrath of Kenara | hacan | — | MODIFY (liczba/rzut) | walka, ekonomia i płatności | — | After you roll a die during a space combat in this system, you may spend 1 trade good to apply +1 to the result. |
 | `hacan_mech` | Pride of Kenara | hacan | — | PERMIT (pozwolenie) | ruch, planety i eksploracja | — | This planet's card may be traded as part of a transaction; if you do, move all of your units from this planet to another planet you control. |
-| `jolnar_flagship` | J.N.S. Hylarim | jolnar | — | MODIFY (liczba/rzut) | walka, produkcja | — | When making a combat roll for this ship, each result of 9 or 10, before applying modifiers, produces 2 additional hits. |
-| `jolnar_mech` | Shield Paling | jolnar | — | — | planety i eksploracja | — | Your infantry on this planet are not affected by your Fragile faction ability. |
+| `jolnar_flagship` | J.N.S. Hylarim | jolnar | — | MODIFY (liczba/rzut) | walka, produkcja | ✔ | When making a combat roll for this ship, each result of 9 or 10, before applying modifiers, produces 2 additional hits. |
+| `jolnar_mech` | Shield Paling | jolnar | — | — | planety i eksploracja | ✔ | Your infantry on this planet are not affected by your Fragile faction ability. |
 | `keleres_flagship` | Artemiris | keleresm | — | — | ekonomia i płatności | — | Other players must spend 2 influence to activate the system that contains this ship. |
 | `keleres_mech` | Omniopiares | keleresm | — | — | ekonomia i płatności, planety i eksploracja | — | Other players must spend 1 influence to commit ground forces to the planet that contains this unit. |
 | `l1z1x_dreadnought2` | Super Dreadnought II | l1z1x | — | FORBID (zakaz) | walka, karty | — | This unit cannot be destroyed by "Direct Hit" action cards. |
@@ -79,9 +79,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `sardakk_dreadnought2` | Exotrireme II | sardakk | — | FORBID (zakaz) | walka, karty | ✔ | This unit cannot be destroyed by "Direct Hit" action cards. After a round of space combat, you may destroy this unit to destroy up to 2 shi… |
 | `sardakk_flagship` | C'morran N'orr | sardakk | — | MODIFY (liczba/rzut) | walka | ✔ | Apply +1 to the result of each of your other ship's combat rolls in this system. |
 | `sardakk_mech` | Valkyrie Exoskeleton | sardakk | — | — | walka, produkcja, planety i eksploracja | ✔ | After this unit uses its SUSTAIN DAMAGE ability during ground combat, it produces 1 hit against your opponent's ground forces on this plane… |
-| `sol_flagship` | Genesis  | sol | — | — | produkcja, status i odświeżanie | — | At the end of the status phase, place 1 infantry from your reinforcements in this system's space area. |
+| `sol_flagship` | Genesis  | sol | — | — | produkcja, status i odświeżanie | ✔ | At the end of the status phase, place 1 infantry from your reinforcements in this system's space area. |
 | `sol_infantry2` | Spec Ops II | sol | — | — | walka, planety i eksploracja | — | After this unit is destroyed, roll 1 die. If the result is 5 or greater, place the unit on this card. At the start of your next turn, place… |
-| `sol_mech` | ZS Thunderbolt M2 | sol | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | — | DEPLOY: After you use your Orbital Drop faction ability, you may spend 3 resources to place 1 mech on that planet. |
+| `sol_mech` | ZS Thunderbolt M2 | sol | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | ✔ | DEPLOY: After you use your Orbital Drop faction ability, you may spend 3 resources to place 1 mech on that planet. |
 | `titans_flagship` | Ouranos | titans | — | MODIFY (liczba/rzut) | — | — | DEPLOY: After you activate a system that contains 1 or more of your PDS, you may replace 1 of those PDS with this unit. |
 | `titans_mech` | Hecatoncheires | titans | — | REPLACE (instead of) | planety i eksploracja | — | DEPLOY: When you would place a PDS on a planet, you may place 1 mech and 1 infantry on that planet instead. |
 | `titans_pds` | Hel-Titan I | titans | — | FORBID (zakaz) | — | — | This unit is treated as both a structure and a ground force. It cannot be transported. |

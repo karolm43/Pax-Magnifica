@@ -35,6 +35,13 @@ export type ResearchOptions = {
   researched: string[];
   /** Przełom frakcji (Thunder's Edge) - synergia 2 kolorów, działa tylko odblokowany. */
   breakthrough: BreakthroughInfo | null;
+  /** Zniżka kosztu (Doctor Sucaban), już odjęta od `cost`. */
+  discount: number;
+  /** Specialist Compounds: gotowe planety, które mogą zapłacić za badanie → ich kolory. */
+  compoundPlanets: Record<string, TechColor[]>;
+  /** Brilliant: secondary jak primary - druga technologia za `second.cost` (opcjonalna). */
+  asPrimary: boolean;
+  second: ResearchOptions | null;
 };
 
 export type BreakthroughInfo = {
@@ -82,7 +89,50 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
       raw.breakthrough && typeof raw.breakthrough === "object"
         ? (raw.breakthrough as BreakthroughInfo)
         : null,
+    discount: typeof raw.discount === "number" ? raw.discount : 0,
+    compoundPlanets: (raw.compound_planets ?? {}) as Record<string, TechColor[]>,
+    asPrimary: raw.as_primary === true,
+    second:
+      raw.second && typeof raw.second === "object"
+        ? toResearchOptions(raw.second as Record<string, unknown>)
+        : null,
   };
+}
+
+/** Specialist Compounds: planety, które mogą zapłacić za TĘ technologię (kolor, bez ulepszeń). */
+export function compoundChoices(
+  row: TechRow | null,
+  options: ResearchOptions,
+  skips: string[],
+): string[] {
+  if (!row || row.unitUpgrade || row.color == null || options.cost <= 0) return [];
+  return Object.entries(options.compoundPlanets)
+    .filter(([id, colors]) => colors.includes(row.color as TechColor) && !skips.includes(id))
+    .map(([id]) => id)
+    .sort();
+}
+
+/**
+ * Brilliant: opcje drugiego badania po pierwszym (lokalnie) - pierwsza technologia jako
+ * posiadana, jej kolor liczy się do prerekwizytów. Backend i tak waliduje całość.
+ */
+export function afterFirstResearch(second: ResearchOptions, firstId: string): ResearchOptions {
+  const first = second.tree.find((r) => r.id === firstId);
+  const color = first?.color ?? null;
+  const tree = second.tree.map((r) => {
+    if (r.id === firstId) return { ...r, status: "owned" as TechStatus };
+    if (!color || r.status === "owned" || r.status === "exhausted") return r;
+    const need = r.missing[color] ?? 0;
+    if (need <= 0) return r;
+    const missing = { ...r.missing, [color]: need - 1 };
+    if (missing[color] === 0) delete missing[color];
+    const none = Object.values(missing).every((n) => (n ?? 0) <= 0);
+    return { ...r, missing, status: none ? ("available" as TechStatus) : r.status };
+  });
+  const ownedColors = color
+    ? { ...second.ownedColors, [color]: (second.ownedColors[color] ?? 0) + 1 }
+    : second.ownedColors;
+  return { ...second, tree, ownedColors };
 }
 
 /** Liczba symboli prerekwizytów = „poziom" w kolumnie (0..3). */

@@ -789,3 +789,27 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   ładunek z tego samego systemu dawało 10 w celu; teraz ładunek ze startu odejmuje to, co leci samo. (2) Okno trasy
   pokazuje jednostkę w JEDNYM miejscu: dolatujące same = statki, niedolatujące = ładunek; zaznaczenie grupy z mapy
   zamienia „statek” na ładunek, gdy sam nie doleci (`routeTypes.prunePicks`).
+
+## 2026-11-12 (4) — B2 Jol-Nar + B3 Sol — komplet (RULES.md 62.3–62.4)
+
+- **Jol-Nar** (`core/hooks/factions/jolnar.py`, 12 komponentów, kompletność = 0 braków, 23 testy): Fragile, Shield
+  Paling (znosi Fragile piechocie), J.N.S. Hylarim (+2 trafienia za naturalne 9–10), Analytical (darmowe ignorowanie
+  1 prerekwizytu), Brilliant (secondary Technology jako primary — dwa etapy w oknie badania), E-Res Siphons, Spatial
+  Conduit Cylinder (dodatkowe sąsiedztwo w ruchu), Research Agreement, Doctor Sucaban (badający zdejmuje piechotę =
+  zniżka), Agnlan Oln (+ warunek 8 technologii; przerzut WYBRANYCH kości SCO/SCD/bombardowania), Genetic Memory
+  (zamiana technologii tego samego koloru), Specialist Compounds (planeta ze specjalnością płaci za badanie).
+- **Sol** (`core/hooks/factions/sol.py`, 12 komponentów, 0 braków, 18 testów): Orbital Drop (ACTION za żeton
+  strategii) + mech ZS Thunderbolt M2 (DEPLOY za 3 zasoby), Versatile, Spec Ops II (mechanizm Infantry II, próg 5 z
+  tekstu karty), Advanced Carrier II (dane), Genesis, Evelyn DeLouis, Claire Gibson (+ warunek 12 zasobów), Jace X,
+  Military Support, Bellum Gloriosum (ładunek do capacity produkowanych statków poza limitem PRODUCTION).
+- Nowe fundamenty: punkty `combat.natural_extra_hits` (`battle.natural_extra_hits` — rzut i przerzuty),
+  `technology.free_prerequisite_ignores`, `strategy.secondary_as_primary`, `movement.extra_adjacent`
+  (`_neighbors_for_move`), `production.free_cargo` (limit, producenci, `production_used`; front: `slotsUsed`),
+  `technology.specialty_pays`; ślad `GameState.last_research` + okno „po badaniu”; zniżka badania
+  `technology.RESEARCH_DISCOUNT`; `space_cannon.reroll_entries(picks=, source=)`; fakt feedu `tech_lost`.
+- `leaders.claim_unlock`: najpierw „czy to twój lider”, potem „odblokowuje się sam”.
+- ⚠️ Założenia do potwierdzenia (R62.3/62.4): Analytical i Brilliant działają automatycznie (zawsze korzystne);
+  SCC tylko w ruchu Jol-Nar; Sucaban tylko przy badaniu z karty Technology; Agnlan Oln raz na rodzaj rzutu, bez AFB;
+  Military Support nie działa w pierwszej turze fazy akcji (brak pauzy początku tury); Bellum Gloriosum liczy jedno
+  zamówienie.
+- Nowe pole stanu (`last_research`) i pola widoku produkcji (`freeCargo`, `capacity`) wymagają restartu backendu.

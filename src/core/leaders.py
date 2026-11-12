@@ -192,6 +192,11 @@ def claim_unlock(
         ValueError: Lider ma zakodowany warunek / już odblokowany / nie należy do gracza.
     """
     leader = leader_def(registry, leader_id)
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if leader_id not in leaders_of(registry, player):
+        raise ValueError(f"{leader_id} is not one of your leaders.")
     if unlock_predicate(registry, leader_id) is not None or has_event_unlock(leader_id):
         raise ValueError(
             f"{leader.name} unlocks automatically when its condition is met: "

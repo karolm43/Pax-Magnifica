@@ -59,6 +59,18 @@ def test_internal_step_with_effect_surfaces_facts() -> None:
     ]
 
 
+def test_tech_lost_fact_when_technology_returned() -> None:
+    before = _state()
+    before.players["p1"].technologies = ["neural_motivator"]
+    after = _state()
+    after.players["p1"].technologies = ["hyper_metabolism"]
+    entry = derive_activity("component-use:leader:jolnarhero", before, after)
+    assert entry is not None
+    facts = {(f.type, f.value) for f in entry.facts}
+    assert ("tech", "hyper_metabolism") in facts
+    assert ("tech_lost", "neural_motivator") in facts
+
+
 def test_vp_and_planet_facts_from_diff() -> None:
     before = _state()
     after = _state()

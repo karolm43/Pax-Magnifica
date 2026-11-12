@@ -4,8 +4,10 @@ import {
   bumpCart,
   cartCost,
   fitsProducers,
+  freeCargo,
   fundsTotal,
   maxMore,
+  slotsUsed,
   whyNotAdd,
 } from "./productionMath";
 import type {
@@ -148,5 +150,25 @@ describe("osobne zdolności PRODUCTION (Arborec)", () => {
     expect(whyNotAdd(v, bumpCart([], "infantry", "jord", 2), infantry, "jord")).toMatch(
       /can't make this unit/,
     );
+  });
+});
+
+describe("Bellum Gloriosum (freeCargo)", () => {
+  const carrier = unit({ baseType: "carrier", asyncId: "cv", name: "Carrier", capacity: 4 });
+  const cart = [
+    { baseType: "carrier", zone: "space", count: 1 },
+    { baseType: "infantry", zone: "jord", count: 5 },
+  ];
+
+  it("ładunek do capacity statków nie zajmuje slotów PRODUCTION", () => {
+    const v = view({ freeCargo: true, units: [carrier, infantry] });
+    expect(freeCargo(v, cart)).toBe(4);
+    expect(slotsUsed(v, cart)).toBe(2);
+  });
+
+  it("bez przełomu liczy się każda sztuka", () => {
+    const v = view({ units: [carrier, infantry] });
+    expect(freeCargo(v, cart)).toBe(0);
+    expect(slotsUsed(v, cart)).toBe(6);
   });
 });

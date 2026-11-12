@@ -126,7 +126,8 @@ def test_status_flow_via_endpoints(client: TestClient) -> None:
         assert client.post("/status/finish-scoring", json={"player_id": pid}).status_code == 200
     status = _web(client)["gameState"]["status"]
     assert status["step"] == "REDISTRIBUTE"
-    assert status["unassignedCc"] == {"p1": 2, "p2": 2, "p3": 2}
+    # p1 = Sol: Versatile daje 1 żeton więcej (RULES.md 62.4).
+    assert status["unassignedCc"] == {"p1": 3, "p2": 2, "p3": 2}
 
     # Zła suma → 422; poprawna dla każdego → COMPLETE i dostępny Next phase.
     assert client.post(
@@ -137,7 +138,9 @@ def test_status_flow_via_endpoints(client: TestClient) -> None:
     for pid in ("p1", "p2", "p3"):
         resp = client.post(
             "/status/redistribute",
-            json={"player_id": pid, "tactical": 4, "fleet": 3, "strategic": 3},
+            # p1 = Sol: Versatile - o 1 żeton więcej do rozdzielenia (RULES.md 62.4).
+            json={"player_id": pid, "tactical": 4, "fleet": 3,
+                  "strategic": 4 if pid == "p1" else 3},
         )
         assert resp.status_code == 200
     assert _web(client)["gameState"]["canAdvancePhase"] is True
@@ -158,7 +161,9 @@ def test_status_goes_to_agenda_when_custodians_removed(client: TestClient) -> No
     for pid in ("p1", "p2", "p3"):
         client.post(
             "/status/redistribute",
-            json={"player_id": pid, "tactical": 4, "fleet": 3, "strategic": 3},
+            # p1 = Sol: Versatile - o 1 żeton więcej do rozdzielenia (RULES.md 62.4).
+            json={"player_id": pid, "tactical": 4, "fleet": 3,
+                  "strategic": 4 if pid == "p1" else 3},
         )
     state = client.post("/phase/next", json={"player_id": "p1"}).json()["state"]
     assert state["phase"] == "AGENDA" and state["round_number"] == 1

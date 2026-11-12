@@ -16,6 +16,8 @@ export type ProductionUnit = {
   cost: number;
   unitsPerCost: number;
   placement: "space" | "planet";
+  /** CAPACITY wariantu jednostki (Bellum Gloriosum). */
+  capacity?: number;
   /** Ile sztuk zostało w rezerwie; null = bez limitu (żetony fighter/infantry). */
   reinforcements: number | null;
   /** Ile sztuk tego typu stoi teraz na planszy (przestrzeń + planety, wszystkie systemy). */
@@ -76,6 +78,8 @@ export type ProductionBody = {
   limit: number;
   used: number;
   remaining: number;
+  /** Bellum Gloriosum: myśliwce i siły naziemne do capacity produkowanych statków poza limitem. */
+  freeCargo?: boolean;
   /** Co już wyprodukowano w tej akcji, wg typu (do rozdziału między osobne zdolności). */
   usedByType: Record<string, number>;
   blockaded: boolean;

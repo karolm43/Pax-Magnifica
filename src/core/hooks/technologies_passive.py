@@ -7,6 +7,7 @@ mimo że część pasywna działa.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -30,9 +31,20 @@ DARK_ENERGY_TAP_ALIAS = "det"
 PSYCHOARCHAEOLOGY_ALIAS = "pa"
 SELF_ASSEMBLY_ALIAS = "sar"
 INFANTRY_II_ALIAS = "inf2"
+SPEC_OPS_II_ALIAS = "so2"  # piechota Sol - ten sam mechanizm, inny próg (RULES.md 62.4)
+REVIVE_ALIASES = (INFANTRY_II_ALIAS, SPEC_OPS_II_ALIAS)
 
-# Próg odrodzenia Infantry II: „If the result is 6 or greater" (tekst karty w assetach).
+# Próg odrodzenia: „If the result is 6 or greater" (tekst karty w assetach); zapas bez danych.
 _INFANTRY_II_REVIVE_ON = 6
+_REVIVE_PATTERN = re.compile(r"result is (\d+) or greater", re.IGNORECASE)
+
+
+def revive_threshold(alias: str) -> int:
+    """Próg odrodzenia piechoty z tekstu karty technologii (Infantry II: 6, Spec Ops II: 5)."""
+    registry = rules_hooks.bound_registry()
+    tech = registry.technologies.get(alias) if registry is not None else None
+    match = _REVIVE_PATTERN.search(tech.text or "") if tech is not None else None
+    return int(match.group(1)) if match is not None else _INFANTRY_II_REVIVE_ON
 
 rules_hooks.declare_data_driven("technologies:sd2", "technologies:dn2")
 
@@ -97,30 +109,36 @@ def self_assembly_trade_good(state: GameState, player_id: str, ctx: Mapping[str,
 # --- Infantry II: odrodzenie ----------------------------------------------------------------
 
 
-@on_event(
-    GameEvent.UNIT_DESTROYED,
-    Moment.AFTER,
-    _source(INFANTRY_II_ALIAS),
-    where={"base_type": "infantry"},
-    condition=_own_event,
-    covers=f"technologies:{INFANTRY_II_ALIAS}",
-    label="Infantry II: revive roll",
-)
-def infantry_ii_revive_roll(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
-    """Infantry II: po zniszczeniu piechoty rzuć kością; przy 6+ jednostka trafia na kartę.
+def _revive_roll(alias: str) -> Any:
+    """Hook „po zniszczeniu piechoty rzuć kością” dla karty ``alias`` (próg z jej tekstu)."""
 
-    Rzut jest fizyczną kością na stole (``dice.record_table_roll``); wynik liczy silnik.
-    """
-    rolls = int(ctx.get("count", 1))
-    rng = dice.next_rng(state)
-    results = [rng.randint(1, DIE_SIDES) for _ in range(rolls)]
-    revived = count_hits(results, _INFANTRY_II_REVIVE_ON)
-    state.players[player_id].infantry_ii_on_card += revived
-    dice.record_table_roll(
-        state, player_id, "infantry_ii", "Infantry II", results,
-        hits_on=_INFANTRY_II_REVIVE_ON,
-        summary=f"{revived} infantry placed on the Infantry II card" if revived else "",
-    )
+    def revive_roll(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+        """Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka
+        trafia na kartę. Rzut jest fizyczną kością na stole (``dice.record_table_roll``)."""
+        registry = rules_hooks.bound_registry()
+        tech = registry.technologies.get(alias) if registry is not None else None
+        name = tech.name if tech is not None else alias
+        threshold = revive_threshold(alias)
+        rolls = int(ctx.get("count", 1))
+        rng = dice.next_rng(state)
+        results = [rng.randint(1, DIE_SIDES) for _ in range(rolls)]
+        revived = count_hits(results, threshold)
+        state.players[player_id].infantry_ii_on_card += revived
+        dice.record_table_roll(
+            state, player_id, "infantry_ii", name, results,
+            hits_on=threshold,
+            summary=f"{revived} infantry placed on the {name} card" if revived else "",
+        )
+
+    return revive_roll
+
+
+for _alias in REVIVE_ALIASES:
+    on_event(
+        GameEvent.UNIT_DESTROYED, Moment.AFTER, _source(_alias),
+        where={"base_type": "infantry"}, condition=_own_event,
+        covers=f"technologies:{_alias}", label="Infantry II: revive roll",
+    )(_revive_roll(_alias))
 
 
 def _home_planets(state: GameState, player_id: str) -> list[str]:
@@ -202,14 +220,15 @@ for _event, _moment, _where, _owns_turn in (
         _first_action_turn,
     ),
 ):
-    on_event(
-        _event, _moment, _source(INFANTRY_II_ALIAS), where=_where,
-        condition=_both(_owns_turn, _returns_now),
-        covers=f"technologies:{INFANTRY_II_ALIAS}", label="Infantry II: return",
-        inputs=infantry_ii_inputs, decide=True,
-    )(infantry_ii_place)
-    on_event(
-        _event, _moment, _source(INFANTRY_II_ALIAS), where=_where,
-        condition=_both(_owns_turn, _no_home_planet),
-        covers=f"technologies:{INFANTRY_II_ALIAS}", label="Infantry II: reserve",
-    )(infantry_ii_to_reserve)
+    for _alias in REVIVE_ALIASES:
+        on_event(
+            _event, _moment, _source(_alias), where=_where,
+            condition=_both(_owns_turn, _returns_now),
+            covers=f"technologies:{_alias}", label="Infantry II: return",
+            inputs=infantry_ii_inputs, decide=True,
+        )(infantry_ii_place)
+        on_event(
+            _event, _moment, _source(_alias), where=_where,
+            condition=_both(_owns_turn, _no_home_planet),
+            covers=f"technologies:{_alias}", label="Infantry II: reserve",
+        )(infantry_ii_to_reserve)

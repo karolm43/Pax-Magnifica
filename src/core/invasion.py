@@ -1254,7 +1254,31 @@ def cancel_defense_hits(state: GameState, planet: str, count: int = 1) -> int:
     return cancelled
 
 
-def reroll_pending_defense(state: GameState) -> int:
+def pending_defense_entries(state: GameState) -> tuple[str, list[dict[str, Any]]] | None:
+    """Rzuty Space Cannon Defense czekające na straty jako płaska lista wpisów (kolejność jak
+    w :func:`reroll_pending_defense`) i strzelający; ``None`` = brak."""
+    inv = state.invasion
+    if inv is None or not inv.defense_pending:
+        return None
+    entries = [_defense_log_entry(inv, p) for p in sorted(inv.defense_pending)]
+    flat = [dict(roll) for entry in entries for roll in entry["rolls"]]
+    return str(entries[0]["defender"]), flat
+
+
+def pending_bombardment_entries(state: GameState) -> tuple[str, list[dict[str, Any]]] | None:
+    """Rzuty Bombardment czekające na straty (płasko, kolejność jak przy przerzucie)."""
+    inv = state.invasion
+    if inv is None or not inv.bombard_pending:
+        return None
+    entries = [_bombard_log_entry(inv, p) for p in sorted(inv.bombard_pending)]
+    return inv.attacker, [dict(roll) for entry in entries for roll in entry["rolls"]]
+
+
+def reroll_pending_defense(
+    state: GameState,
+    picks: set[tuple[int, int]] | None = None,
+    source: tuple[str, str] = ("scramble_frequency", "Scramble Frequency"),
+) -> int:
     """Scramble Frequency na Space Cannon Defense: przerzuca kości rzutów czekających na straty.
 
     ⚠ ZAŁOŻENIE: gdy trafienia czekają na kilku planetach, przerzucane są wszystkie rzuty.
@@ -1270,7 +1294,9 @@ def reroll_pending_defense(state: GameState) -> int:
     entries = [_defense_log_entry(inv, p) for p in planets]
     flat = [dict(roll) for entry in entries for roll in entry["rolls"]]
     roller = str(entries[0]["defender"])
-    fresh, total = space_cannon.reroll_entries(state, flat, roller=roller)
+    fresh, total = space_cannon.reroll_entries(
+        state, flat, roller=roller, picks=picks, source=source
+    )
     cursor = 0
     for planet, entry in zip(planets, entries, strict=True):
         size = len(entry["rolls"])
@@ -1286,7 +1312,11 @@ def reroll_pending_defense(state: GameState) -> int:
     return total
 
 
-def reroll_pending_bombardment(state: GameState) -> int:
+def reroll_pending_bombardment(
+    state: GameState,
+    picks: set[tuple[int, int]] | None = None,
+    source: tuple[str, str] = ("scramble_frequency", "Scramble Frequency"),
+) -> int:
     """Scramble Frequency na Bombardment: przerzuca kości rzutów czekających na straty.
 
     ⚠ ZAŁOŻENIE: przerzucane są rzuty wszystkich planet, na których trafienia wciąż czekają na
@@ -1310,7 +1340,7 @@ def reroll_pending_bombardment(state: GameState) -> int:
         )
 
     fresh, total = space_cannon.reroll_entries(
-        state, flat, roller=inv.attacker, multiplier=multiplier
+        state, flat, roller=inv.attacker, multiplier=multiplier, picks=picks, source=source
     )
     cursor = 0
     for planet, entry in zip(planets, entries, strict=True):

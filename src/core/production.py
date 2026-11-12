@@ -502,6 +502,46 @@ def _total_cost(
     )
 
 
+_CARGO_TYPES = ("fighter", "infantry", "mech")  # myśliwce i siły naziemne (R_capacity)
+
+
+def has_free_cargo(state: GameState, player_id: str) -> bool:
+    """Czy ładunek produkowanych statków omija limit PRODUCTION (hook ``production.free_cargo``)."""
+    return rules_hooks.permits(rules_hooks.POINT_PRODUCTION_FREE_CARGO, state, player_id)
+
+
+def free_cargo_units(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    orders: list[ProductionOrder],
+) -> int:
+    """Ile sztuk zamówienia NIE liczy się do limitu PRODUCTION (Bellum Gloriosum, RULES.md 62.4).
+
+    ``min(łączna capacity produkowanych statków, liczba myśliwców i sił naziemnych)``; bez hooka 0.
+    """
+    if not has_free_cargo(state, player_id):
+        return 0
+    player = state.players.get(player_id)
+    if player is None:
+        return 0
+    capacity = 0
+    cargo = 0
+    for o in orders:
+        if o.count <= 0:
+            continue
+        if o.base_type in _CARGO_TYPES:
+            cargo += o.count
+            continue
+        unit = resolve_unit_variant(
+            registry, player.faction, player.technologies, o.base_type,
+            player.breakthrough_unlocked,
+        )
+        if unit is not None and is_space_unit(o.base_type) and unit.capacity_value:
+            capacity += int(unit.capacity_value) * o.count
+    return min(capacity, cargo)
+
+
 def validate_production(
     state: GameState,
     grid: HexGrid,
@@ -539,8 +579,11 @@ def validate_production(
                     f"The combined cost {cost:g} exceeds the limit of {free_grant.max_cost:g}."
                 )
 
-    # LIMIT: łączna liczba sztuk ≤ suma PRODUCTION w aktywnym systemie.
-    total_units = sum(o.count for o in orders)
+    # LIMIT: łączna liczba sztuk ≤ suma PRODUCTION w aktywnym systemie (bez ładunku z
+    # Bellum Gloriosum - RULES.md 62.4).
+    total_units = sum(o.count for o in orders) - free_cargo_units(
+        state, registry, player_id, orders
+    )
     limit = remaining_production(state, grid, registry, player_id)
     if total_units > limit:
         raise ValueError(
@@ -552,6 +595,13 @@ def validate_production(
     cumulative = used_by_type(state)
     for o in orders:
         cumulative[o.base_type] = cumulative.get(o.base_type, 0) + o.count
+    # Ładunek Bellum Gloriosum nie zajmuje PRODUCTION żadnego producenta.
+    free = free_cargo_units(state, registry, player_id, orders)
+    for cargo_type in _CARGO_TYPES:
+        take = min(free, cumulative.get(cargo_type, 0))
+        if take:
+            cumulative[cargo_type] -= take
+            free -= take
     if active_grant(state, player_id) is None and not fits_producers(
         producers(state, registry, player_id, active), cumulative
     ):
@@ -802,7 +852,11 @@ def produce(
         # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika.
         new_state.production_grant = None
     else:
-        new_state.production_used = state.production_used + sum(o.count for o in orders)
+        new_state.production_used = (
+            state.production_used
+            + sum(o.count for o in orders)
+            - free_cargo_units(state, registry, player_id, orders)
+        )
     placed_now = {zone: dict(by_type) for zone, by_type in state.production_placed.items()}
     for o, zone in placed:
         by_type = placed_now.setdefault(zone, {})

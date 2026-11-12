@@ -943,6 +943,8 @@ class GameState(BaseModel):
     last_action_discard: ActionDiscardTrace | None = None
     # Kto uzupełnił commodities od ostatniej akcji (okno Trade Agreement, RULES.md 61.2).
     last_replenished: list[str] = Field(default_factory=list)
+    # Badania od ostatniej akcji: ``{player, technology}`` (okno Research Agreement, RULES.md 62.3).
+    last_research: list[dict[str, str]] = Field(default_factory=list)
     bonus_turn: BonusTurn | None = None
     # Ślad zmian kontroli planet w TEJ akcji taktycznej (karty reakcji Infiltrate / Reparations):
     # wpisy ``{"planet", "position", "player" (nowy kontroler), "previous" (poprzedni | None)}``.

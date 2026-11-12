@@ -463,6 +463,8 @@ class ProducibleUnit:
     # struktura). Panel produkcji decyduje, czy stawiać w przestrzeni, czy na
     # planecie (RULES.md 26) — źródło: ``unit_catalog.placement_of``.
     placement: str
+    # CAPACITY wariantu jednostki (Bellum Gloriosum liczy z niej ładunek poza limitem).
+    capacity: int = 0
 
 
 @dataclass(frozen=True)
@@ -528,6 +530,7 @@ def production_help(
                 cost=unit.cost * (2 if base_type in _DUAL_PRODUCTION else 1),
                 units_per_cost=2 if base_type in _DUAL_PRODUCTION else 1,
                 placement="space" if is_space_unit(base_type) else "planet",
+                capacity=int(unit.capacity_value or 0),
             )
         )
     return ProductionHelp(

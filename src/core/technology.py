@@ -246,7 +246,54 @@ def _remaining_after_skips(
         remaining -= 1
     # Reliktowe „ignore 1 prerequisite" (Prophet's Tears): każdy gotowy relikt pokrywa 1 symbol.
     remaining -= len(ignore_prerequisite_relics(state, player_id))
-    return remaining
+    return remaining - free_prerequisite_ignores(state, player_id, tech)
+
+
+def _after_free_ignores(
+    state: GameState,
+    player_id: str,
+    tech: TechnologyDef,
+    missing: Counter[str],
+    planets: dict[str, list[str]],
+) -> Counter[str]:
+    """Brakujące symbole po darmowym ignorowaniu (Analytical) - dla UI drzewa.
+
+    Ignorowane są najpierw symbole, których NIE pokryją gotowe planety ze specjalnością, żeby
+    reszta dała się dobrać skipami w oknie badania (silnik i tak liczy ignorowanie po skipach).
+    """
+    free = free_prerequisite_ignores(state, player_id, tech)
+    left = Counter({c: n for c, n in missing.items() if n > 0})
+    if free <= 0:
+        return left
+    uncovered = Counter(left)
+    for colors in planets.values():
+        color = next((c for c in colors if uncovered[c] > 0), None)
+        if color is not None:
+            uncovered[color] -= 1
+    order = [c for c in uncovered if uncovered[c] > 0] + list(left)
+    for color in order:
+        if free <= 0:
+            break
+        take = min(free, left[color], uncovered[color] if uncovered[color] > 0 else left[color])
+        left[color] -= take
+        free -= take
+    return Counter({c: n for c, n in left.items() if n > 0})
+
+
+def free_prerequisite_ignores(state: GameState, player_id: str, tech: TechnologyDef) -> int:
+    """Ile brakujących symboli badanie ``tech`` ignoruje bez kosztu (Analytical, RULES.md 62.3).
+
+    Hook MODIFY ``technology.free_prerequisite_ignores`` (ctx: ``unit_upgrade``). Stosowane po
+    skipach (planety, AIDA, relikty) - nic nie kosztuje, więc gracz zawsze na tym zyskuje.
+    """
+    unit_upgrade = "true" if UNIT_UPGRADE in tech.types else "false"
+    return max(
+        0,
+        rules_hooks.modify(
+            rules_hooks.POINT_TECHNOLOGY_FREE_IGNORES, state, player_id, 0,
+            {"unit_upgrade": unit_upgrade, "technology": tech.id},
+        ),
+    )
 
 
 def researchable_techs(
@@ -380,6 +427,13 @@ def plan_research(
         missing[color] -= 1
         used_planets.append(skip)
     left = {c: n for c, n in missing.items() if n > 0}
+    for _ in range(free_prerequisite_ignores(state, player_id, tech)):
+        color = max(left, key=lambda c: left[c], default=None)
+        if color is None:
+            break
+        left[color] -= 1
+        if left[color] <= 0:
+            del left[color]
     if left:
         text = ", ".join(f"{n}× {c.lower()}" for c, n in left.items())
         raise ValueError(f"Prerequisites not met for {tech.name}: missing {text}.")
@@ -462,6 +516,9 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         exhaust.exhaust_technology(state, player_id, AIDA)
     for relic_id in plan.exhaust_relics:
         exhaust.exhaust_relic(state, player_id, relic_id)
+    # Ślad dla okien „after <gracz> researches a technology" (Research Agreement, RULES.md 62.3);
+    # zeruje go ``action_budget.clear_reaction_traces`` przy następnej akcji.
+    state.last_research = [*state.last_research, {"player": player_id, "technology": plan.tech_id}]
     triggers.fire(
         state,
         GameEvent.TECHNOLOGY_RESEARCH,
@@ -515,10 +572,14 @@ def tree_view(
             status = "exhausted" if tech.id in player.exhausted_technologies else "owned"
         elif not missing:
             status = "available"
+        elif not (shown := _after_free_ignores(state, player_id, tech, missing, planets)):
+            status = "available"  # darmowe ignorowanie pokrywa wszystko (Analytical)
+            missing = shown
         else:
             # Każda planeta pokrywa najwyżej 1 symbol (zachłannie po kolorach planety).
             remaining = _remaining_after_skips(state, player_id, tech, missing, planets)
             status = "skippable" if remaining <= 0 else "locked"
+            missing = shown
         rows.append(
             {
                 "id": tech.id,
@@ -535,3 +596,70 @@ def tree_view(
             }
         )
     return rows
+
+
+# ------------------------------------------------- koszt badania: zniżki i płatność planetą
+
+# Efekt zniżki kosztu NASTĘPNEGO płatnego badania gracza (data: ``amount``); Doctor Sucaban.
+RESEARCH_DISCOUNT = "technology:research_discount"
+
+
+def research_discount(state: GameState, player_id: str) -> int:
+    """Suma zniżek kosztu najbliższego płatnego badania gracza (efekty ``RESEARCH_DISCOUNT``)."""
+    return sum(
+        int(e.data.get("amount", 0)) for e in state.active_effects
+        if e.key == RESEARCH_DISCOUNT and e.owner == player_id
+    )
+
+
+def consume_research_discount(state: GameState, player_id: str) -> None:
+    """Zniżka zużyta przy zapłacie badania (MUTUJE klon)."""
+    from src.core import active_effects  # lokalnie: unika cyklu importów
+
+    active_effects.remove_by_key(state, RESEARCH_DISCOUNT, owner=player_id)
+
+
+def specialty_payment_planets(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> dict[str, list[str]]:
+    """Gotowe planety, którymi wolno ZAPŁACIĆ za badanie z karty Technology (Specialist Compounds).
+
+    Hook PERMIT ``technology.specialty_pays``; kolory = WŁASNE specjalności planety (bez
+    rozszerzenia synergią - F_jol_nar). Pusty słownik, gdy gracz nie ma tej zdolności.
+    """
+    if not rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SPECIALTY_PAYS, state, player_id):
+        return {}
+    exhausted = set(state.players[player_id].exhausted_planets)
+    result: dict[str, list[str]] = {}
+    for system in state.systems.values():
+        for planet_id, owner in system.planet_owners.items():
+            if owner != player_id or planet_id in exhausted:
+                continue
+            stats = planet_stats(state, registry, planet_id)
+            if stats is not None and stats.tech_specialties:
+                result[planet_id] = [s.upper() for s in stats.tech_specialties]
+    return result
+
+
+def validate_specialty_payment(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    plan: ResearchPlan,
+    planet_id: str,
+) -> None:
+    """Sprawdza płatność planetą ze specjalnością (Specialist Compounds, RULES.md 62.3).
+
+    Raises:
+        ValueError: Brak zdolności, ulepszenie jednostki, zły kolor albo planeta użyta jako skip.
+    """
+    planets = specialty_payment_planets(state, registry, player_id)
+    if planet_id not in planets:
+        raise ValueError("That planet cannot pay for this research with its technology specialty.")
+    tech = registry.technologies.get(plan.tech_id)
+    if tech is None or UNIT_UPGRADE in tech.types:
+        raise ValueError("A technology specialty cannot pay for a unit upgrade.")
+    if tech_color(tech) not in planets[planet_id]:
+        raise ValueError("The planet's technology specialty must match the technology's color.")
+    if planet_id in plan.exhaust_planets:
+        raise ValueError("The same planet cannot both ignore a prerequisite and pay.")

@@ -350,6 +350,25 @@ def resume_after_triggers(
 # ---------------------------------------------------------------------------- rzuty
 
 
+def natural_extra_hits(
+    state: GameState, player_id: str, kind: str, base_type: str, dice: list[int]
+) -> int:
+    """Dodatkowe trafienia z wyników kości PRZED modyfikatorami (``combat.natural_extra_hits``).
+
+    Jedno miejsce dla rzutu i przerzutów (RULES.md 62.3, J.N.S. Hylarim: „each result of 9 or 10,
+    before applying modifiers, produces 2 additional hits"). Bez mnożnika trafień (X-89).
+    """
+    if not rules_hooks.hooks_at(rules_hooks.POINT_COMBAT_NATURAL_EXTRA_HITS, state, player_id):
+        return 0
+    return sum(
+        rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_NATURAL_EXTRA_HITS, state, player_id, 0,
+            {"kind": kind, "base_type": base_type, "natural": int(d)},
+        )
+        for d in dice
+    )
+
+
 def _roll_entry(unit: CombatUnit, dice: list[int], hits_on: int, hits: int) -> dict[str, Any]:
     return {
         "baseType": unit.base_type,
@@ -538,6 +557,7 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
                 rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, pid, 1,
                 {"kind": combat.kind, "base_type": unit.base_type},
             )
+            hits += natural_extra_hits(state, pid, combat.kind, unit.base_type, dice)
             total += hits
             entry = _roll_entry(unit, dice, unit.base_hits_on, hits)
             if unit.single_bonus:
@@ -1149,10 +1169,11 @@ def _entry_hits(
     bonus = list(entry.get("bonus") or [0] * len(dice))
     modifier = int(entry.get("modifier", 0))
     hits = sum(1 for d, b in zip(dice, bonus, strict=False) if d + modifier + b >= entry["hitsOn"])
+    base_type = str(entry.get("baseType", ""))
     return hits * rules_hooks.modify(
         rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, player_id, 1,
-        {"kind": combat.kind, "base_type": entry.get("baseType", "")},
-    )
+        {"kind": combat.kind, "base_type": base_type},
+    ) + natural_extra_hits(state, player_id, combat.kind, base_type, dice)
 
 
 def _require_dice_window(state: GameState) -> ActiveCombat:

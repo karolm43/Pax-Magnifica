@@ -47,7 +47,7 @@ class ActivityFact(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    # "vp" | "tech" | "planet_gained" | "planet_lost" | "tg" oraz JAWNE karty/cele:
+    # "vp" | "tech" | "tech_lost" | "planet_gained" | "planet_lost" | "tg" oraz JAWNE karty/cele:
     # "action_card" (zagrana/odrzucona), "agenda" (zużyta), "explore_card" (ujawniona),
     # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
     # Zasoby/komponenty: "commodities", "cc" (value = pula), "hand" (value = ręka, tylko liczba),
@@ -326,6 +326,9 @@ def _facts(before: GameState | None, after: GameState) -> list[ActivityFact]:
         for tech in new.technologies:
             if tech not in old.technologies:
                 facts.append(ActivityFact(type="tech", player_id=pid, value=tech))
+        for tech in old.technologies:
+            if tech not in new.technologies:  # zwrot do talii (Genetic Memory, Divert Funding)
+                facts.append(ActivityFact(type="tech_lost", player_id=pid, value=tech))
         for planet in new.controlled_planets:
             if planet not in old.controlled_planets:
                 facts.append(ActivityFact(type="planet_gained", player_id=pid, value=planet))

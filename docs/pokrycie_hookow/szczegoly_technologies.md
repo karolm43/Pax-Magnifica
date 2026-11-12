@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
-| `ac2` | Advanced Carrier II | sol | — | — | ruch, walka | — | Cost 3, Combat 9, Move 2, Capacity 8 SUSTAIN DAMAGE |
+| `ac2` | Advanced Carrier II | sol | — | — | ruch, walka | ✔ | Cost 3, Combat 9, Move 2, Capacity 8 SUSTAIN DAMAGE |
 | `ah` | Aerie Hololattice | argent | — | FORBID (zakaz) | ruch, produkcja, planety i eksploracja | — | Other players cannot move ships through systems that contain your structures. Each planet that contains 1 or more of your structures gains … |
 | `aida` | AI Development Algorithm | — | — | MODIFY (liczba/rzut) | produkcja, technologie, status i odświeżanie | ✔ | When you research a unit upgrade technology, you may exhaust this card to ignore any 1 prerequisite. When 1 or more of your units use PRODU… |
 | `amd` | Antimass Deflectors | — | — | MODIFY (liczba/rzut) | ruch, walka | ✔ | Your ships can move into and through asteroid fields. When other players' units use SPACE CANNON against your units, apply -1 to the result… |
@@ -24,7 +24,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `ds` | Dimensional Splicer | ghost | — | MODIFY (liczba/rzut) | ruch, walka, produkcja | — | At the start of space combat in a system that contains a wormhole and 1 or more of your ships, you may produce 1 hit and assign it to 1 of … |
 | `dt2` | Dimensional Tear II | cabal | — | — | ruch, walka, produkcja | — | PRODUCTION 7 This system is a gravity rift; your ships do not roll for this gravity rift. Place a dimensional tear token beneath this unit … |
 | `dxa` | Dacxive Animators | — | — | PERMIT (pozwolenie) | walka, produkcja, planety i eksploracja | ✔ | After you win a ground combat, you may place 1 infantry from your reinforcements on that planet. |
-| `ers` | E-Res Siphons | jolnar | — | MODIFY (liczba/rzut) | ekonomia i płatności | — | After another player activates a system that contains 1 or more of your ships, gain 4 trade goods. |
+| `ers` | E-Res Siphons | jolnar | — | MODIFY (liczba/rzut) | ekonomia i płatności | ✔ | After another player activates a system that contains 1 or more of your ships, gain 4 trade goods. |
 | `executiveorder` | Executive Order | keleres | — | PERMIT (pozwolenie) | ekonomia i płatności, karty, agenda i głosowanie, status i odświeżanie | — | ACTION: Exhaust this card and draw the top or bottom card of the Agenda deck. Players immediately vote on this agenda as if you were the sp… |
 | `exile2` | Exile II | crimson | — | PERMIT (pozwolenie) | ruch, walka | — | Cost 1, Combat 7, Move 2, ANTI-FIGHTER BARRAGE 6 (x3). At the end of any players' combat in this unit's system or up to 2 systems away, you… |
 | `exo2` | Exotrireme II | sardakk | — | FORBID (zakaz) | ruch, walka, karty | ✔ | Cost 4, Combat 5, Move 2, Capacity 1 SUSTAIN DAMAGE, BOMBARDMENT 4(x2) This unit cannot be destroyed by "Direct Hit" action cards. After a … |
@@ -81,13 +81,13 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `radical` | Radical Advancement | deepwrought | — | MODIFY (liczba/rzut) | technologie, status i odświeżanie | — | At the start of the status phase, you may replace one of your non-unit upgrade technologies with a technology of the same color that has ex… |
 | `sar` | Self-Assembly Routines | — | — | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, planety i eksploracja, status i odświeżanie | ✔ | After 1 or more of your units use PRODUCTION, you may exhaust this card to place 1 mech from your reinforcements on a planet you control in… |
 | `sc` | Supercharge | naaz | — | MODIFY (liczba/rzut) | walka, status i odświeżanie | — | At the start of a combat round, you may exhaust this card to apply +1 to the result of each of your unit's combat rolls during this combat … |
-| `scc` | Spatial Conduit Cylinder | jolnar | — | MODIFY (liczba/rzut) | ruch, status i odświeżanie | — | You may exhaust this card after you activate a system that contains 1 or more of your units; that system is adjacent to all other systems t… |
+| `scc` | Spatial Conduit Cylinder | jolnar | — | MODIFY (liczba/rzut) | ruch, status i odświeżanie | ✔ | You may exhaust this card after you activate a system that contains 1 or more of your units; that system is adjacent to all other systems t… |
 | `sd2` | Space Dock II | — | — | MODIFY (liczba/rzut) | produkcja, ekonomia i płatności, planety i eksploracja | ✔ | PRODUCTION X This unit's PRODUCTION value is equal to 4 more than the resource value of this planet. Up to 3 fighters in this system do not… |
 | `sdn` | Scanlink Drone Network | — | — | MODIFY (liczba/rzut) | planety i eksploracja | ✔ | When you activate a system, you may explore 1 planet in that system which contains 1 or more of your units. |
 | `sdn2` | Super Dreadnought II | l1z1x | — | FORBID (zakaz) | ruch, walka, karty | — | Cost 4, Combat 4, Move 2, Capacity 2 SUSTAIN DAMAGE, BOMBARDMENT 4 This unit cannot be destroyed by "Direct Hit" action cards. |
 | `se2` | Saturn Engine II | titans | — | — | ruch, walka | — | Cost 2, Combat 6, Move 3, Capacity 2 SUSTAIN DAMAGE |
 | `so` | Salvage Operations | mentak | — | PERMIT (pozwolenie) | walka, produkcja, ekonomia i płatności | — | After you win or lose a space combat, gain 1 trade good; if you won the combat, you may also produce 1 ship in that system of any ship type… |
-| `so2` | Spec Ops II | sol | — | — | walka, planety i eksploracja | — | Cost 1(x2), Combat 6 After this unit is destroyed, roll 1 die. If the result is 5 or greater, place the unit on this card. At the start of … |
+| `so2` | Spec Ops II | sol | — | — | walka, planety i eksploracja | ✔ | Cost 1(x2), Combat 6 After this unit is destroyed, roll 1 die. If the result is 5 or greater, place the unit on this card. At the start of … |
 | `sr` | Sling Relay | — | — | — | produkcja, status i odświeżanie | ✔ | ACTION: Exhaust this card to produce 1 ship in any system that contains one of your space docks. |
 | `st` | Sarween Tools | — | — | MODIFY (liczba/rzut) | produkcja | ✔ | When 1 or more of your units use PRODUCTION, reduce the combined cost of the produced units by 1. |
 | `subatomic` | Subatomic Splicer | crimson | — | PERMIT (pozwolenie) | walka, produkcja | — | When one of your ships is destroyed, you may produce a ship of the same type at a space dock in your home system. |
