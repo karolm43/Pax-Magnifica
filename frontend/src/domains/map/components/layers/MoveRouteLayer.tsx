@@ -93,8 +93,16 @@ export function MoveRouteLayer({
             })}
             {main.map((p, i) => {
               const position = route.route?.[i] ?? "";
-              const kind =
-                i === 0 ? "start" : i === main.length - 1 ? "end" : draft.via.includes(position) ? "via" : "pass";
+              const isRift = route.riftNodes.includes(position);
+              const kind = isRift
+                ? "rift"
+                : i === 0
+                  ? "start"
+                  : i === main.length - 1
+                    ? "end"
+                    : draft.via.includes(position)
+                      ? "via"
+                      : "pass";
               return (
                 <circle
                   key={`node-${position}`}
@@ -102,7 +110,7 @@ export function MoveRouteLayer({
                   data-kind={kind}
                   cx={p.x}
                   cy={p.y}
-                  r={kind === "pass" ? 18 : 26}
+                  r={kind === "pass" ? 18 : kind === "rift" ? 32 : 26}
                 />
               );
             })}
@@ -110,7 +118,7 @@ export function MoveRouteLayer({
         )}
       </svg>
 
-      {(route.route ?? []).slice(0, -1).map((position) => {
+      {(route.route ?? []).map((position) => {
         const at = centers.get(position);
         const entries = route.cargo.filter((c) => c.position === position);
         if (!at || entries.length === 0) return null;
@@ -118,7 +126,7 @@ export function MoveRouteLayer({
           <div
             key={`cargo-${position}`}
             className={classes.cargo}
-            style={{ left: at.x, top: at.y + 70 }}
+            style={{ left: at.x, top: at.y + 40 }}
           >
             {entries.map((c) => {
               const target: PickTarget = {

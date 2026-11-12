@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
   IconArrowRight,
@@ -25,6 +25,39 @@ import {
   type PickTarget,
 } from "./routeTypes";
 import styles from "./MoveRouteBox.module.css";
+
+const SIZE_KEY = "moveRouteBox.size.v1";
+const EDGE = 8;
+
+type Size = { width: number; height: number };
+
+function readSize(): Size | null {
+  try {
+    const raw = localStorage.getItem(SIZE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Size;
+    return typeof parsed.width === "number" && typeof parsed.height === "number" ? parsed : null;
+  } catch {
+    return null; // uszkodzony wpis - domyślny rozmiar z CSS
+  }
+}
+
+function writeSize(size: Size): void {
+  try {
+    localStorage.setItem(SIZE_KEY, JSON.stringify(size));
+  } catch {
+    /* brak localStorage - rozmiar po prostu nie przetrwa przeładowania */
+  }
+}
+
+/** Maksymalny rozmiar = miejsce od rogu przesuniętego panelu do krawędzi okna. */
+function maxSizeFor(style: CSSProperties): CSSProperties {
+  if (typeof style.left !== "number" || typeof style.top !== "number") return {};
+  return {
+    maxWidth: `calc(100vw - ${style.left + EDGE}px)`,
+    maxHeight: `calc(100vh - ${style.top + EDGE}px)`,
+  };
+}
 
 type Props = {
   faction: string;
@@ -57,6 +90,24 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
   const { moveShips } = useBoardEditor();
   const drag = useDraggablePanel("moveRouteBox.pos.v1");
   const [busy, setBusy] = useState(false);
+  // Rozmiar ustawiony uchwytem w rogu: zapamiętany w localStorage, wraca przy kolejnym otwarciu.
+  const [savedSize] = useState(readSize);
+  const observerRef = useRef<ResizeObserver | null>(null);
+  const boxRef = useCallback(
+    (el: HTMLElement | null) => {
+      drag.ref(el);
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      if (!el || typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver(() => {
+        const rect = el.getBoundingClientRect();
+        writeSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+      });
+      observer.observe(el);
+      observerRef.current = observer;
+    },
+    [drag.ref],
+  );
   const colorAlias = getColorAlias(player?.color);
 
   // Podgląd trasy z backendu; stary wynik (placeholder) nie trafia do store przy zmianie źródła.
@@ -182,8 +233,8 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
   };
 
   const reachableShips = route?.ships.filter((s) => s.reachable) ?? [];
+  const lastNode = route?.route?.[route.route.length - 1];
   const cargoNodes = (route?.route ?? [])
-    .slice(0, -1)
     .map((position) => ({
       position,
       entries: (route?.cargo ?? []).filter((c) => c.position === position),
@@ -192,13 +243,13 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
 
   return createPortal(
     <section
-      ref={drag.ref}
+      ref={boxRef}
       className={styles.box}
       role="group"
       aria-label={`Move from ${systemName(draft.from)}`}
       data-draggable-panel
       data-dragging={drag.isDragging || undefined}
-      style={drag.style}
+      style={{ ...(savedSize ?? {}), ...drag.style, ...maxSizeFor(drag.style) }}
     >
       <header
         className={styles.head}
@@ -253,6 +304,12 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
           </ol>
         )}
         {route && route.reason !== "" && <p className={styles.warn}>{route.reason}</p>}
+        {route && route.riftNodes.length > 0 && (
+          <p className={styles.rift}>
+            Gravity rift ({route.riftNodes.join(", ")}): +{route.riftNodes.length} move, but every
+            ship rolls a d10 and is removed on 1–3. Cargo on removed ships is lost.
+          </p>
+        )}
         {route && route.alternatives.length > 1 && (
           <div className={styles.alts} role="group" aria-label="Alternative routes">
             {route.alternatives.map((alt, index) => {
@@ -358,7 +415,13 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
         {cargoNodes.map((node) => (
           <div key={node.position} className={styles.node}>
             <div className={styles.nodeHead}>
-              {node.position === draft.from ? "Start" : "En route"} · {systemName(node.position)}
+              {node.position === draft.from
+                ? "Start"
+                : node.position === lastNode
+                  ? "Destination (ground forces on planets)"
+                  : "En route"}{" "}
+              · {systemName(node.position)}
+              {route?.riftNodes.includes(node.position) ? " · gravity rift" : ""}
             </div>
             <div className={styles.list}>
               {node.entries.map((c) => {

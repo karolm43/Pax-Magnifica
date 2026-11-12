@@ -1,13 +1,24 @@
 /* Mały, niemodalny box ruchu z trasą: plansza zostaje klikalna, panel da się przeciągnąć. */
 .box {
+  /* Kotwica od LEWEJ/GÓRY (nie right/bottom): natywny uchwyt resize w prawym dolnym rogu
+     rozciąga wtedy panel w stronę kursora, zamiast przesuwać go w przeciwną stronę. */
   position: fixed;
-  right: 16px;
+  /* Domyślnie z zapasem miejsca po prawej, żeby było w co rozciągnąć panel. */
+  left: max(8px, calc(100vw - 560px));
   top: 96px;
   z-index: var(--z-app-modal, 3000);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  width: min(340px, calc(100vw - 32px));
-  max-height: min(78vh, 640px);
+  box-sizing: border-box;
+  width: min(340px, calc(100vw - 16px));
+  height: min(560px, calc(100vh - 120px));
+  min-width: 260px;
+  min-height: 180px;
+  /* Maksimum = miejsce od lewego-górnego rogu do krawędzi okna (komponent nadpisuje po
+     przesunięciu), więc rozciąganie nigdy nie wypycha panelu i nie każe mu „uciekać". */
+  max-width: min(552px, calc(100vw - 16px));
+  max-height: calc(100vh - 104px);
   overflow: auto;
   resize: both;
   padding: 10px 12px 12px;
@@ -187,6 +198,16 @@
   color: var(--ds-ink, #cbd5e1);
 }
 
+.rift {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #e9d5ff;
+  border-radius: 8px;
+  border: 1px solid rgba(192, 132, 252, 0.55);
+  background: rgba(126, 34, 206, 0.22);
+}
+
 .warn {
   margin: 0;
   font-size: 12px;
@@ -208,7 +229,20 @@
   color: #fcd34d;
 }
 
+.head,
+.cap,
+.section {
+  flex: none;
+}
+
+/* Przycisk ruchu przyklejony do dołu przewijanego boxu - zawsze pod ręką. */
 .foot {
+  position: sticky;
+  bottom: -12px;
+  flex: none;
+  margin: auto -12px -12px;
+  padding: 8px 12px 12px;
+  background: var(--ds-deck, #0f1420);
   display: flex;
   justify-content: flex-end;
   gap: 8px;

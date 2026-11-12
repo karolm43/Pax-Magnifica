@@ -70,12 +70,20 @@
   stroke: #fff;
 }
 
+/* Gravity rift na trasie: fioletowy pierścień (ostrzeżenie o rzucie d10 na usunięcie statku). */
+.node[data-kind="rift"] {
+  fill: rgba(88, 28, 135, 0.9);
+  stroke: #d8b4fe;
+  stroke-width: 10;
+  stroke-dasharray: 10 8;
+}
+
 .cargo {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 4px;
   transform: translateX(-50%);
   pointer-events: auto;
 }

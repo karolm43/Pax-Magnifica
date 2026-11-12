@@ -314,6 +314,8 @@ type AppStore = {
    */
   moveDraft: MoveDraft | null;
   openMoveDraft: (from: string, faction: string) => void;
+  /** Otwiera box ruchu z gotowym wyborem (np. grupa zaznaczona Ctrl); trasę można jeszcze zmienić. */
+  openMoveDraftWith: (from: string, faction: string, picks: MoveDraft["picks"]) => void;
   closeMoveDraft: () => void;
   setMoveDraftVia: (via: string[]) => void;
   setMoveDraftRoute: (route: MoveRouteData | null) => void;
@@ -489,6 +491,8 @@ export const useAppStore = create<AppStore>((set) => {
     moveDraft: null,
     openMoveDraft: (from, faction) =>
       set({ moveDraft: { from, faction, via: [], picks: {}, route: null } }),
+    openMoveDraftWith: (from, faction, picks) =>
+      set({ moveDraft: { from, faction, via: [], picks, route: null } }),
     closeMoveDraft: () => set({ moveDraft: null }),
     setMoveDraftVia: (via) =>
       set((s) => (s.moveDraft ? { moveDraft: { ...s.moveDraft, via } } : {})),

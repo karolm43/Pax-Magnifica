@@ -31,6 +31,8 @@ export type MoveRouteData = {
   waypoints: string[];
   ships: MoveRouteShip[];
   cargo: MoveRouteCargo[];
+  /** Systemy trasy będące gravity rift (+1 do ruchu, d10: 1–3 usuwa statek). */
+  riftNodes: string[];
 };
 
 /** Zaznaczona porcja: statek ze źródła albo ładunek z systemu na trasie. */

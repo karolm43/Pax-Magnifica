@@ -6,6 +6,7 @@ import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { lookupUnit } from "@/entities/lookup/units";
+import { pickKey, type DraftPick } from "@/domains/movement/routeTypes";
 import { isShipUnit } from "../UnitStack/unitType";
 import { baseTypeOf, isCargoUnit, isStructureUnit, movesAsCargo } from "../UnitStack/cargo";
 import {
@@ -231,6 +232,8 @@ export function useUnitDrag(data: UnitDragData | null) {
   // listenery czytają świeżą wartość bez przebudowy domknięcia.
   const activeSystemRef = useRef<string | null>(gameState?.activeSystem ?? null);
   activeSystemRef.current = gameState?.activeSystem ?? null;
+  const tacticalStepRef = useRef<string | null>(gameState?.tacticalStep ?? null);
+  tacticalStepRef.current = gameState?.tacticalStep ?? null;
 
   // Statek-nosiciel pod kursorem, na który upuszczenie DANEGO ładunku otworzy okno
   // załadunku (ten sam warunek dla feedbacku w ``onMove`` i akcji w ``endDrag``).
@@ -318,6 +321,35 @@ export function useUnitDrag(data: UnitDragData | null) {
           }
         }
         useAppStore.getState().clearMultiSelect();
+        // W kroku MOVEMENT grupa nie rusza od razu: otwiera box ruchu z gotowym wyborem, a
+        // trasę (alternatywy, waypointy, ładunek po drodze) można jeszcze zmienić przed Move.
+        if (tacticalStepRef.current === "MOVEMENT") {
+          const picks: Record<string, DraftPick> = {};
+          for (const s of ships) {
+            const pick: DraftPick = {
+              kind: "ship",
+              position: group.fromPosition,
+              zone: "space",
+              baseType: s.baseType,
+              count: s.count,
+              max: s.count,
+            };
+            picks[pickKey(pick)] = pick;
+          }
+          for (const c of cargo) {
+            const pick: DraftPick = {
+              kind: "cargo",
+              position: group.fromPosition,
+              zone: c.fromZone,
+              baseType: c.baseType,
+              count: c.count,
+              max: c.count,
+            };
+            picks[pickKey(pick)] = pick;
+          }
+          useAppStore.getState().openMoveDraftWith(group.fromPosition, group.faction, picks);
+          return;
+        }
         void moveShips({
           fromPosition: group.fromPosition,
           faction: group.faction,

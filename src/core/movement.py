@@ -14,10 +14,11 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from src.core import ion_storm, rules_hooks, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
+from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -53,6 +54,14 @@ class CargoPickup:
 _SUPERNOVA = "SUPERNOVA"
 _ASTEROID = "ASTEROID_FIELD"
 _NEBULA = "NEBULA"
+_GRAVITY_RIFT = "GRAVITY_RIFT"
+
+# Gravity rift (R_gravity_rift): rzut d10 dla każdego statku wychodzącego ze szczeliny lub
+# przez nią przelatującego; wynik 1–3 usuwa statek z planszy (wraca do rezerwy).
+_RIFT_REMOVED_ON = 3
+# Ile skoków ponad długość najkrótszej trasy sprawdzamy, szukając trasy przez szczeliny.
+_RIFT_SEARCH_EXTRA = 3
+_RIFT_SEARCH_CAP = 7
 
 
 def _ships_of_other_players(system: SystemState | None, player_id: str) -> bool:
@@ -377,6 +386,35 @@ def legal_routes(
     return found
 
 
+def rift_nodes(
+    state: GameState, grid: HexGrid, route: list[str], player_id: str
+) -> list[str]:
+    """Systemy trasy będące gravity rift, z których statek WYCHODZI albo przez które przelatuje.
+
+    Cel trasy (aktywny system) się nie liczy: wejście do szczeliny nie daje +1 ani rzutu
+    (R_gravity_rift). Nav Suite ignoruje efekty anomalii, więc zwraca pustą listę.
+    """
+    if _ignores_anomalies(state, player_id):
+        return []
+    return [node for node in route[:-1] if _GRAVITY_RIFT in grid.anomalies_at(node)]
+
+
+def _rift_route_within(
+    state: GameState, grid: HexGrid, from_pos: str, player_id: str, move_value: int
+) -> list[str] | None:
+    """Trasa, na którą statek o ``move_value`` zdąży dzięki +1 za każdą szczelinę (albo None)."""
+    if not any(_GRAVITY_RIFT in grid.anomalies_at(p) for p in grid.positions):
+        return None
+    candidates = legal_routes(
+        state, grid, from_pos, player_id,
+        max_len=min(move_value + _RIFT_SEARCH_EXTRA, _RIFT_SEARCH_CAP), cap=120,
+    )
+    for candidate in candidates:
+        if len(candidate) - 1 <= move_value + len(rift_nodes(state, grid, candidate, player_id)):
+            return candidate
+    return None
+
+
 @dataclass(frozen=True)
 class RouteCargo:
     """Ładunek do zabrania w systemie na trasie (UI rysuje go na trasie)."""
@@ -399,21 +437,31 @@ def route_cargo(
     Źródło: R_transport — statek zabiera ładunek z systemu startu i z każdego systemu,
     przez który przechodzi (RULES.md 32.3 T3). Systemy z WŁASNYM żetonem dowodzenia są
     pominięte (T4), chyba że efekt to znosi (Dominus Orb). Myśliwce tylko z przestrzeni.
+    Ostatni element trasy to aktywny system: statek może zabrać stamtąd siły naziemne z planet
+    (R_transport: „the active system"), więc jest on ostatnim punktem poboru.
     """
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
     ignore_cc = _ignores_own_command_token(state, player_id)
     result: list[RouteCargo] = []
-    for position in route[:-1]:
+    for position in route:
         system = state.systems.get(position)
         if system is None:
             continue
-        if player_id in system.command_tokens and not ignore_cc and position != route[0]:
+        # Cel trasy (aktywny system): T4 go nie dotyczy, a ładunek w jego przestrzeni już tam jest -
+        # do zabrania zostają tylko siły naziemne z planet (np. do inwazji na inną planetę).
+        is_destination = position == route[-1]
+        if (
+            player_id in system.command_tokens
+            and not ignore_cc
+            and position != route[0]
+            and not is_destination
+        ):
             continue
-        zones: list[tuple[str, dict[str, int]]] = [
-            ("space", system.space_units.get(player_id, {}))
-        ]
+        zones: list[tuple[str, dict[str, int]]] = (
+            [] if is_destination else [("space", system.space_units.get(player_id, {}))]
+        )
         zones += [
             (planet, by_player.get(player_id, {}))
             for planet, by_player in sorted(system.planet_units.items())
@@ -558,6 +606,8 @@ def can_move(
         error = route_error(state, grid, route, player_id)
         if error is not None:
             return False, error
+        # Każda szczelina, z której statek wychodzi lub przez którą przelatuje, daje +1 do ruchu.
+        move_value += len(rift_nodes(state, grid, route, player_id))
         dist = len(route) - 1
     else:
         dist = _shortest_legal_distance(
@@ -571,6 +621,12 @@ def can_move(
         )
     if dist is None:
         return False, "No legal route to the active system (R4/R6)."
+    if (
+        route is None
+        and dist > move_value
+        and _rift_route_within(state, grid, from_pos, player_id, move_value) is not None
+    ):
+        return True, ""  # dłuższa trasa przez gravity rift (+1 za każdą) mieści się w zasięgu
     if dist > move_value:
         return False, (
             f"Range too short: route {dist} > moveValue {move_value} (R2)."
@@ -726,6 +782,145 @@ def _available_in_zone(
     return source.planet_units.get(zone, {}).get(player_id, {}).get(base_type, 0)
 
 
+def _auto_route(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    from_pos: str,
+    ships: dict[str, int],
+    player_id: str,
+) -> list[str] | None:
+    """Trasa dla ruchu bez trasy podanej przez gracza.
+
+    Najkrótsza legalna, o ile starczy na nią zasięgu wszystkim statkom; w przeciwnym razie
+    pierwsza dłuższa trasa, na którą starczy dzięki +1 za gravity rift. Gdy żadna nie pasuje,
+    zwraca najkrótszą (reszta walidacji zgłosi właściwy powód odmowy).
+    """
+    shortest = route_through(state, grid, from_pos, [], player_id)
+    if shortest is None or not ships:
+        return shortest
+    candidates = [
+        shortest,
+        *legal_routes(
+            state, grid, from_pos, player_id,
+            max_len=min(len(shortest) - 1 + _RIFT_SEARCH_EXTRA, _RIFT_SEARCH_CAP), cap=120,
+        ),
+    ]
+    for candidate in candidates:
+        if all(
+            can_move(
+                state, grid, registry, from_pos, bt, player_id,
+                route=candidate, companions=list(ships),
+            )[0]
+            for bt in ships
+        ):
+            return candidate
+    return shortest
+
+
+def _resolve_rift_losses(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    route: list[str],
+    ships: dict[str, int],
+    cargo: list[CargoPickup],
+    from_pos: str,
+    player_id: str,
+) -> tuple[dict[str, int], list[CargoPickup]]:
+    """Rzuty gravity rift dla ruchu wzdłuż ``route`` (R_gravity_rift) — MUTUJE ``state`` (klon).
+
+    Każdy statek wychodzący ze szczeliny albo przez nią przelatujący rzuca d10; 1–3 usuwa go
+    z planszy (do rezerwy). Wszystkie rzuty są zapisane jednym wpisem „na stół". Ładunek jest
+    zabierany po drodze w kolejności systemów: statki usunięte przez szczelinę zabierają ze sobą
+    ładunek, który ponad ich pojemność już załadowano (najpóźniej załadowany znika pierwszy),
+    a ładunek z dalszych systemów, na który zabrakło pojemności, zostaje na miejscu.
+    Zwraca (statki, ładunek), które faktycznie docierają do celu.
+
+    ⚠️ ZAŁOŻENIE: ładunek nie jest przypisany do konkretnych statków (pojemność jest wspólna), więc
+    nadwyżkę ponad pojemność ocalałych usuwamy od ostatnio załadowanego — źródło reguł tego nie
+    rozstrzyga, wymaga potwierdzenia.
+    """
+    rifts = rift_nodes(state, grid, route, player_id)
+    if not rifts:
+        return ships, cargo
+    player = state.players.get(player_id)
+    faction_id = player.faction if player is not None else None
+    technologies = player.technologies if player is not None else []
+    survivors = dict(ships)
+    lost_ships: dict[str, int] = {}
+    loaded: list[CargoPickup] = []
+    removed_cargo: list[CargoPickup] = []
+    rolls: list[int] = []
+    rng = next_rng(state)
+
+    def provided() -> int:
+        return sum(
+            _capacity_provided(registry, faction_id, technologies, bt) * n
+            for bt, n in survivors.items()
+        )
+
+    def per_unit(base_type: str) -> int:
+        return _capacity_used(registry, faction_id, technologies, base_type)
+
+    def used() -> int:
+        return sum(per_unit(c.base_type) * c.count for c in loaded)
+
+    for node in route:
+        for item in cargo:
+            if (item.from_position or from_pos) != node:
+                continue
+            unit = per_unit(item.base_type)
+            room = max(provided() - used(), 0)
+            take = item.count if unit <= 0 else min(item.count, room // unit)
+            if take > 0:
+                loaded.append(replace(item, count=take, from_position=node))
+        if node not in rifts:
+            continue
+        for base_type in sorted(survivors):
+            results = [rng.randint(1, DIE_SIDES) for _ in range(survivors[base_type])]
+            rolls.extend(results)
+            gone = sum(1 for r in results if r <= _RIFT_REMOVED_ON)
+            if gone:
+                survivors[base_type] -= gone
+                lost_ships[base_type] = lost_ships.get(base_type, 0) + gone
+        excess = used() - provided()
+        while excess > 0 and loaded:
+            last = loaded[-1]
+            unit = max(per_unit(last.base_type), 1)
+            drop = min(last.count, -(-excess // unit))
+            removed_cargo.append(replace(last, count=drop))
+            excess -= drop * unit
+            if drop == last.count:
+                loaded.pop()
+            else:
+                loaded[-1] = replace(last, count=last.count - drop)
+
+    record_table_roll(
+        state, player_id, "gravity_rift", "Gravity Rift", rolls,
+        hit_values=list(range(1, _RIFT_REMOVED_ON + 1)),
+        summary=(
+            f"{sum(lost_ships.values())} ship(s) removed by the gravity rift."
+            if lost_ships
+            else "All ships got through the gravity rift."
+        ),
+    )
+    origin = state.systems[from_pos]
+    for base_type, n in lost_ships.items():
+        unit_ops.remove_units(state, origin, "space", player_id, base_type, n, UnitCause.REMOVED)
+    for item in removed_cargo:
+        unit_ops.remove_units(
+            state,
+            state.systems[item.from_position or from_pos],
+            item.from_zone,
+            player_id,
+            item.base_type,
+            item.count,
+            UnitCause.REMOVED,
+        )
+    return {bt: n for bt, n in survivors.items() if n > 0}, loaded
+
+
 def move_fleet(
     state: GameState,
     grid: HexGrid,
@@ -791,6 +986,10 @@ def move_fleet(
         if route_problem is not None:
             raise ValueError(route_problem)
 
+    # Trasa, którą faktycznie polecą statki (do szczelin grawitacyjnych): wybrana przez gracza
+    # albo — gdy jej nie podał — najkrótsza, na którą wszystkie statki starczy zasięgu.
+    plan_route = route or (_auto_route(state, grid, registry, from_pos, ships, player_id))
+
     # Statki: walidacja legalności + dostępności (R1–R6, policzone per typ). Premia jednorazowa
     # dla JEDNEGO statku w akcji (Gravity Drive, RULES.md 55.6) działa WYŁĄCZNIE na życzenie
     # gracza (``gravity_drive=True``), tylko tam, gdzie bez niej ruch jest nielegalny, i nie
@@ -799,7 +998,7 @@ def move_fleet(
     tempesta_spent = state.tempesta_used
     for base_type, count in ships.items():
         ok, reason = can_move(
-            state, grid, registry, from_pos, base_type, player_id, route=route,
+            state, grid, registry, from_pos, base_type, player_id, route=plan_route,
             companions=list(ships),
         )
         if not ok:
@@ -815,7 +1014,7 @@ def move_fleet(
                     and (can_tp or not tp)
                     and can_move(
                         state, grid, registry, from_pos, base_type, player_id,
-                        boost=gd, tempesta=tp, route=route, companions=list(ships),
+                        boost=gd, tempesta=tp, route=plan_route, companions=list(ships),
                     )[0]
                 ),
                 None,
@@ -859,9 +1058,15 @@ def move_fleet(
                 raise ValueError("Fighters can only be picked up from space.")
             pickup_pos = item.from_position or from_pos
             # Pickup po drodze: system musi leżeć na wybranej trasie (R_transport), poza celem.
-            if pickup_pos != from_pos and (route is None or pickup_pos not in route[:-1]):
+            # Aktywny system (koniec trasy) też jest punktem poboru, ale tylko z planet.
+            if pickup_pos != from_pos and (route is None or pickup_pos not in route):
                 raise ValueError(
                     f"System {pickup_pos} is not on the route - ships cannot pick up units there."
+                )
+            if pickup_pos == active and item.from_zone == "space":
+                raise ValueError(
+                    "Units in space of the active system are already there - "
+                    "ships can only pick up ground forces from its planets."
                 )
             key = (pickup_pos, item.base_type, item.from_zone)
             needed_by_key[key] = needed_by_key.get(key, 0) + item.count
@@ -916,6 +1121,12 @@ def move_fleet(
         system_id = grid.system_id_at(active) if active in grid.positions else ""
         dest = SystemState(position=active, system_id=system_id)
         new_state.systems[active] = dest
+
+    # Gravity rift na trasie: rzuty usuwają część statków (i przewożony nimi ładunek).
+    if plan_route is not None:
+        ships, cargo_items = _resolve_rift_losses(
+            new_state, grid, registry, plan_route, ships, cargo_items, from_pos, player_id
+        )
 
     # Statki (zawsze z przestrzeni) — uszkodzenia jadą razem z nimi (RULES.md 39.3).
     for base_type, count in ships.items():

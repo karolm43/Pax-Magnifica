@@ -737,6 +737,7 @@ class MoveRouteResponse(BaseModel):
     waypoints: list[str] = Field(default_factory=list)
     ships: list[MoveRouteShip] = Field(default_factory=list)
     cargo: list[MoveRouteCargo] = Field(default_factory=list)
+    rift_nodes: list[str] = Field(default_factory=list, alias="riftNodes")
 
 
 class MoveRangeResponse(BaseModel):

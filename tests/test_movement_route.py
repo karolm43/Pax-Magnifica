@@ -257,3 +257,145 @@ def test_move_route_endpoint_and_move_with_route(registry: StaticDataRegistry) -
         },
     )
     assert bad.status_code == 422
+
+
+# --- Gravity rift (R_gravity_rift) i pickup w systemie docelowym ---
+
+_RIFT_ROUTE = ["202", "201", "101", "000"]  # 3 skoki; Carrier II ma ruch 2, szczelina w 201 daje +1
+
+
+def _rift_state(**extra: SystemState) -> GameState:
+    return _carrier_at_202(**extra)
+
+
+def _outcomes(
+    registry: StaticDataRegistry, state: GameState, cargo: list[movement.CargoPickup] | None = None
+) -> list[GameState]:
+    """Ruch przez szczelinę dla wielu ziaren - część ruchów przeżywa, część traci statek."""
+    results = []
+    for seed in range(1, 41):
+        seeded = state.clone()
+        seeded.rng_seed = seed
+        results.append(
+            movement.move_fleet(
+                seeded, _grid({"201": {"GRAVITY_RIFT"}}), registry, "202", {"carrier": 1},
+                cargo or [], "p1", route=_RIFT_ROUTE,
+            )
+        )
+    return results
+
+
+def test_rift_adds_one_to_move_value_only_when_leaving_or_passing(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _rift_state()
+    with_rift = _grid({"201": {"GRAVITY_RIFT"}})
+    ok, reason = movement.can_move(
+        state, with_rift, registry, "202", "carrier", "p1", route=_RIFT_ROUTE
+    )
+    assert ok, reason
+    ok, _ = movement.can_move(state, _grid(), registry, "202", "carrier", "p1", route=_RIFT_ROUTE)
+    assert not ok
+    # Szczelina w systemie aktywnym (wejście do niej) nie daje bonusu.
+    ok, _ = movement.can_move(
+        state, _grid({"000": {"GRAVITY_RIFT"}}), registry, "202", "carrier", "p1", route=_RIFT_ROUTE
+    )
+    assert not ok
+
+
+def test_rift_start_system_counts_as_leaving_a_rift(registry: StaticDataRegistry) -> None:
+    grid = _grid({"202": {"GRAVITY_RIFT"}})
+    assert movement.rift_nodes(_rift_state(), grid, _RIFT_ROUTE, "p1") == ["202"]
+    ok, reason = movement.can_move(
+        _rift_state(), grid, registry, "202", "carrier", "p1", route=_RIFT_ROUTE
+    )
+    assert ok, reason
+
+
+def test_rift_removes_ship_on_one_to_three(registry: StaticDataRegistry) -> None:
+    outcomes = _outcomes(registry, _rift_state())
+    arrived = [o for o in outcomes if o.systems["000"].space_units.get("p1", {}).get("carrier")]
+    removed = [o for o in outcomes if o not in arrived]
+    assert arrived and removed  # d10: 1–3 usuwa, 4+ przepuszcza
+    for o in outcomes:
+        assert o.table_roll is not None
+        (die,) = o.table_roll["dice"]
+        assert o.table_roll["kind"] == "gravity_rift"
+        assert (die <= 3) == (o in removed)
+        # Statek usunięty nie zostaje w źródle (wraca do rezerwy).
+        assert "carrier" not in o.systems["202"].space_units.get("p1", {})
+
+
+def test_no_rift_roll_for_normal_route(registry: StaticDataRegistry) -> None:
+    moved = movement.move_fleet(
+        _carrier_at_202(), _grid(), registry, "202", {"carrier": 1}, [], "p1",
+        route=["202", "101", "000"],
+    )
+    assert moved.table_roll is None or moved.table_roll.get("kind") != "gravity_rift"
+
+
+def test_rift_removal_takes_loaded_cargo_but_leaves_later_cargo(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _rift_state(
+        **{
+            "202": SystemState(
+                position="202",
+                system_id="x",
+                space_units={"p1": {"carrier": 1, "fighter": 2}},
+            ),
+            "101": SystemState(
+                position="101", system_id="x", planet_units={"pl": {"p1": {"infantry": 2}}}
+            ),
+        }
+    )
+    cargo = [
+        movement.CargoPickup("fighter", 2, "space", "202"),
+        movement.CargoPickup("infantry", 2, "pl", "101"),
+    ]
+    outcomes = _outcomes(registry, state, cargo)
+    lost = [o for o in outcomes if not o.systems["000"].space_units.get("p1", {}).get("carrier")]
+    assert lost
+    for o in lost:
+        # Załadowane przed szczeliną myśliwce znikają razem ze statkiem...
+        assert "fighter" not in o.systems["000"].space_units.get("p1", {})
+        assert "fighter" not in o.systems["202"].space_units.get("p1", {})
+        # ...a piechota z dalszego systemu zostaje na planecie (nie miał jej kto zabrać).
+        assert o.systems["101"].planet_units["pl"]["p1"]["infantry"] == 2
+        assert "infantry" not in o.systems["000"].space_units.get("p1", {})
+
+
+def test_pickup_from_planet_of_the_active_system(registry: StaticDataRegistry) -> None:
+    state = _state(
+        {
+            "101": SystemState(position="101", system_id="x", space_units={"p1": {"carrier": 1}}),
+            "000": SystemState(
+                position="000", system_id="x", planet_units={"pl": {"p1": {"infantry": 3}}}
+            ),
+        }
+    )
+    state.players["p1"].technologies = ["cv2"]
+    grid = _grid()
+    route = ["101", "000"]
+    offered = movement.route_cargo(state, registry, route, "p1")
+    assert [(c.position, c.zone, c.count) for c in offered] == [("000", "pl", 3)]
+    moved = movement.move_fleet(
+        state, grid, registry, "101", {"carrier": 1},
+        [movement.CargoPickup("infantry", 2, "pl", "000")], "p1", route=route,
+    )
+    assert moved.systems["000"].space_units["p1"]["infantry"] == 2
+    assert moved.systems["000"].planet_units["pl"]["p1"]["infantry"] == 1
+    # Jednostki z przestrzeni aktywnego systemu już tam są - nie ma czego "zabierać".
+    with pytest.raises(ValueError, match="already there"):
+        movement.move_fleet(
+            state, grid, registry, "101", {"carrier": 1},
+            [movement.CargoPickup("infantry", 1, "space", "000")], "p1", route=route,
+        )
+
+
+def test_route_report_lists_rift_nodes(registry: StaticDataRegistry) -> None:
+    report = movement_route.route_report(
+        _carrier_at_202(), _grid({"201": {"GRAVITY_RIFT"}}), registry, "202", ["201"], "p1"
+    )
+    assert report.route == _RIFT_ROUTE and report.rift_nodes == ["201"]
+    assert report.ships[0].reachable  # dzięki +1 za szczelinę

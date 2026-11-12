@@ -717,7 +717,7 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   ładunek z systemów na trasie (LPM +1, PPM −1, Shift = wszystkie), pasek capacity, alternatywy tras. Trasa rysowana na mapie
   (`MoveRouteLayer`: linia, strzałki, przerywane alternatywy, ładunek po drodze jako klikalne znaczniki). Klik w kolejny
   system przerzuca trasę przez niego (waypoint). Ctrl+zaznaczenie: PPM zdejmuje 1 sztukę (`ctrlUnpickUnit`).
-- Poza zakresem: pickup z planet AKTYWNEGO systemu, trasa dla Ctrl-grupy, gravity rift na trasie.
+- Dodane potem: Ctrl-grupa upuszczona na aktywny system otwiera box ruchu z gotowym wyborem (trasę można zmienić przed Move); gravity rift (+1 do ruchu, rzut d10 1-3 usuwa statek i załadowany ładunek, RULES.md 32.3 T6, ⚠️ ZAŁOŻENIE o ładunku); pickup sił naziemnych z planet systemu docelowego jako koniec trasy. Poza zakresem: Dimensional Tear jako szczelina, odwrót ze szczeliny.
 
 ## 2026-11-12 (3) — B1b: Barony of Letnev — komplet (RULES.md 62.2)
 
