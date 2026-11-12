@@ -297,6 +297,29 @@ def playability(
     return rows
 
 
+def available_now(
+    state: GameState, registry: StaticDataRegistry, player_ids: list[str]
+) -> list[dict[str, Any]]:
+    """Zdolności „During X: you may…” (RULES.md 62.0), których gracze mogą użyć TERAZ.
+
+    UI pokazuje je same (karta „Available now”), żeby gracz nie musiał szukać ich w menu.
+    Nie mutuje stanu.
+    """
+    found: list[dict[str, Any]] = []
+    for player_id in player_ids:
+        if player_id not in state.players:
+            continue
+        for row in playability(state, registry, player_id):
+            if row["mode"] != "window" or not row["playable"]:
+                continue
+            _, text = describe(registry, row["kind"], row["component_id"])
+            found.append({
+                "player_id": player_id, "kind": row["kind"],
+                "component_id": row["component_id"], "name": row["name"], "text": text,
+            })
+    return found
+
+
 def combat_dice_uses(state: GameState, registry: StaticDataRegistry) -> list[dict[str, Any]]:
     """Komponenty „During X: you may…” zmieniające kości rundy walki, dostępne TERAZ.
 

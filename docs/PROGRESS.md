@@ -833,3 +833,14 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (`production.foreign_grant_reason`); Stymie Ω — żeton z arkusza przy pustej rezerwie (decyzja ruszającego);
   Letani Ospha — zamiennik z planszy (system bez żetonu właściciela), gdy rezerwa pusta.
 - Nowe pola stanu (`last_research_payment`, `ability_notes`, `ProductionGrant.queue`) — restart backendu.
+
+## 2026-11-12 (6) — Zdolności frakcji wyskakują same + scenariusze przez API (RULES.md 62.0)
+
+- Zgłoszenie użytkownika: agent i bohater Sardakk „nie działały”. Przyczyny: (1) zdolności „During X: you may…”
+  (62.0: bohater Sardakk, G'hom Sek'kus, Munitions Reserves, Doctor Sucaban, Agnlan Oln…) były dostępne tylko z menu
+  lidera; (2) „End turn” w trakcie akcji taktycznej oddawał turę, mimo że koniec akcji właśnie utworzył oferty (T'ro).
+- Naprawa: karta „Available now” (`domains/offers/AbilityPrompts`) pokazuje SAMA każdą zdolność, której można teraz
+  użyć (`GET /faction-component/available-now`); `turn_flow.end_turn` zostawia turę, gdy zamknięcie akcji dodało oferty.
+- Siatka bezpieczeństwa: `tests/factions/test_flows_api.py` — scenariusze przez prawdziwe API (nowa gra, setup, tura),
+  sprawdzające to, co widzi gracz (oferta / „Available now”), a nie efekt na ręcznie zbudowanym stanie.
+

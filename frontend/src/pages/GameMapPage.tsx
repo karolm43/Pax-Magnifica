@@ -23,6 +23,7 @@ import { RelicRevealWatcher } from "@/domains/relics/RelicRevealWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
 import { OffersModal } from "@/domains/offers/OffersModal";
+import { AbilityPrompts } from "@/domains/offers/AbilityPrompts";
 import { ActiveEffectsPanel } from "@/domains/effects/ActiveEffectsPanel";
 import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
@@ -308,6 +309,7 @@ function GameMapContent() {
       {/* Decyzje graczy (RULES.md 56): technologie/zdolności z „may" i wybory celu - gracz zawsze
           decyduje sam, silnik nigdy nie wybiera za niego. */}
       <OffersModal />
+      <AbilityPrompts />
       {/* Efekty trwałe „obok planszy” (bohaterowie, kości agentów, premie z kart) - RULES.md 54. */}
       {onMapTab && <ActiveEffectsPanel />}
 

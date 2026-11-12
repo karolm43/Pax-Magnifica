@@ -17,6 +17,7 @@ from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.core import actor as actor_rules
 from src.core import faction_components, leaders
+from src.core.game_state import ControlType
 
 router = APIRouter()
 
@@ -82,6 +83,38 @@ async def get_playable(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return FactionComponentsResponse(components=[FactionComponentRow(**row) for row in rows])
+
+
+class AvailableNowRow(BaseModel):
+    player_id: str
+    kind: str
+    component_id: str
+    name: str
+    text: str
+
+
+class AvailableNowResponse(BaseModel):
+    components: list[AvailableNowRow]
+
+
+@router.get("/faction-component/available-now", response_model=AvailableNowResponse)
+async def get_available_now(
+    actor: ActorId, ctx: AppContext = Depends(get_ctx)
+) -> AvailableNowResponse:
+    """Zdolności „During X: you may…”, których można użyć TERAZ (RULES.md 62.0).
+
+    W grze sieciowej tylko własne (z tokenu); lokalnie - wszystkich graczy-ludzi.
+    """
+    state = ctx.service.current_state()
+    if actor is not None:
+        players = [actor]
+    else:
+        players = [
+            pid for pid, player in state.players.items()
+            if player.control_type is not ControlType.BOT
+        ]
+    rows = faction_components.available_now(state, ctx.registry, players)
+    return AvailableNowResponse(components=[AvailableNowRow(**row) for row in rows])
 
 
 @router.get(

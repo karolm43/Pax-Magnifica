@@ -232,9 +232,11 @@ def end_turn(
         from src.core import tactical
 
         closed = tactical.end_action(state, registry)
-        if closed.pending_window is not None:
-            # Nadwyżka (capacity / fleet pool) albo reakcje po akcji: gracz najpierw je
-            # rozstrzyga; tura nie została oddana.
+        if closed.pending_window is not None or len(closed.pending_offers) > len(
+            state.pending_offers
+        ):
+            # Nadwyżka (capacity / fleet pool), reakcje albo decyzje „na koniec akcji
+            # taktycznej" (np. agent T'ro): najpierw one; tura nie została oddana.
             return closed
         state = closed
     current = state.active_player_id
