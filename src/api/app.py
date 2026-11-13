@@ -32,6 +32,7 @@ from src.api.demo_map import build_demo_grid
 from src.api.routers import (
     action_cards,
     agenda,
+    audio,
     battle,
     board,
     bug_report,
@@ -330,6 +331,7 @@ def create_app(
     app.include_router(technology.router)
     app.include_router(network_routes.router)
     app.include_router(bug_report.router)
+    app.include_router(audio.router)
 
     @app.websocket("/ws")
     async def ws_state(websocket: WebSocket) -> None:

@@ -33,11 +33,12 @@ import "./styles/zIndexVariables.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StartScreen from "./pages/StartScreen";
 import GameMapPage from "./pages/GameMapPage";
 import { isMobileDevice } from "./utils/isTouchDevice";
 import { getPortalRoot } from "./ds";
+import { playUi } from "./shared/audio/uiSounds";
 import { installActorIdentity } from "./api/actorIdentity";
 import { installConsoleCapture } from "./domains/bug-report/consoleCapture";
 
@@ -46,7 +47,10 @@ installActorIdentity();
 // Bufor ostatnich błędów konsoli do zgłoszeń „Report bug".
 installConsoleCapture();
 
-const queryClient = new QueryClient();
+// Odrzucona akcja (np. nielegalny ruch -> HTTP 422) daje krótki dźwięk „error”.
+const queryClient = new QueryClient({
+  mutationCache: new MutationCache({ onError: () => playUi("error") }),
+});
 
 /*
  * Custodian Engine: jedna lokalna gra. Root ("/") to ekran startowy (wybór

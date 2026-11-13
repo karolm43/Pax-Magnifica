@@ -49,6 +49,7 @@ import { useRelicPlayability } from "@/api/useRelics";
 import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
 import { readyReactions, type ReadyReaction } from "./reactionReady";
+import { playUi } from "@/shared/audio/uiSounds";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -715,6 +716,7 @@ export function BottomHandDock() {
           setZoneOver(false);
           setDragCard(null);
           if (!dragged) return;
+          playUi("drop");
           if (dragged.discard) {
             const discarded = e.dataTransfer.getData("text/x-actioncard") || dragged.id;
             void discardCard(discarded);

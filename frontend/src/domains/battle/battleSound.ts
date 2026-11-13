@@ -7,6 +7,8 @@
  * Wyciszenie zapamiętane w localStorage.
  */
 
+import { channelVolume } from "@/shared/audio/audioSettings";
+
 export type SoundName =
   | "fleetEnter" // flota wlatuje (narastający pomruk silników)
   | "arrive" // zatrzymanie szyku na pozycji (ciężki łoskot)
@@ -150,7 +152,8 @@ type Out = { c: AudioContext; out: AudioNode; t: number };
 /** Węzeł wyjściowy z panoramą i głośnością głównego regulatora. */
 function output(c: AudioContext, opts: SoundOpts): AudioNode {
   const master = c.createGain();
-  master.gain.value = MASTER * (opts.gain ?? 1);
+  // Suwak „Battle effects” i głośność ogólna z ustawień dźwięku (`shared/audio`).
+  master.gain.value = MASTER * channelVolume("effects") * (opts.gain ?? 1);
   let tail: AudioNode = master;
   if (opts.pan !== undefined && typeof c.createStereoPanner === "function") {
     const pan = c.createStereoPanner();

@@ -6,6 +6,7 @@ import { EventsHub, useActivityUnread } from "@/domains/game-shell/components/Ac
 import { SecretHand } from "@/domains/game-shell/components/SecretHand";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
+import { AudioSettingsButton } from "@/shared/audio/AudioSettingsButton";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { PlayerHandData } from "@/shared/types/playerHand";
 import zoomClasses from "@/shared/ui/map/ZoomControls.module.css";
@@ -193,6 +194,7 @@ export function FloatingMapToolbar({
         panelId={panelId}
         onClick={() => togglePanel("events")}
       />
+      <AudioSettingsButton />
     </>
   );
 

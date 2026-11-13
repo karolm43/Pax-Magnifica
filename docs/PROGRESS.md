@@ -1025,3 +1025,24 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   opcji zawijają się zamiast ucinać, opis do 4 linii. **Predictive Intelligence:** pule żetonów − / + startujące od
   obecnego rozdziału (wspólny `shared/ui/CommandPools`, ten sam co w fazie statusu).
 - Nowe pola (`effects`, `sustainCancels`, `cancels`, `source`) — restart backendu.
+
+## Dźwięk: UI, muzyka tła, kwestie frakcji (2026-11-13)
+
+- **Wspólny silnik** `frontend/src/shared/audio/`: jeden `AudioContext`, kanały `music` / `voices` / `ui` / `effects`,
+  ustawienia w `audioSettings.ts` (localStorage), przycisk z suwakami w pływającym pasku mapy (`AudioSettingsButton`,
+  obok Events). Efekty bitwy (`battleSound.ts`) idą pod suwak „Battle effects”.
+- **Spis plików** `GET /audio/manifest` (`api/routers/audio.py`): głosy `assets/voices/<frakcja>/`, transmisje
+  `assets/voices/transmissions/`, muzyka `assets/music/[<nastrój>/]` (poza repo), UI `assets/extra/sfx/ui/`.
+  `GET /audio/homes` = domy graczy (`board_graph.home_positions_by_player`).
+- **UI** (Kenney „Interface Sounds”, CC0, licencja obok plików): globalny nasłuch kliknięć (`installUiSounds`;
+  przycisk = click, zakładka = select, przełącznik = toggle; `data-sound="<nazwa>|none"` nadpisuje), `turn` na moją
+  turę, `transition` na zmianę fazy, `drop` przy upuszczeniu karty, `error` przy odrzuconej akcji (MutationCache).
+- **Muzyka** (`music.ts`): start po pierwszym geście, losowo bez powtórek, przenikanie 2,5 s; nastrój `battle`
+  (walka), `agenda` (faza agendy), reszta `ambient`; folder → nastrój po nazwie (`bitwa`/`battle`…, `agenda`/`rada`…).
+  Muzyka ścisza się pod głos.
+- **Kwestie frakcji** (`voiceCues.ts`, z NOWYCH wpisów feedu Activity): start walki → `homeinvasion`+`homedefense` w
+  domu obrońcy, `offensesuperior` (+`defenseoutnumbered` przy miażdżącej przewadze), inaczej `battle`; zdolności z
+  własnym nagraniem po id komponentu (Pillage, Orbital Drop, Reclamation, Fabrication, Yin Spinner, Devotion/Impulse
+  Core, Artuno, Cavalry; relikt Naaz) — zagrają same, gdy mechanika trafi do silnika; bohater → `special`; pas → żart
+  (30%); transakcja do mnie / faza agendy → transmisja. Jeden głos naraz, kolejka ≤2.
+- Nowe trasy `/audio/*` — restart backendu.

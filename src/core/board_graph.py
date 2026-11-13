@@ -102,6 +102,32 @@ def home_positions(state: GameState, registry: StaticDataRegistry) -> set[str]:
     return positions
 
 
+def home_positions_by_player(
+    state: GameState, registry: StaticDataRegistry
+) -> dict[str, list[str]]:
+    """Pozycje systemu domowego KAŻDEGO gracza osobno (``{player_id: [pozycje]}``).
+
+    Ta sama logika co :func:`home_positions` (slot domowy albo kafelek domowy frakcji; dla
+    Ghost/Crimson prawdziwy dom z ``OFF_BOARD_HOME``, nie brama), ale z podziałem na właściciela —
+    np. żeby wiedzieć, czy walka toczy się w domu obrońcy.
+    """
+    result: dict[str, list[str]] = {}
+    for pid, player in state.players.items():
+        faction = registry.factions.get(player.faction or "")
+        positions: set[str] = set()
+        home_id = ""
+        if faction is not None:
+            home_id = OFF_BOARD_HOME.get(faction.id, faction.home_system or "")
+        if player.home_position and (faction is None or faction.id not in OFF_BOARD_HOME):
+            positions.add(player.home_position)
+        if home_id:
+            positions |= {
+                pos for pos, system in state.systems.items() if system.system_id == home_id
+            }
+        result[pid] = sorted(positions)
+    return result
+
+
 def is_home_system(state: GameState, registry: StaticDataRegistry, position: str) -> bool:
     """Czy system na pozycji jest systemem domowym któregoś gracza przy stole."""
     return position in home_positions(state, registry) or (

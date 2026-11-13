@@ -19,6 +19,7 @@ import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { DiceStageHost } from "@/domains/dice/DiceStageHost";
 import { TableRollWatcher } from "@/domains/dice/TableRollWatcher";
 import { ActivityToasts } from "@/domains/game-shell/components/ActivityPanel";
+import { AudioDirector } from "@/shared/audio/AudioDirector";
 import { RelicRevealWatcher } from "@/domains/relics/RelicRevealWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
@@ -296,6 +297,8 @@ function GameMapContent() {
       <TableRollWatcher />
       {/* Powiadomienia „kto co zrobił" - cudze akcje z feedu Activity, same znikają. */}
       <ActivityToasts />
+      {/* Dźwięk: kliknięcia UI, muzyka tła wg nastroju, kwestie frakcji z feedu Activity. */}
+      <AudioDirector />
       {/* Odsłonięcie reliktu (fragmenty, The Fracture) - scena u wszystkich (RULES.md 59.8). */}
       <RelicRevealWatcher />
       {/* Limit pojemności (RULES.md 39.6) — modal nad mapą i nad polem bitwy, sam się pokazuje
