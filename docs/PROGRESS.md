@@ -1037,9 +1037,8 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - **UI** (Kenney „Interface Sounds”, CC0, licencja obok plików): globalny nasłuch kliknięć (`installUiSounds`;
   przycisk = click, zakładka = select, przełącznik = toggle; `data-sound="<nazwa>|none"` nadpisuje), `turn` na moją
   turę, `transition` na zmianę fazy, `drop` przy upuszczeniu karty, `error` przy odrzuconej akcji (MutationCache).
-- **Muzyka** (`music.ts`): start po pierwszym geście, losowo bez powtórek, przenikanie 2,5 s; nastrój `battle`
-  (walka), `agenda` (faza agendy), reszta `ambient`; folder → nastrój po nazwie (`bitwa`/`battle`…, `agenda`/`rada`…).
-  Muzyka ścisza się pod głos.
+- **Muzyka** (`music.ts`): JEDNA wspólna playlista z całego `assets/music/` (także podfoldery; decyzja
+  użytkownika — bez nastrojów), start po pierwszym geście, losowo bez powtórek, przenikanie 2,5 s; ścisza się pod głos.
 - **Kwestie frakcji** (`voiceCues.ts`, z NOWYCH wpisów feedu Activity): start walki → `homeinvasion`+`homedefense` w
   domu obrońcy, `offensesuperior` (+`defenseoutnumbered` przy miażdżącej przewadze), inaczej `battle`; zdolności z
   własnym nagraniem po id komponentu (Pillage, Orbital Drop, Reclamation, Fabrication, Yin Spinner, Devotion/Impulse

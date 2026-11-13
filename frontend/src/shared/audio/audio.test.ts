@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Activity, ActivityEntry } from "@/api/useBoardEditor";
-import { buildPlaylists, musicMoodOf, tracksFor } from "./music";
+import { buildPlaylist } from "./music";
 import { soundForClick } from "./uiSounds";
 import { battleLines, cuesForEntry, type CueContext } from "./voiceCues";
 import { buildVoiceBank, voiceCategory } from "./voices";
@@ -149,17 +149,11 @@ describe("battleLines", () => {
 });
 
 describe("music", () => {
-  it("nastrój folderu po nazwie", () => {
-    expect(musicMoodOf("bitwa")).toBe("battle");
-    expect(musicMoodOf("Battle")).toBe("battle");
-    expect(musicMoodOf("agenda")).toBe("agenda");
-    expect(musicMoodOf("spokojne")).toBe("ambient");
-  });
-
-  it("brak utworów dla nastroju -> ambient", () => {
-    const lists = buildPlaylists({ "": ["a.mp3"], bitwa: ["b.mp3"] });
-    expect(tracksFor(lists, "battle")).toEqual(["/static/music/bitwa/b.mp3"]);
-    expect(tracksFor(lists, "agenda")).toEqual(["/static/music/a.mp3"]);
+  it("jedna wspólna playlista: pliki luzem i z podfolderów", () => {
+    expect(buildPlaylist({ "": ["a.mp3"], bitwa: ["b.mp3"] })).toEqual([
+      "/static/music/a.mp3",
+      "/static/music/bitwa/b.mp3",
+    ]);
   });
 });
 

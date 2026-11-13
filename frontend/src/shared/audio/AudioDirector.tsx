@@ -1,19 +1,16 @@
 /**
  * Reżyser dźwięku strony gry (montowany raz, nic nie rysuje):
  * - globalne dźwięki interfejsu (klik/zakładka/przełącznik),
- * - muzyka tła startuje po pierwszym geście gracza; nastrój z fazy i walki,
+ * - muzyka tła (jedna wspólna playlista) startuje po pierwszym geście gracza,
  * - kwestie frakcji i transmisje wg NOWYCH wpisów feedu Activity (`voiceCues.ts`).
  * Wpisy obecne przy otwarciu strony nie są nowością (jak w `ActivityToasts`).
  */
 import { useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { DEFAULT_GAME_ID } from "@/config";
 import { fetchJson } from "@/api/fetchJson";
 import { useActivityFeed, type BattleView } from "@/api/useBoardEditor";
-import { useGameState } from "@/api/useGameState";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
-import { setMusicMood, startMusic, type MusicMood } from "./music";
+import { startMusic } from "./music";
 import { installUiSounds, playUi } from "./uiSounds";
 import { battleLines, cuesForEntry, type Cue, type CueContext } from "./voiceCues";
 import { hasVoice, loadVoices, sayTransmission, sayVoice } from "./voices";
@@ -53,11 +50,8 @@ async function playBattle(
 }
 
 export function AudioDirector() {
-  const params = useParams<{ mapid: string }>();
-  const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: feed } = useActivityFeed();
   const { data: me } = useNetworkMe();
-  const { data: gameState } = useGameState(gameId);
   const queryClient = useQueryClient();
   const seen = useRef<number | null>(null);
 
@@ -73,13 +67,6 @@ export function AudioDirector() {
       document.removeEventListener("keydown", begin, { capture: true });
     };
   }, []);
-
-  const phase = gameState?.phase ?? "";
-  const inCombat = !!gameState?.activeCombat;
-  useEffect(() => {
-    const mood: MusicMood = inCombat ? "battle" : phase.startsWith("agenda") ? "agenda" : "ambient";
-    setMusicMood(mood);
-  }, [phase, inCombat]);
 
   useEffect(() => {
     if (!feed || me === undefined) return;
