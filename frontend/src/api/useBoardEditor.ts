@@ -42,6 +42,8 @@ export type TransactionSide = {
   relicFragments: string[];
   /** Karty akcji (Arbiters / Black Market Dealings) — inaczej silnik odrzuci (422). */
   actionCards?: string[];
+  /** Karty planet (Pride of Kenara): ``"<planeta>><planeta docelowa jednostek>"``. */
+  planets?: string[];
 };
 
 /** Propozycja transakcji czekająca na zgodę partnera (RULES.md 47.1a). */
@@ -63,11 +65,15 @@ export type TransactionPartnerView = {
   /** Czy w tej parze wolno wymieniać karty akcji (Arbiters / Black Market Dealings). */
   actionCards: boolean;
   done: boolean;
+  /** Planety, których kartę ten partner może oddać (Pride of Kenara). */
+  planets: string[];
 };
 
 export type TransactionStateView = {
   offer: TransactionOfferView | null;
   partners: TransactionPartnerView[];
+  /** Planety, których kartę aktywny gracz może oddać (Pride of Kenara). */
+  myPlanets: string[];
 };
 
 export type EditUnitArgs = {
@@ -535,6 +541,7 @@ export function useBoardEditor() {
         promissory_note: s.promissoryNote,
         relic_fragments: s.relicFragments,
         action_cards: s.actionCards ?? [],
+        planets: s.planets ?? [],
       });
       await post("/transactions/propose", {
         partner_id: args.partnerId,

@@ -108,6 +108,7 @@ export function MoveUnitsModal() {
 
   return (
     <AppModal
+      floating
       minimizable
       opened={!!movePair}
       onClose={clearMove}

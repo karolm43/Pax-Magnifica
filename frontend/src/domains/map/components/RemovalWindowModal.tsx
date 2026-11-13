@@ -123,6 +123,7 @@ export function RemovalWindowModal({
 
   return (
     <AppModal
+      floating
       minimizable
       opened
       // Wymuszone: nadwyżkę trzeba usunąć - modal znika, gdy silnik zamknie okno.

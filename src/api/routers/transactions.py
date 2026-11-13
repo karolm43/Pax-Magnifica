@@ -46,6 +46,7 @@ def _side(req: TransactionSideRequest) -> transaction.TransactionSide:
         promissory_note=req.promissory_note,
         relic_fragments=tuple(req.relic_fragments),
         action_cards=tuple(req.action_cards),
+        planets=tuple(req.planets),
     )
 
 
@@ -56,6 +57,7 @@ def _side_view(side: transaction.TransactionSide) -> TransactionSideView:
         promissory_note=side.promissory_note,
         relic_fragments=list(side.relic_fragments),
         action_cards=list(side.action_cards),
+        planets=list(side.planets),
     )
 
 
@@ -112,9 +114,13 @@ async def get_transaction_state(
                     neighbor=pid in near,
                     action_cards=transaction.action_cards_allowed(state, active, pid),
                     done=pid in done,
+                    planets=transaction.tradable_planets(state, pid),
                 )
             )
-    return TransactionStateResponse(offer=offer_view, partners=partners)
+    my_planets = transaction.tradable_planets(state, active) if active is not None else []
+    return TransactionStateResponse(
+        offer=offer_view, partners=partners, my_planets=my_planets
+    )
 
 
 @router.post("/transactions/propose", response_model=StateEnvelope)

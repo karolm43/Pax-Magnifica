@@ -91,6 +91,11 @@
 :where(.modalInner) { position: fixed; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: var(--ds-space-md); pointer-events: none; overflow-y: auto; }
 :where(.modalCentered) { align-items: center; }
 :where(.modalFull) { padding: 0; }
+/* Okno pływające (decyzje w grze): plansza pod spodem żyje; cień zamiast przyciemnienia tła. */
+:where(.modalInnerFloating) { filter: drop-shadow(0 14px 32px rgb(0 0 0 / 0.6)); overflow: visible; }
+:where(.modalFloating) { max-height: 86dvh; }
+:where(.modalHeaderDrag) { cursor: grab; user-select: none; touch-action: none; }
+:where(.modalHeaderDrag):active { cursor: grabbing; }
 /*
  * Rama okna = płyta TI (jak nagłówek na scenie wyboru frakcji, styles/tiChrome.css):
  * ścięty lewy górny i prawy dolny róg, obrys bursztynowy z lewej wygasający w prawo

@@ -156,7 +156,7 @@ export function ExpeditionModal({ opened, onClose, gameId, playerId }: Props) {
     );
   };
   return (
-    <AppModal opened={opened} onClose={onClose} title="Expedition" minimizable size="lg">
+    <AppModal floating opened={opened} onClose={onClose} title="Expedition" minimizable size="lg">
       <div className={styles.body}>
         <Hint>
           At the <b>end of your turn</b> you may claim <b>one</b> free slice of the expedition

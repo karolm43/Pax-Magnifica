@@ -118,7 +118,23 @@ def planet_stats(
             influence += 1
         else:
             specialties.extend(s.lower() for s in attachment.tech_speciality)
+    if state.active_effects and _swapped(state, planet_id):
+        resources, influence = influence, resources  # Hegemonic Trade Policy (RULES.md 62.7)
     return PlanetStats(resources, influence, tuple(specialties))
+
+
+def _swapped(state: GameState, planet_id: str) -> bool:
+    """Czy efekt kontrolującego zamienia zasoby i wpływ planety (punkt ``planet.swap_values``)."""
+    from src.core import rules_hooks  # lokalnie: rules_hooks ładuje hooki korzystające z modułu
+
+    owner = next(
+        (s.planet_owners[planet_id] for s in state.systems.values()
+         if planet_id in s.planet_owners),
+        None,
+    )
+    return owner is not None and planet_id in rules_hooks.forbidden(
+        rules_hooks.POINT_PLANET_SWAP_VALUES, state, owner
+    )
 
 
 def is_legendary(state: GameState, registry: StaticDataRegistry, planet_id: str) -> bool:

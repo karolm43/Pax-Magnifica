@@ -80,6 +80,7 @@ export function MoveQuantityModal() {
 
   return (
     <AppModal
+      floating
       minimizable
       opened={!!drop}
       onClose={clearUnitDrop}

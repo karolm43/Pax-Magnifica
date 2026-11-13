@@ -94,6 +94,7 @@ export function StrategyPrimaryStepModal() {
 
   return (
     <AppModal
+      floating
       opened
       minimizable={label}
       onClose={() => {}}

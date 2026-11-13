@@ -3,7 +3,7 @@
 Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.
 Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja, nie decyzja).
 
-Zarejestrowanych hooków: **176** (lista: `pokrycie_hookow/hooki.md`).
+Zarejestrowanych hooków: **197** (lista: `pokrycie_hookow/hooki.md`).
 
 ## 2. Pokrycie per kategoria
 
@@ -13,14 +13,14 @@ Zarejestrowanych hooków: **176** (lista: `pokrycie_hookow/hooki.md`).
 | agendas | 123 | 0 | 0.0 |
 | explores | 80 | 4 | 5.0 |
 | relics | 24 | 23 | 95.8 |
-| promissory_notes | 41 | 10 | 24.4 |
+| promissory_notes | 41 | 12 | 29.3 |
 | galactic_events | 20 | 0 | 0.0 |
 | planets | 19 | 19 | 100.0 |
-| leaders | 103 | 15 | 14.6 |
-| abilities | 73 | 9 | 12.3 |
-| technologies | 102 | 46 | 45.1 |
-| breakthroughs | 31 | 5 | 16.1 |
-| units | 90 | 11 | 12.2 |
+| leaders | 103 | 21 | 20.4 |
+| abilities | 73 | 14 | 19.2 |
+| technologies | 102 | 50 | 49.0 |
+| breakthroughs | 31 | 7 | 22.6 |
+| units | 90 | 15 | 16.7 |
 
 ## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)
 
@@ -41,18 +41,18 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 280 | 207 |
-| walka (combat.*, space_cannon, bombardment) | 247 | 149 |
-| produkcja (production.*) | 196 | 123 |
-| ekonomia i płatności (economy, payment) | 185 | 145 |
-| status i odświeżanie (status_phase) | 162 | 106 |
-| karty (card_draw, promissory) | 153 | 113 |
-| ruch (movement.*) | 149 | 107 |
-| żetony dowodzenia (command_tokens) | 117 | 85 |
-| agenda i głosowanie (agenda_phase) | 98 | 75 |
+| planety i eksploracja (control, exploration) | 280 | 201 |
+| walka (combat.*, space_cannon, bombardment) | 247 | 145 |
+| produkcja (production.*) | 196 | 115 |
+| ekonomia i płatności (economy, payment) | 185 | 136 |
+| status i odświeżanie (status_phase) | 162 | 101 |
+| karty (card_draw, promissory) | 153 | 112 |
+| ruch (movement.*) | 149 | 104 |
+| żetony dowodzenia (command_tokens) | 117 | 80 |
+| agenda i głosowanie (agenda_phase) | 98 | 74 |
 | technologie (technology) | 80 | 59 |
 | cele i punkty (objectives) | 48 | 34 |
-| karty strategii i inicjatywa | 48 | 33 |
+| karty strategii i inicjatywa | 48 | 29 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
@@ -85,7 +85,7 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 | The Deepwrought Scholarate (`deepwrought`) | 2 | 2 | 3 | 1 | 1 | 2 | 0 / 11 | ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie |
 | The Empyrean (`empyrean`) | 3 | 2 | 3 | 1 | 2 | 2 | 0 / 13 | agenda i głosowanie, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The Firmament (`firmament`) | 2 | 2 | 3 | 1 | 1 | 2 | 0 / 11 | cele i punkty, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
-| The Emirates of Hacan (`hacan`) | 3 | 2 | 3 | 1 | 1 | 2 | 0 / 12 | agenda i głosowanie, ekonomia i płatności, karty, karty strategii i inicjatywa, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
+| The Emirates of Hacan (`hacan`) | 3 | 2 | 3 | 1 | 1 | 2 | 12 / 12 | agenda i głosowanie, ekonomia i płatności, karty, karty strategii i inicjatywa, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The Universities of Jol-Nar (`jol-nar`) | 3 | 2 | 3 | 1 | 1 | 2 | 12 / 12 | ekonomia i płatności, karty strategii i inicjatywa, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka |
 | The Council Keleres - Mentak (`keleres`) | 3 | 3 | 5 | 1 | 4 | 2 | 0 / 18 | agenda i głosowanie, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The L1Z1X Mindnet (`l1z1x`) | 2 | 2 | 3 | 1 | 1 | 3 | 0 / 12 | ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka, żetony dowodzenia |
@@ -104,7 +104,7 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 | The Federation of Sol (`sol`) | 2 | 2 | 3 | 1 | 1 | 3 | 11 / 12 | ekonomia i płatności, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The Titans of Ul (`ul`) | 3 | 2 | 3 | 1 | 1 | 4 | 0 / 14 | ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka |
 | The Vuil'raith Cabal (`vuil'raith`) | 3 | 2 | 3 | 1 | 1 | 4 | 0 / 14 | ekonomia i płatności, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka |
-| The Winnu (`winnu`) | 2 | 2 | 3 | 1 | 1 | 2 | 0 / 11 | ekonomia i płatności, karty strategii i inicjatywa, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
+| The Winnu (`winnu`) | 2 | 2 | 3 | 1 | 1 | 2 | 11 / 11 | ekonomia i płatności, karty strategii i inicjatywa, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The Xxcha Kingdom (`xxcha`) | 2 | 2 | 4 | 1 | 1 | 2 | 0 / 12 | agenda i głosowanie, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The Yin Brotherhood (`yin`) | 2 | 2 | 3 | 1 | 1 | 2 | 0 / 11 | cele i punkty, ekonomia i płatności, planety i eksploracja, produkcja, status i odświeżanie, technologie, walka |
 | The Yssaril Tribes (`yssaril`) | 3 | 2 | 3 | 1 | 1 | 2 | 0 / 12 | cele i punkty, karty, planety i eksploracja, ruch, status i odświeżanie |
@@ -117,11 +117,11 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 - [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (0 / 123 z hookiem).
 - [`pokrycie_hookow/szczegoly_explores.md`](pokrycie_hookow/szczegoly_explores.md) — sekcja 8: explores (4 / 80 z hookiem).
 - [`pokrycie_hookow/szczegoly_relics.md`](pokrycie_hookow/szczegoly_relics.md) — sekcja 8: relics (23 / 24 z hookiem).
-- [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (10 / 41 z hookiem).
+- [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (12 / 41 z hookiem).
 - [`pokrycie_hookow/szczegoly_galactic_events.md`](pokrycie_hookow/szczegoly_galactic_events.md) — sekcja 8: galactic_events (0 / 20 z hookiem).
 - [`pokrycie_hookow/szczegoly_planets.md`](pokrycie_hookow/szczegoly_planets.md) — sekcja 8: planets (19 / 19 z hookiem).
-- [`pokrycie_hookow/szczegoly_leaders.md`](pokrycie_hookow/szczegoly_leaders.md) — sekcja 8: leaders (15 / 103 z hookiem).
-- [`pokrycie_hookow/szczegoly_abilities.md`](pokrycie_hookow/szczegoly_abilities.md) — sekcja 8: abilities (9 / 73 z hookiem).
-- [`pokrycie_hookow/szczegoly_technologies.md`](pokrycie_hookow/szczegoly_technologies.md) — sekcja 8: technologies (46 / 102 z hookiem).
-- [`pokrycie_hookow/szczegoly_breakthroughs.md`](pokrycie_hookow/szczegoly_breakthroughs.md) — sekcja 8: breakthroughs (5 / 31 z hookiem).
-- [`pokrycie_hookow/szczegoly_units.md`](pokrycie_hookow/szczegoly_units.md) — sekcja 8: units (11 / 90 z hookiem).
+- [`pokrycie_hookow/szczegoly_leaders.md`](pokrycie_hookow/szczegoly_leaders.md) — sekcja 8: leaders (21 / 103 z hookiem).
+- [`pokrycie_hookow/szczegoly_abilities.md`](pokrycie_hookow/szczegoly_abilities.md) — sekcja 8: abilities (14 / 73 z hookiem).
+- [`pokrycie_hookow/szczegoly_technologies.md`](pokrycie_hookow/szczegoly_technologies.md) — sekcja 8: technologies (50 / 102 z hookiem).
+- [`pokrycie_hookow/szczegoly_breakthroughs.md`](pokrycie_hookow/szczegoly_breakthroughs.md) — sekcja 8: breakthroughs (7 / 31 z hookiem).
+- [`pokrycie_hookow/szczegoly_units.md`](pokrycie_hookow/szczegoly_units.md) — sekcja 8: units (15 / 90 z hookiem).

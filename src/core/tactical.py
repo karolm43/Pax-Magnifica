@@ -419,9 +419,15 @@ def end_tactical_action(state: GameState) -> GameState:
     # Reakcje „po akcji taktycznej” (np. Dark Energy Tap: eksploracja żetonu frontier) idą na
     # końcu, żeby stan, który otwierają (eksploracja, oferty), nie został wyczyszczony powyżej.
     if state.active_system is not None:
+        # ``gained`` = planety przejęte przez aktywnego gracza w tej akcji (Reclamation, Reclaimer).
+        gained = [
+            str(c["planet"]) for c in state.control_changes
+            if c.get("player") == state.active_player_id and c.get("planet")
+        ]
         triggers.fire(
             new_state, GameEvent.TACTICAL_ACTION, Moment.END, subject=state.active_player_id,
-            ctx={"position": state.active_system, "player": state.active_player_id},
+            ctx={"position": state.active_system, "player": state.active_player_id,
+                 "gained": gained},
         )
     return new_state
 

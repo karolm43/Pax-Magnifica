@@ -98,6 +98,7 @@ export function CustodiansClaim({
       </div>
 
       <AppModal
+      floating
         opened={opened}
         onClose={() => setOpened(false)}
         title="Custodians token"

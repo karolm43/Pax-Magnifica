@@ -108,7 +108,7 @@ def _custodians_view(ctx: AppContext, state: GameState) -> CustodiansView | None
         claimed=inv.custodians_claimed,
         can_claim=reason is None,
         reason=reason,
-        cost=custodians.INFLUENCE_COST,
+        cost=custodians.removal_cost(state, inv.attacker),
         influence=custodians.influence_options(state, registry, inv.attacker),
         trade_goods=economy.spendable_trade_goods(state, inv.attacker),
         blocked_planets=sorted(custodians.landing_blocked(state, registry, inv.position)),

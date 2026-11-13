@@ -166,7 +166,8 @@ def combat_units(
                 hits_on=unit.combat_hits_on - modifier,
                 base_hits_on=unit.combat_hits_on,
                 modifier=modifier,
-                dice_per_unit=max(1, (unit.combat_die_count or 1) + extra_dice),
+                # 0 kości dozwolone (Salai Sai Corian bez statków niemyśliwskich przeciwnika).
+                dice_per_unit=max(0, (unit.combat_die_count or 1) + extra_dice),
                 sustain=unit.sustain_damage,
                 afb_hits_on=unit.afb_hits_on if kind == "space" else None,
                 afb_dice=unit.afb_die_count or 1,
@@ -349,6 +350,8 @@ def resume_after_triggers(
     if resume == _RESUME_AFB:
         combat.step = CombatStep.AFB
         return _apply_afb(new_state, grid, registry)
+    if resume == _RESUME_ASSIGN:
+        return _open_assign(new_state, grid, registry)
     combat.step = CombatStep.ROLL
     return _after_start(new_state, grid, registry)
 
@@ -468,6 +471,7 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
 
 
 _RESUME_AFB = "afb_apply"
+_RESUME_ASSIGN = "assign"  # po ofertach „po rzucie”: otwórz przypisanie strat
 
 
 def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
@@ -611,6 +615,7 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     combat = _combat(new_state)
     combat.destroyed_ships = []  # ślady kart reakcji dotyczą ostatnich strat
     combat.sustained_ships = []
+    offers_before = len(new_state.pending_offers)
     for pid in rolls:
         triggers.fire(
             new_state, GameEvent.COMBAT_ROLL, Moment.AFTER, subject=pid,
@@ -634,16 +639,28 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     for pid in (combat.defender, combat.attacker):
         if pid == NEUTRAL_PLAYER_ID:
             _auto_assign_neutral(new_state, grid, registry, pid)
+    # Oferty „po rzucie” (Wrath of Kenara) zmieniają kości PRZED przypisaniem strat: walka czeka
+    # w TRIGGERS, a przypisanie otwiera ``resume_after_triggers`` (RULES.md 56, 62.6).
+    if len(new_state.pending_offers) > offers_before:
+        combat.step = CombatStep.TRIGGERS
+        combat.resume = _RESUME_ASSIGN
+        return new_state
+    return _open_assign(new_state, grid, registry)
+
+
+def _open_assign(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
+    """Okno przypisania strat po rzutach rundy (albo koniec rundy, gdy nikt nie ma trafień)."""
+    combat = _combat(state)
     queue = [
         pid
         for pid in (combat.defender, combat.attacker)
-        if required_hits(new_state, grid, registry, pid) > 0
+        if required_hits(state, grid, registry, pid) > 0
     ]
     if not queue:
-        return _after_losses(new_state, grid, registry)
+        return _after_losses(state, grid, registry)
     combat.step = CombatStep.ASSIGN
     return timing.open_window(
-        new_state,
+        state,
         WindowType.COMBAT_ASSIGN_HITS,
         queue,
         context={"position": combat.position},
@@ -1205,6 +1222,8 @@ def _entry_hits(
 def _require_dice_window(state: GameState) -> ActiveCombat:
     """Rzuty rundy leżą na stole, a nikt jeszcze nie przypisał strat (okno ASSIGN)."""
     combat = _combat(state)
+    if combat.step is CombatStep.TRIGGERS and combat.resume == _RESUME_ASSIGN:
+        return combat  # rzut leży, oferty „po rzucie” jeszcze przed przypisaniem strat
     window = state.pending_window
     if (
         combat.step is not CombatStep.ASSIGN
@@ -1296,6 +1315,51 @@ def reroll_combat_dice(
     record_table_roll(
         state, roller or owner, source, name, results, summary=f"{total} hit(s) after the reroll."
     )
+    return total
+
+
+def boost_combat_dice(
+    state: GameState, owner: str, chosen: set[tuple[int, int]], source: str, amount: int = 1
+) -> int:
+    """+``amount`` do wyniku wybranych kości rzutu ``owner`` (MUTUJE); zwraca jego trafienia.
+
+    Ślad ``boosted[source]`` w wpisie rzutu pilnuje, by jedna kość dostała premię z danego źródła
+    najwyżej raz (Wrath of Kenara, F_hacan). Tylko między rzutem a przypisaniem strat.
+    """
+    _require_dice_window(state)
+    combat = _combat(state)
+    rolls = combat.rolls.get(owner, [])
+    for index, die in chosen:
+        if not (0 <= index < len(rolls)) or not (0 <= die < len(rolls[index]["dice"])):
+            raise ValueError(f"Unknown die: {index}:{die}")
+        if die in rolls[index].get("boosted", {}).get(source, []):
+            raise ValueError("This die was already improved by this ability.")
+    for index, die in sorted(chosen):
+        entry = rolls[index]
+        bonus = list(entry.get("bonus") or [0] * len(entry["dice"]))
+        bonus[die] += amount
+        entry["bonus"] = bonus
+        boosted = dict(entry.get("boosted", {}))
+        boosted[source] = sorted({*boosted.get(source, []), die})
+        entry["boosted"] = boosted
+    total = 0
+    for entry in rolls:
+        entry["hits"] = _entry_hits(state, owner, combat, entry)
+        total += int(entry["hits"])
+    opponent = combat.defender if owner == combat.attacker else combat.attacker
+    combat.pending_hits[opponent] = total
+    if combat.log:
+        last = combat.log[-1]
+        last.setdefault("rolls", {})[owner] = rolls
+        last.setdefault("hits", {})[owner] = total
+    window = state.pending_window
+    if (
+        combat.step is CombatStep.ASSIGN
+        and total > 0
+        and window is not None
+        and opponent not in window.queue
+    ):
+        window.queue = [*window.queue, opponent]
     return total
 
 

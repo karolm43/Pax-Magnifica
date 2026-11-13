@@ -11,7 +11,7 @@ przez ``objectives.award_points``, wydatek przez ``payment`` (punkty centralne, 
 
 from __future__ import annotations
 
-from src.core import objectives, payment
+from src.core import objectives, payment, rules_hooks
 from src.core.game_state import GameState
 from src.core.map_string import MECATOL_SYSTEM_ID
 from src.core.registry import StaticDataRegistry
@@ -64,6 +64,13 @@ def influence_options(
     return payment.ready_planet_values(state, registry, player_id, "influence")
 
 
+def removal_cost(state: GameState, player_id: str) -> int:
+    """Koszt zdjęcia żetonu w punktach wpływu (Blood Ties: 0, RULES.md 62.7)."""
+    if rules_hooks.permits(rules_hooks.POINT_CUSTODIANS_FREE, state, player_id):
+        return 0
+    return INFLUENCE_COST
+
+
 def remove_token(
     state: GameState,
     registry: StaticDataRegistry,
@@ -81,9 +88,10 @@ def remove_token(
     if not on_board(state):
         raise ValueError("The Custodians token is not on Mecatol Rex.")
     paid = payment.validate_payment(state, registry, player_id, "influence", planets, trade_goods)
-    if paid < INFLUENCE_COST:
+    cost = removal_cost(state, player_id)
+    if paid < cost:
         raise ValueError(
-            f"Removing the Custodians token costs {INFLUENCE_COST} influence (selected {paid})."
+            f"Removing the Custodians token costs {cost} influence (selected {paid})."
         )
     new_state = state.clone()
     payment.apply_payment(new_state, player_id, planets, trade_goods)

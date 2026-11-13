@@ -920,3 +920,34 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - **Ctrl+drag w ruchu**: ponowne przeciągnięcie grupy z tego samego systemu zerowało trasę w boxie, a zapytanie
   zwracało te same dane z cache, więc box nie pokazywał nowego wyboru. Efekt w `MoveRouteBox` reaguje teraz na brak trasy.
 - Nowe pola stanu i trasy (`transaction_offer`, `/transactions/*`) — restart backendu.
+
+## 2026-11-13 — B4 Hacan + Winnu — komplet (RULES.md 62.6–62.7) + pływające okna decyzji
+
+- **Hacan** (`core/hooks/factions/hacan.py`, 12 komponentów, 0 braków, 7 testów + 6 scenariuszy API): Masters of Trade
+  (secondary Trade bez żetonu — punkt `strategy.secondary_free`, okno dostaje `no_cost`), Guild Ships i Trade Convoys
+  (`transaction.any_player`; notka wraca po aktywacji systemu z jednostkami Hacan), Arbiters (karty akcji w transakcji),
+  Quantum Datahub Node (oferta na koniec fazy strategii), Production Biomes (ACTION), Carth of Golden Sands
+  („Available now” w fazie akcji), Gila the Silvertongue (TG → głosy, efekt `Duration.AGENDA`), Harrugh Gefhara
+  (`production.free`: koszt 0), Wrath of Kenara (oferta po rzucie: +1 za TG do wybranych kości, `battle.boost_combat_dice`),
+  Pride of Kenara (karta planety w transakcji, `transaction.planets`, w oknie transakcji wybór planety docelowej
+  jednostek), Auto-Factories.
+- **Winnu** (`core/hooks/factions/winnu.py`, 11 komponentów, 0 braków, 7 testów + 4 scenariusze API): Blood Ties
+  (`custodians.removal_cost` = 0), Reclamation i Reclaimer (oferty na koniec akcji taktycznej; `TACTICAL_ACTION/END` niesie
+  `gained`), Lazax Gate Folding (Mecatol jako α/β w ruchu + ACTION), Hegemonic Trade Policy (`planet.swap_values` w
+  `planet_stats`), Berekar Berekon (−2 do kosztu produkcji dowolnego gracza), Rickar Rickani (+2), Mathis Mathinus
+  (`strategic_action.begin_hero_primary`: primary dowolnej karty, secondary tylko wybranych), Acquiescence (okno w trakcie
+  secondary karty Winnu, `grant_no_cost`), Salai Sai Corian (kości = statki niemyśliwskie przeciwnika, 0 dozwolone),
+  Imperator (+1 za SftT; +1 ruchu jednego statku po aktywacji systemu z planetą legendarną).
+- Walka: gdy rzut stworzy oferty „po rzucie”, walka czeka w TRIGGERS (`resume=assign`) i dopiero potem otwiera przypisanie
+  strat — wcześniej runda bez trafień kończyła się, zanim gracz mógł zareagować.
+- ⚠️ Założenia (R62.6/62.7): limit 7 kart akcji po Arbiters nieegzekwowany; Auto-Factories liczy jedno zamówienie;
+  LGF tylko w ruchu Winnu; planeta docelowa Pride of Kenara wybierana w propozycji; Imperator + Gravity Drive na tym samym
+  statku; Reclamation bez reguły zastępczej przy pustej rezerwie.
+- **Pływające okna decyzji** (prośba użytkownika): `ds/Modal` ma tryb `floating` — bez tła, nie blokuje planszy,
+  przeciągany za nagłówek (pozycja zapamiętana, dwuklik = reset), klik poza oknem go nie zamyka. Włączony we wszystkich
+  oknach decyzji gry (użycie zdolności / technologii / legendy, zagranie karty, transakcja, secondary, kroki primary,
+  Custodians, ruch / załadunek / usuwanie nadwyżki, ekspedycja, lista akcji komponentów). Oferty już pływały.
+- „Gdzie to jest?”: `mapRefKeys` rozbija wartości złożone (`pozycja|planeta`, `planeta>cel`), więc najechanie opcji
+  w starych formularzach też podświetla cel na mapie.
+- Nowe pola stanu (`StrategyResolution.secondary_players`) i odpowiedzi (`/transactions/state`: `myPlanets`, `planets`) —
+  restart backendu.

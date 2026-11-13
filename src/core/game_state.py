@@ -100,6 +100,8 @@ class StrategyResolution(BaseModel):
     # Primary wykonane z karty akcji Overrule: po nim NIE otwiera się okno secondary
     # (wykonujemy wyłącznie primary; RULES.md 53).
     no_secondary: bool = False
+    # Tylko ci gracze mogą rozstrzygnąć secondary (Mathis Mathinus, RULES.md 62.7); None = wszyscy.
+    secondary_players: list[str] | None = None
 
 
 class TimingWindow(BaseModel):

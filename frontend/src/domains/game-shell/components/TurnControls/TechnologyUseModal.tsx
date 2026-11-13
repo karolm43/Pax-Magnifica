@@ -52,7 +52,7 @@ export function TechnologyUseModal({ techId, techName, playerId, onClose, onDone
   };
 
   return (
-    <AppModal opened onClose={onClose} title={techName} size={480}>
+    <AppModal floating opened onClose={onClose} title={techName} size={480}>
       <Stack gap="md">
         {form.isLoading && (
           <Text size="sm" c="dimmed">

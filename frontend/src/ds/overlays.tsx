@@ -93,7 +93,71 @@ export type ModalProps = {
   hiddenFrom?: string;
   /** Decision row (cancel / confirm). Rendered only when there is a decision to make. */
   footer?: ReactNode;
+  /**
+   * Okno pływające (decyzje w grze): bez tła i blokady planszy, przeciągane za nagłówek,
+   * klik poza oknem go nie zamyka. Pozycja zapamiętana pod ``floatingKey`` (domyślnie tytuł).
+   */
+  floating?: boolean;
+  floatingKey?: string;
 };
+
+type Offset = { x: number; y: number };
+
+function readOffset(key: string): Offset {
+  try {
+    const raw = localStorage.getItem(`ds.floating.${key}`);
+    const parsed = raw ? (JSON.parse(raw) as Offset) : null;
+    if (parsed && typeof parsed.x === "number" && typeof parsed.y === "number") return parsed;
+  } catch {
+    /* brak/uszkodzony wpis - pozycja domyślna */
+  }
+  return { x: 0, y: 0 };
+}
+
+function writeOffset(key: string, offset: Offset): void {
+  try {
+    localStorage.setItem(`ds.floating.${key}`, JSON.stringify(offset));
+  } catch {
+    /* prywatne okno / zablokowany storage - pozycja tylko na tę sesję */
+  }
+}
+
+/** Przeciąganie pływającego okna za nagłówek (przesunięcie od pozycji domyślnej). */
+function useFloatingDrag(key: string) {
+  const [offset, setOffset] = useState<Offset>(() => readOffset(key));
+  const onPointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      if ((event.target as HTMLElement).closest("button, input, select, textarea, a")) return;
+      event.preventDefault();
+      const start = { x: event.clientX, y: event.clientY };
+      const base = offset;
+      let last = base;
+      const move = (e: globalThis.PointerEvent) => {
+        const maxX = window.innerWidth / 2;
+        const maxY = window.innerHeight / 2;
+        last = {
+          x: Math.max(-maxX, Math.min(maxX, base.x + e.clientX - start.x)),
+          y: Math.max(-maxY, Math.min(maxY, base.y + e.clientY - start.y)),
+        };
+        setOffset(last);
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        writeOffset(key, last);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    },
+    [key, offset],
+  );
+  const reset = useCallback(() => {
+    setOffset({ x: 0, y: 0 });
+    writeOffset(key, { x: 0, y: 0 });
+  }, [key]);
+  return { offset, onPointerDown, reset };
+}
 
 /**
  * A centred dialog. Header (title + close) and body; the frame, backdrop and
@@ -120,37 +184,55 @@ export function Modal({
   keepMounted,
   hiddenFrom,
   footer,
+  floating = false,
+  floatingKey,
 }: ModalProps) {
   const popupRef = useRef<HTMLDivElement>(null);
+  const drag = useFloatingDrag(floatingKey ?? (typeof title === "string" ? title : "window"));
   const width = fullScreen ? "100%" : typeof size === "number" ? size : MODAL_SIZE[size as SizeKey] ?? size;
   return (
     <Dialog.Root
       open={opened}
+      modal={!floating}
       onOpenChange={(open, details) => {
         if (open) return;
-        if (details.reason === "outside-press" && !closeOnClickOutside) return;
+        if (details.reason === "outside-press" && (floating || !closeOnClickOutside)) return;
         if (details.reason === "escape-key" && !closeOnEscape) return;
         onClose();
       }}
     >
       <Dialog.Portal container={getPortalRoot()} keepMounted={keepMounted}>
+        {!floating && (
         <Dialog.Backdrop
           // ``ds-modal-backdrop``: stała nazwa dla podglądu mapy spod okna (search/mapPeek.ts).
           className={cx("ds-modal-backdrop", classes.backdrop, classNames.overlay, hiddenFrom && `ds-hidden-from-${hiddenFrom}`)}
           style={{ zIndex, ...styles.overlay }}
         />
+        )}
         <div
-          className={cx(classes.modalInner, centered && classes.modalCentered, fullScreen && classes.modalFull, classNames.inner, hiddenFrom && `ds-hidden-from-${hiddenFrom}`)}
+          className={cx(classes.modalInner, floating && classes.modalInnerFloating, centered && classes.modalCentered, fullScreen && classes.modalFull, classNames.inner, hiddenFrom && `ds-hidden-from-${hiddenFrom}`)}
           style={{ zIndex, paddingTop: centered || fullScreen ? undefined : yOffset, ...styles.inner }}
         >
           <Dialog.Popup
             ref={popupRef}
             initialFocus={popupRef}
-            className={cx(classes.modal, classNames.content, className)}
-            style={{ width, borderRadius: r !== undefined ? radius(r) : undefined, ...styles.content }}
+            className={cx(classes.modal, floating && classes.modalFloating, classNames.content, className)}
+            data-floating={floating || undefined}
+            style={{
+              width,
+              borderRadius: r !== undefined ? radius(r) : undefined,
+              ...(floating ? { translate: `${drag.offset.x}px ${drag.offset.y}px` } : {}),
+              ...styles.content,
+            }}
           >
             {title !== undefined || withCloseButton ? (
-              <div className={cx(classes.modalHeader, classNames.header)} style={{ padding: `var(--ds-space-sm) ${spacing(padding)}`, ...styles.header }}>
+              <div
+                className={cx(classes.modalHeader, floating && classes.modalHeaderDrag, classNames.header)}
+                style={{ padding: `var(--ds-space-sm) ${spacing(padding)}`, ...styles.header }}
+                onPointerDown={floating ? drag.onPointerDown : undefined}
+                onDoubleClick={floating ? drag.reset : undefined}
+                title={floating ? "Drag to move · double-click to reset" : undefined}
+              >
                 {title !== undefined ? (
                   <Dialog.Title render={<div />} className={cx(classes.modalTitle, classNames.title)} style={styles.title}>
                     {title}

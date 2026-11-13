@@ -137,6 +137,7 @@ export function LoadTransportModal() {
 
   return (
     <AppModal
+      floating
       minimizable
       opened={!!target}
       onClose={close}

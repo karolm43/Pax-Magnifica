@@ -184,7 +184,11 @@ export function SecondaryDecisionModal() {
   const isFree = String(window?.context?.free ?? "").split(",").includes(
     window?.currentResponderId ?? "\0",
   );
-  const needsToken = Number(window?.context?.cost ?? 0) > 0 && !isFree;
+  // Secondary bez żetonu, ale nieobowiązkowe (Masters of Trade, Acquiescence — RULES.md 62.6/62.7).
+  const noCost = String(window?.context?.no_cost ?? "")
+    .split(",")
+    .includes(window?.currentResponderId ?? "\0");
+  const needsToken = Number(window?.context?.cost ?? 0) > 0 && !isFree && !noCost;
   const poolTokens = (responder as { strategicCC?: number } | undefined)?.strategicCC;
   // Scepter of Emelpar: gotowy relikt pozwala wydać żeton z rezerwy zamiast z puli.
   const scepterReady =
@@ -222,6 +226,7 @@ export function SecondaryDecisionModal() {
     ) : null}
     {inOverlay && inputView ? inputView : null}
     <AppModal
+      floating
       opened={drawn != null}
       onClose={() => setDrawn(null)}
       title="Action cards drawn"
@@ -238,6 +243,7 @@ export function SecondaryDecisionModal() {
       </Stack>
     </AppModal>
     <AppModal
+      floating
       minimizable={`${cardName} - secondary`}
       opened={isSecondary && !inDock && !inOverlay}
       // Modal wymuszony: nie zamykamy go samodzielnie — zniknie, gdy backend domknie

@@ -1,4 +1,11 @@
-import { IconCards, IconCoins, IconDiamond, IconFileText } from "@tabler/icons-react";
+import {
+  IconCards,
+  IconCoins,
+  IconDiamond,
+  IconFileText,
+  IconPlanet,
+} from "@tabler/icons-react";
+import { getPlanetData } from "@/entities/lookup/planets";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { useFactionColors } from "@/hooks/useFactionColors";
@@ -76,6 +83,10 @@ export function TradeCard({
   );
 }
 
+/** Nazwa planety z danych (id, gdy brak). */
+export const planetName = (id: string | undefined): string =>
+  (id ? getPlanetData(id)?.name : undefined) ?? id ?? "";
+
 /** Czy strona nic nie oddaje. */
 export function isEmptySide(s: TransactionSide): boolean {
   return (
@@ -83,7 +94,8 @@ export function isEmptySide(s: TransactionSide): boolean {
     s.commodities === 0 &&
     s.promissoryNote === null &&
     s.relicFragments.length === 0 &&
-    (s.actionCards ?? []).length === 0
+    (s.actionCards ?? []).length === 0 &&
+    (s.planets ?? []).length === 0
   );
 }
 
@@ -118,6 +130,15 @@ export function TradeSummary({
           {fragmentName?.(f) ?? f}
         </span>
       ))}
+      {(side.planets ?? []).map((entry) => {
+        const [planet, dest] = entry.split(">");
+        return (
+          <span key={entry} className={styles.summaryGoods}>
+            <IconPlanet size={13} aria-hidden="true" />
+            Planet {planetName(planet)} (units move to {planetName(dest)})
+          </span>
+        );
+      })}
       {side.promissoryNote && <TradeCard kind="note" id={side.promissoryNote} />}
       {(side.actionCards ?? []).map((c, i) => (
         <TradeCard key={`${c}-${i}`} kind="action" id={c} />

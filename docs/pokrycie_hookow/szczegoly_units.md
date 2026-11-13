@@ -32,8 +32,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `ghemina_carrier2` | Combat Transport II | ghemina | — | MODIFY (liczba/rzut) | walka, planety i eksploracja | — | You may reroll 1 of your unit's combat dice during each round of ground combat on a planet in this system that contains 2 or fewer of your … |
 | `ghost_flagship` | Hil Colish | ghost | — | PERMIT (pozwolenie) | ruch | — | This ship's system contains a delta wormhole. During movement, this ship may move before or after your other ships. |
 | `ghost_mech` | Icarus Drive | ghost | — | PERMIT (pozwolenie) | ruch | — | After any player activates a system, you may remove this unit from the game board to place or move a Creuss wormhole token into this system. |
-| `hacan_flagship` | Wrath of Kenara | hacan | — | MODIFY (liczba/rzut) | walka, ekonomia i płatności | — | After you roll a die during a space combat in this system, you may spend 1 trade good to apply +1 to the result. |
-| `hacan_mech` | Pride of Kenara | hacan | — | PERMIT (pozwolenie) | ruch, planety i eksploracja | — | This planet's card may be traded as part of a transaction; if you do, move all of your units from this planet to another planet you control. |
+| `hacan_flagship` | Wrath of Kenara | hacan | — | MODIFY (liczba/rzut) | walka, ekonomia i płatności | ✔ | After you roll a die during a space combat in this system, you may spend 1 trade good to apply +1 to the result. |
+| `hacan_mech` | Pride of Kenara | hacan | — | PERMIT (pozwolenie) | ruch, planety i eksploracja | ✔ | This planet's card may be traded as part of a transaction; if you do, move all of your units from this planet to another planet you control. |
 | `jolnar_flagship` | J.N.S. Hylarim | jolnar | — | MODIFY (liczba/rzut) | walka, produkcja | ✔ | When making a combat roll for this ship, each result of 9 or 10, before applying modifiers, produces 2 additional hits. |
 | `jolnar_mech` | Shield Paling | jolnar | — | — | planety i eksploracja | ✔ | Your infantry on this planet are not affected by your Fragile faction ability. |
 | `keleres_flagship` | Artemiris | keleresm | — | — | ekonomia i płatności | — | Other players must spend 2 influence to activate the system that contains this ship. |
@@ -86,8 +86,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `titans_mech` | Hecatoncheires | titans | — | REPLACE (instead of) | planety i eksploracja | — | DEPLOY: When you would place a PDS on a planet, you may place 1 mech and 1 infantry on that planet instead. |
 | `titans_pds` | Hel-Titan I | titans | — | FORBID (zakaz) | — | — | This unit is treated as both a structure and a ground force. It cannot be transported. |
 | `titans_pds2` | Hel-Titan II | titans | — | FORBID (zakaz) | ruch, walka | — | This unit is treated as both a structure and a ground force. It cannot be transported. You may use this unit's SPACE CANNON against ships t… |
-| `winnu_flagship` | Salai Sai Corian | winnu | — | — | walka | — | When this unit makes a combat roll, it rolls a number of dice (hit on a 7) equal to the number of your opponent's non-fighter ships in this… |
-| `winnu_mech` | Reclaimer | winnu | — | PERMIT (pozwolenie) | produkcja, planety i eksploracja | — | After you resolve a tactical action where you gained control of this planet, you may place 1 PDS or 1 Space Dock from your reinforcements o… |
+| `winnu_flagship` | Salai Sai Corian | winnu | — | — | walka | ✔ | When this unit makes a combat roll, it rolls a number of dice (hit on a 7) equal to the number of your opponent's non-fighter ships in this… |
+| `winnu_mech` | Reclaimer | winnu | — | PERMIT (pozwolenie) | produkcja, planety i eksploracja | ✔ | After you resolve a tactical action where you gained control of this planet, you may place 1 PDS or 1 Space Dock from your reinforcements o… |
 | `xxcha_flagship` | Loncara Ssodu | xxcha | — | PERMIT (pozwolenie) | ruch, walka | — | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
 | `xxcha_mech` | Indomitus | xxcha | — | PERMIT (pozwolenie) | ruch, walka | — | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
 | `yin_flagship` | Van Hauge | yin | — | — | walka | — | When this ship is destroyed, destroy all ships in this system. |

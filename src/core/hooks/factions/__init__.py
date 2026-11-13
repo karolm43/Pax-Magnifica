@@ -6,6 +6,6 @@ liderów (efekty + warunki odblokowania), przełom, promissory note i jednostki 
 nowy moduł + import poniżej + ``tests/factions/test_<frakcja>.py``.
 """
 
-from src.core.hooks.factions import arborec, jolnar, letnev, sardakk, sol
+from src.core.hooks.factions import arborec, hacan, jolnar, letnev, sardakk, sol, winnu
 
-__all__ = ["arborec", "jolnar", "letnev", "sardakk", "sol"]
+__all__ = ["arborec", "hacan", "jolnar", "letnev", "sardakk", "sol", "winnu"]

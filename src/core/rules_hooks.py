@@ -114,6 +114,19 @@ POINT_TRANSACTION_EXTRA_ITEMS = "transaction.extra_items"
 POINT_TRANSACTION_ANY_PLAYER = "transaction.any_player"
 # W transakcji można wymieniać karty akcji (Arbiters); PERMIT -> bool (obie strony; ctx: partner).
 POINT_TRANSACTION_ACTION_CARDS = "transaction.action_cards"
+# Planety, których kartę gracz może oddać w transakcji (Pride of Kenara); FORBID jako zbiór id
+# planet (pytamy oddającego). Jego jednostki z planety idą na inną jego planetę (RULES.md 62.6).
+POINT_TRANSACTION_PLANETS = "transaction.planets"
+# PERMIT -> secondary karty strategii bez wydania żetonu ze strategy pool (ctx: initiative, owner);
+# Masters of Trade (Trade), Acquiescence (karta Winnu) — RULES.md 62.6, 62.7.
+POINT_STRATEGY_SECONDARY_FREE = "strategy.secondary_free"
+# PERMIT -> łączny koszt jednostek w tym użyciu PRODUCTION = 0 (Harrugh Gefhara); limity zostają.
+POINT_PRODUCTION_FREE = "production.free"
+# PERMIT -> zdjęcie żetonu Custodians bez wydawania wpływu (Blood Ties, RULES.md 62.7).
+POINT_CUSTODIANS_FREE = "custodians.free"
+# Planety z zamienionymi wartościami zasobów i wpływu (Hegemonic Trade Policy); FORBID jako zbiór
+# id planet, pytamy KONTROLUJĄCEGO planetę (RULES.md 62.7).
+POINT_PLANET_SWAP_VALUES = "planet.swap_values"
 # Faza statusu: liczba kart akcji dobieranych przez gracza (bazowo 1; Neural Motivator: +1).
 POINT_STATUS_ACTION_CARDS = "status.action_cards"
 # Faza statusu: liczba żetonów dowodzenia zdobywanych przez gracza (bazowo 2; Hyper Metabolism: +1).

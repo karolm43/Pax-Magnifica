@@ -22,7 +22,7 @@ import {
   type TransactionSide,
 } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
-import { TradeCard, TradeSummary, isEmptySide } from "./transactionItems";
+import { TradeCard, TradeSummary, isEmptySide, planetName } from "./transactionItems";
 import styles from "./TransactionModal.module.css";
 
 type Tab = "trade" | "promises";
@@ -216,6 +216,9 @@ export function TransactionModal({
   const myNotes = myHand?.promissoryNotes ?? [];
   const partnerNotes = partner ? (partnerHand?.promissoryNotes ?? []) : [];
   const myCards = cardsAllowed ? (myHand?.actionCards ?? []) : [];
+  // Pride of Kenara: planety, których kartę strona może oddać (z mechem Hacan).
+  const myTradePlanets = tradeState?.myPlanets ?? [];
+  const partnerTradePlanets = viewOf(partnerId)?.planets ?? [];
   const partnerCards =
     cardsAllowed && partner ? (partnerHand?.actionCards ?? []) : [];
   const myFragments = me.relicFragmentCards ?? [];
@@ -286,6 +289,7 @@ export function TransactionModal({
     notes: string[],
     fragments: { id: string; name: string }[],
     cards: string[],
+    tradePlanets: string[],
   ) => (
     <section className={styles.side} aria-label={title}>
       <h4 className={styles.sideTitle}>
@@ -352,6 +356,65 @@ export function TransactionModal({
           </div>
         )}
       </div>
+      {tradePlanets.length > 0 && (
+        <div className={styles.group}>
+          <span className={styles.groupLabel}>
+            Planet cards <small>(Pride of Kenara)</small>
+          </span>
+          <div className={styles.cardList}>
+            {tradePlanets.map((planet) => {
+              const entry = (side.planets ?? []).find((e) => e.startsWith(`${planet}>`));
+              const others = (owner.planets ?? []).filter((p) => p !== planet);
+              return (
+                <div
+                  key={planet}
+                  className={styles.tradeCard}
+                  data-selected={entry ? true : undefined}
+                >
+                  <label className={styles.tradeCardHead}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(entry)}
+                      disabled={others.length === 0}
+                      onChange={() =>
+                        set({
+                          ...side,
+                          planets: entry
+                            ? (side.planets ?? []).filter((e) => e !== entry)
+                            : [...(side.planets ?? []), `${planet}>${others[0]}`],
+                        })
+                      }
+                    />
+                    <b>{planetName(planet)}</b>
+                  </label>
+                  {entry && (
+                    <label className={styles.tradeCardText}>
+                      Units move to{" "}
+                      <select
+                        value={entry.split(">")[1]}
+                        onChange={(e) =>
+                          set({
+                            ...side,
+                            planets: (side.planets ?? []).map((x) =>
+                              x === entry ? `${planet}>${e.target.value}` : x,
+                            ),
+                          })
+                        }
+                      >
+                        {others.map((p) => (
+                          <option key={p} value={p}>
+                            {planetName(p)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {cardsAllowed && (
         <div className={styles.group}>
           <span className={styles.groupLabel}>
@@ -386,6 +449,7 @@ export function TransactionModal({
 
   return (
     <AppModal
+      floating
       minimizable
       opened={opened}
       onClose={onClose}
@@ -508,6 +572,7 @@ export function TransactionModal({
                   myNotes,
                   myFragments,
                   myCards,
+                  myTradePlanets,
                 )}
                 <IconArrowsExchange
                   className={styles.swap}
@@ -522,6 +587,7 @@ export function TransactionModal({
                   partnerNotes,
                   partnerFragments,
                   partnerCards,
+                  partnerTradePlanets,
                 )}
               </div>
             )}

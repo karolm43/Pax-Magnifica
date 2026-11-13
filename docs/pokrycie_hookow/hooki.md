@@ -4,10 +4,11 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
+| `agenda.vote_modifier` | MODIFY | effect:leaders:hacancommander:votes | — | — |
 | `bombardment.empty_planets` | PERMIT | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology). |
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `bombardment.granted_hits_on` | FORBID | effect:action_cards:blitz | — | — |
@@ -16,6 +17,7 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.afb_granted` | FORBID | relic:metalivoidarmaments | relics:metalivoidarmaments | — |
 | `combat.bonus_dice` | MODIFY | effect:leaders:letnevagent:die | — | — |
 | `combat.bonus_dice` | MODIFY | effect:leaders:solagent:die | — | — |
+| `combat.extra_dice` | MODIFY | unit:winnu_flagship | units:winnu_flagship | Salai Sai Corian: When this unit makes a combat roll, it rolls a number of dice (hit on a 7) |
 | `combat.extra_hits` | MODIFY | technology:vpw | technologies:vpw | Valkyrie Particle Weave: After making combat rolls during a round of ground combat, if your |
 | `combat.granted_sustain` | PERMIT | relic:metalivoidshielding | relics:metalivoidshielding | Metali Void Shielding: Each time hits are produced against 1 or more of your non-fighter |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
@@ -32,9 +34,12 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.roll_modifier` | MODIFY | effect:promissory_notes:tekklar:penalty | — | — |
 | `combat.roll_modifier` | MODIFY | faction:sardakk | abilities:unrelenting | Unrelenting: Apply +1 to the result of each of your unit's combat rolls. |
 | `combat.roll_modifier` | MODIFY | unit:sardakk_flagship | units:sardakk_flagship | C'morran N'orr: Apply +1 to the result of each of your other ship's combat rolls in this |
+| `combat.roll_modifier` | MODIFY | breakthrough:winnubt | breakthroughs:winnubt | Imperator: Apply +1 to the results of each of your unit's combat rolls for each "Support for |
+| `combat.roll_modifier` | MODIFY | leader:winnucommander | leaders:winnucommander | Rickar Rickani: Apply +2 to the result of each of your unit's combat rolls in the Mecatol Rex |
 | `combat.single_unit_bonus` | MODIFY | effect:breakthroughs:letnevbt:ship | — | — |
 | `combat.sustain_cancels` | MODIFY | technology:nes | technologies:nes | Non-Euclidean Shielding: When 1 of your units uses SUSTAIN DAMAGE, cancel 2 hits instead |
 | `command_tokens.strategy_from_reinforcements` | FORBID | relic:emelpar | relics:emelpar | — |
+| `custodians.free` | PERMIT | faction:winnu | abilities:blood_ties | Blood Ties: You do not have to spend influence to remove the custodians token from Mecatol |
 | `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
 | `economy.commodity_value` | MODIFY | relic:dynamiscore | relics:dynamiscore | Dynamis Core: While this card is in your play area, your commodity value is +2. |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:const_rider | — | — |
@@ -47,6 +52,7 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:trade_rider | — | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:war_rider | — | — |
 | `event:cards.action_played:after` | TRIGGER | effect:action_cards:dp_give | — | — |
+| `event:combat.roll:after` | TRIGGER | unit:hacan_flagship | units:hacan_flagship | Wrath of Kenara: After you roll a die during a space combat in this system, you may spend 1 |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
 | `event:combat.round:end` | TRIGGER | technology:exo2 | technologies:exo2 | Exotrireme II: After a round of space combat, you may destroy this unit to destroy up to 2 |
 | `event:combat.round:start` | TRIGGER | faction:letnev | abilities:munitions | Munitions Reserves: At the start of each round of space combat: You may spend 2 trade goods |
@@ -73,6 +79,7 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
 | `event:phase:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: At the end of the status phase, if you control the "Tomb of |
+| `event:phase:end` | TRIGGER | technology:qdn | technologies:qdn | Quantum Datahub Node: At the end of the strategy phase, you may spend 1 token from your |
 | `event:phase:end` | TRIGGER | unit:sol_flagship | units:sol_flagship | Genesis: At the end of the status phase, place 1 infantry from your reinforcements in this |
 | `event:phase:start` | TRIGGER | faction:arborec | abilities:mitosis | Mitosis: At the start of the status phase: Place 1 infantry from your reinforcements on any |
 | `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
@@ -93,15 +100,19 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:player.passed:when` | TRIGGER | planet:industrex | planets:industrex | Aeurex Mechanica: You may exhaust this card when you pass to place 1 ship that matches a unit upgrade technology you own from your reinforcements into a system that contains your ships. |
 | `event:player.passed:when` | TRIGGER | planet:ordinian | planets:ordinian | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
 | `event:player.passed:when` | TRIGGER | planet:ordinianc4 | planets:ordinianc4 | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
+| `event:production.units_produced:after` | TRIGGER | breakthrough:hacanbt | breakthroughs:hacanbt | Auto-Factories: When you produce 3 or more non-fighter ships, place 1 command token from your |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
 | `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
 | `event:tactical.action:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: After you perform a tactical action, you may exhaust this card to |
 | `event:tactical.action:end` | TRIGGER | leader:sardakkagent | leaders:sardakkagent | T'ro: At the end of a player's tactical action: You may exhaust this card: if you do, that |
+| `event:tactical.action:end` | TRIGGER | faction:winnu | abilities:reclamation | Reclamation: After you resolve a tactical action during which you gained control of Mecatol |
+| `event:tactical.action:end` | TRIGGER | unit:winnu_mech | units:winnu_mech | Reclaimer: After you resolve a tactical action where you gained control of this planet, you |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_an | promissory_notes:<color>_an | — |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_sftt | promissory_notes:<color>_sftt | — |
 | `event:tactical.system_activated:after` | TRIGGER | unit:arborec_flagship | units:arborec_flagship | Duha Menaimon: After you activate this system, you may produce up to 5 units in this |
 | `event:tactical.system_activated:after` | TRIGGER | leader:arboreccommander | leaders:arboreccommander | Dirzuga Rophal: After another player activates a system that contains 1 or more of your |
+| `event:tactical.system_activated:after` | TRIGGER | promissory:convoys | promissory_notes:convoys | If you activate a system that contains 1 or more of the Hacan player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | technology:scc | technologies:scc | Spatial Conduit Cylinder: You may exhaust this card after you activate a system that |
@@ -145,6 +156,7 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.alpha_beta_adjacent` | PERMIT | effect:action_cards:lost_star | — | — |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
 | `movement.enter_asteroids` | PERMIT | relic:circletofthevoid | — | Circlet of the Void: ruch przez/do pól asteroid (ignorowanie efektów anomalii). |
+| `movement.extra_adjacent` | FORBID | technology:lgf | technologies:lgf | Lazax Gate Folding: During your tactical actions, if you do not control Mecatol Rex, treat |
 | `movement.extra_adjacent` | FORBID | effect:technologies:scc | — | Aktywny system sąsiaduje ze wszystkimi systemami z jednostkami gracza (i odwrotnie). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
 | `movement.ignore_anomalies` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: you ignore the effects of all other anomalies on movement. |
@@ -156,12 +168,16 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | effect:action_cards:fs4 | — | — |
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
 | `movement.move_value` | MODIFY | effect:planets:tempesta | planets:tempesta | Ionian Fuel Refinery: +1 do wartości ruchu JEDNEGO statku w tej akcji taktycznej. |
+| `movement.move_value` | MODIFY | breakthrough:winnubt | — | After you activate a system that contains a legendary planet, apply +1 to the move value of 1 |
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
+| `planet.swap_values` | FORBID | effect:technologies:htp:swap | — | — |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
+| `production.cost` | MODIFY | effect:leaders:winnuagent:cut | — | — |
 | `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
 | `production.forbids` | FORBID | faction:arborec | — | Mitosis: Your space docks cannot produce infantry (R_production). |
+| `production.free` | PERMIT | effect:leaders:hacanhero:free | — | — |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
@@ -175,12 +191,17 @@ Razem: **176**. Opis = pierwsza linia docstringu funkcji hooka.
 | `status.command_tokens` | MODIFY | technology:hm | technologies:hm | Hyper Metabolism: w fazie statusu gracz zdobywa 3 żetony dowodzenia zamiast 2. |
 | `status.command_tokens` | MODIFY | faction:sol | abilities:versatile | Versatile: When you gain command tokens during the status phase: Gain 1 additional command |
 | `strategy.secondary_as_primary` | PERMIT | faction:jolnar | abilities:brilliant | Brilliant: When you spend a command token to resolve the secondary ability of the |
+| `strategy.secondary_free` | PERMIT | faction:hacan | abilities:master_of_trade | Masters of Trade: You do not have to spend a command token to resolve the secondary |
 | `technology.free_prerequisite_ignores` | MODIFY | faction:jolnar | abilities:analytical | Analytical: When you research a technology that is not a unit upgrade technology: You may |
 | `technology.ignore_prerequisite` | FORBID | relic:prophetstears | relics:prophetstears | — |
 | `technology.specialty_pays` | PERMIT | breakthrough:jolnarbt | breakthroughs:jolnarbt | Specialist Compounds: When you research technology using the 'Technology' strategy card, |
 | `technology.specialty_without_exhaust` | PERMIT | technology:pa | — | Psychoarchaeology: specjalności technologii działają bez wyczerpywania planet, także |
 | `technology.synergy_all` | PERMIT | relic:quantumcore | — | The Quantumcore: You have SYNERGY for all technology types. |
+| `transaction.action_cards` | PERMIT | faction:hacan | abilities:arbiters | Arbiters: When you are negotiating a transaction, action cards can be exchanged as part of |
+| `transaction.any_player` | PERMIT | promissory:convoys | — | While this card is in your play area, you may negotiate transactions with players who are |
+| `transaction.any_player` | PERMIT | faction:hacan | abilities:guild_ships | Guild Ships: You can negotiate transactions with players who are not your neighbor. |
 | `transaction.extra_items` | PERMIT | effect:action_cards:blackmarketdealing | — | — |
+| `transaction.planets` | FORBID | unit:hacan_mech | units:hacan_mech | Pride of Kenara: This planet's card may be traded as part of a transaction; if you do, move |
 | `turn.action_started` | PERSISTENT | effect:action_cards:extremeduress | — | Pierwsza akcja celu: strategiczna = bez kary; inna = karty, TG i tajne cele dla gracza. |
 | `turn.actions` | MODIFY | effect:action_cards:master_plan | — | — |
 | `turn.actions` | MODIFY | technology:fl | technologies:fl | Fleet Logistics: w swojej turze fazy akcji gracz wykonuje 2 akcje zamiast 1. |
@@ -207,6 +228,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `combat.single_unit_bonus`
 - `combat.sustain_cancels`
 - `economy.commodity_value`
+- `custodians.free`
 - `dice.adjust_result`
 - `fleet_pool.capacity`
 - `fleet_pool.unlimited`
@@ -221,8 +243,10 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.pass_foreign_ships`
 - `payment.commodities_as_trade_goods`
 - `space_cannon.pds_disabled`
+- `planet.swap_values`
 - `production.cost`
 - `production.forbids`
+- `production.free`
 - `production.free_cargo`
 - `production.total_value`
 - `production.value`
@@ -236,6 +260,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `status.action_cards`
 - `status.command_tokens`
 - `strategy.secondary_as_primary`
+- `strategy.secondary_free`
 - `command_tokens.strategy_from_reinforcements`
 - `invasion.strips_planetary_shield`
 - `technology.free_prerequisite_ignores`
@@ -243,5 +268,8 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `technology.specialty_without_exhaust`
 - `technology.specialty_pays`
 - `technology.synergy_all`
+- `transaction.action_cards`
+- `transaction.any_player`
 - `transaction.extra_items`
+- `transaction.planets`
 - `turn.actions`

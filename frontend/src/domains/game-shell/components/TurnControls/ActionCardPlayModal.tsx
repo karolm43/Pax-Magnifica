@@ -132,7 +132,7 @@ export function ActionCardPlayModal({
   };
 
   return (
-    <AppModal opened onClose={onClose} title={cardName} size={460}>
+    <AppModal floating opened onClose={onClose} title={cardName} size={460}>
       <Stack gap="md">
         {form.isLoading && <Text size="sm" c="dimmed">Loading card…</Text>}
         {form.isError && (

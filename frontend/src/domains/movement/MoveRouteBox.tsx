@@ -202,7 +202,7 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
     zone === "space" ? "Space" : (getPlanetData(zone)?.name ?? zone);
 
   const bonusName = (bonus: string) =>
-    bonus === "gravity_drive" ? "Gravity Drive" : bonus === "tempesta" ? "Ionian Fuel Refinery" : bonus;
+    bonus === "gravity_drive" ? "+1 move for one ship (Gravity Drive / Imperator)" : bonus === "tempesta" ? "Ionian Fuel Refinery" : bonus;
   const shipCaption = (s: MoveRouteShip): string | undefined => {
     if (!s.reachable) return s.reason || "out of range";
     // Fighter II leci sam (nie zajmuje miejsca w transporcie), ale w celu potrzebuje capacity;

@@ -24,8 +24,13 @@ export function mapRefKeys(value: unknown, meta?: Record<string, unknown>): Sear
   add("system", meta?.system);
   add("system", meta?.position);
   if (typeof value === "string") {
-    add("planet", value);
-    add("system", value);
+    // Wartości złożone silnika: „pozycja|planeta”, „planeta>cel”, „gracz|typ”, „planeta|struktura”.
+    // Każdą część próbujemy jako planetę i system - nietrafione klucze po prostu nic nie oznaczą.
+    const parts = value.split(/[|>]/).filter(Boolean);
+    for (const part of parts.length > 1 ? [value, ...parts] : [value]) {
+      add("planet", part);
+      add("system", part);
+    }
   }
   return keys;
 }

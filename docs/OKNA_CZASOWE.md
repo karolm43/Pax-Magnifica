@@ -102,7 +102,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 
 | Okno | ✅ | ⛔ | Brakujące (⛔) |
 |---|---:|---:|---|
-| `tactical.system_activated` · after | 20 | 10 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Imperator, Neuroglaive, Nullification Field, So Ata, Survival Instinct |
+| `tactical.system_activated` · after | 21 | 9 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Neuroglaive, Nullification Field, So Ata, Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 13 | 3 | Kuuasi Aun Jalatai, Proxima Targeting VI, Supercharge |
 | `combat` · start | 8 | 5 | Ambush, Dimensional Splicer, Impulse Core, Indoctrination, Ipswitch, Loose Cannon |
@@ -110,19 +110,19 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.ships_moved` · after | 4 | 7 | Acamar, Adjudicator Ba'al, Call of the Void, Foresight, Sai Seravus, Voidwatch, Xuange |
 | `agenda.revealed` · when | 9 | 1 | Quash |
 | `component.gained` · when | 7 | 3 | I.I.H.Q. Modernization, Planesplitter (Firmament), Stellar Genesis |
-| `production.units_produced` · when | 1 | 9 | "A Tall Stranger", Amalgamation, Auto-Factories, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon, Trilossa Aun Mirik |
-| `production.used` · when | 6 | 3 | Berekar Berekon, Harrugh Gefhara, Tungstantus |
+| `production.units_produced` · when | 2 | 8 | "A Tall Stranger", Amalgamation, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon, Trilossa Aun Mirik |
+| `production.used` · when | 8 | 1 | Tungstantus |
 | `any_time` · any | 0 | 8 | 2RAM, Aroz Hollow, Brother Omar, Captain Aroz, M'aban, Nip and Tuck, Ssruu, Xander Alexin Victori III |
 | `combat.hits_assigned` · before | 8 | 0 |  |
 | `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
 | `tactical.system_activated` · when | 2 | 4 | Captain Mendosa, Incursion, Void Tether, Wing Transfer |
 | `combat.won` · after | 3 | 2 | S'ula Mentarion, Salvage Operations |
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
-| `phase` · during [phase=action] | 1 | 4 | Carth of Golden Sands, Data Skimmer, Deepgloom Executable, Nekro Malleon |
+| `phase` · during [phase=action] | 2 | 3 | Data Skimmer, Deepgloom Executable, Nekro Malleon |
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
 | `turn` · end | 3 | 2 | Field Marshal Mercer, Garv and Gunn |
 | `unit.sustain_damage` · after | 5 | 0 |  |
-| `agenda.votes_cast` · when | 1 | 3 | Elder Qanoj, Gila the Silvertongue, Zeal |
+| `agenda.votes_cast` · when | 2 | 2 | Elder Qanoj, Zeal |
 | `cards.action_played` · when | 4 | 0 |  |
 | `game.setup` · during | 0 | 4 | Dark Whispers, Hubris, The Company, The Tribuni |
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
@@ -134,8 +134,8 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `economy.resources_spent` · when | 1 | 2 | Aello, Mirror Computing |
 | `invasion` · start | 3 | 0 |  |
 | `phase` · during [phase=status] | 2 | 1 | Slumberstate Computing |
-| `phase` · end [phase=strategy] | 1 | 2 | Quantum Datahub Node, Telepathic |
-| `tactical.action` · after | 2 | 1 | Reclamation |
+| `phase` · end [phase=strategy] | 2 | 1 | Telepathic |
+| `tactical.action` · after | 3 | 0 |  |
 | `tactical.action` · end | 2 | 1 | Miniaturization |
 | `tactical.units_committed` · after | 3 | 0 |  |
 | `technology.gained` · when [would] | 0 | 3 | Valefar Assimilator X, Valefar Assimilator Y, Valefar Assimilator Z |
@@ -156,7 +156,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `strategy.action` · when [would] | 1 | 1 | Mindsieve |
 | `strategy.token_spent` · when [would] | 1 | 1 | Jae Mir Kan |
 | `tactical.action` · during | 0 | 2 | Il Na Viroset, Slipstream |
-| `transaction` · when | 1 | 1 | Arbiters |
+| `transaction` · when | 2 | 0 |  |
 | `turn` · during | 1 | 1 | Transparasteel Plating |
 | `unit.ability_used` · after [ability=roll] | 2 | 0 |  |
 | `unit.destroyed` · after | 1 | 1 | Brother Milor |
@@ -178,7 +178,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `combat.step` · during [step=anti_fighter_barrage] | 1 | 0 |  |
 | `combat.step` · start [step=announce_retreats] | 1 | 0 |  |
 | `combat.won` · when | 0 | 1 | Edict |
-| `combat` · during | 0 | 1 | Rickar Rickani |
+| `combat` · during | 1 | 0 |  |
 | `component.exhausted` · after | 0 | 1 | Temporal Command Suite |
 | `component.gained` · after | 0 | 1 | Al'Raith Ix Ianovar |
 | `economy.commodities_replenished` · after | 0 | 1 | The Stillness of Stars |

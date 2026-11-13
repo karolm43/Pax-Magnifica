@@ -86,7 +86,7 @@ export function FactionComponentUseModal({
     });
 
   return (
-    <AppModal opened onClose={onClose} title={name} size={480}>
+    <AppModal floating opened onClose={onClose} title={name} size={480}>
       <Stack gap="md">
         {form.isLoading && (
           <Text size="sm" c="dimmed">

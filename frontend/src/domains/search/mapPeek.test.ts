@@ -7,6 +7,13 @@ describe("mapRefKeys", () => {
     expect(mapRefKeys(3, { planet: "mr", position: "000" })).toEqual(["planet:mr", "system:000"]);
     expect(mapRefKeys(2)).toEqual([]);
   });
+
+  it("wartości złożone silnika (pozycja|planeta, planeta>cel) wskazują każdą część", () => {
+    expect(mapRefKeys("102|industrex")).toEqual(
+      expect.arrayContaining(["system:102", "planet:industrex"]),
+    );
+    expect(mapRefKeys("mr>jord")).toEqual(expect.arrayContaining(["planet:mr", "planet:jord"]));
+  });
 });
 
 describe("showOnMap / clearMapMarks", () => {

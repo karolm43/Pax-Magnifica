@@ -32,6 +32,7 @@ from typing import Any
 from src.core import (
     card_draw,
     chronicle,
+    control,
     economy,
     promissory_notes,
     relic_fragments,
@@ -39,6 +40,7 @@ from src.core import (
     rules_hooks,
     secret_objectives,
     triggers,
+    unit_ops,
 )
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import ControlType, GameState, Phase, TransactionOffer
@@ -59,6 +61,9 @@ class TransactionSide:
     relics: tuple[str, ...] = field(default_factory=tuple)
     action_cards: tuple[str, ...] = field(default_factory=tuple)
     secret_objectives: tuple[str, ...] = field(default_factory=tuple)
+    # Karty planet (Pride of Kenara): wpisy ``"<planeta>><planeta docelowa>"`` - jednostki
+    # oddającego przechodzą z planety na docelową (jego), kontrolę dostaje partner.
+    planets: tuple[str, ...] = field(default_factory=tuple)
 
     def has_extras(self) -> bool:
         """Czy strona oddaje coś spoza standardowej listy (relikty / karty akcji / tajne cele)."""
@@ -71,6 +76,7 @@ class TransactionSide:
             and self.commodities == 0
             and self.promissory_note is None
             and not self.relic_fragments
+            and not self.planets
             and not self.has_extras()
         )
 
@@ -91,6 +97,7 @@ class TransactionSide:
             relics=tuple(str(x) for x in raw.get("relics", ())),
             action_cards=tuple(str(x) for x in raw.get("action_cards", ())),
             secret_objectives=tuple(str(x) for x in raw.get("secret_objectives", ())),
+            planets=tuple(str(x) for x in raw.get("planets", ())),
         )
 
 
@@ -174,6 +181,64 @@ def _validate_side(state: GameState, giver_id: str, side: TransactionSide, who: 
             raise ValueError(f"{who} does not have the relic fragment '{fragment}'.")
 
 
+def tradable_planets(state: GameState, player_id: str) -> list[str]:
+    """Planety, których kartę gracz może teraz oddać (hook ``transaction.planets``)."""
+    return sorted(
+        rules_hooks.forbidden(rules_hooks.POINT_TRANSACTION_PLANETS, state, player_id)
+    )
+
+
+def _planet_position(state: GameState, planet: str) -> str | None:
+    return next(
+        (pos for pos, sys in state.systems.items() if planet in sys.planet_owners), None
+    )
+
+
+def _validate_planets(state: GameState, giver_id: str, side: TransactionSide, who: str) -> None:
+    """Pride of Kenara: planeta z hooka, cel = inna planeta oddającego, nie w trakcie walki."""
+    if not side.planets:
+        return
+    if state.active_combat is not None:
+        raise ValueError("A planet cannot be traded during combat.")
+    allowed = set(tradable_planets(state, giver_id))
+    seen: set[str] = set()
+    for entry in side.planets:
+        planet, _, dest = entry.partition(">")
+        if planet not in allowed:
+            raise ValueError(f"{who} cannot trade the planet '{planet}'.")
+        if planet in seen:
+            raise ValueError(f"The planet '{planet}' is listed twice.")
+        seen.add(planet)
+        dest_pos = _planet_position(state, dest)
+        if (
+            not dest
+            or dest == planet
+            or dest_pos is None
+            or state.systems[dest_pos].planet_owners.get(dest) != giver_id
+        ):
+            raise ValueError(f"Choose another planet {who.lower()} control(s) for the units.")
+
+
+def _apply_planets(
+    state: GameState, giver_id: str, receiver_id: str, side: TransactionSide
+) -> None:
+    for entry in side.planets:
+        planet, _, dest = entry.partition(">")
+        position = _planet_position(state, planet)
+        dest_pos = _planet_position(state, dest)
+        if position is None or dest_pos is None:
+            continue
+        src_sys, dest_sys = state.systems[position], state.systems[dest_pos]
+        for base_type, count in dict(
+            src_sys.planet_units.get(planet, {}).get(giver_id, {})
+        ).items():
+            if count > 0:
+                unit_ops.transfer_units(
+                    state, src_sys, planet, dest_sys, dest, giver_id, base_type, count
+                )
+        control.set_planet_control(state, position, planet, receiver_id)
+
+
 def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: TransactionSide) -> None:
     """Przenosi komponenty ``side`` od ``giver_id`` do ``receiver_id`` (mutuje ``state``)."""
     # R_commodities: commodity oddana innemu graczowi staje się u odbiorcy trade good.
@@ -191,6 +256,7 @@ def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: Transac
         card_draw.transfer_action_card(state, giver_id, receiver_id, card)
     for objective in side.secret_objectives:
         secret_objectives.transfer(state, giver_id, receiver_id, objective)
+    _apply_planets(state, giver_id, receiver_id, side)
 
 
 def can_transact_with(
@@ -253,6 +319,8 @@ def validate_transaction(
         raise ValueError("An empty transaction - add something to exchange.")
     _validate_side(state, active_id, give, "You")
     _validate_side(state, partner_id, receive, "The partner")
+    _validate_planets(state, active_id, give, "You")
+    _validate_planets(state, partner_id, receive, "The partner")
     # Black Market Dealings: ktokolwiek z dwóch stron ma efekt, obie mogą włączyć dodatkowe rzeczy.
     extras_ok = _either_permits(
         state, rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, active_id, partner_id

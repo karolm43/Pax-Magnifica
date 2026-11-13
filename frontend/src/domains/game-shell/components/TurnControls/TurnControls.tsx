@@ -774,6 +774,7 @@ export function TurnControls() {
           Wybór to tylko ADNOTACJA (component_id); efekt = oznaczenie akcji w turze
           (mechanika konkretnego komponentu dojdzie później — RULES.md 31.8). */}
       <AppModal
+        floating
         opened={componentOpen}
         onClose={() => setComponentOpen(false)}
         title="Play a component action"

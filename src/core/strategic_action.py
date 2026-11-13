@@ -50,6 +50,42 @@ def _spec(initiative: int) -> CardSpec:
     return CARDS.get(initiative, CardSpec())
 
 
+NO_COST_KEY = "no_cost"  # gracze, którzy dostali darmowe (nieobowiązkowe) secondary w oknie
+
+
+def secondary_without_token(state: GameState, player_id: str, initiative: int) -> bool:
+    """Czy gracz rozstrzyga secondary BEZ żetonu (hook albo wpis ``no_cost`` okna) — RULES.md 62.6.
+
+    W przeciwieństwie do „free” (Trade primary) takie secondary zostaje NIEOBOWIĄZKOWE.
+    """
+    window = state.pending_window
+    if window is not None and window.window_type is WindowType.STRATEGY_SECONDARY:
+        listed = {p for p in str(window.context.get(NO_COST_KEY, "")).split(",") if p}
+        if player_id in listed:
+            return True
+    return rules_hooks.permits(
+        rules_hooks.POINT_STRATEGY_SECONDARY_FREE, state, player_id,
+        {"initiative": initiative, "owner": state.active_player_id},
+    )
+
+
+def _no_cost_context(state: GameState, queue: list[str], initiative: int) -> dict[str, str]:
+    """Wpis ``no_cost`` kontekstu okna (tylko gdy ktoś rozstrzyga secondary bez żetonu)."""
+    listed = [p for p in queue if secondary_without_token(state, p, initiative)]
+    return {NO_COST_KEY: ",".join(listed)} if listed else {}
+
+
+def grant_no_cost(state: GameState, player_id: str) -> None:
+    """Dopisuje gracza do darmowych secondary bieżącego okna (MUTUJE; Acquiescence)."""
+    window = state.pending_window
+    if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
+        raise ValueError("No strategy card secondary is being resolved right now.")
+    listed = [p for p in str(window.context.get(NO_COST_KEY, "")).split(",") if p]
+    if player_id not in listed:
+        listed.append(player_id)
+    window.context = {**window.context, NO_COST_KEY: ",".join(listed)}
+
+
 def _free_players(context: dict[str, str | int]) -> set[str]:
     """Gracze z darmowym, obowiązkowym secondary (z kontekstu okna)."""
     raw = str(context.get(_FREE_KEY, ""))
@@ -64,6 +100,7 @@ def _finish_primary(
     draft: Draft,
     *,
     open_secondary: bool = True,
+    secondary_players: list[str] | None = None,
 ) -> GameState:
     """Stosuje efekt primary (na klonie ``state``) i otwiera okno secondary.
 
@@ -83,6 +120,8 @@ def _finish_primary(
         return state
 
     queue = timing.build_response_queue(state, owner_id)
+    if secondary_players is not None:
+        queue = [p for p in queue if p in secondary_players]
     if not queue:
         return state
     free = [p for p in draft.get("free_players", []) if p in queue]
@@ -95,6 +134,8 @@ def _finish_primary(
             _FREE_KEY: ",".join(free),
             # Czy follow kosztuje żeton (UI pokazuje koszt / blokuje Follow bez żetonu).
             "cost": 1 if spec.secondary_costs_token else 0,
+            # Kto rozstrzyga secondary bez żetonu (Masters of Trade) - UI nie żąda żetonu.
+            **_no_cost_context(state, queue, initiative),
         },
     )
     return _auto_resolve_free(opened, ctx)
@@ -231,7 +272,54 @@ def submit_primary_step(
         current.initiative,
         current.draft,
         open_secondary=not current.no_secondary,
+        secondary_players=current.secondary_players,
     )
+
+
+def begin_hero_primary(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    initiative: int,
+    secondary_players: list[str],
+    *,
+    grid: HexGrid | None = None,
+) -> None:
+    """Mathis Mathinus: PRIMARY dowolnej karty, potem secondary tylko dla wskazanych graczy.
+
+    Mutuje ``state`` (klon roboczy). Karta strategii nie jest wyczerpywana (gracz jej nie ma).
+    Wskazani płacą żeton jak zwykle (F_winnu). Karta z krokami ustawia ``pending_strategy``
+    i kończy się w ``submit_primary_step``.
+    """
+    spec = _spec(initiative)
+    if spec.primary_steps:
+        state.pending_strategy = StrategyResolution(
+            initiative=initiative,
+            owner_id=player_id,
+            step=spec.primary_steps[0],
+            secondary_players=list(secondary_players),
+        )
+        return
+    _finish_primary(
+        state, CardContext(registry, grid), player_id, initiative, {}, open_secondary=False
+    )
+    queue = [
+        p for p in timing.build_response_queue(state, player_id) if p in secondary_players
+    ]
+    if not queue:
+        return
+    opened = timing.open_window(
+        state,
+        WindowType.STRATEGY_SECONDARY,
+        queue,
+        context={
+            "initiative": initiative,
+            _FREE_KEY: "",
+            "cost": 1 if spec.secondary_costs_token else 0,
+            **_no_cost_context(state, queue, initiative),
+        },
+    )
+    state.pending_window = opened.pending_window
 
 
 def begin_overrule_primary(
@@ -319,10 +407,11 @@ def resolve_secondary(
     initiative = int(window.context.get("initiative", 0))
     spec = _spec(initiative)
     is_free = player_id in _free_players(window.context)
+    no_cost = secondary_without_token(state, player_id, initiative)
 
     new_state = state.clone()
     if execute:
-        if spec.secondary_costs_token and not is_free:
+        if spec.secondary_costs_token and not is_free and not no_cost:
             responder = new_state.players[player_id]
             # Hook (Scepter of Emelpar): gracz MOŻE wyczerpać relikt i wydać żeton z rezerwy.
             scepter = bool((payload or {}).get("scepter"))

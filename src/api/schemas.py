@@ -1451,6 +1451,8 @@ class TransactionSideRequest(BaseModel):
     relic_fragments: list[str] = Field(default_factory=list)
     # Karty akcji (Arbiters / Black Market Dealings) — silnik odrzuci je bez takiego efektu.
     action_cards: list[str] = Field(default_factory=list)
+    # Karty planet (Pride of Kenara): ``"<planeta>><planeta docelowa>"``.
+    planets: list[str] = Field(default_factory=list)
 
 
 class TransactionRespondRequest(BaseModel):
@@ -1480,6 +1482,7 @@ class TransactionSideView(BaseModel):
     promissory_note: str | None = Field(None, serialization_alias="promissoryNote")
     relic_fragments: list[str] = Field(default_factory=list, serialization_alias="relicFragments")
     action_cards: list[str] = Field(default_factory=list, serialization_alias="actionCards")
+    planets: list[str] = Field(default_factory=list)
 
 
 class TransactionOfferView(BaseModel):
@@ -1508,6 +1511,8 @@ class TransactionPartnerView(BaseModel):
     # Czy w tej parze wolno wymieniać karty akcji (Arbiters / Black Market Dealings).
     action_cards: bool = Field(False, serialization_alias="actionCards")
     done: bool = False
+    # Planety, których kartę ten partner może oddać (Pride of Kenara).
+    planets: list[str] = Field(default_factory=list)
 
 
 class TransactionStateResponse(BaseModel):
@@ -1517,6 +1522,8 @@ class TransactionStateResponse(BaseModel):
 
     offer: TransactionOfferView | None = None
     partners: list[TransactionPartnerView] = Field(default_factory=list)
+    # Planety, których kartę aktywny gracz może oddać (Pride of Kenara).
+    my_planets: list[str] = Field(default_factory=list, serialization_alias="myPlanets")
 
 
 class TransactionRequest(BaseModel):

@@ -687,6 +687,8 @@ def order_cost(
         if not aida_ready(state, player_id):
             raise ValueError("AI Development Algorithm is not ready.")
         base_cost = max(0.0, base_cost - aida_discount(state, registry, player_id))
+    if rules_hooks.permits(rules_hooks.POINT_PRODUCTION_FREE, state, player_id):
+        return 0.0  # Harrugh Gefhara: koszt 0, limity PRODUCTION zostają (F_hacan)
     return max(
         0.0,
         rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, state, player_id, base_cost),
