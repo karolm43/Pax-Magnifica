@@ -77,6 +77,24 @@ def test_jace_x_jako_akcja(registry: StaticDataRegistry) -> None:
     flow.use("leader", "solhero")
 
 
+def test_military_support_w_pierwszej_turze_fazy_akcji(registry: StaticDataRegistry) -> None:
+    """Pierwsza tura fazy akcji też ma pauzę „początek tury” (RULES.md 54.8) — notkę da się
+    zagrać, gdy Sol zaczyna fazę akcji."""
+    flow = Flow(registry, "sol")
+    note = flow.give_note("ms", flow.other)
+
+    def cards(s: Json) -> None:
+        s["players"][flow.me]["strategy_cards"] = [1, 2]  # Sol ma najniższą inicjatywę
+        s["players"][flow.other]["strategy_cards"] = [3, 4]
+
+    flow.edit(cards, phase="STRATEGY")
+    flow.post("/phase/next", {"player_id": flow.state()["speaker_id"]}, ok=False)
+    state = flow.state()
+    assert state["phase"] == "ACTION" and state["active_player_id"] == flow.me
+    row = flow.notes_playable(flow.other)[note]
+    assert row["playable"], row["reason"]
+
+
 @covers("promissory_notes:ms")
 def test_military_support_na_poczatku_tury_sola(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "sol")

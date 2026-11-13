@@ -153,21 +153,66 @@ export type ActionCardPlayability = {
  * Zagrywalność kart akcji z ręki gracza (po ``card_id``). Odświeżana co kilka sekund, bo zależy
  * od tury, fazy, okien i celów na planszy; dok ręki pozwala podnieść tylko karty zagrywalne.
  */
-export function useActionCardPlayability(playerId: string | null, enabled: boolean) {
-  return useQuery({
+/** Odpowiedź ``/action-card/playable``: karty + limit ręki (R_action_cards, RULES.md 53.8). */
+type PlayableResponse = {
+  cards: ActionCardPlayability[];
+  /** Ile kart gracz musi odrzucić do limitu ręki (0 = w limicie). */
+  discard?: number;
+  handLimit?: number | null;
+};
+
+function playableQuery(playerId: string | null, enabled: boolean) {
+  return {
     queryKey: ["actionCardPlayable", playerId],
     enabled: Boolean(playerId) && enabled,
     staleTime: 0,
     refetchInterval: 3000,
     retry: false,
-    queryFn: async (): Promise<Record<string, ActionCardPlayability>> => {
+    queryFn: async (): Promise<PlayableResponse> => {
       const url = `${BOT_ROOT}/action-card/playable?player_id=${encodeURIComponent(playerId ?? "")}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Error ${response.status}`);
-      const data = (await response.json()) as { cards: ActionCardPlayability[] };
-      return Object.fromEntries(data.cards.map((card) => [card.card_id, card]));
+      return (await response.json()) as PlayableResponse;
     },
+  };
+}
+
+const byCardId = (data: PlayableResponse): Record<string, ActionCardPlayability> =>
+  Object.fromEntries(data.cards.map((card) => [card.card_id, card]));
+
+const handLimitOf = (data: PlayableResponse): { discard: number; handLimit: number | null } => ({
+  discard: data.discard ?? 0,
+  handLimit: data.handLimit ?? null,
+});
+
+export function useActionCardPlayability(playerId: string | null, enabled: boolean) {
+  return useQuery({ ...playableQuery(playerId, enabled), select: byCardId });
+}
+
+/**
+ * Limit ręki kart akcji: ile kart gracz musi odrzucić (to samo zapytanie co zagrywalność — jeden
+ * fetch). Nadwyżkę odrzuca się przeciągnięciem karty na stos odrzuconych.
+ */
+export function useHandLimit(playerId: string | null, enabled: boolean) {
+  return useQuery({ ...playableQuery(playerId, enabled), select: handLimitOf });
+}
+
+/** Odrzuca wybraną kartę akcji ponad limit ręki; zwraca komunikat błędu albo null. */
+export async function postDiscardExcess(actorId: string, cardId: string): Promise<string | null> {
+  const response = await fetch(`${BOT_ROOT}/action-card/discard-excess`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor_id: actorId, card_id: cardId }),
   });
+  if (response.ok) return null;
+  const raw = await response.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(raw) as { detail?: unknown };
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // nie-JSON — zostaje kod statusu
+  }
+  return `Error ${response.status}`;
 }
 
 /** Krok historii, do którego można się cofnąć kartą (HOLD, RULES.md 53.7). */

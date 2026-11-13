@@ -133,6 +133,20 @@ def test_played_action_card_is_public_but_hand_stays_hidden() -> None:
     assert "secret_card" not in entry.model_dump_json()
 
 
+def test_discarded_action_card_is_not_shown_as_played() -> None:
+    """Odrzucenie do limitu ręki (RULES.md 53.8) to „discarded”, nie „played”."""
+    from src.core import card_draw
+
+    before = _state()
+    before.players["p1"].private.action_cards = ["sabotage", "secret_card"]
+    after = before.clone()
+    card_draw.discard_chosen_action_cards(after, "p1", ["sabotage"])
+    entry = derive_activity("action-card:discard-excess:sabotage", before, after)
+    assert entry is not None
+    facts = [(f.type, f.player_id, f.value) for f in entry.facts if "action_card" in f.type]
+    assert facts == [("action_card_discarded", "p1", "sabotage")]
+
+
 def test_revealed_exploration_card_is_listed() -> None:
     from src.core.game_state import ExplorationState, ExploreCurrent
 

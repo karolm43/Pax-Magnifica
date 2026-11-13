@@ -10,6 +10,8 @@ przechodzi — RULES.md 32.3 T3).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import combinations
+from typing import TypedDict
 
 from src.core import movement, rules_hooks
 from src.core.game_state import GameState
@@ -27,11 +29,27 @@ _MAX_ALTERNATIVES = 6
 # Premie +1 do ruchu jednego statku, które gracz włącza świadomie (przełącznik w UI).
 BONUS_GRAVITY_DRIVE = "gravity_drive"
 BONUS_TEMPESTA = "tempesta"
-_BONUS_COMBOS: tuple[tuple[str, ...], ...] = (
-    (BONUS_GRAVITY_DRIVE,),
-    (BONUS_TEMPESTA,),
-    (BONUS_GRAVITY_DRIVE, BONUS_TEMPESTA),
+BONUS_IMPERATOR = "imperator"
+_BONUSES = (BONUS_GRAVITY_DRIVE, BONUS_TEMPESTA, BONUS_IMPERATOR)
+# Zestawy premii od najmniejszych: pojedyncze, pary, wszystkie.
+_BONUS_COMBOS: tuple[tuple[str, ...], ...] = tuple(
+    combo for size in range(1, len(_BONUSES) + 1) for combo in combinations(_BONUSES, size)
 )
+
+
+class _BonusFlags(TypedDict):
+    boost: bool
+    tempesta: bool
+    imperator: bool
+
+
+def _flags(combo: tuple[str, ...] | list[str]) -> _BonusFlags:
+    """Zestaw premii → argumenty ``movement.can_move`` / ``_effective_move_value``."""
+    return {
+        "boost": BONUS_GRAVITY_DRIVE in combo,
+        "tempesta": BONUS_TEMPESTA in combo,
+        "imperator": BONUS_IMPERATOR in combo,
+    }
 
 
 @dataclass(frozen=True)
@@ -99,8 +117,6 @@ def route_report(
     reason = "" if route is not None else "No legal route through the chosen waypoints."
 
     bonuses = available_bonuses(state, grid, registry, from_pos, player_id)
-    boost = BONUS_GRAVITY_DRIVE in bonuses
-    tempesta_on = BONUS_TEMPESTA in bonuses
 
     # Najdalszy zasięg statków ze źródła (z dostępnymi premiami) wyznacza, jak długie
     # alternatywy ma sens pokazywać.
@@ -112,7 +128,7 @@ def route_report(
             continue
         move_value = movement._effective_move_value(
             state, grid, registry, from_pos, base_type, player_id,
-            boost=boost, tempesta=tempesta_on, companions=list(by_type),
+            **_flags(bonuses), companions=list(by_type),
         )
         if move_value:
             reach = max(reach, move_value)
@@ -156,7 +172,8 @@ def available_bonuses(
 
     Bez sprawdzania nazw technologii/kart: premia jest dostępna, gdy nie została zużyta w tej
     akcji, a hook ``movement.move_value`` faktycznie podnosi z nią ruch któregoś statku
-    (Gravity Drive - technologia; Ionian Fuel Refinery - efekt wyczerpanej karty Tempesty).
+    (Gravity Drive - technologia; Ionian Fuel Refinery - efekt wyczerpanej karty Tempesty;
+    Imperator - przełom Winnu po aktywacji systemu z planetą legendarną).
     """
     own = state.systems.get(from_pos)
     types = [
@@ -164,26 +181,25 @@ def available_bonuses(
         if n > 0 and is_space_unit(bt)
     ]
 
-    def lifts(*, boost: bool, tempesta: bool) -> bool:
+    def lifts(bonus: str) -> bool:
         for base_type in types:
             plain = movement._effective_move_value(
                 state, grid, registry, from_pos, base_type, player_id,
                 boost=False, tempesta=False,
             )
             boosted = movement._effective_move_value(
-                state, grid, registry, from_pos, base_type, player_id,
-                boost=boost, tempesta=tempesta,
+                state, grid, registry, from_pos, base_type, player_id, **_flags([bonus]),
             )
             if plain is not None and boosted is not None and boosted > plain:
                 return True
         return False
 
-    result: list[str] = []
-    if not state.gravity_drive_used and lifts(boost=True, tempesta=False):
-        result.append(BONUS_GRAVITY_DRIVE)
-    if not state.tempesta_used and lifts(boost=False, tempesta=True):
-        result.append(BONUS_TEMPESTA)
-    return result
+    used = {
+        BONUS_GRAVITY_DRIVE: state.gravity_drive_used,
+        BONUS_TEMPESTA: state.tempesta_used,
+        BONUS_IMPERATOR: state.imperator_used,
+    }
+    return [bonus for bonus in _BONUSES if not used[bonus] and lifts(bonus)]
 
 
 def _ships(
@@ -227,7 +243,7 @@ def _ships(
         ) -> tuple[bool, str]:
             return movement.can_move(
                 state, grid, registry, from_pos, base_type, player_id,
-                boost=BONUS_GRAVITY_DRIVE in combo, tempesta=BONUS_TEMPESTA in combo,
+                **_flags(combo),
                 route=route, companions=companions,
             )
 

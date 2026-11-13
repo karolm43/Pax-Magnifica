@@ -54,7 +54,12 @@ from src.core.rules_hooks import (
     register_effect_inputs,
 )
 from src.core.strategy_cards import CARDS
-from src.core.strategy_cards.common import place_structure, structure_problem
+from src.core.strategy_cards.common import (
+    board_structure_sources,
+    needs_board_source,
+    place_structure,
+    structure_problem,
+)
 from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
@@ -146,7 +151,37 @@ def blood_ties(_state: GameState, _player_id: str, _ctx: Mapping[str, Any]) -> b
 
 
 def _structure_options(state: GameState, player_id: str, planet: str) -> list[str]:
-    return [s for s in _STRUCTURES if structure_problem(state, player_id, planet, s) is None]
+    return [
+        s for s in _STRUCTURES
+        if structure_problem(state, player_id, planet, s, allow_board=True) is None
+    ]
+
+
+_STRUCTURE_NAME = {"pds": "PDS", "spacedock": "space dock"}
+
+
+def _variants(
+    state: GameState, registry: Any, player_id: str, planet: str, structure: str
+) -> list[tuple[str, str]]:
+    """Warianty postawienia struktury: z rezerwy albo — gdy pusta — zdjęta z planszy
+    (R_component_limitations; F_winnu: „may remove a unit from any system that does not contain
+    one of their command tokens”). Wartość ``<typ>`` albo ``<typ><<planeta-źródło>``."""
+    name = _STRUCTURE_NAME[structure]
+    if not needs_board_source(state, player_id, structure):
+        return [(structure, f"1 {name}")]
+    return [
+        (f"{structure}<{src}", f"1 {name} moved from {_planet_name(registry, src)}")
+        for src in board_structure_sources(state, player_id, structure, planet)
+    ]
+
+
+def _place_parts(state: GameState, player_id: str, planet: str, value: str) -> None:
+    """Kładzie struktury z wartości opcji (``pds``, ``spacedock<źródło>``, połączone ``+``)."""
+    for part in value.split("+"):
+        structure, _, source = part.partition("<")
+        if structure not in _STRUCTURES:
+            raise ValueError(f"Unknown structure: {structure}.")
+        place_structure(state, player_id, planet, structure, source=source or None)
 
 
 def _gained_mecatol(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
@@ -159,12 +194,19 @@ def _gained_mecatol(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
 
 
 def reclamation_inputs(
-    state: GameState, _registry: Any, player_id: str, ctx: Mapping[str, Any]
+    state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     planet = next(p for p in ctx.get("gained") or [] if p in MECATOL_PLANETS)
     able = _structure_options(state, player_id, planet)
-    options = [oi.option(_BOTH, "1 PDS and 1 space dock")] if len(able) == len(_STRUCTURES) else []
-    options += [oi.option(s, "1 PDS" if s == "pds" else "1 space dock") for s in able]
+    per = {s: _variants(state, registry, player_id, planet, s) for s in able}
+    options: list[dict[str, Any]] = []
+    if len(able) == len(_STRUCTURES):
+        options += [
+            oi.option(f"{pv}+{dv}", f"{pl} and {dl}")
+            for pv, pl in per["pds"]
+            for dv, dl in per["spacedock"]
+        ]
+    options += [oi.option(v, label) for s in able for v, label in per[s]]
     return [oi.choice("place", "Place on Mecatol Rex", options, always=True)]
 
 
@@ -175,11 +217,11 @@ def reclamation_inputs(
 )
 def reclamation(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Reclamation: After you resolve a tactical action during which you gained control of Mecatol
-    Rex: You may place 1 PDS and 1 space dock from your reinforcements on Mecatol Rex."""
+    Rex: You may place 1 PDS and 1 space dock from your reinforcements on Mecatol Rex.
+    (Pusta rezerwa: struktura zdjęta z systemu bez własnego żetonu — F_winnu.)"""
     planet = next(p for p in ctx.get("gained") or [] if p in MECATOL_PLANETS)
-    choice = str(ctx.get("params", {}).get("place") or _BOTH)
-    for structure in _STRUCTURES if choice == _BOTH else (choice,):
-        place_structure(state, player_id, planet, structure)
+    value = str(ctx.get("params", {}).get("place") or f"{_STRUCTURES[0]}+{_STRUCTURES[1]}")
+    _place_parts(state, player_id, planet, value)
 
 
 def _reclaimer_planets(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> list[str]:
@@ -201,12 +243,13 @@ def reclaimer_inputs(
 ) -> list[dict[str, Any]]:
     options = [
         oi.option(
-            f"{planet}|{s}",
-            f"{'PDS' if s == 'pds' else 'Space dock'} on {_planet_name(registry, planet)}",
+            f"{planet}|{value}",
+            f"{label} on {_planet_name(registry, planet)}",
             meta={"planet": planet},
         )
         for planet in _reclaimer_planets(state, player_id, ctx)
         for s in _structure_options(state, player_id, planet)
+        for value, label in _variants(state, registry, player_id, planet, s)
     ]
     return [oi.choice("place", "Reclaimer: place 1 structure", options, always=True)]
 
@@ -218,11 +261,12 @@ def reclaimer_inputs(
 )
 def reclaimer(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Reclaimer: After you resolve a tactical action where you gained control of this planet, you
-    may place 1 PDS or 1 Space Dock from your reinforcements on this planet."""
-    planet, _, structure = str(ctx.get("params", {}).get("place") or "").partition("|")
-    if planet not in _reclaimer_planets(state, player_id, ctx) or structure not in _STRUCTURES:
+    may place 1 PDS or 1 Space Dock from your reinforcements on this planet.
+    (Pusta rezerwa: struktura zdjęta z systemu bez własnego żetonu — F_winnu.)"""
+    planet, _, value = str(ctx.get("params", {}).get("place") or "").partition("|")
+    if planet not in _reclaimer_planets(state, player_id, ctx) or "+" in value:
         raise ValueError("Choose a planet you gained with a Reclaimer on it.")
-    place_structure(state, player_id, planet, structure)
+    _place_parts(state, player_id, planet, value)
 
 
 # ------------------------------------------------------------- Lazax Gate Folding
@@ -234,8 +278,8 @@ def reclaimer(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
 )
 def lazax_gate_folding(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> set[str]:
     """Lazax Gate Folding: During your tactical actions, if you do not control Mecatol Rex, treat
-    its system as if it has both an α and β wormhole. (Warstwa ruchu;
-    ⚠️ bez Space Cannon/odwrotów.)"""
+    its system as if it has both an α and β wormhole. (Ruch Winnu + ``action_adjacency``:
+    Deep Space Cannon, odwroty i sąsiedztwo graczy w tej akcji — F_winnu.)"""
     found = _mecatol(state)
     grid = board_graph.bound_grid()
     if found is None or grid is None or _controls_mecatol(state, player_id):
@@ -536,10 +580,12 @@ def imperator_combat(state: GameState, player_id: str, _ctx: Mapping[str, Any]) 
 @register(POINT_MOVEMENT_MOVE_VALUE, HookSource(SOURCE_BREAKTHROUGH, BREAKTHROUGH), HookKind.MODIFY)
 def imperator_move(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> int:
     """After you activate a system that contains a legendary planet, apply +1 to the move value of 1
-    of your ships during this tactical action (premia „jednego statku” jak Gravity Drive)."""
+    of your ships during this tactical action. Własny przełącznik (``imperator`` w kontekście)
+    i flaga ``GameState.imperator_used`` — niezależne od Gravity Drive (decyzja użytkownika:
+    obie premie mogą trafić na różne statki albo na ten sam)."""
     registry = rules_hooks.bound_registry()
     active = state.active_system
-    if not ctx.get("boost") or registry is None or active is None:
+    if not ctx.get("imperator") or registry is None or active is None:
         return 0
     return 1 if any(is_legendary(state, registry, p) for p in _system_planets(state, active)) else 0
 

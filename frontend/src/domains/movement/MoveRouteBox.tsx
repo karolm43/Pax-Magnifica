@@ -71,6 +71,7 @@ type Props = {
   hue: string;
   gravityDrive: boolean;
   tempesta: boolean;
+  imperator?: boolean;
 };
 
 /**
@@ -80,7 +81,15 @@ type Props = {
  * rysowane na mapie (``MoveRouteLayer``); klik w świecący system na mapie przerzuca trasę
  * przez niego (jak waypoint w nawigacji). Zasięg, blokady i capacity egzekwuje backend.
  */
-export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, tempesta }: Props) {
+export function MoveRouteBox({
+  faction,
+  player,
+  sources,
+  hue,
+  gravityDrive,
+  tempesta,
+  imperator = false,
+}: Props) {
   const gameData = useGameData();
   const draft = useAppStore((s) => s.moveDraft);
   const openMoveDraft = useAppStore((s) => s.openMoveDraft);
@@ -120,6 +129,7 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
     draft?.via ?? [],
     gravityDrive,
     tempesta,
+    imperator,
   );
   // ``routeMissing``: nowy wybór (np. Ctrl+drag z TEGO SAMEGO źródła) zeruje trasę w store, a
   // zapytanie zwraca te same dane z cache — bez tej zależności box zostawał bez trasy i wyboru.
@@ -202,7 +212,13 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
     zone === "space" ? "Space" : (getPlanetData(zone)?.name ?? zone);
 
   const bonusName = (bonus: string) =>
-    bonus === "gravity_drive" ? "+1 move for one ship (Gravity Drive / Imperator)" : bonus === "tempesta" ? "Ionian Fuel Refinery" : bonus;
+    bonus === "gravity_drive"
+      ? "Gravity Drive"
+      : bonus === "tempesta"
+        ? "Ionian Fuel Refinery"
+        : bonus === "imperator"
+          ? "Imperator"
+          : bonus;
   const shipCaption = (s: MoveRouteShip): string | undefined => {
     if (!s.reachable) return s.reason || "out of range";
     // Fighter II leci sam (nie zajmuje miejsca w transporcie), ale w celu potrzebuje capacity;
@@ -220,7 +236,7 @@ export function MoveRouteBox({ faction, player, sources, hue, gravityDrive, temp
   const problems = draftProblems(
     draft,
     (bt) => unitName(asyncOfBase(bt)),
-    gravityDrive || tempesta,
+    gravityDrive || tempesta || imperator,
   );
   const cap = draftCapacity(draft);
   const over = cap.used > cap.total;

@@ -39,6 +39,7 @@ from src.core import (
     legendary_planets,
     planet_abilities,
     production,
+    rules_hooks,
     space_cannon,
     strategy_phase,
     tech_effects,
@@ -160,6 +161,20 @@ def _active_color(state: GameState) -> str | None:
     if same_color != 1:
         return None
     return player.color
+
+
+def _imperator_boost_active(state: GameState) -> bool:
+    """Czy aktywny gracz ma teraz premię ruchu z kanału ``imperator`` (hook ``move_value``).
+
+    Bez nazw frakcji: pytamy hook, czy kanał podnosi ruch (Imperator: system z planetą legendarną).
+    """
+    active = state.active_player_id
+    if active is None or state.active_system is None or active not in state.players:
+        return False
+    point = rules_hooks.POINT_MOVEMENT_MOVE_VALUE
+    ctx = {"base_type": "cruiser", "boost": False, "tempesta": False}
+    with_bonus = rules_hooks.modify(point, state, active, 0, {**ctx, "imperator": True})
+    return int(with_bonus) > int(rules_hooks.modify(point, state, active, 0, ctx))
 
 
 def _pending_window(state: GameState) -> dict[str, Any] | None:
@@ -392,6 +407,9 @@ def _build_game_state(
             for e in state.active_effects
         ),
         "tempestaUsed": state.tempesta_used,
+        # Premia „+1 do ruchu jednego statku” z przełomu Imperator (Winnu) — osobny przełącznik.
+        "imperatorBoostActive": _imperator_boost_active(state),
+        "imperatorUsed": state.imperator_used,
         # Efekty trwałe w grze (bohater „near the game board”, kości agenta, prawa rundy...):
         # panel „Active effects” przy planszy. ``owner`` = klucz tożsamości gracza (jak faction).
         "activeEffects": _active_effects(state, registry),

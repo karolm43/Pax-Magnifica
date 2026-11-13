@@ -10,7 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
-from src.core import action_budget, objective_events, triggers
+from src.core import action_budget, hand_limit, objective_events, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
@@ -119,7 +119,7 @@ def open_decisions_reason(state: GameState) -> str | None:
         return "Players are still responding in an open timing window - wait for their decisions."
     if state.pending_offers:
         return "Players still have decisions to make (abilities on offer) - resolve them first."
-    return None
+    return hand_limit.over_limit_reason(state)
 
 
 def require_no_open_decisions(state: GameState) -> None:
@@ -186,6 +186,9 @@ def _require_action_turn(state: GameState, player_id: str | None) -> None:
         raise ValueError(
             f"It is not {player_id}'s turn (active: {state.active_player_id})."
         )
+    over = hand_limit.over_limit_reason(state, state.active_player_id)
+    if over is not None:  # R_action_cards: nadwyżkę odrzuca się natychmiast
+        raise ValueError(over)
 
 
 def end_turn(

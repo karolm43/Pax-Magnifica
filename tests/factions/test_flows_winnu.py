@@ -45,7 +45,7 @@ def test_reclamation_i_reclaimer_po_zdobyciu_mecatol(registry: StaticDataRegistr
     _take_mecatol(flow, {"infantry": 1, "mech": 1})
     assert flow.has_offer("Reclamation")
     assert flow.has_offer("Reclaimer")
-    flow.accept("Reclamation", {"place": "both"})
+    flow.accept("Reclamation", {"place": "pds+spacedock"})
 
 
 @covers("leaders:winnuagent")

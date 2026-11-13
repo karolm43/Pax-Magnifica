@@ -696,6 +696,8 @@ class MoveShipsRequest(BaseModel):
     gravity_drive: bool = Field(default=False, alias="gravityDrive")
     # Gracz ŚWIADOMIE używa Ionian Fuel Refinery (+1 do ruchu jednego statku w tej akcji).
     tempesta: bool = False
+    # Gracz ŚWIADOMIE używa premii Imperatora (Winnu: +1 do ruchu jednego statku w tej akcji).
+    imperator: bool = False
     # Trasa wybrana przez gracza: systemy od źródła do aktywnego (None = najkrótsza legalna).
     route: list[str] | None = None
 
@@ -1585,9 +1587,23 @@ class ActionCardPlayability(BaseModel):
 
 
 class ActionCardPlayabilityResponse(BaseModel):
-    """Zagrywalność wszystkich unikalnych kart akcji z ręki gracza."""
+    """Zagrywalność wszystkich unikalnych kart akcji z ręki gracza.
+
+    ``discard`` — ile kart gracz musi odrzucić do limitu ręki (R_action_cards; 0 = w limicie).
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
 
     cards: list[ActionCardPlayability]
+    discard: int = 0
+    hand_limit: int | None = Field(default=None, alias="handLimit")
+
+
+class DiscardExcessRequest(BaseModel):
+    """Odrzucenie wybranej karty akcji ponad limit ręki (``/action-card/discard-excess``)."""
+
+    actor_id: str
+    card_id: str
 
 
 class PlayRelicRequest(BaseModel):

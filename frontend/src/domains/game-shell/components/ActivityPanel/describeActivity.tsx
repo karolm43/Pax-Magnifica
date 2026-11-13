@@ -501,6 +501,18 @@ function describeFact(
         ),
       };
     }
+    case "action_card_discarded": {
+      const card = <Named kind="actionCard" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")} />;
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}discarded {card}
+          </>
+        ),
+      };
+    }
     case "agenda":
       return {
         key,

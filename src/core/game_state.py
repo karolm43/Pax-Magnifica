@@ -940,6 +940,9 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej zużyto już „+1 do ruchu dla jednego statku" z Ionian Fuel
     # Refinery (Tempesta, RULES.md 60). Osobne od Gravity Drive; zerowane jak ono.
     tempesta_used: bool = False
+    # Czy zużyto „+1 do ruchu jednego statku” z przełomu Imperator (Winnu, RULES.md 62.7).
+    # Osobne od Gravity Drive (decyzja użytkownika: premie mogą trafić na różne statki).
+    imperator_used: bool = False
     # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
     # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
     tactical_moved: bool = False

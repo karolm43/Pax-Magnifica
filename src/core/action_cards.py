@@ -19,6 +19,7 @@ from src.core import (
     card_draw,
     card_hold,
     component_action,
+    hand_limit,
     promissory_play,
     reaction_cards,
     rules_hooks,
@@ -112,6 +113,10 @@ def playability(
             "reaction": spec is None or spec.trigger is not TriggerKind.ACTION,
         }
         result.append(entry)
+        over = hand_limit.over_limit_reason(state, player_id)
+        if over is not None:  # R_action_cards: nadwyżki nie wolno „zagrać do siedmiu”
+            entry["reason"] = over
+            continue
         if promissory_play.silenced(state, player_id):
             entry["reason"] = "Political Secret: you cannot play action cards during this agenda."
             continue
@@ -277,6 +282,9 @@ def play_action_card(
         raise ValueError(f"You do not have the action card {card_id}.")
     if promissory_play.silenced(state, player_id):
         raise ValueError("Political Secret: you cannot play action cards during this agenda.")
+    over = hand_limit.over_limit_reason(state, player_id)
+    if over is not None:
+        raise ValueError(over)
     card = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
     if not isinstance(card, ActionCardDef):
         raise ValueError(f"Unknown action card: {card_id}")

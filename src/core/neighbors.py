@@ -16,13 +16,15 @@ sąsiadów dla danego gracza. Warstwa serializacji (``api/web_data.py``) mapuje
 ``player_id`` na kolory, których oczekuje viewer.
 
 Ograniczenia (świadome, zgodne z RULES.md 2 — adjacency zweryfikowane częściowo):
-* sąsiedztwo systemów bierzemy z ``HexGrid`` (geometria + wormhole); hyperlanes
-  i efekty frakcyjne zmieniające adjacency (np. Creuss Quantum Entanglement) nie
-  są tu uwzględnione — wejdą, gdy wejdzie pełna warstwa adjacency.
+* sąsiedztwo systemów bierzemy z ``HexGrid`` (geometria + wormhole) plus sąsiedztwo
+  z bieżącej akcji taktycznej (``action_adjacency``: SCC, Lazax Gate Folding — F_winnu:
+  „the Winnu player may become neighbors…”); hyperlanes i stałe efekty frakcyjne
+  (np. Creuss Quantum Entanglement) wejdą z pełną warstwą adjacency.
 """
 
 from __future__ import annotations
 
+from src.core import action_adjacency
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 
@@ -53,6 +55,20 @@ def _players_present(state: GameState) -> dict[str, set[str]]:
     return presence
 
 
+def _extra_map(state: GameState, presence: dict[str, set[str]]) -> dict[str, frozenset[str]]:
+    """Dodatkowe sąsiedztwo z akcji taktycznej, liczone raz dla systemów z obecnością."""
+    if state.tactical_step is None:
+        return {}
+    found = {pos: action_adjacency.extra_adjacent(state, pos) for pos in presence}
+    return {pos: extra for pos, extra in found.items() if extra}
+
+
+def _adjacent(grid: HexGrid, extra: dict[str, frozenset[str]], a: str, b: str) -> bool:
+    if grid.are_adjacent(a, b):
+        return True
+    return b in extra.get(a, frozenset()) or a in extra.get(b, frozenset())
+
+
 def neighbors_of(player_id: str, state: GameState, grid: HexGrid) -> set[str]:
     """Zbiór ``player_id`` graczy będących sąsiadami ``player_id`` (bez niego).
 
@@ -66,10 +82,11 @@ def neighbors_of(player_id: str, state: GameState, grid: HexGrid) -> set[str]:
     if not own_positions:
         return set()
 
+    extra = _extra_map(state, presence)
     result: set[str] = set()
     for own_pos in own_positions:
         for other_pos, here in presence.items():
-            if other_pos != own_pos and not grid.are_adjacent(own_pos, other_pos):
+            if other_pos != own_pos and not _adjacent(grid, extra, own_pos, other_pos):
                 continue
             result.update(here)
     result.discard(player_id)
@@ -86,6 +103,7 @@ def neighbors_by_player(
     to B jest sąsiadem A.
     """
     presence = _players_present(state)
+    extra = _extra_map(state, presence)
     result: dict[str, set[str]] = {pid: set() for pid in state.players}
 
     positions = list(presence.items())
@@ -96,7 +114,7 @@ def neighbors_by_player(
                 result[owner].update(here_a)
         # Systemy sąsiednie: obecni po obu stronach krawędzi.
         for pos_b, here_b in positions[i + 1 :]:
-            if not grid.are_adjacent(pos_a, pos_b):
+            if not _adjacent(grid, extra, pos_a, pos_b):
                 continue
             for owner in here_a:
                 if owner in result:

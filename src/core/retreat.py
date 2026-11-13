@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, ion_storm, rules_hooks, unit_ops
+from src.core import action_adjacency, command_tokens, ion_storm, rules_hooks, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -112,7 +112,8 @@ def retreat_destinations(
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     anywhere = rules_hooks.permits(rules_hooks.POINT_RETREAT_ANYWHERE, state, player_id)
     result: list[str] = []
-    for neighbor in sorted(grid.neighbors(position)):
+    # Sąsiedztwo z akcji taktycznej (SCC, Lazax Gate Folding — rulingi) też pozwala na odwrót.
+    for neighbor in sorted(action_adjacency.neighbors(state, grid, position)):
         if neighbor == position:
             continue
         anomalies = grid.anomalies_at(neighbor)
@@ -185,7 +186,7 @@ def ships_move_destinations(
     """
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     result: list[str] = []
-    for neighbor in sorted(grid.neighbors(position)):
+    for neighbor in sorted(action_adjacency.neighbors(state, grid, position)):
         if neighbor == position:
             continue
         anomalies = grid.anomalies_at(neighbor)

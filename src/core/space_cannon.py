@@ -23,6 +23,7 @@ from dataclasses import dataclass, replace
 from typing import Any, cast
 
 from src.core import (
+    action_adjacency,
     battle,
     exhaust,
     legendary_planets,
@@ -232,7 +233,8 @@ def offense_shooters(
     if active is None:
         return []
     result = _system_shooters(state, registry, player_id, active)
-    for neighbor in sorted(grid.neighbors(active)):
+    # Sąsiedztwo z akcji taktycznej (SCC, Lazax Gate Folding) działa też dla Deep Space Cannon.
+    for neighbor in sorted(action_adjacency.neighbors(state, grid, active)):
         result.extend(
             replace(s, remote=True)
             for s in _system_shooters(state, registry, player_id, neighbor)

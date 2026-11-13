@@ -128,7 +128,23 @@ export function MovementStepPanel({
   useEffect(() => {
     if (!tempestaReady && tempesta) setTempesta(false);
   }, [tempestaReady, tempesta, setTempesta]);
-  const { data: moveRange } = useMoveRange(faction, Boolean(activeSystem), useGd, useTempesta);
+  // Imperator (Winnu, RULES.md 62.7): osobna premia „+1 dla jednego statku” po aktywacji systemu
+  // z planetą legendarną — może trafić na inny statek niż Gravity Drive.
+  const imperator = useAppStore((s) => s.imperator);
+  const setImperator = useAppStore((s) => s.setImperator);
+  const imperatorReady =
+    gameState?.imperatorBoostActive === true && gameState?.imperatorUsed !== true;
+  const useImperator = imperator && imperatorReady;
+  useEffect(() => {
+    if (!imperatorReady && imperator) setImperator(false);
+  }, [imperatorReady, imperator, setImperator]);
+  const { data: moveRange } = useMoveRange(
+    faction,
+    Boolean(activeSystem),
+    useGd,
+    useTempesta,
+    useImperator,
+  );
   useEffect(() => {
     setMoveRangeSources(new Set(Object.keys(moveRange?.sources ?? {})));
     return () => setMoveRangeSources(new Set());
@@ -341,6 +357,17 @@ export function MovementStepPanel({
           onChange={(event) => setTempesta(event.currentTarget.checked)}
         />
       )}
+      {imperatorReady && (
+        <Switch
+          label="Use Imperator"
+          description="+1 move for ONE ship this action (can be a different ship than Gravity Drive)."
+          checked={imperator}
+          onChange={(event) => setImperator(event.currentTarget.checked)}
+        />
+      )}
+      {gameState?.imperatorBoostActive === true && gameState?.imperatorUsed === true && (
+        <span className={styles.prodZoneLabel}>Imperator used this action</span>
+      )}
       {gameState?.extraMoveBoostActive === true && gameState?.tempestaUsed === true && (
         <span className={styles.prodZoneLabel}>Ionian Fuel Refinery used this action</span>
       )}
@@ -358,6 +385,7 @@ export function MovementStepPanel({
         hue={`rgb(${look(faction).rgb})`}
         gravityDrive={useGd}
         tempesta={useTempesta}
+        imperator={useImperator}
       />
       <span className={styles.prodNote}>
         Click a glowing system on the map to pick units and plan the route.

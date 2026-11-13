@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
+from itertools import combinations as _combinations
 
 from src.core import ion_storm, rules_hooks, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
@@ -508,6 +509,7 @@ def _effective_move_value(
     *,
     boost: bool,
     tempesta: bool,
+    imperator: bool = False,
     companions: Iterable[str] | None = None,
 ) -> int | None:
     """Wartość ruchu statku ``base_type`` startującego z ``from_pos`` (None = nie rusza się sam).
@@ -533,7 +535,10 @@ def _effective_move_value(
     result = int(
         rules_hooks.modify(
             rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
-            {"base_type": base_type, "boost": boost, "tempesta": tempesta},
+            {
+                "base_type": base_type, "boost": boost, "tempesta": tempesta,
+                "imperator": imperator,
+            },
         )
     )
     others = [bt for bt in companions or () if bt != base_type]
@@ -547,7 +552,7 @@ def _effective_move_value(
         for other in others:
             value = _effective_move_value(
                 state, grid, registry, from_pos, other, player_id,
-                boost=boost, tempesta=tempesta,
+                boost=boost, tempesta=tempesta, imperator=imperator,
             )
             if value is not None:
                 result = max(result, value)
@@ -564,6 +569,7 @@ def can_move(
     *,
     boost: bool = False,
     tempesta: bool = False,
+    imperator: bool = False,
     route: list[str] | None = None,
     companions: Iterable[str] | None = None,
 ) -> tuple[bool, str]:
@@ -592,7 +598,7 @@ def can_move(
 
     move_value = _effective_move_value(
         state, grid, registry, from_pos, base_type, player_id,
-        boost=boost, tempesta=tempesta, companions=companions,
+        boost=boost, tempesta=tempesta, imperator=imperator, companions=companions,
     )
     if move_value is None:
         return False, (
@@ -744,6 +750,7 @@ def legal_move_sources(
     *,
     gravity_drive: bool = False,
     tempesta: bool = False,
+    imperator: bool = False,
 ) -> dict[str, list[str]]:
     """Mapa {pozycja źródłowa -> lista base_type statków, które mogą ruszyć stamtąd}.
 
@@ -774,6 +781,7 @@ def legal_move_sources(
                 state, grid, registry, position, base_type, player_id,
                 boost=gravity_drive and not state.gravity_drive_used,
                 tempesta=tempesta and not state.tempesta_used,
+                imperator=imperator and not state.imperator_used,
                 companions=[bt for bt, n in by_type.items() if n > 0],
             )
             if ok:
@@ -828,6 +836,56 @@ def _auto_route(
         ):
             return candidate
     return shortest
+
+
+def entry_blocked(grid: HexGrid, state: GameState, position: str, player_id: str) -> str | None:
+    """Czy jednostki gracza mogą wejść do systemu ``position`` spoza ruchu statków (R6).
+
+    Dla przemieszczeń innych niż ruch (G'hom Sek'kus: siły z sąsiednich systemów). Supernowa
+    blokuje zawsze, pole asteroid bez Antimass Deflectors (F_norr). Zwraca powód albo ``None``.
+    """
+    if _target_passable(
+        grid, position, can_enter_asteroids=_can_enter_asteroids(state, player_id)
+    ):
+        return None
+    if _SUPERNOVA in grid.anomalies_at(position):
+        return "Units cannot enter a supernova."
+    return "Units cannot enter an asteroid field without Antimass Deflectors."
+
+
+def is_gravity_rift(grid: HexGrid, position: str) -> bool:
+    return _GRAVITY_RIFT in grid.anomalies_at(position)
+
+
+def roll_rift_exit(state: GameState, player_id: str, units: dict[str, int]) -> dict[str, int]:
+    """Rzut d10 za każdą jednostkę wychodzącą z gravity rift POZA ruchem statków (MUTUJE klon).
+
+    R_gravity_rift; F_norr: siły naziemne przesuwane G'hom Sek'kus z systemu ze szczeliną rzucają
+    na usunięcie. 1–3 = jednostka usunięta. Zwraca ``{typ: ile usuniętych}``; usunięcie z planszy
+    robi wołający (zna strefę). Jeden wpis rzutu „na stół”.
+    """
+    if _ignores_anomalies(state, player_id):
+        return {}
+    rng = next_rng(state)
+    rolls: list[int] = []
+    lost: dict[str, int] = {}
+    for base_type in sorted(units):
+        results = [rng.randint(1, DIE_SIDES) for _ in range(units[base_type])]
+        rolls.extend(results)
+        gone = sum(1 for r in results if r <= _RIFT_REMOVED_ON)
+        if gone:
+            lost[base_type] = gone
+    if rolls:
+        record_table_roll(
+            state, player_id, "gravity_rift", "Gravity Rift", rolls,
+            hit_values=list(range(1, _RIFT_REMOVED_ON + 1)),
+            summary=(
+                f"{sum(lost.values())} unit(s) removed by the gravity rift."
+                if lost
+                else "All units got through the gravity rift."
+            ),
+        )
+    return lost
 
 
 def _resolve_rift_losses(
@@ -944,6 +1002,7 @@ def move_fleet(
     *,
     gravity_drive: bool = False,
     tempesta: bool = False,
+    imperator: bool = False,
     route: list[str] | None = None,
 ) -> GameState:
     """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
@@ -1006,35 +1065,47 @@ def move_fleet(
     # dla JEDNEGO statku w akcji (Gravity Drive, RULES.md 55.6) działa WYŁĄCZNIE na życzenie
     # gracza (``gravity_drive=True``), tylko tam, gdzie bez niej ruch jest nielegalny, i nie
     # dla grupy większej niż 1.
-    boost_spent = state.gravity_drive_used
-    tempesta_spent = state.tempesta_used
+    # Premie „+1 dla jednego statku” to osobne zdolności (Gravity Drive, Ionian Fuel Refinery,
+    # Imperator) — każda z własną flagą zużycia; mogą trafić na różne statki albo na ten sam.
+    wanted = {"boost": gravity_drive, "tempesta": tempesta, "imperator": imperator}
+    spent = {
+        "boost": state.gravity_drive_used,
+        "tempesta": state.tempesta_used,
+        "imperator": state.imperator_used,
+    }
+    this_move = dict.fromkeys(wanted, False)
     # Gravleash Maneuvers: premia trafia na 1 statek, a reszta grupy (niemyśliwska) wyrównuje do
     # jego wartości (F_letnev) — premia zużyta w TYM ruchu działa więc na kolejne typy statków.
     group_matches = rules_hooks.permits(
         rules_hooks.POINT_MOVEMENT_MATCH_HIGHEST, state, player_id
     )
-    gd_this_move = False
-    tp_this_move = False
     for base_type, count in ships.items():
         ok, reason = can_move(
             state, grid, registry, from_pos, base_type, player_id, route=plan_route,
             companions=list(ships),
         )
         if not ok:
-            # Premie to osobne zdolności (Gravity Drive, Ionian Fuel Refinery): próbujemy
-            # pojedynczą, potem obie naraz; zużywa się tylko to, co było potrzebne.
+            # Najpierw pojedyncze premie, potem pary, na końcu wszystkie; zużywa się tylko to,
+            # co było potrzebne.
             shared = group_matches and base_type != _FIGHTER
-            can_gd = gravity_drive and (not boost_spent or (shared and gd_this_move))
-            can_tp = tempesta and (not tempesta_spent or (shared and tp_this_move))
+            usable = [
+                name for name in wanted
+                if wanted[name] and (not spent[name] or (shared and this_move[name]))
+            ]
+            combos = [
+                combo
+                for size in range(1, len(usable) + 1)
+                for combo in _combinations(usable, size)
+            ]
             chosen = next(
                 (
-                    (gd, tp)
-                    for gd, tp in ((True, False), (False, True), (True, True))
-                    if (can_gd or not gd)
-                    and (can_tp or not tp)
-                    and can_move(
+                    combo
+                    for combo in combos
+                    if can_move(
                         state, grid, registry, from_pos, base_type, player_id,
-                        boost=gd, tempesta=tp, route=plan_route, companions=list(ships),
+                        boost="boost" in combo, tempesta="tempesta" in combo,
+                        imperator="imperator" in combo,
+                        route=plan_route, companions=list(ships),
                     )[0]
                 ),
                 None,
@@ -1047,10 +1118,9 @@ def move_fleet(
                 raise ValueError(
                     f"{reason} A +1 move bonus extends the move of only 1 ship per action."
                 )
-            gd_this_move = gd_this_move or chosen[0]
-            tp_this_move = tp_this_move or chosen[1]
-            boost_spent = boost_spent or chosen[0]
-            tempesta_spent = tempesta_spent or chosen[1]
+            for name in chosen:
+                this_move[name] = True
+                spent[name] = True
         available = _available_in_zone(source, player_id, base_type, "space")
         if available < count:
             raise ValueError(
@@ -1132,8 +1202,9 @@ def move_fleet(
             )
 
     new_state = state.clone()
-    new_state.gravity_drive_used = boost_spent
-    new_state.tempesta_used = tempesta_spent
+    new_state.gravity_drive_used = spent["boost"]
+    new_state.tempesta_used = spent["tempesta"]
+    new_state.imperator_used = spent["imperator"]
     src = new_state.systems.get(from_pos)
     assert src is not None  # gwarantowane: dostępność sprawdzona wyżej
 

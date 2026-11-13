@@ -204,6 +204,21 @@ def test_scc_laczy_aktywny_system_z_twoimi(grid: HexGrid) -> None:
     assert "102" in movement._neighbors_for_move(grid, after, "105", "p1")
     assert "105" in movement._neighbors_for_move(grid, after, "102", "p1")
     assert "102" not in movement._neighbors_for_move(grid, after, "105", "p2")
+    # F_jol_nar: w tej akcji sąsiedztwo działa dla wszystkich (Deep Space Cannon p2 ze 105).
+    from src.core import action_adjacency, space_cannon
+    from src.core.game_state import TacticalStep
+    from src.core.registry import StaticDataRegistry
+
+    after.tactical_step = TacticalStep.SPACE_CANNON
+    assert "105" in action_adjacency.neighbors(after, grid, "102")
+    registry = StaticDataRegistry()
+    planet = registry.systems["19"].planets[0]
+    after.systems["105"].planet_units = {planet: {"p2": {"pds": 1}}}
+    after.players["p2"].technologies = ["pds2"]  # PDS II: Deep Space Cannon
+    shooters = space_cannon.offense_shooters(after, grid, registry, "p2")
+    assert shooters and all(s.remote for s in shooters)
+    after.tactical_step = None  # poza akcją Jol-Nar sąsiedztwa nie ma
+    assert space_cannon.offense_shooters(after, grid, registry, "p2") == []
 
 
 def test_scc_brak_oferty_bez_innych_jednostek() -> None:

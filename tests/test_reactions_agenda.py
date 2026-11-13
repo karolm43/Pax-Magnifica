@@ -113,7 +113,8 @@ def test_okno_poczatku_fazy_tylko_przed_pierwsza_agenda(registry: StaticDataRegi
 def test_okna_po_ujawnieniu_zamykaja_sie_po_pierwszej_decyzji(
     registry: StaticDataRegistry,
 ) -> None:
-    cards = ["veto", "dp1", "assassin", "hack", "insider", *ALL_RIDERS]
+    # Najwyżej 7 kart: nadwyżka ponad limit ręki blokuje zagrywanie (RULES.md 53.8).
+    cards = ["veto", "dp1", "assassin", "hack", "insider", "imp_rider", "trade_rider"]
     state = _revealed(registry, [LAW, DIRECTIVE, LAW], {"p1": cards})
     state.players["p2"].private.promissory_notes = ["x"]
     for card in ("veto", "assassin", "hack", "insider", "imp_rider", "trade_rider"):

@@ -619,6 +619,7 @@ export function useBoardEditor() {
         fromPosition: args.fromPosition,
         gravityDrive: useAppStore.getState().gravityDrive,
         tempesta: useAppStore.getState().tempesta,
+        imperator: useAppStore.getState().imperator,
         baseType: args.baseType ?? null,
         count: args.baseType ? (args.count ?? 1) : 0,
         faction: args.faction,
@@ -1502,13 +1503,14 @@ export function useMoveRange(
   enabled: boolean,
   gravityDrive = false,
   tempesta = false,
+  imperator = false,
 ) {
   return useQuery<MoveRange>({
-    queryKey: ["moveRange", faction, gravityDrive, tempesta],
+    queryKey: ["moveRange", faction, gravityDrive, tempesta, imperator],
     enabled: enabled && faction !== null,
     queryFn: async () =>
       fetchJson<MoveRange>(
-        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}&gravity_drive=${gravityDrive}&tempesta=${tempesta}`,
+        `/bot/tactical/move-range?faction=${encodeURIComponent(faction ?? "")}&gravity_drive=${gravityDrive}&tempesta=${tempesta}&imperator=${imperator}`,
         "moveRange",
       ),
     staleTime: 0,
@@ -1525,9 +1527,10 @@ export function useMoveRoute(
   via: string[],
   gravityDrive: boolean,
   tempesta: boolean,
+  imperator = false,
 ) {
   return useQuery<MoveRouteData>({
-    queryKey: ["moveRoute", faction, from, via, gravityDrive, tempesta],
+    queryKey: ["moveRoute", faction, from, via, gravityDrive, tempesta, imperator],
     enabled: faction !== null && from !== null,
     queryFn: async () =>
       fetchJson<MoveRouteData>(

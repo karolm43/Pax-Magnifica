@@ -64,6 +64,11 @@ def test_gila_przy_glosowaniu(registry: StaticDataRegistry) -> None:
     assert f"{flow.me}:hacancommander" in flow.available()
     flow.use("leader", "hacancommander", {"trade_goods": 2})
     assert flow.state()["players"][flow.me]["trade_goods"] == 8
+    # F_hacan: wstrzymanie się = brak dodatkowych głosów, wydane TG wracają.
+    flow.post("/agenda/abstain", {"player_id": flow.me})
+    state = flow.state()
+    assert state["players"][flow.me]["trade_goods"] == 10
+    assert not [e for e in state["active_effects"] if e["key"].startswith("leaders:hacan")]
 
 
 @covers("leaders:hacanhero")

@@ -34,6 +34,7 @@ from src.core import (
     chronicle,
     control,
     economy,
+    hand_limit,
     promissory_notes,
     relic_fragments,
     relics,
@@ -146,6 +147,9 @@ def _validate_extras(
     for relic, count in Counter(side.relics).items():
         if count > Counter(giver.relics)[relic]:
             raise ValueError(f"{who} does not have the relic '{relic}'.")
+    if side.action_cards and hand_limit.action_card_excess(state, giver_id) > 0:
+        # R_action_cards: nadwyżkę trzeba odrzucić — nie wolno jej oddać w transakcji.
+        raise ValueError(f"{who} must first discard down to the action card hand limit.")
     for card, count in Counter(side.action_cards).items():
         if count > Counter(giver.private.action_cards)[card]:
             raise ValueError(f"{who} does not have the action card '{card}'.")

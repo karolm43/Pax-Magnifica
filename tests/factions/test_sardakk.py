@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import pytest
@@ -33,6 +33,7 @@ from src.core.game_state import (
     TimingWindow,
     WindowType,
 )
+from src.core.hex_grid import HexGrid
 from src.core.hooks import reactions_combat
 from src.core.hooks.factions import sardakk
 from src.core.registry import StaticDataRegistry
@@ -174,6 +175,22 @@ def test_exotrireme_niszczy_do_2_statkow(registry: StaticDataRegistry) -> None:
     assert after.systems["102"].space_units["p2"] == {"cruiser": 1}
 
 
+def test_exotrireme_po_odwrocie_przeciwnika_brak_oferty(registry: StaticDataRegistry) -> None:
+    """F_norr: gdy przeciwnik się wycofuje, Exotrireme II nie działa."""
+    state = _state()
+    state.players["p1"].technologies = ["exo2"]
+    state.systems["102"].space_units["p1"] = {"dreadnought": 1}
+    state.systems["102"].space_units["p2"] = {"cruiser": 1}
+    state.systems["000"].space_units["p2"] = {"carrier": 1}  # cel odwrotu
+    combat = _combat(state, "space")
+    combat.retreating = ["p2"]
+    triggers.fire(state, GameEvent.COMBAT_ROUND, Moment.END, ctx=_round_end_ctx())
+    assert state.pending_offers == []
+    combat.retreating = []  # bez odwrotu oferta jest
+    triggers.fire(state, GameEvent.COMBAT_ROUND, Moment.END, ctx=_round_end_ctx())
+    assert [o.player_id for o in state.pending_offers] == ["p1"]
+
+
 def test_exotrireme_bez_technologii_brak_oferty(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].space_units["p1"] = {"dreadnought": 1}
@@ -265,6 +282,7 @@ def test_commander_laduje_z_sasiedniej_planety(registry: StaticDataRegistry) -> 
     state.tactical_step = TacticalStep.INVASION
     state.invasion = InvasionState(position="102", attacker="p1", phase=InvasionPhase.COMMIT)
     state.systems["000"].planet_units["mr"] = {"p1": {"infantry": 2}}
+    state.players["p1"].technologies = ["amd"]  # 102 w siatce demo to pole asteroid
     form = faction_components.form(state, registry, "p1", "leader", "sardakkcommander")
     assert form["mode"] == "window"
     keys = [i["key"] for i in form["inputs"]]
@@ -291,6 +309,62 @@ def test_commander_nie_z_systemu_z_wlasnym_zetonem(registry: StaticDataRegistry)
     state.systems["000"].command_tokens = ["p1"]
     reason = sardakk._commander_window(state, registry, "p1")
     assert reason is not None and "no ground forces" in reason
+
+
+def _ghom_grid(active: set[str], source: set[str]) -> HexGrid:
+    """102 (aktywny, Industrex) i sąsiedni 000 (Mecatol) z wybranymi anomaliami."""
+    grid = HexGrid()
+    grid.place_system("102", "115", anomalies=active)
+    grid.place_system("000", "18", anomalies=source)
+    grid.build_edges()
+    return grid
+
+
+def _provider(grid: HexGrid) -> Callable[[], HexGrid]:
+    return lambda: grid
+
+
+def _ghom_state() -> GameState:
+    state = _state()
+    state.players["p1"].leader_states = {"sardakkcommander": "unlocked"}
+    state.tactical_step = TacticalStep.INVASION
+    state.invasion = InvasionState(position="102", attacker="p1", phase=InvasionPhase.COMMIT)
+    state.systems["000"].planet_units["mr"] = {"p1": {"infantry": 2}}
+    return state
+
+
+def test_commander_nie_do_asteroid_ani_supernowej(registry: StaticDataRegistry) -> None:
+    """F_norr: siły muszą legalnie wejść do aktywnego systemu (Mirage w asteroidach/supernowej)."""
+    previous = board_graph._PROVIDER
+    try:
+        for anomaly in ("SUPERNOVA", "ASTEROID_FIELD"):
+            board_graph.bind_grid_provider(_provider(_ghom_grid({anomaly}, set())))
+            sources = sardakk._commander_sources(_ghom_state(), registry, "p1")
+            assert [pos for pos, _, _ in sources] == []
+        state = _ghom_state()
+        state.players["p1"].technologies = ["amd"]  # Antimass Deflectors: asteroidy wolno
+        assert [pos for pos, _, _ in sardakk._commander_sources(state, registry, "p1")] == ["000"]
+    finally:
+        board_graph.bind_grid_provider(previous)
+
+
+def test_commander_z_gravity_rift_rzuca(registry: StaticDataRegistry) -> None:
+    """F_norr: siły wychodzące z systemu z gravity rift rzucają na usunięcie (1–3)."""
+    previous = board_graph._PROVIDER
+    grid = _ghom_grid(set(), {"GRAVITY_RIFT"})
+    board_graph.bind_grid_provider(lambda: grid)
+    try:
+        after, _ = faction_components.play(
+            _ghom_state(), registry, "p1", "leader", "sardakkcommander",
+            {"src:000:mr": "infantry>industrex"},
+        )
+    finally:
+        board_graph.bind_grid_provider(previous)
+    roll = after.table_roll
+    assert roll is not None and roll["kind"] == "gravity_rift" and len(roll["dice"]) == 1
+    landed = after.systems["102"].planet_units.get("industrex", {}).get("p1", {})
+    assert after.systems["000"].planet_units["mr"]["p1"] == {"infantry": 1}
+    assert landed == ({} if roll["dice"][0] <= 3 else {"infantry": 1})
 
 
 # ----------------------------------------------------------------- Sh'val (Tekklar Conditioning)

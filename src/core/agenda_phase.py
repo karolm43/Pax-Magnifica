@@ -25,6 +25,7 @@ from typing import Any
 from src.core import (
     active_effects,
     card_draw,
+    economy,
     exhaust,
     objective_events,
     objectives,
@@ -217,13 +218,40 @@ def _point_to_voter(state: GameState) -> None:
 # --- Głosy ---------------------------------------------------------------------------------
 
 
-def extra_votes(state: GameState, registry: StaticDataRegistry, player_id: str) -> int:
-    """Dodatkowe głosy z efektów gry - hook MODIFY ``agenda.vote_modifier`` (RULES.md 43)."""
+def extra_votes(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_votes: int = 0
+) -> int:
+    """Dodatkowe głosy z efektów gry - hook MODIFY ``agenda.vote_modifier`` (RULES.md 43).
+
+    ``base_votes`` = głosy z planet i kart, zanim doliczy się efekty (ctx hooka). Efekt
+    „cast N additional votes" bez zwykłych głosów nie działa (F_hacan: Gila przy 0 głosach).
+    """
     del registry
     agenda_id = state.agenda.agenda_id if state.agenda is not None else None
     return rules_hooks.modify(
-        rules_hooks.POINT_AGENDA_VOTE_MODIFIER, state, player_id, 0, {"agenda_id": agenda_id}
+        rules_hooks.POINT_AGENDA_VOTE_MODIFIER,
+        state,
+        player_id,
+        0,
+        {"agenda_id": agenda_id, "base_votes": base_votes},
     )
+
+
+VOTE_REFUND_KEY = "refund_trade_goods_on_abstain"  # data efektu: TG zwracane przy wstrzymaniu
+
+
+def _refund_vote_effects(state: GameState, player_id: str) -> None:
+    """Wstrzymanie się: efekty „wydaj TG -> dodatkowe głosy" przepadają, TG wracają.
+
+    Efekt zapisuje w ``data[VOTE_REFUND_KEY]`` wydane TG (F_hacan: gracz, który się wstrzymał,
+    nie oddaje dodatkowych głosów - więc nie mógł też za nie zapłacić).
+    """
+    for effect in list(active_effects.effects_for(state, player_id)):
+        spent = int(effect.data.get(VOTE_REFUND_KEY, 0) or 0)
+        if spent <= 0:
+            continue
+        economy.refund_trade_goods(state, player_id, spent)
+        active_effects.remove_effect(state, effect.id)
 
 
 PREDICTIVE_INTELLIGENCE = "pi"  # alias z technologies/pok.json
@@ -385,9 +413,10 @@ def cast_vote(
             raise ValueError(
                 f"Planet {planet} cannot give votes (not yours, exhausted or 0 influence)."
             )
-    votes = sum(usable[p] for p in planets) + extra_votes(state, registry, player_id)
+    votes = sum(usable[p] for p in planets)
     if use_predictive:
         votes += PREDICTIVE_VOTES
+    votes += extra_votes(state, registry, player_id, base_votes=votes)
     if votes <= 0:
         raise ValueError("Casting zero votes is the same as abstaining - abstain instead.")
     chosen = _normalise_outcome(agenda, outcome)
@@ -422,6 +451,7 @@ def abstain(state: GameState, registry: StaticDataRegistry, player_id: str) -> G
     work = state.clone()
     assert work.agenda is not None
     work.agenda.abstained.append(player_id)
+    _refund_vote_effects(work, player_id)
     work.agenda.last_vote_by = None  # okno „po głosach poprzednika" zamknięte
     work.players[player_id].passed = True
     return _after_vote(work, registry)

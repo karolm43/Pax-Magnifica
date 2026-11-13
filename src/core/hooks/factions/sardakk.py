@@ -20,7 +20,9 @@ from src.core import (
     invasion,
     ion_storm,
     leaders,
+    movement,
     promissory_play,
+    retreat,
     rules_hooks,
     technology,
     unit_ops,
@@ -29,6 +31,7 @@ from src.core import offer_inputs as oi
 from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, InvasionPhase, Phase, TacticalStep
+from src.core.hex_grid import HexGrid
 from src.core.reaction_cards import OpenWindow
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
@@ -167,9 +170,21 @@ def _enemy_ships(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> di
     }
 
 
+def _opponent_retreats(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    """Przeciwnik ogłosił odwrót, który się odbędzie (jest dozwolony cel — O3/O4)."""
+    combat = state.active_combat
+    enemy = _opponent(player_id, ctx)
+    if combat is None or enemy not in combat.retreating:
+        return False
+    grid = board_graph.bound_grid() or HexGrid()
+    return bool(retreat.retreat_destinations(state, grid, str(ctx.get("position")), enemy))
+
+
 def _exotrireme_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     if ctx.get("kind") != "space" or player_id not in (ctx.get("attacker"), ctx.get("defender")):
         return False
+    if _opponent_retreats(state, player_id, ctx):
+        return False  # F_norr: po odwrocie przeciwnika zdolności nie da się użyć
     position = str(ctx.get("position"))
     return faction_units.has_unit_in(
         state, _registry(), player_id, EXOTRIREME_UNIT, position
@@ -344,7 +359,11 @@ def _commander_sources(
     if inv is None:
         return []
     positions = [inv.position]
-    if not promissory_play.ceasefire_blocks(state, player_id):  # F_norr: Ceasefire
+    grid = board_graph.bound_grid() or HexGrid()
+    # F_norr: siły muszą móc legalnie wejść do aktywnego systemu (supernowa, asteroidy) i nie
+    # przy Ceasefire. ⚠️ Enforced Travel Ban — razem z efektami agend.
+    blocked = movement.entry_blocked(grid, state, inv.position, player_id) is not None
+    if not blocked and not promissory_play.ceasefire_blocks(state, player_id):
         for position in sorted(board_graph.adjacent_positions(inv.position)):
             system = state.systems.get(position)
             if system is not None and player_id not in system.command_tokens:
@@ -396,6 +415,36 @@ def commander_inputs(
     return inputs
 
 
+def _rift_survivors(
+    state: GameState, player_id: str, moves: list[tuple[str, str, str, str]]
+) -> list[tuple[str, str, str, str]]:
+    """F_norr: siły wychodzące z systemu z gravity rift rzucają; usunięte nie lądują."""
+    inv = state.invasion
+    grid = board_graph.bound_grid() or HexGrid()
+    leaving = [
+        m for m in moves
+        if inv is not None and m[0] != inv.position and movement.is_gravity_rift(grid, m[0])
+    ]
+    if not leaving:
+        return moves
+    units: dict[str, int] = {}
+    for _pos, _planet, base_type, _dest in leaving:
+        units[base_type] = units.get(base_type, 0) + 1
+    lost = movement.roll_rift_exit(state, player_id, units)
+    kept: list[tuple[str, str, str, str]] = []
+    for move in moves:
+        position, planet, base_type, _dest = move
+        if move in leaving and lost.get(base_type, 0) > 0:
+            lost[base_type] -= 1
+            unit_ops.remove_units(
+                state, state.systems[position], planet, player_id, base_type, 1,
+                UnitCause.REMOVED,
+            )
+            continue
+        kept.append(move)
+    return kept
+
+
 @register_effect(f"leaders:{COMMANDER}")
 def ghom_sekkus(
     state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
@@ -412,7 +461,9 @@ def ghom_sekkus(
         moves.append((position, planet, base_type, dest))
     if not moves:
         raise ValueError("Choose at least 1 ground force to commit.")
-    invasion.apply_commit_from_planets(state, registry, moves)
+    moves = _rift_survivors(state, player_id, moves)
+    if moves:
+        invasion.apply_commit_from_planets(state, registry, moves)
     active_effects.add_effect(state, COMMANDER_USED, Duration.INVASION, owner=player_id)
 
 

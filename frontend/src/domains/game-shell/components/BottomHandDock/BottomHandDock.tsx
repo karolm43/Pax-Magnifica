@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import cx from "clsx";
 import {
@@ -9,6 +9,7 @@ import {
   IconLayoutGrid,
   IconPlayerPlayFilled,
   IconTarget,
+  IconTrash,
   IconTicket,
 } from "@tabler/icons-react";
 import { UnstyledButton } from "@/ds";
@@ -38,7 +39,12 @@ import { useGameData } from "@/state/useGameContext";
 import { HoldControls } from "./HoldControls";
 import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
-import { useActionCardPlayability } from "@/api/useActionCard";
+import {
+  postDiscardExcess,
+  useActionCardPlayability,
+  useHandLimit,
+} from "@/api/useActionCard";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRelicPlayability } from "@/api/useRelics";
 import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
@@ -211,10 +217,13 @@ function HandCard({
   passive,
   frontier,
   reaction,
+  discardable,
   onDragChange,
 }: {
   tab: HandTab;
   id: string;
+  /** Ręka ponad limitem (R_action_cards): kartę akcji przeciąga się na stos odrzuconych. */
+  discardable?: boolean;
   /** Karta frontier w zakładce Action cards (przeciągana jak karta akcji). */
   frontier?: boolean;
   /** Decyzja silnika o zagrywalności (karty akcji i relikty z ACTION); brak = jeszcze nie wiadomo. */
@@ -230,9 +239,12 @@ function HandCard({
   const [open, setOpen] = useState(false);
   const { name, tag, ownerRgb } = useCardLabel(tab, id, relicTag, frontier);
   const playableTab = PLAYABLE_TABS.has(tab);
-  const canDrag = playableTab && play?.playable === true;
-  const locked = playableTab && !passive && play !== undefined && !play.playable;
-  const hint = canDrag
+  const canDrag = discardable === true || (playableTab && play?.playable === true);
+  const locked =
+    !discardable && playableTab && !passive && play !== undefined && !play.playable;
+  const hint = discardable
+    ? `${name} - drag onto the discard pile to discard it (hand limit)`
+    : canDrag
     ? reaction
       ? `${name} - its window is open now: drag onto the play zone to play`
       : `${name} - drag onto the play zone to play`
@@ -272,6 +284,7 @@ function HandCard({
           data-open={open || undefined}
           data-tinted={ownerRgb ? true : undefined}
           data-playable={canDrag || undefined}
+          data-discard={discardable || undefined}
           data-reaction={(canDrag && reaction) || undefined}
           data-locked={locked || undefined}
           onClick={() => setOpen((v) => !v)}
@@ -337,6 +350,8 @@ export function BottomHandDock() {
     id: string;
     tab: HandTab;
     frontier?: boolean;
+    /** Przeciąganie na stos odrzuconych (ręka ponad limitem), nie zagranie. */
+    discard?: boolean;
   } | null>(null);
   const [zoneOver, setZoneOver] = useState(false);
   const [playingCard, setPlayingCard] = useState<{
@@ -350,6 +365,37 @@ export function BottomHandDock() {
     active?.discordId ?? null,
     (hand?.actionCards.length ?? 0) > 0,
   );
+  // Limit ręki (R_action_cards, RULES.md 53.8): nadwyżkę gracz odrzuca SAM, przeciągając karty.
+  const { data: handLimit } = useHandLimit(
+    active?.discordId ?? null,
+    (hand?.actionCards.length ?? 0) > 0,
+  );
+  const mustDiscard = handLimit?.discard ?? 0;
+  const [discardError, setDiscardError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const discardCard = async (cardId: string) => {
+    if (!active?.discordId) return;
+    const error = await postDiscardExcess(active.discordId, cardId);
+    setDiscardError(error);
+    for (const key of ["playerHand", "actionCardPlayable"]) {
+      void queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  };
+  // Nadwyżka sama się pokazuje: dok otwiera się na kartach akcji (komponent wyskakuje sam).
+  // Tylko przy POJAWIENIU się nadwyżki (zmiana false → true), więc ref zamiast zależności.
+  const overLimit = mustDiscard > 0;
+  const surfaced = useRef(false);
+  useEffect(() => {
+    if (!overLimit) {
+      surfaced.current = false;
+      return;
+    }
+    if (surfaced.current) return;
+    surfaced.current = true;
+    setTab("actions");
+    if (overlayOpen) setPeek(true);
+    else setStoredOpen(true);
+  });
   const { data: relicPlayability } = useRelicPlayability(
     active?.discordId ?? null,
     open && tab === "relics",
@@ -571,6 +617,17 @@ export function BottomHandDock() {
         <RelicForgePanel playerId={active.discordId} enabled />
       )}
 
+      {mustDiscard > 0 && (
+        <div className={styles.discardBanner} role="status">
+          <IconTrash size={14} aria-hidden="true" />
+          <span>
+            Hand limit {handLimit?.handLimit ?? 7}: drag {mustDiscard} action card
+            {mustDiscard === 1 ? "" : "s"} onto the discard pile.
+          </span>
+          {discardError && <b className={styles.discardError}>{discardError}</b>}
+        </div>
+      )}
+
       {open && (
         <div className={styles.fan} role="tabpanel">
           {ids.length === 0 ? (
@@ -599,6 +656,7 @@ export function BottomHandDock() {
                   id={id}
                   frontier={frontier}
                   reaction={!frontier && reactionIds.has(`${tab}:${id}`)}
+                  discardable={mustDiscard > 0 && tab === "actions" && !frontier}
                   play={
                     frontier
                       ? frontierPlayability?.[id]
@@ -614,7 +672,12 @@ export function BottomHandDock() {
                     setDragCard(
                       cardId === null
                         ? null
-                        : { id: cardId, tab, frontier },
+                        : {
+                            id: cardId,
+                            tab,
+                            frontier,
+                            discard: mustDiscard > 0 && tab === "actions" && !frontier,
+                          },
                     );
                     if (cardId === null) setZoneOver(false);
                   }}
@@ -639,6 +702,7 @@ export function BottomHandDock() {
       <div
         className={styles.dropZone}
         data-over={zoneOver || undefined}
+        data-discard={dragCard.discard || undefined}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
@@ -651,6 +715,11 @@ export function BottomHandDock() {
           setZoneOver(false);
           setDragCard(null);
           if (!dragged) return;
+          if (dragged.discard) {
+            const discarded = e.dataTransfer.getData("text/x-actioncard") || dragged.id;
+            void discardCard(discarded);
+            return;
+          }
           const type = dragged.frontier
             ? FRONTIER_DRAG_TYPE
             : (DRAG_TYPE[dragged.tab] ?? "text/x-actioncard");
@@ -664,9 +733,16 @@ export function BottomHandDock() {
           }
         }}
       >
-        <IconPlayerPlayFilled size={18} aria-hidden="true" />
+        <span className={styles.dropLabel}>
+        {dragCard.discard ? (
+          <IconTrash size={18} aria-hidden="true" />
+        ) : (
+          <IconPlayerPlayFilled size={18} aria-hidden="true" />
+        )}
         <span>
-          Drop to {dragCard.tab === "relics" ? "use" : "play"}{" "}
+          {dragCard.discard
+            ? "Drop to discard"
+            : `Drop to ${dragCard.tab === "relics" ? "use" : "play"}`}{" "}
           {dragCard.tab === "relics"
             ? (getRelicData(dragCard.id)?.name ?? dragCard.id)
             : dragCard.tab === "notes"
@@ -674,6 +750,7 @@ export function BottomHandDock() {
             : dragCard.frontier
               ? (getExploration(dragCard.id)?.name ?? dragCard.id)
               : (getActionCard(dragCard.id)?.name ?? dragCard.id)}
+        </span>
         </span>
       </div>
     )}

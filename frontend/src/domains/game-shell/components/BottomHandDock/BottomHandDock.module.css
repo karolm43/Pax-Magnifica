@@ -410,35 +410,77 @@
 }
 
 /* Strefa upuszczenia nad dokiem - widoczna tylko w trakcie przeciągania karty. */
+/* Strefa zrzutu: prawie cały ekran nad dokiem (łatwo trafić), ale delikatna — cienka przerywana
+   ramka i lekki odcień; plansza zostaje czytelna pod spodem (prośba użytkownika). */
 .dropZone {
+  --drop-tone: 239, 68, 68;
   position: fixed;
-  left: 50%;
-  bottom: calc(var(--hand-dock-clear, 200px) + 18px);
+  inset: 72px 24px calc(var(--hand-dock-clear, 200px) + 12px) 24px;
   z-index: 3060;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  width: min(560px, calc(100% - 48px));
-  padding: 28px 20px;
   color: var(--ds-ink-hi);
   font-weight: var(--weight-title);
-  background: color-mix(in oklab, var(--ds-ground) 88%, rgb(239 68 68) 12%);
-  border: 2px dashed rgba(239, 68, 68, 0.65);
-  border-radius: var(--ds-radius-md);
-  backdrop-filter: blur(8px);
+  background: rgba(var(--drop-tone), 0.04);
+  border: 1.5px dashed rgba(var(--drop-tone), 0.35);
+  border-radius: var(--ds-radius-lg, 16px);
   transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    background 120ms ease;
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.dropZone[data-discard] {
+  --drop-tone: 148, 163, 184;
 }
 
 .dropZone[data-over] {
-  border-style: solid;
-  border-color: rgb(239, 68, 68);
-  background: color-mix(in oklab, var(--ds-ground) 70%, rgb(239 68 68) 30%);
-  box-shadow: 0 0 24px rgba(239, 68, 68, 0.45);
+  background: rgba(var(--drop-tone), 0.1);
+  border-color: rgba(var(--drop-tone), 0.7);
+  box-shadow: inset 0 0 60px rgba(var(--drop-tone), 0.18);
+}
+
+/* Podpis na środku strefy — mała pastylka zamiast pełnego tła. */
+.dropLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-ground) 78%, transparent);
+  border: 1px solid rgba(var(--drop-tone), 0.45);
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Ręka ponad limitem: pasek z instrukcją nad wachlarzem kart. */
+.discardBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 10px 0;
+  padding: 6px 10px;
+  font-size: var(--text-sm, 13px);
+  color: var(--ds-ink-hi);
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  border-radius: var(--ds-radius-sm, 6px);
+}
+
+.discardError {
+  color: rgb(239, 68, 68);
+  font-weight: var(--weight-title);
+}
+
+/* Karta do odrzucenia (nadwyżka): szara poświata zamiast koloru „zagraj”. */
+.card[data-discard] {
+  border-color: rgba(234, 179, 8, 0.75);
+  box-shadow:
+    0 0 0 1px rgba(234, 179, 8, 0.35),
+    0 0 14px rgba(234, 179, 8, 0.25);
 }
 
 /* ── Wąski dok: podpisy segmentów tylko dla czytników ekranu, krótsza nazwa gracza ── */

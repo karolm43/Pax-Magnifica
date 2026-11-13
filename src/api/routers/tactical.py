@@ -113,6 +113,7 @@ async def post_tactical_move(
             player_id,
             gravity_drive=request.gravity_drive,
             tempesta=request.tempesta,
+            imperator=request.imperator,
             route=request.route,
         )
     except ValueError as exc:
@@ -368,6 +369,7 @@ async def get_move_range(
     faction: str,
     gravity_drive: bool = False,
     tempesta: bool = False,
+    imperator: bool = False,
     ctx: AppContext = Depends(get_ctx),
 ) -> MoveRangeResponse:
     """Podgląd zasięgu ruchu: legalne systemy źródłowe do aktywnego (RULES.md 32).
@@ -380,7 +382,7 @@ async def get_move_range(
     player_id = board_edit.resolve_player_id(faction, state)
     sources = movement.legal_move_sources(
         state, ctx.current_grid, ctx.registry, player_id,
-        gravity_drive=gravity_drive, tempesta=tempesta,
+        gravity_drive=gravity_drive, tempesta=tempesta, imperator=imperator,
     )
     return MoveRangeResponse(active=state.active_system, sources=sources)
 

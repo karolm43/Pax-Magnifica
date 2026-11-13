@@ -567,6 +567,9 @@ export type GameState = {
   extraMoveBoostActive?: boolean;
   /** Zużyto już premię Ionian Fuel Refinery w tej akcji taktycznej. */
   tempestaUsed?: boolean;
+  /** Aktywny gracz ma premię ruchu przełomu Imperator (system z planetą legendarną). */
+  imperatorBoostActive?: boolean;
+  imperatorUsed?: boolean;
   pendingOffers?: { id: string; playerId: string; mandatory: boolean; label: string }[];
   /** Efekty trwałe w grze (bohater „near the game board”, kość agenta...) — panel przy planszy. */
   activeEffects?: ActiveEffectData[];

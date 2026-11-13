@@ -10,12 +10,13 @@ from src.api.schemas import (
     ActionCardInputsResponse,
     ActionCardPlayability,
     ActionCardPlayabilityResponse,
+    DiscardExcessRequest,
     HeldActionRequest,
     PlayActionCardRequest,
     PlayActionCardResponse,
     StateEnvelope,
 )
-from src.core import action_cards, card_hold
+from src.core import action_cards, card_hold, hand_limit
 from src.core import actor as actor_rules
 from src.core.components import ComponentCategory
 from src.core.game_state import GameState
@@ -30,11 +31,33 @@ async def get_playable_action_cards(
 ) -> ActionCardPlayabilityResponse:
     """Które karty z ręki gracza można zagrać teraz (UI pozwala podnieść tylko te)."""
     require_view(request, player_id)  # RULES.md 44.3
+    state = ctx.service.current_state()
     try:
-        rows = action_cards.playability(ctx.service.current_state(), ctx.registry, player_id)
+        rows = action_cards.playability(state, ctx.registry, player_id)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return ActionCardPlayabilityResponse(cards=[ActionCardPlayability(**row) for row in rows])
+    return ActionCardPlayabilityResponse(
+        cards=[ActionCardPlayability(**row) for row in rows],
+        discard=hand_limit.action_card_excess(state, player_id),
+        handLimit=hand_limit.action_card_limit(state, player_id),
+    )
+
+
+@router.post("/action-card/discard-excess", response_model=StateEnvelope)
+async def post_discard_excess(
+    actor: ActorId,
+    request: DiscardExcessRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Gracz ponad limitem ręki odrzuca wybraną kartę akcji (R_action_cards, RULES.md 53.8)."""
+    # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
+    try:
+        new_state = hand_limit.discard_excess(
+            ctx.service.current_state(), request.actor_id, request.card_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_held(ctx, new_state, f"action-card:discard-excess:{request.card_id}")
 
 
 @router.get("/action-card/{card_id}/inputs", response_model=ActionCardInputsResponse)

@@ -951,3 +951,28 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   w starych formularzach też podświetla cel na mapie.
 - Nowe pola stanu (`StrategyResolution.secondary_players`) i odpowiedzi (`/transactions/state`: `myPlanets`, `planets`) —
   restart backendu.
+
+## 2026-11-13 (2) — Domknięcie Fali 1 frakcji: rulingi, limit ręki, Imperator osobno (RULES.md 53.8, 62)
+
+- Przegląd ⚠️ Fali 1 (B1–B4) z rulingami `F_*.md`; decyzje użytkownika: cała grupa „niezgodne z rulingiem” do naprawy.
+- **Gila the Silvertongue:** bez zwykłych głosów (wstrzymanie się) brak dodatkowych głosów; wstrzymanie zwraca wydane TG
+  (`agenda_phase.extra_votes(base_votes=)`, `_refund_vote_effects`).
+- **Exotrireme II:** brak oferty po ogłoszonym odwrocie przeciwnika (z dozwolonym celem).
+- **Sąsiedztwo z akcji taktycznej dla wszystkich** (`core/action_adjacency.py`): SCC i Lazax Gate Folding działają też dla
+  Deep Space Cannon innych graczy, odwrotów i sąsiedztwa graczy (`neighbors`).
+- **Reclamation / Reclaimer:** przy pustej rezerwie struktura zdjęta z systemu bez własnego żetonu
+  (`board_structure_sources`, `place_structure(source=)`); Construction i produkcja jeszcze nie.
+- **G'hom Sek'kus:** blokada wejścia (supernowa, asteroidy bez Antimass — `movement.entry_blocked`) i rzut za gravity rift
+  (`movement.roll_rift_exit`). Travel Ban — z efektami agend.
+- **Military Support w pierwszej turze fazy akcji** już działał (pauza początku tury z 3faeb3a) — scenariusz API to pilnuje.
+- **Limit ręki kart akcji (RULES.md 53.8, `core/hand_limit.py`):** gracz ponad 7 kart nie zagra karty, nie odda jej w
+  transakcji, nie skończy tury/fazy; odrzuca SAM przeciągnięciem karty na strefę „Drop to discard”
+  (`POST /action-card/discard-excess`; `/action-card/playable` zwraca `discard`, `handLimit`). Dok ręki sam się otwiera.
+- **Strefa zrzutu kart** (prośba użytkownika): prawie cały ekran nad dokiem, delikatna (cienka przerywana ramka, lekki
+  odcień, podpis w pastylce); wariant szary dla odrzucania.
+- **Imperator** (decyzja użytkownika): osobny kanał premii ruchu `imperator` (flaga `GameState.imperator_used`, przełącznik
+  „Use Imperator” w panelu ruchu, `/tactical/move-range?imperator=`) — inny statek niż Gravity Drive albo ten sam.
+  Wcześniej Imperator jechał na fladze Gravity Drive i bez technologii `gd` nie miał przełącznika w UI.
+- Otwarte (bez decyzji): N'orr Supremacy + planety ze specjalnością, T'ro przy <2 piechoty, Sucaban (zwrot po zapłacie),
+  Agnlan Oln (raz na rzut), Auto-Factories (jedno użycie PRODUCTION), Pride of Kenara (kto wybiera planetę docelową).
+- Nowe pola stanu (`imperator_used`) i trasy (`/action-card/discard-excess`) — restart backendu.

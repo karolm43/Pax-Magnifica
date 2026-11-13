@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
+from typing import Any
 
 import pytest
 
@@ -69,6 +70,62 @@ def test_lazax_gate_folding_mecatol_jak_wormhole(registry: StaticDataRegistry) -
     assert winnu.lazax_gate_folding(state, "p1", {"position": "000"}) == set()
 
 
+def test_lazax_gate_folding_dla_wszystkich_w_akcji_winnu(
+    registry: StaticDataRegistry, _grid: HexGrid
+) -> None:
+    """F_winnu: w akcji taktycznej Winnu Mecatol sąsiaduje z 301 także dla innych graczy
+    (sąsiedztwo graczy, odwrót); poza akcją — nie."""
+    from src.core import neighbors, retreat
+    from src.core.game_state import TacticalStep
+
+    state = _state()
+    state.players["p1"].technologies = ["lgf"]
+    state.systems["000"].space_units = {"p1": {"carrier": 1}, "p2": {"cruiser": 1}}
+    state.systems["301"].space_units = {"p2": {"destroyer": 1}}
+    assert retreat.retreat_destinations(state, _grid, "000", "p2") == []
+    state.systems["301"].space_units = {}
+    state.systems["301"].planet_owners = {}
+    state.systems["000"].space_units = {"p2": {"cruiser": 1}}
+    state.systems["301"].space_units = {"p1": {"carrier": 1}}
+    assert neighbors.neighbors_of("p1", state, _grid) == set()  # bez akcji taktycznej
+    state.tactical_step = TacticalStep.MOVEMENT
+    assert neighbors.neighbors_of("p1", state, _grid) == {"p2"}
+    state.systems["000"].space_units = {"p1": {"carrier": 1}, "p2": {"cruiser": 1}}
+    state.systems["301"].space_units = {"p2": {"destroyer": 1}}
+    assert retreat.retreat_destinations(state, _grid, "000", "p2") == ["301"]
+
+
+def _reclamation_values(
+    state: GameState, registry: StaticDataRegistry, ctx: Mapping[str, Any]
+) -> list[object]:
+    return [o["value"] for o in winnu.reclamation_inputs(state, registry, "p1", ctx)[0]["options"]]
+
+
+def test_reclamation_pusta_rezerwa_bierze_dok_z_planszy(registry: StaticDataRegistry) -> None:
+    """F_winnu / R_component_limitations: bez doków w rezerwie dok zdejmuje się z systemu bez
+    własnego żetonu dowodzenia i stawia na Mecatol Rex."""
+    from src.core import production
+
+    state = _state()
+    home = registry.systems["20"].planets[0]
+    state.systems["000"].planet_owners = {"mr": "p1"}
+    state.systems["101"].planet_owners = {home: "p1"}
+    cap = production.reinforcements_left(state, "p1", "spacedock")
+    assert cap is not None
+    state.systems["101"].planet_units = {home: {"p1": {"spacedock": cap}}}
+    ctx = {"player": "p1", "gained": ["mr"]}
+    values = _reclamation_values(state, registry, ctx)
+    assert f"spacedock<{home}" in values and f"pds+spacedock<{home}" in values
+    winnu.reclamation(state, "p1", {**ctx, "params": {"place": f"pds+spacedock<{home}"}})
+    assert state.systems["000"].planet_units["mr"]["p1"] == {"pds": 1, "spacedock": 1}
+    assert state.systems["101"].planet_units[home]["p1"]["spacedock"] == cap - 1
+    state.systems["101"].command_tokens = ["p1"]  # system z własnym żetonem — nie wolno
+    state.systems["000"].planet_units["mr"]["p1"] = {}
+    state.systems["101"].planet_units[home]["p1"]["spacedock"] = cap
+    values = _reclamation_values(state, registry, ctx)
+    assert values == ["pds"]
+
+
 def test_hegemonic_trade_policy_zamienia_wartosci(registry: StaticDataRegistry) -> None:
     state = _state()
     planet = registry.systems["20"].planets[0]
@@ -116,3 +173,41 @@ def test_imperator_za_support_for_the_throne(registry: StaticDataRegistry) -> No
     assert winnu.imperator_combat(state, "p1", {}) == 0
     state.players["p2"].promissory_notes_in_play = ["green_sftt"]
     assert winnu.imperator_combat(state, "p1", {}) == 1
+
+
+def test_imperator_i_gravity_drive_na_rozne_statki(registry: StaticDataRegistry) -> None:
+    """Decyzja użytkownika (RULES.md 62.7): premia Imperatora to osobny kanał — z Gravity Drive
+    dwa różne statki dostają po +1 w tej samej akcji (albo jeden oba)."""
+    from src.core import movement, movement_route
+
+    grid = HexGrid()
+    for pos, sid in [("000", "65"), ("101", "20"), ("102", "22"), ("103", "23"),
+                     ("104", "24"), ("105", "25"), ("106", "26"), ("201", "21")]:
+        grid.place_system(pos, sid, anomalies=set())
+    grid.build_edges()
+    assert not grid.are_adjacent("201", "000")
+    player = PlayerState(
+        player_id="p1", color="green", faction="winnu", technologies=["gd"],
+        breakthrough_unlocked=True,
+    )
+    state = GameState(
+        phase=Phase.ACTION, active_player_id="p1", active_system="000",
+        players={"p1": player},
+        systems={
+            "000": SystemState(position="000", system_id="65"),  # Primor (legendarna)
+            "201": SystemState(position="201", system_id="21", space_units={"p1": {"carrier": 2}}),
+        },
+    )
+    bonuses = movement_route.available_bonuses(state, grid, registry, "201", "p1")
+    assert bonuses == ["gravity_drive", "imperator"]
+    moved = movement.move_fleet(
+        state, grid, registry, "201", {"carrier": 1}, {}, "p1",
+        gravity_drive=True, imperator=True,
+    )
+    assert moved.gravity_drive_used and not moved.imperator_used  # wystarczyła jedna premia
+    again = movement.move_fleet(
+        moved, grid, registry, "201", {"carrier": 1}, {}, "p1",
+        gravity_drive=True, imperator=True,
+    )
+    assert again.imperator_used
+    assert again.systems["000"].space_units["p1"] == {"carrier": 2}

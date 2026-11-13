@@ -516,5 +516,6 @@ def test_endpoint_zagrywalnosci(registry: StaticDataRegistry) -> None:
     client.post("/game/new", json={"players": [{"faction_id": "sol"}, {"faction_id": "arborec"}]})
     player = next(iter(client.get("/state").json()["state"]["players"]))
     resp = client.get(f"/action-card/playable?player_id={player}")
-    assert resp.status_code == 200 and resp.json() == {"cards": []}
+    assert resp.status_code == 200
+    assert resp.json() == {"cards": [], "discard": 0, "handLimit": 7}
     assert client.get("/action-card/playable?player_id=zzz").status_code == 422

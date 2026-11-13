@@ -93,7 +93,7 @@ Czytaj WYŁĄCZNIE plik potrzebnej sekcji. Nową regułę dopisuj do pliku jej s
 | 50 | [Thunder's Edge: ekspedycje, The Fracture, Thunder's Edge](rules/R50.md) | 74 |
 | 51 | [Faza agendy: ujawnienie, głosowanie, wynik, planety](rules/R51.md) | 34 |
 | 52 | [Żeton Custodians: zdjęcie w inwazji na Mecatol Rex](rules/R52.md) | 25 |
-| 53 | [Zagrywanie kart akcji (okno ACTION) + efekty jako hooki](rules/R53.md) | 64 |
+| 53 | [Zagrywanie kart akcji (okno ACTION) + efekty jako hooki + limit ręki (53.8)](rules/R53.md) | 64 |
 | 54 | [Baza zdarzeń i okien czasowych (silnik zdarzeń)](rules/R54.md) | 19 |
 | 55 | [Technologie ogólne jako hooki](rules/R55.md) | 32 |
 | 56 | [Decyzje graczy i oferty technologii (nigdy automatycznie) — decyzja użytkownika 2026-11-09](rules/R56.md) | 12 |

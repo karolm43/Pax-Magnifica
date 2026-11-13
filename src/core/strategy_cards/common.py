@@ -104,10 +104,45 @@ def _structure_count(state: GameState, player_id: str, planet_id: str, structure
     return by_player.get(player_id, {}).get(structure, 0)
 
 
+def board_structure_sources(
+    state: GameState, player_id: str, structure: str, target_planet: str
+) -> list[str]:
+    """Planety, z których gracz może ZDJĄĆ swoją strukturę, by postawić ją gdzie indziej.
+
+    R_component_limitations / R_reinforcements: gdy w rezerwie nie ma jednostki tego typu, gracz
+    może zdjąć ją z systemu BEZ swojego żetonu dowodzenia i od razu postawić. Bez planety docelowej.
+    """
+    found: list[str] = []
+    for system in state.systems.values():
+        if player_id in system.command_tokens:
+            continue
+        for planet, by_player in system.planet_units.items():
+            if planet != target_planet and by_player.get(player_id, {}).get(structure, 0) > 0:
+                found.append(planet)
+    return sorted(found)
+
+
+def needs_board_source(state: GameState, player_id: str, structure: str) -> bool:
+    """Czy postawienie struktury wymaga zdjęcia jej z planszy (rezerwa pusta)."""
+    from src.core import production  # lokalnie: unika cyklu importów przy starcie pakietu
+
+    left = production.reinforcements_left(state, player_id, structure)
+    return left is not None and left <= 0
+
+
 def structure_problem(
-    state: GameState, player_id: str, planet_id: str, structure: str
+    state: GameState,
+    player_id: str,
+    planet_id: str,
+    structure: str,
+    *,
+    allow_board: bool = False,
 ) -> str | None:
-    """Powód, dla którego nie wolno położyć struktury (None = wolno)."""
+    """Powód, dla którego nie wolno położyć struktury (None = wolno).
+
+    ``allow_board`` — przy pustej rezerwie wolno wziąć strukturę z planszy
+    (``board_structure_sources``); wołający musi wtedy podać źródło w ``place_structure``.
+    """
     from src.core import production  # lokalnie: unika cyklu importów przy starcie pakietu
 
     if structure not in STRUCTURE_LIMIT_PER_PLANET:
@@ -123,8 +158,9 @@ def structure_problem(
         return f"{planet_id} already has the maximum number of {structure}."
     left = production.reinforcements_left(state, player_id, structure)
     if left is not None and left <= 0:
-        # ⚠️ ZAŁOŻENIE: reguła zastępcza (zdjęcie jednostki z systemu bez własnego żetonu)
-        # nie jest jeszcze modelowana - gracz musi wybrać inną strukturę.
+        if allow_board and board_structure_sources(state, player_id, structure, planet_id):
+            return None
+        # Bez ``allow_board`` (karta Construction) zdjęcie z planszy nie jest jeszcze oferowane.
         return f"No {structure} left in your reinforcements."
     return None
 
@@ -142,15 +178,40 @@ def placeable_structures(state: GameState, player_id: str) -> dict[str, list[str
     return result
 
 
-def place_structure(state: GameState, player_id: str, planet_id: str, structure: str) -> None:
+def place_structure(
+    state: GameState,
+    player_id: str,
+    planet_id: str,
+    structure: str,
+    *,
+    source: str | None = None,
+) -> None:
     """Kładzie strukturę na planecie gracza (mutuje klon).
 
+    ``source`` — planeta, z której gracz zdejmuje tę strukturę, gdy rezerwa jest pusta
+    (R_component_limitations, ``board_structure_sources``).
+
     Raises:
-        ValueError: Z powodem z ``structure_problem``.
+        ValueError: Z powodem z ``structure_problem`` albo złe źródło.
     """
-    problem = structure_problem(state, player_id, planet_id, structure)
+    problem = structure_problem(
+        state, player_id, planet_id, structure, allow_board=source is not None
+    )
     if problem is not None:
         raise ValueError(problem)
+    if needs_board_source(state, player_id, structure):
+        if source not in board_structure_sources(state, player_id, structure, planet_id):
+            raise ValueError(
+                f"No {structure} in your reinforcements - choose one on the board to move "
+                "(from a system without your command token)."
+            )
+        assert source is not None
+        source_position = planet_position(state, source)
+        assert source_position is not None
+        unit_ops.remove_units(
+            state, state.systems[source_position], source, player_id, structure, 1,
+            UnitCause.REMOVED,
+        )
     position = planet_position(state, planet_id)
     assert position is not None
     unit_ops.place_units(

@@ -49,7 +49,7 @@ class ActivityFact(BaseModel):
 
     # "vp" | "tech" | "tech_lost" | "ability_used" | "planet_gained" | "planet_lost" | "tg"
     # oraz JAWNE karty/cele:
-    # "action_card" (zagrana/odrzucona), "agenda" (zużyta), "explore_card" (ujawniona),
+    # "action_card" (zagrana), "action_card_discarded" (odrzucona bez zagrania), "agenda" (zużyta), "explore_card" (ujawniona),
     # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
     # Zasoby/komponenty: "commodities", "cc" (value = pula), "hand" (value = ręka, tylko liczba),
     # "relic", "frontier_card", "leader", "breakthrough_unlocked", "strategy_card_gained".
@@ -491,7 +491,14 @@ def _public_card_facts(before: GameState, after: GameState) -> list[ActivityFact
     old_discard = list(before.decks.action_card_discard)
     new_discard = list(after.decks.action_card_discard)
     if len(new_discard) > len(old_discard) and new_discard[: len(old_discard)] == old_discard:
-        for card in new_discard[len(old_discard) :]:
+        added = new_discard[len(old_discard) :]
+        # Odrzucenie bez zagrania (limit ręki, koszt celu) zostawia ślad ``last_action_discard``
+        # (``card_draw``); zagranie idzie przez ``deck_piles`` bez tego śladu.
+        trace = after.last_action_discard
+        discarded = (
+            trace is not None and trace != before.last_action_discard and trace.card in added
+        )
+        for card in added:
             owner = next(
                 (
                     pid
@@ -502,7 +509,8 @@ def _public_card_facts(before: GameState, after: GameState) -> list[ActivityFact
                 ),
                 None,
             )
-            facts.append(ActivityFact(type="action_card", player_id=owner, value=card))
+            kind = "action_card_discarded" if discarded else "action_card"
+            facts.append(ActivityFact(type=kind, player_id=owner, value=card))
 
     # Agendy zużyte (ujawnione na stole).
     for card in after.decks.agenda_discard[len(before.decks.agenda_discard) :]:

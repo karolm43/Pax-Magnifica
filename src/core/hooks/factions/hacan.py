@@ -23,7 +23,7 @@ from src.core import (
     rules_hooks,
 )
 from src.core import offer_inputs as oi
-from src.core.agenda_phase import current_voter
+from src.core.agenda_phase import VOTE_REFUND_KEY, current_voter
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, Phase, TacticalStep
 from src.core.registry import StaticDataRegistry
@@ -334,12 +334,15 @@ def gila_the_silvertongue(
     economy.spend_trade_goods(state, player_id, spent)
     active_effects.add_effect(
         state, GILA_VOTES, Duration.AGENDA, owner=player_id,
-        data={"votes": spent * _VOTES_PER_TG},
+        data={"votes": spent * _VOTES_PER_TG, VOTE_REFUND_KEY: spent},
     )
 
 
 @register(POINT_AGENDA_VOTE_MODIFIER, HookSource(SOURCE_EFFECT, GILA_VOTES), HookKind.MODIFY)
-def gila_votes(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> int:
+def gila_votes(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> int:
+    """F_hacan: przy 0 zwykłych głosów (wstrzymanie się) dodatkowych głosów nie ma."""
+    if int(ctx.get("base_votes", 0) or 0) <= 0:
+        return 0
     return sum(
         int(e.data.get("votes", 0))
         for e in active_effects.effects_for(state, player_id, GILA_VOTES)
