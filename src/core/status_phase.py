@@ -452,6 +452,7 @@ def complete_status(state: GameState, registry: StaticDataRegistry) -> GameState
     window = work.pending_window
     if window is not None and window.window_type is WindowType.FLEET_POOL:
         work.pending_window = None
+        work.suspended_window = None
     if work.status.step is StatusStep.SCORE_OBJECTIVES:
         work = _after_scoring(work, registry)
     if work.status is not None and work.status.step is StatusStep.REDISTRIBUTE:

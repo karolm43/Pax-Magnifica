@@ -484,6 +484,7 @@ def remove_units_in_zone(
 
 def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Anti-Fighter Barrage obu stron jednocześnie (W4): trafienia niszczą myśliwce przeciwnika."""
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     if combat.step is not CombatStep.AFB:
         raise ValueError("Anti-Fighter Barrage is not the current combat step.")
@@ -622,6 +623,7 @@ def _reroll_misses(
 
 def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Rzuty combat obu stron (atakujący pierwszy — W5) i otwarcie przypisania strat."""
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     if combat.step is not CombatStep.ROLL:
         raise ValueError("Combat dice are not the current combat step.")
@@ -898,6 +900,7 @@ def assign_combat_hits(
     Raises:
         ValueError: Zła kolejność w oknie, zła liczba/typ, nadużycie Sustain Damage.
     """
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     window = state.pending_window
     if (
@@ -1198,6 +1201,7 @@ def retreat_from_combat(
     Raises:
         ValueError: Nie krok Retreat, gracz nie ogłaszał odwrotu, zły cel/ładunek/pula.
     """
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     if combat.step is not CombatStep.RETREAT or player_id not in combat.retreating:
         raise ValueError("You have no retreat to carry out right now.")

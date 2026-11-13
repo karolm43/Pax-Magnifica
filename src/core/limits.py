@@ -9,12 +9,17 @@ akcji (``StateService.replace_state``), więc nowy efekt nie musi pamiętać o s
 
 Funkcja CZYSTA (``state -> state``): otwiera okno ``CAPACITY`` albo ``FLEET_POOL`` dla pierwszego
 systemu z nadwyżką. Kolejne systemy zostaną sprawdzone po zamknięciu okna (kolejny commit).
+
+Pula floty (RULES.md 42.1, decyzja użytkownika 2026-11-13): „if at any time … remove excess" -
+sprawdzana NATYCHMIAST w KAŻDYM systemie, także w aktywnym systemie trwającej akcji taktycznej i
+w trakcie innego okna (to okno czeka zawieszone - ``timing.interrupt``). Akcje bez własnego okna
+blokuje ``timing.require_no_limit_window``.
 """
 
 from __future__ import annotations
 
-from src.core import capacity, fleet_pool
-from src.core.game_state import GameState, Phase
+from src.core import capacity, fleet_pool, timing
+from src.core.game_state import GameState, Phase, WindowType
 from src.core.registry import StaticDataRegistry
 
 # Fazy, w których efekty realnie stawiają jednostki. Poza nimi (setup, strategia) nic nie
@@ -42,20 +47,36 @@ def systems_over_limit(state: GameState, registry: StaticDataRegistry) -> list[s
     return result
 
 
+def fleet_pool_excess(state: GameState) -> tuple[str, list[str]] | None:
+    """Pierwszy system z nadwyżką puli floty (każdy, także aktywny) i gracze do usunięcia."""
+    for position in state.systems:
+        queue = fleet_pool.players_with_excess(state, position)
+        if queue:
+            return position, queue
+    return None
+
+
 def enforce_limits(state: GameState, registry: StaticDataRegistry | None) -> GameState:
     """Otwiera okno usunięcia nadwyżki dla pierwszego systemu ponad limit; inaczej bez zmian.
 
-    Nic nie robi, gdy: brak rejestru, trwa inne okno, faza statusu (własny krok puli floty),
-    nierozstrzygnięta eksploracja albo faza spoza ``_ENFORCED_PHASES``.
+    Pula floty: zawsze i natychmiast (przerywa inne okno). Capacity: gdy nie trwa inne okno ani
+    eksploracja. Nic nie robi bez rejestru, w fazie statusu (własny krok puli floty) i w fazach
+    spoza ``_ENFORCED_PHASES``.
     """
-    if registry is None or state.pending_window is not None or state.status is not None:
+    if registry is None or state.status is not None or state.phase not in _ENFORCED_PHASES:
         return state
-    if state.phase not in _ENFORCED_PHASES or state.exploration is not None:
+    window = state.pending_window
+    if window is None or window.window_type not in timing.LIMIT_WINDOWS:
+        excess = fleet_pool_excess(state)
+        if excess is not None:
+            position, queue = excess
+            return timing.interrupt(
+                state, WindowType.FLEET_POOL, queue, context={"position": position}
+            )
+    if state.pending_window is not None or state.exploration is not None:
         return state
     for position in systems_over_limit(state, registry):
         checked = capacity.open_capacity_check(state, registry, position)
-        if checked.pending_window is None:
-            checked = fleet_pool.open_fleet_pool_check(state, position)
         if checked.pending_window is not None:
             return checked
     return state

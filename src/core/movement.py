@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from itertools import combinations as _combinations
 
-from src.core import ion_storm, rules_hooks, triggers, unit_ops
+from src.core import ion_storm, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import GameEvent, Moment
@@ -689,6 +689,7 @@ def move_ships(
     Raises:
         ValueError: Gdy ruch nielegalny (R1–R6) albo brak tylu statków w źródle.
     """
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     if count <= 0:
         raise ValueError("The number of ships to move must be positive.")
     ok, reason = can_move(state, grid, registry, from_pos, base_type, player_id)

@@ -269,11 +269,25 @@ class Flow:
                 "destroyDamaged": damaged,
             })
 
+    def resolve_fleet_pool(self) -> bool:
+        """Okno puli floty (RULES.md 42.1 - także w trakcie walki): usuń podpowiedź silnika."""
+        window = self.state().get("pending_window") or {}
+        if window.get("window_type") != "FLEET_POOL":
+            return False
+        view = self.client.get("/tactical/fleet-pool").json()
+        self.post("/tactical/fleet-pool/resolve", {
+            "faction": view["player"],
+            "remove": [{"baseType": bt, "count": n} for bt, n in view["suggestion"].items()],
+        })
+        return True
+
     def fight(self, stop: Callable[[], bool] | None = None, rounds: int = 12) -> None:
         """Prowadzi walkę (AFB, rzuty, straty) aż ``stop()`` albo koniec walki."""
         for _ in range(rounds * 4):
             if stop is not None and stop():
                 return
+            if self.resolve_fleet_pool():
+                continue
             view = self.battle()
             step = view.get("step")
             if not view.get("active") or step in (None, "DONE"):

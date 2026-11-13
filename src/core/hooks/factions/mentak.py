@@ -236,7 +236,7 @@ def pillage_inputs(
 
 def _pillage(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Pillage: If they have 3 or more trade goods, you may take 1 of their trade goods or
-    commodities (⚠️ P2: commodity trafia do Mentaka jako trade good - R_commodities)."""
+    commodities (P2 ✅: commodity trafia do Mentaka jako trade good - R_commodities)."""
     target = _pillage_target(ctx)
     reason = pillage_reason(state, player_id, target)
     if reason is not None:
@@ -253,7 +253,7 @@ def _pillage(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
 
 
 def _gain_pillageable(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    # ⚠️ P1: TG z transakcji dają jedno Pillage na samą transakcję; zamiana commodities to nie
+    # P1 ✅: TG z transakcji dają jedno Pillage na samą transakcję; zamiana commodities to nie
     # „zdobycie” (F_mentak, F_vuilraith).
     if ctx.get("cause") in ("transaction", "convert", PILLAGE):
         return False

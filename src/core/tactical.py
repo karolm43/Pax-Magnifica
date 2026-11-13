@@ -418,6 +418,7 @@ def end_tactical_action(state: GameState) -> GameState:
         WindowType.FLEET_POOL,
     ):
         new_state.pending_window = None
+        new_state.suspended_window = None
     # Reakcje „po akcji taktycznej” (np. Dark Energy Tap: eksploracja żetonu frontier) idą na
     # końcu, żeby stan, który otwierają (eksploracja, oferty), nie został wyczyszczony powyżej.
     if state.active_system is not None:

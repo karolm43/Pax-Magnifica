@@ -20,6 +20,7 @@ from src.core import (
     exhaust,
     legendary_planets,
     rules_hooks,
+    timing,
     triggers,
     unit_ops,
 )
@@ -789,6 +790,7 @@ def produce(
     Raises:
         ValueError: Przy złamaniu którejkolwiek reguły (stan wejściowy bez zmian).
     """
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     active = production_system(state)
     orders = [o for o in orders if o.count > 0]
     validate_production(state, grid, registry, player_id, orders, exhaust_aida=exhaust_aida)

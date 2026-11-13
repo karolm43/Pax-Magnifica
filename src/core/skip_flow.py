@@ -17,6 +17,7 @@ from src.core.registry import StaticDataRegistry
 def _clear_blockers(state: GameState) -> None:
     """Zamyka wszystko, co blokuje przejście fazy (mutuje przekazany klon)."""
     state.pending_window = None
+    state.suspended_window = None
     triggers.drop_all_offers(state)  # decyzje graczy też blokują przejście fazy (RULES.md 54.8)
     state.pending_strategy = None
     state.active_combat = None

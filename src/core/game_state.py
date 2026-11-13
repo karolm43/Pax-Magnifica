@@ -1009,6 +1009,10 @@ class GameState(BaseModel):
     # space cannon, reakcje „when/after"). Jedno pojęcie dla całej interakcji między
     # graczami (RULES.md 29.2). Mechanika: ``core/timing.py``.
     pending_window: TimingWindow | None = None
+    # Okno przerwane przez okno limitu (FLEET_POOL / CAPACITY): limity sprawdzamy NATYCHMIAST,
+    # także w trakcie innego okna (RULES.md 42.1). ``timing.close_window`` przywraca je po
+    # usunięciu nadwyżki.
+    suspended_window: TimingWindow | None = None
     # Efekty trwałe z czasem trwania i opcjonalne reakcje czekające na decyzję (RULES.md 54).
     active_effects: list[ActiveEffect] = Field(default_factory=list)
     pending_offers: list[PendingOffer] = Field(default_factory=list)

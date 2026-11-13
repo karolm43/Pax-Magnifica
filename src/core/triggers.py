@@ -26,7 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.core import ability_notes, active_effects, offer_inputs, rules_hooks
+from src.core import ability_notes, active_effects, offer_inputs, rules_hooks, timing
 from src.core.game_events import Duration, GameEvent, Moment, event_point
 from src.core.game_state import (
     GameState,
@@ -283,6 +283,7 @@ def _advance_window(state: GameState, player_id: str) -> None:
 
 
 def _take_offer(state: GameState, player_id: str, offer_id: str) -> PendingOffer:
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     offer = next((o for o in state.pending_offers if o.id == offer_id), None)
     if offer is None:
         raise ValueError(f"Unknown offer: {offer_id}")

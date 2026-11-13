@@ -1089,3 +1089,14 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Do zrobienia przy okazji: płatność w formularzach ofert (`DecisionFields`) liczy TG 1:1 (Mirror Computing tam nie
   działa w podglądzie, silnik liczy dobrze); wybór notki przez przeciwnika to lista nazw, nie chipy `PromissoryNote`.
 - Nowe pola stanu/API (`start_hits`, `destroyed_all`, `allowed_types`, `tradeGoodValue`) — restart backendu.
+
+## Pula floty zawsze natychmiast + decyzje Mentak (2026-11-13)
+
+- Decyzje użytkownika: Mentak P1 ✅ (TG z transakcji = jedno Pillage na stronę), P2 ✅ (zabrana commodity = TG).
+- **RULES.md 42.1 (zasada ogólna):** nadwyżkę ponad pulę floty usuwa się NATYCHMIAST, w każdym systemie i w każdej
+  chwili — także w aktywnym systemie i w trakcie walki. `limits.enforce_limits` po każdym commicie; okno `FLEET_POOL`
+  przerywa inne okno (`timing.interrupt` → `GameState.suspended_window`, przywracane w `timing.close_window`); akcje bez
+  własnego okna (ruch, produkcja, rzuty walki, AFB, przypisanie strat, odwrót, oferty, pas) blokuje
+  `timing.require_no_limit_window`. Harness scenariuszy (`Flow.fight`) usuwa nadwyżkę podpowiedzią silnika.
+- Capacity bez zmian (własne wyjątki w walce).
+- Nowe pole stanu `suspended_window` — restart backendu.

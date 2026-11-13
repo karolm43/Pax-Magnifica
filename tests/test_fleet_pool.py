@@ -184,16 +184,42 @@ def test_enforce_limits_opens_window_outside_activation(registry: StaticDataRegi
     assert window.context["position"] == "000" and window.queue == ["p1"]
 
 
-def test_enforce_limits_noop_within_pool_and_in_active_system(
-    registry: StaticDataRegistry,
-) -> None:
+def test_enforce_limits_noop_within_pool(registry: StaticDataRegistry) -> None:
     from src.core import limits
 
     ok = limits.enforce_limits(_outside_activation({"cruiser": 3}), registry)
     assert ok.pending_window is None
-    # Aktywny system trwającej akcji ma własną bramkę kroków - nadzór go pomija.
+
+
+def test_pula_floty_natychmiast_takze_w_aktywnym_systemie(registry: StaticDataRegistry) -> None:
+    """RULES.md 42.1 (decyzja użytkownika 2026-11-13): „at any time" - bez czekania na krok."""
+    from src.core import limits
+
     active = _state({"cruiser": 3, "destroyer": 2}, pool=3)
-    assert limits.enforce_limits(active, registry).pending_window is None
+    window = limits.enforce_limits(active, registry).pending_window
+    assert window is not None and window.window_type is WindowType.FLEET_POOL
+
+
+def test_pula_floty_przerywa_inne_okno_i_je_przywraca(registry: StaticDataRegistry) -> None:
+    from src.core import limits, timing
+
+    state = _state({"cruiser": 3, "destroyer": 2}, pool=3)
+    state = timing.open_window(
+        state, WindowType.COMBAT_RETREAT, ["p1"], context={"position": "000"}
+    )
+    interrupted = limits.enforce_limits(state, registry)
+    assert interrupted.pending_window is not None
+    assert interrupted.pending_window.window_type is WindowType.FLEET_POOL
+    assert interrupted.suspended_window is not None
+    assert interrupted.suspended_window.window_type is WindowType.COMBAT_RETREAT
+    # Akcje bez własnego okna czekają na usunięcie nadwyżki.
+    with pytest.raises(ValueError, match="fleet pool"):
+        timing.require_no_limit_window(interrupted)
+    done = fleet_pool.resolve_fleet_pool(interrupted, registry, "p1", {"destroyer": 2})
+    assert done.pending_window is not None
+    assert done.pending_window.window_type is WindowType.COMBAT_RETREAT
+    assert done.suspended_window is None
+    assert limits.enforce_limits(done, registry) == done
 
 
 def test_service_commit_enforces_limits_but_god_mode_is_exempt(

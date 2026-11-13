@@ -126,7 +126,12 @@ def test_sula_mentarion_przeciwnik_oddaje_notke(registry: StaticDataRegistry) ->
 @covers("leaders:mentakhero")
 def test_sleeper_cell_stawia_statki_za_zniszczone(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "mentak")
-    flow.player(lambda p: p["leader_states"].update(mentakhero="unlocked"))
+
+    def hero(p: Json) -> None:
+        p["leader_states"].update(mentakhero="unlocked")
+        p.update(fleet_cc=8)  # pula mieści postawione statki
+
+    flow.player(hero)
     position = flow.space_combat({"dreadnought": 3}, {"destroyer": 2})
     flow.accept("Sleeper Cell")
     assert flow.state()["players"][flow.me]["leader_states"]["mentakhero"] == "purged"
@@ -138,3 +143,27 @@ def test_sleeper_cell_stawia_statki_za_zniszczone(registry: StaticDataRegistry) 
     assert theirs == 2
     placed = state["systems"][position]["space_units"][flow.me].get("destroyer", 0) + mine
     assert placed == theirs
+
+
+def test_sleeper_cell_ponad_pule_floty_usuwa_od_razu(registry: StaticDataRegistry) -> None:
+    """RULES.md 42.1 / F_mentak: nadwyżkę ponad pulę floty usuwa się NATYCHMIAST, w walce."""
+    flow = Flow(registry, "mentak")
+    flow.player(lambda p: p["leader_states"].update(mentakhero="unlocked"))
+    flow.space_combat({"dreadnought": 3}, {"destroyer": 2})
+    flow.accept("Sleeper Cell")
+
+    def over_pool() -> bool:
+        window = flow.state().get("pending_window") or {}
+        return window.get("window_type") == "FLEET_POOL"
+
+    flow.fight(stop=over_pool)
+    assert over_pool()
+    state = flow.state()
+    assert state["active_combat"]["step"] != "DONE"  # okno w trakcie walki, nie po niej
+    # Rzut kośćmi czeka, aż nadwyżka zniknie.
+    if state["active_combat"]["step"] == "ROLL":
+        resp = flow.post("/tactical/battle/roll", ok=False)
+        assert resp.status_code == 422 and "fleet pool" in resp.text
+    flow.fight()
+    ships = flow.state()["systems"][state["active_combat"]["position"]]["space_units"][flow.me]
+    assert sum(n for bt, n in ships.items() if bt != "fighter") <= 3

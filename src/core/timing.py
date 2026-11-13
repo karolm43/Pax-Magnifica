@@ -94,6 +94,49 @@ def open_window(
     return new_state
 
 
+# Okna limitów (RULES.md 42.1): mają pierwszeństwo przed każdym innym oknem i akcją.
+LIMIT_WINDOWS = (WindowType.FLEET_POOL, WindowType.CAPACITY)
+
+
+def interrupt(
+    state: GameState,
+    window_type: WindowType,
+    queue: list[str],
+    *,
+    context: dict[str, str | int] | None = None,
+) -> GameState:
+    """Otwiera okno limitu NATYCHMIAST, zawieszając bieżące okno (RULES.md 42.1).
+
+    Bieżące okno (np. przypisanie trafień, odwrót, decyzje graczy) czeka w
+    ``suspended_window``; ``close_window`` przywraca je po zamknięciu okna limitu. Gdy okna
+    nie ma — zwykłe ``open_window``. Zawieszone może być tylko jedno okno naraz.
+    """
+    if window_type not in LIMIT_WINDOWS:
+        raise ValueError("Only fleet pool / capacity checks may interrupt another window.")
+    current = state.pending_window
+    if current is None:
+        return open_window(state, window_type, queue, context=context)
+    if current.window_type in LIMIT_WINDOWS or state.suspended_window is not None:
+        return state  # okno limitu już trwa - kolejne sprawdzenie po jego zamknięciu
+    held = state.clone()
+    held.suspended_window = current
+    held.pending_window = None
+    return open_window(held, window_type, queue, context=context)
+
+
+def require_no_limit_window(state: GameState) -> None:
+    """Blokuje akcję, dopóki trwa okno usunięcia nadwyżki (RULES.md 42.1).
+
+    Raises:
+        ValueError: Otwarte okno FLEET_POOL / CAPACITY.
+    """
+    window = state.pending_window
+    if window is not None and window.window_type is WindowType.FLEET_POOL:
+        raise ValueError("Some ships exceed the fleet pool - remove the excess first.")
+    if window is not None and window.window_type is WindowType.CAPACITY:
+        raise ValueError("Some units exceed capacity - remove the excess first.")
+
+
 def current_responder(state: GameState) -> str | None:
     """Gracz, którego teraz kolej odpowiadać (None, gdy brak okna lub zakończone)."""
     if state.pending_window is None:
@@ -150,5 +193,7 @@ def close_window(state: GameState) -> GameState:
     (np. efekt przerywający okno). Gdy brak okna — bez zmian (idempotentne).
     """
     new_state = state.clone()
-    new_state.pending_window = None
+    # Okno przerwane przez okno limitu wraca, gdy nadwyżka zniknęła (RULES.md 42.1).
+    new_state.pending_window = new_state.suspended_window
+    new_state.suspended_window = None
     return new_state

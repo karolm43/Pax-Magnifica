@@ -83,7 +83,7 @@ def test_pillage_po_zdobyciu_tg_ale_nie_po_zamianie_commodities(
 
 
 def test_pillage_raz_na_strone_transakcji(registry: StaticDataRegistry) -> None:
-    """⚠️ P1: TG z transakcji nie dają osobnego Pillage - jedna oferta przeciw partnerowi."""
+    """P1 ✅ (2026-11-13): TG z transakcji nie dają osobnego Pillage - jedna oferta na stronę."""
     state = _state()
     done = transaction.resolve_transaction(
         state, _grid(), "p2", TransactionSide(trade_goods=1), TransactionSide()
@@ -96,7 +96,7 @@ def test_pillage_zabiera_tg_albo_commodity_jako_tg(registry: StaticDataRegistry)
     state = _state()
     mentak.pillage_on_gain(state, "p1", {"player": "p2", "params": {"take": "commodity"}})
     assert state.players["p2"].commodities == 0
-    assert state.players["p1"].trade_goods == 2  # ⚠️ P2: commodity u Mentaka = trade good
+    assert state.players["p1"].trade_goods == 2  # P2 ✅: commodity u Mentaka = trade good
     state.players["p2"].trade_goods = 2
     with pytest.raises(ValueError, match="fewer than 3"):
         mentak.pillage_on_gain(state, "p1", {"player": "p2", "params": {"take": "trade_good"}})

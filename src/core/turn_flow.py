@@ -10,7 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
-from src.core import action_budget, hand_limit, objective_events, triggers
+from src.core import action_budget, hand_limit, objective_events, timing, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
@@ -410,6 +410,7 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
         ValueError: Gdy nie wolno spasować (zła faza/tura, brak akcji strategicznej,
             albo gracz już wykonał akcję w tej turze).
     """
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     _require_action_turn(state, player_id)
     current = state.active_player_id
     assert current is not None  # zagwarantowane przez _require_action_turn
