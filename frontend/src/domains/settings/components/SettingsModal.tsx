@@ -4,6 +4,7 @@ import { useSettingsStore } from "@/state/appStore";
 import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
+import { AudioSettingsPanel } from "@/shared/audio/AudioSettingsPanel";
 import styles from "./SettingsModal.module.css";
 
 type PlayerAreaToggleKey =
@@ -137,6 +138,9 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
           </Tabs.Tab>
           <Tabs.Tab value="player-areas" className={styles.tab}>
             Player areas
+          </Tabs.Tab>
+          <Tabs.Tab value="sound" className={styles.tab}>
+            Sound
           </Tabs.Tab>
         </Tabs.List>
 
@@ -304,6 +308,12 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                 onToggle={(checked) => handlers.updateSettings({ [key]: checked })}
               />
             ))}
+          </SettingGroup>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="sound" className={styles.panel}>
+          <SettingGroup label="Volume">
+            <AudioSettingsPanel />
           </SettingGroup>
         </Tabs.Panel>
       </Tabs>

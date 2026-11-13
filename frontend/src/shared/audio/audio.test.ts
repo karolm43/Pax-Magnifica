@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Activity, ActivityEntry } from "@/api/useBoardEditor";
-import { buildPlaylist } from "./music";
+import { buildPlaylist, findMenuTheme } from "./music";
 import { soundForClick } from "./uiSounds";
 import { battleLines, cuesForEntry, type CueContext } from "./voiceCues";
 import { buildVoiceBank, voiceCategory } from "./voices";
@@ -154,6 +154,13 @@ describe("music", () => {
       "/static/music/a.mp3",
       "/static/music/bitwa/b.mp3",
     ]);
+  });
+
+  it("motyw menu (main theme) poza playlistą gry", () => {
+    const music = { "": ["main theme.mp3", "a.mp3"], x: ["Main_Theme.ogg"] };
+    expect(buildPlaylist(music)).toEqual(["/static/music/a.mp3"]);
+    expect(findMenuTheme(music)).toBe("/static/music/main%20theme.mp3");
+    expect(findMenuTheme({ "": ["a.mp3"] })).toBeNull();
   });
 });
 

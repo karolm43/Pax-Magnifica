@@ -18,6 +18,7 @@
 import { seatLobbyPlayers, useLobbyRole, useSetupSync } from "@/domains/network/setupSync";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { stopMenuTheme } from "@/shared/audio/music";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "@/state/appStore";
@@ -112,6 +113,10 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   const [error, setError] = useState<string | null>(null);
   // Uczestnicy do planszy otwierającej; `null` = intro nie jest pokazywane.
   const [introPlayers, setIntroPlayers] = useState<IntroPlayer[] | null>(null);
+  // Intro ma własną muzykę — motyw menu wygasa, gdy plansza otwierająca rusza.
+  useEffect(() => {
+    if (introPlayers) stopMenuTheme();
+  }, [introPlayers]);
   // Tryb administratora (szybkie testy) pomija planszę otwierającą i wchodzi prosto do gry.
   const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
   // Lobby sieciowe (RULES.md 44.5a): ten sam kreator, wspólny na żywo. Host prowadzi kroki,

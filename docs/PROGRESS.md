@@ -1044,4 +1044,8 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   własnym nagraniem po id komponentu (Pillage, Orbital Drop, Reclamation, Fabrication, Yin Spinner, Devotion/Impulse
   Core, Artuno, Cavalry; relikt Naaz) — zagrają same, gdy mechanika trafi do silnika; bohater → `special`; pas → żart
   (30%); transakcja do mnie / faza agendy → transmisja. Jeden głos naraz, kolejka ≤2.
+- **Motyw menu:** `assets/music/main theme.*` gra w pętli na ekranie startowym (menu, lobby, kreator: frakcje,
+  kolory, miejsca — `MenuMusic` w `StartScreen`), wygasa przy starcie intro i nie wchodzi do playlisty w grze.
+  `/audio/manifest` jest jawne (gość przed dołączeniem), `/audio/homes` — tylko z miejscem. Suwaki dźwięku także
+  jako zakładka „Sound” w Settings (`AudioSettingsPanel`, wspólny z przyciskiem na mapie).
 - Nowe trasy `/audio/*` — restart backendu.

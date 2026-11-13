@@ -3,13 +3,30 @@
  * z podfolderów, bez podziału na nastroje (decyzja użytkownika). Losowo bez powtórek w obiegu,
  * płynne przejścia: dwa elementy `<audio>` na zmianę = przenikanie utworów bez dziury.
  */
-import { audioTime, connectMediaElement } from "./audioEngine";
+import { audioTime, connectMediaElement, unlockAudio } from "./audioEngine";
 import { audioManifest, musicUrl } from "./audioManifest";
 import { channelVolume } from "./audioSettings";
 
-/** Wszystkie utwory z manifestu jako jedna lista adresów (eksport dla testów). */
+/**
+ * Motyw menu: plik `main theme.*` (także `main_theme`, `maintheme`) — gra w menu i kreatorze
+ * gry (`MenuMusic`), NIE wchodzi do playlisty w grze.
+ */
+export const MENU_THEME = /^main[\s_-]?theme\.[a-z0-9]+$/i;
+
+/** Wszystkie utwory z manifestu (bez motywu menu) jako jedna lista adresów (eksport dla testów). */
 export function buildPlaylist(music: Record<string, string[]>): string[] {
-  return Object.entries(music).flatMap(([folder, files]) => files.map((f) => musicUrl(folder, f)));
+  return Object.entries(music).flatMap(([folder, files]) =>
+    files.filter((f) => !MENU_THEME.test(f)).map((f) => musicUrl(folder, f)),
+  );
+}
+
+/** Adres motywu menu (pierwszy pasujący plik) albo null (eksport dla testów). */
+export function findMenuTheme(music: Record<string, string[]>): string | null {
+  for (const [folder, files] of Object.entries(music)) {
+    const file = files.find((f) => MENU_THEME.test(f));
+    if (file) return musicUrl(folder, file);
+  }
+  return null;
 }
 
 const FADE_S = 2.5;
@@ -101,4 +118,56 @@ export function skipTrack(): void {
 export function stopMusic(): void {
   for (const deck of decks) deck.el.pause();
   started = false;
+}
+
+// ── Motyw menu ──────────────────────────────────────────────────────────────
+
+let menuDeck: Deck | null = null;
+let menuWanted = false;
+
+/**
+ * Motyw menu w pętli (menu, lobby, kreator gry). Gdy przeglądarka blokuje autoodtwarzanie,
+ * rusza przy pierwszym kliknięciu/klawiszu. Bez pliku `main theme.*` — nic się nie dzieje.
+ */
+export function playMenuTheme(): void {
+  menuWanted = true;
+  void audioManifest().then((m) => {
+    const url = findMenuTheme(m.music);
+    if (!url || !menuWanted) return;
+    if (!menuDeck) {
+      const el = new Audio();
+      el.loop = true;
+      el.preload = "auto";
+      el.crossOrigin = "anonymous";
+      const gain = connectMediaElement(el, "music");
+      if (gain) gain.gain.value = 0;
+      menuDeck = { el, gain };
+    }
+    const deck = menuDeck;
+    if (!deck.el.src.endsWith(url)) deck.el.src = url;
+    const tryPlay = () => {
+      if (!menuWanted) return;
+      // Kontekst WebAudio (przez który idzie <audio>) też musi być wznowiony — inaczej cisza.
+      unlockAudio();
+      void deck.el.play().then(
+        () => fade(deck, 1),
+        () => {
+          const retry = () => {
+            document.removeEventListener("pointerdown", retry, true);
+            document.removeEventListener("keydown", retry, true);
+            tryPlay();
+          };
+          document.addEventListener("pointerdown", retry, true);
+          document.addEventListener("keydown", retry, true);
+        },
+      );
+    };
+    tryPlay();
+  });
+}
+
+/** Wygasza motyw menu (wejście do gry). */
+export function stopMenuTheme(): void {
+  menuWanted = false;
+  if (menuDeck && !menuDeck.el.paused) fade(menuDeck, 0);
 }

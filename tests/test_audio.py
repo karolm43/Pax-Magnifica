@@ -85,3 +85,12 @@ def test_home_positions_by_player_splits_homes_per_owner() -> None:
     homes = home_positions_by_player(state, registry)
 
     assert homes == {"p1": ["103"], "p2": ["tl"]}
+
+
+def test_network_guest_reads_manifest_before_joining_but_not_homes() -> None:
+    """Menu gościa (przed dołączeniem) gra motyw — spis plików jest jawny, domy graczy nie."""
+    app = create_app(store=EventStore(":memory:"), network=True, host_token="host-token")
+    remote = {"X-Forwarded-For": "10.147.17.5"}
+    client = TestClient(app)
+    assert client.get("/audio/manifest", headers=remote).status_code == 200
+    assert client.get("/audio/homes", headers=remote).status_code == 401

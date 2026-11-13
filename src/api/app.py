@@ -210,7 +210,7 @@ def create_app(
     # Lobby otwarte: anonim może zobaczyć lobby i do niego dołączyć (dostaje token członka).
     _lobby_paths = re.compile(r"^/lobby(/join)?$")
     _public_paths = re.compile(
-        r"^/(static|components|rules|factions|engine/config|timing-specs|network/me"
+        r"^/(static|components|rules|factions|engine/config|timing-specs|network/me|audio/manifest"
         r"|docs|redoc|openapi\.json)(/|$)"
     )
 

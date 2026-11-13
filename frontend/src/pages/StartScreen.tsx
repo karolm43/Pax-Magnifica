@@ -10,6 +10,7 @@ import { JoinScreen, LoadGameModal } from "@/domains/network/LobbyScreens";
 import { useSetupStore } from "@/domains/setup/useSetupStore";
 import { useLobbyActions } from "@/domains/network/useLobby";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
+import { MenuMusic } from "@/shared/audio/MenuMusic";
 
 /**
  * Pełnoekranowy ekran rozruchu — pokazywany, dopóki ładujemy dane gry (frakcje)
@@ -158,6 +159,8 @@ export default function StartScreen() {
 
   return (
     <Box className={`${themeClassName} ${styles.root}`}>
+      {/* Motyw menu (`assets/music/main theme.*`) — menu, lobby i kreator (frakcje, kolory). */}
+      <MenuMusic />
       {/*
        * Nakładka wygaszanego rozruchu NAD menu: menu jest już w pełni zmontowane,
        * a boot płynnie znika (opacity), więc przejście jest smooth — bez przeskoku.
