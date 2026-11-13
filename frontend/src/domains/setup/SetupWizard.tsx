@@ -31,7 +31,6 @@ import {
 import { SETUP_STEPS, type SetupStepId } from "./setupSteps";
 import {
   currentStep,
-  resolveRandomFactions,
   toNewGameRequest,
   useSetupStore,
   validateSetup,
@@ -42,7 +41,6 @@ import Step_Faction from "./steps/Step_Faction";
 import Step_SeatColor from "./steps/Step_SeatColor";
 import GameIntro from "./GameIntro";
 import { loadIntroPlayers, type IntroPlayer } from "./introPlayers";
-import { tempReadyFactions } from "./tempReadyFactions";
 
 /**
  * Propsy współdzielone przez komponenty kroków. Każdy krok dostaje listę frakcji
@@ -136,8 +134,6 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
     for (const f of factions ?? []) map.set(f.id, f);
     return map;
   }, [factions]);
-  // TYMCZASOWE: do wyboru i losowania tylko frakcje gotowe w silniku (`tempReadyFactions.ts`).
-  const pickableFactions = useMemo(() => tempReadyFactions(factions ?? []), [factions]);
 
   const step = currentStep(currentStepIndex);
   const isLastStep = currentStepIndex >= SETUP_STEPS.length - 1;
@@ -167,10 +163,7 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
     setError(null);
     setSubmitting(true);
     try {
-      // TYMCZASOWE: „Random" rozstrzygamy tu z puli gotowych frakcji (backend losowałby ze
-      // wszystkich). Po usunięciu `tempReadyFactions` wystarczy znów wysłać `slots`.
-      const resolvedSlots = resolveRandomFactions(slots, pickableFactions);
-      const request = toNewGameRequest(resolvedSlots, mapString, factionById, seatPositions);
+      const request = toNewGameRequest(slots, mapString, factionById, seatPositions);
       await createNewGame(request);
       // Lobby: właściciele slotów (host, goście) siadają jako p{i+1}; goście same wchodzą do gry.
       if (networkLobby) await seatLobbyPlayers();
@@ -228,7 +221,7 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   return (
     <>
       <StepComponent
-        factions={pickableFactions}
+        factions={factions ?? []}
         factionById={factionById}
         stage={
           isGuest
