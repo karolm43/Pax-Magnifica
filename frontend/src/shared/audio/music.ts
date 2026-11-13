@@ -30,6 +30,8 @@ export function findMenuTheme(music: Record<string, string[]>): string | null {
 }
 
 const FADE_S = 2.5;
+/** Motyw menu ciszej niż muzyka w grze (decyzja użytkownika) — mnożnik poziomu kanału „music”. */
+const MENU_GAIN = 0.55;
 
 type Deck = { el: HTMLAudioElement; gain: GainNode | null };
 
@@ -150,7 +152,7 @@ export function playMenuTheme(): void {
       // Kontekst WebAudio (przez który idzie <audio>) też musi być wznowiony — inaczej cisza.
       unlockAudio();
       void deck.el.play().then(
-        () => fade(deck, 1),
+        () => fade(deck, MENU_GAIN),
         () => {
           const retry = () => {
             document.removeEventListener("pointerdown", retry, true);
