@@ -1049,3 +1049,10 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   `/audio/manifest` jest jawne (gość przed dołączeniem), `/audio/homes` — tylko z miejscem. Suwaki dźwięku także
   jako zakładka „Sound” w Settings (`AudioSettingsPanel`, wspólny z przyciskiem na mapie).
 - Nowe trasy `/audio/*` — restart backendu.
+
+## TYMCZASOWO: kreator tylko z gotowymi frakcjami (2026-11-13)
+
+- Wybór i „Random” w kreatorze/lobby ograniczone do frakcji ukończonych w silniku (Sardakk, Letnev, Jol-Nar,
+  Sol, Arborec, Hacan, Winnu) — `frontend/src/domains/setup/tempReadyFactions.ts`. „Random” rozstrzyga front
+  przed `/game/new` (`resolveRandomFactions` z zawężonej puli). Backend bez zmian. Do usunięcia, gdy frakcje
+  będą kompletne (plik + 2 użycia w `SetupWizard.tsx`).
