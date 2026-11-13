@@ -1,20 +1,32 @@
+import { useState } from "react";
 import {
   IconCards,
+  IconCheck,
   IconCoins,
   IconDiamond,
-  IconFileText,
   IconPlanet,
+  IconPlus,
 } from "@tabler/icons-react";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { useFactionColors } from "@/hooks/useFactionColors";
 import type { TransactionSide } from "@/api/useBoardEditor";
+import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
+import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
+import {
+  ObjectLabel,
+  ObjectShell,
+} from "@/domains/player/components/silhouettes/ObjectShell";
+import { SmoothPopover } from "@/shared/ui/SmoothPopover";
+import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./TransactionModal.module.css";
 
 /*
- * Elementy transakcji z PEŁNYM tekstem (RULES.md 47.1a): gracz musi wiedzieć, co robi notka albo
- * karta akcji, zanim ją odda lub przyjmie. Wspólne dla okna transakcji i okna zgody partnera.
+ * Elementy transakcji (RULES.md 47.1a). Notki i karty akcji to TE SAME chipy co w panelu gracza
+ * (``PromissoryNote``) i w ręce: nazwa + znak wystawcy, pełny tekst karty dopiero po kliknięciu
+ * (popover z kartą). Wybór do transakcji = osobny przycisk obok chipa. Wspólne dla okna
+ * transakcji i okna zgody partnera.
  */
 
 type CardKind = "note" | "action";
@@ -37,7 +49,33 @@ export function useTradeCardInfo() {
   };
 }
 
-/** Karta do wyboru (albo tylko do odczytu, gdy brak ``onToggle``) z nazwą i pełnym tekstem. */
+/** Chip karty akcji: nazwa w ramce obiektu, pełna karta w popoverze po kliknięciu. */
+function ActionCardChip({ id }: { id: string }) {
+  const [opened, setOpened] = useState(false);
+  const name = getActionCard(id)?.name ?? id;
+  return (
+    <SmoothPopover opened={opened} onChange={setOpened}>
+      <SmoothPopover.Target>
+        <ObjectShell
+          className={styles.acChip}
+          label={`${name} · action card`}
+          onClick={() => setOpened((o) => !o)}
+        >
+          <IconCards size={14} aria-hidden="true" />
+          <ObjectLabel>{name}</ObjectLabel>
+        </ObjectShell>
+      </SmoothPopover.Target>
+      <SmoothPopover.Dropdown p={0}>
+        <ActionCardDetailsCard actionCardId={id} />
+      </SmoothPopover.Dropdown>
+    </SmoothPopover>
+  );
+}
+
+/**
+ * Notka / karta akcji w transakcji: chip jak w panelu gracza (klik = pełny opis), a przy
+ * wyborze (``onToggle``) obok przycisk "Add" / "In deal".
+ */
 export function TradeCard({
   kind,
   id,
@@ -50,36 +88,47 @@ export function TradeCard({
   onToggle?: () => void;
 }) {
   const info = useTradeCardInfo()(kind, id);
-  const Icon = kind === "note" ? IconFileText : IconCards;
-  const body = (
-    <>
-      <span className={styles.tradeCardHead}>
-        <Icon size={13} aria-hidden="true" />
-        <b>{info.name}</b>
-        {info.owner && <small>{info.owner}</small>}
-      </span>
-      {info.text && <span className={styles.tradeCardText}>{info.text}</span>}
-    </>
+  const chip =
+    kind === "note" ? <PromissoryNote promissoryNoteId={id} /> : <ActionCardChip id={id} />;
+  return (
+    <div className={styles.tradePick} data-selected={selected || undefined}>
+      {chip}
+      {onToggle && (
+        <button
+          type="button"
+          className={styles.pickBtn}
+          aria-pressed={selected}
+          aria-label={`${selected ? "Remove from deal" : "Add to deal"}: ${info.name}`}
+          onClick={onToggle}
+        >
+          {selected ? (
+            <>
+              <IconCheck size={13} aria-hidden="true" /> In deal
+            </>
+          ) : (
+            <>
+              <IconPlus size={13} aria-hidden="true" /> Add
+            </>
+          )}
+        </button>
+      )}
+    </div>
   );
-  if (!onToggle) {
-    return (
-      <div className={styles.tradeCard} data-kind={kind}>
-        {body}
-      </div>
-    );
+}
+
+/** Sprite fragmentu reliktu (jak ``FragmentStack`` w panelu gracza); id z prefiksem typu. */
+export function FragmentIcon({ id }: { id: string }) {
+  const type = id.slice(0, 3);
+  if (!["crf", "hrf", "irf", "urf"].includes(type)) {
+    return <IconDiamond size={13} aria-hidden="true" />;
   }
   return (
-    <button
-      type="button"
-      className={styles.tradeCard}
-      data-kind={kind}
-      data-selected={selected || undefined}
-      aria-pressed={selected}
-      aria-label={`${kind === "note" ? "Promissory note" : "Action card"}: ${info.name}`}
-      onClick={onToggle}
-    >
-      {body}
-    </button>
+    <img
+      className={styles.fragIcon}
+      src={assetUrl(`/player_area/pa_fragment_${type}.png`)}
+      alt=""
+      loading="lazy"
+    />
   );
 }
 
@@ -126,7 +175,7 @@ export function TradeSummary({
       )}
       {side.relicFragments.map((f, i) => (
         <span key={`${f}-${i}`} className={styles.summaryGoods}>
-          <IconDiamond size={13} aria-hidden="true" />
+          <FragmentIcon id={f} />
           {fragmentName?.(f) ?? f}
         </span>
       ))}

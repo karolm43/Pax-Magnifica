@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { IconPlayerPause, IconX } from "@tabler/icons-react";
 import { useHoldCandidates, type HoldStep } from "@/api/useActionCard";
+import { useActivityFeed } from "@/api/useBoardEditor";
+import { describeActivity } from "@/domains/game-shell/components/ActivityPanel/describeActivity";
+import { useActivityContext } from "@/domains/game-shell/components/ActivityPanel/useActivityContext";
+import { prettifyId } from "@/domains/game-shell/components/GameEventPanel/eventFormatting";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import styles from "./HoldControls.module.css";
 
 type Pick = { step: HoldStep; cardId: string; cardName: string };
+
+/** Etykieta techniczna commita jako ostatnia deska ratunku („battle:assign:p2" → „Battle assign"). */
+function plainLabel(label: string): string {
+  return prettifyId(label.split(":").slice(0, 2).join(" "));
+}
 
 /**
  * Przycisk HOLD (RULES.md 53.7): "chciałem zagrać kartę, ale gra poszła dalej". Pokazuje kroki
@@ -17,6 +26,14 @@ export function HoldControls({ playerId }: { playerId: string }) {
   const [pick, setPick] = useState<Pick | null>(null);
   const { data, isLoading } = useHoldCandidates(playerId, open);
   const steps = data?.steps ?? [];
+  // Cofany krok opisany tak samo jak w feedzie Activity (ten sam opis, nie surowa etykieta).
+  const { data: feed } = useActivityFeed();
+  const ctx = useActivityContext(feed?.players);
+  const undone = (step: HoldStep): ReactNode => {
+    const entry = feed?.entries.find((e) => e.seq === step.nextSeq);
+    if (entry) return describeActivity(entry.activity, ctx).headline;
+    return step.nextLabel ? plainLabel(step.nextLabel) : null;
+  };
 
   return (
     <>
@@ -61,8 +78,17 @@ export function HoldControls({ playerId }: { playerId: string }) {
             {steps.map((step) => (
               <li key={step.seq} className={styles.step}>
                 <div className={styles.stepHead}>
-                  <b>{step.stepsBack === 0 ? "Right now" : `${step.stepsBack} step(s) back`}</b>
-                  <span>{step.nextLabel ? `undoes: ${step.nextLabel}` : step.label}</span>
+                  <b>
+                    {step.stepsBack === 0
+                      ? "Right now"
+                      : `${step.stepsBack} step${step.stepsBack === 1 ? "" : "s"} back`}
+                  </b>
+                  <small>
+                    Round {step.round} · {prettifyId(step.phase)} phase
+                  </small>
+                  {step.stepsBack > 0 && (
+                    <span>Undoes: {undone(step)}</span>
+                  )}
                 </div>
                 <div className={styles.cards}>
                   {step.cards.map((card) => (

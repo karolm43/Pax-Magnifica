@@ -342,8 +342,8 @@ def crash_landing(
     place your ground force into coexistence.
 
     ⚠ ZAŁOŻENIE: silnik nie ma osobnego modelu koegzystencji - jednostka trafia do
-    ``planet_units`` obok cudzych (jak Exchange Program), kontrola planety się nie zmienia, a
-    walka naziemna nie wybucha (dopóki ktoś nie wyląduje i nie wywoła inwazji).
+    ``planet_units`` obok cudzych (jak Exchange Program), kontrola planety się nie zmienia; walka
+    naziemna wybucha w kroku Invasion, także bez lądowania (RULES.md 40.1 I7a).
     """
     system = state.systems.get(str(_window_ctx(params).get("position", "")))
     if system is None:

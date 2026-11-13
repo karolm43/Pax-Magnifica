@@ -979,3 +979,22 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   → ile ma), Sucaban (zwrot po zapłacie), Agnlan Oln (raz na rodzaj rzutu), Auto-Factories (jedno użycie PRODUCTION)
   potwierdzone bez zmian. Fala 1 bez otwartych ⚠️ decyzji (zostają braki zależne: Travel Ban, Construction z planszy).
 - Nowe pola stanu (`imperator_used`) i trasy (`/action-card/discard-excess`) — restart backendu.
+
+## Walka naziemna bez Commit, nazwy bitew w feedzie, podsumowanie bitwy, transakcje na chipach (2026-11-13)
+
+- **Walka naziemna zawsze w kroku 4** (decyzja użytkownika, RULES.md 40.1 I7a): sporna planeta (siły aktywnego obok
+  cudzych, np. po Crash Landing) otwiera inwazję bez sił w przestrzeni; Commit bez lądowania nie pomija walki, Establish
+  Control obejmuje też planety walki (`invasion._contested`, `begin_invasion`, `advance`, `_establish_control`).
+- **Feed Activity — bitwy z nazwą:** „Space battle of <system>” / „Ground battle for <planeta>”; straty rundy
+  (`combat.losses`), bombardowanie, Space Cannon Defense, Establish Control i straty od Space Cannon mają własne wpisy
+  zamiast „Result of X's action”. `battle:close` = podsumowanie: zwycięzca/remis, liczba rund, łączne straty stron
+  (fakt `battle_result` + `units`).
+- **Okno bitwy:** ekran wyniku ma panel „Battle summary” (rundy, trafienia, Sustain Damage, zniszczone jednostki ikonami
+  `Unit`) — `battle/BattleSummary.tsx`.
+- **Okno transakcji:** notki = chip `PromissoryNote` z panelu gracza (opis po kliknięciu), karty akcji = chip z
+  `ActionCardDetailsCard` w popoverze, wybór osobnym przyciskiem „Add / In deal”; fragmenty reliktów ze spritem jak
+  `FragmentStack`. Także okno zgody partnera.
+- **Hold:** przegląd — logika cofania (8 kroków, blokady kości/dobrań/fazy) bez zmian; panel opisuje cofany krok tak
+  jak feed Activity (`nextSeq` w `/hold/candidates`) zamiast surowej etykiety, plus runda/faza migawki.
+- **Steering:** nowa zasada „Spójność i reużycie” (używać istniejących komponentów, ujednolicać odstające elementy).
+- Nowe pole odpowiedzi (`nextSeq`) i logika inwazji — restart backendu.

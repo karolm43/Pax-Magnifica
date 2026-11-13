@@ -220,6 +220,8 @@ export type HoldStep = {
   seq: number;
   label: string;
   nextLabel?: string | null;
+  /** Numer cofanego kroku (wpis feedu Activity o tym `seq` opisuje go po ludzku). */
+  nextSeq?: number | null;
   round: number;
   phase: string;
   stepsBack: number;

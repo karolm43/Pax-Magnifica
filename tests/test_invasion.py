@@ -385,6 +385,40 @@ def test_committing_nothing_skips_to_establish(registry: StaticDataRegistry) -> 
     assert state.invasion.results == []
 
 
+def test_contested_planet_without_commit_still_fights(registry: StaticDataRegistry) -> None:
+    """RULES.md 40.1 I7a: siły na planecie bez lądowania (Crash Landing) - walka i tak wybucha."""
+    grid = _grid()
+    base = invasion.begin_invasion(
+        _state({"p1": {"cruiser": 1}}, {_PL2: {"p1": {"infantry": 3}, "p2": {"infantry": 1}}},
+               {_PL2: "p2"}),
+        grid,
+        registry,
+    )
+    assert base.invasion is not None, "sporna planeta otwiera inwazję bez sił w przestrzeni"
+    assert invasion.combat_planets(base, registry) == [_PL2]
+
+    def run(s: GameState) -> GameState:
+        s = invasion.advance(s, grid, registry)  # Commit bez lądowania -> walka, nie Establish
+        assert s.invasion is not None
+        assert s.invasion.phase is InvasionPhase.GROUND_COMBAT
+        s = _fight(s, grid, registry, _PL2)
+        return invasion.advance(s, grid, registry)
+
+    result = _seek(
+        base,
+        run,
+        lambda s: s.invasion is not None
+        and bool(s.invasion.results)
+        and s.invasion.results[0]["outcome"] == "captured",
+    )
+    assert result.systems["000"].planet_owners[_PL2] == "p1"
+
+
+def test_contested_planet_keeps_invasion_step_non_empty(registry: StaticDataRegistry) -> None:
+    state = _state({}, {_PL1: {"p1": {"mech": 1}, "p2": {"infantry": 1}}}, {_PL1: "p2"})
+    assert not tactical._step_is_empty(state, _grid(), registry, TacticalStep.INVASION)
+
+
 # ---------------------------------------------------------------------------- nawigacja
 
 

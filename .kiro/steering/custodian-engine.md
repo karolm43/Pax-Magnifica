@@ -22,6 +22,17 @@ są w `docs/pokrycie_hookow/*.md` (czytaj punktowo, największe ~34 KB).
 - Kod w `src/` i testy w `tests/` są nadrzędnym źródłem prawdy o stanie. Zadanie frontendowe: nie ruszaj dokumentów reguł.
 - Nie uruchamiaj całego `pytest`/`ruff`/`mypy` bez potrzeby w trakcie pracy; pełny zestaw na końcu kroku.
 
+## SPÓJNOŚĆ I REUŻYCIE (najważniejsze, decyzja użytkownika)
+
+- Wszystko ma wyglądać i działać SPÓJNIE. Zanim zbudujesz element UI, znajdź istniejący odpowiednik
+  (szczególnie w obecnych interfejsach: panel gracza, ręka, feed Activity, okno bitwy) i UŻYJ go,
+  zamiast pisać nowy. Przykład: notki w transakcji = chip `PromissoryNote` z panelu gracza (ikona
+  wystawcy, pełny opis dopiero po kliknięciu), nie własna lista z tekstem.
+- Ten sam obiekt gry = ten sam komponent i ta sama interakcja wszędzie (chip + opis po kliknięciu,
+  `Unit` dla jednostek, `describeActivity` dla opisu zdarzeń, pełne nazwy z danych).
+- Gdy przy pracy trafisz na coś, co odstaje od reszty (własne style, surowe id/etykiety, zdublowany
+  komponent), ujednolić to przy okazji albo zgłoś w raporcie.
+
 ## Reguły TI4 (KLUCZOWE)
 
 - **Nie koduj reguł ani statystyk TI4 z pamięci.** Dane liczbowe i teksty kart tylko z assetów AsyncTI4

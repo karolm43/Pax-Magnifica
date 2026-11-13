@@ -6,7 +6,6 @@ import {
   IconHandStop,
   IconMinus,
   IconPlus,
-  IconDiamond,
   IconInfoCircle,
 } from "@tabler/icons-react";
 import { Button, Group, Stack, Text } from "@/ds";
@@ -22,7 +21,13 @@ import {
   type TransactionSide,
 } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
-import { TradeCard, TradeSummary, isEmptySide, planetName } from "./transactionItems";
+import {
+  FragmentIcon,
+  TradeCard,
+  TradeSummary,
+  isEmptySide,
+  planetName,
+} from "./transactionItems";
 import styles from "./TransactionModal.module.css";
 
 type Tab = "trade" | "promises";
@@ -351,7 +356,7 @@ export function TransactionModal({
                 data-selected={side.relicFragments.includes(f.id) || undefined}
                 onClick={() => toggleFragment(side, set, f.id)}
               >
-                <IconDiamond size={13} aria-hidden="true" />
+                <FragmentIcon id={f.id} />
                 {f.name}
               </button>
             ))}

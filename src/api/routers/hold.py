@@ -43,6 +43,7 @@ class HoldStep(BaseModel):
     seq: int
     label: str
     nextLabel: str | None = None  # noqa: N815 (kontrakt JSON z frontem jest camelCase)
+    nextSeq: int | None = None  # noqa: N815
     round: int
     phase: str
     stepsBack: int  # noqa: N815

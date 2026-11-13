@@ -300,6 +300,9 @@ def begin_invasion(
     new_state.invasion = InvasionState(position=active, attacker=attacker)
     system = new_state.systems.get(active)
     landable = system is not None and bool(_ground_in_zone(system, "space", attacker))
+    # RULES.md 40.1 I7a: sporna planeta (siły aktywnego obok cudzych, np. po Crash Landing) też
+    # otwiera inwazję - walka naziemna wybucha bez lądowania.
+    landable = landable or bool(_contested(new_state, registry, active, attacker))
     # Tekklar Conditioning (RULES.md 62.1): prosto do Commit Ground Forces, bez Bombardment.
     skip_bombard = rules_hooks.permits(
         rules_hooks.POINT_INVASION_SKIP_BOMBARDMENT, new_state, attacker
@@ -1045,16 +1048,28 @@ def assign_defense_hits(
 # ------------------------------------------------------------------------- ground combat
 
 
-def combat_planets(state: GameState, registry: StaticDataRegistry) -> list[str]:
-    """Planety, na których atakujący i inny gracz mają siły naziemne — tu toczy się walka (I4)."""
-    inv = _inv(state)
-    system = _system(state)
+def _contested(
+    state: GameState, registry: StaticDataRegistry, position: str, attacker: str
+) -> list[str]:
+    """Planety systemu, na których ``attacker`` i inny gracz mają siły naziemne (I7 / I7a).
+
+    Nie patrzy na ``committed``: siły mogły trafić na planetę bez lądowania (Crash Landing,
+    koegzystencja) - walka i tak wybucha w kroku Invasion (decyzja użytkownika, RULES.md 40.1).
+    """
+    system = state.systems.get(position)
+    if system is None:
+        return []
     return [
         p
-        for p in system_planets(state, registry, inv.position)
-        if _ground_in_zone(system, p, inv.attacker)
-        and _defenders(state, p, inv.position, inv.attacker)
+        for p in system_planets(state, registry, position)
+        if _ground_in_zone(system, p, attacker) and _defenders(state, p, position, attacker)
     ]
+
+
+def combat_planets(state: GameState, registry: StaticDataRegistry) -> list[str]:
+    """Planety, na których atakujący i inny gracz mają siły naziemne — tu toczy się walka (I7)."""
+    inv = _inv(state)
+    return _contested(state, registry, inv.position, inv.attacker)
 
 
 # ------------------------------------------------------------------------ establish control
@@ -1070,7 +1085,8 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
     system = _system(state)
     attacker = state.players.get(inv.attacker)
     results: list[dict[str, Any]] = []
-    for planet in sorted(inv.committed):
+    # Planety lądowania + planety walki bez lądowania (Crash Landing - RULES.md 40.1 I7a).
+    for planet in sorted(set(inv.committed) | set(inv.combat_results)):
         owner = system.planet_owners.get(planet)
         combat_result = inv.combat_results.get(planet)
         attacker_present = bool(_ground_in_zone(system, planet, inv.attacker))
@@ -1144,8 +1160,8 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
                 "You removed the Custodians token - commit at least one ground force "
                 "to Mecatol Rex."
             )
-        if not inv.committed:
-            # Brak lądowania: od razu do Establish Control (nic do rozstrzygania) — I2.
+        if not inv.committed and not combat_planets(state, registry):
+            # Brak lądowania i spornych planet: od razu do Establish Control — I2 / I7a.
             return _enter(state, grid, registry, InvasionPhase.ESTABLISH)
         return _enter(state, grid, registry, InvasionPhase.SPACE_CANNON_DEFENSE)
     if inv.phase is InvasionPhase.SPACE_CANNON_DEFENSE:

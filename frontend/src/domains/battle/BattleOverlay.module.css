@@ -1337,6 +1337,81 @@
   width: 100%;
 }
 
+/* Podsumowanie zakończonej walki (ekran wyniku). */
+.summary {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+  text-align: left;
+}
+
+.result .summary svg {
+  color: currentColor;
+}
+
+.summaryHead {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.summarySide {
+  display: grid;
+  gap: 4px;
+}
+
+.result .summaryWho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result .summaryWho b {
+  font-family: inherit;
+  font-size: 12px;
+  margin-right: auto;
+}
+
+.result .summaryWho span,
+.result .summaryNone {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.summaryLosses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summaryLosses li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: #fca5a5;
+}
+
+.summaryIcon {
+  --unit-fit: 22px;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
 /* Ostatnia salwa (taca z kośćmi). */
 .volley {
   display: grid;

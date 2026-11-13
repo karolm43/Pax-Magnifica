@@ -719,6 +719,7 @@ function Battlefield({ view }: { view: BattleView }) {
         <BattleCenter
           view={view}
           nameOf={nameOf}
+          colorOf={(key) => players(key).colorAlias}
           busy={busy}
           rolling={rolling}
           onHold={onHold}

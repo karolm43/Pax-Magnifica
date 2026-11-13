@@ -18,6 +18,7 @@ import type {
 } from "@/api/useBoardEditor";
 import { HoldRollButton, type HoldState } from "@/domains/dice/HoldRollButton";
 import { BattleRelicTools } from "./BattleRelicTools";
+import { BattleSummary } from "./BattleSummary";
 import styles from "./BattleOverlay.module.css";
 
 type Step = NonNullable<BattleView["step"]>;
@@ -136,6 +137,7 @@ function LastVolley({
 export function BattleCenter({
   view,
   nameOf,
+  colorOf,
   busy,
   absorbed,
   onAfb,
@@ -153,6 +155,8 @@ export function BattleCenter({
   onHold: (state: HoldState) => void;
   view: BattleView;
   nameOf: (key: string) => string;
+  /** Alias koloru strony (ikony jednostek w podsumowaniu). */
+  colorOf: (key: string) => string;
   busy: boolean;
   /** Trwa rzut kośćmi na stole (panel strat czeka, wynik w tacy ukryty). */
   rolling: boolean;
@@ -376,6 +380,7 @@ export function BattleCenter({
               <span>No units remain on either side</span>
             </>
           )}
+          <BattleSummary view={view} nameOf={nameOf} colorOf={colorOf} />
           <button
             type="button"
             className={styles.primary}

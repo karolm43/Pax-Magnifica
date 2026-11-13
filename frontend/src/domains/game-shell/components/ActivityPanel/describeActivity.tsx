@@ -90,6 +90,11 @@ const ACTION_GLYPH: Record<string, Glyph> = {
   "agenda.reveal": IconGavel,
   "agenda.vote": IconGavel,
   "spacecannon.fire": IconFlame,
+  "spacecannon.losses": IconFlame,
+  "invasion.bombard": IconFlame,
+  "invasion.defense": IconFlame,
+  "invasion.establish": IconFlag,
+  "combat.end": IconFlag,
   "setup.faction": IconUser,
 };
 
@@ -131,6 +136,34 @@ function phaseLabel(phase: string | null): string {
 
 function name(ctx: ActivityContext, id: string | null): ReactNode {
   return <b>{playerName(ctx, id)}</b>;
+}
+
+/**
+ * Nazwa bitwy do feedu: „Space battle of <system>" / „Ground battle for <planeta>".
+ * ``subject`` = "space" albo id planety, ``detail`` = pozycja systemu (starsze wpisy: brak).
+ */
+function battleName(a: Activity, ctx: ActivityContext): ReactNode {
+  const where = a.subject;
+  if (where && where !== "space") {
+    return (
+      <>
+        Ground battle for <Named kind="planet" id={where} name={resolvePlanetName(where)} />
+      </>
+    );
+  }
+  if (!a.detail) return <>Space battle</>;
+  return (
+    <>
+      Space battle of{" "}
+      <Named kind="system" id={a.detail} name={ctx.systemName(a.detail)} systemText={ctx.systemHint(a.detail)} />
+    </>
+  );
+}
+
+/** System z pola ``detail`` (wpisy inwazji / Space Cannon) jako nazwany węzeł. */
+function detailSystem(a: Activity, ctx: ActivityContext): ReactNode {
+  if (!a.detail) return <i>the active system</i>;
+  return <Named kind="system" id={a.detail} name={ctx.systemName(a.detail)} systemText={ctx.systemHint(a.detail)} />;
 }
 
 function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
@@ -265,19 +298,64 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
     case "combat.start":
       return (
         <>
-          {actor} attacks {a.target_id ? target : "an enemy"}
-          {a.subject && a.subject !== "space" ? (
-            <> on <Named kind="planet" id={a.subject} name={resolvePlanetName(a.subject)} /></>
+          {battleName(a, ctx)} · {actor} attacks {a.target_id ? target : "an enemy"}
+        </>
+      );
+    case "combat.losses":
+      return (
+        <>
+          {battleName(a, ctx)} · {actor} took losses
+        </>
+      );
+    case "combat.end": {
+      const result = a.facts.find((f) => f.type === "battle_result");
+      if (!a.subject) {
+        // Wpis sprzed nazw bitew (bez miejsca i wyniku).
+        return (
+          <>
+            Battle between {actor}
+            {a.target_id && <> and {target}</>} ended
+          </>
+        );
+      }
+      return (
+        <>
+          {battleName(a, ctx)} ended ·{" "}
+          {result?.detail === "winner" && result.player_id ? (
+            <>{name(ctx, result.player_id)} won</>
           ) : (
-            <> in space</>
+            <>draw</>
           )}
         </>
       );
-    case "combat.end":
+    }
+    case "invasion.bombard":
       return (
         <>
-          Battle between {actor}
-          {a.target_id && <> and {target}</>} ended
+          {actor} bombarded{" "}
+          {a.subject ? <Named kind="planet" id={a.subject} name={resolvePlanetName(a.subject)} /> : detailSystem(a, ctx)}
+        </>
+      );
+    case "invasion.defense":
+      return (
+        <>
+          Space Cannon Defense
+          {a.subject && (
+            <> on <Named kind="planet" id={a.subject} name={resolvePlanetName(a.subject)} /></>
+          )}{" "}
+          · {actor}&apos;s landing
+        </>
+      );
+    case "invasion.establish":
+      return (
+        <>
+          Invasion of {detailSystem(a, ctx)} · {actor} established control
+        </>
+      );
+    case "spacecannon.losses":
+      return (
+        <>
+          Space Cannon fire in {detailSystem(a, ctx)} · {actor} took losses
         </>
       );
     case "combat.retreat_announce":
@@ -402,9 +480,11 @@ function describeFact(
   a: Activity,
   ctx: ActivityContext,
 ): DescribedFact | null {
-  // Show whose fact it is only when it is not the actor's own.
+  // Show whose fact it is only when it is not the actor's own (battle summary: always — both
+  // sides' losses sit side by side).
+  const own = fact.player_id === a.actor_id && a.action !== "combat.end";
   const who =
-    fact.player_id === null || fact.player_id === a.actor_id ? null : (
+    fact.player_id === null || own ? null : (
       <b>{playerName(ctx, fact.player_id)}</b>
     );
   const prefix = who ? <>{who}: </> : null;
@@ -739,6 +819,15 @@ function describeFact(
       return { key, tone: "info", text: <>{who ?? <b>{playerName(ctx, fact.player_id)}</b>} became Speaker</> };
     case "custodians_removed":
       return { key, tone: "good", text: <>The Custodians token was removed from Mecatol Rex</> };
+    case "battle_result": {
+      // Podsumowanie bitwy: zwycięzca w nagłówku, tu długość walki.
+      const rounds = `${delta} round${delta === 1 ? "" : "s"}`;
+      return {
+        key,
+        tone: fact.detail === "winner" ? "good" : "info",
+        text: fact.detail === "winner" ? <>Victory after {rounds}</> : <>Draw after {rounds}</>,
+      };
+    }
     case "winner":
       return { key, tone: "good", text: <>{<b>{playerName(ctx, fact.player_id)}</b>} won the game</> };
     default:

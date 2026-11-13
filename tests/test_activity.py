@@ -238,3 +238,58 @@ def test_propozycja_i_odrzucenie_transakcji_w_feedzie() -> None:
     assert (declined.action, declined.actor_id, declined.target_id) == (
         "transaction.declined", "p2", "p1"
     )
+
+
+def _battle_states() -> tuple[GameState, GameState]:
+    """Walka kosmiczna p1 vs p2 w systemie 101: przed przypisaniem strat p2 i po nim."""
+    from src.core.game_state import ActiveCombat, SystemState
+
+    before = _state()
+    before.systems["101"] = SystemState(
+        position="101", system_id="27",
+        space_units={"p1": {"cruiser": 2}, "p2": {"destroyer": 2}},
+    )
+    before.active_combat = ActiveCombat(
+        kind="space", position="101", attacker="p1", defender="p2", round=2
+    )
+    after = before.clone()
+    after.systems["101"].space_units["p2"] = {"destroyer": 1}
+    return before, after
+
+
+def test_straty_w_rundzie_walki_maja_nazwe_bitwy() -> None:
+    before, after = _battle_states()
+    entry = derive_activity("battle:assign:p2", before, after)
+    assert entry is not None
+    assert (entry.kind, entry.action) == ("combat", "combat.losses")
+    assert (entry.actor_id, entry.target_id) == ("p2", "p1")
+    assert (entry.subject, entry.detail) == ("space", "101")
+    assert ("units", "p2", "destroyer", -1) in {
+        (f.type, f.player_id, f.value, f.delta) for f in entry.facts
+    }
+
+
+def test_rzut_bez_skutku_nie_trafia_do_feedu() -> None:
+    before, _ = _battle_states()
+    assert derive_activity("battle:roll", before, before.clone()) is None
+
+
+def test_zamkniecie_walki_daje_podsumowanie() -> None:
+    before, _ = _battle_states()
+    assert before.active_combat is not None
+    before.active_combat.log = [
+        {"round": 1, "phase": "COMBAT", "losses": {"p2": {"destroyer": 1}}},
+        {"round": 2, "phase": "COMBAT", "losses": {"p1": {"cruiser": 1}, "p2": {"destroyer": 1}}},
+    ]
+    before.active_combat.winner = "p1"
+    before.active_combat.outcome = "winner"
+    after = before.clone()
+    after.active_combat = None
+    entry = derive_activity("battle:close", before, after)
+    assert entry is not None
+    assert entry.action == "combat.end"
+    assert (entry.subject, entry.detail) == ("space", "101")
+    got = {(f.type, f.player_id, f.value, f.delta, f.detail) for f in entry.facts}
+    assert ("battle_result", "p1", None, 2, "winner") in got
+    assert ("units", "p2", "destroyer", -2, None) in got
+    assert ("units", "p1", "cruiser", -1, None) in got

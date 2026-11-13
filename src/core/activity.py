@@ -26,7 +26,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.core.game_state import GameState
+from src.core.game_state import ActiveCombat, GameState
 
 # Kategorie wpisów (do filtrów w UI).
 ActivityKind = Literal[
@@ -56,7 +56,9 @@ class ActivityFact(BaseModel):
     # "relic", "frontier_card", "leader", "breakthrough_unlocked", "strategy_card_gained".
     # Plansza: "units" (value = typ, delta = zmiana liczby), "system_token", "law_enacted",
     # "law_repealed", "attached", "objective_scored", "effect", "speaker", "custodians_removed",
-    # "winner". NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
+    # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
+    # delta = liczba rund).
+    # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
     player_id: str | None = None
@@ -219,7 +221,9 @@ def _parse_combat(
     att, dfn = _combat_pair(before, after)
     if label.startswith("battle:start"):
         where = parts[2] if len(parts) > 2 else "space"
-        return "combat", "combat.start", att or active, dfn, where, None
+        combat = after.active_combat
+        position = combat.position if combat is not None else after.active_system
+        return "combat", "combat.start", att or active, dfn, where, position
     if label == "battle:close":
         return "combat", "combat.end", att or active, dfn, None, None
     if parts[:2] == ["battle", "retreat-announce"] and len(parts) > 2:
@@ -232,6 +236,93 @@ def _parse_combat(
         return "combat", "invasion.commit", active, None, after.active_system, None
     if head == "space-cannon" and len(parts) > 2 and parts[1] == "fire":
         return "combat", "spacecannon.fire", parts[2], None, None, None
+    return None
+
+
+def _battle_where(combat: ActiveCombat) -> str:
+    """Miejsce walki do opisu: id planety (walka naziemna) albo ``"space"``."""
+    return combat.planet or "space"
+
+
+def _battle_summary(combat: ActiveCombat) -> list[ActivityFact]:
+    """Podsumowanie zakończonej walki: łączne straty stron z całego logu rund (``units`` < 0)."""
+    totals: dict[str, dict[str, int]] = {}
+    for entry in combat.log:
+        for pid, by_type in dict(entry.get("losses") or {}).items():
+            side = totals.setdefault(str(pid), {})
+            for base_type, count in dict(by_type).items():
+                side[str(base_type)] = side.get(str(base_type), 0) + int(count)
+    # Wynik: zwycięzca (player_id; None przy remisie), "winner"/"draw" i liczba rund (delta).
+    facts: list[ActivityFact] = [
+        ActivityFact(
+            type="battle_result", player_id=combat.winner,
+            detail=combat.outcome or "draw", delta=combat.round,
+        )
+    ]
+    for pid in (combat.attacker, combat.defender):
+        for base_type, count in sorted(totals.get(pid, {}).items()):
+            if count > 0:
+                facts.append(
+                    ActivityFact(type="units", player_id=pid, value=base_type, delta=-count)
+                )
+    return facts
+
+
+def _combat_named(
+    label: str, parts: list[str], before: GameState | None, after: GameState,
+    facts: list[ActivityFact],
+) -> Activity | None:
+    """Wpisy walki/inwazji z NAZWĄ zdarzenia zamiast anonimowego „misc/update".
+
+    Kroki techniczne walki (rzut, przypisanie strat, AFB, bombardowanie, Space Cannon Defense,
+    Establish Control) są ciche, dopóki nic nie zmieniły; gdy niosą skutki (straty, przejęte
+    planety), wpis dostaje nazwę bitwy/kroku. ``battle:close`` = podsumowanie całej walki.
+    """
+    base = {"round": after.round_number, "phase": after.phase.value}
+    combat = (before.active_combat if before is not None else None) or after.active_combat
+    invasion = (before.invasion if before is not None else None) or after.invasion
+    head = parts[0]
+    if label == "battle:close" and combat is not None:
+        return Activity(
+            kind="combat", action="combat.end", actor_id=combat.attacker,
+            target_id=combat.defender, subject=_battle_where(combat), detail=combat.position,
+            facts=[*_battle_summary(combat), *facts],
+            **base,  # type: ignore[arg-type]
+        )
+    if not facts:
+        return None
+    if head == "battle" and combat is not None and len(parts) > 1 and parts[1] in (
+        "afb", "assign", "roll"
+    ):
+        actor = parts[2] if parts[1] == "assign" and len(parts) > 2 else combat.attacker
+        return Activity(
+            kind="combat", action="combat.losses", actor_id=actor,
+            target_id=combat.defender if actor == combat.attacker else combat.attacker,
+            subject=_battle_where(combat), detail=combat.position, facts=facts,
+            **base,  # type: ignore[arg-type]
+        )
+    if head == "invasion" and invasion is not None and len(parts) > 1:
+        verb = parts[1]
+        planet = parts[2] if len(parts) > 2 else None
+        if verb in ("bombard", "bombard-assign"):
+            action = "invasion.bombard"
+        elif verb.startswith("defense"):
+            action = "invasion.defense"
+        elif verb == "next":
+            action = "invasion.establish"
+        else:
+            return None
+        return Activity(
+            kind="combat", action=action, actor_id=invasion.attacker, subject=planet,
+            detail=invasion.position, facts=facts,
+            **base,  # type: ignore[arg-type]
+        )
+    if head == "space-cannon" and len(parts) > 2 and parts[1] == "assign":
+        return Activity(
+            kind="combat", action="spacecannon.losses", actor_id=parts[2],
+            detail=after.active_system, facts=facts,
+            **base,  # type: ignore[arg-type]
+        )
     return None
 
 
@@ -564,6 +655,10 @@ def derive_activity(label: str, before: GameState | None, after: GameState) -> A
         if not facts:
             return None
         return Activity(kind="godmode", action="godmode.edit", facts=facts, **base)  # type: ignore[arg-type]
+
+    named = _combat_named(label, label.split(":"), before, after, facts)
+    if named is not None:
+        return named
 
     if _is_quiet(label):
         if not facts:

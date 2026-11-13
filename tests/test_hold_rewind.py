@@ -383,6 +383,7 @@ def test_endpointy_hold_candidates_inputs_play(registry: StaticDataRegistry) -> 
     assert body["steps"][0]["stepsBack"] == 1
     assert body["steps"][0]["cards"][0]["card_id"] == "coup"
     assert body["steps"][0]["nextLabel"] == "strategy:1"
+    assert body["steps"][0]["nextSeq"] == service.recent_chain(5)[-1][0]
     assert "limitReason" in body
 
     form = client.get(f"/hold/coup/inputs?player_id=p2&seq={seq_before}")

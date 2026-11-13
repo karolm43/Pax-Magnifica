@@ -169,6 +169,8 @@ def candidates(
                     "seq": item.snapshot.seq,
                     "label": item.snapshot.label,
                     "nextLabel": chain[item.index + 1].label if future is not None else None,
+                    # Numer cofanego kroku - front opisuje go wpisem feedu Activity o tym ``seq``.
+                    "nextSeq": chain[item.index + 1].seq if future is not None else None,
                     "round": state.round_number,
                     "phase": state.phase.name.lower(),
                     "stepsBack": item.steps_back,

@@ -408,14 +408,59 @@ button.tradeCard:hover {
   text-transform: capitalize;
 }
 
-.tradeCard[data-kind="action"] .tradeCardHead svg {
-  color: rgb(var(--ds-sig-ability));
-}
-
 .tradeCardText {
   font-size: var(--text-micro, 11px);
   line-height: 1.4;
   color: var(--ds-ink-lo);
+}
+
+/* Notka / karta akcji: chip z panelu gracza + przycisk wyboru. */
+.tradePick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tradePick > :first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.pickBtn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: var(--text-small, 12px);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.pickBtn:hover {
+  border-color: rgb(var(--ds-sig-tg) / 0.45);
+}
+
+.pickBtn[aria-pressed="true"] {
+  background: rgb(var(--ds-sig-tg) / 0.2);
+  border-color: rgb(var(--ds-sig-tg) / 0.7);
+}
+
+.acChip svg {
+  flex: none;
+  color: rgb(var(--ds-sig-ability));
+}
+
+.fragIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 /* ===== Podsumowanie propozycji (okno zgody / oczekiwanie) ===== */
