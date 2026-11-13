@@ -29,7 +29,7 @@ from src.api.schemas import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import board_edit, space_cannon
+from src.core import battle, board_edit, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -148,6 +148,7 @@ def _build_panel(ctx: AppContext, state: GameState) -> SpaceCannonPanelResponse:
             hits=pending_core.hits,
             required=space_cannon.required_hits(state, pending_core.target, ctx.registry),
             rolls=[_roll_help(r) for r in pending_core.rolls],
+            cancels=battle.sustain_cancels(state, pending_core.target),
         )
         ships = _ship_names(ctx, state, pending_core.target, target_ships)
 

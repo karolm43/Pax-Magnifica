@@ -631,6 +631,9 @@ class ActiveCombat(BaseModel):
     rolls: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     afb: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     log: list[dict[str, Any]] = Field(default_factory=list)
+    # Jednorazowe efekty komponentów poza rundami (np. Assault Cannon: kto, czyj statek, jaki typ)
+    # — tylko do animacji w oknie bitwy; NIE wpisy ``log`` (pusty ``log`` = start walki).
+    effects: list[dict[str, Any]] = Field(default_factory=list)
     winner: str | None = None
     # Wynik zakończonej walki: "winner" / "draw" (None, dopóki trwa).
     outcome: str | None = None

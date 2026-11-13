@@ -212,12 +212,18 @@ def required_hits(
     combat = _combat(state)
     pending = combat.pending_hits.get(player_id, 0)
     units = side_units(state, grid, registry, player_id)
-    cancels = sustain_cancels(state, player_id)
-    # Nadany Sustain Damage (Void Shielding) pochłania najwyżej 1 dodatkowe trafienie naraz.
-    absorbable = sum(
+    return min(pending, absorbable_hits(units, sustain_cancels(state, player_id)))
+
+
+def absorbable_hits(units: list[CombatUnit], cancels: int) -> int:
+    """Ile trafień strona może jeszcze pochłonąć: jednostki + użycia Sustain Damage × ``cancels``.
+
+    Nadany Sustain Damage (Void Shielding) pochłania najwyżej 1 dodatkowe użycie naraz. To samo
+    „życie" pokazuje okno walki (pasek HP), więc licznik strat i pasek zawsze się zgadzają.
+    """
+    return sum(
         u.count + (cancels * u.sustainable if u.sustain else 0) for u in units
     ) + (cancels if any(u.granted > 0 for u in units) else 0)
-    return min(pending, absorbable)
 
 
 def sustain_cancels(state: GameState, player_id: str) -> int:

@@ -4,8 +4,6 @@ import {
   IconAlertTriangle,
   IconCheck,
   IconChevronsRight,
-  IconMinus,
-  IconPlus,
   IconTrophy,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -26,6 +24,7 @@ import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { FleetPoolStatusMeter } from "@/domains/map/components/FleetPoolWarning";
+import { CommandPools } from "@/shared/ui/CommandPools/CommandPools";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { ObjectiveSpendForm } from "./ObjectiveSpendForm";
@@ -204,30 +203,6 @@ export function StatusPhasePanel() {
                   const left = total - (alloc.t + alloc.f + alloc.s);
                   const set = (next: Alloc) =>
                     setAllocs((prev) => ({ ...prev, [player.discordId]: next }));
-                  const pool = (key: keyof Alloc, label: string) => (
-                    <div className={styles.pool}>
-                      <span>{label}</span>
-                      <div>
-                        <button
-                          type="button"
-                          aria-label={`Fewer ${label} tokens`}
-                          disabled={busy || alloc[key] <= 0}
-                          onClick={() => set({ ...alloc, [key]: alloc[key] - 1 })}
-                        >
-                          <IconMinus size={13} aria-hidden="true" />
-                        </button>
-                        <b>{alloc[key]}</b>
-                        <button
-                          type="button"
-                          aria-label={`More ${label} tokens`}
-                          disabled={busy || left <= 0}
-                          onClick={() => set({ ...alloc, [key]: alloc[key] + 1 })}
-                        >
-                          <IconPlus size={13} aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  );
                   return (
                     <div key={player.discordId} className={styles.card}>
                       <div className={styles.cardHead}>
@@ -239,11 +214,7 @@ export function StatusPhasePanel() {
                       </div>
                       {/* Hyper Metabolism, Neural Motivator... - dodatkowe żetony/karty w tej fazie. */}
                       <ActiveTechs context="status" faction={player.faction} />
-                      <div className={styles.pools}>
-                        {pool("t", "Tactic")}
-                        {pool("f", "Fleet")}
-                        {pool("s", "Strategy")}
-                      </div>
+                      <CommandPools alloc={alloc} total={total} disabled={busy} onChange={set} />
                       {/* Fleet pool (RULES.md 42): podgląd floty względem planowanej puli. */}
                       <FleetPoolStatusMeter
                         pool={alloc.f}

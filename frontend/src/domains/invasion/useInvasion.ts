@@ -58,6 +58,8 @@ export type BombardPending = {
   defender: string;
   hits: number;
   required: number;
+  /** Ile trafień anuluje jedno użycie Sustain Damage (Non-Euclidean Shielding: 2). */
+  cancels?: number;
 };
 
 export type DefenseShooter = {
@@ -80,6 +82,8 @@ export type DefensePlanet = {
   status: "open" | "pending" | "resolved";
   hits: number;
   required: number;
+  /** Ile trafień anuluje jedno użycie Sustain Damage (Non-Euclidean Shielding: 2). */
+  cancels?: number;
 };
 
 export type InvasionRoll = {

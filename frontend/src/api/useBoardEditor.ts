@@ -1175,8 +1175,10 @@ export type BattleSide = {
   unitCount: number;
   totalDice: number;
   expectedHits: number;
-  /** Trafienia, które strona może jeszcze przyjąć (jednostki + Sustain Damage). */
+  /** Trafienia, które strona może jeszcze przyjąć (jednostki + Sustain Damage × anulowane). */
   hp: number;
+  /** Ile trafień anuluje jedno użycie Sustain Damage (1; Non-Euclidean Shielding: 2). */
+  sustainCancels?: number;
 };
 
 export type BattleRoll = {
@@ -1226,6 +1228,13 @@ export type BattleView = {
   rolls: Record<string, BattleRoll[]>;
   afb: Record<string, BattleRoll[]>;
   log: BattleLogEntry[];
+  /** Jednorazowe efekty poza rundami (Assault Cannon) — do animacji. */
+  effects?: BattleEffect[];
+  /**
+   * TYLKO klient: kości/strzały ostatniej salwy jeszcze lecą — wynik (kto trafił, ile trafień
+   * pokryć) czeka na koniec animacji (``useDiceHold`` w ``BattleOverlay``).
+   */
+  resolving?: boolean;
   winner: string | null;
   outcome: "winner" | "draw" | null;
   /** Kto teraz ogłasza odwrót (okno COMBAT_RETREAT; obrońca, potem atakujący). */
@@ -1243,6 +1252,14 @@ export type BattleView = {
    * opłaceniu 2 TG): wybór kości ``min..max`` i użycie przez ``/faction-component/play``.
    */
   abilityTools?: BattleAbilityTool[];
+};
+
+/** Efekt komponentu w walce (np. Assault Cannon: kto strzela, czyj statek, jaki typ). */
+export type BattleEffect = {
+  kind: string;
+  player: string;
+  victim: string;
+  unit: string;
 };
 
 export type BattleAbilityTool = {
@@ -1430,6 +1447,8 @@ export type SpaceCannonPending = {
   /** Ile trafień pokryć: min(trafienia, statki celu + Sustain Damage). */
   required: number;
   rolls: SpaceCannonRoll[];
+  /** Ile trafień anuluje jedno użycie Sustain Damage celu (Non-Euclidean Shielding: 2). */
+  cancels?: number;
 };
 
 export type SpaceCannonShip = {

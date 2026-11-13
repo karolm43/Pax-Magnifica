@@ -20,6 +20,8 @@ export type SoundName =
   | "sustain"
   | "warSunEnter" // war sun wyłania się z wormhole (miejsce na własny plik)
   | "sunfire" // strzał war suna
+  | "missile" // odpalenie rakiety (syk silnika rakietowego)
+  | "assaultCannon" // Assault Cannon: ładowanie działa i potężny strzał
   | "retreatHorn" // ogłoszenie odwrotu
   | "retreat" // flota odlatuje z pola bitwy
   | "diceThrow" // garść kości wpada na stół (grzechot)
@@ -287,6 +289,19 @@ function synth(name: SoundName, o: Out, heavy: boolean): void {
       tone(o, "sine", 220, 50, 0.6, 0.02, 0.9);
       burst(o, "lowpass", 1600, 90, 0.45, 0.02, 0.9);
       tone(o, "sawtooth", 110, 40, 0.12, 0.05, 0.8);
+      break;
+    case "missile":
+      // syk startu: szum pasmowy, który rośnie i ucieka w górę, plus niski „pchnięcie"
+      burst(o, "bandpass", 700 * k, 2600 * k, 0.22, 0.03, 0.55 * len);
+      tone(o, "sawtooth", 160 * k, 90 * k, 0.06, 0.01, 0.35 * len);
+      break;
+    case "assaultCannon":
+      // ładowanie (narastający ton) → huk wystrzału z długim pogłosem
+      tone(o, "sine", 120, 900, 0.18, 0.75, 0.05);
+      burst(o, "bandpass", 300, 2400, 0.16, 0.75, 0.05);
+      tone({ ...o, t: o.t + 0.8 }, "sine", 90, 26, 1, 0.005, 1.6);
+      burst({ ...o, t: o.t + 0.8 }, "lowpass", 4200, 60, 0.9, 0.005, 1.5);
+      tone({ ...o, t: o.t + 0.8 }, "sawtooth", 70, 30, 0.22, 0.01, 1.2);
       break;
     case "warSunEnter":
       // zasysający wir, potem głęboki „wydech" przejścia

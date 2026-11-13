@@ -23,6 +23,8 @@ export type OfferView = {
   text: string;
   /** Rodzaj komponentu do nagłówka (np. „Agent”, „Technology”); pusty, gdy nieznany. */
   kind?: string;
+  /** Komponent źródłowy „<kategoria>:<id>" (np. „technologies:asc"); pusty, gdy nieznany. */
+  source?: string;
   /** Decyzji obowiązkowej nie można odrzucić. */
   mandatory: boolean;
   inputs: ActionCardInput[];

@@ -17,6 +17,7 @@ from src.api.schemas import (
     BattleAbilityToolView,
     BattleAnnounceRetreatRequest,
     BattleAssignRequest,
+    BattleEffectView,
     BattleLogView,
     BattleLossItem,
     BattleRelicAdjustRequest,
@@ -69,6 +70,7 @@ def _side(
     ctx: AppContext, state: GameState, player_id: str, role: str, key: str
 ) -> BattleSideView:
     units = battle.side_units(state, ctx.current_grid, ctx.registry, player_id)
+    cancels = battle.sustain_cancels(state, player_id)
     return BattleSideView(
         faction=key,
         player_id=player_id,
@@ -96,7 +98,8 @@ def _side(
         unit_count=sum(u.count for u in units),
         total_dice=sum(u.total_dice for u in units),
         expected_hits=round(sum(u.expected_hits for u in units), 2),
-        hp=sum(u.count + u.sustainable for u in units),
+        hp=battle.absorbable_hits(units, cancels),
+        sustain_cancels=cancels,
     )
 
 
@@ -182,6 +185,15 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         rolls=by_key(combat.rolls),
         afb=by_key(combat.afb),
         log=log,
+        effects=[
+            BattleEffectView(
+                kind=str(e.get("kind", "")),
+                player=key(str(e.get("player", ""))),
+                victim=key(str(e.get("victim", ""))),
+                unit=str(e.get("unit", "")),
+            )
+            for e in combat.effects
+        ],
         winner=key(combat.winner) if combat.winner is not None else None,
         outcome=combat.outcome,
         announcing=announcing,

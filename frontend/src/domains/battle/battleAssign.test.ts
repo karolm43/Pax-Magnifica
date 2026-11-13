@@ -11,9 +11,12 @@ import type { BattleSide, BattleUnit } from "@/api/useBoardEditor";
 import {
   absorbed,
   autoMarks,
+  coveredCount,
   expandShips,
+  isCovered,
   nextMark,
   planFromMarks,
+  toggleMark,
 } from "./battleAssign";
 
 function unit(overrides: Partial<BattleUnit>): BattleUnit {
@@ -137,5 +140,47 @@ describe("autoMarks", () => {
     expect(absorbed(marks)).toBe(5);
     expect(marks["dreadnought-1"]).toBe("both");
     expect(Object.keys(marks)).toHaveLength(4);
+  });
+});
+
+describe("Non-Euclidean Shielding (Sustain anuluje 2 trafienia)", () => {
+  // Scenariusz z gry: Letnev 9 statków, 2 z gotowym Sustain → 9 + 2×2 = 13 trafień do pokrycia.
+  const letnev = side([
+    unit({ baseType: "dreadnought", asyncId: "dn", count: 1, sustain: true, sustainable: 1 }),
+    unit({ baseType: "flagship", asyncId: "fs", count: 1, sustain: true, sustainable: 1 }),
+    unit({ baseType: "fighter", asyncId: "ff", count: 5, hitsOn: 9, baseHitsOn: 9 }),
+    unit({ baseType: "cruiser", asyncId: "ca", count: 1 }),
+    unit({ baseType: "destroyer", asyncId: "dd", count: 1 }),
+  ]);
+
+  it("Auto pokrywa 13 trafień (tarcze ×2 + wszystkie jednostki)", () => {
+    const ships = expandShips(letnev);
+    const marks = autoMarks(ships, 13, 2);
+    expect(absorbed(marks, 2)).toBe(13);
+    expect(isCovered(marks, 13, 2)).toBe(true);
+    expect(marks["dreadnought-0"]).toBe("both");
+  });
+
+  it("klikanie dochodzi do 13 i nie przekracza wymaganych", () => {
+    const ships = expandShips(letnev);
+    let marks = {};
+    for (const ship of ships) {
+      marks = toggleMark(marks, ship, 13, 2); // tarcza (2) albo zniszczenie (1)
+    }
+    expect(absorbed(marks, 2)).toBe(11);
+    marks = toggleMark(marks, ships[0], 13, 2); // sustain → destroy (1): 10
+    marks = toggleMark(marks, ships[0], 13, 2); // destroy → oba (3): 12
+    expect(absorbed(marks, 2)).toBe(12);
+    marks = toggleMark(marks, ships[1], 13, 2); // fs: sustain → destroy: 11
+    marks = toggleMark(marks, ships[1], 13, 2); // fs: oba: 13
+    expect(isCovered(marks, 13, 2)).toBe(true);
+  });
+
+  it("ostatnia tarcza może anulować mniej (1 trafienie, tylko tarcze)", () => {
+    const ships = expandShips(letnev);
+    const marks = toggleMark({}, ships[0], 1, 2);
+    expect(marks).toEqual({ "dreadnought-0": "sustain" });
+    expect(isCovered(marks, 1, 2)).toBe(true);
+    expect(coveredCount(marks, 1, 2)).toBe(1);
   });
 });

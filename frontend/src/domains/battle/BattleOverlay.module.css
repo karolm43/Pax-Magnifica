@@ -409,6 +409,55 @@
   gap: calc(6px * var(--fit, 1));
 }
 
+/* Liczny szereg (>5): dwie kolumny, druga przesunięta o pół okrętu (szachownica). */
+.rank[data-layout="double"] {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  column-gap: calc(12px * var(--fit, 1));
+  row-gap: calc(4px * var(--fit, 1));
+  align-items: center;
+  padding-bottom: calc(26px * var(--fit, 1));
+}
+
+/* Myśliwce: eskadry-klucze (pozycje liczy BattleFleet), 1–2 kolumny eskadr. */
+.rank[data-layout="wing"] {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), auto);
+  gap: calc(16px * var(--fit, 1)) calc(20px * var(--fit, 1));
+  align-items: center;
+  justify-items: center;
+}
+
+/* Dwie kolumny eskadr: druga kolumna przesunięta w dół — klucze nie stoją w kratce. */
+.rank[data-layout="wing"][data-cols="2"] {
+  padding-bottom: calc(30px * var(--fit, 1));
+}
+
+.rank[data-layout="wing"][data-cols="2"] > .squadron:nth-child(even) {
+  translate: 0 calc(30px * var(--fit, 1));
+}
+
+.squadron {
+  position: relative;
+  flex: none;
+}
+
+.ship[data-wing] {
+  position: absolute;
+  left: var(--jx, 0px);
+  top: var(--jy, 0px);
+}
+
+/* Myśliwiec ma zawsze 1 punkt życia — kreska HP pod każdym zamazywała kształt klucza. */
+.ship[data-wing] .pips {
+  display: none;
+}
+
+/* Klucz dryfuje RAZEM (wspólna faza eskadry, minimalne przesunięcie skrzydłowych). */
+.ship[data-wing] .hull {
+  animation-delay: calc(var(--sq, 0) * -1.9s + var(--i, 0) * -0.12s);
+}
+
 .wiped {
   margin: auto;
   font-family: var(--font-display);
@@ -724,6 +773,27 @@
 
 .ship[data-selectable]:hover {
   translate: 0 -2px; /* osobna właściwość — animacja wejścia trzyma `transform` */
+}
+
+.ship[data-selectable]:focus-visible {
+  outline: 2px solid rgb(var(--side-rgb) / 0.9);
+  outline-offset: 2px;
+}
+
+/* WSKAZANIE okrętu dla decyzji (np. ofiara Assault Cannon): bursztynowy celownik, pulsuje. */
+.ship[data-pick]::before {
+  --c: rgba(251, 191, 36, 0.9);
+  inset: 6px;
+  animation: targetLock 1.2s ease-in-out infinite;
+}
+
+.ship[data-pick]:hover::before {
+  --c: rgba(253, 224, 71, 1);
+  inset: 12px;
+}
+
+.ship[data-pick] .shipSprite {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55));
 }
 
 .ship[data-selectable]:hover::before {
@@ -3098,5 +3168,245 @@
     80% {
       opacity: 1;
     }
+  }
+}
+
+/* --- RAKIETY (krążowniki, lotniskowce, co druga kość dreadnoughta) ---
+   Lecą łukiem po krzywej (offset-path z VolleyLayer), dziobem wzdłuż toru, i zostawiają smugę
+   kłębów dymu, które rosną i gasną. Spokojniejsze od wiązek — widać, skąd i dokąd lecą. */
+.missile,
+.puff {
+  position: absolute;
+  left: 0;
+  top: 0;
+  offset-path: var(--path);
+  pointer-events: none;
+}
+
+.missile {
+  width: 20px;
+  height: 5px;
+  border-radius: 1px 4px 4px 1px;
+  offset-rotate: auto;
+  background: linear-gradient(90deg, rgb(var(--rgb) / 0.2), rgb(255 244 222) 55%, #fff);
+  box-shadow:
+    0 0 6px 1px rgb(255 196 112 / 0.75),
+    -6px 0 10px 1px rgb(255 140 60 / 0.45);
+  opacity: 0;
+  animation: missileFly var(--travel, 1300ms) cubic-bezier(0.4, 0.05, 0.7, 0.75) var(--delay) both;
+}
+
+.puff {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  offset-rotate: 0deg;
+  offset-distance: var(--at, 50%);
+  background: radial-gradient(circle, rgb(236 238 245 / 0.78), rgb(176 184 200 / 0.36) 55%, transparent 72%);
+  opacity: 0;
+  animation: missilePuff 1.5s ease-out var(--pdelay) both;
+}
+
+@keyframes missileFly {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes missilePuff {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  12% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.8) translateY(-4px);
+  }
+}
+
+/* Trafienie rakietą: pomarańczowa kula ognia (mniejsza niż war sun). */
+.impact[data-missile] {
+  background: radial-gradient(circle, #fff 0%, #fed7aa 22%, rgba(249, 115, 22, 0.8) 42%, rgba(127, 29, 29, 0.35) 60%, transparent 72%);
+  filter: drop-shadow(0 0 14px rgba(249, 115, 22, 0.9));
+}
+
+/* --- ASSAULT CANNON: ładowanie działa → ciężka wiązka → rozbłysk na celu + plansza --- */
+.acCharge {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(254, 215, 170, 0.95) 22%, rgba(251, 146, 60, 0.55) 46%, transparent 70%);
+  opacity: 0;
+  animation: acCharge 1.1s ease-in var(--delay) both;
+}
+
+.acBeam {
+  position: absolute;
+  height: 10px;
+  margin-top: -5px;
+  transform-origin: 0 50%;
+  border-radius: 5px;
+  background: linear-gradient(180deg, transparent, rgba(254, 215, 170, 0.9) 30%, #fff 50%, rgba(254, 215, 170, 0.9) 70%, transparent);
+  box-shadow:
+    0 0 18px 4px rgba(251, 146, 60, 0.85),
+    0 0 46px 10px rgba(234, 88, 12, 0.35);
+  opacity: 0;
+  animation: acBeam 0.9s ease-out var(--delay) both;
+}
+
+/* Biały rdzeń wiązki; całość „wyrasta" od działa do celu (scale), potem gaśnie. */
+.acBeam::after {
+  content: "";
+  position: absolute;
+  inset: 3px 0;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.acImpact {
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  margin: -95px 0 0 -95px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #fde68a 16%, rgba(251, 146, 60, 0.85) 36%, rgba(153, 27, 27, 0.4) 56%, transparent 72%);
+  filter: drop-shadow(0 0 30px rgba(251, 146, 60, 1));
+  opacity: 0;
+  animation: acImpact 1.5s ease-out var(--delay) both;
+}
+
+.acStamp {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18%;
+  z-index: 6;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 12px 16px 14px;
+  text-align: center;
+  background: linear-gradient(90deg, transparent, rgb(20 8 2 / 0.8) 25%, rgb(20 8 2 / 0.8) 75%, transparent);
+  opacity: 0;
+  animation: stampBand 2.8s ease-in-out var(--delay) both;
+}
+
+.acStamp small {
+  font-family: var(--ti-font-title, var(--font-display));
+  font-size: clamp(20px, 2.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fed7aa;
+  text-shadow: 0 0 18px rgba(251, 146, 60, 0.6), 0 2px 6px rgb(0 0 0 / 0.8);
+}
+
+.acStamp b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+@keyframes acCharge {
+  0% {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes acBeam {
+  0% {
+    opacity: 0;
+    scale: 0.05 1;
+  }
+  16% {
+    opacity: 1;
+    scale: 1 1;
+  }
+  60% {
+    opacity: 1;
+    scale: 1 1.4;
+  }
+  100% {
+    opacity: 0;
+    scale: 1 0.6;
+  }
+}
+
+@keyframes acImpact {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/* Panel środka: „salwa w toku" (wynik czeka na koniec animacji) i decyzja „wskaż okręt". */
+.resolving {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-ink-lo) !important;
+  font-style: italic;
+}
+
+.actionCard[data-pick] {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.06);
+}
+
+.pickTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  color: #fcd34d;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .missile,
+  .puff,
+  .acCharge,
+  .acBeam,
+  .acImpact {
+    animation-duration: 0.01s;
   }
 }

@@ -1124,6 +1124,8 @@ class SpaceCannonPendingHelp(BaseModel):
     hits: int
     required: int  # ile statków trzeba zniszczyć (min(trafienia, statki celu))
     rolls: list[SpaceCannonRollHelp]
+    # Ile trafień anuluje jedno użycie Sustain Damage celu (Non-Euclidean Shielding: 2).
+    cancels: int = 1
 
 
 class SpaceCannonShipHelp(BaseModel):
@@ -1239,6 +1241,17 @@ class BattleUnitView(BaseModel):
     afb_dice: int = Field(serialization_alias="afbDice")
 
 
+class BattleEffectView(BaseModel):
+    """Efekt komponentu w walce do animacji (np. Assault Cannon: strzelec, ofiara, typ statku)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    kind: str
+    player: str  # klucz frakcji właściciela komponentu
+    victim: str  # klucz frakcji ofiary
+    unit: str  # base type zniszczonego statku
+
+
 class BattleSideView(BaseModel):
     """Strona walki: kto, rola, jednostki i sumy (kości, oczekiwane trafienia, „życie")."""
 
@@ -1253,6 +1266,8 @@ class BattleSideView(BaseModel):
     expected_hits: float = Field(serialization_alias="expectedHits")
     # „Życie" strony = trafienia, które może jeszcze przyjąć (jednostki + Sustain Damage).
     hp: int
+    # Ile trafień anuluje jedno użycie Sustain Damage (1; Non-Euclidean Shielding: 2).
+    sustain_cancels: int = Field(default=1, serialization_alias="sustainCancels")
 
 
 class BattleRollView(BaseModel):
@@ -1333,6 +1348,8 @@ class BattleResponse(BaseModel):
     rolls: dict[str, list[BattleRollView]] = Field(default_factory=dict)
     afb: dict[str, list[BattleRollView]] = Field(default_factory=dict)
     log: list[BattleLogView] = Field(default_factory=list)
+    # Jednorazowe efekty poza rundami (Assault Cannon) — okno bitwy je animuje.
+    effects: list[BattleEffectView] = Field(default_factory=list)
     winner: str | None = None
     outcome: str | None = None
     # Odwroty (RULES.md 39.5): kto teraz ogłasza (okno COMBAT_RETREAT), kto ogłosił odwrót

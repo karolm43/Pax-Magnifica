@@ -140,6 +140,9 @@ export function BattleCenter({
   colorOf,
   busy,
   absorbed,
+  ready: readyProp,
+  cancels = 1,
+  pickNote = null,
   onAfb,
   onRoll,
   onAuto,
@@ -161,6 +164,12 @@ export function BattleCenter({
   /** Trwa rzut kośćmi na stole (panel strat czeka, wynik w tacy ukryty). */
   rolling: boolean;
   absorbed: number;
+  /** Znaczniki pokrywają wymagane trafienia (z regułą ostatniej tarczy przy ``cancels > 1``). */
+  ready: boolean;
+  /** Ile trafień anuluje tarcza strony przypisującej (Non-Euclidean Shielding: 2). */
+  cancels?: number;
+  /** Decyzja „wskaż okręt" (np. ofiara Assault Cannon) — podświetlone okręty są klikalne. */
+  pickNote?: { title: string; who: string; label: string } | null;
   onAfb: () => void;
   onRoll: () => void;
   onAuto: () => void;
@@ -173,7 +182,14 @@ export function BattleCenter({
 }) {
   const attacker = view.attacker?.faction ?? "";
   const defender = view.defender?.faction ?? "";
-  const step = view.step;
+  // Salwa jeszcze leci: żadnych akcji kolejnego kroku (nie zdradzają wyniku przed kośćmi).
+  const step = view.resolving ? null : view.step;
+  // Tor kroków w trakcie salwy: wciąż krok, który ją wywołał (AFB albo rzut rundy).
+  const trackStep: Step | null = view.resolving
+    ? view.log[view.log.length - 1]?.phase === "AFB"
+      ? "AFB"
+      : "ROLL"
+    : view.step;
   // Taca kości: ostatnia SALWA (wpis odwrotu nie ma rzutów).
   const last =
     [...view.log].reverse().find((e) => e.phase !== "RETREAT") ?? null;
@@ -188,7 +204,7 @@ export function BattleCenter({
   const retreatedEntries = Object.entries(view.retreated);
   const assigning = view.assigning;
   const required = assigning ? (view.required[assigning] ?? 0) : 0;
-  const ready = assigning !== null && absorbed === required;
+  const ready = assigning !== null && readyProp;
 
   return (
     <div className={styles.center} data-rolling={rolling || undefined}>
@@ -199,10 +215,10 @@ export function BattleCenter({
         <b>Round {view.round}</b>
       </div>
 
-      {step !== "DONE" && (
+      {view.step !== "DONE" && (
         <ol className={styles.track} aria-label="Combat steps">
           {steps(view).map((s) => (
-            <li key={s.key} data-now={s.key === step || undefined}>
+            <li key={s.key} data-now={s.key === trackStep || undefined}>
               {s.label}
             </li>
           ))}
@@ -215,7 +231,30 @@ export function BattleCenter({
         </p>
       )}
 
-      <BattleRelicTools view={view} nameOf={nameOf} busy={busy} />
+      {!view.resolving && (
+        <BattleRelicTools view={view} nameOf={nameOf} busy={busy} />
+      )}
+
+      {view.resolving && (
+        <div className={styles.actionCard} data-resolving>
+          <p className={styles.resolving}>
+            <IconDice5 size={17} aria-hidden="true" />
+            {rolling ? "Dice are rolling…" : "Volley in flight…"}
+          </p>
+        </div>
+      )}
+
+      {pickNote && !view.resolving && (
+        <div className={styles.actionCard} data-pick>
+          <p>
+            <b className={styles.pickTitle}>
+              <IconTargetArrow size={15} aria-hidden="true" /> {pickNote.title}
+            </b>
+            <b>{pickNote.who}</b>: {pickNote.label.toLowerCase()} — click one of
+            the highlighted ships.
+          </p>
+        </div>
+      )}
 
       {step === "AFB" && (
         <div className={styles.actionCard}>
@@ -312,8 +351,8 @@ export function BattleCenter({
             <b>{nameOf(assigning)}</b> covers <b>{required}</b> hit
             {required === 1 ? "" : "s"}. Click your ships:{" "}
             <span className={styles.legendShield}>shield</span> = Sustain Damage
-            (cancels a hit), <span className={styles.legendSkull}>skull</span> =
-            destroyed.
+            (cancels {cancels === 1 ? "a hit" : `${cancels} hits`}),{" "}
+            <span className={styles.legendSkull}>skull</span> = destroyed.
           </p>
           <div className={styles.assignMeter} data-ready={ready || undefined}>
             <span

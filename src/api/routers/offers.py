@@ -32,6 +32,8 @@ class OfferView(BaseModel):
     text: str
     # Rodzaj komponentu do nagłówka (np. „Agent”, „Technology”); pusto, gdy nieznany.
     kind: str = ""
+    # Komponent źródłowy „<kategoria>:<id>" (np. „technologies:asc") - kafelek w oknie decyzji.
+    source: str = ""
     mandatory: bool
     inputs: list[dict[str, Any]]
 

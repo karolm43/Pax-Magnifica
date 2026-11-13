@@ -101,6 +101,77 @@ function ranks(views: ShipView[]): ShipView[][] {
     .map(([, list]) => list);
 }
 
+/*
+ * UKŁAD SZEREGU:
+ * - "wing": myśliwce w ESKADRACH po ≤5 — każda leci kluczem (prowadzący z przodu, skrzydłowi
+ *   cofnięci po obu stronach), eskadry w 1–2 kolumnach; eskadra dryfuje razem jak jeden klucz.
+ * - "double": liczny szereg (>5) w dwóch kolumnach z przesunięciem o pół okrętu (szachownica),
+ *   zamiast jednej długiej, zmniejszonej linii.
+ * - "column": jedna kolumna wygięta w klin (jak dotąd).
+ */
+type RankLayout = "column" | "double" | "wing";
+
+/** Maksymalna liczebność eskadry myśliwców i próg szeregu dwukolumnowego. */
+const SQUADRON = 5;
+const DOUBLE_OVER = 5;
+/** Klucz eskadry: cofnięcie skrzydłowego (ułamek slotu) i rozstaw w pionie. */
+const WING_BACK = 0.95;
+const WING_SIDE = 0.8;
+
+function layoutOf(list: ShipView[]): RankLayout {
+  if (list[0]?.ship.asyncId === "ff" && list.length > 2) return "wing";
+  return list.length > DOUBLE_OVER ? "double" : "column";
+}
+
+/** Dzieli myśliwce na eskadry o RÓWNEJ liczebności (np. 7 → 4 + 3, nie 5 + 2). */
+function squadrons(list: ShipView[]): ShipView[][] {
+  const count = Math.ceil(list.length / SQUADRON);
+  const out: ShipView[][] = [];
+  let from = 0;
+  for (let k = 0; k < count; k += 1) {
+    const size = Math.ceil((list.length - from) / (count - k));
+    out.push(list.slice(from, from + size));
+    from += size;
+  }
+  return out;
+}
+
+/**
+ * Pozycje w kluczu (px, w pudełku eskadry): prowadzący z przodu (od strony wroga), skrzydłowi
+ * na przemian nad/pod nim, każdy kolejny o krok dalej w tył.
+ */
+function wingPlaces(n: number, slot: number, side: "left" | "right") {
+  const steps = Array.from({ length: n }, (_, i) => {
+    const k = Math.ceil(i / 2);
+    return { back: k, lat: i === 0 ? 0 : i % 2 === 1 ? -k : k };
+  });
+  const maxBack = Math.max(...steps.map((s) => s.back));
+  const minLat = Math.min(...steps.map((s) => s.lat));
+  const maxLat = Math.max(...steps.map((s) => s.lat));
+  const places = steps.map((s) => ({
+    x: Math.round(
+      (side === "left" ? maxBack - s.back : s.back) * WING_BACK * slot,
+    ),
+    y: Math.round((s.lat - minLat) * WING_SIDE * slot),
+  }));
+  return {
+    places,
+    width: Math.round(slot + maxBack * WING_BACK * slot),
+    height: Math.round(slot + (maxLat - minLat) * WING_SIDE * slot),
+  };
+}
+
+/*
+ * Wlot floty gra RAZ na bitwę — także gdy okno schowano („Hide") i otwarto ponownie, co
+ * montuje pole od nowa. Klucz = system + rodzaj + planeta + strona; czyszczone po walce.
+ */
+const ENTERED = new Set<string>();
+
+/** Po zakończeniu walki kolejna bitwa w tym samym miejscu znów ma wlot floty. */
+export function resetFleetEntries(): void {
+  ENTERED.clear();
+}
+
 /**
  * SKALA SZYKU: okręty mają stałe rozmiary „wagi" (SHIP_SIZE), więc duża flota (war sun +
  * dreadnoughty + eskorta) wychodziła poza panel i była ucinana na krawędziach. Mierzymy
@@ -161,8 +232,21 @@ function ShipToken({
   onToggle,
   onHover,
   fit,
+  layout,
+  place,
+  pickable,
+  pickLabel,
+  onPick,
 }: {
   view: ShipView;
+  /** Układ szeregu (klin kolumny, szachownica, klucz eskadry). */
+  layout: RankLayout;
+  /** Pozycja w kluczu eskadry (tylko ``layout === "wing"``). */
+  place?: { x: number; y: number };
+  /** Okręt można WSKAZAĆ dla decyzji (np. ofiara Assault Cannon) — klik zamiast formularza. */
+  pickable: boolean;
+  pickLabel?: string;
+  onPick?: (ship: ShipEntity) => void;
   /** Skala szyku (0,4–1) — flota mieści się w panelu niezależnie od liczby okrętów. */
   fit: number;
   /** Podpis jednostki wyjątkowej (flagowiec) lub frakcyjnej; brak = zwykła jednostka. */
@@ -185,8 +269,13 @@ function ShipToken({
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
   // Szyk-klin: okręty skrajne szeregu cofnięte względem środkowych (łuk ku wrogowi).
+  // Szachownica i klucz eskadry mają własny układ (bez łuku).
   const spread = Math.abs(index - (count - 1) / 2);
-  const arcX = (side === "left" ? -1 : 1) * Math.round(spread * 22 * fit);
+  const arcX =
+    layout === "column"
+      ? (side === "left" ? -1 : 1) * Math.round(spread * 22 * fit)
+      : 0;
+  const stagger = layout === "double" && index % 2 === 1 ? Math.round(size * 0.5) : 0;
   const heavy = HEAVY.has(ship.asyncId);
   const engines = ENGINES[ship.asyncId];
   // Oś kadłuba MIERZONA z wyrenderowanego sprite'a (grafiki mają różne marginesy): środek
@@ -231,8 +320,12 @@ function ShipToken({
     "--rank": rank,
     "--i": index,
     "--dir": side === "left" ? -1 : 1,
-    "--jx": `${Math.round(jitter(ship.id, 1, 8) * fit) + arcX}px`,
-    "--jy": `${Math.round(jitter(ship.id, 2, 12) * fit)}px`,
+    "--jx": place
+      ? `${place.x}px`
+      : `${Math.round(jitter(ship.id, 1, 8) * fit) + arcX}px`,
+    "--jy": place
+      ? `${place.y}px`
+      : `${Math.round(jitter(ship.id, 2, 12) * fit) + stagger}px`,
     "--slot": `${size}px`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
@@ -247,6 +340,7 @@ function ShipToken({
     "data-heavy": heavy || undefined,
     "data-sustained": justSustained || undefined,
     "data-mark": mark,
+    "data-wing": place ? "" : undefined,
     // Cel pocisków salwy — warstwa animacji mierzy położenia po tych atrybutach. Także
     // egzemplarze eksplodujące (np. myśliwce zestrzelone przez AFB w tej samej salwie):
     // pociski do nich dolatują, zanim wybuchną (wybuch jest opóźniony w CSS).
@@ -401,26 +495,44 @@ function ShipToken({
     </>
   );
 
-  if (selectable && !dying && !leaving) {
-    return (
-      <button
-        type="button"
-        {...common}
-        data-selectable
-        onClick={() => onToggle(ship)}
-        title={`${label} — click to ${ship.canSustain ? "use Sustain Damage / destroy" : "destroy"}`}
-        aria-pressed={mark !== undefined}
-      >
-        {content}
-      </button>
-    );
-  }
+  // ZAWSZE ten sam element (div): zamiana div ↔ button przy zmianie kroku przemontowywała
+  // okręt i odtwarzała jego animacje. Klikalność = rola przycisku + klawiatura.
+  const alive = !dying && !leaving;
+  const picking = pickable && alive && onPick !== undefined;
+  const interactive = (selectable && alive) || picking;
+  const activate = () => {
+    if (picking) onPick?.(ship);
+    else if (selectable && alive) onToggle(ship);
+  };
   return (
     <div
       {...common}
       data-dying={dying || undefined}
       data-leaving={leaving || undefined}
-      title={label}
+      data-selectable={interactive || undefined}
+      data-pick={picking || undefined}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-pressed={selectable && alive ? mark !== undefined : undefined}
+      aria-label={interactive ? label : undefined}
+      onClick={interactive ? activate : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                activate();
+              }
+            }
+          : undefined
+      }
+      title={
+        picking
+          ? `${label} — click: ${pickLabel ?? "choose this ship"}`
+          : selectable && alive
+            ? `${label} — click to ${ship.canSustain ? "use Sustain Damage / destroy" : "destroy"}`
+            : label
+      }
     >
       {content}
     </div>
@@ -446,7 +558,17 @@ export function BattleFleet({
   assigning,
   marks,
   onToggle,
+  entryKey,
+  pick,
 }: {
+  /** Tożsamość bitwy dla tej strony — wlot floty gra raz (także po Hide → powrót). */
+  entryKey: string;
+  /** Decyzja „wskaż okręt" (np. Assault Cannon): typy do kliknięcia i akcja. */
+  pick?: {
+    types: ReadonlySet<string>;
+    label: string;
+    onPick: (ship: ShipEntity) => void;
+  } | null;
   side: BattleSide;
   views: ShipView[];
   align: "left" | "right";
@@ -465,10 +587,12 @@ export function BattleFleet({
   marks: Record<string, Mark>;
   onToggle: (ship: ShipEntity) => void;
 }) {
-  // Wejście armady gra tylko raz — późniejsze przemontowania okrętów (zmiana kroku) nie powtarzają go.
-  const [entered, setEntered] = useState(false);
+  // Wejście armady gra tylko raz na bitwę — ponowne otwarcie okna (Hide) go nie powtarza.
+  const [entered, setEntered] = useState(() => ENTERED.has(entryKey));
   const { formationRef, fit } = useFormationFit(views);
   useEffect(() => {
+    if (ENTERED.has(entryKey)) return;
+    ENTERED.add(entryKey);
     const withWarSun = views.some((v) => v.ship.asyncId === "ws");
     const t = window.setTimeout(
       () => setEntered(true),
@@ -595,32 +719,86 @@ export function BattleFleet({
               : "Fleet destroyed"}
           </span>
         )}
-        {ranks(views).map((rankViews, rank) => (
-          <div
-            key={rankViews[0].ship.asyncId}
-            className={styles.rank}
-            style={{ "--rank": rank } as CSSProperties}
-          >
-            {rankViews.map((view, i) => (
-              <ShipToken
-                key={view.ship.id}
-                view={view}
-                rank={rank}
-                index={i}
-                count={rankViews.length}
-                side={align}
-                colorAlias={colorAlias}
-                faction={side.faction}
-                tag={tagOf(view.ship.asyncId, view.ship.name)}
-                onHover={onHover}
-                mark={marks[view.ship.id]}
-                selectable={assigning}
-                onToggle={onToggle}
-                fit={fit}
-              />
-            ))}
-          </div>
-        ))}
+        {ranks(views).map((rankViews, rank) => {
+          const layout = layoutOf(rankViews);
+          const token = (
+            view: ShipView,
+            i: number,
+            count: number,
+            place?: { x: number; y: number },
+          ) => (
+            <ShipToken
+              key={view.ship.id}
+              view={view}
+              rank={rank}
+              index={i}
+              count={count}
+              side={align}
+              colorAlias={colorAlias}
+              faction={side.faction}
+              tag={tagOf(view.ship.asyncId, view.ship.name)}
+              onHover={onHover}
+              mark={marks[view.ship.id]}
+              selectable={assigning}
+              onToggle={onToggle}
+              fit={fit}
+              layout={layout}
+              place={place}
+              pickable={pick?.types.has(view.ship.baseType) ?? false}
+              pickLabel={pick?.label}
+              onPick={pick?.onPick}
+            />
+          );
+          if (layout === "wing") {
+            const groups = squadrons(rankViews);
+            const slot = Math.round(shipSize("ff") * fit);
+            return (
+              <div
+                key={rankViews[0].ship.asyncId}
+                className={styles.rank}
+                data-layout="wing"
+                data-cols={groups.length > 2 ? 2 : 1}
+                style={
+                  {
+                    "--rank": rank,
+                    "--cols": groups.length > 2 ? 2 : 1,
+                  } as CSSProperties
+                }
+              >
+                {groups.map((group, g) => {
+                  const wing = wingPlaces(group.length, slot, align);
+                  return (
+                    <div
+                      key={g}
+                      className={styles.squadron}
+                      style={
+                        {
+                          width: wing.width,
+                          height: wing.height,
+                          "--sq": g,
+                        } as CSSProperties
+                      }
+                    >
+                      {group.map((view, i) =>
+                        token(view, i, group.length, wing.places[i]),
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+          return (
+            <div
+              key={rankViews[0].ship.asyncId}
+              className={styles.rank}
+              data-layout={layout}
+              style={{ "--rank": rank } as CSSProperties}
+            >
+              {rankViews.map((view, i) => token(view, i, rankViews.length))}
+            </div>
+          );
+        })}
       </div>
 
       {hover &&

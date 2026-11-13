@@ -225,6 +225,8 @@ def test_non_euclidean_shielding_anuluje_dwa(registry: StaticDataRegistry) -> No
     state.players["p1"].technologies = ["nes"]
     assert battle.sustain_cancels(state, "p1") == 2
     assert battle.required_hits(state, grid, registry, "p1") == 3
+    # „Życie" w oknie bitwy liczy Sustain ×2 (2 statki + 2 za Sustain dreadnoughta) - jak licznik.
+    assert battle.absorbable_hits(battle.side_units(state, grid, registry, "p1"), 2) == 4
     after = battle.assign_combat_hits(
         state, grid, registry, "p1", sustain={"dreadnought": 1}, destroy={"cruiser": 1},
         destroy_damaged={},

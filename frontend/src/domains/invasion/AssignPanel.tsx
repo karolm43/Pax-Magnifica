@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-  absorbed,
   autoMarks,
-  MARK_WEIGHT,
-  nextMark,
+  coveredCount,
+  isCovered,
   planFromMarks,
+  toggleMark,
   type Mark,
   type ShipEntity,
 } from "@/domains/battle/battleAssign";
@@ -22,6 +22,7 @@ export function AssignPanel({
   ships,
   required,
   hits,
+  cancels = 1,
   colorAlias,
   faction,
   busy,
@@ -31,27 +32,18 @@ export function AssignPanel({
   ships: ShipEntity[];
   required: number;
   hits: number;
+  /** Ile trafień anuluje tarcza (Non-Euclidean Shielding: 2). */
+  cancels?: number;
   colorAlias: string;
   faction: string;
   busy: boolean;
   onConfirm: (plan: BattleAssignPlan) => void;
 }) {
   const [marks, setMarks] = useState<Record<string, Mark>>({});
-  const covered = absorbed(marks);
-
-  const toggle = (ship: ShipEntity) => {
-    const current = marks[ship.id];
-    let candidate = nextMark(ship, current);
-    const others = covered - (current ? MARK_WEIGHT[current] : 0);
-    // Nie pozwól pokryć więcej trafień, niż trzeba.
-    while (candidate && others + MARK_WEIGHT[candidate] > required) {
-      candidate = nextMark(ship, candidate);
-    }
-    const next = { ...marks };
-    if (candidate) next[ship.id] = candidate;
-    else delete next[ship.id];
-    setMarks(next);
-  };
+  const covered = coveredCount(marks, required, cancels);
+  // Nie pozwól pokryć więcej trafień, niż trzeba.
+  const toggle = (ship: ShipEntity) =>
+    setMarks(toggleMark(marks, ship, required, cancels));
 
   return (
     <div className={styles.assign} role="group" aria-label={title}>
@@ -77,7 +69,7 @@ export function AssignPanel({
         <button
           type="button"
           className={styles.ghostBtn}
-          onClick={() => setMarks(autoMarks(ships, required))}
+          onClick={() => setMarks(autoMarks(ships, required, cancels))}
         >
           Auto
         </button>
@@ -92,7 +84,7 @@ export function AssignPanel({
         <button
           type="button"
           className={styles.primaryBtn}
-          disabled={busy || covered !== required}
+          disabled={busy || !isCovered(marks, required, cancels)}
           onClick={() => onConfirm(planFromMarks(ships, marks))}
         >
           Confirm {covered}/{required}

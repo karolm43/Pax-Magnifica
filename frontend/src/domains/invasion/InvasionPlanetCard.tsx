@@ -495,6 +495,7 @@ export function InvasionPlanetCard({
               )}
               required={pendingBombard.required}
               hits={pendingBombard.hits}
+              cancels={pendingBombard.cancels}
               colorAlias={look(pendingBombard.defender).colorAlias}
               faction={pendingBombard.defender}
               busy={actions.busy}
@@ -669,6 +670,7 @@ export function InvasionPlanetCard({
               ships={expandForces(attacker, info.forces[attacker] ?? [])}
               required={defense.required}
               hits={defense.hits}
+              cancels={defense.cancels}
               colorAlias={look(attacker).colorAlias}
               faction={attacker}
               busy={actions.busy}

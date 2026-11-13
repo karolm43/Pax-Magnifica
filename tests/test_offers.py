@@ -150,6 +150,11 @@ def test_assault_cannon_ofiara_wybiera_a_walka_rusza_dalej(registry: StaticDataR
     assert done.active_combat is not None
     assert done.active_combat.step is CombatStep.AFB  # destroyer ma AFB; walka ruszyła dalej
     assert done.pending_window is None
+    # Opcje z grafiką jednostki (sprite w kafelku), a okno bitwy dostaje efekt do animacji.
+    assert {o["meta"]["unit"] for o in view["inputs"][0]["options"]} == {"cruiser", "destroyer"}
+    assert done.active_combat.effects == [
+        {"kind": "assault_cannon", "player": "p1", "victim": "p2", "unit": "cruiser"}
+    ]
 
 
 def test_assault_cannon_ofiara_z_jednym_typem_nie_ma_wyboru(registry: StaticDataRegistry) -> None:

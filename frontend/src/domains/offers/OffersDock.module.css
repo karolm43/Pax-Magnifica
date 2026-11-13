@@ -53,12 +53,43 @@
   color: var(--ds-accent, #60a5fa);
 }
 
+/* Tytuł decyzji zawija się (bez ucinania) - nazwy kart bywają długie. */
 .title {
   min-width: 0;
-  overflow: hidden;
   font-size: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+/* Kafelek karty źródłowej (technologia) w nagłówku - klik otwiera pełną kartę. */
+.source {
+  flex: none;
+  display: grid;
+  max-width: 132px;
+  cursor: default;
+}
+
+.poolsBox {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--ds-ground-2);
+  border: 1px solid var(--ds-h14);
+}
+
+.poolsHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+.poolsHint b {
+  color: var(--ds-sig-warn, #f59f00);
+}
+
+.poolsHint b[data-ok] {
+  color: var(--ds-sig-ok, #4ade80);
 }
 
 .tag[data-tone="required"] {
@@ -106,8 +137,8 @@
   color: var(--ds-ink-lo);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   overflow: hidden;
 }
 

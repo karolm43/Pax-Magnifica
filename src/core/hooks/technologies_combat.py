@@ -120,6 +120,20 @@ def _unit_label(state: GameState, player_id: str, base_type: str) -> str:
     return unit_name(state, registry, player_id, base_type) if registry is not None else base_type
 
 
+def _unit_option(
+    state: GameState, player_id: str, base_type: str, count: int = 0
+) -> dict[str, Any]:
+    """Opcja „jednostka gracza" z grafiką (sprite w kolorze gracza w kafelku decyzji)."""
+    player = state.players.get(player_id)
+    meta = oi.unit_meta(
+        base_type, player_id,
+        player.faction if player is not None else None,
+        player.color if player is not None else None,
+        count,
+    )
+    return oi.option(base_type, _unit_label(state, player_id, base_type), meta=meta)
+
+
 def _combat_zone(ctx: Mapping[str, Any]) -> str:
     return "space" if ctx["kind"] == "space" else str(ctx["planet"])
 
@@ -151,10 +165,7 @@ def duranium_armor_inputs(
         oi.choice(
             "unit",
             "Damaged unit to repair",
-            [
-                oi.option(bt, _unit_label(state, player_id, bt))
-                for bt in _repairable(state, player_id, ctx)
-            ],
+            [_unit_option(state, player_id, bt) for bt in _repairable(state, player_id, ctx)],
         )
     ]
 
@@ -207,9 +218,10 @@ def assault_cannon_inputs(
 ) -> list[dict[str, Any]]:
     """Statki niemyśliwskie ofiary w systemie (neutralni - wg reguły: najtańszy)."""
     system = state.systems.get(str(ctx["position"]))
+    space = system.space_units.get(decider, {}) if system else {}
     ships = [
         bt
-        for bt, n in sorted((system.space_units.get(decider, {}) if system else {}).items())
+        for bt, n in sorted(space.items())
         if n > 0 and bt != _FIGHTER and is_space_unit(bt)
     ]
     if decider not in state.players and ships:  # jednostki neutralne nie podejmują decyzji
@@ -217,8 +229,9 @@ def assault_cannon_inputs(
     return [
         oi.choice(
             "ship",
-            "Non-fighter ship to destroy",
-            [oi.option(bt, _unit_label(state, decider, bt)) for bt in ships],
+            "Your ship to destroy",
+            [_unit_option(state, decider, bt, space.get(bt, 0)) for bt in ships],
+            "Click one of your non-fighter ships — in the battle window or here.",
         )
     ]
 
@@ -246,6 +259,12 @@ def assault_cannon(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
     if system is None or ship is None:
         return
     unit_ops.remove_units(state, system, "space", victim, ship, 1, UnitCause.DESTROYED)
+    combat = state.active_combat
+    if combat is not None:
+        # Okno bitwy animuje strzał działa (od właściciela technologii do zniszczonego statku).
+        combat.effects.append(
+            {"kind": "assault_cannon", "player": player_id, "victim": victim, "unit": str(ship)}
+        )
 
 
 # --- Warfare: Magen Defense Grid ΩΩ ---------------------------------------------------------

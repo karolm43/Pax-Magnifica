@@ -29,17 +29,22 @@ import { getTileById } from "@/entities/lookup/systems";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import {
-  absorbed,
   autoMarks,
+  coveredCount,
   expandShips,
-  MARK_WEIGHT,
-  nextMark,
+  isCovered,
   planFromMarks,
+  toggleMark,
   type Mark,
   type ShipEntity,
 } from "./battleAssign";
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
-import { BattleFleet } from "./BattleFleet";
+import { BattleFleet, resetFleetEntries } from "./BattleFleet";
+import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
+import { buildActionCardParams } from "@/api/useActionCard";
+import { lookupUnit } from "@/entities/lookup/units";
+import { asyncOfBase } from "@/domains/movement/routeTypes";
+import type { BattleEffect } from "@/api/useBoardEditor";
 import { BattleCenter } from "./BattleCenter";
 import type { HoldState } from "@/domains/dice/HoldRollButton";
 import { DiceTray } from "./DiceTray";
@@ -60,13 +65,28 @@ import styles from "./BattleOverlay.module.css";
 /* Okręty z ciężkim uzbrojeniem (war sun, flagowiec, dreadnought): grubsze wiązki i dźwięk. */
 const HEAVY_BASES = new Set(["ws", "fs", "dn"]);
 
-type ShotKind = "laser" | "plasma" | "flak" | "sun" | "tracer" | "shell";
+type ShotKind =
+  | "laser"
+  | "plasma"
+  | "flak"
+  | "sun"
+  | "tracer"
+  | "shell"
+  | "missile";
+
+/** Lot rakiety (ms) — wolniejsza od wiązek, łukiem, ze smugą dymu (`missileFly` w CSS). */
+const MISSILE_MS = 1300;
+/** Ile kłębów dymu zostawia rakieta na torze. */
+const MISSILE_PUFFS = 14;
+/* Okręty odpalające RAKIETY: krążowniki i lotniskowce zawsze, dreadnought co drugą kością. */
+const MISSILE_BASES = new Set(["ca", "cv"]);
 
 /** Czas lotu pocisku (ms): kule smugowe i flak są szybkie, reszta wolniejsza. */
 const travelOf = (s: {
   afb: boolean;
   heavy?: boolean;
   ground?: "tracer" | "shell";
+  missile?: boolean;
 }) =>
   s.ground === "shell"
     ? s.heavy
@@ -74,16 +94,24 @@ const travelOf = (s: {
       : 1500
     : s.afb
       ? 550
-      : TRAVEL_MS;
+      : s.missile
+        ? MISSILE_MS
+        : TRAVEL_MS;
 
-/** Rodzaj broni pocisku: AFB = flak; reszta na przemian laser (co 3.) i plazma. */
+/** Rodzaj broni pocisku: AFB = flak; rakiety z krążowników; reszta laser (co 3.) i plazma. */
 function shotKind(
-  s: { afb: boolean; sun: boolean; ground?: "tracer" | "shell" },
+  s: {
+    afb: boolean;
+    sun: boolean;
+    ground?: "tracer" | "shell";
+    missile?: boolean;
+  },
   n: number,
 ): ShotKind {
   if (s.ground) return s.ground;
   if (s.afb) return "flak";
   if (s.sun) return "sun"; // war sun: słoneczny ogień
+  if (s.missile) return "missile";
   return n % 3 === 0 ? "laser" : "plasma";
 }
 
@@ -118,6 +146,10 @@ type Shot = {
   ground?: "tracer" | "shell";
   /** Znak łuku pocisku artylerii (−1, gdy tor biegnie w lewo). */
   arc: number;
+  /** Rakieta: leci łukiem (punkt kontrolny krzywej) i zostawia smugę dymu. */
+  missile: boolean;
+  cx: number;
+  cy: number;
 };
 
 /** Duży rozbłysk w środku pola strony, która dostaje trafienia. */
@@ -201,6 +233,14 @@ function VolleyLayer({
       const dx = tx - from.x;
       const dy = ty - from.y;
       const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const missile =
+        !ground &&
+        volley.phase !== "AFB" &&
+        (MISSILE_BASES.has(base) || (base === "dn" && bolt.shot % 2 === 1));
+      // Łuk rakiety: punkt kontrolny odsunięty w bok od połowy toru (na przemian góra/dół).
+      const len0 = Math.hypot(dx, dy) || 1;
+      const bow =
+        (bolt.shot % 2 === 0 ? 1 : -1) * len0 * (0.16 + Math.random() * 0.12);
       return [
         {
           id: bolt.id,
@@ -218,6 +258,9 @@ function VolleyLayer({
           target: enemy,
           heavy,
           sun: shooter.getAttribute("data-base") === "ws",
+          missile,
+          cx: (from.x + tx) / 2 + (-dy / len0) * bow,
+          cy: (from.y + ty) / 2 + (dx / len0) * bow,
         },
       ];
     });
@@ -258,7 +301,9 @@ function VolleyLayer({
                 // Rodzaj broni = nazwa dźwięku; war sun ma własny „sunfire".
                 kind === "sun"
                   ? "sunfire"
-                  : kind === "tracer"
+                  : kind === "missile"
+                    ? "missile"
+                    : kind === "tracer"
                     ? "flak"
                     : kind === "shell"
                       ? "plasma"
@@ -302,10 +347,47 @@ function VolleyLayer({
   if (!volley || !shots || shots.id !== volley.id) return null;
   return (
     <div className={styles.volleyLayer} aria-hidden="true">
+      {shots.list
+        .filter((s) => s.missile)
+        .flatMap((s) => {
+          const path = `path('M ${s.x1.toFixed(1)} ${s.y1.toFixed(1)} Q ${s.cx.toFixed(1)} ${s.cy.toFixed(1)} ${s.tx.toFixed(1)} ${s.ty.toFixed(1)}')`;
+          const vars = {
+            "--path": path,
+            "--rgb":
+              s.target === "left" ? "var(--right-rgb)" : "var(--left-rgb)",
+            "--delay": `${s.delayMs}ms`,
+            "--travel": `${MISSILE_MS}ms`,
+          };
+          return [
+            <span
+              key={`${s.id}-missile`}
+              className={styles.missile}
+              data-hit={s.hit || undefined}
+              style={vars as CSSProperties}
+            />,
+            ...Array.from({ length: MISSILE_PUFFS }, (_, k) => {
+              const at = (k + 1) / (MISSILE_PUFFS + 1);
+              return (
+                <span
+                  key={`${s.id}-puff-${k}`}
+                  className={styles.puff}
+                  style={
+                    {
+                      ...vars,
+                      "--at": `${(at * 100).toFixed(1)}%`,
+                      "--pdelay": `${Math.round(s.delayMs + MISSILE_MS * at)}ms`,
+                    } as CSSProperties
+                  }
+                />
+              );
+            }),
+          ];
+        })}
       {shots.list.map((s, n) => (
         <span
           key={s.id}
           className={styles.beam}
+          hidden={s.missile || undefined}
           data-kind={shotKind(s, n)}
           data-heavy={s.heavy || undefined}
           data-hit={s.hit || undefined}
@@ -365,6 +447,7 @@ function VolleyLayer({
             className={styles.impact}
             data-afb={s.afb || undefined}
             data-sun={s.sun || undefined}
+            data-missile={s.missile || undefined}
             data-ground={s.ground || undefined}
             data-heavy={s.heavy || undefined}
             style={
@@ -395,7 +478,37 @@ function usePlayers() {
   };
 }
 
-function Battlefield({ view }: { view: BattleView }) {
+/**
+ * Decyzja „wskaż okręt w tej bitwie" (np. ofiara Assault Cannon, naprawa Duranium Armor):
+ * jedno wejście ``choice``, a każda opcja to jednostka (``meta.unit``) jednej ze stron walki.
+ * Gracz klika okręt na polu bitwy — jak na planszy — zamiast szukać go w formularzu.
+ */
+function shipPickOffer(
+  offers: OfferView[] | undefined,
+  playerIds: string[],
+): { offer: OfferView; playerId: string } | null {
+  for (const offer of offers ?? []) {
+    const [input, ...rest] = offer.inputs;
+    if (!input || rest.length > 0 || input.kind !== "choice") continue;
+    if (input.options.length === 0) continue;
+    const owners = new Set(input.options.map((o) => o.meta?.player));
+    const owner = [...owners][0];
+    if (owners.size !== 1 || typeof owner !== "string") continue;
+    if (!playerIds.includes(owner)) continue;
+    if (!input.options.every((o) => typeof o.meta?.unit === "string")) continue;
+    return { offer, playerId: owner };
+  }
+  return null;
+}
+
+function Battlefield({
+  view,
+  offersPending,
+}: {
+  view: BattleView;
+  /** W grze czekają decyzje graczy (``pendingOffers``) — sprawdź, czy któraś to „wskaż okręt". */
+  offersPending: boolean;
+}) {
   const gameData = useGameData();
   const players = usePlayers();
   const setHidden = useAppStore((s) => s.setBattleHidden);
@@ -411,6 +524,8 @@ function Battlefield({ view }: { view: BattleView }) {
     battleRetreat,
   } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  const { data: offers } = useOffers(offersPending);
+  const offerActions = useOfferActions();
   const [muted, setMuted] = useState(isBattleMuted);
   useEffect(() => preloadBattleSounds(), []);
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -544,31 +659,70 @@ function Battlefield({ view }: { view: BattleView }) {
     marks: Record<string, Mark>;
   }>({ key: "", marks: {} });
   const marks = marksState.key === assignKey ? marksState.marks : {};
-  const assigningShips =
+  const assigningSide =
     view.assigning === attacker.faction
-      ? attackerShips
+      ? attacker
       : view.assigning === defender.faction
+        ? defender
+        : null;
+  const assigningShips =
+    assigningSide === attacker
+      ? attackerShips
+      : assigningSide === defender
         ? defenderShips
         : [];
   const required = view.assigning ? (view.required[view.assigning] ?? 0) : 0;
-  const covered = absorbed(marks);
+  // Non-Euclidean Shielding: tarcza anuluje 2 trafienia (wartość z silnika).
+  const cancels = assigningSide?.sustainCancels ?? 1;
+  const covered = coveredCount(marks, required, cancels);
+  const ready = view.assigning !== null && isCovered(marks, required, cancels);
 
   const setMarks = (next: Record<string, Mark>) =>
     setMarksState({ key: assignKey, marks: next });
 
-  const toggle = (ship: ShipEntity) => {
-    const current = marks[ship.id];
-    let candidate = nextMark(ship, current);
-    const others = covered - (current ? MARK_WEIGHT[current] : 0);
-    // Nie pozwól pokryć więcej trafień, niż trzeba — wtedy znacznik znika.
-    while (candidate && others + MARK_WEIGHT[candidate] > required) {
-      candidate = nextMark(ship, candidate);
-    }
-    const next = { ...marks };
-    if (candidate) next[ship.id] = candidate;
-    else delete next[ship.id];
-    setMarks(next);
+  // Nie pozwól pokryć więcej trafień, niż trzeba — wtedy znacznik znika.
+  const toggle = (ship: ShipEntity) =>
+    setMarks(toggleMark(marks, ship, required, cancels));
+
+  // Decyzja „wskaż okręt" (Assault Cannon...): okręty tej strony stają się klikalne.
+  const pickFound = offersPending
+    ? shipPickOffer(offers, [attacker.playerId, defender.playerId])
+    : null;
+  const pickFor = (side: BattleSide) => {
+    if (!pickFound || pickFound.playerId !== side.playerId || view.resolving)
+      return null;
+    const { offer } = pickFound;
+    const input = offer.inputs[0];
+    if (input.kind !== "choice") return null;
+    return {
+      types: new Set(input.options.map((o) => String(o.meta?.unit))),
+      label: `${offer.name} — ${input.label}`,
+      onPick: (ship: ShipEntity) => {
+        const option = input.options.find(
+          (o) => String(o.meta?.unit) === ship.baseType,
+        );
+        if (!option) return;
+        const { params } = buildActionCardParams(offer.inputs, {
+          [input.key]: option.id,
+        });
+        void run(() =>
+          offerActions.accept(offer.player_id, offer.id, params),
+        );
+      },
+    };
   };
+  const pickNote = pickFound
+    ? {
+        title: pickFound.offer.name,
+        who: players(
+          pickFound.playerId === attacker.playerId
+            ? attacker.faction
+            : defender.faction,
+        ).name,
+        label:
+          pickFound.offer.inputs[0]?.label ?? "Choose a ship",
+      }
+    : null;
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -715,6 +869,8 @@ function Battlefield({ view }: { view: BattleView }) {
           }
           marks={view.assigning === attacker.faction ? marks : {}}
           onToggle={toggle}
+          entryKey={`${view.position}|${view.kind}|${view.planet ?? ""}|${attacker.faction}`}
+          pick={pickFor(attacker)}
         />
         <BattleCenter
           view={view}
@@ -724,9 +880,12 @@ function Battlefield({ view }: { view: BattleView }) {
           rolling={rolling}
           onHold={onHold}
           absorbed={covered}
+          ready={ready}
+          cancels={cancels}
+          pickNote={pickNote}
           onAfb={() => void run(battleAfb)}
           onRoll={() => void run(battleRoll)}
-          onAuto={() => setMarks(autoMarks(assigningShips, required))}
+          onAuto={() => setMarks(autoMarks(assigningShips, required, cancels))}
           onClearMarks={() => setMarks({})}
           onConfirmAssign={() =>
             view.assigning &&
@@ -763,11 +922,23 @@ function Battlefield({ view }: { view: BattleView }) {
           }
           marks={view.assigning === defender.faction ? marks : {}}
           onToggle={toggle}
+          entryKey={`${view.position}|${view.kind}|${view.planet ?? ""}|${defender.faction}`}
+          pick={pickFor(defender)}
         />
         <VolleyLayer
           volley={volley}
           fieldRef={fieldRef}
           ground={view.kind === "ground"}
+        />
+        <AssaultCannonLayer
+          effects={view.effects ?? []}
+          fieldRef={fieldRef}
+          attacker={attacker.faction}
+          nameOf={nameOf}
+          unitName={(faction, baseType) => {
+            const player = gameData?.playerData?.find((p) => p.faction === faction);
+            return lookupUnit(asyncOfBase(baseType), faction, player)?.name ?? baseType;
+          }}
         />
         {showPool && <DicePool left={pool.left} right={pool.right} />}
         {volley && volley.diceMs > 0 && (
@@ -800,7 +971,11 @@ function battleHoldMs(view: BattleView): number {
   return volleyStartMs(left, right) + HOLD_TAIL_MS;
 }
 
-/** Widok z jednostkami i wynikiem sprzed rzutu; dziennik zostaje żywy (rusza animacja kości). */
+/**
+ * Widok z jednostkami i wynikiem sprzed rzutu; dziennik zostaje żywy (rusza animacja kości).
+ * Do końca animacji nie zdradzamy też, KTO trafił: bez panelu przypisania strat (ile trafień
+ * pokryć) i bez akcji kolejnego kroku — panel pokazuje „salwa w toku" (``resolving``).
+ */
 function freezeBattleSides(live: BattleView, before: BattleView): BattleView {
   return {
     ...live,
@@ -808,6 +983,10 @@ function freezeBattleSides(live: BattleView, before: BattleView): BattleView {
     defender: before.defender,
     winner: before.winner,
     outcome: before.outcome,
+    assigning: null,
+    required: {},
+    pendingHits: {},
+    resolving: true,
   };
 }
 
@@ -821,6 +1000,12 @@ export function BattleOverlay() {
   const { data: live } = useBattle(inCombat);
   // Straty z rzutu (np. auto-przypisane neutralnym albo AFB) pokazujemy dopiero po kościach i strzałach.
   const { view, holding } = useDiceHold(live, battleHoldMs, freezeBattleSides);
+  // Po walce kolejna bitwa (także w tym samym systemie) znów ma wlot floty.
+  const over = !inCombat && !holding;
+  useEffect(() => {
+    if (over) resetFleetEntries();
+  }, [over]);
+  const offersPending = (gameState?.pendingOffers ?? []).length > 0;
 
   if (
     (!inCombat && !holding) ||
@@ -843,7 +1028,10 @@ export function BattleOverlay() {
       document.body,
     );
   }
-  return createPortal(<Battlefield view={view} />, document.body);
+  return createPortal(
+    <Battlefield view={view} offersPending={offersPending} />,
+    document.body,
+  );
 }
 
 export default BattleOverlay;
@@ -860,6 +1048,185 @@ function RoundStamp({ round, kind }: { round: number; kind: string | null | unde
     <div key={round} className={styles.roundStamp} aria-hidden="true">
       <small>{kind === "ground" ? "Ground combat" : "Space combat"}</small>
       <b>Round {round}</b>
+    </div>
+  );
+}
+
+/** Okręt strzelający z Assault Cannon: największy z floty właściciela. */
+const CANNON_PRIORITY = ["ws", "fs", "dn", "cv", "ca", "dd"];
+/** Ładowanie działa przed strzałem (ms) — zgodne z `acCharge` w CSS. */
+const CANNON_CHARGE_MS = 800;
+/** Odstęp między kolejnymi strzałami (Assault Cannon obu stron). */
+const CANNON_GAP_MS = 1500;
+
+type CannonShot = {
+  id: string;
+  x1: number;
+  y1: number;
+  len: number;
+  angle: number;
+  tx: number;
+  ty: number;
+  delayMs: number;
+};
+
+/**
+ * ASSAULT CANNON (C_technology): na starcie walki przeciwnik niszczy statek niemyśliwski.
+ * Silnik dopisuje efekt do ``view.effects``; tu: plansza „ASSAULT CANNON" z opisem, ładowanie
+ * działa na największym okręcie właściciela i ciężka wiązka do niszczonego okrętu (ten jest
+ * jeszcze rysowany jako ginący — ``useDyingShips``), z rozbłyskiem w chwili trafienia.
+ * Efekty sprzed otwarcia okna nie są odtwarzane (jak salwy z dziennika).
+ */
+function AssaultCannonLayer({
+  effects,
+  fieldRef,
+  attacker,
+  nameOf,
+  unitName,
+}: {
+  effects: BattleEffect[];
+  fieldRef: RefObject<HTMLDivElement | null>;
+  attacker: string;
+  nameOf: (key: string) => string;
+  unitName: (faction: string, baseType: string) => string;
+}) {
+  const seen = useRef<number | null>(null);
+  const latest = useRef(effects);
+  latest.current = effects;
+  const [run, setRun] = useState<{
+    id: number;
+    shots: CannonShot[];
+    captions: { id: string; title: string; text: string; delayMs: number }[];
+  } | null>(null);
+  const length = effects.length;
+  const describe = useRef({ nameOf, unitName });
+  describe.current = { nameOf, unitName };
+
+  useEffect(() => {
+    if (seen.current === null || length < seen.current) {
+      seen.current = length;
+      return;
+    }
+    if (length === seen.current) return;
+    const fresh = latest.current
+      .slice(seen.current)
+      .filter((e) => e.kind === "assault_cannon");
+    seen.current = length;
+    if (fresh.length === 0) return;
+    const id = Date.now();
+    // Chwila na przerysowanie: niszczony okręt pojawia się jako „ginący" (useDyingShips).
+    const measure = window.setTimeout(() => {
+      const field = fieldRef.current;
+      if (!field) return;
+      const box = field.getBoundingClientRect();
+      const center = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 };
+      };
+      const shots: CannonShot[] = [];
+      const captions = fresh.map((e, k) => {
+        const from = e.player === attacker ? "left" : "right";
+        const to = from === "left" ? "right" : "left";
+        const own = [...field.querySelectorAll(`[data-ship-side="${from}"]`)];
+        const gun =
+          CANNON_PRIORITY.map((b) =>
+            own.find((el) => el.getAttribute("data-base") === b),
+          ).find(Boolean) ?? own[0];
+        const target =
+          field.querySelector(
+            `[data-ship-side="${to}"][data-ship-base="${e.unit}"][data-dying]`,
+          ) ??
+          field.querySelector(`[data-ship-side="${to}"][data-ship-base="${e.unit}"]`) ??
+          field.querySelector(`[data-formation="${to}"]`);
+        const delayMs = k * CANNON_GAP_MS;
+        if (gun && target) {
+          const a = center(gun);
+          const b = center(target);
+          shots.push({
+            id: `${id}-${k}`,
+            x1: a.x,
+            y1: a.y,
+            tx: b.x,
+            ty: b.y,
+            len: Math.hypot(b.x - a.x, b.y - a.y),
+            angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI,
+            delayMs,
+          });
+        }
+        window.setTimeout(
+          () =>
+            playBattleSound("assaultCannon", {
+              pan: from === "left" ? -0.4 : 0.4,
+              heavy: true,
+            }),
+          delayMs,
+        );
+        const { nameOf: n, unitName: u } = describe.current;
+        return {
+          id: `${id}-c${k}`,
+          title: "Assault Cannon",
+          text: `${n(e.player)} destroys ${n(e.victim)}'s ${u(e.victim, e.unit)}`,
+          delayMs,
+        };
+      });
+      setRun({ id, shots, captions });
+    }, 60);
+    const clear = window.setTimeout(
+      () => setRun((r) => (r?.id === id ? null : r)),
+      3600 + fresh.length * CANNON_GAP_MS,
+    );
+    return () => {
+      window.clearTimeout(measure);
+      window.clearTimeout(clear);
+    };
+  }, [length, attacker, fieldRef]);
+
+  if (!run) return null;
+  return (
+    <div className={styles.volleyLayer} aria-hidden="true">
+      {run.shots.map((s) => (
+        <span key={s.id}>
+          <span
+            className={styles.acCharge}
+            style={
+              { left: s.x1, top: s.y1, "--delay": `${s.delayMs}ms` } as CSSProperties
+            }
+          />
+          <span
+            className={styles.acBeam}
+            style={
+              {
+                left: s.x1,
+                top: s.y1,
+                width: s.len,
+                // Osobna właściwość `rotate` — animacja wiązki skaluje ją (`scale`).
+                rotate: `${s.angle}deg`,
+                "--delay": `${s.delayMs + CANNON_CHARGE_MS}ms`,
+              } as CSSProperties
+            }
+          />
+          <span
+            className={styles.acImpact}
+            style={
+              {
+                left: s.tx,
+                top: s.ty,
+                "--delay": `${s.delayMs + CANNON_CHARGE_MS + 120}ms`,
+              } as CSSProperties
+            }
+          />
+        </span>
+      ))}
+      {run.captions.map((c) => (
+        <div
+          key={c.id}
+          className={styles.acStamp}
+          style={{ "--delay": `${c.delayMs}ms` } as CSSProperties}
+        >
+          <small>{c.title}</small>
+          <b>{c.text}</b>
+        </div>
+      ))}
     </div>
   );
 }

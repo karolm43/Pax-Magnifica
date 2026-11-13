@@ -31,7 +31,7 @@ from src.api.schemas_invasion import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import board_edit, custodians, economy, invasion, space_cannon
+from src.core import battle, board_edit, custodians, economy, invasion, space_cannon
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -180,6 +180,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
                 defender=key(invasion.bombard_defender(inv, planet)),
                 hits=hits,
                 required=invasion.required_bombard_hits(state, grid, registry, planet),
+                cancels=battle.sustain_cancels(state, invasion.bombard_defender(inv, planet)),
             )
             for planet, hits in sorted(inv.bombard_pending.items())
         ],
@@ -213,6 +214,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
                 status=status,
                 hits=inv.defense_pending.get(planet, 0),
                 required=invasion.required_defense_hits(state, grid, registry, planet),
+                cancels=battle.sustain_cancels(state, inv.attacker),
             )
         )
 

@@ -998,3 +998,30 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   jak feed Activity (`nextSeq` w `/hold/candidates`) zamiast surowej etykiety, plus runda/faza migawki.
 - **Steering:** nowa zasada „Spójność i reużycie” (używać istniejących komponentów, ujednolicać odstające elementy).
 - Nowe pole odpowiedzi (`nextSeq`) i logika inwazji — restart backendu.
+
+## Walka: Sustain ×2 w przydziale trafień, wynik dopiero po kościach, szyk eskadr, rakiety, Assault Cannon (2026-11-13)
+
+- **Błąd przydziału (zgłoszenie: 13 trafień przy 11 HP, nie dało się zatwierdzić):** silnik liczył Sustain Letneva
+  z Non-Euclidean Shielding ×2 (`required` 13 = 9 statków + 2 tarcze × 2), a front liczył tarczę za 1 i pokazywał HP 11.
+  Teraz `battle.absorbable_hits` = jedno źródło „życia” strony (pasek HP i `required_hits`), widoki podają
+  `sustainCancels` (walka) / `cancels` (bombardowanie, Space Cannon Defense, Space Cannon). Front: `markWeight`,
+  `isCovered` (ostatnia tarcza może anulować mniej — same tarcze), `toggleMark` w `battleAssign.ts` — wspólne dla okna
+  bitwy, inwazji i Space Cannon. Sustain nadany komponentem (Void Shielding) tylko dla `sustainable` egzemplarzy.
+- **Bez spoilera:** do końca kości i strzałów okno nie pokazuje panelu przypisania („covers N hits”) ani akcji kolejnego
+  kroku — `freezeBattleSides` ustawia `resolving` (panel „Dice are rolling… / Volley in flight…”).
+- **Animacje nie wracają:** okręt to zawsze ten sam element (`div` z rolą przycisku; zamiana div↔button przemontowywała
+  okręty), a wlot floty gra raz na bitwę także po „Hide” → powrót (`ENTERED` w `BattleFleet`, czyszczone po walce).
+- **Szyk:** myśliwce w eskadrach-kluczach po ≤5 (prowadzący od strony wroga, eskadra dryfuje razem, 1–2 kolumny
+  eskadr), liczny szereg (>5) w szachownicę zamiast jednej długiej kolumny.
+- **Rakiety:** krążowniki, lotniskowce i co druga kość dreadnoughta odpalają rakiety lecące łukiem (`offset-path`) ze
+  smugą dymu i pomarańczowym trafieniem; dźwięk `missile`.
+- **Assault Cannon:** silnik dopisuje efekt do `ActiveCombat.effects` (NIE do `log` — pusty log = start walki), widok
+  `effects`; okno bitwy: ładowanie działa na największym okręcie, ciężka wiązka do niszczonego statku, rozbłysk,
+  plansza „Assault Cannon — X destroys Y's Z”, dźwięk `assaultCannon`.
+- **Decyzje „wskaż okręt” w bitwie:** oferta z jednym wyborem jednostek jednej strony (ofiara Assault Cannon, naprawa
+  Duranium Armor) podświetla okręty na polu bitwy — klik = wybór (panel decyzji zostaje alternatywą). Opcje mają
+  grafikę jednostek (`unit_meta`).
+- **Okno decyzji:** kafelek technologii źródłowej (`Tech`, jak w panelu gracza; pole `source` oferty), tytuły i nazwy
+  opcji zawijają się zamiast ucinać, opis do 4 linii. **Predictive Intelligence:** pule żetonów − / + startujące od
+  obecnego rozdziału (wspólny `shared/ui/CommandPools`, ten sam co w fazie statusu).
+- Nowe pola (`effects`, `sustainCancels`, `cancels`, `source`) — restart backendu.

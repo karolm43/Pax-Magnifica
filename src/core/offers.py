@@ -24,6 +24,8 @@ def offer_view(
     hook = rules_hooks.hook_by_seq(offer.hook_seq)
     inputs: list[dict[str, Any]] = []
     name, text, kind = ("", "", "")
+    # Źródło („technologies:asc"…) - UI pokazuje kafelek komponentu (np. karta technologii).
+    source = hook.covers if hook is not None and hook.covers else ""
     if hook is not None:
         name, text, kind = describe_component(registry, hook.covers)
         if hook.inputs is not None:
@@ -36,6 +38,7 @@ def offer_view(
         "label": offer.label,
         "text": text,
         "kind": kind,
+        "source": source,
         "mandatory": offer.mandatory,
         "inputs": inputs,
     }

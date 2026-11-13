@@ -195,7 +195,16 @@ export function AssignHits({
   const [destroyed, setDestroyed] = useState<Record<string, number>>({});
   const sum = (r: Record<string, number>) =>
     Object.values(r).reduce((a, b) => a + b, 0);
-  const chosen = sum(sustain) + sum(destroyed);
+  // Non-Euclidean Shielding: tarcza anuluje 2 trafienia; ostatnia może anulować mniej
+  // (same tarcze, nadwyżka < cancels) — ta sama reguła co ``isCovered`` w oknie bitwy.
+  const cancels = pending.cancels ?? 1;
+  const raw = sum(sustain) * cancels + sum(destroyed);
+  const lastShieldOver =
+    cancels > 1 &&
+    sum(destroyed) === 0 &&
+    raw > pending.required &&
+    raw < pending.required + cancels;
+  const chosen = lastShieldOver ? pending.required : raw;
   const ready = chosen === pending.required;
   const full = chosen >= pending.required;
   const anySustain = ships.some((s) => s.sustain);
@@ -221,7 +230,13 @@ export function AssignHits({
         <span>
           <b>{targetName}</b> must cover <b>{pending.required}</b> hit
           {pending.required === 1 ? "" : "s"}
-          {anySustain && <small> — Sustain Damage cancels a hit</small>}
+          {anySustain && (
+            <small>
+              {" "}
+              — Sustain Damage cancels{" "}
+              {cancels === 1 ? "a hit" : `${cancels} hits`}
+            </small>
+          )}
         </span>
         <span className={styles.counter} data-ready={ready || undefined}>
           {chosen}/{pending.required}

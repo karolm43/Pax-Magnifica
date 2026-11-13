@@ -64,6 +64,8 @@ class BombardPendingView(BaseModel):
     defender: str
     hits: int
     required: int
+    # Ile trafień anuluje jedno użycie Sustain Damage obrońcy (Non-Euclidean Shielding: 2).
+    cancels: int = 1
 
 
 class BombardView(BaseModel):
@@ -104,6 +106,8 @@ class DefensePlanetView(BaseModel):
     status: str = "open"
     hits: int = 0
     required: int = 0
+    # Ile trafień anuluje jedno użycie Sustain Damage atakującego (Non-Euclidean Shielding: 2).
+    cancels: int = 1
 
 
 class InvasionResponse(BaseModel):

@@ -27,12 +27,14 @@ export type ShipEntity = {
 
 export type Mark = "sustain" | "destroy" | "both";
 
-/** Ile trafień pokrywa znacznik egzemplarza. */
-export const MARK_WEIGHT: Record<Mark, number> = {
-  sustain: 1,
-  destroy: 1,
-  both: 2,
-};
+/**
+ * Ile trafień pokrywa znacznik egzemplarza. ``cancels`` = ile trafień anuluje jedno użycie
+ * Sustain Damage (1; Non-Euclidean Shielding: 2 — wartość z backendu, ``sustainCancels``).
+ */
+export function markWeight(mark: Mark, cancels = 1): number {
+  if (mark === "destroy") return 1;
+  return mark === "sustain" ? cancels : cancels + 1;
+}
 
 /** Rozwija jednostki strony w egzemplarze; pierwsze ``damaged`` sztuk danego typu są uszkodzone. */
 export function expandShips(side: BattleSide | null): ShipEntity[] {
@@ -47,7 +49,9 @@ export function expandShips(side: BattleSide | null): ShipEntity[] {
         asyncId: unit.asyncId,
         name: unit.name,
         damaged,
-        canSustain: unit.sustain && !damaged,
+        // Sustain nadany komponentem (Void Shielding) ma tylko ``sustainable`` egzemplarzy.
+        canSustain:
+          unit.sustain && !damaged && i - unit.damaged < unit.sustainable,
         unit,
       });
     }
@@ -70,8 +74,67 @@ export function nextMark(
 }
 
 /** Suma pokrytych trafień. */
-export function absorbed(marks: Record<string, Mark>): number {
-  return Object.values(marks).reduce((sum, mark) => sum + MARK_WEIGHT[mark], 0);
+export function absorbed(marks: Record<string, Mark>, cancels = 1): number {
+  return Object.values(marks).reduce(
+    (sum, mark) => sum + markWeight(mark, cancels),
+    0,
+  );
+}
+
+/**
+ * Czy znaczniki pokrywają DOKŁADNIE wymagane trafienia. Przy ``cancels > 1`` ostatnie użycie
+ * Sustain może anulować mniej (zostało mniej trafień, F_letnev) — wtedy nadwyżka < ``cancels``
+ * jest dozwolona, ale tylko gdy nic nie jest niszczone ponad potrzebę (same tarcze).
+ */
+export function isCovered(
+  marks: Record<string, Mark>,
+  required: number,
+  cancels = 1,
+): boolean {
+  const total = absorbed(marks, cancels);
+  if (total === required) return true;
+  const values = Object.values(marks);
+  return (
+    cancels > 1 &&
+    total > required &&
+    total < required + cancels &&
+    values.length > 0 &&
+    values.every((mark) => mark === "sustain")
+  );
+}
+
+/** Licznik „pokryto X / Y" (nadwyżka ostatniej tarczy przy ``cancels > 1`` nie wychodzi ponad Y). */
+export function coveredCount(
+  marks: Record<string, Mark>,
+  required: number,
+  cancels = 1,
+): number {
+  const total = absorbed(marks, cancels);
+  return isCovered(marks, required, cancels) ? required : total;
+}
+
+/**
+ * Klik egzemplarza: kolejny znacznik (``nextMark``), pomijając te, które pokryłyby więcej
+ * trafień, niż trzeba — gdy żaden się nie mieści, znacznik znika.
+ */
+export function toggleMark(
+  marks: Record<string, Mark>,
+  ship: ShipEntity,
+  required: number,
+  cancels = 1,
+): Record<string, Mark> {
+  const rest = { ...marks };
+  delete rest[ship.id];
+  const fits = (mark: Mark) => {
+    const next = { ...rest, [ship.id]: mark };
+    return (
+      absorbed(next, cancels) <= required || isCovered(next, required, cancels)
+    );
+  };
+  let candidate = nextMark(ship, marks[ship.id]);
+  while (candidate && !fits(candidate)) candidate = nextMark(ship, candidate);
+  if (candidate) rest[ship.id] = candidate;
+  return rest;
 }
 
 /**
@@ -111,6 +174,7 @@ export function planFromMarks(
 export function autoMarks(
   ships: ShipEntity[],
   required: number,
+  cancels = 1,
 ): Record<string, Mark> {
   const marks: Record<string, Mark> = {};
   let left = required;
@@ -118,7 +182,7 @@ export function autoMarks(
     if (left <= 0) break;
     if (ship.canSustain) {
       marks[ship.id] = "sustain";
-      left -= 1;
+      left -= cancels;
     }
   }
   const weakestFirst = [...ships].sort(

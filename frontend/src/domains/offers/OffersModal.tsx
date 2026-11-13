@@ -14,12 +14,39 @@ import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
 import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
+import { useGameData } from "@/state/useGameContext";
+import { Tech } from "@/domains/player/components/Tech";
+import {
+  CommandPools,
+  poolsLeft,
+  type PoolAlloc,
+} from "@/shared/ui/CommandPools/CommandPools";
 import { DecisionFields } from "./DecisionFields";
 import { TransitDiodesPicker } from "./TransitDiodesPicker";
 import styles from "./OffersDock.module.css";
 
 /** Opisy krótsze niż tyle znaków pokazujemy w całości (bez „more”). */
-const LONG_TEXT = 260;
+const LONG_TEXT = 420;
+
+/** Wejścia rozdziału żetonów (Predictive Intelligence): trzy liczby o tych kluczach. */
+const POOL_KEYS = { t: "tactical", f: "fleet", s: "strategic" } as const;
+
+function isPoolsOffer(offer: OfferView): boolean {
+  const keys = new Set(
+    offer.inputs.filter((i) => i.kind === "number").map((i) => i.key),
+  );
+  return Object.values(POOL_KEYS).every((k) => keys.has(k));
+}
+
+/** Kafelek komponentu źródłowego (dziś: technologia = ten sam Tech co w panelu gracza). */
+function SourceTile({ source }: { source: string | undefined }) {
+  if (!source?.startsWith("technologies:")) return null;
+  return (
+    <span className={styles.source} data-no-drag>
+      <Tech techId={source.slice("technologies:".length)} />
+    </span>
+  );
+}
 
 /** Czy zdarzenie klawiatury trafia w pole, które samo obsługuje Enter/Esc (formularz, przycisk). */
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -56,6 +83,20 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   const [graphicalReady, setGraphicalReady] = useState(false);
   // Panel da się przesuwać za nagłówek (pozycja zapamiętana) i rozszerzać.
   const drag = useDraggablePanel("offersDock.pos.v1");
+  // Predictive Intelligence: pule żetonów (− / +) startują od obecnego rozdziału gracza.
+  const pools = isPoolsOffer(offer);
+  const gameData = useGameData();
+  const decider = gameData?.playerData?.find((p) => p.discordId === offer.player_id);
+  const tacticInput = offer.inputs.find((i) => i.key === POOL_KEYS.t);
+  const poolsTotal = tacticInput?.kind === "number" ? tacticInput.max : 0;
+  const num = (key: string, fallback: number) =>
+    typeof values[key] === "number" ? values[key] : fallback;
+  const alloc: PoolAlloc = {
+    t: num(POOL_KEYS.t, decider?.tacticalCC ?? 0),
+    f: num(POOL_KEYS.f, decider?.fleetCC ?? 0),
+    s: num(POOL_KEYS.s, decider?.strategicCC ?? 0),
+  };
+  const poolsToPlace = poolsLeft(alloc, poolsTotal);
 
   // Nowa oferta → czysty formularz i rozwinięty panel (nie przeoczymy kolejnej decyzji).
   useEffect(() => {
@@ -65,16 +106,34 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
     setGraphicalReady(false);
   }, [offer.id]);
 
+  // Pule: wartości startowe (obecny rozdział) idą do parametrów, choć gracz ich nie ruszał.
+  const formValues = useMemo(
+    () =>
+      pools
+        ? {
+            ...values,
+            [POOL_KEYS.t]: alloc.t,
+            [POOL_KEYS.f]: alloc.f,
+            [POOL_KEYS.s]: alloc.s,
+          }
+        : values,
+    [pools, values, alloc.t, alloc.f, alloc.s],
+  );
   const { params, ready } = useMemo(
-    () => buildActionCardParams(offer.inputs, values),
-    [offer.inputs, values],
+    () => buildActionCardParams(offer.inputs, formValues),
+    [offer.inputs, formValues],
   );
   const noOptions = offer.inputs.some(
     (input) =>
       input.kind !== "number" &&
       input.options.length < (input.kind === "multi" ? input.min : 1),
   );
-  const canUse = !busy && ready && !noOptions && (!graphical || graphicalReady);
+  const canUse =
+    !busy &&
+    ready &&
+    (!pools || poolsToPlace === 0) &&
+    !noOptions &&
+    (!graphical || graphicalReady);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -138,6 +197,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
         onDoubleClick={drag.reset}
         title="Drag to move (double-click resets)"
       >
+        <SourceTile source={offer.source} />
         <span className={styles.titleBox}>
           {offer.kind && <small className={styles.kind}>{offer.kind}</small>}
           <b className={styles.title}>{offer.name}</b>
@@ -205,7 +265,32 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
           }}
         />
       )}
-      {!graphical && offer.inputs.length > 0 && (
+      {pools && (
+        <div className={styles.poolsBox}>
+          <p className={styles.poolsHint}>
+            Move tokens between your pools with − / +.{" "}
+            <b data-ok={poolsToPlace === 0 || undefined}>
+              {poolsToPlace === 0
+                ? `All ${poolsTotal} placed`
+                : `${poolsToPlace} to place`}
+            </b>
+          </p>
+          <CommandPools
+            alloc={alloc}
+            total={poolsTotal}
+            disabled={busy}
+            onChange={(next) =>
+              setValues((prev) => ({
+                ...prev,
+                [POOL_KEYS.t]: next.t,
+                [POOL_KEYS.f]: next.f,
+                [POOL_KEYS.s]: next.s,
+              }))
+            }
+          />
+        </div>
+      )}
+      {!graphical && !pools && offer.inputs.length > 0 && (
         <DecisionFields
           inputs={offer.inputs}
           values={values}
