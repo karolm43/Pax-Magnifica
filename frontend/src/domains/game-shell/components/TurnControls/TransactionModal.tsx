@@ -209,23 +209,19 @@ export function TransactionModal({
   const promisePartner =
     others.find((p) => p.discordId === promisePartnerId) ?? null;
 
-  // Ręce (promissory notes): moja i partnera. Tryb lokalny — operator widzi wszystko.
+  // Moja ręka (promissory notes, karty akcji). Ręka partnera jest UKRYTA (R_promissory_notes,
+  // RULES.md 47.1a): o notkę proszę z listy możliwych (``requestableNotes`` — notki w cudzych
+  // rękach), posiadanie sprawdza jego akceptacja.
   const { data: myHand } = usePlayerHand(gameId, {
     ignoreAuthGate: true,
     player: me.discordId,
   });
-  const { data: partnerHand } = usePlayerHand(gameId, {
-    ignoreAuthGate: true,
-    player: partner?.discordId ?? null,
-  });
   const myNotes = myHand?.promissoryNotes ?? [];
-  const partnerNotes = partner ? (partnerHand?.promissoryNotes ?? []) : [];
+  const partnerNotes = partner ? (tradeState?.requestableNotes ?? []) : [];
   const myCards = cardsAllowed ? (myHand?.actionCards ?? []) : [];
   // Pride of Kenara: planety, których kartę strona może oddać (z mechem Hacan).
   const myTradePlanets = tradeState?.myPlanets ?? [];
   const partnerTradePlanets = viewOf(partnerId)?.planets ?? [];
-  const partnerCards =
-    cardsAllowed && partner ? (partnerHand?.actionCards ?? []) : [];
   const myFragments = me.relicFragmentCards ?? [];
   const partnerFragments = partner?.relicFragmentCards ?? [];
 
@@ -297,7 +293,10 @@ export function TransactionModal({
     tradePlanets: string[],
     /** Moja strona: cel jednostek wybieram ja; stronę partnera wskazuje on przy akceptacji. */
     chooseDestination: boolean,
-  ) => (
+  ) => {
+    // Strona partnera: jego ręka jest ukryta (notki = możliwe, karty akcji niewidoczne).
+    const hidden = !chooseDestination;
+    return (
     <section className={styles.side} aria-label={title}>
       <h4 className={styles.sideTitle}>
         {title}
@@ -319,10 +318,13 @@ export function TransactionModal({
       />
       <div className={styles.group}>
         <span className={styles.groupLabel}>
-          Promissory note <small>(max 1)</small>
+          Promissory note{" "}
+          <small>{hidden ? "(max 1, hand hidden: any note they may hold)" : "(max 1)"}</small>
         </span>
         {notes.length === 0 ? (
-          <span className={styles.none}>No notes in hand</span>
+          <span className={styles.none}>
+            {hidden ? "No notes they could hold" : "No notes in hand"}
+          </span>
         ) : (
           <div className={styles.cardList}>
             {notes.map((id) => (
@@ -437,7 +439,9 @@ export function TransactionModal({
           <span className={styles.groupLabel}>
             Action cards <small>(Arbiters)</small>
           </span>
-          {cards.length === 0 ? (
+          {hidden ? (
+            <span className={styles.none}>Their hand is hidden</span>
+          ) : cards.length === 0 ? (
             <span className={styles.none}>No action cards to show</span>
           ) : (
             <div className={styles.cardList}>
@@ -455,7 +459,8 @@ export function TransactionModal({
         </div>
       )}
     </section>
-  );
+    );
+  };
 
   // --- Zakładka obietnic: stan stołu ---
   const heldByMe = Object.entries(me.debtTokens ?? {});
@@ -604,7 +609,7 @@ export function TransactionModal({
                   setReceive,
                   partnerNotes,
                   partnerFragments,
-                  partnerCards,
+                  [],
                   partnerTradePlanets,
                   false,
                 )}

@@ -147,6 +147,11 @@ export type ActionCardPlayability = {
   implemented: boolean;
   /** Karta reakcji (okno inne niż ACTION): dok sygnalizuje ją także zwinięty (RULES.md 54.8). */
   reaction?: boolean;
+  /**
+   * Okno minęło ostatnim krokiem (np. Public Disgrace po wyborze rywala): zagranie cofa grę do
+   * tej migawki (hold-rewind, RULES.md 53.7).
+   */
+  hold_seq?: number | null;
 };
 
 /**

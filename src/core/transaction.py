@@ -160,8 +160,32 @@ def _validate_extras(
             )
 
 
-def _validate_side(state: GameState, giver_id: str, side: TransactionSide, who: str) -> None:
-    """Sprawdza, czy ``giver_id`` faktycznie posiada to, co ma oddać (``who`` = etykieta)."""
+def requestable_notes(state: GameState, viewer_id: str) -> list[str]:
+    """Notki, o które ``viewer_id`` może poprosić partnera: wszystkie notki w cudzych rękach.
+
+    Ręka notek jest ukryta (R_promissory_notes), więc proszący nie widzi ręki partnera. Zbiór
+    „notki w czyichś rękach poza moją" wynika z informacji jawnych (strefy gry, odrzucone), nie
+    zdradza, KTO trzyma notkę - posiadanie sprawdza dopiero akceptacja partnera.
+    """
+    return sorted(
+        {
+            note
+            for pid, player in state.players.items()
+            if pid != viewer_id
+            for note in player.private.promissory_notes
+        }
+    )
+
+
+def _validate_side(
+    state: GameState, giver_id: str, side: TransactionSide, who: str, *, hidden: bool = False
+) -> None:
+    """Sprawdza, czy ``giver_id`` faktycznie posiada to, co ma oddać (``who`` = etykieta).
+
+    ``hidden=True`` (propozycja, strona partnera): notki z jego ukrytej ręki nie są sprawdzane,
+    by odmowa nie zdradzała jej zawartości - wystarczy notka w czyjejś ręce; posiadanie sprawdza
+    akceptacja (``respond_to_offer``).
+    """
     giver = state.players[giver_id]
     if side.trade_goods < 0 or side.commodities < 0:
         raise ValueError("Amounts in a transaction cannot be negative.")
@@ -174,7 +198,10 @@ def _validate_side(state: GameState, giver_id: str, side: TransactionSide, who: 
             f"{who} cannot give {side.commodities} commodities - has only {giver.commodities}."
         )
     note = side.promissory_note
-    if note is not None and note not in giver.private.promissory_notes:
+    if hidden and note is not None:
+        if note not in {n for p in state.players.values() for n in p.private.promissory_notes}:
+            raise ValueError(f"The promissory note '{note}' is not in any player's hand.")
+    elif note is not None and note not in giver.private.promissory_notes:
         raise ValueError(
             f"{who} does not hold the promissory note '{note}' in hand "
             "(notes in the play area cannot be traded)."
@@ -361,7 +388,7 @@ def validate_transaction(
     if give.is_empty() and receive.is_empty():
         raise ValueError("An empty transaction - add something to exchange.")
     _validate_side(state, active_id, give, "You")
-    _validate_side(state, partner_id, receive, "The partner")
+    _validate_side(state, partner_id, receive, "The partner", hidden=pending)
     _validate_planets(state, active_id, give, "You")
     _validate_planets(state, partner_id, receive, "The partner", pending=pending)
     # Black Market Dealings: ktokolwiek z dwóch stron ma efekt, obie mogą włączyć dodatkowe rzeczy.
@@ -432,6 +459,12 @@ def _value(side: TransactionSide) -> int:
     )
 
 
+def _holds_note(state: GameState, giver_id: str, side: TransactionSide) -> bool:
+    """Czy oddający ma w ręce notkę, o którą proszono (bot bez niej po prostu odrzuca)."""
+    note = side.promissory_note
+    return note is None or note in state.players[giver_id].private.promissory_notes
+
+
 def bot_accepts(give: TransactionSide, receive: TransactionSide) -> bool:
     """⚠️ ZAŁOŻENIE (RULES.md 47.1a): bot przyjmuje, gdy dostaje co najmniej tyle, ile oddaje.
 
@@ -487,7 +520,8 @@ def propose_transaction(
             for planet in (e.partition(">")[0] for e in receive.planets)
         }
         return respond_to_offer(
-            new_state, grid, partner_id, accept=bot_accepts(give, receive),
+            new_state, grid, partner_id,
+            accept=bot_accepts(give, receive) and _holds_note(new_state, partner_id, receive),
             planet_destinations=bot_dests,
         )
     return new_state

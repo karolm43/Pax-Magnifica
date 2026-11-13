@@ -417,3 +417,27 @@ def test_endpointy_hold_candidates_inputs_play(registry: StaticDataRegistry) -> 
 def test_endpoint_candidates_422_dla_nieznanego_gracza(registry: StaticDataRegistry) -> None:
     client = _client(registry, _action_state([]))
     assert client.get("/hold/candidates?player_id=zzz").status_code == 422
+
+
+def test_disgrace_po_wyborze_rywala_jest_grywalna_z_reki(registry: StaticDataRegistry) -> None:
+    """Okno Disgrace minęło wyborem rywala: dok podnosi kartę (``hold_seq``), zagranie cofa krok."""
+    client = _client(registry, _strategy_state(["disgrace"]))
+    service = client.app.state.service  # type: ignore[attr-defined]
+    before = client.get("/action-card/playable?player_id=p2").json()["cards"]
+    assert before[0]["playable"] is False and before[0]["hold_seq"] is None
+
+    seq_before = service.recent_chain(1)[0][0]
+    picked = client.post("/strategy/pick", json={"player_id": "p1", "initiative": 3})
+    assert picked.status_code == 200
+    row = client.get("/action-card/playable?player_id=p2").json()["cards"][0]
+    assert row["playable"] is True and row["reaction"] is True
+    assert row["hold_seq"] == seq_before
+
+    ok = client.post(
+        "/hold/play",
+        json={"actor_id": "p2", "player_id": "p2", "card_id": "disgrace", "seq": row["hold_seq"]},
+    )
+    assert ok.status_code == 200
+    assert service.current_state().players["p1"].strategy_cards == []
+    # po zagraniu karta zniknęła z ręki - nic do podniesienia
+    assert client.get("/action-card/playable?player_id=p2").json()["cards"] == []

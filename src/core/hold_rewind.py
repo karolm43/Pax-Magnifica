@@ -121,6 +121,66 @@ def _scope(chain: Sequence[Snapshot], index: int) -> Any:
     return reaction_cards.hindsight_scope(future) if future is not None else nullcontext()
 
 
+def _cards_at(
+    chain: Sequence[Snapshot],
+    item: Reachable,
+    registry: StaticDataRegistry,
+    player_id: str,
+    hand_now: Sequence[str],
+) -> list[dict[str, Any]]:
+    """Karty hold-rewind z ręki (teraz i w migawce) zagrywalne w migawce ``item``."""
+    state = item.snapshot.state
+    if player_id not in state.players:
+        return []
+    cards: list[dict[str, Any]] = []
+    with _scope(chain, item.index):
+        for row in action_cards.playability(state, registry, player_id):
+            card_id = str(row["card_id"])
+            if not row["playable"] or not reaction_cards.is_rewindable(card_id):
+                continue
+            if card_id not in hand_now:
+                continue
+            definition = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
+            cards.append(
+                {
+                    "card_id": card_id,
+                    "name": (definition.name if definition is not None else None) or card_id,
+                    "window": (
+                        definition.window
+                        if isinstance(definition, ActionCardDef) and definition.window
+                        else ""
+                    ),
+                }
+            )
+    return cards
+
+
+def just_passed(
+    chain: Sequence[Snapshot], registry: StaticDataRegistry, player_id: str
+) -> dict[str, int]:
+    """Karty hold-rewind grywalne w oknie, które minęło OSTATNIM krokiem: ``{card_id: seq}``.
+
+    Okno „when another player chooses a strategy card" (Public Disgrace) itp. zamyka się samym
+    krokiem rywala, więc „teraz" karta nie ma okna. Dok ręki traktuje ją jak reakcję na ten krok:
+    podnosi ją i zagrywa przez hold-rewind do migawki ``seq`` (1 krok wstecz). Starsze kroki
+    zostają dla przycisku Hold (:func:`candidates`).
+    """
+    if len(chain) < 2:
+        return {}
+    me_now = chain[-1].state.players.get(player_id)
+    if me_now is None:
+        return {}
+    reach, _limit = reachable_snapshots(chain[-2:])
+    previous = next((item for item in reach if item.steps_back == 1), None)
+    if previous is None:
+        return {}
+    return {
+        str(card["card_id"]): previous.snapshot.seq
+        for card in _cards_at(chain[-2:], previous, registry, player_id,
+                              me_now.private.action_cards)
+    }
+
+
 def candidates(
     chain: Sequence[Snapshot], registry: StaticDataRegistry, player_id: str
 ) -> tuple[list[dict[str, Any]], str | None]:
@@ -138,30 +198,7 @@ def candidates(
     reach, limit = reachable_snapshots(chain)
     steps: list[dict[str, Any]] = []
     for item in reach:
-        state = item.snapshot.state
-        if player_id not in state.players:
-            continue
-        with _scope(chain, item.index):
-            rows = action_cards.playability(state, registry, player_id)
-            cards = []
-            for row in rows:
-                card_id = str(row["card_id"])
-                if not row["playable"] or not reaction_cards.is_rewindable(card_id):
-                    continue
-                if card_id not in me_now.private.action_cards:
-                    continue
-                definition = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
-                cards.append(
-                    {
-                        "card_id": card_id,
-                        "name": (definition.name if definition is not None else None) or card_id,
-                        "window": (
-                            definition.window
-                            if isinstance(definition, ActionCardDef) and definition.window
-                            else ""
-                        ),
-                    }
-                )
+        cards = _cards_at(chain, item, registry, player_id, me_now.private.action_cards)
         if cards:
             future = _future_of(chain, item.index)
             steps.append(
@@ -171,8 +208,8 @@ def candidates(
                     "nextLabel": chain[item.index + 1].label if future is not None else None,
                     # Numer cofanego kroku - front opisuje go wpisem feedu Activity o tym ``seq``.
                     "nextSeq": chain[item.index + 1].seq if future is not None else None,
-                    "round": state.round_number,
-                    "phase": state.phase.name.lower(),
+                    "round": item.snapshot.state.round_number,
+                    "phase": item.snapshot.state.phase.name.lower(),
                     "stepsBack": item.steps_back,
                     "cards": cards,
                 }

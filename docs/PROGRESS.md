@@ -1056,3 +1056,16 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   Sol, Arborec, Hacan, Winnu) — `frontend/src/domains/setup/tempReadyFactions.ts`. „Random” rozstrzyga front
   przed `/game/new` (`resolveRandomFactions` z zawężonej puli). Backend bez zmian. Do usunięcia, gdy frakcje
   będą kompletne (plik + 2 użycia w `SetupWizard.tsx`).
+
+## Poprawki: notki w transakcji (ukryta ręka) + Public Disgrace z ręki (2026-11-13)
+
+- **Transakcja** (zgłoszenie: Hacan z nie-sąsiadem — „gracz nie ma notki w ręce”): w grze sieciowej `/hand`
+  zwraca rękę oglądającego, więc okno pokazywało MOJE notki jako notki partnera. Ręka partnera jest ukryta
+  (R_promissory_notes): strona „You receive” pokazuje notki możliwe (`transaction.requestable_notes`,
+  `GET /transactions/state` → `requestableNotes`), propozycja nie sprawdza ręki partnera, akceptacja tak
+  (bot bez notki odrzuca). Karty akcji partnera (Arbiters): „Their hand is hidden” — ⚠️ prośba o konkretną
+  kartę do rozstrzygnięcia. RULES.md 47.1a.
+- **Public Disgrace**: po wyborze karty strategii przez rywala karta jest grywalna w doku ręki (przeciągnięcie,
+  „Play now”) — `hold_rewind.just_passed` → `hold_seq` w `GET /action-card/playable`, zagranie przez
+  `/hold/play` (cofa ten wybór). Dotyczy każdej karty hold-rewind, której okno minęło ostatnim krokiem. RULES.md 53.7.
+- Nowe pola API (`requestableNotes`, `hold_seq`) — restart backendu.

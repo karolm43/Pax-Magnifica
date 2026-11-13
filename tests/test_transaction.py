@@ -281,3 +281,41 @@ def test_endpoint_debt_tokens_roundtrip(client: TestClient) -> None:
     assert back.status_code == 422
     done = client.post("/debt/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
     assert done.status_code == 200
+
+
+def test_reka_partnera_ukryta_prosba_o_mozliwa_notke(client: TestClient) -> None:
+    """RULES.md 47.1a: proszę o notkę z listy możliwych; propozycja nie zdradza ręki partnera."""
+    state = _state()
+    state.players["p3"].private.promissory_notes = ["green_ta"]
+    # Notki w cudzych rękach (bez wskazania posiadacza), bez własnych.
+    assert transaction.requestable_notes(state, "p1") == ["blue_ps", "blue_sftt", "green_ta"]
+    # Prośba o notkę, której partner NIE ma, przechodzi propozycję (bez wycieku)...
+    offer = transaction.propose_transaction(
+        state, _grid(), "p2", TransactionSide(trade_goods=1),
+        TransactionSide(promissory_note="green_ta"),
+    )
+    assert offer.transaction_offer is not None
+    # ...ale akceptacja jej nie przeniesie.
+    with pytest.raises(ValueError, match="does not hold the promissory note"):
+        transaction.respond_to_offer(offer, _grid(), "p2", accept=True)
+    # Notka spoza czyichkolwiek rąk - odrzucona od razu.
+    with pytest.raises(ValueError, match="not in any player's hand"):
+        transaction.propose_transaction(
+            state, _grid(), "p2", TransactionSide(), TransactionSide(promissory_note="zz_x")
+        )
+    view = client.get("/transactions/state").json()
+    assert view["requestableNotes"] == ["blue_ps", "blue_sftt"]
+
+
+def test_bot_bez_notki_odrzuca() -> None:
+    from src.core.game_state import ControlType
+
+    state = _state()
+    state.players["p3"].private.promissory_notes = ["green_ta"]
+    state.players["p2"].control_type = ControlType.BOT
+    result = transaction.propose_transaction(
+        state, _grid(), "p2", TransactionSide(trade_goods=3),
+        TransactionSide(promissory_note="green_ta"),
+    )
+    assert result.transaction_offer is None
+    assert result.players["p1"].trade_goods == 3  # odrzucił - nic nie przeszło

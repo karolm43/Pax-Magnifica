@@ -1551,6 +1551,10 @@ class TransactionStateResponse(BaseModel):
     partners: list[TransactionPartnerView] = Field(default_factory=list)
     # Planety, których kartę aktywny gracz może oddać (Pride of Kenara).
     my_planets: list[str] = Field(default_factory=list, serialization_alias="myPlanets")
+    # Notki, o które oglądający może poprosić partnera (ręka partnera ukryta, RULES.md 47.1a).
+    requestable_notes: list[str] = Field(
+        default_factory=list, serialization_alias="requestableNotes"
+    )
 
 
 class TransactionRequest(BaseModel):
@@ -1609,6 +1613,9 @@ class ActionCardPlayability(BaseModel):
     reason: str | None = None
     implemented: bool = False
     reaction: bool = False  # karta reakcji (okno inne niż ACTION) - RULES.md 54.8
+    # Okno minęło ostatnim krokiem (Public Disgrace po wyborze rywala): zagranie = hold-rewind
+    # do tej migawki (RULES.md 53.7). ``None`` = zwykłe zagranie w bieżącym stanie.
+    hold_seq: int | None = None
 
 
 class ActionCardPlayabilityResponse(BaseModel):

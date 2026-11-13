@@ -76,6 +76,8 @@ export type TransactionStateView = {
   partners: TransactionPartnerView[];
   /** Planety, których kartę aktywny gracz może oddać (Pride of Kenara). */
   myPlanets: string[];
+  /** Notki, o które mogę poprosić partnera (jego ręka ukryta, RULES.md 47.1a). */
+  requestableNotes?: string[];
 };
 
 export type EditUnitArgs = {

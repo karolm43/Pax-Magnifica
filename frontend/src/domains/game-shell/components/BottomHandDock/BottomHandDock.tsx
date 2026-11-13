@@ -420,6 +420,11 @@ export function BottomHandDock() {
     [reactions],
   );
   const firstReaction = reactions[0];
+  // Karta, której okno minęło ostatnim krokiem (Public Disgrace): zagranie przez hold-rewind.
+  const holdSeq =
+    playingCard && playingCard.tab === "actions" && !playingCard.frontier
+      ? playability?.[playingCard.id]?.hold_seq
+      : undefined;
   const reactionName = (r: ReadyReaction): string =>
     r.tab === "notes"
       ? getPromissoryNoteData(r.id, noteColors)?.displayName || r.id
@@ -780,6 +785,7 @@ export function BottomHandDock() {
               : (getActionCard(playingCard.id)?.name ?? playingCard.id)
         }
         playerId={active.discordId}
+        seq={holdSeq ?? undefined}
         onClose={() => setPlayingCard(null)}
         onPlayed={() => setPlayingCard(null)}
       />

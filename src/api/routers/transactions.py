@@ -123,8 +123,16 @@ async def get_transaction_state(
                 )
             )
     my_planets = transaction.tradable_planets(state, active) if active is not None else []
+    # Ręka partnera jest ukryta: tylko notki MOŻLIWE dla proszącego (RULES.md 47.1a).
+    asker = viewer or active
+    requestable = (
+        transaction.requestable_notes(state, asker)
+        if asker is not None and asker in state.players
+        else []
+    )
     return TransactionStateResponse(
-        offer=offer_view, partners=partners, my_planets=my_planets
+        offer=offer_view, partners=partners, my_planets=my_planets,
+        requestable_notes=requestable,
     )
 
 

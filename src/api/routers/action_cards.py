@@ -16,7 +16,7 @@ from src.api.schemas import (
     PlayActionCardResponse,
     StateEnvelope,
 )
-from src.core import action_cards, card_hold, hand_limit
+from src.core import action_cards, card_hold, hand_limit, hold_rewind
 from src.core import actor as actor_rules
 from src.core.components import ComponentCategory
 from src.core.game_state import GameState
@@ -36,6 +36,16 @@ async def get_playable_action_cards(
         rows = action_cards.playability(state, ctx.registry, player_id)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # Karty, których okno minęło ostatnim krokiem (Public Disgrace): zagrywalne przez hold-rewind.
+    chain = [
+        hold_rewind.Snapshot(seq, label, snap)
+        for seq, label, snap in ctx.service.recent_chain(2)
+    ]
+    passed = hold_rewind.just_passed(chain, ctx.registry, player_id)
+    for row in rows:
+        seq = passed.get(str(row["card_id"]))
+        if seq is not None and not row["playable"]:
+            row.update(playable=True, reason=None, reaction=True, hold_seq=seq)
     return ActionCardPlayabilityResponse(
         cards=[ActionCardPlayability(**row) for row in rows],
         discard=hand_limit.action_card_excess(state, player_id),
