@@ -1464,6 +1464,9 @@ class TransactionRespondRequest(BaseModel):
 
     player_id: str | None = None
     accept: bool
+    # Pride of Kenara: ``{planeta: cel}`` — gdzie partner przenosi swoje jednostki z oddawanych
+    # planet (wybiera oddający, RULES.md 62.6).
+    planet_destinations: dict[str, str] = Field(default_factory=dict)
 
 
 class TransactionCancelRequest(BaseModel):
@@ -1499,6 +1502,11 @@ class TransactionOfferView(BaseModel):
     # None, gdy oglądający nie jest stroną transakcji (zawartość prywatna).
     give: TransactionSideView | None = None
     receive: TransactionSideView | None = None
+    # Pride of Kenara: planety partnera bez celu jednostek -> jego możliwe cele (wybiera przy
+    # akceptacji). Tylko dla stron transakcji.
+    unit_destinations: dict[str, list[str]] = Field(
+        default_factory=dict, serialization_alias="unitDestinations"
+    )
 
 
 class TransactionPartnerView(BaseModel):

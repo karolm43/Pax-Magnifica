@@ -100,6 +100,11 @@ async def get_transaction_state(
             partner_color=state.players[offer.partner].color,
             give=_side_view(give) if party else None,
             receive=_side_view(receive) if party else None,
+            unit_destinations={
+                planet: transaction.unit_destinations(state, offer.partner, planet)
+                for planet in receive.planets
+                if ">" not in planet
+            } if party else {},
         )
     partners: list[TransactionPartnerView] = []
     active = state.active_player_id
@@ -159,7 +164,8 @@ async def post_respond_transaction(
     responder = request.player_id or (offer.partner if offer is not None else "")
     try:
         new_state = transaction.respond_to_offer(
-            state, ctx.current_grid, responder, accept=request.accept
+            state, ctx.current_grid, responder, accept=request.accept,
+            planet_destinations=request.planet_destinations,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

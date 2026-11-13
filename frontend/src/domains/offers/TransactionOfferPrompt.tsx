@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { IconArrowsExchange } from "@tabler/icons-react";
 import { useBoardEditor, useTransactionState } from "@/api/useBoardEditor";
-import { TradeSummary } from "@/domains/game-shell/components/TurnControls/transactionItems";
+import {
+  TradeSummary,
+  planetName,
+} from "@/domains/game-shell/components/TurnControls/transactionItems";
 import type { GameState } from "@/entities/data/types";
 import styles from "./AbilityPrompts.module.css";
 
@@ -25,14 +28,19 @@ export function TransactionOfferPrompt({
   const { data } = useTransactionState(JSON.stringify(pub), partner);
   const { respondTransaction } = useBoardEditor();
   const [busy, setBusy] = useState(false);
+  const [chosen, setChosen] = useState<Record<string, string>>({});
   const offer = data?.offer;
   if (!partner || !offer || offer.partner !== partner || !offer.give || !offer.receive) {
     return null;
   }
+  // Pride of Kenara: cel moich jednostek z oddawanej planety wybieram ja (domyślnie pierwszy).
+  const destinations = Object.entries(offer.unitDestinations ?? {});
+  const destOf = (planet: string, options: string[]) => chosen[planet] ?? options[0] ?? "";
   const answer = (accept: boolean) => {
     if (busy) return;
     setBusy(true);
-    void respondTransaction(partner, accept)
+    const picked = Object.fromEntries(destinations.map(([p, opts]) => [p, destOf(p, opts)]));
+    void respondTransaction(partner, accept, accept ? picked : {})
       .catch(() => undefined) // powód 422 pokazuje panel komunikatów
       .finally(() => setBusy(false));
   };
@@ -52,6 +60,21 @@ export function TransactionOfferPrompt({
       {/* Strony z perspektywy partnera: dostaje „give” proponującego, oddaje jego „receive”. */}
       <TradeSummary title="You receive" side={offer.give} />
       <TradeSummary title="You give" side={offer.receive} />
+      {destinations.map(([planet, options]) => (
+        <label key={planet} className={styles.text}>
+          Your units on {planetName(planet)} move to{" "}
+          <select
+            value={destOf(planet, options)}
+            onChange={(e) => setChosen({ ...chosen, [planet]: e.target.value })}
+          >
+            {options.map((p) => (
+              <option key={p} value={p}>
+                {planetName(p)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
       <div className={styles.actions}>
         <button
           type="button"

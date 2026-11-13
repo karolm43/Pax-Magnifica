@@ -290,6 +290,8 @@ export function TransactionModal({
     fragments: { id: string; name: string }[],
     cards: string[],
     tradePlanets: string[],
+    /** Moja strona: cel jednostek wybieram ja; stronę partnera wskazuje on przy akceptacji. */
+    chooseDestination: boolean,
   ) => (
     <section className={styles.side} aria-label={title}>
       <h4 className={styles.sideTitle}>
@@ -363,7 +365,9 @@ export function TransactionModal({
           </span>
           <div className={styles.cardList}>
             {tradePlanets.map((planet) => {
-              const entry = (side.planets ?? []).find((e) => e.startsWith(`${planet}>`));
+              const entry = (side.planets ?? []).find(
+                (e) => e === planet || e.startsWith(`${planet}>`),
+              );
               const others = (owner.planets ?? []).filter((p) => p !== planet);
               return (
                 <div
@@ -381,13 +385,21 @@ export function TransactionModal({
                           ...side,
                           planets: entry
                             ? (side.planets ?? []).filter((e) => e !== entry)
-                            : [...(side.planets ?? []), `${planet}>${others[0]}`],
+                            : [
+                                ...(side.planets ?? []),
+                                chooseDestination ? `${planet}>${others[0]}` : planet,
+                              ],
                         })
                       }
                     />
                     <b>{planetName(planet)}</b>
                   </label>
-                  {entry && (
+                  {entry && !chooseDestination && (
+                    <span className={styles.tradeCardText}>
+                      Their units move to a planet they choose when accepting.
+                    </span>
+                  )}
+                  {entry && chooseDestination && (
                     <label className={styles.tradeCardText}>
                       Units move to{" "}
                       <select
@@ -573,6 +585,7 @@ export function TransactionModal({
                   myFragments,
                   myCards,
                   myTradePlanets,
+                  true,
                 )}
                 <IconArrowsExchange
                   className={styles.swap}
@@ -588,6 +601,7 @@ export function TransactionModal({
                   partnerFragments,
                   partnerCards,
                   partnerTradePlanets,
+                  false,
                 )}
               </div>
             )}

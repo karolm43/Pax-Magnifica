@@ -135,7 +135,8 @@ export function TradeSummary({
         return (
           <span key={entry} className={styles.summaryGoods}>
             <IconPlanet size={13} aria-hidden="true" />
-            Planet {planetName(planet)} (units move to {planetName(dest)})
+            Planet {planetName(planet)}
+            {dest ? ` (units move to ${planetName(dest)})` : " (owner picks where units move)"}
           </span>
         );
       })}

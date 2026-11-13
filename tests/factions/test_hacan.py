@@ -96,6 +96,32 @@ def test_pride_of_kenara_planeta_w_transakcji(registry: StaticDataRegistry) -> N
         transaction.validate_transaction(state, _grid(), "p2", side, TransactionSide())
 
 
+def test_pride_of_kenara_cel_wybiera_hacan(registry: StaticDataRegistry) -> None:
+    """Decyzja użytkownika 2026-11-13: cel jednostek wskazuje Hacan (oddający), też jako partner."""
+    state = _state()
+    state.active_player_id = "p2"
+    state.players["p1"].controlled_planets = ["mr"]
+    state.systems["000"].planet_owners = {"mr": "p1"}
+    state.systems["000"].planet_units = {"mr": {"p1": {"mech": 1}}}
+    state.systems["101"] = SystemState(position="101", system_id="20")
+    planet20 = registry.systems["20"].planets[0]
+    state.systems["101"].planet_owners = {planet20: "p1"}
+    asked = TransactionSide(planets=(f"mr>{planet20}",))
+    with pytest.raises(ValueError, match="chooses where"):
+        transaction.propose_transaction(state, _grid(), "p1", TransactionSide(), asked)
+    offered = transaction.propose_transaction(
+        state, _grid(), "p1", TransactionSide(), TransactionSide(planets=("mr",))
+    )
+    assert transaction.unit_destinations(offered, "p1", "mr") == [planet20]
+    with pytest.raises(ValueError, match="Choose the planet"):
+        transaction.respond_to_offer(offered, _grid(), "p1", accept=True)
+    done = transaction.respond_to_offer(
+        offered, _grid(), "p1", accept=True, planet_destinations={"mr": planet20}
+    )
+    assert done.systems["000"].planet_owners["mr"] == "p2"
+    assert done.systems["101"].planet_units[planet20]["p1"] == {"mech": 1}
+
+
 def test_harrugh_gefhara_koszt_zero(registry: StaticDataRegistry) -> None:
     order = [production.ProductionOrder(base_type="cruiser", count=1)]
     state = _state()

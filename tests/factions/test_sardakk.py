@@ -430,6 +430,24 @@ def test_przelom_badanie_ulepszenia(registry: StaticDataRegistry) -> None:
         assert "UNITUPGRADE" in tech.types
 
 
+def test_przelom_badanie_ze_skipem(registry: StaticDataRegistry) -> None:
+    """Decyzja użytkownika 2026-11-13: prerekwizyty wolno pominąć skipem (tu: AIDA)."""
+    state = _state()
+    state.players["p1"].breakthrough_unlocked = True
+    state.players["p1"].technologies = ["aida"]  # 1x czerwony; Destroyer II wymaga RR
+    inputs = sardakk.supremacy_inputs(state, registry, "p1", {})
+    assert "tech:dd2" in [o["value"] for o in inputs[0]["options"]]
+    assert "aida" in [o["value"] for o in inputs[1]["options"]]
+    ctx = {"kind": "space", "position": "102", "winner": "p1", "planet": "",
+           "attacker": "p1", "defender": "p2"}
+    triggers.fire(state, GameEvent.COMBAT_WON, Moment.AFTER, subject="p1", ctx=ctx)
+    with pytest.raises(ValueError):
+        _accept(state, "p1", {"reward": "tech:dd2", "skips": []})
+    after = _accept(state, "p1", {"reward": "tech:dd2", "skips": ["aida"]})
+    assert "dd2" in after.players["p1"].technologies
+    assert "aida" in after.players["p1"].exhausted_technologies
+
+
 def test_przelom_bez_wygranej_nic(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

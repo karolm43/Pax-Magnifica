@@ -49,7 +49,8 @@ class ActivityFact(BaseModel):
 
     # "vp" | "tech" | "tech_lost" | "ability_used" | "planet_gained" | "planet_lost" | "tg"
     # oraz JAWNE karty/cele:
-    # "action_card" (zagrana), "action_card_discarded" (odrzucona bez zagrania), "agenda" (zużyta), "explore_card" (ujawniona),
+    # "action_card" (zagrana), "action_card_discarded" (odrzucona bez zagrania),
+    # "agenda" (zużyta), "explore_card" (ujawniona),
     # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
     # Zasoby/komponenty: "commodities", "cc" (value = pula), "hand" (value = ręka, tylko liczba),
     # "relic", "frontier_card", "leader", "breakthrough_unlocked", "strategy_card_gained".

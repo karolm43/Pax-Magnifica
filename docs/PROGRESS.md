@@ -973,6 +973,9 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - **Imperator** (decyzja użytkownika): osobny kanał premii ruchu `imperator` (flaga `GameState.imperator_used`, przełącznik
   „Use Imperator” w panelu ruchu, `/tactical/move-range?imperator=`) — inny statek niż Gravity Drive albo ten sam.
   Wcześniej Imperator jechał na fladze Gravity Drive i bez technologii `gd` nie miał przełącznika w UI.
-- Otwarte (bez decyzji): N'orr Supremacy + planety ze specjalnością, T'ro przy <2 piechoty, Sucaban (zwrot po zapłacie),
-  Agnlan Oln (raz na rzut), Auto-Factories (jedno użycie PRODUCTION), Pride of Kenara (kto wybiera planetę docelową).
+- **Decyzje użytkownika (2026-11-13, R62):** N'orr Supremacy pozwala pominąć prerekwizyty skipami (wejście `skips`).
+  Pride of Kenara: cel jednostek zawsze wybiera Hacan — przy propozycji partnera wpis to sama planeta, cel Hacan podaje
+  przy akceptacji (`planet_destinations`, lista w `offer.unitDestinations`, wybór w oknie oferty). T'ro (<2 piechoty
+  → ile ma), Sucaban (zwrot po zapłacie), Agnlan Oln (raz na rodzaj rzutu), Auto-Factories (jedno użycie PRODUCTION)
+  potwierdzone bez zmian. Fala 1 bez otwartych ⚠️ decyzji (zostają braki zależne: Travel Ban, Construction z planszy).
 - Nowe pola stanu (`imperator_used`) i trasy (`/action-card/discard-excess`) — restart backendu.

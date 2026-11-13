@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 from src.core import (
@@ -198,8 +198,15 @@ def _planet_position(state: GameState, planet: str) -> str | None:
     )
 
 
-def _validate_planets(state: GameState, giver_id: str, side: TransactionSide, who: str) -> None:
-    """Pride of Kenara: planeta z hooka, cel = inna planeta oddającego, nie w trakcie walki."""
+def _validate_planets(
+    state: GameState, giver_id: str, side: TransactionSide, who: str, *, pending: bool = False
+) -> None:
+    """Pride of Kenara: planeta z hooka, cel = inna planeta oddającego, nie w trakcie walki.
+
+    Cel jednostek zawsze wybiera ODDAJĄCY planetę (decyzja użytkownika 2026-11-13, RULES.md
+    62.6): w propozycji strona partnera (``pending=True``) podaje samą planetę, cel partner
+    wskazuje przy akceptacji (``respond_to_offer``).
+    """
     if not side.planets:
         return
     if state.active_combat is not None:
@@ -213,6 +220,12 @@ def _validate_planets(state: GameState, giver_id: str, side: TransactionSide, wh
         if planet in seen:
             raise ValueError(f"The planet '{planet}' is listed twice.")
         seen.add(planet)
+        if pending:
+            if dest:
+                raise ValueError(
+                    "The player trading the planet chooses where their units move."
+                )
+            continue
         dest_pos = _planet_position(state, dest)
         if (
             not dest
@@ -221,6 +234,30 @@ def _validate_planets(state: GameState, giver_id: str, side: TransactionSide, wh
             or state.systems[dest_pos].planet_owners.get(dest) != giver_id
         ):
             raise ValueError(f"Choose another planet {who.lower()} control(s) for the units.")
+
+
+def unit_destinations(state: GameState, player_id: str, planet: str) -> list[str]:
+    """Planety, na które oddający może przenieść jednostki z oddawanej planety (Pride of Kenara)."""
+    return sorted(
+        p for sys in state.systems.values()
+        for p, owner in sys.planet_owners.items()
+        if owner == player_id and p != planet
+    )
+
+
+def _with_destinations(side: TransactionSide, chosen: Mapping[str, str]) -> TransactionSide:
+    """Uzupełnia cele jednostek w wpisach planet bez celu (wybór oddającego przy akceptacji)."""
+    if not side.planets:
+        return side
+    entries: list[str] = []
+    for entry in side.planets:
+        planet, _, dest = entry.partition(">")
+        if not dest:
+            dest = chosen.get(planet, "")
+        if not dest:
+            raise ValueError(f"Choose the planet your units on '{planet}' move to.")
+        entries.append(f"{planet}>{dest}")
+    return replace(side, planets=tuple(entries))
 
 
 def _apply_planets(
@@ -290,6 +327,8 @@ def validate_transaction(
     give: TransactionSide,
     receive: TransactionSide,
     player_id: str | None = None,
+    *,
+    pending: bool = False,
 ) -> str:
     """Sprawdza legalność transakcji aktywnego gracza z ``partner_id``; zwraca id aktywnego.
 
@@ -324,7 +363,7 @@ def validate_transaction(
     _validate_side(state, active_id, give, "You")
     _validate_side(state, partner_id, receive, "The partner")
     _validate_planets(state, active_id, give, "You")
-    _validate_planets(state, partner_id, receive, "The partner")
+    _validate_planets(state, partner_id, receive, "The partner", pending=pending)
     # Black Market Dealings: ktokolwiek z dwóch stron ma efekt, obie mogą włączyć dodatkowe rzeczy.
     extras_ok = _either_permits(
         state, rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, active_id, partner_id
@@ -433,21 +472,39 @@ def propose_transaction(
         raise ValueError(
             "Another transaction offer is waiting for an answer - wait or cancel it first."
         )
-    active_id = validate_transaction(state, grid, partner_id, give, receive, player_id)
+    active_id = validate_transaction(
+        state, grid, partner_id, give, receive, player_id, pending=True
+    )
     new_state = state.clone()
     new_state.transaction_offer = TransactionOffer(
         proposer=active_id, partner=partner_id, give=give.to_dict(), receive=receive.to_dict()
     )
     partner = new_state.players[partner_id]
     if partner.control_type is ControlType.BOT:
-        return respond_to_offer(new_state, grid, partner_id, accept=bot_accepts(give, receive))
+        # Placeholder do warstwy AI: bot przenosi jednostki na pierwszą swoją planetę.
+        bot_dests = {
+            planet: next(iter(unit_destinations(new_state, partner_id, planet)), "")
+            for planet in (e.partition(">")[0] for e in receive.planets)
+        }
+        return respond_to_offer(
+            new_state, grid, partner_id, accept=bot_accepts(give, receive),
+            planet_destinations=bot_dests,
+        )
     return new_state
 
 
 def respond_to_offer(
-    state: GameState, grid: HexGrid, responder_id: str, *, accept: bool
+    state: GameState,
+    grid: HexGrid,
+    responder_id: str,
+    *,
+    accept: bool,
+    planet_destinations: Mapping[str, str] | None = None,
 ) -> GameState:
     """Partner przyjmuje (wymiana — ponowna walidacja) albo odrzuca propozycję.
+
+    ``planet_destinations`` = ``{planeta: cel}`` dla oddawanych przez partnera planet (Pride of
+    Kenara) — cel jego jednostek wybiera on sam przy akceptacji.
 
     Raises:
         ValueError: Brak propozycji, odpowiada nie partner albo transakcja przestała być legalna.
@@ -462,6 +519,7 @@ def respond_to_offer(
         new_state.transaction_offer = None
         return new_state
     give, receive = offer_sides(offer)
+    receive = _with_destinations(receive, planet_destinations or {})
     return resolve_transaction(state, grid, offer.partner, give, receive, offer.proposer)
 
 

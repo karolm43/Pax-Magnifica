@@ -32,6 +32,7 @@ from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, InvasionPhase, Phase, TacticalStep
 from src.core.hex_grid import HexGrid
+from src.core.hooks import card_labels
 from src.core.reaction_cards import OpenWindow
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
@@ -531,25 +532,41 @@ def _won(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
 def supremacy_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """1 żeton (pula do wyboru) albo badanie ulepszenia jednostki z prerekwizytami (F_norr)."""
+    """1 żeton (pula do wyboru) albo badanie ulepszenia jednostki z prerekwizytami (F_norr).
+
+    Prerekwizyty można pominąć zwykłymi skipami (planety ze specjalnością, AIDA, relikty) —
+    decyzja użytkownika 2026-11-13 (RULES.md 62.1).
+    """
     options: list[dict[str, Any]] = []
     if command_tokens.reinforcements(state, player_id) > 0:
         options += [
             oi.option(f"cc:{pool}", f"Gain 1 command token ({pool} pool)")
             for pool in ("tactical", "fleet", "strategic")
         ]
-    for tech_id in sorted(technology.tech_pool(state, registry, player_id)):
-        tech = registry.technologies.get(tech_id)
-        if tech is None or "UNITUPGRADE" not in tech.types:
-            continue
-        if tech_id in state.players[player_id].technologies:
-            continue
-        try:
-            technology.plan_research(state, registry, player_id, tech_id, [])
-        except ValueError:
-            continue
-        options.append(oi.option(f"tech:{tech_id}", f"Research {tech.name}"))
-    return [oi.choice("reward", "N'orr Supremacy", options, always=True)]
+    for tech in sorted(
+        technology.researchable_techs(state, registry, player_id), key=lambda t: t.id
+    ):
+        if "UNITUPGRADE" in tech.types:
+            options.append(oi.option(f"tech:{tech.id}", f"Research {tech.name}"))
+    inputs = [oi.choice("reward", "N'orr Supremacy", options, always=True)]
+    skips = [
+        oi.option(planet, card_labels.describe_planet(
+            state, registry, planet, effect="skips 1 prerequisite"
+        ))
+        for planet in technology.specialty_planets(state, registry, player_id)
+    ]
+    if technology.aida_ready(state, player_id):
+        skips.append(oi.option(technology.AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
+    skips += [
+        oi.option(f"{technology.RELIC_SKIP_PREFIX}{relic}", f"Relic {relic}: ignore 1 prerequisite")
+        for relic in technology.ignore_prerequisite_relics(state, player_id)
+    ]
+    if skips and any(o["value"].startswith("tech:") for o in options):
+        inputs.append(oi.multi(
+            "skips", "Skips: exhaust to ignore a prerequisite (research only)",
+            skips, 0, len(skips),
+        ))
+    return inputs
 
 
 @on_event(
@@ -562,8 +579,12 @@ def norr_supremacy(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
     upgrade technology."""
     reward = str(ctx.get("params", {}).get("reward") or "")
     if reward.startswith("cc:"):
+        if ctx.get("params", {}).get("skips"):
+            raise ValueError("Skips only apply when you research a technology.")
         command_tokens.gain_from_reinforcements(state, player_id, {reward[3:]: 1})
     elif reward.startswith("tech:"):
         registry = _registry()
-        plan = technology.plan_research(state, registry, player_id, reward[5:], [])
+        raw = ctx.get("params", {}).get("skips") or []
+        skips = [str(skip) for skip in raw] if isinstance(raw, list) else []
+        plan = technology.plan_research(state, registry, player_id, reward[5:], skips)
         technology.apply_research(state, player_id, plan)

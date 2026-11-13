@@ -55,6 +55,8 @@ export type TransactionOfferView = {
   /** null, gdy oglądający nie jest stroną transakcji (zawartość prywatna). */
   give: TransactionSide | null;
   receive: TransactionSide | null;
+  /** Pride of Kenara: oddawane przez partnera planety -> jego możliwe cele jednostek. */
+  unitDestinations?: Record<string, string[]>;
 };
 
 export type TransactionPartnerView = {
@@ -554,8 +556,12 @@ export function useBoardEditor() {
   );
 
   const respondTransaction = useCallback(
-    async (playerId: string, accept: boolean) => {
-      await post("/transactions/respond", { player_id: playerId, accept });
+    async (playerId: string, accept: boolean, planetDestinations: Record<string, string> = {}) => {
+      await post("/transactions/respond", {
+        player_id: playerId,
+        accept,
+        planet_destinations: planetDestinations,
+      });
       await refresh();
     },
     [refresh],
