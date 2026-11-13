@@ -1,0 +1,15 @@
+# Pliki spoza gita (ignorowane), które Claude Code kopiuje do nowego worktree
+# (składnia .gitignore; kopiowane jest tylko to, co pasuje TU i jest w .gitignore).
+#
+# Grafiki assetów: potrzebne testom (np. test_demo_map — assets/tiles) i E2E
+# (brak obrazka = 404 w konsoli = czerwony test). Pomijamy duże katalogi,
+# których front ani silnik nie używają (~420 MB).
+assets/*
+!assets/hover_images/
+!assets/voices/
+#
+# NIE kopiujemy (odtwarzalne / prywatne):
+#   .venv/                  -> `uv sync`
+#   frontend/node_modules/  -> `npm ci` w frontend/
+#   saves/, bug_reports/    -> lokalne partie użytkownika (tokeny zaproszeń)
+#   .kiro/specs/, cache'e narzędzi
