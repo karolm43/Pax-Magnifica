@@ -23,9 +23,14 @@ def _to_vote(flow: Flow) -> None:
     flow.post("/agenda/reveal", {"player_id": state["speaker_id"]})
     for _ in range(6):
         agenda = flow.state()["agenda"]
+        speaker = {"player_id": flow.state()["speaker_id"]}
+        if agenda["step"] == "VOTE" and agenda["unresolvable"]:
+            flow.post("/agenda/discard", speaker)  # brak kandydatów: mówca odrzuca agendę
+            flow.post("/agenda/reveal", speaker)
+            continue
         if agenda["step"] == "VOTE":
             break
-        flow.post("/agenda/continue", {"player_id": flow.state()["speaker_id"]}, ok=False)
+        flow.post("/agenda/continue", speaker, ok=False)
     # Rywal głosuje pierwszy, jeśli to jego kolej (wstrzymuje się); potem Hacan.
     flow.post("/agenda/abstain", {"player_id": flow.other}, ok=False)
 

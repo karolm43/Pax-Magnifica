@@ -23,6 +23,7 @@ from src.core.movement import (
     _can_enter_asteroids,
     _capacity_provided,
     _capacity_used,
+    wormhole_link_blocked,
 )
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
@@ -114,7 +115,9 @@ def retreat_destinations(
     result: list[str] = []
     # Sąsiedztwo z akcji taktycznej (SCC, Lazax Gate Folding — rulingi) też pozwala na odwrót.
     for neighbor in sorted(action_adjacency.neighbors(state, grid, position)):
-        if neighbor == position:
+        if neighbor == position or wormhole_link_blocked(
+            grid, state, player_id, position, neighbor
+        ):
             continue
         anomalies = grid.anomalies_at(neighbor)
         if _SUPERNOVA in anomalies or _NEBULA in anomalies:
@@ -187,7 +190,9 @@ def ships_move_destinations(
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     result: list[str] = []
     for neighbor in sorted(action_adjacency.neighbors(state, grid, position)):
-        if neighbor == position:
+        if neighbor == position or wormhole_link_blocked(
+            grid, state, player_id, position, neighbor
+        ):
             continue
         anomalies = grid.anomalies_at(neighbor)
         if _SUPERNOVA in anomalies or _NEBULA in anomalies:

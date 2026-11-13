@@ -170,7 +170,28 @@ def add_to_pool(state: GameState, player_id: str, pool: str, amount: int = 1) ->
         raise ValueError("The number of command tokens cannot be negative.")
     player = _player(state, player_id)
     attr = _attr(pool)
+    _check_fleet_cap(state, player_id, pool, int(getattr(player, attr)) + amount)
     setattr(player, attr, int(getattr(player, attr)) + amount)
+
+
+def fleet_token_cap(state: GameState, player_id: str) -> int | None:
+    """Maks. liczba żetonów w fleet pool (``None`` = bez limitu; Fleet Regulations - RULES.md 51.6).
+
+    Hook MODIFY ``fleet_pool.token_cap``: baza 0 = brak limitu, dodatnia wartość = limit.
+    """
+    from src.core import rules_hooks  # lokalnie: rules_hooks -> hooki -> command_tokens
+
+    cap = int(rules_hooks.modify(rules_hooks.POINT_FLEET_POOL_TOKEN_CAP, state, player_id, 0))
+    return cap if cap > 0 else None
+
+
+def _check_fleet_cap(state: GameState, player_id: str, pool: str, new_value: int) -> None:
+    if pool != "fleet":
+        return
+    cap = fleet_token_cap(state, player_id)
+    if cap is not None and new_value > cap and new_value > pool_count(state, player_id, "fleet"):
+        raise ValueError(f"Fleet Regulations: you cannot have more than {cap} tokens in your "
+                         "fleet pool.")
 
 
 def gain_from_reinforcements(state: GameState, player_id: str, pools: dict[str, int]) -> None:
@@ -197,6 +218,7 @@ def set_pools(state: GameState, player_id: str, pools: dict[str, int]) -> None:
     if min(pools.values()) < 0:
         raise ValueError("Command token pools cannot be negative.")
     player = _player(state, player_id)
+    _check_fleet_cap(state, player_id, "fleet", pools["fleet"])
     for pool, amount in pools.items():
         setattr(player, _attr(pool), amount)
 

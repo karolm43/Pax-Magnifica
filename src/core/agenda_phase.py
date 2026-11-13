@@ -1,8 +1,9 @@
 """Faza agendy - głosowanie Rady Galaktycznej wg R_agenda_phase (RULES.md 51).
 
-Czyste funkcje ``state -> state``. Zakres: SAMA FAZA i jej zasady; efekty konkretnych agend
-(skutki wyniku, riders, predykcje, karty zmieniające głosowanie) NIE są jeszcze kodowane -
-wynik jest tylko ZAPISYWANY (prawa zostają w grze, dyrektywy idą na stos odrzuconych).
+Czyste funkcje ``state -> state``. Zakres: SAMA FAZA i jej zasady. Efekty konkretnych agend to
+hooki źródła ``agenda`` (``core/hooks/agendas_*.py``, RULES.md 51.6): rozstrzygana karta
+(``agenda.resolving``) obowiązuje każdego gracza w zdarzeniu ``AGENDA_OUTCOME_RESOLVED``/DURING,
+prawa w grze - przez punkty zaczepienia reguł bazowych. Riders rozstrzygają się PO efekcie (AFTER).
 
 Przebieg fazy (R_agenda_phase):
 
@@ -38,6 +39,7 @@ from src.core import (
 from src.core.components import AgendaDef, ComponentCategory
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import (
+    ActiveEffect,
     AgendaPhaseState,
     AgendaStep,
     AgendaVote,
@@ -84,6 +86,13 @@ _TECH_GROUPS = ("propulsion", "biotic", "cybernetic", "warfare")
 _COMMAND_POOLS = ("tactic", "fleet", "strategy")
 _PLANET_TRAITS = ("cultural", "hazardous", "industrial")
 
+# Covert Legislation: mówca dobiera ukrytą agendę, gracze głosują nad JEJ wynikami (C_agendas).
+COVERT_LEGISLATION = "covert"
+# Zwrot z tekstu kart „When this agenda is revealed, if there are no laws in play, discard this
+# card and reveal another agenda" (Judicial Abolishment, Miscount Disclosed, New Constitution).
+_NEEDS_LAWS_TEXT = "if there are no laws in play"
+_REVEAL_ANOTHER_TEXT = "discard this card and reveal another"
+
 
 # --- Klasyfikacja agendy ------------------------------------------------------------------
 
@@ -92,6 +101,36 @@ def agenda_def(registry: StaticDataRegistry, agenda_id: str) -> AgendaDef | None
     """Definicja karty agendy z Katalogu_Komponentów (``None`` dla nieznanego id)."""
     definition = registry.catalog.get(ComponentCategory.AGENDA, agenda_id)
     return definition if isinstance(definition, AgendaDef) else None
+
+
+def effective_card(agenda: AgendaPhaseState) -> str | None:
+    """Karta, której wyniki i efekt się rozstrzyga (ukryta przy Covert Legislation)."""
+    return agenda.covert_card or agenda.agenda_id
+
+
+def _card_text(definition: AgendaDef) -> str:
+    texts = [definition.target or "", *(str(v) for v in (definition.texts or {}).values())]
+    return " ".join(texts).lower()
+
+
+def discarded_on_reveal(
+    state: GameState, registry: StaticDataRegistry, definition: AgendaDef | None
+) -> bool:
+    """„When this agenda is revealed, if there are no <X>, discard this card and reveal another".
+
+    Judicial Abolishment / Miscount Disclosed / New Constitution (brak praw w grze) i Classified
+    Document Leaks (brak zdobytych tajnych celów) - warunek z tekstu karty: brak praw albo brak
+    kandydatów do wyboru.
+    """
+    if definition is None:
+        return False
+    text = _card_text(definition)
+    if _REVEAL_ANOTHER_TEXT not in text:
+        return False
+    if _NEEDS_LAWS_TEXT in text and not state.decks.agenda_laws:
+        return True
+    kind = classify_target(definition.target)
+    return kind != "manual" and not candidate_outcomes(state, registry, kind)
 
 
 def classify_target(target: str | None) -> str:
@@ -184,6 +223,21 @@ def _require_votable(state: GameState, player_id: str) -> None:
         raise ValueError("This agenda has no valid outcome - the speaker must discard it.")
     if player_id != current_voter(state):
         raise ValueError(f"It is not {player_id}'s turn to vote (now: {current_voter(state)}).")
+    require_no_agenda_decisions(state)
+
+
+def require_no_agenda_decisions(state: GameState) -> None:
+    """Głosowanie czeka, aż gracze rozstrzygną decyzje z kart agendy (np. Committee Formation)."""
+    waiting = [o for o in state.pending_offers if o.event.startswith("agenda.")]
+    if waiting:
+        raise ValueError(
+            f"Waiting for {waiting[0].player_id} to decide on {waiting[0].label} first."
+        )
+
+
+def single_vote(state: GameState, player_id: str) -> bool:
+    """Representative Government: 1 głos bez wyczerpywania planet i bez dodatkowych głosów."""
+    return rules_hooks.permits(rules_hooks.POINT_AGENDA_SINGLE_VOTE, state, player_id)
 
 
 def _require_speaker(state: GameState, player_id: str) -> None:
@@ -399,6 +453,12 @@ def cast_vote(
     """
     agenda = _require_agenda(state, AgendaStep.VOTE)
     _require_votable(state, player_id)
+    lone_vote = single_vote(state, player_id)
+    if lone_vote and (planets or use_predictive):
+        raise ValueError(
+            "Representative Government: you cannot exhaust planets or cast additional votes - "
+            "you cast exactly 1 vote."
+        )
     if use_predictive and not predictive_ready(state, player_id):
         raise ValueError("Predictive Intelligence is not ready (not owned or exhausted).")
     if len(set(planets)) != len(planets):
@@ -416,7 +476,10 @@ def cast_vote(
     votes = sum(usable[p] for p in planets)
     if use_predictive:
         votes += PREDICTIVE_VOTES
-    votes += extra_votes(state, registry, player_id, base_votes=votes)
+    if lone_vote:
+        votes = 1
+    else:
+        votes += extra_votes(state, registry, player_id, base_votes=votes)
     if votes <= 0:
         raise ValueError("Casting zero votes is the same as abstaining - abstain instead.")
     chosen = _normalise_outcome(agenda, outcome)
@@ -463,26 +526,39 @@ def abstain(state: GameState, registry: StaticDataRegistry, player_id: str) -> G
 def _resolve(
     state: GameState, registry: StaticDataRegistry, outcome: str, *, by_speaker: bool
 ) -> GameState:
-    """Zapisuje wynik: prawo zostaje w grze (For/Elect), reszta idzie na stos odrzuconych.
+    """Rozstrzyga wynik: zapis prawa / odrzucenie karty, EFEKT agendy (hooki), potem riders.
 
     R_agenda_card: jeśli rozstrzygnięto „For" albo wybory prawa, karta zostaje w grze;
-    dyrektywa i „Against" trafiają na stos odrzuconych. Samych skutków NIE stosujemy.
+    dyrektywa i „Against" trafiają na stos odrzuconych. Efekt karty to hooki źródła ``agenda``
+    w zdarzeniu ``AGENDA_OUTCOME_RESOLVED``/DURING (RULES.md 51.6): karta ``agenda.resolving``
+    obowiązuje każdego gracza aż do „dalej" mówcy (decyzje graczy z jej efektu). Riders - AFTER
+    (C_action_cards: „effect of a successful rider will be resolved after the effect of the
+    agenda").
     """
     assert state.agenda is not None
     agenda = state.agenda
-    card = agenda.agenda_id
-    assert card is not None
-    resolve_ctx = {"agenda": card, "outcome": outcome}
+    shown = agenda.agenda_id
+    card = effective_card(agenda)
+    assert card is not None and shown is not None
+    resolve_ctx = {
+        "agenda": card, "outcome": outcome, "kind": agenda.kind,
+        "speaker": state.speaker_id or "",
+    }
     triggers.fire(state, GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.WHEN, ctx=resolve_ctx)
     objective_events.on_agenda_resolving(state, agenda.kind, outcome)  # Drive the Debate
     definition = agenda_def(registry, card)
     is_law = definition is not None and (definition.type or "").strip().lower() == "law"
     stays = is_law and outcome != "against"
+    previous = state.decks.agenda_laws.get(card)
     if stays:
         state.decks.agenda_laws[card] = outcome
         objective_events.on_laws_changed(state)  # Dictate Policy (3 prawa w grze)
+    elif previous is not None:
+        remove_law(state, card)  # Miscount Disclosed: prawo przegłosowane „Against"
     else:
         card_draw.discard_agenda(state, card)
+    if shown != card:
+        card_draw.discard_agenda(state, shown)  # Covert Legislation idzie na stos odrzuconych
     agenda.resolved_outcome = outcome
     agenda.decided_by_speaker = by_speaker
     agenda.pending_outcome = None
@@ -498,6 +574,7 @@ def _resolve(
         {
             "number": agenda.agenda_number,
             "agenda": card,
+            "covert": shown if shown != card else None,
             "kind": agenda.kind,
             "outcome": outcome,
             "bySpeaker": by_speaker,
@@ -509,8 +586,22 @@ def _resolve(
         }
     )
     state.active_player_id = state.speaker_id or state.active_player_id
+    agenda.resolving = card
+    effect_ctx = {**resolve_ctx, "previous": previous or ""}
+    triggers.fire(state, GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.DURING, ctx=effect_ctx)
     triggers.fire(state, GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.AFTER, ctx=resolve_ctx)
     return state
+
+
+def voters_for(state: GameState, outcome: str) -> list[str]:
+    """Gracze, którzy głosowali na ``outcome`` w bieżącej agendzie (kolejność głosowania)."""
+    agenda = state.agenda
+    if agenda is None:
+        return []
+    return [
+        pid for pid in agenda.vote_order
+        if (vote := agenda.votes.get(pid)) is not None and vote.outcome == outcome
+    ]
 
 
 def decide_tie(
@@ -567,6 +658,8 @@ def _clear_round_of_voting(work: GameState) -> None:
     agenda.last_vote_by = None
     agenda.pending_outcome = None
     agenda.pending_by_speaker = False
+    agenda.covert_card = None
+    agenda.resolving = None
     for player in work.players.values():
         player.passed = False
         # Każda para graczy może zawrzeć jedną transakcję w trakcie każdej agendy.
@@ -587,29 +680,66 @@ def reveal_agenda(state: GameState, registry: StaticDataRegistry, player_id: str
 def _open_top_agenda(work: GameState, registry: StaticDataRegistry, player_id: str) -> GameState:
     """Ujawnia wierzchnią agendę z talii na KLONIE ``work`` i otwiera głosowanie (mutuje ``work``).
 
-    Wspólne dla ``reveal_agenda`` i Veto (ponowne ujawnienie po odrzuceniu agendy).
+    Wspólne dla ``reveal_agenda`` i Veto (ponowne ujawnienie po odrzuceniu agendy). Karta
+    wymagająca praw (Judicial Abolishment, Miscount Disclosed, New Constitution) przy braku praw
+    w grze idzie na stos odrzuconych i ujawnia się kolejna (tekst karty). Covert Legislation:
+    mówca dobiera ukrytą agendę, a głosuje się nad JEJ wynikami (C_agendas).
 
     Raises:
         ValueError: Gdy talia agend jest pusta.
     """
     objective_events.on_laws_changed(work)  # 3 prawa już w grze na starcie agendy: dp
-    card = card_draw.draw_agenda(work, registry)
-    if card is None:
-        raise ValueError("The agenda deck is empty.")
+    assert work.agenda is not None
+    while True:
+        card = card_draw.draw_agenda(work, registry)
+        if card is None:
+            raise ValueError("The agenda deck is empty.")
+        hidden: str | None = None
+        if card == COVERT_LEGISLATION:
+            hidden = card_draw.draw_agenda(work, registry)
+            if hidden is None:
+                raise ValueError("The agenda deck is empty.")
+        if discarded_on_reveal(work, registry, agenda_def(registry, hidden or card)):
+            # „...discard this card and reveal another agenda" (przy Covert - obie karty).
+            for discarded in (card, hidden):
+                if discarded is not None:
+                    card_draw.discard_agenda(work, discarded)
+                    work.agenda.history.append(
+                        {"number": work.agenda.agenda_number, "agenda": discarded,
+                         "discarded": True}
+                    )
+            continue
+        return _open_card(work, registry, player_id, card, hidden=hidden)
+
+
+def _open_card(
+    work: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    card: str,
+    *,
+    hidden: str | None = None,
+) -> GameState:
+    """Otwiera głosowanie nad ``card`` (ujawnioną z talii albo prawem z Miscount Disclosed)."""
     assert work.agenda is not None
     _clear_round_of_voting(work)
     agenda = work.agenda
-    definition = agenda_def(registry, card)
     agenda.agenda_id = card
+    agenda.covert_card = hidden
+    definition = agenda_def(registry, hidden or card)
     agenda.kind = classify_target(definition.target if definition is not None else None)
     agenda.outcomes = candidate_outcomes(work, registry, agenda.kind)
+    if card in work.decks.agenda_laws and agenda.kind == "secret_objective":
+        # Miscount na Classified Document Leaks: wybrany cel jest już publiczny (C_agendas).
+        agenda.outcomes = [o for o in agenda.outcomes if o != work.decks.agenda_laws[card]]
     agenda.unresolvable = agenda.kind != "manual" and not agenda.outcomes
     agenda.vote_order = vote_order(work)
+    agenda.blocked = [p for p in agenda.phase_blocked if p in work.players]
     agenda.step = AgendaStep.VOTE
-    reveal_ctx = {"agenda": card}
+    reveal_ctx = {"agenda": hidden or card, "kind": agenda.kind}
     triggers.fire(work, GameEvent.AGENDA_REVEALED, Moment.WHEN, subject=player_id, ctx=reveal_ctx)
     triggers.fire(work, GameEvent.AGENDA_REVEALED, Moment.AFTER, subject=player_id, ctx=reveal_ctx)
-    if not agenda.unresolvable and current_voter(work) is None:
+    if not agenda.unresolvable and current_voter(work) is None and not work.pending_offers:
         return _after_vote(work, registry)
     _point_to_voter(work)
     return work
@@ -626,10 +756,17 @@ def discard_unresolvable(
         raise ValueError("This agenda has valid outcomes - players must vote on it.")
     work = state.clone()
     assert work.agenda is not None and work.agenda.agenda_id is not None
-    card_draw.discard_agenda(work, work.agenda.agenda_id)
-    work.agenda.history.append(
-        {"number": work.agenda.agenda_number, "agenda": work.agenda.agenda_id, "discarded": True}
-    )
+    for card in (work.agenda.agenda_id, work.agenda.covert_card):
+        if card is None:
+            continue
+        if card in work.decks.agenda_laws:
+            # Miscount na Classified Document Leaks bez innych celów: prawo odrzucone (C_agendas).
+            remove_law(work, card)
+        else:  # Covert Legislation: odrzucana razem z ukrytą agendą
+            card_draw.discard_agenda(work, card)
+        work.agenda.history.append(
+            {"number": work.agenda.agenda_number, "agenda": card, "discarded": True}
+        )
     _clear_round_of_voting(work)
     work.agenda.step = AgendaStep.REVEAL
     work.active_player_id = work.speaker_id or work.active_player_id
@@ -637,23 +774,44 @@ def discard_unresolvable(
 
 
 def _ready_all_planets(work: GameState) -> None:
-    """Krok 3 fazy: każdy gracz odświeża wszystkie swoje wyczerpane planety."""
-    for pid in work.players:
-        exhaust.ready_all_planets(work, pid)
+    """Krok 3 fazy: każdy gracz odświeża wszystkie swoje wyczerpane planety.
+
+    Limit z hooka FORBID ``agenda.planets_ready_limit`` (Checks and Balances „Against": tylko 3
+    planety): gracz z większą liczbą wyczerpanych planet wybiera je w decyzji zdarzenia
+    ``COMPONENT_READIED``/WHEN (``component = planets``, ``limit``).
+    """
+    for pid in list(work.players):
+        caps = rules_hooks.forbidden(rules_hooks.POINT_PLANETS_READY_LIMIT, work, pid)
+        limit = min(int(c) for c in caps) if caps else None
+        if limit is None or len(work.players[pid].exhausted_planets) <= limit:
+            exhaust.ready_all_planets(work, pid)
+            continue
+        ctx = {"player": pid, "component": "planets", "phase": "agenda", "limit": limit}
+        triggers.fire(work, GameEvent.COMPONENT_READIED, Moment.WHEN, subject=pid, ctx=ctx)
 
 
 def continue_agenda(state: GameState, registry: StaticDataRegistry, player_id: str) -> GameState:
-    """Po wyniku: druga agenda (krok 2) albo - po drugiej - odświeżenie planet (krok 3)."""
-    del registry
+    """Po wyniku: ponowne głosowanie (Miscount Disclosed), druga agenda albo odświeżenie planet.
+
+    Raises:
+        ValueError: Zły krok, nie mówca albo gracze mają jeszcze decyzje z efektu agendy.
+    """
     agenda = _require_agenda(state, AgendaStep.RESOLVED)
     _require_speaker(state, player_id)
+    turn_flow.require_no_open_decisions(state)
     work = state.clone()
     assert work.agenda is not None
+    revote = agenda.revote_law
+    work.agenda.revote_law = None
+    if revote is not None and revote in work.decks.agenda_laws:
+        # Miscount Disclosed: głosowanie nad prawem „jak gdyby ujawnionym" (numer agendy bez zmian).
+        return _open_card(work, registry, player_id, revote)
     if agenda.agenda_number < AGENDAS_PER_PHASE:
         work.agenda.agenda_number += 1
         _clear_round_of_voting(work)
         work.agenda.step = AgendaStep.REVEAL
     else:
+        work.agenda.resolving = None  # efekt drugiej agendy skończony (karta zostaje na podglądzie)
         _ready_all_planets(work)
         work.agenda.step = AgendaStep.COMPLETE
         for player in work.players.values():
@@ -666,6 +824,7 @@ def finish_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
     """Mówca ogłasza koniec fazy agendy: nowa runda od fazy strategii."""
     del registry
     _require_agenda(state, AgendaStep.COMPLETE)
+    turn_flow.require_no_open_decisions(state)
     work = state.clone()
     card_draw.clear_agenda_peek(work)  # podgląd Insider Information nie żyje do następnej rundy
     return turn_flow.next_round(work)
@@ -689,11 +848,65 @@ def repeal_law(state: GameState, law_id: str) -> None:
     Raises:
         ValueError: Gdy takiego prawa nie ma w grze.
     """
+    remove_law(state, law_id)
+
+
+def remove_law(state: GameState, law_id: str) -> None:
+    """JEDYNE miejsce zdejmowania prawa z gry (RULES.md 51.6): stos odrzuconych + zdarzenie.
+
+    ``LAW_DISCARDED``/WHEN pada, gdy prawo jeszcze leży w grze (hooki „gdy właściciel traci tę
+    kartę" - Political Censure - wciąż działają); AFTER - po zdjęciu.
+
+    Raises:
+        ValueError: Gdy takiego prawa nie ma w grze.
+    """
     if law_id not in state.decks.agenda_laws:
         raise ValueError(f"{law_id} is not a law in play.")
+    ctx = {"law": law_id, "outcome": state.decks.agenda_laws[law_id]}
+    triggers.fire(state, GameEvent.LAW_DISCARDED, Moment.WHEN, ctx=ctx)
     del state.decks.agenda_laws[law_id]
     card_draw.discard_agenda(state, law_id)
-    triggers.fire(state, GameEvent.LAW_DISCARDED, Moment.AFTER, ctx={"law": law_id})
+    triggers.fire(state, GameEvent.LAW_DISCARDED, Moment.AFTER, ctx=ctx)
+
+
+def law_outcome(state: GameState, law_id: str) -> str | None:
+    """Wynik prawa w grze (``for``, id gracza, planety...) albo ``None``, gdy go nie ma."""
+    return state.decks.agenda_laws.get(law_id)
+
+
+def block_voter_for_phase(state: GameState, player_id: str) -> None:
+    """Gracz nie może głosować nad ŻADNĄ agendą do końca tej fazy (Public Execution)."""
+    agenda = state.agenda
+    if agenda is None or player_id not in state.players:
+        return
+    if player_id not in agenda.phase_blocked:
+        agenda.phase_blocked = [*agenda.phase_blocked, player_id]
+
+
+def schedule_revote(state: GameState, law_id: str) -> None:
+    """Miscount Disclosed: po „dalej" mówcy głosuje się ponownie nad prawem ``law_id``."""
+    if state.agenda is not None and law_id in state.decks.agenda_laws:
+        state.agenda.revote_law = law_id
+
+
+def elect_without_vote(
+    state: GameState, registry: StaticDataRegistry, outcome: str
+) -> GameState:
+    """Committee Formation: wynik wybrany bez głosowania (riders zagrane wcześniej działają).
+
+    Raises:
+        ValueError: Poza głosowaniem albo ``outcome`` spoza wyników agendy.
+    """
+    agenda = _require_agenda(state, AgendaStep.VOTE)
+    if outcome not in agenda.outcomes:
+        raise ValueError(f"{outcome!r} is not a possible outcome of this agenda.")
+    agenda.blocked = list(agenda.vote_order)  # nikt już nie głosuje nad tą agendą
+    return _conclude(state, registry, outcome, by_speaker=False)
+
+
+def effects_of(state: GameState, key: str) -> list[ActiveEffect]:
+    """Efekty trwałe o kluczu ``key`` (np. odroczone „at the start of the next strategy phase")."""
+    return [e for e in state.active_effects if e.key == key]
 
 
 def law_owner(state: GameState, registry: StaticDataRegistry, agenda_id: str) -> str | None:
@@ -792,8 +1005,14 @@ def veto_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
         raise ValueError("The agenda deck is empty.")
     vetoed = agenda.agenda_id
     assert vetoed is not None
-    card_draw.discard_agenda(state, vetoed)
-    agenda.history.append({"number": agenda.agenda_number, "agenda": vetoed, "vetoed": True})
+    for card in (vetoed, agenda.covert_card):
+        if card is None:
+            continue
+        if card in state.decks.agenda_laws:
+            remove_law(state, card)  # Miscount: Veto na prawie „ujawnionym" - odrzucone (C_agendas)
+        else:  # Covert Legislation: odrzucana razem z ukrytą agendą (C_agendas)
+            card_draw.discard_agenda(state, card)
+        agenda.history.append({"number": agenda.agenda_number, "agenda": card, "vetoed": True})
     active_effects.expire(state, Duration.AGENDA)
     return _open_top_agenda(state, registry, state.speaker_id or "")
 
@@ -814,6 +1033,8 @@ def add_votes(
     )
     if amount < 0:
         raise ValueError("The number of additional votes cannot be negative.")
+    if amount > 0 and single_vote(state, player_id):
+        raise ValueError("Representative Government: players cannot cast additional votes.")
     vote = agenda.votes.get(player_id)
     if vote is None:
         raise ValueError("You must have cast votes on this agenda to cast additional votes.")
@@ -852,7 +1073,13 @@ def void_agenda(state: GameState) -> GameState:
     agenda = _require_agenda(state, AgendaStep.COUNTED)
     card = agenda.agenda_id
     assert card is not None
-    card_draw.discard_agenda(state, card)
+    for discarded in (card, agenda.covert_card):
+        if discarded is None:
+            continue
+        if discarded in state.decks.agenda_laws:
+            remove_law(state, discarded)  # Miscount: Deadly Plot przy ponownym głosowaniu
+        else:
+            card_draw.discard_agenda(state, discarded)
     agenda.history.append(
         {
             "number": agenda.agenda_number,

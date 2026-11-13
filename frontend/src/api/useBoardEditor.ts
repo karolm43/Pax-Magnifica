@@ -406,10 +406,12 @@ export function useBoardEditor() {
   }, [refresh]);
 
   const pickStrategyCard = useCallback(
-    async (playerId: string, initiative: number) => {
+    async (playerId: string, initiative: number, recipient?: string) => {
       await post("/strategy/pick", {
         player_id: playerId,
         initiative,
+        // Checks and Balances: kto dostaje wybraną kartę (RULES.md 51.6).
+        ...(recipient ? { recipient } : {}),
       });
       await refresh();
     },

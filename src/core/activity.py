@@ -26,7 +26,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.core.game_state import ActiveCombat, GameState
+from src.core.game_state import ActiveCombat, GameState, Phase
 
 # Kategorie wpisów (do filtrów w UI).
 ActivityKind = Literal[
@@ -57,7 +57,7 @@ class ActivityFact(BaseModel):
     # Plansza: "units" (value = typ, delta = zmiana liczby), "system_token", "law_enacted",
     # "law_repealed", "attached", "objective_scored", "effect", "speaker", "custodians_removed",
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
-    # delta = liczba rund).
+    # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
@@ -528,6 +528,22 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     for law in before.decks.agenda_laws:
         if law not in after.decks.agenda_laws:
             facts.append(ActivityFact(type="law_repealed", value=law))
+    # Rider zagrany: przewidywanie jest jawne („predict aloud") - na co gracz postawił.
+    old_effects = {e.id for e in before.active_effects}
+    for effect in after.active_effects:
+        card = effect.key.removeprefix("action_cards:")
+        if (
+            effect.id not in old_effects
+            and effect.key.startswith("action_cards:")
+            and "outcome" in effect.data
+            and after.phase is Phase.AGENDA
+        ):
+            facts.append(
+                ActivityFact(
+                    type="rider", player_id=effect.owner, value=card,
+                    detail=str(effect.data["outcome"]),
+                )
+            )
     for planet, cards in after.planet_attachments.items():
         old_cards = before.planet_attachments.get(planet, [])
         for card in cards:

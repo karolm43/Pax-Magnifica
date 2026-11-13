@@ -88,6 +88,12 @@ def _has_legal_choices(inputs: list[dict[str, Any]]) -> bool:
     return True
 
 
+def forbidden_reason(state: GameState, player_id: str) -> str | None:
+    """Powód zakazu zagrywania kart akcji przez efekt gry (hook FORBID; Political Censure)."""
+    reasons = rules_hooks.forbidden(rules_hooks.POINT_ACTION_CARDS_FORBIDDEN, state, player_id)
+    return sorted(reasons)[0] if reasons else None
+
+
 def playability(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
@@ -119,6 +125,10 @@ def playability(
             continue
         if promissory_play.silenced(state, player_id):
             entry["reason"] = "Political Secret: you cannot play action cards during this agenda."
+            continue
+        banned = forbidden_reason(state, player_id)
+        if banned is not None:
+            entry["reason"] = banned
             continue
         if spec is None or spec.trigger is not TriggerKind.ACTION:
             # Karta reakcji: zagrywalna, gdy silnik ma TERAZ otwarte pasujące okno (RULES.md 53.5).
@@ -282,6 +292,9 @@ def play_action_card(
         raise ValueError(f"You do not have the action card {card_id}.")
     if promissory_play.silenced(state, player_id):
         raise ValueError("Political Secret: you cannot play action cards during this agenda.")
+    banned = forbidden_reason(state, player_id)
+    if banned is not None:
+        raise ValueError(banned)
     over = hand_limit.over_limit_reason(state, player_id)
     if over is not None:
         raise ValueError(over)

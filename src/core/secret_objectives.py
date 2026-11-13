@@ -161,3 +161,12 @@ def return_to_deck(state: GameState, objective_id: str) -> None:
     """Wkłada cel do talii tajnych celów i tasuje ją (seedowalnie; mutuje)."""
     state.decks.secret_objective_deck.append(objective_id)
     next_rng(state).shuffle(state.decks.secret_objective_deck)
+
+
+def release_scored(state: GameState, player_id: str, objective_id: str) -> None:
+    """Zdobyty tajny cel przestaje być tajnym celem gracza (Classified Document Leaks).
+
+    Punkt zostaje u gracza; cel nie liczy się już do limitu tajnych celów (C_agendas).
+    """
+    player = state.players[player_id]
+    player.scored_secrets = [s for s in player.scored_secrets if s != objective_id]

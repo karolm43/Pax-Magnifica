@@ -101,6 +101,7 @@ async def post_strategy_pick(
             ctx.registry,
             request.player_id,
             request.initiative,
+            recipient=request.recipient,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

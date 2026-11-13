@@ -3,14 +3,14 @@
 Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.
 Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja, nie decyzja).
 
-Zarejestrowanych hooków: **214** (lista: `pokrycie_hookow/hooki.md`).
+Zarejestrowanych hooków: **295** (lista: `pokrycie_hookow/hooki.md`).
 
 ## 2. Pokrycie per kategoria
 
 | Kategoria | Komponentów | Z hookiem | % |
 |---|---:|---:|---:|
 | action_cards | 143 | 143 | 100.0 |
-| agendas | 123 | 0 | 0.0 |
+| agendas | 123 | 50 | 40.7 |
 | explores | 80 | 4 | 5.0 |
 | relics | 24 | 23 | 95.8 |
 | promissory_notes | 41 | 13 | 31.7 |
@@ -41,18 +41,18 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 280 | 200 |
-| walka (combat.*, space_cannon, bombardment) | 247 | 139 |
-| produkcja (production.*) | 196 | 112 |
-| ekonomia i płatności (economy, payment) | 185 | 133 |
-| status i odświeżanie (status_phase) | 162 | 100 |
-| karty (card_draw, promissory) | 153 | 110 |
-| ruch (movement.*) | 149 | 102 |
-| żetony dowodzenia (command_tokens) | 117 | 80 |
-| agenda i głosowanie (agenda_phase) | 98 | 74 |
-| technologie (technology) | 80 | 58 |
-| cele i punkty (objectives) | 48 | 34 |
-| karty strategii i inicjatywa | 48 | 29 |
+| planety i eksploracja (control, exploration) | 280 | 187 |
+| walka (combat.*, space_cannon, bombardment) | 247 | 126 |
+| produkcja (production.*) | 196 | 97 |
+| ekonomia i płatności (economy, payment) | 185 | 125 |
+| status i odświeżanie (status_phase) | 162 | 95 |
+| karty (card_draw, promissory) | 153 | 92 |
+| ruch (movement.*) | 149 | 96 |
+| żetony dowodzenia (command_tokens) | 117 | 71 |
+| agenda i głosowanie (agenda_phase) | 98 | 67 |
+| technologie (technology) | 80 | 50 |
+| cele i punkty (objectives) | 48 | 26 |
+| karty strategii i inicjatywa | 48 | 25 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
@@ -114,7 +114,7 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 - [`pokrycie_hookow/hooki.md`](pokrycie_hookow/hooki.md) — sekcja 1: zarejestrowane hooki i punkty zaczepienia.
 - [`pokrycie_hookow/przypadki_szczegolne.md`](pokrycie_hookow/przypadki_szczegolne.md) — sekcja 5: komponenty bez dopasowania do obszaru.
 - [`pokrycie_hookow/szczegoly_action_cards.md`](pokrycie_hookow/szczegoly_action_cards.md) — sekcja 8: action_cards (143 / 143 z hookiem).
-- [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (0 / 123 z hookiem).
+- [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (50 / 123 z hookiem).
 - [`pokrycie_hookow/szczegoly_explores.md`](pokrycie_hookow/szczegoly_explores.md) — sekcja 8: explores (4 / 80 z hookiem).
 - [`pokrycie_hookow/szczegoly_relics.md`](pokrycie_hookow/szczegoly_relics.md) — sekcja 8: relics (23 / 24 z hookiem).
 - [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (13 / 41 z hookiem).

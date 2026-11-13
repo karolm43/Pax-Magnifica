@@ -45,7 +45,7 @@ from src.core.game_state import (
 from src.core.hex_grid import HexGrid
 from src.core.invasion import begin_invasion
 from src.core.planet_stats import resources_of
-from src.core.production import active_grant, producers
+from src.core.production import active_grant, dual_production, producers
 from src.core.registry import StaticDataRegistry
 from src.core.space_cannon import open_offense
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE, is_space_unit
@@ -526,7 +526,7 @@ def production_help(
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
     available = _controlled_resources(state, player_id, registry)
-
+    dual = dual_production(state, player_id)  # Regulated Conscription: 1 sztuka za koszt
     units: list[ProducibleUnit] = []
     for base_type in sorted(ASYNC_ID_BY_BASE_TYPE):
         # Struktury (dok/PDS) nie są produkowane w kroku produkcji przez koszt —
@@ -543,7 +543,7 @@ def production_help(
                 # Cena JEDNEJ produkcji: dane trzymają koszt per sztuka (0.5), a para
                 # fighter/infantry kosztuje 1 (R_cost: dwie ikony = dwie sztuki za koszt).
                 cost=unit.cost * (2 if base_type in _DUAL_PRODUCTION else 1),
-                units_per_cost=2 if base_type in _DUAL_PRODUCTION else 1,
+                units_per_cost=2 if base_type in _DUAL_PRODUCTION and dual else 1,
                 placement="space" if is_space_unit(base_type) else "planet",
                 capacity=int(unit.capacity_value or 0),
             )

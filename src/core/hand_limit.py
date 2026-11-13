@@ -19,12 +19,17 @@ from src.core.game_state import GameState
 
 def action_card_limit(state: GameState, player_id: str) -> int | None:
     """Limit kart akcji gracza (``None`` = bez limitu albo brak rejestru w kontekście)."""
-    del state, player_id  # miejsce na hook zmieniający limit (np. Yssaril — Crafty)
     registry = rules_hooks.bound_registry()
     if registry is None:
         return None
     limit = registry.hand_limits().action_cards
-    return int(limit) if limit is not None else None
+    if limit is None:
+        return None
+    # Hook MODIFY (Executive Sanctions: maks. 3 karty - RULES.md 51.6).
+    delta = rules_hooks.modify(
+        rules_hooks.POINT_HAND_LIMIT, state, player_id, 0, {"base": int(limit)}
+    )
+    return max(0, int(limit) + int(delta))
 
 
 def action_card_excess(state: GameState, player_id: str) -> int:

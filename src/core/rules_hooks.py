@@ -195,6 +195,36 @@ POINT_COMBAT_SUSTAIN_DENIED = "combat.sustain_denied"
 # MODIFY -> ile zasobów/wpływu jest wart 1 trade good w płatności (bazowo 1; Mirror Computing:
 # +1). Nie dotyczy wymogu wydania samych TG (RULES.md 62.8).
 POINT_PAYMENT_TRADE_GOOD_VALUE = "payment.trade_good_value"
+# --- Prawa agend (RULES.md 51.6) ---
+# PERMIT -> gracz głosuje 1 głosem bez wyczerpywania planet, bez dodatkowych głosów
+# (Representative Government).
+POINT_AGENDA_SINGLE_VOTE = "agenda.single_vote"
+# MODIFY -> delta limitu kart akcji w ręce (ctx: base; Executive Sanctions).
+POINT_HAND_LIMIT = "hand_limit.action_cards"
+# FORBID -> powody, dla których gracz nie może zagrywać kart akcji (Political Censure).
+POINT_ACTION_CARDS_FORBIDDEN = "action_cards.forbidden"
+# MODIFY -> maks. liczba żetonów w fleet pool (baza 0 = bez limitu; Fleet Regulations).
+POINT_FLEET_POOL_TOKEN_CAP = "fleet_pool.token_cap"
+# PERMIT -> brak limitu PDS na planecie (Homeland Defense Act).
+POINT_PDS_UNLIMITED = "limits.pds_unlimited"
+# FORBID -> rodzaje planet, których nie wolno bombardować (``cultural``…; Conventions of War).
+POINT_BOMBARDMENT_FORBIDDEN_TRAITS = "bombardment.forbidden_traits"
+# FORBID -> typy wormholi bez efektu w ruchu; ctx: ``position`` (system z wormholem) albo brak
+# (Enforced Travel Ban - wszędzie, Nexus Sovereignty - tylko Wormhole Nexus).
+POINT_MOVEMENT_WORMHOLES_BLOCKED = "movement.wormholes_blocked"
+# PERMIT -> jednostki mogą przelatywać przez mgławice (Shared Research).
+POINT_MOVEMENT_THROUGH_NEBULA = "movement.through_nebula"
+# MODIFY -> delta liczby myśliwców/piechoty za jeden koszt (ctx: base_type; Regulated Conscription).
+POINT_PRODUCTION_UNITS_PER_COST = "production.units_per_cost"
+# FORBID -> typy jednostek gracza, które tracą SUSTAIN DAMAGE (Publicize Weapon Schematics).
+POINT_UNIT_SUSTAIN_LOST = "units.sustain_lost"
+# FORBID -> limit odświeżanych planet w kroku 3 fazy agendy (liczby jako napisy; Checks and
+# Balances „Against": 3). Gracz z limitem wybiera planety w decyzji (``COMPONENT_READIED``).
+POINT_PLANETS_READY_LIMIT = "agenda.planets_ready_limit"
+# PERMIT -> wybrana karta strategii trafia do innego gracza (Checks and Balances).
+POINT_STRATEGY_GIVE_CHOSEN = "strategy.give_chosen_card"
+# PERMIT -> badanie technologii przez kartę Technology bez wydawania zasobów (Minister of Sciences).
+POINT_TECHNOLOGY_SC_FREE = "technology.strategy_card_free"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
@@ -466,6 +496,14 @@ def declare_data_driven(*component_keys: str) -> None:
     _DATA_DRIVEN.update(component_keys)
 
 
+def declare_core_rule(*component_keys: str) -> None:
+    """Oznacza komponenty, których efekt realizuje sama reguła bazowa w ``core/`` (bez hooka).
+
+    Np. Covert Legislation: ukrytą agendę dobiera i rozstrzyga ``agenda_phase`` (RULES.md 51.6).
+    """
+    _DATA_DRIVEN.update(component_keys)
+
+
 def covered_components() -> frozenset[str]:
     """Klucze ``"<kategoria>:<id>"`` komponentów, które mają zarejestrowany hook."""
     _ensure_loaded()
@@ -551,6 +589,38 @@ def _registry_sources(player: Any) -> set[HookSource]:
     return sources
 
 
+# Filtry zdolności jednostek: (stan, gracz) -> typy bazowe, których jednostki frakcyjne tracą
+# wydrukowane zdolności (Articles of War: mechy - RULES.md 51.6). Rejestrowane przez moduły
+# hooków; czytają stan bezpośrednio (bez hooków - inaczej rekurencja przez ``owned_sources``).
+UnitAbilityFilter = Callable[[GameState, str], frozenset[str]]
+_UNIT_ABILITY_FILTERS: list[UnitAbilityFilter] = []
+
+
+def register_unit_ability_filter(fn: UnitAbilityFilter) -> UnitAbilityFilter:
+    """Rejestruje filtr zdolności jednostek (patrz ``_UNIT_ABILITY_FILTERS``)."""
+    _UNIT_ABILITY_FILTERS.append(fn)
+    return fn
+
+
+def _suppressed_unit_types(state: GameState, player_id: str) -> frozenset[str]:
+    _ensure_loaded()
+    found: set[str] = set()
+    for fn in _UNIT_ABILITY_FILTERS:
+        found |= fn(state, player_id)
+    return frozenset(found)
+
+
+def unit_abilities_lost(state: GameState, player_id: str, base_type: str) -> bool:
+    """Czy jednostki ``base_type`` gracza straciły wydrukowane zdolności (poza SUSTAIN DAMAGE)."""
+    return base_type in _suppressed_unit_types(state, player_id)
+
+
+def _unit_base_type(unit_id: str) -> str:
+    registry = _BOUND_REGISTRY
+    unit = registry.units.get(unit_id) if registry is not None else None
+    return str(unit.base_type) if unit is not None else ""
+
+
 def _unit_sources(player: Any) -> frozenset[HookSource]:
     """Warianty jednostek frakcyjnych ze zdolnością, których gracz używa (RULES.md 61.3)."""
     if _BOUND_REGISTRY is None or player.faction is None:
@@ -634,10 +704,18 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     sources: set[HookSource] = {HookSource(SOURCE_TECHNOLOGY, t) for t in player.technologies}
     sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
     sources.update(_promissory_sources(state, player_id))
-    sources.update(_unit_sources(player))
+    suppressed = _suppressed_unit_types(state, player_id)
+    sources.update(
+        src for src in _unit_sources(player)
+        if not suppressed or _unit_base_type(src.component_id) not in suppressed
+    )
     sources.update(HookSource(SOURCE_RELIC, r) for r in player.relics)
     sources.update(_legendary_sources(player))
     sources.update(HookSource(SOURCE_AGENDA, law) for law in state.decks.agenda_laws)
+    if state.agenda is not None and state.agenda.resolving is not None:
+        # Rozstrzygana agenda (także dyrektywa i „Against”) obowiązuje każdego gracza, dopóki
+        # trwa jej efekt (decyzje graczy) - RULES.md 51.6.
+        sources.add(HookSource(SOURCE_AGENDA, state.agenda.resolving))
     sources.update(
         HookSource(SOURCE_EFFECT, e.key)
         for e in state.active_effects

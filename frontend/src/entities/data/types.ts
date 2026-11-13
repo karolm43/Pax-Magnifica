@@ -604,6 +604,12 @@ export type GameState = {
   status?: StatusPhaseData | null;
   /** Faza agendy (RULES.md 51): ujawnienie, głosowanie, wynik — null poza nią. */
   agendaPhase?: AgendaPhaseData | null;
+  /** Covert Legislation: ukryta agenda - tylko dla mówcy (null dla pozostałych). */
+  agendaCovertCard?: AgendaPhaseData["card"];
+  /** Search Warrant: jawne tajne cele właściciela ({player_id: [cele]}). */
+  revealedSecrets?: Record<string, string[]>;
+  /** Checks and Balances: wybraną kartę strategii dostaje inny gracz. */
+  strategyGivesCards?: boolean;
   /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
   winnerId?: string | null;
   /** Dlaczego gra się skończyła (ekran zwycięstwa). */
@@ -765,6 +771,17 @@ export type AgendaVoter = {
   extra: number;
   /** Predictive Intelligence: opcjonalne +3 głosy (decyzja gracza). */
   predictive: { owned: boolean; ready: boolean; votes: number };
+  /** Representative Government: dokładnie 1 głos, bez planet i dodatkowych głosów. */
+  singleVote?: boolean;
+};
+
+/** Rider zagrany na bieżącą agendę: kto, jaką kartą i NA JAKI wynik (jawne). */
+export type AgendaPrediction = {
+  playerId: string;
+  card: string;
+  cardName: string;
+  outcome: string;
+  outcomeLabel: string;
 };
 
 export type AgendaHistoryEntry = {
@@ -775,6 +792,12 @@ export type AgendaHistoryEntry = {
   bySpeaker?: boolean;
   stays?: boolean;
   discarded?: boolean;
+  vetoed?: boolean;
+  voided?: boolean;
+  /** Covert Legislation: karta, pod którą głosowano nad ukrytą agendą. */
+  covert?: string | null;
+  /** Rozstrzygnięte riders tej agendy. */
+  riders?: { player: string; card: string; predicted: string; correct: boolean; skipped?: string }[];
   totals?: Record<string, number>;
   votes?: Record<string, { outcome: string; votes: number }>;
 };
@@ -798,6 +821,14 @@ export type AgendaPhaseData = {
   kind: AgendaKind | "";
   outcomes: string[];
   unresolvable: boolean;
+  /** Covert Legislation: głosuje się nad ukrytą agendą (treść widzi tylko mówca). */
+  covert?: boolean;
+  /** Riders zagrane na tę agendę (kto, czym, na jaki wynik). */
+  predictions?: AgendaPrediction[];
+  /** Miscount Disclosed: prawo, nad którym głosuje się ponownie po „dalej". */
+  revoteLaw?: string | null;
+  /** Gracze bez prawa głosu do końca fazy (Public Execution). */
+  phaseBlocked?: string[];
   speakerId: string | null;
   voteOrder: string[];
   currentVoter: string | null;

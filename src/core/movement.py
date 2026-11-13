@@ -102,8 +102,10 @@ def _node_passable_intermediate(
         return False
     if _ASTEROID in anomalies and not can_enter_asteroids:
         return False
-    if _NEBULA in anomalies:
-        return False
+    if _NEBULA in anomalies and not rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_THROUGH_NEBULA, state, player_id
+    ):
+        return False  # Shared Research: przelot przez mgławicę (wejście nadal tylko do aktywnej)
     if _ships_of_other_players(
         state.systems.get(position), player_id
     ) and not rules_hooks.permits(
@@ -139,6 +141,33 @@ def _target_passable(
     return True
 
 
+_WORMHOLE_TYPES = ("ALPHA", "BETA", "GAMMA", "DELTA", "EPSILON", "ZETA", "ETA", "IOTA", "THETA")
+
+
+def wormhole_link_blocked(
+    grid: HexGrid, state: GameState, player_id: str, a: str, b: str
+) -> bool:
+    """Czy krawędź ``a``-``b`` istnieje TYLKO dzięki wormholom, które nie działają w ruchu.
+
+    Hook FORBID ``movement.wormholes_blocked`` (prawa Enforced Travel Ban, Nexus Sovereignty -
+    RULES.md 51.6) zwraca typy wormholi bez efektu dla tej krawędzi. Sąsiedztwo geometryczne
+    i portale zostają. Dotyczy ruchu i odwrotu (C_agendas), nie efektów „adjacent".
+    """
+    if grid.link_kind(a, b) != "wormhole":
+        return False
+    blocked = rules_hooks.forbidden(
+        rules_hooks.POINT_MOVEMENT_WORMHOLES_BLOCKED, state, player_id,
+        {"position": a, "neighbor": b},
+    )
+    if not blocked:
+        return False
+    shared = {
+        t for t in _WORMHOLE_TYPES
+        if a in grid.wormhole_positions(t) and b in grid.wormhole_positions(t)
+    }
+    return bool(shared) and shared <= {t.upper() for t in blocked}
+
+
 def _neighbors_for_move(
     grid: HexGrid, state: GameState, position: str, player_id: str
 ) -> set[str]:
@@ -147,7 +176,10 @@ def _neighbors_for_move(
     Lost Star Chart (hook PERMIT): systemy z wormholem alpha i beta sąsiadują ze sobą w tej
     akcji. Graf mapy (czyste sąsiedztwo) zostaje nietknięty - to osobna warstwa (RULES.md 1/3).
     """
-    result = set(grid.neighbors(position))
+    result = {
+        n for n in grid.neighbors(position)
+        if not wormhole_link_blocked(grid, state, player_id, position, n)
+    }
     if rules_hooks.permits(rules_hooks.POINT_MOVEMENT_ALPHA_BETA_ADJACENT, state, player_id):
         alpha = grid.wormhole_positions("ALPHA")
         beta = grid.wormhole_positions("BETA")

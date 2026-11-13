@@ -207,20 +207,30 @@ def test_full_phase_readies_planets_and_ends_round(registry: StaticDataRegistry)
     assert out.phase is Phase.STRATEGY and out.agenda is None and out.round_number == 4
 
 
+def test_agenda_needing_laws_is_discarded_and_next_revealed(registry: StaticDataRegistry) -> None:
+    # Judicial Abolishment bez praw w grze: tekst karty - odrzuć i ujawnij kolejną agendę.
+    state = agenda_phase.reveal_agenda(_state(registry, ["abolishment", LAW]), registry, "p2")
+    assert state.agenda is not None and state.agenda.agenda_id == LAW
+    assert state.agenda.step is AgendaStep.VOTE and state.agenda.agenda_number == 1
+    assert state.decks.agenda_discard == ["abolishment"]
+
+
 def test_unresolvable_agenda_is_discarded_by_speaker(registry: StaticDataRegistry) -> None:
-    # „Elect Law" bez praw w grze nie ma kandydatów.
-    law_election = next(
-        agenda_id
-        for agenda_id, a in registry.catalog.all(ComponentCategory.AGENDA).items()
-        if agenda_phase.classify_target(getattr(a, "target", None)) == "law"
-    )
-    state = agenda_phase.reveal_agenda(_state(registry, [law_election, LAW]), registry, "p2")
-    assert state.agenda is not None and state.agenda.unresolvable
+    # Elect Law bez zwrotu „reveal another" (karta Absol) nie odrzuca się sama - robi to mówca.
+    state = _state(registry, ["abolishment", LAW])
+    state.decks.agenda_laws = {}
+    st = agenda_phase.reveal_agenda(state, registry, "p2")
+    st.decks.agenda_deck = ["abolishment", *st.decks.agenda_deck]
+    st.agenda = st.agenda.model_copy(update={"step": AgendaStep.REVEAL}) if st.agenda else None
+    st.decks.agenda_laws = {LAW: "for"}
+    revealed = agenda_phase.reveal_agenda(st, registry, "p2")
+    assert revealed.agenda is not None and revealed.agenda.agenda_id == "abolishment"
+    revealed.agenda.unresolvable = True  # brak kandydatów (np. prawo zniknęło)
     with pytest.raises(ValueError, match="no valid outcome"):
-        agenda_phase.abstain(state, registry, state.active_player_id or "")
-    out = agenda_phase.discard_unresolvable(state, registry, "p2")
+        agenda_phase.abstain(revealed, registry, revealed.active_player_id or "")
+    out = agenda_phase.discard_unresolvable(revealed, registry, "p2")
     assert out.agenda is not None and out.agenda.step is AgendaStep.REVEAL
-    assert out.agenda.agenda_number == 1 and out.decks.agenda_discard == [law_election]
+    assert out.decks.agenda_discard[-1] == "abolishment"
 
 
 def test_entering_agenda_phase_initialises_state(registry: StaticDataRegistry) -> None:

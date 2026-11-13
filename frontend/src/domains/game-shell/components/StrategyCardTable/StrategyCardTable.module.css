@@ -860,3 +860,30 @@
     animation: none;
   }
 }
+
+/* Checks and Balances: wybór gracza, który dostaje wybraną kartę. */
+.recipients {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.recipientBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: inherit;
+  cursor: pointer;
+}
+
+.recipientBtn[aria-pressed="true"] {
+  border-color: rgba(214, 178, 94, 0.9);
+  background: rgba(214, 178, 94, 0.2);
+}

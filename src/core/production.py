@@ -470,15 +470,32 @@ def available_budget(
     )
 
 
+def dual_production(state: GameState, player_id: str) -> bool:
+    """Czy gracz produkuje 2 myśliwce/piechoty za jeden koszt (prawo Regulated Conscription: nie).
+
+    Hook MODIFY ``production.units_per_cost`` (delta od 2; RULES.md 51.6).
+    """
+    return int(rules_hooks.modify(
+        rules_hooks.POINT_PRODUCTION_UNITS_PER_COST, state, player_id, 2
+    )) >= 2
+
+
 def _order_cost(
     registry: StaticDataRegistry,
     faction_id: str | None,
     technologies: list[str],
     order: ProductionOrder,
+    *,
+    dual: bool = True,
 ) -> float:
-    """Koszt pozycji zamówienia: koszt jednostki × liczba PAR (dual = 2 za koszt)."""
+    """Koszt pozycji zamówienia: koszt jednostki × liczba PAR (dual = 2 za koszt).
+
+    ``dual=False`` (Regulated Conscription, RULES.md 51.6): 1 myśliwiec/piechota za koszt.
+    """
     unit = resolve_unit_variant(registry, faction_id, technologies, order.base_type)
     cost = unit.cost if unit is not None and unit.cost is not None else 0.0
+    if order.base_type in _DUAL and not dual:
+        return cost * 2 * order.count
     if order.base_type in _DUAL:
         # Dane AsyncTI4 trzymają koszt PER SZTUKA (piechota/myśliwiec = 0.5); karta mówi
         # „1 za dwie". Para = 2 × koszt sztuki; N sztuk = ceil(N/2) par (1 sztuka też pełna para).
@@ -492,6 +509,8 @@ def _total_cost(
     faction_id: str | None,
     technologies: list[str],
     orders: list[ProductionOrder],
+    *,
+    dual: bool = True,
 ) -> float:
     """Koszt całego zamówienia; sztuki tego samego typu (np. piechota na dwóch planetach)
     łączą się w pary, bo para fighter/infantry to jeden koszt niezależnie od strefy."""
@@ -500,7 +519,7 @@ def _total_cost(
         if o.count > 0:
             merged[o.base_type] = merged.get(o.base_type, 0) + o.count
     return sum(
-        _order_cost(registry, faction_id, technologies, ProductionOrder(bt, n))
+        _order_cost(registry, faction_id, technologies, ProductionOrder(bt, n), dual=dual)
         for bt, n in merged.items()
     )
 
@@ -691,7 +710,9 @@ def order_cost(
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
-    base_cost = _total_cost(registry, faction_id, technologies, orders)
+    base_cost = _total_cost(
+        registry, faction_id, technologies, orders, dual=dual_production(state, player_id)
+    )
     if exhaust_aida:
         if not aida_ready(state, player_id):
             raise ValueError("AI Development Algorithm is not ready.")

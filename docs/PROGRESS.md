@@ -23,12 +23,12 @@ Starsze, ukończone bloki (Faza 1 → E4·UI²) są w `PROGRESS_ARCHIWUM.md`.
 | H1b | Reakcje z cofnięciem: hold-play (Sabotage) + hold-rewind (HOLD) | ✅ (RULES.md 53.6, 53.7) |
 | H4 | Karty akcji: ACTION + reakcje w oknach + przeciąganie z ręki | ✅ 143/143 |
 | — | Relikty (23/23 aktywnych), technologie ogólne (33/33), cele (80/80 automatycznie) | ✅ |
-| E6 | Faza agendy (głosowanie, remis, prawa); efekty agend | ✅ głosowanie / ⬜ efekty (0/123) |
+| E6 | Faza agendy (głosowanie, remis, prawa); efekty agend | ✅ cała faza + efekty talii oficjalnej (50/50); ⬜ Absol (60) |
 | H5 | Frakcje: zdolności, liderzy, notki, przełomy, technologie frakcyjne | ⬜ (technologie 36/102) |
 | N | Sieć: N0 `actor_id` ✅, N1 tokeny ✅, N2 projekcja ✅, N3 zapis ✅, N5 część 1 ✅; N4 współbieżność ⬜ | 🔧 |
 | QA | pytest-xdist/testmon, E2E Playwright (solo + host/gość) | ✅ |
 
-**Następne kroki (kolejność):** efekty agend → hooki at_start/at_end/during (16 zdarzeń jeszcze nieemitowanych,
+**Następne kroki (kolejność):** efekty agend Absol → hooki at_start/at_end/during (16 zdarzeń jeszcze nieemitowanych,
 `OKNA_CZASOWE.md`) → frakcje (zdolności, liderzy, promissory notes) → N4/N5 część 2 → bot.
 
 > Pełna historia ukończonych bloków ze szczegółami: `PROGRESS_ARCHIWUM.md`.
@@ -1100,3 +1100,30 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   `timing.require_no_limit_window`. Harness scenariuszy (`Flow.fight`) usuwa nadwyżkę podpowiedzią silnika.
 - Capacity bez zmian (własne wyjątki w walce).
 - Nowe pole stanu `suspended_window` — restart backendu.
+
+## Efekty agend - cała talia oficjalna (50/50) + jawne riders (2026-11-13) — RULES.md 51.6
+
+- Model: efekt WYNIKU = hook `AGENDA_OUTCOME_RESOLVED`/DURING ze źródłem `agenda:<id>`; rozstrzygana karta
+  (`agenda.resolving`, też dyrektywa/„Against") jest źródłem dla KAŻDEGO gracza do „dalej" mówcy. Riders po efekcie
+  (AFTER). Wybory graczy = oferty/decyzje (głosowanie, „dalej" i koniec fazy czekają). Moduły:
+  `core/hooks/agendas_common.py`, `agendas_directives.py` (dyrektywy + skutki „Against"), `agendas_laws.py` (prawa).
+- Faza: karty „reveal another agenda" odrzucają się same; Covert Legislation (ukryta agenda tylko dla mówcy);
+  Miscount Disclosed (ponowne głosowanie nad prawem); Representative Government (1 głos); Public Execution (bez głosu
+  do końca fazy); Committee Formation (wybór bez głosowania); Checks and Balances (karta strategii dla innego gracza
+  - `recipient` w `/strategy/pick` + wybór w stole kart; „Against": 3 planety w kroku 3); Imperial Arbiter; Galactic
+  Crisis Pact (okno secondary dla wszystkich); `agenda_phase.remove_law` = jedyne zdejmowanie prawa (`LAW_DISCARDED`).
+- Nowe punkty `rules_hooks`: `agenda.single_vote`, `hand_limit.action_cards`, `action_cards.forbidden`,
+  `fleet_pool.token_cap`, `limits.pds_unlimited`, `bombardment.forbidden_traits`, `movement.wormholes_blocked` (ruch +
+  odwrót), `movement.through_nebula`, `production.units_per_cost`, `technology.strategy_card_free`,
+  `units.sustain_lost`, `strategy.give_chosen_card`, `agenda.planets_ready_limit`; filtr zdolności jednostek
+  (`register_unit_ability_filter`, Articles of War); `objectives.reveal_from_stage` / `make_secret_public`.
+- **Riders jawne:** web-data `agendaPhase.predictions` (kto, karta, na jaki wynik), chipy przy wynikach i lista
+  „Riders" w oknie Rady, wyniki riderów w historii agendy, fakt `rider` w feedzie Activity.
+- Web: `agendaCovertCard` (tylko mówca), `revealedSecrets` + `knownUnscoredSecrets` (Search Warrant),
+  `strategyGivesCards`, `voters[].singleVote`, `revoteLaw`, `phaseBlocked`.
+- Testy: `tests/test_agenda_effects.py` (31), `tests/test_flows_agenda.py` (scenariusz przez API), rider w
+  `test_activity.py`. Pokrycie: 50/50 agend talii `agendas_pok` (Covert jako reguła `core`).
+- ⚠️ ZAŁOŻENIA 1-12 w RULES.md 51.6 (m.in. nadmiar fleet pool przy Fleet Regulations, statystyki mechów przy Articles of
+  War, badanie bez pominięć specjalnością w Ixthian Artifact / Wormhole Research).
+- Nowe pola stanu (`phase_blocked`, `covert_card`, `resolving`, `revote_law`, `strategy_choices`) i API — restart backendu.
+

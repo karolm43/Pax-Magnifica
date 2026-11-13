@@ -1742,10 +1742,17 @@ def build_web_data(
         "versionSchema": WEB_DATA_SCHEMA_VERSION,
         "tilePositions": tile_positions,
         "tileUnitData": tile_unit_data,
-        "playerData": _build_player_data(projected, registry, grid, entity_keys),
+        "playerData": web_agenda.with_revealed_secrets(
+            _build_player_data(projected, registry, grid, entity_keys), state
+        ),
         "statTilePositions": _build_stat_tile_positions(projected, grid, entity_keys),
         "gameState": {
             **_build_game_state(projected, registry, grid),
+            # Covert Legislation: ukryta agenda tylko dla mówcy; Search Warrant: jawne tajne cele
+            # właściciela; Checks and Balances: wybrana karta strategii idzie do innego gracza.
+            "agendaCovertCard": web_agenda.covert_for_viewer(state, registry, viewer),
+            "revealedSecrets": web_agenda.revealed_secrets(state),
+            "strategyGivesCards": strategy_phase.gives_chosen_cards(state),
             # Setup startowy — None po zakończeniu; kandydaci tylko dla jednego gracza.
             "setup": web_setup.build_setup_payload(state, viewing_player, own_only=strict)
             if strict

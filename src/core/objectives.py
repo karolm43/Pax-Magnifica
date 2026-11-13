@@ -192,6 +192,46 @@ def reveal_next_public(state: GameState) -> tuple[GameState, str | None]:
     return new_state, revealed_id
 
 
+def reveal_from_stage(state: GameState, stage: int) -> str | None:
+    """Odkrywa wierzchni cel z talii etapu ``stage`` (MUTUJE; Incentive Program - RULES.md 51.6).
+
+    W odróżnieniu od ``reveal_next_public`` etap wskazuje efekt karty, nie kolejność statusu.
+    ``None`` = talia etapu pusta (nic się nie dzieje).
+    """
+    deck = state.objectives.stage1_deck if stage == 1 else state.objectives.stage2_deck
+    if not deck:
+        return None
+    revealed_id = deck.pop(0)
+    state.objectives.revealed.append(revealed_id)
+    triggers.fire(
+        state, GameEvent.OBJECTIVE_REVEALED, Moment.AFTER, ctx={"objective": revealed_id}
+    )
+    return revealed_id
+
+
+def make_secret_public(state: GameState, objective_id: str) -> None:
+    """Zdobyty tajny cel staje się celem publicznym (Classified Document Leaks, C_agendas).
+
+    Pierwotny właściciel zachowuje punkt, nie może zdobyć celu ponownie (zapisany jako zdobywca
+    celu publicznego) i cel przestaje liczyć się do jego limitu tajnych celów.
+    """
+    owner = next(
+        (pid for pid, p in state.players.items() if objective_id in p.scored_secrets), None
+    )
+    if owner is None:
+        raise ValueError(f"{objective_id} is not a scored secret objective.")
+    from src.core import secret_objectives  # lokalnie: secret_objectives importuje ten moduł
+
+    secret_objectives.release_scored(state, owner, objective_id)
+    if objective_id not in state.objectives.revealed:
+        state.objectives.revealed.append(objective_id)
+    if not has_scored_public(state, owner, objective_id):
+        record_public_score(state, owner, objective_id)
+    triggers.fire(
+        state, GameEvent.OBJECTIVE_REVEALED, Moment.AFTER, ctx={"objective": objective_id}
+    )
+
+
 def replace_revealed(state: GameState, registry: StaticDataRegistry, old_id: str) -> str | None:
     """Odrzuca odkryty cel publiczny i zastępuje go LOSOWYM celem z dowolnej talii celów.
 

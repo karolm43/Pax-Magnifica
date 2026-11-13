@@ -51,7 +51,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `unit.ability_used` | Jednostka użyła zdolności (AFB, bombardment, space cannon). | 8 | when×5, after×3 | technologies×3, leaders×2, action_cards×1, promissory_notes×1, abilities×1 | `battle / invasion / space_cannon` |
 | `faction.ability_used` | Zdolność frakcji użyta (np. Pillage przeciw graczowi). | 1 | after×1 | leaders×1 | `faction_components.ability_used` |
 | `unit.placed` | Struktura/jednostka postawiona. | 0 | — | — | `unit_ops.place_units` |
-| `component.readied` | Komponent odświeżony. | 0 | — | — | — |
+| `component.readied` | Komponent odświeżony. | 0 | — | — | `agenda_phase._ready_all_planets` |
 | `component.exhausted` | Komponent (np. agent) wyczerpany. | 1 | after×1 | technologies×1 | `faction_components.pay_cost` |
 | `combat.hits_produced` | Trafienia wyprodukowane przeciw graczowi. | 1 | when×1 | relics×1 | — |
 | `unit.galvanized` | Jednostka galvanize. | 1 | when×1 | abilities×1 | — |
@@ -83,10 +83,10 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.votes_cast` | Głosy oddane. | 7 | when×4, after×3 | action_cards×2, leaders×2, promissory_notes×1, galactic_events×1, abilities×1 | `agenda_phase.cast_vote` |
 | `agenda.outcome_resolved` | Wynik agendy rozstrzygany. | 125 | after×124, during×1 | agendas×123, action_cards×1, abilities×1 | `agenda_phase._resolve` |
 | `agenda.elected` | Gracz wybrany jako wynik agendy. | 2 | when×2 | action_cards×2 | — |
-| `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.repeal_law` |
+| `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.remove_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **48**. Potrzebne komponentom, a jeszcze nie emitowane: **14**.
+Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **49**. Potrzebne komponentom, a jeszcze nie emitowane: **14**.
 
 Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 

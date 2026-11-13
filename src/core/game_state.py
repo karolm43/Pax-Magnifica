@@ -298,6 +298,17 @@ class AgendaPhaseState(BaseModel):
     pending_outcome: str | None = None
     pending_by_speaker: bool = False
     history: list[dict[str, Any]] = Field(default_factory=list)
+    # Gracze, którzy NIE mogą głosować do końca TEJ FAZY (Public Execution) - dopisywani do
+    # ``blocked`` każdej kolejnej agendy fazy.
+    phase_blocked: list[str] = Field(default_factory=list)
+    # Covert Legislation: ukryta agenda dobrana przez mówcę; gracze głosują nad jej wynikami,
+    # rozstrzyga się JEJ efekt (jawna dopiero przy rozstrzygnięciu; widzi ją tylko mówca).
+    covert_card: str | None = None
+    # Karta, której efekt właśnie się rozstrzyga (krok RESOLVED) - źródło hooków agendy dla
+    # KAŻDEGO gracza, dopóki decyzje graczy z jej efektu nie zostaną podjęte.
+    resolving: str | None = None
+    # Miscount Disclosed: prawo, nad którym głosuje się ponownie po „dalej” mówcy.
+    revote_law: str | None = None
 
 
 class ObjectivesState(BaseModel):
@@ -1063,6 +1074,9 @@ class GameState(BaseModel):
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).
     strategy_card_tg: dict[int, int] = Field(default_factory=dict)
+    # Ile kart strategii WYBRAŁ każdy gracz w tej fazie strategii (Checks and Balances: wybrana
+    # karta trafia do innego gracza, więc wybory ≠ posiadane karty - RULES.md 51.6).
+    strategy_choices: dict[str, int] = Field(default_factory=dict)
     # Żetony długu (debt) (nieformalna zasada stołu, NIE reguła TI4 — RULES.md 47.3): małe żetony
     # kontroli gracza-wystawcy oddane innemu graczowi jako „dług"/obietnica (np. 3 TG do
     # zapłaty = 3 żetony). Niewiążące dla silnika, tylko pamięć stołu. Format:

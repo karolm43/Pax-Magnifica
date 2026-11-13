@@ -316,3 +316,23 @@ def test_zamkniecie_walki_daje_podsumowanie() -> None:
     assert ("battle_result", "p1", None, 2, "winner") in got
     assert ("units", "p2", "destroyer", -2, None) in got
     assert ("units", "p1", "cruiser", -1, None) in got
+
+
+def test_rider_pokazuje_przewidziany_wynik() -> None:
+    """RULES.md 51.6: zagrany rider jest jawny - feed mówi, NA JAKI wynik go zagrano."""
+    from src.core.game_state import ActiveEffect
+
+    before = _state()
+    before.phase = Phase.AGENDA
+    before.players["p1"].private.action_cards = ["trade_rider"]
+    after = _state()
+    after.phase = Phase.AGENDA
+    after.decks.action_card_discard = ["trade_rider"]
+    after.active_effects = [
+        ActiveEffect(id="fx1", key="action_cards:trade_rider", scope="agenda", owner="p1",
+                     data={"outcome": "for"})
+    ]
+    entry = derive_activity("action-card:play:trade_rider", before, after)
+    assert entry is not None
+    riders = [(f.player_id, f.value, f.detail) for f in entry.facts if f.type == "rider"]
+    assert riders == [("p1", "trade_rider", "for")]

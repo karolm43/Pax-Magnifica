@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import command_tokens, exhaust, unit_ops
+from src.core import command_tokens, exhaust, rules_hooks, unit_ops
 from src.core.command_tokens import POOLS
 from src.core.game_state import GameState
 from src.core.unit_ops import UnitCause
@@ -152,9 +152,12 @@ def structure_problem(
         return f"You do not control {planet_id}."
     if DMZ_ATTACHMENT in state.planet_attachments.get(planet_id, []):
         return "Structures cannot be placed on a planet with the Demilitarized Zone."
-    if _structure_count(state, player_id, planet_id, structure) >= STRUCTURE_LIMIT_PER_PLANET[
-        structure
-    ]:
+    unlimited = structure == "pds" and rules_hooks.permits(
+        rules_hooks.POINT_PDS_UNLIMITED, state, player_id
+    )  # Homeland Defense Act (RULES.md 51.6)
+    if not unlimited and _structure_count(
+        state, player_id, planet_id, structure
+    ) >= STRUCTURE_LIMIT_PER_PLANET[structure]:
         return f"{planet_id} already has the maximum number of {structure}."
     left = production.reinforcements_left(state, player_id, structure)
     if left is not None and left <= 0:

@@ -771,6 +771,34 @@ function describeFact(
           </>
         ),
       };
+    case "rider":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}played{" "}
+            <Named kind="actionCard" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")} />{" "}
+            on {agendaOutcomeName(ctx, fact.detail ?? null)}
+          </>
+        ),
+      };
+    case "rider":
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}played{" "}
+            <Named
+              kind="actionCard"
+              id={fact.value ?? ""}
+              name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")}
+            />{" "}
+            on {agendaOutcomeName(ctx, fact.detail ?? null)}
+          </>
+        ),
+      };
     case "law_repealed":
       return {
         key,

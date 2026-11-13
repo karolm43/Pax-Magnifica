@@ -28,6 +28,7 @@ def _research_with_cost(
     state: GameState, ctx: CardContext, player_id: str, payload: dict[str, Any], cost: int
 ) -> str:
     """Bada technologię z payloadu i pobiera ``cost`` zasobów (mutuje klon). Zwraca id."""
+    cost = _card_cost(state, player_id, cost)
     tech_id = payload.get("tech")
     if not isinstance(tech_id, str):
         raise ValueError("Choose a technology to research.")
@@ -98,10 +99,18 @@ def _secondary(
     _research_with_cost(state, ctx, player_id, payload, SECONDARY_COST)
 
 
+def _card_cost(state: GameState, player_id: str, cost: int) -> int:
+    """Koszt badania kartą Technology (Minister of Sciences: bez zasobów - RULES.md 51.6)."""
+    if cost > 0 and rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SC_FREE, state, player_id):
+        return 0
+    return cost
+
+
 def research_options(
     state: GameState, ctx: CardContext, player_id: str, cost: int
 ) -> dict[str, Any]:
     """Wszystko, czego okno badania potrzebuje (drzewo, specjalności, płatność, koszt)."""
+    cost = _card_cost(state, player_id, cost)
     player = state.players[player_id]
     return {
         "tree": technology.tree_view(state, ctx.registry, player_id),

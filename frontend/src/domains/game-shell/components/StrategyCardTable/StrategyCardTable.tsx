@@ -154,6 +154,8 @@ export function StrategyCardTable(): ReactElement | null {
   // ``busy``/``run``, co w ``StrategyCardPicker`` (GameStatePanel). Zapobiega
   // wysłaniu kolejnego ``pickStrategyCard`` zanim poprzedni się rozstrzygnie.
   const [busy, setBusy] = useState(false);
+  // Checks and Balances (RULES.md 51.6): komu oddać wybraną kartę.
+  const [recipient, setRecipient] = useState<string | null>(null);
 
   // Karta z otwartym tooltipem (hover/focus). Klucz = initiative; ``null`` = brak.
   // Jeden stan dla całego rzędu (naraz tooltip pokazuje jedna karta).
@@ -415,6 +417,29 @@ export function StrategyCardTable(): ReactElement | null {
       {!minimized && !showCards && (
         <div className={styles.cardsPlaceholder} aria-hidden="true" />
       )}
+      {!minimized && gameState.strategyGivesCards && pickerId !== null ? (
+        <div className={styles.recipients} role="group" aria-label="Give the chosen card to">
+          <span>Checks and Balances - give the chosen card to:</span>
+          {players
+            .filter(
+              (p) =>
+                p.discordId !== pickerId &&
+                (pickCount === null || (p.scs?.length ?? 0) < pickCount),
+            )
+            .map((p) => (
+              <button
+                key={p.discordId}
+                type="button"
+                className={styles.recipientBtn}
+                aria-pressed={recipient === p.discordId}
+                onClick={() => setRecipient(p.discordId)}
+              >
+                <FactionMark player={p} size={18} />
+                {getPlayerFactionDisplayName(p)}
+              </button>
+            ))}
+        </div>
+      ) : null}
       {!minimized && showCards && (
       <div className={styles.cards} role="list">
         {cards.map((card, i, arr) => {
@@ -534,7 +559,9 @@ export function StrategyCardTable(): ReactElement | null {
                     // pickera / nie twoja kolej) → wczesny return, BEZ requestu
                     // (R8.6). Klik dozwolonej karty → wybór dla pickera (R8.5).
                     if (busy || !canPick || pickerId === null) return;
-                    void run(() => pickStrategyCard(pickerId, card.initiative));
+                    void run(() =>
+                      pickStrategyCard(pickerId, card.initiative, recipient ?? undefined),
+                    );
                   }}
                 >
                   {showImage ? (

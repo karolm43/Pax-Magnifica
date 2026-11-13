@@ -170,7 +170,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     GameEvent.COMBAT_HITS_PRODUCED: EventInfo(
         "Trafienia wyprodukowane przeciw graczowi.", ("player", "amount")
     ),
-    GameEvent.COMPONENT_READIED: EventInfo("Komponent odświeżony.", ("player", "component")),
+    GameEvent.COMPONENT_READIED: EventInfo(
+        "Komponent odświeżony.", ("player", "component"), "agenda_phase._ready_all_planets"
+    ),
     GameEvent.FACTION_IN_PLAY: EventInfo(
         "Frakcja wchodzi do gry (setup, flip Obsidian).", ("faction",)
     ),
@@ -343,7 +345,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "Wynik agendy rozstrzygany.", ("agenda", "outcome"), "agenda_phase._resolve"
     ),
     GameEvent.AGENDA_ELECTED: EventInfo("Gracz wybrany jako wynik agendy.", ("player", "agenda")),
-    GameEvent.LAW_DISCARDED: EventInfo("Prawo zdjęte z gry.", ("law",), "agenda_phase.repeal_law"),
+    GameEvent.LAW_DISCARDED: EventInfo(
+        "Prawo zdjęte z gry.", ("law", "outcome"), "agenda_phase.remove_law"
+    ),
     GameEvent.ANY_TIME: EventInfo("Dowolna chwila („at any time”).", ()),
 }
 

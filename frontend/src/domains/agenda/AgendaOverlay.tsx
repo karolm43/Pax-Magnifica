@@ -23,6 +23,7 @@ import { Switch } from "@/ds";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import type {
   AgendaPhaseData,
+  AgendaPrediction,
   AgendaVoter,
   PlayerData,
 } from "@/entities/data/types";
@@ -34,6 +35,8 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { useFactionImageUrl } from "@/hooks/useFactionImages";
 import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
+import { Named } from "@/domains/game-shell/components/ActivityPanel/Named";
+import { getActionCard } from "@/entities/lookup/actionCards";
 import {
   prettifyId,
   resolvePlanetName,
@@ -45,7 +48,8 @@ import styles from "./AgendaOverlay.module.css";
  * [pasek: tytuł, numer agendy, talia/prawa, „pokaż planszę"]
  * [Senat (półkole miejsc w kolejności głosowania) | Podium: karta agendy i wyniki | Urna: akcja]
  * Panel niczego nie liczy - kolejność, głosy i wyniki przychodzą z backendu (core/agenda_phase).
- * Efekty agend NIE są jeszcze kodowane: wynik jest tylko zapisywany.
+ * Efekty agend liczy silnik (RULES.md 51.6); decyzje graczy z efektów wyskakują jako oferty.
+ * Riders są jawne: przy każdym wyniku widać, kto i jaką kartą na niego postawił.
  */
 
 const BACKDROP = 'url("/static/extra/agenda2.jpg"), url("/static/extra/starfield.png")';
@@ -420,6 +424,7 @@ function Podium({
   onSelect,
   manual,
   setManual,
+  covertCard,
 }: {
   agenda: AgendaPhaseData;
   lookOf: (id: string) => Look;
@@ -428,8 +433,11 @@ function Podium({
   onSelect: (outcome: string) => void;
   manual: string;
   setManual: (v: string) => void;
+  covertCard: AgendaPhaseData["card"];
 }) {
   const card = agenda.card;
+  const predictions = agenda.predictions ?? [];
+  const ridersOn = (outcome: string) => predictions.filter((r) => r.outcome === outcome);
   const data = card ? getAgenda(card.id) : undefined;
   const name = card?.name ?? data?.name;
   const type = card?.type ?? data?.type;
@@ -468,6 +476,34 @@ function Podium({
           </span>
         </div>
       )}
+
+      {card && agenda.covert ? (
+        <div className={styles.covertBox}>
+          <p className={styles.note}>
+            Covert Legislation: you vote on the outcomes of a <b>hidden agenda</b> drawn by the
+            speaker. It is revealed when it resolves.
+          </p>
+          {covertCard ? (
+            <article className={styles.agendaCard} data-type={(covertCard.type ?? "").toLowerCase()}>
+              <header>
+                <span className={styles.agendaType}>Hidden · only you see it</span>
+                <b>{covertCard.name}</b>
+                {covertCard.target ? <small>{covertCard.target}</small> : null}
+              </header>
+              {covertCard.text1 ? <p>{covertCard.text1}</p> : null}
+              {covertCard.text2 ? <p>{covertCard.text2}</p> : null}
+            </article>
+          ) : null}
+        </div>
+      ) : null}
+
+      {agenda.revoteLaw ? (
+        <p className={styles.note}>
+          Miscount Disclosed: players vote again on{" "}
+          <b>{getAgenda(agenda.revoteLaw)?.name ?? prettifyId(agenda.revoteLaw)}</b> as if it were
+          just revealed.
+        </p>
+      ) : null}
 
       {card && agenda.unresolvable ? (
         <p className={styles.warn}>
@@ -520,6 +556,13 @@ function Podium({
                 <div className={styles.bar} aria-hidden="true">
                   <span style={{ width: `${(total / maxVotes) * 100}%` }} />
                 </div>
+                {ridersOn(outcome).length > 0 ? (
+                  <div className={styles.chips} aria-label="Riders on this outcome">
+                    {ridersOn(outcome).map((r, i) => (
+                      <RiderChip key={`${r.card}-${i}`} rider={r} look={lookOf(r.playerId)} />
+                    ))}
+                  </div>
+                ) : null}
                 {votersFor(outcome).length > 0 ? (
                   <div className={styles.chips}>
                     {votersFor(outcome).map(([pid, v]) => {
@@ -559,6 +602,27 @@ function Podium({
         </ul>
       ) : null}
 
+      {predictions.length > 0 ? (
+        <div className={styles.history} aria-label="Riders">
+          <h4>Riders</h4>
+          {predictions.map((r, i) => {
+            const l = lookOf(r.playerId);
+            return (
+              <div key={`${r.card}-${i}`} className={styles.historyRow}>
+                <b>
+                  {l.faction ? <CircularFactionIcon faction={l.faction} size={16} /> : null}{" "}
+                  {l.name}
+                </b>
+                <span>
+                  <Named kind="actionCard" id={r.card} name={r.cardName} /> on{" "}
+                  <em>{r.outcomeLabel}</em>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
       {agenda.history.length > 0 ? (
         <div className={styles.history}>
           <h4>Resolved this phase</h4>
@@ -566,20 +630,52 @@ function Podium({
             <div key={`${h.agenda}-${i}`} className={styles.historyRow}>
               <b>{getAgenda(h.agenda)?.name ?? prettifyId(h.agenda)}</b>
               <span>
-                {h.discarded
-                  ? "discarded"
-                  : `${outcomeLabel(
-                      { ...agenda, kind: h.kind ?? agenda.kind },
-                      h.outcome ?? "",
-                      lookOf,
-                    )}${h.bySpeaker ? " (speaker)" : ""}${h.stays ? " · law in play" : ""}`}
+                {h.vetoed
+                  ? "vetoed"
+                  : h.voided
+                    ? "discarded without effect"
+                    : h.discarded
+                      ? "discarded"
+                      : `${outcomeLabel(
+                          { ...agenda, kind: h.kind ?? agenda.kind },
+                          h.outcome ?? "",
+                          lookOf,
+                        )}${h.bySpeaker ? " (speaker)" : ""}${h.stays ? " · law in play" : ""}`}
               </span>
+              {(h.riders ?? []).map((r, j) => (
+                <span key={`${r.card}-${j}`} className={styles.riderResult}>
+                  {lookOf(r.player).name}:{" "}
+                  <Named kind="actionCard" id={r.card} name={actionCardName(r.card)} /> on{" "}
+                  {outcomeLabel({ ...agenda, kind: h.kind ?? agenda.kind }, r.predicted, lookOf)}
+                  {" - "}
+                  {r.correct ? (r.skipped ? "correct, reward unavailable" : "correct") : "missed"}
+                </span>
+              ))}
             </div>
           ))}
         </div>
       ) : null}
     </section>
   );
+}
+
+/** Rider na wyniku: frakcja gracza + karta (pełny opis w podpowiedzi, jak w feedzie). */
+function RiderChip({ rider, look }: { rider: AgendaPrediction; look: Look }) {
+  return (
+    <span
+      className={styles.chip}
+      data-rider=""
+      style={{ "--seat-rgb": look.rgb } as CSSProperties}
+      aria-label={`${look.name}: ${rider.cardName} on ${rider.outcomeLabel}`}
+    >
+      {look.faction ? <CircularFactionIcon faction={look.faction} size={16} /> : null}
+      <Named kind="actionCard" id={rider.card} name={rider.cardName} />
+    </span>
+  );
+}
+
+function actionCardName(card: string): string {
+  return getActionCard(card)?.name ?? prettifyId(card);
 }
 
 /** Urna: akcja właściwa dla kroku (ujawnienie, głos, remis, dalej, koniec). */
@@ -609,10 +705,12 @@ function Ballot({
   const planets = voter?.planets ?? [];
   const predictive = voter?.predictive;
   const predictiveVotes = usePredictive && predictive?.ready ? predictive.votes : 0;
-  const votes =
-    planets.filter((p) => picked.includes(p.planet)).reduce((n, p) => n + p.influence, 0) +
-    (voter?.extra ?? 0) +
-    predictiveVotes;
+  const single = voter?.singleVote === true;
+  const votes = single
+    ? 1
+    : planets.filter((p) => picked.includes(p.planet)).reduce((n, p) => n + p.influence, 0) +
+      (voter?.extra ?? 0) +
+      predictiveVotes;
 
   // Nowy głosujący = czysta urna.
   useEffect(() => {
@@ -676,8 +774,17 @@ function Ballot({
           <b>{look.name}</b> votes
         </div>
         <p className={styles.note}>
-          Exhaust planets to cast votes equal to their influence. All votes go to <b>one</b>{" "}
-          outcome. Trade goods cannot buy votes. Pick an outcome on the podium.
+          {single ? (
+            <>
+              Representative Government: you cast exactly <b>1</b> vote without exhausting
+              planets. Pick an outcome on the podium.
+            </>
+          ) : (
+            <>
+              Exhaust planets to cast votes equal to their influence. All votes go to{" "}
+              <b>one</b> outcome. Trade goods cannot buy votes. Pick an outcome on the podium.
+            </>
+          )}
         </p>
         <div className={styles.votesBig}>
           <b>{votes}</b>
@@ -692,7 +799,7 @@ function Ballot({
             ) : null}
           </span>
         </div>
-        <div className={styles.planets}>
+        <div className={styles.planets} hidden={single}>
           {planets.length === 0 ? (
             <span className={styles.empty}>No planets with influence.</span>
           ) : null}
@@ -855,8 +962,9 @@ function Ballot({
           {agenda.decidedBySpeaker ? <small>chosen by the speaker</small> : null}
         </div>
         <p className={styles.note}>
-          Effects of the agenda are not automated yet - apply them by hand (God-Mode) if needed.
-          Laws with a For or Elect outcome stay in play; everything else is discarded.
+          The agenda&apos;s effect has been applied. Players with a choice to make (units, planets,
+          technologies) get a decision window - the speaker continues once they are done. Laws
+          with a For or Elect outcome stay in play; everything else is discarded.
         </p>
         <button
           type="button"
@@ -864,7 +972,11 @@ function Ballot({
           disabled={busy}
           onClick={() => run(() => api.agendaContinue(speaker))}
         >
-          {last ? "Ready planets and finish" : "Next agenda"}
+          {agenda.revoteLaw
+            ? `Vote on ${getAgenda(agenda.revoteLaw)?.name ?? prettifyId(agenda.revoteLaw)}`
+            : last
+              ? "Ready planets and finish"
+              : "Next agenda"}
           <IconChevronsRight size={16} aria-hidden="true" />
         </button>
       </>
@@ -890,7 +1002,15 @@ function Ballot({
   );
 }
 
-function CouncilWindow({ agenda, canAdvance }: { agenda: AgendaPhaseData; canAdvance: boolean }) {
+function CouncilWindow({
+  agenda,
+  canAdvance,
+  covertCard,
+}: {
+  agenda: AgendaPhaseData;
+  canAdvance: boolean;
+  covertCard: AgendaPhaseData["card"];
+}) {
   const { lookOf, round } = usePlayers();
   const setHidden = useAppStore((s) => s.setAgendaHidden);
   const [busy, setBusy] = useState(false);
@@ -959,6 +1079,7 @@ function CouncilWindow({ agenda, canAdvance }: { agenda: AgendaPhaseData; canAdv
           onSelect={setSelected}
           manual={manual}
           setManual={setManual}
+          covertCard={covertCard}
         />
         <section className={styles.panel} aria-label="Ballot">
           <h3>
@@ -1005,7 +1126,11 @@ export function AgendaOverlay() {
     );
   }
   return (
-    <CouncilWindow agenda={agenda} canAdvance={gameState?.canAdvancePhase === true} />
+    <CouncilWindow
+      agenda={agenda}
+      canAdvance={gameState?.canAdvancePhase === true}
+      covertCard={gameState?.agendaCovertCard ?? null}
+    />
   );
 }
 

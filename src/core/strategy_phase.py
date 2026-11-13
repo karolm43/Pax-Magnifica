@@ -13,7 +13,7 @@ akumulacja +1 TG na niewybranych kartach na koniec fazy, oznaczenie karty jako z
 
 from __future__ import annotations
 
-from src.core import active_effects, economy, exhaust, triggers
+from src.core import active_effects, economy, exhaust, rules_hooks, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.models import StrategyCardDef
@@ -135,13 +135,36 @@ def next_strategy_picker(state: GameState) -> str | None:
     # Bieżąca runda = najmniejsza liczba kart wśród graczy. Następny wybiera pierwszy
     # w speaker order, który ma jeszcze TYLE kart (nie wybierał w tej rundzie) i wciąż
     # < Pick_Count. Gdy wszyscy osiągnęli Pick_Count → None (faza gotowa do akcji).
-    current_round = min(len(state.players[pid].strategy_cards) for pid in order)
+    # Checks and Balances: liczą się WYBORY gracza, nie karty, które dostał od innych.
+    def count(pid: str) -> int:
+        if gives_chosen_cards(state):
+            return state.strategy_choices.get(pid, 0)
+        return len(state.players[pid].strategy_cards)
+
+    current_round = min(count(pid) for pid in order)
     if current_round >= needed:
         return None
     for pid in order:
-        if len(state.players[pid].strategy_cards) == current_round:
+        if count(pid) == current_round:
             return pid
     return None
+
+
+def gives_chosen_cards(state: GameState) -> bool:
+    """Checks and Balances („For"): wybraną kartę strategii dostaje inny gracz (RULES.md 51.6)."""
+    return any(
+        rules_hooks.permits(rules_hooks.POINT_STRATEGY_GIVE_CHOSEN, state, pid)
+        for pid in state.players
+    )
+
+
+def card_recipients(state: GameState, player_id: str) -> list[str]:
+    """Kto może dostać wybraną kartę: inni gracze z mniej niż ``pick_count`` kartami."""
+    needed = pick_count(state)
+    return [
+        pid for pid in speaker_order(state)
+        if pid != player_id and len(state.players[pid].strategy_cards) < needed
+    ]
 
 
 def ensure_strategy_complete(state: GameState) -> None:
@@ -190,8 +213,12 @@ def pick_strategy_card(
     initiative: int,
     *,
     set_alias: str | None = None,
+    recipient: str | None = None,
 ) -> GameState:
     """Gracz wybiera kartę strategii o danym numerze inicjatywy.
+
+    ``recipient`` - Checks and Balances („For"): gracz, który dostaje wybraną kartę (inny,
+    bez kompletu kart; gdy nikt taki nie istnieje - karta zostaje u wybierającego).
 
     Efekty (RULES.md 13):
     - Karta musi należeć do aktywnego zestawu i nie być wcześniej wybrana.
@@ -226,8 +253,23 @@ def pick_strategy_card(
         raise ValueError(f"Out-of-turn pick: it is now the pick of {picker}.")
     # Limit Pick_Count (R3.5): gracz nie może przekroczyć dozwolonej liczby kart.
     allowed = pick_count(state)
-    if len(state.players[player_id].strategy_cards) >= allowed:
+    giving = gives_chosen_cards(state)
+    if not giving and len(state.players[player_id].strategy_cards) >= allowed:
         raise ValueError(f"Allowed number of cards exceeded ({allowed}).")
+    holder = player_id
+    if giving:
+        eligible = card_recipients(state, player_id)
+        if eligible:
+            if recipient not in eligible:
+                raise ValueError(
+                    "Checks and Balances: give the chosen strategy card to another player "
+                    f"without a full hand of strategy cards ({', '.join(eligible)})."
+                )
+            holder = recipient
+        elif len(state.players[player_id].strategy_cards) >= allowed:
+            raise ValueError(f"Allowed number of cards exceeded ({allowed}).")
+    elif recipient not in (None, player_id):
+        raise ValueError("Strategy cards cannot be given to another player now.")
 
     # Public Disgrace (RULES.md 53.7): gracz musi wybrać INNĄ kartę, o ile jest dostępna.
     forbidden = forbidden_picks(state, player_id)
@@ -248,8 +290,9 @@ def pick_strategy_card(
     )
     if fired.replaced:  # „instead of”: wybór nie następuje, gracz wybiera ponownie
         return new_state
-    player = new_state.players[player_id]
-    # Transfer trade goods z karty do gracza, zerowanie licznika karty.
+    player = new_state.players[holder]
+    new_state.strategy_choices[player_id] = new_state.strategy_choices.get(player_id, 0) + 1
+    # Transfer trade goods z karty do gracza (WYBIERAJĄCEGO - C_agendas), zerowanie licznika.
     tg_on_card = new_state.strategy_card_tg.get(initiative, 0)
     if tg_on_card:
         economy.gain_trade_goods(new_state, player_id, tg_on_card)
@@ -387,6 +430,7 @@ def reset_strategy_cards(state: GameState) -> GameState:
     (``strategy_card_tg``) NIE są czyszczone — akumulują się między rundami.
     """
     new_state = state.clone()
+    new_state.strategy_choices = {}
     for player_id, player in new_state.players.items():
         # Political Stability (RULES.md 53.7): karty zostają u gracza (jest "gotowy"), a w
         # następnej fazie strategii nie wybiera - ``next_strategy_picker`` pomija go samo.

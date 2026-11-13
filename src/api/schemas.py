@@ -522,6 +522,8 @@ class StrategyPickRequest(BaseModel):
 
     player_id: str
     initiative: int
+    # Checks and Balances: gracz, który dostaje wybraną kartę (RULES.md 51.6).
+    recipient: str | None = None
 
 
 class StrategyPlayRequest(BaseModel):

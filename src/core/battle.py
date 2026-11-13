@@ -169,7 +169,9 @@ def combat_units(
                 modifier=modifier,
                 # 0 kości dozwolone (Salai Sai Corian bez statków niemyśliwskich przeciwnika).
                 dice_per_unit=max(0, (unit.combat_die_count or 1) + extra_dice),
-                sustain=unit.sustain_damage and not no_sustain,
+                sustain=unit.sustain_damage and not no_sustain and base_type not in (
+                    rules_hooks.forbidden(rules_hooks.POINT_UNIT_SUSTAIN_LOST, state, player_id)
+                ),
                 afb_hits_on=unit.afb_hits_on if kind == "space" else None,
                 afb_dice=unit.afb_die_count or 1,
                 granted=(

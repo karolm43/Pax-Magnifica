@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import agenda_phase
+from src.core.components import ComponentCategory
 from src.core.game_state import AgendaStep, GameState, Phase
 from src.core.registry import StaticDataRegistry
 
@@ -100,6 +101,62 @@ def build_laws_in_play(
     return laws
 
 
+def build_predictions(state: GameState, registry: StaticDataRegistry) -> list[dict[str, Any]]:
+    """Zagrane riders bieżącej agendy: kto, jaką kartą i NA JAKI WYNIK (przewidywanie jest jawne -
+    „predict aloud", C_action_cards). Kolejność zagrania."""
+    from src.core.hooks import reactions_agenda  # lokalnie: hooki ładują się leniwie
+
+    agenda = state.agenda
+    found: list[dict[str, Any]] = []
+    for pid in state.players:
+        for card, outcome in reactions_agenda.predictions(state, pid):
+            definition = registry.catalog.get(ComponentCategory.ACTION_CARD, card)
+            found.append(
+                {
+                    "playerId": pid,
+                    "card": card,
+                    "cardName": getattr(definition, "name", None) or card,
+                    "outcome": outcome,
+                    "outcomeLabel": _outcome_info(
+                        state, registry, agenda.kind if agenda is not None else "", outcome
+                    ),
+                }
+            )
+    order = {e.key: i for i, e in enumerate(state.active_effects)}
+    return sorted(found, key=lambda f: order.get(f"action_cards:{f['card']}", 0))
+
+
+def covert_for_viewer(
+    state: GameState, registry: StaticDataRegistry, viewer: str | None
+) -> dict[str, Any] | None:
+    """Ukryta agenda Covert Legislation - widzi ją tylko mówca (C_agendas)."""
+    agenda = state.agenda
+    if agenda is None or agenda.covert_card is None or viewer != state.speaker_id:
+        return None
+    return _card(registry, agenda.covert_card)
+
+
+def revealed_secrets(state: GameState) -> dict[str, list[str]]:
+    """Search Warrant: właściciel gra z JAWNYMI tajnymi celami (``{player_id: [cele]}``)."""
+    from src.core.hooks import agendas_laws  # lokalnie: hooki ładują się leniwie
+
+    found = {pid: agendas_laws.revealed_secrets(state, pid) for pid in state.players}
+    return {pid: cards for pid, cards in found.items() if cards}
+
+
+def with_revealed_secrets(
+    players: list[dict[str, Any]], state: GameState
+) -> list[dict[str, Any]]:
+    """Search Warrant: niezdobyte tajne cele właściciela jawne w ``knownUnscoredSecrets``."""
+    revealed = revealed_secrets(state)
+    for entry in players:
+        cards = revealed.get(str(entry.get("discordId")))
+        if cards:
+            entry["knownUnscoredSecrets"] = {sid: 1 for sid in cards}
+            entry["numUnscoredSecrets"] = len(cards)
+    return players
+
+
 def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict[str, Any] | None:
     """Stan fazy agendy dla panelu (``None`` poza zainicjowaną fazą agendy)."""
     agenda = state.agenda
@@ -114,6 +171,8 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
             "available": ready,
             "total": sum(int(p["influence"]) for p in planets),
             "extra": agenda_phase.extra_votes(state, registry, pid),
+            # Representative Government: dokładnie 1 głos, bez planet i dodatkowych głosów.
+            "singleVote": agenda_phase.single_vote(state, pid),
             # Predictive Intelligence: posiadana / gotowa (opcjonalne +3 głosy, decyzja gracza).
             "predictive": {
                 "owned": agenda_phase.PREDICTIVE_INTELLIGENCE in state.players[pid].technologies,
@@ -126,6 +185,14 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
         "agendaNumber": agenda.agenda_number,
         "totalAgendas": agenda_phase.AGENDAS_PER_PHASE,
         "card": _card(registry, agenda.agenda_id),
+        # Covert Legislation: głosuje się nad ukrytą agendą (treść widzi tylko mówca).
+        "covert": agenda.covert_card is not None,
+        # Riders zagrane na tę agendę (kto, czym i na jaki wynik) - jawne.
+        "predictions": build_predictions(state, registry),
+        # Miscount Disclosed: prawo, nad którym głosuje się ponownie po „dalej".
+        "revoteLaw": agenda.revote_law,
+        # Gracze bez prawa głosu do końca fazy (Public Execution).
+        "phaseBlocked": list(agenda.phase_blocked),
         "kind": agenda.kind,
         "outcomes": list(agenda.outcomes),
         "unresolvable": agenda.unresolvable,
