@@ -49,7 +49,7 @@ export function CustodiansClaim({
   }
   if (!view.onBoard) return null;
 
-  const total = paymentTotal(view.influence, payment);
+  const total = paymentTotal(view.influence, payment, view.tradeGoodValue ?? 1);
   const enough = total >= view.cost;
 
   const submit = async () => {
@@ -121,6 +121,7 @@ export function CustodiansClaim({
           <PaymentPicker
             values={view.influence}
             tradeGoodsAvailable={view.tradeGoods}
+            tradeGoodValue={view.tradeGoodValue ?? 1}
             value={payment}
             onChange={setPayment}
             unit="influence"

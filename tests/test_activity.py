@@ -84,6 +84,29 @@ def test_ability_note_becomes_fact() -> None:
     }
 
 
+def test_pillage_widoczny_w_feedzie() -> None:
+    """Pillage (RULES.md 62.8): fakt ``ability_used`` z celem i przepływ TG obu graczy."""
+    from src.core.game_state import SystemState
+    from src.core.hooks.factions import mentak
+
+    StaticDataRegistry()  # wiąże rejestr dla hooków (nazwa frakcji w opisie)
+    before = _state()
+    before.players["p1"].faction = "mentak"
+    before.players["p2"].trade_goods = 3
+    before.systems = {
+        "000": SystemState(position="000", system_id="18", space_units={"p1": {"cruiser": 1}}),
+        "101": SystemState(position="101", system_id="20", space_units={"p2": {"cruiser": 1}}),
+    }
+    after = before.clone()
+    mentak.pillage_on_gain(after, "p1", {"player": "p2", "params": {"take": "trade_good"}})
+    entry = derive_activity("offer:accept:of1", before, after)
+    assert entry is not None
+    facts = {(f.type, f.player_id, f.value, f.detail, f.delta) for f in entry.facts}
+    pillage = ("ability_used", "p1", "abilities:pillage", "against The Federation of Sol", None)
+    assert pillage in facts
+    assert ("tg", "p2", None, None, -1) in facts
+    assert ("tg", "p1", None, None, 1) in facts
+
 def test_vp_and_planet_facts_from_diff() -> None:
     before = _state()
     after = _state()

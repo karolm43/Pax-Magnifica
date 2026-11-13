@@ -101,7 +101,8 @@ export type Payment = { planets: string[]; tradeGoods: number };
 /**
  * Wybór płatności planetami (wyczerpanie karty) i trade goods — wspólny dla kart, które
  * każą coś wydać (Leadership: wpływ; Technology: zasoby). `values` = gotowe planety i ich
- * wartość z backendu; TG zastępują 1:1 wpływ/zasób (R_trade_goods).
+ * wartość z backendu; TG zastępują wpływ/zasób po `tradeGoodValue` (bazowo 1:1, R_trade_goods;
+ * Mirror Computing 1:2 — RULES.md 62.8).
  */
 export function PaymentPicker({
   values,
@@ -110,9 +111,11 @@ export function PaymentPicker({
   onChange,
   unit,
   busy,
+  tradeGoodValue = 1,
 }: {
   values: Record<string, number>;
   tradeGoodsAvailable: number;
+  tradeGoodValue?: number;
   value: Payment;
   onChange: (next: Payment) => void;
   unit: string;
@@ -152,7 +155,7 @@ export function PaymentPicker({
         <span className={styles.rowLabel}>
           <img className={styles.tgIcon} src="/tg.png" alt="" aria-hidden="true" /> Trade goods
           <small>
-            1 trade good = 1 {unit} · you have {tradeGoodsAvailable}
+            1 trade good = {tradeGoodValue} {unit} · you have {tradeGoodsAvailable}
           </small>
         </span>
         <Stepper
@@ -167,9 +170,16 @@ export function PaymentPicker({
   );
 }
 
-/** Suma wartości wybranych planet + TG. */
-export function paymentTotal(values: Record<string, number>, payment: Payment): number {
-  return payment.planets.reduce((sum, id) => sum + (values[id] ?? 0), 0) + payment.tradeGoods;
+/** Suma wartości wybranych planet + TG (``tgValue`` = wartość 1 TG; Mirror Computing: 2). */
+export function paymentTotal(
+  values: Record<string, number>,
+  payment: Payment,
+  tgValue = 1,
+): number {
+  return (
+    payment.planets.reduce((sum, id) => sum + (values[id] ?? 0), 0) +
+    payment.tradeGoods * tgValue
+  );
 }
 
 const POOL_LABELS: { key: keyof PoolSplit; label: string }[] = [

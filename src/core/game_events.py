@@ -256,7 +256,8 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "battle / invasion / space_cannon",
     ),
     GameEvent.FACTION_ABILITY_USED: EventInfo(
-        "Zdolność frakcji użyta (np. Pillage przeciw graczowi).", ("player", "ability")
+        "Zdolność frakcji użyta (np. Pillage przeciw graczowi).", ("player", "ability", "target"),
+        "faction_components.ability_used",
     ),
     GameEvent.UNIT_GALVANIZED: EventInfo("Jednostka galvanize.", ("player",)),
     GameEvent.UNITS_COEXIST: EventInfo(

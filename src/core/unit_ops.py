@@ -24,6 +24,7 @@ from src.core import triggers
 from src.core.damage import damaged_count, move_damage, set_damaged
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
+from src.core.unit_catalog import is_space_unit
 
 
 class UnitCause(StrEnum):
@@ -153,6 +154,7 @@ def remove_units(
     remaining = damaged_count(system, zone, player_id, base_type)
     set_damaged(system, zone, player_id, base_type, remaining)
     if cause is UnitCause.DESTROYED and min(count, before) > 0:
+        _note_combat_loss(state, system.position, zone, player_id, base_type, min(count, before))
         triggers.fire(
             state, GameEvent.UNIT_DESTROYED, Moment.AFTER, subject=player_id,
             ctx={"player": player_id, "base_type": base_type, "zone": zone,
@@ -162,6 +164,28 @@ def remove_units(
 
         objective_events.on_unit_destroyed(state, system.position, zone, player_id, base_type)
     return before
+
+
+def _note_combat_loss(
+    state: GameState, position: str, zone: str, player_id: str, base_type: str, count: int
+) -> None:
+    """Statek zniszczony w trwającej walce kosmicznej → ``ActiveCombat.destroyed_all``.
+
+    Jedno miejsce dla każdej przyczyny (straty z rzutów, AFB, karty, Assault Cannon): ślad całej
+    walki dla Salvage Operations i Sleeper Cell (RULES.md 62.8).
+    """
+    combat = state.active_combat
+    if (
+        combat is None
+        or combat.kind != "space"
+        or combat.position != position
+        or zone != "space"
+        or not is_space_unit(base_type)
+    ):
+        return
+    combat.destroyed_all = [
+        *combat.destroyed_all, *({"player": player_id, "base_type": base_type},) * count
+    ]
 
 
 def transfer_units(

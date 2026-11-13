@@ -109,7 +109,9 @@ function LastVolley({
         <IconDice5 size={14} aria-hidden="true" />
         {entry.phase === "AFB"
           ? "Anti-Fighter Barrage"
-          : `Round ${entry.round} — combat rolls`}
+          : entry.phase === "AMBUSH"
+            ? "Ambush"
+            : `Round ${entry.round} — combat rolls`}
       </header>
       {[attacker, defender].map((key) => (
         <div key={key} className={styles.volleySide}>

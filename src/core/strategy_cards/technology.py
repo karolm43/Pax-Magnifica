@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import ability_notes, exhaust, rules_hooks, technology
+from src.core import ability_notes, exhaust, payment, rules_hooks, technology
 from src.core.game_state import GameState
 from src.core.payment import parse_payment, ready_planet_values
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
@@ -114,6 +114,7 @@ def research_options(
         "relic_skips": technology.ignore_prerequisite_relics(state, player_id),
         "planets": ready_planet_values(state, ctx.registry, player_id, "resources"),
         "trade_goods": player.trade_goods,
+        "trade_good_value": payment.trade_good_value(state, player_id),
         # Zniżka z Doctor Sucaban (już odjęta od ``cost``) i planety płacące specjalnością.
         "discount": min(cost, technology.research_discount(state, player_id)) if cost else 0,
         "compound_planets": (

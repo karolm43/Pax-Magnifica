@@ -131,6 +131,7 @@ def test_production_view_in_grant_mode(registry: StaticDataRegistry) -> None:
         "influenceAsResources": True,
         "maxCost": None,
         "shipsOnly": False,
+        "allowedTypes": [],
     }
     assert view["remaining"] == 1 and view["limit"] == 1
     planet = next(p for p in view["planets"] if p["planet"] == _CULT)

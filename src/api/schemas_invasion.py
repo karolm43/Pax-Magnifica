@@ -151,6 +151,8 @@ class CustodiansView(BaseModel):
     # Gotowe planety atakującego → wpływ oraz trade goods do wydania.
     influence: dict[str, int] = Field(default_factory=dict)
     trade_goods: int = Field(default=0, serialization_alias="tradeGoods")
+    # Wartość 1 TG w płatności (Mirror Computing: 2, RULES.md 62.8).
+    trade_good_value: int = Field(default=1, serialization_alias="tradeGoodValue")
     # Planety, na które nie wolno lądować, dopóki żeton leży.
     blocked_planets: list[str] = Field(default_factory=list, serialization_alias="blockedPlanets")
 

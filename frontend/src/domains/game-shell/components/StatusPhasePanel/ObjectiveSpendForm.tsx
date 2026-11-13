@@ -123,7 +123,7 @@ export function ObjectiveSpendForm({
     );
   } else if (kind === "resources" || kind === "influence") {
     const values = spend.planets ?? {};
-    const total = paymentTotal(values, { planets, tradeGoods });
+    const total = paymentTotal(values, { planets, tradeGoods }, spend.tradeGoodValue ?? 1);
     body = { planets, trade_goods: tradeGoods };
     ok = total >= goal;
     summary = `Spend ${goal} ${kind}: ${total}/${goal}.`;
@@ -131,6 +131,7 @@ export function ObjectiveSpendForm({
       <PaymentPicker
         values={values}
         tradeGoodsAvailable={spend.tradeGoods}
+        tradeGoodValue={spend.tradeGoodValue ?? 1}
         value={{ planets, tradeGoods }}
         onChange={(next) => {
           setPlanets(next.planets);
@@ -145,7 +146,10 @@ export function ObjectiveSpendForm({
     const infValues = spend.influencePlanets ?? {};
     const res = resPlanets.reduce((n, id) => n + (resValues[id] ?? 0), 0);
     const inf = infPlanets.reduce((n, id) => n + (infValues[id] ?? 0), 0);
-    const neededTg = goal + Math.max(0, goal - res) + Math.max(0, goal - inf);
+    // Braki wpływu/zasobów pokrywa TG po swojej wartości (Mirror Computing), wymóg TG — sztukami.
+    const worth = spend.tradeGoodValue ?? 1;
+    const neededTg =
+      goal + Math.ceil(Math.max(0, goal - res) / worth) + Math.ceil(Math.max(0, goal - inf) / worth);
     body = { resource_planets: resPlanets, influence_planets: infPlanets, trade_goods: tradeGoods };
     ok = tradeGoods >= neededTg;
     summary =

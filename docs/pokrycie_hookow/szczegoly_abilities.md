@@ -6,7 +6,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 |---|---|---|---|---|---|:---:|---|
 | `aetherpassage` | Aetherpassage | empyrean | after | TRIGGER (okno reakcji) | ruch | — | You may allow that player to move their ships through systems that contain your ships. |
 | `amalgamation` | Amalgamation | cabal | when | TRIGGER (okno reakcji) | produkcja, ekonomia i płatności | — | You may return 1 captured unit of that type to produce that unit without spending resources. |
-| `ambush` | Ambush | mentak | at_start | PERMIT (pozwolenie) | walka, produkcja | — | You may roll 1 die for each of up to 2 of your cruisers or destroyers in the system. For each result equal to or greater than that ship's c… |
+| `ambush` | Ambush | mentak | at_start | PERMIT (pozwolenie) | walka, produkcja | ✔ | You may roll 1 die for each of up to 2 of your cruisers or destroyers in the system. For each result equal to or greater than that ship's c… |
 | `analytical` | Analytical | jolnar | when | TRIGGER (okno reakcji) | technologie | ✔ | You may ignore 1 prerequisite. |
 | `arbiters` | Arbiters | hacan | — | PERMIT (pozwolenie) | karty | ✔ | When you are negotiating a transaction, action cards can be exchanged as part of that transaction. |
 | `armada` | Armada | letnev | — | MODIFY (liczba/rzut) | żetony dowodzenia | ✔ | The maximum number of non-fighter ships you can have in each system is equal to 2 more than the number of tokens in your fleet pool |
@@ -50,7 +50,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `orbital_drop` | Orbital Drop | sol | action | — | produkcja, ekonomia i płatności, żetony dowodzenia, planety i eksploracja | ✔ | Spend 1 token from your strategy pool to place 2 infantry from your reinforcements on 1 planet you control. |
 | `peace_accords` | Peace Accords | xxcha | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | — | You may gain control of 1 planet other than Mecatol Rex that does not contain any units and is in a system that is adjacent to a planet you… |
 | `phoenixstandard` | Phoenix Standard | bastion | at_end | PERMIT (pozwolenie) | — | — | you may galvanize 1 of your units that participated. |
-| `pillage` | Pillage | mentak | after | TRIGGER (okno reakcji) | ekonomia i płatności | — | If they have 3 or more trade goods, you may take 1 of their trade goods or commodities. |
+| `pillage` | Pillage | mentak | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | If they have 3 or more trade goods, you may take 1 of their trade goods or commodities. |
 | `plotsplots` | Plots Within Plots | firmament | when | TRIGGER (okno reakcji) | planety i eksploracja, cele i punkty | — | You can score secret objectives already scored by other players if you fulfill their requirements; this does not count against your secret … |
 | `propagation` | Propagation | nekro | when | TRIGGER (okno reakcji) | żetony dowodzenia, technologie | — | You cannot research technology Gain 3 command tokens instead. |
 | `puppetsoftheblade` | Puppets of the Blade | firmament | unclassified | — | karty, planety i eksploracja | — | ACTION: Purge The Firmament's faction sheet, leaders, planet cards, and promissory note. Then, gain all of the faction components for The O… |

@@ -14,7 +14,7 @@ from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.core import actor as actor_rules
-from src.core import invasion, production, strategic_action, tactical
+from src.core import invasion, payment, production, strategic_action, tactical
 from src.core.planet_stats import influence_of, resources_of
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
@@ -117,6 +117,7 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
                 # Integrated Economy: brak limitu liczby sztuk, jest limit łącznego kosztu.
                 "maxCost": grant.max_cost,
                 "shipsOnly": grant.ships_only,
+                "allowedTypes": list(grant.allowed_types),
             }
             if grant is not None
             else None
@@ -145,6 +146,7 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
         ),
         "planets": planets,
         "tradeGoods": player.trade_goods,
+        "tradeGoodValue": payment.trade_good_value(state, player_id),
         "units": units,
     }
 

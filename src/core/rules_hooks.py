@@ -33,7 +33,8 @@ from src.core.game_state import GameState
 POINT_PRODUCTION_FORBIDS = "production.forbids"  # FORBID -> typy jednostek (ctx: producer_type)
 POINT_MOVEMENT_ENTER_ASTEROIDS = "movement.enter_asteroids"  # PERMIT -> bool
 POINT_MOVEMENT_MOVE_VALUE = "movement.move_value"  # MODIFY -> delta (ctx: base_type)
-POINT_MOVEMENT_PASS_FOREIGN_SHIPS = "movement.pass_foreign_ships"  # PERMIT (ctx: position)
+# PERMIT (ctx: position, from, base_type = typ ruszającego statku albo "" gdy nieznany)
+POINT_MOVEMENT_PASS_FOREIGN_SHIPS = "movement.pass_foreign_ships"
 POINT_COMBAT_ROLL_MODIFIER = "combat.roll_modifier"  # MODIFY -> +N do wyniku rzutu
 # ctx: kind, position, planet, defender, base_type
 POINT_COMBAT_EXTRA_DICE = "combat.extra_dice"  # MODIFY -> delta kości na jednostkę (ctx jak wyżej)
@@ -187,6 +188,13 @@ POINT_PRODUCTION_FREE_CARGO = "production.free_cargo"
 # PERMIT -> w płatnym badaniu z karty Technology wolno wyczerpać planetę ze specjalnością
 # zamiast płacić (kolor musi pasować); Specialist Compounds (RULES.md 62.3).
 POINT_TECHNOLOGY_SPECIALTY_PAYS = "technology.specialty_pays"
+# PERMIT -> jednostki gracza ``ctx["victim"]`` w strefie ``ctx["zone"]`` (``space`` albo id
+# planety) systemu ``ctx["position"]`` nie mogą użyć SUSTAIN DAMAGE. Pytany KAŻDY inny gracz
+# (właściciel efektu); Fourth Moon, Moll Terminus (RULES.md 62.8).
+POINT_COMBAT_SUSTAIN_DENIED = "combat.sustain_denied"
+# MODIFY -> ile zasobów/wpływu jest wart 1 trade good w płatności (bazowo 1; Mirror Computing:
+# +1). Nie dotyczy wymogu wydania samych TG (RULES.md 62.8).
+POINT_PAYMENT_TRADE_GOOD_VALUE = "payment.trade_good_value"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

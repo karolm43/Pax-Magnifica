@@ -359,6 +359,18 @@ def combat_dice_uses(state: GameState, registry: StaticDataRegistry) -> list[dic
 # --- Wykonanie ----------------------------------------------------------------------------------
 
 
+def ability_used(state: GameState, player_id: str, ability: str, target: str) -> None:
+    """Zdolność frakcji gracza została użyta przeciw ``target`` (MUTUJE klon wołającego).
+
+    Jedyne miejsce emisji ``FACTION_ABILITY_USED/AFTER`` (ctx: player, ability, target): np.
+    Pillage → agent Suffi An; S'ula Mentarion → wybór notki przez przeciwnika (RULES.md 62.8).
+    """
+    triggers.fire(
+        state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "ability": ability, "target": target},
+    )
+
+
 def pay_cost(
     state: GameState,
     registry: StaticDataRegistry,

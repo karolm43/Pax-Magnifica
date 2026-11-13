@@ -131,6 +131,8 @@ export type CustodiansView = {
   /** Gotowe planety atakującego -> wpływ. */
   influence: Record<string, number>;
   tradeGoods: number;
+  /** Wartość 1 TG w płatności (Mirror Computing: 2). */
+  tradeGoodValue?: number;
   /** Planety zablokowane dla lądowania, dopóki żeton leży. */
   blockedPlanets: string[];
 };

@@ -47,9 +47,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `mahact_infantry` | Crimson Legionnaire I | mahact | — | — | walka, ekonomia i płatności | — | After this unit is destroyed, gain 1 commodity or convert 1 of your commodities to a trade good. |
 | `mahact_infantry2` | Crimson Legionnaire II | mahact | — | — | walka, ekonomia i płatności, planety i eksploracja | — | After this unit is destroyed, gain 1 commodity or convert 1 of your commodities to a trade good. Then, place the unit on this card. At the … |
 | `mahact_mech` | Starlancer | mahact | — | PERMIT (pozwolenie) | ekonomia i płatności, żetony dowodzenia | — | After a player whose command token is in your fleet pool activates this system, you may spend their token from your fleet pool to end their… |
-| `mentak_cruiser3` | Corsair | mentak | — | PERMIT (pozwolenie) | ruch | — | If the active system contains another player's non-fighter ships, this unit can move through systems that contain other players' ships. |
-| `mentak_flagship` | Fourth Moon | mentak | — | FORBID (zakaz) | walka | — | Other player's ships in this system cannot use SUSTAIN DAMAGE. |
-| `mentak_mech` | Moll Terminus | mentak | — | FORBID (zakaz) | walka, planety i eksploracja | — | Other player's ground forces on this planet cannot use SUSTAIN DAMAGE. |
+| `mentak_cruiser3` | Corsair | mentak | — | PERMIT (pozwolenie) | ruch | ✔ | If the active system contains another player's non-fighter ships, this unit can move through systems that contain other players' ships. |
+| `mentak_flagship` | Fourth Moon | mentak | — | FORBID (zakaz) | walka | ✔ | Other player's ships in this system cannot use SUSTAIN DAMAGE. |
+| `mentak_mech` | Moll Terminus | mentak | — | FORBID (zakaz) | walka, planety i eksploracja | ✔ | Other player's ground forces on this planet cannot use SUSTAIN DAMAGE. |
 | `muaat_flagship` | The Inferno | muaat | — | — | ekonomia i płatności, żetony dowodzenia | — | ACTION: Spend 1 token from your strategy pool to place 1 cruiser in this system. |
 | `muaat_mech` | Ember Colossus | muaat | — | PERMIT (pozwolenie) | ruch, produkcja | — | When you use your Star Forge faction ability in this system or an adjacent system, you may place 1 infantry from your reinforcements with t… |
 | `muaat_warsun` | Prototype War Sun I | muaat | — | — | — | — | Other players' units in this system lose the PLANETARY SHIELD ability. |

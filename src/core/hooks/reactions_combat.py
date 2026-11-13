@@ -199,7 +199,9 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
     # Walka czekająca na decyzje ze startu walki / rundy (krok TRIGGERS) nadal JEST na starcie:
     # karty i notki „At the start of combat / of a combat round” wolno wtedy zagrać (RULES.md 53.5).
     at_start = step is CombatStep.TRIGGERS and combat.resume in ("start", "round_start")
-    if combat.round == 1 and not combat.log and (
+    # Wpis Ambush (rzut na starcie walki, RULES.md 62.8) nie kończy startu walki.
+    started = [e for e in combat.log if e.get("phase") != "AMBUSH"]
+    if combat.round == 1 and not started and (
         step in (CombatStep.AFB, CombatStep.ANNOUNCE, CombatStep.ROLL) or at_start
     ):
         out.append(OpenWindow(GameEvent.COMBAT, Moment.START, _ctx(combat, combat.attacker)))

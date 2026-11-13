@@ -49,7 +49,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `combat.retreat` | Odwrót ogłoszony. | 2 | after×1, when×1 | action_cards×1, leaders×1 | `battle.announce_retreat` |
 | `invasion` | Początek inwazji. | 4 | start×3, during×1 | action_cards×3, technologies×1 | `invasion` |
 | `unit.ability_used` | Jednostka użyła zdolności (AFB, bombardment, space cannon). | 8 | when×5, after×3 | technologies×3, leaders×2, action_cards×1, promissory_notes×1, abilities×1 | `battle / invasion / space_cannon` |
-| `faction.ability_used` | Zdolność frakcji użyta (np. Pillage przeciw graczowi). | 1 | after×1 | leaders×1 | — |
+| `faction.ability_used` | Zdolność frakcji użyta (np. Pillage przeciw graczowi). | 1 | after×1 | leaders×1 | `faction_components.ability_used` |
 | `unit.placed` | Struktura/jednostka postawiona. | 0 | — | — | `unit_ops.place_units` |
 | `component.readied` | Komponent odświeżony. | 0 | — | — | — |
 | `component.exhausted` | Komponent (np. agent) wyczerpany. | 1 | after×1 | technologies×1 | `faction_components.pay_cost` |
@@ -86,9 +86,9 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.repeal_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **47**. Potrzebne komponentom, a jeszcze nie emitowane: **15**.
+Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **48**. Potrzebne komponentom, a jeszcze nie emitowane: **14**.
 
-Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `faction.ability_used`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
+Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 
 ## 2a. Osiągalność: czy komponent wyskakuje graczowi
 
@@ -105,7 +105,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.system_activated` · after | 21 | 9 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Neuroglaive, Nullification Field, So Ata, Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 13 | 3 | Kuuasi Aun Jalatai, Proxima Targeting VI, Supercharge |
-| `combat` · start | 8 | 5 | Ambush, Dimensional Splicer, Impulse Core, Indoctrination, Ipswitch, Loose Cannon |
+| `combat` · start | 10 | 3 | Dimensional Splicer, Impulse Core, Indoctrination |
 | `turn` · start | 7 | 5 | Chaos Mapping, Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
 | `tactical.ships_moved` · after | 4 | 7 | Acamar, Adjudicator Ba'al, Call of the Void, Foresight, Sai Seravus, Voidwatch, Xuange |
 | `agenda.revealed` · when | 9 | 1 | Quash |
@@ -116,7 +116,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `combat.hits_assigned` · before | 8 | 0 |  |
 | `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
 | `tactical.system_activated` · when | 2 | 4 | Captain Mendosa, Incursion, Void Tether, Wing Transfer |
-| `combat.won` · after | 3 | 2 | S'ula Mentarion, Salvage Operations |
+| `combat.won` · after | 5 | 0 |  |
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
 | `phase` · during [phase=action] | 2 | 3 | Data Skimmer, Deepgloom Executable, Nekro Malleon |
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
@@ -131,7 +131,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `unit.ability_used` · when [ability=roll] | 3 | 1 | Trrakan Aun Zulok |
 | `combat.roll` · after | 3 | 0 |  |
 | `combat.round` · after | 2 | 1 | Devotion |
-| `economy.resources_spent` · when | 1 | 2 | Aello, Mirror Computing |
+| `economy.resources_spent` · when | 2 | 1 | Aello |
 | `invasion` · start | 3 | 0 |  |
 | `phase` · during [phase=status] | 2 | 1 | Slumberstate Computing |
 | `phase` · end [phase=strategy] | 2 | 1 | Telepathic |
@@ -182,9 +182,9 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `component.exhausted` · after | 0 | 1 | Temporal Command Suite |
 | `component.gained` · after | 0 | 1 | Al'Raith Ix Ianovar |
 | `economy.commodities_replenished` · after | 0 | 1 | The Stillness of Stars |
-| `economy.trade_goods_gained` · after | 0 | 1 | Pillage |
+| `economy.trade_goods_gained` · after | 1 | 0 |  |
 | `economy.trade_goods_gained` · when | 0 | 1 | Artuno the Betrayer |
-| `faction.ability_used` · after | 0 | 1 | Suffi An |
+| `faction.ability_used` · after | 1 | 0 |  |
 | `game.faction_in_play` · when | 0 | 1 | The Blade's Orchestra |
 | `game.setup` · before | 0 | 1 | Minor Factions |
 | `invasion` · during | 1 | 0 |  |

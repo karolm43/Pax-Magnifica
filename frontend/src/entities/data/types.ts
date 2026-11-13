@@ -655,6 +655,8 @@ export type ObjectiveSpend = {
   kind: "trade_goods" | "tokens" | "resources" | "influence" | "mixed" | "cards" | "fragments";
   goal: number;
   tradeGoods: number;
+  /** Wartość 1 TG w płatności wpływem/zasobami (Mirror Computing: 2). */
+  tradeGoodValue?: number;
   planets?: Record<string, number>;
   resourcePlanets?: Record<string, number>;
   influencePlanets?: Record<string, number>;

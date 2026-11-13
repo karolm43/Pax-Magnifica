@@ -101,10 +101,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
       : rawCost;
   const funds = fundsTotal(view);
   const payment = useMemo<Payment>(
-    () => manual ?? autoPay(view.planets, view.tradeGoods, cost),
+    () => manual ?? autoPay(view.planets, view.tradeGoods, cost, view.tradeGoodValue),
     [manual, view.planets, view.tradeGoods, cost],
   );
-  const paid = paymentTotal(view.planets, payment);
+  const paid = paymentTotal(view.planets, payment, view.tradeGoodValue);
   const short = Math.max(0, cost - paid);
   const wasted = Math.max(0, paid - cost);
   const canProduce = queued > 0 && short === 0 && !busy;

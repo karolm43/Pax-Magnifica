@@ -24,12 +24,15 @@ function useInfluencePlan(options: Record<string, unknown>, baseGain: number) {
   const values = numberMap(options.planets);
   const perToken = num(options.per_token) || 3;
   const reinforcements = num(options.reinforcements);
+  const tgValue = num(options.trade_good_value) || 1;
   const [payment, setPayment] = useState<Payment>(NO_PAYMENT);
-  const paid = paymentTotal(values, payment);
+  const paid = paymentTotal(values, payment, tgValue);
   const bought = Math.floor(paid / perToken);
   const gain = Math.min(baseGain + bought, reinforcements);
-  const wasted = wastefulPart(values, payment, perToken);
-  return { values, perToken, reinforcements, payment, setPayment, paid, bought, gain, wasted };
+  const wasted = wastefulPart(values, payment, perToken, tgValue);
+  return {
+    values, perToken, reinforcements, payment, setPayment, paid, bought, gain, wasted, tgValue,
+  };
 }
 
 /**
@@ -38,12 +41,17 @@ function useInfluencePlan(options: Record<string, unknown>, baseGain: number) {
  * np. 2 wpływu za 0 żetonów albo 5 za 1. Nadwyżka nieunikniona (planeta 4 = 1 żeton) jest OK.
  * Zwraca liczbę marnowanego wpływu (0 = płatność bez zbędnych elementów).
  */
-function wastefulPart(values: Record<string, number>, payment: Payment, perToken: number): number {
-  const paid = paymentTotal(values, payment);
+function wastefulPart(
+  values: Record<string, number>,
+  payment: Payment,
+  perToken: number,
+  tgValue = 1,
+): number {
+  const paid = paymentTotal(values, payment, tgValue);
   const tokens = Math.floor(paid / perToken);
   const keeps = (less: number) => Math.floor((paid - less) / perToken) === tokens;
   const removable =
-    (payment.tradeGoods > 0 && keeps(1)) ||
+    (payment.tradeGoods > 0 && keeps(tgValue)) ||
     payment.planets.some((id) => (values[id] ?? 0) > 0 && keeps(values[id] ?? 0));
   return removable ? paid - tokens * perToken : 0;
 }
@@ -90,6 +98,7 @@ function SpendStep({
       <PaymentPicker
         values={plan.values}
         tradeGoodsAvailable={num(o.trade_goods)}
+        tradeGoodValue={num(o.trade_good_value) || 1}
         value={plan.payment}
         onChange={plan.setPayment}
         unit="influence"
@@ -211,6 +220,7 @@ export function LeadershipSecondary({
       <PaymentPicker
         values={plan.values}
         tradeGoodsAvailable={num(o.trade_goods)}
+        tradeGoodValue={num(o.trade_good_value) || 1}
         value={plan.payment}
         onChange={(next) => {
           plan.setPayment(next);

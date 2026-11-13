@@ -125,6 +125,7 @@ def combat_units(
         and _NEBULA in grid.anomalies_at(position)
         else 0
     )
+    no_sustain = sustain_denied(state, player_id, position, zone)
     units: list[CombatUnit] = []
     for base_type, count in sorted(_units_map(system, zone, player_id).items()):
         if count <= 0 or is_space_unit(base_type) != (kind == "space"):
@@ -168,12 +169,13 @@ def combat_units(
                 modifier=modifier,
                 # 0 kości dozwolone (Salai Sai Corian bez statków niemyśliwskich przeciwnika).
                 dice_per_unit=max(0, (unit.combat_die_count or 1) + extra_dice),
-                sustain=unit.sustain_damage,
+                sustain=unit.sustain_damage and not no_sustain,
                 afb_hits_on=unit.afb_hits_on if kind == "space" else None,
                 afb_dice=unit.afb_die_count or 1,
                 granted=(
                     min(1, count - damaged_count(system, zone, player_id, base_type))
                     if kind == "space"
+                    and not no_sustain
                     and base_type != _FIGHTER
                     and not unit.sustain_damage
                     and rules_hooks.permits(
@@ -186,6 +188,21 @@ def combat_units(
             )
         )
     return units
+
+
+def sustain_denied(state: GameState, player_id: str, position: str, zone: str) -> bool:
+    """Czy jednostki gracza w strefie systemu tracą SUSTAIN DAMAGE (hook innego gracza).
+
+    Punkt ``combat.sustain_denied`` pytany o KAŻDEGO innego gracza (Fourth Moon: statki w
+    systemie, Moll Terminus: siły naziemne na planecie — RULES.md 62.8). Jedno miejsce dla walki,
+    Space Cannon i inwazji (wszystkie biorą jednostki z ``combat_units``).
+    """
+    ctx = {"victim": player_id, "position": position, "zone": zone}
+    return any(
+        rules_hooks.permits(rules_hooks.POINT_COMBAT_SUSTAIN_DENIED, state, other, ctx)
+        for other in state.players
+        if other != player_id
+    )
 
 
 def side_units(
@@ -316,6 +333,8 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
     # (C_technology: strona przegrywa natychmiast).
     if any(not side_units(state, grid, registry, pid) for pid in (attacker, defender)):
         return _after_losses(state, grid, registry)
+    if any(n > 0 for n in combat.start_hits.values()):
+        return _open_start_assign(state, grid, registry)
     has_afb = combat.kind == "space" and (
         bool(combat.afb_extra)
         or any(
@@ -328,6 +347,44 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
         combat.step = CombatStep.AFB
         return state
     return _begin_round(state, grid)
+
+
+def add_start_hits(state: GameState, against: str, amount: int) -> None:
+    """Trafienia z rzutu „na starcie walki” przeciw ``against`` (Ambush) — MUTUJE ``state``.
+
+    Przypisuje je przeciwnik w zwykłym kroku ASSIGN (Sustain Damage, karty reakcji), zanim walka
+    przejdzie do AFB i 1. rundy (``_open_start_assign``, RULES.md 62.8).
+    """
+    combat = _combat(state)
+    if amount > 0:
+        total = combat.start_hits.get(against, 0) + amount
+        combat.start_hits = {**combat.start_hits, against: total}
+
+
+def _open_start_assign(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Okno przypisania trafień ze startu walki (MUTUJE ``state``); bez pokrycia - dalej start."""
+    combat = _combat(state)
+    combat.pending_hits = dict(combat.start_hits)
+    combat.start_hits = {}
+    combat.start_assign = True
+    for pid in list(combat.pending_hits):
+        if pid == NEUTRAL_PLAYER_ID:
+            _auto_assign_neutral(state, grid, registry, pid)
+    queue = [
+        pid
+        for pid in (combat.defender, combat.attacker)
+        if required_hits(state, grid, registry, pid) > 0
+    ]
+    if not queue:
+        combat.start_assign = False
+        combat.pending_hits = {}
+        return _after_start(state, grid, registry)
+    combat.step = CombatStep.ASSIGN
+    return timing.open_window(
+        state, WindowType.COMBAT_ASSIGN_HITS, queue, context={"position": combat.position}
+    )
 
 
 def resume_after_triggers(
@@ -917,6 +974,13 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
     """Koniec rundy (W9): zwycięzca/remis albo kolejna runda (bez AFB)."""
     new_state = state.clone()
     combat = _combat(new_state)
+    if combat.start_assign:
+        # Straty z trafień startu walki (Ambush) przypisane - start walki biegnie dalej (AFB/runda),
+        # bez zdarzeń końca rundy (to nie runda walki).
+        combat.start_assign = False
+        combat.pending_hits = {}
+        combat.step = CombatStep.ROLL
+        return _after_start(new_state, grid, registry)
     last = combat.log[-1] if combat.log else {}
     is_roll_round = combat.step is not CombatStep.AFB and not combat.afb_assign
     triggers.fire(

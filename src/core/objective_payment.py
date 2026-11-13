@@ -22,7 +22,12 @@ from src.core.objective_progress import (
     mixed_spend_plan,
     threshold,
 )
-from src.core.payment import apply_payment, ready_planet_values, validate_payment
+from src.core.payment import (
+    apply_payment,
+    ready_planet_values,
+    trade_good_value,
+    validate_payment,
+)
 from src.core.planet_stats import effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 
@@ -128,6 +133,7 @@ def auto_payment(
         if (stats := planet_stats(state, registry, p)) is not None
     ]
     spent, rest = _pick_planets(values, goal)
+    rest = -(-rest // trade_good_value(state, player_id))
     if rest > player.trade_goods:
         raise ValueError("You cannot afford this objective.")
     return ObjectivePayment(planets=spent, trade_goods=rest)
@@ -162,7 +168,12 @@ def _validate_mixed(
     influence = validate_payment(
         state, registry, player_id, "influence", payment.influence_planets, 0
     )
-    needed = goal + max(0, goal - resources) + max(0, goal - influence)
+    # Wymóg „N trade goods” liczy TG sztukami; braki wpływu/zasobów pokrywa TG po swojej wartości
+    # w płatności (Mirror Computing, RULES.md 62.8).
+    worth = trade_good_value(state, player_id)
+    needed = (
+        goal + -(-max(0, goal - resources) // worth) + -(-max(0, goal - influence) // worth)
+    )
     if payment.trade_goods < needed:
         raise ValueError(
             f"Payment too low: {payment.trade_goods} trade goods, {needed} needed."
@@ -265,6 +276,7 @@ def spend_spec(
         "kind": kind,
         "goal": threshold(objective_id, state),
         "tradeGoods": economy.spendable_trade_goods(state, player_id),
+        "tradeGoodValue": trade_good_value(state, player_id),
     }
     if kind in ("resources", "influence"):
         spec["planets"] = ready_planet_values(state, registry, player_id, kind)  # type: ignore[arg-type]

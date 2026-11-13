@@ -1069,3 +1069,23 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   „Play now”) — `hold_rewind.just_passed` → `hold_seq` w `GET /action-card/playable`, zagranie przez
   `/hold/play` (cofa ten wybór). Dotyczy każdej karty hold-rewind, której okno minęło ostatnim krokiem. RULES.md 53.7.
 - Nowe pola API (`requestableNotes`, `hold_seq`) — restart backendu.
+
+## Fala 2 · B5: The Mentak Coalition (2026-11-13)
+
+- Komplet 12/12 komponentów (`core/hooks/factions/mentak.py`, RULES.md 62.8): Ambush, Pillage, Promise of
+  Protection, Mirror Computing, Salvage Operations, Suffi An, S'ula Mentarion, Ipswitch (Sleeper Cell), Fourth Moon,
+  Moll Terminus, The Table's Grace / Corsair. Testy: `tests/factions/test_mentak.py` (15),
+  `test_flows_mentak.py` (6 scenariuszy przez API), Pillage w `test_activity.py`.
+- Nowe punkty silnika (reużywalne): trafienia „na starcie walki” przypisywane w zwykłym ASSIGN przed AFB
+  (`battle.add_start_hits`, `ActiveCombat.start_hits/start_assign`, wpis logu `AMBUSH` — okno bitwy rzuca kośćmi
+  jak salwę); `combat.sustain_denied` w `battle.combat_units` (walka, Space Cannon, inwazja);
+  `payment.trade_good_value` (walidacja, produkcja, cele; `tradeGoodValue` w widokach produkcji, badań, Leadership,
+  Custodians, celów); `cause` w `TRADE_GOODS_GAINED` (transakcja / zamiana commodities); `ActiveCombat.destroyed_all`
+  (ślad strat całej walki z `unit_ops`); `ProductionGrant.allowed_types`; typ statku w `movement.pass_foreign_ships`;
+  `faction_components.ability_used` (emisja `FACTION_ABILITY_USED`).
+- Poprawka: Corsair zastępował krążownik bez Cruiser II — teraz tylko z przełomem I `cr2` (silnik i panel gracza).
+- ⚠️ ZAŁOŻENIA do potwierdzenia: P1 (TG z transakcji = jedno Pillage na stronę), P2 (zabrana commodity = TG u Mentaka),
+  H1 (limit floty przy Sleeper Cell sprawdzany zwykłym oknem, nie od razu w walce).
+- Do zrobienia przy okazji: płatność w formularzach ofert (`DecisionFields`) liczy TG 1:1 (Mirror Computing tam nie
+  działa w podglądzie, silnik liczy dobrze); wybór notki przez przeciwnika to lista nazw, nie chipy `PromissoryNote`.
+- Nowe pola stanu/API (`start_hits`, `destroyed_all`, `allowed_types`, `tradeGoodValue`) — restart backendu.

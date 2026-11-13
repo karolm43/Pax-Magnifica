@@ -28,15 +28,20 @@ def _player(state: GameState, player_id: str) -> PlayerState:
     return player
 
 
-def gain_trade_goods(state: GameState, player_id: str, amount: int) -> None:
-    """Gracz zdobywa ``amount`` trade goods (R_trade_goods)."""
+def gain_trade_goods(state: GameState, player_id: str, amount: int, *, cause: str = "") -> None:
+    """Gracz zdobywa ``amount`` trade goods (R_trade_goods).
+
+    ``cause`` trafia do zdarzenia ``TRADE_GOODS_GAINED``: ``"transaction"`` (TG z transakcji -
+    Pillage reaguje raz na samą transakcję), ``"convert"`` (zamiana commodities - to nie jest
+    „zdobycie” dla Pillage, F_mentak), ``"pillage"`` (RULES.md 62.8).
+    """
     if amount < 0:
         raise ValueError("The amount of trade goods to gain cannot be negative.")
     _player(state, player_id).trade_goods += amount
     if amount > 0:
         triggers.fire(
             state, GameEvent.TRADE_GOODS_GAINED, Moment.AFTER, subject=player_id,
-            ctx={"player": player_id, "amount": amount},
+            ctx={"player": player_id, "amount": amount, "cause": cause},
         )
 
 
@@ -149,7 +154,7 @@ def spend_commodities(state: GameState, player_id: str, amount: int) -> None:
 def convert_commodities_to_trade_goods(state: GameState, player_id: str, amount: int) -> None:
     """Zamienia ``amount`` własnych commodities na tyle samo trade goods (R_commodities)."""
     spend_commodities(state, player_id, amount)
-    gain_trade_goods(state, player_id, amount)
+    gain_trade_goods(state, player_id, amount, cause="convert")
 
 
 def give_to_player(
@@ -159,6 +164,7 @@ def give_to_player(
     *,
     trade_goods: int = 0,
     commodities: int = 0,
+    cause: str = "",
 ) -> None:
     """Przekazuje trade goods i commodities innemu graczowi (transakcja, R_transactions).
 
@@ -166,4 +172,4 @@ def give_to_player(
     """
     spend_trade_goods(state, giver_id, trade_goods)
     spend_commodities(state, giver_id, commodities)
-    gain_trade_goods(state, receiver_id, trade_goods + commodities)
+    gain_trade_goods(state, receiver_id, trade_goods + commodities, cause=cause)

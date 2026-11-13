@@ -80,21 +80,24 @@ export const readyPlanets = (planets: ProductionPlanet[]) =>
 /** Wszystkie zasoby do wydania: gotowe planety + trade goods. */
 export const fundsTotal = (view: ProductionBody): number =>
   readyPlanets(view.planets).reduce((n, p) => n + p.payValue, 0) +
-  view.tradeGoods;
+  view.tradeGoods * (view.tradeGoodValue ?? 1);
 
+/** ``tgValue`` = ile zasobów jest wart 1 TG (Mirror Computing: 2; RULES.md 62.8). */
 export const paymentTotal = (
   planets: ProductionPlanet[],
   payment: Payment,
+  tgValue = 1,
 ): number =>
   planets
     .filter((p) => payment.planets.includes(p.planet))
-    .reduce((n, p) => n + p.payValue, 0) + payment.tradeGoods;
+    .reduce((n, p) => n + p.payValue, 0) + payment.tradeGoods * tgValue;
 
 /** Automatyczna płatność: najpierw planety (od największych), zbędne zdejmij, TG tylko na resztę. */
 export function autoPay(
   planets: ProductionPlanet[],
   tradeGoods: number,
   cost: number,
+  tgValue = 1,
 ): Payment {
   const need = Math.ceil(cost);
   if (need <= 0) return { planets: [], tradeGoods: 0 };
@@ -116,7 +119,7 @@ export function autoPay(
   }
   return {
     planets: chosen.map((p) => p.planet),
-    tradeGoods: Math.min(tradeGoods, Math.max(0, need - total)),
+    tradeGoods: Math.min(tradeGoods, Math.ceil(Math.max(0, need - total) / tgValue)),
   };
 }
 
@@ -176,6 +179,8 @@ export function whyNotAdd(
   if (!costCapped && slotsUsed(view, bumpCart(cart, unit.baseType, placed, 1)) > view.remaining)
     return "No production slots left";
   if (grant?.shipsOnly && unit.placement === "planet") return `${grant.source} produces ships only`;
+  if (grant?.allowedTypes?.length && !grant.allowedTypes.includes(unit.baseType))
+    return `${grant.source}: only a ship type destroyed in the combat`;
   if (unit.placement === "space" && view.blockaded)
     return "Blockaded: enemy ships in the system";
   if (

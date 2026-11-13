@@ -955,7 +955,14 @@ def _units_owned_for_faction(
         belongs = is_faction_unit(unit)
         if is_faction and not belongs:
             continue  # cudzy wariant frakcyjny — pomijamy
-        if belongs and is_upgrade:
+        if unit.id in BREAKTHROUGH_UNIT_IDS and is_upgrade:
+            # Corsair leży NA Cruiser II (RULES.md 62.8): tylko z jego technologią, wtedy wygrywa
+            # (jak ``combat.resolve_unit_variant``).
+            below = registry.units.get(unit.upgrades_from_unit_id or "")
+            if below is not None and not has_tech(below):
+                continue
+            faction_upgraded[unit.async_id] = unit.id
+        elif belongs and is_upgrade:
             faction_upgraded.setdefault(unit.async_id, unit.id)
         elif belongs:
             faction_base.setdefault(unit.async_id, unit.id)

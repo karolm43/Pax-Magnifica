@@ -31,6 +31,8 @@ export type ResearchOptions = {
   /** Gotowe planety → zasoby (płatność). */
   planets: Record<string, number>;
   tradeGoods: number;
+  /** Wartość 1 TG w płatności (Mirror Computing: 2). */
+  tradeGoodValue: number;
   cost: number;
   researched: string[];
   /** Przełom frakcji (Thunder's Edge) - synergia 2 kolorów, działa tylko odblokowany. */
@@ -83,6 +85,7 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     relicSkips: Array.isArray(raw.relic_skips) ? (raw.relic_skips as string[]) : [],
     planets: (raw.planets ?? {}) as Record<string, number>,
     tradeGoods: typeof raw.trade_goods === "number" ? raw.trade_goods : 0,
+    tradeGoodValue: typeof raw.trade_good_value === "number" ? raw.trade_good_value : 1,
     cost: typeof raw.cost === "number" ? raw.cost : 0,
     researched: Array.isArray(raw.researched) ? (raw.researched as string[]) : [],
     breakthrough:
@@ -239,6 +242,7 @@ export function autoPay(
   exclude: string[],
   tradeGoods: number,
   cost: number,
+  tgValue = 1,
 ): { planets: string[]; tradeGoods: number } {
   if (cost <= 0) return { planets: [], tradeGoods: 0 };
   const ranked = Object.entries(planets)
@@ -257,6 +261,6 @@ export function autoPay(
       total -= entry[1];
     }
   }
-  const tg = Math.min(tradeGoods, Math.max(0, cost - total));
+  const tg = Math.min(tradeGoods, Math.ceil(Math.max(0, cost - total) / tgValue));
   return { planets: chosen.map(([id]) => id), tradeGoods: tg };
 }

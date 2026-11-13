@@ -90,8 +90,14 @@ def resolve_unit_variant(
             continue
         if not has_tech(unit):
             continue
-        if unit.id in BREAKTHROUGH_UNIT_IDS and not breakthrough_unlocked:
-            continue  # jednostka z przełomu — dopiero po jego odblokowaniu
+        if unit.id in BREAKTHROUGH_UNIT_IDS:
+            if not breakthrough_unlocked:
+                continue  # jednostka z przełomu — dopiero po jego odblokowaniu
+            # Corsair kładzie się NA Cruiser II (The Table's Grace, RULES.md 62.8): wymaga też
+            # technologii jednostki, którą ulepsza (``upgradesFromUnitId``).
+            below = registry.units.get(unit.upgrades_from_unit_id or "")
+            if below is not None and not has_tech(below):
+                continue
         is_faction = unit.faction is not None
         if is_faction and not belongs(unit):
             continue  # cudzy wariant frakcyjny
@@ -106,6 +112,9 @@ def resolve_unit_variant(
         # placeholderem bez statystyk (``nowarsun``) o tym samym ranku.
         if unit.required_tech_id is not None:
             rank += 1
+        # Jednostka z przełomu położona NA ulepszeniu (Corsair na Cruiser II) wygrywa z nim.
+        if unit.id in BREAKTHROUGH_UNIT_IDS and unit.upgrades_from_unit_id is not None:
+            rank += 2
         if rank > best_rank:
             best_rank = rank
             best = unit

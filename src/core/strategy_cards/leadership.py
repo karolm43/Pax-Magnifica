@@ -11,7 +11,13 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.game_state import GameState
-from src.core.payment import apply_payment, parse_payment, ready_planet_values, validate_payment
+from src.core.payment import (
+    apply_payment,
+    parse_payment,
+    ready_planet_values,
+    trade_good_value,
+    validate_payment,
+)
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import (
     check_distribution,
@@ -84,6 +90,7 @@ def _options(
     return {
         "planets": ready_planet_values(state, ctx.registry, player_id, "influence"),
         "trade_goods": player.trade_goods,
+        "trade_good_value": trade_good_value(state, player_id),
         "reinforcements": player.cc_reinf,
         "base_gain": BASE_TOKENS if step == "spend_influence" else 0,
         "per_token": INFLUENCE_PER_TOKEN,

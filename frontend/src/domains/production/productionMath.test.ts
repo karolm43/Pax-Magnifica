@@ -102,6 +102,10 @@ describe("autoPay", () => {
   it("pomija wyczerpane planety", () => {
     expect(autoPay([planet("x", 5, true)], 3, 2)).toEqual({ planets: [], tradeGoods: 2 });
   });
+  it("Mirror Computing: 1 TG = 2 zasoby (RULES.md 62.8)", () => {
+    expect(autoPay([planet("a", 4)], 5, 7, 2)).toEqual({ planets: ["a"], tradeGoods: 2 });
+    expect(fundsTotal(view({ tradeGoodValue: 2 }))).toBe(fundsTotal(view()) + view().tradeGoods);
+  });
 });
 
 describe("limity", () => {

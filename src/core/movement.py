@@ -87,6 +87,7 @@ def _node_passable_intermediate(
     can_enter_asteroids: bool,
     from_pos: str | None = None,
     ignore_anomalies: bool = False,
+    base_type: str = "",
 ) -> bool:
     """Czy węzeł POŚREDNI trasy jest przejezdny dla gracza (R4 + R6).
 
@@ -109,7 +110,7 @@ def _node_passable_intermediate(
         rules_hooks.POINT_MOVEMENT_PASS_FOREIGN_SHIPS,
         state,
         player_id,
-        {"position": position, "from": from_pos},
+        {"position": position, "from": from_pos, "base_type": base_type},
     ):
         return False
     return True
@@ -184,6 +185,7 @@ def shortest_legal_path(
     can_enter_asteroids: bool,
     ignore_anomalies: bool = False,
     goal_is_target: bool = True,
+    base_type: str = "",
 ) -> list[str] | None:
     """Najkrótsza LEGALNA trasa jako lista systemów (od ``from_pos`` do ``to_pos``) albo None.
 
@@ -210,6 +212,7 @@ def shortest_legal_path(
         can_enter_asteroids=can_enter_asteroids,
         from_pos=from_pos,
         ignore_anomalies=ignore_anomalies,
+        base_type=base_type,
     ):
         return None
     # BFS z rodzicami. Do celu wchodzimy wprost, przez węzeł pośredni tylko gdy przejezdny.
@@ -234,6 +237,7 @@ def shortest_legal_path(
                 can_enter_asteroids=can_enter_asteroids,
                 from_pos=from_pos,
                 ignore_anomalies=ignore_anomalies,
+                base_type=base_type,
             ):
                 visited.add(neighbor)
                 parent[neighbor] = pos
@@ -250,6 +254,7 @@ def _shortest_legal_distance(
     *,
     can_enter_asteroids: bool,
     ignore_anomalies: bool = False,
+    base_type: str = "",
 ) -> int | None:
     """Długość najkrótszej LEGALNEJ trasy (liczba wejść) albo None, gdy brak.
 
@@ -263,6 +268,7 @@ def _shortest_legal_distance(
         player_id,
         can_enter_asteroids=can_enter_asteroids,
         ignore_anomalies=ignore_anomalies,
+        base_type=base_type,
     )
     return None if path is None else len(path) - 1
 
@@ -273,6 +279,7 @@ def route_through(
     from_pos: str,
     via: list[str],
     player_id: str,
+    base_type: str = "",
 ) -> list[str] | None:
     """Najkrótsza legalna trasa ``from_pos`` → ``via[0]`` → … → aktywny system.
 
@@ -297,6 +304,7 @@ def route_through(
             can_enter_asteroids=ast,
             ignore_anomalies=ignore,
             goal_is_target=end == active,
+            base_type=base_type,
         )
         if segment is None:
             return None
@@ -307,7 +315,7 @@ def route_through(
 
 
 def route_error(
-    state: GameState, grid: HexGrid, route: list[str], player_id: str
+    state: GameState, grid: HexGrid, route: list[str], player_id: str, base_type: str = ""
 ) -> str | None:
     """Powód nielegalności gotowej trasy (lista systemów od źródła do aktywnego) albo None."""
     active = state.active_system
@@ -331,6 +339,7 @@ def route_error(
             can_enter_asteroids=ast,
             from_pos=route[0],
             ignore_anomalies=ignore,
+            base_type=base_type,
         ):
             return f"The route passes through system {node}, which blocks movement (R4/R6)."
     if not _target_passable(
@@ -348,6 +357,7 @@ def legal_routes(
     *,
     max_len: int,
     cap: int = 300,
+    base_type: str = "",
 ) -> list[list[str]]:
     """Wszystkie proste legalne trasy ``from_pos`` → aktywny system o długości ≤ ``max_len``.
 
@@ -386,6 +396,7 @@ def legal_routes(
                 can_enter_asteroids=ast,
                 from_pos=from_pos,
                 ignore_anomalies=ignore,
+                base_type=base_type,
             ):
                 walk([*path, neighbor])
 
@@ -408,7 +419,12 @@ def rift_nodes(
 
 
 def _rift_route_within(
-    state: GameState, grid: HexGrid, from_pos: str, player_id: str, move_value: int
+    state: GameState,
+    grid: HexGrid,
+    from_pos: str,
+    player_id: str,
+    move_value: int,
+    base_type: str = "",
 ) -> list[str] | None:
     """Trasa, na którą statek o ``move_value`` zdąży dzięki +1 za każdą szczelinę (albo None)."""
     if not any(_GRAVITY_RIFT in grid.anomalies_at(p) for p in grid.positions):
@@ -416,6 +432,7 @@ def _rift_route_within(
     candidates = legal_routes(
         state, grid, from_pos, player_id,
         max_len=min(move_value + _RIFT_SEARCH_EXTRA, _RIFT_SEARCH_CAP), cap=120,
+        base_type=base_type,
     )
     for candidate in candidates:
         if len(candidate) - 1 <= move_value + len(rift_nodes(state, grid, candidate, player_id)):
@@ -621,7 +638,7 @@ def can_move(
     if route is not None:
         if route[0] != from_pos:
             return False, "The route must start at the system the ships move from."
-        error = route_error(state, grid, route, player_id)
+        error = route_error(state, grid, route, player_id, base_type)
         if error is not None:
             return False, error
         # Każda szczelina, z której statek wychodzi lub przez którą przelatuje, daje +1 do ruchu.
@@ -636,13 +653,15 @@ def can_move(
             player_id,
             can_enter_asteroids=_can_enter_asteroids(state, player_id),
             ignore_anomalies=ignore_anomalies,
+            base_type=base_type,
         )
     if dist is None:
         return False, "No legal route to the active system (R4/R6)."
     if (
         route is None
         and dist > move_value
-        and _rift_route_within(state, grid, from_pos, player_id, move_value) is not None
+        and _rift_route_within(state, grid, from_pos, player_id, move_value, base_type)
+        is not None
     ):
         return True, ""  # dłuższa trasa przez gravity rift (+1 za każdą) mieści się w zasięgu
     if dist > move_value:
@@ -802,6 +821,17 @@ def _available_in_zone(
     return source.planet_units.get(zone, {}).get(player_id, {}).get(base_type, 0)
 
 
+def single_ship_type(ships: dict[str, int]) -> str:
+    """Typ statku, gdy rusza jeden typ (np. sam Corsair), inaczej ``""``.
+
+    Wyjątki przejezdności dla jednego typu (``movement.pass_foreign_ships`` z ``base_type``,
+    RULES.md 62.8) liczą się dla trasy grupy tylko wtedy, gdy cała grupa to ten typ; legalność
+    każdego typu i tak sprawdza ``can_move``.
+    """
+    types = [bt for bt, n in ships.items() if n > 0]
+    return types[0] if len(types) == 1 else ""
+
+
 def _auto_route(
     state: GameState,
     grid: HexGrid,
@@ -816,7 +846,8 @@ def _auto_route(
     pierwsza dłuższa trasa, na którą starczy dzięki +1 za gravity rift. Gdy żadna nie pasuje,
     zwraca najkrótszą (reszta walidacji zgłosi właściwy powód odmowy).
     """
-    shortest = route_through(state, grid, from_pos, [], player_id)
+    only = single_ship_type(ships)
+    shortest = route_through(state, grid, from_pos, [], player_id, only)
     if shortest is None or not ships:
         return shortest
     candidates = [
@@ -824,6 +855,7 @@ def _auto_route(
         *legal_routes(
             state, grid, from_pos, player_id,
             max_len=min(len(shortest) - 1 + _RIFT_SEARCH_EXTRA, _RIFT_SEARCH_CAP), cap=120,
+            base_type=only,
         ),
     ]
     for candidate in candidates:
@@ -1053,7 +1085,7 @@ def move_fleet(
     if route is not None:
         if not route or route[0] != from_pos:
             raise ValueError("The route must start at the system the ships move from.")
-        route_problem = route_error(state, grid, route, player_id)
+        route_problem = route_error(state, grid, route, player_id, single_ship_type(ships))
         if route_problem is not None:
             raise ValueError(route_problem)
 

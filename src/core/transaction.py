@@ -313,6 +313,7 @@ def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: Transac
     economy.give_to_player(
         state, giver_id, receiver_id,
         trade_goods=side.trade_goods, commodities=side.commodities,
+        cause="transaction",
     )
     if side.promissory_note is not None:
         promissory_notes.transfer(state, giver_id, receiver_id, side.promissory_note)

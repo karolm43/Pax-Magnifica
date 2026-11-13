@@ -33,6 +33,7 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   relicSkips: [],
   planets: {},
   tradeGoods: 0,
+  tradeGoodValue: 1,
   cost: 0,
   researched: [],
   discount: 0,

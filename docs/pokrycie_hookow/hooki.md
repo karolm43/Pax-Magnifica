@@ -4,11 +4,11 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **214**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
-| `agenda.vote_modifier` | MODIFY | effect:leaders:hacancommander:votes | — | — |
+| `agenda.vote_modifier` | MODIFY | effect:leaders:hacancommander:votes | — | F_hacan: przy 0 zwykłych głosów (wstrzymanie się) dodatkowych głosów nie ma. |
 | `bombardment.empty_planets` | PERMIT | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology). |
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `bombardment.granted_hits_on` | FORBID | effect:action_cards:blitz | — | — |
@@ -38,6 +38,8 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.roll_modifier` | MODIFY | leader:winnucommander | leaders:winnucommander | Rickar Rickani: Apply +2 to the result of each of your unit's combat rolls in the Mecatol Rex |
 | `combat.single_unit_bonus` | MODIFY | effect:breakthroughs:letnevbt:ship | — | — |
 | `combat.sustain_cancels` | MODIFY | technology:nes | technologies:nes | Non-Euclidean Shielding: When 1 of your units uses SUSTAIN DAMAGE, cancel 2 hits instead |
+| `combat.sustain_denied` | PERMIT | unit:mentak_flagship | units:mentak_flagship | Fourth Moon: Other player's ships in this system cannot use SUSTAIN DAMAGE. |
+| `combat.sustain_denied` | PERMIT | unit:mentak_mech | units:mentak_mech | Moll Terminus: Other player's ground forces on this planet cannot use SUSTAIN DAMAGE. |
 | `command_tokens.strategy_from_reinforcements` | FORBID | relic:emelpar | relics:emelpar | — |
 | `custodians.free` | PERMIT | faction:winnu | abilities:blood_ties | Blood Ties: You do not have to spend influence to remove the custodians token from Mecatol |
 | `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
@@ -55,6 +57,8 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.roll:after` | TRIGGER | unit:hacan_flagship | units:hacan_flagship | Wrath of Kenara: After you roll a die during a space combat in this system, you may spend 1 |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
 | `event:combat.round:end` | TRIGGER | technology:exo2 | technologies:exo2 | Exotrireme II: After a round of space combat, you may destroy this unit to destroy up to 2 |
+| `event:combat.round:end` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Po przypisaniu strat obu stron (F_mentak: „before the Mentak player places"). |
+| `event:combat.round:start` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Straty z Ambush (przed 1. rundą) - statki przed rzutami rundy. |
 | `event:combat.round:start` | TRIGGER | faction:letnev | abilities:munitions | Munitions Reserves: At the start of each round of space combat: You may spend 2 trade goods |
 | `event:combat.round:start` | TRIGGER | unit:letnev_flagship | — | Arc Secundus: At the start of each space combat round, repair this ship. |
 | `event:combat.round:start` | TRIGGER | unit:letnev_mech | units:letnev_mech | Dunlain Reaper — DEPLOY: At the start of a round of ground combat, you may spend 2 |
@@ -62,9 +66,14 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.round:start` | TRIGGER | breakthrough:letnevbt | breakthroughs:letnevbt | Gravleash Maneuvers: Before you roll dice during space combat, apply +X to the results of 1 |
 | `event:combat.round:start` | TRIGGER | leader:solagent | leaders:solagent | Evelyn DeLouis: At the start of a ground combat round: You may exhaust this card to choose 1 |
 | `event:combat.won:after` | TRIGGER | technology:dxa | technologies:dxa | Dacxive Animators: po wygranej walce naziemnej możesz postawić 1 piechotę na tej planecie. |
+| `event:combat.won:after` | TRIGGER | leader:mentakcommander | leaders:mentakcommander | S'ula Mentarion: After you win a space combat: You may force your opponent to give you 1 |
 | `event:combat.won:after` | TRIGGER | breakthrough:sardakkbt | breakthroughs:sardakkbt | N'orr Supremacy: After you win a combat, either gain 1 command token or research a unit |
+| `event:combat.won:after` | TRIGGER | technology:so | technologies:so | Salvage Operations: ... if you won the combat, you may also produce 1 ship in that system of |
+| `event:combat:end` | TRIGGER | technology:so | technologies:so | Salvage Operations: After you win or lose a space combat, gain 1 trade good (remis = nic, |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
+| `event:combat:start` | TRIGGER | faction:mentak | abilities:ambush | Ambush: At the start of a space combat: You may roll 1 die for each of up to 2 of your |
+| `event:combat:start` | TRIGGER | leader:mentakhero | leaders:mentakhero | Ipswitch, Loose Cannon — Sleeper Cell: At the start of a space combat that you are |
 | `event:combat:start` | TRIGGER | relic:metalivoidarmaments | — | Metali Void Armaments: During the "Anti-Fighter Barrage" step of space combat, you may |
 | `event:combat:start` | TRIGGER | leader:solcommander | leaders:solcommander | Claire Gibson: At the start of a ground combat on a planet you control: You may place 1 |
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
@@ -72,9 +81,12 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
+| `event:economy.trade_goods_gained:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors gains trade goods ... |
 | `event:faction.ability_used:after` | TRIGGER | faction:arborec | — | — |
 | `event:faction.ability_used:after` | TRIGGER | leader:arborecagent | leaders:arborecagent | Zamieniany statek nie jest niszczony, nowy nie jest produkowany (F_arborec). |
 | `event:faction.ability_used:after` | TRIGGER | leader:jolnaragent | leaders:jolnaragent | — |
+| `event:faction.ability_used:after` | TRIGGER | leader:mentakagent | leaders:mentakagent | Suffi An: After the Pillage faction ability is used against another player: You may exhaust |
+| `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
@@ -115,6 +127,7 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | promissory:convoys | promissory_notes:convoys | If you activate a system that contains 1 or more of the Hacan player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
+| `event:tactical.system_activated:after` | TRIGGER | promissory:pop | promissory_notes:pop | If you activate a system that contains 1 or more of the Mentak player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | technology:scc | technologies:scc | Spatial Conduit Cylinder: You may exhaust this card after you activate a system that |
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
 | `event:tactical.system_activated:after` | TRIGGER | planet:tempesta | planets:tempesta | Ionian Fuel Refinery: You may exhaust this card after you activate a system to apply +1 to the move value of 1 of your ships during this tactical action. |
@@ -122,6 +135,8 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.units_committed:after` | TRIGGER | effect:leaders:sardakkhero | — | — |
 | `event:technology.research:when` | TRIGGER | relic:prophetstears | relics:prophetstears | The Prophet's Tears: When you research a technology, you may exhaust this card to ignore 1 |
 | `event:transaction:after` | TRIGGER | effect:action_cards:blackmarketdealing | — | Karta dotyczy jednej transakcji: po jej rozstrzygnięciu efekt znika. |
+| `event:transaction:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors ... resolves a transaction (strona aktywna). |
+| `event:transaction:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage przeciw partnerowi transakcji (F_mentak: także przeciw obu stronom i przeciw |
 | `event:turn:end` | TRIGGER | technology:bs | technologies:bs | Bio-Stims: na końcu tury możesz wyczerpać kartę, by odświeżyć planetę ze specjalnością |
 | `event:turn:end` | TRIGGER | planet:emelpar | planets:emelpar | The Acropolis: You may exhaust this card at the end of your turn to ready another component that isn't a strategy card. |
 | `event:turn:end` | TRIGGER | planet:hopesend | planets:hopesend | Imperial Arms Vault: You may exhaust this card at the end of your turn to place 1 mech from your reinforcements on any planet you control or draw 1 action card. |
@@ -171,7 +186,9 @@ Razem: **197**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | breakthrough:winnubt | — | After you activate a system that contains a legendary planet, apply +1 to the move value of 1 |
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
+| `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
 | `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
+| `payment.trade_good_value` | MODIFY | technology:mc | technologies:mc | Mirror Computing: When you spend trade goods, each trade good is worth 2 resources or |
 | `planet.swap_values` | FORBID | effect:technologies:htp:swap | — | — |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.cost` | MODIFY | effect:leaders:winnuagent:cut | — | — |
@@ -227,6 +244,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `combat.roll_modifier`
 - `combat.single_unit_bonus`
 - `combat.sustain_cancels`
+- `combat.sustain_denied`
 - `economy.commodity_value`
 - `custodians.free`
 - `dice.adjust_result`
@@ -242,6 +260,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.move_value`
 - `movement.pass_foreign_ships`
 - `payment.commodities_as_trade_goods`
+- `payment.trade_good_value`
 - `space_cannon.pds_disabled`
 - `planet.swap_values`
 - `production.cost`

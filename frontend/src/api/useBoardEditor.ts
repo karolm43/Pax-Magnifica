@@ -1195,7 +1195,7 @@ export type BattleRoll = {
 
 export type BattleLogEntry = {
   round: number;
-  phase: "AFB" | "COMBAT" | "RETREAT";
+  phase: "AFB" | "AMBUSH" | "COMBAT" | "RETREAT";
   rolls: Record<string, BattleRoll[]>;
   hits: Record<string, number>;
   losses: Record<string, Record<string, number>>;

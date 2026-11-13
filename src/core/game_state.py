@@ -657,6 +657,14 @@ class ActiveCombat(BaseModel):
     # Gracze, którzy w tej walce użyją nadanego AFB (Metali Void Armaments: „you may resolve AFB
     # 6 (x3)"): zgoda z oferty na starcie walki; rzut dopisuje ``battle.resolve_afb``.
     afb_extra: list[str] = Field(default_factory=list)
+    # Trafienia z rzutów „na starcie walki” (Ambush, RULES.md 62.8) czekające na przypisanie przez
+    # ``{gracz: liczba}`` — przypisuje je zwykły krok ASSIGN przed AFB (``start_assign``).
+    start_hits: dict[str, int] = Field(default_factory=dict)
+    start_assign: bool = False
+    # Wszystkie statki zniszczone w TEJ walce (nie czyszczone co rundę, w odróżnieniu od
+    # ``destroyed_ships``); wpis ``{"player", "base_type"}`` z ``unit_ops._note_combat_loss``.
+    # Salvage Operations, Sleeper Cell (RULES.md 62.8).
+    destroyed_all: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class InvasionPhase(StrEnum):
@@ -735,6 +743,9 @@ class ProductionGrant(BaseModel):
     free: bool = False
     max_cost: float | None = None
     ships_only: bool = False
+    # Dozwolone typy jednostek (``base_type``); pusta lista = bez ograniczenia. Salvage Operations:
+    # typy statków zniszczonych w walce (RULES.md 62.8).
+    allowed_types: list[str] = Field(default_factory=list)
     # Kolejne systemy tej samej produkcji (bohater Arborec: „in any number of systems") - po
     # produkcji/rezygnacji grant przechodzi do następnej pozycji (``production.next_grant``).
     queue: list[str] = Field(default_factory=list)

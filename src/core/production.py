@@ -27,7 +27,7 @@ from src.core.combat import resolve_unit_variant
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
-from src.core.payment import apply_payment
+from src.core.payment import apply_payment, trade_good_value
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
@@ -464,7 +464,9 @@ def available_budget(
             if owner != player_id or planet_id in exhausted:
                 continue
             resources += pay_value(state, registry, planet_id, player_id)
-    return resources + economy.spendable_trade_goods(state, player_id)
+    return resources + economy.spendable_trade_goods(state, player_id) * trade_good_value(
+        state, player_id
+    )
 
 
 def _order_cost(
@@ -572,6 +574,12 @@ def validate_production(
     if free_grant is not None and free_grant.free:
         if free_grant.ships_only and any(not is_space_unit(o.base_type) for o in orders):
             raise ValueError(f"{free_grant.source or "This ability"} produces ships only.")
+        allowed = set(free_grant.allowed_types)
+        if allowed and any(o.base_type not in allowed for o in orders):
+            raise ValueError(
+                f"{free_grant.source or "This ability"} can produce only: "
+                f"{", ".join(sorted(allowed))}."
+            )
         if free_grant.max_cost is not None:
             cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
             if cost > free_grant.max_cost:
@@ -728,7 +736,8 @@ def auto_pay(
             chosen.remove(item)
             total -= item[1]
     missing = max(0, need - total)
-    return Spend(tuple(pid for pid, _ in chosen), min(tg, missing))
+    worth = trade_good_value(state, player_id)
+    return Spend(tuple(pid for pid, _ in chosen), min(tg, -(-missing // worth)))
 
 
 def _validate_spend(
@@ -753,7 +762,7 @@ def _validate_spend(
         raise ValueError(f"Not enough trade goods: {spend.trade_goods} > {spendable}.")
     paid = (
         sum(pay_value(state, registry, pid, player_id) for pid in spend.planets)
-        + spend.trade_goods
+        + spend.trade_goods * trade_good_value(state, player_id)
     )
     if paid < cost:
         raise ValueError(f"Payment too low: {paid} spent < cost {cost:g}.")

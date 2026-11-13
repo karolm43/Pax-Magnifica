@@ -31,7 +31,7 @@ from src.api.schemas_invasion import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import battle, board_edit, custodians, economy, invasion, space_cannon
+from src.core import battle, board_edit, custodians, economy, invasion, payment, space_cannon
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -111,6 +111,7 @@ def _custodians_view(ctx: AppContext, state: GameState) -> CustodiansView | None
         cost=custodians.removal_cost(state, inv.attacker),
         influence=custodians.influence_options(state, registry, inv.attacker),
         trade_goods=economy.spendable_trade_goods(state, inv.attacker),
+        trade_good_value=payment.trade_good_value(state, inv.attacker),
         blocked_planets=sorted(custodians.landing_blocked(state, registry, inv.position)),
     )
 

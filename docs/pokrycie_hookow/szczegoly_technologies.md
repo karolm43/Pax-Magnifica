@@ -52,7 +52,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `lw2` | Letani Warrior II | arborec | — | — | walka, produkcja, planety i eksploracja | ✔ | Cost 1(x2), Combat 7 PRODUCTION 2 After this unit is destroyed, roll 1 die. If the result is 6 or greater, place the unit on this card. At … |
 | `lwd` | Light/Wave Deflector | — | — | PERMIT (pozwolenie) | ruch | ✔ | Your ships can move through systems that contain other players' ships. |
 | `m2` | Memoria II | nomad | — | MODIFY (liczba/rzut) | ruch, walka | — | Cost 8, Combat 5(x2), Move 2, Capacity 6 SUSTAIN DAMAGE, ANTI-FIGHTER BARRAGE 5(x3) You may treat this unit as if it were adjacent to syste… |
-| `mc` | Mirror Computing | mentak | — | REPLACE (instead of) | ekonomia i płatności | — | When you spend trade goods, each trade good is worth 2 resources or influence instead of 1. |
+| `mc` | Mirror Computing | mentak | — | REPLACE (instead of) | ekonomia i płatności | ✔ | When you spend trade goods, each trade good is worth 2 resources or influence instead of 1. |
 | `md` | Magen Defense Grid ΩΩ | — | — | MODIFY (liczba/rzut) | walka, produkcja, planety i eksploracja | ✔ | When any player activates a system that contains 1 or more of your structures, place 1 infantry from your reinforcements with each of those… |
 | `md_base` | Magen Defense Grid | — | — | FORBID (zakaz) | walka, planety i eksploracja, status i odświeżanie | ✔ | You may exhaust this card at the start of a round of ground combat on a planet that contains 1 or more of your units that have PLANETARY SH… |
 | `md_c1` | Magen Defense Grid Ω | — | — | MODIFY (liczba/rzut) | walka, produkcja, planety i eksploracja | ✔ | At the start of ground combat on a planet that contains 1 or more of your structures, produce 1 hit and assign it to 1 of your opponent's g… |
@@ -86,7 +86,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `sdn` | Scanlink Drone Network | — | — | MODIFY (liczba/rzut) | planety i eksploracja | ✔ | When you activate a system, you may explore 1 planet in that system which contains 1 or more of your units. |
 | `sdn2` | Super Dreadnought II | l1z1x | — | FORBID (zakaz) | ruch, walka, karty | — | Cost 4, Combat 4, Move 2, Capacity 2 SUSTAIN DAMAGE, BOMBARDMENT 4 This unit cannot be destroyed by "Direct Hit" action cards. |
 | `se2` | Saturn Engine II | titans | — | — | ruch, walka | — | Cost 2, Combat 6, Move 3, Capacity 2 SUSTAIN DAMAGE |
-| `so` | Salvage Operations | mentak | — | PERMIT (pozwolenie) | walka, produkcja, ekonomia i płatności | — | After you win or lose a space combat, gain 1 trade good; if you won the combat, you may also produce 1 ship in that system of any ship type… |
+| `so` | Salvage Operations | mentak | — | PERMIT (pozwolenie) | walka, produkcja, ekonomia i płatności | ✔ | After you win or lose a space combat, gain 1 trade good; if you won the combat, you may also produce 1 ship in that system of any ship type… |
 | `so2` | Spec Ops II | sol | — | — | walka, planety i eksploracja | ✔ | Cost 1(x2), Combat 6 After this unit is destroyed, roll 1 die. If the result is 5 or greater, place the unit on this card. At the start of … |
 | `sr` | Sling Relay | — | — | — | produkcja, status i odświeżanie | ✔ | ACTION: Exhaust this card to produce 1 ship in any system that contains one of your space docks. |
 | `st` | Sarween Tools | — | — | MODIFY (liczba/rzut) | produkcja | ✔ | When 1 or more of your units use PRODUCTION, reduce the combined cost of the produced units by 1. |

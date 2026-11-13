@@ -203,10 +203,10 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const stillMissing = selected ? totalMissing(left) : 0;
   const pay =
     payment ??
-    autoPay(options.planets, skips, options.tradeGoods, options.cost);
+    autoPay(options.planets, skips, options.tradeGoods, options.cost, options.tradeGoodValue);
   const paid =
     pay.planets.reduce((s, id) => s + (options.planets[id] ?? 0), 0) +
-    pay.tradeGoods;
+    pay.tradeGoods * options.tradeGoodValue;
   const compoundOptions = compoundChoices(selected, options, skips);
   const compoundUsed = compound != null && compoundOptions.includes(compound);
   const short = compoundUsed ? 0 : Math.max(0, options.cost - paid);

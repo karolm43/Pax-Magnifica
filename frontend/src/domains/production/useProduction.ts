@@ -61,6 +61,8 @@ export type ProductionGrant = {
   maxCost?: number | null;
   /** Sling Relay: tylko statki. */
   shipsOnly?: boolean;
+  /** Salvage Operations: tylko te typy (base_type); puste = bez ograniczenia. */
+  allowedTypes?: string[];
 };
 
 export type ProductionBody = {
@@ -88,6 +90,8 @@ export type ProductionBody = {
   groundZones: string[];
   planets: ProductionPlanet[];
   tradeGoods: number;
+  /** Wartość 1 TG w płatności (Mirror Computing: 2); brak = 1. */
+  tradeGoodValue?: number;
   units: ProductionUnit[];
 };
 

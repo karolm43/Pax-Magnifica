@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from src.core import economy, exhaust, relic_planets
+from src.core import economy, exhaust, relic_planets, rules_hooks
 from src.core.game_state import GameState
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
@@ -42,6 +42,17 @@ def ready_planet_values(
         if relic_planets.relic_of(pseudo) not in player.exhausted_relics:
             values[pseudo] = value
     return values
+
+
+def trade_good_value(state: GameState, player_id: str) -> int:
+    """Ile zasobów albo wpływu jest wart 1 trade good gracza w płatności (bazowo 1).
+
+    JEDYNE miejsce tej wartości (RULES.md 43.1a): hook MODIFY ``payment.trade_good_value``
+    (Mirror Computing: +1, RULES.md 62.8). Wymóg wydania samych TG (cel „spend N trade goods”)
+    liczy TG sztukami, nie tą wartością.
+    """
+    bonus = rules_hooks.modify(rules_hooks.POINT_PAYMENT_TRADE_GOOD_VALUE, state, player_id, 0)
+    return 1 + max(0, bonus)
 
 
 def parse_payment(payload: dict[str, Any]) -> tuple[list[str], int]:
@@ -80,7 +91,7 @@ def validate_payment(
     spendable = economy.spendable_trade_goods(state, player_id)
     if trade_goods > spendable:
         raise ValueError(f"Not enough trade goods: {trade_goods} > {spendable}.")
-    return sum(ready[p] for p in planets) + trade_goods
+    return sum(ready[p] for p in planets) + trade_goods * trade_good_value(state, player_id)
 
 
 def apply_payment(state: GameState, player_id: str, planets: list[str], trade_goods: int) -> None:

@@ -135,7 +135,10 @@ def route_report(
     # +2 zapasu na trasy przez gravity rift (każda szczelina daje +1 do ruchu).
     max_len = min(max(reach + 2, len(shortest)), _MAX_PREVIEW_LEN + 1)
     max_len = min(max_len, len(shortest) - 1 + _EXTRA_HOPS)
-    all_routes = movement.legal_routes(state, grid, from_pos, player_id, max_len=max_len)
+    all_routes = movement.legal_routes(
+        state, grid, from_pos, player_id, max_len=max_len,
+        base_type=movement.single_ship_type(by_type),
+    )
     alternatives = all_routes[:_MAX_ALTERNATIVES]
     # Aktualna trasa zawsze jest na liście (pierwsza), nawet gdy wypadła z limitu.
     if route is not None and route not in alternatives:
