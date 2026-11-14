@@ -254,7 +254,7 @@ def production_biomes(
 # --------------------------------------------------------- Carth of Golden Sands (agent)
 
 
-@faction_components.window_use("leader", AGENT)
+@faction_components.window_use("leader", AGENT, standing=True)
 def _agent_window(state: GameState, _registry: StaticDataRegistry, _player_id: str) -> str | None:
     if state.phase is not Phase.ACTION:
         return "Carth of Golden Sands is used during the action phase."

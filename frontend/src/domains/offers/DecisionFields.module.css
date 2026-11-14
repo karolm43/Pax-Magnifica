@@ -384,3 +384,26 @@
   border: 1px solid var(--ds-h28);
   color: var(--ds-ink-lo);
 }
+
+/* Kafelek gracza: ikona frakcji w obwódce koloru gracza + nazwa w tym kolorze (jak PlayerChip). */
+.playerOpt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.playerRing {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--pc);
+  background: var(--ds-ground);
+}
+
+.optText .playerName {
+  color: color-mix(in srgb, var(--pc) 65%, var(--ds-ink-hi));
+}

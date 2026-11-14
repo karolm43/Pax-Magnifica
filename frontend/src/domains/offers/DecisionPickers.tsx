@@ -7,6 +7,7 @@ import { COLOR_HUE, COLOR_ICON, type TechColor } from "@/domains/technology/tech
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getTechData } from "@/entities/lookup/tech";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { playerName, playerRgb } from "@/domains/strategy/PlayerChip";
 import { useGameData } from "@/state/useGameContext";
 import type { Classified, OptionLookups } from "./optionKinds";
 import styles from "./DecisionFields.module.css";
@@ -72,20 +73,28 @@ export function TechOptionBody({ option, techId }: { option: ActionCardOption; t
   );
 }
 
-/** Treść kafelka gracza: ikona frakcji + nazwa. */
+/**
+ * Treść kafelka gracza: ikona frakcji w obwódce koloru gracza (jak ``PlayerChip`` w oknach kart
+ * strategii) + nazwa w jego kolorze; podpis = co się stanie, gdy etykieta silnika mówi więcej
+ * niż samo imię („Replenish X's commodities”).
+ */
 export function PlayerOptionBody({ option, playerId }: { option: ActionCardOption; playerId: string }) {
   const gameData = useGameData();
   const player = gameData?.playerData?.find((p) => p.discordId === playerId);
+  const name = player ? playerName(player) : option.label;
   const at = option.label.indexOf(" - ");
-  const caption = at >= 0 ? option.label.slice(at + 3) : "";
+  const caption =
+    at >= 0 ? option.label.slice(at + 3) : option.label !== name && option.label !== playerId ? option.label : "";
   return (
-    <>
-      {player?.faction && <CircularFactionIcon faction={player.faction} size={22} />}
+    <span className={styles.playerOpt} style={{ "--pc": playerRgb(player?.color) } as CSSProperties}>
+      <span className={styles.playerRing} aria-hidden="true">
+        {player?.faction && <CircularFactionIcon faction={player.faction} size={22} />}
+      </span>
       <span className={styles.optText}>
-        <b>{player?.flexibleDisplayName || player?.faction || option.label}</b>
+        <b className={styles.playerName}>{name}</b>
         {caption && <small>{caption}</small>}
       </span>
-    </>
+    </span>
   );
 }
 

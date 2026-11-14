@@ -43,6 +43,8 @@ _BLOCKERS: dict[str, BlockerFn] = {}
 # „During/After X: you may…" — komponent używany z inicjatywy gracza poza akcją tury (RULES.md
 # 62.0): warunek okna zwraca powód odmowy albo None (= wolno teraz).
 _WINDOW_USES: dict[str, BlockerFn] = {}
+_STANDING_WINDOWS: set[str] = set()
+"""Okna ``window_use`` trwające całą fazę (``standing=True``) - UI: znacznik, nie karta."""
 
 
 def effect_key(kind: str, component: str) -> str:
@@ -78,11 +80,17 @@ def blocker(kind: str, component: str) -> Callable[[BlockerFn], BlockerFn]:
     return decorate
 
 
-def window_use(kind: str, component: str) -> Callable[[BlockerFn], BlockerFn]:
+def window_use(
+    kind: str, component: str, *, standing: bool = False
+) -> Callable[[BlockerFn], BlockerFn]:
     """Rejestruje komponent bez ``ACTION:`` używany przez gracza w danym kroku (RULES.md 62.0).
 
     ``fn(state, registry, player_id)`` = powód, dla którego TERAZ nie wolno, albo ``None``. Efekt
     to zwykłe ``register_effect`` komponentu; użycie NIE zużywa akcji tury.
+
+    ``standing=True``: okno trwa całą fazę (np. „During the action phase: you may…”, Carth of
+    Golden Sands) - nie jest chwilą, którą łatwo przegapić, więc UI pokazuje je jako mały znacznik
+    „gotowe do użycia”, a nie wyskakującą kartę.
     """
     key = effect_key(kind, component)
 
@@ -90,6 +98,8 @@ def window_use(kind: str, component: str) -> Callable[[BlockerFn], BlockerFn]:
         if key in _WINDOW_USES:
             raise ValueError(f"Window use already registered for {key}.")
         _WINDOW_USES[key] = fn
+        if standing:
+            _STANDING_WINDOWS.add(key)
         return fn
 
     return decorate
@@ -316,6 +326,7 @@ def available_now(
             found.append({
                 "player_id": player_id, "kind": row["kind"],
                 "component_id": row["component_id"], "name": row["name"], "text": text,
+                "standing": effect_key(row["kind"], row["component_id"]) in _STANDING_WINDOWS,
             })
     return found
 

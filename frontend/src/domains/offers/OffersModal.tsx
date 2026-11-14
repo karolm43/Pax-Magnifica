@@ -9,6 +9,7 @@ import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
 import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { Tech } from "@/domains/player/components/Tech";
 import {
   CommandPools,
@@ -78,6 +79,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   const pools = isPoolsOffer(offer);
   const gameData = useGameData();
   const decider = gameData?.playerData?.find((p) => p.discordId === offer.player_id);
+  const foreign = Boolean(offer.owner_id) && offer.owner_id !== offer.player_id;
   const tacticInput = offer.inputs.find((i) => i.key === POOL_KEYS.t);
   const poolsTotal = tacticInput?.kind === "number" ? tacticInput.max : 0;
   const num = (key: string, fallback: number) =>
@@ -156,7 +158,18 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       <header className={styles.head}>
         <SourceTile source={offer.source} />
         <span className={styles.titleBox}>
-          {offer.kind && <small className={styles.kind}>{offer.kind}</small>}
+          {(offer.kind || foreign) && (
+            <small className={styles.kind}>
+              {offer.kind}
+              {/* Cudzy komponent (Assault Cannon - decyduje ofiara): czyj, z logo i kolorem. */}
+              {foreign && (
+                <>
+                  {offer.kind ? " · " : ""}
+                  <PlayerTag playerId={offer.owner_id} size={13} />
+                </>
+              )}
+            </small>
+          )}
           <b className={styles.title}>{offer.name}</b>
         </span>
         {offer.mandatory && <span className={styles.tag} data-tone="required">Required</span>}

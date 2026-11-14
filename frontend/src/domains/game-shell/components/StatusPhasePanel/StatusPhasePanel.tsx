@@ -29,6 +29,7 @@ import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { ObjectiveSpendForm } from "./ObjectiveSpendForm";
 import styles from "./StatusPhasePanel.module.css";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
 
 /** Osiem kroków fazy statusu (R_status_phase): krótka etykieta + czy robi to silnik. */
 const STEPS: { n: number; label: string; auto: boolean }[] = [
@@ -393,7 +394,7 @@ function ExcessNotice({
         <b>Fleet pool exceeded</b>
         {entries.map(([playerId, systems]) => (
           <span key={playerId}>
-            {nameOf(playerId)}: remove{" "}
+            <PlayerTag playerId={playerId} size={14} fallback={nameOf(playerId)} />: remove{" "}
             {Object.entries(systems)
               .map(([position, n]) => `${n} ship${n === 1 ? "" : "s"} in ${position}`)
               .join(", ")}

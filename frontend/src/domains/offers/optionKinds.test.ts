@@ -31,6 +31,13 @@ describe("classifyOptions", () => {
     expect(systems?.targets.get("b")).toBe("000");
   });
 
+  it("gracze z opcją bez celu (Carth: self + gracze) zostają graczami", () => {
+    const carth = classifyOptions([opt("self"), opt("p1"), opt("p2")], look);
+    expect(carth?.kind).toBe("player");
+    expect(carth?.targets.has("self")).toBe(false);
+    expect(carth?.targets.get("p2")).toBe("p2");
+  });
+
   it("mieszane, powtórzone cele albo jednostki = zwykłe kafelki", () => {
     expect(classifyOptions([opt("nm"), opt("jord")], look)).toBeNull();
     // Ta sama planeta w dwóch opcjach - ale różne systemy: wybór systemu na mapie.

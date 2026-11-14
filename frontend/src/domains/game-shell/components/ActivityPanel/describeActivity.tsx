@@ -40,6 +40,7 @@ import {
 } from "../GameEventPanel/eventFormatting";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { Named } from "./Named";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 
 type Glyph = ComponentType<{ size?: number; stroke?: number }>;
@@ -107,9 +108,9 @@ function playerName(ctx: ActivityContext, id: string | null): string {
 }
 
 /** Nazwa wyniku agendy: gracz, For/Against albo planeta (reszta - ładny id). */
-function agendaOutcomeName(ctx: ActivityContext, outcome: string | null): string {
+function agendaOutcomeName(ctx: ActivityContext, outcome: string | null): ReactNode {
   if (!outcome) return "an outcome";
-  if (ctx.players[outcome]) return playerName(ctx, outcome);
+  if (ctx.players[outcome]) return name(ctx, outcome);
   if (outcome === "for" || outcome === "against") return prettifyId(outcome);
   return resolvePlanetName(outcome);
 }
@@ -134,8 +135,17 @@ function phaseLabel(phase: string | null): string {
   return words ? words[0].toUpperCase() + words.slice(1) : "";
 }
 
+/** Gracz w opisie zdarzenia: logo frakcji w obwódce koloru + nazwa w jego kolorze (``PlayerTag``). */
 function name(ctx: ActivityContext, id: string | null): ReactNode {
-  return <b>{playerName(ctx, id)}</b>;
+  const p = id ? ctx.players[id] : undefined;
+  if (!id || !p) return <b>{playerName(ctx, id)}</b>;
+  return (
+    <PlayerTag
+      playerId={id}
+      size={14}
+      known={{ name: playerName(ctx, id), faction: p.faction, color: p.color }}
+    />
+  );
 }
 
 /**
@@ -779,22 +789,6 @@ function describeFact(
           <>
             {prefix}played{" "}
             <Named kind="actionCard" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")} />{" "}
-            on {agendaOutcomeName(ctx, fact.detail ?? null)}
-          </>
-        ),
-      };
-    case "rider":
-      return {
-        key,
-        tone: "card",
-        text: (
-          <>
-            {prefix}played{" "}
-            <Named
-              kind="actionCard"
-              id={fact.value ?? ""}
-              name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")}
-            />{" "}
             on {agendaOutcomeName(ctx, fact.detail ?? null)}
           </>
         ),

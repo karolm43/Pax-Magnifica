@@ -90,5 +90,26 @@ export function classifyOptions(
     const targets = all(options, pick);
     if (targets) return { kind, targets };
   }
+  // Gracze z dodatkową opcją bez celu (Carth of Golden Sands: „Gain 2 commodities” obok
+  // „Replenish <gracz>…”): gracze dalej z ikoną frakcji i kolorem, reszta zwykłym kafelkiem.
+  const players = some(options, plain(look.isPlayer));
+  if (players) return { kind: "player", targets: players };
   return null;
+}
+
+/** Jak ``all``, ale część opcji może nie mieć celu (zostają zwykłymi kafelkami); min. 1 cel. */
+function some(
+  options: ActionCardOption[],
+  pick: (option: ActionCardOption) => string | null,
+): Map<string, string> | null {
+  const targets = new Map<string, string>();
+  const seen = new Set<string>();
+  for (const option of options) {
+    const target = pick(option);
+    if (!target) continue;
+    if (seen.has(target)) return null;
+    seen.add(target);
+    targets.set(option.id, target);
+  }
+  return targets.size > 0 ? targets : null;
 }

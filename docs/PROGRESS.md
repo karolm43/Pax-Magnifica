@@ -1193,3 +1193,17 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (422, `PhaseNoticePanel`) + 403 („Not your move”, dawny osobny dymek) + toasty Activity — kolumna u góry na środku
   mapy (nie zasłania paska narzędzi mapy ani zdarzeń w prawym rogu); przy oknie pełnoekranowym na środku jego
   nagłówka i NAD nim. Usunięte lokalne paski `notice` w oknach walki i inwazji (migały: store czyści notice po 80 ms).
+
+## Stałe okna zdolności jako znacznik „Ready” + gracze z logo i kolorem w komunikatach (2026-11-14)
+
+- **Carth of Golden Sands** (okno = cała faza akcji, także w cudzej turze) nie wyskakuje już jako pełna karta
+  „Available now”: `window_use(..., standing=True)` → `available-now` zwraca `standing`, centrum decyzji pokazuje
+  jedną cichą linię „Ready · Leader · Carth… [Use] [X]” (tekst po kliknięciu nazwy; sama nie otwiera paska centrum).
+  Chwilowe okna (Sardakk, Sucaban, Munitions…) bez zmian.
+- **`shared/ui/PlayerTag`** — znacznik gracza w linii (logo frakcji w obwódce koloru + nazwa w kolorze, wygląd
+  `PlayerChip`). Użyty w: opisach feedu Activity i toastach (`describeActivity` → `name()`, wyniki agend), stole
+  transakcji, kartach decyzji (właściciel cudzego komponentu, gracz przy kilku ludziach lokalnie), oknie Space Cannon
+  („X fires on Y”), ostrzeżeniu o puli floty w fazie statusu.
+- **Wybór gracza w formularzach**: kafelki z logo w kolorze gracza i podpisem skutku; opcja bez celu (Carth: „self”)
+  nie psuje już rozpoznania graczy (`optionKinds.some`).
+- Usunięty zdublowany `case "rider"` w `describeActivity` (ostrzeżenie Vite).

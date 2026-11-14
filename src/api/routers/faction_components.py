@@ -91,6 +91,8 @@ class AvailableNowRow(BaseModel):
     component_id: str
     name: str
     text: str
+    # Okno trwa całą fazę (Carth of Golden Sands) - UI: mały znacznik zamiast karty.
+    standing: bool = False
 
 
 class AvailableNowResponse(BaseModel):

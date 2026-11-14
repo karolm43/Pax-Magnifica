@@ -54,6 +54,10 @@ def test_transakcja_z_nie_sasiadem_i_karta_akcji(registry: StaticDataRegistry) -
 def test_carth_of_golden_sands_w_fazie_akcji(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     assert f"{flow.me}:hacanagent" in flow.available()
+    # Okno trwa całą fazę akcji - UI pokazuje znacznik „gotowe”, nie wyskakującą kartę.
+    rows = flow.client.get("/faction-component/available-now").json()["components"]
+    carth = next(r for r in rows if r["component_id"] == "hacanagent")
+    assert carth["standing"] is True
     flow.use("leader", "hacanagent", {"target": "self"})
     assert flow.state()["players"][flow.me]["commodities"] == 2
 

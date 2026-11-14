@@ -1,0 +1,37 @@
+/* Znacznik gracza w linii: ikona frakcji w obwódce koloru gracza + nazwa w tym kolorze. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--pc);
+  background: var(--ds-ground-2);
+  min-width: 8px;
+  min-height: 8px;
+}
+
+.name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--pc) 70%, var(--ds-ink-hi));
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

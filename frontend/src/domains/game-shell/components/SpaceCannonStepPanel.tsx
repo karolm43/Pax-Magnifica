@@ -27,6 +27,7 @@ import {
   zoneLabel,
 } from "./SpaceCannonParts";
 import styles from "./SpaceCannonStepPanel.module.css";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
 
 type Lookup = ReturnType<typeof usePlayerLookup>;
 
@@ -343,6 +344,15 @@ export function SpaceCannonStepPanel() {
   if (!panel) return <span className={styles.note}>Loading Space Cannon…</span>;
 
   const nameOf = (key: string) => lookup(key).name;
+  // Strzelec i cel z logo frakcji i kolorem gracza (``PlayerTag``), nie sama nazwa.
+  const factionTag = (faction: string, name: string) => {
+    const player = gameData?.playerData?.find((p) => p.faction === faction);
+    return player ? (
+      <PlayerTag playerId={player.discordId} size={16} known={{ name }} />
+    ) : (
+      <b>{name}</b>
+    );
+  };
   const current = panel.sides.find((s) => s.faction === panel.current);
   const shooter = gameData?.playerData?.find(
     (p) => p.faction === current?.faction,
@@ -408,8 +418,8 @@ export function SpaceCannonStepPanel() {
         <div style={{ visibility: rolling ? "hidden" : "visible" }}>
           <header className={styles.shotHead}>
             <span>
-              <b>{nameOf(pending.roller)}</b> fires on{" "}
-              <b>{nameOf(pending.target)}</b>
+              {factionTag(pending.roller, nameOf(pending.roller))} fires on{" "}
+              {factionTag(pending.target, nameOf(pending.target))}
             </span>
             <span
               className={styles.hitCount}

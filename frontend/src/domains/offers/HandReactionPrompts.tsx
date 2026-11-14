@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { IconHourglassHigh, IconX } from "@tabler/icons-react";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { useActionCardPlayability } from "@/api/useActionCard";
@@ -25,13 +25,13 @@ type Row = ReadyReaction & { key: string; name: string; text: string; when: stri
 export function HandReactionRows({
   gameId,
   playerId,
-  playerLabel,
+  owner,
   onPlay,
 }: {
   gameId: string;
   playerId: string;
-  /** Podpis gracza, gdy przy ekranie jest kilku ludzi (tryb lokalny). */
-  playerLabel: string | null;
+  /** Znacznik gracza (``PlayerTag``), gdy przy ekranie jest kilku ludzi (tryb lokalny). */
+  owner: ReactNode;
   onPlay: (play: HandPlay) => void;
 }) {
   const { data: hand } = usePlayerHand(gameId, { ignoreAuthGate: true, player: playerId });
@@ -90,7 +90,7 @@ export function HandReactionRows({
                 <span className={styles.titleBox}>
                   <small className={styles.kind}>
                     Window open now · {kind}
-                    {playerLabel ? ` · ${playerLabel}` : ""}
+                    {owner && <> · {owner}</>}
                   </small>
                   <b className={styles.title}>
                     {name}

@@ -11,6 +11,7 @@ import {
 import { TransactionModal } from "@/domains/game-shell/components/TurnControls/TransactionModal";
 import type { GameState } from "@/entities/data/types";
 import styles from "./AbilityPrompts.module.css";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
 
 /*
  * Zaproszenie do stołu transakcji (RULES.md 47.1b): wyskakuje SAMO u gracza, z którym ktoś usiadł
@@ -96,12 +97,17 @@ function OwnerInvites({
               <span className={styles.titleBox}>
                 <small className={styles.kind}>
                   {t.prefilled ? "Trade deal · wash" : "Trading table"}
-                  {several ? ` · for ${nameOf(owner)}` : ""}
+                  {several && (
+                    <>
+                      {" · for "}
+                      <PlayerTag playerId={owner} size={13} fallback={nameOf(owner)} />
+                    </>
+                  )}
                 </small>
                 <b className={styles.title}>
-                  {t.prefilled
-                    ? `Confirm your Trade deal with ${from}`
-                    : `${from} sat down to trade with you`}
+                  {t.prefilled ? "Confirm your Trade deal with " : null}
+                  <PlayerTag playerId={t.partner} size={18} fallback={from} />
+                  {t.prefilled ? null : " sat down to trade with you"}
                 </b>
               </span>
             </header>

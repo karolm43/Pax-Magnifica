@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IconBolt, IconChevronUp, IconMinus, IconX } from "@tabler/icons-react";
+import { IconBolt, IconChevronDown, IconChevronUp, IconMinus, IconX } from "@tabler/icons-react";
 import { fetchJson } from "@/api/fetchJson";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
@@ -17,6 +17,7 @@ import { humanHandOwners } from "./handReactions";
 import { OfferCard, useDecisionOffers } from "./OffersModal";
 import { isResearchOffer } from "./ResearchOfferOverlay";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
 import styles from "./AbilityPrompts.module.css";
 
 /*
@@ -32,6 +33,11 @@ export type AvailableNow = {
   component_id: string;
   name: string;
   text: string;
+  /**
+   * Okno trwa całą fazę (Carth of Golden Sands: „During the action phase”) - zamiast karty
+   * wyskakującej przy każdej zmianie stanu mały znacznik „Ready”. Brak pola (stary backend) = karta.
+   */
+  standing?: boolean;
 };
 
 const KIND_LABEL: Record<FactionComponentKind, string> = {
@@ -94,11 +100,16 @@ export function DecisionCenter() {
   }, [available]);
 
   const visible = available.filter((row) => !dismissed.has(promptKey(row)));
+  const moments = visible.filter((row) => !row.standing);
+  const standing = visible.filter((row) => row.standing);
+  const dismiss = (row: AvailableNow) => setDismissed((cur) => new Set(cur).add(promptKey(row)));
   const { data: feed } = useActivityFeed();
   // Lokalnie (kilku ludzi przy jednym ekranie) podpisujemy, czyja to zdolność.
   const severalHumans = new Set(available.map((r) => r.player_id)).size > 1 ||
     Object.values(feed?.players ?? {}).filter((p) => !p.is_bot).length > 1;
   const playerName = (id: string) => feed?.players[id]?.display_name ?? id;
+  const owner = (id: string) =>
+    severalHumans ? <PlayerTag playerId={id} size={13} fallback={playerName(id)} /> : null;
   // Okna reakcji kart z ręki: ręce ludzi przy tym ekranie (sieć: tylko moja).
   const handOwners = humanHandOwners(me, feed?.players);
   const severalHands = handOwners.length > 1;
@@ -162,18 +173,18 @@ export function DecisionCenter() {
                 key={id}
                 gameId={gameId}
                 playerId={id}
-                playerLabel={severalHands ? playerName(id) : null}
+                owner={severalHands ? <PlayerTag playerId={id} size={13} fallback={playerName(id)} /> : null}
                 onPlay={setPlaying}
               />
             ))}
-            {visible.map((row) => (
+            {moments.map((row) => (
               <section key={promptKey(row)} className={styles.card} aria-label={`Available now: ${row.name}`}>
                 <header className={styles.head}>
                   <IconBolt size={16} aria-hidden="true" className={styles.icon} />
                   <span className={styles.titleBox}>
                     <small className={styles.kind}>
                       Available now · {KIND_LABEL[row.kind]}
-                      {severalHumans ? ` · ${playerName(row.player_id)}` : ""}
+                      {owner(row.player_id) && <> · {owner(row.player_id)}</>}
                     </small>
                     <b className={styles.title}>{row.name}</b>
                   </span>
@@ -181,18 +192,14 @@ export function DecisionCenter() {
                     type="button"
                     className={styles.iconBtn}
                     aria-label={`Not now: ${row.name}`}
-                    onClick={() => setDismissed((cur) => new Set(cur).add(promptKey(row)))}
+                    onClick={() => dismiss(row)}
                   >
                     <IconX size={14} aria-hidden="true" />
                   </button>
                 </header>
                 <p className={styles.text}>{row.text}</p>
                 <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.ghost}
-                    onClick={() => setDismissed((cur) => new Set(cur).add(promptKey(row)))}
-                  >
+                  <button type="button" className={styles.ghost} onClick={() => dismiss(row)}>
                     Not now
                   </button>
                   <button type="button" className={styles.primary} onClick={() => setUsing(row)}>
@@ -200,6 +207,15 @@ export function DecisionCenter() {
                   </button>
                 </div>
               </section>
+            ))}
+            {standing.map((row) => (
+              <StandingChip
+                key={promptKey(row)}
+                row={row}
+                owner={owner(row.player_id)}
+                onUse={() => setUsing(row)}
+                onHide={() => dismiss(row)}
+              />
             ))}
             </div>
           </div>,
@@ -230,6 +246,58 @@ export function DecisionCenter() {
         />
       )}
     </>
+  );
+}
+
+/**
+ * Zdolność ze stałym oknem (cała faza, np. Carth of Golden Sands - także w cudzej turze): jedna
+ * cicha linia „Ready” w centrum decyzji zamiast pełnej karty. Tekst po kliknięciu nazwy, ukrycie
+ * (X) obowiązuje, dopóki zdolność nie zniknie (wyczerpanie, koniec fazy). Sama nie otwiera paska
+ * centrum - gdy nie ma innych decyzji, widać tylko tę linię.
+ */
+function StandingChip({
+  row,
+  owner,
+  onUse,
+  onHide,
+}: {
+  row: AvailableNow;
+  owner: ReactNode;
+  onUse: () => void;
+  onHide: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className={styles.chip} data-standing aria-label={`Ready to use: ${row.name}`}>
+      <div className={styles.chipRow}>
+        <IconBolt size={14} aria-hidden="true" className={styles.icon} />
+        <button
+          type="button"
+          className={styles.chipName}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          title={open ? "Hide card text" : "Show card text"}
+        >
+          <small className={styles.kind}>Ready · {KIND_LABEL[row.kind]}</small>
+          {owner}
+          <b>{row.name}</b>
+          {open ? <IconChevronUp size={12} aria-hidden="true" /> : <IconChevronDown size={12} aria-hidden="true" />}
+        </button>
+        <button type="button" className={styles.chipUse} onClick={onUse}>
+          Use
+        </button>
+        <button
+          type="button"
+          className={styles.iconBtn}
+          aria-label={`Hide: ${row.name}`}
+          title="Hide until this ability is no longer available"
+          onClick={onHide}
+        >
+          <IconX size={13} aria-hidden="true" />
+        </button>
+      </div>
+      {open && <p className={styles.text}>{row.text}</p>}
+    </section>
   );
 }
 
