@@ -26,10 +26,10 @@ type Props = {
   showTotalSpend?: boolean;
 };
 
-export type Kind = "resource" | "influence" | "flex";
+type Kind = "resource" | "influence" | "flex";
 
 /** The resource blob, the influence hex and the split flex hex. */
-export function EconomyGlyph({ kind }: { kind: Kind }) {
+function EconomyGlyph({ kind }: { kind: Kind }) {
   if (kind === "resource") {
     return (
       <svg viewBox="0 0 20 20" className={cx(styles.glyph, styles.res)} aria-hidden="true">
