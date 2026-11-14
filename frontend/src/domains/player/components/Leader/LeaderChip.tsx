@@ -9,15 +9,6 @@ import styles from "./Leader.module.css";
 import { RankChevrons } from "./RankChevrons";
 import { lowPriorityImageProps } from "@/shared/ui/imageLoading";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
-import {
-  ContextMenu,
-  useContextMenu,
-} from "@/shared/ui/ContextMenu/ContextMenu";
-import { useBoardEditor } from "@/api/useBoardEditor";
-import { leaderContextMenuItems } from "./leaderMenu";
-import { IconBolt } from "@tabler/icons-react";
-import { useState } from "react";
-import { FactionComponentUseModal } from "@/domains/game-shell/components/TurnControls/FactionComponentUseModal";
 
 type Props = {
   id: string;
@@ -25,10 +16,10 @@ type Props = {
   exhausted: boolean;
   locked: boolean;
   active: boolean;
-  /** Właściciel (``discordId``) — włącza menu kontekstowe stanu lidera. */
-  playerId?: string;
   /** Bohater zużyty (RULES.md 61.1). */
   purged?: boolean;
+  /** Właściciel — przyjmowany dla zgodności; menu prawego klawisza usunięte (stan obsługuje gra). */
+  playerId?: string;
 };
 
 function getLeaderState(exhausted: boolean, locked: boolean, purged = false) {
@@ -50,28 +41,13 @@ export function LeaderChip({
   exhausted,
   locked,
   active,
-  playerId,
   purged = false,
 }: Props) {
-  const [using, setUsing] = useState(false);
   const { opened, setOpened, toggle } = useDisclosure(false);
-  const { setLeaderState } = useBoardEditor();
-  const ctx = useContextMenu();
   const leaderData = getLeaderById(id);
   if (!leaderData) return null;
 
   const state = getLeaderState(exhausted, locked, purged);
-  // Pierwsza pozycja: karta lidera z silnika (użycie ACTION, ręczne odblokowanie) — RULES.md 61.
-  const menuItems = playerId
-    ? [
-        {
-          label: "Leader ability…",
-          icon: <IconBolt size={14} />,
-          onSelect: () => setUsing(true),
-        },
-        ...leaderContextMenuItems(playerId, id, exhausted, locked, setLeaderState),
-      ]
-    : [];
   const showPortrait = !locked && showLeader(leaderData.source);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -90,7 +66,6 @@ export function LeaderChip({
           title={leaderData.name}
           {...searchTarget(searchKey("leader", id))}
           onClick={toggle}
-          onContextMenu={menuItems.length > 0 ? ctx.onContextMenu : undefined}
           onKeyDown={handleKeyDown}
         >
           <span className={styles.well}>
@@ -131,24 +106,6 @@ export function LeaderChip({
       <SmoothPopover.Dropdown p={0}>
         <LeaderDetailsCard leaderId={id} />
       </SmoothPopover.Dropdown>
-      {using && playerId && (
-        <FactionComponentUseModal
-          kind="leader"
-          componentId={id}
-          name={leaderData.name}
-          playerId={playerId}
-          onClose={() => setUsing(false)}
-          onDone={() => setUsing(false)}
-        />
-      )}
-      {menuItems.length > 0 && (
-        <ContextMenu
-          position={ctx.position}
-          items={menuItems}
-          onClose={ctx.close}
-          title={leaderData.name}
-        />
-      )}
     </SmoothPopover>
   );
 }

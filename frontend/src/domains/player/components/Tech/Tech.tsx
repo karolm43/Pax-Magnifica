@@ -1,17 +1,10 @@
 import type { CSSProperties } from "react";
-import { IconFlame } from "@tabler/icons-react";
 import styles from "./Tech.module.css";
 import { searchKey } from "@/domains/search/searchKeys";
 import { getFactionImage } from "@/entities/lookup/factions";
 import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { useDisclosure } from "@/hooks/useDisclosure";
-import {
-  ContextMenu,
-  useContextMenu,
-  type ContextMenuItem,
-} from "@/shared/ui/ContextMenu/ContextMenu";
-import { useBoardEditor } from "@/api/useBoardEditor";
 import {
   getTechData,
   getTechLetter,
@@ -32,7 +25,7 @@ type Props = {
   breakthroughUnlocked?: boolean;
   /** A faction tech the player has not researched yet. */
   unresearched?: boolean;
-  /** Właściciel (``discordId``) — włącza menu kontekstowe wyczerp/odśwież. */
+  /** Właściciel — przyjmowany dla zgodności; menu prawego klawisza usunięte (stan obsługuje gra). */
   playerId?: string;
 };
 
@@ -76,27 +69,11 @@ export function Tech({
   synergy,
   breakthroughUnlocked = false,
   unresearched = false,
-  playerId,
 }: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
-  const { toggleTechExhaust } = useBoardEditor();
-  const ctx = useContextMenu();
   const techData = getTechData(techId);
 
   if (!techData) return null;
-
-  // Menu kontekstowe (RMB): wyczerp/odśwież — tylko gdy znamy właściciela i
-  // technologia jest zbadana (niezbadane frakcyjne nie mają stanu exhaust).
-  const menuItems: ContextMenuItem[] =
-    playerId && !unresearched
-      ? [
-          {
-            label: isExhausted ? "Refresh (ready)" : "Exhaust",
-            icon: <IconFlame size={14} />,
-            onSelect: () => void toggleTechExhaust(playerId, techId),
-          },
-        ]
-      : [];
 
   const color = getTechColor(techData.types[0]);
   const tier = getTechTier(techData.requirements);
@@ -120,7 +97,6 @@ export function Tech({
           state={state}
           label={unresearched ? `${techData.name} (not researched)` : techData.name}
           onClick={toggle}
-          onContextMenu={menuItems.length > 0 ? ctx.onContextMenu : undefined}
           style={style}
           searchKey={searchKey("tech", techId)}
         >
@@ -144,14 +120,6 @@ export function Tech({
       <SmoothPopover.Dropdown p={0}>
         <TechCard techId={techId} />
       </SmoothPopover.Dropdown>
-      {menuItems.length > 0 && (
-        <ContextMenu
-          position={ctx.position}
-          items={menuItems}
-          onClose={ctx.close}
-          title={techData.name}
-        />
-      )}
     </SmoothPopover>
   );
 }

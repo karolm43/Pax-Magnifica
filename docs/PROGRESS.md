@@ -1227,3 +1227,15 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   commodities, karty akcji/notki, CC, fragmenty, dług — ten sam `StoresStrip` co w strefie gracza (+ blok ekonomii).
 - Planety w panelach wydawania (`PlanetCard` w trybie wyboru): pod kartą żetony attachmentów z nazwą i modyfikatorami
   w podpowiedzi (`PlanetAttachmentStrip`).
+
+## 2026-11-14 — Klik na systemie, bez menu prawego klawisza, pasek zasobów v2, stół transakcji
+
+- Mapa: LEWY klik w system = menu „Activate system” (+ „System details”), PRAWY klik = okno systemu (dossier).
+  Telefon: tap dalej otwiera dossier. Klik w planetę na mapie działa jak klik w system.
+- Usunięte menu prawego klawisza (exhaust/refresh, stan lidera) z planet, technologii i liderów — stan prowadzi gra.
+  `leaderMenu.tsx` skasowany; prop `playerId` zostaje w typach dla zgodności wywołań.
+- Pasek zasobów: grupy Total / Optimal (jak ledger w strefie gracza, z flex) / TG + commodities / CC / Ships (statki na
+  planszy według typu, sprite `Unit`) / fragmenty. Bez kart akcji; jeden wygląd grup, kolor tylko w ikonach.
+- Stół transakcji: układ Ty (lewa) | stół (środek: „X gives” obu stron w kolorach graczy) | partner (prawa, Ready,
+  jego TG/commodities). Miganie/skakanie: `useTransactionState` ma `placeholderData: keepPreviousData` (klucz ze
+  „stampem” stołu zmieniał się po każdym ruchu i stół się odmontowywał).

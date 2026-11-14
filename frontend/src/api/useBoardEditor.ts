@@ -1520,6 +1520,9 @@ export function useTransactionState(stamp: string, player: string | null = null)
   return useQuery<TransactionStateView>({
     queryKey: ["transactionState", stamp, player],
     staleTime: 0,
+    // Klucz zmienia się po każdym ruchu przy stole - bez tego dane na chwilę znikały i cały
+    // stół odmontowywał się i wracał (skakanie i miganie przy dokładaniu weksli).
+    placeholderData: keepPreviousData,
     queryFn: () =>
       fetchJson<TransactionStateView>(
         `/bot/transactions/state${player ? `?player=${encodeURIComponent(player)}` : ""}`,

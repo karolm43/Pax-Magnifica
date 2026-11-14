@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import {
   IconArrowsExchange,
   IconCheck,
@@ -25,6 +25,8 @@ import {
   isEmptySide,
   planetName,
 } from "./transactionItems";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { playerRgb } from "@/domains/strategy/PlayerChip";
 import styles from "./TransactionModal.module.css";
 
 /** Mała liczba z przyciskami −/+ (zakres min..max). */
@@ -101,6 +103,35 @@ type Props = {
   myPlanets: string[];
 };
 
+/** Kolor gracza jako zmienna CSS ``--pc`` (obwódka miejsca i połowy stołu). */
+const seatStyle = (player: PlayerData): CSSProperties =>
+  ({ "--pc": playerRgb(player.color) }) as CSSProperties;
+
+/** Nagłówek miejsca przy stole: kto to (logo + kolor jak na planszy) i czy dał Ready. */
+function SeatHeader({
+  player,
+  label,
+  ready,
+}: {
+  player: PlayerData;
+  label: string;
+  ready: boolean;
+}) {
+  return (
+    <header className={styles.seatHead}>
+      <small>{label}</small>
+      <PlayerTag playerId={player.discordId} size={22} />
+      {ready ? (
+        <b className={styles.readyBadge}>
+          <IconCheck size={12} aria-hidden="true" /> Ready
+        </b>
+      ) : (
+        <span className={styles.notReady}>not ready</span>
+      )}
+    </header>
+  );
+}
+
 /**
  * Stół transakcji (RULES.md 47.1b). Każda strona kładzie WYŁĄCZNIE własne rzeczy — rękę
  * partnera widać dopiero, gdy coś z niej wyłoży. Każda zmiana trafia od razu na stół (partner
@@ -171,12 +202,14 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
           still confirm with Ready.
         </p>
       )}
-      <div className={styles.sides}>
-        <section className={styles.side} aria-label="Your side of the table">
-          <h4 className={styles.sideTitle}>
-            You put down
-            <small>{getPlayerFactionDisplayName(me)}</small>
-          </h4>
+      <div className={styles.board}>
+        <section
+          className={styles.seat}
+          style={seatStyle(me)}
+          aria-label="Your things"
+        >
+          <SeatHeader player={me} label="You" ready={table.myReady} />
+          <span className={styles.seatHint}>Pick what you put on the table</span>
           {table.tradeHolder && (
             <button
               type="button"
@@ -368,25 +401,45 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
             </span>
           )}
         </section>
-        <IconArrowsExchange className={styles.swap} size={26} aria-hidden="true" />
-        <section className={styles.side} aria-label={`${partnerName}'s side of the table`}>
-          <h4 className={styles.sideTitle}>
-            {partnerName} puts down
-            {table.theirReady && (
-              <b className={styles.readyBadge}>
-                <IconCheck size={12} aria-hidden="true" /> Ready
-              </b>
-            )}
-          </h4>
-          {theirsEmpty ? (
-            <span className={styles.none}>Nothing on their side yet.</span>
-          ) : (
+        <section className={styles.center} aria-label="On the table">
+          <h4 className={styles.centerTitle}>On the table</h4>
+          <div className={styles.half} style={seatStyle(me)}>
+            <span className={styles.halfWho}>
+              <PlayerTag playerId={meId} size={16} /> gives
+            </span>
+            <TradeSummary title="You give" side={mine} issuerColor={me.color} />
+          </div>
+          <IconArrowsExchange className={styles.swap} size={22} aria-hidden="true" />
+          <div className={styles.half} style={seatStyle(partner)}>
+            <span className={styles.halfWho}>
+              <PlayerTag playerId={partnerId} size={16} /> gives
+            </span>
             <TradeSummary
-              title="On the table"
+              title={`${partnerName} gives`}
               side={table.theirs}
               issuerColor={partner.color}
             />
-          )}
+          </div>
+        </section>
+        <section
+          className={styles.seat}
+          style={seatStyle(partner)}
+          aria-label={`${partnerName}'s seat`}
+        >
+          <SeatHeader player={partner} label="Partner" ready={table.theirReady} />
+          <span className={styles.seatHint}>
+            {theirsEmpty
+              ? "Their hand stays hidden until they put something on the table."
+              : "What they put down is shown on the table."}
+          </span>
+          <dl className={styles.seatStats}>
+            <dt>Trade goods</dt>
+            <dd>{partner.tg ?? 0}</dd>
+            <dt>Commodities</dt>
+            <dd>
+              {partner.commodities ?? 0}/{partner.commoditiesTotal ?? 0}
+            </dd>
+          </dl>
         </section>
       </div>
       <Group justify="space-between" gap="sm">

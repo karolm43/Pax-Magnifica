@@ -48,7 +48,7 @@ type Props = {
   onPlanetMouseEnter?: (planetId: string, x: number, y: number) => void;
   onPlanetMouseLeave?: () => void;
   /** Planet circles sit above the hex target, so they forward the click. */
-  onPlanetClick?: () => void;
+  onPlanetClick?: (event: React.MouseEvent) => void;
 };
 
 /** Planeta jest celem wyboru na mapie (``appStore.mapPick`` typu ``planet``)? */
@@ -157,7 +157,7 @@ export function PlanetCirclesLayer({
             planetPick.onPick(planetId);
             return;
           }
-          onPlanetClick?.();
+          onPlanetClick?.(event);
         }}
       />
     );

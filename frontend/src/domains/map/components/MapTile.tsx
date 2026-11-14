@@ -29,7 +29,7 @@ import { SystemHexTarget } from "./SystemHexTarget";
 import { getTileById } from "@/entities/lookup/systems";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
-import { IconTarget } from "@tabler/icons-react";
+import { IconInfoCircle, IconTarget } from "@tabler/icons-react";
 import {
   ContextMenu,
   useContextMenu,
@@ -115,23 +115,28 @@ export const MapTile = React.memo<Props>(
        tile never re-renders under a moving cursor. */
     const isHyperlane = !!getTileById(mapTile.systemId)?.isHyperlane;
     const dossierEligible = !embedded && !isHyperlane;
-    /* Klik w kafelek zależy od trybu: przenoszenie → wybór źródła/celu;
-       aktywacja (akcja taktyczna) → aktywacja systemu; inaczej → dossier. */
-    const handleDossierOpen = () => {
+    /* LEWY klik zależy od trybu: wybór celu/trasy, przenoszenie, aktywacja; inaczej menu
+       „Activate system" pod kursorem. PRAWY klik otwiera okno systemu (dossier).
+       Telefon (brak prawego klawisza): tap otwiera dossier. */
+    const handleDossierOpen = (event: React.MouseEvent) => {
       // Wybór celu na mapie (okno karty strategii) ma pierwszeństwo przed resztą trybów.
       if (isSystemPickTarget && systemPick) return systemPick.onPick(mapTile.position);
       if (systemPick || planetPickActive) return; // tryb wyboru: klik obok celu nic nie robi
       if (isRoutePickTarget && routePick) return routePick.onPick(mapTile.position);
       if (moveMode) return pickMoveTile(mapTile.position);
       if (activateMode) return pickActivateTile(mapTile.position);
-      return openSystemDossier(mapTile.position, mapTile.systemId);
+      if (isMobileDevice()) return openSystemDossier(mapTile.position, mapTile.systemId);
+      return tileMenu.onContextMenu(event);
+    };
+    const openDossierByRightClick = (event: React.MouseEvent) => {
+      event.preventDefault();
+      openSystemDossier(mapTile.position, mapTile.systemId);
     };
 
     // Czy jest aktywny gracz — aktywacja kładzie jego żeton dowodzenia. Bez
     // aktywnego gracza backend zwróciłby 422, więc pozycję wtedy blokujemy.
     const activePlayer = gameData?.playerData?.find((p) => p.active);
-    // Menu kontekstowe kafelka (RMB): aktywacja systemu. Rozszerzalne — dokładamy
-    // kolejne pozycje (np. „Otwórz dossier", „Zakończ akcję") później.
+    // Menu lewego kliku: aktywacja systemu + okno systemu (to samo, co prawy klik).
     const tileMenuItems =
       dossierEligible && !isHyperlane
         ? [
@@ -142,6 +147,11 @@ export const MapTile = React.memo<Props>(
               icon: <IconTarget size={14} />,
               disabled: !activePlayer,
               onSelect: () => void activateSystem(mapTile.position),
+            },
+            {
+              label: "System details (right-click)",
+              icon: <IconInfoCircle size={14} />,
+              onSelect: () => openSystemDossier(mapTile.position, mapTile.systemId),
             },
           ]
         : [];
@@ -206,9 +216,7 @@ export const MapTile = React.memo<Props>(
               ? "crosshair"
               : undefined,
         }}
-        onContextMenu={
-          tileMenuItems.length > 0 ? tileMenu.onContextMenu : undefined
-        }
+        onContextMenu={dossierEligible ? openDossierByRightClick : undefined}
       >
         {tileMenuItems.length > 0 && (
           <ContextMenu
@@ -332,7 +340,11 @@ export const MapTile = React.memo<Props>(
                 onUnitMouseOver={tapOpensDossier ? undefined : onUnitMouseOver}
                 onUnitMouseLeave={onUnitMouseLeave}
                 onUnitSelect={onUnitSelect}
-                onUnitClick={tapOpensDossier ? handleDossierOpen : onUnitClick}
+                onUnitClick={
+                  tapOpensDossier
+                    ? () => openSystemDossier(mapTile.position, mapTile.systemId)
+                    : onUnitClick
+                }
               />
             </>
           )}

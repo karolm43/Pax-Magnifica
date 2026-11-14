@@ -103,7 +103,7 @@ export function TransactionModal({ opened, onClose, gameId, me, players }: Props
   const issuerOf = (color: string) => players.find((p) => p.color === color);
 
   return (
-    <AppModal floating minimizable opened={opened} onClose={onClose} title="Transaction" size={780}>
+    <AppModal floating minimizable opened={opened} onClose={onClose} title="Transaction" size={1080}>
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           Sit down at the table with another player. Each of you puts down only your own

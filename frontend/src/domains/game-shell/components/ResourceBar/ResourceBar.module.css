@@ -1,4 +1,8 @@
-/* Pasek zasobów w pasku zakładek (44 px): czytelne odczyty w jednym rzędzie, tokeny DS. */
+/*
+ * Pasek zasobów w pasku zakładek (44 px). Jeden wygląd dla wszystkich grup: wnęka DS
+ * z hairline-ramką, podpis grupy małymi kapitalikami, liczby w kroju danych. Kolor niosą
+ * wyłącznie ikony (zasób, wpływ, TG, statki w kolorze gracza).
+ */
 .bar {
   display: flex;
   align-items: center;
@@ -7,13 +11,12 @@
   margin: 0 14px 0 8px;
 }
 
-.stat,
-.cc {
+.group {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
   height: 32px;
-  padding: 0 10px 0 6px;
+  padding: 0 10px;
   border-radius: var(--ds-radius-sm);
   background: var(--ds-trough);
   box-shadow:
@@ -25,73 +28,71 @@
   white-space: nowrap;
 }
 
-.stat[data-tone="res"] {
-  box-shadow:
-    inset 0 1px 2px rgb(0 0 0 / 0.6),
-    inset 0 0 0 1px rgb(var(--gd-yellow) / 0.35);
+.group > small,
+.flex {
+  font-family: var(--ds-label-font);
+  font-size: 10px;
+  font-weight: var(--weight-rail);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
 }
 
-.stat[data-tone="inf"] {
-  box-shadow:
-    inset 0 1px 2px rgb(0 0 0 / 0.6),
-    inset 0 0 0 1px rgb(59 130 246 / 0.4);
-}
-
-.stat[data-tone="tg"] {
-  box-shadow:
-    inset 0 1px 2px rgb(0 0 0 / 0.6),
-    inset 0 0 0 1px rgb(var(--ds-sig-tg) / 0.3);
+.pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 .icon img {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
-.icon img.card {
-  width: 15px;
-  height: 22px;
-  object-fit: cover;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
+.ship {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
-.stat b,
-.cc b {
-  font-size: 16px;
+.group b {
+  font-size: 15px;
   font-weight: var(--weight-title);
 }
 
-.stat b[data-zero] {
+.group b[data-zero] {
   color: var(--ds-ink-lo);
 }
 
-.stat i {
+.group i {
   font-style: normal;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ds-ink-lo);
-  margin-left: -3px;
+  margin-left: -2px;
 }
 
 .cc {
-  gap: 3px;
-  padding: 0 10px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
 }
 
 .cc em {
   margin-right: 6px;
   font-style: normal;
   font-family: var(--ds-label-font);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: var(--weight-rail);
   color: var(--ds-ink-lo);
 }
@@ -100,14 +101,13 @@
   margin-right: 0;
 }
 
-.sep {
-  width: 1px;
-  height: 22px;
-  margin: 0 2px;
-  background: var(--ds-h22);
+/* Wąskie ekrany: brak miejsca w pasku zakładek — strefa gracza zostaje źródłem. */
+@media (max-width: 1400px) {
+  .group > small {
+    display: none;
+  }
 }
 
-/* Wąskie ekrany: brak miejsca w pasku zakładek — strefa gracza zostaje źródłem. */
 @media (max-width: 1200px) {
   .bar {
     display: none;

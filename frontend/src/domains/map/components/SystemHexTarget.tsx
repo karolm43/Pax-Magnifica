@@ -9,7 +9,8 @@ import { assetUrl } from "@/shared/assets/resolveAsset";
 import classes from "./SystemHexTarget.module.css";
 
 type Props = {
-  onOpen: () => void;
+  /** Lewy klik (bez przesunięcia mapy) — dostaje zdarzenie, by menu otworzyć pod kursorem. */
+  onOpen: (event: React.MouseEvent) => void;
   /** Id systemu — dla niehexagonalnych kafelków podświetlenie idzie po ich kształcie. */
   systemId?: string;
 };
@@ -103,7 +104,7 @@ export function SystemHexTarget({ onOpen, systemId }: Props) {
               );
               if (travel > 6) return;
             }
-            onOpen();
+            onOpen(event);
           }}
         />
       </svg>
