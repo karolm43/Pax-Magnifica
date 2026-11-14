@@ -45,7 +45,9 @@ import { buildActionCardParams } from "@/api/useActionCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import type { BattleEffect } from "@/api/useBoardEditor";
-import { BattleCenter } from "./BattleCenter";
+import { BattleCenter, type PickNote } from "./BattleCenter";
+import { shipPickOffers } from "./shipPick";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import type { HoldState } from "@/domains/dice/HoldRollButton";
 import { DiceTray } from "./DiceTray";
 import { DicePool } from "./DicePool";
@@ -478,29 +480,6 @@ function usePlayers() {
   };
 }
 
-/**
- * Decyzja „wskaż okręt w tej bitwie" (np. ofiara Assault Cannon, naprawa Duranium Armor):
- * jedno wejście ``choice``, a każda opcja to jednostka (``meta.unit``) jednej ze stron walki.
- * Gracz klika okręt na polu bitwy — jak na planszy — zamiast szukać go w formularzu.
- */
-function shipPickOffer(
-  offers: OfferView[] | undefined,
-  playerIds: string[],
-): { offer: OfferView; playerId: string } | null {
-  for (const offer of offers ?? []) {
-    const [input, ...rest] = offer.inputs;
-    if (!input || rest.length > 0 || input.kind !== "choice") continue;
-    if (input.options.length === 0) continue;
-    const owners = new Set(input.options.map((o) => o.meta?.player));
-    const owner = [...owners][0];
-    if (owners.size !== 1 || typeof owner !== "string") continue;
-    if (!playerIds.includes(owner)) continue;
-    if (!input.options.every((o) => typeof o.meta?.unit === "string")) continue;
-    return { offer, playerId: owner };
-  }
-  return null;
-}
-
 function Battlefield({
   view,
   offersPending,
@@ -512,9 +491,6 @@ function Battlefield({
   const gameData = useGameData();
   const players = usePlayers();
   const setHidden = useAppStore((s) => s.setBattleHidden);
-  // Okno przykrywa panel komunikatów mapy — odrzucenia (422) pokazujemy tutaj.
-  const notice = useAppStore((s) => s.notice);
-  const clearNotice = useAppStore((s) => s.clearNotice);
   const {
     battleAfb,
     battleRoll,
@@ -525,6 +501,11 @@ function Battlefield({
   } = useBoardEditor();
   const [busy, setBusy] = useState(false);
   const { data: offers } = useOffers(offersPending);
+  // Kto może kliknąć za daną stronę: w sieci tylko ja; tryb lokalny i tryb testowy hosta
+  // (bez miejsca) sterują każdym graczem.
+  const { data: me } = useNetworkMe();
+  const canAct = (playerId: string) =>
+    !me?.network || !me.player_id || me.player_id === playerId;
   const offerActions = useOfferActions();
   const [muted, setMuted] = useState(isBattleMuted);
   useEffect(() => preloadBattleSounds(), []);
@@ -684,14 +665,14 @@ function Battlefield({
   const toggle = (ship: ShipEntity) =>
     setMarks(toggleMark(marks, ship, required, cancels));
 
-  // Decyzja „wskaż okręt" (Assault Cannon...): okręty tej strony stają się klikalne.
-  const pickFound = offersPending
-    ? shipPickOffer(offers, [attacker.playerId, defender.playerId])
-    : null;
+  // Decyzje „wskaż okręt" (Assault Cannon...): okręty strony, która decyduje, stają się
+  // klikalne — u każdej strony osobno, bo obie mogą decydować jednocześnie.
+  const picks = offersPending
+    ? shipPickOffers(offers, [attacker.playerId, defender.playerId])
+    : new Map<string, OfferView>();
   const pickFor = (side: BattleSide) => {
-    if (!pickFound || pickFound.playerId !== side.playerId || view.resolving)
-      return null;
-    const { offer } = pickFound;
+    const offer = picks.get(side.playerId);
+    if (!offer || view.resolving || !canAct(side.playerId)) return null;
     const input = offer.inputs[0];
     if (input.kind !== "choice") return null;
     return {
@@ -711,18 +692,23 @@ function Battlefield({
       },
     };
   };
-  const pickNote = pickFound
-    ? {
-        title: pickFound.offer.name,
-        who: players(
-          pickFound.playerId === attacker.playerId
-            ? attacker.faction
-            : defender.faction,
-        ).name,
-        label:
-          pickFound.offer.inputs[0]?.label ?? "Choose a ship",
-      }
-    : null;
+  const pickNotes: PickNote[] = [attacker, defender].flatMap((side) => {
+    const offer = picks.get(side.playerId);
+    if (!offer) return [];
+    return [
+      {
+        key: offer.id,
+        title: offer.name,
+        who: players(side.faction).name,
+        label: offer.inputs[0]?.label ?? "Choose a ship",
+        mode: !canAct(side.playerId)
+          ? "waiting"
+          : me?.player_id === side.playerId
+            ? "you"
+            : "control",
+      },
+    ];
+  });
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -827,15 +813,6 @@ function Battlefield({
         </span>
       </header>
 
-      {notice && (
-        <div className={styles.notice} data-kind={notice.kind} role="alert">
-          <span>{notice.text}</span>
-          <button type="button" onClick={clearNotice} aria-label="Dismiss">
-            ×
-          </button>
-        </div>
-      )}
-
       {/* Technologie obu stron działające w walce (Assault Cannon, Duranium Armor, Magen...). */}
       <div className={styles.techBar}>
         <ActiveTechs context="combat" faction={attacker.faction} label={a.name} />
@@ -882,7 +859,7 @@ function Battlefield({
           absorbed={covered}
           ready={ready}
           cancels={cancels}
-          pickNote={pickNote}
+          pickNotes={pickNotes}
           onAfb={() => void run(battleAfb)}
           onRoll={() => void run(battleRoll)}
           onAuto={() => setMarks(autoMarks(assigningShips, required, cancels))}

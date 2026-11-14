@@ -27,7 +27,6 @@ import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { TurnControls } from "@/domains/game-shell/components/TurnControls";
 import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePanel";
 import { TacticalActionDock } from "@/domains/game-shell/components/TacticalActionDock";
-import { PhaseNoticePanel } from "@/domains/game-shell/components/PhaseNoticePanel";
 import { BoardHud } from "./BoardHud";
 import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
 
@@ -178,9 +177,6 @@ export function PannableMapView({ gameId }: { gameId: string }) {
       {/* Phase_Banner — nakładka nad mapą reagująca na zmianę głównej fazy;
           `pointer-events: none`, sama pilnuje mapowalności fazy. Zadanie 10.1. */}
       <PhaseTransitionBanner />
-      {/* Panel komunikatów — przypięty u góry, prowadzi gracza przez fazę i pokazuje
-          odrzucone akcje (standaryzowany „głos stołu", DECYZJA 2026-11). */}
-      <PhaseNoticePanel />
       {/* Zegar szachowy graczy (RULES.md 58) — u góry widoku mapy, przesuwalny; sam zwraca
           null, gdy gra jest bez zegara (Ustawienia → Chess clock). */}
       <ChessClockPanel gameId={gameId} />

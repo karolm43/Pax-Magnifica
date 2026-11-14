@@ -22,3 +22,11 @@ describe("describeAwaiting", () => {
     expect(describeAwaiting([], "p1").text).toBe("");
   });
 });
+
+describe("describeAwaiting — tryb testowy hosta (steruje wszystkimi)", () => {
+  it("decyzja gracza, którym steruję, to mój ruch, nie „Waiting for”", () => {
+    const res = describeAwaiting([hacan, sol], null, true);
+    expect(res.mine).toBe(true);
+    expect(res.text).toBe("Your move - Hacan: respond in the timing window, Sol: take a turn");
+  });
+});

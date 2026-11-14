@@ -1,25 +1,22 @@
 /*
- * Panel komunikatów o niedozwolonych akcjach — przypięty u GÓRY ekranu, wyśrodkowany.
+ * Panel komunikatów o niedozwolonych akcjach — pierwszy w strefie komunikatów (u góry, na środku).
  * Styl stołu: ciemna „szyba" z hairline-ramką, lewym paskiem akcentu i delikatną
  * poświatą. --accent = trójka RGB (danger dla błędu, prop dla info). Wejście: slideDown;
  * wyjście: fadeOut (data-closing na .wrap) przed odmontowaniem.
  */
 
 .wrap {
-  position: fixed;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 420; /* nad mapą i panelami stanu, pod modalami */
+  /* Pozycję daje wspólna strefa komunikatów (Notifications/NotificationArea). */
   display: flex;
   justify-content: center;
-  width: max-content;
-  max-width: min(780px, calc(100vw - 40px));
+  width: 100%;
   pointer-events: none; /* panning mapy pod spodem; klik tylko na wnętrzu */
 }
 
 .panel {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 15px;

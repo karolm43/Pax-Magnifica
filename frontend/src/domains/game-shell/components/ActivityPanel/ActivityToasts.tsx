@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { IconChevronDown, IconX } from "@tabler/icons-react";
 import { useActivityFeed, type ActivityEntry } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
@@ -157,10 +156,10 @@ export function ToastCard({
 
 /**
  * Wyskakujące powiadomienia „kto co zrobił": każdy nowy wpis feedu Activity od INNEGO gracza
- * (użyta technologia, zagrana karta, ruch, walka…) pojawia się na chwilę w rogu ekranu jako
+ * (użyta technologia, zagrana karta, ruch, walka…) pojawia się na chwilę w strefie komunikatów (``NotificationArea``) jako
  * JEDNA linia „kto co zrobił” i sam znika. Kliknięcie rozwija skutki i tekst karty/technologii
  * (to samo, co podpowiedź w panelu) i wstrzymuje zamknięcie. Pełna historia zostaje w panelu Activity.
- * Wpisy obecne przy otwarciu strony nie są nowością. Montowany raz na stronie gry.
+ * Wpisy obecne przy otwarciu strony nie są nowością.
  */
 export function ActivityToasts() {
   const { data } = useActivityFeed();
@@ -195,8 +194,8 @@ export function ActivityToasts() {
   }, [data, me]);
 
   if (toasts.length === 0) return null;
-  return createPortal(
-    <div className={classes.stack} aria-live="polite" aria-label="Notifications">
+  return (
+    <div className={classes.stack} aria-live="polite" aria-label="Activity notifications">
       {toasts.map((entry) => (
         <ToastCard
           key={entry.seq}
@@ -205,7 +204,6 @@ export function ActivityToasts() {
           onClose={() => setToasts((cur) => cur.filter((t) => t.seq !== entry.seq))}
         />
       ))}
-    </div>,
-    document.body,
+    </div>
   );
 }

@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Group, Modal, Paper, Select, Stack, Text } from "@/ds";
 import { FORBIDDEN_EVENT } from "@/api/actorIdentity";
+import { useAppStore } from "@/state/appStore";
 import { useBackendPush } from "./useBackendPush";
 import { NETWORK_ME_KEY, useNetworkMe } from "./useNetworkMe";
 
@@ -54,41 +55,47 @@ const REASON: Record<string, string> = {
   setup: "finish the game setup (speaker)",
 };
 
-export function describeAwaiting(list: Awaiting[], me: string | null): {
+/**
+ * Tekst chipa tury. ``controlAll`` = host w trybie testowym steruje każdym graczem — wtedy
+ * każda czekająca decyzja jest „moja" (nie „Waiting for <gracz, którym właśnie gram>").
+ */
+export function describeAwaiting(
+  list: Awaiting[],
+  me: string | null,
+  controlAll = false,
+): {
   mine: boolean;
   text: string;
 } {
+  const reason = (a: Awaiting) => REASON[a.reason] ?? a.reason;
+  if (controlAll && list.length > 0) {
+    return {
+      mine: true,
+      text: `Your move - ${list.map((a) => `${a.name}: ${reason(a)}`).join(", ")}`,
+    };
+  }
   const own = list.find((a) => a.playerId === me);
-  if (own) return { mine: true, text: `Your move - ${REASON[own.reason] ?? own.reason}` };
+  if (own) return { mine: true, text: `Your move - ${reason(own)}` };
   if (list.length === 0) return { mine: false, text: "" };
-  const who = list.map((a) => `${a.name} (${REASON[a.reason] ?? a.reason})`).join(", ");
+  const who = list.map((a) => `${a.name} (${reason(a)})`).join(", ");
   return { mine: false, text: `Waiting for ${who}` };
 }
 
-/** Krótki komunikat po odmowie serwera (403). */
-function ForbiddenToast() {
-  const [message, setMessage] = useState<string | null>(null);
+/**
+ * Odmowa serwera (403, „nie twój ruch") trafia do wspólnej strefy komunikatów — ten sam panel
+ * co odrzucone akcje (422), zamiast osobnego dymka.
+ */
+function ForbiddenNotices() {
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const onForbidden = (event: Event) => {
-      setMessage(String((event as CustomEvent<string>).detail));
-      clearTimeout(timer);
-      timer = setTimeout(() => setMessage(null), 4000);
+      useAppStore
+        .getState()
+        .setNotice(`Not your move: ${String((event as CustomEvent<string>).detail)}`, "error");
     };
     window.addEventListener(FORBIDDEN_EVENT, onForbidden);
-    return () => {
-      window.removeEventListener(FORBIDDEN_EVENT, onForbidden);
-      clearTimeout(timer);
-    };
+    return () => window.removeEventListener(FORBIDDEN_EVENT, onForbidden);
   }, []);
-  if (!message) return null;
-  return (
-    <div role="alert" style={{ position: "fixed", top: 52, left: "50%", transform: "translateX(-50%)", zIndex: 10001 }}>
-      <Paper px="md" py={6} shadow="md" withBorder>
-        <Text size="sm">Not your move: {message}</Text>
-      </Paper>
-    </div>
-  );
+  return null;
 }
 const OPERATOR = "__operator__";
 
@@ -238,7 +245,7 @@ export function NetworkPanel() {
 
   return (
     <>
-      <ForbiddenToast />
+      <ForbiddenNotices />
       {/* „Kim gram" jest w nagłówku (WhoAmIBadge); tu tylko zaproszenia hosta. */}
       {me.data.host && (
         <div style={{ position: "fixed", left: 12, bottom: 12, zIndex: 900 }}>

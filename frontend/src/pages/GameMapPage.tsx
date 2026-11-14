@@ -18,7 +18,7 @@ import { FleetPoolModal } from "@/domains/map/components/FleetPoolModal";
 import { BattleOverlay } from "@/domains/battle/BattleOverlay";
 import { DiceStageHost } from "@/domains/dice/DiceStageHost";
 import { TableRollWatcher } from "@/domains/dice/TableRollWatcher";
-import { ActivityToasts } from "@/domains/game-shell/components/ActivityPanel";
+import { NotificationArea } from "@/domains/game-shell/components/Notifications";
 import { AudioDirector } from "@/shared/audio/AudioDirector";
 import { RelicRevealWatcher } from "@/domains/relics/RelicRevealWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
@@ -306,8 +306,9 @@ function GameMapContent() {
           karty akcji. Pole bitwy ma własny stół. */}
       <DiceStageHost />
       <TableRollWatcher />
-      {/* Powiadomienia „kto co zrobił" - cudze akcje z feedu Activity, same znikają. */}
-      <ActivityToasts />
+      {/* Wszystkie komunikaty w jednym miejscu (u góry na środku): odrzucone akcje
+          i powiadomienia „kto co zrobił" z feedu Activity; same znikają. */}
+      <NotificationArea />
       {/* Dźwięk: kliknięcia UI, muzyka tła wg nastroju, kwestie frakcji z feedu Activity. */}
       <AudioDirector />
       {/* Odsłonięcie reliktu (fragmenty, The Fracture) - scena u wszystkich (RULES.md 59.8). */}

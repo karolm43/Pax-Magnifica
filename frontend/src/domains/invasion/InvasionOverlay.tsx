@@ -81,8 +81,6 @@ const HINT: Record<InvasionPhase, string> = {
 function InvasionWindow({ view }: { view: InvasionView }) {
   const gameData = useGameData();
   const look = usePlayerLook();
-  const notice = useAppStore((s) => s.notice);
-  const clearNotice = useAppStore((s) => s.clearNotice);
   const setBattleHidden = useAppStore((s) => s.setBattleHidden);
   const { battleStart } = useBoardEditor();
   const actions = useInvasionActions();
@@ -326,15 +324,6 @@ function InvasionWindow({ view }: { view: InvasionView }) {
           </button>
         </span>
       </header>
-
-      {notice && (
-        <div className={styles.notice} data-kind={notice.kind} role="alert">
-          <span>{notice.text}</span>
-          <button type="button" onClick={clearNotice} aria-label="Dismiss">
-            ×
-          </button>
-        </div>
-      )}
 
       <p className={styles.hint}>{HINT[phase]}</p>
       {/* Technologie atakującego i obrońców działające w inwazji (Plasma Scoring, X-89, Magen...). */}

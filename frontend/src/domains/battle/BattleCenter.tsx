@@ -132,6 +132,18 @@ function LastVolley({
   );
 }
 
+/** Decyzja „wskaż okręt" jednej strony walki (tekst w panelu środkowym). */
+export type PickNote = {
+  key: string;
+  title: string;
+  /** Pełna nazwa decydującej frakcji. */
+  who: string;
+  /** Etykieta wyboru z silnika (np. „Your ship to destroy"). */
+  label: string;
+  /** you = moja decyzja; control = steruję tym graczem (lokalnie / tryb testowy); waiting = czekam. */
+  mode: "you" | "control" | "waiting";
+};
+
 /**
  * Środek pola bitwy: tor kroków, główna akcja bieżącego kroku, przypisanie strat
  * (licznik + Auto/Clear/Confirm), ostatnia salwa oraz ekran wyniku.
@@ -144,7 +156,7 @@ export function BattleCenter({
   absorbed,
   ready: readyProp,
   cancels = 1,
-  pickNote = null,
+  pickNotes = [],
   onAfb,
   onRoll,
   onAuto,
@@ -170,8 +182,8 @@ export function BattleCenter({
   ready: boolean;
   /** Ile trafień anuluje tarcza strony przypisującej (Non-Euclidean Shielding: 2). */
   cancels?: number;
-  /** Decyzja „wskaż okręt" (np. ofiara Assault Cannon) — podświetlone okręty są klikalne. */
-  pickNote?: { title: string; who: string; label: string } | null;
+  /** Decyzje „wskaż okręt" (np. ofiara Assault Cannon) — po jednej na stronę, która decyduje. */
+  pickNotes?: PickNote[];
   onAfb: () => void;
   onRoll: () => void;
   onAuto: () => void;
@@ -246,17 +258,33 @@ export function BattleCenter({
         </div>
       )}
 
-      {pickNote && !view.resolving && (
-        <div className={styles.actionCard} data-pick>
-          <p>
-            <b className={styles.pickTitle}>
-              <IconTargetArrow size={15} aria-hidden="true" /> {pickNote.title}
-            </b>
-            <b>{pickNote.who}</b>: {pickNote.label.toLowerCase()} — click one of
-            the highlighted ships.
-          </p>
-        </div>
-      )}
+      {!view.resolving &&
+        pickNotes.map((note) => (
+          <div key={note.key} className={styles.actionCard} data-pick>
+            <p>
+              <b className={styles.pickTitle}>
+                <IconTargetArrow size={15} aria-hidden="true" /> {note.title}
+              </b>
+              {note.mode === "you" && (
+                <>
+                  Your decision — {note.label.toLowerCase()}: click one of your
+                  highlighted ships.
+                </>
+              )}
+              {note.mode === "control" && (
+                <>
+                  <b>{note.who}</b> decides — {note.label.toLowerCase()}: click one
+                  of the highlighted {note.who} ships.
+                </>
+              )}
+              {note.mode === "waiting" && (
+                <>
+                  Waiting for <b>{note.who}</b> to pick a ship.
+                </>
+              )}
+            </p>
+          </div>
+        ))}
 
       {step === "AFB" && (
         <div className={styles.actionCard}>

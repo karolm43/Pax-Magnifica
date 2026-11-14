@@ -1180,3 +1180,16 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   you”, okno Trade). Feed: `transaction.opened|agreed|closed`. Testy: `test_transaction.py`, `test_trade_deal.py`,
   `Flow.transact` w harnessie.
 - Nowe trasy i pola stanu — restart backendu.
+
+## Komunikaty w jednym miejscu + decyzje „wskaż okręt” obu stron w walce (2026-11-14)
+
+- **Assault Cannon u obu stron**: okno bitwy brało tylko PIERWSZĄ ofertę „wskaż okręt”, więc druga strona
+  (np. Arborec) nie mogła kliknąć statku. `battle/shipPick.ts` → mapa gracz → oferta; obie floty klikalne naraz.
+  Panel środkowy: „Your decision…” (moja), „X decides…” (steruję nim: lokalnie / tryb testowy hosta),
+  „Waiting for X…” (cudza w sieci — statki nieklikalne).
+- **Chip tury w trybie testowym hosta** nie pisze już „Waiting for Player p4”, gdy sterujesz p4: każda czekająca
+  decyzja = „Your move - <frakcja>: …”; nazwy = pełne nazwy frakcji.
+- **Jedna strefa komunikatów** `game-shell/components/Notifications/NotificationArea`: odrzucone akcje
+  (422, `PhaseNoticePanel`) + 403 („Not your move”, dawny osobny dymek) + toasty Activity — kolumna u góry na środku
+  mapy (nie zasłania paska narzędzi mapy ani zdarzeń w prawym rogu); przy oknie pełnoekranowym na środku jego
+  nagłówka i NAD nim. Usunięte lokalne paski `notice` w oknach walki i inwazji (migały: store czyści notice po 80 ms).

@@ -10,6 +10,8 @@
 import { useParams } from "react-router-dom";
 import { usePlayerData } from "@/api/usePlayerData";
 import { DEFAULT_GAME_ID } from "@/config";
+import { useGameData } from "@/state/useGameContext";
+import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { describeAwaiting, type Awaiting } from "./NetworkPanel";
 import { useNetworkMe } from "./useNetworkMe";
 import styles from "./TurnStatusChip.module.css";
@@ -21,8 +23,16 @@ export function TurnStatusChip() {
   const { data: awaiting } = usePlayerData(params.mapid ?? DEFAULT_GAME_ID, {
     select: (doc) => (doc as { awaiting?: Awaiting[] }).awaiting ?? [],
   });
+  const gameData = useGameData();
   if (!active) return null;
-  const { mine, text } = describeAwaiting(awaiting ?? [], me.data?.player_id ?? null);
+  // Pełne nazwy frakcji (jak w całym UI), nie nazwy miejsc „Player p4".
+  const named = (awaiting ?? []).map((a) => {
+    const player = gameData?.playerData?.find((p) => p.discordId === a.playerId);
+    return player ? { ...a, name: getPlayerFactionDisplayName(player) } : a;
+  });
+  // Host bez miejsca = tryb testowy: steruje każdym graczem (WhoAmIBadge).
+  const controlAll = me.data?.host === true && !me.data.player_id;
+  const { mine, text } = describeAwaiting(named, me.data?.player_id ?? null, controlAll);
   if (!text) return null;
   return (
     <span

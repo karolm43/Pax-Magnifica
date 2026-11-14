@@ -1,13 +1,10 @@
 /* Wyskakujące powiadomienia „kto co zrobił" (ActivityToasts) - wygląd wierszy panelu Activity. */
 .stack {
-  position: fixed;
-  top: 72px;
-  right: 16px;
-  z-index: 3100;
+  /* Pozycję daje wspólna strefa komunikatów (Notifications/NotificationArea). */
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(380px, calc(100vw - 32px));
+  width: 100%;
   pointer-events: none;
 }
 
