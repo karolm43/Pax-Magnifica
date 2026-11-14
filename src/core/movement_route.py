@@ -109,19 +109,30 @@ def route_report(
     if from_pos == active:
         return RouteReport(active, None, "The ships are already in the active system.")
 
-    shortest = movement.route_through(state, grid, from_pos, [], player_id)
+    own = state.systems.get(from_pos)
+    by_type = own.space_units.get(player_id, {}) if own is not None else {}
+    # Przejezdność zależy od typu statku (Corsair: przelot przez obce statki, RULES.md 62.8).
+    # Najpierw trasa dla całej floty (""), potem trasy poszczególnych typów ze źródła.
+    kinds = ["", *sorted(bt for bt, n in by_type.items() if n > 0 and is_space_unit(bt))]
+
+    def first_route(waypoints: list[str]) -> list[str] | None:
+        for kind in kinds:
+            found = movement.route_through(state, grid, from_pos, waypoints, player_id, kind)
+            if found is not None:
+                return found
+        return None
+
+    shortest = first_route([])
     if shortest is None:
         return RouteReport(active, None, "No legal route to the active system (R4/R6).")
 
-    route = movement.route_through(state, grid, from_pos, via, player_id)
+    route = first_route(via)
     reason = "" if route is not None else "No legal route through the chosen waypoints."
 
     bonuses = available_bonuses(state, grid, registry, from_pos, player_id)
 
     # Najdalszy zasięg statków ze źródła (z dostępnymi premiami) wyznacza, jak długie
     # alternatywy ma sens pokazywać.
-    own = state.systems.get(from_pos)
-    by_type = own.space_units.get(player_id, {}) if own is not None else {}
     reach = 0
     for base_type, count in by_type.items():
         if count <= 0 or not is_space_unit(base_type):
@@ -135,10 +146,14 @@ def route_report(
     # +2 zapasu na trasy przez gravity rift (każda szczelina daje +1 do ruchu).
     max_len = min(max(reach + 2, len(shortest)), _MAX_PREVIEW_LEN + 1)
     max_len = min(max_len, len(shortest) - 1 + _EXTRA_HOPS)
-    all_routes = movement.legal_routes(
-        state, grid, from_pos, player_id, max_len=max_len,
-        base_type=movement.single_ship_type(by_type),
-    )
+    all_routes: list[list[str]] = []
+    for kind in kinds:
+        for candidate in movement.legal_routes(
+            state, grid, from_pos, player_id, max_len=max_len, base_type=kind,
+        ):
+            if candidate not in all_routes:
+                all_routes.append(candidate)
+    all_routes.sort(key=len)
     alternatives = all_routes[:_MAX_ALTERNATIVES]
     # Aktualna trasa zawsze jest na liście (pierwsza), nawet gdy wypadła z limitu.
     if route is not None and route not in alternatives:

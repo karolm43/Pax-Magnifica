@@ -1239,3 +1239,11 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Stół transakcji: układ Ty (lewa) | stół (środek: „X gives” obu stron w kolorach graczy) | partner (prawa, Ready,
   jego TG/commodities). Miganie/skakanie: `useTransactionState` ma `placeholderData: keepPreviousData` (klucz ze
   „stampem” stołu zmieniał się po każdym ruchu i stół się odmontowywał).
+
+## 2026-11-14 — Corsair (Mentak, The Table's Grace): przelot przez obce statki w podglądzie trasy
+
+- Błąd: `movement_route.route_report` liczył trasę bez typu statku, więc przez system z obcymi statkami zwracał
+  „No legal route” i UI nie pozwalało ruszyć Corsairem (silnik `can_move`/`move_fleet` miał hook, podgląd nie).
+- Poprawka: trasa najpierw dla całej floty, potem dla każdego typu statku ze źródła (wyjątki przejezdności,
+  RULES.md 62.8); alternatywy = suma tras wszystkich typów. Na trasie przez obce statki dolatuje tylko Corsair.
+- Test: `tests/factions/test_mentak.py::test_corsair_podglad_trasy_i_ruch_przez_obce_statki`.

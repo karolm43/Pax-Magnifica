@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import active_effects, battle, economy, leaders, payment, rules_hooks, transaction
+from src.core import (
+    active_effects,
+    battle,
+    economy,
+    leaders,
+    movement,
+    movement_route,
+    payment,
+    rules_hooks,
+    transaction,
+)
 from src.core.combat import resolve_unit_variant
 from src.core.game_events import Duration
 from src.core.game_state import ActiveCombat, GameState, Phase, PlayerState, SystemState
@@ -164,6 +174,40 @@ def test_corsair_przelatuje_przez_obce_statki(registry: StaticDataRegistry) -> N
     assert not mentak.corsair_passage(state, "p1", {**ctx, "base_type": "destroyer"})
     state.systems["101"].space_units = {"p2": {"fighter": 2}}  # same myśliwce w aktywnym
     assert not mentak.corsair_passage(state, "p1", ctx)
+
+
+def test_corsair_podglad_trasy_i_ruch_przez_obce_statki(registry: StaticDataRegistry) -> None:
+    """Podgląd trasy (UI) musi znaleźć trasę Corsaira przez obce statki; niszczyciel - nie."""
+    grid = HexGrid()
+    for position, system_id in (("000", "20"), ("101", "21"), ("201", "22")):
+        grid.place_system(position, system_id)
+    grid.build_edges()
+    state = _state()
+    state.systems = {
+        "000": SystemState(
+            position="000", system_id="20", space_units={"p1": {"cruiser": 1, "destroyer": 1}}
+        ),
+        "101": SystemState(position="101", system_id="21", space_units={"p2": {"carrier": 1}}),
+        "201": SystemState(position="201", system_id="22", space_units={"p2": {"cruiser": 1}}),
+    }
+    state.active_system = "201"
+    state.players["p1"].breakthrough_unlocked = True
+    state.players["p1"].technologies = ["cr2"]
+
+    report = movement_route.route_report(state, grid, registry, "000", [], "p1")
+    assert report.route == ["000", "101", "201"]
+    reach = {s.base_type: s.reachable for s in report.ships}
+    assert reach == {"cruiser": True, "destroyer": False}
+
+    moved = movement.move_fleet(
+        state, grid, registry, "000", {"cruiser": 1}, [], "p1", route=report.route
+    )
+    assert moved.systems["201"].space_units["p1"] == {"cruiser": 1}
+    with pytest.raises(ValueError):
+        movement.move_fleet(
+            state, grid, registry, "000", {"cruiser": 1, "destroyer": 1}, [], "p1",
+            route=report.route,
+        )
 
 
 def test_sula_mentarion_odblokowanie_czterema_krazownikami(registry: StaticDataRegistry) -> None:
