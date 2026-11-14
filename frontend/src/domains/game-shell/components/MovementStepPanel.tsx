@@ -77,7 +77,7 @@ export function MovementStepPanel({
 }) {
   const gameData = useGameData();
   const look = usePlayerLook();
-  const { undo } = useBoardEditor();
+  const { undoMove } = useBoardEditor();
   const setMoveRangeSources = useAppStore((s) => s.setMoveRangeSources);
   const gravityDrive = useAppStore((s) => s.gravityDrive);
   const setGravityDrive = useAppStore((s) => s.setGravityDrive);
@@ -231,8 +231,8 @@ export function MovementStepPanel({
         type="button"
         className={styles.subAction}
         disabled={busy}
-        onClick={() => void run(undo)}
-        title="Undo the last move (reverts the most recent change)"
+        onClick={() => void run(undoMove)}
+        title="Undo your last ship move"
       >
         <IconArrowBackUp size={13} aria-hidden="true" /> Undo last move
       </button>

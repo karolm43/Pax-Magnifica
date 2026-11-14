@@ -50,6 +50,9 @@ from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
 router = APIRouter()
 
+# Etykieta migawki ruchu statków — po niej „Undo last move” rozpoznaje, co wolno cofnąć.
+MOVE_LABEL_PREFIX = "tactical:move:"
+
 
 async def _commit_flow(
     ctx: AppContext, new_state: GameState, label: str
@@ -119,8 +122,32 @@ async def post_tactical_move(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(
-        ctx, new_state, f"tactical:move:{request.from_position}"
+        ctx, new_state, f"{MOVE_LABEL_PREFIX}{request.from_position}"
     )
+
+
+@router.post("/tactical/undo-move", response_model=StateEnvelope)
+async def post_tactical_undo_move(
+    actor: ActorId, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """„Undo last move” w kroku ruchu — dla AKTYWNEGO gracza, nie tylko hosta.
+
+    W odróżnieniu od ogólnego ``/undo`` (God-Mode, host) cofa WYŁĄCZNIE ostatnią migawkę,
+    jeśli jest to ruch statków (``tactical:move:*``) — gracz nie cofnie cudzej akcji ani
+    innego kroku. Inna ostatnia zmiana → 422.
+    """
+    state = ctx.service.current_state()
+    actor_rules.require(state, actor, [state.active_player_id], "Undo move")
+    label = ctx.service.current_label() or ""
+    if not label.startswith(MOVE_LABEL_PREFIX):
+        raise HTTPException(
+            status_code=422,
+            detail="Nothing to undo - the last change was not a ship move.",
+        )
+    envelope = ctx.service.undo()
+    await ctx.service.broadcast()
+    await ctx.broadcast_map()
+    return envelope
 
 
 @router.post("/tactical/produce", response_model=StateEnvelope)

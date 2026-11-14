@@ -1,4 +1,4 @@
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { Stack, Box, Text } from "@/ds";
 import cx from "clsx";
 import { IconFlame } from "@tabler/icons-react";
@@ -12,6 +12,7 @@ import {
 } from "@/shared/ui/ContextMenu/ContextMenu";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import styles from "./PlanetCard.module.css";
+import { PlanetAttachmentStrip } from "./PlanetAttachmentStrip";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { usePlanet } from "@/hooks/usePlanet";
 import type { Planet } from "@/entities/data/types";
@@ -228,16 +229,27 @@ export function PlanetCard({
     />
   );
 
+  // Panele wydawania (tryb wyboru): attachmenty widoczne pod kartą, bo klik nie otwiera szczegółów.
+  const withAttachments = (content: ReactNode) =>
+    onPick && attachments.length > 0 ? (
+      <div className={styles.pickColumn}>
+        {content}
+        <PlanetAttachmentStrip attachments={attachments} />
+      </div>
+    ) : (
+      content
+    );
+
   if (!legendaryAbilityName || !legendaryAbilityText) {
-    return (
+    return withAttachments(
       <>
         {planetCardContent}
         {menu}
-      </>
+      </>,
     );
   }
 
-  return (
+  return withAttachments(
     <div
       className={cx(styles.legendaryWrapper, isExhausted && styles.wrapperExhausted)}
       style={cssVariables}
@@ -257,6 +269,6 @@ export function PlanetCard({
         exhausted={legendaryAbilityExhausted}
         joinedRight
       />
-    </div>
+    </div>,
   );
 }

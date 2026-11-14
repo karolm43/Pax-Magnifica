@@ -613,6 +613,8 @@ export type GameState = {
   strategyGivesCards?: boolean;
   /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
   winnerId?: string | null;
+  /** God-Mode: limit ręki kart akcji wyłączony przez hosta (RULES.md 53.8). */
+  actionCardLimitDisabled?: boolean;
   /** Dlaczego gra się skończyła (ekran zwycięstwa). */
   endReason?: "victory_points" | "round_limit" | "no_objectives" | null;
   /** Limit rund (0 = bez limitu). */

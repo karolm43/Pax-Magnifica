@@ -220,6 +220,21 @@ export function useBoardEditor() {
     await refresh();
   }, [refresh]);
 
+  /** „Undo last move" w kroku ruchu — aktywny gracz cofa własny ostatni ruch (nie tylko host). */
+  const undoMove = useCallback(async () => {
+    await post("/tactical/undo-move", {});
+    await refresh();
+  }, [refresh]);
+
+  /** God-Mode: włącza/wyłącza limit ręki kart akcji (RULES.md 53.8). */
+  const setActionCardLimitDisabled = useCallback(
+    async (disabled: boolean) => {
+      await post("/god-mode/patch", { action_card_limit_disabled: disabled });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const gotoHistory = useCallback(
     async (seq: number) => {
       await post(`/history/goto/${seq}`, {});
@@ -1063,6 +1078,8 @@ export function useBoardEditor() {
     moveUnit,
     undo,
     redo,
+    undoMove,
+    setActionCardLimitDisabled,
     gotoHistory,
     editPlayer,
     endTurn,

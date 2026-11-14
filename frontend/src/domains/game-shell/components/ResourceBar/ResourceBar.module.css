@@ -1,0 +1,19 @@
+/* Pasek zasobów w pasku zakładek: cichy, bez własnej ramki — odczyty `StoresStrip` w jednym rzędzie. */
+.bar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin-right: 12px;
+  opacity: 0.92;
+}
+
+.bar > div {
+  flex-wrap: nowrap;
+}
+
+/* Wąskie ekrany: pasek zakładek nie ma miejsca — strefa gracza zostaje źródłem. */
+@media (max-width: 1100px) {
+  .bar {
+    display: none;
+  }
+}

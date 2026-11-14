@@ -335,6 +335,8 @@ def _build_game_state(
         # Zwycięzca (kolor) po zakończeniu gry — R_victory_points (próg VP albo brak celów).
         "winner": _color_of(state, state.winner_id),
         "winnerId": state.winner_id,
+        # God-Mode: limit ręki kart akcji wyłączony (RULES.md 53.8) - przełącznik w menu God-Mode.
+        "actionCardLimitDisabled": state.action_card_limit_disabled,
         # Koniec gry: powód ("victory_points" | "round_limit" | "no_objectives"), limit rund
         # i głosowanie epilogu (honorowe / niehonorowe) — dla ekranu zwycięstwa.
         "endReason": state.end_reason,

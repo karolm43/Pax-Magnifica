@@ -1116,6 +1116,9 @@ class GameState(BaseModel):
     # Żeton Custodians zdjęty z Mecatol Rex => faza agendy dodana do KAŻDEJ rundy
     # (R_custodians_token). Do czasu zdjęcia status kończy rundę bez fazy agendy.
     custodians_removed: bool = False
+    # God-Mode (testy): wyłączony limit ręki kart akcji (RULES.md 53.8) - ``hand_limit``
+    # zwraca wtedy „bez limitu”. Domyślnie limit obowiązuje.
+    action_card_limit_disabled: bool = False
     # Próg punktów zwycięstwa (R_victory_points: 10, albo 14 na drugiej stronie toru).
     vps_to_win: int = 10
     # Zwycięzca (koniec gry) — None, dopóki gra trwa.

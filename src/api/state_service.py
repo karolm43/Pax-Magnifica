@@ -190,6 +190,13 @@ class StateService:
         self._store.undo()
         return self.envelope()
 
+    def current_label(self) -> str | None:
+        """Etykieta bieżącej migawki (``None``, gdy historia pusta)."""
+        for _seq, label, is_current in self._store.history():
+            if is_current:
+                return label
+        return None
+
     def redo(self) -> StateEnvelope:
         """Ponawia do następnej migawki (jeśli możliwe)."""
         self._store.redo()

@@ -19,6 +19,8 @@ from src.core.game_state import GameState
 
 def action_card_limit(state: GameState, player_id: str) -> int | None:
     """Limit kart akcji gracza (``None`` = bez limitu albo brak rejestru w kontekście)."""
+    if state.action_card_limit_disabled:
+        return None  # God-Mode: limit wyłączony przez hosta.
     registry = rules_hooks.bound_registry()
     if registry is None:
         return None

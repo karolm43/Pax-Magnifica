@@ -1,0 +1,63 @@
+/* Menu God-Mode w nagłówku: kolumna przycisków w tokenach DS (jak plakietki HUD). */
+.menu {
+  min-width: 230px;
+}
+
+.menu [role="menu"] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heading {
+  composes: ds-label from global;
+  padding: 2px 4px 4px;
+  color: var(--ds-ink-lo);
+  font-size: var(--text-micro);
+}
+
+.row {
+  display: flex;
+  gap: 4px;
+}
+
+.row .item {
+  flex: 1;
+}
+
+.item {
+  composes: ds-label from global;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 10px;
+  color: var(--ds-ink);
+  background: var(--ds-socket);
+  border: 1px solid var(--ds-h22);
+  border-radius: var(--ds-radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.item:hover:not(:disabled) {
+  color: var(--ds-ink-hi);
+  background: var(--ds-h10);
+  border-color: var(--ds-h35);
+}
+
+.item:disabled {
+  color: var(--ds-ink-lo);
+  cursor: default;
+}
+
+.item[data-active] {
+  border-color: var(--ds-h35);
+  color: var(--ds-ink-hi);
+}
+
+.switchRow {
+  padding: 6px 4px 2px;
+  border-top: 1px solid var(--ds-h14);
+  margin-top: 2px;
+}

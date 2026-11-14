@@ -1,4 +1,5 @@
 import { ActionIcon, Box, Button, Group, Tooltip } from "@/ds";
+import { ResourceBar } from "@/domains/game-shell/components/ResourceBar/ResourceBar";
 import type { ReactNode } from "react";
 import {
   IconCards,
@@ -248,6 +249,8 @@ function DesktopTabsControls({
       />
       <BoardSearch />
       <div className={classes.spacer} />
+      {/* Moje zapasy (resources, influence, TG, commodities, karty, CC) — jak w strategiach. */}
+      <ResourceBar />
       <Group gap={4} mr={14} wrap="nowrap" className={classes.links}>
         <DiscordLinks />
       </Group>

@@ -2,7 +2,14 @@ import type { PlayerData } from "@/entities/data/types";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { FragmentsPool } from "@/domains/player/components/FragmentsPool";
 import { DebtTokens } from "@/domains/player/components/DebtTokens";
+import { EconomyGlyph } from "@/domains/player/components/ResourceInfluenceTable";
 import styles from "./StoresStrip.module.css";
+
+/** Dostępne / wszystkie (planety niewyczerpane / wszystkie) — pasek zasobów w nagłówku. */
+export type StoresEconomy = {
+  resources: { current: number; total: number };
+  influence: { current: number; total: number };
+};
 
 type Props = {
   tg?: number | null;
@@ -16,6 +23,8 @@ type Props = {
   fleetCC: number;
   strategicCC: number;
   showCommandTokens?: boolean;
+  /** Opcjonalnie resources/influence planet na początku paska (pasek zasobów). */
+  economy?: StoresEconomy;
 };
 
 /** Stores as one row of keyed readouts, for the narrow Panels dossier. */
@@ -31,12 +40,37 @@ export function StoresStrip({
   fleetCC,
   strategicCC,
   showCommandTokens = true,
+  economy,
 }: Props) {
   const tradeGoods = tg ?? 0;
   const comms = commodities ?? 0;
 
   return (
     <div className={styles.strip}>
+      {economy && (
+        <>
+          <span
+            className={styles.sx}
+            title={`${economy.resources.current} of ${economy.resources.total} resources available (unexhausted planets)`}
+          >
+            <EconomyGlyph kind="resource" />
+            <b className={economy.resources.current === 0 ? styles.zero : undefined}>
+              {economy.resources.current}
+              <i>/{economy.resources.total}</i>
+            </b>
+          </span>
+          <span
+            className={styles.sx}
+            title={`${economy.influence.current} of ${economy.influence.total} influence available (unexhausted planets)`}
+          >
+            <EconomyGlyph kind="influence" />
+            <b className={economy.influence.current === 0 ? styles.zero : undefined}>
+              {economy.influence.current}
+              <i>/{economy.influence.total}</i>
+            </b>
+          </span>
+        </>
+      )}
       <span className={`${styles.sx} ${styles.tg}`} title={`${tradeGoods} trade goods`}>
         <img src="/tg.png" alt="" />
         <b className={tradeGoods === 0 ? styles.zero : undefined}>{tradeGoods}</b>

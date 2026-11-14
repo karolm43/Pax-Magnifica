@@ -1214,3 +1214,16 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   przewożone - nie). Wspólny limit sztuk w UI: `routeTypes.otherRoleCount` (store `bumpDraftPick`, `prunePicks`).
 - W trakcie walki w systemie (`capacity.combat_in_progress`) nie ma nadwyżki capacity, a nadmiar Fighter II nie liczy się
   do fleet pool (R_fleet_pool, Notes); oba sprawdzane po walce. Statki nie-myśliwskie - pula floty cały czas (42.1).
+
+## 2026-11-14 — Pasek u góry: menu God-Mode, pasek zasobów; Undo ruchu dla gracza; attachmenty w płatnościach
+
+- Nagłówek gry: zostały Rules, Report bug i (tylko host) menu **God-Mode** — Undo/Redo historii, ruch jednostek bez reguł,
+  edytor graczy, przełącznik „No action card hand limit”. Usunięte Refresh i luźne Undo/Redo/Move/Players.
+- Limit ręki kart akcji do wyłączenia: `GameState.action_card_limit_disabled` (patch `/god-mode/patch`), web-data
+  `gameState.actionCardLimitDisabled`; `hand_limit.action_card_limit` zwraca wtedy `None` (RULES.md 53.8).
+- „Undo last move” w kroku ruchu: `POST /tactical/undo-move` — aktywny gracz (nie tylko host) cofa tylko ostatnią migawkę
+  ruchu statków `tactical:move:*`; inaczej 422, inny gracz 403 (RULES.md 44.1a). Testy: `tests/test_undo_move.py`.
+- Pasek zasobów „jak w strategiach” w pasku zakładek (`ResourceBar`): resources/influence (gotowe/wszystkie), TG,
+  commodities, karty akcji/notki, CC, fragmenty, dług — ten sam `StoresStrip` co w strefie gracza (+ blok ekonomii).
+- Planety w panelach wydawania (`PlanetCard` w trybie wyboru): pod kartą żetony attachmentów z nazwą i modyfikatorami
+  w podpowiedzi (`PlanetAttachmentStrip`).
