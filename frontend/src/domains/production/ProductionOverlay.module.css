@@ -936,3 +936,56 @@
 .techRow {
   padding: 0 16px;
 }
+
+/* --- Zniżki kosztu (Sarween Tools, AI Development Algorithm...) - wyraźnie widoczne --- */
+.discountRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.discountBadge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #bbf7d0;
+  border: 1px solid rgba(74, 222, 128, 0.6);
+  border-radius: 999px;
+  background: rgba(22, 101, 52, 0.35);
+}
+
+.discountBadge b {
+  font-size: 16px;
+  color: #4ade80;
+  font-variant-numeric: tabular-nums;
+}
+
+.discountRow small {
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+/* Koszt przed zniżką - przekreślony obok obniżonego. */
+.oldCost {
+  font-size: 0.85em;
+  color: var(--ds-ink-lo);
+  text-decoration-color: #f87171;
+  text-decoration-thickness: 2px;
+}
+
+.costValue .oldCost {
+  font-size: 18px;
+}
+
+.costDiscount {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4ade80;
+}

@@ -60,7 +60,7 @@ export function pruneDismissed(dismissed: Set<string>, available: AvailableNow[]
 }
 
 /**
- * CENTRUM DECYZJI - jedno miejsce na wszystko, co gracz może / musi zrobić TERAZ (prawy dół,
+ * CENTRUM DECYZJI - jedno miejsce na wszystko, co gracz może / musi zrobić TERAZ (prawy górny róg,
  * przeciągalne, zwijane do pastylki): bieżąca decyzja (oferta, wybór celu), propozycja transakcji,
  * karty z ręki z otwartym oknem i zdolności „Available now”. Wszystko jako karty o jednym
  * wyglądzie, w jednej kolumnie (wcześniej trzy osobne pływające okna w dwóch rogach ekranu).
@@ -83,7 +83,7 @@ export function DecisionCenter() {
   const [using, setUsing] = useState<AvailableNow | null>(null);
   const [playing, setPlaying] = useState<HandPlay | null>(null);
   const [minimized, setMinimized] = useState(false);
-  const drag = useDraggablePanel("decisionCenter.pos.v1");
+  const drag = useDraggablePanel("decisionCenter.pos.v2");
   const offer = useDecisionOffers();
   const research = offer.first !== null && isResearchOffer(offer.first);
   const gameId = params.mapid ?? DEFAULT_GAME_ID;

@@ -694,6 +694,26 @@ def cost_reduction(state: GameState, player_id: str) -> float:
     return -float(rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, state, player_id, 0.0))
 
 
+def cost_reduction_sources(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[tuple[str, float]]:
+    """Rozbicie ``cost_reduction`` na źródła ``(nazwa z assetów, zniżka)`` - podpis w UI.
+
+    Tylko hooki MODIFY punktu kosztu produkcji, które TERAZ coś zdejmują (zniżka > 0).
+    """
+    from src.core.component_text import describe_component
+
+    out: list[tuple[str, float]] = []
+    for hook in rules_hooks.hooks_at(rules_hooks.POINT_PRODUCTION_COST, state, player_id):
+        if hook.kind is not rules_hooks.HookKind.MODIFY:
+            continue
+        cut = -float(hook.fn(state, player_id, {}))
+        if cut > 0:
+            name = describe_component(registry, hook.covers)[0] or hook.source.component_id
+            out.append((name, cut))
+    return out
+
+
 def order_cost(
     state: GameState,
     registry: StaticDataRegistry,

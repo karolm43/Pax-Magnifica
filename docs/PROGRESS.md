@@ -1247,3 +1247,13 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Poprawka: trasa najpierw dla całej floty, potem dla każdego typu statku ze źródła (wyjątki przejezdności,
   RULES.md 62.8); alternatywy = suma tras wszystkich typów. Na trasie przez obce statki dolatuje tylko Corsair.
 - Test: `tests/factions/test_mentak.py::test_corsair_podglad_trasy_i_ruch_przez_obce_statki`.
+## 2026-11-14 — Sarween Tools przy produkcji z karty strategii, wyraźna zniżka; Decisions w prawym górnym rogu
+
+- Błąd: hook Sarween Tools (`core/hooks/technologies.py`) zwracał 0 przy KAŻDYM `production_grant`, także `standalone`
+  (Warfare secondary, Minister of Industry) — a to użycie PRODUCTION (RULES.md 57.3). Teraz zniżki nie ma tylko dla
+  grantów „produce N units”; R55.4 doprecyzowane.
+- Widok produkcji: `costReductionSources` (`production.cost_reduction_sources`, nazwa z assetów). Okno pokazuje zieloną
+  plakietkę „−1 Sarween Tools” (także AIDA po włączeniu), przekreślony koszt bazowy w pasku i w „Total cost”.
+- Centrum decyzji (`DecisionCenter`) domyślnie w prawym GÓRNYM rogu pod paskiem narzędzi mapy (wcześniej prawy dół na
+  panelach karty strategii i akcji); wysokość ograniczona nad nimi; klucz pozycji `decisionCenter.pos.v2`.
+- Testy: `test_sarween_tools_dziala_przy_produkcji_z_karty_strategii`, `test_zrodla_zniżki_produkcji_maja_nazwe_z_danych`.

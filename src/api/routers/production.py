@@ -126,6 +126,17 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
         # Zniżki kosztu: z hooków (np. Sarween Tools, działa od razu) i AI Development
         # Algorithm (tylko gdy gracz ŚWIADOMIE go wyczerpie - RULES.md 57).
         "costReduction": production.cost_reduction(state, player_id) if grant is None else 0,
+        # Skąd zniżka (nazwy z assetów) - UI podpisuje nią obniżony koszt.
+        "costReductionSources": (
+            [
+                {"name": name, "amount": amount}
+                for name, amount in production.cost_reduction_sources(
+                    state, registry, player_id
+                )
+            ]
+            if grant is None
+            else []
+        ),
         "aida": {
             "ready": production.aida_ready(state, player_id) and grant is None,
             "discount": production.aida_discount(state, registry, player_id),

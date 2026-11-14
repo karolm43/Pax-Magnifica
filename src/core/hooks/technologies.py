@@ -174,7 +174,14 @@ def sarween_tools_cost(state: GameState, _player_id: str, _ctx: Mapping[str, Any
 
     Zniżka dotyczy PIERWSZEGO zamówienia w danej akcji (``production_used == 0``): kolejne
     zamówienia w tym samym użyciu PRODUCTION nie dostają jej drugi raz.
+
+    Produkcja z karty strategii / prawa (grant ``standalone``: Warfare secondary, Minister of
+    Industry) to UŻYCIE PRODUCTION doku - zniżka działa. Granty „produce N units" (Freelancers,
+    Sling Relay, Integrated Economy) nie są użyciem PRODUCTION - bez zniżki.
     """
-    if state.production_grant is not None or state.active_system is None:
-        return 0  # darmowe/przyznane produkcje (karty) nie są użyciem PRODUCTION jednostek
+    grant = state.production_grant
+    if grant is not None and not grant.standalone:
+        return 0  # przyznane produkcje z kart nie są użyciem PRODUCTION jednostek
+    if grant is None and state.active_system is None:
+        return 0  # poza produkcją
     return -1 if state.production_used == 0 else 0

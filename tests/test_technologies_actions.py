@@ -566,3 +566,28 @@ def test_sarween_tools_zniżka_widoczna_dla_ui() -> None:
     state.active_system = "101"
     assert production.cost_reduction(state, "p1") == 1
     assert production.cost_reduction(_state([]), "p1") == 0
+
+
+def test_sarween_tools_dziala_przy_produkcji_z_karty_strategii() -> None:
+    """Warfare secondary / Minister of Industry = użycie PRODUCTION doku poza akcją: zniżka -1."""
+    from src.core.game_state import ProductionGrant
+
+    state = _state(["st"])
+    state.production_grant = ProductionGrant(
+        player_id="p1", position="101", standalone=True, source="Warfare"
+    )
+    assert state.active_system is None
+    assert production.cost_reduction(state, "p1") == 1
+    # Grant „produce N units" z karty (Freelancers) nie jest użyciem PRODUCTION - bez zniżki.
+    state.production_grant = ProductionGrant(player_id="p1", position="101", source="Freelancers")
+    state.active_system = "101"
+    assert production.cost_reduction(state, "p1") == 0
+
+
+def test_zrodla_zniżki_produkcji_maja_nazwe_z_danych() -> None:
+    registry = StaticDataRegistry()
+    state = _state(["st"])
+    state.active_system = "101"
+    assert production.cost_reduction_sources(state, registry, "p1") == [("Sarween Tools", 1.0)]
+    state.production_used = 1  # zniżka już wykorzystana w tym użyciu PRODUCTION
+    assert production.cost_reduction_sources(state, registry, "p1") == []

@@ -99,6 +99,12 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           rawCost - (view.costReduction ?? 0) - (aidaOn ? (view.aida?.discount ?? 0) : 0),
         )
       : rawCost;
+  // Zniżki do wyraźnego pokazania: każda z nazwą karty (z danych), AIDA tylko gdy włączona.
+  const discounts = [
+    ...(view.costReductionSources ?? []),
+    ...(aidaOn && view.aida ? [{ name: "AI Development Algorithm", amount: view.aida.discount }] : []),
+  ];
+  const discounted = queued > 0 && cost < rawCost;
   const funds = fundsTotal(view);
   const payment = useMemo<Payment>(
     () => manual ?? autoPay(view.planets, view.tradeGoods, cost, view.tradeGoodValue),
@@ -274,7 +280,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             <b>{view.tradeGoods}</b>
           </span>
           <span className={styles.stat} data-kind="cost" data-bad={short > 0 || undefined}>
-            Order cost <b>{fmt(cost)}</b>
+            Order cost {discounted && <s className={styles.oldCost}>{fmt(rawCost)}</s>}{" "}
+            <b>{fmt(cost)}</b>
           </span>
         </span>
         <span className={styles.topActions}>
@@ -318,10 +325,19 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
 
       {/* Technologie działające w produkcji (Sarween Tools, AI Development Algorithm...). */}
       <ActiveTechs context="production" faction={view.faction} className={styles.techRow} />
-      {(view.costReduction ?? 0) > 0 && (
-        <p className={styles.hint}>
-          Technology discount applied: <b>-{view.costReduction}</b> to the order cost.
-        </p>
+      {discounts.length > 0 && (
+        <div className={styles.discountRow} role="status" aria-label="Cost discounts">
+          {discounts.map((d) => (
+            <span className={styles.discountBadge} key={d.name}>
+              <b>−{fmt(d.amount)}</b> {d.name}
+            </span>
+          ))}
+          <small>
+            {queued > 0
+              ? "applied to the combined cost of this order"
+              : "will reduce the combined cost of your order"}
+          </small>
+        </div>
       )}
 
       <div className={styles.grid}>
@@ -561,9 +577,15 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
         <div className={styles.costBox} data-state={costState} aria-live="polite">
           <span className={styles.costLabel}>Total cost</span>
           <span className={styles.costValue}>
+            {discounted && <s className={styles.oldCost}>{fmt(rawCost)}</s>}
             <b>{fmt(cost)}</b>
             <i>res</i>
           </span>
+          {discounted && (
+            <span className={styles.costDiscount}>
+              −{fmt(rawCost - cost)} discount
+            </span>
+          )}
           <span className={styles.costStatus}>
             {costState === "short" && <IconAlertTriangle size={14} aria-hidden="true" />}
             {costState === "ok" && <IconCheck size={14} aria-hidden="true" />}
