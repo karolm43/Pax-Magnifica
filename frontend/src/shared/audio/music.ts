@@ -31,7 +31,7 @@ export function findMenuTheme(music: Record<string, string[]>): string | null {
 
 const FADE_S = 2.5;
 /** Motyw menu ciszej niż muzyka w grze (decyzja użytkownika) — mnożnik poziomu kanału „music”. */
-const MENU_GAIN = 0.55;
+const MENU_GAIN = 0.25;
 
 type Deck = { el: HTMLAudioElement; gain: GainNode | null };
 
