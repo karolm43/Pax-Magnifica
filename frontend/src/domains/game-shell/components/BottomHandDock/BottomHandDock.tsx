@@ -36,7 +36,6 @@ import {
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
-import { useGameData } from "@/state/useGameContext";
 import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
 import { HeldPlayBanner } from "./HeldPlayBanner";
@@ -363,20 +362,8 @@ export function BottomHandDock() {
   // „Gracz pulpitu" — aktywny → mówca → pierwszy posadzony. Dzięki temu dok ręki
   // jest widoczny CAŁY CZAS (także w status/agenda, gdy brak aktywnego gracza).
   const deskPlayer = useDeskPlayer();
-  // Karty reakcji gra też gracz, którego nie jest tura (np. obrońca w walce) - operator może
-  // przełączyć rękę na dowolnego posadzonego gracza (tryb lokalny: widzi wszystko).
-  const gameData = useGameData();
-  const seated = useMemo(
-    () =>
-      (gameData?.playerData ?? []).filter(
-        (p) => p.faction && p.faction !== "neutral" && p.discordId,
-      ),
-    [gameData?.playerData],
-  );
-  const [viewColor, setViewColor] = useState<string | null>(null);
-  const active =
-    (viewColor ? seated.find((p) => p.color === viewColor) : undefined) ??
-    deskPlayer;
+  // Ręka = zawsze gracz pulpitu (bez podglądu cudzych rąk — decyzja użytkownika 2026-11-14).
+  const active = deskPlayer;
 
   const { data: hand } = usePlayerHand(gameId, {
     ignoreAuthGate: true,
@@ -567,27 +554,6 @@ export function BottomHandDock() {
             {active.flexibleDisplayName || active.faction || "Active player"}
           </span>
         </span>
-
-        {/* Przełącznik ręki: reakcje (when/after) zagrywa także gracz nieaktywny. */}
-        {seated.length > 1 && (
-          <div className={styles.seats} role="group" aria-label="Whose hand">
-            {seated.map((p) => (
-              <button
-                key={p.color}
-                type="button"
-                className={styles.seat}
-                data-current={p.color === active.color || undefined}
-                title={`Show the hand of ${p.flexibleDisplayName || p.faction}`}
-                aria-pressed={p.color === active.color}
-                onClick={() =>
-                  setViewColor(p.color === deskPlayer?.color ? null : p.color)
-                }
-              >
-                <CircularFactionIcon faction={p.faction} size={18} />
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Segmenty kategorii z licznikami (jak zakładki ręki). */}
         <div className={styles.tabs} role="tablist" aria-label="Hand category">

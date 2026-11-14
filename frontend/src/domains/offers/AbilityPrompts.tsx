@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -215,6 +215,8 @@ export function DecisionCenter() {
                 owner={owner(row.player_id)}
                 onUse={() => setUsing(row)}
                 onHide={() => dismiss(row)}
+                onDragStart={drag.onHandlePointerDown}
+                onDragReset={drag.reset}
               />
             ))}
             </div>
@@ -253,26 +255,37 @@ export function DecisionCenter() {
  * Zdolność ze stałym oknem (cała faza, np. Carth of Golden Sands - także w cudzej turze): jedna
  * cicha linia „Ready” w centrum decyzji zamiast pełnej karty. Tekst po kliknięciu nazwy, ukrycie
  * (X) obowiązuje, dopóki zdolność nie zniknie (wyczerpanie, koniec fazy). Sama nie otwiera paska
- * centrum - gdy nie ma innych decyzji, widać tylko tę linię.
+ * centrum - gdy nie ma innych decyzji, widać tylko tę linię; wtedy SAMA linia jest uchwytem
+ * przesuwania (przyciski mają ``data-no-drag``), bo pasek tytułu jest schowany.
  */
 function StandingChip({
   row,
   owner,
   onUse,
   onHide,
+  onDragStart,
+  onDragReset,
 }: {
   row: AvailableNow;
   owner: ReactNode;
   onUse: () => void;
   onHide: () => void;
+  onDragStart: (event: ReactPointerEvent) => void;
+  onDragReset: () => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <section className={styles.chip} data-standing aria-label={`Ready to use: ${row.name}`}>
-      <div className={styles.chipRow}>
+      <div
+        className={styles.chipRow}
+        onPointerDown={onDragStart}
+        onDoubleClick={onDragReset}
+        title="Drag to move · double-click resets position"
+      >
         <IconBolt size={14} aria-hidden="true" className={styles.icon} />
         <button
           type="button"
+          data-no-drag
           className={styles.chipName}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
@@ -283,11 +296,12 @@ function StandingChip({
           <b>{row.name}</b>
           {open ? <IconChevronUp size={12} aria-hidden="true" /> : <IconChevronDown size={12} aria-hidden="true" />}
         </button>
-        <button type="button" className={styles.chipUse} onClick={onUse}>
+        <button type="button" data-no-drag className={styles.chipUse} onClick={onUse}>
           Use
         </button>
         <button
           type="button"
+          data-no-drag
           className={styles.iconBtn}
           aria-label={`Hide: ${row.name}`}
           title="Hide until this ability is no longer available"

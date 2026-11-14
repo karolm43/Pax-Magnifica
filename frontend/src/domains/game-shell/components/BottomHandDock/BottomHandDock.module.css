@@ -78,34 +78,6 @@
 }
 
 /* Przełącznik ręki (reakcje grają też gracze, których nie jest tura). */
-.seats {
-  display: flex;
-  gap: 3px;
-  align-items: center;
-}
-
-.seat {
-  display: grid;
-  place-items: center;
-  padding: 2px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  opacity: 0.55;
-  cursor: pointer;
-  transition: opacity 0.15s ease, border-color 0.15s ease;
-}
-
-.seat:hover,
-.seat:focus-visible {
-  opacity: 0.9;
-}
-
-.seat[data-current] {
-  opacity: 1;
-  border-color: rgba(255, 255, 255, 0.55);
-}
-
 /* Segmenty kategorii z licznikami. */
 .tabs {
   display: flex;
