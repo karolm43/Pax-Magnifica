@@ -28,8 +28,7 @@
   white-space: nowrap;
 }
 
-.group > small,
-.flex {
+.group > small {
   font-family: var(--ds-label-font);
   font-size: 10px;
   font-weight: var(--weight-rail);
@@ -48,6 +47,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.icon svg {
   width: 20px;
   height: 20px;
 }

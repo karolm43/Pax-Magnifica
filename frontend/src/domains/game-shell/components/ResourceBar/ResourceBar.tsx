@@ -10,6 +10,7 @@ import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useD
 import { getPlayerCardLayoutFields } from "@/domains/player/components/PlayerCardShared/getPlayerCardLayoutFields";
 import { usePlanetEconomics } from "@/domains/player/hooks/usePlanetEconomics";
 import { FragmentsPool } from "@/domains/player/components/FragmentsPool";
+import { EconomyGlyph } from "@/domains/player/components/ResourceInfluenceTable";
 import { lookupUnit } from "@/entities/lookup/units";
 import { getColorAlias } from "@/entities/lookup/colors";
 import type { PlayerData } from "@/entities/data/types";
@@ -116,7 +117,9 @@ function ResourceBarFor({ desk }: { desk: PlayerData }) {
         )}
         {(showFlex || flexSpendOnly) && (
           <span className={styles.pair}>
-            <small className={styles.flex}>flex</small>
+            <span className={styles.icon} title="Flex (resources or influence)">
+              <EconomyGlyph kind="flex" />
+            </span>
             <Value value={floor(flex.currentFlex)} total={floor(flex.totalFlex)} />
           </span>
         )}

@@ -81,6 +81,8 @@
 }
 
 .glyph {
+  /* Własny odcień wpływu - glif działa też poza ledgerem (pasek zasobów). */
+  --inf-ink: color-mix(in oklab, rgb(var(--gd-blue)) 70%, var(--ds-white));
   width: 15px;
   height: 15px;
 }

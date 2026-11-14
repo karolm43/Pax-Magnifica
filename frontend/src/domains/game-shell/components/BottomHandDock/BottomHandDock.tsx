@@ -601,7 +601,11 @@ export function BottomHandDock() {
         </UnstyledButton>
       </div>
 
-      {open && peekLines.length > 0 && (
+      {/* Rozwinięta część ma STAŁĄ wysokość (CSS ``.body``) - nie skacze zależnie od zakładki
+          i liczby kart; nadmiar przewija się w środku. */}
+      {open && (
+      <div className={styles.body}>
+      {peekLines.length > 0 && (
         <ul className={styles.peek} aria-label="Cards you were shown">
           {peekLines.map((line) => (
             <li key={line}>{line}</li>
@@ -610,24 +614,14 @@ export function BottomHandDock() {
       )}
 
       {/* Fragmenty -> relikt (RULES.md 59.7): przycisk „Forge relic" nad reliktami. */}
-      {open && tab === "relics" && active.discordId && (
+      {tab === "relics" && active.discordId && (
         <RelicForgePanel playerId={active.discordId} enabled />
       )}
 
-      {mustDiscard > 0 && (
-        <div className={styles.discardBanner} role="status">
-          <IconTrash size={14} aria-hidden="true" />
-          <span>
-            Hand limit {handLimit?.handLimit ?? 7}: drag {mustDiscard} action card
-            {mustDiscard === 1 ? "" : "s"} onto the discard pile.
-          </span>
-          {discardError && <b className={styles.discardError}>{discardError}</b>}
-        </div>
-      )}
 
-      {open && tab === "techs" && <TechFan player={active} />}
+      {tab === "techs" && <TechFan player={active} />}
 
-      {open && tab !== "techs" && (
+      {tab !== "techs" && (
         <div className={styles.fan} role="tabpanel">
           {ids.length === 0 ? (
             <p className={styles.empty}>
@@ -684,6 +678,19 @@ export function BottomHandDock() {
               );
             })
           )}
+        </div>
+      )}
+      </div>
+      )}
+      {/* Limit ręki: plakietka NAD dokiem (nie zmienia jego wysokości). */}
+      {mustDiscard > 0 && (
+        <div className={styles.discardBanner} role="status">
+          <IconTrash size={14} aria-hidden="true" />
+          <span>
+            Hand limit {handLimit?.handLimit ?? 7}: drag {mustDiscard} action card
+            {mustDiscard === 1 ? "" : "s"} onto the discard pile.
+          </span>
+          {discardError && <b className={styles.discardError}>{discardError}</b>}
         </div>
       )}
     </section>

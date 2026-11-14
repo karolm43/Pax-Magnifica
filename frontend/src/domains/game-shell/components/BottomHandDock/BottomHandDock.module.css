@@ -179,12 +179,22 @@
   transform: rotate(180deg);
 }
 
+/* Rozwinięta część doku: STAŁA wysokość niezależnie od zakładki i liczby kart. */
+.body {
+  display: flex;
+  flex-direction: column;
+  height: 176px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 /* Wachlarz kart — pozioma, przewijalna taśma kafelków. */
 .fan {
   display: flex;
+  flex: 1 0 auto;
   gap: 8px;
-  align-items: stretch;
-  padding: 4px 10px 12px;
+  align-items: flex-start;
+  padding: 8px 10px 8px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -197,9 +207,6 @@
   gap: 6px 14px;
   align-items: flex-start;
   padding: 4px 10px 12px;
-  max-height: 220px;
-  overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .techGroup {
@@ -222,8 +229,8 @@
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  width: 108px;
-  padding: 6px 6px 7px;
+  width: 84px;
+  padding: 5px 5px 6px;
   text-align: left;
   color: inherit;
   background:
@@ -308,17 +315,17 @@
 .cardMeta {
   display: grid;
   gap: 1px;
-  margin-top: 6px;
+  margin-top: 4px;
   min-width: 0;
 }
 
 .cardName {
-  font-size: var(--text-meta, 12px);
+  font-size: 11px;
   font-weight: var(--weight-title);
   line-height: 1.2;
   color: var(--ds-ink-hi);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -425,16 +432,21 @@
 
 /* Ręka ponad limitem: pasek z instrukcją nad wachlarzem kart. */
 .discardBanner {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 6px 10px 0;
   padding: 6px 10px;
   font-size: var(--text-sm, 13px);
   color: var(--ds-ink-hi);
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.45);
+  background: color-mix(in oklab, var(--ds-ground) 85%, rgb(234 179 8));
+  border: 1px solid rgba(234, 179, 8, 0.6);
   border-radius: var(--ds-radius-sm, 6px);
 }
 
@@ -473,4 +485,10 @@
   .bar {
     gap: 6px;
   }
+}
+
+/* Pusta zakładka: komunikat na środku stałej wysokości doku. */
+.fan:has(> .empty) {
+  align-items: center;
+  justify-content: center;
 }
