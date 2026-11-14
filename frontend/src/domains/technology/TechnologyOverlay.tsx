@@ -210,6 +210,8 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const compoundOptions = compoundChoices(selected, options, skips);
   const compoundUsed = compound != null && compoundOptions.includes(compound);
   const short = compoundUsed ? 0 : Math.max(0, options.cost - paid);
+  // Focused Research: „Spend 4 trade goods” - płaci się tylko TG (bez planet).
+  const costUnit = options.tradeGoodsOnly ? "trade goods" : "resources";
   const canResearch =
     researchable && stillMissing === 0 && short === 0 && !busy;
 
@@ -303,7 +305,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
           ))}
           {options.cost > 0 ? (
             <span className={styles.stat} data-kind="cost">
-              Cost <b>{options.cost}</b> resources
+              Cost <b>{options.cost}</b> {costUnit}
             </span>
           ) : (
             <span className={styles.stat} data-kind="free">
@@ -574,7 +576,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                         </p>
                       ) : null}
                       <h4>
-                        Pay {options.cost} resources
+                        Pay {options.cost} {costUnit}
                         <button
                           type="button"
                           className={styles.linkBtn}

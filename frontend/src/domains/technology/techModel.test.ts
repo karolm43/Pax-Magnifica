@@ -38,6 +38,7 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   researched: [],
   discount: 0,
   compoundPlanets: {},
+  tradeGoodsOnly: false,
   asPrimary: false,
   second: null,
   ...over,

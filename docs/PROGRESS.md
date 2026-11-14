@@ -1127,3 +1127,23 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   War, badanie bez pominięć specjalnością w Ixthian Artifact / Wormhole Research).
 - Nowe pola stanu (`phase_blocked`, `covert_card`, `resolving`, `revote_law`, `strategy_choices`) i API — restart backendu.
 
+
+## UI: mniej okienek, jedno okno badania i jedno okno ruchu (2026-11-14)
+
+- **Badanie z komponentu = pełne okno badania.** Nowy `core/research_offer.py` + wejścia `research` / `info`
+  (`offer_inputs`): Focused Research po zagraniu tworzy obowiązkową decyzję badania, którą front pokazuje tym
+  samym `TechnologyOverlay` co karta Technology (`domains/offers/ResearchOfferOverlay.tsx`), zamiast listy.
+  `strategy_cards.technology.research_view` = wspólny opis okna (`trade_goods_only` dla „Spend 4 trade goods”).
+- **Doctor Sucaban przed zapłatą** (decyzja użytkownika, R62.md): dopóki decyzja badania czeka, `research_payer`
+  zwraca badającego → zniżka zamiast zwrotu; kartę wolno zagrać z <4 TG, gdy możliwa zniżka pokrywa różnicę
+  (`research_offer.potential_discount`, dostawca w `hooks/factions/jolnar.py`). Oferty badania idą na koniec kolejki
+  w UI (najpierw decyzja Sucabana). Reveal Prototype / Enigmatic Device: nadal zwrot po zapłacie (do przeniesienia).
+- **Ruch:** jedno okno (`MoveRouteBox`). Zwykłe przeciągnięcie na aktywny system w kroku MOVEMENT otwiera je z trasą
+  (jak Ctrl+drag); z `MovementStepPanel` usunięty stary kreator „Move by picking a system” i lista „In range”.
+- **Karta strategii bez rzędu techów** — technologie tury trafiły do nowej zakładki „Techs” w doku ręki (te same
+  kafelki `Tech`, najpierw działające w turze).
+- **Przeskok ekranu / pasek z prawej:** listy `Select` bez scroll locka (`modal={false}`), strona gry z
+  `overflow: hidden` na `<html>` (desktop, zakładka mapy).
+- Wspólny `hasNoLegalOption` (5 kopii sprawdzenia w modalach). Testy: `test_action_cards_economy.py`,
+  `factions/test_jolnar.py`, scenariusz API `test_flows_jolnar.py::test_sucaban_obniza_koszt_focused_research`.
+- Nowy hook i moduł — restart backendu.

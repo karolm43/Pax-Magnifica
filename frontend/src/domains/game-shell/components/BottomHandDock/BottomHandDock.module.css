@@ -248,6 +248,32 @@
   scrollbar-width: thin;
 }
 
+/* Zakładka „Techs": kafelki technologii (jak w panelu gracza) w grupach. */
+.techFan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: flex-start;
+  padding: 4px 10px 12px;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.techGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.techGroupLabel {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
 /* Jeden kafelek karty: rewers (proporcja karty TI4) + nazwa + znacznik. */
 .card {
   --hk: 148, 163, 184;

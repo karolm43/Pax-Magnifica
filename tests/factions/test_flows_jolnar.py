@@ -47,6 +47,38 @@ def test_sucaban_sam_wyskakuje_przy_platnym_badaniu(registry: StaticDataRegistry
     assert flow.has_offer("Sucaban")
 
 
+@covers("leaders:jolnaragent")
+def test_sucaban_obniza_koszt_focused_research(registry: StaticDataRegistry) -> None:
+    """Focused Research z 2 TG: okno badania czeka, Sucaban zdejmuje piechotę przed zapłatą."""
+    flow = Flow(registry, "jolnar")
+    home = flow.planets(flow.home)[0]
+
+    def hand(s: Json) -> None:
+        s["players"][flow.me]["trade_goods"] = 2
+        s["players"][flow.me]["private"]["action_cards"] = ["f_researched"]
+
+    flow.edit(hand)
+    flow.ground(flow.home, home, flow.me, {"infantry": 2})
+    rows = flow.client.get("/action-card/playable", params={"player_id": flow.me}).json()
+    row = next(r for r in rows["cards"] if r["card_id"] == "f_researched")
+    assert row["playable"], row["reason"]
+    flow.post("/action-card/play", {"player_id": flow.me, "card_id": "f_researched", "params": {}})
+    research = flow.offer("Focused Research")
+    assert research["inputs"][0]["kind"] == "research"
+    assert f"{flow.me}:jolnaragent" in flow.available()
+    flow.use("leader", "jolnaragent")
+    removal = {i["key"]: 0 for i in flow.offer("Sucaban")["inputs"] if i["kind"] == "number"}
+    removal[f"inf:{flow.home}:{home}"] = 2
+    flow.accept("Sucaban", removal)
+    assert flow.offer("Focused Research")["inputs"][0]["research"]["cost"] == 2
+    tree = flow.offer("Focused Research")["inputs"][0]["research"]["tree"]
+    tech = next(r["id"] for r in tree if r["status"] == "available")
+    payload = {"tech": tech, "skips": [], "planets": [], "trade_goods": 2}
+    flow.accept("Focused Research", {"research": payload})
+    player = flow.state()["players"][flow.me]
+    assert tech in player["technologies"] and player["trade_goods"] == 0
+
+
 @covers("leaders:jolnarcommander")
 def test_agnlan_oln_przerzut_afb(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "jolnar")

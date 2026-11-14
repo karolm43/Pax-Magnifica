@@ -8,6 +8,7 @@ import {
   useActionCardForm,
   type ActionCardInput,
   type FormValue,
+  hasNoLegalOption,
 } from "@/api/useActionCard";
 import { useRelicForm } from "@/api/useRelics";
 import { usePromissoryForm } from "@/api/useFactionComponents";
@@ -79,9 +80,7 @@ export function ActionCardPlayModal({
     () => buildActionCardParams(inputs, values),
     [inputs, values],
   );
-  const noTargets = inputs.some(
-    (input) => input.kind !== "number" && input.options.length < (input.kind === "multi" ? input.min : 1),
-  );
+  const noTargets = hasNoLegalOption(inputs);
 
   const play = async () => {
     setBusy(true);

@@ -877,21 +877,3 @@
   }
 }
 
-/* Chipy technologii tury wiszą nad strefą karty i nie zmieniają jej rozmiaru. */
-.techRow {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 3px;
-  margin-bottom: 8px;
-  padding: 5px;
-  zoom: 0.85; /* drobniejsze kafelki, żeby mieściły się w szerokości karty */
-  pointer-events: auto;
-  border: 1px solid var(--ds-h14);
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--ds-ground) 80%, transparent);
-  backdrop-filter: blur(4px);
-}

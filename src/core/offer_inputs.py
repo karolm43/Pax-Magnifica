@@ -70,6 +70,20 @@ def number(key: str, label: str, minimum: int, maximum: int, hint: str = "") -> 
             "hint": hint}
 
 
+def research(key: str, label: str, view: dict[str, Any], hint: str = "") -> Input:
+    """Wejście „zbadaj technologię”: UI otwiera okno badania (drzewo + płatność) z ``view``
+    (``strategy_cards.technology.research_view``). Odpowiedź to słownik ``{tech, skips, planets,
+    trade_goods}`` (``tech: None`` = rezygnacja); waliduje ją efekt (``core/research_offer``)."""
+    return {"key": key, "kind": "research", "label": label, "research": view, "hint": hint}
+
+
+def info(key: str, label: str, options: list[dict[str, Any]], hint: str = "") -> Input:
+    """Wejście INFORMACYJNE (bez wyboru): UI pokazuje tylko ``label``/``hint``. ``options`` to
+    legalne cele dla bramki zagrywalności (pusta lista = komponentu nie da się teraz zagrać),
+    np. technologie do zbadania, gdy wybór pada dopiero PO zagraniu (Focused Research)."""
+    return {"key": key, "kind": "info", "label": label, "options": options, "hint": hint}
+
+
 def needs_player(inputs: list[Input]) -> bool:
     """Czy gracz ma realny wybór (więcej niż jedna legalna odpowiedź w którymkolwiek wejściu)."""
     for item in inputs:
@@ -78,6 +92,8 @@ def needs_player(inputs: list[Input]) -> bool:
         if kind == "choice" and (len(options) > 1 or (item.get("always") and options)):
             return True
         if kind == "multi" and len(options) > int(item.get("min", 0)):
+            return True
+        if kind == "research":
             return True
         if kind == "number" and int(item.get("max", 0)) > int(item.get("min", 0)):
             return True
@@ -127,6 +143,11 @@ def validate_params(inputs: list[Input], params: Mapping[str, Any]) -> dict[str,
             if not int(item.get("min", 0)) <= len(raw) <= int(item.get("max", len(allowed))):
                 raise ValueError(f"Wrong number of choices for: {label}.")
             cleaned[key] = raw
+        elif kind == "research":
+            value = params.get(key)
+            if not isinstance(value, dict):
+                raise ValueError(f"Choose a technology for: {label}.")
+            cleaned[key] = value
         elif kind == "number":
             value = params.get(key)
             if not isinstance(value, int) or isinstance(value, bool):

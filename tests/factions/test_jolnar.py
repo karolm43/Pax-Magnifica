@@ -9,6 +9,7 @@ import pytest
 
 from src.api.demo_map import build_demo_grid
 from src.core import (
+    action_cards,
     active_effects,
     battle,
     board_graph,
@@ -284,6 +285,39 @@ def test_sucaban_zdjeta_piechota_obniza_koszt(registry: StaticDataRegistry) -> N
     assert after.systems["102"].planet_units["industrex"]["p2"]["infantry"] == 1
     options = technology_card._options(after, CardContext(registry, None), "p2", None, {})
     assert options["cost"] == technology_card.SECONDARY_COST - 2
+
+
+def test_sucaban_przed_zaplata_focused_research(registry: StaticDataRegistry) -> None:
+    """Focused Research: Sucaban obniża koszt PRZED zapłatą - kartę zagra też gracz bez 4 TG."""
+    state = _state()
+    state.active_player_id = "p2"
+    state.players["p2"].trade_goods = 2
+    state.players["p2"].private.action_cards = ["f_researched"]
+    state.systems["102"].planet_units = {"industrex": {"p2": {"infantry": 2}}}
+    rows = {r["card_id"]: r for r in action_cards.playability(state, registry, "p2")}
+    assert rows["f_researched"]["playable"] is True, rows["f_researched"]["reason"]
+    played, _ = action_cards.play_action_card(state, registry, "p2", "f_researched")
+    assert jolnar.research_payer(played) == "p2"
+    used, _ = faction_components.play(played, registry, "p1", "leader", "jolnaragent")
+    discounted = _accept(used, "p2", "Sucaban", {"inf:102:industrex": 2})
+    assert technology.research_discount(discounted, "p2") == 2
+    offer = next(o for o in discounted.pending_offers if "research_cost" in o.ctx)
+    payload = {"tech": "nm", "skips": [], "planets": [], "trade_goods": 0}
+    done = triggers.accept_offer(discounted, "p2", offer.id, {"research": payload})
+    assert "nm" in done.players["p2"].technologies
+    assert done.players["p2"].trade_goods == 0  # zapłacone 4 - 2 = 2 TG
+    assert technology.research_discount(done, "p2") == 0
+
+
+def test_focused_research_bez_sucabana_wymaga_4_tg(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.active_player_id = "p2"
+    state.players["p2"].trade_goods = 2
+    state.players["p2"].private.action_cards = ["f_researched"]
+    state.players["p1"].leader_states = {"jolnaragent": "exhausted"}
+    state.systems["102"].planet_units = {"industrex": {"p2": {"infantry": 2}}}
+    rows = {r["card_id"]: r for r in action_cards.playability(state, registry, "p2")}
+    assert rows["f_researched"]["playable"] is False
 
 
 def test_sucaban_poza_badaniem(registry: StaticDataRegistry) -> None:

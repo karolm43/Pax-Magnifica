@@ -235,12 +235,16 @@ export type SelectProps = FieldChrome & {
   "aria-label"?: string;
 };
 
-/** Pick one option from a list. */
+/**
+ * Pick one option from a list.
+ * ``modal={false}``: lista NIE blokuje przewijania strony - blokada (scroll lock) dokładała pasek
+ * przewijania i przeskok układu przy każdym otwarciu listy w oknie decyzji.
+ */
 export function Select({ data, value, defaultValue, onChange, placeholder = "Select", disabled, size = "sm", ...chrome }: SelectProps) {
   const items = normalize(data);
   return (
     <FieldFrame {...chrome} size={size}>
-      <BaseSelect.Root items={items} value={value} defaultValue={defaultValue} onValueChange={(v) => onChange?.(v)} disabled={disabled}>
+      <BaseSelect.Root modal={false} items={items} value={value} defaultValue={defaultValue} onValueChange={(v) => onChange?.(v)} disabled={disabled}>
         <BaseSelect.Trigger className={cx(classes.input, classes.selectTrigger, classes[`control_${size}`])} aria-label={chrome["aria-label"]}>
           <BaseSelect.Value className={classes.selectValue} placeholder={placeholder} />
           <BaseSelect.Icon className={classes.selectIcon}>▾</BaseSelect.Icon>
@@ -286,7 +290,7 @@ export function MultiSelect({ data, value, defaultValue, onChange, placeholder =
   const labelOf = (v: string) => items.find((i) => i.value === v)?.label ?? v;
   return (
     <FieldFrame {...chrome} size={size}>
-      <BaseSelect.Root multiple items={items} value={value} defaultValue={defaultValue} onValueChange={(v) => onChange?.((v) ?? [])} disabled={disabled}>
+      <BaseSelect.Root modal={false} multiple items={items} value={value} defaultValue={defaultValue} onValueChange={(v) => onChange?.((v) ?? [])} disabled={disabled}>
         <BaseSelect.Trigger className={cx(classes.input, classes.selectTrigger, classes.multiTrigger)}>
           <BaseSelect.Value className={classes.selectValue}>
             {(selected: string[] | null) =>

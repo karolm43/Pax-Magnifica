@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import (
+    active_effects,
     economy,
     exhaust,
     expeditions,
@@ -20,20 +21,27 @@ from src.core import (
     exploration_frontier,
     payment,
     relic_fragments,
+    research_offer,
     technology,
+    triggers,
     unit_ops,
 )
+from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.hooks import card_targets_economy as targets
 from src.core.hooks.card_helpers import system_of_planet, system_param
 from src.core.planet_stats import resources_of
+from src.core.reaction_cards import card_effect_source
 from src.core.registry import StaticDataRegistry
-from src.core.rules_hooks import register_effect
+from src.core.rules_hooks import bound_registry, on_event, register_effect
 from src.core.state_grid import grid_from_state
 from src.core.unit_ops import UnitCause
 
 _REVEAL = 3  # „Reveal the top 3 cards”
 _FOCUSED_COST = 4  # „Spend 4 trade goods”
+# Krok „zbadaj” Focused Research: decyzja gracza po zagraniu karty (okno badania).
+_FOCUSED_RESEARCH = "f_researched_research"
+_FOCUSED_KEY = f"action_cards:{_FOCUSED_RESEARCH}"
 _PLAGIARIZE_COST = 5  # „Spend 5 influence”
 _UNSTABLE_MAX = 3  # „up to 3 infantry”
 
@@ -116,13 +124,50 @@ def divert_funding(
 
 @register_effect("action_cards:f_researched")
 def focused_research(
-    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
 ) -> None:
-    """Focused Research: Spend 4 trade goods to research 1 technology"""
-    tech_id = _text(params, "technology", "Choose a technology to research.")
-    plan = technology.plan_research(state, registry, player_id, tech_id, _str_list(params, "skips"))
-    technology.pay_research(state, registry, player_id, _FOCUSED_COST, [], 0, trade_goods_only=True)
-    technology.apply_research(state, player_id, plan)
+    """Focused Research: Spend 4 trade goods to research 1 technology
+
+    Technologię i zapłatę wybiera się PO zagraniu, w oknie badania (``core/research_offer``):
+    w tym czasie Doctor Sucaban obniża koszt przed zapłatą (RULES.md 62.3), dlatego kartę wolno
+    zagrać także z mniej niż 4 TG, gdy zniżka może pokryć różnicę.
+    """
+    if not targets.focused_research_options(state, registry, player_id):
+        raise ValueError(
+            f"You need {_FOCUSED_COST} trade goods and a technology you can research."
+        )
+    # Efekt trwały = źródło hooka decyzji (gracz „ma” je do czasu odpowiedzi w oknie badania).
+    active_effects.add_effect(
+        state, _FOCUSED_KEY, Duration.TURN, owner=player_id
+    )
+    triggers.fire(
+        state, GameEvent.ACTION_CARD_PLAYED, Moment.AFTER, subject=player_id,
+        ctx={
+            "player": player_id, "card": _FOCUSED_RESEARCH,
+            **research_offer.offer_ctx(_FOCUSED_COST, trade_goods_only=True),
+        },
+    )
+
+
+def _focused_inputs(
+    state: GameState, registry: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    return [
+        research_offer.research_input(
+            state, registry, decider, _FOCUSED_COST, trade_goods_only=True,
+            label="Focused Research: research 1 technology",
+        )
+    ]
+
+
+@on_event(
+    GameEvent.ACTION_CARD_PLAYED, Moment.AFTER, card_effect_source(_FOCUSED_RESEARCH),
+    where={"card": _FOCUSED_RESEARCH}, inputs=_focused_inputs, decide=True,
+    label="Focused Research: research 1 technology",
+)
+def _focused_research_pay(state: GameState, owner_id: str, ctx: Mapping[str, Any]) -> None:
+    research_offer.resolve(state, bound_registry(), owner_id, ctx)
+    active_effects.remove_by_key(state, _FOCUSED_KEY, owner=owner_id)
 
 
 @register_effect("action_cards:plagiarize")

@@ -3,7 +3,7 @@ import { Button, Group, Stack, Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
-import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
+import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/useActionCard";
 import {
   useFactionComponentForm,
   type FactionComponentKind,
@@ -49,11 +49,7 @@ export function FactionComponentUseModal({
 
   const inputs = useMemo(() => form.data?.inputs ?? [], [form.data]);
   const { params, ready } = useMemo(() => buildActionCardParams(inputs, values), [inputs, values]);
-  const noOptions = inputs.some(
-    (input) =>
-      input.kind !== "number" &&
-      input.options.length < (input.kind === "multi" ? input.min : 1),
-  );
+  const noOptions = hasNoLegalOption(inputs);
   const status = form.data?.status ?? "";
   const notReady = kind !== "ability" && status !== "" && status !== "unlocked";
   // ACTION (akcja tury) albo „During X: you may…" (bez akcji tury) — oba z formularzem silnika.

@@ -41,6 +41,8 @@ export type ResearchOptions = {
   discount: number;
   /** Specialist Compounds: gotowe planety, które mogą zapłacić za badanie → ich kolory. */
   compoundPlanets: Record<string, TechColor[]>;
+  /** Płatność wyłącznie w TG (Focused Research): bez planet, 1 TG = 1 do kosztu. */
+  tradeGoodsOnly: boolean;
   /** Brilliant: secondary jak primary - druga technologia za `second.cost` (opcjonalna). */
   asPrimary: boolean;
   second: ResearchOptions | null;
@@ -85,7 +87,12 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     relicSkips: Array.isArray(raw.relic_skips) ? (raw.relic_skips as string[]) : [],
     planets: (raw.planets ?? {}) as Record<string, number>,
     tradeGoods: typeof raw.trade_goods === "number" ? raw.trade_goods : 0,
-    tradeGoodValue: typeof raw.trade_good_value === "number" ? raw.trade_good_value : 1,
+    // Karta „Spend N trade goods” liczy sztuki TG, nie ich wartość (Mirror Computing nie działa).
+    tradeGoodValue:
+      raw.trade_goods_only !== true && typeof raw.trade_good_value === "number"
+        ? raw.trade_good_value
+        : 1,
+    tradeGoodsOnly: raw.trade_goods_only === true,
     cost: typeof raw.cost === "number" ? raw.cost : 0,
     researched: Array.isArray(raw.researched) ? (raw.researched as string[]) : [],
     breakthrough:

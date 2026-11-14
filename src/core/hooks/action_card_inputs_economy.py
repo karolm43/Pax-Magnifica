@@ -26,7 +26,7 @@ from src.core.hooks.action_card_inputs import (
     _system_label,
 )
 from src.core.models import TechnologyDef
-from src.core.offer_inputs import as_payment
+from src.core.offer_inputs import as_payment, info
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
 from src.core.unit_ops import count_in_zone
@@ -116,16 +116,14 @@ def divert_funding_inputs(
 def focused_research_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[Input]:
-    can_pay = economy.spendable_trade_goods(state, player_id) >= _FOCUSED_COST
-    researchable = technology.researchable_techs(state, registry, player_id) if can_pay else []
+    researchable = targets.focused_research_options(state, registry, player_id)
     return [
-        _choice(
-            "technology",
-            "Technology to research",
+        info(
+            "research_after",
+            "After playing, choose the technology in the research window.",
             _tech_options(researchable),
-            hint=f"Costs {_FOCUSED_COST} trade goods.",
-        ),
-        _skip_input(state, registry, player_id),
+            hint=f"Costs {_FOCUSED_COST} trade goods (Doctor Sucaban can lower it before you pay).",
+        )
     ]
 
 

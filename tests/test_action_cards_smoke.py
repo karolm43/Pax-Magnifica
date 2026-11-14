@@ -50,7 +50,7 @@ CRASH = "CRASH"
 
 P1_POSITIONS = ("101", "102", "103")
 P2_POSITIONS = ("104", "105", "106")
-INPUT_KINDS = {"choice", "multi", "number"}
+INPUT_KINDS = {"choice", "multi", "number", "info", "research"}
 
 
 @dataclass
@@ -197,9 +197,11 @@ def _check_inputs_contract(inputs: list[dict[str, Any]]) -> str | None:
         kind = item.get("kind")
         if kind not in INPUT_KINDS:
             return f"nieznany typ wejścia {kind!r}"
-        required = {"key", "label"} | ({"min", "max"} if kind != "choice" else set())
-        if kind in {"choice", "multi"}:
+        required = {"key", "label"} | ({"min", "max"} if kind in {"multi", "number"} else set())
+        if kind in {"choice", "multi", "info"}:
             required.add("options")
+        if kind == "research":
+            required.add("research")
         missing = required - set(item)
         if missing:
             return f"wejście {item.get('key')!r} bez pól {sorted(missing)}"

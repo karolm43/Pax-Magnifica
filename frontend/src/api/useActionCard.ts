@@ -34,7 +34,28 @@ export type ActionCardInput =
       /** Wejście jest płatnością: koszt, czym się płaci i które pole liczbowe to TG. */
       payment?: { cost: number; valueKind: string; tradeGoods: string };
     })
-  | (InputBase & { kind: "number"; min: number; max: number });
+  | (InputBase & { kind: "number"; min: number; max: number })
+  /** Tylko informacja (bez wyboru); ``options`` = legalne cele, pusta lista blokuje zagranie. */
+  | (InputBase & { kind: "info"; options: ActionCardOption[] })
+  /** „Zbadaj technologię”: pełne okno badania (``TechnologyOverlay``) z opisem ``research``. */
+  | (InputBase & { kind: "research"; research: Record<string, unknown> });
+
+/** Wejście z opcjami do wyboru (choice / multi / info). */
+function optionCount(input: ActionCardInput): number | null {
+  return "options" in input ? input.options.length : null;
+}
+
+/**
+ * Czy któreś wejście nie ma dość legalnych opcji (formularz nie do rozstrzygnięcia). Ta sama
+ * reguła co ``action_cards._has_legal_choices`` w silniku.
+ */
+export function hasNoLegalOption(inputs: ActionCardInput[]): boolean {
+  return inputs.some((input) => {
+    const count = optionCount(input);
+    if (count === null) return false;
+    return count < (input.kind === "multi" ? input.min : 1);
+  });
+}
 
 export type ActionCardForm = {
   card_id: string;
@@ -118,7 +139,7 @@ export function buildActionCardParams(
       params[input.key] = ids
         .map((id) => input.options.find((o) => o.id === id)?.value)
         .filter((v) => v !== undefined);
-    } else {
+    } else if (input.kind === "number") {
       const amount = typeof value === "number" ? value : input.min;
       if (amount < input.min || amount > input.max) ready = false;
       params[input.key] = amount;

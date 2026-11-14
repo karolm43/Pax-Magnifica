@@ -123,6 +123,18 @@ function GameMapContent() {
     );
   };
 
+  /* Plansza zajmuje cały ekran i NIE przewija strony: bez tej blokady okno/lista wystające
+     poza ekran dokładało pasek przewijania z prawej i przeskok całego układu. */
+  useEffect(() => {
+    if (isMobile || !onMapTab) return;
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, [isMobile, onMapTab]);
+
   /* Wyszukiwarka planszy otworzyła talię: okna talii żyją w zakładce General. */
   const deckRequest = useDeckSearchStore((state) => state.request);
   useEffect(() => {

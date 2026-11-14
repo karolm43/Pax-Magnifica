@@ -19,6 +19,7 @@ from src.core import (
     invasion,
     leaders,
     promissory_play,
+    research_offer,
     rules_hooks,
     space_cannon,
     technology,
@@ -324,10 +325,15 @@ def research_agreement(
 
 
 def research_payer(state: GameState) -> str | None:
-    """Gracz, który TERAZ płaci zasobami za badanie z karty Technology (``None`` = nikt).
+    """Gracz, który TERAZ płaci zasobami za badanie (``None`` = nikt).
 
-    Krok ``research_paid`` primary albo secondary bieżącego respondenta (RULES.md 62.3).
+    Krok ``research_paid`` primary karty Technology, secondary bieżącego respondenta albo
+    czekająca decyzja badania z komponentu (Focused Research - ``core/research_offer``) - RULES.md
+    62.3. We wszystkich tych chwilach zapłata jeszcze NIE nastąpiła (Sucaban = zniżka).
     """
+    payer = research_offer.pending_payer(state)
+    if payer is not None:
+        return payer
     pending = state.pending_strategy
     if (
         pending is not None
@@ -376,6 +382,20 @@ def _sucaban_target(state: GameState) -> tuple[str, str] | None:
         return payer, "before"
     payer = refund_payer(state)
     return (payer, "after") if payer is not None else None
+
+
+@research_offer.register_potential_discount
+def _sucaban_potential(state: GameState, registry: StaticDataRegistry, payer: str) -> int:
+    """Ile Doctor Sucaban MOŻE obniżyć koszt badania płacącego: tyle, ile ma on piechoty na
+    planszy - o ile jakiś gracz ma gotowego Sucabana (bramka zagrywalności Focused Research)."""
+    ready = any(
+        AGENT in leaders.leaders_of(registry, player)
+        and leaders.is_ready(state, registry, pid, AGENT)
+        for pid, player in state.players.items()
+    )
+    if not ready:
+        return 0
+    return sum(count for _pos, _zone, count in _infantry_spots(state, payer))
 
 
 @faction_components.window_use("leader", AGENT)

@@ -6,8 +6,9 @@ from typing import Any
 
 import pytest
 
-from src.core import action_cards, exploration
+from src.core import action_cards, exploration, triggers
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
+from src.core.offers import offer_view
 from src.core.registry import StaticDataRegistry
 
 _HAZARDOUS = "abyz"  # planeta hazardous, 3 zasoby, nie jest domowa
@@ -193,33 +194,60 @@ def test_brilliance_formularz_i_zagrywalnosc(registry: StaticDataRegistry) -> No
 # ------------------------------------------------------------------------- Focused Research
 
 
+def _research(
+    state: GameState, tech: str, skips: list[str] | None = None, player: str = "p1"
+) -> GameState:
+    """Odpowiedź w oknie badania (decyzja ``research`` po zagraniu karty)."""
+    offer = next(
+        o for o in state.pending_offers if o.player_id == player and "research_cost" in o.ctx
+    )
+    payload = {"tech": tech, "skips": skips or [], "planets": [], "trade_goods": 0}
+    return triggers.accept_offer(state, player, offer.id, {"research": payload})
+
+
 def test_focused_research_kosztuje_cztery_tg(registry: StaticDataRegistry) -> None:
     state = _state(["f_researched"], trade_goods=5)
-    new = _play(state, registry, "f_researched", {"technology": "nm"})
+    played = _play(state, registry, "f_researched")
+    # Technologię wybiera się PO zagraniu, w oknie badania (decyzja obowiązkowa gracza).
+    assert played.players["p1"].trade_goods == 5
+    offer = next(o for o in played.pending_offers if "research_cost" in o.ctx)
+    assert offer.mandatory
+    new = _research(played, "nm")
     assert "nm" in new.players["p1"].technologies
     assert new.players["p1"].trade_goods == 1
+    assert not new.pending_offers
+
+
+def test_focused_research_rezygnacja(registry: StaticDataRegistry) -> None:
+    played = _play(_state(["f_researched"], trade_goods=5), registry, "f_researched")
+    offer = next(o for o in played.pending_offers if "research_cost" in o.ctx)
+    new = triggers.accept_offer(played, "p1", offer.id, {"research": {"tech": None}})
+    assert new.players["p1"].trade_goods == 5 and not new.pending_offers
 
 
 def test_focused_research_wymaga_tg_i_prerekwizytow(registry: StaticDataRegistry) -> None:
     poor = _state(["f_researched"], trade_goods=3)
-    with pytest.raises(ValueError, match="Not enough trade goods"):
-        action_cards.play_action_card(poor, registry, "p1", "f_researched", {"technology": "nm"})
+    with pytest.raises(ValueError, match="You need 4 trade goods"):
+        action_cards.play_action_card(poor, registry, "p1", "f_researched")
     row = _playable(poor, registry, "f_researched")
     assert not row["playable"] and "No legal target" in str(row["reason"])
-    rich = _state(["f_researched"], trade_goods=4)
+    rich = _play(_state(["f_researched"], trade_goods=4), registry, "f_researched")
     with pytest.raises(ValueError, match="Prerequisites"):
-        action_cards.play_action_card(rich, registry, "p1", "f_researched", {"technology": "dxa"})
-    assert rich.players["p1"].trade_goods == 4  # nieudane zagranie nic nie kosztuje
+        _research(rich, "dxa")
+    assert rich.players["p1"].trade_goods == 4  # nieudana odpowiedź nic nie kosztuje
 
 
 def test_focused_research_uzywa_specjalnosci_planety(registry: StaticDataRegistry) -> None:
     state = _state(["f_researched"], mine=(_SPECIALTY_BIOTIC,), trade_goods=4)
     inputs = _inputs(state, registry, "f_researched")
-    assert "dxa" in _option_values(inputs, "technology")  # G pokryje planeta BIOTIC
-    assert _SPECIALTY_BIOTIC in _option_values(inputs, "skips")
-    new = _play(
-        state, registry, "f_researched", {"technology": "dxa", "skips": [_SPECIALTY_BIOTIC]}
-    )
+    assert inputs[0]["kind"] == "info"
+    assert "dxa" in _option_values(inputs, "research_after")  # G pokryje planeta BIOTIC
+    played = _play(state, registry, "f_researched")
+    offer = next(o for o in played.pending_offers if "research_cost" in o.ctx)
+    view = offer_view(played, registry, offer)["inputs"][0]
+    assert view["kind"] == "research" and view["research"]["trade_goods_only"] is True
+    assert view["research"]["cost"] == 4 and view["research"]["planets"] == {}
+    new = _research(played, "dxa", [_SPECIALTY_BIOTIC])
     assert "dxa" in new.players["p1"].technologies
     assert _SPECIALTY_BIOTIC in new.players["p1"].exhausted_planets
 

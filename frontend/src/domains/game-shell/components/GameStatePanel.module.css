@@ -1172,22 +1172,6 @@
   border-color: rgb(var(--ds-sig-ability) / 0.6);
 }
 
-/* Przełącznik „pokaż/ukryj kreator ruchu" (link-button, subtelny). */
-.moveToggle {
-  justify-self: start;
-  padding: 3px 2px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ds-ink-lo);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.moveToggle:hover {
-  color: var(--ds-ink-hi);
-}
-
 .prodHead {
   display: flex;
   align-items: center;
@@ -1221,88 +1205,16 @@
   color: var(--ds-ink-lo);
 }
 
-.planetTabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
 
-.planetTab {
-  padding: 3px 8px;
-  font-size: 11px;
-  color: var(--ds-ink);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--ds-h14);
-  border-radius: 999px;
-  cursor: pointer;
-}
 
-.planetTab:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
 
-.planetTab[data-active] {
-  color: var(--ds-ink-hi);
-  background: rgb(var(--ph) / 0.16);
-  border-color: rgb(var(--ph) / 0.5);
-}
 
-/* Lista zasięgu ruchu: system źródłowy + statki, które dolecą + pojemność. */
-.rangeList {
-  display: grid;
-  gap: 4px;
-}
 
-.rangeItem {
-  display: grid;
-  gap: 2px;
-}
 
-.rangeRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--ds-ink);
-  text-align: left;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--ds-h14);
-  border-radius: 6px;
-  cursor: pointer;
-}
 
-.rangeRow:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
 
-.rangeRow[data-active] {
-  color: var(--ds-ink-hi);
-  background: rgb(var(--ph) / 0.16);
-  border-color: rgb(var(--ph) / 0.5);
-}
 
-.rangePos {
-  flex: none;
-  font-weight: 600;
-  color: var(--ds-ink-hi);
-}
 
-.rangeShips {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  min-width: 0;
-}
-
-.rangeShip {
-  white-space: nowrap;
-}
-
-.rangeShip[data-cargo] {
-  color: var(--ds-ink-lo);
-}
 
 .unitGrid {
   display: grid;
@@ -1310,32 +1222,6 @@
      kafelku, inaczej przyciski wylewają się na sąsiada. */
   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
   gap: 5px;
-}
-
-.unitTile {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto;
-  grid-template-areas:
-    "icon name name"
-    "icon cost btns";
-  align-items: center;
-  column-gap: 6px;
-  row-gap: 1px;
-  padding: 5px 6px;
-  border: 1px solid var(--ds-h10);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.unitTileIcon {
-  grid-area: icon;
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  overflow: hidden; /* klip sprite'a do pudełka — arkusz nie wylewa się na sąsiadów */
 }
 
 /* Sprite jednostki (scaled) renderuje się jako <div> z tłem = wycinek arkusza,
@@ -1347,51 +1233,9 @@
   height: 24px;
 }
 
-.unitTileName {
-  grid-area: name;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ds-ink-hi);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 
-.unitTileCost {
-  grid-area: cost;
-  font-family: var(--font-data);
-  font-size: 10px;
-  color: var(--ds-ink-lo);
-}
 
-.unitTileBtns {
-  grid-area: btns;
-  display: flex;
-  flex: none;
-  gap: 3px;
-}
 
-.unitStep {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  color: var(--ds-ink);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--ds-h14);
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.unitStep:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.unitStep:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 
 .unitStepAdd {
   color: rgb(var(--ds-sig-bio, 110 231 183));

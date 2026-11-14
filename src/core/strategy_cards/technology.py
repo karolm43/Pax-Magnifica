@@ -13,6 +13,7 @@ from typing import Any
 from src.core import ability_notes, exhaust, payment, rules_hooks, technology
 from src.core.game_state import GameState
 from src.core.payment import parse_payment, ready_planet_values
+from src.core.registry import StaticDataRegistry
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import str_list
 
@@ -110,26 +111,47 @@ def research_options(
     state: GameState, ctx: CardContext, player_id: str, cost: int
 ) -> dict[str, Any]:
     """Wszystko, czego okno badania potrzebuje (drzewo, specjalności, płatność, koszt)."""
-    cost = _card_cost(state, player_id, cost)
+    return research_view(state, ctx.registry, player_id, _card_cost(state, player_id, cost))
+
+
+def research_view(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    cost: int,
+    *,
+    trade_goods_only: bool = False,
+) -> dict[str, Any]:
+    """Opis okna badania (``TechnologyOverlay``) - wspólny dla karty Technology i komponentów
+    badających jednym ruchem (karta akcji, frontier: ``core/research_offer.py``).
+
+    ``trade_goods_only`` (Focused Research): płaci się wyłącznie TG - bez planet i specjalności.
+    """
     player = state.players[player_id]
+    discount = technology.research_discount(state, player_id)
     return {
-        "tree": technology.tree_view(state, ctx.registry, player_id),
-        "owned_colors": dict(technology.owned_colors(state, ctx.registry, player_id)),
+        "tree": technology.tree_view(state, registry, player_id),
+        "owned_colors": dict(technology.owned_colors(state, registry, player_id)),
         # Przełom frakcji: synergia dwóch kolorów, aktywna tylko gdy przełom odblokowany.
-        "breakthrough": technology.breakthrough_view(state, ctx.registry, player_id),
-        "specialties": technology.specialty_planets(state, ctx.registry, player_id),
+        "breakthrough": technology.breakthrough_view(state, registry, player_id),
+        "specialties": technology.specialty_planets(state, registry, player_id),
         "aida": technology.aida_ready(state, player_id),
         # Gotowe relikty ignorujące 1 prerekwizyt (Prophet's Tears) - skip ``relic:<id>``.
         "relic_skips": technology.ignore_prerequisite_relics(state, player_id),
-        "planets": ready_planet_values(state, ctx.registry, player_id, "resources"),
+        "planets": (
+            {} if trade_goods_only
+            else ready_planet_values(state, registry, player_id, "resources")
+        ),
         "trade_goods": player.trade_goods,
         "trade_good_value": payment.trade_good_value(state, player_id),
+        "trade_goods_only": trade_goods_only,
         # Zniżka z Doctor Sucaban (już odjęta od ``cost``) i planety płacące specjalnością.
-        "discount": min(cost, technology.research_discount(state, player_id)) if cost else 0,
+        "discount": min(cost, discount) if cost else 0,
         "compound_planets": (
-            technology.specialty_payment_planets(state, ctx.registry, player_id) if cost else {}
+            technology.specialty_payment_planets(state, registry, player_id)
+            if cost and not trade_goods_only else {}
         ),
-        "cost": max(0, cost - technology.research_discount(state, player_id)),
+        "cost": max(0, cost - discount),
         "needs_input": True,
     }
 

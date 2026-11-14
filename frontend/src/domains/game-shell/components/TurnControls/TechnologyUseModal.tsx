@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button, Group, Stack, Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
-import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
+import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/useActionCard";
 import { useTechnologyAbilityUse, useTechnologyForm } from "@/api/useTechnology";
 import { DecisionFields } from "@/domains/offers/DecisionFields";
 
@@ -30,11 +30,7 @@ export function TechnologyUseModal({ techId, techName, playerId, onClose, onDone
 
   const inputs = useMemo(() => form.data?.inputs ?? [], [form.data]);
   const { params, ready } = useMemo(() => buildActionCardParams(inputs, values), [inputs, values]);
-  const noOptions = inputs.some(
-    (input) =>
-      input.kind !== "number" &&
-      input.options.length < (input.kind === "multi" ? input.min : 1),
-  );
+  const noOptions = hasNoLegalOption(inputs);
   const isFree = form.data?.kind === "free";
   const exhausted = form.data?.exhausted === true && !isFree;
 

@@ -5,6 +5,7 @@ import {
   IconBolt,
   IconCards,
   IconChevronDown,
+  IconCpu,
   IconDiamond,
   IconLayoutGrid,
   IconPlayerPlayFilled,
@@ -25,6 +26,7 @@ import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { getRelicData } from "@/entities/lookup/relics";
 import { getExploration } from "@/entities/lookup/explorations";
 import { RelicCard } from "@/domains/player/components/Relic/RelicCard";
+import { Tech } from "@/domains/player/components/Tech";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
 import { PromissoryNoteCard } from "@/domains/cards/components/PromissoryNoteCard";
@@ -36,6 +38,7 @@ import {
 } from "@/utils/localStorageSettings";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import { useGameData } from "@/state/useGameContext";
+import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
 import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
@@ -68,9 +71,15 @@ import styles from "./BottomHandDock.module.css";
  * Zakładka „Relics" pokazuje relikty gracza (leżą przed nim, nie w ręce). Te z „ACTION:" działają
  * jak karty akcji (`/relic/playable`, ta sama strefa zagrania; relikt zostaje po zagraniu),
  * pasywne są tylko do obejrzenia - działają same i są też w panelu gracza.
+ *
+ * Zakładka „Techs" to technologie gracza (te same kafelki `Tech` co w panelu gracza, klik =
+ * pełna karta); najpierw te, które działają w turze (dawny rząd nad kartą strategii).
  */
 
-type HandTab = "actions" | "secrets" | "notes" | "relics";
+type HandTab = "actions" | "secrets" | "notes" | "relics" | "techs";
+
+/** Zakładki z kartami w wachlarzu (technologie mają własny widok kafelków). */
+type CardTab = Exclude<HandTab, "techs">;
 
 /** Minimalny kształt decyzji silnika o zagrywalności (karta akcji albo relikt). */
 type PlayInfo = { playable: boolean; reason: string | null };
@@ -85,9 +94,10 @@ const TABS: {
   { key: "secrets", label: "Secrets", tone: "239, 68, 68", icon: IconTarget },
   { key: "notes", label: "Notes", tone: "6, 182, 212", icon: IconTicket },
   { key: "relics", label: "Relics", tone: "234, 179, 8", icon: IconDiamond },
+  { key: "techs", label: "Techs", tone: "110, 168, 255", icon: IconCpu },
 ];
 
-const BACKS: Record<HandTab, string> = {
+const BACKS: Record<CardTab, string> = {
   actions: assetUrl("/player_area/cardback_action.jpg"),
   secrets: assetUrl("/player_area/cardback_secret.jpg"),
   notes: assetUrl("/player_area/pa_cardbacks_pn.png"),
@@ -99,6 +109,7 @@ const EMPTY_COPY: Record<HandTab, string> = {
   secrets: "No secret objectives in hand",
   notes: "No promissory notes in hand",
   relics: "No relics in play",
+  techs: "No technologies",
 };
 
 /** Karty, które można przeciągnąć na strefę zagrania (karta akcji albo relikt z ACTION). */
@@ -148,7 +159,7 @@ function useFullscreenOverlay(): boolean {
 
 /** Nazwa/etykieta karty wg kategorii (z wbudowanych danych AsyncTI4). */
 function useCardLabel(
-  tab: HandTab,
+  tab: CardTab,
   id: string,
   /** Tylko relikty: znacznik z decyzji silnika (rodzaj + wyczerpanie). */
   relicTag?: string,
@@ -190,7 +201,7 @@ function CardDetails({
   id,
   frontier,
 }: {
-  tab: HandTab;
+  tab: CardTab;
   id: string;
   frontier?: boolean;
 }) {
@@ -221,7 +232,7 @@ function HandCard({
   discardable,
   onDragChange,
 }: {
-  tab: HandTab;
+  tab: CardTab;
   id: string;
   /** Ręka ponad limitem (R_action_cards): kartę akcji przeciąga się na stos odrzuconych. */
   discardable?: boolean;
@@ -306,6 +317,43 @@ function HandCard({
         <CardDetails tab={tab} id={id} frontier={frontier} />
       </SmoothPopover.Dropdown>
     </SmoothPopover>
+    </div>
+  );
+}
+
+/**
+ * Technologie gracza w doku ręki: najpierw działające w turze (Fleet Logistics, Transit
+ * Diodes, Bio-Stims…), potem reszta. Te same kafelki `Tech` co w panelu gracza.
+ */
+function TechFan({ player }: { player: PlayerData }) {
+  const exhausted = new Set(player.exhaustedTechs);
+  const turn = new Set(
+    (player.techEffects ?? []).filter((t) => t.contexts.includes("turn")).map((t) => t.alias),
+  );
+  const groups = [
+    { label: "This turn", ids: player.techs.filter((id) => turn.has(id)) },
+    { label: turn.size ? "Other" : "", ids: player.techs.filter((id) => !turn.has(id)) },
+  ].filter((g) => g.ids.length > 0);
+  if (groups.length === 0) {
+    return (
+      <p className={styles.empty}>
+        <IconLayoutGrid size={14} aria-hidden="true" />
+        {EMPTY_COPY.techs}
+      </p>
+    );
+  }
+  return (
+    <div className={styles.techFan} role="tabpanel">
+      {groups.map((g) => (
+        <div key={g.label || "all"} className={styles.techGroup} role="list" aria-label={g.label || "Technologies"}>
+          {g.label && <span className={styles.techGroupLabel}>{g.label}</span>}
+          {g.ids.map((id) => (
+            <div key={id} role="listitem">
+              <Tech techId={id} isExhausted={exhausted.has(id)} playerId={player.discordId ?? undefined} />
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -452,12 +500,14 @@ export function BottomHandDock() {
       secrets: hand?.secretObjectives.length ?? 0,
       notes: hand?.promissoryNotes.length ?? 0,
       relics: relicIds.length,
+      techs: active?.techs.length ?? 0,
     }),
-    [hand, relicIds, frontierIds],
+    [hand, relicIds, frontierIds, active?.techs.length],
   );
 
   const ids = useMemo(() => {
     if (tab === "relics") return relicIds;
+    if (tab === "techs") return [] as string[];
     if (!hand) return [] as string[];
     if (tab === "actions") return [...hand.actionCards, ...frontierIds];
     if (tab === "secrets") return hand.secretObjectives;
@@ -634,7 +684,9 @@ export function BottomHandDock() {
         </div>
       )}
 
-      {open && (
+      {open && tab === "techs" && <TechFan player={active} />}
+
+      {open && tab !== "techs" && (
         <div className={styles.fan} role="tabpanel">
           {ids.length === 0 ? (
             <p className={styles.empty}>
@@ -658,7 +710,7 @@ export function BottomHandDock() {
               return (
                 <HandCard
                   key={`${tab}-${id}-${index}`}
-                  tab={tab}
+                  tab={tab as CardTab}
                   id={id}
                   frontier={frontier}
                   reaction={!frontier && reactionIds.has(`${tab}:${id}`)}

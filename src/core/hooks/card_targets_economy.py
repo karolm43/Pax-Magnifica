@@ -8,7 +8,7 @@ Funkcje są czyste (nie mutują stanu). Reguły i przypadki brzegowe:
 
 from __future__ import annotations
 
-from src.core import exploration, neighbors, technology
+from src.core import exploration, neighbors, research_offer, technology
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hooks.card_helpers import controlled
@@ -17,6 +17,8 @@ from src.core.planet_stats import planet_stats
 from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
 from src.core.unit_catalog import is_space_unit
+
+FOCUSED_COST = 4  # Focused Research: „Spend 4 trade goods”
 
 SPACE_DOCK = "spacedock"
 
@@ -112,6 +114,16 @@ def divert_research_options(
             if tech.id != returned.id:
                 found.setdefault(tech.id, tech)
     return list(found.values())
+
+
+def focused_research_options(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[TechnologyDef]:
+    """Focused Research: technologie do zbadania, gdy gracz pokryje 4 TG (z możliwą zniżką
+    Doctor Sucaban przed zapłatą - ``research_offer.potential_discount``); inaczej pusto."""
+    if not research_offer.can_afford_trade_goods(state, registry, player_id, FOCUSED_COST):
+        return []
+    return technology.researchable_techs(state, registry, player_id)
 
 
 def plagiarize_options(

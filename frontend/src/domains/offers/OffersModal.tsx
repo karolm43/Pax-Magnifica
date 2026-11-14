@@ -13,7 +13,7 @@ import { getPortalRoot } from "@/ds";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
-import { buildActionCardParams, type FormValue } from "@/api/useActionCard";
+import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
 import { Tech } from "@/domains/player/components/Tech";
 import {
@@ -23,6 +23,7 @@ import {
 } from "@/shared/ui/CommandPools/CommandPools";
 import { DecisionFields } from "./DecisionFields";
 import { TransitDiodesPicker } from "./TransitDiodesPicker";
+import { isResearchOffer, ResearchOfferOverlay } from "./ResearchOfferOverlay";
 import styles from "./OffersDock.module.css";
 
 /** Opisy krótsze niż tyle znaków pokazujemy w całości (bez „more”). */
@@ -123,11 +124,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
     () => buildActionCardParams(offer.inputs, formValues),
     [offer.inputs, formValues],
   );
-  const noOptions = offer.inputs.some(
-    (input) =>
-      input.kind !== "number" &&
-      input.options.length < (input.kind === "multi" ? input.min : 1),
-  );
+  const noOptions = hasNoLegalOption(offer.inputs);
   const canUse =
     !busy &&
     ready &&
@@ -334,7 +331,15 @@ export function OffersModal() {
   }, [gameState, pending, refetch]);
 
   if (!pending || !offers || offers.length === 0) return null;
-  return <OfferDock key={offers[0].id} offer={offers[0]} queued={offers.length - 1} />;
+  // Decyzja badania czeka na końcu: najpierw zdolności „przed zapłatą” (Doctor Sucaban zdejmuje
+  // piechotę), potem pełne okno badania z obniżonym kosztem.
+  const ordered = [
+    ...offers.filter((o) => !isResearchOffer(o)),
+    ...offers.filter((o) => isResearchOffer(o)),
+  ];
+  const first = ordered[0];
+  if (isResearchOffer(first)) return <ResearchOfferOverlay key={first.id} offer={first} />;
+  return <OfferDock key={first.id} offer={first} queued={ordered.length - 1} />;
 }
 
 export default OffersModal;

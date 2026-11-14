@@ -276,6 +276,20 @@ export function DecisionField({
     );
   }
 
+  // Informacja (np. „technologię wybierzesz po zagraniu”) - bez pola do wyboru.
+  if (input.kind === "info") {
+    return (
+      <div className={styles.field}>
+        <p className={styles.hint}>
+          {input.label}
+          {input.hint ? ` ${input.hint}` : ""}
+        </p>
+      </div>
+    );
+  }
+  // Badanie ma własne pełne okno (``ResearchOfferOverlay``), nie pole formularza.
+  if (input.kind === "research") return null;
+
   const options = input.options;
   const data = options.map((o) => ({ value: o.id, label: o.label }));
 

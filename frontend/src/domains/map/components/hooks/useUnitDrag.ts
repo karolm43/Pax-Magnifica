@@ -389,6 +389,30 @@ export function useUnitDrag(data: UnitDragData | null) {
         target.position === activeSystemRef.current &&
         target.zone === "space";
 
+      // Krok MOVEMENT: zwykłe przeciągnięcie działa jak Ctrl+drag - otwiera box ruchu z trasą
+      // i całym stosem w wyborze (lewy/prawy klik w boxie zmienia liczbę), zamiast ruszać od razu.
+      if (toActive && tacticalStepRef.current === "MOVEMENT") {
+        const asCargo =
+          info.fromZone !== "space" ||
+          movesAsCargo(
+            info.asyncId,
+            info.faction,
+            playersRef.current?.find((p) => p.faction === info.faction),
+          );
+        const pick: DraftPick = {
+          kind: asCargo ? "cargo" : "ship",
+          position: info.fromPosition,
+          zone: info.fromZone,
+          baseType: baseTypeOf(info.asyncId),
+          count: info.count,
+          max: info.count,
+        };
+        useAppStore
+          .getState()
+          .openMoveDraftWith(info.fromPosition, info.faction, { [pickKey(pick)]: pick });
+        return;
+      }
+
       if (info.count <= 1) {
         if (toActive) {
           const baseType = baseTypeOf(info.asyncId);
