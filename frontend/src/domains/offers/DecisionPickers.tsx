@@ -1,0 +1,116 @@
+import { useMemo, type CSSProperties } from "react";
+import type { ActionCardOption } from "@/api/useActionCard";
+import { Tooltip } from "@/ds";
+import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
+import { useMapPick } from "@/domains/strategy/mapPick";
+import { COLOR_HUE, COLOR_ICON, type TechColor } from "@/domains/technology/techModel";
+import { getPlanetData } from "@/entities/lookup/planets";
+import { getTechData } from "@/entities/lookup/tech";
+import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
+import { useGameData } from "@/state/useGameContext";
+import type { Classified, OptionLookups } from "./optionKinds";
+import styles from "./DecisionFields.module.css";
+
+/*
+ * Graficzne opcje wyboru wspólne dla wszystkich formularzy (``DecisionField``): technologia jako
+ * kafelek technologii (kolor + pełna karta po najechaniu), gracz jako ikona frakcji, a planeta /
+ * system jako wybór KLIKNIĘCIEM NA MAPIE (``useMapPick``) - jak przy kartach strategii.
+ */
+
+/** Słowniki do rozpoznania opcji (dane gry + wbudowane dane AsyncTI4). */
+export function useOptionLookups(): OptionLookups {
+  const gameData = useGameData();
+  const players = gameData?.playerData;
+  const tiles = gameData?.tiles;
+  return useMemo(() => {
+    const ids = new Set((players ?? []).map((p) => p.discordId).filter(Boolean));
+    return {
+      isTech: (id) => getTechData(id) !== undefined,
+      isPlayer: (id) => ids.has(id),
+      isPlanet: (id) => getPlanetData(id) !== undefined,
+      isSystem: (pos) => tiles?.[pos] !== undefined,
+    };
+  }, [players, tiles]);
+}
+
+const TECH_COLORS = new Set<string>(["PROPULSION", "BIOTIC", "CYBERNETIC", "WARFARE"]);
+
+function techColor(id: string): TechColor | null {
+  const type = getTechData(id)?.types.find((t) => TECH_COLORS.has(t.toUpperCase()));
+  return type ? (type.toUpperCase() as TechColor) : null;
+}
+
+/** Treść kafelka technologii: ikona koloru + nazwa; pełna karta po najechaniu. */
+export function TechOptionBody({ option, techId }: { option: ActionCardOption; techId: string }) {
+  const tech = getTechData(techId);
+  const color = techColor(techId);
+  const at = option.label.indexOf(" - ");
+  const caption = at >= 0 ? option.label.slice(at + 3) : "";
+  return (
+    <Tooltip
+      label={<TechCard techId={techId} />}
+      openDelay={350}
+      position="right"
+      multiline
+      events={{ hover: true, focus: false, touch: false }}
+    >
+      <span
+        className={styles.techOpt}
+        style={{ "--tc": color ? COLOR_HUE[color] : "170 178 196" } as CSSProperties}
+      >
+        {color ? (
+          <img src={COLOR_ICON[color]} alt="" width={16} height={16} aria-hidden="true" />
+        ) : (
+          <span className={styles.techUpgrade} aria-hidden="true">U</span>
+        )}
+        <span className={styles.optText}>
+          <b>{tech?.name ?? option.label}</b>
+          {caption && <small>{caption}</small>}
+        </span>
+      </span>
+    </Tooltip>
+  );
+}
+
+/** Treść kafelka gracza: ikona frakcji + nazwa. */
+export function PlayerOptionBody({ option, playerId }: { option: ActionCardOption; playerId: string }) {
+  const gameData = useGameData();
+  const player = gameData?.playerData?.find((p) => p.discordId === playerId);
+  const at = option.label.indexOf(" - ");
+  const caption = at >= 0 ? option.label.slice(at + 3) : "";
+  return (
+    <>
+      {player?.faction && <CircularFactionIcon faction={player.faction} size={22} />}
+      <span className={styles.optText}>
+        <b>{player?.flexibleDisplayName || player?.faction || option.label}</b>
+        {caption && <small>{caption}</small>}
+      </span>
+    </>
+  );
+}
+
+/**
+ * Wybór na mapie dla pola z planetami / systemami: dozwolone cele świecą, klik wybiera opcję.
+ * Aktywne tylko dla JEDNEGO pola naraz (``active``) - mapa ma jeden tryb wyboru.
+ */
+export function useFieldMapPick(
+  classified: Classified | null,
+  active: boolean,
+  selected: string | null,
+  onPickOption: (optionId: string) => void,
+) {
+  const mapKind =
+    classified?.kind === "planet" || classified?.kind === "system" ? classified.kind : null;
+  const byTarget = useMemo(() => {
+    const map = new Map<string, string>();
+    if (mapKind && classified) for (const [id, target] of classified.targets) map.set(target, id);
+    return map;
+  }, [classified, mapKind]);
+  const targets = useMemo(() => [...byTarget.keys()], [byTarget]);
+  const selectedTarget = selected ? (classified?.targets.get(selected) ?? null) : null;
+  useMapPick(mapKind ?? "system", targets, (target) => {
+    const id = byTarget.get(target);
+    if (id) onPickOption(id);
+  }, { enabled: active && mapKind !== null, selected: selectedTarget });
+  return mapKind !== null;
+}

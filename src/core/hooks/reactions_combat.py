@@ -33,11 +33,13 @@ from src.core import (
     economy,
     payment,
     reaction_cards,
+    research_offer,
     rules_hooks,
     technology,
     triggers,
     unit_ops,
 )
+from src.core import offer_inputs as oi
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll
 from src.core.fleet_pool import unit_cost, unit_name
@@ -50,12 +52,10 @@ from src.core.hooks.action_card_inputs import (
     _multi,
     _number,
     _option,
-    _planet_label,
     _system_label,
 )
 from src.core.models import TechnologyDef
 from src.core.neutral import NEUTRAL_PLAYER_ID
-from src.core.offer_inputs import as_payment
 from src.core.reaction_cards import (
     OpenWindow,
     card_effect_source,
@@ -80,6 +80,7 @@ _SHIELDS_HOLDING = ("sh1", "sh2", "sh3", "sh4")
 _SHIELDS_MAX = 2  # „Cancel up to 2 hits”
 _DIRECT_HIT = ("dh1", "dh2", "dh3", "dh4")
 _FIGHTER_PROTOTYPE_BONUS = 2  # „Apply +2 to the result of each of your fighters' combat rolls”
+_REVEAL_DECISION = "reveal_prototype"
 _REVEAL_COST = 4  # „Spend 4 resources”
 _REFLECTIVE_HITS = 2  # „Produce 2 hits”
 _COURAGEOUS_DICE = 2  # „Roll 2 dice”
@@ -504,26 +505,26 @@ def _reveal_condition(
 
 @register_effect("action_cards:reveal_prototype")
 def reveal_prototype(
-    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
 ) -> None:
     """Reveal Prototype: Spend 4 resources to research a unit upgrade technology of the same type
     as 1 of your units that is participating in this combat.
+
+    Technologię i zapłatę wybiera się PO zagraniu w oknie badania (``core/research_offer``),
+    ograniczonym do pasujących ulepszeń; Doctor Sucaban obniża wtedy koszt przed zapłatą.
     """
-    tech_id = _text(params, "technology", "Choose a unit upgrade to research ('technology').")
-    if tech_id not in {t.id for t in _prototype_options(state, registry, player_id)}:
+    options = [t.id for t in _prototype_options(state, registry, player_id)]
+    if not options or not _can_pay(state, registry, player_id):
         raise ValueError(
-            "Choose a unit upgrade of the same type as one of your units in this combat."
+            "You need 4 resources and a unit upgrade of the same type as one of your units "
+            "in this combat."
         )
-    skips = params.get("skips", [])
-    if not isinstance(skips, list) or not all(isinstance(s, str) for s in skips):
-        raise ValueError("'skips' must be a list of ids.")
-    planets, trade_goods = payment.parse_payment(dict(params))
-    plan = technology.plan_research(state, registry, player_id, tech_id, list(skips))
-    technology.pay_research(
-        state, registry, player_id, _REVEAL_COST, planets, trade_goods,
-        skip_planets=tuple(skips),
-    )
-    technology.apply_research(state, player_id, plan)
+    research_offer.begin(state, player_id, _REVEAL_DECISION, _REVEAL_COST, allowed=options)
+
+
+research_offer.register_decision(
+    _REVEAL_DECISION, "Reveal Prototype: research a unit upgrade", "action_cards:reveal_prototype"
+)
 
 
 @register_effect_inputs("action_cards:reveal_prototype")
@@ -532,34 +533,13 @@ def reveal_prototype_inputs(
 ) -> list[Input]:
     can_pay = _can_pay(state, registry, player_id)
     techs = _prototype_options(state, registry, player_id) if can_pay else []
-    ready = payment.ready_planet_values(state, registry, player_id, "resources")
-    spendable = economy.spendable_trade_goods(state, player_id)
-    skips = [
-        _option(planet, _planet_label(state, registry, planet, "skips 1 prerequisite"))
-        for planet in technology.specialty_planets(state, registry, player_id)
-    ]
-    if technology.aida_ready(state, player_id):
-        skips.append(_option(technology.AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
-    pay_planets = [
-        _option(p, _planet_label(state, registry, p, f"spend {value} resources"), p)
-        for p, value in ready.items()
-        if value > 0
-    ]
     return [
-        _choice(
-            "technology", "Unit upgrade to research",
+        oi.info(
+            "research_after",
+            "After playing, choose the unit upgrade in the research window.",
             [_option(t.id, t.name or t.id) for t in techs],
             hint=f"Costs {_REVEAL_COST} resources.",
-        ),
-        _multi("skips", "Skips: exhaust to ignore a prerequisite", skips, 0, len(skips)),
-        as_payment(
-            _multi(
-                "planets", "Planets to exhaust", pay_planets, 0, len(pay_planets),
-                f"Spend at least {_REVEAL_COST} resources.",
-            ),
-            ready, "resources", _REVEAL_COST,
-        ),
-        _number("trade_goods", "Trade goods to spend", 0, spendable),
+        )
     ]
 
 

@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import exploration, frontier_cards, ion_storm, planet_stats, technology
+from src.core import (
+    exploration,
+    frontier_cards,
+    ion_storm,
+    planet_stats,
+    technology,
+    triggers,
+)
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.game_state import (
     ExplorationState,
@@ -86,10 +93,13 @@ def test_enigmatic_device_researches_a_technology_for_six_resources(
     assert rows[0]["relic_id"] == "ed1" and rows[0]["playable"] is True
     form = frontier_cards.form(state, registry, "p1", "ed1")
     tech_id = form["inputs"][0]["options"][0]["id"]
-    new_state, implemented = frontier_cards.play_frontier_card(
-        state, registry, "p1", "ed1",
-        {"technology": tech_id, "trade_goods": 6, "skips": [], "planets": []},
-    )
+    assert form["inputs"][0]["kind"] == "info"
+    played, implemented = frontier_cards.play_frontier_card(state, registry, "p1", "ed1", {})
+    # Karta zużyta; technologię i zapłatę wybiera się w oknie badania (decyzja gracza).
+    assert "ed1" in played.decks.purged
+    offer = next(o for o in played.pending_offers if "research_cost" in o.ctx)
+    payload = {"tech": tech_id, "skips": [], "planets": [], "trade_goods": 6}
+    new_state = triggers.accept_offer(played, "p1", offer.id, {"research": payload})
     player = new_state.players["p1"]
     assert implemented and tech_id in player.technologies
     assert player.trade_goods == 0

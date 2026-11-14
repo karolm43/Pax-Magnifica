@@ -1147,3 +1147,18 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Wspólny `hasNoLegalOption` (5 kopii sprawdzenia w modalach). Testy: `test_action_cards_economy.py`,
   `factions/test_jolnar.py`, scenariusz API `test_flows_jolnar.py::test_sucaban_obniza_koszt_focused_research`.
 - Nowy hook i moduł — restart backendu.
+
+## UI: centrum decyzji + wybory przez właściwe okna we wszystkich formularzach (2026-11-14)
+
+- **Centrum decyzji** (`domains/offers/AbilityPrompts.tsx` → `DecisionCenter`): jedna kolumna w prawym dole
+  (przeciągalna, zwijana do pastylki „Decisions”) zamiast trzech okien w dwóch rogach — bieżąca oferta/decyzja
+  (`OfferCard`), propozycja transakcji, karty z ręki z otwartym oknem, „Available now”. Usunięty duplikat „Play now”
+  z doku ręki (zakładka ręki dalej miga).
+- **Wybory przez właściwe okna — wszystkie formularze** (karty akcji, relikty, technologie, liderzy, notki, oferty):
+  `optionKinds.classifyOptions` rozpoznaje rodzaj opcji po wartościach; `DecisionPickers`: technologie = kafelki
+  technologii (kolor + karta po najechaniu, bez list rozwijanych), gracze = ikony frakcji, planety/systemy = klik na
+  mapie (`useMapPick`, jedno pole naraz). Test `optionKinds.test.ts`.
+- **Badania jednym oknem:** `research_offer.register_decision` / `begin` (nowe zdarzenie
+  `COMPONENT_DECISION`, ograniczenie `research_allowed`) — Focused Research, Reveal Prototype (tylko pasujące
+  ulepszenia) i Enigmatic Device otwierają pełne okno badania po zagraniu; Sucaban przed zapłatą (R62.md).
+- Restart backendu (nowe zdarzenie i hooki).

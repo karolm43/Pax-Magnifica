@@ -12,17 +12,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import economy, frontier_cards, payment, technology
+from src.core import economy, frontier_cards, payment, research_offer, technology
+from src.core import offer_inputs as oi
 from src.core.game_state import GameState
 from src.core.hooks.action_card_inputs import (
     Input,
-    _choice,
-    _multi,
-    _number,
     _option,
-    _planet_label,
 )
-from src.core.offer_inputs import as_payment
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import declare_data_driven, register_effect, register_effect_inputs
 
@@ -36,62 +32,43 @@ _COST = 6  # „spend 6 resources"
 
 
 def can_pay(state: GameState, registry: StaticDataRegistry, player_id: str) -> bool:
-    """Czy gracz ma dostępne 6 zasobów (gotowe planety + trade goods) - wymóg zagrania."""
+    """Czy gracz ma dostępne 6 zasobów (gotowe planety + TG, z możliwą zniżką Doctor Sucaban
+    przed zapłatą - ``research_offer.potential_discount``) - wymóg zagrania."""
     ready = payment.ready_planet_values(state, registry, player_id, "resources")
-    return sum(ready.values()) + economy.spendable_trade_goods(state, player_id) >= _COST
+    need = max(0, _COST - research_offer.potential_discount(state, registry, player_id))
+    return sum(ready.values()) + economy.spendable_trade_goods(state, player_id) >= need
 
 
 def _inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
     affordable = can_pay(state, registry, player_id)
     techs = technology.researchable_techs(state, registry, player_id) if affordable else []
-    ready = payment.ready_planet_values(state, registry, player_id, "resources")
-    spendable = economy.spendable_trade_goods(state, player_id)
-    skips = [
-        _option(planet, _planet_label(state, registry, planet, "skips 1 prerequisite"))
-        for planet in technology.specialty_planets(state, registry, player_id)
-    ]
-    if technology.aida_ready(state, player_id):
-        skips.append(_option(technology.AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
-    pay_planets = [
-        _option(p, _planet_label(state, registry, p, f"spend {value} resources"), p)
-        for p, value in ready.items()
-        if value > 0
-    ]
     return [
-        _choice(
-            "technology", "Technology to research",
+        oi.info(
+            "research_after",
+            "After playing, choose the technology in the research window.",
             [_option(t.id, t.name or t.id) for t in techs],
-            hint=f"Costs {_COST} resources.",
-        ),
-        _multi("skips", "Skips: exhaust to ignore a prerequisite", skips, 0, len(skips)),
-        as_payment(
-            _multi(
-                "planets", "Planets to exhaust", pay_planets, 0, len(pay_planets),
-                f"Spend at least {_COST} resources.",
-            ),
-            ready, "resources", _COST,
-        ),
-        _number("trade_goods", "Trade goods to spend", 0, spendable),
+            hint=f"Costs {_COST} resources (Doctor Sucaban can lower it before you pay).",
+        )
     ]
 
 
 def _action(
-    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any],
+    state: GameState, registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any],
     card_id: str,
 ) -> None:
-    tech_id = params.get("technology")
-    if not isinstance(tech_id, str) or not tech_id:
-        raise ValueError("Choose the technology to research ('technology').")
-    skips = params.get("skips", [])
-    if not isinstance(skips, list) or not all(isinstance(s, str) for s in skips):
-        raise ValueError("'skips' must be a list of ids.")
-    planets, trade_goods = payment.parse_payment(dict(params))
-    plan = technology.plan_research(state, registry, player_id, tech_id, list(skips))
-    technology.pay_research(
-        state, registry, player_id, _COST, planets, trade_goods, skip_planets=tuple(skips)
-    )
+    """Zużywa kartę i otwiera okno badania (technologia i zapłata - ``core/research_offer``)."""
+    if not can_pay(state, registry, player_id) or not technology.researchable_techs(
+        state, registry, player_id
+    ):
+        raise ValueError(f"You need {_COST} resources and a technology you can research.")
     frontier_cards.purge_card(state, player_id, card_id)
-    technology.apply_research(state, player_id, plan)
+    research_offer.begin(state, player_id, _DECISION, _COST)
+
+
+_DECISION = "enigmatic_device"
+research_offer.register_decision(
+    _DECISION, "Enigmatic Device: research 1 technology", frontier_cards.effect_key("ed1")
+)
 
 
 def _register(card_id: str) -> None:

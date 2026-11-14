@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IconBolt, IconX } from "@tabler/icons-react";
+import { IconBolt, IconChevronUp, IconMinus, IconX } from "@tabler/icons-react";
 import { fetchJson } from "@/api/fetchJson";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
@@ -14,6 +14,9 @@ import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { HandReactionRows, type HandPlay } from "./HandReactionPrompts";
 import { TransactionOfferPrompt } from "./TransactionOfferPrompt";
 import { humanHandOwners } from "./handReactions";
+import { OfferCard, useDecisionOffers } from "./OffersModal";
+import { isResearchOffer } from "./ResearchOfferOverlay";
+import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import styles from "./AbilityPrompts.module.css";
 
 /*
@@ -50,7 +53,13 @@ export function pruneDismissed(dismissed: Set<string>, available: AvailableNow[]
   return kept.length === dismissed.size ? dismissed : new Set(kept);
 }
 
-export function AbilityPrompts() {
+/**
+ * CENTRUM DECYZJI - jedno miejsce na wszystko, co gracz może / musi zrobić TERAZ (prawy dół,
+ * przeciągalne, zwijane do pastylki): bieżąca decyzja (oferta, wybór celu), propozycja transakcji,
+ * karty z ręki z otwartym oknem i zdolności „Available now”. Wszystko jako karty o jednym
+ * wyglądzie, w jednej kolumnie (wcześniej trzy osobne pływające okna w dwóch rogach ekranu).
+ */
+export function DecisionCenter() {
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
   const { data, refetch } = useQuery({
@@ -67,6 +76,10 @@ export function AbilityPrompts() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [using, setUsing] = useState<AvailableNow | null>(null);
   const [playing, setPlaying] = useState<HandPlay | null>(null);
+  const [minimized, setMinimized] = useState(false);
+  const drag = useDraggablePanel("decisionCenter.pos.v1");
+  const offer = useDecisionOffers();
+  const research = offer.first !== null && isResearchOffer(offer.first);
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: me } = useNetworkMe();
 
@@ -92,10 +105,53 @@ export function AbilityPrompts() {
 
   return (
     <>
-      {/* Stos chowa się na czas formularza, który z niego otwarto (nie zasłania wyborów). */}
-      {!using && !playing &&
+      {/* Decyzja badania = pełne okno badania (poza kolumną). */}
+      {offer.first && research && <OfferCard offer={offer.first} queued={offer.queued} />}
+      {minimized && !using && !playing &&
         createPortal(
-          <div className={styles.stack} aria-label="Abilities and cards available now">
+          <button
+            type="button"
+            className={styles.pill}
+            onClick={() => setMinimized(false)}
+            title="Show decisions"
+          >
+            <IconChevronUp size={15} aria-hidden="true" />
+            <span>Decisions</span>
+          </button>,
+          document.body,
+        )}
+      {/* Kolumna chowa się na czas formularza, który z niej otwarto (nie zasłania wyborów). */}
+      {!using && !playing && !minimized &&
+        createPortal(
+          <div
+            className={styles.stack}
+            aria-label="Decisions"
+            data-draggable-panel
+            data-dragging={drag.isDragging || undefined}
+            style={drag.style}
+          >
+            <div
+              className={styles.bar}
+              onPointerDown={drag.onHandlePointerDown}
+              onDoubleClick={drag.reset}
+              title="Drag to move · double-click resets position"
+            >
+              <span className={styles.barTitle}>Decisions</span>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                data-no-drag
+                onClick={() => setMinimized(true)}
+                aria-label="Minimize decisions to see the board"
+                title="Minimize to see the board"
+              >
+                <IconMinus size={14} aria-hidden="true" />
+              </button>
+            </div>
+            <div className={styles.body}>
+            {offer.first && !research && (
+              <OfferCard offer={offer.first} queued={offer.queued} />
+            )}
             <TransactionOfferPrompt
               gameState={gameState}
               handOwners={handOwners}
@@ -145,6 +201,7 @@ export function AbilityPrompts() {
                 </div>
               </section>
             ))}
+            </div>
           </div>,
           document.body,
         )}
@@ -176,4 +233,4 @@ export function AbilityPrompts() {
   );
 }
 
-export default AbilityPrompts;
+export default DecisionCenter;

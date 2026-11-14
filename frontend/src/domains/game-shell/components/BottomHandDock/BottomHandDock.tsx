@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useParams } from "react-router-dom";
 import cx from "clsx";
 import {
-  IconBolt,
   IconCards,
   IconChevronDown,
   IconCpu,
@@ -51,7 +50,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRelicPlayability } from "@/api/useRelics";
 import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
-import { readyReactions, type ReadyReaction } from "./reactionReady";
+import { readyReactions } from "./reactionReady";
 import { playUi } from "@/shared/audio/uiSounds";
 import styles from "./BottomHandDock.module.css";
 
@@ -467,19 +466,11 @@ export function BottomHandDock() {
     () => new Set(reactions.map((r) => `${r.tab}:${r.id}`)),
     [reactions],
   );
-  const firstReaction = reactions[0];
   // Karta, której okno minęło ostatnim krokiem (Public Disgrace): zagranie przez hold-rewind.
   const holdSeq =
     playingCard && playingCard.tab === "actions" && !playingCard.frontier
       ? playability?.[playingCard.id]?.hold_seq
       : undefined;
-  const reactionName = (r: ReadyReaction): string =>
-    r.tab === "notes"
-      ? getPromissoryNoteData(r.id, noteColors)?.displayName || r.id
-      : (getActionCard(r.id)?.name ?? r.id);
-  // Przycisk „Reaction” w pasku, gdy karty reakcji nie widać (dok zwinięty / inna zakładka).
-  const reactionHidden =
-    firstReaction !== undefined && (!open || !reactionTabs.has(tab));
   // Karty frontier (Enigmatic Device) są jawne i wchodzą do zakładki Action cards.
   const frontierIds = useMemo(() => active?.frontierCards ?? [], [active?.frontierCards]);
   const { data: frontierPlayability } = useRelicPlayability(
@@ -626,22 +617,6 @@ export function BottomHandDock() {
             );
           })}
         </div>
-
-        {reactionHidden && firstReaction && (
-          <button
-            type="button"
-            className={styles.reactionCall}
-            title="This card's timing window is open now - it closes with the next step of the game"
-            onClick={() => {
-              setTab(firstReaction.tab);
-              setOpen(true);
-            }}
-          >
-            <IconBolt size={14} aria-hidden="true" />
-            <span>Play now: {reactionName(firstReaction)}</span>
-            {reactions.length > 1 && <b>+{reactions.length - 1}</b>}
-          </button>
-        )}
 
         {active.discordId && <HoldControls playerId={active.discordId} />}
 

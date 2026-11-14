@@ -362,3 +362,25 @@
 .payBar[data-ok] em {
   background: var(--ds-sig-ok, #40c057);
 }
+
+/* Kafelek technologii w formularzu: ikona koloru + nazwa (pełna karta po najechaniu). */
+.techOpt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 6px;
+  border-left: 3px solid rgb(var(--tc));
+}
+
+.techUpgrade {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  border: 1px solid var(--ds-h28);
+  color: var(--ds-ink-lo);
+}

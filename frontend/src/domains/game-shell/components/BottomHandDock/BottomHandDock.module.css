@@ -155,35 +155,6 @@
   animation: reactionPulse 1.6s ease-in-out infinite;
 }
 
-.reactionCall {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: none;
-  max-width: 260px;
-  padding: 4px 10px;
-  font: inherit;
-  font-size: var(--text-small, 12px);
-  font-weight: 600;
-  color: #1a1405;
-  background: rgb(250, 204, 21);
-  border: 0;
-  border-radius: 999px;
-  cursor: pointer;
-  animation: reactionPulse 1.6s ease-in-out infinite;
-}
-
-.reactionCall span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reactionCall b {
-  font-family: var(--font-data);
-  font-size: var(--text-micro, 10px);
-}
-
 @keyframes reactionPulse {
   0%,
   100% {
@@ -195,8 +166,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab[data-reaction],
-  .reactionCall {
+  .tab[data-reaction] {
     animation: none;
   }
 }

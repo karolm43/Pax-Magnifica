@@ -7,6 +7,13 @@ import { Unit } from "@/shared/ui/Unit";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import { clearMapMarks, mapHits, mapRefKeys, showOnMap } from "@/domains/search/mapPeek";
 import type { SearchKey } from "@/domains/search/searchKeys";
+import { classifyOptions, type OptionKind } from "./optionKinds";
+import {
+  PlayerOptionBody,
+  TechOptionBody,
+  useFieldMapPick,
+  useOptionLookups,
+} from "./DecisionPickers";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -109,12 +116,15 @@ function Tile({
   disabled,
   multi,
   onClick,
+  kind,
 }: {
   option: ActionCardOption;
   selected: boolean;
   disabled: boolean;
   multi: boolean;
   onClick: () => void;
+  /** Rodzaj wyboru (``optionKinds``) i cel tej opcji - graficzna treść kafelka. */
+  kind?: { kind: OptionKind; target: string };
 }) {
   const meta = metaOf(option);
   const shape = typeof meta.die === "number" ? "die" : undefined;
@@ -131,7 +141,13 @@ function Tile({
       onMouseEnter={mapRef ? () => showOnMap(mapRef) : undefined}
       onMouseLeave={mapRef ? clearMapMarks : undefined}
     >
-      <OptionBody option={option} />
+      {kind?.kind === "technology" ? (
+        <TechOptionBody option={option} techId={kind.target} />
+      ) : kind?.kind === "player" ? (
+        <PlayerOptionBody option={option} playerId={kind.target} />
+      ) : (
+        <OptionBody option={option} />
+      )}
       {multi && (
         <span className={styles.check} aria-hidden="true">
           {selected && <IconCheck size={11} />}
@@ -253,11 +269,14 @@ export function DecisionField({
   value,
   disabled,
   onChange,
+  mapActive = true,
 }: {
   input: ActionCardInput;
   value: FormValue | undefined;
   disabled: boolean;
   onChange: (value: FormValue) => void;
+  /** Czy to pole trzyma wybór na mapie (jedno pole naraz - patrz ``DecisionFields``). */
+  mapActive?: boolean;
 }) {
   if (input.kind === "number") {
     return (
@@ -289,14 +308,64 @@ export function DecisionField({
   }
   // Badanie ma własne pełne okno (``ResearchOfferOverlay``), nie pole formularza.
   if (input.kind === "research") return null;
+  return (
+    <ChoiceField
+      input={input}
+      value={value}
+      disabled={disabled}
+      onChange={onChange}
+      mapActive={mapActive}
+    />
+  );
+}
 
+/**
+ * Wybór z opcji (choice / multi). Rodzaj opcji rozpoznaje ``classifyOptions``: technologie i
+ * gracze dostają graficzne kafelki, planety i systemy - wybór kliknięciem na mapie (świecą).
+ */
+function ChoiceField({
+  input,
+  value,
+  disabled,
+  onChange,
+  mapActive,
+}: {
+  input: Extract<ActionCardInput, { kind: "choice" | "multi" }>;
+  value: FormValue | undefined;
+  disabled: boolean;
+  onChange: (value: FormValue) => void;
+  mapActive: boolean;
+}) {
   const options = input.options;
+  const lookups = useOptionLookups();
+  const classified = useMemo(() => classifyOptions(options, lookups), [options, lookups]);
+  const kindOf = (option: ActionCardOption) => {
+    const target = classified?.targets.get(option.id);
+    return classified && target ? { kind: classified.kind, target } : undefined;
+  };
+  const picked = Array.isArray(value) ? value : [];
+  const onMap = useFieldMapPick(
+    classified,
+    mapActive && !disabled,
+    input.kind === "choice" ? (typeof value === "string" ? value : null) : (picked[0] ?? null),
+    (id) => {
+      if (input.kind === "choice") {
+        onChange(id);
+        return;
+      }
+      if (picked.includes(id)) onChange(picked.filter((p) => p !== id));
+      else if (input.max === 1) onChange([id]);
+      else if (picked.length < input.max) onChange([...picked, id]);
+    },
+  );
+  const mapNote = onMap ? "or click a glowing target on the map" : undefined;
+  // Technologie i gracze zawsze jako kafelki (bez listy rozwijanej).
+  const alwaysTiles = classified?.kind === "technology" || classified?.kind === "player";
   const data = options.map((o) => ({ value: o.id, label: o.label }));
 
   if (input.kind === "multi") {
-    const picked = Array.isArray(value) ? value : [];
     const range = input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`;
-    if (options.length > MAX_TILES) {
+    if (options.length > MAX_TILES && !alwaysTiles) {
       return (
         <MultiSelect
           label={input.label}
@@ -320,7 +389,7 @@ export function DecisionField({
         <FieldHead
           label={input.label}
           hint={input.hint}
-          note={`${picked.length} selected · pick ${range}`}
+          note={[`${picked.length} selected · pick ${range}`, mapNote].filter(Boolean).join(" · ")}
         />
         <div className={styles.tiles}>
           {options.map((option) => {
@@ -329,6 +398,7 @@ export function DecisionField({
               <Tile
                 key={option.id}
                 option={option}
+                kind={kindOf(option)}
                 multi
                 selected={selected}
                 disabled={disabled || (!selected && input.max > 1 && picked.length >= input.max)}
@@ -355,7 +425,7 @@ export function DecisionField({
     );
   }
 
-  if (options.length > MAX_TILES) {
+  if (options.length > MAX_TILES && !alwaysTiles) {
     return (
       <Select
         label={input.label}
@@ -371,12 +441,13 @@ export function DecisionField({
   }
   return (
     <div className={styles.field}>
-      <FieldHead label={input.label} hint={input.hint} />
+      <FieldHead label={input.label} hint={input.hint} note={mapNote} />
       <div className={styles.tiles} role="radiogroup" aria-label={input.label}>
         {options.map((option) => (
           <Tile
             key={option.id}
             option={option}
+            kind={kindOf(option)}
             multi={false}
             selected={value === option.id}
             disabled={disabled}
@@ -477,6 +548,22 @@ export function DecisionFields({
     const payment = paymentOf(input);
     if (payment) paidBy.add(payment.tradeGoods);
   }
+  // Mapa ma jeden tryb wyboru: trzyma go pierwsze pole z planetami/systemami bez odpowiedzi
+  // (a gdy wszystkie mają odpowiedź - pierwsze takie pole, żeby można było zmienić zdanie).
+  const lookups = useOptionLookups();
+  const mapKey = useMemo(() => {
+    const onMap = inputs.filter((input) => {
+      if (input.kind !== "choice" && input.kind !== "multi") return false;
+      if (paymentOf(input)) return false;
+      const kind = classifyOptions(input.options, lookups)?.kind;
+      return kind === "planet" || kind === "system";
+    });
+    const open = onMap.find((input) => {
+      const v = values[input.key];
+      return v === undefined || v === null || (Array.isArray(v) && v.length === 0);
+    });
+    return (open ?? onMap[0])?.key ?? null;
+  }, [inputs, lookups, values]);
   return (
     <div className={styles.form}>
       {inputs.map((input) => {
@@ -504,6 +591,7 @@ export function DecisionFields({
             key={input.key}
             input={input}
             value={values[input.key]}
+            mapActive={input.key === mapKey}
             disabled={disabled}
             onChange={(next) => onChange(input.key, next)}
           />

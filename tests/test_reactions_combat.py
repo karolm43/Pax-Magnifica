@@ -13,6 +13,7 @@ from src.core import (
     board_graph,
     command_tokens,
     damage,
+    offers,
     reaction_cards,
     rules_hooks,
     triggers,
@@ -322,15 +323,23 @@ def test_reveal_prototype_wydaje_zasoby_i_bada_ulepszenie(
     implemented, inputs = action_cards.card_inputs(state, registry, "p1", "reveal_prototype")
     assert implemented
     assert [o["value"] for o in inputs[0]["options"]] == ["cv2"]  # tylko typ z walki (carrier)
+    assert inputs[0]["kind"] == "info"
+    played = _play(state, registry, "p1", "reveal_prototype", {})
+    # Technologię i zapłatę wybiera się po zagraniu, w oknie badania (tylko pasujące ulepszenia).
+    offer = next(o for o in played.pending_offers if "research_cost" in o.ctx)
+    view = offers.offer_view(played, registry, offer)["inputs"][0]["research"]
+    statuses = {row["id"]: row["status"] for row in view["tree"]}
+    assert statuses["dd2"] == "locked" and view["cost"] == 4
+
+    def answer(tech: str, trade_goods: int) -> GameState:
+        payload = {"tech": tech, "skips": [], "planets": [], "trade_goods": trade_goods}
+        return triggers.accept_offer(played, "p1", offer.id, {"research": payload})
+
     with pytest.raises(ValueError, match="Spend at least 4"):
-        action_cards.play_action_card(
-            state, registry, "p1", "reveal_prototype", {"technology": "cv2", "trade_goods": 3}
-        )
-    with pytest.raises(ValueError, match="same type"):
-        action_cards.play_action_card(
-            state, registry, "p1", "reveal_prototype", {"technology": "dd2", "trade_goods": 4}
-        )
-    new = _play(state, registry, "p1", "reveal_prototype", {"technology": "cv2", "trade_goods": 4})
+        answer("cv2", 3)
+    with pytest.raises(ValueError, match="cannot be researched"):
+        answer("dd2", 4)
+    new = answer("cv2", 4)
     assert "cv2" in new.players["p1"].technologies
     assert new.players["p1"].trade_goods == 0
     # Carrier II jest teraz używanym wariantem w walce.

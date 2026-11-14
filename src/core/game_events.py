@@ -83,6 +83,8 @@ class GameEvent(StrEnum):
     SHIPS_MOVED = "tactical.ships_moved"
     UNITS_COMMITTED = "tactical.units_committed"
     COMPONENT_ACTION = "component.action"
+    # Decyzja gracza otwarta przez efekt komponentu (np. badanie w oknie badania - research_offer).
+    COMPONENT_DECISION = "component.decision"
     # --- walka ---
     COMBAT = "combat"  # ctx: kind = space | ground
     COMBAT_ROUND = "combat.round"
@@ -223,6 +225,10 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     ),
     GameEvent.COMPONENT_ACTION: EventInfo(
         "Akcja komponentu zagrana.", ("player", "component"), "action_cards.play_action_card"
+    ),
+    GameEvent.COMPONENT_DECISION: EventInfo(
+        "Decyzja gracza otwarta przez efekt komponentu (okno badania).", ("player", "decision"),
+        "research_offer.begin",
     ),
     GameEvent.COMBAT: EventInfo(
         "Początek/koniec walki.",

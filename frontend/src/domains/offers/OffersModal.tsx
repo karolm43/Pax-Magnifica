@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import {
-  IconArrowsDiagonal,
-  IconArrowsDiagonalMinimize2,
   IconChevronDown,
   IconChevronUp,
-  IconMinus,
 } from "@tabler/icons-react";
-import { useDraggablePanel } from "@/hooks/useDraggablePanel";
-import { getPortalRoot } from "@/ds";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
@@ -75,15 +69,11 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   const actions = useOfferActions();
   const [values, setValues] = useState<Record<string, FormValue>>({});
   const [busy, setBusy] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(false);
-  const [wide, setWide] = useState(false);
   // Transit Diodes ma własny, graficzny wybór (podnieś → połóż); pozostałe oferty to formularz.
   const graphical = offer.inputs.some((input) => input.key === "unit1") &&
     offer.inputs.some((input) => input.key === "to1");
   const [graphicalReady, setGraphicalReady] = useState(false);
-  // Panel da się przesuwać za nagłówek (pozycja zapamiętana) i rozszerzać.
-  const drag = useDraggablePanel("offersDock.pos.v1");
   // Predictive Intelligence: pule żetonów (− / +) startują od obecnego rozdziału gracza.
   const pools = isPoolsOffer(offer);
   const gameData = useGameData();
@@ -102,7 +92,6 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   // Nowa oferta → czysty formularz i rozwinięty panel (nie przeoczymy kolejnej decyzji).
   useEffect(() => {
     setValues({});
-    setCollapsed(false);
     setShowText(false);
     setGraphicalReady(false);
   }, [offer.id]);
@@ -162,38 +151,9 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [canUse, busy, offer.id, offer.mandatory, params]);
 
-  if (collapsed) {
-    return createPortal(
-      <button
-        type="button"
-        className={styles.pill}
-        onClick={() => setCollapsed(false)}
-        title="Show the decision"
-      >
-        <IconChevronUp size={15} aria-hidden="true" />
-        <span>{offer.name}</span>
-        {queued > 0 && <b>+{queued}</b>}
-      </button>,
-      getPortalRoot() ?? document.body,
-    );
-  }
-
-  return createPortal(
-    <section
-      className={styles.dock}
-      role="group"
-      aria-label={`Decision: ${offer.name}`}
-      data-draggable-panel
-      data-wide={wide || undefined}
-      data-dragging={drag.isDragging || undefined}
-      style={drag.style}
-    >
-      <header
-        className={styles.head}
-        onPointerDown={drag.onHandlePointerDown}
-        onDoubleClick={drag.reset}
-        title="Drag to move (double-click resets)"
-      >
+  return (
+    <section className={styles.dock} role="group" aria-label={`Decision: ${offer.name}`}>
+      <header className={styles.head}>
         <SourceTile source={offer.source} />
         <span className={styles.titleBox}>
           {offer.kind && <small className={styles.kind}>{offer.kind}</small>}
@@ -201,30 +161,6 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
         </span>
         {offer.mandatory && <span className={styles.tag} data-tone="required">Required</span>}
         {queued > 0 && <span className={styles.tag}>+{queued} more</span>}
-        <button
-          type="button"
-          className={styles.iconBtn}
-          data-no-drag
-          onClick={() => setWide((w) => !w)}
-          aria-label={wide ? "Make smaller" : "Make larger"}
-          title={wide ? "Make smaller" : "Make larger"}
-        >
-          {wide ? (
-            <IconArrowsDiagonalMinimize2 size={15} aria-hidden="true" />
-          ) : (
-            <IconArrowsDiagonal size={15} aria-hidden="true" />
-          )}
-        </button>
-        <button
-          type="button"
-          className={styles.iconBtn}
-          data-no-drag
-          onClick={() => setCollapsed(true)}
-          aria-label="Minimize to see the board"
-          title="Minimize to see the board"
-        >
-          <IconMinus size={15} aria-hidden="true" />
-        </button>
       </header>
 
       {offer.text && (
@@ -307,18 +243,17 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
           {offer.mandatory ? "Confirm" : acceptLabel(offer)} <kbd>Enter</kbd>
         </button>
       </footer>
-    </section>,
-    getPortalRoot() ?? document.body,
+    </section>
   );
 }
 
 /**
  * Decyzje graczy (RULES.md 56): technologie i zdolności z „may" oraz wybory celu (np. ofiara
- * Assault Cannon, cel Magen Defense Grid, naprawa Duranium Armor). Panel pojawia się sam, gdy
- * `gameState.pendingOffers` nie jest puste; pokazuje po jednej decyzji, a gracz zawsze wybiera
- * sam. Nie przyciemnia ekranu i nie blokuje planszy.
+ * Assault Cannon, cel Magen Defense Grid, naprawa Duranium Armor). Kolejka z
+ * `gameState.pendingOffers`; pierwsza decyzja to karta w centrum decyzji (`DecisionCenter`),
+ * a decyzja badania otwiera pełne okno badania. Gracz zawsze wybiera sam.
  */
-export function OffersModal() {
+export function useDecisionOffers(): { first: OfferView | null; queued: number } {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
@@ -330,16 +265,18 @@ export function OffersModal() {
     if (pending) void refetch();
   }, [gameState, pending, refetch]);
 
-  if (!pending || !offers || offers.length === 0) return null;
+  if (!pending || !offers || offers.length === 0) return { first: null, queued: 0 };
   // Decyzja badania czeka na końcu: najpierw zdolności „przed zapłatą” (Doctor Sucaban zdejmuje
   // piechotę), potem pełne okno badania z obniżonym kosztem.
   const ordered = [
     ...offers.filter((o) => !isResearchOffer(o)),
     ...offers.filter((o) => isResearchOffer(o)),
   ];
-  const first = ordered[0];
-  if (isResearchOffer(first)) return <ResearchOfferOverlay key={first.id} offer={first} />;
-  return <OfferDock key={first.id} offer={first} queued={ordered.length - 1} />;
+  return { first: ordered[0], queued: ordered.length - 1 };
 }
 
-export default OffersModal;
+/** Bieżąca decyzja: pełne okno badania albo karta decyzji (formularz). */
+export function OfferCard({ offer, queued }: { offer: OfferView; queued: number }) {
+  if (isResearchOffer(offer)) return <ResearchOfferOverlay key={offer.id} offer={offer} />;
+  return <OfferDock key={offer.id} offer={offer} queued={queued} />;
+}

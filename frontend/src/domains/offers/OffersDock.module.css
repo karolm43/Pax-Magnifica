@@ -1,18 +1,8 @@
 /* Panel decyzji gracza (technologie "may"): niemodalny, bez przyciemnienia - plansza zostaje klikalna. */
+/* Karta bieżącej decyzji w centrum decyzji (`DecisionCenter`) - ten sam wygląd co pozostałe karty. */
 .dock {
-  position: fixed;
-  right: 16px;
-  /* Nad paskiem ręki - wysokość doku mierzy BottomHandDock (--hand-dock-clear). */
-  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
-  z-index: var(--z-app-modal, 3000);
   display: grid;
   gap: 8px;
-  width: min(420px, calc(100vw - 32px));
-  max-height: min(75vh, 620px);
-  min-width: 280px;
-  overflow: auto;
-  /* Natywny uchwyt w rogu pozwala dowolnie rozszerzyć panel. */
-  resize: both;
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid var(--ds-edge-accent);
@@ -22,17 +12,7 @@
   animation: dockIn 180ms ease-out;
 }
 
-.dock[data-wide] {
-  width: min(620px, calc(100vw - 32px));
-  max-height: 85vh;
-}
-
-.dock[data-dragging] {
-  user-select: none;
-}
-
 .head {
-  cursor: grab;
   display: flex;
   align-items: center;
   gap: 8px;
