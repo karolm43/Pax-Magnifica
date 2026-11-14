@@ -9,6 +9,7 @@ import {
 } from "@/utils/localStorageSettings";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import {
+  otherRoleCount,
   pickKey,
   prunePicks,
   type MoveDraft,
@@ -519,7 +520,9 @@ export const useAppStore = create<AppStore>((set) => {
         if (!draft) return {};
         const key = pickKey(target);
         const have = draft.picks[key]?.count ?? 0;
-        const count = Math.min(Math.max(have + delta, 0), target.max);
+        // Fighter II ze startu: sztuki lecące same i jadące jako ładunek mają wspólny limit.
+        const room = target.max - otherRoleCount(draft.picks, draft.from, target);
+        const count = Math.min(Math.max(have + delta, 0), Math.max(room, have));
         if (count === have) return {};
         const picks = { ...draft.picks };
         if (count > 0) picks[key] = { ...target, count };

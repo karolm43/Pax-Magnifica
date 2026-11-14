@@ -70,9 +70,16 @@ def _registry_or_bound(registry: StaticDataRegistry | None) -> StaticDataRegistr
 def _overflow_fighters(
     state: GameState, registry: StaticDataRegistry | None, position: str, player_id: str
 ) -> int:
-    """Fighter II: myśliwce ponad capacity liczą się do fleet pool (C_units, Fighter)."""
+    """Fighter II: myśliwce ponad capacity liczą się do fleet pool (C_units, Fighter).
+
+    W trakcie walki w tym systemie - nie: „any number of Fighter II may be in a system during
+    combat, regardless of capacity and fleet pool" (R_fleet_pool, Notes). Statki nie-myśliwskie
+    liczą się do puli zawsze (RULES.md 42.1).
+    """
     player = state.players.get(player_id)
     if player is None or capacity.FIGHTER_II_ALIAS not in player.technologies:
+        return 0
+    if capacity.combat_in_progress(state, position):
         return 0
     reg = _registry_or_bound(registry)
     if reg is None:

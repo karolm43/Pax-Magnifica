@@ -1207,3 +1207,10 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - **Wybór gracza w formularzach**: kafelki z logo w kolorze gracza i podpisem skutku; opcja bez celu (Carth: „self”)
   nie psuje już rozpoznania graczy (`optionKinds.some`).
 - Usunięty zdublowany `case "rider"` w `describeActivity` (ostrzeżenie Vite).
+
+## 2026-11-14 — Fighter II: ładunek ze startu + limity w walce (RULES.md 39.6, 57.8)
+
+- Okno trasy znów pokazuje Fighter II ze startu także jako ładunek (lecące same liczą się do fleet pool w celu,
+  przewożone - nie). Wspólny limit sztuk w UI: `routeTypes.otherRoleCount` (store `bumpDraftPick`, `prunePicks`).
+- W trakcie walki w systemie (`capacity.combat_in_progress`) nie ma nadwyżki capacity, a nadmiar Fighter II nie liczy się
+  do fleet pool (R_fleet_pool, Notes); oba sprawdzane po walce. Statki nie-myśliwskie - pula floty cały czas (42.1).

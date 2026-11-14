@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 from src.core import timing, unit_ops
 from src.core.combat import resolve_unit_variant
-from src.core.game_state import GameState, WindowType
+from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.registry import StaticDataRegistry
 from src.core.unit_ops import UnitCause
@@ -123,12 +123,27 @@ def capacity_report(
     return report
 
 
+def combat_in_progress(state: GameState, position: str) -> bool:
+    """Czy w systemie ``position`` trwa walka (krok inny niż DONE) - RULES.md 39.6 C3.
+
+    W trakcie walki myśliwce i siły naziemne nie liczą się do capacity, a nadmiar Fighter II do
+    fleet pool (R_capacity / R_fleet_pool, Notes); oba limity wracają po zakończeniu walki.
+    """
+    combat = state.active_combat
+    return (
+        combat is not None and combat.position == position and combat.step is not CombatStep.DONE
+    )
+
+
 def players_with_excess(
     state: GameState, registry: StaticDataRegistry, position: str
 ) -> list[str]:
-    """Gracze z nadwyżką w systemie — od aktywnego, zgodnie z kolejnością zasiadania."""
+    """Gracze z nadwyżką w systemie — od aktywnego, zgodnie z kolejnością zasiadania.
+
+    W trakcie walki w tym systemie nikt nie ma nadwyżki capacity (C3).
+    """
     system = state.systems.get(position)
-    if system is None:
+    if system is None or combat_in_progress(state, position):
         return []
     order = list(state.seating_order) or list(state.players)
     active = state.active_player_id

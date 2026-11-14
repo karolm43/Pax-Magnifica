@@ -7,7 +7,9 @@ import pytest
 
 from src.core import agenda_phase, capacity, fleet_pool, invasion, tech_effects, technology
 from src.core.game_state import (
+    ActiveCombat,
     AgendaPhaseState,
+    CombatStep,
     GameState,
     InvasionState,
     Phase,
@@ -91,6 +93,24 @@ def test_fighter_ii_fleet_removal_accepts_fighters(registry: StaticDataRegistry)
     report = fleet_pool.fleet_report(state, "000", "p1", registry)
     assert report.excess == report.total - 1
     fleet_pool.check_removal(report, {"fighter": report.excess})
+
+
+def test_fighter_ii_overflow_ignored_during_combat(registry: StaticDataRegistry) -> None:
+    # R_fleet_pool, Notes: w trakcie walki dowolna liczba Fighter II, bez capacity i fleet pool;
+    # statki nie-myśliwskie liczą się do puli zawsze (RULES.md 42.1).
+    state = _fleet_state(["ff2"], {"carrier": 1, "fighter": 7}, pool=1)
+    state.active_combat = ActiveCombat(kind="space", position="000", attacker="p1", defender="p2")
+    report = fleet_pool.fleet_report(state, "000", "p1", registry)
+    assert report.ships == {"carrier": 1} and report.excess == 0
+    assert fleet_pool.players_with_excess(state, "000") == []
+    no_ff2 = _fleet_state([], {"carrier": 1, "fighter": 7})
+    no_ff2.active_combat = state.active_combat
+    assert capacity.players_with_excess(no_ff2, registry, "000") == []
+    # Po zakończeniu walki oba limity wracają.
+    state.active_combat.step = CombatStep.DONE
+    assert fleet_pool.fleet_report(state, "000", "p1", registry).excess > 0
+    no_ff2.active_combat.step = CombatStep.DONE
+    assert capacity.players_with_excess(no_ff2, registry, "000") == ["p1"]
 
 
 # --- Predictive Intelligence --------------------------------------------------------------

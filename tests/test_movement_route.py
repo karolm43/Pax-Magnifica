@@ -433,13 +433,16 @@ def test_fighter_ii_nie_leci_jednoczesnie_sam_i_jako_ladunek(registry: StaticDat
     assert moved.systems["000"].space_units["p1"] == {"carrier": 1, "fighter": 6}
 
 
-def test_fighter_ii_w_oknie_trasy_w_jednym_miejscu(registry: StaticDataRegistry) -> None:
+def test_fighter_ii_w_oknie_trasy_sam_albo_ladunek(registry: StaticDataRegistry) -> None:
     grid = _grid()
-    # Dolatują same: tylko na liście statków, nie jako ładunek ze startu.
+    # Dolatują same, ale wolno je też załadować: są na liście statków I ładunku ze startu
+    # (lecące same liczą się do fleet pool, przewożone - nie).
     near = movement_route.route_report(_fighters_at("101"), grid, registry, "101", [], "p1")
     assert {s.base_type for s in near.ships} == {"carrier", "fighter"}
-    assert not [c for c in near.cargo if c.base_type == "fighter"]
+    assert [(c.position, c.zone, c.count) for c in near.cargo if c.base_type == "fighter"] == [
+        ("101", "space", 6)
+    ]
     # 2 skoki: Fighter II dolatuje sam, carrier I nie.
     far = movement_route.route_report(_fighters_at("201"), grid, registry, "201", [], "p1")
     fighter = next(s for s in far.ships if s.base_type == "fighter")
-    assert fighter.reachable and not [c for c in far.cargo if c.base_type == "fighter"]
+    assert fighter.reachable

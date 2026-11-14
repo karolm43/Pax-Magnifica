@@ -130,6 +130,24 @@ function asCargoIfNeeded(route: MoveRouteData, p: DraftPick): DraftPick {
   return cargo ? { ...p, kind: "cargo", zone: "space" } : p;
 }
 
+/**
+ * Ile sztuk tego typu ze startu zajmuje DRUGA rola. Fighter II ze startu bywa jednocześnie na
+ * liście statków (leci sam - liczy się do fleet pool w celu) i ładunku (jedzie na nosicielu);
+ * te same sztuki nie mogą być w obu miejscach naraz (backend: ``move_fleet``).
+ */
+export function otherRoleCount(
+  picks: Record<string, DraftPick>,
+  from: string,
+  target: Pick<DraftPick, "kind" | "position" | "zone" | "baseType">,
+): number {
+  if (target.position !== from || target.zone !== "space") return 0;
+  const other = target.kind === "ship" ? "cargo" : "ship";
+  return (
+    picks[pickKey({ kind: other, position: from, zone: "space", baseType: target.baseType })]
+      ?.count ?? 0
+  );
+}
+
 /** Przycina zaznaczenie do tego, co nadal istnieje na (nowej) trasie. */
 export function prunePicks(
   picks: Record<string, DraftPick>,
@@ -137,13 +155,22 @@ export function prunePicks(
 ): Record<string, DraftPick> {
   if (!route?.route) return picks; // trasa chwilowo nielegalna: zachowaj wybór gracza
   const next: Record<string, DraftPick> = {};
-  for (const [key, p] of Object.entries(picks)) {
+  // Najpierw statki: ładunek ze startu dostaje to, co zostało po lecących samych.
+  const ordered = Object.values(picks).sort(
+    (a, b) => Number(a.kind === "cargo") - Number(b.kind === "cargo"),
+  );
+  for (const p of ordered) {
     // Myśliwiec/piechota wybrane jako „statek”, który sam nie doleci (np. Fighter II poza
     // zasięgiem) - jedzie jako ładunek ze startu, zamiast znikać z wyboru.
     const pick = asCargoIfNeeded(route, p);
+    const key = pickKey(pick);
+    const have = next[key]?.count ?? 0;
+    const start = route.route[0];
     const max = maxFor(route, pick);
-    const count = Math.min(pick.count, max);
-    if (count > 0) next[pick === p ? key : pickKey(pick)] = { ...pick, count, max };
+    const room = max - (pick.kind === "cargo" ? otherRoleCount(next, start, pick) : 0);
+    const count = Math.min(have + pick.count, Math.max(room, 0));
+    if (count > 0) next[key] = { ...pick, count, max };
+    else delete next[key];
   }
   return next;
 }

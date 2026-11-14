@@ -22,6 +22,7 @@ import {
   asyncOfBase,
   draftCapacity,
   draftProblems,
+  otherRoleCount,
   pickKey,
   shipMax,
   type MoveRouteShip,
@@ -430,7 +431,7 @@ export function MoveRouteBox({
                 name={unitName(asyncId)}
                 caption={shipCaption(s)}
                 picked={draft.picks[pickKey(target)]?.count ?? 0}
-                max={target.max}
+                max={target.max - otherRoleCount(draft.picks, draft.from, target)}
                 disabled={!s.reachable}
                 title={s.reachable ? undefined : s.reason}
                 onChange={(delta) => bump(target, delta)}
@@ -478,7 +479,7 @@ export function MoveRouteBox({
                     name={unitName(asyncId)}
                     caption={zoneLabel(c.zone)}
                     picked={draft.picks[pickKey(target)]?.count ?? 0}
-                    max={c.count}
+                    max={c.count - otherRoleCount(draft.picks, draft.from, target)}
                     onChange={(delta) => bump(target, delta)}
                   />
                 );

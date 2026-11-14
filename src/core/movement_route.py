@@ -149,15 +149,13 @@ def route_report(
 
     ships = _ships(state, grid, registry, from_pos, route, player_id, bonuses)
     cargo = movement.route_cargo(state, registry, route, player_id) if route else []
-    # Jednostka w JEDNYM miejscu okna: myśliwce ze startu, które dolatują same (Fighter II), są
-    # na liście statków, a nie ładunku (ładunkiem tylko zajęłyby capacity); te, które same nie
-    # dolecą, są tylko ładunkiem.
-    flying = {s.base_type for s in ships if s.reachable and (s.alone or s.with_ships)}
+    # Fighter II ze startu: dolatujący sam jest na liście statków ORAZ ładunku - gracz wybiera,
+    # które sztuki lecą same (liczą się do fleet pool w celu), a które jadą na nosicielu
+    # (R_gravity_rift: „for each fighter, they must choose if that fighter is moving itself or
+    # being transported"). Te same sztuki nie trafią w oba miejsca naraz - pilnuje ``move_fleet``
+    # (dostępność ładunku ze startu minus lecące same), a w UI wspólny limit ``routeTypes``.
+    # Myśliwiec, który sam nie doleci, jest tylko ładunkiem.
     ships = [s for s in ships if s.reachable or s.base_type not in movement.CARGO_BASE_TYPES]
-    cargo = [
-        c for c in cargo
-        if not (c.position == from_pos and c.zone == "space" and c.base_type in flying)
-    ]
     rifts = movement.rift_nodes(state, grid, route, player_id) if route else []
     return RouteReport(
         active, route, reason, alternatives, waypoints, ships, bonuses, cargo, rifts
