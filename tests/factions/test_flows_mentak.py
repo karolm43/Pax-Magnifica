@@ -25,8 +25,7 @@ def _pillage_by_transaction(flow: Flow) -> None:
     _neighbors(flow)
     flow.player(lambda p: p.update(trade_goods=3), flow.other)
     flow.player(lambda p: p.update(trade_goods=1))
-    flow.post("/transactions/propose", {"partner_id": flow.other, "give": {"trade_goods": 1}})
-    flow.post("/transactions/respond", {"player_id": flow.other, "accept": True})
+    flow.transact(give={"trade_goods": 1})
 
 
 @covers("abilities:ambush")

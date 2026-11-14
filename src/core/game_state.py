@@ -876,20 +876,37 @@ class ActionDiscardTrace(BaseModel):
     card: str
 
 
-class TransactionOffer(BaseModel):
-    """Propozycja transakcji czekająca na zgodę partnera (RULES.md 47.1a).
+class TransactionTable(BaseModel):
+    """Stół transakcji pary graczy (RULES.md 47.1b).
 
-    ``give`` / ``receive`` to strony z punktu widzenia PROPONUJĄCEGO (pola
-    ``core.transaction.TransactionSide``). Zawartość (notki, karty akcji) znają tylko strony
-    transakcji — publiczny dokument pokazuje wyłącznie, kto z kim negocjuje.
+    ``sides[gracz]`` = to, co ten gracz POŁOŻYŁ na stole (pola ``TransactionSide``);
+    każdy kładzie wyłącznie własne rzeczy. ``ready`` = kto potwierdził obecny stan stołu (każda
+    zmiana zawartości go zeruje). Zawartość znają tylko strony; publicznie widać samą parę.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    proposer: str
+    opener: str
     partner: str
-    give: dict[str, Any] = Field(default_factory=dict)
-    receive: dict[str, Any] = Field(default_factory=dict)
+    sides: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    ready: list[str] = Field(default_factory=list)
+    # Stół otwarty sam po uzupełnieniu commodities z umowy Trade (wash, RULES.md 47.4).
+    prefilled: bool = False
+
+
+class TradeDeal(BaseModel):
+    """Umowa z kroku 3 Trade czekająca na uzupełnienie commodities wskazanego (RULES.md 47.4).
+
+    ``holder_side`` / ``player_side`` = odroczone komponenty stron; ``wash`` = obietnica „wash −N”
+    wskazanego (None = bez wash). Po uzupełnieniu silnik otwiera stół wstępnie wypełniony.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    holder: str
+    holder_side: dict[str, Any] = Field(default_factory=dict)
+    player_side: dict[str, Any] = Field(default_factory=dict)
+    wash: int | None = None
 
 
 class HeldPlay(BaseModel):
@@ -992,8 +1009,10 @@ class GameState(BaseModel):
     # przy kolejnej akcji dowolnego gracza (``action_budget.register_action``) i nowej turze.
     turn_end_window: TurnEndWindow | None = None
     last_transaction: list[str] = Field(default_factory=list)
-    # Propozycja transakcji czekająca na odpowiedź partnera (RULES.md 47.1a) — None, gdy brak.
-    transaction_offer: TransactionOffer | None = None
+    # Stoły transakcji (RULES.md 47.1b) — najwyżej jeden na parę graczy.
+    transaction_tables: list[TransactionTable] = Field(default_factory=list)
+    # Umowy Trade czekające na uzupełnienie commodities wskazanego: {gracz: umowa} (RULES.md 47.4).
+    trade_deals: dict[str, TradeDeal] = Field(default_factory=dict)
     last_action_discard: ActionDiscardTrace | None = None
     # Kto uzupełnił commodities od ostatniej akcji (okno Trade Agreement, RULES.md 61.2).
     last_replenished: list[str] = Field(default_factory=list)

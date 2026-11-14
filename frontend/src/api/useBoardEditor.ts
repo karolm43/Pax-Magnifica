@@ -34,7 +34,7 @@ async function post(path: string, body: unknown): Promise<void> {
   await postRaw(path, body);
 }
 
-/** Jedna strona transakcji: to, co dany gracz ODDAJE partnerowi (RULES.md 47). */
+/** Strona stołu transakcji: to, co dany gracz POŁOŻYŁ (oddaje partnerowi) — RULES.md 47.1b. */
 export type TransactionSide = {
   tradeGoods: number;
   commodities: number;
@@ -42,42 +42,57 @@ export type TransactionSide = {
   relicFragments: string[];
   /** Karty akcji (Arbiters / Black Market Dealings) — inaczej silnik odrzuci (422). */
   actionCards?: string[];
+  /** Relikty i niezdobyte tajne cele (Black Market Dealings). */
+  relics?: string[];
+  secretObjectives?: string[];
   /** Karty planet (Pride of Kenara): ``"<planeta>><planeta docelowa jednostek>"``. */
   planets?: string[];
+  /** Ile SWOICH żetonów długu kładę (RULES.md 47.3 — pamięć stołu). */
+  debtTokens?: number;
+  /** Krok 3 Trade: posiadacz karty daje darmowe secondary (RULES.md 47.4). */
+  tradeSecondary?: boolean;
+  /** Krok 3 Trade: obietnica „wash −N” (null = bez wash). */
+  wash?: number | null;
 };
 
-/** Propozycja transakcji czekająca na zgodę partnera (RULES.md 47.1a). */
-export type TransactionOfferView = {
-  proposer: string;
+/** Stół, przy którym siedzę: obie strony, Ready i co wolno położyć (RULES.md 47.1b). */
+export type TransactionTableView = {
   partner: string;
-  proposerColor: string | null;
   partnerColor: string | null;
-  /** null, gdy oglądający nie jest stroną transakcji (zawartość prywatna). */
-  give: TransactionSide | null;
-  receive: TransactionSide | null;
-  /** Pride of Kenara: oddawane przez partnera planety -> jego możliwe cele jednostek. */
-  unitDestinations?: Record<string, string[]>;
+  mine: TransactionSide;
+  theirs: TransactionSide;
+  myReady: boolean;
+  theirReady: boolean;
+  /** Wolno kłaść komponenty (inaczej tylko żetony długu). */
+  components: boolean;
+  actionCards: boolean;
+  extras: boolean;
+  /** Krok 3 Trade: ja jestem posiadaczem karty / partner jest. */
+  tradeHolder: boolean;
+  tradePartner: boolean;
+  /** Umowa Trade może obejmować komponenty i wash (sąsiad / Guild Ships). */
+  dealComponents: boolean;
+  /** Stół otwarty sam po uzupełnieniu commodities (umowa Trade). */
+  prefilled: boolean;
 };
 
 export type TransactionPartnerView = {
   playerId: string;
   color: string | null;
-  /** Sąsiad czy efekt bez sąsiedztwa (Guild Ships / Trade Convoys). */
+  /** Sąsiad (albo Guild Ships / Trade Convoys) — inaczej stół tylko na dług. */
   neighbor: boolean;
-  /** Czy w tej parze wolno wymieniać karty akcji (Arbiters / Black Market Dealings). */
-  actionCards: boolean;
+  /** Wolno teraz wymieniać komponenty. */
+  components: boolean;
   done: boolean;
-  /** Planety, których kartę ten partner może oddać (Pride of Kenara). */
-  planets: string[];
 };
 
 export type TransactionStateView = {
-  offer: TransactionOfferView | null;
+  tables: TransactionTableView[];
   partners: TransactionPartnerView[];
-  /** Planety, których kartę aktywny gracz może oddać (Pride of Kenara). */
+  /** Planety, których kartę mogę oddać (Pride of Kenara). */
   myPlanets: string[];
-  /** Notki, o które mogę poprosić partnera (jego ręka ukryta, RULES.md 47.1a). */
-  requestableNotes?: string[];
+  /** Gracze wskazani umową w kroku 3 Trade. */
+  dealPlayers: string[];
 };
 
 export type EditUnitArgs = {
@@ -531,62 +546,53 @@ export function useBoardEditor() {
     },
     [refresh],
   );
-  // Transakcja z sąsiadem (RULES.md 47). ``give`` = co oddaje aktywny gracz, ``receive`` =
-  // co dostaje od partnera. Backend egzekwuje reguły (sąsiad, 1/turę, stan posiadania) i
-  // przy błędzie zwraca 422 → ``post`` pokazuje powód w komunikacie.
-  // Transakcja ze zgodą partnera (RULES.md 47.1a): propozycja → przyjęcie/odrzucenie/wycofanie.
-  const proposeTransaction = useCallback(
-    async (args: {
-      partnerId: string;
-      give: TransactionSide;
-      receive: TransactionSide;
-    }) => {
-      const side = (s: TransactionSide) => ({
-        trade_goods: s.tradeGoods,
-        commodities: s.commodities,
-        promissory_note: s.promissoryNote,
-        relic_fragments: s.relicFragments,
-        action_cards: s.actionCards ?? [],
-        planets: s.planets ?? [],
-      });
-      await post("/transactions/propose", {
-        partner_id: args.partnerId,
-        give: side(args.give),
-        receive: side(args.receive),
-      });
+  // Stół transakcji (RULES.md 47.1b): każda strona kładzie własne rzeczy, dwa Ready = wymiana.
+  // Backend egzekwuje reguły i przy błędzie zwraca 422 → ``post`` pokazuje powód.
+  const openTable = useCallback(
+    async (playerId: string, partnerId: string) => {
+      await post("/transactions/table/open", { player_id: playerId, partner_id: partnerId });
       await refresh();
     },
     [refresh],
   );
 
-  const respondTransaction = useCallback(
-    async (playerId: string, accept: boolean, planetDestinations: Record<string, string> = {}) => {
-      await post("/transactions/respond", {
+  const setTableSide = useCallback(
+    async (playerId: string, partnerId: string, s: TransactionSide) => {
+      await post("/transactions/table/side", {
         player_id: playerId,
-        accept,
-        planet_destinations: planetDestinations,
+        partner_id: partnerId,
+        side: {
+          trade_goods: s.tradeGoods,
+          commodities: s.commodities,
+          promissory_note: s.promissoryNote,
+          relic_fragments: s.relicFragments,
+          action_cards: s.actionCards ?? [],
+          planets: s.planets ?? [],
+          debt_tokens: s.debtTokens ?? 0,
+          trade_secondary: s.tradeSecondary ?? false,
+          wash: s.wash ?? null,
+        },
       });
       await refresh();
     },
     [refresh],
   );
 
-  const cancelTransaction = useCallback(
-    async (playerId: string) => {
-      await post("/transactions/cancel", { player_id: playerId });
+  const setTableReady = useCallback(
+    async (playerId: string, partnerId: string, ready: boolean) => {
+      await post("/transactions/table/ready", {
+        player_id: playerId,
+        partner_id: partnerId,
+        ready,
+      });
       await refresh();
     },
     [refresh],
   );
 
-  // Żetony długu (debt) (nieformalna zasada stołu, RULES.md 47.3): wystawca → posiadacz.
-  const giveDebtTokens = useCallback(
-    async (issuerId: string, holderId: string, count: number) => {
-      await post("/debt/give", {
-        issuer_id: issuerId,
-        holder_id: holderId,
-        count,
-      });
+  const closeTable = useCallback(
+    async (playerId: string, partnerId: string) => {
+      await post("/transactions/table/close", { player_id: playerId, partner_id: partnerId });
       await refresh();
     },
     [refresh],
@@ -1089,10 +1095,10 @@ export function useBoardEditor() {
     claimLeaderUnlock,
     playPromissory,
     forgeRelic,
-    proposeTransaction,
-    respondTransaction,
-    cancelTransaction,
-    giveDebtTokens,
+    openTable,
+    setTableSide,
+    setTableReady,
+    closeTable,
     returnDebtTokens,
     activateSystem,
     moveShips,
@@ -1490,8 +1496,8 @@ export type SpaceCannonPanel = {
 };
 
 /**
- * Stan transakcji (RULES.md 47.1a): propozycja w toku i partnerzy aktywnego gracza. ``stamp``
- * (np. publiczny skrót propozycji z web-data) wymusza odświeżenie, gdy ktoś inny coś zmieni.
+ * Stoły transakcji gracza ``player`` (RULES.md 47.1b) i gracze, z którymi może usiąść. ``stamp``
+ * (publiczny skrót stołów z web-data) wymusza odświeżenie, gdy ktoś inny coś położy.
  */
 export function useTransactionState(stamp: string, player: string | null = null) {
   return useQuery<TransactionStateView>({

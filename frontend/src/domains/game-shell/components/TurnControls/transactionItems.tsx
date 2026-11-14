@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import {
+  IconArrowsExchange,
   IconCards,
   IconCheck,
+  IconCircleFilled,
   IconCoins,
   IconDiamond,
   IconPlanet,
   IconPlus,
+  IconRefresh,
 } from "@tabler/icons-react";
+import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
@@ -23,7 +27,7 @@ import { assetUrl } from "@/shared/assets/resolveAsset";
 import styles from "./TransactionModal.module.css";
 
 /*
- * Elementy transakcji (RULES.md 47.1a). Notki i karty akcji to TE SAME chipy co w panelu gracza
+ * Elementy stołu transakcji (RULES.md 47.1b). Notki i karty akcji to TE SAME chipy co w panelu gracza
  * (``PromissoryNote``) i w ręce: nazwa + znak wystawcy, pełny tekst karty dopiero po kliknięciu
  * (popover z kartą). Wybór do transakcji = osobny przycisk obok chipa. Wspólne dla okna
  * transakcji i okna zgody partnera.
@@ -136,7 +140,7 @@ export function FragmentIcon({ id }: { id: string }) {
 export const planetName = (id: string | undefined): string =>
   (id ? getPlanetData(id)?.name : undefined) ?? id ?? "";
 
-/** Czy strona nic nie oddaje. */
+/** Czy strona stołu jest pusta (nic, także bez długu i umowy Trade). */
 export function isEmptySide(s: TransactionSide): boolean {
   return (
     s.tradeGoods === 0 &&
@@ -144,19 +148,44 @@ export function isEmptySide(s: TransactionSide): boolean {
     s.promissoryNote === null &&
     s.relicFragments.length === 0 &&
     (s.actionCards ?? []).length === 0 &&
-    (s.planets ?? []).length === 0
+    (s.relics ?? []).length === 0 &&
+    (s.secretObjectives ?? []).length === 0 &&
+    (s.planets ?? []).length === 0 &&
+    !(s.debtTokens ?? 0) &&
+    !s.tradeSecondary &&
+    s.wash == null
   );
 }
 
-/** Podsumowanie jednej strony (do okna zgody): zasoby + karty z tekstem. */
+/** Żetony długu w barwie wystawcy (do 8 kropek + „×N" przy większej liczbie). */
+export function PromiseDots({ color, count }: { color: string; count: number }) {
+  const rgb = resolvePrimaryRgb(color);
+  const style = rgb
+    ? ({ "--tk": `${rgb.red}, ${rgb.green}, ${rgb.blue}` } as CSSProperties)
+    : undefined;
+  const shown = Math.min(count, 8);
+  return (
+    <span className={styles.dots} style={style} aria-label={`${count} tokens`}>
+      {Array.from({ length: shown }, (_, i) => (
+        <IconCircleFilled key={i} size={13} aria-hidden="true" />
+      ))}
+      {count > shown && <b>×{count}</b>}
+    </span>
+  );
+}
+
+/** Podsumowanie jednej strony stołu: zasoby, dług, umowa Trade + karty z tekstem. */
 export function TradeSummary({
   title,
   side,
   fragmentName,
+  issuerColor,
 }: {
   title: string;
   side: TransactionSide;
   fragmentName?: (id: string) => string;
+  /** Barwa właściciela strony — kolor jego żetonów długu. */
+  issuerColor?: string;
 }) {
   const goods = [
     side.tradeGoods > 0 && `${side.tradeGoods} trade good${side.tradeGoods === 1 ? "" : "s"}`,
@@ -189,6 +218,28 @@ export function TradeSummary({
           </span>
         );
       })}
+      {(side.debtTokens ?? 0) > 0 && (
+        <span className={styles.summaryGoods}>
+          {issuerColor ? (
+            <PromiseDots color={issuerColor} count={side.debtTokens ?? 0} />
+          ) : (
+            <IconCircleFilled size={13} aria-hidden="true" />
+          )}
+          {side.debtTokens} debt token{side.debtTokens === 1 ? "" : "s"} (a promise)
+        </span>
+      )}
+      {side.tradeSecondary && (
+        <span className={styles.summaryGoods}>
+          <IconRefresh size={13} aria-hidden="true" />
+          Free Trade secondary (replenish without a command token)
+        </span>
+      )}
+      {side.wash != null && (
+        <span className={styles.summaryGoods}>
+          <IconArrowsExchange size={13} aria-hidden="true" />
+          Wash after replenishing{side.wash > 0 ? ` (−${side.wash})` : ""}
+        </span>
+      )}
       {side.promissoryNote && <TradeCard kind="note" id={side.promissoryNote} />}
       {(side.actionCards ?? []).map((c, i) => (
         <TradeCard key={`${c}-${i}`} kind="action" id={c} />

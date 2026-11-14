@@ -43,13 +43,10 @@ def test_transakcja_z_nie_sasiadem_i_karta_akcji(registry: StaticDataRegistry) -
         s["players"][flow.me]["trade_goods"] = 2
 
     flow.edit(hands)
-    view = flow.client.get("/transactions/state").json()
-    partner = next(p for p in view["partners"] if p["playerId"] == flow.other)
-    assert partner["actionCards"]  # Arbiters
-    flow.post("/transactions/propose", {
-        "partner_id": flow.other, "give": {"action_cards": ["sabo1"], "trade_goods": 1},
-    })
-    flow.post("/transactions/respond", {"player_id": flow.other, "accept": True})
+    flow.post("/transactions/table/open", {"player_id": flow.me, "partner_id": flow.other})
+    view = flow.client.get("/transactions/state", params={"player": flow.me}).json()
+    assert view["tables"][0]["actionCards"]  # Arbiters
+    flow.transact(give={"action_cards": ["sabo1"], "trade_goods": 1})
     assert "sabo1" in flow.state()["players"][flow.other]["private"]["action_cards"]
 
 

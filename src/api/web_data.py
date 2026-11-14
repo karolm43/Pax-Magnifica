@@ -26,6 +26,7 @@ emitujemy je puste/domyślne, by viewer działał bez pełnej logiki rundy.
 from __future__ import annotations
 
 import time
+import zlib
 from typing import Any
 
 from src.api import web_agenda, web_objectives, web_setup
@@ -422,18 +423,19 @@ def _build_game_state(
         # Zagrana karta akcji czekająca na ewentualne Sabotage (hold-play, RULES.md 53.6) —
         # JAWNA (leży na stole). None, gdy brak okna.
         "heldPlay": _held_play(state, registry),
-        # Propozycja transakcji czekająca na zgodę (RULES.md 47.1a): JAWNE tylko strony;
-        # zawartość daje ``GET /transactions/state`` samym stronom. None, gdy brak.
-        "transactionOffer": (
+        # Stoły transakcji (RULES.md 47.1b): JAWNE tylko pary i Ready; zawartość daje
+        # ``GET /transactions/state`` samym stronom.
+        "transactionTables": [
             {
-                "proposer": state.transaction_offer.proposer,
-                "partner": state.transaction_offer.partner,
-                "proposerColor": _color_of(state, state.transaction_offer.proposer),
-                "partnerColor": _color_of(state, state.transaction_offer.partner),
+                "opener": t.opener,
+                "partner": t.partner,
+                "ready": list(t.ready),
+                "prefilled": t.prefilled,
+                # Skrót zawartości (bez treści) — klient odświeża stół, gdy się zmieni.
+                "stamp": zlib.crc32(repr(sorted(t.sides.items())).encode()),
             }
-            if state.transaction_offer is not None
-            else None
-        ),
+            for t in state.transaction_tables
+        ],
         # Setup startowy (tajne cele, żeton Custodians, odkrycie celów) dopisuje
         # ``build_web_data`` z PEŁNEGO stanu (``web_setup.build_setup_payload``). RULES.md 45.
         # Czy MÓWCA może już ogłosić przejście fazy — steruje widocznością „Next phase"

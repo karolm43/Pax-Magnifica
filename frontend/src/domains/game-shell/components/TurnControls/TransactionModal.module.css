@@ -4,57 +4,6 @@
  * "ability" (fiolet) dla żetonów. --tk = barwa żetonu wystawcy (RGB).
  */
 
-.tabs {
-  display: flex;
-  gap: 6px;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--ds-h14);
-  border-radius: 12px;
-}
-
-.tab {
-  flex: 1 1 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 9px 12px;
-  font-size: var(--text-body, 13px);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--ds-ink);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  cursor: pointer;
-  transition:
-    background var(--ds-dur-fast) var(--ds-ease),
-    border-color var(--ds-dur-fast) var(--ds-ease),
-    color var(--ds-dur-fast) var(--ds-ease);
-}
-
-.tab:hover {
-  color: var(--ds-ink-hi);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.tab[data-active] {
-  color: var(--ds-ink-hi);
-  background: rgb(var(--ds-sig-tg) / 0.18);
-  border-color: rgb(var(--ds-sig-tg) / 0.5);
-}
-
-.tabBadge {
-  min-width: 18px;
-  padding: 1px 6px;
-  font-size: var(--text-micro, 10px);
-  text-align: center;
-  color: var(--ds-ink-hi);
-  background: rgb(var(--ds-sig-ability) / 0.35);
-  border-radius: 999px;
-}
-
 .notice {
   display: flex;
   align-items: center;
@@ -258,17 +207,6 @@
 }
 
 /* Zaznaczona promissory note / fragment — zielona obwódka. */
-.noteChip {
-  padding: 2px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  transition: border-color var(--ds-dur-fast) var(--ds-ease);
-}
-
-.noteChip[data-selected] {
-  border-color: rgb(var(--ds-sig-tg) / 0.8);
-  background: rgb(var(--ds-sig-tg) / 0.14);
-}
 
 .fragChip {
   display: flex;
@@ -294,15 +232,6 @@
 }
 
 /* ===== Żetony obietnic ===== */
-.promiseBox {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--ds-h14);
-  border-radius: 12px;
-}
 
 .ledger {
   display: flex;
@@ -348,7 +277,6 @@
   color: var(--ds-ink-hi);
 }
 
-@media (max-width: 720px) {
   .sides {
     grid-template-columns: 1fr;
   }
@@ -357,7 +285,6 @@
     transform: rotate(90deg);
     justify-self: center;
   }
-}
 
 /* ===== Karty w transakcji (notka / karta akcji) z pełnym tekstem — RULES.md 47.1a ===== */
 .cardList {
@@ -489,25 +416,50 @@ button.tradeCard:hover {
   color: var(--ds-ink-hi);
 }
 
-.waiting {
+/* Stół transakcji (RULES.md 47.1b): moja strona + strona partnera + Ready. */
+.table {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  border: 1px dashed rgb(var(--ds-sig-tg) / 0.5);
-  border-radius: 12px;
+  gap: 10px;
 }
 
-.waitingHead {
+/* Przedmiot umowy Trade (darmowe secondary / wash) — przełącznik w stylu chipa. */
+.dealToggle {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
   font-size: var(--text-small, 12px);
+  font-weight: 700;
+  text-align: left;
   color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ds-h14);
+  border-radius: 8px;
+  cursor: pointer;
 }
 
-.summaryPair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+.dealToggle small {
+  flex-basis: 100%;
+  font-weight: 400;
+  color: var(--ds-ink);
+}
+
+.dealToggle[aria-pressed="true"] {
+  background: rgb(var(--ds-sig-tg) / 0.16);
+  border-color: rgb(var(--ds-sig-tg) / 0.55);
+}
+
+.readyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 1px 7px;
+  font-size: var(--text-micro, 10px);
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-ok) / 0.3);
+  border-radius: 999px;
 }

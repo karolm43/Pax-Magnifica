@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import production, rules_hooks, strategic_action, transaction
+from src.core import (
+    production,
+    rules_hooks,
+    strategic_action,
+    transaction,
+    transaction_table,
+)
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.hooks.factions import hacan
@@ -106,18 +112,17 @@ def test_pride_of_kenara_cel_wybiera_hacan(registry: StaticDataRegistry) -> None
     state.systems["101"] = SystemState(position="101", system_id="20")
     planet20 = registry.systems["20"].planets[0]
     state.systems["101"].planet_owners = {planet20: "p1"}
-    asked = TransactionSide(planets=(f"mr>{planet20}",))
-    with pytest.raises(ValueError, match="chooses where"):
-        transaction.propose_transaction(state, _grid(), "p1", TransactionSide(), asked)
-    offered = transaction.propose_transaction(
-        state, _grid(), "p1", TransactionSide(), TransactionSide(planets=("mr",))
+    # Hacan (p1) jako partner sam kładzie planetę na stół - od razu z celem swoich jednostek.
+    state = transaction_table.open_table(state, "p2", "p1")
+    with pytest.raises(ValueError, match="Choose another planet"):
+        transaction_table.set_side(
+            state, _grid(), "p1", "p2", TransactionSide(planets=("mr",))
+        )
+    state = transaction_table.set_side(
+        state, _grid(), "p1", "p2", TransactionSide(planets=(f"mr>{planet20}",))
     )
-    assert transaction.unit_destinations(offered, "p1", "mr") == [planet20]
-    with pytest.raises(ValueError, match="Choose the planet"):
-        transaction.respond_to_offer(offered, _grid(), "p1", accept=True)
-    done = transaction.respond_to_offer(
-        offered, _grid(), "p1", accept=True, planet_destinations={"mr": planet20}
-    )
+    state = transaction_table.set_ready(state, _grid(), "p2", "p1", True)
+    done = transaction_table.set_ready(state, _grid(), "p1", "p2", True)
     assert done.systems["000"].planet_owners["mr"] == "p2"
     assert done.systems["101"].planet_units[planet20]["p1"] == {"mech": 1}
 

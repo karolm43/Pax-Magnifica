@@ -1162,3 +1162,21 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   `COMPONENT_DECISION`, ograniczenie `research_allowed`) — Focused Research, Reveal Prototype (tylko pasujące
   ulepszenia) i Enigmatic Device otwierają pełne okno badania po zagraniu; Sucaban przed zapłatą (R62.md).
 - Restart backendu (nowe zdarzenie i hooki).
+
+## Transakcje: stół zamiast propozycji + negocjacja Trade (wash, dług) (2026-11-14)
+
+- **Stół transakcji** (RULES.md 47.1b, `core/transaction_table.py`, `GameState.transaction_tables`): para graczy
+  siada do stołu (otwiera każda strona), każdy kładzie WYŁĄCZNIE własne rzeczy, rzeczy partnera widać dopiero na
+  stole; dwa Ready = wymiana (`transaction.resolve_transaction`), każda zmiana zdejmuje Ready. Koniec list
+  „o co mogę prosić” (`requestable_notes`) i `/transactions/propose|respond|cancel` → `/transactions/table/
+  open|side|ready|close`. Jedna walidacja strony: `transaction.validate_side`.
+- **Żetony długu na stole** (`debt_tokens` w stronie): z nie-sąsiadem / poza turą stół przyjmuje tylko dług
+  (bez zużycia limitu transakcji). Zakładka „Debt tokens” zniknęła; rejestr długów (zwrot) został pod stołem.
+- **Trade krok 3** (RULES.md 47.4): posiadacz „Negotiate” z każdym graczem — kładzie „darmowe secondary”, drugi
+  gracz cenę (dług / wash −N / komponenty). Umowa = wskazanie (`draft.deal_players`) + dług od razu; komponenty
+  i wash czekają w `GameState.trade_deals` i po uzupełnieniu commodities silnik otwiera stół wstępnie wypełniony
+  (niewiążący — obaj Ready).
+- Front: jeden komponent `TradingTable` (okno Transaction, dok decyzji — zaproszenie „X sat down to trade with
+  you”, okno Trade). Feed: `transaction.opened|agreed|closed`. Testy: `test_transaction.py`, `test_trade_deal.py`,
+  `Flow.transact` w harnessie.
+- Nowe trasy i pola stanu — restart backendu.

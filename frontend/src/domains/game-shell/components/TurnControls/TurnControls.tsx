@@ -310,6 +310,11 @@ export function TurnControls() {
   const activePlayerData = webData?.playerData?.find(
     (p) => p.color === active.color,
   );
+  // Stół transakcji (RULES.md 47.1b): siada gracz PRZY EKRANIE (sieć: ja; lokalnie: pulpit).
+  const tradingPlayerData =
+    (networkMe?.network
+      ? webData?.playerData?.find((p) => p.discordId === networkMe.player_id)
+      : undefined) ?? activePlayerData;
   const { data: freeAbilities } = useTechnologyAbilities(
     active.discordId ?? null,
     componentOpen,
@@ -497,7 +502,7 @@ export function TurnControls() {
                 style={{ "--d": "150ms" } as CSSProperties}
                 disabled={busy}
                 onClick={() => setTransactionOpen(true)}
-                title="Trade with a neighbor (one transaction per neighbor each turn) or hand out promise tokens"
+                title="Sit down at the trading table: a transaction with a neighbor or debt tokens with anyone"
               >
                 <IconArrowsExchange size={16} aria-hidden="true" />
                 <span>Transaction</span>
@@ -750,19 +755,18 @@ export function TurnControls() {
         />
       )}
 
-      {/* MODAL transakcji (RULES.md 47) — montowany tylko, gdy otwarty, by hooki ręki
-          (usePlayerHand) nie odpytywały backendu przez cały czas. Gracz = ten, którego
-          jest tura (``active``); wpis ``playerData`` niesie sąsiadów i stan posiadania. */}
-      {transactionOpen && activePlayerData && (
+      {/* MODAL transakcji (RULES.md 47.1b) — montowany tylko, gdy otwarty, by hooki ręki
+          (usePlayerHand) nie odpytywały backendu przez cały czas. Gracz = ten przy ekranie
+          (do stołu może usiąść każda strona); wpis ``playerData`` niesie stan posiadania. */}
+      {transactionOpen && tradingPlayerData && (
         <TransactionModal
           opened
           onClose={() => setTransactionOpen(false)}
           gameId={gameId}
-          me={activePlayerData}
+          me={tradingPlayerData}
           players={(webData?.playerData ?? []).filter(
             (p) => p.faction && p.faction !== "neutral",
           )}
-          canTrade={isAction && isTurnPlayer}
         />
       )}
 

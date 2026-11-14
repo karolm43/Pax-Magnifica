@@ -1462,7 +1462,7 @@ class BattleRelicAdjustRequest(BaseModel):
 
 
 class TransactionSideRequest(BaseModel):
-    """Jedna strona transakcji: to, co dany gracz ODDAJE (RULES.md 47)."""
+    """Strona stołu: to, co gracz kładzie (ODDAJE partnerowi) — RULES.md 47.1b."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -1474,30 +1474,35 @@ class TransactionSideRequest(BaseModel):
     action_cards: list[str] = Field(default_factory=list)
     # Karty planet (Pride of Kenara): ``"<planeta>><planeta docelowa>"``.
     planets: list[str] = Field(default_factory=list)
+    # Żetony długu (47.3), darmowe secondary Trade i obietnica „wash −N” (47.4).
+    debt_tokens: int = 0
+    trade_secondary: bool = False
+    wash: int | None = None
 
 
-class TransactionRespondRequest(BaseModel):
-    """Odpowiedź partnera na propozycję transakcji (RULES.md 47.1a)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    player_id: str | None = None
-    accept: bool
-    # Pride of Kenara: ``{planeta: cel}`` — gdzie partner przenosi swoje jednostki z oddawanych
-    # planet (wybiera oddający, RULES.md 62.6).
-    planet_destinations: dict[str, str] = Field(default_factory=dict)
-
-
-class TransactionCancelRequest(BaseModel):
-    """Proponujący wycofuje propozycję transakcji (RULES.md 47.1a)."""
+class TransactionTableRequest(BaseModel):
+    """Otwarcie / zamknięcie stołu z ``partner_id`` (RULES.md 47.1b)."""
 
     model_config = ConfigDict(extra="forbid")
 
-    player_id: str | None = None
+    player_id: str
+    partner_id: str
+
+
+class TransactionTableSideRequest(TransactionTableRequest):
+    """Gracz kładzie swoją stronę na stół (zastępuje poprzednią)."""
+
+    side: TransactionSideRequest = Field(default_factory=TransactionSideRequest)
+
+
+class TransactionTableReadyRequest(TransactionTableRequest):
+    """Gracz potwierdza (albo cofa) obecny stan stołu."""
+
+    ready: bool = True
 
 
 class TransactionSideView(BaseModel):
-    """Strona propozycji: co dany gracz ODDAJE (widoczne tylko dla stron transakcji)."""
+    """Strona stołu: co dany gracz położył (widoczne tylko dla stron stołu)."""
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -1506,68 +1511,64 @@ class TransactionSideView(BaseModel):
     promissory_note: str | None = Field(None, serialization_alias="promissoryNote")
     relic_fragments: list[str] = Field(default_factory=list, serialization_alias="relicFragments")
     action_cards: list[str] = Field(default_factory=list, serialization_alias="actionCards")
+    relics: list[str] = Field(default_factory=list)
+    secret_objectives: list[str] = Field(
+        default_factory=list, serialization_alias="secretObjectives"
+    )
     planets: list[str] = Field(default_factory=list)
+    debt_tokens: int = Field(0, serialization_alias="debtTokens")
+    trade_secondary: bool = Field(False, serialization_alias="tradeSecondary")
+    wash: int | None = None
 
 
-class TransactionOfferView(BaseModel):
-    """Propozycja czekająca na odpowiedź; ``give``/``receive`` z perspektywy proponującego."""
+class TransactionTableView(BaseModel):
+    """Stół, przy którym siedzi oglądający: obie strony + Ready + co wolno położyć."""
 
     model_config = ConfigDict(populate_by_name=True)
 
-    proposer: str
     partner: str
-    proposer_color: str | None = Field(None, serialization_alias="proposerColor")
     partner_color: str | None = Field(None, serialization_alias="partnerColor")
-    # None, gdy oglądający nie jest stroną transakcji (zawartość prywatna).
-    give: TransactionSideView | None = None
-    receive: TransactionSideView | None = None
-    # Pride of Kenara: planety partnera bez celu jednostek -> jego możliwe cele (wybiera przy
-    # akceptacji). Tylko dla stron transakcji.
-    unit_destinations: dict[str, list[str]] = Field(
-        default_factory=dict, serialization_alias="unitDestinations"
-    )
+    mine: TransactionSideView
+    theirs: TransactionSideView
+    my_ready: bool = Field(False, serialization_alias="myReady")
+    their_ready: bool = Field(False, serialization_alias="theirReady")
+    # Wolno teraz kłaść komponenty (inaczej tylko dług) i karty akcji (Arbiters / BMD).
+    components: bool = False
+    action_cards: bool = Field(False, serialization_alias="actionCards")
+    extras: bool = False
+    # Krok 3 Trade: ja jestem posiadaczem (mogę dać darmowe secondary) / partner jest (wash).
+    trade_holder: bool = Field(False, serialization_alias="tradeHolder")
+    trade_partner: bool = Field(False, serialization_alias="tradePartner")
+    # Umowa Trade: komponenty z wash przejdą po uzupełnieniu (sąsiad / Guild Ships).
+    deal_components: bool = Field(False, serialization_alias="dealComponents")
+    prefilled: bool = False
 
 
 class TransactionPartnerView(BaseModel):
-    """Gracz, z którym aktywny gracz może teraz negocjować."""
+    """Gracz, z którym oglądający może usiąść do stołu."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     player_id: str = Field(serialization_alias="playerId")
     color: str | None = None
-    # Sąsiad czy efekt bez sąsiedztwa (Guild Ships / Trade Convoys).
+    # Sąsiad (albo Guild Ships / Trade Convoys) — inaczej stół tylko na dług.
     neighbor: bool = True
-    # Czy w tej parze wolno wymieniać karty akcji (Arbiters / Black Market Dealings).
-    action_cards: bool = Field(False, serialization_alias="actionCards")
+    # Komponenty wolno teraz wymieniać (jego/moja tura, bez transakcji w tej turze).
+    components: bool = False
     done: bool = False
-    # Planety, których kartę ten partner może oddać (Pride of Kenara).
-    planets: list[str] = Field(default_factory=list)
 
 
 class TransactionStateResponse(BaseModel):
-    """Stan transakcji: propozycja w toku + możliwi partnerzy aktywnego gracza."""
+    """Stoły oglądającego + gracze, z którymi może usiąść (RULES.md 47.1b)."""
 
     model_config = ConfigDict(populate_by_name=True)
 
-    offer: TransactionOfferView | None = None
+    tables: list[TransactionTableView] = Field(default_factory=list)
     partners: list[TransactionPartnerView] = Field(default_factory=list)
-    # Planety, których kartę aktywny gracz może oddać (Pride of Kenara).
+    # Planety, których kartę oglądający może oddać (Pride of Kenara).
     my_planets: list[str] = Field(default_factory=list, serialization_alias="myPlanets")
-    # Notki, o które oglądający może poprosić partnera (ręka partnera ukryta, RULES.md 47.1a).
-    requestable_notes: list[str] = Field(
-        default_factory=list, serialization_alias="requestableNotes"
-    )
-
-
-class TransactionRequest(BaseModel):
-    """Transakcja aktywnego gracza z sąsiadem (RULES.md 47): ``give`` oddaje, ``receive`` bierze."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    partner_id: str
-    give: TransactionSideRequest = Field(default_factory=TransactionSideRequest)
-    receive: TransactionSideRequest = Field(default_factory=TransactionSideRequest)
-    player_id: str | None = None
+    # Gracze wskazani umową w kroku 3 Trade (zablokowani jako „free”).
+    deal_players: list[str] = Field(default_factory=list, serialization_alias="dealPlayers")
 
 
 class DebtTokensRequest(BaseModel):

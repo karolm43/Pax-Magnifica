@@ -2,13 +2,17 @@
 
 Primary: +3 trade goods → uzupełnij commodities → wskaż graczy z DARMOWYM, obowiązkowym
 secondary. Secondary: uzupełnij commodities (koszt: 1 żeton ze strategy pool).
+
+Krok 3 można negocjować przy stole transakcji (RULES.md 47.4): gracze z umową
+(``draft["deal_players"]``) są wskazani zawsze, a po ich uzupełnieniu silnik otwiera stół
+wstępnie wypełniony umową (wash / odroczone komponenty — ``transaction_table.open_deal_table``).
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from src.core import economy
+from src.core import economy, transaction_table
 from src.core.game_state import GameState
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 
@@ -39,6 +43,10 @@ def _on_step(
         if pid in chosen:
             raise ValueError(f"Player chosen twice: {pid}")
         chosen.append(pid)
+    # Gracze z umową przy stole (RULES.md 47.4) są wskazani niezależnie od zaznaczenia.
+    for pid in draft.get("deal_players", []):
+        if pid not in chosen:
+            chosen.append(pid)
     draft["free_players"] = chosen
 
 
@@ -53,6 +61,7 @@ def _secondary(
     state: GameState, _ctx: CardContext, player_id: str, _payload: dict[str, Any]
 ) -> None:
     economy.replenish_commodities(state, player_id)
+    transaction_table.open_deal_table(state, player_id)
 
 
 def _options(

@@ -249,18 +249,18 @@ def test_zagrana_notka_w_feedzie() -> None:
     assert entry.actor_id == "p2" and entry.subject == "green_cf"
 
 
-def test_propozycja_i_odrzucenie_transakcji_w_feedzie() -> None:
-    """RULES.md 47.1a: propozycja (aktor = aktywny) i odrzucenie (aktor = partner)."""
-    proposed = derive_activity("transaction-offer:proposed:p2", _state(), _state())
-    assert proposed is not None
-    assert (proposed.action, proposed.actor_id, proposed.target_id) == (
-        "transaction.proposed", "p1", "p2"
+def test_stol_transakcji_w_feedzie() -> None:
+    """RULES.md 47.1b: usiadł / umowa / wstał w feedzie; kładzenie rzeczy i Ready - nie."""
+    opened = derive_activity("transaction-table:opened:p2:p1", _state(), _state())
+    assert opened is not None
+    assert (opened.action, opened.actor_id, opened.target_id) == (
+        "transaction.opened", "p2", "p1"
     )
-    declined = derive_activity("transaction-offer:declined:p2", _state(), _state())
-    assert declined is not None
-    assert (declined.action, declined.actor_id, declined.target_id) == (
-        "transaction.declined", "p2", "p1"
-    )
+    agreed = derive_activity("transaction-table:agreed:p1:p2", _state(), _state())
+    assert agreed is not None and agreed.action == "transaction.agreed"
+    closed = derive_activity("transaction-table:closed:p1:p2", _state(), _state())
+    assert closed is not None and closed.action == "transaction.closed"
+    assert derive_activity("transaction-table:side:p1:p2", _state(), _state()) is None
 
 
 def _battle_states() -> tuple[GameState, GameState]:

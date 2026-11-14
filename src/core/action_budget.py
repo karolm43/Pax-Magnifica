@@ -97,5 +97,6 @@ def reset_turn(state: GameState, player_id: str) -> None:
     player.took_action_this_turn = False
     player.actions_this_turn = 0
     clear_reaction_traces(state)
-    # Propozycja transakcji żyje tylko w turze jej autora (RULES.md 47.1a).
-    state.transaction_offer = None
+    # Stoły transakcji i umowy Trade żyją tylko w bieżącej turze (RULES.md 47.1b, 47.4).
+    state.transaction_tables = []
+    state.trade_deals = {}

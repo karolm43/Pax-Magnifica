@@ -1,17 +1,21 @@
 import { useState } from "react";
-import { IconArrowsExchange } from "@tabler/icons-react";
+import { useParams } from "react-router-dom";
+import { IconArrowsExchange, IconCheck } from "@tabler/icons-react";
+import { DEFAULT_GAME_ID } from "@/config";
 import { useBoardEditor, useTransactionState } from "@/api/useBoardEditor";
+import { usePlayerData } from "@/api/usePlayerData";
 import {
   TradeSummary,
-  planetName,
+  isEmptySide,
 } from "@/domains/game-shell/components/TurnControls/transactionItems";
+import { TransactionModal } from "@/domains/game-shell/components/TurnControls/TransactionModal";
 import type { GameState } from "@/entities/data/types";
 import styles from "./AbilityPrompts.module.css";
 
 /*
- * Propozycja transakcji dla PARTNERA (RULES.md 47.1a): wymiana nie dzieje się bez jego zgody.
- * Okno wyskakuje samo u gracza, któremu złożono ofertę, z pełną treścią (notki i karty akcji
- * z tekstem) i przyciskami Accept / Decline. Proponujący widzi oczekiwanie w oknie transakcji.
+ * Zaproszenie do stołu transakcji (RULES.md 47.1b): wyskakuje SAMO u gracza, z którym ktoś usiadł
+ * do stołu (albo gdy silnik otworzył stół z umowy Trade po uzupełnieniu — 47.4). Pokazuje, co
+ * partner już położył, i otwiera to samo okno stołu co przycisk Transaction.
  */
 export function TransactionOfferPrompt({
   gameState,
@@ -23,76 +27,116 @@ export function TransactionOfferPrompt({
   handOwners: string[];
   nameOf: (playerId: string) => string;
 }) {
-  const pub = gameState?.transactionOffer ?? null;
-  const partner = pub && handOwners.includes(pub.partner) ? pub.partner : null;
-  const { data } = useTransactionState(JSON.stringify(pub), partner);
-  const { respondTransaction } = useBoardEditor();
-  const [busy, setBusy] = useState(false);
-  const [chosen, setChosen] = useState<Record<string, string>>({});
-  const offer = data?.offer;
-  if (!partner || !offer || offer.partner !== partner || !offer.give || !offer.receive) {
-    return null;
+  const invites = (gameState?.transactionTables ?? []).filter(
+    (t) => handOwners.includes(t.partner) || (t.prefilled && handOwners.includes(t.opener)),
+  );
+  // Kto jest zaproszony (właściciel ręki przy ekranie) -> przez kogo.
+  const invited = new Map<string, string[]>();
+  for (const t of invites) {
+    const owner = handOwners.includes(t.partner) ? t.partner : t.opener;
+    const from = owner === t.partner ? t.opener : t.partner;
+    invited.set(owner, [...(invited.get(owner) ?? []), from]);
   }
-  // Pride of Kenara: cel moich jednostek z oddawanej planety wybieram ja (domyślnie pierwszy).
-  const destinations = Object.entries(offer.unitDestinations ?? {});
-  const destOf = (planet: string, options: string[]) => chosen[planet] ?? options[0] ?? "";
-  const answer = (accept: boolean) => {
+  return (
+    <>
+      {[...invited].map(([owner, from]) => (
+        <OwnerInvites
+          key={owner}
+          owner={owner}
+          from={from}
+          stamp={JSON.stringify(gameState?.transactionTables ?? [])}
+          nameOf={nameOf}
+          several={handOwners.length > 1}
+        />
+      ))}
+    </>
+  );
+}
+
+function OwnerInvites({
+  owner,
+  from: inviters,
+  stamp,
+  nameOf,
+  several,
+}: {
+  owner: string;
+  /** Partnerzy, którzy zaprosili (albo stół z umowy Trade). */
+  from: string[];
+  stamp: string;
+  nameOf: (playerId: string) => string;
+  several: boolean;
+}) {
+  const params = useParams<{ mapid: string }>();
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
+  const { data: tradeState } = useTransactionState(stamp, owner);
+  const { data: webData } = usePlayerData(gameId);
+  const { closeTable } = useBoardEditor();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const players = (webData?.playerData ?? []).filter((p) => p.faction && p.faction !== "neutral");
+  const me = players.find((p) => p.discordId === owner);
+  const tables = (tradeState?.tables ?? []).filter((t) => inviters.includes(t.partner));
+  if (!me || tables.length === 0) return null;
+  const leave = (partner: string) => {
     if (busy) return;
     setBusy(true);
-    const picked = Object.fromEntries(destinations.map(([p, opts]) => [p, destOf(p, opts)]));
-    void respondTransaction(partner, accept, accept ? picked : {})
+    void closeTable(owner, partner)
       .catch(() => undefined) // powód 422 pokazuje panel komunikatów
       .finally(() => setBusy(false));
   };
-  const from = nameOf(offer.proposer);
   return (
-    <section className={styles.card} aria-label={`Deal offered by ${from}`}>
-      <header className={styles.head}>
-        <IconArrowsExchange size={16} aria-hidden="true" className={styles.icon} />
-        <span className={styles.titleBox}>
-          <small className={styles.kind}>
-            Transaction offer
-            {handOwners.length > 1 ? ` · for ${nameOf(partner)}` : ""}
-          </small>
-          <b className={styles.title}>{from} offers you a deal</b>
-        </span>
-      </header>
-      {/* Strony z perspektywy partnera: dostaje „give” proponującego, oddaje jego „receive”. */}
-      <TradeSummary title="You receive" side={offer.give} />
-      <TradeSummary title="You give" side={offer.receive} />
-      {destinations.map(([planet, options]) => (
-        <label key={planet} className={styles.text}>
-          Your units on {planetName(planet)} move to{" "}
-          <select
-            value={destOf(planet, options)}
-            onChange={(e) => setChosen({ ...chosen, [planet]: e.target.value })}
-          >
-            {options.map((p) => (
-              <option key={p} value={p}>
-                {planetName(p)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.ghost}
-          disabled={busy}
-          onClick={() => answer(false)}
-        >
-          Decline
-        </button>
-        <button
-          type="button"
-          className={styles.primary}
-          disabled={busy}
-          onClick={() => answer(true)}
-        >
-          Accept deal
-        </button>
-      </div>
-    </section>
+    <>
+      {tables.map((t) => {
+        const from = nameOf(t.partner);
+        return (
+          <section key={t.partner} className={styles.card} aria-label={`Trading table with ${from}`}>
+            <header className={styles.head}>
+              <IconArrowsExchange size={16} aria-hidden="true" className={styles.icon} />
+              <span className={styles.titleBox}>
+                <small className={styles.kind}>
+                  {t.prefilled ? "Trade deal · wash" : "Trading table"}
+                  {several ? ` · for ${nameOf(owner)}` : ""}
+                </small>
+                <b className={styles.title}>
+                  {t.prefilled
+                    ? `Confirm your Trade deal with ${from}`
+                    : `${from} sat down to trade with you`}
+                </b>
+              </span>
+            </header>
+            {!isEmptySide(t.theirs) && (
+              <TradeSummary
+                title={`${from} puts down${t.theirReady ? " · Ready" : ""}`}
+                side={t.theirs}
+                issuerColor={t.partnerColor ?? undefined}
+              />
+            )}
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.ghost}
+                disabled={busy}
+                onClick={() => leave(t.partner)}
+              >
+                Leave
+              </button>
+              <button type="button" className={styles.primary} onClick={() => setOpen(true)}>
+                <IconCheck size={14} aria-hidden="true" /> Open the table
+              </button>
+            </div>
+          </section>
+        );
+      })}
+      {open && (
+        <TransactionModal
+          opened
+          onClose={() => setOpen(false)}
+          gameId={gameId}
+          me={me}
+          players={players}
+        />
+      )}
+    </>
   );
 }

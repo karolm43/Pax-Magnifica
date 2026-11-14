@@ -458,3 +458,34 @@
   vertical-align: -4px;
   object-fit: contain;
 }
+
+/* Trade (RULES.md 47.4): gracz + przycisk negocjacji przy stole transakcji. */
+.chipRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ghostBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--ds-h22);
+  background: var(--ds-ground-2);
+  color: var(--ds-ink-hi);
+  cursor: pointer;
+}
+
+.ghostBtn[aria-pressed="true"] {
+  border-color: rgb(var(--ds-sig-tg) / 0.6);
+  background: rgb(var(--ds-sig-tg) / 0.16);
+}
+
+.ghostBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

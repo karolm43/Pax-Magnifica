@@ -188,134 +188,125 @@ def client() -> TestClient:
     return TestClient(app)
 
 
-def test_endpoint_transaction_needs_partner_consent(client: TestClient) -> None:
-    """RULES.md 47.1a: propozycja niczego nie przenosi; wymiana dopiero po zgodzie partnera."""
+def _sit(client: TestClient, player: str, partner: str) -> None:
+    body = {"player_id": player, "partner_id": partner}
+    assert client.post("/transactions/table/open", json=body).status_code == 200
+
+
+def _put(client: TestClient, player: str, partner: str, **side: object) -> int:
+    body = {"player_id": player, "partner_id": partner, "side": side}
+    return int(client.post("/transactions/table/side", json=body).status_code)
+
+
+def _ready(client: TestClient, player: str, partner: str, ready: bool = True) -> int:
+    body = {"player_id": player, "partner_id": partner, "ready": ready}
+    return int(client.post("/transactions/table/ready", json=body).status_code)
+
+
+def _tg(client: TestClient, color: str) -> int:
+    data = client.get("/api/public/game/g/web-data").json()
+    return int(next(p for p in data["playerData"] if p["color"] == color)["tg"])
+
+
+def test_stol_wymiana_po_dwoch_ready(client: TestClient) -> None:
+    """RULES.md 47.1b: każdy kładzie swoje, dwa Ready = wymiana; zmiana zdejmuje Ready."""
+    # Stół otwiera SĄSIAD aktywnego („either player may initiate”).
+    _sit(client, "p2", "p1")
+    assert _put(client, "p1", "p2", trade_goods=2) == 200
+    assert _put(client, "p2", "p1", commodities=1) == 200
+    # Widok p1: jego strona i to, co POŁOŻYŁ partner (nie jego ręka).
+    view = client.get("/transactions/state?player=p1").json()
+    table = view["tables"][0]
+    assert table["partner"] == "p2" and table["components"] is True
+    assert table["mine"]["tradeGoods"] == 2 and table["theirs"]["commodities"] == 1
+    assert _ready(client, "p1", "p2") == 200
+    # Zmiana stołu zdejmuje Ready obu.
+    assert _put(client, "p2", "p1", commodities=2) == 200
+    table = client.get("/transactions/state?player=p1").json()["tables"][0]
+    assert table["myReady"] is False
+    assert _ready(client, "p2", "p1") == 200
+    assert _tg(client, "red") == 3  # jedno Ready - nic nie przeszło
+    assert _ready(client, "p1", "p2") == 200
+    # p1: 3 - 2 + 2 (commodities od p2 -> TG); p2: 1 + 2.
+    assert (_tg(client, "red"), _tg(client, "blue")) == (3, 3)
+    assert client.get("/transactions/state?player=p1").json()["tables"] == []
+    # Druga transakcja z tym samym partnerem w turze — komponentów nie da się położyć.
+    _sit(client, "p1", "p2")
+    assert _put(client, "p1", "p2", trade_goods=1) == 422
+
+
+def test_stol_tylko_wlasne_rzeczy_i_tylko_strona(client: TestClient) -> None:
+    _sit(client, "p1", "p2")
+    # Nie da się położyć cudzej notki ani więcej TG, niż się ma.
+    assert _put(client, "p1", "p2", promissory_note="blue_ps") == 422
+    assert _put(client, "p1", "p2", trade_goods=9) == 422
+    # Kłaść może tylko strona stołu (aktor = gracz z treści).
     resp = client.post(
-        "/transactions/propose",
-        json={"partner_id": "p2", "give": {"trade_goods": 2}, "receive": {"commodities": 1}},
+        "/transactions/table/side",
+        json={"player_id": "p1", "partner_id": "p2", "side": {"trade_goods": 1}},
+        headers={"X-Actor-Id": "p2"},
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 403
+    # Zamknięcie stołu - nic nie przechodzi.
+    body = {"player_id": "p2", "partner_id": "p1"}
+    assert client.post("/transactions/table/close", json=body).status_code == 200
+    assert client.get("/transactions/state?player=p1").json()["tables"] == []
+
+
+def test_stol_z_nie_sasiadem_tylko_dlug(client: TestClient) -> None:
+    """RULES.md 47.1b/47.3: dług na stole bez sąsiedztwa, bez zużycia limitu transakcji."""
+    _sit(client, "p1", "p3")
+    assert _put(client, "p1", "p3", trade_goods=1) == 422
+    assert _put(client, "p1", "p3", debt_tokens=2) == 200
+    assert _ready(client, "p1", "p3") == 200
+    assert _ready(client, "p3", "p1") == 200
+    data = client.get("/api/public/game/g/web-data").json()
+    p3 = next(p for p in data["playerData"] if p["color"] == "green")
+    assert p3["debtTokens"] == {"red": 2}
+    assert data["gameState"]["transactionTables"] == []
+
+
+def test_stol_dlug_i_komponenty_razem(client: TestClient) -> None:
+    _sit(client, "p1", "p2")
+    assert _put(client, "p1", "p2", trade_goods=1) == 200
+    assert _put(client, "p2", "p1", debt_tokens=3) == 200
+    _ready(client, "p1", "p2")
+    _ready(client, "p2", "p1")
     data = client.get("/api/public/game/g/web-data").json()
     p1 = next(p for p in data["playerData"] if p["color"] == "red")
-    assert p1["tg"] == 3  # nic się nie wydarzyło przed zgodą
-    view = client.get("/transactions/state").json()
-    assert view["offer"]["proposer"] == "p1"
-    assert view["offer"]["give"]["tradeGoods"] == 2
-    # Druga propozycja, póki pierwsza czeka — 422.
-    again = client.post(
-        "/transactions/propose", json={"partner_id": "p2", "give": {"trade_goods": 1}}
-    )
-    assert again.status_code == 422
-    # Odpowiada tylko partner.
-    wrong = client.post(
-        "/transactions/respond", json={"accept": True}, headers={"X-Actor-Id": "p1"},
-    )
-    assert wrong.status_code == 403
-    ok = client.post("/transactions/respond", json={"player_id": "p2", "accept": True})
-    assert ok.status_code == 200
-    data = client.get("/api/public/game/g/web-data").json()
-    p1 = next(p for p in data["playerData"] if p["color"] == "red")
-    p2 = next(p for p in data["playerData"] if p["color"] == "blue")
-    # p1: 3 - 2 + 1 (commodity od p2 -> TG); p2: 1 + 2 = 3.
-    assert (p1["tg"], p2["tg"]) == (2, 3)
-    assert p1["transactedWith"] == ["blue"]
-    assert client.get("/transactions/state").json()["offer"] is None
-    # Druga transakcja z tym samym partnerem w turze — 422 z powodem.
-    again = client.post(
-        "/transactions/propose", json={"partner_id": "p2", "give": {"trade_goods": 1}}
-    )
-    assert again.status_code == 422
-    assert "already made a transaction" in again.json()["detail"]
+    assert p1["debtTokens"] == {"blue": 3} and p1["transactedWith"] == ["blue"]
 
 
-def test_endpoint_declined_and_cancelled_offer_change_nothing(client: TestClient) -> None:
-    body = {"partner_id": "p2", "give": {"trade_goods": 1}}
-    assert client.post("/transactions/propose", json=body).status_code == 200
-    assert client.post(
-        "/transactions/respond", json={"player_id": "p2", "accept": False}
-    ).status_code == 200
-    assert client.get("/transactions/state").json()["offer"] is None
-    # Odrzucenie nie zużywa limitu: można zaproponować ponownie, a potem wycofać.
-    assert client.post("/transactions/propose", json=body).status_code == 200
-    assert client.post("/transactions/cancel", json={"player_id": "p1"}).status_code == 200
-    data = client.get("/api/public/game/g/web-data").json()
-    p1 = next(p for p in data["playerData"] if p["color"] == "red")
-    assert p1["tg"] == 3 and p1["transactedWith"] == []
+def test_stol_jawna_tylko_para() -> None:
+    from src.core import transaction_table
 
-
-def test_offer_content_hidden_from_other_players() -> None:
-    state = transaction.propose_transaction(
-        _state(), _grid(), "p2", TransactionSide(promissory_note="red_ceasefire"), TransactionSide()
+    state = transaction_table.open_table(_state(), "p1", "p2")
+    state = transaction_table.set_side(
+        state, _grid(), "p1", "p2", TransactionSide(promissory_note="red_ceasefire")
     )
-    assert state.transaction_offer is not None
-    assert state.transaction_offer.give["promissory_note"] == "red_ceasefire"
-    # Propozycja znika z nową turą (żyje tylko w turze autora).
+    assert state.transaction_tables[0].sides["p1"]["promissory_note"] == "red_ceasefire"
+    # Stół ginie z nową turą.
     action_budget.reset_turn(state, "p2")
-    assert state.transaction_offer is None
+    assert state.transaction_tables == []
 
 
-def test_bot_partner_answers_at_once() -> None:
+def test_bot_ocenia_stol_po_ready_czlowieka() -> None:
+    from src.core import transaction_table
     from src.core.game_state import ControlType
 
     state = _state()
     state.players["p2"].control_type = ControlType.BOT
-    gift = transaction.propose_transaction(
-        state, _grid(), "p2", TransactionSide(trade_goods=1), TransactionSide()
-    )
-    assert gift.transaction_offer is None
-    assert gift.players["p2"].trade_goods == 2  # prezent przyjęty
-    greedy = transaction.propose_transaction(
-        state, _grid(), "p2", TransactionSide(), TransactionSide(trade_goods=1)
-    )
-    assert greedy.transaction_offer is None
-    assert greedy.players["p1"].trade_goods == 3  # bot odmówił oddania za darmo
+    state = transaction_table.open_table(state, "p1", "p2")
+    gift = transaction_table.set_side(state, _grid(), "p1", "p2", TransactionSide(trade_goods=1))
+    done = transaction_table.set_ready(gift, _grid(), "p1", "p2", True)
+    assert done.players["p2"].trade_goods == 2  # prezent przyjęty
+    assert done.transaction_tables == []
 
 
-def test_endpoint_debt_tokens_roundtrip(client: TestClient) -> None:
+def test_endpoint_debt_tokens_return(client: TestClient) -> None:
     ok = client.post("/debt/give", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
     assert ok.status_code == 200
-    data = client.get("/api/public/game/g/web-data").json()
-    p3 = next(p for p in data["playerData"] if p["color"] == "green")
-    assert p3["debtTokens"] == {"red": 3}
     back = client.post("/debt/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 5})
     assert back.status_code == 422
     done = client.post("/debt/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
     assert done.status_code == 200
-
-
-def test_reka_partnera_ukryta_prosba_o_mozliwa_notke(client: TestClient) -> None:
-    """RULES.md 47.1a: proszę o notkę z listy możliwych; propozycja nie zdradza ręki partnera."""
-    state = _state()
-    state.players["p3"].private.promissory_notes = ["green_ta"]
-    # Notki w cudzych rękach (bez wskazania posiadacza), bez własnych.
-    assert transaction.requestable_notes(state, "p1") == ["blue_ps", "blue_sftt", "green_ta"]
-    # Prośba o notkę, której partner NIE ma, przechodzi propozycję (bez wycieku)...
-    offer = transaction.propose_transaction(
-        state, _grid(), "p2", TransactionSide(trade_goods=1),
-        TransactionSide(promissory_note="green_ta"),
-    )
-    assert offer.transaction_offer is not None
-    # ...ale akceptacja jej nie przeniesie.
-    with pytest.raises(ValueError, match="does not hold the promissory note"):
-        transaction.respond_to_offer(offer, _grid(), "p2", accept=True)
-    # Notka spoza czyichkolwiek rąk - odrzucona od razu.
-    with pytest.raises(ValueError, match="not in any player's hand"):
-        transaction.propose_transaction(
-            state, _grid(), "p2", TransactionSide(), TransactionSide(promissory_note="zz_x")
-        )
-    view = client.get("/transactions/state").json()
-    assert view["requestableNotes"] == ["blue_ps", "blue_sftt"]
-
-
-def test_bot_bez_notki_odrzuca() -> None:
-    from src.core.game_state import ControlType
-
-    state = _state()
-    state.players["p3"].private.promissory_notes = ["green_ta"]
-    state.players["p2"].control_type = ControlType.BOT
-    result = transaction.propose_transaction(
-        state, _grid(), "p2", TransactionSide(trade_goods=3),
-        TransactionSide(promissory_note="green_ta"),
-    )
-    assert result.transaction_offer is None
-    assert result.players["p1"].trade_goods == 3  # odrzucił - nic nie przeszło

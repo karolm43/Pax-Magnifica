@@ -141,6 +141,26 @@ class Flow:
             assert resp.status_code == 200, f"{path}: {resp.text}"
         return resp
 
+    def transact(
+        self, give: Json | None = None, receive: Json | None = None,
+        partner: str | None = None, ok: bool = True,
+    ) -> Any:
+        """Stół transakcji (RULES.md 47.1b): ja kładę ``give``, partner ``receive``, oba Ready.
+
+        ``ok=False``: zwraca odpowiedź na położenie MOJEJ strony (np. 422) i zamyka stół.
+        """
+        other = partner or self.other
+        pair = {"player_id": self.me, "partner_id": other}
+        self.post("/transactions/table/open", pair)
+        resp = self.post("/transactions/table/side", {**pair, "side": give or {}}, ok=ok)
+        if not ok:
+            self.post("/transactions/table/close", pair)
+            return resp
+        back = {"player_id": other, "partner_id": self.me}
+        self.post("/transactions/table/side", {**back, "side": receive or {}})
+        self.post("/transactions/table/ready", pair)
+        return self.post("/transactions/table/ready", back)
+
     def activate(self, position: str) -> None:
         self.post("/tactical/activate", {"position": position})
 

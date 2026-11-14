@@ -24,10 +24,7 @@ def _over_limit(registry: StaticDataRegistry) -> tuple[Flow, list[str]]:
         s["players"][flow.other]["private"]["action_cards"] = [given]
 
     flow.edit(hands)
-    flow.post("/transactions/propose", {
-        "partner_id": flow.other, "receive": {"action_cards": [given]},
-    })
-    flow.post("/transactions/respond", {"player_id": flow.other, "accept": True})
+    flow.transact(receive={"action_cards": [given]})
     hand = flow.state()["players"][flow.me]["private"]["action_cards"]
     assert len(hand) == 8
     return flow, hand
@@ -41,9 +38,7 @@ def test_nadwyzka_blokuje_ture_i_zagrywanie(registry: StaticDataRegistry) -> Non
     resp = flow.post("/turn/end", {"player_id": flow.me}, ok=False)
     assert resp.status_code == 422 and "discard" in resp.text
     # Nadwyżki nie wolno oddać w transakcji (R_action_cards: „cannot trade them”).
-    resp = flow.post("/transactions/propose", {
-        "partner_id": flow.other, "give": {"action_cards": [hand[0]]},
-    }, ok=False)
+    resp = flow.transact(give={"action_cards": [hand[0]]}, ok=False)
     assert resp.status_code == 422
 
 

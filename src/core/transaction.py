@@ -13,9 +13,9 @@ Reguła TI4 (źródło: tirules2.com → ``docs/rules_tirules/R_transactions.md`
   też nie — tylko ich FRAGMENTY.
 * Warunki uzgadniają gracze; po wymianie transakcji nie da się cofnąć (tu: Undo silnika).
 
-Zgoda (RULES.md 47.1a): aktywny gracz SKŁADA propozycję (``propose_transaction``), a wymiana
-następuje dopiero, gdy partner ją przyjmie (``respond_to_offer``). Bot odpowiada od razu
-(``bot_accepts`` — ⚠️ ZAŁOŻENIE do czasu warstwy AI).
+Zgoda (RULES.md 47.1b): strony negocjują przy STOLE (``core.transaction_table``) — każda kładzie
+własne rzeczy, wymiana następuje, gdy obie dadzą Ready. Ten moduł to walidacja i sama wymiana;
+bot ocenia stół ``bot_accepts`` (⚠️ ZAŁOŻENIE do czasu warstwy AI).
 
 Asymetria frakcji przez hooki: transakcja bez sąsiedztwa (``POINT_TRANSACTION_ANY_PLAYER`` —
 Guild Ships, Trade Convoys), karty akcji w transakcji (``POINT_TRANSACTION_ACTION_CARDS`` —
@@ -44,14 +44,14 @@ from src.core import (
     unit_ops,
 )
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import ControlType, GameState, Phase, TransactionOffer
+from src.core.game_state import GameState, Phase
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_of
 
 
 @dataclass(frozen=True)
 class TransactionSide:
-    """Jedna strona transakcji: to, co dany gracz ODDAJE partnerowi."""
+    """Jedna strona stołu: to, co dany gracz ODDAJE partnerowi (kładzie na stół)."""
 
     trade_goods: int = 0
     commodities: int = 0
@@ -65,14 +65,19 @@ class TransactionSide:
     # Karty planet (Pride of Kenara): wpisy ``"<planeta>><planeta docelowa>"`` - jednostki
     # oddającego przechodzą z planety na docelową (jego), kontrolę dostaje partner.
     planets: tuple[str, ...] = field(default_factory=tuple)
+    # Poza transakcją (RULES.md 47.1b, 47.4): ile SWOICH żetonów długu kładę (pamięć stołu),
+    # „darmowe secondary Trade” (tylko posiadacz karty w kroku 3) i obietnica „wash −N”.
+    debt_tokens: int = 0
+    trade_secondary: bool = False
+    wash: int | None = None
 
     def has_extras(self) -> bool:
         """Czy strona oddaje coś spoza standardowej listy (relikty / karty akcji / tajne cele)."""
         return bool(self.relics or self.action_cards or self.secret_objectives)
 
-    def is_empty(self) -> bool:
-        """Czy strona nic nie oddaje."""
-        return (
+    def has_components(self) -> bool:
+        """Czy strona oddaje komponenty gry (to, co wymaga prawdziwej transakcji 47.1)."""
+        return not (
             self.trade_goods == 0
             and self.commodities == 0
             and self.promissory_note is None
@@ -81,15 +86,29 @@ class TransactionSide:
             and not self.has_extras()
         )
 
+    def is_empty(self) -> bool:
+        """Czy strona nic nie kładzie na stół (ani komponentów, ani długu, ani umowy Trade)."""
+        return (
+            not self.has_components()
+            and self.debt_tokens == 0
+            and not self.trade_secondary
+            and self.wash is None
+        )
+
+    def components(self) -> TransactionSide:
+        """Sama część transakcyjna strony (bez długu i umowy Trade)."""
+        return replace(self, debt_tokens=0, trade_secondary=False, wash=None)
+
     def to_dict(self) -> dict[str, Any]:
-        """Postać zapisywana w ``TransactionOffer`` (JSON-owalna)."""
+        """Postać zapisywana w ``TransactionTable`` (JSON-owalna)."""
         raw = asdict(self)
         return {k: (list(v) if isinstance(v, tuple) else v) for k, v in raw.items()}
 
     @classmethod
     def from_dict(cls, raw: Mapping[str, Any]) -> TransactionSide:
-        """Odtwarza stronę zapisaną w ``TransactionOffer``."""
+        """Odtwarza stronę zapisaną w ``TransactionTable``."""
         note = raw.get("promissory_note")
+        wash = raw.get("wash")
         return cls(
             trade_goods=int(raw.get("trade_goods", 0)),
             commodities=int(raw.get("commodities", 0)),
@@ -99,6 +118,9 @@ class TransactionSide:
             action_cards=tuple(str(x) for x in raw.get("action_cards", ())),
             secret_objectives=tuple(str(x) for x in raw.get("secret_objectives", ())),
             planets=tuple(str(x) for x in raw.get("planets", ())),
+            debt_tokens=int(raw.get("debt_tokens", 0)),
+            trade_secondary=bool(raw.get("trade_secondary", False)),
+            wash=None if wash is None else int(wash),
         )
 
 
@@ -117,7 +139,12 @@ def action_cards_allowed(state: GameState, a: str, b: str) -> bool:
     ) or _either_permits(state, rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, a, b)
 
 
-def _reachable(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
+def extras_allowed(state: GameState, a: str, b: str) -> bool:
+    """Czy ta para może wymieniać relikty i tajne cele (Black Market Dealings)."""
+    return _either_permits(state, rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, a, b)
+
+
+def reachable(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
     """Sąsiedzi albo efekt pozwalający na transakcję bez sąsiedztwa (Guild Ships, Trade Convoys)."""
     return b in neighbors_of(a, state, grid) or _either_permits(
         state, rules_hooks.POINT_TRANSACTION_ANY_PLAYER, a, b
@@ -160,32 +187,8 @@ def _validate_extras(
             )
 
 
-def requestable_notes(state: GameState, viewer_id: str) -> list[str]:
-    """Notki, o które ``viewer_id`` może poprosić partnera: wszystkie notki w cudzych rękach.
-
-    Ręka notek jest ukryta (R_promissory_notes), więc proszący nie widzi ręki partnera. Zbiór
-    „notki w czyichś rękach poza moją" wynika z informacji jawnych (strefy gry, odrzucone), nie
-    zdradza, KTO trzyma notkę - posiadanie sprawdza dopiero akceptacja partnera.
-    """
-    return sorted(
-        {
-            note
-            for pid, player in state.players.items()
-            if pid != viewer_id
-            for note in player.private.promissory_notes
-        }
-    )
-
-
-def _validate_side(
-    state: GameState, giver_id: str, side: TransactionSide, who: str, *, hidden: bool = False
-) -> None:
-    """Sprawdza, czy ``giver_id`` faktycznie posiada to, co ma oddać (``who`` = etykieta).
-
-    ``hidden=True`` (propozycja, strona partnera): notki z jego ukrytej ręki nie są sprawdzane,
-    by odmowa nie zdradzała jej zawartości - wystarczy notka w czyjejś ręce; posiadanie sprawdza
-    akceptacja (``respond_to_offer``).
-    """
+def validate_own_side(state: GameState, giver_id: str, side: TransactionSide, who: str) -> None:
+    """Sprawdza, czy ``giver_id`` faktycznie posiada to, co ma oddać (``who`` = etykieta)."""
     giver = state.players[giver_id]
     if side.trade_goods < 0 or side.commodities < 0:
         raise ValueError("Amounts in a transaction cannot be negative.")
@@ -198,10 +201,7 @@ def _validate_side(
             f"{who} cannot give {side.commodities} commodities - has only {giver.commodities}."
         )
     note = side.promissory_note
-    if hidden and note is not None:
-        if note not in {n for p in state.players.values() for n in p.private.promissory_notes}:
-            raise ValueError(f"The promissory note '{note}' is not in any player's hand.")
-    elif note is not None and note not in giver.private.promissory_notes:
+    if note is not None and note not in giver.private.promissory_notes:
         raise ValueError(
             f"{who} does not hold the promissory note '{note}' in hand "
             "(notes in the play area cannot be traded)."
@@ -225,14 +225,11 @@ def _planet_position(state: GameState, planet: str) -> str | None:
     )
 
 
-def _validate_planets(
-    state: GameState, giver_id: str, side: TransactionSide, who: str, *, pending: bool = False
-) -> None:
+def _validate_planets(state: GameState, giver_id: str, side: TransactionSide, who: str) -> None:
     """Pride of Kenara: planeta z hooka, cel = inna planeta oddającego, nie w trakcie walki.
 
     Cel jednostek zawsze wybiera ODDAJĄCY planetę (decyzja użytkownika 2026-11-13, RULES.md
-    62.6): w propozycji strona partnera (``pending=True``) podaje samą planetę, cel partner
-    wskazuje przy akceptacji (``respond_to_offer``).
+    62.6) — kładąc planetę na stół (RULES.md 47.1b), od razu wskazuje cel swoich jednostek.
     """
     if not side.planets:
         return
@@ -247,12 +244,6 @@ def _validate_planets(
         if planet in seen:
             raise ValueError(f"The planet '{planet}' is listed twice.")
         seen.add(planet)
-        if pending:
-            if dest:
-                raise ValueError(
-                    "The player trading the planet chooses where their units move."
-                )
-            continue
         dest_pos = _planet_position(state, dest)
         if (
             not dest
@@ -261,30 +252,6 @@ def _validate_planets(
             or state.systems[dest_pos].planet_owners.get(dest) != giver_id
         ):
             raise ValueError(f"Choose another planet {who.lower()} control(s) for the units.")
-
-
-def unit_destinations(state: GameState, player_id: str, planet: str) -> list[str]:
-    """Planety, na które oddający może przenieść jednostki z oddawanej planety (Pride of Kenara)."""
-    return sorted(
-        p for sys in state.systems.values()
-        for p, owner in sys.planet_owners.items()
-        if owner == player_id and p != planet
-    )
-
-
-def _with_destinations(side: TransactionSide, chosen: Mapping[str, str]) -> TransactionSide:
-    """Uzupełnia cele jednostek w wpisach planet bez celu (wybór oddającego przy akceptacji)."""
-    if not side.planets:
-        return side
-    entries: list[str] = []
-    for entry in side.planets:
-        planet, _, dest = entry.partition(">")
-        if not dest:
-            dest = chosen.get(planet, "")
-        if not dest:
-            raise ValueError(f"Choose the planet your units on '{planet}' move to.")
-        entries.append(f"{planet}>{dest}")
-    return replace(side, planets=tuple(entries))
 
 
 def _apply_planets(
@@ -331,20 +298,35 @@ def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: Transac
 def can_transact_with(
     state: GameState, grid: HexGrid, player_id: str, partner_id: str
 ) -> bool:
-    """Czy ``player_id`` może TERAZ zacząć transakcję z ``partner_id`` (sąsiad, bez limitu)."""
+    """Czy ``player_id`` (aktywny) może TERAZ zrobić transakcję z ``partner_id``."""
     player = state.players.get(player_id)
     if player is None or partner_id == player_id or partner_id not in state.players:
         return False
     if partner_id in player.transacted_with:
         return False
-    return _reachable(state, grid, player_id, partner_id)
+    return reachable(state, grid, player_id, partner_id)
+
+
+def components_allowed(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
+    """Czy para ``a``-``b`` może teraz wymieniać KOMPONENTY (RULES.md 47.1b).
+
+    Faza akcji, jedna ze stron aktywna, druga osiągalna i bez transakcji w tej turze. Inaczej
+    stół dopuszcza wyłącznie żetony długu.
+    """
+    if state.phase is not Phase.ACTION:
+        return False
+    active = state.active_player_id
+    if active not in (a, b):
+        return False
+    other = b if active == a else a
+    return can_transact_with(state, grid, active, other)
 
 
 def trade_partners(state: GameState, grid: HexGrid, player_id: str) -> list[str]:
     """Gracze, z którymi ``player_id`` może negocjować (sąsiedzi + efekty bez sąsiedztwa)."""
     return [
         pid for pid in state.players
-        if pid != player_id and _reachable(state, grid, player_id, pid)
+        if pid != player_id and reachable(state, grid, player_id, pid)
     ]
 
 
@@ -355,8 +337,6 @@ def validate_transaction(
     give: TransactionSide,
     receive: TransactionSide,
     player_id: str | None = None,
-    *,
-    pending: bool = False,
 ) -> str:
     """Sprawdza legalność transakcji aktywnego gracza z ``partner_id``; zwraca id aktywnego.
 
@@ -384,28 +364,29 @@ def validate_transaction(
             "You already made a transaction with this player this turn "
             "(one per neighbor per turn)."
         )
-    if not _reachable(state, grid, active_id, partner_id):
+    if not reachable(state, grid, active_id, partner_id):
         raise ValueError("You can only make a transaction with a neighbor.")
-    if give.is_empty() and receive.is_empty():
+    if not give.has_components() and not receive.has_components():
         raise ValueError("An empty transaction - add something to exchange.")
-    _validate_side(state, active_id, give, "You")
-    _validate_side(state, partner_id, receive, "The partner", hidden=pending)
-    _validate_planets(state, active_id, give, "You")
-    _validate_planets(state, partner_id, receive, "The partner", pending=pending)
-    # Black Market Dealings: ktokolwiek z dwóch stron ma efekt, obie mogą włączyć dodatkowe rzeczy.
-    extras_ok = _either_permits(
-        state, rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, active_id, partner_id
-    )
-    cards_ok = _either_permits(
-        state, rules_hooks.POINT_TRANSACTION_ACTION_CARDS, active_id, partner_id
-    )
-    _validate_extras(
-        state, active_id, give, "You", allowed=extras_ok, cards_allowed=cards_ok
-    )
-    _validate_extras(
-        state, partner_id, receive, "The partner", allowed=extras_ok, cards_allowed=cards_ok
-    )
+    validate_side(state, active_id, partner_id, give, "You")
+    validate_side(state, partner_id, active_id, receive, "The partner")
     return active_id
+
+
+def validate_side(
+    state: GameState, giver_id: str, partner_id: str, side: TransactionSide, who: str
+) -> None:
+    """Pełna walidacja jednej strony: posiadanie, planety (Pride of Kenara), karty akcji /
+    relikty / cele (Arbiters, Black Market Dealings — efekt którejkolwiek strony wystarcza)."""
+    validate_own_side(state, giver_id, side, who)
+    _validate_planets(state, giver_id, side, who)
+    _validate_extras(
+        state, giver_id, side, who,
+        allowed=extras_allowed(state, giver_id, partner_id),
+        cards_allowed=_either_permits(
+            state, rules_hooks.POINT_TRANSACTION_ACTION_CARDS, giver_id, partner_id
+        ),
+    )
 
 
 def resolve_transaction(
@@ -419,15 +400,15 @@ def resolve_transaction(
     """Wykonuje transakcję aktywnego gracza z ``partner_id`` (po zgodzie obu stron) — RULES.md 47.
 
     ``give`` = co oddaje aktywny gracz, ``receive`` = co dostaje od partnera. Walidacja:
-    ``validate_transaction``. Nie pyta o zgodę — robi to ``propose_transaction`` /
-    ``respond_to_offer`` (RULES.md 47.1a).
+    ``validate_transaction``. Nie pyta o zgodę — robi to stół (``core.transaction_table``,
+    RULES.md 47.1b). Dług i umowa Trade z ``give``/``receive`` są pomijane (obsługuje je stół).
 
     Raises:
         ValueError: Transakcja nielegalna (``validate_transaction``).
     """
+    give, receive = give.components(), receive.components()
     active_id = validate_transaction(state, grid, partner_id, give, receive, player_id)
     new_state = state.clone()
-    new_state.transaction_offer = None
     _apply_side(new_state, active_id, partner_id, give)
     _apply_side(new_state, partner_id, active_id, receive)
     new_state.players[active_id].transacted_with.append(partner_id)
@@ -446,129 +427,27 @@ def resolve_transaction(
     return new_state
 
 
-# ------------------------------------------------------------------ zgoda partnera (47.1a)
+# ------------------------------------------------------------------ bot przy stole (47.1b)
 
 
 def _value(side: TransactionSide) -> int:
-    """Prosta wartość strony dla bota: TG/commodity = 1, notka / fragment / karta / relikt = 2."""
+    """Prosta wartość strony dla bota: TG/commodity/żeton długu = 1, notka / fragment / karta /
+    relikt / cel / darmowe secondary Trade = 2."""
     return (
         side.trade_goods
         + side.commodities
+        + side.debt_tokens
         + 2 * (side.promissory_note is not None)
         + 2 * (len(side.relic_fragments) + len(side.action_cards) + len(side.relics))
         + 2 * len(side.secret_objectives)
+        + 2 * side.trade_secondary
     )
-
-
-def _holds_note(state: GameState, giver_id: str, side: TransactionSide) -> bool:
-    """Czy oddający ma w ręce notkę, o którą proszono (bot bez niej po prostu odrzuca)."""
-    note = side.promissory_note
-    return note is None or note in state.players[giver_id].private.promissory_notes
 
 
 def bot_accepts(give: TransactionSide, receive: TransactionSide) -> bool:
-    """⚠️ ZAŁOŻENIE (RULES.md 47.1a): bot przyjmuje, gdy dostaje co najmniej tyle, ile oddaje.
+    """⚠️ ZAŁOŻENIE (RULES.md 47.1b): bot przyjmuje, gdy dostaje co najmniej tyle, ile oddaje.
 
-    ``give`` = co bot DOSTAJE (strona proponującego), ``receive`` = co bot ODDAJE. Placeholder do
-    czasu warstwy AI — deterministyczny, bez losowania.
+    ``give`` = co bot DOSTAJE (strona człowieka), ``receive`` = co bot ODDAJE (jego strona stołu).
+    Placeholder do czasu warstwy AI — deterministyczny, bez losowania.
     """
     return _value(give) >= _value(receive)
-
-
-def pending_offer(state: GameState) -> TransactionOffer | None:
-    """Propozycja transakcji czekająca na odpowiedź (None, gdy brak)."""
-    return state.transaction_offer
-
-
-def offer_sides(offer: TransactionOffer) -> tuple[TransactionSide, TransactionSide]:
-    """``(give, receive)`` propozycji z punktu widzenia proponującego."""
-    return TransactionSide.from_dict(offer.give), TransactionSide.from_dict(offer.receive)
-
-
-def propose_transaction(
-    state: GameState,
-    grid: HexGrid,
-    partner_id: str,
-    give: TransactionSide,
-    receive: TransactionSide,
-    player_id: str | None = None,
-) -> GameState:
-    """Aktywny gracz proponuje transakcję; wymiana czeka na zgodę partnera (RULES.md 47.1a).
-
-    Ta sama walidacja co przy wymianie. Naraz czeka najwyżej jedna propozycja. Partner-bot
-    odpowiada od razu (``bot_accepts``) — wynik: wymiana albo odrzucenie (ślad w ``chronicle``
-    przez etykietę commitu routera).
-
-    Raises:
-        ValueError: Transakcja nielegalna albo inna propozycja już czeka.
-    """
-    if state.transaction_offer is not None:
-        raise ValueError(
-            "Another transaction offer is waiting for an answer - wait or cancel it first."
-        )
-    active_id = validate_transaction(
-        state, grid, partner_id, give, receive, player_id, pending=True
-    )
-    new_state = state.clone()
-    new_state.transaction_offer = TransactionOffer(
-        proposer=active_id, partner=partner_id, give=give.to_dict(), receive=receive.to_dict()
-    )
-    partner = new_state.players[partner_id]
-    if partner.control_type is ControlType.BOT:
-        # Placeholder do warstwy AI: bot przenosi jednostki na pierwszą swoją planetę.
-        bot_dests = {
-            planet: next(iter(unit_destinations(new_state, partner_id, planet)), "")
-            for planet in (e.partition(">")[0] for e in receive.planets)
-        }
-        return respond_to_offer(
-            new_state, grid, partner_id,
-            accept=bot_accepts(give, receive) and _holds_note(new_state, partner_id, receive),
-            planet_destinations=bot_dests,
-        )
-    return new_state
-
-
-def respond_to_offer(
-    state: GameState,
-    grid: HexGrid,
-    responder_id: str,
-    *,
-    accept: bool,
-    planet_destinations: Mapping[str, str] | None = None,
-) -> GameState:
-    """Partner przyjmuje (wymiana — ponowna walidacja) albo odrzuca propozycję.
-
-    ``planet_destinations`` = ``{planeta: cel}`` dla oddawanych przez partnera planet (Pride of
-    Kenara) — cel jego jednostek wybiera on sam przy akceptacji.
-
-    Raises:
-        ValueError: Brak propozycji, odpowiada nie partner albo transakcja przestała być legalna.
-    """
-    offer = state.transaction_offer
-    if offer is None:
-        raise ValueError("There is no transaction offer to answer.")
-    if responder_id != offer.partner:
-        raise ValueError("Only the player the offer was made to can answer it.")
-    if not accept:
-        new_state = state.clone()
-        new_state.transaction_offer = None
-        return new_state
-    give, receive = offer_sides(offer)
-    receive = _with_destinations(receive, planet_destinations or {})
-    return resolve_transaction(state, grid, offer.partner, give, receive, offer.proposer)
-
-
-def cancel_offer(state: GameState, player_id: str) -> GameState:
-    """Proponujący wycofuje swoją propozycję przed odpowiedzią partnera.
-
-    Raises:
-        ValueError: Brak propozycji albo wycofuje ktoś inny niż proponujący.
-    """
-    offer = state.transaction_offer
-    if offer is None:
-        raise ValueError("There is no transaction offer to cancel.")
-    if player_id != offer.proposer:
-        raise ValueError("Only the player who made the offer can withdraw it.")
-    new_state = state.clone()
-    new_state.transaction_offer = None
-    return new_state
