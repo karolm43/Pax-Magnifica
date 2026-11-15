@@ -36,7 +36,7 @@ async def get_playable_action_cards(
         rows = action_cards.playability(state, ctx.registry, player_id)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    # Karty, których okno minęło ostatnim krokiem (Public Disgrace): zagrywalne przez hold-rewind.
+    # Karty reakcji, których okno minęło ostatnim krokiem: zagrywalne przez hold-rewind (53.7).
     chain = [
         hold_rewind.Snapshot(seq, label, snap)
         for seq, label, snap in ctx.service.recent_chain(2)

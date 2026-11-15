@@ -161,17 +161,35 @@ def _with_hindsight(state: GameState, card_id: str, window: OpenWindow) -> OpenW
 
 
 _REWINDABLE: set[str] = set()
+# Karty reakcji WYŁĄCZONE z hold-rewind. Sabotage odpowiada na ``held_play`` (okno, które czeka
+# samo, a trwający ``held_play`` i tak blokuje cofanie) - cofanie nic jej nie daje.
+_NOT_REWINDABLE: frozenset[str] = frozenset({"sabo1", "sabo2", "sabo3", "sabo4"})
 
 
 def declare_rewindable(*card_ids: str) -> None:
-    """Oznacza karty, które można zagrać przez hold-rewind (cofnięcie do okna, które minęło)."""
+    """Jawnie oznacza karty do hold-rewind (np. bez specyfikacji czasowej w katalogu)."""
     _REWINDABLE.update(card_ids)
 
 
-def is_rewindable(card_id: str) -> bool:
-    """Czy kartę wolno zagrać przez hold-rewind (``core/hold_rewind.py``, RULES.md 53.7)."""
+def is_reaction_card(registry: StaticDataRegistry, card_id: str) -> bool:
+    """Czy karta akcji jest kartą reakcji (okno inne niż ACTION, jak w ``playability``)."""
+    spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
+    return spec is None or spec.trigger is not TriggerKind.ACTION
+
+
+def is_rewindable(registry: StaticDataRegistry, card_id: str) -> bool:
+    """Czy kartę wolno zagrać przez hold-rewind (``core/hold_rewind.py``, RULES.md 53.7).
+
+    KAŻDA karta reakcji (okno when / after / at start...) poza Sabotage: gra nie czeka na reakcje,
+    więc okno każdej z nich może minąć, zanim gracz zdąży ją przeciągnąć. Karty ACTION nie
+    korzystają (grane we własnej turze jako akcja - cofanie byłoby zwykłym Undo). Zakaz oszustwa
+    (kości, talie, faza, zagrania kart) pilnuje ``hold_rewind.is_irreversible_step`` niezależnie od
+    karty, a okno i cel karty liczone są na stanie migawki.
+    """
     _ensure_loaded()
-    return card_id in _REWINDABLE
+    if card_id in _REWINDABLE:
+        return True
+    return card_id not in _NOT_REWINDABLE and is_reaction_card(registry, card_id)
 
 
 def card_effect_source(card_id: str) -> HookSource:

@@ -1,9 +1,10 @@
 """Hold-rewind (RULES.md 53.7): zagranie karty reakcji W OKNIE, KTÓRE JUŻ MINĘŁO.
 
-Gra nie czeka na reakcje (kolejka poszła dalej). Gracz z kartą "cofającą" (Public Disgrace, Coup
-d'Etat, Political Stability, Crash Landing) wybiera ze stosu migawek ``EventStore`` krok, w którym
-chciał ją zagrać, a silnik w JEDNYM commicie cofa stan do tej migawki (późniejsze kroki odpadają,
-historia się rozgałęzia) i od razu zagrywa kartę w tamtym oknie.
+Gra nie czeka na reakcje (kolejka poszła dalej). Gracz z kartą reakcji (KAŻDA karta akcji z oknem
+when / after / at start... poza Sabotage - ``reaction_cards.is_rewindable``) wybiera ze stosu
+migawek ``EventStore`` krok, w którym chciał ją zagrać, a silnik w JEDNYM commicie cofa stan do
+tej migawki (późniejsze kroki odpadają, historia się rozgałęzia) i od razu zagrywa kartę
+w tamtym oknie.
 
 ZAKAZ OSZUSTWA - cofać wolno tylko, gdy na drodze od migawki do teraźniejszości NIE nastąpiło:
 rzut kośćmi, ujawnienie informacji ukrytej (talie, dobranie kart do ręki), zmiana fazy/rundy,
@@ -136,7 +137,7 @@ def _cards_at(
     with _scope(chain, item.index):
         for row in action_cards.playability(state, registry, player_id):
             card_id = str(row["card_id"])
-            if not row["playable"] or not reaction_cards.is_rewindable(card_id):
+            if not row["playable"] or not reaction_cards.is_rewindable(registry, card_id):
                 continue
             if card_id not in hand_now:
                 continue
@@ -243,7 +244,7 @@ def inputs_at(
     """Formularz karty liczony na migawce ``seq`` (opcje z tamtego stanu)."""
     state, index = snapshot_state(chain, seq)
     _require_hand(chain, player_id, card_id)
-    if index != len(chain) - 1 and not reaction_cards.is_rewindable(card_id):
+    if index != len(chain) - 1 and not reaction_cards.is_rewindable(registry, card_id):
         raise ValueError("This card cannot be played by going back in time.")
     with _scope(chain, index):
         return action_cards.card_inputs(state, registry, player_id, card_id)
@@ -285,7 +286,7 @@ def play_at(
     item = _locate(chain, seq)
     _require_hand(chain, player_id, card_id)
     rewinding = item.index != len(chain) - 1
-    if rewinding and not reaction_cards.is_rewindable(card_id):
+    if rewinding and not reaction_cards.is_rewindable(registry, card_id):
         raise ValueError("This card cannot be played by going back in time.")
     with _scope(chain, item.index):
         new_state, implemented = action_cards.play_action_card(

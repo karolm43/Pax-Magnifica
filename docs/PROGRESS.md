@@ -1382,3 +1382,11 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Pasek „Decisions” z uchwytem jest zawsze (wcześniej znikał przy samych chipach — zostawał wąski skrawek do chwycenia).
 - QA: front tsc + eslint + vitest `domains/offers`; zrzut na tymczasowej stronie testowej (serwery gry były wyłączone).
   Pominięte: backend (bez zmian), build, e2e.
+
+## HOLD dla wszystkich kart reakcji (2026-11-15)
+
+- `reaction_cards.is_rewindable(registry, karta)`: każda karta akcji z oknem innym niż ACTION (poza Sabotage) jest
+  zagrywalna przez hold-rewind — przycisk HOLD (`/hold/candidates`) i „Play now” w doku po kroku, który zamknął okno
+  (`just_passed` → `hold_seq`). Wcześniej tylko Public Disgrace, Coup d'Etat, Political Stability, Crash Landing.
+- Zakaz oszustwa (kości, talie, faza, zagrania kart, 8 kroków) bez zmian. RULES.md 53.7.
+- Testy: `tests/test_hold_rewind.py` (zakres kart, Counterstroke po ruchu rywala przez HOLD).

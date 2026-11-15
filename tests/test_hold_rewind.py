@@ -1,4 +1,4 @@
-"""Testy hold-rewind (RULES.md 53.7): cofnięcie do okna, które minęło + 4 karty reakcji."""
+"""Testy hold-rewind (RULES.md 53.7): cofnięcie do okna, które minęło + karty reakcji."""
 
 from __future__ import annotations
 
@@ -442,3 +442,54 @@ def test_disgrace_po_wyborze_rywala_jest_grywalna_z_reki(registry: StaticDataReg
     assert service.current_state().players["p1"].strategy_cards == []
     # po zagraniu karta zniknęła z ręki - nic do podniesienia
     assert client.get("/action-card/playable?player_id=p2").json()["cards"] == []
+
+
+# ------------------------------------------------------------------ wszystkie karty reakcji
+
+
+def test_kazda_karta_reakcji_poza_sabotage_jest_cofalna(registry: StaticDataRegistry) -> None:
+    """HOLD obejmuje każdą kartę reakcji (okno when/after...), nie ACTION i nie Sabotage."""
+    from src.core.components import ComponentCategory
+    from src.core.timing_spec import TriggerKind
+
+    for card_id in ("disgrace", "coup", "stability", "crashlanding", "counterstroke", "upgrade"):
+        assert reaction_cards.is_rewindable(registry, card_id), card_id
+    for card_id in ("sabo1", "sabo2", "sabo3", "sabo4"):
+        assert not reaction_cards.is_rewindable(registry, card_id)
+    actions = [
+        ref.id
+        for ref in registry.catalog.query_timing(TriggerKind.ACTION)
+        if ref.category is ComponentCategory.ACTION_CARD
+    ]
+    assert actions
+    assert not any(reaction_cards.is_rewindable(registry, card_id) for card_id in actions)
+
+
+def test_counterstroke_po_ruchu_rywala_przez_hold(registry: StaticDataRegistry) -> None:
+    """Okno „after another player activates” zamyka pierwszy ruch - HOLD cofa do aktywacji."""
+    from src.core.game_state import TacticalStep
+
+    window = GameState(
+        phase=Phase.ACTION, active_player_id="p1", active_system="101",
+        tactical_step=TacticalStep.MOVEMENT, players=_players(p2=["counterstroke"]),
+        systems={"101": SystemState(position="101", system_id="18", command_tokens=["p1", "p2"])},
+    )
+    assert action_cards.playability(window, registry, "p2")[0]["playable"]
+    moved = window.clone()
+    moved.tactical_moved = True  # krok rywala bez kości: okno minęło
+    assert not action_cards.playability(moved, registry, "p2")[0]["playable"]
+
+    chain = _chain(window, moved)
+    assert hold_rewind.just_passed(chain, registry, "p2") == {"counterstroke": 1}
+    steps, _limit = hold_rewind.candidates(chain, registry, "p2")
+    assert [(s["seq"], [c["card_id"] for c in s["cards"]]) for s in steps] == [
+        (1, ["counterstroke"])
+    ]
+    before = window.players["p2"].tactical_cc
+    new_state, implemented = hold_rewind.play_at(
+        chain, registry, "p2", "counterstroke", 1, actor_id="p2"
+    )
+    assert implemented
+    assert not new_state.tactical_moved  # cofnięty ruch
+    assert new_state.systems["101"].command_tokens == ["p1"]
+    assert new_state.players["p2"].tactical_cc == before + 1
