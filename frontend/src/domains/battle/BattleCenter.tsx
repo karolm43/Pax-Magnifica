@@ -169,10 +169,13 @@ export function BattleCenter({
   rolling,
   onHold,
   decisionsPending = false,
+  reactionLabel = null,
 }: {
   onHold: (state: HoldState) => void;
   /** Czekają decyzje graczy (np. Salvage Operations) - silnik nie zamknie walki (RULES.md 54.9). */
   decisionsPending?: boolean;
+  /** Trwa pauza ochronna (RULES.md 54.10): etykieta okna, w którym gracze mogą reagować. */
+  reactionLabel?: string | null;
   view: BattleView;
   nameOf: (key: string) => string;
   /** Alias koloru strony (ikony jednostek w podsumowaniu). */
@@ -456,7 +459,7 @@ export function BattleCenter({
           <button
             type="button"
             className={styles.primary}
-            disabled={busy || decisionsPending}
+            disabled={busy || decisionsPending || Boolean(reactionLabel)}
             onClick={onClose}
             title={
               decisionsPending
@@ -468,6 +471,9 @@ export function BattleCenter({
           </button>
           {decisionsPending && (
             <span>Waiting for decisions from this combat (see Decisions)</span>
+          )}
+          {!decisionsPending && reactionLabel && (
+            <span>Players may react ({reactionLabel}) - up to 10 seconds</span>
           )}
         </div>
       )}

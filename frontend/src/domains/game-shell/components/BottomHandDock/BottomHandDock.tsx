@@ -38,6 +38,7 @@ import {
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
+import { ReactionPauseBanner } from "./ReactionPauseBanner";
 import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import {
@@ -696,6 +697,13 @@ export function BottomHandDock() {
     </section>
 
     <HeldPlayBanner
+      viewerId={active.discordId ?? null}
+      onNeedHand={() => {
+        setOpen(true);
+        setTab("actions");
+      }}
+    />
+    <ReactionPauseBanner
       viewerId={active.discordId ?? null}
       onNeedHand={() => {
         setOpen(true);

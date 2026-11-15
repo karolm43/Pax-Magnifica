@@ -577,6 +577,8 @@ export type GameState = {
   pendingStrategy?: PendingStrategy | null;
   /** Zagrana karta akcji czekająca ~10 s na Sabotage (RULES.md 53.6) — null, gdy brak. */
   heldPlay?: HeldPlayData | null;
+  /** Pauza ochronna w kluczowym oknie reakcji (RULES.md 54.10) — null, gdy brak. */
+  reactionPause?: ReactionPauseData | null;
   /** Stoły transakcji (RULES.md 47.1b) — jawne pary, Ready i skrót zawartości (bez treści). */
   transactionTables?: {
     opener: string;
@@ -887,6 +889,21 @@ export type HeldPlayData = {
   text: string;
   openedAt: number;
   holdSeconds: number;
+  eligible: string[];
+  passed: string[];
+};
+
+/** Pauza w kluczowym oknie (Coup, agenda, koniec bitwy, Sustain Damage) — gracze mogą reagować. */
+export type ReactionPauseData = {
+  key: string;
+  /** Angielska etykieta okna, np. „After an agenda is revealed”. */
+  label: string;
+  event: string;
+  subject: string | null;
+  subjectColor: string | null;
+  openedAt: number;
+  pauseSeconds: number;
+  /** Id graczy (jak ``actor_id``) pytanych o reakcję i tych, którzy spasowali. */
   eligible: string[];
   passed: string[];
 };

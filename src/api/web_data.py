@@ -40,6 +40,7 @@ from src.core import (
     legendary_planets,
     planet_abilities,
     production,
+    reaction_pause,
     rules_hooks,
     space_cannon,
     strategy_phase,
@@ -229,6 +230,24 @@ def _pending_strategy(state: GameState) -> dict[str, Any] | None:
         # Klucze z prefiksem „_" są PRYWATNE (np. dobrane karty akcji w Politics) - nie
         # trafiają do publicznego dokumentu; właściciel dostaje je przez /strategy/options.
         "draft": {k: v for k, v in pending.draft.items() if not k.startswith("_")},
+    }
+
+
+def _reaction_pause(state: GameState) -> dict[str, Any] | None:
+    """Kontrakt ``reactionPause``: pauza w kluczowym oknie (``openedAt`` = czas serwera)."""
+    pause = state.reaction_pause
+    if pause is None:
+        return None
+    return {
+        "key": pause.key,
+        "label": pause.label,
+        "event": pause.event,
+        "subject": pause.subject,
+        "subjectColor": _color_of(state, pause.subject) if pause.subject else None,
+        "openedAt": pause.opened_at,
+        "pauseSeconds": reaction_pause.PAUSE_SECONDS,
+        "eligible": list(pause.eligible),
+        "passed": list(pause.passed),
     }
 
 
@@ -425,6 +444,9 @@ def _build_game_state(
         # Zagrana karta akcji czekająca na ewentualne Sabotage (hold-play, RULES.md 53.6) —
         # JAWNA (leży na stole). None, gdy brak okna.
         "heldPlay": _held_play(state, registry),
+        # Pauza ochronna w kluczowym oknie reakcji (RULES.md 54.10) — JAWNA (bez informacji o
+        # rękach: uprawnieni to gracze z kartą akcji, co jest jawne). None, gdy brak.
+        "reactionPause": _reaction_pause(state),
         # Stoły transakcji (RULES.md 47.1b): JAWNE tylko pary i Ready; zawartość daje
         # ``GET /transactions/state`` samym stronom.
         "transactionTables": [

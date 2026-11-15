@@ -135,7 +135,21 @@ class Flow:
 
     # --------------------------------------------------------------------- przebieg gry
 
+    # Ścieżki, które grają W pauzie ochronnej (RULES.md 54.10) - przed nimi nikt nie pasuje.
+    _REACTING = ("/action-card/", "/promissory/", "/reaction-pause/", "/hold/", "/god-mode")
+
+    def pass_reactions(self) -> None:
+        """Pauza ochronna w kluczowym oknie: wszyscy uprawnieni klikają „Pass” (jak gracze)."""
+        pause = self.state().get("reaction_pause")
+        while pause:
+            waiting = [p for p in pause["eligible"] if p not in pause["passed"]]
+            resp = self.client.post("/reaction-pause/pass", json={"actor_id": waiting[0]})
+            assert resp.status_code == 200, resp.text
+            pause = self.state().get("reaction_pause")
+
     def post(self, path: str, body: Json | None = None, ok: bool = True) -> Any:
+        if not path.startswith(self._REACTING):
+            self.pass_reactions()
         resp = self.client.post(path, json=body if body is not None else {})
         if ok:
             assert resp.status_code == 200, f"{path}: {resp.text}"

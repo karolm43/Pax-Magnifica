@@ -11,6 +11,7 @@ from src.core import (
     action_cards,
     active_effects,
     board_graph,
+    damage,
     invasion,
     reaction_cards,
     rules_hooks,
@@ -501,6 +502,50 @@ def _fired(seed: int, registry: StaticDataRegistry, pds: int = 3, ships: int = 4
 def _pending_hits(state: GameState) -> int:
     pending = space_cannon.pending_hits(state)
     return pending.hits if pending is not None else 0
+
+
+def test_emergency_repairs_w_kroku_space_cannon_offense(registry: StaticDataRegistry) -> None:
+    """Ruling C_action_cards: Emergency Repairs także w kroku Space Cannon Offense."""
+    state = _state(
+        {"p1": {"dreadnought": 1}}, {_PL1: {"p2": {"pds": 1}}}, {_PL1: "p2"},
+        step=TacticalStep.SPACE_CANNON,
+    )
+    _hand(state, "p1", "emergency")
+    damage.set_damaged(state.systems["000"], "space", "p1", "dreadnought", 1)
+    opened = space_cannon.open_offense(state, _grid(), registry)
+    assert _row(opened, registry, "p1", "emergency")["playable"]
+    new = _play(opened, registry, "p1", "emergency")
+    assert damage.damaged_count(new.systems["000"], "space", "p1", "dreadnought") == 0
+
+
+def _sc_sustained(seed: int, registry: StaticDataRegistry) -> GameState:
+    """p2 strzela PDS do p1; p1 anuluje 1 trafienie Sustain Damage pancernika."""
+    state = _state(
+        {"p1": {"dreadnought": 1, "destroyer": 3}}, {_PL1: {"p2": {"pds": 3}}}, {_PL1: "p2"},
+        seed=seed, step=TacticalStep.SPACE_CANNON,
+    )
+    _hand(state, "p2", "dh1")
+    _hand(state, "p1", "dh2")
+    opened = space_cannon.open_offense(state, _grid(), registry)
+    return space_cannon.fire_offense(opened, _grid(), registry, "p2", "p1")
+
+
+def test_direct_hit_po_sustain_przeciw_space_cannon(registry: StaticDataRegistry) -> None:
+    """Direct Hit poza walką: statek anulował Sustain Damage trafienie Twojego Space Cannon."""
+    fired = _seek(lambda s: _sc_sustained(s, registry), lambda st: _pending_hits(st) >= 1)
+    hits = _pending_hits(fired)
+    sustained = space_cannon.assign_hits(
+        fired, "p1", {"destroyer": hits - 1} if hits > 1 else {}, sustain={"dreadnought": 1},
+        registry=registry,
+    )
+    assert sustained.sustain_trace and sustained.sustain_trace[0]["by"] == "p2"
+    assert _row(sustained, registry, "p2", "dh1")["playable"]
+    assert not _row(sustained, registry, "p1", "dh2")["playable"]  # własny statek
+    new = _play(sustained, registry, "p2", "dh1", {"ship": "dreadnought"})
+    assert "dreadnought" not in {
+        bt for bt, n in new.systems["000"].space_units["p1"].items() if n > 0
+    }
+    assert not new.sustain_trace
 
 
 def test_mjets_offense_okno_tylko_dla_celu(registry: StaticDataRegistry) -> None:

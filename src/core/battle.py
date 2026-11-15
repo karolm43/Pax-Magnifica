@@ -272,6 +272,10 @@ def start_combat(
     Raises:
         ValueError: Zły krok akcji, trwa okno/walka, brak dokładnie dwóch stron (W1–W3).
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
+    if state.sustain_trace:  # walka zamyka okno Direct Hit po Space Cannon
+        state = state.clone()
+        state.sustain_trace = []
     active = state.active_system
     attacker = state.active_player_id
     if active is None or attacker is None:
@@ -486,6 +490,7 @@ def remove_units_in_zone(
 
 def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Anti-Fighter Barrage obu stron jednocześnie (W4): trafienia niszczą myśliwce przeciwnika."""
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     if combat.step is not CombatStep.AFB:
@@ -625,6 +630,7 @@ def _reroll_misses(
 
 def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Rzuty combat obu stron (atakujący pierwszy — W5) i otwarcie przypisania strat."""
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     if combat.step is not CombatStep.ROLL:
@@ -902,6 +908,7 @@ def assign_combat_hits(
     Raises:
         ValueError: Zła kolejność w oknie, zła liczba/typ, nadużycie Sustain Damage.
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     window = state.pending_window
@@ -1155,6 +1162,7 @@ def announce_retreat(
     Raises:
         ValueError: Nie ten krok/okno, nie kolej gracza, brak dozwolonego celu odwrotu.
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     combat = _combat(state)
     window = state.pending_window
     if (
@@ -1245,6 +1253,7 @@ def close_combat(state: GameState) -> GameState:
     Raises:
         ValueError: Gdy walka jeszcze trwa.
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     combat = _combat(state)
     if combat.step is not CombatStep.DONE:
         raise ValueError("The combat is not finished yet.")

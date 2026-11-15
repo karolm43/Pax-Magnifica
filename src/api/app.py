@@ -55,6 +55,7 @@ from src.api.routers import (
     players,
     production,
     promissory,
+    reaction_pause,
     relics,
     rules,
     setup,
@@ -72,6 +73,7 @@ from src.api.saves import SaveManager
 from src.api.seats import SEAT_TOKEN_HEADER, TOKEN_QUERY, Identity, SeatRegistry, current_identity
 from src.api.state_service import StateService
 from src.core import error_text
+from src.core import reaction_pause as reaction_pause_rules
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
@@ -236,6 +238,21 @@ def create_app(
                 )
         return await call_next(request)
 
+    # Pauza ochronna w kluczowych oknach reakcji (RULES.md 54.10): gdy minął jej czas wg zegara
+    # serwera, KAŻDY kolejny POST najpierw ją zwalnia - gra nie zależy od zegara klienta. Samo
+    # blokowanie kroków robią bramki w ``core`` (``reaction_pause.require_clear``).
+    @app.middleware("http")
+    async def _expire_reaction_pause(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        if request.method == "POST" and not request.url.path.endswith("/reaction-pause/release"):
+            service = request.app.state.ctx.service
+            pause = service.current_state().reaction_pause
+            if pause is not None and reaction_pause_rules.expired(pause, service.now()):
+                released = reaction_pause_rules.release(service.current_state(), service.now())
+                service.replace_state(released, label="reaction-pause:release")
+        return await call_next(request)
+
     # Tożsamość (RULES.md 44.2): token miejsca → ``request.state.identity`` + ``current_identity``
     # (z niej ``StateService.envelope`` rzutuje stan). Middleware dodany PO hold-play, więc działa
     # PRZED nim (Starlette: ostatni dodany = zewnętrzny). Tryb lokalny: zawsze ``LOCAL``.
@@ -318,6 +335,7 @@ def create_app(
     app.include_router(production.router)
     app.include_router(transactions.router)
     app.include_router(window.router)
+    app.include_router(reaction_pause.router)
     app.include_router(rules.router)
     app.include_router(components.router)
     app.include_router(action_cards.router)

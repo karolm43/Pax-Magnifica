@@ -1358,6 +1358,20 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - `uiSounds.ts`: przełączniki/checkboxy grają cichy `tick` zamiast `toggle` (plik `toggle.ogg` usunięty).
 - Muzyka: wystarczy podmienić pliki w `assets/music/` i odświeżyć stronę (manifest czytany na żądanie).
 
+## Pauza ochronna 10 s w kluczowych oknach + Emergency Repairs + Direct Hit poza walką (2026-11-15)
+
+- `core/reaction_pause.py` (RULES.md 54.10): `GameState.reaction_pause` otwierane w `state_service.replace_state` po kroku
+  gry w oknach: ogłoszona akcja strategiczna (Coup), ujawniona agenda, wygrana walka, Sustain Damage. Uprawnieni z
+  informacji jawnej (`timing_view.live_relations` + liczba kart w ręce). Bramka `timing.require_no_reaction_pause` w
+  `submit_primary_step`, `cast_vote`/`abstain`, krokach walki i Space Cannon. `POST /reaction-pause/pass|release`,
+  middleware zwalnia przeterminowaną pauzę wg zegara serwera. Kontrakt `reactionPause` w web-data.
+- Front: `ReactionPauseBanner` (wygląd i odliczanie jak okno Sabotage, „Pass”), „Close battle” wyłączony w pauzie.
+- Emergency Repairs: okna koniec ostatniej rundy (`COMBAT_ROUND/END`) i Space Cannon Offense. Direct Hit: ślad
+  `sustain_trace` po Sustain Damage w Space Cannon Offense. RULES.md 53.5.c.
+- Testy: `test_reaction_pause.py`, nowe w `test_reactions_combat.py` / `test_reactions_invasion.py`; harness scenariuszy
+  pasuje w pauzie (`Flow.pass_reactions`). `ReactionPauseBanner.test.tsx`.
+- QA: pytest pełny, ruff, mypy; front tsc + eslint + vitest (BottomHandDock, battle, offers); build; e2e.
+
 ## Centrum decyzji: stały kształt chipów „Ready”/„Timing windows”, zawsze widoczny uchwyt (2026-11-15)
 
 - Zgłoszenie: chipy aktywnych zdolności (np. bohater Letnev) nachodziły na siebie, a panel okien czasowych

@@ -76,7 +76,10 @@ _PREFIX: dict[Moment, str] = {
     Moment.INSTEAD: "Instead of",
 }
 
-_STEP_NAMES = {"announce_retreats": "the Announce Retreats step"}
+_STEP_NAMES = {
+    "announce_retreats": "the Announce Retreats step",
+    "space_cannon_offense": "the Space Cannon Offense step",
+}
 _ROLL_KINDS = {
     "afb": "Anti-Fighter Barrage dice are rolled",
     "bombardment": "Bombardment dice are rolled",
@@ -137,13 +140,15 @@ def window_key(window: reaction_cards.OpenWindow) -> str:
 Point = tuple[GameEvent, Moment]
 
 
-def live_points(state: GameState, registry: StaticDataRegistry) -> set[Point]:
-    """Okna, na które coś w grze może jeszcze zareagować z ręki (z informacji jawnej).
+def live_relations(state: GameState, registry: StaticDataRegistry) -> dict[Point, set[str]]:
+    """Okna, na które coś w grze może jeszcze zareagować z ręki, z relacją gracza do podmiotu
+    (``reaction_cards.SELF`` / ``OTHER`` / ``ANY``) - z informacji jawnej.
 
     Karty akcji: talia + ręce wszystkich graczy razem = każda karta spoza stosu odrzuconych, więc
-    zbiór nie mówi, kto ją ma. Notki: suma rąk (które notki są w grze, wiadomo z frakcji).
+    zbiór nie mówi, kto ją ma. Notki: suma rąk (które notki są w grze, wiadomo z frakcji);
+    relacja notek = ``ANY`` (ich podmiot zależy od właściciela).
     """
-    points: set[Point] = set()
+    found: dict[Point, set[str]] = {}
     cards = set(state.decks.action_card_deck)
     for player in state.players.values():
         cards.update(player.private.action_cards)
@@ -151,8 +156,10 @@ def live_points(state: GameState, registry: StaticDataRegistry) -> set[Point]:
         if rules_hooks.effect_for(f"action_cards:{card_id}") is None:
             continue
         spec = reaction_cards.spec_for(registry, card_id)
-        if spec is not None:
-            points.update(spec.points)
+        if spec is None:
+            continue
+        for point in spec.points:
+            found.setdefault(point, set()).add(spec.subject or reaction_cards.ANY)
     for player in state.players.values():
         for note_id in player.private.promissory_notes:
             try:
@@ -161,8 +168,14 @@ def live_points(state: GameState, registry: StaticDataRegistry) -> set[Point]:
                 continue
             if rules_hooks.effect_for(promissory_play.effect_key(template)) is None:
                 continue
-            points.update(promissory_play.reaction_points(registry, template))
-    return points
+            for point in promissory_play.reaction_points(registry, template):
+                found.setdefault(point, set()).add(reaction_cards.ANY)
+    return found
+
+
+def live_points(state: GameState, registry: StaticDataRegistry) -> set[Point]:
+    """Okna, na które coś w grze może jeszcze zareagować z ręki (klucze ``live_relations``)."""
+    return set(live_relations(state, registry))
 
 
 def describe_open_windows(

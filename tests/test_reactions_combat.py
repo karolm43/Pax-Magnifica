@@ -172,8 +172,10 @@ def test_okno_startu_rundy_tylko_w_kroku_rzutu(grid: HexGrid, registry: StaticDa
     )
     assert state.active_combat is not None
     state.active_combat.step = CombatStep.DONE
+    # Po ostatniej rundzie zostaje tylko „end of a combat round” (Emergency Repairs), nie start.
     assert not any(
-        w.event is GameEvent.COMBAT_ROUND for w in reaction_cards.open_windows(state)
+        w.event is GameEvent.COMBAT_ROUND and w.moment is Moment.START
+        for w in reaction_cards.open_windows(state)
     )
     outside = reaction_cards.open_windows(_state({"cruiser": 1}, {"cruiser": 1}))
     assert not any(w.event in (GameEvent.COMBAT, GameEvent.COMBAT_ROUND) for w in outside)
@@ -253,6 +255,22 @@ def test_emergency_repairs_naprawia_wszystkie_jednostki(
     assert damage.damaged_count(new.systems["000"], "space", "p1", "dreadnought") == 0
     assert battle.side_units(new, grid, registry, "p1")[0].damaged == 0
     assert damage.damaged_count(state.systems["000"], "space", "p1", "dreadnought") == 2
+
+
+def test_emergency_repairs_na_koniec_ostatniej_rundy(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
+    """„At the start or END of a combat round”: po ostatniej rundzie (krok DONE) też wolno."""
+    state = _state({"dreadnought": 2}, {"cruiser": 1}, hand1=["emergency"])
+    state = _start(state, grid, registry)
+    assert state.active_combat is not None
+    state.active_combat.step = CombatStep.DONE
+    state.active_combat.winner = "p1"
+    state.active_combat.outcome = "winner"
+    damage.set_damaged(state.systems["000"], "space", "p1", "dreadnought", 1)
+    assert _can(state, registry, "p1", "emergency")
+    new = _play(state, registry, "p1", "emergency")
+    assert damage.damaged_count(new.systems["000"], "space", "p1", "dreadnought") == 0
 
 
 # ------------------------------------------------------------------------- Skilled Retreat

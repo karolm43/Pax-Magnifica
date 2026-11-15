@@ -66,6 +66,7 @@ def clear_reaction_traces(state: GameState) -> None:
     state.last_replenished = []
     state.last_research = []
     state.last_research_payment = None
+    state.sustain_trace = []
 
 
 def register_action(

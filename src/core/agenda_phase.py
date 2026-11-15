@@ -34,6 +34,7 @@ from src.core import (
     relic_planets,
     rules_hooks,
     strategy_phase,
+    timing,
     triggers,
     turn_flow,
 )
@@ -464,6 +465,7 @@ def cast_vote(
         ValueError: Zły krok/kolejność, wynik spoza agendy, planeta nie gracza / wyczerpana /
             zdublowana / bez wpływu, gracz zablokowany albo zero głosów (to wstrzymanie się).
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     agenda = _require_agenda(state, AgendaStep.VOTE)
     _require_votable(state, player_id)
     lone_vote = single_vote(state, player_id)
@@ -522,6 +524,7 @@ def cast_vote(
 
 def abstain(state: GameState, registry: StaticDataRegistry, player_id: str) -> GameState:
     """Gracz, którego kolej, wstrzymuje się od głosu (nic nie wyczerpuje)."""
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     _require_agenda(state, AgendaStep.VOTE)
     _require_votable(state, player_id)
     work = state.clone()

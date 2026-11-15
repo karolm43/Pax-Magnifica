@@ -276,6 +276,15 @@ export function useHoldCandidates(playerId: string | null, enabled: boolean) {
 }
 
 /** Pas / zwolnienie okna Sabotage (``held_play``). Błędy (np. za wcześnie) są ignorowane. */
+/** Pas / zwolnienie pauzy ochronnej w kluczowym oknie reakcji (RULES.md 54.10). */
+export async function postReactionPause(action: "pass" | "release", actorId: string): Promise<void> {
+  await fetch(`${BOT_ROOT}/reaction-pause/${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor_id: actorId }),
+  }).catch(() => undefined);
+}
+
 export async function postHeld(action: "pass" | "release", actorId: string): Promise<void> {
   await fetch(`${BOT_ROOT}/action-card/held/${action}`, {
     method: "POST",

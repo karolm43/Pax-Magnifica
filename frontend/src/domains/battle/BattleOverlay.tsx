@@ -483,10 +483,13 @@ function usePlayers() {
 function Battlefield({
   view,
   offersPending,
+  reactionLabel,
 }: {
   view: BattleView;
   /** W grze czekają decyzje graczy (``pendingOffers``) — sprawdź, czy któraś to „wskaż okręt". */
   offersPending: boolean;
+  /** Trwa pauza ochronna (RULES.md 54.10) — etykieta okna; kroki walki czekają. */
+  reactionLabel: string | null;
 }) {
   const gameData = useGameData();
   const players = usePlayers();
@@ -875,6 +878,7 @@ function Battlefield({
           }
           onClose={() => void run(battleClose)}
           decisionsPending={offersPending}
+          reactionLabel={reactionLabel}
           systemLabel={systemLabel}
           onAnnounce={(announce) =>
             view.announcing &&
@@ -1007,7 +1011,11 @@ export function BattleOverlay() {
     );
   }
   return createPortal(
-    <Battlefield view={view} offersPending={offersPending} />,
+    <Battlefield
+      view={view}
+      offersPending={offersPending}
+      reactionLabel={gameState?.reactionPause?.label ?? null}
+    />,
     document.body,
   );
 }

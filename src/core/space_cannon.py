@@ -503,6 +503,15 @@ def open_offense(
     return opened
 
 
+def _without_sustain_trace(state: GameState) -> GameState:
+    """Kolejny krok Space Cannon zamyka okno Direct Hit po poprzednim przypisaniu (nowy stan)."""
+    if not state.sustain_trace:
+        return state
+    cleared = state.clone()
+    cleared.sustain_trace = []
+    return cleared
+
+
 def _require_turn(state: GameState, player_id: str) -> TimingWindow:
     window = _window(state)
     if pending_hits(state) is not None:
@@ -538,6 +547,8 @@ def fire_offense(
     Raises:
         ValueError: Zła kolejność, brak strzelców/celu, nielegalny cel.
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
+    state = _without_sustain_trace(state)
     _require_turn(state, player_id)
     shooters = offense_shooters(state, grid, registry, player_id)
     if not shooters:
@@ -605,6 +616,8 @@ def fire_offense(
 
 def pass_offense(state: GameState, player_id: str) -> GameState:
     """Bieżący gracz rezygnuje ze strzału (Space Cannon jest opcjonalny — S1)."""
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
+    state = _without_sustain_trace(state)
     _require_turn(state, player_id)
     logged = _append_log(
         state,
@@ -673,6 +686,7 @@ def assign_hits(
     Raises:
         ValueError: Brak trafień do przypisania, zły gracz, zła liczba/typ strat.
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     pending = pending_hits(state)
     if pending is None:
         raise ValueError("There are no Space Cannon hits to assign.")
@@ -712,6 +726,16 @@ def assign_hits(
             new_state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=target_id,
             ctx={"player": target_id, "base_type": base_type, "count": count},
         )
+    # Ślad dla Direct Hit („after another player's ship uses SUSTAIN DAMAGE to cancel a hit
+    # produced by your units” - także poza walką, ruling C_action_cards; RULES.md 53.5.c).
+    new_state.sustain_trace = [
+        {
+            "player": target_id, "base_type": base_type, "count": count,
+            "by": pending.roller, "position": new_state.active_system,
+        }
+        for base_type, count in used.items()
+        if count > 0
+    ]
 
     log = read_log(new_state)
     if log:

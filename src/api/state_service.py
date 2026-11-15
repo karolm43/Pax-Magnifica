@@ -14,7 +14,16 @@ from collections.abc import Callable
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
 from src.api.seats import Identity, current_identity
-from src.core import activity, game_clock, game_end, leaders, limits, nexus, rules_hooks
+from src.core import (
+    activity,
+    game_clock,
+    game_end,
+    leaders,
+    limits,
+    nexus,
+    reaction_pause,
+    rules_hooks,
+)
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 from src.core.visibility import project_strict
@@ -111,6 +120,8 @@ class StateService:
             after = limits.enforce_limits(after, rules_hooks.bound_registry())
             # Liderzy: warunki „Unlock” sprawdzane po każdej zmianie stanu (RULES.md 61.1).
             leaders.refresh_unlocks(after, rules_hooks.bound_registry())
+            # Pauza ochronna w kluczowych oknach reakcji (RULES.md 54.10).
+            reaction_pause.sync(after, rules_hooks.bound_registry(), self._now())
         # Zegar szachowy: rozlicz czas holdera i przełącz go wg nowego stanu (RULES.md 58).
         after = game_clock.settle(after, self._now())
         entry = activity.derive_activity(label, before, after)

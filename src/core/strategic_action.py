@@ -282,6 +282,7 @@ def submit_primary_step(
     Raises:
         ValueError: Brak rozstrzygania primary, to nie właściciel, albo zły payload.
     """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     pending = state.pending_strategy
     if pending is None:
         raise ValueError("No strategy card primary is awaiting a choice.")

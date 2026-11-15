@@ -936,6 +936,27 @@ class HeldPlay(BaseModel):
     window: dict[str, Any] | None = None
 
 
+class ReactionPause(BaseModel):
+    """Pauza ochronna w kluczowym oknie reakcji (RULES.md 43.4 pkt 4, 54.10): gra czeka do 10 s.
+
+    Otwiera ją ``core/reaction_pause.sync`` po zatwierdzonym kroku, gdy pojawi się kluczowe okno
+    (ogłoszona akcja strategiczna, ujawniona agenda, wygrana walka, Sustain Damage), a z informacji
+    JAWNEJ wynika, że ktoś może zareagować. Uprawnieni = gracze z >=1 kartą akcji, którzy mogą być
+    właściwą stroną okna. Kończy się pasami wszystkich uprawnionych albo upływem czasu.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str  # klucz okna (runda + zdarzenie + kontekst) - to samo okno nie pauzuje drugi raz
+    event: str
+    moment: str
+    label: str  # angielska etykieta okna (``timing_view.label``)
+    subject: str | None = None
+    opened_at: float
+    eligible: list[str] = Field(default_factory=list)
+    passed: list[str] = Field(default_factory=list)
+
+
 class BonusTurn(BaseModel):
     """Dodatkowa akcja gracza, który już spasował (Puppets on a String), poza kolejką tur.
 
@@ -1056,6 +1077,13 @@ class GameState(BaseModel):
     pending_strategy: StrategyResolution | None = None
     # Zagrana karta akcji czekająca na ewentualne Sabotage (``core/card_hold.py``, RULES.md 53.6).
     held_play: HeldPlay | None = None
+    # Pauza ochronna w kluczowym oknie reakcji (``core/reaction_pause.py``, RULES.md 54.10) i klucze
+    # okien, które już miały pauzę (ostatnie kilkanaście; to samo okno nie pauzuje ponownie).
+    reaction_pause: ReactionPause | None = None
+    reaction_pause_seen: list[str] = Field(default_factory=list)
+    # Ślad Sustain Damage poza walką (Space Cannon Offense): ``{player, base_type, count, by,
+    # position}`` - okno Direct Hit trwa do następnego kroku Space Cannon (RULES.md 53.5.c).
+    sustain_trace: list[dict[str, Any]] = Field(default_factory=list)
     # Generator losowy silnika (rzuty kośćmi — ``core/dice.py``). ``rng_seed`` = 0 oznacza
     # „jeszcze nie zasiane": pierwszy rzut losuje ziarno i zapisuje je w stanie. Ziarno +
     # licznik są częścią stanu, więc Undo/Redo i powtórka migawki dają TE SAME wyniki.

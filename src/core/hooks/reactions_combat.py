@@ -35,6 +35,7 @@ from src.core import (
     reaction_cards,
     research_offer,
     rules_hooks,
+    space_cannon,
     technology,
     triggers,
     unit_ops,
@@ -353,32 +354,86 @@ declare_reaction("f_prototype", condition=_fighter_prototype_condition)
 # ------------------------------------------------------------------ Emergency Repairs
 
 
-def _emergency_condition(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, _window: OpenWindow
-) -> bool:
+_SC_OFFENSE_STEP = "space_cannon_offense"
+
+
+@window_provider
+def emergency_repairs_windows(state: GameState) -> list[OpenWindow]:
+    """Dodatkowe okna Emergency Repairs („At the start or end of a combat round”, ruling):
+
+    * koniec OSTATNIEJ rundy walki (krok DONE) - koniec wcześniejszych rund to ta sama chwila co
+      początek następnej (okno ``COMBAT_ROUND/START`` w kroku ROLL);
+    * krok Space Cannon Offense bieżącej akcji (ruling C_action_cards: naprawa statków
+      uszkodzonych we wcześniejszej walce).
+    """
+    windows: list[OpenWindow] = []
     combat = state.active_combat
-    return combat is not None and bool(_damaged_units(state, player_id, combat.position))
+    if combat is not None and combat.step is CombatStep.DONE:
+        windows.append(
+            OpenWindow(GameEvent.COMBAT_ROUND, Moment.END, _ctx(combat, combat.attacker))
+        )
+    if space_cannon.is_open(state) and state.active_system and state.active_player_id:
+        windows.append(
+            OpenWindow(
+                GameEvent.COMBAT_STEP, Moment.START,
+                {
+                    "player": state.active_player_id, "position": state.active_system,
+                    "step": _SC_OFFENSE_STEP,
+                },
+            )
+        )
+    return windows
+
+
+def _emergency_position(state: GameState, window: OpenWindow) -> str | None:
+    """System naprawy: walka, a w kroku Space Cannon Offense - aktywny system."""
+    if window.event is GameEvent.COMBAT_STEP:
+        return state.active_system if window.ctx.get("step") == _SC_OFFENSE_STEP else None
+    combat = state.active_combat
+    return combat.position if combat is not None else None
+
+
+def _emergency_condition(
+    state: GameState, _registry: StaticDataRegistry, player_id: str, window: OpenWindow
+) -> bool:
+    position = _emergency_position(state, window)
+    return position is not None and bool(_damaged_units(state, player_id, position))
 
 
 @register_effect("action_cards:emergency")
 def emergency_repairs(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
+    state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Emergency Repairs: Repair all of your units that have SUSTAIN DAMAGE in the active system.
 
-    ⚠ ZAŁOŻENIE: okno „koniec rundy" nie ma stabilnej pauzy (po przypisaniu strat silnik od razu
-    startuje następną rundę), więc karta jest zagrywalna na starcie rundy (krok ROLL).
+    Okna: początek rundy walki (krok ROLL), koniec ostatniej rundy (krok DONE) i krok Space Cannon
+    Offense (RULES.md 53.5.c).
     """
-    combat = _combat(state)
-    system = state.systems[combat.position]
-    repaired = _damaged_units(state, player_id, combat.position)
+    raw = params.get(reaction_cards.WINDOW_KEY)
+    ctx = raw.get("ctx", {}) if isinstance(raw, Mapping) else {}
+    if isinstance(raw, Mapping) and raw.get("event") == GameEvent.COMBAT_STEP.value:
+        position = state.active_system if ctx.get("step") == _SC_OFFENSE_STEP else None
+    else:
+        position = _combat(state).position
+    if position is None:
+        raise ValueError("There is no active system to repair units in.")
+    system = state.systems[position]
+    repaired = _damaged_units(state, player_id, position)
     if not repaired:
         raise ValueError("You have no damaged units in the active system.")
     for zone, base_type, _count in repaired:
         damage.set_damaged(system, zone, player_id, base_type, 0)
 
 
-declare_reaction("emergency", condition=_emergency_condition)
+declare_reaction(
+    "emergency",
+    points=(
+        (GameEvent.COMBAT_ROUND, Moment.START),
+        (GameEvent.COMBAT_ROUND, Moment.END),
+        (GameEvent.COMBAT_STEP, Moment.START),
+    ),
+    condition=_emergency_condition,
+)
 
 
 # ------------------------------------------------------------------ Skilled Retreat
@@ -790,9 +845,53 @@ def _sustained_of(combat: ActiveCombat, state: GameState, player_id: str) -> lis
     ]
 
 
+_SC_SOURCE = "space_cannon"
+
+
+@window_provider
+def sustain_outside_combat(state: GameState) -> list[OpenWindow]:
+    """Okna „po Sustain Damage” poza walką (Space Cannon Offense) ze śladu ``sustain_trace``."""
+    if state.active_combat is not None:
+        return []
+    return [
+        OpenWindow(
+            GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER,
+            {
+                "player": str(e["player"]), "base_type": str(e["base_type"]),
+                "by": str(e["by"]), "position": str(e["position"]), "source": _SC_SOURCE,
+            },
+        )
+        for e in state.sustain_trace
+        if e.get("position") == state.active_system
+    ]
+
+
+def _trace_types(state: GameState, target: str, by: str) -> list[str]:
+    """Statki ``target`` uszkodzone Sustain Damage przeciw trafieniom ``by`` (Space Cannon)."""
+    system = state.systems.get(state.active_system or "")
+    if system is None:
+        return []
+    return [
+        str(e["base_type"])
+        for e in state.sustain_trace
+        if e["player"] == target
+        and e["by"] == by
+        and damage.damaged_count(system, "space", target, str(e["base_type"])) > 0
+        and not _direct_hit_immune(state, target, str(e["base_type"]))
+    ]
+
+
 def _direct_hit_condition(
     state: GameState, _registry: StaticDataRegistry, player_id: str, window: OpenWindow
 ) -> bool:
+    if window.ctx.get("source") == _SC_SOURCE:
+        target = window.subject
+        return (
+            target is not None
+            and target != player_id
+            and window.ctx.get("by") == player_id
+            and window.ctx.get("base_type") in _trace_types(state, target, player_id)
+        )
     combat = state.active_combat
     if combat is None or combat.kind != "space" or not _participant(state, player_id):
         return False
@@ -831,9 +930,12 @@ def _register_direct_hit(card_id: str) -> None:
     def effect(
         state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
     ) -> None:
+        base_type = _text(params, "ship", "Choose the ship that used SUSTAIN DAMAGE ('ship').")
+        if state.active_combat is None:
+            _direct_hit_outside_combat(state, player_id, params, base_type)
+            return
         combat = _combat(state)
         target = _opponent(combat, player_id)
-        base_type = _text(params, "ship", "Choose the ship that used SUSTAIN DAMAGE ('ship').")
         if base_type not in _sustained_of(combat, state, target):
             raise ValueError("That ship did not use SUSTAIN DAMAGE.")
         system = state.systems[combat.position]
@@ -847,14 +949,46 @@ def _register_direct_hit(card_id: str) -> None:
 
     def inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
         combat = state.active_combat
-        target = _opponent(combat, player_id) if combat is not None else ""
-        types = (
-            list(dict.fromkeys(_sustained_of(combat, state, target))) if combat is not None else []
-        )
+        if combat is not None:
+            target = _opponent(combat, player_id)
+            types = list(dict.fromkeys(_sustained_of(combat, state, target)))
+        else:  # Space Cannon: statki, które anulowały Twoje trafienia
+            targets = [str(e["player"]) for e in state.sustain_trace if e["by"] == player_id]
+            target = targets[0] if targets else ""
+            types = list(dict.fromkeys(_trace_types(state, target, player_id)))
         options = [_option(bt, unit_name(state, registry, target, bt)) for bt in types]
         return [_choice("ship", "Ship that used SUSTAIN DAMAGE", options)]
 
     register_effect_inputs(f"action_cards:{card_id}")(inputs)
+
+
+def _direct_hit_outside_combat(
+    state: GameState, player_id: str, params: Mapping[str, Any], base_type: str
+) -> None:
+    """Direct Hit po Sustain Damage przeciw Twoim trafieniom Space Cannon (poza walką).
+
+    Nadwyżkę pojemności po zniszczeniu statku egzekwuje ``limits`` przy zatwierdzeniu
+    (ruling: myśliwce / siły naziemne usuwa się od razu).
+    """
+    raw = params.get(reaction_cards.WINDOW_KEY)
+    ctx = raw.get("ctx", {}) if isinstance(raw, Mapping) else {}
+    target = str(ctx.get("player", ""))
+    if base_type not in _trace_types(state, target, player_id):
+        raise ValueError("That ship did not use SUSTAIN DAMAGE against your hits.")
+    system = state.systems[state.active_system or ""]
+    damaged_before = damage.damaged_count(system, "space", target, base_type)
+    trace: list[dict[str, Any]] = []
+    done = False
+    for entry in state.sustain_trace:
+        if not done and entry["player"] == target and entry["base_type"] == base_type:
+            done = True
+            if int(entry["count"]) > 1:
+                trace.append({**entry, "count": int(entry["count"]) - 1})
+            continue
+        trace.append(entry)
+    state.sustain_trace = trace
+    unit_ops.remove_units(state, system, "space", target, base_type, 1, UnitCause.DESTROYED)
+    damage.set_damaged(system, "space", target, base_type, damaged_before - 1)
 
 
 for _card in _DIRECT_HIT:
