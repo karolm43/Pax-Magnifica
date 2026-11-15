@@ -50,6 +50,9 @@ def test_labels_read_like_card_windows() -> None:
     assert timing_view.label(GameEvent.AGENDA_REVEALED, Moment.WHEN, {}) == (
         "When an agenda is revealed"
     )
+    assert timing_view.label(GameEvent.TRANSACTION, Moment.WHEN, {}) == (
+        "When a transaction is being negotiated"
+    )
     assert timing_view.label(GameEvent.COMBAT_ROUND, Moment.START, {}) == (
         "At the start of a combat round"
     )

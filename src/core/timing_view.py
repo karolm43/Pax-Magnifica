@@ -106,7 +106,9 @@ def _noun(event: GameEvent, ctx: dict[str, Any]) -> str:
     return _NOUN.get(event, event.value)
 
 
-def _clause(event: GameEvent, ctx: dict[str, Any]) -> str:
+def _clause(event: GameEvent, ctx: dict[str, Any], moment: Moment) -> str:
+    if event is GameEvent.TRANSACTION and moment is Moment.WHEN:
+        return "a transaction is being negotiated"
     if event is GameEvent.COMBAT_ROLL and str(ctx.get("kind")) in _ROLL_KINDS:
         return _ROLL_KINDS[str(ctx["kind"])]
     if event is GameEvent.COMBAT_WON and ctx.get("kind") in ("space", "ground"):
@@ -119,7 +121,7 @@ def label(event: GameEvent, moment: Moment, ctx: dict[str, Any]) -> str:
     prefix = _PREFIX.get(moment, moment.value.capitalize())
     if moment in (Moment.START, Moment.END, Moment.DURING):
         return f"{prefix} {_noun(event, ctx)}"
-    return f"{prefix} {_clause(event, ctx)}"
+    return f"{prefix} {_clause(event, ctx, moment)}"
 
 
 def window_key(window: reaction_cards.OpenWindow) -> str:
