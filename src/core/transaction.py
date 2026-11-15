@@ -264,14 +264,36 @@ def _apply_planets(
         if position is None or dest_pos is None:
             continue
         src_sys, dest_sys = state.systems[position], state.systems[dest_pos]
-        for base_type, count in dict(
-            src_sys.planet_units.get(planet, {}).get(giver_id, {})
-        ).items():
-            if count > 0:
+        moving = {
+            bt: n for bt, n in src_sys.planet_units.get(planet, {}).get(giver_id, {}).items()
+            if n > 0
+        }
+        # F_hacan: Pride of Kenara na planecie w gravity rift - przenoszone jednostki rzucają
+        # na usunięcie (R_gravity_rift; jeden rzut „na stół").
+        lost = _rift_losses(state, position, giver_id, moving)
+        for base_type, count in moving.items():
+            gone = min(count, lost.get(base_type, 0))
+            if gone:
+                unit_ops.remove_units(
+                    state, src_sys, planet, giver_id, base_type, gone, unit_ops.UnitCause.REMOVED
+                )
+            if count - gone > 0:
                 unit_ops.transfer_units(
-                    state, src_sys, planet, dest_sys, dest, giver_id, base_type, count
+                    state, src_sys, planet, dest_sys, dest, giver_id, base_type, count - gone
                 )
         control.set_planet_control(state, position, planet, receiver_id)
+
+
+def _rift_losses(
+    state: GameState, position: str, player_id: str, units: dict[str, int]
+) -> dict[str, int]:
+    """Straty od gravity rift przy przeniesieniu jednostek z planety w szczelinie (F_hacan)."""
+    from src.core import board_graph, movement  # lokalnie: movement jest wyżej w zależnościach
+
+    grid = board_graph.bound_grid()
+    if grid is None or not units or not movement.is_gravity_rift(grid, position):
+        return {}
+    return movement.roll_rift_exit(state, player_id, units)
 
 
 def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: TransactionSide) -> None:

@@ -16,6 +16,7 @@ from src.core import (
     ability_notes,
     active_effects,
     battle,
+    board_reinforcements,
     card_draw,
     economy,
     faction_components,
@@ -393,8 +394,8 @@ def salvage_types(state: GameState, player_id: str) -> list[str]:
         )
         if unit is None or unit.cost is None or not is_space_unit(base_type):
             continue  # np. War Sun bez technologii (F_mentak)
-        if reinforcements_left(state, player_id, base_type) == 0:
-            continue
+        if not board_reinforcements.can_place(state, player_id, base_type):
+            continue  # pusta rezerwa i nic do zdjęcia z planszy (F_mentak)
         types.append(base_type)
     return types
 
@@ -415,7 +416,8 @@ def _salvage_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
 )
 def salvage_produce(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Salvage Operations: ... if you won the combat, you may also produce 1 ship in that system of
-    any ship type that was destroyed during the combat (płatny - F_mentak; okno produkcji)."""
+    any ship type that was destroyed during the combat (płatny - F_mentak; okno produkcji).
+    Pusta rezerwa: okno produkcji pozwala zdjąć statek z systemu bez żetonu (F_mentak)."""
     types = salvage_types(state, player_id)
     if not types or state.production_grant is not None:
         raise ValueError("There is nothing to salvage right now.")
@@ -558,46 +560,100 @@ def _sleeper_pending(state: GameState, player_id: str, _ctx: Mapping[str, Any]) 
     )
 
 
-def _place_sleepers(state: GameState, player_id: str) -> None:
-    """Stawia statki za statki przeciwnika zniszczone od ostatniego sprawdzenia (bez kosztu)."""
+_NO_SOURCE = "none"
+
+
+def _fresh_sleepers(state: GameState, player_id: str) -> list[str]:
+    """Typy statków do postawienia: statki przeciwnika zniszczone od ostatniego sprawdzenia."""
     combat = _my_space_combat(state, player_id)
     effect = next(iter(active_effects.effects_for(state, player_id, SLEEPER)), None)
     if combat is None or effect is None:
-        return
+        return []
     seen = int(effect.data.get("seen", 0))
-    fresh = [e for e in combat.destroyed_all[seen:] if e.get("player") != player_id]
-    effect.data = {**effect.data, "seen": len(combat.destroyed_all)}
-    system = state.systems[combat.position]
     registry = _registry()
     player = state.players[player_id]
-    for entry in fresh:
+    found: list[str] = []
+    for entry in combat.destroyed_all[seen:]:
+        if entry.get("player") == player_id:
+            continue
         base_type = str(entry.get("base_type"))
         unit = resolve_unit_variant(
             registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
         )
-        if unit is None or unit.cost is None:
-            continue  # War Sun bez technologii (F_mentak)
-        if reinforcements_left(state, player_id, base_type) == 0:
-            continue  # ⚠️ brak w rezerwie = brak jednostki (zdjęcie z planszy - dalszy krok)
-        place_units(state, system, _SPACE, player_id, base_type, 1, UnitCause.PLACED)
+        if unit is None or unit.cost is None or not is_space_unit(base_type):
+            continue  # War Sun bez technologii; siła naziemna/struktura „jako statek" (F_mentak)
+        found.append(base_type)
+    return found
+
+
+def sleeper_inputs(
+    state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Pusta rezerwa: skąd zdjąć statek (F_mentak) - albo go nie stawiać (wybór gracza)."""
+    inputs: list[dict[str, Any]] = []
+    left: dict[str, int | None] = {}
+    for index, base_type in enumerate(_fresh_sleepers(state, player_id)):
+        if base_type not in left:
+            left[base_type] = reinforcements_left(state, player_id, base_type)
+        stock = left[base_type]
+        if stock is None or stock > 0:
+            left[base_type] = None if stock is None else stock - 1
+            continue
+        sources = board_reinforcements.source_options(state, registry, player_id, base_type)
+        if sources:
+            name = unit_name(state, registry, player_id, base_type)
+            inputs.append(oi.choice(
+                f"source:{index}", f"No {name} in your reinforcements - take one from the board?",
+                [oi.option(_NO_SOURCE, "Do not place it")]
+                + [oi.option(value, label) for value, label in sources],
+            ))
+    return inputs
+
+
+def _place_sleepers(
+    state: GameState, player_id: str, ctx: Mapping[str, Any] | None = None
+) -> None:
+    """Stawia statki za statki przeciwnika zniszczone od ostatniego sprawdzenia (bez kosztu).
+
+    Pusta rezerwa: statek zdjęty z systemu bez żetonu Mentaka, gdy gracz tak wybrał
+    (F_mentak, R_component_limitations - ``core.board_reinforcements``)."""
+    combat = _my_space_combat(state, player_id)
+    effect = next(iter(active_effects.effects_for(state, player_id, SLEEPER)), None)
+    if combat is None or effect is None:
+        return
+    fresh = _fresh_sleepers(state, player_id)
+    effect.data = {**effect.data, "seen": len(combat.destroyed_all)}
+    system = state.systems[combat.position]
+    params = (ctx or {}).get("params") or {}
+    for index, base_type in enumerate(fresh):
+        if not board_reinforcements.needs_board_source(state, player_id, base_type):
+            place_units(state, system, _SPACE, player_id, base_type, 1, UnitCause.PLACED)
+            continue
+        source = str(params.get(f"source:{index}") or _NO_SOURCE)
+        if source != _NO_SOURCE:
+            board_reinforcements.place_unit(
+                state, system, _SPACE, player_id, base_type, source=source
+            )
 
 
 @on_event(
     GameEvent.COMBAT_ROUND, Moment.END, HookSource(SOURCE_EFFECT, SLEEPER),
-    condition=_sleeper_pending, covers=f"leaders:{HERO}", label="Sleeper Cell: place ships",
+    condition=_sleeper_pending, decide=True, inputs=sleeper_inputs, covers=f"leaders:{HERO}",
+    label="Sleeper Cell: place ships",
 )
-def sleeper_after_losses(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
+def sleeper_after_losses(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Po przypisaniu strat obu stron (F_mentak: „before the Mentak player places")."""
-    _place_sleepers(state, player_id)
+    _place_sleepers(state, player_id, ctx)
 
 
 @on_event(
     GameEvent.COMBAT_ROUND, Moment.START, HookSource(SOURCE_EFFECT, SLEEPER),
-    condition=_sleeper_pending, covers=f"leaders:{HERO}", label="Sleeper Cell: place ships",
+    condition=_sleeper_pending, decide=True, inputs=sleeper_inputs, covers=f"leaders:{HERO}",
+    label="Sleeper Cell: place ships",
 )
-def sleeper_before_round(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
+def sleeper_before_round(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Straty z Ambush (przed 1. rundą) - statki przed rzutami rundy."""
-    _place_sleepers(state, player_id)
+    _place_sleepers(state, player_id, ctx)
 
 
 # ------------------------------------------------------------------- Fourth Moon, Moll Terminus

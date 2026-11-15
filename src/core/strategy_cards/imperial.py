@@ -138,7 +138,9 @@ def _public_options(state: GameState, ctx: CardContext, player_id: str) -> list[
     home = objectives.controls_home_planets(state, ctx.registry, player_id)
     options: list[dict[str, Any]] = []
     for objective_id in state.objectives.revealed:
-        if objectives.has_scored_public(state, player_id, objective_id):
+        if objectives.has_scored_public(state, player_id, objective_id) or objectives.is_retired(
+            state, objective_id
+        ):
             continue
         value, goal, ok = objective_progress.evaluate(
             state, ctx.registry, ctx.require_grid(), player_id, objective_id

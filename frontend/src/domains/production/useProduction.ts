@@ -22,6 +22,11 @@ export type ProductionUnit = {
   reinforcements: number | null;
   /** Ile sztuk tego typu stoi teraz na planszy (przestrzeń + planety, wszystkie systemy). */
   onBoard: number;
+  /**
+   * Gdy rezerwy zabraknie (R_component_limitations): jednostki, które gracz może zdjąć
+   * z systemów bez swojego żetonu i od razu wyprodukować (`value` = "<pozycja>|<strefa>").
+   */
+  boardSources?: { value: string; label: string }[];
 };
 
 export type ProductionPlanet = {

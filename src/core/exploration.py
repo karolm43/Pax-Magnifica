@@ -16,7 +16,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, economy, exhaust, relic_fragments, triggers, unit_ops
+from src.core import (
+    board_reinforcements,
+    command_tokens,
+    economy,
+    exhaust,
+    relic_fragments,
+    triggers,
+    unit_ops,
+)
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.damage import clear_zone_damage
@@ -453,7 +461,7 @@ def _apply_warehouses(
 
 def _pay_options(
     state: GameState, ex: ExplorationState, *, prefix: str, label: str, extra_ok: bool,
-    extra_reason: str,
+    extra_reason: str, params: tuple[tuple[str, str], ...] = (),
 ) -> list[ExploreOption]:
     player = state.players[ex.player_id]
     return [
@@ -462,12 +470,14 @@ def _pay_options(
             f"Spend 1 trade good: {label}",
             player.trade_goods > 0 and extra_ok,
             extra_reason or ("" if player.trade_goods > 0 else "You have no trade goods."),
+            params,
         ),
         ExploreOption(
             f"{prefix}_commodity",
             f"Spend 1 commodity: {label}",
             player.commodities > 0 and extra_ok,
             extra_reason or ("" if player.commodities > 0 else "You have no commodities."),
+            params,
         ),
     ]
 
@@ -496,13 +506,18 @@ def _opts_functioning_base(
 def _opts_fabricators(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent
 ) -> list[ExploreOption]:
-    left = reinforcements_left(state, ex.player_id, "mech")
-    ok = left is None or left > 0
+    # C_exploration_cards: pusta rezerwa -> mech zdjęty z systemu bez żetonu gracza (wybór).
+    sources: tuple[tuple[str, str], ...] = ()
+    if board_reinforcements.needs_board_source(state, ex.player_id, "mech"):
+        sources = tuple(board_reinforcements.source_options(
+            state, bound_registry(), ex.player_id, "mech"
+        ))
+    ok = not board_reinforcements.needs_board_source(state, ex.player_id, "mech") or bool(sources)
     return [
         _gain_commodity_option(state, ex),
         *_pay_options(
             state, ex, prefix="mech", label="place 1 mech on this planet", extra_ok=ok,
-            extra_reason="" if ok else "No mech in reinforcements.",
+            extra_reason="" if ok else "No mech in reinforcements.", params=sources,
         ),
         _SKIP,
     ]
@@ -527,7 +542,9 @@ def _apply_pay(
     if action == "draw":
         _draw_action_card(state, ex.player_id)
         return f"Spent {paid} and drew 1 action card."
-    _add_unit(state, _system(state, ex), cur.planet, ex.player_id, "mech")
+    board_reinforcements.place_unit(
+        state, _system(state, ex), cur.planet, ex.player_id, "mech", source=param
+    )
     return f"Spent {paid} and placed 1 mech on the planet."
 
 
@@ -839,6 +856,11 @@ def resolve(
                  "card": new_cur.card_id},
         )
     _auto(new_state, registry)
+    if kind == "attach" and card.attachment_id == "dmz" and new_ex.position in new_state.systems:
+        # C_exploration_cards: siły zawrócone na orbitę bez miejsca -> usunięcie nadwyżki.
+        from src.core import capacity  # lokalnie: capacity jest wyżej w zależnościach
+
+        new_state = capacity.open_capacity_check(new_state, registry, new_ex.position)
     return new_state
 
 

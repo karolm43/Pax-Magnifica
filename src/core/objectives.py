@@ -232,6 +232,32 @@ def make_secret_public(state: GameState, objective_id: str) -> None:
     )
 
 
+RETIRED_KEY = "objectives:retired"  # efekt gry: cel w grze, ale nie do zdobycia
+
+
+def retire(state: GameState, objective_id: str) -> None:
+    """Cel publiczny zostaje w grze, ale nikt nie może go już zdobyć (MUTUJE ``state``).
+
+    C_agendas (Classified Document Leaks): po odrzuceniu prawa wybrany tajny cel nie wraca do
+    właściciela i „is no longer scorable as a public objective. It remains in play”.
+    """
+    from src.core import active_effects  # lokalnie: unika cyklu importów
+    from src.core.game_events import Duration
+
+    if not is_retired(state, objective_id):
+        active_effects.add_effect(
+            state, RETIRED_KEY, Duration.GAME, data={"objective": objective_id}
+        )
+
+
+def is_retired(state: GameState, objective_id: str) -> bool:
+    """Czy odkryty cel jest wyłączony z punktowania (``retire``)."""
+    return any(
+        e.key == RETIRED_KEY and e.data.get("objective") == objective_id
+        for e in state.active_effects
+    )
+
+
 def replace_revealed(state: GameState, registry: StaticDataRegistry, old_id: str) -> str | None:
     """Odrzuca odkryty cel publiczny i zastępuje go LOSOWYM celem z dowolnej talii celów.
 
@@ -333,7 +359,7 @@ def scoreable_public_objectives(
         definition = objective_def(registry, objective_id)
         if definition is None or (not ignore_phase and definition.phase != STATUS_PHASE_LABEL):
             continue
-        if has_scored_public(state, player_id, objective_id):
+        if has_scored_public(state, player_id, objective_id) or is_retired(state, objective_id):
             continue
         if not evaluate(state, registry, grid, player_id, objective_id)[2]:
             continue
@@ -409,6 +435,8 @@ def score_public(
         raise ValueError(f"Unknown objective: {objective_id}")
     if has_scored_public(state, player_id, objective_id):
         raise ValueError("You have already scored this objective.")
+    if is_retired(state, objective_id):
+        raise ValueError("This objective is still in play but can no longer be scored.")
     if not ignore_phase and definition.phase != STATUS_PHASE_LABEL:
         raise ValueError("This objective is not scored in the status phase.")
     if not controls_home_planets(state, registry, player_id):

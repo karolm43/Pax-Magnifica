@@ -120,6 +120,19 @@ def _censure_lost(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
     lose_points(state, pid, 1)
 
 
+# Classified Document Leaks - po odrzuceniu prawa cel zostaje w grze, ale nie da się go zdobyć
+# (C_agendas: „not returned to the original player, and it is no longer scorable").
+@on_event(GameEvent.LAW_DISCARDED, Moment.WHEN, agenda_source("classified"),
+          where={"law": "classified"}, condition=lambda s, p, c: p == s.speaker_id,
+          covers=covers("classified"), label="Classified Document Leaks")
+def _classified_discarded(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
+    from src.core import objectives
+
+    objective = str(ctx.get("outcome") or "")
+    if objective in state.objectives.revealed:
+        objectives.retire(state, objective)
+
+
 # Committee Formation - before voting on an "elect a player" agenda the owner may discard this
 # card to choose the elected player; players do not vote.
 def _committee_ready(state: GameState, pid: str, ctx: Mapping[str, Any]) -> bool:
@@ -320,6 +333,27 @@ def _conventions(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> set[st
           covers=covers("defense_act"))
 def _defense_act(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> bool:
     return _law_for(state, "defense_act")
+
+
+# C_agendas: po odrzuceniu prawa gracze zdejmują PDS ponad 2 na planecie (bez „destroyed").
+_PDS_PER_PLANET = 2  # R_structures: „a maximum of two PDS units on each planet"
+
+
+@on_event(GameEvent.LAW_DISCARDED, Moment.WHEN, agenda_source("defense_act"),
+          where={"law": "defense_act", "outcome": "for"},
+          condition=lambda s, p, c: p == s.speaker_id, covers=covers("defense_act"),
+          label="Homeland Defense Act")
+def _defense_act_discarded(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> None:
+    from src.core import unit_ops
+
+    for system in state.systems.values():
+        for planet, by_player in list(system.planet_units.items()):
+            for player, units in list(by_player.items()):
+                excess = units.get("pds", 0) - _PDS_PER_PLANET
+                if excess > 0:
+                    unit_ops.remove_units(
+                        state, system, planet, player, "pds", excess, unit_ops.UnitCause.REMOVED
+                    )
 
 
 # Fleet Regulations - For: no more than 4 tokens in the fleet pool.

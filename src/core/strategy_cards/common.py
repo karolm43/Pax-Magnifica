@@ -111,23 +111,21 @@ def board_structure_sources(
 
     R_component_limitations / R_reinforcements: gdy w rezerwie nie ma jednostki tego typu, gracz
     może zdjąć ją z systemu BEZ swojego żetonu dowodzenia i od razu postawić. Bez planety docelowej.
+    Reguła żyje w ``core.board_reinforcements`` (jedno miejsce); tu tylko widok „planety”.
     """
-    found: list[str] = []
-    for system in state.systems.values():
-        if player_id in system.command_tokens:
-            continue
-        for planet, by_player in system.planet_units.items():
-            if planet != target_planet and by_player.get(player_id, {}).get(structure, 0) > 0:
-                found.append(planet)
-    return sorted(found)
+    from src.core import board_reinforcements  # lokalnie: unika cyklu importów
+
+    zones = [
+        s.partition("|")[2] for s in board_reinforcements.board_sources(state, player_id, structure)
+    ]
+    return sorted(z for z in zones if z not in ("space", target_planet))
 
 
 def needs_board_source(state: GameState, player_id: str, structure: str) -> bool:
     """Czy postawienie struktury wymaga zdjęcia jej z planszy (rezerwa pusta)."""
-    from src.core import production  # lokalnie: unika cyklu importów przy starcie pakietu
+    from src.core import board_reinforcements  # lokalnie: unika cyklu importów
 
-    left = production.reinforcements_left(state, player_id, structure)
-    return left is not None and left <= 0
+    return board_reinforcements.needs_board_source(state, player_id, structure)
 
 
 def structure_problem(

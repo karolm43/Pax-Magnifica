@@ -50,6 +50,9 @@ class ProductionOrder:
     count: int
     # Strefa docelowa: "space" albo id planety. None = domyślnie (statek → przestrzeń).
     zone: str | None = None
+    # Pusta rezerwa (R_component_limitations): skąd zdjąć jednostki tego typu - źródła
+    # ``"<pozycja>|<strefa>"`` z ``core.board_reinforcements`` (wybiera gracz).
+    sources: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -859,12 +862,19 @@ def produce(
             zone = o.zone
         wanted[o.base_type] = wanted.get(o.base_type, 0) + o.count
         placed.append((o, zone))
+    board_takes: list[tuple[str, str]] = []  # (typ, źródło) - zdjęte z planszy przed postawieniem
     for base_type, count in wanted.items():
         left = reinforcements_left(state, player_id, base_type)
         if left is not None and count > left:
-            raise ValueError(
-                f"Not enough {base_type} in reinforcements: {count} > {left} left."
-            )
+            # R_component_limitations: brakujące sztuki gracz może zdjąć z systemów bez swojego
+            # żetonu (``core.board_reinforcements``) - tylko wskazane przez niego źródła.
+            sources = [src for o in orders if o.base_type == base_type for src in o.sources]
+            if len(sources) < count - left:
+                raise ValueError(
+                    f"Not enough {base_type} in reinforcements: {count} > {left} left "
+                    "(choose units on the board to take, from systems without your command token)."
+                )
+            board_takes += [(base_type, src) for src in sources[: count - left]]
 
     cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
     pay = spend if spend is not None else auto_pay(state, registry, player_id, cost)
@@ -891,6 +901,10 @@ def produce(
         subject=player_id,
         ctx=produced_ctx,
     )
+    from src.core import board_reinforcements  # lokalnie: moduł woła production
+
+    for base_type, source in board_takes:
+        board_reinforcements.take_from_board(new_state, player_id, base_type, source)
     system = new_state.systems[active]
     for o, zone in placed:
         unit_ops.place_units(

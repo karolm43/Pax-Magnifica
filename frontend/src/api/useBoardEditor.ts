@@ -683,7 +683,7 @@ export function useBoardEditor() {
   const produce = useCallback(
     async (
       faction: string,
-      orders: { baseType: string; count: number; zone?: string }[],
+      orders: { baseType: string; count: number; zone?: string; sources?: string[] }[],
       spend?: { planets: string[]; tradeGoods: number },
       exhaustAida = false,
     ) => {

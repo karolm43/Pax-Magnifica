@@ -46,6 +46,7 @@ from src.core.hooks import card_targets_economy as targets
 from src.core.hooks.action_card_inputs import (
     Input,
     _choice,
+    _multi,
     _number,
     _option,
     _planet_label,
@@ -376,42 +377,61 @@ def _sanction_reward(
             command_tokens.spend_to_reinforcements(state, voter, "fleet", 1)
 
 
-# Technology Rider - research 1 technology (bez pominięć specjalnością; wybór przy zagraniu karty).
+# Technology Rider - research 1 technology (wybór przy zagraniu karty). C_action_cards: wolno
+# wyczerpać planetę ze specjalnością / AI Development Algorithm, by zignorować prerekwizyt.
 def _directly_researchable(
-    state: GameState, registry: StaticDataRegistry, player_id: str
+    state: GameState, registry: StaticDataRegistry, player_id: str, skips: list[str]
 ) -> list[str]:
-    result: list[str] = []
-    for tech in technology.researchable_techs(state, registry, player_id):
-        try:
-            technology.plan_research(state, registry, player_id, tech.id, [])
-        except ValueError:
-            continue
-        result.append(tech.id)
-    return result
+    return [
+        tech.id for tech in technology.researchable_techs(state, registry, player_id)
+        if technology.plan_with_skips(state, registry, player_id, tech.id, skips) is not None
+    ]
+
+
+def _skips(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[str]:
+    return [v for v, _ in technology.skip_choices(state, registry, player_id)]
 
 
 def _tech_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
+    everything = _skips(state, registry, player_id)
     options = [
         _option(tech_id, registry.technologies[tech_id].name)
-        for tech_id in _directly_researchable(state, registry, player_id)
+        for tech_id in _directly_researchable(state, registry, player_id, everything)
         if tech_id in registry.technologies
     ]
-    return [_choice("tech", "Technology to research", options)]
+    inputs = [_choice("tech", "Technology to research", options)]
+    skips = technology.skip_choices(state, registry, player_id)
+    if skips:
+        inputs.append(_multi(
+            "skips", "Exhaust to ignore prerequisites (optional)",
+            [_option(v, label) for v, label in skips], 0, len(skips),
+        ))
+    return inputs
 
 
 def _tech_validate(
     state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> dict[str, Any]:
     tech = params.get("tech")
-    if not isinstance(tech, str) or tech not in _directly_researchable(state, registry, player_id):
+    raw = params.get("skips") or []
+    skips = [str(s) for s in raw] if isinstance(raw, list) else []
+    allowed = set(_skips(state, registry, player_id))
+    if any(s not in allowed for s in skips):
+        raise ValueError("Choose ready planets with a technology specialty ('skips').")
+    if not isinstance(tech, str) or tech not in _directly_researchable(
+        state, registry, player_id, skips
+    ):
         raise ValueError("Choose a technology you can research ('tech').")
-    return {"tech": tech}
+    return {"tech": tech, "skips": skips}
 
 
 def _tech_reward(
     state: GameState, registry: StaticDataRegistry, player_id: str, data: Mapping[str, Any], _o: str
 ) -> None:
-    plan = technology.plan_research(state, registry, player_id, str(data.get("tech")), [])
+    skips = [str(s) for s in data.get("skips") or []]
+    plan = technology.plan_with_skips(state, registry, player_id, str(data.get("tech")), skips)
+    if plan is None:
+        raise ValueError("You can no longer research that technology (prerequisites).")
     technology.apply_research(state, player_id, plan)
 
 

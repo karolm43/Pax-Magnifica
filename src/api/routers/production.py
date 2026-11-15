@@ -14,7 +14,14 @@ from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.core import actor as actor_rules
-from src.core import invasion, payment, production, strategic_action, tactical
+from src.core import (
+    board_reinforcements,
+    invasion,
+    payment,
+    production,
+    strategic_action,
+    tactical,
+)
 from src.core.planet_stats import influence_of, resources_of
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
@@ -104,6 +111,15 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
                     state, player_id, u.base_type
                 ),
                 "onBoard": production.deployed_count(state, player_id, u.base_type),
+                # Gdy rezerwy zabraknie: jednostki do zdjęcia z systemów bez żetonu gracza.
+                "boardSources": [
+                    {"value": value, "label": label}
+                    for value, label in board_reinforcements.source_options(
+                        state, registry, player_id, u.base_type
+                    )
+                ]
+                if production.reinforcements_left(state, player_id, u.base_type) is not None
+                else [],
             }
         )
 

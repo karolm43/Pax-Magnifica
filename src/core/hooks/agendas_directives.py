@@ -14,6 +14,7 @@ from typing import Any
 from src.core import (
     agenda_phase,
     board_graph,
+    board_reinforcements,
     card_draw,
     command_tokens,
     control,
@@ -103,31 +104,44 @@ def _discard_hand(state: GameState, player_id: str) -> None:
         card_draw.discard_action_cards(state, player_id, len(hand))
 
 
-def _draw_secret(state: GameState, player_id: str, give_back: str | None) -> None:
-    """Dobranie tajnego celu; przy nadmiarze karta wraca do talii (wybór gracza)."""
-    over = secret_objectives.over_limit_after_draw(state, player_id)
-    back = (give_back or secret_objectives.DRAWN) if over else None
-    secret_objectives.draw(state, player_id, back)
+def _draw_revealed(state: GameState, card: str, player_id: str, count: int) -> None:
+    """Dobiera ``count`` tajnych celów do ręki; nadmiar gracz oddaje PO obejrzeniu (C_agendas)."""
+    for _ in range(count):
+        secret_objectives.draw_to_hand(state, player_id)
+    if secret_objectives.excess(state, player_id) > 0:
+        schedule(state, card, "return", player_id, scope=Duration.PHASE)
 
 
-def _secret_give_back_inputs(
-    state: GameState, registry: StaticDataRegistry, player_id: str, count: int
+def _return_inputs(
+    state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
-    if not secret_objectives.over_limit_after_draw(state, player_id):
-        return []
+    count = secret_objectives.excess(state, player_id)
     hand = state.players[player_id].private.secret_objectives
-    options = [_option(secret_objectives.DRAWN, "The newly drawn objective")]
-    for objective in hand:
-        definition = objectives.objective_def(registry, objective)
-        options.append(_option(objective, getattr(definition, "name", objective)))
-    return [
-        _choice(
-            "give_back",
-            "You are at the secret objective limit - return one to the deck",
-            options,
-            hint=f"You draw {count}; each card over the limit is shuffled back.",
-        )
+    options = [
+        _option(o, getattr(objectives.objective_def(registry, o), "name", o)) for o in hand
     ]
+    return [multi("objectives", f"Over the secret objective limit - return {count} to the deck",
+                  options, count, count)]
+
+
+def _return_excess(card: str) -> Any:
+    def apply(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
+        finish(state, card, "return", pid)
+        count = secret_objectives.excess(state, pid)
+        picks = [str(o) for o in _params(ctx).get("objectives", [])][:count]
+        hand = state.players[pid].private.secret_objectives
+        if len(picks) < count:
+            picks += [o for o in reversed(hand) if o not in picks][: count - len(picks)]
+        for objective in picks:
+            secret_objectives.discard_unscored(state, pid, objective)
+
+    return apply
+
+
+for _card, _name in (("secret", "Archived Secret"), ("warrant", "Search Warrant")):
+    on_event(GameEvent.AGENDA_OUTCOME_RESOLVED, Moment.AFTER, effect_source(_card, "return"),
+             where={"agenda": _card}, covers=covers(_card), decide=True, inputs=_return_inputs,
+             label=f"{_name}: return secret objectives over the limit")(_return_excess(_card))
 
 
 # =========================================================================================
@@ -223,26 +237,44 @@ def _research_inputs_n(count: int) -> Any:
         # Druga technologia może korzystać z pierwszej jako prerekwizytu (C_agendas).
         names = {t.id: t.name for t in technology.researchable_techs(state, registry, player_id)}
         candidates = list(_researchable(state, registry, player_id))
-        if count > 1:
+        skips = [
+            _option(v, label) for v, label in technology.skip_choices(state, registry, player_id)
+        ]
+        if count > 1 or skips:
             candidates += [t for t in names if t not in candidates]
         options = [_option(t, names.get(t, t)) for t in candidates]
-        return [multi("techs", f"Technologies to research (up to {count})", options, 0, count)]
+        found = [multi("techs", f"Technologies to research (up to {count})", options, 0, count)]
+        if skips:
+            found.append(multi(
+                "skips", "Exhaust to ignore prerequisites (optional)", skips, 0, len(skips),
+                hint="A planet with a technology specialty ignores 1 prerequisite of its color.",
+            ))
+        return found
 
     return inputs
 
 
-def research_chosen(state: GameState, player_id: str, techs: list[str]) -> None:
-    """Badanie wybranych technologii bez kosztu (kolejność dowolna: pierwsza bywa prerekwizytem)."""
+def research_chosen(
+    state: GameState, player_id: str, techs: list[str], skips: list[str] | None = None
+) -> None:
+    """Badanie wybranych technologii bez kosztu (kolejność dowolna: pierwsza bywa prerekwizytem).
+
+    ``skips`` - planety ze specjalnością / AI Development Algorithm, które gracz zgodził się
+    wyczerpać (C_agendas); każda technologia bierze najmniejszy potrzebny podzbiór."""
     registry = _registry()
     pending = list(techs)
+    left = list(skips or [])
     while pending:
         progressed = False
         for tech in list(pending):
-            try:
-                plan = technology.plan_research(state, registry, player_id, tech, [])
-            except ValueError:
+            plan = technology.plan_with_skips(state, registry, player_id, tech, left)
+            if plan is None:
                 continue
             technology.apply_research(state, player_id, plan)
+            used = set(plan.exhaust_planets)
+            if plan.exhaust_aida:
+                used.add(technology.AIDA_SKIP)
+            left = [s for s in left if s not in used]
             pending.remove(tech)
             progressed = True
         if not progressed:
@@ -287,7 +319,7 @@ def _artifact_research(state: GameState, pid: str, ctx: Mapping[str, Any]) -> No
     finish(state, "artifact", "research", pid)
     techs = [str(t) for t in _params(ctx).get("techs", [])]
     if techs:
-        research_chosen(state, pid, techs)
+        research_chosen(state, pid, techs, [str(x) for x in _params(ctx).get("skips", [])])
 
 
 def _losses(state: GameState, player_id: str) -> list[str]:
@@ -546,24 +578,42 @@ def _plowshares(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
 
 
 # Rearmament Agreement - For: 1 mech on a home planet; Against: replace each mech with infantry.
+# C_agendas: brak mecha w rezerwie => gracz MOŻE zdjąć mecha z systemu bez swojego żetonu
+# (postawiony nieuszkodzony; R_component_limitations - zdolność nie może do tego zmusić).
+_NO_SOURCE = "none"
+
+
 def _rearm_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
     planets = _home_planets(state, registry, player_id)
     options = [_option(p, _planet_label(state, registry, p)) for p in planets]
-    return [_choice("planet", "Home planet for the mech", options)]
+    inputs = [_choice("planet", "Home planet for the mech", options)]
+    if planets and board_reinforcements.needs_board_source(state, player_id, "mech"):
+        sources = board_reinforcements.source_options(state, registry, player_id, "mech")
+        if sources:
+            inputs.append(_choice(
+                "source", "No mech in your reinforcements - take one from the board?",
+                [_option(_NO_SOURCE, "Do not place a mech")]
+                + [_option(value, label) for value, label in sources],
+            ))
+    return inputs
 
 
 @on_outcome("rearmament", outcome="for", decide=True, inputs=_rearm_inputs,
             label="Rearmament Agreement")
 def _rearm_for(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
-    planet = str(_params(ctx).get("planet") or "")
+    params = _params(ctx)
+    planet = str(params.get("planet") or "")
     if planet not in _home_planets(state, _registry(), pid):
         return
-    try:
-        place_from_reinforcements(state, system_of_planet(state, planet), planet, pid, "mech", 1)
-    except ValueError:
-        return  # ⚠️ brak mecha w rezerwie: nie zdejmujemy go z planszy (RULES.md 51.6)
+    source = str(params.get("source") or _NO_SOURCE)
+    if board_reinforcements.needs_board_source(state, pid, "mech") and source == _NO_SOURCE:
+        return  # rezerwa pusta, a gracz nie zdejmuje mecha z planszy
+    board_reinforcements.place_unit(
+        state, system_of_planet(state, planet), planet, pid, "mech",
+        source=None if source == _NO_SOURCE else source,
+    )
 
 
 @on_outcome("rearmament", outcome="against", label="Rearmament Agreement")
@@ -614,7 +664,7 @@ def _redistribution(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None
           decide=True, inputs=_redistribution_inputs,
           label="Colonial Redistribution: choose who places 1 infantry")
 def _redistribution_place(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
-    from src.core import active_effects
+    from src.core import active_effects, triggers
 
     effects = active_effects.effects_for(state, pid, "agendas:redistribution:choose")
     planet = str(effects[0].data.get("planet")) if effects else ""
@@ -622,26 +672,36 @@ def _redistribution_place(state: GameState, pid: str, ctx: Mapping[str, Any]) ->
     chosen = str(_params(ctx).get("player") or "")
     if not planet or chosen not in state.players:
         return
+    # Karta: „that player MAY place 1 infantry” - decyduje wybrany gracz (oferta, RULES.md 56).
+    schedule(state, "redistribution", "place", chosen, scope=Duration.PHASE, planet=planet)
+    triggers.fire(
+        state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=chosen,
+        ctx={"player": chosen, "ability": _REDISTRIBUTION_PLACE, "planet": planet},
+    )
+
+
+_REDISTRIBUTION_PLACE = "agendas:redistribution:place"
+
+
+@on_event(GameEvent.FACTION_ABILITY_USED, Moment.AFTER, effect_source("redistribution", "place"),
+          where={"ability": _REDISTRIBUTION_PLACE},
+          condition=lambda s, p, c: p == c.get("player"), optional=True,
+          covers=covers("redistribution"), label="Colonial Redistribution: place 1 infantry")
+def _redistribution_infantry(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
+    finish(state, "redistribution", "place", pid)
+    planet = str(ctx.get("planet") or "")
     system = system_of_planet(state, planet)
     try:
-        place_from_reinforcements(state, system, planet, chosen, "infantry", 1)
+        place_from_reinforcements(state, system, planet, pid, "infantry", 1)
     except ValueError:
         return
     control.recompute_from_units(state, system.position, planet)
 
 
-# Archived Secret - the elected player draws 1 secret objective.
-def _secret_inputs(
-    state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
-) -> list[Input]:
-    return _secret_give_back_inputs(state, registry, player_id, 1)
-
-
-@on_outcome("secret", decide=True, condition=is_elected, inputs=_secret_inputs,
-            label="Archived Secret")
-def _archived_secret(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
-    give_back = _params(ctx).get("give_back")
-    _draw_secret(state, pid, str(give_back) if give_back else None)
+# Archived Secret - the elected player draws 1 secret objective (nadmiar oddawany po obejrzeniu).
+@on_outcome("secret", condition=is_elected, label="Archived Secret")
+def _archived_secret(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
+    _draw_revealed(state, "secret", pid, 1)
 
 
 # Seed of an Empire - For: most VP gains 1; Against: fewest VP gains 1 (remis: wszyscy, od mówcy).
@@ -705,7 +765,7 @@ def _wr_can_research(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> boo
 def _wr_research(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
     techs = [str(t) for t in _params(ctx).get("techs", [])]
     if techs:
-        research_chosen(state, pid, techs)
+        research_chosen(state, pid, techs, [str(x) for x in _params(ctx).get("skips", [])])
 
 
 @on_outcome("wormhole_research", outcome="for", once=True, moment=Moment.AFTER,
@@ -718,7 +778,14 @@ def _wr_destroy(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> None:
                 if count <= 0:
                     continue
                 # Statki niszczone; siły naziemne na orbicie znikają bez „destroyed" (C_agendas).
-                cause = UnitCause.DESTROYED if is_space_unit(base_type) else UnitCause.REMOVED
+                # Struktury w przestrzeni (Floating Factory Saar) zostają - to nie statki
+                # (C_agendas: „Floating Factories will not be destroyed by Wormhole Research").
+                if is_space_unit(base_type):
+                    cause = UnitCause.DESTROYED
+                elif base_type in GROUND_FORCES:
+                    cause = UnitCause.REMOVED
+                else:
+                    continue
                 unit_ops.remove_units(state, system, "space", player, base_type, count, cause)
 
 
@@ -908,18 +975,11 @@ def _travel_ban_against(state: GameState, _pid: str, _ctx: Mapping[str, Any]) ->
 
 
 # Search Warrant - the elected player draws 2 secret objectives (prawo: jawne cele - laws).
-def _warrant_inputs(
-    state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
-) -> list[Input]:
-    return _secret_give_back_inputs(state, registry, player_id, _WARRANT_SECRETS)
-
-
-@on_outcome("warrant", decide=True, condition=lambda s, p, c: p == c.get("outcome")
-            and c.get("previous") != p, inputs=_warrant_inputs, label="Search Warrant")
-def _warrant(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
-    give_back = _params(ctx).get("give_back")
-    _draw_secret(state, pid, str(give_back) if give_back else None)
-    _draw_secret(state, pid, None)  # ⚠️ druga karta ponad limit wraca do talii sama
+# C_agendas: dobrane karty są odkryte, zanim gracz wybierze, które oddać ponad limit.
+@on_outcome("warrant", condition=lambda s, p, c: p == c.get("outcome")
+            and c.get("previous") != p, label="Search Warrant")
+def _warrant(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
+    _draw_revealed(state, "warrant", pid, _WARRANT_SECRETS)
 
 
 # Wormhole Reconstruction - Against: each player places a token in each wormhole system that

@@ -167,7 +167,9 @@ async def post_tactical_produce(
     state = ctx.service.current_state()
     player_id = board_edit.resolve_player_id(request.faction, state)
     orders = [
-        production.ProductionOrder(base_type=o.base_type, count=o.count, zone=o.zone)
+        production.ProductionOrder(
+            base_type=o.base_type, count=o.count, zone=o.zone, sources=tuple(o.sources)
+        )
         for o in request.orders
     ]
     spend = (

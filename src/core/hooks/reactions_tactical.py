@@ -17,6 +17,7 @@ from typing import Any
 
 from src.core import (
     active_effects,
+    board_reinforcements,
     command_tokens,
     economy,
     exhaust,
@@ -40,7 +41,6 @@ from src.core.hooks.action_card_inputs import (
 from src.core.hooks.card_helpers import (
     other_player_param,
     place_from_reinforcements,
-    require_reinforcements,
     system_of_planet,
     system_param,
 )
@@ -728,12 +728,36 @@ def infiltrate(
     """Infiltrate: Replace each PDS and space dock that is on that planet with a matching unit from
     your reinforcements.
 
-    ⚠ ZAŁOŻENIE: gdy w rezerwie brakuje struktury, efekt kończy się błędem (wariant rulingu
-    „zdejmij z planszy" nie jest zaimplementowany); struktury własne gracza są pomijane.
+    C_action_cards: gdy w rezerwie brakuje struktury, gracz może zdjąć strukturę tego typu z
+    systemu bez swojego żetonu - wybór osobno dla każdej struktury (``sources:<typ>``,
+    ``core.board_reinforcements``). Struktury własne gracza są pomijane.
     """
     matching = reaction_cards.matching_windows(state, registry, player_id, "infiltrate")
     window = _gained_planet(params, matching)
     planet = str(window.ctx["planet"])
+    system = system_of_planet(state, planet)
+    replaced = _infiltrate_targets(state, player_id, planet)
+    takes: list[tuple[str, str]] = []
+    for base_type, count in _infiltrate_totals(replaced).items():
+        short = _infiltrate_shortfall(state, player_id, base_type, count)
+        picks = [str(p) for p in params.get(f"sources:{base_type}") or []]
+        if len(picks) < short:
+            raise ValueError(
+                f"Not enough {base_type} in reinforcements - choose {short} on the board "
+                "(in systems without your command token)."
+            )
+        takes += [(base_type, src) for src in picks[:short]]
+    for base_type, source in takes:
+        board_reinforcements.take_from_board(state, player_id, base_type, source)
+    for owner, base_type, count in replaced:
+        unit_ops.remove_units(state, system, planet, owner, base_type, count, UnitCause.REMOVED)
+        place_from_reinforcements(state, system, planet, player_id, base_type, count)
+
+
+def _infiltrate_targets(
+    state: GameState, player_id: str, planet: str
+) -> list[tuple[str, str, int]]:
+    """Cudze struktury na planecie: ``(właściciel, typ, ile)``."""
     system = system_of_planet(state, planet)
     replaced: list[tuple[str, str, int]] = []
     for owner in list(system.planet_units.get(planet, {})):
@@ -743,11 +767,19 @@ def infiltrate(
             count = unit_ops.count_in_zone(system, planet, owner, base_type)
             if count:
                 replaced.append((owner, base_type, count))
+    return replaced
+
+
+def _infiltrate_totals(replaced: list[tuple[str, str, int]]) -> dict[str, int]:
+    totals: dict[str, int] = {}
     for _owner, base_type, count in replaced:
-        require_reinforcements(state, player_id, base_type, count)
-    for owner, base_type, count in replaced:
-        unit_ops.remove_units(state, system, planet, owner, base_type, count, UnitCause.REMOVED)
-        place_from_reinforcements(state, system, planet, player_id, base_type, count)
+        totals[base_type] = totals.get(base_type, 0) + count
+    return totals
+
+
+def _infiltrate_shortfall(state: GameState, player_id: str, base_type: str, count: int) -> int:
+    left = production.reinforcements_left(state, player_id, base_type)
+    return 0 if left is None else max(0, count - left)
 
 
 @register_effect_inputs("action_cards:infiltrate")
@@ -761,7 +793,7 @@ def infiltrate_inputs(
         _option(w.ctx["planet"], _planet_label(state, registry, str(w.ctx["planet"])))
         for w in matching
     ]
-    return [
+    inputs = [
         _choice(
             "planet",
             "Planet you just gained control of",
@@ -769,6 +801,27 @@ def infiltrate_inputs(
             hint="Pick the planet you just took control of that the card applies to.",
         )
     ]
+    # Pusta rezerwa (C_action_cards): skąd zdjąć brakujące struktury - osobno dla każdej.
+    for base_type in _STRUCTURES:
+        short = max(
+            (
+                _infiltrate_shortfall(state, player_id, base_type, total)
+                for w in matching
+                for bt, total in _infiltrate_totals(
+                    _infiltrate_targets(state, player_id, str(w.ctx["planet"]))
+                ).items()
+                if bt == base_type
+            ),
+            default=0,
+        )
+        sources = board_reinforcements.source_options(state, registry, player_id, base_type)
+        if short and sources:
+            name = "PDS" if base_type == "pds" else "space dock"
+            inputs.append(_multi(
+                f"sources:{base_type}", f"No {name} left - take {short} from the board",
+                [_option(v, label) for v, label in sources], 0, min(short, len(sources)),
+            ))
+    return inputs
 
 
 @register_effect("action_cards:reparations")

@@ -127,6 +127,25 @@ def draw(state: GameState, player_id: str, give_back: str | None) -> None:
         next_rng(state).shuffle(decks.secret_objective_deck)
 
 
+def draw_to_hand(state: GameState, player_id: str) -> str | None:
+    """Dobiera tajny cel do ręki BEZ zwrotu nadmiaru; zwraca id albo ``None`` (pusta talia).
+
+    C_agendas (Search Warrant): dobrana karta jest odkryta, ZANIM gracz wybierze, którą oddać -
+    nadmiar oddaje potem wołający (``excess`` + ``discard_unscored``).
+    """
+    deck = state.decks.secret_objective_deck
+    if not deck:
+        return None
+    drawn = deck.pop(0)
+    state.players[player_id].private.secret_objectives.append(drawn)
+    return drawn
+
+
+def excess(state: GameState, player_id: str) -> int:
+    """Ile tajnych celów gracz ma ponad limit (do oddania z ręki)."""
+    return max(0, secret_count(state, player_id) - secret_limit(state, player_id))
+
+
 def transfer(state: GameState, giver_id: str, receiver_id: str, objective_id: str) -> None:
     """Przenosi NIEZDOBYTY tajny cel z ręki ``giver_id`` do ręki ``receiver_id`` (mutuje).
 

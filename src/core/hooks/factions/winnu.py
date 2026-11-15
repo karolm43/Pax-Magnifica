@@ -224,34 +224,47 @@ def reclamation(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> Non
     _place_parts(state, player_id, planet, value)
 
 
+def _reclaimers_on(state: GameState, player_id: str, planet: str) -> int:
+    for system in state.systems.values():
+        count = system.planet_units.get(planet, {}).get(player_id, {}).get("mech", 0)
+        if count:
+            return int(count)
+    return 0
+
+
 def _reclaimer_planets(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> list[str]:
-    found: list[str] = []
-    for planet in ctx.get("gained") or []:
-        for system in state.systems.values():
-            units = system.planet_units.get(planet, {}).get(player_id, {})
-            if units.get("mech", 0) > 0 and _structure_options(state, player_id, planet):
-                found.append(planet)
-    return found
+    return [
+        planet for planet in ctx.get("gained") or []
+        if _reclaimers_on(state, player_id, planet) and _structure_options(state, player_id, planet)
+    ]
 
 
 def _reclaimer_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     return ctx.get("player") == player_id and bool(_reclaimer_planets(state, player_id, ctx))
 
 
+_SKIP = "skip"
+
+
 def reclaimer_inputs(
     state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    options = [
-        oi.option(
-            f"{planet}|{value}",
-            f"{label} on {_planet_name(registry, planet)}",
-            meta={"planet": planet},
-        )
-        for planet in _reclaimer_planets(state, player_id, ctx)
-        for s in _structure_options(state, player_id, planet)
-        for value, label in _variants(state, registry, player_id, planet, s)
-    ]
-    return [oi.choice("place", "Reclaimer: place 1 structure", options, always=True)]
+    """Po jednym wyborze na KAŻDEGO Reclaimera na zdobytej planecie (F_winnu: „may place a
+    structure for each one", w limicie struktur na planecie - sprawdza ``place_structure``)."""
+    inputs: list[dict[str, Any]] = []
+    for planet in _reclaimer_planets(state, player_id, ctx):
+        options = [oi.option(_SKIP, "Place nothing")] + [
+            oi.option(value, label)
+            for s in _structure_options(state, player_id, planet)
+            for value, label in _variants(state, registry, player_id, planet, s)
+        ]
+        name = _planet_name(registry, planet)
+        for index in range(_reclaimers_on(state, player_id, planet)):
+            inputs.append(oi.choice(
+                f"place:{planet}:{index}", f"Reclaimer {index + 1} on {name}", options,
+                always=True,
+            ))
+    return inputs
 
 
 @on_event(
@@ -262,11 +275,17 @@ def reclaimer_inputs(
 def reclaimer(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Reclaimer: After you resolve a tactical action where you gained control of this planet, you
     may place 1 PDS or 1 Space Dock from your reinforcements on this planet.
-    (Pusta rezerwa: struktura zdjęta z systemu bez własnego żetonu — F_winnu.)"""
-    planet, _, value = str(ctx.get("params", {}).get("place") or "").partition("|")
-    if planet not in _reclaimer_planets(state, player_id, ctx) or "+" in value:
+    (Każdy Reclaimer osobno; pusta rezerwa: struktura zdjęta z systemu bez żetonu — F_winnu.)"""
+    params = ctx.get("params", {})
+    planets = set(_reclaimer_planets(state, player_id, ctx))
+    picks = [
+        (key.split(":")[1], str(value)) for key, value in sorted(params.items())
+        if key.startswith("place:") and value and value != _SKIP
+    ]
+    if any(planet not in planets or "+" in value for planet, value in picks):
         raise ValueError("Choose a planet you gained with a Reclaimer on it.")
-    _place_parts(state, player_id, planet, value)
+    for planet, value in picks:
+        _place_parts(state, player_id, planet, value)
 
 
 # ------------------------------------------------------------- Lazax Gate Folding

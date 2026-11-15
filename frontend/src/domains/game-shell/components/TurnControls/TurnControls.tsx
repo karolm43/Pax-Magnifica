@@ -910,30 +910,6 @@ export function TurnControls() {
                   </button>
                 );
               })}
-
-            {/* Zawsze dostępna opcja awaryjna — źródło akcji spoza listy (np. karta
-                eksploracji / promissory note, albo komponent, którego jeszcze nie
-                śledzimy jako posiadany). Rejestruje akcję bez konkretnej adnotacji. */}
-            <button
-              type="button"
-              role="listitem"
-              className={styles.compItem}
-              data-other
-              disabled={busy}
-              onClick={() =>
-                run(() =>
-                  playComponentAction(active.discordId).finally(() =>
-                    setComponentOpen(false),
-                  ),
-                )
-              }
-            >
-              <IconSparkles size={17} aria-hidden="true" />
-              <span className={styles.compItemName}>
-                Something else (exploration, note…)
-              </span>
-              <small className={styles.compItemTag}>Any component</small>
-            </button>
           </div>
 
           {/* Zdolności technologii BEZ akcji (np. Psychoarchaeology) - nie zużywają akcji tury. */}

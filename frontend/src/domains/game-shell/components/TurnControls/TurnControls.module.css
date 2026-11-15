@@ -758,21 +758,6 @@
   color: rgb(var(--ds-sig-ability));
 }
 
-/* Wariant „Other" — neutralny (nie-kartowe źródło akcji komponentu). */
-.compItem[data-other] {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: var(--ds-h14);
-}
-
-.compItem[data-other]:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--ds-h22);
-}
-
-.compItem[data-other] svg {
-  color: var(--ds-ink);
-}
-
 .compItemName {
   flex: 1 1 auto;
   min-width: 0;

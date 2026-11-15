@@ -253,6 +253,11 @@ def book_gained(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> Non
     chosen = list(ctx.get("params", {}).get("technologies", []))
     if len(chosen) > _BOOK_MAX or len(set(chosen)) != len(chosen):
         raise ValueError("Choose up to 2 different technologies.")
+    # C_relics: technologii z prerekwizytem nie da się zdobyć przez pominięcie prerekwizytu
+    # (specjalność planety, Analytical) - tylko technologie BEZ prerekwizytów.
+    allowed = {tech.id for tech in _no_prerequisite_techs(state, registry, player_id)}
+    if any(tech_id not in allowed for tech_id in chosen):
+        raise ValueError("Book of Latvinia researches only technologies without prerequisites.")
     for tech_id in chosen:
         plan = technology.plan_research(state, registry, player_id, tech_id, [])
         technology.apply_research(state, player_id, plan)

@@ -361,14 +361,18 @@ def _commander_sources(
         return []
     positions = [inv.position]
     grid = board_graph.bound_grid() or HexGrid()
-    # F_norr: siły muszą móc legalnie wejść do aktywnego systemu (supernowa, asteroidy) i nie
-    # przy Ceasefire. ⚠️ Enforced Travel Ban — razem z efektami agend.
+    # F_norr: siły muszą móc legalnie wejść do aktywnego systemu (supernowa, asteroidy), nie
+    # przy Ceasefire i nie przez wormhole przy Enforced Travel Ban / Nexus Sovereignty
+    # („cannot commit ground forces through a wormhole if the Enforced Travel Ban law is in play").
     blocked = movement.entry_blocked(grid, state, inv.position, player_id) is not None
     if not blocked and not promissory_play.ceasefire_blocks(state, player_id):
         for position in sorted(board_graph.adjacent_positions(inv.position)):
             system = state.systems.get(position)
-            if system is not None and player_id not in system.command_tokens:
-                positions.append(position)
+            if system is None or player_id in system.command_tokens:
+                continue
+            if movement.wormhole_link_blocked(grid, state, player_id, position, inv.position):
+                continue
+            positions.append(position)
     sources: list[tuple[str, str, list[str]]] = []
     for position in positions:
         system = state.systems.get(position)

@@ -66,6 +66,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const [busy, setBusy] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [zone, setZone] = useState<string | null>(null);
+  // Pusta rezerwa: wybrane przez gracza jednostki do zdjęcia z planszy (typ → źródła).
+  const [boardPicks, setBoardPicks] = useState<Record<string, string[]>>({});
   // null = płatność automatyczna (liczona z koszyka); ręczny wybór planet/TG ją zastępuje.
   const [manual, setManual] = useState<Payment | null>(null);
 
@@ -160,11 +162,21 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
       if (!view.faction) return;
       await produce(
         view.faction,
-        cart.map((l) => ({ baseType: l.baseType, count: l.count, zone: l.zone })),
+        cart.map((l, i) => ({
+          baseType: l.baseType,
+          count: l.count,
+          zone: l.zone,
+          // Źródła z planszy liczą się na typ - dokładamy je do pierwszej pozycji tego typu.
+          sources:
+            cart.findIndex((x) => x.baseType === l.baseType) === i
+              ? (boardPicks[l.baseType] ?? [])
+              : [],
+        })),
         { planets: payment.planets, tradeGoods: payment.tradeGoods },
         aidaOn,
       );
       setCart([]);
+      setBoardPicks({});
       setManual(null);
       setUseAida(false);
     });
@@ -185,10 +197,31 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const ships = view.units.filter((u) => u.placement === "space");
   const ground = view.units.filter((u) => u.placement === "planet");
 
-  const card = (u: ProductionUnit) => {
-    const n = countOf(cart, u.baseType);
+  const togglePick = (baseType: string, source: string) =>
+    setBoardPicks((all) => {
+      const picks = all[baseType] ?? [];
+      return {
+        ...all,
+        [baseType]: picks.includes(source)
+          ? picks.filter((s) => s !== source)
+          : [...picks, source],
+      };
+    });
+
+  const card = (base: ProductionUnit) => {
+    const n = countOf(cart, base.baseType);
+    const picks = boardPicks[base.baseType] ?? [];
+    // Jednostki zdjęte z planszy powiększają rezerwę tego zamówienia (R_component_limitations).
+    const u =
+      base.reinforcements === null
+        ? base
+        : { ...base, reinforcements: base.reinforcements + picks.length };
     const blocked = whyNotAdd(view, cart, u, activeZone);
     const more = maxMore(view, cart, u, activeZone);
+    const showSources =
+      base.reinforcements !== null &&
+      (base.boardSources?.length ?? 0) > 0 &&
+      (n >= base.reinforcements || picks.length > 0);
     return (
       <div className={styles.unitCard} key={u.baseType} data-active={n > 0 || undefined}>
         <div className={styles.unitSprite}>
@@ -241,6 +274,23 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           </button>
         </div>
         {blocked && n === 0 && <small className={styles.why}>{blocked}</small>}
+        {showSources && (
+          <div className={styles.boardSources} role="group" aria-label={`Take ${u.name} from the board`}>
+            <small>Reserve empty - take from the board (no command token there):</small>
+            {base.boardSources?.map((src) => (
+              <button
+                key={src.value}
+                type="button"
+                className={styles.sourceChip}
+                aria-pressed={picks.includes(src.value)}
+                disabled={busy}
+                onClick={() => togglePick(base.baseType, src.value)}
+              >
+                {src.label.replace(/^Take from /, "")}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   };

@@ -855,6 +855,9 @@ class ProduceOrderItem(BaseModel):
     # Strefa: "space" (statki) albo ID planety (siły naziemne/struktury). Gdy pominięta,
     # backend wybiera wg umiejscowienia (statek→space; naziemne wymaga planety → błąd).
     zone: str | None = None
+    # Pusta rezerwa: źródła na planszy (``"<pozycja>|<strefa>"``), z których gracz zdejmuje
+    # jednostki tego typu (R_component_limitations).
+    sources: list[str] = Field(default_factory=list)
 
 
 class ProduceSpend(BaseModel):

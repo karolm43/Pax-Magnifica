@@ -989,3 +989,30 @@
   font-weight: 700;
   color: #4ade80;
 }
+
+/* Pusta rezerwa: wybór jednostek do zdjęcia z planszy (R_component_limitations). */
+.boardSources {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.boardSources small {
+  width: 100%;
+  opacity: 0.8;
+}
+.sourceChip {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--att-rgb) / 0.5);
+  background: rgb(0 0 0 / 0.35);
+  color: inherit;
+  cursor: pointer;
+}
+.sourceChip[aria-pressed="true"] {
+  background: rgb(var(--att-rgb) / 0.45);
+  border-color: rgb(var(--att-rgb));
+}

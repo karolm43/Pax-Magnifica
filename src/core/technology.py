@@ -500,6 +500,47 @@ def _unit_upgrade_flag(tech_id: str) -> str:
     return "true" if tech is not None and not tech.types else "false"
 
 
+def plan_with_skips(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    tech_id: str,
+    skips: list[str],
+) -> ResearchPlan | None:
+    """Plan badania z NAJMNIEJSZYM podzbiorem skipów, które gracz zgodził się wyczerpać.
+
+    Dla badań poza oknem karty Technology (agendy, Technology Rider - C_agendas,
+    C_action_cards): gracz wskazuje planety ze specjalnością / AI Development Algorithm raz,
+    a silnik przypisuje je do technologii. ``None`` - nie da się zbadać nawet ze wszystkimi.
+    """
+    from itertools import combinations
+
+    tech = registry.technologies.get(tech_id)
+    # Więcej skipów niż symboli prerekwizytów nic nie da (zbędny skip = błąd planu).
+    most = min(len(skips), sum(prerequisites(tech).values()) if tech is not None else 0)
+    for size in range(most + 1):
+        for subset in combinations(skips, size):
+            try:
+                return plan_research(state, registry, player_id, tech_id, list(subset))
+            except ValueError:
+                continue
+    return None
+
+
+def skip_choices(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[tuple[str, str]]:
+    """``(wartość, opis)`` skipów gracza: gotowe planety ze specjalnością i AIDA (jeśli gotowe)."""
+    found: list[tuple[str, str]] = []
+    for planet, colors in specialty_planets(state, registry, player_id).items():
+        info = registry.planets.get(planet)
+        name = info.name if info is not None and info.name else planet
+        found.append((planet, f"{name} ({'/'.join(c.lower() for c in colors)})"))
+    if aida_ready(state, player_id):
+        found.append((AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
+    return found
+
+
 def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None:
     """Dodaje technologię i wyczerpuje planety/AIDA z planu (mutuje KLON stanu)."""
     research_ctx = {
