@@ -69,3 +69,33 @@ def test_skip_agenda_starts_next_round(registry: StaticDataRegistry) -> None:
     out = skip_flow.skip_phase(state, registry)
     assert out.phase is Phase.STRATEGY
     assert out.round_number == state.round_number + 1
+
+
+def test_skip_player_hands_turn_without_action(registry: StaticDataRegistry) -> None:
+    state = skip_flow.skip_phase(_state(), registry)  # -> ACTION
+    first = state.active_player_id
+    assert first is not None
+    out = skip_flow.skip_player(state)
+    order = turn_flow.turn_order(out)
+    assert out.active_player_id == order[(order.index(first) + 1) % 3]
+    # Nikt nie spasował, nikt nie „zrobił akcji" — tylko przesunięcie tury.
+    assert not any(p.passed for p in out.players.values())
+    assert not out.players[out.active_player_id].took_action_this_turn
+
+
+def test_skip_player_skips_passed_and_cycles_when_all_passed(
+    registry: StaticDataRegistry,
+) -> None:
+    state = skip_flow.skip_phase(_state(), registry)  # -> ACTION
+    order = turn_flow.turn_order(state)
+    state.active_player_id = order[0]
+    state.players[order[1]].passed = True
+    assert skip_flow.skip_player(state).active_player_id == order[2]
+    for p in state.players.values():
+        p.passed = True
+    assert skip_flow.skip_player(state).active_player_id == order[1]
+
+
+def test_skip_player_only_in_action_phase() -> None:
+    with pytest.raises(ValueError):
+        skip_flow.skip_player(_state(Phase.STRATEGY))

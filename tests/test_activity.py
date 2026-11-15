@@ -43,6 +43,15 @@ def test_turn_pass_actor_is_previous_active_player() -> None:
     assert entry.target_id == "p2"
 
 
+def test_skip_player_shows_turn_handover() -> None:
+    """God-Mode „Skip player": w feedzie jak zwykłe przekazanie tury."""
+    after = _state()
+    after.active_player_id = "p2"
+    entry = derive_activity("turn:skip-player", _state(), after)
+    assert entry is not None
+    assert (entry.action, entry.actor_id, entry.target_id) == ("turn.next", "p1", "p2")
+
+
 def test_internal_step_without_effect_is_hidden() -> None:
     assert derive_activity("tactical:step", _state(), _state()) is None
 

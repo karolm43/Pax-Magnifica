@@ -196,6 +196,19 @@ async def post_skip_phase(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     return await _commit_flow(ctx, new_state, "phase:skip")
 
 
+@router.post("/turn/skip-player", dependencies=[HostOnly], response_model=StateEnvelope)
+async def post_skip_player(ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+    """Tryb testowy (God-Mode): oddaje turę następnemu graczowi bez akcji/pasa.
+
+    Widoczny w UI razem z „Skip phase" (ustawienie „Skip phases").
+    """
+    try:
+        new_state = skip_flow.skip_player(ctx.service.current_state())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_flow(ctx, new_state, "turn:skip-player")
+
+
 @router.post("/round/next", response_model=StateEnvelope)
 async def post_next_round(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
     """Rozpoczyna nową rundę: runda +1, faza = strategia, reset pasów.

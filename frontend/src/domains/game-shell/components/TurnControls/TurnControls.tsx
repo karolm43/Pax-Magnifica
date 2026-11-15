@@ -126,6 +126,7 @@ export function TurnControls() {
     phaseStep,
     nextPhase,
     skipPhase,
+    skipPlayer,
     nextRound,
     activateSystem,
   } = useBoardEditor();
@@ -648,6 +649,21 @@ export function TurnControls() {
             >
               <IconChevronsRight size={16} aria-hidden="true" />
               <span>Skip phase</span>
+            </button>
+          )}
+
+          {/* God-Mode (testy): tura następnego gracza bez akcji/pasa — szybkie
+              przełączanie między graczami (tylko faza akcji). */}
+          {skipPhasesEnabled && isAction && (
+            <button
+              type="button"
+              className={styles.nextPhase}
+              disabled={busy}
+              onClick={() => run(skipPlayer)}
+              title="God-Mode: hand the turn to the next player without taking an action or passing"
+            >
+              <IconPlayerTrackNextFilled size={16} aria-hidden="true" />
+              <span>Skip player</span>
             </button>
           )}
         </div>

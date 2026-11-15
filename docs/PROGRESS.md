@@ -1257,3 +1257,10 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Centrum decyzji (`DecisionCenter`) domyślnie w prawym GÓRNYM rogu pod paskiem narzędzi mapy (wcześniej prawy dół na
   panelach karty strategii i akcji); wysokość ograniczona nad nimi; klucz pozycji `decisionCenter.pos.v2`.
 - Testy: `test_sarween_tools_dziala_przy_produkcji_z_karty_strategii`, `test_zrodla_zniżki_produkcji_maja_nazwe_z_danych`.
+## 2026-11-15 — God-Mode „Skip player” (tury wszystkich graczy bez akcji)
+
+- `skip_flow.skip_player` + `POST /turn/skip-player` (HostOnly): w fazie akcji tura przechodzi do następnego
+  niespasowanego gracza (gdy wszyscy spasowali — po prostu następny w inicjatywie) bez akcji i pasa; blokady sprzątane
+  jak przy „Skip phase”, nowy gracz dostaje świeżą turę (`action_budget.reset_turn`), bez wyzwalaczy końca/początku tury.
+- UI: przycisk „Skip player” w `TurnControls` pod „Skip phase” (ustawienie „Skip phases”, tylko faza akcji, w sieci host).
+- Feed: etykieta `turn:skip-player` → `turn.next`. Testy: `tests/test_skip_flow.py` (3 nowe), `test_activity.py`.

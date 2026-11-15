@@ -161,7 +161,7 @@ def _parse_flow(
         return "turn", "turn.end", active, after.active_player_id, None, None
     if label == "turn:pass":
         return "turn", "turn.pass", active, after.active_player_id, None, None
-    if label == "turn:next-player":
+    if label in ("turn:next-player", "turn:skip-player"):
         return "turn", "turn.next", active, after.active_player_id, None, None
     if label in ("phase:next", "phase:skip"):
         return "turn", "phase.start", None, None, after.phase.value, None

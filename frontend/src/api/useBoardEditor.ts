@@ -425,6 +425,12 @@ export function useBoardEditor() {
     await refresh();
   }, [refresh]);
 
+  // God-Mode (testy): tura przechodzi do następnego gracza bez akcji i pasa.
+  const skipPlayer = useCallback(async () => {
+    await post("/turn/skip-player", {});
+    await refresh();
+  }, [refresh]);
+
   const nextPhase = useCallback(async () => {
     await post("/phase/next", {});
     await refresh();
@@ -1100,6 +1106,7 @@ export function useBoardEditor() {
     statusRedistribute,
     nextPhase,
     skipPhase,
+    skipPlayer,
     nextRound,
     pickStrategyCard,
     playStrategyCard,

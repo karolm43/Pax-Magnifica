@@ -1,4 +1,6 @@
-"""Przeskok fazy dla testów w God-Mode (``/phase/skip``) — NIE dla zwykłej rozgrywki.
+"""Przeskok fazy / gracza dla testów w God-Mode (``/phase/skip``, ``/turn/skip-player``).
+
+NIE dla zwykłej rozgrywki.
 
 Zwykły przepływ (``turn_flow``) zostaje nietknięty: tu tylko SPRZĄTAMY blokady
 (otwarte okno, walka, inwazja, akcja taktyczna), dobieramy brakujące karty strategii
@@ -9,7 +11,7 @@ zawsze. Nowa funkcja nie zmienia semantyki żadnej istniejącej reguły ani test
 
 from __future__ import annotations
 
-from src.core import agenda_phase, status_phase, strategy_phase, triggers, turn_flow
+from src.core import action_budget, agenda_phase, status_phase, strategy_phase, triggers, turn_flow
 from src.core.game_state import GameState, Phase
 from src.core.registry import StaticDataRegistry
 
@@ -69,3 +71,38 @@ def skip_phase(state: GameState, registry: StaticDataRegistry) -> GameState:
         work = strategy_phase.close_round_cards(work, registry)
         return turn_flow.next_round(work)
     return turn_flow.next_phase(work)
+
+
+def skip_player(state: GameState) -> GameState:
+    """Oddaje turę w fazie akcji następnemu graczowi BEZ akcji i pasa (God-Mode).
+
+    Do testowania tur wszystkich graczy: sprzątamy blokady jak przy ``skip_phase``
+    (okno, walka, akcja taktyczna), a następny gracz dostaje świeżą turę — tak jak
+    po ``end_turn``, ale bez wymogu akcji i bez wyzwalaczy końca/początku tury.
+    Kolejność: następny niespasowany; gdy wszyscy spasowali — po prostu następny
+    w kolejności inicjatywy (by dało się przełączać między graczami dalej).
+
+    Raises:
+        ValueError: Poza fazą akcji (w pozostałych fazach aktywnego gracza wyznacza
+            ich własny przebieg kroków).
+    """
+    if state.phase is not Phase.ACTION:
+        raise ValueError("Skip player works only in the action phase.")
+    work = state.clone()
+    _clear_blockers(work)
+    work.held_play = None
+    work.exploration = None
+    work.bonus_turn = None
+    current = work.active_player_id
+    nxt = turn_flow.next_unpassed_player(work, current)
+    if nxt is None or nxt == current:
+        order = turn_flow.turn_order(work)
+        if not order:
+            return work
+        idx = order.index(current) if current in order else -1
+        nxt = order[(idx + 1) % len(order)]
+    work.active_player_id = nxt
+    work.expeditions.performed_by = None
+    action_budget.reset_turn(work, nxt)
+    work.players[nxt].transacted_with = []
+    return work
