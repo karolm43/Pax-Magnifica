@@ -11,8 +11,9 @@ przeciągnięciem, gdy jej okno jest otwarte TERAZ (poza Public Disgrace - patrz
   cofniętym kroku (wiedza z "hindsight": ``register_hindsight``), więc w zwykłej ścieżce (bez
   przyszłości) karta NIE jest oferowana. ``strategy_phase.pick_strategy_card`` egzekwuje zakaz.
 * **Coup d'Etat** (``coup``) - „When another player would perform a strategic action": okno =
-  początek tury innego gracza, który ma nieużytą kartę strategii. Efekt kończy jego turę
-  (``turn_flow.end_turn(forced=True)``): akcja strategiczna się nie dzieje, karta nie jest zużyta.
+  inny gracz OGŁOSIŁ akcję strategiczną (zagrał kartę strategii), a primary jeszcze się nie
+  rozstrzyga (pierwszy krok, pusty szkic). Efekt anuluje primary, odświeża kartę strategii i kończy
+  jego turę (``turn_flow.end_turn(forced=True)``). Po pierwszym wyborze gracza - tylko przez HOLD.
 * **Political Stability** (``stability``) - „When you would return your strategy card(s) during
   the status phase": okno = status, krok 8 (przed zwrotem). Efekt trwały do końca rundy; egzekwuje
   go ``strategy_phase.reset_strategy_cards``.
@@ -27,12 +28,15 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import (
+    action_budget,
     active_effects,
     battle,
     board_graph,
+    exhaust,
     fleet_pool,
     reaction_cards,
     rules_hooks,
+    strategic_action,
     strategy_phase,
     turn_flow,
     unit_ops,
@@ -140,49 +144,57 @@ def public_disgrace(
 # ------------------------------------------------------------------ Coup d'Etat
 
 
-@window_provider
-def before_strategic_action(state: GameState) -> list[OpenWindow]:
-    """Okno „gracz wykona akcję strategiczną": jego tura, jeszcze nic nie zrobił, ma wolną kartę."""
-    active = state.active_player_id
-    player = state.players.get(active) if active else None
+def declared_strategic_action(state: GameState) -> str | None:
+    """Gracz, który OGŁOSIŁ akcję strategiczną, a jej primary jeszcze się nie rozstrzyga.
+
+    ``play_strategy_card`` wyczerpuje kartę i ustawia ``pending_strategy`` na pierwszym kroku
+    (wybory to szkic, efekt stosuje się na końcu). Dopóki gracz nie złożył pierwszego wyboru,
+    akcja strategiczna „would be performed” (Coup d'Etat). Overrule (``no_secondary``) i primary
+    bohatera Winnu (``secondary_players``) to nie akcje strategiczne gracza z jego karty.
+    """
+    pending = state.pending_strategy
+    if pending is None or state.phase is not Phase.ACTION or state.winner_id:
+        return None
+    owner = state.players.get(pending.owner_id)
     if (
-        player is None
-        or active is None
-        or state.phase is not Phase.ACTION
-        or state.winner_id
-        or player.passed
-        or player.took_action_this_turn
-        or player.actions_this_turn
-        or state.pending_window is not None
-        or state.pending_strategy is not None
-        or state.tactical_step is not None
-        or state.exploration is not None
-        or state.held_play is not None
-        or not any(i not in player.exhausted_strategy_cards for i in player.strategy_cards)
+        owner is None
+        or state.active_player_id != pending.owner_id
+        or pending.no_secondary
+        or pending.secondary_players is not None
+        or pending.initiative not in owner.strategy_cards
+        or pending.initiative not in owner.exhausted_strategy_cards
+        or pending.draft
+        or pending.step != strategic_action.first_primary_step(pending.initiative)
     ):
+        return None
+    return pending.owner_id
+
+
+@window_provider
+def strategic_action_declared(state: GameState) -> list[OpenWindow]:
+    """Okno „gracz wykona akcję strategiczną”: karta strategii zagrana, primary nierozpoczęte.
+
+    Zgłoszenie użytkownika 2026-11-15: wcześniej okno trwało od początku cudzej tury (gracz z wolną
+    kartą strategii), więc Coup d'Etat grano „na zapas”, choć gracz wcale nie musiał wykonać akcji
+    strategicznej. Teraz okno istnieje dopiero po jej ogłoszeniu (RULES.md 53.7).
+    """
+    owner = declared_strategic_action(state)
+    if owner is None:
         return []
-    return [OpenWindow(GameEvent.STRATEGIC_ACTION, Moment.WHEN, {"player": active})]
-
-
-def _coup_hindsight(state: GameState, future: GameState, window: OpenWindow) -> dict[str, Any]:
-    """Czy gracz w kroku tuż po oknie rzeczywiście zagrał kartę strategii (``strategic``)."""
-    pid = window.subject
-    before = state.players.get(pid) if pid else None
-    after = future.players.get(pid) if pid else None
-    if before is None or after is None:
-        return {}
-    new = [i for i in after.exhausted_strategy_cards if i not in before.exhausted_strategy_cards]
-    return {"strategic": True, "initiative": new[0]} if new else {}
-
-
-register_hindsight("coup", _coup_hindsight)
+    initiative = state.pending_strategy.initiative if state.pending_strategy else 0
+    return [
+        OpenWindow(
+            GameEvent.STRATEGIC_ACTION, Moment.WHEN,
+            {"player": owner, "initiative": initiative, "declared": True},
+        )
+    ]
 
 
 def _cond_coup(
-    _state: GameState, _registry: StaticDataRegistry, _player: str, window: OpenWindow
+    state: GameState, _registry: StaticDataRegistry, _player: str, window: OpenWindow
 ) -> bool:
-    """Po cofnięciu: tylko gdy w tamtym kroku padła akcja strategiczna (inaczej brak „would")."""
-    return not reaction_cards.in_hindsight() or bool(window.ctx.get("strategic"))
+    """Tylko okno ogłoszonej akcji strategicznej (nie np. okno Acquiescence w trakcie secondary)."""
+    return bool(window.ctx.get("declared")) and declared_strategic_action(state) == window.subject
 
 
 declare_reaction("coup", condition=_cond_coup)
@@ -192,12 +204,21 @@ declare_reaction("coup", condition=_cond_coup)
 def coup_detat(
     state: GameState, registry: StaticDataRegistry, _player_id: str, params: Mapping[str, Any]
 ) -> None:
-    """Coup d'Etat: End that player's turn, the strategic action is not resolved and the strategy
+    """Coup d'Etat: End that player's turn; the strategic action is not resolved and the strategy
     card is not exhausted.
+
+    Primary nie rozstrzyga się (``pending_strategy`` znika), karta strategii wraca do gotowych,
+    zużyta akcja tury jest oddana, a tura się kończy (zdolności „at the end of your turn” działają -
+    ruling C_action_cards).
     """
     target = _window_ctx(params).get("player")
-    if not isinstance(target, str) or state.active_player_id != target:
-        raise ValueError("That player's turn is no longer in progress.")
+    if not isinstance(target, str) or declared_strategic_action(state) != target:
+        raise ValueError("That player is no longer about to perform a strategic action.")
+    pending = state.pending_strategy
+    assert pending is not None  # zagwarantowane przez declared_strategic_action
+    state.pending_strategy = None
+    exhaust.ready_strategy_card(state, target, pending.initiative)
+    action_budget.unregister_action(state, target)
     _adopt(state, turn_flow.end_turn(state, target, registry=registry, forced=True))
 
 

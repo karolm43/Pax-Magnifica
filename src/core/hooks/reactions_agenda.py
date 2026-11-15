@@ -107,7 +107,9 @@ def agenda_windows(state: GameState) -> list[OpenWindow]:
     base: dict[str, Any] = {"agenda": card}
     if agenda.step is AgendaStep.VOTE and not agenda.votes and not agenda.abstained:
         ctx = {**base, "player": speaker}
-        windows.append(OpenWindow(GameEvent.AGENDA_REVEALED, Moment.WHEN, dict(ctx)))
+        # „When” zamyka się, gdy ktoś zagrał kartę „after” (ridery): when przed after (R_abilities).
+        if agenda.after_reveal_played != card:
+            windows.append(OpenWindow(GameEvent.AGENDA_REVEALED, Moment.WHEN, dict(ctx)))
         windows.append(OpenWindow(GameEvent.AGENDA_REVEALED, Moment.AFTER, dict(ctx)))
     if agenda.step in _VOTING_STEPS:
         last = agenda.last_vote_by

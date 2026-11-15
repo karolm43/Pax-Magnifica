@@ -21,6 +21,7 @@ dają głosów. Zero głosów = wstrzymanie się.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from src.core import (
@@ -96,6 +97,18 @@ _REVEAL_ANOTHER_TEXT = "discard this card and reveal another"
 
 # --- Klasyfikacja agendy ------------------------------------------------------------------
 
+
+
+def note_reaction_played(state: GameState, window: Mapping[str, Any]) -> None:
+    """Zagrano kartę w oknie ``window``: „after an agenda is revealed” zamyka okno „when revealed”
+    (wszystkie „when” przed „after”, R_abilities; ruling Veto: przed oknem riderów). MUTUJE."""
+    agenda = state.agenda
+    if (
+        agenda is not None
+        and window.get("event") == GameEvent.AGENDA_REVEALED.value
+        and window.get("moment") == Moment.AFTER.value
+    ):
+        agenda.after_reveal_played = agenda.agenda_id
 
 def agenda_def(registry: StaticDataRegistry, agenda_id: str) -> AgendaDef | None:
     """Definicja karty agendy z Katalogu_Komponentów (``None`` dla nieznanego id)."""

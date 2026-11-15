@@ -199,42 +199,41 @@ def _action_state(hand: list[str]) -> GameState:
 
 
 def test_coup_konczy_ture_bez_akcji_strategicznej(registry: StaticDataRegistry) -> None:
-    before = _action_state(["coup"])
-    after = strategic_action.play_strategy_card(before, registry, "p1", 1)
-    assert after.players["p1"].exhausted_strategy_cards == [1]
-    chain = _chain(before, after)
-    steps, _ = hold_rewind.candidates(chain, registry, "p2")
-    assert [s["seq"] for s in steps] == [1]
-
-    new_state, _ = hold_rewind.play_at(chain, registry, "p2", "coup", 1)
-    assert new_state.active_player_id == "p2"  # tura przeszła dalej
-    assert new_state.players["p1"].exhausted_strategy_cards == []  # karta nie wyczerpana
-    assert not new_state.players["p1"].took_action_this_turn
-    assert new_state.pending_strategy is None and new_state.pending_window is None
-
-
-def test_coup_nie_jest_oferowany_gdy_nie_bylo_akcji_strategicznej(
-    registry: StaticDataRegistry,
-) -> None:
-    before = _action_state(["coup"])
-    other = before.clone()
-    other.players["p1"].private.action_cards = ["x"]  # krok bez akcji strategicznej
-    chain = _chain(before, other)
-    steps = hold_rewind.candidates(chain, registry, "p2")[0]
-    assert [s["seq"] for s in steps] == [2]  # tylko zwykłe okno TERAZ, nie cofnięcie do seq 1
-
-
-def test_coup_zwykla_sciezka_w_oknie_otwartym_teraz(registry: StaticDataRegistry) -> None:
-    state = _action_state(["coup"])
+    """Okno Coup: karta strategii zagrana, primary nierozpoczęte - zwykłe zagranie TERAZ."""
+    state = strategic_action.play_strategy_card(_action_state(["coup"]), registry, "p1", 1)
+    assert state.players["p1"].exhausted_strategy_cards == [1]
     ok, _reason, window = reaction_cards.available(state, registry, "p2", "coup")
     assert ok and window is not None
     new_state, _ = action_cards.play_action_card(state, registry, "p2", "coup", actor_id="p2")
-    assert new_state.active_player_id == "p2"
-    # własna tura: nie można "puczem" przejąć własnej akcji
-    own = _action_state(["coup"])
+    assert new_state.active_player_id == "p2"  # tura przeszła dalej
+    assert new_state.players["p1"].exhausted_strategy_cards == []  # karta nie wyczerpana
+    assert new_state.pending_strategy is None and new_state.pending_window is None
+
+
+def test_coup_nie_na_zapas_na_poczatku_tury(registry: StaticDataRegistry) -> None:
+    """„Would perform a strategic action”: bez ogłoszonej akcji strategicznej nie ma okna
+    (zgłoszenie 2026-11-15 - gracz wcale nie musi zagrać karty strategii)."""
+    state = _action_state(["coup"])
+    assert not reaction_cards.available(state, registry, "p2", "coup")[0]
+    own = strategic_action.play_strategy_card(_action_state(["coup"]), registry, "p1", 1)
     own.players["p1"].private.action_cards = ["coup"]
     own.players["p2"].private.action_cards = []
-    assert not reaction_cards.available(own, registry, "p1", "coup")[0]
+    assert not reaction_cards.available(own, registry, "p1", "coup")[0]  # nie na własną akcję
+
+
+def test_coup_po_pierwszym_wyborze_tylko_przez_hold(registry: StaticDataRegistry) -> None:
+    """Gracz złożył już pierwszy wybór primary: okno minęło, HOLD cofa do chwili ogłoszenia."""
+    declared = strategic_action.play_strategy_card(_action_state(["coup"]), registry, "p1", 1)
+    chosen = declared.clone()
+    assert chosen.pending_strategy is not None
+    chosen.pending_strategy.draft = {"picked": True}  # szkic = wybór już złożony
+    assert not reaction_cards.available(chosen, registry, "p2", "coup")[0]
+    chain = _chain(declared, chosen)
+    steps, _ = hold_rewind.candidates(chain, registry, "p2")
+    assert [s["seq"] for s in steps] == [1]
+    new_state, _ = hold_rewind.play_at(chain, registry, "p2", "coup", 1)
+    assert new_state.active_player_id == "p2"
+    assert new_state.players["p1"].exhausted_strategy_cards == []
 
 
 # ------------------------------------------------------------------ Political Stability
@@ -369,10 +368,12 @@ def _client(registry: StaticDataRegistry, first: GameState) -> TestClient:
 
 
 def test_endpointy_hold_candidates_inputs_play(registry: StaticDataRegistry) -> None:
-    before = _action_state(["coup"])
+    before = strategic_action.play_strategy_card(_action_state(["coup"]), registry, "p1", 1)
     client = _client(registry, before)
     service = client.app.state.service  # type: ignore[attr-defined]
-    after = strategic_action.play_strategy_card(before, registry, "p1", 1)
+    after = before.clone()
+    assert after.pending_strategy is not None
+    after.pending_strategy.draft = {"picked": True}
     service.replace_state(after, label="strategy:1")
     seq_before = service.recent_chain(5)[0][0]
 

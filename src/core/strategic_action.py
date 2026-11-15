@@ -55,6 +55,12 @@ NO_COST_KEY = "no_cost"  # gracze, którzy dostali darmowe (nieobowiązkowe) sec
 NO_COST_WHY_KEY = "no_cost_why"
 
 
+def first_primary_step(initiative: int) -> str | None:
+    """Pierwszy krok primary karty (``None`` = karta bez kroków, primary od razu)."""
+    steps = _spec(initiative).primary_steps
+    return steps[0] if steps else None
+
+
 def secondary_without_token(state: GameState, player_id: str, initiative: int) -> bool:
     """Czy gracz rozstrzyga secondary BEZ żetonu (hook albo wpis ``no_cost`` okna) — RULES.md 62.6.
 

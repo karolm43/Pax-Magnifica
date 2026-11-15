@@ -64,6 +64,14 @@ def exhaust_strategy_card(state: GameState, player_id: str, initiative: int) -> 
         player.exhausted_strategy_cards = [*player.exhausted_strategy_cards, initiative]
 
 
+def ready_strategy_card(state: GameState, player_id: str, initiative: int) -> None:
+    """Odświeża jedną kartę strategii (Coup d'Etat: „the strategy card is not exhausted”)."""
+    player = _player(state, player_id)
+    player.exhausted_strategy_cards = [
+        i for i in player.exhausted_strategy_cards if i != initiative
+    ]
+
+
 def ready_all_strategy_cards(state: GameState, player_id: str) -> None:
     """Odświeża wszystkie karty strategii gracza (status krok 6, nowa faza strategii)."""
     _player(state, player_id).exhausted_strategy_cards = []

@@ -309,6 +309,10 @@ class AgendaPhaseState(BaseModel):
     resolving: str | None = None
     # Miscount Disclosed: prawo, nad którym głosuje się ponownie po „dalej” mówcy.
     revote_law: str | None = None
+    # Agenda, przy której ktoś już zagrał kartę w oknie „after an agenda is revealed” (ridery,
+    # Sanction...): okno „when revealed” (Veto, Diplomatic Pressure) jest wtedy zamknięte -
+    # wszystkie „when” przed „after” (R_abilities, ruling Veto). Veto zmienia agendę = nowe okno.
+    after_reveal_played: str | None = None
 
 
 class ObjectivesState(BaseModel):

@@ -25,6 +25,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from src.core import (
+    agenda_phase,
     component_action,
     offer_inputs,
     promissory_notes,
@@ -327,6 +328,7 @@ def play(
         window, _ = _reaction_window(state, registry, player_id, template, owner)
         if window is not None:
             values[reaction_cards.WINDOW_KEY] = window.as_dict()
+            agenda_phase.note_reaction_played(new_state, window.as_dict())
     values["__note"] = note_id
     values["__owner"] = owner
     if effect is not None:

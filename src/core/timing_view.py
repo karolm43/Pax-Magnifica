@@ -28,7 +28,7 @@ _E = GameEvent
 _CLAUSE: dict[GameEvent, str] = {
     _E.UNIT_ABILITY_USED: "a unit ability is used",
     _E.HITS_ASSIGNED: "hits are assigned",
-    _E.STRATEGIC_ACTION: "a strategic action is performed",
+    _E.STRATEGIC_ACTION: "a strategic action would be performed",
     _E.SHIPS_MOVED: "ships move into the active system",
     _E.AGENDA_VOTES_CAST: "votes are cast",
     _E.UNIT_SUSTAIN_DAMAGE: "a unit uses Sustain Damage",
@@ -42,7 +42,9 @@ _CLAUSE: dict[GameEvent, str] = {
     _E.RETREAT_DECLARED: "a retreat is announced",
     _E.PRODUCTION_USED: "units use PRODUCTION",
     _E.PLANET_CONTROL_GAINED: "control of a planet is gained",
-    _E.COMPONENT_ACTION: "a component action is performed",
+    # Okno „After you perform an action” (reactions_misc.after_action) - DOWOLNA akcja, także
+    # taktyczna/strategiczna; zdarzenie nosi nazwę COMPONENT_ACTION z przyczyn historycznych.
+    _E.COMPONENT_ACTION: "an action is performed",
     _E.COMMODITIES_REPLENISHED: "commodities are replenished",
     _E.COMBAT_WON: "a combat is won",
     _E.COMBAT_ROLL: "combat dice are rolled",
@@ -89,6 +91,7 @@ _CLOSES: dict[tuple[GameEvent, Moment], str] = {
     (_E.AGENDA_VOTES_CAST, Moment.AFTER): "Ends with the next vote",
     (_E.HITS_ASSIGNED, Moment.BEFORE): "Ends when the losses are confirmed",
     (_E.COMBAT_ROUND, Moment.START): "Ends when the combat dice are rolled",
+    (_E.STRATEGIC_ACTION, Moment.WHEN): "Ends with the first choice of the primary ability",
 }
 DEFAULT_CLOSES = "Ends with the next game step"
 

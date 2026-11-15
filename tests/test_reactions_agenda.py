@@ -162,20 +162,27 @@ def test_abs_wyczerpuje_kulturowe_planety_wskazanego(registry: StaticDataRegistr
 def test_veto_odrzuca_agende_i_ujawnia_nowa(registry: StaticDataRegistry) -> None:
     state = _revealed(registry, [LAW, DIRECTIVE, LAW], {"p1": ["veto"], "p3": ["imp_rider"]})
     assert state.agenda is not None and state.agenda.agenda_id == LAW
-    # Predykcja z odrzucanej agendy znika razem z nią.
-    state = _play(state, registry, "p3", "imp_rider", outcome="for")
-    assert state.agenda is not None and "p3" in state.agenda.blocked
     new = _play(state, registry, "p1", "veto")
     assert new.agenda is not None and new.agenda.agenda_id == DIRECTIVE
     assert new.agenda.step is AgendaStep.VOTE and new.agenda.blocked == []
     assert new.decks.agenda_discard == [LAW]
     assert new.decks.agenda_deck == [LAW]
     assert not new.active_effects
+    assert _playable(new, registry, "p3", "imp_rider")  # okno riderów nowej agendy
     assert new.agenda.history[0].get("vetoed") is True
     assert new.agenda.agenda_number == 1
     assert new.agenda.kind == "player"  # Elect Player
     # Głosowanie nad nową agendą rusza od początku.
     assert agenda_phase.current_voter(new) == "p3"
+
+
+def test_veto_nie_po_riderze(registry: StaticDataRegistry) -> None:
+    """Veto (okno „when revealed”) jest przed oknem riderów („after”): po zagranym riderze
+    Veto już nie wolno (ruling C_action_cards Veto, R_abilities: when przed after)."""
+    state = _revealed(registry, [LAW, DIRECTIVE, LAW], {"p1": ["veto", "dp1"], "p3": ["imp_rider"]})
+    state = _play(state, registry, "p3", "imp_rider", outcome="for")
+    assert not _playable(state, registry, "p1", "veto")
+    assert not _playable(state, registry, "p1", "dp1")  # Diplomatic Pressure - to samo okno
 
 
 def test_veto_bez_karty_w_talii_jest_niezagrywalne(registry: StaticDataRegistry) -> None:

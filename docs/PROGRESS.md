@@ -1339,3 +1339,14 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   zostaje); „Edit board” tylko dla hosta (`useIsHost` w `useNetworkMe.ts`).
 - QA: front tsc + eslint + vitest `game-shell`, `map`, `offers`, `agenda`, `hooks`; zrzuty 1280/1366/1920 na żywej grze.
   Pominięte: backend (bez zmian), build i e2e.
+
+## Audyt okien kart akcji: Coup d'Etat, Veto (2026-11-15)
+
+- Coup d'Etat: okno dopiero po ogłoszeniu akcji strategicznej (`pending_strategy` na pierwszym kroku, pusty szkic),
+  nie na początku cudzej tury. Efekt anuluje primary, odświeża kartę (`exhaust.ready_strategy_card`), oddaje akcję
+  (`action_budget.unregister_action`) i kończy turę. `reactions_stop.declared_strategic_action`. RULES.md 53.7.
+- Veto / Diplomatic Pressure: okno „when revealed” zamyka się po pierwszej karcie „after revealed” (ridery…)
+  — `AgendaPhaseState.after_reveal_played`, `agenda_phase.note_reaction_played`. RULES.md 53.5.a.
+- Audyt 107 kart akcji vs `C_action_cards.md`: pozostałe okna zgodne; luki do decyzji: Emergency Repairs (brak „end of
+  round” i Space Cannon Offense), Direct Hit (brak okna Sustain Damage poza walką), HOLD tylko dla 4 kart.
+- QA: pytest pełny, ruff, mypy. Front bez zmian.

@@ -91,6 +91,14 @@ def register_action(
     )
 
 
+def unregister_action(state: GameState, player_id: str) -> None:
+    """Oddaje ostatnią zarejestrowaną akcję tury (Coup d'Etat: akcja strategiczna się nie
+    odbyła). Ślady okien wyczyszczone przy rejestracji zostają wyczyszczone (MUTUJE ``state``)."""
+    player = state.players[player_id]
+    player.actions_this_turn = max(0, player.actions_this_turn - 1)
+    player.took_action_this_turn = player.actions_this_turn > 0
+
+
 def reset_turn(state: GameState, player_id: str) -> None:
     """Nowa tura gracza: zeruje znacznik i licznik akcji (MUTUJE ``state``)."""
     player = state.players[player_id]

@@ -16,6 +16,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import (
+    agenda_phase,
     card_draw,
     card_hold,
     component_action,
@@ -214,6 +215,7 @@ def _run_reaction(
     if effect is not None:
         with_window = {**params, reaction_cards.WINDOW_KEY: dict(window)}
         effect(state, registry, player_id, with_window)
+    agenda_phase.note_reaction_played(state, window)
     card_draw.discard_specific_action_cards(state, player_id, [card_id])
     return effect is not None
 
