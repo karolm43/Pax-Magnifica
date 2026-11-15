@@ -32,9 +32,7 @@ export function LawDetailsCard({ law }: Props) {
           </div>
         }
       />
-      {present(law.mapText) && (
-        <DetailsCard.Section title="Ongoing effect" content={law.mapText} />
-      )}
+      {/* `mapText` to skrót tego samego prawa (AsyncTI4) - nie pokazujemy go obok pełnego tekstu. */}
       {law.electedFaction && (
         <DetailsCard.Section
           title="Elected"

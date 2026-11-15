@@ -1,6 +1,6 @@
 /*
- * Law: a sealed row. A violet seal in a recessed well, the law's name, what it
- * does in up to two lines, and a folded corner. The name keeps its own case;
+ * Law: a sealed strip (like a technology chip). A violet seal, the law's name and
+ * who was elected, and a folded corner; the full text opens on click. The name keeps its own case;
  * the seal is what marks it as law.
  *
  * On the objectives board the card is a well sunk into the laws plate, and
@@ -9,12 +9,11 @@
 .law {
   position: relative;
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 3px 12px;
-  align-content: start;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
   min-width: 0;
-  min-height: 72px;
-  padding: 10px 14px 10px 10px;
+  padding: 5px 14px 5px 8px;
   background:
     linear-gradient(90deg, rgb(var(--ds-sig-law) / 0.06), transparent 45%),
     var(--seat-well, var(--panel-field-flat));
@@ -47,11 +46,10 @@
 }
 
 .seal {
-  grid-row: 1 / 3;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: color-mix(in oklab, rgb(var(--ds-sig-law)) 60%, var(--ds-white));
   background: radial-gradient(circle at 50% 35%, rgb(var(--ds-sig-law) / 0.28), rgb(var(--ds-sig-law) / 0.12));
@@ -95,17 +93,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.text {
-  grid-column: 2;
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: var(--text-data);
-  line-height: 1.4;
-  color: var(--ds-ink);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 @media (prefers-reduced-motion: reduce) {

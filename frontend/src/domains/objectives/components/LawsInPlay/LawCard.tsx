@@ -41,9 +41,11 @@ function Elected({ law, playerData }: Props) {
   );
 }
 
-/** A law in play as a sealed row: the seal, its name, what it does, and who or what was elected. */
+/**
+ * Prawo w grze jako pasek (jak chip technologii): pieczęć, nazwa i kto/co wybrano.
+ * Pełny tekst prawa dopiero po kliknięciu (`LawDetailsCard`).
+ */
 function LawCard({ law, playerData }: Props) {
-  const mapText = law.mapText?.trim();
   const [opened, setOpened] = useState(false);
   const toggleOpened = () => setOpened((current) => !current);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -74,7 +76,6 @@ function LawCard({ law, playerData }: Props) {
             </span>
             <Elected law={law} playerData={playerData} />
           </span>
-          {mapText && <span className={styles.text}>{mapText}</span>}
         </Box>
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown p={0}>

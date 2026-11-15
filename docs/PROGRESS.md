@@ -1264,3 +1264,10 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   jak przy „Skip phase”, nowy gracz dostaje świeżą turę (`action_budget.reset_turn`), bez wyzwalaczy końca/początku tury.
 - UI: przycisk „Skip player” w `TurnControls` pod „Skip phase” (ustawienie „Skip phases”, tylko faza akcji, w sieci host).
 - Feed: etykieta `turn:skip-player` → `turn.next`. Testy: `tests/test_skip_flow.py` (3 nowe), `test_activity.py`.
+
+## 2026-11-15 — Prawa w grze: pasek + pełna karta po kliknięciu (bez podwójnego tekstu)
+
+- `LawCard` (panel „Laws in play”) to teraz niski pasek jak chip technologii: pieczęć, nazwa, kto/co wybrano — bez
+  skrótu `mapText` w wierszu. Klik otwiera `LawDetailsCard` z pełnym tekstem prawa (`text1`/`text2`).
+- `LawDetailsCard` nie pokazuje już sekcji „Ongoing effect” (`mapText` to skrót AsyncTI4 tego samego prawa — tekst
+  dublował się). Tylko front; QA: tsc + eslint.
