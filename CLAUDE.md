@@ -25,6 +25,11 @@ hot-seat NIE jest wspierany. Nie czytaj `.kiro/` ani `~/.kiro/` (decyzja użytko
 - Nie koduj reguł ani statystyk z pamięci. Liczby i teksty kart tylko z assetów AsyncTI4 (`StaticDataRegistry`, `assets/`).
 - Źródło reguł: `docs/rules_tirules/` (zrzut tirules2.com: LRR 2.0 PoK + Codexy + Thunder's Edge + rulingi). Zdolności
   frakcji/kart są w assetach JSON. Gdy zrzut nie wystarcza: tirules2.com, potem LRR PDF / TI Wiki.
+- ZAWSZE (implementacja i przegląd) sprawdź rulingi z `docs/rules_tirules/`: karta/komponent ogólny =>
+  `C_<typ>.md` (`C_agendas`, `C_action_cards`, `C_technology`, `C_relics`, `C_objectives`, `C_promissory_notes`,
+  `C_units`, `C_exploration_cards`…); komponent frakcji (zdolność, tech, lider, mech, flagowiec, PN, przełom) =>
+  `F_<frakcja>.md`; mechanika ogólna => `R_<temat>.md`. Szukaj też krzyżowo (ruling o frakcji w `C_*`, o karcie
+  w `F_*`). Każdy ruling = kod albo test; `⚠️ ZAŁOŻENIE` sprzeczne z istniejącym rulingiem to błąd.
 - Reguła mechaniczna musi mieć wpis w `docs/rules/R<NN>.md` ze źródłem, ZANIM trafi do kodu.
 - Brak źródła => ⚠️ ZAŁOŻENIE i pytanie do użytkownika; jego decyzja jest ostateczna.
 - Adjacency ≠ traversability: graf mapy = czyste sąsiedztwo, blokady to osobna warstwa.
