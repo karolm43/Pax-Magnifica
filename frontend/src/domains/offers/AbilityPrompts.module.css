@@ -294,8 +294,37 @@
   border-style: dashed;
 }
 
-.chip[data-tone="closed"] .chipName b {
+/* Lista okien w rozwiniętym chipie: etykieta + „co je zamyka”, zamknięte przekreślone. */
+.chip ul[data-windows] {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip ul[data-windows] li {
+  display: grid;
+  gap: 1px;
+}
+
+.chip ul[data-windows] li[data-subject] {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 6px;
+  align-items: center;
+}
+
+.chip ul[data-windows] li small {
+  color: var(--ds-ink-lo, #94a3b8);
+}
+
+.chip ul[data-windows] li[data-subject] small {
+  grid-column: 2;
+}
+
+.chip ul[data-windows] li[data-closed] b {
   text-decoration: line-through;
+  color: var(--ds-ink-lo, #94a3b8);
 }
 
 .card[data-tone="closed"] .icon,

@@ -31,7 +31,7 @@ router = APIRouter()
 @router.get("/window/open-now", response_model=OpenTimingWindowsResponse)
 async def get_open_windows(ctx: AppContext = Depends(get_ctx)) -> OpenTimingWindowsResponse:
     """Okna czasowe otwarte TERAZ — jawne dla wszystkich, bez informacji o rękach (43.4)."""
-    rows = timing_view.describe_open_windows(ctx.service.current_state())
+    rows = timing_view.describe_open_windows(ctx.service.current_state(), ctx.registry)
     return OpenTimingWindowsResponse(windows=[OpenTimingWindow(**row) for row in rows])
 
 

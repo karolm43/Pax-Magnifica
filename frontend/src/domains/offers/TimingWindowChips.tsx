@@ -6,9 +6,10 @@ import { goneSince, mergeGone, type Gone } from "./timingWindows";
 import styles from "./AbilityPrompts.module.css";
 
 /*
- * Pasek okien czasowych (RULES.md 54.9): każde okno otwarte TERAZ jako cichy chip w centrum decyzji
- * (ten sam wygląd co znacznik „Ready”), widoczny dla wszystkich graczy - bez informacji o rękach.
- * Okno, które właśnie minęło, zostaje chwilę jako „Closed”: gracze widzą, że gra z niego wyszła.
+ * Okna czasowe (RULES.md 54.9): JEDEN cichy chip w centrum decyzji (wygląd znacznika „Ready”),
+ * widoczny dla wszystkich - bez informacji o rękach. Silnik podaje tylko okna, na które coś w grze
+ * może jeszcze zareagować. Okno, które właśnie minęło, liczy się chwilę jako „closed”; lista
+ * (co je zamyka) po kliknięciu. Właściciel karty dostaje osobno wyraźną kartę „Window open now”.
  */
 
 const windowKey = (w: OpenTimingWindow) => w.key;
@@ -48,43 +49,21 @@ export function TimingWindowChips({
   onDragReset: () => void;
 }) {
   const closed = useRecentlyGone(windows, windowKey);
-  return (
-    <>
-      {windows.map((w) => (
-        <WindowChip key={w.key} window={w} onDragStart={onDragStart} onDragReset={onDragReset} />
-      ))}
-      {closed.map((w) => (
-        <WindowChip
-          key={`closed:${w.key}`}
-          window={w}
-          closed
-          onDragStart={onDragStart}
-          onDragReset={onDragReset}
-        />
-      ))}
-    </>
-  );
-}
-
-function WindowChip({
-  window: w,
-  closed = false,
-  onDragStart,
-  onDragReset,
-}: {
-  window: OpenTimingWindow;
-  closed?: boolean;
-  onDragStart: (event: ReactPointerEvent) => void;
-  onDragReset: () => void;
-}) {
   const [open, setOpen] = useState(false);
-  const Icon = closed ? IconHourglassOff : IconHourglassHigh;
+  if (windows.length === 0 && closed.length === 0) return null;
+  const Icon = windows.length > 0 ? IconHourglassHigh : IconHourglassOff;
+  const summary = [
+    windows.length > 0 ? `${windows.length} open` : null,
+    closed.length > 0 ? `${closed.length} closed` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <section
       className={styles.chip}
       data-standing
-      data-tone={closed ? "closed" : "timing"}
-      aria-label={`${closed ? "Timing window closed" : "Timing window open"}: ${w.label}`}
+      data-tone={windows.length > 0 ? "timing" : "closed"}
+      aria-label={`Timing windows: ${summary}`}
     >
       <div
         className={styles.chipRow}
@@ -99,11 +78,10 @@ function WindowChip({
           className={styles.chipName}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          title={closed ? "This window has closed" : w.closes}
+          title={open ? "Hide timing windows" : "Show timing windows"}
         >
-          <small className={styles.kind}>{closed ? "Closed" : "Window"}</small>
-          {w.subject && <PlayerTag playerId={w.subject} size={13} />}
-          <b>{w.label}</b>
+          <small className={styles.kind}>Windows</small>
+          <b>{summary}</b>
           {open ? (
             <IconChevronUp size={12} aria-hidden="true" />
           ) : (
@@ -112,12 +90,26 @@ function WindowChip({
         </button>
       </div>
       {open && (
-        <p className={styles.text}>
-          {closed
-            ? "The game moved on - cards and abilities for this moment can no longer be used."
-            : `${w.closes}. Cards and abilities for this moment can be used now.`}
-        </p>
+        <ul className={styles.text} data-windows>
+          {windows.map((w) => (
+            <WindowRow key={w.key} window={w} />
+          ))}
+          {closed.map((w) => (
+            <WindowRow key={`closed:${w.key}`} window={w} closed />
+          ))}
+        </ul>
       )}
     </section>
+  );
+}
+
+/** Jedno okno na liście: kto, kiedy i co je zamyka (zamknięte - przekreślone). */
+function WindowRow({ window: w, closed = false }: { window: OpenTimingWindow; closed?: boolean }) {
+  return (
+    <li data-closed={closed || undefined} data-subject={w.subject ? true : undefined}>
+      {w.subject && <PlayerTag playerId={w.subject} size={12} />}
+      <b>{w.label}</b>
+      <small>{closed ? "Closed - the game moved on" : w.closes}</small>
+    </li>
   );
 }

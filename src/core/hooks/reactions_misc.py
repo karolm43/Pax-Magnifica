@@ -141,11 +141,19 @@ def after_action(state: GameState) -> list[OpenWindow]:
 
 @window_provider
 def transactions(state: GameState) -> list[OpenWindow]:
-    """„When you are negotiating” (tura aktywnego w fazie akcji) i „after ... resolve” (ślad)."""
+    """„When you are negotiating a transaction” (otwarty stół transakcji pary graczy - negocjacja,
+    RULES.md 47.1b) i „after ... resolve” (ślad). Bez stołu nie ma negocjacji, więc nie ma okna
+    (wcześniej okno trwało całą turę aktywnego i Black Market Dealings dało się zagrać bez
+    żadnej transakcji)."""
     found: list[OpenWindow] = []
-    active = state.active_player_id
-    if state.phase is Phase.ACTION and active is not None and active in state.players:
-        found.append(OpenWindow(GameEvent.TRANSACTION, Moment.WHEN, {"player": active}))
+    for table in state.transaction_tables:
+        if table.opener in state.players and table.partner in state.players:
+            found.append(
+                OpenWindow(
+                    GameEvent.TRANSACTION, Moment.WHEN,
+                    {"player": table.opener, "partner": table.partner},
+                )
+            )
     pair = state.last_transaction
     if len(pair) == 2:
         found.append(
@@ -208,15 +216,8 @@ def _duress_condition(
 def _can_negotiate(
     state: GameState, registry: StaticDataRegistry, player_id: str, window: OpenWindow
 ) -> bool:
-    """Gracz jest stroną transakcji, która jeszcze może się odbyć w tej turze."""
-    active = state.active_player_id
-    if active is None or active not in state.players:
-        return False
-    transacted = set(state.players[active].transacted_with)
-    near = [pid for pid in neighbor_ids(state, registry, active) if pid not in transacted]
-    if player_id == active:
-        return bool(near)
-    return player_id in near
+    """Gracz jest stroną negocjacji tego okna (otwarty stół: ``player`` i ``partner``)."""
+    return player_id in (window.ctx.get("player"), window.ctx.get("partner"))
 
 
 def _lie_in_wait_condition(

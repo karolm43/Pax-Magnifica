@@ -12,6 +12,7 @@ from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ActiveCombat,
     CombatStep,
+    DecksState,
     GameState,
     PendingOffer,
     Phase,
@@ -36,6 +37,8 @@ def _done_combat_state() -> GameState:
             "p1": PlayerState(player_id="p1", color="red"),
             "p2": PlayerState(player_id="p2", color="blue"),
         },
+        # Salvage („After you win a space combat”) w talii = okno „po wygranej walce” ma sens.
+        decks=DecksState(action_card_deck=["salvage"]),
         active_combat=ActiveCombat(
             kind="space", position="000", attacker="p1", defender="p2",
             step=CombatStep.DONE, winner="p1", outcome="winner",
@@ -58,8 +61,8 @@ def test_labels_read_like_card_windows() -> None:
     )
 
 
-def test_finished_combat_shows_after_won_window() -> None:
-    rows = timing_view.describe_open_windows(_done_combat_state())
+def test_finished_combat_shows_after_won_window(registry: StaticDataRegistry) -> None:
+    rows = timing_view.describe_open_windows(_done_combat_state(), registry)
     won = [r for r in rows if r["event"] == GameEvent.COMBAT_WON.value]
     assert len(won) == 1
     assert won[0]["label"] == "After a space combat is won"
@@ -68,11 +71,20 @@ def test_finished_combat_shows_after_won_window() -> None:
     assert won[0]["closes"] == "Ends when the battle is closed"
 
 
-def test_closing_battle_closes_window() -> None:
+def test_window_nobody_can_use_is_hidden(registry: StaticDataRegistry) -> None:
+    """Jedyna reagująca karta leży na stosie odrzuconych (jawne) - pasek nie pokazuje okna."""
+    state = _done_combat_state()
+    state.decks.action_card_deck = []
+    state.decks.action_card_discard = ["salvage"]
+    rows = timing_view.describe_open_windows(state, registry)
+    assert not any(r["event"] == GameEvent.COMBAT_WON.value for r in rows)
+
+
+def test_closing_battle_closes_window(registry: StaticDataRegistry) -> None:
     closed = battle.close_combat(_done_combat_state())
     assert not any(
         r["event"] == GameEvent.COMBAT_WON.value
-        for r in timing_view.describe_open_windows(closed)
+        for r in timing_view.describe_open_windows(closed, registry)
     )
 
 
@@ -89,7 +101,7 @@ def test_close_combat_waits_for_pending_decisions() -> None:
         battle.close_combat(state)
 
 
-def test_hidden_windows_are_not_listed() -> None:
+def test_hidden_windows_are_not_listed(registry: StaticDataRegistry) -> None:
     """Okno zależne od ręki (Acquiescence) nie trafia do jawnego paska (RULES.md 43.4)."""
 
     def provider(_state: GameState) -> list[reaction_cards.OpenWindow]:
@@ -100,10 +112,12 @@ def test_hidden_windows_are_not_listed() -> None:
             ),
         ]
 
-    reaction_cards.open_windows(GameState())  # rejestracje dostawców przed doklejeniem testowego
+    # Karty obu okien są w talii - jedyną różnicą jest jawność okna.
+    state = GameState(decks=DecksState(action_card_deck=["blackmarketdealing", "coup"]))
+    reaction_cards.open_windows(state)  # rejestracje dostawców przed doklejeniem testowego
     reaction_cards._PROVIDERS.append(provider)
     try:
-        rows = timing_view.describe_open_windows(GameState())
+        rows = timing_view.describe_open_windows(state, registry)
     finally:
         reaction_cards._PROVIDERS.remove(provider)
     events = [r["event"] for r in rows]

@@ -1313,3 +1313,13 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   prywatny komunikat „Window closed”.
 - Katalog wszystkich okien: `OKNA_CZASOWE.md` (67 zdarzeń, §2a: lista komponentów bez efektu w silniku).
 - QA: pytest pełny, ruff, mypy; front tsc + eslint + vitest `domains/offers`, `domains/battle`; build; e2e 7/7.
+
+## Okna czasowe: tylko istotne, jeden chip; Black Market Dealings tylko w negocjacji (2026-11-15)
+
+- Zgłoszenie: na starcie tury Hacanu 3 chipy okien naraz, a Black Market Dealings dało się zagrać bez transakcji.
+- `reactions_misc.transactions`: okno TRANSACTION/WHEN tylko przy otwartym stole transakcji (`transaction_tables`),
+  podmiot = opener, `partner` = druga strona; `_can_negotiate` = gracz jest stroną stołu. RULES.md 53.5.e.
+- `timing_view.live_points`: pasek pokazuje okno tylko, gdy reaguje na nie karta akcji spoza stosu odrzuconych
+  (talia + ręce razem) albo notka z ręki, z efektem w silniku (`promissory_play.reaction_points`). RULES.md 54.9.
+- Front: `TimingWindowChips` = jeden chip „Windows · N open · M closed”, lista (co zamyka okno) po kliknięciu.
+- QA: pytest pełny, ruff, mypy; front tsc + eslint + vitest `domains/offers`.

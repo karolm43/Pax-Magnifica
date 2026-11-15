@@ -5,7 +5,10 @@ danym kroku, i znikają bez śladu, gdy ktoś wykona następny krok. Ten moduł 
 (teksty widoczne w UI), żeby KAŻDY gracz widział, jakie okno jest otwarte i co je zamknie.
 
 Widok NIE zależy od ręki (RULES.md 43.4): pokazuje tylko okna jawne (``OpenWindow.public``)
-i nie mówi, kto ma kartę. Czy gracz ma coś do zagrania, wie tylko on (``/action-card/playable``).
+i nie mówi, kto ma kartę. Pomija okna, na które NIC w grze nie może już zareagować: liczymy to
+z informacji jawnej - karty akcji poza stosem odrzuconych (talia + wszystkie ręce RAZEM, czyli
+„wszystko, czego nie odrzucono”) i notki na rękach (zbiorczo), tylko z efektem w silniku.
+Czy gracz ma coś do zagrania, wie tylko on (``/action-card/playable``).
 Moduł jest czysty: ``state -> dane``, bez mutacji.
 """
 
@@ -14,9 +17,10 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from src.core import reaction_cards
+from src.core import promissory_play, reaction_cards, rules_hooks
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
+from src.core.registry import StaticDataRegistry
 
 _E = GameEvent
 
@@ -125,15 +129,50 @@ def window_key(window: reaction_cards.OpenWindow) -> str:
     return f"{window.event.value}|{window.moment.value}|{data}"
 
 
-def describe_open_windows(state: GameState) -> list[dict[str, Any]]:
+Point = tuple[GameEvent, Moment]
+
+
+def live_points(state: GameState, registry: StaticDataRegistry) -> set[Point]:
+    """Okna, na które coś w grze może jeszcze zareagować z ręki (z informacji jawnej).
+
+    Karty akcji: talia + ręce wszystkich graczy razem = każda karta spoza stosu odrzuconych, więc
+    zbiór nie mówi, kto ją ma. Notki: suma rąk (które notki są w grze, wiadomo z frakcji).
+    """
+    points: set[Point] = set()
+    cards = set(state.decks.action_card_deck)
+    for player in state.players.values():
+        cards.update(player.private.action_cards)
+    for card_id in cards:
+        if rules_hooks.effect_for(f"action_cards:{card_id}") is None:
+            continue
+        spec = reaction_cards.spec_for(registry, card_id)
+        if spec is not None:
+            points.update(spec.points)
+    for player in state.players.values():
+        for note_id in player.private.promissory_notes:
+            try:
+                template, _owner = promissory_play.resolve(state, registry, note_id)
+            except (KeyError, ValueError):
+                continue
+            if rules_hooks.effect_for(promissory_play.effect_key(template)) is None:
+                continue
+            points.update(promissory_play.reaction_points(registry, template))
+    return points
+
+
+def describe_open_windows(
+    state: GameState, registry: StaticDataRegistry | None = None
+) -> list[dict[str, Any]]:
     """Jawne okna otwarte teraz: klucz, zdarzenie, moment, etykieta, podmiot, co je zamyka.
 
-    Duplikaty (to samo okno od dwóch dostawców) są scalane; okna niejawne pominięte.
+    Duplikaty (to samo okno od dwóch dostawców) są scalane; pomijamy okna niejawne i te, na
+    które nic w grze nie może już zareagować (``live_points``).
     """
+    live = live_points(state, registry or rules_hooks.bound_registry())
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
     for window in reaction_cards.open_windows(state):
-        if not window.public:
+        if not window.public or (window.event, window.moment) not in live:
             continue
         key = window_key(window)
         if key in seen:

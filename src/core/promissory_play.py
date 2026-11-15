@@ -172,6 +172,11 @@ def _points(registry: StaticDataRegistry, template: str) -> list[tuple[Any, Mome
     return [(ref.event, ref.moment)] if ref is not None else []
 
 
+def reaction_points(registry: StaticDataRegistry, template: str) -> list[tuple[Any, Moment]]:
+    """Okna (zdarzenie, moment), w których notka reaguje (pusto = akcja albo okno nieznane)."""
+    return [] if is_action(registry, template) else _points(registry, template)
+
+
 def _subject_ok(
     window_text: str, owner: str | None, player_id: str, window: reaction_cards.OpenWindow
 ) -> bool:

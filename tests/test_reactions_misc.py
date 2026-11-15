@@ -21,6 +21,7 @@ from src.core.game_state import (
     Phase,
     PlayerState,
     SystemState,
+    TransactionTable,
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -341,6 +342,8 @@ def _market_state(hands: dict[str, list[str]]) -> GameState:
     state.players["p1"].private.secret_objectives = ["s1"]
     state.players["p1"].private.action_cards = [*state.players["p1"].private.action_cards, "fs1"]
     state.players["p2"].relics = ["r2"]
+    # Negocjacja = otwarty stół transakcji p1-p2 (RULES.md 47.1b, 54.9).
+    state.transaction_tables = [TransactionTable(opener="p1", partner="p2")]
     return state
 
 
@@ -378,9 +381,12 @@ def test_black_market_nie_wymienia_cudzych_rzeczy(registry: StaticDataRegistry) 
         )
 
 
-def test_black_market_wymaga_sasiada(registry: StaticDataRegistry) -> None:
-    state = _market_state({"p1": ["blackmarketdealing"]})
-    state.systems["000"].space_units = {"p1": {"cruiser": 1}}
+def test_black_market_tylko_w_trakcie_negocjacji(registry: StaticDataRegistry) -> None:
+    """„When you are negotiating a transaction”: bez otwartego stołu karty nie da się zagrać
+    (zgłoszenie 2026-11-15 - wcześniej okno trwało całą turę aktywnego gracza)."""
+    state = _market_state({"p1": ["blackmarketdealing"], "p3": ["blackmarketdealing"]})
+    assert not _playable(state, registry, "p3", "blackmarketdealing")["playable"]  # nie negocjuje
+    state.transaction_tables = []
     assert not _playable(state, registry, "p1", "blackmarketdealing")["playable"]
 
 
