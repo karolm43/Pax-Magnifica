@@ -27,6 +27,12 @@
   animation: dockRise 0.42s var(--ds-ease) both;
 }
 
+/* Slot „lewy dół" (hooks/useHudMetric.ts): w domyślnym miejscu dok kończy się POD panelem
+   stanu gry (lewa góra, --hud-gsp-bottom), zamiast na nim leżeć. Przesunięty - bez limitu. */
+.dock[data-slotted] {
+  max-height: calc(100vh - var(--hud-gsp-bottom, 0px) - 32px);
+}
+
 /* UWAGA: nie ustawiamy tu `animation: none` — przełączenie none → dockRise po upuszczeniu
    restartuje animację wejścia i panel „miga". Animacja jest jednorazowa (both). */
 .dock[data-dragging],

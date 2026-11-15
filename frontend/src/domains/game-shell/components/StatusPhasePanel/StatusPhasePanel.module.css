@@ -8,13 +8,14 @@
   --ph: var(--ds-hair-rgb);
   position: fixed;
   left: calc(50% - 340px);
-  bottom: 20px;
+  /* Slot „dół środek" zajmuje ręka - panel statusu stoi NAD nią (--hand-dock-clear). */
+  bottom: calc(var(--hand-dock-clear, 6px) + 14px);
   z-index: 190;
   display: flex;
   flex-direction: column;
   width: 680px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 110px);
+  max-height: calc(100vh - 110px - var(--hand-dock-clear, 0px));
   overflow: hidden;
   color: var(--ds-ink);
   background: color-mix(in oklab, var(--ds-ground) 94%, transparent);

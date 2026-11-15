@@ -144,6 +144,8 @@ export function DecisionCenter() {
             aria-label="Decisions"
             data-draggable-panel
             data-dragging={drag.isDragging || undefined}
+            // Slot HUD „prawa góra" (hooks/useHudMetric.ts) - trasa ruchu startuje obok.
+            data-hud-slot={drag.isMoved ? undefined : "decisions"}
             style={drag.style}
           >
             <div

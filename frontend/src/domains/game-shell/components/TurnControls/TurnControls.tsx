@@ -46,6 +46,7 @@ import { AppModal } from "@/shared/ui/AppModal";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { useHudMetric } from "@/hooks/useHudMetric";
 import { useDeskPlayer } from "./useDeskPlayer";
 import { TransactionModal } from "./TransactionModal";
 import { ActionCardPlayModal } from "./ActionCardPlayModal";
@@ -140,6 +141,13 @@ export function TurnControls() {
   // się w localStorage, dwuklik na uchwycie resetuje do domyślnej.
   const cardDrag = useDraggablePanel("turnControls.cardZone.pos");
   const actionDrag = useDraggablePanel("turnControls.actionZone.pos");
+  // Slot HUD „prawy dół": ręka (dół środek) kończy się przed kartą strategii.
+  useHudMetric(
+    cardDrag.el,
+    "--hud-right-w",
+    (rect) => window.innerWidth - rect.left,
+    !cardDrag.isMoved,
+  );
   // Tryb aktywacji systemu (akcja taktyczna) — współdzielony ze store. Klik przycisku
   // włącza tryb „wskaż system", a klik w kafelek na mapie uruchamia aktywację (ten sam
   // potok, który odbiera panel taktyczny). Blok A: wygodne wejście z prawego dolnego rogu.

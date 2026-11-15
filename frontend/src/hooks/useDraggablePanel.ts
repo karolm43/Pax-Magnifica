@@ -18,6 +18,10 @@ type DraggablePanel = {
   reset: () => void;
   /** Ref na element panelu - włącza dopasowanie pozycji do okna przy zmianie rozmiaru. */
   ref: (el: HTMLElement | null) => void;
+  /** Zamontowany element panelu (null przed montażem) - np. do slotów HUD (useHudMetric). */
+  el: HTMLElement | null;
+  /** Czy gracz przesunął panel z domyślnego miejsca (wtedy panel zwalnia swój slot HUD). */
+  isMoved: boolean;
 };
 
 function readPosition(storageKey: string): Position {
@@ -198,5 +202,13 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
       }
     : {};
 
-  return { style, onHandlePointerDown, isDragging, reset, ref: setPanelEl };
+  return {
+    style,
+    onHandlePointerDown,
+    isDragging,
+    reset,
+    ref: setPanelEl,
+    el: panelEl,
+    isMoved: position !== null,
+  };
 }

@@ -12,7 +12,8 @@
   gap: 10px;
   box-sizing: border-box;
   width: min(340px, calc(100vw - 16px));
-  height: min(560px, calc(100vh - 120px));
+  /* Kończy się nad ręką (slot „dół środek", --hand-dock-clear). */
+  height: min(560px, calc(100vh - 112px - var(--hand-dock-clear, 8px)));
   min-width: 260px;
   min-height: 180px;
   /* Maksimum = miejsce od lewego-górnego rogu do krawędzi okna (komponent nadpisuje po
@@ -27,6 +28,12 @@
   border: 1px solid var(--ds-edge-accent, rgba(252, 211, 77, 0.5));
   background: var(--ds-deck, #0f1420);
   box-shadow: 0 12px 34px rgb(0 0 0 / 0.55);
+}
+
+/* Slot „prawa góra" zajmuje centrum decyzji (AbilityPrompts, 420 px + 16 px marginesu):
+   gdy ma otwarte monity, trasa ruchu startuje na lewo od niego zamiast go przykrywać. */
+:global(body:has([data-hud-slot="decisions"])) .box {
+  left: max(8px, calc(100vw - 16px - 420px - 12px - min(340px, calc(100vw - 16px))));
 }
 
 .box[data-dragging] {

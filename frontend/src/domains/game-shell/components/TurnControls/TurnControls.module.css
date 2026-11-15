@@ -877,3 +877,27 @@
   }
 }
 
+/* Niski ekran (laptop 768-900 px): mniejsza karta strategii i ciaśniejsze przyciski -
+   panel akcji i karta mieszczą się nad dolną krawędzią, nie wchodzą pod rękę ani centrum
+   decyzji (sloty HUD: hooks/useHudMetric.ts). */
+@media (max-height: 900px) {
+  .cardZone {
+    --card-h: clamp(136px, 21vh, 280px);
+  }
+
+  .activate,
+  .pass,
+  .component,
+  .endTurn,
+  .nextPhase {
+    padding: 8px 12px;
+  }
+
+  .actionBtns > .tile {
+    padding: 7px 4px;
+  }
+
+  .hintSlot {
+    min-height: 34px;
+  }
+}

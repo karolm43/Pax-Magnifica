@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
+import { useIsHost } from "@/domains/network/useNetworkMe";
 import { Button, CloseButton, Image } from "@/ds";
 import { IconPencil, IconSwords } from "@tabler/icons-react";
 import cx from "clsx";
@@ -17,18 +18,12 @@ import { getPlanetData, getPlanetsByTileId } from "@/entities/lookup/planets";
 import { getAttachmentModifiers } from "@/entities/game/planets";
 import { useGameData } from "@/state/useGameContext";
 import type { GameData, Tile } from "@/entities/game/types";
-import {
-  buildSpaceBattleUrl,
-  buildSystemBattleUrl,
-  factionsInSystem,
-  findAttacker,
-} from "./battleCalcLink";
+import { findAttacker } from "./attacker";
 import { getSystemFeatures, systemAnomalies } from "./featureRules";
 import { capacityOf, summarizeZone } from "./fleetMath";
 import {
   arrangeZone,
   Balance,
-  CalcLink,
   ControlPill,
   FireRow,
   ForceRow,
@@ -173,10 +168,6 @@ function SpaceBand({
     tile.controlledBy,
     false,
   );
-  const defender = sides?.defender.faction ?? ordered.find(shipsFight)?.faction;
-  const calcUrl = defender
-    ? buildSpaceBattleUrl(tile, defender, helpers.playerFor, attacker)
-    : null;
   const empty = ordered.length === 0 && !pdsInRange?.length;
 
   return (
@@ -189,10 +180,6 @@ function SpaceBand({
         <ActivatedBy factions={tile.commandCounters} />
         <span className={styles.headEnd}>
           <Balance sides={sides} helpers={helpers} />
-          <CalcLink
-            url={calcUrl}
-            title="Space combat here in the battle calculator"
-          />
         </span>
       </header>
       {empty && <div className={styles.empty}>No ships in the system</div>}
@@ -382,56 +369,6 @@ function Flavour({ planetIds }: { planetIds: string[] }) {
   );
 }
 
-/**
- * One link per defending faction, carrying its ships and ground forces
- * together so both battles can be run from a single calculator tab. In a
- * contested system the attacker rides along on each, so it gets no link of
- * its own unless it is the only one there.
- */
-function SystemBattleLinks({
-  tile,
-  helpers,
-  attacker,
-}: {
-  tile: Tile;
-  helpers: FactionHelpers;
-  attacker: string | null;
-}) {
-  const present = factionsInSystem(tile);
-  const defenders = present.filter((faction) => faction !== attacker);
-
-  return (defenders.length > 0 ? defenders : present).map((faction, index) => {
-    const url = buildSystemBattleUrl(
-      tile,
-      faction,
-      helpers.playerFor,
-      attacker,
-    );
-    if (!url) return null;
-    const versus = attacker && attacker !== faction;
-    return (
-      <a
-        key={faction}
-        className={cx(styles.btn, index === 0 && styles.btnPrimary)}
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={
-          versus
-            ? `Open ti4battle.com with ${helpers.displayName(attacker)} attacking ${helpers.displayName(faction)}, ships and ground forces`
-            : `Open ti4battle.com with all of ${helpers.displayName(faction)}'s ships and ground forces here set as the defender`
-        }
-      >
-        <IconSwords size={13} aria-hidden />
-        Battle calc
-        {versus && <FactionIcon faction={attacker} w={14} h={14} />}
-        {versus && <span className={styles.versus}>vs</span>}
-        <FactionIcon faction={faction} w={14} h={14} />
-      </a>
-    );
-  });
-}
-
 /** The stat card's own width; the sheet scales it down to fit under this. */
 const UNIT_CARD_WIDTH = 380;
 
@@ -483,6 +420,8 @@ export function SystemDossier({
   const attacker = findAttacker(tile, gameState, gameData?.playerData ?? []);
   const [sheetUnit, setSheetUnit] = useState<SheetUnit | null>(null);
   const [editing, setEditing] = useState(false);
+  // God-Mode edycja planszy (RULES.md 44.1a) tylko dla hosta/admina.
+  const isHost = useIsHost();
   const systemName =
     getTileById(tile.systemId)?.name || `System ${tile.systemId}`;
   const planetIds = orderedPlanetIds(tile);
@@ -567,7 +506,6 @@ export function SystemDossier({
                 key={planetId}
                 planetId={planetId}
                 planetTile={tile.planets[planetId]}
-                tile={tile}
                 helpers={helpers}
                 attacker={attacker}
               />
@@ -576,27 +514,24 @@ export function SystemDossier({
           </div>
         </div>
 
-        {editing && <SystemEditor tile={tile} />}
+        {isHost && editing && <SystemEditor tile={tile} />}
 
         <footer className={styles.foot}>
           <span className={styles.note}>
             Expected hits per combat round. Space cannon resolves before the
             first round.
           </span>
-          <Button
-            size="xs"
-            variant={editing ? "filled" : "default"}
-            leftSection={<IconPencil size={13} />}
-            onClick={() => setEditing((v) => !v)}
-            title="God-Mode: add/remove units (no rules checking)"
-          >
-            {editing ? "Finish editing" : "Edit board"}
-          </Button>
-          <SystemBattleLinks
-            tile={tile}
-            helpers={helpers}
-            attacker={attacker}
-          />
+          {isHost && (
+            <Button
+              size="xs"
+              variant={editing ? "filled" : "default"}
+              leftSection={<IconPencil size={13} />}
+              onClick={() => setEditing((v) => !v)}
+              title="God-Mode: add/remove units (no rules checking)"
+            >
+              {editing ? "Finish editing" : "Edit board"}
+            </Button>
+          )}
         </footer>
       </div>
     </UnitSheetContext>

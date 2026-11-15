@@ -12,13 +12,11 @@ import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getAttachmentData } from "@/entities/lookup/attachments";
 import { getAttachmentModifiers } from "@/entities/game/planets";
-import type { Tile, TilePlanet } from "@/entities/game/types";
-import { buildGroundBattleUrl } from "./battleCalcLink";
+import type { TilePlanet } from "@/entities/game/types";
 import { summarizeZone } from "./fleetMath";
 import {
   arrangeZone,
   Balance,
-  CalcLink,
   ControlPill,
   ForceRow,
 } from "./ForceRow";
@@ -114,13 +112,11 @@ function LegendaryAbility({ planet }: { planet: PlanetData }) {
 export function PlanetBand({
   planetId,
   planetTile,
-  tile,
   helpers,
   attacker,
 }: {
   planetId: string;
   planetTile: TilePlanet;
-  tile: Tile;
   helpers: FactionHelpers;
   attacker: string | null;
 }) {
@@ -141,16 +137,6 @@ export function PlanetBand({
     planetTile.controlledBy,
     true,
   );
-  const defender = sides?.defender.faction ?? ordered[0]?.faction;
-  const calcUrl = defender
-    ? buildGroundBattleUrl(
-        tile,
-        planetTile,
-        defender,
-        helpers.playerFor,
-        attacker,
-      )
-    : null;
   const bonus = getAttachmentModifiers(
     planetTile.attachments ?? [],
     planet.techSpecialties ?? [],
@@ -202,10 +188,6 @@ export function PlanetBand({
               displayName={helpers.displayName}
             />
           )}
-          <CalcLink
-            url={calcUrl}
-            title={`Ground combat on ${planet.name} in the battle calculator`}
-          />
         </span>
       </header>
       {ordered.map((summary) => (

@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { Box, Text, Tooltip } from "@/ds";
-import { IconCalculator, IconTarget } from "@tabler/icons-react";
+import { IconTarget } from "@tabler/icons-react";
 import cx from "clsx";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
@@ -343,29 +343,5 @@ export function ControlPill({
       <FactionIcon faction={faction} w={14} h={14} />
       <b>{displayName(faction)}</b>
     </span>
-  );
-}
-
-/** A band's own battle in the calculator, as a quiet icon link. */
-export function CalcLink({
-  url,
-  title,
-}: {
-  url: string | null | undefined;
-  title: string;
-}) {
-  if (!url) return null;
-  return (
-    <Tooltip label={title} multiline maw={260}>
-      <a
-        className={styles.calcLink}
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={title}
-      >
-        <IconCalculator size={14} aria-hidden />
-      </a>
-    </Tooltip>
   );
 }

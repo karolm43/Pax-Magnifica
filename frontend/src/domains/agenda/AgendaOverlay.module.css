@@ -182,8 +182,11 @@
     0 100%,
     0 var(--ti-cut)
   );
-  background: linear-gradient(180deg, rgba(14, 18, 30, 0.84), rgba(8, 10, 18, 0.8));
-  backdrop-filter: blur(4px);
+  /* BEZ backdrop-filter: rozmycie pełnoekranowego tła przeliczało się przy każdym kroku
+     przewijania paneli (Senat/Urna) - przewijanie „chodziło ciężko" (zgłoszenie
+     użytkownika). Gęstsze tło daje ten sam odbiór bez kosztu. */
+  background: linear-gradient(180deg, rgba(14, 18, 30, 0.92), rgba(8, 10, 18, 0.9));
+  overscroll-behavior: contain;
 }
 
 .panel h3 {
@@ -782,6 +785,24 @@
   border: 1px solid rgba(252, 211, 77, 0.7);
   background: rgba(30, 24, 8, 0.92);
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+}
+
+/* Niski ekran (laptop): mniej marginesów - więcej miejsca na panele. */
+@media (max-height: 860px) {
+  .overlay {
+    gap: 8px;
+    padding: 8px 12px 12px;
+  }
+
+  .topBar {
+    padding: 4px 10px;
+  }
+
+  .ghostBtn,
+  .primaryBtn {
+    min-height: 36px;
+    padding: 6px 14px;
+  }
 }
 
 @media (max-width: 1200px) {

@@ -1323,3 +1323,19 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (talia + ręce razem) albo notka z ręki, z efektem w silniku (`promissory_play.reaction_points`). RULES.md 54.9.
 - Front: `TimingWindowChips` = jeden chip „Windows · N open · M closed”, lista (co zamyka okno) po kliknięciu.
 - QA: pytest pełny, ruff, mypy; front tsc + eslint + vitest `domains/offers`.
+
+## Okna na małych monitorach: sloty HUD; dossier systemu bez Battle calc, Edit tylko host (2026-11-15)
+
+- Zgłoszenie: na małych ekranach okna się nakładają (karta strategii chowała się pod ręką przy 1366x768), agenda
+  przewija się ciężko; w oknie systemu (prawy klik) „Edit board” widzą wszyscy, a „Battle calc” to artefakt AsyncTI4.
+- `hooks/useHudMetric.ts`: panel w domyślnym miejscu publikuje wymiar jako zmienną CSS (`--hud-gsp-bottom`,
+  `--hud-left-w`, `--hud-right-w`; ręka już miała `--hand-dock-clear`), sąsiedzi liczą z niej miejsce startowe.
+  Przesunięty panel zwalnia slot. `useDraggablePanel` zwraca `el` i `isMoved`.
+- Ręka stoi w wolnym pasie między dokiem akcji taktycznej a kartą strategii; dok taktyczny kończy się pod panelem
+  stanu gry; StatusPhasePanel i MoveRouteBox nad ręką; MoveRouteBox obok centrum decyzji (`data-hud-slot`).
+- Niski ekran (`max-height: 900px`): mniejsza ręka i kafelki kart, mniejsza karta strategii, ciaśniejsze przyciski.
+- Agenda: bez `backdrop-filter` na przewijanych panelach (przeliczanie blur przy przewijaniu), ciaśniej przy niskim ekranie.
+- Dossier: usunięte linki ti4battle.com (`battleCalcLink.ts` → `attacker.ts` z samym `findAttacker`, pasek przewagi
+  zostaje); „Edit board” tylko dla hosta (`useIsHost` w `useNetworkMe.ts`).
+- QA: front tsc + eslint + vitest `game-shell`, `map`, `offers`, `agenda`, `hooks`; zrzuty 1280/1366/1920 na żywej grze.
+  Pominięte: backend (bez zmian), build i e2e.

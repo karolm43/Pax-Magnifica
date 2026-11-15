@@ -9,19 +9,23 @@
   /* PRZYPIĘTY do ekranu (viewport), nie do mapy — nie przewija się przy
      panoramowaniu planszy (decyzja użytkownika). */
   position: fixed;
-  left: 50%;
   bottom: 14px;
   /* Nad nakładkami walki / produkcji / inwazji / agendy (2700-2900), pod modalami (3500):
      karty reakcji wolno zagrywać w trakcie tych okien (RULES.md 53.5). */
   z-index: 3050;
-  transform: translateX(-50%);
   /*
-   * Szerokość zostawia miejsce na prawy panel tury (TurnControls: 22px + 268px + odstęp)
-   * — symetrycznie, bo dok jest wyśrodkowany. Przy 1280 px dok o stałych 960 px zasłaniał
-   * przycisk „Next phase" / „End turn". Poniżej ~1190 px wygrywa podłoga 560 px.
+   * SLOT „dół środek" (hooks/useHudMetric.ts): dok stoi między lewym a prawym slotem HUD
+   * i jest wyśrodkowany w WOLNYM pasie (left/right + margin auto), nie na środku ekranu.
+   * Domyślnie 312 px z obu stron = panel akcji tury (22 + 268 + odstęp); karta strategii
+   * obok panelu (--hud-right-w) i dok akcji taktycznej (--hud-left-w) poszerzają swój bok,
+   * więc ręka nigdy ich nie zasłania. Poniżej ~1100 px wygrywa podłoga 480 px.
    */
-  --dock-side: 312px;
-  width: min(960px, max(560px, calc(100% - 2 * var(--dock-side))));
+  --dock-left: max(312px, calc(var(--hud-left-w, 0px) + 12px));
+  --dock-right: max(312px, calc(var(--hud-right-w, 0px) + 12px));
+  left: var(--dock-left);
+  right: var(--dock-right);
+  margin-inline: auto;
+  width: min(960px, max(480px, calc(100% - var(--dock-left) - var(--dock-right))));
   max-width: calc(100% - 24px);
   /* Wąski dok (zapytanie kontenerowe niżej) chowa podpisy segmentów — zostają ikony i liczniki. */
   container-type: inline-size;
@@ -188,6 +192,14 @@
   scrollbar-width: thin;
 }
 
+/* Niski ekran (laptop 768-900 px): niższa rozwinięta ręka z mniejszymi kafelkami kart
+   (kafelek .card niżej) - plansza zyskuje ~40 px. */
+@media (max-height: 900px) {
+  .body {
+    height: 140px;
+  }
+}
+
 /* Wachlarz kart — pozioma, przewijalna taśma kafelków. */
 .fan {
   display: flex;
@@ -243,6 +255,12 @@
     transform 120ms ease,
     border-color 120ms ease,
     box-shadow 120ms ease;
+}
+
+@media (max-height: 900px) {
+  .card {
+    width: 68px;
+  }
 }
 
 .card:hover,
@@ -354,6 +372,8 @@
 
 /* Na telefonie pasek dokuje się węziej i niżej, w zasięgu kciuka. */
 :global(.mobile) .dock {
+  left: 10px;
+  right: 10px;
   width: calc(100% - 20px);
   max-width: calc(100% - 20px);
   bottom: 8px;

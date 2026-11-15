@@ -4,6 +4,7 @@ import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
 import { getTileById } from "@/entities/lookup/systems";
+import { useHudMetric } from "@/hooks/useHudMetric";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { TacticalActionPanel } from "@/domains/game-shell/components/GameStatePanel";
@@ -40,6 +41,8 @@ export function TacticalActionDock() {
     maxW: 560,
     maxH: 860,
   });
+  // Slot HUD „lewy dół": ręka zwęża się z lewej, póki dok stoi w domyślnym miejscu.
+  useHudMetric(drag.el, "--hud-left-w", (rect) => rect.right, !drag.isMoved);
 
   const activeSystem = gameState?.activeSystem ?? null;
   // Dok ma sens wyłącznie podczas trwającej akcji taktycznej.
@@ -57,10 +60,12 @@ export function TacticalActionDock() {
   return (
     <aside
       className={styles.dock}
+      ref={drag.ref}
       style={{ ...drag.style, ...resize.style }}
       aria-label="Tactical action"
       data-draggable-panel
       data-dragging={drag.isDragging || undefined}
+      data-slotted={!drag.isMoved || undefined}
       data-resizing={resize.isResizing || undefined}
     >
       {/* Nagłówek = uchwyt przeciągania (pointer-down zaczyna drag). Dwuklik =

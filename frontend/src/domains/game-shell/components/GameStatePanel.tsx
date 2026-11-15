@@ -22,6 +22,7 @@ import {
   IconTrophy,
 } from "@tabler/icons-react";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { useHudMetric } from "@/hooks/useHudMetric";
 import cx from "clsx";
 import { useGameState } from "@/api/useGameState";
 import {
@@ -1830,6 +1831,13 @@ function GameStatePanelContent({
   // Na telefonie panel dokuje się paskiem nad planszą (CSS), więc nie pozwalamy
   // mu „pływać" — przesuwanie ma sens tylko na desktopie z wolną przestrzenią.
   const dragEnabled = !isMobileDevice();
+  // Slot HUD „lewa góra": dok akcji taktycznej (lewy dół) kończy się pod tym panelem.
+  useHudMetric(
+    drag.el,
+    "--hud-gsp-bottom",
+    (rect) => rect.bottom,
+    dragEnabled && !drag.isMoved,
+  );
   const { phase, activeCombat } = gameState;
   const config = PHASE_CONFIGS[phase];
   const tone = activeCombat ? TONE.combat : config.tone;
@@ -1843,6 +1851,7 @@ function GameStatePanelContent({
         ...(dragEnabled ? drag.style : {}),
       }}
       aria-label="Game state"
+      ref={drag.ref}
       data-open={isOpen || undefined}
       data-dragging={(dragEnabled && drag.isDragging) || undefined}
       data-draggable-panel

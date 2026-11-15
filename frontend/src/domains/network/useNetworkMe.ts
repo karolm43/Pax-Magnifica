@@ -29,6 +29,15 @@ export function useNetworkMe() {
 }
 
 /**
+ * Czy ten klient jest hostem/adminem (tryb lokalny = admin). Dopóki /network/me się
+ * ładuje: ``false`` — narzędzia God-Mode nie mignują graczom sieciowym.
+ */
+export function useIsHost(): boolean {
+  const { data: me } = useNetworkMe();
+  return !!me && (!me.network || me.host);
+}
+
+/**
  * Czy ten klient może działać jako ``playerId`` i widzieć jego dane prywatne — lustro
  * ``Identity.sees_everything`` / ``require_view`` (RULES.md 44.3): tryb lokalny albo host
  * bez miejsca widzi wszystkich, gracz sieciowy tylko siebie. Monity adresowane do innego
