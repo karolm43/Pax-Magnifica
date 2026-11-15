@@ -55,3 +55,11 @@ export const SECONDARY_MODE: Record<number, StepMode> = {
   4: "dock",
   7: "overlay",
 };
+
+/**
+ * Szerokość okna modalnego primary (domyślnie 560 px). Trade mieści stół transakcji
+ * (TradingTable), więc dostaje tyle miejsca co okno Transaction.
+ */
+export const PRIMARY_MODAL_SIZE: Record<number, number> = {
+  5: 1080,
+};

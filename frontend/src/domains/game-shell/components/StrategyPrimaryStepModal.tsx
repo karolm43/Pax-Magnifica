@@ -8,7 +8,7 @@ import { useGameData } from "@/state/useGameContext";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { SC_HUES, SC_NAMES } from "@/entities/data/strategyCardColors";
 import { getStrategyCardById } from "@/entities/lookup/strategyCards";
-import { PRIMARY_STEP_MODE, PRIMARY_VIEWS } from "@/domains/strategy/cards";
+import { PRIMARY_MODAL_SIZE, PRIMARY_STEP_MODE, PRIMARY_VIEWS } from "@/domains/strategy/cards";
 import { PromptDock } from "@/domains/strategy/PromptDock";
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
@@ -102,7 +102,7 @@ export function StrategyPrimaryStepModal() {
       closeOnClickOutside={false}
       closeOnEscape={false}
       title="Strategic action"
-      size={560}
+      size={PRIMARY_MODAL_SIZE[pending.initiative] ?? 560}
     >
       {body}
     </AppModal>

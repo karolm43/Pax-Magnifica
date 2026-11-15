@@ -1271,3 +1271,9 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   skrótu `mapText` w wierszu. Klik otwiera `LawDetailsCard` z pełnym tekstem prawa (`text1`/`text2`).
 - `LawDetailsCard` nie pokazuje już sekcji „Ongoing effect” (`mapText` to skrót AsyncTI4 tego samego prawa — tekst
   dublował się). Tylko front; QA: tsc + eslint.
+
+## 2026-11-15 — Trade primary: szersze okno ze stołem transakcji
+
+- Okno primary karty Trade (ze stołem `TradingTable` po „Negotiate”) miało stałe 560 px i stół się nie mieścił.
+  Nowa mapa `PRIMARY_MODAL_SIZE` (`domains/strategy/cards/index.ts`): Trade = 1080 px (jak okno Transaction),
+  reszta kart bez zmian (560). Szerokość i tak ograniczona do ekranu. Tylko front; QA: tsc + eslint + vitest.
