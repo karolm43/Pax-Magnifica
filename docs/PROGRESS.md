@@ -1288,3 +1288,14 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   Galactic Crisis Pact (`agendas:crisis`). `SecondaryDecisionModal` pokazuje wyraźną linię
   „Masters of Trade: you may follow for free — no command token is spent.” (nazwa z danych).
 - QA: pytest (factions, agendy, strategia), ruff, mypy zmienionych; front tsc + eslint + vitest game-shell.
+
+## Sieć: okna karty strategii tylko dla adresata (2026-11-15)
+
+- Błąd: gdy gracz zagrywał kartę strategii, pozostali widzieli pusty modal primary („Loading...”) i dostawali w pętli
+  „Not your move: You can only see your own private information, not '<frakcja>'” — `StrategyPrimaryStepModal`
+  pytał `GET /strategy/options` o `player_id` właściciela karty (403 z `require_view`, RULES.md 44.3).
+- `network/useNetworkMe.ts`: `canActAs(me, playerId)` / `useCanActAs()` — lustro `Identity.sees_everything`
+  (lokalnie i host bez miejsca: wszyscy; gracz sieciowy: tylko on). `StrategyPrimaryStepModal` renderuje się tylko
+  właścicielowi karty, `SecondaryDecisionModal` tylko bieżącemu respondentowi. Pozostali widzą istniejący status
+  „Waiting for X (resolve a strategy card)” w nagłówku (`TurnStatusChip`, `core/actor.awaiting`).
+- QA: front tsc + eslint zmienionych + vitest `domains/network` (nowy `useNetworkMe.test.ts`). Backend bez zmian.

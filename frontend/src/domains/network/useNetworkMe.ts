@@ -27,3 +27,22 @@ export function useNetworkMe() {
     staleTime: 60_000,
   });
 }
+
+/**
+ * Czy ten klient może działać jako ``playerId`` i widzieć jego dane prywatne — lustro
+ * ``Identity.sees_everything`` / ``require_view`` (RULES.md 44.3): tryb lokalny albo host
+ * bez miejsca widzi wszystkich, gracz sieciowy tylko siebie. Monity adresowane do innego
+ * gracza (primary/secondary karty strategii) chowamy — status „Waiting for X" daje
+ * ``TurnStatusChip``. Dopóki /network/me się ładuje: ``false`` (bez zapytań kończących 403).
+ */
+export function canActAs(me: NetworkMe | undefined, playerId: string | null | undefined): boolean {
+  if (!me || !playerId) return false;
+  if (!me.network || (me.host && !me.player_id)) return true;
+  return me.player_id === playerId;
+}
+
+/** Hook: ``canActAs`` z bieżącym ``/network/me``. */
+export function useCanActAs(): (playerId: string | null | undefined) => boolean {
+  const { data: me } = useNetworkMe();
+  return (playerId) => canActAs(me, playerId);
+}

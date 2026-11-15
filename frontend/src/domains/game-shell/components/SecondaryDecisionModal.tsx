@@ -64,6 +64,7 @@ async function fetchActionCards(gameId: string, playerId: string): Promise<strin
 }
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
+import { useCanActAs } from "@/domains/network/useNetworkMe";
 
 /**
  * Popup decyzji SECONDARY karty strategii (RULES.md 29.2, 31.6).
@@ -104,6 +105,7 @@ export function SecondaryDecisionModal() {
   const [useScepter, setUseScepter] = useState(false);
 
   const window = gameState?.pendingWindow ?? null;
+  const canActAs = useCanActAs();
   // Pokazujemy TYLKO dla okna secondary z czekającym respondentem. Pozostałe typy
   // okien (walka, reakcje) mają własne panele/modale — nie ten popup.
   const isSecondary =
@@ -111,6 +113,8 @@ export function SecondaryDecisionModal() {
     window.windowType === "STRATEGY_SECONDARY" &&
     !window.isComplete &&
     !!window.currentResponderId &&
+    // W sieci decyduje tylko respondent; reszta ma „Waiting for X" (TurnStatusChip).
+    canActAs(window.currentResponderId) &&
     // Respondent po "follow" produkuje (Warfare): okno produkcji ma pierwszeństwo.
     !window.context?.await_production;
 

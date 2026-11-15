@@ -12,6 +12,7 @@ import { PRIMARY_MODAL_SIZE, PRIMARY_STEP_MODE, PRIMARY_VIEWS } from "@/domains/
 import { PromptDock } from "@/domains/strategy/PromptDock";
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
+import { useCanActAs } from "@/domains/network/useNetworkMe";
 
 /**
  * Okno kroku WIELOETAPOWEGO primary karty strategii (RULES.md 30.5).
@@ -21,8 +22,8 @@ import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strateg
  * (``GET /strategy/options``) i renderuje widok karty z ``domains/strategy/cards``;
  * wybór leci do ``/strategy/primary-step``. Modal jest NIEODRZUCALNY - znika, gdy
  * backend zastosuje primary i otworzy okno secondary. Walidacja jest po stronie serwera
- * (tylko właściciel karty), więc w sieci inni gracze widzą ten sam stan, ale go nie
- * rozstrzygną.
+ * (tylko właściciel karty). W sieci okno widzi TYLKO właściciel karty (opcje kroku to jego
+ * dane prywatne — inni dostaliby 403); pozostali mają status „Waiting for X" w nagłówku.
  */
 export function StrategyPrimaryStepModal() {
   const params = useParams<{ mapid: string }>();
@@ -32,7 +33,9 @@ export function StrategyPrimaryStepModal() {
   const { strategyPrimaryStep } = useBoardEditor();
   const [busy, setBusy] = useState(false);
 
-  const pending = gameState?.pendingStrategy ?? null;
+  const canActAs = useCanActAs();
+  const pendingRaw = gameState?.pendingStrategy ?? null;
+  const pending = pendingRaw && canActAs(pendingRaw.ownerId) ? pendingRaw : null;
   const players = (gameData?.playerData ?? []) as PromptPlayer[];
   const owner = players.find((p) => p.discordId === pending?.ownerId);
   const version = pending ? `${pending.initiative}:${pending.step}` : "none";
