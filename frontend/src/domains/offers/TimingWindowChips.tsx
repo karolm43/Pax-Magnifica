@@ -80,8 +80,10 @@ export function TimingWindowChips({
           onClick={() => setOpen((v) => !v)}
           title={open ? "Hide timing windows" : "Show timing windows"}
         >
-          <small className={styles.kind}>Windows</small>
-          <b>{summary}</b>
+          <span className={styles.chipLabel}>
+            <small className={styles.kind}>Timing windows</small>
+            <b>{summary}</b>
+          </span>
           {open ? (
             <IconChevronUp size={12} aria-hidden="true" />
           ) : (

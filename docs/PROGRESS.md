@@ -1357,3 +1357,14 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   ściszenie kanałów `CHANNEL_TRIM` (UI 0.35, muzyka/efekty 0.6, głosy 0.8); niższe wartości domyślne.
 - `uiSounds.ts`: przełączniki/checkboxy grają cichy `tick` zamiast `toggle` (plik `toggle.ogg` usunięty).
 - Muzyka: wystarczy podmienić pliki w `assets/music/` i odświeżyć stronę (manifest czytany na żądanie).
+
+## Centrum decyzji: stały kształt chipów „Ready”/„Timing windows”, zawsze widoczny uchwyt (2026-11-15)
+
+- Zgłoszenie: chipy aktywnych zdolności (np. bohater Letnev) nachodziły na siebie, a panel okien czasowych
+  ciężko się przesuwał i po rozwinięciu zmieniał kształt.
+- `AbilityPrompts.module.css`: chip na pełną szerokość kolumny, stały promień (bez pigułka → prostokąt), rozwinięty
+  tekst z własnym przewijaniem (max 128 px); etykieta w dwóch liniach (`chipLabel`/`chipMeta`: „Ready · Hero · gracz”
+  nad nazwą). Przezroczysta reszta kolumny nie łapie kliknięć nad mapą (`pointer-events`). Bez `resize: horizontal`.
+- Pasek „Decisions” z uchwytem jest zawsze (wcześniej znikał przy samych chipach — zostawał wąski skrawek do chwycenia).
+- QA: front tsc + eslint + vitest `domains/offers`; zrzut na tymczasowej stronie testowej (serwery gry były wyłączone).
+  Pominięte: backend (bez zmian), build, e2e.

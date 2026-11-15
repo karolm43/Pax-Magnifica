@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, t
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IconBolt, IconChevronDown, IconChevronUp, IconMinus, IconX } from "@tabler/icons-react";
+import {
+  IconBolt,
+  IconChevronDown,
+  IconChevronUp,
+  IconGripHorizontal,
+  IconMinus,
+  IconX,
+} from "@tabler/icons-react";
 import { fetchJson } from "@/api/fetchJson";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
@@ -154,7 +161,12 @@ export function DecisionCenter() {
               onDoubleClick={drag.reset}
               title="Drag to move · double-click resets position"
             >
-              <span className={styles.barTitle}>Decisions</span>
+              {/* Pasek jest ZAWSZE (także przy samych znacznikach „Ready”/„Windows”) - jeden
+                  pewny uchwyt przesuwania zamiast wąskich skrawków chipów. */}
+              <span className={styles.barGrip}>
+                <IconGripHorizontal size={14} aria-hidden="true" />
+                <span className={styles.barTitle}>Decisions</span>
+              </span>
               <button
                 type="button"
                 className={styles.iconBtn}
@@ -266,9 +278,9 @@ export function DecisionCenter() {
 /**
  * Zdolność ze stałym oknem (cała faza, np. Carth of Golden Sands - także w cudzej turze): jedna
  * cicha linia „Ready” w centrum decyzji zamiast pełnej karty. Tekst po kliknięciu nazwy, ukrycie
- * (X) obowiązuje, dopóki zdolność nie zniknie (wyczerpanie, koniec fazy). Sama nie otwiera paska
- * centrum - gdy nie ma innych decyzji, widać tylko tę linię; wtedy SAMA linia jest uchwytem
- * przesuwania (przyciski mają ``data-no-drag``), bo pasek tytułu jest schowany.
+ * (X) obowiązuje, dopóki zdolność nie zniknie (wyczerpanie, koniec fazy). Pełna szerokość kolumny
+ * i stały kształt (rozwinięcie dokleja tekst pod wierszem); uchwytem jest pasek centrum, a także
+ * sam wiersz (przyciski mają ``data-no-drag``).
  */
 function StandingChip({
   row,
@@ -303,9 +315,13 @@ function StandingChip({
           onClick={() => setOpen((v) => !v)}
           title={open ? "Hide card text" : "Show card text"}
         >
-          <small className={styles.kind}>Ready · {KIND_LABEL[row.kind]}</small>
-          {owner}
-          <b>{row.name}</b>
+          <span className={styles.chipLabel}>
+            <span className={styles.chipMeta}>
+              <small className={styles.kind}>Ready · {KIND_LABEL[row.kind]}</small>
+              {owner}
+            </span>
+            <b>{row.name}</b>
+          </span>
           {open ? <IconChevronUp size={12} aria-hidden="true" /> : <IconChevronDown size={12} aria-hidden="true" />}
         </button>
         <button type="button" data-no-drag className={styles.chipUse} onClick={onUse}>
