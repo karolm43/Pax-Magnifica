@@ -165,7 +165,7 @@ describe("music", () => {
 });
 
 describe("soundForClick", () => {
-  it("przycisk = click, zakładka = select, przełącznik = toggle, data-sound nadpisuje", () => {
+  it("przycisk = click, zakładka = select, przełącznik = tick, data-sound nadpisuje", () => {
     document.body.innerHTML = `
       <button id="b"><span id="inner">x</span></button>
       <div role="tab" id="t">tab</div>
@@ -177,7 +177,7 @@ describe("soundForClick", () => {
     const el = (id: string) => document.getElementById(id);
     expect(soundForClick(el("inner"))).toBe("click");
     expect(soundForClick(el("t"))).toBe("select");
-    expect(soundForClick(el("s"))).toBe("toggle");
+    expect(soundForClick(el("s"))).toBe("tick");
     expect(soundForClick(el("dis"))).toBeNull();
     expect(soundForClick(el("quiet"))).toBeNull();
     expect(soundForClick(el("drop"))).toBe("drop");

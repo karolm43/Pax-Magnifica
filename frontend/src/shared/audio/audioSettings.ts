@@ -21,11 +21,11 @@ export type AudioSettings = {
 const STORAGE_KEY = "audio.settings";
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
-  master: 0.8,
-  music: 0.45,
-  voices: 0.9,
+  master: 0.7,
+  music: 0.5,
+  voices: 0.8,
   ui: 0.5,
-  effects: 0.8,
+  effects: 0.7,
   muted: false,
 };
 
@@ -71,8 +71,25 @@ export const useAudioSettings = create<Store>((setState, get) => ({
   },
 }));
 
-/** Skuteczna głośność kanału 0..1 (z głośnością ogólną i wyciszeniem). */
+/**
+ * Stałe ściszenie kanałów (pliki źródłowe są głośne): nawet suwak na 100 nie „krzyczy”.
+ * Dobrane na ucho — decyzja użytkownika „wszystko jest za głośne”.
+ */
+const CHANNEL_TRIM: Record<AudioChannel, number> = {
+  music: 0.6,
+  voices: 0.8,
+  ui: 0.35,
+  effects: 0.6,
+};
+
+/**
+ * Suwak -> wzmocnienie: ucho słyszy głośność logarytmicznie, więc liniowy suwak na 50 brzmiał
+ * prawie jak na 100. Krzywa kwadratowa: 50 ≈ -12 dB, 25 ≈ -24 dB.
+ */
+const perceptual = (v: number) => v * v;
+
+/** Skuteczna głośność kanału 0..1 (z głośnością ogólną, krzywą słuchu i wyciszeniem). */
 export function channelVolume(channel: AudioChannel, s: AudioSettings = useAudioSettings.getState()): number {
   if (s.muted) return 0;
-  return s.master * s[channel];
+  return perceptual(s.master) * perceptual(s[channel]) * CHANNEL_TRIM[channel];
 }

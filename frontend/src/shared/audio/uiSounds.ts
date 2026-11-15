@@ -12,7 +12,6 @@ import { audioManifest, uiUrl } from "./audioManifest";
 export type UiSound =
   | "click"
   | "select"
-  | "toggle"
   | "open"
   | "close"
   | "confirm"
@@ -71,7 +70,8 @@ export function soundForClick(target: Element | null): UiSound | null {
     role === "radio" ||
     (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio"))
   ) {
-    return "toggle";
+    // Przełączniki: cichy „tick” (dawny toggle.ogg był nieprzyjemny — usunięty, decyzja użytkownika).
+    return "tick";
   }
   return "click";
 }
@@ -86,7 +86,7 @@ export function installUiSounds(): () => void {
   const unlock = () => unlockAudio();
   const onClick = (event: MouseEvent) => {
     const sound = soundForClick(event.target instanceof Element ? event.target : null);
-    if (sound) playUi(sound);
+    if (sound) playUi(sound, sound === "tick" ? 0.6 : 1);
   };
   document.addEventListener("pointerdown", unlock, true);
   document.addEventListener("keydown", unlock, true);

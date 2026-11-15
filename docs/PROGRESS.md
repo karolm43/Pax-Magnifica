@@ -1350,3 +1350,10 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Audyt 107 kart akcji vs `C_action_cards.md`: pozostałe okna zgodne; luki do decyzji: Emergency Repairs (brak „end of
   round” i Space Cannon Offense), Direct Hit (brak okna Sustain Damage poza walką), HOLD tylko dla 4 kart.
 - QA: pytest pełny, ruff, mypy. Front bez zmian.
+
+## Dźwięk: cichszy, krzywa słuchu, bez toggle.ogg (2026-11-15)
+
+- `shared/audio/audioSettings.ts`: `channelVolume` = krzywa kwadratowa suwaków (50 ≈ -12 dB) × stałe
+  ściszenie kanałów `CHANNEL_TRIM` (UI 0.35, muzyka/efekty 0.6, głosy 0.8); niższe wartości domyślne.
+- `uiSounds.ts`: przełączniki/checkboxy grają cichy `tick` zamiast `toggle` (plik `toggle.ogg` usunięty).
+- Muzyka: wystarczy podmienić pliki w `assets/music/` i odświeżyć stronę (manifest czytany na żądanie).
