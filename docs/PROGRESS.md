@@ -1390,3 +1390,22 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   (`just_passed` → `hold_seq`). Wcześniej tylko Public Disgrace, Coup d'Etat, Political Stability, Crash Landing.
 - Zakaz oszustwa (kości, talie, faza, zagrania kart, 8 kroków) bez zmian. RULES.md 53.7.
 - Testy: `tests/test_hold_rewind.py` (zakres kart, Counterstroke po ruchu rywala przez HOLD).
+
+## Audyt rulingów C_/F_ + pusta rezerwa → jednostka z planszy (2026-11-15)
+
+- Zasada w CLAUDE.md: przy implementacji i przeglądzie zawsze `C_<typ>.md` / `F_<frakcja>.md` / `R_<temat>.md`;
+  `⚠️ ZAŁOŻENIE` sprzeczne z rulingiem = błąd.
+- `core/board_reinforcements.py` — JEDNO miejsce R_component_limitations (źródło z systemu bez żetonu gracza,
+  wybór gracza). Produkcja: `ProductionOrder.sources`, `units[].boardSources`, chipy w `ProductionOverlay`.
+  Użycia: Rearmament Agreement, Infiltrate, Local Fabricators, Sleeper Cell, Salvage Operations, struktury z kart.
+- Agendy (C_agendas): Classified po odrzuceniu → cel nie do zdobycia (`objectives.retire`); Wormhole Research nie
+  rusza struktur w przestrzeni; Search Warrant/Archived Secret — zwrot nadmiaru PO odkryciu kart; Colonial
+  Redistribution — oferta „may”; Homeland Defense Act odrzucone → max 2 PDS; badania z agend i Technology Rider
+  z pominięciem prerekwizytu specjalnością/AIDA (`technology.plan_with_skips`).
+- Frakcje: G'hom Sek'kus nie przez zablokowane wormhole; Reclaimer — struktura za każdego; Pride of Kenara —
+  rzut gravity rift. Eksploracja: DMZ otwiera CAPACITY. Relikty: Book of Latvinia tylko bez prerekwizytów.
+- Otwarte (RULES.md 63.5): wybór wormhole przy Ion Storm w systemie z tym samym wormhole; JR-XS455-O — odpowiedź
+  wskazanego gracza.
+- Testy: `tests/test_rulings_audit.py` (19). QA: pytest pełny (2353), ruff, mypy src+tests; front tsc + eslint +
+  vitest `domains/production`. Pominięte: build (bez nowych zależności), e2e (okno produkcji nie jest stale montowane).
+- Uwaga: większość tej pracy weszła w commit równoległej sesji `46be583`; tu dokończenie (Technology Rider).

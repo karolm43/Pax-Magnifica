@@ -380,11 +380,11 @@ def _sanction_reward(
 # Technology Rider - research 1 technology (wybór przy zagraniu karty). C_action_cards: wolno
 # wyczerpać planetę ze specjalnością / AI Development Algorithm, by zignorować prerekwizyt.
 def _directly_researchable(
-    state: GameState, registry: StaticDataRegistry, player_id: str, skips: list[str]
+    state: GameState, registry: StaticDataRegistry, player_id: str, skips: list[str] | None = None
 ) -> list[str]:
     return [
         tech.id for tech in technology.researchable_techs(state, registry, player_id)
-        if technology.plan_with_skips(state, registry, player_id, tech.id, skips) is not None
+        if technology.plan_with_skips(state, registry, player_id, tech.id, skips or []) is not None
     ]
 
 
