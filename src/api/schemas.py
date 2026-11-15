@@ -1693,3 +1693,19 @@ class RelicPlayabilityResponse(BaseModel):
     """Wszystkie relikty gracza z zagrywalnością."""
 
     relics: list[RelicPlayability]
+
+
+class OpenTimingWindow(BaseModel):
+    """Jawne okno czasowe otwarte teraz (RULES.md 54.9)."""
+
+    key: str
+    event: str
+    moment: str
+    label: str
+    subject: str | None = None
+    position: str | None = None
+    closes: str
+
+
+class OpenTimingWindowsResponse(BaseModel):
+    windows: list[OpenTimingWindow]

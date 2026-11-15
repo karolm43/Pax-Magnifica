@@ -1299,3 +1299,17 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   właścicielowi karty, `SecondaryDecisionModal` tylko bieżącemu respondentowi. Pozostali widzą istniejący status
   „Waiting for X (resolve a strategy card)” w nagłówku (`TurnStatusChip`, `core/actor.awaiting`).
 - QA: front tsc + eslint zmienionych + vitest `domains/network` (nowy `useNetworkMe.test.ts`). Backend bez zmian.
+
+## Okna czasowe widoczne na ekranie + bramka zamknięcia walki (2026-11-15)
+
+- Zgłoszenie: okna czasowe znikają po cichu (Salvage Operations po zamknięciu bitwy, agenda when/after). RULES.md 54.9.
+- Błąd: `battle.close_combat` zamykało walkę mimo oczekującej oferty Salvage Operations; oferta zostawała martwa
+  (`salvage_types` czyta zniszczone statki z `active_combat`). Teraz `close_combat` rzuca `ValueError`, gdy są
+  `pending_offers`; „Close battle” jest wyłączony z podpisem „Waiting for decisions from this combat”.
+- `core/timing_view.py` + `GET /window/open-now`: jawne okna otwarte teraz (`reaction_cards.open_windows`) z angielską
+  etykietą, podmiotem i „co je zamyka”. `OpenWindow.public` (Acquiescence Winnu = niejawne, nie trafia do paska).
+- Front: `TimingWindowChips` w centrum decyzji (chip „Window”, po zamknięciu chwilowo „Closed”), `useOpenWindows`,
+  `timingWindows.ts` (cykl życia, test). `HandReactionRows`: karta z ręki, której okno minęło niezagrane, daje
+  prywatny komunikat „Window closed”.
+- Katalog wszystkich okien: `OKNA_CZASOWE.md` (67 zdarzeń, §2a: lista komponentów bez efektu w silniku).
+- QA: pytest pełny, ruff, mypy; front tsc + eslint + vitest `domains/offers`, `domains/battle`; build; e2e 7/7.

@@ -168,8 +168,11 @@ export function BattleCenter({
   systemLabel,
   rolling,
   onHold,
+  decisionsPending = false,
 }: {
   onHold: (state: HoldState) => void;
+  /** Czekają decyzje graczy (np. Salvage Operations) - silnik nie zamknie walki (RULES.md 54.9). */
+  decisionsPending?: boolean;
   view: BattleView;
   nameOf: (key: string) => string;
   /** Alias koloru strony (ikony jednostek w podsumowaniu). */
@@ -453,11 +456,19 @@ export function BattleCenter({
           <button
             type="button"
             className={styles.primary}
-            disabled={busy}
+            disabled={busy || decisionsPending}
             onClick={onClose}
+            title={
+              decisionsPending
+                ? "Players still have decisions from this combat - see Decisions"
+                : "Closing the battle ends the “after the combat” timing window"
+            }
           >
             Close battle
           </button>
+          {decisionsPending && (
+            <span>Waiting for decisions from this combat (see Decisions)</span>
+          )}
         </div>
       )}
 

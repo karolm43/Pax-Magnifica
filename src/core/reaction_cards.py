@@ -57,6 +57,9 @@ class OpenWindow:
     event: GameEvent
     moment: Moment
     ctx: dict[str, Any] = field(default_factory=dict)
+    # Czy okno wolno pokazać wszystkim (pasek okien, ``core/timing_view``). False, gdy samo
+    # istnienie okna zależy od informacji ukrytej (np. ktoś trzyma notkę - Acquiescence).
+    public: bool = True
 
     def as_dict(self) -> dict[str, Any]:
         return {"event": self.event.value, "moment": self.moment.value, "ctx": dict(self.ctx)}
@@ -152,7 +155,9 @@ def _with_hindsight(state: GameState, card_id: str, window: OpenWindow) -> OpenW
     fn = _HINDSIGHT.get(card_id)
     if future is None or fn is None:
         return window
-    return OpenWindow(window.event, window.moment, {**window.ctx, **fn(state, future, window)})
+    return OpenWindow(
+        window.event, window.moment, {**window.ctx, **fn(state, future, window)}, window.public
+    )
 
 
 _REWINDABLE: set[str] = set()

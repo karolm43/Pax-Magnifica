@@ -1248,6 +1248,13 @@ def close_combat(state: GameState) -> GameState:
     combat = _combat(state)
     if combat.step is not CombatStep.DONE:
         raise ValueError("The combat is not finished yet.")
+    if state.pending_offers:
+        # Oferty „after the combat” (Salvage Operations) żyją danymi walki - zamknięcie by je
+        # uśmierciło bez wiedzy gracza (RULES.md 54.9).
+        raise ValueError(
+            "Players still have decisions from this combat - "
+            "resolve them before closing the battle."
+        )
     new_state = state.clone()
     new_state.active_combat = None
     # Wynik walki naziemnej zapamiętujemy w inwazji — Establish Control potrzebuje wiedzieć,

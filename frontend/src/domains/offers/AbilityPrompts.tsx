@@ -6,6 +6,7 @@ import { IconBolt, IconChevronDown, IconChevronUp, IconMinus, IconX } from "@tab
 import { fetchJson } from "@/api/fetchJson";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
+import { useOpenWindows } from "@/api/useOpenWindows";
 import type { FactionComponentKind } from "@/api/useFactionComponents";
 import { DEFAULT_GAME_ID } from "@/config";
 import { FactionComponentUseModal } from "@/domains/game-shell/components/TurnControls/FactionComponentUseModal";
@@ -16,6 +17,7 @@ import { TransactionOfferPrompt } from "./TransactionOfferPrompt";
 import { humanHandOwners } from "./handReactions";
 import { OfferCard, useDecisionOffers } from "./OffersModal";
 import { isResearchOffer } from "./ResearchOfferOverlay";
+import { TimingWindowChips } from "./TimingWindowChips";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import styles from "./AbilityPrompts.module.css";
@@ -88,6 +90,9 @@ export function DecisionCenter() {
   const research = offer.first !== null && isResearchOffer(offer.first);
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: me } = useNetworkMe();
+  // Okna czasowe otwarte teraz - jawne, dla wszystkich (RULES.md 54.9).
+  const { data: windowsData } = useOpenWindows(gameState);
+  const openWindows = useMemo(() => windowsData ?? [], [windowsData]);
 
   // Każda zmiana stanu gry może otworzyć albo zamknąć okno zdolności.
   useEffect(() => {
@@ -208,6 +213,11 @@ export function DecisionCenter() {
                 </div>
               </section>
             ))}
+            <TimingWindowChips
+              windows={openWindows}
+              onDragStart={drag.onHandlePointerDown}
+              onDragReset={drag.reset}
+            />
             {standing.map((row) => (
               <StandingChip
                 key={promptKey(row)}

@@ -496,7 +496,8 @@ def acquiescence_window(state: GameState) -> list[OpenWindow]:
         )
     ):
         return []
-    return [OpenWindow(GameEvent.STRATEGIC_ACTION, Moment.WHEN, {"player": active})]
+    # Niejawne: okno istnieje tylko, gdy ktoś trzyma notkę (ręka) - pasek okien go nie pokazuje.
+    return [OpenWindow(GameEvent.STRATEGIC_ACTION, Moment.WHEN, {"player": active}, public=False)]
 
 
 @promissory_play.condition(ACQUIESCENCE)

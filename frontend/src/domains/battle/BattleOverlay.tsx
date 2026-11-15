@@ -874,6 +874,7 @@ function Battlefield({
             )
           }
           onClose={() => void run(battleClose)}
+          decisionsPending={offersPending}
           systemLabel={systemLabel}
           onAnnounce={(announce) =>
             view.announcing &&

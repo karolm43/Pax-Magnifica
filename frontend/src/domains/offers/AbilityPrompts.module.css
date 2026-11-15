@@ -280,3 +280,27 @@
 .stack:not(:has(> .body > :not([data-standing]))) > .bar {
   display: none;
 }
+
+/* Okno czasowe otwarte teraz (RULES.md 54.9): bursztyn jak karta „Window open now”, ale cicho. */
+.chip[data-tone="timing"] .icon,
+.chip[data-tone="timing"] .kind {
+  color: rgb(250, 204, 21);
+}
+
+/* Okno, które właśnie minęło: przygaszone, przekreślona etykieta - gra z niego wyszła. */
+.chip[data-tone="closed"],
+.card[data-tone="closed"] {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.chip[data-tone="closed"] .chipName b {
+  text-decoration: line-through;
+}
+
+.card[data-tone="closed"] .icon,
+.card[data-tone="closed"] .kind,
+.chip[data-tone="closed"] .icon,
+.chip[data-tone="closed"] .kind {
+  color: var(--ds-ink-lo, #94a3b8);
+}

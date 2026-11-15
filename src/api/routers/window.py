@@ -14,12 +14,25 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import StateEnvelope, WindowOpenRequest, WindowRespondRequest
+from src.api.schemas import (
+    OpenTimingWindow,
+    OpenTimingWindowsResponse,
+    StateEnvelope,
+    WindowOpenRequest,
+    WindowRespondRequest,
+)
 from src.core import actor as actor_rules
-from src.core import timing
+from src.core import timing, timing_view
 from src.core.game_state import GameState, WindowType
 
 router = APIRouter()
+
+
+@router.get("/window/open-now", response_model=OpenTimingWindowsResponse)
+async def get_open_windows(ctx: AppContext = Depends(get_ctx)) -> OpenTimingWindowsResponse:
+    """Okna czasowe otwarte TERAZ — jawne dla wszystkich, bez informacji o rękach (43.4)."""
+    rows = timing_view.describe_open_windows(ctx.service.current_state())
+    return OpenTimingWindowsResponse(windows=[OpenTimingWindow(**row) for row in rows])
 
 
 async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnvelope:
