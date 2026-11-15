@@ -518,7 +518,7 @@ def acquiescence(
     """Acquiescence: When the Winnu player resolves a strategic action: You do not have to spend or
     place a command token to resolve the secondary ability of that strategy card. Then, return this
     card to the Winnu player. (⚠️ „place” — Construction: gracz po prostu nie kładzie żetonu.)"""
-    strategic_action.grant_no_cost(state, player_id)
+    strategic_action.grant_no_cost(state, player_id, f"promissory_notes:{ACQUIESCENCE}")
 
 
 # ------------------------------------------------------ Salai Sai Corian (flagowiec)

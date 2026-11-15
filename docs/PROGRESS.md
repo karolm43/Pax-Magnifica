@@ -1277,3 +1277,14 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Okno primary karty Trade (ze stołem `TradingTable` po „Negotiate”) miało stałe 560 px i stół się nie mieścił.
   Nowa mapa `PRIMARY_MODAL_SIZE` (`domains/strategy/cards/index.ts`): Trade = 1080 px (jak okno Transaction),
   reszta kart bez zmian (560). Szerokość i tak ograniczona do ekranu. Tylko front; QA: tsc + eslint + vitest.
+
+## 2026-11-15 — Masters of Trade: scenariusz przez API + informacja w oknie follow
+
+- Zgłoszenie „Hacan dalej płaci żeton za follow Trade”: silnik NIE pobiera żetonu (nowy scenariusz
+  `test_masters_of_trade_follow_trade_bez_zetonu` w `tests/factions/test_flows_hacan.py` — pusta pula, follow
+  przechodzi, żeton zostaje). Nie udało się odtworzyć poboru; jeśli wróci — potrzebny stan gry z momentu błędu.
+- Okno secondary dostaje w kontekście `no_cost_why` (`"p1=abilities:master_of_trade;p2=promissory_notes:acq"`):
+  `strategic_action._no_cost_source` (pokrycie `covers` hooka PERMIT), `grant_no_cost(..., source)` (Acquiescence),
+  Galactic Crisis Pact (`agendas:crisis`). `SecondaryDecisionModal` pokazuje wyraźną linię
+  „Masters of Trade: you may follow for free — no command token is spent.” (nazwa z danych).
+- QA: pytest (factions, agendy, strategia), ruff, mypy zmienionych; front tsc + eslint + vitest game-shell.

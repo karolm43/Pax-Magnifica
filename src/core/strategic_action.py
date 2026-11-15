@@ -51,6 +51,8 @@ def _spec(initiative: int) -> CardSpec:
 
 
 NO_COST_KEY = "no_cost"  # gracze, którzy dostali darmowe (nieobowiązkowe) secondary w oknie
+# Źródło darmowego secondary: "p1=abilities:master_of_trade;p2=promissory_notes:acq".
+NO_COST_WHY_KEY = "no_cost_why"
 
 
 def secondary_without_token(state: GameState, player_id: str, initiative: int) -> bool:
@@ -69,21 +71,55 @@ def secondary_without_token(state: GameState, player_id: str, initiative: int) -
     )
 
 
+def _no_cost_source(state: GameState, player_id: str, initiative: int) -> str:
+    """Komponent (``"<kategoria>:<id>"``), który zwalnia gracza z żetonu — do opisu w UI."""
+    ctx = {"initiative": initiative, "owner": state.active_player_id}
+    for hook in rules_hooks.hooks_at(
+        rules_hooks.POINT_STRATEGY_SECONDARY_FREE, state, player_id
+    ):
+        if hook.kind is rules_hooks.HookKind.PERMIT and hook.fn(state, player_id, ctx):
+            return hook.covers or ""
+    return ""
+
+
+def _encode_why(why: dict[str, str]) -> str:
+    return ";".join(f"{pid}={src}" for pid, src in why.items() if src)
+
+
+def _decode_why(raw: object) -> dict[str, str]:
+    pairs = (item.split("=", 1) for item in str(raw or "").split(";") if "=" in item)
+    return {pid: src for pid, src in pairs}
+
+
 def _no_cost_context(state: GameState, queue: list[str], initiative: int) -> dict[str, str]:
-    """Wpis ``no_cost`` kontekstu okna (tylko gdy ktoś rozstrzyga secondary bez żetonu)."""
+    """Wpisy ``no_cost`` (+ źródło ``no_cost_why``) kontekstu okna — tylko gdy ktoś
+    rozstrzyga secondary bez żetonu. Źródło pozwala UI napisać, CZEMU follow jest darmowy."""
     listed = [p for p in queue if secondary_without_token(state, p, initiative)]
-    return {NO_COST_KEY: ",".join(listed)} if listed else {}
+    if not listed:
+        return {}
+    why = {p: _no_cost_source(state, p, initiative) for p in listed}
+    return {NO_COST_KEY: ",".join(listed), NO_COST_WHY_KEY: _encode_why(why)}
 
 
-def grant_no_cost(state: GameState, player_id: str) -> None:
-    """Dopisuje gracza do darmowych secondary bieżącego okna (MUTUJE; Acquiescence)."""
+def grant_no_cost(state: GameState, player_id: str, source: str = "") -> None:
+    """Dopisuje gracza do darmowych secondary bieżącego okna (MUTUJE; Acquiescence).
+
+    ``source`` (``"<kategoria>:<id>"``) trafia do ``no_cost_why`` — opis w oknie follow.
+    """
     window = state.pending_window
     if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
         raise ValueError("No strategy card secondary is being resolved right now.")
     listed = [p for p in str(window.context.get(NO_COST_KEY, "")).split(",") if p]
     if player_id not in listed:
         listed.append(player_id)
-    window.context = {**window.context, NO_COST_KEY: ",".join(listed)}
+    why = _decode_why(window.context.get(NO_COST_WHY_KEY))
+    if source:
+        why[player_id] = source
+    window.context = {
+        **window.context,
+        NO_COST_KEY: ",".join(listed),
+        NO_COST_WHY_KEY: _encode_why(why),
+    }
 
 
 def _free_players(context: dict[str, str | int]) -> set[str]:

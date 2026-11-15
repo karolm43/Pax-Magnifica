@@ -92,3 +92,4 @@ def test_acquiescence_w_oknie_secondary_winnu(registry: StaticDataRegistry) -> N
     flow.play_note(flow.other, note)
     window = flow.state()["pending_window"]
     assert flow.other in window["context"]["no_cost"].split(",")
+    assert f"{flow.other}=promissory_notes:acq" in window["context"]["no_cost_why"]

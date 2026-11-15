@@ -130,3 +130,23 @@ def test_wrath_of_kenara_po_rzucie(registry: StaticDataRegistry) -> None:
     die = offer["inputs"][0]["options"][0]["value"]
     flow.accept("Wrath of Kenara", {"dice": [die]})
     assert flow.state()["players"][flow.me]["trade_goods"] == 2
+
+
+def test_masters_of_trade_follow_trade_bez_zetonu(registry: StaticDataRegistry) -> None:
+    """Rywal gra Trade; Hacan robi follow bez żetonu, okno podaje źródło (opis w UI)."""
+    flow = Flow(registry, "hacan")
+    flow.player(lambda p: p.update(strategy_cards=[5]), flow.other)
+    flow.player(lambda p: p.update(strategic_cc=0))  # nawet z pustą pulą follow jest możliwy
+    flow.edit(lambda s: None, active=flow.other)
+    flow.post("/strategy/play", {"player_id": flow.other, "initiative": 5})
+    if flow.state()["pending_strategy"] is not None:
+        flow.post("/strategy/primary-step", {
+            "player_id": flow.other, "payload": {"players": []},
+        })
+    context = flow.state()["pending_window"]["context"]
+    assert flow.me in context["no_cost"].split(",")
+    assert f"{flow.me}=abilities:master_of_trade" in context["no_cost_why"]
+    flow.post("/strategy/secondary", {"player_id": flow.me, "execute": True})
+    state = flow.state()
+    assert state["players"][flow.me]["strategic_cc"] == 0
+    assert state["pending_window"] is None

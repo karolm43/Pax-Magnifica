@@ -410,6 +410,7 @@ def _crisis(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
             "free": "",
             "cost": 0,
             strategic_action.NO_COST_KEY: ",".join(queue),
+            strategic_action.NO_COST_WHY_KEY: ";".join(f"{p}=agendas:crisis" for p in queue),
             "agenda": "crisis",
         },
     )

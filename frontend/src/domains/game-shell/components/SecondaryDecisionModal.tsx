@@ -13,6 +13,9 @@ import {
   getStrategyCardByInitiative,
 } from "@/entities/lookup/strategyCards";
 import { SC_NAMES, SC_HUES } from "@/entities/data/strategyCardColors";
+import { getAbility } from "@/entities/lookup/abilities";
+import { getAgenda } from "@/entities/lookup/agendas";
+import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import {
   getPlayerDisplayName,
   type GameStatePlayer,
@@ -26,6 +29,26 @@ import { getBotApiUrl } from "@/api/auth/botApiUrl";
 import type { PlayerHandData } from "@/shared/types/playerHand";
 
 const POLITICS_INITIATIVE = 3;
+
+/**
+ * Nazwa komponentu, który zwalnia respondenta z żetonu (kontekst okna ``no_cost_why``:
+ * ``"p1=abilities:master_of_trade;p2=promissory_notes:acq"``) — pełna nazwa z danych.
+ */
+function noCostSourceName(raw: unknown, playerId: string | null | undefined): string | null {
+  if (!playerId) return null;
+  const entry = (typeof raw === "string" ? raw : "")
+    .split(";")
+    .map((item) => item.split("="))
+    .find(([pid]) => pid === playerId);
+  const key = entry?.[1];
+  if (!key) return null;
+  const [category, id] = key.split(":");
+  if (!id) return null;
+  if (category === "abilities") return getAbility(id)?.name ?? null;
+  if (category === "promissory_notes") return getPromissoryNoteData(id, {})?.displayName ?? null;
+  if (category === "agendas") return getAgenda(id)?.name ?? null;
+  return null;
+}
 
 /** Karty akcji na ręce gracza (lokalny tryb: operator widzi każdą rękę). */
 async function fetchActionCards(gameId: string, playerId: string): Promise<string[]> {
@@ -189,6 +212,9 @@ export function SecondaryDecisionModal() {
     .split(",")
     .includes(window?.currentResponderId ?? "\0");
   const needsToken = Number(window?.context?.cost ?? 0) > 0 && !isFree && !noCost;
+  const noCostName = noCost
+    ? noCostSourceName(window?.context?.no_cost_why, window?.currentResponderId)
+    : null;
   const poolTokens = (responder as { strategicCC?: number } | undefined)?.strategicCC;
   // Scepter of Emelpar: gotowy relikt pozwala wydać żeton z rezerwy zamiast z puli.
   const scepterReady =
@@ -317,6 +343,13 @@ export function SecondaryDecisionModal() {
             </Text>
           )}
         </div>
+
+        {noCost && !isFree ? (
+          <Text size="sm" fw={600} style={{ color: hue }}>
+            {noCostName ? <b>{noCostName}: </b> : null}
+            you may follow for free — no command token is spent.
+          </Text>
+        ) : null}
 
         <Text size="xs" c="dimmed">
           {isFree
