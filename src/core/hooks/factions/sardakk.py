@@ -414,7 +414,10 @@ def commander_inputs(
                 if position == inv.position and dest == planet:
                     continue
                 name = registry.planets[dest].name if dest in registry.planets else dest
-                options.append(oi.option(f"{base_type}>{dest}", f"{base_type} -> {name}"))
+                options.append(oi.option(
+                    f"{base_type}>{dest}",
+                    f"{unit_name(state, registry, player_id, base_type)} -> {name}",
+                ))
         source_name = registry.planets[planet].name if planet in registry.planets else planet
         inputs.append(oi.choice(f"src:{position}:{planet}", f"From {source_name}", options))
     return inputs
@@ -551,7 +554,9 @@ def supremacy_inputs(
         technology.researchable_techs(state, registry, player_id), key=lambda t: t.id
     ):
         if "UNITUPGRADE" in tech.types:
-            options.append(oi.option(f"tech:{tech.id}", f"Research {tech.name}"))
+            options.append(oi.option(
+                f"tech:{tech.id}", f"{tech.name} - research", ref=("tech", tech.id)
+            ))
     inputs = [oi.choice("reward", "N'orr Supremacy", options, always=True)]
     skips = [
         oi.option(planet, card_labels.describe_planet(
@@ -562,7 +567,11 @@ def supremacy_inputs(
     if technology.aida_ready(state, player_id):
         skips.append(oi.option(technology.AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
     skips += [
-        oi.option(f"{technology.RELIC_SKIP_PREFIX}{relic}", f"Relic {relic}: ignore 1 prerequisite")
+        oi.option(
+            f"{technology.RELIC_SKIP_PREFIX}{relic}",
+            f"{card_labels.relic_name(registry, relic)} - ignore 1 prerequisite",
+            ref=("relic", relic),
+        )
         for relic in technology.ignore_prerequisite_relics(state, player_id)
     ]
     if skips and any(o["value"].startswith("tech:") for o in options):

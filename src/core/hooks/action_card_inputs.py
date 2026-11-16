@@ -9,7 +9,9 @@ Format wejścia (``dict``), pole ``kind``:
 * ``choice`` - jedna opcja z ``options``; ``merge=True`` wkleja słownik opcji do parametrów;
 * ``multi``  - ``min``..``max`` opcji (każda z unikalnym ``id``, wartość może się powtarzać);
 * ``number`` - liczba całkowita ``min``..``max``.
-Opcja: ``{"id": str, "value": Any, "label": str}``. Klucz ``key`` = nazwa parametru efektu.
+Opcja: ``{"id": str, "value": Any, "label": str, "meta"?: {"ref": {"kind", "id"}}}`` - ``ref``
+wskazuje komponent gry (karta strategii, relikt...), którego pełny opis UI pokazuje przy opcji.
+Klucz ``key`` = nazwa parametru efektu.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
 from src.core.hooks.card_helpers import controlled
 from src.core.offer_inputs import as_payment
+from src.core.offer_inputs import option as as_option
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
 from src.core.unit_ops import count_in_zone
@@ -33,8 +36,15 @@ _SHOOTABLE = ("dreadnought", "cruiser", "destroyer")
 _MAX_PICKS = 2  # „1 or 2” (Refit Troops, Scuttle)
 
 
-def _option(value: Any, label: str, option_id: str | None = None) -> dict[str, Any]:
-    return {"id": str(value) if option_id is None else option_id, "value": value, "label": label}
+def _option(
+    value: Any,
+    label: str,
+    option_id: str | None = None,
+    *,
+    ref: tuple[str, str | int] | None = None,
+) -> dict[str, Any]:
+    """Opcja formularza; ``ref`` = komponent gry, którego dotyczy (``offer_inputs.option``)."""
+    return as_option(value, label, option_id, ref=ref)
 
 
 def _choice(

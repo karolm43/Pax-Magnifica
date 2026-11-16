@@ -3,10 +3,12 @@ import { Tooltip } from "@/ds";
 import { agendas } from "@/entities/data/agendas";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
 import { getActionCard } from "@/entities/lookup/actionCards";
+import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
 import { getExploration } from "@/entities/lookup/explorations";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getPublicObjective } from "@/entities/lookup/publicObjectives";
+import { getRelicData } from "@/entities/lookup/relics";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 import { getTechData } from "@/entities/lookup/tech";
@@ -23,6 +25,8 @@ export type NamedKind =
   | "planet"
   | "leader"
   | "promissory"
+  | "relic"
+  | "breakthrough"
   | "system";
 
 export type Hint = { name: string; meta?: string; lines: string[] };
@@ -136,6 +140,22 @@ export function hintFor(
       const n = promissoryByAlias.get(id);
       if (!n) return null;
       return { name: n.name, meta: "Promissory note", lines: clean([n.text]) };
+    }
+    case "relic": {
+      const r = getRelicData(id);
+      if (!r) return null;
+      return { name: r.name, meta: r.isFakeRelic ? "Frontier card" : "Relic", lines: clean([r.text]) };
+    }
+    case "breakthrough": {
+      const b = getBreakthroughData(id);
+      if (!b) return null;
+      return {
+        name: b.displayName || b.name,
+        meta: b.synergy?.length
+          ? `Breakthrough · synergy ${b.synergy.map((s) => prettifyId(s.toLowerCase())).join(" / ")}`
+          : "Breakthrough",
+        lines: clean([b.text]),
+      };
     }
     case "system":
       return extra?.systemText

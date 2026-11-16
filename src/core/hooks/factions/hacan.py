@@ -26,6 +26,7 @@ from src.core import offer_inputs as oi
 from src.core.agenda_phase import VOTE_REFUND_KEY, current_voter
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, Phase, TacticalStep
+from src.core.hooks import card_labels
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
     POINT_AGENDA_VOTE_MODIFIER,
@@ -180,9 +181,18 @@ def _qdn_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool
 def qdn_inputs(
     state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    mine = [oi.option(str(i), f"Your card {i}") for i in state.players[player_id].strategy_cards]
+    mine = [
+        oi.option(str(i), card_labels.describe_strategy_card(registry, i), ref=("strategy", i))
+        for i in state.players[player_id].strategy_cards
+    ]
     theirs = [
-        oi.option(f"{pid}|{i}", f"{_name(registry, state, pid)}: card {i}")
+        oi.option(
+            f"{pid}|{i}",
+            card_labels.describe_strategy_card(
+                registry, i, f"held by {_name(registry, state, pid)}"
+            ),
+            ref=("strategy", i),
+        )
         for pid, p in state.players.items()
         if pid != player_id
         for i in p.strategy_cards

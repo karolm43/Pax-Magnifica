@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from "react";
 import { IconArrowDown, IconArrowUp, IconCheck } from "@tabler/icons-react";
 import { getAgenda } from "@/entities/lookup/agendas";
 import { getActionCard } from "@/entities/lookup/actionCards";
+import { ComponentInfoButton } from "@/domains/cards/components/ComponentInfo";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { ConfirmButton, Hint, PromptShell, Section } from "../PromptParts";
 import { playerName, playerRgb } from "../PlayerChip";
@@ -205,8 +206,12 @@ function AgendaOrder({ prompt, shell, busy, submit }: PrimaryViewProps) {
       <div className={styles.row} key={id}>
         <span className={styles.rowLabel}>
           {agenda?.name ?? id}
-          <small>{[agenda?.type, agenda?.text1].filter(Boolean).join(" - ")}</small>
+          {/* Cały tekst agendy (typ, cel głosowania, oba akapity) - decyzja góra/dół. */}
+          <small>{[agenda?.type, agenda?.target].filter(Boolean).join(" · ")}</small>
+          {agenda?.text1 && <small>{agenda.text1}</small>}
+          {agenda?.text2 && <small>{agenda.text2}</small>}
         </span>
+        <ComponentInfoButton componentRef={{ kind: "agenda", id }} name={agenda?.name ?? id} />
         <span className={styles.stepper}>
           <button
             type="button"

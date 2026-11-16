@@ -74,8 +74,11 @@ export function classifyOptions(
   look: OptionLookups,
 ): Classified | null {
   if (options.length === 0) return null;
-  // Opcje graficzne (jednostka, kość) mają już własny wygląd.
-  if (options.some((o) => o.meta && ("unit" in o.meta || "die" in o.meta))) return null;
+  // Opcje graficzne (jednostka, kość) i z jawnym odnośnikiem do komponentu (``meta.ref`` - opis
+  // i pełna karta, patrz ``describeOption``) mają już własny wygląd.
+  if (options.some((o) => o.meta && ("unit" in o.meta || "die" in o.meta || "ref" in o.meta))) {
+    return null;
+  }
   const plain = (test: (id: string) => boolean) => (o: ActionCardOption) => {
     const v = str(o.value);
     return v && test(v) ? v : null;

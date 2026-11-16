@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconArrowLeft, IconCheck } from "@tabler/icons-react
 import { Button } from "@/ds";
 import { publicObjectives } from "@/entities/data/publicObjectives";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
+import { ComponentInfoButton } from "@/domains/cards/components/ComponentInfo";
 import type { ObjectivePaymentBody, StatusObjectiveOption } from "@/entities/data/types";
 import { ObjectiveRow } from "@/domains/game-shell/components/StatusPhasePanel/StatusPhasePanel";
 import statusStyles from "@/domains/game-shell/components/StatusPhasePanel/StatusPhasePanel.module.css";
@@ -39,19 +40,27 @@ function ReturnPicker({
   return (
     <Section title="You would hold more than 3 secret objectives - return one first">
       <div className={styles.chips}>
-        {unscored.map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={styles.chip}
-            data-on={value === id || undefined}
-            disabled={busy}
-            onClick={() => onChange(id)}
-            title={getSecretObjectiveData(id)?.text}
-          >
-            {getSecretObjectiveData(id)?.name ?? id}
-          </button>
-        ))}
+        {unscored.map((id) => {
+          const secret = getSecretObjectiveData(id);
+          const name = secret?.name ?? id;
+          return (
+            <span key={id} className={styles.chipWithInfo}>
+              <button
+                type="button"
+                className={styles.chip}
+                data-on={value === id || undefined}
+                disabled={busy}
+                onClick={() => onChange(id)}
+              >
+                <span className={styles.chipText}>
+                  <b>{name}</b>
+                  {secret?.text && <small>{secret.text}</small>}
+                </span>
+              </button>
+              <ComponentInfoButton componentRef={{ kind: "objective", id }} name={name} />
+            </span>
+          );
+        })}
         <button
           type="button"
           className={styles.chip}
