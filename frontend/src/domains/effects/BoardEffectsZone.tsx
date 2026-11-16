@@ -1,30 +1,27 @@
 import { useState, type CSSProperties } from "react";
+import { useParams } from "react-router-dom";
 import { IconSparkles } from "@tabler/icons-react";
+import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
-import { useGameData } from "@/state/useGameContext";
 import type { ActiveEffectData, PlayerData } from "@/entities/data/types";
+import type { GameData } from "@/entities/game/types";
 import { TILE_HEIGHT, TILE_WIDTH } from "@/entities/geometry/tilePositioning";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { playerRgb } from "@/domains/strategy/PlayerChip";
+import { effectsZoneAnchor } from "./effectsZoneAnchor";
 import styles from "./BoardEffectsZone.module.css";
-
-/** Najmniejszy rozmiar pudełka (px ekranu) - przy małym zoomie pole systemu byłoby nieczytelne. */
-const MIN_WIDTH = 170;
-const MIN_HEIGHT = 140;
-/** Odstęp od krawędzi planszy w jednostkach planszy (skaluje się z zoomem). */
-const GAP = 40;
 
 function EffectIcon({ player, size }: { player: PlayerData | undefined; size: number }) {
   return player?.faction ? (
     <CircularFactionIcon faction={player.faction} size={size} />
   ) : (
-    <IconSparkles size={size - 6} />
+    <IconSparkles size={size - 8} />
   );
 }
 
-/** Chip efektu na tacy; klik = karta z pełnym opisem (jak żetony mapy). */
+/** Żeton efektu na tacy; klik = karta z pełnym opisem (jak żetony mapy). */
 function EffectChip({ effect, player }: { effect: ActiveEffectData; player: PlayerData | undefined }) {
   const [opened, setOpened] = useState(false);
   return (
@@ -38,7 +35,7 @@ function EffectChip({ effect, player }: { effect: ActiveEffectData; player: Play
             onClick={() => setOpened((o) => !o)}
           >
             <span className={styles.icon} aria-hidden="true">
-              <EffectIcon player={player} size={18} />
+              <EffectIcon player={player} size={44} />
             </span>
             <span className={styles.name}>{effect.name}</span>
           </button>
@@ -62,37 +59,32 @@ function EffectChip({ effect, player }: { effect: ActiveEffectData; player: Play
 
 /**
  * Efekty trwałe „położone obok planszy” (RULES.md 54): bohater Letnev do końca rundy, kość
- * agenta w tej rundzie walki, premie z kart itd. Pudełko wielkości jednego systemu przy prawym
- * górnym rogu planszy - leży na stole i przesuwa się z mapą, nie zmienia układu planszy.
- * Leży zawsze, także puste; klik w efekt pokazuje jego kartę.
+ * agenta w tej rundzie walki, premie z kart itd. Taca leży W WARSTWIE PLANSZY (jej jednostki
+ * i skala) po prawej stronie, między polami graczy 2 i 3 (`effectsZoneAnchor`). Ma wysokość
+ * jednego systemu i rozszerza się w prawo o kolejne kolumny, gdy efektów przybywa.
+ * Leży zawsze, także pusta; klik w efekt pokazuje jego kartę.
  */
-export function BoardEffectsZone({
-  gameId,
-  zoom,
-  bleedRight,
-}: {
-  gameId: string;
-  zoom: number;
-  bleedRight: number;
-}) {
-  const { data: gameState } = useGameState(gameId);
-  const gameData = useGameData();
+export function BoardEffectsZone({ gameData }: { gameData: GameData }) {
+  const params = useParams<{ mapid: string }>();
+  const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
+  const anchor = effectsZoneAnchor(
+    gameData.statTilePositions ?? {},
+    gameData.ringCount,
+    gameData.tilePositions,
+  );
+  if (!anchor) return null;
   const effects = gameState?.activeEffects ?? [];
   const playerOf = (owner: string | null) =>
-    owner ? gameData?.playerData.find((p) => p.faction === owner) : undefined;
+    owner ? gameData.playerData.find((p) => p.faction === owner) : undefined;
 
   return (
     <section
       className={styles.zone}
       aria-label="Active effects"
-      style={{
-        left: `calc(100% + ${bleedRight + GAP * zoom}px)`,
-        width: Math.max(MIN_WIDTH, TILE_WIDTH * zoom),
-        height: Math.max(MIN_HEIGHT, TILE_HEIGHT * zoom),
-      }}
+      style={{ left: anchor.x, top: anchor.y, minWidth: TILE_WIDTH, height: TILE_HEIGHT }}
     >
       <header className={styles.plate}>
-        <IconSparkles size={12} aria-hidden="true" />
+        <IconSparkles size={26} aria-hidden="true" />
         <span>Effects</span>
         {effects.length > 0 && <b className={styles.count}>{effects.length}</b>}
       </header>

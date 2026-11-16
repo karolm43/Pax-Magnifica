@@ -547,3 +547,8 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   jako chipy, opis w `SmoothPopover` + `DetailsCard` po kliknięciu; układ planszy (centrowanie, Fit board) bez zmian.
 - Test: `BoardEffectsZone.test.tsx`. QA: front tsc, eslint (zmienione), vitest `domains/effects`. Bez backendu,
   build i e2e (brak nowych zależności); bez zrzutu ekranu — do obejrzenia w działającej grze.
+- Poprawka 2 (użytkownik): taca leży W WARSTWIE PLANSZY (`MapRenderLayer`, skala zoomu), po prawej między polami
+  graczy 2 i 3 — `effectsZoneAnchor` szuka największej pionowej luki między polami graczy na prawo od środka
+  (mapa 6-osobowa = pozycja 407). Wysokość jednego systemu, żetony po 3 w kolumnie, kolejne kolumny w prawo
+  (taca rośnie z liczbą efektów). Cofnięte `children` w `InteractiveMapRenderer` i zmiany w `PannableMapView`.
+  QA: tsc, eslint, vitest `effects`, `map`, `game-shell`.

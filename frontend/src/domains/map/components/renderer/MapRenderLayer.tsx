@@ -11,6 +11,7 @@ import { MapUnitTransitionLayer } from "../layers/MapUnitTransitionLayer";
 import { MoveRouteLayer } from "../layers/MoveRouteLayer";
 import { WormholeLinkLayer } from "../layers/WormholeLinkLayer";
 import { HeroBoardFxLayer } from "../layers/HeroBoardFxLayer";
+import { BoardEffectsZone } from "@/domains/effects/BoardEffectsZone";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 
 type Props = {
@@ -68,6 +69,8 @@ export function MapRenderLayer({
         <ExpeditionLayer contentSize={contentSize} />
         {/* Efekt bohatera na planszy po jego scenie (RULES.md 64.4). */}
         <HeroBoardFxLayer tiles={tilesList} contentSize={contentSize} />
+        {/* Taca efektów trwałych po prawej, między polami graczy 2 i 3 (RULES.md 54). */}
+        <BoardEffectsZone gameData={gameData} />
       </Box>
 
       <MapUnitDetailsCard

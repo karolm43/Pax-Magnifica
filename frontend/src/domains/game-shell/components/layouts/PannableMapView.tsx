@@ -29,7 +29,6 @@ import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePan
 import { TacticalActionDock } from "@/domains/game-shell/components/TacticalActionDock";
 import { BoardHud } from "./BoardHud";
 import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
-import { BoardEffectsZone } from "@/domains/effects/BoardEffectsZone";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
 const BOARD_CLEARANCE = 20;
@@ -59,7 +58,6 @@ function boardGeometry(
     width,
     height: contentSize.height * zoom,
     bleedBottom: bleed.bottom * zoom,
-    bleedRight,
     /** Painted extent including the overlay bleed the wrapper excludes. */
     paintedWidth: unscaledWidth + bleed.left + bleed.right,
     margins: {
@@ -249,10 +247,7 @@ export function PannableMapView({ gameId }: { gameId: string }) {
             onPlanetMouseLeave={handlePlanetMouseLeave}
             tooltipUnit={tooltipUnit}
             tooltipPlanet={tooltipPlanet}
-          >
-            {/* Pudełko efektów trwałych (wielkość systemu) leży na stole obok planszy i przesuwa się z nią. */}
-            <BoardEffectsZone gameId={gameId} zoom={zoom} bleedRight={board.bleedRight} />
-          </InteractiveMapRenderer>
+          />
         )}
 
         <BoardHud

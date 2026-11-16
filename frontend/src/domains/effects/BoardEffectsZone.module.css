@@ -1,37 +1,39 @@
 /*
- * Pole efektów trwałych NA STOLE obok planszy (RULES.md 54): pudełko wielkości jednego systemu
- * przy prawym górnym rogu planszy. Celowo inny styl niż pola graczy pod planszą - wpuszczona
- * w blat taca z grawerowaną, przerywaną ramką. Nie wpływa na układ planszy.
+ * Taca efektów trwałych NA PLANSZY (RULES.md 54): po prawej, między polami graczy 2 i 3.
+ * Wymiary w jednostkach planszy (kontener jest skalowany zoomem): wysokość jednego systemu,
+ * szerokość rośnie o kolumny żetonów. Celowo inny styl niż pola graczy - wpuszczona w blat
+ * taca z grawerowaną, przerywaną ramką.
  */
 
 .zone {
   position: absolute;
-  top: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   box-sizing: border-box;
-  padding: 8px;
-  border-radius: 14px;
+  padding: 18px 20px;
+  border-radius: 34px;
   color: var(--ds-ink-hi);
+  pointer-events: auto;
   /* Wgłębienie w blacie: ciemniejsze dno, cień wewnętrzny, światło na dolnej krawędzi. */
   background:
-    radial-gradient(120% 60% at 50% 0%, rgb(255 255 255 / 0.04), transparent 70%),
-    rgb(0 0 0 / 0.4);
+    radial-gradient(120% 60% at 50% 0%, rgb(255 255 255 / 0.05), transparent 70%),
+    rgb(0 0 0 / 0.45);
   box-shadow:
-    inset 0 5px 14px rgb(0 0 0 / 0.65),
-    inset 0 -1px 0 rgb(255 255 255 / 0.06),
-    0 1px 0 rgb(255 255 255 / 0.05);
+    inset 0 12px 30px rgb(0 0 0 / 0.7),
+    inset 0 -2px 0 rgb(255 255 255 / 0.07),
+    0 2px 0 rgb(255 255 255 / 0.05);
   cursor: default;
 }
 
-/* Grawerowana ramka tacy - przerywana, wpuszczona kilka pikseli od krawędzi. */
+/* Grawerowana ramka tacy - przerywana, wpuszczona kilka jednostek od krawędzi. */
 .zone::before {
   content: "";
   position: absolute;
-  inset: 4px;
-  border: 1px dashed var(--hud-edge-accent, rgb(126 156 198 / 0.36));
-  border-radius: 10px;
+  inset: 9px;
+  border: 3px dashed var(--hud-edge-accent, rgb(126 156 198 / 0.36));
+  border-radius: 26px;
   pointer-events: none;
 }
 
@@ -40,23 +42,23 @@
   position: relative;
   display: flex;
   align-items: center;
-  align-self: center;
-  gap: 5px;
-  padding: 2px 9px;
-  font-size: 10px;
+  align-self: flex-start;
+  gap: 10px;
+  padding: 4px 20px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ds-ink-lo);
   border-radius: 999px;
   background: rgb(0 0 0 / 0.45);
-  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.7);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.7);
 }
 
 .count {
-  min-width: 16px;
-  padding: 0 5px;
-  font-size: 10px;
+  min-width: 34px;
+  padding: 0 10px;
+  font-size: 22px;
   letter-spacing: 0;
   text-align: center;
   border-radius: 999px;
@@ -67,22 +69,24 @@
 .empty {
   position: relative;
   margin: auto 0;
-  font-size: 11px;
+  font-size: 26px;
   font-style: italic;
   text-align: center;
   color: var(--ds-ink-lo);
   opacity: 0.7;
 }
 
+/* Trzy żetony w kolumnie; kolejne efekty dokładają kolumny w prawo (taca rośnie). */
 .list {
   position: relative;
   display: grid;
-  align-content: start;
-  gap: 4px;
-  min-height: 0;
+  flex: 1;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, 62px);
+  grid-auto-columns: 300px;
+  gap: 10px 14px;
   margin: 0;
-  padding: 1px;
-  overflow: auto;
+  padding: 0;
   list-style: none;
 }
 
@@ -95,19 +99,20 @@
 .chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   box-sizing: border-box;
   width: 100%;
-  padding: 3px 7px 3px 4px;
-  font-size: 11.5px;
+  height: 100%;
+  padding: 6px 16px 6px 8px;
+  font-size: 24px;
   font-weight: 600;
   text-align: left;
   color: inherit;
-  border-radius: 8px;
-  border: 1px solid var(--ds-h22);
-  border-left: 3px solid var(--pc, var(--ds-accent));
+  border-radius: 16px;
+  border: 2px solid var(--ds-h22);
+  border-left: 7px solid var(--pc, var(--ds-accent));
   background: linear-gradient(180deg, var(--ds-deck), var(--ds-ground-2));
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
+  box-shadow: 0 5px 14px rgb(0 0 0 / 0.55);
   cursor: pointer;
 }
 
@@ -119,8 +124,8 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 44px;
+  height: 44px;
 }
 
 .name {
@@ -132,7 +137,7 @@
 @keyframes chipIn {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.97);
+    transform: translateY(-8px) scale(0.97);
   }
 }
 

@@ -3,7 +3,6 @@ import {
   type ComponentProps,
   type CSSProperties,
   type ProfilerOnRenderCallback,
-  type ReactNode,
 } from "react";
 import type { GameData, Tile } from "@/entities/game/types";
 import { recordPerformanceMeasure } from "@/utils/performanceMarks";
@@ -66,8 +65,6 @@ type InteractiveMapRendererProps = {
   onPlanetMouseLeave: () => void;
   tooltipUnit: ComponentProps<typeof MapRenderLayer>["tooltipUnit"];
   tooltipPlanet: ComponentProps<typeof MapRenderLayer>["tooltipPlanet"];
-  /** Elementy „na stole” przy planszy (np. pole efektów) - pozycjonowane względem planszy. */
-  children?: ReactNode;
 };
 
 export function InteractiveMapRenderer({
@@ -89,7 +86,6 @@ export function InteractiveMapRenderer({
   onPlanetMouseLeave,
   tooltipUnit,
   tooltipPlanet,
-  children,
 }: InteractiveMapRendererProps) {
   const { layout } = mapLayoutConfig;
   const hasLayoutOverride =
@@ -144,7 +140,6 @@ export function InteractiveMapRenderer({
       }}
     >
       {profiledRenderLayer}
-      {children}
     </div>
   );
 }
