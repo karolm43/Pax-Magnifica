@@ -19,6 +19,7 @@ import { useGameState } from "@/api/useGameState";
 import { usePlayerData } from "@/api/usePlayerData";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
+import { useGameData } from "@/state/useGameContext";
 import { Switch } from "@/ds";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import type {
@@ -49,6 +50,10 @@ import {
   prettifyId,
   resolvePlanetName,
 } from "@/domains/game-shell/components/GameEventPanel/eventFormatting";
+import {
+  ComponentInfoButton,
+  type ComponentKind,
+} from "@/domains/cards/components/ComponentInfo";
 import styles from "./AgendaOverlay.module.css";
 
 /*
@@ -430,23 +435,33 @@ function Senate({
 }
 
 /** Karta agendy + wyniki (słupki głosów) + historia tej fazy. */
-/** Opis komponentu za wynikiem (planeta, prawo, cel, karta strategii) albo ``null``. */
-function outcomeHint(agenda: AgendaPhaseData, outcome: string): Hint | null {
+/** Rodzaj komponentu za wynikiem (planeta, prawo, cel, karta strategii) albo ``null``. */
+function outcomeKind(agenda: AgendaPhaseData): ComponentKind | null {
   switch (agenda.kind) {
     case "planet":
     case "planet_non_home":
     case "planet_non_home_not_mecatol":
-      return hintFor("planet", outcome);
+      return "planet";
     case "law":
-      return hintFor("agenda", outcome);
+      return "agenda";
     case "secret_objective":
     case "public_objective":
-      return hintFor("objective", outcome);
+      return "objective";
     case "strategy_card":
-      return hintFor("strategy", outcome);
+      return "strategy";
     default:
       return null;
   }
+}
+
+/** Opis komponentu za wynikiem albo ``null``. */
+function outcomeHint(
+  agenda: AgendaPhaseData,
+  outcome: string,
+  idMap?: Record<number, string>,
+): Hint | null {
+  const kind = outcomeKind(agenda);
+  return kind ? hintFor(kind, outcome, { idMap }) : null;
 }
 
 /**
@@ -463,6 +478,7 @@ function OutcomeInfo({
   lookOf: (id: string) => Look;
 }) {
   const { byId } = usePlayers();
+  const idMap = useGameData()?.strategyCardIdMap;
   const isPlayer =
     agenda.kind === "player" ||
     agenda.kind === "player_techs" ||
@@ -501,6 +517,10 @@ function OutcomeInfo({
         ) : (
           "uncontrolled"
         )}
+        <ComponentInfoButton
+          componentRef={{ kind: "planet", id: outcome }}
+          name={resolvePlanetName(outcome)}
+        />
         <button
           type="button"
           className={styles.outcomeLocate}
@@ -517,21 +537,26 @@ function OutcomeInfo({
       </span>
     );
   }
-  const hint = outcomeHint(agenda, outcome);
-  if (!hint) return null;
+  const hint = outcomeHint(agenda, outcome, idMap);
+  const kind = outcomeKind(agenda);
+  if (!hint || !kind) return null;
   return (
-    <Tooltip
-      label={<HintBody hint={hint} />}
-      multiline
-      withArrow
-      openDelay={200}
-      maw={340}
-      events={{ hover: true, focus: true, touch: true }}
-    >
-      <span className={styles.outcomeInfo} data-text="" tabIndex={0}>
-        {hint.meta ? <em>{hint.meta}</em> : null} {hint.lines[0] ?? ""}
-      </span>
-    </Tooltip>
+    <span className={styles.outcomeInfoRow}>
+      <Tooltip
+        label={<HintBody hint={hint} />}
+        multiline
+        withArrow
+        openDelay={200}
+        maw={340}
+        events={{ hover: true, focus: true, touch: true }}
+      >
+        {/* Cały tekst (np. primary i secondary karty strategii), nie tylko pierwszy akapit. */}
+        <span className={styles.outcomeInfo} data-text="" tabIndex={0}>
+          {hint.meta ? <em>{hint.meta}</em> : null} {hint.lines.join(" ")}
+        </span>
+      </Tooltip>
+      <ComponentInfoButton componentRef={{ kind, id: outcome }} name={hint.name || outcome} />
+    </span>
   );
 }
 

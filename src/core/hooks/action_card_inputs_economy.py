@@ -79,16 +79,20 @@ def brilliance_inputs(
             {"mode": "ready_planet", "planet": planet},
             f"Ready {_planet_label(state, registry, planet)}",
             f"ready:{planet}",
+            ref=("planet", planet),
         )
         for planet in targets.specialty_planets_owned(state, registry, player_id)
     ]
     for pid in targets.breakthrough_targets(state, registry):
         who = "yourself" if pid == player_id else _player_label(state, registry, pid)
+        found = registry.breakthrough_for_faction(state.players[pid].faction)
+        name = f"{found.name} - " if found is not None and found.name else ""
         options.append(
             _option(
                 {"mode": "breakthrough", "player": pid},
-                f"Gain the breakthrough: {who}",
+                f"{name}gain the breakthrough: {who}",
                 f"breakthrough:{pid}",
+                ref=("breakthrough", found.id) if found is not None else None,
             )
         )
     return [_choice("effect", "Ready a planet or give a breakthrough", options, merge=True)]
@@ -170,6 +174,7 @@ def seize_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
                     {"player": pid, "fragment": card_id},
                     f"{name} from {_player_label(state, registry, pid)}",
                     f"{pid}:{card_id}",
+                    ref=("explore", card_id),
                 )
             )
     return [_choice("target", "Relic fragment to take from a neighbor", options, merge=True)]

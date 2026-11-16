@@ -26,6 +26,7 @@ from src.core import (
 from src.core import offer_inputs as oi
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, TacticalStep, WindowType
+from src.core.hooks import card_labels
 from src.core.legendary_planets import MECATOL_PLANETS
 from src.core.planet_stats import is_legendary
 from src.core.reaction_cards import OpenWindow, window_provider
@@ -469,7 +470,10 @@ def rickar_rickani(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
 def hero_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    cards = [oi.option(str(i), f"Strategy card {i}") for i in sorted(CARDS)]
+    cards = [
+        oi.option(str(i), card_labels.describe_strategy_card(registry, i), ref=("strategy", i))
+        for i in sorted(CARDS)
+    ]
     others = [
         oi.option(pid, _name(registry, state, pid)) for pid in state.players if pid != player_id
     ]

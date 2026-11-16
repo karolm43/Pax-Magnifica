@@ -1,0 +1,22 @@
+/* Przycisk ⓘ „pełna karta” - ten sam kształt co ``.locate`` w DecisionFields (oko mapy). */
+.info {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--ds-h22);
+  border-radius: 6px;
+  color: var(--ds-ink);
+  background: var(--ds-ground);
+  cursor: pointer;
+}
+
+.info:hover,
+.info:focus-visible,
+.info[aria-expanded="true"] {
+  color: #1a1405;
+  border-color: rgb(250, 204, 21);
+  background: rgb(250, 204, 21);
+}

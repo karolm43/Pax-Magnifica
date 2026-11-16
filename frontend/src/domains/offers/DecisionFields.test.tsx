@@ -122,4 +122,45 @@ describe("DecisionFields", () => {
     expect(screen.getByText("Own 2 technologies in each of 2 colors.")).toBeInTheDocument();
     expect(screen.getByText(/1 VP/)).toBeInTheDocument();
   });
+
+  it("karta strategii z odnośnikiem: primary + secondary na kafelku, pełna karta po kliknięciu ⓘ", () => {
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "initiative",
+            kind: "choice",
+            label: "Readied or unchosen strategy card",
+            hint: "",
+            merge: false,
+            options: [
+              {
+                id: "1",
+                value: 1,
+                label: "Leadership - initiative 1",
+                meta: { ref: { kind: "strategy", id: "1" } },
+              },
+              {
+                id: "8",
+                value: 8,
+                label: "Imperial - initiative 8",
+                meta: { ref: { kind: "strategy", id: "8" } },
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    // Nie sama nazwa: tekst obu zdolności widać od razu na kafelku.
+    expect(screen.getAllByText(/^Secondary:/).length).toBeGreaterThanOrEqual(2);
+    // Klik w ⓘ nie wybiera opcji, tylko otwiera pełną kartę.
+    fireEvent.click(screen.getByRole("button", { name: "About Leadership" }));
+    expect(values()).toEqual({});
+    expect(screen.getByRole("button", { name: "About Leadership" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^Imperial/ }));
+    expect(values()).toEqual({ initiative: "8" });
+  });
 });

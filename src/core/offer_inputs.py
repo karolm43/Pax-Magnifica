@@ -21,17 +21,38 @@ def option(
     label: str,
     option_id: str | None = None,
     meta: dict[str, Any] | None = None,
+    ref: tuple[str, str | int] | None = None,
 ) -> dict[str, Any]:
     """Opcja wejścia: ``id`` unikalne w obrębie wejścia, ``value`` trafia do parametrów hooka.
 
     ``meta`` = dane strukturalne dla graficznych formularzy (np. Transit Diodes: system, strefa,
     typ i liczba jednostek); silnik ich nie waliduje, UI może je pokazać zamiast etykiety.
+    ``ref`` = ``(rodzaj, id)`` komponentu gry, którego dotyczy opcja (``REF_KINDS``): UI pokazuje
+    jego pełny tekst i kartę po kliknięciu - gdy ``value`` nie jest gołym id (prefiks, inicjatywa).
     """
     result: dict[str, Any] = {
         "id": str(value) if option_id is None else option_id, "value": value, "label": label
     }
-    if meta is not None:
-        result["meta"] = meta
+    if meta is not None or ref is not None:
+        result["meta"] = with_ref(meta, ref)
+    return result
+
+
+# Rodzaje odnośników zrozumiałe dla UI (``frontend/src/domains/offers/optionRefs.ts``).
+REF_KINDS = frozenset({
+    "strategy", "relic", "tech", "breakthrough", "agenda", "objective", "actionCard",
+    "promissory", "leader", "planet", "explore",
+})
+
+
+def with_ref(meta: dict[str, Any] | None, ref: tuple[str, str | int] | None) -> dict[str, Any]:
+    """Kopia ``meta`` z odnośnikiem ``ref`` do komponentu gry (``None`` = bez zmian)."""
+    result = dict(meta or {})
+    if ref is not None:
+        kind, ref_id = ref
+        if kind not in REF_KINDS:
+            raise ValueError(f"Unknown option ref kind {kind!r}.")
+        result["ref"] = {"kind": kind, "id": str(ref_id)}
     return result
 
 

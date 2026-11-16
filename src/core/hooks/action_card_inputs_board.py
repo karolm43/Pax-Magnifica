@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from src.core import board_graph, economy, payment
 from src.core.game_state import GameState, SystemState
+from src.core.hooks import card_labels
 from src.core.hooks.action_card_inputs import (
     Input,
     _choice,
@@ -200,17 +201,23 @@ def exchange_inputs(state: GameState, registry: StaticDataRegistry, player_id: s
 def _strategy_card_options(
     state: GameState, registry: StaticDataRegistry
 ) -> list[dict[str, object]]:
-    names = {card.initiative: card.name for card in registry.strategy_card_set()}
-    options = []
-    for initiative in strategy_cards_in_reach(state, registry):
-        name = names.get(initiative) or f"Initiative {initiative}"
-        options.append(_option(initiative, f"{initiative}. {name}"))
-    return options
+    """Karty w zasięgu: nazwa + inicjatywa, pełny tekst karty w UI z odnośnika ``ref``."""
+    return [
+        _option(
+            initiative,
+            card_labels.describe_strategy_card(registry, initiative),
+            ref=("strategy", initiative),
+        )
+        for initiative in strategy_cards_in_reach(state, registry)
+    ]
 
 
 def _initiative_input(state: GameState, registry: StaticDataRegistry) -> Input:
     options = _strategy_card_options(state, registry)
-    hint = "Pick the strategy card (initiative number and name) the action card applies to."
+    hint = (
+        "Pick the strategy card the action card applies to - each tile shows its primary and "
+        "secondary ability; click the info button for the full card."
+    )
     return _choice("initiative", "Readied or unchosen strategy card", options, hint=hint)
 
 

@@ -136,3 +136,36 @@ def test_kazdy_formularz_ma_hint_i_etykiety_opcji(registry: StaticDataRegistry) 
                 label = str(option.get("label") or "").strip()
                 assert label, f"{key}/{item['key']}: pusta etykieta"
     assert checked >= 50
+
+
+# ----------------------------------------------------------------- odnośniki do komponentów
+
+
+@pytest.mark.parametrize(
+    "component_key", ["action_cards:strategize1", "action_cards:overrule", "leaders:winnuhero"]
+)
+def test_karty_strategii_w_formularzach_maja_nazwe_i_odnosnik(
+    registry: StaticDataRegistry, component_key: str
+) -> None:
+    """Strategize / Overrule / Imperial Seal: opcja = nazwa karty + inicjatywa + ``ref`` (UI
+    pokazuje tekst primary/secondary i pełną kartę po kliknięciu), nigdy „Strategy card 3”."""
+    state = _state(registry, ())
+    inputs_fn = rules_hooks.inputs_for(component_key)
+    assert inputs_fn is not None
+    inputs = inputs_fn(state, registry, "p1")
+    key = "card" if component_key.startswith("leaders:") else "initiative"
+    item = next(i for i in inputs if i["key"] == key)
+    assert item["options"]
+    names = {card.initiative: card.name for card in registry.strategy_card_set()}
+    for option in item["options"]:
+        initiative = int(option["value"])
+        assert option["meta"]["ref"] == {"kind": "strategy", "id": str(initiative)}
+        assert option["label"].startswith(f"{names[initiative]} - initiative {initiative}")
+
+
+def test_odnosnik_nieznanego_rodzaju_to_blad() -> None:
+    from src.core import offer_inputs
+
+    assert offer_inputs.option(1, "x", ref=("strategy", 1))["meta"]["ref"]["id"] == "1"
+    with pytest.raises(ValueError):
+        offer_inputs.option(1, "x", ref=("nonsense", 1))

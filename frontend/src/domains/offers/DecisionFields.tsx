@@ -5,6 +5,8 @@ import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActi
 import { getColorAlias } from "@/entities/lookup/colors";
 import { Unit } from "@/shared/ui/Unit";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
+import { ComponentInfoButton, type ComponentRef } from "@/domains/cards/components/ComponentInfo";
+import { useGameData } from "@/state/useGameContext";
 import { clearMapMarks, mapHits, mapRefKeys, showOnMap } from "@/domains/search/mapPeek";
 import type { SearchKey } from "@/domains/search/searchKeys";
 import { classifyOptions, type OptionKind } from "./optionKinds";
@@ -131,7 +133,19 @@ function Tile({
   const meta = metaOf(option);
   const shape = typeof meta.die === "number" ? "die" : undefined;
   const mapRef = useMapRef(option);
-  const described = kind ? null : describeOption(option);
+  const idMap = useGameData()?.strategyCardIdMap;
+  const described = kind ? null : describeOption(option, idMap);
+  // Technologia z odnośnika (``tech:<id>``, „keep”) wygląda jak każdy kafelek technologii.
+  const techId =
+    kind?.kind === "technology"
+      ? kind.target
+      : described?.ref.kind === "tech"
+        ? described.ref.id
+        : null;
+  // Co pokazać pod ⓘ (klik = pełna karta): komponent z opisem albo technologia.
+  const infoRef: ComponentRef | null = techId
+    ? { kind: "tech", id: techId }
+    : (described?.ref ?? null);
   const tile = (
     <button
       type="button"
@@ -144,12 +158,12 @@ function Tile({
       onMouseEnter={mapRef ? () => showOnMap(mapRef) : undefined}
       onMouseLeave={mapRef ? clearMapMarks : undefined}
     >
-      {kind?.kind === "technology" ? (
-        <TechOptionBody option={option} techId={kind.target} />
+      {techId ? (
+        <TechOptionBody option={option} techId={techId} />
       ) : kind?.kind === "player" ? (
         <PlayerOptionBody option={option} playerId={kind.target} />
       ) : described ? (
-        <DescribedOptionBody option={option} hint={described} />
+        <DescribedOptionBody option={option} hint={described.hint} />
       ) : (
         <OptionBody option={option} />
       )}
@@ -160,25 +174,31 @@ function Tile({
       )}
     </button>
   );
-  if (!mapRef) return tile;
-  const name = splitLabel(option.label).title;
+  if (!mapRef && !infoRef) return tile;
+  const name = described?.hint.name || splitLabel(option.label).title;
   return (
     <span className={styles.tileWrap}>
       {tile}
-      {/* Najechanie: okno prześwituje i widać cel na mapie; klik: mapa przewija się do celu. */}
-      <button
-        type="button"
-        className={styles.locate}
-        aria-label={`Show ${name} on the map`}
-        title="Hover to see it on the map, click to centre the map on it"
-        onMouseEnter={() => showOnMap(mapRef, { peek: true })}
-        onMouseLeave={clearMapMarks}
-        onFocus={() => showOnMap(mapRef, { peek: true })}
-        onBlur={clearMapMarks}
-        onClick={() => showOnMap(mapRef, { peek: true, jump: true })}
-      >
-        <IconEye size={13} aria-hidden="true" />
-      </button>
+      <span className={styles.tileActions}>
+        {/* Klik: pełna karta komponentu (jak chip w panelu gracza) - działa też na dotyku. */}
+        {infoRef && <ComponentInfoButton componentRef={infoRef} name={name} />}
+        {/* Najechanie: okno prześwituje i widać cel na mapie; klik: mapa przewija się do celu. */}
+        {mapRef && (
+          <button
+            type="button"
+            className={styles.locate}
+            aria-label={`Show ${name} on the map`}
+            title="Hover to see it on the map, click to centre the map on it"
+            onMouseEnter={() => showOnMap(mapRef, { peek: true })}
+            onMouseLeave={clearMapMarks}
+            onFocus={() => showOnMap(mapRef, { peek: true })}
+            onBlur={clearMapMarks}
+            onClick={() => showOnMap(mapRef, { peek: true, jump: true })}
+          >
+            <IconEye size={13} aria-hidden="true" />
+          </button>
+        )}
+      </span>
     </span>
   );
 }
@@ -343,6 +363,7 @@ function ChoiceField({
 }) {
   const options = input.options;
   const lookups = useOptionLookups();
+  const idMap = useGameData()?.strategyCardIdMap;
   const classified = useMemo(() => classifyOptions(options, lookups), [options, lookups]);
   const kindOf = (option: ActionCardOption) => {
     const target = classified?.targets.get(option.id);
@@ -368,7 +389,8 @@ function ChoiceField({
   const alwaysTiles = classified?.kind === "technology" || classified?.kind === "player";
   // Kafelki z opisem (technologia, cel, karta) są szersze - tekst zasady ma się zmieścić.
   const rich =
-    classified?.kind === "technology" || (!classified && options.some((o) => describeOption(o)));
+    classified?.kind === "technology" ||
+    (!classified && options.some((o) => describeOption(o, idMap)));
   const data = options.map((o) => ({ value: o.id, label: o.label }));
 
   if (input.kind === "multi") {

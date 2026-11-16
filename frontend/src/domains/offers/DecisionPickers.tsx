@@ -2,6 +2,11 @@ import { useMemo, type CSSProperties } from "react";
 import type { ActionCardOption } from "@/api/useActionCard";
 import { Tooltip } from "@/ds";
 import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
+import {
+  refFromMeta,
+  type ComponentKind,
+  type ComponentRef,
+} from "@/domains/cards/components/ComponentInfo";
 import { useMapPick } from "@/domains/strategy/mapPick";
 import { COLOR_HUE, COLOR_ICON, type TechColor } from "@/domains/technology/techModel";
 import { getPlanetData } from "@/entities/lookup/planets";
@@ -13,7 +18,6 @@ import {
   HintBody,
   hintFor,
   type Hint,
-  type NamedKind,
 } from "@/domains/game-shell/components/ActivityPanel/Named";
 import type { Classified, OptionLookups } from "./optionKinds";
 import styles from "./DecisionFields.module.css";
@@ -81,30 +85,47 @@ export function TechOptionBody({ option, techId }: { option: ActionCardOption; t
   );
 }
 
-/** Komponenty gry rozpoznawane po id opcji (cel, agenda, karta, notka, lider, eksploracja). */
-const DESCRIBED_KINDS: NamedKind[] = [
+/** Komponenty gry rozpoznawane po gołym id w ``value`` (cel, agenda, karta, notka, lider…). */
+const DESCRIBED_KINDS: ComponentKind[] = [
   "objective",
   "agenda",
   "actionCard",
   "promissory",
   "leader",
   "explore",
+  "relic",
+  "breakthrough",
 ];
 
-/** Opis komponentu gry, na który wskazuje opcja (id w ``value``), albo ``null``. */
-export function describeOption(option: ActionCardOption): Hint | null {
+export type Described = { ref: ComponentRef; hint: Hint };
+
+/**
+ * Komponent gry, którego dotyczy opcja, z opisem - albo ``null``. Najpierw jawny odnośnik
+ * silnika (``meta.ref``: karta strategii po inicjatywie, wartości z prefiksem), potem gołe id
+ * w ``value``. ``idMap`` = kanoniczne warianty kart strategii z backendu.
+ */
+export function describeOption(
+  option: ActionCardOption,
+  idMap?: Record<number, string>,
+): Described | null {
+  const fromMeta = refFromMeta(option.meta);
+  if (fromMeta) {
+    const hint = hintFor(fromMeta.kind, fromMeta.id, { idMap });
+    return hint ? { ref: fromMeta, hint } : null;
+  }
   const value = typeof option.value === "string" ? option.value : null;
   if (!value) return null;
   for (const kind of DESCRIBED_KINDS) {
     const hint = hintFor(kind, value);
-    if (hint) return hint;
+    if (hint) return { ref: { kind, id: value }, hint };
   }
   return null;
 }
 
 /**
- * Treść kafelka komponentu gry (cel, agenda, karta akcji…): nazwa, rodzaj i tekst zasady,
- * pełny opis po najechaniu - zamiast samej nazwy na liście.
+ * Treść kafelka komponentu gry (karta strategii, cel, agenda, relikt, karta akcji…): nazwa,
+ * rodzaj i CAŁY tekst zasady (każdy akapit, np. primary i secondary), pełny opis po najechaniu,
+ * a pełna karta pod przyciskiem ⓘ kafelka - nigdy sama nazwa.
  */
 export function DescribedOptionBody({ option, hint }: { option: ActionCardOption; hint: Hint }) {
   const at = option.label.indexOf(" - ");
@@ -121,7 +142,11 @@ export function DescribedOptionBody({ option, hint }: { option: ActionCardOption
       <span className={styles.optText}>
         <b>{hint.name || option.label}</b>
         {caption && <small>{caption}</small>}
-        {hint.lines[0] && <span className={styles.descr}>{hint.lines[0]}</span>}
+        {hint.lines.map((line, index) => (
+          <span key={index} className={styles.descr}>
+            {line}
+          </span>
+        ))}
       </span>
     </Tooltip>
   );

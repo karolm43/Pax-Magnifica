@@ -179,14 +179,18 @@ def neuraloop_inputs(
 ) -> list[dict[str, Any]]:
     """Relikty do purge: własne oraz Nano-Forge przyczepiony do kontrolowanej planety."""
     options = [
-        oi.option(f"{_HELD}{r}", f"Purge {_relic_name(registry, r)}")
+        oi.option(f"{_HELD}{r}", f"{_relic_name(registry, r)} - purge", ref=("relic", r))
         for r in state.players[decider].relics
     ]
     for planet in controlled(state, decider):
         if "nanoforge" in state.planet_attachments.get(planet, []):
             name = card_labels.planet_name(registry, planet)
             options.append(
-                oi.option(f"{_ATTACHED}{planet}", f"Purge Nano-Forge attached to {name}")
+                oi.option(
+                    f"{_ATTACHED}{planet}",
+                    f"{_relic_name(registry, 'nanoforge')} - purge, attached to {name}",
+                    ref=("relic", "nanoforge"),
+                )
             )
     return [oi.choice("relic", "Relic to purge", options)]
 

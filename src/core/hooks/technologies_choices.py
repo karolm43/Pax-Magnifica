@@ -59,14 +59,18 @@ def _bio_stims_targets(state: GameState, registry: Any, player_id: str) -> list[
         if planet_id in player.controlled_planets and stats is not None and stats.tech_specialties:
             planet = registry.planets.get(planet_id)
             name = planet.name if planet is not None else planet_id
-            options.append(oi.option(f"planet:{planet_id}", f"Ready planet {name}"))
+            options.append(oi.option(
+                f"planet:{planet_id}", f"{name} - ready planet", ref=("planet", planet_id)
+            ))
     for tech_id in player.exhausted_technologies:
         if tech_id == BIO_STIMS_ALIAS:
             continue
         tech = registry.technologies.get(tech_id)
-        options.append(
-            oi.option(f"tech:{tech_id}", f"Ready technology {tech.name if tech else tech_id}")
-        )
+        options.append(oi.option(
+            f"tech:{tech_id}",
+            f"{tech.name if tech else tech_id} - ready technology",
+            ref=("tech", tech_id),
+        ))
     return options
 
 

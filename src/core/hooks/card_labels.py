@@ -111,6 +111,28 @@ def describe_technology(tech: TechnologyDef) -> str:
     return f"{tech.name or tech.id} · {label}"
 
 
+def relic_name(registry: StaticDataRegistry, relic_id: str) -> str:
+    """Pełna nazwa reliktu z danych (nigdy surowe id)."""
+    from src.core import relic_actions  # leniwie: relic_actions importuje moduły hooków
+
+    return relic_actions.relic_def(registry, relic_id).name or relic_id
+
+
+def strategy_card_name(registry: StaticDataRegistry, initiative: int) -> str:
+    """Nazwa karty strategii o danej inicjatywie z kanonicznego zestawu (RULES.md 14)."""
+    for card in registry.strategy_card_set():
+        if card.initiative == initiative and card.name:
+            return str(card.name)
+    return f"Strategy card {initiative}"
+
+
+def describe_strategy_card(registry: StaticDataRegistry, initiative: int, extra: str = "") -> str:
+    """Karta strategii: ``Nazwa - initiative N`` (+ `` · dopisek``). Pełny tekst primary /
+    secondary UI dokłada z odnośnika ``ref=("strategy", N)`` opcji (``offer_inputs.option``)."""
+    label = f"{strategy_card_name(registry, initiative)} - initiative {initiative}"
+    return f"{label} · {extra}" if extra else label
+
+
 def with_default_hints(
     inputs: list[dict[str, Any]], card_name: str, card_text: str
 ) -> list[dict[str, Any]]:

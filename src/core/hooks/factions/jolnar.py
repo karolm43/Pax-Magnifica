@@ -664,8 +664,8 @@ def hero_inputs(
         color = technology.tech_color(tech) if tech is not None else None
         if tech is None or color is None or technology.UNIT_UPGRADE in tech.types:
             continue
-        options = [oi.option(_KEEP, f"Keep {tech.name}")] + [
-            oi.option(other.id, other.name)
+        options = [oi.option(_KEEP, f"{tech.name} - keep", ref=("tech", tech_id))] + [
+            oi.option(other.id, f"{other.name} - swap in", ref=("tech", other.id))
             for other in sorted(pool.values(), key=lambda t: t.name)
             if other.id not in owned and technology.tech_color(other) == color
             and technology.UNIT_UPGRADE not in other.types
