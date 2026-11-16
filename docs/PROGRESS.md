@@ -516,3 +516,5 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - `voiceCues.ts`: kwestie `assets/voices/yin/Bomb1–2` grają przy utracie flagowca Yin (fakt `units`
   `flagship` < 0; bez duplikatu w podsumowaniu `combat.end`), nie przy Devotion/Impulse Core.
 - Test: `audio.test.ts`. QA: front tsc, eslint (zmienione), vitest `shared/audio`. Bez backendu/build/e2e.
+- Bohater frakcji: `special`, a gdy frakcja go nie ma -> `battle`; Yin -> konkretnie `battle1`. Kwestie specjalne
+  zdolności: zapas `special`, potem `battle` (`SPECIAL_FALLBACK`). `sayVoice(..., file)` gra wskazane nagranie.

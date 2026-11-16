@@ -69,7 +69,7 @@ describe("cuesForEntry", () => {
       }),
       ctx(),
     );
-    expect(cues).toContainEqual({ kind: "voice", player: "p1", category: "pillage", fallback: "special" });
+    expect(cues).toContainEqual({ kind: "voice", player: "p1", category: "pillage", fallback: ["special", "battle"] });
   });
 
   it("Reclamation Winnu i Orbital Drop Sol rozpoznane po id komponentu", () => {
@@ -110,7 +110,16 @@ describe("cuesForEntry", () => {
       entry({ action: "leader.state", actor_id: "p1", subject: "mentakhero", detail: "purged" }),
       ctx(),
     );
-    expect(cues).toContainEqual({ kind: "voice", player: "p1", category: "special" });
+    expect(cues).toContainEqual({ kind: "voice", player: "p1", category: "special", fallback: ["battle"] });
+  });
+
+  it("bohater Yin gra konkretne nagranie battle1", () => {
+    const yin = ctx({ factionOf: (pid) => (pid === "p4" ? "yin" : (factions[pid] ?? null)) });
+    const cues = cuesForEntry(
+      entry({ action: "leader.state", actor_id: "p4", subject: "yinhero", detail: "unlocked" }),
+      yin,
+    );
+    expect(cues).toContainEqual({ kind: "voice", player: "p4", category: "battle", file: "battle1", fallback: ["battle"] });
   });
 
   it("żart przy pasie tylko czasem", () => {

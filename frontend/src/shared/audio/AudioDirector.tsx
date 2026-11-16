@@ -104,8 +104,8 @@ export function AudioDirector() {
         else if (cue.kind === "battle") void playBattle(cue, factionOf, fetchBattle);
         else {
           const faction = factionOf(cue.player);
-          if (hasVoice(faction, cue.category)) sayVoice(faction, cue.category);
-          else if (cue.fallback) sayVoice(faction, cue.fallback);
+          if (hasVoice(faction, cue.category)) sayVoice(faction, cue.category, Math.random, cue.file);
+          else (cue.fallback ?? []).find((category) => sayVoice(faction, category));
         }
       }
     }

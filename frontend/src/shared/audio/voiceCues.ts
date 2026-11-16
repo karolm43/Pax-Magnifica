@@ -7,7 +7,7 @@
  *   reszta = okrzyk `battle` atakującego (czasem z odpowiedzią obrońcy).
  * - zdolności frakcji z własnymi nagraniami (Pillage, Orbital Drop, Reclamation…) -> ich kwestia,
  *   rozpoznawana po identyfikatorze komponentu we wpisie (działa, gdy mechanika trafi do silnika);
- * - bohater frakcji (leader „hero”) -> `special`;
+ * - bohater frakcji (leader „hero”) -> `special` (Yin: `battle1`); brak `special` -> `battle`;
  * - pas -> czasem żart frakcji; propozycja transakcji do mnie / Rada Galaktyczna -> transmisja;
  * - moja tura -> dźwięk UI „turn”, zmiana fazy -> „transition”.
  */
@@ -15,7 +15,9 @@ import type { ActivityEntry } from "@/api/useBoardEditor";
 import type { UiSound } from "./uiSounds";
 
 export type Cue =
-  | { kind: "voice"; player: string; category: string; fallback?: string }
+  /** `file` = konkretne nagranie z kategorii (nazwa bez rozszerzenia); `fallback` = kolejne kategorie
+   *  próbowane, gdy frakcja nie ma nagrania z `category`. */
+  | { kind: "voice"; player: string; category: string; file?: string; fallback?: string[] }
   | { kind: "transmission" }
   | { kind: "ui"; name: UiSound }
   | { kind: "battle"; attacker: string; defender: string | null; position: string | null };
@@ -49,6 +51,21 @@ export const FACTION_SPECIALS: Record<string, { category: string; match: RegExp 
     { category: "cavalry", match: /cavalry/i },
   ],
 };
+
+/** Brak kwestii specjalnej -> ogólna `special`, a gdy i tej brak -> okrzyk bojowy `battle`. */
+export const SPECIAL_FALLBACK = ["special", "battle"];
+
+/** Bohater: domyślnie `special` (zapas `battle`); wyjątki frakcji = konkretne nagranie. */
+const HERO_LINE: Record<string, { category: string; file?: string }> = {
+  yin: { category: "battle", file: "battle1" },
+};
+
+function heroCue(player: string, faction: string | null): Cue {
+  const line = HERO_LINE[faction ?? ""];
+  return line
+    ? { kind: "voice", player, ...line, fallback: ["battle"] }
+    : { kind: "voice", player, category: "special", fallback: ["battle"] };
+}
 
 /** Identyfikatory komponentów, których dotyczy wpis (dla dopasowania kwestii specjalnych). */
 function componentIds(entry: ActivityEntry, player: string): string[] {
@@ -88,17 +105,17 @@ function specialCues(entry: ActivityEntry, ctx: CueContext): Cue[] {
       ids.some((id) => s.match.test(id)),
     );
     if (special) {
-      cues.push({ kind: "voice", player, category: special.category, fallback: "special" });
+      cues.push({ kind: "voice", player, category: special.category, fallback: SPECIAL_FALLBACK });
       continue;
     }
     // Naaz-Rokha: każdy zdobyty relikt.
     if (faction === "naaz" && a.facts.some((f) => f.type === "relic" && f.player_id === player && (f.delta ?? 1) > 0)) {
-      cues.push({ kind: "voice", player, category: "specialrelic", fallback: "special" });
+      cues.push({ kind: "voice", player, category: "specialrelic", fallback: SPECIAL_FALLBACK });
       continue;
     }
     // Bohater frakcji (odblokowanie/użycie) — główny moment frakcji.
     if (a.actor_id === player && COMPONENT_ACTIONS.has(a.action) && ids.some((id) => /hero/i.test(id))) {
-      cues.push({ kind: "voice", player, category: "special" });
+      cues.push(heroCue(player, faction));
     }
   }
   return cues;

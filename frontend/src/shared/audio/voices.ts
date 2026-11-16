@@ -88,15 +88,23 @@ function enqueue(url: string): void {
   void drain();
 }
 
-/** Gra losową kwestię frakcji z kategorii. False = brak takiego pliku. */
+/** Nazwa pliku bez rozszerzenia, małymi literami (`Battle1.mp3` -> `battle1`). */
+const stem = (file: string) => file.replace(/\.[^.]+$/, "").toLowerCase();
+
+/**
+ * Gra kwestię frakcji z kategorii: konkretne nagranie `file` (gdy jest), inaczej losowe.
+ * False = brak nagrań w tej kategorii.
+ */
 export function sayVoice(
   faction: string | null | undefined,
   category: VoiceCategory,
   random: () => number = Math.random,
+  file?: string,
 ): boolean {
   const list = faction ? bank[faction]?.[category] : undefined;
   if (!faction || !list?.length) return false;
-  enqueue(voiceUrl(faction, pick(`${faction}/${category}`, list, random)));
+  const exact = file ? list.find((f) => stem(f) === file.toLowerCase()) : undefined;
+  enqueue(voiceUrl(faction, exact ?? pick(`${faction}/${category}`, list, random)));
   return true;
 }
 
