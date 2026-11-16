@@ -99,18 +99,21 @@ export const MapTile = React.memo<Props>(
     const moveRangeSources = useAppStore((state) => state.moveRangeSources);
     const { activateSystem } = useBoardEditor();
     const tileMenu = useContextMenu();
-    const systemPick = useAppStore((state) =>
-      state.mapPick?.kind === "system" ? state.mapPick : null,
-    );
-    const planetPickActive = useAppStore((state) => state.mapPick?.kind === "planet");
+    // Aktywny wybór celu okna gry (rejestr ``appStore.mapPicks``): heksy i/lub planety.
+    const mapPick = useAppStore((state) => (embedded ? null : state.mapPick));
     // Wybór źródła/waypointu trasy ruchu (krok MOVEMENT); nie blokuje dossier pozostałych kafelków.
     const routePick = useAppStore((state) => state.routePick);
     const isRoutePickTarget =
       !embedded && (routePick?.targets.includes(mapTile.position) ?? false);
     const isRoutePickSelected =
       isRoutePickTarget && (routePick?.selected.includes(mapTile.position) ?? false);
-    const isSystemPickTarget =
-      !embedded && (systemPick?.targets.includes(mapTile.position) ?? false);
+    const isSystemPickTarget = mapPick?.systems.includes(mapTile.position) ?? false;
+    // Planeta tego systemu jest celem - heks nie gaśnie, świeci sama planeta.
+    const hasPlanetPickTarget =
+      mapPick !== null && Object.keys(mapTile.planets ?? {}).some((p) => mapPick.planets.includes(p));
+    const isPickRelevant = isSystemPickTarget || hasPlanetPickTarget || isRoutePickTarget;
+    // Podczas wyboru systemy BEZ celu przygasają - cele widać od razu, także przy małym zoomie.
+    const isPickDimmed = mapPick !== null && !isPickRelevant;
 
     /* Hyperlanes have nothing to report. Hover feedback is pure CSS so the
        tile never re-renders under a moving cursor. */
@@ -123,10 +126,11 @@ export const MapTile = React.memo<Props>(
        „Activate system" pod kursorem. PRAWY klik otwiera okno systemu (dossier).
        Telefon (brak prawego klawisza): tap otwiera dossier. */
     const handleDossierOpen = (event: React.MouseEvent) => {
-      // Wybór celu na mapie (okno karty strategii) ma pierwszeństwo przed resztą trybów.
-      if (isSystemPickTarget && systemPick) return systemPick.onPick(mapTile.position);
-      if (systemPick || planetPickActive) return; // tryb wyboru: klik obok celu nic nie robi
+      // Wybór celu na mapie (okno gry) ma pierwszeństwo przed resztą trybów; trasa ruchu
+      // działa obok niego (inne cele), żeby otwarta decyzja nie blokowała panelu ruchu.
+      if (isSystemPickTarget && mapPick) return mapPick.onPick(mapTile.position, "system");
       if (isRoutePickTarget && routePick) return routePick.onPick(mapTile.position);
+      if (mapPick) return; // tryb wyboru: klik obok celu nic nie robi
       if (moveMode) return pickMoveTile(mapTile.position);
       if (activateMode) return pickActivateTile(mapTile.position);
       if (isMobileDevice()) return openSystemDossier(mapTile.position, mapTile.systemId);
@@ -168,6 +172,9 @@ export const MapTile = React.memo<Props>(
     const controllingFaction = mapTile.controlledBy;
 
     const getTileOpacity = () => {
+      // Cel wyboru zawsze w pełni: przezroczystość tworzy osobny kontekst warstw i poświata
+      // celu zostawała uwięziona w kafelku (sąsiednie heksy ją przycinały).
+      if (isPickRelevant) return 1;
       if (techSkipsMode && attachmentsMode) {
         return mapTile.hasTechSkips && mapTile.hasAttachments ? 1 : 0.2;
       }
@@ -261,13 +268,22 @@ export const MapTile = React.memo<Props>(
               <path d={HEX_PATH} />
             </svg>
           )}
+          {isPickDimmed && (
+            <svg
+              className={classes.mapPickDim}
+              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              aria-hidden="true"
+            >
+              <path d={HEX_PATH} />
+            </svg>
+          )}
           {isSystemPickTarget && (
             <svg
               className={classes.mapPickHex}
-              data-selected={systemPick?.selected === mapTile.position || undefined}
+              data-selected={mapPick?.selected === mapTile.position || undefined}
               style={
-                systemPick?.hue
-                  ? ({ "--pick-hue": systemPick.hue } as CSSProperties)
+                mapPick?.hue
+                  ? ({ "--pick-hue": mapPick.hue } as CSSProperties)
                   : undefined
               }
               viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
@@ -348,9 +364,15 @@ export const MapTile = React.memo<Props>(
                 onUnitMouseLeave={onUnitMouseLeave}
                 onUnitSelect={onUnitSelect}
                 onUnitClick={
-                  tapOpensDossier
-                    ? () => openSystemDossier(mapTile.position, mapTile.systemId)
-                    : onUnitClick
+                  // Tryb wyboru: statki leżą na heksie-celu, więc klik w nie = klik w system
+                  // (a nie karta jednostki); poza celem klik nic nie robi.
+                  mapPick
+                    ? () => {
+                        if (isSystemPickTarget) mapPick.onPick(mapTile.position, "system");
+                      }
+                    : tapOpensDossier
+                      ? () => openSystemDossier(mapTile.position, mapTile.systemId)
+                      : onUnitClick
                 }
               />
             </>

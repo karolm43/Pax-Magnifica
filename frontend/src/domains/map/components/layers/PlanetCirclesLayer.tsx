@@ -51,12 +51,15 @@ type Props = {
   onPlanetClick?: (event: React.MouseEvent) => void;
 };
 
-/** Planeta jest celem wyboru na mapie (``appStore.mapPick`` typu ``planet``)? */
+/** Aktywny wybór celu z planetami (``appStore.mapPick``), albo ``null``. */
 function usePlanetPick() {
   return useAppStore((state) =>
-    state.mapPick?.kind === "planet" ? state.mapPick : null,
+    state.mapPick && state.mapPick.planets.length > 0 ? state.mapPick : null,
   );
 }
+
+/** Planeta-cel leży nad jednostkami i żetonami: klik w planetę zawsze trafia w wybór. */
+const PICK_PLANET_Z_INDEX = 1241;
 
 export function PlanetCirclesLayer({
   systemId,
@@ -122,7 +125,7 @@ export function PlanetCirclesLayer({
     const showExhausted =
       isExhausted && showExhaustedPlanets && !isSpaceStation;
     const isHighlighted = hoveredPlanetId === planetId;
-    const isPickTarget = planetPick?.targets.includes(planetId) ?? false;
+    const isPickTarget = planetPick?.planets.includes(planetId) ?? false;
 
     return (
       <div
@@ -140,7 +143,11 @@ export function PlanetCirclesLayer({
           top: `${y + offsetY}px`,
           width: `${diameter}px`,
           height: `${diameter}px`,
-          zIndex: isTokenPlanet ? TOKEN_PLANET_Z_INDEX : REGULAR_PLANET_Z_INDEX,
+          zIndex: isPickTarget
+            ? PICK_PLANET_Z_INDEX
+            : isTokenPlanet
+              ? TOKEN_PLANET_Z_INDEX
+              : REGULAR_PLANET_Z_INDEX,
           backdropFilter: showExhausted
             ? "brightness(0.7) grayscale(1) blur(0px)"
             : undefined,
@@ -154,7 +161,7 @@ export function PlanetCirclesLayer({
           if (isPickTarget && planetPick) {
             // Wybór na mapie ma pierwszeństwo przed dossier systemu.
             event.stopPropagation();
-            planetPick.onPick(planetId);
+            planetPick.onPick(planetId, "planet");
             return;
           }
           onPlanetClick?.(event);

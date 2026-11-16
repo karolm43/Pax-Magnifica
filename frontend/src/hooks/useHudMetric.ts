@@ -14,14 +14,18 @@ import { useEffect } from "react";
  *   lewy dół    — TacticalActionDock        → ``--hud-left-w`` (prawa krawędź doku)
  *   prawa góra  — centrum decyzji (AbilityPrompts, stała szerokość 420 px)
  *   prawy dół   — panel akcji tury + karta strategii obok → ``--hud-right-w``
- *                 (odległość lewej krawędzi karty od prawej krawędzi okna)
+ *                 (odległość lewej krawędzi karty od prawej krawędzi okna) oraz górne
+ *                 krawędzie ``--hud-action-top`` / ``--hud-card-top`` (centrum decyzji
+ *                 kończy się nad nimi)
  *   dół środek  — ręka (BottomHandDock)     → ``--hand-dock-clear`` (mierzy sama ręka);
  *                 nad nią StatusPhasePanel, MoveRouteBox i paski nakładek
  */
 export type HudMetric =
   | "--hud-gsp-bottom"
   | "--hud-left-w"
-  | "--hud-right-w";
+  | "--hud-right-w"
+  | "--hud-action-top"
+  | "--hud-card-top";
 
 /** Wymiar panelu liczony z jego prostokąta i rozmiaru okna. */
 export type HudMeasure = (rect: DOMRect) => number;

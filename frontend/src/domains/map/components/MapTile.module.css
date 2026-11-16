@@ -288,32 +288,70 @@
   z-index: var(--z-tactical-activation);
   overflow: visible;
   pointer-events: none;
-  filter: drop-shadow(0 0 10px var(--pick-hue, #67e8f9));
+  filter: drop-shadow(0 0 14px var(--pick-hue, #67e8f9));
   animation: mapPickPulse 1.6s ease-in-out infinite;
 }
 .mapPickHex path {
   fill: color-mix(in srgb, var(--pick-hue, #67e8f9) 12%, transparent);
   stroke: var(--pick-hue, #67e8f9);
-  stroke-width: 6;
+  stroke-width: 9;
   stroke-linejoin: round;
+}
+.mapPickHex[data-selected] {
+  animation: none;
 }
 .mapPickHex[data-selected] path {
   fill: color-mix(in srgb, var(--pick-hue, #67e8f9) 30%, transparent);
-  stroke-width: 9;
+  stroke-width: 14;
 }
 .tileContainer:hover .mapPickHex path {
   fill: color-mix(in srgb, var(--pick-hue, #67e8f9) 24%, transparent);
 }
+/*
+ * Planeta-cel: gruby pierścień NA ZEWNĄTRZ planety (żetony i jednostki leżące na planecie go
+ * nie zasłaniają), czytelny także przy oddalonej mapie. Okrąg leży nad warstwami jednostek
+ * (z-index w PlanetCirclesLayer), więc klik w planetę zawsze trafia w cel.
+ */
 .planetCircle.mapPickPlanet {
   cursor: pointer;
-  border: 3px solid var(--pick-hue, #67e8f9);
-  box-shadow: 0 0 18px 6px color-mix(in srgb, var(--pick-hue, #67e8f9) 55%, transparent);
+  border: 0;
+}
+.planetCircle.mapPickPlanet::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 8px solid var(--pick-hue, #67e8f9);
+  box-shadow:
+    0 0 24px 8px color-mix(in srgb, var(--pick-hue, #67e8f9) 60%, transparent),
+    inset 0 0 18px 4px color-mix(in srgb, var(--pick-hue, #67e8f9) 40%, transparent);
+  pointer-events: none;
   animation: mapPickPulse 1.6s ease-in-out infinite;
 }
 .planetCircle.mapPickPlanet:hover,
 .planetCircle.mapPickPlanet[data-selected] {
-  background: color-mix(in srgb, var(--pick-hue, #67e8f9) 22%, transparent);
-  border-width: 5px;
+  background: color-mix(in srgb, var(--pick-hue, #67e8f9) 26%, transparent);
+}
+.planetCircle.mapPickPlanet[data-selected]::before {
+  border-width: 12px;
+  animation: none;
+}
+
+/*
+ * System bez celu podczas wyboru: przygaszony heks (nad jednostkami, POD poświatą celów
+ * sąsiadów - z-index o jeden niżej), żeby cele „wyskakiwały” z planszy.
+ */
+.mapPickDim {
+  position: absolute;
+  inset: 0;
+  width: 345px;
+  height: 299px;
+  z-index: calc(var(--z-tactical-activation) - 1);
+  pointer-events: none;
+}
+.mapPickDim path {
+  fill: rgb(3 7 18 / 0.5);
+  stroke: none;
 }
 @keyframes mapPickPulse {
   50% {
@@ -322,7 +360,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .mapPickHex,
-  .planetCircle.mapPickPlanet {
+  .planetCircle.mapPickPlanet::before {
     animation: none;
   }
 }

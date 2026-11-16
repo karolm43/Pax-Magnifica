@@ -619,3 +619,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
     cel był nie do zdobycia dla nikogo; `objective_payment.spend_goal` = 3/6 (walidacja i `spendSpec.goal` w UI).
   - Divert Funding (F_xxcha Instinct Training/6, RULES.md 53): badana technologia była ogłaszana przy zagraniu —
     teraz okno badania po rozstrzygnięciu karty (`research_offer`, jak Focused Research).
+
+## 2026-11-16 — Okna decyzji z wyborem na mapie: przebudowa (front)
+
+- Zgłoszenie użytkownika (np. Yin Spinner): ucięte podświetlenie systemu, „klik w jedno okno blokuje drugie”.
+  Przyczyny i poprawki:
+  - Jeden globalny `appStore.mapPick` — okno ustawiające wybór ostatnie wygrywało, a sprzątanie jednego kasowało
+    wybór drugiego. Teraz REJESTR `mapPicks` (wpis na okno, `useId`): aktywny = najnowszy albo przejęty klikiem
+    w okno (`claim`/`raiseMapPick`); zamknięcie okna oddaje mapę poprzedniemu. `useMapPick` (stare API) +
+    `useMapTargets` (systemy i planety naraz). Trasa ruchu działa obok aktywnego wyboru (inne cele).
+  - Skip/Use znikały w ukrytym przewijaniu kolumny decyzji (sztywne 360 px rezerwy): stopka karty decyzji jest
+    przyklejona (`sticky`), a wysokość kolumny liczona z nowych slotów HUD `--hud-action-top`/`--hud-card-top`.
+  - Ucięta poświata: niekontrolowane systemy mają `opacity: 0.7` (osobny kontekst warstw) — cel wyboru ma teraz
+    zawsze pełną nieprzezroczystość. Systemy bez celu przygasają (`mapPickDim`), kontur celu grubszy, pierścień
+    planety-celu na zewnątrz planety i nad żetonami; klik w statki na heksie-celu wybiera system (nie karta jednostki).
+  - Wybór „na planecie ALBO w przestrzeni” (Yin Spinner): planeta = klik w planetę, przestrzeń = klik w heks,
+    jednym kliknięciem (wcześniej luźny kafelek „Space area…” albo dwustopniowy panel).
+  - Karta decyzji: chip technologii jest tytułem (bez uciętej, zdublowanej nazwy), tekst 3 linie + „more”, zamiast
+    dużego pola „Click a glowing…” jedna linia `MapPickStatus` z liczbą celów, „Show” (przewija mapę do celu
+    zasłoniętego dokiem ręki / poza ekranem) i „Pick here”, gdy mapę trzyma inne okno.
+- Testy: `GroupedMapField.test.tsx` (Yin Spinner 1 i 3 przestrzenie, rejestr dwóch okien), `DecisionFields.test.tsx`.
+- QA: tsc ✓, eslint ✓ (zmienione), vitest offers+map+strategy+game-shell 72 ✓, e2e 7 ✓, weryfikacja zrzutami na
+  izolowanym backendzie :8100. Backend bez zmian (bez QA backendu, bez restartu).

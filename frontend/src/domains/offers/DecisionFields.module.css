@@ -526,16 +526,88 @@
   color: var(--ds-danger, #e5484d);
 }
 
-/* Wezwanie „kliknij na mapie” zamiast listy celów. */
+/* Wezwanie „kliknij na mapie” zamiast listy celów (pola bez ``MapPickStatus``). */
 .mapCall {
   margin: 0;
-  padding: 10px 12px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ds-ink-hi);
-  border: 1px dashed var(--ds-edge-accent, var(--ds-h22));
-  border-radius: 10px;
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.08);
+  border-left: 3px solid var(--ds-accent, #2563eb);
+  border-radius: 6px;
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.1);
+}
+
+/* Jedna linia stanu wyboru na mapie (``MapPickStatus``): co klikać + „Show” / „Pick here”. */
+.mapStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin: 0;
+  padding: 3px 4px 3px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  border-left: 3px solid var(--ds-accent, #2563eb);
+  border-radius: 6px;
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.1);
+}
+
+.mapStatus > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.mapStatusCount {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  color: var(--ds-ink-hi);
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.35);
+}
+
+.mapStatus[data-state="waiting"] {
+  color: var(--ds-ink);
+  border-left-color: var(--ds-sig-warn, #f59f00);
+  background: rgba(245, 159, 0, 0.08);
+}
+
+.mapStatus[data-state="empty"] {
+  color: var(--ds-ink-lo);
+  border-left-color: var(--ds-h22);
+  background: transparent;
+}
+
+.mapStatusBtn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-h22);
+  border-radius: 999px;
+  background: var(--ds-ground-2);
+  cursor: pointer;
+}
+
+.mapStatusBtn:hover:not(:disabled) {
+  border-color: var(--ds-edge-accent);
+}
+
+.mapStatusBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .placeCount {

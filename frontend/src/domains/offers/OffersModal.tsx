@@ -11,6 +11,7 @@ import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/u
 import { useGameData } from "@/state/useGameContext";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { Tech } from "@/domains/player/components/Tech";
+import { getTechData } from "@/entities/lookup/tech";
 import {
   CommandPools,
   poolsLeft,
@@ -34,14 +35,11 @@ function isPoolsOffer(offer: OfferView): boolean {
   return Object.values(POOL_KEYS).every((k) => keys.has(k));
 }
 
-/** Kafelek komponentu źródłowego (dziś: technologia = ten sam Tech co w panelu gracza). */
-function SourceTile({ source }: { source: string | undefined }) {
+/** Id technologii źródłowej oferty (``technologies:<id>``) albo ``null``. */
+function sourceTech(source: string | undefined): string | null {
   if (!source?.startsWith("technologies:")) return null;
-  return (
-    <span className={styles.source} data-no-drag>
-      <Tech techId={source.slice("technologies:".length)} />
-    </span>
-  );
+  const id = source.slice("technologies:".length);
+  return getTechData(id) ? id : null;
 }
 
 /** Czy zdarzenie klawiatury trafia w pole, które samo obsługuje Enter/Esc (formularz, przycisk). */
@@ -153,10 +151,10 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [canUse, busy, offer.id, offer.mandatory, params]);
 
+  const techId = sourceTech(offer.source);
   return (
     <section className={styles.dock} role="group" aria-label={`Decision: ${offer.name}`}>
       <header className={styles.head}>
-        <SourceTile source={offer.source} />
         <span className={styles.titleBox}>
           {(offer.kind || foreign) && (
             <small className={styles.kind}>
@@ -170,7 +168,15 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
               )}
             </small>
           )}
-          <b className={styles.title}>{offer.name}</b>
+          {/* Technologia źródłowa = TEN SAM chip co w panelu gracza (pełna karta po kliknięciu)
+              i jest tytułem - bez drugiej, dublującej nazwy obok. */}
+          {techId ? (
+            <span className={styles.source} data-no-drag>
+              <Tech techId={techId} />
+            </span>
+          ) : (
+            <b className={styles.title}>{offer.name}</b>
+          )}
         </span>
         {offer.mandatory && <span className={styles.tag} data-tone="required">Required</span>}
         {queued > 0 && <span className={styles.tag}>+{queued} more</span>}

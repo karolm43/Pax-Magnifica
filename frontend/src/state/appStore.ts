@@ -134,17 +134,31 @@ function getInitialZoomIndex() {
   return isMobileDevice() ? 0 : defaultZoomIndex;
 }
 
+/** Rodzaj celu na mapie: heks systemu (jego przestrzeń) albo planeta. */
+export type MapTargetKind = "system" | "planet";
+
 /** Wybór celu na mapie (patrz ``AppStore.mapPick``). */
 export type MapPick = {
-  kind: "system" | "planet";
-  /** Dozwolone cele: pozycje systemów (``kind=system``) albo id planet (``kind=planet``). */
-  targets: string[];
-  onPick: (target: string) => void;
+  /**
+   * Dozwolone cele: pozycje systemów (klik w heks) i id planet (klik w planetę). Jeden wybór
+   * może mieć oba rodzaje naraz - „na planecie albo w przestrzeni” (Yin Spinner) to jeden klik.
+   */
+  systems: string[];
+  planets: string[];
+  onPick: (target: string, kind: MapTargetKind) => void;
   /** Kolor podświetlenia (np. kolor karty strategii); domyślnie akcent. */
   hue?: string;
-  /** Aktualnie wybrany cel (rysowany mocniej). */
+  /** Aktualnie wybrany cel - pozycja systemu albo id planety (rysowany mocniej). */
   selected?: string | null;
 };
+
+/** Wpis rejestru wyborów: właściciel (okno) + jego wybór. */
+export type MapPickEntry = { owner: string; pick: MapPick };
+
+/** Aktywny wybór = ostatni wpis rejestru (okno użyte najpóźniej). */
+function topPick(entries: MapPickEntry[]): MapPick | null {
+  return entries.length > 0 ? entries[entries.length - 1].pick : null;
+}
 
 type AppStore = {
   hoveredPlanetId: string | null;
@@ -183,13 +197,19 @@ type AppStore = {
   clearActivateRequest: () => void;
 
   /*
-   * Wybór CELU NA MAPIE dla okien gry (karty strategii: system w Diplomacy / Warfare,
-   * planeta pod strukturę w Construction). Okno ustawia listę dozwolonych celów i
-   * callback; ``MapTile`` / ``PlanetCirclesLayer`` podświetlają cele i przekazują klik.
-   * Ma pierwszeństwo przed dossier i trybami ruchu/aktywacji. ``null`` = brak wyboru.
+   * Wybór CELU NA MAPIE dla okien gry (karty strategii, decyzje, inwazja, transakcje).
+   * REJESTR: każde okno ma własny wpis (``owner``), więc dwa otwarte okna nie kasują sobie
+   * nawzajem wyboru. Aktywny (``mapPick``) jest wpis ostatnio dodany albo przejęty klikiem w
+   * jego okno (``raiseMapPick``); po zamknięciu okna mapa wraca do poprzedniego.
+   * ``MapTile`` / ``PlanetCirclesLayer`` podświetlają cele aktywnego wpisu i przekazują klik.
    */
+  mapPicks: MapPickEntry[];
   mapPick: MapPick | null;
-  setMapPick: (pick: MapPick | null) => void;
+  /** Dodaje wpis (na wierzch) albo aktualizuje istniejący w miejscu (bez zmiany kolejności). */
+  putMapPick: (owner: string, pick: MapPick) => void;
+  dropMapPick: (owner: string) => void;
+  /** Okno przejmuje mapę: jego wpis idzie na wierzch. */
+  raiseMapPick: (owner: string) => void;
 
   /*
    * Podgląd zasięgu ruchu (krok MOVEMENT akcji taktycznej): zbiór pozycji systemów,
@@ -422,8 +442,30 @@ export const useAppStore = create<AppStore>((set) => {
       set((s) => (s.activateMode ? { activateRequest: position } : {})),
     clearActivateRequest: () => set({ activateRequest: null }),
 
+    mapPicks: [],
     mapPick: null,
-    setMapPick: (pick: MapPick | null) => set({ mapPick: pick }),
+    putMapPick: (owner: string, pick: MapPick) =>
+      set((s) => {
+        const at = s.mapPicks.findIndex((e) => e.owner === owner);
+        const mapPicks =
+          at >= 0
+            ? s.mapPicks.map((e, i) => (i === at ? { owner, pick } : e))
+            : [...s.mapPicks, { owner, pick }];
+        return { mapPicks, mapPick: topPick(mapPicks) };
+      }),
+    dropMapPick: (owner: string) =>
+      set((s) => {
+        if (!s.mapPicks.some((e) => e.owner === owner)) return {};
+        const mapPicks = s.mapPicks.filter((e) => e.owner !== owner);
+        return { mapPicks, mapPick: topPick(mapPicks) };
+      }),
+    raiseMapPick: (owner: string) =>
+      set((s) => {
+        const entry = s.mapPicks.find((e) => e.owner === owner);
+        if (!entry || s.mapPicks[s.mapPicks.length - 1] === entry) return {};
+        const mapPicks = [...s.mapPicks.filter((e) => e !== entry), entry];
+        return { mapPicks, mapPick: topPick(mapPicks) };
+      }),
 
     moveRangeSources: new Set<string>(),
     setMoveRangeSources: (positions: Set<string>) =>

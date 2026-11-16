@@ -41,11 +41,12 @@
   overflow-wrap: anywhere;
 }
 
-/* Kafelek karty źródłowej (technologia) w nagłówku - klik otwiera pełną kartę. */
+/* Chip technologii źródłowej jako tytuł decyzji - pełna nazwa (bez ucinania), klik = karta. */
 .source {
-  flex: none;
-  display: grid;
-  max-width: 132px;
+  display: flex;
+  justify-self: start;
+  max-width: 100%;
+  margin-top: 3px;
   cursor: default;
 }
 
@@ -117,8 +118,8 @@
   color: var(--ds-ink-lo);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
 }
 
@@ -155,10 +156,19 @@
   color: #fca5a5;
 }
 
+/* Stopka przyklejona do dołu przewijanej kolumny centrum decyzji: Skip / Use są ZAWSZE
+   widoczne, nawet gdy formularz urośnie (panel „co tutaj”, kilka pól). */
 .actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  margin: 0 -14px -12px;
+  padding: 8px 14px 12px;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(to bottom, transparent, var(--ds-deck) 8px);
 }
 
 .skip,

@@ -148,6 +148,10 @@ export function TurnControls() {
     (rect) => window.innerWidth - rect.left,
     !cardDrag.isMoved,
   );
+  // Slot HUD „prawy dół” od góry: centrum decyzji (prawa góra) kończy się NAD panelem akcji i
+  // kartą strategii, zamiast chować pod nimi swoje przyciski.
+  useHudMetric(actionDrag.el, "--hud-action-top", (rect) => rect.top, !actionDrag.isMoved);
+  useHudMetric(cardDrag.el, "--hud-card-top", (rect) => rect.top, !cardDrag.isMoved);
   // Tryb aktywacji systemu (akcja taktyczna) — współdzielony ze store. Klik przycisku
   // włącza tryb „wskaż system", a klik w kafelek na mapie uruchamia aktywację (ten sam
   // potok, który odbiera panel taktyczny). Blok A: wygodne wejście z prawego dolnego rogu.

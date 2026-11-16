@@ -1,15 +1,24 @@
 /* Centrum decyzji: prawy GÓRNY róg pod paskiem narzędzi mapy. Prawy dół zajmują panele
-   karty strategii (`cardZone`) i akcji (`actionZone`) z TurnControls - wysokość ograniczona tak,
-   żeby kolumna kończyła się nad nimi (~360px rezerwy). */
+   karty strategii (`cardZone`) i akcji (`actionZone`) z TurnControls - kolumna kończy się NAD
+   ich górną krawędzią (sloty HUD `--hud-action-top` / `--hud-card-top`, zapas ~360px bez nich).
+   Za długa treść przewija się wewnątrz, a stopka karty decyzji jest przyklejona do dołu. */
 .stack {
+  --decisions-top: calc(var(--map-viewport-top, 114px) + 60px);
   position: fixed;
   right: 16px;
-  top: calc(var(--map-viewport-top, 114px) + 60px);
+  top: var(--decisions-top);
   z-index: var(--z-app-modal, 3000);
   display: grid;
+  align-content: start;
   gap: 6px;
   width: min(420px, calc(100vw - 32px));
-  max-height: max(240px, calc(100vh - var(--map-viewport-top, 114px) - 60px - 360px));
+  max-height: max(
+    240px,
+    calc(
+      min(var(--hud-action-top, calc(100vh - 360px)), var(--hud-card-top, 100vh)) -
+        var(--decisions-top) - 12px
+    )
+  );
   overflow: auto;
   overscroll-behavior: contain;
   /* Przezroczysta reszta kolumny nie łapie kliknięć nad mapą - tylko pasek i karty. */

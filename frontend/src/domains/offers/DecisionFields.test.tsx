@@ -13,8 +13,9 @@ vi.mock("@/domains/game-shell/components/TurnControls/useDeskPlayer", () => ({
 /** Klik w świecący cel NA MAPIE (to, co robi warstwa mapy z ``appStore.mapPick``). */
 function clickOnMap(target: string) {
   const pick = useAppStore.getState().mapPick;
-  expect(pick?.targets).toContain(target);
-  act(() => pick?.onPick(target));
+  const kind = pick?.planets.includes(target) ? "planet" : "system";
+  expect([...(pick?.systems ?? []), ...(pick?.planets ?? [])]).toContain(target);
+  act(() => pick?.onPick(target, kind));
 }
 
 /** Formularz z prawdziwym stanem, jak w oknach decyzji. */
