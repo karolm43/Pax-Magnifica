@@ -1,6 +1,6 @@
 # Bot AI — audyt silnika i plan pracy (krótkie branche)
 
-Status: B0 (fundament) zrobione 2026-11-16, reszta PLAN. Etap 3 projektu (`docs/README.md` §1).
+Status: B0 i B1 zrobione 2026-11-16, reszta PLAN. Etap 3 projektu (`docs/README.md` §1).
 Zasady projektowe bota: `docs/rules/R65.md`. Instrukcje dla Claude: `src/engine/CLAUDE.md`.
 Wizja warstw (strategiczna / operacyjna / taktyczna / dyplomacja): `specyfikacja_techniczna_i_architektura_systemu.md` §4.
 Ten plik jest ŻYWY: po każdym bloku bota aktualizuj tabele w §2 i §5.
@@ -33,10 +33,13 @@ od początku: wspólny interfejs algorytmu, osobne procesy, budżet czasu, poró
 | Klonowanie stanu | 🟡 | `GameState.clone()` | Pomiar: **0,40 ms** (6 graczy, runda 2, ~23 KB JSON; `model_copy(deep)` 0,78 ms, `deepcopy` 0,60 ms). Wystarcza na heurystyki i płytki lookahead; dla Monte Carlo / MCTS z tysiącami symulacji za wolno → szybka reprezentacja (B6). |
 | Mapa | 🟡 | `core/hex_grid.HexGrid` | Topologia POZA `GameState` (jednostki są w stanie). Symulacja potrzebuje pary `(state, grid)`; grid do procesu roboczego jako `to_placements()`. |
 | Ustawienia bota | ✅ | `PlayerState.control_type/difficulty/personality`, `assets/config/engine_config.json` | Wartości to ⚠️ ZAŁOŻENIE. |
-| Decyzje „za bota” w `core/` | ⚠️ | `core/transaction.bot_accepts`, `core/epilogue._bot_choice`, `core/transaction_table` | Placeholdery decyzji w warstwie reguł. Przenieść do `src/engine/` (B10). |
-| **Katalog akcji** | ❌ | 131 endpointów POST w `api/routers/` | Brak jednego typu „akcja gracza”. Routery są cienkie (actor → `core/` → commit), mapowanie proste, ale do zbudowania. **Główna luka.** |
-| **Generator legalnych ruchów** | 🟡 | `action_cards.playability`, `offers.offer_view` (inputs), `research_offer`, `movement_route`, `strategy_phase` | Częściowe enumeratory per obszar; brak „wypisz legalne ruchy gracza X teraz”. |
-| **Wyzwalacz bota** | ❌ | — | Nikt nie uruchamia bota, gdy `awaiting` wskazuje gracza `BOT`. |
+| Decyzje „za bota” w `core/` | ⚠️ | `core/transaction.bot_accepts`, `core/epilogue._bot_choice`, `core/transaction_table`, `core/game_setup.begin_setup` (losowy tajny cel bota), auto-pas botów w oknach reakcji (`core/reaction_window`) | Placeholdery decyzji w warstwie reguł. Przenieść do `src/engine/` (B10). Auto-pas w oknach reakcji może zostać (silnik zna ręce; pas za „nic do zagrania” dotyczy też ludzi). |
+| Katalog akcji | 🟡 B1 | `src/engine/actions.py` | 30 rodzajów (setup, strategia z krokami primary, tura, okna, oferty, przypisanie trafień, status, agenda, ogłoszenia mówcy, limit ręki, okna o stałej długości). `apply_and_settle` = akcja + `core/step_settle` (dokładnie jak commit). Ruch, produkcja, inwazja, karty akcji: B5. |
+| Generator legalnych ruchów | 🟡 B1 | `src/engine/legal.py` + `src/engine/observation.py` | Zakres B1 (bez własnej akcji taktycznej); pierwszy kandydat = bezpieczny ruch domyślny. Obserwacja = ścisła projekcja + własne monity (`step_options`, `offers_view`), czyli to samo, co dostaje klient człowieka. |
+| **Wyzwalacz bota** | ❌ | — | Nikt nie uruchamia bota, gdy `awaiting` wskazuje gracza `BOT`. Uwaga z B1: `awaiting` nie pokazuje decyzji równoległych (rozdział żetonów w statusie, limit ręki, zwolnienie okien po czasie), więc runner pyta `legal_actions` KAŻDEGO bota, nie tylko wskazanego. |
+| Logika reguł poza `core/` | ✅ B1 | `core/phase_flow.py`, `core/step_settle.py` | Znalezione w B1 i przeniesione do `core/`: wybór domknięcia fazy w routerze `/phase/next` (+ `/round/next`) oraz reguły „po każdym kroku” w `StateService.replace_state`. Middleware zwalniający przeterminowaną pauzę przed każdym POST zostaje w `api/` (bot ma akcję `reaction_pause_release`). |
+| Determinizm | ✅ B1 | `core/game_setup` | Błąd znaleziony testem zgodności: wybór tajnego celu tasował niezasianym `random.Random()`, teraz `next_rng(stan)`. Tworzenie gry nadal z entropii (start partii). |
+| Okno REACTION a `/window/respond` | ⚠️ | `core/timing.respond_current` | Ogólne `respond` przesuwa kolejkę okna REACTION, ale go nie zamyka (zamyka dopiero przyjęcie lub odmowa oferty). Bot tego nie używa; do sprawdzenia, czy UI może tak zablokować grę. |
 | **Infrastruktura obliczeń** | ❌ | — | Brak interfejsu algorytmu, procesów roboczych, budżetu czasu, unieważniania nieaktualnych wyników. |
 | Współbieżność | ⬜ | N4 w `PLAN_PELNA_ROZGRYWKA.md` | Brak blokady na grę; runner bota musi serializować się z żądaniami ludzi. |
 | Czas | ✅ | `core/game_clock.py`, `create_app(now=...)` | Wstrzykiwany `now` — także dla budżetu bota. |
@@ -110,14 +113,14 @@ równoległej sesji nad silnikiem.
 | Branch | Zakres | DoD |
 |---|---|---|
 | ✅ `bot/b0-fundament` | Ten plan, `src/engine/CLAUDE.md`, `docs/rules/R65.md`, `ARCHITEKTURA_KODU.md` (`ai/`→`engine/`), indeks `docs/README.md`. | Dokumenty spójne; zero kodu. |
-| ⬜ `bot/b1-katalog-akcji` | `Action` + `apply` dla decyzji „nie blokuj gry”: tajny cel, Custodians/odkrycie celów, wybór karty strategii, pas / koniec tury, pas w oknie, odmowa „may”, pominięcie secondary, przypisanie trafień, głos w agendzie, kroki statusu, odrzut nad limit ręki. `legal_actions` dla tych powodów. | Test zgodności katalog ↔ HTTP dla każdej akcji; strażnik „engine nie importuje api”. |
+| ✅ `bot/b1-katalog-akcji` | `Action` + `apply` dla decyzji „nie blokuj gry”: tajny cel, Custodians/odkrycie celów, wybór karty strategii, pas / koniec tury, pas w oknie, odmowa „may”, pominięcie secondary, przypisanie trafień, głos w agendzie, kroki statusu, odrzut nad limit ręki. `legal_actions` dla tych powodów. | Test zgodności katalog ↔ HTTP dla każdej akcji; strażnik „engine nie importuje api”. **Wynik:** 3 scenariusze (6 botów; 6 botów + agenda; 4 „ludzi” + agenda) grają 2 pełne rundy bez zawieszenia, 0 rozjazdów z HTTP, 0 odrzuceń pierwszego kandydata; ten sam start + ziarno = ta sama partia. Niepokryte (5, lista `NOT_YET_COVERED` w `tests/engine/test_actions_parity.py`): `battle_assign`, `window_respond`, `held_pass`, `held_release`, `offer_decline` → B5. |
 | ⬜ `bot/b2-obliczenia` | `engine/compute`: `DecisionRequest/Result`, `Algorithm`, `Executor` inline + process, termin i wynik anytime, unieważnianie po `state_seq`, rejestr z `engine_config.json`, algorytm „domyślny” (bezpieczny ruch). `engine/bench.py`. | Ten sam request inline i w procesie → ta sama decyzja; przekroczenie terminu → ruch domyślny; serwer odpowiada w trakcie liczenia. |
 | ⬜ `bot/b3-runner` | `api/bot_runner.py`: wyzwalacz po commicie, kolejka na grę, opóźnienie z ustawień (admin fast = 0), etykiety `bot:*`, Activity, odrzucanie wyników po Undo człowieka. | Partia 1 człowiek + 5 botów przechodzi pełne rundy bez zawieszenia (test API). |
 | ⬜ `bot/b4-arena` | `python -m src.engine.arena`: gry bez UI, turnieje algorytmów na wspólnych ziarnach, raport (wygrane, VP, czas/ruch). Smoke w `tests/engine/`. | Arena z ziarnem deterministyczna (tryb inline); 422 na legalnym ruchu kończy grę raportem. |
-| ⬜ `bot/b5-legalne-ruchy` | Generatory akcji taktycznej (aktywacja, ruch, produkcja, inwazja), primary/secondary, badań, akcji komponentu; brakujące enumeratory w `core/`. | Bot losowy gra w arenie 10 rund bez 422. |
+| ⬜ `bot/b5-legalne-ruchy` | Generatory akcji taktycznej (aktywacja, ruch, produkcja, inwazja), prowadzenie walki (rzut, AFB, odwrót), secondary z wyborem, badań, akcji komponentu, kart akcji; brakujące enumeratory w `core/`; scenariusze pokrywające `NOT_YET_COVERED`. | Bot losowy gra w arenie 10 rund bez 422. |
 | ⬜ `bot/b6-szybki-stan` | `engine/fast`: szybka reprezentacja i symulator kroków potrzebnych algorytmom (najpierw walka); test zgodności z `core/`; decyzja o Numbie/akceleracji po pomiarze. | Cel wydajności z pomiaru (np. symulacji walki/s) zapisany w tym planie; zgodność 100% na próbie losowej. |
 | ⬜ `bot/alg-*` | Każdy algorytm z §3 osobno: moduł + testy + konfiguracja + wynik w arenie wobec poprzedniej wersji bota. | Algorytm wygrywa (lub nie przegrywa) w arenie z wersją bez niego; mieści się w budżecie. |
-| ⬜ `bot/b10-dyplomacja-core` | Przeniesienie `bot_accepts` i `_bot_choice` z `core/` do `engine/` (core pyta, engine odpowiada). | `core/` nie zawiera decyzji bota. |
+| ⬜ `bot/b10-dyplomacja-core` | Przeniesienie `bot_accepts`, `_bot_choice` i losowego tajnego celu bota (`begin_setup`) z `core/` do `engine/` (core pyta, engine odpowiada). | `core/` nie zawiera decyzji bota. |
 | ⬜ `bot/b11-trudnosc` | Poziomy i osobowości = zestawy algorytmów + parametrów + budżetów w `engine_config.json`; reakcje w oknach. | Różnice poziomów mierzalne w arenie. |
 
 Zależności: B3 wymaga prostej serializacji na grę (fragment N4). Od B5 każda nowa mechanika silnika
