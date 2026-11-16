@@ -74,7 +74,7 @@ def _on_step(
         _adopt(state, scored)
         draft["scored"] = objective
     if controls_mecatol(state, owner_id):
-        objectives.award_points(state, owner_id, 1)
+        objectives.award_points(state, owner_id, 1, source=objectives.SOURCE_IMPERIAL)
         draft["gained"] = "victory_point"
         triggers.fire(
             state, GameEvent.IMPERIAL_VICTORY_POINT, Moment.AFTER, subject=owner_id,

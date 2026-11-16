@@ -340,6 +340,7 @@ def test_shard_vp_on_gain_and_loss(registry: StaticDataRegistry) -> None:
     relics.transfer(state, "p2", "p1", "shard")
     assert state.players["p1"].victory_points == 1  # „when you gain this card”
     assert state.players["p2"].victory_points == -1  # „when you lose this card”
+    assert state.objectives.point_sources["relics:shard"] == {"p1": 1, "p2": -1}
     assert state.players["p1"].relics == ["shard"] and not state.players["p2"].relics
 
 

@@ -324,6 +324,9 @@ class ObjectivesState(BaseModel):
     ``scored`` = ``{id_celu: [player_id, ...]}`` — kto zdobył dany cel publiczny (też
     „inne punkty": custodians itd.); powtórzony gracz = punkt zdobyty wielokrotnie.
     ``custom_points`` = ``{klucz: VP}`` dla punktów spoza kart (custodians, imperial...).
+    ``point_sources`` = rejestr VP spoza kart celów: ``{źródło: {player_id: VP netto}}``
+    (``objectives.award_points(source=...)``; np. ``relics:shard``, ``planets:styx``).
+    Klucz źródła zostaje po utracie punktu - panel „Other points" dalej go pokazuje.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -333,6 +336,7 @@ class ObjectivesState(BaseModel):
     revealed: list[str] = Field(default_factory=list)
     scored: dict[str, list[str]] = Field(default_factory=dict)
     custom_points: dict[str, int] = Field(default_factory=dict)
+    point_sources: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 
 class DecksState(BaseModel):

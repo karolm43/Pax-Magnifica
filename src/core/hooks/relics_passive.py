@@ -77,13 +77,13 @@ def _gained(relic_id: str) -> dict[str, str]:
 def shard_gained(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Shard of the Throne: When you gain this card, gain 1 victory point."""
     del ctx
-    objectives.award_points(state, player_id, 1)
+    objectives.award_points(state, player_id, 1, source="relics:shard")
 
 
 @relics.on_lost("shard")
 def shard_lost(state: GameState, player_id: str) -> None:
     """Shard of the Throne: when you lose this card, lose 1 victory point."""
-    objectives.award_points(state, player_id, -1)
+    objectives.award_points(state, player_id, -1, source="relics:shard")
 
 
 def _shard_planet_taken(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:

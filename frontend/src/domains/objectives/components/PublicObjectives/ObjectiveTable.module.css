@@ -254,6 +254,35 @@
   line-height: 1;
 }
 
+/* Lost points (Mutiny, Political Censure): a red well with the signed count. */
+.lost {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  border-radius: 3px;
+  color: rgb(var(--ds-sig-danger));
+  background: rgb(var(--ds-sig-danger) / 0.09);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-danger) / 0.38);
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Can be lost: the same warning yellow as the corner on the victory track. */
+.losable {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 2px;
+  color: rgb(var(--ds-sig-warn));
+  background: rgb(var(--ds-sig-warn) / 0.12);
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .meter {
   display: grid;
   justify-items: center;

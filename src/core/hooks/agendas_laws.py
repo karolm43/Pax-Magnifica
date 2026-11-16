@@ -117,7 +117,7 @@ def _censure_ban(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> set[str
           condition=lambda s, p, c: p == c.get("outcome"), covers=covers("censure"),
           label="Political Censure")
 def _censure_lost(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
-    lose_points(state, pid, 1)
+    lose_points(state, pid, 1, source="agendas:censure")
 
 
 # Classified Document Leaks - po odrzuceniu prawa cel zostaje w grze, ale nie da się go zdobyć

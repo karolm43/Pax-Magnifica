@@ -170,6 +170,20 @@ function ObjectiveRow({
   );
 }
 
+/** A point a seat lost to this source (Mutiny, Political Censure...). */
+function LostBadge({ seat, points }: { seat: Seat; points: number }) {
+  return (
+    <span className={styles.lost} title={`${seat.userName}: lost ${-points} point${points === -1 ? "" : "s"}`}>
+      {points}
+    </span>
+  );
+}
+
+function netPoints(objective: Objective, faction: string) {
+  if (objective.factionPoints) return objective.factionPoints[faction] ?? 0;
+  return objective.scoredFactions.filter((scorer) => scorer === faction).length;
+}
+
 /** One-off points: who scored them, and how many times when a point repeats. */
 function OtherPointRow({ objective, seats }: { objective: Objective; seats: Seat[] }) {
   const seated = new Set(seats.map((seat) => seat.faction));
@@ -188,16 +202,23 @@ function OtherPointRow({ objective, seats }: { objective: Objective; seats: Seat
             {points}
           </span>
           {objective.name}
+          {objective.losable && (
+            <span className={styles.losable} title="A point from this source can still be lost">
+              can be lost
+            </span>
+          )}
           {unseated.map((faction) => (
             <FactionIcon key={faction} faction={faction} alt={faction} title={faction} w={16} h={16} />
           ))}
         </span>
       </span>
       {seats.map((seat) => {
-        const count = objective.scoredFactions.filter((faction) => faction === seat.faction).length;
+        const count = netPoints(objective, seat.faction);
         return (
           <span key={seat.faction} className={styles.cell}>
-            {count > 0 ? <ScoredBadge seat={seat} count={count} /> : <span className={styles.empty} aria-hidden="true" />}
+            {count > 0 && <ScoredBadge seat={seat} count={count} />}
+            {count < 0 && <LostBadge seat={seat} points={count} />}
+            {count === 0 && <span className={styles.empty} aria-hidden="true" />}
           </span>
         );
       })}

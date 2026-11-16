@@ -136,6 +136,7 @@ def test_support_for_the_throne_vp_i_zwrot(registry: StaticDataRegistry) -> None
     ctx = {"player": "p2", "position": "101"}
     triggers.fire(state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject="p2", ctx=ctx)
     assert state.players["p2"].victory_points == 0
+    assert state.objectives.point_sources["promissory_notes:sftt"] == {}
     assert "red_sftt" in state.players["p1"].private.promissory_notes
     assert "red_sftt" not in state.players["p2"].promissory_notes_in_play
 

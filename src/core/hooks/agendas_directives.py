@@ -551,9 +551,9 @@ def _mutiny(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
         if player not in voters:
             continue
         if ctx.get("outcome") == "for":
-            objectives.award_points(state, player, 1)
+            objectives.award_points(state, player, 1, source="agendas:mutiny")
         else:
-            lose_points(state, player, 1)
+            lose_points(state, player, 1, source="agendas:mutiny")
 
 
 # Swords to Plowshares - For: destroy half of infantry per planet (round up), gain TG;
@@ -711,7 +711,7 @@ def _archived_secret(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> Non
 def _seed(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
     most, fewest = most_and_fewest(state)
     for player in most if ctx.get("outcome") == "for" else fewest:
-        objectives.award_points(state, player, 1)
+        objectives.award_points(state, player, 1, source="agendas:seed_empire")
 
 
 # Armed Forces Standardization - 3 tactic / 3 fleet / 2 strategy from reinforcements.
@@ -818,14 +818,17 @@ def _articles_against(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> N
 
 
 # Political Censure - the elected player gains this card and 1 VP (ponowny wybór: Miscount).
+_CENSURE = "agendas:censure"
+
+
 @on_outcome("censure", once=True, label="Political Censure")
 def _censure(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
     target, previous = elected(ctx), str(ctx.get("previous") or "")
     if previous == target or target not in state.players:
         return
     if previous in state.players:
-        lose_points(state, previous, 1)  # poprzedni właściciel traci kartę (i punkt)
-    objectives.award_points(state, target, 1)
+        lose_points(state, previous, 1, source=_CENSURE)  # poprzedni traci kartę (i punkt)
+    objectives.award_points(state, target, 1, source=_CENSURE)
 
 
 # Classified Document Leaks - the elected secret objective becomes a public objective.

@@ -29,7 +29,7 @@ import time
 import zlib
 from typing import Any
 
-from src.api import web_agenda, web_objectives, web_setup
+from src.api import web_agenda, web_objectives, web_points, web_setup
 from src.core import (
     action_budget,
     agenda_phase,
@@ -1844,7 +1844,7 @@ def build_web_data(
         "objectives": web_objectives.build_objectives(
             projected, registry, grid, entity_keys
         ),
-        "scoreBreakdowns": web_objectives.build_score_breakdowns(
+        "scoreBreakdowns": web_points.build_score_breakdowns(
             projected, registry, grid, entity_keys
         ),
         "cardPool": {

@@ -312,7 +312,7 @@ def _diplo_reward(
 def _imperial_reward(
     state: GameState, _r: StaticDataRegistry, player_id: str, _d: Mapping[str, Any], _o: str
 ) -> None:
-    objectives.award_points(state, player_id, _IMPERIAL_RIDER_VP)
+    objectives.award_points(state, player_id, _IMPERIAL_RIDER_VP, source="action_cards:imp_rider")
 
 
 # Leadership Rider - gain 3 command tokens (rozkład na pule wybiera gracz przy zagraniu karty).

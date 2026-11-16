@@ -552,3 +552,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   (mapa 6-osobowa = pozycja 407). Wysokość jednego systemu, żetony po 3 w kolumnie, kolejne kolumny w prawo
   (taca rośnie z liczbą efektów). Cofnięte `children` w `InteractiveMapRenderer` i zmiany w `PannableMapView`.
   QA: tsc, eslint, vitest `effects`, `map`, `game-shell`.
+
+## Panel punktów: wszystkie źródła VP w „Other points” + stany toru (2026-11-16, RULES.md 41)
+
+- **Zgłoszenie użytkownika:** w „Other points” był tylko żeton Custodians; brakowało Styx, agend, reliktów itd.;
+  stany „Can be lost” / „Ready to score” / „Possible” nie działały.
+- **Rejestr źródeł VP:** `objectives.award_points(..., source=...)` zapisuje `ObjectivesState.point_sources`
+  (`{źródło: {gracz: VP netto}}`). Podpięte wszystkie miejsca: Custodians, Imperial (primary), Shard of the Throne,
+  The Crown of Emphidia, Book of Latvinia, The Silver Flame, Styx, Support for the Throne, Mutiny, Seed of an
+  Empire, Political Censure (wybór i odrzucenie prawa), Imperial Rider. `LOSABLE_POINT_SOURCES`: Shard, Styx, SftT,
+  Political Censure.
+- **Web-data:** nowy `api/web_points.py` (z `web_objectives` wydzielone rozbicie toru). „Other points”: Custodians i
+  Imperial zawsze, Styx gdy jest na mapie, relikty z VP u graczy, plus wszystko z rejestru; pola `factionPoints`
+  (ujemne = utracone) i `losable`. Tor: SCORED (z `losable`), potem QUALIFIES (cele gotowe teraz, Imperial
+  z Mecatol), potem POTENTIAL (wszystkie niezdobyte cele z postępem, tajne, Custodians, relikty). VP bez źródła
+  (God-Mode) = żeton „OTHER”, więc tor sumuje się do wyniku.
+- **Front:** typy `RELIC`/`OTHER`, „+N possible” liczone z niezdobytych żetonów, w „Other points” czerwona
+  komórka utraconych punktów i plakietka „can be lost”.
+- **Intimidate Council:** liczenie działa (symulacja na żywej mapie: statki w 2 systemach przy Mecatol → 2/2,
+  gotowe). Na obecnej mapie Mecatol ma tylko 3 sąsiednie systemy (+ Fracture) i nikt tam nie stoi → 0/2 poprawnie.
+- Testy: `tests/test_web_points.py` + asercje rejestru w testach Styx, SftT, Mutiny, Shard. QA: pytest -n auto
+  (2481 ✅; `test_undo_move` niestabilny od kolejności testów — pada też bez tych zmian), ruff, mypy; front tsc,
+  eslint (zmienione). Bez build/e2e (brak nowych zależności). Restart backendu wymagany (nowe pole stanu).

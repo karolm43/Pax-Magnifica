@@ -132,12 +132,14 @@ def finish(state: GameState, card: str, variant: str, player_id: str) -> None:
     active_effects.remove_by_key(state, effect_key(card, variant), owner=player_id)
 
 
-def lose_points(state: GameState, player_id: str, points: int) -> None:
-    """Utrata punktów (nie poniżej zera) przez centralny ``award_points``."""
+def lose_points(
+    state: GameState, player_id: str, points: int, *, source: str | None = None
+) -> None:
+    """Utrata punktów (nie poniżej zera) przez centralny ``award_points`` (``source`` = rejestr)."""
     have = state.players[player_id].victory_points
     lost = min(points, have)
     if lost > 0:
-        objectives.award_points(state, player_id, -lost)
+        objectives.award_points(state, player_id, -lost, source=source)
 
 
 def most_and_fewest(state: GameState) -> tuple[list[str], list[str]]:

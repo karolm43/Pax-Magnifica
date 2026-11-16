@@ -299,7 +299,9 @@ export type EntryType =
   | "SFTT"
   | "SHARD"
   | "STYX"
-  | "AGENDA";
+  | "AGENDA"
+  | "RELIC"
+  | "OTHER";
 
 export type EntryState = "SCORED" | "QUALIFIES" | "POTENTIAL" | "UNSCORED";
 
@@ -1188,6 +1190,10 @@ export type Objective = {
   hasRedTape: boolean;
   progressThreshold: number;
   factionProgress: Record<string, number>;
+  /** Other points only: net points per faction from this source (negative = lost). */
+  factionPoints?: Record<string, number>;
+  /** Other points only: a point from this source can still be lost. */
+  losable?: boolean;
 };
 
 export type Objectives = {

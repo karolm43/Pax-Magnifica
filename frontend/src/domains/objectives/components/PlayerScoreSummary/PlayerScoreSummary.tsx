@@ -26,6 +26,11 @@ function sumPoints(entries: ScoreBreakdownEntry[]) {
   return entries.reduce((sum, entry) => sum + entry.pointValue, 0);
 }
 
+/** Points still to come: everything on the track that is not scored yet. */
+function openPoints(entries: ScoreBreakdownEntry[]) {
+  return sumPoints(entries.filter((entry) => entry.state !== "SCORED"));
+}
+
 function Legend() {
   return (
     <span className={styles.legend}>
@@ -97,7 +102,7 @@ export function PlayerScoreSummary({ playerData, objectives }: Props) {
 
         {seats.map((player) => {
           const entries = breakdowns![player.faction].entries;
-          const possible = sumPoints(entries) - player.totalVps;
+          const possible = openPoints(entries);
           const leading = player.totalVps === leadingVps && leadingVps > 0;
 
           return (

@@ -99,5 +99,8 @@ def remove_token(
     objectives_state = new_state.objectives
     objectives_state.custom_points.setdefault(SCORE_KEY, 1)
     objectives_state.scored.setdefault(SCORE_KEY, []).append(player_id)
-    objectives.award_points(new_state, player_id, objectives_state.custom_points[SCORE_KEY])
+    objectives.award_points(
+        new_state, player_id, objectives_state.custom_points[SCORE_KEY],
+        source=objectives.SOURCE_CUSTODIANS,
+    )
     return new_state

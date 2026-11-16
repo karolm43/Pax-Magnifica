@@ -3,6 +3,7 @@ import {
   IconBook2,
   IconCrown,
   IconDiamond,
+  IconFlame,
   IconGavel,
   IconShield,
   IconPlanet,
@@ -47,6 +48,8 @@ export const SCORE_SOURCES: Record<EntryType, ScoreSource> = {
   SFTT: { label: "Support for the Throne", tone: "var(--ds-sig-pn)", glyph: { mask: "/pnicon.png" } },
   STYX: { label: "Styx", tone: "var(--ds-sig-break)", glyph: icon(<IconPlanet stroke={1.9} />) },
   AGENDA: { label: "Agenda", tone: "var(--ds-sig-law)", glyph: icon(<IconGavel stroke={1.9} />) },
+  RELIC: { label: "Relic", tone: "var(--ds-sig-relic)", glyph: icon(<IconFlame stroke={1.9} />) },
+  OTHER: { label: "Other points", tone: "var(--ds-sig-custodians)", glyph: { text: "+" } },
 };
 
 export const STATE_LABEL: Record<EntryState, string> = {

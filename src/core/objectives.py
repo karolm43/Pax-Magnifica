@@ -315,14 +315,37 @@ def controls_home_planets(
     return all(owners.get(planet) == player_id for planet in faction.home_planets)
 
 
-def award_points(state: GameState, player_id: str, points: int) -> None:
+# Źródła VP spoza kart celów (klucze rejestru ``ObjectivesState.point_sources``).
+SOURCE_CUSTODIANS = "custodians"
+SOURCE_IMPERIAL = "strategy_cards:imperial"
+SOURCE_SFTT = "promissory_notes:sftt"
+# Punkty, które gracz może jeszcze stracić (tekst karty: „when you lose this card, lose 1
+# victory point" - Shard of the Throne, Styx; SftT wraca do właściciela z utratą VP; Political
+# Censure - utrata karty kosztuje 1 VP, C_agendas).
+LOSABLE_POINT_SOURCES = frozenset(
+    {"relics:shard", "planets:styx", SOURCE_SFTT, "agendas:censure"}
+)
+
+
+def award_points(
+    state: GameState, player_id: str, points: int, *, source: str | None = None
+) -> None:
     """Dodaje punkty zwycięstwa graczowi (mutuje stan) i ustala zwycięzcę po progu.
 
     R_victory_points: gra kończy się natychmiast, gdy gracz ma ``vps_to_win`` punktów.
     Pierwszy, który przekroczy próg, wygrywa (punktowanie idzie po jednym graczu naraz).
+    ``source`` = skąd punkt spoza kart celów (relikt, agenda, planeta, notka...): zapis w
+    rejestrze ``point_sources`` dla panelu punktów. Cele publiczne/tajne mają własny zapis.
     """
     player = state.players[player_id]
     player.victory_points += points
+    if source is not None:
+        ledger = state.objectives.point_sources.setdefault(source, {})
+        net = ledger.get(player_id, 0) + points
+        if net:
+            ledger[player_id] = net
+        else:
+            ledger.pop(player_id, None)
     if state.winner_id is None and player.victory_points >= state.vps_to_win:
         state.winner_id = player_id
         state.end_reason = "victory_points"

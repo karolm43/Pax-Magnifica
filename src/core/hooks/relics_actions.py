@@ -175,7 +175,7 @@ def book_of_latvinia(
     del params
     relics.purge_relic(state, player_id, "bookoflatvinia")
     if _all_specialties(state, registry, player_id):
-        objectives.award_points(state, player_id, 1)
+        objectives.award_points(state, player_id, 1, source="relics:bookoflatvinia")
     else:
         strategy_phase.set_speaker(state, player_id)
 
@@ -397,7 +397,7 @@ def the_silver_flame(
     )
     relics.purge_relic(state, player_id, "thesilverflame")
     if won:
-        objectives.award_points(state, player_id, 1)
+        objectives.award_points(state, player_id, 1, source="relics:thesilverflame")
         return
     home = state.systems.get(player.home_position or "")
     if home is not None:

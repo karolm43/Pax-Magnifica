@@ -301,6 +301,8 @@ def test_styx_gives_and_takes_a_victory_point(registry: StaticDataRegistry) -> N
     control.set_planet_control(state, "101", "styx", "p2", registry)
     assert state.players["p1"].victory_points == 0
     assert state.players["p2"].victory_points == 1
+    # Rejestr źródeł VP (panel „Other points"): punkt przeszedł z p1 do p2.
+    assert state.objectives.point_sources["planets:styx"] == {"p2": 1}
 
 
 # -------------------------------------------------------------------------------- Custodia Vigilia

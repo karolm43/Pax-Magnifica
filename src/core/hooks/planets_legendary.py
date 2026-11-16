@@ -678,7 +678,7 @@ def _styx_gained(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
 def styx_gained(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """A Song Like Marrow: When you gain this card, gain 1 victory point."""
     del ctx
-    objectives.award_points(state, player_id, 1)
+    objectives.award_points(state, player_id, 1, source=f"planets:{_STYX}")
 
 
 @on_event(
@@ -696,7 +696,7 @@ def styx_lost(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     gracz tracący planetę.
     """
     del ctx
-    objectives.award_points(state, player_id, -1)
+    objectives.award_points(state, player_id, -1, source=f"planets:{_STYX}")
 
 
 # --- Custodian's Favour (Custodia Vigilia) ----------------------------------------------------

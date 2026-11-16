@@ -112,6 +112,7 @@ def test_mutiny_rewards_or_punishes_for_voters(registry: StaticDataRegistry) -> 
     votes = {"p3": "for", "p1": "against", "p2": "against"}
     out = _resolve(registry, state, "against", votes=votes)
     assert out.players["p3"].victory_points == 1
+    assert out.objectives.point_sources["agendas:mutiny"] == {"p3": -1}
 
 
 def test_seed_of_an_empire_ties_all_gain(registry: StaticDataRegistry) -> None:

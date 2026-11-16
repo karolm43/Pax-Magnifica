@@ -109,7 +109,9 @@ def support_received(
     """When you receive this card, if you are not the <color> player, you must place it faceup
     in your play area and gain 1 victory point."""
     if params.get("__received"):
-        objectives.award_points(state, player_id, _SUPPORT_VP)
+        objectives.award_points(
+            state, player_id, _SUPPORT_VP, source=objectives.SOURCE_SFTT
+        )
 
 
 def _activates_owner_units(template: str) -> Any:
@@ -140,7 +142,9 @@ def _return_on_activation(template: str, vp_loss: int) -> None:
         for note_id, owner in promissory_play.notes_in_play(state, registry, player_id, template):
             if owner is not None and has_units(system, owner):
                 if vp_loss:
-                    objectives.award_points(state, player_id, -vp_loss)
+                    objectives.award_points(
+                        state, player_id, -vp_loss, source=objectives.SOURCE_SFTT
+                    )
                 promissory_notes.return_from_play(state, player_id, owner, note_id)
 
 

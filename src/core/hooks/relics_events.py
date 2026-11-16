@@ -126,7 +126,7 @@ def emphidia_tomb(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> N
     Emphidia," you may purge this card to gain 1 victory point."""
     del ctx
     relics.purge_relic(state, player_id, "emphidia")
-    objectives.award_points(state, player_id, 1)
+    objectives.award_points(state, player_id, 1, source="relics:emphidia")
 
 
 # --- Dominus Orb -----------------------------------------------------------------------------
