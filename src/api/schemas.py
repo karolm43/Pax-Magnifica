@@ -938,20 +938,6 @@ class WindowOpenRequest(BaseModel):
     include_initiator: bool = False
     context: dict[str, str | int] | None = None
 
-class WindowRespondRequest(BaseModel):
-    """Odpowiedź bieżącego respondenta w otwartym oknie czasowym (E8-T2).
-
-    ``player_id`` MUSI być bieżącym respondentem okna (``current_responder``),
-    inaczej backend odrzuca (odpowiedź poza kolejnością → 422). ``decision`` to
-    luźna etykieta decyzji panelu (np. ``"secondary"`` / ``"pass"``); w T2 jest
-    tylko przekazywana do etykiety commitu — efekty decyzji dojdą od T3.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    player_id: str
-    decision: str | None = None
-
 class GodModePatch(BaseModel):
     """Generyczny patch God-Mode na pola ``GameState``.
 

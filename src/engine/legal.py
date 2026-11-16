@@ -67,10 +67,9 @@ def legal_actions(obs: Observation, ctx: EngineContext) -> list[Action]:
         if window.current_responder != pid:
             return []
         if window.window_type is WindowType.REACTION:
-            # Okno REACTION niesie oferty: przesuwa się po przyjęciu/odmowie (core/triggers),
-            # ogólne ``window/respond`` zostawiłoby je otwarte.
+            # Okno REACTION niesie oferty: przesuwa się po przyjęciu/odmowie (core/triggers).
             return _offers(obs, pid)
-        return _window(obs, pid)
+        return _window(obs, ctx, pid)
     if obs.offers:
         return _offers(obs, pid)
     if s.pending_offers:
@@ -117,7 +116,7 @@ def _setup(s: GameState, pid: str) -> list[Action]:
 # --- Okna, oferty, walka ----------------------------------------------------------------------
 
 
-def _window(obs: Observation, pid: str) -> list[Action]:
+def _window(obs: Observation, ctx: EngineContext, pid: str) -> list[Action]:
     window = obs.view.pending_window
     assert window is not None
     if window.window_type is WindowType.STRATEGY_SECONDARY:
@@ -126,7 +125,11 @@ def _window(obs: Observation, pid: str) -> list[Action]:
             act.StrategySecondary(player_id=pid, execute=False),
             act.StrategySecondary(player_id=pid, execute=True),
         ]
-    return [act.WindowRespond(player_id=pid)]
+    if window.window_type is WindowType.COMBAT_ASSIGN_HITS:
+        return _assign_hits(obs.view, ctx, pid)
+    # SPACE_CANNON / COMBAT_RETREAT / CAPACITY / FLEET_POOL: decyzje mają własne funkcje w core,
+    # akcje bota dla nich dochodzą w B5 (ruch i walka). Ogólnej odpowiedzi w oknie nie ma.
+    return []
 
 
 def _offers(obs: Observation, pid: str) -> list[Action]:

@@ -48,7 +48,6 @@ HTTP: dict[str, tuple[str, Callable[[Any], Body]]] = {
     "phase_step": ("/turn/phase-step", _pid),
     "phase_next": ("/phase/next", _pid),
     "round_next": ("/round/next", lambda a: None),
-    "window_respond": ("/window/respond", _pid),
     "offer_accept": (
         "/offers/accept",
         lambda a: {"actor_id": a.player_id, "offer_id": a.offer_id, "params": a.params},

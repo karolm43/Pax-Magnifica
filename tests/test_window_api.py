@@ -1,4 +1,4 @@
-"""Testy API okien czasowych (E8-T2): /window/open, /respond, /close + web-data."""
+"""Testy API okien czasowych (E8-T2): /window/open, /close (bez ogólnego /respond) + web-data."""
 
 from __future__ import annotations
 
@@ -80,37 +80,11 @@ def test_open_window_exposes_responder_as_color(client: TestClient) -> None:
     assert pw["isComplete"] is False
 
 
-def test_respond_advances_queue(client: TestClient) -> None:
-    client.post(
-        "/window/open",
-        json={"window_type": "STRATEGY_SECONDARY", "queue": ["p2", "p3"]},
-    )
-    r1 = client.post("/window/respond", json={"player_id": "p2", "decision": "pass"})
-    assert r1.status_code == 200
-    pw = _web_data(client)["gameState"]["pendingWindow"]
-    assert pw["currentResponderId"] == "p3"
-    assert pw["responded"] == ["green"]
-
-    r2 = client.post("/window/respond", json={"player_id": "p3"})
-    assert r2.status_code == 200
-    pw = _web_data(client)["gameState"]["pendingWindow"]
-    assert pw["isComplete"] is True
-    assert pw["currentResponder"] is None
-
-
-def test_respond_out_of_order_rejected(client: TestClient) -> None:
-    client.post(
-        "/window/open",
-        json={"window_type": "REACTION", "queue": ["p2", "p3"]},
-    )
-    resp = client.post("/window/respond", json={"player_id": "p3"})
-    assert resp.status_code == 422
-    assert "out-of-order" in resp.json()["detail"].lower()
-
-
-def test_respond_without_window_rejected(client: TestClient) -> None:
-    resp = client.post("/window/respond", json={"player_id": "p1"})
-    assert resp.status_code == 422
+def test_generic_respond_endpoint_removed(client: TestClient) -> None:
+    """Ogólnej odpowiedzi w oknie nie ma: omijała decyzję okna i nie zamykała go (gra stawała)."""
+    client.post("/window/open", json={"window_type": "REACTION", "queue": ["p2"]})
+    resp = client.post("/window/respond", json={"player_id": "p2"})
+    assert resp.status_code in (404, 405)
 
 
 def test_open_rejects_unknown_window_type(client: TestClient) -> None:

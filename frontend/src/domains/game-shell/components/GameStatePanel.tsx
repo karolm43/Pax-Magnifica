@@ -678,9 +678,8 @@ const WINDOW_LABELS: Record<string, string> = {
 
 /*
  * Okna rozstrzygane WŁASNYM oknem/panelem (walka, Space Cannon, pojemność, pula floty,
- * oferty): generyczne „Execute/Pass" (`/window/respond`) tylko przesuwa kolejkę i omija
- * obowiązkowe decyzje (np. usunięcie nadwyżki, przypisanie strat) — to wentyl God-Mode,
- * nie przycisk gracza. Panel pokazuje wtedy, GDZIE rozstrzygnąć okno.
+ * oferty): ogólnej odpowiedzi w oknie nie ma (backend jej nie przyjmuje — omijała obowiązkowe
+ * decyzje). Panel pokazuje, GDZIE rozstrzygnąć okno; God-Mode dostaje wentyl „Close window”.
  */
 const WINDOW_RESOLVED_ELSEWHERE: Record<string, string> = {
   COMBAT_ASSIGN_HITS: "Assign the hits in the battle window.",
@@ -709,21 +708,20 @@ function WindowSection({
   playerData: PlayerData[];
   variant?: PanelVariant;
 }) {
-  const { respondWindow, strategySecondary, closeWindow } = useBoardEditor();
+  const { strategySecondary, closeWindow } = useBoardEditor();
   const [busy, setBusy] = useState(false);
-  // God-Mode (Settings → Admin / testing): odsłania wentyle „Close window" / generyczne
-  // Execute-Pass dla okien, które mają własny panel rozstrzygania.
+  // God-Mode (Settings → Admin / testing): odsłania wentyl „Close window" dla okien,
+  // które mają własny panel rozstrzygania.
   const godMode = useSettingsStore((s) => s.settings.skipPhases);
 
   const isInfo = variant === "info";
   const label = WINDOW_LABELS[window.windowType] ?? window.windowType;
   const elsewhere = WINDOW_RESOLVED_ELSEWHERE[window.windowType] ?? null;
-  const showGenericControls = !isInfo && (elsewhere == null || godMode);
-  // Secondary karty strategii mówi językiem planszówki: „Follow"/„Don't follow"
-  // (RULES.md 31.6). Pozostałe okna zostają przy ogólnym „Execute"/„Pass".
+  // Przyciski odpowiedzi tylko dla secondary karty strategii (jedyne okno rozstrzygane w tym
+  // panelu); okno nieznanego typu pokazuje tylko stan kolejki.
   const isSecondary = window.windowType === "STRATEGY_SECONDARY";
-  const yesLabel = isSecondary ? "Follow" : "Execute";
-  const noLabel = isSecondary ? "Don't follow" : "Pass";
+  const showGenericControls = !isInfo && isSecondary;
+  const showCloseVent = !isInfo && (elsewhere == null || godMode);
   const responderColor = window.currentResponder;
   const responder = playerData.find((p) => p.color === responderColor);
   const responderName = responderColor
@@ -740,17 +738,10 @@ function WindowSection({
     }
   };
 
-  // Odpowiedź routowana po TYPIE okna: secondary karty strategii ma własny endpoint
-  // (wykonuje efekt + przesuwa kolejkę); pozostałe okna w T3 to generyczny respond
-  // (sama mechanika kolejki). Kolejne typy dokładaj tu gałęzią.
+  // Secondary karty strategii: własny endpoint (efekt + przesunięcie kolejki, RULES.md 31.6).
   const respond = (execute: boolean) => {
     const id = window.currentResponderId;
-    if (!id) return;
-    if (window.windowType === "STRATEGY_SECONDARY") {
-      void run(() => strategySecondary(id, execute));
-    } else {
-      void run(() => respondWindow(id, execute ? "execute" : "pass"));
-    }
+    if (id) void run(() => strategySecondary(id, execute));
   };
 
   return (
@@ -765,7 +756,7 @@ function WindowSection({
           </span>
           {/* Zamknięcie okna = klikalna akcja → tylko w trybie pełnym. Okna z własnym
               panelem zamykają się same po rozstrzygnięciu; ręczny wentyl tylko w God-Mode. */}
-          {showGenericControls && (
+          {showCloseVent && (
             <div className={styles.controls}>
               <button
                 type="button"
@@ -809,22 +800,32 @@ function WindowSection({
                 className={styles.scPickBtn}
                 disabled={busy}
                 onClick={() => respond(true)}
-                title={
-                  isSecondary
-                    ? "Follow — resolve the secondary ability"
-                    : "Take the action in this window"
-                }
+                title="Follow — resolve the secondary ability"
               >
-                {yesLabel}
+                Follow
               </button>
               <button
                 type="button"
                 className={styles.scPickBtn}
                 disabled={busy}
                 onClick={() => respond(false)}
-                title={isSecondary ? "Decline the secondary" : "Decline (pass)"}
+                title="Decline the secondary"
               >
-                {noLabel}
+                Don't follow
+              </button>
+            </div>
+          )}
+          {/* God-Mode: wentyl hosta dla okna z własnym panelem (omija decyzję). */}
+          {elsewhere && godMode && !isInfo && (
+            <div className={styles.controls}>
+              <button
+                type="button"
+                className={styles.scPickBtn}
+                disabled={busy}
+                onClick={() => void run(() => closeWindow())}
+                title="God-Mode: close this window without resolving it"
+              >
+                Close window
               </button>
             </div>
           )}

@@ -36,7 +36,6 @@ from src.core import (
     strategic_action,
     strategy_phase,
     tactical,
-    timing,
     turn_flow,
 )
 from src.core.game_state import GameState
@@ -132,10 +131,6 @@ class RoundNext(_Base):
 
 
 # --- Okna czasowe, oferty, hold-play (RULES.md 29, 54, 56) -----------------------------------
-
-
-class WindowRespond(_Base):
-    kind: Literal["window_respond"] = "window_respond"
 
 
 class OfferAccept(_Base):
@@ -243,7 +238,6 @@ Action = Annotated[
     | PhaseStep
     | PhaseNext
     | RoundNext
-    | WindowRespond
     | OfferAccept
     | OfferDecline
     | HeldPass
@@ -352,10 +346,6 @@ _HANDLERS: dict[str, tuple[Callable[[GameState, str], None] | None, _Apply]] = {
     "round_next": (
         _entitled(actor_rules.speaker, "New round"),
         lambda s, c, a: phase_flow.announce_next_round(s, c.registry),
-    ),
-    "window_respond": (
-        _claimed("Respond in window"),
-        lambda s, c, a: timing.respond_current(s, a.player_id),
     ),
     # Oferty, hold-play i limit ręki: router tylko uzgadnia aktora z treścią (merge_claimed),
     # tożsamość decydenta waliduje core.

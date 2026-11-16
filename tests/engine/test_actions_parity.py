@@ -24,8 +24,6 @@ TARGETED_KINDS = {"discard_excess", "phase_step", "round_next", "agenda_vote"}
 
 NOT_YET_COVERED: dict[str, str] = {
     "battle_assign": "walka powstaje dopiero z ruchu i aktywacji - scenariusz w B5",
-    "window_respond": "okna SPACE_CANNON / COMBAT_RETREAT / CAPACITY / FLEET_POOL powstają "
-    "przy ruchu i walce - scenariusz w B5",
     "held_pass": "okno hold-play otwiera zagranie karty akcji - bot zagrywa karty od B5",
     "held_release": "jak held_pass",
     "offer_decline": "oferty opcjonalne wypadają dopiero w 4. rundzie gry ludzi (za wolno na "

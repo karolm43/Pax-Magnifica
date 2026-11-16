@@ -1005,17 +1005,6 @@ export function useBoardEditor() {
 
   // --- Okna czasowe (timing windows, E8-T2) ---
 
-  const respondWindow = useCallback(
-    async (playerId: string, decision?: string) => {
-      await post("/window/respond", {
-        player_id: playerId,
-        decision: decision ?? null,
-      });
-      await refresh();
-    },
-    [refresh],
-  );
-
   // Wybór aktywnego gracza dla bieżącego kroku wieloetapowego primary (RULES.md 30.5).
   const strategyPrimaryStep = useCallback(
     async (playerId: string, payload: Record<string, unknown>) => {
@@ -1150,7 +1139,6 @@ export function useBoardEditor() {
     toggleTechExhaust,
     setLeaderState,
     setPlayerHand,
-    respondWindow,
     strategySecondary,
     strategyPrimaryStep,
     setupSecret,
