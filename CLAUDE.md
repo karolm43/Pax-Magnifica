@@ -33,6 +33,9 @@ hot-seat NIE jest wspierany. Nie czytaj `.kiro/` ani `~/.kiro/` (decyzja użytko
   `C_units`, `C_exploration_cards`…); komponent frakcji (zdolność, tech, lider, mech, flagowiec, PN, przełom) =>
   `F_<frakcja>.md`; mechanika ogólna => `R_<temat>.md`. Szukaj też krzyżowo (ruling o frakcji w `C_*`, o karcie
   w `F_*`). Każdy ruling = kod albo test; `⚠️ ZAŁOŻENIE` sprzeczne z istniejącym rulingiem to błąd.
+- **Kontrakt frakcji (decyzja użytkownika):** każdy punkt `F_<frakcja>.md` i każde zdanie tekstu komponentu = test
+  z `@ruling("<ID>")` albo status z powodem w `tests/rulings_status.json` (strażnik `tests/test_ruling_coverage.py`).
+  Checklista PRZED pierwszym hookiem: `uv run python -m tests.rulings <frakcja>`.
 - Reguła mechaniczna musi mieć wpis w `docs/rules/R<NN>.md` ze źródłem, ZANIM trafi do kodu.
 - Brak źródła => ⚠️ ZAŁOŻENIE i pytanie do użytkownika; jego decyzja jest ostateczna.
 - Adjacency ≠ traversability: graf mapy = czyste sąsiedztwo, blokady to osobna warstwa.

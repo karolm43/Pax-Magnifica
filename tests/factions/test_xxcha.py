@@ -31,6 +31,7 @@ from src.core.hooks.factions import xxcha
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 NOW = 1000.0
 _CARD = "industrial_initiative"
@@ -87,6 +88,7 @@ def test_bohater_thunders_edge_zastepuje_codex(registry: StaticDataRegistry) -> 
 # ------------------------------------------------------------------------- Peace Accords
 
 
+@ruling("F_xxcha/peace-accords/1", "abilities:peace_accords#1")
 def test_peace_accords_cele(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     targets = xxcha.peace_targets(state, "p1")
@@ -99,6 +101,7 @@ def test_peace_accords_cele(registry: StaticDataRegistry) -> None:
     assert ("102", free) not in xxcha.peace_targets(with_units, "p1")  # planeta z jednostkami
 
 
+@ruling("F_xxcha/peace-accords/3", "abilities:peace_accords#1")
 def test_peace_accords_cudza_planeta_i_wyczerpana(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     free = _planet(registry, "21")
@@ -111,6 +114,7 @@ def test_peace_accords_cudza_planeta_i_wyczerpana(registry: StaticDataRegistry) 
     assert state.exploration is None  # kontrolowana wcześniej - bez eksploracji (F_xxcha)
 
 
+@ruling("F_xxcha/peace-accords/2")
 def test_peace_accords_niekontrolowana_eksploracja(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     free = _planet(registry, "21")
@@ -119,6 +123,7 @@ def test_peace_accords_niekontrolowana_eksploracja(registry: StaticDataRegistry)
     assert state.exploration is not None  # F_xxcha: Xxcha ją eksploruje
 
 
+@ruling("abilities:peace_accords#1")
 def test_peace_accords_tylko_po_wlasnej_diplomacy(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     assert xxcha._after_own_diplomacy(state, "p1", {"player": "p1", "initiative": 2})
@@ -139,6 +144,7 @@ def _agenda_state(registry: StaticDataRegistry) -> GameState:
     return agenda_phase.reveal_agenda(state, registry, "p2")
 
 
+@ruling("abilities:quash#1")
 def test_quash_okno_i_zeton(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry)
     assert xxcha._quash_window(state, registry, "p1") is None
@@ -148,6 +154,7 @@ def test_quash_okno_i_zeton(registry: StaticDataRegistry) -> None:
     assert "agenda is revealed" in str(xxcha._quash_window(outside, registry, "p1"))
 
 
+@ruling("F_xxcha/quash/2", "F_xxcha/quash/3", "abilities:quash#2")
 def test_quash_podmiana_political_secret_i_transakcje(registry: StaticDataRegistry) -> None:
     """F_xxcha: Political Secret wraca bez efektu na nowej agendzie; każda agenda = nowa
     transakcja; Quash wolno użyć na agendzie zastępczej."""
@@ -173,6 +180,7 @@ def test_political_secret_blokuje_quash(registry: StaticDataRegistry) -> None:
     assert reason is not None and "Political Secret" in reason
 
 
+@ruling("F_xxcha/political-favor/2")
 def test_political_favor_bez_zetonu_xxcha(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry)
     window = next(
@@ -198,6 +206,7 @@ def _hold_state(registry: StaticDataRegistry, *, sabotage_left: bool = True) -> 
     return state
 
 
+@ruling("technologies:it#1")
 def test_instinct_training_okno_bez_kart_w_rece(registry: StaticDataRegistry) -> None:
     state = _hold_state(registry, sabotage_left=False)
     assert card_hold.eligible_players(state, "p2", _CARD) == ["p1"]  # jawne: tech + żeton
@@ -205,6 +214,12 @@ def test_instinct_training_okno_bez_kart_w_rece(registry: StaticDataRegistry) ->
     assert card_hold.eligible_players(state, "p2", _CARD) == []  # bez żetonu - od razu
 
 
+@ruling(
+    "F_xxcha/instinct-training/3",
+    "F_xxcha/instinct-training/8",
+    "technologies:it#1",
+    "technologies:it#2",
+)
 def test_instinct_training_anuluje_akcje_bez_kosztu(registry: StaticDataRegistry) -> None:
     state = _hold_state(registry)
     held, _ = action_cards.play_action_card(state, registry, "p2", _CARD, {}, now=NOW)
@@ -219,6 +234,7 @@ def test_instinct_training_anuluje_akcje_bez_kosztu(registry: StaticDataRegistry
     assert after.players["p1"].strategic_cc == 1
 
 
+@ruling("technologies:it#1")
 def test_instinct_training_nie_na_wlasna_karte(registry: StaticDataRegistry) -> None:
     state = _hold_state(registry)
     state.active_player_id = "p1"
@@ -228,6 +244,7 @@ def test_instinct_training_nie_na_wlasna_karte(registry: StaticDataRegistry) -> 
     assert "own action card" in str(xxcha._instinct_window(held, registry, "p1"))
 
 
+@ruling("F_xxcha/instinct-training/1")
 def test_instinct_training_anuluje_sabotage(registry: StaticDataRegistry) -> None:
     """F_xxcha: Sabotage na kartę Xxcha czeka na Instinct Training; po anulowaniu wraca okno
     karty, a bez anulowania Sabotage anuluje kartę jak dotąd."""
@@ -270,6 +287,7 @@ def _activation(registry: StaticDataRegistry) -> GameState:
     return state
 
 
+@ruling("technologies:nf#1")
 def test_nullification_field_warunek(registry: StaticDataRegistry) -> None:
     state = _activation(registry)
     ctx = {"player": "p2", "position": "102"}
@@ -284,6 +302,7 @@ def test_nullification_field_warunek(registry: StaticDataRegistry) -> None:
     assert not xxcha._nullification_ready(empty, "p1", ctx)
 
 
+@ruling("F_xxcha/nullification-field/1", "technologies:nf#2")
 def test_nullification_field_kasuje_oferty_after_aktywacji(registry: StaticDataRegistry) -> None:
     state = _activation(registry)
     state.players["p2"].took_action_this_turn = True
@@ -302,6 +321,12 @@ def test_nullification_field_kasuje_oferty_after_aktywacji(registry: StaticDataR
 # --------------------------------------------------------------------- Ggrocuto Rinn (agent)
 
 
+@ruling(
+    "F_xxcha/ggrocuto-rinn/1",
+    "F_xxcha/ggrocuto-rinn/2",
+    "leaders:xxchaagent#1",
+    "leaders:xxchaagent#2",
+)
 def test_ggrocuto_rinn_tylko_wyczerpana_i_piechota_obok(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     state.players["p1"].leader_states = {"xxchaagent": "unlocked"}
@@ -324,6 +349,7 @@ def test_ggrocuto_rinn_tylko_wyczerpana_i_piechota_obok(registry: StaticDataRegi
 # ------------------------------------------------------------------ Elder Qanoj (commander)
 
 
+@ruling("leaders:xxchacommander#unlock")
 def test_elder_qanoj_odblokowanie(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     unlock = xxcha._commander_unlocked
@@ -336,6 +362,7 @@ def test_elder_qanoj_odblokowanie(registry: StaticDataRegistry) -> None:
     assert unlock(state, registry, "p1")
 
 
+@ruling("F_xxcha/elder-qanoj/1", "leaders:xxchacommander#1", "leaders:xxchacommander#2")
 def test_elder_qanoj_glos_za_planete_i_bez_blokady(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry)
     zero = next(p for p, d in sorted(registry.planets.items()) if (d.influence or 0) == 0)
@@ -358,6 +385,11 @@ def test_elder_qanoj_glos_za_planete_i_bez_blokady(registry: StaticDataRegistry)
 # ---------------------------------------------------- Xxekir Grom — Planetary Defense Nexus
 
 
+@ruling(
+    "F_xxcha/xxekir-grom-planetary-defense-nexus-omega-omega/1",
+    "F_xxcha/xxekir-grom-planetary-defense-nexus-omega-omega/2",
+    "leaders:xxchahero-te#1",
+)
 def test_xxekir_grom_pds_i_mech_na_gotowej_planecie(registry: StaticDataRegistry) -> None:
     """F_xxcha (ΩΩ): wolno stawiać na gotowej planecie i kilka jednostek na jednej planecie."""
     state = _state(registry)
@@ -375,6 +407,7 @@ def test_xxekir_grom_pds_i_mech_na_gotowej_planecie(registry: StaticDataRegistry
         xxcha.planetary_defense_nexus(state.clone(), registry, "p1", {"units": mechs + pds})
 
 
+@ruling("leaders:xxchahero-te#2", "leaders:xxchahero-te#3")
 def test_xxekir_grom_odnawia_i_purge(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     mine = _planet(registry, "20")
@@ -390,6 +423,7 @@ def test_xxekir_grom_odnawia_i_purge(registry: StaticDataRegistry) -> None:
 # ----------------------------------------------------------- Loncara Ssodu, Indomitus
 
 
+@ruling("units:xxcha_flagship#1", "units:xxcha_mech#1")
 def test_space_cannon_na_sasiedni_system(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     mine = _planet(registry, "20")
@@ -414,6 +448,7 @@ def test_space_cannon_na_sasiedni_system(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------- Archon's Gift (BT)
 
 
+@ruling("F_xxcha/archons-gift/3", "breakthroughs:xxchabt#1", "breakthroughs:xxchabt#2")
 def test_archons_gift_tylko_wydawanie(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     mine = _planet(registry, "20")

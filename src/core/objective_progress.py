@@ -18,11 +18,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import production
+from src.core import payment, production
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player
-from src.core.planet_stats import PlanetLookup, effective_planets, planet_stats
+from src.core.planet_stats import EffectivePlanets, PlanetLookup, effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
 
@@ -220,8 +220,15 @@ class View:
             return 0
         return stats.resources if kind == "res" else stats.influence
 
+    def spend_value(self, planet_id: str, kind: str) -> int:
+        """Wartość planety przy WYDAWANIU (cele „Spend…”): Archon's Gift - jedna albo druga."""
+        if payment.flex_spend(self.state, self.pid):
+            return max(self.planet_value(planet_id, "res"), self.planet_value(planet_id, "inf"))
+        return self.planet_value(planet_id, kind)
+
     def available(self, kind: str) -> int:
-        return sum(self.planet_value(p, kind) for p in self.ready_planets())
+        """Suma do wydania z gotowych planet (cele „Spend…”; NIE cele „Control…”, F_xxcha)."""
+        return sum(self.spend_value(p, kind) for p in self.ready_planets())
 
 
 def _unit_total(system: SystemState, pid: str) -> int:
@@ -330,7 +337,7 @@ def _p_spend_both(goal: int) -> Callable[[View], int]:
 
 def threshold_progress_for_mixed(v: View, goal: int) -> int:
     """Postęp celów „X influence + X resources + X trade goods" (amass/vast)."""
-    values = effective_planets(v.state, v.registry)
+    values = spend_planets(v.state, v.registry, v.pid)
     plan = mixed_spend_plan(v.ready_planets(), values, v.player.trade_goods, goal)
     if plan is not None:
         return goal * 3
@@ -355,6 +362,28 @@ def _reachable_pairs(
             new_states.add((res, min(inf + planet.influence, goal)))
         states = new_states
     return states
+
+
+def spend_planets(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> EffectivePlanets:
+    """Planety z wartościami do WYDANIA przez gracza (cele „Spend…”).
+
+    Archon's Gift (``payment.flex_spend``): planeta daje swoją większą wartość jako zasoby ALBO
+    wpływ - „each planet they exhaust will contribute to either the resource requirement or the
+    influence requirement, but cannot partially contribute to both” (F_xxcha, Amass Wealth).
+    """
+    values = effective_planets(state, registry)
+    if not payment.flex_spend(state, player_id):
+        return values
+    flexed = {
+        pid: planet.model_copy(update={
+            "resources": max(planet.resources, planet.influence),
+            "influence": max(planet.resources, planet.influence),
+        })
+        for pid, planet in values.planets.items()
+    }
+    return EffectivePlanets(flexed)
 
 
 def mixed_spend_plan(

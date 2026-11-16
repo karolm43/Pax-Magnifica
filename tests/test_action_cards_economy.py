@@ -256,12 +256,15 @@ def test_focused_research_uzywa_specjalnosci_planety(registry: StaticDataRegistr
 
 
 def test_divert_funding_zwraca_i_bada_inna(registry: StaticDataRegistry) -> None:
+    """Badaną technologię wybiera się PO zagraniu, w oknie badania (F_xxcha, Instinct Training)."""
     state = _state(["divert_funding"], technologies=["nm", "st"], exhausted_technologies=["nm"])
-    new = _play(
-        state, registry, "divert_funding", {"return_technology": "nm", "technology": "gls"}
-    )
+    played = _play(state, registry, "divert_funding", {"return_technology": "nm"})
+    assert sorted(played.players["p1"].technologies) == ["st"]
+    assert played.players["p1"].exhausted_technologies == []  # zwrócona wróci gotowa
+    offer = next(o for o in played.pending_offers if "research_cost" in o.ctx)
+    assert offer.ctx["research_cost"] == 0 and "nm" not in offer.ctx["research_allowed"]
+    new = _research(played, "gls")
     assert sorted(new.players["p1"].technologies) == ["gls", "st"]
-    assert new.players["p1"].exhausted_technologies == []  # zwrócona wróci gotowa
 
 
 def test_divert_funding_odrzuca_nielegalne_wybory(registry: StaticDataRegistry) -> None:
@@ -271,14 +274,15 @@ def test_divert_funding_odrzuca_nielegalne_wybory(registry: StaticDataRegistry) 
         action_cards.play_action_card(state, registry, "p1", "divert_funding", dict(params))
 
     with pytest.raises(ValueError, match="non-unit upgrade"):
-        play(return_technology="inf2", technology="gls")
+        play(return_technology="inf2")
     with pytest.raises(ValueError, match="non-unit upgrade"):
-        play(return_technology="zzz", technology="gls")
-    with pytest.raises(ValueError, match="just returned"):
-        play(return_technology="nm", technology="nm")
+        play(return_technology="zzz")
+    played = _play(state, registry, "divert_funding", {"return_technology": "nm"})
+    with pytest.raises(ValueError, match="cannot be researched"):
+        _research(played, "nm")  # zwrócona - nie wolno jej zbadać ponownie
     # Zwrócona technologia nie liczy się do prerekwizytów: dxa (G) bez nm się nie uda.
-    with pytest.raises(ValueError, match="Prerequisites"):
-        play(return_technology="nm", technology="dxa")
+    with pytest.raises(ValueError):
+        _research(played, "dxa")
     assert sorted(state.players["p1"].technologies) == ["inf2", "nm", "st"]
 
 
@@ -286,7 +290,7 @@ def test_divert_funding_formularz_i_zagrywalnosc(registry: StaticDataRegistry) -
     state = _state(["divert_funding"], technologies=["nm", "st", "inf2"])
     inputs = _inputs(state, registry, "divert_funding")
     assert sorted(_option_values(inputs, "return_technology")) == ["nm", "st"]
-    research = _option_values(inputs, "technology")
+    research = _option_values(inputs, "research_after")
     assert "gls" in research and "st" not in research and "inf2" not in research
     assert _playable(state, registry, "divert_funding")["playable"]
     only_upgrade = _state(["divert_funding"], technologies=["inf2"])

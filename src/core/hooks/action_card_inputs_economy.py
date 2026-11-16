@@ -106,13 +106,12 @@ def divert_funding_inputs(
     researchable = targets.divert_research_options(state, registry, player_id)
     return [
         _choice("return_technology", "Technology to return", _tech_options(returnable)),
-        _choice(
-            "technology",
-            "Technology to research",
+        info(
+            "research_after",
+            "After playing, choose the technology in the research window.",
             _tech_options(researchable) if returnable else [],
             hint="The returned technology does not count towards prerequisites.",
         ),
-        _skip_input(state, registry, player_id),
     ]
 
 

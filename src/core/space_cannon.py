@@ -25,6 +25,7 @@ from typing import Any, cast
 from src.core import (
     action_adjacency,
     battle,
+    capacity,
     exhaust,
     legendary_planets,
     rules_hooks,
@@ -747,7 +748,27 @@ def assign_hits(
     }
     context["log"] = json.dumps(log)
     new_state.pending_window.context = context
-    return _advance(new_state)
+    return _capacity_now(_advance(new_state), registry, target_id)
+
+
+def _capacity_now(
+    state: GameState, registry: StaticDataRegistry | None, target_id: str
+) -> GameState:
+    """Cel stracił nosicieli: nadwyżkę ładunku usuwa NATYCHMIAST, zanim Space Cannon pójdzie dalej.
+
+    F_xxcha (Indomitus): „their ships are removed by another player's space cannon roll, they must
+    immediately remove units to meet their capacity limit. They will not resolve the Space Cannon
+    abilities of any of their removed mechs" (RULES.md 39.6 C3, 42.1). Okno ``CAPACITY`` zawiesza
+    okno Space Cannon (``timing.interrupt``); gracz sam wybiera, co usuwa.
+    """
+    position = state.active_system
+    if registry is None or position is None:
+        return state
+    if target_id not in capacity.players_with_excess(state, registry, position):
+        return state
+    return timing.interrupt(
+        state, WindowType.CAPACITY, [target_id], context={"position": position}
+    )
 
 
 # ------------------------------------------------- reakcje kart (RULES.md 53.5.d, MUTUJĄ stan)

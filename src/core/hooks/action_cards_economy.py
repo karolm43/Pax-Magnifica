@@ -37,6 +37,7 @@ _REVEAL = 3  # „Reveal the top 3 cards”
 _FOCUSED_COST = 4  # „Spend 4 trade goods”
 # Krok „zbadaj” Focused Research: decyzja gracza po zagraniu karty (okno badania).
 _FOCUSED_RESEARCH = "f_researched"
+_DIVERT_RESEARCH = "divert_funding"
 _PLAGIARIZE_COST = 5  # „Spend 5 influence”
 _UNSTABLE_MAX = 3  # „up to 3 infantry”
 
@@ -102,19 +103,31 @@ def divert_funding(
     """Divert Funding: Return a non-unit upgrade, non-faction technology that you own to your
     technology deck. Then, research another technology.
 
-    Zwrócona technologia nie liczy się do prerekwizytów i nie może być badana ponownie.
+    Zwrócona technologia nie liczy się do prerekwizytów i nie może być badana ponownie. Badaną
+    technologię gracz wybiera PO zagraniu, w oknie badania (``core/research_offer``) - F_xxcha:
+    „If an action card instructs a player to research a technology, that player need not announce
+    what technology they are researching until all other players has declined to play Instinct
+    Training”.
     """
     returned = _text(params, "return_technology", "Choose a technology to return.")
     if returned not in {t.id for t in targets.returnable_techs(state, registry, player_id)}:
         raise ValueError(
             "Choose a non-unit upgrade, non-faction technology you own ('return_technology')."
         )
-    tech_id = _text(params, "technology", "Choose a technology to research.")
-    if tech_id == returned:
-        raise ValueError("You cannot research the technology you just returned.")
+    allowed = [
+        tech.id
+        for tech in technology.researchable_techs(state, registry, player_id, without=returned)
+        if tech.id != returned
+    ]
+    if not allowed:
+        raise ValueError("There is no other technology you could research after returning it.")
     technology.return_technology(state, player_id, returned)
-    plan = technology.plan_research(state, registry, player_id, tech_id, _str_list(params, "skips"))
-    technology.apply_research(state, player_id, plan)
+    research_offer.begin(state, player_id, _DIVERT_RESEARCH, 0, allowed=allowed)
+
+
+research_offer.register_decision(
+    _DIVERT_RESEARCH, "Divert Funding: research another technology", "action_cards:divert_funding"
+)
 
 
 @register_effect("action_cards:f_researched")

@@ -1,0 +1,13 @@
+{
+  "_opis": "Rulingi/zdania kart BEZ testu, z jawnym powodem (tests/rulings.py, strażnik tests/test_ruling_coverage.py). 'na' = nie dotyczy (powód). 'requires' = wymaga niezaimplementowanych elementów (faction:<moduł>, <kategoria>:<id> jak w rules_hooks.covered_components) - gdy wszystkie będą gotowe, strażnik wymusi test. Klucz zakończony '/*' = cała sekcja.",
+  "F_xxcha/xxekir-grom-political-data-nexus/*": {
+    "na": "Nieaktywny wariant bohatera: grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
+  },
+  "F_xxcha/xxekir-grom-political-data-nexus-omega/*": {
+    "na": "Nieaktywny wariant bohatera (Codex Ω): grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
+  },
+  "F_xxcha/elder-qanoj/4": {
+    "requires": ["faction:nekro"],
+    "reason": "Nekro z notką Alliance Xxcha głosuje i nadal przewiduje wynik (Galactic Threat)."
+  }
+}

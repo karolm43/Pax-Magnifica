@@ -597,3 +597,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Testy: `test_flows_yin.py` (cel uszkodzony/nieuszkodzony, brak Devotion po odwrocie), Magen w
   `test_technologies_combat.py`/`test_offers.py`, `shipPick.test.ts`. Harness: `announce` zamiast złego klucza `retreat`.
 - QA: pytest 2485 ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest battle+offers 47 ✓, e2e 7 ✓. Restart backendu wymagany.
+
+## 2026-11-16 — Kontrakt rulingów: każdy ruling i zdanie karty = test (pilot: Xxcha)
+
+- Decyzja użytkownika: elementy dodanych frakcji często nie działały, bo rulingi `F_<frakcja>.md` były pomijane.
+  Nowy kontrakt: `tests/rulings.py` nadaje stałe ID każdemu punktowi rulingu (`F_xxcha/quash/1.1`) i każdemu zdaniu
+  tekstu komponentu z assetów (`abilities:quash#2`, `leaders:<id>#unlock`); testy oznacza `@ruling(...)`.
+  Strażnik `tests/test_ruling_coverage.py`: każde ID audytowanej frakcji ma test albo status z powodem
+  (`tests/rulings_status.json`: `na` / `requires` — `requires` robi się czerwony, gdy brakujący element powstanie),
+  nieznane ID = błąd. `UNAUDITED` (9 frakcji sprzed strażnika) może tylko maleć; nowa frakcja od razu pełna.
+  Checklista: `uv run python -m tests.rulings <frakcja>`.
+- Xxcha (pilot): 98 punktów kontraktu — 70 z testem, 27 nieaktywnych wariantów bohatera (Codex/Ω; gra wersja TE),
+  1 `requires: faction:nekro`. Nowy plik `tests/factions/test_rulings_xxcha.py` (25 testów) + znaczniki w `test_xxcha.py`.
+- Błędy znalezione audytem i poprawione:
+  - Indomitus/Space Cannon (F_xxcha, RULES.md 39.6): po zestrzeleniu nosicieli przez Space Cannon aktywnego mech
+    zostawał w przestrzeni ponad pojemność i dalej strzelał — teraz `space_cannon.assign_hits` od razu otwiera
+    okno `CAPACITY` (`timing.interrupt`, istniejący `CapacityModal`).
+  - Archon's Gift (F_xxcha 2.1, RULES.md 62.9): cele „Spend…” liczyły surowe wartości planet — Xxcha nie mógł zdobyć
+    Amass Wealth/Sway the Council wydając wpływ jak zasoby (`objective_progress.spend_planets`, `auto_payment`).
+  - Amass Wealth / Vast Reserves (RULES.md 41.4): jawna płatność (UI) wymagała 9/18 na KAŻDĄ część („21 TG needed”) —
+    cel był nie do zdobycia dla nikogo; `objective_payment.spend_goal` = 3/6 (walidacja i `spendSpec.goal` w UI).
+  - Divert Funding (F_xxcha Instinct Training/6, RULES.md 53): badana technologia była ogłaszana przy zagraniu —
+    teraz okno badania po rozstrzygnięciu karty (`research_offer`, jak Focused Research).

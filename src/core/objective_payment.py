@@ -20,6 +20,7 @@ from src.core.objective_progress import (
     SPEND_OBJECTIVES,
     View,
     mixed_spend_plan,
+    spend_planets,
     threshold,
 )
 from src.core.payment import (
@@ -28,7 +29,6 @@ from src.core.payment import (
     trade_good_value,
     validate_payment,
 )
-from src.core.planet_stats import effective_planets, planet_stats
 from src.core.registry import StaticDataRegistry
 
 _TRADE_GOODS = {"trade_routes", "centralize_trade"}
@@ -54,6 +54,12 @@ class ObjectivePayment(BaseModel):
     # Fire Shield Network: odrzucane karty akcji; Destroy Heretical Works: purgowane fragmenty.
     cards: list[str] = Field(default_factory=list)
     fragments: list[str] = Field(default_factory=list)
+
+
+def spend_goal(objective_id: str, state: GameState) -> int:
+    """Ile trzeba wydać: przy celach mieszanych to próg KAŻDEJ części (Amass Wealth: po 3 zasoby,
+    wpływ i TG), a nie suma postępu (``threshold`` = 9 liczy wszystkie trzy części razem)."""
+    return _MIXED.get(objective_id) or threshold(objective_id, state)
 
 
 def spend_kind(objective_id: str) -> str | None:
@@ -104,7 +110,7 @@ def auto_payment(
     """
     kind = spend_kind(objective_id)
     player = state.players[player_id]
-    goal = threshold(objective_id, state)
+    goal = spend_goal(objective_id, state)
     if kind is None or kind == "trade_goods":
         return ObjectivePayment(trade_goods=goal if kind else 0)
     if kind == "tokens":
@@ -119,7 +125,8 @@ def auto_payment(
     ready = View(state, registry, grid, player_id).ready_planets()
     if kind == "mixed":
         plan = mixed_spend_plan(
-            ready, effective_planets(state, registry), player.trade_goods, _MIXED[objective_id]
+            ready, spend_planets(state, registry, player_id), player.trade_goods,
+            _MIXED[objective_id],
         )
         if plan is None:
             raise ValueError("You cannot afford this objective.")
@@ -127,10 +134,11 @@ def auto_payment(
         return ObjectivePayment(
             resource_planets=res_planets, influence_planets=inf_planets, trade_goods=tg_spent
         )
+    spendable = spend_planets(state, registry, player_id).planets  # Archon's Gift (F_xxcha)
     values = [
-        (p, (stats.resources if kind == "resources" else stats.influence))
+        (p, (spendable[p].resources if kind == "resources" else spendable[p].influence))
         for p in ready
-        if (stats := planet_stats(state, registry, p)) is not None
+        if p in spendable
     ]
     spent, rest = _pick_planets(values, goal)
     rest = -(-rest // trade_good_value(state, player_id))
@@ -191,7 +199,7 @@ def _validate(
     payment: ObjectivePayment,
 ) -> None:
     """Sprawdza jawną płatność gracza względem kosztu celu (``ValueError`` = 422)."""
-    goal = threshold(objective_id, state)
+    goal = spend_goal(objective_id, state)
     if kind == "tokens":
         _validate_tokens(state, player_id, payment.tokens, goal)
     elif kind == "fragments":
@@ -237,7 +245,7 @@ def pay_for_objective(
     )
     if payment is not None:
         _validate(new_state, registry, player_id, objective_id, kind, pay)
-    goal = threshold(objective_id, new_state)
+    goal = spend_goal(objective_id, new_state)
     if kind == "trade_goods":
         economy.spend_trade_goods(new_state, player_id, goal)
     elif kind == "tokens":
@@ -274,7 +282,7 @@ def spend_spec(
         return None
     spec: dict[str, Any] = {
         "kind": kind,
-        "goal": threshold(objective_id, state),
+        "goal": spend_goal(objective_id, state),
         "tradeGoods": economy.spendable_trade_goods(state, player_id),
         "tradeGoodValue": trade_good_value(state, player_id),
     }
