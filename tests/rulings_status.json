@@ -18,5 +18,28 @@
   },
   "F_arborec/letani-behemoth/2": {
     "na": "Ruling dotyczy Warfare z PoK („PRODUCTION 1 of your space docks”). W grze obowiązuje te6warfare z Thunder's Edge (RULES.md 30.4, decyzja użytkownika): secondary używa „Production abilities of the units in your home system”, więc ta blokada nie obowiązuje."
+  },
+  "F_yin/greyfire-mutagen/*": {
+    "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Greyfire Mutagen Ω - notka zastępująca piechotę, nie kopiowanie zdolności frakcji); ta sekcja opisuje starą kartę z PoK."
+  },
+  "F_yin/yin-spinner/*": {
+    "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Yin Spinner Ω - „After you produce units…”); ta sekcja opisuje starą kartę z PoK."
+  },
+  "F_yin/brother-milor/*": {
+    "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Brother Milor Ω - „After a player's unit is destroyed during combat…”); ta sekcja opisuje starą kartę z PoK."
+  },
+  "F_yin/brother-omar/*": {
+    "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Brother Omar Ω - zielony prerekwizyt i zwrot piechoty przy badaniu); ta sekcja opisuje starą kartę z PoK."
+  },
+  "F_yin/dannel-of-the-tenth-spinner-overdrive/*": {
+    "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Dannel of the Tenth Ω - Quantum Dissemination); ta sekcja opisuje starą kartę z PoK."
+  },
+  "F_yin/brother-milor-omega/8": {
+    "requires": ["faction:naazrokha"],
+    "reason": "Jednostka jednocześnie statkiem i siłą naziemną w aktywnych assetach to tylko naaz_voltron (przełom Naaz-Rokha, TE); frakcja niezaimplementowana."
+  },
+  "F_yin/brother-milor-omega/8.1": {
+    "requires": ["faction:naazrokha"],
+    "reason": "Jednostka jednocześnie statkiem i siłą naziemną w aktywnych assetach to tylko naaz_voltron (przełom Naaz-Rokha, TE); frakcja niezaimplementowana."
   }
 }

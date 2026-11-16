@@ -219,7 +219,8 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
             )
         )
 
-    cargo = _units_view(
+    # Inwazja komponentu: angażuje tylko jednostki z efektu, nie siły z orbity (F_yin Ω 4.1).
+    cargo = [] if inv.source else _units_view(
         state,
         ctx,
         system,
@@ -228,8 +229,11 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
         system.space_units.get(inv.attacker, {}),
         ground=True,
     )
+    # Inwazja komponentu nie ma kroku taktycznego INVASION (panel pomocy), więc zawsze idzie
+    # pełnym oknem - inaczej nikt nie przejdzie do Establish Control.
     simple = (
-        not groups
+        not inv.source
+        and not groups
         and not inv.log
         and not inv.combat_results
         and not any(i.defenders for i in infos)
@@ -239,6 +243,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
         custodians=_custodians_view(ctx, state),
         active=True,
         simple=simple,
+        source=inv.source,
         phase=inv.phase.value,
         position=inv.position,
         attacker=key(inv.attacker),

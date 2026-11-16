@@ -6,6 +6,7 @@ import pytest
 
 from src.core.registry import StaticDataRegistry
 from tests.factions.flow_harness import Flow, Json, covers
+from tests.rulings import ruling
 
 _TILE = "26"  # zwykły kafel z jedną planetą (rzadka mapa startowa nie ma planet poza domami)
 
@@ -65,6 +66,7 @@ def _assign(flow: Flow, faction: str, key: str, base_type: str, ok: bool = True)
     }, ok=ok)
 
 
+@ruling("units:yin_mech#1")
 @covers("abilities:indoctrination")
 def test_indoctrination_zastepuje_piechote(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
@@ -102,6 +104,7 @@ def _devotion_ready(flow: Flow, theirs: dict[str, int], damaged: dict[str, int])
     return position
 
 
+@ruling("F_yin/devotion/1", "abilities:devotion#1")
 @covers("abilities:devotion")
 def test_devotion_yin_wskazuje_uszkodzony_statek(registry: StaticDataRegistry) -> None:
     """F_yin: Yin wybiera KONKRETNY statek - uszkodzony pancernik ginie, Sustain nie ratuje."""
@@ -127,6 +130,7 @@ def test_devotion_yin_wskazuje_uszkodzony_statek(registry: StaticDataRegistry) -
     assert system["space_units"][flow.me]["cruiser"] == 1
 
 
+@ruling("F_yin/devotion/1.2")
 @covers("abilities:devotion")
 def test_devotion_nieuszkodzony_cel_moze_uzyc_sustain(registry: StaticDataRegistry) -> None:
     """Wskazany nieuszkodzony statek może anulować trafienie swoim Sustain Damage (F_yin)."""
@@ -145,6 +149,7 @@ def test_devotion_nieuszkodzony_cel_moze_uzyc_sustain(registry: StaticDataRegist
     flow.fight()
 
 
+@ruling("F_yin/devotion/3")
 @covers("abilities:devotion")
 def test_devotion_nie_po_odwrocie_przeciwnika(registry: StaticDataRegistry) -> None:
     """F_yin: po odwrocie przeciwnika Devotion nie ma celu - koniec rundy idzie PO kroku Retreat
@@ -258,6 +263,7 @@ def test_quantum_dissemination_inwazja_bez_aktywacji(registry: StaticDataRegistr
     assert flow.state()["invasion"] is None
 
 
+@ruling("promissory_notes:greyfire#1", "promissory_notes:greyfire#2")
 @covers("promissory_notes:greyfire")
 def test_greyfire_mutagen_u_rywala(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "sol", other="yin")

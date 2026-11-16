@@ -875,6 +875,9 @@ def defense_planets(state: GameState, registry: StaticDataRegistry) -> list[str]
     # L4 Disruptors: w inwazji Space Cannon nie strzela w jednostki atakującego (RULES.md 62.2).
     if rules_hooks.permits(rules_hooks.POINT_SPACE_CANNON_DEFENSE_IMMUNE, state, inv.attacker):
         return result
+    if inv.source:
+        # Quantum Dissemination: „Players cannot use SPACE CANNON against these units” (F_yin Ω).
+        return result
     for planet in sorted(inv.committed):
         if not _ground_in_zone(system, planet, inv.attacker):
             continue

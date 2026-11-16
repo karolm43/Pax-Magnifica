@@ -142,6 +142,8 @@ export type InvasionView = {
   active: boolean;
   /** Prosta inwazja (brak obrońców/bombardowania) - lądowanie w panelu pomocy. */
   simple: boolean;
+  /** Inwazja komponentu (np. `leaders:yinhero`): bez lądowania z orbity i bez Space Cannon Defense. */
+  source: string;
   phase: InvasionPhase | null;
   position: string | null;
   attacker: string | null;

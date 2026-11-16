@@ -21,6 +21,7 @@ from src.core.rules_hooks import SOURCE_LEADER, HookSource
 from src.core.state_grid import grid_from_state
 from src.core.unit_ops import UnitCause
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -62,6 +63,7 @@ def test_kompletnosc_yin(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------------- Van Hauge
 
 
+@ruling("F_yin/van-hauge/2", "units:yin_flagship#1")
 def test_van_hauge_niszczy_wszystkie_statki_bez_sil_naziemnych(
     registry: StaticDataRegistry,
 ) -> None:
@@ -93,6 +95,7 @@ def test_cudzy_flagowiec_nie_dziala_jak_van_hauge(registry: StaticDataRegistry) 
 # ------------------------------------------------------------------------ Yin Ascendant
 
 
+@ruling("F_yin/yin-ascendant/1", "breakthroughs:yinbt#1")
 def test_yin_ascendant_przy_zdobyciu_i_celu_publicznym(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     breakthrough.unlock_breakthrough(state, registry, "p1")
@@ -136,6 +139,7 @@ def test_omar_spelnia_zielony_prerekwizyt(registry: StaticDataRegistry) -> None:
     assert not technology.missing_prerequisites(state, registry, "p1", tech)
 
 
+@ruling("leaders:yincommander#2")
 def test_omar_zwrot_piechoty_tylko_dla_technologii_innego_gracza(
     registry: StaticDataRegistry,
 ) -> None:
@@ -226,6 +230,7 @@ def test_hit_target_if_able(registry: StaticDataRegistry) -> None:
 # --------------------------------------------------------------------- Brother Milor Ω
 
 
+@ruling("F_yin/brother-milor-omega/1")
 def test_milor_tylko_w_fazie_akcji_i_w_walce(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     ctx = {"player": "p2", "base_type": "destroyer", "zone": "space", "position": "102"}

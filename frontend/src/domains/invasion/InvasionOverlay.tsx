@@ -78,6 +78,11 @@ const HINT: Record<InvasionPhase, string> = {
     "Control is settled: structures of the loser are gone, the planet card is exhausted.",
 };
 
+/* Inwazja komponentu (Quantum Dissemination): jednostki już zaangażowane przez efekt, bez
+   lądowania z orbity i bez Space Cannon Defense (F_yin Ω). */
+const COMPONENT_COMMIT_HINT =
+  "The ability has already committed its units - ground forces in orbit cannot join. Continue to ground combat.";
+
 function InvasionWindow({ view }: { view: InvasionView }) {
   const gameData = useGameData();
   const look = usePlayerLook();
@@ -234,9 +239,11 @@ function InvasionWindow({ view }: { view: InvasionView }) {
         };
       case "COMMIT":
         return {
-          label: view.planets.some((p) => Object.keys(p.committed).length > 0)
-            ? "Continue to Space Cannon Defense"
-            : "No landing - skip",
+          label: view.source
+            ? "Continue to ground combat"
+            : view.planets.some((p) => Object.keys(p.committed).length > 0)
+              ? "Continue to Space Cannon Defense"
+              : "No landing - skip",
           // Po zdjęciu żetonu Custodians trzeba zlądować na Mecatol Rex (jedyna planeta systemu).
           disabled:
             staged > 0 ||
@@ -325,7 +332,9 @@ function InvasionWindow({ view }: { view: InvasionView }) {
         </span>
       </header>
 
-      <p className={styles.hint}>{HINT[phase]}</p>
+      <p className={styles.hint}>
+        {view.source && phase === "COMMIT" ? COMPONENT_COMMIT_HINT : HINT[phase]}
+      </p>
       {/* Technologie atakującego i obrońców działające w inwazji (Plasma Scoring, X-89, Magen...). */}
       <div className={styles.techRow}>
         <ActiveTechs context="invasion" faction={view.attacker} label="Attacker" />

@@ -119,6 +119,9 @@ class InvasionResponse(BaseModel):
     # Prosta inwazja: nie ma co bombardować, nikt nie broni planet ani nie ma Space Cannon —
     # wystarczy lądowanie w panelu pomocy, bez pełnego okna (kroki 1, 3, 4 pominięte).
     simple: bool = False
+    # Inwazja komponentu (Quantum Dissemination): klucz źródła, np. ``leaders:yinhero`` - zawsze
+    # pełne okno, bez lądowania z orbity, Commit -> Ground Combat -> Establish Control.
+    source: str = ""
     phase: str | None = None
     position: str | None = None
     attacker: str | None = None

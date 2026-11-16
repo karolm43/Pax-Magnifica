@@ -61,6 +61,14 @@ def activate_nexus(state: GameState) -> GameState:
             ACTIVE_PLANET_ID if p == LOCKED_PLANET_ID else p for p in player.exhausted_planets
         ]
     _rename_key(new_state.planet_attachments, LOCKED_PLANET_ID, ACTIVE_PLANET_ID)
+    inv = new_state.invasion
+    if inv is not None:
+        # Quantum Dissemination na Mallice przed odwróceniem (F_yin Ω): zaangażowana piechota
+        # zostaje przypisana do tej samej planety po flipie (Establish Control ją przejmie).
+        for zone in (inv.committed, inv.last_commit, inv.combat_results):
+            _rename_key(zone, LOCKED_PLANET_ID, ACTIVE_PLANET_ID)
+        for queued in inv.queue:
+            _rename_key(queued.get("committed", {}), LOCKED_PLANET_ID, ACTIVE_PLANET_ID)
     return new_state
 
 

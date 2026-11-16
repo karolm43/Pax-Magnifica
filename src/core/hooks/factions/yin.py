@@ -489,9 +489,17 @@ def _greyfire_condition(
             "Greyfire Mutagen is played at the start of your ground combat against 2 or more "
             "ground forces (with infantry) not controlled by the Yin player."
         )
+    if _greyfire_played(state):
+        # F_yin Ω 1.3: odzyskana transakcją notka nie wraca do tego samego okna / tej walki.
+        return "Greyfire Mutagen was already played in this ground combat."
     if _left(state, player_id, "infantry") <= 0:
         return "You have no infantry in your reinforcements."
     return None
+
+
+def _greyfire_played(state: GameState) -> bool:
+    combat = state.active_combat
+    return combat is not None and any(e.get("kind") == GREYFIRE for e in combat.effects)
 
 
 @register_effect(f"promissory_notes:{GREYFIRE}")
@@ -503,9 +511,10 @@ def greyfire_mutagen(
     your reinforcements. Then, return this card to the Yin player (zwrot - ``promissory_play``)."""
     victim = _greyfire_victim(state, player_id)
     combat = state.active_combat
-    if victim is None or combat is None:
+    if victim is None or combat is None or _greyfire_played(state):
         raise ValueError("Greyfire Mutagen cannot be played now.")
     _replace_infantry(state, combat, victim, player_id, "infantry")
+    combat.effects.append({"kind": GREYFIRE, "player": player_id, "victim": victim})
 
 
 # --------------------------------------------------------------------- Brother Milor Ω (agent)

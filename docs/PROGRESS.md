@@ -719,3 +719,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   tsc ✓, eslint ✓, build ✓, pytest (dźwięki/audio/actor_guard) ✓, ruff/mypy zmienionych ✓. Bez e2e i bez weryfikacji
   wizualnej w przeglądarce (do sprawdzenia na żywej bitwie).
 
+
+## 2026-11-16 — Audyt rulingów Yin + przejęcie kontroli po Quantum Dissemination
+
+- Błąd zgłoszony przez użytkownika: po bohaterze Yin nie działało przejęcie kontroli. Planeta bez obrońców dawała
+  „prostą” inwazję (panel kroku taktycznego INVASION), a inwazja komponentu nie ma akcji taktycznej - nic nie
+  prowadziło jej do Establish Control. `InvasionResponse.source`; inwazja komponentu zawsze `simple=False`, bez
+  „cargo” z orbity (F_yin Ω 4.1); `InvasionOverlay`: etykieta „Continue to ground combat” i podpowiedź kroku Commit.
+- Mecatol Rex z żetonem Custodians: zgodnie z decyzją użytkownika (RULES.md 62.10) bohater nie zdejmuje żetonu -
+  test przez API (brak celu w formularzu, 422 przy ręcznym celu).
+- Luki znalezione audytem: Space Cannon Defense nie istnieje w inwazji komponentu (`defense_planets` puste,
+  „Players cannot use SPACE CANNON”); Mallice przed odwróceniem - flip Nexusa przenosi klucze planety w
+  `InvasionState`, więc Yin przejmuje Mallice; Greyfire Mutagen Ω nie drugi raz w tej samej walce (F_yin Ω 1.3).
+- `tests/factions/test_rulings_yin.py` (30 testów) + znaczniki `@ruling` w `test_yin.py` / `test_flows_yin.py`;
+  `rulings_status.json`: stare warianty sprzed Codexu (Greyfire, Spinner, Milor, Omar, Spinner Overdrive) oraz
+  Milor Ω 8/8.1 (jednostka statek+siła naziemna = tylko naaz_voltron, Naaz-Rokha niezaimplementowana). Yin zdjęty
+  z UNAUDITED. RULES.md 62.10: usunięte nieaktualne ⚠️ ZAŁOŻENIE o Parley (ruling F_yin Ω 7 - działa).
+- QA: pytest 2582 ✓, ruff ✓, mypy zmienionych ✓, tsc ✓, eslint ✓, vitest invasion ✓. Bez e2e/build (brak nowych
+  modułów). Wymaga restartu backendu (nowe pole widoku inwazji).
