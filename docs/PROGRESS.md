@@ -690,3 +690,14 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Testy: `test_rulings_arborec.py` (+3), `test_offers.py` (rozdział piechoty). QA: pytest 2552 ✓, mypy ✓, ruff ✓ dla
   zmienionych plików (6 błędów w plikach równoległej sesji: battle.py, card_labels.py). Front bez zmian.
 - Restart backendu potrzebny (zmiana kształtu oferty Infantry II).
+
+## 2026-11-16 — Tekst karty raz: bez kopii w podpowiedzi każdego pola
+
+- Zgłoszenie użytkownika (Dannel of the Tenth): pod polem „Infantry commits to” wisiał „Dannel of the Tenth: Infantry 1
+  commits to. ACTION: …” - cały tekst karty drugi raz. Źródło: `card_labels.with_default_hints` wpisywał „nazwa: etykieta.
+  tekst karty” do KAŻDEGO pola bez własnego `hint` (karty akcji, komponenty frakcji, relikty). Okna (ActionCardPlayModal,
+  FactionComponentUseModal, Technology/LegendaryUseModal, OfferDock) i tak pokazują tekst karty nad formularzem.
+- Usunięte `with_default_hints` i trzy wywołania; `hint` to wyłącznie porada hooka (np. „+2 = number of your ship types”).
+- Test `test_card_labels.py`: zamiast „każde pole ma hint” - żaden hint nie jest kopią tekstu karty / „nazwa: …”.
+- QA: pytest 2552 ✓, mypy ✓, ruff ✓ na zmienionych plikach (I001 w `api/routers/battle.py` to zmiana równoległej sesji).
+  Wymaga restartu backendu.

@@ -7,14 +7,10 @@ wpływ + cechy + system, system = pozycja + planety, gracz = frakcja (kolor), te
 
 from __future__ import annotations
 
-from typing import Any
-
 from src.core import exploration, planet_stats
 from src.core.game_state import GameState, SystemState
 from src.core.models import TechnologyDef
 from src.core.registry import StaticDataRegistry
-
-_MAX_HINT = 260  # krótko: jedno zdanie, nie cały tekst karty
 
 
 def planet_name(registry: StaticDataRegistry, planet_id: str) -> str:
@@ -132,16 +128,3 @@ def describe_strategy_card(registry: StaticDataRegistry, initiative: int, extra:
     label = f"{strategy_card_name(registry, initiative)} - initiative {initiative}"
     return f"{label} · {extra}" if extra else label
 
-
-def with_default_hints(
-    inputs: list[dict[str, Any]], card_name: str, card_text: str
-) -> list[dict[str, Any]]:
-    """Uzupełnia puste ``hint`` wejść (własnych nie nadpisuje): czego dotyczy wybór + skutek."""
-    sentence = " ".join(card_text.split())
-    if len(sentence) > _MAX_HINT:
-        sentence = sentence[: _MAX_HINT - 1].rstrip() + "…"
-    for item in inputs:
-        if not str(item.get("hint") or "").strip():
-            label = str(item.get("label") or item.get("key") or "choice")
-            item["hint"] = f"{card_name}: {label}. {sentence}".strip()
-    return inputs

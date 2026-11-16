@@ -252,10 +252,8 @@ def form(
     inputs: list[dict[str, Any]] = []
     if action and rules_hooks.effect_for(key) is not None:
         inputs_fn = rules_hooks.inputs_for(key)
+        # Tekst komponentu pokazuje okno raz (``text``) - bez kopii w podpowiedzi każdego pola.
         inputs = inputs_fn(state, registry, player_id) if inputs_fn is not None else []
-        from src.core.hooks import card_labels  # lokalnie: pakiet hooks importuje ten moduł
-
-        inputs = card_labels.with_default_hints(inputs, name, text)
     covered = key in rules_hooks.covered_components()
     implemented = rules_hooks.effect_for(key) is not None if action else covered
     status = ""

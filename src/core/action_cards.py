@@ -60,13 +60,9 @@ def card_inputs(
         return False, []
     inputs_fn = rules_hooks.inputs_for(key)
     inputs = inputs_fn(state, registry, player_id) if inputs_fn is not None else []
-    card = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
-    assert isinstance(card, ActionCardDef)
-    from src.core.hooks import card_labels  # lokalnie: pakiet hooks importuje ten moduł
-
-    return True, card_labels.with_default_hints(
-        inputs, card.name or card_id, " ".join(card.texts.values())
-    )
+    # Bez domyślnych podpowiedzi z tekstem karty: okno pokazuje tekst karty raz, nad formularzem
+    # (decyzja użytkownika 2026-11-16 - tekst się nie dubluje); ``hint`` to tylko porada hooka.
+    return True, inputs
 
 
 def card_summary(

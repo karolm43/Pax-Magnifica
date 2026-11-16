@@ -105,12 +105,8 @@ def form(
     inputs: list[dict[str, Any]] = []
     if action and rules_hooks.effect_for(key) is not None:
         inputs_fn = rules_hooks.inputs_for(key)
+        # Tekst reliktu pokazuje okno raz - bez kopii w podpowiedzi każdego pola.
         inputs = inputs_fn(state, registry, player_id) if inputs_fn is not None else []
-        from src.core.hooks import card_labels  # lokalnie: pakiet hooks importuje ten moduł
-
-        inputs = card_labels.with_default_hints(
-            inputs, card.name or relic_id, " ".join(card.texts.values())
-        )
     implemented = (
         rules_hooks.effect_for(key) is not None
         if action

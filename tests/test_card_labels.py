@@ -90,7 +90,9 @@ def test_mining_initiative_pokazuje_zasoby_i_skutek(registry: StaticDataRegistry
     resources = registry.planets[planet].resources
     assert f"{resources} resources" in label
     assert f"+{resources} trade goods" in label
-    assert inputs[0]["hint"]
+    # Porada hooka zostaje, ale bez kopii tekstu karty (okno pokazuje go raz - 2026-11-16).
+    hint = str(inputs[0].get("hint") or "")
+    assert hint and not hint.startswith("Mining Initiative:")
 
 
 def test_podglad_kart_bez_wyborow_ma_tekst(registry: StaticDataRegistry) -> None:
@@ -108,8 +110,11 @@ def test_podglad_kart_bez_wyborow_ma_tekst(registry: StaticDataRegistry) -> None
     assert action_cards.card_summary(state, registry, "p1", "sabo1") is None
 
 
-def test_kazdy_formularz_ma_hint_i_etykiety_opcji(registry: StaticDataRegistry) -> None:
-    """Dla WSZYSTKICH zarejestrowanych formularzy kart akcji: hint niepusty, opcje mają label."""
+def test_kazdy_formularz_bez_kopii_tekstu_karty_i_z_etykietami(
+    registry: StaticDataRegistry,
+) -> None:
+    """Dla WSZYSTKICH formularzy kart akcji: podpowiedź pola (jeśli jest) to porada, nie kopia
+    tekstu karty (okno pokazuje tekst raz, nad formularzem); opcje mają etykiety."""
     planets = tuple(
         p for p in sorted(registry.planets) if registry.systems["18"].planets.count(p)
     )
@@ -129,8 +134,12 @@ def test_kazdy_formularz_ma_hint_i_etykiety_opcji(registry: StaticDataRegistry) 
         except Exception as exc:  # noqa: BLE001 - formularz nie może się wywracać na prostym stanie
             raise AssertionError(f"{key}: {exc!r}") from exc
         checked += 1
+        text = " ".join(" ".join(card.texts.values()).split())
         for item in inputs:
-            assert str(item.get("hint") or "").strip(), f"{key}/{item['key']}: pusty hint"
+            hint = " ".join(str(item.get("hint") or "").split())
+            where = f"{key}/{item['key']}"
+            assert not (len(hint) > 40 and hint[:40] in text), f"{where}: hint = tekst karty"
+            assert not hint.startswith(f"{card.name}:"), f"{where}: hint = nazwa + tekst"
             options: list[dict[str, Any]] = item.get("options") or []
             for option in options:
                 label = str(option.get("label") or "").strip()
