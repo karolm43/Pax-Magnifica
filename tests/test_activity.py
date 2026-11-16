@@ -345,3 +345,17 @@ def test_rider_pokazuje_przewidziany_wynik() -> None:
     assert entry is not None
     riders = [(f.player_id, f.value, f.detail) for f in entry.facts if f.type == "rider"]
     assert riders == [("p1", "trade_rider", "for")]
+
+
+def test_wejscie_fracture_jako_fakt() -> None:
+    """RULES.md 64: wejście The Fracture do gry to fakt feedu (kluczowy moment dla wszystkich)."""
+    before = _state()
+    after = _state()
+    after.fracture.in_play = True
+    after.fracture.entered_by = "p2"
+    entry = derive_activity("expedition:breakthrough:p2", before, after)
+    assert entry is not None
+    assert ("fracture_entered", "p2") in {(f.type, f.player_id) for f in entry.facts}
+    # Fracture już w grze -> brak ponownego faktu.
+    again = derive_activity("expedition:breakthrough:p2", after, after.model_copy(deep=True))
+    assert again is None or all(f.type != "fracture_entered" for f in again.facts)

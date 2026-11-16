@@ -37,6 +37,7 @@
      Full-screen phase-transition banner: must cover the top bar and the phase
      window, yet stay below modals/popovers. */
   --z-phase-banner: 2450;
+  --z-key-moment: 2460;
 
   /* MODALS - Settings, shortcuts and popovers (3000-3999) */
   --z-header-menu: 3300;

@@ -56,6 +56,7 @@ class ActivityFact(BaseModel):
     # "relic", "frontier_card", "leader", "breakthrough_unlocked", "strategy_card_gained".
     # Plansza: "units" (value = typ, delta = zmiana liczby), "system_token", "law_enacted",
     # "law_repealed", "attached", "objective_scored", "effect", "speaker", "custodians_removed",
+    # "fracture_entered" (player_id = kto wprowadził The Fracture),
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
     # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
@@ -585,6 +586,9 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
         facts.append(ActivityFact(type="speaker", player_id=after.speaker_id))
     if after.custodians_removed and not before.custodians_removed:
         facts.append(ActivityFact(type="custodians_removed"))
+    if after.fracture.in_play and not before.fracture.in_play:
+        # The Fracture weszła do gry (rzut po przełomie, efekt karty, God-Mode) — RULES.md 64.
+        facts.append(ActivityFact(type="fracture_entered", player_id=after.fracture.entered_by))
     if after.winner_id and not before.winner_id:
         facts.append(ActivityFact(type="winner", player_id=after.winner_id))
     return facts

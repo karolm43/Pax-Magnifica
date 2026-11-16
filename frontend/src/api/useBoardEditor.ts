@@ -1693,7 +1693,7 @@ export type ActivityFact = {
    *  secret_scored + zasoby/plansza: commodities, cc, hand, units, system_token,
    *  relic, frontier_card, leader, breakthrough_unlocked, strategy_card_gained,
    *  law_enacted, law_repealed, attached, objective_scored, effect, speaker,
-   *  custodians_removed, winner. Pełna lista: `core/activity.py`. */
+   *  custodians_removed, fracture_entered, winner. Pełna lista: `core/activity.py`. */
   type: string;
   /** Null dla zdarzeń talii/stołu bez jednego właściciela. */
   player_id: string | null;

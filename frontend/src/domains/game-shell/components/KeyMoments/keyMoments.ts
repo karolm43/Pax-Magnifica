@@ -1,0 +1,100 @@
+/**
+ * Kluczowe momenty gry (RULES.md 64) — CZYSTE funkcje: wpis feedu Activity -> lista momentów
+ * do animacji oraz zmiana fazy/rundy -> pasek przejścia. Rysowanie: `KeyMomentStage`
+ * (momenty) i `PhaseSweep` (przejścia faz / „Your turn”).
+ */
+import type { ActivityEntry } from "@/api/useBoardEditor";
+
+export type KeyMoment =
+  /** Bohater frakcji użyty (purge po rozpatrzeniu — R_leaders). */
+  | { kind: "hero"; seq: number; player: string; leaderId: string }
+  /** The Fracture weszła do gry (`player` = kto ją wprowadził). */
+  | { kind: "fracture"; seq: number; player: string | null }
+  /** Przełom frakcji zdobyty. */
+  | { kind: "breakthrough"; seq: number; player: string }
+  /** Żeton Custodians zdjęty z Mecatol Rex. */
+  | { kind: "custodians"; seq: number; player: string | null };
+
+/** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
+export type IsHero = (leaderId: string) => boolean;
+
+/** Momenty jednego NOWEGO wpisu feedu (kolejność = kolejność animacji). */
+export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment[] {
+  const a = entry.activity;
+  const seq = entry.seq;
+  // Korekty God-Mode to edycja stanu, nie zagranie — wyjątek: wejście Fracture (RULES.md 64.2).
+  const godmode = a.kind === "godmode";
+  const out: KeyMoment[] = [];
+  for (const f of a.facts) {
+    if (f.type === "fracture_entered") {
+      out.push({ kind: "fracture", seq, player: f.player_id ?? a.actor_id });
+      continue;
+    }
+    if (godmode) continue;
+    if (f.type === "leader" && f.detail === "purged" && f.player_id && f.value && isHero(f.value)) {
+      out.push({ kind: "hero", seq, player: f.player_id, leaderId: f.value });
+    } else if (f.type === "breakthrough_unlocked" && f.player_id) {
+      out.push({ kind: "breakthrough", seq, player: f.player_id });
+    } else if (f.type === "custodians_removed") {
+      // Kto zdjął: gracz, który w tym samym wpisie zyskał punkt (żeton daje 1 VP), inaczej sprawca.
+      const scorer = a.facts.find((x) => x.type === "vp" && (x.delta ?? 0) > 0)?.player_id;
+      out.push({ kind: "custodians", seq, player: scorer ?? a.actor_id });
+    }
+  }
+  // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),
+  // najpierw przełom, potem Fracture.
+  return out.sort((x, y) => order(x) - order(y));
+}
+
+function order(m: KeyMoment): number {
+  return m.kind === "fracture" ? 1 : 0;
+}
+
+/** Główne fazy z paskiem przejścia (podfazy `status.*` liczą się jako swoja faza). */
+export const PHASE_LABEL: Record<string, string> = {
+  strategy: "Strategy Phase",
+  action: "Action Phase",
+  status: "Status Phase",
+  agenda: "Agenda Phase",
+};
+
+export type SweepVariant = "round" | "strategy" | "action" | "status" | "agenda" | "turn";
+
+export type Sweep = {
+  /** Unikalny klucz (restart animacji). */
+  id: string;
+  variant: SweepVariant;
+  title: string;
+  subtitle: string | null;
+};
+
+/** Normalizacja fazy do głównej: `"status.scoring"` -> `"status"`. */
+export function mainPhaseOf(phase: string | null | undefined): string {
+  return (phase ?? "").split(".")[0];
+}
+
+/**
+ * Pasek przejścia przy zmianie głównej fazy (`null` = brak przejścia / faza bez paska).
+ * Wejście w fazę strategii albo wzrost numeru rundy = NOWA RUNDA (mocniejszy akcent).
+ */
+export function phaseSweep(
+  prev: { phase: string; round: number | undefined },
+  next: { phase: string; round: number | undefined },
+): Sweep | null {
+  if (prev.phase === next.phase) return null;
+  const label = PHASE_LABEL[next.phase];
+  if (!label) return null;
+  const round = next.round;
+  const newRound =
+    next.phase === "strategy" ||
+    (round !== undefined && prev.round !== undefined && round > prev.round);
+  if (newRound && round !== undefined) {
+    return { id: `round-${round}-${next.phase}`, variant: "round", title: `Round ${round}`, subtitle: label };
+  }
+  return {
+    id: `${next.phase}-${round ?? "?"}`,
+    variant: next.phase as SweepVariant,
+    title: label,
+    subtitle: round !== undefined ? `Round ${round}` : null,
+  };
+}

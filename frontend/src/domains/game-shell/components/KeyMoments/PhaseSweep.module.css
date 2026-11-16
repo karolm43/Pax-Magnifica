@@ -1,0 +1,130 @@
+/*
+ * Pasek przejścia fazy (RULES.md 64.3): wąska, kinowa wstęga nad mapą. Linie rozjeżdżają się
+ * od środka, napis wyostrza się z szerokiego rozstrzelenia, całość gaśnie w górę.
+ * Czas całości: --sweep-ms (ustawiany z komponentu). Nigdy nie łapie wskaźnika.
+ */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-phase-banner, 2450);
+  pointer-events: none;
+  display: grid;
+  align-items: start;
+  padding-top: 22vh;
+}
+
+.band {
+  /* Ton fazy (rgb) — nadpisywany per wariant. */
+  --tone: 255 211 74;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 18px 0 20px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(4 8 18 / 0.78) 22%,
+    rgb(4 8 18 / 0.86) 50%,
+    rgb(4 8 18 / 0.78) 78%,
+    transparent
+  );
+  animation: bandLife var(--sweep-ms, 1600ms) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.band[data-variant="strategy"],
+.band[data-variant="round"] { --tone: 255 211 74; }
+.band[data-variant="action"] { --tone: 255 120 84; }
+.band[data-variant="status"] { --tone: 94 214 196; }
+.band[data-variant="agenda"] { --tone: 150 160 255; }
+.band[data-variant="turn"] { --tone: var(--pc, 255 211 74); }
+
+.line {
+  display: block;
+  width: min(760px, 86vw);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--tone)) 30%, #fff 50%, rgb(var(--tone)) 70%, transparent);
+  box-shadow: 0 0 12px rgb(var(--tone) / 0.8);
+  transform-origin: center;
+  animation: lineDraw 520ms cubic-bezier(0.3, 0.8, 0.2, 1) both;
+}
+
+.line[data-bottom] {
+  animation-delay: 90ms;
+}
+
+.text {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.title {
+  font-family: var(--ti-font-title, var(--ds-font-display));
+  font-size: clamp(26px, 3.4vw, 44px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    0 0 18px rgb(var(--tone) / 0.75),
+    0 2px 0 rgb(0 0 0 / 0.6);
+  animation: titleFocus 620ms cubic-bezier(0.2, 0.8, 0.2, 1) 80ms both;
+}
+
+.subtitle {
+  font-family: var(--ti-font-title, var(--ds-font-display));
+  font-size: 13px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgb(var(--tone));
+  animation: fadeUp 500ms ease 260ms both;
+}
+
+/* Nowa runda: większy numer, złota poświata. */
+.band[data-variant="round"] .title {
+  font-size: clamp(34px, 4.6vw, 60px);
+}
+
+/* „Your turn”: krótszy, mniejszy, w kolorze gracza. */
+.band[data-variant="turn"] {
+  padding: 12px 0 14px;
+}
+
+.band[data-variant="turn"] .title {
+  font-size: clamp(20px, 2.4vw, 30px);
+}
+
+@keyframes bandLife {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  78% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+
+@keyframes lineDraw {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes titleFocus {
+  from { letter-spacing: 0.7em; opacity: 0; filter: blur(6px); }
+  to { letter-spacing: 0.16em; opacity: 1; filter: blur(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band,
+  .line,
+  .title,
+  .subtitle {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .band {
+    animation: none;
+  }
+}

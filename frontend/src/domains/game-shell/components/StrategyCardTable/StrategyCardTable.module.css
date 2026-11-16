@@ -21,7 +21,7 @@
  * osiach. Nakładka NIE przechwytuje zdarzeń (``pointer-events: none``), więc nie
  * blokuje interakcji z mapą; klikalny jest dopiero wewnętrzny ``.table``.
  *
- * Z-INDEX: nieco NIŻSZY niż PhaseTransitionBanner (ten sam ``--ds-z-overlay``), aby
+ * Z-INDEX: nieco NIŻSZY niż pasek przejścia faz PhaseSweep (``--z-phase-banner``), aby
  * pełnoekranowy baner przejścia przykrywał tabelę kart podczas przejścia fazy.
  */
 .overlay {

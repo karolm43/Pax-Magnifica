@@ -845,6 +845,16 @@ function describeFact(
       return { key, tone: "info", text: <>{who ?? <b>{playerName(ctx, fact.player_id)}</b>} became Speaker</> };
     case "custodians_removed":
       return { key, tone: "good", text: <>The Custodians token was removed from Mecatol Rex</> };
+    case "fracture_entered":
+      return {
+        key,
+        tone: "good",
+        text: fact.player_id ? (
+          <>{<b>{playerName(ctx, fact.player_id)}</b>} brought The Fracture into play</>
+        ) : (
+          <>The Fracture entered play</>
+        ),
+      };
     case "battle_result": {
       // Podsumowanie bitwy: zwycięzca w nagłówku, tu długość walki.
       const rounds = `${delta} round${delta === 1 ? "" : "s"}`;

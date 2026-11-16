@@ -147,7 +147,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
         <Tabs.Panel value="general" className={styles.panel}>
           <SettingGroup label="Admin / testing">
             <SwitchRow
-              label="Fast mode (skip intro & phase banners)"
+              label="Fast mode (skip intro & cinematics)"
               description="Skip the opening intro screen and full-screen phase transition banners for the quickest possible testing. Game rules are unaffected."
               checked={settings.adminFastMode}
               onToggle={(checked) =>

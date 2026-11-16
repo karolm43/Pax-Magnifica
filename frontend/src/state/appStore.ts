@@ -603,8 +603,8 @@ export type Settings = {
   showPlayerAreaNeighborship: boolean;
   /*
    * Tryb administratora / szybkie testowanie. Gdy włączony, silnik POMIJA oprawę
-   * wizualną spowalniającą testy: planszę otwierającą (`GameIntro`) i pełnoekranowe
-   * plansze przejścia faz (`PhaseTransitionBanner`). Reguły gry pozostają bez zmian —
+   * wizualną spowalniającą testy: planszę otwierającą (`GameIntro`), paski przejścia faz
+   * (`PhaseSweep`) i sceny kluczowych momentów (`KeyMomentStage`, RULES.md 64). Reguły gry pozostają bez zmian —
    * to wyłącznie przyspieszenie przejść dla dewelopera.
    */
   adminFastMode: boolean;

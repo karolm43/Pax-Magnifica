@@ -14,7 +14,7 @@ import { isMobileDevice } from "@/utils/isTouchDevice";
 import { FloatingMapToolbar } from "@/domains/game-shell/components/FloatingMapToolbar";
 import { GameStatePanel } from "@/domains/game-shell/components/GameStatePanel";
 import { StrategyCardTable } from "@/domains/game-shell/components/StrategyCardTable/StrategyCardTable";
-import { PhaseTransitionBanner } from "@/domains/game-shell/components/PhaseTransitionBanner/PhaseTransitionBanner";
+import { KeyMomentStage, PhaseSweep } from "@/domains/game-shell/components/KeyMoments";
 import { useMapTooltips } from "@/domains/map/components/hooks/useMapTooltips";
 import { getMapLayoutConfig } from "@/domains/map/components/mapLayout";
 import { useMapKeyboardShortcuts } from "@/domains/map/components/hooks/useMapKeyboardShortcuts";
@@ -174,9 +174,10 @@ export function PannableMapView({ gameId }: { gameId: string }) {
 
   return (
     <Box className={`${classes.mapContainer} ${classes.stateDocked}`}>
-      {/* Phase_Banner — nakładka nad mapą reagująca na zmianę głównej fazy;
-          `pointer-events: none`, sama pilnuje mapowalności fazy. Zadanie 10.1. */}
-      <PhaseTransitionBanner />
+      {/* Przejścia faz/rund + „Your turn” (RULES.md 64.3) i kluczowe momenty gry dla wszystkich
+          (bohater, The Fracture, przełom, Custodians — RULES.md 64.2). Obie warstwy bez wskaźnika. */}
+      <PhaseSweep />
+      <KeyMomentStage />
       {/* Zegar szachowy graczy (RULES.md 58) — u góry widoku mapy, przesuwalny; sam zwraca
           null, gdy gra jest bez zegara (Ustawienia → Chess clock). */}
       <ChessClockPanel gameId={gameId} />
