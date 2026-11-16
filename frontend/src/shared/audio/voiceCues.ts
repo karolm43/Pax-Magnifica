@@ -41,10 +41,8 @@ export const FACTION_SPECIALS: Record<string, { category: string; match: RegExp 
   mentak: [{ category: "pillage", match: /pillage/i }],
   sol: [{ category: "orbitaldrop", match: /orbital.?drop/i }],
   winnu: [{ category: "reclamation", match: /reclamation/i }],
-  yin: [
-    { category: "yinspin", match: /yin.?spinner/i },
-    { category: "bomb", match: /devotion|impulse.?core/i },
-  ],
+  // Yin `bomb` = Van Hauge (flagowiec ginie i niszczy statki w systemie) — patrz `flagshipCues`.
+  yin: [{ category: "yinspin", match: /yin.?spinner/i }],
   naaz: [{ category: "specialforgery", match: /fabrication/i }],
   nomad: [
     { category: "artuno", match: /artuno/i },
@@ -106,6 +104,25 @@ function specialCues(entry: ActivityEntry, ctx: CueContext): Cue[] {
   return cues;
 }
 
+/** Frakcje, których flagowiec przy zniszczeniu ma własną kwestię (Yin: Van Hauge niszczy system). */
+const FLAGSHIP_DEATH: Record<string, string> = { yin: "bomb" };
+
+/**
+ * Utrata flagowca (fakt `units`, `flagship`, delta < 0). Pomija podsumowanie `combat.end`,
+ * które powtarza straty już ogłoszone wpisem `combat.losses`.
+ */
+function flagshipCues(entry: ActivityEntry, ctx: CueContext): Cue[] {
+  const a = entry.activity;
+  if (a.action === "combat.end") return [];
+  const cues: Cue[] = [];
+  for (const f of a.facts) {
+    if (f.type !== "units" || f.value !== "flagship" || (f.delta ?? 0) >= 0 || !f.player_id) continue;
+    const category = FLAGSHIP_DEATH[ctx.factionOf(f.player_id) ?? ""];
+    if (category) cues.push({ kind: "voice", player: f.player_id, category });
+  }
+  return cues;
+}
+
 /** Czy to „ja” (sieć: moje miejsce; lokalnie: każdy człowiek, nie bot). */
 function isMe(player: string | null | undefined, ctx: CueContext): boolean {
   if (!player) return false;
@@ -142,6 +159,7 @@ export function cuesForEntry(entry: ActivityEntry, ctx: CueContext): Cue[] {
     if (isMe(a.target_id, ctx) && a.target_id !== a.actor_id) cues.push({ kind: "ui", name: "turn" });
   }
   cues.push(...specialCues(entry, ctx));
+  cues.push(...flagshipCues(entry, ctx));
   return cues;
 }
 

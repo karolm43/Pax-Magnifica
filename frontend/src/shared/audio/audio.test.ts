@@ -85,6 +85,26 @@ describe("cuesForEntry", () => {
     expect(sol.some((c) => c.kind === "voice" && c.category === "orbitaldrop")).toBe(true);
   });
 
+  it("Yin: utrata flagowca (Van Hauge) daje kwestię bomb, Devotion już nie", () => {
+    const yin = ctx({ factionOf: (pid) => (pid === "p4" ? "yin" : (factions[pid] ?? null)) });
+    const loss = (action: string) =>
+      entry({
+        kind: "combat",
+        action,
+        facts: [{ type: "units", player_id: "p4", value: "flagship", detail: null, delta: -1 }],
+      });
+    expect(cuesForEntry(loss("combat.losses"), yin)).toContainEqual({ kind: "voice", player: "p4", category: "bomb" });
+    // Podsumowanie bitwy powtarza straty — bez drugiej kwestii.
+    expect(cuesForEntry(loss("combat.end"), yin).some((c) => c.kind === "voice")).toBe(false);
+    const devotion = entry({
+      facts: [{ type: "ability_used", player_id: "p4", value: "abilities:devotion", detail: null, delta: null }],
+    });
+    expect(cuesForEntry(devotion, yin).some((c) => c.kind === "voice" && c.category === "bomb")).toBe(false);
+    // Flagowiec innej frakcji — cisza.
+    const mentak = entry({ facts: [{ type: "units", player_id: "p1", value: "flagship", detail: null, delta: -1 }] });
+    expect(cuesForEntry(mentak, ctx()).some((c) => c.kind === "voice")).toBe(false);
+  });
+
   it("bohater frakcji daje kwestię special", () => {
     const cues = cuesForEntry(
       entry({ action: "leader.state", actor_id: "p1", subject: "mentakhero", detail: "purged" }),

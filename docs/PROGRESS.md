@@ -510,3 +510,9 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   frakcja spoza gry i jeszcze niezdobyta.
 - Test: `test_flows_yin.py::test_yin_ascendant_z_edytora_i_w_panelu_liderow`. QA: pytest (2476 ✅), ruff, mypy;
   front: tsc, eslint (zmienione), vitest `domains/player`. Bez build/e2e. Restart backendu wymagany.
+
+## Dźwięk: Yin `bomb` = Van Hauge (decyzja użytkownika)
+
+- `voiceCues.ts`: kwestie `assets/voices/yin/Bomb1–2` grają przy utracie flagowca Yin (fakt `units`
+  `flagship` < 0; bez duplikatu w podsumowaniu `combat.end`), nie przy Devotion/Impulse Core.
+- Test: `audio.test.ts`. QA: front tsc, eslint (zmienione), vitest `shared/audio`. Bez backendu/build/e2e.
