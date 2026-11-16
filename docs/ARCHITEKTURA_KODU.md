@@ -7,12 +7,12 @@ MUSI to przewidywać. Stosuj te zasady przy każdej nowej mechanice.
 
 ---
 
-## 1. Złota zasada: reguły w `core/`, HTTP w `api/`, decyzje w `ai/`
+## 1. Złota zasada: reguły w `core/`, HTTP w `api/`, decyzje w `engine/`
 
 Trzy warstwy, ściśle rozdzielone. **Zależności idą tylko w jedną stronę:**
 
 ```
-  api/  (HTTP/WS)        ai/  (bot — przyszłość)
+  api/  (HTTP/WS) ───►  engine/  (bot — src/engine/, plan: docs/bot/PLAN.md)
      \                   /
       \                 /
        ▼               ▼
@@ -26,7 +26,8 @@ Trzy warstwy, ściśle rozdzielone. **Zależności idą tylko w jedną stronę:*
   żadnych requestów. Czyste funkcje: `state -> nowy state` (lub wynik/wyjątek domenowy).
 - **`api/` jest cienkie.** Endpoint = (1) odczyt stanu, (2) wywołanie funkcji z `core/`,
   (3) commit + broadcast, (4) mapowanie błędów domenowych na HTTP. **Zero reguł gry w endpointcie.**
-- **`ai/` (przyszłość) woła wyłącznie `core/`.** Bot generuje akcję → `core/` ją waliduje
+- **`engine/` (bot, `src/engine/`) woła wyłącznie `core/`** (nigdy `api/`; `api/` uruchamia bota).
+  Instrukcje warstwy: `src/engine/CLAUDE.md`. Bot generuje akcję → `core/` ją waliduje
   i stosuje. Dokładnie te same funkcje, których używa `api/`. Dzięki temu bot i człowiek
   grają przez jedną ścieżkę reguł — nie da się ich rozjechać.
 
@@ -60,7 +61,7 @@ Trzy warstwy, ściśle rozdzielone. **Zależności idą tylko w jedną stronę:*
 | Endpointy HTTP/WS | `api/routers/<temat>.py` | (po refaktorze — patrz §4) |
 | DTO żądań/odpowiedzi | `api/schemas.py`, `api/schemas_components.py` | |
 | Mutacja + broadcast | `api/state_service.py` | jedyne miejsce commitujące stan |
-| Decyzje bota (przyszłość) | `ai/` | strategiczna → operacyjna → taktyczna |
+| Decyzje bota | `src/engine/` (plan: `docs/bot/PLAN.md`) | strategiczna → operacyjna → taktyczna |
 
 **Reguła dodawania nowej mechaniki (np. faza taktyczna E3):**
 1. Regułę spisz do `docs/RULES.md` ze źródłem (LRR / bot AsyncTI4).
