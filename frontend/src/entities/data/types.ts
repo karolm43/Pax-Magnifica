@@ -176,6 +176,8 @@ export type Leader = {
   /** Bohater zużyty (RULES.md 61.1) — usunięty z gry. */
   purged?: boolean;
   active: boolean;
+  /** Commander innej frakcji, którego zdolność gracz ma (Alliance, Yin Ascendant). */
+  alliance?: boolean;
 };
 
 export type LeaderData = {

@@ -106,6 +106,7 @@ function RegularLeaders({ leaders, faction, playerId }: Props) {
               locked={leader.locked ?? false}
               purged={leader.purged ?? false}
               active={leader.active ?? false}
+              alliance={leader.alliance ?? false}
               playerId={playerId}
             />
           ));
@@ -141,6 +142,7 @@ function RegularLeaders({ leaders, faction, playerId }: Props) {
             locked={leader.locked ?? false}
             purged={leader.purged ?? false}
             active={leader.active ?? false}
+            alliance={leader.alliance ?? false}
             playerId={playerId}
           />
         ))}

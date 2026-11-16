@@ -609,7 +609,7 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                           Click to cycle: locked 🔒 → ready ✓ → exhausted ⟲
                         </Text>
                         <Group gap={6} wrap="wrap">
-                          {player.leaders.map((leader) => {
+                          {player.leaders.filter((leader) => !leader.alliance).map((leader) => {
                             const state = leader.locked
                               ? "locked"
                               : leader.exhausted

@@ -350,7 +350,14 @@ def edit_player(
     """
     new_state = state.clone()
     player = new_state.players.get(player_id) or PlayerState(player_id=player_id)
+    # Przyznanie przełomu z edytora = „zdobycie” (RULES.md 50, 62.10): efekty „when you gain this
+    # card” (Yin Ascendant) działają jak przy ekspedycji. Walidacji nadal nie ma (God-Mode).
+    gains_breakthrough = updates.get("breakthrough_unlocked") is True and not (
+        player.breakthrough_unlocked
+    )
     for field, value in updates.items():
+        if field == "breakthrough_unlocked" and gains_breakthrough:
+            continue
         if field == "leader_states" and isinstance(value, dict):
             merged = dict(player.leader_states)
             merged.update(value)
@@ -364,6 +371,14 @@ def edit_player(
         else:
             setattr(player, field, value)
     new_state.players[player_id] = player
+    if gains_breakthrough:
+        from src.core import breakthrough  # lokalnie: board_edit ładuje się przed hookami
+
+        exhausted = player.breakthrough_exhausted
+        if breakthrough.unlock_breakthrough(new_state, registry, player_id) is None:
+            player.breakthrough_unlocked = True  # frakcja bez przełomu w danych - samo pole
+        if "breakthrough_exhausted" in updates:
+            player.breakthrough_exhausted = exhausted
     controlled = updates.get("controlled_planets")
     if controlled is not None and isinstance(controlled, list):
         sync_controlled_planets(new_state, grid, registry, player_id, controlled)

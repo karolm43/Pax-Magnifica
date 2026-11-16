@@ -1105,6 +1105,31 @@ def _leader_type(leader_id: str, registry: StaticDataRegistry) -> str:
     return "agent"
 
 
+def _alliance_leaders(
+    state: GameState, player_id: str, own: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Commanderzy innych frakcji, których zdolność gracz ma (Alliance, Yin Ascendant).
+
+    Ten sam wpis co własny lider (chip lidera w panelu), z ``alliance: True``; zawsze odblokowani
+    („as though that faction's commander were unlocked”, RULES.md 61.2, 62.10).
+    """
+    from src.core.hooks import promissory_generic  # lokalnie: hooki ładują się z rejestrem
+
+    have = {str(leader["id"]) for leader in own}
+    ids = [
+        *rules_hooks.granted_commanders(state, player_id),
+        *promissory_generic.alliance_commanders(state, player_id),
+    ]
+    return [
+        {
+            "id": leader_id, "type": "commander", "tgCount": 0, "exhausted": False,
+            "locked": False, "purged": False, "active": False, "alliance": True,
+        }
+        for leader_id in dict.fromkeys(ids)
+        if leader_id not in have
+    ]
+
+
 def _player_leaders(
     faction_id: str | None,
     registry: StaticDataRegistry,
@@ -1403,6 +1428,7 @@ def _build_player_data(
         controlled = _controlled_planets_from_systems(player_id, state)
         econ = _planet_economy(controlled, registry, state)
         leaders = _player_leaders(player.faction, registry, player.leader_states)
+        leaders += _alliance_leaders(state, player_id, leaders)
         units_owned = _units_owned_for_faction(
             player.faction,
             player.technologies,

@@ -497,3 +497,16 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   (Mecatol z żetonem niedostępny); Yin Ascendant „unused” = frakcja spoza gry i jeszcze niezdobyta.
 - Testy: `tests/factions/test_yin.py` (18), `test_flows_yin.py` (7 scenariuszy przez API), `techModel.test.ts`;
   strażnik `test_hook_coverage` zna klucze `unlocks:`. Restart backendu wymagany (nowe pola stanu i hooki).
+
+## Yin Ascendant: zdobycie z edytora i sojusze w panelu liderów (2026-11-16)
+
+- **Błąd (zgłoszenie użytkownika: „Yin Ascendant nie działa”):** przełom przyznany w edytorze gracza ustawiał samo
+  pole, bez „zdobycia” — efekt nie odpalał; a zdobyty sojusz nie był nigdzie widoczny poza feedem. Teraz
+  `board_edit.edit_player` przy `breakthrough_unlocked` false→true woła `breakthrough.unlock_breakthrough`
+  (efekty „when you gain this card”, bez walidacji), a web-data dokłada commanderów z sojuszu (Yin Ascendant
+  i notka Alliance) do `leaders` z `alliance: true` — ten sam `LeaderChip` z dopiskiem „alliance”; edytor
+  liderów God-Mode ich nie pokazuje.
+- ✅ Decyzje użytkownika (RULES.md 62.10): Quantum Dissemination bez zdejmowania żetonu Custodians; „unused” =
+  frakcja spoza gry i jeszcze niezdobyta.
+- Test: `test_flows_yin.py::test_yin_ascendant_z_edytora_i_w_panelu_liderow`. QA: pytest (2476 ✅), ruff, mypy;
+  front: tsc, eslint (zmienione), vitest `domains/player`. Bez build/e2e. Restart backendu wymagany.

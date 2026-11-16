@@ -201,3 +201,24 @@ def test_greyfire_mutagen_u_rywala(registry: StaticDataRegistry) -> None:
     assert here["neutral"] == {"infantry": 1}
     assert here[flow.me]["infantry"] == 3
     assert "greyfire" in flow.state()["players"][flow.other]["private"]["promissory_notes"]
+
+
+def test_yin_ascendant_z_edytora_i_w_panelu_liderow(registry: StaticDataRegistry) -> None:
+    """Przełom przyznany w edytorze gracza = „gain” (sojusz), commander widoczny w panelu."""
+    flow = Flow(registry, "yin")
+    flow.post(f"/player/{flow.me}/edit", {"breakthrough_unlocked": True})
+    state = flow.state()
+    assert state["players"][flow.me]["breakthrough_unlocked"] is True
+    alliances = [e for e in state["active_effects"] if e["key"] == "breakthroughs:yinbt:alliances"]
+    assert len(alliances) == 1 and len(alliances[0]["data"]["commanders"]) == 1
+    commander = alliances[0]["data"]["commanders"][0]
+    data = flow.client.get(
+        "/api/public/game/g/web-data", params={"viewing_player": flow.me}
+    ).json()
+    me = next(p for p in data["playerData"] if p["faction"] == "yin")
+    shown = {leader["id"]: leader for leader in me["leaders"]}
+    assert shown[commander]["alliance"] is True and shown[commander]["locked"] is False
+    # Ponowne zapisanie tego samego pola nie losuje kolejnego sojuszu.
+    flow.post(f"/player/{flow.me}/edit", {"breakthrough_unlocked": True})
+    again = [e for e in flow.state()["active_effects"] if e["key"] == alliances[0]["key"]]
+    assert len(again[0]["data"]["commanders"]) == 1

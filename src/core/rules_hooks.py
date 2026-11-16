@@ -692,6 +692,11 @@ def _promissory_sources(state: GameState, player_id: str) -> set[HookSource]:
     return sources
 
 
+def granted_commanders(state: GameState, player_id: str) -> list[str]:
+    """Id commanderów innych frakcji z efektów trwałych gracza (Yin Ascendant) - dla widoku."""
+    return sorted({src.component_id for src in _granted_commanders(state, player_id)})
+
+
 def _granted_commanders(state: GameState, player_id: str) -> set[HookSource]:
     """Commanderzy innych frakcji z efektów trwałych gracza (``data.commanders``) — działają „tak,
     jakby byli odblokowani” (Yin Ascendant, RULES.md 62.10)."""

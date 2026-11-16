@@ -18,6 +18,8 @@ type Props = {
   active: boolean;
   /** Bohater zużyty (RULES.md 61.1). */
   purged?: boolean;
+  /** Commander innej frakcji ze zdolnością sojuszu (Alliance, Yin Ascendant). */
+  alliance?: boolean;
   /** Właściciel — przyjmowany dla zgodności; menu prawego klawisza usunięte (stan obsługuje gra). */
   playerId?: string;
 };
@@ -42,6 +44,7 @@ export function LeaderChip({
   locked,
   active,
   purged = false,
+  alliance = false,
 }: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
   const leaderData = getLeaderById(id);
@@ -83,6 +86,7 @@ export function LeaderChip({
             <strong>{leaderData.name}</strong>
             <em>
               {type}
+              {alliance && " · alliance"}
               {locked ? (
                 <IconLock
                   className={styles.lock}
