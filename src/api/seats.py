@@ -53,6 +53,12 @@ LOCAL = Identity(network=False)
 current_identity: ContextVar[Identity] = ContextVar("current_identity", default=LOCAL)
 """Tożsamość bieżącego żądania (ustawia middleware); czyta ją m.in. ``StateService.envelope``."""
 
+current_author: ContextVar[str | None] = ContextVar("current_author", default=None)
+"""Gracz, którego żądanie zmienia stan (autor kroku historii; Undo gracza, RULES.md 44.7).
+
+Sieć: gracz z tokenu miejsca (host bez miejsca = ``None``); tryb lokalny: nagłówek ``X-Actor-Id``.
+Ustawia middleware tożsamości; ``StateService.replace_state`` zapisuje go przy migawce."""
+
 
 def _new_token() -> str:
     return secrets.token_urlsafe(18)

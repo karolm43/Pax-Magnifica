@@ -157,6 +157,9 @@ def _parse_flow(
     """Tury, fazy, rundy, mówca, początek gry."""
     if label in ("initial", "game:new"):
         return "turn", "game.start", None, None, None, None
+    if parts[0] == "player-undo" and len(parts) > 1:
+        # Undo gracza (RULES.md 44.7): ``player-undo:<gracz>:<etykieta cofniętego kroku>``.
+        return "turn", "turn.undo", parts[1], None, ":".join(parts[2:]) or None, None
     if label == "turn:end":
         return "turn", "turn.end", active, after.active_player_id, None, None
     if label == "turn:pass":

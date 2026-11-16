@@ -109,3 +109,18 @@
 .cardBtn:hover {
   background: rgba(255, 170, 60, 0.3);
 }
+
+/* Undo gracza (UndoControls): ten sam kształt co Hold; wyłączony = przygaszony, opis w title. */
+.holdBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: transparent;
+}
+
+.undoWhat {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+}

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { parseErrorDetail } from "@/api/apiError";
 
 /*
  * Formularz zagrania karty akcji (RULES.md 53). Backend opisuje, jakich decyzji wymaga karta
@@ -291,4 +292,42 @@ export async function postHeld(action: "pass" | "release", actorId: string): Pro
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ actor_id: actorId }),
   }).catch(() => undefined);
+}
+
+/** Undo gracza (RULES.md 44.7): czy mogę teraz cofnąć swój ostatni krok, a jeśli nie — dlaczego. */
+export type PlayerUndoStatus = {
+  available: boolean;
+  reason: string | null;
+  label: string | null;
+  undone_seq: number | null;
+};
+
+export function usePlayerUndo(playerId: string | null) {
+  return useQuery({
+    queryKey: ["playerUndo", playerId],
+    enabled: Boolean(playerId),
+    staleTime: 0,
+    refetchInterval: 2500,
+    retry: false,
+    queryFn: async (): Promise<PlayerUndoStatus> => {
+      const response = await fetch(
+        `${BOT_ROOT}/undo/mine?player_id=${encodeURIComponent(playerId ?? "")}`,
+      );
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+      return (await response.json()) as PlayerUndoStatus;
+    },
+  });
+}
+
+/** Cofa ostatni krok gracza; zwraca komunikat błędu (422) albo ``null``. */
+export async function postPlayerUndo(playerId: string): Promise<string | null> {
+  const response = await fetch(`${BOT_ROOT}/undo/mine`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ player_id: playerId }),
+  }).catch(() => null);
+  if (response === null) return "The server is not responding.";
+  if (response.ok) return null;
+  const raw = await response.text().catch(() => "");
+  return parseErrorDetail(raw, response.status);
 }

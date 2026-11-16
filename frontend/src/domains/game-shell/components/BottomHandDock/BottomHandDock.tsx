@@ -38,6 +38,7 @@ import {
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
+import { UndoControls } from "./UndoControls";
 import { ReactionPauseBanner } from "./ReactionPauseBanner";
 import { HeldPlayBanner } from "./HeldPlayBanner";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
@@ -585,6 +586,7 @@ export function BottomHandDock() {
           })}
         </div>
 
+        {active.discordId && <UndoControls playerId={active.discordId} />}
         {active.discordId && <HoldControls playerId={active.discordId} />}
 
         <UnstyledButton

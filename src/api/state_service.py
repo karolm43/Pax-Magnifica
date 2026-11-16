@@ -13,7 +13,7 @@ from collections.abc import Callable
 
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
-from src.api.seats import Identity, current_identity
+from src.api.seats import Identity, current_author, current_identity
 from src.core import (
     activity,
     game_clock,
@@ -34,6 +34,7 @@ _LIMITS_EXEMPT_LABELS = (
     "god-mode",
     "initial",
     "replace",
+    "player-undo",  # Undo gracza przywraca migawkę, która już przeszła te kontrole
     "setup:",
     "clock:",
     "space:",
@@ -100,6 +101,10 @@ class StateService:
         """Ostatnie ``limit`` migawek do bieżącej włącznie (hold-rewind): ``(seq, label, stan)``."""
         return self._store.recent_chain(limit)
 
+    def recent_steps(self, limit: int) -> list[tuple[int, str, str | None, GameState]]:
+        """Ostatnie ``limit`` migawek z autorami kroków (Undo gracza, RULES.md 44.7)."""
+        return self._store.recent_steps(limit)
+
     def replace_state(
         self, state: GameState, label: str = "replace", *, branch_from: int | None = None
     ) -> StateEnvelope:
@@ -130,6 +135,7 @@ class StateService:
             label=label,
             activity_json=entry.model_dump_json() if entry else None,
             branch_from=branch_from,
+            author=current_author.get(),
         )
         return self.envelope()
 

@@ -1712,3 +1712,23 @@ class OpenTimingWindow(BaseModel):
 
 class OpenTimingWindowsResponse(BaseModel):
     windows: list[OpenTimingWindow]
+
+
+class PlayerUndoStatus(BaseModel):
+    """Czy gracz może teraz cofnąć swój ostatni krok (RULES.md 44.7)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    available: bool
+    reason: str | None = None
+    # Etykieta i numer migawki cofanego kroku (front opisuje go wpisem feedu Activity).
+    label: str | None = None
+    undone_seq: int | None = None
+
+
+class PlayerUndoRequest(BaseModel):
+    """Undo gracza: kto cofa swój ostatni krok (w sieci musi się zgadzać z tokenem)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str

@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import {
+  IconArrowBackUp,
   IconArrowsLeftRight,
   IconArrowsShuffle,
   IconBolt,
@@ -11,8 +12,8 @@ import {
   IconGavel,
   IconHexagon,
   IconPlayerPause,
-  IconPlayerTrackNext,
   IconPlayerPlay,
+  IconPlayerTrackNext,
   IconRocket,
   IconSettings,
   IconSwords,
@@ -82,6 +83,7 @@ const KIND_STYLE: Record<ActivityKind, { Icon: Glyph; tone: string }> = {
 /** Action-specific glyphs that read better than the category default. */
 const ACTION_GLYPH: Record<string, Glyph> = {
   "turn.pass": IconPlayerPause,
+  "turn.undo": IconArrowBackUp,
   "game.start": IconFlag,
   "phase.start": IconPlayerPlay,
   "round.start": IconArrowsShuffle,
@@ -188,6 +190,8 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
   switch (a.action) {
     case "game.start":
       return "The game begins";
+    case "turn.undo":
+      return <>{actor} undid their last step</>;
     case "turn.end":
       return (
         <>

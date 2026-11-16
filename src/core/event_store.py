@@ -70,6 +70,8 @@ class EventStore:
             self._conn.execute("ALTER TABLE snapshots ADD COLUMN created_at REAL")
         if "activity_json" not in columns:
             self._conn.execute("ALTER TABLE snapshots ADD COLUMN activity_json TEXT")
+        if "author" not in columns:  # kto wykonał krok (Undo gracza, RULES.md 44.7)
+            self._conn.execute("ALTER TABLE snapshots ADD COLUMN author TEXT")
 
     # --- Zapis / historia ----------------------------------------------
 
@@ -79,6 +81,7 @@ class EventStore:
         label: str = "commit",
         activity_json: str | None = None,
         branch_from: int | None = None,
+        author: str | None = None,
     ) -> int:
         """Zapisuje migawkę stanu jako nową pozycję bieżącą.
 
@@ -91,6 +94,9 @@ class EventStore:
         ``branch_from`` (hold-rewind, RULES.md 53.7): zamiast bieżącej pozycji historia jest
         obcinana PO wskazanej migawce, a nowa migawka staje się jej następnikiem - jeden
         atomowy zapis rozgałęziający historię (bez pośredniego ``goto``).
+
+        ``author`` = ``player_id`` gracza, którego żądanie wykonało krok (``None`` = host,
+        bot, tryb zaufany, operacja techniczna) - Undo gracza cofa tylko własne kroki.
 
         Returns:
             Numer sekwencyjny (``seq``) zapisanej migawki.
@@ -108,9 +114,9 @@ class EventStore:
                 self._conn.execute("DELETE FROM snapshots WHERE seq > ?", (current,))
 
             cursor = self._conn.execute(
-                "INSERT INTO snapshots (label, state_json, created_at, activity_json)"
-                " VALUES (?, ?, ?, ?)",
-                (label, state.model_dump_json(), time.time(), activity_json),
+                "INSERT INTO snapshots (label, state_json, created_at, activity_json, author)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (label, state.model_dump_json(), time.time(), activity_json, author),
             )
             new_seq = int(cursor.lastrowid or 0)
             self._set_current(new_seq)
@@ -258,6 +264,27 @@ class EventStore:
             ).fetchall()
             return [
                 (int(r["seq"]), str(r["label"]), GameState.model_validate_json(r["state_json"]))
+                for r in reversed(rows)
+            ]
+
+    def recent_steps(self, limit: int) -> list[tuple[int, str, str | None, GameState]]:
+        """Jak :meth:`recent_chain`, z autorem kroku: ``(seq, label, author, stan)`` rosnąco."""
+        with self._lock:
+            current = self._current_seq()
+            if current is None:
+                return []
+            rows = self._conn.execute(
+                "SELECT seq, label, author, state_json FROM snapshots WHERE seq <= ?"
+                " ORDER BY seq DESC LIMIT ?",
+                (current, max(1, limit)),
+            ).fetchall()
+            return [
+                (
+                    int(r["seq"]),
+                    str(r["label"]),
+                    None if r["author"] is None else str(r["author"]),
+                    GameState.model_validate_json(r["state_json"]),
+                )
                 for r in reversed(rows)
             ]
 

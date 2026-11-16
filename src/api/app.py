@@ -26,6 +26,7 @@ from starlette.responses import Response
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src import config
+from src.api.actor import ACTOR_HEADER
 from src.api.connection_manager import ConnectionManager
 from src.api.context import MAP_META_KEY, SEATS_META_KEY, AppContext
 from src.api.demo_map import build_demo_grid
@@ -52,6 +53,7 @@ from src.api.routers import (
     invasion,
     offers,
     planet_ability,
+    player_undo,
     players,
     production,
     promissory,
@@ -70,7 +72,14 @@ from src.api.routers import (
 )
 from src.api.routers import network as network_routes
 from src.api.saves import SaveManager
-from src.api.seats import SEAT_TOKEN_HEADER, TOKEN_QUERY, Identity, SeatRegistry, current_identity
+from src.api.seats import (
+    SEAT_TOKEN_HEADER,
+    TOKEN_QUERY,
+    Identity,
+    SeatRegistry,
+    current_author,
+    current_identity,
+)
 from src.api.state_service import StateService
 from src.core import error_text
 from src.core import reaction_pause as reaction_pause_rules
@@ -280,9 +289,16 @@ def create_app(
                 )
         request.state.identity = identity
         reset = current_identity.set(identity)
+        # Autor kroku historii (Undo gracza, RULES.md 44.7): jak ``actor.get_actor``.
+        if identity.network:
+            author = identity.player_id
+        else:
+            author = (request.headers.get(ACTOR_HEADER) or "").strip() or None
+        reset_author = current_author.set(author)
         try:
             return await call_next(request)
         finally:
+            current_author.reset(reset_author)
             current_identity.reset(reset)
 
     # CORS: dev-serwer Vite (5173) łączy się z backendem (8000).
@@ -345,6 +361,7 @@ def create_app(
     app.include_router(promissory.router)
     app.include_router(frontier_cards.router)
     app.include_router(hold.router)
+    app.include_router(player_undo.router)
     app.include_router(offers.router)
     app.include_router(technology.router)
     app.include_router(network_routes.router)
