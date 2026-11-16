@@ -1,0 +1,159 @@
+/* Tło w ruchu pola bitwy (`BattleAmbience`). Subtelne: nie konkuruje z okrętami i salwami. */
+
+.ambience {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambience i {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+/* ---------------- KOSMOS ---------------- */
+
+/* Dryfująca mgławica: dwie barwne plamy powoli się przesuwające i „oddychające". */
+.nebula {
+  inset: -20%;
+  opacity: 0.5;
+  background:
+    radial-gradient(ellipse 38% 26% at 28% 34%, rgba(99, 102, 241, 0.13), transparent 70%),
+    radial-gradient(ellipse 34% 30% at 74% 66%, rgba(14, 165, 233, 0.1), transparent 70%),
+    radial-gradient(ellipse 26% 18% at 58% 22%, rgba(168, 85, 247, 0.08), transparent 70%);
+  filter: blur(8px);
+  animation: nebulaDrift 60s ease-in-out infinite alternate;
+}
+
+/* Bliższa warstwa gwiazd: jaśniejsze, rzadsze, szybszy dryf = paralaksa z `.stars`. */
+.starsNear {
+  inset: -40%;
+  opacity: 0.55;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1.5px 1.5px at 64% 42%, rgba(200, 220, 255, 0.85), transparent 60%),
+    radial-gradient(2px 2px at 38% 76%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 88% 64%, rgba(255, 240, 220, 0.8), transparent 60%);
+  background-size: 420px 420px;
+  animation: starsNear 70s linear infinite, twinkle 5s ease-in-out infinite alternate;
+}
+
+/* Odległa bitwa: krótki błysk wybuchu daleko w tle, na krawędziach kadru. */
+.farFlash {
+  left: var(--x);
+  top: var(--y);
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  border-radius: 50%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle, rgba(255, 230, 190, 0.55) 0%, rgba(251, 146, 60, 0.18) 35%, transparent 70%);
+  animation: farFlash var(--t) ease-out var(--d) infinite;
+}
+
+/* ---------------- ZIEMIA ---------------- */
+
+/* Artyleria za horyzontem: rozbłysk nieba nad dolną krawędzią. */
+.horizonFlash {
+  left: var(--x);
+  bottom: 6%;
+  width: 260px;
+  height: 120px;
+  margin-left: -130px;
+  border-radius: 50%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 100%, rgba(254, 215, 170, 0.35) 0%, rgba(251, 146, 60, 0.14) 40%, transparent 72%);
+  animation: horizonFlash var(--t) ease-out var(--d) infinite;
+}
+
+/* Dym ścielący się nisko nad polem (dwie warstwy w przeciwnych kierunkach). */
+.fog {
+  left: -20%;
+  right: -20%;
+  bottom: -4%;
+  height: 34%;
+  opacity: 0.55;
+  filter: blur(14px);
+  background:
+    radial-gradient(ellipse 22% 60% at 15% 70%, rgba(120, 108, 96, 0.5), transparent 70%),
+    radial-gradient(ellipse 26% 55% at 48% 80%, rgba(100, 92, 84, 0.45), transparent 70%),
+    radial-gradient(ellipse 20% 60% at 82% 72%, rgba(120, 108, 96, 0.5), transparent 70%);
+  animation: fogDrift 38s ease-in-out infinite alternate;
+}
+
+.fog[data-back] {
+  bottom: 8%;
+  opacity: 0.3;
+  animation-duration: 52s;
+  animation-direction: alternate-reverse;
+}
+
+/* Żar unoszący się z pola walki. */
+.ember {
+  left: var(--x);
+  bottom: -2%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  opacity: 0;
+  background: #fdba74;
+  box-shadow: 0 0 6px 1px rgba(251, 146, 60, 0.8);
+  animation: emberRise var(--t) linear var(--d) infinite;
+}
+
+@keyframes nebulaDrift {
+  from { transform: translate(-2%, -1%) scale(1); opacity: 0.4; }
+  to { transform: translate(2%, 1.5%) scale(1.06); opacity: 0.6; }
+}
+
+@keyframes starsNear {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-420px, 140px); }
+}
+
+@keyframes twinkle {
+  from { opacity: 0.4; }
+  to { opacity: 0.65; }
+}
+
+@keyframes farFlash {
+  0%, 86% { opacity: 0; transform: scale(0.4); }
+  88% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes horizonFlash {
+  0%, 82% { opacity: 0; }
+  84% { opacity: 1; }
+  88% { opacity: 0.4; }
+  90% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+@keyframes fogDrift {
+  from { transform: translateX(-4%); }
+  to { transform: translateX(4%); }
+}
+
+@keyframes emberRise {
+  0% { opacity: 0; transform: translate(0, 0); }
+  10% { opacity: 0.9; }
+  70% { opacity: 0.6; }
+  100% { opacity: 0; transform: translate(var(--sway), -70vh); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambience i {
+    animation: none;
+  }
+
+  .farFlash,
+  .horizonFlash,
+  .ember {
+    display: none;
+  }
+}

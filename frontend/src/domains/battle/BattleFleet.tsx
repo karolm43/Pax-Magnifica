@@ -648,33 +648,33 @@ export function BattleFleet({
       const sounds =
         align === "left"
           ? [
-              at(250, () => playBattleSound("dropPod", { pan, gain: 0.7 })),
+              at(250, () => playBattleSound("dropPod", { pan, gain: 0.4 })),
               ...ranks(views).flatMap((list, rank) => {
                 const land = 1550 + rank * 350;
                 const mech = list[0]?.ship.asyncId === "mf";
                 return [
-                  at(land, () => playBattleSound("podLand", { pan })),
+                  at(land, () => playBattleSound("podLand", { pan, gain: 0.5 })),
                   ...(mech
-                    ? [at(land + 160, () => playBattleSound("mechStep", { pan }))]
+                    ? [at(land + 160, () => playBattleSound("mechStep", { pan, gain: 0.5 }))]
                     : []),
                 ];
               }),
             ]
           : hasMech
-            ? [at(500, () => playBattleSound("mechStep", { pan, gain: 0.7 }))]
+            ? [at(500, () => playBattleSound("mechStep", { pan, gain: 0.45 }))]
             : [];
       return () => {
         window.clearTimeout(t);
         sounds.forEach((d) => window.clearTimeout(d));
       };
     }
-    playBattleSound("fleetEnter", { pan });
+    playBattleSound("fleetEnter", { pan, gain: 0.3 });
     // War sun: własny dźwięk (assets/extra/sfx/warSunEnter.mp3), gdy szczelina się otwiera.
     const warp = withWarSun
-      ? window.setTimeout(() => playBattleSound("warSunEnter", { pan }), 1600)
+      ? window.setTimeout(() => playBattleSound("warSunEnter", { pan, gain: 0.5 }), 1600)
       : undefined;
     const thud = window.setTimeout(
-      () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan }),
+      () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan, gain: 0.4 }),
       4500,
     );
     return () => {
@@ -710,6 +710,7 @@ export function BattleFleet({
       data-align={align}
       data-assigning={assigning || undefined}
       data-retreat={retreat?.state}
+      data-winner={isWinner || undefined}
       aria-label={`${side.role === "attacker" ? "Attacker" : "Defender"}: ${name}`}
     >
       <header className={styles.fleetHead}>

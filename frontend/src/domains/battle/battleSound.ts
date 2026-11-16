@@ -56,8 +56,11 @@ export type SoundOpts = {
 const SFX_BASE = "/static/extra/sfx";
 const STORAGE_KEY = "battle.sound.muted";
 const MASTER = 0.5;
-/** Próbki są znormalizowane do szczytu −1 dB — ciszej niż synteza, żeby nie zagłuszały muzyki. */
-const SAMPLE_GAIN = 0.8;
+/**
+ * Próbki są znormalizowane do szczytu −1 dB — dużo ciszej niż synteza, żeby walka nie
+ * zagłuszała muzyki i interfejsu (zgłoszenie: „za głośne”).
+ */
+const SAMPLE_GAIN = 0.42;
 
 let ctx: AudioContext | null = null;
 let muted =
@@ -194,6 +197,27 @@ export function pickVariant(
 
 type Out = { c: AudioContext; out: AudioNode; t: number };
 
+let busNode: AudioNode | null = null;
+
+/**
+ * Wspólna szyna wszystkich dźwięków walki: kompresor spłaszcza szczyty, gdy wiele strzałów
+ * i wybuchów nakłada się naraz (salwa 20 kości nie staje się ścianą hałasu), a pojedyncze
+ * dźwięki zostają czytelne.
+ */
+function bus(c: AudioContext): AudioNode {
+  if (busNode) return busNode;
+  if (typeof c.createDynamicsCompressor !== "function") return c.destination;
+  const comp = c.createDynamicsCompressor();
+  comp.threshold.value = -20;
+  comp.knee.value = 14;
+  comp.ratio.value = 5;
+  comp.attack.value = 0.004;
+  comp.release.value = 0.25;
+  comp.connect(c.destination);
+  busNode = comp;
+  return comp;
+}
+
 /** Węzeł wyjściowy z panoramą i głośnością głównego regulatora. */
 function output(c: AudioContext, opts: SoundOpts): AudioNode {
   const master = c.createGain();
@@ -206,7 +230,7 @@ function output(c: AudioContext, opts: SoundOpts): AudioNode {
     pan.connect(master);
     tail = pan;
   }
-  master.connect(c.destination);
+  master.connect(bus(c));
   return tail;
 }
 

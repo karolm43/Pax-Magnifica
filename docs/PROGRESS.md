@@ -737,3 +737,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   z UNAUDITED. RULES.md 62.10: usunięte nieaktualne ⚠️ ZAŁOŻENIE o Parley (ruling F_yin Ω 7 - działa).
 - QA: pytest 2582 ✓, ruff ✓, mypy zmienionych ✓, tsc ✓, eslint ✓, vitest invasion ✓. Bez e2e/build (brak nowych
   modułów). Wymaga restartu backendu (nowe pole widoku inwazji).
+
+## 2026-11-16 — Pole bitwy: giną kliknięte sztuki, bez ponownego wlotu, ciszej, więcej animacji
+
+- Błąd „giną nie te sztuki”: id egzemplarza wynikało z indeksu, a silnik zwraca tylko liczby — po zniszczeniu
+  klikniętego znikał ostatni z typu. `shipIdentity.ts` (`reconcileShips`/`useStableShips`): id stabilne między
+  odczytami, zmiany liczb trafiają w egzemplarze z zamiaru gracza (Confirm przypisania: destroy/sustain; wskazanie
+  w decyzji, np. Assault Cannon: prefer), bez zamiaru — od końca szeregu. Konający okręt zostaje na swoim miejscu
+  w szyku (`useDyingShips`). U przeciwnika w sieci (bez jego zamiaru) nadal heurystyka.
+- Błąd „statek wlatuje drugi raz” (Assault Cannon na starcie walki): wlot floty miał wyższą specyficzność CSS niż
+  śmierć — ginący w trakcie wlotu dostawał `fleetFly`. Teraz śmierć wygrywa (też desant naziemny); pamięć wlotu
+  kasowana dopiero po 4 s bez walki.
+- Ciszej: próbki 0,42 (było 0,8), wlot floty/desant/kroki mecha ściszone; wszystkie dźwięki walki przez kompresor.
+- Animacje: `BattleAmbience` (kosmos: paralaksa gwiazd, mgławica, błyski odległej bitwy; ziemia: artyleria za
+  horyzontem, dym, żar), błysk i szarpnięcie trafionej jednostki, leje po pociskach artylerii, zwycięzca robi krok
+  naprzód ze złotą poświatą.
+- Testy: `shipIdentity.test.ts` (+6). QA: vitest battle/invasion ✓, tsc ✓, eslint ✓, build ✓. Front-only. Bez e2e
+  i bez podglądu w przeglądarce.
+

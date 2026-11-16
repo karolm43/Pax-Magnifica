@@ -32,7 +32,6 @@ import {
   assignableShips,
   autoMarks,
   coveredCount,
-  expandShips,
   isCovered,
   planFromMarks,
   toggleMark,
@@ -41,12 +40,19 @@ import {
 } from "./battleAssign";
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet, resetFleetEntries } from "./BattleFleet";
+import {
+  INTENT_TTL_MS,
+  NO_INTENT,
+  useStableShips,
+  type ShipIntent,
+} from "./shipIdentity";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
 import { buildActionCardParams } from "@/api/useActionCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import type { BattleEffect } from "@/api/useBoardEditor";
 import { BattleCenter, type PickNote } from "./BattleCenter";
+import { BattleAmbience } from "./BattleAmbience";
 import {
   canPick,
   complete,
@@ -157,6 +163,27 @@ function recoil(el: Element, kind: "tracer" | "shell", away: number, delayMs: nu
   });
 }
 
+/**
+ * Reakcja trafionej jednostki: biały błysk kadłuba i szarpnięcie od strony strzału (Web
+ * Animations na właściwościach `translate`/`filter` — nie psują obrotu sprite'a z CSS).
+ * `away` = kierunek od strzelca (±1); ciężkie trafienie szarpie mocniej.
+ */
+function flinch(el: Element, away: number, delayMs: number, heavy: boolean) {
+  const sprite = el.querySelector(`.${styles.shipSprite}`);
+  if (!sprite || typeof sprite.animate !== "function") return;
+  const k = heavy ? 2 : 1;
+  sprite.animate(
+    [
+      { translate: "0 0", filter: "brightness(1)" },
+      { translate: `${away * 5 * k}px ${-1 * k}px`, filter: "brightness(2.6)", offset: 0.12 },
+      { translate: `${away * -2 * k}px 0`, filter: "brightness(1.4)", offset: 0.35 },
+      { translate: `${away * k}px 0`, offset: 0.6 },
+      { translate: "0 0", filter: "brightness(1)" },
+    ],
+    { duration: heavy ? 520 : 380, delay: Math.max(0, delayMs), easing: "ease-out" },
+  );
+}
+
 /** Rodzaj broni pocisku: AFB = flak; rakiety z krążowników; reszta laser (co 3.) i plazma. */
 function shotKind(
   s: {
@@ -199,6 +226,8 @@ type Shot = {
   target: "left" | "right";
   /** asyncId trafianej jednostki (dźwięk trafienia: pancerz mecha vs piechota). */
   targetBase: string;
+  /** Element trafianej jednostki (reakcja na trafienie). */
+  victim?: Element;
   /** Strzela okręt ciężki (war sun / flagowiec / dreadnought). */
   heavy: boolean;
   /** Strzela war sun (własny efekt: kula żaru z ładowaniem). */
@@ -322,6 +351,7 @@ function VolleyLayer({
           delayMs: bolt.delayMs,
           target: enemy,
           targetBase: victim.getAttribute("data-base") ?? "",
+          victim,
           heavy,
           sun: shooter.getAttribute("data-base") === "ws",
           missile,
@@ -401,6 +431,10 @@ function VolleyLayer({
             s.delayMs + TRAVEL_MS,
           ),
         );
+      }
+      // Trafiona jednostka błyska i szarpie się w chwili trafienia (siła wg broni).
+      if (s.hit && s.victim) {
+        flinch(s.victim, s.target === "left" ? -1 : 1, s.delayMs + travelOf(s), s.heavy || s.sun);
       }
       // Trafienie: kula w ciało/pancerz, pocisk działa wybucha na ziemi (także przy pudle).
       const lands = s.hit || s.ground === "shell";
@@ -527,6 +561,22 @@ function VolleyLayer({
         />
       ))}
       {shots.list
+        .filter((s) => s.ground === "shell")
+        .map((s) => (
+          <span
+            key={`${s.id}-crater`}
+            className={styles.crater}
+            data-heavy={s.heavy || undefined}
+            style={
+              {
+                left: s.tx,
+                top: s.ty,
+                "--delay": `${s.delayMs + travelOf(s)}ms`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      {shots.list
         .filter((s) => s.hit || s.ground === "shell")
         .map((s) => (
           <span
@@ -602,8 +652,19 @@ function Battlefield({
 
   const attacker = view.attacker!;
   const defender = view.defender!;
-  const attackerShips = expandShips(attacker);
-  const defenderShips = expandShips(defender);
+  // Zamiar gracza (kliknięte egzemplarze) per strona: przy następnej zmianie składu giną /
+  // przyjmują Sustain DOKŁADNIE te sztuki, a nie „ostatnie z typu” (silnik zna tylko liczby).
+  const intents = useRef<Record<string, ShipIntent>>({});
+  const intentOf = (key: string) => {
+    const intent = intents.current[key];
+    return intent && Date.now() - (intent.at ?? 0) < INTENT_TTL_MS ? intent : NO_INTENT;
+  };
+  const attackerShips = useStableShips(attacker, intentOf(attacker.faction), () => {
+    delete intents.current[attacker.faction];
+  });
+  const defenderShips = useStableShips(defender, intentOf(defender.faction), () => {
+    delete intents.current[defender.faction];
+  });
   // Ostatni wykonany odwrót (wpis RETREAT na końcu dziennika) — jego statki ODLATUJĄ.
   const lastEntry = view.log.length > 0 ? view.log[view.log.length - 1] : null;
   const lastRetreat = lastEntry?.phase === "RETREAT" ? lastEntry.retreat : null;
@@ -811,6 +872,11 @@ function Battlefield({
     };
   };
   const confirmPick = (offer: OfferView, state: PickState) => {
+    // Wskazane egzemplarze (np. ofiara Assault Cannon) zmieniają się pierwsze — po obu stronach.
+    const picked = new Set(Object.values(state).flatMap((byShip) => Object.keys(byShip)));
+    for (const side of [attacker, defender]) {
+      intents.current[side.faction] = { ...NO_INTENT, prefer: picked, at: Date.now() };
+    }
     const { params } = buildActionCardParams(offer.inputs, pickValues(offer, state));
     void run(async () => {
       await offerActions.accept(offer.player_id, offer.id, params);
@@ -906,6 +972,7 @@ function Battlefield({
         aria-hidden="true"
       />
       <div className={styles.stars} aria-hidden="true" />
+      <BattleAmbience kind={view.kind === "ground" ? "ground" : "space"} />
       <header className={styles.topBar}>
         <span className={styles.topTitle}>
           <IconSwords size={18} aria-hidden="true" />
@@ -1016,15 +1083,27 @@ function Battlefield({
           onAuto={() => setMarks(autoMarks(allowedShips, required, cancels))}
           targetNote={targetNote}
           onClearMarks={() => setMarks({})}
-          onConfirmAssign={() =>
-            view.assigning &&
+          onConfirmAssign={() => {
+            if (!view.assigning) return;
+            const ids = (...kinds: Mark[]) =>
+              new Set(
+                Object.entries(marks)
+                  .filter(([, m]) => kinds.includes(m))
+                  .map(([id]) => id),
+              );
+            intents.current[view.assigning] = {
+              destroy: ids("destroy", "both"),
+              sustain: ids("sustain", "both"),
+              prefer: new Set(),
+              at: Date.now(),
+            };
             void run(() =>
               battleAssign(
                 view.assigning!,
                 planFromMarks(assigningShips, marks),
               ),
-            )
-          }
+            );
+          }}
           onClose={() => void run(battleClose)}
           decisionsPending={offersPending}
           reactionLabel={reactionLabel}
@@ -1134,8 +1213,12 @@ export function BattleOverlay() {
   const { view, holding } = useDiceHold(live, battleHoldMs, freezeBattleSides);
   // Po walce kolejna bitwa (także w tym samym systemie) znów ma wlot floty.
   const over = !inCombat && !holding;
+  // Chwilowy brak walki w odczycie stanu (np. przejście kroku) nie może kasować pamięci wlotu —
+  // inaczej flota wlatywała drugi raz. Kasujemy dopiero, gdy walki nie ma przez dłuższą chwilę.
   useEffect(() => {
-    if (over) resetFleetEntries();
+    if (!over) return;
+    const t = window.setTimeout(resetFleetEntries, 4000);
+    return () => window.clearTimeout(t);
   }, [over]);
   const offersPending = (gameState?.pendingOffers ?? []).length > 0;
 

@@ -47,6 +47,7 @@ export function useDyingShips(
   const leavingRef = useRef(leaving);
   leavingRef.current = leaving;
   const [dying, setDying] = useState<ShipEntity[]>([]);
+  const placement = useRef<string[]>(ships.map((s) => s.id));
   const [departing, setDeparting] = useState<Set<string>>(new Set());
   // Egzemplarze, które WŁAŚNIE przyjęły Sustain Damage (były całe, teraz uszkodzone) —
   // błyskają tarczą przez chwilę, potem wracają do zwykłego wyglądu uszkodzonego.
@@ -100,20 +101,29 @@ export function useDyingShips(
   }, [signature]);
 
   const alive = new Set(ships.map((s) => s.id));
-  return [
-    ...ships.map((ship) => ({
+  const views = new Map<string, ShipView>();
+  for (const ship of ships) {
+    views.set(ship.id, {
       ship,
       dying: false,
       leaving: false,
       justSustained: sustained.has(ship.id),
-    })),
-    ...dying
-      .filter((s) => !alive.has(s.id))
-      .map((ship) => {
-        const leaves = departing.has(ship.id);
-        return { ship, dying: !leaves, leaving: leaves, justSustained: false };
-      }),
+    });
+  }
+  for (const ship of dying) {
+    if (alive.has(ship.id)) continue;
+    const leaves = departing.has(ship.id);
+    views.set(ship.id, { ship, dying: !leaves, leaving: leaves, justSustained: false });
+  }
+  // Konający okręt zostaje na SWOIM miejscu w szyku (nie przeskakuje na koniec szeregu):
+  // kolejność z poprzedniego renderu, nowe egzemplarze na końcu. Przestawienie elementu
+  // w DOM restartowałoby też jego animacje CSS (np. wlot floty).
+  const order = [
+    ...placement.current.filter((id) => views.has(id)),
+    ...[...views.keys()].filter((id) => !placement.current.includes(id)),
   ];
+  placement.current = order;
+  return order.map((id) => views.get(id)!);
 }
 
 export type Bolt = {
