@@ -223,27 +223,45 @@ def test_assassin_formularz_pomija_juz_zablokowanych(registry: StaticDataRegistr
     assert values == ["p1", "p2"]
 
 
-def test_hack_odwraca_kolejnosc_glosowania_mowca_ostatni(registry: StaticDataRegistry) -> None:
-    """Hack Election (Codex 1): od gracza na prawo od mówcy, przeciwnie do zegara; mówca ostatni."""
+def test_hack_glosuje_ostatni_po_mowcy(registry: StaticDataRegistry) -> None:
+    """Hack Election Ω (TE): zagrywający głosuje ostatni, mówca przed nim (ruling Ω)."""
     state = _revealed(registry, [LAW], {"p3": ["hack"]})
     assert state.agenda is not None and state.agenda.vote_order == ["p3", "p1", "p2"]
     new = _play(state, registry, "p3", "hack")
-    assert new.agenda is not None and new.agenda.vote_order == ["p1", "p3", "p2"]
+    assert new.agenda is not None and new.agenda.vote_order == ["p1", "p2", "p3"]
     assert agenda_phase.current_voter(new) == "p1"
     assert new.active_player_id == "p1"
     assert "hack" not in new.players["p3"].private.action_cards
 
 
-def test_hack_mowca_glosuje_ostatni_przy_pieciu_graczach(registry: StaticDataRegistry) -> None:
-    state = _state(registry, [LAW])
-    state.seating_order = ["p1", "p2", "p3", "p4", "p5"]
-    for pid in ("p4", "p5"):
-        state.players[pid] = PlayerState(player_id=pid, color=pid)
-    _hand(state, "p1", "hack")
-    state = agenda_phase.reveal_agenda(state, registry, "p2")
-    assert state.agenda is not None and state.agenda.vote_order == ["p3", "p4", "p5", "p1", "p2"]
+def test_hack_mowca_tez_moze_glosowac_ostatni(registry: StaticDataRegistry) -> None:
+    state = _revealed(registry, [LAW], {"p1": ["hack"]})
     new = _play(state, registry, "p1", "hack")
-    assert new.agenda is not None and new.agenda.vote_order == ["p1", "p5", "p4", "p3", "p2"]
+    assert new.agenda is not None and new.agenda.vote_order == ["p3", "p2", "p1"]
+
+
+def test_hack_zablokowany_dalej_nie_glosuje(registry: StaticDataRegistry) -> None:
+    """Ruling Ω: Hack Election nie pozwala głosować graczowi, któremu zabrania tego inny efekt."""
+    state = _revealed(registry, [LAW], {"p1": ["hack"]})
+    state.agenda.blocked = ["p1"]  # type: ignore[union-attr]
+    new = _play(state, registry, "p1", "hack")
+    assert new.agenda is not None and new.agenda.vote_order[-1] == "p1"
+    assert "p1" in new.agenda.blocked
+
+
+def test_hack_zagrywajacy_nie_zagra_bribery(registry: StaticDataRegistry) -> None:
+    """Ruling Ω: Bribery po głosie mówcy; gracz z Hack Election Ω nie może jej zagrać."""
+    state = _revealed(registry, [LAW], {"p3": ["hack", "bribery"], "p1": ["bribery"]})
+    for pid in state.players:
+        state.players[pid].trade_goods = 3
+    state = _play(state, registry, "p3", "hack")
+    for voter in ("p1", "p2", "p3"):
+        assert agenda_phase.current_voter(state) == voter
+        state = agenda_phase.cast_vote(state, registry, voter, "for", [_planet(state, voter)])
+        if voter == "p2":  # po mówcy: Bribery dla p1 tak, dla p3 (jeszcze bez głosu) nie
+            assert _playable(state, registry, "p1", "bribery")
+    assert _playable(state, registry, "p1", "bribery")  # okno Bribery nadal otwarte
+    assert not _playable(state, registry, "p3", "bribery")
 
 
 def test_hack_niegrywalny_po_pierwszym_glosie(registry: StaticDataRegistry) -> None:
@@ -251,8 +269,6 @@ def test_hack_niegrywalny_po_pierwszym_glosie(registry: StaticDataRegistry) -> N
     assert _playable(state, registry, "p1", "hack")
     state = agenda_phase.abstain(state, registry, "p3")
     assert not _playable(state, registry, "p1", "hack")
-    with pytest.raises(ValueError):
-        agenda_phase.vote_counterclockwise(state)
 
 
 def test_insider_podglad_jest_prywatny(registry: StaticDataRegistry) -> None:

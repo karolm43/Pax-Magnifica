@@ -12,7 +12,7 @@ Okna WYLICZANE z ``GameState.agenda`` (krok ``AgendaStep``):
   (``agenda_phase.PAUSE_BEFORE_RESOLUTION_ALWAYS``).
 
 Zmiany stanu agendy WYŁĄCZNIE przez funkcje ``agenda_phase`` (``block_voter``,
-``vote_counterclockwise``, ``veto_agenda``, ``add_votes``, ``replace_elected``, ``void_agenda``).
+``vote_last``, ``veto_agenda``, ``add_votes``, ``replace_elected``, ``void_agenda``).
 Predykcje riderów to efekty trwałe (``active_effects``, zakres ``AGENDA``) z danymi
 ``{outcome, ...nagroda}``; rozstrzyga je hook zdarzenia ``AGENDA_OUTCOME_RESOLVED`` / AFTER
 (efekt agendy jest już zapisany - C_action_cards:
@@ -80,6 +80,8 @@ _VOTING_STEPS = (AgendaStep.VOTE, AgendaStep.TIEBREAK, AgendaStep.COUNTED)
 
 _KIND_VOTED = "voted"  # okno „po tym, jak gracz oddał głosy"
 _KIND_SPEAKER = "speaker"  # okno „po tym, jak mówca zagłosował / wstrzymał się"
+# Hack Election Ω: kto głosuje ostatni w tej agendzie (nie zagra Bribery - ruling).
+HACK_ELECTION = "action_cards:hack:vote_last"
 
 
 # =========================================================================================
@@ -580,12 +582,16 @@ def assassin(
 
 @register_effect("action_cards:hack")
 def hack(
-    state: GameState, _registry: StaticDataRegistry, _player_id: str, _params: Mapping[str, Any]
+    state: GameState, _registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
 ) -> None:
-    """Hack Election (Codex 1): During this agenda, voting begins with the player to the right
-    of the speaker and continues counterclockwise (mówca nadal ostatni - ruling)."""
+    """Hack Election Ω (Thunder's Edge): During this agenda, you vote last.
+
+    Zagrywający głosuje po mówcy; nie może potem zagrać Bribery (ruling ``C_action_cards``) -
+    znacznik ``HACK_ELECTION`` (zakres agendy) sprawdza warunek Bribery.
+    """
     _agenda_or_fail(state)
-    agenda_phase.vote_counterclockwise(state)
+    agenda_phase.vote_last(state, player_id)
+    active_effects.add_effect(state, HACK_ELECTION, Duration.AGENDA, owner=player_id)
 
 
 @register_effect("action_cards:insider")
@@ -753,6 +759,8 @@ def _bribery_ok(
         window.ctx.get("kind") == _KIND_SPEAKER
         and agenda is not None
         and player_id in agenda.votes  # „you voted" - dodatkowe głosy na ten sam wynik
+        # Hack Election Ω: zagrywający nie może zagrać Bribery (C_action_cards).
+        and not active_effects.has_effect(state, player_id, HACK_ELECTION)
     )
 
 

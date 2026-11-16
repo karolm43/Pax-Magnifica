@@ -167,7 +167,7 @@ export const actionCards: ActionCard[] = [
     name: "Archaeological Expedition",
     phase: "Action",
     window: "Action",
-    text: "Reveal the top 3 cards of an exploration deck that matches a planet you control. gain any relic fragments that you reveal and discard the rest.",
+    text: "Reveal the top 3 cards of an exploration deck that matches a planet you control; gain any relic fragments that you reveal and discard the rest.",
     automationID: "arch_expedition",
     flavorText:
       "Hiari pressed the activation flyphs, and the ancient door hissed open. As she stepped into the pitch-black interior of the Mahact tomb, she felt a shiver of anticipation. Perhaps, finally, she would find the Codex.",
@@ -799,7 +799,7 @@ export const actionCards: ActionCard[] = [
     name: "Counterstroke",
     phase: "Action",
     window:
-      "After a player activates a system that contains 1 of your command tokens",
+      "After another player activates a system that contains 1 of your command tokens",
     text: "Return that command token to your tactic pool.",
     flavorText:
       'That\'s the thing about loyalty -  Viktor mused, turning one of the pieces backward, facing its own side. "It can be bought."',
@@ -818,7 +818,7 @@ export const actionCards: ActionCard[] = [
   },
   {
     alias: "coup",
-    name: "Coup Detat",
+    name: "Coup d'Etat",
     phase: "Action",
     window: "When another player would perform a strategic action",
     text: "End that player's turn, the strategic action is not resolved and the strategy card is not exhausted.",
@@ -1613,8 +1613,8 @@ export const actionCards: ActionCard[] = [
     name: "Experimental Battlestation",
     phase: "Action",
     window:
-      "After another player moves ships into a system during a tactical action",
-    text: "Choose 1 of your space docks that is either in or adjacent to that system. That space dock uses SPACE CANNON 5(x3) against ships in the active system.",
+      "After the active player moves ships into the active system during a tactical action",
+    text: "Choose 1 of your space docks that is either in or adjacent to that system. That space dock uses SPACE CANNON 5(x3) against the active player's ships in the active system.",
     automationID: "experimental",
     flavorText:
       'Arm the relay! Mendosa bared his fangs. "The Saar will not submit!"',
@@ -2039,8 +2039,8 @@ export const actionCards: ActionCard[] = [
     alias: "ghost_squad",
     name: "Ghost Squad",
     phase: "Action",
-    window: "After a player commits units to land on a planet you control",
-    text: "Move any number of ground forces from any planet you control in the active system to any other planet you control in the active system.",
+    window: "After another player commits units to land on a planet you control",
+    text: "Move any number of your ground forces from any planet you control in the active system to any other planet you control in the active system.",
     flavorText:
       "The L1 advance team was expecting to find the outpost abandoned. What they found - unfortunately for them - was Connor.",
     source: "codex1",
@@ -2081,7 +2081,7 @@ export const actionCards: ActionCard[] = [
     name: "Hack Election",
     phase: "Agenda",
     window: "After an agenda is revealed",
-    text: "During this agenda, voting begins with the player to the right of the speaker and continues counterclockwise.",
+    text: "During this agenda, you vote last.",
     flavorText:
       "YOUR [NULL ID] STATELY GAME WILL BE FOR NAUGHT<< [VAR:42687] ORDER WILL ARISE FROM [VAR:89001] CHAOS<< IT IS OUR HAND THAT CONTROLS THE OUTCOME",
     source: "codex1",
@@ -2249,7 +2249,7 @@ export const actionCards: ActionCard[] = [
     name: "Insider Information",
     phase: "Agenda",
     window: "After an agenda is revealed",
-    text: "Look at the top card of the agenda deck.",
+    text: "Look at the top 3 cards of the agenda deck.",
     automationID: "insider",
     flavorText:
       "M'aban yawned. Another filibuster. Politics could be so flavorless at times. Besides, she already knew how this one was going to turn out. Not well. Not well at all...",
@@ -2454,7 +2454,7 @@ export const actionCards: ActionCard[] = [
     name: "Master Plan",
     phase: "Action",
     window: "After you perform an action",
-    text: "You may perform an additional action this turn.",
+    text: "Perform an additional action.",
     flavorText:
       "Viktor laced his long fingers with a wicked smile. Unlenn would be proud. The tactician's reputation was well-earned; even pawns could unseat kings.",
     source: "codex1",
@@ -3867,7 +3867,7 @@ export const actionCards: ActionCard[] = [
     alias: "s_retreat1",
     name: "Skilled Retreat",
     phase: "Action",
-    window: "At the start of a [space] combat round",
+    window: "At the start of a combat round",
     text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
@@ -3878,7 +3878,7 @@ export const actionCards: ActionCard[] = [
     alias: "s_retreat2",
     name: "Skilled Retreat",
     phase: "Action",
-    window: "At the start of a [space] combat round",
+    window: "At the start of a combat round",
     text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
@@ -3889,7 +3889,7 @@ export const actionCards: ActionCard[] = [
     alias: "s_retreat3",
     name: "Skilled Retreat",
     phase: "Action",
-    window: "At the start of a [space] combat round",
+    window: "At the start of a combat round",
     text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
@@ -3900,7 +3900,7 @@ export const actionCards: ActionCard[] = [
     alias: "s_retreat4",
     name: "Skilled Retreat",
     phase: "Action",
-    window: "At the start of a [space] combat round",
+    window: "At the start of a combat round",
     text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
@@ -4508,7 +4508,7 @@ export const actionCards: ActionCard[] = [
     name: "Solar Flare",
     phase: "Action",
     window: "After you activate a system",
-    text: "During this movement, other players cannot use SPACE CANNON against your ships.",
+    text: "During the \"Movement\" step of this tactical action, other players cannot use SPACE CANNON against your ships.",
     flavorText:
       "Meian braced for combat as the fleet entered the Ordinian system, but there were no Valefar droneships waiting to meet them. The solar flare gambit had succeeded - they were completely undetected.",
     source: "codex1",

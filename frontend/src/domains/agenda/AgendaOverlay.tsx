@@ -242,7 +242,13 @@ function Senate({
   lookOf: (id: string) => Look;
 }) {
   const speaker = agenda.speakerId;
-  const order = [...agenda.voteOrder.filter((id) => id !== speaker), ...(speaker ? [speaker] : [])];
+  // Kolejka z silnika bez zmian: Hack Election Ω sadza zagrywającego PO mówcy.
+  const order =
+    agenda.voteOrder.length > 0
+      ? agenda.voteOrder
+      : speaker
+        ? [speaker]
+        : [];
   const stateOf = (id: string) => {
     if (agenda.votes[id]) return "voted";
     if (agenda.abstained.includes(id)) return "abstained";

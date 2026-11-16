@@ -3598,7 +3598,7 @@ export const agendas: Agenda[] = [
     type: "Law",
     target: "Elect Player",
     text1:
-      "The elected player gains this card. The owner of this card may discard this card after performing an action to remove 1 of their command counters from the game board and return it to their reinforcements - then they may perform 1 additional action.",
+      "The elected player gains this card. The owner of this card may discard this card after performing an action to remove 1 of their command tokens from the game board and return it to their reinforcements - then they may perform 1 additional action.",
     text2: "",
     mapText:
       "Discard this card after performing an action to return 1 of your command counters from the game board to your reinforcements. then you may perform 1 additional action.",
@@ -4429,6 +4429,24 @@ export const agendas: Agenda[] = [
       "For: Each player who has 1 or more ships in a system that contains a wormhole may research 1 technology. Then, destroy all ships in systems that contain an alpha or beta wormhole.",
     text2:
       'Against: Each player that voted "Against" removes 1 command token from their command sheet and returns it to their reinforcements.',
+    source: "base",
+  },
+  {
+    alias: "disarmament",
+    name: "Compensated Disarmament",
+    type: "Directive",
+    target: "Elect Planet",
+    text1: "Destroy each ground force on the elected planet. For each unit that was destroyed, the player who control that planet gains 1 trade good.",
+    text2: "",
+    source: "base",
+  },
+  {
+    alias: "minister_commerce",
+    name: "Minister of Commerce",
+    type: "Law",
+    target: "Elect Player",
+    text1: "The elected player gains this card. After the owner of this card replenishes commodities, they gain 1 trade good for each player that is their neighbor.",
+    text2: "",
     source: "base",
   },
 ];

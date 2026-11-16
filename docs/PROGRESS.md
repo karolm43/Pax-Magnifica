@@ -1422,9 +1422,7 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 
 ## Agenda: Hack Election, Research Grant w oknie drzewa, opisy wyborów, panel dowódcy (2026-11-16)
 
-- Hack Election (Codex 1, tekst z assetów): głosowanie od gracza na PRAWO od mówcy, przeciwnie do zegara; mówca
-  nadal ostatni (ruling `C_action_cards`). `agenda_phase.vote_counterclockwise` zamiast `vote_last` (stara wersja
-  karty). RULES `R53.md`. ⚠ Zeal (Argent „votes first”) nadal niezaimplementowany.
+- Hack Election: ⚠ zmiana z tego bloku była BŁĘDNA (stara wersja karty) — cofnięta w bloku niżej (TE Ω).
 - Research Grant Reallocation: zamiast listy nazw — pełne okno drzewa technologii (`research_offer.gain_input`,
   tryb „gain”: bez płatności i prerekwizytów, na kaflu koszt `-N fleet`, bez przycisku rezygnacji). Wormhole
   Research („may research 1”) też w oknie badania (koszt 0, skipy specjalnością).
@@ -1471,3 +1469,21 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
 - Testy: `test_activity::test_wejscie_fracture_jako_fakt`, `keyMoments.test.ts`. QA: pytest `test_activity`,
   ruff/mypy (zmienione pliki), tsc, eslint, vitest `game-shell` + `shared/audio`, build, e2e (7/7). Zrzuty scen
   zweryfikowane wizualnie. Nowy fakt w backendzie — restart backendu.
+
+## Najnowsze wersje kart (TE / Codex) — audyt tekstów i Hack Election Ω (2026-11-16)
+
+- Audyt talii: karty akcji `action_cards_te` (140) i agendy `agendas_pok` (50) — w assetach silnika brak starszych
+  duplikatów z włączonych źródeł; 8 kart „Thunder's Edge Updated” (wiki TI4: Master Plan, Fighter Conscription,
+  Blitz, Hack Election, Solar Flare, Counterstroke, Ghost Squad, War Machine) ma w assetach brzmienie TE (różnice
+  tylko stylistyczne). TE nie zmienił agend (wiki Agenda Cards).
+- Hack Election Ω (TE): „During this agenda, you vote last” — przywrócone `agenda_phase.vote_last`; rulingi Ω:
+  mówca głosuje przed zagrywającym, zablokowany dalej nie głosuje, zagrywający nie zagra Bribery (znacznik
+  `HACK_ELECTION`). RULES `R53.md`. Przyczyna „nie działa” w UI: Senat przestawiał mówcę na koniec (ignorował
+  `voteOrder` silnika) + w ręce stary tekst karty. Naprawione oba.
+- Dane frontu miały stare teksty (Hack Election, Insider Information „top card”, Master Plan, Solar Flare, Ghost
+  Squad, Counterstroke, Experimental Battlestation, Skilled Retreat, Minister of War…) i brak 2 agend talii
+  (Compensated Disarmament, Minister of Commerce). Nowy `scripts/sync_card_texts.py` (+ `--check`) wpisuje teksty
+  z assetów; strażnik `tests/test_card_texts_sync.py`.
+- Testy: `test_reactions_agenda` (Hack Ω ×5), `test_flows_agenda` (Hack przez API), `test_card_texts_sync`.
+  QA: pytest pełny (1 niestabilny `test_undo_move` przy `-n auto`, osobno zielony — obszar równoległej sesji),
+  ruff, mypy, tsc, eslint. Restart backendu (zmiana hooków).

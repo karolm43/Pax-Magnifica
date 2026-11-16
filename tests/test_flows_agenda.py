@@ -93,3 +93,20 @@ def test_web_data_limit_kart_akcji_dla_panelu_dowodcy(registry: StaticDataRegist
     limits = {p["discordId"]: p["actionCardLimit"] for p in data["playerData"] if p.get("faction")}
     expected = registry.hand_limits().action_cards
     assert limits and set(limits.values()) == {expected}
+
+
+def test_hack_election_przez_api_glosujacy_ostatni(registry: StaticDataRegistry) -> None:
+    """Hack Election Ω przez API: karta zagrana z ręki, zagrywający na końcu kolejki w web-data."""
+    flow = Flow(registry, "hacan")
+    speaker = _to_agenda(flow, ["mutiny", "mutiny"], {flow.me: ["hack"]})
+    flow.post("/agenda/reveal", {"player_id": speaker})
+    body = flow.client.get("/action-card/playable", params={"player_id": flow.me}).json()
+    row = next(r for r in body["cards"] if r["card_id"] == "hack")
+    assert row["playable"], row
+    flow.post("/action-card/play", {"player_id": flow.me, "card_id": "hack", "params": {}})
+    if flow.state().get("held_play"):  # okno Sabotage: pozostali pasują
+        flow.post("/action-card/held/pass", {"actor_id": flow.other})
+    agenda = _agenda(flow)
+    assert agenda["voteOrder"][-1] == flow.me
+    assert agenda["currentVoter"] != flow.me
+    assert "hack" not in flow.state()["players"][flow.me]["private"]["action_cards"]
