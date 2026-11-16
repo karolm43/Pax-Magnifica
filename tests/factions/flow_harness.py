@@ -47,7 +47,14 @@ class Flow:
     def __init__(self, registry: StaticDataRegistry, faction: str, other: str = "") -> None:
         self.registry = registry
         other = other or ("sol" if faction != "sol" else "letnev")
-        self.client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+        # Sterowany zegar serwera: okna reakcji trwają stały czas (RULES.md 54.11), więc scenariusz
+        # „przeczekuje” je przesunięciem czasu zamiast prawdziwego czekania.
+        self.clock = [1_000_000.0]
+        self.client = TestClient(
+            create_app(
+                registry=registry, store=EventStore(":memory:"), now=lambda: self.clock[0]
+            )
+        )
         resp = self.client.post(
             "/game/new", json={"players": [{"faction_id": faction}, {"faction_id": other}]}
         )
@@ -139,13 +146,21 @@ class Flow:
     _REACTING = ("/action-card/", "/promissory/", "/reaction-pause/", "/hold/", "/god-mode")
 
     def pass_reactions(self) -> None:
-        """Pauza ochronna w kluczowym oknie: wszyscy uprawnieni klikają „Pass” (jak gracze)."""
+        """Pauza ochronna w kluczowym oknie: nikt nie reaguje, upływa stały czas okna (54.11)."""
         pause = self.state().get("reaction_pause")
         while pause:
-            waiting = [p for p in pause["eligible"] if p not in pause["passed"]]
-            resp = self.client.post("/reaction-pause/pass", json={"actor_id": waiting[0]})
+            self.clock[0] += float(pause["seconds"]) + 1
+            resp = self.client.post("/reaction-pause/release", json={"actor_id": self.me})
             assert resp.status_code == 200, resp.text
             pause = self.state().get("reaction_pause")
+
+    def finish_hold(self) -> None:
+        """Okno Sabotage: nikt nie anuluje karty, upływa stały czas okna (54.11)."""
+        held = self.state().get("held_play")
+        if held:
+            self.clock[0] += float(held["seconds"]) + 1
+            resp = self.client.post("/action-card/held/release", json={"actor_id": self.me})
+            assert resp.status_code == 200, resp.text
 
     def post(self, path: str, body: Json | None = None, ok: bool = True) -> Any:
         if not path.startswith(self._REACTING):

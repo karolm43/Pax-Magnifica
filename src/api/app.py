@@ -58,6 +58,7 @@ from src.api.routers import (
     production,
     promissory,
     reaction_pause,
+    reaction_settings,
     relics,
     rules,
     setup,
@@ -81,7 +82,7 @@ from src.api.seats import (
     current_identity,
 )
 from src.api.state_service import StateService
-from src.core import error_text
+from src.core import card_hold, error_text
 from src.core import reaction_pause as reaction_pause_rules
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
@@ -228,7 +229,8 @@ def create_app(
     # Okno hold-play (RULES.md 53.6): gdy zagrana karta czeka na Sabotage, reszta gry stoi - akcje
     # graczy (POST) poza zagraniem karty / pasem / zwolnieniem, God-Mode i Undo/Redo dają 422.
     _held_allowed = re.compile(
-        r"(^|/)(action-card|god-mode|undo|redo|history|game/new|map/load|state|pause|resume)(/|$)"
+        r"(^|/)(action-card|reaction-settings|god-mode|undo|redo|history|game/new|map/load|state|pause"
+        r"|resume)(/|$)"
     )
 
     @app.middleware("http")
@@ -236,7 +238,14 @@ def create_app(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         if request.method == "POST" and not _held_allowed.search(request.url.path):
-            held = request.app.state.ctx.service.current_state().held_play
+            ctx = request.app.state.ctx
+            held = ctx.service.current_state().held_play
+            # Stały czas okna minął (RULES.md 54.11): efekt karty wykonuje się przy dowolnym
+            # kolejnym POST - gra nie zależy od odliczania w przeglądarce.
+            if held is not None and card_hold.expired(held, ctx.service.now()):
+                released = card_hold.resolve(ctx.service.current_state(), ctx.registry)
+                ctx.service.replace_state(released, label="action-card:held-release")
+                held = None
             if held is not None:
                 return JSONResponse(
                     status_code=422,
@@ -352,6 +361,7 @@ def create_app(
     app.include_router(transactions.router)
     app.include_router(window.router)
     app.include_router(reaction_pause.router)
+    app.include_router(reaction_settings.router)
     app.include_router(rules.router)
     app.include_router(components.router)
     app.include_router(action_cards.router)

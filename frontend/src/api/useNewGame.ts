@@ -154,6 +154,8 @@ export async function createNewGame(request: NewGameRequest): Promise<void> {
     body: JSON.stringify({
       agenda_deck: agendaDeck,
       chess_clock: chessClock,
+      // Stała długość okien reakcji (RULES.md 54.11) — ustawienie hosta.
+      reaction_window_seconds: settings.reactionWindowSeconds,
       ...request,
     }),
   });

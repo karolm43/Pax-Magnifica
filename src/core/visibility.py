@@ -27,7 +27,11 @@ from .player_fields import PRIVATE_FIELDS
 
 # Nazwy prywatnych list w ``PlayerPrivateState`` — odczytane z modelu, nie
 # hardkodowane, żeby dołożenie kolejnej prywatnej listy nie wymagało zmian tutaj.
-_PRIVATE_LIST_FIELDS: tuple[str, ...] = tuple(PlayerPrivateState.model_fields)
+_PRIVATE_LIST_FIELDS: tuple[str, ...] = tuple(
+    name
+    for name, info in PlayerPrivateState.model_fields.items()
+    if info.default_factory is not None  # kolekcje; flagi (np. auto-pas) redakcja zeruje i tak
+)
 
 # Nazwa pola prywatnego w ``PlayerState`` (jedno źródło klasyfikacji, R2.4).
 # Oczekujemy dokładnie jednego pola prywatnego: podmodelu ``private``.
@@ -104,6 +108,9 @@ def project_for_viewer(state: GameState, viewing_player_id: str) -> GameState:
             continue
         _redact_player(player)
 
+    # 4b. Pasy w oknach reakcji - tylko własny (RULES.md 54.11).
+    redact_reaction_windows(projected, viewing_player_id)
+
     # 5. Asercja końcowa (R5.4) — bezpiecznik przed wyciekiem: dla każdego gracza
     #    ≠ viewer wszystkie prywatne listy MUSZĄ być puste. Naruszenie → błąd,
     #    bez zwracania częściowo zredagowanego stanu.
@@ -132,7 +139,22 @@ def project_all_redacted(state: GameState) -> GameState:
     projected = state.clone()
     for player in projected.players.values():
         _redact_player(player)
+    redact_reaction_windows(projected, None)
     return projected
+
+
+def redact_reaction_windows(state: GameState, viewer_id: str | None) -> None:
+    """Pasy i prośby o czas w oknach reakcji: tylko patrzący (MUTUJE kopię; RULES.md 54.11).
+
+    Silnik pasuje sam za graczy bez pasującej karty, więc lista pasów zdradzałaby, kto ma kartę.
+    Długość okna (``seconds``) zostaje jawna - jest taka sama niezależnie od rąk.
+    """
+    for window in (state.reaction_pause, state.held_play):
+        if window is None:
+            continue
+        window.passed = [pid for pid in window.passed if pid == viewer_id]
+        # Liczba próśb o czas jest jawna (widać przedłużenie), tożsamość - nie.
+        window.extended_by = [pid if pid == viewer_id else "" for pid in window.extended_by]
 
 
 def _redact_player(player: PlayerState) -> None:

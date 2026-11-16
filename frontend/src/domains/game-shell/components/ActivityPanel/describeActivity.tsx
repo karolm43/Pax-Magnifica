@@ -11,6 +11,7 @@ import {
   IconFlame,
   IconGavel,
   IconHexagon,
+  IconHourglass,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlayerTrackNext,
@@ -88,6 +89,8 @@ const ACTION_GLYPH: Record<string, Glyph> = {
   "phase.start": IconPlayerPlay,
   "round.start": IconArrowsShuffle,
   "speaker.set": IconCrown,
+  "reactions.wait": IconHourglass,
+  "reactions.window": IconHourglass,
   "tactical.activate": IconHexagon,
   "objective.score": IconTarget,
   "agenda.reveal": IconGavel,
@@ -218,6 +221,10 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       return <>Round {a.subject} begins</>;
     case "speaker.set":
       return <>{target} became Speaker</>;
+    case "reactions.wait":
+      return <>Someone asked for more time to react</>;
+    case "reactions.window":
+      return <>Reaction windows now last {a.subject} s</>;
     case "setup.faction":
       return <>{prettifyId(a.subject ?? "")} joined the table</>;
     case "strategy.pick":

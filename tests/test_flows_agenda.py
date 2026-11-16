@@ -58,9 +58,7 @@ def test_decyzja_z_agendy_i_jawny_rider(registry: StaticDataRegistry) -> None:
     flow.post("/action-card/play", {
         "player_id": flow.other, "card_id": "trade_rider", "params": {"outcome": flow.me},
     })
-    held = flow.state().get("held_play")
-    if held:  # okno Sabotage: pozostali pasują
-        flow.post("/action-card/held/pass", {"actor_id": flow.me})
+    flow.finish_hold()  # okno Sabotage: nikt nie anuluje, mija stały czas (54.11)
     predictions = _agenda(flow)["predictions"]
     assert [(p["playerId"], p["card"], p["outcome"]) for p in predictions] == [
         (flow.other, "trade_rider", flow.me)
@@ -104,8 +102,7 @@ def test_hack_election_przez_api_glosujacy_ostatni(registry: StaticDataRegistry)
     row = next(r for r in body["cards"] if r["card_id"] == "hack")
     assert row["playable"], row
     flow.post("/action-card/play", {"player_id": flow.me, "card_id": "hack", "params": {}})
-    if flow.state().get("held_play"):  # okno Sabotage: pozostali pasują
-        flow.post("/action-card/held/pass", {"actor_id": flow.other})
+    flow.finish_hold()  # okno Sabotage: nikt nie anuluje, mija stały czas (54.11)
     agenda = _agenda(flow)
     assert agenda["voteOrder"][-1] == flow.me
     assert agenda["currentVoter"] != flow.me

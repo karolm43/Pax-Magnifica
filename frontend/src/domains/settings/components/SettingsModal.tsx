@@ -4,6 +4,7 @@ import { useSettingsStore } from "@/state/appStore";
 import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
+import { CurrentGameReactionWindow } from "./CurrentGameReactionWindow";
 import { AudioSettingsPanel } from "@/shared/audio/AudioSettingsPanel";
 import styles from "./SettingsModal.module.css";
 
@@ -246,6 +247,37 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                   gameId={gameId}
                   minutes={settings.chessClockMinutes}
                   incrementSeconds={settings.chessClockIncrementSeconds}
+                />
+              </SettingRow>
+            )}
+          </SettingGroup>
+
+          <SettingGroup label="Reaction windows">
+            <SettingRow
+              label="Window length (seconds)"
+              description="How long the game waits for reactions such as Sabotage, Coup d'Etat, agenda riders or Salvage. The window always lasts this long, so nobody can tell who holds a card; the game passes on its own for players who have nothing to play. Applies to new games; use the button below for a game in progress (host only)."
+            >
+              <NumberInput
+                aria-label="Reaction window length in seconds"
+                w={120}
+                min={2}
+                max={30}
+                value={settings.reactionWindowSeconds}
+                onChange={(value) =>
+                  handlers.updateSettings({
+                    reactionWindowSeconds: clampInt(value, 2, 30, 4),
+                  })
+                }
+              />
+            </SettingRow>
+            {gameId && (
+              <SettingRow
+                label="Current game"
+                description="Use this length in the game in progress, starting with the next reaction window."
+              >
+                <CurrentGameReactionWindow
+                  gameId={gameId}
+                  seconds={settings.reactionWindowSeconds}
                 />
               </SettingRow>
             )}

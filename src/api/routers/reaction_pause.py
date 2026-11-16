@@ -1,4 +1,4 @@
-"""Router pauzy ochronnej w kluczowych oknach reakcji (RULES.md 54.10): pas i zwolnienie po czasie.
+"""Router pauzy ochronnej w kluczowych oknach reakcji (RULES.md 54.10–54.11).
 
 Cienkie endpointy nad ``core.reaction_pause``. Pauzę otwiera ``StateService`` po każdym kroku gry;
 zwolnienie po czasie robi też middleware przy dowolnym kolejnym POST (zegar serwera), więc ten
@@ -30,7 +30,7 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
 async def post_pause_pass(
     actor: ActorId, request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Uprawniony gracz nie reaguje w tym oknie; po ostatnim pasie gra rusza dalej."""
+    """Uprawniony gracz nie reaguje w tym oknie (pauza i tak trwa stały czas, 54.11)."""
     # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
     player = actor_rules.merge_claimed(actor, request.actor_id)
     try:
@@ -38,6 +38,20 @@ async def post_pause_pass(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"reaction-pause:pass:{player}")
+
+
+@router.post("/reaction-pause/wait", response_model=StateEnvelope)
+async def post_pause_wait(
+    actor: ActorId, request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """„More time”: uprawniony gracz przedłuża pauzę raz o 10 s (anonimowo, RULES.md 54.11)."""
+    player = actor_rules.merge_claimed(actor, request.actor_id)
+    try:
+        new_state = reaction_pause.ask_for_time(ctx.service.current_state(), player)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # Etykieta bez gracza: kto prosi o czas, jest prywatne (prośba nic nie mówi o ręce).
+    return await _commit(ctx, new_state, "reaction-wait")
 
 
 @router.post("/reaction-pause/release", response_model=StateEnvelope)

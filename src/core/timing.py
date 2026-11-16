@@ -137,9 +137,6 @@ def require_no_limit_window(state: GameState) -> None:
         raise ValueError("Some units exceed capacity - remove the excess first.")
 
 
-REACTION_PAUSE_SECONDS = 10  # pauza ochronna w kluczowych oknach (``core/reaction_pause.py``)
-
-
 def require_no_reaction_pause(state: GameState) -> None:
     """Brama kroku, który zamknąłby kluczowe okno reakcji, w trakcie pauzy (RULES.md 54.10).
 
@@ -149,8 +146,8 @@ def require_no_reaction_pause(state: GameState) -> None:
     pause = state.reaction_pause
     if pause is not None:
         raise ValueError(
-            f"Players may react now ({pause.label}) - wait up to {REACTION_PAUSE_SECONDS} "
-            "seconds or until everyone passes."
+            f"Players may react now ({pause.label}) - wait until the reaction window "
+            f"closes ({pause.seconds:g} s)."
         )
 
 

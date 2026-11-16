@@ -278,7 +278,7 @@ export function useHoldCandidates(playerId: string | null, enabled: boolean) {
 
 /** Pas / zwolnienie okna Sabotage (``held_play``). Błędy (np. za wcześnie) są ignorowane. */
 /** Pas / zwolnienie pauzy ochronnej w kluczowym oknie reakcji (RULES.md 54.10). */
-export async function postReactionPause(action: "pass" | "release", actorId: string): Promise<void> {
+export async function postReactionPause(action: "pass" | "release" | "wait", actorId: string): Promise<void> {
   await fetch(`${BOT_ROOT}/reaction-pause/${action}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -286,7 +286,27 @@ export async function postReactionPause(action: "pass" | "release", actorId: str
   }).catch(() => undefined);
 }
 
-export async function postHeld(action: "pass" | "release", actorId: string): Promise<void> {
+/** „Skip all reactions” gracza (RULES.md 54.11): silnik pasuje za niego w każdym oknie reakcji. */
+export async function postAutoPass(actorId: string, enabled: boolean): Promise<void> {
+  const response = await fetch(`${BOT_ROOT}/reaction-settings/auto-pass`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor_id: actorId, enabled }),
+  });
+  if (!response.ok) throw new Error(`Failed to change auto-pass (${response.status}).`);
+}
+
+/** Host ustawia stałą długość okien reakcji w trwającej grze (RULES.md 54.11). */
+export async function postReactionWindowSeconds(seconds: number): Promise<void> {
+  const response = await fetch(`${BOT_ROOT}/reaction-settings/window`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seconds }),
+  });
+  if (!response.ok) throw new Error(`Failed to set reaction windows (${response.status}).`);
+}
+
+export async function postHeld(action: "pass" | "release" | "wait", actorId: string): Promise<void> {
   await fetch(`${BOT_ROOT}/action-card/held/${action}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

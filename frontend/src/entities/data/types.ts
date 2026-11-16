@@ -579,6 +579,8 @@ export type GameState = {
   heldPlay?: HeldPlayData | null;
   /** Pauza ochronna w kluczowym oknie reakcji (RULES.md 54.10) — null, gdy brak. */
   reactionPause?: ReactionPauseData | null;
+  /** Stała długość okien reakcji w s ustawiona przez hosta (RULES.md 54.11). */
+  reactionWindowSeconds?: number;
   /** Stoły transakcji (RULES.md 47.1b) — jawne pary, Ready i skrót zawartości (bez treści). */
   transactionTables?: {
     opener: string;
@@ -888,9 +890,15 @@ export type HeldPlayData = {
   cardName: string;
   text: string;
   openedAt: number;
+  /** Stała długość okna w s (ustawienie hosta + „More time”, RULES.md 54.11). */
   holdSeconds: number;
   eligible: string[];
+  /** Prywatne: najwyżej patrzący (silnik pasuje sam za graczy bez Sabotage). */
   passed: string[];
+  /** Ile razy ktoś poprosił o więcej czasu (anonimowo). */
+  extensions?: number;
+  /** Czy patrzący już prosił o czas (tylko jego id). */
+  askedForTime?: string[];
 };
 
 /** Pauza w kluczowym oknie (Coup, agenda, koniec bitwy, Sustain Damage) — gracze mogą reagować. */
@@ -902,10 +910,16 @@ export type ReactionPauseData = {
   subject: string | null;
   subjectColor: string | null;
   openedAt: number;
+  /** Stała długość okna w s (ustawienie hosta + „More time”, RULES.md 54.11). */
   pauseSeconds: number;
-  /** Id graczy (jak ``actor_id``) pytanych o reakcję i tych, którzy spasowali. */
+  /** Id graczy (jak ``actor_id``) uprawnionych wg informacji jawnej. */
   eligible: string[];
+  /** Prywatne: najwyżej patrzący (silnik pasuje sam za graczy bez pasującej karty). */
   passed: string[];
+  /** Ile razy ktoś poprosił o więcej czasu (anonimowo). */
+  extensions?: number;
+  /** Czy patrzący już prosił o czas (tylko jego id). */
+  askedForTime?: string[];
 };
 
 export type PendingStrategy = {
@@ -1059,6 +1073,8 @@ export type PlayerData = {
   soCount: number;
   pnCount: number;
   acCount: number;
+  /** „Skip all reactions” (RULES.md 54.11) — prawdziwe tylko u patrzącego, u innych zawsze false. */
+  autoPassReactions?: boolean;
   /** Limit kart akcji w ręce (silnik: ``hand_limit.action_card_limit``); null = bez limitu. */
   actionCardLimit?: number | null;
 

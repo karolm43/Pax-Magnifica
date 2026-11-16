@@ -1,9 +1,10 @@
-"""Pauza ochronna w kluczowych oknach reakcji (RULES.md 43.4 pkt 4, 54.10) — 10 sekund.
+"""Pauza ochronna w kluczowych oknach reakcji (RULES.md 43.4 pkt 4, 54.10, 54.11) — stały czas.
 
 Okna kart z ręki trwają „do następnej zatwierdzonej akcji” (53.5), więc szybki gracz zamykał je,
 zanim inni zdążyli zareagować (Coup d'Etat, ridery, Salvage, Direct Hit). W kilku KLUCZOWYCH
 oknach gra czeka: kolejny krok, który okno by zamknął, jest zablokowany, dopóki wszyscy uprawnieni
-nie spasują albo nie minie ``PAUSE_SECONDS`` (zegar serwera, ``now`` podaje warstwa API).
+minie stały czas okna ustawiony przez hosta (``reaction_window``, 54.11; zegar serwera, ``now``
+podaje warstwa API). Pasy nie skracają pauzy; silnik sam pasuje za graczy bez pasującej karty.
 
 Kluczowe okna (decyzja użytkownika 2026-11-15):
 * ogłoszona akcja strategiczna (Coup d'Etat) - blokuje pierwszy wybór primary;
@@ -24,13 +25,12 @@ from __future__ import annotations
 
 import json
 
-from src.core import reaction_cards, timing, timing_view
+from src.core import reaction_cards, reaction_window, timing, timing_view
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ReactionPause
 from src.core.reaction_cards import ANY, OTHER, SELF, OpenWindow
 from src.core.registry import StaticDataRegistry
 
-PAUSE_SECONDS = timing.REACTION_PAUSE_SECONDS
 _SEEN_LIMIT = 32  # tyle ostatnich kluczy okien pamiętamy (to samo okno nie pauzuje dwa razy)
 
 _E, _M = GameEvent, Moment
@@ -123,13 +123,16 @@ def sync(state: GameState, registry: StaticDataRegistry, now: float) -> None:
             subject=window.subject,
             opened_at=float(now),
             eligible=eligible,
+            seconds=float(reaction_window.window_seconds(state)),
         )
+        # Auto-pas (54.11): silnik pasuje za graczy bez pasującej karty - lista pasów jest prywatna.
+        state.reaction_pause.passed = reaction_window.auto_passers(state, registry, eligible)
         return
 
 
 def expired(pause: ReactionPause, now: float) -> bool:
-    """Czy minął czas pauzy."""
-    return now - pause.opened_at >= PAUSE_SECONDS
+    """Czy minął stały czas pauzy (z „More time”)."""
+    return reaction_window.expired(pause, now)
 
 
 def require_clear(state: GameState) -> None:
@@ -138,7 +141,7 @@ def require_clear(state: GameState) -> None:
 
 
 def pass_pause(state: GameState, player_id: str) -> GameState:
-    """Pas uprawnionego gracza; po ostatnim pasie pauza się kończy (nowy stan).
+    """Pas uprawnionego gracza (nowy stan). Pauza trwa dalej do końca czasu (54.11).
 
     Raises:
         ValueError: Brak pauzy, gracz nieuprawniony albo już spasował.
@@ -152,11 +155,21 @@ def pass_pause(state: GameState, player_id: str) -> GameState:
         raise ValueError(f"{player_id} has already passed.")
     new_state = state.clone()
     assert new_state.reaction_pause is not None
-    passed = [*pause.passed, player_id]
-    if all(pid in passed for pid in pause.eligible):
-        new_state.reaction_pause = None
-    else:
-        new_state.reaction_pause.passed = passed
+    new_state.reaction_pause.passed = [*pause.passed, player_id]
+    return new_state
+
+
+def ask_for_time(state: GameState, player_id: str) -> GameState:
+    """„More time” w pauzie (nowy stan; RULES.md 54.11).
+
+    Raises:
+        ValueError: Brak pauzy, gracz nieuprawniony albo już prosił.
+    """
+    if state.reaction_pause is None:
+        raise ValueError("Nobody is waiting for reactions right now.")
+    new_state = state.clone()
+    assert new_state.reaction_pause is not None
+    reaction_window.ask_for_time(new_state.reaction_pause, player_id)
     return new_state
 
 

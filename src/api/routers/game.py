@@ -24,7 +24,7 @@ from src.api.schemas import (
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
 from src.core import actor as actor_rules
-from src.core import game_clock, strategy_phase
+from src.core import game_clock, reaction_window, strategy_phase
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
@@ -603,6 +603,9 @@ async def post_new_game(
             initial_ms=request.chess_clock.total_minutes * 60_000,
             increment_ms=request.chess_clock.increment_seconds * 1000,
         )
+    if request.reaction_window_seconds is not None:
+        # Stała długość okien reakcji ustawiona przez hosta (RULES.md 54.11).
+        new_state = reaction_window.configure(new_state, request.reaction_window_seconds)
     ctx.start_new_save()  # nowa gra = nowy plik zapisu; poprzednia partia zostaje (RULES.md 44.4)
     ctx.set_map(grid)
     ctx.service.replace_state(new_state, label="game:new")

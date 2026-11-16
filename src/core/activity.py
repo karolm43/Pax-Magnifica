@@ -171,6 +171,11 @@ def _parse_flow(
         return "turn", "phase.start", None, None, after.phase.value, None
     if label == "round:next":
         return "turn", "round.start", None, None, str(after.round_number), None
+    # Okna reakcji (RULES.md 54.11): prośba o czas jest anonimowa, długość okna ustawia host.
+    if label == "reaction-wait":
+        return "turn", "reactions.wait", None, None, None, None
+    if parts[0] == "reaction-settings" and len(parts) > 2 and parts[1] == "window":
+        return "turn", "reactions.window", None, None, parts[2], None
     if parts[0] == "speaker" and len(parts) > 1:
         return "turn", "speaker.set", None, parts[1], None, None
     if parts[0] == "setup" and len(parts) == 2 and parts[1] not in ("custodians", "skip"):

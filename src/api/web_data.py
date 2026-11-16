@@ -33,7 +33,6 @@ from src.api import web_agenda, web_objectives, web_setup
 from src.core import (
     action_budget,
     agenda_phase,
-    card_hold,
     component_text,
     economy,
     game_clock,
@@ -41,7 +40,6 @@ from src.core import (
     legendary_planets,
     planet_abilities,
     production,
-    reaction_pause,
     rules_hooks,
     space_cannon,
     strategy_phase,
@@ -235,7 +233,11 @@ def _pending_strategy(state: GameState) -> dict[str, Any] | None:
 
 
 def _reaction_pause(state: GameState) -> dict[str, Any] | None:
-    """Kontrakt ``reactionPause``: pauza w kluczowym oknie (``openedAt`` = czas serwera)."""
+    """Kontrakt ``reactionPause``: pauza w kluczowym oknie (``openedAt`` = czas serwera).
+
+    Stan jest już projekcją: ``passed`` zawiera najwyżej patrzącego (RULES.md 54.11), a
+    ``extended_by`` tylko jego id (inne prośby to puste zaślepki - liczba jest jawna).
+    """
     pause = state.reaction_pause
     if pause is None:
         return None
@@ -246,9 +248,11 @@ def _reaction_pause(state: GameState) -> dict[str, Any] | None:
         "subject": pause.subject,
         "subjectColor": _color_of(state, pause.subject) if pause.subject else None,
         "openedAt": pause.opened_at,
-        "pauseSeconds": reaction_pause.PAUSE_SECONDS,
+        "pauseSeconds": pause.seconds,
         "eligible": list(pause.eligible),
-        "passed": list(pause.passed),
+        "passed": [pid for pid in pause.passed if pid],
+        "extensions": len(pause.extended_by),
+        "askedForTime": [pid for pid in pause.extended_by if pid],
     }
 
 
@@ -270,11 +274,13 @@ def _held_play(state: GameState, registry: StaticDataRegistry) -> dict[str, Any]
         "cardName": (card.name if card is not None and card.name else held.card_id),
         "text": " ".join(card.texts.values()) if isinstance(card, ActionCardDef) else "",
         "openedAt": held.opened_at,
-        "holdSeconds": card_hold.HOLD_SECONDS,
+        "holdSeconds": held.seconds,
         "eligible": list(held.eligible),
-        "passed": list(held.passed),
+        # Projekcja: najwyżej patrzący (pasy są prywatne, RULES.md 54.11).
+        "passed": [pid for pid in held.passed if pid],
+        "extensions": len(held.extended_by),
+        "askedForTime": [pid for pid in held.extended_by if pid],
         "eligibleColors": [c for pid in held.eligible if (c := _color_of(state, pid))],
-        "passedColors": [c for pid in held.passed if (c := _color_of(state, pid))],
     }
 
 
@@ -448,6 +454,8 @@ def _build_game_state(
         # Pauza ochronna w kluczowym oknie reakcji (RULES.md 54.10) — JAWNA (bez informacji o
         # rękach: uprawnieni to gracze z kartą akcji, co jest jawne). None, gdy brak.
         "reactionPause": _reaction_pause(state),
+        # Długość okien reakcji ustawiona przez hosta (RULES.md 54.11).
+        "reactionWindowSeconds": state.reaction_window_seconds,
         # Stoły transakcji (RULES.md 47.1b): JAWNE tylko pary i Ready; zawartość daje
         # ``GET /transactions/state`` samym stronom.
         "transactionTables": [
@@ -1538,6 +1546,8 @@ def _build_player_data(
                 "soCount": _hand_count(player, "secret_objectives"),
                 "pnCount": _hand_count(player, "promissory_notes"),
                 "acCount": _hand_count(player, "action_cards"),
+                # „Skip all reactions” (RULES.md 54.11) - prywatne: u innych projekcja daje False.
+                "autoPassReactions": player.private.auto_pass_reactions,
                 # Limit kart akcji (Executive Sanctions itd.); None = bez limitu (panel dowódcy).
                 "actionCardLimit": hand_limit.action_card_limit(state, player_id),
                 "unitCounts": unit_counts,

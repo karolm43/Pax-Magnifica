@@ -380,6 +380,8 @@ class NewGameRequest(BaseModel):
     agenda_deck: str = "standard"
     # Zegar szachowy (RULES.md 58) — None = gra bez zegara.
     chess_clock: ChessClockConfig | None = None
+    # Stała długość okien reakcji w s (RULES.md 54.11) — None = domyślna (4 s).
+    reaction_window_seconds: int | None = Field(default=None, ge=2, le=30)
 
 
 class UnitChange(BaseModel):
@@ -1599,6 +1601,23 @@ class HeldActionRequest(BaseModel):
     """Pas / zwolnienie okna hold-play (``/action-card/held/pass`` i ``.../release``)."""
 
     actor_id: str
+
+
+class AutoPassRequest(BaseModel):
+    """„Skip all reactions” gracza (``/reaction-settings/auto-pass``, RULES.md 54.11)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    actor_id: str
+    enabled: bool
+
+
+class ReactionWindowRequest(BaseModel):
+    """Długość okien reakcji ustawiana przez hosta (``/reaction-settings/window``, 54.11)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seconds: int = Field(ge=2, le=30)
 
 
 class ActionCardInputsResponse(BaseModel):

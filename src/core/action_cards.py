@@ -190,7 +190,7 @@ def _play_reaction_card(
         probe = new_state.clone()
         _run_reaction(probe, registry, player_id, card_id, params, window_dict)
         held = card_hold.begin(
-            new_state, player_id, card_id, params, eligible, now=now, is_action=False,
+            new_state, registry, player_id, card_id, params, eligible, now=now, is_action=False,
             window=window_dict,
         )
         return held, rules_hooks.effect_for(effect_key(card_id)) is not None
@@ -316,7 +316,7 @@ def play_action_card(
         probe = new_state.clone()
         _run_action(probe, registry, player_id, card_id, params or {})
         held = card_hold.begin(
-            new_state, player_id, card_id, params or {}, eligible, now=now, is_action=True
+            new_state, registry, player_id, card_id, params or {}, eligible, now=now, is_action=True
         )
         return held, rules_hooks.effect_for(effect_key(card_id)) is not None
     implemented = _run_action(new_state, registry, player_id, card_id, params or {})

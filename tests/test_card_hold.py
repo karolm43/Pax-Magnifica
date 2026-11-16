@@ -1,4 +1,4 @@
-"""Testy hold-play i kart Sabotage (RULES.md 53.6): karta czeka na reakcję, potem się wykonuje."""
+"""Testy hold-play i kart Sabotage (RULES.md 53.6, 54.11): karta czeka stały czas, potem działa."""
 
 from __future__ import annotations
 
@@ -6,12 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
-from src.core import action_cards, card_hold, exploration
+from src.core import action_cards, card_hold, exploration, reaction_window
 from src.core.event_store import EventStore
 from src.core.game_state import GameState, Phase, PlayerState, SystemState, TacticalStep
 from src.core.registry import StaticDataRegistry
 
 NOW = 1000.0
+WINDOW = reaction_window.DEFAULT_SECONDS  # stała długość okna (54.11)
 
 
 @pytest.fixture(scope="module")
@@ -142,7 +143,7 @@ def test_efekt_z_losowaniem_wykonuje_sie_dopiero_przy_zwolnieniu(
     assert held.held_play is not None
     assert held.rng_counter == state.rng_counter and held.table_roll_seq == state.table_roll_seq
     assert held.systems["101"].planet_units[planet]["p2"]["infantry"] == 12
-    released = card_hold.pass_hold(held, registry, "p2")
+    released = card_hold.release(held, registry, "p1", now=NOW + WINDOW)
     assert released.held_play is None
     assert released.table_roll is not None and released.table_roll["kind"] == "plague"
     assert released.table_roll_seq == state.table_roll_seq + 1
@@ -160,16 +161,22 @@ def test_zle_parametry_odrzucane_przy_zagraniu_nie_przy_zwolnieniu(
 # --- zwolnienie: pasy / czas -------------------------------------------------------------------
 
 
-def test_pas_wszystkich_uprawnionych_zwalnia(registry: StaticDataRegistry) -> None:
+def test_pasy_nie_skracaja_okna_a_silnik_pasuje_za_graczy_bez_sabotage(
+    registry: StaticDataRegistry,
+) -> None:
+    """54.11: p3 bez Sabotage spasowany od razu; pas p2 nie kończy okna - kończy je czas."""
     card, planets = _industrial(registry)
     state = _state([card], ["sabo1"])
     _own(state, planets)
     state.players["p3"].private.action_cards = ["fs1"]
     held = _play(state, registry, card)
     assert held.held_play is not None and held.held_play.eligible == ["p2", "p3"]
-    half = card_hold.pass_hold(held, registry, "p2")
-    assert half.held_play is not None and half.held_play.passed == ["p2"]
-    done = card_hold.pass_hold(half, registry, "p3")
+    assert held.held_play.passed == ["p3"] and held.held_play.seconds == WINDOW
+    both = card_hold.pass_hold(held, registry, "p2")
+    assert both.held_play is not None and both.held_play.passed == ["p3", "p2"]
+    with pytest.raises(ValueError, match="still open"):
+        card_hold.release(both, registry, "p1", now=NOW + WINDOW - 1)
+    done = card_hold.release(both, registry, "p1", now=NOW + WINDOW)
     assert done.held_play is None
     assert done.players["p1"].trade_goods == 3
     assert done.decks.action_card_discard == [card]
@@ -205,8 +212,8 @@ def test_timeout_zwalnia_a_wczesniej_nie(registry: StaticDataRegistry) -> None:
     _own(state, planets)
     held = _play(state, registry, card)
     with pytest.raises(ValueError, match="still open"):
-        card_hold.release(held, registry, "p1", now=NOW + card_hold.HOLD_SECONDS - 1)
-    done = card_hold.release(held, registry, "p1", now=NOW + card_hold.HOLD_SECONDS)
+        card_hold.release(held, registry, "p1", now=NOW + WINDOW - 1)
+    done = card_hold.release(held, registry, "p1", now=NOW + WINDOW)
     assert done.held_play is None
     assert done.players["p1"].trade_goods == 3
     assert done.decks.action_card_discard == [card]
@@ -274,7 +281,8 @@ def test_sabotage_anuluje_karte_reakcji(registry: StaticDataRegistry) -> None:
 def test_reakcja_bez_sabotage_wykonuje_sie_po_zwolnieniu(registry: StaticDataRegistry) -> None:
     state = _state(["fs1"], ["fs2"], tactical=True)
     held = _play(state, registry, "fs1")
-    done = card_hold.pass_hold(held, registry, "p2")
+    assert held.held_play is not None and held.held_play.passed == ["p2"]  # auto-pas: bez Sabotage
+    done = card_hold.release(held, registry, "p1", now=NOW + WINDOW)
     assert done.held_play is None
     assert len(done.active_effects) == 1
     assert done.decks.action_card_discard == ["fs1"]
@@ -334,12 +342,12 @@ def test_api_play_pass_release_i_blokada(registry: StaticDataRegistry) -> None:
     # zagrywający nie pasuje za innych; za wcześnie na zwolnienie
     assert client.post("/action-card/held/pass", json={"actor_id": "p1"}).status_code == 422
     assert client.post("/action-card/held/release", json={"actor_id": "p1"}).status_code == 422
-    clock[0] = NOW + card_hold.HOLD_SECONDS + 1
+    clock[0] = NOW + WINDOW + 1
     assert client.post("/action-card/held/release", json={"actor_id": "p1"}).status_code == 200
     assert client.get("/state").json()["state"]["held_play"] is None
 
 
-def test_api_pas_zwalnia_i_web_data_pokazuje_held(registry: StaticDataRegistry) -> None:
+def test_api_web_data_pokazuje_held_a_pas_nie_skraca(registry: StaticDataRegistry) -> None:
     card, planets = _industrial(registry)
     state = _state([card], ["sabo1"])
     _own(state, planets)
@@ -351,7 +359,7 @@ def test_api_pas_zwalnia_i_web_data_pokazuje_held(registry: StaticDataRegistry) 
     assert held is not None
     assert held["playerId"] == "p1" and held["cardId"] == card
     assert held["eligible"] == ["p2"] and held["passed"] == []
-    assert held["holdSeconds"] == card_hold.HOLD_SECONDS and held["openedAt"] == NOW
+    assert held["holdSeconds"] == WINDOW and held["openedAt"] == NOW
     assert held["cardName"] and held["text"]
     assert client.post("/action-card/held/pass", json={"actor_id": "p2"}).status_code == 200
-    assert client.app.state.ctx.service.current_state().held_play is None  # type: ignore[attr-defined]
+    assert client.app.state.ctx.service.current_state().held_play is not None  # type: ignore[attr-defined]

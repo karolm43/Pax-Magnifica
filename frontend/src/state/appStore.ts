@@ -77,6 +77,7 @@ const DEFAULT_SETTINGS: Settings = {
   chessClockEnabled: false,
   chessClockMinutes: 120,
   chessClockIncrementSeconds: 30,
+  reactionWindowSeconds: 4,
 };
 
 /** Legacy settings stored a boolean `showControlTokens` instead of the mode. */
@@ -640,6 +641,8 @@ export type Settings = {
   chessClockEnabled: boolean;
   chessClockMinutes: number;
   chessClockIncrementSeconds: number;
+  /** Stała długość okien reakcji w s (RULES.md 54.11) — wysyłana przy nowej grze. */
+  reactionWindowSeconds: number;
 };
 
 type BooleanSettingKey = {

@@ -1,18 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { postReactionPause } from "@/api/useActionCard";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { MoreTimeButton, waitingText } from "./reactionWindowParts";
+import { useWindowCountdown } from "./useWindowCountdown";
 import styles from "./HeldPlayBanner.module.css";
 
 /**
- * Pauza ochronna (RULES.md 54.10): w kluczowym oknie (ogłoszona akcja strategiczna, ujawniona
- * agenda, wygrana walka, Sustain Damage) gra czeka do 10 s, żeby gracze zdążyli zagrać kartę z
- * ręki (Coup d'Etat, Veto, ridery, Salvage, Direct Hit…). Ten sam wygląd i odliczanie co okno
- * Sabotage (`HeldPlayBanner`): czas liczony lokalnie od pojawienia się pauzy, po nim klient prosi
- * serwer o zwolnienie (serwer i tak sprawdza własny zegar). Pytani są wszyscy z kartami akcji,
- * którzy mogą być stroną okna — baner nie zdradza, kto ma pasującą kartę.
+ * Pauza ochronna (RULES.md 54.10–54.11): w kluczowym oknie (ogłoszona akcja strategiczna,
+ * ujawniona agenda, wygrana walka, Sustain Damage) gra czeka STAŁY czas ustawiony przez hosta, żeby
+ * gracze zdążyli zagrać kartę z ręki (Coup d'Etat, Veto, ridery, Salvage, Direct Hit…). Silnik sam
+ * pasuje za graczy bez pasującej karty, więc o decyzję jest proszony tylko ten, kto ma co zagrać.
+ * Pasy są prywatne — baner nie pokazuje, ilu graczy spasowało (to zdradzałoby, kto ma kartę).
  */
 export function ReactionPauseBanner({
   viewerId,
@@ -20,43 +21,25 @@ export function ReactionPauseBanner({
 }: {
   /** Gracz, którego rękę widzi ten pulpit (może zagrać kartę albo spasować). */
   viewerId: string | null;
-  /** Prośba o rozwinięcie ręki, gdy pauza dotyczy tego gracza. */
+  /** Prośba o rozwinięcie ręki, gdy pauza czeka na decyzję tego gracza. */
   onNeedHand: () => void;
 }) {
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
   const pause = gameState?.reactionPause ?? null;
   const key = pause?.key ?? null;
-  const [left, setLeft] = useState<number | null>(null);
+  const asker = viewerId ?? pause?.eligible[0] ?? "";
+  const left = useWindowCountdown(key, pause?.pauseSeconds ?? 0, () => {
+    if (asker) void postReactionPause("release", asker);
+  });
 
   const eligible = Boolean(pause && viewerId && pause.eligible.includes(viewerId));
   const passed = Boolean(pause && viewerId && pause.passed.includes(viewerId));
+  const deciding = eligible && !passed;
 
   useEffect(() => {
-    if (!pause || !key) {
-      setLeft(null);
-      return;
-    }
-    const started = Date.now();
-    const total = pause.pauseSeconds;
-    const asker = viewerId ?? pause.eligible[0] ?? "";
-    let released = false;
-    setLeft(total);
-    const timer = window.setInterval(() => {
-      const remaining = Math.max(0, total - Math.floor((Date.now() - started) / 1000));
-      setLeft(remaining);
-      if (remaining === 0 && !released && asker) {
-        released = true;
-        void postReactionPause("release", asker);
-      }
-    }, 250);
-    return () => window.clearInterval(timer);
-    // Odliczanie startuje od nowa tylko przy nowej pauzie (klucz okna).
-  }, [key]);
-
-  useEffect(() => {
-    if (key && eligible && !passed) onNeedHand();
-  }, [key, eligible, passed]);
+    if (key && deciding) onNeedHand();
+  }, [key, deciding]);
 
   if (!pause) return null;
 
@@ -73,16 +56,16 @@ export function ReactionPauseBanner({
           )}
         </b>
         <small>
-          {eligible && !passed
-            ? "Play a card from your hand now, or pass."
-            : `Waiting for other players (${pause.passed.length}/${pause.eligible.length} passed)…`}
+          {deciding
+            ? "You can react: play a card from your hand now, or pass."
+            : waitingText(eligible, pause.extensions ?? 0)}
         </small>
       </div>
       <div className={styles.side}>
         <span className={styles.count} aria-label="Seconds left">
           {left ?? pause.pauseSeconds}s
         </span>
-        {eligible && !passed && viewerId && (
+        {deciding && viewerId && (
           <button
             type="button"
             className={styles.pass}
@@ -90,6 +73,12 @@ export function ReactionPauseBanner({
           >
             Pass
           </button>
+        )}
+        {eligible && viewerId && (
+          <MoreTimeButton
+            asked={(pause.askedForTime ?? []).includes(viewerId)}
+            onAsk={() => void postReactionPause("wait", viewerId)}
+          />
         )}
       </div>
     </aside>

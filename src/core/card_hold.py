@@ -1,9 +1,10 @@
-"""Hold-play: zagrana karta akcji czeka ~10 s na ewentualne Sabotage (RULES.md 53.6).
+"""Hold-play: zagrana karta akcji czeka stały czas na ewentualne Sabotage (RULES.md 53.6, 54.11).
 
 Gdy ktoś zagrywa kartę akcji (ACTION albo reakcję), a inny gracz MÓGŁBY odpowiedzieć Sabotage, efekt
 karty nie wykonuje się od razu: karta wychodzi z ręki na stół (``GameState.held_play``), reszta gry
-stoi, a uprawnieni mogą zagrać Sabotage (przeciągnięciem) albo spasować. Efekt wykonuje się przy
-zwolnieniu (pasy wszystkich uprawnionych / upływ czasu), albo karta jest anulowana.
+stoi, a uprawnieni mogą zagrać Sabotage (przeciągnięciem) albo spasować. Efekt wykonuje się po
+upływie stałego czasu okna (ustawienie hosta, ``reaction_window``), albo karta jest anulowana. Pasy
+nie skracają okna; silnik sam pasuje za graczy bez zagrywalnego Sabotage (54.11).
 
 **Filtr jawny (43.4 pkt 5).** O tym, czy okno w ogóle się otworzy, decydują WYŁĄCZNIE informacje
 jawne: czy w grze jest talia kart akcji, czy nie wszystkie Sabotage leżą na stosie odrzuconych i
@@ -19,11 +20,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_draw
+from src.core import card_draw, reaction_window
 from src.core.game_state import GameState, HeldPlay
 from src.core.registry import StaticDataRegistry
 
-HOLD_SECONDS = 10  # jak długo karta czeka na reakcję
 SABOTAGE_IDS: tuple[str, ...] = ("sabo1", "sabo2", "sabo3", "sabo4")
 
 
@@ -72,6 +72,7 @@ def eligible_players(state: GameState, player_id: str, card_id: str) -> list[str
 
 def begin(
     state: GameState,
+    registry: StaticDataRegistry,
     player_id: str,
     card_id: str,
     params: Mapping[str, Any],
@@ -84,6 +85,8 @@ def begin(
     """Kładzie kartę na stole: wyjmuje ją z ręki i otwiera ``held_play`` (nowy stan).
 
     Legalność zagrania i walidację parametrów robi wołający (``action_cards``); tu tylko mechanika.
+    Okno trwa stały czas (``reaction_window``); silnik od razu pasuje za uprawnionych bez
+    zagrywalnego Sabotage, za botów i za graczy z „Skip all reactions” (54.11, lista prywatna).
 
     Raises:
         ValueError: Okno już trwa albo karty nie ma w ręce.
@@ -101,7 +104,9 @@ def begin(
         eligible=list(eligible),
         is_action=is_action,
         window=dict(window) if window is not None else None,
+        seconds=float(reaction_window.window_seconds(new_state)),
     )
+    new_state.held_play.passed = reaction_window.auto_passers(new_state, registry, eligible)
     return new_state
 
 
@@ -111,14 +116,9 @@ def _held(state: GameState) -> HeldPlay:
     return state.held_play
 
 
-def all_passed(held: HeldPlay) -> bool:
-    """Czy wszyscy uprawnieni spasowali."""
-    return all(pid in held.passed for pid in held.eligible)
-
-
 def expired(held: HeldPlay, now: float) -> bool:
-    """Czy minął czas okna (``HOLD_SECONDS`` od ``opened_at``)."""
-    return now - held.opened_at >= HOLD_SECONDS
+    """Czy minął stały czas okna (z „More time”)."""
+    return reaction_window.expired(held, now)
 
 
 def can_respond(held: HeldPlay, player_id: str) -> bool:
@@ -127,7 +127,7 @@ def can_respond(held: HeldPlay, player_id: str) -> bool:
 
 
 def pass_hold(state: GameState, registry: StaticDataRegistry, actor_id: str) -> GameState:
-    """Pas uprawnionego gracza; po ostatnim pasie efekt karty wykonuje się od razu.
+    """Pas uprawnionego gracza (nowy stan). Okno trwa dalej do końca czasu (54.11).
 
     Raises:
         ValueError: Brak okna, gracz nieuprawniony (np. zagrywający) albo już spasował.
@@ -142,15 +142,26 @@ def pass_hold(state: GameState, registry: StaticDataRegistry, actor_id: str) -> 
     new_state = state.clone()
     assert new_state.held_play is not None
     new_state.held_play.passed = [*held.passed, actor_id]
-    if all_passed(new_state.held_play):
-        return resolve(new_state, registry)
+    return new_state
+
+
+def ask_for_time(state: GameState, actor_id: str) -> GameState:
+    """„More time” w oknie Sabotage (nowy stan; RULES.md 54.11).
+
+    Raises:
+        ValueError: Brak okna, gracz nieuprawniony albo już prosił.
+    """
+    _held(state)
+    new_state = state.clone()
+    assert new_state.held_play is not None
+    reaction_window.ask_for_time(new_state.held_play, actor_id)
     return new_state
 
 
 def release(
     state: GameState, registry: StaticDataRegistry, actor_id: str, *, now: float
 ) -> GameState:
-    """Zwolnienie okna: wykonuje efekt karty, gdy wszyscy spasowali albo minął czas.
+    """Zwolnienie okna: wykonuje efekt karty, gdy minął stały czas okna.
 
     Raises:
         ValueError: Brak okna, nieznany gracz albo okno jeszcze trwa.
@@ -158,7 +169,7 @@ def release(
     held = _held(state)
     if actor_id not in state.players:
         raise ValueError(f"Unknown player: {actor_id}")
-    if not (all_passed(held) or expired(held, now)):
+    if not expired(held, now):
         raise ValueError("The response window is still open.")
     return resolve(state, registry)
 

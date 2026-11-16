@@ -143,7 +143,7 @@ async def post_held_pass(
     actor: ActorId,
     request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Pas uprawnionego gracza w oknie hold-play; ostatni pas wykonuje efekt karty."""
+    """Pas uprawnionego gracza w oknie hold-play (okno trwa stały czas, RULES.md 54.11)."""
     # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
     request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     try:
@@ -152,8 +152,21 @@ async def post_held_pass(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    label = "action-card:held-release" if new_state.held_play is None else "action-card:held-pass"
-    return await _commit_held(ctx, new_state, label)
+    return await _commit_held(ctx, new_state, "action-card:held-pass")
+
+
+@router.post("/action-card/held/wait", response_model=StateEnvelope)
+async def post_held_wait(
+    actor: ActorId,
+    request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """„More time” w oknie Sabotage: +10 s raz na gracza (anonimowo, RULES.md 54.11)."""
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
+    try:
+        new_state = card_hold.ask_for_time(ctx.service.current_state(), request.actor_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_held(ctx, new_state, "reaction-wait")
 
 
 @router.post("/action-card/held/release", response_model=StateEnvelope)
@@ -161,7 +174,7 @@ async def post_held_release(
     actor: ActorId,
     request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Zwalnia okno hold-play (wszyscy spasowali albo minął czas wg zegara serwera)."""
+    """Zwalnia okno hold-play, gdy minął jego stały czas wg zegara serwera."""
     # Aktor z nagłówka i pole actor_id w treści muszą się zgadzać (RULES.md 44.1a).
     request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
     try:

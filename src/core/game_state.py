@@ -403,6 +403,9 @@ class PlayerPrivateState(BaseModel):
     # Podgląd wierzchnich agend (Insider Information) - TAJNY, tylko dla właściciela; zmienia go
     # wyłącznie ``card_draw.peek_agenda_top``, czyści ``card_draw.clear_agenda_peek``.
     agenda_peek: list[str] = Field(default_factory=list)
+    # „Skip all reactions” (RULES.md 54.11): silnik pasuje za gracza w każdym oknie reakcji, także
+    # gdy ma kartę do zagrania. Ustawienie TAJNE (okno trwa tyle samo, z zewnątrz nic nie widać).
+    auto_pass_reactions: bool = False
 
 
 class SetupStage(StrEnum):
@@ -934,6 +937,10 @@ class HeldPlay(BaseModel):
     is_action: bool = True
     # Okno, na które reaguje karta reakcji (``OpenWindow.as_dict()``); None dla kart ACTION.
     window: dict[str, Any] | None = None
+    # Stała długość okna w s (RULES.md 54.11): ustawienie hosta w chwili otwarcia + „More time”.
+    seconds: float = 4.0
+    # Kto poprosił o więcej czasu (prywatne - projekcja zostawia tylko patrzącego).
+    extended_by: list[str] = Field(default_factory=list)
 
 
 class ReactionPause(BaseModel):
@@ -954,7 +961,12 @@ class ReactionPause(BaseModel):
     subject: str | None = None
     opened_at: float
     eligible: list[str] = Field(default_factory=list)
+    # Kto nie reaguje (pas ręczny albo auto-pas silnika, RULES.md 54.11) - PRYWATNE: projekcja
+    # zostawia tylko patrzącego, bo lista zdradzałaby, kto ma kartę.
     passed: list[str] = Field(default_factory=list)
+    # Stała długość okna w s (RULES.md 54.11): ustawienie hosta w chwili otwarcia + „More time”.
+    seconds: float = 4.0
+    extended_by: list[str] = Field(default_factory=list)
 
 
 class BonusTurn(BaseModel):
@@ -1081,6 +1093,8 @@ class GameState(BaseModel):
     # okien, które już miały pauzę (ostatnie kilkanaście; to samo okno nie pauzuje ponownie).
     reaction_pause: ReactionPause | None = None
     reaction_pause_seen: list[str] = Field(default_factory=list)
+    # Stała długość okien reakcji w s (pauza ochronna, okno Sabotage); ustawia host (RULES 54.11).
+    reaction_window_seconds: int = 4
     # Ślad Sustain Damage poza walką (Space Cannon Offense): ``{player, base_type, count, by,
     # position}`` - okno Direct Hit trwa do następnego kroku Space Cannon (RULES.md 53.5.c).
     sustain_trace: list[dict[str, Any]] = Field(default_factory=list)

@@ -1,4 +1,4 @@
-"""Pauza ochronna w kluczowych oknach reakcji (RULES.md 54.10): otwarcie, bramki, pas, czas."""
+"""Pauza ochronna w kluczowych oknach (RULES.md 54.10–54.11): otwarcie, bramki, pas, czas."""
 
 from __future__ import annotations
 
@@ -34,13 +34,16 @@ def test_ujawniona_agenda_otwiera_pauze_i_blokuje_glos(registry: StaticDataRegis
     assert voter is not None
     with pytest.raises(ValueError, match="react"):
         agenda_phase.abstain(state, registry, voter)
+    # Auto-pas (54.11): p3 nie ma karty zagrywalnej w tym oknie - silnik pasuje za niego.
+    assert pause.passed == ["p3"]
     state = reaction_pause.pass_pause(state, "p1")
-    assert state.reaction_pause is not None and state.reaction_pause.passed == ["p1"]
+    assert state.reaction_pause is not None and state.reaction_pause.passed == ["p3", "p1"]
     with pytest.raises(ValueError, match="not asked"):
         reaction_pause.pass_pause(state, "p2")  # bez kart akcji - nie jest pytany
-    state = reaction_pause.pass_pause(state, "p3")
+    assert state.reaction_pause is not None  # pasy nie skracają pauzy
+    state = reaction_pause.release(state, now=104.0)
     assert state.reaction_pause is None
-    reaction_pause.sync(state, registry, now=101.0)
+    reaction_pause.sync(state, registry, now=105.0)
     assert state.reaction_pause is None  # to samo okno drugi raz nie pauzuje
     agenda_phase.abstain(state, registry, voter)
 
@@ -52,12 +55,14 @@ def test_bez_kart_w_grze_nie_ma_pauzy(registry: StaticDataRegistry) -> None:
     assert state.reaction_pause is None
 
 
-def test_pauza_konczy_sie_po_10_sekundach(registry: StaticDataRegistry) -> None:
+def test_pauza_trwa_staly_czas_hosta(registry: StaticDataRegistry) -> None:
     state = _agenda(registry)
+    state.reaction_window_seconds = 6
     reaction_pause.sync(state, registry, now=100.0)
+    assert state.reaction_pause is not None and state.reaction_pause.seconds == 6
     with pytest.raises(ValueError, match="still open"):
         reaction_pause.release(state, now=105.0)
-    released = reaction_pause.release(state, now=110.0)
+    released = reaction_pause.release(state, now=106.0)
     assert released.reaction_pause is None
 
 
@@ -102,12 +107,12 @@ def test_api_czas_mija_wg_zegara_serwera(registry: StaticDataRegistry) -> None:
     assert service.current_state().reaction_pause is not None
     voter = agenda_phase.current_voter(service.current_state())
     body = {"player_id": voter}
-    clock[0] = 105.0
+    clock[0] = 102.0
     blocked = client.post("/agenda/abstain", json=body)
     assert blocked.status_code == 422 and "react" in blocked.text
     early = client.post("/reaction-pause/release", json={"actor_id": "p1"})
     assert early.status_code == 422
-    clock[0] = 111.0
+    clock[0] = 105.0
     ok = client.post("/agenda/abstain", json=body)
     assert ok.status_code == 200, ok.text
     assert service.current_state().reaction_pause is None
