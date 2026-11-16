@@ -24,7 +24,6 @@ import { RelicRevealWatcher } from "@/domains/relics/RelicRevealWatcher";
 import { InvasionOverlay } from "@/domains/invasion/InvasionOverlay";
 import { ExplorationOverlay } from "@/domains/exploration/ExplorationOverlay";
 import { DecisionCenter } from "@/domains/offers/AbilityPrompts";
-import { ActiveEffectsPanel } from "@/domains/effects/ActiveEffectsPanel";
 import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
 import { AgendaOverlay } from "@/domains/agenda/AgendaOverlay";
@@ -325,8 +324,6 @@ function GameMapContent() {
           decyduje sam, silnik nigdy nie wybiera za niego. */}
       {/* Jedno centrum decyzji: oferty, transakcje, okna kart z ręki, „Available now”. */}
       <DecisionCenter />
-      {/* Efekty trwałe „obok planszy” (bohaterowie, kości agentów, premie z kart) - RULES.md 54. */}
-      {onMapTab && <ActiveEffectsPanel />}
 
       {/* Koniec gry: zwycięzca → głosowanie (honor) → Kronika epilogu → podsumowanie.
           Pojawia się natychmiast, gdy backend ustawi `winnerId` (próg VP / koniec rund). */}

@@ -535,3 +535,14 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: pytest (2478 ✅), ruff, mypy; front: tsc, eslint (zmienione), vitest `offers`, `TurnControls`,
   `technology`, `strategy`. `npm run build` pada na `index.html?html-proxy&inline-css` (nie te pliki; do
   sprawdzenia osobno). Bez e2e. Restart backendu wymagany.
+
+## Pole efektów trwałych na stole obok planszy (2026-11-16, RULES.md 54)
+
+- **Decyzja użytkownika:** „Active effects” to nie nakładka na ekran, tylko fizyczne miejsce przy planszy, jak pola
+  graczy, ale w innym stylu. `ActiveEffectsPanel` → `domains/effects/BoardEffectsZone` (wpuszczona w blat taca
+  z grawerowaną przerywaną ramką, efekty jako karty z barwą właściciela, klik = tekst karty; leży zawsze, także pusta).
+- Strefa jest dzieckiem opakowania planszy (`InteractiveMapRenderer` przyjmuje `children`), przy prawej krawędzi
+  (za bleedem), przesuwa się i przewija z mapą. `PannableMapView` rezerwuje jej szerokość w centrowaniu planszy
+  i w „Fit board”. Usunięta z `GameMapPage`.
+- Test: `BoardEffectsZone.test.tsx`. QA: front tsc, eslint (zmienione), vitest `domains/effects`. Bez backendu,
+  build i e2e (brak nowych zależności); bez zrzutu ekranu — do obejrzenia w działającej grze.
