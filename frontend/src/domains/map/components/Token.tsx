@@ -8,6 +8,12 @@ import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { getTokenRule } from "./SystemDossier/featureRules";
 import { PositionedSprite } from "./PositionedSprite";
+import { forwardClickBelow } from "./forwardClickBelow";
+import {
+  linkKindsOfToken,
+  useWormholeHoverStore,
+  type WormholeHover,
+} from "../wormholeLinks";
 
 type TokenProps = {
   tokenId: string;
@@ -15,12 +21,14 @@ type TokenProps = {
   x: number;
   y: number;
   zIndex: number;
+  /** Pozycja systemu — dla podglądu „dokąd prowadzi” wormhole / ingress. */
+  tilePosition?: string;
 };
 
 /** Opóźnienie dymka po najechaniu — jak przy planetach, ale krócej (żeton jest mały). */
 const HOVER_DELAY_MS = 500;
 
-export const Token = ({ tokenId, faction, x, y, zIndex }: TokenProps) => {
+export const Token = ({ tokenId, faction, x, y, zIndex, tilePosition }: TokenProps) => {
   const alt = `${faction || "token"} ${tokenId}`;
   const tokenImagePath = getTokenImagePath(tokenId);
   const imagePath = tokenImagePath || getAttachmentImagePath(tokenId);
@@ -82,6 +90,11 @@ export const Token = ({ tokenId, faction, x, y, zIndex }: TokenProps) => {
   return (
     <TokenWithInfo
       rule={rule}
+      link={
+        tilePosition && linkKindsOfToken(tokenId).length > 0
+          ? { position: tilePosition, kinds: linkKindsOfToken(tokenId) }
+          : undefined
+      }
       imagePath={imagePath}
       frameStyle={{
         position: "absolute",
@@ -110,11 +123,13 @@ export const Token = ({ tokenId, faction, x, y, zIndex }: TokenProps) => {
 
 function TokenWithInfo({
   rule,
+  link,
   imagePath,
   frameStyle,
   children,
 }: {
   rule: { name: string; rule: string };
+  link?: WormholeHover;
   imagePath: string;
   frameStyle: CSSProperties;
   children: React.ReactNode;
@@ -122,6 +137,14 @@ function TokenWithInfo({
   const [opened, setOpened] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
+  const setHovered = useWormholeHoverStore((st) => st.setHovered);
+  const clearHovered = useWormholeHoverStore((st) => st.clearHovered);
+  // Linie zostają tylko dopóki kursor stoi na żetonie; odmontowanie też je gasi.
+  const linkPosition = link?.position;
+  useEffect(
+    () => (linkPosition ? () => clearHovered(linkPosition) : undefined),
+    [linkPosition, clearHovered],
+  );
 
   return (
     <SmoothPopover opened={opened} onChange={setOpened}>
@@ -132,10 +155,12 @@ function TokenWithInfo({
           aria-label={rule.name}
           style={{ ...frameStyle, pointerEvents: "auto" }}
           onMouseEnter={() => {
+            if (link) setHovered(link);
             window.clearTimeout(timer.current);
             timer.current = window.setTimeout(() => setOpened(true), HOVER_DELAY_MS);
           }}
           onMouseLeave={() => {
+            if (link) clearHovered(link.position);
             window.clearTimeout(timer.current);
             setOpened(false);
           }}
@@ -143,22 +168,7 @@ function TokenWithInfo({
           // Klik jest PRZEKAZYWANY elementowi pod żetonem (cel heksa: zaznaczenie /
           // aktywacja systemu). Prawy klik bąbelkuje do menu kafelka („Activate
           // system"). Opis reguły: najechanie z opóźnieniem.
-          onClick={(e) => {
-            e.stopPropagation();
-            const el = e.currentTarget;
-            // Pierwszy element pod kursorem, który NIE jest tym żetonem (planeta / heks).
-            const under = document
-              .elementsFromPoint(e.clientX, e.clientY)
-              .find((node) => !el.contains(node));
-            under?.dispatchEvent(
-              new MouseEvent("click", {
-                bubbles: true,
-                cancelable: true,
-                clientX: e.clientX,
-                clientY: e.clientY,
-              }),
-            );
-          }}
+          onClick={forwardClickBelow}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();

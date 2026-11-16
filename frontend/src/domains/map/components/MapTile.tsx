@@ -23,6 +23,7 @@ import { TechSkipIconsLayer } from "./layers/TechSkipIconsLayer";
 import { AttachmentsLayer } from "./layers/AttachmentsLayer";
 import { PlanetTraitIconsLayer } from "./layers/PlanetTraitIconsLayer";
 import { WormholeBlockedLayer } from "./layers/WormholeBlockedLayer";
+import { WormholeHotspotsLayer } from "./layers/WormholeHotspotsLayer";
 import { FactionColorOverlay } from "./FactionColorOverlay";
 import { FactionControlBorderOverlay } from "./FactionControlBorderOverlay";
 import { SystemHexTarget } from "./SystemHexTarget";
@@ -113,7 +114,10 @@ export const MapTile = React.memo<Props>(
 
     /* Hyperlanes have nothing to report. Hover feedback is pure CSS so the
        tile never re-renders under a moving cursor. */
-    const isHyperlane = !!getTileById(mapTile.systemId)?.isHyperlane;
+    const tileData = getTileById(mapTile.systemId);
+    const isHyperlane = !!tileData?.isHyperlane;
+    // Nadruk wormhole/egress: najechanie pokazuje, dokąd prowadzi (WormholeLinkLayer).
+    const hasPrintedLink = !!tileData?.wormholes?.some(Boolean) || !!tileData?.hasEgress;
     const dossierEligible = !embedded && !isHyperlane;
     /* LEWY klik zależy od trybu: wybór celu/trasy, przenoszenie, aktywacja; inaczej menu
        „Activate system" pod kursorem. PRAWY klik otwiera okno systemu (dossier).
@@ -330,6 +334,9 @@ export const MapTile = React.memo<Props>(
           />
           <PlanetaryShieldOverlayLayer systemId={systemId} mapTile={mapTile} />
           <WormholeBlockedLayer systemId={systemId} />
+          {dossierEligible && hasPrintedLink && !isMobileDevice() && (
+            <WormholeHotspotsLayer systemId={systemId} position={ringPosition} />
+          )}
           {!techSkipsMode && !planetTypesMode && !attachmentsMode && (
             <>
               <ControlTokensLayer systemId={systemId} mapTile={mapTile} />

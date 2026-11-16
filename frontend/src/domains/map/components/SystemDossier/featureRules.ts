@@ -127,7 +127,7 @@ function titleCaseFromId(id: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function wormholesOnTile(tile: Tile): string[] {
+export function wormholesOnTile(tile: Tile): string[] {
   const tileData = getTileById(tile.systemId);
   const printed = (tileData?.wormholes ?? []).filter(
     (w): w is string => w !== null,
@@ -140,10 +140,10 @@ function wormholesOnTile(tile: Tile): string[] {
 }
 
 /** Ring positions of every other system sharing this wormhole type. */
-function linkedPositions(
+export function linkedPositions(
   wormholeType: string,
   ownPosition: string,
-  allTiles: Record<string, Tile>,
+  allTiles: Record<string, Tile> | Tile[],
 ): string[] {
   return Object.values(allTiles)
     .filter(
@@ -165,7 +165,24 @@ type AnomalyId = (typeof SYSTEM_ANOMALY_FLAGS)[number][1];
 export function getTokenRule(
   tokenId: string,
 ): { name: string; rule: string; imagePath?: string } | undefined {
-  return TOKEN_RULES[tokenId];
+  const known = TOKEN_RULES[tokenId];
+  if (known) return known;
+  // Żeton wormhole (Creuss, Gamma Wormhole…): ta sama reguła co nadruk w dossier.
+  const wormholes = getTokenData(tokenId)?.wormholes ?? [];
+  if (wormholes.length === 0) return undefined;
+  return {
+    name: wormholes.map(wormholeName).join(" / "),
+    rule: WORMHOLE_RULE,
+  };
+}
+
+const WORMHOLE_RULE =
+  "Systems that contain matching wormholes are adjacent to each other for all purposes, including movement and neighboring effects.";
+
+function wormholeName(wormholeType: string): string {
+  const type = wormholeType.toUpperCase();
+  const glyph = WORMHOLE_GLYPHS[type] ?? type.toLowerCase();
+  return `${glyph.length === 1 ? type.charAt(0) + type.slice(1).toLowerCase() : glyph} Wormhole`;
 }
 
 export function systemAnomalies(tile: Tile): AnomalyId[] {
@@ -201,8 +218,8 @@ export function getSystemFeatures(
     features.push({
       id: `wormhole-${wormholeType}`,
       glyph,
-      name: `${glyph.length === 1 ? wormholeType.charAt(0) + wormholeType.slice(1).toLowerCase() : glyph} Wormhole`,
-      rule: "Systems that contain matching wormholes are adjacent to each other for all purposes, including movement and neighboring effects.",
+      name: wormholeName(wormholeType),
+      rule: WORMHOLE_RULE,
       detail:
         links.length > 0
           ? `Linked to ${links.join(" · ")}`

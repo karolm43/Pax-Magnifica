@@ -1,0 +1,158 @@
+/* Linie „dokąd prowadzi” wormhole / ingress / egress: nad kafelkami, pod trasą ruchu, nieklikalne. */
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8990;
+  pointer-events: none;
+  animation: linkFadeIn 180ms ease-out;
+}
+
+.svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+
+/* Kolor wg rodzaju połączenia (jak barwy nadruków na kafelkach). */
+.svg {
+  --link-rgb: 186, 230, 253;
+}
+.svg [data-kind="ALPHA"] {
+  --link-rgb: 251, 146, 60;
+}
+.svg [data-kind="BETA"] {
+  --link-rgb: 74, 222, 128;
+}
+.svg [data-kind="GAMMA"] {
+  --link-rgb: 192, 132, 252;
+}
+.svg [data-kind="DELTA"] {
+  --link-rgb: 96, 165, 250;
+}
+.svg [data-kind="INGRESS"],
+.svg [data-kind="EGRESS"] {
+  --link-rgb: 244, 114, 182;
+}
+
+.shadow {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 18;
+  stroke-linecap: round;
+}
+
+.line {
+  fill: none;
+  stroke: rgba(var(--link-rgb), 0.75);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 2 2.5;
+  filter: drop-shadow(0 0 8px rgb(var(--link-rgb)));
+  animation:
+    linkDraw 420ms ease-out both,
+    linkFlow 1.4s linear 420ms infinite;
+}
+
+/* Jasny „kometa” biegnąca od źródła do celu — pokazuje kierunek. */
+.comet {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-dasharray: 6 94;
+  stroke-dashoffset: 6;
+  filter: drop-shadow(0 0 10px rgb(var(--link-rgb)));
+  animation: linkComet 1.6s ease-in-out 300ms infinite;
+  opacity: 0;
+}
+
+.targetHex {
+  fill: rgba(var(--link-rgb), 0.12);
+  stroke: rgb(var(--link-rgb));
+  stroke-width: 6;
+  filter: drop-shadow(0 0 12px rgb(var(--link-rgb)));
+}
+
+.dot,
+.origin {
+  fill: rgb(var(--link-rgb));
+  stroke: #fff;
+  stroke-width: 5;
+}
+
+.pulse {
+  fill: none;
+  stroke: rgb(var(--link-rgb));
+  stroke-width: 6;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: linkPulse 1.4s ease-out infinite;
+}
+
+@keyframes linkFadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes linkDraw {
+  from {
+    stroke-dasharray: 0 100;
+  }
+  to {
+    stroke-dasharray: 100 0;
+  }
+}
+
+@keyframes linkFlow {
+  from {
+    stroke-dasharray: 2 2.5;
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dasharray: 2 2.5;
+    stroke-dashoffset: -9;
+  }
+}
+
+@keyframes linkComet {
+  0% {
+    stroke-dashoffset: 6;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -94;
+    opacity: 0;
+  }
+}
+
+@keyframes linkPulse {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .line,
+  .comet,
+  .pulse {
+    animation: none;
+  }
+  .comet {
+    display: none;
+  }
+}

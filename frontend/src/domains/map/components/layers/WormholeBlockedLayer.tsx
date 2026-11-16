@@ -112,3 +112,37 @@ function getWormholeCoordinates(
     (p): p is Point => !!p,
   );
 }
+
+/**
+ * Środki nadruków wormhole / egress na grafice kafelka (współrzędne kafelka). Ta sama
+ * tabela pozycji co znacznik Travel Ban; kilka rodzajów w jednym miejscu = jeden punkt.
+ */
+export function getPrintedLinkPoints(
+  systemId: string,
+): { x: number; y: number; kinds: string[] }[] {
+  const systemData = getTileById(systemId);
+  if (!systemData) return [];
+  const kinds = (systemData.wormholes ?? [])
+    .filter((w): w is string => !!w)
+    .map((w) => w.toUpperCase());
+  if (systemData.hasEgress) kinds.push("EGRESS");
+
+  const offset = 40;
+  const tilePositions = TILE_WORMHOLE_POSITIONS[systemId];
+  const layoutPosition = systemData.shipPositionsType
+    ? SHIP_POSITION_WORMHOLE[systemData.shipPositionsType]
+    : undefined;
+  const fallback = layoutPosition ?? { x: 86, y: 220 };
+
+  const points = new Map<string, { x: number; y: number; kinds: string[] }>();
+  for (const kind of new Set(kinds)) {
+    const own =
+      kind === "ALPHA" ? tilePositions?.alpha : kind === "BETA" ? tilePositions?.beta : undefined;
+    const base = own ?? fallback;
+    const key = `${base.x},${base.y}`;
+    const point = points.get(key) ?? { x: offset + base.x, y: offset + base.y, kinds: [] };
+    point.kinds.push(kind);
+    points.set(key, point);
+  }
+  return [...points.values()];
+}

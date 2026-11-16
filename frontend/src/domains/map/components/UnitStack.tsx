@@ -284,6 +284,7 @@ export function UnitStack({
               key={unitKey}
               tokenId={unitType}
               faction={faction}
+              tilePosition={tilePosition}
               x={xPos}
               y={yPos}
               zIndex={baseZIndex + zIndexOffset}

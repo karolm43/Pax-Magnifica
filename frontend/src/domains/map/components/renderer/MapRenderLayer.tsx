@@ -9,6 +9,7 @@ import classes from "@/shared/ui/map/MapUI.module.css";
 import type { MapLayout } from "../mapLayout";
 import { MapUnitTransitionLayer } from "../layers/MapUnitTransitionLayer";
 import { MoveRouteLayer } from "../layers/MoveRouteLayer";
+import { WormholeLinkLayer } from "../layers/WormholeLinkLayer";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 
 type Props = {
@@ -60,6 +61,7 @@ export function MapRenderLayer({
           onPlanetMouseEnter={onPlanetMouseEnter}
           onPlanetMouseLeave={onPlanetMouseLeave}
         />
+        <WormholeLinkLayer tiles={tilesList} contentSize={contentSize} />
         <MoveRouteLayer tiles={tilesList} contentSize={contentSize} />
         {replayAnimationsEnabled && <MapUnitTransitionLayer />}
         <ExpeditionLayer contentSize={contentSize} />
