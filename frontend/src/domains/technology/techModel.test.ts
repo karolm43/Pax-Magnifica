@@ -41,6 +41,7 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   tradeGoodsOnly: false,
   asPrimary: false,
   second: null,
+  gain: null,
   ...over,
 });
 

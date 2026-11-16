@@ -465,6 +465,12 @@
   background: rgba(127, 29, 29, 0.45);
 }
 
+/* Tryb „gain”: koszt w żetonach floty (nie brak prerekwizytów) - spokojniejszy, niebieski. */
+.tileMissing[data-kind="tokens"] {
+  color: #bfdbfe;
+  background: rgba(30, 64, 175, 0.45);
+}
+
 .pips {
   display: inline-flex;
   gap: 2px;

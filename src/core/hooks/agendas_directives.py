@@ -23,6 +23,7 @@ from src.core import (
     exhaust,
     objectives,
     relics,
+    research_offer,
     rules_hooks,
     secret_objectives,
     strategic_action,
@@ -53,7 +54,7 @@ from src.core.hooks.agendas_common import (
     unit_instances,
 )
 from src.core.hooks.card_helpers import controlled, place_from_reinforcements, system_of_planet
-from src.core.offer_inputs import choice, multi
+from src.core.offer_inputs import multi
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import on_event
 from src.core.unit_catalog import is_space_unit
@@ -498,23 +499,24 @@ def _execution(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
 def _grant_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
-    owned = set(state.players[player_id].technologies)
-    pool = technology.tech_pool(state, registry, player_id)
-    options = [
-        _option(t, f"{d.name} ({sum(technology.prerequisites(d).values())} prerequisites)")
-        for t, d in sorted(pool.items(), key=lambda kv: kv[1].name) if t not in owned
-    ]
-    return [choice("tech", "Technology to gain", options, always=True)]
+    # Pełne okno drzewa technologii (opisy, kolory, prerekwizyty) zamiast listy nazw.
+    return [research_offer.gain_input(
+        state, registry, player_id, label="Gain any 1 technology", token_pool="fleet",
+        hint="For each prerequisite on it, remove 1 token from your fleet pool "
+             "(all of them if you have fewer).",
+    )]
 
 
 @on_outcome("grant_reallocation", decide=True, condition=is_elected, inputs=_grant_inputs,
             label="Research Grant Reallocation")
 def _grant(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
     registry = _registry()
-    tech_id = str(_params(ctx).get("tech") or "")
-    definition = technology.tech_pool(state, registry, pid).get(tech_id)
-    if definition is None:
-        return
+    tech_id = research_offer.chosen_tech(_params(ctx))
+    definition = technology.tech_pool(state, registry, pid).get(tech_id or "")
+    if tech_id is None or definition is None:
+        raise ValueError("Choose a technology to gain.")
+    if tech_id in state.players[pid].technologies:
+        raise ValueError("You already own that technology.")
     technology.grant_technology(state, pid, tech_id)
     # Za każdy prerekwizyt żeton z fleet pool; przy braku - wszystkie (C_agendas).
     cost = min(sum(technology.prerequisites(definition).values()),
@@ -760,12 +762,19 @@ def _wr_can_research(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> boo
     return _has_ships_in(state, pid, _wormhole_systems(state))
 
 
+def _wr_inputs(
+    state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
+) -> list[Input]:
+    # To samo okno badania co karta Technology (darmowe: koszt 0, skipy specjalnościami).
+    return [research_offer.research_input(state, registry, player_id, 0)]
+
+
 @on_outcome("wormhole_research", outcome="for", optional=True, condition=_wr_can_research,
-            inputs=_research_inputs_n(1), label="Wormhole Research: research 1 technology")
+            inputs=_wr_inputs, label="Wormhole Research: research 1 technology")
 def _wr_research(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
-    techs = [str(t) for t in _params(ctx).get("techs", [])]
-    if techs:
-        research_chosen(state, pid, techs, [str(x) for x in _params(ctx).get("skips", [])])
+    if research_offer.chosen_tech(_params(ctx)) is None:
+        return  # rezygnacja („may”) - bez zużycia zniżek badania
+    research_offer.resolve(state, _registry(), pid, {"params": _params(ctx)})
 
 
 @on_outcome("wormhole_research", outcome="for", once=True, moment=Moment.AFTER,

@@ -232,13 +232,20 @@ def _arbiter_ready(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> bool:
 def _arbiter_inputs(
     state: GameState, registry: StaticDataRegistry, pid: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
+    # Pełne nazwy kart (np. „3 Politics”), nie same numery inicjatywy.
+    names = {sc.initiative: sc.name for sc in registry.strategy_card_set()}
+
+    def card(n: int) -> str:
+        return f"{n} {names[n]}" if n in names else str(n)
+
     options = []
     for mine in state.players[pid].strategy_cards:
         for other, player in state.players.items():
             if other == pid:
                 continue
             for theirs in player.strategy_cards:
-                label = f"Your {mine} <-> {theirs} of {_player_label(state, registry, other)}"
+                label = (f"Your {card(mine)} <-> {card(theirs)} - "
+                         f"{_player_label(state, registry, other)}")
                 options.append(_option(f"{mine}|{other}|{theirs}", label))
     return [_choice("swap", "Strategy cards to swap", options)]
 

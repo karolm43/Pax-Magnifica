@@ -37,6 +37,7 @@ from src.core import (
     component_text,
     economy,
     game_clock,
+    hand_limit,
     legendary_planets,
     planet_abilities,
     production,
@@ -1537,6 +1538,8 @@ def _build_player_data(
                 "soCount": _hand_count(player, "secret_objectives"),
                 "pnCount": _hand_count(player, "promissory_notes"),
                 "acCount": _hand_count(player, "action_cards"),
+                # Limit kart akcji (Executive Sanctions itd.); None = bez limitu (panel dowódcy).
+                "actionCardLimit": hand_limit.action_card_limit(state, player_id),
                 "unitCounts": unit_counts,
                 # Ekonomia planet z rejestru (reguła AsyncTI4, RULES.md 7).
                 # resources/influence = dostępne (zakładamy wszystkie gotowe);

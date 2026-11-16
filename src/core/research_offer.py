@@ -83,6 +83,51 @@ def research_input(
     )
 
 
+def gain_input(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    *,
+    label: str,
+    token_pool: str | None = None,
+    hint: str = "",
+) -> offer_inputs.Input:
+    """Wejście ``research`` w trybie „GAIN”: to samo okno drzewa, ale technologia przychodzi
+    bez płatności i BEZ prerekwizytów (Research Grant Reallocation - „gains any 1 technology”).
+
+    ``token_pool`` - pula żetonów, z której zdejmuje się 1 żeton za każdy prerekwizyt
+    (koszt na kaflu: ``tokenCost``); widok dostaje ``gain`` z opisem dla UI (bez rezygnacji).
+    """
+    from src.core import command_tokens  # lokalnie: lekki moduł, bez cyklu importów
+    from src.core.strategy_cards.technology import research_view
+
+    view = research_view(state, registry, player_id, 0)
+    for row in view["tree"]:
+        if row["status"] in {"available", "skippable", "locked"}:
+            row["status"] = "available"
+            row["missing"] = {}
+        if token_pool is not None:
+            row["tokenCost"] = len(row["prerequisites"])
+    # Bez skipów i płatności: nic nie trzeba wyczerpywać.
+    view.update(specialties={}, aida=False, relic_skips=[], planets={}, compound_planets={})
+    view["gain"] = {
+        "mandatory": True,
+        "tokenPool": token_pool,
+        "tokens": command_tokens.pool_count(state, player_id, token_pool) if token_pool else 0,
+        "note": hint,
+    }
+    return offer_inputs.research(RESEARCH_KEY, label, view, hint=hint)
+
+
+def chosen_tech(params: Mapping[str, Any]) -> str | None:
+    """Id technologii z odpowiedzi okna badania (``{research: {tech: ...}}``) albo ``None``."""
+    payload = params.get(RESEARCH_KEY)
+    if not isinstance(payload, Mapping):
+        return None
+    tech = payload.get("tech")
+    return tech if isinstance(tech, str) and tech else None
+
+
 def offer_ctx(
     cost: int, *, trade_goods_only: bool = False, allowed: list[str] | None = None
 ) -> dict[str, Any]:

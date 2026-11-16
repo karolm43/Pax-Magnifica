@@ -223,13 +223,36 @@ def test_assassin_formularz_pomija_juz_zablokowanych(registry: StaticDataRegistr
     assert values == ["p1", "p2"]
 
 
-def test_hack_przesuwa_gracza_na_koniec(registry: StaticDataRegistry) -> None:
+def test_hack_odwraca_kolejnosc_glosowania_mowca_ostatni(registry: StaticDataRegistry) -> None:
+    """Hack Election (Codex 1): od gracza na prawo od mówcy, przeciwnie do zegara; mówca ostatni."""
     state = _revealed(registry, [LAW], {"p3": ["hack"]})
     assert state.agenda is not None and state.agenda.vote_order == ["p3", "p1", "p2"]
     new = _play(state, registry, "p3", "hack")
-    assert new.agenda is not None and new.agenda.vote_order == ["p1", "p2", "p3"]
+    assert new.agenda is not None and new.agenda.vote_order == ["p1", "p3", "p2"]
     assert agenda_phase.current_voter(new) == "p1"
     assert new.active_player_id == "p1"
+    assert "hack" not in new.players["p3"].private.action_cards
+
+
+def test_hack_mowca_glosuje_ostatni_przy_pieciu_graczach(registry: StaticDataRegistry) -> None:
+    state = _state(registry, [LAW])
+    state.seating_order = ["p1", "p2", "p3", "p4", "p5"]
+    for pid in ("p4", "p5"):
+        state.players[pid] = PlayerState(player_id=pid, color=pid)
+    _hand(state, "p1", "hack")
+    state = agenda_phase.reveal_agenda(state, registry, "p2")
+    assert state.agenda is not None and state.agenda.vote_order == ["p3", "p4", "p5", "p1", "p2"]
+    new = _play(state, registry, "p1", "hack")
+    assert new.agenda is not None and new.agenda.vote_order == ["p1", "p5", "p4", "p3", "p2"]
+
+
+def test_hack_niegrywalny_po_pierwszym_glosie(registry: StaticDataRegistry) -> None:
+    state = _revealed(registry, [LAW], {"p1": ["hack"]})
+    assert _playable(state, registry, "p1", "hack")
+    state = agenda_phase.abstain(state, registry, "p3")
+    assert not _playable(state, registry, "p1", "hack")
+    with pytest.raises(ValueError):
+        agenda_phase.vote_counterclockwise(state)
 
 
 def test_insider_podglad_jest_prywatny(registry: StaticDataRegistry) -> None:

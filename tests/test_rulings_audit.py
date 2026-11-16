@@ -107,6 +107,29 @@ def test_wormhole_research_nie_niszczy_struktur_w_przestrzeni(
     assert out.systems["201"].space_units.get("p3") == {"spacedock": 1}
 
 
+def test_wormhole_research_badanie_w_oknie_drzewa(registry: StaticDataRegistry) -> None:
+    """Wormhole Research „may research 1 technology": okno badania (drzewo, koszt 0),
+    rezygnacja bez skutków, wybór dodaje technologię."""
+    from src.core import offers, technology
+
+    state = _agenda_state(registry, ["wormhole_research"])
+    state.systems["201"] = SystemState(
+        position="201", system_id="39", space_units={"p3": {"carrier": 1}},
+    )
+    out = _resolve(registry, state, "for")
+    offer = _offer(out, "p3", "Wormhole Research: research")
+    (field,) = offers.offer_view(out, registry, offer)["inputs"]
+    assert field["kind"] == "research" and field["research"]["cost"] == 0
+    tech = next(
+        t.id for t in technology.tech_pool(out, registry, "p3").values()
+        if not technology.prerequisites(t)
+    )
+    done = triggers.accept_offer(out, "p3", offer.id, {"research": {"tech": tech, "skips": []}})
+    assert tech in done.players["p3"].technologies
+    skipped = triggers.accept_offer(out, "p3", offer.id, {"research": {"tech": None}})
+    assert skipped.players["p3"].technologies == out.players["p3"].technologies
+
+
 def test_search_warrant_wybor_zwrotu_po_dobraniu(registry: StaticDataRegistry) -> None:
     """C_agendas: dobrane cele są odkryte, ZANIM gracz wybierze, które oddać ponad limit."""
     state = _agenda_state(registry, ["warrant"])

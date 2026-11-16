@@ -162,7 +162,15 @@ function TechTile({
         </span>
         <span className={styles.tileBottom}>
           <Pips colors={row.prerequisites} size={13} />
-          {!owned && missingCount > 0 ? (
+          {!owned && row.tokenCost != null ? (
+            <span
+              className={styles.tileMissing}
+              data-kind="tokens"
+              title={`Remove ${row.tokenCost} fleet token(s)`}
+            >
+              {row.tokenCost > 0 ? `-${row.tokenCost} fleet` : "free"}
+            </span>
+          ) : !owned && missingCount > 0 ? (
             <span className={styles.tileMissing}>-{missingCount}</span>
           ) : null}
         </span>
@@ -173,6 +181,7 @@ function TechTile({
 
 export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const { options, busy } = props;
+  const gain = options.gain;
   const [hidden, setHidden] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [skips, setSkips] = useState<string[]>([]);
@@ -303,7 +312,17 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               <b>{ownedCount(c.color)}</b> {c.label}
             </span>
           ))}
-          {options.cost > 0 ? (
+          {gain ? (
+            <span className={styles.stat} data-kind="free">
+              <b>Gain</b> · no cost, prerequisites ignored
+              {gain.tokenPool ? (
+                <>
+                  {" "}
+                  · fleet pool <b>{gain.tokens}</b>
+                </>
+              ) : null}
+            </span>
+          ) : options.cost > 0 ? (
             <span className={styles.stat} data-kind="cost">
               Cost <b>{options.cost}</b> {costUnit}
             </span>
@@ -482,6 +501,16 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               </p>
               {selectedText ? (
                 <p className={styles.detailText}>{selectedText}</p>
+              ) : null}
+              {gain && selected.tokenCost != null && researchable ? (
+                <p className={styles.payLine} data-bad={selected.tokenCost > gain.tokens || undefined}>
+                  {selected.tokenCost === 0
+                    ? "No prerequisites - you keep all your fleet tokens."
+                    : `Gaining it removes ${Math.min(selected.tokenCost, gain.tokens)} of your ${gain.tokens} fleet pool token(s)` +
+                      (selected.tokenCost > gain.tokens
+                        ? ` (needs ${selected.tokenCost} - you lose all of them).`
+                        : ".")}
+                </p>
               ) : null}
 
               <h4>Prerequisites</h4>
@@ -669,7 +698,9 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                     ? `${stillMissing} prerequisite(s) still missing`
                     : short > 0
                       ? `${short} resource(s) short`
-                      : "Ready to research"}
+                      : gain
+                        ? "Ready to gain"
+                        : "Ready to research"}
               </small>
             </>
           ) : (
@@ -713,7 +744,11 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
             }
           >
             <IconCpu size={15} aria-hidden="true" />
-            {selected ? `Research ${selected.name}` : "Research"}
+            {selected
+              ? `${gain ? "Gain" : "Research"} ${selected.name}`
+              : gain
+                ? "Gain"
+                : "Research"}
           </button>
         </div>
       </footer>

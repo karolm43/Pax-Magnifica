@@ -85,7 +85,8 @@ function Ships({ player }: { player: PlayerData }) {
   );
 }
 
-function ResourceBarFor({ desk }: { desk: PlayerData }) {
+/** Pasek zasobów dowolnego gracza (panel dowódcy pokazuje też innych graczy). */
+export function ResourceBarFor({ desk, label = "Your stores" }: { desk: PlayerData; label?: string }) {
   const player = getPlayerCardLayoutFields(desk);
   const { total, optimal, flex, flexSpendOnly } = usePlanetEconomics(desk);
   const tg = player.tg ?? 0;
@@ -95,7 +96,7 @@ function ResourceBarFor({ desk }: { desk: PlayerData }) {
   const showFlex = floor(flex.totalFlex) > 0;
 
   return (
-    <div className={styles.bar} role="group" aria-label="Your stores">
+    <div className={styles.bar} role="group" aria-label={label}>
       {!flexSpendOnly && (
         <Group
           label="Total"

@@ -78,4 +78,48 @@ describe("DecisionFields", () => {
     expect(values()).toEqual({ trade_goods: 2, planets: ["b"] });
     expect(screen.getByText(/Paid/)).toHaveTextContent("Paid 4 / 2 · overpaying");
   });
+
+  it("technologia: kafelek pokazuje, co robi (nie sama nazwa)", () => {
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "tech",
+            kind: "choice",
+            label: "Technology",
+            hint: "",
+            merge: false,
+            options: [
+              { id: "amd", value: "amd", label: "Antimass Deflectors" },
+              { id: "gd", value: "gd", label: "Gravity Drive" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText(/move into and through asteroid fields/)).toBeInTheDocument();
+  });
+
+  it("cel: kafelek z punktami i warunkiem celu", () => {
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "objectives",
+            kind: "multi",
+            label: "Return to the deck",
+            hint: "",
+            min: 1,
+            max: 1,
+            options: [
+              { id: "diversify", value: "diversify", label: "Diversify Research" },
+              { id: "x", value: "x", label: "Something else" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Own 2 technologies in each of 2 colors.")).toBeInTheDocument();
+    expect(screen.getByText(/1 VP/)).toBeInTheDocument();
+  });
 });

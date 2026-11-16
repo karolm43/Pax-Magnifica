@@ -1,30 +1,94 @@
-/* Układ zakładki Player: pełna karta aktywnego gracza w głównej kolumnie,
-   prywatna ręka + kontrolki akcji w węższej kolumnie bocznej. Na wąskich
-   ekranach kolumny składają się w jeden pion (karta na górze). */
+/* Panel dowódcy (zakładka Player): nagłówek gracza, odprawa + zasoby + pełna karta w głównej
+   kolumnie, stół (wyścig VP) + akcje + ręka w bocznej. Kolor gracza = --pc. Na wąskich
+   ekranach kolumny składają się w jeden pion. */
 .layout {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 12px;
   align-items: start;
-  padding: 12px;
 }
 
 @media (max-width: 1100px) {
-  .layout {
+  .grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-.main {
-  min-width: 0;
-}
-
+.main,
 .side {
+  display: grid;
+  gap: 12px;
   min-width: 0;
 }
 
-/* Blok sekcji bocznej (private info / actions) — ten sam język wizualny,
-   co pływający panel stanu gry (ciemne tło, cienka obwódka, zaokrąglenie). */
+/* --- Nagłówek --- */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--pc) 55%, transparent);
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pc) 22%, transparent), transparent 70%);
+}
+
+.heroIcon {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--pc);
+}
+
+.heroText {
+  flex: 1;
+  min-width: 0;
+}
+
+.heroText h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ds-ink-hi);
+}
+
+.heroText p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+.heroVp {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--ds-ink-hi);
+}
+
+.heroVp b {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.heroVp small {
+  color: var(--ds-ink-lo);
+}
+
+.rank {
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pc) 35%, transparent);
+}
+
+/* --- Panele --- */
 .panel {
   padding: 10px 12px 12px;
   border: 1px solid var(--ds-h14);
@@ -33,15 +97,170 @@
 }
 
 .panelTitle {
-  margin: 0 0 2px;
+  margin: 0 0 6px;
+  font-size: 14px;
   color: var(--ds-ink-hi);
 }
 
-/* Krótka podpowiedź pod tytułem panelu (co tu robię) — cichy, drobny ton. */
-.panelHint {
-  display: block;
+.hint {
   margin: 0 0 8px;
+  font-size: 12px;
   line-height: 1.35;
+  color: var(--ds-ink-lo);
+}
+
+/* --- Odprawa (wskazówki) --- */
+.tips {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ds-ink-hi);
+  border-left: 3px solid var(--tone, #64748b);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tip[data-tone="action"] {
+  --tone: #60a5fa;
+}
+
+.tip[data-tone="good"] {
+  --tone: #4ade80;
+}
+
+.tip[data-tone="warn"] {
+  --tone: #fbbf24;
+}
+
+.tipIcon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--tone, #94a3b8);
+}
+
+.ref {
+  font-weight: 700;
+}
+
+/* --- Stół --- */
+.seats {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  display: grid;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.seat[data-selected] {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.seatBtn {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 90px;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  font: inherit;
+  color: var(--ds-ink-hi);
+  text-align: left;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.seatBtn:focus-visible {
+  outline: 2px solid var(--ds-accent, #2563eb);
+  outline-offset: 2px;
+}
+
+.seatRing {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--pc);
+}
+
+.seatName {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.seatVp {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.seatVp i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pc) 70%, transparent);
+}
+
+.seatVp b {
+  position: relative;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.seatMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding-left: 30px;
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.badge {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.badge[data-kind="turn"] {
+  color: #0b1220;
+  background: #60a5fa;
+}
+
+.sc {
+  padding: 0 6px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: rgba(250, 204, 21, 0.18);
+}
+
+.sc[data-used] {
+  opacity: 0.5;
 }
 
 .empty {
@@ -50,4 +269,5 @@
   justify-content: center;
   min-height: 240px;
   padding: 24px;
+  color: var(--ds-ink-lo);
 }

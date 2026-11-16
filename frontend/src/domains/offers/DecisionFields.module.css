@@ -45,6 +45,27 @@
   gap: 6px;
 }
 
+/* Kafelki z opisem zasady (technologie, cele, karty): szersze kolumny, tekst pod nazwą. */
+.tiles[data-rich] {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.tiles[data-rich] .tile {
+  align-items: flex-start;
+}
+
+.descr {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--ds-ink-mid, var(--ds-ink-lo));
+}
+
 .tile {
   position: relative;
   display: flex;

@@ -9,6 +9,7 @@ from src.core import (
     agenda_phase,
     command_tokens,
     hand_limit,
+    offers,
     production,
     rules_hooks,
     strategy_phase,
@@ -227,6 +228,40 @@ def test_grant_reallocation_asks_the_elected_player(registry: StaticDataRegistry
         agenda_phase.continue_agenda(out, registry, "p2")
 
 
+def test_grant_reallocation_okno_drzewa_bez_prerekwizytow(registry: StaticDataRegistry) -> None:
+    """Decyzja = pełne okno drzewa technologii (nie lista): każda nieposiadana dostępna,
+    na kaflu koszt w żetonach floty = liczba prerekwizytów (C_agendas)."""
+    from src.core import technology
+
+    state = _state(registry, ["grant_reallocation"])
+    state.players["p1"].fleet_cc = 3
+    out = _resolve(registry, state, "p1")
+    offer = next(o for o in out.pending_offers if o.player_id == "p1")
+    (field,) = offers.offer_view(out, registry, offer)["inputs"]
+    assert field["kind"] == "research" and field["key"] == "research"
+    view = field["research"]
+    assert view["gain"]["mandatory"] and view["gain"]["tokens"] == 3
+    rows = {r["id"]: r for r in view["tree"]}
+    assert all(r["status"] in {"available", "owned", "exhausted"} for r in rows.values())
+    hard = next(
+        t for t in technology.tech_pool(out, registry, "p1").values()
+        if sum(technology.prerequisites(t).values()) == 3
+    )
+    assert rows[hard.id]["tokenCost"] == 3
+    # Zdobycie z 3 prerekwizytami przy 3 żetonach floty: pula floty pusta.
+    done = triggers.accept_offer(out, "p1", offer.id, {"research": {"tech": hard.id}})
+    assert hard.id in done.players["p1"].technologies
+    assert done.players["p1"].fleet_cc == 0
+
+
+def test_grant_reallocation_bez_wyboru_odrzucone(registry: StaticDataRegistry) -> None:
+    state = _state(registry, ["grant_reallocation"])
+    out = _resolve(registry, state, "p1")
+    offer = next(o for o in out.pending_offers if o.player_id == "p1")
+    with pytest.raises(ValueError):
+        triggers.accept_offer(out, "p1", offer.id, {"research": {"tech": None}})
+
+
 def test_galactic_crisis_pact_opens_free_secondary(registry: StaticDataRegistry) -> None:
     state = _state(registry, ["crisis"])
     out = _resolve(registry, state, "3")
@@ -422,3 +457,17 @@ def test_search_warrant_reveals_secrets(registry: StaticDataRegistry) -> None:
     players = web_agenda.with_revealed_secrets([{"discordId": "p1"}, {"discordId": "p2"}], state)
     assert players[0]["knownUnscoredSecrets"] == {"dp": 1}
     assert "knownUnscoredSecrets" not in players[1]
+
+
+def test_imperial_arbiter_opcje_z_pelnymi_nazwami_kart(registry: StaticDataRegistry) -> None:
+    """Wybór zamiany kart strategii pokazuje nazwy kart, nie same numery inicjatywy."""
+    from src.core.hooks import agendas_laws
+
+    state = _state(registry, [])
+    state.players["p1"].strategy_cards = [3]
+    state.players["p2"].strategy_cards = [5]
+    (field,) = agendas_laws._arbiter_inputs(state, registry, "p1", {})
+    names = {sc.initiative: sc.name for sc in registry.strategy_card_set()}
+    (option,) = field["options"]
+    assert option["value"] == "3|p2|5"
+    assert names[3] in option["label"] and names[5] in option["label"]

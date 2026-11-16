@@ -9,6 +9,12 @@ import { getTechData } from "@/entities/lookup/tech";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { playerName, playerRgb } from "@/domains/strategy/PlayerChip";
 import { useGameData } from "@/state/useGameContext";
+import {
+  HintBody,
+  hintFor,
+  type Hint,
+  type NamedKind,
+} from "@/domains/game-shell/components/ActivityPanel/Named";
 import type { Classified, OptionLookups } from "./optionKinds";
 import styles from "./DecisionFields.module.css";
 
@@ -67,7 +73,55 @@ export function TechOptionBody({ option, techId }: { option: ActionCardOption; t
         <span className={styles.optText}>
           <b>{tech?.name ?? option.label}</b>
           {caption && <small>{caption}</small>}
+          {/* Zawsze widać, CO technologia robi (pełna karta po najechaniu). */}
+          {tech?.text && <span className={styles.descr}>{tech.text}</span>}
         </span>
+      </span>
+    </Tooltip>
+  );
+}
+
+/** Komponenty gry rozpoznawane po id opcji (cel, agenda, karta, notka, lider, eksploracja). */
+const DESCRIBED_KINDS: NamedKind[] = [
+  "objective",
+  "agenda",
+  "actionCard",
+  "promissory",
+  "leader",
+  "explore",
+];
+
+/** Opis komponentu gry, na który wskazuje opcja (id w ``value``), albo ``null``. */
+export function describeOption(option: ActionCardOption): Hint | null {
+  const value = typeof option.value === "string" ? option.value : null;
+  if (!value) return null;
+  for (const kind of DESCRIBED_KINDS) {
+    const hint = hintFor(kind, value);
+    if (hint) return hint;
+  }
+  return null;
+}
+
+/**
+ * Treść kafelka komponentu gry (cel, agenda, karta akcji…): nazwa, rodzaj i tekst zasady,
+ * pełny opis po najechaniu - zamiast samej nazwy na liście.
+ */
+export function DescribedOptionBody({ option, hint }: { option: ActionCardOption; hint: Hint }) {
+  const at = option.label.indexOf(" - ");
+  const caption = at >= 0 ? option.label.slice(at + 3) : hint.meta;
+  return (
+    <Tooltip
+      label={<HintBody hint={hint} />}
+      openDelay={300}
+      position="right"
+      multiline
+      maw={340}
+      events={{ hover: true, focus: false, touch: false }}
+    >
+      <span className={styles.optText}>
+        <b>{hint.name || option.label}</b>
+        {caption && <small>{caption}</small>}
+        {hint.lines[0] && <span className={styles.descr}>{hint.lines[0]}</span>}
       </span>
     </Tooltip>
   );

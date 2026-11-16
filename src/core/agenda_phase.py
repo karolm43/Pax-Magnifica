@@ -991,18 +991,24 @@ def block_voter(state: GameState, registry: StaticDataRegistry, player_id: str) 
     return _after_vote(state, registry)
 
 
-def vote_last(state: GameState, player_id: str) -> GameState:
-    """Hack Election: ``player_id`` głosuje w tej agendzie jako OSTATNI (przesuwa go na koniec).
+def vote_counterclockwise(state: GameState) -> GameState:
+    """Hack Election: głosowanie zaczyna gracz na PRAWO od mówcy i idzie przeciwnie do zegara.
+
+    Mówca nadal głosuje ostatni (ruling ``C_action_cards``: „The speaker will still vote last").
+    Kolejka zachowuje tylko graczy z bieżącej ``vote_order``; zablokowani dalej nie głosują.
 
     Raises:
-        ValueError: Poza krokiem głosowania, nieznany gracz albo gracz już zagłosował.
+        ValueError: Poza krokiem głosowania albo ktoś już zagłosował (okno zamknięte).
     """
     agenda = _require_agenda(state, AgendaStep.VOTE)
-    if player_id not in agenda.vote_order:
-        raise ValueError(f"{player_id} is not in the voting order.")
-    if player_id in agenda.votes or player_id in agenda.abstained:
-        raise ValueError("That player has already voted on this agenda.")
-    agenda.vote_order = [*(p for p in agenda.vote_order if p != player_id), player_id]
+    if agenda.votes or agenda.abstained:
+        raise ValueError("Voting on this agenda has already begun.")
+    clockwise = vote_order(state)  # od gracza po lewej mówcy, mówca ostatni
+    if not clockwise:
+        return state
+    *others, last = clockwise
+    keep = set(agenda.vote_order)
+    agenda.vote_order = [p for p in [*reversed(others), last] if p in keep]
     _point_to_voter(state)
     return state
 

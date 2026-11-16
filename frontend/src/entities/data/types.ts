@@ -1059,6 +1059,8 @@ export type PlayerData = {
   soCount: number;
   pnCount: number;
   acCount: number;
+  /** Limit kart akcji w ręce (silnik: ``hand_limit.action_card_limit``); null = bez limitu. */
+  actionCardLimit?: number | null;
 
   // unit counts (to get reinforcements total)
   unitCounts: Record<

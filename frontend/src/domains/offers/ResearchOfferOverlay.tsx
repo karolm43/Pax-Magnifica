@@ -38,18 +38,22 @@ export function ResearchOfferOverlay({ offer }: { offer: OfferView }) {
     }
   };
 
+  const options = toResearchOptions(input.research);
+  // „Gain” obowiązkowy (Research Grant Reallocation): bez przycisku rezygnacji.
+  const canDecline = !options.gain?.mandatory;
+
   return (
     <TechnologyOverlay
       key={offer.id}
-      options={toResearchOptions(input.research)}
+      options={options}
       title={offer.name}
       subtitle={input.hint ? `${input.label} · ${input.hint}` : input.label}
       playerRgb={rgb ? `${rgb.red} ${rgb.green} ${rgb.blue}` : "110 168 255"}
       playerName={decider?.flexibleDisplayName || decider?.faction || ""}
       faction={decider?.faction}
       busy={busy}
-      declineLabel="Don't research"
-      onDecline={() => void answer({ tech: null })}
+      declineLabel={canDecline ? "Don't research" : undefined}
+      onDecline={canDecline ? () => void answer({ tech: null }) : undefined}
       onResearch={(payload) => void answer(payload)}
     />
   );

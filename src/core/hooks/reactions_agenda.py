@@ -11,10 +11,11 @@ Okna WYLICZANE z ``GameState.agenda`` (krok ``AgendaStep``):
   Confusing Legal Text). Krok ``COUNTED`` powstaje, gdy ktoś trzyma kartę na ten moment
   (``agenda_phase.PAUSE_BEFORE_RESOLUTION_ALWAYS``).
 
-Zmiany stanu agendy WYŁĄCZNIE przez funkcje ``agenda_phase`` (``block_voter``, ``vote_last``,
-``veto_agenda``, ``add_votes``, ``replace_elected``, ``void_agenda``). Predykcje riderów to efekty
-trwałe (``active_effects``, zakres ``AGENDA``) z danymi ``{outcome, ...nagroda}``; rozstrzyga je
-hook zdarzenia ``AGENDA_OUTCOME_RESOLVED`` / AFTER (efekt agendy jest już zapisany - C_action_cards:
+Zmiany stanu agendy WYŁĄCZNIE przez funkcje ``agenda_phase`` (``block_voter``,
+``vote_counterclockwise``, ``veto_agenda``, ``add_votes``, ``replace_elected``, ``void_agenda``).
+Predykcje riderów to efekty trwałe (``active_effects``, zakres ``AGENDA``) z danymi
+``{outcome, ...nagroda}``; rozstrzyga je hook zdarzenia ``AGENDA_OUTCOME_RESOLVED`` / AFTER
+(efekt agendy jest już zapisany - C_action_cards:
 „effect of a successful rider will be resolved after the effect of the agenda").
 """
 
@@ -579,11 +580,12 @@ def assassin(
 
 @register_effect("action_cards:hack")
 def hack(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
+    state: GameState, _registry: StaticDataRegistry, _player_id: str, _params: Mapping[str, Any]
 ) -> None:
-    """Hack Election: During this agenda, you vote last."""
+    """Hack Election (Codex 1): During this agenda, voting begins with the player to the right
+    of the speaker and continues counterclockwise (mówca nadal ostatni - ruling)."""
     _agenda_or_fail(state)
-    agenda_phase.vote_last(state, player_id)
+    agenda_phase.vote_counterclockwise(state)
 
 
 @register_effect("action_cards:insider")

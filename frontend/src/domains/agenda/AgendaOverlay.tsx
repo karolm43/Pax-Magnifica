@@ -35,7 +35,15 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { useFactionImageUrl } from "@/hooks/useFactionImages";
 import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
-import { Named } from "@/domains/game-shell/components/ActivityPanel/Named";
+import {
+  HintBody,
+  hintFor,
+  Named,
+  type Hint,
+} from "@/domains/game-shell/components/ActivityPanel/Named";
+import { Tooltip } from "@/ds";
+import { getPlanetData } from "@/entities/lookup/planets";
+import { clearMapMarks, mapRefKeys, showOnMap } from "@/domains/search/mapPeek";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import {
   prettifyId,
@@ -416,6 +424,111 @@ function Senate({
 }
 
 /** Karta agendy + wyniki (słupki głosów) + historia tej fazy. */
+/** Opis komponentu za wynikiem (planeta, prawo, cel, karta strategii) albo ``null``. */
+function outcomeHint(agenda: AgendaPhaseData, outcome: string): Hint | null {
+  switch (agenda.kind) {
+    case "planet":
+    case "planet_non_home":
+    case "planet_non_home_not_mecatol":
+      return hintFor("planet", outcome);
+    case "law":
+      return hintFor("agenda", outcome);
+    case "secret_objective":
+    case "public_objective":
+      return hintFor("objective", outcome);
+    case "strategy_card":
+      return hintFor("strategy", outcome);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Linijka informacji pod wynikiem: CO się wybiera (planeta: wartości, typ i kto ją trzyma +
+ * podgląd na mapie; gracz: punkty i głosy; prawo / cel / karta strategii: tekst zasady).
+ */
+function OutcomeInfo({
+  agenda,
+  outcome,
+  lookOf,
+}: {
+  agenda: AgendaPhaseData;
+  outcome: string;
+  lookOf: (id: string) => Look;
+}) {
+  const { byId } = usePlayers();
+  const isPlayer =
+    agenda.kind === "player" ||
+    agenda.kind === "player_techs" ||
+    (agenda.kind === "player_or_against" && outcome !== "against");
+  if (isPlayer) {
+    const player = byId.get(outcome);
+    if (!player) return null;
+    const voter = agenda.voters[outcome];
+    return (
+      <span className={styles.outcomeInfo}>
+        {player.totalVps} VP
+        {player.isSpeaker ? " · speaker" : ""}
+        {voter ? ` · ${voter.available + voter.extra} votes available` : ""}
+      </span>
+    );
+  }
+  if (agenda.kind.startsWith("planet") && agenda.kind !== "planet_trait") {
+    const planet = getPlanetData(outcome);
+    const owner = [...byId.values()].find((p) => p.planets.includes(outcome));
+    const keys = mapRefKeys(outcome, { planet: outcome });
+    const traits = (planet?.planetTypes ?? (planet?.planetType ? [planet.planetType] : []))
+      .map((t) => prettifyId(t.toLowerCase()))
+      .join(", ");
+    return (
+      <span className={styles.outcomeInfo}>
+        {planet ? `${planet.resources} res · ${planet.influence} inf` : ""}
+        {traits ? ` · ${traits}` : ""}
+        {planet?.techSpecialties?.length ? ` · ${planet.techSpecialties.join(", ")} specialty` : ""}
+        {" · "}
+        {owner ? (
+          <>
+            held by{" "}
+            {owner.faction ? <CircularFactionIcon faction={owner.faction} size={14} /> : null}{" "}
+            {lookOf(owner.discordId).name}
+          </>
+        ) : (
+          "uncontrolled"
+        )}
+        <button
+          type="button"
+          className={styles.outcomeLocate}
+          aria-label={`Show ${resolvePlanetName(outcome)} on the map`}
+          title="Hover to see it on the map, click to centre the map on it"
+          onMouseEnter={() => showOnMap(keys, { peek: true })}
+          onMouseLeave={clearMapMarks}
+          onFocus={() => showOnMap(keys, { peek: true })}
+          onBlur={clearMapMarks}
+          onClick={() => showOnMap(keys, { peek: true, jump: true })}
+        >
+          <IconEye size={13} aria-hidden="true" />
+        </button>
+      </span>
+    );
+  }
+  const hint = outcomeHint(agenda, outcome);
+  if (!hint) return null;
+  return (
+    <Tooltip
+      label={<HintBody hint={hint} />}
+      multiline
+      withArrow
+      openDelay={200}
+      maw={340}
+      events={{ hover: true, focus: true, touch: true }}
+    >
+      <span className={styles.outcomeInfo} data-text="" tabIndex={0}>
+        {hint.meta ? <em>{hint.meta}</em> : null} {hint.lines[0] ?? ""}
+      </span>
+    </Tooltip>
+  );
+}
+
 function Podium({
   agenda,
   lookOf,
@@ -553,6 +666,7 @@ function Podium({
                   </span>
                   <span className={styles.outcomeVotes}>{total}</span>
                 </button>
+                <OutcomeInfo agenda={agenda} outcome={outcome} lookOf={lookOf} />
                 <div className={styles.bar} aria-hidden="true">
                   <span style={{ width: `${(total / maxVotes) * 100}%` }} />
                 </div>

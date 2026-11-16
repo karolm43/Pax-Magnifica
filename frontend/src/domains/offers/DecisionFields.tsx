@@ -9,6 +9,8 @@ import { clearMapMarks, mapHits, mapRefKeys, showOnMap } from "@/domains/search/
 import type { SearchKey } from "@/domains/search/searchKeys";
 import { classifyOptions, type OptionKind } from "./optionKinds";
 import {
+  DescribedOptionBody,
+  describeOption,
   PlayerOptionBody,
   TechOptionBody,
   useFieldMapPick,
@@ -129,6 +131,7 @@ function Tile({
   const meta = metaOf(option);
   const shape = typeof meta.die === "number" ? "die" : undefined;
   const mapRef = useMapRef(option);
+  const described = kind ? null : describeOption(option);
   const tile = (
     <button
       type="button"
@@ -145,6 +148,8 @@ function Tile({
         <TechOptionBody option={option} techId={kind.target} />
       ) : kind?.kind === "player" ? (
         <PlayerOptionBody option={option} playerId={kind.target} />
+      ) : described ? (
+        <DescribedOptionBody option={option} hint={described} />
       ) : (
         <OptionBody option={option} />
       )}
@@ -361,11 +366,14 @@ function ChoiceField({
   const mapNote = onMap ? "or click a glowing target on the map" : undefined;
   // Technologie i gracze zawsze jako kafelki (bez listy rozwijanej).
   const alwaysTiles = classified?.kind === "technology" || classified?.kind === "player";
+  // Kafelki z opisem (technologia, cel, karta) są szersze - tekst zasady ma się zmieścić.
+  const rich =
+    classified?.kind === "technology" || (!classified && options.some((o) => describeOption(o)));
   const data = options.map((o) => ({ value: o.id, label: o.label }));
 
   if (input.kind === "multi") {
     const range = input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`;
-    if (options.length > MAX_TILES && !alwaysTiles) {
+    if (options.length > MAX_TILES && !alwaysTiles && !rich) {
       return (
         <MultiSelect
           label={input.label}
@@ -391,7 +399,7 @@ function ChoiceField({
           hint={input.hint}
           note={[`${picked.length} selected · pick ${range}`, mapNote].filter(Boolean).join(" · ")}
         />
-        <div className={styles.tiles}>
+        <div className={styles.tiles} data-rich={rich || undefined}>
           {options.map((option) => {
             const selected = picked.includes(option.id);
             return (
@@ -425,7 +433,7 @@ function ChoiceField({
     );
   }
 
-  if (options.length > MAX_TILES && !alwaysTiles) {
+  if (options.length > MAX_TILES && !alwaysTiles && !rich) {
     return (
       <Select
         label={input.label}
@@ -442,7 +450,12 @@ function ChoiceField({
   return (
     <div className={styles.field}>
       <FieldHead label={input.label} hint={input.hint} note={mapNote} />
-      <div className={styles.tiles} role="radiogroup" aria-label={input.label}>
+      <div
+        className={styles.tiles}
+        data-rich={rich || undefined}
+        role="radiogroup"
+        aria-label={input.label}
+      >
         {options.map((option) => (
           <Tile
             key={option.id}

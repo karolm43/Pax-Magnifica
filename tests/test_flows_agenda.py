@@ -75,10 +75,21 @@ def test_decyzja_z_agendy_i_jawny_rider(registry: StaticDataRegistry) -> None:
     assert offer["mandatory"]
     flow.post("/agenda/continue", {"player_id": speaker}, ok=False)
     assert flow.state()["agenda"]["step"] == "RESOLVED"  # mówca czeka na decyzję
-    tech = offer["inputs"][0]["options"][0]["value"]
-    flow.accept("Research Grant Reallocation", {"tech": tech})
+    field = offer["inputs"][0]
+    assert field["kind"] == "research"  # pełne okno drzewa technologii, nie lista
+    tech = next(r["id"] for r in field["research"]["tree"] if r["status"] == "available")
+    flow.accept("Research Grant Reallocation", {"research": {"tech": tech}})
     state = flow.state()
     assert tech in state["players"][flow.me]["technologies"]
     assert state["players"][flow.other]["trade_goods"] >= 5  # trafiony Trade Rider
     flow.post("/agenda/continue", {"player_id": speaker})
     assert flow.state()["agenda"]["step"] == "REVEAL"
+
+
+def test_web_data_limit_kart_akcji_dla_panelu_dowodcy(registry: StaticDataRegistry) -> None:
+    """Panel dowódcy czyta limit kart akcji z silnika (nie zgaduje „7”)."""
+    flow = Flow(registry, "hacan")
+    data = flow.client.get("/api/public/game/test/web-data").json()
+    limits = {p["discordId"]: p["actionCardLimit"] for p in data["playerData"] if p.get("faction")}
+    expected = registry.hand_limits().action_cards
+    assert limits and set(limits.values()) == {expected}

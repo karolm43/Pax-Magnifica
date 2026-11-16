@@ -18,6 +18,19 @@ export type TechRow = {
   prerequisites: TechColor[];
   missing: Partial<Record<TechColor, number>>;
   status: TechStatus;
+  /** Tryb „gain” (Research Grant Reallocation): żetony do zdjęcia z puli za tę technologię. */
+  tokenCost?: number;
+};
+
+/**
+ * Tryb „GAIN” okna: technologia przychodzi bez płatności i bez prerekwizytów (Research Grant
+ * Reallocation). ``tokenPool`` - pula, z której zdejmuje się żetony (koszt na kaflu).
+ */
+export type GainMode = {
+  mandatory: boolean;
+  tokenPool: string | null;
+  tokens: number;
+  note: string;
 };
 
 export type ResearchOptions = {
@@ -46,6 +59,7 @@ export type ResearchOptions = {
   /** Brilliant: secondary jak primary - druga technologia za `second.cost` (opcjonalna). */
   asPrimary: boolean;
   second: ResearchOptions | null;
+  gain: GainMode | null;
 };
 
 export type BreakthroughInfo = {
@@ -102,6 +116,8 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     discount: typeof raw.discount === "number" ? raw.discount : 0,
     compoundPlanets: (raw.compound_planets ?? {}) as Record<string, TechColor[]>,
     asPrimary: raw.as_primary === true,
+    gain:
+      raw.gain && typeof raw.gain === "object" ? (raw.gain as GainMode) : null,
     second:
       raw.second && typeof raw.second === "object"
         ? toResearchOptions(raw.second as Record<string, unknown>)
