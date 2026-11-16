@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { IconArrowRight } from "@tabler/icons-react";
 import type { ActionCardInput, FormValue } from "@/api/useActionCard";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { useMapPick } from "@/domains/strategy/mapPick";
@@ -73,41 +72,27 @@ export function RouteNumbersField({
         hint={routes[0]?.input.hint}
         note={source ? `from ${nameOf(source)}: click a glowing planet to move 1 there` : "click a glowing planet to move from"}
       />
-      <div className={styles.placeChips} role="group" aria-label="Move from">
-        {sources.map((from) => (
-          <button
-            key={from}
-            type="button"
-            className={styles.placeChip}
-            aria-pressed={source === from}
-            data-picked={sent(from) > 0 || undefined}
-            disabled={disabled}
-            onClick={() => setSource(source === from ? null : from)}
-          >
-            {nameOf(from)}
-            <i className={styles.placeCount}>
-              {capacity(from) - sent(from)}
-            </i>
-          </button>
-        ))}
-      </div>
-      {source && (
-        <div className={styles.placeChips} role="group" aria-label={`Move from ${nameOf(source)} to`}>
-          {routes
-            .filter((r) => r.from === source)
-            .map((r) => (
-              <button
-                key={r.input.key}
-                type="button"
-                className={styles.placeChip}
-                disabled={disabled || sent(source) >= capacity(source)}
-                onClick={() => pick(r.to)}
-              >
-                <IconArrowRight size={12} aria-hidden="true" />
-                {nameOf(r.to)}
-              </button>
-            ))}
+      {/* Planety wskazuje TYLKO mapa (decyzja użytkownika: nigdy lista planet). */}
+      {source ? (
+        <div className={styles.placeChips} role="group" aria-label="Move from">
+          <span className={styles.placeChipWrap}>
+            <span className={styles.placeChip} data-picked>
+              From {nameOf(source)}
+              <i className={styles.placeCount}>{capacity(source) - sent(source)}</i>
+            </span>
+            <button
+              type="button"
+              className={styles.placeRemove}
+              aria-label={`Stop moving from ${nameOf(source)}`}
+              disabled={disabled}
+              onClick={() => setSource(null)}
+            >
+              ×
+            </button>
+          </span>
         </div>
+      ) : (
+        <p className={styles.mapCall}>Click a glowing planet on the map to move from.</p>
       )}
       {chosen.map((r) => (
         <Stepper

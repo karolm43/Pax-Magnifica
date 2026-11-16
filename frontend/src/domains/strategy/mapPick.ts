@@ -22,7 +22,7 @@ export function useMapPick(
 
   useEffect(() => {
     // Wyłączony wybór NIE czyści mapy: mógłby skasować wybór innego komponentu (np. pole z
-    // grupami w ``GroupedMapField`` pod wyłączonym ``useFieldMapPick`` rodzica). Własny wybór
+    // drugiego pola ``GroupedMapField``, które akurat nie trzyma mapy). Własny wybór
     // sprząta funkcja czyszcząca poprzedniego przebiegu (przejście enabled -> disabled).
     if (!enabled || targets.length === 0) return;
     setMapPick({

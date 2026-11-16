@@ -7,7 +7,6 @@ import {
   type ComponentKind,
   type ComponentRef,
 } from "@/domains/cards/components/ComponentInfo";
-import { useMapPick } from "@/domains/strategy/mapPick";
 import { COLOR_HUE, COLOR_ICON, type TechColor } from "@/domains/technology/techModel";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getTechData } from "@/entities/lookup/tech";
@@ -19,7 +18,7 @@ import {
   hintFor,
   type Hint,
 } from "@/domains/game-shell/components/ActivityPanel/Named";
-import type { Classified, OptionLookups } from "./optionKinds";
+import type { OptionLookups } from "./optionKinds";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -175,30 +174,4 @@ export function PlayerOptionBody({ option, playerId }: { option: ActionCardOptio
       </span>
     </span>
   );
-}
-
-/**
- * Wybór na mapie dla pola z planetami / systemami: dozwolone cele świecą, klik wybiera opcję.
- * Aktywne tylko dla JEDNEGO pola naraz (``active``) - mapa ma jeden tryb wyboru.
- */
-export function useFieldMapPick(
-  classified: Classified | null,
-  active: boolean,
-  selected: string | null,
-  onPickOption: (optionId: string) => void,
-) {
-  const mapKind =
-    classified?.kind === "planet" || classified?.kind === "system" ? classified.kind : null;
-  const byTarget = useMemo(() => {
-    const map = new Map<string, string>();
-    if (mapKind && classified) for (const [id, target] of classified.targets) map.set(target, id);
-    return map;
-  }, [classified, mapKind]);
-  const targets = useMemo(() => [...byTarget.keys()], [byTarget]);
-  const selectedTarget = selected ? (classified?.targets.get(selected) ?? null) : null;
-  useMapPick(mapKind ?? "system", targets, (target) => {
-    const id = byTarget.get(target);
-    if (id) onPickOption(id);
-  }, { enabled: active && mapKind !== null, selected: selectedTarget });
-  return mapKind !== null;
 }

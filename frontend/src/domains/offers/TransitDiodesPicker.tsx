@@ -224,22 +224,8 @@ export function TransitDiodesPicker({
           </ul>
         )}
         {picks.length > 0 && (
-          <div className={styles.planets} role="group" aria-label="Your planets">
-            {targets.map((target) => (
-              <button
-                key={target.id}
-                type="button"
-                className={styles.planet}
-                disabled={disabled}
-                data-chosen={focused?.dest === target.id || undefined}
-                onClick={() => place(target.id)}
-                title="Your planets are highlighted on the map too"
-              >
-                {target.name}
-                <small>{target.position}</small>
-              </button>
-            ))}
-          </div>
+          // Cel tylko NA MAPIE (decyzja użytkownika: nigdy lista planet).
+          <p className={styles.mapCall}>Click a glowing planet of yours on the map.</p>
         )}
       </section>
     </div>

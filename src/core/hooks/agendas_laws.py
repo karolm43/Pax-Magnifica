@@ -278,7 +278,7 @@ def _nexus_positions(state: GameState) -> set[str]:
     if registry is None:
         return set()
     found = set()
-    for position in state.systems:
+    for position in board_graph.board_positions(state):  # nexus nie musi mieć wpisu w stanie
         definition = registry.systems.get(board_graph.system_id_at(state, position))
         if definition is not None and (definition.name or "").strip().lower() == _NEXUS_NAME:
             found.add(position)

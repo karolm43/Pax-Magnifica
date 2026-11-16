@@ -168,35 +168,14 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-.planets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.planet {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 3px 9px;
-  font-size: 12px;
+.mapCall {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ds-ink-hi);
-  border-radius: 999px;
-  border: 1px solid var(--ds-h22);
-  background: var(--ds-ground-2);
-  cursor: pointer;
-}
-
-.planet small {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--ds-ink-lo);
-}
-
-.planet:hover:not(:disabled),
-.planet[data-chosen] {
-  border-color: var(--ds-edge-accent);
+  border: 1px dashed var(--ds-edge-accent, var(--ds-h22));
+  border-radius: 10px;
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.08);
 }
 
 .hint,

@@ -17,6 +17,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import (
+    board_graph,
     card_draw,
     control,
     custodians,
@@ -50,7 +51,7 @@ from src.core.strategy_cards.common import (
     place_structure,
     placeable_structures,
 )
-from src.core.system_planets import planets_of_system
+from src.core.system_planets import board_planets, planets_of_system
 from src.core.unit_ops import UnitCause
 
 _CODEX_MAX = 3  # „up to 3 action cards”
@@ -68,9 +69,9 @@ def _system_with_planet(
     state: GameState, registry: StaticDataRegistry, planet: str
 ) -> SystemState:
     """System, w którym leży planeta (także niczyja i bez jednostek); ``ValueError`` bez niej."""
-    for position, system in state.systems.items():
-        if planet in planets_of_system(state, registry, position):
-            return system
+    for position, on_board in board_planets(state, registry):
+        if on_board == planet:
+            return board_graph.ensure_system(state, position)
     raise ValueError(f"Planet {planet} is not on the board.")
 
 
@@ -302,19 +303,17 @@ def _converter_planets(
     grid = grid_from_state(state, registry)
     homes = targets.home_planet_ids(state, registry)
     result: list[tuple[str, str]] = []
-    for position, system in state.systems.items():
+    # Cała plansza: planeta bez jednostek (system bez wpisu w stanie) też jest celem.
+    for position, planet in board_planets(state, registry):
         if custodians.is_mecatol_position(state, position):
             continue
         if not any(src != position and grid.are_adjacent(position, src) for src in sources):
             continue
-        for planet in planets_of_system(state, registry, position, grid):
-            if (
-                planet in homes
-                or is_legendary(state, registry, planet)
-                or system.planet_owners.get(planet) == player_id
-            ):
-                continue
-            result.append((planet, position))
+        system = state.systems.get(position)
+        owner = system.planet_owners.get(planet) if system is not None else None
+        if planet in homes or is_legendary(state, registry, planet) or owner == player_id:
+            continue
+        result.append((planet, position))
     return result
 
 

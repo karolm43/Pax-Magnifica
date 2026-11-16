@@ -291,3 +291,30 @@ def test_okno_badania_pokazuje_skip_piechoty(registry: StaticDataRegistry) -> No
     assert [s["value"] for s in view["infantry_skips"]] == [f"infantry:101|{planet}"]
     row = next(r for r in view["tree"] if r["id"] == "fl")
     assert row["status"] == "skippable" and row["infantrySkip"] is True
+
+
+def test_dissemination_cala_plansza_nie_tylko_systemy_z_jednostkami(
+    registry: StaticDataRegistry,
+) -> None:
+    """Błąd zgłoszony przez użytkownika: cele były tylko w systemach z wpisem w stanie (tam, gdzie
+    coś stało). „Any non-home planets” = każda planeta na planszy (siatka mapy)."""
+    from src.api.demo_map import build_demo_grid
+    from src.core import board_graph
+
+    grid = build_demo_grid(registry)
+    previous = board_graph._PROVIDER
+    board_graph.bind_grid_provider(lambda: grid)
+    try:
+        state = _state(registry)
+        # 102 bez wpisu w stanie (nic tam nie stoi) - kafel z siatki mapy (Industrex).
+        empty = "102"
+        del state.systems[empty]
+        planet = registry.systems[grid.system_id_at(empty)].planets[0]
+        assert (empty, planet) in yin.dissemination_targets(state, registry)
+        yin.quantum_dissemination(
+            state, registry, "p1",
+            {"planet1": f"{empty}|{planet}", "planet2": "none", "planet3": "none"},
+        )
+        assert state.systems[empty].planet_units[planet]["p1"]["infantry"] == 1
+    finally:
+        board_graph.bind_grid_provider(previous)

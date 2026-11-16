@@ -570,3 +570,19 @@ button.tradeCard:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Pride of Kenara: wybór planety docelowej na mapie (zamiast listy rozwijanej). */
+.mapPickButton {
+  margin-left: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-edge-accent, var(--ds-h22));
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mapPickButton[aria-pressed="true"] {
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.2);
+}

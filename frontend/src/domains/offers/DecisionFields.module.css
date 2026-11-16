@@ -460,7 +460,7 @@
   min-width: 0;
 }
 
-/* Chipy miejsc (planety / systemy) - druga droga obok kliku na mapie. */
+/* Chipy WYBRANYCH miejsc (planety / systemy) - cele wskazuje się na mapie, tu tylko wybór i ×. */
 .placeChips {
   display: flex;
   flex-wrap: wrap;
@@ -499,6 +499,45 @@
   outline-offset: 2px;
 }
 
+.placeChipWrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.placeChipWrap .placeChip:has(+ .placeRemove) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.placeRemove {
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-h22);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: var(--ds-ground-2);
+  cursor: pointer;
+}
+
+.placeRemove:hover:not(:disabled) {
+  color: var(--ds-danger, #e5484d);
+}
+
+/* Wezwanie „kliknij na mapie” zamiast listy celów. */
+.mapCall {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  border: 1px dashed var(--ds-edge-accent, var(--ds-h22));
+  border-radius: 10px;
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.08);
+}
+
 .placeCount {
   display: grid;
   place-items: center;
@@ -527,4 +566,22 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--ds-ink-hi);
+}
+
+/* Otwarcie drzewa technologii zamiast listy technologii (``TechPickField``). */
+.treeCall {
+  justify-self: start;
+  min-height: 34px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-edge-accent, var(--ds-h22));
+  border-radius: 10px;
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.14);
+  cursor: pointer;
+}
+
+.treeCall:hover:not(:disabled) {
+  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.24);
 }

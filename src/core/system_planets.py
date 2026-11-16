@@ -39,3 +39,21 @@ def planets_of_system(
         # liczy się jako system bez planet (C_relics).
         planets = [p for p in planets if p not in system_state.destroyed_planets]
     return planets
+
+
+def board_planets(state: GameState, registry: StaticDataRegistry) -> list[tuple[str, str]]:
+    """``(pozycja, planeta)`` wszystkich planet NA PLANSZY - także w systemach bez wpisu w stanie.
+
+    ``state.systems`` trzyma tylko systemy, w których coś się działo (jednostki, żetony), więc
+    karta „dowolna planeta” musi iść po siatce mapy (``board_graph.board_positions``).
+    """
+    from src.core import board_graph  # import lokalny: board_graph zależy od modułów stanu
+
+    grid = board_graph.bound_grid()
+    found: list[tuple[str, str]] = []
+    for position in board_graph.board_positions(state):
+        # System ze stanem czytamy jak dotąd (stan), siatka tylko dla systemów bez wpisu.
+        source = None if position in state.systems else grid
+        for planet in planets_of_system(state, registry, position, source):
+            found.append((position, planet))
+    return found

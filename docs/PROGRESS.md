@@ -518,3 +518,20 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Test: `audio.test.ts`. QA: front tsc, eslint (zmienione), vitest `shared/audio`. Bez backendu/build/e2e.
 - Bohater frakcji: `special`, a gdy frakcja go nie ma -> `battle`; Yin -> konkretnie `battle1`. Kwestie specjalne
   zdolności: zapas `special`, potem `battle` (`SPECIAL_FALLBACK`). `sayVoice(..., file)` gra wskazane nagranie.
+
+## Planety tylko na mapie, technologie tylko w drzewie (2026-11-16, RULES.md 56.5a)
+
+- **Zgłoszenie (Yin hero):** Quantum Dissemination dawał tylko planety w systemach z jednostkami i pokazywał listę.
+  Przyczyny: `dissemination_targets` szedł po `state.systems` (tylko systemy z wpisem) — nowy
+  `system_planets.board_planets` (cała plansza; siatka dla systemów bez wpisu), efekt stawia przez
+  `board_graph.ensure_system`; ten sam błąd poprawiony w Stellar Converter (`relics_actions`) i nexusie
+  (`agendas_laws`). Na froncie opcje z `meta.ref` planety/tech nie były rozpoznawane (`optionKinds`).
+- **Front:** każde pole planet/systemów → `GroupedMapField` (bez listy celów; wybrane = chip z ×, wezwanie do kliku
+  na mapie); `RouteNumbersField` i `TransitDiodesPicker` bez list planet; Pride of Kenara w `TradingTable` — cel
+  na mapie zamiast `<select>`. Technologie → nowy `TechPickField` (drzewo `TechnologyOverlay`, tryb „gain”).
+  Usunięty martwy `useFieldMapPick`.
+- Testy: `test_yin.py::test_dissemination_cala_plansza_nie_tylko_systemy_z_jednostkami`,
+  `optionKinds.test.ts` (ref planety/tech), `DecisionFields.test.tsx` (mapa przez `appStore.mapPick`, drzewo tech).
+- QA: pytest (2478 ✅), ruff, mypy; front: tsc, eslint (zmienione), vitest `offers`, `TurnControls`,
+  `technology`, `strategy`. `npm run build` pada na `index.html?html-proxy&inline-css` (nie te pliki; do
+  sprawdzenia osobno). Bez e2e. Restart backendu wymagany.

@@ -27,6 +27,7 @@ import {
 } from "./transactionItems";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { playerRgb } from "@/domains/strategy/PlayerChip";
+import { useMapPick } from "@/domains/strategy/mapPick";
 import styles from "./TransactionModal.module.css";
 
 /** Mała liczba z przyciskami −/+ (zakres min..max). */
@@ -139,6 +140,47 @@ function SeatHeader({
  * Żetony długu (47.3) to zwykły przedmiot na stole — z nie-sąsiadem tylko one. W kroku 3 Trade
  * (47.4) posiadacz karty kładzie „darmowe secondary", a drugi gracz cenę (dług / wash −N).
  */
+/**
+ * Pride of Kenara: dokąd przenieść własne jednostki z oddawanej planety - klik NA MAPIE na
+ * świecącej planecie (decyzja użytkownika: nigdy lista planet), nie lista rozwijana.
+ */
+function UnitsDestination({
+  current,
+  choices,
+  disabled,
+  onPick,
+}: {
+  current: string;
+  choices: string[];
+  disabled: boolean;
+  onPick: (planet: string) => void;
+}) {
+  const [picking, setPicking] = useState(false);
+  useMapPick(
+    "planet",
+    choices,
+    (target) => {
+      onPick(target);
+      setPicking(false);
+    },
+    { enabled: picking && !disabled, selected: current || null },
+  );
+  return (
+    <span className={styles.tradeCardText}>
+      Your units move to <b>{current ? planetName(current) : "—"}</b>{" "}
+      <button
+        type="button"
+        className={styles.mapPickButton}
+        aria-pressed={picking}
+        disabled={disabled}
+        onClick={() => setPicking((v) => !v)}
+      >
+        {picking ? "Click a glowing planet on the map…" : "Change on map"}
+      </button>
+    </span>
+  );
+}
+
 export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
   const { setTableSide, setTableReady, closeTable } = useBoardEditor();
   const [busy, setBusy] = useState(false);
@@ -355,27 +397,19 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
                           <b>{planetName(planet)}</b>
                         </label>
                         {entry && (
-                          <label className={styles.tradeCardText}>
-                            Your units move to{" "}
-                            <select
-                              value={entry.split(">")[1]}
-                              disabled={busy}
-                              onChange={(e) =>
-                                put({
-                                  ...mine,
-                                  planets: (mine.planets ?? []).map((x) =>
-                                    x === entry ? `${planet}>${e.target.value}` : x,
-                                  ),
-                                })
-                              }
-                            >
-                              {others.map((p) => (
-                                <option key={p} value={p}>
-                                  {planetName(p)}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <UnitsDestination
+                            current={entry.split(">")[1] ?? ""}
+                            choices={others}
+                            disabled={busy}
+                            onPick={(target) =>
+                              put({
+                                ...mine,
+                                planets: (mine.planets ?? []).map((x) =>
+                                  x === entry ? `${planet}>${target}` : x,
+                                ),
+                              })
+                            }
+                          />
                         )}
                       </div>
                     );

@@ -18,6 +18,7 @@ from typing import Any
 from src.core import (
     ability_notes,
     battle,
+    board_graph,
     custodians,
     economy,
     faction_components,
@@ -52,7 +53,7 @@ from src.core.rules_hooks import (
     register_effect,
     register_effect_inputs,
 )
-from src.core.system_planets import planets_of_system
+from src.core.system_planets import board_planets
 from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
@@ -580,13 +581,13 @@ def _home_planets(registry: Any) -> set[str]:
 def dissemination_targets(state: GameState, registry: Any) -> list[tuple[str, str]]:
     """``(pozycja, planeta)`` spoza systemów domowych, na które wolno zaangażować piechotę."""
     home = _home_planets(registry)
-    found: list[tuple[str, str]] = []
-    for position in sorted(state.systems):
-        sealed = set(custodians.landing_blocked(state, registry, position))
-        for planet in planets_of_system(state, registry, position):
-            if planet not in home and planet not in sealed:
-                found.append((position, planet))
-    return found
+    # Cała plansza, nie tylko systemy z wpisem w stanie (tam, gdzie już coś stoi).
+    return [
+        (position, planet)
+        for position, planet in board_planets(state, registry)
+        if planet not in home
+        and planet not in custodians.landing_blocked(state, registry, position)
+    ]
 
 
 @register_effect_inputs(f"leaders:{HERO}")
@@ -637,7 +638,7 @@ def quantum_dissemination(
     for position, by_planet in commits.items():
         for planet, by_type in by_planet.items():
             place_from_reinforcements(
-                state, state.systems[position], planet, player_id, "infantry",
+                state, board_graph.ensure_system(state, position), planet, player_id, "infantry",
                 by_type["infantry"],
             )
     invasion.start_component_invasion(state, player_id, f"leaders:{HERO}", commits)

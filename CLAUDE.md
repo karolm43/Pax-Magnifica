@@ -19,6 +19,9 @@ hot-seat NIE jest wspierany. Nie czytaj `.kiro/` ani `~/.kiro/` (decyzja użytko
   Np. notki w transakcji = chip `PromissoryNote` (ikona wystawcy, opis po kliknięciu), nie własna lista.
 - Ten sam obiekt gry = ten sam komponent wszędzie (chip + opis po kliknięciu, `Unit`, `describeActivity`, pełne nazwy z danych).
 - Coś odstaje (własne style, surowe id, zdublowany komponent) — ujednolić przy okazji albo zgłoś.
+- **BARDZO WAŻNE (decyzja użytkownika):** planetę/system wybiera się WYŁĄCZNIE klikiem na mapie (podświetlone cele),
+  technologię WYŁĄCZNIE w `TechnologyOverlay` — NIGDY lista/checkboxy planet ani technologii w oknie decyzji.
+  Nieunikniona lista (gracze, jednostki, karty) = duże klikalne chipy, jak najprostsza. Pula celów zawsze pełna wg tekstu karty.
 
 ## Reguły TI4 (KLUCZOWE)
 

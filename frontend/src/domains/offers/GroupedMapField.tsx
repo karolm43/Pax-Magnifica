@@ -22,11 +22,12 @@ function useTargetName(kind: Classified["kind"]) {
 }
 
 /**
- * Wybór „gdzie i co” (RULES.md 56, decyzja użytkownika: nigdy długa lista „X on Y”): cele
- * (planety / systemy) świecą na mapie, klik w cel - na mapie albo na jego chipie - pokazuje, co
- * można zrobić TAM: jednakowe jednostki to jeden licznik −/+, pozostałe opcje to kafelki. Opcje
- * bez celu („Do not place”, „Decline”) zostają kafelkami pod spodem. Wartość pola jest ta sama
- * co w zwykłym formularzu (id opcji), więc silnik waliduje wybór jak dotąd.
+ * KAŻDY wybór planety / systemu (RULES.md 56, decyzja użytkownika: NIGDY lista planet ani
+ * checkboxy - zawsze klik na mapie). Cele świecą na mapie; okno pokazuje tylko to, co już
+ * wybrano (chip z ×), a nie listę wszystkich celów. Gdy w jednym miejscu jest kilka rzeczy do
+ * zrobienia („PDS / mech na X”), klik w cel pokazuje, co można zrobić TAM: jednakowe jednostki
+ * to jeden licznik −/+, pozostałe opcje to kafelki. Opcje bez celu („Do not place”, „Decline”)
+ * zostają kafelkami pod spodem. Wartość pola to id opcji, więc silnik waliduje wybór jak dotąd.
  */
 export function GroupedMapField({
   input,
@@ -92,38 +93,68 @@ export function GroupedMapField({
   const range = multi ? (input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`) : "";
   const note = [
     multi ? `${picked.length} selected · pick ${range}` : null,
-    `click a glowing ${place} on the map`,
+    mapActive ? `click a glowing ${place} on the map` : null,
   ]
     .filter(Boolean)
     .join(" · ");
+  // Na liście tylko wybrane miejsca (i to, które właśnie oglądamy) - resztę wskazuje mapa.
+  const shown = named.filter((g) => pickedIn(g) > 0 || g.target === current?.target);
+  const unpick = (group: Group) => {
+    const ids = new Set(group.options.map((o) => o.id));
+    if (multi) onChange(picked.filter((id) => !ids.has(id)));
+    else onChange(null);
+    if (focus === group.target) setFocus(null);
+  };
+  // Panel „co tutaj” tylko wtedy, gdy w miejscu jest więcej niż jedna rzecz do wyboru.
+  const panel = current && current.options.length > 1 ? current : null;
 
   return (
     <div className={styles.field}>
       <FieldHead label={input.label} hint={input.hint} note={note} />
-      <div className={styles.placeChips} role="group" aria-label={`${input.label}: ${place}s`}>
-        {named.map((group) => {
-          const n = pickedIn(group);
-          return (
-            <button
-              key={group.target}
-              type="button"
-              className={styles.placeChip}
-              aria-pressed={current?.target === group.target}
-              data-picked={n > 0 || undefined}
-              disabled={disabled}
-              onClick={() => open(group.target)}
-            >
-              {group.name}
-              {n > 0 && <i className={styles.placeCount}>{n}</i>}
-            </button>
-          );
-        })}
-      </div>
-      {current ? (
-        <section className={styles.placePanel} aria-label={current.name}>
-          <h5 className={styles.placeTitle}>{current.name}</h5>
+      {shown.length > 0 ? (
+        <div className={styles.placeChips} role="group" aria-label={`${input.label}: chosen ${place}s`}>
+          {shown.map((group) => {
+            const n = pickedIn(group);
+            return (
+              <span key={group.target} className={styles.placeChipWrap}>
+                <button
+                  type="button"
+                  className={styles.placeChip}
+                  aria-pressed={current?.target === group.target}
+                  data-picked={n > 0 || undefined}
+                  disabled={disabled}
+                  onClick={() => setFocus(group.target)}
+                >
+                  {group.name}
+                  {n > 1 && <i className={styles.placeCount}>{n}</i>}
+                </button>
+                {n > 0 && (
+                  <button
+                    type="button"
+                    className={styles.placeRemove}
+                    aria-label={`Remove ${group.name}`}
+                    disabled={disabled}
+                    onClick={() => unpick(group)}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      ) : (
+        <p className={styles.mapCall}>
+          {named.length > 0
+            ? `Click a glowing ${place} on the map.`
+            : `No legal ${place} right now.`}
+        </p>
+      )}
+      {panel && (
+        <section className={styles.placePanel} aria-label={panel.name}>
+          <h5 className={styles.placeTitle}>{panel.name}</h5>
           <div className={styles.tiles}>
-            {stacksOf(current.options).map(({ key, options: stack }) => {
+            {stacksOf(panel.options).map(({ key, options: stack }) => {
               const option = stack[0];
               if (!option) return null;
               if (multi && stack.length > 1) {
@@ -157,8 +188,6 @@ export function GroupedMapField({
             })}
           </div>
         </section>
-      ) : (
-        <p className={styles.hint}>Click a glowing {place} on the map (or its name above) to choose what happens there.</p>
       )}
       {loose.length > 0 && (
         <div className={styles.tiles}>

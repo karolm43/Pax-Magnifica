@@ -31,6 +31,22 @@ describe("classifyOptions", () => {
     expect(systems?.targets.get("b")).toBe("000");
   });
 
+  it("odnośnik do planety / technologii to nadal mapa / drzewo, nie lista (Yin hero)", () => {
+    const ref = (kind: string, id: string) => ({ ref: { kind, id } });
+    const yin = classifyOptions(
+      [opt("none"), opt("101|jord", ref("planet", "jord")), opt("000|mr", ref("planet", "mr"))],
+      look,
+    );
+    expect(yin?.kind).toBe("planet");
+    expect(yin?.targets.get("000|mr")).toBe("mr");
+    expect(yin?.targets.has("none")).toBe(false);
+    const swap = classifyOptions([opt("keep", ref("tech", "nm")), opt("gd", ref("tech", "gd"))], look);
+    expect(swap?.kind).toBe("technology");
+    expect(swap?.targets.get("keep")).toBe("nm");
+    // Odnośnik do innego komponentu (karta strategii) - zwykłe kafelki z opisem.
+    expect(classifyOptions([opt("1", ref("strategy", "1")), opt("jord")], look)).toBeNull();
+  });
+
   it("gracze z opcją bez celu (Carth: self + gracze) zostają graczami", () => {
     const carth = classifyOptions([opt("self"), opt("p1"), opt("p2")], look);
     expect(carth?.kind).toBe("player");

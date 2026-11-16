@@ -48,8 +48,21 @@ function fieldsOf(option: ActionCardOption): Record<string, unknown> {
   return { ...fromValue, ...(option.meta ?? {}) };
 }
 
+/** Id komponentu z ``meta.ref`` silnika, gdy jest danego rodzaju (``planet``, ``tech``). */
+export function refOf(option: ActionCardOption, kind: string): string | null {
+  const ref = option.meta?.ref;
+  if (!ref || typeof ref !== "object") return null;
+  const r = ref as Record<string, unknown>;
+  return r.kind === kind ? str(r.id) : null;
+}
+
+/** Odnośniki, które same są celem wyboru (planeta na mapie, technologia w drzewie). */
+const TARGET_REFS = new Set(["planet", "tech"]);
+
 export function planetOf(option: ActionCardOption, look: OptionLookups): string | null {
   const meta = fieldsOf(option);
+  const fromRef = refOf(option, "planet");
+  if (fromRef && look.isPlanet(fromRef)) return fromRef;
   const fromMeta = str(meta.planet);
   if (fromMeta && look.isPlanet(fromMeta)) return fromMeta;
   const value = str(option.value);
@@ -129,17 +142,25 @@ export function classifyOptions(
   look: OptionLookups,
 ): Classified | null {
   if (options.length === 0) return null;
-  // Kości i opcje z jawnym odnośnikiem do komponentu (``meta.ref`` - opis i pełna karta, patrz
-  // ``describeOption``) mają własny wygląd. Jednostka NA PLANECIE / W SYSTEMIE to wybór miejsca.
-  if (options.some((o) => o.meta && ("die" in o.meta || "ref" in o.meta))) return null;
+  // Kości i opcje z odnośnikiem do innego komponentu (``meta.ref`` karty / reliktu - opis i
+  // pełna karta, patrz ``describeOption``) mają własny wygląd. Odnośnik do PLANETY lub
+  // TECHNOLOGII to nadal wybór planety (mapa) / technologii (drzewo) - decyzja użytkownika:
+  // nigdy lista planet ani technologii. Jednostka NA PLANECIE / W SYSTEMIE to wybór miejsca.
+  const otherRef = (o: ActionCardOption) => {
+    const ref = o.meta?.ref as Record<string, unknown> | undefined;
+    return ref !== undefined && !TARGET_REFS.has(String(ref?.kind));
+  };
+  if (options.some((o) => o.meta && ("die" in o.meta || otherRef(o)))) return null;
   const units = options.some((o) => o.meta && "unit" in o.meta);
-  const plain = (test: (id: string) => boolean) => (o: ActionCardOption) => {
+  const plain = (test: (id: string) => boolean, refKind?: string) => (o: ActionCardOption) => {
+    const fromRef = refKind ? refOf(o, refKind) : null;
+    if (fromRef && test(fromRef)) return fromRef;
     const v = str(o.value);
     return v && test(v) ? v : null;
   };
   if (!units) {
     const exact: [OptionKind, (o: ActionCardOption) => string | null][] = [
-      ["technology", plain(look.isTech)],
+      ["technology", plain(look.isTech, "tech")],
       ["player", plain(look.isPlayer)],
     ];
     for (const [kind, pick] of exact) {

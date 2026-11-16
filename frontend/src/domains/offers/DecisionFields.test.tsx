@@ -1,7 +1,21 @@
 import { useState } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ActionCardInput, FormValue } from "@/api/useActionCard";
+import { act } from "react";
+import { vi } from "vitest";
+import { useAppStore } from "@/state/appStore";
 import { DecisionFields } from "./DecisionFields";
+
+vi.mock("@/domains/game-shell/components/TurnControls/useDeskPlayer", () => ({
+  useDeskPlayer: () => ({ discordId: "p1", faction: "sol", color: "blue", techs: ["amd"] }),
+}));
+
+/** Klik w świecący cel NA MAPIE (to, co robi warstwa mapy z ``appStore.mapPick``). */
+function clickOnMap(target: string) {
+  const pick = useAppStore.getState().mapPick;
+  expect(pick?.targets).toContain(target);
+  act(() => pick?.onPick(target));
+}
 
 /** Formularz z prawdziwym stanem, jak w oknach decyzji. */
 function Harness({ inputs }: { inputs: ActionCardInput[] }) {
@@ -79,7 +93,7 @@ describe("DecisionFields", () => {
     expect(screen.getByText(/Paid/)).toHaveTextContent("Paid 4 / 2 · overpaying");
   });
 
-  it("technologia: kafelek pokazuje, co robi (nie sama nazwa)", () => {
+  it("technologia: wybór w drzewie technologii, nie lista", () => {
     render(
       <Harness
         inputs={[
@@ -97,7 +111,10 @@ describe("DecisionFields", () => {
         ]}
       />,
     );
-    expect(screen.getByText(/move into and through asteroid fields/)).toBeInTheDocument();
+    // W formularzu nie ma listy technologii - tylko wejście do drzewa.
+    expect(screen.queryByRole("button", { name: /Gravity Drive/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Choose in the technology tree" }));
+    expect(screen.getAllByText("Gravity Drive").length).toBeGreaterThan(0);
   });
 
   it("cel: kafelek z punktami i warunkiem celu", () => {
@@ -164,7 +181,7 @@ describe("DecisionFields", () => {
     expect(values()).toEqual({ initiative: "8" });
   });
 
-  it("Xxekir Grom: planeta (chip albo mapa), potem licznik PDS i mechów - nie lista", () => {
+  it("Xxekir Grom: planeta na mapie, potem licznik PDS i mechów - nie lista", () => {
     const unit = (u: string, planet: string, n: number) => ({
       id: `${u}|${planet}|${n}`,
       value: `${u}|${planet}|${n}`,
@@ -186,18 +203,19 @@ describe("DecisionFields", () => {
         ]}
       />,
     );
-    // Bez wybranej planety nie ma listy jednostek - tylko planety do kliknięcia.
+    // Bez wybranej planety nie ma listy jednostek ani listy planet - tylko mapa.
     expect(screen.queryByRole("group", { name: /^Mech/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^Jord/ }));
+    expect(screen.queryByRole("button", { name: /^Jord/ })).toBeNull();
+    clickOnMap("jord");
     fireEvent.click(screen.getByRole("button", { name: "Mech on jord: more" }));
     fireEvent.click(screen.getByRole("button", { name: "Mech on jord: more" }));
     expect(values()).toEqual({ units: ["mech|jord|0", "mech|jord|1"] });
     // Planeta z jedną możliwością: klik w nią od razu wybiera.
-    fireEvent.click(screen.getByRole("button", { name: /^Mecatol Rex/ }));
+    clickOnMap("mr");
     expect(values()).toEqual({ units: ["mech|jord|0", "mech|jord|1", "mech|mr|0"] });
   });
 
-  it("Bioplasmosis: źródło, potem cel = +1 (bez listy par)", () => {
+  it("Bioplasmosis: źródło i cel na mapie = +1 (bez listy planet)", () => {
     const route = (from: string, to: string) => ({
       key: `bio:${from}:${to}`,
       kind: "number" as const,
@@ -209,13 +227,13 @@ describe("DecisionFields", () => {
     });
     render(<Harness inputs={[route("jord", "mr"), route("mr", "jord")]} />);
     expect(screen.queryByRole("group", { name: /→/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^Jord/ }));
-    const to = () => within(screen.getByRole("group", { name: /to$/ })).getByRole("button", { name: /Mecatol Rex/ });
-    fireEvent.click(to());
-    fireEvent.click(to());
+    clickOnMap("jord");
+    clickOnMap("mr");
+    clickOnMap("mr");
     expect(values()).toEqual({ "bio:jord:mr": 2 });
-    // Na Jord nie zostało już piechoty.
-    expect(to()).toBeDisabled();
+    // Na Jord nie zostało już piechoty - kolejny klik nic nie dokłada.
+    clickOnMap("mr");
+    expect(values()).toEqual({ "bio:jord:mr": 2 });
   });
 });
 

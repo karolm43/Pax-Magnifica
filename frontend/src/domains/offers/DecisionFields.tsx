@@ -3,9 +3,10 @@ import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
 import { classifyOptions, stackRange, stacksOf, withStackCount } from "./optionKinds";
-import { describeOption, useFieldMapPick, useOptionLookups } from "./DecisionPickers";
+import { describeOption, useOptionLookups } from "./DecisionPickers";
 import { FieldHead, metaOf, Stepper, Tile, UnitStackStepper } from "./DecisionTiles";
 import { GroupedMapField } from "./GroupedMapField";
+import { TechPickField } from "./TechPickField";
 import { routeOf, RouteNumbersField, type Route } from "./RouteNumbersField";
 import styles from "./DecisionFields.module.css";
 
@@ -85,8 +86,8 @@ export function DecisionField({
 }
 
 /**
- * Wybór z opcji (choice / multi). Rodzaj opcji rozpoznaje ``classifyOptions``: technologie i
- * gracze dostają graficzne kafelki, planety i systemy - wybór kliknięciem na mapie (świecą).
+ * Wybór z opcji (choice / multi). Rodzaj opcji rozpoznaje ``classifyOptions``: gracze dostają
+ * ikony frakcji, technologie - drzewo technologii, planety i systemy - TYLKO klik na mapie.
  */
 function ChoiceField({
   input,
@@ -110,23 +111,9 @@ function ChoiceField({
     return classified && target ? { kind: classified.kind, target } : undefined;
   };
   const picked = Array.isArray(value) ? value : [];
-  // Kilka opcji na jeden cel: własny wybór „klik w miejsce -> co tam” (``GroupedMapField``).
-  const grouped = classified?.grouped === true;
-  const onMap = useFieldMapPick(
-    classified,
-    mapActive && !disabled && !grouped,
-    input.kind === "choice" ? (typeof value === "string" ? value : null) : (picked[0] ?? null),
-    (id) => {
-      if (input.kind === "choice") {
-        onChange(id);
-        return;
-      }
-      if (picked.includes(id)) onChange(picked.filter((p) => p !== id));
-      else if (input.max === 1) onChange([id]);
-      else if (picked.length < input.max) onChange([...picked, id]);
-    },
-  );
-  const mapNote = onMap ? "or click a glowing target on the map" : undefined;
+  // Planety i systemy: ZAWSZE wybór na mapie (``GroupedMapField``), nigdy lista - decyzja
+  // użytkownika. Technologie: drzewo technologii (``TechPickField``), nigdy lista.
+  const grouped = classified?.kind === "planet" || classified?.kind === "system";
   // Technologie i gracze zawsze jako kafelki (bez listy rozwijanej).
   const alwaysTiles = classified?.kind === "technology" || classified?.kind === "player";
   // Kafelki z opisem (technologia, cel, karta) są szersze - tekst zasady ma się zmieścić.
@@ -135,6 +122,18 @@ function ChoiceField({
     (!classified && options.some((o) => describeOption(o, idMap)));
   const data = options.map((o) => ({ value: o.id, label: o.label }));
   const stacks = useMemo(() => stacksOf(options), [options]);
+
+  if (classified?.kind === "technology") {
+    return (
+      <TechPickField
+        input={input}
+        classified={classified}
+        value={value}
+        disabled={disabled}
+        onChange={onChange}
+      />
+    );
+  }
 
   if (grouped && classified) {
     return (
@@ -175,7 +174,7 @@ function ChoiceField({
         <FieldHead
           label={input.label}
           hint={input.hint}
-          note={[`${picked.length} selected · pick ${range}`, mapNote].filter(Boolean).join(" · ")}
+          note={`${picked.length} selected · pick ${range}`}
         />
         <div className={styles.tiles} data-rich={rich || undefined}>
           {stacks.map(({ key, options: stack }) => {
@@ -241,7 +240,7 @@ function ChoiceField({
   }
   return (
     <div className={styles.field}>
-      <FieldHead label={input.label} hint={input.hint} note={mapNote} />
+      <FieldHead label={input.label} hint={input.hint} />
       <div
         className={styles.tiles}
         data-rich={rich || undefined}
