@@ -575,6 +575,32 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                     </>
                   ) : null}
 
+                  {selected.infantrySkip && options.infantrySkips.length > 0 ? (
+                    <>
+                      <h4>Brother Omar · return 1 infantry</h4>
+                      <p className={styles.small}>
+                        Another player owns this technology: return 1 of your
+                        infantry to reinforcements to ignore its prerequisites.
+                      </p>
+                      {options.infantrySkips.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={styles.toggle}
+                          data-on={skips.includes(option.value) || undefined}
+                          disabled={busy}
+                          onClick={() =>
+                            setSkips((cur) =>
+                              cur.includes(option.value) ? [] : [option.value],
+                            )
+                          }
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </>
+                  ) : null}
+
                   {compoundOptions.length > 0 ? (
                     <>
                       <h4>Specialist Compounds · pay with a specialty planet</h4>

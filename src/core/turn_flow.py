@@ -249,6 +249,9 @@ def end_turn(
         )
     if state.exploration is not None:
         raise ValueError("Cannot end the turn - finish the exploration first.")
+    if state.invasion is not None and state.tactical_step is None:
+        # Inwazja komponentu poza akcją taktyczną (Quantum Dissemination, RULES.md 62.10).
+        raise ValueError("Cannot end the turn - finish the invasion first.")
     if state.pending_window is not None:
         raise ValueError(
             "Cannot end the turn while a timing window is open - every player must "

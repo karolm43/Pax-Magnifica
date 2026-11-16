@@ -276,13 +276,20 @@ def start_combat(
     if state.sustain_trace:  # walka zamyka okno Direct Hit po Space Cannon
         state = state.clone()
         state.sustain_trace = []
-    active = state.active_system
-    attacker = state.active_player_id
+    kind = "space" if planet is None else "ground"
+    # Inwazja komponentu (Quantum Dissemination, RULES.md 62.10): walka naziemna w systemie
+    # inwazji, poza akcją taktyczną (system nie jest aktywowany).
+    component = kind == "ground" and state.invasion is not None and bool(state.invasion.source)
+    if component and state.invasion is not None:
+        active: str | None = state.invasion.position
+        attacker: str | None = state.invasion.attacker
+    else:
+        active = state.active_system
+        attacker = state.active_player_id
     if active is None or attacker is None:
         raise ValueError("Combat needs an active system and an active player.")
-    kind = "space" if planet is None else "ground"
     required_step = TacticalStep.SPACE_COMBAT if kind == "space" else TacticalStep.INVASION
-    if state.tactical_step is not required_step:
+    if not component and state.tactical_step is not required_step:
         raise ValueError(
             f"{kind.capitalize()} combat is fought in the {required_step.value} step."
         )
@@ -355,16 +362,86 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
     return _begin_round(state, grid)
 
 
-def add_start_hits(state: GameState, against: str, amount: int) -> None:
+def add_start_hits(
+    state: GameState,
+    against: str,
+    amount: int,
+    *,
+    only: list[str] | None = None,
+    label: str = "",
+) -> None:
     """Trafienia z rzutu „na starcie walki” przeciw ``against`` (Ambush) — MUTUJE ``state``.
 
     Przypisuje je przeciwnik w zwykłym kroku ASSIGN (Sustain Damage, karty reakcji), zanim walka
-    przejdzie do AFB i 1. rundy (``_open_start_assign``, RULES.md 62.8).
+    przejdzie do AFB i 1. rundy (``_open_start_assign``, RULES.md 62.8). ``only`` = typy jednostek,
+    na które te trafienia MUSZĄ paść (Impulse Core: nie-myśliwce „if able”, RULES.md 62.10).
     """
     combat = _combat(state)
     if amount > 0:
         total = combat.start_hits.get(against, 0) + amount
         combat.start_hits = {**combat.start_hits, against: total}
+        if only:
+            _add_hit_target(combat, against, only, amount, label)
+
+
+def add_round_end_hits(
+    state: GameState, against: str, amount: int, *, only: list[str], label: str = ""
+) -> None:
+    """Trafienia „po rundzie walki” przeciw ``against`` (Devotion) — MUTUJE ``state``.
+
+    Przypisuje je ``against`` w zwykłym kroku ASSIGN otwieranym po hookach końca rundy (Sustain
+    Damage, Shields Holding), na wskazany typ (``only``). Potem runda kończy się bez ponownych
+    zdarzeń końca rundy (RULES.md 62.10).
+    """
+    combat = _combat(state)
+    if amount <= 0:
+        return
+    combat.round_end_hits = {
+        **combat.round_end_hits, against: combat.round_end_hits.get(against, 0) + amount
+    }
+    _add_hit_target(combat, against, only, amount, label)
+
+
+def _add_hit_target(
+    combat: ActiveCombat, against: str, types: list[str], amount: int, label: str
+) -> None:
+    current = combat.hit_targets.get(against)
+    count = amount + (int(current["count"]) if current else 0)
+    merged = sorted(set(types) | set(current["types"] if current else []))
+    combat.hit_targets = {
+        **combat.hit_targets,
+        against: {"types": merged, "count": count, "label": label or "this effect"},
+    }
+
+
+def _check_hit_targets(
+    combat: ActiveCombat,
+    player_id: str,
+    units: dict[str, CombatUnit],
+    plan_parts: tuple[dict[str, int], dict[str, int], dict[str, int]],
+    required: int,
+) -> None:
+    """Wymagany cel trafień (RULES.md 62.10): co najmniej ``count`` trafień na wskazane typy.
+
+    „If able”: wymaganie obejmuje tyle trafień, ile jednostek tych typów może je przyjąć.
+    """
+    target = combat.hit_targets.get(player_id)
+    if not target:
+        return
+    types = set(target["types"])
+    able = sum(u.count + (u.sustainable or 0) for bt, u in units.items() if bt in types)
+    need = min(int(target["count"]), required, able)
+    if need <= 0:
+        return
+    sustain, destroy, destroy_damaged = plan_parts
+    landed = sum(
+        max(0, part.get(bt, 0)) for part in (sustain, destroy, destroy_damaged) for bt in types
+    )
+    if landed < need:
+        names = ", ".join(units[bt].name for bt in sorted(types) if bt in units)
+        raise ValueError(
+            f"Assign {need} hit(s) from {target.get('label', 'this effect')} to: {names}."
+        )
 
 
 def _open_start_assign(
@@ -412,6 +489,8 @@ def resume_after_triggers(
     combat.resume = ""
     if resume.startswith("round_end:"):
         combat.step = CombatStep(resume.split(":", 1)[1])
+        if combat.round_end_hits:
+            return _open_round_end_assign(new_state, grid, registry)
         return _finish_round(new_state, grid, registry)
     if resume == "round_start":
         _open_round(new_state, grid)
@@ -635,6 +714,11 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     combat = _combat(state)
     if combat.step is not CombatStep.ROLL:
         raise ValueError("Combat dice are not the current combat step.")
+    sides = (combat.attacker, combat.defender)
+    if any(not side_units(state, grid, registry, pid) for pid in sides):
+        # Strona straciła ostatnie jednostki przed rzutem (Indoctrination, Greyfire Mutagen):
+        # przegrywa natychmiast, bez rzutów (F_yin, RULES.md 62.10).
+        return _finish_round(state.clone(), grid, registry)
     new_state = state
     rolls: dict[str, list[dict[str, Any]]] = {}
     hits_by: dict[str, int] = {}
@@ -928,9 +1012,11 @@ def assign_combat_hits(
     plan = plan_losses(
         units, sustain, destroy, destroy_damaged, required, sustain_cancels(state, player_id)
     )
+    _check_hit_targets(combat, player_id, units, (sustain, destroy, destroy_damaged), required)
 
     new_state = state.clone()
     combat = _combat(new_state)
+    combat.hit_targets = {p: t for p, t in combat.hit_targets.items() if p != player_id}
     zone = _zone(combat.kind, combat.planet)
     triggers.fire(
         new_state, GameEvent.HITS_ASSIGNED, Moment.BEFORE, subject=player_id,
@@ -991,8 +1077,20 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         # bez zdarzeń końca rundy (to nie runda walki).
         combat.start_assign = False
         combat.pending_hits = {}
+        combat.hit_targets = {}
         combat.step = CombatStep.ROLL
         return _after_start(new_state, grid, registry)
+    if combat.round_end_assign:
+        # Straty z trafień po rundzie (Devotion) przypisane - koniec rundy bez ponownych zdarzeń
+        # końca rundy; decyzje z nich (np. agent Yin po zniszczeniu) czekają w TRIGGERS.
+        combat.round_end_assign = False
+        combat.pending_hits = {}
+        combat.hit_targets = {}
+        if new_state.pending_offers:
+            combat.resume = f"round_end:{combat.step.value}"
+            combat.step = CombatStep.TRIGGERS
+            return new_state
+        return _finish_round(new_state, grid, registry)
     last = combat.log[-1] if combat.log else {}
     is_roll_round = combat.step is not CombatStep.AFB and not combat.afb_assign
     triggers.fire(
@@ -1013,6 +1111,33 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         combat.step = CombatStep.TRIGGERS
         return new_state
     return _finish_round(new_state, grid, registry)
+
+
+def _open_round_end_assign(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Krok ASSIGN dla trafień po rundzie (Devotion, RULES.md 62.10) — MUTUJE ``state`` (klon)."""
+    combat = _combat(state)
+    combat.pending_hits = dict(combat.round_end_hits)
+    combat.round_end_hits = {}
+    combat.round_end_assign = True
+    for pid in list(combat.pending_hits):
+        if pid == NEUTRAL_PLAYER_ID:
+            _auto_assign_neutral(state, grid, registry, pid)
+    queue = [
+        pid
+        for pid in (combat.defender, combat.attacker)
+        if required_hits(state, grid, registry, pid) > 0
+    ]
+    if not queue:
+        combat.round_end_assign = False
+        combat.pending_hits = {}
+        combat.hit_targets = {}
+        return _finish_round(state, grid, registry)
+    combat.step = CombatStep.ASSIGN
+    return timing.open_window(
+        state, WindowType.COMBAT_ASSIGN_HITS, queue, context={"position": combat.position}
+    )
 
 
 def _finish_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:

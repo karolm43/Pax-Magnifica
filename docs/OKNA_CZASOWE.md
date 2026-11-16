@@ -78,7 +78,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `cards.action_discarded` | Odrzucenie karty akcji. | 1 | after×1 | action_cards×1 | `card_draw._record_discards` |
 | `component.gained` | Gracz zdobył komponent (relikt, notka, technologia). | 11 | when×10, after×1 | relics×4, promissory_notes×3, breakthroughs×3, technologies×1 | `relics / breakthrough / promissory_notes` |
 | `objective.revealed` | Cel publiczny ujawniony. | 1 | when×1 | relics×1 | `objectives.reveal_next_public` |
-| `objective.scored` | Cel zdobyty. | 2 | when×2 | abilities×1, breakthroughs×1 | — |
+| `objective.scored` | Cel zdobyty. | 2 | when×2 | abilities×1, breakthroughs×1 | `objectives.score_public` |
 | `objective.secret_discarded` | Tajny cel odrzucony. | 0 | — | — | — |
 | `agenda.revealed` | Agenda ujawniona. | 28 | after×18, when×10 | action_cards×19, promissory_notes×6, abilities×2, leaders×1 | `agenda_phase.reveal_agenda` |
 | `agenda.votes_cast` | Głosy oddane. | 7 | when×4, after×3 | action_cards×2, leaders×2, promissory_notes×1, galactic_events×1, abilities×1 | `agenda_phase.cast_vote` |
@@ -87,9 +87,9 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.remove_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **68**, emitowanych przez silnik: **50**. Potrzebne komponentom, a jeszcze nie emitowane: **14**.
+Zdarzeń zdefiniowanych: **68**, emitowanych przez silnik: **51**. Potrzebne komponentom, a jeszcze nie emitowane: **13**.
 
-Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
+Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 
 ## 2a. Osiągalność: czy komponent wyskakuje graczowi
 
@@ -106,14 +106,14 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.system_activated` · after | 22 | 8 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Neuroglaive, So Ata, Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 13 | 3 | Kuuasi Aun Jalatai, Proxima Targeting VI, Supercharge |
-| `combat` · start | 10 | 3 | Dimensional Splicer, Impulse Core, Indoctrination |
+| `combat` · start | 12 | 1 | Dimensional Splicer |
 | `turn` · start | 7 | 5 | Chaos Mapping, Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
 | `tactical.ships_moved` · after | 4 | 7 | Acamar, Adjudicator Ba'al, Call of the Void, Foresight, Sai Seravus, Voidwatch, Xuange |
 | `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 7 | 3 | I.I.H.Q. Modernization, Planesplitter (Firmament), Stellar Genesis |
 | `production.units_produced` · when | 2 | 8 | "A Tall Stranger", Amalgamation, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon, Trilossa Aun Mirik |
 | `production.used` · when | 8 | 1 | Tungstantus |
-| `any_time` · any | 0 | 8 | 2RAM, Aroz Hollow, Brother Omar, Captain Aroz, M'aban, Nip and Tuck, Ssruu, Xander Alexin Victori III |
+| `any_time` · any | 1 | 7 | 2RAM, Aroz Hollow, Captain Aroz, M'aban, Nip and Tuck, Ssruu, Xander Alexin Victori III |
 | `combat.hits_assigned` · before | 8 | 0 |  |
 | `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
 | `tactical.system_activated` · when | 2 | 4 | Captain Mendosa, Incursion, Void Tether, Wing Transfer |
@@ -131,7 +131,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `planet.control_gained` · when | 1 | 3 | Assimilate, Fealty Uplink, Liberate |
 | `unit.ability_used` · when [ability=roll] | 3 | 1 | Trrakan Aun Zulok |
 | `combat.roll` · after | 3 | 0 |  |
-| `combat.round` · after | 2 | 1 | Devotion |
+| `combat.round` · after | 3 | 0 |  |
 | `economy.resources_spent` · when | 2 | 1 | Aello |
 | `invasion` · start | 3 | 0 |  |
 | `phase` · during [phase=status] | 2 | 1 | Slumberstate Computing |
@@ -148,7 +148,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `component.action` · after | 1 | 1 | Suffi An |
 | `economy.commodities_replenished` · when | 1 | 1 | Age of Commerce |
 | `game.setup` · when | 0 | 2 | Creuss Gate, Sorrow |
-| `objective.scored` · when | 0 | 2 | Plots Within Plots, Yin Ascendant |
+| `objective.scored` · when | 1 | 1 | Plots Within Plots |
 | `phase` · end [phase=status] | 1 | 1 | The Oracle |
 | `phase` · start [phase=agenda] | 2 | 0 |  |
 | `planet.explored` · after | 0 | 2 | Pre-Fab Arcologies, Terragenesis |
@@ -160,7 +160,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `transaction` · when | 2 | 0 |  |
 | `turn` · during | 1 | 1 | Transparasteel Plating |
 | `unit.ability_used` · after [ability=roll] | 2 | 0 |  |
-| `unit.destroyed` · after | 1 | 1 | Brother Milor |
+| `unit.destroyed` · after | 2 | 0 |  |
 | `unit.sustain_damage` · when | 2 | 0 |  |
 | `agenda.outcome_resolved` · after | 0 | 1 | Future Sight |
 | `agenda.outcome_resolved` · during [would] | 1 | 0 |  |
@@ -195,7 +195,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `planet.exhausted` · when | 0 | 1 | Xxekir Grom |
 | `planet.explored` · when | 0 | 1 | Distant Suns |
 | `player.last_passed` · after | 0 | 1 | Director Nel |
-| `production.units_produced` · after | 0 | 1 | Yin Spinner Omega |
+| `production.units_produced` · after | 1 | 0 |  |
 | `production.units_produced` · when [1/action] | 0 | 1 | Agency Supply Network |
 | `production.used` · after | 1 | 0 |  |
 | `state.condition` · when | 0 | 1 | Absolute Synergy |

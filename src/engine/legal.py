@@ -166,6 +166,10 @@ def _assign_hits(s: GameState, ctx: EngineContext, pid: str) -> list[Action]:
     units = battle.side_units(s, ctx.grid, ctx.registry, pid)
     required = battle.required_hits(s, ctx.grid, ctx.registry, pid)
     cancels = battle.sustain_cancels(s, pid)
+    # Wymagany cel trafień (Impulse Core, Devotion - RULES.md 62.10): te typy przyjmują pierwsze.
+    combat = s.active_combat
+    targets = set((combat.hit_targets.get(pid) or {}).get("types", [])) if combat else set()
+    units = sorted(units, key=lambda u: u.base_type not in targets)
     candidates: list[Action] = []
     for use_sustain in (True, False):
         left = required
@@ -181,7 +185,7 @@ def _assign_hits(s: GameState, ctx: EngineContext, pid: str) -> list[Action]:
                     sustain[unit.base_type] = uses
                     left -= uses * cancels
         # Najgorszy próg trafienia (wyższa liczba) ginie pierwszy.
-        for unit in sorted(units, key=lambda u: -u.hits_on):
+        for unit in sorted(units, key=lambda u: (u.base_type not in targets, -u.hits_on)):
             if left <= 0:
                 break
             damaged = unit.damaged + sustain.get(unit.base_type, 0)

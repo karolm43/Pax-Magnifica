@@ -138,6 +138,12 @@ def research_view(
         "aida": technology.aida_ready(state, player_id),
         # Gotowe relikty ignorujące 1 prerekwizyt (Prophet's Tears) - skip ``relic:<id>``.
         "relic_skips": technology.ignore_prerequisite_relics(state, player_id),
+        # Brother Omar: skąd zwrócić 1 piechotę (skip ``infantry:<pozycja>|<strefa>``, RULES 62.10).
+        "infantry_skips": [
+            {"value": value, "label": label}
+            for value, label in technology.skip_choices(state, registry, player_id)
+            if value.startswith(technology.INFANTRY_SKIP_PREFIX)
+        ],
         "planets": (
             {} if trade_goods_only
             else ready_planet_values(state, registry, player_id, "resources")

@@ -164,6 +164,13 @@ POINT_MOVEMENT_MATCH_HIGHEST = "movement.match_highest"
 # Hook FORBID jako zbiór id GOTOWYCH reliktów; skip w planie badania: ``relic:<id>``.
 POINT_TECHNOLOGY_IGNORE_PREREQUISITE = "technology.ignore_prerequisite"
 
+# MODIFY -> ile symboli prerekwizytu koloru ``ctx["color"]`` gracz ma dodatkowo (karta „satisfies
+# a green technology prerequisite”: Brother Omar, RULES.md 62.10).
+POINT_TECHNOLOGY_VIRTUAL_PREREQUISITES = "technology.virtual_prerequisites"
+# PERMIT -> gracz może zwrócić 1 swoją piechotę do rezerwy, by zignorować WSZYSTKIE prerekwizyty
+# badanej technologii (ctx: technology); skip ``infantry:<pozycja>|<strefa>`` (Brother Omar).
+POINT_TECHNOLOGY_INFANTRY_SKIP = "technology.infantry_skip"
+
 # Synergia dla WSZYSTKICH czterech typów technologii (The Quantumcore). PERMIT -> bool.
 POINT_TECHNOLOGY_SYNERGY_ALL = "technology.synergy_all"
 
@@ -685,6 +692,17 @@ def _promissory_sources(state: GameState, player_id: str) -> set[HookSource]:
     return sources
 
 
+def _granted_commanders(state: GameState, player_id: str) -> set[HookSource]:
+    """Commanderzy innych frakcji z efektów trwałych gracza (``data.commanders``) — działają „tak,
+    jakby byli odblokowani” (Yin Ascendant, RULES.md 62.10)."""
+    return {
+        HookSource(SOURCE_LEADER, str(leader_id))
+        for effect in state.active_effects
+        if effect.owner == player_id
+        for leader_id in effect.data.get("commanders") or ()
+    }
+
+
 def _legendary_sources(player: Any) -> set[HookSource]:
     """Karty zdolności legendarnych planet, które gracz ma (kontroluje ich planety)."""
     registry = _BOUND_REGISTRY
@@ -716,6 +734,7 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     sources: set[HookSource] = {HookSource(SOURCE_TECHNOLOGY, t) for t in player.technologies}
     sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
     sources.update(_promissory_sources(state, player_id))
+    sources.update(_granted_commanders(state, player_id))
     suppressed = _suppressed_unit_types(state, player_id)
     sources.update(
         src for src in _unit_sources(player)

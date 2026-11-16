@@ -51,6 +51,8 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   sardakkhero: { dim: 0.35, target: "active", mark: "slash", tone: "255 60 50", ms: 3800 },
   // Sins of the Father: dowolna karta strategii — pieczęć imperium nad Mecatol Rex.
   winnuhero: { dim: 0.35, target: "mecatol", mark: "seal", tone: "255 210 90", ms: 4400 },
+  // Quantum Dissemination: piechota z rezerwy ląduje na planetach — impulsy nad systemami walk.
+  yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
 };
 
 const GROUND = new Set(["gf", "mf"]);

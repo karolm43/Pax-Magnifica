@@ -20,7 +20,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `crafty` | Crafty | yssaril | — | FORBID (zakaz) | karty | — | You can have any number of action cards in your hand. Game effects cannot prevent you from using this ability. |
 | `creuss_gate` | Creuss Gate | ghost | — | — | — | — | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
 | `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | — | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
-| `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | — | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
+| `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
 | `devour` | Devour | cabal | — | — | walka | — | Capture your opponent's non-structure units that are destroyed during combat. |
 | `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | — | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
 | `edict` | Edict | mahact | when | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | — | Other player's tokens in your fleet pool increase your fleet limit but cannot be redistributed. Place 1 command token from your opponent's … |
@@ -36,7 +36,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `hubris` | Hubris | mahact | — | FORBID (zakaz) | karty | — | During setup, purge your "Alliance" promissory note. Other players cannot give you their 'Alliance" promissory note. |
 | `imperia` | Imperia | mahact | — | PERMIT (pozwolenie) | żetony dowodzenia | — | While another player's command token is in your fleet pool, you can use the ability of that player's commander, if it is unlocked. |
 | `incursion` | Incursion | crimson | — | PERMIT (pozwolenie) | ruch, status i odświeżanie | — | When you activate a system that contains a breach, you may flip that breach; systems that contain active breaches are adjacent. at the end … |
-| `indoctrination` | Indoctrination | yin | at_start | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may spend 2 influence to replace 1 of your opponent's participating infantry with 1 infantry from your reinforcements. |
+| `indoctrination` | Indoctrination | yin | at_start | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | ✔ | You may spend 2 influence to replace 1 of your opponent's participating infantry with 1 infantry from your reinforcements. |
 | `laws_order` | Law's Order | keleres | at_start | PERMIT (pozwolenie) | ekonomia i płatności | — | You may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn. |
 | `liberate` | Liberate | bastion | when | TRIGGER (okno reakcji) | ekonomia i płatności, planety i eksploracja, status i odświeżanie | — | ready that planet if it contains a number of your infantry equal to or greater than that planet's resource value; otherwise, place 1 infant… |
 | `marionettes` | Marionettes | obsidian | — | — | planety i eksploracja | — | The player or players whose control tokens are on each plot card are the puppeted players for that plot. |

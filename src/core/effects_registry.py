@@ -78,7 +78,12 @@ class EffectRegistry:
         Jawny wpis w ``effects_status.json`` ma pierwszeństwo (np. MANUAL wybrany świadomie).
         """
         merged = dict(self.statuses)
+        categories = {c.value for c in ComponentCategory}
         for key in keys:
+            # Klucze pomocnicze spoza kategorii komponentów (np. ``unlocks:<lider>`` - zdarzeniowy
+            # warunek odblokowania, ``leaders.has_event_unlock``) nie są wpisami rejestru efektów.
+            if key.partition(":")[0] not in categories:
+                continue
             merged.setdefault(_parse_key(key), EffectStatus.IMPLEMENTED)
         return EffectRegistry(merged)
 

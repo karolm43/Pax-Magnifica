@@ -21,6 +21,8 @@ def registry() -> StaticDataRegistry:
 
 def _exists(registry: StaticDataRegistry, key: str) -> bool:
     category_value, _, component_id = key.partition(":")
+    if category_value == "unlocks":  # zdarzeniowy warunek odblokowania lidera (RULES.md 61.1)
+        return component_id in registry.leaders
     category = ComponentCategory(category_value)
     pools: dict[ComponentCategory, Mapping[str, object]] = {
         ComponentCategory.TECHNOLOGY: registry.technologies,

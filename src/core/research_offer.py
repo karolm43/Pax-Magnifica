@@ -109,7 +109,10 @@ def gain_input(
         if token_pool is not None:
             row["tokenCost"] = len(row["prerequisites"])
     # Bez skipów i płatności: nic nie trzeba wyczerpywać.
-    view.update(specialties={}, aida=False, relic_skips=[], planets={}, compound_planets={})
+    view.update(
+        specialties={}, aida=False, relic_skips=[], infantry_skips=[], planets={},
+        compound_planets={},
+    )
     view["gain"] = {
         "mandatory": True,
         "tokenPool": token_pool,

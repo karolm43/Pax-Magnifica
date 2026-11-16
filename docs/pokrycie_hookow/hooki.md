@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -118,6 +118,7 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
 | `event:combat.round:end` | TRIGGER | technology:exo2 | technologies:exo2 | Exotrireme II: After a round of space combat, you may destroy this unit to destroy up to 2 |
 | `event:combat.round:end` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Po przypisaniu strat obu stron (F_mentak: „before the Mentak player places"). |
+| `event:combat.round:end` | TRIGGER | faction:yin | abilities:devotion | Devotion: After each space combat round: You may destroy 1 of your cruisers or destroyers in |
 | `event:combat.round:start` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Straty z Ambush (przed 1. rundą) - statki przed rzutami rundy. |
 | `event:combat.round:start` | TRIGGER | faction:letnev | abilities:munitions | Munitions Reserves: At the start of each round of space combat: You may spend 2 trade goods |
 | `event:combat.round:start` | TRIGGER | unit:letnev_flagship | — | Arc Secundus: At the start of each space combat round, repair this ship. |
@@ -131,11 +132,13 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.won:after` | TRIGGER | technology:so | technologies:so | Salvage Operations: ... if you won the combat, you may also produce 1 ship in that system of |
 | `event:combat:end` | TRIGGER | technology:so | technologies:so | Salvage Operations: After you win or lose a space combat, gain 1 trade good (remis = nic, |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
+| `event:combat:start` | TRIGGER | technology:ic | technologies:ic | Impulse Core: At the start of a space combat, you may destroy 1 of your cruisers or |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
 | `event:combat:start` | TRIGGER | faction:mentak | abilities:ambush | Ambush: At the start of a space combat: You may roll 1 die for each of up to 2 of your |
 | `event:combat:start` | TRIGGER | leader:mentakhero | leaders:mentakhero | Ipswitch, Loose Cannon — Sleeper Cell: At the start of a space combat that you are |
 | `event:combat:start` | TRIGGER | relic:metalivoidarmaments | — | Metali Void Armaments: During the "Anti-Fighter Barrage" step of space combat, you may |
 | `event:combat:start` | TRIGGER | leader:solcommander | leaders:solcommander | Claire Gibson: At the start of a ground combat on a planet you control: You may place 1 |
+| `event:combat:start` | TRIGGER | faction:yin | abilities:indoctrination | Indoctrination: At the start of a ground combat: You may spend 2 influence to replace 1 of |
 | `event:component.action:after` | TRIGGER | agenda:minister_war | agendas:minister_war | — |
 | `event:component.decision:after` | TRIGGER | effect:research:enigmatic_device | explores:ed1 | — |
 | `event:component.decision:after` | TRIGGER | effect:research:f_researched | action_cards:f_researched | — |
@@ -145,6 +148,7 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
+| `event:component.gained:when` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: When you gain this card ..., gain the alliance ability of a random, unused |
 | `event:component.readied:when` | TRIGGER | effect:agendas:checks:against | agendas:checks | — |
 | `event:economy.commodities_replenished:after` | TRIGGER | agenda:minister_commerce | agendas:minister_commerce | — |
 | `event:economy.trade_goods_gained:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors gains trade goods ... |
@@ -155,7 +159,9 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakagent | leaders:mentakagent | Suffi An: After the Pillage faction ability is used against another player: You may exhaust |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
+| `event:faction.ability_used:after` | TRIGGER | faction:yin | unlocks:yincommander | Unlock: Use one of your faction abilities (Indoctrination albo Devotion - F_yin Ω). |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
+| `event:objective.scored:after` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: ... or score a public objective, gain the alliance ability of a random, |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
 | `event:phase:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: At the end of the status phase, if you control the "Tomb of |
 | `event:phase:end` | TRIGGER | agenda:minister_policy | agendas:minister_policy | — |
@@ -186,6 +192,7 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:player.passed:when` | TRIGGER | planet:ordinian | planets:ordinian | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
 | `event:player.passed:when` | TRIGGER | planet:ordinianc4 | planets:ordinianc4 | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
 | `event:production.units_produced:after` | TRIGGER | breakthrough:hacanbt | breakthroughs:hacanbt | Auto-Factories: When you produce 3 or more non-fighter ships, place 1 command token from your |
+| `event:production.units_produced:after` | TRIGGER | technology:yso | technologies:yso | Yin Spinner Ω: After you produce units, place up to 2 infantry from your reinforcements on |
 | `event:production.used:after` | TRIGGER | agenda:prophecy | agendas:prophecy | — |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
 | `event:strategy.action:after` | TRIGGER | faction:xxcha | abilities:peace_accords | Peace Accords: After you resolve the primary or secondary ability of the "Diplomacy" |
@@ -242,6 +249,8 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.destroyed:after` | TRIGGER | technology:lw2 | technologies:lw2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
 | `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
 | `event:unit.destroyed:after` | TRIGGER | technology:so2 | technologies:so2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
+| `event:unit.destroyed:after` | TRIGGER | unit:yin_flagship | units:yin_flagship | Van Hauge: When this ship is destroyed, destroy all ships in this system. |
+| `event:unit.destroyed:after` | TRIGGER | leader:yinagent | leaders:yinagent | Brother Milor Ω: After a player's unit is destroyed during combat: You may exhaust this card |
 | `event:unit.placed:after` | TRIGGER | agenda:minister_industry | agendas:minister_industry | — |
 | `event:unit.sustain_damage:after` | TRIGGER | leader:letnevcommander | leaders:letnevcommander | Rear Admiral Farran: After 1 of your units uses SUSTAIN DAMAGE: You may gain 1 trade good |
 | `event:unit.sustain_damage:after` | TRIGGER | unit:sardakk_mech | units:sardakk_mech | Valkyrie Exoskeleton: After this unit uses its SUSTAIN DAMAGE ability during ground combat, |
@@ -303,10 +312,12 @@ Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 | `technology.free_prerequisite_ignores` | MODIFY | faction:jolnar | abilities:analytical | Analytical: When you research a technology that is not a unit upgrade technology: You may |
 | `technology.free_prerequisite_ignores` | MODIFY | agenda:schematics | agendas:schematics | — |
 | `technology.ignore_prerequisite` | FORBID | relic:prophetstears | relics:prophetstears | — |
+| `technology.infantry_skip` | PERMIT | leader:yincommander | leaders:yincommander | Brother Omar Ω: When you research a tech owned by another player, you may return 1 of your |
 | `technology.specialty_pays` | PERMIT | breakthrough:jolnarbt | breakthroughs:jolnarbt | Specialist Compounds: When you research technology using the 'Technology' strategy card, |
 | `technology.specialty_without_exhaust` | PERMIT | technology:pa | — | Psychoarchaeology: specjalności technologii działają bez wyczerpywania planet, także |
 | `technology.strategy_card_free` | PERMIT | agenda:minister_sciences | agendas:minister_sciences | — |
 | `technology.synergy_all` | PERMIT | relic:quantumcore | — | The Quantumcore: You have SYNERGY for all technology types. |
+| `technology.virtual_prerequisites` | MODIFY | leader:yincommander | leaders:yincommander | Brother Omar Ω: This card satisfies a green technology prerequisite. |
 | `transaction.action_cards` | PERMIT | faction:hacan | abilities:arbiters | Arbiters: When you are negotiating a transaction, action cards can be exchanged as part of |
 | `transaction.any_player` | PERMIT | promissory:convoys | — | While this card is in your play area, you may negotiate transactions with players who are |
 | `transaction.any_player` | PERMIT | faction:hacan | abilities:guild_ships | Guild Ships: You can negotiate transactions with players who are not your neighbor. |
@@ -394,10 +405,12 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `invasion.strips_planetary_shield`
 - `technology.free_prerequisite_ignores`
 - `technology.ignore_prerequisite`
+- `technology.infantry_skip`
 - `technology.strategy_card_free`
 - `technology.specialty_without_exhaust`
 - `technology.specialty_pays`
 - `technology.synergy_all`
+- `technology.virtual_prerequisites`
 - `transaction.action_cards`
 - `transaction.any_player`
 - `transaction.extra_items`

@@ -684,6 +684,7 @@ def commit_ground_forces(
         ValueError: Zły podkrok, planeta spoza systemu, to nie siła naziemna, brak jednostek.
     """
     inv = _phase(state, InvasionPhase.COMMIT, "Commit Ground Forces")
+    _require_tactical_commit(inv)
     planets = set(system_planets(state, registry, inv.position))
     sealed = custodians.landing_blocked(state, registry, inv.position)
     system = _system(state)
@@ -772,6 +773,7 @@ def apply_commit_from_planets(
 ) -> None:
     """Jak :func:`commit_from_planets`, ale MUTUJE ``new_state`` (efekty komponentów na klonie)."""
     inv = _phase(new_state, InvasionPhase.COMMIT, "Commit Ground Forces")
+    _require_tactical_commit(inv)
     planets = set(system_planets(new_state, registry, inv.position))
     sealed = custodians.landing_blocked(new_state, registry, inv.position)
     if not moves:
@@ -1142,6 +1144,82 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
         exploration.start_exploration(state, registry, inv.attacker, inv.position, explored)
 
 
+# --------------------------------------------------------------- inwazja komponentu (62.10)
+
+
+def _require_tactical_commit(inv: InvasionState) -> None:
+    if inv.source:
+        raise ValueError(
+            "Only the units committed by the ability take part in this invasion "
+            "(ground forces in the space area cannot be committed)."
+        )
+
+
+def _has_capacity_ship(state: GameState, system: SystemState, player_id: str) -> bool:
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        return False
+    for base_type, count in system.space_units.get(player_id, {}).items():
+        unit = unit_variant(state, registry, player_id, base_type) if count > 0 else None
+        if unit is not None and unit.is_ship and (unit.capacity_value or 0) > 0:
+            return True
+    return False
+
+
+def _open_component(
+    state: GameState,
+    attacker: str,
+    source: str,
+    position: str,
+    committed: dict[str, dict[str, int]],
+    queue: list[dict[str, Any]],
+) -> None:
+    """Otwiera inwazję komponentu w systemie ``position`` w kroku COMMIT (MUTUJE ``state``).
+
+    Jednostki już stoją na planetach (zaangażowane przez efekt); okno „po zaangażowaniu”
+    (Ghost Squad, Parley) dotyczy tego zaangażowania. Bez zdarzenia startu inwazji i bez
+    aktywacji systemu (F_yin Ω).
+    """
+    landed = {planet: dict(by_type) for planet, by_type in committed.items()}
+    state.invasion = InvasionState(
+        position=position, attacker=attacker, phase=InvasionPhase.COMMIT,
+        committed=landed, last_commit={p: dict(b) for p, b in landed.items()},
+        source=source, queue=list(queue),
+    )
+    units: dict[str, int] = {}
+    for by_type in landed.values():
+        for base_type, count in by_type.items():
+            units[base_type] = units.get(base_type, 0) + count
+    triggers.fire(
+        state, GameEvent.UNITS_COMMITTED, Moment.AFTER, subject=attacker,
+        ctx={"player": attacker, "position": position, "units": units},
+    )
+
+
+def start_component_invasion(
+    state: GameState,
+    attacker: str,
+    source: str,
+    commits: dict[str, dict[str, dict[str, int]]],
+) -> None:
+    """Inwazja komponentu poza akcją taktyczną (Quantum Dissemination) — MUTUJE ``state``.
+
+    ``commits`` = ``{pozycja: {planeta: {base_type: n}}}`` jednostek JUŻ postawionych na
+    planetach. Systemy rozstrzygane po kolei (kolejność pozycji), każdy w oknie inwazji od kroku
+    Commit Ground Forces, potem Ground Combat i Establish Control (RULES.md 62.10).
+
+    Raises:
+        ValueError: Trwa inna inwazja albo brak zaangażowanych jednostek.
+    """
+    if state.invasion is not None:
+        raise ValueError("Another invasion is in progress.")
+    order = [pos for pos in sorted(commits) if commits[pos]]
+    if not order:
+        raise ValueError("No ground forces were committed.")
+    queue = [{"position": pos, "committed": commits[pos]} for pos in order[1:]]
+    _open_component(state, attacker, source, order[0], commits[order[0]], queue)
+
+
 # ------------------------------------------------------------------------------ nawigacja
 
 
@@ -1168,6 +1246,10 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
         if not inv.committed and not combat_planets(state, registry):
             # Brak lądowania i spornych planet: od razu do Establish Control — I2 / I7a.
             return _enter(state, grid, registry, InvasionPhase.ESTABLISH)
+        if inv.source:
+            # Quantum Dissemination: „Players cannot use SPACE CANNON against these units” i tylko
+            # Commit / Ground Combat / Establish Control (F_yin Ω, RULES.md 62.10).
+            return _enter(state, grid, registry, InvasionPhase.GROUND_COMBAT)
         return _enter(state, grid, registry, InvasionPhase.SPACE_CANNON_DEFENSE)
     if inv.phase is InvasionPhase.SPACE_CANNON_DEFENSE:
         if inv.defense_pending:
@@ -1183,7 +1265,14 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
         return _enter(state, grid, registry, InvasionPhase.ESTABLISH)
     if state.exploration is not None:
         raise ValueError("Finish exploring the captured planets first.")
-    return clear_invasion(state)
+    closed = clear_invasion(state)
+    if inv.queue:
+        # Inwazja komponentu: kolejny system z kolejki (RULES.md 62.10).
+        nxt, *rest = inv.queue
+        _open_component(
+            closed, inv.attacker, inv.source, str(nxt["position"]), nxt["committed"], rest
+        )
+    return closed
 
 
 # ------------------------------------------------- reakcje kart (RULES.md 53.5.d, MUTUJĄ stan)
@@ -1208,14 +1297,20 @@ def parley_return(state: GameState, planet: str) -> dict[str, int]:
         raise ValueError(f"No units were just committed to {planet}.")
     system = _system(state)
     returned: dict[str, int] = {}
+    # Quantum Dissemination (F_yin Ω): bez statków z pojemnością w systemie piechota schodzi z
+    # planszy; z nimi wraca do przestrzeni (limit pojemności sprawdzany później).
+    to_board = not inv.source or _has_capacity_ship(state, system, inv.attacker)
     for base_type, count in sorted(latest.items()):
         here = _ground_in_zone(system, planet, inv.attacker).get(base_type, 0)
         move = min(count, here)
         if move <= 0:
             continue
-        unit_ops.transfer_units(
-            state, system, planet, system, "space", inv.attacker, base_type, move
-        )
+        if to_board:
+            unit_ops.transfer_units(
+                state, system, planet, system, "space", inv.attacker, base_type, move
+            )
+        else:
+            unit_ops.remove_units(state, system, planet, inv.attacker, base_type, move)
         returned[base_type] = move
         landed = inv.committed.get(planet, {})
         landed[base_type] = landed.get(base_type, 0) - move

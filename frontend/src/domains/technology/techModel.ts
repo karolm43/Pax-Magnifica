@@ -20,7 +20,13 @@ export type TechRow = {
   status: TechStatus;
   /** Tryb „gain” (Research Grant Reallocation): żetony do zdjęcia z puli za tę technologię. */
   tokenCost?: number;
+  /** Brother Omar: zwrot 1 piechoty ignoruje wszystkie prerekwizyty tej technologii. */
+  infantrySkip?: boolean;
 };
+
+/** Brother Omar: skąd zwrócić piechotę (skip = `infantry:<pozycja>|<strefa>`). */
+export type InfantrySkip = { value: string; label: string };
+export const INFANTRY_SKIP_PREFIX = "infantry:";
 
 /**
  * Tryb „GAIN” okna: technologia przychodzi bez płatności i bez prerekwizytów (Research Grant
@@ -41,6 +47,8 @@ export type ResearchOptions = {
   aida: boolean;
   /** Gotowe relikty ignorujące 1 prerekwizyt (Prophet's Tears); skip = `relic:<id>`. */
   relicSkips: string[];
+  /** Brother Omar: miejsca z piechotą do zwrotu (ignoruje prerekwizyty technologii innego gracza). */
+  infantrySkips: InfantrySkip[];
   /** Gotowe planety → zasoby (płatność). */
   planets: Record<string, number>;
   tradeGoods: number;
@@ -99,6 +107,9 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     specialties: (raw.specialties ?? {}) as ResearchOptions["specialties"],
     aida: raw.aida === true,
     relicSkips: Array.isArray(raw.relic_skips) ? (raw.relic_skips as string[]) : [],
+    infantrySkips: Array.isArray(raw.infantry_skips)
+      ? (raw.infantry_skips as InfantrySkip[])
+      : [],
     planets: (raw.planets ?? {}) as Record<string, number>,
     tradeGoods: typeof raw.trade_goods === "number" ? raw.trade_goods : 0,
     // Karta „Spend N trade goods” liczy sztuki TG, nie ich wartość (Mirror Computing nie działa).
@@ -233,6 +244,11 @@ export function autoSkips(
     left[color] = (left[color] ?? 0) - 1;
     skips.push(`relic:${relic}`);
   }
+  // Brother Omar: gdy zwykłe skipy nie wystarczą, sama piechota ignoruje wszystko (bez planet).
+  const rest = Object.values(left).reduce((s, n) => s + Math.max(0, n ?? 0), 0);
+  if (rest > 0 && row.infantrySkip && options.infantrySkips.length > 0) {
+    return { skips: [options.infantrySkips[0].value], left: {} };
+  }
   return { skips, left };
 }
 
@@ -242,6 +258,7 @@ export function remainingAfter(
   skips: string[],
   options: ResearchOptions,
 ): Partial<Record<TechColor, number>> {
+  if (skips.some((s) => s.startsWith(INFANTRY_SKIP_PREFIX))) return {};
   const left: Partial<Record<TechColor, number>> = { ...row.missing };
   for (const skip of skips) {
     if (skip === AIDA_SKIP || skip.startsWith("relic:")) {

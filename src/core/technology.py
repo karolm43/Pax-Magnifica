@@ -162,7 +162,7 @@ def missing_prerequisites(
     się jako dowolny kolor pary (każda osobno, ale tylko jako jeden kolor naraz) - nadwyżka
     jednego koloru pary pokrywa niedobór drugiego.
     """
-    have = owned_colors(state, registry, player_id)
+    have = owned_colors(state, registry, player_id) + virtual_prerequisites(state, player_id)
     need = prerequisites(tech)
     missing = Counter({c: n - have[c] for c, n in need.items() if n > have[c]})
     pair = synergy(state, registry, player_id)
@@ -178,6 +178,47 @@ def missing_prerequisites(
                 spare[donor] -= moved
         missing = Counter({c: n for c, n in missing.items() if n > 0})
     return missing
+
+
+def virtual_prerequisites(state: GameState, player_id: str) -> Counter[str]:
+    """Symbole prerekwizytów z kart, które je „spełniają” (Brother Omar: 1 zielony, RULES 62.10)."""
+    point = rules_hooks.POINT_TECHNOLOGY_VIRTUAL_PREREQUISITES
+    if not rules_hooks.hooks_at(point, state, player_id):
+        return Counter()
+    found: Counter[str] = Counter()
+    for color in COLORS:
+        extra = rules_hooks.modify(point, state, player_id, 0, {"color": color})
+        if extra > 0:
+            found[color] += extra
+    return found
+
+
+INFANTRY_SKIP_PREFIX = "infantry:"  # ``infantry:<pozycja>|<strefa>`` - zwrot piechoty (Omar)
+
+
+def infantry_skip_allowed(state: GameState, player_id: str, tech_id: str) -> bool:
+    """Czy zwrot 1 piechoty zignoruje prerekwizyty ``tech_id`` (``technology.infantry_skip``)."""
+    return rules_hooks.permits(
+        rules_hooks.POINT_TECHNOLOGY_INFANTRY_SKIP, state, player_id, {"technology": tech_id}
+    )
+
+
+def infantry_locations(state: GameState, player_id: str) -> list[tuple[str, str]]:
+    """Miejsca z piechotą gracza na planszy ``(pozycja, strefa)`` (strefa = planeta/``space``)."""
+    found: list[tuple[str, str]] = []
+    for position, system in sorted(state.systems.items()):
+        if system.space_units.get(player_id, {}).get("infantry", 0) > 0:
+            found.append((position, "space"))
+        for planet, by_player in sorted(system.planet_units.items()):
+            if by_player.get(player_id, {}).get("infantry", 0) > 0:
+                found.append((position, planet))
+    return found
+
+
+def _infantry_skip_ready(state: GameState, player_id: str, tech: TechnologyDef) -> bool:
+    return infantry_skip_allowed(state, player_id, tech.id) and bool(
+        infantry_locations(state, player_id)
+    )
 
 
 def specialty_planets(
@@ -236,6 +277,8 @@ def _remaining_after_skips(
     planets: dict[str, list[str]],
 ) -> int:
     """Ile symboli prerekwizytów zostanie po zachłannym użyciu skipów (planety + AIDA)."""
+    if _infantry_skip_ready(state, player_id, tech):
+        return 0  # zwrot piechoty ignoruje wszystkie prerekwizyty (Brother Omar)
     left = Counter(missing)
     for colors in planets.values():
         color = next((c for c in colors if left[c] > 0), None)
@@ -357,6 +400,8 @@ class ResearchPlan:
     exhaust_relics: tuple[str, ...] = ()
     # Ile symboli zignorowano bez kosztu (Analytical) - notatka w feedzie przy badaniu.
     free_ignores: int = 0
+    # Piechota zwracana do rezerwy za zignorowanie prerekwizytów ``(pozycja, strefa)`` (Omar).
+    return_infantry: tuple[str, str] | None = None
 
 
 def plan_research(
@@ -395,7 +440,22 @@ def plan_research(
     used_planets: list[str] = []
     used_relics: list[str] = []
     use_aida = False
+    return_infantry: tuple[str, str] | None = None
     for skip in skips:
+        if skip.startswith(INFANTRY_SKIP_PREFIX):
+            position, _, zone = skip[len(INFANTRY_SKIP_PREFIX):].partition("|")
+            if not infantry_skip_allowed(state, player_id, tech_id):
+                raise ValueError(
+                    "Returning infantry ignores prerequisites only of a technology another "
+                    "player owns."
+                )
+            if (position, zone) not in infantry_locations(state, player_id):
+                raise ValueError("You have no infantry there.")
+            if return_infantry is not None or not +missing:
+                raise ValueError("Returning infantry would ignore nothing.")
+            missing = Counter()
+            return_infantry = (position, zone)
+            continue
         if skip.startswith(RELIC_SKIP_PREFIX):
             relic_id = skip[len(RELIC_SKIP_PREFIX):]
             if relic_id not in ignore_prerequisite_relics(state, player_id):
@@ -442,7 +502,8 @@ def plan_research(
         text = ", ".join(f"{n}× {c.lower()}" for c, n in left.items())
         raise ValueError(f"Prerequisites not met for {tech.name}: missing {text}.")
     return ResearchPlan(
-        tech_id, tuple(used_planets), use_aida, tuple(used_relics), free_ignores=ignored
+        tech_id, tuple(used_planets), use_aida, tuple(used_relics), free_ignores=ignored,
+        return_infantry=return_infantry,
     )
 
 
@@ -538,6 +599,14 @@ def skip_choices(
         found.append((planet, f"{name} ({'/'.join(c.lower() for c in colors)})"))
     if aida_ready(state, player_id):
         found.append((AIDA_SKIP, "AI Development Algorithm (unit upgrades)"))
+    if rules_hooks.hooks_at(rules_hooks.POINT_TECHNOLOGY_INFANTRY_SKIP, state, player_id):
+        for position, zone in infantry_locations(state, player_id):
+            info = registry.planets.get(zone)
+            where = info.name if info is not None and info.name else f"space ({position})"
+            found.append((
+                f"{INFANTRY_SKIP_PREFIX}{position}|{zone}",
+                f"Return 1 infantry from {where} (a technology another player owns)",
+            ))
     return found
 
 
@@ -570,6 +639,15 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         exhaust.exhaust_planets(state, player_id, plan.exhaust_planets)
     if plan.exhaust_aida:
         exhaust.exhaust_technology(state, player_id, AIDA)
+    if plan.return_infantry is not None:
+        from src.core import ability_notes, unit_ops  # lokalnie: unika cyklu importów
+
+        position, zone = plan.return_infantry
+        unit_ops.remove_units(state, state.systems[position], zone, player_id, "infantry", 1)
+        ability_notes.note_point(
+            state, player_id, rules_hooks.POINT_TECHNOLOGY_INFANTRY_SKIP,
+            "returned 1 infantry to ignore prerequisites",
+        )
     for relic_id in plan.exhaust_relics:
         exhaust.exhaust_relic(state, player_id, relic_id)
     # Ślad dla okien „after <gracz> researches a technology" (Research Agreement, RULES.md 62.3);
@@ -649,6 +727,10 @@ def tree_view(
                 ],
                 "missing": dict(missing),
                 "status": status,
+                # Brother Omar: zwrot piechoty ignoruje prerekwizyty tej technologii (RULES 62.10).
+                "infantrySkip": status == "skippable" and _infantry_skip_ready(
+                    state, player_id, tech
+                ),
             }
         )
     return rows

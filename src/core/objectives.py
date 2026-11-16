@@ -448,6 +448,11 @@ def score_public(
     new_state = pay_for_objective(state, registry, grid, player_id, objective_id, payment)
     record_public_score(new_state, player_id, objective_id)
     award_points(new_state, player_id, definition.points or 1)
+    # „When you score a public objective” (Yin Ascendant, RULES.md 62.10).
+    triggers.fire(
+        new_state, GameEvent.OBJECTIVE_SCORED, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "objective": objective_id, "secret": "false"},
+    )
     return new_state
 
 

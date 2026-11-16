@@ -683,6 +683,13 @@ class ActiveCombat(BaseModel):
     # ``destroyed_ships``); wpis ``{"player", "base_type"}`` z ``unit_ops._note_combat_loss``.
     # Salvage Operations, Sleeper Cell (RULES.md 62.8).
     destroyed_all: list[dict[str, Any]] = Field(default_factory=list)
+    # Wymagany cel trafień czekających na przypisanie (Impulse Core, Devotion - RULES.md 62.10):
+    # ``{gracz: {"types": [base_type…], "count": n}}`` - co najmniej ``n`` trafień na te typy.
+    hit_targets: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # Trafienia po rundzie (Devotion) czekające na przypisanie / krok ASSIGN dla nich: po nim runda
+    # kończy się bez ponownych zdarzeń końca rundy (``battle.add_round_end_hits``).
+    round_end_hits: dict[str, int] = Field(default_factory=dict)
+    round_end_assign: bool = False
 
 
 class InvasionPhase(StrEnum):
@@ -729,6 +736,11 @@ class InvasionState(BaseModel):
     # Siły naziemne zwrócone do przestrzeni przez Parley: w tej akcji nie wolno ich zaangażować
     # na inną planetę (R_parley, Notes) - ``{base_type: n}`` odejmowane od puli do lądowania.
     parley_locked: dict[str, int] = Field(default_factory=dict)
+    # Inwazja komponentu poza akcją taktyczną (Quantum Dissemination, RULES.md 62.10): klucz
+    # źródła (``leaders:yinhero``) i kolejne systemy ``[{"position", "committed"}]`` - po
+    # zamknięciu tej inwazji otwiera się następna. Pusty ``source`` = zwykła inwazja taktyczna.
+    source: str = ""
+    queue: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ProductionGrant(BaseModel):

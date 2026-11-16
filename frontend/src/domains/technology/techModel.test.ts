@@ -31,6 +31,7 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   specialties: {},
   aida: false,
   relicSkips: [],
+  infantrySkips: [],
   planets: {},
   tradeGoods: 0,
   tradeGoodValue: 1,
@@ -46,6 +47,19 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
 });
 
 describe("techModel", () => {
+  it("uses Brother Omar's infantry when specialties cannot cover the prerequisites", () => {
+    const tech = row({ missing: { BIOTIC: 2 }, status: "skippable", infantrySkip: true });
+    const opts = options({
+      specialties: { p1: ["BIOTIC"] },
+      infantrySkips: [{ value: "infantry:101|p2", label: "Return 1 infantry" }],
+    });
+    const auto = autoSkips(tech, opts);
+    expect(auto.skips).toEqual(["infantry:101|p2"]);
+    expect(totalMissing(remainingAfter(tech, auto.skips, opts))).toBe(0);
+    const covered = autoSkips(row({ missing: { BIOTIC: 1 }, infantrySkip: true }), opts);
+    expect(covered.skips).toEqual(["p1"]);
+  });
+
   it("places techs in color columns by number of prerequisites", () => {
     const grid = layoutColumns([
       row({ id: "a", prerequisites: [] }),

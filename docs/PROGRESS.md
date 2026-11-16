@@ -448,3 +448,27 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   1 człowiek + 3 boty: boty czekają na człowieka, pętla w lifespan rusza po `/game/new`, proces = inline.
 - Brak: przełącznik admin fast (opóźnienie 0) z UI, `engine/bench.py`, wynik „anytime” z procesu.
 
+## Fala 2 B7: Yin Brotherhood — komplet (11/11, RULES.md 62.10) (2026-11-16)
+
+- Moduł `core/hooks/factions/yin.py` (wersje Ω): Indoctrination (+ Moyin's Ashes jako opcja „mech” za +1 wpływu),
+  Devotion, Impulse Core, Yin Spinner Ω, Greyfire Mutagen Ω (notka-reakcja na starcie walki naziemnej), Brother
+  Milor Ω (tylko faza akcji, także Space Cannon / bombardowanie), Brother Omar Ω (odblokowanie zdarzeniowe
+  `unlocks:yincommander` — pierwsze w projekcie), Dannel Ω — Quantum Dissemination, Van Hauge, Yin Ascendant.
+- Punkty centralne: wymagany cel trafień `ActiveCombat.hit_targets` (Impulse Core: nie-myśliwce „if able”,
+  Devotion: typ wybrany przez Yin) walidowany w `assign_combat_hits`; trafienia po rundzie
+  `battle.add_round_end_hits` (własny krok ASSIGN, bez ponownych zdarzeń końca rundy); strona bez jednostek
+  przed rzutem przegrywa od razu (`roll_round`); `technology.virtual_prerequisites` i skip
+  `infantry:<pozycja>|<strefa>` (`technology.infantry_skip`); commanderzy z efektów trwałych (`data.commanders`
+  w `rules_hooks`); emisja `OBJECTIVE_SCORED` w `objectives.score_public`.
+- **Inwazja komponentu** (`InvasionState.source`, `queue`, `invasion.start_component_invasion`): Quantum
+  Dissemination stawia piechotę, potem okno inwazji system po systemie od kroku Commit (Ghost Squad / Parley —
+  Parley bez statków z pojemnością zdejmuje piechotę z planszy, F_yin Ω), bez Space Cannon Defense, walka
+  naziemna bez aktywnego systemu (`battle.start_combat`), zamknięcie otwiera kolejny system; lądowanie z
+  przestrzeni zablokowane; koniec tury czeka na koniec inwazji.
+- UI: okno badania — sekcja „Brother Omar · return 1 infantry” (gracz wybiera miejsce; auto-dobór tylko gdy
+  specjalności nie wystarczą), `infantry_skips` w widoku badania; efekt bohatera na planszy `yinhero`. Bot:
+  przypisanie strat najpierw na wymagany cel.
+- ⚠️ ZAŁOŻENIA (RULES.md 62.10, do potwierdzenia): Quantum Dissemination nie zdejmuje żetonu Custodians
+  (Mecatol z żetonem niedostępny); Yin Ascendant „unused” = frakcja spoza gry i jeszcze niezdobyta.
+- Testy: `tests/factions/test_yin.py` (18), `test_flows_yin.py` (7 scenariuszy przez API), `techModel.test.ts`;
+  strażnik `test_hook_coverage` zna klucze `unlocks:`. Restart backendu wymagany (nowe pola stanu i hooki).
