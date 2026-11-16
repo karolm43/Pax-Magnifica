@@ -4,7 +4,7 @@ Plik śledzi stan prac między sesjami. Aktualizowany na koniec każdego bloku.
 Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-14) są w `PROGRESS_ARCHIWUM.md` (czytaj punktowo).
 
 > **Aktualny etap:** E8 (silnik-SĘDZIA) + hooki: karty, relikty, technologie ogólne, cele, karty strategii,
-> agendy ✅; frakcje (Fala 2) w toku; bot: B0–B1 ✅, następny B2 (`docs/bot/PLAN.md`).
+> agendy ✅; frakcje (Fala 2) w toku; bot: B0–B1, B3 ✅, B2 rdzeń, następne B2 (bench) / B5 (`docs/bot/PLAN.md`).
 > Stan pokrycia: `POKRYCIE_HOOKOW.md` (generowany). Reguły: `RULES.md` 29, 43, 53, 65.
 
 ## Status etapów silnika
@@ -431,3 +431,20 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   usunięty czysty, zmergowany worktree `.claude/worktrees/bot-b1` (863 MB; branch zostaje).
 - QA: pytest (2443 ✅), ruff, mypy; front: tsc, eslint (zmienione), vitest `game-shell`. Bez build/e2e
   (bez nowych importów; panel okna zmieniony tylko warunkami).
+
+## Bot B2 (rdzeń) + B3: boty grają same w serwerze (2026-11-16) — RULES.md 65.7
+
+- `src/engine/compute.py`: `DecisionRequest/DecisionResult`, rejestr algorytmów (`first` = pasywny,
+  `random` = losowy z ziarnem), `Executor` inline/process z twardym terminem → ruch domyślny.
+- `src/api/bot_runner.py`: pętla w lifespan serwera (budzona po `StateService.broadcast` i co 1 s);
+  obserwacja → `legal_actions` → decyzja → to samo żądanie HTTP co klient człowieka (ASGI w procesie,
+  `api/bot_http.py` przeniesiony z testów). Stan zmieniony w trakcie (człowiek, Undo) → liczy od nowa;
+  odrzucony ruch → kolejny kandydat. Gra sieciowa: `SeatRegistry.bot_token` (tylko w pamięci) → `Identity.bot`.
+- `BotConfig` (`engine_config.json` → `bot`): algorytm per poziom, `move_delay_s` 1 s, terminy 2 s / 10 s
+  (kluczowe rodzaje), `executor`, `workers: 0` = rdzenie − 1. `create_app(bots=True)` w serwerze,
+  `--no-bots` wyłącza; testy domyślnie bez runnera.
+- Wizja 4 warstw algorytmów + uwagi i decyzje §6 w `docs/bot/PLAN.md`.
+- Test: `tests/engine/test_bot_runner.py` — 6 botów same do rundy 3 (189 ruchów, etykiety routerów),
+  1 człowiek + 3 boty: boty czekają na człowieka, pętla w lifespan rusza po `/game/new`, proces = inline.
+- Brak: przełącznik admin fast (opóźnienie 0) z UI, `engine/bench.py`, wynik „anytime” z procesu.
+

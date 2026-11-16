@@ -17,5 +17,25 @@
     "DIPLOMATIC",
     "TECHNOLOGIST",
     "BALANCED"
-  ]
+  ],
+  "bot": {
+    "_comment": "ZALOZENIE (warstwa AI, RULES.md 65). Algorytmy z src/engine/compute.py: first = bot pasywny (bezpieczny ruch), random = losowy legalny. executor inline = liczenie w procesie serwera; process = pula procesow (dla ciezkich algorytmow).",
+    "default_algorithm": "first",
+    "algorithm_by_difficulty": {
+      "EASY": "first",
+      "NORMAL": "first",
+      "HARD": "first"
+    },
+    "move_delay_s": 1.0,
+    "decision_deadline_s": 2.0,
+    "key_decision_deadline_s": 10.0,
+    "key_decision_kinds": [
+      "strategy_pick",
+      "strategy_primary_step",
+      "agenda_vote",
+      "battle_assign"
+    ],
+    "executor": "inline",
+    "workers": 0
+  }
 }

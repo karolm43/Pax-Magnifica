@@ -150,6 +150,9 @@ def main() -> None:
         "--save", type=Path, default=None, help="konkretny plik partii (domyślnie ostatni w saves/)"
     )
     parser.add_argument("--fresh", action="store_true", help="zacznij w nowym pliku zapisu")
+    parser.add_argument(
+        "--no-bots", action="store_true", help="boty nie grają same (sterowanie ręczne/God-Mode)"
+    )
     args = parser.parse_args()
     saves = SaveManager(SAVES_DIR)
     path = args.save or (None if args.fresh else saves.latest()) or saves.new_path()
@@ -161,6 +164,7 @@ def main() -> None:
         host_token=os.environ.get("CUSTODIAN_HOST_TOKEN"),
         saves_dir=SAVES_DIR,
         bug_reports_dir=BUG_REPORTS_DIR,
+        bots=not args.no_bots,
     )
     server_app.state.ctx.save_name = path.name
     print(f"[save] {'Resumed game from' if resumed else 'New save file'} {path}")

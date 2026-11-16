@@ -1,7 +1,9 @@
-"""Akcja z katalogu bota → to samo żądanie HTTP, które wysyła UI (do testu zgodności).
+"""Akcja z katalogu bota → to samo żądanie HTTP, które wysyła UI.
 
-Trzymane w testach, nie w ``src/engine/``: warstwa bota nie zna ``api/`` (RULES.md 65.1).
-Każdy rodzaj z ``ACTION_KINDS`` MUSI mieć tu wpis (strażnik w ``test_actions_parity.py``).
+Używa go runner bota (``api/bot_runner``: bot gra tą samą trasą co człowiek - etykiety historii,
+Activity, middleware i broadcast są identyczne) i test zgodności katalog ↔ HTTP. Leży w ``api/``,
+bo warstwa bota nie zna ``api/`` (RULES.md 65.1). Każdy rodzaj z ``ACTION_KINDS`` MUSI mieć tu
+wpis (strażnik w ``tests/engine/test_actions_parity.py``).
 """
 
 from __future__ import annotations

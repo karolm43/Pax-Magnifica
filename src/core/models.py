@@ -7,6 +7,8 @@ obrazów, układy planet), które są ignorowane dzięki ``extra="ignore"``.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -336,6 +338,33 @@ class HandLimits(BaseModel):
     promissory_notes: int | None = None
 
 
+class BotConfig(BaseModel):
+    """Ustawienia bota (⚠️ ZAŁOŻENIE projektowe, RULES.md 65 - nie reguła TI4).
+
+    - ``algorithm_by_difficulty`` — nazwa algorytmu z ``engine/compute`` dla poziomu trudności
+      (brak wpisu → ``default_algorithm``);
+    - ``move_delay_s`` — pauza „dla oka” przed ruchem bota (tryb admin fast / testy: 0);
+    - ``decision_deadline_s`` / ``key_decision_deadline_s`` — twardy termin decyzji zwykłej /
+      kluczowej (rodzaje akcji z ``key_decision_kinds``); po nim ruch domyślny;
+    - ``executor`` / ``workers`` — liczenie w procesie serwera (``inline``) albo w puli procesów
+      (``workers=0`` = wszystkie rdzenie poza jednym - decyzja użytkownika 2026-11-16).
+    """
+
+    model_config = ConfigDict(extra="ignore")  # pole _comment w JSON
+
+    default_algorithm: str = "first"
+    algorithm_by_difficulty: dict[str, str] = Field(default_factory=dict)
+    move_delay_s: float = 1.0
+    decision_deadline_s: float = 2.0
+    key_decision_deadline_s: float = 10.0
+    key_decision_kinds: list[str] = Field(default_factory=list)
+    executor: Literal["inline", "process"] = "inline"
+    workers: int = 0
+
+    def algorithm_for(self, difficulty: str | None) -> str:
+        return self.algorithm_by_difficulty.get(difficulty or "", self.default_algorithm)
+
+
 class EngineConfig(BaseModel):
     """Konfiguracja silnika czytana z ``assets/config/engine_config.json``.
 
@@ -355,3 +384,4 @@ class EngineConfig(BaseModel):
     valid_difficulties: list[str] = Field(default_factory=list)
     # Dozwolony zbiór osobowości (stylów gry) bota. ⚠️ ZAŁOŻENIE — koncepcja warstwy AI.
     valid_personalities: list[str] = Field(default_factory=list)
+    bot: BotConfig = Field(default_factory=BotConfig)

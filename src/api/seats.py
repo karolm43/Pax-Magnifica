@@ -36,6 +36,8 @@ class Identity:
     player_id: str | None = None
     host: bool = False
     member_id: str | None = None
+    bot: bool = False
+    """Runner bota (``api/bot_runner``): aktor = nagłówek ``X-Actor-Id`` (miejsce bota)."""
 
     @property
     def sees_everything(self) -> bool:
@@ -49,6 +51,7 @@ class Identity:
 
 
 LOCAL = Identity(network=False)
+BOT = Identity(network=True, bot=True)
 
 current_identity: ContextVar[Identity] = ContextVar("current_identity", default=LOCAL)
 """Tożsamość bieżącego żądania (ustawia middleware); czyta ją m.in. ``StateService.envelope``."""
@@ -86,6 +89,8 @@ class SeatRegistry:
     ) -> None:
         """``saved`` = JSON z ``to_json`` (wznowienie); jawny ``host_token`` ma pierwszeństwo."""
         self._persist = persist
+        # Token runnera bota: tylko w pamięci procesu, nigdy nie wysyłany ani zapisywany.
+        self.bot_token = _new_token()
         self._explicit_network = network
         self._explicit_host_token = host_token
         self.load(saved)
@@ -146,6 +151,8 @@ class SeatRegistry:
         if not self.network:
             return LOCAL if local else None
         if token:
+            if hmac.compare_digest(token, self.bot_token):
+                return BOT
             if hmac.compare_digest(token, self.host_token):
                 return self._host()
             member_id = next(

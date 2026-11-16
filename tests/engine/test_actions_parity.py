@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 
+from src.api.bot_http import HTTP
 from src.core import agenda_phase
 from src.core.game_state import AgendaStep, GameState, Phase
 from src.core.registry import StaticDataRegistry
@@ -16,7 +17,6 @@ from src.engine import actions as act
 from src.engine.legal import legal_actions
 from src.engine.observation import observe
 from tests.engine.driver import BotTable
-from tests.engine.http_map import HTTP
 from tests.engine.test_passive_games import FOUR, SCENARIO_KINDS
 
 TARGETED_KINDS = {"discard_excess", "phase_step", "round_next", "agenda_vote"}

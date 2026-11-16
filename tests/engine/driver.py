@@ -18,6 +18,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
+from src.api.bot_http import request_for
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
@@ -25,7 +26,6 @@ from src.core.registry import StaticDataRegistry
 from src.engine.actions import Action, EngineContext, apply_and_settle
 from src.engine.legal import legal_actions
 from src.engine.observation import observe
-from tests.engine.http_map import request_for
 
 # Pola zmieniane przez commit serwera (zegar szachowy itp.), a nie przez regułę akcji.
 _COMMIT_ONLY_FIELDS: frozenset[str] = frozenset()

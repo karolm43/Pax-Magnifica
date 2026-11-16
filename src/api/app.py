@@ -27,6 +27,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from src import config
 from src.api.actor import ACTOR_HEADER
+from src.api.bot_runner import BotRunner
 from src.api.connection_manager import ConnectionManager
 from src.api.context import MAP_META_KEY, SEATS_META_KEY, AppContext
 from src.api.demo_map import build_demo_grid
@@ -129,6 +130,7 @@ def create_app(
     host_token: str | None = None,
     saves_dir: Path | None = None,
     bug_reports_dir: Path | None = None,
+    bots: bool = False,
 ) -> FastAPI:
     """Fabryka aplikacji FastAPI (wstrzykiwalna dla testów).
 
@@ -141,6 +143,7 @@ def create_app(
         host_token: Stały token hosta (domyślnie losowy; ``seats.host_token`` po starcie).
         saves_dir: Katalog zapisów (nowa gra = nowy plik, „Load game"); ``None`` = wyłączone.
         bug_reports_dir: Katalog zgłoszeń „Report bug" (na dysku hosta); ``None`` = wyłączone.
+        bots: Boty grają same (``api/bot_runner``, RULES.md 65.7); testy sterują botami ręcznie.
     """
     reg = registry if registry is not None else StaticDataRegistry()
     event_store = store if store is not None else EventStore()
@@ -160,8 +163,15 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        yield
-        service.close()
+        runner = app.state.bot_runner
+        if runner is not None:
+            await runner.start()
+        try:
+            yield
+        finally:
+            if runner is not None:
+                await runner.stop()
+            service.close()
 
     app = FastAPI(title="Custodian Engine API", version="0.1.0", lifespan=lifespan)
 
@@ -301,7 +311,7 @@ def create_app(
         request.state.identity = identity
         reset = current_identity.set(identity)
         # Autor kroku historii (Undo gracza, RULES.md 44.7): jak ``actor.get_actor``.
-        if identity.network:
+        if identity.network and not identity.bot:
             author = identity.player_id
         else:
             author = (request.headers.get(ACTOR_HEADER) or "").strip() or None
@@ -337,6 +347,11 @@ def create_app(
     app.state.manager = manager
     app.state.registry = reg
     app.state.demo_grid = demo_grid
+    app.state.bot_runner = None
+    if bots:
+        runner = BotRunner(app, ctx, reg.engine_config.bot)
+        service.add_listener(runner.notify)
+        app.state.bot_runner = runner
 
     # Routery tematyczne (ARCHITEKTURA_KODU.md §4).
     app.include_router(game.router)

@@ -34,6 +34,8 @@ class StateService:
         self._manager = manager
         # Źródło czasu rzeczywistego dla zegara szachowego (RULES.md 58); testy podmieniają.
         self._now = now
+        # Słuchacze rozesłania stanu (runner bota budzi się po każdej zmianie widocznej dla graczy).
+        self._listeners: list[Callable[[], None]] = []
         # Zapewnij, że historia ma co najmniej jedną migawkę (stan bazowy).
         if self._store.current() is None:
             self._store.commit(initial_state or GameState(), label="initial")
@@ -186,8 +188,14 @@ class StateService:
 
     # --- Rozsyłanie -----------------------------------------------------
 
+    def add_listener(self, listener: Callable[[], None]) -> None:
+        """Rejestruje wywołanie po każdym ``broadcast`` (np. ``BotRunner.notify``)."""
+        self._listeners.append(listener)
+
     async def broadcast(self) -> None:
         """Rozsyła kopertę stanu — każdemu klientowi WebSocket jego własną projekcję."""
+        for listener in self._listeners:
+            listener()
         await self._manager.broadcast_each(
             lambda identity: self.envelope(identity).model_dump(mode="json")
         )

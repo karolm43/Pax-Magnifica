@@ -37,7 +37,7 @@ def get_actor(
 ) -> str | None:
     """Zwraca ``player_id`` wykonawcy albo ``None`` (tryb zaufany)."""
     identity = identity_of(request)
-    if identity.network:
+    if identity.network and not identity.bot:
         if identity.player_id is not None:
             return identity.player_id
         if identity.host:
