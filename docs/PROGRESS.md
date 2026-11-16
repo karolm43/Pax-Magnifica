@@ -540,9 +540,10 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 
 - **Decyzja użytkownika:** „Active effects” to nie nakładka na ekran, tylko fizyczne miejsce przy planszy, jak pola
   graczy, ale w innym stylu. `ActiveEffectsPanel` → `domains/effects/BoardEffectsZone` (wpuszczona w blat taca
-  z grawerowaną przerywaną ramką, efekty jako karty z barwą właściciela, klik = tekst karty; leży zawsze, także pusta).
-- Strefa jest dzieckiem opakowania planszy (`InteractiveMapRenderer` przyjmuje `children`), przy prawej krawędzi
-  (za bleedem), przesuwa się i przewija z mapą. `PannableMapView` rezerwuje jej szerokość w centrowaniu planszy
-  i w „Fit board”. Usunięta z `GameMapPage`.
+  z grawerowaną przerywaną ramką; leży zawsze, także pusta).
+- Strefa jest dzieckiem opakowania planszy (`InteractiveMapRenderer` przyjmuje `children`), przy prawym górnym
+  rogu (za bleedem), przesuwa się z mapą. Usunięta z `GameMapPage`.
+- Poprawka (użytkownik): pudełko wielkości jednego systemu (`TILE_WIDTH/HEIGHT × zoom`, min. 170×140 px), efekty
+  jako chipy, opis w `SmoothPopover` + `DetailsCard` po kliknięciu; układ planszy (centrowanie, Fit board) bez zmian.
 - Test: `BoardEffectsZone.test.tsx`. QA: front tsc, eslint (zmienione), vitest `domains/effects`. Bez backendu,
   build i e2e (brak nowych zależności); bez zrzutu ekranu — do obejrzenia w działającej grze.

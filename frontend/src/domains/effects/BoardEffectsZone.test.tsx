@@ -32,19 +32,20 @@ describe("BoardEffectsZone", () => {
   });
 
   it("pole leży przy planszy także bez efektów", () => {
-    render(<BoardEffectsZone gameId="g" bleedRight={0} />);
+    render(<BoardEffectsZone gameId="g" zoom={0.4} bleedRight={0} />);
     expect(screen.getByRole("region", { name: "Active effects" })).toBeInTheDocument();
-    expect(screen.getByText("No lasting effects in play")).toBeInTheDocument();
+    expect(screen.getByText("None in play")).toBeInTheDocument();
   });
 
-  it("karta efektu pokazuje czas trwania, a po kliknięciu tekst", () => {
+  it("klik w efekt pokazuje kartę z tekstem i czasem trwania", async () => {
     effectsRef.current = [effect()];
-    render(<BoardEffectsZone gameId="g" bleedRight={0} />);
-    expect(screen.getByText("this game round")).toBeInTheDocument();
+    render(<BoardEffectsZone gameId="g" zoom={0.4} bleedRight={0} />);
     const card = screen.getByRole("button", { name: /Darktalon Treilla/ });
     expect(card).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(card);
-    expect(card).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText(/more ships than your fleet pool/)).toBeInTheDocument();
+    // SmoothPopover uzbraja się przy pierwszym otwarciu i podmienia węzeł celu.
+    expect(screen.getByRole("button", { name: /Darktalon Treilla/ })).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByText(/more ships than your fleet pool/)).toBeInTheDocument();
+    expect(screen.getByText("this game round")).toBeInTheDocument();
   });
 });

@@ -29,17 +29,10 @@ import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePan
 import { TacticalActionDock } from "@/domains/game-shell/components/TacticalActionDock";
 import { BoardHud } from "./BoardHud";
 import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
-import {
-  BoardEffectsZone,
-  EFFECTS_ZONE_GAP,
-  EFFECTS_ZONE_WIDTH,
-} from "@/domains/effects/BoardEffectsZone";
+import { BoardEffectsZone } from "@/domains/effects/BoardEffectsZone";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
 const BOARD_CLEARANCE = 20;
-
-/** Pole efektów trwałych przy prawej krawędzi planszy (bez skali zoomu) - RULES.md 54. */
-const EFFECTS_ZONE_RESERVE = EFFECTS_ZONE_GAP + EFFECTS_ZONE_WIDTH;
 
 type ContentSize = ReturnType<typeof useMapContentSize>;
 
@@ -71,7 +64,7 @@ function boardGeometry(
     paintedWidth: unscaledWidth + bleed.left + bleed.right,
     margins: {
       marginTop: bleed.top * zoom + BOARD_CLEARANCE,
-      marginLeft: `max(${bleedLeft + BOARD_CLEARANCE}px, calc((100% - ${width}px + ${bleedLeft}px - ${bleedRight + EFFECTS_ZONE_RESERVE}px) / 2))`,
+      marginLeft: `max(${bleedLeft + BOARD_CLEARANCE}px, calc((100% - ${width}px + ${bleedLeft}px - ${bleedRight}px) / 2))`,
       marginRight: "auto",
     },
   };
@@ -141,7 +134,7 @@ export function PannableMapView({ gameId }: { gameId: string }) {
     if (!area) return;
     const fitZoom = handleZoomFitToWidth(
       board.paintedWidth,
-      area.clientWidth - BOARD_CLEARANCE * 2 - EFFECTS_ZONE_RESERVE,
+      area.clientWidth - BOARD_CLEARANCE * 2,
     );
     requestAnimationFrame(() => {
       const boardCentre = BOARD_CLEARANCE + (board.paintedWidth * fitZoom) / 2;
@@ -257,8 +250,8 @@ export function PannableMapView({ gameId }: { gameId: string }) {
             tooltipUnit={tooltipUnit}
             tooltipPlanet={tooltipPlanet}
           >
-            {/* Pole efektów trwałych leży na stole obok planszy i przesuwa się z nią. */}
-            <BoardEffectsZone gameId={gameId} bleedRight={board.bleedRight} />
+            {/* Pudełko efektów trwałych (wielkość systemu) leży na stole obok planszy i przesuwa się z nią. */}
+            <BoardEffectsZone gameId={gameId} zoom={zoom} bleedRight={board.bleedRight} />
           </InteractiveMapRenderer>
         )}
 
