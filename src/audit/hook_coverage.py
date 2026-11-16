@@ -155,7 +155,12 @@ def collect_rows(registry: StaticDataRegistry) -> list[Row]:
         window = ability.window
         add(ComponentCategory.ABILITY, aid, ability.name, ability.source, body, ability.faction,
             classify_trigger(window) if window else None)
+    # Lider zastąpiony nowszą wersją (``homebrewReplacesID``, np. Codex ``xxchahero`` →
+    # TE ``xxchahero-te``) nie występuje w grze - nie liczy się do pokrycia (RULES.md 62.9).
+    replaced = {leader.replaces_id for leader in registry.leaders.values() if leader.replaces_id}
     for lid, leader in registry.leaders.items():
+        if lid in replaced:
+            continue
         window = leader.ability_window
         add(ComponentCategory.LEADER, lid, leader.name, leader.source,
             f"[{leader.type}] {leader.ability_text or ''}", leader.faction,

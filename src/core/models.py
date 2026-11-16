@@ -192,6 +192,8 @@ class LeaderDef(_StaticModel):
     # Parsowana do TimingSpec w core/timing_spec.py.
     ability_window: str | None = Field(default=None, alias="abilityWindow")
     unlock_condition: str | None = Field(default=None, alias="unlockCondition")
+    # Nowsza wersja karty zastępująca starszą (Thunder's Edge: ``xxchahero-te`` → ``xxchahero``).
+    replaces_id: str | None = Field(default=None, alias="homebrewReplacesID")
 
 
 class AbilityDef(_StaticModel):

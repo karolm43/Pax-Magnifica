@@ -66,13 +66,39 @@ def expired(window: TimedWindow, now: float) -> bool:
 
 
 def has_playable_reaction(state: GameState, registry: StaticDataRegistry, player_id: str) -> bool:
-    """Czy gracz ma w ręce kartę reakcji, którą może zagrać TERAZ (prywatne - tylko dla silnika)."""
-    from src.core import action_cards  # lokalnie: action_cards importuje moduły okien
+    """Czy gracz może TERAZ zareagować (prywatne - tylko dla silnika): karta reakcji z ręki,
+    notka-reakcja z ręki albo komponent frakcji z oknem użycia (Quash, Instinct Training -
+    RULES.md 62.9)."""
+    # lokalnie: moduły kart i komponentów importują moduły okien
+    from src.core import action_cards, promissory_play
 
-    return any(
+    if any(
         entry["reaction"] and entry["playable"]
         for entry in action_cards.playability(state, registry, player_id)
+    ):
+        return True
+    if window_component_users(state, registry, [player_id]):
+        return True
+    return any(
+        row["reaction"] and row["playable"]
+        for row in promissory_play.playability(state, registry, player_id)
     )
+
+
+def window_component_users(
+    state: GameState, registry: StaticDataRegistry, player_ids: Iterable[str]
+) -> list[str]:
+    """Gracze z komponentem frakcji, którego mogą użyć TERAZ w chwilowym oknie (jawne: zdolność,
+    technologia, żetony; bez okien trwających całą fazę - ``standing``)."""
+    from src.core import faction_components  # lokalnie: importuje moduły okien
+
+    ids = list(player_ids)
+    users = {
+        row["player_id"]
+        for row in faction_components.available_now(state, registry, ids)
+        if not row["standing"]
+    }
+    return [pid for pid in ids if pid in users]
 
 
 def skips_automatically(state: GameState, player_id: str) -> bool:

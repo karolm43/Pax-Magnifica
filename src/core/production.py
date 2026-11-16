@@ -28,7 +28,7 @@ from src.core.combat import resolve_unit_variant
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
-from src.core.payment import apply_payment, trade_good_value
+from src.core.payment import apply_payment, flex_spend, trade_good_value
 from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
@@ -173,7 +173,9 @@ def pay_value(
     """
     resources = resources_of(state, registry, planet_id)
     grant = active_grant(state, player_id)
-    if grant is not None and grant.influence_as_resources:
+    if (grant is not None and grant.influence_as_resources) or flex_spend(
+        state, player_id
+    ):  # Freelancers / Archon's Gift (RULES.md 62.9): zasoby ALBO wpływ, nie oba
         return max(resources, influence_of(state, registry, planet_id))
     return resources
 

@@ -177,6 +177,6 @@ komponentów frakcji wg `POKRYCIE_HOOKOW.md` §7 (+ flagowiec/mech).
 | F1 Liderzy | ✅ 2026-11-12 (RULES 61.1) |
 | F2 Promissory notes | ✅ 2026-11-12 (RULES 61.2, 5 notek ogólnych) |
 | F3 Zdolności / przełomy / jednostki | ✅ 2026-11-12 (RULES 61.3–61.4) |
-| B1–B12 (Fale 1–2) | 🟡 B1 ✅ 2026-11-12: Sardakk (62.1), Letnev (62.2); B2 ✅ Jol-Nar (62.3); B3 ✅ Sol (62.4), Arborec (62.5); B4 ✅ 2026-11-13 Hacan (62.6), Winnu (62.7); domknięcie Fali 1 (2026-11-13: rulingi grupy A, limit ręki 53.8, Imperator osobno); B5 ✅ 2026-11-13 Mentak (62.8) — dalej B6 |
+| B1–B12 (Fale 1–2) | 🟡 B1 ✅ 2026-11-12: Sardakk (62.1), Letnev (62.2); B2 ✅ Jol-Nar (62.3); B3 ✅ Sol (62.4), Arborec (62.5); B4 ✅ 2026-11-13 Hacan (62.6), Winnu (62.7); domknięcie Fali 1 (2026-11-13: rulingi grupy A, limit ręki 53.8, Imperator osobno); B5 ✅ 2026-11-13 Mentak (62.8); B6 ✅ 2026-11-16 Xxcha (62.9) — dalej B7 |
 | I1–I3, B13–B21 (Fala 3) | ⬜ |
 | I4, B22–B27 (Fala 4) | ⬜ |

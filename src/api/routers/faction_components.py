@@ -160,7 +160,9 @@ async def post_play(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    label = f"component-use:{request.kind}:{request.component_id}"
+    # Gracz w etykiecie: komponenty z oknem użycia (Quash, Instinct Training) używa też gracz
+    # nieaktywny (feed Activity, RULES.md 62.9).
+    label = f"component-use:{request.kind}:{request.component_id}:{request.player_id}"
     ctx.service.replace_state(new_state, label=label)
     await ctx.service.broadcast()
     await ctx.broadcast_map()

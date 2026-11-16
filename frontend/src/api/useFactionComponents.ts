@@ -9,7 +9,7 @@ import type { ActionCardInput } from "@/api/useActionCard";
  */
 const BOT_ROOT = "/bot";
 
-export type FactionComponentKind = "leader" | "ability" | "breakthrough";
+export type FactionComponentKind = "leader" | "ability" | "breakthrough" | "technology";
 
 export type FactionComponentForm = {
   kind: FactionComponentKind;

@@ -359,3 +359,11 @@ def test_wejscie_fracture_jako_fakt() -> None:
     # Fracture już w grze -> brak ponownego faktu.
     again = derive_activity("expedition:breakthrough:p2", after, after.model_copy(deep=True))
     assert again is None or all(f.type != "fracture_entered" for f in again.facts)
+
+
+def test_component_use_by_non_active_player() -> None:
+    """Quash / Instinct Training używa gracz nieaktywny: aktorem jest on (RULES.md 62.9)."""
+    before = _state()
+    after = _state()
+    entry = derive_activity("component-use:ability:quash:p2", before, after)
+    assert entry is not None and entry.actor_id == "p2"

@@ -217,8 +217,8 @@ def usage_cost(registry: StaticDataRegistry, leader_id: str) -> str | None:
     if _EXHAUST_SELF.search(text):
         return "exhaust"
     # R_leaders: „A hero is purged after its abilities are resolved" (także gdy tekst z danych
-    # tego nie powtarza, np. ``ghosthero``). Wyjątki: bohater dołączany do planety (Titans) i
-    # bohater bez ACTION działający stale (``xxchahero``) — ⚠️ ZAŁOŻENIE RULES.md 61.1.
+    # tego nie powtarza, np. ``ghosthero``). Wyjątek: bohater dołączany do planety (Titans) —
+    # ⚠️ ZAŁOŻENIE RULES.md 61.1.
     if leader.type == "hero" and _ATTACH_SELF.search(text) is None and _ACTION.search(text):
         return "purge"
     return None

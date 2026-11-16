@@ -1602,3 +1602,28 @@ Panel historii pokazywał tylko VP/TG/techy/planety/karty jawne. core/activity.p
   `test_game_setup`: tasowanie tajnych celów seedowalne.
 - QA: pytest pełny (2405), ruff, mypy. Front bez zmian. Bez nowych tras; po merge warto zrestartować backend
   (zmieniony `StateService` i router faz).
+
+## Fala 2 B6: Xxcha Kingdom — komplet (11/11, RULES.md 62.9) (2026-11-16)
+
+- Moduł `core/hooks/factions/xxcha.py`: Peace Accords (oferta po primary/secondary Diplomacy, eksploracja
+  niekontrolowanej, planeta wyczerpana), Quash (okno 62.0 przy ujawnieniu agendy), Political Favor (notka w tym samym
+  oknie), Instinct Training, Nullification Field (koniec tury aktywnego, oferty „after activates” przepadają),
+  Ggrocuto Rinn, Elder Qanoj, Xxekir Grom w wersji TE (Planetary Defense Nexus), Loncara Ssodu / Indomitus (Deep Space
+  Cannon z danych), Archon's Gift.
+- ✅ Decyzja użytkownika: najnowsza wersja bohatera — loader liderów stosuje `homebrewReplacesID`
+  (`StaticDataRegistry._apply_leader_replacements`; dotyczy też `naaluagent-te`). Audyt pokrycia pomija karty
+  zastąpione.
+- Nowe punkty centralne: `payment.flex_spend` (planeta wnosi większą wartość tylko przy wydawaniu),
+  `agenda.votes_per_planet` + `agenda.vote_unblockable`, `action_cards.canceller` (anulowanie bez karty w ręce).
+- Okno hold kart akcji: Sabotage na czekającą kartę samo czeka na Instinct Training (`HeldPlay.counter`, baner
+  pokazuje je pod kartą); anulowanie komponentem oddaje akcję tury ACTION (`card_hold.cancel_by_component`).
+  `faction_components` ma rodzaj `technology` (tylko technologie z `window_use`), `holds=True` = jedyne użycie
+  dozwolone w trakcie okna hold (API wpuszcza `/faction-component/play`).
+- Auto-pas / pauza ochronna liczą też zdolności z oknem i notki-reakcje (`reaction_window.window_component_users`).
+- Poprawka silnika: oferty „after primary” nie otwierały okna REACTION przed oknem secondary („Another timing window is
+  already open”) — teraz czekają w oknie secondary (`triggers.open_offers_window` bez secondary).
+- Feed Activity: użycie komponentu ma gracza w etykiecie (`component-use:<rodzaj>:<id>:<gracz>`), bo Quash i Instinct
+  Training używa gracz nieaktywny.
+- Testy: `tests/factions/test_xxcha.py` (24), `test_flows_xxcha.py` (8 scenariuszy przez API), `test_activity`.
+  Restart backendu wymagany (nowe hooki, pole `HeldPlay.counter`, loader liderów).
+

@@ -28,11 +28,15 @@ from src.core.registry import StaticDataRegistry
 LEADER = "leader"
 ABILITY = "ability"
 BREAKTHROUGH = "breakthrough"
-KINDS: tuple[str, ...] = (LEADER, ABILITY, BREAKTHROUGH)
+# Technologia frakcyjna z oknem użycia (``window_use``), np. Instinct Training (RULES.md 62.9):
+# tylko takie trafiają do ``owned`` - zwykłe technologie działają przez hooki i oferty.
+TECHNOLOGY = "technology"
+KINDS: tuple[str, ...] = (LEADER, ABILITY, BREAKTHROUGH, TECHNOLOGY)
 _CATEGORY = {
     LEADER: ComponentCategory.LEADER.value,
     ABILITY: ComponentCategory.ABILITY.value,
     BREAKTHROUGH: ComponentCategory.BREAKTHROUGH.value,
+    TECHNOLOGY: ComponentCategory.TECHNOLOGY.value,
 }
 # Nagłówek akcji komponentu (dane piszą go WIELKIMI literami; „an action:" to nie nagłówek).
 _ACTION = re.compile(r"(?:^|[\n.:]\s*)ACTION\s*:")
@@ -45,6 +49,8 @@ _BLOCKERS: dict[str, BlockerFn] = {}
 _WINDOW_USES: dict[str, BlockerFn] = {}
 _STANDING_WINDOWS: set[str] = set()
 """Okna ``window_use`` trwające całą fazę (``standing=True``) - UI: znacznik, nie karta."""
+_HOLD_RESPONSES: set[str] = set()
+"""Okna ``window_use`` odpowiadające na kartę czekającą w ``held_play`` (``holds=True``)."""
 
 
 def effect_key(kind: str, component: str) -> str:
@@ -81,7 +87,7 @@ def blocker(kind: str, component: str) -> Callable[[BlockerFn], BlockerFn]:
 
 
 def window_use(
-    kind: str, component: str, *, standing: bool = False
+    kind: str, component: str, *, standing: bool = False, holds: bool = False
 ) -> Callable[[BlockerFn], BlockerFn]:
     """Rejestruje komponent bez ``ACTION:`` używany przez gracza w danym kroku (RULES.md 62.0).
 
@@ -91,6 +97,9 @@ def window_use(
     ``standing=True``: okno trwa całą fazę (np. „During the action phase: you may…”, Carth of
     Golden Sands) - nie jest chwilą, którą łatwo przegapić, więc UI pokazuje je jako mały znacznik
     „gotowe do użycia”, a nie wyskakującą kartę.
+
+    ``holds=True``: komponent odpowiada na kartę akcji czekającą w oknie hold (Instinct Training,
+    RULES.md 62.9) - jedyne użycie dozwolone w trakcie tego okna.
     """
     key = effect_key(kind, component)
 
@@ -100,6 +109,8 @@ def window_use(
         _WINDOW_USES[key] = fn
         if standing:
             _STANDING_WINDOWS.add(key)
+        if holds:
+            _HOLD_RESPONSES.add(key)
         return fn
 
     return decorate
@@ -141,6 +152,11 @@ def describe(registry: StaticDataRegistry, kind: str, component: str) -> tuple[s
         if window.strip().upper().startswith("ACTION"):
             parts = [ability.permanent_effect, f"ACTION: {ability.window_effect or ''}"]
         return ability.name, " ".join(p for p in parts if p).strip()
+    if kind == TECHNOLOGY:
+        tech = registry.technologies.get(component)
+        if tech is None:
+            raise ValueError(f"Unknown technology: {component}")
+        return tech.name, tech.text or ""
     breakthrough = registry.breakthroughs.get(component)
     if breakthrough is None:
         raise ValueError(f"Unknown breakthrough: {component}")
@@ -166,7 +182,16 @@ def owned(state: GameState, registry: StaticDataRegistry, player_id: str) -> lis
     breakthrough = registry.breakthrough_for_faction(state.players[player_id].faction)
     if breakthrough is not None and state.players[player_id].breakthrough_unlocked:
         rows.append((BREAKTHROUGH, breakthrough.id))
+    for tech in state.players[player_id].technologies:
+        if _has_window_use(TECHNOLOGY, tech):
+            rows.append((TECHNOLOGY, tech))
     return rows
+
+
+def _has_window_use(kind: str, component: str) -> bool:
+    key = effect_key(kind, component)
+    rules_hooks.effect_for(key)  # ładuje pakiet hooków
+    return key in _WINDOW_USES
 
 
 def _owns(
@@ -198,6 +223,9 @@ def block_reason(
     if kind == BREAKTHROUGH and _exhausts_self(registry, kind, component):
         if state.players[player_id].breakthrough_exhausted:
             return "Your breakthrough is exhausted."
+    if kind == TECHNOLOGY and _exhausts_self(registry, kind, component):
+        if component in state.players[player_id].exhausted_technologies:
+            return "This technology is exhausted."
     fn = _BLOCKERS.get(key)
     return fn(state, registry, player_id) if fn is not None else None
 
@@ -235,6 +263,9 @@ def form(
         status = leaders.state_of(state, registry, player_id, component)
     elif kind == BREAKTHROUGH:
         status = "exhausted" if state.players[player_id].breakthrough_exhausted else "unlocked"
+    elif kind == TECHNOLOGY:
+        exhausted = component in state.players[player_id].exhausted_technologies
+        status = "exhausted" if exhausted else "ready"
     leader = registry.leaders.get(component) if kind == LEADER else None
     return {
         "kind": kind,
@@ -405,6 +436,9 @@ def pay_cost(
             raise ValueError("Your breakthrough is exhausted.")
         exhaust.exhaust_breakthrough(state, player_id)
         exhausted = True
+    elif kind == TECHNOLOGY and _exhausts_self(registry, kind, component):
+        exhaust.exhaust_technology(state, player_id, component)
+        exhausted = True
     if exhausted:
         triggers.fire(
             state, GameEvent.COMPONENT_EXHAUSTED, Moment.AFTER, subject=player_id,
@@ -460,6 +494,10 @@ def _use_in_window(
 ) -> tuple[GameState, bool]:
     """Użycie „During X: you may…" (RULES.md 62.0): bez akcji tury, efekt + koszt na klonie."""
     key = effect_key(kind, component)
+    if state.held_play is not None and key not in _HOLD_RESPONSES:
+        from src.core import card_hold  # lokalnie: card_hold importuje moduły kart
+
+        card_hold.require_no_hold(state)
     reason = _WINDOW_USES[key](state, registry, player_id)
     if reason is not None:
         raise ValueError(reason)

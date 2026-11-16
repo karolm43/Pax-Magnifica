@@ -225,6 +225,18 @@ POINT_PLANETS_READY_LIMIT = "agenda.planets_ready_limit"
 POINT_STRATEGY_GIVE_CHOSEN = "strategy.give_chosen_card"
 # PERMIT -> badanie technologii przez kartę Technology bez wydawania zasobów (Minister of Sciences).
 POINT_TECHNOLOGY_SC_FREE = "technology.strategy_card_free"
+# --- Xxcha Kingdom (RULES.md 62.9) ---
+# PERMIT -> gracz wydaje wpływ jak zasoby i zasoby jak wpływ (Archon's Gift): planeta wnosi do
+# płatności większą z dwóch wartości; tylko WYDAWANIE, nie inne efekty (F_xxcha).
+POINT_PAYMENT_FLEX_SPEND = "payment.flex_spend"
+# MODIFY -> dodatkowe głosy za KAŻDĄ planetę wyczerpaną do głosowania (Elder Qanoj: +1; planeta
+# z 0 wpływu też może wtedy głosować - F_xxcha).
+POINT_AGENDA_VOTES_PER_PLANET = "agenda.votes_per_planet"
+# PERMIT -> efekty gry nie mogą zabronić graczowi głosowania (Elder Qanoj).
+POINT_AGENDA_VOTE_UNBLOCKABLE = "agenda.vote_unblockable"
+# PERMIT -> gracz może anulować zagraną kartę akcji bez karty w ręce (Instinct Training; jawne:
+# technologia gotowa + żeton w strategy pool). ctx: ``player`` (zagrywający), ``card``.
+POINT_ACTION_CARD_CANCELLER = "action_cards.canceller"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

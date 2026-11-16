@@ -53,6 +53,7 @@ const KIND_LABEL: Record<FactionComponentKind, string> = {
   leader: "Leader",
   ability: "Faction ability",
   breakthrough: "Breakthrough",
+  technology: "Faction technology",
 };
 
 export const promptKey = (row: AvailableNow): string =>

@@ -1,4 +1,4 @@
-# Pokrycie hooków: leaders (103)
+# Pokrycie hooków: leaders (102)
 
 Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_HOOKOW.md). Kolumna „Typ” to oszacowanie heurystyczne.
 
@@ -97,10 +97,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `winnuagent` | Berekar Berekon | winnu | when | TRIGGER (okno reakcji) | produkcja, status i odświeżanie | ✔ | [agent] You may exhaust this card to reduce the combined cost of the produced units by 2. |
 | `winnucommander` | Rickar Rickani | winnu | during | MODIFY (liczba/rzut) | walka, planety i eksploracja | ✔ | [commander] Apply +2 to the result of each of your unit's combat rolls in the Mecatol Rex system, your home system, and each system that co… |
 | `winnuhero` | Mathis Mathinus | winnu | action | PERMIT (pozwolenie) | karty strategii i inicjatywa | ✔ | [hero] Perform the primary ability of any strategy card. Then, choose any number of other players. Those players may perform the secondary … |
-| `xxchaagent` | Ggrocuto Rinn | xxcha | action | PERMIT (pozwolenie) | ruch, produkcja, planety i eksploracja, status i odświeżanie | — | [agent] Exhaust this card to ready any planet; if that planet is in a system that is adjacent to a planet you control, you may remove 1 inf… |
-| `xxchacommander` | Elder Qanoj | xxcha | when | TRIGGER (okno reakcji) | planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | [commander] Each planet you exhaust to cast votes provides 1 additional vote. Game effects cannot prevent you from voting on an agenda. |
-| `xxchahero` | Xxekir Grom | xxcha | when | TRIGGER (okno reakcji) | ekonomia i płatności | — | [hero] combine the values of their resources and influence. Treat the combined value as if it were both resources and influence. |
-| `xxchahero-te` | Xxekir Grom | xxcha | action | — | planety i eksploracja, status i odświeżanie | — | [hero] Place any combination of up to 4 PDS or mechs onto planets you control; ready each planet that you place a unit on. Then, purge this… |
+| `xxchaagent` | Ggrocuto Rinn | xxcha | action | PERMIT (pozwolenie) | ruch, produkcja, planety i eksploracja, status i odświeżanie | ✔ | [agent] Exhaust this card to ready any planet; if that planet is in a system that is adjacent to a planet you control, you may remove 1 inf… |
+| `xxchacommander` | Elder Qanoj | xxcha | when | TRIGGER (okno reakcji) | planety i eksploracja, agenda i głosowanie, status i odświeżanie | ✔ | [commander] Each planet you exhaust to cast votes provides 1 additional vote. Game effects cannot prevent you from voting on an agenda. |
+| `xxchahero-te` | Xxekir Grom | xxcha | action | — | planety i eksploracja, status i odświeżanie | ✔ | [hero] Place any combination of up to 4 PDS or mechs onto planets you control; ready each planet that you place a unit on. Then, purge this… |
 | `yinagent` | Brother Milor | yin | after | TRIGGER (okno reakcji) | walka, planety i eksploracja, status i odświeżanie | — | [agent] You may exhaust this card to allow that player to place 2 fighters in the destroyed unit's system if it was a ship, or 2 infantry o… |
 | `yincommander` | Brother Omar | yin | unclassified | PERMIT (pozwolenie) | produkcja, technologie | — | [commander] This card satisfies a green technology prerequisite. When you research a tech owned by another player, you may return 1 of your… |
 | `yinhero` | Dannel of the Tenth | yin | action | FORBID (zakaz) | walka, produkcja, planety i eksploracja | — | [hero] Commit up to 3 infantry from your reinforcements to any non-home planets and resolve ground combats on those planets. Players cannot… |

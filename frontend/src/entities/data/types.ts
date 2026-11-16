@@ -899,6 +899,8 @@ export type HeldPlayData = {
   extensions?: number;
   /** Czy patrzący już prosił o czas (tylko jego id). */
   askedForTime?: string[];
+  /** Sabotage na tę kartę czekające na Instinct Training (RULES.md 62.9). */
+  counter?: { playerId: string; playerColor?: string; cardId: string; cardName: string } | null;
 };
 
 /** Pauza w kluczowym oknie (Coup, agenda, koniec bitwy, Sustain Damage) — gracze mogą reagować. */

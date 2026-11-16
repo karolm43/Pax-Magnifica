@@ -88,8 +88,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `titans_pds2` | Hel-Titan II | titans | — | FORBID (zakaz) | ruch, walka | — | This unit is treated as both a structure and a ground force. It cannot be transported. You may use this unit's SPACE CANNON against ships t… |
 | `winnu_flagship` | Salai Sai Corian | winnu | — | — | walka | ✔ | When this unit makes a combat roll, it rolls a number of dice (hit on a 7) equal to the number of your opponent's non-fighter ships in this… |
 | `winnu_mech` | Reclaimer | winnu | — | PERMIT (pozwolenie) | produkcja, planety i eksploracja | ✔ | After you resolve a tactical action where you gained control of this planet, you may place 1 PDS or 1 Space Dock from your reinforcements o… |
-| `xxcha_flagship` | Loncara Ssodu | xxcha | — | PERMIT (pozwolenie) | ruch, walka | — | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
-| `xxcha_mech` | Indomitus | xxcha | — | PERMIT (pozwolenie) | ruch, walka | — | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
+| `xxcha_flagship` | Loncara Ssodu | xxcha | — | PERMIT (pozwolenie) | ruch, walka | ✔ | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
+| `xxcha_mech` | Indomitus | xxcha | — | PERMIT (pozwolenie) | ruch, walka | ✔ | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
 | `yin_flagship` | Van Hauge | yin | — | — | walka | — | When this ship is destroyed, destroy all ships in this system. |
 | `yin_mech` | Moyin's Ashes | yin | — | REPLACE (instead of) | ekonomia i płatności | — | DEPLOY: When you use your Indoctrination faction ability, you may spend 1 additional influence to replace your opponent's unit with 1 mech … |
 | `yssaril_flagship` | Y'sia Y'ssrila | yssaril | — | PERMIT (pozwolenie) | ruch | — | This ship can move through systems that contain other player's ships. |

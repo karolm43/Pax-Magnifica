@@ -168,7 +168,7 @@ export function TurnControls() {
   const [usingLegendary, setUsingLegendary] = useState<{ id: string; name: string } | null>(null);
   // Lider / zdolność frakcji / przełom (RULES.md 61.3): formularz silnika + koszt użycia.
   const [usingFaction, setUsingFaction] = useState<{
-    kind: "leader" | "ability" | "breakthrough";
+    kind: "leader" | "ability" | "breakthrough" | "technology";
     id: string;
     name: string;
   } | null>(null);

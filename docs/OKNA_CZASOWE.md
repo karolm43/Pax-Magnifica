@@ -38,6 +38,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `tactical.ships_moved` | Statki weszły do aktywnego systemu. | 14 | after×11, before×1, end×1, when×1 | leaders×6, action_cards×2, relics×1, promissory_notes×1, explores×1, galactic_events×1, abilities×1, technologies×1 | `movement.move_ships` |
 | `tactical.units_committed` | Siły naziemne zaangażowane do lądowania. | 5 | after×3, when×1, during×1 | action_cards×2, promissory_notes×1, abilities×1, leaders×1 | `invasion` |
 | `component.action` | Akcja komponentu zagrana. | 133 | action×131, after×2 | action_cards×43, leaders×31, explores×23, technologies×10, promissory_notes×9, relics×7, abilities×5, breakthroughs×5 | `action_cards.play_action_card` |
+| `component.decision` | Decyzja gracza otwarta przez efekt komponentu (okno badania). | 0 | — | — | `research_offer.begin` |
 | `combat` | Początek/koniec walki. | 19 | start×13, end×5, during×1 | promissory_notes×5, leaders×5, technologies×5, abilities×3, action_cards×1 | `battle.start_combat / battle._after_losses` |
 | `combat.round` | Początek/koniec rundy walki. | 21 | start×16, after×3, during×1, end×1 | action_cards×10, technologies×4, abilities×3, leaders×3, relics×1 | `battle.roll_round` |
 | `combat.step` | Nazwany krok walki. | 3 | start×1, during×1, after×1 | action_cards×1, relics×1, leaders×1 | — |
@@ -86,7 +87,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.remove_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **67**, emitowanych przez silnik: **49**. Potrzebne komponentom, a jeszcze nie emitowane: **14**.
+Zdarzeń zdefiniowanych: **68**, emitowanych przez silnik: **50**. Potrzebne komponentom, a jeszcze nie emitowane: **14**.
 
 Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `objective.scored`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `tokens.placed`, `unit.coexist`, `unit.galvanized`
 
@@ -102,13 +103,13 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 
 | Okno | ✅ | ⛔ | Brakujące (⛔) |
 |---|---:|---:|---|
-| `tactical.system_activated` · after | 21 | 9 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Neuroglaive, Nullification Field, So Ata, Survival Instinct |
+| `tactical.system_activated` · after | 22 | 8 | Aetherpassage, Aetherstream, Awaken, Emissary Taivra, I48S, Neuroglaive, So Ata, Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 13 | 3 | Kuuasi Aun Jalatai, Proxima Targeting VI, Supercharge |
 | `combat` · start | 10 | 3 | Dimensional Splicer, Impulse Core, Indoctrination |
 | `turn` · start | 7 | 5 | Chaos Mapping, Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
 | `tactical.ships_moved` · after | 4 | 7 | Acamar, Adjudicator Ba'al, Call of the Void, Foresight, Sai Seravus, Voidwatch, Xuange |
-| `agenda.revealed` · when | 9 | 1 | Quash |
+| `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 7 | 3 | I.I.H.Q. Modernization, Planesplitter (Firmament), Stellar Genesis |
 | `production.units_produced` · when | 2 | 8 | "A Tall Stranger", Amalgamation, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon, Trilossa Aun Mirik |
 | `production.used` · when | 8 | 1 | Tungstantus |
@@ -122,7 +123,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
 | `turn` · end | 3 | 2 | Field Marshal Mercer, Garv and Gunn |
 | `unit.sustain_damage` · after | 5 | 0 |  |
-| `agenda.votes_cast` · when | 2 | 2 | Elder Qanoj, Zeal |
+| `agenda.votes_cast` · when | 3 | 1 | Zeal |
 | `cards.action_played` · when | 4 | 0 |  |
 | `game.setup` · during | 0 | 4 | Dark Whispers, Hubris, The Company, The Tribuni |
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
@@ -198,7 +199,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `production.units_produced` · when [1/action] | 0 | 1 | Agency Supply Network |
 | `production.used` · after | 1 | 0 |  |
 | `state.condition` · when | 0 | 1 | Absolute Synergy |
-| `strategy.action` · after | 0 | 1 | Peace Accords |
+| `strategy.action` · after | 1 | 0 |  |
 | `strategy.card_chosen` · when | 1 | 0 |  |
 | `strategy.cards_returned` · when [would] | 1 | 0 |  |
 | `strategy.token_spent` · after | 0 | 1 | Magmus |

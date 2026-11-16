@@ -156,15 +156,22 @@ def _finish_primary(
     triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.WHEN, subject=owner_id, ctx=action_ctx)
     if spec.primary is not None:
         spec.primary(state, ctx, owner_id, draft)
-    triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.AFTER, subject=owner_id, ctx=action_ctx)
+    # Oferty „after primary” (Peace Accords) nie otwierają własnego okna: czekają w oknie
+    # secondary, a bez secondary dostają okno REACTION (RULES.md 62.9).
+    after = triggers.fire(
+        state, GameEvent.STRATEGIC_ACTION, Moment.AFTER, subject=owner_id, ctx=action_ctx,
+        open_window=False,
+    )
     state.pending_strategy = None
     if not open_secondary:
+        triggers.open_offers_window(state, after, GameEvent.STRATEGIC_ACTION, Moment.AFTER)
         return state
 
     queue = timing.build_response_queue(state, owner_id)
     if secondary_players is not None:
         queue = [p for p in queue if p in secondary_players]
     if not queue:
+        triggers.open_offers_window(state, after, GameEvent.STRATEGIC_ACTION, Moment.AFTER)
         return state
     free = [p for p in draft.get("free_players", []) if p in queue]
     opened = timing.open_window(

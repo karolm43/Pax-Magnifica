@@ -228,9 +228,11 @@ def create_app(
 
     # Okno hold-play (RULES.md 53.6): gdy zagrana karta czeka na Sabotage, reszta gry stoi - akcje
     # graczy (POST) poza zagraniem karty / pasem / zwolnieniem, God-Mode i Undo/Redo dają 422.
+    # ``faction-component/play``: komponent anulujący kartę (Instinct Training, RULES.md 62.9) -
+    # resztę komponentów w trakcie okna odrzuca ``core`` (``faction_components``).
     _held_allowed = re.compile(
         r"(^|/)(action-card|reaction-settings|god-mode|undo|redo|history|game/new|map/load|state|pause"
-        r"|resume)(/|$)"
+        r"|resume|faction-component/play)(/|$)"
     )
 
     @app.middleware("http")

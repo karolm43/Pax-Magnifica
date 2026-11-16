@@ -259,6 +259,36 @@ def _publish_offers(
     )
 
 
+def open_offers_window(state: GameState, result: FireResult, event: GameEvent,
+                       moment: Moment) -> None:
+    """Otwiera okno REACTION dla ofert z ``result`` zapisanych bez okna (``open_window=False``),
+    gdy nic innego nie trwa (MUTUJE). Np. „after primary” (Peace Accords), gdy nikt nie robi
+    secondary - inaczej oferty czekają w oknie secondary (RULES.md 62.9)."""
+    pending = {o.id for o in state.pending_offers}
+    offered = {o.player_id for o in result.offers if o.id in pending}
+    if not offered or state.pending_window is not None:
+        return
+    state.pending_window = TimingWindow(
+        window_type=WindowType.REACTION,
+        queue=[pid for pid in resolution_order(state) if pid in offered],
+        context={"event": event.value, "moment": moment.value},
+    )
+
+
+def drop_offers(state: GameState, event: GameEvent, moment: Moment) -> None:
+    """Porzuca oferty jednego okna i jego okno REACTION (MUTUJE): okno przestało istnieć, np.
+    Nullification Field kończy turę - nikt nie używa „after … activates a system” (F_xxcha)."""
+    key = (event.value, moment.value)
+    state.pending_offers = [o for o in state.pending_offers if (o.event, o.moment) != key]
+    window = state.pending_window
+    if (
+        window is not None
+        and window.window_type is WindowType.REACTION
+        and (window.context.get("event"), window.context.get("moment")) == key
+    ):
+        state.pending_window = None
+
+
 def drop_all_offers(state: GameState) -> None:
     """Porzuca wszystkie oczekujące oferty (tylko przeskok fazy w God-Mode, ``skip_flow``)."""
     state.pending_offers = []

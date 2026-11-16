@@ -219,6 +219,7 @@ class StaticDataRegistry:
         )
 
         self._apply_thunders_edge_breakthrough_techs()
+        self._apply_leader_replacements()
 
         # Katalog_Komponentów: nowe kategorie przez czysty loader (filtr po source,
         # deterministyczny wybór przy kolizji id — D9). Specyfikacje czasowe budujemy
@@ -331,6 +332,27 @@ class StaticDataRegistry:
             ]
             self.factions[faction_id] = faction.model_copy(
                 update={"faction_tech": added + kept}
+            )
+
+    def _apply_leader_replacements(self) -> None:
+        """Lider z włączonego źródła, który ZASTĘPUJE starszą kartę (``homebrewReplacesID``),
+        trafia na listę liderów frakcji w jej miejsce (decyzja użytkownika 2026-11-16: najnowsze
+        wersje kart - Thunder's Edge ``xxchahero-te`` zamiast Codex ``xxchahero``, RULES.md 62.9).
+
+        Reguła z danych, bez listy frakcji: ``self.leaders`` zawiera tylko włączone źródła.
+        """
+        replacements = {
+            leader.replaces_id: leader.id
+            for leader in self.leaders.values()
+            if leader.replaces_id and leader.replaces_id != leader.id
+        }
+        if not replacements:
+            return
+        for faction_id, faction in list(self.factions.items()):
+            if not any(lid in replacements for lid in faction.leaders):
+                continue
+            self.factions[faction_id] = faction.model_copy(
+                update={"leaders": [replacements.get(lid, lid) for lid in faction.leaders]}
             )
 
     @staticmethod

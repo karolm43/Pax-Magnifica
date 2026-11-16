@@ -72,8 +72,10 @@ def eligible_players(
     relations: set[str] = set()
     for point in PAUSE_POINTS.get((window.event, window.moment), ()):
         relations |= live.get(point, set())
+    # Komponent frakcji z oknem użycia (Quash) - jawny, więc też otwiera pauzę (RULES.md 62.9).
+    users = set(reaction_window.window_component_users(state, registry, _seating(state)))
     if not relations:
-        return []
+        return [pid for pid in _seating(state) if pid in users]
     subject = window.subject
     candidates = {
         pid
@@ -84,7 +86,7 @@ def eligible_players(
     }
     return [
         pid for pid in _seating(state)
-        if pid in candidates and state.players[pid].private.action_cards
+        if (pid in candidates and state.players[pid].private.action_cards) or pid in users
     ]
 
 

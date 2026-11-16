@@ -4,14 +4,17 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **309**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
+| `action_cards.canceller` | PERMIT | technology:it | technologies:it | Jawne: gotowa technologia i żeton w strategy pool - okno anulowania się otwiera. |
 | `action_cards.forbidden` | FORBID | agenda:censure | agendas:censure | — |
 | `agenda.planets_ready_limit` | FORBID | effect:agendas:checks:against | agendas:checks | — |
 | `agenda.single_vote` | PERMIT | agenda:rep_govt | agendas:rep_govt | — |
 | `agenda.vote_modifier` | MODIFY | effect:leaders:hacancommander:votes | — | F_hacan: przy 0 zwykłych głosów (wstrzymanie się) dodatkowych głosów nie ma. |
+| `agenda.vote_unblockable` | PERMIT | leader:xxchacommander | leaders:xxchacommander | Elder Qanoj: Game effects cannot prevent you from voting on an agenda (F_xxcha: Political |
+| `agenda.votes_per_planet` | MODIFY | leader:xxchacommander | leaders:xxchacommander | Elder Qanoj: Each planet you exhaust to cast votes provides 1 additional vote (także planeta |
 | `bombardment.empty_planets` | PERMIT | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology). |
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `bombardment.forbidden_traits` | FORBID | agenda:conventions | agendas:conventions | — |
@@ -50,6 +53,8 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
 | `economy.commodity_value` | MODIFY | relic:dynamiscore | relics:dynamiscore | Dynamis Core: While this card is in your play area, your commodity value is +2. |
 | `event:agenda.law_discarded:when` | TRIGGER | agenda:censure | agendas:censure | — |
+| `event:agenda.law_discarded:when` | TRIGGER | agenda:classified | agendas:classified | — |
+| `event:agenda.law_discarded:when` | TRIGGER | agenda:defense_act | agendas:defense_act | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:const_rider | — | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:diplo_rider | — | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:action_cards:imp_rider | — | — |
@@ -62,6 +67,8 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:artifact:losses | agendas:artifact | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:artifact:research | agendas:artifact | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:redistribution:choose | agendas:redistribution | — |
+| `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:secret:return | agendas:secret | — |
+| `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:warrant:return | agendas:warrant | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:abolishment | agendas:abolishment | — |
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:arms_reduction | agendas:arms_reduction | — |
@@ -130,6 +137,9 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat:start` | TRIGGER | relic:metalivoidarmaments | — | Metali Void Armaments: During the "Anti-Fighter Barrage" step of space combat, you may |
 | `event:combat:start` | TRIGGER | leader:solcommander | leaders:solcommander | Claire Gibson: At the start of a ground combat on a planet you control: You may place 1 |
 | `event:component.action:after` | TRIGGER | agenda:minister_war | agendas:minister_war | — |
+| `event:component.decision:after` | TRIGGER | effect:research:enigmatic_device | explores:ed1 | — |
+| `event:component.decision:after` | TRIGGER | effect:research:f_researched | action_cards:f_researched | — |
+| `event:component.decision:after` | TRIGGER | effect:research:reveal_prototype | action_cards:reveal_prototype | — |
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
@@ -138,6 +148,7 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.readied:when` | TRIGGER | effect:agendas:checks:against | agendas:checks | — |
 | `event:economy.commodities_replenished:after` | TRIGGER | agenda:minister_commerce | agendas:minister_commerce | — |
 | `event:economy.trade_goods_gained:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors gains trade goods ... |
+| `event:faction.ability_used:after` | TRIGGER | effect:agendas:redistribution:place | agendas:redistribution | — |
 | `event:faction.ability_used:after` | TRIGGER | faction:arborec | — | — |
 | `event:faction.ability_used:after` | TRIGGER | leader:arborecagent | leaders:arborecagent | Zamieniany statek nie jest niszczony, nowy nie jest produkowany (F_arborec). |
 | `event:faction.ability_used:after` | TRIGGER | leader:jolnaragent | leaders:jolnaragent | — |
@@ -177,6 +188,7 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:production.units_produced:after` | TRIGGER | breakthrough:hacanbt | breakthroughs:hacanbt | Auto-Factories: When you produce 3 or more non-fighter ships, place 1 command token from your |
 | `event:production.used:after` | TRIGGER | agenda:prophecy | agendas:prophecy | — |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
+| `event:strategy.action:after` | TRIGGER | faction:xxcha | abilities:peace_accords | Peace Accords: After you resolve the primary or secondary ability of the "Diplomacy" |
 | `event:strategy.card_chosen:after` | TRIGGER | agenda:arbiter | agendas:arbiter | — |
 | `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
@@ -193,6 +205,7 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | agenda:minister_peace | agendas:minister_peace | — |
+| `event:tactical.system_activated:after` | TRIGGER | technology:nf | technologies:nf | Nullification Field: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:pop | promissory_notes:pop | If you activate a system that contains 1 or more of the Mentak player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | technology:scc | technologies:scc | Spatial Conduit Cylinder: You may exhaust this card after you activate a system that |
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
@@ -263,6 +276,7 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.wormholes_blocked` | FORBID | agenda:nexus | agendas:nexus | — |
 | `movement.wormholes_blocked` | FORBID | agenda:travel_ban | agendas:travel_ban | — |
 | `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
+| `payment.flex_spend` | PERMIT | breakthrough:xxchabt | breakthroughs:xxchabt | Archon's Gift: You can spend influence as if it were resources. You can spend resources as if |
 | `payment.trade_good_value` | MODIFY | technology:mc | technologies:mc | Mirror Computing: When you spend trade goods, each trade good is worth 2 resources or |
 | `planet.swap_values` | FORBID | effect:technologies:htp:swap | — | — |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
@@ -307,9 +321,12 @@ Razem: **295**. Opis = pierwsza linia docstringu funkcji hooka.
 Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 
 - `action_cards.forbidden`
+- `action_cards.canceller`
 - `turn.action_started`
 - `agenda.single_vote`
+- `agenda.votes_per_planet`
 - `agenda.vote_modifier`
+- `agenda.vote_unblockable`
 - `bombardment.extra_dice`
 - `bombardment.forbidden_traits`
 - `bombardment.granted_hits_on`
@@ -348,6 +365,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.through_nebula`
 - `movement.wormholes_blocked`
 - `payment.commodities_as_trade_goods`
+- `payment.flex_spend`
 - `payment.trade_good_value`
 - `space_cannon.pds_disabled`
 - `limits.pds_unlimited`

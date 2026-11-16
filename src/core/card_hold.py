@@ -20,8 +20,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_draw, reaction_window
-from src.core.game_state import GameState, HeldPlay
+from src.core import action_budget, card_draw, reaction_window, rules_hooks
+from src.core.game_state import GameState, HeldCounter, HeldPlay
 from src.core.registry import StaticDataRegistry
 
 SABOTAGE_IDS: tuple[str, ...] = ("sabo1", "sabo2", "sabo3", "sabo4")
@@ -53,20 +53,38 @@ def sabotage_possible(state: GameState) -> bool:
     return discarded < len(SABOTAGE_IDS)
 
 
-def eligible_players(state: GameState, player_id: str, card_id: str) -> list[str]:
-    """Inni gracze z >=1 kartą akcji w ręce (kolejność przy stole), gdy okno hold ma sens.
-
-    Pusta lista = karta wykonuje się natychmiast (zagrywana karta Sabotage, brak talii, wszystkie
-    Sabotage odrzucone, albo nikt inny nie ma kart akcji).
-    """
-    if is_sabotage(card_id) or not sabotage_possible(state):
-        return []
+def _seating(state: GameState) -> list[str]:
     order = [pid for pid in state.seating_order if pid in state.players]
-    order += [pid for pid in sorted(state.players) if pid not in order]
+    return order + [pid for pid in sorted(state.players) if pid not in order]
+
+
+def cancellers(state: GameState, player_id: str, card_id: str) -> list[str]:
+    """Inni gracze, którzy mogą anulować kartę BEZ karty w ręce (jawne; Instinct Training).
+
+    Hook PERMIT ``action_cards.canceller`` (RULES.md 62.9) - także przeciw Sabotage (F_xxcha).
+    """
+    ctx = {"player": player_id, "card": card_id}
+    return [
+        pid for pid in _seating(state)
+        if pid != player_id
+        and rules_hooks.permits(rules_hooks.POINT_ACTION_CARD_CANCELLER, state, pid, ctx)
+    ]
+
+
+def eligible_players(state: GameState, player_id: str, card_id: str) -> list[str]:
+    """Inni gracze z >=1 kartą akcji w ręce (kolejność przy stole), gdy okno hold ma sens, oraz
+    gracze anulujący bez karty (:func:`cancellers`).
+
+    Pusta lista = karta wykonuje się natychmiast (brak talii, wszystkie Sabotage odrzucone, nikt
+    inny nie ma kart akcji i nikt nie anuluje bez karty). Sabotage czeka tylko na anulujących.
+    """
+    free = cancellers(state, player_id, card_id)
+    if is_sabotage(card_id) or not sabotage_possible(state):
+        return free
     return [
         pid
-        for pid in order
-        if pid != player_id and state.players[pid].private.action_cards
+        for pid in _seating(state)
+        if pid != player_id and (bool(state.players[pid].private.action_cards) or pid in free)
     ]
 
 
@@ -108,6 +126,80 @@ def begin(
     )
     new_state.held_play.passed = reaction_window.auto_passers(new_state, registry, eligible)
     return new_state
+
+
+def begin_counter(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    card_id: str,
+    params: Mapping[str, Any],
+    eligible: list[str],
+    *,
+    now: float,
+    window: Mapping[str, Any] | None = None,
+) -> GameState:
+    """Sabotage na czekającą kartę czeka samo na anulujących bez karty (nowy stan; F_xxcha).
+
+    Karta Sabotage wychodzi z ręki na stół (``HeldPlay.counter``), okno startuje od nowa dla
+    ``eligible`` (anulujący). Po upływie czasu Sabotage anuluje czekającą kartę (:func:`resolve`).
+
+    Raises:
+        ValueError: Brak czekającej karty, Sabotage już czeka albo nikt nie może anulować.
+    """
+    held = _held(state)
+    if held.counter is not None:
+        raise ValueError("A Sabotage is already waiting for a response.")
+    if not eligible:
+        raise ValueError("Nobody can respond - the card should resolve immediately.")
+    new_state = state.clone()
+    card_draw.take_from_hand_to_table(new_state, player_id, card_id)
+    current = new_state.held_play
+    assert current is not None
+    current.counter = HeldCounter(
+        player_id=player_id, card_id=card_id, params=dict(params),
+        window=dict(window) if window is not None else None,
+        held_eligible=list(current.eligible), held_passed=list(current.passed),
+    )
+    current.opened_at = float(now)
+    current.seconds = float(reaction_window.window_seconds(new_state))
+    current.eligible = list(eligible)
+    current.passed = []
+    current.extended_by = []
+    current.passed = reaction_window.auto_passers(new_state, registry, eligible)
+    return new_state
+
+
+def target_of(held: HeldPlay) -> tuple[str, str]:
+    """``(gracz, karta)``, które teraz można anulować: czekające Sabotage albo sama karta."""
+    if held.counter is not None:
+        return held.counter.player_id, held.counter.card_id
+    return held.player_id, held.card_id
+
+
+def cancel_by_component(state: GameState) -> None:
+    """Anulowanie komponentem (Instinct Training) - MUTUJE ``state`` (F_xxcha, RULES.md 62.9).
+
+    Czeka Sabotage: idzie na odrzucone bez efektu, wraca okno anulowanej karty (kolejna Sabotage
+    nadal możliwa). Inaczej czekająca karta idzie na odrzucone bez kosztów, a karta ACTION oddaje
+    akcję tury (gracz musi wykonać inną akcję albo spasować - inaczej niż przy Sabotage).
+
+    Raises:
+        ValueError: Brak okna.
+    """
+    held = _held(state)
+    counter = held.counter
+    if counter is not None:
+        held.counter = None
+        held.eligible = list(counter.held_eligible)
+        held.passed = list(counter.held_passed)
+        card_draw.return_table_card_to_hand(state, counter.player_id, counter.card_id)
+        card_draw.discard_specific_action_cards(state, counter.player_id, [counter.card_id])
+        return
+    is_action, player_id = held.is_action, held.player_id
+    cancel_in_place(state)
+    if is_action:
+        action_budget.unregister_action(state, player_id)
 
 
 def _held(state: GameState) -> HeldPlay:
@@ -180,6 +272,17 @@ def resolve(state: GameState, registry: StaticDataRegistry) -> GameState:
 
     held = _held(state)
     new_state = state.clone()
+    counter = held.counter
+    if counter is not None:
+        # Nikt nie anulował Sabotage: wykonuje się ono (anuluje czekającą kartę) zwykłą ścieżką.
+        assert new_state.held_play is not None
+        new_state.held_play.counter = None
+        card_draw.return_table_card_to_hand(new_state, counter.player_id, counter.card_id)
+        action_cards.run_reaction(
+            new_state, registry, counter.player_id, counter.card_id, counter.params,
+            counter.window or {},
+        )
+        return new_state
     new_state.held_play = None
     # Karta wraca na chwilę do ręki: efekt i odrzucenie przebiegają jak przy zagraniu natychmiast.
     card_draw.return_table_card_to_hand(new_state, held.player_id, held.card_id)

@@ -281,6 +281,22 @@ def _held_play(state: GameState, registry: StaticDataRegistry) -> dict[str, Any]
         "extensions": len(held.extended_by),
         "askedForTime": [pid for pid in held.extended_by if pid],
         "eligibleColors": [c for pid in held.eligible if (c := _color_of(state, pid))],
+        # Sabotage na tę kartę czekające na Instinct Training (RULES.md 62.9) albo None.
+        "counter": _held_counter(state, registry),
+    }
+
+
+def _held_counter(state: GameState, registry: StaticDataRegistry) -> dict[str, Any] | None:
+    held = state.held_play
+    counter = held.counter if held is not None else None
+    if counter is None:
+        return None
+    card = registry.catalog.get(ComponentCategory.ACTION_CARD, counter.card_id)
+    return {
+        "playerId": counter.player_id,
+        "playerColor": _color_of(state, counter.player_id),
+        "cardId": counter.card_id,
+        "cardName": (card.name if card is not None and card.name else counter.card_id),
     }
 
 

@@ -215,8 +215,10 @@ def _parse_tactical(parts: list[str], active: str | None) -> _Parsed | None:
     if head == "leader" and len(parts) > 2:
         return "tactical", "leader.state", active, None, arg, parts[2]
     if head == "component-use" and len(parts) > 2:
-        # Lider / zdolność frakcji / przełom użyte jako akcja komponentu (RULES.md 61.3).
-        return "tactical", "component.use", active, None, parts[2], arg
+        # Lider / zdolność frakcji / przełom / technologia z oknem użycia (RULES.md 61.3, 62.9);
+        # czwarta część = gracz, który użył komponentu (także nieaktywny - Quash).
+        user = parts[3] if len(parts) > 3 and parts[3] else active
+        return "tactical", "component.use", user, None, parts[2], arg
     if head == "promissory" and len(parts) > 2:
         # Zagrana notka (jawna od chwili zagrania; ręka zostaje ukryta) — RULES.md 61.2.
         return "tactical", "promissory.play", arg, None, parts[2], None

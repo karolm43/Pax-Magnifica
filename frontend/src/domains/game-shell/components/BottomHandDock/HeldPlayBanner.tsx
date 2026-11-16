@@ -41,15 +41,25 @@ export function HeldPlayBanner({
 
   if (!held) return null;
   const mine = viewerId === held.playerId;
+  // Sabotage na tę kartę czeka na Instinct Training (RULES.md 62.9): teraz anuluje się Sabotage.
+  const counter = held.counter ?? null;
 
   return (
     <aside className={styles.banner} role="status" aria-live="polite" aria-label="Sabotage window">
       <div className={styles.text}>
         <b>{mine ? "You play" : "Played"}: {held.cardName}</b>
         <span>{held.text}</span>
+        {counter && (
+          <span>
+            {viewerId === counter.playerId ? "You play" : "Played"}: {counter.cardName} - it
+            cancels the card above unless it is cancelled first.
+          </span>
+        )}
         <small>
           {deciding
-            ? "Drag Sabotage from your hand to cancel it, or pass."
+            ? counter
+              ? "Use Instinct Training to cancel the Sabotage, or pass."
+              : "Drag Sabotage from your hand to cancel it, or pass."
             : waitingText(eligible, held.extensions ?? 0)}
         </small>
       </div>

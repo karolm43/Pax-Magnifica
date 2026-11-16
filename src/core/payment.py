@@ -31,17 +31,33 @@ def ready_planet_values(
     if player is None:
         return {}
     exhausted = set(player.exhausted_planets)
+    flex = flex_spend(state, player_id)
     value_of = influence_of if kind == "influence" else resources_of
     values: dict[str, int] = {}
     for system in state.systems.values():
         for planet_id, owner in system.planet_owners.items():
             if owner == player_id and planet_id not in exhausted:
-                values[planet_id] = value_of(state, registry, planet_id)
+                value = value_of(state, registry, planet_id)
+                if flex:  # Archon's Gift: jedna albo druga wartość, nie obie (F_xxcha)
+                    value = max(
+                        resources_of(state, registry, planet_id),
+                        influence_of(state, registry, planet_id),
+                    )
+                values[planet_id] = value
     # Relikty działające jak karta planety (The Triad): zasoby i wpływ równe, gdy gotowe.
     for pseudo, value in relic_planets.values(state, registry, player_id).items():
         if relic_planets.relic_of(pseudo) not in player.exhausted_relics:
             values[pseudo] = value
     return values
+
+
+def flex_spend(state: GameState, player_id: str) -> bool:
+    """Czy gracz wydaje wpływ jak zasoby i zasoby jak wpływ (Archon's Gift, RULES.md 62.9).
+
+    JEDYNE miejsce tej decyzji: hook PERMIT ``payment.flex_spend``. Dotyczy tylko wydawania
+    (płatności, produkcja), nie wartości planety w innych efektach (F_xxcha).
+    """
+    return rules_hooks.permits(rules_hooks.POINT_PAYMENT_FLEX_SPEND, state, player_id)
 
 
 def trade_good_value(state: GameState, player_id: str) -> int:

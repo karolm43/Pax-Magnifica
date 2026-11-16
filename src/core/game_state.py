@@ -916,6 +916,24 @@ class TradeDeal(BaseModel):
     wash: int | None = None
 
 
+class HeldCounter(BaseModel):
+    """Sabotage zagrane na kartę czekającą w ``HeldPlay``, które samo czeka, bo ktoś może je
+    anulować bez karty (Instinct Training - F_xxcha: „may cancel a Sabotage”; RULES.md 62.9).
+
+    ``eligible``/``passed`` okna anulowanej karty zachowane, by po anulowaniu Sabotage wróciło
+    zwykłe okno tej karty (kolejna Sabotage wciąż możliwa).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    card_id: str
+    params: dict[str, Any] = Field(default_factory=dict)
+    window: dict[str, Any] | None = None
+    held_eligible: list[str] = Field(default_factory=list)
+    held_passed: list[str] = Field(default_factory=list)
+
+
 class HeldPlay(BaseModel):
     """Zagrana karta akcji CZEKAJĄCA na ewentualną reakcję Sabotage (RULES.md 53.6).
 
@@ -941,6 +959,8 @@ class HeldPlay(BaseModel):
     seconds: float = 4.0
     # Kto poprosił o więcej czasu (prywatne - projekcja zostawia tylko patrzącego).
     extended_by: list[str] = Field(default_factory=list)
+    # Sabotage na tę kartę czekające na ewentualne Instinct Training (``None`` = brak).
+    counter: HeldCounter | None = None
 
 
 class ReactionPause(BaseModel):

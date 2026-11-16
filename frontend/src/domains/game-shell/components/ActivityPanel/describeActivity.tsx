@@ -290,6 +290,8 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           {actor} used{" "}
           {a.detail === "leader" ? (
             <Named kind="leader" id={a.subject ?? ""} name={getLeaderById(a.subject ?? "")?.name ?? prettifyId(a.subject ?? "")} />
+          ) : a.detail === "technology" ? (
+            <Named kind="tech" id={a.subject ?? ""} name={resolveTechName(a.subject ?? "")} />
           ) : (
             <i>{prettifyId(a.subject ?? "")}</i>
           )}

@@ -339,20 +339,25 @@ def predictive_ready(state: GameState, player_id: str) -> bool:
 def voting_planets(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """Planety gracza dające głosy: ``{planet, influence, exhausted}`` (wpływ > 0).
+    """Planety gracza dające głosy: ``{planet, influence, exhausted}`` (głosy > 0).
 
-    Wpływ liczony z danych po attachmentach (``planet_stats``). Stacje kosmiczne, The Triad
-    i Oceany (ruling Dane) wchodzą tu, gdy silnik trzyma je jako kontrolowane planety.
+    ``influence`` = GŁOSY z planety: wpływ z danych po attachmentach (``planet_stats``) plus
+    głosy za każdą wyczerpaną planetę (hook MODIFY ``agenda.votes_per_planet`` - Elder Qanoj: +1,
+    także planeta z 0 wpływu, F_xxcha). Stacje kosmiczne, The Triad i Oceany (ruling Dane)
+    wchodzą tu, gdy silnik trzyma je jako kontrolowane planety.
     """
     player = state.players.get(player_id)
     if player is None:
         return []
     exhausted = set(player.exhausted_planets)
+    per_planet = max(
+        0, rules_hooks.modify(rules_hooks.POINT_AGENDA_VOTES_PER_PLANET, state, player_id, 0)
+    )
     result: list[dict[str, Any]] = []
     for planet, owner in objectives.planet_owners(state).items():
         if owner != player_id:
             continue
-        value = influence_of(state, registry, planet)
+        value = influence_of(state, registry, planet) + per_planet
         if value > 0:
             result.append(
                 {"planet": planet, "influence": value, "exhausted": planet in exhausted}
@@ -362,7 +367,7 @@ def voting_planets(
             result.append(
                 {
                     "planet": pseudo,
-                    "influence": value,
+                    "influence": value + per_planet,
                     "exhausted": relic_planets.relic_of(pseudo) in player.exhausted_relics,
                 }
             )
@@ -750,7 +755,9 @@ def _open_card(
         agenda.outcomes = [o for o in agenda.outcomes if o != work.decks.agenda_laws[card]]
     agenda.unresolvable = agenda.kind != "manual" and not agenda.outcomes
     agenda.vote_order = vote_order(work)
-    agenda.blocked = [p for p in agenda.phase_blocked if p in work.players]
+    agenda.blocked = [
+        p for p in agenda.phase_blocked if p in work.players and not vote_unblockable(work, p)
+    ]
     agenda.step = AgendaStep.VOTE
     reveal_ctx = {"agenda": hidden or card, "kind": agenda.kind}
     triggers.fire(work, GameEvent.AGENDA_REVEALED, Moment.WHEN, subject=player_id, ctx=reveal_ctx)
@@ -890,10 +897,16 @@ def law_outcome(state: GameState, law_id: str) -> str | None:
     return state.decks.agenda_laws.get(law_id)
 
 
+def vote_unblockable(state: GameState, player_id: str) -> bool:
+    """Elder Qanoj: „Game effects cannot prevent you from voting on an agenda” - hook PERMIT
+    ``agenda.vote_unblockable`` (RULES.md 62.9). Zakaz głosowania pomija takiego gracza."""
+    return rules_hooks.permits(rules_hooks.POINT_AGENDA_VOTE_UNBLOCKABLE, state, player_id)
+
+
 def block_voter_for_phase(state: GameState, player_id: str) -> None:
     """Gracz nie może głosować nad ŻADNĄ agendą do końca tej fazy (Public Execution)."""
     agenda = state.agenda
-    if agenda is None or player_id not in state.players:
+    if agenda is None or player_id not in state.players or vote_unblockable(state, player_id):
         return
     if player_id not in agenda.phase_blocked:
         agenda.phase_blocked = [*agenda.phase_blocked, player_id]
@@ -984,6 +997,8 @@ def block_voter(state: GameState, registry: StaticDataRegistry, player_id: str) 
     agenda = _require_agenda(state, AgendaStep.VOTE)
     if player_id not in state.players:
         raise ValueError(f"Unknown player: {player_id}")
+    if vote_unblockable(state, player_id):
+        return state  # Elder Qanoj: efekty gry nie mogą zabronić głosowania (F_xxcha)
     if player_id not in agenda.blocked:
         agenda.blocked = [*agenda.blocked, player_id]
     if player_id in agenda.votes or player_id in agenda.abstained:

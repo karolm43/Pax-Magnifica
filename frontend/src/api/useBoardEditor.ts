@@ -1300,7 +1300,7 @@ export type BattleAbilityTool = {
   faction: string;
   /** Silnikowe id gracza (``player_id`` dla ``/faction-component/play``). */
   playerId: string;
-  kind: "leader" | "ability" | "breakthrough";
+  kind: "leader" | "ability" | "breakthrough" | "technology";
   componentId: string;
   name: string;
   text: string;

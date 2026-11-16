@@ -188,17 +188,24 @@ def _play_reaction_card(
     if now is not None and eligible:
         # Walidacja parametrów na kopii (błąd = zero zmian); efekt dopiero przy zwolnieniu.
         probe = new_state.clone()
-        _run_reaction(probe, registry, player_id, card_id, params, window_dict)
+        run_reaction(probe, registry, player_id, card_id, params, window_dict)
+        if new_state.held_play is not None and card_hold.is_sabotage(card_id):
+            # Sabotage na czekającą kartę czeka na Instinct Training (F_xxcha, RULES.md 62.9).
+            countered = card_hold.begin_counter(
+                new_state, registry, player_id, card_id, params, eligible, now=now,
+                window=window_dict,
+            )
+            return countered, True
         held = card_hold.begin(
             new_state, registry, player_id, card_id, params, eligible, now=now, is_action=False,
             window=window_dict,
         )
         return held, rules_hooks.effect_for(effect_key(card_id)) is not None
-    implemented = _run_reaction(new_state, registry, player_id, card_id, params, window_dict)
+    implemented = run_reaction(new_state, registry, player_id, card_id, params, window_dict)
     return new_state, implemented
 
 
-def _run_reaction(
+def run_reaction(
     state: GameState,
     registry: StaticDataRegistry,
     player_id: str,
@@ -251,7 +258,7 @@ def execute_played(state: GameState, registry: StaticDataRegistry, held: HeldPla
     """
     if held.is_action:
         return _run_action(state, registry, held.player_id, held.card_id, held.params)
-    return _run_reaction(
+    return run_reaction(
         state, registry, held.player_id, held.card_id, held.params, held.window or {}
     )
 
