@@ -9,5 +9,14 @@
   "F_xxcha/elder-qanoj/4": {
     "requires": ["faction:nekro"],
     "reason": "Nekro z notką Alliance Xxcha głosuje i nadal przewiduje wynik (Galactic Threat)."
+  },
+  "F_arborec/stymie/*": {
+    "na": "Nieaktywny wariant: assety mają tylko Stymie Ω („After another player moves ships into a system…”, karta wraca od razu); ta sekcja opisuje starą kartę leżącą w strefie gry."
+  },
+  "F_arborec/letani-warrior/1": {
+    "na": "Ruling dotyczy Warfare z PoK („PRODUCTION 1 of your space docks”). W grze obowiązuje te6warfare z Thunder's Edge (RULES.md 30.4, decyzja użytkownika): secondary używa „Production abilities of the units in your home system”, więc ta blokada nie obowiązuje."
+  },
+  "F_arborec/letani-behemoth/2": {
+    "na": "Ruling dotyczy Warfare z PoK („PRODUCTION 1 of your space docks”). W grze obowiązuje te6warfare z Thunder's Edge (RULES.md 30.4, decyzja użytkownika): secondary używa „Production abilities of the units in your home system”, więc ta blokada nie obowiązuje."
   }
 }

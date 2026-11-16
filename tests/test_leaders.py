@@ -13,6 +13,7 @@ from src.core import component_action, faction_components, leaders, rules_hooks
 from src.core.components import ComponentCategory
 from src.core.game_state import GameState, PendingOffer, Phase, PlayerState, SystemState
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -68,6 +69,7 @@ def test_koszt_uzycia_z_tekstu_karty(registry: StaticDataRegistry) -> None:
 # --------------------------------------------------------------------------------- odblokowanie
 
 
+@ruling("leaders:arborechero#unlock")
 def test_bohater_odblokowuje_sie_po_3_celach(registry: StaticDataRegistry) -> None:
     state = _state()
     _score_public(state, registry, 2)

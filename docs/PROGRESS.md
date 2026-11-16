@@ -641,3 +641,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Testy: `GroupedMapField.test.tsx` (Yin Spinner 1 i 3 przestrzenie, rejestr dwóch okien), `DecisionFields.test.tsx`.
 - QA: tsc ✓, eslint ✓ (zmienione), vitest offers+map+strategy+game-shell 72 ✓, e2e 7 ✓, weryfikacja zrzutami na
   izolowanym backendzie :8100. Backend bez zmian (bez QA backendu, bez restartu).
+
+## 2026-11-16 — Audyt rulingów Arborec (kontrakt rulingów)
+
+- Arborec zdjęty z `UNAUDITED` (`tests/test_ruling_coverage.py`): 58 punktów kontraktu (`python -m tests.rulings
+  arborec`) = 52 z testem `@ruling` + 6 statusów (3 wpisy) w `tests/rulings_status.json`.
+- Nowy `tests/factions/test_rulings_arborec.py` (32 testy): Mitosis (piechota Letani na planecie doku, dok produkuje
+  Letani Behemoth, decyzja obowiązkowa), Stymie Ω (bez domu gracza przy stole), Bioplasmosis (łańcuch A–B–C, ruch
+  jednoczesny, mech nie rusza się), Letani Warrior (sumowanie PRODUCTION, dowolny podział, LW II: statystyki, rzut,
+  powrót), granty flagowca/commandera/bohatera (płatne, bez Sarween Tools, blokada statków, siły naziemne na dowolną
+  planetę albo w przestrzeń, jednostka z planszy nieuszkodzona), Letani Ospha (bez zniszczenia/produkcji, Sarween nie
+  podnosi limitu, statek z planszy nieuszkodzony, myśliwiec). Znaczniki dopisane do istniejących testów
+  (`test_arborec.py`, `test_leaders.py`).
+- Statusy „na”: `F_arborec/stymie/*` (stara karta w strefie gry; assety mają tylko Stymie Ω) oraz
+  `letani-warrior/1` i `letani-behemoth/2` (blokada Warfare z PoK; w grze `te6warfare` — „Production abilities of
+  the units in your home system”, RULES.md 30.4).
+- Silnik bez zmian — wszystkie rulingi były już spełnione.
+- QA: testy Arborec + strażnik + leaders + technologies_passive 93 ✓, ruff ✓, mypy (zmienione) ✓. Pełny zestaw
+  pominięty (zmiana tylko w testach).

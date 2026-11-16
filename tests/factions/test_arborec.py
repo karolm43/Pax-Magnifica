@@ -28,6 +28,7 @@ from src.core.hooks import technologies_passive
 from src.core.hooks.factions import arborec
 from src.core.registry import StaticDataRegistry
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -92,6 +93,7 @@ def test_frakcja_kompletna(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------ Mitosis + Letani Behemoth
 
 
+@ruling("abilities:mitosis#1")
 def test_mitosis_piechota_na_start_statusu() -> None:
     state = _state()
     triggers.fire(state, GameEvent.PHASE, Moment.START, ctx={"phase": "status"})
@@ -104,6 +106,7 @@ def test_mitosis_piechota_na_start_statusu() -> None:
     assert _ground(after, "103", "meer") == {"infantry": 1}
 
 
+@ruling("units:arborec_mech#1")
 def test_mitosis_mech_zamiast_piechoty() -> None:
     state = _state()
     state.systems["102"].planet_units = {"industrex": {"p1": {"infantry": 2}}}
@@ -113,6 +116,7 @@ def test_mitosis_mech_zamiast_piechoty() -> None:
     assert _ground(after, "102", "industrex") == {"infantry": 1, "mech": 1}
 
 
+@ruling("F_arborec/mitosis/3")
 def test_mitosis_bez_planet_nic() -> None:
     state = _state()
     state.systems["102"].planet_owners = {}
@@ -120,6 +124,7 @@ def test_mitosis_bez_planet_nic() -> None:
     assert not [o for o in state.pending_offers if o.player_id == "p1"]
 
 
+@ruling("abilities:mitosis#2")
 def test_doki_nie_produkuja_piechoty_sol_tak(registry: StaticDataRegistry) -> None:
     from src.core import rules_hooks
 
@@ -132,6 +137,7 @@ def test_doki_nie_produkuja_piechoty_sol_tak(registry: StaticDataRegistry) -> No
 # ------------------------------------------------------------- Bioplasmosis, Letani Warrior II
 
 
+@ruling("technologies:bio#1")
 def test_bioplasmosis_jednoczesny_ruch_do_sasiedniego() -> None:
     state = _state()
     state.players["p1"].technologies = ["bio"]
@@ -160,6 +166,7 @@ def test_letani_warrior_ii_prog_z_karty() -> None:
 # --------------------------------------------------------------------------- Letani Ospha
 
 
+@ruling("leaders:arborecagent#1")
 def test_letani_ospha_wlasciciel_zamienia_statek(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].space_units = {"p2": {"destroyer": 1}}
@@ -184,6 +191,7 @@ def test_letani_ospha_bez_mysliwcow_do_wyboru(registry: StaticDataRegistry) -> N
 # ------------------------------------------------------------------------ Dirzuga Rophal
 
 
+@ruling("leaders:arboreccommander#1")
 def test_dirzuga_rophal_produkcja_po_cudzej_aktywacji(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"arboreccommander": "unlocked"}
@@ -204,6 +212,7 @@ def test_dirzuga_rophal_nie_przy_wlasnej_aktywacji() -> None:
     assert not any("Dirzuga" in label for label in _labels(state, "p1"))
 
 
+@ruling("leaders:arboreccommander#unlock")
 def test_dirzuga_rophal_odblokowanie_12_sil(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].planet_units = {"industrex": {"p1": {"infantry": 11}}}
@@ -215,6 +224,7 @@ def test_dirzuga_rophal_odblokowanie_12_sil(registry: StaticDataRegistry) -> Non
 # -------------------------------------------------------------- Duha Menaimon (flagowiec)
 
 
+@ruling("units:arborec_flagship#1")
 def test_duha_menaimon_5_jednostek_po_aktywacji() -> None:
     state = _state()
     state.systems["102"].space_units = {"p1": {"flagship": 1}}
@@ -224,6 +234,7 @@ def test_duha_menaimon_5_jednostek_po_aktywacji() -> None:
     assert after.production_grant is not None and after.production_grant.units == 5
 
 
+@ruling("F_arborec/duha-menaimon/3")
 def test_duha_menaimon_bez_flagowca() -> None:
     state = _state()
     triggers.fire(state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject="p1",
@@ -234,6 +245,7 @@ def test_duha_menaimon_bez_flagowca() -> None:
 # ---------------------------------------------------------------- Letani Miasmiala (hero)
 
 
+@ruling("leaders:arborechero#1", "leaders:arborechero#2")
 def test_ultrasonic_emitter_kolejka_systemow(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"arborechero": "unlocked"}
@@ -266,6 +278,7 @@ def _moved_into(state: GameState) -> None:
     state.tactical_moved = True
 
 
+@ruling("promissory_notes:stymie#1", "promissory_notes:stymie#2")
 def test_stymie_zeton_przeciwnika_w_systemie(registry: StaticDataRegistry) -> None:
     state = _state()
     _moved_into(state)
@@ -291,6 +304,7 @@ def test_stymie_zeton_przeciwnika_w_systemie(registry: StaticDataRegistry) -> No
 # ----------------------------------------------------------------- Psychospore (BT)
 
 
+@ruling("breakthroughs:arborecbt#1", "breakthroughs:arborecbt#2")
 def test_psychospore_zdejmuje_zeton_i_stawia_piechote(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True
@@ -317,6 +331,7 @@ def test_psychospore_bez_zetonu(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------- rulingi: żeton z arkusza, statek z planszy
 
 
+@ruling("F_arborec/stymie-omega/1")
 def test_stymie_pusta_rezerwa_zeton_z_arkusza(registry: StaticDataRegistry) -> None:
     state = _state()
     _moved_into(state)
@@ -333,6 +348,7 @@ def test_stymie_pusta_rezerwa_zeton_z_arkusza(registry: StaticDataRegistry) -> N
     assert placed.players["p2"].fleet_cc == fleet - 1
 
 
+@ruling("F_arborec/letani-ospha/2")
 def test_letani_ospha_statek_z_planszy_gdy_rezerwa_pusta(registry: StaticDataRegistry) -> None:
     state = _state()
     cap = production.reinforcements_left(state, "p2", "cruiser")
@@ -347,6 +363,7 @@ def test_letani_ospha_statek_z_planszy_gdy_rezerwa_pusta(registry: StaticDataReg
     assert after.systems["103"].space_units["p2"]["cruiser"] == cap - 1
 
 
+@ruling("F_arborec/dirzuga-rophal/2")
 def test_dirzuga_rophal_wstrzymuje_ruch_aktywnego(registry: StaticDataRegistry) -> None:
     from src.core import movement, tactical
     from src.core.game_state import ProductionGrant
