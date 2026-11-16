@@ -222,6 +222,9 @@ def quantum_datahub_node(state: GameState, player_id: str, ctx: Mapping[str, Any
     them = state.players[other]
     if take not in them.strategy_cards:
         raise ValueError("That player does not have this strategy card.")
+    # F_hacan: 3 TG trzeba mieć PRZED wydaniem żetonu (nie dobiera się trzeciego po wydaniu).
+    if me.trade_goods < _QDN_TG:
+        raise ValueError("You need 3 trade goods before you spend the command token.")
     command_tokens.spend_to_reinforcements(state, player_id, "strategic")
     economy.give_to_player(state, player_id, other, trade_goods=_QDN_TG, commodities=0)
     me.strategy_cards = [take if c == give else c for c in me.strategy_cards]
@@ -268,6 +271,9 @@ def production_biomes(
 def _agent_window(state: GameState, _registry: StaticDataRegistry, _player_id: str) -> str | None:
     if state.phase is not Phase.ACTION:
         return "Carth of Golden Sands is used during the action phase."
+    if state.exploration is not None and state.exploration.current is not None:
+        # F_hacan: nie w trakcie rozstrzygania innej zdolności (ujawniona karta eksploracji).
+        return "Resolve the current exploration card first."
     return None
 
 

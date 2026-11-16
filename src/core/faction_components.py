@@ -185,7 +185,36 @@ def owned(state: GameState, registry: StaticDataRegistry, player_id: str) -> lis
     for tech in state.players[player_id].technologies:
         if _has_window_use(TECHNOLOGY, tech):
             rows.append((TECHNOLOGY, tech))
+    rows += [
+        (LEADER, lid) for lid in borrowed_commanders(state, player_id)
+        if (LEADER, lid) not in rows and _has_window_use(LEADER, lid)
+    ]
     return rows
+
+
+def borrowed_commanders(state: GameState, player_id: str) -> list[str]:
+    """Commanderzy innych frakcji, których gracz może używać: Alliance w strefie (odblokowani
+    u właściciela) i efekty trwałe „jakby odblokowani” (Yin Ascendant). Bez kosztu użycia -
+    commander się nie wyczerpuje (F_hacan Gila 1.2: Alliance daje też okno „When you cast
+    votes”)."""
+    from src.core.hooks import promissory_generic  # lokalnie: pakiet hooków importuje ten moduł
+
+    found = [
+        *promissory_generic.alliance_commanders(state, player_id),
+        *rules_hooks.granted_commanders(state, player_id),
+    ]
+    return list(dict.fromkeys(found))
+
+
+def _borrowed(
+    state: GameState, registry: StaticDataRegistry, player_id: str, component: str
+) -> bool:
+    player = state.players.get(player_id)
+    return (
+        player is not None
+        and component not in leaders.leaders_of(registry, player)
+        and component in borrowed_commanders(state, player_id)
+    )
 
 
 def _has_window_use(kind: str, component: str) -> bool:
@@ -216,7 +245,7 @@ def block_reason(
 
         if promissory_play.silenced(state, player_id):
             return "Political Secret: you cannot use faction abilities during this agenda."
-    if kind == LEADER:
+    if kind == LEADER and not _borrowed(state, registry, player_id, component):
         reason = leaders.use_reason(state, registry, player_id, component)
         if reason is not None:
             return reason
@@ -257,7 +286,9 @@ def form(
     covered = key in rules_hooks.covered_components()
     implemented = rules_hooks.effect_for(key) is not None if action else covered
     status = ""
-    if kind == LEADER:
+    if kind == LEADER and _borrowed(state, registry, player_id, component):
+        status = leaders.UNLOCKED  # cudzy commander dostępny tylko odblokowany
+    elif kind == LEADER:
         status = leaders.state_of(state, registry, player_id, component)
     elif kind == BREAKTHROUGH:
         status = "exhausted" if state.players[player_id].breakthrough_exhausted else "unlocked"
@@ -426,7 +457,9 @@ def pay_cost(
     gracz, któremu agent coś daje — decyzja tego gracza to osobny hook, RULES.md 62.1).
     """
     exhausted = False
-    if kind == LEADER:
+    if kind == LEADER and _borrowed(state, registry, player_id, component):
+        pass  # cudzy commander (Alliance / Yin Ascendant) - bez kosztu, nic się nie wyczerpuje
+    elif kind == LEADER:
         exhausted = leaders.usage_cost(registry, component) == "exhaust"
         leaders.pay_usage(state, registry, player_id, component)
     elif kind == BREAKTHROUGH and _exhausts_self(registry, kind, component):

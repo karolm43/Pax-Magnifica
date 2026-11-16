@@ -6,6 +6,7 @@ import pytest
 
 from src.core.registry import StaticDataRegistry
 from tests.factions.flow_harness import Flow, Json, covers
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -63,6 +64,7 @@ def test_carth_of_golden_sands_w_fazie_akcji(registry: StaticDataRegistry) -> No
 
 
 @covers("leaders:hacancommander")
+@ruling("leaders:hacancommander#1")
 def test_gila_przy_glosowaniu(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     flow.player(lambda p: p.update(trade_goods=10))
@@ -89,6 +91,7 @@ def test_harrugh_gefhara_przy_produkcji(registry: StaticDataRegistry) -> None:
 
 
 @covers("promissory_notes:convoys")
+@ruling("promissory_notes:convoys#1", "F_hacan/trade-convoys/5")
 def test_trade_convoys_akcja_i_zwrot(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     note = flow.give_note("convoys", flow.other)
@@ -120,6 +123,7 @@ def test_quantum_datahub_node_na_koniec_fazy_strategii(registry: StaticDataRegis
 
 
 @covers("units:hacan_flagship")
+@ruling("units:hacan_flagship#1")
 def test_wrath_of_kenara_po_rzucie(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     flow.player(lambda p: p.update(trade_goods=3))

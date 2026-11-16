@@ -755,3 +755,15 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Testy: `shipIdentity.test.ts` (+6). QA: vitest battle/invasion ✓, tsc ✓, eslint ✓, build ✓. Front-only. Bez e2e
   i bez podglądu w przeglądarce.
 
+
+## 2026-11-16 — Audyt rulingów Hacan
+
+- `tests/factions/test_rulings_hacan.py` (31 testów): każdy punkt `F_hacan.md` i każde zdanie kart Hacan ma
+  `@ruling`; znaczniki w `test_flows_hacan.py`; Hacan zdjęty z `UNAUDITED` (bez wpisów w `rulings_status.json`).
+- Gila the Silvertongue przez Alliance (F_hacan 1.2): commander z oknem użycia z Alliance / Yin Ascendant trafia do
+  komponentów posiadacza (`faction_components.borrowed_commanders`), bez kosztu i bez zmiany stanu u właściciela.
+  Wcześniej posiadacz Alliance Hacan nie mógł użyć Gili.
+- Carth of Golden Sands: zablokowany, gdy leży ujawniona karta eksploracji (F_hacan 3).
+- Quantum Datahub Node: 3 TG sprawdzane przed wydaniem żetonu (F_hacan 3).
+- RULES.md 62.6 i 61 (Alliance) uzupełnione.
+- QA: pytest 2613 ✓, ruff ✓, mypy ✓. Front bez zmian. Wymaga restartu backendu.
