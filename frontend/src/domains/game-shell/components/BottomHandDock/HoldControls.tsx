@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { IconPlayerPause, IconX } from "@tabler/icons-react";
+import { Tooltip } from "@/ds";
 import { useHoldCandidates, type HoldStep } from "@/api/useActionCard";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { describeActivity } from "@/domains/game-shell/components/ActivityPanel/describeActivity";
@@ -7,6 +8,7 @@ import { useActivityContext } from "@/domains/game-shell/components/ActivityPane
 import { prettifyId } from "@/domains/game-shell/components/GameEventPanel/eventFormatting";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import styles from "./HoldControls.module.css";
+import { ToolHint } from "./ToolHint";
 
 type Pick = { step: HoldStep; cardId: string; cardName: string };
 
@@ -37,17 +39,31 @@ export function HoldControls({ playerId }: { playerId: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        className={styles.holdBtn}
-        data-open={open || undefined}
-        aria-expanded={open}
-        title="Hold: go back to a step where you wanted to play a card"
-        onClick={() => setOpen((v) => !v)}
+      <Tooltip
+        position="top"
+        multiline
+        maw={300}
+        disabled={open}
+        label={
+          <ToolHint title="Hold" status="Opens a list of earlier steps and the cards you can still play there.">
+            Missed the moment to play a card? Hold rewinds the game to the step where the card
+            was playable and plays it there. Everything after that step is undone.
+          </ToolHint>
+        }
       >
-        <IconPlayerPause size={14} aria-hidden="true" />
-        <span>Hold</span>
-      </button>
+        <button
+          type="button"
+          className={styles.toolBtn}
+          data-tone="hold"
+          data-open={open || undefined}
+          aria-expanded={open}
+          aria-description="Rewind to an earlier step to play a card you missed"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <IconPlayerPause size={15} aria-hidden="true" />
+          <span className={styles.toolLabel}>Hold</span>
+        </button>
+      </Tooltip>
 
       {open && (
         <aside className={styles.panel} aria-label="Hold - play a card in an earlier step">

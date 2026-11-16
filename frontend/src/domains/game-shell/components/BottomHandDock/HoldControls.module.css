@@ -1,20 +1,93 @@
-.holdBtn {
+/*
+ * Przyciski narzędzi ręki (Undo, Hold): ten sam kształt i wysokość co segmenty kategorii,
+ * kolor niesie znaczenie (Undo = niebieski, Hold = bursztyn). Stała szerokość - opis
+ * („co cofnę", „dlaczego nie") jest w dymku, więc pasek się nie rozjeżdża.
+ */
+.toolBtn {
+  --tk: 96, 165, 250;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border: 1px solid rgba(255, 170, 60, 0.55);
-  border-radius: 999px;
-  background: rgba(255, 170, 60, 0.1);
-  color: inherit;
-  font-size: 12px;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px 0 10px;
+  border: 1px solid rgba(var(--tk), 0.6);
+  border-radius: var(--ds-radius-sm, 6px);
+  background: linear-gradient(180deg, rgba(var(--tk), 0.22), rgba(var(--tk), 0.1));
+  color: var(--ds-ink-hi);
+  font-size: var(--text-meta, 12px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
-.holdBtn:hover,
-.holdBtn[data-open] {
-  background: rgba(255, 170, 60, 0.28);
+.toolBtn[data-tone="hold"] {
+  --tk: 251, 176, 64;
+}
+
+.toolBtn svg {
+  color: rgb(var(--tk));
+}
+
+.toolBtn:hover,
+.toolBtn[data-open] {
+  border-color: rgb(var(--tk));
+  background: linear-gradient(180deg, rgba(var(--tk), 0.34), rgba(var(--tk), 0.18));
+  box-shadow: 0 0 10px rgba(var(--tk), 0.3);
+}
+
+.toolBtn:focus-visible {
+  outline: 2px solid rgb(var(--tk));
+  outline-offset: 2px;
+}
+
+/* Niedostępne (np. Undo po rzucie kośćmi): czytelne, ale wyraźnie nieaktywne; dymek mówi dlaczego. */
+.toolBtn[aria-disabled="true"] {
+  color: var(--ds-ink-lo);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--ds-h14);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.toolBtn[aria-disabled="true"] svg {
+  color: inherit;
+}
+
+/* Dymek narzędzia (ToolHint). */
+.hint {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.hintTitle {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hintBody {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.hintStatus {
+  margin-top: 2px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(147, 197, 253);
+}
+
+.hintStatus[data-tone="blocked"] {
+  color: rgb(252, 165, 165);
 }
 
 .panel {
@@ -108,19 +181,4 @@
 
 .cardBtn:hover {
   background: rgba(255, 170, 60, 0.3);
-}
-
-/* Undo gracza (UndoControls): ten sam kształt co Hold; wyłączony = przygaszony, opis w title. */
-.holdBtn:disabled {
-  opacity: 0.45;
-  cursor: default;
-  background: transparent;
-}
-
-.undoWhat {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.75;
 }

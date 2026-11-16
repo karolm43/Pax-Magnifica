@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { IconArrowBackUp } from "@tabler/icons-react";
+import { Tooltip } from "@/ds";
 import { postPlayerUndo, usePlayerUndo } from "@/api/useActionCard";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { describeActivity } from "@/domains/game-shell/components/ActivityPanel/describeActivity";
 import { useActivityContext } from "@/domains/game-shell/components/ActivityPanel/useActivityContext";
 import { useAppStore } from "@/state/appStore";
 import styles from "./HoldControls.module.css";
+import { ToolHint } from "./ToolHint";
 
 /**
  * Undo gracza (RULES.md 44.7): cofa MÓJ ostatni krok, po jednym. Silnik pozwala tylko, gdy od
@@ -37,22 +39,42 @@ export function UndoControls({ playerId }: { playerId: string }) {
     }
   };
 
-  const title = available
-    ? "Undo your last step"
-    : `Undo is not possible: ${data?.reason ?? "nothing of yours to undo"}`;
+  const blocked = !available || busy;
+  // Opis w dymku (nie w etykiecie): przycisk ma stałą szerokość, pasek ręki się nie rozjeżdża.
+  const status = available
+    ? what
+      ? <>Will undo: {what}</>
+      : "Your last step can be undone."
+    : `Not possible now: ${data?.reason ?? "nothing of yours to undo"}`;
 
   return (
-    <button
-      type="button"
-      className={styles.holdBtn}
-      disabled={!available || busy}
-      aria-disabled={!available || busy}
-      title={title}
-      onClick={() => void undo()}
+    <Tooltip
+      position="top"
+      multiline
+      maw={300}
+      label={
+        <ToolHint title="Undo" status={status} tone={available ? "info" : "blocked"}>
+          Takes back your own last step, one at a time. Only while nobody else has acted since,
+          and only before dice, card draws, a played card or a phase change.
+        </ToolHint>
+      }
     >
-      <IconArrowBackUp size={14} aria-hidden="true" />
-      <span>Undo</span>
-      {available && what && <span className={styles.undoWhat}>{what}</span>}
-    </button>
+      {/* aria-disabled zamiast disabled: wyłączony przycisk też pokazuje dymek z powodem. */}
+      <button
+        type="button"
+        className={styles.toolBtn}
+        data-tone="undo"
+        aria-disabled={blocked}
+        aria-description={
+          available
+            ? "Take back your last step"
+            : `Undo is not possible: ${data?.reason ?? "nothing of yours to undo"}`
+        }
+        onClick={() => void undo()}
+      >
+        <IconArrowBackUp size={15} aria-hidden="true" />
+        <span className={styles.toolLabel}>Undo</span>
+      </button>
+    </Tooltip>
   );
 }

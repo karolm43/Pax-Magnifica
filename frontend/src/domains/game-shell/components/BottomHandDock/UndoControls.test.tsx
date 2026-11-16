@@ -35,8 +35,10 @@ describe("UndoControls (RULES.md 44.7)", () => {
     };
     show();
     const button = screen.getByRole("button", { name: /undo/i });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", "Undo is not possible: Dice were rolled");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("aria-description", "Undo is not possible: Dice were rolled");
+    fireEvent.click(button);
+    expect(post).not.toHaveBeenCalled();
   });
 
   it("dostępne Undo cofa krok gracza", async () => {

@@ -586,8 +586,10 @@ export function BottomHandDock() {
           })}
         </div>
 
+        <div className={styles.tools}>
         {active.discordId && <UndoControls playerId={active.discordId} />}
         {active.discordId && <HoldControls playerId={active.discordId} />}
+        <span className={styles.toolsSep} aria-hidden="true" />
 
         <UnstyledButton
           className={styles.collapse}
@@ -602,6 +604,7 @@ export function BottomHandDock() {
             aria-hidden="true"
           />
         </UnstyledButton>
+        </div>
       </div>
 
       {/* Rozwinięta część ma STAŁĄ wysokość (CSS ``.body``) - nie skacze zależnie od zakładki
