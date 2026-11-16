@@ -104,11 +104,58 @@ const travelOf = (s: {
     ? s.heavy
       ? 1900
       : 1500
-    : s.afb
+    : s.ground === "tracer"
+      ? TRACER_MS
+      : s.afb
       ? 550
       : s.missile
         ? MISSILE_MS
         : TRAVEL_MS;
+
+/** Lot kuli smugowej piechoty (ms) — zgodny z `.beam[data-kind="tracer"]` w CSS. */
+const TRACER_MS = 400;
+/** Seria piechoty: tyle kul na jedną kość, co tyle ms. */
+const BURST = 3;
+const BURST_GAP_MS = 85;
+
+/**
+ * Broń jednostki w walce naziemnej: piechota strzela seriami z karabinu (kule smugowe),
+ * mech i pozostałe (np. struktury) — z działa, pociskiem łukiem.
+ */
+export function groundWeapon(base: string): "tracer" | "shell" {
+  return base === "gf" ? "tracer" : "shell";
+}
+
+/**
+ * Odrzut strzelającej jednostki naziemnej (Web Animations, bez stanu Reacta): mech cofa się
+ * ciężko po wystrzale z działa, piechota drga przy serii. `away` = kierunek od wroga (±1).
+ */
+function recoil(el: Element, kind: "tracer" | "shell", away: number, delayMs: number) {
+  const sprite = el.querySelector(`.${styles.shipSprite}`);
+  if (!sprite || typeof sprite.animate !== "function") return;
+  const frames =
+    kind === "shell"
+      ? [
+          { transform: "none" },
+          { transform: `translate(${away * 8}px, -2px) rotate(${away * -3}deg)`, offset: 0.12 },
+          { transform: `translate(${away * 3}px, 0)`, offset: 0.5 },
+          { transform: "none" },
+        ]
+      : [
+          { transform: "none" },
+          { transform: `translateX(${away * 2}px)`, offset: 0.15 },
+          { transform: "none", offset: 0.35 },
+          { transform: `translateX(${away * 2}px)`, offset: 0.5 },
+          { transform: "none", offset: 0.7 },
+          { transform: `translateX(${away * 2}px)`, offset: 0.85 },
+          { transform: "none" },
+        ];
+  sprite.animate(frames, {
+    duration: kind === "shell" ? 520 : BURST * BURST_GAP_MS + 60,
+    delay: Math.max(0, delayMs),
+    easing: "ease-out",
+  });
+}
 
 /** Rodzaj broni pocisku: AFB = flak; rakiety z krążowników; reszta laser (co 3.) i plazma. */
 function shotKind(
@@ -150,6 +197,8 @@ type Shot = {
   delayMs: number;
   /** Strona, do której leci pocisk (cel). */
   target: "left" | "right";
+  /** asyncId trafianej jednostki (dźwięk trafienia: pancerz mecha vs piechota). */
+  targetBase: string;
   /** Strzela okręt ciężki (war sun / flagowiec / dreadnought). */
   heavy: boolean;
   /** Strzela war sun (własny efekt: kula żaru z ładowaniem). */
@@ -225,7 +274,8 @@ function VolleyLayer({
       if (pool.length === 0 || targets.length === 0) return [];
       const shooter = pool[bolt.shot % pool.length];
       const center0 = center(shooter);
-      const to = center(targets[Math.floor(Math.random() * targets.length)]);
+      const victim = targets[Math.floor(Math.random() * targets.length)];
+      const to = center(victim);
       // Pudło: pocisk mija cel (odchylenie w pionie i poziomie).
       const tx = bolt.hit ? to.x : to.x + (Math.random() - 0.5) * 90;
       const ty = bolt.hit
@@ -235,9 +285,12 @@ function VolleyLayer({
       const sr = shooter.getBoundingClientRect();
       const reach = Math.min(sr.width, sr.height) * 0.42;
       const d0 = Math.hypot(tx - center0.x, ty - center0.y) || 1;
-      // Walka naziemna: mech to „ciężka artyleria" (większy pocisk, wolniejszy, większy wybuch).
+      // Walka naziemna: piechota strzela seriami z karabinu, mech to „ciężka artyleria"
+      // (większy pocisk, wolniejszy, większy wybuch, odrzut przy wystrzale).
       const base = shooter.getAttribute("data-base") ?? "";
       const heavy = HEAVY_BASES.has(base) || (ground && base === "mf");
+      const weapon = ground ? groundWeapon(base) : undefined;
+      if (weapon) recoil(shooter, weapon, bolt.from === "left" ? -1 : 1, bolt.delayMs);
       const from = {
         x: center0.x + ((tx - center0.x) / d0) * reach,
         y: center0.y + ((ty - center0.y) / d0) * reach,
@@ -263,11 +316,12 @@ function VolleyLayer({
           len: Math.hypot(dx, dy),
           angle,
           arc: Math.abs(angle) > 90 ? -1 : 1,
-          ground: ground ? "shell" : undefined,
+          ground: weapon,
           hit: bolt.hit,
           afb: volley.phase === "AFB",
           delayMs: bolt.delayMs,
           target: enemy,
+          targetBase: victim.getAttribute("data-base") ?? "",
           heavy,
           sun: shooter.getAttribute("data-base") === "ws",
           missile,
@@ -294,7 +348,18 @@ function VolleyLayer({
         },
       ];
     });
-    setShots({ id: volley.id, list, blasts });
+    // Seria piechoty = kilka kul tuż po sobie (dźwięk serii gra raz, na pierwszą kulę).
+    const rendered = list.flatMap((s) =>
+      s.ground === "tracer"
+        ? Array.from({ length: BURST }, (_, k) => ({
+            ...s,
+            id: `${s.id}-b${k}`,
+            delayMs: s.delayMs + k * BURST_GAP_MS,
+            ty: s.ty + (k - 1) * 3,
+          }))
+        : [s],
+    );
+    setShots({ id: volley.id, list: rendered, blasts });
 
     // DŹWIĘKI salwy zsynchronizowane z animacją (wylot, trafienie). Limit, żeby duża
     // salwa nie zamieniła się w ścianę hałasu.
@@ -310,20 +375,19 @@ function VolleyLayer({
           window.setTimeout(
             () =>
               playBattleSound(
-                // Rodzaj broni = nazwa dźwięku; war sun ma własny „sunfire".
+                // Rodzaj broni = nazwa dźwięku; war sun ma własny „sunfire", piechota serię
+                // z karabinu, mech wystrzał z działa.
                 kind === "sun"
                   ? "sunfire"
-                  : kind === "missile"
-                    ? "missile"
-                    : kind === "tracer"
-                    ? "flak"
+                  : kind === "tracer"
+                    ? "rifle"
                     : kind === "shell"
-                      ? "plasma"
+                      ? "mechCannon"
                       : kind,
                 {
                   pan,
-                  heavy: s.heavy,
-                  gain: s.heavy ? 1 : 0.55,
+                  heavy: s.heavy && !s.ground,
+                  gain: kind === "tracer" ? 0.45 : s.heavy ? 1 : 0.55,
                 },
               ),
             s.delayMs,
@@ -338,15 +402,25 @@ function VolleyLayer({
           ),
         );
       }
-      if (s.hit && impacts < 8) {
+      // Trafienie: kula w ciało/pancerz, pocisk działa wybucha na ziemi (także przy pudle).
+      const lands = s.hit || s.ground === "shell";
+      if (lands && impacts < 8) {
         impacts += 1;
+        const sound =
+          s.ground === "shell"
+            ? "groundBlast"
+            : s.ground === "tracer"
+              ? s.targetBase === "mf"
+                ? "armorHit"
+                : "bulletHit"
+              : "impact";
         timers.push(
           window.setTimeout(
             () =>
-              playBattleSound("impact", {
+              playBattleSound(sound, {
                 pan: -pan,
-                heavy: s.heavy,
-                gain: s.afb ? 0.4 : 0.8,
+                heavy: s.heavy && !s.ground,
+                gain: s.afb ? 0.4 : s.ground === "tracer" ? 0.5 : s.hit ? 0.8 : 0.55,
               }),
             s.delayMs + travelOf(s),
           ),
@@ -427,6 +501,7 @@ function VolleyLayer({
           key={`${s.id}-muzzle`}
           className={styles.muzzle}
           data-sun={s.sun || undefined}
+          data-ground={s.ground}
           style={
             {
               left: s.x1,
@@ -452,11 +527,12 @@ function VolleyLayer({
         />
       ))}
       {shots.list
-        .filter((s) => s.hit)
+        .filter((s) => s.hit || s.ground === "shell")
         .map((s) => (
           <span
             key={`${s.id}-impact`}
             className={styles.impact}
+            data-miss={!s.hit || undefined}
             data-afb={s.afb || undefined}
             data-sun={s.sun || undefined}
             data-missile={s.missile || undefined}

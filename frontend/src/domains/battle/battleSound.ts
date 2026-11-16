@@ -1,10 +1,11 @@
 /**
  * Dźwięki pola bitwy (czysta prezentacja).
  *
- * Domyślnie wszystko jest SYNTEZOWANE w WebAudio (zero plików). Każde zdarzenie ma jednak
- * „miejsce na próbkę": jeśli istnieje plik `assets/extra/sfx/<nazwa>.mp3` (serwowany pod
- * `/static/extra/sfx/<nazwa>.mp3`), zostanie użyty zamiast syntezy. Nazwy zdarzeń: `SoundName`.
- * Wyciszenie zapamiętane w localStorage.
+ * PRÓBKI: `assets/extra/sfx/battle/<zdarzenie>-<n>.ogg` (serwowane pod `/static/extra/sfx/…`;
+ * spis z `GET /battle/sounds`). Kilka plików jednego zdarzenia to WARIANTY — każde odtworzenie
+ * losuje inny niż poprzednio i lekko zmienia wysokość, żeby seria strzałów nie brzmiała jak
+ * zacięta płyta. Pochodzenie i licencje (CC0): `assets/extra/sfx/battle/SOURCES.md`.
+ * Zdarzenie bez próbki gra awaryjną syntezę WebAudio (`synth`). Wyciszenie w localStorage.
  */
 
 import { channelVolume } from "@/shared/audio/audioSettings";
@@ -20,14 +21,28 @@ export type SoundName =
   | "explosion"
   | "explosionHeavy"
   | "sustain"
-  | "warSunEnter" // war sun wyłania się z wormhole (miejsce na własny plik)
+  | "warSunEnter" // war sun wyłania się z wormhole
   | "sunfire" // strzał war suna
   | "missile" // odpalenie rakiety (syk silnika rakietowego)
   | "assaultCannon" // Assault Cannon: ładowanie działa i potężny strzał
   | "retreatHorn" // ogłoszenie odwrotu
   | "retreat" // flota odlatuje z pola bitwy
   | "diceThrow" // garść kości wpada na stół (grzechot)
-  | "diceClack"; // jedno stuknięcie kostki o stół
+  | "diceClack" // jedno stuknięcie kostki o stół
+  // --- walka naziemna i inwazja ---
+  | "rifle" // seria piechoty (karabin automatyczny)
+  | "rifleShot" // pojedynczy strzał karabinu
+  | "mechCannon" // działo mecha
+  | "groundBlast" // wybuch pocisku na ziemi
+  | "bulletHit" // kula trafia piechotę / ziemię
+  | "armorHit" // pocisk trafia pancerz mecha (także Sustain Damage mecha)
+  | "infantryDeath" // okrzyk ginącego żołnierza
+  | "bodyFall" // ciało pada na ziemię
+  | "mechPowerDown" // gasnące serwa i reaktor mecha
+  | "mechCollapse" // kadłub mecha wali się na ziemię
+  | "mechStep" // ciężki krok / przysiad mecha
+  | "dropPod" // kapsuła desantowa spada z orbity
+  | "podLand"; // kapsuła uderza w ziemię
 
 export type SoundOpts = {
   /** Panorama stereo −1 (lewo) … 1 (prawo). */
@@ -41,33 +56,38 @@ export type SoundOpts = {
 const SFX_BASE = "/static/extra/sfx";
 const STORAGE_KEY = "battle.sound.muted";
 const MASTER = 0.5;
+/** Próbki są znormalizowane do szczytu −1 dB — ciszej niż synteza, żeby nie zagłuszały muzyki. */
+const SAMPLE_GAIN = 0.8;
 
 let ctx: AudioContext | null = null;
 let muted =
   typeof localStorage !== "undefined" &&
   localStorage.getItem(STORAGE_KEY) === "1";
-const samples = new Map<SoundName, AudioBuffer | null>();
-const loading = new Set<SoundName>();
+/** Zdarzenie -> zdekodowane warianty (pusta lista = brak próbek, gra synteza). */
+const samples = new Map<string, AudioBuffer[]>();
+const lastVariant = new Map<string, number>();
+let loadStarted = false;
 let noiseBuffer: AudioBuffer | null = null;
 
-const ALL: SoundName[] = [
-  "fleetEnter",
-  "arrive",
-  "arriveHeavy",
-  "laser",
-  "plasma",
-  "flak",
-  "impact",
-  "explosion",
-  "explosionHeavy",
-  "sustain",
-  "warSunEnter",
-  "sunfire",
-  "retreatHorn",
-  "retreat",
-  "diceThrow",
-  "diceClack",
-];
+/**
+ * Zdarzenia bez własnej syntezy: przy braku próbki grają najbliższy dźwięk syntezowany
+ * (`null` = cisza — syntetyczny okrzyk czy szum serw brzmiałyby gorzej niż nic).
+ */
+const SYNTH_FALLBACK: Partial<Record<SoundName, SoundName | null>> = {
+  rifle: "flak",
+  rifleShot: "flak",
+  mechCannon: "plasma",
+  groundBlast: "explosion",
+  bulletHit: "impact",
+  armorHit: "impact",
+  infantryDeath: null,
+  bodyFall: "arrive",
+  mechPowerDown: null,
+  mechCollapse: "arriveHeavy",
+  mechStep: "arrive",
+  dropPod: "retreat",
+  podLand: "arrive",
+};
 
 export function isBattleMuted(): boolean {
   return muted;
@@ -105,46 +125,71 @@ function noise(c: AudioContext): AudioBuffer {
   return noiseBuffer;
 }
 
-/**
- * Nazwy próbek, które NAPRAWDĘ leżą w `assets/extra/sfx/` (`GET /battle/sounds`), pytane raz.
- * Bez tej listy front próbował każdy plik i każdy brak był czerwonym 404 w konsoli przeglądarki.
- */
-let available: Promise<Set<string>> | null = null;
-
-function availableSamples(): Promise<Set<string>> {
-  available ??= fetch("/bot/battle/sounds")
-    .then((res) => (res.ok ? (res.json() as Promise<{ sounds?: string[] }>) : { sounds: [] }))
-    .then((data) => new Set(data.sounds ?? []))
-    .catch(() => new Set<string>());
-  return available;
+/** Nazwa zdarzenia z nazwy pliku: `battle/rifle-2.ogg` -> `rifle`. Eksport dla testów. */
+export function soundOfFile(file: string): string {
+  const base = file.split("/").pop() ?? file;
+  return base.replace(/\.[^.]+$/, "").replace(/-\d+$/, "");
 }
 
-/** Próbuje wczytać opcjonalne pliki z `assets/extra/sfx/` (brak pliku = synteza). */
+/** Grupuje pliki z `GET /battle/sounds` po zdarzeniu (stary format: same nazwy `.mp3`). */
+export function groupSampleFiles(data: {
+  sounds?: string[];
+  files?: string[];
+}): Map<string, string[]> {
+  const files = data.files ?? (data.sounds ?? []).map((n) => `${n}.mp3`);
+  const out = new Map<string, string[]>();
+  for (const file of files) {
+    const name = soundOfFile(file);
+    out.set(name, [...(out.get(name) ?? []), file]);
+  }
+  return out;
+}
+
+/**
+ * Wczytuje próbki leżące NAPRAWDĘ w `assets/extra/sfx/` (`GET /battle/sounds`, pytane raz) —
+ * bez tej listy każdy brak byłby czerwonym 404 w konsoli przeglądarki.
+ */
 export function preloadBattleSounds(): void {
   const c = audio();
-  if (!c) return;
-  void availableSamples().then((present) => loadSamples(c, present));
+  if (!c || loadStarted) return;
+  loadStarted = true;
+  void fetch("/bot/battle/sounds")
+    .then((res) =>
+      res.ok
+        ? (res.json() as Promise<{ sounds?: string[]; files?: string[] }>)
+        : {},
+    )
+    .catch(() => ({}))
+    .then((data) => {
+      for (const [name, files] of groupSampleFiles(data)) {
+        const list: AudioBuffer[] = [];
+        samples.set(name, list);
+        for (const file of files) {
+          void fetch(`${SFX_BASE}/${file}`)
+            .then((res) => {
+              if (!res.ok) throw new Error("no sample");
+              return res.arrayBuffer();
+            })
+            .then((buf) => c.decodeAudioData(buf))
+            .then((decoded) => list.push(decoded))
+            .catch(() => undefined);
+        }
+      }
+    });
 }
 
-function loadSamples(c: AudioContext, present: Set<string>): void {
-  for (const name of ALL) {
-    if (samples.has(name) || loading.has(name)) continue;
-    if (!present.has(name)) {
-      samples.set(name, null);
-      continue;
-    }
-    loading.add(name);
-    void fetch(`${SFX_BASE}/${name}.mp3`)
-      .then((res) => {
-        const type = res.headers.get("content-type") ?? "";
-        if (!res.ok || !type.startsWith("audio")) throw new Error("no sample");
-        return res.arrayBuffer();
-      })
-      .then((buf) => c.decodeAudioData(buf))
-      .then((decoded) => samples.set(name, decoded))
-      .catch(() => samples.set(name, null))
-      .finally(() => loading.delete(name));
-  }
+/** Losuje wariant inny niż ostatnio zagrany (przy jednym wariancie — zawsze ten). Eksport dla testów. */
+export function pickVariant(
+  name: string,
+  count: number,
+  random: () => number = Math.random,
+): number {
+  if (count <= 1) return 0;
+  const last = lastVariant.get(name) ?? -1;
+  let n = Math.floor(random() * (last >= 0 ? count - 1 : count));
+  if (last >= 0 && n >= last) n += 1;
+  lastVariant.set(name, n);
+  return n;
 }
 
 type Out = { c: AudioContext; out: AudioNode; t: number };
@@ -345,17 +390,23 @@ export function playBattleSound(name: SoundName, opts: SoundOpts = {}): void {
   if (muted) return;
   const c = audio();
   if (!c) return;
+  if (!loadStarted) preloadBattleSounds();
   try {
-    const out = output(c, opts);
-    const sample = samples.get(name);
-    if (sample) {
+    const variants = samples.get(name) ?? [];
+    if (variants.length > 0) {
+      const out = output(c, { ...opts, gain: (opts.gain ?? 1) * SAMPLE_GAIN });
       const src = c.createBufferSource();
-      src.buffer = sample;
+      src.buffer = variants[pickVariant(name, variants.length)];
+      // ±5% wysokości — kolejne strzały serii nie są identyczne; ciężkie jednostki niżej.
+      src.playbackRate.value =
+        (opts.heavy ? 0.88 : 1) * (0.95 + Math.random() * 0.1);
       src.connect(out);
       src.start();
       return;
     }
-    synth(name, { c, out, t: c.currentTime }, opts.heavy ?? false);
+    const synthName = name in SYNTH_FALLBACK ? SYNTH_FALLBACK[name] : name;
+    if (!synthName) return;
+    synth(synthName, { c, out: output(c, opts), t: c.currentTime }, opts.heavy ?? false);
   } catch {
     // dźwięk to dodatek — nigdy nie psuje walki
   }

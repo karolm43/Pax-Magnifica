@@ -701,3 +701,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Test `test_card_labels.py`: zamiast „każde pole ma hint” - żaden hint nie jest kopią tekstu karty / „nazwa: …”.
 - QA: pytest 2552 ✓, mypy ✓, ruff ✓ na zmienionych plikach (I001 w `api/routers/battle.py` to zmiana równoległej sesji).
   Wymaga restartu backendu.
+
+## 2026-11-16 — Dźwięki walki z próbek CC0 + przebudowa walki naziemnej (piechota ≠ mech)
+
+- Syntezowane „pikanie” zastąpione próbkami: `assets/extra/sfx/battle/<zdarzenie>-<n>.ogg` (114 plików, 1,3 MB, CC0:
+  Kenney, OpenGameArt, Free Firearm Sound Library; spis w `SOURCES.md`). Warianty losowane bez powtórzeń z rzędu, ±5%
+  wysokości; synteza zostaje tylko jako zapas. `GET /battle/sounds` zwraca też `files` (podkatalog `battle/`, każdy
+  format audio) — wymaga restartu backendu.
+- Walka naziemna: piechota strzela seriami 3 kul smugowych (karabin), mech z działa (łuk, odrzut, wybuch także przy
+  pudle). Śmierć piechoty: odrzut, upadek na plecy, kurz, okrzyk + upadek ciała (limit krzyków). Śmierć mecha: iskry
+  z pancerza, dym, gasnący reaktor, osunięcie, wybuch z odłamkami, płonący wrak. Sustain mecha = łomot pancerza.
+  Desant: świst kapsuł, przyziemienie z kurzem; jednostki mają własny „oddech” (bez dryfu okrętów).
+- Inwazja (dotąd cicha): dźwięki bombardowania, lancy war suna, Space Cannon Defense i lądowania kapsuł.
+- Pliki: `battleSound.ts`, `GroundDeathFx.tsx` + `GroundCombat.module.css` (nowe), `BattleFleet.tsx`,
+  `BattleOverlay.tsx/.module.css`, `InvasionFx.tsx`, `routers/battle.py`, `routers/audio.py` (`audio_files` publiczne).
+- Testy: `groundCombatFx.test.ts`, `strikeSounds.test.ts`, `test_battle_sounds.py`. QA: vitest battle/invasion/audio ✓,
+  tsc ✓, eslint ✓, build ✓, pytest (dźwięki/audio/actor_guard) ✓, ruff/mypy zmienionych ✓. Bez e2e i bez weryfikacji
+  wizualnej w przeglądarce (do sprawdzenia na żywej bitwie).
+

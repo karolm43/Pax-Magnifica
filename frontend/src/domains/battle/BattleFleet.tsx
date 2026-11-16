@@ -10,6 +10,11 @@ import { useGameData } from "@/state/useGameContext";
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { playBattleSound, preloadBattleSounds } from "./battleSound";
+import {
+  GroundDeathFx,
+  groundKindOf,
+  scheduleGroundDeathSounds,
+} from "./GroundDeathFx";
 import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
 import { Unit } from "@/shared/ui/Unit";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -280,6 +285,7 @@ function ShipToken({
       : 0;
   const stagger = layout === "double" && index % 2 === 1 ? Math.round(size * 0.5) : 0;
   const heavy = HEAVY.has(ship.asyncId);
+  const groundKind = groundKindOf(ship.asyncId);
   const engines = ENGINES[ship.asyncId];
   // Oś kadłuba MIERZONA z wyrenderowanego sprite'a (grafiki mają różne marginesy): środek
   // obrazka względem kadłuba (--ex/--ey) i odległość rufy od środka (--rear).
@@ -303,12 +309,19 @@ function ShipToken({
     hull.style.setProperty("--rear", `${(side * 0.5).toFixed(1)}px`);
   }, [size]);
   // Dźwięki zdarzeń okrętu: Sustain Damage i zniszczenie (wybuch opóźniony jak animacja).
+  // Mech przyjmuje trafienie na pancerz (metaliczny łomot), okręt na tarczę energetyczną.
   useEffect(() => {
     if (!justSustained) return;
-    playBattleSound("sustain", { pan: side === "left" ? -0.5 : 0.5, heavy });
-  }, [justSustained, side, heavy]);
+    const pan = side === "left" ? -0.5 : 0.5;
+    if (groundKind === "mech") playBattleSound("armorHit", { pan });
+    else playBattleSound("sustain", { pan, heavy });
+  }, [justSustained, side, heavy, groundKind]);
   useEffect(() => {
     if (!dying) return;
+    // Piechota i mech mają własne sekwencje śmierci (okrzyk/upadek; reaktor/wybuch/wrak).
+    if (groundKind) {
+      return scheduleGroundDeathSounds(groundKind, side === "left" ? -0.5 : 0.5);
+    }
     const t = window.setTimeout(
       () =>
         playBattleSound(heavy ? "explosionHeavy" : "explosion", {
@@ -318,7 +331,7 @@ function ShipToken({
       1100,
     );
     return () => window.clearTimeout(t);
-  }, [dying, side, heavy]);
+  }, [dying, side, heavy, groundKind]);
   const style = {
     "--rank": rank,
     "--i": index,
@@ -337,8 +350,8 @@ function ShipToken({
     style,
     "data-side": side,
     "data-base": ship.asyncId,
-    // Jednostki naziemne giną inaczej niż okręty (osuwają się i zapadają w pył, bez kuli ognia).
-    "data-ground": ship.asyncId === "gf" || ship.asyncId === "mf" || undefined,
+    // Jednostki naziemne giną inaczej niż okręty: piechota pada, mech wybucha i zostaje wrak.
+    "data-ground": groundKind ?? undefined,
     "data-damaged": ship.damaged || undefined,
     "data-heavy": heavy || undefined,
     "data-sustained": justSustained || undefined,
@@ -460,7 +473,12 @@ function ShipToken({
           ))}
         </span>
       )}
-      {dying && <span className={styles.explosion} aria-hidden="true" />}
+      {dying && groundKind && (
+        <GroundDeathFx kind={groundKind} seed={ship.id} size={size} />
+      )}
+      {dying && !groundKind && (
+        <span className={styles.explosion} aria-hidden="true" />
+      )}
       {/* Ciężkie okręty: łańcuch wtórnych detonacji wzdłuż kadłuba (w trakcie konania,
           przed wybuchem reaktora) i rozbłysk, który oświetla cały panel floty. */}
       {dying &&
@@ -481,6 +499,7 @@ function ShipToken({
         ))}
       {dying && heavy && <span className={styles.lightFlash} aria-hidden="true" />}
       {dying &&
+        !groundKind &&
         Array.from({ length: heavy ? 14 : 7 }, (_, i) => (
           <span
             key={i}
@@ -621,18 +640,32 @@ export function BattleFleet({
       views.length > 0 &&
       views.every((v) => v.ship.asyncId === "gf" || v.ship.asyncId === "mf");
     if (ground) {
-      const drops =
+      // Atakujący: świst spadających kapsuł, potem uderzenie w ziemię każdego szeregu (chwile
+      // zgodne z `groundDrop` w CSS: start 0,5 s + 0,35 s na szereg, przyziemienie po ~1,05 s);
+      // mechy dodatkowo ciężko przysiadają. Obrońca: mechy stają w gotowości.
+      const hasMech = views.some((v) => v.ship.asyncId === "mf");
+      const at = (ms: number, play: () => void) => window.setTimeout(play, ms);
+      const sounds =
         align === "left"
-          ? [900, 1250, 1600].map((ms) =>
-              window.setTimeout(
-                () => playBattleSound("impact", { pan, gain: 0.5 }),
-                ms,
-              ),
-            )
-          : [];
+          ? [
+              at(250, () => playBattleSound("dropPod", { pan, gain: 0.7 })),
+              ...ranks(views).flatMap((list, rank) => {
+                const land = 1550 + rank * 350;
+                const mech = list[0]?.ship.asyncId === "mf";
+                return [
+                  at(land, () => playBattleSound("podLand", { pan })),
+                  ...(mech
+                    ? [at(land + 160, () => playBattleSound("mechStep", { pan }))]
+                    : []),
+                ];
+              }),
+            ]
+          : hasMech
+            ? [at(500, () => playBattleSound("mechStep", { pan, gain: 0.7 }))]
+            : [];
       return () => {
         window.clearTimeout(t);
-        drops.forEach((d) => window.clearTimeout(d));
+        sounds.forEach((d) => window.clearTimeout(d));
       };
     }
     playBattleSound("fleetEnter", { pan });

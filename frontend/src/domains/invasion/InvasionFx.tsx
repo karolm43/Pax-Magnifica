@@ -9,6 +9,7 @@ import {
   DEFAULT_PLANET_RADIUS,
   TILE_ART_WIDTH,
 } from "@/entities/lookup/planetTileArt";
+import { playBattleSound, type SoundName } from "@/domains/battle/battleSound";
 import type { InvasionLogEntry } from "./useInvasion";
 import styles from "./InvasionOverlay.module.css";
 
@@ -100,6 +101,25 @@ function globeVars(globeR: number): CSSProperties {
 }
 
 /**
+ * Dźwięki kapsuł desantu: świst spadania i uderzenie o powierzchnię, gdy kapsuły zaczynają
+ * opadać (`drop`, 2,6 s w CSS) albo lądują po obronie (`land`, 1,8 s); zestrzelone (`dead`)
+ * wybuchają w `StrikeLayer`.
+ */
+function usePodSounds(ships: OrbitItem[]): void {
+  const drop = ships.filter((s) => s.state === "drop").length;
+  const land = ships.filter((s) => s.state === "land").length;
+  useEffect(() => {
+    if (drop + land === 0) return;
+    const fall = drop > 0 ? 2350 : 1600;
+    const timers = [
+      window.setTimeout(() => playBattleSound("dropPod", { gain: 0.6 }), 0),
+      window.setTimeout(() => playBattleSound("podLand", { gain: 0.8 }), fall),
+    ];
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [drop, land]);
+}
+
+/**
  * Scena planety: orbita ze statkami (``children``), okrągły glob z kopułą tarczy i warstwa
  * salwy. Powierzchnia to grafika planety wycięta z jej kafelka; bez niej - gradienty CSS
  * dobierane po typie planety.
@@ -124,6 +144,7 @@ export function PlanetStage({
   children?: ReactNode;
   strike: ReactNode;
 }) {
+  usePodSounds(ships);
   return (
     <div className={styles.stage} style={globeVars(globeR)}>
       <div className={styles.orbitRow} aria-label="Ships in orbit">
@@ -169,6 +190,58 @@ export function PlanetStage({
     </div>
   );
 }
+
+/** Jedno zaplanowane odtworzenie dźwięku salwy (ms od startu warstwy). */
+export type StrikeSound = {
+  ms: number;
+  name: SoundName;
+  gain: number;
+  heavy?: boolean;
+};
+
+/** Najwięcej dźwięków jednej salwy — duże bombardowanie nie zamienia się w ścianę hałasu. */
+const MAX_STRIKE_SOUNDS = 14;
+
+/**
+ * Dźwięki salwy zsynchronizowane z animacją: bombardowanie = wystrzał z okrętu i wybuch na
+ * powierzchni (pudło gaśnie cicho w atmosferze), war sun = lanca; Space Cannon Defense =
+ * wyładowanie z ziemi i wybuch zestrzelonej kapsuły. Czasy jak w CSS / ``StrikeLayer``.
+ */
+export function strikeSounds(
+  entry: InvasionLogEntry,
+  from: "orbit" | "ground",
+  lead: number,
+): StrikeSound[] {
+  const bolts = entry.rolls.flatMap((r) =>
+    r.dice.map((d) => ({ hit: d >= r.hitsOn, sun: r.baseType === "warsun" })),
+  );
+  const out = bolts.flatMap((b, n): StrikeSound[] => {
+    if (from === "ground") {
+      const t = lead + n * STAGGER_GROUND;
+      const fire: StrikeSound = { ms: t, name: "plasma", gain: 0.45 };
+      return b.hit
+        ? [fire, { ms: t + FLAK_BURST_MS, name: "explosion", gain: 0.7 }]
+        : [fire];
+    }
+    const t = lead + n * STAGGER_ORBIT;
+    if (b.sun) {
+      const fire: StrikeSound = { ms: t, name: "sunfire", gain: 0.9 };
+      return b.hit
+        ? [fire, { ms: t + LANCE_MS, name: "groundBlast", gain: 1, heavy: true }]
+        : [fire];
+    }
+    return [
+      { ms: t, name: "plasma", gain: 0.5 },
+      b.hit
+        ? { ms: t + FLIGHT_MS, name: "groundBlast", gain: 0.85 }
+        : { ms: t + FIZZLE_MS, name: "flak", gain: 0.25 },
+    ];
+  });
+  return out.sort((a, b) => a.ms - b.ms).slice(0, MAX_STRIKE_SOUNDS);
+}
+
+/** Wybuch flaku na kapsule: tyle ms po strzale (`flakBurst` w CSS). */
+const FLAK_BURST_MS = 780;
 
 /** Pseudolosowa, ale stała wartość (0..1) z numeru pocisku. */
 function spread(n: number, salt: number): number {
@@ -467,6 +540,23 @@ export function StrikeLayer({
     const t = window.setTimeout(() => setFinished(entryId), total);
     return () => window.clearTimeout(t);
   }, [fresh, entryId, total]);
+  // Dźwięki salwy — raz na świeży wpis dziennika (bez zależności od zmieniających się propsów).
+  const plan = useRef<{ id: number; sounds: StrikeSound[] } | null>(null);
+  if (fresh && entry && plan.current?.id !== entryId) {
+    plan.current = { id: entryId, sounds: strikeSounds(entry, from, lead) };
+  }
+  useEffect(() => {
+    const sounds = plan.current?.id === entryId ? plan.current.sounds : [];
+    if (!fresh || sounds.length === 0) return;
+    const pan = from === "orbit" ? 0 : 0.2;
+    const timers = sounds.map((s) =>
+      window.setTimeout(
+        () => playBattleSound(s.name, { pan, gain: s.gain, heavy: s.heavy }),
+        s.ms,
+      ),
+    );
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [fresh, entryId, from]);
 
   if (!fresh || finished === entryId) return null;
 

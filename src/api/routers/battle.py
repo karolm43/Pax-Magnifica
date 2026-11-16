@@ -6,6 +6,8 @@ Cienka warstwa nad ``core.battle``: odczyt stanu → core → commit → broadca
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src import config
 from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
+from src.api.routers.audio import audio_files as _audio_files
 from src.api.schemas import (
     BattleAbilityToolView,
     BattleAnnounceRetreatRequest,
@@ -237,14 +240,18 @@ def _items(items: list[BattleLossItem]) -> dict[str, int]:
 
 @router.get("/battle/sounds")
 def get_battle_sounds() -> dict[str, list[str]]:
-    """Nazwy opcjonalnych próbek dźwięku walki leżących w ``assets/extra/sfx/*.mp3``.
+    """Próbki dźwięku walki: ``assets/extra/sfx/*`` (stary układ) i ``assets/extra/sfx/battle/*``.
 
-    Front pyta o listę RAZ, zamiast próbować każdy plik (każdy brak = czerwony 404 w konsoli
-    przeglądarki); nazwy spoza listy grają syntezą.
+    ``files`` = ścieżki względem ``assets/extra/sfx/`` (serwowane pod ``/static/extra/sfx/``);
+    nazwa ``laser-2.ogg`` to 2. WARIANT zdarzenia ``laser`` (front losuje wariant). ``sounds`` =
+    nazwy zdarzeń, które mają co najmniej jedną próbkę. Front pyta o listę RAZ, zamiast próbować
+    każdy plik (każdy brak = czerwony 404 w konsoli); zdarzenia spoza listy grają syntezą.
     """
     folder = config.ASSETS_DIR / "extra" / "sfx"
-    names = sorted(path.stem for path in folder.glob("*.mp3")) if folder.is_dir() else []
-    return {"sounds": names}
+    files = _audio_files(folder)
+    files += [f"battle/{name}" for name in _audio_files(folder / "battle")]
+    sounds = sorted({re.sub(r"-\d+$", "", Path(name).stem) for name in files})
+    return {"sounds": sounds, "files": files}
 
 
 @router.get("/tactical/battle", response_model=BattleResponse, response_model_by_alias=True)

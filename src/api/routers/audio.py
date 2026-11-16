@@ -25,7 +25,7 @@ router = APIRouter(prefix="/audio", tags=["audio"])
 AUDIO_EXTENSIONS = {".mp3", ".ogg", ".opus", ".wav", ".m4a", ".aac", ".flac", ".webm"}
 
 
-def _audio_files(folder: Path) -> list[str]:
+def audio_files(folder: Path) -> list[str]:
     """Nazwy plików audio bezpośrednio w katalogu (posortowane; pusty, gdy brak katalogu)."""
     if not folder.is_dir():
         return []
@@ -41,26 +41,26 @@ def build_manifest(assets_dir: Path) -> dict[str, object]:
     if voices_dir.is_dir():
         for sub in sorted(voices_dir.iterdir()):
             if sub.is_dir() and sub.name != "transmissions":
-                files = _audio_files(sub)
+                files = audio_files(sub)
                 if files:
                     voices[sub.name] = files
     music_dir = assets_dir / "music"
     # Klucz "" = pliki leżące wprost w assets/music/ (bez podziału na nastroje).
     music: dict[str, list[str]] = {}
-    root_tracks = _audio_files(music_dir)
+    root_tracks = audio_files(music_dir)
     if root_tracks:
         music[""] = root_tracks
     if music_dir.is_dir():
         for sub in sorted(music_dir.iterdir()):
             if sub.is_dir():
-                files = _audio_files(sub)
+                files = audio_files(sub)
                 if files:
                     music[sub.name] = files
     return {
         "voices": voices,
-        "transmissions": _audio_files(voices_dir / "transmissions"),
+        "transmissions": audio_files(voices_dir / "transmissions"),
         "music": music,
-        "ui": _audio_files(assets_dir / "extra" / "sfx" / "ui"),
+        "ui": audio_files(assets_dir / "extra" / "sfx" / "ui"),
     }
 
 
