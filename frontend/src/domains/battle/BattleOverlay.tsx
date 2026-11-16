@@ -29,6 +29,7 @@ import { getTileById } from "@/entities/lookup/systems";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import {
+  assignableShips,
   autoMarks,
   coveredCount,
   expandShips,
@@ -40,13 +41,13 @@ import {
 } from "./battleAssign";
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet, resetFleetEntries } from "./BattleFleet";
-import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
+import { useOfferActions, useOffers } from "@/api/useOffers";
 import { buildActionCardParams } from "@/api/useActionCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import type { BattleEffect } from "@/api/useBoardEditor";
 import { BattleCenter, type PickNote } from "./BattleCenter";
-import { shipPickOffers } from "./shipPick";
+import { optionMatchesShip, shipPickSteps, type ShipPickStep } from "./shipPick";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import type { HoldState } from "@/domains/dice/HoldRollButton";
 import { DiceTray } from "./DiceTray";
@@ -637,12 +638,11 @@ function Battlefield({
   const skipEntry = view.log.length > 0 || view.step === "ASSIGN";
 
   // Znaczniki strat są ważne tylko dla bieżącego przypisania (runda + gracz + salwa).
-  const assignKey = `${view.round}:${view.assigning ?? ""}:${view.log.length}`;
+  const assignKey = `${view.round}:${view.assigning ?? ""}:${view.log.length}:${view.step}`;
   const [marksState, setMarksState] = useState<{
     key: string;
     marks: Record<string, Mark>;
   }>({ key: "", marks: {} });
-  const marks = marksState.key === assignKey ? marksState.marks : {};
   const assigningSide =
     view.assigning === attacker.faction
       ? attacker
@@ -658,6 +658,15 @@ function Battlefield({
   const required = view.assigning ? (view.required[view.assigning] ?? 0) : 0;
   // Non-Euclidean Shielding: tarcza anuluje 2 trafienia (wartość z silnika).
   const cancels = assigningSide?.sustainCancels ?? 1;
+  // Wymuszony cel (Devotion: statek wskazany przez Yin; Impulse Core: nie-myśliwce) - klikalne
+  // tylko te okręty; gdy cel wskazał przeciwnik, znacznik stoi już na wskazanym statku.
+  const hitTarget = view.assigning ? view.hitTargets?.[view.assigning] : undefined;
+  const allowedShips = assignableShips(assigningShips, hitTarget, required);
+  const allowedIds = new Set(allowedShips.map((s) => s.id));
+  const presetMarks = hitTarget?.chooser
+    ? autoMarks(allowedShips, required, cancels)
+    : {};
+  const marks = marksState.key === assignKey ? marksState.marks : presetMarks;
   const covered = coveredCount(marks, required, cancels);
   const ready = view.assigning !== null && isCovered(marks, required, cancels);
 
@@ -665,48 +674,98 @@ function Battlefield({
     setMarksState({ key: assignKey, marks: next });
 
   // Nie pozwól pokryć więcej trafień, niż trzeba — wtedy znacznik znika.
-  const toggle = (ship: ShipEntity) =>
+  const toggle = (ship: ShipEntity) => {
+    if (!allowedIds.has(ship.id)) return;
     setMarks(toggleMark(marks, ship, required, cancels));
+  };
+  const targetNote = (() => {
+    if (!hitTarget || !assigningSide) return null;
+    const names = hitTarget.types
+      .map((t) => assigningSide.units.find((u) => u.baseType === t)?.name ?? t)
+      .join(", ");
+    const hits = hitTarget.count === 1 ? "the hit" : `${hitTarget.count} hits`;
+    const state =
+      hitTarget.damaged === true
+        ? "damaged "
+        : hitTarget.damaged === false
+          ? "undamaged "
+          : "";
+    if (hitTarget.chooser) {
+      return `${hitTarget.label}: ${players(hitTarget.chooser).name} assigned ${hits} to the ${state}${names}. Only that ship's Sustain Damage can cancel it.`;
+    }
+    return `${hitTarget.label}: assign ${hits} to ${names} if able.`;
+  })();
 
-  // Decyzje „wskaż okręt" (Assault Cannon...): okręty strony, która decyduje, stają się
-  // klikalne — u każdej strony osobno, bo obie mogą decydować jednocześnie.
+  // Decyzje „wskaż okręt" (Assault Cannon, Duranium Armor, Devotion): okręty strony, której
+  // dotyczy bieżący krok decyzji, stają się klikalne dla DECYDUJĄCEGO gracza. Oferta z kilkoma
+  // wejściami (Devotion: własny statek, potem wrogi) zbiera wybory kolejnymi kliknięciami.
+  const [pickChosen, setPickChosen] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const forgetPick = (offerId: string) =>
+    setPickChosen((prev) => {
+      const next = { ...prev };
+      delete next[offerId];
+      return next;
+    });
   const picks = offersPending
-    ? shipPickOffers(offers, [attacker.playerId, defender.playerId])
-    : new Map<string, OfferView>();
+    ? shipPickSteps(offers, [attacker.playerId, defender.playerId], pickChosen)
+    : new Map<string, ShipPickStep>();
   const pickFor = (side: BattleSide) => {
-    const offer = picks.get(side.playerId);
-    if (!offer || view.resolving || !canAct(side.playerId)) return null;
-    const input = offer.inputs[0];
-    if (input.kind !== "choice") return null;
+    const step = picks.get(side.playerId);
+    if (!step || view.resolving || !canAct(step.offer.player_id)) return null;
+    const { offer, input } = step;
+    const optionFor = (ship: ShipEntity) =>
+      input.options.find((o) => optionMatchesShip(o, ship));
     return {
-      types: new Set(input.options.map((o) => String(o.meta?.unit))),
+      can: (ship: ShipEntity) => optionFor(ship) !== undefined,
       label: `${offer.name} — ${input.label}`,
       onPick: (ship: ShipEntity) => {
-        const option = input.options.find(
-          (o) => String(o.meta?.unit) === ship.baseType,
-        );
+        const option = optionFor(ship);
         if (!option) return;
-        const { params } = buildActionCardParams(offer.inputs, {
-          [input.key]: option.id,
+        const chosen = { ...step.chosen, [input.key]: option.id };
+        if (!offer.inputs.every((i) => i.key in chosen)) {
+          setPickChosen((prev) => ({ ...prev, [offer.id]: chosen }));
+          return;
+        }
+        const { params } = buildActionCardParams(offer.inputs, chosen);
+        void run(async () => {
+          try {
+            await offerActions.accept(offer.player_id, offer.id, params);
+          } finally {
+            forgetPick(offer.id);
+          }
         });
-        void run(() =>
-          offerActions.accept(offer.player_id, offer.id, params),
-        );
       },
     };
   };
   const pickNotes: PickNote[] = [attacker, defender].flatMap((side) => {
-    const offer = picks.get(side.playerId);
-    if (!offer) return [];
+    const step = picks.get(side.playerId);
+    if (!step) return [];
+    const { offer, input } = step;
+    const decider = [attacker, defender].find(
+      (s) => s.playerId === offer.player_id,
+    );
+    const earlier = Object.entries(step.chosen).map(([key, id]) => {
+      const field = offer.inputs.find((i) => i.key === key);
+      const option =
+        field && field.kind === "choice"
+          ? field.options.find((o) => o.id === id)
+          : undefined;
+      return option?.label ?? id;
+    });
     return [
       {
         key: offer.id,
         title: offer.name,
-        who: players(side.faction).name,
-        label: offer.inputs[0]?.label ?? "Choose a ship",
-        mode: !canAct(side.playerId)
+        who: decider ? players(decider.faction).name : offer.player_id,
+        label: input.label,
+        enemy: step.owner !== offer.player_id,
+        chosen: earlier,
+        onReset: earlier.length > 0 ? () => forgetPick(offer.id) : undefined,
+        mode: !canAct(offer.player_id)
           ? "waiting"
-          : me?.player_id === side.playerId
+          : me?.player_id === offer.player_id
             ? "you"
             : "control",
       },
@@ -848,6 +907,7 @@ function Battlefield({
             view.step === "ASSIGN" && view.assigning === attacker.faction
           }
           marks={view.assigning === attacker.faction ? marks : {}}
+          assignable={(ship) => allowedIds.has(ship.id)}
           onToggle={toggle}
           entryKey={`${view.position}|${view.kind}|${view.planet ?? ""}|${attacker.faction}`}
           pick={pickFor(attacker)}
@@ -865,7 +925,8 @@ function Battlefield({
           pickNotes={pickNotes}
           onAfb={() => void run(battleAfb)}
           onRoll={() => void run(battleRoll)}
-          onAuto={() => setMarks(autoMarks(assigningShips, required, cancels))}
+          onAuto={() => setMarks(autoMarks(allowedShips, required, cancels))}
+          targetNote={targetNote}
           onClearMarks={() => setMarks({})}
           onConfirmAssign={() =>
             view.assigning &&
@@ -903,6 +964,7 @@ function Battlefield({
             view.step === "ASSIGN" && view.assigning === defender.faction
           }
           marks={view.assigning === defender.faction ? marks : {}}
+          assignable={(ship) => allowedIds.has(ship.id)}
           onToggle={toggle}
           entryKey={`${view.position}|${view.kind}|${view.planet ?? ""}|${defender.faction}`}
           pick={pickFor(defender)}

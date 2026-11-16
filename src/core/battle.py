@@ -368,30 +368,44 @@ def add_start_hits(
     amount: int,
     *,
     only: list[str] | None = None,
+    damaged: bool | None = None,
+    chooser: str = "",
     label: str = "",
 ) -> None:
     """Trafienia z rzutu „na starcie walki” przeciw ``against`` (Ambush) — MUTUJE ``state``.
 
     Przypisuje je przeciwnik w zwykłym kroku ASSIGN (Sustain Damage, karty reakcji), zanim walka
     przejdzie do AFB i 1. rundy (``_open_start_assign``, RULES.md 62.8). ``only`` = typy jednostek,
-    na które te trafienia MUSZĄ paść (Impulse Core: nie-myśliwce „if able”, RULES.md 62.10).
+    na które te trafienia MUSZĄ paść (Impulse Core: nie-myśliwce „if able”, RULES.md 62.10);
+    ``damaged`` + ``chooser`` = konkretną jednostkę wskazał ``chooser`` (Magen Defense Grid Ω:
+    właściciel technologii, C_technology) - ``against`` decyduje już tylko o jej Sustain Damage.
     """
     combat = _combat(state)
     if amount > 0:
         total = combat.start_hits.get(against, 0) + amount
         combat.start_hits = {**combat.start_hits, against: total}
         if only:
-            _add_hit_target(combat, against, only, amount, label)
+            _add_hit_target(
+                combat, against, only, amount, label, damaged=damaged, chooser=chooser
+            )
 
 
 def add_round_end_hits(
-    state: GameState, against: str, amount: int, *, only: list[str], label: str = ""
+    state: GameState,
+    against: str,
+    amount: int,
+    *,
+    only: list[str],
+    damaged: bool | None = None,
+    chooser: str = "",
+    label: str = "",
 ) -> None:
     """Trafienia „po rundzie walki” przeciw ``against`` (Devotion) — MUTUJE ``state``.
 
-    Przypisuje je ``against`` w zwykłym kroku ASSIGN otwieranym po hookach końca rundy (Sustain
-    Damage, Shields Holding), na wskazany typ (``only``). Potem runda kończy się bez ponownych
-    zdarzeń końca rundy (RULES.md 62.10).
+    Cel wskazuje ``chooser`` (Devotion: Yin wybiera KONKRETNY statek - F_yin): typ ``only``
+    i stan ``damaged`` (``True`` = uszkodzony egzemplarz, ``False`` = nieuszkodzony). ``against``
+    w kroku ASSIGN decyduje już tylko, czy ten statek użyje Sustain Damage (albo zagrywa
+    Shields Holding). Potem runda kończy się bez ponownych zdarzeń końca rundy (RULES.md 62.10).
     """
     combat = _combat(state)
     if amount <= 0:
@@ -399,19 +413,29 @@ def add_round_end_hits(
     combat.round_end_hits = {
         **combat.round_end_hits, against: combat.round_end_hits.get(against, 0) + amount
     }
-    _add_hit_target(combat, against, only, amount, label)
+    _add_hit_target(combat, against, only, amount, label, damaged=damaged, chooser=chooser)
 
 
 def _add_hit_target(
-    combat: ActiveCombat, against: str, types: list[str], amount: int, label: str
+    combat: ActiveCombat,
+    against: str,
+    types: list[str],
+    amount: int,
+    label: str,
+    *,
+    damaged: bool | None = None,
+    chooser: str = "",
 ) -> None:
     current = combat.hit_targets.get(against)
     count = amount + (int(current["count"]) if current else 0)
     merged = sorted(set(types) | set(current["types"] if current else []))
-    combat.hit_targets = {
-        **combat.hit_targets,
-        against: {"types": merged, "count": count, "label": label or "this effect"},
-    }
+    target: dict[str, Any] = {"types": merged, "count": count, "label": label or "this effect"}
+    # Stan uszkodzenia ma sens tylko dla jednego, wskazanego statku (bez łączenia celów).
+    if damaged is not None and current is None:
+        target["damaged"] = damaged
+    if chooser:
+        target["chooser"] = chooser
+    combat.hit_targets = {**combat.hit_targets, against: target}
 
 
 def _check_hit_targets(
@@ -429,18 +453,37 @@ def _check_hit_targets(
     if not target:
         return
     types = set(target["types"])
-    able = sum(u.count + (u.sustainable or 0) for bt, u in units.items() if bt in types)
+    damaged = target.get("damaged")
+    if damaged is True and not any(u.damaged for bt, u in units.items() if bt in types):
+        # Wskazany statek naprawiono przed przypisaniem (Duranium Armor w tym samym oknie końca
+        # rundy) - to nadal ten statek, teraz nieuszkodzony.
+        damaged = False
+    sustain, destroy, destroy_damaged = plan_parts
+
+    def _n(part: dict[str, int], bt: str) -> int:
+        return max(0, part.get(bt, 0))
+
+    if damaged is True:
+        # Wskazany USZKODZONY statek: tylko zniszczenie uszkodzonego, który nie użył teraz
+        # Sustain Damage (inne statki nie anulują tego trafienia - F_yin).
+        able = sum(u.damaged for bt, u in units.items() if bt in types)
+        landed = sum(max(0, _n(destroy_damaged, bt) - _n(sustain, bt)) for bt in types)
+    elif damaged is False:
+        # Wskazany NIEUSZKODZONY statek: jego Sustain Damage albo zniszczenie.
+        able = sum(u.count - u.damaged for bt, u in units.items() if bt in types)
+        landed = sum(_n(sustain, bt) + _n(destroy, bt) for bt in types)
+    else:
+        able = sum(u.count + (u.sustainable or 0) for bt, u in units.items() if bt in types)
+        landed = sum(_n(part, bt) for part in (sustain, destroy, destroy_damaged) for bt in types)
     need = min(int(target["count"]), required, able)
     if need <= 0:
         return
-    sustain, destroy, destroy_damaged = plan_parts
-    landed = sum(
-        max(0, part.get(bt, 0)) for part in (sustain, destroy, destroy_damaged) for bt in types
-    )
     if landed < need:
         names = ", ".join(units[bt].name for bt in sorted(types) if bt in units)
+        state_word = "damaged " if damaged is True else "undamaged " if damaged is False else ""
         raise ValueError(
-            f"Assign {need} hit(s) from {target.get('label', 'this effect')} to: {names}."
+            f"Assign {need} hit(s) from {target.get('label', 'this effect')} to the "
+            f"{state_word}{names}."
         )
 
 
@@ -500,6 +543,10 @@ def resume_after_triggers(
         return _apply_afb(new_state, grid, registry)
     if resume == _RESUME_ASSIGN:
         return _open_assign(new_state, grid, registry)
+    if resume == _RESUME_RETREAT:
+        # Straty rundy przypisane: ponownie oceń krok Retreat (strona mogła stracić statki).
+        combat.step = CombatStep.ASSIGN
+        return _after_losses(new_state, grid, registry)
     combat.step = CombatStep.ROLL
     return _after_start(new_state, grid, registry)
 
@@ -622,6 +669,7 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
 
 _RESUME_AFB = "afb_apply"
 _RESUME_ASSIGN = "assign"  # po ofertach „po rzucie”: otwórz przypisanie strat
+_RESUME_RETREAT = "retreat"  # po decyzjach ze strat (Brother Milor): krok Retreat albo koniec rundy
 
 
 def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
@@ -1091,8 +1139,22 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
             combat.step = CombatStep.TRIGGERS
             return new_state
         return _finish_round(new_state, grid, registry)
-    last = combat.log[-1] if combat.log else {}
+    # Wpis salwy tej rundy (po odwrocie ostatni jest wpis RETREAT - bez „sustained”).
+    last: dict[str, Any] = next(
+        (e for e in reversed(combat.log) if e.get("phase") != "RETREAT"), {}
+    )
     is_roll_round = combat.step is not CombatStep.AFB and not combat.afb_assign
+    if is_roll_round and _retreat_due(new_state, grid, registry):
+        # Krok 5 (Retreat) idzie PRZED zdarzeniami „po rundzie walki” (R_space_combat; F_yin,
+        # F_norr: po odwrocie Devotion/Exotrireme II nie trafią uciekiniera). Zdarzenia końca
+        # rundy odpalą się raz - po odwrocie (``retreat_from_combat`` → ``_after_losses``).
+        if new_state.pending_offers:
+            # Decyzje ze strat tej rundy (np. Brother Milor) najpierw - odwrót czeka.
+            combat.resume = _RESUME_RETREAT
+            combat.step = CombatStep.TRIGGERS
+            return new_state
+        combat.step = CombatStep.RETREAT
+        return new_state
     triggers.fire(
         new_state, GameEvent.COMBAT_ROUND, Moment.END,
         ctx={
@@ -1111,6 +1173,21 @@ def _after_losses(state: GameState, grid: HexGrid, registry: StaticDataRegistry)
         combat.step = CombatStep.TRIGGERS
         return new_state
     return _finish_round(new_state, grid, registry)
+
+
+def _retreat_due(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> bool:
+    """Czy po przypisaniu strat rundy następuje krok Retreat (39.5 O3).
+
+    Ogłoszony odwrót odbywa się, gdy obie strony mają jeszcze statki i jest dozwolony cel;
+    inaczej walka kończy się (albo trwa) bez odwrotu - jak w ``_finish_round``.
+    """
+    combat = _combat(state)
+    if not combat.retreating or combat.step is CombatStep.RETREAT:
+        return False
+    sides = (combat.attacker, combat.defender)
+    if any(not side_units(state, grid, registry, pid) for pid in sides):
+        return False
+    return bool(retreat_destinations(state, grid, combat.position, combat.retreating[0]))
 
 
 def _open_round_end_assign(

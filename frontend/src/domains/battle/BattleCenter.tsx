@@ -142,6 +142,12 @@ export type PickNote = {
   label: string;
   /** you = moja decyzja; control = steruję tym graczem (lokalnie / tryb testowy); waiting = czekam. */
   mode: "you" | "control" | "waiting";
+  /** Bieżący krok wskazuje okręt PRZECIWNIKA decydującego (Devotion: cel trafienia). */
+  enemy?: boolean;
+  /** Wybory z wcześniejszych kroków (pełne nazwy z silnika), np. własny krążownik Devotion. */
+  chosen?: string[];
+  /** Cofnięcie wcześniejszych kroków (wybór od nowa). */
+  onReset?: () => void;
 };
 
 /**
@@ -157,6 +163,7 @@ export function BattleCenter({
   ready: readyProp,
   cancels = 1,
   pickNotes = [],
+  targetNote = null,
   onAfb,
   onRoll,
   onAuto,
@@ -190,6 +197,8 @@ export function BattleCenter({
   cancels?: number;
   /** Decyzje „wskaż okręt" (np. ofiara Assault Cannon) — po jednej na stronę, która decyduje. */
   pickNotes?: PickNote[];
+  /** Wymuszony cel trafień przypisującego (Devotion: statek wskazany przez Yin). */
+  targetNote?: string | null;
   onAfb: () => void;
   onRoll: () => void;
   onAuto: () => void;
@@ -271,16 +280,19 @@ export function BattleCenter({
               <b className={styles.pickTitle}>
                 <IconTargetArrow size={15} aria-hidden="true" /> {note.title}
               </b>
+              {note.chosen && note.chosen.length > 0 && (
+                <>Chosen: {note.chosen.join(", ")}. </>
+              )}
               {note.mode === "you" && (
                 <>
-                  Your decision — {note.label.toLowerCase()}: click one of your
-                  highlighted ships.
+                  Your decision — {note.label.toLowerCase()}: click one of the
+                  highlighted {note.enemy ? "enemy" : "your"} ships.
                 </>
               )}
               {note.mode === "control" && (
                 <>
                   <b>{note.who}</b> decides — {note.label.toLowerCase()}: click one
-                  of the highlighted {note.who} ships.
+                  of the highlighted {note.enemy ? "enemy" : `${note.who}`} ships.
                 </>
               )}
               {note.mode === "waiting" && (
@@ -289,6 +301,18 @@ export function BattleCenter({
                 </>
               )}
             </p>
+            {note.onReset && note.mode !== "waiting" && (
+              <div className={styles.assignBtns}>
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={busy}
+                  onClick={note.onReset}
+                >
+                  Choose again
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
@@ -390,6 +414,11 @@ export function BattleCenter({
             (cancels {cancels === 1 ? "a hit" : `${cancels} hits`}),{" "}
             <span className={styles.legendSkull}>skull</span> = destroyed.
           </p>
+          {targetNote && (
+            <p className={styles.notice} data-target-note>
+              <IconTargetArrow size={15} aria-hidden="true" /> {targetNote}
+            </p>
+          )}
           <div className={styles.assignMeter} data-ready={ready || undefined}>
             <span
               style={{

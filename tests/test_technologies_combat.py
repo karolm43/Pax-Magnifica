@@ -152,6 +152,20 @@ def test_magen_stawia_piechote_przy_kazdej_strukturze_gdy_ktokolwiek_aktywuje_sy
     assert state.systems["000"].planet_units["pl"]["p2"]["infantry"] == 3
 
 
+def _victim_assigns(
+    state: GameState, registry: StaticDataRegistry, **plan: dict[str, int]
+) -> GameState:
+    """Obrońca (p1) przypisuje trafienie Magen we wskazaną jednostkę (krok ASSIGN startu walki)."""
+    combat = state.active_combat
+    assert combat is not None and combat.step is CombatStep.ASSIGN
+    assert combat.hit_targets["p1"]["chooser"] == "p2"  # cel wskazał właściciel Magen
+    return battle.assign_combat_hits(
+        state, battle_grid(), registry, "p1",
+        sustain=plan.get("sustain", {}), destroy=plan.get("destroy", {}),
+        destroy_damaged=plan.get("destroy_damaged", {}),
+    )
+
+
 def test_magen_trafia_siły_naziemne_przeciwnika_na_starcie_walki(
     registry: StaticDataRegistry,
 ) -> None:
@@ -160,7 +174,9 @@ def test_magen_trafia_siły_naziemne_przeciwnika_na_starcie_walki(
     )
     state.tactical_step = TacticalStep.INVASION
     _with_tech(state, "p2", "md")
-    started = _start_magen(state, registry, "infantry")
+    started = _victim_assigns(
+        _start_magen(state, registry, "infantry"), registry, destroy={"infantry": 1}
+    )
     assert started.systems["000"].planet_units["pl"]["p1"] == {"infantry": 1}
 
 
@@ -170,7 +186,9 @@ def test_magen_moze_wygrac_walke_zabijajac_ostatnia_jednostke(
     state = battle_state(planet={"p1": {"infantry": 1}, "p2": {"infantry": 1, "pds": 1}})
     state.tactical_step = TacticalStep.INVASION
     _with_tech(state, "p2", "md")
-    started = _start_magen(state, registry, "infantry")
+    started = _victim_assigns(
+        _start_magen(state, registry, "infantry"), registry, destroy={"infantry": 1}
+    )
     combat = started.active_combat
     assert combat is not None and combat.step is CombatStep.DONE and combat.winner == "p2"
 
@@ -178,13 +196,40 @@ def test_magen_moze_wygrac_walke_zabijajac_ostatnia_jednostke(
 def test_magen_mech_z_sustain_damage_zostaje_uszkodzony_zamiast_zginac(
     registry: StaticDataRegistry,
 ) -> None:
-    state = battle_state(planet={"p1": {"mech": 1}, "p2": {"infantry": 2, "pds": 1}})
+    """C_technology: wskazana jednostka MOŻE anulować trafienie swoim Sustain Damage."""
+    state = battle_state(planet={"p1": {"mech": 1, "infantry": 1}, "p2": {"infantry": 2, "pds": 1}})
     state.tactical_step = TacticalStep.INVASION
     _with_tech(state, "p2", "md")
     started = _start_magen(state, registry, "mech")
+    with pytest.raises(ValueError):  # trafienie wskazał właściciel Magen - nie piechota
+        _victim_assigns(started, registry, destroy={"infantry": 1})
+    started = _victim_assigns(started, registry, sustain={"mech": 1})
+    system = started.systems["000"]
+    assert system.planet_units["pl"]["p1"] == {"mech": 1, "infantry": 1}
+    assert damage.damaged_count(system, "pl", "p1", "mech") == 1
+
+
+def test_magen_wlasciciel_wskazuje_uszkodzonego_mecha(registry: StaticDataRegistry) -> None:
+    """C_technology: właściciel wybiera KONKRETNĄ jednostkę - uszkodzony mech ginie, a Sustain
+    Damage innego mecha nie anuluje tego trafienia."""
+    state = battle_state(planet={"p1": {"mech": 2}, "p2": {"infantry": 2, "pds": 1}})
+    state.systems["000"].damaged_units = {"pl": {"p1": {"mech": 1}}}
+    state.tactical_step = TacticalStep.INVASION
+    _with_tech(state, "p2", "md")
+    started = battle.start_combat(state, battle_grid(), registry, "pl")
+    offer = started.pending_offers[0]
+    inputs = offers.offer_view(started, registry, offer)["inputs"]
+    values = {o["value"]: o["meta"]["damaged"] for o in inputs[0]["options"]}
+    assert values == {"mech": False, "mech:damaged": True}
+    started = offers.accept(
+        started, battle_grid(), registry, "p2", offer.id, {"target": "mech:damaged"}
+    )
+    with pytest.raises(ValueError):
+        _victim_assigns(started, registry, sustain={"mech": 1})
+    started = _victim_assigns(started, registry, destroy_damaged={"mech": 1})
     system = started.systems["000"]
     assert system.planet_units["pl"]["p1"] == {"mech": 1}
-    assert damage.damaged_count(system, "pl", "p1", "mech") == 1
+    assert damage.damaged_count(system, "pl", "p1", "mech") == 0
 
 
 def test_magen_bez_struktury_nie_dziala(registry: StaticDataRegistry) -> None:

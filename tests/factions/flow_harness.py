@@ -351,9 +351,9 @@ class Flow:
                 self.decline_all()
             elif step == "ANNOUNCE":
                 self.post("/tactical/battle/announce-retreat",
-                          {"faction": self.me, "retreat": False}, ok=False)
+                          {"faction": self.me, "announce": False}, ok=False)
                 self.post("/tactical/battle/announce-retreat",
-                          {"faction": self.other, "retreat": False}, ok=False)
+                          {"faction": self.other, "announce": False}, ok=False)
             else:
                 raise AssertionError(f"Unexpected combat step {step}")
         raise AssertionError("Combat did not finish.")

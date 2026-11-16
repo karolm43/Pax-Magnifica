@@ -2,6 +2,7 @@ import type {
   BattleAssignPlan,
   BattleSide,
   BattleUnit,
+  HitTarget,
 } from "@/api/useBoardEditor";
 
 /**
@@ -204,4 +205,25 @@ export function autoMarks(
     }
   }
   return marks;
+}
+
+/**
+ * Egzemplarze, które wolno teraz oznaczyć. Gdy wymuszony cel obejmuje wszystkie trafienia
+ * i jest na polu — tylko on (Devotion: wskazany statek, Impulse Core: nie-myśliwce „if able”).
+ * Wskazany uszkodzony statek naprawiony w międzyczasie = ten sam typ, nieuszkodzony (jak silnik).
+ */
+export function assignableShips(
+  ships: ShipEntity[],
+  target: HitTarget | null | undefined,
+  required: number,
+): ShipEntity[] {
+  if (!target || target.count < required) return ships;
+  const ofType = ships.filter((s) => target.types.includes(s.baseType));
+  let damaged = target.damaged;
+  if (damaged === true && !ofType.some((s) => s.damaged)) damaged = false;
+  const hit =
+    damaged === null ? ofType : ofType.filter((s) => s.damaged === damaged);
+  if (hit.length === 0) return ships;
+  // Wskazany jeden statek: wystarczy jeden egzemplarz (wszystkie tego stanu są równoważne).
+  return target.chooser && damaged !== null ? hit.slice(0, target.count) : hit;
 }

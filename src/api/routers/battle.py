@@ -18,6 +18,7 @@ from src.api.schemas import (
     BattleAnnounceRetreatRequest,
     BattleAssignRequest,
     BattleEffectView,
+    BattleHitTargetView,
     BattleLogView,
     BattleLossItem,
     BattleRelicAdjustRequest,
@@ -182,6 +183,17 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         pending_hits={key(pid): n for pid, n in combat.pending_hits.items() if n > 0},
         required=required,
         assigning=assigning,
+        hit_targets={
+            key(pid): BattleHitTargetView(
+                types=[str(t) for t in target.get("types", [])],
+                count=int(target.get("count", 0)),
+                label=str(target.get("label", "")),
+                damaged=target.get("damaged"),
+                chooser=key(str(target["chooser"])) if target.get("chooser") else "",
+            )
+            for pid, target in combat.hit_targets.items()
+            if combat.pending_hits.get(pid, 0) > 0
+        },
         rolls=by_key(combat.rolls),
         afb=by_key(combat.afb),
         log=log,

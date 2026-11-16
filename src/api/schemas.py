@@ -1323,6 +1323,20 @@ class BattleAbilityToolView(BaseModel):
     max: int
 
 
+class BattleHitTargetView(BaseModel):
+    """Wymuszony cel trafień strony (Devotion: wskazany statek; Impulse Core: nie-myśliwce).
+
+    ``damaged`` = stan wskazanego egzemplarza (``None`` = dowolny tego typu); ``chooser`` =
+    strona (klucz frakcji), która wskazała cel (pusta, gdy wybiera sam przypisujący).
+    """
+
+    types: list[str]
+    count: int
+    label: str
+    damaged: bool | None = None
+    chooser: str = ""
+
+
 class BattleResponse(BaseModel):
     """Pełny stan okna pola bitwy (jeden odczyt na całe okno)."""
 
@@ -1340,6 +1354,9 @@ class BattleResponse(BaseModel):
     pending_hits: dict[str, int] = Field(default_factory=dict, serialization_alias="pendingHits")
     required: dict[str, int] = Field(default_factory=dict)
     assigning: str | None = None
+    hit_targets: dict[str, BattleHitTargetView] = Field(
+        default_factory=dict, serialization_alias="hitTargets"
+    )
     rolls: dict[str, list[BattleRollView]] = Field(default_factory=dict)
     afb: dict[str, list[BattleRollView]] = Field(default_factory=dict)
     log: list[BattleLogView] = Field(default_factory=list)

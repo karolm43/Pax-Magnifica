@@ -30,6 +30,7 @@ from src.core import (
     unit_ops,
 )
 from src.core import offer_inputs as oi
+from src.core.damage import damaged_count
 from src.core.dice import next_rng
 from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
@@ -74,6 +75,7 @@ ALLIANCES = f"breakthroughs:{BREAKTHROUGH}:alliances"  # efekt trwały: zdobyte 
 _INDOCTRINATION_COST = 2  # „spend 2 influence”
 _MECH_EXTRA = 1  # Moyin's Ashes: „spend 1 additional influence”
 _SACRIFICE = ("cruiser", "destroyer")  # Devotion / Impulse Core: „cruisers or destroyers”
+_DAMAGED_SUFFIX = ":damaged"  # wartość opcji celu Devotion: uszkodzony egzemplarz
 _SPINNER_MAX = 2  # „up to 2 infantry”
 _MILOR_UNITS = 2  # „place 2 fighters … or 2 infantry”
 _HERO_INFANTRY = 3  # „Commit up to 3 infantry”
@@ -245,6 +247,35 @@ def _enemy_ships(state: GameState, combat: ActiveCombat, player_id: str) -> dict
     return {bt: n for bt, n in units.items() if n > 0 and is_space_unit(bt)}
 
 
+def _enemy_targets(
+    state: GameState, combat: ActiveCombat, player_id: str
+) -> dict[tuple[str, bool], int]:
+    """Statki przeciwnika do wskazania: ``(typ, uszkodzony)`` → liczba sztuk.
+
+    Devotion trafia KONKRETNY statek (F_yin) - uszkodzony i nieuszkodzony to różne cele.
+    """
+    system = state.systems.get(combat.position)
+    victim = _opponent(combat, player_id)
+    found: dict[tuple[str, bool], int] = {}
+    for bt, n in _enemy_ships(state, combat, player_id).items():
+        hurt = damaged_count(system, _SPACE, victim, bt)
+        if n - hurt > 0:
+            found[(bt, False)] = n - hurt
+        if hurt > 0:
+            found[(bt, True)] = hurt
+    return found
+
+
+def _target_value(base_type: str, damaged: bool) -> str:
+    return f"{base_type}{_DAMAGED_SUFFIX}" if damaged else base_type
+
+
+def _parse_target(value: str) -> tuple[str, bool]:
+    if value.endswith(_DAMAGED_SUFFIX):
+        return value[: -len(_DAMAGED_SUFFIX)], True
+    return value, False
+
+
 def _sacrifice_options(state: GameState, registry: Any, player_id: str) -> list[dict[str, Any]]:
     player = state.players[player_id]
     combat = state.active_combat
@@ -269,23 +300,29 @@ def _devotion_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
 def devotion_inputs(
     state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Własny krążownik/niszczyciel do zniszczenia i typ statku przeciwnika (wybiera Yin)."""
+    """Własny krążownik/niszczyciel do zniszczenia i KONKRETNY statek przeciwnika (wybiera Yin).
+
+    Opcje celu rozróżniają uszkodzone egzemplarze (``meta.damaged``) - UI dopasowuje klik na
+    okręcie w oknie bitwy po typie i stanie uszkodzenia.
+    """
     combat = state.active_combat
     if combat is None:
         return []
     victim = _opponent(combat, player_id)
     owner = state.players.get(victim)
-    targets = [
-        oi.option(
-            bt, f"{unit_name(state, registry, victim, bt)} ({n})",
-            meta=oi.unit_meta(bt, victim, owner.faction if owner else None,
-                              owner.color if owner else None, n),
+    targets = []
+    for (bt, hurt), n in sorted(_enemy_targets(state, combat, player_id).items()):
+        meta = oi.unit_meta(bt, victim, owner.faction if owner else None,
+                            owner.color if owner else None, n)
+        meta["damaged"] = hurt
+        name = unit_name(state, registry, victim, bt)
+        targets.append(
+            oi.option(_target_value(bt, hurt), f"{name} (damaged)" if hurt else name, meta=meta)
         )
-        for bt, n in sorted(_enemy_ships(state, combat, player_id).items())
-    ]
     return [
-        oi.choice("ship", "Your ship to destroy", _sacrifice_options(state, registry, player_id)),
-        oi.choice("target", "Opponent's ship that takes the hit", targets),
+        oi.choice("ship", "Your cruiser or destroyer to destroy",
+                  _sacrifice_options(state, registry, player_id)),
+        oi.choice("target", "Opponent's ship you assign the hit to", targets),
     ]
 
 
@@ -298,23 +335,27 @@ def devotion(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Devotion: After each space combat round: You may destroy 1 of your cruisers or destroyers in
     the active system to produce 1 hit and assign it to 1 of your opponent's ships in that system.
 
-    F_yin: statek wybiera Yin; trafiony statek może użyć Sustain Damage (przypisanie w kroku
-    ASSIGN z wymaganym celem), Shields Holding działa.
+    F_yin: statek (typ i stan uszkodzenia) wybiera Yin; przeciwnik decyduje tylko, czy TEN statek
+    użyje Sustain Damage (inne statki nie anulują trafienia), może zagrać Shields Holding. Po
+    odwrocie przeciwnika Devotion nie ma celu (koniec rundy po kroku Retreat - ``battle``).
     """
     combat = _my_combat(state, player_id, _SPACE)
     if combat is None:
         raise ValueError("Devotion is used after a round of a space combat you fight in.")
     params = ctx.get("params", {})
-    ship, target = str(params.get("ship") or ""), str(params.get("target") or "")
+    ship = str(params.get("ship") or "")
+    target, hurt = _parse_target(str(params.get("target") or ""))
     if ship not in _sacrifice_types(state, player_id, combat):
         raise ValueError("Choose 1 of your cruisers or destroyers in the active system.")
-    if target not in _enemy_ships(state, combat, player_id):
+    if (target, hurt) not in _enemy_targets(state, combat, player_id):
         raise ValueError("Choose 1 of your opponent's ships in the active system.")
     victim = _opponent(combat, player_id)
     unit_ops.remove_units(
         state, state.systems[combat.position], _SPACE, player_id, ship, 1, UnitCause.DESTROYED
     )
-    battle.add_round_end_hits(state, victim, 1, only=[target], label="Devotion")
+    battle.add_round_end_hits(
+        state, victim, 1, only=[target], damaged=hurt, chooser=player_id, label="Devotion"
+    )
     ability_notes.note(state, player_id, f"abilities:{DEVOTION}", "1 hit")
     faction_components.ability_used(state, player_id, DEVOTION, victim)
 

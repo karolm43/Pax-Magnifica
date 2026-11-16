@@ -556,6 +556,7 @@ export function BattleFleet({
   skipEntry,
   retreat,
   assigning,
+  assignable,
   marks,
   onToggle,
   entryKey,
@@ -563,9 +564,9 @@ export function BattleFleet({
 }: {
   /** Tożsamość bitwy dla tej strony — wlot floty gra raz (także po Hide → powrót). */
   entryKey: string;
-  /** Decyzja „wskaż okręt" (np. Assault Cannon): typy do kliknięcia i akcja. */
+  /** Decyzja „wskaż okręt" (Assault Cannon, Devotion): które egzemplarze kliknąć i akcja. */
   pick?: {
-    types: ReadonlySet<string>;
+    can: (ship: ShipEntity) => boolean;
     label: string;
     onPick: (ship: ShipEntity) => void;
   } | null;
@@ -584,6 +585,8 @@ export function BattleFleet({
     to: string | null;
   } | null;
   assigning: boolean;
+  /** Które egzemplarze wolno oznaczyć przy przypisaniu (wymuszony cel: Devotion, Impulse Core). */
+  assignable?: (ship: ShipEntity) => boolean;
   marks: Record<string, Mark>;
   onToggle: (ship: ShipEntity) => void;
 }) {
@@ -739,12 +742,12 @@ export function BattleFleet({
               tag={tagOf(view.ship.asyncId, view.ship.name)}
               onHover={onHover}
               mark={marks[view.ship.id]}
-              selectable={assigning}
+              selectable={assigning && (assignable?.(view.ship) ?? true)}
               onToggle={onToggle}
               fit={fit}
               layout={layout}
               place={place}
-              pickable={pick?.types.has(view.ship.baseType) ?? false}
+              pickable={pick?.can(view.ship) ?? false}
               pickLabel={pick?.label}
               onPick={pick?.onPick}
             />

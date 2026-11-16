@@ -304,28 +304,53 @@ def _magen_ground_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]
     return system is not None and _structures_on(system, str(ctx["planet"]), player_id) > 0
 
 
-def _magen_targets(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> list[str]:
+_DAMAGED_SUFFIX = ":damaged"  # wartość opcji celu: uszkodzony egzemplarz (np. mech)
+
+
+def _magen_targets(
+    state: GameState, player_id: str, ctx: Mapping[str, Any]
+) -> dict[tuple[str, bool], int]:
+    """Siły naziemne przeciwnika do wskazania: ``(typ, uszkodzony)`` → liczba sztuk.
+
+    C_technology: właściciel wybiera KONKRETNĄ jednostkę - uszkodzony mech to inny cel niż
+    nieuszkodzony.
+    """
     opponent = _opponent(player_id, ctx)
     system = state.systems.get(str(ctx["position"]))
     if system is None:
-        return []
-    forces = system.planet_units.get(str(ctx["planet"]), {}).get(opponent, {})
-    return sorted(bt for bt, n in forces.items() if n > 0 and bt in _GROUND)
+        return {}
+    planet = str(ctx["planet"])
+    forces = system.planet_units.get(planet, {}).get(opponent, {})
+    found: dict[tuple[str, bool], int] = {}
+    for bt, n in sorted(forces.items()):
+        if n <= 0 or bt not in _GROUND:
+            continue
+        hurt = damaged_count(system, planet, opponent, bt)
+        if n - hurt > 0:
+            found[(bt, False)] = n - hurt
+        if hurt > 0:
+            found[(bt, True)] = hurt
+    return found
 
 
 def magen_inputs(
     state: GameState, _registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Wybór właściciela: w którą siłę naziemną przeciwnika trafia hit."""
+    """Wybór właściciela: KONKRETNA siła naziemna przeciwnika, którą trafia hit."""
     opponent = _opponent(player_id, ctx)
+    options = []
+    for (bt, hurt), n in _magen_targets(state, player_id, ctx).items():
+        option = _unit_option(state, opponent, bt, n)
+        option["meta"]["damaged"] = hurt
+        if hurt:
+            option["value"] = option["id"] = f"{bt}{_DAMAGED_SUFFIX}"
+            option["label"] = f"{option['label']} (damaged)"
+        options.append(option)
     return [
         oi.choice(
             "target",
-            "Opponent's ground force to hit",
-            [
-                oi.option(bt, _unit_label(state, opponent, bt))
-                for bt in _magen_targets(state, player_id, ctx)
-            ],
+            "Opponent's ground force you assign the hit to",
+            options,
             "Produce 1 hit and assign it to 1 of your opponent's ground forces.",
             # Druga klauzula jest obowiązkowa: gracz ma ją ZOBACZYĆ, nawet gdy cel jest jeden.
             always=True,
@@ -347,25 +372,22 @@ def magen_hit(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą
     zadaj 1 trafienie siłom naziemnym przeciwnika.
 
-    Cel wybiera właściciel technologii. Trafiona jednostka z nieużytym Sustain Damage
-    anuluje trafienie (zostaje uszkodzona), reszta ginie (C_technology).
+    C_technology: jednostkę (typ i stan uszkodzenia) wybiera właściciel technologii; tylko ona
+    może anulować trafienie swoim Sustain Damage - decyduje jej właściciel w kroku przypisania
+    trafień startu walki (``battle.add_start_hits``). Ostatnia siła zniszczona = przegrana od razu.
     """
+    from src.core import battle  # lokalnie: battle ładuje hooki technologii
+
     opponent = _opponent(player_id, ctx)
-    system = state.systems.get(str(ctx["position"]))
-    planet = str(ctx["planet"])
-    target = ctx.get("params", {}).get("target")
-    if system is None or target is None:
-        return
-    undamaged = (
-        system.planet_units.get(planet, {}).get(opponent, {}).get(target, 0)
-        - damaged_count(system, planet, opponent, target)
+    raw = str(ctx.get("params", {}).get("target") or "")
+    hurt = raw.endswith(_DAMAGED_SUFFIX)
+    target = raw[: -len(_DAMAGED_SUFFIX)] if hurt else raw
+    if (target, hurt) not in _magen_targets(state, player_id, ctx):
+        raise ValueError("Choose 1 of your opponent's ground forces in this combat.")
+    battle.add_start_hits(
+        state, opponent, 1, only=[target], damaged=hurt, chooser=player_id,
+        label="Magen Defense Grid",
     )
-    if _has_sustain(state, opponent, target) and undamaged > 0:
-        set_damaged(
-            system, planet, opponent, target, damaged_count(system, planet, opponent, target) + 1
-        )
-    else:
-        unit_ops.remove_units(state, system, planet, opponent, target, 1, UnitCause.DESTROYED)
 
 
 # --- Biotic: X-89 Bacterial Weapon ΩΩ --------------------------------------------------------

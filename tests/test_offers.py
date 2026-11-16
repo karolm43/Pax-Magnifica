@@ -181,6 +181,13 @@ def test_magen_pyta_wlasciciela_w_ktora_sile_trafic(registry: StaticDataRegistry
     offer = _only_offer(started)
     assert offer.player_id == "p2" and offer.owner_id is None
     done = offers.accept(started, battle_grid(), registry, "p2", offer.id, {"target": "infantry"})
+    # C_technology: cel wskazał właściciel; obrońca przypisuje trafienie w kroku startu walki.
+    assert done.active_combat is not None and done.active_combat.step is CombatStep.ASSIGN
+    assert done.active_combat.hit_targets["p1"]["types"] == ["infantry"]
+    done = battle.assign_combat_hits(
+        done, battle_grid(), registry, "p1",
+        sustain={}, destroy={"infantry": 1}, destroy_damaged={},
+    )
     assert done.systems["000"].planet_units["pl"]["p1"] == {"infantry": 1, "mech": 1}
     assert done.active_combat is not None and done.active_combat.step is CombatStep.ROLL
 

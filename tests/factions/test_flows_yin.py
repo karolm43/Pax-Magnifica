@@ -82,27 +82,101 @@ def test_indoctrination_zastepuje_piechote(registry: StaticDataRegistry) -> None
     flow.fight()
 
 
-@covers("abilities:devotion")
-def test_devotion_po_rundzie_cel_wybiera_yin(registry: StaticDataRegistry) -> None:
-    flow = Flow(registry, "yin")
-    flow.space_combat({"cruiser": 2, "carrier": 1}, {"destroyer": 2, "dreadnought": 1})
+def _devotion_ready(flow: Flow, theirs: dict[str, int], damaged: dict[str, int]) -> str:
+    """Walka kosmiczna do oferty Devotion; potem flota rywala ustawiona na ``theirs``/``damaged``.
+
+    Ustawienie PO rundzie usuwa losowość kości: Yin wskazuje cel w znanym układzie.
+    """
+    # Rywal z dużym zapasem (War Sun nie ma, więc pancerniki z Sustain): przeżyje 1. rundę.
+    position = flow.space_combat({"cruiser": 3}, {"dreadnought": 3})
     flow.fight(stop=lambda: flow.has_offer("Devotion"))
+    assert flow.has_offer("Devotion"), "Yin stracił krążowniki przed końcem 1. rundy"
+
+    def put(s: Json) -> None:
+        system = s["systems"][position]
+        system["space_units"][flow.me] = {"cruiser": 2}
+        system["space_units"][flow.other] = dict(theirs)
+        system["damaged_units"] = {"space": {flow.other: dict(damaged)}}
+
+    flow.edit(put)
+    return position
+
+
+@covers("abilities:devotion")
+def test_devotion_yin_wskazuje_uszkodzony_statek(registry: StaticDataRegistry) -> None:
+    """F_yin: Yin wybiera KONKRETNY statek - uszkodzony pancernik ginie, Sustain nie ratuje."""
+    flow = Flow(registry, "yin")
+    position = _devotion_ready(flow, {"dreadnought": 2}, {"dreadnought": 1})
     offer = flow.offer("Devotion")
-    targets = [o["value"] for o in offer["inputs"][1]["options"]]
-    assert "dreadnought" in targets
-    flow.accept("Devotion", {"ship": "cruiser", "target": "dreadnought"})
+    targets = {o["value"]: o["meta"].get("damaged") for o in offer["inputs"][1]["options"]}
+    assert targets == {"dreadnought": False, "dreadnought:damaged": True}
+    flow.accept("Devotion", {"ship": "cruiser", "target": "dreadnought:damaged"})
     flow.decline_all()  # Brother Milor po zniszczeniu własnego krążownika
     view = flow.battle()
     assert view["step"] == "ASSIGN" and view["assigning"] == "sol"
-    destroyers = any(u["baseType"] == "destroyer" for u in view["defender"]["units"])
-    if destroyers:
-        _assign(flow, "sol", "destroy", "destroyer", ok=False)  # cel wybrał Yin
-    dread = next(u for u in view["defender"]["units"] if u["baseType"] == "dreadnought")
-    if int(dread.get("sustainable") or 0):
-        _assign(flow, "sol", "sustain", "dreadnought")  # trafiony statek może użyć Sustain
-    else:
-        _assign(flow, "sol", "destroyDamaged", "dreadnought")
+    assert view["hitTargets"]["sol"] == {
+        "types": ["dreadnought"], "count": 1, "label": "Devotion", "damaged": True,
+        "chooser": "yin",
+    }
+    _assign(flow, "sol", "sustain", "dreadnought", ok=False)  # inny statek nie anuluje
+    _assign(flow, "sol", "destroy", "dreadnought", ok=False)  # cel to uszkodzony egzemplarz
+    _assign(flow, "sol", "destroyDamaged", "dreadnought")
+    system = flow.state()["systems"][position]
+    assert system["space_units"][flow.other]["dreadnought"] == 1
+    assert not system["damaged_units"].get("space", {}).get(flow.other)
+    assert system["space_units"][flow.me]["cruiser"] == 1
+
+
+@covers("abilities:devotion")
+def test_devotion_nieuszkodzony_cel_moze_uzyc_sustain(registry: StaticDataRegistry) -> None:
+    """Wskazany nieuszkodzony statek może anulować trafienie swoim Sustain Damage (F_yin)."""
+    flow = Flow(registry, "yin")
+    position = _devotion_ready(
+        flow, {"dreadnought": 2, "destroyer": 1}, {"dreadnought": 1}
+    )
+    flow.accept("Devotion", {"ship": "cruiser", "target": "dreadnought"})
+    flow.decline_all()
+    assert flow.battle()["hitTargets"]["sol"]["damaged"] is False
+    _assign(flow, "sol", "destroy", "destroyer", ok=False)  # cel wybrał Yin
+    _assign(flow, "sol", "destroyDamaged", "dreadnought", ok=False)  # nie ten egzemplarz
+    _assign(flow, "sol", "sustain", "dreadnought")
+    damaged = flow.state()["systems"][position]["damaged_units"]["space"][flow.other]
+    assert damaged["dreadnought"] == 2
     flow.fight()
+
+
+@covers("abilities:devotion")
+def test_devotion_nie_po_odwrocie_przeciwnika(registry: StaticDataRegistry) -> None:
+    """F_yin: po odwrocie przeciwnika Devotion nie ma celu - koniec rundy idzie PO kroku Retreat
+    (R_space_combat), a zdarzenia końca rundy odpalają się raz."""
+    flow = Flow(registry, "yin")
+    position, refuge = flow.plain_pair()
+    flow.space(refuge, flow.other, {"carrier": 1})  # dozwolony cel odwrotu rywala
+    flow.space(position, flow.me, {"cruiser": 3})
+    flow.space(position, flow.other, {"dreadnought": 2})
+    flow.activate(position)
+    flow.to_step("SPACE_COMBAT")
+    flow.post("/tactical/battle/start", {})
+    assert flow.battle()["step"] == "ANNOUNCE"
+    flow.post("/tactical/battle/announce-retreat", {"faction": "sol", "announce": True})
+    flow.post("/tactical/battle/roll")
+    for _ in range(6):
+        view = flow.battle()
+        if view["step"] == "ASSIGN":
+            flow.assign_auto()
+        elif view["step"] == "TRIGGERS":
+            assert not flow.has_offer("Devotion")  # przed odwrotem - jeszcze nie koniec rundy
+            flow.decline_all()
+        else:
+            break
+    view = flow.battle()
+    if view["step"] == "DONE":
+        pytest.skip("Rzut zniszczył całą flotę rywala - odwrót nie następuje (O3).")
+    assert view["step"] == "RETREAT"
+    assert not flow.has_offer("Devotion")
+    flow.post("/tactical/battle/retreat", {"faction": "sol", "destination": refuge})
+    assert not flow.has_offer("Devotion")  # rywal uciekł - brak statków do trafienia
+    assert flow.battle()["step"] == "DONE"
 
 
 @covers("technologies:ic")

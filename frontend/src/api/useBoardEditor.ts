@@ -1229,6 +1229,15 @@ export type BattleLogEntry = {
   } | null;
 };
 
+/** Wymuszony cel trafień (``BattleView.hitTargets``) — logika w ``battleAssign``. */
+export type HitTarget = {
+  types: string[];
+  count: number;
+  label: string;
+  damaged: boolean | null;
+  chooser: string;
+};
+
 /** Dozwolony system odwrotu (RULES.md 39.5 O4). */
 export type RetreatOption = { position: string; systemId: string };
 
@@ -1247,6 +1256,11 @@ export type BattleView = {
   required: Record<string, number>;
   /** Gracz, który teraz pokrywa trafienia (okno COMBAT_ASSIGN_HITS). */
   assigning: string | null;
+  /**
+   * Wymuszony cel trafień strony (Devotion: statek wskazany przez Yin; Impulse Core:
+   * nie-myśliwce). Brak wpisu = strona przypisuje dowolnie.
+   */
+  hitTargets?: Record<string, HitTarget>;
   rolls: Record<string, BattleRoll[]>;
   afb: Record<string, BattleRoll[]>;
   log: BattleLogEntry[];

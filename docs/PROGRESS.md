@@ -578,3 +578,22 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   304/305. Teraz `effectsZoneAnchor` kładzie tacę ZA najdalszą w prawo kolumną heksów (plansza + pola graczy)
   + `ZONE_GAP`, nadal na wysokości luki gracza 2 i 3. Zweryfikowane zrzutem (izolowany backend :8100, 0/5/9
   efektów, sprawdzenie przecięć prostokątów z heksami — brak).
+
+## Devotion / Magen: zagrywający wskazuje KONKRETNY cel + koniec rundy po odwrocie (RULES.md 39.5 O7a, 55, 62.10)
+
+- Zgłoszenie użytkownika: Devotion (Yin) — trafienie przypisywał przeciwnik, nie Yin. Audyt rulingów F_yin wykazał 3 błędy:
+  (1) Yin wybierał tylko TYP statku (nie dało się wskazać uszkodzonego pancernika), (2) przeciwnik dostawał zwykłe
+  przypisanie bez informacji o wymuszonym celu (422 przy próbie), (3) `COMBAT_ROUND/END` odpalał się PRZED krokiem
+  Retreat (i drugi raz po nim) — Devotion/Exotrireme II trafiały uciekiniera, Duranium mogło działać dwa razy.
+- Silnik: `hit_targets` z `damaged` i `chooser` (`add_start_hits`/`add_round_end_hits`), walidacja egzemplarza
+  w `_check_hit_targets` (naprawiony w międzyczasie cel = nieuszkodzony); `_retreat_due` — Retreat przed zdarzeniami
+  końca rundy, decyzje ze strat (Brother Milor) przed odwrotem (`_RESUME_RETREAT`).
+- Ta sama klasa błędu: Magen Defense Grid Ω/ΩΩ (C_technology) — właściciel wskazuje jednostkę z uszkodzeniem,
+  obrońca sam decyduje o Sustain Damage (wcześniej Sustain włączał się automatycznie). Creuss (Dimensional Splicer)
+  i Argent (Raid Formation) nie mają jeszcze hooków — przy implementacji użyć `chooser`/`damaged`.
+- API: `BattleResponse.hitTargets`. Front: `shipPickSteps` — wieloetapowy wybór okrętów na polu bitwy (Devotion:
+  swój krążownik/niszczyciel → wrogi okręt, rozróżnia uszkodzone; klika DECYDUJĄCY, nie właściciel okrętów);
+  przy przypisaniu klikalny tylko wymuszony cel, znacznik ustawiony, notka w panelu (`targetNote`).
+- Testy: `test_flows_yin.py` (cel uszkodzony/nieuszkodzony, brak Devotion po odwrocie), Magen w
+  `test_technologies_combat.py`/`test_offers.py`, `shipPick.test.ts`. Harness: `announce` zamiast złego klucza `retreat`.
+- QA: pytest 2485 ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest battle+offers 47 ✓, e2e 7 ✓. Restart backendu wymagany.
