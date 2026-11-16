@@ -70,7 +70,7 @@ export function MapRenderLayer({
         {/* Efekt bohatera na planszy po jego scenie (RULES.md 64.4). */}
         <HeroBoardFxLayer tiles={tilesList} contentSize={contentSize} />
         {/* Taca efektów trwałych po prawej, między polami graczy 2 i 3 (RULES.md 54). */}
-        <BoardEffectsZone gameData={gameData} />
+        <BoardEffectsZone gameData={gameData} tiles={tilesList} />
       </Box>
 
       <MapUnitDetailsCard

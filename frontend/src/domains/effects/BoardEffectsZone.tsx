@@ -4,7 +4,7 @@ import { IconSparkles } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import type { ActiveEffectData, PlayerData } from "@/entities/data/types";
-import type { GameData } from "@/entities/game/types";
+import type { GameData, Tile } from "@/entities/game/types";
 import { TILE_HEIGHT, TILE_WIDTH } from "@/entities/geometry/tilePositioning";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
@@ -60,17 +60,19 @@ function EffectChip({ effect, player }: { effect: ActiveEffectData; player: Play
 /**
  * Efekty trwałe „położone obok planszy” (RULES.md 54): bohater Letnev do końca rundy, kość
  * agenta w tej rundzie walki, premie z kart itd. Taca leży W WARSTWIE PLANSZY (jej jednostki
- * i skala) po prawej stronie, między polami graczy 2 i 3 (`effectsZoneAnchor`). Ma wysokość
+ * i skala) po prawej stronie planszy, za jej krawędzią, na wysokości luki między polami graczy
+ * 2 i 3 (`effectsZoneAnchor`). Ma wysokość
  * jednego systemu i rozszerza się w prawo o kolejne kolumny, gdy efektów przybywa.
  * Leży zawsze, także pusta; klik w efekt pokazuje jego kartę.
  */
-export function BoardEffectsZone({ gameData }: { gameData: GameData }) {
+export function BoardEffectsZone({ gameData, tiles }: { gameData: GameData; tiles: Tile[] }) {
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
   const anchor = effectsZoneAnchor(
     gameData.statTilePositions ?? {},
     gameData.ringCount,
     gameData.tilePositions,
+    Math.max(0, ...tiles.map((t) => t.properties.x + TILE_WIDTH)),
   );
   if (!anchor) return null;
   const effects = gameState?.activeEffects ?? [];

@@ -3,9 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActiveEffectData } from "@/entities/data/types";
 import type { GameData } from "@/entities/game/types";
-import { calculateSingleTilePosition } from "@/entities/geometry/tilePositioning";
+import { TILE_HEIGHT, TILE_WIDTH, calculateSingleTilePosition } from "@/entities/geometry/tilePositioning";
 import { BoardEffectsZone } from "./BoardEffectsZone";
-import { effectsZoneAnchor } from "./effectsZoneAnchor";
+import { ZONE_GAP, effectsZoneAnchor } from "./effectsZoneAnchor";
 
 const effectsRef: { current: ActiveEffectData[] } = { current: [] };
 
@@ -42,13 +42,23 @@ const effect = (over: Partial<ActiveEffectData> = {}): ActiveEffectData => ({
 const renderZone = () =>
   render(
     <MemoryRouter>
-      <BoardEffectsZone gameData={gameData as unknown as GameData} />
+      <BoardEffectsZone gameData={gameData as unknown as GameData} tiles={[]} />
     </MemoryRouter>,
   );
 
 describe("effectsZoneAnchor", () => {
-  it("6 graczy: taca na pozycji 407, między polami gracza 2 i 3 po prawej", () => {
-    expect(effectsZoneAnchor(SIX_PLAYERS, 3, [])).toEqual(calculateSingleTilePosition("407", 3));
+  it("6 graczy: na wysokości luki gracza 2 i 3, za prawą kolumną heksów (bez nachodzenia)", () => {
+    const anchor = effectsZoneAnchor(SIX_PLAYERS, 3, []);
+    const gapHex = calculateSingleTilePosition("407", 3);
+    const rightColumn = calculateSingleTilePosition("406", 3);
+    expect(anchor?.y).toBe(gapHex.y);
+    expect(anchor?.x).toBe(rightColumn.x + TILE_WIDTH + ZONE_GAP);
+    // Pole gracza 2 (406) kończy się nad tacą, pole gracza 3 (408) zaczyna pod nią.
+    expect(calculateSingleTilePosition("406", 3).y + TILE_HEIGHT).toBeLessThanOrEqual(anchor!.y);
+  });
+
+  it("taca leży też za kaflami planszy wysuniętymi dalej niż pola graczy", () => {
+    expect(effectsZoneAnchor(SIX_PLAYERS, 3, [], 99999)?.x).toBe(99999 + ZONE_GAP);
   });
 
   it("bez pól graczy nie ma gdzie położyć tacy", () => {

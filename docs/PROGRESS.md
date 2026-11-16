@@ -574,3 +574,7 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Testy: `tests/test_web_points.py` + asercje rejestru w testach Styx, SftT, Mutiny, Shard. QA: pytest -n auto
   (2481 ✅; `test_undo_move` niestabilny od kolejności testów — pada też bez tych zmian), ruff, mypy; front tsc,
   eslint (zmienione). Bez build/e2e (brak nowych zależności). Restart backendu wymagany (nowe pole stanu).
+- Poprawka 3 (użytkownik: taca nachodziła na planszę): prostokąt w miejscu heksa 407 wchodził na rogi heksów
+  304/305. Teraz `effectsZoneAnchor` kładzie tacę ZA najdalszą w prawo kolumną heksów (plansza + pola graczy)
+  + `ZONE_GAP`, nadal na wysokości luki gracza 2 i 3. Zweryfikowane zrzutem (izolowany backend :8100, 0/5/9
+  efektów, sprawdzenie przecięć prostokątów z heksami — brak).
