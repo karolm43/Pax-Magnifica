@@ -14,36 +14,10 @@ from collections.abc import Callable
 from src.api.connection_manager import ConnectionManager
 from src.api.schemas import GodModePatch, HistoryInfo, StateEnvelope
 from src.api.seats import Identity, current_author, current_identity
-from src.core import (
-    activity,
-    game_clock,
-    game_end,
-    leaders,
-    limits,
-    nexus,
-    reaction_pause,
-    rules_hooks,
-)
+from src.core import activity, rules_hooks, step_settle
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 from src.core.visibility import project_strict
-
-# Etykiety commitów, po których NIE wymuszamy limitów: God-Mode (celowo omija walidację),
-# ręczna edycja planszy, zegar, setup i techniczne nadpisania stanu.
-_LIMITS_EXEMPT_LABELS = (
-    "god-mode",
-    "initial",
-    "replace",
-    "player-undo",  # Undo gracza przywraca migawkę, która już przeszła te kontrole
-    "setup:",
-    "clock:",
-    "space:",
-    "planet:",
-    "edit:",
-    "move-units",
-    "cc:",
-    "capture:",
-)
 
 
 class StateService:
@@ -117,18 +91,9 @@ class StateService:
         before = (
             self._store.load(branch_from) if branch_from is not None else self._store.current()
         )
-        # Wormhole Nexus odwraca się na stronę aktywną, gdy pojawi się w nim jednostka/kontrola.
-        after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
-        # Limity capacity / fleet pool egzekwowane stale (RULES.md 42): nadwyżka po DOWOLNYM
-        # efekcie otwiera okno usunięcia. God-Mode i operacje techniczne są wentylem - pomijamy.
-        if not label.startswith(_LIMITS_EXEMPT_LABELS):
-            after = limits.enforce_limits(after, rules_hooks.bound_registry())
-            # Liderzy: warunki „Unlock” sprawdzane po każdej zmianie stanu (RULES.md 61.1).
-            leaders.refresh_unlocks(after, rules_hooks.bound_registry())
-            # Pauza ochronna w kluczowych oknach reakcji (RULES.md 54.10).
-            reaction_pause.sync(after, rules_hooks.bound_registry(), self._now())
-        # Zegar szachowy: rozlicz czas holdera i przełącz go wg nowego stanu (RULES.md 58).
-        after = game_clock.settle(after, self._now())
+        # Reguły „po każdym kroku” (koniec gry, Nexus, limity, liderzy, pauza reakcji, zegar
+        # szachowy) leżą w core - ta sama ścieżka dla bota (RULES.md 65.1).
+        after = step_settle.settle_step(state, rules_hooks.bound_registry(), self._now(), label)
         entry = activity.derive_activity(label, before, after)
         self._store.commit(
             after,
