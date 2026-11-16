@@ -235,9 +235,12 @@ function ShipToken({
   layout,
   place,
   pickable,
+  picked = false,
   pickLabel,
   onPick,
 }: {
+  /** Okręt zaznaczony w bieżącej decyzji „wskaż jednostkę”. */
+  picked?: boolean;
   view: ShipView;
   /** Układ szeregu (klin kolumny, szachownica, klucz eskadry). */
   layout: RankLayout;
@@ -510,10 +513,13 @@ function ShipToken({
       data-dying={dying || undefined}
       data-leaving={leaving || undefined}
       data-selectable={interactive || undefined}
-      data-pick={picking || undefined}
+      data-pick={(picking && !picked) || undefined}
+      data-picked={(picking && picked) || undefined}
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
-      aria-pressed={selectable && alive ? mark !== undefined : undefined}
+      aria-pressed={
+        picking ? picked : selectable && alive ? mark !== undefined : undefined
+      }
       aria-label={interactive ? label : undefined}
       onClick={interactive ? activate : undefined}
       onKeyDown={
@@ -528,7 +534,9 @@ function ShipToken({
       }
       title={
         picking
-          ? `${label} — click: ${pickLabel ?? "choose this ship"}`
+          ? picked
+            ? `${label} — selected (click to unselect)`
+            : `${label} — click: ${pickLabel ?? "choose this unit"}`
           : selectable && alive
             ? `${label} — click to ${ship.canSustain ? "use Sustain Damage / destroy" : "destroy"}`
             : label
@@ -567,6 +575,8 @@ export function BattleFleet({
   /** Decyzja „wskaż okręt" (Assault Cannon, Devotion): które egzemplarze kliknąć i akcja. */
   pick?: {
     can: (ship: ShipEntity) => boolean;
+    /** Okręt jest zaznaczony w tej decyzji (ponowny klik odznacza). */
+    picked?: (ship: ShipEntity) => boolean;
     label: string;
     onPick: (ship: ShipEntity) => void;
   } | null;
@@ -748,6 +758,7 @@ export function BattleFleet({
               layout={layout}
               place={place}
               pickable={pick?.can(view.ship) ?? false}
+              picked={pick?.picked?.(view.ship) ?? false}
               pickLabel={pick?.label}
               onPick={pick?.onPick}
             />

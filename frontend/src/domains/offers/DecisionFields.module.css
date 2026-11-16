@@ -509,6 +509,28 @@
   border-bottom-right-radius: 0;
 }
 
+/* „−” w chipie slotów: zdejmuje jedną sztukę (× zdejmuje wszystkie z tego miejsca). */
+.placeMinus {
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ds-ink-hi);
+  border: 1px solid var(--ds-h22);
+  border-left: 0;
+  background: var(--ds-ground-2);
+  cursor: pointer;
+}
+
+.placeMinus:hover:not(:disabled) {
+  color: var(--ds-accent, #60a5fa);
+}
+
+.placeChipWrap .placeChip:has(+ .placeMinus) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .placeRemove {
   min-height: 28px;
   padding: 0 9px;

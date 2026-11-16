@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import type { ActionCardInput, FormValue } from "@/api/useActionCard";
 import { useAppStore, type MapPick } from "@/state/appStore";
@@ -99,5 +99,56 @@ describe("rejestr wyborów na mapie", () => {
     expect(pick()?.systems).toEqual(["202"]);
     second.unmount();
     expect(pick()).toBeNull();
+  });
+});
+
+/** Dannel of the Tenth (bohater Yin): trzy jednakowe pola „Infantry N commits to” z „No infantry”. */
+const dannel = (slots: number): ActionCardInput[] => {
+  const options = [
+    { id: "none", value: "none", label: "No infantry" },
+    { id: "101|jord", value: "101|jord", label: "Jord", meta: { ref: { kind: "planet", id: "jord" } } },
+    { id: "18|mr", value: "18|mr", label: "Mecatol Rex", meta: { ref: { kind: "planet", id: "mr" } } },
+  ];
+  return Array.from({ length: slots }, (_, i) => ({
+    key: `planet${i + 1}`,
+    kind: "choice" as const,
+    label: `Infantry ${i + 1} commits to`,
+    hint: "",
+    merge: false,
+    options,
+  }));
+};
+
+describe("jednakowe sloty = jedno pole „klik w planetę = +1”", () => {
+  afterEach(() => act(() => useAppStore.setState({ mapPicks: [], mapPick: null })));
+
+  it("Dannel of the Tenth: bez kafelka „No infantry”, klik = +1, − i × zdejmują", () => {
+    render(<Harness inputs={dannel(3)} />);
+    // Jedno pole zamiast trzech i żadnego „No infantry” do (nie)odklikania.
+    expect(screen.queryByRole("button", { name: /No infantry/ })).toBeNull();
+    expect(screen.getByText("0 / 3 placed")).toBeInTheDocument();
+    act(() => pick()?.onPick("jord", "planet"));
+    act(() => pick()?.onPick("jord", "planet"));
+    expect(values()).toEqual({ planet1: "101|jord", planet2: "101|jord", planet3: "none" });
+    act(() => pick()?.onPick("mr", "planet"));
+    expect(values()).toEqual({ planet1: "101|jord", planet2: "101|jord", planet3: "18|mr" });
+    // Komplet: kolejny klik nic nie dokłada, mapa nie świeci.
+    expect(pick()).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "One less on Jord" }));
+    expect(values()).toEqual({ planet1: "101|jord", planet2: "18|mr", planet3: "none" });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Mecatol Rex" }));
+    expect(values()).toEqual({ planet1: "101|jord", planet2: "none", planet3: "none" });
+  });
+});
+
+describe("pojedynczy wybór da się cofnąć", () => {
+  afterEach(() => act(() => useAppStore.setState({ mapPicks: [], mapPick: null })));
+
+  it("ponowny klik w ten sam cel na mapie odznacza", () => {
+    render(<Harness inputs={spinner(["102"])} />);
+    act(() => pick()?.onPick("102", "system"));
+    expect(values()).toEqual({ where: "102|space" });
+    act(() => pick()?.onPick("102", "system"));
+    expect(values()).toEqual({ where: null });
   });
 });

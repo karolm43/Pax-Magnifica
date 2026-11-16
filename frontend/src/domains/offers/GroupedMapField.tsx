@@ -20,7 +20,7 @@ import styles from "./DecisionFields.module.css";
 
 type Group = MapTarget & { key: string; name: string; options: ActionCardOption[] };
 
-const keyOf = (kind: MapTargetKind, id: string) => `${kind}:${id}`;
+export const keyOf = (kind: MapTargetKind, id: string) => `${kind}:${id}`;
 
 /**
  * Cel opcji na mapie. Wybór „na planecie ALBO w przestrzeni” (Yin Spinner: „any planet you
@@ -28,7 +28,7 @@ const keyOf = (kind: MapTargetKind, id: string) => `${kind}:${id}`;
  * planetę, opcja z samym systemem = klik w heks (jego przestrzeń). W zwykłym wyborze systemu
  * (bez opcji „przestrzeń”) cel zostaje systemem, nawet gdy opcja wspomina planetę.
  */
-function targetsOf(
+export function targetsOf(
   options: ActionCardOption[],
   classified: Classified,
   look: OptionLookups,
@@ -51,7 +51,7 @@ function targetsOf(
 }
 
 /** Nazwa celu: planeta z danych; system jako jego planety + pozycja („przestrzeń” w mieszanym). */
-function useTargetName() {
+export function useTargetName() {
   const tiles = useGameData()?.tiles;
   return (target: MapTarget, mixed: boolean) => {
     if (target.kind === "planet") return getPlanetData(target.id)?.name ?? target.id;
@@ -123,7 +123,8 @@ export function GroupedMapField({
 
   const toggle = (id: string) => {
     if (!multi) {
-      onChange(id);
+      // Ponowny klik w wybrane (kafelek albo cel na mapie) odznacza - jak zdjęcie żetonu.
+      onChange(picked.includes(id) ? null : id);
       return;
     }
     if (picked.includes(id)) onChange(picked.filter((p) => p !== id));

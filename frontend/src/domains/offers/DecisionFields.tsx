@@ -2,7 +2,15 @@ import { useMemo } from "react";
 import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
-import { classifyOptions, stackRange, stacksOf, withStackCount } from "./optionKinds";
+import {
+  classifyOptions,
+  slotGroups,
+  stackRange,
+  stacksOf,
+  withStackCount,
+  type Classified,
+} from "./optionKinds";
+import { SlotsMapField } from "./SlotsMapField";
 import { describeOption, useOptionLookups } from "./DecisionPickers";
 import { FieldHead, metaOf, Stepper, Tile, UnitStackStepper } from "./DecisionTiles";
 import { GroupedMapField } from "./GroupedMapField";
@@ -22,6 +30,7 @@ import styles from "./DecisionFields.module.css";
 const MAX_TILES = 18;
 
 type Payment = { cost: number; valueKind: string; tradeGoods: string };
+type ChoiceInput = Extract<ActionCardInput, { kind: "choice" }>;
 
 function paymentOf(input: ActionCardInput): Payment | null {
   return input.kind === "multi" && input.payment ? input.payment : null;
@@ -255,7 +264,8 @@ function ChoiceField({
             multi={false}
             selected={value === option.id}
             disabled={disabled}
-            onClick={() => onChange(option.id)}
+            // Ponowny klik w wybrany kafelek odznacza (wybór nie jest „na zawsze”).
+            onClick={() => onChange(value === option.id ? null : option.id)}
           />
         ))}
       </div>
@@ -355,10 +365,27 @@ export function DecisionFields({
   // Mapa ma jeden tryb wyboru: trzyma go pierwsze pole z planetami/systemami bez odpowiedzi
   // (a gdy wszystkie mają odpowiedź - pierwsze takie pole, żeby można było zmienić zdanie).
   const lookups = useOptionLookups();
+  // Jednakowe sloty z celami na mapie (bohater Yin) = jedno pole ``SlotsMapField``.
+  const slots = useMemo(() => {
+    const found = new Map<string, { inputs: ChoiceInput[]; classified: Classified }>();
+    for (const [firstKey, keys] of slotGroups(inputs)) {
+      const group = keys
+        .map((k) => inputs.find((i) => i.key === k))
+        .filter((i): i is ChoiceInput => i?.kind === "choice");
+      const classified = group[0] ? classifyOptions(group[0].options, lookups) : null;
+      if (classified && (classified.kind === "planet" || classified.kind === "system")) {
+        found.set(firstKey, { inputs: group, classified });
+      }
+    }
+    return found;
+  }, [inputs, lookups]);
+  const slotMember = new Set(
+    [...slots.values()].flatMap((g) => g.inputs.slice(1).map((i) => i.key)),
+  );
   const mapKey = useMemo(() => {
     const onMap = inputs.filter((input) => {
       if (input.kind !== "choice" && input.kind !== "multi") return false;
-      if (paymentOf(input)) return false;
+      if (paymentOf(input) || slotMember.has(input.key)) return false;
       const kind = classifyOptions(input.options, lookups)?.kind;
       return kind === "planet" || kind === "system";
     });
@@ -367,6 +394,7 @@ export function DecisionFields({
       return v === undefined || v === null || (Array.isArray(v) && v.length === 0);
     });
     return (open ?? onMap[0])?.key ?? null;
+    // ``slotMember`` wynika z ``inputs`` i ``lookups``.
   }, [inputs, lookups, values]);
   // Przeniesienia planeta -> planeta (Bioplasmosis): jeden wybór na mapie w miejscu pierwszego.
   const routes = useMemo(
@@ -377,6 +405,21 @@ export function DecisionFields({
   return (
     <div className={styles.form}>
       {inputs.map((input) => {
+        if (slotMember.has(input.key)) return null;
+        const slotGroup = slots.get(input.key);
+        if (slotGroup) {
+          return (
+            <SlotsMapField
+              key={input.key}
+              inputs={slotGroup.inputs}
+              classified={slotGroup.classified}
+              values={values}
+              disabled={disabled}
+              mapActive={input.key === mapKey}
+              onChange={onChange}
+            />
+          );
+        }
         if (routeOf(input)) {
           if (input.key !== firstRoute) return null;
           return (

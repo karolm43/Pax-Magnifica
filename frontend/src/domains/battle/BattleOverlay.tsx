@@ -41,13 +41,22 @@ import {
 } from "./battleAssign";
 import { useDyingShips, useMaxHp, useVolley, type Volley } from "./useBattleFx";
 import { BattleFleet, resetFleetEntries } from "./BattleFleet";
-import { useOfferActions, useOffers } from "@/api/useOffers";
+import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
 import { buildActionCardParams } from "@/api/useActionCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import type { BattleEffect } from "@/api/useBoardEditor";
 import { BattleCenter, type PickNote } from "./BattleCenter";
-import { optionMatchesShip, shipPickSteps, type ShipPickStep } from "./shipPick";
+import {
+  canPick,
+  complete,
+  pickedAs,
+  pickValues,
+  shipPickSteps,
+  togglePick,
+  type PickState,
+  type ShipPickStep,
+} from "./shipPick";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import type { HoldState } from "@/domains/dice/HoldRollButton";
 import { DiceTray } from "./DiceTray";
@@ -696,80 +705,83 @@ function Battlefield({
     return `${hitTarget.label}: assign ${hits} to ${names} if able.`;
   })();
 
-  // Decyzje „wskaż okręt" (Assault Cannon, Duranium Armor, Devotion): okręty strony, której
-  // dotyczy bieżący krok decyzji, stają się klikalne dla DECYDUJĄCEGO gracza. Oferta z kilkoma
-  // wejściami (Devotion: własny statek, potem wrogi) zbiera wybory kolejnymi kliknięciami.
-  const [pickChosen, setPickChosen] = useState<
-    Record<string, Record<string, string>>
-  >({});
+  // Decyzje „wskaż jednostkę" (Assault Cannon, Duranium Armor, Devotion, Viscount Unlenn,
+  // Evelyn DeLouis, Ambush…): jednostki z bieżącego pola decyzji są klikalne dla DECYDUJĄCEGO
+  // gracza. Klik zaznacza (ponowny klik odznacza), decyzję zatwierdza „Confirm” w panelu
+  // środkowym - przypadkowy klik niczego nie zużywa.
+  const [pickStates, setPickStates] = useState<Record<string, PickState>>({});
   const forgetPick = (offerId: string) =>
-    setPickChosen((prev) => {
+    setPickStates((prev) => {
       const next = { ...prev };
       delete next[offerId];
       return next;
     });
   const picks = offersPending
-    ? shipPickSteps(offers, [attacker.playerId, defender.playerId], pickChosen)
+    ? shipPickSteps(offers, [attacker.playerId, defender.playerId], pickStates)
     : new Map<string, ShipPickStep>();
   const pickFor = (side: BattleSide) => {
     const step = picks.get(side.playerId);
     if (!step || view.resolving || !canAct(step.offer.player_id)) return null;
-    const { offer, input } = step;
-    const optionFor = (ship: ShipEntity) =>
-      input.options.find((o) => optionMatchesShip(o, ship));
+    const { offer, state } = step;
     return {
-      can: (ship: ShipEntity) => optionFor(ship) !== undefined,
-      label: `${offer.name} — ${input.label}`,
-      onPick: (ship: ShipEntity) => {
-        const option = optionFor(ship);
-        if (!option) return;
-        const chosen = { ...step.chosen, [input.key]: option.id };
-        if (!offer.inputs.every((i) => i.key in chosen)) {
-          setPickChosen((prev) => ({ ...prev, [offer.id]: chosen }));
-          return;
-        }
-        const { params } = buildActionCardParams(offer.inputs, chosen);
-        void run(async () => {
-          try {
-            await offerActions.accept(offer.player_id, offer.id, params);
-          } finally {
-            forgetPick(offer.id);
-          }
-        });
-      },
+      can: (ship: ShipEntity) => canPick(offer, state, ship, side.playerId),
+      picked: (ship: ShipEntity) => pickedAs(offer, state, ship) !== null,
+      label: `${offer.name} — ${step.input?.label ?? "selected"}`,
+      onPick: (ship: ShipEntity) =>
+        setPickStates((prev) => ({
+          ...prev,
+          [offer.id]: togglePick(offer, prev[offer.id] ?? {}, ship, side.playerId),
+        })),
     };
   };
-  const pickNotes: PickNote[] = [attacker, defender].flatMap((side) => {
-    const step = picks.get(side.playerId);
-    if (!step) return [];
-    const { offer, input } = step;
+  const confirmPick = (offer: OfferView, state: PickState) => {
+    const { params } = buildActionCardParams(offer.inputs, pickValues(offer, state));
+    void run(async () => {
+      await offerActions.accept(offer.player_id, offer.id, params);
+      forgetPick(offer.id);
+    });
+  };
+  const skipPick = (offer: OfferView) =>
+    void run(async () => {
+      await offerActions.decline(offer.player_id, offer.id);
+      forgetPick(offer.id);
+    });
+  // Jedna notka na decyzję (decyzja z jednostkami obu stron jest pod oboma właścicielami).
+  const pickSteps = [...new Set(picks.values())];
+  const pickNotes: PickNote[] = pickSteps.map((step) => {
+    const { offer, input, state } = step;
     const decider = [attacker, defender].find(
       (s) => s.playerId === offer.player_id,
     );
-    const earlier = Object.entries(step.chosen).map(([key, id]) => {
-      const field = offer.inputs.find((i) => i.key === key);
-      const option =
-        field && field.kind === "choice"
-          ? field.options.find((o) => o.id === id)
-          : undefined;
-      return option?.label ?? id;
-    });
-    return [
-      {
-        key: offer.id,
-        title: offer.name,
-        who: decider ? players(decider.faction).name : offer.player_id,
-        label: input.label,
-        enemy: step.owner !== offer.player_id,
-        chosen: earlier,
-        onReset: earlier.length > 0 ? () => forgetPick(offer.id) : undefined,
-        mode: !canAct(offer.player_id)
-          ? "waiting"
-          : me?.player_id === offer.player_id
-            ? "you"
-            : "control",
-      },
-    ];
+    const chosen = offer.inputs.flatMap((field) =>
+      Object.values(state[field.key] ?? {}).map((id) =>
+        field.kind === "choice" || field.kind === "multi"
+          ? (field.options.find((o) => o.id === id)?.label ?? id)
+          : id,
+      ),
+    );
+    const owners = input
+      ? new Set(input.options.map((o) => o.meta?.player))
+      : new Set<unknown>();
+    const mode: PickNote["mode"] = !canAct(offer.player_id)
+      ? "waiting"
+      : me?.player_id === offer.player_id
+        ? "you"
+        : "control";
+    return {
+      key: offer.id,
+      title: offer.name,
+      who: decider ? players(decider.faction).name : offer.player_id,
+      label: input?.label ?? null,
+      whose:
+        owners.size > 1 ? "any" : owners.has(offer.player_id) ? "own" : "enemy",
+      many: input?.kind === "multi" ? input.max : 1,
+      chosen,
+      mode,
+      onConfirm: complete(offer, state) ? () => confirmPick(offer, state) : undefined,
+      onClear: chosen.length > 0 ? () => forgetPick(offer.id) : undefined,
+      onSkip: offer.mandatory ? undefined : () => skipPick(offer),
+    };
   });
 
   const run = async (fn: () => Promise<void>) => {

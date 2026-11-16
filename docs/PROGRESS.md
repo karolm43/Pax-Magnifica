@@ -659,3 +659,22 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Silnik bez zmian — wszystkie rulingi były już spełnione.
 - QA: testy Arborec + strażnik + leaders + technologies_passive 93 ✓, ruff ✓, mypy (zmienione) ✓. Pełny zestaw
   pominięty (zmiana tylko w testach).
+
+## 2026-11-16 — Okna decyzji intuicyjnie: odznaczanie, sloty „klik = +1”, klik w jednostkę w walce (front)
+
+- Zgłoszenie użytkownika: „No infantry” (Dannel of the Tenth, bohater Yin) nie dawało się odkliknąć; w walce wybór
+  jednostki tylko z kafelków. Zasada: gracz planszówki, który nie zna UI.
+- Każdy pojedynczy wybór (kafelek albo cel na mapie): ponowny klik odznacza.
+- Jednakowe pola wyboru (`slotGroups` w `optionKinds.ts`: kolejne `choice` z identycznymi opcjami) z celami na
+  mapie = jedno pole `SlotsMapField`: klik w planetę dokłada 1 sztukę (×2, ×3), chip z − i ×; opcja bez celu
+  („No infantry”) nie jest kafelkiem - wolne sloty dostają ją same; komplet = mapa gaśnie.
+- Walka (`shipPick.ts`): klik w jednostkę na polu bitwy dla KAŻDEJ decyzji, której pola wskazują jednostki stron
+  walki - także obu stron w jednym polu (Viscount Unlenn, Evelyn DeLouis) i wybór wielu (Ambush). Klik zaznacza
+  (zielony celownik), ponowny klik odznacza, pojedynczy wybór zamienia się klikiem w inną jednostkę; zatwierdza
+  Confirm w panelu środkowym (+ Clear, Skip dla „may”) - przypadkowy klik niczego nie zużywa. Decyzja z opcją bez
+  jednostki (odmowa) zostaje w oknie decyzji.
+- Testy: `GroupedMapField.test.tsx` (sloty Dannel, odznaczanie), `shipPick.test.ts` (Devotion zaznacz/odznacz,
+  Viscount Unlenn obie strony, Ambush do 2, decyzja z odmową).
+- QA: tsc ✓, eslint ✓ (zmienione), vitest battle+offers+map+strategy+game-shell 99 ✓. Bez e2e (zmienione
+  komponenty nie są montowane stale), bez QA backendu (tylko front). Równoległa sesja (dźwięki walki naziemnej)
+  zmienia `BattleFleet.tsx`/`BattleOverlay.module.css` - zacommitowane tylko własne hunki.

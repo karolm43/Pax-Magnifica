@@ -201,6 +201,39 @@ function some(
   return targets.size > 0 ? targets : null;
 }
 
+/** Wejście silnika (pole formularza) - minimalny kształt potrzebny do rozpoznania slotów. */
+type SlotInput = { key: string; kind: string; options?: ActionCardOption[] };
+
+/**
+ * Jednakowe SLOTY: kolejne pola ``choice`` z identycznymi opcjami (bohater Yin: „Infantry 1/2/3
+ * commits to”, każde z „No infantry” i tymi samymi planetami). Dla gracza to jedna decyzja
+ * „rozdziel do N sztuk” - formularz pokazuje je jako jedno pole. Mapa: klucz pierwszego pola →
+ * klucze wszystkich pól grupy (w kolejności silnika).
+ */
+export function slotGroups(inputs: SlotInput[]): Map<string, string[]> {
+  const groups = new Map<string, string[]>();
+  const sig = (input: SlotInput) =>
+    input.kind === "choice" && input.options && input.options.length > 1
+      ? input.options.map((o) => o.id).join("\u0001")
+      : null;
+  let run: SlotInput[] = [];
+  const flush = () => {
+    if (run.length > 1) groups.set(run[0].key, run.map((i) => i.key));
+    run = [];
+  };
+  for (const input of inputs) {
+    const s = sig(input);
+    if (s !== null && run.length > 0 && sig(run[0]) === s) {
+      run.push(input);
+      continue;
+    }
+    flush();
+    if (s !== null) run = [input];
+  }
+  flush();
+  return groups;
+}
+
 /** Stos jednakowych opcji: ta sama jednostka tego samego gracza w tym samym miejscu. */
 export type OptionStack = { key: string; options: ActionCardOption[] };
 

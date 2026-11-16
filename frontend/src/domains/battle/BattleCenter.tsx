@@ -132,23 +132,37 @@ function LastVolley({
   );
 }
 
-/** Decyzja „wskaż okręt" jednej strony walki (tekst w panelu środkowym). */
+/** Decyzja „wskaż jednostkę" w walce (tekst i przyciski w panelu środkowym). */
 export type PickNote = {
   key: string;
   title: string;
   /** Pełna nazwa decydującej frakcji. */
   who: string;
-  /** Etykieta wyboru z silnika (np. „Your ship to destroy"). */
-  label: string;
+  /** Etykieta bieżącego pola z silnika (np. „Your ship to destroy"); ``null`` = wszystko wybrane. */
+  label: string | null;
   /** you = moja decyzja; control = steruję tym graczem (lokalnie / tryb testowy); waiting = czekam. */
   mode: "you" | "control" | "waiting";
-  /** Bieżący krok wskazuje okręt PRZECIWNIKA decydującego (Devotion: cel trafienia). */
-  enemy?: boolean;
-  /** Wybory z wcześniejszych kroków (pełne nazwy z silnika), np. własny krążownik Devotion. */
-  chosen?: string[];
-  /** Cofnięcie wcześniejszych kroków (wybór od nowa). */
-  onReset?: () => void;
+  /** Czyje jednostki klikać: własne decydującego, przeciwnika (Devotion) czy dowolne (Viscount Unlenn). */
+  whose: "own" | "enemy" | "any";
+  /** Ile jednostek można wskazać w bieżącym polu (Ambush: do 2). */
+  many: number;
+  /** Zaznaczone jednostki (pełne nazwy z silnika). */
+  chosen: string[];
+  /** Zatwierdzenie (gdy wybrano minimum). */
+  onConfirm?: () => void;
+  /** Odznaczenie wszystkiego. */
+  onClear?: () => void;
+  /** Rezygnacja (decyzja z „may”). */
+  onSkip?: () => void;
 };
+
+/** „one of the highlighted enemy ships” / „up to 2 of …” - opis, co klikać. */
+function pickHint(note: PickNote): string {
+  const whose =
+    note.whose === "any" ? "" : note.whose === "enemy" ? "enemy " : note.mode === "you" ? "your " : `${note.who}'s `;
+  const howMany = note.many > 1 ? `up to ${note.many} of the` : "one of the";
+  return `click ${howMany} highlighted ${whose}units (click again to unselect)`;
+}
 
 /**
  * Środek pola bitwy: tor kroków, główna akcja bieżącego kroku, przypisanie strat
@@ -280,36 +294,42 @@ export function BattleCenter({
               <b className={styles.pickTitle}>
                 <IconTargetArrow size={15} aria-hidden="true" /> {note.title}
               </b>
-              {note.chosen && note.chosen.length > 0 && (
+              {note.chosen.length > 0 && (
                 <>Chosen: {note.chosen.join(", ")}. </>
               )}
-              {note.mode === "you" && (
+              {note.mode !== "waiting" && note.label && (
                 <>
-                  Your decision — {note.label.toLowerCase()}: click one of the
-                  highlighted {note.enemy ? "enemy" : "your"} ships.
+                  {note.mode === "you" ? "Your decision" : <><b>{note.who}</b> decides</>}
+                  {" — "}
+                  {note.label.toLowerCase()}: {pickHint(note)}.
                 </>
               )}
-              {note.mode === "control" && (
-                <>
-                  <b>{note.who}</b> decides — {note.label.toLowerCase()}: click one
-                  of the highlighted {note.enemy ? "enemy" : `${note.who}`} ships.
-                </>
-              )}
+              {note.mode !== "waiting" && !note.label && <>Confirm your choice.</>}
               {note.mode === "waiting" && (
                 <>
-                  Waiting for <b>{note.who}</b> to pick a ship.
+                  Waiting for <b>{note.who}</b> to decide.
                 </>
               )}
             </p>
-            {note.onReset && note.mode !== "waiting" && (
+            {note.mode !== "waiting" && (
               <div className={styles.assignBtns}>
+                {note.onSkip && (
+                  <button type="button" className={styles.ghost} disabled={busy} onClick={note.onSkip}>
+                    Skip
+                  </button>
+                )}
+                {note.onClear && (
+                  <button type="button" className={styles.ghost} disabled={busy} onClick={note.onClear}>
+                    Clear
+                  </button>
+                )}
                 <button
                   type="button"
-                  className={styles.ghost}
-                  disabled={busy}
-                  onClick={note.onReset}
+                  className={styles.primary}
+                  disabled={busy || !note.onConfirm}
+                  onClick={note.onConfirm}
                 >
-                  Choose again
+                  Confirm
                 </button>
               </div>
             )}

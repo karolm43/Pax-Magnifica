@@ -768,6 +768,17 @@
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55));
 }
 
+/* ZAZNACZONA jednostka decyzji: celownik zielony, pełny i nieruchomy (ponowny klik odznacza). */
+.ship[data-picked]::before {
+  --c: rgba(74, 222, 128, 1);
+  inset: 4px;
+  animation: none;
+}
+
+.ship[data-picked] .shipSprite {
+  filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.8));
+}
+
 .ship[data-selectable]:hover::before {
   --c: rgb(var(--side-rgb) / 0.95);
   inset: 10px;
