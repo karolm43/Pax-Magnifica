@@ -678,3 +678,15 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: tsc ✓, eslint ✓ (zmienione), vitest battle+offers+map+strategy+game-shell 99 ✓. Bez e2e (zmienione
   komponenty nie są montowane stale), bez QA backendu (tylko front). Równoległa sesja (dźwięki walki naziemnej)
   zmienia `BattleFleet.tsx`/`BattleOverlay.module.css` - zacommitowane tylko własne hunki.
+
+## 2026-11-16 — Arborec: trzy poprawki po audycie rulingów
+
+- Planeta bezczynnego producenta (F_arborec Mitosis/1, RULES.md 33): piechota Letani może stanąć na planecie doku
+  tylko, gdy dok wyprodukował w tej akcji co najmniej 1 jednostkę (`production._check_idle_producer_zones`: 1 sztuka
+  przypisana do tamtejszego producenta + warunek Halla dla reszty). Producent w przestrzeni i granty bez zmian.
+- Infantry II / Letani Warrior II / Spec Ops II (RULES.md 55): każda sztuka z karty ma osobny wybór planety w domu
+  (jednakowe sloty `planet_1..N`, klik na mapie) — można rozdzielić. Pora bez zmian: początek następnej tury (tekst karty).
+- Letani Behemoth (RULES.md 62.5): Mitosis może zamienić także piechotę w przestrzeni (`mech|pozycja|space`, jak Yin Spinner).
+- Testy: `test_rulings_arborec.py` (+3), `test_offers.py` (rozdział piechoty). QA: pytest 2552 ✓, mypy ✓, ruff ✓ dla
+  zmienionych plików (6 błędów w plikach równoległej sesji: battle.py, card_labels.py). Front bez zmian.
+- Restart backendu potrzebny (zmiana kształtu oferty Infantry II).

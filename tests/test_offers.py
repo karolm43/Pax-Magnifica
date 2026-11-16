@@ -213,9 +213,19 @@ def test_infantry_ii_z_dwiema_planetami_pyta_gracza() -> None:
     triggers.fire(state, GameEvent.TURN, Moment.START, subject="p1", ctx={"player": "p1"})
     offer = _only_offer(state)
     assert state.players["p1"].infantry_ii_on_card == 2  # nic nie stało się samo
-    done = triggers.accept_offer(state, "p1", offer.id, {"planet": "b"})
+    done = triggers.accept_offer(state, "p1", offer.id, {"planet_1": "b", "planet_2": "b"})
     assert done.systems["000"].planet_units["b"]["p1"] == {"infantry": 2}
     assert done.players["p1"].infantry_ii_on_card == 0
+
+
+def test_infantry_ii_kazda_sztuka_na_wybrana_planete() -> None:
+    """„Place each unit … on a planet you control” - sztuki można rozdzielić między planety."""
+    state = _inf_state(["a", "b"])
+    triggers.fire(state, GameEvent.TURN, Moment.START, subject="p1", ctx={"player": "p1"})
+    offer = _only_offer(state)
+    done = triggers.accept_offer(state, "p1", offer.id, {"planet_1": "a", "planet_2": "b"})
+    assert done.systems["000"].planet_units["a"]["p1"] == {"infantry": 1}
+    assert done.systems["000"].planet_units["b"]["p1"] == {"infantry": 1}
 
 
 def test_infantry_ii_z_jedna_planeta_nie_ma_wyboru() -> None:

@@ -62,6 +62,7 @@ _COMMANDER_GROUND = 12  # „Have 12 ground forces on planets you control.”
 _AGENT_EXTRA_COST = 2  # „costs up to 2 more than the replaced ship”
 _GROUND = ("infantry", "mech")
 _KEEP = "keep"
+_SPACE = "space"
 _NONE = "none"
 
 
@@ -132,12 +133,17 @@ def mitosis_inputs(
         ]
     if _has_mech_option(state, player_id):
         for position, system in sorted(state.systems.items()):
-            for planet, by_player in sorted(system.planet_units.items()):
-                if by_player.get(player_id, {}).get("infantry", 0) > 0:
-                    options.append(oi.option(
-                        f"mech|{position}|{planet}",
-                        f"Letani Behemoth: replace 1 infantry on {_planet_name(registry, planet)}",
-                    ))
+            # „replace 1 of your infantry” - każda piechota: na planecie albo w przestrzeni.
+            for zone in [_SPACE, *sorted(system.planet_units)]:
+                if unit_ops.count_in_zone(system, zone, player_id, "infantry") <= 0:
+                    continue
+                where = (
+                    f"in the space area of system {position}" if zone == _SPACE
+                    else f"on {_planet_name(registry, zone)}"
+                )
+                options.append(oi.option(
+                    f"mech|{position}|{zone}", f"Letani Behemoth: replace 1 infantry {where}",
+                ))
     return [oi.choice("mitosis", "Mitosis", options)]
 
 
@@ -156,8 +162,8 @@ def mitosis(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     if system is None or not planet:
         raise ValueError("Choose where Mitosis places the unit.")
     if kind == "mech":
-        if system.planet_units.get(planet, {}).get(player_id, {}).get("infantry", 0) <= 0:
-            raise ValueError("Choose a planet with your infantry.")
+        if unit_ops.count_in_zone(system, planet, player_id, "infantry") <= 0:
+            raise ValueError("Choose your infantry (on a planet or in a space area).")
         unit_ops.remove_units(state, system, planet, player_id, "infantry", 1, UnitCause.REMOVED)
         unit_ops.place_units(state, system, planet, player_id, "mech", 1, UnitCause.PLACED)
         return

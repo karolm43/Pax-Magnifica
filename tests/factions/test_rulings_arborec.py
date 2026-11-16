@@ -533,3 +533,56 @@ def test_letani_ospha_mysliwiec_jako_zamiennik(registry: StaticDataRegistry) -> 
     used = _ospha(state, registry)
     after = _accept(used, "p2", "Letani Ospha", {"replacement": "fighter"})
     assert after.systems["102"].space_units["p2"] == {"fighter": 1}
+
+
+# ============================================================ poprawki po audycie (2026-11-16)
+
+
+@ruling("F_arborec/mitosis/1")
+def test_piechota_letani_nie_na_planete_bezczynnego_doku(
+    registry: StaticDataRegistry, grid: HexGrid
+) -> None:
+    """Dok nic nie produkuje → jego planeta nie przyjmuje piechoty z Letani Warrior."""
+    state = _two_planet_state({DOCK_PLANET: {"spacedock": 1}, OTHER_PLANET: {"infantry": 2}})
+    with pytest.raises(ValueError, match="must also produce"):
+        production.produce(
+            state, grid, registry, "p1", [ProductionOrder("infantry", 2, zone=DOCK_PLANET)]
+        )
+    after = production.produce(  # na planetę z Letani Warrior - zawsze wolno
+        state, grid, registry, "p1", [ProductionOrder("infantry", 2, zone=OTHER_PLANET)]
+    )
+    assert _ground(after, TWO_PLANETS, OTHER_PLANET) == {"infantry": 4}
+    # Dok produkuje w tej samej akcji (wcześniejsze zamówienie) → piechota może stanąć przy nim.
+    docked = production.produce(state, grid, registry, "p1", [ProductionOrder("destroyer", 1)])
+    final = production.produce(
+        docked, grid, registry, "p1", [ProductionOrder("infantry", 2, zone=DOCK_PLANET)]
+    )
+    assert _ground(final, TWO_PLANETS, DOCK_PLANET) == {"spacedock": 1, "infantry": 2}
+
+
+@ruling("units:arborec_mech#1")
+def test_letani_behemoth_zastepuje_piechote_w_przestrzeni(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.systems["103"].space_units = {"p1": {"infantry": 1, "carrier": 1}}
+    triggers.fire(state, GameEvent.PHASE, Moment.START, ctx={"phase": "status"})
+    offer = next(o for o in state.pending_offers if o.player_id == "p1")
+    values = [o["value"] for o in arborec.mitosis_inputs(state, registry, "p1", {})[0]["options"]]
+    assert "mech|103|space" in values
+    after = triggers.accept_offer(state, "p1", offer.id, {"mitosis": "mech|103|space"})
+    assert after.systems["103"].space_units["p1"] == {"carrier": 1, "mech": 1}
+
+
+@ruling("technologies:lw2#5")
+def test_letani_warrior_ii_kazda_sztuka_na_wybrana_planete(registry: StaticDataRegistry) -> None:
+    state = _infantry_state(["lw2"])
+    state.players["p1"].faction = "arborec"
+    state.players["p1"].controlled_planets = []
+    state.systems["000"].planet_owners = {"hp": "p1", "hq": "p1"}
+    state.players["p1"].infantry_ii_on_card = 3
+    triggers.fire(state, GameEvent.TURN, Moment.START, subject="p1", ctx={"player": "p1"})
+    offer = next(o for o in state.pending_offers if o.player_id == "p1")
+    after = triggers.accept_offer(
+        state, "p1", offer.id, {"planet_1": "hp", "planet_2": "hq", "planet_3": "hq"}
+    )
+    assert after.systems["000"].planet_units["hp"]["p1"] == {"infantry": 1}
+    assert after.systems["000"].planet_units["hq"]["p1"] == {"infantry": 2}

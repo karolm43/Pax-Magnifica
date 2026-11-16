@@ -12,7 +12,7 @@ jednostki. God-Mode (edit-units) nadal omija (wentyl bez reguł).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from src.core import (
     control,
@@ -115,6 +115,57 @@ def fits_producers(producers: list[Producer], counts: dict[str, int]) -> bool:
         if need > have:
             return False
     return True
+
+
+def _check_idle_producer_zones(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    position: str,
+    orders: list[ProductionOrder],
+    cumulative: dict[str, int],
+) -> None:
+    """Siły naziemne na planecie producenta, który ich sam nie może wyprodukować (dok Arborec +
+    piechota Letani), tylko gdy ten producent produkuje w tej akcji co najmniej 1 jednostkę
+    (F_arborec Mitosis/1, RULES.md 33).
+
+    Na każdą taką planetę przypisujemy 1 sztukę typu, który tamtejszy producent dopuszcza, i
+    sprawdzamy warunek Halla dla reszty. Producent w przestrzeni pozwala na każdą planetę gracza.
+
+    Raises:
+        ValueError: Producent na tej planecie nic by nie wyprodukował.
+    """
+    prods = producers(state, registry, player_id, position)
+    if any(p.zone == "space" for p in prods):
+        return
+    placed = {zone: dict(by_type) for zone, by_type in state.production_placed.items()}
+    for o in orders:
+        if o.zone not in (None, "space") and not is_space_unit(o.base_type):
+            by_type = placed.setdefault(o.zone, {})
+            by_type[o.base_type] = by_type.get(o.base_type, 0) + o.count
+    pool = list(prods)
+    rest = dict(cumulative)
+    for zone, by_type in sorted(placed.items()):
+        ground = [t for t, n in by_type.items() if n > 0 and not is_space_unit(t)]
+        here = [p for p in pool if p.zone == zone]
+        if zone == "space" or not ground or not here:
+            continue
+        if any(t not in p.forbids for p in here for t in ground):
+            continue  # producent na tej planecie sam robi te jednostki
+        for unit_type, count in sorted(rest.items()):
+            host = next((p for p in here if unit_type not in p.forbids and p.value > 0), None)
+            if count <= 0 or host is None:
+                continue
+            trial_pool = [replace(p, value=p.value - 1) if p is host else p for p in pool]
+            trial_rest = {**rest, unit_type: count - 1}
+            if fits_producers(trial_pool, trial_rest):
+                pool, rest = trial_pool, trial_rest
+                break
+        else:
+            raise ValueError(
+                f"Units cannot be placed on {zone}: the unit with PRODUCTION there must also "
+                "produce at least 1 unit (e.g. an Arborec space dock with Letani Warrior infantry)."
+            )
 
 
 def _planet_resources(state: GameState, registry: StaticDataRegistry, planet_id: str) -> int:
@@ -642,6 +693,9 @@ def validate_production(
             "Production limit exceeded for these unit types: part of the PRODUCTION cannot "
             "produce them (e.g. Arborec space docks cannot produce infantry)."
         )
+
+    if active_grant(state, player_id) is None:
+        _check_idle_producer_zones(state, registry, player_id, active, orders, cumulative)
 
     # BLOKADA statków: obce statki w aktywnym systemie → statków nie produkujemy.
     system = state.systems.get(active)

@@ -166,29 +166,35 @@ def _no_home_planet(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -
 def infantry_ii_inputs(
     state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Wybór gracza: na której planecie w systemie domowym stawia piechotę z karty."""
+    """Wybór gracza: planeta w systemie domowym dla KAŻDEJ sztuki z karty osobno („place each
+    unit … on a planet you control in your home system”) - jednakowe sloty, klik na mapie."""
+    options = [
+        oi.option(p, registry.planets[p].name if p in registry.planets else p)
+        for p in _home_planets(state, player_id)
+    ]
+    waiting = state.players[player_id].infantry_ii_on_card
     return [
-        oi.choice(
-            "planet",
-            "Home-system planet for the infantry on your Infantry II card",
-            [
-                oi.option(p, registry.planets[p].name if p in registry.planets else p)
-                for p in _home_planets(state, player_id)
-            ],
-        )
+        oi.choice(f"planet_{i}", f"Infantry {i} returns to", options)
+        for i in range(1, waiting + 1)
     ]
 
 
 def infantry_ii_place(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
-    """Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym."""
+    """Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym."""
     player = state.players[player_id]
-    planet = ctx.get("params", {}).get("planet")
+    params = ctx.get("params", {})
     home = state.systems.get(player.home_position or "")
-    if planet is None or home is None or player.infantry_ii_on_card <= 0:
+    if home is None or player.infantry_ii_on_card <= 0:
         return
-    waiting = player.infantry_ii_on_card
+    legal = set(_home_planets(state, player_id))
+    targets = [params.get(f"planet_{i}") for i in range(1, player.infantry_ii_on_card + 1)]
+    if any(planet not in legal for planet in targets):
+        raise ValueError("Choose a planet you control in your home system for each infantry.")
     player.infantry_ii_on_card = 0
-    unit_ops.place_units(state, home, planet, player_id, "infantry", waiting)
+    for planet in sorted(set(targets)):
+        unit_ops.place_units(
+            state, home, str(planet), player_id, "infantry", targets.count(planet)
+        )
 
 
 def infantry_ii_to_reserve(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
