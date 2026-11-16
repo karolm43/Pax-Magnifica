@@ -8,7 +8,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
+from src.core import game_setup
 from src.core.event_store import EventStore
+from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
 PLAYERS = {"players": [{"faction_id": "sol"}, {"faction_id": "arborec"}]}
@@ -73,6 +75,18 @@ def test_secret_choice_returns_other_to_deck_and_advances(client: TestClient) ->
     assert len(after["decks"]["secret_objective_deck"]) == deck_size + 1
     assert second in after["decks"]["secret_objective_deck"]
     assert after["active_player_id"] == "p2"
+
+
+def test_secret_choice_reshuffle_is_seeded(client: TestClient) -> None:
+    """Tasowanie odrzuconego celu bierze RNG stanu (RULES.md 38): ten sam stan => ta sama talia."""
+    client.post("/game/new", json=PLAYERS)
+    client.post("/god-mode/patch", json={"rng_seed": 11})
+    state = GameState.model_validate(_state(client))
+    objective = state.players["p1"].private.secret_candidates[0]
+    first = game_setup.choose_secret(state, "p1", objective)
+    second = game_setup.choose_secret(state, "p1", objective)
+    assert first.decks.secret_objective_deck == second.decks.secret_objective_deck
+    assert first.rng_counter == state.rng_counter + 1
 
 
 def test_secret_choice_is_simultaneous_but_once_and_own_cards(client: TestClient) -> None:

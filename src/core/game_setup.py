@@ -20,6 +20,7 @@ import random
 
 from src.core import objectives, promissory_notes, secret_objectives, strategy_phase, triggers
 from src.core.components import ComponentCategory
+from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     ControlType,
@@ -183,8 +184,10 @@ def choose_secret(
     if objective_id not in state.players[player_id].private.secret_candidates:
         raise ValueError(f"{objective_id} is not one of the dealt secret objectives.")
     new_state = state.clone()
+    # Tasowanie odrzuconego celu z seedowalnego RNG stanu (RULES.md 38): Undo/Replay i symulacje
+    # bota dają ten sam wynik (wcześniej niezasiany ``random.Random()``).
     _apply_secret_choice(
-        new_state, player_id, objective_id, rng if rng is not None else random.Random()
+        new_state, player_id, objective_id, rng if rng is not None else next_rng(new_state)
     )
     return _advance(new_state)
 
@@ -225,8 +228,8 @@ def skip_setup(state: GameState, rng: random.Random | None = None) -> GameState:
     """
     if state.setup is None:
         raise ValueError("Setup is not in progress.")
-    chooser = rng if rng is not None else random.Random()
     new_state = state.clone()
+    chooser = rng if rng is not None else next_rng(new_state)  # seedowalnie (RULES.md 38)
     if new_state.setup is not None and new_state.setup.stage is SetupStage.SECRETS:
         for player_id in list(new_state.seating_order):
             player = new_state.players.get(player_id)
