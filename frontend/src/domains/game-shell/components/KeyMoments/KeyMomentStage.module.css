@@ -67,6 +67,14 @@
   animation: fadeIn 400ms ease 900ms both;
 }
 
+/* Podczas efektu bohatera na planszy: sam przycisk, przypięty do ekranu. */
+.skip[data-board] {
+  position: fixed;
+  bottom: 24px;
+  z-index: var(--z-key-moment, 2460);
+  animation: fadeIn 300ms ease both;
+}
+
 .skip:hover {
   color: #fff;
   border-color: rgb(255 255 255 / 0.5);
@@ -184,33 +192,38 @@
   animation: streak 1600ms ease-out 300ms both;
 }
 
-.heroPortrait {
+/*
+ * Portret frakcji (`FactionPortraitLayer`, ten sam co na wyborze frakcji i ekranie zwycięstwa):
+ * postać przy lewej i dolnej krawędzi ekranu, PRZED pasami letterbox (wychodzi z kadru).
+ * Tempo wyłaniania szybsze niż na scenie wyboru (zmienne `--t-portrait-*`).
+ */
+.heroPortraitZone {
   position: absolute;
-  left: 4vw;
-  bottom: 9vh;
-  height: 78vh;
-  max-width: 48vw;
-  object-fit: contain;
-  object-position: bottom left;
-  filter: drop-shadow(0 0 40px rgb(var(--pc) / 0.55));
-  /* Grafika lidera to prostokątna karta — miękko wygaszamy wszystkie krawędzie. */
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 55%, transparent 98%), linear-gradient(0deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 55%, transparent 98%), linear-gradient(0deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
-  mask-composite: intersect;
-  animation: portraitIn 1100ms cubic-bezier(0.15, 0.85, 0.2, 1) both;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  --portrait-w: clamp(360px, 58vw, 1000px);
+  --quote-h: 0px;
+  --t-portrait-delay: 0.05s;
+  --t-portrait-fade: 1.4s;
+  --t-portrait-unblur: 1s;
+  --t-portrait-glow: 2.4s;
+  filter: drop-shadow(0 0 36px rgb(var(--pc) / 0.35));
 }
 
+/* Tekst zaczyna się przy prawej krawędzi sylwetki (2 × jej środek, lekko na nią nachodzi). */
 .heroCopy {
+  --text-left: clamp(40vw, calc(var(--figure-cx, 22vw) * 2 * 0.9), 58vw);
   position: absolute;
-  left: 50vw;
+  left: var(--text-left);
+  right: 4vw;
   top: 50%;
   transform: translateY(-50%);
   display: grid;
   justify-items: start;
   gap: 10px;
-  max-width: 44vw;
-  z-index: 2;
+  max-width: 640px;
+  z-index: 5;
 }
 
 .heroName {
@@ -420,10 +433,6 @@
   from { opacity: 0; clip-path: inset(-40% 100% -40% -10%); transform: translateX(-20px); }
   to { opacity: 1; clip-path: inset(-40% -20% -40% -10%); transform: translateX(0); }
 }
-@keyframes portraitIn {
-  from { opacity: 0; transform: translateX(-8vw) scale(1.06); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
-}
 @keyframes streak {
   from { left: -30%; opacity: 0; }
   20% { opacity: 1; }
@@ -478,12 +487,9 @@
 
 /* Wąskie ekrany: bohater w jednej kolumnie (portret w tle). */
 @media (max-width: 820px) {
-  .heroPortrait {
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 0.35;
-    max-width: 90vw;
-    animation: fadeIn 800ms ease both;
+  .heroPortraitZone {
+    --portrait-w: 100%;
+    opacity: 0.4;
   }
   .heroCopy {
     left: 6vw;

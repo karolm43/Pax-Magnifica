@@ -42,6 +42,16 @@ describe("momentsForEntry (RULES.md 64)", () => {
     ]);
   });
 
+  it("efekt leaders:<bohater> + purge = jeden moment", () => {
+    const e = entry([
+      fact({ type: "effect", player_id: "p1", value: "leaders:letnevhero", detail: "round" }),
+      fact({ type: "leader", player_id: "p1", value: "letnevhero", detail: "purged" }),
+    ]);
+    expect(momentsForEntry(e, isHero)).toEqual([
+      { kind: "hero", seq: 7, player: "p1", leaderId: "letnevhero" },
+    ]);
+  });
+
   it("odblokowanie bohatera nie jest użyciem", () => {
     const e = entry([fact({ type: "leader", player_id: "p1", value: "solhero", detail: "unlocked" })]);
     expect(momentsForEntry(e, isHero)).toEqual([]);

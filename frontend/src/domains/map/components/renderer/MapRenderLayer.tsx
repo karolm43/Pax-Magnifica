@@ -10,6 +10,7 @@ import type { MapLayout } from "../mapLayout";
 import { MapUnitTransitionLayer } from "../layers/MapUnitTransitionLayer";
 import { MoveRouteLayer } from "../layers/MoveRouteLayer";
 import { WormholeLinkLayer } from "../layers/WormholeLinkLayer";
+import { HeroBoardFxLayer } from "../layers/HeroBoardFxLayer";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 
 type Props = {
@@ -65,6 +66,8 @@ export function MapRenderLayer({
         <MoveRouteLayer tiles={tilesList} contentSize={contentSize} />
         {replayAnimationsEnabled && <MapUnitTransitionLayer />}
         <ExpeditionLayer contentSize={contentSize} />
+        {/* Efekt bohatera na planszy po jego scenie (RULES.md 64.4). */}
+        <HeroBoardFxLayer tiles={tilesList} contentSize={contentSize} />
       </Box>
 
       <MapUnitDetailsCard

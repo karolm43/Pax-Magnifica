@@ -31,8 +31,18 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       continue;
     }
     if (godmode) continue;
-    if (f.type === "leader" && f.detail === "purged" && f.player_id && f.value && isHero(f.value)) {
-      out.push({ kind: "hero", seq, player: f.player_id, leaderId: f.value });
+    // Bohater: purge po użyciu (R_leaders) albo efekt trwający `leaders:<bohater>` (np. Letnev
+    // „place this card near the game board”) — jeden moment na bohatera we wpisie.
+    const heroId =
+      f.type === "leader" && f.detail === "purged"
+        ? f.value
+        : f.type === "effect" && f.value?.startsWith("leaders:")
+          ? f.value.slice("leaders:".length)
+          : null;
+    if (heroId && f.player_id && isHero(heroId)) {
+      if (!out.some((m) => m.kind === "hero" && m.leaderId === heroId)) {
+        out.push({ kind: "hero", seq, player: f.player_id, leaderId: heroId });
+      }
     } else if (f.type === "breakthrough_unlocked" && f.player_id) {
       out.push({ kind: "breakthrough", seq, player: f.player_id });
     } else if (f.type === "custodians_removed") {

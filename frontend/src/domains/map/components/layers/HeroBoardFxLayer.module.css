@@ -1,0 +1,285 @@
+/*
+ * Efekt bohatera na planszy (RULES.md 64.4). Warstwa w treści mapy (nad kafelkami i jednostkami,
+ * pod okienkami), nieklikalna. Ton: --tone (rgb), czas: --fx-ms, przyciemnienie: --dim.
+ * Całość jest delikatna: wchodzi i gaśnie sama, „Skip” w KeyMomentStage ją zdejmuje.
+ */
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 9050;
+  pointer-events: none;
+  overflow: visible;
+  animation: fxLife var(--fx-ms, 4000ms) ease both;
+}
+
+/* Przyciemnienie planszy: miękko wpada, trzyma i odpuszcza (winieta z ciemniejszymi brzegami). */
+.dim {
+  position: absolute;
+  inset: -400px;
+  background: radial-gradient(ellipse at 50% 50%, rgb(0 0 6 / calc(var(--dim) * 0.75)), rgb(0 0 6 / var(--dim)) 70%);
+  animation: dimLife var(--fx-ms, 4000ms) ease both;
+}
+
+/* Fala przez całą planszę. */
+.sweep {
+  position: absolute;
+  top: -200px;
+  bottom: -200px;
+  width: 38%;
+  left: -40%;
+  animation: sweepMove calc(var(--fx-ms, 4000ms) * 0.7) cubic-bezier(0.4, 0, 0.3, 1) 200ms both;
+}
+
+.sweep[data-sweep="dawn"] {
+  background: linear-gradient(90deg, transparent, rgb(var(--tone) / 0.12) 40%, rgb(255 240 200 / 0.32) 70%, transparent);
+  filter: blur(14px);
+}
+
+.sweep[data-sweep="scan"] {
+  width: 14%;
+  left: -16%;
+  background:
+    linear-gradient(90deg, transparent, rgb(var(--tone) / 0.18) 70%, rgb(220 240 255 / 0.85) 96%, transparent),
+    repeating-linear-gradient(0deg, rgb(var(--tone) / 0.22) 0 2px, transparent 2px 14px);
+}
+
+/* Cienie okrętów: ogromne, czarne, rozmyte sylwetki płynące ukośnie nad planszą. */
+.shadows {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.shadow {
+  --i: 0;
+  position: absolute;
+  top: calc(6% + var(--i) * 18%);
+  left: -25%;
+  display: grid;
+  place-items: center;
+  filter: brightness(0) blur(0.4px);
+  opacity: 0;
+  /* Sprite'y AsyncTI4 patrzą na NW — obrót o ~125° kieruje dziób w prawo, lekko w górę. */
+  rotate: 125deg;
+  /* Naturalny sprite jest mały; cień to ogromna sylwetka nad całą planszą. */
+  scale: 6;
+  animation: shadowDrift calc(var(--fx-ms, 4000ms) * 1.05) cubic-bezier(0.3, 0, 0.5, 1)
+    calc(var(--i) * 220ms) both;
+}
+
+.shadow:nth-child(even) {
+  scale: 4.2;
+}
+
+.svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+
+/* --- Znaczniki w systemach ---------------------------------------------------------------- */
+
+.mark {
+  --d: 0ms;
+}
+
+.hex {
+  fill: rgb(var(--tone) / 0.16);
+  stroke: rgb(var(--tone) / 0.9);
+  stroke-width: 5;
+  filter: drop-shadow(0 0 14px rgb(var(--tone) / 0.9));
+  opacity: 0;
+  animation: hexGlow calc(var(--fx-ms, 4000ms) * 0.8) ease var(--d) both;
+}
+
+.part {
+  --i: 0;
+  --n: 1;
+}
+
+/* Overgrowth: pnącza rosną promieniście z planet. */
+.mark[data-mark="bloom"] .part {
+  rotate: calc(var(--i) * 360deg / var(--n) + 12deg);
+}
+
+/* Pnącza różnej długości i skrętu — mniej regularne, bardziej organiczne. */
+.mark[data-mark="bloom"] .part:nth-child(odd) {
+  scale: 0.7 -0.8;
+}
+
+.mark[data-mark="bloom"] .part:nth-child(3n) {
+  scale: 1.25 1.15;
+}
+
+.vine {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 6px rgb(var(--tone) / 0.8));
+  animation: grow 1400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(var(--d) + var(--i) * 60ms) both,
+    fadeLate var(--fx-ms, 4000ms) ease both;
+}
+
+.leaf {
+  fill: rgb(var(--tone));
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop 500ms ease calc(var(--d) + 1100ms + var(--i) * 60ms) both,
+    fadeLate var(--fx-ms, 4000ms) ease both;
+}
+
+/* Twilight Directive: słupy światła z systemów. */
+.beam {
+  fill: rgb(var(--tone) / 0.5);
+  filter: blur(10px);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: beamRise 1800ms ease calc(var(--d) + 600ms) both;
+}
+
+/* Sanction of the Quieron: monety (trade goods) spadają i rozbłyskują. */
+.coin {
+  fill: rgb(var(--tone));
+  stroke: rgb(255 245 200);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  translate: calc((var(--i) - 4.5) * 22px) -260px;
+  animation: coinFall 1300ms cubic-bezier(0.5, 0, 0.7, 1) calc(var(--d) + var(--i) * 110ms) both;
+}
+
+/* Insurrection / pulse: rozchodzące się pierścienie. */
+.ring {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 6;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ringOut 1600ms cubic-bezier(0.2, 0.6, 0.3, 1) calc(var(--d) + var(--i) * 380ms) 2 both;
+}
+
+/* Brood Swarm: trzy cięcia szponów. */
+.mark[data-mark="slash"] .part {
+  translate: calc((var(--i) - 1) * 46px) 0;
+}
+
+.claw {
+  fill: none;
+  stroke: rgb(255 230 220);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 10px rgb(var(--tone))) drop-shadow(0 0 20px rgb(var(--tone)));
+  animation: slash 360ms cubic-bezier(0.7, 0, 0.3, 1) calc(var(--d) + 500ms + var(--i) * 120ms) both,
+    fadeLate var(--fx-ms, 4000ms) ease both;
+}
+
+/* Sins of the Father: pieczęć imperium stempluje Mecatol Rex i rozsyła falę. */
+.sealRing,
+.sealInner {
+  fill: none;
+  stroke: rgb(var(--tone));
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 14px rgb(var(--tone)));
+}
+
+.sealRing {
+  stroke-width: 8;
+  stroke-dasharray: 18 10;
+  opacity: 0;
+  animation: sealStamp 900ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--d) + 300ms + var(--i) * 900ms) both,
+    sealWave 2400ms ease-out calc(var(--d) + 1100ms + var(--i) * 500ms) both;
+}
+
+.sealInner {
+  stroke-width: 3;
+  opacity: 0;
+  animation: sealStamp 900ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--d) + 450ms) both,
+    fadeLate var(--fx-ms, 4000ms) ease both;
+}
+
+/* --- Keyframes ---------------------------------------------------------------------------- */
+
+@keyframes fxLife {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes dimLife {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes sweepMove {
+  from { left: -40%; }
+  to { left: 110%; }
+}
+@keyframes shadowDrift {
+  /* Procenty warstwy (= całej planszy), więc przelot zawsze przechodzi przez całą mapę. */
+  0% { opacity: 0; left: -25%; translate: 0 0; }
+  18% { opacity: 0.55; }
+  80% { opacity: 0.5; }
+  100% { opacity: 0; left: 110%; translate: 0 -40%; }
+}
+@keyframes hexGlow {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+@keyframes grow { to { stroke-dashoffset: 0; } }
+@keyframes pop {
+  from { opacity: 0; scale: 0; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes fadeLate {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes beamRise {
+  0% { opacity: 0; scale: 1 0; }
+  30% { opacity: 1; scale: 1 1; }
+  100% { opacity: 0; scale: 0.4 1; }
+}
+@keyframes coinFall {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; translate: calc((var(--i) - 4.5) * 12px) 0; }
+  100% { opacity: 0; translate: calc((var(--i) - 4.5) * 12px) 0; scale: 1.8; }
+}
+@keyframes ringOut {
+  0% { opacity: 0; scale: 0.3; }
+  25% { opacity: 1; }
+  100% { opacity: 0; scale: 2.6; }
+}
+@keyframes slash { to { stroke-dashoffset: 0; } }
+@keyframes sealStamp {
+  from { opacity: 0; scale: 2.2; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes sealWave {
+  0% { scale: 1; }
+  100% { scale: 9; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .layer * {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

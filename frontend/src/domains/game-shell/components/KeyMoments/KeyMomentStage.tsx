@@ -9,7 +9,10 @@ import { breakthroughs } from "@/entities/data/breakthroughs";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { seatColorStyle } from "@/domains/game-shell/components/FactionsInGame/seatColor";
+import { useFactions, type FactionInfo } from "@/api/useNewGame";
+import { FactionPortraitLayer } from "@/domains/setup/FactionBackdrop";
 import { momentsForEntry, type KeyMoment } from "./keyMoments";
+import { HERO_BOARD_FX, useHeroFx } from "./heroBoardFx";
 import styles from "./KeyMomentStage.module.css";
 
 /** Czas sceny (ms) bez wygaszania. */
@@ -56,19 +59,27 @@ function Who({ player, id, prefix }: { player: ActivityPlayer | undefined; id: s
 
 function HeroScene({ moment, player }: { moment: Extract<KeyMoment, { kind: "hero" }>; player: ActivityPlayer | undefined }) {
   const leader = getLeaderById(moment.leaderId);
-  const [portrait, setPortrait] = useState(true);
+  const { data: factions } = useFactions();
+  // Portret frakcji ze sceny wyboru frakcji (ten sam komponent i kadr co ekran zwycięstwa):
+  // postać przy lewej i dolnej krawędzi, tekst zaczyna się przy prawej krawędzi sylwetki.
+  const factionId = player?.faction ?? leader?.faction ?? "";
+  const faction =
+    factions?.find((f) => f.id === factionId) ??
+    ({ id: factionId, leaders: [moment.leaderId] } as unknown as FactionInfo);
+  const [figureCx, setFigureCx] = useState<number | null>(null);
   return (
     <>
       <div className={styles.heroGlow} />
-      {portrait && (
-        <img
-          className={styles.heroPortrait}
-          src={`/leaders/${moment.leaderId}.webp`}
-          alt=""
-          onError={() => setPortrait(false)}
-        />
-      )}
-      <div className={styles.heroCopy}>
+      <div
+        className={styles.heroPortraitZone}
+        style={figureCx !== null ? ({ "--figure-cx": `${figureCx}px` } as CSSProperties) : undefined}
+      >
+        {factionId && <FactionPortraitLayer faction={faction} onFigureCenter={setFigureCx} softEdge />}
+      </div>
+      <div
+        className={styles.heroCopy}
+        style={figureCx !== null ? ({ "--figure-cx": `${figureCx}px` } as CSSProperties) : undefined}
+      >
         <span className={styles.eyebrow}>Hero unleashed</span>
         <h2 className={styles.heroName}>{leader?.name ?? moment.leaderId}</h2>
         {leader?.title && <span className={styles.heroTitle}>{leader.title}</span>}
@@ -164,7 +175,10 @@ export function KeyMomentStage() {
   const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
   const seen = useRef<number | null>(null);
   const [queue, setQueue] = useState<KeyMoment[]>([]);
-  const [shown, setShown] = useState<"wait" | "on" | "leaving">("wait");
+  // wait -> on (scena) -> leaving (wygaszanie) -> [board: efekt bohatera na mapie] -> następny.
+  const [shown, setShown] = useState<"wait" | "on" | "leaving" | "board">("wait");
+  const playFx = useHeroFx((s) => s.play);
+  const stopFx = useHeroFx((s) => s.stop);
 
   useEffect(() => {
     if (!feed || me === undefined) return;
@@ -205,26 +219,60 @@ export function KeyMomentStage() {
     return () => window.clearTimeout(timer);
   }, [current]);
 
-  useEffect(() => {
-    if (!current || shown === "wait") return;
-    const timer =
-      shown === "on"
-        ? window.setTimeout(() => setShown("leaving"), DURATION[current.kind])
-        : window.setTimeout(() => setQueue((cur) => cur.slice(1)), LEAVE_MS);
-    return () => window.clearTimeout(timer);
-  }, [current, shown]);
+  // Przepis efektu na planszy (tylko bohaterowie z wpisem w HERO_BOARD_FX).
+  const recipe = current?.kind === "hero" ? HERO_BOARD_FX[current.leaderId] : undefined;
+  const owner = current?.player ? feed?.players[current.player] : undefined;
 
   useEffect(() => {
-    if (!current || shown !== "on") return;
+    if (!current || shown === "wait") return;
+    const next = () => setQueue((cur) => cur.slice(1));
+    let timer: number;
+    if (shown === "on") timer = window.setTimeout(() => setShown("leaving"), DURATION[current.kind]);
+    else if (shown === "leaving")
+      timer = window.setTimeout(() => (recipe ? setShown("board") : next()), LEAVE_MS);
+    else timer = window.setTimeout(next, recipe?.ms ?? 0);
+    return () => window.clearTimeout(timer);
+  }, [current, shown, recipe]);
+
+  // Efekt na mapie trwa tylko w stanie „board”; zdjęcie (koniec / Skip / nowa gra) czyści warstwę.
+  useEffect(() => {
+    if (shown !== "board" || current?.kind !== "hero" || !recipe) return;
+    playFx({
+      heroId: current.leaderId,
+      recipe,
+      faction: owner?.faction ?? null,
+      color: owner?.color ?? null,
+    });
+    return () => stopFx();
+    // Zależności celowo tylko [shown, current]: jeden start na wejście w „board”.
+  }, [shown, current]);
+
+  // Skip / Esc: ze sceny przechodzi do efektu na planszy (albo dalej), z planszy kończy moment.
+  const skip = () => {
+    if (shown === "board") setQueue((cur) => cur.slice(1));
+    else setShown("leaving");
+  };
+  const skipRef = useRef(skip);
+  skipRef.current = skip;
+  useEffect(() => {
+    if (!current || (shown !== "on" && shown !== "board")) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShown("leaving");
+      if (e.key === "Escape") skipRef.current();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [current, shown]);
 
   if (!current || shown === "wait") return null;
-  const player = current.player ? feed?.players[current.player] : undefined;
+  const player = owner;
+  if (shown === "board") {
+    // Sama plansza gra efekt — zostaje tylko dyskretny „Skip”.
+    return (
+      <button type="button" className={styles.skip} data-board onClick={skip}>
+        Skip <IconPlayerTrackNext size={14} />
+      </button>
+    );
+  }
   let scene: ReactNode;
   switch (current.kind) {
     case "hero":
@@ -253,7 +301,7 @@ export function KeyMomentStage() {
       <div className={styles.letterbox} data-top />
       <div className={styles.letterbox} />
       <div className={styles.scene}>{scene}</div>
-      <button type="button" className={styles.skip} onClick={() => setShown("leaving")}>
+      <button type="button" className={styles.skip} onClick={skip}>
         Skip <IconPlayerTrackNext size={14} />
       </button>
     </div>
