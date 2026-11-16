@@ -264,6 +264,7 @@ function buildPrePlacementTile(
     planets,
     commandCounters: tileData.ccs ?? [],
     highestProduction: Math.max(...Object.values(tileData.production)),
+    productionByColor: tileData.production,
     largestCapacity:
       getLargestCapacity(Object.values(tileData.capacity ?? {})) ??
       calculateLargestCapacity(

@@ -96,6 +96,8 @@ export type Tile = {
     };
   };
   highestProduction: number;
+  /** PRODUCTION w systemie per KOLOR gracza (web-data ``production``); brak = stare migawki. */
+  productionByColor?: Record<string, number>;
   largestCapacity?: CapacityUsage;
   commandCounters: string[];
   entityPlacements: EntityStack[];

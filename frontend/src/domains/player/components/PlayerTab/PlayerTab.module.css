@@ -271,3 +271,155 @@
   padding: 24px;
   color: var(--ds-ink-lo);
 }
+
+.subTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 12px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.subTitle span {
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* --- Imperium: kafelki liczb --- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 6px;
+}
+
+.stat {
+  display: grid;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid var(--ds-h14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stat small {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.stat b {
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--ds-ink-hi);
+}
+
+.stat b [data-warn] {
+  color: #fbbf24;
+}
+
+.stat > span {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.iconRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 8px;
+}
+
+.iconGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconGroup > small {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.iconCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--ds-ink-hi);
+}
+
+.iconCount b[data-zero] {
+  color: var(--ds-ink-lo);
+  font-weight: 400;
+}
+
+/* --- Kalkulator budowy --- */
+.build {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.buildItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pc) 10%, rgba(255, 255, 255, 0.02));
+}
+
+.buildItem[data-zero] {
+  opacity: 0.45;
+}
+
+.buildUnit {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+}
+
+.buildText {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.buildText b {
+  font-size: 15px;
+  color: var(--ds-ink-hi);
+}
+
+.buildText small {
+  overflow: hidden;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ds-ink-lo);
+}
+
+/* --- Ręka: te same kafelki co pasek ręki, w siatce --- */
+.handGroup + .handGroup {
+  margin-top: 4px;
+}
+
+.handGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}

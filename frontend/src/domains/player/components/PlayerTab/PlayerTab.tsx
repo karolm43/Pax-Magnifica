@@ -12,10 +12,6 @@ import { useGameData } from "@/state/useGameContext";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import PlayerCard from "@/domains/player/components/composition/PlayerCard";
-import { SecretHand } from "@/domains/game-shell/components/SecretHand";
-import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
-import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
-import { GameStateActionControls } from "@/domains/game-shell/components/GameStatePanel";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import { ResourceBarFor } from "@/domains/game-shell/components/ResourceBar/ResourceBar";
 import { Named } from "@/domains/game-shell/components/ActivityPanel/Named";
@@ -24,6 +20,9 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
 import type { PlayerData } from "@/entities/data/types";
 import { commanderTips, vpRank, type Tip, type TipTone } from "./commanderTips";
+import { empireStats } from "./empireStats";
+import { EmpirePanel } from "./EmpirePanel";
+import { HandPanel } from "./HandPanel";
 import styles from "./PlayerTab.module.css";
 
 /*
@@ -32,8 +31,9 @@ import styles from "./PlayerTab.module.css";
  * Domyślnie pokazuje gracza pulpitu (``useDeskPlayer``: moje miejsce w sieci, inaczej gracz
  * z turą / mówca); pasek graczy u góry przełącza na dowolnego innego.
  * [nagłówek: frakcja, VP i miejsce, mówca, karty strategii, faza]
- * [odprawa: wskazówki z danych silnika | zasoby | stół: wszyscy gracze]
- * [pełna karta gracza (ta sama co w „Players”) | akcje + ręka - tylko dla gracza pulpitu]
+ * [odprawa: wskazówki + porady | imperium (systemy, planety, siły, kalkulator budowy) | zasoby
+ *  | pełna karta gracza (ta sama co w „Players”)]   [stół: wszyscy gracze | ręka]
+ * Akcje tury są w panelu sterowania na mapie - tu ich nie dublujemy.
  */
 
 const PHASE_LABEL: [string, string][] = [
@@ -147,8 +147,10 @@ export function PlayerTab() {
   useEffect(() => setChosenColor(null), [desk?.color]);
   const player = players.find((p) => p.color === chosenColor) ?? desk ?? players[0];
 
-  const { canViewSecretHand } = useSecretHandAccess(gameData?.playerData ?? []);
-  const { data: handData, isLoading, error } = usePlayerHand(gameId);
+  const empire = useMemo(
+    () => (player ? empireStats(player, gameData?.tiles) : undefined),
+    [player, gameData?.tiles],
+  );
 
   if (!player) {
     return (
@@ -176,6 +178,7 @@ export function PlayerTab() {
     phase,
     isTurn: turnColor === player.color,
     agenda: gameState?.agendaPhase ?? null,
+    empire,
   });
   const rank = vpRank(player, players);
   const standings = [...players].sort((a, b) => b.totalVps - a.totalVps);
@@ -221,6 +224,8 @@ export function PlayerTab() {
             )}
           </section>
 
+          {empire ? <EmpirePanel player={player} stats={empire} /> : null}
+
           <section className={styles.panel} aria-label="Stores">
             <h3 className={styles.panelTitle}>Stores</h3>
             <ResourceBarFor desk={player} label={`${playerName(player)} stores`} />
@@ -248,35 +253,7 @@ export function PlayerTab() {
             </ol>
           </section>
 
-          {isDesk ? (
-            <>
-              <section className={styles.panel} aria-label="Actions">
-                <h3 className={styles.panelTitle}>Actions</h3>
-                <p className={styles.hint}>What you can do now in the {phaseLabel(phase).toLowerCase()}.</p>
-                <GameStateActionControls />
-              </section>
-
-              <section className={styles.panel} aria-label="Your hand">
-                <h3 className={styles.panelTitle}>Your hand</h3>
-                <p className={styles.hint}>
-                  Action cards, secret objectives and promissory notes - tap a card to read it.
-                </p>
-                {canViewSecretHand ? (
-                  <SecretHand handData={handData} isLoading={isLoading} error={error} inlineDetails />
-                ) : (
-                  <p className={styles.hint}>Full hand visible only to the logged-in player in this game.</p>
-                )}
-              </section>
-            </>
-          ) : (
-            <section className={styles.panel} aria-label="Hand">
-              <h3 className={styles.panelTitle}>Hand</h3>
-              <p className={styles.hint}>
-                {player.acCount} action cards · {player.soCount} secret objectives · {player.pnCount}{" "}
-                promissory notes (hidden).
-              </p>
-            </section>
-          )}
+          <HandPanel gameId={gameId} player={player} own={isDesk} />
         </div>
       </div>
     </div>

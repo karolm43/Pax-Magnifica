@@ -1,5 +1,6 @@
 import type { NamedKind } from "@/domains/game-shell/components/ActivityPanel/Named";
 import type { AgendaPhaseData, Objective, PlayerData } from "@/entities/data/types";
+import type { EmpireStats } from "./empireStats";
 
 /*
  * Wskazówki PANELU DOWÓDCY: czysta funkcja z danych web-data (nic nie liczy reguł - tylko czyta
@@ -23,6 +24,8 @@ export type TipContext = {
   /** Czy to tura tego gracza (``activeTurnPlayer``). */
   isTurn: boolean;
   agenda: AgendaPhaseData | null;
+  /** Statystyki imperium (``empireStats``); brak = bez porad o planszy. */
+  empire?: EmpireStats;
 };
 
 const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
@@ -249,6 +252,43 @@ function componentTips(ctx: TipContext): Tip[] {
   return tips;
 }
 
+/** Porady z planszy: specjalizacje, PRODUCTION, pula floty, posiłki (R_planets, R_fleet_pool). */
+function empireTips(ctx: TipContext): Tip[] {
+  const { empire } = ctx;
+  if (!empire) return [];
+  const tips: Tip[] = [];
+  const skips = Object.entries(empire.skips).filter(([, n]) => n > 0);
+  if (skips.length > 0) {
+    tips.push({
+      id: "skips",
+      tone: "info",
+      text: `Ready tech specialties: ${skips.map(([c, n]) => `${n} ${c}`).join(", ")} - exhaust such a planet to satisfy a prerequisite when researching.`,
+    });
+  }
+  if (empire.systems.present > 0 && empire.maxProduction === 0) {
+    tips.push({
+      id: "no-production",
+      tone: "warn",
+      text: "None of your units on the board has PRODUCTION - you cannot produce units in a tactical action.",
+    });
+  }
+  if (empire.fleetPool > 0 && empire.largestFleet >= empire.fleetPool) {
+    tips.push({
+      id: "fleet-pool",
+      tone: "warn",
+      text: `Your largest fleet has ${empire.largestFleet} non-fighter ships - at your fleet pool limit (${empire.fleetPool}). Add fleet tokens before growing it.`,
+    });
+  }
+  if (empire.depleted.length > 0) {
+    tips.push({
+      id: "depleted",
+      tone: "info",
+      text: `Nothing left in reinforcements: ${empire.depleted.join(", ")} - you cannot produce more of these.`,
+    });
+  }
+  return tips;
+}
+
 /** Wszystkie wskazówki w kolejności ważności: co teraz → szanse na punkty → ostrzeżenia → reszta. */
 export function commanderTips(ctx: TipContext): Tip[] {
   const order: Record<TipTone, number> = { action: 0, good: 1, warn: 2, info: 3 };
@@ -257,6 +297,7 @@ export function commanderTips(ctx: TipContext): Tip[] {
     ...objectiveTips(ctx),
     ...economyTips(ctx),
     ...componentTips(ctx),
+    ...empireTips(ctx),
     ...raceTips(ctx),
   ];
   return tips
