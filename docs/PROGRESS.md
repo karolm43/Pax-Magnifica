@@ -448,6 +448,31 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   1 człowiek + 3 boty: boty czekają na człowieka, pętla w lifespan rusza po `/game/new`, proces = inline.
 - Brak: przełącznik admin fast (opóźnienie 0) z UI, `engine/bench.py`, wynik „anytime” z procesu.
 
+
+## Wybór miejsca na mapie zamiast list + efekt bohatera Xxcha (2026-11-16)
+
+- **Problem (użytkownik):** Xxekir Grom pokazywał listę „PDS on X”, „Mech on X #2”… — klasyfikator
+  `optionKinds` odrzucał opcje z `meta.unit` i powtórzone cele. Audyt WSZYSTKICH formularzy (skrypt wywołujący
+  każde `register_effect_inputs` i `inputs` ofert na bogatym stanie + ręczny przegląd ofert zależnych od
+  kontekstu) znalazł ten sam wzór w: Xxekir Grom, Refit Troops, Scuttle, Lucky Shot, Decoy, ruch sił naziemnych
+  w inwazji, Arborec agent, Titan Prototype, Sardakk commander, agendy niszczące jednostki
+  (Revolution, Arms Reduction, Homeland Defense Act, artefakty), notki `ms` i `stymie`
+  („Do not place” blokowało mapę), Mercenary Contract / Jamming (cel w wartości-słowniku) i Bioplasmosis
+  (lista stepperów „A -> B” dla każdej pary planet).
+- **Front:** `GroupedMapField` — cele świecą na mapie (i jako chipy), klik otwiera, co można zrobić TAM;
+  jednakowe jednostki = licznik −/+ (`optionKinds.stacksOf`, `withStackCount`, także w zwykłym multi).
+  `classifyOptions`: grupy (`grouped`), do 2 opcji bez celu obok mapy, cel z wartości-słownika.
+  `RouteNumbersField` (Bioplasmosis): źródło, potem cel = +1. Kafelki wydzielone do `DecisionTiles.tsx`.
+  `useMapPick` wyłączony nie czyści już cudzego wyboru na mapie.
+- **Backend:** `offer_inputs.unit_at` (jednostka + planeta/system), `number(..., meta=route_meta(...))`;
+  `agendas_common.unit_options/destroy_choice_input` biorą gracza (nazwy wariantów zamiast „carrier #1”).
+- **Bohater Xxcha:** scena grała (fakt `leader purged`), ale nie było efektu na planszy — dodany „Aegis”
+  (kopuły tarcz nad systemami z PDS/mechami, cel `defense`). Strażnik `tests/test_hero_board_fx_guard.py`
+  porównuje bohaterów z silnika z `HERO_BOARD_FX`.
+- Reguła: RULES.md 56.5, 64.4. QA: pytest (2475 ✅ po commicie Yin z efektem `yinhero`), ruff,
+  mypy; front: tsc, eslint (zmienione), vitest (cały, 207 ✅), build ✅. Bez e2e (zmiany tylko w obrębie
+  okien decyzji). Restart backendu wymagany (nowe metadane wejść).
+
 ## Fala 2 B7: Yin Brotherhood — komplet (11/11, RULES.md 62.10) (2026-11-16)
 
 - Moduł `core/hooks/factions/yin.py` (wersje Ω): Indoctrination (+ Moyin's Ashes jako opcja „mech” za +1 wpływu),

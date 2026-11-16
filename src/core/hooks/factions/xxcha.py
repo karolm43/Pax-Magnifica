@@ -32,6 +32,7 @@ from src.core import (
 )
 from src.core import offer_inputs as oi
 from src.core.action_adjacency import neighbors
+from src.core.fleet_pool import unit_name
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.hooks.card_helpers import controlled, place_from_reinforcements, system_of_planet
@@ -488,7 +489,11 @@ def _hero_slots(state: GameState, player_id: str) -> list[tuple[str, str]]:
 def hero_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """Jednostki do postawienia (do 4, dowolne połączenie PDS i mechów, kilka na planetę)."""
+    """Jednostki do postawienia (do 4, dowolne połączenie PDS i mechów, kilka na planetę).
+
+    Jedna opcja na sztukę z ``unit_at`` (jednostka + planeta): UI pokazuje planety na mapie, a na
+    wybranej planecie licznik PDS i licznik mechów (``GroupedMapField``), nie listę.
+    """
     options: list[dict[str, Any]] = []
     seen: dict[tuple[str, str], int] = {}
     for base_type, planet in _hero_slots(state, player_id):
@@ -497,11 +502,13 @@ def hero_inputs(
         if left is not None and index >= left:
             continue
         seen[(base_type, planet)] = index + 1
-        label = f"{'PDS' if base_type == 'pds' else 'Mech'} on {_planet_name(registry, planet)}"
+        label = (
+            f"{unit_name(state, registry, player_id, base_type)} on "
+            f"{_planet_name(registry, planet)}"
+        )
         options.append(oi.option(
-            f"{base_type}|{planet}|{index}", f"{label} #{index + 1}" if index else label,
-            meta=oi.unit_meta(base_type, player_id, state.players[player_id].faction,
-                              state.players[player_id].color, 1),
+            f"{base_type}|{planet}|{index}", label,
+            meta=oi.unit_at(state, player_id, base_type, planet=planet),
         ))
     most = min(_HERO_UNITS, len(options))
     return [oi.multi("units", "PDS and mechs to place (up to 4)", options, 1, max(1, most))]

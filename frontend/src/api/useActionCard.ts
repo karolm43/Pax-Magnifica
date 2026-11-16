@@ -35,7 +35,13 @@ export type ActionCardInput =
       /** Wejście jest płatnością: koszt, czym się płaci i które pole liczbowe to TG. */
       payment?: { cost: number; valueKind: string; tradeGoods: string };
     })
-  | (InputBase & { kind: "number"; min: number; max: number })
+  | (InputBase & {
+      kind: "number";
+      min: number;
+      max: number;
+      /** ``{from, to, unit}`` = ile jednostek przenieść z planety na planetę (``RouteNumbersField``). */
+      meta?: Record<string, unknown>;
+    })
   /** Tylko informacja (bez wyboru); ``options`` = legalne cele, pusta lista blokuje zagranie. */
   | (InputBase & { kind: "info"; options: ActionCardOption[] })
   /** „Zbadaj technologię”: pełne okno badania (``TechnologyOverlay``) z opisem ``research``. */

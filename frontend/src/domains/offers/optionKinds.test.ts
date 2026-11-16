@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyOptions, type OptionLookups } from "./optionKinds";
+import { classifyOptions, stackRange, stacksOf, withStackCount, type OptionLookups } from "./optionKinds";
 
 const look: OptionLookups = {
   isTech: (id) => ["nm", "gd"].includes(id),
@@ -45,5 +45,52 @@ describe("classifyOptions", () => {
     expect(classifyOptions([opt("jord|a"), opt("jord|b")], look)).toBeNull();
     expect(classifyOptions([opt("x", { unit: "cruiser" })], look)).toBeNull();
     expect(classifyOptions([], look)).toBeNull();
+  });
+
+  it("kilka opcji na planetę = wybór na mapie z grupami (Xxekir Grom, nie lista)", () => {
+    const unit = (u: string, planet: string, n: number) =>
+      ({ id: `${u}|${planet}|${n}`, value: `${u}|${planet}|${n}`, label: u, meta: { unit: u, player: "p1", planet } });
+    const hero = classifyOptions(
+      [unit("pds", "jord", 0), unit("mech", "jord", 0), unit("mech", "jord", 1), unit("mech", "mr", 0)],
+      look,
+    );
+    expect(hero?.kind).toBe("planet");
+    expect(hero?.grouped).toBe(true);
+    expect(hero?.targets.get("mech|mr|0")).toBe("mr");
+    // Jedno miejsce z wieloma opcjami to nie wybór miejsca - liczniki jednostek bez mapy.
+    expect(classifyOptions([unit("pds", "jord", 0), unit("mech", "jord", 0)], look)).toBeNull();
+  });
+
+  it("opcja odmowy obok celów i cel w wartości-słowniku", () => {
+    const stymie = classifyOptions([opt("skip"), opt("101"), opt("000")], look);
+    expect(stymie?.kind).toBe("system");
+    expect(stymie?.targets.has("skip")).toBe(false);
+    const merc = classifyOptions(
+      [opt({ position: "101", planet: "jord" }), opt({ position: "000", planet: "mr" })],
+      look,
+    );
+    expect(merc?.kind).toBe("planet");
+  });
+});
+
+describe("stacksOf / withStackCount", () => {
+  const mech = (n: number, planet = "jord") => ({
+    id: `m${planet}${n}`,
+    value: `m${n}`,
+    label: n ? `Mech #${n + 1}` : "Mech",
+    meta: { unit: "mech", player: "p1", planet },
+  });
+
+  it("jednakowe jednostki w jednym miejscu to jeden stos", () => {
+    const stacks = stacksOf([mech(0), mech(1), mech(0, "mr"), opt("skip")]);
+    expect(stacks.map((s) => s.options.length)).toEqual([2, 1, 1]);
+  });
+
+  it("licznik stosu bierze opcje po kolei w limicie pola", () => {
+    const stack = [mech(0), mech(1), mech(2)];
+    expect(withStackCount(["x"], stack, 2, 4)).toEqual(["x", "mjord0", "mjord1"]);
+    expect(withStackCount(["x", "y", "z"], stack, 3, 4)).toEqual(["x", "y", "z", "mjord0"]);
+    expect(withStackCount(["mjord0", "mjord1"], stack, 0, 4)).toEqual([]);
+    expect(stackRange(["x", "mjord0"], stack, 3)).toEqual({ value: 1, max: 2 });
   });
 });

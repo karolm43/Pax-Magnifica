@@ -20,6 +20,11 @@ export type Classified = {
   kind: OptionKind;
   /** id opcji → cel (id technologii / gracza / planety / pozycja systemu). */
   targets: Map<string, string>;
+  /**
+   * Kilka opcji wskazuje TEN SAM cel (np. „PDS / mech na planecie X”, statki w systemie): klik
+   * w cel na mapie otwiera wybór tego, co na nim (``GroupedMapField``), zamiast listy wszystkich.
+   */
+  grouped?: boolean;
 };
 
 function str(value: unknown): string | null {
@@ -32,8 +37,19 @@ function parts(value: string): string[] {
   return split.length > 1 ? split : [value];
 }
 
-function planetOf(option: ActionCardOption, look: OptionLookups): string | null {
-  const meta = option.meta ?? {};
+/**
+ * Pola opcji, w których silnik podaje miejsce: ``meta`` oraz wartość-słownik (Mercenary
+ * Contract ``{position, planet}``, Lucky Shot ``{position, owner, base_type}``).
+ */
+function fieldsOf(option: ActionCardOption): Record<string, unknown> {
+  const value = option.value;
+  const fromValue =
+    value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return { ...fromValue, ...(option.meta ?? {}) };
+}
+
+export function planetOf(option: ActionCardOption, look: OptionLookups): string | null {
+  const meta = fieldsOf(option);
   const fromMeta = str(meta.planet);
   if (fromMeta && look.isPlanet(fromMeta)) return fromMeta;
   const value = str(option.value);
@@ -41,8 +57,8 @@ function planetOf(option: ActionCardOption, look: OptionLookups): string | null 
   return parts(value).find((p) => look.isPlanet(p)) ?? null;
 }
 
-function systemOf(option: ActionCardOption, look: OptionLookups): string | null {
-  const meta = option.meta ?? {};
+export function systemOf(option: ActionCardOption, look: OptionLookups): string | null {
+  const meta = fieldsOf(option);
   for (const key of ["position", "system"]) {
     const v = str(meta[key]);
     if (v && look.isSystem(v)) return v;
@@ -68,31 +84,78 @@ function all(
   return targets;
 }
 
+/** Opcja bez celu na mapie, ale też bez innego obiektu gry („Do not place”, „Decline”). */
+function isLoose(option: ActionCardOption, look: OptionLookups): boolean {
+  const v = str(option.value);
+  if (v === null) return option.value === null || typeof option.value !== "object";
+  return !look.isTech(v) && !look.isPlayer(v) && !look.isPlanet(v) && !look.isSystem(v);
+}
+
+/** Najwyżej tyle opcji bez celu (odmowa, „nic”) obok celów na mapie. */
+const MAX_LOOSE = 2;
+
+/**
+ * Cele planet / systemów, gdy KILKA opcji może wskazywać to samo miejsce (``grouped``), a do
+ * ``MAX_LOOSE`` opcji nie ma celu (zwykłe kafelki obok mapy). Jeden cel z wieloma opcjami to
+ * nie wybór miejsca - wtedy ``null`` (kafelki / liczniki jednostek).
+ */
+function located(
+  options: ActionCardOption[],
+  pick: (option: ActionCardOption) => string | null,
+  look: OptionLookups,
+): { targets: Map<string, string>; grouped: boolean } | null {
+  const targets = new Map<string, string>();
+  const perTarget = new Map<string, number>();
+  let loose = 0;
+  for (const option of options) {
+    const target = pick(option);
+    if (!target) {
+      if (!isLoose(option, look)) return null;
+      loose += 1;
+      continue;
+    }
+    targets.set(option.id, target);
+    perTarget.set(target, (perTarget.get(target) ?? 0) + 1);
+  }
+  if (targets.size === 0 || loose > MAX_LOOSE) return null;
+  const grouped = [...perTarget.values()].some((n) => n > 1);
+  if (grouped && perTarget.size < 2) return null;
+  return { targets, grouped };
+}
+
 /** Rodzaj wyboru albo ``null`` (zwykłe kafelki: jednostki, kości, karty, tryby…). */
 export function classifyOptions(
   options: ActionCardOption[],
   look: OptionLookups,
 ): Classified | null {
   if (options.length === 0) return null;
-  // Opcje graficzne (jednostka, kość) i z jawnym odnośnikiem do komponentu (``meta.ref`` - opis
-  // i pełna karta, patrz ``describeOption``) mają już własny wygląd.
-  if (options.some((o) => o.meta && ("unit" in o.meta || "die" in o.meta || "ref" in o.meta))) {
-    return null;
-  }
+  // Kości i opcje z jawnym odnośnikiem do komponentu (``meta.ref`` - opis i pełna karta, patrz
+  // ``describeOption``) mają własny wygląd. Jednostka NA PLANECIE / W SYSTEMIE to wybór miejsca.
+  if (options.some((o) => o.meta && ("die" in o.meta || "ref" in o.meta))) return null;
+  const units = options.some((o) => o.meta && "unit" in o.meta);
   const plain = (test: (id: string) => boolean) => (o: ActionCardOption) => {
     const v = str(o.value);
     return v && test(v) ? v : null;
   };
-  const order: [OptionKind, (o: ActionCardOption) => string | null][] = [
-    ["technology", plain(look.isTech)],
-    ["player", plain(look.isPlayer)],
+  if (!units) {
+    const exact: [OptionKind, (o: ActionCardOption) => string | null][] = [
+      ["technology", plain(look.isTech)],
+      ["player", plain(look.isPlayer)],
+    ];
+    for (const [kind, pick] of exact) {
+      const targets = all(options, pick);
+      if (targets) return { kind, targets };
+    }
+  }
+  const places: [OptionKind, (o: ActionCardOption) => string | null][] = [
     ["planet", (o) => planetOf(o, look)],
     ["system", (o) => systemOf(o, look)],
   ];
-  for (const [kind, pick] of order) {
-    const targets = all(options, pick);
-    if (targets) return { kind, targets };
+  for (const [kind, pick] of places) {
+    const found = located(options, pick, look);
+    if (found) return { kind, targets: found.targets, grouped: found.grouped || undefined };
   }
+  if (units) return null;
   // Gracze z dodatkową opcją bez celu (Carth of Golden Sands: „Gain 2 commodities” obok
   // „Replenish <gracz>…”): gracze dalej z ikoną frakcji i kolorem, reszta zwykłym kafelkiem.
   const players = some(options, plain(look.isPlayer));
@@ -115,4 +178,58 @@ function some(
     targets.set(option.id, target);
   }
   return targets.size > 0 ? targets : null;
+}
+
+/** Stos jednakowych opcji: ta sama jednostka tego samego gracza w tym samym miejscu. */
+export type OptionStack = { key: string; options: ActionCardOption[] };
+
+/**
+ * Opcje pogrupowane w stosy (kolejność jak u silnika). Silnik daje JEDNĄ opcję na sztukę
+ * (Xxekir Grom: „Mech on X”, „Mech on X #2”; agendy: „carrier #1”, „carrier #2”) - w multi to
+ * jeden licznik −/+ zamiast rzędu identycznych kafelków. Bez ``meta.unit`` każda opcja osobno.
+ */
+export function stacksOf(options: ActionCardOption[]): OptionStack[] {
+  const stacks: OptionStack[] = [];
+  const byKey = new Map<string, OptionStack>();
+  for (const option of options) {
+    const meta = option.meta ?? {};
+    const key =
+      typeof meta.unit === "string"
+        ? ["unit", meta.unit, meta.player, meta.planet, meta.position, meta.zone]
+            .map((part) => (typeof part === "string" ? part : ""))
+            .join("|")
+        : `option|${option.id}`;
+    const found = byKey.get(key);
+    if (found) {
+      found.options.push(option);
+    } else {
+      const stack = { key, options: [option] };
+      byKey.set(key, stack);
+      stacks.push(stack);
+    }
+  }
+  return stacks;
+}
+
+/** Wybór multi po ustawieniu licznika stosu na ``count`` (w limicie ``max`` całego pola). */
+export function withStackCount(
+  picked: string[],
+  stack: ActionCardOption[],
+  count: number,
+  max: number,
+): string[] {
+  const ids = stack.map((o) => o.id);
+  const others = picked.filter((id) => !ids.includes(id));
+  const room = Math.max(0, max - others.length);
+  return [...others, ...ids.slice(0, Math.max(0, Math.min(count, room)))];
+}
+
+/** Ile sztuk stosu jest wybranych i ile najwyżej można (rozmiar stosu, wolne miejsce pola). */
+export function stackRange(
+  picked: string[],
+  stack: ActionCardOption[],
+  max: number,
+): { value: number; max: number } {
+  const value = stack.filter((o) => picked.includes(o.id)).length;
+  return { value, max: Math.min(stack.length, value + Math.max(0, max - picked.length)) };
 }

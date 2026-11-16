@@ -417,6 +417,7 @@ def commander_inputs(
                 options.append(oi.option(
                     f"{base_type}>{dest}",
                     f"{unit_name(state, registry, player_id, base_type)} -> {name}",
+                    meta=oi.unit_at(state, player_id, base_type, planet=dest),
                 ))
         source_name = registry.planets[planet].name if planet in registry.planets else planet
         inputs.append(oi.choice(f"src:{position}:{planet}", f"From {source_name}", options))

@@ -442,7 +442,7 @@ def _non_fighter_ships(state: GameState, pid: str) -> list[tuple[str, str, str]]
 def _revolution_inputs(
     state: GameState, registry: StaticDataRegistry, pid: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
-    return destroy_choice_input(state, registry, _non_fighter_ships(state, pid), 1,
+    return destroy_choice_input(state, registry, _non_fighter_ships(state, pid), 1, pid,
                                 label="Non-fighter ship to destroy")
 
 

@@ -22,6 +22,7 @@ const PARTS: Record<FxMark, number> = {
   slash: 3,
   seal: 3,
   pulse: 2,
+  aegis: 3,
 };
 
 function Mark({ mark, tile, index }: { mark: FxMark; tile: Tile; index: number }) {
@@ -70,6 +71,14 @@ function MarkPart({ mark }: { mark: FxMark }) {
       return <circle className={classes.ring} r={60} />;
     case "slash":
       return <path className={classes.claw} d="M -70 -60 Q -10 -10 60 70" pathLength={100} />;
+    case "aegis":
+      // Kopuła tarczy: półkula nad środkiem systemu + pierścień u podstawy.
+      return (
+        <>
+          <path className={classes.dome} d="M -92 18 A 92 92 0 0 1 92 18 Z" />
+          <ellipse className={classes.domeBase} cx={0} cy={18} rx={92} ry={22} />
+        </>
+      );
     case "seal":
       return (
         <>

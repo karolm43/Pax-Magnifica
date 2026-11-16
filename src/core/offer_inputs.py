@@ -85,10 +85,26 @@ def multi(
     }
 
 
-def number(key: str, label: str, minimum: int, maximum: int, hint: str = "") -> Input:
-    """Wejście liczbowe."""
-    return {"key": key, "kind": "number", "label": label, "min": minimum, "max": maximum,
-            "hint": hint}
+def number(
+    key: str,
+    label: str,
+    minimum: int,
+    maximum: int,
+    hint: str = "",
+    meta: dict[str, Any] | None = None,
+) -> Input:
+    """Wejście liczbowe. ``meta = route_meta(...)`` = ile jednostek przenieść z planety na planetę:
+    UI zbiera takie wejścia w jeden wybór NA MAPIE (źródło, potem cel), nie listę stepperów."""
+    item: Input = {"key": key, "kind": "number", "label": label, "min": minimum, "max": maximum,
+                   "hint": hint}
+    if meta is not None:
+        item["meta"] = meta
+    return item
+
+
+def route_meta(source: str, destination: str, base_type: str = "infantry") -> dict[str, Any]:
+    """Wejście liczbowe = przeniesienie ``base_type`` z planety ``source`` na ``destination``."""
+    return {"from": source, "to": destination, "unit": base_type}
 
 
 def research(key: str, label: str, view: dict[str, Any], hint: str = "") -> Input:
@@ -206,6 +222,31 @@ def unit_meta(
     }
     if count:
         meta["count"] = count
+    return meta
+
+
+def unit_at(
+    state: Any,
+    player_id: str,
+    base_type: str,
+    *,
+    position: str | None = None,
+    planet: str | None = None,
+) -> dict[str, Any]:
+    """Opcja = jednostka gracza W MIEJSCU (planeta / system) - ``unit_meta`` + miejsce.
+
+    UI grupuje takie opcje po miejscu (klik w planetę/system na mapie, potem wybór, co tam) i
+    zwija jednakowe sztuki w licznik −/+ (``frontend/src/domains/offers/GroupedMapField.tsx``)
+    zamiast długiej listy „X on Y #n” (decyzja użytkownika 2026-11-16).
+    """
+    player = state.players.get(player_id)
+    meta = unit_meta(
+        base_type, player_id, getattr(player, "faction", None), getattr(player, "color", None)
+    )
+    if position:
+        meta["position"] = position
+    if planet:
+        meta["planet"] = planet
     return meta
 
 

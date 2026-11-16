@@ -33,6 +33,7 @@ from src.core import (
     space_cannon,
     unit_ops,
 )
+from src.core import offer_inputs as oi
 from src.core.components import ComponentCategory
 from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
@@ -477,7 +478,8 @@ def ghost_squad_inputs(
                         f"{unit_name(state, registry, player_id, base_type)} {index + 1}"
                     )
                     value = {"planet": planet, "base_type": base_type}
-                    units.append(_option(value, label, f"{planet}:{base_type}#{index}"))
+                    meta = oi.unit_at(state, player_id, base_type, planet=planet)
+                    units.append(_option(value, label, f"{planet}:{base_type}#{index}", meta=meta))
     return [
         _choice("to_planet", "Destination planet you control", destinations),
         _multi(

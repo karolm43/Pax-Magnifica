@@ -27,6 +27,7 @@ from src.core import (
     rules_hooks,
     unit_ops,
 )
+from src.core import offer_inputs as oi
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, SystemState, TacticalStep
 from src.core.hooks.action_card_inputs import (
@@ -579,6 +580,7 @@ def decoy_inputs(
             f"{fleet_pool.unit_name(state, registry, player_id, base_type)} "
             f"on {_planet_label(state, registry, planet)} ({index + 1})",
             option_id=f"{planet}:{base_type}:{index}",
+            meta=oi.unit_at(state, player_id, base_type, planet=planet),
         )
         for _position, planet, base_type, count in _ground_force_options(state, player_id)
         for index in range(min(count, _DECOY_MAX))

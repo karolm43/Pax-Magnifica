@@ -453,6 +453,7 @@ def titan_prototype_inputs(
                         f"{pid}|{planet}|{structure}",
                         f"{who}: {unit_name(state, registry, pid, structure)} on "
                         f"{card_labels.planet_name(registry, planet)}",
+                        meta=oi.unit_at(state, pid, structure, planet=planet),
                     )
                 )
         for planet, value in payment.ready_planet_values(state, registry, pid, "resources").items():

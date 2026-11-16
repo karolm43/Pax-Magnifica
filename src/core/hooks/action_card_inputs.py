@@ -24,7 +24,7 @@ from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
 from src.core.hooks.card_helpers import controlled
-from src.core.offer_inputs import as_payment
+from src.core.offer_inputs import as_payment, unit_at
 from src.core.offer_inputs import option as as_option
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
@@ -42,9 +42,11 @@ def _option(
     option_id: str | None = None,
     *,
     ref: tuple[str, str | int] | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Opcja formularza; ``ref`` = komponent gry, którego dotyczy (``offer_inputs.option``)."""
-    return as_option(value, label, option_id, ref=ref)
+    """Opcja formularza; ``ref`` = komponent gry, którego dotyczy (``offer_inputs.option``),
+    ``meta`` = dane graficzne (np. ``offer_inputs.unit_at``: jednostka w miejscu)."""
+    return as_option(value, label, option_id, meta=meta, ref=ref)
 
 
 def _choice(
@@ -316,7 +318,10 @@ def lucky_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
                         f"{ship} of {_player_label(state, registry, owner)} "
                         f"in {_system_label(registry, system)}"
                     )
-                    options.append(_option(target, label, f"{system.position}:{owner}:{base_type}"))
+                    meta = unit_at(state, owner, base_type, position=system.position)
+                    options.append(_option(
+                        target, label, f"{system.position}:{owner}:{base_type}", meta=meta
+                    ))
     return [_choice("target", "Ship to destroy", options, merge=True)]
 
 
@@ -328,10 +333,11 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
             have = count_in_zone(system, planet, player_id, "infantry")
             for index in range(have):
                 label = (
-                    f"{unit_name(state, registry, player_id, 'infantry')} {index + 1} of {have} "
+                    f"{unit_name(state, registry, player_id, 'infantry')} "
                     f"on {_planet_label(state, registry, planet)}"
                 )
-                options.append(_option(planet, label, f"{planet}#{index}"))
+                meta = unit_at(state, player_id, "infantry", planet=planet)
+                options.append(_option(planet, label, f"{planet}#{index}", meta=meta))
     return [
         _multi(
             "planets",
@@ -357,5 +363,8 @@ def scuttle_inputs(state: GameState, registry: StaticDataRegistry, player_id: st
                     f"{unit_name(state, registry, player_id, base_type)} "
                     f"in {_system_label(registry, system)}"
                 )
-                options.append(_option(value, label, f"{system.position}:{base_type}#{index}"))
+                meta = unit_at(state, player_id, base_type, position=system.position)
+                options.append(
+                    _option(value, label, f"{system.position}:{base_type}#{index}", meta=meta)
+                )
     return [_multi("ships", "Ships to return (not fighters)", options, 1, _MAX_PICKS)]

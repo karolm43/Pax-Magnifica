@@ -201,6 +201,7 @@ def bio_inputs(
         oi.number(
             f"bio:{src_pos}:{src}:{dst_pos}:{dst}",
             f"{_planet_name(registry, src)} -> {_planet_name(registry, dst)}", 0, count,
+            meta=oi.route_meta(src, dst),
         )
         for src_pos, src, dst_pos, dst, count in _bio_routes(state, player_id)
     ]
@@ -263,7 +264,8 @@ def agent_inputs(
                 continue
             for base_type, count in sorted(units.items()):
                 if count > 0 and is_space_unit(base_type) and base_type != "fighter":
-                    meta = oi.unit_meta(base_type, owner, player.faction, player.color, count)
+                    meta = oi.unit_at(state, owner, base_type, position=position)
+                    meta["count"] = count
                     options.append(oi.option(
                         f"{owner}|{position}|{base_type}",
                         f"{unit_name(state, registry, owner, base_type)} ({position})", meta=meta,

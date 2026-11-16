@@ -20,10 +20,11 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 from src.core import active_effects, objectives, rules_hooks, unit_ops
+from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hooks.action_card_inputs import Input, _option, _planet_label
-from src.core.offer_inputs import multi
+from src.core.offer_inputs import multi, unit_at
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
     SOURCE_AGENDA,
@@ -183,18 +184,27 @@ def unit_instances(
 
 
 def unit_options(
-    state: GameState, registry: StaticDataRegistry, units: list[tuple[str, str, str]]
+    state: GameState,
+    registry: StaticDataRegistry,
+    units: list[tuple[str, str, str]],
+    player_id: str,
 ) -> list[dict[str, Any]]:
-    """Opcje formularza: jedna na sztukę (``value`` = ``pozycja|strefa|typ|n``)."""
+    """Opcje formularza: jedna na sztukę (``value`` = ``pozycja|strefa|typ|n``), z ``unit_at``
+    (UI: system na mapie, potem licznik każdego typu jednostki - nie lista „carrier #1”)."""
     options: list[dict[str, Any]] = []
     seen: dict[tuple[str, str, str], int] = {}
     for position, zone, base_type in units:
         n = seen.get((position, zone, base_type), 0)
         seen[(position, zone, base_type)] = n + 1
         where = "space" if zone == "space" else _planet_label(state, registry, zone)
-        system = state.systems[position]
-        label = f"{base_type} #{n + 1} - {where} ({system.system_id})"
-        options.append(_option(f"{position}|{zone}|{base_type}|{n}", label))
+        name = unit_name(state, registry, player_id, base_type)
+        meta = unit_at(
+            state, player_id, base_type, position=position,
+            planet=None if zone == "space" else zone,
+        )
+        options.append(_option(
+            f"{position}|{zone}|{base_type}|{n}", f"{name} - {where} ({position})", meta=meta
+        ))
     return options
 
 
@@ -203,13 +213,14 @@ def destroy_choice_input(
     registry: StaticDataRegistry,
     units: list[tuple[str, str, str]],
     count: int,
+    player_id: str,
     key: str = "units",
     label: str = "Units to destroy",
 ) -> list[Input]:
     """Wejście „wybierz dokładnie ``count`` sztuk"; pusta lista, gdy wybór nic nie zmienia."""
     if count <= 0 or len(units) <= count or len(set(units)) <= 1:
         return []
-    return [multi(key, label, unit_options(state, registry, units), count, count)]
+    return [multi(key, label, unit_options(state, registry, units, player_id), count, count)]
 
 
 def destroy_units(

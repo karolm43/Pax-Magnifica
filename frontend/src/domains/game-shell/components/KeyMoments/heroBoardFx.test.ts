@@ -35,8 +35,13 @@ describe("fxTargets (RULES.md 64.4)", () => {
     expect(fxTargets(HERO_BOARD_FX.hacanhero, tiles, { faction: "arborec", color: null }, null)).toEqual(["102", "103"]);
   });
 
+  it("Xxekir Grom: systemy z PDS albo mechami bohatera", () => {
+    const board = [tile("201", "30", {}, { xxcha: ["pd"] }), tile("202", "31", {}, { xxcha: ["gf"] }), tile("203", "32", {}, { xxcha: ["mf"] })];
+    expect(fxTargets(HERO_BOARD_FX["xxchahero-te"], board, { faction: "xxcha", color: "green" }, null)).toEqual(["201", "203"]);
+  });
+
   it("każdy bohater z silnika ma przepis", () => {
-    const engineHeroes = ["arborechero", "hacanhero", "jolnarhero", "letnevhero", "mentakhero", "sardakkhero", "solhero", "winnuhero", "yinhero"];
+    const engineHeroes = ["arborechero", "hacanhero", "jolnarhero", "letnevhero", "mentakhero", "sardakkhero", "solhero", "winnuhero", "xxchahero-te", "yinhero"];
     expect(Object.keys(HERO_BOARD_FX).sort()).toEqual(engineHeroes);
   });
 });

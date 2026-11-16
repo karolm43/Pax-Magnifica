@@ -175,7 +175,7 @@ def _arms_inputs(
     for base_type, keep in _ARMS_KEEP.items():
         units = _arms_excess(state, player_id, base_type)
         inputs += destroy_choice_input(
-            state, registry, units, len(units) - keep, key=base_type,
+            state, registry, units, len(units) - keep, player_id, key=base_type,
             label=f"{base_type.capitalize()}s to destroy (keep {keep})",
         )
     return inputs
@@ -339,7 +339,7 @@ def _artifact_losses_inputs(
     for position in _losses(state, player_id):
         units = unit_instances(state, player_id, positions=[position])
         inputs += destroy_choice_input(
-            state, registry, units, _ARTIFACT_LOSSES, key=f"units_{position}",
+            state, registry, units, _ARTIFACT_LOSSES, player_id, key=f"units_{position}",
             label=f"Destroy {_ARTIFACT_LOSSES} units in system {state.systems[position].system_id}",
         )
     return inputs
@@ -846,7 +846,7 @@ def _pds_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
     return destroy_choice_input(
-        state, registry, unit_instances(state, player_id, base_types=("pds",)), 1,
+        state, registry, unit_instances(state, player_id, base_types=("pds",)), 1, player_id,
         label="PDS to destroy",
     )
 

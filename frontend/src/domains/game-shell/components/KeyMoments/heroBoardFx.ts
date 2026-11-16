@@ -10,13 +10,14 @@ import type { Tile } from "@/entities/game/types";
 /** Gdzie na planszy dzieje się efekt. */
 export type FxTarget =
   | "ground" // systemy z siłami naziemnymi bohatera
+  | "defense" // systemy z PDS albo mechami bohatera (obrona planet)
   | "ships" // systemy ze statkami bohatera
   | "units" // systemy z dowolnymi jednostkami bohatera
   | "active" // aktywny system (produkcja / walka / inwazja), inaczej „units”
   | "mecatol"; // Mecatol Rex
 
 /** Wygląd efektu w systemie docelowym. */
-export type FxMark = "bloom" | "beam" | "coins" | "ripple" | "slash" | "seal" | "pulse";
+export type FxMark = "bloom" | "beam" | "coins" | "ripple" | "slash" | "seal" | "pulse" | "aegis";
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -51,11 +52,14 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   sardakkhero: { dim: 0.35, target: "active", mark: "slash", tone: "255 60 50", ms: 3800 },
   // Sins of the Father: dowolna karta strategii — pieczęć imperium nad Mecatol Rex.
   winnuhero: { dim: 0.35, target: "mecatol", mark: "seal", tone: "255 210 90", ms: 4400 },
+  // Planetary Defense Nexus - Aegis: PDS i mechy na planetach — kopuły tarcz wznoszą się nad nimi.
+  "xxchahero-te": { dim: 0.3, target: "defense", mark: "aegis", tone: "110 230 190", ms: 4400 },
   // Quantum Dissemination: piechota z rezerwy ląduje na planetach — impulsy nad systemami walk.
   yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
 };
 
 const GROUND = new Set(["gf", "mf"]);
+const DEFENSE = new Set(["pd", "mf"]);
 const MECATOL_SYSTEM_IDS = new Set(["18", "112"]);
 
 /** Jednostki gracza w kafelku (klucz `unitsByFaction` = frakcja; zapasowo kolor). */
@@ -85,6 +89,10 @@ export function fxTargets(
     case "ground":
       return pick((t) =>
         unitsOf(t, keys).planets.some((u) => GROUND.has(u.entityId) && u.count > 0),
+      );
+    case "defense":
+      return pick((t) =>
+        unitsOf(t, keys).planets.some((u) => DEFENSE.has(u.entityId) && u.count > 0),
       );
     case "ships":
       return pick((t) => unitsOf(t, keys).space.some((u) => !GROUND.has(u.entityId) && u.count > 0));

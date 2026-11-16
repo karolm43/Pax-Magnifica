@@ -1,23 +1,12 @@
-import { useEffect, useMemo } from "react";
-import { IconCheck, IconCoins, IconEye, IconMinus, IconPlus } from "@tabler/icons-react";
+import { useMemo } from "react";
 import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
-import { getColorAlias } from "@/entities/lookup/colors";
-import { Unit } from "@/shared/ui/Unit";
-import { asyncOfBase } from "@/domains/movement/routeTypes";
-import { ComponentInfoButton, type ComponentRef } from "@/domains/cards/components/ComponentInfo";
 import { useGameData } from "@/state/useGameContext";
-import { clearMapMarks, mapHits, mapRefKeys, showOnMap } from "@/domains/search/mapPeek";
-import type { SearchKey } from "@/domains/search/searchKeys";
-import { classifyOptions, type OptionKind } from "./optionKinds";
-import {
-  DescribedOptionBody,
-  describeOption,
-  PlayerOptionBody,
-  TechOptionBody,
-  useFieldMapPick,
-  useOptionLookups,
-} from "./DecisionPickers";
+import { classifyOptions, stackRange, stacksOf, withStackCount } from "./optionKinds";
+import { describeOption, useFieldMapPick, useOptionLookups } from "./DecisionPickers";
+import { FieldHead, metaOf, Stepper, Tile, UnitStackStepper } from "./DecisionTiles";
+import { GroupedMapField } from "./GroupedMapField";
+import { routeOf, RouteNumbersField, type Route } from "./RouteNumbersField";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -31,262 +20,13 @@ import styles from "./DecisionFields.module.css";
 /** Powyżej tylu opcji kafelki byłyby ścianą przycisków — wracamy do listy z wyszukiwaniem. */
 const MAX_TILES = 18;
 
-type Meta = Record<string, unknown>;
-
 type Payment = { cost: number; valueKind: string; tradeGoods: string };
-
-function metaOf(option: ActionCardOption): Meta {
-  return option.meta ?? {};
-}
 
 function paymentOf(input: ActionCardInput): Payment | null {
   return input.kind === "multi" && input.payment ? input.payment : null;
 }
 
-/** „Nazwa - dopisek” z backendu → tytuł kafelka i mniejszy podpis. */
-function splitLabel(label: string): { title: string; caption: string } {
-  const at = label.indexOf(" - ");
-  if (at < 0) return { title: label, caption: "" };
-  return { title: label.slice(0, at), caption: label.slice(at + 3) };
-}
-
-function OptionBody({ option }: { option: ActionCardOption }) {
-  const meta = metaOf(option);
-  if (typeof meta.die === "number") {
-    const hitsOn = typeof meta.hitsOn === "number" ? meta.hitsOn : 11;
-    const hit = meta.die >= hitsOn;
-    return (
-      <>
-        <span className={styles.die} data-hit={hit || undefined} aria-hidden="true">
-          {meta.die}
-        </span>
-        <span className={styles.optText}>
-          <b>{splitLabel(option.label.split(":")[0] ?? option.label).title}</b>
-          <small>{hit ? "hit" : `miss (hits on ${hitsOn})`}</small>
-        </span>
-      </>
-    );
-  }
-  const { title, caption } = splitLabel(option.label);
-  if (typeof meta.unit === "string") {
-    const count = typeof meta.count === "number" ? meta.count : 0;
-    return (
-      <>
-        <span className={styles.sprite} aria-hidden="true">
-          <Unit
-            unitType={asyncOfBase(meta.unit)}
-            colorAlias={getColorAlias(typeof meta.color === "string" ? meta.color : undefined)}
-            faction={typeof meta.faction === "string" ? meta.faction : undefined}
-            scaleSprite
-          />
-          {count > 1 && <i className={styles.count}>×{count}</i>}
-        </span>
-        <span className={styles.optText}>
-          <b>{title}</b>
-          {caption && <small>{caption}</small>}
-        </span>
-      </>
-    );
-  }
-  if (typeof meta.planet === "string") {
-    const value = typeof meta.value === "number" ? meta.value : 0;
-    return (
-      <>
-        <span
-          className={styles.value}
-          data-kind={meta.valueKind === "influence" ? "influence" : "resources"}
-          aria-hidden="true"
-        >
-          {value}
-        </span>
-        <span className={styles.optText}>
-          <b>{title.replace(/\s*\(\d+\)$/, "")}</b>
-          <small>{caption || (meta.valueKind === "influence" ? "influence" : "resources")}</small>
-        </span>
-      </>
-    );
-  }
-  return (
-    <span className={styles.optText}>
-      <b>{title}</b>
-      {caption && <small>{caption}</small>}
-    </span>
-  );
-}
-
-function Tile({
-  option,
-  selected,
-  disabled,
-  multi,
-  onClick,
-  kind,
-}: {
-  option: ActionCardOption;
-  selected: boolean;
-  disabled: boolean;
-  multi: boolean;
-  onClick: () => void;
-  /** Rodzaj wyboru (``optionKinds``) i cel tej opcji - graficzna treść kafelka. */
-  kind?: { kind: OptionKind; target: string };
-}) {
-  const meta = metaOf(option);
-  const shape = typeof meta.die === "number" ? "die" : undefined;
-  const mapRef = useMapRef(option);
-  const idMap = useGameData()?.strategyCardIdMap;
-  const described = kind ? null : describeOption(option, idMap);
-  // Technologia z odnośnika (``tech:<id>``, „keep”) wygląda jak każdy kafelek technologii.
-  const techId =
-    kind?.kind === "technology"
-      ? kind.target
-      : described?.ref.kind === "tech"
-        ? described.ref.id
-        : null;
-  // Co pokazać pod ⓘ (klik = pełna karta): komponent z opisem albo technologia.
-  const infoRef: ComponentRef | null = techId
-    ? { kind: "tech", id: techId }
-    : (described?.ref ?? null);
-  const tile = (
-    <button
-      type="button"
-      className={styles.tile}
-      data-shape={shape}
-      aria-pressed={selected}
-      disabled={disabled}
-      title={option.label}
-      onClick={onClick}
-      onMouseEnter={mapRef ? () => showOnMap(mapRef) : undefined}
-      onMouseLeave={mapRef ? clearMapMarks : undefined}
-    >
-      {techId ? (
-        <TechOptionBody option={option} techId={techId} />
-      ) : kind?.kind === "player" ? (
-        <PlayerOptionBody option={option} playerId={kind.target} />
-      ) : described ? (
-        <DescribedOptionBody option={option} hint={described.hint} />
-      ) : (
-        <OptionBody option={option} />
-      )}
-      {multi && (
-        <span className={styles.check} aria-hidden="true">
-          {selected && <IconCheck size={11} />}
-        </span>
-      )}
-    </button>
-  );
-  if (!mapRef && !infoRef) return tile;
-  const name = described?.hint.name || splitLabel(option.label).title;
-  return (
-    <span className={styles.tileWrap}>
-      {tile}
-      <span className={styles.tileActions}>
-        {/* Klik: pełna karta komponentu (jak chip w panelu gracza) - działa też na dotyku. */}
-        {infoRef && <ComponentInfoButton componentRef={infoRef} name={name} />}
-        {/* Najechanie: okno prześwituje i widać cel na mapie; klik: mapa przewija się do celu. */}
-        {mapRef && (
-          <button
-            type="button"
-            className={styles.locate}
-            aria-label={`Show ${name} on the map`}
-            title="Hover to see it on the map, click to centre the map on it"
-            onMouseEnter={() => showOnMap(mapRef, { peek: true })}
-            onMouseLeave={clearMapMarks}
-            onFocus={() => showOnMap(mapRef, { peek: true })}
-            onBlur={clearMapMarks}
-            onClick={() => showOnMap(mapRef, { peek: true, jump: true })}
-          >
-            <IconEye size={13} aria-hidden="true" />
-          </button>
-        )}
-      </span>
-    </span>
-  );
-}
-
-/**
- * Klucze mapy opcji, gdy wskazuje planetę albo system leżący na planszy (inaczej ``null``).
- * Sprawdzamy DOM mapy (znaczniki wyszukiwarki), więc nie trzeba znać formatu każdego wejścia.
- */
-function useMapRef(option: ActionCardOption) {
-  // Podpis kluczy (string) jako zależność: nowa, ale równa lista nie liczy DOM od nowa.
-  const signature = mapRefKeys(option.value, option.meta).join("|");
-  const keys = useMemo(() => {
-    if (!signature) return null;
-    const list = signature.split("|") as SearchKey[];
-    return mapHits(list).length > 0 ? list : null;
-  }, [signature]);
-  // Okno zamknięte w trakcie najechania nie zostawia podświetlenia ani prześwitu.
-  useEffect(() => (keys ? clearMapMarks : undefined), [keys]);
-  return keys;
-}
-
-function FieldHead({ label, hint, note }: { label: string; hint?: string; note?: string }) {
-  return (
-    <div className={styles.head}>
-      <span className={styles.label}>{label}</span>
-      {note && <span className={styles.note}>{note}</span>}
-      {hint && <p className={styles.hint}>{hint}</p>}
-    </div>
-  );
-}
-
-/** Stepper liczby: − wartość + (bez suwaka i bez wpisywania z klawiatury). */
-export function Stepper({
-  label,
-  value,
-  min,
-  max,
-  disabled,
-  coins,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  disabled: boolean;
-  coins?: boolean;
-  onChange: (value: number) => void;
-}) {
-  const clamp = (n: number) => Math.max(min, Math.min(max, n));
-  return (
-    <div className={styles.stepper} role="group" aria-label={label}>
-      {coins && <IconCoins size={16} className={styles.coins} aria-hidden="true" />}
-      <span className={styles.stepLabel}>{label}</span>
-      <button
-        type="button"
-        className={styles.stepBtn}
-        disabled={disabled || value <= min}
-        aria-label={`${label}: less`}
-        onClick={() => onChange(clamp(value - 1))}
-      >
-        <IconMinus size={14} />
-      </button>
-      <output className={styles.stepValue} aria-live="polite">
-        {value}
-      </output>
-      <button
-        type="button"
-        className={styles.stepBtn}
-        disabled={disabled || value >= max}
-        aria-label={`${label}: more`}
-        onClick={() => onChange(clamp(value + 1))}
-      >
-        <IconPlus size={14} />
-      </button>
-      {max > min + 1 && (
-        <button
-          type="button"
-          className={styles.stepMax}
-          disabled={disabled || value === max}
-          onClick={() => onChange(max)}
-        >
-          max {max}
-        </button>
-      )}
-    </div>
-  );
-}
+export { Stepper };
 
 /** Jedno pole decyzji (bez parowania płatności — patrz ``DecisionFields``). */
 export function DecisionField({
@@ -370,9 +110,11 @@ function ChoiceField({
     return classified && target ? { kind: classified.kind, target } : undefined;
   };
   const picked = Array.isArray(value) ? value : [];
+  // Kilka opcji na jeden cel: własny wybór „klik w miejsce -> co tam” (``GroupedMapField``).
+  const grouped = classified?.grouped === true;
   const onMap = useFieldMapPick(
     classified,
-    mapActive && !disabled,
+    mapActive && !disabled && !grouped,
     input.kind === "choice" ? (typeof value === "string" ? value : null) : (picked[0] ?? null),
     (id) => {
       if (input.kind === "choice") {
@@ -392,10 +134,24 @@ function ChoiceField({
     classified?.kind === "technology" ||
     (!classified && options.some((o) => describeOption(o, idMap)));
   const data = options.map((o) => ({ value: o.id, label: o.label }));
+  const stacks = useMemo(() => stacksOf(options), [options]);
+
+  if (grouped && classified) {
+    return (
+      <GroupedMapField
+        input={input}
+        classified={classified}
+        value={value}
+        disabled={disabled}
+        mapActive={mapActive}
+        onChange={onChange}
+      />
+    );
+  }
 
   if (input.kind === "multi") {
     const range = input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`;
-    if (options.length > MAX_TILES && !alwaysTiles && !rich) {
+    if (stacks.length > MAX_TILES && !alwaysTiles && !rich) {
       return (
         <MultiSelect
           label={input.label}
@@ -422,7 +178,21 @@ function ChoiceField({
           note={[`${picked.length} selected · pick ${range}`, mapNote].filter(Boolean).join(" · ")}
         />
         <div className={styles.tiles} data-rich={rich || undefined}>
-          {options.map((option) => {
+          {stacks.map(({ key, options: stack }) => {
+            const [option] = stack;
+            if (stack.length > 1) {
+              const range = stackRange(picked, stack, input.max);
+              return (
+                <UnitStackStepper
+                  key={key}
+                  options={stack}
+                  value={range.value}
+                  max={range.max}
+                  disabled={disabled}
+                  onChange={(count) => onChange(withStackCount(picked, stack, count, input.max))}
+                />
+              );
+            }
             const selected = picked.includes(option.id);
             return (
               <Tile
@@ -599,9 +369,28 @@ export function DecisionFields({
     });
     return (open ?? onMap[0])?.key ?? null;
   }, [inputs, lookups, values]);
+  // Przeniesienia planeta -> planeta (Bioplasmosis): jeden wybór na mapie w miejscu pierwszego.
+  const routes = useMemo(
+    () => inputs.map(routeOf).filter((r): r is Route => r !== null),
+    [inputs],
+  );
+  const firstRoute = routes[0]?.input.key;
   return (
     <div className={styles.form}>
       {inputs.map((input) => {
+        if (routeOf(input)) {
+          if (input.key !== firstRoute) return null;
+          return (
+            <RouteNumbersField
+              key={input.key}
+              routes={routes}
+              values={values}
+              disabled={disabled}
+              mapActive={mapKey === null}
+              onChange={onChange}
+            />
+          );
+        }
         const payment = input.kind === "multi" ? paymentOf(input) : null;
         if (payment && input.kind === "multi") {
           const tgInput = inputs.find(

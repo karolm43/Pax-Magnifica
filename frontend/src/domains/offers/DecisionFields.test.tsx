@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ActionCardInput, FormValue } from "@/api/useActionCard";
 import { DecisionFields } from "./DecisionFields";
 
@@ -163,4 +163,59 @@ describe("DecisionFields", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Imperial/ }));
     expect(values()).toEqual({ initiative: "8" });
   });
+
+  it("Xxekir Grom: planeta (chip albo mapa), potem licznik PDS i mechów - nie lista", () => {
+    const unit = (u: string, planet: string, n: number) => ({
+      id: `${u}|${planet}|${n}`,
+      value: `${u}|${planet}|${n}`,
+      label: `${u === "pds" ? "PDS I" : "Mech"} on ${planet}`,
+      meta: { unit: u, player: "p1", faction: "xxcha", color: "green", planet },
+    });
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "units",
+            kind: "multi",
+            label: "PDS and mechs to place (up to 4)",
+            hint: "",
+            min: 1,
+            max: 4,
+            options: [unit("pds", "jord", 0), unit("mech", "jord", 0), unit("mech", "jord", 1), unit("mech", "mr", 0)],
+          },
+        ]}
+      />,
+    );
+    // Bez wybranej planety nie ma listy jednostek - tylko planety do kliknięcia.
+    expect(screen.queryByRole("group", { name: /^Mech/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Jord/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Mech on jord: more" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mech on jord: more" }));
+    expect(values()).toEqual({ units: ["mech|jord|0", "mech|jord|1"] });
+    // Planeta z jedną możliwością: klik w nią od razu wybiera.
+    fireEvent.click(screen.getByRole("button", { name: /^Mecatol Rex/ }));
+    expect(values()).toEqual({ units: ["mech|jord|0", "mech|jord|1", "mech|mr|0"] });
+  });
+
+  it("Bioplasmosis: źródło, potem cel = +1 (bez listy par)", () => {
+    const route = (from: string, to: string) => ({
+      key: `bio:${from}:${to}`,
+      kind: "number" as const,
+      label: `${from} -> ${to}`,
+      hint: "",
+      min: 0,
+      max: 2,
+      meta: { from, to, unit: "infantry" },
+    });
+    render(<Harness inputs={[route("jord", "mr"), route("mr", "jord")]} />);
+    expect(screen.queryByRole("group", { name: /→/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Jord/ }));
+    const to = () => within(screen.getByRole("group", { name: /to$/ })).getByRole("button", { name: /Mecatol Rex/ });
+    fireEvent.click(to());
+    fireEvent.click(to());
+    expect(values()).toEqual({ "bio:jord:mr": 2 });
+    // Na Jord nie zostało już piechoty.
+    expect(to()).toBeDisabled();
+  });
 });
+

@@ -21,10 +21,10 @@ export function useMapPick(
   const { hue, selected, enabled = true } = options;
 
   useEffect(() => {
-    if (!enabled || targets.length === 0) {
-      setMapPick(null);
-      return;
-    }
+    // Wyłączony wybór NIE czyści mapy: mógłby skasować wybór innego komponentu (np. pole z
+    // grupami w ``GroupedMapField`` pod wyłączonym ``useFieldMapPick`` rodzica). Własny wybór
+    // sprząta funkcja czyszcząca poprzedniego przebiegu (przejście enabled -> disabled).
+    if (!enabled || targets.length === 0) return;
     setMapPick({
       kind,
       targets,
