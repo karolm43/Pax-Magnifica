@@ -505,15 +505,18 @@ def test_compounds_ta_sama_planeta_nie_placi_i_nie_pomija(registry: StaticDataRe
 
 @ruling("F_jol_nar/specialized-compounds/4", "breakthroughs:jolnarbt#1")
 def test_compounds_bez_synergii(registry: StaticDataRegistry) -> None:
-    """Synergia przełomu (zielony/żółty) nie rozszerza płatności: Wellon (żółta) nie zapłaci za
-    zieloną technologię; za żółtą - tak, zamiast zasobów."""
+    """Wyczerpana planeta wiąże kolor badania z JEJ specjalnością („you must research a technology
+    of that color”) - synergia (zielony/żółty) tego nie odwraca: Wellon (żółta) nie zapłaci za
+    zieloną technologię, Industrex (czerwona) za żółtą; Wellon za żółtą - tak, zamiast zasobów."""
     state = _compound_state()
     with pytest.raises(ValueError, match="color"):
         _compound(state, registry, {"tech": "nm", "compound_planet": "wellon"})
+    with pytest.raises(ValueError, match="color"):
+        _compound(state, registry, {"tech": "sdn", "compound_planet": "industrex"})
     assert _compound(state, registry, {"tech": "sdn", "compound_planet": "wellon"}) == "sdn"
     assert "wellon" in state.players["p1"].exhausted_planets
     assert state.players["p1"].trade_goods == 3
-    with pytest.raises(ValueError):  # poza kartą Technology (koszt 0) - nie ma czego zastąpić
+    with pytest.raises(ValueError):  # gracz bez przełomu Jol-Nar nie płaci planetą
         technology.validate_specialty_payment(
             state, registry, "p2", technology.ResearchPlan("ps", (), False), "industrex"
         )
