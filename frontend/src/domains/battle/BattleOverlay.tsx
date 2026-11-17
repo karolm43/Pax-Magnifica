@@ -52,7 +52,6 @@ import { lookupUnit } from "@/entities/lookup/units";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import type { BattleEffect } from "@/api/useBoardEditor";
 import { BattleCenter, type PickNote } from "./BattleCenter";
-import { BattleAmbience } from "./BattleAmbience";
 import {
   canPick,
   complete,
@@ -972,7 +971,6 @@ function Battlefield({
         aria-hidden="true"
       />
       <div className={styles.stars} aria-hidden="true" />
-      <BattleAmbience kind={view.kind === "ground" ? "ground" : "space"} />
       <header className={styles.topBar}>
         <span className={styles.topTitle}>
           <IconSwords size={18} aria-hidden="true" />
@@ -1066,6 +1064,7 @@ function Battlefield({
           onToggle={toggle}
           entryKey={`${view.position}|${view.kind}|${view.planet ?? ""}|${attacker.faction}`}
           pick={pickFor(attacker)}
+          kind={view.kind === "ground" ? "ground" : "space"}
         />
         <BattleCenter
           view={view}
@@ -1135,6 +1134,7 @@ function Battlefield({
           onToggle={toggle}
           entryKey={`${view.position}|${view.kind}|${view.planet ?? ""}|${defender.faction}`}
           pick={pickFor(defender)}
+          kind={view.kind === "ground" ? "ground" : "space"}
         />
         <VolleyLayer
           volley={volley}

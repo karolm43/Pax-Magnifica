@@ -777,3 +777,16 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - `tests/factions/test_rulings_jolnar.py` (28 testów), `@ruling` w `test_jolnar.py`; statusy: umowy
   niewiążące (na), Nekro Alliance + Genetic Memory (requires nekro). Jol-Nar zdjęty z UNAUDITED.
 - RULES.md 62.3.
+
+## 2026-11-17 — Pole bitwy: zgony rozłożone w czasie, tło w panelach, poprawki walki naziemnej
+
+- Zweryfikowane zrzutami prawdziwej walki (izolowany backend :8100 + Vite :5273, scenariusz z `flow_harness`).
+- Zgony jednej salwy co 280 ms (`useDyingShips` → `dieDelay`, CSS `--die-delay` we wszystkich animacjach śmierci,
+  dźwięki przesunięte); limit dźwięków: zwykłe wybuchy 2/0,5 s, krzyk piechoty 1/0,9 s, wybuch mecha 2/0,6 s.
+- Domykanie szyku (FLIP, `useCloseRanks`): po śmierci ocalałe płynnie dosuwają się zamiast przeskakiwać.
+- `BattleAmbience` przeniesione do pól flot (wcześniej zasłonięte panelami): mgławica w barwie strony, paralaksa
+  gwiazd, pył, dalekie wybuchy; na ziemi łuna artylerii, podmuchy pyłu, dym, żar.
+- Walka naziemna: piechota kuli się i zapada w kurz (zamiast żetonu leżącego na boku), pocisk mecha podłużny ze
+  smugą, wybuch bez wielkiej elipsy, bez rozbłysku całej formacji, wyraźniejsze kule, Sustain mecha = iskry.
+- QA: tsc ✓, eslint ✓, vitest battle/invasion ✓, build ✓. Front-only.
+

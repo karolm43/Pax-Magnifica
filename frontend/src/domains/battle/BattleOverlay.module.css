@@ -201,6 +201,8 @@
     rgba(8, 11, 19, 0.62);
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
+  /* Tło w ruchu (`BattleAmbience`, z-index −1) leży nad tłem panelu, pod jednostkami. */
+  isolation: isolate;
 }
 
 .fleet[data-align="left"] {
@@ -814,7 +816,7 @@
 /* Zniszczony: najpierw dolatują pociski, potem wybuch (opóźnienie). */
 .ship[data-dying] {
   pointer-events: none;
-  animation: shipDie 2.6s ease-in 1.1s both;
+  animation: shipDie 2.6s ease-in calc(1.1s + var(--die-delay, 0ms)) both;
 }
 
 /* Po wejściu armady okręty nie wlatują ponownie (np. po rzucie czy przypisaniu strat). */
@@ -823,13 +825,13 @@
 }
 
 .formation[data-entered] .ship[data-dying] {
-  animation: shipDie 2.6s ease-in 1.1s both;
+  animation: shipDie 2.6s ease-in calc(1.1s + var(--die-delay, 0ms)) both;
 }
 
 /* Okręt zniszczony, zanim flota skończyła wlot (Assault Cannon i inne efekty startu walki):
    śmierć wygrywa z animacją wlotu — inaczej ginący statek wlatywał na pole drugi raz. */
 .formation:not([data-entered]) .ship[data-dying] {
-  animation: shipDie 2.6s ease-in 1.1s both;
+  animation: shipDie 2.6s ease-in calc(1.1s + var(--die-delay, 0ms)) both;
 }
 
 .formation:not([data-entered]) .ship[data-dying][data-base="ws"][data-side] .emerge {
@@ -915,7 +917,7 @@
   mix-blend-mode: screen;
   filter: drop-shadow(0 0 18px rgba(251, 146, 60, 0.9));
   background: radial-gradient(circle, rgba(255, 245, 220, 0.95) 0%, rgba(251, 191, 36, 0.8) 22%, rgba(234, 88, 12, 0.55) 45%, transparent 70%);
-  animation: explode 2.2s ease-out 1.1s both;
+  animation: explode 2.2s ease-out calc(1.1s + var(--die-delay, 0ms)) both;
   pointer-events: none;
 }
 
@@ -927,7 +929,7 @@
   border-radius: 50%;
   background: radial-gradient(circle, #ffffff 0%, rgba(255, 250, 235, 0.9) 35%, transparent 70%);
   opacity: 0;
-  animation: coreFlash 0.45s ease-out 1.1s both;
+  animation: coreFlash 0.45s ease-out calc(1.1s + var(--die-delay, 0ms)) both;
 }
 
 /* Fala uderzeniowa: cienki pierścień uciekający daleko poza kadłub. */
@@ -941,7 +943,7 @@
     0 0 14px rgba(251, 146, 60, 0.7),
     inset 0 0 10px rgba(251, 146, 60, 0.45);
   opacity: 0;
-  animation: shockwave 1.4s cubic-bezier(0.1, 0.7, 0.3, 1) 1.15s both;
+  animation: shockwave 1.4s cubic-bezier(0.1, 0.7, 0.3, 1) calc(1.15s + var(--die-delay, 0ms)) both;
 }
 
 /* Ciężkie okręty: wtórne detonacje wzdłuż kadłuba, zanim pęknie reaktor. */
@@ -958,7 +960,7 @@
   pointer-events: none;
   opacity: 0;
   background: radial-gradient(circle, #fffbeb 0%, rgba(253, 186, 116, 0.9) 30%, rgba(234, 88, 12, 0.5) 55%, transparent 72%);
-  animation: chainPop 0.7s ease-out var(--d) both;
+  animation: chainPop 0.7s ease-out calc(var(--d) + var(--die-delay, 0ms)) both;
 }
 
 /* Światło wybuchu ciężkiego okrętu rozlewa się na cały panel floty. */
@@ -975,7 +977,7 @@
   mix-blend-mode: screen;
   opacity: 0;
   background: radial-gradient(circle, rgba(255, 196, 120, 0.32), rgba(251, 146, 60, 0.1) 35%, transparent 65%);
-  animation: lightFlash 1.6s ease-out 1.15s both;
+  animation: lightFlash 1.6s ease-out calc(1.15s + var(--die-delay, 0ms)) both;
 }
 
 @keyframes coreFlash {
@@ -1047,7 +1049,7 @@
   box-shadow: 0 0 6px rgba(251, 146, 60, 0.9);
   opacity: 0;
   pointer-events: none;
-  animation: debrisFly 2.2s ease-out 1.5s both;
+  animation: debrisFly 2.2s ease-out calc(1.5s + var(--die-delay, 0ms)) both;
 }
 
 @keyframes debrisFly {
@@ -1080,24 +1082,25 @@
 /* PIECHOTA: odrzut od trafienia, upadek na plecy, chwila w bezruchu, zniknięcie. */
 .overlay .ship[data-dying][data-ground="infantry"] .hull {
   transform-origin: 50% 88%;
-  animation: infantryFall 2.7s cubic-bezier(0.4, 0, 0.6, 1) 1.1s both;
+  animation: infantryFall 2.7s cubic-bezier(0.4, 0, 0.6, 1) calc(1.1s + var(--die-delay, 0ms)) both;
 }
 
 /* MECH: drży pod ostrzałem i żarzy się, osuwa na kolana, wybucha; zostaje ciemny wrak. */
 .overlay .ship[data-dying][data-ground="mech"] .hull {
   transform-origin: 50% 92%;
-  animation: mechDie 2.7s linear 1.1s both;
+  animation: mechDie 2.7s linear calc(1.1s + var(--die-delay, 0ms)) both;
 }
 
 @keyframes infantryFall {
+  /* Trafienie: biało-czerwony błysk i odrzut od wroga, potem żołnierz kuli się i zapada
+     w kurz (bez kładzenia żetonu na boku — wyglądało jak przewrócona flaga). */
   0% { opacity: 1; transform: none; filter: none; }
-  5% { transform: translateX(calc(var(--dir) * 5px)); filter: brightness(1.9); }
-  11% { transform: translateX(calc(var(--dir) * 9px)) rotate(calc(var(--dir) * 14deg)); filter: brightness(1.1); }
-  24% { transform: translate(calc(var(--dir) * 15px), 6px) rotate(calc(var(--dir) * 86deg)); filter: brightness(0.9); }
-  28% { transform: translate(calc(var(--dir) * 15px), 3px) rotate(calc(var(--dir) * 80deg)); }
-  32% { transform: translate(calc(var(--dir) * 15px), 6px) rotate(calc(var(--dir) * 84deg)); }
-  78% { opacity: 1; transform: translate(calc(var(--dir) * 15px), 6px) rotate(calc(var(--dir) * 84deg)); filter: grayscale(0.7) brightness(0.55); }
-  100% { opacity: 0; transform: translate(calc(var(--dir) * 15px), 8px) rotate(calc(var(--dir) * 84deg)); filter: grayscale(1) brightness(0.4); }
+  5% { transform: translateX(calc(var(--dir) * 6px)); filter: brightness(2.4) sepia(0.6) hue-rotate(-30deg); }
+  12% { transform: translateX(calc(var(--dir) * 9px)) rotate(calc(var(--dir) * 10deg)); filter: brightness(1.2); }
+  26% { transform: translate(calc(var(--dir) * 11px), 7px) rotate(calc(var(--dir) * 18deg)) scale(0.92, 0.62); filter: brightness(0.7); }
+  34% { opacity: 1; transform: translate(calc(var(--dir) * 11px), 9px) rotate(calc(var(--dir) * 16deg)) scale(0.94, 0.56); filter: grayscale(0.5) brightness(0.5); }
+  62% { opacity: 0.55; transform: translate(calc(var(--dir) * 11px), 11px) rotate(calc(var(--dir) * 16deg)) scale(0.94, 0.5); filter: grayscale(0.9) brightness(0.35) blur(0.5px); }
+  100% { opacity: 0; transform: translate(calc(var(--dir) * 11px), 13px) rotate(calc(var(--dir) * 16deg)) scale(0.94, 0.42); filter: grayscale(1) brightness(0.25) blur(1px); }
 }
 
 @keyframes mechDie {
@@ -2719,12 +2722,12 @@
 
 .beam[data-kind="tracer"] .beamCore,
 .beam[data-kind="tracer"][data-hit] .beamCore {
-  width: 16px;
-  height: 2px;
-  top: -1px;
+  width: 30px;
+  height: 3px;
+  top: -1.5px;
   border-radius: 2px;
-  background: linear-gradient(90deg, transparent, #fef3c7 65%, #fff);
-  box-shadow: 0 0 5px 1px rgba(253, 224, 71, 0.85);
+  background: linear-gradient(90deg, transparent, rgb(var(--rgb) / 0.6) 35%, #fef3c7 80%, #fff);
+  box-shadow: 0 0 8px 2px rgba(253, 224, 71, 0.75);
   animation-duration: 0.4s;
 }
 
@@ -2764,25 +2767,21 @@
 
 .beam[data-kind="shell"] .beamCore,
 .beam[data-kind="shell"]:not([data-hit]) .beamCore {
-  width: 11px;
-  height: 11px;
-  top: -5.5px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #fdba74 45%, transparent 75%);
-  box-shadow:
-    0 0 10px 3px rgba(251, 146, 60, 0.8),
-    -20px 0 12px 2px rgba(120, 113, 108, 0.5);
+  width: 34px;
+  height: 6px;
+  top: -3px;
+  border-radius: 40% 60% 60% 40% / 50%;
+  background: linear-gradient(90deg, rgba(120, 113, 108, 0) 0%, rgba(140, 130, 120, 0.55) 45%, #fdba74 82%, #fff 100%);
+  box-shadow: 6px 0 10px 1px rgba(251, 146, 60, 0.75);
   animation: shellArc 1.5s linear var(--delay) both;
 }
 
 .beam[data-kind="shell"][data-heavy] .beamCore,
 .beam[data-kind="shell"][data-heavy]:not([data-hit]) .beamCore {
-  width: 22px;
-  height: 22px;
-  top: -11px;
-  box-shadow:
-    0 0 16px 5px rgba(251, 146, 60, 0.85),
-    -30px 0 16px 4px rgba(120, 113, 108, 0.55);
+  width: 48px;
+  height: 9px;
+  top: -4.5px;
+  box-shadow: 8px 0 14px 2px rgba(251, 146, 60, 0.85);
   animation-duration: 1.9s;
 }
 
@@ -2807,17 +2806,45 @@
 }
 
 .impact[data-ground="shell"]::after {
-  inset: auto 0 18% 0;
-  height: 30%;
-  border-color: rgba(190, 168, 130, 0.8);
-  animation-name: dirtRing;
+  /* Słup ziemi wyrzuconej wybuchem (zamiast kosmicznego pierścienia). */
+  inset: auto 30% 40% 30%;
+  height: 70%;
+  border: 0;
+  border-radius: 45% 45% 20% 20%;
+  background: linear-gradient(0deg, rgba(92, 74, 54, 0.85), rgba(120, 100, 80, 0.45) 60%, transparent);
+  filter: blur(2px);
+  transform-origin: 50% 100%;
+  animation: dirtColumn 1.3s ease-out var(--delay) both;
 }
 
 .impact[data-ground="shell"][data-heavy] {
-  width: 150px;
-  height: 150px;
-  margin: -75px 0 0 -75px;
-  animation-duration: 2.1s;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  animation-duration: 1.9s;
+}
+
+/* Na ziemi bez wielkiego rozbłysku całej formacji — każdy pocisk ma własny wybuch. */
+.overlay[data-kind="ground"] .blast {
+  display: none;
+}
+
+/* Sustain Damage mecha: iskry z pancerza zamiast niebieskiej bańki tarczy okrętu. */
+.ship[data-ground="mech"] .sustainFx {
+  background: radial-gradient(circle, rgba(255, 237, 213, 0.55) 0%, rgba(251, 146, 60, 0.35) 30%, transparent 60%);
+  border: 0;
+  inset: 0;
+}
+
+.ship[data-ground="mech"] .sustainFx::after {
+  display: none;
+}
+
+.ship[data-ground="mech"] .sustainSpark {
+  width: 3px;
+  height: 3px;
+  background: #fff7d6;
+  box-shadow: 0 0 6px 2px rgba(251, 146, 60, 0.95);
 }
 
 /* Pudło: pocisk ryje ziemię obok celu — więcej ziemi, mniej ognia. */
@@ -2904,6 +2931,12 @@
   0% { opacity: 0; transform: scale(0.3); }
   18% { opacity: 1; }
   100% { opacity: 0; transform: scale(2.6) translateY(-10px); }
+}
+
+@keyframes dirtColumn {
+  0% { opacity: 0; transform: scaleY(0.1); }
+  20% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1.15) translateY(-10px); }
 }
 
 @keyframes dirtRing {

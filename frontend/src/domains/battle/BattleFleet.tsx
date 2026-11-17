@@ -11,12 +11,14 @@ import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { lookupUnit } from "@/entities/lookup/units";
 import { playBattleSound, preloadBattleSounds } from "./battleSound";
 import {
+  allowSound,
   GroundDeathFx,
   groundKindOf,
   scheduleGroundDeathSounds,
 } from "./GroundDeathFx";
 import { IconShieldHalfFilled, IconSkull } from "@tabler/icons-react";
 import { Unit } from "@/shared/ui/Unit";
+import { BattleAmbience } from "./BattleAmbience";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { BattleSide } from "@/api/useBoardEditor";
 import type { Mark, ShipEntity } from "./battleAssign";
@@ -223,6 +225,45 @@ function useFormationFit(views: ShipView[]) {
   return { formationRef, fit };
 }
 
+/**
+ * DOMYKANIE SZYKU (FLIP): gdy egzemplarz znika z pola, pozostałe nie przeskakują na nowe
+ * miejsca, tylko płynnie się do nich dosuwają (Web Animations na `translate`). Działa po
+ * wlocie floty i przy niezmienionej skali szyku (zmiana skali przestawia wszystko naraz).
+ */
+function useCloseRanks(
+  formationRef: React.RefObject<HTMLDivElement | null>,
+  views: ShipView[],
+  fit: number,
+  active: boolean,
+) {
+  const last = useRef<{ fit: number; rects: Map<string, DOMRect> }>({
+    fit,
+    rects: new Map(),
+  });
+  const signature = views.map((v) => v.ship.id).join(",");
+  useLayoutEffect(() => {
+    const el = formationRef.current;
+    if (!el) return;
+    const rects = new Map<string, DOMRect>();
+    const sameScale = last.current.fit === fit;
+    el.querySelectorAll<HTMLElement>("[data-ship-id]").forEach((node) => {
+      const id = node.dataset.shipId ?? "";
+      const now = node.getBoundingClientRect();
+      rects.set(id, now);
+      const before = last.current.rects.get(id);
+      if (!before || !active || !sameScale || node.hasAttribute("data-dying")) return;
+      const dx = before.left - now.left;
+      const dy = before.top - now.top;
+      if (Math.abs(dx) + Math.abs(dy) < 2 || typeof node.animate !== "function") return;
+      node.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], {
+        duration: 750,
+        easing: "cubic-bezier(0.2, 0.7, 0.2, 1)",
+      });
+    });
+    last.current = { fit, rects };
+  }, [signature, fit, active, formationRef]);
+}
+
 function ShipToken({
   view,
   rank,
@@ -272,7 +313,7 @@ function ShipToken({
   selectable: boolean;
   onToggle: (ship: ShipEntity) => void;
 }) {
-  const { ship, dying, leaving, justSustained } = view;
+  const { ship, dying, leaving, justSustained, dieDelay } = view;
   const size = Math.round(shipSize(ship.asyncId) * fit);
   const pips = hpPips(ship);
   const label = `${ship.name}${ship.damaged ? " (damaged)" : ""}`;
@@ -320,18 +361,24 @@ function ShipToken({
     if (!dying) return;
     // Piechota i mech mają własne sekwencje śmierci (okrzyk/upadek; reaktor/wybuch/wrak).
     if (groundKind) {
-      return scheduleGroundDeathSounds(groundKind, side === "left" ? -0.5 : 0.5);
+      return scheduleGroundDeathSounds(
+        groundKind,
+        side === "left" ? -0.5 : 0.5,
+        dieDelay,
+      );
     }
-    const t = window.setTimeout(
-      () =>
-        playBattleSound(heavy ? "explosionHeavy" : "explosion", {
-          pan: side === "left" ? -0.5 : 0.5,
-          heavy,
-        }),
-      1100,
-    );
+    // Wybuchy rozłożone w czasie (`dieDelay`); gdy ginie cała eskadra, najwyżej 2 zwykłe
+    // wybuchy na pół sekundy (reszta tylko widać) — ciężkie okręty zawsze słychać.
+    const t = window.setTimeout(() => {
+      if (!heavy && !allowSound("explosion", 2, 500)) return;
+      playBattleSound(heavy ? "explosionHeavy" : "explosion", {
+        pan: side === "left" ? -0.5 : 0.5,
+        heavy,
+        gain: heavy ? 0.9 : 0.6,
+      });
+    }, 1100 + dieDelay);
     return () => window.clearTimeout(t);
-  }, [dying, side, heavy, groundKind]);
+  }, [dying, side, heavy, groundKind, dieDelay]);
   const style = {
     "--rank": rank,
     "--i": index,
@@ -343,6 +390,7 @@ function ShipToken({
       ? `${place.y}px`
       : `${Math.round(jitter(ship.id, 2, 12) * fit) + stagger}px`,
     "--slot": `${size}px`,
+    "--die-delay": `${dieDelay}ms`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
   const common = {
@@ -350,6 +398,7 @@ function ShipToken({
     style,
     "data-side": side,
     "data-base": ship.asyncId,
+    "data-ship-id": ship.id,
     // Jednostki naziemne giną inaczej niż okręty: piechota pada, mech wybucha i zostaje wrak.
     "data-ground": groundKind ?? undefined,
     "data-damaged": ship.damaged || undefined,
@@ -588,7 +637,10 @@ export function BattleFleet({
   onToggle,
   entryKey,
   pick,
+  kind,
 }: {
+  /** Rodzaj walki — tło w ruchu pod jednostkami (`BattleAmbience`). */
+  kind: "space" | "ground";
   /** Tożsamość bitwy dla tej strony — wlot floty gra raz (także po Hide → powrót). */
   entryKey: string;
   /** Decyzja „wskaż okręt" (Assault Cannon, Devotion): które egzemplarze kliknąć i akcja. */
@@ -622,6 +674,7 @@ export function BattleFleet({
   // Wejście armady gra tylko raz na bitwę — ponowne otwarcie okna (Hide) go nie powtarza.
   const [entered, setEntered] = useState(() => ENTERED.has(entryKey));
   const { formationRef, fit } = useFormationFit(views);
+  useCloseRanks(formationRef, views, fit, entered || skipEntry);
   useEffect(() => {
     if (ENTERED.has(entryKey)) return;
     ENTERED.add(entryKey);
@@ -713,6 +766,7 @@ export function BattleFleet({
       data-winner={isWinner || undefined}
       aria-label={`${side.role === "attacker" ? "Attacker" : "Defender"}: ${name}`}
     >
+      <BattleAmbience kind={kind} side={align} />
       <header className={styles.fleetHead}>
         <CircularFactionIcon faction={side.faction} size={38} />
         <div className={styles.fleetWho}>

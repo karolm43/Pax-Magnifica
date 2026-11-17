@@ -17,6 +17,12 @@ import { countDice, diceLandMs, volleyStartMs } from "./diceRoll";
  */
 
 const DYING_MS = 3800;
+/**
+ * Zgony jednej salwy NIE w tej samej chwili: kolejne egzemplarze giną co tyle ms (wybuchy
+ * i dźwięki nie nakładają się w jeden huk), najwyżej `DIE_STAGGER_MAX` kroków.
+ */
+export const DIE_STAGGER_MS = 280;
+const DIE_STAGGER_MAX = 6;
 const VOLLEY_MS = 5200;
 const MAX_BOLTS_PER_SIDE = 22;
 
@@ -27,6 +33,8 @@ const LEAVING_MS = 6200;
 export type ShipView = {
   ship: ShipEntity;
   dying: boolean;
+  /** Opóźnienie śmierci tego egzemplarza (ms) — rozłożenie zgonów jednej salwy w czasie. */
+  dieDelay: number;
   /** Okręt właśnie WYCOFUJE się z walki (odwrót) — odlatuje zamiast wybuchać. */
   leaving: boolean;
   justSustained: boolean;
@@ -47,6 +55,7 @@ export function useDyingShips(
   const leavingRef = useRef(leaving);
   leavingRef.current = leaving;
   const [dying, setDying] = useState<ShipEntity[]>([]);
+  const [delays, setDelays] = useState<Map<string, number>>(new Map());
   const placement = useRef<string[]>(ships.map((s) => s.id));
   const [departing, setDeparting] = useState<Set<string>>(new Set());
   // Egzemplarze, które WŁAŚNIE przyjęły Sustain Damage (były całe, teraz uszkodzone) —
@@ -89,6 +98,13 @@ export function useDyingShips(
     if (leavingIds.length > 0) {
       setDeparting((set) => new Set([...set, ...leavingIds]));
     }
+    // Kolejność zgonów: od pierwszej linii (indeks w szyku), co DIE_STAGGER_MS.
+    const dyingNow = gone.filter((s) => !leavingIds.includes(s.id));
+    const stagger = new Map(
+      dyingNow.map((s, k) => [s.id, Math.min(k, DIE_STAGGER_MAX) * DIE_STAGGER_MS]),
+    );
+    setDelays((map) => new Map([...map, ...stagger]));
+    const longest = Math.max(0, ...stagger.values());
     setDying((list) => [...list.filter((s) => !current.has(s.id)), ...gone]);
     window.setTimeout(() => {
       setDying((list) => list.filter((s) => !gone.some((g) => g.id === s.id)));
@@ -97,7 +113,12 @@ export function useDyingShips(
         for (const id of leavingIds) next.delete(id);
         return next;
       });
-    }, leavingIds.length > 0 ? LEAVING_MS : DYING_MS);
+      setDelays((map) => {
+        const next = new Map(map);
+        for (const g of gone) next.delete(g.id);
+        return next;
+      });
+    }, leavingIds.length > 0 ? LEAVING_MS : DYING_MS + longest);
   }, [signature]);
 
   const alive = new Set(ships.map((s) => s.id));
@@ -106,6 +127,7 @@ export function useDyingShips(
     views.set(ship.id, {
       ship,
       dying: false,
+      dieDelay: 0,
       leaving: false,
       justSustained: sustained.has(ship.id),
     });
@@ -113,7 +135,13 @@ export function useDyingShips(
   for (const ship of dying) {
     if (alive.has(ship.id)) continue;
     const leaves = departing.has(ship.id);
-    views.set(ship.id, { ship, dying: !leaves, leaving: leaves, justSustained: false });
+    views.set(ship.id, {
+      ship,
+      dying: !leaves,
+      dieDelay: delays.get(ship.id) ?? 0,
+      leaving: leaves,
+      justSustained: false,
+    });
   }
   // Konający okręt zostaje na SWOIM miejscu w szyku (nie przeskakuje na koniec szeregu):
   // kolejność z poprzedniego renderu, nowe egzemplarze na końcu. Przestawienie elementu

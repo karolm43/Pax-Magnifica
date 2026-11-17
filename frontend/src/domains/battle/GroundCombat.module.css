@@ -29,12 +29,12 @@
   margin: -11px 0 0 -11px;
   border-radius: 50%;
   background: radial-gradient(circle, #fff7d6 0%, rgba(253, 224, 71, 0.75) 18%, rgba(168, 145, 110, 0.7) 40%, transparent 70%);
-  animation: bulletPuff 0.45s ease-out var(--d) both;
+  animation: bulletPuff 0.45s ease-out calc(var(--d) + var(--die-delay, 0ms)) both;
 }
 
 /* Ciało uderza o ziemię: płaski obłok kurzu u stóp (przesunięty w stronę upadku). */
 .fallDust {
-  left: calc(50% + var(--dir, 1) * 14%);
+  left: calc(50% + var(--dir, 1) * 6%);
   bottom: 4%;
   width: 110%;
   height: 34%;
@@ -42,18 +42,18 @@
   border-radius: 50%;
   filter: blur(3px);
   background: radial-gradient(ellipse at 50% 70%, rgba(205, 184, 148, 0.85) 0%, rgba(140, 118, 90, 0.55) 45%, transparent 72%);
-  animation: fallDust 1.6s ease-out 1.72s both;
+  animation: fallDust 1.6s ease-out calc(1.55s + var(--die-delay, 0ms)) both;
 }
 
 /* Grudki ziemi podrzucone upadkiem. */
 .pebble {
-  left: calc(50% + var(--dir, 1) * 14%);
+  left: calc(50% + var(--dir, 1) * 6%);
   bottom: 12%;
   width: 3px;
   height: 3px;
   border-radius: 50%;
   background: rgba(96, 78, 58, 0.95);
-  animation: pebble 0.75s cubic-bezier(0.3, 0.6, 0.6, 1) 1.74s both;
+  animation: pebble 0.75s cubic-bezier(0.3, 0.6, 0.6, 1) calc(1.57s + var(--die-delay, 0ms)) both;
 }
 
 @keyframes bulletPuff {
@@ -87,7 +87,7 @@
   border-radius: 50%;
   mix-blend-mode: screen;
   background: radial-gradient(circle, rgba(255, 120, 90, 0.95) 0%, rgba(220, 38, 38, 0.6) 40%, transparent 70%);
-  animation: reactor 1.05s ease-in 1.15s both;
+  animation: reactor 1.05s ease-in calc(1.15s + var(--die-delay, 0ms)) both;
 }
 
 /* Iskry z pancerza: krótkie jasne kreski tryskające w górę z miejsc trafień. */
@@ -100,7 +100,7 @@
   transform-origin: 0 50%;
   background: linear-gradient(90deg, #fffbe6, rgba(253, 186, 116, 0.9) 60%, transparent);
   box-shadow: 0 0 6px rgba(251, 191, 36, 0.9);
-  animation: armorSpark 0.5s ease-out var(--d) both;
+  animation: armorSpark 0.5s ease-out calc(var(--d) + var(--die-delay, 0ms)) both;
 }
 
 /* Słup dymu z uszkodzonego kadłuba (kilka kłębów, kolejno). */
@@ -113,7 +113,7 @@
   border-radius: 50%;
   filter: blur(4px);
   background: radial-gradient(circle, rgba(60, 56, 52, 0.85) 0%, rgba(40, 38, 36, 0.5) 50%, transparent 72%);
-  animation: plume 2s ease-out var(--d) both;
+  animation: plume 2s ease-out calc(var(--d) + var(--die-delay, 0ms)) both;
 }
 
 /* Wybuch mecha: kula ognia przechodząca w czarny dym (nie kosmiczny rozbłysk). */
@@ -126,7 +126,7 @@
   border-radius: 50%;
   background: radial-gradient(circle, #fffbe6 0%, rgba(253, 186, 116, 0.95) 16%, rgba(234, 88, 12, 0.85) 34%, rgba(87, 45, 20, 0.55) 52%, transparent 70%);
   filter: drop-shadow(0 0 18px rgba(251, 146, 60, 0.9));
-  animation: mechBlast 1.4s ease-out 2.12s both;
+  animation: mechBlast 1.4s ease-out calc(2.12s + var(--die-delay, 0ms)) both;
 }
 
 /* Fala pyłu po ziemi od wybuchu (spłaszczony pierścień). */
@@ -139,7 +139,7 @@
   border-radius: 50%;
   border: 3px solid rgba(190, 168, 130, 0.8);
   filter: blur(1px);
-  animation: groundRing 1.2s cubic-bezier(0.1, 0.7, 0.3, 1) 2.16s both;
+  animation: groundRing 1.2s cubic-bezier(0.1, 0.7, 0.3, 1) calc(2.16s + var(--die-delay, 0ms)) both;
 }
 
 /* Metalowe odłamki kadłuba: wylatują w górę i spadają (grawitacja), wirując. */
@@ -151,7 +151,7 @@
   border-radius: 1px;
   background: linear-gradient(90deg, #9ca3af, #4b5563);
   box-shadow: 0 0 4px rgba(251, 146, 60, 0.85);
-  animation: shard 1.3s cubic-bezier(0.25, 0.5, 0.5, 1) 2.15s both;
+  animation: shard 1.3s cubic-bezier(0.25, 0.5, 0.5, 1) calc(2.15s + var(--die-delay, 0ms)) both;
 }
 
 /* Płonący wrak: małe migoczące płomienie u podstawy, do końca animacji. */
@@ -166,8 +166,8 @@
   background: radial-gradient(ellipse at 50% 80%, #fff3c4 0%, rgba(251, 146, 60, 0.9) 35%, rgba(220, 38, 38, 0.4) 60%, transparent 75%);
   transform-origin: 50% 100%;
   animation:
-    wreckFireIn 1.5s ease-out 2.3s both,
-    flicker 0.32s ease-in-out calc(2.3s + var(--k) * 0.1s) infinite alternate;
+    wreckFireIn 1.5s ease-out calc(2.3s + var(--die-delay, 0ms)) both,
+    flicker 0.32s ease-in-out calc(2.3s + var(--k) * 0.1s + var(--die-delay, 0ms)) infinite alternate;
 }
 
 @keyframes reactor {

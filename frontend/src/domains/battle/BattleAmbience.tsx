@@ -2,10 +2,11 @@ import type { CSSProperties } from "react";
 import fx from "./BattleAmbience.module.css";
 
 /**
- * TŁO W RUCHU pola bitwy (czysta dekoracja, bez wpływu na klik i stan):
- * - kosmos: druga, bliższa warstwa gwiazd (paralaksa), dryfująca mgławica i rzadkie błyski
- *   odległej bitwy na krawędziach kadru;
- * - ziemia: błyski artylerii za horyzontem, unoszące się iskry/żar i nisko ścielący się dym.
+ * TŁO W RUCHU pola floty (czysta dekoracja, bez wpływu na klik i stan), rysowane W PANELU
+ * strony pod jednostkami (wcześniej leżało pod panelami i nie było go widać):
+ * - kosmos: mgławica w barwie strony, dwie warstwy gwiazd (paralaksa), pył kosmiczny
+ *   przelatujący ku wrogowi i błyski odległych wybuchów;
+ * - ziemia: błyski artylerii nad horyzontem, podmuchy pyłu przy ziemi, żar i dym.
  * Pozycje są stałe (deterministyczne), więc tło nie „skacze" przy przerysowaniu.
  */
 
@@ -19,35 +20,58 @@ function vars(v: Record<string, string | number>): CSSProperties {
   return v as CSSProperties;
 }
 
-const FLASHES = 5;
-const EMBERS = 18;
+const SPACE_FLASHES = 6;
+const DUST = 14;
+const GROUND_FLASHES = 4;
+const EMBERS = 16;
+const GUSTS = 5;
 
-export function BattleAmbience({ kind }: { kind: "space" | "ground" }) {
+export function BattleAmbience({
+  kind,
+  side,
+}: {
+  kind: "space" | "ground";
+  /** Strona panelu — pył leci ku wrogowi, ziarno rozrzutu różne dla stron. */
+  side: "left" | "right";
+}) {
+  const salt = side === "left" ? 0 : 100;
+  const dir = side === "left" ? 1 : -1;
   if (kind === "ground") {
     return (
       <div className={fx.ambience} data-kind="ground" aria-hidden="true">
-        {Array.from({ length: FLASHES }, (_, i) => (
+        {Array.from({ length: GROUND_FLASHES }, (_, i) => (
           <i
             key={`f${i}`}
             className={fx.horizonFlash}
             style={vars({
-              "--x": `${8 + rnd(i, 1) * 84}%`,
-              "--d": `${(rnd(i, 2) * 9).toFixed(2)}s`,
-              "--t": `${(7 + rnd(i, 3) * 6).toFixed(2)}s`,
+              "--x": `${10 + rnd(i, salt + 1) * 80}%`,
+              "--d": `${(rnd(i, salt + 2) * 8).toFixed(2)}s`,
+              "--t": `${(5 + rnd(i, salt + 3) * 5).toFixed(2)}s`,
+            })}
+          />
+        ))}
+        {Array.from({ length: GUSTS }, (_, i) => (
+          <i
+            key={`g${i}`}
+            className={fx.gust}
+            style={vars({
+              "--y": `${62 + rnd(i, salt + 4) * 30}%`,
+              "--d": `${(-rnd(i, salt + 5) * 9).toFixed(2)}s`,
+              "--t": `${(7 + rnd(i, salt + 6) * 5).toFixed(2)}s`,
+              "--dir": dir,
             })}
           />
         ))}
         <i className={fx.fog} />
-        <i className={fx.fog} data-back />
         {Array.from({ length: EMBERS }, (_, i) => (
           <i
             key={`e${i}`}
             className={fx.ember}
             style={vars({
-              "--x": `${rnd(i, 4) * 100}%`,
-              "--d": `${(-rnd(i, 5) * 12).toFixed(2)}s`,
-              "--t": `${(8 + rnd(i, 6) * 7).toFixed(2)}s`,
-              "--sway": `${((rnd(i, 7) - 0.5) * 80).toFixed(0)}px`,
+              "--x": `${rnd(i, salt + 7) * 100}%`,
+              "--d": `${(-rnd(i, salt + 8) * 9).toFixed(2)}s`,
+              "--t": `${(5 + rnd(i, salt + 9) * 5).toFixed(2)}s`,
+              "--sway": `${((rnd(i, salt + 10) - 0.5) * 60).toFixed(0)}px`,
             })}
           />
         ))}
@@ -57,16 +81,31 @@ export function BattleAmbience({ kind }: { kind: "space" | "ground" }) {
   return (
     <div className={fx.ambience} data-kind="space" aria-hidden="true">
       <i className={fx.nebula} />
-      <i className={fx.starsNear} />
-      {Array.from({ length: FLASHES }, (_, i) => (
+      <i className={fx.starsFar} />
+      <i className={fx.starsNear} data-side={side} />
+      {Array.from({ length: DUST }, (_, i) => (
+        <i
+          key={`d${i}`}
+          className={fx.dust}
+          style={vars({
+            "--y": `${24 + rnd(i, salt + 11) * 48}%`,
+            "--d": `${(-rnd(i, salt + 12) * 6).toFixed(2)}s`,
+            "--t": `${(2.5 + rnd(i, salt + 13) * 3).toFixed(2)}s`,
+            "--len": `${(30 + rnd(i, salt + 14) * 70).toFixed(0)}px`,
+            "--dir": dir,
+          })}
+        />
+      ))}
+      {Array.from({ length: SPACE_FLASHES }, (_, i) => (
         <i
           key={`f${i}`}
           className={fx.farFlash}
           style={vars({
-            "--x": `${rnd(i, 8) < 0.5 ? 3 + rnd(i, 9) * 14 : 83 + rnd(i, 9) * 14}%`,
-            "--y": `${10 + rnd(i, 10) * 75}%`,
-            "--d": `${(rnd(i, 11) * 14).toFixed(2)}s`,
-            "--t": `${(11 + rnd(i, 12) * 8).toFixed(2)}s`,
+            "--x": `${8 + rnd(i, salt + 15) * 84}%`,
+            "--y": `${24 + rnd(i, salt + 16) * 48}%`,
+            "--d": `${(rnd(i, salt + 17) * 10).toFixed(2)}s`,
+            "--t": `${(6 + rnd(i, salt + 18) * 6).toFixed(2)}s`,
+            "--s": (0.5 + rnd(i, salt + 19) * 0.9).toFixed(2),
           })}
         />
       ))}

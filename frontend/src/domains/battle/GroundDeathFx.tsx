@@ -28,7 +28,7 @@ export function groundKindOf(asyncId: string): GroundKind | null {
 
 /** Chwile (ms od oznaczenia jednostki jako zniszczonej) — zgodne z animacjami w CSS. */
 export const GROUND_DEATH_TIMING = {
-  infantry: { cry: 1150, fall: 1750 },
+  infantry: { cry: 1150, fall: 1550 },
   mech: { powerDown: 1250, blast: 2150, collapse: 2300 },
 } as const;
 
@@ -56,18 +56,23 @@ export function allowSound(
 }
 
 /** Planuje dźwięki śmierci jednostki naziemnej; zwraca funkcję odwołującą zaplanowane. */
-export function scheduleGroundDeathSounds(kind: GroundKind, pan: number): () => void {
-  const at = (ms: number, play: () => void) => window.setTimeout(play, ms);
+export function scheduleGroundDeathSounds(
+  kind: GroundKind,
+  pan: number,
+  /** Opóźnienie śmierci tego egzemplarza (rozłożenie zgonów salwy, `dieDelay`). */
+  offset = 0,
+): () => void {
+  const at = (ms: number, play: () => void) => window.setTimeout(play, ms + offset);
   const timers =
     kind === "infantry"
       ? [
           at(GROUND_DEATH_TIMING.infantry.cry, () => {
-            if (allowSound("infantryDeath", 2, 700)) {
-              playBattleSound("infantryDeath", { pan, gain: 0.55 });
+            if (allowSound("infantryDeath", 1, 900)) {
+              playBattleSound("infantryDeath", { pan, gain: 0.4 });
             }
           }),
           at(GROUND_DEATH_TIMING.infantry.fall, () => {
-            if (allowSound("bodyFall", 3, 300)) {
+            if (allowSound("bodyFall", 2, 400)) {
               playBattleSound("bodyFall", { pan, gain: 0.7 });
             }
           }),
@@ -76,9 +81,11 @@ export function scheduleGroundDeathSounds(kind: GroundKind, pan: number): () => 
           at(GROUND_DEATH_TIMING.mech.powerDown, () =>
             playBattleSound("mechPowerDown", { pan, gain: 0.6 }),
           ),
-          at(GROUND_DEATH_TIMING.mech.blast, () =>
-            playBattleSound("groundBlast", { pan, heavy: true }),
-          ),
+          at(GROUND_DEATH_TIMING.mech.blast, () => {
+            if (allowSound("mechBlast", 2, 600)) {
+              playBattleSound("groundBlast", { pan, heavy: true, gain: 0.85 });
+            }
+          }),
           at(GROUND_DEATH_TIMING.mech.collapse, () =>
             playBattleSound("mechCollapse", { pan, gain: 0.8 }),
           ),
