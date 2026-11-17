@@ -803,3 +803,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   War Funding i bazowy Magen (na), Ul + Alliance (requires titans). Letnev zdjęty z UNAUDITED.
 - RULES.md 62.2.
 - QA: pytest 2669 ✓, ruff ✓, mypy ✓. Front bez zmian. Wymaga restartu backendu.
+
+## 2026-11-17 — Audyt rulingów Mentak + wstrzymanie walki po Sustain Damage
+
+- Wstrzymanie walki po Sustain Damage ostatniej strony (RULES.md 54.10a, decyzja użytkownika): wcześniej
+  okno „po Sustain Damage” strony przypisującej straty jako ostatnia (i jedynej przy trafieniach Ambush)
+  zamykało się w tym samym kroku — Direct Hit / Reflective Shielding były niezagrywalne (F_mentak 4.1).
+  `ActiveCombat.sustain_hold` + `reaction_pause.would_open` + `battle.release_sustain_hold` (wołane
+  w `step_settle`); Reflective w trakcie wstrzymania otwiera nowe przypisanie (`battle.add_combat_hits`).
+  Okno bitwy: notka „waiting for reactions” (`sustainHold` w `/tactical/battle`).
+- Sleeper Cell + Direct Hit Mentaka: zastępczy statek staje od razu (F_mentak 7.1) —
+  `sleeper_direct_hit` / `sleeper_on_direct_hit`; `reactions_combat.DIRECT_HIT` publiczne.
+- `tests/factions/test_rulings_mentak.py` (43 testy), `@ruling` w `test_flows_mentak`; statusy: Creuss
+  (requires creuss), Valefar (requires nekro), umowa o Pillage (na). Mentak zdjęty z UNAUDITED.
+- RULES.md 62.8, 54.10a.
+- Zauważone przy audycie (poza zakresem): transakcje w fazie agend nie są obsługiwane
+  (`transaction.validate_transaction` przyjmuje tylko fazę akcji).
+- QA: pytest 2714 ✓ (test_undo_move niestabilny — pada też bez zmian), ruff ✓, mypy ✓, tsc ✓, eslint ✓,
+  vitest battle ✓. Bez build/e2e (drobna notka w BattleCenter). Wymaga restartu backendu.

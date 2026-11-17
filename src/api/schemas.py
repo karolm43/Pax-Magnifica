@@ -1354,6 +1354,8 @@ class BattleResponse(BaseModel):
     pending_hits: dict[str, int] = Field(default_factory=dict, serialization_alias="pendingHits")
     required: dict[str, int] = Field(default_factory=dict)
     assigning: str | None = None
+    # Walka czeka na reakcje po Sustain Damage ostatniej strony (Direct Hit, Reflective Shielding).
+    sustain_hold: bool = Field(default=False, serialization_alias="sustainHold")
     hit_targets: dict[str, BattleHitTargetView] = Field(
         default_factory=dict, serialization_alias="hitTargets"
     )

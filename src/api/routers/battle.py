@@ -186,6 +186,7 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         pending_hits={key(pid): n for pid, n in combat.pending_hits.items() if n > 0},
         required=required,
         assigning=assigning,
+        sustain_hold=combat.sustain_hold,
         hit_targets={
             key(pid): BattleHitTargetView(
                 types=[str(t) for t in target.get("types", [])],

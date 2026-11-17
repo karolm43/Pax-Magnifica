@@ -30,6 +30,7 @@ from src.core.dice import DIE_SIDES, next_rng
 from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import ActiveCombat, GameState, ProductionGrant
+from src.core.hooks.reactions_combat import DIRECT_HIT
 from src.core.neighbors import neighbors_of
 from src.core.production import reinforcements_left
 from src.core.registry import StaticDataRegistry
@@ -570,20 +571,25 @@ def _fresh_sleepers(state: GameState, player_id: str) -> list[str]:
     if combat is None or effect is None:
         return []
     seen = int(effect.data.get("seen", 0))
-    registry = _registry()
-    player = state.players[player_id]
+    early = {int(i) for i in effect.data.get("early") or ()}
     found: list[str] = []
-    for entry in combat.destroyed_all[seen:]:
-        if entry.get("player") == player_id:
+    for index, entry in enumerate(combat.destroyed_all):
+        if index < seen or index in early or entry.get("player") == player_id:
             continue
         base_type = str(entry.get("base_type"))
-        unit = resolve_unit_variant(
-            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
-        )
-        if unit is None or unit.cost is None or not is_space_unit(base_type):
-            continue  # War Sun bez technologii; siła naziemna/struktura „jako statek" (F_mentak)
-        found.append(base_type)
+        if _sleeper_type_ok(state, player_id, base_type):
+            found.append(base_type)
     return found
+
+
+def _sleeper_type_ok(state: GameState, player_id: str, base_type: str) -> bool:
+    """Statek, który Mentak może postawić: jest w jego talii jednostek (War Sun tylko z
+    technologią) i jest statkiem - nie siła naziemna/struktura „jako statek" (F_mentak)."""
+    player = state.players[player_id]
+    unit = resolve_unit_variant(
+        _registry(), player.faction, player.technologies, base_type, player.breakthrough_unlocked
+    )
+    return unit is not None and unit.cost is not None and is_space_unit(base_type)
 
 
 def sleeper_inputs(
@@ -654,6 +660,64 @@ def sleeper_after_losses(state: GameState, player_id: str, ctx: Mapping[str, Any
 def sleeper_before_round(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Straty z Ambush (przed 1. rundą) - statki przed rzutami rundy."""
     _place_sleepers(state, player_id, ctx)
+
+
+def _own_direct_hit(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    return (
+        ctx.get("player") == player_id
+        and ctx.get("card") in DIRECT_HIT
+        and _my_space_combat(state, player_id) is not None
+    )
+
+
+@on_event(
+    GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, HookSource(SOURCE_EFFECT, SLEEPER),
+    condition=_own_direct_hit, covers=f"leaders:{HERO}", label="Sleeper Cell: Direct Hit",
+)
+def sleeper_direct_hit(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
+    """Mentak zagrywa Direct Hit: statek zniszczony tą kartą zastępuje się OD RAZU, zanim inne
+    statki użyją Sustain Damage (F_mentak 7.1) - znacznik dla ``sleeper_on_direct_hit``."""
+    for effect in active_effects.effects_for(state, player_id, SLEEPER):
+        effect.data = {**effect.data, "direct_hit": True}
+
+
+def _direct_hit_loss(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    effect = next(iter(active_effects.effects_for(state, player_id, SLEEPER)), None)
+    return (
+        effect is not None
+        and bool(effect.data.get("direct_hit"))
+        and ctx.get("player") != player_id
+        and ctx.get("zone") == _SPACE
+        and _my_space_combat(state, player_id) is not None
+    )
+
+
+@on_event(
+    GameEvent.UNIT_DESTROYED, Moment.AFTER, HookSource(SOURCE_EFFECT, SLEEPER),
+    condition=_direct_hit_loss, covers=f"leaders:{HERO}", label="Sleeper Cell: place ship",
+)
+def sleeper_on_direct_hit(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """F_mentak 7.1: po Direct Hit Mentaka statek tego typu staje od razu (może jeszcze w tej
+    rundzie użyć Sustain Damage). Pusta rezerwa: wybór źródła z planszy zostaje na koniec rundy
+    (zwykła decyzja Sleeper Cell)."""
+    combat = _my_space_combat(state, player_id)
+    effect = next(iter(active_effects.effects_for(state, player_id, SLEEPER)), None)
+    if combat is None or effect is None:
+        return
+    data = {k: v for k, v in effect.data.items() if k != "direct_hit"}
+    base_type = str(ctx.get("base_type"))
+    index = len(combat.destroyed_all) - 1
+    if (
+        index >= int(data.get("seen", 0))
+        and _sleeper_type_ok(state, player_id, base_type)
+        and not board_reinforcements.needs_board_source(state, player_id, base_type)
+    ):
+        place_units(
+            state, state.systems[combat.position], _SPACE, player_id, base_type, 1,
+            UnitCause.PLACED,
+        )
+        data["early"] = [*(data.get("early") or []), index]
+    effect.data = data
 
 
 # ------------------------------------------------------------------- Fourth Moon, Moll Terminus

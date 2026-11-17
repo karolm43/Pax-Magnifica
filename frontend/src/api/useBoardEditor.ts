@@ -1256,6 +1256,8 @@ export type BattleView = {
   required: Record<string, number>;
   /** Gracz, który teraz pokrywa trafienia (okno COMBAT_ASSIGN_HITS). */
   assigning: string | null;
+  /** Walka czeka na reakcje po Sustain Damage ostatniej strony (Direct Hit, Reflective). */
+  sustainHold?: boolean;
   /**
    * Wymuszony cel trafień strony (Devotion: statek wskazany przez Yin; Impulse Core:
    * nie-myśliwce). Brak wpisu = strona przypisuje dowolnie.

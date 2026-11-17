@@ -79,7 +79,7 @@ _MORALE_BONUS = 1  # „Apply +1 to the result of each of your unit's combat rol
 _SKILLED_RETREAT = ("s_retreat1", "s_retreat2", "s_retreat3", "s_retreat4")
 _SHIELDS_HOLDING = ("sh1", "sh2", "sh3", "sh4")
 _SHIELDS_MAX = 2  # „Cancel up to 2 hits”
-_DIRECT_HIT = ("dh1", "dh2", "dh3", "dh4")
+DIRECT_HIT = ("dh1", "dh2", "dh3", "dh4")  # Sleeper Cell Mentaka (F_mentak 7.1)
 _FIGHTER_PROTOTYPE_BONUS = 2  # „Apply +2 to the result of each of your fighters' combat rolls”
 _REVEAL_DECISION = "reveal_prototype"
 _REVEAL_COST = 4  # „Spend 4 resources”
@@ -198,6 +198,17 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
     step = combat.step
     space = combat.kind == "space"
 
+    def sustain_windows() -> list[OpenWindow]:
+        """Okna „when/after Sustain Damage” ze śladu walki; trafienia ze startu walki (Ambush)
+        mają osobny klucz pauzy od trafień 1. rundy (``stage``)."""
+        stage = {"stage": "start"} if combat.start_assign else {}
+        found: list[OpenWindow] = []
+        for entry in combat.sustained_ships:
+            ctx = _ctx(combat, str(entry["player"]), base_type=str(entry["base_type"]), **stage)
+            found.append(OpenWindow(GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.WHEN, dict(ctx)))
+            found.append(OpenWindow(GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, dict(ctx)))
+        return found
+
     # Walka czekająca na decyzje ze startu walki / rundy (krok TRIGGERS) nadal JEST na starcie:
     # karty i notki „At the start of combat / of a combat round” wolno wtedy zagrać (RULES.md 53.5).
     at_start = step is CombatStep.TRIGGERS and combat.resume in ("start", "round_start")
@@ -232,6 +243,9 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
             out.append(
                 OpenWindow(GameEvent.RETREAT_DECLARED, Moment.AFTER, _ctx(combat, retreater))
             )
+    if space and step is CombatStep.ASSIGN and combat.sustain_hold:
+        # Wstrzymanie po Sustain Damage ostatniej strony: tylko okna „po Sustain Damage”.
+        return sustain_windows()
     if space and step is CombatStep.ASSIGN:
         for pid in (combat.defender, combat.attacker):
             hits = combat.pending_hits.get(pid, 0)
@@ -239,10 +253,7 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
                 out.append(
                     OpenWindow(GameEvent.HITS_ASSIGNED, Moment.BEFORE, _ctx(combat, pid, hits=hits))
                 )
-        for entry in combat.sustained_ships:
-            ctx = _ctx(combat, str(entry["player"]), base_type=str(entry["base_type"]))
-            out.append(OpenWindow(GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.WHEN, dict(ctx)))
-            out.append(OpenWindow(GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, dict(ctx)))
+        out.extend(sustain_windows())
     if space and step in _LIVE_STEPS:
         for lost in combat.destroyed_ships:
             out.append(
@@ -991,9 +1002,9 @@ def _direct_hit_outside_combat(
     damage.set_damaged(system, "space", target, base_type, damaged_before - 1)
 
 
-for _card in _DIRECT_HIT:
+for _card in DIRECT_HIT:
     _register_direct_hit(_card)
-declare_reaction(*_DIRECT_HIT, condition=_direct_hit_condition)
+declare_reaction(*DIRECT_HIT, condition=_direct_hit_condition)
 
 
 # ------------------------------------------------------------------ Reflective Shielding
@@ -1023,17 +1034,14 @@ def reflective_shielding(
     """Reflective Shielding: Produce 2 hits against your opponent's ships in the active system.
 
     Trafienia dochodzą do trafień z rzutu (C_action_cards) i przeciwnik przypisuje je w kroku
-    ASSIGN. ⚠ Karta jest zagrywalna tylko, gdy przeciwnik jeszcze nie przypisał strat (czyli
-    gdy to obrońca użył Sustain Damage jako pierwszy).
+    ASSIGN. Gdy Sustain Damage użyła ostatnia strona przypisania, walka czeka
+    (``ActiveCombat.sustain_hold``), a karta otwiera przeciwnikowi nowe przypisanie.
     """
     combat = _combat(state)
     opponent = _opponent(combat, player_id)
     base_type = _window_ship(params)
     _consume_sustain(combat, player_id, base_type)
-    combat.pending_hits[opponent] = combat.pending_hits.get(opponent, 0) + _REFLECTIVE_HITS
-    window = state.pending_window
-    if window is not None and opponent not in window.queue:
-        window.queue = [*window.queue, opponent]
+    battle.add_combat_hits(state, opponent, _REFLECTIVE_HITS)
 
 
 def _window_ship(params: Mapping[str, Any]) -> str:

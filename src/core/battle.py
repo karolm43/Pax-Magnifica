@@ -1102,8 +1102,55 @@ def assign_combat_hits(
     new_state = timing.respond_current(new_state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
+        if _hold_for_sustain(new_state, registry, sustained_of(plan, sustain)):
+            return new_state
         return _after_losses(new_state, grid, registry)
     return new_state
+
+
+def _hold_for_sustain(
+    state: GameState, registry: StaticDataRegistry, used: dict[str, int]
+) -> bool:
+    """Ostatnia strona użyła Sustain Damage: walka czeka w kroku ASSIGN, jeśli ktoś może jeszcze
+    odpowiedzieć (Direct Hit, Reflective Shielding - F_mentak ambush/4.1, C_action_cards).
+
+    Bez tego okno „po Sustain Damage” ostatniej strony zamykało się w tym samym kroku (od razu
+    AFB / runda / koniec walki). Pauzę otwiera ``reaction_pause.sync``; dalej prowadzi
+    ``release_sustain_hold``. MUTUJE ``state`` (klon wołającego).
+    """
+    from src.core import reaction_pause  # lokalnie: reaction_pause -> reaction_cards -> hooki
+
+    combat = _combat(state)
+    if combat.kind != "space" or not any(
+        n > 0 and is_space_unit(bt) for bt, n in used.items()
+    ):
+        return False
+    combat.sustain_hold = True
+    if reaction_pause.would_open(state, registry):
+        return True
+    combat.sustain_hold = False
+    return False
+
+
+def release_sustain_hold(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """Walka wstrzymana po Sustain Damage idzie dalej, gdy pauza ochronna minęła (nowy stan).
+
+    Wołane po każdym kroku (``step_settle``). Reflective Shielding w trakcie wstrzymania otwiera
+    nowe przypisanie (``add_combat_hits``) - wtedy wstrzymania już nie ma.
+    """
+    from src.core.state_grid import grid_from_state  # lokalnie: unika cyklu importów
+
+    combat = state.active_combat
+    if (
+        combat is None
+        or not combat.sustain_hold
+        or state.reaction_pause is not None
+        or state.pending_window is not None
+    ):
+        return state
+    new_state = state.clone()
+    _combat(new_state).sustain_hold = False
+    return _after_losses(new_state, grid_from_state(new_state, registry), registry)
 
 
 def add_combat_hits(state: GameState, against: str, amount: int) -> None:
@@ -1111,13 +1158,21 @@ def add_combat_hits(state: GameState, against: str, amount: int) -> None:
 
     Punkt centralny dla efektów „produces 1 hit” po rzutach (mech Sardakk, RULES.md 62.1): trafienia
     dołączają do bieżącego kroku Roll Dice; gdy ``against`` już przypisał straty, wraca na koniec
-    kolejki okna przypisywania.
+    kolejki okna przypisywania. W wstrzymaniu po Sustain Damage (``sustain_hold``, Reflective
+    Shielding) otwiera nowe okno przypisania dla ``against``.
     """
     combat = _combat(state)
     if amount <= 0 or combat.step is not CombatStep.ASSIGN:
         return
     combat.pending_hits[against] = combat.pending_hits.get(against, 0) + amount
     window = state.pending_window
+    if window is None and combat.sustain_hold:
+        combat.sustain_hold = False
+        state.pending_window = timing.open_window(
+            state, WindowType.COMBAT_ASSIGN_HITS, [against],
+            context={"position": combat.position},
+        ).pending_window
+        return
     if window is None or window.window_type is not WindowType.COMBAT_ASSIGN_HITS:
         return
     if against not in window.queue[window.cursor:]:

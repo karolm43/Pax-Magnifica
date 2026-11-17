@@ -683,6 +683,10 @@ class ActiveCombat(BaseModel):
     # ``{gracz: liczba}`` — przypisuje je zwykły krok ASSIGN przed AFB (``start_assign``).
     start_hits: dict[str, int] = Field(default_factory=dict)
     start_assign: bool = False
+    # Ostatnia strona przypisania użyła Sustain Damage, a ktoś może odpowiedzieć (Direct Hit,
+    # Reflective Shielding): walka stoi w kroku ASSIGN (okno zamknięte) na czas pauzy ochronnej,
+    # potem ``battle.release_sustain_hold`` (z ``step_settle``) prowadzi ją dalej (RULES.md 54.10).
+    sustain_hold: bool = False
     # Wszystkie statki zniszczone w TEJ walce (nie czyszczone co rundę, w odróżnieniu od
     # ``destroyed_ships``); wpis ``{"player", "base_type"}`` z ``unit_ops._note_combat_loss``.
     # Salvage Operations, Sleeper Cell (RULES.md 62.8).

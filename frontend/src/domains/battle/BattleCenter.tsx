@@ -425,6 +425,13 @@ export function BattleCenter({
         </div>
       )}
 
+      {step === "ASSIGN" && !assigning && view.sustainHold && (
+        <p className={styles.retreatNote} data-sustain-hold>
+          <IconShield size={14} aria-hidden="true" /> Sustain Damage used - waiting for
+          reactions (Direct Hit, Reflective Shielding).
+        </p>
+      )}
+
       {step === "ASSIGN" && assigning && (
         <div className={styles.actionCard} data-assign>
           <p>

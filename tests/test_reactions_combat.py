@@ -627,6 +627,70 @@ def test_reflective_niezagrywalny_gdy_przeciwnik_juz_przypisal(
     assert not _can(state, registry, "p1", "reflective")  # p1 nie używał Sustain Damage
 
 
+def _last_sustains(
+    grid: HexGrid, registry: StaticDataRegistry, hand1: list[str], hand2: list[str]
+) -> GameState:
+    """Obrońca (p2) niszczy statki (część zostaje), atakujący (p1) - OSTATNI - pokrywa trafienia
+    Sustain Damage."""
+    for seed in range(1, 200):
+        state = _start(
+            _state({"dreadnought": 5}, {"dreadnought": 5}, hand1=hand1, hand2=hand2, seed=seed),
+            grid, registry,
+        )
+        state = battle.roll_round(state, grid, registry)
+        hits = state.active_combat.pending_hits if state.active_combat is not None else {}
+        if 0 < hits.get("p2", 0) < 5 and 0 < hits.get("p1", 0) <= 5:
+            break
+    else:
+        raise AssertionError("no seed left p2 with ships")
+    state = _destroy_all_required(state, grid, registry, "p2")
+    sustain = min(battle.required_hits(state, grid, registry, "p1"), 5)
+    return battle.assign_combat_hits(
+        state, grid, registry, "p1", sustain={"dreadnought": sustain}, destroy={},
+        destroy_damaged={},
+    )
+
+
+def test_sustain_ostatniej_strony_wstrzymuje_walke_dla_direct_hit(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
+    """Sustain Damage ostatniej strony: walka czeka w ASSIGN (pauza ochronna), Direct Hit
+    przeciwnika jest zagrywalny, potem walka idzie dalej (C_action_cards, F_mentak 4.1)."""
+    state = _last_sustains(grid, registry, [], ["dh1"])
+    combat = state.active_combat
+    assert combat is not None and combat.sustain_hold
+    assert combat.step is CombatStep.ASSIGN and state.pending_window is None
+    assert _can(state, registry, "p2", "dh1")
+    played = _play(state, registry, "p2", "dh1", {"ship": "dreadnought"})
+    resumed = battle.release_sustain_hold(played, registry)
+    assert resumed.active_combat is not None
+    assert not resumed.active_combat.sustain_hold
+    assert resumed.active_combat.step is not CombatStep.ASSIGN
+
+
+def test_sustain_ostatniej_strony_reflective_otwiera_przypisanie(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
+    state = _last_sustains(grid, registry, ["reflective"], [])
+    assert _can(state, registry, "p1", "reflective")
+    played = _play(state, registry, "p1", "reflective", {})
+    combat = played.active_combat
+    assert combat is not None and not combat.sustain_hold
+    window = played.pending_window
+    assert window is not None and window.queue == ["p2"]
+    assert combat.pending_hits["p2"] == 2
+    assert battle.release_sustain_hold(played, registry) is played  # okno trwa - bez wznowienia
+
+
+def test_sustain_ostatniej_strony_bez_kart_bez_wstrzymania(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
+    state = _last_sustains(grid, registry, [], [])
+    assert state.active_combat is not None
+    assert not state.active_combat.sustain_hold
+    assert state.active_combat.step is not CombatStep.ASSIGN
+
+
 # ------------------------------------------------------------------------- Fire Team
 
 

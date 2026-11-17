@@ -49,6 +49,17 @@
     "requires": ["faction:nekro"],
     "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
   },
+  "F_mentak/pillage/3": {
+    "requires": ["faction:creuss"],
+    "reason": "Sąsiedztwo przez Quantum Entanglement (Creuss: alfa = beta) - frakcja niezaimplementowana; Pillage liczy sąsiedztwo z neighbors_of, które wtedy je uwzględni."
+  },
+  "F_mentak/pillage/9.1": {
+    "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47); Pillage jest ofertą po rozstrzygnięciu transakcji (TRANSACTION AFTER) - silnik nie przyjmuje deklaracji wcześniej."
+  },
+  "F_mentak/corsair/3": {
+    "requires": ["faction:nekro"],
+    "reason": "Valefar Assimilator (Nekro) na Corsairze - frakcja niezaimplementowana."
+  },
   "F_letnev/war-funding/*": {
     "na": "Nieaktywny wariant: assety mają tylko War Funding Ω z Codexu („After you and your opponent roll dice during space combat…”, bez utraty TG Letneva); ta sekcja opisuje starą kartę z PoK."
   },

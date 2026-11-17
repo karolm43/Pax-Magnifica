@@ -9,7 +9,7 @@ i zegar szachowy (58).
 
 from __future__ import annotations
 
-from src.core import game_clock, game_end, leaders, limits, nexus, reaction_pause
+from src.core import battle, game_clock, game_end, leaders, limits, nexus, reaction_pause
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
@@ -46,4 +46,11 @@ def settle_step(
         after = limits.enforce_limits(after, registry)
         leaders.refresh_unlocks(after, registry)
         reaction_pause.sync(after, registry, now)
+        # Walka wstrzymana po Sustain Damage rusza, gdy nie ma pauzy (RULES.md 54.10); dalszy
+        # przebieg (koniec walki, Salvage) może otworzyć kolejną pauzę i zmienić limity.
+        resumed = battle.release_sustain_hold(after, registry)
+        if resumed is not after:
+            after = limits.enforce_limits(resumed, registry)
+            leaders.refresh_unlocks(after, registry)
+            reaction_pause.sync(after, registry, now)
     return game_clock.settle(after, now)

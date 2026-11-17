@@ -132,6 +132,15 @@ def sync(state: GameState, registry: StaticDataRegistry, now: float) -> None:
         return
 
 
+def would_open(state: GameState, registry: StaticDataRegistry) -> bool:
+    """Czy ``sync`` otworzyłby teraz pauzę (nowe kluczowe okno z uprawnionymi graczami)."""
+    seen = set(state.reaction_pause_seen)
+    return any(
+        window_key(state, w) not in seen and eligible_players(state, registry, w)
+        for w in _key_windows(state)
+    )
+
+
 def expired(pause: ReactionPause, now: float) -> bool:
     """Czy minął stały czas pauzy (z „More time”)."""
     return reaction_window.expired(pause, now)
