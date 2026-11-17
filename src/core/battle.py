@@ -573,12 +573,15 @@ def natural_extra_hits(
     )
 
 
-def _roll_entry(unit: CombatUnit, dice: list[int], hits_on: int, hits: int) -> dict[str, Any]:
+def _roll_entry(
+    unit: CombatUnit, dice: list[int], hits_on: int, hits: int, *, modifier: int | None = None
+) -> dict[str, Any]:
+    """Wpis rzutu do dziennika; ``modifier`` domyślnie modyfikator combat jednostki."""
     return {
         "baseType": unit.base_type,
         "name": unit.name,
         "hitsOn": hits_on,
-        "modifier": unit.modifier,
+        "modifier": unit.modifier if modifier is None else modifier,
         "dice": dice,
         "hits": hits,
     }
@@ -633,7 +636,8 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
             new_state, dice = roll_dice(new_state, unit.count * unit.afb_dice)
             hits = count_hits(dice, unit.afb_hits_on)
             total += hits
-            entries.append(_roll_entry(unit, dice, unit.afb_hits_on, hits))
+            # Modyfikatory combat (Fragile) nie dotyczą AFB (F_jol_nar): przerzut liczy bez nich.
+            entries.append(_roll_entry(unit, dice, unit.afb_hits_on, hits, modifier=0))
         if pid in combat.afb_extra:
             # AFB nadany komponentem (Metali Void Armaments): gracz zgodził się go użyć w ofercie
             # na starcie walki; hook podaje próg i liczbę kości.

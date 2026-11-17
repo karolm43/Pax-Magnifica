@@ -36,6 +36,7 @@ from src.core.registry import StaticDataRegistry
 from src.core.strategy_cards import technology as technology_card
 from src.core.strategy_cards.base import CardContext
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -135,6 +136,7 @@ def test_hylarim_dodatkowe_trafienia_z_naturalnego_wyniku() -> None:
 # ------------------------------------------------------------------- Analytical, Brilliant
 
 
+@ruling("abilities:analytical#1")
 def test_analytical_ignoruje_jeden_prerekwizyt(registry: StaticDataRegistry) -> None:
     state = _state()
     plan = technology.plan_research(state, registry, "p1", "gls", [])  # wymaga 1× żółty
@@ -164,6 +166,7 @@ def test_analytical_nie_dla_ulepszen_jednostek(registry: StaticDataRegistry) -> 
         technology.plan_research(state, registry, "p1", "cv2", [])
 
 
+@ruling("abilities:brilliant#1")
 def test_brilliant_secondary_jak_primary(registry: StaticDataRegistry) -> None:
     state = _state()
     ctx = CardContext(registry, None)
@@ -192,6 +195,7 @@ def test_ers_cudza_aktywacja_daje_4_tg() -> None:
     assert state.players["p1"].trade_goods == 7  # własna aktywacja - nic
 
 
+@ruling("F_jol_nar/spatial-conduit-cylinder/1")
 def test_scc_laczy_aktywny_system_z_twoimi(grid: HexGrid) -> None:
     state = _state()
     state.players["p1"].technologies = ["scc"]
@@ -330,6 +334,7 @@ def test_sucaban_poza_badaniem(registry: StaticDataRegistry) -> None:
 # ----------------------------------------------------------------------------- Agnlan Oln
 
 
+@ruling("leaders:jolnarcommander#unlock")
 def test_agnlan_oln_odblokowanie_8_technologii(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["nm", "pa", "bs", "dxa", "hm", "sdn", "st"]

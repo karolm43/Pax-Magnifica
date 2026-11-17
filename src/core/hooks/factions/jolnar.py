@@ -74,6 +74,7 @@ _FLAGSHIP_NATURAL = 9  # „each result of 9 or 10, before applying modifiers”
 _FLAGSHIP_EXTRA = 2  # „produces 2 additional hits”
 _COMMANDER_TECHS = 8  # „Own 8 technologies.”
 _KEEP = "keep"
+_AGREEMENT_USED = "agreement_used"  # znacznik wpisu ``last_research`` (F_jol_nar 2.2)
 
 _ROLL_LABELS = {
     "offense": "Space Cannon Offense",
@@ -284,6 +285,8 @@ def _agreement_techs(
         tech = registry.technologies.get(tech_id)
         if entry.get("player") != owner or tech is None or tech.faction:
             continue  # „not a faction technology”
+        if entry.get(_AGREEMENT_USED):
+            continue  # F_jol_nar 2.2: to badanie już raz dało technologię przez notkę
         if tech_id in pool and tech_id not in owned and tech_id not in found:
             found.append(tech_id)
     return found
@@ -318,6 +321,13 @@ def research_agreement(
     tech_id = str(params.get("technology") or "")
     if tech_id not in _agreement_techs(state, registry, player_id):
         raise ValueError("Choose a technology the Jol-Nar player has just researched.")
+    owner = _jolnar_player(state)
+    state.last_research = [
+        {**entry, _AGREEMENT_USED: "true"}
+        if entry.get("player") == owner and entry.get("technology") == tech_id
+        else entry
+        for entry in state.last_research
+    ]
     technology.grant_technology(state, player_id, tech_id)
 
 

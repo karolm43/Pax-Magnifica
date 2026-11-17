@@ -767,3 +767,13 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Quantum Datahub Node: 3 TG sprawdzane przed wydaniem żetonu (F_hacan 3).
 - RULES.md 62.6 i 61 (Alliance) uzupełnione.
 - QA: pytest 2613 ✓, ruff ✓, mypy ✓. Front bez zmian. Wymaga restartu backendu.
+
+## 2026-11-17 — Audyt rulingów Jol-Nar
+
+- `battle.resolve_afb`: wpis rzutu AFB ma modyfikator 0 (wcześniej modyfikator combat jednostki,
+  więc po przerzucie Agnlan Oln trafienia AFB Jol-Nar liczyły się z −1 z Fragile — F_jol_nar/fragile/1).
+- Research Agreement: jedno badanie Jol-Nar daje technologię przez notkę tylko raz (F_jol_nar 2.2) —
+  wcześniej notka przekazana trzeciemu graczowi działała ponownie dla tego samego badania.
+- `tests/factions/test_rulings_jolnar.py` (28 testów), `@ruling` w `test_jolnar.py`; statusy: umowy
+  niewiążące (na), Nekro Alliance + Genetic Memory (requires nekro). Jol-Nar zdjęty z UNAUDITED.
+- RULES.md 62.3.

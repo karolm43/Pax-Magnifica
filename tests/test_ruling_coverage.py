@@ -31,7 +31,7 @@ STATUS_FILE = TESTS_DIR / "rulings_status.json"
 
 # Frakcje zaimplementowane przed strażnikiem, jeszcze nie przeaudytowane (tylko USUWAĆ).
 UNAUDITED = frozenset({
-    "jolnar", "letnev", "mentak", "sardakk", "sol", "winnu",
+    "letnev", "mentak", "sardakk", "sol", "winnu",
 })
 
 

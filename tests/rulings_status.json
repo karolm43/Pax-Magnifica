@@ -41,5 +41,12 @@
   "F_yin/brother-milor-omega/8.1": {
     "requires": ["faction:naazrokha"],
     "reason": "Jednostka jednocześnie statkiem i siłą naziemną w aktywnych assetach to tylko naaz_voltron (przełom Naaz-Rokha, TE); frakcja niezaimplementowana."
+  },
+  "F_jol_nar/research-agreement/3": {
+    "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47): silnik nie egzekwuje obietnic co do momentu zagrania notki."
+  },
+  "F_jol_nar/rin-the-masters-legacy-genetic-memory/4": {
+    "requires": ["faction:nekro"],
+    "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
   }
 }
