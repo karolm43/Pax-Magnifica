@@ -33,6 +33,7 @@ from src.core.game_state import (
 from src.core.hooks.factions import letnev
 from src.core.registry import StaticDataRegistry
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -125,6 +126,7 @@ def test_armada_dwa_statki_wiecej(registry: StaticDataRegistry) -> None:
     assert fleet_pool.fleet_report(state, "102", "p2", registry).pool == 3
 
 
+@ruling("leaders:letnevhero#1", "leaders:letnevhero#2")
 def test_hero_bez_limitu_floty_do_konca_rundy(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"letnevhero": "unlocked"}
@@ -201,6 +203,7 @@ def test_przerzut_centralny_dolacza_przeciwnika_do_kolejki(registry: StaticDataR
 # ------------------------------------------------------------------------------ L4 i NES
 
 
+@ruling("technologies:l4#1")
 def test_l4_pomija_space_cannon_defense(registry: StaticDataRegistry) -> None:
     from src.core import invasion
 
@@ -283,6 +286,7 @@ def test_mapa_pokazuje_tarcze_i_jej_utrate(registry: StaticDataRegistry) -> None
 # --------------------------------------------------------------------- mech Dunlain Reaper
 
 
+@ruling("units:letnev_mech#1")
 def test_dunlain_reaper_zamienia_piechote(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].planet_units["industrex"] = {"p1": {"infantry": 2}, "p2": {"mech": 1}}
@@ -346,6 +350,7 @@ def test_commander_tg_po_sustain(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------ Gravleash Maneuvers
 
 
+@ruling("breakthroughs:letnevbt#1")
 def test_gravleash_premia_dla_jednego_statku(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True
@@ -361,6 +366,7 @@ def test_gravleash_premia_dla_jednego_statku(registry: StaticDataRegistry) -> No
     assert letnev.GRAVLEASH  # klucz efektu udokumentowany w module
 
 
+@ruling("breakthroughs:letnevbt#2")
 def test_gravleash_wyrownuje_ruch_do_najszybszego(registry: StaticDataRegistry) -> None:
     from src.core import movement
 
@@ -385,6 +391,7 @@ def test_gravleash_wyrownuje_ruch_do_najszybszego(registry: StaticDataRegistry) 
     assert fighter is None  # myśliwce nie dostają wyrównania
 
 
+@ruling("F_letnev/gravleash-maneuvers/1")
 def test_gravleash_przenosi_premie_gravity_drive(registry: StaticDataRegistry) -> None:
     from src.core import movement
 

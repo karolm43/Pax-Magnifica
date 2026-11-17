@@ -953,7 +953,9 @@ def plan_losses(
     """Waliduje pokrycie trafień (W7/W8) i zwraca plan ``{base_type: (nowa liczba, uszkodzone)}``.
 
     ``cancels`` = ile trafień anuluje jedno użycie Sustain Damage (``sustain_cancels``). Przy
-    ``cancels > 1`` ostatnie użycie może anulować mniej, gdy zostało mniej trafień (F_letnev).
+    ``cancels > 1`` ostatnie użycie może anulować mniej tylko wtedy, gdy zostało mniej trafień -
+    czyli bez niszczenia jednostek: zniszczenie + Sustain anulujący 1 to „anulowanie tylko jednego”
+    przy kilku trafieniach (F_letnev/noneuclidean-shielding/3).
 
     Współdzielone przez walkę, bombardowanie i Space Cannon Defense (RULES.md 40): w każdym
     przypadku właściciel jednostek sam wybiera straty, a Sustain Damage anuluje trafienie.
@@ -989,8 +991,10 @@ def plan_losses(
         sustains_total = sustains_total + s
     if granted_used > 1:
         raise ValueError("Only 1 of your ships can use Sustain Damage granted by a relic.")
+    destroyed = total - sustains_total * cancels
     if total != required and not (
-        cancels > 1 and sustains_total > 0 and required < total < required + cancels
+        cancels > 1 and sustains_total > 0 and destroyed == 0
+        and required < total < required + cancels
     ):
         raise ValueError(f"Cover exactly {required} hit(s).")
     return plan

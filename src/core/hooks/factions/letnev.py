@@ -23,7 +23,7 @@ from src.core import (
 )
 from src.core import offer_inputs as oi
 from src.core.damage import set_damaged
-from src.core.fleet_pool import unit_name
+from src.core.fleet_pool import fleet_report, unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.production import reinforcements_left
@@ -66,6 +66,9 @@ BREAKTHROUGH = "letnevbt"
 MUNITIONS_PAID = "abilities:munitions"  # 2 TG zapłacone w tej rundzie walki
 AGENT_DIE = f"leaders:{AGENT}:die"  # +1 kość dla wskazanego statku (data: base_type)
 HERO_EFFECT = f"leaders:{HERO}"  # bez limitu floty do końca rundy gry
+# War Funding zagrana w tej rundzie walki (globalnie): raz na okno, także po odzyskaniu notki
+# transakcją albo przez drugą stronę walki (F_letnev/war-funding-omega/1.3, 1.4).
+WAR_FUNDING_PLAYED = f"promissory_notes:{WAR_FUNDING}:played"
 GRAVLEASH = f"breakthroughs:{BREAKTHROUGH}:ship"  # data: base_type
 _ARMADA_BONUS = 2  # „2 more than the number of tokens in your fleet pool”
 _MUNITIONS_COST = 2  # „spend 2 trade goods”
@@ -322,6 +325,8 @@ def _war_funding_condition(
         return "War Funding is played in your space combat."
     if not _dice_window_open(state):
         return "Play it after both players roll, before hits are assigned."
+    if active_effects.has_effect(state, player_id, WAR_FUNDING_PLAYED):
+        return "War Funding was already played this combat round."
     return None
 
 
@@ -362,6 +367,7 @@ def war_funding(
     own = _chosen(params.get("dice"))
     if own:
         battle.reroll_combat_dice(state, player_id, own, "war_funding", "War Funding")
+    active_effects.add_effect(state, WAR_FUNDING_PLAYED, Duration.COMBAT_ROUND)
 
 
 # --------------------------------------------------------------------------- Viscount Unlenn
@@ -428,10 +434,17 @@ def viscount_die(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> in
 
 
 @leaders.register_unlock(COMMANDER)
-def _commander_unlocked(state: GameState, _registry: StaticDataRegistry, player_id: str) -> bool:
-    """Unlock: Have 5 non-fighter ships in 1 system."""
-    for system in state.systems.values():
+def _commander_unlocked(state: GameState, registry: StaticDataRegistry, player_id: str) -> bool:
+    """Unlock: Have 5 non-fighter ships in 1 system.
+
+    System z nadwyżką puli floty się nie liczy: najpierw trzeba usunąć statki ponad pulę + Armada
+    (F_letnev/rear-admiral-farran/1) - inaczej okno usuwania otwarte przez ``enforce_limits`` i tak
+    przegrywa z ``refresh_unlocks`` w tym samym commicie.
+    """
+    for position, system in state.systems.items():
         ships = system.space_units.get(player_id, {})
+        if fleet_report(state, position, player_id, registry).excess > 0:
+            continue
         if sum(n for bt, n in ships.items() if is_space_unit(bt) and bt != "fighter") >= (
             _COMMANDER_SHIPS
         ):
@@ -450,8 +463,9 @@ def _own_sustain(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
 )
 def rear_admiral_farran(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Rear Admiral Farran: After 1 of your units uses SUSTAIN DAMAGE: You may gain 1 trade good
-    (po 1 TG na każde użycie — F_letnev)."""
-    economy.gain_trade_goods(state, player_id, int(ctx.get("count", 1)))
+    (po 1 TG na każde użycie, zdobywane pojedynczo - F_letnev/rear-admiral-farran/4)."""
+    for _ in range(max(1, int(ctx.get("count", 1)))):
+        economy.gain_trade_goods(state, player_id, 1)
 
 
 # -------------------------------------------------------------------------- Darktalon Treilla

@@ -48,5 +48,15 @@
   "F_jol_nar/rin-the-masters-legacy-genetic-memory/4": {
     "requires": ["faction:nekro"],
     "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
+  },
+  "F_letnev/war-funding/*": {
+    "na": "Nieaktywny wariant: assety mają tylko War Funding Ω z Codexu („After you and your opponent roll dice during space combat…”, bez utraty TG Letneva); ta sekcja opisuje starą kartę z PoK."
+  },
+  "F_letnev/arc-secundus/3": {
+    "na": "Nieaktywny wariant: w grze jest tylko Magen Defense Grid ΩΩ (md, codex4) - md_base jest zastąpiony (technologies_combat.declare_superseded); ruling 3.1 ma test."
+  },
+  "F_letnev/rear-admiral-farran/2.1": {
+    "requires": ["faction:titans"],
+    "reason": "Ul z notką Alliance Letneva: Farran przy Sustain Damage Hel-Titan PDS."
   }
 }

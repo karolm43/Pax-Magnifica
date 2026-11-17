@@ -790,3 +790,16 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   smugą, wybuch bez wielkiej elipsy, bez rozbłysku całej formacji, wyraźniejsze kule, Sustain mecha = iskry.
 - QA: tsc ✓, eslint ✓, vitest battle/invasion ✓, build ✓. Front-only.
 
+## 2026-11-17 — Audyt rulingów Letnev
+
+- Non-Euclidean Shielding: Sustain musi anulować 2 trafienia, gdy są co najmniej 2 (F_letnev 3) —
+  `battle.plan_losses` przepuszczał zniszczenie jednostki + Sustain anulujący 1. Dotyczy walki,
+  bombardowania i Space Cannon.
+- War Funding Ω: raz na rundę walki (F_letnev Ω 1.3/1.4) — wcześniej notkę odzyskaną transakcją albo
+  przekazaną atakującemu po zagraniu przez obrońcę można było zagrać ponownie w tej samej rundzie.
+- Rear Admiral Farran: odblokowanie dopiero po usunięciu nadwyżki puli floty (F_letnev 1) — wcześniej
+  `refresh_unlocks` odblokowywał przy otwartym oknie `FLEET_POOL`; TG z kilku Sustainów po jednym (4).
+- `tests/factions/test_rulings_letnev.py` (28 testów), `@ruling` w `test_letnev.py`; statusy: stara
+  War Funding i bazowy Magen (na), Ul + Alliance (requires titans). Letnev zdjęty z UNAUDITED.
+- RULES.md 62.2.
+- QA: pytest 2669 ✓, ruff ✓, mypy ✓. Front bez zmian. Wymaga restartu backendu.
