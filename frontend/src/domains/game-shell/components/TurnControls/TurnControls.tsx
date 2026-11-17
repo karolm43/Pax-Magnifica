@@ -614,6 +614,22 @@ export function TurnControls() {
             </>
           )}
 
+          {/* Faza AGENDA: transakcje z KAŻDYM graczem przy każdej agendzie (RULES.md 47.5) -
+              ten sam stół co w fazie akcji (też z okna Rady). */}
+          {isAgenda && (
+            <button
+              type="button"
+              className={`${styles.transaction} ${styles.tile}`}
+              style={{ "--d": "90ms" } as CSSProperties}
+              disabled={busy}
+              onClick={() => setTransactionOpen(true)}
+              title="Trade with any player: one transaction with each player during each agenda"
+            >
+              <IconArrowsExchange size={16} aria-hidden="true" />
+              <span>Transaction</span>
+            </button>
+          )}
+
           {/* Przejście fazy OGŁASZA MÓWCA, i to tylko gdy wolno (``showNextPhase``):
               akcja/status po komplecie pasów/kroków; strategia po pełnym wyborze.
               PO AGENDZIE = nowa runda (runda +1, reset pasów, TG na niewybranych

@@ -24,7 +24,12 @@ export function useBackendPush(enabled: boolean): void {
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const refresh = () => {
+    const refresh = (event: MessageEvent) => {
+      // Czat (RULES.md 47.6) nie zmienia stanu gry - odświeżamy tylko dziennik czatu.
+      if (typeof event.data === "string" && event.data.startsWith('{"type":"chat"')) {
+        void queryClient.invalidateQueries({ queryKey: ["chat"] });
+        return;
+      }
       clearTimeout(refreshTimer);
       // Akcja wysyła kilka wiadomości (stan + mapa) — jedno odświeżenie na serię.
       refreshTimer = setTimeout(() => {

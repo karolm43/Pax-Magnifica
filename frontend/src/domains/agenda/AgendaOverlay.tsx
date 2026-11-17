@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import {
   IconArrowRight,
+  IconArrowsExchange,
   IconThumbDown,
   IconThumbUp,
   IconCheck,
@@ -17,7 +18,10 @@ import {
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { usePlayerData } from "@/api/usePlayerData";
-import { useBoardEditor } from "@/api/useBoardEditor";
+import { useActivityFeed, useBoardEditor } from "@/api/useBoardEditor";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
+import { humanHandOwners } from "@/domains/offers/handReactions";
+import { TransactionModal } from "@/domains/game-shell/components/TurnControls/TransactionModal";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { Switch } from "@/ds";
@@ -1147,6 +1151,25 @@ function Ballot({
   );
 }
 
+/**
+ * Kto siada do stołu transakcji z okna Rady: w sieci - ja; lokalnie - głosujący człowiek albo
+ * pierwszy człowiek przy ekranie (ten sam wybór co ręce w oknach reakcji).
+ */
+function useCouncilTrader(voter: string | null) {
+  const params = useParams<{ mapid: string }>();
+  const gameId = params.mapid ?? DEFAULT_GAME_ID;
+  const { data: webData } = usePlayerData(gameId);
+  const { data: networkMe } = useNetworkMe();
+  const { data: feed } = useActivityFeed();
+  const owners = humanHandOwners(networkMe, feed?.players);
+  const meId = voter && owners.includes(voter) ? voter : (owners[0] ?? null);
+  const players = (webData?.playerData ?? []).filter(
+    (p) => p.faction && p.faction !== "neutral",
+  );
+  const me = players.find((p) => p.discordId === meId);
+  return me ? { gameId, me, players } : null;
+}
+
 function CouncilWindow({
   agenda,
   canAdvance,
@@ -1159,6 +1182,8 @@ function CouncilWindow({
   const { lookOf, round } = usePlayers();
   const setHidden = useAppStore((s) => s.setAgendaHidden);
   const [busy, setBusy] = useState(false);
+  const [tradeOpen, setTradeOpen] = useState(false);
+  const trader = useCouncilTrader(agenda.currentVoter ?? null);
   const [selected, setSelected] = useState<string | null>(null);
   const [manual, setManual] = useState("");
   const voterLook = agenda.currentVoter ? lookOf(agenda.currentVoter) : null;
@@ -1210,10 +1235,30 @@ function CouncilWindow({
             Laws in play <b>{Object.keys(agenda.lawsInPlay).length}</b>
           </span>
         </div>
+        {/* Transakcje przy agendzie (RULES.md 47.5): każda para raz na agendę, bez sąsiedztwa. */}
+        {trader && (
+          <button
+            type="button"
+            className={styles.ghostBtn}
+            onClick={() => setTradeOpen(true)}
+            title="Trade with any player: one transaction with each player during each agenda"
+          >
+            <IconArrowsExchange size={15} aria-hidden="true" /> Transaction
+          </button>
+        )}
         <button type="button" className={styles.ghostBtn} onClick={() => setHidden(true)}>
           <IconEye size={15} aria-hidden="true" /> Show board
         </button>
       </header>
+      {tradeOpen && trader && (
+        <TransactionModal
+          opened
+          onClose={() => setTradeOpen(false)}
+          gameId={trader.gameId}
+          me={trader.me}
+          players={trader.players}
+        />
+      )}
       <div className={styles.grid}>
         <Senate agenda={agenda} lookOf={lookOf} />
         <Podium

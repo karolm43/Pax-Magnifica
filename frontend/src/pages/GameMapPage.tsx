@@ -27,6 +27,7 @@ import { DecisionCenter } from "@/domains/offers/AbilityPrompts";
 import { ThundersEdgeOverlay } from "@/domains/thunders-edge/ThundersEdgeOverlay";
 import { ProductionOverlay } from "@/domains/production/ProductionOverlay";
 import { AgendaOverlay } from "@/domains/agenda/AgendaOverlay";
+import { ChatPanel } from "@/domains/chat/ChatPanel";
 import { GameSetupOverlay } from "@/domains/setup/GameSetupOverlay";
 import { CombatModal } from "@/domains/map/components/CombatModal";
 import { SecondaryDecisionModal } from "@/domains/game-shell/components/SecondaryDecisionModal";
@@ -308,6 +309,8 @@ function GameMapContent() {
       {/* Wszystkie komunikaty w jednym miejscu (u góry na środku): odrzucone akcje
           i powiadomienia „kto co zrobił" z feedu Activity; same znikają. */}
       <NotificationArea />
+      {/* Czat przy stole + szepty (RULES.md 47.6) - zwinięty do małej ikonki w lewym dolnym rogu. */}
+      <ChatPanel />
       {/* Dźwięk: kliknięcia UI, muzyka tła wg nastroju, kwestie frakcji z feedu Activity. */}
       <AudioDirector />
       {/* Odsłonięcie reliktu (fragmenty, The Fracture) - scena u wszystkich (RULES.md 59.8). */}

@@ -65,6 +65,9 @@ export function TransactionModal({ opened, onClose, gameId, me, players }: Props
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const stamp = useTableStamp(gameId, [me.neighbors, me.transactedWith ?? []]);
   const { data: tradeState } = useTransactionState(stamp, me.discordId);
+  // Faza agendy (RULES.md 47.5): każda para raz na agendę, bez sąsiedztwa.
+  const { data: gameState } = useGameState(gameId);
+  const inAgenda = gameState?.phase?.startsWith("agenda") === true;
 
   const others = players.filter((p) => p.discordId !== me.discordId);
   const tables = tradeState?.tables ?? [];
@@ -90,7 +93,7 @@ export function TransactionModal({ opened, onClose, gameId, me, players }: Props
   const noteFor = (id: string): string | undefined => {
     const view = viewOf(id);
     if (tableWith(id)) return "at the table";
-    if (view?.done) return "traded this turn";
+    if (view?.done) return inAgenda ? "traded this agenda" : "traded this turn";
     if (view && !view.components) return "debt only";
     return undefined;
   };
@@ -108,9 +111,13 @@ export function TransactionModal({ opened, onClose, gameId, me, players }: Props
         <Text size="sm" c="dimmed">
           Sit down at the table with another player. Each of you puts down only your own
           things — you see theirs once they put them on the table. The deal happens when
-          both of you are Ready; any change clears Ready. One transaction per neighbor each
-          active player's turn. With anyone else only debt tokens (a promise) can go on the
-          table.
+          both of you are Ready; any change clears Ready.{" "}
+          {inAgenda
+            ? "While an agenda is being resolved you may make one transaction with each other " +
+              "player — you do not need to be neighbors. Between agendas only debt tokens " +
+              "(a promise) can go on the table."
+            : "One transaction per neighbor each active player's turn. With anyone else only " +
+              "debt tokens (a promise) can go on the table."}
         </Text>
 
         <div className={styles.picks} role="group" aria-label="Players">

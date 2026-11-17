@@ -632,6 +632,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Czat i szepty (RULES.md 47.6): to nie stan gry - odświeżamy tylko dziennik czatu.
+  const sendChat = useCallback(
+    async (playerId: string, text: string, to: string | null) => {
+      await post("/chat/send", { player_id: playerId, text, to });
+      await queryClient.invalidateQueries({ queryKey: ["chat"] });
+    },
+    [queryClient],
+  );
+
   // Ruch WALIDOWANY (RULES.md 32) — w odróżnieniu od God-Mode moveUnit (bez reguł).
   // Cel = aktywny system; backend egzekwuje zasięg/anomalie/blokady i zwraca 422,
   // gdy ruch nielegalny (wtedy post() rzuca błąd z detalem).
@@ -1113,6 +1122,7 @@ export function useBoardEditor() {
     setTableReady,
     closeTable,
     returnDebtTokens,
+    sendChat,
     activateSystem,
     moveShips,
     produce,
@@ -1762,6 +1772,34 @@ export function useActivityFeed() {
     queryFn: () =>
       fetchJson<ActivityFeed>("/bot/history/activity", "activity feed"),
     staleTime: 0,
+  });
+}
+
+/** Wiadomość czatu z perspektywy oglądającego (RULES.md 47.6): cudzy szept ma ``text = null``. */
+export type ChatMessage = {
+  seq: number;
+  sender: string;
+  /** Adresat szeptu; ``null`` = do wszystkich. */
+  to: string | null;
+  whisper: boolean;
+  text: string | null;
+  /** Czas wysłania (s UNIX, zegar serwera). */
+  at: number;
+};
+
+/** Dziennik czatu oglądającego ``player`` (w sieci serwer i tak bierze gracza z tokenu). */
+export function useChat(player: string | null) {
+  return useQuery<ChatMessage[]>({
+    queryKey: ["chat", player],
+    queryFn: async () => {
+      const data = await fetchJson<{ messages: ChatMessage[] }>(
+        `/bot/chat${player ? `?player=${encodeURIComponent(player)}` : ""}`,
+        "chat",
+      );
+      return data.messages;
+    },
+    staleTime: 0,
+    placeholderData: keepPreviousData,
   });
 }
 

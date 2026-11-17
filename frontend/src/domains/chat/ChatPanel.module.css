@@ -1,0 +1,295 @@
+/* Czat przy stole (RULES.md 47.6). Nad oknem Rady (2700), pod oknami modalnymi (3000). */
+
+.launcher {
+  position: fixed;
+  left: 16px;
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  z-index: 2750;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--ds-h28);
+  background: rgb(18 18 20 / 0.88);
+  color: var(--ds-ink);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.45);
+  transition: color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.launcher:hover {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h35);
+  transform: translateY(-1px);
+}
+
+.launcher:focus-visible,
+.close:focus-visible,
+.target:focus-visible,
+.send:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+/* Szept do mnie, którego jeszcze nie przeczytałem - delikatne pulsowanie obwódki. */
+.launcher[data-alert] {
+  border-color: rgb(var(--ds-sig-law) / 0.8);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 0 4px rgb(var(--ds-sig-law) / 0.25), 0 4px 16px rgb(0 0 0 / 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launcher[data-alert] {
+    animation: none;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--ds-accent);
+  color: var(--ds-white);
+  font: 700 11px/18px var(--ds-font-data);
+  text-align: center;
+}
+
+.panel {
+  position: fixed;
+  left: 16px;
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  z-index: 2750;
+  display: flex;
+  flex-direction: column;
+  width: min(340px, calc(100vw - 32px));
+  height: min(400px, 60vh);
+  border: 1px solid var(--ds-h22);
+  border-radius: 10px;
+  background: rgb(14 14 16 / 0.94);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(6px);
+  color: var(--ds-ink);
+  font-family: var(--ds-font-text);
+  font-size: 13px;
+}
+
+.panel[data-dragging] {
+  user-select: none;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  border-bottom: 1px solid var(--ds-h14);
+  cursor: grab;
+  color: var(--ds-ink-hi);
+}
+
+.title {
+  flex: 1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-ink);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--ds-h10);
+  color: var(--ds-ink-hi);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 10px;
+  overflow-y: auto;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.line[data-whisper] {
+  background: rgb(var(--ds-sig-law) / var(--ds-tint-fill));
+  border-left: 2px solid rgb(var(--ds-sig-law) / 0.5);
+}
+
+/* Cudzy szept: tylko informacja „X szepcze do Y” - przygaszona, kursywą. */
+.line[data-hidden] {
+  background: transparent;
+  border-left-color: var(--ds-h22);
+  font-style: italic;
+  color: var(--ds-ink-lo);
+}
+
+.line[data-to-me] {
+  background: rgb(var(--ds-sig-law) / 0.14);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.time {
+  color: var(--ds-ink-lo);
+  font: 11px var(--ds-font-data);
+}
+
+.whisperTo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgb(var(--ds-sig-law));
+  font-size: 11px;
+}
+
+.line[data-hidden] .whisperTo {
+  color: var(--ds-ink-lo);
+}
+
+.text {
+  color: var(--ds-ink-hi);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.empty {
+  padding: 10px;
+  color: var(--ds-ink-lo);
+  font-size: 12px;
+}
+
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--ds-h14);
+}
+
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.target {
+  --pc: var(--ds-h35);
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 2px solid var(--ds-h22);
+  border-radius: 16px;
+  background: var(--ds-ground-2);
+  color: var(--ds-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.target:not(:first-child) {
+  padding: 0;
+  width: 32px;
+  border-color: color-mix(in srgb, var(--pc) 45%, transparent);
+}
+
+.target:hover {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h35);
+}
+
+.target[data-on] {
+  border-color: var(--ds-accent);
+  color: var(--ds-ink-hi);
+  box-shadow: 0 0 0 2px rgb(var(--ds-accent-rgb) / 0.3);
+}
+
+.target:not(:first-child)[data-on] {
+  border-color: rgb(var(--ds-sig-law));
+  box-shadow: 0 0 0 2px rgb(var(--ds-sig-law) / 0.35);
+}
+
+.whisperHint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgb(var(--ds-sig-law));
+}
+
+.inputRow {
+  display: flex;
+  gap: 6px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-h22);
+  border-radius: 6px;
+  background: var(--ds-field);
+  color: var(--ds-ink-hi);
+  font: inherit;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+.send {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ds-accent);
+  color: var(--ds-white);
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

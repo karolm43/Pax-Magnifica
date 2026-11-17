@@ -95,6 +95,12 @@ def _table_view(
 
 def _label(before: GameState, after: GameState, player: str, partner: str, what: str) -> str:
     """Etykieta commitu: wymiana (``transaction:<partner>``), umowa albo ruch przy stole."""
+    if transaction.agenda_window(before):
+        # Faza agendy (RULES.md 47.5): wymiana = przybył wpis w ``transacted_with`` pary.
+        if len(after.players[player].transacted_with) > len(
+            before.players[player].transacted_with
+        ):
+            return f"transaction:{partner}:{player}"
     active = before.active_player_id
     if active is not None and active in (player, partner):
         other = partner if active == player else player

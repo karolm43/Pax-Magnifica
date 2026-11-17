@@ -343,7 +343,9 @@ _TABLE_STEPS = frozenset({"opened", "agreed", "closed"})
 def _parse_economy_scoring(parts: list[str], active: str | None) -> _Parsed | None:
     head = parts[0]
     if head == "transaction" and len(parts) > 1:
-        return "economy", "transaction", active, parts[1], None, None
+        # ``transaction:<partner>[:<gracz>]`` - w fazie agendy stroną nie jest aktywny (47.5).
+        actor = parts[2] if len(parts) > 2 else active
+        return "economy", "transaction", actor, parts[1], None, None
     if head == "transaction-table" and len(parts) > 3 and parts[1] in _TABLE_STEPS:
         # Stół transakcji (RULES.md 47.1b): usiadł / umowa bez transakcji (dług, Trade) / wstał.
         # Kładzenie rzeczy i Ready to szczegóły negocjacji - poza feedem.

@@ -44,7 +44,7 @@ from src.core import (
     unit_ops,
 )
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import GameState, Phase
+from src.core.game_state import AgendaStep, GameState, Phase
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_of
 
@@ -329,12 +329,41 @@ def can_transact_with(
     return reachable(state, grid, player_id, partner_id)
 
 
-def components_allowed(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
-    """Czy para ``a``-``b`` może teraz wymieniać KOMPONENTY (RULES.md 47.1b).
+def agenda_window(state: GameState) -> bool:
+    """Czy trwa rozstrzyganie agendy — okno transakcji fazy agendy (RULES.md 47.5).
 
-    Faza akcji, jedna ze stron aktywna, druga osiągalna i bez transakcji w tej turze. Inaczej
-    stół dopuszcza wyłącznie żetony długu.
+    R_transactions: „While resolving each agenda during the agenda phase, a player may perform
+    one transaction with each other player” — od ujawnienia agendy do „dalej” mówcy po wyniku.
+    Między agendami (krok ujawniania) i po obu agendach okna nie ma.
     """
+    agenda = state.agenda
+    return (
+        state.phase is Phase.AGENDA
+        and agenda is not None
+        and agenda.agenda_id is not None
+        and agenda.step is not AgendaStep.COMPLETE
+    )
+
+
+def agenda_pair_free(state: GameState, a: str, b: str) -> bool:
+    """Para ``a``-``b`` może zawrzeć transakcję przy bieżącej agendzie (bez sąsiedztwa, 47.5)."""
+    if a == b or a not in state.players or b not in state.players:
+        return False
+    return (
+        b not in state.players[a].transacted_with
+        and a not in state.players[b].transacted_with
+    )
+
+
+def components_allowed(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
+    """Czy para ``a``-``b`` może teraz wymieniać KOMPONENTY (RULES.md 47.1b, 47.5).
+
+    Faza akcji: jedna ze stron aktywna, druga osiągalna i bez transakcji w tej turze. Faza
+    agendy (w trakcie agendy): KAŻDA para, jedna transakcja na agendę. Inaczej stół dopuszcza
+    wyłącznie żetony długu.
+    """
+    if agenda_window(state):
+        return agenda_pair_free(state, a, b)
     if state.phase is not Phase.ACTION:
         return False
     active = state.active_player_id
@@ -366,11 +395,18 @@ def validate_transaction(
     transakcja z nim w tej turze, obie strony mają to, co oddają, transakcja niepusta. Okno
     czasowe NIE blokuje (transakcja możliwa w trakcie walki).
 
+    Faza agendy (RULES.md 47.5): ``player_id`` = gracz zaczynający, partner dowolny (bez
+    sąsiedztwa), jedna transakcja pary na agendę.
+
     Raises:
         ValueError: Przy naruszeniu któregokolwiek z warunków.
     """
+    if state.phase is Phase.AGENDA:
+        return _validate_agenda_transaction(state, partner_id, give, receive, player_id)
     if state.phase is not Phase.ACTION:
-        raise ValueError("Transactions are resolved during the action phase.")
+        raise ValueError(
+            "Transactions are resolved during the action phase or while an agenda is resolved."
+        )
     active_id = state.active_player_id
     if active_id is None:
         raise ValueError("No active player in the action phase.")
@@ -393,6 +429,34 @@ def validate_transaction(
     validate_side(state, active_id, partner_id, give, "You")
     validate_side(state, partner_id, active_id, receive, "The partner")
     return active_id
+
+
+def _validate_agenda_transaction(
+    state: GameState,
+    partner_id: str,
+    give: TransactionSide,
+    receive: TransactionSide,
+    player_id: str | None,
+) -> str:
+    """Transakcja w fazie agendy (RULES.md 47.5): każda para raz na agendę, bez sąsiedztwa."""
+    if not agenda_window(state):
+        raise ValueError("Transactions in the agenda phase happen while an agenda is resolved.")
+    if player_id is None or player_id not in state.players:
+        raise ValueError("Name the player making the transaction.")
+    if partner_id == player_id:
+        raise ValueError("You cannot make a transaction with yourself.")
+    if partner_id not in state.players:
+        raise ValueError(f"Unknown player: {partner_id}")
+    if not agenda_pair_free(state, player_id, partner_id):
+        raise ValueError(
+            "You already made a transaction with this player during this agenda "
+            "(one per pair of players each agenda)."
+        )
+    if not give.has_components() and not receive.has_components():
+        raise ValueError("An empty transaction - add something to exchange.")
+    validate_side(state, player_id, partner_id, give, "You")
+    validate_side(state, partner_id, player_id, receive, "The partner")
+    return player_id
 
 
 def validate_side(
@@ -421,6 +485,8 @@ def resolve_transaction(
 ) -> GameState:
     """Wykonuje transakcję aktywnego gracza z ``partner_id`` (po zgodzie obu stron) — RULES.md 47.
 
+    W fazie agendy ``player_id`` to gracz zaczynający (RULES.md 47.5).
+
     ``give`` = co oddaje aktywny gracz, ``receive`` = co dostaje od partnera. Walidacja:
     ``validate_transaction``. Nie pyta o zgodę — robi to stół (``core.transaction_table``,
     RULES.md 47.1b). Dług i umowa Trade z ``give``/``receive`` są pomijane (obsługuje je stół).
@@ -434,6 +500,9 @@ def resolve_transaction(
     _apply_side(new_state, active_id, partner_id, give)
     _apply_side(new_state, partner_id, active_id, receive)
     new_state.players[active_id].transacted_with.append(partner_id)
+    if new_state.phase is Phase.AGENDA:
+        # 47.5: limit dotyczy PARY graczy - odnotowany po obu stronach (zerowany z nową agendą).
+        new_state.players[partner_id].transacted_with.append(active_id)
     new_state.last_transaction = [active_id, partner_id]
     chronicle.record_deal(
         new_state,

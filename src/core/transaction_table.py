@@ -221,7 +221,8 @@ def _execute(state: GameState, grid: HexGrid, table: TransactionTable) -> GameSt
         raise ValueError("The Trade deal can only be agreed while choosing players for Trade.")
     result = state
     if any(s.has_components() for s in sides.values()):
-        active = state.active_player_id
+        # Faza agendy (RULES.md 47.5): stroną „aktywną” jest ten, kto otworzył stół.
+        active = table.opener if transaction.agenda_window(state) else state.active_player_id
         if active not in sides:
             raise ValueError("Transactions are resolved on the active player's turn.")
         other = other_of(table, active)

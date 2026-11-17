@@ -866,3 +866,21 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   pojemność, koszt łączny). Status: Harrow L1Z1X (requires l1z1x). Sol zdjęty z UNAUDITED
   (lista pusta).
 - QA: pytest 2799 ✓, ruff ✓, mypy ✓. Bez frontu. Wymaga restartu backendu.
+
+## 2026-11-17 — Transakcje w fazie agendy + czat z szeptami
+
+- RULES.md 47.5 (R_transactions, R_agenda_phase, C_agendas): przy każdej agendzie każda para graczy
+  może zawrzeć jedną transakcję, bez sąsiedztwa. `transaction.agenda_window` / `agenda_pair_free`;
+  limit pary zapisany po obu stronach `transacted_with`, zerowany przy każdym otwarciu głosowania
+  (nowa agenda, Veto, Miscount Disclosed). Stół 47.1b bez zmian; w agendzie stroną inicjującą jest
+  otwierający stół. Feed: etykieta `transaction:<partner>:<gracz>`.
+- UI: przycisk Transaction w pasku okna Rady (`AgendaOverlay`) i w panelu tury w fazie agendy — to
+  samo okno `TransactionModal` (teksty zależne od fazy, „traded this agenda”).
+- RULES.md 47.6: czat + szepty (`core/chat.py`, `GET /chat`, `POST /chat/send`). Treść szeptu widzą
+  nadawca i adresat; reszta widzi „X whispers to Y”. Czat poza `GameState` (metadane partii; Undo go
+  nie cofa); push `{"type":"chat"}` odświeża tylko dziennik. `domains/chat/ChatPanel`: zwinięta ikonka
+  z licznikiem (lewy dół, nad oknem Rady), przesuwalny panel, adresat szeptu = chip gracza.
+- Testy: `tests/test_transaction_agenda.py`, `tests/test_chat.py`, `test_activity`,
+  `ChatPanel.test.tsx`.
+- QA: pytest 2800 ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (chat, agenda, TurnControls, network) ✓,
+  build ✓. e2e pominięte — port :5273 zajęty (inna sesja). Wymaga restartu backendu (nowe trasy).

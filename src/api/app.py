@@ -39,6 +39,7 @@ from src.api.routers import (
     board,
     bug_report,
     capacity,
+    chat,
     clock,
     components,
     decks,
@@ -376,6 +377,7 @@ def create_app(
     app.include_router(decks.router)
     app.include_router(production.router)
     app.include_router(transactions.router)
+    app.include_router(chat.router)
     app.include_router(window.router)
     app.include_router(reaction_pause.router)
     app.include_router(reaction_settings.router)

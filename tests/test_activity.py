@@ -272,6 +272,13 @@ def test_stol_transakcji_w_feedzie() -> None:
     assert derive_activity("transaction-table:side:p1:p2", _state(), _state()) is None
 
 
+def test_transakcja_w_agendzie_aktor_z_etykiety() -> None:
+    """RULES.md 47.5: w agendzie stroną nie jest aktywny - aktor z etykiety commitu."""
+    entry = derive_activity("transaction:p1:p3", _state(), _state())
+    assert entry is not None
+    assert (entry.action, entry.actor_id, entry.target_id) == ("transaction", "p3", "p1")
+
+
 def _battle_states() -> tuple[GameState, GameState]:
     """Walka kosmiczna p1 vs p2 w systemie 101: przed przypisaniem strat p2 i po nim."""
     from src.core.game_state import ActiveCombat, SystemState
