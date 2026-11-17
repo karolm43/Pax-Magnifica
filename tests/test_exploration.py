@@ -23,6 +23,7 @@ from src.core.planet_stats import (
     planet_stats,
 )
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 # Kafelek 107: tiamat (cultural) i hercalor (industrial). Planeta dwucechowa: lazulrex.
 _TILE = "107"
@@ -100,6 +101,7 @@ def _with_card(
 # ----------------------------------------------------------------------------- cechy planet
 
 
+@ruling("R_exploration/rules-reference/2.2")
 def test_planet_traits_and_explorable(registry: StaticDataRegistry) -> None:
     assert exploration.planet_traits(registry, _CULT) == ["cultural"]
     assert exploration.planet_traits(registry, _DUAL) == ["industrial", "cultural"]
@@ -111,6 +113,7 @@ def test_planet_traits_and_explorable(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------------- przepływ
 
 
+@ruling("R_exploration/rules-reference/2", "R_exploration/rules-reference/2.1")
 def test_single_planet_draws_card_automatically(registry: StaticDataRegistry) -> None:
     state = exploration.begin_exploration(_state(), registry, "p1", "000", [_CULT])
     ex = state.exploration
@@ -123,11 +126,13 @@ def test_single_planet_draws_card_automatically(registry: StaticDataRegistry) ->
     assert len(state.decks.exploration_deck["cultural"]) == 19
 
 
+@ruling("R_exploration/rules-reference/2.2")
 def test_planets_without_traits_are_not_explored(registry: StaticDataRegistry) -> None:
     state = exploration.begin_exploration(_state(), registry, "p1", "000", ["mr", "maaluuk"])
     assert state.exploration is None
 
 
+@ruling("R_exploration/rules-reference/2.4", "R_exploration/notes/3")
 def test_multiple_planets_player_chooses_order(registry: StaticDataRegistry) -> None:
     state = exploration.begin_exploration(_state(), registry, "p1", "000", [_CULT, _IND])
     ex = state.exploration
@@ -151,6 +156,7 @@ def test_multiple_planets_player_chooses_order(registry: StaticDataRegistry) -> 
     assert ex.current.planet == _CULT and ex.queue == []
 
 
+@ruling("R_exploration/rules-reference/2.3")
 def test_multi_trait_planet_needs_deck_choice(registry: StaticDataRegistry) -> None:
     state = exploration.begin_exploration(_state(), registry, "p1", "000", [_DUAL])
     ex = state.exploration
@@ -164,6 +170,7 @@ def test_multi_trait_planet_needs_deck_choice(registry: StaticDataRegistry) -> N
     assert drawn.exploration.current.deck == "cultural"
 
 
+@ruling("R_exploration/rules-reference/2.4")
 def test_finish_requires_everything_resolved(registry: StaticDataRegistry) -> None:
     state = exploration.begin_exploration(_state(), registry, "p1", "000", [_CULT])
     with pytest.raises(ValueError, match="Finish exploring"):
@@ -202,6 +209,11 @@ def test_every_planet_card_can_be_resolved(registry: StaticDataRegistry) -> None
 # --------------------------------------------------------------------- odkładanie kart
 
 
+@ruling(
+    "R_exploration/rules-reference/7",
+    "R_exploration/rules-reference/9",
+    "R_relics/rules-reference/1.1",
+)
 def test_instant_card_goes_to_discard_and_fragment_to_player(
     registry: StaticDataRegistry,
 ) -> None:
@@ -218,6 +230,7 @@ def test_instant_card_goes_to_discard_and_fragment_to_player(
     assert kept.decks.exploration_discard.get("cultural", []) == []
 
 
+@ruling("R_exploration/rules-reference/8", "R_attach/rules-reference/1")
 def test_attach_stays_with_planet(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Dyson Sphere")
     done = exploration.resolve(state, registry, "attach")
@@ -235,6 +248,7 @@ def test_demilitarized_zone_clears_the_planet(registry: StaticDataRegistry) -> N
     assert system.space_units["p1"] == {"infantry": 2}
 
 
+@ruling("R_exploration/notes/1")
 def test_token_card_is_purged(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Gamma Wormhole")
     done = exploration.resolve(state, registry, "place")
@@ -320,6 +334,7 @@ def test_attachments_feed_production_budget(registry: StaticDataRegistry) -> Non
 # ------------------------------------------------------------------------- Freelancers
 
 
+@ruling("C_exploration_cards/freelancers/1")
 def test_freelancers_opens_one_unit_production_paid_with_influence(
     registry: StaticDataRegistry,
 ) -> None:
@@ -408,6 +423,7 @@ def test_expedition_readies_the_planet(registry: StaticDataRegistry) -> None:
     assert done.players["p1"].exhausted_planets == []
 
 
+@ruling("C_exploration_cards/abandoned-warehouses/1")
 def test_commodities_are_capped_by_commodity_value(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Abandoned Warehouses", _IND)
     player = state.players["p1"]
@@ -444,6 +460,7 @@ def test_local_fabricators_places_mech(registry: StaticDataRegistry) -> None:
 # -------------------------------------------------------------------------------- talie
 
 
+@ruling("R_exploration/rules-reference/7.1")
 def test_empty_deck_is_reshuffled_from_discard(registry: StaticDataRegistry) -> None:
     state = _state()
     state.decks.exploration_deck["cultural"] = []
@@ -467,6 +484,7 @@ def test_deck_is_seedable(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------ podpięcie do inwazji
 
 
+@ruling("R_exploration/rules-reference/1")
 def test_capturing_unowned_planets_opens_exploration(registry: StaticDataRegistry) -> None:
     grid = _grid()
     state = invasion.begin_invasion(_state({"infantry": 2}), grid, registry)
@@ -496,6 +514,7 @@ def test_capturing_unowned_planets_opens_exploration(registry: StaticDataRegistr
     assert invasion.advance(state, grid, registry).invasion is None
 
 
+@ruling("R_exploration/rules-reference/1")
 def test_owned_or_traitless_planets_are_not_explored(registry: StaticDataRegistry) -> None:
     grid = _grid()
     state = _state({"infantry": 1})

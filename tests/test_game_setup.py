@@ -12,6 +12,7 @@ from src.core import game_setup
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 PLAYERS = {"players": [{"faction_id": "sol"}, {"faction_id": "arborec"}]}
 
@@ -211,6 +212,12 @@ def test_skip_setup_randomizes_secrets_places_custodians_and_reveals(
     assert client.post("/setup/skip").status_code == 422
 
 
+@ruling(
+    "R_exploration/rules-reference/4.1",
+    "R_frontier_tokens/rules-reference/1",
+    "R_frontier_tokens/rules-reference/1.1",
+    "R_frontier_tokens/rules-reference/1.4",
+)
 def test_frontier_tokens_only_on_planetless_systems(
     client: TestClient, registry: StaticDataRegistry
 ) -> None:

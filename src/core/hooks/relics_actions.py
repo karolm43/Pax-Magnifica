@@ -89,9 +89,12 @@ def _ready_blocker(state: GameState, player_id: str, relic_id: str, name: str) -
 def codex_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """Karty akcji ze stosu odrzuconych (jawny stos; kopie tej samej karty liczone osobno)."""
+    """Karty akcji ze stosu odrzuconych (jawny stos; kopie tej samej karty liczone osobno).
+
+    Pusta talia: stos odrzuconych jest już (ruling) nową talią - nie ma czego brać.
+    """
     del player_id
-    discard = state.decks.action_card_discard
+    discard = state.decks.action_card_discard if state.decks.action_card_deck else []
     totals = Counter(discard)
     seen: Counter[str] = Counter()
     options = []
@@ -117,6 +120,7 @@ def codex(
     action card discard pile.
     """
     wanted = list(params.get("cards", []))
+    card_draw.reshuffle_action_deck_if_empty(state)  # C_relics: pusty stos tasuje się od razu
     available = Counter(state.decks.action_card_discard)
     for card_id, count in Counter(wanted).items():
         if count > available[card_id]:

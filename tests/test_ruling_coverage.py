@@ -10,6 +10,13 @@ Dla każdej frakcji z modułem ``core/hooks/factions/<frakcja>.py`` spoza ``UNAU
 
 ``UNAUDITED`` to dług z chwili wprowadzenia strażnika: lista może TYLKO maleć. Nowa frakcja
 nie trafia na nią - od pierwszego commita musi mieć komplet testów rulingów.
+
+Kontrakt ogólny (decyzja użytkownika 2026-11-17, ``tests/rulings.general_contract``): to samo dla
+``C_<typ>.md`` (karty i komponenty ogólne) i ``R_<temat>.md`` (zasady ogólne). Dług audytu z chwili
+wprowadzenia: ``tests/rulings_debt.json`` - wpis ``R_movement`` (cały plik) albo
+``C_agendas/minister-of-war`` (sekcja karty). Lista może TYLKO maleć; karta, która dostanie hook
+po wprowadzeniu strażnika, od razu wymaga testów rulingów swojej sekcji. Status ``gap`` w
+``rulings_status.json`` = ruling sprawdzony, silnik go NIE spełnia (opis luki do naprawy).
 """
 
 from __future__ import annotations
@@ -24,10 +31,20 @@ import pytest
 from src.core import rules_hooks
 from src.core.hooks import factions as faction_pkg
 from src.core.registry import StaticDataRegistry
-from tests.rulings import RULING_ATTR, faction_contract
+from tests.rulings import (
+    RULING_ATTR,
+    faction_contract,
+    general_contract,
+    general_files,
+    general_rulings,
+)
 
 TESTS_DIR = Path(__file__).resolve().parent
 STATUS_FILE = TESTS_DIR / "rulings_status.json"
+DEBT_FILE = TESTS_DIR / "rulings_debt.json"
+
+# Rozmiar długu ogólnego przy wprowadzeniu strażnika (2026-11-17): zmniejszaj przy każdym audycie.
+GENERAL_DEBT_LIMIT = 271
 
 # Frakcje zaimplementowane przed strażnikiem, jeszcze nie przeaudytowane (tylko USUWAĆ).
 UNAUDITED: frozenset[str] = frozenset()
@@ -105,8 +122,8 @@ def test_statusy_requires_nadal_niespelnione(registry: StaticDataRegistry) -> No
     ready: list[str] = []
     for key, entry in statuses().items():
         requires = entry.get("requires")
-        if not requires and not entry.get("na"):
-            raise AssertionError(f"{key}: status needs 'na' (reason) or 'requires'.")
+        if not requires and not entry.get("na") and not entry.get("gap"):
+            raise AssertionError(f"{key}: status needs 'na' (reason), 'gap' or 'requires'.")
         if isinstance(requires, list) and all(_ready(str(r), covered, factions) for r in requires):
             ready.append(f"{key} (requires {requires} - already implemented, write the test)")
     assert not ready, "\n".join(ready)
@@ -116,6 +133,8 @@ def test_id_w_testach_i_statusach_istnieja(registry: StaticDataRegistry) -> None
     known: set[str] = set()
     for faction in implemented_factions():
         known |= set(faction_contract(registry, faction))
+    for stem in general_files():
+        known |= set(general_rulings(stem))
     unknown = [f"@ruling {i} ({', '.join(t)})" for i, t in marked_ids().items() if i not in known]
     for key in statuses():
         prefix = key[:-1] if key.endswith("/*") else None
@@ -129,3 +148,71 @@ def test_lista_unaudited_tylko_maleje() -> None:
     """Na liście wolno trzymać tylko frakcje, które istnieją (usunięta frakcja = usuń wpis)."""
     assert UNAUDITED <= set(implemented_factions())
     assert len(UNAUDITED) <= 9  # stan z 2026-11-16; zmniejszaj przy każdej przeaudytowanej
+
+
+# ================================================================ kontrakt ogólny (C_ i R_)
+
+
+def general_debt() -> list[str]:
+    raw = json.loads(DEBT_FILE.read_text(encoding="utf-8"))
+    return list(raw["debt"])
+
+
+def _in_debt(ruling_id: str, debt: frozenset[str]) -> bool:
+    stem, section = ruling_id.split("/")[:2]
+    return stem in debt or f"{stem}/{section}" in debt
+
+
+def test_kazdy_ruling_kart_i_zasad_ma_test(registry: StaticDataRegistry) -> None:
+    marks = marked_ids()
+    table = statuses()
+    covered = rules_hooks.covered_components()
+    debt = frozenset(general_debt())
+    missing: list[str] = []
+    for stem in general_files():
+        for ruling_id, text in general_contract(registry, stem, covered).items():
+            if ruling_id in marks or _status_for(ruling_id, table) or _in_debt(ruling_id, debt):
+                continue
+            missing.append(f"{ruling_id}  — {text[:90]}")
+    assert not missing, (
+        "Rulingi kart / zasad bez testu (dodaj test z @ruling albo status z powodem w "
+        "tests/rulings_status.json):\n" + "\n".join(missing)
+    )
+
+
+def test_dlug_ogolny_tylko_maleje(registry: StaticDataRegistry) -> None:
+    """Wpisy długu istnieją, są wymagane i nie powtarzają się; rozmiar nie rośnie."""
+    debt = general_debt()
+    assert len(debt) == len(set(debt)), "Powtórzony wpis w tests/rulings_debt.json."
+    assert len(debt) <= GENERAL_DEBT_LIMIT, "Dług audytu rulingów może tylko maleć."
+    covered = rules_hooks.covered_components()
+    required: set[str] = set()
+    for stem in general_files():
+        for ruling_id in general_contract(registry, stem, covered):
+            stem_, section = ruling_id.split("/")[:2]
+            required |= {stem_, f"{stem_}/{section}"}
+    stale = [entry for entry in debt if entry not in required]
+    assert not stale, "Nieaktualne wpisy długu (usuń z tests/rulings_debt.json):\n" + "\n".join(
+        stale
+    )
+
+
+def test_dlug_ogolny_bez_przeaudytowanych_wpisow(registry: StaticDataRegistry) -> None:
+    """Wpis długu, którego wszystkie rulingi mają już test albo status, trzeba usunąć."""
+    marks = marked_ids()
+    table = statuses()
+    covered = rules_hooks.covered_components()
+    pending: dict[str, int] = dict.fromkeys(general_debt(), 0)
+    for stem in general_files():
+        for ruling_id in general_contract(registry, stem, covered):
+            if ruling_id in marks or _status_for(ruling_id, table):
+                continue
+            section = "/".join(ruling_id.split("/")[:2])
+            for entry in (stem, section):
+                if entry in pending:
+                    pending[entry] += 1
+    done = [entry for entry, left in pending.items() if left == 0]
+    assert not done, (
+        "Przeaudytowane - usuń z tests/rulings_debt.json i zmniejsz GENERAL_DEBT_LIMIT:\n"
+        + "\n".join(done)
+    )

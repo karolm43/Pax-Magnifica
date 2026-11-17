@@ -13,14 +13,24 @@ from src.core.game_state import ActionDiscardTrace, GameState
 from src.core.registry import StaticDataRegistry
 
 
-def draw_action_card(state: GameState, player_id: str) -> bool:
-    """Dobiera kartę akcji do ręki gracza (mutuje ``state``); False, gdy talie puste."""
+def reshuffle_action_deck_if_empty(state: GameState) -> None:
+    """Pusta talia kart akcji = stos odrzuconych od razu tasowany w nową talię (mutuje ``state``).
+
+    C_relics (The Codex): „The action card discard is shuffled to form a new action card deck as
+    soon as the action card deck has zero cards in it" - nie dopiero przy następnym dobraniu.
+    """
     decks = state.decks
     if not decks.action_card_deck and decks.action_card_discard:
         reshuffled = list(decks.action_card_discard)
         next_rng(state).shuffle(reshuffled)
         decks.action_card_deck = reshuffled
         decks.action_card_discard = []
+
+
+def draw_action_card(state: GameState, player_id: str) -> bool:
+    """Dobiera kartę akcji do ręki gracza (mutuje ``state``); False, gdy talie puste."""
+    decks = state.decks
+    reshuffle_action_deck_if_empty(state)
     if not decks.action_card_deck:
         return False
     triggers.fire(

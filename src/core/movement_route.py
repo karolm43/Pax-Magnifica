@@ -88,6 +88,8 @@ class RouteReport:
     cargo: list[movement.RouteCargo] = field(default_factory=list)
     # Systemy trasy będące gravity rift (+1 do ruchu, rzut d10: 1–3 usuwa statek).
     rift_nodes: list[str] = field(default_factory=list)
+    # Czy statki rzucają za te szczeliny (Circlet of the Void: +1 bez rzutu).
+    rift_rolls: bool = True
 
 
 def route_report(
@@ -173,7 +175,8 @@ def route_report(
     ships = [s for s in ships if s.reachable or s.base_type not in movement.CARGO_BASE_TYPES]
     rifts = movement.rift_nodes(state, grid, route, player_id) if route else []
     return RouteReport(
-        active, route, reason, alternatives, waypoints, ships, bonuses, cargo, rifts
+        active, route, reason, alternatives, waypoints, ships, bonuses, cargo, rifts,
+        movement.rift_rolls(state, player_id),
     )
 
 

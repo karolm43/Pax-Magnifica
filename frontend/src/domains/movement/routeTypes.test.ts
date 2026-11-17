@@ -15,6 +15,7 @@ const route = (ships: MoveRouteData["ships"], cargo: MoveRouteData["cargo"]): Mo
   ships,
   cargo,
   riftNodes: [],
+  riftRolls: true,
   bonuses: [],
 });
 

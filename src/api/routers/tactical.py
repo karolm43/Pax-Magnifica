@@ -465,6 +465,7 @@ async def get_move_route(
             for s in report.ships
         ],
         riftNodes=report.rift_nodes,
+        riftRolls=report.rift_rolls,
         bonuses=report.bonuses,
         cargo=[
             MoveRouteCargo(

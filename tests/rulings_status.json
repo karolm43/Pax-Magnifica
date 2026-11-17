@@ -95,5 +95,66 @@
   "F_winnu/lazax-gate-folding/2.5": {
     "requires": ["faction:creuss"],
     "reason": "Dimensional Splicer Creuss w Mecatol Rex w akcji Winnu - frakcja niezaimplementowana; sąsiedztwo z akcji liczy action_adjacency, z którego skorzysta."
+  },
+  "C_relics/book-of-latvinia/3": {
+    "requires": ["faction:nekro"],
+    "reason": "Nekro zamiast badania technologii bierze żetony dowodzenia (sześć zamiast dwóch technologii z Book of Latvinia)."
+  },
+  "C_relics/jrxs455o/1.1": {
+    "requires": ["faction:nomad"],
+    "reason": "Temporal Command Suite (Nomad) odświeża JR-XS455-O jak agenta."
+  },
+  "C_relics/jrxs455o/1.2": {
+    "requires": ["faction:yssaril"],
+    "reason": "Ssruu (agent Yssaril) kopiuje zdolność JR-XS455-O."
+  },
+  "C_relics/metali-void-shielding/4": {
+    "requires": ["faction:argent"],
+    "reason": "Raid Formation (Argent) - Metali Void Shielding nie działa."
+  },
+  "C_relics/the-prophets-tears/2": {
+    "requires": ["faction:nekro"],
+    "reason": "Nekro dobiera kartę akcji z Prophet's Tears, gdy badałby technologię."
+  },
+  "C_relics/scepter-of-emelpar/3": {
+    "requires": ["faction:muaat"],
+    "reason": "Magmus (dowódca Muaat) nie daje TG przy żetonie z rezerwy."
+  },
+  "C_relics/scepter-of-emelpar/2": {
+    "gap": "Scepter of Emelpar działa tylko przy secondary kart strategii (strategic_action); płatność celów żetonami (objective_payment) i zdolności frakcji wydające żeton z puli strategicznej (Xxcha, Hacan, Sol) nie dają opcji wydania żetonu z rezerwy."
+  },
+  "C_relics/neuraloop/10": {
+    "gap": "Silnik nie egzekwuje limitu jednego celu na walkę (R_objective_cards: „maximum of one objective of any type during or after each combat”) - dotyczy też celu odkrytego przez Neuraloop."
+  },
+  "C_exploration_cards/cultural-relic-fragment/2": {
+    "gap": "Eliminacja gracza (R_elimination) nie jest zaimplementowana: fragmenty wyeliminowanego gracza nie wracają na stosy odrzuconych eksploracji."
+  },
+  "C_exploration_cards/hazardous-relic-fragment/2": {
+    "gap": "Eliminacja gracza (R_elimination) nie jest zaimplementowana: fragmenty wyeliminowanego gracza nie wracają na stosy odrzuconych eksploracji."
+  },
+  "C_exploration_cards/industrial-relic-fragment/2": {
+    "gap": "Eliminacja gracza (R_elimination) nie jest zaimplementowana: fragmenty wyeliminowanego gracza nie wracają na stosy odrzuconych eksploracji."
+  },
+  "C_exploration_cards/unknown-relic-fragment/2": {
+    "gap": "Eliminacja gracza (R_elimination) nie jest zaimplementowana: fragmenty Unknown wyeliminowanego gracza nie wracają na stos odrzuconych frontier."
+  },
+  "R_relics/notes/2": {
+    "gap": "Eliminacja gracza (R_elimination) nie jest zaimplementowana: fragmenty nie wracają na stosy odrzuconych, relikty nie są purge'owane."
+  },
+  "C_exploration_cards/ion-storm/2.1": {
+    "requires": ["faction:creuss"],
+    "reason": "Hil Colish (flagowiec Creuss) rusza się przed/po innych statkach i może użyć obu stron Ion Storm."
+  },
+  "C_exploration_cards/ion-storm/3": {
+    "gap": "Gdy system z Ion Storm ma własny wormhole tego samego typu, gracz wybiera, którego używa (żeton obraca się tylko przy jego użyciu); silnik zakłada użycie żetonu (⚠ ZAŁOŻENIE w core/ion_storm.py, sprzeczne z rulingiem)."
+  },
+  "R_exploration/notes/6": {
+    "na": "Odnośnik do strony rulingów kart eksploracji (C_exploration_cards) - bez treści reguły."
+  },
+  "R_relics/notes/3": {
+    "na": "Odnośnik do strony rulingów reliktów (C_relics) - bez treści reguły."
+  },
+  "R_attach/rules-reference/2.1": {
+    "na": "Żadna karta attach w aktywnych assetach nie ma stanu wyczerpania - silnik trzyma attachmenty jako listę kart przy planecie (planet_attachments), stan planety jest osobny."
   }
 }

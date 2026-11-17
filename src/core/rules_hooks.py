@@ -67,6 +67,9 @@ POINT_PRODUCTION_VALUE = "production.value"  # MODIFY -> delta PRODUCTION jednos
 POINT_PRODUCTION_TOTAL_VALUE = "production.total_value"  # MODIFY -> delta SUMY PRODUCTION gracza
 POINT_MOVEMENT_ALPHA_BETA_ADJACENT = "movement.alpha_beta_adjacent"  # PERMIT (Lost Star Chart)
 POINT_MOVEMENT_IGNORE_ANOMALIES = "movement.ignore_anomalies"  # PERMIT (Nav Suite)
+# PERMIT: ignoruj efekty anomalii w ruchu, ale szczelina nadal daje +1 do ruchu - tylko bez rzutu
+# (Circlet of the Void, C_relics: „still applies the movement bonus … gravity rifts”).
+POINT_MOVEMENT_IGNORE_ANOMALIES_KEEP_RIFT = "movement.ignore_anomalies_keep_rift"
 POINT_SPACE_CANNON_OFFENSE_IMMUNE = "space_cannon.offense_immune"  # PERMIT (Solar Flare)
 POINT_PRODUCTION_COST = "production.cost"  # MODIFY -> delta łącznego kosztu zamówienia
 POINT_PAYMENT_COMMODITIES_AS_TG = "payment.commodities_as_trade_goods"  # PERMIT -> bool

@@ -12,6 +12,7 @@ from src.core import invasion
 from src.core.event_store import EventStore
 from src.core.game_state import GameState, ProductionGrant, SystemState
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 from tests.test_exploration import _CULT, _IND, _grid, _state
 
 
@@ -85,6 +86,7 @@ def test_full_flow_through_endpoints(registry: StaticDataRegistry) -> None:
     assert client.post("/tactical/invasion/next").status_code == 200
 
 
+@ruling("R_attach/rules-reference/3")
 def test_attachment_appears_as_token_entity_in_web_data(registry: StaticDataRegistry) -> None:
     state = _state()
     client = _client(registry, state)

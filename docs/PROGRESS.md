@@ -909,3 +909,29 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: pytest (tests/factions, strategy) 606 ✓, ruff ✓ (poza `tests/rulings.py` z równoległej sesji),
   mypy ✓ (zmienione moduły), tsc ✓, eslint ✓, vitest battle+strategy ✓. Pełny pytest, build i e2e
   pominięte (zmiany punktowe, bez nowych importów). Wymaga restartu backendu.
+
+## 2026-11-17 — Kontrakt rulingów kart i zasad ogólnych (C_*, R_*) + audyt reliktów i eksploracji
+
+- Decyzja użytkownika: rulingi kart/komponentów ogólnych i zasad ogólnych mają ten sam kontrakt co
+  frakcje — każdy punkt `docs/rules_tirules/C_*.md` i `R_*.md` = test z `@ruling` albo status.
+  - `tests/rulings.py`: `general_contract` (ID `C_relics/neuraloop/3`, `R_movement/notes/2`;
+    sekcje „Related Topics” pomijane). Pliki kart (`CARD_FILES`: karty akcji, agendy, relikty,
+    technologie, notki, wydarzenia): wymagane tylko sekcje kart z hookiem — karta dodana później
+    od razu wymaga testów rulingów (strażnik czerwony). Podgląd: `uv run python -m tests.rulings C_agendas`.
+  - Strażnik `tests/test_ruling_coverage.py` (+3 testy): dług z chwili wprowadzenia w
+    `tests/rulings_debt.json` (plik `R_x` albo sekcja `C_x/karta`), `GENERAL_DEBT_LIMIT` tylko maleje,
+    przeaudytowany wpis trzeba usunąć. Nowy status `gap` = ruling sprawdzony, silnik go nie spełnia.
+  - Stan: 295 → 271 wpisów długu (~2000 rulingów do audytu: karty akcji, agendy, technologie,
+    cele, notki, zasady R_*).
+- Przeaudytowane: `C_relics`, `C_exploration_cards`, `R_exploration`, `R_relics`, `R_frontier_tokens`,
+  `R_attach`, `R_purge` (`tests/rulings_general/test_rulings_relics.py`, `test_rulings_exploration.py`
+  + oznaczone istniejące testy). Naprawione błędy silnika:
+  - Circlet of the Void zabierał +1 do ruchu za gravity rift (ten sam punkt co Nav Suite) — nowy
+    punkt `movement.ignore_anomalies_keep_rift`, `movement.rift_rolls`, pole `riftRolls` w podglądzie trasy.
+  - The Codex brał z odrzuconych przy pustej talii — `card_draw.reshuffle_action_deck_if_empty`.
+  - Nano-Forge nie liczył się jako legenda w celach (`make_history`, `become_legend`, `sai`).
+  - Derelict Vessel przy 3 zdobytych tajnych celach blokował dobranie — zawsze można oddać dobrany.
+  - Freelancers pozwalał stawiać siły na planecie czekającej na eksplorację.
+- Luki (`gap`): Scepter of Emelpar poza secondary (cele, zdolności frakcji), limit jednego celu na
+  walkę, eliminacja gracza (fragmenty/relikty), wybór wormholu przy Ion Storm. Zgłoszone poza
+  kontraktem: The Silver Flame „may be exchanged as part of a transaction” nie jest obsługiwane.

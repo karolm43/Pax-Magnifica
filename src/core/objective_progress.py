@@ -22,7 +22,13 @@ from src.core import payment, production
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player
-from src.core.planet_stats import EffectivePlanets, PlanetLookup, effective_planets, planet_stats
+from src.core.planet_stats import (
+    EffectivePlanets,
+    PlanetLookup,
+    effective_planets,
+    is_legendary,
+    planet_stats,
+)
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
 
@@ -264,10 +270,9 @@ def _p_legendary_or_anomaly(v: View) -> int:
     mecatol = v.mecatol()
 
     def counts(pos: str) -> bool:
+        # Legendarna także planeta z Nano-Forge (C_relics: „legendary for … Make History”).
         legendary = any(
-            bool(p.legendary_ability_name)
-            for pid in v.planets_of_system(pos)
-            if (p := v.registry.planets.get(pid)) is not None
+            is_legendary(v.state, v.registry, pid) for pid in v.planets_of_system(pos)
         )
         return pos == mecatol or v.is_anomaly(pos) or legendary
 
@@ -490,9 +495,7 @@ def _p_production(v: View) -> int:
 
 
 def _p_legendary_planet(v: View) -> int:
-    return v.planets_with(
-        lambda pid: bool((p := v.registry.planets.get(pid)) and p.legendary_ability_name)
-    )
+    return v.planets_with(lambda pid: is_legendary(v.state, v.registry, pid))
 
 
 def _p_shared_system(v: View) -> int:

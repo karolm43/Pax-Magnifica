@@ -35,6 +35,7 @@ from src.core.event_store import EventStore
 from src.core.game_state import GameState, Phase, PlayerState, SystemState, TacticalStep
 from src.core.objectives import deck_card_ids
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 # Relikty z nagłówkiem „ACTION:” w tekście karty (assets/data/relics, aktywne źródła).
 ACTION_RELICS = {
@@ -109,6 +110,7 @@ def _pick(inputs: list[dict[str, Any]], key: str) -> Any:
 # ------------------------------------------------------------------------------ wszystkie relikty
 
 
+@ruling("R_relics/rules-reference/3")
 def test_every_relic_has_form_and_playability(registry: StaticDataRegistry) -> None:
     ids = deck_card_ids(registry, "relic")
     assert ids, "talia reliktów jest pusta"
@@ -168,6 +170,8 @@ def test_codex_takes_cards_from_discard(registry: StaticDataRegistry) -> None:
     state = _state(registry, ["codex"])
     discard = deck_card_ids(registry, "action_card")[:5]
     state.decks.action_card_discard = list(discard)
+    # Talia nie może być pusta: pusty stos odrzuconych tasuje się w talię od razu (C_relics).
+    state.decks.action_card_deck = deck_card_ids(registry, "action_card")[5:6]
     new_state, _ = relic_cards.play_relic(
         state, registry, "p1", "codex", {"cards": [discard[0], discard[3]]}
     )
@@ -382,6 +386,7 @@ def test_relics_ready_in_status_phase_helper(registry: StaticDataRegistry) -> No
     assert relics.is_ready(state, "p1", "circletofthevoid")
 
 
+@ruling("R_purge/rules-reference/1", "R_purge/rules-reference/2")
 def test_purged_relic_is_not_returned_to_deck(registry: StaticDataRegistry) -> None:
     state = _state(registry, ["codex"])
     relics.purge_relic(state, "p1", "codex")

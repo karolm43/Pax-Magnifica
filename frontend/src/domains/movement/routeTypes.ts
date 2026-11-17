@@ -73,6 +73,8 @@ export type MoveRouteData = {
   cargo: MoveRouteCargo[];
   /** Systemy trasy będące gravity rift (+1 do ruchu, d10: 1–3 usuwa statek). */
   riftNodes: string[];
+  /** Czy statki rzucają za szczeliny (Circlet of the Void: +1 bez rzutu). */
+  riftRolls: boolean;
   /** Premie +1 do ruchu, które gracz może teraz włączyć. */
   bonuses: string[];
 };

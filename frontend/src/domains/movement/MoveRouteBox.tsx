@@ -350,8 +350,10 @@ export function MoveRouteBox({
         {route && route.reason !== "" && <p className={styles.warn}>{route.reason}</p>}
         {route && route.riftNodes.length > 0 && (
           <p className={styles.rift}>
-            Gravity rift ({route.riftNodes.join(", ")}): +{route.riftNodes.length} move, but every
-            ship rolls a d10 and is removed on 1–3. Cargo on removed ships is lost.
+            Gravity rift ({route.riftNodes.join(", ")}): +{route.riftNodes.length} move
+            {route.riftRolls
+              ? ", but every ship rolls a d10 and is removed on 1–3. Cargo on removed ships is lost."
+              : " without rolling (Circlet of the Void)."}
           </p>
         )}
         {route && route.alternatives.length > 1 && (

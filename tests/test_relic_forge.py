@@ -10,6 +10,7 @@ from src.core import relic_forge, relics
 from src.core.event_store import EventStore
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 from tests.test_relics import _grid, _state
 
 # Fixture autouse z test_relics (graf mapy demo) - import wystarcza, by pytest ją widział.
@@ -36,6 +37,11 @@ def test_fragment_rules_come_from_card_text(registry: StaticDataRegistry) -> Non
     assert unknown.wildcard and unknown.kind is None
 
 
+@ruling(
+    "R_exploration/rules-reference/9.1",
+    "R_relics/rules-reference/1",
+    "R_relics/rules-reference/2",
+)
 def test_forge_purges_three_and_reveals_relic(registry: StaticDataRegistry) -> None:
     state = _with_fragments(registry, ["crf1", "crf2", "crf3", "hrf1"])
     new_state = relic_forge.forge(state, registry, "p1", ["crf1", "crf2", "crf3"])
@@ -53,6 +59,7 @@ def test_forge_purges_three_and_reveals_relic(registry: StaticDataRegistry) -> N
     assert state.players["p1"].relic_fragments == ["crf1", "crf2", "crf3", "hrf1"]
 
 
+@ruling("C_exploration_cards/unknown-relic-fragment/1")
 def test_unknown_fragment_is_a_wildcard_but_not_alone(registry: StaticDataRegistry) -> None:
     state = _with_fragments(registry, ["crf1", "urf1", "urf2", "urf3"])
     new_state = relic_forge.forge(state, registry, "p1", ["crf1", "urf1", "urf2"])
@@ -87,6 +94,11 @@ def test_forge_is_an_action_on_own_turn(registry: StaticDataRegistry) -> None:
         relic_forge.forge(state, registry, "p1", ["crf1", "crf2", "crf3"])
 
 
+@ruling(
+    "C_exploration_cards/industrial-relic-fragment/1",
+    "R_relics/rules-reference/2.1",
+    "R_relics/notes/1",
+)
 def test_empty_relic_deck_still_purges(registry: StaticDataRegistry) -> None:
     state = _with_fragments(registry, ["irf1", "irf2", "irf3"])
     relics.ensure_relic_deck(state, registry)

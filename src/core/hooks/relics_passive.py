@@ -34,7 +34,7 @@ from src.core.planet_stats import is_legendary
 from src.core.rules_hooks import (
     POINT_COMMODITY_VALUE,
     POINT_MOVEMENT_ENTER_ASTEROIDS,
-    POINT_MOVEMENT_IGNORE_ANOMALIES,
+    POINT_MOVEMENT_IGNORE_ANOMALIES_KEEP_RIFT,
     POINT_SECRET_OBJECTIVE_LIMIT,
     POINT_TECHNOLOGY_SYNERGY_ALL,
     SOURCE_RELIC,
@@ -178,7 +178,7 @@ def dynamis_lost(state: GameState, player_id: str) -> None:
 
 
 @register(
-    POINT_MOVEMENT_IGNORE_ANOMALIES,
+    POINT_MOVEMENT_IGNORE_ANOMALIES_KEEP_RIFT,
     _src("circletofthevoid"),
     HookKind.PERMIT,
     covers="relics:circletofthevoid",
@@ -186,9 +186,11 @@ def dynamis_lost(state: GameState, player_id: str) -> None:
 def circlet_ignores_anomalies(
     _state: GameState, _player_id: str, _ctx: Mapping[str, Any]
 ) -> bool:
-    """Circlet of the Void: you ignore the effects of all other anomalies on movement.
+    """Circlet of the Void: Your units do not roll for gravity rifts, and you ignore the effects
+    of all other anomalies on movement.
 
-    Działa także, gdy karta jest wyczerpana (C_relics).
+    Działa także, gdy karta jest wyczerpana (C_relics). Szczelina nadal daje +1 do ruchu (C_relics:
+    „still applies the movement bonus”) - inaczej niż Nav Suite.
     """
     return True
 

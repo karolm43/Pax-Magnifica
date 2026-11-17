@@ -751,6 +751,8 @@ class MoveRouteResponse(BaseModel):
     ships: list[MoveRouteShip] = Field(default_factory=list)
     cargo: list[MoveRouteCargo] = Field(default_factory=list)
     rift_nodes: list[str] = Field(default_factory=list, alias="riftNodes")
+    # Czy statki rzucają za szczeliny (Circlet of the Void: +1 do ruchu bez rzutu).
+    rift_rolls: bool = Field(default=True, alias="riftRolls")
     # Premie +1 do ruchu, które gracz może teraz włączyć (gravity_drive / tempesta).
     bonuses: list[str] = Field(default_factory=list)
 

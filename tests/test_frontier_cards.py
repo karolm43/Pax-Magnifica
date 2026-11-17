@@ -23,6 +23,7 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import Hex, HexGrid
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -66,6 +67,7 @@ def _state(registry: StaticDataRegistry, card_id: str) -> GameState:
 # ------------------------------------------------------------------ Enigmatic Device
 
 
+@ruling("R_exploration/notes/2")
 def test_enigmatic_device_goes_to_hand_not_to_discard(registry: StaticDataRegistry) -> None:
     state = _state(registry, "ed1")
     options = exploration.options_for(state, registry)
@@ -108,6 +110,7 @@ def test_enigmatic_device_researches_a_technology_for_six_resources(
     assert technology  # moduł badań użyty przez efekt
 
 
+@ruling("C_exploration_cards/enigmatic-device/1")
 def test_enigmatic_device_needs_six_resources(registry: StaticDataRegistry) -> None:
     state = _with_device(registry, 5)
     row = frontier_cards.playability(state, registry, "p1")[0]
@@ -130,6 +133,7 @@ def test_enigmatic_device_cannot_be_played_without_owning_it(
 # ------------------------------------------------------------------ Ion Storm
 
 
+@ruling("C_exploration_cards/ion-storm/1", "R_exploration/notes/2")
 def test_ion_storm_is_placed_with_chosen_side_and_stays_in_common_area(
     registry: StaticDataRegistry,
 ) -> None:
@@ -150,6 +154,7 @@ def _wormhole_systems(registry: StaticDataRegistry) -> tuple[str, str]:
     return alpha[0], alpha[1]
 
 
+@ruling("C_exploration_cards/ion-storm/2")
 def test_ion_storm_flips_after_ships_use_its_wormhole(registry: StaticDataRegistry) -> None:
     sys_a, sys_b = _wormhole_systems(registry)
     grid = HexGrid()

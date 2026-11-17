@@ -203,8 +203,13 @@ def _ignores_own_command_token(state: GameState, player_id: str) -> bool:
 
 
 def _ignores_anomalies(state: GameState, player_id: str) -> bool:
-    """Czy gracz ignoruje efekty anomalii w RUCHU (Nav Suite: tylko w kroku Movement)."""
-    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES, state, player_id)
+    """Czy gracz ignoruje efekty anomalii w RUCHU (Nav Suite: tylko w kroku Movement; Circlet of
+    the Void) - blokady przejazdu, mgławica, rzut za szczelinę."""
+    return rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES, state, player_id
+    ) or rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES_KEEP_RIFT, state, player_id
+    )
 
 
 def shortest_legal_path(
@@ -440,14 +445,21 @@ def legal_routes(
 def rift_nodes(
     state: GameState, grid: HexGrid, route: list[str], player_id: str
 ) -> list[str]:
-    """Systemy trasy będące gravity rift, z których statek WYCHODZI albo przez które przelatuje.
+    """Systemy trasy będące gravity rift, z których statek WYCHODZI albo przez które przelatuje -
+    każdy daje +1 do ruchu.
 
     Cel trasy (aktywny system) się nie liczy: wejście do szczeliny nie daje +1 ani rzutu
-    (R_gravity_rift). Nav Suite ignoruje efekty anomalii, więc zwraca pustą listę.
+    (R_gravity_rift). Nav Suite ignoruje efekty anomalii, więc zwraca pustą listę („Those ships
+    will not get +1”, C_action_cards); Circlet of the Void premię zachowuje (C_relics).
     """
-    if _ignores_anomalies(state, player_id):
+    if rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_ANOMALIES, state, player_id):
         return []
     return [node for node in route[:-1] if _GRAVITY_RIFT in grid.anomalies_at(node)]
+
+
+def rift_rolls(state: GameState, player_id: str) -> bool:
+    """Czy statki gracza rzucają za szczeliny w tym ruchu (Nav Suite / Circlet: nie)."""
+    return not _ignores_anomalies(state, player_id)
 
 
 def _rift_route_within(
@@ -976,7 +988,7 @@ def _resolve_rift_losses(
     nadwyżkę ponad pojemność ocalałych usuwamy od ostatnio załadowanego — źródło reguł tego nie
     rozstrzyga, wymaga potwierdzenia.
     """
-    rifts = rift_nodes(state, grid, route, player_id)
+    rifts = rift_nodes(state, grid, route, player_id) if rift_rolls(state, player_id) else []
     if not rifts:
         return ships, cargo
     player = state.players.get(player_id)

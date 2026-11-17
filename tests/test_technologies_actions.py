@@ -20,6 +20,7 @@ from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 from tests.test_technology import _specialty_planet
 
 
@@ -195,6 +196,12 @@ def _frontier_state(techs: list[str]) -> GameState:
     return state
 
 
+@ruling(
+    "R_exploration/rules-reference/4",
+    "R_exploration/rules-reference/5",
+    "R_exploration/rules-reference/6",
+    "R_frontier_tokens/notes/1",
+)
 def test_dark_energy_tap_po_akcji_taktycznej_bada_zeton_frontier(
     registry: StaticDataRegistry,
 ) -> None:

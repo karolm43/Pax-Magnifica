@@ -446,6 +446,12 @@ def allowed_ground_zones(
         grant = state.production_grant
         if grant is not None and grant.free and grant.zone is not None:
             owned = [p for p in owned if p == grant.zone]  # Integrated Economy: ta planeta
+        # C_exploration_cards (Freelancers): planeta czekająca w kolejce eksploracji jest jeszcze
+        # niezdobyta (gracz zdobywa i eksploruje planety po kolei) - nie stawiamy tam sił.
+        # Planeta, której karta właśnie leży odkryta, też jest dopiero w trakcie zdobywania.
+        ex = state.exploration
+        waiting = [*ex.queue, *([ex.current.planet] if ex.current else [])] if ex else []
+        owned = [p for p in owned if p not in waiting]
         return [*owned, "space"]
     prods = producers(state, registry, player_id, position)
     zones: list[str] = []

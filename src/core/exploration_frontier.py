@@ -152,14 +152,19 @@ def _derelict_options(
             _Opt("draw", "Draw 1 secret objective", False, "The secret objective deck is empty.")
         ]
     if secret_objectives.over_limit_after_draw(state, ex.player_id):
+        # C_exploration_cards: przy trzech ZDOBYTYCH tajnych gracz i tak dobiera czwarty, ale od
+        # razu wtasowuje go z powrotem - zwrot dobranego celu jest zawsze dostępny.
         hand = state.players[ex.player_id].private.secret_objectives
         return [
             _Opt(
                 "draw",
                 "Draw 1 secret objective (you must return an unscored one)",
-                bool(hand),
-                "" if hand else "You have no unscored secret objective to return.",
-                tuple((oid, oid) for oid in hand),
+                True,
+                "",
+                (
+                    (secret_objectives.DRAWN, "Shuffle the drawn objective back"),
+                    *((oid, oid) for oid in hand),
+                ),
             )
         ]
     return [_Opt("draw", "Draw 1 secret objective")]
