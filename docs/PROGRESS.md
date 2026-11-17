@@ -850,3 +850,19 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   Construction PoK (na), Salai Sai Corian vs Nekro (requires nekro), Dimensional Splicer (requires
   creuss). Winnu zdjęty z UNAUDITED.
 - RULES.md 62.7.
+
+## 2026-11-17 — Audyt rulingów Federation of Sol
+
+- Military Support: odzyskana transakcją w tym samym oknie „początek tury Sola” dawała się zagrać
+  drugi raz — znacznik `sol.SUPPORT_PLAYED` (`Duration.TURN`) do końca tury Sola.
+- Genesis: nadmiar capacity po piechocie z końca statusu przetrwał całą fazę strategii —
+  `limits.enforce_limits` sprawdza teraz także fazę strategii od 2. rundy (runda 1 = rozstawienie
+  startowe). RULES.md 42.x.
+- `tests/factions/test_rulings_sol.py` (27 testów): Orbital Drop + DEPLOY mecha, Versatile, Military
+  Support (przed Orbital Drop, tura pasu, 0 żetonów, transakcja na początku tury, 1 transakcja,
+  nie dwa razy w oknie), Spec Ops II (próg 5, powrót), Advanced Carrier II, Genesis, Evelyn DeLouis
+  (+1 kość dla grupy, cudza siła, tylko rzuty walki), Claire Gibson (każda planeta walki, bez walki
+  bez sił, atak zniszczony przed walką — scenariusze przez API), Jace X, Bellum Gloriosum (łączna
+  pojemność, koszt łączny). Status: Harrow L1Z1X (requires l1z1x). Sol zdjęty z UNAUDITED
+  (lista pusta).
+- QA: pytest 2799 ✓, ruff ✓, mypy ✓. Bez frontu. Wymaga restartu backendu.

@@ -22,9 +22,17 @@ from src.core import capacity, fleet_pool, timing
 from src.core.game_state import GameState, Phase, WindowType
 from src.core.registry import StaticDataRegistry
 
-# Fazy, w których efekty realnie stawiają jednostki. Poza nimi (setup, strategia) nic nie
-# sprawdzamy, żeby nie karać rozstawienia startowego.
+# Fazy, w których efekty realnie stawiają jednostki. Faza strategii od 2. rundy też: koniec fazy
+# statusu stawia jednostki (Genesis Sola, F_sol: „After, the Sol player might need to remove an
+# infantry or fighter to meet capacity limits”), a następna jest faza strategii (bez agendy).
+# Faza strategii 1. rundy = rozstawienie startowe - nie sprawdzamy (RULES.md 42.x).
 _ENFORCED_PHASES = (Phase.ACTION, Phase.AGENDA)
+
+
+def _enforced_phase(state: GameState) -> bool:
+    if state.phase in _ENFORCED_PHASES:
+        return True
+    return state.phase is Phase.STRATEGY and state.round_number > 1 and state.setup is None
 
 
 def _skipped_positions(state: GameState) -> set[str]:
@@ -60,10 +68,10 @@ def enforce_limits(state: GameState, registry: StaticDataRegistry | None) -> Gam
     """Otwiera okno usunięcia nadwyżki dla pierwszego systemu ponad limit; inaczej bez zmian.
 
     Pula floty: zawsze i natychmiast (przerywa inne okno). Capacity: gdy nie trwa inne okno ani
-    eksploracja. Nic nie robi bez rejestru, w fazie statusu (własny krok puli floty) i w fazach
-    spoza ``_ENFORCED_PHASES``.
+    eksploracja. Nic nie robi bez rejestru, w fazie statusu (własny krok puli floty) i w fazie
+    strategii 1. rundy (``_enforced_phase``).
     """
-    if registry is None or state.status is not None or state.phase not in _ENFORCED_PHASES:
+    if registry is None or state.status is not None or not _enforced_phase(state):
         return state
     window = state.pending_window
     if window is None or window.window_type not in timing.LIMIT_WINDOWS:

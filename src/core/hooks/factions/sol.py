@@ -60,6 +60,8 @@ BREAKTHROUGH = "solbt"
 ORBITAL_DROP = "orbital_drop"
 
 AGENT_DIE = f"leaders:{AGENT}:die"  # +1 kość dla wskazanej siły naziemnej (data: base_type)
+# Military Support zagrana w tej turze Sola (F_sol: nie dwa razy w jednym oknie czasowym).
+SUPPORT_PLAYED = f"promissory_notes:{MILITARY_SUPPORT}:played"
 _DROP_INFANTRY = 2  # „place 2 infantry”
 _DEPLOY_COST = 3  # „spend 3 resources to place 1 mech”
 _NOTE_INFANTRY = 2  # Military Support: „place 2 infantry”
@@ -349,10 +351,12 @@ def helio_command_array(
 
 @promissory_play.condition(MILITARY_SUPPORT)
 def _support_condition(
-    state: GameState, _registry: StaticDataRegistry, _player_id: str, window: OpenWindow
+    state: GameState, _registry: StaticDataRegistry, player_id: str, window: OpenWindow
 ) -> str | None:
     if window.subject not in state.players:
         return "Military Support is played at the start of the Sol player's turn."
+    if active_effects.has_effect(state, player_id, SUPPORT_PLAYED):
+        return "Military Support was already played at the start of this turn."
     return None
 
 
@@ -373,7 +377,12 @@ def military_support(
 ) -> None:
     """Military Support: At the start of the Sol player's turn: Remove 1 token from the Sol
     player's strategy pool, if able, and return it to their reinforcements. Then, you may place 2
-    infantry from your reinforcements on any planet you control. Then, return this card."""
+    infantry from your reinforcements on any planet you control. Then, return this card.
+
+    Odzyskana transakcją w tym samym oknie nie zagra się drugi raz (F_sol) - znacznik do końca
+    tury Sola (``Duration.TURN``).
+    """
+    active_effects.add_effect(state, SUPPORT_PLAYED, Duration.TURN)  # karta, nie gracz
     owner = params.get("__owner")
     if isinstance(owner, str) and owner in state.players and state.players[owner].strategic_cc > 0:
         command_tokens.spend_to_reinforcements(state, owner, "strategic")
