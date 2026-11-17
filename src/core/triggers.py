@@ -23,6 +23,7 @@ Funkcje MUTUJĄ przekazany stan — wołający pracuje na klonie roboczym.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -289,6 +290,40 @@ def drop_offers(state: GameState, event: GameEvent, moment: Moment) -> None:
         state.pending_window = None
 
 
+def repeat_offer(state: GameState, player_id: str, covers: str, ctx: Mapping[str, Any]) -> bool:
+    """Ponawia ofertę opcjonalnej zdolności po jej użyciu (MUTUJE) - zdolność KAŻDEJ jednostki
+    osobno („destroy this unit”: Exotrireme II). ``ctx`` = kontekst zaakceptowanej oferty.
+
+    Oferta wraca tylko, gdy warunek hooka nadal jest spełniony. Gdy w oknie REACTION po graczu
+    czekają inni, staje na końcu kolejki: zdolności o tym samym czasie gracze rozstrzygają na
+    zmianę (F_norr/F_yin: Exotrireme II i Devotion, od atakującego). Zwraca, czy ponowiono.
+    """
+    event, moment = GameEvent(str(ctx["event"])), Moment(str(ctx["moment"]))
+    base = {k: v for k, v in ctx.items() if k not in ("params", "accepted", "decider")}
+    hook = next(
+        (
+            h for h in rules_hooks.hooks_at(event_point(event, moment), state, player_id)
+            if h.covers == covers and h.optional and _matches(h, base)
+        ),
+        None,
+    )
+    if hook is None or (hook.condition is not None and not hook.condition(state, player_id, base)):
+        return False
+    state.pending_offers = [
+        *state.pending_offers, _new_offer(state, player_id, hook, event, moment, base)
+    ]
+    window = state.pending_window
+    if (
+        window is not None
+        and window.window_type is WindowType.REACTION
+        and window.current_responder == player_id
+        and any(pid != player_id for pid in window.queue[window.cursor + 1:])
+        and player_id not in window.queue[window.cursor + 1:]
+    ):
+        window.queue = [*window.queue, player_id]
+    return True
+
+
 def drop_all_offers(state: GameState) -> None:
     """Porzuca wszystkie oczekujące oferty (tylko przeskok fazy w God-Mode, ``skip_flow``)."""
     state.pending_offers = []
@@ -304,8 +339,10 @@ def _advance_window(state: GameState, player_id: str) -> None:
     window = state.pending_window
     if window is None or window.window_type is not WindowType.REACTION:
         return
-    if window.current_responder != player_id or offers_for(state, player_id):
+    if window.current_responder != player_id:
         return
+    if offers_for(state, player_id) and player_id not in window.queue[window.cursor + 1:]:
+        return  # gracz ma jeszcze oferty i nie czeka na kolejną turę w kolejce (repeat_offer)
     window.responded = [*window.responded, player_id]
     window.cursor += 1
     if window.is_complete:

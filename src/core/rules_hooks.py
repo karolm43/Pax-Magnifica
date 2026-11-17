@@ -94,6 +94,9 @@ POINT_PDS_DISABLED = "space_cannon.pds_disabled"
 POINT_COMBAT_HIT_MULTIPLIER = "combat.hit_multiplier"
 # PERMIT -> inwazja zaczyna się od Commit Ground Forces (bez Bombardment): Tekklar Conditioning.
 POINT_INVASION_SKIP_BOMBARDMENT = "invasion.skip_bombardment"
+# PERMIT -> inwazja otwiera Commit Ground Forces, choć w przestrzeni nie ma sił naziemnych: gracz
+# może lądować prosto z planet (G'hom Sek'kus, F_norr). Pytany o aktywnego gracza.
+POINT_INVASION_COMMIT_FROM_PLANETS = "invasion.commit_from_planets"
 # Bombardment wolno rzucać także przeciw planecie cudzej BEZ sił naziemnych (X-89 ΩΩ).
 POINT_BOMBARD_EMPTY_PLANETS = "bombardment.empty_planets"  # PERMIT -> bool
 # Odwrót do sąsiedniego systemu bez cudzych jednostek, także bez własnej obecności

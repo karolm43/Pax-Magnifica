@@ -804,19 +804,7 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
             entries.append(entry)
         rolls[pid] = entries
         hits_by[pid] = total
-    # Hook MODIFY: dodatkowe trafienia po rzutach OBU stron (Valkyrie Particle Weave, RULES 62.1).
-    opponent_of = {combat.attacker: combat.defender, combat.defender: combat.attacker}
-    extra_by = {
-        pid: rules_hooks.modify(
-            rules_hooks.POINT_COMBAT_EXTRA_HITS, state, pid, 0,
-            {
-                "kind": combat.kind,
-                "own_hits": hits_by[pid],
-                "opponent_hits": hits_by[opponent_of[pid]],
-            },
-        )
-        for pid in hits_by
-    }
+    extra_by = _extra_hits(state, combat, hits_by)
     for pid, extra in extra_by.items():
         hits_by[pid] += extra
 
@@ -841,6 +829,7 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
             "phase": "COMBAT",
             "rolls": rolls,
             "hits": hits_by,
+            "extra": extra_by,
             "losses": {},
             "sustained": {},
         }
@@ -855,6 +844,28 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
         combat.resume = _RESUME_ASSIGN
         return new_state
     return _open_assign(new_state, grid, registry)
+
+
+def _extra_hits(
+    state: GameState, combat: ActiveCombat, dice_hits: dict[str, int]
+) -> dict[str, int]:
+    """Hook MODIFY: dodatkowe trafienia po rzutach OBU stron (Valkyrie Particle Weave, RULES 62.1).
+
+    ``dice_hits`` = trafienia z kości każdej strony. Liczone przy rzucie i od nowa po każdej zmianie
+    kości przed przypisaniem strat (przerzut, premia) - trafienie VPW nie przepada przy przerzucie.
+    """
+    opponent_of = {combat.attacker: combat.defender, combat.defender: combat.attacker}
+    return {
+        pid: rules_hooks.modify(
+            rules_hooks.POINT_COMBAT_EXTRA_HITS, state, pid, 0,
+            {
+                "kind": combat.kind,
+                "own_hits": dice_hits[pid],
+                "opponent_hits": dice_hits.get(opponent_of[pid], 0),
+            },
+        )
+        for pid in dice_hits
+    }
 
 
 def _open_assign(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
@@ -1610,11 +1621,14 @@ def _refresh_after_dice_change(
     for pid, entries in combat.rolls.items():
         for entry in entries:
             entry["hits"] = _entry_hits(state, pid, combat, entry)
+    extra = _extra_hits(state, combat, hits_by)
+    hits_by = {pid: hits + extra[pid] for pid, hits in hits_by.items()}
     combat.pending_hits = {
         combat.defender: hits_by[combat.attacker],
         combat.attacker: hits_by[combat.defender],
     }
     combat.log[-1]["hits"] = hits_by
+    combat.log[-1]["extra"] = extra
     combat.log[-1]["rolls"] = combat.rolls
     for pid in (combat.defender, combat.attacker):
         if pid == NEUTRAL_PLAYER_ID:
@@ -1633,6 +1647,41 @@ def _refresh_after_dice_change(
         return state
     state.pending_window = None
     return _after_losses(state, grid, registry)
+
+
+def _recount_dice(state: GameState, combat: ActiveCombat, owner: str) -> int:
+    """Po zmianie kości ``owner`` (MUTUJE): jego trafienia od nowa + dodatkowe trafienia (VPW).
+
+    Trafienia ``owner`` przeciw przeciwnikowi liczone od nowa (kości + ``_extra_hits``). Dodatkowe
+    trafienie PRZECIWNIKA zależy od trafień ``owner`` (VPW: „if your opponent produced 1 or more
+    hits”), więc jego pula zmienia się tylko o różnicę - wcześniejsze anulowania zostają.
+    Zwraca nowe trafienia ``owner``.
+    """
+    opponent = combat.defender if owner == combat.attacker else combat.attacker
+    for entry in combat.rolls.get(owner, []):
+        entry["hits"] = _entry_hits(state, owner, combat, entry)
+    dice_hits = {
+        pid: sum(int(e["hits"]) for e in combat.rolls.get(pid, []))
+        for pid in (combat.attacker, combat.defender)
+    }
+    last: dict[str, Any] = combat.log[-1] if combat.log else {}
+    before = {str(k): int(v) for k, v in (last.get("extra") or {}).items()}
+    extra = _extra_hits(state, combat, dice_hits)
+    total = dice_hits[owner] + extra[owner]
+    combat.pending_hits[opponent] = total
+    delta = extra[opponent] - before.get(opponent, 0)
+    if delta:
+        combat.pending_hits[owner] = max(0, combat.pending_hits.get(owner, 0) + delta)
+        window = state.pending_window
+        if delta > 0 and window is not None and owner not in window.queue:
+            window.queue = [*window.queue, owner]
+    if combat.log:
+        last.setdefault("rolls", {})[owner] = combat.rolls.get(owner, [])
+        hits = last.setdefault("hits", {})
+        hits[owner] = total
+        hits[opponent] = dice_hits[opponent] + extra[opponent]
+        last["extra"] = extra
+    return total
 
 
 def reroll_combat_dice(
@@ -1656,16 +1705,8 @@ def reroll_combat_dice(
         value = rng.randint(1, DIE_SIDES)
         rolls[index]["dice"][die] = value
         results.append(value)
-    total = 0
-    for entry in rolls:
-        entry["hits"] = _entry_hits(state, owner, combat, entry)
-        total += int(entry["hits"])
+    total = _recount_dice(state, combat, owner)
     opponent = combat.defender if owner == combat.attacker else combat.attacker
-    combat.pending_hits[opponent] = total
-    if combat.log:
-        last = combat.log[-1]
-        last.setdefault("rolls", {})[owner] = rolls
-        last.setdefault("hits", {})[owner] = total
     window = state.pending_window
     if total > 0 and window is not None and opponent not in window.queue:
         window.queue = [*window.queue, opponent]
@@ -1699,16 +1740,8 @@ def boost_combat_dice(
         boosted = dict(entry.get("boosted", {}))
         boosted[source] = sorted({*boosted.get(source, []), die})
         entry["boosted"] = boosted
-    total = 0
-    for entry in rolls:
-        entry["hits"] = _entry_hits(state, owner, combat, entry)
-        total += int(entry["hits"])
+    total = _recount_dice(state, combat, owner)
     opponent = combat.defender if owner == combat.attacker else combat.attacker
-    combat.pending_hits[opponent] = total
-    if combat.log:
-        last = combat.log[-1]
-        last.setdefault("rolls", {})[owner] = rolls
-        last.setdefault("hits", {})[owner] = total
     window = state.pending_window
     if (
         combat.step is CombatStep.ASSIGN

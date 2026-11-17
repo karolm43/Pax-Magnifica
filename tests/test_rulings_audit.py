@@ -35,6 +35,7 @@ from src.core.hooks.factions import mentak, sardakk, winnu
 from src.core.registry import StaticDataRegistry
 from src.core.transaction import TransactionSide
 from tests.factions import test_hacan, test_mentak, test_sardakk
+from tests.rulings import ruling
 from tests.test_agenda_effects import _resolve
 from tests.test_agenda_effects import _state as _agenda_state
 from tests.test_reactions_tactical import ACTIVE, _capture_state, _play
@@ -252,6 +253,7 @@ def test_produkcja_wymaga_wskazania_zrodla_przy_pustej_rezerwie(
 # --- F_norr ---------------------------------------------------------------------------------
 
 
+@ruling("F_norr/ghom-sekkus/8.5")
 def test_ghom_sekkus_nie_przez_wormhole_przy_travel_ban(registry: StaticDataRegistry) -> None:
     """F_norr: „cannot commit ground forces through a wormhole if Enforced Travel Ban…”."""
     grid = HexGrid()

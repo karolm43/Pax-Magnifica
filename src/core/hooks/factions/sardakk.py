@@ -21,10 +21,12 @@ from src.core import (
     ion_storm,
     leaders,
     movement,
+    planet_stats,
     promissory_play,
     retreat,
     rules_hooks,
     technology,
+    triggers,
     unit_ops,
 )
 from src.core import offer_inputs as oi
@@ -38,7 +40,9 @@ from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
     POINT_COMBAT_EXTRA_HITS,
     POINT_COMBAT_ROLL_MODIFIER,
+    POINT_INVASION_COMMIT_FROM_PLANETS,
     POINT_INVASION_SKIP_BOMBARDMENT,
+    POINT_MOVEMENT_IGNORE_OWN_CC,
     SOURCE_BREAKTHROUGH,
     SOURCE_EFFECT,
     SOURCE_FACTION,
@@ -225,6 +229,9 @@ def exotrireme(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None
         counts[base_type] = counts.get(base_type, 0) + 1
     for base_type, count in counts.items():
         unit_ops.remove_units(state, system, "space", enemy, base_type, count, UnitCause.DESTROYED)
+    # „destroy THIS unit”: każdy Exotrireme II osobno - kolejna oferta, póki są on i cele; z Yin
+    # zdolności końca rundy na zmianę (F_norr, ``triggers.repeat_offer``).
+    triggers.repeat_offer(state, player_id, f"technologies:{EXOTRIREME_TECH}", ctx)
 
 
 # ------------------------------------------------------------------------- Tekklar Legion
@@ -368,7 +375,11 @@ def _commander_sources(
     if not blocked and not promissory_play.ceasefire_blocks(state, player_id):
         for position in sorted(board_graph.adjacent_positions(inv.position)):
             system = state.systems.get(position)
-            if system is None or player_id in system.command_tokens:
+            if system is None or (
+                player_id in system.command_tokens
+                # Dominus Orb (F_norr): purge w ruchu - źródła także z systemów z żetonem.
+                and not rules_hooks.permits(POINT_MOVEMENT_IGNORE_OWN_CC, state, player_id)
+            ):
                 continue
             if movement.wormhole_link_blocked(grid, state, player_id, position, inv.position):
                 continue
@@ -397,6 +408,15 @@ def _commander_window(state: GameState, registry: StaticDataRegistry, player_id:
     return None
 
 
+@register(
+    POINT_INVASION_COMMIT_FROM_PLANETS, HookSource(SOURCE_LEADER, COMMANDER), HookKind.PERMIT
+)
+def commander_opens_commit(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> bool:
+    """F_norr: G'hom Sek'kus działa także bez statków w aktywnym systemie - inwazja otwiera
+    Commit Ground Forces, gdy są siły do przesunięcia z planet."""
+    return bool(_commander_sources(state, _registry(), player_id))
+
+
 @register_effect_inputs(f"leaders:{COMMANDER}")
 def commander_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
@@ -405,7 +425,11 @@ def commander_inputs(
     inv = state.invasion
     if inv is None:
         return []
-    targets = invasion.system_planets(state, registry, inv.position)
+    # F_norr: nie na planetę z Demilitarized Zone.
+    targets = [
+        p for p in invasion.system_planets(state, registry, inv.position)
+        if not planet_stats.is_demilitarized(state, p)
+    ]
     inputs: list[dict[str, Any]] = []
     for position, planet, types in _commander_sources(state, registry, player_id):
         options = [oi.option(_NONE, "None")]
@@ -499,6 +523,8 @@ def tekklar_conditioning(
     "Commit Ground Forces" step. If you do, after you commit ground forces to land on planets, purge
     this card and return each of your ships in the active system to your reinforcements."""
     active_effects.add_effect(state, HERO_EFFECT, Duration.TACTICAL_ACTION, owner=player_id)
+    # F_norr: zdolności „after a player moves ships…” przepadają (okno kart znika ze zmianą kroku).
+    triggers.drop_offers(state, GameEvent.SHIPS_MOVED, Moment.AFTER)
     ion_storm.flip_used(state)  # koniec kroku Move Ships (jak tactical.set_step)
     state.tactical_step = TacticalStep.INVASION
     state.active_combat = None

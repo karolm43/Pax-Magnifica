@@ -821,3 +821,19 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   (`transaction.validate_transaction` przyjmuje tylko fazę akcji).
 - QA: pytest 2714 ✓ (test_undo_move niestabilny — pada też bez zmian), ruff ✓, mypy ✓, tsc ✓, eslint ✓,
   vitest battle ✓. Bez build/e2e (drobna notka w BattleCenter). Wymaga restartu backendu.
+
+## 2026-11-17 — Audyt rulingów Sardakk N'orr
+
+- Valkyrie Particle Weave: przerzut/premia kości przed przypisaniem strat (Fire Team, War Funding,
+  Wrath of Kenara, relikty) gubiły dodatkowe trafienie — `battle._recount_dice` + `_extra_hits`
+  przeliczają je razem z kośćmi; Fire Team idzie przez `battle.reroll_combat_dice`.
+  ⚠️ ZAŁOŻENIE: VPW patrzy na trafienia przeciwnika po zmianach kości.
+- Exotrireme II: każdy egzemplarz osobno (`triggers.repeat_offer`); z Yin na zmianę od atakującego
+  (gracz z ponowioną ofertą staje na końcu kolejki REACTION).
+- G'hom Sek'kus: działa bez statków w aktywnym systemie (PERMIT `invasion.commit_from_planets`),
+  Dominus Orb dopuszcza źródła z żetonem, nie na Demilitarized Zone. DMZ blokuje teraz każde
+  lądowanie (`planet_stats.is_demilitarized` w `invasion.commit_*`).
+- Tekklar Conditioning: oferty „po ruchu statków” przepadają.
+- `tests/factions/test_rulings_sardakk.py` (24 testy), `@ruling` w `test_sardakk.py` i
+  `test_rulings_audit.py`; statusy: Harrow (L1Z1X), Magmus Reactor (Muaat). Sardakk zdjęty z UNAUDITED.
+- RULES.md 62.1.

@@ -45,6 +45,13 @@ class EffectivePlanets:
 
 
 _STAT_SUFFIX = "stat"
+# Demilitarized Zone: „Units cannot be committed to, produced on, or placed on this planet.”
+DMZ_ATTACHMENT = "dmz"
+
+
+def is_demilitarized(state: GameState, planet_id: str) -> bool:
+    """Czy na planecie leży Demilitarized Zone (nie wolno na nią lądować ani stawiać jednostek)."""
+    return DMZ_ATTACHMENT in state.planet_attachments.get(planet_id, [])
 
 
 def attachment_defs(

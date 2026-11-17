@@ -38,6 +38,7 @@ from src.core.hooks import reactions_combat
 from src.core.hooks.factions import sardakk
 from src.core.registry import StaticDataRegistry
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -106,6 +107,7 @@ def test_frakcja_kompletna(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------- Unrelenting + flagowiec
 
 
+@ruling("abilities:unrelenting#1", "units:sardakk_flagship#1")
 def test_unrelenting_i_flagowiec(registry: StaticDataRegistry) -> None:
     state = _state()
     system = state.systems["102"]
@@ -121,6 +123,7 @@ def test_unrelenting_i_flagowiec(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------ Valkyrie (VPW, mech)
 
 
+@ruling("technologies:vpw#1")
 def test_valkyrie_particle_weave(registry: StaticDataRegistry) -> None:
     state = _state()
     ctx = {"kind": "ground", "opponent_hits": 1, "own_hits": 0}
@@ -132,6 +135,7 @@ def test_valkyrie_particle_weave(registry: StaticDataRegistry) -> None:
     assert rules_hooks.modify(point, state, "p1", 0, {**ctx, "kind": "space"}) == 0
 
 
+@ruling("units:sardakk_mech#1")
 def test_mech_po_sustain_zadaje_trafienie_i_wraca_do_kolejki(registry: StaticDataRegistry) -> None:
     state = _state()
     _combat(state, "ground", CombatStep.ASSIGN)
@@ -163,6 +167,7 @@ def _round_end_ctx() -> dict[str, Any]:
     }
 
 
+@ruling("F_norr/exotrireme/1")
 def test_exotrireme_niszczy_do_2_statkow(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["exo2"]
@@ -175,6 +180,7 @@ def test_exotrireme_niszczy_do_2_statkow(registry: StaticDataRegistry) -> None:
     assert after.systems["102"].space_units["p2"] == {"cruiser": 1}
 
 
+@ruling("F_norr/exotrireme/3")
 def test_exotrireme_po_odwrocie_przeciwnika_brak_oferty(registry: StaticDataRegistry) -> None:
     """F_norr: gdy przeciwnik się wycofuje, Exotrireme II nie działa."""
     state = _state()
@@ -199,6 +205,7 @@ def test_exotrireme_bez_technologii_brak_oferty(registry: StaticDataRegistry) ->
     assert state.pending_offers == []
 
 
+@ruling("technologies:exo2#3")
 def test_direct_hit_nie_celuje_w_exotrireme_ii(registry: StaticDataRegistry) -> None:
     state = _state()
     combat = _combat(state, "space", CombatStep.ASSIGN)
@@ -215,6 +222,7 @@ def test_direct_hit_nie_celuje_w_exotrireme_ii(registry: StaticDataRegistry) -> 
 # ---------------------------------------------------------------------------- Tekklar Legion
 
 
+@ruling("promissory_notes:tekklar#1", "promissory_notes:tekklar#2", "promissory_notes:tekklar#3")
 def test_tekklar_legion_bonus_i_kara(registry: StaticDataRegistry) -> None:
     state = _state()
     _combat(state, "ground", CombatStep.ROLL)
@@ -241,6 +249,7 @@ def test_tekklar_poza_walka_naziemna(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------------------- T'ro
 
 
+@ruling("leaders:sardakkagent#1")
 def test_agent_tro_daje_piechote_aktywnemu(registry: StaticDataRegistry) -> None:
     state = _state(sardakk_active=False)
     state.systems["102"].planet_owners["industrex"] = "p2"
@@ -264,6 +273,7 @@ def test_agent_tro_bez_planety_aktywnego_brak_oferty(registry: StaticDataRegistr
 # --------------------------------------------------------------------------- G'hom Sek'kus
 
 
+@ruling("leaders:sardakkcommander#unlock")
 def test_commander_odblokowanie_planety_poza_domami(registry: StaticDataRegistry) -> None:
     state = _state()
     for i in range(5):
@@ -276,6 +286,7 @@ def test_commander_odblokowanie_planety_poza_domami(registry: StaticDataRegistry
     assert leaders.state_of(state, registry, "p1", "sardakkcommander") == leaders.UNLOCKED
 
 
+@ruling("leaders:sardakkcommander#1")
 def test_commander_laduje_z_sasiedniej_planety(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"sardakkcommander": "unlocked"}
@@ -333,6 +344,7 @@ def _ghom_state() -> GameState:
     return state
 
 
+@ruling("F_norr/ghom-sekkus/8", "F_norr/ghom-sekkus/8.2")
 def test_commander_nie_do_asteroid_ani_supernowej(registry: StaticDataRegistry) -> None:
     """F_norr: siły muszą legalnie wejść do aktywnego systemu (Mirage w asteroidach/supernowej)."""
     previous = board_graph._PROVIDER
@@ -348,6 +360,7 @@ def test_commander_nie_do_asteroid_ani_supernowej(registry: StaticDataRegistry) 
         board_graph.bind_grid_provider(previous)
 
 
+@ruling("F_norr/ghom-sekkus/8.4")
 def test_commander_z_gravity_rift_rzuca(registry: StaticDataRegistry) -> None:
     """F_norr: siły wychodzące z systemu z gravity rift rzucają na usunięcie (1–3)."""
     previous = board_graph._PROVIDER
@@ -370,6 +383,10 @@ def test_commander_z_gravity_rift_rzuca(registry: StaticDataRegistry) -> None:
 # ----------------------------------------------------------------- Sh'val (Tekklar Conditioning)
 
 
+@ruling(
+    "leaders:sardakkhero#1", "leaders:sardakkhero#2",
+    "F_norr/shval-harbinger-tekklar-conditioning/2",
+)
 def test_hero_pomija_do_ladowania_i_zwraca_statki(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"sardakkhero": "unlocked"}
@@ -399,6 +416,7 @@ def test_hero_przed_ruchem_niedostepny(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------- N'orr Supremacy (BT)
 
 
+@ruling("breakthroughs:sardakkbt#1")
 def test_przelom_po_wygranej_walce_zeton(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True
@@ -411,6 +429,7 @@ def test_przelom_po_wygranej_walce_zeton(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].fleet_cc == fleet + 1
 
 
+@ruling("F_norr/norr-supremacy/1")
 def test_przelom_badanie_ulepszenia(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

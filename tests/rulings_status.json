@@ -69,5 +69,13 @@
   "F_letnev/rear-admiral-farran/2.1": {
     "requires": ["faction:titans"],
     "reason": "Ul z notką Alliance Letneva: Farran przy Sustain Damage Hel-Titan PDS."
+  },
+  "F_norr/ghom-sekkus/6.1": {
+    "requires": ["faction:l1z1x"],
+    "reason": "Harrow L1Z1X przy inwazji N'orr (tylko aktywny gracz bombarduje - test ghom-sekkus/6)."
+  },
+  "F_norr/ghom-sekkus/8.3": {
+    "requires": ["faction:muaat"],
+    "reason": "Magmus Reactor Muaat + Alliance N'orr: lądowanie z supernowej. Część o N'orr (Mirage w supernowej niedostępna) ma test test_commander_nie_do_asteroid_ani_supernowej."
   }
 }

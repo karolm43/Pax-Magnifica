@@ -22,6 +22,7 @@ from src.core import (
     custodians,
     exhaust,
     exploration,
+    planet_stats,
     rules_hooks,
     space_cannon,
     triggers,
@@ -47,6 +48,7 @@ from src.core.unit_ops import UnitCause
 
 # Siły naziemne (mogą lądować i walczyć na planecie); struktury (pds/spacedock) NIE.
 GROUND_FORCES = frozenset({"infantry", "mech"})
+_DMZ_REASON = "Units cannot be committed to a planet with the Demilitarized Zone."
 
 
 # ----------------------------------------------------------------------------- modele
@@ -303,6 +305,10 @@ def begin_invasion(
     # RULES.md 40.1 I7a: sporna planeta (siły aktywnego obok cudzych, np. po Crash Landing) też
     # otwiera inwazję - walka naziemna wybucha bez lądowania.
     landable = landable or bool(_contested(new_state, registry, active, attacker))
+    # Lądowanie prosto z planet (G'hom Sek'kus) - także bez statków i sił w przestrzeni (F_norr).
+    landable = landable or rules_hooks.permits(
+        rules_hooks.POINT_INVASION_COMMIT_FROM_PLANETS, new_state, attacker
+    )
     # Tekklar Conditioning (RULES.md 62.1): prosto do Commit Ground Forces, bez Bombardment.
     skip_bombard = rules_hooks.permits(
         rules_hooks.POINT_INVASION_SKIP_BOMBARDMENT, new_state, attacker
@@ -705,6 +711,8 @@ def commit_ground_forces(
                     "The Custodians token blocks landing on Mecatol Rex - "
                     "remove it first (spend 6 influence)."
                 )
+            if planet_stats.is_demilitarized(state, planet):
+                raise ValueError(_DMZ_REASON)
             if base_type not in GROUND_FORCES:
                 raise ValueError(f"{base_type} is not a ground force.")
             wanted[base_type] = wanted.get(base_type, 0) + count
@@ -796,6 +804,8 @@ def apply_commit_from_planets(
             raise ValueError(
                 "The Custodians token blocks landing on Mecatol Rex - remove it first."
             )
+        if planet_stats.is_demilitarized(new_state, dest):
+            raise ValueError(_DMZ_REASON)
         if base_type not in GROUND_FORCES:
             raise ValueError(f"{base_type} is not a ground force.")
         source = new_state.systems.get(position)

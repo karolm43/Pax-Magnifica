@@ -1068,17 +1068,6 @@ def _fire_team_condition(
     return _opponent(combat, player_id) not in _responded(state)
 
 
-def _die_hits(state: GameState, combat: ActiveCombat, player_id: str, entry: dict[str, Any]) -> int:
-    """Trafienia jednej grupy rzutów (jak w ``battle.roll_round``: modyfikator, mnożnik)."""
-    hits = count_hits(
-        [int(d) + int(entry["modifier"]) for d in entry["dice"]], int(entry["hitsOn"])
-    )
-    return hits * rules_hooks.modify(
-        rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, player_id, 1,
-        {"kind": combat.kind, "base_type": entry["baseType"]},
-    )
-
-
 @register_effect("action_cards:fire_team")
 def fire_team(
     state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
@@ -1086,8 +1075,8 @@ def fire_team(
     """Fire Team: Reroll any number of your dice.
 
     Modyfikatory z pierwotnego rzutu obowiązują przy przerzucie (C_action_cards). Trafienia
-    przeciwnika są liczone od nowa; gdy nie był w kolejce przypisania, a ma teraz trafienia,
-    dołącza do niej.
+    przeciwnika są liczone od nowa (``battle.reroll_combat_dice``: z premiami kości i trafieniem
+    Valkyrie Particle Weave); gdy nie był w kolejce przypisania, a ma teraz trafienia, dołącza.
     """
     combat = _combat(state)
     picked = params.get("dice")
@@ -1104,29 +1093,7 @@ def fire_team(
         if not (0 <= index < len(rolls)) or not (0 <= die < len(rolls[index]["dice"])):
             raise ValueError(f"Unknown die: {token}")
         chosen.add((index, die))
-    rng = next_rng(state)
-    results: list[int] = []
-    for index, die in sorted(chosen):
-        value = rng.randint(1, DIE_SIDES)
-        rolls[index]["dice"][die] = value
-        results.append(value)
-    total = 0
-    for entry in rolls:
-        entry["hits"] = _die_hits(state, combat, player_id, entry)
-        total += int(entry["hits"])
-    opponent = _opponent(combat, player_id)
-    combat.pending_hits[opponent] = total
-    if combat.log:
-        last = combat.log[-1]
-        last.setdefault("rolls", {})[player_id] = rolls
-        last.setdefault("hits", {})[player_id] = total
-    window = state.pending_window
-    if total > 0 and window is not None and opponent not in window.queue:
-        window.queue = [*window.queue, opponent]
-    record_table_roll(
-        state, player_id, "fire_team", "Fire Team", results,
-        summary=f"{total} hit(s) after the reroll.",
-    )
+    battle.reroll_combat_dice(state, player_id, chosen, "fire_team", "Fire Team")
 
 
 @register_effect_inputs("action_cards:fire_team")
