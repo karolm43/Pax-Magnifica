@@ -884,3 +884,28 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   `ChatPanel.test.tsx`.
 - QA: pytest 2800 ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (chat, agenda, TurnControls, network) ✓,
   build ✓. e2e pominięte — port :5273 zajęty (inna sesja). Wymaga restartu backendu (nowe trasy).
+
+## 2026-11-17 — Decyzje rulingów (VPW, Auto-Factories, Darktalon, Construction) + stonowane tło bitwy
+
+- Decyzje użytkownika (RULES.md 62.1/62.2/62.5/62.6, 30.12):
+  - Valkyrie Particle Weave: trafienia przeciwnika liczone po przerzutach i premiach do kości (kod
+    już tak działał) — ⚠️ zamienione na ✅.
+  - Auto-Factories (Hacan): liczą się statki niemyśliwskie z CAŁEJ akcji (suma zamówień,
+    `production_placed`); żeton raz na akcję — przy zamówieniu przekraczającym próg 3 (`_many_ships`).
+  - Darktalon Treilla: przegląd praw w aktywnych źródłach — jedyne to Fleet Regulations (limituje
+    żetony puli floty), więc PERMIT `fleet_pool.unlimited` pokrywa „not limited by laws”. Bez zmian kodu.
+  - Construction: przy pustej rezerwie struktura może być zdjęta z systemu bez własnego żetonu
+    (R_component_limitations), w primary i secondary. `placeable_structures(allow_board=True)`,
+    nowe `structure_board_sources`, payload `source`. UI: po wyborze planety drugi klik NA MAPIE
+    wskazuje planetę źródłową („Change planet” wraca do wyboru celu).
+- Okno bitwy kosmicznej: tło stonowane (przygaszona mgławica, nieruchome gwiazdy; usunięte smugi
+  pyłu i błyski odległych wybuchów). Ruch przeniesiony na okręty: dryf z lekkim przechyłem,
+  rzadkie ciągi korekcyjne dysz, powolne „żeglowanie” szeregów po wlocie (`rankCruise`).
+- Naprawiony powtarzany wlot floty: w StrictMode efekt startu był wołany dwa razy i drugi raz
+  wychodził przed ustawieniem `entered`, więc formacja zostawała „w trakcie wlotu” i każda zmiana
+  animacji okrętu odpalała `fleetFly` od nowa. Teraz `ENTRY_START` pamięta chwilę startu, ponowny
+  montaż dokańcza pozostały czas (dźwięki też liczone od startu).
+- Testy: `test_strategy_construction_warfare.py` (+2), `test_rulings_hacan.py` (+1), `test_hacan.py`.
+- QA: pytest (tests/factions, strategy) 606 ✓, ruff ✓ (poza `tests/rulings.py` z równoległej sesji),
+  mypy ✓ (zmienione moduły), tsc ✓, eslint ✓, vitest battle+strategy ✓. Pełny pytest, build i e2e
+  pominięte (zmiany punktowe, bez nowych importów). Wymaga restartu backendu.

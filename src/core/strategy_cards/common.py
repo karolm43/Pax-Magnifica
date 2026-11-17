@@ -121,6 +121,18 @@ def board_structure_sources(
     return sorted(z for z in zones if z not in ("space", target_planet))
 
 
+def structure_board_sources(state: GameState, player_id: str) -> dict[str, list[str]]:
+    """Struktura → planety, z których trzeba ją zdjąć, bo rezerwa jest pusta (dla UI na mapie).
+
+    Bez wykluczenia planety docelowej — wołający pomija planetę, na którą stawia.
+    """
+    return {
+        structure: board_structure_sources(state, player_id, structure, "")
+        for structure in STRUCTURE_LIMIT_PER_PLANET
+        if needs_board_source(state, player_id, structure)
+    }
+
+
 def needs_board_source(state: GameState, player_id: str, structure: str) -> bool:
     """Czy postawienie struktury wymaga zdjęcia jej z planszy (rezerwa pusta)."""
     from src.core import board_reinforcements  # lokalnie: unika cyklu importów
@@ -161,18 +173,23 @@ def structure_problem(
     if left is not None and left <= 0:
         if allow_board and board_structure_sources(state, player_id, structure, planet_id):
             return None
-        # Bez ``allow_board`` (karta Construction) zdjęcie z planszy nie jest jeszcze oferowane.
         return f"No {structure} left in your reinforcements."
     return None
 
 
-def placeable_structures(state: GameState, player_id: str) -> dict[str, list[str]]:
-    """Planeta → struktury, które gracz może tam teraz położyć."""
+def placeable_structures(
+    state: GameState, player_id: str, *, allow_board: bool = False
+) -> dict[str, list[str]]:
+    """Planeta → struktury, które gracz może tam teraz położyć.
+
+    ``allow_board`` — przy pustej rezerwie liczy się też struktura zdjęta z planszy
+    (R_component_limitations; źródła: ``structure_board_sources``).
+    """
     result: dict[str, list[str]] = {}
     for planet_id in owned_planets(state, player_id):
         options = [
             s for s in STRUCTURE_LIMIT_PER_PLANET
-            if structure_problem(state, player_id, planet_id, s) is None
+            if structure_problem(state, player_id, planet_id, s, allow_board=allow_board) is None
         ]
         if options:
             result[planet_id] = options

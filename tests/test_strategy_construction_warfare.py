@@ -124,6 +124,52 @@ def test_construction_reinforcements_limit(registry: StaticDataRegistry) -> None
         )
 
 
+def test_construction_empty_reinforcements_moves_structure_from_board(
+    registry: StaticDataRegistry,
+) -> None:
+    """R_component_limitations: pusta rezerwa => gracz może zdjąć PDS z systemu bez swojego
+    żetonu dowodzenia i postawić go od razu (RULES.md 30.12; to samo co Reclamation)."""
+    state = _state(4)
+    state.systems["101"].planet_owners.update({"a": "p1", "b": "p1", "c": "p1"})
+    for planet in ("a", "b", "c"):
+        state.systems["101"].planet_units[planet] = {"p1": {"pds": 2}}
+    state = strategic_action.play_strategy_card(state, registry, "p1", 4)
+    state = strategic_action.submit_primary_step(
+        state, registry, "p1", {"option": "structure"}
+    )
+    prompt = strategic_action.step_options(state, registry, "p1")
+    assert prompt is not None
+    assert "pds" in prompt["options"]["placeable"]["jord"]
+    assert prompt["options"]["board_sources"]["pds"] == ["a", "b", "c"]
+    state = strategic_action.submit_primary_step(
+        state, registry, "p1", {"planet": "jord", "structure": "pds", "source": "a"}
+    )
+    assert _units(state, "101", "jord", "p1") == {"spacedock": 1, "pds": 1}
+    assert _units(state, "101", "a", "p1") == {"pds": 1}
+
+
+def test_construction_board_source_blocked_by_own_command_token(
+    registry: StaticDataRegistry,
+) -> None:
+    """Źródłem nie może być system z żetonem dowodzenia gracza - wtedy PDS nie ma skąd wziąć."""
+    state = _state(4)
+    state.systems["101"].planet_owners.update({"a": "p1", "b": "p1", "c": "p1"})
+    for planet in ("a", "b", "c"):
+        state.systems["101"].planet_units[planet] = {"p1": {"pds": 2}}
+    state.systems["101"].command_tokens.append("p1")
+    state = strategic_action.play_strategy_card(state, registry, "p1", 4)
+    state = strategic_action.submit_primary_step(
+        state, registry, "p1", {"option": "structure"}
+    )
+    prompt = strategic_action.step_options(state, registry, "p1")
+    assert prompt is not None
+    assert "pds" not in prompt["options"]["placeable"].get("jord", [])
+    with pytest.raises(ValueError, match="reinforcements"):
+        strategic_action.submit_primary_step(
+            state, registry, "p1", {"planet": "jord", "structure": "pds", "source": "a"}
+        )
+
+
 def test_construction_production_option_uses_one_dock_then_places(
     registry: StaticDataRegistry,
 ) -> None:

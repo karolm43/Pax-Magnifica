@@ -4,8 +4,8 @@ import fx from "./BattleAmbience.module.css";
 /**
  * TŁO W RUCHU pola floty (czysta dekoracja, bez wpływu na klik i stan), rysowane W PANELU
  * strony pod jednostkami (wcześniej leżało pod panelami i nie było go widać):
- * - kosmos: mgławica w barwie strony, dwie warstwy gwiazd (paralaksa), pył kosmiczny
- *   przelatujący ku wrogowi i błyski odległych wybuchów;
+ * - kosmos: STONOWANE — przygaszona mgławica w barwie strony i nieruchome gwiazdy (decyzja
+ *   użytkownika 2026-11-17: bez smug pyłu i błysków; ruch jest w okrętach, nie w tle);
  * - ziemia: błyski artylerii nad horyzontem, podmuchy pyłu przy ziemi, żar i dym.
  * Pozycje są stałe (deterministyczne), więc tło nie „skacze" przy przerysowaniu.
  */
@@ -20,8 +20,6 @@ function vars(v: Record<string, string | number>): CSSProperties {
   return v as CSSProperties;
 }
 
-const SPACE_FLASHES = 6;
-const DUST = 14;
 const GROUND_FLASHES = 4;
 const EMBERS = 16;
 const GUSTS = 5;
@@ -82,33 +80,7 @@ export function BattleAmbience({
     <div className={fx.ambience} data-kind="space" aria-hidden="true">
       <i className={fx.nebula} />
       <i className={fx.starsFar} />
-      <i className={fx.starsNear} data-side={side} />
-      {Array.from({ length: DUST }, (_, i) => (
-        <i
-          key={`d${i}`}
-          className={fx.dust}
-          style={vars({
-            "--y": `${24 + rnd(i, salt + 11) * 48}%`,
-            "--d": `${(-rnd(i, salt + 12) * 6).toFixed(2)}s`,
-            "--t": `${(2.5 + rnd(i, salt + 13) * 3).toFixed(2)}s`,
-            "--len": `${(30 + rnd(i, salt + 14) * 70).toFixed(0)}px`,
-            "--dir": dir,
-          })}
-        />
-      ))}
-      {Array.from({ length: SPACE_FLASHES }, (_, i) => (
-        <i
-          key={`f${i}`}
-          className={fx.farFlash}
-          style={vars({
-            "--x": `${8 + rnd(i, salt + 15) * 84}%`,
-            "--y": `${24 + rnd(i, salt + 16) * 48}%`,
-            "--d": `${(rnd(i, salt + 17) * 10).toFixed(2)}s`,
-            "--t": `${(6 + rnd(i, salt + 18) * 6).toFixed(2)}s`,
-            "--s": (0.5 + rnd(i, salt + 19) * 0.9).toFixed(2),
-          })}
-        />
-      ))}
+      <i className={fx.starsNear} />
     </div>
   );
 }

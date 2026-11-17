@@ -171,12 +171,20 @@ function wingPlaces(n: number, slot: number, side: "left" | "right") {
 /*
  * Wlot floty gra RAZ na bitwę — także gdy okno schowano („Hide") i otwarto ponownie, co
  * montuje pole od nowa. Klucz = system + rodzaj + planeta + strona; czyszczone po walce.
+ * Trzymamy CHWILĘ STARTU wlotu (nie samą flagę): ponowny montaż (StrictMode, Hide) dokańcza
+ * pozostały czas, zamiast zostawić formację na zawsze „w trakcie wlotu" — wtedy każda zmiana
+ * animacji okrętu (trafienie, celowanie) odpalała `fleetFly` od nowa i flota wlatywała znowu.
  */
-const ENTERED = new Set<string>();
+const ENTRY_START = new Map<string, { at: number; ms: number }>();
+
+function entryDone(key: string, now: number): boolean {
+  const entry = ENTRY_START.get(key);
+  return entry != null && now - entry.at >= entry.ms;
+}
 
 /** Po zakończeniu walki kolejna bitwa w tym samym miejscu znów ma wlot floty. */
 export function resetFleetEntries(): void {
-  ENTERED.clear();
+  ENTRY_START.clear();
 }
 
 /**
@@ -672,17 +680,29 @@ export function BattleFleet({
   onToggle: (ship: ShipEntity) => void;
 }) {
   // Wejście armady gra tylko raz na bitwę — ponowne otwarcie okna (Hide) go nie powtarza.
-  const [entered, setEntered] = useState(() => ENTERED.has(entryKey));
+  const [entered, setEntered] = useState(() => entryDone(entryKey, performance.now()));
   const { formationRef, fit } = useFormationFit(views);
   useCloseRanks(formationRef, views, fit, entered || skipEntry);
   useEffect(() => {
-    if (ENTERED.has(entryKey)) return;
-    ENTERED.add(entryKey);
+    const now = performance.now();
     const withWarSun = views.some((v) => v.ship.asyncId === "ws");
-    const t = window.setTimeout(
-      () => setEntered(true),
-      withWarSun ? ENTRY_WS_MS : ENTRY_MS,
-    );
+    const first = !ENTRY_START.has(entryKey);
+    if (first) ENTRY_START.set(entryKey, { at: now, ms: withWarSun ? ENTRY_WS_MS : ENTRY_MS });
+    const entry = ENTRY_START.get(entryKey)!;
+    const elapsed = now - entry.at;
+    if (elapsed >= entry.ms) {
+      setEntered(true);
+      return;
+    }
+    const t = window.setTimeout(() => setEntered(true), entry.ms - elapsed);
+    // Dźwięki w chwilach liczonych od STARTU wlotu: ponowny montaż w trakcie (StrictMode)
+    // dogrywa tylko te, które jeszcze nie padły; natychmiastowe (0 ms) grają raz.
+    const timers: number[] = [];
+    const at = (ms: number, play: () => void) => {
+      if (ms === 0 ? first : ms > elapsed) {
+        timers.push(window.setTimeout(play, Math.max(0, ms - elapsed)));
+      }
+    };
     // Dźwięk: narastający pomruk lotu floty, a w chwili osiadania ciężki łoskot
     // (głębszy, gdy w szyku jest war sun / flagowiec / dreadnought).
     preloadBattleSounds();
@@ -697,43 +717,27 @@ export function BattleFleet({
       // zgodne z `groundDrop` w CSS: start 0,5 s + 0,35 s na szereg, przyziemienie po ~1,05 s);
       // mechy dodatkowo ciężko przysiadają. Obrońca: mechy stają w gotowości.
       const hasMech = views.some((v) => v.ship.asyncId === "mf");
-      const at = (ms: number, play: () => void) => window.setTimeout(play, ms);
-      const sounds =
-        align === "left"
-          ? [
-              at(250, () => playBattleSound("dropPod", { pan, gain: 0.4 })),
-              ...ranks(views).flatMap((list, rank) => {
-                const land = 1550 + rank * 350;
-                const mech = list[0]?.ship.asyncId === "mf";
-                return [
-                  at(land, () => playBattleSound("podLand", { pan, gain: 0.5 })),
-                  ...(mech
-                    ? [at(land + 160, () => playBattleSound("mechStep", { pan, gain: 0.5 }))]
-                    : []),
-                ];
-              }),
-            ]
-          : hasMech
-            ? [at(500, () => playBattleSound("mechStep", { pan, gain: 0.45 }))]
-            : [];
-      return () => {
-        window.clearTimeout(t);
-        sounds.forEach((d) => window.clearTimeout(d));
-      };
+      if (align === "left") {
+        at(250, () => playBattleSound("dropPod", { pan, gain: 0.4 }));
+        ranks(views).forEach((list, rank) => {
+          const land = 1550 + rank * 350;
+          at(land, () => playBattleSound("podLand", { pan, gain: 0.5 }));
+          if (list[0]?.ship.asyncId === "mf") {
+            at(land + 160, () => playBattleSound("mechStep", { pan, gain: 0.5 }));
+          }
+        });
+      } else if (hasMech) {
+        at(500, () => playBattleSound("mechStep", { pan, gain: 0.45 }));
+      }
+    } else {
+      at(0, () => playBattleSound("fleetEnter", { pan, gain: 0.3 }));
+      // War sun: własny dźwięk (assets/extra/sfx/warSunEnter.mp3), gdy szczelina się otwiera.
+      if (withWarSun) at(1600, () => playBattleSound("warSunEnter", { pan, gain: 0.5 }));
+      at(4500, () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan, gain: 0.4 }));
     }
-    playBattleSound("fleetEnter", { pan, gain: 0.3 });
-    // War sun: własny dźwięk (assets/extra/sfx/warSunEnter.mp3), gdy szczelina się otwiera.
-    const warp = withWarSun
-      ? window.setTimeout(() => playBattleSound("warSunEnter", { pan, gain: 0.5 }), 1600)
-      : undefined;
-    const thud = window.setTimeout(
-      () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan, gain: 0.4 }),
-      4500,
-    );
     return () => {
       window.clearTimeout(t);
-      window.clearTimeout(thud);
-      window.clearTimeout(warp);
+      timers.forEach((d) => window.clearTimeout(d));
     };
     // Tylko przy montowaniu: wejście floty gra raz.
   }, []);

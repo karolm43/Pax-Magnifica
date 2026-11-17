@@ -23,6 +23,7 @@ from src.core.strategy_cards.common import (
     placeable_structures,
     planet_position,
     start_standalone_production,
+    structure_board_sources,
 )
 
 INITIATIVE = 4
@@ -51,15 +52,27 @@ def docks(state: GameState, ctx: CardContext, player_id: str) -> list[dict[str, 
     return result
 
 
+def _placeable(state: GameState, player_id: str) -> dict[str, list[str]]:
+    """Legalne miejsca struktury; przy pustej rezerwie także zdjętej z planszy
+    (R_component_limitations - zdolność nie ZMUSZA, ale gracz może tak zrobić)."""
+    return placeable_structures(state, player_id, allow_board=True)
+
+
 def _place(state: GameState, owner_id: str, payload: dict[str, Any]) -> None:
-    """Krok położenia struktury; brak legalnego miejsca pozwala pominąć krok (``planet: null``)."""
+    """Krok położenia struktury; brak legalnego miejsca pozwala pominąć krok (``planet: null``).
+
+    ``source`` - planeta, z której gracz zdejmuje strukturę, gdy w rezerwie jej nie ma.
+    """
     planet = payload.get("planet")
-    if planet is None and not placeable_structures(state, owner_id):
+    if planet is None and not _placeable(state, owner_id):
         return
     structure = payload.get("structure")
     if not isinstance(planet, str) or not isinstance(structure, str):
         raise ValueError("Choose a planet and a structure (pds / spacedock).")
-    place_structure(state, owner_id, planet, structure)
+    source = payload.get("source")
+    place_structure(
+        state, owner_id, planet, structure, source=source if isinstance(source, str) else None
+    )
 
 
 def _on_step(
@@ -107,7 +120,7 @@ def _next_step(step: str, draft: Draft) -> str | None:
 def _secondary(
     state: GameState, _ctx: CardContext, player_id: str, payload: dict[str, Any]
 ) -> None:
-    if not placeable_structures(state, player_id):
+    if not _placeable(state, player_id):
         raise ValueError("You have no legal place for a structure.")
     _place(state, player_id, payload)
 
@@ -121,12 +134,16 @@ def _options(
 ) -> dict[str, Any]:
     if step == STEP_OPTION:
         return {"docks": docks(state, ctx, player_id), "can_place": bool(
-            placeable_structures(state, player_id)
+            _placeable(state, player_id)
         )}
     if step == STEP_DOCK:
         return {"docks": docks(state, ctx, player_id)}
     if step in (STEP_PLACE, STEP_PLACE_2, None):
-        return {"placeable": placeable_structures(state, player_id), "needs_input": True}
+        return {
+            "placeable": _placeable(state, player_id),
+            "board_sources": structure_board_sources(state, player_id),
+            "needs_input": True,
+        }
     return {}
 
 

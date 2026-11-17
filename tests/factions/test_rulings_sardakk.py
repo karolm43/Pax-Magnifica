@@ -157,8 +157,9 @@ def test_vpw_nie_przepada_przy_przerzucie(
 def test_vpw_gdy_przeciwnik_trafia_po_zmianie_kosci(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """⚠ ZAŁOŻENIE (RULES.md 62.1): VPW liczy trafienia przeciwnika po zmianach kości przed
-    przypisaniem strat - premia zamieniająca pudło w trafienie daje obowiązkowe trafienie VPW."""
+    """Decyzja użytkownika 2026-11-17 (RULES.md 62.1): VPW liczy trafienia przeciwnika po
+    przerzutach i premiach do kości, przed przypisaniem strat - premia zamieniająca pudło
+    w trafienie daje obowiązkowe trafienie VPW."""
     state = _ground_rolled(registry, monkeypatch, [1], [10], defender_units={"infantry": 1})
     combat = state.active_combat
     assert combat is not None and combat.pending_hits == {"p2": 1, "p1": 0}

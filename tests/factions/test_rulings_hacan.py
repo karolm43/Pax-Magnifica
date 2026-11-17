@@ -524,9 +524,29 @@ def test_pride_of_kenara_w_gravity_rift_rzut(
 @ruling("breakthroughs:hacanbt#1")
 def test_auto_factories_tylko_od_trzech_niemysliwcow(registry: StaticDataRegistry) -> None:
     state = _state()
+    state.production_placed = {"space": {"cruiser": 2}}
     assert not hacan._many_ships(state, "p1", {"player": "p1", "units": {"cruiser": 2}})
+    state.production_placed = {"space": {"cruiser": 3}}
     assert not hacan._many_ships(state, "p2", {"player": "p1", "units": {"cruiser": 3}})
+    state.production_placed = {"space": {"carrier": 3}}
     assert hacan._many_ships(state, "p1", {"player": "p1", "units": {"carrier": 3}})
+
+
+@ruling("breakthroughs:hacanbt#1")
+def test_auto_factories_suma_z_calej_akcji_raz_na_akcje(registry: StaticDataRegistry) -> None:
+    """Decyzja użytkownika 2026-11-17: statki z kilku zamówień w tej samej akcji sumują się;
+    żeton przychodzi raz - przy zamówieniu, które przekracza próg 3."""
+    state = _state()
+    # 1. zamówienie: 2 krążowniki (+ myśliwce się nie liczą) - jeszcze nie.
+    state.production_placed = {"space": {"cruiser": 2, "fighter": 2}}
+    first = {"player": "p1", "units": {"cruiser": 2, "fighter": 2}}
+    assert not hacan._many_ships(state, "p1", first)
+    # 2. zamówienie: 1 niszczyciel - razem 3 => przełom działa.
+    state.production_placed = {"space": {"cruiser": 2, "fighter": 2, "destroyer": 1}}
+    assert hacan._many_ships(state, "p1", {"player": "p1", "units": {"destroyer": 1}})
+    # 3. zamówienie w tej samej akcji: próg już przekroczony - drugi raz nie.
+    state.production_placed = {"space": {"cruiser": 2, "fighter": 2, "destroyer": 3}}
+    assert not hacan._many_ships(state, "p1", {"player": "p1", "units": {"destroyer": 2}})
 
 
 def test_window_use_cudzego_commandera_nie_dla_zablokowanego(

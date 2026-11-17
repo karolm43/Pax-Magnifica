@@ -139,8 +139,10 @@ def test_auto_factories_przy_trzech_statkach(registry: StaticDataRegistry) -> No
     state = _state()
     state.players["p1"].breakthrough_unlocked = True
     before = state.players["p1"].fleet_cc
+    state.production_placed = {"space": {"cruiser": 2, "fighter": 3}}
     ctx = {"player": "p1", "units": {"cruiser": 2, "fighter": 3}}
     assert not hacan._many_ships(state, "p1", ctx)
+    state.production_placed = {"space": {"cruiser": 2, "destroyer": 1}}
     ctx = {"player": "p1", "units": {"cruiser": 2, "destroyer": 1}}
     assert hacan._many_ships(state, "p1", ctx)
     hacan.auto_factories(state, "p1", ctx)

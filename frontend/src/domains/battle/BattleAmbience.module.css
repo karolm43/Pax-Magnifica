@@ -17,21 +17,21 @@
 
 /* ---------------- KOSMOS ---------------- */
 
-/* Mgławica w barwie strony + chłodne smugi — powoli dryfuje i „oddycha". */
+/* Mgławica w barwie strony — przygaszona, bardzo wolny dryf (tło nie odciąga wzroku od okrętów). */
 .nebula {
   inset: -25%;
   background:
-    radial-gradient(ellipse 40% 28% at 30% 40%, rgb(var(--side-rgb, 99 102 241) / 0.22), transparent 70%),
-    radial-gradient(ellipse 36% 30% at 72% 64%, rgba(56, 189, 248, 0.14), transparent 70%),
-    radial-gradient(ellipse 28% 18% at 55% 20%, rgba(168, 85, 247, 0.14), transparent 70%);
-  filter: blur(10px);
-  animation: nebulaDrift 40s ease-in-out infinite alternate;
+    radial-gradient(ellipse 40% 28% at 30% 40%, rgb(var(--side-rgb, 99 102 241) / 0.11), transparent 70%),
+    radial-gradient(ellipse 36% 30% at 72% 64%, rgba(56, 189, 248, 0.06), transparent 70%),
+    radial-gradient(ellipse 28% 18% at 55% 20%, rgba(168, 85, 247, 0.06), transparent 70%);
+  filter: blur(12px);
+  animation: nebulaDrift 90s ease-in-out infinite alternate;
 }
 
-/* Dalekie gwiazdy — gęste, drobne, wolny dryf. */
+/* Gwiazdy — nieruchome, przygaszone (bez migotania i przelotów). */
 .starsFar {
-  inset: -30%;
-  opacity: 0.7;
+  inset: 0;
+  opacity: 0.4;
   background-image:
     radial-gradient(1px 1px at 10% 20%, rgba(255, 255, 255, 0.8), transparent 60%),
     radial-gradient(1px 1px at 30% 70%, rgba(200, 220, 255, 0.7), transparent 60%),
@@ -39,59 +39,17 @@
     radial-gradient(1px 1px at 80% 85%, rgba(255, 240, 220, 0.7), transparent 60%),
     radial-gradient(1px 1px at 90% 10%, rgba(255, 255, 255, 0.7), transparent 60%);
   background-size: 180px 180px;
-  animation: starsFar 90s linear infinite;
 }
 
-/* Bliskie gwiazdy — jaśniejsze, szybsze (paralaksa), migoczą. */
 .starsNear {
-  inset: -30%;
+  inset: 0;
+  opacity: 0.45;
   background-image:
-    radial-gradient(2px 2px at 12% 18%, #fff, transparent 60%),
-    radial-gradient(1.5px 1.5px at 64% 42%, rgba(200, 220, 255, 0.95), transparent 60%),
-    radial-gradient(2px 2px at 38% 76%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(1.5px 1.5px at 88% 64%, rgba(255, 240, 220, 0.9), transparent 60%);
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1.2px 1.2px at 64% 42%, rgba(200, 220, 255, 0.85), transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 76%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 88% 64%, rgba(255, 240, 220, 0.8), transparent 60%);
   background-size: 340px 340px;
-  animation: starsNear 30s linear infinite, twinkle 3.5s ease-in-out infinite alternate;
-}
-
-.starsNear[data-side="right"] {
-  animation-direction: reverse, alternate;
-}
-
-/* Pył kosmiczny: cienkie smugi przelatujące ku wrogowi — wrażenie ruchu floty. */
-.dust {
-  left: 50%;
-  top: var(--y);
-  width: var(--len);
-  height: 1px;
-  opacity: 0;
-  background: linear-gradient(calc(90deg * var(--dir)), transparent, rgba(220, 235, 255, 0.35));
-  animation: dustFly var(--t) linear var(--d) infinite;
-}
-
-/* Odległy wybuch: błysk z pierścieniem, gdzieś w głębi kadru. */
-.farFlash {
-  left: var(--x);
-  top: var(--y);
-  width: 64px;
-  height: 64px;
-  margin: -32px 0 0 -32px;
-  border-radius: 50%;
-  opacity: 0;
-  scale: var(--s);
-  mix-blend-mode: screen;
-  background: radial-gradient(circle, rgba(255, 245, 220, 0.85) 0%, rgba(251, 191, 36, 0.35) 16%, rgba(234, 88, 12, 0.12) 36%, transparent 60%);
-  animation: farFlash var(--t) ease-out var(--d) infinite;
-}
-
-.farFlash::after {
-  content: "";
-  position: absolute;
-  inset: 30%;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 237, 213, 0.6);
-  animation: inherit;
-  animation-name: farRing;
 }
 
 /* ---------------- ZIEMIA ---------------- */
@@ -158,42 +116,6 @@
   to { transform: translate(3%, 2%) scale(1.08); opacity: 1; }
 }
 
-@keyframes starsFar {
-  from { background-position: 0 0; }
-  to { background-position: -360px 90px; }
-}
-
-@keyframes starsNear {
-  from { background-position: 0 0; }
-  to { background-position: -680px 120px; }
-}
-
-@keyframes twinkle {
-  from { opacity: 0.55; }
-  to { opacity: 1; }
-}
-
-@keyframes dustFly {
-  0% { opacity: 0; transform: translateX(calc(var(--dir) * -24vw)); }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(calc(var(--dir) * 24vw)); }
-}
-
-@keyframes farFlash {
-  0%, 88% { opacity: 0; transform: scale(0.3); }
-  89% { opacity: 1; transform: scale(1); }
-  92% { opacity: 0.5; }
-  97% { opacity: 0; transform: scale(1.5); }
-  100% { opacity: 0; }
-}
-
-@keyframes farRing {
-  0%, 88% { opacity: 0; transform: scale(0.4); }
-  90% { opacity: 0.8; }
-  100% { opacity: 0; transform: scale(3.4); }
-}
-
 @keyframes horizonFlash {
   0%, 80% { opacity: 0; }
   82% { opacity: 1; }
@@ -221,15 +143,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambience i,
-  .farFlash::after {
+  .ambience i {
     animation: none;
   }
 
-  .farFlash,
   .horizonFlash,
   .ember,
-  .dust,
   .gust {
     display: none;
   }

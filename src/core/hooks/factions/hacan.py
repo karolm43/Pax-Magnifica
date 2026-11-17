@@ -484,12 +484,21 @@ def pride_of_kenara(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -
 # --------------------------------------------------------------- Auto-Factories (BT)
 
 
-def _many_ships(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    units = ctx.get("units") or {}
-    ships = sum(
+def _non_fighter_ships(units: Mapping[str, Any]) -> int:
+    return sum(
         int(n) for bt, n in dict(units).items() if is_space_unit(str(bt)) and bt != "fighter"
     )
-    return ctx.get("player") == player_id and ships >= _AUTO_FACTORIES_SHIPS
+
+
+def _many_ships(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    """✅ Decyzja użytkownika 2026-11-17: liczą się statki z CAŁEJ akcji (wszystkie zamówienia
+    produkcji, ``production_placed``), a przełom działa raz na akcję - w chwili, gdy suma
+    przekroczy próg (zamówienie, przed którym było mniej niż 3, a po którym jest 3+)."""
+    if ctx.get("player") != player_id:
+        return False
+    total = sum(_non_fighter_ships(by_type) for by_type in state.production_placed.values())
+    before = total - _non_fighter_ships(ctx.get("units") or {})
+    return before < _AUTO_FACTORIES_SHIPS <= total
 
 
 @on_event(
@@ -499,6 +508,6 @@ def _many_ships(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
 )
 def auto_factories(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
     """Auto-Factories: When you produce 3 or more non-fighter ships, place 1 command token from your
-    reinforcements into your fleet pool. (⚠️ liczy jedno zamówienie produkcji.)"""
+    reinforcements into your fleet pool. (Suma z całej akcji, raz na akcję - ``_many_ships``.)"""
     if command_tokens.reinforcements(state, player_id) > 0:
         command_tokens.gain_from_reinforcements(state, player_id, {"fleet": 1})

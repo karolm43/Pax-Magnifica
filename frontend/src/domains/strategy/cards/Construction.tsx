@@ -34,29 +34,56 @@ function placeableOf(prompt: StrategyPrompt): Record<string, string[]> {
   return raw && typeof raw === "object" ? (raw as Record<string, string[]>) : {};
 }
 
+/** Struktura -> planety, z których trzeba ją zdjąć (pusta rezerwa, R_component_limitations). */
+function boardSourcesOf(prompt: StrategyPrompt): Record<string, string[]> {
+  const raw = prompt.options.board_sources;
+  return raw && typeof raw === "object" ? (raw as Record<string, string[]>) : {};
+}
+
+type Pick = { planet: string; structure: string; source?: string };
+
+/** Wybór gotowy do wysłania: przy pustej rezerwie musi też mieć planetę źródłową. */
+function pickReady(pick: Pick | null, sources: Record<string, string[]>): boolean {
+  return pick != null && (!sources[pick.structure] || pick.source != null);
+}
+
 /**
  * Wybór planety NA MAPIE (podświetlone legalne planety) i rodzaju struktury w doku.
- * Wspólny dla obu kroków primary i dla secondary.
+ * Gdy rezerwa tej struktury jest pusta, drugi klik NA MAPIE wskazuje planetę, z której
+ * gracz ją zdejmuje (system bez jego żetonu dowodzenia). Wspólny dla primary i secondary.
  */
 function StructurePicker({
   placeable,
+  boardSources,
   value,
   onChange,
   busy,
   hue,
 }: {
   placeable: Record<string, string[]>;
-  value: { planet: string; structure: string } | null;
-  onChange: (next: { planet: string; structure: string } | null) => void;
+  boardSources: Record<string, string[]>;
+  value: Pick | null;
+  onChange: (next: Pick | null) => void;
   busy: boolean;
   hue: string;
 }) {
   const planets = Object.keys(placeable);
+  const sources = value
+    ? (boardSources[value.structure] ?? []).filter((p) => p !== value.planet)
+    : [];
+  const pickingSource = value != null && sources.length > 0;
   useMapPick(
     "planet",
-    planets,
-    (id) => onChange({ planet: id, structure: placeable[id]?.[0] ?? "pds" }),
-    { hue, selected: value?.planet ?? null, enabled: !busy },
+    pickingSource ? sources : planets,
+    (id) =>
+      pickingSource && value
+        ? onChange({ ...value, source: id })
+        : onChange({ planet: id, structure: placeable[id]?.[0] ?? "pds" }),
+    {
+      hue,
+      selected: (pickingSource ? value?.source : value?.planet) ?? null,
+      enabled: !busy,
+    },
   );
   if (planets.length === 0) {
     return <span className={styles.empty}>You have no legal place for a structure.</span>;
@@ -85,7 +112,25 @@ function StructurePicker({
           </button>
         ))}
       </div>
-      <Hint>Click another highlighted planet to change it.</Hint>
+      {pickingSource ? (
+        <>
+          <Hint>
+            <IconTarget size={14} aria-hidden="true" /> No {STRUCTURE_LABEL[value.structure] ?? value.structure}{" "}
+            left in your reinforcements - <b>click a highlighted planet</b> to move one from there
+            (a system without your command token).
+            {value.source != null && (
+              <>
+                {" "}Moving from <b>{getPlanetData(value.source)?.name ?? value.source}</b>.
+              </>
+            )}
+          </Hint>
+          <Button variant="default" size="xs" disabled={busy} onClick={() => onChange(null)}>
+            Change planet
+          </Button>
+        </>
+      ) : (
+        <Hint>Click another highlighted planet to change it.</Hint>
+      )}
     </Section>
   );
 }
@@ -95,7 +140,7 @@ function shellProps(shell: CardShell, badge: string, subtitle: string) {
 }
 
 export function ConstructionPrimary({ prompt, shell, busy, submit }: PrimaryViewProps) {
-  const [pick, setPick] = useState<{ planet: string; structure: string } | null>(null);
+  const [pick, setPick] = useState<Pick | null>(null);
   const [dock, setDock] = useState<string | null>(null);
   const step = prompt.step;
 
@@ -172,6 +217,7 @@ export function ConstructionPrimary({ prompt, shell, busy, submit }: PrimaryView
 
   // place_structure / place_structure_2
   const placeable = placeableOf(prompt);
+  const boardSources = boardSourcesOf(prompt);
   const none = Object.keys(placeable).length === 0;
   const second = step === "place_structure_2";
   return (
@@ -179,7 +225,7 @@ export function ConstructionPrimary({ prompt, shell, busy, submit }: PrimaryView
       {...shellProps(shell, "Primary", second ? "Place your second structure" : "Place a structure")}
       footer={
         <ConfirmButton
-          disabled={busy || (!none && pick == null)}
+          disabled={busy || (!none && !pickReady(pick, boardSources))}
           icon={<IconCheck size={16} />}
           onClick={() => submit(none ? { planet: null } : { ...pick })}
         >
@@ -193,6 +239,7 @@ export function ConstructionPrimary({ prompt, shell, busy, submit }: PrimaryView
       </Hint>
       <StructurePicker
         placeable={placeable}
+        boardSources={boardSources}
         value={pick}
         onChange={setPick}
         busy={busy}
@@ -203,7 +250,8 @@ export function ConstructionPrimary({ prompt, shell, busy, submit }: PrimaryView
 }
 
 export function ConstructionSecondary({ prompt, shell, busy, submit, back }: SecondaryViewProps) {
-  const [pick, setPick] = useState<{ planet: string; structure: string } | null>(null);
+  const [pick, setPick] = useState<Pick | null>(null);
+  const boardSources = boardSourcesOf(prompt);
   return (
     <PromptShell
       {...shellProps(shell, "Secondary", "Place a structure")}
@@ -213,7 +261,7 @@ export function ConstructionSecondary({ prompt, shell, busy, submit, back }: Sec
             Back
           </Button>
           <ConfirmButton
-            disabled={busy || pick == null}
+            disabled={busy || !pickReady(pick, boardSources)}
             icon={<IconCheck size={16} />}
             onClick={() => submit({ ...pick })}
           >
@@ -228,6 +276,7 @@ export function ConstructionSecondary({ prompt, shell, busy, submit, back }: Sec
       </Hint>
       <StructurePicker
         placeable={placeableOf(prompt)}
+        boardSources={boardSources}
         value={pick}
         onChange={setPick}
         busy={busy}

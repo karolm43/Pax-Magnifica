@@ -525,7 +525,7 @@
   place-items: center;
   width: var(--slot);
   height: var(--slot);
-  animation: shipIdle 6s ease-in-out infinite;
+  animation: shipIdle 9s ease-in-out infinite;
   animation-delay: calc(var(--rank, 0) * -0.9s + var(--i, 0) * -1.3s);
 }
 
@@ -569,8 +569,8 @@
   pointer-events: none;
   filter: blur(1.2px);
   opacity: 0.6;
-  animation: engineBreath 3.2s ease-in-out infinite;
-  animation-delay: calc(var(--k, 0) * -0.7s);
+  animation: engineBreath 7s ease-in-out infinite;
+  animation-delay: calc(var(--k, 0) * -0.25s + var(--i, 0) * -2.3s + var(--rank, 0) * -1.1s);
 }
 
 .ship[data-side="left"] .engine {
@@ -817,6 +817,22 @@
 .ship[data-dying] {
   pointer-events: none;
   animation: shipDie 2.6s ease-in calc(1.1s + var(--die-delay, 0ms)) both;
+}
+
+.overlay[data-kind="space"] .formation[data-entered] .rank {
+  animation: rankCruise 16s ease-in-out infinite;
+}
+
+.overlay[data-kind="space"] .formation[data-entered] .rank:nth-child(2) {
+  animation-delay: -5s;
+}
+
+.overlay[data-kind="space"] .formation[data-entered] .rank:nth-child(3) {
+  animation-delay: -10s;
+}
+
+.overlay[data-kind="space"] .formation[data-entered] .rank:nth-child(n + 4) {
+  animation-delay: -13s;
 }
 
 /* Po wejściu armady okręty nie wlatują ponownie (np. po rzucie czy przypisaniu strat). */
@@ -2325,15 +2341,37 @@
   }
 }
 
+/* Spokojny „oddech" dysz z krótkim ciągiem korekcyjnym raz na cykl (faza z --k i --i). */
 @keyframes engineBreath {
   0%,
+  60%,
   100% {
     opacity: 0.55;
     transform: scaleX(0.94);
   }
+  30% {
+    opacity: 0.7;
+    transform: scaleX(1.04);
+  }
+  70% {
+    opacity: 0.95;
+    transform: scaleX(1.45);
+  }
+  80% {
+    opacity: 0.62;
+    transform: scaleX(1);
+  }
+}
+
+/* Szyk w kosmosie powoli „żegluje": szeregi lekko podchodzą i cofają się, każdy w swojej
+   fazie (po wlocie; animacja na `translate` szeregu, nie okrętów — FLIP domykania zostaje). */
+@keyframes rankCruise {
+  0%,
+  100% {
+    translate: 0 0;
+  }
   50% {
-    opacity: 0.72;
-    transform: scaleX(1.05);
+    translate: calc(var(--dir, -1) * -6px) -2px;
   }
 }
 
@@ -2352,16 +2390,24 @@
   }
 }
 
+/* Dryf okrętu: unosi się, lekko przechyla i koryguje kurs — każdy we własnej fazie. */
 @keyframes shipIdle {
   0%,
   100% {
     translate: 0 0;
+    rotate: 0deg;
   }
-  33% {
-    translate: 1.5px -3px;
+  25% {
+    translate: 2px -4px;
+    rotate: -1.2deg;
   }
-  66% {
-    translate: -1.5px 2px;
+  50% {
+    translate: 0.5px -1px;
+    rotate: 0.4deg;
+  }
+  75% {
+    translate: -2px 3px;
+    rotate: 1deg;
   }
 }
 
@@ -2370,9 +2416,11 @@
   0%,
   100% {
     translate: 0 0;
+    rotate: 0deg;
   }
   50% {
-    translate: 0 -2px;
+    translate: 1px -3px;
+    rotate: -0.5deg;
   }
 }
 
