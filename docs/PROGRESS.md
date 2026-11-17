@@ -837,3 +837,16 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - `tests/factions/test_rulings_sardakk.py` (24 testy), `@ruling` w `test_sardakk.py` i
   `test_rulings_audit.py`; statusy: Harrow (L1Z1X), Magmus Reactor (Muaat). Sardakk zdjęty z UNAUDITED.
 - RULES.md 62.1.
+
+## 2026-11-17 — Audyt rulingów Winnu
+
+- Mathis Mathinus (bohater) + Trade: gracze wskazani primary Trade wypadali z kolejki secondary,
+  gdy bohater ich nie wskazał — teraz są w niej i MUSZĄ je rozstrzygnąć bez żetonu (F_winnu Mathis 2);
+  wskazani bohaterem mogą, płacąc żeton (`strategic_action._finish_primary`).
+- Okno secondary bohatera ma znacznik `hero` (`strategic_action.HERO_KEY`): Acquiescence nie da się
+  zagrać (bohater to nie akcja strategiczna — F_winnu Mathis 3); wcześniej notka była zagrywalna.
+- `tests/factions/test_rulings_winnu.py` (21 testów), `@ruling` w `test_winnu`, `test_flows_winnu`
+  (purge bohatera, powrót Acquiescence) i `test_rulings_audit`; statusy: stara Acquiescence (na),
+  Construction PoK (na), Salai Sai Corian vs Nekro (requires nekro), Dimensional Splicer (requires
+  creuss). Winnu zdjęty z UNAUDITED.
+- RULES.md 62.7.

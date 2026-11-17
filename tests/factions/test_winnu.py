@@ -13,6 +13,7 @@ from src.core.hex_grid import HexGrid
 from src.core.hooks.factions import winnu
 from src.core.registry import StaticDataRegistry
 from tests.factions.completeness import missing_components
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -70,6 +71,10 @@ def test_lazax_gate_folding_mecatol_jak_wormhole(registry: StaticDataRegistry) -
     assert winnu.lazax_gate_folding(state, "p1", {"position": "000"}) == set()
 
 
+@ruling(
+    "F_winnu/lazax-gate-folding/2", "F_winnu/lazax-gate-folding/2.1",
+    "F_winnu/lazax-gate-folding/2.4",
+)
 def test_lazax_gate_folding_dla_wszystkich_w_akcji_winnu(
     registry: StaticDataRegistry, _grid: HexGrid
 ) -> None:
@@ -101,6 +106,7 @@ def _reclamation_values(
     return [o["value"] for o in winnu.reclamation_inputs(state, registry, "p1", ctx)[0]["options"]]
 
 
+@ruling("F_winnu/reclamation/2")
 def test_reclamation_pusta_rezerwa_bierze_dok_z_planszy(registry: StaticDataRegistry) -> None:
     """F_winnu / R_component_limitations: bez doków w rezerwie dok zdejmuje się z systemu bez
     własnego żetonu dowodzenia i stawia na Mecatol Rex."""
@@ -149,6 +155,7 @@ def _combat(state: GameState, position: str) -> None:
     )
 
 
+@ruling("F_winnu/salai-sai-corian/1", "units:winnu_flagship#1")
 def test_salai_sai_corian_kosci_wg_statkow_przeciwnika(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["101"].space_units = {"p1": {"flagship": 1}, "p2": {"cruiser": 3, "fighter": 4}}
@@ -175,6 +182,7 @@ def test_imperator_za_support_for_the_throne(registry: StaticDataRegistry) -> No
     assert winnu.imperator_combat(state, "p1", {}) == 1
 
 
+@ruling("breakthroughs:winnubt#2")
 def test_imperator_i_gravity_drive_na_rozne_statki(registry: StaticDataRegistry) -> None:
     """Decyzja użytkownika (RULES.md 62.7): premia Imperatora to osobny kanał — z Gravity Drive
     dwa różne statki dostają po +1 w tej samej akcji (albo jeden oba)."""

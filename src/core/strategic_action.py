@@ -50,6 +50,10 @@ def _spec(initiative: int) -> CardSpec:
     return CARDS.get(initiative, CardSpec())
 
 
+# Klucz kontekstu okna: secondary otwarte bohaterem Winnu (Mathis Mathinus), nie akcją
+# strategiczną gracza - Acquiescence nie działa (F_winnu/mathis-mathinus-imperial-seal/3).
+HERO_KEY = "hero"
+
 NO_COST_KEY = "no_cost"  # gracze, którzy dostali darmowe (nieobowiązkowe) secondary w oknie
 # Źródło darmowego secondary: "p1=abilities:master_of_trade;p2=promissory_notes:acq".
 NO_COST_WHY_KEY = "no_cost_why"
@@ -168,12 +172,15 @@ def _finish_primary(
         return state
 
     queue = timing.build_response_queue(state, owner_id)
+    chosen_free = set(draft.get("free_players", []))
     if secondary_players is not None:
-        queue = [p for p in queue if p in secondary_players]
+        # Bohater Winnu: secondary dla wskazanych bohaterem ORAZ dla wskazanych primary Trade
+        # (ci MUSZĄ je rozstrzygnąć — F_winnu/mathis-mathinus-imperial-seal/2).
+        queue = [p for p in queue if p in secondary_players or p in chosen_free]
     if not queue:
         triggers.open_offers_window(state, after, GameEvent.STRATEGIC_ACTION, Moment.AFTER)
         return state
-    free = [p for p in draft.get("free_players", []) if p in queue]
+    free = [p for p in queue if p in chosen_free]
     opened = timing.open_window(
         state,
         WindowType.STRATEGY_SECONDARY,
@@ -185,6 +192,7 @@ def _finish_primary(
             "cost": 1 if spec.secondary_costs_token else 0,
             # Kto rozstrzyga secondary bez żetonu (Masters of Trade) - UI nie żąda żetonu.
             **_no_cost_context(state, queue, initiative),
+            **({HERO_KEY: 1} if secondary_players is not None else {}),
         },
     )
     return _auto_resolve_free(opened, ctx)
@@ -367,6 +375,7 @@ def begin_hero_primary(
             _FREE_KEY: "",
             "cost": 1 if spec.secondary_costs_token else 0,
             **_no_cost_context(state, queue, initiative),
+            HERO_KEY: 1,
         },
     )
     state.pending_window = opened.pending_window

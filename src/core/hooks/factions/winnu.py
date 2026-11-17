@@ -511,6 +511,7 @@ def acquiescence_window(state: GameState) -> list[OpenWindow]:
     if (
         window is None
         or window.window_type is not WindowType.STRATEGY_SECONDARY
+        or window.context.get(strategic_action.HERO_KEY)  # bohater to nie akcja strategiczna
         or active is None
         or state.players[active].faction != FACTION
         or not any(
@@ -528,7 +529,12 @@ def _acq_condition(
     state: GameState, _registry: StaticDataRegistry, player_id: str, _window: OpenWindow
 ) -> str | None:
     window = state.pending_window
-    if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
+    if (
+        window is None
+        or window.window_type is not WindowType.STRATEGY_SECONDARY
+        or window.context.get(strategic_action.HERO_KEY)
+    ):
+        # Mathis Mathinus nie jest akcją strategiczną (F_winnu/mathis-mathinus-imperial-seal/3).
         return "Acquiescence is played while the Winnu player's strategy card is resolved."
     if player_id not in window.queue or player_id in window.responded:
         return "You already answered this strategy card."
@@ -541,7 +547,7 @@ def acquiescence(
 ) -> None:
     """Acquiescence: When the Winnu player resolves a strategic action: You do not have to spend or
     place a command token to resolve the secondary ability of that strategy card. Then, return this
-    card to the Winnu player. (⚠️ „place” — Construction: gracz po prostu nie kładzie żetonu.)"""
+    card to the Winnu player. (Construction TE nie kładzie żetonu w systemie.)"""
     strategic_action.grant_no_cost(state, player_id, f"promissory_notes:{ACQUIESCENCE}")
 
 

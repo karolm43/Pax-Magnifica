@@ -280,6 +280,7 @@ def test_ghom_sekkus_nie_przez_wormhole_przy_travel_ban(registry: StaticDataRegi
 # --- F_winnu --------------------------------------------------------------------------------
 
 
+@ruling("F_winnu/reclaimer/3")
 def test_reclaimer_struktura_za_kazdego_reclaimera(registry: StaticDataRegistry) -> None:
     """F_winnu: kilka Reclaimerów - po strukturze na każdego (w limicie planety)."""
     planet = registry.systems["19"].planets[0]
