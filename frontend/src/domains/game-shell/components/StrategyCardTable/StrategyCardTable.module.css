@@ -587,46 +587,26 @@
  * absolute`` — nie wpływa na wysokość ``.card``; ``pointer-events: none`` — wybór i
  * tooltip działają jak dotąd.
  */
-.ownerBar {
+/* Plakietka właściciela NAD kartą (kolor gracza) - nie zasłania grafiki ani nazwy karty. */
+.ownerTag {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
   top: 0;
-  display: flex;
+  z-index: 2;
+  transform: translate(-50%, -60%);
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px 14px;
-  /* Kolor właściciela (``--owner-rgb``) od góry, wtapia się w grafikę karty. */
-  background: linear-gradient(
-    to bottom,
-    rgb(var(--owner-rgb) / 0.95),
-    rgb(var(--owner-rgb) / 0.75) 65%,
-    transparent
-  );
-  border-top-left-radius: var(--ds-radius-sm);
-  border-top-right-radius: var(--ds-radius-sm);
+  gap: 5px;
+  max-width: 108%;
+  padding: 3px 10px 3px 4px;
+  border: 2px solid rgb(var(--owner-rgb));
+  border-radius: 999px;
+  background: rgb(14 16 22 / 0.95);
+  box-shadow: 0 0 12px rgb(var(--owner-rgb) / 0.7), 0 2px 6px rgb(0 0 0 / 0.6);
   pointer-events: none;
 }
 
-.ownerText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1 1 auto;
-  text-align: left;
-  line-height: 1.1;
-}
-
-.ownerLabel {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(255 255 255 / 0.85);
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.9);
-}
-
-.ownerName {
+.ownerTagName {
   min-width: 0;
   font-family: var(--ds-font-display);
   font-size: var(--ds-fz-sm);
@@ -635,29 +615,35 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 0.95);
 }
 
-/* Wybrana karta: pełna widoczność, obramowanie w kolorze właściciela, grafika lekko
-   przygaszona - od razu widać, że jest zajęta i przez kogo. */
+/* Duży żeton frakcji na środku wyszarzonej karty. */
+.ownerStamp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 3px solid rgb(var(--owner-rgb));
+  border-radius: 50%;
+  background: rgb(10 12 16 / 0.85);
+  box-shadow: 0 0 18px rgb(var(--owner-rgb) / 0.8);
+  pointer-events: none;
+}
+
+/* Wybrana karta: MOCNO wyszarzona, bez poświaty - od razu widać, że jest zajęta. */
 .card[data-picked],
 .card[data-picked][data-disabled] {
   opacity: 1;
+  --glow-strength: 0%;
+  --glow-blur: 0px;
 }
 
 .card[data-picked] .cardImage,
 .card[data-picked] .cardFallback {
-  filter: saturate(0.6) brightness(0.82);
-}
-
-.card[data-picked]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 3px solid rgb(var(--owner-rgb));
-  border-radius: var(--ds-radius-sm);
-  box-shadow: 0 0 14px rgb(var(--owner-rgb) / 0.6);
-  pointer-events: none;
+  filter: grayscale(1) brightness(0.42);
 }
 
 /* Kolejka wyboru w nagłówku: wszyscy gracze w porządku mówcy, ich karty i kto wybiera. */
@@ -675,13 +661,14 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px 3px 4px;
-  border: 1px solid rgb(var(--owner-rgb) / 0.55);
+  padding: 4px 10px 4px 4px;
+  border: 2px solid rgb(var(--owner-rgb) / 0.6);
   border-radius: 999px;
-  background: rgb(var(--owner-rgb) / 0.14);
-  font-size: var(--ds-fz-xs);
+  background: rgb(14 16 22 / 0.85);
+  font-size: var(--ds-fz-sm);
+  font-weight: 600;
   color: var(--ds-ink-hi);
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 .pickSeat[data-done] {
@@ -703,17 +690,18 @@
 }
 
 .pickSeatCard {
-  display: inline-grid;
-  place-items: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
   border-radius: 999px;
   background: var(--scc);
   color: #111;
   font-family: var(--ds-font-data);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .pickSeatNow {

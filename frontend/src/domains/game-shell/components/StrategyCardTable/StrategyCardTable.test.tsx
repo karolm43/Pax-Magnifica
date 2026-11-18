@@ -49,21 +49,22 @@ describe("StrategyCardTable - kto wybrał jaką kartę", () => {
         <StrategyCardTable />
       </MemoryRouter>,
     );
-    act(() => vi.advanceTimersByTime(600)); // karty wchodzą po banerze
+    act(() => {
+      vi.advanceTimersByTime(600); // karty wchodzą po banerze
+    });
     vi.useRealTimers();
 
-    // Karta wybrana: baner „Picked by <frakcja>” na niej samej; wolna karta - bez banera.
+    // Karta wybrana: plakietka frakcji nad nią; wolna karta - bez banera.
     const picked = screen.getByRole("img", { name: "Leadership" }).closest("button");
     expect(picked).toHaveAttribute("data-picked");
-    expect(within(picked as HTMLElement).getByText("Picked by")).toBeInTheDocument();
     expect(within(picked as HTMLElement).getByText("Federation of Sol")).toBeInTheDocument();
     const free = screen.getByRole("img", { name: "Diplomacy" }).closest("button");
-    expect(within(free as HTMLElement).queryByText("Picked by")).toBeNull();
+    expect(within(free as HTMLElement).queryByText("Federation of Sol")).toBeNull();
 
     const order = screen.getByRole("list", { name: "Pick order" });
     const seats = within(order).getAllByRole("listitem");
     expect(seats.map((s) => s.textContent)).toEqual([
-      expect.stringContaining("Federation of Sol1"),
+      expect.stringContaining("Federation of Sol1 Leadership"),
       expect.stringContaining("picking"),
     ]);
     expect(seats[1]).toHaveAttribute("data-now");

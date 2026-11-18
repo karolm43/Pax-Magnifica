@@ -435,7 +435,7 @@ export function StrategyCardTable(): ReactElement | null {
                 style={{ ["--owner-rgb" as string]: ownerRgb(p) }}
                 title={`${getPlayerFactionDisplayName(p)}${names ? ` - ${names}` : now ? " - picking now" : ""}`}
               >
-                <FactionMark player={p} size={20} />
+                <FactionMark player={p} size={24} />
                 <span className={styles.pickSeatName}>{getPlayerFactionDisplayName(p)}</span>
                 {mine.map((c) => (
                   <b
@@ -443,7 +443,7 @@ export function StrategyCardTable(): ReactElement | null {
                     className={styles.pickSeatCard}
                     style={{ ["--scc" as string]: SC_TONE[c.initiative] }}
                   >
-                    {c.initiative}
+                    {c.initiative} {c.name || SC_NAMES[c.initiative]}
                   </b>
                 ))}
                 {mine.length === 0 && now && <small className={styles.pickSeatNow}>picking…</small>}
@@ -648,28 +648,22 @@ export function StrategyCardTable(): ReactElement | null {
                   )}
 
                   {/*
-                   * WŁAŚCICIEL karty — czytelny baner u dołu: IKONA frakcji + PEŁNA
-                   * NAZWA (zamiast małej ikonki w rogu). Nakładka na dolnej krawędzi
-                   * obrazu, pełna szerokość karty; ``pointer-events: none`` — nie
-                   * przechwytuje klików/hoveru (wybór i tooltip działają jak dotąd).
-                   */}
-                  {/*
-                   * WŁAŚCICIEL karty (decyzja użytkownika 2026-11-18: „frakcja u góry
-                   * karty”) - baner u GÓRY w kolorze gracza: ikona frakcji + pełna nazwa.
-                   * Karta wybrana nie jest wygaszana; obramowanie w kolorze właściciela.
+                   * WŁAŚCICIEL karty (decyzja użytkownika 2026-11-18): karta wybrana jest
+                   * mocno wyszarzona, a na niej - duży żeton frakcji z nazwą; plakietka
+                   * w kolorze gracza wystaje NAD kartę (nie zasłania nazwy karty).
                    */}
                   {isPicked && (
-                    <div className={styles.ownerBar}>
-                      <FactionMark player={owner} size={30} />
-                      <span className={styles.ownerText}>
-                        <small className={styles.ownerLabel}>Picked by</small>
-                        <span className={styles.ownerName}>
-                          {owner
-                            ? getPlayerFactionDisplayName(owner)
-                            : (card.picked_by ?? "")}
+                    <>
+                      <span className={styles.ownerTag}>
+                        <FactionMark player={owner} size={20} />
+                        <span className={styles.ownerTagName}>
+                          {owner ? getPlayerFactionDisplayName(owner) : (card.picked_by ?? "")}
                         </span>
                       </span>
-                    </div>
+                      <span className={styles.ownerStamp} aria-hidden="true">
+                        <FactionMark player={owner} size={64} />
+                      </span>
+                    </>
                   )}
                 </button>
               </SmoothPopover.Target>
