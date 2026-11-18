@@ -649,7 +649,7 @@ export function StrategyCardTable(): ReactElement | null {
 
                   {/*
                    * WŁAŚCICIEL karty (decyzja użytkownika 2026-11-18): karta wybrana jest
-                   * mocno wyszarzona, a na niej - duży żeton frakcji z nazwą; plakietka
+                   * mocno wyszarzona; plakietka
                    * w kolorze gracza wystaje NAD kartę (nie zasłania nazwy karty).
                    */}
                   {isPicked && (
@@ -659,9 +659,6 @@ export function StrategyCardTable(): ReactElement | null {
                         <span className={styles.ownerTagName}>
                           {owner ? getPlayerFactionDisplayName(owner) : (card.picked_by ?? "")}
                         </span>
-                      </span>
-                      <span className={styles.ownerStamp} aria-hidden="true">
-                        <FactionMark player={owner} size={64} />
                       </span>
                     </>
                   )}

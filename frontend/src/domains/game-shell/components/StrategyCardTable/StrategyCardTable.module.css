@@ -621,25 +621,6 @@
   overflow-wrap: anywhere;
 }
 
-/* Duży żeton frakcji DOKŁADNIE na środku karty (inset + margin: auto - niezależnie od
-   transformacji łuku i animacji karty). */
-.ownerStamp {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: fit-content;
-  height: fit-content;
-  display: grid;
-  place-items: center;
-  padding: 6px;
-  border: 3px solid rgb(var(--owner-rgb));
-  border-radius: 50%;
-  background: rgb(10 12 16 / 0.8);
-  box-shadow: 0 0 18px rgb(var(--owner-rgb) / 0.8);
-  line-height: 0;
-  pointer-events: none;
-}
-
 /* Wybrana karta: MOCNO wyszarzona, bez poświaty - od razu widać, że jest zajęta. */
 .card[data-picked],
 .card[data-picked][data-disabled] {
@@ -690,10 +671,8 @@
   box-shadow: 0 0 10px rgb(var(--owner-rgb) / 0.55);
 }
 
+/* Pełna nazwa frakcji (bez ucinania - pasek się zawija). */
 .pickSeatName {
-  max-width: 14ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
