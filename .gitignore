@@ -103,3 +103,6 @@ bug_reports/
 
 # Baza zależności pytest-testmon (lokalna, odtwarzalna)
 .testmondata*
+
+# Raporty fuzzera partii botów (tests/engine/fuzz.py)
+fuzz_reports/

@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 
 from src.api.bot_http import HTTP
-from src.core import agenda_phase
+from src.core import agenda_phase, fleet_pool
 from src.core.game_state import AgendaStep, GameState, Phase
 from src.core.registry import StaticDataRegistry
 from src.engine import actions as act
@@ -19,7 +19,10 @@ from src.engine.observation import observe
 from tests.engine.driver import BotTable
 from tests.engine.test_passive_games import FOUR, SCENARIO_KINDS
 
-TARGETED_KINDS = {"discard_excess", "phase_step", "round_next", "agenda_vote"}
+TARGETED_KINDS = {
+    "discard_excess", "phase_step", "round_next", "agenda_vote", "production_skip",
+    "fleet_pool_resolve",
+}
 """Rodzaje sprawdzane celowanymi testami w tym pliku."""
 
 NOT_YET_COVERED: dict[str, str] = {
@@ -123,3 +126,59 @@ def test_agenda_vote_matches_http(registry: StaticDataRegistry) -> None:
     action = act.AgendaVote(player_id=voter, outcome=state.agenda.outcomes[0], planets=ready[:1])
 
     assert table.check(action) == []
+
+
+def _prefer_construction_production(candidates: list[act.Action]) -> list[act.Action]:
+    """Polityka testowa: weź Construction (4), zagraj ją i wybierz PRODUCTION doku."""
+
+    def wanted(a: act.Action) -> bool:
+        if isinstance(a, (act.StrategyPick, act.StrategyPlay)):
+            return a.initiative == 4
+        if isinstance(a, act.StrategyPrimaryStep):
+            return a.payload.get("option") == "production" or "planet" in a.payload
+        return False
+
+    return sorted(candidates, key=lambda a: not wanted(a))
+
+
+def test_production_skip_after_construction_dock(registry: StaticDataRegistry) -> None:
+    """Construction -> PRODUCTION doku -> „Finish production” (ta sama trasa co przycisk UI)."""
+    table = BotTable(registry, FOUR, policy=_prefer_construction_production)
+    table.run(until_round=3, stop=lambda s: s.production_grant is not None)
+    state = table.state
+    assert state.production_grant is not None, "Construction production did not start"
+    grantee = state.production_grant.player_id
+
+    action = _first_for(table, grantee)
+
+    assert action.kind == "production_skip"
+    assert table.check(action) == []
+    after = table.state
+    assert after.production_grant is None
+    # Primary wraca do drugiej struktury (krok ``place_structure_2``) - przepływ karty trwa.
+    assert after.pending_strategy is not None
+    assert after.pending_strategy.step == "place_structure_2"
+
+
+def test_fleet_pool_resolve_matches_http(registry: StaticDataRegistry) -> None:
+    """Okno FLEET_POOL (np. po agendzie Clandestine Operations): bot zwraca nadwyżkę statków."""
+    table = BotTable(registry, FOUR)
+    table.run(until_round=9, stop=lambda s: s.phase is Phase.ACTION)
+    state = table.state.clone()
+    pid = state.active_player_id
+    assert pid is not None
+    home = state.players[pid].home_position
+    assert home is not None
+    state.players[pid].fleet_cc = 1
+    state.systems[home].space_units.setdefault(pid, {})["cruiser"] = 3
+    state = fleet_pool.open_fleet_pool_check(state, home)
+    assert state.pending_window is not None
+    table.inject(state)
+
+    action = _first_for(table, pid)
+
+    assert action.kind == "fleet_pool_resolve"
+    assert table.check(action) == []
+    after = table.state
+    assert after.pending_window is None
+    assert fleet_pool.fleet_report(after, home, pid, registry).excess == 0

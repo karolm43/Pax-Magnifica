@@ -26,10 +26,12 @@ from src.core import (
     agenda_phase,
     battle,
     card_hold,
+    fleet_pool,
     game_setup,
     hand_limit,
     offers,
     phase_flow,
+    production,
     reaction_pause,
     status_phase,
     step_settle,
@@ -118,6 +120,12 @@ class TacticalEnd(_Base):
     kind: Literal["tactical_end"] = "tactical_end"
 
 
+class ProductionSkip(_Base):
+    """„Finish production”: koniec/rezygnacja z produkcji z karty (Construction, Warfare TE)."""
+
+    kind: Literal["production_skip"] = "production_skip"
+
+
 class PhaseStep(_Base):
     kind: Literal["phase_step"] = "phase_step"
 
@@ -173,6 +181,13 @@ class BattleAssign(_Base):
     sustain: dict[str, int] = Field(default_factory=dict)
     destroy: dict[str, int] = Field(default_factory=dict)
     destroy_damaged: dict[str, int] = Field(default_factory=dict)
+
+
+class FleetPoolResolve(_Base):
+    """Okno FLEET_POOL: statki ponad pulę floty wracają do rezerwy (RULES.md 42)."""
+
+    kind: Literal["fleet_pool_resolve"] = "fleet_pool_resolve"
+    remove: dict[str, int] = Field(default_factory=dict)
 
 
 # --- Faza statusu (RULES.md 32) --------------------------------------------------------------
@@ -235,6 +250,7 @@ Action = Annotated[
     | TurnPass
     | TurnEnd
     | TacticalEnd
+    | ProductionSkip
     | PhaseStep
     | PhaseNext
     | RoundNext
@@ -245,6 +261,7 @@ Action = Annotated[
     | ReactionPauseRelease
     | DiscardExcess
     | BattleAssign
+    | FleetPoolResolve
     | StatusFinishScoring
     | StatusRedistribute
     | AgendaReveal
@@ -335,6 +352,12 @@ _HANDLERS: dict[str, tuple[Callable[[GameState, str], None] | None, _Apply]] = {
         _entitled(actor_rules.turn_player, "End tactical action"),
         lambda s, c, a: tactical.end_action(s, c.registry),
     ),
+    "production_skip": (
+        _entitled(actor_rules.production_grantee, "Skip production"),
+        lambda s, c, a: strategic_action.after_standalone_production(
+            production.skip_grant(s)
+        ),
+    ),
     "phase_step": (
         _entitled(actor_rules.turn_player, "Turn"),
         lambda s, c, a: turn_flow.advance_active_player(s, a.player_id, mark_passed=True),
@@ -369,6 +392,12 @@ _HANDLERS: dict[str, tuple[Callable[[GameState, str], None] | None, _Apply]] = {
         lambda s, c, a: hand_limit.discard_excess(s, a.player_id, a.card_id),
     ),
     "battle_assign": (_claimed("Assign hits"), _apply_battle_assign),
+    "fleet_pool_resolve": (
+        _claimed("Resolve fleet pool"),
+        lambda s, c, a: fleet_pool.resolve_fleet_pool(
+            s, c.registry, a.player_id, dict(a.remove)
+        ),
+    ),
     "status_finish_scoring": (
         _claimed("Finish scoring"),
         lambda s, c, a: status_phase.finish_scoring(s, c.registry, a.player_id),

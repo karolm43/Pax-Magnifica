@@ -47,6 +47,7 @@ HTTP: dict[str, tuple[str, Callable[[Any], Body]]] = {
     "turn_pass": ("/turn/pass", _pid),
     "turn_end": ("/turn/end", _pid),
     "tactical_end": ("/tactical/end", lambda a: None),
+    "production_skip": ("/tactical/production/skip-grant", lambda a: None),
     "phase_step": ("/turn/phase-step", _pid),
     "phase_next": ("/phase/next", _pid),
     "round_next": ("/round/next", lambda a: None),
@@ -71,6 +72,10 @@ HTTP: dict[str, tuple[str, Callable[[Any], Body]]] = {
             "destroy": _losses(a.destroy),
             "destroyDamaged": _losses(a.destroy_damaged),
         },
+    ),
+    "fleet_pool_resolve": (
+        "/tactical/fleet-pool/resolve",
+        lambda a: {"faction": a.player_id, "remove": _losses(a.remove)},
     ),
     "status_finish_scoring": ("/status/finish-scoring", _pid),
     "status_redistribute": (

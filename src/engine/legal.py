@@ -23,6 +23,7 @@ from src.core import (
     agenda_phase,
     battle,
     card_hold,
+    fleet_pool,
     hand_limit,
     reaction_pause,
     strategy_phase,
@@ -62,6 +63,10 @@ def legal_actions(obs: Observation, ctx: EngineContext) -> list[Action]:
     if hand_limit.action_card_excess(s, pid) > 0:
         hand = s.players[pid].private.action_cards
         return [act.DiscardExcess(player_id=pid, card_id=card) for card in hand]
+    grant = s.production_grant
+    if grant is not None and grant.player_id == pid:
+        # Produkcja z karty (Construction / Warfare TE): bot nie produkuje (B5), kończy ją.
+        return [act.ProductionSkip(player_id=pid)]
     window = s.pending_window
     if window is not None:
         if window.current_responder != pid:
@@ -127,7 +132,13 @@ def _window(obs: Observation, ctx: EngineContext, pid: str) -> list[Action]:
         ]
     if window.window_type is WindowType.COMBAT_ASSIGN_HITS:
         return _assign_hits(obs.view, ctx, pid)
-    # SPACE_CANNON / COMBAT_RETREAT / CAPACITY / FLEET_POOL: decyzje mają własne funkcje w core,
+    if window.window_type is WindowType.FLEET_POOL:
+        # Nadwyżka floty (np. po agendzie): podpowiedź core - najtańsze statki najpierw.
+        position = str(window.context.get("position", ""))
+        report = fleet_pool.fleet_report(obs.view, position, pid, ctx.registry)
+        remove = fleet_pool.auto_removal(obs.view, ctx.registry, pid, report)
+        return [act.FleetPoolResolve(player_id=pid, remove=remove)]
+    # SPACE_CANNON / COMBAT_RETREAT / CAPACITY: decyzje mają własne funkcje w core,
     # akcje bota dla nich dochodzą w B5 (ruch i walka). Ogólnej odpowiedzi w oknie nie ma.
     return []
 
@@ -158,6 +169,17 @@ def _minimal_params(inputs: list[dict[str, Any]]) -> dict[str, Any]:
             params[key] = options[: int(spec.get("min", 0) or 0)]
         elif kind == "number":
             params[key] = spec.get("min", 0)
+        elif kind == "research":
+            # Okno badania: „can research” = rezygnacja; tryb GAIN (Research Grant
+            # Reallocation) nie ma rezygnacji - pierwsza dostępna technologia z drzewa.
+            view = spec.get("research") or {}
+            tech = None
+            if view.get("gain") is not None:
+                tech = next(
+                    (r["id"] for r in view.get("tree", []) if r.get("status") == "available"),
+                    None,
+                )
+            params[key] = {"tech": tech}
     return params
 
 
@@ -243,8 +265,11 @@ def _step_payloads(
         return [{"top": list(options.get("cards", [])), "bottom": []}]
     if step == "choose_free_players":  # Trade
         return [{"players": []}]
-    if step == "choose_option":  # Construction: struktura (produkcja to akcja taktyczna, B5)
-        return [{"option": "structure"}, {"option": "production"}]
+    if step == "choose_option":  # Construction: struktura albo PRODUCTION doku
+        docks = options.get("docks") or []
+        return [{"option": "structure"}] + ([{"option": "production"}] if docks else [])
+    if step == "choose_dock":  # Construction: dok, którego PRODUCTION użyć
+        return [{"planet": d["planet"]} for d in options.get("docks", [])]
     if step in ("place_structure", "place_structure_2"):
         placeable: dict[str, list[str]] = options.get("placeable", {})
         result = [

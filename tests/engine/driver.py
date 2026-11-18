@@ -32,6 +32,13 @@ _COMMIT_ONLY_FIELDS: frozenset[str] = frozenset()
 # Przeskok zegara, gdy wszyscy czekają na koniec okna o stałej długości (RULES.md 54.11).
 _WAIT_SECONDS = 60.0
 
+Policy = Callable[[list[Action]], list[Action]]
+"""Kolejność prób kandydatów (domyślnie bez zmian = bot pasywny; fuzzer: losowo)."""
+SeatOrder = Callable[[list[str]], list[str]]
+"""Kolejność pytanych graczy (domyślnie kolejność miejsc; fuzzer: losowo, jak w sieci)."""
+AfterStep = Callable[[Action], None]
+"""Wywoływane po każdej przyjętej akcji (fuzzer: niezmienniki, web-data)."""
+
 
 @dataclass
 class Report:
@@ -56,8 +63,14 @@ class BotTable:
         seed: int = 7,
         patch: dict[str, Any] | None = None,
         control: str = "BOT",
+        policy: Policy | None = None,
+        seat_order: SeatOrder | None = None,
+        after_step: AfterStep | None = None,
     ) -> None:
         self.registry = registry
+        self.policy: Policy = policy or (lambda candidates: candidates)
+        self.seat_order: SeatOrder = seat_order or (lambda seats: seats)
+        self.after_step = after_step
         self.clock = [1_000_000.0]
         self.app = create_app(
             registry=registry, store=EventStore(":memory:"), now=lambda: self.clock[0]
@@ -97,13 +110,17 @@ class BotTable:
         """Jeden ruch pierwszego gracza (kolejność miejsc), który ma coś do zrobienia."""
         state = self.state
         ctx = self.ctx()
-        for pid in state.seating_order:
+        for pid in self.seat_order(list(state.seating_order)):
             candidates = legal_actions(observe(state, ctx, pid), ctx)
-            for index, action in enumerate(candidates):
+            if candidates:
+                # Indeks 0 = ruch domyślny generatora (statystyka first_rejected).
+                default = candidates[0]
+                candidates = self.policy(candidates)
+            for action in candidates:
                 try:
                     expected = apply_and_settle(state, ctx, action)
                 except (ValueError, ActorError) as exc:
-                    if index == 0:
+                    if action is default:
                         report.first_rejected[action.kind] += 1
                     report.rejections.append(f"{action.kind}: {exc}")
                     continue
@@ -116,6 +133,8 @@ class BotTable:
                 self._compare(action, expected, report)
                 report.steps += 1
                 report.kinds[action.kind] += 1
+                if self.after_step is not None:
+                    self.after_step(action)
                 return True
         return False
 

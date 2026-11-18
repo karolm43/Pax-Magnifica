@@ -1194,3 +1194,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Strażnik `test_hero_board_fx_guard.py` rozpoznaje też przepis rozpisany na kilka linii.
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (game-shell, map, battle) ✓;
   zrzuty animacji ✓. e2e i build pominięte. Wymaga restartu backendu.
+
+## 2026-11-18 — Fuzzer partii botów + luki generatora ruchów
+
+- ✅ `tests/engine/fuzz.py`: losowe partie botów przez prawdziwe API
+  (`uv run python -m tests.engine.fuzz --games 300 --rounds 5`, `--replay <ziarno>`). Losowe frakcje
+  (3–6, jeden wariant z rodziny), bot losowy, losowa kolejność pytanych graczy, 50% partii z agendą.
+  Po każdym ruchu: zgodność katalog ↔ HTTP, niezmienniki stanu (`check_invariants`), JSON round-trip
+  i dokument web-data dla każdego gracza (to, co czyta front). Błąd = `fuzz_reports/fuzz_seed<N>.json`
+  (ziarno, ostatnie akcje, traceback, migawka stanu); podsumowanie grupuje błędy po sygnaturze.
+- `BotTable` (`tests/engine/driver.py`): wstrzykiwana polityka kolejności kandydatów, kolejność graczy
+  i hook po kroku (bot pasywny bez zmian).
+- ✅ Luki generatora znalezione fuzzerem (gra stawała): produkcja z Construction (krok `choose_dock`)
+  i z secondary Warfare TE → nowa akcja `production_skip` („Finish production”,
+  `/tactical/production/skip-grant`); obowiązkowa technologia z Research Grant Reallocation (wejście
+  `research` w trybie GAIN → pierwsza dostępna); okno FLEET_POOL (np. po Clandestine Operations) → nowa
+  akcja `fleet_pool_resolve` z podpowiedzią `core/fleet_pool.auto_removal`.
+- Testy: zgodność HTTP obu nowych akcji (`test_actions_parity`), parametry GAIN (`test_legal_windows`),
+  smoke fuzzera na stałych ziarnach (`test_fuzz_games`).
+- Zakres fuzzera = zakres generatora: bez akcji taktycznej, walki i kart akcji (B5) — wejdą pod fuzzer
+  automatycznie. Błędy UI: następny krok to odtwarzanie zapisanych stanów w przeglądarce (Playwright).
+- QA: pytest `tests/engine` ✓, ruff ✓, mypy ✓. Pełny pytest i front pominięte (zmiana tylko
+  w warstwie bota i testach). Wymaga restartu backendu (nowe akcje bota).

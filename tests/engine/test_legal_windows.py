@@ -44,7 +44,7 @@ def test_assign_hits_window_yields_battle_assign(registry: StaticDataRegistry) -
         WindowType.SPACE_CANNON,
         WindowType.COMBAT_RETREAT,
         WindowType.CAPACITY,
-        WindowType.FLEET_POOL,
+        # FLEET_POOL ma ruch bota: test_actions_parity.test_fleet_pool_resolve_matches_http
     ],
 )
 def test_windows_without_bot_action_yet_offer_nothing(
@@ -55,3 +55,15 @@ def test_windows_without_bot_action_yet_offer_nothing(
 
     assert legal_actions(observe(state, ctx, "p1"), ctx) == []
 
+
+
+def test_research_offer_gain_mode_picks_available_tech() -> None:
+    """Research Grant Reallocation (obowiązkowe „gain any 1 technology”): bot nie może odmówić."""
+    from src.engine.legal import _minimal_params
+
+    tree = [{"id": "neural", "status": "owned"}, {"id": "gravity", "status": "available"}]
+    gain = [{"key": "research", "kind": "research", "research": {"gain": {}, "tree": tree}}]
+    may = [{"key": "research", "kind": "research", "research": {"tree": tree}}]
+
+    assert _minimal_params(gain) == {"research": {"tech": "gravity"}}
+    assert _minimal_params(may) == {"research": {"tech": None}}
