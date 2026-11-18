@@ -593,6 +593,14 @@ def test_stellar_genesis_kladzie_avernus(registry: StaticDataRegistry) -> None:
     assert ex is not None and ex.player_id == "p1"  # eksploracja Avernus (stellar-genesis 1)
 
 
+@ruling("breakthroughs:muaatbt#1")
+def test_stellar_genesis_wybor_zawsze_na_mapie(registry: StaticDataRegistry) -> None:
+    """Jedna legalna opcja też jest decyzją gracza (klik na mapie, nic po cichu)."""
+    state = _state()
+    inputs = muaat.genesis_inputs(state, registry, "p1", {})
+    assert inputs[0]["always"] is True
+
+
 def _avernus_state(owner: str = "p1") -> GameState:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

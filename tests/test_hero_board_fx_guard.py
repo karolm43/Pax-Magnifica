@@ -26,5 +26,6 @@ def test_kazdy_bohater_silnika_ma_efekt_na_planszy() -> None:
     }
     assert heroes, "brak bohaterów w silniku - zmienił się rejestr efektów?"
     source = _FX.read_text(encoding="utf-8")
-    recipes = set(re.findall(r'^\s*"?([a-z0-9-]+)"?: \{ ', source, flags=re.MULTILINE))
+    # Przepis w jednej linii (`klucz: { dim: ... }`) albo rozpisany (`klucz: {` + kolejne linie).
+    recipes = set(re.findall(r'^\s*"?([a-z0-9-]+)"?: \{(?: |$)', source, flags=re.MULTILINE))
     assert sorted(heroes - recipes) == []

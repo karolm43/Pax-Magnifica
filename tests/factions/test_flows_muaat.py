@@ -150,13 +150,21 @@ def test_stellar_genesis_z_edytora(registry: StaticDataRegistry) -> None:
 
 
 @covers("breakthroughs:muaatbt")
-def test_stellar_genesis_jedna_opcja_tez_decyzja(registry: StaticDataRegistry) -> None:
-    """Jeden legalny system: gracz i tak klika go na mapie (nic nie dzieje się po cichu)."""
+def test_stellar_genesis_system_z_planetami(registry: StaticDataRegistry) -> None:
+    """Kandydaci z mapy gry: także system z planetami bez wpisu stanu (bez jednostek i żetonów)
+    — wcześniej znikały i zostawały tylko puste systemy (z żetonem frontier)."""
     flow = Flow(registry, "muaat")
     flow.post(f"/player/{flow.me}/edit", {"breakthrough_unlocked": True})
     offer = flow.offer("Stellar Genesis")
-    options = offer["inputs"][0]["options"]
-    assert len(options) == 1
-    assert not any("avernus" in s["added_planets"] for s in flow.state()["systems"].values())
-    flow.accept("Stellar Genesis", {"position": options[0]["value"]})
-    assert "avernus" in flow.state()["systems"][options[0]["value"]]["added_planets"]
+    data: Json = flow.client.get("/api/public/game/g/web-data").json()
+    with_planets = [
+        o["value"] for o in offer["inputs"][0]["options"]
+        if o["value"] not in flow.state()["systems"] and data["tileUnitData"].get(o["value"])
+    ]
+    assert with_planets, offer["inputs"][0]["options"]
+    target = with_planets[0]
+    assert "no planets" not in next(
+        o["label"] for o in offer["inputs"][0]["options"] if o["value"] == target
+    )
+    flow.accept("Stellar Genesis", {"position": target})
+    assert "avernus" in flow.state()["systems"][target]["added_planets"]

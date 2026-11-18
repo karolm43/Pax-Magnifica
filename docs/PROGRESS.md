@@ -1174,3 +1174,23 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Ogólny war sun wariantu bez frakcji (`baldrick_muaat_warsun`) nie dostaje oprawy (test).
 - QA: tsc ✓, eslint ✓, vitest (battle) ✓; zrzuty ekranu (bez sprite'ów — harness bez backendu).
   Backend bez zmian; build/e2e pominięte.
+
+## 2026-11-18 — Muaat: Avernus także w systemach z planetami, Nova Seed jako supernowa
+
+- ✅ Błąd Stellar Genesis: kandydaci byli brani ze `state.systems` / `grid_from_state`, a wpis
+  stanu mają tylko systemy, w których coś się działo (np. żeton frontier w pustych) — zostawały
+  same systemy bez planet. Teraz siatka gry (`board_graph.bound_grid`, z hyperlane i
+  wormhole), lista `non_home_systems`, system bez wpisu tworzony przy położeniu
+  (`ensure_system`). Ta sama siatka w Ember Colossus (sąsiedztwo).
+- `card_labels.describe_system`: system bez wpisu stanu opisany z kafla mapy (planety i
+  wartości zamiast samego „System 201”) — dla wszystkich kart z wyborem systemu.
+- ✅ Nova Seed od nowa (9 s): gwiazda z koroną protuberancji puchnie i drga, korona i gwiazda
+  zapadają się w punkt (wsysane pierścienie i materia), błysk całej planszy + promienie
+  dyfrakcyjne (pod nim wymiana kafla, `revealAt` 3 s), poszarpana powłoka gazu (filtr
+  turbulencji), fale uderzeniowe i ejekta, pulsująca mgławica z gwiazdą neutronową.
+- Dźwięk głębszy: `playBattleSound` ma `rate` (niżej/dłużej) i `reverse` + `endIn` (próbka od
+  tyłu kończąca się w zadanej chwili) — niski pomruk, wsysany wybuch zgrany z błyskiem, dwa
+  głuche huki, ryk ognia.
+- Strażnik `test_hero_board_fx_guard.py` rozpoznaje też przepis rozpisany na kilka linii.
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (game-shell, map, battle) ✓;
+  zrzuty animacji ✓. e2e i build pominięte. Wymaga restartu backendu.

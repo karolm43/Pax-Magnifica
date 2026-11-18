@@ -7,7 +7,7 @@ wpływ + cechy + system, system = pozycja + planety, gracz = frakcja (kolor), te
 
 from __future__ import annotations
 
-from src.core import exploration, planet_stats
+from src.core import board_graph, exploration, planet_stats
 from src.core.game_state import GameState, SystemState
 from src.core.models import TechnologyDef
 from src.core.registry import StaticDataRegistry
@@ -68,7 +68,11 @@ def describe_system(state: GameState, registry: StaticDataRegistry, position: st
     """System: ``System 101 · Nazwa A (2/1), Nazwa B (0/3)`` (zasoby/wpływ) albo „empty space”."""
     system = state.systems.get(position)
     if system is None:
-        return f"System {position}"
+        # Brak wpisu stanu (system bez jednostek i żetonów): kafel z mapy gry.
+        system_id = board_graph.system_id_at(state, position)
+        if not system_id:
+            return f"System {position}"
+        system = SystemState(position=position, system_id=system_id)
     return describe_system_state(registry, system, state)
 
 

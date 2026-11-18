@@ -51,7 +51,27 @@ export type SoundOpts = {
   heavy?: boolean;
   /** Głośność względna 0..1. */
   gain?: number;
+  /** Mnożnik szybkości odtwarzania próbki (< 1 = niżej i dłużej — głębszy dźwięk). */
+  rate?: number;
+  /** Próbka od tyłu (np. wybuch wsysany w zapadającą się gwiazdę). */
+  reverse?: boolean;
+  /** Z ``reverse``: próbka KOŃCZY się po tylu ms (szczyt zgrany z chwilą efektu). */
+  endIn?: number;
 };
+
+/** Odwrócone kopie próbek (``reverse``) — liczone raz na bufor. */
+const reversed = new WeakMap<AudioBuffer, AudioBuffer>();
+
+function reversedBuffer(c: AudioContext, buffer: AudioBuffer): AudioBuffer {
+  const cached = reversed.get(buffer);
+  if (cached) return cached;
+  const copy = c.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  for (let ch = 0; ch < buffer.numberOfChannels; ch += 1) {
+    copy.getChannelData(ch).set(Array.from(buffer.getChannelData(ch)).reverse());
+  }
+  reversed.set(buffer, copy);
+  return copy;
+}
 
 const SFX_BASE = "/static/extra/sfx";
 const STORAGE_KEY = "battle.sound.muted";
@@ -420,12 +440,21 @@ export function playBattleSound(name: SoundName, opts: SoundOpts = {}): void {
     if (variants.length > 0) {
       const out = output(c, { ...opts, gain: (opts.gain ?? 1) * SAMPLE_GAIN });
       const src = c.createBufferSource();
-      src.buffer = variants[pickVariant(name, variants.length)];
+      const sample = variants[pickVariant(name, variants.length)];
+      src.buffer = opts.reverse ? reversedBuffer(c, sample) : sample;
       // ±5% wysokości — kolejne strzały serii nie są identyczne; ciężkie jednostki niżej.
-      src.playbackRate.value =
-        (opts.heavy ? 0.88 : 1) * (0.95 + Math.random() * 0.1);
+      const rate = (opts.heavy ? 0.88 : 1) * (opts.rate ?? 1) * (0.95 + Math.random() * 0.1);
+      src.playbackRate.value = rate;
       src.connect(out);
-      src.start();
+      if (opts.reverse && opts.endIn !== undefined) {
+        // Koniec próbki w chwili ``endIn``: start później albo od środka (krótszy czas).
+        const length = sample.duration / rate;
+        const lead = opts.endIn / 1000 - length;
+        if (lead >= 0) src.start(c.currentTime + lead);
+        else src.start(c.currentTime, Math.min(sample.duration, -lead * rate));
+      } else {
+        src.start();
+      }
       return;
     }
     const synthName = name in SYNTH_FALLBACK ? SYNTH_FALLBACK[name] : name;

@@ -91,17 +91,33 @@ function MarkPart({ mark }: { mark: FxMark }) {
   }
 }
 
-/** Odłamki plazmy Nova Seed: kąt, zasięg (px), promień — stałe, bez losowania w renderze. */
-const EMBERS = Array.from({ length: 28 }, (_, i) => ({
-  angle: i * (360 / 28) + ((i * 37) % 11) - 5,
-  dist: 170 + ((i * 53) % 150),
-  r: 4 + (i % 3) * 2,
-}));
+/** Stałe pseudolosowe (bez `Math.random` w renderze — ten sam wygląd u wszystkich). */
+const seq = (n: number, f: (i: number) => object) => Array.from({ length: n }, (_, i) => f(i));
+/** Wyrzuty plazmy po wybuchu: kąt, zasięg (px), promień, opóźnienie. */
+const EJECTA = seq(40, (i) => ({
+  angle: i * 9 + ((i * 37) % 13) - 6,
+  dist: 260 + ((i * 71) % 340),
+  r: 3 + (i % 4) * 1.6,
+  lag: (i * 29) % 260,
+})) as { angle: number; dist: number; r: number; lag: number }[];
+/** Materia wsysana w zapadającą się gwiazdę. */
+const INFALL = seq(24, (i) => ({
+  angle: i * 15 + ((i * 23) % 9),
+  dist: 170 + ((i * 47) % 120),
+  lag: (i * 53) % 700,
+})) as { angle: number; dist: number; lag: number }[];
+/** Protuberancje korony (długość, grubość). */
+const FLARES = seq(14, (i) => ({ len: 46 + ((i * 31) % 40), w: 9 + (i % 3) * 4 })) as {
+  len: number;
+  w: number;
+}[];
 
 /**
- * Nova Seed: gwiazda zapada się w sobie (pierścienie ściągają do środka, brzeg heksa żarzy się),
- * błysk zasłania wymianę kafla, potem cienka fala uderzeniowa, odłamki plazmy i poświata nowej
- * supernowej. Chwile zgodne z `revealAt` i dźwiękami przepisu `muaathero`.
+ * Nova Seed — supernowa w systemie (9 s, chwile zgodne z przepisem `muaathero`):
+ * 0–1,6 s gwiazda z koroną puchnie i drga; 1,6–2,85 s korona i gwiazda zapadają się w punkt
+ * (pierścienie i materia wsysane do środka); 2,85 s błysk + promienie dyfrakcyjne, pod nim
+ * nowy kafel; potem rozszerzająca się, poszarpana powłoka gazu, fale uderzeniowe i ejekta;
+ * na koniec pulsująca mgławica z gwiazdą neutronową, która powoli gaśnie.
  */
 function NovaMark({ tile }: { tile: Tile }) {
   const cx = tile.properties.x + TILE_WIDTH / 2;
@@ -114,20 +130,60 @@ function NovaMark({ tile }: { tile: Tile }) {
         transform={`translate(${tile.properties.x} ${tile.properties.y})`}
       />
       <g transform={`translate(${cx} ${cy})`}>
-        {[0, 1, 2].map((i) => (
-          <circle key={i} className={classes.novaImplode} r={160} style={{ "--i": i } as CSSProperties} />
+        {/* Mgławica-pozostałość (pod wszystkim, pojawia się po wybuchu). */}
+        <g className={classes.novaRemnant} filter="url(#fxNovaWisp)">
+          <circle r={210} fill="url(#fxNovaNebulaA)" />
+          <circle r={170} cx={40} cy={-25} fill="url(#fxNovaNebulaB)" />
+          <circle r={150} cx={-45} cy={30} fill="url(#fxNovaNebulaA)" />
+        </g>
+        <circle className={classes.novaPulsar} r={10} fill="url(#fxNovaCore)" />
+        {/* Gwiazda i korona przed wybuchem. */}
+        <g className={classes.novaStar}>
+          <circle r={190} fill="url(#fxNovaGlow)" />
+          <g className={classes.novaCorona}>
+            {FLARES.map((f, i) => (
+              // Obrót w <g> (początek = środek gwiazdy); ścieżka migocze wokół własnej podstawy.
+              <g key={i} transform={`rotate(${(i * 360) / FLARES.length})`}>
+                <path
+                  className={classes.novaFlare}
+                  d={`M ${-f.w / 2} -78 Q 0 ${-78 - f.len * 1.6} ${f.w / 2} -78 Z`}
+                  style={{ "--i": i } as CSSProperties}
+                />
+              </g>
+            ))}
+          </g>
+          <circle r={84} fill="url(#fxNovaStar)" />
+        </g>
+        {[0, 1, 2, 3].map((i) => (
+          <circle key={i} className={classes.novaImplode} r={230} style={{ "--i": i } as CSSProperties} />
         ))}
-        <circle className={classes.novaCore} r={26} fill="url(#fxNovaCore)" />
-        <circle className={classes.novaAfterglow} r={200} fill="url(#fxNovaGlow)" />
-        <circle className={classes.novaFlash} r={320} fill="url(#fxNovaFlash)" />
+        {INFALL.map((e, i) => (
+          <g key={i} style={{ rotate: `${e.angle}deg` }}>
+            <circle
+              className={classes.novaInfall}
+              r={3}
+              style={{ "--dist": `${-e.dist}px`, "--lag": `${e.lag}ms` } as CSSProperties}
+            />
+          </g>
+        ))}
+        {/* Wybuch: błysk, promienie, powłoka, fale, ejekta. */}
+        <circle className={classes.novaFlash} r={520} fill="url(#fxNovaFlash)" />
+        <g className={classes.novaSpikes}>
+          <rect x={-900} y={-3} width={1800} height={6} fill="url(#fxNovaSpikeH)" />
+          <rect x={-3} y={-900} width={6} height={1800} fill="url(#fxNovaSpikeV)" />
+          <rect x={-520} y={-2} width={1040} height={4} fill="url(#fxNovaSpikeH)" transform="rotate(45)" />
+          <rect x={-520} y={-2} width={1040} height={4} fill="url(#fxNovaSpikeH)" transform="rotate(-45)" />
+        </g>
+        <circle className={classes.novaShell} r={150} fill="url(#fxNovaShell)" filter="url(#fxNovaWisp)" />
+        <circle className={classes.novaShell} data-late r={150} fill="url(#fxNovaShellB)" filter="url(#fxNovaWisp)" />
         <circle className={classes.novaShock} r={110} />
         <circle className={classes.novaShock} data-late r={110} />
-        {EMBERS.map((e, i) => (
+        {EJECTA.map((e, i) => (
           <g key={i} style={{ rotate: `${e.angle}deg` }}>
             <circle
               className={classes.novaEmber}
               r={e.r}
-              style={{ "--dist": `${-e.dist}px`, "--i": i } as CSSProperties}
+              style={{ "--dist": `${-e.dist}px`, "--lag": `${e.lag}ms` } as CSSProperties}
             />
           </g>
         ))}
@@ -136,27 +192,76 @@ function NovaMark({ tile }: { tile: Tile }) {
   );
 }
 
-/** Gradienty Nova Seed (kolor z `--tone` warstwy). */
+/** Gradienty i filtr Nova Seed (kolor z `--tone` warstwy). */
 function NovaDefs() {
-  const tone = (a: number) => ({ stopColor: "rgb(var(--tone))", stopOpacity: a });
+  const c = (color: string, opacity = 1) => ({ stopColor: color, stopOpacity: opacity });
+  const tone = (a: number) => c("rgb(var(--tone))", a);
   return (
     <defs>
+      <radialGradient id="fxNovaStar">
+        <stop offset="0%" style={c("#fff")} />
+        <stop offset="35%" style={c("rgb(255 244 200)")} />
+        <stop offset="70%" style={c("rgb(255 170 60)")} />
+        <stop offset="92%" style={c("rgb(220 60 20)")} />
+        <stop offset="100%" style={c("rgb(160 20 10)", 0)} />
+      </radialGradient>
       <radialGradient id="fxNovaCore">
-        <stop offset="0%" style={{ stopColor: "#fff" }} />
-        <stop offset="55%" style={{ stopColor: "rgb(255 236 200)" }} />
+        <stop offset="0%" style={c("#fff")} />
+        <stop offset="50%" style={c("rgb(200 230 255)")} />
+        <stop offset="100%" style={c("rgb(120 180 255)", 0)} />
+      </radialGradient>
+      <radialGradient id="fxNovaGlow">
+        <stop offset="0%" style={tone(0.7)} />
+        <stop offset="45%" style={tone(0.3)} />
         <stop offset="100%" style={tone(0)} />
       </radialGradient>
       <radialGradient id="fxNovaFlash">
-        <stop offset="0%" style={{ stopColor: "#fff", stopOpacity: 1 }} />
-        <stop offset="30%" style={{ stopColor: "rgb(255 240 210)", stopOpacity: 0.95 }} />
-        <stop offset="60%" style={tone(0.55)} />
+        <stop offset="0%" style={c("#fff")} />
+        <stop offset="25%" style={c("rgb(255 248 230)", 0.95)} />
+        <stop offset="55%" style={tone(0.6)} />
         <stop offset="100%" style={tone(0)} />
       </radialGradient>
-      <radialGradient id="fxNovaGlow">
-        <stop offset="0%" style={tone(0.55)} />
-        <stop offset="45%" style={tone(0.25)} />
-        <stop offset="100%" style={tone(0)} />
+      <radialGradient id="fxNovaShell">
+        <stop offset="0%" style={tone(0)} />
+        <stop offset="55%" style={tone(0)} />
+        <stop offset="72%" style={c("rgb(255 200 120)", 0.85)} />
+        <stop offset="80%" style={c("rgb(255 250 235)", 0.9)} />
+        <stop offset="88%" style={c("rgb(230 70 40)", 0.6)} />
+        <stop offset="100%" style={c("rgb(120 20 60)", 0)} />
       </radialGradient>
+      <radialGradient id="fxNovaShellB">
+        <stop offset="0%" style={tone(0)} />
+        <stop offset="62%" style={tone(0)} />
+        <stop offset="78%" style={c("rgb(255 120 170)", 0.55)} />
+        <stop offset="90%" style={c("rgb(140 90 255)", 0.4)} />
+        <stop offset="100%" style={c("rgb(60 40 160)", 0)} />
+      </radialGradient>
+      <radialGradient id="fxNovaNebulaA">
+        <stop offset="0%" style={c("rgb(255 210 140)", 0.7)} />
+        <stop offset="40%" style={c("rgb(240 90 50)", 0.45)} />
+        <stop offset="75%" style={c("rgb(150 40 110)", 0.25)} />
+        <stop offset="100%" style={c("rgb(60 20 90)", 0)} />
+      </radialGradient>
+      <radialGradient id="fxNovaNebulaB">
+        <stop offset="0%" style={c("rgb(140 200 255)", 0.45)} />
+        <stop offset="50%" style={c("rgb(120 80 220)", 0.3)} />
+        <stop offset="100%" style={c("rgb(40 20 120)", 0)} />
+      </radialGradient>
+      <linearGradient id="fxNovaSpikeH">
+        <stop offset="0%" style={c("#fff", 0)} />
+        <stop offset="50%" style={c("#fff")} />
+        <stop offset="100%" style={c("#fff", 0)} />
+      </linearGradient>
+      <linearGradient id="fxNovaSpikeV" x2="0" y2="1">
+        <stop offset="0%" style={c("#fff", 0)} />
+        <stop offset="50%" style={c("#fff")} />
+        <stop offset="100%" style={c("#fff", 0)} />
+      </linearGradient>
+      {/* Poszarpane brzegi gazu (powłoka, mgławica). */}
+      <filter id="fxNovaWisp" x="-60%" y="-60%" width="220%" height="220%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" />
+        <feDisplacementMap in="SourceGraphic" scale="70" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
     </defs>
   );
 }
@@ -184,7 +289,8 @@ export function HeroBoardFxLayer({
     const timers: number[] = [];
     if (run.recipe.sounds?.length) preloadBattleSounds();
     for (const s of run.recipe.sounds ?? []) {
-      timers.push(window.setTimeout(() => playBattleSound(s.name, { gain: s.gain }), s.at));
+      const { at, name, ...opts } = s;
+      timers.push(window.setTimeout(() => playBattleSound(name, opts), at));
     }
     for (const r of run.replaced ?? []) {
       timers.push(window.setTimeout(() => uncover(r.position), run.recipe.revealAt ?? 0));
@@ -217,6 +323,12 @@ export function HeroBoardFxLayer({
       aria-hidden="true"
     >
       {recipe.dim ? <div className={classes.dim} /> : null}
+      {recipe.flashAt !== undefined && (
+        <div
+          className={classes.flash}
+          style={{ "--flash-at": `${recipe.flashAt}ms` } as CSSProperties}
+        />
+      )}
       {recipe.sweep && <div className={classes.sweep} data-sweep={recipe.sweep} />}
       {recipe.shadows && run.color && (
         <div className={classes.shadows}>

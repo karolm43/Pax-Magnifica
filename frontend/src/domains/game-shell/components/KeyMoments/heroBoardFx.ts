@@ -6,7 +6,7 @@
  */
 import { create } from "zustand";
 import type { Tile } from "@/entities/game/types";
-import type { SoundName } from "@/domains/battle/battleSound";
+import type { SoundName, SoundOpts } from "@/domains/battle/battleSound";
 import type { ReplacedTile } from "./keyMoments";
 
 /** Gdzie na planszy dzieje się efekt. */
@@ -35,8 +35,10 @@ export type HeroFxRecipe = {
   tone?: string;
   /** Czas efektu (ms). */
   ms: number;
-  /** Dźwięki efektu (ms od startu, próbki walki — `battleSound`). */
-  sounds?: { at: number; name: SoundName; gain?: number }[];
+  /** Dźwięki efektu (ms od startu, próbki walki — `battleSound`; `rate`/`reverse` jak tam). */
+  sounds?: ({ at: number; name: SoundName } & SoundOpts)[];
+  /** Błysk całej planszy (ms od startu). */
+  flashAt?: number;
   /** Chwila (ms), w której wymieniony kafel odsłania nowy (pod błyskiem); domyślnie od razu. */
   revealAt?: number;
 };
@@ -67,19 +69,24 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
   // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku w jednym systemie — cienie i słupy.
   l1z1xhero: { dim: 0.5, shadows: ["dn", "fs", "dn"], target: "ships", mark: "beam", tone: "210 60 60", ms: 4400 },
-  // Nova Seed: system staje się supernową — błysk, fala uderzeniowa i wyrzuty plazmy z nowego kafla.
-  // Stary kafel zostaje do błysku (revealAt), nowa supernowa wyłania się z poświaty.
+  // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
+  // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
+  // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.
   muaathero: {
-    dim: 0.55,
+    dim: 0.65,
     target: "nova",
     mark: "nova",
     tone: "255 130 50",
-    ms: 5200,
-    revealAt: 1650,
+    ms: 9000,
+    flashAt: 2850,
+    revealAt: 3000,
     sounds: [
-      { at: 0, name: "warSunEnter", gain: 0.55 },
-      { at: 1550, name: "explosionHeavy", gain: 0.9 },
-      { at: 1700, name: "explosion", gain: 0.5 },
+      { at: 0, name: "warSunEnter", gain: 0.7, rate: 0.55 },
+      { at: 400, name: "explosionHeavy", gain: 0.85, rate: 0.6, reverse: true, endIn: 2450 },
+      { at: 2850, name: "explosionHeavy", gain: 1, rate: 0.5 },
+      { at: 2950, name: "explosionHeavy", gain: 0.7, rate: 0.75 },
+      { at: 3300, name: "sunfire", gain: 0.5, rate: 0.5 },
+      { at: 4200, name: "warSunEnter", gain: 0.4, rate: 0.45 },
     ],
   },
 };

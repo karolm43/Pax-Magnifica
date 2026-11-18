@@ -37,6 +37,7 @@ from src.core import offer_inputs as oi
 from src.core.custodians import is_mecatol_position
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
+from src.core.hex_grid import HexGrid
 from src.core.hooks import card_labels
 from src.core.hooks.card_helpers import place_from_reinforcements
 from src.core.production import reinforcements_left
@@ -96,6 +97,13 @@ def _registry() -> StaticDataRegistry:
     if registry is None:
         raise ValueError("Static data registry is not bound.")
     return registry  # type: ignore[no-any-return]
+
+
+def _grid(state: GameState, registry: StaticDataRegistry) -> HexGrid:
+    """Siatka mapy gry (podpięta przez API - wszystkie kafle, hyperlane, wormhole); bez niej
+    (testy jednostkowe) - siatka z systemów stanu. ``grid_from_state`` widzi TYLKO systemy z
+    wpisem stanu, więc systemy z planetami bez jednostek by znikały."""
+    return board_graph.bound_grid() or grid_from_state(state, registry)
 
 
 def _own_event(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
@@ -325,7 +333,7 @@ def the_inferno(
 
 def _colossi(state: GameState, player_id: str, position: str) -> list[tuple[str, str, int]]:
     """``(pozycja, strefa, sztuki)`` mechów gracza w systemie Star Forge albo sąsiednim."""
-    grid = grid_from_state(state, _registry())
+    grid = _grid(state, _registry())
     found: list[tuple[str, str, int]] = []
     for pos, system in sorted(state.systems.items()):
         if pos != position and not grid.are_adjacent(pos, position):
@@ -613,13 +621,16 @@ def avernus_position(state: GameState) -> str | None:
 
 
 def genesis_systems(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[str]:
-    """Systemy spoza domów sąsiadujące z planetą gracza (system planety i systemy obok niego)."""
-    grid = grid_from_state(state, registry)
-    homes = _home_positions(state, registry)
+    """Systemy spoza domów sąsiadujące z planetą gracza (system planety i systemy obok niego -
+    R_adjacency). Kandydaci z MAPY (``grid.positions``), nie z ``state.systems``: wpis stanu
+    mają tylko systemy, w których coś się już działo (np. żeton frontier w pustych), więc
+    systemy z planetami bez jednostek by znikały."""
+    grid = _grid(state, registry)
+    homes = _home_positions(state, registry)  # także domy wyeliminowanych
     owned = {pos for pos, system in state.systems.items() if player_id in
              system.planet_owners.values()}
     return sorted(
-        pos for pos in state.systems
+        pos for pos in board_graph.non_home_systems(state, registry)  # bez hyperlane
         if pos not in homes and pos in grid.positions
         and any(pos == src or grid.are_adjacent(pos, src) for src in owned)
     )
@@ -654,7 +665,7 @@ def stellar_genesis(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
     position = str((ctx.get("params") or {}).get("position") or "")
     if position not in genesis_systems(state, registry, player_id):
         raise ValueError("Choose a non-home system adjacent to a planet you control.")
-    system = state.systems[position]
+    system = board_graph.ensure_system(state, position)  # system bez wpisu stanu też
     system.added_planets = [*system.added_planets, AVERNUS]
     control.set_planet_control(state, position, AVERNUS, player_id, registry)
     exhaust.ready_planets(state, player_id, [AVERNUS])  # „ready it”
