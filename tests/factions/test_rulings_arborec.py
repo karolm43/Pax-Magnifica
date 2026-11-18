@@ -425,6 +425,8 @@ def test_sily_naziemne_na_dowolna_planete_albo_w_przestrzen(
     kind: str, zone: str, registry: StaticDataRegistry, grid: HexGrid
 ) -> None:
     state = _two_planet_state({DOCK_PLANET: {"spacedock": 1, "infantry": 1}})
+    if zone == "space":  # w przestrzeni potrzebna pojemność - inaczej nadwyżka znika (39.6 C5)
+        state.systems[TWO_PLANETS].space_units["p1"] = {"carrier": 1}
     granted = _grant(kind, state, registry)
     after = production.produce(
         granted, grid, registry, "p1", [ProductionOrder("infantry", 1, zone=zone)]
@@ -434,7 +436,7 @@ def test_sily_naziemne_na_dowolna_planete_albo_w_przestrzen(
         if zone == "space"
         else _ground(after, TWO_PLANETS, zone)
     )
-    assert units == {"infantry": 1}
+    assert units == ({"carrier": 1, "infantry": 1} if zone == "space" else {"infantry": 1})
 
 
 @ruling("F_arborec/dirzuga-rophal/6")

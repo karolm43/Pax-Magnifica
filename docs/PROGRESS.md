@@ -1043,3 +1043,28 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (battle, invasion, offers,
   strategy, game-shell/components, ExtraDicePicker) ✓. e2e i build pominięte. Wymaga restartu
   backendu (nowe pole stanu i trasa).
+
+## 2026-11-18 — Wygoda okien decyzji: ruch z efektu, capacity, neutralni, kości, karty strategii
+
+- ✅ Ruch z efektu (`offer_inputs.unit_moves`: Helix Protocol, Wing Transfer, kolejne) jak zwykły
+  ruch: klik w świecący system → wiersze jednostek (+1 / prawy −1 / Shift = wszystkie, „Select all”)
+  → klik w świecący cel; także Ctrl+klik jednostek na mapie (to samo zaznaczenie co w oknie)
+  i przeciągnięcie stosu/grupy. Lista „Planned moves” z −/+, linie na mapie (`EffectMoveLayer`).
+  Ponowny klik w wybrany system odznacza. `UnitMovesField`, `useUnitDrag`, `MultiSelectHud`.
+- ✅ RULES.md 39.6 C5 (decyzja użytkownika): nadwyżka capacity bez wyboru (np. myśliwce zostawione
+  bez nosiciela) znika od razu (`capacity.forced_removal` / `remove_forced_excess`); okno CAPACITY
+  tylko przy realnym wyborze. Helix/Wing Transfer nie odrzucają już ruchu „Capacity exceeded”.
+  `limits.enforce_limits` przenosi stan po automatycznym usunięciu.
+- ✅ RULES.md 50.3 (decyzja użytkownika): neutralni walczą jednostkami ulepszonymi
+  (`neutral.variant_key` w walce i inwazji) — zastępuje założenie „bazowe”.
+- ✅ Bramka „kości w locie” (`domains/dice/diceGate.ts`): oferty, „Available now”, karty z ręki,
+  okna capacity / fleet pool, toasty Activity i ekran zwycięstwa czekają, aż kości wylądują.
+- ✅ Wybór na mapie: ponowny klik zawsze odznacza (GroupedMapField zostawiał fokus/chip,
+  RouteNumbersField, Diplomacy, Construction).
+- ✅ Okna przesuwane (pływający `Modal`, stół kart strategii) nie wychodzą poza ekran
+  (`utils/keepOnScreen.ts`).
+- ✅ Stół kart strategii: baner właściciela U GÓRY karty w kolorze gracza („Picked by” + frakcja),
+  wybrane karty bez wygaszenia z obramowaniem, kolejka wyboru w nagłówku (kto wybiera, kto co ma).
+- ✅ Karty z ręki: poza przeciągnięciem także przycisk „Play …” / „Discard …” w podglądzie.
+- QA: pytest (pełny) ✓, ruff ✓, mypy (zmienione moduły) ✓, tsc ✓, eslint ✓, vitest (offers, dice,
+  map, game-shell) ✓. e2e i build pominięte. Wymaga restartu backendu.

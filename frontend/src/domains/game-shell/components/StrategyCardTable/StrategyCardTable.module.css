@@ -470,10 +470,6 @@
   opacity: 0.55;
 }
 
-/* WYBRANA — lekkie wygaszenie (bez prostokątnej ramki; sam obraz). */
-.card[data-picked] {
-  opacity: 0.8;
-}
 
 /*
  * Pełna grafika karty (lokalny PNG z assetów: /strat_cards/*). Wypełnia CAŁY kafel
@@ -595,33 +591,134 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  top: 0;
   display: flex;
   align-items: center;
-  gap: var(--ds-space-xs);
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 6px 8px 14px;
+  /* Kolor właściciela (``--owner-rgb``) od góry, wtapia się w grafikę karty. */
   background: linear-gradient(
-    to top,
-    rgb(0 0 0 / 0.9),
-    rgb(0 0 0 / 0.7) 70%,
+    to bottom,
+    rgb(var(--owner-rgb) / 0.95),
+    rgb(var(--owner-rgb) / 0.75) 65%,
     transparent
   );
-  border-bottom-left-radius: var(--ds-radius-sm);
-  border-bottom-right-radius: var(--ds-radius-sm);
+  border-top-left-radius: var(--ds-radius-sm);
+  border-top-right-radius: var(--ds-radius-sm);
   pointer-events: none;
+}
+
+.ownerText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: left;
+  line-height: 1.1;
+}
+
+.ownerLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.85);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.9);
 }
 
 .ownerName {
   min-width: 0;
-  flex: 1 1 auto;
   font-family: var(--ds-font-display);
   font-size: var(--ds-fz-sm);
-  font-weight: 600;
-  color: var(--ds-ink-hi);
+  font-weight: 700;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.95);
+}
+
+/* Wybrana karta: pełna widoczność, obramowanie w kolorze właściciela, grafika lekko
+   przygaszona - od razu widać, że jest zajęta i przez kogo. */
+.card[data-picked],
+.card[data-picked][data-disabled] {
+  opacity: 1;
+}
+
+.card[data-picked] .cardImage,
+.card[data-picked] .cardFallback {
+  filter: saturate(0.6) brightness(0.82);
+}
+
+.card[data-picked]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgb(var(--owner-rgb));
+  border-radius: var(--ds-radius-sm);
+  box-shadow: 0 0 14px rgb(var(--owner-rgb) / 0.6);
+  pointer-events: none;
+}
+
+/* Kolejka wyboru w nagłówku: wszyscy gracze w porządku mówcy, ich karty i kto wybiera. */
+.pickOrder {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pickSeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border: 1px solid rgb(var(--owner-rgb) / 0.55);
+  border-radius: 999px;
+  background: rgb(var(--owner-rgb) / 0.14);
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-ink-hi);
+  opacity: 0.8;
+}
+
+.pickSeat[data-done] {
+  opacity: 1;
+}
+
+.pickSeat[data-now] {
+  opacity: 1;
+  background: rgb(var(--owner-rgb) / 0.32);
+  border-color: rgb(var(--owner-rgb));
+  box-shadow: 0 0 10px rgb(var(--owner-rgb) / 0.55);
+}
+
+.pickSeatName {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickSeatCard {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--scc);
+  color: #111;
+  font-family: var(--ds-font-data);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pickSeatNow {
+  font-style: italic;
+  opacity: 0.85;
 }
 
 /*

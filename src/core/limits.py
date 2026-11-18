@@ -84,7 +84,8 @@ def enforce_limits(state: GameState, registry: StaticDataRegistry | None) -> Gam
     if state.pending_window is not None or state.exploration is not None:
         return state
     for position in systems_over_limit(state, registry):
-        checked = capacity.open_capacity_check(state, registry, position)
-        if checked.pending_window is not None:
-            return checked
+        # Nadwyżka bez wyboru znika od razu (RULES.md 39.6 C5) - stan idzie dalej.
+        state = capacity.open_capacity_check(state, registry, position)
+        if state.pending_window is not None:
+            return state
     return state

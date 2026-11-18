@@ -519,7 +519,7 @@ def test_end_turn_opens_capacity_window_and_keeps_turn(registry: StaticDataRegis
     # Myśliwce bez nosiciela w aktywnym systemie: nadwyżka pojemności (RULES.md 39.6) musi
     # zostać usunięta, zanim tura przejdzie dalej — okno CAPACITY, aktywny gracz bez zmian.
     state = _in_tactical(TacticalStep.PRODUCTION)
-    state.systems["101"].space_units = {"p1": {"fighter": 2}}
+    state.systems["101"].space_units = {"p1": {"carrier": 1, "fighter": 4, "infantry": 1}}
     out = turn_flow.end_turn(state, registry=registry)
     assert out.pending_window is not None
     assert out.pending_window.window_type is WindowType.CAPACITY

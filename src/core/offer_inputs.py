@@ -107,6 +107,49 @@ def route_meta(source: str, destination: str, base_type: str = "infantry") -> di
     return {"from": source, "to": destination, "unit": base_type}
 
 
+MOVE_SEP = ">"  # wartość opcji ruchu: ``<id jednostki>><cel>``
+
+
+def unit_moves(
+    key: str,
+    label: str,
+    units: list[dict[str, Any]],
+    destinations: list[str],
+    hint: str = "",
+) -> Input:
+    """Ruch jednostek z efektu (bohater, przełom, karta) jako PRZECIĄGANIE NA MAPIE.
+
+    ``units`` = opcje egzemplarzy (``option(id, nazwa, meta=unit_at(..., position=...))``),
+    ``destinations`` = systemy, do których wolno je przenieść. Wejście to zwykłe ``multi``
+    (walidacja, auto-rozstrzygnięcie bez zmian) z opcjami „jednostka -> cel”; UI
+    (``frontend/src/domains/offers/UnitMovesField.tsx``) rysuje je jak ruch taktyczny: gracz
+    przeciąga jednostki na świecący system, linia trasy na mapie, −/+ w oknie (decyzja
+    użytkownika 2026-11-18: ruch zawsze jak ruch, nigdy sloty „Destination N”).
+    Jedna jednostka może trafić tylko do jednego celu - pilnuje tego efekt przy parsowaniu.
+    """
+    options: list[dict[str, Any]] = []
+    for unit in units:
+        meta = dict(unit.get("meta") or {})
+        source = str(meta.get("position") or "")
+        for dest in destinations:
+            if dest == source:
+                continue
+            options.append(option(
+                f"{unit['value']}{MOVE_SEP}{dest}", f"{unit['label']} → {dest}",
+                meta={**meta, "move": {"unit": str(unit["value"]), "from": source, "to": dest}},
+            ))
+    return multi(key, label, options, 0, len(units),
+                 hint or "Click a glowing system, choose units, then click the destination (or drag).")
+
+
+def split_move(value: str) -> tuple[str, str]:
+    """``"<id jednostki>><cel>"`` -> ``(id jednostki, cel)``."""
+    unit, sep, dest = str(value).rpartition(MOVE_SEP)
+    if not sep or not unit or not dest:
+        raise ValueError(f"Invalid move {value!r}.")
+    return unit, dest
+
+
 def research(key: str, label: str, view: dict[str, Any], hint: str = "") -> Input:
     """Wejście „zbadaj technologię”: UI otwiera okno badania (drzewo + płatność) z ``view``
     (``strategy_cards.technology.research_view``). Odpowiedź to słownik ``{tech, skips, planets,

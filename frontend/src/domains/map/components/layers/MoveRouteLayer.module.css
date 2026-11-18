@@ -99,3 +99,15 @@
     animation: none;
   }
 }
+
+/* Liczba jednostek przy celu ruchu z efektu (EffectMoveLayer). */
+.count {
+  fill: #fff;
+  font-size: 34px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.85);
+  stroke-width: 6;
+}

@@ -101,7 +101,9 @@ def test_space_dock_holds_fighters_only(registry: StaticDataRegistry) -> None:
 
 
 def test_next_step_opens_capacity_window_and_blocks(registry: StaticDataRegistry) -> None:
-    state = _state({"p1": {"cruiser": 1, "fighter": 2}})
+    cap = _carrier_capacity(registry)
+    # Wybór: usunąć myśliwca ALBO piechotę - okno CAPACITY, krok zostaje.
+    state = _state({"p1": {"carrier": 1, "fighter": cap, "infantry": 1}})
     checked = tactical.next_step(state, registry)
     window = checked.pending_window
     assert window is not None and window.window_type is WindowType.CAPACITY
@@ -109,11 +111,27 @@ def test_next_step_opens_capacity_window_and_blocks(registry: StaticDataRegistry
     assert checked.tactical_step is TacticalStep.MOVEMENT  # krok zostaje
     with pytest.raises(ValueError, match="exceed capacity"):
         tactical.next_step(checked, registry)
-    resolved = capacity.resolve_capacity(checked, registry, "p1", {"fighter": 2})
+    resolved = capacity.resolve_capacity(checked, registry, "p1", {"infantry": 1})
     assert resolved.pending_window is None
-    assert resolved.systems["000"].space_units["p1"] == {"cruiser": 1}
+    assert resolved.systems["000"].space_units["p1"] == {"carrier": 1, "fighter": cap}
     advanced = tactical.next_step(resolved, registry)
     assert advanced.tactical_step is TacticalStep.SPACE_CANNON
+
+
+def test_wymuszona_nadwyzka_znika_bez_okna(registry: StaticDataRegistry) -> None:
+    """RULES.md 39.6 C5: myśliwce bez statku z pojemnością (jedyne legalne usunięcie) giną od
+    razu - bez okna, krok idzie dalej (decyzja użytkownika 2026-11-18)."""
+    state = _state({"p1": {"cruiser": 1, "fighter": 2}})
+    report = capacity.capacity_report(state, registry, "000", "p1")
+    assert capacity.forced_removal(report) == {"fighter": 2}
+    advanced = tactical.next_step(state, registry)
+    assert advanced.pending_window is None
+    assert advanced.systems["000"].space_units["p1"] == {"cruiser": 1}
+    assert advanced.tactical_step is TacticalStep.SPACE_CANNON
+    # Realny wybór (myśliwiec albo piechota) - brak wymuszenia.
+    cap = _carrier_capacity(registry)
+    choice = _state({"p1": {"carrier": 1, "fighter": cap, "infantry": 1}})
+    assert capacity.forced_removal(capacity.capacity_report(choice, registry, "000", "p1")) is None
 
 
 def test_removal_must_be_exact(registry: StaticDataRegistry) -> None:
@@ -168,18 +186,18 @@ def test_combat_end_opens_capacity_for_winner(registry: StaticDataRegistry) -> N
     )
     combat = done.active_combat
     assert combat is not None and combat.step is CombatStep.DONE and combat.winner == "p1"
-    window = done.pending_window
-    assert window is not None and window.window_type is WindowType.CAPACITY
-    cleared = capacity.resolve_capacity(done, registry, "p1", {"fighter": 6})
-    assert "p1" not in cleared.systems["000"].space_units
+    # Same myśliwce bez pojemności: jedyne legalne usunięcie - znikają od razu (C5).
+    assert done.pending_window is None
+    assert "p1" not in done.systems["000"].space_units
 
 
 # --------------------------------------------------------------------------- API
 
 
 def test_api_capacity_flow(registry: StaticDataRegistry) -> None:
+    cap = _carrier_capacity(registry)
     state = capacity.open_capacity_check(
-        _state({"p1": {"cruiser": 1, "fighter": 1, "infantry": 1}}), registry, "000"
+        _state({"p1": {"carrier": 1, "fighter": cap, "infantry": 2}}), registry, "000"
     )
     client = TestClient(
         create_app(registry=registry, store=EventStore(":memory:"), initial_state=state)

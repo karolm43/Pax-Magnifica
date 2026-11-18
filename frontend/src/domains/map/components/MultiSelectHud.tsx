@@ -38,10 +38,12 @@ export function MultiSelectHud() {
   }, [active, clear]);
 
   // Koniec akcji taktycznej (brak aktywnego systemu) unieważnia zaznaczenie.
+  // Wyjątek: ruch z efektu (bohater, przełom, karta) zaznacza jednostki bez aktywnego systemu.
   const hasActiveSystem = (gameState?.activeSystem ?? null) !== null;
+  const effectMove = useAppStore((s) => s.effectMove !== null);
   useEffect(() => {
-    if (active && gameState && !hasActiveSystem) clear();
-  }, [active, gameState, hasActiveSystem, clear]);
+    if (active && gameState && !hasActiveSystem && !effectMove) clear();
+  }, [active, gameState, hasActiveSystem, effectMove, clear]);
 
   if (!selection) return null;
   const sum = summarizeSelection(selection, gameData?.playerData);

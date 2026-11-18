@@ -18,6 +18,7 @@ import { GroupedMapField } from "./GroupedMapField";
 import { TechPickField } from "./TechPickField";
 import { routeOf, RouteNumbersField, type Route } from "./RouteNumbersField";
 import { autoPay } from "@/domains/technology/techModel";
+import { movesOf, UnitMovesField } from "./UnitMovesField";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -399,7 +400,7 @@ export function DecisionFields({
   const mapKey = useMemo(() => {
     const onMap = inputs.filter((input) => {
       if (input.kind !== "choice" && input.kind !== "multi") return false;
-      if (paymentOf(input) || slotMember.has(input.key)) return false;
+      if (paymentOf(input) || slotMember.has(input.key) || movesOf(input)) return false;
       const kind = classifyOptions(input.options, lookups)?.kind;
       return kind === "planet" || kind === "system";
     });
@@ -420,6 +421,20 @@ export function DecisionFields({
     <div className={styles.form}>
       {inputs.map((input) => {
         if (slotMember.has(input.key)) return null;
+        // Ruch z efektu = przeciąganie jednostek na mapie z linią (jak ruch taktyczny).
+        const moves = movesOf(input);
+        if (moves && input.kind === "multi") {
+          return (
+            <UnitMovesField
+              key={input.key}
+              input={input}
+              moves={moves}
+              value={values[input.key]}
+              disabled={disabled}
+              onChange={(next) => onChange(input.key, next)}
+            />
+          );
+        }
         const slotGroup = slots.get(input.key);
         if (slotGroup) {
           return (

@@ -117,7 +117,7 @@ def test_helix_protocol_przez_api(registry: StaticDataRegistry) -> None:
     ships = flow.state()["systems"][flow.home]["space_units"][flow.me]
     picks = [f"{flow.home}|{bt}|{i}" for bt, n in ships.items() for i in range(n)
              if bt not in ("infantry", "mech", "fighter")]
-    flow.use("leader", "argenthero", {"to1": [position], "ships1": picks})
+    flow.use("leader", "argenthero", {"moves": [f"{u}>{position}" for u in picks]})
     state = flow.state()
     assert state["players"][flow.me]["leader_states"]["argenthero"] == "purged"
     moved = state["systems"][position]["space_units"][flow.me]
@@ -144,7 +144,7 @@ def test_wing_transfer_zetony_i_ruch_na_koniec_akcji(registry: StaticDataRegistr
         if flow.has_offer("Wing Transfer: move"):
             break
         flow.post("/tactical/step/next", ok=False)
-    flow.accept("Wing Transfer: move", {"to1": [position], "ships1": [f"{neighbor}|cruiser|0"]})
+    flow.accept("Wing Transfer: move", {"moves": [f"{neighbor}|cruiser|0>{position}"]})
     assert flow.state()["systems"][position]["space_units"][flow.me] == {
         "carrier": 1, "cruiser": 1,
     }

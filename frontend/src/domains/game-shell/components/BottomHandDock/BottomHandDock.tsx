@@ -458,6 +458,15 @@ export function BottomHandDock() {
                   }
                   relicTag={relicTag}
                   passive={passive}
+                  onPlay={() => {
+                    // Ta sama ścieżka co upuszczenie na strefę zagrania / stos odrzuconych.
+                    playUi("drop");
+                    if (mustDiscard > 0 && tab === "actions" && !frontier) {
+                      void discardCard(id);
+                      return;
+                    }
+                    setPlayingCard({ id, tab, frontier });
+                  }}
                   onDragChange={(cardId) => {
                     setDragCard(
                       cardId === null

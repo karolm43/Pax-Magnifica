@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useAfterDice } from "@/domains/dice/diceGate";
 import { IconChevronDown, IconX } from "@tabler/icons-react";
 import { useActivityFeed, type ActivityEntry } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
@@ -193,7 +194,9 @@ export function ActivityToasts() {
     setToasts((cur) => [...cur, ...fresh].slice(-MAX_VISIBLE));
   }, [data, me]);
 
-  if (toasts.length === 0) return null;
+  // „X zniszczył Y” nie wyprzedza kości na stole (``diceGate``).
+  const ready = useAfterDice(toasts.length > 0 ? String(toasts[0]?.seq) : "");
+  if (toasts.length === 0 || !ready) return null;
   return (
     <div className={classes.stack} aria-live="polite" aria-label="Activity notifications">
       {toasts.map((entry) => (

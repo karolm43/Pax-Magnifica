@@ -1,4 +1,5 @@
 import { Dialog } from "@base-ui/react/dialog";
+import { clampDragDelta } from "@/utils/keepOnScreen";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import cx from "clsx";
@@ -133,13 +134,12 @@ function useFloatingDrag(key: string) {
       const start = { x: event.clientX, y: event.clientY };
       const base = offset;
       let last = base;
+      // Okno zostaje CAŁE na ekranie (nie da się go wyciągnąć poza widok).
+      const box = (event.currentTarget as HTMLElement).parentElement?.getBoundingClientRect();
       const move = (e: globalThis.PointerEvent) => {
-        const maxX = window.innerWidth / 2;
-        const maxY = window.innerHeight / 2;
-        last = {
-          x: Math.max(-maxX, Math.min(maxX, base.x + e.clientX - start.x)),
-          y: Math.max(-maxY, Math.min(maxY, base.y + e.clientY - start.y)),
-        };
+        const raw = { dx: e.clientX - start.x, dy: e.clientY - start.y };
+        const d = box ? clampDragDelta(box, raw.dx, raw.dy) : raw;
+        last = { x: base.x + d.dx, y: base.y + d.dy };
         setOffset(last);
       };
       const up = () => {

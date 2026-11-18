@@ -142,9 +142,10 @@ def test_fighter_conscription_ponad_capacity_otwiera_okno_capacity(
     registry: StaticDataRegistry,
 ) -> None:
     state = _conscription_state()
-    state.systems["101"].space_units["p1"]["fighter"] = 4  # carrier ma pojemność 4
+    state.systems["101"].space_units["p1"]["fighter"] = 3  # carrier ma pojemność 4
+    state.systems["101"].space_units["p1"]["infantry"] = 1  # wybór: myśliwiec albo piechota
     new = _play(registry, state, "f_conscription")
-    assert new.systems["101"].space_units["p1"]["fighter"] == 5
+    assert new.systems["101"].space_units["p1"]["fighter"] == 4
     assert new.pending_window is not None
     assert new.pending_window.window_type is WindowType.CAPACITY
 

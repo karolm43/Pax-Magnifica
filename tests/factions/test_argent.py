@@ -459,6 +459,11 @@ def test_commander_kosc_tylko_dla_zdolnosci_jednostek(registry: StaticDataRegist
 # ============================================================ Mirik Aun Sissiri — Helix Protocol
 
 
+def _mv(dest: str, units: list[str]) -> dict[str, list[str]]:
+    """Parametry ruchu (``oi.unit_moves``): każda jednostka -> ``dest``."""
+    return {"moves": [f"{u}>{dest}" for u in units]}
+
+
 def _helix_state(registry: StaticDataRegistry) -> GameState:
     state = _state(registry)
     state.systems["103"].command_tokens = ["p1"]
@@ -472,16 +477,29 @@ def test_helix_ruch_prosto_do_systemu_z_zetonem(registry: StaticDataRegistry) ->
     state = _helix_state(registry)
     state.systems["000"].space_units = {"p1": {"fighter": 1}}
     assert argent.helix_destinations(state, "p1") == ["103"]
-    argent.helix_protocol(state, registry, "p1", {
-        "to1": "103",
-        "ships1": ["101|carrier|0", "101|infantry|0", "101|infantry|1", "101|fighter|0",
-                   "101|fighter|1"],
-    })
+    argent.helix_protocol(state, registry, "p1", _mv("103", [
+        "101|carrier|0", "101|infantry|0", "101|infantry|1", "101|fighter|0", "101|fighter|1",
+    ]))
     assert state.systems["103"].space_units["p1"] == {"carrier": 1, "infantry": 2, "fighter": 2}
     # Myśliwce lecą bez transportu (Helix), ale pojemność celu obowiązuje.
     state.systems["103"].space_units["p1"]["fighter"] = 1
-    argent.helix_protocol(state, registry, "p1", {"to1": "103", "ships1": ["000|fighter|0"]})
+    argent.helix_protocol(state, registry, "p1", _mv("103", ["000|fighter|0"]))
     assert state.systems["103"].space_units["p1"]["fighter"] == 2
+
+
+def test_helix_zostawione_mysliwce_gina_zamiast_bledu(registry: StaticDataRegistry) -> None:
+    """Statek z pojemnością odlatuje, myśliwce zostają bez pojemności: ruch jest legalny
+    (R_capacity: ruch może spowodować usunięcie), a nadwyżkę bez wyboru usuwa limit po akcji
+    (RULES.md 39.6 C5) - zamiast błędu „Capacity exceeded"."""
+    from src.core import limits
+
+    state = _helix_state(registry)
+    state.phase = Phase.ACTION
+    argent.helix_protocol(state, registry, "p1", _mv("103", ["101|carrier|0"]))
+    assert state.systems["101"].space_units["p1"] == {"infantry": 2, "fighter": 2}
+    after = limits.enforce_limits(state, registry)
+    assert after.pending_window is None
+    assert not any(after.systems["101"].space_units.get("p1", {}).values())
 
 
 @ruling("F_argent/mirik-aun-sissiri-helix-protocol/2",
@@ -490,11 +508,10 @@ def test_helix_ze_zetonem_rusza_ale_bez_ladunku(registry: StaticDataRegistry) ->
     state = _helix_state(registry)
     state.systems["101"].command_tokens = ["p1"]
     with pytest.raises(ValueError, match="command token"):
-        argent.helix_protocol(state, registry, "p1", {
-            "to1": "103", "ships1": ["101|carrier|0", "101|infantry|0"],
-        })
+        argent.helix_protocol(state, registry, "p1",
+                              _mv("103", ["101|carrier|0", "101|infantry|0"]))
     state.systems["101"].space_units = {"p1": {"carrier": 1}}
-    argent.helix_protocol(state, registry, "p1", {"to1": "103", "ships1": ["101|carrier|0"]})
+    argent.helix_protocol(state, registry, "p1", _mv("103", ["101|carrier|0"]))
     assert state.systems["103"].space_units["p1"] == {"carrier": 1}
 
 
@@ -527,9 +544,7 @@ def test_helix_szczelina_rzut_przy_wyjsciu(registry: StaticDataRegistry) -> None
     state.systems["101"].planet_owners = {}
     state.systems["101"].space_units = {"p1": {"carrier": 6}}
     state.rng_seed = 3
-    argent.helix_protocol(state, registry, "p1", {
-        "to1": "103", "ships1": [f"101|carrier|{i}" for i in range(6)],
-    })
+    argent.helix_protocol(state, registry, "p1", _mv("103", [f"101|carrier|{i}" for i in range(6)]))
     arrived = state.systems["103"].space_units.get("p1", {}).get("carrier", 0)
     assert arrived < 6
     assert state.table_roll is not None and state.table_roll["kind"] == "gravity_rift"
@@ -541,11 +556,11 @@ def test_helix_do_nexusa_odwraca_go(registry: StaticDataRegistry) -> None:
 
     state = _helix_state(registry)
     state.systems["103"].system_id = nexus.NEXUS_LOCKED_ID
-    argent.helix_protocol(state, registry, "p1", {"to1": "103", "ships1": ["101|carrier|0",
+    argent.helix_protocol(state, registry, "p1", _mv("103", ["101|carrier|0",
                                                                           "101|infantry|0",
                                                                           "101|infantry|1",
                                                                           "101|fighter|0",
-                                                                          "101|fighter|1"]})
+                                                                          "101|fighter|1"]))
     assert nexus.activate_nexus(state).systems["103"].system_id == nexus.NEXUS_ACTIVE_ID
 
 
@@ -560,13 +575,34 @@ def test_wing_transfer_ruch_wymaga_pojemnosci(registry: StaticDataRegistry) -> N
     state.systems["103"].command_tokens = ["p1"]
     active_effects.add_effect(state, argent.WING_TRANSFER, Duration.TACTICAL_ACTION, owner="p1")
     ctx = {"player": "p1", "position": "102",
-           "params": {"to1": "103", "ships1": ["102|fighter|0"]}}
+           "params": _mv("103", ["102|fighter|0"])}
     with pytest.raises(ValueError):
         argent.wing_transfer_move(state, "p1", ctx)  # myśliwiec bez statku z pojemnością
-    ctx["params"] = {"to1": "103", "ships1": ["102|carrier|0", "102|fighter|0", "102|fighter|1",
-                                             "102|fighter|2", "102|fighter|3"]}
+    ctx["params"] = _mv("103", ["102|carrier|0", "102|fighter|0", "102|fighter|1",
+                                             "102|fighter|2", "102|fighter|3"])
     argent.wing_transfer_move(state, "p1", ctx)
     assert state.systems["103"].space_units["p1"] == {"cruiser": 1, "carrier": 1, "fighter": 4}
+
+
+def test_ruch_z_efektu_to_jedno_pole_przeciagania(registry: StaticDataRegistry) -> None:
+    """Decyzja użytkownika: ruch z efektu = przeciąganie na mapie (``oi.unit_moves``), nie
+    sloty „Destination N”; jednostka nie „rusza” do własnego systemu."""
+    state = _state(registry)
+    state.systems["102"].space_units = {"p1": {"carrier": 1}}
+    state.systems["103"].space_units = {"p1": {"cruiser": 1}}
+    state.systems["103"].command_tokens = ["p1"]
+    inputs = argent.transfer_move_inputs(state, registry, "p1", {"position": "102"})
+    assert [(i["key"], i["kind"]) for i in inputs] == [("moves", "multi")]
+    moves = {o["value"]: o["meta"]["move"] for o in inputs[0]["options"]}
+    assert moves == {
+        "102|carrier|0>103": {"unit": "102|carrier|0", "from": "102", "to": "103"},
+        "103|cruiser|0>102": {"unit": "103|cruiser|0", "from": "103", "to": "102"},
+    }
+    with pytest.raises(ValueError, match="two systems"):
+        argent.wing_transfer_move(state, "p1", {
+            "player": "p1", "position": "102",
+            "params": {"moves": ["102|carrier|0>103", "102|carrier|0>102"]},
+        })
 
 
 # ================================================ Dodatkowe kości: każde źródło osobno (+ auto)

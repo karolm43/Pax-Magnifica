@@ -75,10 +75,12 @@ function StructurePicker({
   useMapPick(
     "planet",
     pickingSource ? sources : planets,
-    (id) =>
-      pickingSource && value
-        ? onChange({ ...value, source: id })
-        : onChange({ planet: id, structure: placeable[id]?.[0] ?? "pds" }),
+    (id) => {
+      // Ponowny klik w wybrane miejsce odznacza je (jak w każdym wyborze na mapie).
+      if (pickingSource && value) onChange({ ...value, source: value.source === id ? undefined : id });
+      else if (value?.planet === id) onChange(null);
+      else onChange({ planet: id, structure: placeable[id]?.[0] ?? "pds" });
+    },
     {
       hue,
       selected: (pickingSource ? value?.source : value?.planet) ?? null,

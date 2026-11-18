@@ -26,6 +26,8 @@ import { Stack } from "@/ds";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { DEFAULT_GAME_ID } from "@/config";
 import type { PlayerData } from "@/entities/data/types";
+import { clampDragDelta } from "@/utils/keepOnScreen";
+import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import styles from "./StrategyCardTable.module.css";
 
 /* Initiative → sygnał koloru dysku (spójnie z pickerem w GameStatePanel). */
@@ -99,6 +101,12 @@ function FactionMark({
       factionImageTypeOverride={player.factionImageType}
     />
   );
+}
+
+/** Kolor gracza jako składowe ``"r g b"`` (do ``rgb(var(--owner-rgb) / a)``). */
+function ownerRgb(player: PlayerData | undefined): string {
+  const rgb = player?.color ? resolvePrimaryRgb(player.color) : undefined;
+  return rgb ? `${rgb.red} ${rgb.green} ${rgb.blue}` : "148 163 184";
 }
 
 /**
@@ -220,14 +228,15 @@ export function StrategyCardTable(): ReactElement | null {
         baseDx: offset.dx,
         baseDy: offset.dy,
       };
+      // Stół zostaje CAŁY na ekranie (nie da się go wyciągnąć poza widok).
+      const box = e.currentTarget.parentElement?.getBoundingClientRect();
 
       const onMove = (ev: PointerEvent) => {
         const d = dragRef.current;
         if (!d) return;
-        setOffset({
-          dx: d.baseDx + (ev.clientX - d.startX),
-          dy: d.baseDy + (ev.clientY - d.startY),
-        });
+        const raw = { dx: ev.clientX - d.startX, dy: ev.clientY - d.startY };
+        const step = box ? clampDragDelta(box, raw.dx, raw.dy) : raw;
+        setOffset({ dx: d.baseDx + step.dx, dy: d.baseDy + step.dy });
       };
       const onUp = () => {
         dragRef.current = null;
@@ -296,6 +305,12 @@ export function StrategyCardTable(): ReactElement | null {
   // nie twierdzimy błędnie „wszyscy wybrali". RULES.md 13. Dopiero wtedy NIE pokazujemy
   // „brak gracza do wskazania", lecz komunikat o końcu wyboru + przycisk następnej fazy.
   const pickCount = gameState.strategyPickCount ?? null;
+  // Kolejka wyboru = porządek mówcy (``seatingOrder`` rotuje od mówcy): kto wybiera teraz i
+  // kto co już wziął - widoczne od razu, bez szukania po kartach.
+  const pickOrder = (gameState.seatingOrder ?? [])
+    .map((color) => players.find((p) => p.color === color))
+    .filter((p): p is PlayerData => p !== undefined);
+  const orderPlayers = pickOrder.length > 0 ? pickOrder : players;
   const allPicked =
     pickCount !== null &&
     players.length > 0 &&
@@ -406,6 +421,36 @@ export function StrategyCardTable(): ReactElement | null {
             )}
           </span>
         </div>
+        <ol className={styles.pickOrder} aria-label="Pick order">
+          {orderPlayers.map((p) => {
+            const mine = cards.filter((c) => c.picked_by === p.discordId);
+            const now = pickerColor !== null && p.color === pickerColor;
+            const names = mine.map((c) => c.name || SC_NAMES[c.initiative]).join(", ");
+            return (
+              <li
+                key={p.discordId}
+                className={styles.pickSeat}
+                data-now={now || undefined}
+                data-done={mine.length > 0 || undefined}
+                style={{ ["--owner-rgb" as string]: ownerRgb(p) }}
+                title={`${getPlayerFactionDisplayName(p)}${names ? ` - ${names}` : now ? " - picking now" : ""}`}
+              >
+                <FactionMark player={p} size={20} />
+                <span className={styles.pickSeatName}>{getPlayerFactionDisplayName(p)}</span>
+                {mine.map((c) => (
+                  <b
+                    key={c.initiative}
+                    className={styles.pickSeatCard}
+                    style={{ ["--scc" as string]: SC_TONE[c.initiative] }}
+                  >
+                    {c.initiative}
+                  </b>
+                ))}
+                {mine.length === 0 && now && <small className={styles.pickSeatNow}>picking…</small>}
+              </li>
+            );
+          })}
+        </ol>
       </div>
 
       {/*
@@ -542,6 +587,7 @@ export function StrategyCardTable(): ReactElement | null {
                     // Indeks karty dla KASKADOWEGO wejścia (animacja ``cardIn`` liczy
                     // opóźnienie od środka wachlarza ku brzegom — patrz CSS).
                     ["--i" as string]: `${i}`,
+                    ["--owner-rgb" as string]: ownerRgb(owner),
                   }}
                   // Tooltip otwieramy na hover ORAZ focus (a11y), zamykamy na
                   // opuszczeniu/blur. To DODATEK — nie koliduje z klikiem/wyborem.
@@ -607,13 +653,21 @@ export function StrategyCardTable(): ReactElement | null {
                    * obrazu, pełna szerokość karty; ``pointer-events: none`` — nie
                    * przechwytuje klików/hoveru (wybór i tooltip działają jak dotąd).
                    */}
+                  {/*
+                   * WŁAŚCICIEL karty (decyzja użytkownika 2026-11-18: „frakcja u góry
+                   * karty”) - baner u GÓRY w kolorze gracza: ikona frakcji + pełna nazwa.
+                   * Karta wybrana nie jest wygaszana; obramowanie w kolorze właściciela.
+                   */}
                   {isPicked && (
                     <div className={styles.ownerBar}>
-                      <FactionMark player={owner} size={22} />
-                      <span className={styles.ownerName}>
-                        {owner
-                          ? getPlayerFactionDisplayName(owner)
-                          : (card.picked_by ?? "")}
+                      <FactionMark player={owner} size={30} />
+                      <span className={styles.ownerText}>
+                        <small className={styles.ownerLabel}>Picked by</small>
+                        <span className={styles.ownerName}>
+                          {owner
+                            ? getPlayerFactionDisplayName(owner)
+                            : (card.picked_by ?? "")}
+                        </span>
                       </span>
                     </div>
                   )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useDiceGate } from "./diceGate";
 
 /**
  * Wstrzymuje SKUTKI rzutu w widoku do chwili, gdy kości i strzały skończą animację.
@@ -43,6 +44,8 @@ export function useDiceHold<V extends { log: unknown[] }>(
     const h = holdRef.current;
     if (!h) return;
     const left = h.until - Date.now();
+    // Reszta UI (oferty, limity, powiadomienia) czeka na kości (``diceGate``).
+    if (left > 0) useDiceGate.getState().hold(left);
     const done = () => {
       if (holdRef.current === h) holdRef.current = null;
       rerender((n) => n + 1);

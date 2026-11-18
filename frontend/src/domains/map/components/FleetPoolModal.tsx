@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useAfterDice } from "@/domains/dice/diceGate";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
@@ -26,8 +27,10 @@ export function FleetPoolModal() {
   const pending =
     !!window && window.windowType === "FLEET_POOL" && !window.isComplete;
   const { data: view } = useFleetPool(pending);
+  // Nadwyżka po walce (np. zniszczony nosiciel) czeka, aż kości wylądują (``diceGate``).
+  const ready = useAfterDice(pending && view?.active ? `${view.playerId}@${view.position}` : "");
 
-  if (!pending || !view?.active) return null;
+  if (!pending || !view?.active || !ready) return null;
 
   const player = gameData?.playerData?.find((p) => p.faction === view.player);
   const tile = view.position ? gameData?.tiles?.[view.position] : undefined;

@@ -7,6 +7,7 @@ import {
   volleyStartMs,
   type DiceGroup,
 } from "@/domains/battle/diceRoll";
+import { useDiceGate } from "./diceGate";
 
 /**
  * WSPÓLNA SCENA KOŚCI: jedno miejsce, w którym każde okno gry (Space Cannon, bombardowanie,
@@ -149,7 +150,10 @@ export const useDiceStage = create<Stage>((set, get) => ({
     window.setTimeout(() => {
       if (get().roll?.id === id) set({ roll: null });
     }, lifeMs);
-    return { id, pauseMs: volleyStartMs(left, rightN) };
+    const pauseMs = volleyStartMs(left, rightN);
+    // Reszta UI (oferty, limity, powiadomienia) czeka, aż kości wylądują (``diceGate``).
+    useDiceGate.getState().hold(pauseMs);
+    return { id, pauseMs };
   },
   reset: () => set({ roll: null, pool: IDLE_POOL }),
 }));

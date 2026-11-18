@@ -26,6 +26,7 @@ import { OfferCard, useDecisionOffers } from "./OffersModal";
 import { isResearchOffer } from "./ResearchOfferOverlay";
 import { TimingWindowChips } from "./TimingWindowChips";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { useAfterDice } from "@/domains/dice/diceGate";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import styles from "./AbilityPrompts.module.css";
 
@@ -126,11 +127,16 @@ export function DecisionCenter() {
   // Okna reakcji kart z ręki: ręce ludzi przy tym ekranie (sieć: tylko moja).
   const handOwners = humanHandOwners(me, feed?.players);
   const severalHands = handOwners.length > 1;
+  // Nowe decyzje po rzucie (np. „po wygranej walce”) czekają, aż kości wylądują - okno nie
+  // może zdradzić wyniku wcześniej niż stół (``diceGate``).
+  const offerReady = useAfterDice(offer.first?.id ?? "");
+  const momentsReady = useAfterDice(moments.map(promptKey).join("|"));
+  const handReady = useAfterDice(openWindows.map((w) => w.key).join("|"));
 
   return (
     <>
       {/* Decyzja badania = pełne okno badania (poza kolumną). */}
-      {offer.first && research && <OfferCard offer={offer.first} queued={offer.queued} />}
+      {offer.first && research && offerReady && <OfferCard offer={offer.first} queued={offer.queued} />}
       {minimized && !using && !playing &&
         createPortal(
           <button
@@ -180,7 +186,7 @@ export function DecisionCenter() {
               </button>
             </div>
             <div className={styles.body}>
-            {offer.first && !research && (
+            {offer.first && !research && offerReady && (
               <OfferCard offer={offer.first} queued={offer.queued} />
             )}
             <TransactionOfferPrompt
@@ -188,7 +194,7 @@ export function DecisionCenter() {
               handOwners={handOwners}
               nameOf={playerName}
             />
-            {handOwners.map((id) => (
+            {handReady && handOwners.map((id) => (
               <HandReactionRows
                 key={id}
                 gameId={gameId}
@@ -197,7 +203,7 @@ export function DecisionCenter() {
                 onPlay={setPlaying}
               />
             ))}
-            {moments.map((row) => (
+            {momentsReady && moments.map((row) => (
               <section key={promptKey(row)} className={styles.card} aria-label={`Available now: ${row.name}`}>
                 <header className={styles.head}>
                   <IconBolt size={16} aria-hidden="true" className={styles.icon} />

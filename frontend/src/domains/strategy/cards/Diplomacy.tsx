@@ -110,7 +110,8 @@ function ChooseSystem({
   const [system, setSystem] = useState<string | null>(null);
   const systems = (prompt.options.systems ?? {}) as Record<string, string[]>;
   const positions = Object.keys(systems);
-  useMapPick("system", positions, setSystem, {
+  // Ponowny klik w wybrany system odznacza go.
+  useMapPick("system", positions, (p) => setSystem((cur) => (cur === p ? null : p)), {
     hue: shell.hue,
     selected: system,
     enabled: !busy,

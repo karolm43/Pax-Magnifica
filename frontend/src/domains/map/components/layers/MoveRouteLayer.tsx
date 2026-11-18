@@ -161,3 +161,66 @@ export function MoveRouteLayer({
     </div>
   );
 }
+
+/**
+ * Ruchy zaplanowane w oknie ruchu z EFEKTU (``UnitMovesField``: bohater, przełom, karta) -
+ * ta sama linia ze strzałką co trasa kroku MOVEMENT, prosto ze źródła do celu (efekty
+ * przenoszą „prosto”, bez trasy), z liczbą jednostek przy celu.
+ */
+export function EffectMoveLayer({
+  tiles,
+  contentSize,
+}: {
+  tiles: Tile[];
+  contentSize: { width: number; height: number };
+}) {
+  const effect = useAppStore((s) => s.effectMove);
+  const look = usePlayerLook();
+  if (!effect || effect.lines.length === 0) return null;
+  const centers = new Map<string, Point>(
+    tiles.map((t) => [
+      t.position,
+      { x: t.properties.x + TILE_WIDTH / 2, y: t.properties.y + TILE_HEIGHT / 2 },
+    ]),
+  );
+  const rgb = look(effect.faction).rgb.split(" ").join(",");
+  return (
+    <div
+      className={classes.layer}
+      style={
+        { "--route-rgb": rgb, width: contentSize.width, height: contentSize.height } as CSSProperties
+      }
+    >
+      <svg
+        className={classes.svg}
+        width={contentSize.width}
+        height={contentSize.height}
+        aria-hidden="true"
+      >
+        {effect.lines.map(({ from, to, count }) => {
+          const a = centers.get(from);
+          const b = centers.get(to);
+          if (!a || !b) return null;
+          const d = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+          const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+          return (
+            <g key={`${from}>${to}`}>
+              <path d={d} className={classes.shadow} />
+              <path d={d} className={classes.main} />
+              <polygon
+                className={classes.arrow}
+                points="-26,-22 26,0 -26,22"
+                transform={`translate(${(a.x + b.x) / 2} ${(a.y + b.y) / 2}) rotate(${angle})`}
+              />
+              <circle className={classes.node} data-kind="start" cx={a.x} cy={a.y} r={26} />
+              <circle className={classes.node} data-kind="end" cx={b.x} cy={b.y} r={34} />
+              <text className={classes.count} x={b.x} y={b.y}>
+                {count}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}

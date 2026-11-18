@@ -29,7 +29,7 @@ from src.core import (
     triggers,
 )
 from src.core.battle import space_combat_required
-from src.core.capacity import open_capacity_check
+from src.core.capacity import open_capacity_check, remove_forced_excess
 from src.core.combat import resolve_unit_variant
 from src.core.fleet_pool import open_fleet_pool_check
 from src.core.game_events import GameEvent, Moment
@@ -179,6 +179,14 @@ def activate_system(
     return new_state
 
 
+def _without_forced_excess(state: GameState, registry: StaticDataRegistry | None) -> GameState:
+    """Nadwyżka bez wyboru w aktywnym systemie znika od razu (RULES.md 39.6 C5) - zanim bramka
+    kroku zdecyduje o oknie CAPACITY. W trakcie walki / innego okna bez zmian (C3)."""
+    if registry is None or state.active_system is None or state.pending_window is not None:
+        return state
+    return remove_forced_excess(state, registry, state.active_system)
+
+
 def _check_can_leave(
     state: GameState,
     registry: StaticDataRegistry | None,
@@ -261,6 +269,7 @@ def end_action(state: GameState, registry: StaticDataRegistry | None = None) -> 
     combat_pending = _STEP_SEQUENCE.index(state.tactical_step) <= _STEP_SEQUENCE.index(
         TacticalStep.SPACE_COMBAT
     )
+    state = _without_forced_excess(state, registry)
     blocked = _check_can_leave(
         state, registry, "ending the action", require_space_combat=combat_pending
     )
@@ -278,14 +287,15 @@ def next_step(state: GameState, registry: StaticDataRegistry | None = None) -> G
     """
     if state.tactical_step is None:
         return state.clone()
+    state = _without_forced_excess(state, registry)
     blocked = _check_can_leave(
         state,
         registry,
         "the next step",
         require_space_combat=state.tactical_step is TacticalStep.SPACE_COMBAT,
     )
-    if blocked is not None:
-        return blocked
+    if blocked is not None or state.tactical_step is None:
+        return blocked if blocked is not None else state.clone()
     idx = _STEP_SEQUENCE.index(state.tactical_step)
     if idx >= len(_STEP_SEQUENCE) - 1:
         return end_tactical_action(state)

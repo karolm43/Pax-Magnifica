@@ -118,6 +118,7 @@ export function GroupedMapField({
   const picked = multi ? (Array.isArray(value) ? value : []) : typeof value === "string" ? [value] : [];
   const pickedIn = (group: Group) => group.options.filter((o) => picked.includes(o.id)).length;
   const firstPicked = named.find((g) => pickedIn(g) > 0)?.key ?? null;
+  // ``null`` = pokaż pierwsze wybrane miejsce, ``""`` = nic (gracz je zamknął), inaczej klucz.
   const [focus, setFocus] = useState<string | null>(null);
   const current = named.find((g) => g.key === (focus ?? firstPicked)) ?? null;
 
@@ -133,10 +134,18 @@ export function GroupedMapField({
   };
   const open = (key: string) => {
     if (disabled) return;
-    setFocus(key);
-    // Jedna rzecz do zrobienia w tym miejscu: klik w cel od razu ją wybiera.
     const group = named.find((g) => g.key === key);
-    if (group?.options.length === 1 && group.options[0]) toggle(group.options[0].id);
+    // Jedna rzecz do zrobienia w tym miejscu: klik w cel od razu ją wybiera, a ponowny klik
+    // odznacza CAŁKIEM - fokus też znika, żeby miejsce nie zostało „wybrane” w oknie i na mapie.
+    if (group?.options.length === 1 && group.options[0]) {
+      const id = group.options[0].id;
+      const unpicking = picked.includes(id);
+      toggle(id);
+      setFocus(unpicking ? "" : key);
+      return;
+    }
+    // Kilka rzeczy w miejscu: klik otwiera panel „co tutaj”, ponowny klik go zamyka.
+    setFocus((prev) => ((prev ?? firstPicked) === key ? "" : key));
   };
 
   const handle = useMapTargets(
@@ -155,7 +164,7 @@ export function GroupedMapField({
     const ids = new Set(group.options.map((o) => o.id));
     if (multi) onChange(picked.filter((id) => !ids.has(id)));
     else onChange(null);
-    if (focus === group.key) setFocus(null);
+    if ((focus ?? firstPicked) === group.key) setFocus("");
   };
   // Panel „co tutaj” tylko wtedy, gdy w miejscu jest więcej niż jedna rzecz do wyboru.
   const panel = current && current.options.length > 1 ? current : null;

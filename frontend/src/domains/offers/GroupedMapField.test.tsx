@@ -150,5 +150,8 @@ describe("pojedynczy wybór da się cofnąć", () => {
     expect(values()).toEqual({ where: "102|space" });
     act(() => pick()?.onPick("102", "system"));
     expect(values()).toEqual({ where: null });
+    // Odznaczony cel nie zostaje „wybrany” ani w oknie (chip), ani na mapie.
+    expect(screen.queryByRole("button", { name: /Space area of system 102/ })).toBeNull();
+    expect(pick()?.selected ?? null).toBeNull();
   });
 });

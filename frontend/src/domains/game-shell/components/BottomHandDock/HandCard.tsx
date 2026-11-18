@@ -142,6 +142,7 @@ export function HandCard({
   reaction,
   discardable,
   onDragChange,
+  onPlay,
 }: {
   tab: CardTab;
   id: string;
@@ -159,6 +160,8 @@ export function HandCard({
   reaction?: boolean;
   /** Brak = tylko podgląd (zakładka Player): karty nie da się podnieść. */
   onDragChange?: (cardId: string | null) => void;
+  /** Zagranie / odrzucenie KLIKIEM (przycisk w podglądzie) - druga droga obok przeciągnięcia. */
+  onPlay?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const { name, tag, ownerRgb } = useCardLabel(tab, id, relicTag, frontier);
@@ -169,11 +172,11 @@ export function HandCard({
   const locked =
     !discardable && playableTab && !passive && play !== undefined && !play.playable;
   const hint = discardable
-    ? `${name} - drag onto the discard pile to discard it (hand limit)`
+    ? `${name} - drag onto the discard pile or click and choose Discard (hand limit)`
     : canDrag
     ? reaction
-      ? `${name} - its window is open now: drag onto the play zone to play`
-      : `${name} - drag onto the play zone to play`
+      ? `${name} - its window is open now: drag onto the play zone, or click and choose Play`
+      : `${name} - drag onto the play zone, or click and choose Play`
     : locked
       ? `${name} - can't be played now: ${play?.reason ?? "not available"}`
       : passive
@@ -229,6 +232,21 @@ export function HandCard({
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown p={0}>
         <CardDetails tab={tab} id={id} frontier={frontier} />
+        {canDrag && onPlay && (
+          <div className={styles.cardActions}>
+            <button
+              type="button"
+              className={styles.cardPlayBtn}
+              data-discard={discardable || undefined}
+              onClick={() => {
+                setOpen(false);
+                onPlay();
+              }}
+            >
+              {discardable ? `Discard ${name}` : `Play ${name}`}
+            </button>
+          </div>
+        )}
       </SmoothPopover.Dropdown>
     </SmoothPopover>
     </div>

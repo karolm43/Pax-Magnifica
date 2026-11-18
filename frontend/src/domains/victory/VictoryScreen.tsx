@@ -9,6 +9,7 @@
 // Komponent jest tylko oprawą: wynik głosowania liczy backend (`core/epilogue.py`), a liczby
 // do statystyk pochodzą z web-data. Montowany raz na stronie gry (GameMapPage).
 
+import { useAfterDice } from "@/domains/dice/diceGate";
 import {
   useCallback,
   useEffect,
@@ -124,13 +125,15 @@ export function VictoryScreen() {
   const { data: factions } = useFactions();
   const [dismissed, setDismissed] = useState(false);
   const winnerId = gameState?.winnerId ?? null;
+  // Zwycięstwo po rzucie (np. cel za walkę) - dopiero gdy kości wylądują (``diceGate``).
+  const ready = useAfterDice(winnerId ?? "");
 
   // Nowa gra (brak zwycięzcy) odblokowuje ekran na kolejny koniec partii.
   useEffect(() => {
     if (!winnerId) setDismissed(false);
   }, [winnerId]);
 
-  if (!gameState || !winnerId || !webData || dismissed) return null;
+  if (!gameState || !winnerId || !webData || dismissed || !ready) return null;
   const winner = webData.playerData.find((p) => p.discordId === winnerId);
   if (!winner) return null;
 

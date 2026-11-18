@@ -369,15 +369,15 @@ def test_local_fabricators_pusta_rezerwa_mech_z_planszy(registry: StaticDataRegi
 def test_demilitarized_zone_otwiera_kontrole_capacity(registry: StaticDataRegistry) -> None:
     """C_exploration_cards: siły zawrócone na orbitę bez capacity trzeba usunąć."""
     from src.core import exploration
-    from src.core.game_state import WindowType
     from tests import test_exploration as tx
 
     state = tx._with_card(
         tx._state(planets={tx._CULT: {"infantry": 2}}), registry, "Demilitarized Zone"
     )
     done = exploration.resolve(state, registry, "attach")
-    assert done.pending_window is not None
-    assert done.pending_window.window_type is WindowType.CAPACITY
+    # Bez pojemności nie ma wyboru - nadwyżka znika od razu (RULES.md 39.6 C5).
+    assert done.pending_window is None
+    assert "p1" not in done.systems["000"].space_units
 
 
 def test_book_of_latvinia_tylko_bez_prerekwizytow(registry: StaticDataRegistry) -> None:

@@ -42,7 +42,7 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.models import UnitDef
-from src.core.neutral import NEUTRAL_PLAYER_ID
+from src.core.neutral import NEUTRAL_PLAYER_ID, variant_key
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
 from src.core.unit_catalog import is_space_unit
@@ -148,14 +148,8 @@ def system_planets(
 def unit_variant(
     state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
 ) -> UnitDef | None:
-    player = state.players.get(player_id)
-    return resolve_unit_variant(
-        registry,
-        player.faction if player is not None else None,
-        player.technologies if player is not None else [],
-        base_type,
-        player.breakthrough_unlocked if player is not None else False,
-    )
+    faction, techs, breakthrough = variant_key(state, registry, player_id)  # + neutralni (50.3)
+    return resolve_unit_variant(registry, faction, techs, base_type, breakthrough)
 
 
 def _defenders(

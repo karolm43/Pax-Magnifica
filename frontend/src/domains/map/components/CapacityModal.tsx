@@ -1,4 +1,5 @@
 import { type CSSProperties } from "react";
+import { useAfterDice } from "@/domains/dice/diceGate";
 import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -29,8 +30,10 @@ export function CapacityModal() {
   const pending =
     !!window && window.windowType === "CAPACITY" && !window.isComplete;
   const { data: view } = useCapacity(pending);
+  // Nadwyżka po walce (np. zniszczony nosiciel) czeka, aż kości wylądują (``diceGate``).
+  const ready = useAfterDice(pending && view?.active ? `${view.playerId}@${view.position}` : "");
 
-  if (!pending || !view?.active) return null;
+  if (!pending || !view?.active || !ready) return null;
 
   const player = gameData?.playerData?.find((p) => p.faction === view.player);
   const tile = view.position ? gameData?.tiles?.[view.position] : undefined;

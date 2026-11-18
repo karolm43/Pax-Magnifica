@@ -245,7 +245,8 @@ def test_demilitarized_zone_clears_the_planet(registry: StaticDataRegistry) -> N
     done = exploration.resolve(state, registry, "attach")
     system = done.systems["000"]
     assert system.planet_units.get(_CULT, {}) == {}
-    assert system.space_units["p1"] == {"infantry": 2}
+    # Piechota zawrócona na orbitę bez pojemności - jedyne legalne usunięcie (RULES.md 39.6 C5).
+    assert system.space_units.get("p1", {}) == {}
 
 
 @ruling("R_exploration/notes/1")

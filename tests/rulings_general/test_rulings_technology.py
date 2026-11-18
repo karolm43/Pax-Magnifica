@@ -690,10 +690,11 @@ def test_integrated_economy_paid_any_number_fighters_in_pairs(
 @ruling("C_technology/integrated-economy/4")
 def test_integrated_economy_ships_blocked_by_enemy_ships(registry: StaticDataRegistry) -> None:
     state, _planet = _ie_state(registry)
+    state.systems["101"].space_units["p1"] = {"carrier": 1}  # pojemność (inaczej 39.6 C5)
     ok = production.produce(
         state, HexGrid(), registry, "p1", [production.ProductionOrder("fighter", 2)]
     )
-    assert ok.systems["101"].space_units["p1"] == {"fighter": 2}
+    assert ok.systems["101"].space_units["p1"] == {"carrier": 1, "fighter": 2}
     state.systems["101"].space_units["p2"] = {"destroyer": 1}
     with pytest.raises(ValueError, match="enemy ships"):
         production.produce(

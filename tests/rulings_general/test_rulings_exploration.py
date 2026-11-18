@@ -31,7 +31,6 @@ from src.core.game_state import (
     ExploreCurrent,
     GameState,
     SystemState,
-    WindowType,
 )
 from src.core.hex_grid import Hex, HexGrid
 from src.core.registry import StaticDataRegistry
@@ -136,9 +135,9 @@ def test_dmz_ground_forces_without_capacity_open_the_capacity_check(
 ) -> None:
     state = _with_card(_state(planets={_CULT: {"infantry": 2}}), registry, "Demilitarized Zone")
     done = exploration.resolve(state, registry, "attach")
-    assert done.systems["000"].space_units["p1"] == {"infantry": 2}  # zero pojemności
-    window = done.pending_window
-    assert window is not None and window.window_type is WindowType.CAPACITY
+    # Zero pojemności = jedyne legalne usunięcie: piechota wraca do rezerwy od razu (39.6 C5).
+    assert "p1" not in done.systems["000"].space_units
+    assert done.pending_window is None
 
 
 @ruling("C_exploration_cards/freelancers/2")

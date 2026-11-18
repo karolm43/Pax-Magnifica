@@ -47,7 +47,12 @@ export function RouteNumbersField({
 
   const pick = (planet: string) => {
     if (disabled) return;
-    if (!source || planet === source || !destinations.includes(planet)) {
+    // Ponowny klik w wybrane źródło odznacza je (jak w każdym wyborze na mapie).
+    if (planet === source) {
+      setSource(null);
+      return;
+    }
+    if (!source || !destinations.includes(planet)) {
       setSource(sources.includes(planet) ? planet : null);
       return;
     }

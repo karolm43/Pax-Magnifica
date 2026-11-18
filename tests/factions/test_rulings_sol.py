@@ -278,13 +278,12 @@ def test_genesis_obowiazkowo_potem_nadwyzka_pojemnosci(registry: StaticDataRegis
     flow.finish_status()
     state = flow.state()
     space = state["systems"][flow.home]["space_units"][flow.me]
-    assert space["infantry"] == capacity + 1  # bez pytania - postawienie obowiązkowe
-    assert not flow.has_offer("Genesis")
-    # Od razu potem okno pojemności (capacity) - także w fazie strategii (RULES.md 42.x).
+    assert not flow.has_offer("Genesis")  # bez pytania - postawienie obowiązkowe
+    # Od razu potem limit pojemności - także w fazie strategii (RULES.md 42.x). Sama piechota
+    # ponad pojemność = jedyne legalne usunięcie, więc znika bez okna (RULES.md 39.6 C5).
     assert state["phase"] == "STRATEGY"
-    window = state.get("pending_window") or {}
-    assert window.get("window_type") == "CAPACITY", window
-    assert window.get("context", {}).get("position") == flow.home
+    assert space["infantry"] == capacity
+    assert not (state.get("pending_window") or {})
 
 
 # ============================================================================= Evelyn DeLouis

@@ -175,12 +175,65 @@ def open_capacity_check(
     """
     if state.pending_window is not None:
         return state
-    queue = players_with_excess(state, registry, position)
-    if not queue:
-        return state
+    new_state = remove_forced_excess(state, registry, position)
+    choose = players_with_excess(new_state, registry, position)
+    if not choose:
+        return new_state
     return timing.open_window(
-        state, WindowType.CAPACITY, queue, context={"position": position}
+        new_state, WindowType.CAPACITY, choose, context={"position": position}
     )
+
+
+def remove_forced_excess(
+    state: GameState, registry: StaticDataRegistry, position: str
+) -> GameState:
+    """Usuwa nadwyżkę graczy, którzy NIE mają wyboru (jedyne legalne usunięcie wg C2 - np. same
+    myśliwce bez pojemności), bez okna. „Must remove the excess units" (R_capacity) - gracz
+    wybiera tylko, gdy ma z czego (RULES.md 39.6 C5, decyzja użytkownika 2026-11-18)."""
+    new_state = state
+    for pid in players_with_excess(state, registry, position):
+        forced = forced_removal(capacity_report(new_state, registry, position, pid))
+        if forced is None:
+            continue
+        if new_state is state:
+            new_state = state.clone()
+        system = new_state.systems[position]
+        for base_type, count in forced.items():
+            unit_ops.remove_units(
+                new_state, system, "space", pid, base_type, count, UnitCause.REMOVED
+            )
+    return new_state
+
+
+def _valid_removals(report: CapacityReport) -> list[dict[str, int]]:
+    """Wszystkie legalne usunięcia nadwyżki (C2: likwidują ją i nic ponad potrzebę)."""
+    types = [bt for bt in CARGO_TYPES if report.cargo.get(bt, 0) > 0]
+    found: list[dict[str, int]] = []
+
+    def walk(i: int, picked: dict[str, int]) -> None:
+        if len(found) > 1:
+            return  # dwie możliwości = wybór gracza; dalej liczyć nie trzeba
+        if i == len(types):
+            try:
+                _check_removal(report, picked)
+            except ValueError:
+                return
+            found.append({bt: n for bt, n in picked.items() if n > 0})
+            return
+        for n in range(report.cargo[types[i]] + 1):
+            walk(i + 1, {**picked, types[i]: n})
+
+    walk(0, {})
+    return found
+
+
+def forced_removal(report: CapacityReport) -> dict[str, int] | None:
+    """Jedyne legalne usunięcie nadwyżki albo ``None``, gdy gracz ma realny wybór (lub brak
+    nadwyżki)."""
+    if report.excess <= 0:
+        return None
+    options = _valid_removals(report)
+    return options[0] if len(options) == 1 else None
 
 
 def auto_removal(report: CapacityReport) -> dict[str, int]:

@@ -39,7 +39,7 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.movement import CargoPickup
-from src.core.neutral import NEUTRAL_PLAYER_ID
+from src.core.neutral import NEUTRAL_PLAYER_ID, variant_key
 from src.core.registry import StaticDataRegistry
 from src.core.retreat import perform_retreat, retreat_destinations
 from src.core.unit_catalog import is_space_unit
@@ -119,7 +119,8 @@ def combat_units(
     modyfikator mgławicy (+1, tylko walka kosmiczna — W6).
     """
     system = state.systems.get(position)
-    player = state.players.get(player_id)
+    # Wariant gracza albo neutralnych (ulepszone jednostki - RULES.md 50.3).
+    faction, techs, breakthrough = variant_key(state, registry, player_id)
     zone = _zone(kind, planet)
     terrain_modifier = (
         1
@@ -132,13 +133,7 @@ def combat_units(
     for base_type, count in sorted(_units_map(system, zone, player_id).items()):
         if count <= 0 or is_space_unit(base_type) != (kind == "space"):
             continue
-        unit = resolve_unit_variant(
-            registry,
-            player.faction if player is not None else None,
-            player.technologies if player is not None else [],
-            base_type,
-            player.breakthrough_unlocked if player is not None else False,
-        )
+        unit = resolve_unit_variant(registry, faction, techs, base_type, breakthrough)
         if unit is None or unit.combat_hits_on is None:
             continue
         # Hooki MODIFY: +N do wyniku rzutu i dodatkowe kości (zdolności, technologie) obok

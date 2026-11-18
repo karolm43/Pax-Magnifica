@@ -27,7 +27,6 @@ from src.core import (
     unit_ops,
 )
 from src.core import offer_inputs as oi
-from src.core.capacity import capacity_report
 from src.core.combat import resolve_unit_variant
 from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
@@ -85,7 +84,6 @@ _STRUCTURES = ("pds", "spacedock")
 _GROUND_FORCES = ("infantry", "mech")
 _SWA_KILL_FROM = 9  # „each result of 9 or 10”
 _COMMANDER_UNITS = 6  # „Have 6 units that have ANTI-FIGHTER BARRAGE, SPACE CANNON, or BOMBARDMENT”
-_NONE = "none"
 _SPACE = "space"
 _NO_ENTRY = ("NEBULA", "SUPERNOVA")  # Helix Protocol: nigdy do mgławicy ani supernowej
 _ASTEROID = "ASTEROID_FIELD"
@@ -531,42 +529,24 @@ def _ship_options(
 def _move_inputs(
     state: GameState, registry: Any, player_id: str, sources: list[str], dests: list[str]
 ) -> list[dict[str, Any]]:
-    """Sloty „cel na mapie + jednostki”: po jednym na każdy możliwy cel (każdy opcjonalny)."""
-    targets = [oi.option(pos, f"System {pos}", meta={"position": pos}) for pos in dests]
+    """Ruch jak ruch taktyczny: przeciąganie jednostek na mapie na świecące cele
+    (``oi.unit_moves``), bez slotów „Destination N”."""
     ships = _ship_options(state, registry, player_id, sources)
-    inputs: list[dict[str, Any]] = []
-    for i in range(len(dests)):
-        inputs.append(oi.multi(f"to{i + 1}", f"Destination {i + 1}", targets, 0, 1))
-        inputs.append(oi.multi(f"ships{i + 1}", f"Units moving to destination {i + 1}", ships,
-                               0, len(ships)))
-    return inputs
+    return [oi.unit_moves("moves", "Move ships", ships, dests)]
 
 
-def _parse_moves(
-    params: Mapping[str, Any], slots: int
-) -> dict[str, dict[str, dict[str, int]]]:
-    """``{cel: {źródło: {typ: n}}}`` z parametrów slotów (bez dublowania egzemplarzy)."""
+def _parse_moves(params: Mapping[str, Any]) -> dict[str, dict[str, dict[str, int]]]:
+    """``{cel: {źródło: {typ: n}}}`` z ``moves`` (``"<źródło>|<typ>|<n>><cel>"``)."""
     seen: set[str] = set()
     moves: dict[str, dict[str, dict[str, int]]] = {}
-    for i in range(1, slots + 1):
-        raw = params.get(f"to{i}")
-        if isinstance(raw, list):  # pole mapy (multi 0..1)
-            raw = raw[0] if raw else None
-        dest = str(raw or _NONE)
-        picked = [str(v) for v in params.get(f"ships{i}") or []]
-        if dest == _NONE:
-            if picked:
-                raise ValueError(f"Choose a destination for move {i}.")
-            continue
-        if dest in moves:
-            raise ValueError("Each destination can be chosen once.")
-        for value in picked:
-            if value in seen:
-                raise ValueError("A unit cannot move to two systems.")
-            seen.add(value)
-            source, bt, _ = value.split("|")
-            by_type = moves.setdefault(dest, {}).setdefault(source, {})
-            by_type[bt] = by_type.get(bt, 0) + 1
+    for raw in params.get("moves") or []:
+        unit, dest = oi.split_move(str(raw))
+        if unit in seen:
+            raise ValueError("A unit cannot move to two systems.")
+        seen.add(unit)
+        source, bt, _ = unit.split("|")
+        by_type = moves.setdefault(dest, {}).setdefault(source, {})
+        by_type[bt] = by_type.get(bt, 0) + 1
     return moves
 
 
@@ -584,7 +564,6 @@ def _apply_moves(
     (Helix Protocol, F_argent); ``fighters_free`` - myśliwce lecą bez transportu (Helix)."""
     registry = _registry()
     grid = grid_from_state(state, registry)
-    touched: set[str] = set()
     for dest, by_source in sorted(moves.items()):
         target = state.systems.get(dest)
         if target is None:
@@ -614,11 +593,9 @@ def _apply_moves(
                 unit_ops.transfer_units(state, origin, _SPACE, target, _SPACE, player_id, bt, n)
             for bt, n in lost.items():
                 unit_ops.remove_units(state, target, _SPACE, player_id, bt, n, UnitCause.DESTROYED)
-            touched |= {source, dest}
-    for position in sorted(touched):
-        # Pojemność obowiązuje po ruchu w każdym dotkniętym systemie (także źródle).
-        if capacity_report(state, registry, position, player_id).excess > 0:
-            raise ValueError(f"Capacity exceeded in system {position}.")
+    # Pojemność po ruchu: nadwyżkę (np. myśliwce zostawione bez statku z pojemnością) usuwa
+    # ``limits.enforce_limits`` po akcji - okno CAPACITY albo od razu, gdy wybór jest wymuszony
+    # (R_capacity: ruch może spowodować usunięcie, nie jest przez to nielegalny).
 
 
 # ------------------------------------------------- Mirik Aun Sissiri — Helix Protocol (hero)
@@ -672,7 +649,7 @@ def helix_protocol(
     transportu; siły naziemne tylko z przestrzeni źródła bez żetonu Argent; rzut szczeliny przy
     wyjściu; Wormhole Nexus odwraca się sam (``step_settle``)."""
     dests = helix_destinations(state, player_id)
-    moves = _parse_moves(params, len(dests))
+    moves = _parse_moves(params)
     if not moves:
         raise ValueError("Move at least 1 ship.")
     if any(d not in dests for d in moves):
@@ -770,7 +747,7 @@ def wing_transfer_move(state: GameState, player_id: str, ctx: Mapping[str, Any])
     """Wing Transfer: … at the end of this action, you may move ships among the active system and
     systems adjacent to it that contain your command tokens (pojemność obowiązuje - F_argent)."""
     systems = _transfer_systems(state, player_id, str(ctx.get("position") or ""))
-    moves = _parse_moves(ctx.get("params", {}), len(systems))
+    moves = _parse_moves(ctx.get("params", {}))
     if any(d not in systems or any(s not in systems for s in by) for d, by in moves.items()):
         raise ValueError("Move ships only among the active system and adjacent systems with "
                          "your command tokens.")

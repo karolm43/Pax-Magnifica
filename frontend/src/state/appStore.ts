@@ -364,6 +364,17 @@ type AppStore = {
   routePick: { targets: string[]; selected: string[]; hue?: string; onPick: (position: string) => void } | null;
   setRoutePick: (pick: AppStore["routePick"]) => void;
 
+  /*
+   * Ruch z EFEKTU (bohater, przełom, karta - ``UnitMovesField``): okno decyzji wystawia, które
+   * stosy (``"<pozycja>|<typ bazowy>"``) wolno przeciągnąć i dokąd; przeciągnięcie na mapie
+   * woła ``onDrop`` zamiast God-Mode. ``lines`` = zaplanowane ruchy rysowane na mapie,
+   * ``dragKey`` = stos przeciągany właśnie teraz (podświetlenie jego celów).
+   */
+  effectMove: EffectMove | null;
+  setEffectMove: (move: EffectMove | null) => void;
+  effectMoveDrag: string | null;
+  setEffectMoveDrag: (key: string | null) => void;
+
   /** Czy trwa przeciąganie jednostki (chowa tooltip na czas gestu). */
   isDraggingUnit: boolean;
   setDraggingUnit: (dragging: boolean) => void;
@@ -391,6 +402,17 @@ type AppStore = {
   /** Snaps zoom to the largest ladder step that fits `contentWidth` into `viewportWidth`. */
   handleZoomFitToWidth: (contentWidth: number, viewportWidth: number) => number;
   handleZoomScreenSize: () => void;
+};
+
+/** Ruch z efektu przeciąganiem na mapie (``AppStore.effectMove``). */
+export type EffectMove = {
+  faction: string;
+  /** ``"<pozycja>|<typ bazowy>"`` -> systemy, do których ten stos wolno przenieść. */
+  dests: Record<string, string[]>;
+  /** Upuszczenie stosów (``key`` -> ``count`` sztuk; grupa Ctrl = kilka naraz) na system ``to``. */
+  onDrop: (items: { key: string; count: number }[], to: string) => void;
+  /** Zaplanowane ruchy (linie na mapie). */
+  lines: { from: string; to: string; count: number }[];
 };
 
 export const useAppStore = create<AppStore>((set) => {
@@ -591,6 +613,10 @@ export const useAppStore = create<AppStore>((set) => {
       set((s) => (s.moveDraft ? { moveDraft: { ...s.moveDraft, picks: {} } } : {})),
     routePick: null,
     setRoutePick: (pick) => set({ routePick: pick }),
+    effectMove: null,
+    setEffectMove: (move) => set({ effectMove: move }),
+    effectMoveDrag: null,
+    setEffectMoveDrag: (key) => set({ effectMoveDrag: key }),
 
     notice: null,
     setNotice: (text, kind = "error") => set({ notice: { text, kind } }),

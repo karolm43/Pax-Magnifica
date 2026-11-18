@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useAppStore, useSettingsStore } from "@/state/appStore";
+import { useAppStore, useSettingsStore, type EffectMove } from "@/state/appStore";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
@@ -92,6 +92,16 @@ function groupFor(info: UnitDragData): MultiSelection | null {
     return null;
   }
   return sel;
+}
+
+/**
+ * Klucz stosu w otwartym ruchu z efektu (``UnitMovesField``) albo null, gdy tego stosu ten
+ * ruch nie dotyczy (wtedy przeciąganie działa jak zwykle).
+ */
+function effectKeyOf(effect: EffectMove | null, info: UnitDragData): string | null {
+  if (!effect || info.faction !== effect.faction || info.fromZone !== "space") return null;
+  const key = `${info.fromPosition}|${baseTypeOf(info.asyncId)}`;
+  return effect.dests[key] ? key : null;
 }
 
 type RawZone = { position: string; zone: string; label: string } | null;
@@ -285,8 +295,35 @@ export function useUnitDrag(data: UnitDragData | null) {
       setDragOver(null);
       setDragLoadTarget(null);
       document.body.classList.remove("dragging-unit");
+      useAppStore.getState().setEffectMoveDrag(null);
       if (!d || !d.active || !committed || !info) return;
       justDragged.current = true;
+
+      // Ruch z efektu (okno decyzji): upuszczenie na legalny cel planuje ruch w tym oknie;
+      // poza celem - nic (żadnego ruchu God-Mode jednostką, którą okno właśnie przenosi).
+      const effect = useAppStore.getState().effectMove;
+      const effectKey = effectKeyOf(effect, info);
+      if (effect && effectKey) {
+        const raw = rawZoneAt(clientX, clientY);
+        // Zaznaczona grupa (Ctrl) jedzie cała, inaczej przeciągany stos.
+        const group = groupFor(info);
+        const items = group
+          ? Object.values(group.items)
+              .filter((it) => it.fromZone === "space")
+              .map((it) => ({
+                key: `${group.fromPosition}|${baseTypeOf(it.asyncId)}`,
+                count: it.count,
+              }))
+          : [{ key: effectKey, count: info.count }];
+        const legal = raw
+          ? items.filter((it) => effect.dests[it.key]?.includes(raw.position))
+          : [];
+        if (raw && legal.length > 0) {
+          effect.onDrop(legal, raw.position);
+          if (group) useAppStore.getState().clearMultiSelect();
+        }
+        return;
+      }
 
       // GRUPA (Ctrl+zaznaczenie): jedna walidowana komenda ruchu dla wszystkich
       // zaznaczonych — statki jako ``ships``, myśliwce/piechota/mechy jako ``cargo``.
@@ -483,7 +520,31 @@ export function useUnitDrag(data: UnitDragData | null) {
       }
       e.preventDefault();
       const info = dataRef.current;
-      if (info) {
+      const effect = useAppStore.getState().effectMove;
+      const effectKey = info ? effectKeyOf(effect, info) : null;
+      if (info && effect && effectKey) {
+        // Ruch z efektu: duch jednostki + świecą jej cele, kafelek pod kursorem zielony/czerwony.
+        setGhost({
+          x: e.clientX,
+          y: e.clientY,
+          asyncId: info.asyncId,
+          count: info.count,
+          imageUrl: info.imageUrl,
+        });
+        if (useAppStore.getState().effectMoveDrag !== effectKey) {
+          useAppStore.getState().setEffectMoveDrag(effectKey);
+        }
+        const raw = rawZoneAt(e.clientX, e.clientY);
+        setDragOver(
+          raw
+            ? {
+                position: raw.position,
+                zone: "space",
+                valid: effect.dests[effectKey].includes(raw.position),
+              }
+            : null,
+        );
+      } else if (info) {
         // Czy pod kursorem jest statek-nosiciel do załadunku? (feedback „włóż do statku").
         const group = groupFor(info);
         // W trybie grupy nie ma „włóż do statku" — cała grupa jedzie do aktywnego systemu.
@@ -591,6 +652,19 @@ export function useUnitDrag(data: UnitDragData | null) {
       event.preventDefault();
       event.stopPropagation();
       if (isStructureUnit(info.asyncId)) return;
+      // Ruch z efektu (bohater, przełom, karta): Ctrl+klik zaznacza jednostki tego ruchu także
+      // poza akcją taktyczną - okno ruchu czyta to samo zaznaczenie.
+      const effect = useAppStore.getState().effectMove;
+      if (effect && effectKeyOf(effect, info)) {
+        ctrlPickUnit({
+          fromPosition: info.fromPosition,
+          faction: info.faction,
+          asyncId: info.asyncId,
+          fromZone: info.fromZone,
+          max: info.count,
+        });
+        return;
+      }
       const active = activeSystemRef.current;
       if (active === null) {
         setNotice("Activate a system first to select units for movement.", "info");

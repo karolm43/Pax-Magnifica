@@ -346,6 +346,26 @@ def test_neutral_hits_go_to_cheapest_unit_first(registry: StaticDataRegistry) ->
     assert destroy == {"destroyer": 1} and sustain == {"dreadnought": 1}
 
 
+def test_neutralni_uzywaja_ulepszonych_jednostek(registry: StaticDataRegistry) -> None:
+    """RULES.md 50.3 (decyzja użytkownika 2026-11-18): karta referencyjna neutralnych = jednostki
+    ulepszone (Destroyer II, Dreadnought II), nie bazowe - w walce i inwazji."""
+    from src.core import invasion
+
+    grid = _grid(registry)
+    state = enter_play(_state(registry, grid), registry, grid, "p1")
+    units = battle.combat_units(
+        state, grid, registry, kind="space", position="frac4", planet=None,
+        player_id=NEUTRAL_PLAYER_ID,
+    )
+    by_type = {u.base_type: registry.units[u.unit_id] for u in units}
+    for base_type, unit in by_type.items():
+        assert unit.upgrades_from_unit_id is not None, (base_type, unit.id)
+        assert unit.faction is None
+    assert by_type["destroyer"].name.endswith("II")
+    infantry = invasion.unit_variant(state, registry, NEUTRAL_PLAYER_ID, "infantry")
+    assert infantry is not None and infantry.upgrades_from_unit_id is not None
+
+
 # ----------------------------------------------------------------------------- ekspedycje
 
 
