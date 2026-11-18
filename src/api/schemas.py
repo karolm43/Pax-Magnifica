@@ -1303,10 +1303,12 @@ class BattleRollView(BaseModel):
 
 
 class BattleLogView(BaseModel):
-    """Wpis historii walki: runda, faza (AFB/COMBAT), rzuty, trafienia, straty."""
+    """Wpis historii walki: runda, faza (AFB/COMBAT/AMBUSH/BOMBARDMENT), rzuty, trafienia."""
 
     round: int
     phase: str
+    # Nazwa zdolności wpisu spoza rund (np. „Harrow” przy BOMBARDMENT w walce naziemnej).
+    label: str = ""
     rolls: dict[str, list[BattleRollView]]
     hits: dict[str, int]
     losses: dict[str, dict[str, int]]

@@ -1131,9 +1131,11 @@ class GameState(BaseModel):
     ability_note_seq: int = 0
     bonus_turn: BonusTurn | None = None
     # Ślad zmian kontroli planet w TEJ akcji taktycznej (karty reakcji Infiltrate / Reparations):
-    # wpisy ``{"planet", "position", "player" (nowy kontroler), "previous" (poprzedni | None)}``.
+    # wpisy ``{"planet", "position", "player" (nowy kontroler), "previous" (poprzedni | None)}``,
+    # przy inwazji także ``"destroyed": {gracz: {typ: n}}`` - cudze struktury zniszczone przy
+    # przejęciu (R_invasion), które Infiltrate wymienia „when you gain control”.
     # Dopisuje ``control.set_planet_control``; zerowane przy aktywacji i zakończeniu akcji.
-    control_changes: list[dict[str, str | None]] = Field(default_factory=list)
+    control_changes: list[dict[str, Any]] = Field(default_factory=list)
     # Co wyprodukowano w tej akcji i gdzie: strefa ("space"/id planety) → typ → sztuki.
     # Potrzebne, bo (1) osobne zdolności PRODUCTION mają ograniczenia typów (Arborec: dok nie
     # produkuje piechoty), (2) świeżo wyprodukowane jednostki NIE dokładają PRODUCTION w tym

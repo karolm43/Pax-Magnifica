@@ -116,7 +116,9 @@ function LastVolley({
           ? "Anti-Fighter Barrage"
           : entry.phase === "AMBUSH"
             ? "Ambush"
-            : `Round ${entry.round} — combat rolls`}
+            : entry.phase === "BOMBARDMENT"
+              ? `${entry.label || "Bombardment"} — orbital bombardment`
+              : `Round ${entry.round} — combat rolls`}
       </header>
       {[attacker, defender].map((key) => (
         <div key={key} className={styles.volleySide}>

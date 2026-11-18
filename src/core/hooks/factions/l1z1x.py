@@ -244,10 +244,14 @@ def harrow_inputs(
     return inputs
 
 
+_HARROW_LABEL = "Harrow"
+combat_bombardment.register_roll_offer(_HARROW_LABEL)  # okno Ambuscade przed rzutem
+
+
 @on_event(
     GameEvent.COMBAT_ROUND, Moment.END, HookSource(SOURCE_FACTION, FACTION),
     optional=True, condition=_harrow_ready, inputs=harrow_inputs,
-    covers=f"abilities:{HARROW}", label="Harrow",
+    covers=f"abilities:{HARROW}", label=_HARROW_LABEL,
 )
 def harrow(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Harrow: At the end of each round of ground combat: Your ships in the active system may use
@@ -260,11 +264,14 @@ def harrow(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     if combat is None:
         raise ValueError("Harrow is used at the end of a round of ground combat.")
     params = ctx.get("params") or {}
-    picks = {
+    # Źródło bez pola w formularzu (Strike Wing Ambuscade zagrana w oknie przed rzutem) - „Auto”:
+    # gracz sam zagrał notkę dla tego rzutu.
+    picks = {e.key: extra_dice.AUTO for e in combat_bombardment.extra_sources(state, player_id)}
+    picks.update({
         key.split(":", 1)[1]: str(value) for key, value in params.items()
         if key.startswith("extra:")
-    }
-    hits = combat_bombardment.roll(state, _registry(), player_id, picks, label="Harrow")
+    })
+    hits = combat_bombardment.roll(state, _registry(), player_id, picks, label=_HARROW_LABEL)
     victim = combat.defender
     planet = combat.planet or ""
     ground = [

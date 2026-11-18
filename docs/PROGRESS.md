@@ -1110,3 +1110,16 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint (zmienione) ✓, vitest (technology,
   KeyMoments) ✓. e2e i `npm run build` pominięte (bez nowych zależności i zmian kreatora).
   Wymaga restartu backendu.
+
+## 2026-11-18 — Infiltrate po inwazji, Harrow w oknie walki naziemnej
+
+- ✅ Infiltrate (dla każdej frakcji): inwazja niszczy cudze struktury w chwili przejęcia, a karta
+  „When you gain control” wymienia właśnie je — `_establish_control` zapisuje zniszczone
+  struktury w `control_changes[...]["destroyed"]`, ślad zużywa się raz (RULES.md 53).
+- ✅ Decyzja użytkownika: Harrow nie zamyka panelu walki naziemnej — rzut to wpis dziennika
+  walki `BOMBARDMENT` (fizyczne kości okna bitwy, nagłówek „Harrow — orbital bombardment”),
+  animacja: lance plazmy z orbity na siły obrońcy, kratery i wybuchy (`BattleOverlay`).
+- ✅ Okno Strike Wing Ambuscade przed rzutem Harrow (`combat_bombardment.register_roll_offer`,
+  `reactions_invasion.unit_ability_roll_windows`); źródło kości bez pola w formularzu = „Auto”.
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (battle) ✓. Animacja nie
+  sprawdzona zrzutem ekranu. e2e i build pominięte. Wymaga restartu backendu.

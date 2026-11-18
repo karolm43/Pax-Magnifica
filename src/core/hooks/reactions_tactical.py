@@ -733,14 +733,19 @@ def infiltrate(
     C_action_cards: gdy w rezerwie brakuje struktury, gracz może zdjąć strukturę tego typu z
     systemu bez swojego żetonu - wybór osobno dla każdej struktury (``sources:<typ>``,
     ``core.board_reinforcements``). Struktury własne gracza są pomijane.
+
+    Inwazja niszczy cudze struktury w chwili przejęcia (R_invasion) - karta „when you gain
+    control” wymienia też te zniszczone wtedy struktury (ślad ``control_changes[...]["destroyed"]``,
+    zużywany raz: drugi Infiltrate / Assimilate wymieniają 0 - C_action_cards).
     """
     matching = reaction_cards.matching_windows(state, registry, player_id, "infiltrate")
     window = _gained_planet(params, matching)
     planet = str(window.ctx["planet"])
     system = system_of_planet(state, planet)
     replaced = _infiltrate_targets(state, player_id, planet)
+    destroyed = _destroyed_on_capture(state, player_id, planet)
     takes: list[tuple[str, str]] = []
-    for base_type, count in _infiltrate_totals(replaced).items():
+    for base_type, count in _infiltrate_totals(replaced + destroyed).items():
         short = _infiltrate_shortfall(state, player_id, base_type, count)
         picks = [str(p) for p in params.get(f"sources:{base_type}") or []]
         if len(picks) < short:
@@ -754,6 +759,11 @@ def infiltrate(
     for owner, base_type, count in replaced:
         unit_ops.remove_units(state, system, planet, owner, base_type, count, UnitCause.REMOVED)
         place_from_reinforcements(state, system, planet, player_id, base_type, count)
+    for _owner, base_type, count in destroyed:
+        place_from_reinforcements(state, system, planet, player_id, base_type, count)
+    for change in state.control_changes:
+        if change.get("planet") == planet and change.get("player") == player_id:
+            change["destroyed"] = {}
 
 
 def _infiltrate_targets(
@@ -770,6 +780,21 @@ def _infiltrate_targets(
             if count:
                 replaced.append((owner, base_type, count))
     return replaced
+
+
+def _destroyed_on_capture(
+    state: GameState, player_id: str, planet: str
+) -> list[tuple[str, str, int]]:
+    """Cudze struktury zniszczone przy przejęciu planety w tej akcji (ślad inwazji)."""
+    found: list[tuple[str, str, int]] = []
+    for change in state.control_changes:
+        if change.get("planet") != planet or change.get("player") != player_id:
+            continue
+        for owner, by_type in sorted(dict(change.get("destroyed") or {}).items()):
+            for base_type in _STRUCTURES:
+                if int(by_type.get(base_type, 0)) > 0:
+                    found.append((owner, base_type, int(by_type[base_type])))
+    return found
 
 
 def _infiltrate_totals(replaced: list[tuple[str, str, int]]) -> dict[str, int]:
@@ -811,6 +836,7 @@ def infiltrate_inputs(
                 for w in matching
                 for bt, total in _infiltrate_totals(
                     _infiltrate_targets(state, player_id, str(w.ctx["planet"]))
+                    + _destroyed_on_capture(state, player_id, str(w.ctx["planet"]))
                 ).items()
                 if bt == base_type
             ),

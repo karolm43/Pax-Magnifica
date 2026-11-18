@@ -8,14 +8,20 @@ Rulingi (F_lizix, R_bombardment): Planetary Shield blokuje (chyba że war sun / 
 ``invasion.planet_infos``); w walce naziemnej KAŻDA jednostka z Bombardment w systemie może
 strzelać w planetę walki; Annihilator spoza tej walki też (``invasion.ground_bombarders``);
 modyfikatory jak w kroku Bombardment (Bunker, mnożnik X-89, okno ``UNIT_ABILITY_USED/AFTER``).
+
+Rzut trafia do dziennika walki (wpis ``phase="BOMBARDMENT"``): okno walki naziemnej zostaje
+otwarte, a front pokazuje go fizycznymi kośćmi i salwą z orbity (``BattleOverlay``). Przed
+rzutem trwa okno „when … units make a roll for a unit ability” (Strike Wing Ambuscade):
+oferta zdolności zarejestrowana przez :func:`register_roll_offer` czeka na decyzję gracza.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Any
 
 from src.core import extra_dice, invasion, rules_hooks, triggers
-from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll
+from src.core.dice import DIE_SIDES, count_hits, next_rng
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import ActiveCombat, GameState
 from src.core.invasion import BombardGroup
@@ -23,6 +29,22 @@ from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 
 ABILITY = "bombardment"
+LOG_PHASE = "BOMBARDMENT"  # wpis dziennika walki (okno bitwy animuje go jak salwę z orbity)
+_ROLL_OFFERS: set[str] = set()  # etykiety ofert, które rzucają Bombardment w walce
+
+
+def register_roll_offer(label: str) -> None:
+    """Oferta o tej etykiecie (np. „Harrow”) = zapowiedziany rzut Bombardment w walce."""
+    _ROLL_OFFERS.add(label)
+
+
+def pending_roller(state: GameState) -> str | None:
+    """Gracz, którego oferta rzutu Bombardment w walce czeka teraz na decyzję (albo ``None``)."""
+    if ground_combat(state) is None:
+        return None
+    return next(
+        (o.player_id for o in state.pending_offers if o.label in _ROLL_OFFERS), None
+    )
 
 
 def ground_combat(state: GameState) -> ActiveCombat | None:
@@ -118,21 +140,27 @@ def roll(
         rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, player_id, 1, {"kind": ABILITY},
     )
     rng = next_rng(state)
-    all_dice: list[int] = []
+    entries: list[dict[str, Any]] = []
     hits = 0
     for group in rolling:
-        dice = [
-            rng.randint(1, DIE_SIDES)
-            for _ in range(group.total_dice + bonus.get(group.base_type, 0))
-        ]
-        all_dice += dice
-        hits += count_hits([d + modifier for d in dice], group.hits_on) * multiplier
-    thresholds = {g.hits_on for g in rolling}
-    record_table_roll(
-        state, player_id, ABILITY, label, all_dice,
-        hits_on=(thresholds.pop() - modifier) if len(thresholds) == 1 else None,
-        summary=f"{hits} hit(s)",
-    )
+        extra = bonus.get(group.base_type, 0)
+        dice = [rng.randint(1, DIE_SIDES) for _ in range(group.total_dice + extra)]
+        group_hits = count_hits([d + modifier for d in dice], group.hits_on) * multiplier
+        hits += group_hits
+        entry: dict[str, Any] = {
+            "baseType": group.base_type, "name": group.name, "hitsOn": group.hits_on,
+            "modifier": modifier, "dice": dice, "hits": group_hits,
+        }
+        if extra:
+            entry["extraDice"] = extra
+        entries.append(entry)
+    opponent = combat.defender if combat.attacker == player_id else combat.attacker
+    combat.log = [*combat.log, {
+        "round": combat.round, "phase": LOG_PHASE, "label": label,
+        "rolls": {player_id: entries, opponent: []},
+        "hits": {player_id: hits, opponent: 0},
+        "losses": {}, "sustained": {},
+    }]
     triggers.fire(
         state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=player_id,
         ctx={"ability": ABILITY, "player": player_id, "position": combat.position,

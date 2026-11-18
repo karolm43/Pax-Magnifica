@@ -1717,6 +1717,18 @@
   top: -9px;
 }
 
+/* Bombardowanie z orbity w walce naziemnej (Harrow): dłuższa, jaśniejsza lanca spadająca z nieba. */
+.beam[data-orbital] .beamCore {
+  width: 64px;
+  height: 14px;
+  top: -7px;
+  filter: brightness(1.35) drop-shadow(0 0 12px rgb(var(--rgb) / 0.9));
+}
+
+.beam[data-orbital] .beamLaser {
+  opacity: 0.85;
+}
+
 /* Pierścień fali uderzeniowej na celu. */
 .impact::after {
   content: "";

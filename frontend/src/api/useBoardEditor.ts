@@ -1245,7 +1245,9 @@ export type BattleRoll = {
 
 export type BattleLogEntry = {
   round: number;
-  phase: "AFB" | "AMBUSH" | "COMBAT" | "RETREAT";
+  phase: "AFB" | "AMBUSH" | "BOMBARDMENT" | "COMBAT" | "RETREAT";
+  /** Zdolność wpisu spoza rund (np. „Harrow” przy BOMBARDMENT w walce naziemnej). */
+  label?: string;
   rolls: Record<string, BattleRoll[]>;
   hits: Record<string, number>;
   losses: Record<string, Record<string, number>>;

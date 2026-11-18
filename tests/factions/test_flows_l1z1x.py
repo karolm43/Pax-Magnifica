@@ -91,17 +91,66 @@ def test_harrow_po_rundzie_walki_naziemnej(registry: StaticDataRegistry) -> None
             flow.assign_auto()
         elif step == "TRIGGERS":
             flow.decline_all()  # decyzje startu walki rywala (np. agent Sol)
-    seq = flow.state()["table_roll_seq"]
     offer = flow.offer("Harrow")
     # Plasma Scoring (technologia startowa L1Z1X): dodatkowa kość - wybór gracza, tu „Auto”.
     extra = {i["key"]: "auto" for i in offer["inputs"] if i["key"].startswith("extra:")}
     assert extra
     flow.accept("Harrow", extra)
-    state = flow.state()
-    assert state["table_roll_seq"] == seq + 1
-    assert state["table_roll"]["kind"] == "bombardment"
+    view = flow.battle()
+    assert view.get("active")  # okno walki naziemnej zostaje otwarte
+    entry = view["log"][-1]
+    assert entry["phase"] == "BOMBARDMENT" and entry["label"] == "Harrow"
     assert not flow.has_offer("Harrow")
     flow.fight()
+
+
+def _to_harrow_offer(flow: Flow, position: str) -> None:
+    for _ in range(12):
+        if flow.has_offer("Harrow"):
+            return
+        view = flow.battle()
+        step = view.get("step")
+        if not view.get("active") or step in (None, "DONE"):
+            pytest.fail("Ground combat ended without a Harrow offer.")
+        if step == "ROLL":
+            flow.post("/tactical/battle/roll")
+        elif step == "ASSIGN":
+            flow.assign_auto()
+        elif step == "TRIGGERS":
+            flow.decline_all()
+    pytest.fail("No Harrow offer.")
+
+
+@ruling("promissory_notes:ambuscade#1")
+def test_harrow_ambuscade_dodatkowa_kosc(registry: StaticDataRegistry) -> None:
+    """Strike Wing Ambuscade zagrana w oknie przed rzutem Harrow: +1 kość tego rzutu."""
+    flow = Flow(registry, "l1z1x", other="argent")
+
+    def note(s: Json) -> None:
+        s["players"][flow.other]["private"]["promissory_notes"].remove("ambuscade")
+        s["players"][flow.me]["private"]["promissory_notes"].append("ambuscade")
+
+    flow.edit(note)
+    position, _ = _ground_combat(flow, attackers=1, defenders=3)
+
+    def dreadnought(s: Json) -> None:
+        s["systems"][position]["space_units"][flow.me]["dreadnought"] = 1
+
+    flow.edit(dreadnought)
+    _to_harrow_offer(flow, position)
+    row = flow.notes_playable(flow.me)["ambuscade"]
+    assert row["playable"], row.get("reason")
+    flow.play_note(flow.me, "ambuscade")
+    offer = flow.offer("Harrow")
+    keys = [i["key"] for i in offer["inputs"] if i["key"].startswith("extra:")]
+    assert any("ambuscade" in k for k in keys)  # zagrana notka = osobne źródło kości w oknie
+    extra = {k: ("auto" if "ambuscade" in k else "none") for k in keys}
+    flow.accept("Harrow", extra)  # Plasma Scoring bez kości - zostaje tylko Ambuscade
+    entry = flow.battle()["log"][-1]
+    roll = entry["rolls"][next(iter(k for k, v in entry["rolls"].items() if v))][0]
+    assert len(roll["dice"]) == 2  # pancernik: 1 kość + 1 z Ambuscade
+    state = flow.state()
+    assert "ambuscade" in state["players"][flow.other]["private"]["promissory_notes"]
 
 
 @covers("abilities:assimilate", "breakthroughs:l1z1xbt")

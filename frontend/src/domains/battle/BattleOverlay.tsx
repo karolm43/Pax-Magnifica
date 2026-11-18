@@ -190,9 +190,11 @@ function shotKind(
     sun: boolean;
     ground?: "tracer" | "shell";
     missile?: boolean;
+    orbital?: boolean;
   },
   n: number,
 ): ShotKind {
+  if (s.orbital) return "plasma"; // bombardowanie z orbity: zawsze lanca plazmy
   if (s.ground) return s.ground;
   if (s.afb) return "flak";
   if (s.sun) return "sun"; // war sun: słoneczny ogień
@@ -237,6 +239,8 @@ type Shot = {
   arc: number;
   /** Rakieta: leci łukiem (punkt kontrolny krzywej) i zostawia smugę dymu. */
   missile: boolean;
+  /** Bombardowanie z orbity w walce naziemnej (Harrow): lanca z góry pola, krater na ziemi. */
+  orbital?: boolean;
   cx: number;
   cy: number;
 };
@@ -299,6 +303,43 @@ function VolleyLayer({
         volley.phase === "AFB"
           ? fighters
           : query(`[data-ship-side="${enemy}"]`);
+      if (volley.phase === "BOMBARDMENT") {
+        // Statki bombardujące są na orbicie (poza polem walki naziemnej): lanca plazmy spada
+        // z góry pola na siły naziemne obrońcy; pudło rozrywa ziemię obok.
+        if (targets.length === 0) return [];
+        const victim = targets[Math.floor(Math.random() * targets.length)];
+        const to = center(victim);
+        const tx = bolt.hit ? to.x : to.x + (Math.random() - 0.5) * 110;
+        const ty = bolt.hit ? to.y : to.y + 30 + Math.random() * 30;
+        const x1 = tx + (Math.random() - 0.5) * 140;
+        const y1 = -40;
+        const dx = tx - x1;
+        const dy = ty - y1;
+        return [
+          {
+            id: bolt.id,
+            x1,
+            y1,
+            tx,
+            ty,
+            len: Math.hypot(dx, dy),
+            angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+            arc: 1,
+            hit: bolt.hit,
+            afb: false,
+            delayMs: bolt.delayMs,
+            target: enemy,
+            targetBase: victim.getAttribute("data-base") ?? "",
+            victim,
+            heavy: true,
+            sun: false,
+            missile: false,
+            orbital: true,
+            cx: (x1 + tx) / 2,
+            cy: (y1 + ty) / 2,
+          },
+        ];
+      }
       if (pool.length === 0 || targets.length === 0) return [];
       const shooter = pool[bolt.shot % pool.length];
       const center0 = center(shooter);
@@ -436,11 +477,11 @@ function VolleyLayer({
         flinch(s.victim, s.target === "left" ? -1 : 1, s.delayMs + travelOf(s), s.heavy || s.sun);
       }
       // Trafienie: kula w ciało/pancerz, pocisk działa wybucha na ziemi (także przy pudle).
-      const lands = s.hit || s.ground === "shell";
+      const lands = s.hit || s.ground === "shell" || s.orbital;
       if (lands && impacts < 8) {
         impacts += 1;
         const sound =
-          s.ground === "shell"
+          s.ground === "shell" || s.orbital
             ? "groundBlast"
             : s.ground === "tracer"
               ? s.targetBase === "mf"
@@ -508,6 +549,7 @@ function VolleyLayer({
           className={styles.beam}
           hidden={s.missile || undefined}
           data-kind={shotKind(s, n)}
+          data-orbital={s.orbital || undefined}
           data-heavy={s.heavy || undefined}
           data-hit={s.hit || undefined}
           data-afb={s.afb || undefined}
@@ -560,7 +602,7 @@ function VolleyLayer({
         />
       ))}
       {shots.list
-        .filter((s) => s.ground === "shell")
+        .filter((s) => s.ground === "shell" || s.orbital)
         .map((s) => (
           <span
             key={`${s.id}-crater`}
@@ -576,7 +618,7 @@ function VolleyLayer({
           />
         ))}
       {shots.list
-        .filter((s) => s.hit || s.ground === "shell")
+        .filter((s) => s.hit || s.ground === "shell" || s.orbital)
         .map((s) => (
           <span
             key={`${s.id}-impact`}

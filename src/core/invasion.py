@@ -1182,6 +1182,13 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
                 if structures:
                     destroyed[pid] = structures
             control.set_planet_control(state, inv.position, planet, inv.attacker, registry)
+            if destroyed:
+                # Ślad dla Infiltrate („when you gain control”): struktury zniszczone w tej
+                # samej chwili wymienia karta zagrana w oknie zdobycia (RULES.md 53).
+                for change in reversed(state.control_changes):
+                    if change.get("planet") == planet:
+                        change["destroyed"] = {pid: dict(v) for pid, v in destroyed.items()}
+                        break
             if attacker is not None:
                 # Zdobyta planeta zostaje wyczerpana (zachowanie bez zmian, RULES.md 21/40).
                 exhaust.exhaust_planets(state, inv.attacker, [planet])

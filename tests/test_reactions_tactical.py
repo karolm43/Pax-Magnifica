@@ -460,6 +460,33 @@ def test_infiltrate_zamienia_struktury_na_swoje_z_rezerwy(registry: StaticDataRe
     assert not _playable(_end_action(state), registry, "p1", "infiltrate")
 
 
+def test_infiltrate_po_inwazji_wymienia_zniszczone_struktury(
+    registry: StaticDataRegistry,
+) -> None:
+    """Inwazja niszczy cudze struktury w chwili przejęcia (R_invasion), a Infiltrate („When you
+    gain control of a planet”) wymienia właśnie je - raz (drugie zagranie: 0 struktur)."""
+    from src.core import invasion
+    from src.core.game_state import InvasionPhase, InvasionState
+
+    state = _capture_state()
+    system = state.systems[ACTIVE]
+    system.planet_units["mr"]["p1"] = {"infantry": 1}
+    state.invasion = InvasionState(position=ACTIVE, attacker="p1", phase=InvasionPhase.ESTABLISH,
+                                   committed={"mr": {"infantry": 1}})
+    invasion._establish_control(state, registry)
+    assert not system.planet_units["mr"].get("p2")  # zniszczone przy przejęciu
+    assert _playable(state, registry, "p1", "infiltrate")
+    new = _play(state, registry, "p1", "infiltrate", {"planet": "mr"})
+    assert new.systems[ACTIVE].planet_units["mr"]["p1"] == {
+        "infantry": 1, "pds": 1, "spacedock": 1,
+    }
+    new.players["p1"].private.action_cards.append("infiltrate")  # druga kopia karty
+    again = _play(new, registry, "p1", "infiltrate", {"planet": "mr"})
+    assert again.systems[ACTIVE].planet_units["mr"]["p1"] == {
+        "infantry": 1, "pds": 1, "spacedock": 1,
+    }
+
+
 def test_infiltrate_bez_struktur_w_rezerwie_to_blad_bez_zmian(
     registry: StaticDataRegistry,
 ) -> None:

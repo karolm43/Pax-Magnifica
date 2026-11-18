@@ -202,11 +202,14 @@ def test_harrow_bombarduje_po_rundzie(registry: StaticDataRegistry) -> None:
     groups = {g.base_type: g.total_dice for g in combat_bombardment.groups(state, registry, "p1")}
     assert groups == {"dreadnought": 1, "warsun": 3}  # każda jednostka z Bombardment w systemie
     l1z1x.harrow(state, "p1", {**_END, "params": {}})
-    assert state.table_roll is not None and len(state.table_roll["dice"]) == 4
     combat = state.active_combat
     assert combat is not None
-    hits = int(state.table_roll["summary"].split()[0])
-    assert combat.round_end_hits.get("p2", 0) == hits
+    # Rzut w dzienniku walki (okno walki naziemnej animuje go jak salwę z orbity), bez stołu.
+    entry = combat.log[-1]
+    assert entry["phase"] == "BOMBARDMENT" and entry["label"] == "Harrow"
+    assert sum(len(r["dice"]) for r in entry["rolls"]["p1"]) == 4
+    assert state.table_roll is None
+    assert combat.round_end_hits.get("p2", 0) == entry["hits"]["p1"]
 
 
 @ruling("F_lizix/harrow/1", "leaders:l1z1xcommander#1", "F_lizix/2ram/1")
@@ -260,6 +263,21 @@ def test_harrow_x89_wyczerpuje_planete(registry: StaticDataRegistry) -> None:
     state.players["p1"].technologies = ["x89c4"]
     l1z1x.harrow(state, "p1", {**_END, "params": {}})
     assert THIBAH in state.players["p2"].exhausted_planets
+
+
+def test_harrow_okno_ambuscade_przed_rzutem(registry: StaticDataRegistry) -> None:
+    """Oferta Harrow czeka = okno „when … units make a roll for a unit ability” dla L1Z1X."""
+    from src.core.game_state import PendingOffer
+
+    state = _harrow_state()
+
+    def ability_windows() -> list[Any]:
+        return [w for w in open_windows(state) if w.ctx.get("ability") == "bombardment"]
+
+    assert ability_windows() == []
+    state.pending_offers = [PendingOffer(id="o1", player_id="p1", event="combat.round",
+                                         moment="end", hook_seq=0, label="Harrow")]
+    assert [w.ctx["player"] for w in ability_windows()] == ["p1"]
 
 
 @ruling("F_sol/evelyn-delouis/1.1")

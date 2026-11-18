@@ -28,6 +28,7 @@ from typing import Any
 from src.core import (
     active_effects,
     board_graph,
+    combat_bombardment,
     invasion,
     rules_hooks,
     space_cannon,
@@ -232,6 +233,15 @@ def unit_ability_roll_windows(state: GameState) -> list[OpenWindow]:
     if inv is None:
         return windows
     base = {"position": inv.position}
+    roller = combat_bombardment.pending_roller(state)
+    if roller is not None:
+        # Bombardment w trakcie walki naziemnej (Harrow): okno trwa, dopóki oferta czeka.
+        windows.append(
+            OpenWindow(
+                GameEvent.UNIT_ABILITY_USED, Moment.WHEN,
+                {**base, "player": roller, "ability": "bombardment"},
+            )
+        )
     if inv.phase is InvasionPhase.BOMBARDMENT and not inv.bombarded:
         windows.append(
             OpenWindow(
