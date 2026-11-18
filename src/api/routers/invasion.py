@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import BattleLossItem, StateEnvelope
+from src.api.schemas import BattleLossItem, ExtraDieView, StateEnvelope
 from src.api.schemas_invasion import (
     BombardGroupView,
     BombardPendingView,
@@ -31,7 +31,17 @@ from src.api.schemas_invasion import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import battle, board_edit, custodians, economy, invasion, payment, space_cannon
+from src.core import (
+    battle,
+    board_edit,
+    custodians,
+    economy,
+    extra_dice,
+    invasion,
+    payment,
+    rules_hooks,
+    space_cannon,
+)
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -161,6 +171,13 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
     groups = invasion.bombard_groups(state, registry)
     bombard = BombardView(
         plasma_dice=invasion.plasma_bombard_dice(state),
+        extra_dice=[
+            ExtraDieView(key=e.key, name=e.name, dice=e.dice)
+            for e in extra_dice.sources(
+                state, inv.attacker, rules_hooks.POINT_BOMBARDMENT_EXTRA_DICE,
+                {"position": inv.position},
+            )
+        ],
         groups=[
             BombardGroupView(
                 base_type=g.base_type,
@@ -211,6 +228,15 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
                         plasma_dice=space_cannon.plasma_extra_dice(state, s),
                     )
                     for s in invasion.defense_shooters(state, registry, planet)
+                ],
+                extra_dice=[
+                    ExtraDieView(key=e.key, name=e.name, dice=e.dice)
+                    for owner in sorted({
+                        s.player_id for s in invasion.defense_shooters(state, registry, planet)
+                    })
+                    for e in extra_dice.sources(
+                        state, owner, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE
+                    )
                 ],
                 status=status,
                 hits=inv.defense_pending.get(planet, 0),
@@ -318,6 +344,7 @@ async def post_bombard(
                 for a in request.assignments
             ],
             request.plasma_unit,
+            request.extra_dice,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -416,6 +443,7 @@ async def post_defense_fire(
             ctx.registry,
             request.planet,
             request.plasma_unit,
+            request.extra_dice,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

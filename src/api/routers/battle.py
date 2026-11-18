@@ -21,6 +21,7 @@ from src.api.schemas import (
     BattleAnnounceRetreatRequest,
     BattleAssignRequest,
     BattleEffectView,
+    BattleExtraDiceRequest,
     BattleHitTargetView,
     BattleLogView,
     BattleLossItem,
@@ -33,6 +34,7 @@ from src.api.schemas import (
     BattleSideView,
     BattleStartRequest,
     BattleUnitView,
+    ExtraDieView,
     RetreatOptionView,
     StateEnvelope,
 )
@@ -176,7 +178,19 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         )
         for e in combat.log
     ]
+    afb_extra: dict[str, list[ExtraDieView]] = {}
+    if combat.step is CombatStep.AFB:
+        for pid in (combat.attacker, combat.defender):
+            sources = battle.afb_extra_sources(state, pid)
+            if sources:
+                chosen = combat.afb_picks.get(pid, {})
+                afb_extra[key(pid)] = [
+                    ExtraDieView(key=e.key, name=e.name, dice=e.dice,
+                                       pick=chosen.get(e.key, "auto"))
+                    for e in sources
+                ]
     return BattleResponse(
+        afb_extra=afb_extra,
         active=True,
         kind=combat.kind,
         position=combat.position,
@@ -281,6 +295,26 @@ async def post_battle_start(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"battle:start:{request.planet or 'space'}")
+
+
+@router.post("/tactical/battle/afb/extra-dice", response_model=StateEnvelope)
+async def post_battle_afb_extra_dice(
+    actor: ActorId, request: BattleExtraDiceRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Przypisanie dodatkowych kości AFB do jednostek przed rzutem (RULES.md 62.11)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, actor_rules.combat_sides,
+        "Assign extra dice",
+    )
+    player_id = request.player_id
+    try:
+        new_state = battle.set_afb_picks(
+            ctx.service.current_state(), ctx.current_grid, ctx.registry, player_id,
+            dict(request.picks),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, "battle:afb-extra-dice")
 
 
 @router.post("/tactical/battle/afb", response_model=StateEnvelope)

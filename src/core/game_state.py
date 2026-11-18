@@ -685,6 +685,9 @@ class ActiveCombat(BaseModel):
     # Gracze, którzy w tej walce użyją nadanego AFB (Metali Void Armaments: „you may resolve AFB
     # 6 (x3)"): zgoda z oferty na starcie walki; rzut dopisuje ``battle.resolve_afb``.
     afb_extra: list[str] = Field(default_factory=list)
+    # Dodatkowe kości AFB (commander Argent, Strike Wing Ambuscade): wybór gracza przed rzutem
+    # ``{gracz: {źródło: base_type | "auto" | "none"}}``; brak wpisu = „auto” (RULES.md 62.11).
+    afb_picks: dict[str, dict[str, str]] = Field(default_factory=dict)
     # Trafienia z rzutów „na starcie walki” (Ambush, RULES.md 62.8) czekające na przypisanie przez
     # ``{gracz: liczba}`` — przypisuje je zwykły krok ASSIGN przed AFB (``start_assign``).
     start_hits: dict[str, int] = Field(default_factory=dict)

@@ -1028,3 +1028,18 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (KeyMoments, invasion,
   game-shell/components) ✓. e2e i `npm run build` pominięte (bez zmian kreatora/zależności).
   Wymaga restartu backendu.
+
+## 2026-11-18 — Dodatkowe kości osobno + „Auto” w płatnościach
+
+- ✅ Decyzja użytkownika: każde źródło dodatkowych kości (Plasma Scoring, commander Argent, Strike
+  Wing Ambuscade) przypisywane osobno — „Auto” (najcelniejsza grupa, domyślnie) / grupa / bez
+  kości. `core/extra_dice.py`; Space Cannon Offense/Defense i Bombardment: pole `extraDice`
+  (stare `plasmaUnit` zostaje dla zgodności); AFB: `POST /tactical/battle/afb/extra-dice`
+  (`ActiveCombat.afb_picks`), widok `afbExtra`. UI: wspólny `shared/ui/ExtraDicePicker`.
+- ✅ Decyzja użytkownika: przycisk „Auto” tam, gdzie go brakowało — wspólny `PaymentPicker`
+  (żeton Custodians, cele „Spend…”, ekspedycje) i pole płatności w oknach decyzji
+  (`DecisionFields`); najtańsza płatność jak w produkcji/badaniu (`techModel.autoPay`).
+- Agent Argent: zostaje przenoszenie tylko z planet (decyzja użytkownika).
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (battle, invasion, offers,
+  strategy, game-shell/components, ExtraDicePicker) ✓. e2e i build pominięte. Wymaga restartu
+  backendu (nowe pole stanu i trasa).

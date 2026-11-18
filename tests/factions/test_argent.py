@@ -567,3 +567,41 @@ def test_wing_transfer_ruch_wymaga_pojemnosci(registry: StaticDataRegistry) -> N
                                              "102|fighter|2", "102|fighter|3"]}
     argent.wing_transfer_move(state, "p1", ctx)
     assert state.systems["103"].space_units["p1"] == {"cruiser": 1, "carrier": 1, "fighter": 4}
+
+
+# ================================================ Dodatkowe kości: każde źródło osobno (+ auto)
+
+
+def test_dodatkowe_kosci_kazde_zrodlo_osobno() -> None:
+    from src.core import extra_dice
+
+    extra = [extra_dice.ExtraDie("technologies:ps", "Plasma Scoring", 1),
+             extra_dice.ExtraDie("leaders:argentcommander", "Trrakan Aun Zulok", 1)]
+    groups = {"pds": 6, "flagship": 5}
+    assert extra_dice.assign(extra, groups, {}) == {}  # bez wyboru - nic („may”)
+    assert extra_dice.assign(extra, groups, {"technologies:ps": "pds",
+                                             "leaders:argentcommander": "auto"}) == {
+        "pds": 1, "flagship": 1}
+    assert extra_dice.assign(extra, groups, {"technologies:ps": "none",
+                                             "leaders:argentcommander": "flagship"}) == {
+        "flagship": 1}
+    with pytest.raises(ValueError):
+        extra_dice.assign(extra, groups, {"technologies:ps": "carrier"})
+
+
+def test_afb_wybor_kosci_gracza_i_auto(registry: StaticDataRegistry) -> None:
+    state = _state(registry)
+    state.players["p1"].leader_states = {"argentcommander": "unlocked"}
+    state.systems["102"].space_units = {"p1": {"destroyer": 2}, "p2": {"fighter": 3}}
+    state.active_system = "102"
+    state.active_combat = ActiveCombat(kind="space", position="102", attacker="p1",
+                                       defender="p2", step=CombatStep.AFB)
+    grid = grid_from_state(state, registry)
+    picked = battle.set_afb_picks(state, grid, registry, "p1",
+                                  {"leaders:argentcommander": "none"})
+    out = battle.resolve_afb(picked, grid, registry)
+    assert out.active_combat is not None
+    entry = out.active_combat.log[-1]["rolls"]["p1"][0]
+    assert "extraDice" not in entry and len(entry["dice"]) == 4  # gracz zrezygnował
+    with pytest.raises(ValueError):
+        battle.set_afb_picks(state, grid, registry, "p1", {"leaders:argentcommander": "carrier"})

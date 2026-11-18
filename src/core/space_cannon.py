@@ -18,7 +18,7 @@ Stan okna w ``TimingWindow.context`` (tylko str/int):
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
@@ -27,6 +27,7 @@ from src.core import (
     battle,
     capacity,
     exhaust,
+    extra_dice,
     legendary_planets,
     rules_hooks,
     timing,
@@ -297,11 +298,48 @@ def plasma_extra_dice(state: GameState, shooter: SpaceCannonShooter) -> int:
     )
 
 
+def cannon_extra(
+    state: GameState,
+    shooters: list[SpaceCannonShooter],
+    plasma_unit: str | None = None,
+    extra_picks: Mapping[str, str] | None = None,
+) -> dict[str, int]:
+    """Dodatkowe kości grup strzelców ``{klucz grupy: kości}`` (``core/extra_dice``).
+
+    ``extra_picks`` = ``{źródło: grupa | auto | none}`` (każde źródło osobno - decyzja
+    użytkownika 2026-11-18); ``plasma_unit`` (zgodność wsteczna) = wszystkie źródła tej grupie.
+
+    Raises:
+        ValueError: Wybór wskazuje grupę, która nie strzela, albo brak źródła kości.
+    """
+    if plasma_unit and plasma_unit not in {s.key for s in shooters}:
+        raise ValueError("Plasma Scoring: choose one of the units that fire.")
+    bonus: dict[str, int] = {}
+    for owner in sorted({s.player_id for s in shooters}):
+        mine = {s.key: s.hits_on for s in shooters if s.player_id == owner}
+        extra = extra_dice.sources(state, owner, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE)
+        if plasma_unit:
+            if plasma_unit not in mine:
+                continue
+            if not extra:
+                raise ValueError("Plasma Scoring is not available.")
+            picks = {e.key: plasma_unit for e in extra}
+        else:
+            keys = {e.key for e in extra}
+            picks = {
+                k: v for k, v in (extra_picks or {}).items()
+                if k in keys and (v in mine or v in (extra_dice.AUTO, "none"))
+            }
+        bonus.update(extra_dice.assign(extra, mine, picks))
+    return bonus
+
+
 def roll_cannon(
     state: GameState,
     shooters: list[SpaceCannonShooter],
     target_id: str,
     plasma_unit: str | None = None,
+    extra_picks: Mapping[str, str] | None = None,
 ) -> tuple[GameState, list[CannonRoll], int]:
     """Rzuca Space Cannon grupy strzelców w ``target_id`` (Offense i Defense) — jeden punkt rzutu.
 
@@ -314,17 +352,12 @@ def roll_cannon(
     Raises:
         ValueError: ``plasma_unit`` nie wskazuje strzelającej grupy albo brak Plasma Scoring.
     """
-    if plasma_unit:
-        chosen = next((s for s in shooters if s.key == plasma_unit), None)
-        if chosen is None:
-            raise ValueError("Plasma Scoring: choose one of the units that fire.")
-        if plasma_extra_dice(state, chosen) <= 0:
-            raise ValueError("Plasma Scoring is not available.")
+    bonus = cannon_extra(state, shooters, plasma_unit, extra_picks)
     rolled = state
     results: list[CannonRoll] = []
     total_hits = 0
     for shooter in shooters:
-        extra = plasma_extra_dice(state, shooter) if shooter.key == plasma_unit else 0
+        extra = bonus.get(shooter.key, 0)
         modifier = rules_hooks.modify(
             rules_hooks.POINT_SPACE_CANNON_ROLL_MODIFIER, state, target_id, 0,
             {"shooter": shooter.player_id, "base_type": shooter.base_type},
@@ -533,6 +566,7 @@ def fire_offense(
     *,
     exhaust_gls: bool = False,
     plasma_unit: str | None = None,
+    extra_picks: Mapping[str, str] | None = None,
 ) -> GameState:
     """Bieżący gracz strzela WSZYSTKIM swoim Space Cannon (S4/S5) w wybranego gracza (S3).
 
@@ -569,7 +603,7 @@ def fire_offense(
         if GLS not in owner.technologies or GLS in owner.exhausted_technologies:
             raise ValueError("Graviton Laser System is not ready.")
     rolled, cannon_rolls, total_hits = roll_cannon(
-        state, shooters, target_id, plasma_unit
+        state, shooters, target_id, plasma_unit, extra_picks
     )
     if exhaust_gls:
         rolled = rolled.clone()

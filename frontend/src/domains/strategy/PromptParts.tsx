@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
-import { IconMinus, IconPlus } from "@tabler/icons-react";
+import { IconMinus, IconPlus, IconWand } from "@tabler/icons-react";
 import { Button } from "@/ds";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
+import { autoPay } from "@/domains/technology/techModel";
 import {
   splitTotal,
   type PoolSplit,
@@ -112,6 +113,7 @@ export function PaymentPicker({
   unit,
   busy,
   tradeGoodValue = 1,
+  target,
 }: {
   values: Record<string, number>;
   tradeGoodsAvailable: number;
@@ -120,6 +122,8 @@ export function PaymentPicker({
   onChange: (next: Payment) => void;
   unit: string;
   busy?: boolean;
+  /** Kwota do zapłaty: przycisk „Auto” dobiera najtańszą płatność (planety, potem TG). */
+  target?: number;
 }) {
   const ids = Object.keys(values).sort((a, b) => values[b] - values[a] || a.localeCompare(b));
   const toggle = (id: string) =>
@@ -131,6 +135,17 @@ export function PaymentPicker({
     });
   return (
     <>
+      {target !== undefined && target > 0 && (
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          leftSection={<IconWand size={14} aria-hidden="true" />}
+          disabled={busy}
+          onClick={() => onChange(autoPay(values, [], tradeGoodsAvailable, target, tradeGoodValue))}
+        >
+          Auto
+        </Button>
+      )}
       <Section title={`Planets to exhaust (${unit})`}>
         {ids.length === 0 ? (
           <span className={styles.empty}>No ready planets.</span>

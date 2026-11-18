@@ -1090,6 +1090,15 @@ class SpaceCannonShooterHelp(BaseModel):
     plasma_dice: int = Field(default=0, serialization_alias="plasmaDice")
 
 
+class ExtraDieView(BaseModel):
+    """Źródło dodatkowych kości AFB i wybór gracza (``auto`` / ``none`` / base_type)."""
+
+    key: str
+    name: str
+    dice: int
+    pick: str = "auto"
+
+
 class SpaceCannonSideHelp(BaseModel):
     """Strona w kolejce Space Cannon: gracz, jego strzelcy i legalne cele."""
 
@@ -1098,6 +1107,8 @@ class SpaceCannonSideHelp(BaseModel):
     faction: str
     player_id: str = Field(serialization_alias="playerId")
     shooters: list[SpaceCannonShooterHelp]
+    # Źródła dodatkowych kości (Plasma Scoring, commander Argent, Ambuscade) - każde osobno.
+    extra_dice: list[ExtraDieView] = Field(default_factory=list, serialization_alias="extraDice")
     total_dice: int = Field(serialization_alias="totalDice")
     expected_hits: float = Field(serialization_alias="expectedHits")
     targets: list[str]
@@ -1187,6 +1198,8 @@ class SpaceCannonFireRequest(BaseModel):
     exhaust_gls: bool = False
     # Klucz grupy strzelców, której jednostka rzuca 1 kością więcej (Plasma Scoring, "may").
     plasma_unit: str | None = None
+    # Każde źródło dodatkowych kości osobno: ``{źródło: klucz grupy | auto | none}``.
+    extra_dice: dict[str, str] | None = Field(default=None, alias="extraDice")
 
 
 class SpaceCannonPassRequest(BaseModel):
@@ -1349,6 +1362,15 @@ class BattleHitTargetView(BaseModel):
     chooser: str = ""
 
 
+class BattleExtraDiceRequest(BaseModel):
+    """Przypisanie dodatkowych kości AFB: ``{źródło: base_type | auto | none}``."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    player_id: str = Field(alias="playerId")
+    picks: dict[str, str] = Field(default_factory=dict)
+
+
 class BattleResponse(BaseModel):
     """Pełny stan okna pola bitwy (jeden odczyt na całe okno)."""
 
@@ -1392,6 +1414,10 @@ class BattleResponse(BaseModel):
     )
     ability_tools: list[BattleAbilityToolView] = Field(
         default_factory=list, serialization_alias="abilityTools"
+    )
+    # Dodatkowe kości AFB do przypisania przed rzutem (klucz = strona walki, RULES.md 62.11).
+    afb_extra: dict[str, list[ExtraDieView]] = Field(
+        default_factory=dict, serialization_alias="afbExtra"
     )
 
 

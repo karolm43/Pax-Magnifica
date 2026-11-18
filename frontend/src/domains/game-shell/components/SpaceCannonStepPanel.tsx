@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  defaultPicks,
+  extraByGroup,
+  ExtraDicePicker,
+  type ExtraDiceGroup,
+  type ExtraDicePicks,
+} from "@/shared/ui/ExtraDicePicker";
 import { HoldRollButton } from "@/domains/dice/HoldRollButton";
 import { soloHold, useDiceStage } from "@/domains/dice/diceStage";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
@@ -71,7 +78,7 @@ function TurnCard({
   side: SpaceCannonSide;
   lookup: Lookup;
   busy: boolean;
-  onFire: (target: string, plasmaUnit: string | null) => void;
+  onFire: (target: string, extraDice: ExtraDicePicks | null) => void;
   onPass: () => void;
 }) {
   const gameData = useGameData();
@@ -80,14 +87,20 @@ function TurnCard({
   const [target, setTarget] = useState<string | null>(
     side.targets.length === 1 ? side.targets[0] : null,
   );
-  // Plasma Scoring ("may"): wybór jednostki z dodatkową kością. Domyślnie najcelniejsza grupa,
-  // ale gracz może wskazać inną albo zrezygnować.
-  const plasmaGroups = side.shooters.filter((s) => s.plasmaDice > 0);
-  const bestPlasma = [...plasmaGroups].sort((a, b) => a.hitsOn - b.hitsOn)[0];
-  const [plasma, setPlasma] = useState<string | null>(bestPlasma?.key ?? null);
-  const plasmaDice = plasma
-    ? (plasmaGroups.find((s) => s.key === plasma)?.plasmaDice ?? 0)
-    : 0;
+  // Dodatkowe kości („may”): każde źródło (Plasma Scoring, commander Argent, Ambuscade) gracz
+  // przypisuje osobno - domyślnie „Auto” (najcelniejsza grupa), może wskazać inną albo zrezygnować.
+  const extraSources = side.extraDice ?? [];
+  const extraGroups: ExtraDiceGroup[] = side.shooters.map((s) => ({
+    key: s.key,
+    label: s.name,
+    hitsOn: s.hitsOn,
+    sub: s.remote ? `from ${s.position}` : zoneLabel(s),
+  }));
+  const [picks, setPicks] = useState<ExtraDicePicks>(() => defaultPicks(extraSources));
+  const plasmaDice = Object.values(extraByGroup(extraSources, extraGroups, picks)).reduce(
+    (sum, n) => sum + n,
+    0,
+  );
 
   const shooterTechs = hasTechs(gameData, side.faction);
   const totalRolled = side.totalDice + plasmaDice;
@@ -159,52 +172,18 @@ function TurnCard({
         </div>
       </Block>
 
-      {(shooterTechs || plasmaGroups.length > 0) && (
+      {(shooterTechs || extraSources.length > 0) && (
         <Block title="Your modifiers">
           {shooterTechs && (
             <ActiveTechs context="spaceCannon" faction={side.faction} />
           )}
-          {plasmaGroups.length > 0 && (
-            <div
-              className={styles.plasma}
-              role="radiogroup"
-              aria-label="Extra dice"
-            >
-              {/* Plasma Scoring, commander Argent, Strike Wing Ambuscade - jedna wybrana grupa. */}
-              <small>
-                Extra dice: one unit may roll {plasmaGroups[0].plasmaDice} additional{" "}
-                {plasmaGroups[0].plasmaDice === 1 ? "die" : "dice"}. Pick which one.
-              </small>
-              {plasmaGroups.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={plasma === s.key}
-                  className={styles.plasmaOption}
-                  data-active={plasma === s.key || undefined}
-                  onClick={() => setPlasma(s.key)}
-                >
-                  <span>
-                    {s.name} <small>({s.hitsOn}+)</small>
-                  </span>
-                  <small>
-                    {s.remote ? `from ${s.position}` : zoneLabel(s)} · +{s.plasmaDice}{" "}
-                    {s.plasmaDice === 1 ? "die" : "dice"}
-                  </small>
-                </button>
-              ))}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={plasma === null}
-                className={styles.plasmaOption}
-                data-active={plasma === null || undefined}
-                onClick={() => setPlasma(null)}
-              >
-                <span>No extra die</span>
-              </button>
-            </div>
+          {extraSources.length > 0 && (
+            <ExtraDicePicker
+              sources={extraSources}
+              groups={extraGroups}
+              value={picks}
+              onChange={setPicks}
+            />
           )}
         </Block>
       )}
@@ -251,7 +230,7 @@ function TurnCard({
         <HoldRollButton
           className={styles.fire}
           disabled={busy || target === null}
-          onFire={() => target !== null && onFire(target, plasma)}
+          onFire={() => target !== null && onFire(target, extraSources.length ? picks : null)}
           onHold={soloHold(side.totalDice + plasmaDice, me.rgb)}
           hint={false}
           title={
@@ -466,13 +445,13 @@ export function SpaceCannonStepPanel() {
               side={current}
               lookup={lookup}
               busy={busy}
-              onFire={(target, plasmaUnit) =>
+              onFire={(target, extraDice) =>
                 void run(async () => {
                   await spaceCannonFire(
                     current.faction,
                     target,
                     glsReady && useGls,
-                    plasmaUnit,
+                    extraDice,
                   );
                   setUseGls(false);
                 })

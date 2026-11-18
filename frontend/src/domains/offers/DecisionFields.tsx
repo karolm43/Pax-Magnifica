@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { IconWand } from "@tabler/icons-react";
 import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
@@ -16,6 +17,7 @@ import { FieldHead, metaOf, Stepper, Tile, UnitStackStepper } from "./DecisionTi
 import { GroupedMapField } from "./GroupedMapField";
 import { TechPickField } from "./TechPickField";
 import { routeOf, RouteNumbersField, type Route } from "./RouteNumbersField";
+import { autoPay } from "@/domains/technology/techModel";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -298,10 +300,22 @@ function PaymentField({
   const enough = paid >= payment.cost;
   const toggle = (id: string) =>
     onChange(input.key, picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]);
+  // „Auto”: najtańsza płatność - planety od największych bez zbędnych, potem trade goods.
+  const auto = () => {
+    const worth = Object.fromEntries(
+      input.options.map((o) => [o.id, typeof metaOf(o).value === "number" ? (metaOf(o).value as number) : 0]),
+    );
+    const pay = autoPay(worth, [], tgInput?.max ?? 0, payment.cost);
+    onChange(input.key, pay.planets);
+    if (tgInput) onChange(payment.tradeGoods, Math.max(tgInput.min, pay.tradeGoods));
+  };
 
   return (
     <div className={styles.field}>
       <FieldHead label={`Pay ${payment.cost} ${payment.valueKind}`} hint={input.hint} />
+      <button type="button" className={styles.autoButton} disabled={disabled} onClick={auto}>
+        <IconWand size={14} aria-hidden="true" /> Auto
+      </button>
       <div className={styles.payBar} data-ok={enough || undefined} aria-live="polite">
         <span>
           Paid <b>{paid}</b> / {payment.cost}

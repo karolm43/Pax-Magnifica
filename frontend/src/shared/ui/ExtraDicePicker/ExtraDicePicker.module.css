@@ -1,0 +1,53 @@
+.picker {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.source {
+  display: grid;
+  gap: 4px;
+}
+
+.source > small {
+  color: var(--ds-ink-lo);
+  line-height: 1.4;
+}
+
+.source > small b {
+  color: var(--ds-ink-hi);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  font-size: 12px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ds-h14, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.option small {
+  color: var(--ds-ink-lo);
+}
+
+.option[data-active] {
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 16%, transparent);
+  border-color: color-mix(in oklab, var(--ds-accent) 60%, transparent);
+}
+
+.option:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

@@ -1,3 +1,4 @@
+import type { ExtraDie } from "@/shared/ui/ExtraDicePicker";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MoveRouteData } from "@/domains/movement/routeTypes";
 import { useCallback } from "react";
@@ -719,13 +720,13 @@ export function useBoardEditor() {
       faction: string,
       target?: string,
       exhaustGls = false,
-      plasmaUnit: string | null = null,
+      extraDice: Record<string, string> | null = null,
     ) => {
       await post("/tactical/space-cannon/fire", {
         faction,
         target: target ?? null,
         exhaust_gls: exhaustGls,
-        plasma_unit: plasmaUnit,
+        extraDice,
       });
       await refresh();
     },
@@ -776,6 +777,15 @@ export function useBoardEditor() {
     await post("/tactical/battle/afb", {});
     await refresh();
   }, [refresh]);
+
+  // Dodatkowe kości AFB (commander Argent, Strike Wing Ambuscade): wybór per źródło przed rzutem.
+  const battleAfbExtraDice = useCallback(
+    async (playerId: string, picks: Record<string, string>) => {
+      await post("/tactical/battle/afb/extra-dice", { playerId, picks });
+      await refresh();
+    },
+    [refresh],
+  );
 
   const battleRoll = useCallback(async () => {
     await post("/tactical/battle/roll", {});
@@ -1140,6 +1150,7 @@ export function useBoardEditor() {
     spaceCannonAssign,
     battleStart,
     battleAfb,
+    battleAfbExtraDice,
     battleRoll,
     battleAssign,
     battleRelicReroll,
@@ -1289,6 +1300,8 @@ export type BattleView = {
   hitTargets?: Record<string, HitTarget>;
   rolls: Record<string, BattleRoll[]>;
   afb: Record<string, BattleRoll[]>;
+  /** Dodatkowe kości AFB do przypisania przed rzutem (klucz = strona walki, RULES.md 62.11). */
+  afbExtra?: Record<string, (ExtraDie & { pick: string })[]>;
   log: BattleLogEntry[];
   /** Jednorazowe efekty poza rundami (Assault Cannon) — do animacji. */
   effects?: BattleEffect[];
@@ -1481,6 +1494,8 @@ export type SpaceCannonSide = {
   faction: string;
   playerId: string;
   shooters: SpaceCannonShooter[];
+  /** Źródła dodatkowych kości (Plasma Scoring, commander Argent, Ambuscade) - każde osobno. */
+  extraDice?: ExtraDie[];
   totalDice: number;
   expectedHits: number;
   /** Legalne cele (klucze graczy). */

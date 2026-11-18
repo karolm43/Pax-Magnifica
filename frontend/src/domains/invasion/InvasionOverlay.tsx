@@ -1,4 +1,11 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import {
+  defaultPicks,
+  extraByGroup,
+  ExtraDicePicker,
+  type ExtraDiceGroup,
+  type ExtraDicePicks,
+} from "@/shared/ui/ExtraDicePicker";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -95,8 +102,8 @@ function InvasionWindow({ view }: { view: InvasionView }) {
   const [userPlan, setUserPlan] = useState<BombardPlan | null>(null);
   // Trwa przeciąganie jednostek/statków: karty planet podświetlają się jako cele.
   const [dragging, setDragging] = useState(false);
-  // Plasma Scoring ("may"): wybrany przydział (typ|planeta); undefined = domyślnie najcelniejszy.
-  const [plasmaPick, setPlasmaPick] = useState<string | null | undefined>(undefined);
+  // Dodatkowe kości („may”): wybór per źródło; brak wpisu = „Auto” (najcelniejszy przydział).
+  const [extraPicks, setExtraPicks] = useState<ExtraDicePicks>({});
 
   const phase = view.phase ?? "BOMBARDMENT";
   const attacker = view.attacker ? look(view.attacker) : null;
@@ -171,11 +178,18 @@ function InvasionWindow({ view }: { view: InvasionView }) {
       .filter(([, n]) => n > 0)
       .map(([planet]) => ({ key: `${g.baseType}|${planet}`, group: g, planet })),
   );
-  const bestPlasma = [...plasmaOptions].sort((a, b) => a.group.hitsOn - b.group.hitsOn)[0];
-  const plasmaUnit =
-    bombard.plasmaDice > 0 && plasmaPick !== null
-      ? (plasmaOptions.find((o) => o.key === plasmaPick)?.key ?? bestPlasma?.key ?? null)
-      : null;
+  const extraSources = bombard.extraDice ?? [];
+  const extraGroups: ExtraDiceGroup[] = plasmaOptions.map((o) => ({
+    key: o.key,
+    label: o.group.name,
+    hitsOn: o.group.hitsOn,
+    sub: planetName(o.planet),
+  }));
+  const picks: ExtraDicePicks = { ...defaultPicks(extraSources), ...extraPicks };
+  const extraRolled = Object.values(extraByGroup(extraSources, extraGroups, picks)).reduce(
+    (sum, n) => sum + n,
+    0,
+  );
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -213,8 +227,8 @@ function InvasionWindow({ view }: { view: InvasionView }) {
         setBattleHidden(false);
         await battleStart(planet);
       }),
-    onDefenseFire: (planet: string, plasmaKey: string | null) =>
-      void run(() => actions.defenseFire(planet, plasmaKey)),
+    onDefenseFire: (planet: string, extraDice: ExtraDicePicks | null) =>
+      void run(() => actions.defenseFire(planet, extraDice)),
     onDefensePass: (planet: string) => void run(() => actions.defensePass(planet)),
     onAssignBombard: (
       planet: string,
@@ -441,34 +455,14 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                   </span>
                 </div>
               ))}
-              {bombard.plasmaDice > 0 && plasmaOptions.length > 0 && (
-                <div className={styles.plasma} role="radiogroup" aria-label="Extra dice">
-                  {/* Plasma Scoring, commander Argent, Strike Wing Ambuscade - jedna wybrana grupa. */}
-                  <small>
-                    Extra dice: 1 unit may roll {bombard.plasmaDice} additional{" "}
-                    {bombard.plasmaDice === 1 ? "die" : "dice"}
-                  </small>
-                  {plasmaOptions.map((o) => (
-                    <label className={styles.plasmaOption} key={o.key}>
-                      <input
-                        type="radio"
-                        name="plasma-bombard"
-                        checked={plasmaUnit === o.key}
-                        onChange={() => setPlasmaPick(o.key)}
-                      />
-                      {o.group.name} ({o.group.hitsOn}+) at {planetName(o.planet)}
-                    </label>
-                  ))}
-                  <label className={styles.plasmaOption}>
-                    <input
-                      type="radio"
-                      name="plasma-bombard"
-                      checked={plasmaUnit === null}
-                      onChange={() => setPlasmaPick(null)}
-                    />
-                    No extra die
-                  </label>
-                </div>
+              {extraSources.length > 0 && extraGroups.length > 0 && (
+                <ExtraDicePicker
+                  sources={extraSources}
+                  groups={extraGroups}
+                  value={picks}
+                  onChange={setExtraPicks}
+                  disabled={busy}
+                />
               )}
             </div>
           )}
@@ -534,7 +528,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
               className={styles.primaryBtn}
               disabled={busy}
               onFire={() =>
-                void run(() => actions.bombard(bombardList(plan), plasmaUnit))
+                void run(() => actions.bombard(bombardList(plan), extraSources.length ? picks : null))
               }
               onHold={soloHold(
                 bombard.groups.reduce(
@@ -546,7 +540,7 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                     ) *
                       g.dicePerUnit,
                   0,
-                ) + (plasmaUnit ? bombard.plasmaDice : 0),
+                ) + extraRolled,
                 attacker?.rgb ?? "148 163 184",
               )}
               hint={false}

@@ -1,5 +1,10 @@
 import type { CSSProperties } from "react";
 import {
+  ExtraDicePicker,
+  type ExtraDiceGroup,
+  type ExtraDicePicks,
+} from "@/shared/ui/ExtraDicePicker";
+import {
   IconBolt,
   IconCheck,
   IconDice5,
@@ -179,6 +184,8 @@ export function BattleCenter({
   pickNotes = [],
   targetNote = null,
   onAfb,
+  onAfbExtra,
+  afbEditable = () => true,
   onRoll,
   onAuto,
   onClearMarks,
@@ -192,6 +199,10 @@ export function BattleCenter({
   decisionsPending = false,
   reactionLabel = null,
 }: {
+  /** Przypisanie dodatkowych kości AFB strony (klucz strony walki). */
+  onAfbExtra?: (side: string, picks: ExtraDicePicks) => void;
+  /** Czy ten klient może ustawić kości strony (gra sieciowa: tylko własnej). */
+  afbEditable?: (side: string) => boolean;
   onHold: (state: HoldState) => void;
   /** Czekają decyzje graczy (np. Salvage Operations) - silnik nie zamknie walki (RULES.md 54.9). */
   decisionsPending?: boolean;
@@ -344,6 +355,27 @@ export function BattleCenter({
             at enemy fighters. Both sides roll at once; Sustain Damage cannot
             cancel these hits.
           </p>
+          {onAfbExtra &&
+            Object.entries(view.afbExtra ?? {})
+              .filter(([side]) => afbEditable(side))
+              .map(([side, sources]) => {
+                const units = [view.attacker, view.defender].find((s) => s?.faction === side)?.units ?? [];
+                const groups: ExtraDiceGroup[] = units
+                  .filter((u) => u.afbHitsOn !== null)
+                  .map((u) => ({ key: u.baseType, label: u.name, hitsOn: u.afbHitsOn ?? 10 }));
+                return (
+                  <div key={side} aria-label={`${nameOf(side)}: extra dice`}>
+                    <small>{nameOf(side)}</small>
+                    <ExtraDicePicker
+                      sources={sources}
+                      groups={groups}
+                      value={Object.fromEntries(sources.map((s) => [s.key, s.pick]))}
+                      onChange={(next) => onAfbExtra(side, next)}
+                      disabled={busy}
+                    />
+                  </div>
+                );
+              })}
           <HoldRollButton disabled={busy} onFire={onAfb} onHold={onHold} className={styles.primary}>
             <IconTargetArrow size={17} aria-hidden="true" /> Fire barrage
           </HoldRollButton>

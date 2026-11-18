@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
+    ExtraDieView,
     SpaceCannonAssignRequest,
     SpaceCannonFireRequest,
     SpaceCannonLogEntry,
@@ -29,7 +30,7 @@ from src.api.schemas import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import battle, board_edit, space_cannon
+from src.core import battle, board_edit, extra_dice, rules_hooks, space_cannon
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
@@ -129,6 +130,12 @@ def _build_panel(ctx: AppContext, state: GameState) -> SpaceCannonPanelResponse:
                     )
                     for s in shooters
                 ],
+                extra_dice=[
+                    ExtraDieView(key=e.key, name=e.name, dice=e.dice)
+                    for e in extra_dice.sources(
+                        state, player_id, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE
+                    )
+                ],
                 total_dice=sum(s.total_dice for s in shooters),
                 expected_hits=round(sum(s.expected_hits for s in shooters), 2),
                 targets=[
@@ -213,6 +220,7 @@ async def post_space_cannon_fire(
             state, ctx.current_grid, ctx.registry, player_id, target_id,
             exhaust_gls=request.exhaust_gls,
             plasma_unit=request.plasma_unit,
+            extra_picks=request.extra_dice,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

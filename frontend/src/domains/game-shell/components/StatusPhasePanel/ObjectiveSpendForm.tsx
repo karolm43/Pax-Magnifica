@@ -154,6 +154,7 @@ export function ObjectiveSpendForm({
         }}
         unit={kind}
         busy={busy}
+        target={goal}
       />
     );
   } else if (kind === "mixed") {

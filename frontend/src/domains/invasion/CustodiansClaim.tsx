@@ -126,6 +126,7 @@ export function CustodiansClaim({
             onChange={setPayment}
             unit="influence"
             busy={working}
+            target={view.cost}
           />
           <Hint>
             Selected: <b>{total}</b> of <b>{view.cost}</b> (overpaying is allowed, the surplus is

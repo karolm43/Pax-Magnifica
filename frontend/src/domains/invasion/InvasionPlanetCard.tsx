@@ -1,4 +1,11 @@
 import { type CSSProperties, type DragEvent, useState } from "react";
+import {
+  defaultPicks,
+  extraByGroup,
+  ExtraDicePicker,
+  type ExtraDiceGroup,
+  type ExtraDicePicks,
+} from "@/shared/ui/ExtraDicePicker";
 import { HoldRollButton } from "@/domains/dice/HoldRollButton";
 import { soloHold } from "@/domains/dice/diceStage";
 import {
@@ -42,8 +49,8 @@ export type PlanetActions = {
   onBump: (planet: string, baseType: string, delta: number) => void;
   onLandAll: (planet: string) => void;
   onFight: (planet: string) => void;
-  /** Space Cannon Defense: strzał; ``plasmaUnit`` = klucz grupy z dodatkową kością (Plasma Scoring). */
-  onDefenseFire: (planet: string, plasmaUnit: string | null) => void;
+  /** Space Cannon Defense: strzał; ``extraDice`` = przypisanie dodatkowych kości per źródło. */
+  onDefenseFire: (planet: string, extraDice: ExtraDicePicks | null) => void;
   /** Trwa przeciąganie (jednostki do lądowania / statki do bombardowania) - podświetla cele. */
   dragging: boolean;
   onDrag: (on: boolean) => void;
@@ -89,8 +96,8 @@ export function InvasionPlanetCard({
 }) {
   const look = usePlayerLook();
   const [over, setOver] = useState(false);
-  // Plasma Scoring w Space Cannon Defense ("may"): undefined = domyślnie najcelniejsza grupa.
-  const [plasmaPick, setPlasmaPick] = useState<string | null | undefined>(undefined);
+  // Dodatkowe kości w Space Cannon Defense („may”): wybór per źródło; brak wpisu = „Auto”.
+  const [extraPicks, setExtraPicks] = useState<ExtraDicePicks>({});
   const data = getPlanetData(info.planet);
   const art = data ? getPlanetTileArt(data) : null;
   const globeR = globeRadiusOf(art);
@@ -123,13 +130,17 @@ export function InvasionPlanetCard({
     (p) => p.planet === info.planet,
   );
   const defense = view.defense.find((d) => d.planet === info.planet);
-  const plasmaGroups = (defense?.shooters ?? []).filter((s) => s.plasmaDice > 0);
-  const bestPlasma = [...plasmaGroups].sort((a, b) => a.hitsOn - b.hitsOn)[0];
-  const plasma =
-    plasmaPick === null
-      ? null
-      : (plasmaGroups.find((s) => s.key === plasmaPick)?.key ?? bestPlasma?.key ?? null);
-  const plasmaDice = plasmaGroups.find((s) => s.key === plasma)?.plasmaDice ?? 0;
+  const extraSources = defense?.extraDice ?? [];
+  const extraGroups: ExtraDiceGroup[] = (defense?.shooters ?? []).map((s) => ({
+    key: s.key,
+    label: `${s.count}× ${s.name}`,
+    hitsOn: s.hitsOn,
+  }));
+  const picks: ExtraDicePicks = { ...defaultPicks(extraSources), ...extraPicks };
+  const plasmaDice = Object.values(extraByGroup(extraSources, extraGroups, picks)).reduce(
+    (sum, n) => sum + n,
+    0,
+  );
   const result = view.results.find((r) => r.planet === info.planet);
   const combat = view.combatResults[info.planet];
   const planned = Object.values(actions.bombardPlan).reduce(
@@ -595,41 +606,21 @@ export function InvasionPlanetCard({
               .map((s) => `${s.count}× ${s.name} ${s.hitsOn}+`)
               .join(", ")}
           </span>
-          {defense.status === "open" && plasmaGroups.length > 0 && (
-            <div className={styles.plasma} role="radiogroup" aria-label="Extra dice">
-              {/* Plasma Scoring, commander Argent, Strike Wing Ambuscade - jedna wybrana grupa. */}
-              <small>
-                Extra dice: 1 unit may roll {plasmaGroups[0].plasmaDice} additional{" "}
-                {plasmaGroups[0].plasmaDice === 1 ? "die" : "dice"}
-              </small>
-              {plasmaGroups.map((s) => (
-                <label className={styles.plasmaOption} key={s.key}>
-                  <input
-                    type="radio"
-                    name={`plasma-${info.planet}`}
-                    checked={plasma === s.key}
-                    onChange={() => setPlasmaPick(s.key)}
-                  />
-                  {s.count}× {s.name} ({s.hitsOn}+)
-                </label>
-              ))}
-              <label className={styles.plasmaOption}>
-                <input
-                  type="radio"
-                  name={`plasma-${info.planet}`}
-                  checked={plasma === null}
-                  onChange={() => setPlasmaPick(null)}
-                />
-                No extra die
-              </label>
-            </div>
+          {defense.status === "open" && extraSources.length > 0 && (
+            <ExtraDicePicker
+              sources={extraSources}
+              groups={extraGroups}
+              value={picks}
+              onChange={setExtraPicks}
+              disabled={actions.busy}
+            />
           )}
           {defense.status === "open" && (
             <div className={styles.row}>
               <HoldRollButton
                 className={styles.primaryBtn}
                 disabled={actions.busy}
-                onFire={() => actions.onDefenseFire(info.planet, plasma)}
+                onFire={() => actions.onDefenseFire(info.planet, extraSources.length ? picks : null)}
                 onHold={soloHold(
                   defense.shooters.reduce(
                     (n, s) => n + s.count * s.dicePerUnit,

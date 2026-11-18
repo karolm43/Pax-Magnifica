@@ -631,6 +631,7 @@ function Battlefield({
   const setHidden = useAppStore((s) => s.setBattleHidden);
   const {
     battleAfb,
+    battleAfbExtraDice,
     battleRoll,
     battleAssign,
     battleClose,
@@ -1078,6 +1079,14 @@ function Battlefield({
           cancels={cancels}
           pickNotes={pickNotes}
           onAfb={() => void run(battleAfb)}
+          onAfbExtra={(side, picks) => {
+            const playerId = [view.attacker, view.defender].find((s) => s?.faction === side)?.playerId;
+            if (playerId) void run(() => battleAfbExtraDice(playerId, picks));
+          }}
+          afbEditable={(side) => {
+            const playerId = [view.attacker, view.defender].find((s) => s?.faction === side)?.playerId;
+            return !!playerId && canAct(playerId);
+          }}
           onRoll={() => void run(battleRoll)}
           onAuto={() => setMarks(autoMarks(allowedShips, required, cancels))}
           targetNote={targetNote}

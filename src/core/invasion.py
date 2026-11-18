@@ -12,6 +12,7 @@ jednostki gracza (``combat.resolve_unit_variant``).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,7 @@ from src.core import (
     custodians,
     exhaust,
     exploration,
+    extra_dice,
     planet_stats,
     rules_hooks,
     space_cannon,
@@ -445,6 +447,7 @@ def bombard(
     registry: StaticDataRegistry,
     assignments: list[BombardAssignment],
     plasma_unit: str | None = None,
+    extra_picks: Mapping[str, str] | None = None,
 ) -> GameState:
     """Bombardowanie: rzut dla każdego przydziału; trafienia czekają na przypisanie strat (I3).
 
@@ -490,25 +493,28 @@ def bombard(
 
     rolled = state
     by_planet: dict[str, dict[str, Any]] = {}
-    # Hook MODIFY: dodatkowe kości dla JEDNEJ jednostki przy tym użyciu Bombardment (Plasma
-    # Scoring: „may") - dostaje je tylko przydział wskazany przez gracza.
-    extra_dice = max(
-        0,
-        rules_hooks.modify(
-            rules_hooks.POINT_BOMBARDMENT_EXTRA_DICE, state, _inv(state).attacker, 0,
-            {"position": _inv(state).position},
-        ),
+    # Dodatkowe kości dla JEDNEJ jednostki na źródło (Plasma Scoring, commander Argent,
+    # Strike Wing Ambuscade: „may”) - każde źródło przydział wskazany przez gracza
+    # (``extra_picks``; ``plasma_unit`` = wszystkie źródła jednemu przydziałowi).
+    sources = extra_dice.sources(
+        state, _inv(state).attacker, rules_hooks.POINT_BOMBARDMENT_EXTRA_DICE,
+        {"position": _inv(state).position},
     )
+    live = {i.key: groups[i.base_type].hits_on for i in assignments if i.count > 0}
     if plasma_unit:
-        if extra_dice <= 0:
+        if not sources:
             raise ValueError("Plasma Scoring is not available.")
-        if not any(i.count > 0 and i.key == plasma_unit for i in assignments):
+        if plasma_unit not in live:
             raise ValueError("Plasma Scoring: choose one of the bombarding units.")
+        picks = {e.key: plasma_unit for e in sources}
+    else:
+        picks = dict(extra_picks or {})
+    extra_by_item = extra_dice.assign(sources, live, picks)
     for item in assignments:
         if item.count <= 0:
             continue
         group = groups[item.base_type]
-        bonus = extra_dice if plasma_unit and item.key == plasma_unit else 0
+        bonus = extra_by_item.pop(item.key, 0)
         rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit + bonus)
         modifier = _bombard_modifier(state, item.planet)
         # Hook MODIFY: mnożnik trafień bombardowania (X-89 ΩΩ: podwójne trafienia).
@@ -933,6 +939,7 @@ def defense_fire(
     registry: StaticDataRegistry,
     planet: str,
     plasma_unit: str | None = None,
+    extra_picks: Mapping[str, str] | None = None,
 ) -> GameState:
     """Space Cannon Defense: strzelcy na ``planet`` rzucają w zlądowane siły atakującego (I3).
 
@@ -946,7 +953,7 @@ def defense_fire(
         raise ValueError(f"Space Cannon Defense on {planet} is not available.")
     shooters = defense_shooters(state, registry, planet)
     rolled, cannon_rolls, total = space_cannon.roll_cannon(
-        state, shooters, inv.attacker, plasma_unit
+        state, shooters, inv.attacker, plasma_unit, extra_picks
     )
     rolls: list[dict[str, Any]] = [
         {

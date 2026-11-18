@@ -18,6 +18,7 @@ from src.core import (
     capacity,
     chronicle,
     exhaust,
+    extra_dice,
     objective_events,
     rules_hooks,
     timing,
@@ -632,10 +633,10 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
         entries: list[dict[str, Any]] = []
         total = 0
         afb_units = [u for u in side_units(new_state, grid, registry, pid) if u.afb_hits_on]
-        bonus_unit = _afb_bonus_unit(new_state, pid, afb_units)
+        bonus = afb_extra_by_type(new_state, pid, afb_units)
         for unit in afb_units:
             assert unit.afb_hits_on is not None
-            extra = bonus_unit[1] if bonus_unit and bonus_unit[0] == unit.base_type else 0
+            extra = bonus.get(unit.base_type, 0)
             new_state, dice = roll_dice(new_state, unit.count * unit.afb_dice + extra)
             hits = count_hits(dice, unit.afb_hits_on)
             total += hits
@@ -677,22 +678,53 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
     return _apply_afb(new_state, grid, registry)
 
 
-def _afb_bonus_unit(
-    state: GameState, player_id: str, units: list[CombatUnit]
-) -> tuple[str, int] | None:
-    """Dodatkowe kości AFB dla JEDNEJ grupy (hook ``combat.afb_extra_dice``: commander Argent,
-    Strike Wing Ambuscade - „choose 1 of those units to roll 1 additional die”).
+def afb_extra_sources(state: GameState, player_id: str) -> list[extra_dice.ExtraDie]:
+    """Źródła dodatkowych kości AFB gracza (commander Argent, Strike Wing Ambuscade)."""
+    return extra_dice.sources(state, player_id, rules_hooks.POINT_COMBAT_AFB_EXTRA_DICE)
 
-    Kości dostaje grupa z najlepszym progiem AFB: dodatkowa kość nie ma wad, więc ten wybór jest
-    zawsze najlepszy dla gracza (RULES.md 62.11). ``None`` = brak premii albo brak jednostek AFB.
+
+def afb_extra_by_type(
+    state: GameState, player_id: str, units: list[CombatUnit]
+) -> dict[str, int]:
+    """Dodatkowe kości AFB ``{base_type: kości}`` - każde źródło osobno, wg wyboru gracza
+    (``ActiveCombat.afb_picks``); bez wyboru „auto” = najcelniejsza grupa (decyzja użytkownika
+    2026-11-18, RULES.md 62.11)."""
+    sources = afb_extra_sources(state, player_id)
+    groups = {u.base_type: u.afb_hits_on or 99 for u in units if u.afb_hits_on}
+    if not sources or not groups:
+        return {}
+    combat = state.active_combat
+    chosen = dict(combat.afb_picks.get(player_id, {})) if combat is not None else {}
+    picks = {
+        e.key: chosen.get(e.key) or extra_dice.AUTO for e in sources
+    }
+    picks = {k: (v if v in groups or v == "none" else extra_dice.AUTO) for k, v in picks.items()}
+    return extra_dice.assign(sources, groups, picks)
+
+
+def set_afb_picks(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, player_id: str,
+    picks: dict[str, str],
+) -> GameState:
+    """Gracz przypisuje dodatkowe kości AFB do grup przed rzutem (``auto`` / ``none`` / typ).
+
+    Raises:
+        ValueError: Poza krokiem AFB, gracz nie walczy, nieznane źródło albo grupa bez AFB.
     """
-    if not units:
-        return None
-    extra = rules_hooks.modify(rules_hooks.POINT_COMBAT_AFB_EXTRA_DICE, state, player_id, 0)
-    if extra <= 0:
-        return None
-    best = min(units, key=lambda u: (u.afb_hits_on or 99, u.base_type))
-    return best.base_type, extra
+    combat = _combat(state)
+    if combat.step is not CombatStep.AFB or player_id not in (combat.attacker, combat.defender):
+        raise ValueError("Extra dice can be assigned only before your Anti-Fighter Barrage.")
+    units = [u for u in side_units(state, grid, registry, player_id) if u.afb_hits_on]
+    groups = {u.base_type for u in units}
+    sources = {e.key for e in afb_extra_sources(state, player_id)}
+    for source, target in picks.items():
+        if source not in sources:
+            raise ValueError(f"No extra die from {source}.")
+        if target not in groups and target not in (extra_dice.AUTO, "none"):
+            raise ValueError("Choose one of your units with Anti-Fighter Barrage.")
+    new_state = state.clone()
+    _combat(new_state).afb_picks[player_id] = dict(picks)
+    return new_state
 
 
 _AFB_INFANTRY = "afb_infantry"  # ślad: piechota zniszczona przez wyniki AFB

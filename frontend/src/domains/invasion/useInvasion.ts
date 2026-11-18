@@ -1,3 +1,4 @@
+import type { ExtraDie } from "@/shared/ui/ExtraDicePicker";
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/api/fetchJson";
@@ -79,6 +80,8 @@ export type DefenseShooter = {
 export type DefensePlanet = {
   planet: string;
   shooters: DefenseShooter[];
+  /** Źródła dodatkowych kości obrońcy - każde osobno (RULES.md 62.11). */
+  extraDice?: ExtraDie[];
   status: "open" | "pending" | "resolved";
   hits: number;
   required: number;
@@ -152,6 +155,8 @@ export type InvasionView = {
   bombard: {
     /** Ile kości dodałby Plasma Scoring jednej bombardującej jednostce (0 = brak). */
     plasmaDice: number;
+    /** Źródła dodatkowych kości atakującego - każde osobno (RULES.md 62.11). */
+    extraDice?: ExtraDie[];
     groups: BombardGroup[];
     targets: string[];
     done: boolean;
@@ -229,11 +234,11 @@ export function useInvasionActions() {
   const bombard = useCallback(
     async (
       assignments: { baseType: string; planet: string; count: number }[],
-      plasmaUnit: string | null = null,
+      extraDice: Record<string, string> | null = null,
     ) => {
       await post("/tactical/invasion/bombard", {
         assignments: assignments.filter((a) => a.count > 0),
-        plasmaUnit,
+        extraDice,
       });
       refresh();
     },
@@ -265,8 +270,8 @@ export function useInvasionActions() {
   );
 
   const defenseFire = useCallback(
-    async (planet: string, plasmaUnit: string | null = null) => {
-      await post("/tactical/invasion/defense/fire", { planet, plasmaUnit });
+    async (planet: string, extraDice: Record<string, string> | null = null) => {
+      await post("/tactical/invasion/defense/fire", { planet, extraDice });
       refresh();
     },
     [refresh],

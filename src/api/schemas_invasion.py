@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.api.schemas import BattleLossItem
+from src.api.schemas import BattleLossItem, ExtraDieView
 
 
 class InvasionUnitView(BaseModel):
@@ -75,6 +75,8 @@ class BombardView(BaseModel):
 
     # Ile kości dodałby Plasma Scoring jednej jednostce (0 = atakujący nie ma tej technologii).
     plasma_dice: int = Field(default=0, serialization_alias="plasmaDice")
+    # Źródła dodatkowych kości atakującego - każde przypisywane osobno (RULES.md 62.11).
+    extra_dice: list[ExtraDieView] = Field(default_factory=list, serialization_alias="extraDice")
     groups: list[BombardGroupView] = Field(default_factory=list)
     targets: list[str] = Field(default_factory=list)
     done: bool = False
@@ -101,8 +103,12 @@ class DefenseShooterView(BaseModel):
 class DefensePlanetView(BaseModel):
     """Planeta ze Space Cannon Defense: strzelcy i status (open / pending / resolved)."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     planet: str
     shooters: list[DefenseShooterView] = Field(default_factory=list)
+    # Źródła dodatkowych kości obrońcy - każde przypisywane osobno (RULES.md 62.11).
+    extra_dice: list[ExtraDieView] = Field(default_factory=list, serialization_alias="extraDice")
     status: str = "open"
     hits: int = 0
     required: int = 0
@@ -187,6 +193,8 @@ class InvasionBombardRequest(BaseModel):
     assignments: list[InvasionBombardItem]
     # Przydział (typ|planeta), którego jednostka rzuca 1 kością więcej (Plasma Scoring, "may").
     plasma_unit: str | None = Field(default=None, alias="plasmaUnit")
+    # Każde źródło dodatkowych kości osobno: ``{źródło: przydział | auto | none}``.
+    extra_dice: dict[str, str] | None = Field(default=None, alias="extraDice")
 
 
 class InvasionCommitItem(BaseModel):
@@ -215,6 +223,8 @@ class InvasionPlanetRequest(BaseModel):
     planet: str
     # Space Cannon Defense: klucz grupy strzelców z dodatkową kością (Plasma Scoring, "may").
     plasma_unit: str | None = Field(default=None, alias="plasmaUnit")
+    # Każde źródło dodatkowych kości osobno: ``{źródło: klucz grupy | auto | none}``.
+    extra_dice: dict[str, str] | None = Field(default=None, alias="extraDice")
 
 
 class InvasionAssignRequest(BaseModel):

@@ -209,6 +209,7 @@ export function ExpeditionModal({ opened, onClose, gameId, playerId }: Props) {
               }}
               unit={slice === "fiveInf" ? "influence" : "resources"}
               busy={busy}
+              target={5}
             />
             <Hint>
               Selected: <b>{total}</b> of <b>5</b> (overpaying is allowed, the surplus is lost).
