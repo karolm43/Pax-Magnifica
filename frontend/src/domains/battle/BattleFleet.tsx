@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { useGameData } from "@/state/useGameContext";
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { lookupUnit } from "@/entities/lookup/units";
+import { protoWarSunLevel } from "./protoWarSun";
 import { playBattleSound, preloadBattleSounds } from "./battleSound";
 import {
   allowSound,
@@ -280,6 +281,7 @@ function ShipToken({
   side,
   colorAlias,
   faction,
+  proto = null,
   tag,
   mark,
   selectable,
@@ -317,6 +319,8 @@ function ShipToken({
   side: "left" | "right";
   colorAlias: string;
   faction: string;
+  /** Prototype War Sun I/II (Muaat) — własna oprawa okrętu i salwy. */
+  proto?: 1 | 2 | null;
   mark: Mark | undefined;
   selectable: boolean;
   onToggle: (ship: ShipEntity) => void;
@@ -411,6 +415,7 @@ function ShipToken({
     "data-ground": groundKind ?? undefined,
     "data-damaged": ship.damaged || undefined,
     "data-heavy": heavy || undefined,
+    "data-proto": (ship.asyncId === "ws" && proto) || undefined,
     "data-sustained": justSustained || undefined,
     "data-mark": mark,
     "data-wing": place ? "" : undefined,
@@ -428,6 +433,16 @@ function ShipToken({
       <span className={styles.hull} ref={hullRef}>
         {ship.asyncId === "ws" && (
           <span className={styles.portal} aria-hidden="true" />
+        )}
+        {ship.asyncId === "ws" && proto && (
+          // Korona plazmy Prototype War Sun: żar, protuberancje (II: druga obręcz), żużel.
+          <span className={styles.corona} aria-hidden="true">
+            <span className={styles.coronaRing} />
+            {proto === 2 && <span className={styles.coronaRing} data-outer />}
+            {[0, 1, 2, 3, 4].map((k) => (
+              <span key={k} className={styles.cinder} style={{ "--k": k } as CSSProperties} />
+            ))}
+          </span>
         )}
         {engines?.offsets.map((off, k) => (
           <span
@@ -682,6 +697,9 @@ export function BattleFleet({
   // Wejście armady gra tylko raz na bitwę — ponowne otwarcie okna (Hide) go nie powtarza.
   const [entered, setEntered] = useState(() => entryDone(entryKey, performance.now()));
   const { formationRef, fit } = useFormationFit(views);
+  const gameData = useGameData();
+  const player = gameData?.playerData?.find((p) => p.faction === side.faction);
+  const proto = protoWarSunLevel(lookupUnit("ws", side.faction, player));
   useCloseRanks(formationRef, views, fit, entered || skipEntry);
   useEffect(() => {
     const now = performance.now();
@@ -733,6 +751,11 @@ export function BattleFleet({
       at(0, () => playBattleSound("fleetEnter", { pan, gain: 0.3 }));
       // War sun: własny dźwięk (assets/extra/sfx/warSunEnter.mp3), gdy szczelina się otwiera.
       if (withWarSun) at(1600, () => playBattleSound("warSunEnter", { pan, gain: 0.5 }));
+      // Prototype War Sun: zapłon kuźni gwiazdy — głuchy wybuch, gdy żar się otwiera.
+      if (withWarSun && proto) {
+        at(1900, () => playBattleSound("explosionHeavy", { pan, heavy: true, gain: 0.45 }));
+        at(3400, () => playBattleSound("sunfire", { pan, heavy: true, gain: 0.35 }));
+      }
       at(4500, () => playBattleSound(hasHeavy ? "arriveHeavy" : "arrive", { pan, gain: 0.4 }));
     }
     return () => {
@@ -742,8 +765,6 @@ export function BattleFleet({
     // Tylko przy montowaniu: wejście floty gra raz.
   }, []);
   // Podpisy: flagowiec zawsze; inne jednostki, gdy dane mają je jako frakcyjne (asset JSON).
-  const gameData = useGameData();
-  const player = gameData?.playerData?.find((p) => p.faction === side.faction);
   const tagOf = (asyncId: string, name: string): UnitTag | null => {
     if (asyncId === "fs") return { kind: "flagship", name };
     const data = lookupUnit(asyncId, side.faction, player);
@@ -841,6 +862,7 @@ export function BattleFleet({
               side={align}
               colorAlias={colorAlias}
               faction={side.faction}
+              proto={proto}
               tag={tagOf(view.ship.asyncId, view.ship.name)}
               onHover={onHover}
               mark={marks[view.ship.id]}

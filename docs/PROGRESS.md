@@ -1160,3 +1160,17 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA: pytest (Muaat, API, ruling coverage) ✓, ruff ✓, mypy (zmienione) ✓, tsc ✓, eslint ✓,
   vitest (game-shell, map) ✓; zrzuty animacji (bez obrazów kafli — harness bez backendu).
   e2e i build pominięte. Wymaga restartu backendu.
+
+## 2026-11-18 — Prototype War Sun I/II: własna oprawa w oknie walki (Muaat)
+
+- ✅ Decyzja użytkownika: war suny Muaat są dla frakcji kluczowe — mają własną animację.
+  Wariant rozpoznawany z danych jednostki (`battle/protoWarSun.ts`: frakcyjny `muaat_warsun*` /
+  `tf-pws`, poziom z `upgradesFromUnitId`), atrybut `data-proto="1|2"` okrętu i pocisków.
+- Wejście: kuźnia gwiazdy (roztopione jądro z wirującym żarem) zamiast indygo wormhole; dźwięk
+  zapłonu (`explosionHeavy` + `sunfire` obok `warSunEnter`). Na polu: korona plazmy z
+  protuberancjami, żużel unoszący się z okrętu, ciepła poświata sprite'a; II — druga,
+  przeciwbieżna obręcz i jaśniejszy żar. Salwa: większa, bielsza kula z dłuższym warkoczem,
+  szersza pożoga. Śmierć: korona rozbłyska i zapada się.
+- Ogólny war sun wariantu bez frakcji (`baldrick_muaat_warsun`) nie dostaje oprawy (test).
+- QA: tsc ✓, eslint ✓, vitest (battle) ✓; zrzuty ekranu (bez sprite'ów — harness bez backendu).
+  Backend bez zmian; build/e2e pominięte.

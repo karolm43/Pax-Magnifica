@@ -233,6 +233,8 @@ type Shot = {
   heavy: boolean;
   /** Strzela war sun (własny efekt: kula żaru z ładowaniem). */
   sun: boolean;
+  /** Prototype War Sun Muaat (poziom "1"/"2") — gorętsza kula, większa pożoga. */
+  proto?: string;
   /** Walka naziemna: kula smugowa albo pocisk artylerii (łukiem). */
   ground?: "tracer" | "shell";
   /** Znak łuku pocisku artylerii (−1, gdy tor biegnie w lewo). */
@@ -394,6 +396,8 @@ function VolleyLayer({
           victim,
           heavy,
           sun: shooter.getAttribute("data-base") === "ws",
+          // Prototype War Sun (Muaat): gorętsza salwa (data-proto okrętu = poziom 1/2).
+          proto: shooter.getAttribute("data-proto") ?? undefined,
           missile,
           cx: (from.x + tx) / 2 + (-dy / len0) * bow,
           cy: (from.y + ty) / 2 + (dx / len0) * bow,
@@ -549,6 +553,7 @@ function VolleyLayer({
           className={styles.beam}
           hidden={s.missile || undefined}
           data-kind={shotKind(s, n)}
+          data-proto={s.proto}
           data-orbital={s.orbital || undefined}
           data-heavy={s.heavy || undefined}
           data-hit={s.hit || undefined}
@@ -576,6 +581,7 @@ function VolleyLayer({
           key={`${s.id}-muzzle`}
           className={styles.muzzle}
           data-sun={s.sun || undefined}
+          data-proto={s.proto}
           data-ground={s.ground}
           style={
             {
@@ -626,6 +632,7 @@ function VolleyLayer({
             data-miss={!s.hit || undefined}
             data-afb={s.afb || undefined}
             data-sun={s.sun || undefined}
+            data-proto={s.proto}
             data-missile={s.missile || undefined}
             data-ground={s.ground || undefined}
             data-heavy={s.heavy || undefined}
