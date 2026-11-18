@@ -262,7 +262,11 @@ def _require_speaker(state: GameState, player_id: str) -> None:
 def vote_order(state: GameState) -> list[str]:
     """Kolejność głosowania: od gracza po LEWEJ mówcy zegarowo, mówca OSTATNI (R_agenda_phase)."""
     order = strategy_phase.speaker_order(state)  # mówca pierwszy, zegarowo
-    return [*order[1:], *order[:1]] if order else []
+    base = [*order[1:], *order[:1]] if order else []
+    # Zeal (F_argent): gracz z hookiem głosuje zawsze pierwszy, także jako mówca; pozostali w
+    # zwykłej kolejności (pomijając go).
+    first = [p for p in base if rules_hooks.permits(rules_hooks.POINT_AGENDA_VOTE_FIRST, state, p)]
+    return [*first, *(p for p in base if p not in first)]
 
 
 def current_voter(state: GameState) -> str | None:

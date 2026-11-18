@@ -168,10 +168,12 @@ function TurnCard({
             <div
               className={styles.plasma}
               role="radiogroup"
-              aria-label="Plasma Scoring"
+              aria-label="Extra dice"
             >
+              {/* Plasma Scoring, commander Argent, Strike Wing Ambuscade - jedna wybrana grupa. */}
               <small>
-                Plasma Scoring: one unit may roll 1 extra die. Pick which one.
+                Extra dice: one unit may roll {plasmaGroups[0].plasmaDice} additional{" "}
+                {plasmaGroups[0].plasmaDice === 1 ? "die" : "dice"}. Pick which one.
               </small>
               {plasmaGroups.map((s) => (
                 <button
@@ -187,7 +189,8 @@ function TurnCard({
                     {s.name} <small>({s.hitsOn}+)</small>
                   </span>
                   <small>
-                    {s.remote ? `from ${s.position}` : zoneLabel(s)} · +1 die
+                    {s.remote ? `from ${s.position}` : zoneLabel(s)} · +{s.plasmaDice}{" "}
+                    {s.plasmaDice === 1 ? "die" : "dice"}
                   </small>
                 </button>
               ))}

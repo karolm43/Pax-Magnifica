@@ -182,7 +182,7 @@ komponentów frakcji wg `POKRYCIE_HOOKOW.md` §7 (+ flagowiec/mech).
 | F1 Liderzy | ✅ 2026-11-12 (RULES 61.1) |
 | F2 Promissory notes | ✅ 2026-11-12 (RULES 61.2, 5 notek ogólnych) |
 | F3 Zdolności / przełomy / jednostki | ✅ 2026-11-12 (RULES 61.3–61.4) |
-| B1–B12 (Fale 1–2) | 🟡 B1 ✅ 2026-11-12: Sardakk (62.1), Letnev (62.2); B2 ✅ Jol-Nar (62.3); B3 ✅ Sol (62.4), Arborec (62.5); B4 ✅ 2026-11-13 Hacan (62.6), Winnu (62.7); domknięcie Fali 1 (2026-11-13: rulingi grupy A, limit ręki 53.8, Imperator osobno); B5 ✅ 2026-11-13 Mentak (62.8); B6 ✅ 2026-11-16 Xxcha (62.9); B7 ✅ 2026-11-16 Yin (62.10) — dalej B8 |
-| Kontrakt rulingów (każdy punkt `F_<frakcja>.md` i zdanie komponentu = test albo status) | ✅ dla 10 frakcji Fal 1–2: pilot Xxcha + Arborec, Yin, Hacan (2026-11-16); Jol-Nar, Letnev, Mentak, Sardakk, Winnu, Sol (2026-11-17). Każda kolejna frakcja przechodzi go w swoim bloku (`uv run python -m tests.rulings <frakcja>`) |
+| B1–B12 (Fale 1–2) | 🟡 B1 ✅ 2026-11-12: Sardakk (62.1), Letnev (62.2); B2 ✅ Jol-Nar (62.3); B3 ✅ Sol (62.4), Arborec (62.5); B4 ✅ 2026-11-13 Hacan (62.6), Winnu (62.7); domknięcie Fali 1 (2026-11-13: rulingi grupy A, limit ręki 53.8, Imperator osobno); B5 ✅ 2026-11-13 Mentak (62.8); B6 ✅ 2026-11-16 Xxcha (62.9); B7 ✅ 2026-11-16 Yin (62.10); B8 ✅ 2026-11-18 Argent (62.11) — dalej B9 |
+| Kontrakt rulingów (każdy punkt `F_<frakcja>.md` i zdanie komponentu = test albo status) | ✅ dla 10 frakcji Fal 1–2: pilot Xxcha + Arborec, Yin, Hacan (2026-11-16); Jol-Nar, Letnev, Mentak, Sardakk, Winnu, Sol (2026-11-17); Argent w bloku B8 (2026-11-18). Każda kolejna frakcja przechodzi go w swoim bloku (`uv run python -m tests.rulings <frakcja>`) |
 | I1–I3, B13–B21 (Fala 3) | ⬜ |
 | I4, B22–B27 (Fala 4) | ⬜ |

@@ -115,6 +115,12 @@ def capacity_report(
             report.names[base_type] = name
         else:
             report.general += capacity * count
+    if report.general <= 0:
+        # Siła naziemna o zerowym capacityUsed (Aerie Sentinel) nie liczy się do pojemności tylko
+        # przy statku gracza z pojemnością w tej przestrzeni (F_argent) - bez niego jak zwykle 1.
+        for base_type in list(report.cost):
+            if base_type != _FIGHTER and report.cost[base_type] <= 0:
+                report.cost[base_type] = 1
     for by_player in system.planet_units.values():
         docks = by_player.get(player_id, {}).get(_SPACEDOCK, 0)
         if docks > 0:

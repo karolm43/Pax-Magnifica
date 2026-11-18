@@ -111,12 +111,12 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.ships_moved` · after | 4 | 7 | Acamar, Adjudicator Ba'al, Call of the Void, Foresight, Sai Seravus, Voidwatch, Xuange |
 | `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 7 | 3 | I.I.H.Q. Modernization, Planesplitter (Firmament), Stellar Genesis |
-| `production.units_produced` · when | 2 | 8 | "A Tall Stranger", Amalgamation, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon, Trilossa Aun Mirik |
+| `production.units_produced` · when | 3 | 7 | "A Tall Stranger", Amalgamation, Homesick Phantom, Navarch Feng, Rowl Sarrig, That Which Molds Flesh, The Icon |
 | `production.used` · when | 8 | 1 | Tungstantus |
 | `any_time` · any | 1 | 7 | 2RAM, Aroz Hollow, Captain Aroz, M'aban, Nip and Tuck, Ssruu, Xander Alexin Victori III |
 | `combat.hits_assigned` · before | 8 | 0 |  |
 | `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
-| `tactical.system_activated` · when | 2 | 4 | Captain Mendosa, Incursion, Void Tether, Wing Transfer |
+| `tactical.system_activated` · when | 3 | 3 | Captain Mendosa, Incursion, Void Tether |
 | `combat.won` · after | 5 | 0 |  |
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
 | `phase` · during [phase=action] | 2 | 3 | Data Skimmer, Deepgloom Executable, Nekro Malleon |
@@ -128,8 +128,8 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
 | `planet.control_gained` · after | 2 | 2 | Dart and Tai, Scavenge |
 | `planet.control_gained` · when | 1 | 3 | Assimilate, Fealty Uplink, Liberate |
-| `unit.ability_used` · when [ability=roll] | 3 | 1 | Trrakan Aun Zulok |
-| `agenda.votes_cast` · when | 2 | 1 | Zeal |
+| `unit.ability_used` · when [ability=roll] | 4 | 0 |  |
+| `agenda.votes_cast` · when | 3 | 0 |  |
 | `combat.roll` · after | 3 | 0 |  |
 | `combat.round` · after | 3 | 0 |  |
 | `economy.resources_spent` · when | 2 | 1 | Aello |
@@ -215,7 +215,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tokens.placed` · after | 0 | 1 | Z'eu |
 | `transaction` · after | 1 | 0 |  |
 | `unit.ability_used` · after [ability=afb] | 1 | 0 |  |
-| `unit.ability_used` · when [ability=afb] | 0 | 1 | Raid Formation |
+| `unit.ability_used` · when [ability=afb] | 1 | 0 |  |
 | `unit.coexist` · when | 0 | 1 | Oceanbound |
 | `unit.destroyed` · after [1/combat] | 0 | 1 | Technological Singularity |
 | `unit.galvanized` · when | 0 | 1 | Galvanize |

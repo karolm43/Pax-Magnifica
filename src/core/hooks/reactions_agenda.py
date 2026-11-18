@@ -89,6 +89,22 @@ HACK_ELECTION = "action_cards:hack:vote_last"
 # =========================================================================================
 
 
+def _speaker_window_open(state: GameState, agenda: Any, speaker: str) -> bool:
+    """Okno „po głosie mówcy” (Bribery): mówca już zagłosował / wstrzymał się, a nikt po nim w
+    kolejce jeszcze nie głosował. Mówca Argent głosuje PIERWSZY (Zeal), więc Bribery zagrywa tylko
+    on i tylko od razu po swoim głosie (C_action_cards). Głos gracza z Hack Election Ω (ostatni,
+    po mówcy) okna nie zamyka - on sam Bribery i tak nie zagra."""
+    if not (speaker in agenda.votes or speaker in agenda.abstained or speaker in agenda.blocked):
+        return False
+    order = list(agenda.vote_order)
+    later = order[order.index(speaker) + 1:] if speaker in order else []
+    return not any(
+        (p in agenda.votes or p in agenda.abstained)
+        and not active_effects.has_effect(state, p, HACK_ELECTION)
+        for p in later
+    )
+
+
 @window_provider
 def agenda_windows(state: GameState) -> list[OpenWindow]:
     """Okna fazy agendy wyliczone z kroku ``AgendaPhaseState`` (bez mutacji)."""
@@ -127,7 +143,7 @@ def agenda_windows(state: GameState) -> list[OpenWindow]:
                      "kind": _KIND_VOTED},
                 )
             )
-        if speaker in agenda.votes or speaker in agenda.abstained or speaker in agenda.blocked:
+        if _speaker_window_open(state, agenda, speaker):
             windows.append(
                 OpenWindow(
                     GameEvent.AGENDA_VOTES_CAST,

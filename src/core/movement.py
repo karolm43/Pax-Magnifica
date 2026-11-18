@@ -78,6 +78,20 @@ def _ships_of_other_players(system: SystemState | None, player_id: str) -> bool:
     return False
 
 
+def passage_blocked(state: GameState, position: str, player_id: str) -> bool:
+    """Czy inny gracz zabrania ``player_id`` przelotu statkami PRZEZ system (hook
+    ``movement.passage_blocked`` pytany o każdego innego gracza; Aerie Hololattice). Dotyczy
+    węzłów pośrednich trasy - nie celu. Wyjątki przelotu (Light/Wave Deflector) tego nie znoszą."""
+    return any(
+        rules_hooks.permits(
+            rules_hooks.POINT_MOVEMENT_PASSAGE_BLOCKED, state, other,
+            {"position": position, "mover": player_id},
+        )
+        for other in state.players
+        if other != player_id
+    )
+
+
 def _node_passable_intermediate(
     grid: HexGrid,
     state: GameState,
@@ -106,6 +120,8 @@ def _node_passable_intermediate(
         rules_hooks.POINT_MOVEMENT_THROUGH_NEBULA, state, player_id
     ):
         return False  # Shared Research: przelot przez mgławicę (wejście nadal tylko do aktywnej)
+    if passage_blocked(state, position, player_id):
+        return False  # Aerie Hololattice: przelot przez system ze strukturami Argent (F_argent)
     if _ships_of_other_players(
         state.systems.get(position), player_id
     ) and not rules_hooks.permits(
@@ -1273,6 +1289,10 @@ def move_fleet(
             _capacity_provided(registry, faction_id, technologies, bt) * c
             for bt, c in ships.items()
         )
+        if cargo_items and provided <= 0:
+            # Ładunek o zerowym capacityUsed (Aerie Sentinel) nadal wymaga statku z pojemnością
+            # (F_argent: „cannot be transported by a ship without a capacity value”).
+            raise ValueError("Only ships with a capacity value can transport units.")
         needed = sum(
             _capacity_used(registry, faction_id, technologies, item.base_type)
             * item.count

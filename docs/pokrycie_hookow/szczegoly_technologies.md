@@ -5,7 +5,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
 | `ac2` | Advanced Carrier II | sol | — | — | ruch, walka | ✔ | Cost 3, Combat 9, Move 2, Capacity 8 SUSTAIN DAMAGE |
-| `ah` | Aerie Hololattice | argent | — | FORBID (zakaz) | ruch, produkcja, planety i eksploracja | — | Other players cannot move ships through systems that contain your structures. Each planet that contains 1 or more of your structures gains … |
+| `ah` | Aerie Hololattice | argent | — | FORBID (zakaz) | ruch, produkcja, planety i eksploracja | ✔ | Other players cannot move ships through systems that contain your structures. Each planet that contains 1 or more of your structures gains … |
 | `aida` | AI Development Algorithm | — | — | MODIFY (liczba/rzut) | produkcja, technologie, status i odświeżanie | ✔ | When you research a unit upgrade technology, you may exhaust this card to ignore any 1 prerequisite. When 1 or more of your units use PRODU… |
 | `amd` | Antimass Deflectors | — | — | MODIFY (liczba/rzut) | ruch, walka | ✔ | Your ships can move into and through asteroid fields. When other players' units use SPACE CANNON against your units, apply -1 to the result… |
 | `as` | Aetherstream | empyrean | — | MODIFY (liczba/rzut) | ruch | — | After you or one of your neighbors activates a system that is adjacent to an anomaly, you may apply +1 to the move value of all of that pla… |
@@ -91,7 +91,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `sr` | Sling Relay | — | — | — | produkcja, status i odświeżanie | ✔ | ACTION: Exhaust this card to produce 1 ship in any system that contains one of your space docks. |
 | `st` | Sarween Tools | — | — | MODIFY (liczba/rzut) | produkcja | ✔ | When 1 or more of your units use PRODUCTION, reduce the combined cost of the produced units by 1. |
 | `subatomic` | Subatomic Splicer | crimson | — | PERMIT (pozwolenie) | walka, produkcja | — | When one of your ships is destroyed, you may produce a ship of the same type at a space dock in your home system. |
-| `swa2` | Strike Wing Alpha II | argent | — | — | ruch, walka | — | Cost 1, Combat 7, Move 2, Capacity 1 ANTI-FIGHTER BARRAGE 6(x3) When this unit uses ANTI-FIGHTER BARRAGE, each result of 9 or 10 also destr… |
+| `swa2` | Strike Wing Alpha II | argent | — | — | ruch, walka | ✔ | Cost 1, Combat 7, Move 2, Capacity 1 ANTI-FIGHTER BARRAGE 6(x3) When this unit uses ANTI-FIGHTER BARRAGE, each result of 9 or 10 also destr… |
 | `tcs` | Temporal Command Suite | nomad | — | PERMIT (pozwolenie) | status i odświeżanie | — | After any player's agent becomes exhausted, you may exhaust this card to ready that agent; if you ready another player's agent, you may per… |
 | `td` | Transit Diodes | — | — | MODIFY (liczba/rzut) | planety i eksploracja, status i odświeżanie | ✔ | You may exhaust this card at the start of your turn during the action phase; remove up to 4 of your ground forces from the game board and p… |
 | `tp` | Transparasteel Plating | yssaril | — | FORBID (zakaz) | karty | — | During your turn of the action phase, players that have passed cannot play action cards. |

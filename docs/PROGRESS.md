@@ -1006,3 +1006,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Absol's Political Secret to teraz errata `<color>_ps` (ręka ma `red_ps` z tekstem Absol).
 - Regenerowane: `OKNA_CZASOWE.md`, `POKRYCIE_HOOKOW.md` (agendy Absol już nie w rejestrze
   domyślnym), baseline audytu. Instrukcja: `docs/WARIANTY.md`.
+
+## 2026-11-18 — B8: The Argent Flight (RULES.md 62.11)
+
+- Moduł `core/hooks/factions/argent.py`: Zeal (głos pierwszy + głosy za graczy), Raid Formation
+  (uszkadzanie statków nadwyżką AFB, decyzja Argent przy prawdziwym wyborze), Aerie Hololattice
+  (blokada przelotu, PRODUCTION 1 planet ze strukturami), Strike Wing Alpha II (9–10 w AFB
+  niszczy piechotę w przestrzeni, natychmiastowa eliminacja), Strike Wing Ambuscade, Trilossa Aun
+  Mirik (przeniesienie wyprodukowanych sił naziemnych — decyduje producent), Trrakan Aun Zulok
+  (odblokowanie 6 jednostek z AFB/SC/Bombardment, +1 kość), Helix Protocol, Quetzecoatl, Aerie
+  Sentinel, Wing Transfer (żetony + ruch na koniec akcji).
+- Nowe punkty silnika (`rules_hooks`): `agenda.vote_first`, `combat.afb_extra_dice`,
+  `combat.afb_raid`, `combat.afb_infantry_kill`, `movement.passage_blocked`,
+  `production.planet_value`. Okna `UNIT_ABILITY_USED/WHEN` przed rzutem AFB, Space Cannon
+  i Bombardment. Pojemność: ładunek z `capacityUsed: 0` liczy się bez statku z pojemnością,
+  transport wymaga statku z pojemnością. Okno Bribery zamyka głos kolejnego gracza (mówca Argent).
+- UI: przepis bohatera na planszy (`heroBoardFx`), wybór „Extra dice” zamiast etykiety Plasma
+  Scoring (commander/notka dokładają kości tej samej grupie). Ruch Helix/Wing Transfer = sloty
+  „cel na mapie + jednostki na mapie” w zwykłym oknie decyzji.
+- ⚠️ Założenia do potwierdzenia: Z1–Z3 w RULES.md 62.11, status `helix-protocol/3.1`.
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (KeyMoments, invasion,
+  game-shell/components) ✓. e2e i `npm run build` pominięte (bez zmian kreatora/zależności).
+  Wymaga restartu backendu.

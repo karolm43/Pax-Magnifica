@@ -42,6 +42,17 @@
     "requires": ["faction:naazrokha"],
     "reason": "Jednostka jednocześnie statkiem i siłą naziemną w aktywnych assetach to tylko naaz_voltron (przełom Naaz-Rokha, TE); frakcja niezaimplementowana."
   },
+  "F_argent/raid-formation/4.3": {
+    "requires": ["faction:empyrean"],
+    "reason": "Dynamo (flagowiec Empyrean) nie naprawia statków uszkodzonych przez Raid Formation - frakcja niezaimplementowana."
+  },
+  "F_argent/raid-formation/6": {
+    "requires": ["faction:nekro"],
+    "reason": "Mechy Nekro w walce kosmicznej (The Alastor) mogą zostać uszkodzone przez Raid Formation - frakcja niezaimplementowana."
+  },
+  "F_argent/mirik-aun-sissiri-helix-protocol/3.1": {
+    "na": "Zapowiedź przyszłej zmiany reguł bez jej treści; obowiązuje F_argent/mirik-aun-sissiri-helix-protocol/3 (test w tests/factions/test_argent.py). ⚠️ Do potwierdzenia przez użytkownika (RULES.md 62.11)."
+  },
   "F_jol_nar/research-agreement/3": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47): silnik nie egzekwuje obietnic co do momentu zagrania notki."
   },
@@ -107,10 +118,6 @@
   "C_relics/jrxs455o/1.2": {
     "requires": ["faction:yssaril"],
     "reason": "Ssruu (agent Yssaril) kopiuje zdolność JR-XS455-O."
-  },
-  "C_relics/metali-void-shielding/4": {
-    "requires": ["faction:argent"],
-    "reason": "Raid Formation (Argent) - Metali Void Shielding nie działa."
   },
   "C_relics/the-prophets-tears/2": {
     "requires": ["faction:nekro"],

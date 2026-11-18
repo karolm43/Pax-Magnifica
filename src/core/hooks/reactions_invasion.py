@@ -209,6 +209,60 @@ def _defense_windows(state: GameState) -> list[OpenWindow]:
 
 
 @window_provider
+def unit_ability_roll_windows(state: GameState) -> list[OpenWindow]:
+    """Okna „when … units make a roll for a unit ability” PRZED rzutem Space Cannon (Offense,
+    Defense) i Bombardment (Strike Wing Ambuscade, RULES.md 62.11). AFB: ``reactions_combat``."""
+    windows: list[OpenWindow] = []
+    position = state.active_system or ""
+    window = state.pending_window
+    if (
+        space_cannon.is_open(state)
+        and space_cannon.pending_hits(state) is None
+        and window is not None
+        and window.current_responder
+    ):
+        windows.append(
+            OpenWindow(
+                GameEvent.UNIT_ABILITY_USED, Moment.WHEN,
+                {"player": window.current_responder, "position": position,
+                 "ability": "space_cannon", "kind": KIND_OFFENSE},
+            )
+        )
+    inv = state.invasion
+    if inv is None:
+        return windows
+    base = {"position": inv.position}
+    if inv.phase is InvasionPhase.BOMBARDMENT and not inv.bombarded:
+        windows.append(
+            OpenWindow(
+                GameEvent.UNIT_ABILITY_USED, Moment.WHEN,
+                {**base, "player": inv.attacker, "ability": "bombardment"},
+            )
+        )
+    registry = rules_hooks.bound_registry()
+    if inv.phase is InvasionPhase.SPACE_CANNON_DEFENSE and registry is not None:
+        system = state.systems.get(inv.position)
+        try:
+            open_planets = invasion.undefended_open(state, registry)
+        except (ValueError, KeyError):
+            open_planets = []
+        rollers = sorted({
+            pid
+            for planet in open_planets
+            for pid in (system.planet_units.get(planet, {}) if system else {})
+            if pid != inv.attacker
+        })
+        for roller in rollers:
+            windows.append(
+                OpenWindow(
+                    GameEvent.UNIT_ABILITY_USED, Moment.WHEN,
+                    {**base, "player": roller, "ability": "space_cannon", "kind": KIND_DEFENSE},
+                )
+            )
+    return windows
+
+
+@window_provider
 def offense_windows(state: GameState) -> list[OpenWindow]:
     """Okna Space Cannon Offense: trafienia po rzucie czekają na przypisanie strat."""
     pending = space_cannon.pending_hits(state)

@@ -442,8 +442,12 @@ function InvasionWindow({ view }: { view: InvasionView }) {
                 </div>
               ))}
               {bombard.plasmaDice > 0 && plasmaOptions.length > 0 && (
-                <div className={styles.plasma} role="radiogroup" aria-label="Plasma Scoring">
-                  <small>Plasma Scoring: 1 unit may roll 1 additional die</small>
+                <div className={styles.plasma} role="radiogroup" aria-label="Extra dice">
+                  {/* Plasma Scoring, commander Argent, Strike Wing Ambuscade - jedna wybrana grupa. */}
+                  <small>
+                    Extra dice: 1 unit may roll {bombard.plasmaDice} additional{" "}
+                    {bombard.plasmaDice === 1 ? "die" : "dice"}
+                  </small>
                   {plasmaOptions.map((o) => (
                     <label className={styles.plasmaOption} key={o.key}>
                       <input

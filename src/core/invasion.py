@@ -914,6 +914,11 @@ def defense_shooters(
     return shooters
 
 
+def undefended_open(state: GameState, registry: StaticDataRegistry) -> list[str]:
+    """Planety, na których Space Cannon Defense jeszcze nie rzucono (okna „przed rzutem”)."""
+    return _defense_open(_inv(state), state, registry)
+
+
 def _defense_open(inv: InvasionState, state: GameState, registry: StaticDataRegistry) -> list[str]:
     return [
         p

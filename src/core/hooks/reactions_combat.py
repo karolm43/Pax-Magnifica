@@ -274,6 +274,12 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
                 out.append(
                     OpenWindow(GameEvent.COMBAT_ROLL, Moment.BEFORE, _ctx(combat, pid, kind="afb"))
                 )
+                # „When … your units make a roll for a unit ability” (Strike Wing Ambuscade).
+                out.append(
+                    OpenWindow(
+                        GameEvent.UNIT_ABILITY_USED, Moment.WHEN, _ctx(combat, pid, ability="afb")
+                    )
+                )
     # „Po rzutach” w obu rodzajach walki (Fire Team sam wymaga walki naziemnej; War Funding —
     # kosmicznej, RULES.md 62.2).
     if step is CombatStep.ASSIGN and not combat.afb_assign and not combat.round_end_assign:

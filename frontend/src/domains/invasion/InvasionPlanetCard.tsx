@@ -596,8 +596,12 @@ export function InvasionPlanetCard({
               .join(", ")}
           </span>
           {defense.status === "open" && plasmaGroups.length > 0 && (
-            <div className={styles.plasma} role="radiogroup" aria-label="Plasma Scoring">
-              <small>Plasma Scoring: 1 unit may roll 1 additional die</small>
+            <div className={styles.plasma} role="radiogroup" aria-label="Extra dice">
+              {/* Plasma Scoring, commander Argent, Strike Wing Ambuscade - jedna wybrana grupa. */}
+              <small>
+                Extra dice: 1 unit may roll {plasmaGroups[0].plasmaDice} additional{" "}
+                {plasmaGroups[0].plasmaDice === 1 ? "die" : "dice"}
+              </small>
               {plasmaGroups.map((s) => (
                 <label className={styles.plasmaOption} key={s.key}>
                   <input

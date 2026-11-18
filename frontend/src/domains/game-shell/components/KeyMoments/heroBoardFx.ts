@@ -54,6 +54,8 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   winnuhero: { dim: 0.35, target: "mecatol", mark: "seal", tone: "255 210 90", ms: 4400 },
   // Planetary Defense Nexus - Aegis: PDS i mechy na planetach — kopuły tarcz wznoszą się nad nimi.
   "xxchahero-te": { dim: 0.3, target: "defense", mark: "aegis", tone: "110 230 190", ms: 4400 },
+  // Helix Protocol: skrzydła Argent przeskakują do systemów z żetonami — cienie niszczycieli i słupy światła.
+  argenthero: { dim: 0.4, shadows: ["dd", "dd", "fs", "dd"], target: "ships", mark: "beam", tone: "255 150 60", ms: 4400 },
   // Quantum Dissemination: piechota z rezerwy ląduje na planetach — impulsy nad systemami walk.
   yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
 };

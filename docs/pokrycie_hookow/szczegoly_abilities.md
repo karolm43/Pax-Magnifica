@@ -56,7 +56,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `puppetsoftheblade` | Puppets of the Blade | firmament | unclassified | — | karty, planety i eksploracja | — | ACTION: Purge The Firmament's faction sheet, leaders, planet cards, and promissory note. Then, gain all of the faction components for The O… |
 | `quantum_entanglement` | Quantum Entanglement | ghost | — | FORBID (zakaz) | ruch | — | You treat all systems that contain either an alpha or beta wormhole as adjacent to each other. Game effects cannot prevent you from using t… |
 | `quash` | Quash | xxcha | when | TRIGGER (okno reakcji) | ekonomia i płatności, żetony dowodzenia, karty, agenda i głosowanie | ✔ | You may spend 1 token from your strategy pool to discard that agenda and reveal 1 agenda from the top of the deck. Players vote on this age… |
-| `raid_formation` | Raid Formation | argent | when | TRIGGER (okno reakcji) | walka, produkcja | — | for each hit produced in excess of your opponent's fighters, choose 1 of your opponent's ships that has SUSTAIN DAMAGE to become damaged. |
+| `raid_formation` | Raid Formation | argent | when | TRIGGER (okno reakcji) | walka, produkcja | ✔ | for each hit produced in excess of your opponent's fighters, choose 1 of your opponent's ships that has SUSTAIN DAMAGE to become damaged. |
 | `reclamation` | Reclamation | winnu | after | TRIGGER (okno reakcji) | produkcja | ✔ | You may place 1 PDS and 1 space dock from your reinforcements on Mecatol Rex. |
 | `researchteam` | Research Team | deepwrought | when | TRIGGER (okno reakcji) | technologie, planety i eksploracja | — | if your units on that planet are not already coexisting, you may choose for your units to coexist. |
 | `riftmeld` | Riftmeld | cabal | when | TRIGGER (okno reakcji) | technologie | — | You may return 1 captured unit of that type to ignore all of the technology's prerequisites. |
@@ -76,4 +76,4 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `unrelenting` | Unrelenting | sardakk | — | MODIFY (liczba/rzut) | walka | ✔ | Apply +1 to the result of each of your unit's combat rolls. |
 | `versatile` | Versatile | sol | when | TRIGGER (okno reakcji) | żetony dowodzenia | ✔ | Gain 1 additional command token. |
 | `voidborn` | Voidborn | empyrean | — | — | ruch | — | Nebulae do not affect your ships' movement |
-| `zeal` | Zeal | argent | when | TRIGGER (okno reakcji) | agenda i głosowanie | — | You always vote first during the agenda phase cast 1 additional vote for each player in the game including you. |
+| `zeal` | Zeal | argent | when | TRIGGER (okno reakcji) | agenda i głosowanie | ✔ | You always vote first during the agenda phase cast 1 additional vote for each player in the game including you. |

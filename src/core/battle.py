@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.core import (
+    ability_notes,
     capacity,
     chronicle,
     exhaust,
@@ -630,14 +631,19 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
     for pid in (combat.attacker, combat.defender):
         entries: list[dict[str, Any]] = []
         total = 0
-        for unit in side_units(new_state, grid, registry, pid):
-            if unit.afb_hits_on is None:
-                continue
-            new_state, dice = roll_dice(new_state, unit.count * unit.afb_dice)
+        afb_units = [u for u in side_units(new_state, grid, registry, pid) if u.afb_hits_on]
+        bonus_unit = _afb_bonus_unit(new_state, pid, afb_units)
+        for unit in afb_units:
+            assert unit.afb_hits_on is not None
+            extra = bonus_unit[1] if bonus_unit and bonus_unit[0] == unit.base_type else 0
+            new_state, dice = roll_dice(new_state, unit.count * unit.afb_dice + extra)
             hits = count_hits(dice, unit.afb_hits_on)
             total += hits
             # Modyfikatory combat (Fragile) nie dotyczą AFB (F_jol_nar): przerzut liczy bez nich.
-            entries.append(_roll_entry(unit, dice, unit.afb_hits_on, hits, modifier=0))
+            entry = _roll_entry(unit, dice, unit.afb_hits_on, hits, modifier=0)
+            if extra:
+                entry["extraDice"] = extra
+            entries.append(entry)
         if pid in combat.afb_extra:
             # AFB nadany komponentem (Metali Void Armaments): gracz zgodził się go użyć w ofercie
             # na starcie walki; hook podaje próg i liczbę kości.
@@ -671,6 +677,139 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
     return _apply_afb(new_state, grid, registry)
 
 
+def _afb_bonus_unit(
+    state: GameState, player_id: str, units: list[CombatUnit]
+) -> tuple[str, int] | None:
+    """Dodatkowe kości AFB dla JEDNEJ grupy (hook ``combat.afb_extra_dice``: commander Argent,
+    Strike Wing Ambuscade - „choose 1 of those units to roll 1 additional die”).
+
+    Kości dostaje grupa z najlepszym progiem AFB: dodatkowa kość nie ma wad, więc ten wybór jest
+    zawsze najlepszy dla gracza (RULES.md 62.11). ``None`` = brak premii albo brak jednostek AFB.
+    """
+    if not units:
+        return None
+    extra = rules_hooks.modify(rules_hooks.POINT_COMBAT_AFB_EXTRA_DICE, state, player_id, 0)
+    if extra <= 0:
+        return None
+    best = min(units, key=lambda u: (u.afb_hits_on or 99, u.base_type))
+    return best.base_type, extra
+
+
+_AFB_INFANTRY = "afb_infantry"  # ślad: piechota zniszczona przez wyniki AFB
+AFB_RAID = "raid_formation"  # zdolność „trafienia AFB ponad myśliwce uszkadzają statki”
+
+
+def _afb_infantry_kills(state: GameState, player_id: str, entries: list[dict[str, Any]]) -> int:
+    """Ile piechoty przeciwnika niszczą wyniki AFB gracza (hook ``combat.afb_infantry_kill``:
+    Strike Wing Alpha II - „each result of 9 or 10”). Liczy końcowe kości (po przerzutach)."""
+    rules: dict[str, int] = {}
+    for item in rules_hooks.forbidden(rules_hooks.POINT_COMBAT_AFB_INFANTRY_KILL, state, player_id):
+        base_type, _, lowest = item.partition(":")
+        rules[base_type] = int(lowest)
+    kills = 0
+    for entry in entries:
+        need = rules.get(str(entry.get("baseType")))
+        if need is not None:
+            kills += sum(1 for d in entry.get("dice") or [] if int(d) >= need)
+    return kills
+
+
+def _destroy_space_infantry(
+    state: GameState, registry: StaticDataRegistry, combat: ActiveCombat, roller: str,
+    victim: str, kills: int,
+) -> int:
+    """Strike Wing Alpha II: niszczy piechotę ``victim`` w PRZESTRZENI aktywnego systemu na końcu
+    kroku rzutu AFB (przed Sustain Damage i przypisaniem; anulowanie trafień tego nie cofa -
+    F_argent). Ostatnie siły naziemne gracza spełniającego resztę warunków = natychmiastowa
+    eliminacja (F_argent, R_elimination). Zwraca liczbę zniszczonych."""
+    system = state.systems.get(combat.position)
+    infantry = _units_map(system, "space", victim).get("infantry", 0)
+    destroyed = min(kills, infantry)
+    if destroyed <= 0:
+        return 0
+    _remove_units(state, combat, victim, "infantry", destroyed)
+    ability_notes.note_point(
+        state, roller, rules_hooks.POINT_COMBAT_AFB_INFANTRY_KILL,
+        f"destroyed {destroyed} infantry",
+    )
+    from src.core import elimination  # lokalnie: elimination importuje moduły z triggerami
+
+    if elimination.meets_conditions(state, registry, victim):
+        elimination.eliminate(state, registry, victim)
+        combat.effects.append({"kind": "eliminated", "player": victim, "by": roller})
+    return destroyed
+
+
+def raid_targets(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, victim: str
+) -> tuple[dict[str, int], dict[str, int]]:
+    """Statki ``victim`` z WŁASNYM Sustain Damage: ``(nieuszkodzone, uszkodzone)`` po typach.
+
+    Sustain Damage nadany komponentem (Metali Void Shielding) się nie liczy (C_relics)."""
+    fresh: dict[str, int] = {}
+    hurt: dict[str, int] = {}
+    for unit in side_units(state, grid, registry, victim):
+        if not unit.sustain or not is_space_unit(unit.base_type):
+            continue
+        if unit.count - unit.damaged > 0:
+            fresh[unit.base_type] = unit.count - unit.damaged
+        if unit.damaged > 0:
+            hurt[unit.base_type] = unit.damaged
+    return fresh, hurt
+
+
+def raid_damage(state: GameState, victim: str, ships: dict[str, int]) -> None:
+    """Uszkadza wskazane statki ``victim`` w walce (Raid Formation, MUTUJE). Uszkodzenie nie jest
+    użyciem Sustain Damage: bez okien Direct Hit / Reflective Shielding (F_argent)."""
+    combat = _combat(state)
+    system = state.systems[combat.position]
+    for base_type, count in ships.items():
+        now = damaged_count(system, "space", victim, base_type)
+        set_damaged(system, "space", victim, base_type, now + count)
+
+
+def _raid_formation(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, hits_by: dict[str, int]
+) -> bool:
+    """Raid Formation (RULES.md 62.11): trafienia AFB ponad myśliwce przeciwnika uszkadzają jego
+    statki z Sustain Damage. Wybór jest prawdziwy tylko, gdy nieuszkodzonych celów jest więcej
+    niż nadwyżki - wtedy decyzja gracza (``FACTION_ABILITY_USED``) i ``True`` (pauza).
+
+    Liczone przy wyprodukowaniu trafień (po przerzutach, przed przypisaniem i przed zniszczeniem
+    myśliwców); Waylay nie zmienia nadwyżki (F_argent)."""
+    combat = _combat(state)
+    for pid, opponent in ((combat.attacker, combat.defender), (combat.defender, combat.attacker)):
+        if any(e.get("kind") == AFB_RAID and e.get("player") == pid for e in combat.effects):
+            continue  # już rozstrzygnięte (także wznowienie po decyzji)
+        if not rules_hooks.permits(rules_hooks.POINT_COMBAT_AFB_RAID, state, pid):
+            continue
+        fighters = _units_map(state.systems.get(combat.position), "space", opponent).get(
+            _FIGHTER, 0
+        )
+        excess = hits_by.get(pid, 0) - fighters
+        fresh, hurt = raid_targets(state, grid, registry, opponent)
+        count = min(max(excess, 0), sum(fresh.values()) + sum(hurt.values()))
+        entry: dict[str, Any] = {"kind": AFB_RAID, "player": pid, "target": opponent,
+                                 "count": count}
+        combat.effects.append(entry)
+        if count <= 0:
+            continue
+        if sum(fresh.values()) <= count:
+            raid_damage(state, opponent, fresh)  # każdy cel i tak zostaje uszkodzony
+            entry["damaged"] = dict(fresh)
+            if fresh:
+                ability_notes.note_point(state, pid, rules_hooks.POINT_COMBAT_AFB_RAID,
+                                         f"{sum(fresh.values())} ship(s) damaged")
+            continue
+        entry["pending"] = True
+        from src.core import faction_components  # lokalnie: unika cyklu przy ładowaniu
+
+        faction_components.ability_used(state, pid, AFB_RAID, opponent)
+        if state.pending_offers:
+            return True
+    return False
+
+
 _RESUME_AFB = "afb_apply"
 _RESUME_ASSIGN = "assign"  # po ofertach „po rzucie”: otwórz przypisanie strat
 _RESUME_RETREAT = "retreat"  # po decyzjach ze strat (Brother Milor): krok Retreat albo koniec rundy
@@ -688,6 +827,29 @@ def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     losses: dict[str, dict[str, int]] = {}
     waylay_hits: dict[str, int] = {}  # trafienia przeciw WSZYSTKIM statkom (karta Waylay)
     zone = _zone(combat.kind, combat.planet)
+    if not any(e.get("kind") == _AFB_INFANTRY for e in combat.effects):
+        # Strike Wing Alpha II: koniec kroku rzutu - piechota ginie przed przypisaniem (F_argent).
+        killed: dict[str, int] = {}
+        for pid, opponent in (
+            (combat.attacker, combat.defender), (combat.defender, combat.attacker)
+        ):
+            kills = _afb_infantry_kills(new_state, pid, afb.get(pid, []))
+            if kills and opponent in new_state.players:
+                gone = _destroy_space_infantry(new_state, registry, combat, pid, opponent, kills)
+                if gone:
+                    killed[opponent] = gone
+        combat.effects.append({"kind": _AFB_INFANTRY, "killed": killed})
+    if _raid_formation(new_state, grid, registry, hits_by):
+        combat.step = CombatStep.TRIGGERS
+        combat.resume = _RESUME_AFB
+        return new_state
+    raid: dict[str, dict[str, int]] = {}
+    for entry in combat.effects:
+        if entry.get("kind") == _AFB_INFANTRY:
+            for victim, n in dict(entry.get("killed") or {}).items():
+                losses.setdefault(str(victim), {})["infantry"] = int(n)
+        if entry.get("kind") == AFB_RAID and entry.get("damaged"):
+            raid[str(entry["target"])] = {str(k): int(v) for k, v in entry["damaged"].items()}
     for pid, opponent in (
         (combat.attacker, combat.defender),
         (combat.defender, combat.attacker),
@@ -711,14 +873,15 @@ def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
                 0,
             )
             _remove_units(new_state, combat, opponent, _FIGHTER, destroyed)
-            losses[opponent] = {_FIGHTER: destroyed}
+            losses.setdefault(opponent, {})[_FIGHTER] = destroyed
             note_destroyed(combat, opponent, _FIGHTER, destroyed, hits_on)
-    combat.log.append(
-        {
-            "round": combat.round, "phase": "AFB", "rolls": afb, "hits": hits_by,
-            "losses": losses, "sustained": {},
-        }
-    )
+    log_entry: dict[str, Any] = {
+        "round": combat.round, "phase": "AFB", "rolls": afb, "hits": hits_by,
+        "losses": losses, "sustained": {},
+    }
+    if raid:
+        log_entry["raidDamaged"] = raid  # Raid Formation: statki uszkodzone (nie Sustain Damage)
+    combat.log.append(log_entry)
     if waylay_hits:
         # Waylay: przeciwnik sam przypisuje trafienia (Sustain Damage, wybór statków) w kroku
         # ASSIGN; po nim ``_after_losses`` kończy krok AFB (``afb_assign``).

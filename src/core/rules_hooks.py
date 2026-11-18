@@ -253,6 +253,24 @@ POINT_AGENDA_VOTE_UNBLOCKABLE = "agenda.vote_unblockable"
 # PERMIT -> gracz może anulować zagraną kartę akcji bez karty w ręce (Instinct Training; jawne:
 # technologia gotowa + żeton w strategy pool). ctx: ``player`` (zagrywający), ``card``.
 POINT_ACTION_CARD_CANCELLER = "action_cards.canceller"
+# --- Argent Flight (RULES.md 62.11) ---
+# PERMIT -> gracz zawsze głosuje PIERWSZY w fazie agendy, także jako mówca (Zeal).
+POINT_AGENDA_VOTE_FIRST = "agenda.vote_first"
+# MODIFY -> dodatkowe kości AFB dla JEDNEJ grupy jednostek gracza przy jednym rzucie AFB
+# (commander Argent, Strike Wing Ambuscade; odpowiednik ``space_cannon.extra_dice``).
+POINT_COMBAT_AFB_EXTRA_DICE = "combat.afb_extra_dice"
+# PERMIT -> trafienia AFB gracza ponad liczbę myśliwców przeciwnika uszkadzają statki przeciwnika
+# z SUSTAIN DAMAGE wybrane przez gracza (Raid Formation).
+POINT_COMBAT_AFB_RAID = "combat.afb_raid"
+# FORBID jako zbiór "<base_type>:<najniższy wynik>": każdy wynik AFB tej grupy >= progu niszczy też
+# 1 piechotę przeciwnika w przestrzeni aktywnego systemu (Strike Wing Alpha II: "destroyer:9").
+POINT_COMBAT_AFB_INFANTRY_KILL = "combat.afb_infantry_kill"
+# PERMIT -> inni gracze (``ctx["mover"]``) nie mogą przelatywać statkami przez system
+# ``ctx["position"]``. Pytany KAŻDY gracz poza ruszającym (Aerie Hololattice).
+POINT_MOVEMENT_PASSAGE_BLOCKED = "movement.passage_blocked"
+# MODIFY -> wartość PRODUCTION samej PLANETY gracza (``ctx["planet"]``, ``position``) - planeta
+# produkuje „jak jednostka” (Aerie Hololattice: planeta ze strukturą gracza = PRODUCTION 1).
+POINT_PRODUCTION_PLANET_VALUE = "production.planet_value"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

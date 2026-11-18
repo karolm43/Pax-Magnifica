@@ -368,6 +368,22 @@ def producers(
                         forbidden_types(state, player_id, base_type),
                     )
                 )
+    # Planeta produkująca „jak jednostka” (Aerie Hololattice): osobna zdolność PRODUCTION planety
+    # gracza; siły naziemne stawia się na niej samej (F_argent).
+    for planet_id, owner in sorted(system.planet_owners.items()):
+        if owner != player_id:
+            continue
+        value = rules_hooks.modify(
+            rules_hooks.POINT_PRODUCTION_PLANET_VALUE, state, player_id, 0,
+            {"planet": planet_id, "position": position},
+        )
+        if value > 0:
+            result.append(
+                Producer(
+                    planet_id, planet_id, 1, value, value,
+                    forbidden_types(state, player_id, planet_id),
+                )
+            )
     # Custodian's Favour (Custodia Vigilia): kontrolowany Mecatol Rex sam ma PRODUCTION - osobna
     # zdolność (planeta, nie jednostka), więc jest oddzielnym producentem z własną wartością.
     mecatol = legendary_planets.mecatol_grants_planet(state, player_id, position)
@@ -943,7 +959,13 @@ def produce(
     _validate_spend(state, registry, player_id, pay, cost)
 
     new_state = state.clone()
-    produced_ctx = {"player": player_id, "position": active, "units": dict(wanted)}
+    placed_zones: dict[str, dict[str, int]] = {}
+    for o, zone in placed:
+        by_type = placed_zones.setdefault(zone, {})
+        by_type[o.base_type] = by_type.get(o.base_type, 0) + o.count
+    # ``zones`` = gdzie stanęły jednostki tego zamówienia (agent Argent przenosi siły naziemne).
+    produced_ctx = {"player": player_id, "position": active, "units": dict(wanted),
+                    "zones": placed_zones}
     # Granty z kart (Sling Relay, Integrated Economy, Freelancers) mówią „produce", a nie „use
     # PRODUCTION": nie odpalają zdarzenia PRODUCTION_USED (Self-Assembly, Sarween itd.).
     free_grant = active_grant(state, player_id)

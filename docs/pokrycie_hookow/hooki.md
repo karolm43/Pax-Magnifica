@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -12,16 +12,24 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `action_cards.forbidden` | FORBID | agenda:censure | agendas:censure | — |
 | `agenda.planets_ready_limit` | FORBID | effect:agendas:checks:against | agendas:checks | — |
 | `agenda.single_vote` | PERMIT | agenda:rep_govt | agendas:rep_govt | — |
+| `agenda.vote_first` | PERMIT | faction:argent | abilities:zeal | Zeal: You always vote first during the agenda phase (także jako mówca - F_argent). |
+| `agenda.vote_modifier` | MODIFY | faction:argent | abilities:zeal | Zeal: When you cast at least 1 vote: cast 1 additional vote for each player in the game |
 | `agenda.vote_modifier` | MODIFY | effect:leaders:hacancommander:votes | — | F_hacan: przy 0 zwykłych głosów (wstrzymanie się) dodatkowych głosów nie ma. |
 | `agenda.vote_unblockable` | PERMIT | leader:xxchacommander | leaders:xxchacommander | Elder Qanoj: Game effects cannot prevent you from voting on an agenda (F_xxcha: Political |
 | `agenda.votes_per_planet` | MODIFY | leader:xxchacommander | leaders:xxchacommander | Elder Qanoj: Each planet you exhaust to cast votes provides 1 additional vote (także planeta |
 | `bombardment.empty_planets` | PERMIT | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology). |
+| `bombardment.extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
+| `bombardment.extra_dice` | MODIFY | effect:promissory_notes:ambuscade:die | — | — |
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `bombardment.forbidden_traits` | FORBID | agenda:conventions | agendas:conventions | — |
 | `bombardment.granted_hits_on` | FORBID | effect:action_cards:blitz | — | — |
 | `bombardment.roll_modifier` | MODIFY | effect:action_cards:bunker | — | — |
 | `combat.afb_all_ships` | PERMIT | effect:action_cards:waylay | — | — |
+| `combat.afb_extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
+| `combat.afb_extra_dice` | MODIFY | effect:promissory_notes:ambuscade:die | — | — |
 | `combat.afb_granted` | FORBID | relic:metalivoidarmaments | relics:metalivoidarmaments | — |
+| `combat.afb_infantry_kill` | FORBID | technology:swa2 | technologies:swa2 | Strike Wing Alpha II: When this unit uses ANTI-FIGHTER BARRAGE, each result of 9 or 10 also |
+| `combat.afb_raid` | PERMIT | faction:argent | abilities:raid_formation | Raid Formation: When 1 or more of your units uses ANTI-FIGHTER BARRAGE: for each hit |
 | `combat.bonus_dice` | MODIFY | effect:leaders:letnevagent:die | — | — |
 | `combat.bonus_dice` | MODIFY | effect:leaders:solagent:die | — | — |
 | `combat.extra_dice` | MODIFY | unit:winnu_flagship | units:winnu_flagship | Salai Sai Corian: When this unit makes a combat roll, it rolls a number of dice (hit on a 7) |
@@ -157,6 +165,8 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | effect:agendas:redistribution:place | agendas:redistribution | — |
 | `event:faction.ability_used:after` | TRIGGER | faction:arborec | — | — |
 | `event:faction.ability_used:after` | TRIGGER | leader:arborecagent | leaders:arborecagent | Zamieniany statek nie jest niszczony, nowy nie jest produkowany (F_arborec). |
+| `event:faction.ability_used:after` | TRIGGER | faction:argent | abilities:raid_formation | Argent wybiera statki do uszkodzenia (wybrany uszkodzony statek - bez skutku, F_argent). |
+| `event:faction.ability_used:after` | TRIGGER | leader:argentagent | — | Gracz produkujący przenosi wyprodukowane siły naziemne na swoje planety (0 = zostają). |
 | `event:faction.ability_used:after` | TRIGGER | leader:jolnaragent | leaders:jolnaragent | — |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakagent | leaders:mentakagent | Suffi An: After the Pillage faction ability is used against another player: You may exhaust |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
@@ -193,6 +203,7 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:player.passed:when` | TRIGGER | planet:industrex | planets:industrex | Aeurex Mechanica: You may exhaust this card when you pass to place 1 ship that matches a unit upgrade technology you own from your reinforcements into a system that contains your ships. |
 | `event:player.passed:when` | TRIGGER | planet:ordinian | planets:ordinian | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
 | `event:player.passed:when` | TRIGGER | planet:ordinianc4 | planets:ordinianc4 | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
+| `event:production.units_produced:after` | TRIGGER | leader:argentagent | leaders:argentagent | Trilossa Aun Mirik: When a player produces ground forces in a system: You may exhaust this |
 | `event:production.units_produced:after` | TRIGGER | breakthrough:hacanbt | breakthroughs:hacanbt | Auto-Factories: When you produce 3 or more non-fighter ships, place 1 command token from your |
 | `event:production.units_produced:after` | TRIGGER | technology:yso | technologies:yso | Yin Spinner Ω: After you produce units, place up to 2 infantry from your reinforcements on |
 | `event:production.used:after` | TRIGGER | agenda:prophecy | agendas:prophecy | — |
@@ -200,6 +211,7 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:strategy.action:after` | TRIGGER | faction:xxcha | abilities:peace_accords | Peace Accords: After you resolve the primary or secondary ability of the "Diplomacy" |
 | `event:strategy.card_chosen:after` | TRIGGER | agenda:arbiter | agendas:arbiter | — |
 | `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
+| `event:tactical.action:end` | TRIGGER | breakthrough:argentbt | breakthroughs:argentbt | Wing Transfer: … at the end of this action, you may move ships among the active system and |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
 | `event:tactical.action:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: After you perform a tactical action, you may exhaust this card to |
 | `event:tactical.action:end` | TRIGGER | agenda:minister_war | agendas:minister_war | — |
@@ -210,6 +222,7 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_sftt | promissory_notes:<color>_sftt | — |
 | `event:tactical.system_activated:after` | TRIGGER | unit:arborec_flagship | units:arborec_flagship | Duha Menaimon: After you activate this system, you may produce up to 5 units in this |
 | `event:tactical.system_activated:after` | TRIGGER | leader:arboreccommander | leaders:arboreccommander | Dirzuga Rophal: After another player activates a system that contains 1 or more of your |
+| `event:tactical.system_activated:after` | TRIGGER | breakthrough:argentbt | breakthroughs:argentbt | Wing Transfer: When you activate a system that contains only your units, you may place |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:convoys | promissory_notes:convoys | If you activate a system that contains 1 or more of the Hacan player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
@@ -246,6 +259,7 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:td | — | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
 | `event:unit.ability_used:after` | TRIGGER | leader:jolnarcommander | — | Agnlan Oln (AFB): walka czeka po rzucie AFB na tę ofertę (``battle.resolve_afb``). |
+| `event:unit.ability_used:after` | TRIGGER | effect:promissory_notes:ambuscade:die | — | Po rzucie zdolności jednostki premia z notki przepada (jedna kość, jeden rzut). |
 | `event:unit.ability_used:after` | TRIGGER | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana. |
 | `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
 | `event:unit.destroyed:after` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | F_mentak 7.1: po Direct Hit Mentaka statek tego typu staje od razu (może jeszcze w tej |
@@ -285,6 +299,7 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
+| `movement.passage_blocked` | PERMIT | technology:ah | technologies:ah | Aerie Hololattice: Other players cannot move ships through systems that contain your |
 | `movement.through_nebula` | PERMIT | agenda:shared_research | agendas:shared_research | — |
 | `movement.wormholes_blocked` | FORBID | agenda:nexus | agendas:nexus | — |
 | `movement.wormholes_blocked` | FORBID | agenda:travel_ban | agendas:travel_ban | — |
@@ -298,13 +313,17 @@ Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.forbids` | FORBID | faction:arborec | — | Mitosis: Your space docks cannot produce infantry (R_production). |
 | `production.free` | PERMIT | effect:leaders:hacanhero:free | — | — |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
+| `production.planet_value` | MODIFY | technology:ah | technologies:ah | Aerie Hololattice: Each planet that contains 1 or more of your structures gains the |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.units_per_cost` | MODIFY | agenda:conscription | agendas:conscription | — |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
 | `space_cannon.defense_immune` | PERMIT | technology:l4 | technologies:l4 | L4 Disruptors: During an invasion, units cannot use SPACE CANNON against your units. |
+| `space_cannon.extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
+| `space_cannon.extra_dice` | MODIFY | effect:promissory_notes:ambuscade:die | — | — |
 | `space_cannon.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających SPACE CANNON rzuca 1 dodatkową kością. |
 | `space_cannon.granted` | FORBID | relic:lightrailordnance | relics:lightrailordnance | Lightrail Ordnance: Your space docks gain SPACE CANNON 5 (x2). You may use your space |
 | `space_cannon.offense_immune` | PERMIT | effect:action_cards:solar_flare | — | — |
+| `space_cannon.offense_immune` | PERMIT | unit:argent_flagship | units:argent_flagship | Quetzecoatl: Other players cannot use space cannon against your ships in this system. |
 | `space_cannon.pds_disabled` | PERMIT | effect:action_cards:disable | — | — |
 | `space_cannon.roll_modifier` | MODIFY | technology:amd | technologies:amd | Antimass Deflectors: -1 do wyniku kości Space Cannon rzucanych przeciw jego jednostkom. |
 | `status.action_cards` | MODIFY | technology:nm | technologies:nm | Neural Motivator: w fazie statusu gracz dobiera 2 karty akcji zamiast 1. |
@@ -341,6 +360,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `turn.action_started`
 - `agenda.single_vote`
 - `agenda.votes_per_planet`
+- `agenda.vote_first`
 - `agenda.vote_modifier`
 - `agenda.vote_unblockable`
 - `bombardment.extra_dice`
@@ -349,7 +369,10 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `bombardment.roll_modifier`
 - `bombardment.empty_planets`
 - `combat.afb_all_ships`
+- `combat.afb_extra_dice`
 - `combat.afb_granted`
+- `combat.afb_infantry_kill`
+- `combat.afb_raid`
 - `combat.bonus_dice`
 - `combat.extra_dice`
 - `combat.extra_hits`
@@ -379,6 +402,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.ignore_own_command_token`
 - `movement.match_highest`
 - `movement.move_value`
+- `movement.passage_blocked`
 - `movement.pass_foreign_ships`
 - `movement.through_nebula`
 - `movement.wormholes_blocked`
@@ -393,6 +417,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.forbids`
 - `production.free`
 - `production.free_cargo`
+- `production.planet_value`
 - `production.total_value`
 - `production.units_per_cost`
 - `production.value`
