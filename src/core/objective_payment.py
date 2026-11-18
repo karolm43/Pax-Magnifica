@@ -51,6 +51,8 @@ class ObjectivePayment(BaseModel):
     influence_planets: list[str] = Field(default_factory=list)
     # Cele z żetonami dowodzenia: ile z której puli (tactical / fleet / strategic).
     tokens: dict[str, int] = Field(default_factory=dict)
+    # Scepter of Emelpar (C_relics): 1 żeton „strategic" schodzi z rezerwy zamiast z puli.
+    scepter: bool = False
     # Fire Shield Network: odrzucane karty akcji; Destroy Heretical Works: purgowane fragmenty.
     cards: list[str] = Field(default_factory=list)
     fragments: list[str] = Field(default_factory=list)
@@ -115,8 +117,14 @@ def auto_payment(
         return ObjectivePayment(trade_goods=goal if kind else 0)
     if kind == "tokens":
         from_tactical = min(command_tokens.pool_count(state, player_id, "tactical"), goal)
+        strategic = goal - from_tactical
+        # Scepter tylko gdy bez niego nie starcza (wyczerpanie reliktu to koszt).
+        short = strategic > command_tokens.pool_count(state, player_id, "strategic")
         return ObjectivePayment(
-            tokens={"tactical": from_tactical, "strategic": goal - from_tactical}
+            tokens={"tactical": from_tactical, "strategic": strategic},
+            scepter=short
+            and command_tokens.SOURCE_SCEPTER
+            in command_tokens.strategy_token_sources(state, player_id),
         )
     if kind == "fragments":
         return ObjectivePayment(fragments=list(player.relic_fragments[:goal]))
@@ -148,14 +156,25 @@ def auto_payment(
 
 
 def _validate_tokens(
-    state: GameState, player_id: str, tokens: dict[str, int], goal: int
+    state: GameState, player_id: str, tokens: dict[str, int], goal: int, scepter: bool = False
 ) -> None:
+    if scepter:
+        if tokens.get("strategic", 0) < 1:
+            raise ValueError("The Scepter of Emelpar replaces a token from your strategy pool.")
+        if command_tokens.SOURCE_SCEPTER not in command_tokens.strategy_token_sources(
+            state, player_id
+        ):
+            raise ValueError(
+                "You cannot use the Scepter of Emelpar now (exhausted, or no token in your "
+                "reinforcements)."
+            )
     for pool, amount in tokens.items():
         if pool not in command_tokens.POOLS:
             raise ValueError(f"Unknown command token pool: {pool}.")
         if amount < 0:
             raise ValueError("The number of command tokens cannot be negative.")
-        if amount > command_tokens.pool_count(state, player_id, pool):
+        from_sheet = amount - (1 if scepter and pool == "strategic" else 0)
+        if from_sheet > command_tokens.pool_count(state, player_id, pool):
             raise ValueError(f"Not enough command tokens in the {pool} pool.")
     if sum(tokens.values()) != goal:
         raise ValueError(f"You must spend exactly {goal} command tokens.")
@@ -201,7 +220,7 @@ def _validate(
     """Sprawdza jawną płatność gracza względem kosztu celu (``ValueError`` = 422)."""
     goal = spend_goal(objective_id, state)
     if kind == "tokens":
-        _validate_tokens(state, player_id, payment.tokens, goal)
+        _validate_tokens(state, player_id, payment.tokens, goal, payment.scepter)
     elif kind == "fragments":
         if len(payment.fragments) != goal or len(set(payment.fragments)) != goal:
             raise ValueError(f"You must purge exactly {goal} relic fragments.")
@@ -249,9 +268,19 @@ def pay_for_objective(
     if kind == "trade_goods":
         economy.spend_trade_goods(new_state, player_id, goal)
     elif kind == "tokens":
-        # Żetony z wybranych pul wracają do rezerwy.
+        # Żetony z wybranych pul wracają do rezerwy; „strategic" przez centralny punkt
+        # (Scepter of Emelpar: jeden z nich może zejść z rezerwy - C_relics).
         for pool, amount in pay.tokens.items():
-            command_tokens.spend_to_reinforcements(new_state, player_id, pool, amount)
+            if pool != "strategic":
+                command_tokens.spend_to_reinforcements(new_state, player_id, pool, amount)
+                continue
+            for index in range(amount):
+                source = (
+                    command_tokens.SOURCE_SCEPTER
+                    if pay.scepter and index == 0
+                    else command_tokens.SOURCE_POOL
+                )
+                command_tokens.spend_strategy_token(new_state, player_id, source=source)
     elif kind == "fragments":
         relic_fragments.purge_chosen(new_state, player_id, pay.fragments)
     elif kind == "cards":
@@ -295,6 +324,10 @@ def spend_spec(
         spec["pools"] = {
             p: command_tokens.pool_count(state, player_id, p) for p in command_tokens.POOLS
         }
+        # Scepter of Emelpar gotowy i żeton w rezerwie: UI pokazuje przełącznik (C_relics).
+        spec["scepter"] = command_tokens.SOURCE_SCEPTER in command_tokens.strategy_token_sources(
+            state, player_id
+        )
     elif kind == "cards":
         spec["cards"] = list(player.private.action_cards)
     elif kind == "fragments":

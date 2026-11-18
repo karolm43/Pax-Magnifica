@@ -259,3 +259,11 @@ def draw_agenda(state: GameState, registry: StaticDataRegistry) -> str | None:
 def discard_agenda(state: GameState, agenda_id: str) -> None:
     """Kładzie agendę na stosie odrzuconych (dyrektywa, „Against", odrzucona bez wyniku)."""
     state.decks.agenda_discard.append(agenda_id)
+
+
+def take_agenda_from_discard(state: GameState, agenda_id: str) -> bool:
+    """Zdejmuje agendę ze stosu odrzuconych (wraca do gry jako prawo); False, gdy jej tam nie ma."""
+    if agenda_id not in state.decks.agenda_discard:
+        return False
+    state.decks.agenda_discard.remove(agenda_id)
+    return True

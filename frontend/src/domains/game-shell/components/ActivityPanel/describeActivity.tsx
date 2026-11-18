@@ -854,6 +854,12 @@ function describeFact(
       return { key, tone: "info", text: <>{who ?? <b>{playerName(ctx, fact.player_id)}</b>} became Speaker</> };
     case "custodians_removed":
       return { key, tone: "good", text: <>The Custodians token was removed from Mecatol Rex</> };
+    case "eliminated": {
+      // Wyeliminowany gracz znika z listy graczy - nazwa z faktu (gracz albo frakcja).
+      const label =
+        fact.detail || (fact.value ? prettifyId(fact.value) : playerName(ctx, fact.player_id));
+      return { key, tone: "bad", text: <><b>{label}</b> was eliminated from the game</> };
+    }
     case "fracture_entered":
       return {
         key,

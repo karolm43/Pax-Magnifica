@@ -62,6 +62,7 @@ def _dock_state(techs: list[str]) -> GameState:
     return state
 
 
+@ruling("C_technology/sling-relay/1")
 def test_sling_relay_to_akcja_z_wyborem_systemu_i_produkcja_1_statku(
     registry: StaticDataRegistry,
 ) -> None:
@@ -164,6 +165,7 @@ def test_psychoarchaeology_gracz_wybiera_planety_i_dostaje_po_1_tg(
         technology_abilities.use_free_ability(state, registry, "p1", "pa", {"planets": ["x"]})
 
 
+@ruling("C_technology/psychoarchaeology/2")
 def test_psychoarchaeology_tylko_w_fazie_akcji_i_nie_w_trakcie_innej_zdolnosci(
     registry: StaticDataRegistry,
 ) -> None:
@@ -201,6 +203,9 @@ def _frontier_state(techs: list[str]) -> GameState:
     "R_exploration/rules-reference/5",
     "R_exploration/rules-reference/6",
     "R_frontier_tokens/notes/1",
+    "C_technology/dark-energy-tap/1",
+    "C_technology/dark-energy-tap/2",
+    "C_technology/dark-energy-tap/3",
 )
 def test_dark_energy_tap_po_akcji_taktycznej_bada_zeton_frontier(
     registry: StaticDataRegistry,
@@ -281,6 +286,7 @@ def _explorable_system(registry: StaticDataRegistry) -> tuple[str, str]:
     raise AssertionError("no explorable planet")
 
 
+@ruling("C_technology/scanlink-drone-network/1")
 def test_scanlink_oferuje_eksploracje_planety_z_jednostkami_gracz_wybiera(
     registry: StaticDataRegistry,
 ) -> None:

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from src.api.actor import ACTOR_HEADER
 from src.api.app import create_app
+from src.api.demo_map import build_demo_grid
 from src.core import hand_limit, rules_hooks
 from src.core.event_store import EventStore
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
@@ -18,7 +19,18 @@ def registry() -> StaticDataRegistry:
     return StaticDataRegistry()
 
 
+def _start(registry: StaticDataRegistry) -> tuple[str, str]:
+    """Pozycja startowa bez anomalii na mapie demonstracyjnej API (i jej system).
+
+    Pozycja 101 tej mapy to gravity rift - rzut 1-3 niszczył lotniskowiec (test niestabilny).
+    """
+    grid = build_demo_grid(registry)
+    pos = next(p for p in sorted(grid.positions) if p != "000" and not grid.anomalies_at(p))
+    return pos, grid.system_id_at(pos)
+
+
 def _client(registry: StaticDataRegistry) -> TestClient:
+    start, system_id = _start(registry)
     state = GameState(
         phase=Phase.ACTION,
         active_player_id="p1",
@@ -28,8 +40,8 @@ def _client(registry: StaticDataRegistry) -> TestClient:
             "p2": PlayerState(player_id="p2", faction="arborec", color="blue"),
         },
         systems={
-            "101": SystemState(
-                position="101", system_id="20", space_units={"p1": {"carrier": 1}}
+            start: SystemState(
+                position=start, system_id=system_id, space_units={"p1": {"carrier": 1}}
             )
         },
     )
@@ -38,12 +50,12 @@ def _client(registry: StaticDataRegistry) -> TestClient:
     )
 
 
-def _move(client: TestClient) -> None:
+def _move(client: TestClient, start: str) -> None:
     res = client.post(
         "/tactical/move",
         json={
             "faction": "sol",
-            "fromPosition": "101",
+            "fromPosition": start,
             "ships": [{"baseType": "carrier", "count": 1}],
         },
         headers={ACTOR_HEADER: "p1"},
@@ -58,14 +70,15 @@ def _carrier_at(client: TestClient, position: str) -> int:
 
 def test_active_player_undoes_own_move(registry: StaticDataRegistry) -> None:
     client = _client(registry)
-    _move(client)
+    start, _ = _start(registry)
+    _move(client, start)
     assert _carrier_at(client, "000") == 1
     # Inny gracz nie cofnie cudzego ruchu.
     other = client.post("/tactical/undo-move", headers={ACTOR_HEADER: "p2"})
     assert other.status_code == 403
     res = client.post("/tactical/undo-move", headers={ACTOR_HEADER: "p1"})
     assert res.status_code == 200
-    assert _carrier_at(client, "101") == 1 and _carrier_at(client, "000") == 0
+    assert _carrier_at(client, start) == 1 and _carrier_at(client, "000") == 0
     # Ostatnia zmiana nie jest już ruchem — nic do cofnięcia.
     again = client.post("/tactical/undo-move", headers={ACTOR_HEADER: "p1"})
     assert again.status_code == 422

@@ -103,6 +103,9 @@ export function MoveRouteBox({
   const { moveShips } = useBoardEditor();
   const drag = useDraggablePanel("moveRouteBox.pos.v1");
   const [busy, setBusy] = useState(false);
+  // Ion Storm w systemie z własnym wormholem tego typu: którego wormholu używają statki
+  // (C_exploration_cards; żeton obraca się tylko przy jego użyciu). Wybór per źródło ruchu.
+  const [stormPick, setStormPick] = useState<{ from: string; token: boolean } | null>(null);
   // Rozmiar ustawiony uchwytem w rogu: zapamiętany w localStorage, wraca przy kolejnym otwarciu.
   const [savedSize] = useState(readSize);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -247,6 +250,8 @@ export function MoveRouteBox({
   const jumps = route?.route ? route.route.length - 1 : null;
 
   const bump = (target: PickTarget, delta: number) => bumpDraftPick(target, delta);
+  const stormToken = stormPick?.from === draft.from ? stormPick.token : undefined;
+  const stormMissing = Boolean(route?.ionStormChoice) && stormToken === undefined;
 
   const submit = async () => {
     if (busy || shipCount + cargoCount === 0) return;
@@ -267,6 +272,7 @@ export function MoveRouteBox({
             fromPosition: p.position,
           })),
         route: route?.route ?? undefined,
+        ionStormToken: route?.ionStormChoice ? stormToken : undefined,
       });
       closeMoveDraft();
     } catch {
@@ -375,6 +381,32 @@ export function MoveRouteBox({
                 </button>
               );
             })}
+          </div>
+        )}
+        {route?.ionStormChoice && (
+          <div className={styles.alts} role="group" aria-label="Ion Storm wormhole">
+            <p className={styles.hint}>
+              {systemName(route.ionStormChoice)} has its own wormhole of the same type as the Ion
+              Storm token. Which one do your ships use?
+            </p>
+            <button
+              type="button"
+              className={styles.alt}
+              aria-pressed={stormToken === true}
+              onClick={() => setStormPick({ from: draft.from, token: true })}
+            >
+              Ion Storm token
+              <small>flips at the end of the step</small>
+            </button>
+            <button
+              type="button"
+              className={styles.alt}
+              aria-pressed={stormToken === false}
+              onClick={() => setStormPick({ from: draft.from, token: false })}
+            >
+              System&apos;s own wormhole
+              <small>the token stays</small>
+            </button>
           </div>
         )}
         <p className={styles.hint}>
@@ -510,7 +542,11 @@ export function MoveRouteBox({
           type="button"
           className={styles.primary}
           disabled={
-            busy || shipCount + cargoCount === 0 || route?.route == null || problems.length > 0
+            busy ||
+            shipCount + cargoCount === 0 ||
+            route?.route == null ||
+            problems.length > 0 ||
+            stormMissing
           }
           onClick={() => void submit()}
         >

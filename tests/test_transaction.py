@@ -310,3 +310,23 @@ def test_endpoint_debt_tokens_return(client: TestClient) -> None:
     assert back.status_code == 422
     done = client.post("/debt/return", json={"issuer_id": "p1", "holder_id": "p3", "count": 3})
     assert done.status_code == 200
+
+
+def test_silver_flame_may_be_exchanged_without_black_market_dealings() -> None:
+    """The Silver Flame: „may be exchanged as part of a transaction”; inne relikty - nie."""
+    import src.core.hooks  # noqa: F401 - rejestracja hooków reliktów
+
+    state = _state()
+    state.players["p1"].relics = ["thesilverflame", "emelpar"]
+    assert transaction.tradable_relics(state, "p1", "p2") == ["thesilverflame"]
+    with pytest.raises(ValueError, match="Black Market Dealings"):
+        transaction.resolve_transaction(
+            state, _grid(), "p2", give=TransactionSide(relics=("emelpar",)),
+            receive=TransactionSide(trade_goods=1),
+        )
+    new = transaction.resolve_transaction(
+        state, _grid(), "p2", give=TransactionSide(relics=("thesilverflame",)),
+        receive=TransactionSide(trade_goods=1),
+    )
+    assert new.players["p2"].relics == ["thesilverflame"]
+    assert new.players["p1"].relics == ["emelpar"]

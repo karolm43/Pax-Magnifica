@@ -4,7 +4,9 @@ Cele fazy statusu liczy ``objective_progress`` (stan planszy). Pozostałe tajne 
 moment w grze („wygraj walkę w anomalii", „zniszcz ostatnie myśliwce w kroku AFB"...). Te hooki
 są wołane z punktów centralnych (koniec walki, ``unit_ops.remove_units``, pas, utrata planety,
 wynik agendy) i zdobywają cel od razu, gdy gracz trzyma go w ręce (⚠ ZAŁOŻENIE: cel jest zawsze
-ujawniany - nie ma decyzji „nie punktuję"; limit „jeden tajny cel na walkę" nie jest egzekwowany).
+ujawniany - nie ma decyzji „nie punktuję"). Limit „jeden cel na walkę" (R_objective_cards) pilnuje
+``score_secret_if_held``: trwająca walka (albo walka właśnie zakończona) zapamiętuje, kto już
+w niej zdobył cel (``ActiveCombat.objective_scorers``).
 
 Źródło reguł: ``docs/rules_tirules/C_objectives.md``. Funkcje MUTUJĄ przekazany stan (klon).
 Pokryte cele: baf, bam, btv, dtd, dtgs, dts, dyp, fwp, mew, pe, sar, ttfd, uf (+ dp w agendzie).
@@ -53,20 +55,59 @@ def _registry() -> StaticDataRegistry | None:
     return registry
 
 
-def score_secret_if_held(state: GameState, player_id: str, objective_id: str) -> bool:
-    """Gracz trzyma tajny cel w ręce -> zdobywa go (punkty + wpis do ``auto_scored``)."""
+def current_combat(state: GameState) -> ActiveCombat | None:
+    """Trwająca walka (krok inny niż DONE) - czas „w trakcie walki" dla limitu celów."""
+    combat = state.active_combat
+    if combat is None or combat.step is CombatStep.DONE:
+        return None
+    return combat
+
+
+def combat_objective_used(combat: ActiveCombat | None, player_id: str) -> bool:
+    """Czy gracz zdobył już cel w trakcie albo po tej walce (R_objective_cards: najwyżej 1)."""
+    return combat is not None and player_id in combat.objective_scorers
+
+
+def note_combat_objective(combat: ActiveCombat | None, player_id: str) -> None:
+    """Zapisuje cel zdobyty w trakcie/po walce (wołają wszystkie ścieżki punktowania w walce)."""
+    if combat is not None and player_id not in combat.objective_scorers:
+        combat.objective_scorers = [*combat.objective_scorers, player_id]
+
+
+def score_secret_if_held(
+    state: GameState,
+    player_id: str,
+    objective_id: str,
+    combat: ActiveCombat | None = None,
+) -> bool:
+    """Gracz trzyma tajny cel w ręce -> zdobywa go (punkty + wpis do ``auto_scored``).
+
+    ``combat`` = walka, PO której punktuje (koniec walki); bez niej liczy się trwająca walka.
+    W trakcie albo po jednej walce gracz zdobywa najwyżej jeden cel dowolnego typu
+    (R_objective_cards; C_objectives: Fight with Precision liczy się jako ten jeden).
+    """
     from src.core import objectives, secret_objectives  # lokalnie: unika cyklu importów
+
+    fight = combat if combat is not None else current_combat(state)
+    if combat_objective_used(fight, player_id):
+        return False
 
     registry = _registry()
     player = state.players.get(player_id)
     if registry is None or player is None or player_id == NEUTRAL_PLAYER_ID:
         return False
-    if objective_id not in player.private.secret_objectives:
-        return False
     definition = objectives.objective_def(registry, objective_id)
     if definition is None:
         return False
-    secret_objectives.score(state, player_id, objective_id)
+    if objective_id in player.private.secret_objectives:
+        secret_objectives.score(state, player_id, objective_id)
+    elif _public_scorable(state, registry, player_id, objective_id):
+        # Tajny cel odkryty przez Neuraloop jest celem PUBLICZNYM (C_relics): zdobywa go każdy,
+        # kto spełni warunek, ale nadal w limicie jednego celu na walkę.
+        objectives.record_public_score(state, player_id, objective_id)
+    else:
+        return False
+    note_combat_objective(fight, player_id)
     objectives.award_points(state, player_id, definition.points or 1)
     state.auto_scored = [
         *state.auto_scored,
@@ -75,11 +116,42 @@ def score_secret_if_held(state: GameState, player_id: str, objective_id: str) ->
     return True
 
 
+def _public_scorable(
+    state: GameState, registry: StaticDataRegistry, player_id: str, objective_id: str
+) -> bool:
+    """Cel zdarzeniowy leży odkryty jako publiczny (Neuraloop) i gracz może go zdobyć."""
+    from src.core import objectives
+
+    return (
+        objective_id in state.objectives.revealed
+        and not objectives.has_scored_public(state, player_id, objective_id)
+        and not objectives.is_retired(state, objective_id)
+        and objectives.controls_home_planets(state, registry, player_id)
+    )
+
+
 # --- ślad do „betray a friend" ------------------------------------------------------------
 
 
+def note_owner(state: GameState, registry: StaticDataRegistry, note_id: str) -> str | None:
+    """Właściciel (twórca) notki: po kolorze w id albo po frakcji (publiczny wrapper)."""
+    return _note_owner(state, registry, note_id)
+
+
 def _note_owner(state: GameState, registry: StaticDataRegistry, note_id: str) -> str | None:
-    """Właściciel (twórca) notki leżącej w strefie gry: po kolorze w id albo po frakcji."""
+    """Właściciel (twórca) notki leżącej w strefie gry: po kolorze w id albo po frakcji.
+
+    Najpierw szablony z danych (``promissory_play.resolve``: ``<color>_cf`` -> ``red_cf``),
+    potem dawny wzorzec ``<id>_<kolor>`` (notki spoza danych).
+    """
+    from src.core import promissory_play  # lokalnie: unika cyklu importów
+
+    try:
+        _template, owner = promissory_play.resolve(state, registry, note_id)
+    except ValueError:
+        owner = None
+    if owner is not None:
+        return owner
     for pid, player in state.players.items():
         if player.color and (note_id.endswith(f"_{player.color}") or note_id == player.color):
             return pid
@@ -132,22 +204,24 @@ def on_combat_end(
     if combat.kind == "space":
         for pid in sides:
             if _non_fighter_ships(state, combat.position, pid) >= _DYP_SHIPS:
-                score_secret_if_held(state, pid, "dyp")  # nie trzeba wygrywać
+                score_secret_if_held(state, pid, "dyp", combat)  # nie trzeba wygrywać
     if winner is None:
         return
     loser = combat.defender if winner == combat.attacker else combat.attacker
     if grid is not None and grid.anomalies_at(combat.position):
-        score_secret_if_held(state, winner, "btv")
+        score_secret_if_held(state, winner, "btv", combat)
     homes = {
         pid: p.home_position for pid, p in state.players.items() if p.home_position
     }
+    # C_objectives: Darken the Skies także w domu wyeliminowanego gracza (R_elimination, Notes).
+    homes |= {e.player_id: e.home_position for e in state.eliminated_players if e.home_position}
     if any(pos == combat.position and pid != winner for pid, pos in homes.items()):
-        score_secret_if_held(state, winner, "dts")
+        score_secret_if_held(state, winner, "dts", combat)
     if winner == combat.attacker and loser in state.tactical_pn_owners:
-        score_secret_if_held(state, winner, "baf")  # obrońca nie może zdobyć tego celu
+        score_secret_if_held(state, winner, "baf", combat)  # obrońca nie może zdobyć tego celu
     vps = {pid: p.victory_points for pid, p in state.players.items()}
     if loser in vps and vps[loser] == max(vps.values()) and loser != winner:
-        score_secret_if_held(state, winner, "sar")
+        score_secret_if_held(state, winner, "sar", combat)
     system = state.systems.get(combat.position)
     if (
         combat.kind == "space"
@@ -155,7 +229,7 @@ def on_combat_end(
         and system.space_units.get(winner, {}).get("flagship", 0) > 0
         and winner not in combat.flagships_destroyed
     ):
-        score_secret_if_held(state, winner, "uf")
+        score_secret_if_held(state, winner, "uf", combat)
 
 
 # --- zniszczenie jednostek ----------------------------------------------------------------

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import TypedDict
 
-from src.core import movement, rules_hooks
+from src.core import ion_storm, movement, rules_hooks
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -90,6 +90,8 @@ class RouteReport:
     rift_nodes: list[str] = field(default_factory=list)
     # Czy statki rzucają za te szczeliny (Circlet of the Void: +1 bez rzutu).
     rift_rolls: bool = True
+    # Ion Storm w systemie z własnym wormholem tego typu: gracz wybiera wormhole (pozycja żetonu).
+    ion_storm_choice: str | None = None
 
 
 def route_report(
@@ -177,6 +179,7 @@ def route_report(
     return RouteReport(
         active, route, reason, alternatives, waypoints, ships, bonuses, cargo, rifts,
         movement.rift_rolls(state, player_id),
+        ion_storm.choice_needed(state, grid, registry, from_pos, active),
     )
 
 

@@ -16,6 +16,7 @@ from src.core.game_state import GameState, Phase, PlayerState, StatusStep, Syste
 from src.core.hooks import technologies as tech_hooks
 from src.core.production import order_cost
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 from tests.test_space_cannon import _grid as sc_grid
 from tests.test_space_cannon import _state as sc_state
 from tests.test_status_phase import _enter_status, _finish_all_scoring
@@ -91,6 +92,7 @@ def test_fleet_logistics_daje_druga_akcje_ale_nie_trzecia() -> None:
         component_action.play_component_action(state, "p1")
 
 
+@ruling("C_technology/fleet-logistics/5")
 def test_fleet_logistics_pozwala_oddac_ture_po_jednej_akcji_i_zeruje_licznik() -> None:
     state = component_action.play_component_action(_action_state(["fl"]), "p1")
     state = turn_flow.end_turn(state, "p1")
@@ -160,6 +162,7 @@ def _fire(
     )
 
 
+@ruling("C_technology/plasma-scoring/1")
 def test_plasma_scoring_dodaje_jedna_kosc_space_cannon_tylko_na_wybor(
     registry: StaticDataRegistry,
 ) -> None:
@@ -184,6 +187,7 @@ def test_plasma_scoring_bez_technologii_odrzuca_wybor(registry: StaticDataRegist
         _fire(sc_state(pds={"p2": 2}, ships=ships), registry, plasma=True)
 
 
+@ruling("C_technology/antimass-deflectors/1")
 def test_antimass_odejmuje_jeden_od_wyniku_kosci_space_cannon(
     registry: StaticDataRegistry,
 ) -> None:

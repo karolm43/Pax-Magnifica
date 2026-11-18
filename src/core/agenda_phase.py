@@ -573,6 +573,9 @@ def _resolve(
     previous = state.decks.agenda_laws.get(card)
     if stays:
         state.decks.agenda_laws[card] = outcome
+        # Miscount na Committee Formation: właściciel odrzucił ją w ponownym głosowaniu,
+        # a wybrany gracz bierze ją ze stosu odrzuconych (C_agendas).
+        card_draw.take_agenda_from_discard(state, card)
         objective_events.on_laws_changed(state)  # Dictate Policy (3 prawa w grze)
     elif previous is not None:
         remove_law(state, card)  # Miscount Disclosed: prawo przegłosowane „Against"

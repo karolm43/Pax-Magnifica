@@ -18,6 +18,7 @@ from src.core.game_state import (
     TacticalStep,
 )
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 from tests.test_agenda_phase import DIRECTIVE, LAW, _planet_of, _state
 
 
@@ -127,6 +128,7 @@ def test_predictive_intelligence_adds_three_votes(registry: StaticDataRegistry) 
     assert boosted.agenda.votes["p3"].techs == ["pi"]
 
 
+@ruling("C_technology/predictive-intelligence/1")
 def test_predictive_intelligence_requires_ready_card(registry: StaticDataRegistry) -> None:
     state = agenda_phase.reveal_agenda(_state(registry, [LAW, DIRECTIVE]), registry, "p2")
     planet = _planet_of(state, "p3")
@@ -162,6 +164,7 @@ def test_predictive_intelligence_exhausts_only_when_outcome_loses(
 # --- X-89 ΩΩ: bombardowanie planety bez sił naziemnych -------------------------------------
 
 
+@ruling("C_technology/x89-bacterial-weapon-omega-omega/6")
 def test_x89_allows_bombarding_empty_enemy_planet(registry: StaticDataRegistry) -> None:
     planets = sorted(p for p in registry.planets if registry.planets[p].resources >= 0)
     planet = next(

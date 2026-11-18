@@ -22,6 +22,7 @@ from src.core import (
     economy,
     exhaust,
     objectives,
+    planet_stats,
     relics,
     research_offer,
     rules_hooks,
@@ -570,7 +571,7 @@ def _plowshares(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
                 unit_ops.remove_units(state, system, planet, pid, "infantry", kill,
                                       UnitCause.DESTROYED)
                 gained += kill
-        else:
+        elif not planet_stats.is_demilitarized(state, planet):  # DMZ: bez stawiania jednostek
             try:
                 place_from_reinforcements(state, system, planet, pid, "infantry", 1)
             except ValueError:
@@ -655,7 +656,9 @@ def _redistribution(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None
                 unit_ops.remove_units(state, system, planet, player, base_type, count,
                                       UnitCause.DESTROYED)
     controller = system.planet_owners.get(planet)
-    if controller in state.players:
+    # Demilitarized Zone: na planecie nie wolno stawiać jednostek - nikt nie stawia piechoty,
+    # kontrola zostaje u dotychczasowego gracza (C_agendas).
+    if controller in state.players and not planet_stats.is_demilitarized(state, planet):
         schedule(state, "redistribution", "choose", controller, scope=Duration.PHASE,
                  planet=planet)
 

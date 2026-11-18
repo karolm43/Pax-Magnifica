@@ -100,11 +100,13 @@ def psychoarchaeology_specialties(
 )
 def self_assembly_trade_good(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha;
-    także gdy karta jest wyczerpana - C_technology).
+    także gdy karta jest wyczerpana - C_technology). Kilka mechów = TG po jednym (C_technology).
 
-    ⚠ Część „postaw mecha po PRODUCTION (wyczerp kartę)” wymaga okna wyboru - niezamodelowana.
+    Część „postaw mecha po PRODUCTION (wyczerp kartę)” -
+    ``technologies_actions.self_assembly_mech``.
     """
-    economy.gain_trade_goods(state, player_id, int(ctx.get("count", 1)))
+    for _ in range(int(ctx.get("count", 1))):
+        economy.gain_trade_goods(state, player_id, 1)
 
 
 # --- Infantry II: odrodzenie ----------------------------------------------------------------

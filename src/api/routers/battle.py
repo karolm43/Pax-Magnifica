@@ -38,7 +38,7 @@ from src.api.schemas import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import battle, board_edit, faction_components
+from src.core import battle, board_edit, faction_components, ion_storm
 from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.movement import CargoPickup
 from src.core.retreat import retreat_destinations
@@ -141,6 +141,10 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
                 RetreatOptionView(
                     position=pos,
                     system_id=grid.system_id_at(pos) if pos in grid.positions else "",
+                    ion_storm_choice=ion_storm.choice_needed(
+                        state, grid, ctx.registry, combat.position, pos
+                    )
+                    is not None,
                 )
                 for pos in retreat_destinations(state, grid, combat.position, pid)
             ]
@@ -441,6 +445,7 @@ async def post_battle_retreat(
             request.destination,
             cargo=cargo,
             token_pool=request.token_pool,
+            ion_storm_token=request.ion_storm_token,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

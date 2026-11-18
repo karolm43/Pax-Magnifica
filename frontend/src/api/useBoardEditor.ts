@@ -74,6 +74,8 @@ export type TransactionTableView = {
   dealComponents: boolean;
   /** Stół otwarty sam po uzupełnieniu commodities (umowa Trade). */
   prefilled: boolean;
+  /** Moje relikty, które wolno położyć (Black Market Dealings / The Silver Flame). */
+  tradableRelics?: string[];
 };
 
 export type TransactionPartnerView = {
@@ -660,6 +662,8 @@ export function useBoardEditor() {
       cargo?: { baseType: string; count: number; fromZone?: string; fromPosition?: string }[];
       // Trasa wybrana przez gracza (systemy od źródła do aktywnego); brak = najkrótsza legalna.
       route?: string[];
+      // Ion Storm z własnym wormholem systemu: true = przez żeton, false = własny wormhole.
+      ionStormToken?: boolean;
     }) => {
       await post("/tactical/move", {
         fromPosition: args.fromPosition,
@@ -681,6 +685,7 @@ export function useBoardEditor() {
             fromPosition: c.fromPosition ?? null,
           })),
         route: args.route ?? null,
+        ionStormToken: args.ionStormToken ?? null,
       });
       await refresh();
     },
@@ -860,8 +865,12 @@ export function useBoardEditor() {
   );
 
   const battleRetreat = useCallback(
-    async (faction: string, destination: string) => {
-      await post("/tactical/battle/retreat", { faction, destination });
+    async (faction: string, destination: string, ionStormToken?: boolean) => {
+      await post("/tactical/battle/retreat", {
+        faction,
+        destination,
+        ionStormToken: ionStormToken ?? null,
+      });
       await refresh();
     },
     [refresh],
@@ -1249,7 +1258,12 @@ export type HitTarget = {
 };
 
 /** Dozwolony system odwrotu (RULES.md 39.5 O4). */
-export type RetreatOption = { position: string; systemId: string };
+export type RetreatOption = {
+  position: string;
+  systemId: string;
+  /** Odwrót przez Ion Storm w systemie z własnym wormholem tego typu: gracz wybiera wormhole. */
+  ionStormChoice?: boolean;
+};
 
 export type BattleView = {
   active: boolean;

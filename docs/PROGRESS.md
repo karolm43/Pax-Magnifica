@@ -935,3 +935,31 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Luki (`gap`): Scepter of Emelpar poza secondary (cele, zdolności frakcji), limit jednego celu na
   walkę, eliminacja gracza (fragmenty/relikty), wybór wormholu przy Ion Storm. Zgłoszone poza
   kontraktem: The Silver Flame „may be exchanged as part of a transaction” nie jest obsługiwane.
+
+## 2026-11-18 — Audyt rulingów technologii, celów, notek i agend + luki z audytu reliktów
+
+- Przeaudytowane (kontrakt C_/R_): `C_technology`, `C_agendas`, `C_promissory_notes`,
+  `R_agenda_phase`, `R_agenda_card` — nowe `tests/rulings_general/test_rulings_technology.py`,
+  `test_rulings_agendas*.py`, `test_rulings_agenda_phase.py`, `test_rulings_promissory.py`.
+  Dług `tests/rulings_debt.json`: 271 → 213 wpisów (`GENERAL_DEBT_LIMIT`).
+- Zamknięte luki z poprzedniego audytu:
+  - Scepter of Emelpar także przy płatności celów żetonami i zdolnościach frakcji wydających żeton
+    strategiczny (Xxcha, Hacan, Sol): `command_tokens.strategy_token_sources/_input`, pole
+    `scepter` płatności celu.
+  - Limit jednego celu na walkę (R_objective_cards, Neuraloop): `objective_events.combat_objective_used`.
+  - Ion Storm: gracz wybiera wormhole, gdy system ma własny tego samego typu
+    (`ion_storm.choice_needed`, `move_fleet(ion_storm_token=...)`, wybór w `MoveRouteBox`).
+  - Eliminacja gracza (RULES.md 66, nowy `core/elimination.py`): warunki R_elimination, sprawdzana
+    na końcu tury; fragmenty na stosy odrzuconych, relikty purge, notki, agendy, tajne cele, mówca.
+    Strażnik: kandydat tylko z systemem domowym na planszy (niepełne scenariusze nie tracą graczy).
+  - The Silver Flame wymienialny w transakcji (`transaction.tradable_relics`, chip `Relic` na stole).
+  - Derelict Vessel: pełne nazwy celów w opcjach zwrotu.
+  - Support for the Throne: przy wymianie pierwszy zyskuje aktywny gracz (w agendzie — od mówcy).
+- Nowe funkcje punktów centralnych: `card_draw.take_agenda_from_discard`,
+  `exploration.discard_cards`, `triggers.drop_player_offers`.
+- `tests/test_undo_move.py` niestabilny (~30%): lotniskowiec startował na 101, a to gravity rift
+  mapy demonstracyjnej API — rzut 1–3 go niszczył. Start na pozycji bez anomalii z tej samej mapy.
+- Nowe luki (`gap` w `tests/rulings_status.json`): Sling Relay zamykany bez produkcji, brak okna
+  przed Assault Cannon po dołożeniu statków, Ceasefire blokuje przeniesienie sił z planet na statki.
+- QA: pytest 3041 ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (TurnControls, battle, movement,
+  Activity, StatusPhase) ✓, build ✓. e2e pominięte (bez zmian kreatora/lobby). Wymaga restartu backendu.

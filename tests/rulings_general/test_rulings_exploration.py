@@ -207,15 +207,21 @@ def test_derelict_vessel_with_three_scored_secrets_draws_and_shuffles_back(
 # ============================================================================ Ion Storm
 
 
-def _storm_grid(registry: StaticDataRegistry) -> tuple[GameState, HexGrid]:
+def _storm_grid(
+    registry: StaticDataRegistry, native: bool = False
+) -> tuple[GameState, HexGrid]:
+    """System "a" z Ion Storm (strona ALPHA) i niesąsiadujący "b" z wormholem alpha.
+
+    ``native=True``: kafelek "a" ma też WŁASNY wormhole alpha (wybór wormholu, ruling 3)."""
     alpha = [s.id for s in registry.systems.values() if "ALPHA" in [w.upper() for w in s.wormholes]]
+    storm_tile = alpha[0] if native else "19"  # Wellon: bez wormholi
     grid = HexGrid()
     grid.place_system("a", alpha[0], wormholes=["ALPHA"], hex_override=Hex(0, 0, 0))
     grid.place_system("b", alpha[1], wormholes=["ALPHA"], hex_override=Hex(3, -3, 0))
     grid.build_edges()
     state = _state()
     state.systems = {
-        "a": SystemState(position="a", system_id=alpha[0], ion_storm="ALPHA"),
+        "a": SystemState(position="a", system_id=storm_tile, ion_storm="ALPHA"),
         "b": SystemState(position="b", system_id=alpha[1], space_units={"p1": {"cruiser": 2}}),
     }
     return state, grid
@@ -229,6 +235,22 @@ def test_ion_storm_flips_once_after_the_whole_move(registry: StaticDataRegistry)
     assert state.systems["a"].ion_storm == "ALPHA"  # w trakcie kroku żeton się nie obraca
     assert ion_storm.flip_used(state) == ["a"]
     assert state.systems["a"].ion_storm == "BETA"
+
+
+@ruling("C_exploration_cards/ion-storm/3")
+def test_player_chooses_ion_storm_or_the_systems_own_wormhole(
+    registry: StaticDataRegistry,
+) -> None:
+    state, grid = _storm_grid(registry)
+    assert ion_storm.choice_needed(state, grid, registry, "b", "a") is None  # tylko żeton
+    state, grid = _storm_grid(registry, native=True)
+    assert ion_storm.choice_needed(state, grid, registry, "b", "a") == "a"
+    with pytest.raises(ValueError, match="choose which wormhole"):
+        ion_storm.note_move(state, grid, registry, "b", "a")  # silnik nie wybiera za gracza
+    ion_storm.note_move(state, grid, registry, "b", "a", use_token=False)
+    assert ion_storm.flip_used(state) == [] and state.systems["a"].ion_storm == "ALPHA"
+    ion_storm.note_move(state, grid, registry, "b", "a", use_token=True)
+    assert ion_storm.flip_used(state) == ["a"] and state.systems["a"].ion_storm == "BETA"
 
 
 @ruling("C_exploration_cards/ion-storm/3.1")

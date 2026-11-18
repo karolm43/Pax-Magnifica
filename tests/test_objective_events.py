@@ -22,6 +22,7 @@ from src.core.game_state import (
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.unit_ops import UnitCause
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -261,3 +262,65 @@ def test_own_destruction_by_an_effect_does_not_credit_the_opponent() -> None:
     unit_ops.remove_units(state, system, "space", "p1", "warsun", 1, UnitCause.DESTROYED)
     state.destroyed_by = None
     assert _scored(state, "p2") == []
+
+
+# --------------------------------------------------------------------- limit celów na walkę
+
+
+@ruling("R_objective_cards/rules-reference/7", "R_objective_cards/notes/6.1")
+def test_only_one_objective_during_and_after_one_combat() -> None:
+    """Fight with Precision w kroku AFB zużywa limit tej walki: po walce Brave the Void nie."""
+    grid = HexGrid()
+    grid.place_system("000", "18", anomalies={"NEBULA"})
+    state = _state("fwp")
+    state.players["p1"].private.secret_objectives = ["fwp", "btv"]
+    combat = _combat(step=CombatStep.AFB)
+    state.active_combat = combat
+    state.systems["000"].space_units["p2"] = {"fighter": 1}
+    system = state.systems["000"]
+    unit_ops.remove_units(state, system, "space", "p2", "fighter", 1, UnitCause.DESTROYED)
+    assert _scored(state) == ["fwp"]
+    combat.step = CombatStep.DONE
+    objective_events.on_combat_end(state, grid, combat, "p1")
+    assert _scored(state) == ["fwp"] and state.players["p1"].victory_points == 1
+
+
+@ruling("R_objective_cards/rules-reference/7.1", "R_objective_cards/notes/5")
+def test_each_combat_has_its_own_objective_limit() -> None:
+    grid = HexGrid()
+    grid.place_system("000", "18", anomalies={"NEBULA"})
+    state = _state("btv")
+    state.players["p1"].private.secret_objectives = ["btv", "dts"]
+    objective_events.on_combat_end(state, grid, _combat("000"), "p1")
+    objective_events.on_combat_end(state, grid, _combat("102", kind="ground"), "p1")
+    assert _scored(state) == ["btv", "dts"]
+
+
+@ruling("R_objective_cards/notes/6")
+def test_space_cannon_scoring_is_outside_combat_limit() -> None:
+    state = _state("ttfd", holder="p2")
+    state.tactical_step = TacticalStep.SPACE_CANNON
+    state.active_system = "000"
+    state.pending_window = TimingWindow(
+        window_type=WindowType.SPACE_CANNON, context={"roller": "p2"}
+    )
+    state.systems["000"].space_units["p1"] = {"cruiser": 1}
+    system = state.systems["000"]
+    unit_ops.remove_units(state, system, "space", "p1", "cruiser", 1, UnitCause.DESTROYED)
+    assert _scored(state, "p2") == ["ttfd"]
+    assert state.active_combat is None  # poza walką: nic nie liczy się do limitu walki
+
+
+@ruling("C_relics/neuraloop/10")
+def test_neuraloop_public_secret_and_own_secret_share_the_combat_limit() -> None:
+    """Cel tajny odkryty przez Neuraloop jest publiczny: zdobywa go każdy, ale w tej samej walce
+    gracz nie zdobędzie już własnego tajnego celu."""
+    grid = HexGrid()
+    grid.place_system("000", "18", anomalies={"NEBULA"})
+    state = _state("btv")
+    state.objectives.revealed = ["dyp"]
+    state.systems["000"].space_units["p1"] = {"cruiser": 3}
+    combat = _combat(step=CombatStep.DONE)
+    objective_events.on_combat_end(state, grid, combat, "p1")
+    assert state.objectives.scored.get("dyp") == ["p1"]
+    assert _scored(state) == []  # btv czeka: limit tej walki zużyty

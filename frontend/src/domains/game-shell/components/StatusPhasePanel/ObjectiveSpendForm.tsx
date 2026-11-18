@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IconCheck } from "@tabler/icons-react";
+import { Switch } from "@/ds";
 import type { ObjectivePaymentBody, ObjectiveSpend } from "@/entities/data/types";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getPlanetData } from "@/entities/lookup/planets";
@@ -81,6 +82,7 @@ export function ObjectiveSpendForm({
   const [resPlanets, setResPlanets] = useState<string[]>(start.resource_planets ?? []);
   const [infPlanets, setInfPlanets] = useState<string[]>(start.influence_planets ?? []);
   const [tokens, setTokens] = useState<Record<string, number>>(start.tokens ?? {});
+  const [scepter, setScepter] = useState<boolean>(start.scepter ?? false);
   const [cards, setCards] = useState<string[]>(start.cards ?? []);
   const [fragments, setFragments] = useState<string[]>(start.fragments ?? []);
 
@@ -97,11 +99,24 @@ export function ObjectiveSpendForm({
   } else if (kind === "tokens") {
     const pools = spend.pools ?? {};
     const used = Object.values(tokens).reduce((n, v) => n + v, 0);
+    // Scepter of Emelpar (C_relics): 1 żeton strategiczny schodzi z rezerwy zamiast z puli.
+    const useScepter = Boolean(spend.scepter) && scepter;
+    const available = (pool: string) =>
+      (pools[pool] ?? 0) + (useScepter && pool === "strategic" ? 1 : 0);
     body = { tokens: Object.fromEntries(Object.entries(tokens).filter(([, v]) => v > 0)) };
-    ok = used === goal;
+    if (useScepter) body.scepter = true;
+    ok = used === goal && (!useScepter || (tokens.strategic ?? 0) >= 1);
     summary = `Spend ${goal} command tokens from your pools: ${used}/${goal}.`;
     controls = (
       <div className={styles.pools}>
+        {spend.scepter && (
+          <Switch
+            checked={scepter}
+            onChange={(e) => setScepter(e.currentTarget.checked)}
+            disabled={busy}
+            label="Exhaust Scepter of Emelpar to spend a strategy token from your reinforcements instead"
+          />
+        )}
         {Object.keys(pools).map((pool) => {
           const value = tokens[pool] ?? 0;
           return (
@@ -111,7 +126,7 @@ export function ObjectiveSpendForm({
               </span>
               <Stepper
                 value={value}
-                max={Math.min(pools[pool], value + (goal - used))}
+                max={Math.min(available(pool), value + (goal - used))}
                 onChange={(next) => setTokens({ ...tokens, [pool]: next })}
                 disabled={busy}
                 label={`${POOL_LABELS[pool] ?? pool} tokens`}

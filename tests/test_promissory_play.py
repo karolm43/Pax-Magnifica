@@ -16,6 +16,7 @@ from src.core import (
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, Phase, PlayerState, SystemState, TacticalStep
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -106,6 +107,7 @@ def test_ceasefire_poza_oknem(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------- Trade Agreement
 
 
+@ruling("C_promissory_notes/trade-agreement/2")
 def test_trade_agreement_po_uzupelnieniu(registry: StaticDataRegistry) -> None:
     state = _state()
     assert _rows(state, registry, "p2")["red_ta"]["playable"] is False

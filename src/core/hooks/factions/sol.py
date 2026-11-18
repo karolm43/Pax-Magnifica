@@ -110,7 +110,7 @@ def _place_infantry(
 
 @faction_components.blocker("ability", ORBITAL_DROP)
 def _drop_blocker(state: GameState, _registry: StaticDataRegistry, player_id: str) -> str | None:
-    if state.players[player_id].strategic_cc < 1:
+    if not command_tokens.can_spend_strategy_token(state, player_id):  # także Scepter
         return "Orbital Drop needs 1 command token in your strategy pool."
     if not _controlled(state, player_id):
         return "You control no planet."
@@ -125,7 +125,10 @@ def drop_inputs(
         oi.option(f"{position}|{planet}", _planet_name(registry, planet))
         for position, planet in _controlled(state, player_id)
     ]
-    return [oi.choice("planet", "Planet for 2 infantry", options)]
+    return [
+        oi.choice("planet", "Planet for 2 infantry", options),
+        *command_tokens.strategy_token_input(state, player_id),  # Scepter of Emelpar
+    ]
 
 
 @register_effect(f"abilities:{ORBITAL_DROP}")
@@ -138,7 +141,7 @@ def orbital_drop(
     system = state.systems.get(position)
     if system is None or system.planet_owners.get(planet) != player_id:
         raise ValueError("Choose a planet you control.")
-    command_tokens.spend_to_reinforcements(state, player_id, "strategic")
+    command_tokens.spend_strategy_token(state, player_id, source=params.get("token_source"))
     _place_infantry(state, player_id, position, planet, _DROP_INFANTRY)
     triggers.fire(
         state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=player_id,

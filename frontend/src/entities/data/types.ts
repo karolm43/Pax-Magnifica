@@ -663,6 +663,8 @@ export type ObjectivePaymentBody = {
   resource_planets?: string[];
   influence_planets?: string[];
   tokens?: Record<string, number>;
+  /** Scepter of Emelpar: 1 żeton „strategic" z rezerwy zamiast z puli. */
+  scepter?: boolean;
   cards?: string[];
   fragments?: string[];
 };
@@ -678,6 +680,8 @@ export type ObjectiveSpend = {
   resourcePlanets?: Record<string, number>;
   influencePlanets?: Record<string, number>;
   pools?: Record<string, number>;
+  /** Gotowy Scepter of Emelpar i żeton w rezerwie (cele z żetonami). */
+  scepter?: boolean;
   cards?: string[];
   fragments?: string[];
   suggested: ObjectivePaymentBody | null;

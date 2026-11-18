@@ -93,13 +93,16 @@ def strategy_pick_window(state: GameState) -> list[OpenWindow]:
 def _disgrace_hindsight(
     state: GameState, future: GameState, window: OpenWindow
 ) -> dict[str, Any]:
-    """Którą kartę strategii wybrał wybierający w kroku tuż PO tym oknie (``chosen``)."""
+    """Którą kartę strategii wybrał wybierający w kroku tuż PO tym oknie (``chosen``).
+
+    Karta mogła trafić do INNEGO gracza (Checks and Balances: wybierający oddaje wybraną kartę),
+    więc liczy się każda karta, która w tym kroku przestała być wolna (C_agendas).
+    """
     picker = window.subject
-    before = state.players.get(picker) if picker else None
-    after = future.players.get(picker) if picker else None
-    if before is None or after is None:
+    if picker not in state.players or picker not in future.players:
         return {}
-    new = [i for i in after.strategy_cards if i not in before.strategy_cards]
+    taken = strategy_phase.picked_initiatives(state)
+    new = sorted(i for i in strategy_phase.picked_initiatives(future) if i not in taken)
     return {"chosen": new[0]} if len(new) == 1 else {}
 
 

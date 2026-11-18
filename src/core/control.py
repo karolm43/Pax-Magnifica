@@ -118,9 +118,6 @@ def set_planet_control(
             subject=previous,
             ctx={**control_ctx, "player": previous},
         )
-        from src.core import objective_events  # lokalnie: unika cyklu importów
-
-        objective_events.on_planet_lost(state, previous, position)
     if new_owner is not None and new_owner in state.players:
         triggers.fire(
             state,
@@ -129,6 +126,12 @@ def set_planet_control(
             subject=new_owner,
             ctx={**control_ctx, "player": new_owner},
         )
+    if previous is not None and previous in state.players:
+        # Become a Martyr PO skutkach przejęcia: Shard of the Throne przechodzi (z punktem), a
+        # atakujący zdobywa swoje cele pierwszy (C_objectives, become-a-martyr/3, /4).
+        from src.core import objective_events  # lokalnie: unika cyklu importów
+
+        objective_events.on_planet_lost(state, previous, position)
 
 
 def recompute_from_units(state: GameState, position: str, planet: str) -> None:

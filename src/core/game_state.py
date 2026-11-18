@@ -673,6 +673,9 @@ class ActiveCombat(BaseModel):
     # Gracze, których okręt flagowy został zniszczony W TEJ walce (przez kogokolwiek, także
     # przez siebie). Cały czas walki - nie czyszczone co rundę. Cel Unveil Flagship (uf).
     flagships_destroyed: list[str] = Field(default_factory=list)
+    # Gracze, którzy zdobyli cel W TRAKCIE albo PO tej walce: najwyżej jeden cel dowolnego typu
+    # na walkę (R_objective_cards, C_relics Neuraloop). Osobna walka = osobny limit.
+    objective_scorers: list[str] = Field(default_factory=list)
     sustained_ships: list[dict[str, Any]] = Field(default_factory=list)
     # Przypisanie strat po AFB z Waylay: krok ASSIGN traktowany jak koniec kroku AFB.
     afb_assign: bool = False
@@ -1026,6 +1029,22 @@ class BonusTurn(BaseModel):
     restore_passed: bool = True
 
 
+class EliminatedPlayer(BaseModel):
+    """Gracz wyeliminowany (R_elimination): nie jest już częścią gry, zostaje tylko ślad.
+
+    Jego system domowy nadal jest systemem domowym (R_elimination, Notes) - ``home_position``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    faction: str | None = None
+    color: str | None = None
+    display_name: str = ""
+    home_position: str | None = None
+    round_number: int = 0
+
+
 class GameState(BaseModel):
     """Pełny, serializowalny stan gry."""
 
@@ -1042,6 +1061,9 @@ class GameState(BaseModel):
     # używany w fazie strategii przy wyborze kart (RULES.md 24). Faza akcji
     # używa INICJATYWY kart (RULES.md 9), nie tej kolejności.
     seating_order: list[str] = Field(default_factory=list)
+    # Gracze wyeliminowani (R_elimination, ``core/elimination.py``): usunięci z ``players``
+    # i ``seating_order``; liczba graczy na start gry = ``players`` + ta lista (RULES.md 13).
+    eliminated_players: list[EliminatedPlayer] = Field(default_factory=list)
 
     # Akcja taktyczna (E3). ``active_system`` = pozycja aktualnie aktywowanego
     # systemu (odpowiednik ``Game.activeSystem``); ``tactical_step`` = bieżący krok

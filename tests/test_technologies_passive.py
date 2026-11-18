@@ -11,6 +11,7 @@ from src.core.hex_grid import HexGrid
 from src.core.hooks import technologies_passive as passive
 from src.core.registry import StaticDataRegistry
 from src.core.unit_ops import UnitCause
+from tests.rulings import ruling
 from tests.test_technology import _first, _specialty_planet
 from tests.test_technology import _state as research_state
 
@@ -69,6 +70,7 @@ def test_bez_dark_energy_tap_odwrot_wymaga_obecnosci() -> None:
     assert retreat.retreat_destinations(state, _retreat_grid(), "000", "p1") == []
 
 
+@ruling("C_technology/dark-energy-tap/6")
 def test_dark_energy_tap_pozwala_wycofac_sie_do_systemu_bez_cudzych_jednostek() -> None:
     state = _retreat_state(["det"])
     # 101 jest pusty - tak; 102 ma strukturę innego gracza - nie.

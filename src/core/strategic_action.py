@@ -471,33 +471,13 @@ def resolve_secondary(
     new_state = state.clone()
     if execute:
         if spec.secondary_costs_token and not is_free and not no_cost:
-            responder = new_state.players[player_id]
-            # Hook (Scepter of Emelpar): gracz MOŻE wyczerpać relikt i wydać żeton z rezerwy.
+            # Scepter of Emelpar (C_relics): gracz MOŻE wyczerpać relikt i wydać żeton z rezerwy.
             scepter = bool((payload or {}).get("scepter"))
-            if scepter:
-                relic = next(
-                    iter(
-                        sorted(
-                            rules_hooks.forbidden(
-                                rules_hooks.POINT_STRATEGY_TOKEN_FROM_REINFORCEMENTS,
-                                new_state,
-                                player_id,
-                            )
-                        )
-                    ),
-                    None,
-                )
-                if relic is None:
-                    raise ValueError("You have no ready relic that lets you spend a reserve token.")
-                command_tokens.spend_strategy_token(new_state, player_id, via_reinforcements=True)
-                exhaust.exhaust_relic(new_state, player_id, relic)
-            elif responder.strategic_cc < 1:
-                raise ValueError(
-                    "You need 1 command token in your strategy pool to follow this card."
-                )
-            else:
-                # wydany żeton wraca do rezerwy
-                command_tokens.spend_strategy_token(new_state, player_id)
+            command_tokens.spend_strategy_token(
+                new_state,
+                player_id,
+                source=command_tokens.SOURCE_SCEPTER if scepter else command_tokens.SOURCE_POOL,
+            )
             triggers.fire(
                 new_state,
                 GameEvent.STRATEGY_TOKEN_SPENT,

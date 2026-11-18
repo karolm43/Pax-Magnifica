@@ -589,9 +589,54 @@ def test_scepter_without_reinforcements_means_spending_from_the_sheet(
     player = state.players["p1"]
     player.strategic_cc, player.cc_reinf = 2, 0
     with pytest.raises(ValueError, match="command sheet"):
-        command_tokens.spend_strategy_token(state, "p1", via_reinforcements=True)
+        command_tokens.spend_strategy_token(state, "p1", source="scepter")
     command_tokens.spend_strategy_token(state, "p1")
     assert player.strategic_cc == 1
+
+
+@ruling("C_relics/scepter-of-emelpar/2")
+def test_scepter_works_for_objectives_and_faction_abilities(registry: StaticDataRegistry) -> None:
+    from src.core import objective_payment
+    from src.core.hooks.factions import sol
+
+    grid = build_demo_grid(registry)
+    # Cel „Lead from the Front" (3 żetony): 2 z puli taktycznej + 1 strategiczny z rezerwy.
+    state = _state(registry, ["emelpar"])
+    player = state.players["p1"]
+    player.tactical_cc, player.strategic_cc, player.cc_reinf = 2, 0, 3
+    spec = objective_payment.spend_spec(state, registry, grid, "p1", "lead")
+    assert spec is not None and spec["scepter"] is True
+    assert spec["suggested"]["scepter"] is True
+    paid = objective_payment.pay_for_objective(
+        state, registry, grid, "p1", "lead",
+        objective_payment.ObjectivePayment(tokens={"tactical": 2, "strategic": 1}, scepter=True),
+    )
+    after = paid.players["p1"]
+    assert (after.tactical_cc, after.strategic_cc, after.cc_reinf) == (0, 0, 5)
+    assert after.exhausted_relics == ["emelpar"]
+    with pytest.raises(ValueError):  # bez Scepter puli strategicznej nie starcza
+        objective_payment.pay_for_objective(
+            state, registry, grid, "p1", "lead",
+            objective_payment.ObjectivePayment(tokens={"tactical": 2, "strategic": 1}),
+        )
+    # Zdolność frakcji (Sol Orbital Drop): gracz wybiera źródło żetonu.
+    state = _state(registry, ["emelpar"])
+    player = state.players["p1"]
+    player.strategic_cc, player.cc_reinf = 1, 2
+    inputs = command_tokens.strategy_token_input(state, "p1")
+    options = inputs[0]["options"]
+    assert isinstance(options, list)
+    assert [o["value"] for o in options] == ["pool", "scepter"]
+    position, planet = next(
+        (pos, pl) for pos, sys in sorted(state.systems.items())
+        for pl, owner in sys.planet_owners.items() if owner == "p1"
+    )
+    sol.orbital_drop(
+        state, registry, "p1", {"planet": f"{position}|{planet}", "token_source": "scepter"}
+    )
+    assert (player.strategic_cc, player.cc_reinf) == (1, 2)
+    assert player.exhausted_relics == ["emelpar"]
+    assert command_tokens.strategy_token_input(state, "p1") == []  # relikt wyczerpany
 
 
 # ============================================================================ Shard of the Throne

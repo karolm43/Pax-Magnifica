@@ -118,6 +118,7 @@ async def post_tactical_move(
             tempesta=request.tempesta,
             imperator=request.imperator,
             route=request.route,
+            ion_storm_token=request.ion_storm_token,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -467,6 +468,7 @@ async def get_move_route(
         riftNodes=report.rift_nodes,
         riftRolls=report.rift_rolls,
         bonuses=report.bonuses,
+        ionStormChoice=report.ion_storm_choice,
         cargo=[
             MoveRouteCargo(
                 position=c.position,

@@ -1478,6 +1478,7 @@ def retreat_from_combat(
     *,
     cargo: list[CargoPickup] | None = None,
     token_pool: str | None = None,
+    ion_storm_token: bool | None = None,
 ) -> GameState:
     """Krok Retreat: gracz, który ogłosił odwrót, wycofuje się do ``destination`` (39.5 O3–O7).
 
@@ -1500,6 +1501,7 @@ def retreat_from_combat(
         destination,
         cargo=cargo,
         token_pool=token_pool,
+        ion_storm_token=ion_storm_token,
     )
     combat = _combat(new_state)
     combat.retreating = []

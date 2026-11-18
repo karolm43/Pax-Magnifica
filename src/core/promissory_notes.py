@@ -72,3 +72,9 @@ def discard_from_hand(state: GameState, holder_id: str, note_id: str) -> None:
     hand = state.players[holder_id].private.promissory_notes
     if note_id in hand:
         hand.remove(note_id)
+
+
+def remove_from_play(state: GameState, holder_id: str, note_id: str) -> None:
+    """Notka ze strefy gry gracza wraca do pudełka (eliminacja właściciela, R_elimination)."""
+    player = state.players[holder_id]
+    player.promissory_notes_in_play = [n for n in player.promissory_notes_in_play if n != note_id]

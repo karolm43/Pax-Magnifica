@@ -116,6 +116,9 @@ POINT_ACTION_STARTED = "turn.action_started"
 # Transakcja może obejmować relikty, karty akcji i nieodsłonięte tajne cele (Black Market Dealings);
 # PERMIT -> bool (pytamy obu uczestników transakcji; ctx: partner).
 POINT_TRANSACTION_EXTRA_ITEMS = "transaction.extra_items"
+# Relikty, które WOLNO wymienić w transakcji z mocy własnego tekstu („may be exchanged as part of
+# a transaction”: The Silver Flame). Hook FORBID jako zbiór id posiadanych takich reliktów.
+POINT_TRANSACTION_TRADABLE_RELICS = "transaction.tradable_relics"
 # Transakcja z graczem, który NIE jest sąsiadem (Guild Ships, Trade Convoys); PERMIT -> bool
 # (pytamy obu stron; ctx: partner). Nie czyni graczy sąsiadami (F_hacan).
 POINT_TRANSACTION_ANY_PLAYER = "transaction.any_player"

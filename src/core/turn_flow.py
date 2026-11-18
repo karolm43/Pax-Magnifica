@@ -75,6 +75,13 @@ def strict_initiative_order(state: GameState) -> list[str]:
     return sorted(state.players, key=key)
 
 
+def _bound_registry() -> StaticDataRegistry | None:
+    from src.core import rules_hooks
+
+    registry: StaticDataRegistry | None = rules_hooks.bound_registry()
+    return registry
+
+
 def next_unpassed_player(state: GameState, current_id: str | None) -> str | None:
     """Następny gracz w kolejności, który nie spasował (ani nie jest wyeliminowany).
 
@@ -287,7 +294,23 @@ def end_turn(
     if bonus is not None and bonus.player == current:
         return _finish_bonus_turn(new_state, current)
     triggers.fire(new_state, GameEvent.TURN, Moment.END, subject=current, ctx={"player": current})
-    nxt = next_unpassed_player(new_state, new_state.active_player_id)
+    # Eliminacja (R_elimination): sprawdzana na końcu każdej tury - po walkach, inwazjach i
+    # efektach tej tury. Kolejność po wyeliminowanym aktywnym liczona sprzed eliminacji.
+    order_before = turn_order(new_state)
+    from src.core import elimination  # lokalnie: elimination importuje moduły z triggerami
+
+    gone = elimination.check_all(
+        new_state, registry if registry is not None else _bound_registry()
+    )
+    if current in gone:
+        idx = order_before.index(current)
+        after = order_before[idx + 1 :] + order_before[:idx]
+        nxt = next(
+            (p for p in after if p in new_state.players and not new_state.players[p].passed),
+            None,
+        )
+    else:
+        nxt = next_unpassed_player(new_state, new_state.active_player_id)
     if nxt is None:
         # Wszyscy spasowali: faza akcji "wyczerpana", ale wciąż ACTION. Aktywny =
         # mówca (ogłosi tranzycję); fallback na dotychczasowego, gdy mówca nieznany.

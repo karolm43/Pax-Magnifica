@@ -573,11 +573,15 @@ def test_emelpar_spends_from_reinforcements(registry: StaticDataRegistry) -> Non
     assert rules_hooks.forbidden(
         rules_hooks.POINT_STRATEGY_TOKEN_FROM_REINFORCEMENTS, state, "p1"
     ) == {"emelpar"}
-    command_tokens.spend_strategy_token(state, "p1", via_reinforcements=True)
+    command_tokens.spend_strategy_token(state, "p1", source="scepter")
     assert (player.strategic_cc, player.cc_reinf) == (2, 1)
+    assert player.exhausted_relics == ["emelpar"]
+    with pytest.raises(ValueError):  # wyczerpany relikt
+        command_tokens.spend_strategy_token(state, "p1", source="scepter")
+    player.exhausted_relics = []
     player.cc_reinf = 0
     with pytest.raises(ValueError):
-        command_tokens.spend_strategy_token(state, "p1", via_reinforcements=True)
+        command_tokens.spend_strategy_token(state, "p1", source="scepter")
     command_tokens.spend_strategy_token(state, "p1")
     assert player.strategic_cc == 1
 

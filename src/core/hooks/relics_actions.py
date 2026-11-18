@@ -44,7 +44,15 @@ from src.core.hooks.card_helpers import controlled
 from src.core.planet_stats import is_legendary, planet_stats
 from src.core.registry import StaticDataRegistry
 from src.core.relic_actions import blocker
-from src.core.rules_hooks import register_effect, register_effect_inputs
+from src.core.rules_hooks import (
+    POINT_TRANSACTION_TRADABLE_RELICS,
+    SOURCE_RELIC,
+    HookKind,
+    HookSource,
+    register,
+    register_effect,
+    register_effect_inputs,
+)
 from src.core.state_grid import grid_from_state
 from src.core.strategy_cards.common import (
     STRUCTURE_LIMIT_PER_PLANET,
@@ -373,6 +381,15 @@ def stellar_converter(
 
 
 # --- The Silver Flame ------------------------------------------------------------------------
+
+
+@register(
+    POINT_TRANSACTION_TRADABLE_RELICS, HookSource(SOURCE_RELIC, "thesilverflame"), HookKind.FORBID,
+    covers="relics:thesilverflame",
+)
+def silver_flame_tradable(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> set[str]:
+    """„The Silver Flame may be exchanged as part of a transaction” - bez Black Market Dealings."""
+    return {"thesilverflame"} if "thesilverflame" in state.players[player_id].relics else set()
 
 
 @register_effect("relics:thesilverflame")

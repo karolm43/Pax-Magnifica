@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import payment, production
+from src.core import command_tokens, payment, production
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player
@@ -89,8 +89,13 @@ class View:
     def __post_init__(self) -> None:
         self.player = self.state.players[self.pid]
         self.homes = {}
-        for other_id, other in self.state.players.items():
-            faction = self.registry.factions.get(other.faction or "")
+        # R_elimination (Notes): dom wyeliminowanego gracza nadal jest systemem domowym.
+        seats = [
+            *((pid, p.faction) for pid, p in self.state.players.items()),
+            *((e.player_id, e.faction) for e in self.state.eliminated_players),
+        ]
+        for other_id, other_faction in seats:
+            faction = self.registry.factions.get(other_faction or "")
             if faction is None or not faction.home_system:
                 continue
             for position, system in self.state.systems.items():
@@ -326,7 +331,11 @@ def _p_intimidate(v: View) -> int:
 
 
 def _p_command_tokens(v: View) -> int:
-    return v.player.tactical_cc + v.player.strategic_cc
+    # Scepter of Emelpar (C_relics): 1 żeton „z puli strategicznej" może zejść z rezerwy.
+    scepter = command_tokens.SOURCE_SCEPTER in command_tokens.strategy_token_sources(
+        v.state, v.pid
+    )
+    return v.player.tactical_cc + v.player.strategic_cc + (1 if scepter else 0)
 
 
 def _p_trade_goods(v: View) -> int:

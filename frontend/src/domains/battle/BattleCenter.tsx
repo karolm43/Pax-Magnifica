@@ -220,7 +220,8 @@ export function BattleCenter({
   onConfirmAssign: () => void;
   onClose: () => void;
   onAnnounce: (announce: boolean) => void;
-  onRetreat: (destination: string) => void;
+  /** ``ionStormToken`` = wybór wormholu przy Ion Storm (tylko gdy opcja ma ``ionStormChoice``). */
+  onRetreat: (destination: string, ionStormToken?: boolean) => void;
   systemLabel: (position: string) => string;
 }) {
   const attacker = view.attacker?.faction ?? "";
@@ -390,18 +391,24 @@ export function BattleCenter({
             Fighters and ground forces in space that cannot be carried are lost.
           </p>
           <div className={styles.retreatDest}>
-            {retreatOptions.map((o) => (
-              <button
-                key={o.position}
-                type="button"
-                className={styles.retreatBtn}
-                disabled={busy}
-                onClick={() => onRetreat(o.position)}
-              >
-                <IconArrowBackUp size={16} aria-hidden="true" />{" "}
-                {systemLabel(o.position)}
-              </button>
-            ))}
+            {retreatOptions.flatMap((o) =>
+              // Ion Storm z własnym wormholem systemu: osobny przycisk dla każdego wormholu
+              // (żeton obraca się tylko, gdy statki go użyją - C_exploration_cards).
+              (o.ionStormChoice ? [true, false] : [undefined]).map((token) => (
+                <button
+                  key={`${o.position}:${String(token)}`}
+                  type="button"
+                  className={styles.retreatBtn}
+                  disabled={busy}
+                  onClick={() => onRetreat(o.position, token)}
+                >
+                  <IconArrowBackUp size={16} aria-hidden="true" />{" "}
+                  {systemLabel(o.position)}
+                  {token === true && " · via the Ion Storm token"}
+                  {token === false && " · via the system's own wormhole"}
+                </button>
+              )),
+            )}
           </div>
         </div>
       )}

@@ -171,7 +171,7 @@ def _qdn_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool
     player = state.players[player_id]
     return (
         ctx.get("phase") == "strategy"
-        and player.strategic_cc >= 1
+        and command_tokens.can_spend_strategy_token(state, player_id)
         and player.trade_goods >= _QDN_TG
         and bool(player.strategy_cards)
         and any(p.strategy_cards for pid, p in state.players.items() if pid != player_id)
@@ -200,6 +200,7 @@ def qdn_inputs(
     return [
         oi.choice("give", "Strategy card you give", mine),
         oi.choice("take", "Strategy card you take (that player gets 3 trade goods)", theirs),
+        *command_tokens.strategy_token_input(state, player_id),  # Scepter of Emelpar
     ]
 
 
@@ -225,7 +226,7 @@ def quantum_datahub_node(state: GameState, player_id: str, ctx: Mapping[str, Any
     # F_hacan: 3 TG trzeba mieć PRZED wydaniem żetonu (nie dobiera się trzeciego po wydaniu).
     if me.trade_goods < _QDN_TG:
         raise ValueError("You need 3 trade goods before you spend the command token.")
-    command_tokens.spend_to_reinforcements(state, player_id, "strategic")
+    command_tokens.spend_strategy_token(state, player_id, source=params.get("token_source"))
     economy.give_to_player(state, player_id, other, trade_goods=_QDN_TG, commodities=0)
     me.strategy_cards = [take if c == give else c for c in me.strategy_cards]
     them.strategy_cards = [give if c == take else c for c in them.strategy_cards]
@@ -241,7 +242,10 @@ def biomes_inputs(
     options = [
         oi.option(pid, _name(registry, state, pid)) for pid in state.players if pid != player_id
     ]
-    return [oi.choice("player", "Player who gains 2 trade goods", options)]
+    return [
+        oi.choice("player", "Player who gains 2 trade goods", options),
+        *command_tokens.strategy_token_input(state, player_id),  # Scepter of Emelpar
+    ]
 
 
 @register_effect(f"technologies:{BIOMES}")
@@ -256,10 +260,10 @@ def production_biomes(
     player = state.players[player_id]
     if BIOMES in player.exhausted_technologies:
         raise ValueError("Production Biomes is exhausted.")
-    if player.strategic_cc < 1:
+    if not command_tokens.can_spend_strategy_token(state, player_id):
         raise ValueError("Production Biomes needs 1 command token in your strategy pool.")
     exhaust.exhaust_technology(state, player_id, BIOMES)
-    command_tokens.spend_to_reinforcements(state, player_id, "strategic")
+    command_tokens.spend_strategy_token(state, player_id, source=params.get("token_source"))
     economy.gain_trade_goods(state, player_id, _BIOMES_GAIN)
     economy.gain_trade_goods(state, other, _BIOMES_OTHER)
 

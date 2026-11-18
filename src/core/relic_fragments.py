@@ -62,3 +62,22 @@ def purge_chosen(state: GameState, player_id: str, card_ids: list[str]) -> None:
     from src.core import exploration  # lokalnie: exploration importuje ten moduł
 
     exploration.purge_cards(state, list(card_ids))
+
+
+def discard_all(state: GameState, player_id: str, deck_of: dict[str, str]) -> list[str]:
+    """Wszystkie fragmenty gracza na stosy odrzuconych ich talii eksploracji (R_elimination).
+
+    ``deck_of`` = {id fragmentu: talia} (``cultural``/``hazardous``/``industrial``/``frontier``);
+    fragment bez talii w mapie znika z gry (purge). Zwraca odrzucone fragmenty.
+    """
+    from src.core import exploration  # lokalnie: exploration importuje ten moduł
+
+    zone = list(state.players[player_id].relic_fragments)
+    state.players[player_id].relic_fragments = []
+    for card_id in zone:
+        deck = deck_of.get(card_id)
+        if deck is None:
+            exploration.purge_cards(state, [card_id])
+        else:
+            exploration.discard_cards(state, deck, [card_id])
+    return zone

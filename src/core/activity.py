@@ -57,6 +57,7 @@ class ActivityFact(BaseModel):
     # Plansza: "units" (value = typ, delta = zmiana liczby), "system_token", "law_enacted",
     # "law_repealed", "attached", "objective_scored", "effect", "speaker", "custodians_removed",
     # "fracture_entered" (player_id = kto wprowadził The Fracture),
+    # "eliminated" (player_id = wyeliminowany, value = frakcja, detail = nazwa gracza),
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
     # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
@@ -600,6 +601,15 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
         facts.append(ActivityFact(type="fracture_entered", player_id=after.fracture.entered_by))
     if after.winner_id and not before.winner_id:
         facts.append(ActivityFact(type="winner", player_id=after.winner_id))
+    known = {e.player_id for e in before.eliminated_players}
+    for gone in after.eliminated_players:
+        if gone.player_id not in known:  # R_elimination: gracz odpada z gry
+            facts.append(
+                ActivityFact(
+                    type="eliminated", player_id=gone.player_id, value=gone.faction,
+                    detail=gone.display_name or None,
+                )
+            )
     return facts
 
 

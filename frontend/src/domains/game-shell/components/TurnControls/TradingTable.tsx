@@ -205,6 +205,7 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
   const myNotes = myHand?.promissoryNotes ?? [];
   const myCards = table.actionCards ? (myHand?.actionCards ?? []) : [];
   const fragments = me.relicFragmentCards ?? [];
+  const tradableRelics = components ? (table.tradableRelics ?? []) : [];
   const planets = table.components ? myPlanets : [];
   const theirsEmpty = isEmptySide(table.theirs);
 
@@ -215,6 +216,13 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
         ? mine.relicFragments.filter((f) => f !== id)
         : [...mine.relicFragments, id],
     });
+  const toggleRelic = (id: string) => {
+    const picked = mine.relics ?? [];
+    put({
+      ...mine,
+      relics: picked.includes(id) ? picked.filter((r) => r !== id) : [...picked, id],
+    });
+  };
   const toggleCard = (id: string) => {
     const picked = mine.actionCards ?? [];
     const at = picked.indexOf(id);
@@ -351,6 +359,22 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
                         <FragmentIcon id={f.id} />
                         {f.name}
                       </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tradableRelics.length > 0 && (
+                <div className={styles.group}>
+                  <span className={styles.groupLabel}>Relics</span>
+                  <div className={styles.cardList}>
+                    {tradableRelics.map((id) => (
+                      <TradeCard
+                        key={id}
+                        kind="relic"
+                        id={id}
+                        selected={(mine.relics ?? []).includes(id)}
+                        onToggle={() => toggleRelic(id)}
+                      />
                     ))}
                   </div>
                 </div>

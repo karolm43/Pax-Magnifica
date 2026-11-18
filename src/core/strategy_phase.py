@@ -94,7 +94,8 @@ def pick_count(state: GameState) -> int:
             (liczba nieobsługiwana przez regułę); stan pozostaje bez zmian, bo
             funkcja go nie dotyka.
     """
-    n = len(state.players)
+    # R_elimination: gra zaczęta w 5+ graczy, po eliminacjach 4 lub mniej -> dalej 1 karta.
+    n = len(state.players) + len(state.eliminated_players)
     if n < 2 or n > 8:
         raise ValueError(f"Invalid number of players: {n} (allowed 2-8).")
     return 2 if n <= 4 else 1

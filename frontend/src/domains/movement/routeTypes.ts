@@ -77,6 +77,8 @@ export type MoveRouteData = {
   riftRolls: boolean;
   /** Premie +1 do ruchu, które gracz może teraz włączyć. */
   bonuses: string[];
+  /** Ion Storm w systemie z własnym wormholem tego typu: gracz wybiera wormhole (pozycja). */
+  ionStormChoice?: string | null;
 };
 
 /** Zaznaczona porcja: statek ze źródła albo ładunek z systemu na trasie. */

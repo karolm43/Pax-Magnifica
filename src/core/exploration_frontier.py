@@ -144,6 +144,14 @@ def _dead_world_apply(
     return f"Drew the relic {relic}." if relic else "The relic deck is empty."
 
 
+def _objective_name(objective_id: str) -> str:
+    """Pełna nazwa celu z danych (etykieta opcji; id tylko, gdy celu brak w danych)."""
+    from src.core import objectives  # lokalnie: objectives importuje moduły eksploracji
+
+    definition = objectives.objective_def(exploration.bound_registry(), objective_id)
+    return definition.name if definition is not None and definition.name else objective_id
+
+
 def _derelict_options(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent
 ) -> list[_Opt]:
@@ -163,7 +171,7 @@ def _derelict_options(
                 "",
                 (
                     (secret_objectives.DRAWN, "Shuffle the drawn objective back"),
-                    *((oid, oid) for oid in hand),
+                    *((oid, _objective_name(oid)) for oid in hand),
                 ),
             )
         ]

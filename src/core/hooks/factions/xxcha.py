@@ -106,7 +106,19 @@ def _xxcha_players(state: GameState) -> list[str]:
 
 
 def _has_strategy_token(state: GameState, player_id: str) -> bool:
-    return command_tokens.pool_count(state, player_id, "strategic") >= 1
+    """Czy gracz może WYDAĆ żeton z puli strategicznej (także przez Scepter of Emelpar)."""
+    return command_tokens.can_spend_strategy_token(state, player_id)
+
+
+def _token_source_inputs(
+    state: GameState, _registry: Any, player_id: str, *_ctx: Any
+) -> list[dict[str, Any]]:
+    """Wybór „pula czy Scepter of Emelpar" (C_relics: Scepter działa przy zdolnościach frakcji)."""
+    return command_tokens.strategy_token_input(state, player_id)
+
+
+def _source(params: Mapping[str, Any]) -> object:
+    return params.get("token_source")
 
 
 def _position_of(state: GameState, planet: str) -> str | None:
@@ -223,9 +235,12 @@ def _quash_window(state: GameState, _registry: StaticDataRegistry, player_id: st
     return None
 
 
+register_effect_inputs(f"abilities:{QUASH}")(_token_source_inputs)
+
+
 @register_effect(f"abilities:{QUASH}")
 def quash(
-    state: GameState, registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Quash: When an agenda is revealed: You may spend 1 token from your strategy pool to discard
     that agenda and reveal 1 agenda from the top of the deck. Players vote on this agenda instead.
@@ -233,7 +248,7 @@ def quash(
     F_xxcha: Political Secret zagrane wcześniej wraca bez efektu na nowej agendzie (efekty
     ``AGENDA`` wygasają w ``veto_agenda``); nowa agenda = nowe transakcje; Quash wolno użyć znów.
     """
-    command_tokens.spend_strategy_token(state, player_id)
+    command_tokens.spend_strategy_token(state, player_id, source=_source(params))
     agenda_phase.veto_agenda(state, registry)
 
 
@@ -245,7 +260,8 @@ def _favor_condition(
     state: GameState, _registry: StaticDataRegistry, _player_id: str, _window: OpenWindow
 ) -> str | None:
     owners = _xxcha_players(state)
-    if not owners or not _has_strategy_token(state, owners[0]):
+    # „Remove 1 token" to nie wydanie - Scepter of Emelpar nie dotyczy, liczy się sama pula.
+    if not owners or command_tokens.pool_count(state, owners[0], "strategic") < 1:
         return "The Xxcha player has no command token in their strategy pool."  # F_xxcha
     if not state.decks.agenda_deck:
         return "The agenda deck is empty."
@@ -305,9 +321,12 @@ def _instinct_window(
     return None
 
 
+register_effect_inputs(f"technologies:{INSTINCT}")(_token_source_inputs)
+
+
 @register_effect(f"technologies:{INSTINCT}")
 def instinct_training(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
+    state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Instinct Training: You may exhaust this card and spend 1 token from your strategy pool when
     another player plays an action card; cancel that action card.
@@ -315,7 +334,7 @@ def instinct_training(
     F_xxcha: także Sabotage; bez kosztów anulowanej karty; anulowana karta ACTION oddaje akcję
     tury (wyczerpanie technologii płaci ``faction_components.pay_cost``).
     """
-    command_tokens.spend_strategy_token(state, player_id)
+    command_tokens.spend_strategy_token(state, player_id, source=_source(params))
     card_hold.cancel_by_component(state)
 
 
@@ -342,7 +361,8 @@ def _adopt(dst: GameState, src: GameState) -> None:
 
 @on_event(
     GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, HookSource(SOURCE_TECHNOLOGY, NULLIFICATION),
-    optional=True, condition=_nullification_ready, covers=f"technologies:{NULLIFICATION}",
+    optional=True, condition=_nullification_ready, inputs=_token_source_inputs,
+    covers=f"technologies:{NULLIFICATION}",
     label="Nullification Field: end that player's turn",
 )
 def nullification_field(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
@@ -357,7 +377,9 @@ def nullification_field(state: GameState, player_id: str, ctx: Mapping[str, Any]
     if active != state.active_player_id or state.active_system is None:
         raise ValueError("That player's tactical action is already over.")
     exhaust.exhaust_technology(state, player_id, NULLIFICATION)
-    command_tokens.spend_strategy_token(state, player_id)
+    command_tokens.spend_strategy_token(
+        state, player_id, source=_source(ctx.get("params", {}))
+    )
     triggers.drop_offers(state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER)
     _adopt(state, tactical.end_tactical_action(state))
     if state.pending_window is None and not state.pending_offers:

@@ -90,6 +90,7 @@ def _table_view(
         trade_partner=holder == other,
         deal_components=transaction.reachable(state, grid, viewer, other),
         prefilled=table.prefilled,
+        tradable_relics=transaction.tradable_relics(state, viewer, other),
     )
 
 

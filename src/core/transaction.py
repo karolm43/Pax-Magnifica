@@ -144,6 +144,16 @@ def extras_allowed(state: GameState, a: str, b: str) -> bool:
     return _either_permits(state, rules_hooks.POINT_TRANSACTION_EXTRA_ITEMS, a, b)
 
 
+def tradable_relics(state: GameState, giver: str, partner: str) -> list[str]:
+    """Relikty ``giver``, które może teraz położyć na stole: wszystkie przy Black Market Dealings,
+    inaczej tylko te z tekstem „may be exchanged as part of a transaction” (The Silver Flame)."""
+    held = list(state.players[giver].relics)
+    if extras_allowed(state, giver, partner):
+        return held
+    own_rule = rules_hooks.forbidden(rules_hooks.POINT_TRANSACTION_TRADABLE_RELICS, state, giver)
+    return [r for r in held if r in own_rule]
+
+
 def reachable(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
     """Sąsiedzi albo efekt pozwalający na transakcję bez sąsiedztwa (Guild Ships, Trade Convoys)."""
     return b in neighbors_of(a, state, grid) or _either_permits(
@@ -166,7 +176,12 @@ def _validate_extras(
             "Action cards can only be traded with the Hacan Arbiters ability "
             "or Black Market Dealings."
         )
-    if (side.relics or side.secret_objectives) and not allowed:
+    # Relikt z tekstem „may be exchanged as part of a transaction” (The Silver Flame) - zawsze.
+    own_rule = rules_hooks.forbidden(
+        rules_hooks.POINT_TRANSACTION_TRADABLE_RELICS, state, giver_id
+    )
+    restricted = [r for r in side.relics if r not in own_rule]
+    if (restricted or side.secret_objectives) and not allowed:
         raise ValueError(
             "Relics and secret objectives can only be traded with Black Market Dealings."
         )
@@ -475,6 +490,18 @@ def validate_side(
     )
 
 
+def _receives_first(state: GameState, active_id: str, partner_id: str) -> str:
+    """Kto pierwszy dostaje swoją część transakcji: aktywny gracz; w agendzie - od mówcy."""
+    if state.phase is not Phase.AGENDA:
+        return active_id
+    order = [p for p in state.seating_order if p in state.players]
+    if state.speaker_id in order:
+        start = order.index(state.speaker_id)
+        order = order[start:] + order[:start]
+    ranked = {pid: i for i, pid in enumerate(order)}
+    return min((active_id, partner_id), key=lambda pid: ranked.get(pid, len(ranked)))
+
+
 def resolve_transaction(
     state: GameState,
     grid: HexGrid,
@@ -497,8 +524,14 @@ def resolve_transaction(
     give, receive = give.components(), receive.components()
     active_id = validate_transaction(state, grid, partner_id, give, receive, player_id)
     new_state = state.clone()
-    _apply_side(new_state, active_id, partner_id, give)
-    _apply_side(new_state, partner_id, active_id, receive)
+    # C_promissory_notes (Support for the Throne): przy jednoczesnej wymianie pierwszy zyskuje
+    # (np. punkt) aktywny gracz, a w fazie agendy - pierwszy w kolejności od mówcy.
+    if _receives_first(state, active_id, partner_id) == active_id:
+        _apply_side(new_state, partner_id, active_id, receive)
+        _apply_side(new_state, active_id, partner_id, give)
+    else:
+        _apply_side(new_state, active_id, partner_id, give)
+        _apply_side(new_state, partner_id, active_id, receive)
     new_state.players[active_id].transacted_with.append(partner_id)
     if new_state.phase is Phase.AGENDA:
         # 47.5: limit dotyczy PARY graczy - odnotowany po obu stronach (zerowany z nową agendą).

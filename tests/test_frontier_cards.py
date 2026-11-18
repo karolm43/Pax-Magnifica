@@ -165,13 +165,14 @@ def test_ion_storm_flips_after_ships_use_its_wormhole(registry: StaticDataRegist
         phase=Phase.ACTION,
         players={"p1": PlayerState(player_id="p1", color="red")},
         systems={
+            # Kafelek "a" ma własny wormhole alpha: gracz wybiera żeton (C_exploration_cards).
             "a": SystemState(position="a", system_id=sys_a, ion_storm="ALPHA"),
             "b": SystemState(position="b", system_id=sys_b),
         },
     )
     # Z aktywną stroną ALPHA żeton łączy "a" z "b" przez wormhole (nie sąsiedztwem).
     assert grid.link_kind("a", "b") == "wormhole"
-    ion_storm.note_move(state, grid, registry, "b", "a")
+    ion_storm.note_move(state, grid, registry, "b", "a", use_token=True)
     assert state.ion_storm_used == ["a"]
     assert ion_storm.flip_used(state) == ["a"]
     assert state.systems["a"].ion_storm == "BETA" and state.ion_storm_used == []
@@ -203,3 +204,15 @@ def test_mirage_is_placed_gained_and_ready(registry: StaticDataRegistry) -> None
     assert done.exploration is not None
     current = done.exploration.current
     assert current is not None and current.planet == "mirage" and current.deck == "cultural"
+
+
+def test_derelict_vessel_lists_secret_objectives_by_full_name(
+    registry: StaticDataRegistry,
+) -> None:
+    """Wybór celu do oddania pokazuje pełne nazwy z danych, nie surowe id."""
+    state = _state(registry, "dv1")
+    state.decks.secret_objective_deck = ["a"]
+    state.players["p1"].private.secret_objectives = ["btv", "dts", "sar"]
+    option = exploration.options_for(state, registry)[0]
+    labels = dict(option.params)
+    assert labels["btv"] == "Brave the Void" and labels["dts"] == "Darken the Skies"

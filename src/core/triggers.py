@@ -329,6 +329,11 @@ def drop_all_offers(state: GameState) -> None:
     state.pending_offers = []
 
 
+def drop_player_offers(state: GameState, player_id: str) -> None:
+    """Porzuca oferty jednego gracza (gracz wyeliminowany, R_elimination)."""
+    state.pending_offers = [o for o in state.pending_offers if o.player_id != player_id]
+
+
 def offers_for(state: GameState, player_id: str) -> list[PendingOffer]:
     """Oferty czekające na decyzję gracza."""
     return [o for o in state.pending_offers if o.player_id == player_id]

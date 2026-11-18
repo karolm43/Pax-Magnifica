@@ -223,24 +223,93 @@ def set_pools(state: GameState, player_id: str, pools: dict[str, int]) -> None:
         setattr(player, _attr(pool), amount)
 
 
-def spend_strategy_token(
-    state: GameState, player_id: str, *, via_reinforcements: bool = False
-) -> None:
-    """Wydaje 1 żeton z puli strategicznej (secondary, cele) - JEDYNY punkt takiego wydania.
+# Źródło żetonu wydawanego „z puli strategicznej" (parametr ``token_source`` efektów).
+SOURCE_POOL = "pool"
+SOURCE_SCEPTER = "scepter"
 
-    ``via_reinforcements`` (Scepter of Emelpar: „spend a token from your reinforcements instead"):
-    żeton schodzi z REZERWY zamiast z puli, a wydany wraca do rezerwy - pula strategiczna się nie
-    zmienia. Gdy rezerwa jest pusta, gracz musi wydać żeton z arkusza (C_relics), czyli odmowa.
-    Uprawnienie (gotowy relikt, wyczerpanie) sprawdza i wykonuje wołający.
+
+def _scepter_relic(state: GameState, player_id: str) -> str | None:
+    """Gotowy relikt pozwalający wydać żeton z rezerwy zamiast z puli (Scepter of Emelpar)."""
+    from src.core import rules_hooks  # leniwie: rules_hooks -> hooks -> command_tokens
+
+    ready = rules_hooks.forbidden(
+        rules_hooks.POINT_STRATEGY_TOKEN_FROM_REINFORCEMENTS, state, player_id
+    )
+    return next(iter(sorted(ready)), None)
+
+
+def strategy_token_sources(state: GameState, player_id: str) -> list[str]:
+    """Skąd gracz może teraz wydać żeton „z puli strategicznej": ``pool`` i/lub ``scepter``.
+
+    C_relics (Scepter of Emelpar): relikt działa przy KAŻDYM wydaniu z puli strategicznej
+    (secondary, zdolności frakcji, cele); bez żetonu w rezerwie trzeba wydać żeton z arkusza.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        return []
+    sources: list[str] = []
+    if player.strategic_cc >= 1:
+        sources.append(SOURCE_POOL)
+    if player.cc_reinf >= 1 and _scepter_relic(state, player_id) is not None:
+        sources.append(SOURCE_SCEPTER)
+    return sources
+
+
+def can_spend_strategy_token(state: GameState, player_id: str) -> bool:
+    """Czy gracz może wydać 1 żeton z puli strategicznej (wprost albo przez Scepter)."""
+    return bool(strategy_token_sources(state, player_id))
+
+
+def strategy_token_input(state: GameState, player_id: str) -> list[dict[str, object]]:
+    """Wejście decyzji „skąd żeton" dla efektów wydających żeton z puli strategicznej.
+
+    Pusta lista, gdy Scepter nie wchodzi w grę (płaci się po prostu z puli). Gdy wchodzi, gracz
+    WIDZI wybór (``always``) - wyczerpanie reliktu to jego decyzja (C_relics: „you may").
+    """
+    from src.core import offer_inputs as oi
+
+    sources = strategy_token_sources(state, player_id)
+    if SOURCE_SCEPTER not in sources:
+        return []
+    relic = _scepter_relic(state, player_id) or "emelpar"
+    labels = {
+        SOURCE_POOL: "Spend a token from your strategy pool",
+        SOURCE_SCEPTER: "Exhaust the Scepter of Emelpar: spend a token from your reinforcements",
+    }
+    options = [
+        oi.option(src, labels[src], ref=("relic", relic) if src == SOURCE_SCEPTER else None)
+        for src in sources
+    ]
+    return [oi.choice("token_source", "Command token", options, always=True)]
+
+
+def spend_strategy_token(
+    state: GameState, player_id: str, *, source: object = SOURCE_POOL
+) -> None:
+    """Wydaje 1 żeton z puli strategicznej (secondary, cele, zdolności) - JEDYNY punkt takiego
+    wydania.
+
+    ``source="scepter"`` (Scepter of Emelpar: „spend a token from your reinforcements instead"):
+    silnik wyczerpuje gotowy relikt, żeton schodzi z REZERWY i wydany wraca do rezerwy - liczniki
+    się nie zmieniają. Gdy rezerwa jest pusta, gracz musi wydać żeton z arkusza (C_relics).
+    Inna wartość (``None``, ``"pool"``) = zwykłe wydanie z puli strategicznej.
 
     Raises:
-        ValueError: Za mało żetonów w puli strategicznej albo w rezerwie.
+        ValueError: Za mało żetonów w puli strategicznej albo w rezerwie / brak gotowego reliktu.
     """
-    if via_reinforcements:
+    if source == SOURCE_SCEPTER:
+        relic = _scepter_relic(state, player_id)
+        if relic is None:
+            raise ValueError("You have no ready relic that lets you spend a reserve token.")
         if _player(state, player_id).cc_reinf < 1:
             raise ValueError(
                 "You have no command token in your reinforcements - spend one from your "
                 "command sheet instead."
             )
+        from src.core import exhaust  # leniwie (exhaust nie zależy od tego modułu)
+
+        exhaust.exhaust_relic(state, player_id, relic)
         return  # żeton z rezerwy zostaje wydany i wraca do rezerwy: bez zmiany liczników
+    if _player(state, player_id).strategic_cc < 1:
+        raise ValueError("You need 1 command token in your strategy pool.")
     spend_to_reinforcements(state, player_id, "strategic")

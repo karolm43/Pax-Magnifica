@@ -1111,9 +1111,9 @@ function Battlefield({
             view.announcing &&
             void run(() => battleAnnounceRetreat(view.announcing!, announce))
           }
-          onRetreat={(destination) =>
+          onRetreat={(destination, ionStormToken) =>
             view.retreating[0] &&
-            void run(() => battleRetreat(view.retreating[0], destination))
+            void run(() => battleRetreat(view.retreating[0], destination, ionStormToken))
           }
         />
         <BattleFleet

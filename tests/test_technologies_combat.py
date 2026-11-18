@@ -10,6 +10,7 @@ from src.core.game_state import CombatStep, GameState, Phase, PlayerState, Syste
 from src.core.hex_grid import HexGrid
 from src.core.hooks import technologies_combat as combat_hooks
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 from tests.test_battle import _grid as battle_grid
 from tests.test_battle import _state as battle_state
 
@@ -56,6 +57,13 @@ def _round_end(state: GameState, sustained: dict[str, dict[str, int]] | None = N
     )
 
 
+@ruling(
+    "C_technology/duranium-armor/1",
+    "C_technology/duranium-armor/2",
+    "C_technology/duranium-armor/3",
+    "C_technology/duranium-armor/4",
+    "C_technology/duranium-armor/4.1",
+)
 def test_duranium_armor_naprawia_jedna_uszkodzona_jednostke_po_rundzie() -> None:
     state = _with_tech(battle_state({"p1": {"dreadnought": 2}, "p2": {"cruiser": 1}}), "p1", "da")
     system = state.systems["000"]
@@ -101,6 +109,7 @@ def test_assault_cannon_wymaga_trzech_statkow_niemyslihwskich(
     assert started.systems["000"].space_units["p2"] == {"cruiser": 1, "destroyer": 1}
 
 
+@ruling("C_technology/assault-cannon/1")
 def test_assault_cannon_moze_zakonczyc_walke_zanim_sie_zacznie(
     registry: StaticDataRegistry,
 ) -> None:
@@ -116,6 +125,7 @@ def test_assault_cannon_moze_zakonczyc_walke_zanim_sie_zacznie(
     ].space_units["p2"]
 
 
+@ruling("C_technology/assault-cannon/2", "C_technology/assault-cannon/2.1")
 def test_assault_cannon_obu_stron_pierwszy_w_inicjatywie_moze_odebrac_warunek(
     registry: StaticDataRegistry,
 ) -> None:
@@ -142,6 +152,11 @@ def _start_magen(
     return offers.accept(started, battle_grid(), registry, "p2", offer.id, {"target": target})
 
 
+@ruling(
+    "C_technology/magen-defense-grid-omega-omega/4",
+    "C_technology/magen-defense-grid-omega-omega/5",
+    "C_technology/magen-defense-grid-omega-omega/6",
+)
 def test_magen_stawia_piechote_przy_kazdej_strukturze_gdy_ktokolwiek_aktywuje_system() -> None:
     state = _with_tech(battle_state({"p1": {"cruiser": 1}}), "p2", "md")
     state.systems["000"].planet_units["pl"] = {"p2": {"pds": 1, "spacedock": 1, "infantry": 1}}
@@ -180,6 +195,7 @@ def test_magen_trafia_siły_naziemne_przeciwnika_na_starcie_walki(
     assert started.systems["000"].planet_units["pl"]["p1"] == {"infantry": 1}
 
 
+@ruling("C_technology/magen-defense-grid-omega-omega/3")
 def test_magen_moze_wygrac_walke_zabijajac_ostatnia_jednostke(
     registry: StaticDataRegistry,
 ) -> None:
@@ -193,6 +209,7 @@ def test_magen_moze_wygrac_walke_zabijajac_ostatnia_jednostke(
     assert combat is not None and combat.step is CombatStep.DONE and combat.winner == "p2"
 
 
+@ruling("C_technology/magen-defense-grid-omega-omega/2")
 def test_magen_mech_z_sustain_damage_zostaje_uszkodzony_zamiast_zginac(
     registry: StaticDataRegistry,
 ) -> None:
@@ -209,6 +226,10 @@ def test_magen_mech_z_sustain_damage_zostaje_uszkodzony_zamiast_zginac(
     assert damage.damaged_count(system, "pl", "p1", "mech") == 1
 
 
+@ruling(
+    "C_technology/magen-defense-grid-omega-omega/1",
+    "C_technology/magen-defense-grid-omega-omega/2",
+)
 def test_magen_wlasciciel_wskazuje_uszkodzonego_mecha(registry: StaticDataRegistry) -> None:
     """C_technology: właściciel wybiera KONKRETNĄ jednostkę - uszkodzony mech ginie, a Sustain
     Damage innego mecha nie anuluje tego trafienia."""
@@ -243,6 +264,10 @@ def test_magen_bez_struktury_nie_dziala(registry: StaticDataRegistry) -> None:
 # --- X-89 ΩΩ -------------------------------------------------------------------------------
 
 
+@ruling(
+    "C_technology/x89-bacterial-weapon-omega-omega/1",
+    "C_technology/x89-bacterial-weapon-omega-omega/3",
+)
 def test_x89_podwaja_trafienia_naziemne_i_bombardowania_ale_nie_kosmiczne() -> None:
     state = _with_tech(battle_state({"p1": {"cruiser": 1}}), "p1", "x89c4")
     point = rules_hooks.POINT_COMBAT_HIT_MULTIPLIER
@@ -274,6 +299,7 @@ def test_x89_podwojone_trafienia_w_prawdziwym_rzucie_walki_naziemnej(
     assert doubled_somewhere
 
 
+@ruling("C_technology/x89-bacterial-weapon-omega-omega/4")
 def test_x89_wyczerpuje_bombardowane_planety() -> None:
     state = _with_tech(battle_state({"p1": {"dreadnought": 1}}), "p1", "x89c4")
     state.players["p2"].controlled_planets = ["pl", "other"]

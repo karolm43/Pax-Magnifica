@@ -164,17 +164,19 @@ def perform_retreat(
     destination: str,
     cargo: list[CargoPickup] | None = None,
     token_pool: str | None = None,
+    ion_storm_token: bool | None = None,
 ) -> tuple[GameState, RetreatResult]:
     """Wycofuje jednostki gracza z ``position`` do ``destination`` (O5/O6) - na KLONIE stanu.
 
     Opakowanie ``retreat_in_place`` (zwraca nowy stan); parametry i błędy jak tam.
+    ``ion_storm_token`` = wybór wormholu przy Ion Storm (``ion_storm.note_move``).
     """
     new_state = state.clone()
     result = retreat_in_place(
         new_state, grid, registry, position, player_id, destination, cargo, token_pool
     )
     # Koniec kroku Retreat: odwrót przez wormhole Ion Storm obraca żeton (Skilled Retreat: nie).
-    ion_storm.note_move(new_state, grid, registry, position, destination)
+    ion_storm.note_move(new_state, grid, registry, position, destination, ion_storm_token)
     ion_storm.flip_used(new_state)
     return new_state, result
 

@@ -13,6 +13,8 @@ import {
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getActionCard } from "@/entities/lookup/actionCards";
+import { getRelicData } from "@/entities/lookup/relics";
+import { Relic } from "@/domains/player/components/Relic/Relic";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { useFactionColors } from "@/hooks/useFactionColors";
 import type { TransactionSide } from "@/api/useBoardEditor";
@@ -33,7 +35,7 @@ import styles from "./TransactionModal.module.css";
  * transakcji i okna zgody partnera.
  */
 
-type CardKind = "note" | "action";
+type CardKind = "note" | "action" | "relic";
 
 /** Nazwa i tekst notki / karty akcji z danych (assety AsyncTI4). */
 export function useTradeCardInfo() {
@@ -46,6 +48,10 @@ export function useTradeCardInfo() {
         text: note?.noteData.text ?? "",
         owner: note?.faction,
       };
+    }
+    if (kind === "relic") {
+      const relic = getRelicData(id);
+      return { name: relic?.name ?? id, text: relic?.text ?? "" };
     }
     const card = getActionCard(id);
     const text = card ? [card.window, card.text].filter(Boolean).join(" ") : "";
@@ -93,7 +99,13 @@ export function TradeCard({
 }) {
   const info = useTradeCardInfo()(kind, id);
   const chip =
-    kind === "note" ? <PromissoryNote promissoryNoteId={id} /> : <ActionCardChip id={id} />;
+    kind === "note" ? (
+      <PromissoryNote promissoryNoteId={id} />
+    ) : kind === "relic" ? (
+      <Relic relicId={id} />
+    ) : (
+      <ActionCardChip id={id} />
+    );
   return (
     <div className={styles.tradePick} data-selected={selected || undefined}>
       {chip}
@@ -243,6 +255,9 @@ export function TradeSummary({
       {side.promissoryNote && <TradeCard kind="note" id={side.promissoryNote} />}
       {(side.actionCards ?? []).map((c, i) => (
         <TradeCard key={`${c}-${i}`} kind="action" id={c} />
+      ))}
+      {(side.relics ?? []).map((r) => (
+        <TradeCard key={r} kind="relic" id={r} />
       ))}
     </section>
   );

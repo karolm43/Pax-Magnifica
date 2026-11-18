@@ -723,6 +723,7 @@ def move_ships(
     base_type: str,
     count: int,
     player_id: str,
+    ion_storm_token: bool | None = None,
 ) -> GameState:
     """Wykonuje legalny ruch ``count`` statków ``base_type`` ze źródła do aktywnego systemu.
 
@@ -766,7 +767,7 @@ def move_ships(
     unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
     new_state.tactical_moved = True
-    ion_storm.note_move(new_state, grid, registry, from_pos, active)
+    ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx)
     return new_state
 
@@ -1081,8 +1082,12 @@ def move_fleet(
     tempesta: bool = False,
     imperator: bool = False,
     route: list[str] | None = None,
+    ion_storm_token: bool | None = None,
 ) -> GameState:
     """Ruch FLOTY (statki + ładunek) ze źródła do aktywnego systemu — RULES.md 32.3.
+
+    ``ion_storm_token`` = wybór gracza, którego wormholu używa przy Ion Storm w systemie
+    z własnym wormholem tego typu (``ion_storm.choice_needed``; C_exploration_cards).
 
     ``route`` = trasa wybrana przez gracza (systemy od źródła do aktywnego). Bez niej statki
     jadą najkrótszą legalną trasą, a ładunek wolno zabrać tylko ze źródła. Z trasą ładunek
@@ -1320,7 +1325,7 @@ def move_fleet(
     # Pierwszy ruch w akcji zamyka okno „po aktywacji systemu" kart reakcji i otwiera okno
     # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``.
     new_state.tactical_moved = True
-    ion_storm.note_move(new_state, grid, registry, from_pos, active)
+    ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     if ships:
         moved_ctx = {
             "player": player_id, "position": active, "from": from_pos,

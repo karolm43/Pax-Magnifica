@@ -106,3 +106,4 @@ Czytaj WYŁĄCZNIE plik potrzebnej sekcji. Nową regułę dopisuj do pliku jej s
 | 63 | [Pusta rezerwa → jednostka z planszy; audyt rulingów C_/F_ (2026-11-15)](rules/R63.md) | 52 |
 | 64 | [Kluczowe momenty gry — animacje dla wszystkich, efekty bohaterów na planszy, przejścia faz (2026-11-16)](rules/R64.md) | 58 |
 | 65 | [Bot AI — zasady projektowe warstwy decyzyjnej (jedna ścieżka reguł, informacja, obliczenia lokalne, budżet) (2026-11-16)](rules/R65.md) | 57 |
+| 66 | [Eliminacja gracza — warunki, moment sprawdzenia, skutki (2026-11-18)](rules/R66.md) | 39 |

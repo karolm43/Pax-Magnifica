@@ -704,6 +704,9 @@ class MoveShipsRequest(BaseModel):
     imperator: bool = False
     # Trasa wybrana przez gracza: systemy od źródła do aktywnego (None = najkrótsza legalna).
     route: list[str] | None = None
+    # Ion Storm w systemie z własnym wormholem tego typu: True = przez żeton (obraca się),
+    # False = przez własny wormhole systemu. Wymagane tylko wtedy (``ionStormChoice`` w podglądzie).
+    ion_storm_token: bool | None = Field(default=None, alias="ionStormToken")
 
 
 class MoveRouteShip(BaseModel):
@@ -755,6 +758,9 @@ class MoveRouteResponse(BaseModel):
     rift_rolls: bool = Field(default=True, alias="riftRolls")
     # Premie +1 do ruchu, które gracz może teraz włączyć (gravity_drive / tempesta).
     bonuses: list[str] = Field(default_factory=list)
+    # Trasa przechodzi przez Ion Storm w systemie z własnym wormholem tego typu: gracz wybiera,
+    # którego wormholu używa (``ionStormToken`` w ruchu). Pozycja systemu z żetonem albo None.
+    ion_storm_choice: str | None = Field(default=None, alias="ionStormChoice")
 
 
 class MoveRangeResponse(BaseModel):
@@ -1301,6 +1307,8 @@ class RetreatOptionView(BaseModel):
 
     position: str
     system_id: str = Field(serialization_alias="systemId")
+    # Odwrót przez Ion Storm w systemie z własnym wormholem tego typu: gracz wybiera wormhole.
+    ion_storm_choice: bool = Field(default=False, serialization_alias="ionStormChoice")
 
 
 class BattleRelicToolView(BaseModel):
@@ -1413,6 +1421,8 @@ class BattleRetreatRequest(BaseModel):
     destination: str
     cargo: list[RetreatCargoItem] | None = None
     token_pool: str | None = Field(default=None, alias="tokenPool")
+    # Odwrót przez Ion Storm w systemie z własnym wormholem tego typu (jak w ruchu).
+    ion_storm_token: bool | None = Field(default=None, alias="ionStormToken")
 
 
 class BattleStartRequest(BaseModel):
@@ -1556,6 +1566,10 @@ class TransactionTableView(BaseModel):
     # Umowa Trade: komponenty z wash przejdą po uzupełnieniu (sąsiad / Guild Ships).
     deal_components: bool = Field(False, serialization_alias="dealComponents")
     prefilled: bool = False
+    # Moje relikty, które wolno teraz położyć (Black Market Dealings albo The Silver Flame).
+    tradable_relics: list[str] = Field(
+        default_factory=list, serialization_alias="tradableRelics"
+    )
 
 
 class TransactionPartnerView(BaseModel):

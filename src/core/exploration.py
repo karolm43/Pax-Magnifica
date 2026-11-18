@@ -203,8 +203,13 @@ def reveal_fragments(
             relic_fragments.gain(state, player_id, card_id)
         else:
             rest.append(card_id)
-    state.decks.exploration_discard.setdefault(deck, []).extend(rest)
+    discard_cards(state, deck, rest)
     return revealed
+
+
+def discard_cards(state: GameState, deck: str, card_ids: list[str]) -> None:
+    """Karty eksploracji na stos odrzuconych talii ``deck`` (np. fragmenty wyeliminowanego)."""
+    state.decks.exploration_discard.setdefault(deck, []).extend(card_ids)
 
 
 def bound_registry() -> StaticDataRegistry:
